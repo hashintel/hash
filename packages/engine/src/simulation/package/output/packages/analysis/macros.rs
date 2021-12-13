@@ -159,7 +159,7 @@ macro_rules! apply_index_filter_f64 {
                             .map($comparison)
                             .unwrap_or($default)
                     }));
-                    Ok(next(this_filter)?)
+                    next(this_filter)
                 },
             ))
         }))
@@ -199,7 +199,7 @@ macro_rules! apply_index_filter_str {
                             .map($comparison)
                             .unwrap_or($default)
                     }));
-                    Ok(next(this_filter)?)
+                    next(this_filter)
                 },
             ))
         }))
@@ -239,7 +239,7 @@ macro_rules! apply_index_filter_serialized_json_str {
                             .map($comparison)
                             .unwrap_or($default)
                     }));
-                    Ok(next(this_filter)?)
+                    next(this_filter)
                 },
             ))
         }))
@@ -269,7 +269,7 @@ macro_rules! apply_index_filter_serialized_json {
                             .map($comparison)
                             .unwrap_or($default)
                     }));
-                    Ok(next(this_filter)?)
+                    next(this_filter)
                 },
             ))
         }))
@@ -298,7 +298,7 @@ macro_rules! apply_index_filter_null {
                         let $exists = mut_exists_iter.next().unwrap();
                         $comparison
                     }));
-                    Ok(next(this_filter)?)
+                    next(this_filter)
                 },
             ))
         }))
@@ -330,7 +330,7 @@ macro_rules! apply_index_filter_bool {
                             .map($comparison)
                             .unwrap_or($default)
                     }));
-                    Ok(next(this_filter)?)
+                    next(this_filter)
                 },
             ))
         }))

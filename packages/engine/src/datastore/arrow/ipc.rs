@@ -464,7 +464,7 @@ pub(crate) fn read_record_batch(
         let triple = create_array(
             field_nodes,
             field.data_type(),
-            &buf,
+            buf,
             buffers,
             dictionaries,
             node_index,
@@ -715,8 +715,8 @@ pub fn simulate_record_batch_to_bytes<'fbb>(
 // ADD
 fn simulate_write_array_data(
     array_data: &ArrayDataRef,
-    mut buffers: &mut Vec<ipc::Buffer>,
-    mut nodes: &mut Vec<ipc::FieldNode>,
+    buffers: &mut Vec<ipc::Buffer>,
+    nodes: &mut Vec<ipc::FieldNode>,
     offset: i64,
     num_rows: usize,
     null_count: usize,
@@ -729,10 +729,10 @@ fn simulate_write_array_data(
         Some(buffer) => buffer.len(),
     };
 
-    offset = simulate_write_buffer(null_buffer_len, &mut buffers, offset);
+    offset = simulate_write_buffer(null_buffer_len, buffers, offset);
 
     array_data.buffers().iter().for_each(|buffer| {
-        offset = simulate_write_buffer(buffer.len(), &mut buffers, offset);
+        offset = simulate_write_buffer(buffer.len(), buffers, offset);
     });
 
     // recursively write out nested structures
@@ -743,8 +743,8 @@ fn simulate_write_array_data(
         // write the nested data (e.g list data)
         offset = simulate_write_array_data(
             data_ref,
-            &mut buffers,
-            &mut nodes,
+            buffers,
+            nodes,
             offset,
             data_ref.len(),
             data_ref.null_count(),
@@ -808,9 +808,9 @@ fn write_array_data_owned(
 /// Write array data to a vector of bytes
 fn write_array_data(
     array_data: &ArrayDataRef,
-    mut buffers: &mut Vec<ipc::Buffer>,
-    mut arrow_data: &mut Vec<u8>,
-    mut nodes: &mut Vec<ipc::FieldNode>,
+    buffers: &mut Vec<ipc::Buffer>,
+    arrow_data: &mut Vec<u8>,
+    nodes: &mut Vec<ipc::FieldNode>,
     offset: i64,
     num_rows: usize,
     null_count: usize,
@@ -830,10 +830,10 @@ fn write_array_data(
         }
         Some(buffer) => buffer.clone(),
     };
-    offset = write_buffer(&null_buffer, &mut buffers, &mut arrow_data, offset);
+    offset = write_buffer(&null_buffer, buffers, arrow_data, offset);
 
     array_data.buffers().iter().for_each(|buffer| {
-        offset = write_buffer(buffer, &mut buffers, &mut arrow_data, offset);
+        offset = write_buffer(buffer, buffers, arrow_data, offset);
     });
 
     // recursively write out nested structures
@@ -844,9 +844,9 @@ fn write_array_data(
         // write the nested data (e.g list data)
         offset = write_array_data(
             data_ref,
-            &mut buffers,
-            &mut arrow_data,
-            &mut nodes,
+            buffers,
+            arrow_data,
+            nodes,
             offset,
             data_ref.len(),
             data_ref.null_count(),
@@ -860,9 +860,9 @@ fn write_array_data(
 /// Write array data to a vector of bytes
 fn write_static_array_data(
     array_data: &ArrayDataRef,
-    mut buffers: &mut Vec<ipc::Buffer>,
-    mut arrow_data: &mut Vec<u8>,
-    mut nodes: &mut Vec<ipc::FieldNode>,
+    buffers: &mut Vec<ipc::Buffer>,
+    arrow_data: &mut Vec<u8>,
+    nodes: &mut Vec<ipc::FieldNode>,
     offset: i64,
     num_rows: usize,
     null_count: usize,
@@ -882,10 +882,10 @@ fn write_static_array_data(
         }
         Some(buffer) => buffer.clone(),
     };
-    offset = write_static_buffer(&null_buffer, &mut buffers, &mut arrow_data, offset);
+    offset = write_static_buffer(&null_buffer, buffers, arrow_data, offset);
 
     array_data.buffers().iter().for_each(|buffer| {
-        offset = write_static_buffer(buffer, &mut buffers, &mut arrow_data, offset);
+        offset = write_static_buffer(buffer, buffers, arrow_data, offset);
     });
 
     // recursively write out nested structures
@@ -896,9 +896,9 @@ fn write_static_array_data(
         // write the nested data (e.g list data)
         offset = write_static_array_data(
             data_ref,
-            &mut buffers,
-            &mut arrow_data,
-            &mut nodes,
+            buffers,
+            arrow_data,
+            nodes,
             offset,
             data_ref.len(),
             data_ref.null_count(),

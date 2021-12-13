@@ -24,6 +24,6 @@ impl SimulationRuns {
     pub fn get_worker_allocation(&self, id: SimulationShortId) -> Result<&WorkerAllocation> {
         self.worker_allocations
             .get(&id)
-            .ok_or_else(|| Error::MissingSimulationWithId(id))
+            .ok_or(Error::MissingSimulationWithId(id))
     }
 }

@@ -107,12 +107,10 @@ impl FieldType {
                     Ok(FieldType::new(FieldTypeVariant::AnyType, is_nullable))
                 }
                 _ => {
-                    if let Some(ref key) = definitions.and_then(|defs| defs.get(name)) {
+                    if let Some(key) = definitions.and_then(|defs| defs.get(name)) {
                         Ok(key.field_type.clone())
                     } else {
-                        return Err(
-                            ShortJsonError::InvalidFieldType(ExpectedFieldType::String).into()
-                        );
+                        Err(ShortJsonError::InvalidFieldType(ExpectedFieldType::String).into())
                     }
                 }
             }

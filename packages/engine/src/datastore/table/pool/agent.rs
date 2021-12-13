@@ -46,6 +46,10 @@ impl AgentPool {
         self.batches().len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn get_batch_at_index(
         &self,
         index: usize,

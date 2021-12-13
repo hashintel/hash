@@ -100,7 +100,7 @@ impl WorkerPoolController {
             .ok_or_else(|| Error::from("missing worker base config"))?;
         self.worker_controllers = Some(
             try_join_all(worker_comms.into_iter().map(|comms| {
-                let init = ExperimentInitRunnerMsg::new(&exp_init_base, comms.index().clone());
+                let init = ExperimentInitRunnerMsg::new(&exp_init_base, *comms.index());
                 WorkerController::spawn(worker_base_config.clone(), comms, init)
             }))
             .await
@@ -120,7 +120,7 @@ impl WorkerPoolController {
         let worker_controllers = self
             .worker_controllers
             .take()
-            .ok_or_else(|| Error::MissingWorkerControllers)?;
+            .ok_or(Error::MissingWorkerControllers)?;
 
         let futs = worker_controllers
             .into_iter()
@@ -134,7 +134,7 @@ impl WorkerPoolController {
                 .into_iter()
                 .collect::<Result<_>>()
         });
-        return Ok(fut);
+        Ok(fut)
     }
 
     pub async fn run(mut self) -> Result<()> {
@@ -225,12 +225,12 @@ impl WorkerPoolController {
     ) -> Result<()> {
         match worker_msg {
             WorkerToWorkerPoolMsg::TaskResultOrCancelled(res) => {
-                let task_id = res.task_id.clone();
+                let task_id = res.task_id;
                 let pending_task = self
                     .pending_tasks
                     .inner
                     .get_mut(&res.task_id)
-                    .ok_or_else(|| Error::MissingPendingTask(task_id))?;
+                    .ok_or(Error::MissingPendingTask(task_id))?;
                 if pending_task.handle_result_or_cancel(Worker::new(worker), res)? {
                     // Remove pending task because it has terminated (completed OR cancelled)
                     // Unwrap must work, since we've checked the key exists in the hashmap
@@ -326,9 +326,9 @@ impl WorkerPoolController {
                     .ok_or_else(|| Error::from("Unexpected: No Workers"))?;
                 // Pass the task to the worker controller, don't keep a local copy
                 (
-                    vec![(worker.clone(), task, shared_store)],
+                    vec![(*worker, task, shared_store)],
                     DistributionController::Single {
-                        active_worker: worker.clone(),
+                        active_worker: *worker,
                     },
                 )
             };

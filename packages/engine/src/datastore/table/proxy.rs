@@ -35,7 +35,7 @@ impl<K: Batch> BatchReadProxy<K> {
     /// acts as a guarantee of no write locks
     /// existing, then data races stemming from the dereferencing
     /// happening within this method cannot happen
-    pub fn inner<'s>(&'s self) -> &'s K {
+    pub fn inner(&self) -> &K {
         let ptr = self.arc.data_ptr();
         unsafe { &*ptr }
     }
@@ -80,7 +80,7 @@ impl<K: Batch> BatchWriteProxy<K> {
     /// acts as a guarantee of no other read/write locks
     /// existing, then data races stemming from the dereferencing
     /// happening within this method cannot happen
-    pub fn inner_mut<'s>(&'s mut self) -> &'s mut K {
+    pub fn inner_mut(&mut self) -> &mut K {
         let ptr = self.arc.data_ptr();
         unsafe { &mut *ptr }
     }
@@ -92,7 +92,7 @@ impl<K: Batch> BatchWriteProxy<K> {
     /// acts as a guarantee of no other read/write locks
     /// existing, then data races stemming from the dereferencing
     /// happening within this method cannot happen
-    pub fn inner<'s>(&'s self) -> &'s K {
+    pub fn inner(&self) -> &K {
         let ptr = self.arc.data_ptr();
         unsafe { &*ptr }
     }

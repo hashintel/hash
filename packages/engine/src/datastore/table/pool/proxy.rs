@@ -17,7 +17,7 @@ pub struct PoolReadProxy<K: Batch> {
 impl<K: Batch> Clone for PoolReadProxy<K> {
     fn clone(&self) -> Self {
         Self {
-            batches: self.batches.iter().map(|batch| batch.clone()).collect(),
+            batches: self.batches.to_vec(),
         }
     }
 }

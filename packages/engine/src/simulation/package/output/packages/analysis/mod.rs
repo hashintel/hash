@@ -89,19 +89,16 @@ impl Package for Analysis {
     }
 }
 
-pub(self) fn get_analysis_source(sim_packages: &Vec<SimPackageArgs>) -> Result<String> {
+pub(self) fn get_analysis_source(sim_packages: &[SimPackageArgs]) -> Result<String> {
     for args in sim_packages.iter() {
-        match args.name.as_str() {
-            "analysis" => {
-                // We currently assume that every analysis source is identical within the
-                // simulation runs of an experiment run.
-                if let Some(src) = args.data.as_str() {
-                    return Ok(src.to_string());
-                } else {
-                    return Err(Error::from("Analysis source must be a string"));
-                }
+        if args.name.as_str() == "analysis" {
+            // We currently assume that every analysis source is identical within the
+            // simulation runs of an experiment run.
+            if let Some(src) = args.data.as_str() {
+                return Ok(src.to_string());
+            } else {
+                return Err(Error::from("Analysis source must be a string"));
             }
-            _ => (),
         }
     }
     Err(Error::from("Did not find analysis source"))

@@ -67,19 +67,16 @@ impl<'a> MigrationPlan<'a> {
             .enumerate()
             .rev()
             .try_for_each::<_, Result<()>>(|(batch_index, action)| {
-                match action {
-                    ExistingGroupBufferActions::Remove => {
-                        // Removing in tandem to keep similarly sized batches together
-                        removed_ids.push(
-                            mut_batches
-                                .swap_remove(batch_index)
-                                .try_read()
-                                .ok_or_else(|| Error::from("failed to get read lock for batch"))?
-                                .get_batch_id()
-                                .to_string(),
-                        );
-                    }
-                    _ => (),
+                if let ExistingGroupBufferActions::Remove = action {
+                    // Removing in tandem to keep similarly sized batches together
+                    removed_ids.push(
+                        mut_batches
+                            .swap_remove(batch_index)
+                            .try_read()
+                            .ok_or_else(|| Error::from("failed to get read lock for batch"))?
+                            .get_batch_id()
+                            .to_string(),
+                    );
                 }
                 Ok(())
             })?;

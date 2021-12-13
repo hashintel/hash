@@ -82,7 +82,7 @@ impl WorkerController {
         Ok(WorkerController {
             py: PythonRunner::new(python, exp_init.clone())?,
             js: JavaScriptRunner::new(javascript, exp_init.clone())?,
-            rs: RustRunner::new(rust, exp_init.clone())?,
+            rs: RustRunner::new(rust, exp_init)?,
             _config: config,
             worker_pool_comms,
             tasks: PendingWorkerTasks::default(),
@@ -118,12 +118,7 @@ impl WorkerController {
         let mut terminate_recv = self
             .worker_pool_comms
             .take_terminate_recv()
-            .map_err(|err| {
-                Error::from(format!(
-                    "Failed to take terminate_recv: {}",
-                    err.to_string()
-                ))
-            })?;
+            .map_err(|err| Error::from(format!("Failed to take terminate_recv: {err}")))?;
         loop {
             tokio::select! {
                 Some(msg) = wp_recv.recv() => {
@@ -145,6 +140,7 @@ impl WorkerController {
                             // runner_futs.push(timeout(duration, py_handle));
                             runner_futs.push(timeout(duration, js_handle));
                             let timeout_results: Vec<_> = runner_futs.collect().await;
+                            #[allow(clippy::manual_flatten)]
                             for timeout_result in timeout_results {
                                 // If any of the runners exited with an error,
                                 // return that error instead of `recv_err`.
@@ -152,7 +148,7 @@ impl WorkerController {
                                     // Runner finished -- didn't time out
                                     match runner_result {
                                         Err(e) => return Err(e.into()),
-                                        Ok(Err(e)) => return Err(e.into()),
+                                        Ok(Err(e)) => return Err(e),
                                         Ok(Ok(_)) => {}
                                     }
                                 }
@@ -229,22 +225,25 @@ impl WorkerController {
                         self.rs
                             .send(Some(sim_id), InboundToRunnerMsgPayload::TaskMsg(task.msg))
                             .await?;
-                        pending_task
-                            .map(|pending_task| pending_task.active_runner = Language::Rust);
+                        if let Some(pending_task) = pending_task {
+                            pending_task.active_runner = Language::Rust;
+                        }
                     }
                     Python => {
                         self.py
                             .send(Some(sim_id), InboundToRunnerMsgPayload::TaskMsg(task.msg))
                             .await?;
-                        pending_task
-                            .map(|pending_task| pending_task.active_runner = Language::Python);
+                        if let Some(pending_task) = pending_task {
+                            pending_task.active_runner = Language::Python;
+                        }
                     }
                     JavaScript => {
                         self.js
                             .send(Some(sim_id), InboundToRunnerMsgPayload::TaskMsg(task.msg))
                             .await?;
-                        pending_task
-                            .map(|pending_task| pending_task.active_runner = Language::JavaScript);
+                        if let Some(pending_task) = pending_task {
+                            pending_task.active_runner = Language::JavaScript;
+                        }
                     }
                     Dynamic => {
                         self.run_task_handler_on_outbound(sim_id, task.msg, msg.source)
@@ -495,10 +494,9 @@ impl WorkerController {
     }
 
     async fn cancel_task(&mut self, task_id: TaskId) -> Result<()> {
-        self.tasks
-            .inner
-            .get_mut(&task_id)
-            .map(|task| task.cancelling = CancelState::Active(vec![task.active_runner])); // TODO: Or `CancelState::None`?
+        if let Some(task) = self.tasks.inner.get_mut(&task_id) {
+            task.cancelling = CancelState::Active(vec![task.active_runner]); // TODO: Or `CancelState::None`?
+        }
         tokio::try_join!(
             self.py
                 .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id)),

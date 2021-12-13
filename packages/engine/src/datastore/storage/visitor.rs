@@ -116,7 +116,7 @@ impl<'mem: 'v, 'v> Visit<'mem, 'v> for Visitor<'mem> {
     }
 
     fn markers(&self) -> &Markers {
-        &self.markers
+        self.markers
     }
 }
 
@@ -139,7 +139,7 @@ impl<'mem: 'v, 'v> Visit<'mem, 'v> for VisitorMut<'mem> {
     }
 
     fn markers(&self) -> &Markers {
-        &self.markers
+        self.markers
     }
 }
 
@@ -155,13 +155,13 @@ impl<'mem: 'v, 'v> VisitorMut<'mem> {
 
     pub fn resize(&mut self, size: usize) -> Result<()> {
         self.memory.resize(size)?;
-        self.ptr = MemoryPtr::from_memory(&self.memory);
+        self.ptr = MemoryPtr::from_memory(self.memory);
         self.markers = Markers::new_mut(&self.ptr);
         Ok(())
     }
 
     pub fn markers_mut(&mut self) -> &mut Markers {
-        &mut self.markers
+        self.markers
     }
 
     pub fn set_data_length(&mut self, size: usize) -> Result<BufferChange> {
@@ -180,7 +180,7 @@ impl<'mem: 'v, 'v> VisitorMut<'mem> {
         let total_size = markers.get_total_contents_size();
 
         self.memory.resize(total_size)?;
-        self.ptr = MemoryPtr::from_memory(&self.memory);
+        self.ptr = MemoryPtr::from_memory(self.memory);
         Ok(BufferChange(false, true))
     }
 
@@ -250,21 +250,21 @@ impl<'mem: 'v, 'v> VisitorMut<'mem> {
 
     pub fn write_buffer_unchecked(&mut self, buffer: Buffer, bytes: &[u8]) {
         let continuation = Self::maybe_continuation(&buffer);
-        self[buffer][continuation..continuation + bytes.len()].copy_from_slice(&bytes);
+        self[buffer][continuation..continuation + bytes.len()].copy_from_slice(bytes);
     }
 
     pub fn write_buffer(&mut self, buffer: Buffer, bytes: &[u8]) -> Result<BufferChange> {
         let continuation = Self::maybe_continuation(&buffer);
         let total_size = continuation + bytes.len();
         let res = self.prepare_buffer_write(&buffer, total_size)?;
-        self[buffer][continuation..total_size].copy_from_slice(&bytes);
+        self[buffer][continuation..total_size].copy_from_slice(bytes);
         Ok(res)
     }
 
     fn prepare_buffer_write(&mut self, buffer: &Buffer, num_bytes: usize) -> Result<BufferChange> {
         let cur_accommodation_size = self
             .markers()
-            .buffer_can_be_extended_to(&buffer, self.memory.size);
+            .buffer_can_be_extended_to(buffer, self.memory.size);
 
         let shifted = cur_accommodation_size < num_bytes;
 
@@ -274,7 +274,7 @@ impl<'mem: 'v, 'v> VisitorMut<'mem> {
 
             let old_markers = self.markers().clone();
             self.markers_mut()
-                .extend_buffer_with_shift(&buffer, num_bytes);
+                .extend_buffer_with_shift(buffer, num_bytes);
 
             let min_size = self.markers().get_total_contents_size();
             resized = min_size > self.memory.size;

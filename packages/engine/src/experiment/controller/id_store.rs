@@ -65,7 +65,7 @@ impl SimIdStore {
         return if let Some(senders_or_id) = value {
             match senders_or_id {
                 SendersOrId::Senders(senders) => {
-                    let senders = std::mem::replace(senders, vec![]);
+                    let senders = std::mem::take(senders);
                     for sender in senders {
                         sender.send(registered_id.clone())?;
                     }

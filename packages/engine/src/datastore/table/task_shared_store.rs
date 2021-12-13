@@ -154,10 +154,10 @@ fn distribute_batches<A, M>(
     let num_workers = worker_list.len();
     let mut agent_distribution = Vec::with_capacity(num_workers);
     let mut stores = Vec::with_capacity(num_workers);
-    for i_worker in 0..num_workers {
+    worker_list.iter().for_each(|worker| {
         agent_distribution.push(0);
-        stores.push((worker_list[i_worker], vec![], vec![], vec![]));
-    }
+        stores.push((*worker, vec![], vec![], vec![]));
+    });
 
     // Distribute batches.
     let iter = agent_batches
@@ -232,13 +232,10 @@ impl TaskSharedStore {
                     let indices = (0..state.agent_pool().n_batches()).collect();
                     (state.deconstruct(), indices)
                 }
-                SharedState::Partial(partial) => match partial {
-                    PartialSharedState::Write(partial) => {
-                        let (state, indices) = (partial.inner, partial.indices);
-                        (state.deconstruct(), indices)
-                    }
-                    _ => unreachable!(),
-                },
+                SharedState::Partial(PartialSharedState::Write(partial)) => {
+                    let (state, indices) = (partial.inner, partial.indices);
+                    (state.deconstruct(), indices)
+                }
                 _ => unreachable!(),
             };
             let group_sizes = agent_batches
@@ -278,13 +275,10 @@ impl TaskSharedStore {
                     let indices = (0..state.agent_pool().n_batches()).collect();
                     (state.deconstruct(), indices)
                 }
-                SharedState::Partial(partial) => match partial {
-                    PartialSharedState::Read(partial) => {
-                        let (state, indices) = (partial.inner, partial.indices);
-                        (state.deconstruct(), indices)
-                    }
-                    _ => unreachable!(),
-                },
+                SharedState::Partial(PartialSharedState::Read(partial)) => {
+                    let (state, indices) = (partial.inner, partial.indices);
+                    (state.deconstruct(), indices)
+                }
                 _ => unreachable!(),
             };
             let group_sizes = agent_batches
@@ -319,7 +313,7 @@ impl TaskSharedStore {
             // Give every worker the same access.
             let stores = worker_list
                 .iter()
-                .map(|worker| Ok((worker.clone(), self.try_clone()?)))
+                .map(|worker| Ok((*worker, self.try_clone()?)))
                 .collect::<Result<_>>()?;
 
             let num_workers = worker_list.len();

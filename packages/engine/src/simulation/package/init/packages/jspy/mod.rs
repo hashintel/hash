@@ -106,10 +106,7 @@ impl InitPackage for Package {
                     e
                 ))
             }),
-            Err(err) => Err(Error::from(format!(
-                "Init Task failed: {}",
-                err.to_string()
-            ))),
+            Err(err) => Err(Error::from(format!("Init Task failed: {err}"))),
         }
     }
 }

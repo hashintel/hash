@@ -162,7 +162,7 @@ impl ExState {
             |batch_index| {
                 let dynamic_batch = &dynamic_pool[batch_index];
                 let static_batch = &mut static_pool[batch_index];
-                static_batch.sync(&dynamic_batch)?;
+                static_batch.sync(dynamic_batch)?;
                 Ok(())
             },
         )?;
@@ -170,6 +170,7 @@ impl ExState {
         drop(static_pool); // Release RwLock write access.
         let static_pool = context.inner_mut().agent_pool_mut().mut_batches();
 
+        #[allow(clippy::comparison_chain)]
         if dynamic_pool.len() > static_pool.len() {
             // Add more static batches
             dynamic_pool[static_pool.len()..dynamic_pool.len()]
@@ -232,7 +233,7 @@ impl ExState {
         let mut planner = CreateRemovePlanner::new(commands, config.clone())?;
         let plan = planner.run(self)?;
         *self.num_agents_mut() = plan.num_agents_after_execution;
-        let removed_ids = plan.execute(self.agent_pool_mut(), &config)?;
+        let removed_ids = plan.execute(self.agent_pool_mut(), config)?;
 
         // Register all batches that were removed
         removed_ids
@@ -260,6 +261,7 @@ impl ReadState for ExState {
         &self.global_meta
     }
 }
+
 impl WriteState for ExState {
     fn inner_mut(&mut self) -> &mut Inner {
         &mut self.inner

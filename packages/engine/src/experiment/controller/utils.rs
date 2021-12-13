@@ -8,15 +8,13 @@ pub fn parse_range(range: &str) -> Option<(f64, f64)> {
     if let Some(captures) = range_pat.captures(range) {
         let start_match = captures.get(1).map(|m| m.as_str());
         let end_match = captures.get(2).map(|m| m.as_str());
-        if !start_match.is_none() && !end_match.is_none() {
-            let start = start_match.unwrap().parse();
-            let end = end_match.unwrap().parse();
-            if !start.is_err() && !end.is_err() {
-                return Some((start.unwrap(), end.unwrap()));
+        if let (Some(start), Some(end)) = (start_match, end_match) {
+            if let (Ok(start), Ok(end)) = (start.parse(), end.parse()) {
+                return Some((start, end));
             }
         }
     }
-    return None;
+    None
 }
 
 #[cfg(test)]

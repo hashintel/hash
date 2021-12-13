@@ -173,9 +173,9 @@ impl From<[f64; 3]> for Vec3 {
     }
 }
 
-impl Into<[f64; 3]> for Vec3 {
-    fn into(self) -> [f64; 3] {
-        [self.0, self.1, self.2]
+impl From<Vec3> for [f64; 3] {
+    fn from(v: Vec3) -> Self {
+        [v.0, v.1, v.2]
     }
 }
 

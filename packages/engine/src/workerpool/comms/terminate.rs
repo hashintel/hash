@@ -32,7 +32,7 @@ impl TerminateRecv {
         let confirm = self
             .confirm
             .take()
-            .ok_or_else(|| Error::TerminateConfirmAlreadySent)?;
+            .ok_or(Error::TerminateConfirmAlreadySent)?;
         confirm
             .send(())
             .map_err(|_| Error::from("Couldn't send terminate confirm"))?;
@@ -50,7 +50,7 @@ impl TerminateSend {
         let sender = self
             .inner
             .take()
-            .ok_or_else(|| Error::TerminateMessageAlreadySent)?;
+            .ok_or(Error::TerminateMessageAlreadySent)?;
         sender
             .send(TerminateMessage {})
             .map_err(|_| Error::from("Couldn't send terminate message"))?;
@@ -84,7 +84,7 @@ impl TerminateSend {
             Ok(res) => res?,
             Err(_) => return Ok(false),
         }
-        return Ok(true);
+        Ok(true)
     }
 }
 

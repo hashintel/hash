@@ -26,7 +26,7 @@ impl OutputPersistenceCreatorRepr for LocalOutputPersistence {
     ) -> Result<Self::SimulationOutputPersistence> {
         let buffers = Buffers::new(
             self.exp_id.clone(),
-            sim_id.clone(),
+            sim_id,
             &persistence_config.output_config,
         )?;
         Ok(LocalSimulationOutputPersistence::new(

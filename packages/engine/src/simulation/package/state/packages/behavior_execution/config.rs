@@ -14,7 +14,8 @@ pub struct BehaviorDescription {
     pub short_names: Vec<String>,
     pub source: String,
     pub required_field_keys: Vec<String>,
-    pub language: Language, // serde serialized to "Python", "JavaScript" or "Rust"
+    pub language: Language,
+    // serde serialized to "Python", "JavaScript" or "Rust"
     pub dyn_access: bool,
 }
 
@@ -113,12 +114,11 @@ pub fn exp_init_message(
             let id = behavior_ids
                 .name_to_index
                 .get(shared.name.as_bytes())
-                .ok_or(Error::from("Couldn't get index from behavior name"))?
-                .clone();
+                .ok_or_else(|| Error::from("Couldn't get index from behavior name"))?;
             let source = shared
                 .behavior_src
                 .clone()
-                .ok_or(Error::from("SharedBehavior didn't have an attached source"))?;
+                .ok_or_else(|| Error::from("SharedBehavior didn't have an attached source"))?;
             let required_field_keys = keys
                 .inner
                 .iter()
@@ -126,12 +126,12 @@ pub fn exp_init_message(
                 .chain(
                     keys.built_in_key_use
                         .iter()
-                        .flat_map(|keys| keys.into_iter().cloned()),
+                        .flat_map(|keys| keys.iter().cloned()),
                 )
                 .collect::<Vec<_>>();
 
             Ok(BehaviorDescription {
-                id,
+                id: *id,
                 name: shared.name.to_string(),
                 short_names: shared.shortnames.clone(),
                 source,

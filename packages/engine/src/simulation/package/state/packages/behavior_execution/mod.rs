@@ -30,6 +30,7 @@ use crate::{
 };
 
 pub const BEHAVIOR_INDEX_INNER_COUNT: usize = 2;
+
 pub type BehaviorIdInnerDataType = u16;
 pub type BehaviorIndexInnerDataType = f64;
 
@@ -40,17 +41,21 @@ pub struct Creator {
 
 impl Creator {
     fn get_behavior_ids(&self) -> Result<&Arc<BehaviorIds>> {
-        Ok(self.behavior_ids.as_ref().ok_or(Error::from(
-            "BehaviorExecution Package Creator didn't have behavior ids, maybe \
-             `initialize_for_experiment` wasn't called.",
-        ))?)
+        self.behavior_ids.as_ref().ok_or_else(|| {
+            Error::from(
+                "BehaviorExecution Package Creator didn't have behavior ids, maybe \
+                 `initialize_for_experiment` wasn't called.",
+            )
+        })
     }
 
     fn get_behavior_map(&self) -> Result<&Arc<BehaviorMap>> {
-        Ok(self.behavior_map.as_ref().ok_or(Error::from(
-            "BehaviorExecution Package Creator didn't have behavior map, maybe \
-             `initialize_for_experiment` wasn't called.",
-        ))?)
+        self.behavior_map.as_ref().ok_or_else(|| {
+            Error::from(
+                "BehaviorExecution Package Creator didn't have behavior map, maybe \
+                 `initialize_for_experiment` wasn't called.",
+            )
+        })
     }
 }
 
@@ -120,7 +125,7 @@ impl PackageCreator for Creator {
         _globals: &Globals,
         field_spec_creator: &RootFieldSpecCreator,
     ) -> Result<Vec<RootFieldSpec>> {
-        Ok(fields::get_state_field_specs(config, field_spec_creator)?)
+        fields::get_state_field_specs(config, field_spec_creator)
     }
 }
 
@@ -167,7 +172,7 @@ impl BehaviorExecution {
     fn get_first_lang(&self, state: &ExState) -> Result<Option<Language>> {
         for batch in state.agent_pool().read_batches()? {
             for agent_behaviors in batch.behavior_list_bytes_iter()? {
-                if agent_behaviors.len() == 0 {
+                if agent_behaviors.is_empty() {
                     continue;
                 }
 
@@ -225,7 +230,8 @@ impl Package for BehaviorExecution {
         };
         log::trace!("Beginning BehaviorExecution task");
         let active_task = self.begin_execution(state, context, lang).await?;
-        let msg = active_task.drive_to_completion().await?; // Wait for results
+        let msg = active_task.drive_to_completion().await?;
+        // Wait for results
         // TODO: Get latest metaversions from message and reload state if necessary.
         log::trace!("BehaviorExecution task finished: {:?}", &msg);
         Ok(())

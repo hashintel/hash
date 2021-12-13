@@ -173,6 +173,6 @@ fn buffer_actions_from_pending_batch<'a>(
         batch.old_batch_index(),
         range_actions,
         &schema.static_meta,
-        inbound_agents.clone(),
+        *inbound_agents,
     )
 }

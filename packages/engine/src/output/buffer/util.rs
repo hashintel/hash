@@ -10,14 +10,10 @@ pub fn cleanup_experiment(experiment_id: &str) -> Result<()> {
     log::trace!("Cleaning up experiment: {}", experiment_id);
     let shm_files = glob::glob(&format!("/dev/shm/shm_{}_*", experiment_id))
         .map_err(|e| Error::Unique(format!("cleanup glob error: {}", e)))?;
-    for file in shm_files {
-        match file {
-            Ok(path) => {
-                std::fs::remove_file(&path).ok();
-            }
-            _ => (),
-        }
-    }
+
+    shm_files.filter_map(Result::ok).for_each(|path| {
+        let _ = std::fs::remove_file(&path);
+    });
 
     // TODO: We don't want to be deleting the parts files by default. We should figure out what to
     //   do with this.

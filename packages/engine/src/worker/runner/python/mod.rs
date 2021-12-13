@@ -124,7 +124,7 @@ async fn _run(
     cmd.arg("./src/worker/runner/python/run.sh")
         .arg(&init_msg.experiment_id)
         .arg(&init_msg.worker_index.to_string());
-    let _process = cmd.spawn().map_err(|e| Error::Spawn(e))?;
+    let _process = cmd.spawn().map_err(Error::Spawn)?;
     log::debug!("Started Python process {}", init_msg.worker_index);
 
     // Send init message to Python process.
@@ -148,10 +148,9 @@ async fn _run(
                         let (payload, wrapper) = msg.payload
                             .clone()
                             .extract_inner_msg_with_wrapper()
-                            .map_err(|e| {
+                            .map_err(|err| {
                                 Error::from(format!(
-                                    "Failed to extract the inner task message: {}",
-                                    e.to_string()
+                                    "Failed to extract the inner task message: {err}"
                                 ))
                             })?;
                         (Some(payload), Some(wrapper))
@@ -193,8 +192,7 @@ async fn _run(
                 );
                 let outbound = outbound.map_err(|err| {
                     Error::from(format!(
-                        "Failed to convert nng message to OutboundFromRunnerMsg: {}",
-                        err.to_string()
+                        "Failed to convert nng message to OutboundFromRunnerMsg: {err}"
                     ))
                 })?;
                 outbound_sender.send(outbound)?;

@@ -42,7 +42,8 @@ use crate::{
 };
 
 pub struct ExperimentController<P: OutputPersistenceCreatorRepr> {
-    _exp_config: Arc<ExperimentConfig>, // TODO: unused, remove?
+    _exp_config: Arc<ExperimentConfig>,
+    // TODO: unused, remove?
     exp_base_config: Arc<ExperimentConfig>,
     env: Environment,
     shared_store: Arc<SharedStore>,
@@ -66,11 +67,11 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
     async fn handle_orch_msg(&mut self, orch_msg: EngineMsg) -> Result<()> {
         match orch_msg {
             EngineMsg::Init(_) => Err(Error::from("Unexpected init message")),
-            EngineMsg::SimRegistered(short_id, registered_id) => self
-                .sim_id_store
-                .set_registered_id(short_id, registered_id)
-                .await
-                .into(),
+            EngineMsg::SimRegistered(short_id, registered_id) => {
+                self.sim_id_store
+                    .set_registered_id(short_id, registered_id)
+                    .await
+            }
         }
     }
 
@@ -97,7 +98,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
             .experiment_package_comms
             .step_update_sender
             .send(StepUpdate {
-                sim_id: status.sim_id.clone(),
+                sim_id: status.sim_id,
                 was_error: status.error.is_some(),
                 stop_signal: status.stop_signal,
             })
@@ -229,7 +230,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
             persistence_service,
             self.sim_status_send.clone(),
         )
-        .map_err(|e| SimulationError::from(e))?;
+        .map_err(SimulationError::from)?;
         let sim_sender = sim_controller.sender;
         self.add_sim_sender(sim_short_id, sim_sender)?;
         self.sim_run_tasks.new_run(sim_controller.task_handle);
@@ -334,6 +335,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
     pub fn new(
         exp_config: Arc<ExperimentConfig>,

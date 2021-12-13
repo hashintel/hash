@@ -42,7 +42,7 @@ impl InitPackages {
         // Execute packages in parallel and collect the data
         let mut futs = FuturesOrdered::new();
 
-        let pkgs = std::mem::replace(&mut self.inner, vec![]);
+        let pkgs = std::mem::take(&mut self.inner);
         let num_packages = pkgs.len();
 
         pkgs.into_iter().for_each(|mut package| {
@@ -126,11 +126,13 @@ impl StepPackages {
             .map(|arrow_field| {
                 keys_and_columns
                     .get(arrow_field.name())
-                    .ok_or(Error::from(format!(
-                        "Expected to find an arrow column for key: {}",
-                        arrow_field.name()
-                    )))
-                    .map(|arrow_array| Arc::clone(arrow_array))
+                    .ok_or_else(|| {
+                        Error::from(format!(
+                            "Expected to find an arrow column for key: {}",
+                            arrow_field.name()
+                        ))
+                    })
+                    .map(Arc::clone)
             })
             .collect::<Result<Vec<_>>>()?;
 
@@ -152,7 +154,7 @@ impl StepPackages {
         // Execute packages in parallel and collect the data
         let mut futs = FuturesOrdered::new();
 
-        let pkgs = std::mem::replace(&mut self.context, vec![]);
+        let pkgs = std::mem::take(&mut self.context);
         let num_packages = pkgs.len();
 
         let snapshot_arc = Arc::new(snapshot);
@@ -210,10 +212,12 @@ impl StepPackages {
             .map(|arrow_field| {
                 keys_and_column_writers
                     .get(arrow_field.name())
-                    .ok_or(Error::from(format!(
-                        "Expected to find a context column writer for key: {}",
-                        arrow_field.name()
-                    )))
+                    .ok_or_else(|| {
+                        Error::from(format!(
+                            "Expected to find a context column writer for key: {}",
+                            arrow_field.name()
+                        ))
+                    })
             })
             .collect::<Result<Vec<_>>>()?;
 
@@ -246,7 +250,7 @@ impl StepPackages {
         let mut futs = FuturesOrdered::new();
 
         let num_pkgs = self.output.len();
-        let pkgs = std::mem::replace(&mut self.output, vec![]);
+        let pkgs = std::mem::take(&mut self.output);
         pkgs.into_iter().for_each(|mut pkg| {
             let state = state.clone();
             let context = context.clone();
@@ -276,6 +280,6 @@ impl StepPackages {
         }
         self.output = pkgs;
 
-        return Ok(outputs);
+        Ok(outputs)
     }
 }

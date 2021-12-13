@@ -51,7 +51,7 @@ impl FetchDependencies for SharedDataset {
 #[async_trait]
 impl FetchDependencies for ExperimentRunRepr {
     async fn fetch_deps(&mut self) -> Result<()> {
-        let datasets = std::mem::replace(&mut self.base_mut().project_base.datasets, vec![]);
+        let datasets = std::mem::take(&mut self.base_mut().project_base.datasets);
 
         self.base_mut().project_base.datasets =
             futures::stream::iter(datasets.into_iter().map(|mut dataset| {
@@ -94,13 +94,13 @@ pub fn parse_raw_csv_into_json(contents: String) -> Result<String> {
             } else {
                 is_first_element = false;
             }
-            result.push_str("\"");
+            result.push('"');
             result.push_str(elem);
-            result.push_str("\"");
+            result.push('"');
         }
         result.push(']');
     }
 
     result.push(']');
-    return Ok(result);
+    Ok(result)
 }

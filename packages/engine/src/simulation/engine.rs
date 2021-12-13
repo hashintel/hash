@@ -198,7 +198,7 @@ impl Engine {
     /// and removes agents that have been requested by State packages.
     fn add_remove_agents(&mut self, state: &mut ExState, message_map: &MessageMap) -> Result<()> {
         let read = state.message_pool().read()?;
-        let mut commands = CreateRemoveCommands::from_hash_messages(&message_map, read)?;
+        let mut commands = CreateRemoveCommands::from_hash_messages(message_map, read)?;
         commands.merge(self.comms.take_create_remove_commands()?);
         commands.verify(&self.config.sim.store.agent_schema)?;
 

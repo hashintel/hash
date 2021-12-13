@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::{Error, Result};
 use crate::{output::local::config::LocalPersistenceConfig, Environment};
 
-pub const OUTPUT_PERSISTENCE_KEY: &'static str = "output_persistence";
+pub const OUTPUT_PERSISTENCE_KEY: &str = "output_persistence";
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum OutputPersistenceConfig {
@@ -21,6 +21,6 @@ where
 {
     env.dyn_payloads
         .get(key)
-        .map(|value| serde_json::from_value(value.clone()).map_err(|e| Error::from(e)))
+        .map(|value| serde_json::from_value(value.clone()).map_err(Error::from))
         .ok_or_else(|| Error::MissingConfiguration(key.to_string()))?
 }

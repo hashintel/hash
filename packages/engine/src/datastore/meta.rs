@@ -185,9 +185,7 @@ impl NodeMapping {
 
     #[must_use]
     pub fn singleton(mapping: NodeMapping) -> NodeMapping {
-        let mut children = Vec::with_capacity(1);
-        children.push(mapping);
-        NodeMapping(children)
+        NodeMapping(vec![mapping])
     }
 }
 

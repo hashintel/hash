@@ -18,9 +18,9 @@ impl ProcessedCommands {
         commands: CreateRemoveCommands,
         schema: &Arc<AgentSchema>,
     ) -> Result<ProcessedCommands> {
-        Ok(commands
+        commands
             .try_into_processed_commands(schema)
-            .map_err(|e| Error::from(format!("Error processing CreateRemoveCommands: {:?}", e)))?)
+            .map_err(|e| Error::from(format!("Error processing CreateRemoveCommands: {:?}", e)))
     }
 
     pub fn get_number_inbound(&self) -> usize {

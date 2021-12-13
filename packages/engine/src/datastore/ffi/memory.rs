@@ -11,8 +11,8 @@ pub struct CMemory {
 }
 
 #[no_mangle]
-pub extern "C" fn load_shmem(id: *const u8, len: u64) -> *mut CMemory {
-    let bytes = unsafe { std::slice::from_raw_parts(id, len as usize) };
+pub unsafe extern "C" fn load_shmem(id: *const u8, len: u64) -> *mut CMemory {
+    let bytes = std::slice::from_raw_parts(id, len as usize);
     let message = match std::str::from_utf8(bytes) {
         Ok(val) => val,
         Err(_) => return std::ptr::null_mut(),

@@ -337,9 +337,9 @@ fn json_vals_to_struct(
                 // Arrow expects struct child arrays to have length (at least) as long as
                 // struct array itself, even if struct elements are all nulls and it
                 // shouldn't be necessary.
-                for i in 0..fields.len() {
-                    flattened_vals[i].push(Value::Null);
-                }
+                flattened_vals
+                    .iter_mut()
+                    .for_each(|field| field.push(Value::Null));
             }
             _ => return Err(Error::ChildDataExpected),
         }
@@ -498,30 +498,30 @@ impl IntoRecordBatch for &[&AgentState] {
             // TODO: built-ins should take nullability from the schema
             let col = (if name.eq(AgentStateField::AgentId.name()) {
                 agents_to_id_col(*self)
-            } else if name.eq(AgentStateField::AgentName.name()) {
+            } else if name == AgentStateField::AgentName.name() {
                 json_vals_to_utf8(vals, true)
-            } else if name.eq(AgentStateField::Messages.name()) {
+            } else if name == AgentStateField::Messages.name() {
                 message::messages_column_from_serde_values(vals)
                     .map(|arr| Arc::new(arr) as ArrayRef)
-            } else if name.eq(AgentStateField::Position.name()) {
+            } else if name == AgentStateField::Position.name() {
                 agents_to_position_col(*self)
-            } else if name.eq(AgentStateField::Direction.name()) {
+            } else if name == AgentStateField::Direction.name()
+                || name == AgentStateField::Velocity.name()
+            {
                 agents_to_direction_col(*self)
-            } else if name.eq(AgentStateField::Velocity.name()) {
-                agents_to_direction_col(*self)
-            } else if name.eq(AgentStateField::Shape.name()) {
+            } else if name == AgentStateField::Shape.name() {
                 json_vals_to_utf8(vals, true)
-            } else if name.eq(AgentStateField::Height.name()) {
+            } else if name == AgentStateField::Height.name() {
                 json_vals_to_primitive::<datatypes::Float64Type>(vals, true)
-            } else if name.eq(AgentStateField::Scale.name()) {
+            } else if name == AgentStateField::Scale.name() {
                 agents_to_scale_col(*self)
-            } else if name.eq(AgentStateField::Color.name()) {
+            } else if name == AgentStateField::Color.name() {
                 json_vals_to_utf8(vals, true)
-            } else if name.eq(AgentStateField::RGB.name()) {
+            } else if name == AgentStateField::RGB.name() {
                 agents_to_rgb_col(*self)
-            } else if name.eq(AgentStateField::Hidden.name()) {
+            } else if name == AgentStateField::Hidden.name() {
                 json_vals_to_bool(vals)
-            } else if name.eq(PREVIOUS_INDEX_FIELD_KEY) {
+            } else if name == PREVIOUS_INDEX_FIELD_KEY {
                 previous_index_to_empty_col(self.len(), field.data_type())
             } else if matches!(
                 schema
@@ -1022,6 +1022,7 @@ fn set_states_custom(
     }
     Ok(())
 }
+
 fn set_states_serialized(
     states: &mut Vec<AgentState>,
     rb: &RecordBatch,
@@ -1122,7 +1123,7 @@ impl IntoAgentStates for RecordBatch {
                     .metadata()
                     .get("serialized")
                     .expect("Should always contain `serialized` in metadata")
-                    .split(",")
+                    .split(',')
                     .map(|v| v.to_string())
                     .collect()
             });

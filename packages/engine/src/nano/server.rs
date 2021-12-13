@@ -43,16 +43,12 @@ impl Worker {
                 ctx.send(&aio, nng::Message::new()).unwrap();
                 sender.send(msg).unwrap();
             }
-            nng::AioResult::Recv(Err(e)) => match e {
-                nng::Error::Closed => {
-                    log::debug!("aio context closed for socket listening on: {}", socket_url);
-                    return;
-                }
-                _ => {
-                    log::error!("aio receive error: {}", e);
-                    return;
-                }
-            },
+            nng::AioResult::Recv(Err(nng::Error::Closed)) => {
+                log::debug!("aio context closed for socket listening on: {socket_url}");
+            }
+            nng::AioResult::Recv(Err(err)) => {
+                log::error!("aio receive error: {err}");
+            }
             nng::AioResult::Sleep(_) => {
                 panic!("unexpected sleep");
             }
@@ -68,7 +64,7 @@ impl Worker {
 impl Server {
     pub fn new(url: &str) -> Result<Self> {
         let socket = nng::Socket::new(nng::Protocol::Rep0)?;
-        socket.listen(&url)?;
+        socket.listen(url)?;
 
         let (sender, receiver) = mpsc::unbounded_channel();
 
