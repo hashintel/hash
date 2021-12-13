@@ -1,16 +1,15 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
 import React, {
-  useRef,
-  VoidFunctionComponent,
   useEffect,
+  useRef,
   useState,
+  VoidFunctionComponent,
 } from "react";
 import { tw } from "twind";
 
 import Logo from "../../../../assets/svg/logo.svg";
-import { IconHash } from "../../../Icons/IconHash";
-import { IconKeyboardReturn } from "../../../Icons/IconKeyboardReturn";
+import { HashIcon, KeyboardReturnIcon } from "../../../icons";
 import { InviteHeader } from "../InviteHeader";
 import { InvitationInfo } from "../utils";
 
@@ -91,9 +90,9 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
               >
                 <span className={tw`mr-1`}>Submit</span>
                 {loading ? (
-                  <IconHash className={tw`h-4 w-4 animate-spin`} />
+                  <HashIcon className={tw`h-4 w-4 animate-spin`} />
                 ) : (
-                  <IconKeyboardReturn />
+                  <KeyboardReturnIcon />
                 )}
               </button>
             </form>

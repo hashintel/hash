@@ -3,7 +3,7 @@ import { tw } from "twind";
 
 import bgPattern from "../../../assets/images/auth-bg-pattern.png";
 import Logo from "../../../assets/svg/logo.svg";
-import { IconHash } from "../../Icons/IconHash";
+import { HashIcon } from "../../icons";
 
 export type AuthLayoutProps = {
   children: ReactNode;
@@ -23,7 +23,7 @@ export const AuthLayout: VoidFunctionComponent<AuthLayoutProps> = ({
       <div
         className={tw`fixed z-10 top-0 left-0 right-0 bottom-0 flex items-center justify-center`}
       >
-        <IconHash className={tw`h-48 w-48 ml-1 animate-spin-slow`} />
+        <HashIcon className={tw`h-48 w-48 ml-1 animate-spin-slow`} />
       </div>
     );
   }

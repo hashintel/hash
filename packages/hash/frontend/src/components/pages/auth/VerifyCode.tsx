@@ -1,17 +1,17 @@
 import React, {
-  VFC,
-  useRef,
-  useEffect,
   useCallback,
+  useEffect,
+  useRef,
   useState,
+  VFC,
   ClipboardEventHandler,
 } from "react";
 import { tw } from "twind";
+
 import Logo from "../../../assets/svg/logo.svg";
-import { IconHash } from "../../Icons/IconHash";
-import { IconKeyboardReturn } from "../../Icons/IconKeyboardReturn";
+import { HashIcon, KeyboardReturnIcon } from "../../icons";
 import { InviteHeader } from "./InviteHeader";
-import { SYNTHETIC_LOADING_TIME_MS, InvitationInfo } from "./utils";
+import { InvitationInfo, SYNTHETIC_LOADING_TIME_MS } from "./utils";
 
 type VerifyCodeProps = {
   defaultCode?: string;
@@ -151,12 +151,12 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
               {loading ? (
                 <>
                   <span className={tw`mr-1`}>Loading</span>
-                  <IconHash className={tw`h-4 w-4 animate-spin`} />
+                  <HashIcon className={tw`h-4 w-4 animate-spin`} />
                 </>
               ) : (
                 <>
                   <span className={tw`mr-1`}>Submit</span>
-                  <IconKeyboardReturn />
+                  <KeyboardReturnIcon />
                 </>
               )}
             </button>
@@ -190,7 +190,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
             >
               <span>Resend email</span>
               {(requestCodeLoading || syntheticLoading) && (
-                <IconHash className={tw`h-3 w-3 ml-1 animate-spin`} />
+                <HashIcon className={tw`h-3 w-3 ml-1 animate-spin`} />
               )}
             </button>
           </div>

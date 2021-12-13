@@ -1,9 +1,8 @@
+import { Menu } from "@headlessui/react";
 import { VoidFunctionComponent } from "react";
 import { tw } from "twind";
-import { Menu } from "@headlessui/react";
 
-import IconAvatar from "../../Icons/IconAvatar";
-import IconDropdown from "../../Icons/IconDropdown";
+import { AvatarIcon, DropdownIcon } from "../../icons";
 
 type AccountDropdownProps = {
   name?: string;
@@ -28,12 +27,12 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
           className={tw`h-6 w-6 border border(solid gray-200) rounded-full mr-3`}
         />
       ) : (
-        <IconAvatar
+        <AvatarIcon
           className={tw`border border(solid gray-200) rounded-full mr-3`}
         />
       )}
       <span className={tw`mr-2 font-bold`}>Account</span>
-      <IconDropdown />
+      <DropdownIcon />
     </Menu.Button>
     <Menu.Items
       className={tw`absolute left-0 top-0 z-0 w-full px-4 pt-10 pb-2 bg-white border-1 rounded-md flex flex-col items-end text-right`}

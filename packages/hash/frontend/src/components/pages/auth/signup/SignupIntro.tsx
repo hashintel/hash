@@ -4,7 +4,7 @@ import { tw } from "twind";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import Logo from "../../../../assets/svg/logo.svg";
-import { SpinnerIcon } from "../../../Icons/SpinnerIcon";
+import { SpinnerIcon } from "../../../icons";
 import { TextInput } from "../../../forms/TextInput";
 import { useUser } from "../../../hooks/useUser";
 import { InviteHeader } from "../InviteHeader";

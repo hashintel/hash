@@ -8,7 +8,7 @@ import { useUser } from "../components/hooks/useUser";
 import { AuthLayout } from "../components/layout/PageLayout/AuthLayout";
 
 import Logo from "../assets/svg/logo.svg";
-import { SpinnerIcon } from "../components/Icons/SpinnerIcon";
+import { SpinnerIcon } from "../components/icons";
 import { SelectInput } from "../components/forms/SelectInput";
 import {
   JoinOrgMutation,

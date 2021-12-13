@@ -22,7 +22,7 @@ import {
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { BlockContextMenu } from "../../components/BlockContextMenu/BlockContextMenu";
 import { BlockSuggesterProps } from "./createSuggester/BlockSuggester";
-import DragVertical from "../../components/Icons/DragVertical";
+import { DragVerticalIcon } from "../../components/icons";
 import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
 import { CollabPositionIndicators } from "./CollabPositionIndicators";
@@ -53,7 +53,7 @@ export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
 
     return (
       <div ref={ref} className={tw`relative cursor-pointer`}>
-        <DragVertical onClick={() => setPopoverVisible(true)} />
+        <DragVerticalIcon onClick={() => setPopoverVisible(true)} />
         {isPopoverVisible && (
           <BlockContextMenu
             entityId={entityId}

@@ -20,7 +20,7 @@ import {
 } from "../../graphql/apiTypes.gen";
 import styles from "../index.module.scss";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
-import PageTransferDropdown from "../../components/Dropdowns/PageTransferDropdown";
+import { PageTransferDropdown } from "../../components/Dropdowns/PageTransferDropdown";
 import { MainContentWrapper } from "../../components/pages/MainContentWrapper";
 
 /**

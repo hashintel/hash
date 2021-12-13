@@ -9,8 +9,7 @@ import {
 } from "../../../../graphql/apiTypes.gen";
 import { SelectInput } from "../../../forms/SelectInput";
 import { TextInput } from "../../../forms/TextInput";
-import { PictureIcon } from "../../../Icons/PictureIcon";
-import { SpinnerIcon } from "../../../Icons/SpinnerIcon";
+import { PictureIcon, SpinnerIcon } from "../../../icons";
 import { ORG_ROLES, ORG_SIZES } from "../utils";
 import { createOrg as createOrgMutation } from "../../../../graphql/queries/org.queries";
 import { useShortnameInput } from "../../../hooks/useShortnameInput";
@@ -202,7 +201,7 @@ export const OrgCreate: VFC<OrgCreateProps> = ({
               </p>
             </div>
           ) : (
-            <PictureIcon className={tw`w-24 h-24 mb-2 `} viewBox="0 0 45 45" />
+            <PictureIcon className={tw`w-24 h-24 mb-2 `} />
           )}
           <input
             type="file"

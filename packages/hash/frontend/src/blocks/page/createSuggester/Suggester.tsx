@@ -1,7 +1,7 @@
 import React, { ReactElement, useEffect, useRef, useState } from "react";
 import { useKey } from "rooks";
 import { tw } from "twind";
-import { SpinnerIcon } from "../../../components/Icons/SpinnerIcon";
+import { SpinnerIcon } from "../../../components/icons";
 
 export interface SuggesterProps<T> {
   className?: string;

@@ -1,7 +1,8 @@
-import { Fragment, ReactElement, VoidFunctionComponent } from "react";
 import { Listbox, Transition } from "@headlessui/react";
+import { Fragment, ReactElement, VoidFunctionComponent } from "react";
 import { tw } from "twind";
-import IconDropdown from "../Icons/IconDropdown";
+
+import { DropdownIcon } from "../icons";
 
 type DropdownValue = string | number | undefined;
 
@@ -37,7 +38,7 @@ export const Dropdown: VoidFunctionComponent<DropdownProps> = ({
           <span
             className={tw`absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none`}
           >
-            <IconDropdown />
+            <DropdownIcon />
           </span>
         </Listbox.Button>
         <Transition
