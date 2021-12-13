@@ -104,17 +104,26 @@ impl FieldSource {
 pub struct FieldKey(String);
 
 impl FieldKey {
+    /// Returns the key as string
     pub fn value(&self) -> &str {
         &self.0
     }
 
-    pub(in super::super) fn from_key_as_str(key_as_str: &str) -> Self {
-        Self(key_as_str.to_string())
+    /// Returns a string as key
+    pub(in super::super) fn new(key: &str) -> Self {
+        Self(key.to_string())
     }
 
-    // TODO: do we want these checks to only be present on debug builds
+    /// Create a new agent scoped `FieldKey`
+    ///
+    /// Builds a `FieldKey` from a given name.
+    ///
+    /// # Errors
+    ///
+    /// - Returns [`Error`] if name starts with [`PRIVATE_PREFIX`] or [`HIDDEN_PREFIX`]
     #[inline]
-    pub fn new_agent_scoped(name: &str) -> Result<FieldKey> {
+    pub fn new_agent_scoped(name: &str) -> Result<Self> {
+        // TODO: do we want these checks to only be present on debug builds
         if name.starts_with(PRIVATE_PREFIX) || name.starts_with(HIDDEN_PREFIX) {
             return Err(Error::from(format!(
                 "Field names cannot start with the protected prefixes: ['{}', '{}'], received \
@@ -123,15 +132,25 @@ impl FieldKey {
             )));
         }
 
-        Ok(FieldKey(name.to_string()))
+        Ok(Self(name.to_string()))
     }
 
+    /// Create a new private or hidden `FieldKey`
+    ///
+    /// Builds a `FieldKey` from a given name, the [`FieldSource`], and the [`FieldScope`]. `scope`
+    /// must be either [`FieldScope::Private`] or [`FieldScope::Hidden`].
+    ///
+    /// # Errors
+    ///
+    /// - Returns [`Error`] if name starts with [`PRIVATE_PREFIX`] or [`HIDDEN_PREFIX`]
+    /// - Returns [`Error`] if `scope` is [`FieldScope::Agent`]
     #[inline]
     pub fn new_private_or_hidden_scoped(
         name: &str,
         source: &FieldSource,
         scope: &FieldScope,
-    ) -> Result<FieldKey> {
+    ) -> Result<Self> {
+        // TODO: do we want these checks to only be present on debug builds
         if name.starts_with(PRIVATE_PREFIX) || name.starts_with(HIDDEN_PREFIX) {
             return Err(Error::from(format!(
                 "Field names cannot start with the protected prefixes: ['{}', '{}']",
@@ -139,24 +158,21 @@ impl FieldKey {
             )));
         }
 
-        let mut key = String::new();
-        match scope {
-            FieldScope::Private => {
-                key.push_str(PRIVATE_PREFIX);
-            }
-            FieldScope::Hidden => {
-                key.push_str(HIDDEN_PREFIX);
-            }
+        let scope_prefix = match scope {
+            FieldScope::Private => PRIVATE_PREFIX,
+            FieldScope::Hidden => HIDDEN_PREFIX,
             FieldScope::Agent => {
                 return Err(Error::from(
                     "Use new_agent_scoped to create a key with FieldScope::Agent",
                 ));
             }
-        }
-        key.push_str(&source.unique_id()?);
-        key.push('_');
-        key.push_str(name);
-        Ok(FieldKey(key))
+        };
+        Ok(Self(format!(
+            "{}{}_{}",
+            scope_prefix,
+            source.unique_id()?,
+            name
+        )))
     }
 }
 
@@ -227,8 +243,8 @@ impl RootFieldSpec {
 /// data columns mapped to the specification of those fields
 #[derive(Debug, Clone, Default, Eq, PartialEq)]
 pub struct FieldSpecMap {
-    // a mapping of field unique identifiers to the fields themselves
-    field_specs: HashMap<FieldKey, RootFieldSpec>,
+    field_specs: HashMap<FieldKey, RootFieldSpec>, /* a mapping of field unique identifiers to
+                                                    * the fields themselves */
 }
 
 impl FieldSpecMap {
