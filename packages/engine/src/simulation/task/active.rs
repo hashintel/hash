@@ -93,11 +93,13 @@ impl Drop for ActiveTask {
                 }
             }
             if let Some(result_recv) = self.comms.result_recv.take() {
-                if let Err(_) = futures::executor::block_on(timeout(
+                if futures::executor::block_on(timeout(
                     Duration::from_secs(10),
                     //
                     result_recv,
-                )) {
+                ))
+                .is_err()
+                {
                     log::warn!("Did not receive confirmation of task cancellation");
                 }
             } else {

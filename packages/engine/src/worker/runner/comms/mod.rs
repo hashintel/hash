@@ -107,7 +107,7 @@ impl TargetedRunnerTaskMsg {
                 "Failed to wrap and create a new TaskMessage, perhaps the inner: {:?}, was \
                  formatted incorrectly. Underlying error: {}",
                 std::str::from_utf8(task_msg.payload().inner()),
-                e.to_string()
+                e
             ))
         })?;
 

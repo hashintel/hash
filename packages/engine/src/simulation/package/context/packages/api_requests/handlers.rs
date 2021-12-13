@@ -1,3 +1,5 @@
+use std::collections::hash_map;
+
 use serde_json::Value;
 use thiserror::Error as ThisError;
 
@@ -26,7 +28,7 @@ pub fn gather_requests(
             let loader = reader.get_loader(message.batch_index)?;
             let message = loader.get_raw_message(message.agent_index, message.message_index);
             let data = serde_json::from_str::<Value>(message.data)?;
-            let from = message.from.clone();
+            let from = *message.from;
             Ok((from, data))
         })
         .collect::<Result<_>>()?;
@@ -97,27 +99,26 @@ pub mod mapbox {
     }
 
     pub async fn get<'a>(requests: Requests) -> Result<ApiResponseMap> {
-        let responses =
-            futures::stream::iter(requests.inner.into_iter().map(|request| get_(request)))
-                .buffer_unordered(ACTIVE_REQUESTS)
-                .collect::<Vec<_>>()
-                .await
-                .into_iter()
-                .collect::<Result<Vec<_>>>()?;
+        let responses = futures::stream::iter(requests.inner.into_iter().map(get_))
+            .buffer_unordered(ACTIVE_REQUESTS)
+            .collect::<Vec<_>>()
+            .await
+            .into_iter()
+            .collect::<Result<Vec<_>>>()?;
 
         let mut map = HashMap::<[u8; UUID_V4_LEN], Vec<String>>::new();
         responses.into_iter().for_each(|(to, content)| {
-            if map.contains_key(&to) {
-                map.get_mut(&to).unwrap().push(content)
+            if let hash_map::Entry::Vacant(e) = map.entry(to) {
+                e.insert(vec![content]);
             } else {
-                map.insert(to, vec![content]);
+                map.get_mut(&to).unwrap().push(content)
             }
         });
 
-        return Ok(ApiResponseMap {
+        Ok(ApiResponseMap {
             from: "mapbox",
             r#type: "mapbox_response",
             map,
-        });
+        })
     }
 }

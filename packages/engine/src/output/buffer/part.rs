@@ -76,7 +76,7 @@ impl OutputPartBuffer {
 
         for i in 0..part_count {
             let mut path = self.base_path.clone();
-            path.push(format!("{}-{}.part", self.output_type, next_i.to_string()));
+            path.push(format!("{}-{}.part", self.output_type, next_i));
             std::fs::File::create(&path)?;
 
             let contents = if i == part_count - 1 {

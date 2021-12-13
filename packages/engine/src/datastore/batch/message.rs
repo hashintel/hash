@@ -167,19 +167,17 @@ impl Batch {
 
         // Perform some light bound checks
         // we can't release memory on mac because we can't resize the segment
-        if cfg!(not(target_os = "macos")) {
-            if self.memory.size > LOWER_BOUND {
-                let upper_bound = agent_count * UPPER_MULTIPLIER;
-                if self.memory.size > upper_bound
-                    && self
-                        .memory
-                        .target_total_size_accommodates_data_size(upper_bound, data_len)
-                {
-                    self.memory.resize(upper_bound)?;
-                    self.memory.set_data_length(data_len)?;
-                    // Always increment when resizing
-                    self.metaversion.increment();
-                }
+        if cfg!(not(target_os = "macos")) && self.memory.size > LOWER_BOUND {
+            let upper_bound = agent_count * UPPER_MULTIPLIER;
+            if self.memory.size > upper_bound
+                && self
+                    .memory
+                    .target_total_size_accommodates_data_size(upper_bound, data_len)
+            {
+                self.memory.resize(upper_bound)?;
+                self.memory.set_data_length(data_len)?;
+                // Always increment when resizing
+                self.metaversion.increment();
             }
         }
 
@@ -243,7 +241,7 @@ impl Batch {
         meta: Arc<StaticMeta>,
         experiment_run_id: &str,
     ) -> Result<Batch> {
-        let arrow_batch = agents.into_empty_message_batch(&schema)?;
+        let arrow_batch = agents.into_empty_message_batch(schema)?;
         Self::from_record_batch(&arrow_batch, schema.clone(), meta, experiment_run_id)
     }
 

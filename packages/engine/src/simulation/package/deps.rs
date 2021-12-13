@@ -1,18 +1,18 @@
 use super::{context, init, output, state};
 use crate::simulation::{package::name::PackageName, Error, Result};
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct Dependencies {
     inner: Vec<PackageName>,
 }
 
 impl Dependencies {
     pub fn new() -> Dependencies {
-        Self::empty()
+        Self::default()
     }
 
     pub fn empty() -> Dependencies {
-        Dependencies { inner: Vec::new() }
+        Self::default()
     }
 
     fn add_dependency(&mut self, dep: PackageName) -> Result<()> {

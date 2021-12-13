@@ -133,12 +133,10 @@ pub fn gen_schema_and_test_agents(
         },
         FieldScope::Agent,
     ))?;
-    field_spec_map.add_multiple(get_base_agent_fields().map_err(|err| {
-        Error::from(format!(
-            "Failed to add base agent field specs: {}",
-            err.to_string()
-        ))
-    })?)?;
+    field_spec_map
+        .add_multiple(get_base_agent_fields().map_err(|err| {
+            Error::from(format!("Failed to add base agent field specs: {err}"))
+        })?)?;
 
     field_spec_map.union(FieldSpecMap::from_short_json(
         JSON_KEYS.clone(),

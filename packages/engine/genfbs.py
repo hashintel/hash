@@ -29,7 +29,7 @@ RUST_HEADER = """#![allow(
     clippy::used_underscore_binding,
     clippy::redundant_static_lifetimes,
     clippy::redundant_field_names,
-    clippy::unused_imports,
+
     unused_imports
 )]
 """

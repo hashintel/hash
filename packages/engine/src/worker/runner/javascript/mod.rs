@@ -399,7 +399,7 @@ fn get_js_error(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Error> {
     if let Ok(errors) = r.get("user_errors") {
         if !matches!(errors, mv8::Value::Undefined) && !matches!(errors, mv8::Value::Null) {
             let errors = array_to_errors(errors);
-            if errors.len() > 0 {
+            if !errors.is_empty() {
                 return Some(Error::User(errors));
             }
         }
@@ -423,7 +423,7 @@ fn get_user_warnings(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Vec<RunnerErr
     if let Ok(warnings) = r.get::<&str, mv8::Value<'_>>("user_warnings") {
         if !(warnings.is_undefined() || warnings.is_null()) {
             let warnings = array_to_errors(warnings);
-            if warnings.len() > 0 {
+            if !warnings.is_empty() {
                 return Some(warnings);
             }
         }
@@ -642,11 +642,10 @@ impl<'m> RunnerImpl<'m> {
 
         debug_assert_eq!(data.n_buffers, buffer_lens.len());
         let mut buffers = Vec::new();
-        for i in 0..data.n_buffers {
+        for (i, &len) in buffer_lens.iter().enumerate().take(data.n_buffers) {
             let ptr = data.buffer_ptrs[i];
             debug_assert_ne!(ptr, std::ptr::null());
             let capacity = data.buffer_capacities[i];
-            let len = buffer_lens[i];
             let buffer = if len <= capacity {
                 unsafe { self.new_buffer(ptr, len, capacity) }
             } else {
@@ -885,12 +884,12 @@ impl<'m> RunnerImpl<'m> {
             },
         };
 
-        let (payload, wrapper) = msg.payload.extract_inner_msg_with_wrapper().map_err(|e| {
-            Error::from(format!(
-                "Failed to extract the inner task message: {}",
-                e.to_string()
-            ))
-        })?;
+        let (payload, wrapper) = msg
+            .payload
+            .extract_inner_msg_with_wrapper()
+            .map_err(|err| {
+                Error::from(format!("Failed to extract the inner task message: {err}"))
+            })?;
         let payload_str = mv8::Value::String(mv8.create_string(&serde_json::to_string(&payload)?));
 
         let args = mv8::Values::from_vec(vec![
@@ -922,12 +921,10 @@ impl<'m> RunnerImpl<'m> {
         );
         let next_task_payload =
             TaskMessage::try_from_inner_msg_and_wrapper(next_inner_task_msg, wrapper).map_err(
-                |e| {
+                |err| {
                     Error::from(format!(
-                        "Failed to wrap and create a new TaskMessage, perhaps the inner: {}, was \
-                         formatted incorrectly. Underlying error: {}",
-                        next_task_payload,
-                        e.to_string()
+                        "Failed to wrap and create a new TaskMessage, perhaps the inner: \
+                         {next_task_payload}, was formatted incorrectly. Underlying error: {err}"
                     ))
                 },
             )?;
@@ -1116,7 +1113,8 @@ impl<'m> RunnerImpl<'m> {
 pub struct JavaScriptRunner {
     // JavaScriptRunner and RunnerImpl are separate because the
     // V8 Isolate inside RunnerImpl can't be sent between threads.
-    init_msg: Arc<ExperimentInitRunnerMsg>, // Args to RunnerImpl::new
+    init_msg: Arc<ExperimentInitRunnerMsg>,
+    // Args to RunnerImpl::new
     inbound_sender: UnboundedSender<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>,
     inbound_receiver:
         Option<UnboundedReceiver<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>>,

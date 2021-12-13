@@ -75,7 +75,7 @@ pub trait DynamicBatch: ArrowBatch {
         // Write data_len
         let data_buffer = self.memory_mut().get_mut_data_buffer()?;
         // Write new data
-        record_batch_data_to_bytes_owned_unchecked(&record_batch, data_buffer);
+        record_batch_data_to_bytes_owned_unchecked(record_batch, data_buffer);
         self.reload_record_batch()?;
         self.metaversion_mut().increment_batch();
 
@@ -119,7 +119,7 @@ mod load {
     use super::*;
 
     /// Read the Arrow RecordBatch metadata from memory
-    pub fn record_batch_message<'a, K: Batch>(batch: &'a K) -> Result<RecordBatchMessage<'a>> {
+    pub fn record_batch_message<K: Batch>(batch: &K) -> Result<RecordBatchMessage<'_>> {
         let (_, _, meta_buffer, _) = batch.memory().get_batch_buffers()?;
         arrow_ipc::get_root_as_message(meta_buffer)
             .header_as_record_batch()

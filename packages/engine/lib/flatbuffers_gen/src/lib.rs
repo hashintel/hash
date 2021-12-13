@@ -1,3 +1,5 @@
+#![allow(clippy::all)]
+
 /// Manually created mod.rs file as flatc 2.0.0 does not generate one although it seems that work is
 /// underway to do so automatically
 pub mod batch_generated;

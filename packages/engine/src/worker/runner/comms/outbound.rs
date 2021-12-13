@@ -204,8 +204,7 @@ impl OutboundFromRunnerMsg {
         let msg = root_as_runner_outbound_msg(msg);
         let msg = msg.map_err(|err| {
             Error::from(format!(
-                "Flatbuffers failed to parse message bytes as a RunnerOutboundMsg: {}",
-                err.to_string()
+                "Flatbuffers failed to parse message bytes as a RunnerOutboundMsg: {err}"
             ))
         })?;
         let payload = OutboundFromRunnerMsgPayload::try_from_fbs(msg, sent_tasks)?;

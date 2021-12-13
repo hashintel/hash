@@ -92,8 +92,7 @@ impl PackageCreators {
     }
 
     pub(crate) fn get_checked(&self, name: &Name) -> Result<&Box<dyn PackageCreator>> {
-        Ok(self
-            .0
+        self.0
             .get()
             .ok_or_else(|| Error::from("Output Package Creators weren't initialized"))?
             .get(name)
@@ -102,7 +101,7 @@ impl PackageCreators {
                     "Package creator: {} wasn't within the Output Package Creators map",
                     name
                 ))
-            })?)
+            })
     }
 
     #[allow(dead_code)] // It is used in a test in deps.rs but the compiler fails to pick it up

@@ -45,12 +45,12 @@ pub enum SyncPayload {
     ContextBatch(ContextBatchSync),
 }
 
-impl Into<InboundToRunnerMsgPayload> for SyncPayload {
-    fn into(self) -> InboundToRunnerMsgPayload {
-        match self {
-            SyncPayload::State(s) => InboundToRunnerMsgPayload::StateSync(s),
-            SyncPayload::StateSnapshot(s) => InboundToRunnerMsgPayload::StateSnapshotSync(s),
-            SyncPayload::ContextBatch(c) => InboundToRunnerMsgPayload::ContextBatchSync(c),
+impl From<SyncPayload> for InboundToRunnerMsgPayload {
+    fn from(payload: SyncPayload) -> Self {
+        match payload {
+            SyncPayload::State(s) => Self::StateSync(s),
+            SyncPayload::StateSnapshot(s) => Self::StateSnapshotSync(s),
+            SyncPayload::ContextBatch(c) => Self::ContextBatchSync(c),
         }
     }
 }

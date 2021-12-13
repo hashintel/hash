@@ -65,13 +65,12 @@ impl NngSender {
                     };
                 }
             },
-            nng::AioResult::Sleep(res) => match res {
-                Err(err) => {
+            nng::AioResult::Sleep(res) => {
+                if let Err(err) = res {
                     log::error!("AIO sleep error: {}", err);
                     aio_result_sender.send(Err(Error::Nng(err))).unwrap();
                 }
-                _ => {}
-            },
+            }
             nng::AioResult::Recv(_) => {
                 unreachable!("This callback is only for the send operation")
             }

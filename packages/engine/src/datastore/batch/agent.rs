@@ -145,12 +145,12 @@ impl Batch {
         experiment_run_id: &ExperimentId,
     ) -> Result<Batch> {
         let rb = agents.into_agent_batch(schema)?;
-        Batch::from_record_batch(&rb, &schema, experiment_run_id)
+        Batch::from_record_batch(&rb, schema, experiment_run_id)
     }
 
     pub fn set_dynamic_meta(&mut self, dynamic_meta: &DynamicMeta) -> Result<()> {
         self.dynamic_meta = dynamic_meta.clone();
-        let meta_buffer = get_dynamic_meta_flatbuffers(&dynamic_meta)?;
+        let meta_buffer = get_dynamic_meta_flatbuffers(dynamic_meta)?;
         self.memory.set_metadata(&meta_buffer)?;
         self.metaversion.increment_batch();
         Ok(())
@@ -192,7 +192,7 @@ impl Batch {
 
         let data_buffer = memory.get_mut_data_buffer()?;
         // Write new data
-        record_batch_data_to_bytes_owned_unchecked(&record_batch, data_buffer);
+        record_batch_data_to_bytes_owned_unchecked(record_batch, data_buffer);
 
         Self::from_memory(memory, Some(schema), None)
     }
@@ -279,7 +279,7 @@ impl Batch {
 
 impl GrowableBatch<ArrayChange, Arc<array::ArrayData>> for Batch {
     fn take_changes(&mut self) -> Vec<ArrayChange> {
-        std::mem::replace(&mut self.changes, vec![])
+        std::mem::take(&mut self.changes)
     }
 
     fn static_meta(&self) -> &StaticMeta {
@@ -459,15 +459,15 @@ impl Batch {
         })
     }
 
-    pub fn topology_mut_iter<'a>(
-        &'a mut self,
+    pub fn topology_mut_iter(
+        &mut self,
     ) -> Result<(
         impl Iterator<
             Item = (
-                Option<&'a mut [f64; POSITION_DIM]>,
-                Option<&'a mut [f64; POSITION_DIM]>,
+                Option<&mut [f64; POSITION_DIM]>,
+                Option<&mut [f64; POSITION_DIM]>,
             ),
-        > + 'a,
+        >,
         BooleanColumn,
     )> {
         let row_count = self.batch.num_rows();
@@ -535,9 +535,7 @@ impl Batch {
         ))
     }
 
-    pub fn position_iter<'a>(
-        &'a self,
-    ) -> Result<impl Iterator<Item = Option<&'a [f64; POSITION_DIM]>> + 'a> {
+    pub fn position_iter(&self) -> Result<impl Iterator<Item = Option<&[f64; POSITION_DIM]>>> {
         let column_name = AgentStateField::Position.name();
         let row_count = self.batch.num_rows();
         let column = self.get_arrow_column(column_name)?;
@@ -568,9 +566,7 @@ impl Batch {
         }))
     }
 
-    pub fn direction_iter<'a>(
-        &'a self,
-    ) -> Result<impl Iterator<Item = Option<&'a [f64; POSITION_DIM]>> + 'a> {
+    pub fn direction_iter(&self) -> Result<impl Iterator<Item = Option<&[f64; POSITION_DIM]>>> {
         let column_name = AgentStateField::Direction.name();
         let row_count = self.batch.num_rows();
         let column = self.get_arrow_column(column_name)?;
@@ -601,7 +597,7 @@ impl Batch {
         }))
     }
 
-    pub fn search_radius_iter<'a>(&'a self) -> Result<impl Iterator<Item = Option<f64>> + 'a> {
+    pub fn search_radius_iter(&self) -> Result<impl Iterator<Item = Option<f64>> + '_> {
         // TODO[1] remove dependency on neighbors package
         let column_name = "search_radius";
         self.f64_iter(column_name)
@@ -713,9 +709,7 @@ impl Batch {
         col_to_json_vals(column, data_type)
     }
 
-    pub fn behavior_list_bytes_iter<'a>(
-        &'a self,
-    ) -> Result<impl Iterator<Item = Vec<&'a [u8]>> + 'a> {
+    pub fn behavior_list_bytes_iter(&self) -> Result<impl Iterator<Item = Vec<&[u8]>>> {
         behavior_list_bytes_iter(&self.batch)
     }
 }
@@ -742,9 +736,9 @@ impl AsRef<Batch> for Batch {
     }
 }
 
-pub fn behavior_list_bytes_iter<'a, K: AgentList>(
-    agent_list: &'a K,
-) -> Result<impl Iterator<Item = Vec<&'a [u8]>> + 'a> {
+pub fn behavior_list_bytes_iter<K: AgentList>(
+    agent_list: &K,
+) -> Result<impl Iterator<Item = Vec<&[u8]>>> {
     let record_batch = agent_list.record_batch();
     // TODO[1] remove dependency on behavior_execution
     let column_name = "behaviors";

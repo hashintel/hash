@@ -184,6 +184,7 @@ fn get_inbound_distribution(
 
     let mut untaken = number_inbound;
     // Iterate over all buckets that we're planning to give work to
+    #[allow(clippy::needless_range_loop)]
     for i in 0..chosen_number_of_buckets {
         let bucket_index = indices[i];
         let bucket_level = current_distribution[bucket_index];

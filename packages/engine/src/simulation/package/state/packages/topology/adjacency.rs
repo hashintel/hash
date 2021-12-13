@@ -22,7 +22,7 @@ pub fn correct_agent(
         }
     }
 
-    return position_was_corrected;
+    position_was_corrected
 }
 
 fn wrap_pos_coord(pos: &mut Position, i: usize, config: &TopologyConfig) {

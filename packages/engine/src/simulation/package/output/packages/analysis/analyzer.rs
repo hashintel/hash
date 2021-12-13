@@ -112,10 +112,9 @@ impl<'a> TryFrom<&'a str> for AnalysisSourceRepr {
         } else {
             let repr = match serde_json::from_str(source) {
                 Ok(repr) => repr,
-                Err(why) => {
+                Err(err) => {
                     return Err(Error::from(format!(
-                        "Parsing the Analysis definition ('analysis.json') failed: {}",
-                        why.to_string()
+                        "Parsing the Analysis definition ('analysis.json') failed: {err}"
                     )));
                 }
             };
@@ -178,11 +177,9 @@ impl OutputCreator {
             AnalysisOperationRepr::Sum
             | AnalysisOperationRepr::Min
             | AnalysisOperationRepr::Max
-            | AnalysisOperationRepr::Mean => {
-                return Err(Error::from(
-                    "Aggregators of numbers may not be called directly",
-                ));
-            }
+            | AnalysisOperationRepr::Mean => Err(Error::from(
+                "Aggregators of numbers may not be called directly",
+            )),
         }
     }
 }

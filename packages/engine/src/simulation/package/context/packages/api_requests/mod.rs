@@ -99,7 +99,7 @@ impl Package for ApiRequests {
 
                 handlers.iter().try_for_each::<_, Result<()>>(|handler| {
                     let messages = snapshot.message_map().get_msg_refs(handler);
-                    if messages.len() > 0 {
+                    if !messages.is_empty() {
                         let messages = handlers::gather_requests(&reader, messages)?;
                         futs.push(handlers::run_custom_message_handler(handler, messages))
                     }
@@ -189,10 +189,10 @@ pub fn custom_message_handlers_from_properties(
                 .into_iter()
                 .map(|handler| match handler {
                     serde_json::Value::String(handler) => Ok(handler),
-                    _ => return Err(Error::PropertiesParseError("messageHandlers".into())),
+                    _ => Err(Error::PropertiesParseError("messageHandlers".into())),
                 })
                 .collect::<Result<Vec<String>>>(),
-            _ => return Err(Error::PropertiesParseError("messageHandlers".into())),
+            _ => Err(Error::PropertiesParseError("messageHandlers".into())),
         })
         .transpose()
 }

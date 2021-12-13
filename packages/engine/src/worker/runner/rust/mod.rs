@@ -53,7 +53,7 @@ impl RustRunner {
         self.outbound_receiver
             .recv()
             .await
-            .ok_or(WorkerError::from("Rust outbound receive"))
+            .ok_or_else(|| WorkerError::from("Rust outbound receive"))
     }
 
     pub async fn recv_now(&mut self) -> WorkerResult<Option<OutboundFromRunnerMsg>> {

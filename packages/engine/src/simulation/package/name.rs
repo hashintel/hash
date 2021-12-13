@@ -21,8 +21,8 @@ impl Display for PackageName {
         // serde_json puts quotes around the string for some reason, so remove them.
         // TODO: Is there some serde/serde_json option to not put the quotes in the first place?
         debug_assert!(s.len() >= 2);
-        debug_assert!(s.as_bytes()[0] == ('"' as u8));
-        debug_assert!(s.as_bytes()[s.len() - 1] == ('"' as u8));
+        debug_assert!(s.as_bytes()[0] == (b'"'));
+        debug_assert!(s.as_bytes()[s.len() - 1] == (b'"'));
         let substr = &s.as_bytes()[1..s.len() - 1];
         let substr = std::str::from_utf8(substr);
         write!(f, "{}", substr.map_err(|_| std::fmt::Error)?)
@@ -45,7 +45,7 @@ impl Serialize for PackageName {
 
 impl PackageName {
     fn get_metadata(&self) -> Result<&PackageMetadata> {
-        Ok(match self {
+        match self {
             PackageName::Context(name) => super::context::packages::METADATA.get(name),
             PackageName::Init(name) => super::init::packages::METADATA.get(name),
             PackageName::State(name) => super::state::packages::METADATA.get(name),
@@ -56,12 +56,11 @@ impl PackageName {
                 "Package Metadata not registered for package: {}",
                 self
             ))
-        })?)
+        })
     }
 
     pub fn get_id(&self) -> Result<PackageId> {
-        let id = &self.get_metadata()?.id;
-        Ok(id.clone())
+        Ok(self.get_metadata()?.id)
     }
 
     pub fn get_dependencies(&self) -> Result<Dependencies> {

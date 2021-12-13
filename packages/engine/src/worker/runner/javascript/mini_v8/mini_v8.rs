@@ -32,9 +32,8 @@ pub struct DataFfi {
     pub null_bits_capacity: usize,
 }
 
-impl MiniV8 {
-    /// Creates a new JavaScript execution environment.
-    pub fn new() -> MiniV8 {
+impl Default for MiniV8 {
+    fn default() -> MiniV8 {
         ffi_init();
         let interface = unsafe { mv8_interface_new() };
         let any_map = Box::into_raw(Box::new(AnyMap::new()));
@@ -45,6 +44,13 @@ impl MiniV8 {
             interface,
             is_top: true,
         }
+    }
+}
+
+impl MiniV8 {
+    /// Creates a new JavaScript execution environment.
+    pub fn new() -> MiniV8 {
+        Self::default()
     }
 
     /// Returns the global JavaScript object.
@@ -207,7 +213,7 @@ impl MiniV8 {
         match value {
             Value::Boolean(b) => b,
             ref value => unsafe {
-                mv8_coerce_boolean(self.interface, value_to_desc(self, &value)) != 0
+                mv8_coerce_boolean(self.interface, value_to_desc(self, value)) != 0
             },
         }
     }
@@ -235,7 +241,7 @@ impl MiniV8 {
         match value {
             Value::String(ref s) => Ok(s.clone()),
             ref value => unsafe {
-                let result = mv8_coerce_string(self.interface, value_to_desc(self, &value));
+                let result = mv8_coerce_string(self.interface, value_to_desc(self, value));
                 let string_desc = desc_to_result_val(self, result)?;
                 Ok(String(Ref::from_value_desc(self, string_desc)))
             },

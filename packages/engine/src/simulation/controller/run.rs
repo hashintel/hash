@@ -149,7 +149,7 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     sims_to_exp
         .send(
             SimStatus::ended(
-                sim_run_id.clone(),
+                sim_run_id,
                 steps_taken as isize,
                 early_stop,
                 stop_msg,
@@ -202,5 +202,5 @@ async fn maybe_handle_sim_ctl_msg(sim_from_exp: &mut SimCtlRecv) -> Result<LoopC
             SimControl::Stop => return Ok(LoopControl::Stop),
         }
     }
-    return Ok(LoopControl::Continue);
+    Ok(LoopControl::Continue)
 }

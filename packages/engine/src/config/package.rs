@@ -164,19 +164,15 @@ impl ConfigBuilder {
     }
 
     pub fn build(self) -> Result<Config> {
-        let mut init = self.init.unwrap_or_else(|| Config::default_init_packages());
+        let mut init = self.init.unwrap_or_else(Config::default_init_packages);
 
         let mut context = self
             .context
-            .unwrap_or_else(|| Config::default_context_packages());
+            .unwrap_or_else(Config::default_context_packages);
 
-        let state = self
-            .state
-            .unwrap_or_else(|| Config::default_state_packages());
+        let state = self.state.unwrap_or_else(Config::default_state_packages);
 
-        let mut output = self
-            .output
-            .unwrap_or_else(|| Config::default_output_packages());
+        let mut output = self.output.unwrap_or_else(Config::default_output_packages);
 
         let init_as_deps = init
             .iter()

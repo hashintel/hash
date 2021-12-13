@@ -43,9 +43,7 @@ impl BehaviorKeys {
             _ => return Err(BehaviorKeyJsonError::ExpectedTopLevelMap.into()),
         };
 
-        let key_json = map
-            .get("keys")
-            .ok_or_else(|| BehaviorKeyJsonError::ExpectedKeys)?;
+        let key_json = map.get("keys").ok_or(BehaviorKeyJsonError::ExpectedKeys)?;
 
         let mut field_spec_map = FieldSpecMap::empty();
 
@@ -56,7 +54,7 @@ impl BehaviorKeys {
                         .map(|(k, v)| {
                             Ok(field_spec_creator.create(
                                 k.into(),
-                                FieldType::from_json(&k, v)?,
+                                FieldType::from_json(k, v)?,
                                 FieldScope::Agent,
                             ))
                         })
@@ -126,11 +124,11 @@ impl BehaviorKeys {
             false
         };
 
-        return Ok(BehaviorKeys {
+        Ok(BehaviorKeys {
             inner: field_spec_map,
             built_in_key_use: built_in_key_use?,
             dyn_access,
-        });
+        })
     }
 
     // add all of the fields within self into builder
@@ -226,7 +224,7 @@ impl TryFrom<(&ExperimentConfig, &RootFieldSpecCreator)> for BehaviorMap {
 
 impl BehaviorMap {
     pub fn iter_behaviors(&self) -> impl Iterator<Item = &Behavior> {
-        self.inner.values().into_iter()
+        self.inner.values()
     }
 }
 

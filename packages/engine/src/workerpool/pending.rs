@@ -57,7 +57,7 @@ impl PendingWorkerPoolTask {
             active_workers_comms.remove(worker.index());
             if active_workers_comms.is_empty() {
                 received_results.sort_by(|a, b| a.0.cmp(&b.0));
-                let received_results = std::mem::replace(received_results, vec![]);
+                let received_results = std::mem::take(received_results);
                 let results = received_results.into_iter().map(|(_, res)| res).collect();
                 let combined_result =
                     TaskResultOrCancelled::Result(reference_task.combine_messages(results)?);
@@ -149,7 +149,7 @@ impl PendingWorkerPoolTask {
         }
         // Don't send anything because we've already received a cancel
         // message.
-        return Ok(None);
+        Ok(None)
     }
 }
 

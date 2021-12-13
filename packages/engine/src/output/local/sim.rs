@@ -12,7 +12,8 @@ use crate::{
 #[derive(derive_new::new)]
 pub struct LocalSimulationOutputPersistence {
     exp_id: ExperimentId,
-    _sim_id: SimulationShortId, // TODO: Should this be unused? If so remove
+    _sim_id: SimulationShortId,
+    // TODO: Should this be unused? If so remove
     buffers: Buffers,
     config: LocalPersistenceConfig,
 }
@@ -51,7 +52,7 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
             let mut new = path.clone();
             new.push(
                 v.file_name()
-                    .ok_or(Error::from("Missing file name in output parts"))?,
+                    .ok_or_else(|| Error::from("Missing file name in output parts"))?,
             );
             std::fs::copy(v, new)?;
             Ok(())

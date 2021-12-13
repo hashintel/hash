@@ -122,7 +122,7 @@ impl FieldKey {
             )));
         }
 
-        return Ok(FieldKey(name.to_string()));
+        Ok(FieldKey(name.to_string()))
     }
 
     #[inline]
@@ -153,7 +153,7 @@ impl FieldKey {
             }
         }
         key.push_str(&source.unique_id()?);
-        key.push_str("_");
+        key.push('_');
         key.push_str(name);
         Ok(FieldKey(key))
     }
@@ -225,8 +225,8 @@ impl FieldSpecMap {
                 return Ok(());
             }
             if existing_field.scope == FieldScope::Agent
-                && &new_field.scope == &FieldScope::Agent
-                && &existing_field.inner.field_type == &new_field.inner.field_type
+                && new_field.scope == FieldScope::Agent
+                && existing_field.inner.field_type == new_field.inner.field_type
             {
                 if existing_field.source == new_field.source {
                     return Err(Error::AgentScopedFieldKeyClash(
@@ -234,17 +234,15 @@ impl FieldSpecMap {
                         new_field.inner.field_type,
                         existing_field.inner.field_type.clone(),
                     ));
-                } else {
-                    if let FieldSource::Package(_package_src) = &new_field.source {
-                        if existing_field.source == FieldSource::Engine {
-                            log::warn!(
-                                "Key clash when a package attempted to insert a new agent-scoped \
-                                 field with key: {:?}, the existing field was created by the \
-                                 engine, the new field will be ignored",
-                                field_key
-                            );
-                            return Ok(());
-                        }
+                } else if let FieldSource::Package(_package_src) = &new_field.source {
+                    if existing_field.source == FieldSource::Engine {
+                        log::warn!(
+                            "Key clash when a package attempted to insert a new agent-scoped \
+                             field with key: {:?}, the existing field was created by the engine, \
+                             the new field will be ignored",
+                            field_key
+                        );
+                        return Ok(());
                     }
                 }
             }
@@ -280,6 +278,10 @@ impl FieldSpecMap {
 
     pub fn len(&self) -> usize {
         self.field_specs.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     pub(in crate::datastore) fn _get_field_spec(

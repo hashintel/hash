@@ -19,6 +19,20 @@
     unused_lifetimes,
     unused_qualifications
 )]
+#![allow(
+    clippy::borrowed_box,
+    clippy::wrong_self_convention,
+    clippy::diverging_sub_expression,
+    clippy::expect_fun_call,
+    clippy::large_enum_variant,
+    clippy::type_complexity,
+    clippy::module_inception,
+    clippy::new_ret_no_self,
+    clippy::unnecessary_cast,
+    clippy::enum_variant_names,
+    clippy::should_implement_trait,
+    clippy::mutex_atomic
+)]
 
 pub mod config;
 pub mod datastore;

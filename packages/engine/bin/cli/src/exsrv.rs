@@ -79,7 +79,7 @@ impl Handler {
         self.ctrl_tx
             .send((ctrl, result_tx))
             .await
-            .or_else(|_| Err(format_err!("Could not send control message to server")))?;
+            .map_err(|_| format_err!("Could not send control message to server"))?;
         result_rx.await.context("Failed to receive response from")?
     }
 
@@ -171,10 +171,9 @@ impl Server {
                 // completes before sending de-registering the experiment.
                 Ok(())
             }
-            Some(sender) => sender.send(msg.body).or(Err(format_err!(
-                "Routing message for experiment {}",
-                msg.experiment_id,
-            ))),
+            Some(sender) => sender
+                .send(msg.body)
+                .map_err(|_| format_err!("Routing message for experiment {}", msg.experiment_id)),
         }
     }
 

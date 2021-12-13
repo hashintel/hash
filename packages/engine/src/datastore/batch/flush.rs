@@ -277,7 +277,7 @@ fn push_non_modify_actions(
     this_buffer_offset
 }
 
-fn gather_array_datas_depth_first<'a, D: GrowableArrayData>(array_ref: &'a D) -> Vec<&'a D> {
+fn gather_array_datas_depth_first<D: GrowableArrayData>(array_ref: &D) -> Vec<&D> {
     let mut ret = vec![array_ref];
     // Depth-first get all nodes
     array_ref._child_data().iter().for_each(|v| {

@@ -195,10 +195,10 @@ pub enum MetricObjective {
 
 impl Serialize for MetricObjective {
     fn serialize<S: serde::Serializer>(&self, ser: S) -> std::result::Result<S::Ok, S::Error> {
-        ser.serialize_str(match *self {
+        ser.serialize_str(match self {
             MetricObjective::Max => "max",
             MetricObjective::Min => "min",
-            MetricObjective::Other(ref s) => &s,
+            MetricObjective::Other(s) => s,
         })
     }
 }

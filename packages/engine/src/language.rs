@@ -25,7 +25,7 @@ impl Language {
     }
 
     pub fn from_file_name(file_name: &str) -> Result<Language> {
-        if !(file_name.contains(".") || file_name.contains("/")) {
+        if !(file_name.contains('.') || file_name.contains('/')) {
             // This is so we're on-par w/ the web-engine, see `extract_hash_builtin` in
             // the hash repo
             return Ok(Language::Rust);
