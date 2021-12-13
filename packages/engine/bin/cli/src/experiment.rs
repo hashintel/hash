@@ -14,9 +14,8 @@ use super::process;
 use crate::{exsrv::Handler, manifest::read_manifest, Args};
 
 lazy_static::lazy_static! {
-    static ref ENGINE_START_TIMEOUT: Duration = parse_env_duration("ENGINE_START_TIMEOUT", 180);
-    static ref ENGINE_WAIT_TIMEOUT: Duration = parse_env_duration("ENGINE_WAIT_TIMEOUT", if cfg!(debug_assertions) { 3600 } else { 60 });
-    static ref PING_INTERVAL: Duration = parse_env_duration("PING_INTERVAL", 5);
+    static ref ENGINE_START_TIMEOUT: Duration = parse_env_duration("ENGINE_START_TIMEOUT", 2);
+    static ref ENGINE_WAIT_TIMEOUT: Duration = parse_env_duration("ENGINE_WAIT_TIMEOUT", 60);
 }
 
 /// `run_experiment` will build a queue of tokio tasks attached to the simulation workers. Any
