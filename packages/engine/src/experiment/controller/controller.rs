@@ -346,7 +346,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
                         return Ok(())
                     } else {
                         log::trace!("sim_run_tasks wasn't empty, starting a wait and warn loop");
-                        waiting_for_completion = Some(Box::pin(tokio::time::sleep(Duration::from_secs(1))));
+                        waiting_for_completion = Some(Box::pin(tokio::time::sleep(Duration::from_secs(time_to_wait))));
                     }
                 }
                 _ = async { waiting_for_completion.as_mut().expect("must be some").await }, if waiting_for_completion.is_some() => {
