@@ -9,9 +9,10 @@
     "clean": "rimraf './src/**/*.gen.*' ./.next/",
     "codegen": "graphql-codegen --config codegen.yml",
     "dev": "next dev",
-    "fix": "eslint --ext .js,.ts,.tsx --fix ./src/",
+    "fix:eslint": "eslint --ext .js,.ts,.tsx --fix ./src/",
     "postinstall": "yarn codegen",
-    "lint": "eslint --ext .js,.ts,.tsx ./src/ && tsc --noEmit",
+    "lint:eslint": "eslint --ext .js,.ts,.tsx ./src/",
+    "lint:tsc": "tsc --noEmit",
     "start": "next start",
     "test": "jest"
   },

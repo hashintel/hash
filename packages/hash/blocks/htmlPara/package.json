@@ -5,8 +5,9 @@
   "scripts": {
     "build": "echo \"@hashintel/block-html-para contains no resources to build\"",
     "build:dev": "echo \"@hashintel/block-html-para contains no resources to build\"",
-    "fix": "echo \"noop\"",
-    "lint": "eslint --ext .js,.ts,.tsx,.json",
+    "fix:eslint": "eslint --ext .js,.ts,.tsx,.json --fix",
+    "lint:eslint": "eslint --ext .js,.ts,.tsx,.json",
+    "lint:tsc": "echo \"@hashintel/block-html-para contains no ts files\"",
     "serve": "serve -C -l 5005"
   },
   "devDependencies": {

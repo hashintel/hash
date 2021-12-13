@@ -14,9 +14,10 @@
     "clean": "rimraf './src/**/*.gen.*' ./dist/ ./tsconfig.tsbuildinfo",
     "codegen": "graphql-codegen --config codegen.yml",
     "dev": "cross-env NODE_ENV=\"${NODE_ENV:-development}\" nodemon --config nodemon.json src/index.ts",
-    "fix": "eslint --ext .ts --fix ./src/",
+    "fix:eslint": "eslint --ext .ts --fix ./src/",
     "postinstall": "yarn codegen # required for linting",
-    "lint": "eslint --ext .ts ./src/ && tsc --noEmit",
+    "lint:eslint": "eslint --ext .ts ./src/",
+    "lint:tsc": "tsc --noEmit",
     "start": "cross-env NODE_ENV=production node dist/index.js",
     "test": "jest",
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json"

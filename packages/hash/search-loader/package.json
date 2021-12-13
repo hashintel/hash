@@ -14,9 +14,10 @@
     "clean": "rimraf ./dist/ ./tsconfig.tsbuildinfo",
     "clear-opensearch": "ts-node ./src/scripts/clear-opensearch.ts",
     "dev": "cross-env NODE_ENV=\"${NODE_ENV:-development}\" nodemon --config nodemon.json src/index.ts",
-    "fix": "eslint --ext .ts --fix ./src/",
+    "fix:eslint": "eslint --ext .ts --fix ./src/",
     "postinstall": "yarn build",
-    "lint": "eslint --ext .ts ./src/ && tsc --noEmit",
+    "lint:eslint": "eslint --ext .ts ./src/",
+    "lint:tsc": "tsc --noEmit",
     "start": "NODE_ENV=production node dist/index.js",
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json"
   },

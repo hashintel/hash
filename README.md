@@ -184,8 +184,9 @@ The below `package.json` file outlines the minimum requirements a package has to
   "license": "<package-licence>",
   "scripts": {
     // omit type-checking if not applicable
-    "lint": "eslint --ext .ts,.tsx ./src/; tsc --noEmit",
-    "fix": "eslint --ext .ts,.tsx --fix ./src/",
+    "fix:eslint": "eslint --ext .ts,.tsx --fix ./src/",
+    "lint:eslint": "eslint --ext .ts,.tsx ./src/",
+    "lint:tsc": "tsc --noEmit",
     "build": "echo produce artifacts",
     "clean": "echo remove artifacts",
     // required only if this is a shared package

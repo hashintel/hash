@@ -12,8 +12,9 @@
     "build:dev": "yarn clean; cross-env NODE_ENV=development webpack --mode development",
     "clean": "rimraf ./dist/",
     "dev": "cross-env NODE_ENV=development webpack-dev-server -d --port 3000 --config webpack-dev-server.config.js --open",
-    "fix": "eslint --ext .ts,.tsx --fix ./src/",
-    "lint": "eslint --ext .ts,.tsx ./src/ && tsc --noEmit",
+    "fix:eslint": "eslint --ext .ts,.tsx --fix ./src/",
+    "lint:eslint": "eslint --ext .ts,.tsx ./src/",
+    "lint:tsc": "tsc --noEmit",
     "schema": "typescript-json-schema tsconfig.json AppProps --required true --out dist/block-schema.json",
     "serve": "serve -C -l 62680 ./dist/",
     "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev --watch --verbose\" \"yarn dev\""
