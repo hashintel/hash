@@ -7,6 +7,8 @@ import { AccountPageList } from "./AccountPageList";
 import styles from "./PageSidebar.module.scss";
 import { AccountEntityTypeList } from "./AccountEntityTypeList";
 
+export const SIDEBAR_WIDTH = 260;
+
 export const PageSidebar: VoidFunctionComponent = () => {
   const router = useRouter();
   const { accountId, pageEntityId } = router.query as Record<string, string>;
@@ -14,7 +16,7 @@ export const PageSidebar: VoidFunctionComponent = () => {
   const goToAccount = (id: string) => router.push(`/${id}`);
 
   return (
-    <nav className={styles.PageSidebar}>
+    <nav className={styles.PageSidebar} style={{ width: SIDEBAR_WIDTH }}>
       <div className={styles.PageSidebar__Section}>
         <header className={styles.PageSidebar__Section__Header}>
           <h2>Account</h2>

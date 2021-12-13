@@ -9,6 +9,7 @@ import { useUser } from "../../hooks/useUser";
 import { LoginModal } from "../../Modals/AuthModal/LoginModal";
 import { AccountDropdown } from "./AccountDropdown";
 import { SearchBar } from "./SearchBar";
+import { SIDEBAR_WIDTH } from "./../PageSidebar/PageSidebar";
 
 interface NavProps {
   tw?: string;
@@ -36,9 +37,8 @@ export const PageHeader: React.VFC = () => {
   return (
     <header
       className={tw`bg-white h-16 flex items-center border(b-1 gray-300)`}
+      style={{ paddingLeft: SIDEBAR_WIDTH + 10 }}
     >
-      <div className={tw`h-full`} style={{ width: 310 }} />
-      {/* sidebar filler */}
       {user ? (
         <Nav tw="justify-between">
           <SearchBar />
