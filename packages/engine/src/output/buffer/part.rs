@@ -58,6 +58,7 @@ impl OutputPartBuffer {
     }
 
     pub fn persist_current_on_disk(&mut self) -> Result<()> {
+        log::trace!("Persisting current output to disk");
         let mut next_i = self.parts.len();
 
         let current = std::mem::replace(
@@ -107,7 +108,7 @@ impl OutputPartBuffer {
 
     pub fn finalize(mut self) -> Result<(Vec<u8>, Vec<PathBuf>)> {
         self.current.push(CHAR_OPEN_RIGHT_SQUARE_BRACKET);
-        self.persist_current_on_disk();
+        self.persist_current_on_disk()?;
         Ok((self.current, self.parts))
     }
 }
