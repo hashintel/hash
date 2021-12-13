@@ -9,7 +9,7 @@ import { useUser } from "../../hooks/useUser";
 import { LoginModal } from "../../Modals/AuthModal/LoginModal";
 import { AccountDropdown } from "./AccountDropdown";
 import { SearchBar } from "./SearchBar";
-import { SIDEBAR_WIDTH } from "./../PageSidebar/PageSidebar";
+import { SIDEBAR_WIDTH } from "../PageSidebar/PageSidebar";
 
 interface NavProps {
   tw?: string;

@@ -62,7 +62,10 @@ export const SearchBar: React.VFC = () => {
   const [submittedQuery, setSubmittedQuery] = useState("");
   const setSubmittedQuerySoon = useDebounce(setSubmittedQuery, 300);
 
-  useEffect(() => setSubmittedQuerySoon(displayedQuery), [displayedQuery]);
+  useEffect(
+    () => setSubmittedQuerySoon(displayedQuery),
+    [setSubmittedQuerySoon, displayedQuery],
+  );
 
   const { user } = useUser();
 
