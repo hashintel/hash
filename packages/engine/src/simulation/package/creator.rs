@@ -275,7 +275,7 @@ impl PackageCreators {
 
     pub fn get_output_persistence_config(
         &self,
-        exp_config: &crate::ExperimentConfig,
+        exp_config: &ExperimentConfig,
         globals: &Globals,
     ) -> Result<OutputPackagesSimConfig> {
         let mut map = HashMap::new();
@@ -291,7 +291,7 @@ impl PackageCreators {
 
     pub fn get_agent_schema(
         &self,
-        exp_config: &crate::ExperimentConfig,
+        exp_config: &ExperimentConfig,
         globals: &Globals,
     ) -> Result<AgentSchema> {
         let mut field_spec_map = FieldSpecMap::empty();
@@ -356,7 +356,7 @@ impl PackageCreators {
 
     pub fn get_context_schema(
         &self,
-        exp_config: &crate::ExperimentConfig,
+        exp_config: &ExperimentConfig,
         globals: &Globals,
     ) -> std::result::Result<ContextSchema, Error> {
         let mut field_spec_map = FieldSpecMap::empty();

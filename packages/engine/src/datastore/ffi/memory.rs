@@ -24,7 +24,7 @@ pub extern "C" fn load_shmem(id: *const u8, len: u64) -> *mut CMemory {
         Ok(memory) => {
             let ptr = memory.data.as_ptr();
             let memory_size = memory.size as i64;
-            let memory = Box::into_raw(Box::new(memory)) as *const Memory;
+            let memory = Box::into_raw(Box::new(memory));
             Box::into_raw(Box::new(CMemory {
                 ptr,
                 len: memory_size,

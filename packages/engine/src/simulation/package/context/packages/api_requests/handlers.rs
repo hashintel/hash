@@ -9,14 +9,14 @@ use crate::datastore::{
 
 pub const ACTIVE_REQUESTS: usize = 10;
 
-type Request = ([u8; UUID_V4_LEN], serde_json::Value);
+type Request = ([u8; UUID_V4_LEN], Value);
 
 pub struct Requests {
     inner: Vec<Request>,
 }
 
-pub fn gather_requests<'a>(
-    reader: &MessageReader<'a>,
+pub fn gather_requests(
+    reader: &MessageReader<'_>,
     messages: &[AgentMessageReference],
 ) -> Result<Requests> {
     let inner = (0..messages.len())

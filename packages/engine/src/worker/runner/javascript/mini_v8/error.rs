@@ -74,14 +74,14 @@ impl<'mv8> Error<'mv8> {
     }
 }
 
-impl<'mv8> StdError for Error<'mv8> {
+impl StdError for Error<'_> {
     fn description(&self) -> &'static str {
         "JavaScript execution error"
     }
 }
 
-impl<'mv8> fmt::Display for Error<'mv8> {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_, >) -> fmt::Result {
+impl fmt::Display for Error<'_> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Error::ToJsConversionError { from, to } => {
                 write!(fmt, "error converting {} to JavaScript {}", from, to)

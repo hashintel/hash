@@ -86,7 +86,7 @@ impl Server {
     /// Receive a JSON-serialized message.
     pub async fn recv<T>(&mut self) -> Result<T>
     where
-        for<'a> T: serde::Deserialize<'a>,
+        for<'de> T: serde::Deserialize<'de>,
     {
         let msg = self.receiver.recv().await.unwrap();
         serde_json::from_slice::<T>(msg.as_slice()).map_err(Error::from)

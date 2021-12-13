@@ -6,7 +6,7 @@ use super::*;
 #[derive(Clone)]
 pub struct String<'mv8>(pub(super) Ref<'mv8>);
 
-impl<'mv8> String<'mv8> {
+impl String<'_> {
     /// Returns a Rust string converted from the V8 string.
     pub fn to_string(&self) -> StdString {
         unsafe {
@@ -20,7 +20,7 @@ impl<'mv8> String<'mv8> {
     }
 }
 
-impl<'mv8> fmt::Debug for String<'mv8> {
+impl fmt::Debug for String<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self.to_string())
     }

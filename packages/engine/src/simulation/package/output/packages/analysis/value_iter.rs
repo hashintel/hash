@@ -10,7 +10,7 @@ use crate::simulation::package::output::packages::analysis::analyzer::Comparison
 
 fn array_element_exists_as_non_null(value: &serde_json::Value, index: usize) -> bool {
     if let Some(array) = value.as_array() {
-        if let Some(value) = array.get(index as usize) {
+        if let Some(value) = array.get(index) {
             return !value.is_null();
         }
     }
@@ -352,7 +352,7 @@ pub(super) fn value_iterator_mapper(field: serde_json::Value) -> Result<MapItera
     let map: MapIterator = if let Some(index) = field.clone().as_u64() {
         // Iterator must be over array types
         Box::new(move |value_iterator| {
-            let mapped: ValueIterator<'_, > = Box::new(value_iterator.map(move |a| {
+            let mapped: ValueIterator<'_> = Box::new(value_iterator.map(move |a| {
                 if let Some(array) = a.as_array() {
                     if (index as usize) < array.len() {
                         array[index as usize].clone()
@@ -370,7 +370,7 @@ pub(super) fn value_iterator_mapper(field: serde_json::Value) -> Result<MapItera
         Box::new(move |value_iterator| {
             let name = name.clone();
             // Iterator must be over struct types
-            let mapped: ValueIterator<'_, > = Box::new(value_iterator.map(move |mut a| {
+            let mapped: ValueIterator<'_> = Box::new(value_iterator.map(move |mut a| {
                 if let Some(map) = a.as_object_mut() {
                     map.remove(&name).unwrap_or_else(|| serde_json::Value::Null)
                 } else {

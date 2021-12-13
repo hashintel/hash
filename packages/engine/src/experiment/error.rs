@@ -1,6 +1,8 @@
 use serde_json::Value as SerdeValue;
 use thiserror::Error as ThisError;
 
+use crate::proto;
+
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 pub type SerdeMap = serde_json::Map<String, SerdeValue>;
 
@@ -16,7 +18,7 @@ pub enum Error {
     NoSimulationRuns,
 
     #[error("Unexpected simulation run id ({0}) received")]
-    MissingSimulationRun(super::SimulationShortId),
+    MissingSimulationRun(proto::SimulationShortId),
 
     #[error("Unexpected opt client id received: {0:?}")]
     MissingClient(String, String),

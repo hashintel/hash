@@ -166,7 +166,7 @@ impl Display for FieldKey {
 }
 
 /// A single specification of a field
-#[derive(new, Clone, PartialEq, Eq, Hash)]
+#[derive(derive_new::new, Clone, PartialEq, Eq, Hash)]
 pub struct FieldSpec {
     pub name: String,
     pub field_type: FieldType,

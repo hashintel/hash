@@ -159,7 +159,7 @@ pub(super) struct Ref<'mv8> {
     pub(super) value_ptr: ValuePtr,
 }
 
-impl<'mv8> Ref<'mv8> {
+impl Ref<'_> {
     pub(super) fn new(mv8: &MiniV8, value_ptr: ValuePtr) -> Ref<'_> {
         Ref { mv8, value_ptr }
     }
@@ -183,7 +183,7 @@ impl<'mv8> Clone for Ref<'mv8> {
     }
 }
 
-impl<'mv8> Drop for Ref<'mv8> {
+impl Drop for Ref<'_> {
     fn drop(&mut self) {
         unsafe {
             mv8_value_ptr_drop(self.value_ptr);
@@ -241,7 +241,7 @@ pub(super) fn desc_to_value(mv8: &MiniV8, desc: ValueDesc) -> Value<'_> {
     value
 }
 
-pub(super) fn value_to_desc<'mv8, 'a>(mv8: &'mv8 MiniV8, value: &'a Value<'mv8>) -> ValueDesc {
+pub(super) fn value_to_desc<'mv8>(mv8: &'mv8 MiniV8, value: &Value<'mv8>) -> ValueDesc {
     fn ref_val(r: &Ref<'_>) -> ValuePtr {
         unsafe { mv8_value_ptr_clone(r.mv8.interface, r.value_ptr) }
     }

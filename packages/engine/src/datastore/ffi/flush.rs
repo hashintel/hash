@@ -215,7 +215,7 @@ pub struct PreparedArrayData<'a> {
     _node_index: usize, // TODO: unused, delete?
 }
 
-impl<'a> GrowableArrayData for PreparedArrayData<'a> {
+impl GrowableArrayData for PreparedArrayData<'_> {
     fn _len(&self) -> usize {
         unsafe { (*self.inner).length as usize }
     }

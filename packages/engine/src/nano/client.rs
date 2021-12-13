@@ -8,7 +8,7 @@ use super::{
     spmc,
 };
 
-lazy_static! {
+lazy_static::lazy_static! {
     // Time after which NNG will try to retry sending a message
     static ref RESEND_TIME: Duration = Duration::from_secs(1);
     // Minimum time to wait before attempting to retry NNG dial

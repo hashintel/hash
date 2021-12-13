@@ -50,7 +50,7 @@ impl MiniV8 {
     /// Returns the global JavaScript object.
     pub fn global(&self) -> Object<'_> {
         Object(Ref::new(self, unsafe {
-            ffi::mv8_interface_global(self.interface)
+            mv8_interface_global(self.interface)
         }))
     }
 

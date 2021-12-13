@@ -2,7 +2,6 @@ use serde_json::Value;
 
 use super::super::*;
 use crate::{
-    config,
     config::{ExperimentConfig, TopologyConfig},
     datastore::table::state::WriteState,
 };
@@ -59,7 +58,7 @@ impl GetWorkerExpStartMsg for Creator {
 }
 
 pub struct Topology {
-    config: Arc<config::TopologyConfig>,
+    config: Arc<TopologyConfig>,
 }
 
 impl Topology {

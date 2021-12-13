@@ -44,7 +44,7 @@ impl Globals {
     }
 }
 
-impl std::default::Default for Globals {
+impl Default for Globals {
     fn default() -> Globals {
         Globals::empty()
     }

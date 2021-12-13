@@ -5,7 +5,7 @@ use super::super::*;
 #[test]
 fn js_function() {
     let mv8 = MiniV8::new();
-    let func: Value = mv8.eval("(function(y) { return this + y; })").unwrap();
+    let func: Value<'_> = mv8.eval("(function(y) { return this + y; })").unwrap();
     assert!(func.is_function());
     let func = if let Value::Function(f) = func {
         f
@@ -21,15 +21,15 @@ fn js_function() {
 #[test]
 fn js_constructor() {
     let mv8 = MiniV8::new();
-    let func: Function = mv8.eval("(function(x) { this.x = x; })").unwrap();
-    let value: Object = func.call_new((10,)).unwrap();
+    let func: Function<'_> = mv8.eval("(function(x) { this.x = x; })").unwrap();
+    let value: Object<'_> = func.call_new((10,)).unwrap();
     let n: i64 = value.get("x").unwrap();
     assert_eq!(10, n);
 }
 
 #[test]
 fn rust_function() {
-    fn add(inv: Invocation) -> Result<usize> {
+    fn add(inv: Invocation<'_>) -> Result<'_, usize> {
         let (a, b): (usize, usize) = inv.args.into(inv.mv8)?;
         return Ok(a + b);
     }
@@ -46,8 +46,8 @@ fn rust_function() {
 
 #[test]
 fn rust_function_error() {
-    fn err(inv: Invocation) -> Result<()> {
-        let _: (Function,) = inv.args.into(inv.mv8)?;
+    fn err(inv: Invocation<'_>) -> Result<'_, ()> {
+        let _: (Function<'_>,) = inv.args.into(inv.mv8)?;
         Ok(())
     }
 
@@ -113,7 +113,7 @@ fn rust_closure_mut_callback_error() {
             // Produce a mutable reference:
             let r = v.as_mut().unwrap();
             // Whoops, this will recurse into the function and produce another mutable reference!
-            mv8.global().get::<_, Function>("f")?.call((true,))?;
+            mv8.global().get::<_, Function<'_>>("f")?.call((true,))?;
             println!("Should not get here, mutable aliasing has occurred!");
             println!("value at {:p}", r as *mut _);
             println!("value is {}", r);
@@ -125,7 +125,7 @@ fn rust_closure_mut_callback_error() {
     mv8.global().set("f", f).unwrap();
     match mv8
         .global()
-        .get::<_, Function>("f")
+        .get::<_, Function<'_>>("f")
         .unwrap()
         .call::<_, ()>((false,))
     {
@@ -139,7 +139,7 @@ fn rust_closure_mut_callback_error() {
 
 #[test]
 fn number_this() {
-    fn add(inv: Invocation) -> Result<f64> {
+    fn add(inv: Invocation<'_>) -> Result<'_, f64> {
         let this: f64 = inv.this.into(inv.mv8)?;
         let (acc,): (f64,) = inv.args.into(inv.mv8)?;
         return Ok(this + acc);

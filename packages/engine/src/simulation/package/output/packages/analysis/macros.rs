@@ -1,11 +1,10 @@
 macro_rules! value_filter_null_array_element {
     ($index:ident, $exists:ident, $comparison:expr) => {{
         Box::new(move |value_iterator| {
-            let mapped: ValueIterator<'_> = Box::new(value_iterator.filter(move |a| {
+            Ok(Box::new(value_iterator.filter(move |a| {
                 let $exists = array_element_exists_as_non_null(a, $index as usize);
                 $comparison
-            }));
-            Ok(mapped)
+            })))
         })
     }};
 }
@@ -14,11 +13,10 @@ macro_rules! value_filter_null_object_field {
     ($field_name:ident, $name:ident, $exists:ident, $comparison:expr) => {{
         Box::new(move |value_iterator| {
             let $name = $field_name.clone();
-            let mapped: ValueIterator<'_, > = Box::new(value_iterator.filter(move |a| {
+            Ok(Box::new(value_iterator.filter(move |a| {
                 let $exists = object_field_exists_as_non_null(a, &$name);
                 $comparison
-            }));
-            Ok(mapped)
+            })))
         })
     }};
 }
@@ -26,7 +24,7 @@ macro_rules! value_filter_null_object_field {
 macro_rules! value_filter_boolean_array_element {
     ($index:ident, $val:ident, $comparison:expr, $default:expr) => {{
         Box::new(move |value_iterator| {
-            let mapped: ValueIterator<'_, > = Box::new(value_iterator.filter(move |a| {
+            Ok(Box::new(value_iterator.filter(move |a| {
                 if let Some(array) = a.as_array() {
                     if let Some(value) = array.get($index as usize) {
                         if let Some($val) = value.as_bool() {
@@ -35,8 +33,7 @@ macro_rules! value_filter_boolean_array_element {
                     }
                 }
                 $default
-            }));
-            Ok(mapped)
+            })))
         })
     }};
 }
@@ -45,7 +42,7 @@ macro_rules! value_filter_boolean_object_field {
     ($field_name:ident, $val:ident, $comparison:expr, $default:expr) => {{
         Box::new(move |value_iterator| {
             let name = $field_name.clone();
-            let mapped: ValueIterator<'_, > = Box::new(value_iterator.filter(move |a| {
+            Ok(Box::new(value_iterator.filter(move |a| {
                 if let Some(object) = a.as_object() {
                     if let Some(value) = object.get(&name) {
                         if let Some($val) = value.as_bool() {
@@ -54,8 +51,7 @@ macro_rules! value_filter_boolean_object_field {
                     }
                 }
                 $default
-            }));
-            Ok(mapped)
+            })))
         })
     }};
 }
@@ -63,7 +59,7 @@ macro_rules! value_filter_boolean_object_field {
 macro_rules! value_filter_f64_array_element {
     ($index:ident, $val:ident, $comparison:expr, $default:expr) => {{
         Box::new(move |value_iterator| {
-            let mapped: ValueIterator<'_, > = Box::new(value_iterator.filter(move |a| {
+            Ok(Box::new(value_iterator.filter(move |a| {
                 if let Some(array) = a.as_array() {
                     if let Some(value) = array.get($index as usize) {
                         if let Some($val) = value.as_f64() {
@@ -72,8 +68,7 @@ macro_rules! value_filter_f64_array_element {
                     }
                 }
                 $default
-            }));
-            Ok(mapped)
+            })))
         })
     }};
 }
@@ -82,7 +77,7 @@ macro_rules! value_filter_f64_object_field {
     ($field_name:ident, $val:ident, $comparison:expr, $default:expr) => {{
         Box::new(move |value_iterator| {
             let name = $field_name.clone();
-            let mapped: ValueIterator<'_, > = Box::new(value_iterator.filter(move |a| {
+            Ok(Box::new(value_iterator.filter(move |a| {
                 if let Some(object) = a.as_object() {
                     if let Some(value) = object.get(&name) {
                         if let Some($val) = value.as_f64() {
@@ -91,8 +86,7 @@ macro_rules! value_filter_f64_object_field {
                     }
                 }
                 $default
-            }));
-            Ok(mapped)
+            })))
         })
     }};
 }
@@ -101,7 +95,7 @@ macro_rules! value_filter_string_array_element {
     ($index:ident, $val:ident, $to_clone:ident, $cloned:ident, $comparison:expr, $default:expr) => {{
         Box::new(move |value_iterator| {
             let $cloned = $to_clone.clone();
-            let mapped: ValueIterator<'_, > = Box::new(value_iterator.filter(move |a| {
+            Ok(Box::new(value_iterator.filter(move |a| {
                 if let Some(array) = a.as_array() {
                     if let Some(value) = array.get($index as usize) {
                         if let Some($val) = value.as_str() {
@@ -110,8 +104,7 @@ macro_rules! value_filter_string_array_element {
                     }
                 }
                 $default
-            }));
-            Ok(mapped)
+            })))
         })
     }};
 }
@@ -127,7 +120,7 @@ macro_rules! value_filter_string_object_field {
         Box::new(move |value_iterator| {
             let name = $field_name.clone();
             let $cloned = $to_clone.clone();
-            let mapped: ValueIterator<'_, > = Box::new(value_iterator.filter(move |a| {
+            Ok(Box::new(value_iterator.filter(move |a| {
                 if let Some(object) = a.as_object() {
                     if let Some(value) = object.get(&name) {
                         if let Some($val) = value.as_str() {
@@ -136,16 +129,15 @@ macro_rules! value_filter_string_object_field {
                     }
                 }
                 $default
-            }));
-            Ok(mapped)
+            })))
         })
     }};
 }
 
 macro_rules! apply_index_filter_f64 {
     ($operations:ident, $accessor:expr, $field:expr, $comparison:expr, $default:expr) => {{
-        let following =
-            OutputCreator::index_creator(&$operations[1..], $accessor)? as OutputRunnerCreator;
+        let following: OutputRunnerCreator =
+            OutputCreator::index_creator(&$operations[1..], $accessor)?;
         let field = $field.clone();
         Ok(Box::new(move |agents| {
             let f64_iterator = f64_iter(agents, &field)?;
@@ -155,7 +147,7 @@ macro_rules! apply_index_filter_f64 {
                     // let mut v = 1;
                     let mut mut_f64_iterator = f64_iterator;
                     let mut current_index = 0;
-                    let this_filter = Box::new(iterator.filter(move |index| {
+                    let this_filter: IndexIterator<'_> = Box::new(iterator.filter(move |index| {
                         for _ in current_index..*index {
                             // Skip some values
                             (&mut mut_f64_iterator).next();
@@ -166,12 +158,10 @@ macro_rules! apply_index_filter_f64 {
                             .unwrap()
                             .map($comparison)
                             .unwrap_or($default)
-                    })) as IndexIterator<'_>;
-
-                    let res = next(this_filter)?;
-                    Ok(res)
+                    }));
+                    Ok(next(this_filter)?)
                 },
-            ) as OutputRunner<'_>)
+            ))
         }))
     }};
 }
@@ -208,12 +198,10 @@ macro_rules! apply_index_filter_str {
                             .unwrap()
                             .map($comparison)
                             .unwrap_or($default)
-                    })) as IndexIterator<'_>;
-
-                    let res = next(this_filter)?;
-                    Ok(res)
+                    }));
+                    Ok(next(this_filter)?)
                 },
-            ) as OutputRunner<'_>)
+            ))
         }))
     }};
 }
@@ -250,20 +238,17 @@ macro_rules! apply_index_filter_serialized_json_str {
                             .unwrap_or_else(|| Some("null"))
                             .map($comparison)
                             .unwrap_or($default)
-                    })) as IndexIterator<'_>;
-
-                    let res = next(this_filter)?;
-                    Ok(res)
+                    }));
+                    Ok(next(this_filter)?)
                 },
-            ) as OutputRunner<'_>)
+            ))
         }))
     }};
 }
 
 macro_rules! apply_index_filter_serialized_json {
     ($operations:ident, $accessor:expr, $field:expr, $comparison:expr, $default:expr) => {{
-        let following =
-            OutputCreator::index_creator(&$operations[1..], $accessor)? as OutputRunnerCreator;
+        let following = OutputCreator::index_creator(&$operations[1..], $accessor)?;
         let field = $field.clone();
         Ok(Box::new(move |agents| {
             let str_iterator = str_iter(agents, &field)?;
@@ -283,12 +268,10 @@ macro_rules! apply_index_filter_serialized_json {
                             .unwrap_or_else(|| Some("null"))
                             .map($comparison)
                             .unwrap_or($default)
-                    })) as IndexIterator<'_>;
-
-                    let res = next(this_filter)?;
-                    Ok(res)
+                    }));
+                    Ok(next(this_filter)?)
                 },
-            ) as OutputRunner<'_>)
+            ))
         }))
     }};
 }
@@ -314,12 +297,10 @@ macro_rules! apply_index_filter_null {
                         current_index = *index + 1;
                         let $exists = mut_exists_iter.next().unwrap();
                         $comparison
-                    })) as IndexIterator<'_>;
-
-                    let res = next(this_filter)?;
-                    Ok(res)
+                    }));
+                    Ok(next(this_filter)?)
                 },
-            ) as OutputRunner<'_>)
+            ))
         }))
     }};
 }
@@ -348,12 +329,10 @@ macro_rules! apply_index_filter_bool {
                             .unwrap()
                             .map($comparison)
                             .unwrap_or($default)
-                    })) as IndexIterator<'_>;
-
-                    let res = next(this_filter)?;
-                    Ok(res)
+                    }));
+                    Ok(next(this_filter)?)
                 },
-            ) as OutputRunner<'_>)
+            ))
         }))
     }};
 }
@@ -373,8 +352,7 @@ macro_rules! apply_aggregator {
                         }
                         current_index = index + 1;
                         value_iter.next().unwrap_or_else(|| serde_json::Value::Null)
-                    })) as ValueIterator<'_>;
-
+                    }));
                     $aggr
                 },
             );
@@ -399,8 +377,7 @@ macro_rules! apply_aggregator_f64 {
                         }
                         current_index = index + 1;
                         iter.next().unwrap()
-                    })) as NumberIterator<'_>;
-
+                    }));
                     $aggr
                 },
             );

@@ -704,8 +704,8 @@ impl Batch {
 
     // Iterate over any non-serialized fields (like f64, array, struct, ...) and serialize them into
     // serde_json::Value objects
-    pub fn json_values<'a>(
-        &'a self,
+    pub fn json_values(
+        &self,
         column_name: &str,
         data_type: &DataType,
     ) -> Result<Vec<serde_json::Value>> {

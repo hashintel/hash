@@ -49,7 +49,7 @@ impl Metaversion {
     }
 }
 
-impl<'a> From<flatbuffers_gen::metaversion_generated::Metaversion<'a>> for Metaversion {
+impl From<flatbuffers_gen::metaversion_generated::Metaversion<'_>> for Metaversion {
     fn from(state: flatbuffers_gen::metaversion_generated::Metaversion<'_>) -> Metaversion {
         Metaversion {
             memory: state.memory(),

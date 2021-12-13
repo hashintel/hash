@@ -147,7 +147,7 @@ pub struct NewSimulationRun {
     pub globals: Arc<Globals>,
 }
 
-#[derive(new, Clone)]
+#[derive(derive_new::new, Clone)]
 pub struct DatastoreSimulationPayload {
     pub agent_batch_schema: Arc<AgentSchema>,
     pub message_batch_schema: Arc<ArrowSchema>,

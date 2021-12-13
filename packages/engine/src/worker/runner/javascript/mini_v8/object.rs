@@ -102,7 +102,7 @@ impl<'mv8> Object<'mv8> {
     }
 }
 
-impl<'mv8> fmt::Debug for Object<'mv8> {
+impl fmt::Debug for Object<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let keys = match self.keys(false) {
             Ok(keys) => keys,

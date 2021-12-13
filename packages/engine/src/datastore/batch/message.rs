@@ -156,8 +156,7 @@ impl Batch {
         let agent_count = agents.batch.num_rows();
         let column_name = AgentStateField::AgentId.name();
         let id_column = agents.get_arrow_column(column_name)?;
-        let empty_message_column =
-            message::empty_messages_column(agent_count).map(Arc::new)? as Arc<dyn ArrowArray>;
+        let empty_message_column = message::empty_messages_column(agent_count).map(Arc::new)?;
 
         let batch = RecordBatch::try_new(self.arrow_schema.clone(), vec![
             id_column.clone(),
@@ -220,8 +219,8 @@ impl Batch {
         let agent_count = agents.batch.num_rows();
         let column_name = AgentStateField::AgentId.name();
         let id_column = agents.get_arrow_column(column_name)?;
-        let empty_message_column =
-            message::empty_messages_column(agent_count).map(Arc::new)? as Arc<dyn ArrowArray>;
+        let empty_message_column: Arc<dyn ArrowArray> =
+            message::empty_messages_column(agent_count).map(Arc::new)?;
 
         let batch = RecordBatch::try_new(schema.clone(), vec![
             id_column.clone(),
@@ -360,7 +359,7 @@ impl Batch {
     pub fn message_index_iter(&self, i: usize) -> impl Iterator<Item = MessageIndex> {
         let num_agents = self.batch.num_rows();
         let group_index = i as u32;
-        let column = self.batch.column(message::MESSAGE_COLUMN_INDEX);
+        let column = self.batch.column(MESSAGE_COLUMN_INDEX);
         let data = column.data_ref();
         // This is the offset buffer for message objects.
         // offset_buffers[1] - offset_buffers[0] = number of messages from the 1st agent
@@ -382,7 +381,7 @@ impl Batch {
     ) -> impl IndexedParallelIterator<Item = impl ParallelIterator<Item = AgentMessageReference>>
     {
         let num_agents = self.batch.num_rows();
-        let column = self.batch.column(message::MESSAGE_COLUMN_INDEX);
+        let column = self.batch.column(MESSAGE_COLUMN_INDEX);
         let data = column.data_ref();
         // This is the offset buffer for message objects.
         // offset_buffers[1] - offset_buffers[0] = number of messages from the 1st agent
@@ -473,7 +472,7 @@ impl Batch {
         let mut buffers = Vec::with_capacity(3);
 
         let num_agents = self.batch.num_rows();
-        let column = self.batch.column(message::MESSAGE_COLUMN_INDEX);
+        let column = self.batch.column(MESSAGE_COLUMN_INDEX);
         let data = column.data_ref();
         // This is the offset buffer for message objects.
         // offset_buffers[1] - offset_buffers[0] = number of messages from the 1st agent

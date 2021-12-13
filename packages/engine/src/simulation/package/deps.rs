@@ -1,8 +1,5 @@
 use super::{context, init, output, state};
-use crate::{
-    simulation,
-    simulation::{package::name::PackageName, Error, Result},
-};
+use crate::simulation::{package::name::PackageName, Error, Result};
 
 #[derive(Clone)]
 pub struct Dependencies {
@@ -78,7 +75,7 @@ impl Dependencies {
 }
 
 impl PackageName {
-    pub fn get_all_dependencies(&self) -> simulation::Result<Dependencies> {
+    pub fn get_all_dependencies(&self) -> Result<Dependencies> {
         let mut merged = Dependencies::new();
         for dependency in self.get_dependencies()?.into_iter_deps() {
             merged.add_dependency_with_ignore(dependency.clone())?;
@@ -98,9 +95,7 @@ pub mod tests {
     use super::*;
     use crate::{
         config::WorkerPoolConfig,
-        proto::{
-            ExperimentRunBase, InitialState, InitialStateName, ProjectBase,
-        },
+        proto::{ExperimentRunBase, InitialState, InitialStateName, ProjectBase},
         simulation::{Error, Result},
         ExperimentConfig,
     };
@@ -125,7 +120,7 @@ pub mod tests {
 
     macro_rules! validate {
         ($module:ident, $config:expr, $pkg_name:expr) => {
-            $module::PACKAGE_CREATORS.initialize_for_experiment_run($config);
+            $module::PACKAGE_CREATORS.initialize_for_experiment_run($config)?;
             for (name, _creator) in $module::PACKAGE_CREATORS.iter_checked()? {
                 validate(vec![], $pkg_name(name.clone()))?;
             }

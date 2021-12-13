@@ -61,7 +61,7 @@ impl GetTaskArgs for ContextTask {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ContextTaskMessage {}
 
-pub struct PackageCreators(SyncOnceCell<HashMap<Name, Box<dyn super::PackageCreator>>>);
+pub struct PackageCreators(SyncOnceCell<HashMap<Name, Box<dyn PackageCreator>>>);
 
 pub static PACKAGE_CREATORS: PackageCreators = PackageCreators(SyncOnceCell::new());
 
@@ -85,7 +85,7 @@ impl PackageCreators {
         Ok(())
     }
 
-    pub(crate) fn get_checked(&self, name: &Name) -> Result<&Box<dyn super::PackageCreator>> {
+    pub(crate) fn get_checked(&self, name: &Name) -> Result<&Box<dyn PackageCreator>> {
         Ok(self
             .0
             .get()
@@ -100,7 +100,7 @@ impl PackageCreators {
     }
 
     #[allow(dead_code)] // It is used in a test in deps.rs but the compiler fails to pick it up
-    pub(crate) fn iter_checked(&self) -> Result<Iter<'_, Name, Box<dyn super::PackageCreator>>> {
+    pub(crate) fn iter_checked(&self) -> Result<Iter<'_, Name, Box<dyn PackageCreator>>> {
         Ok(self
             .0
             .get()

@@ -339,7 +339,7 @@ impl<'mem: 'v, 'v> VisitorMut<'mem> {
     }
 }
 
-impl<'mem> Index<Buffer> for VisitorMut<'mem> {
+impl Index<Buffer> for VisitorMut<'_> {
     type Output = [u8];
 
     fn index(&self, index: Buffer) -> &Self::Output {
@@ -352,7 +352,7 @@ impl<'mem> Index<Buffer> for VisitorMut<'mem> {
     }
 }
 
-impl<'mem> IndexMut<Buffer> for VisitorMut<'mem> {
+impl IndexMut<Buffer> for VisitorMut<'_> {
     fn index_mut(&mut self, index: Buffer) -> &mut Self::Output {
         match index {
             Buffer::Schema => self.schema_mut(),

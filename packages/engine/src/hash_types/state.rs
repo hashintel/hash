@@ -12,7 +12,7 @@ use serde_aux::prelude::deserialize_string_from_number;
 
 use super::{
     error::{Error, Result},
-    message::{self, Outbound},
+    message::{self},
     Vec3,
 };
 use crate::config::globals::Globals;
@@ -156,7 +156,7 @@ impl<'de> Deserialize<'de> for AgentStateField {
     {
         struct FieldVisitor;
 
-        impl<'de> Visitor<'de> for FieldVisitor {
+        impl Visitor<'_> for FieldVisitor {
             type Value = AgentStateField;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -380,8 +380,9 @@ fn deserialize_messages_before_agent_id() {
         "#,
     )
     .expect("Should be valid AgentState");
-    if let Some(Outbound::RemoveAgent(message::OutboundRemoveAgentPayload { data, .. })) =
-        agent.messages.get(0)
+    if let Some(message::Outbound::RemoveAgent(message::OutboundRemoveAgentPayload {
+        data, ..
+    })) = agent.messages.get(0)
     {
         assert_eq!(agent.agent_id, data.agent_id);
     }
@@ -403,7 +404,7 @@ fn deserialize_duplicate_agent_state_field() {
     );
 }
 
-impl std::default::Default for Agent {
+impl Default for Agent {
     fn default() -> Self {
         Self {
             agent_id: generate_agent_id(),
@@ -548,7 +549,7 @@ impl Agent {
             OutboundStopSimPayload, RemoveAgent, StopSim,
         };
         self.messages.push(match kind {
-            "remove_agent" => Outbound::RemoveAgent(OutboundRemoveAgentPayload {
+            "remove_agent" => message::Outbound::RemoveAgent(OutboundRemoveAgentPayload {
                 r#type: RemoveAgent::Type,
                 to: to.to_vec(),
                 data: serde_json::from_value(
@@ -564,19 +565,19 @@ impl Agent {
                     }),
                 )?,
             }),
-            "create_agent" => Outbound::CreateAgent(OutboundCreateAgentPayload {
+            "create_agent" => message::Outbound::CreateAgent(OutboundCreateAgentPayload {
                 r#type: CreateAgent::Type,
                 to: to.to_vec(),
                 data: serde_json::from_value(
                     data.ok_or_else(|| Error::from("Missing AgentState to create"))?,
                 )?,
             }),
-            "stop" => Outbound::StopSim(OutboundStopSimPayload {
+            "stop" => message::Outbound::StopSim(OutboundStopSimPayload {
                 r#type: StopSim::Type,
                 to: to.to_vec(),
                 data,
             }),
-            _ => Outbound::Generic(GenericPayload {
+            _ => message::Outbound::Generic(GenericPayload {
                 r#type: kind.to_string(),
                 to: to.to_vec(),
                 data,
@@ -929,7 +930,7 @@ mod tests {
 
     #[test]
     fn test_create_agent_message() {
-        let msg = Outbound::CreateAgent(message::OutboundCreateAgentPayload {
+        let msg = message::Outbound::CreateAgent(message::OutboundCreateAgentPayload {
             r#type: message::CreateAgent::Type,
             to: vec!["hash".to_string()],
             data: Agent::default(),
@@ -937,17 +938,17 @@ mod tests {
 
         let json = serde_json::to_string(&msg).unwrap();
 
-        let msg_from_json: Outbound = serde_json::from_str(&json).unwrap();
+        let msg_from_json: message::Outbound = serde_json::from_str(&json).unwrap();
 
         match msg_from_json {
-            Outbound::CreateAgent(_) => (),
+            message::Outbound::CreateAgent(_) => (),
             _ => panic!("Expected CreateAgent message"),
         };
     }
 
     #[test]
     fn test_remove_agent_message() {
-        let msg = Outbound::RemoveAgent(message::OutboundRemoveAgentPayload {
+        let msg = message::Outbound::RemoveAgent(message::OutboundRemoveAgentPayload {
             r#type: message::RemoveAgent::Type,
             to: vec!["hash".to_string()],
             data: message::RemoveAgentPayload {
@@ -957,17 +958,17 @@ mod tests {
 
         let json = serde_json::to_string(&msg).unwrap();
 
-        let msg_from_json: Outbound = serde_json::from_str(&json).unwrap();
+        let msg_from_json: message::Outbound = serde_json::from_str(&json).unwrap();
 
         match msg_from_json {
-            Outbound::RemoveAgent(_) => (),
+            message::Outbound::RemoveAgent(_) => (),
             _ => panic!("Expected RemoveAgent message"),
         };
     }
 
     #[test]
     fn test_stop_message() {
-        let msg = Outbound::StopSim(message::OutboundStopSimPayload {
+        let msg = message::Outbound::StopSim(message::OutboundStopSimPayload {
             r#type: message::StopSim::Type,
             to: vec!["hash".to_string()],
             data: Some(json!({
@@ -977,17 +978,17 @@ mod tests {
         });
 
         let json = serde_json::to_string(&msg).unwrap();
-        let msg_from_json: Outbound = serde_json::from_str(&json).unwrap();
+        let msg_from_json: message::Outbound = serde_json::from_str(&json).unwrap();
 
         match msg_from_json {
-            Outbound::StopSim(_) => (),
+            message::Outbound::StopSim(_) => (),
             _ => panic!("Expected StopSim message"),
         };
     }
 
     #[test]
     fn test_generic_message() {
-        let msg = Outbound::Generic(GenericPayload {
+        let msg = message::Outbound::Generic(GenericPayload {
             r#type: "custom_message".to_string(),
             to: vec!["some_other_agent".to_string()],
             data: Some(json!({
@@ -997,15 +998,16 @@ mod tests {
 
         let json = serde_json::to_string(&msg).unwrap();
 
-        let msg_from_json: Outbound = serde_json::from_str(&json).unwrap();
+        let msg_from_json: message::Outbound = serde_json::from_str(&json).unwrap();
 
         match msg_from_json {
-            Outbound::Generic(msg) => {
+            message::Outbound::Generic(msg) => {
                 assert_eq!(msg.to, vec!["some_other_agent"]);
             }
             _ => panic!("Expected Generic message"),
         };
     }
+
     #[test]
     fn test_add_message() {
         let mut agent = Agent::default();
@@ -1013,11 +1015,13 @@ mod tests {
         agent
             .add_message(&"alice", "custom_message", data.clone())
             .unwrap();
-        assert_eq!(agent.messages, vec![Outbound::Generic(GenericPayload {
-            data: data.clone(),
-            to: vec!["alice".to_string()],
-            r#type: "custom_message".to_string(),
-        })]);
+        assert_eq!(agent.messages, vec![message::Outbound::Generic(
+            GenericPayload {
+                data: data.clone(),
+                to: vec!["alice".to_string()],
+                r#type: "custom_message".to_string(),
+            }
+        )]);
     }
 
     #[test]
@@ -1028,10 +1032,12 @@ mod tests {
         agent
             .add_message(&to.clone(), "custom_message", data.clone())
             .unwrap();
-        assert_eq!(agent.messages, vec![Outbound::Generic(GenericPayload {
-            data: data.clone(),
-            to: to.clone(),
-            r#type: "custom_message".to_string(),
-        })]);
+        assert_eq!(agent.messages, vec![message::Outbound::Generic(
+            GenericPayload {
+                data: data.clone(),
+                to: to.clone(),
+                r#type: "custom_message".to_string(),
+            }
+        )]);
     }
 }

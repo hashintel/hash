@@ -352,9 +352,9 @@ impl FieldType {
     }
 }
 
-impl From<BehaviorKeyJsonError> for crate::datastore::error::Error {
+impl From<BehaviorKeyJsonError> for Error {
     fn from(err: BehaviorKeyJsonError) -> Self {
-        crate::datastore::error::Error::from(format!("Behavior Key Error {:?}", err))
+        Error::from(format!("Behavior Key Error {:?}", err))
     }
 }
 

@@ -214,7 +214,6 @@ impl StepPackages {
                         "Expected to find a context column writer for key: {}",
                         arrow_field.name()
                     )))
-                    .map(|column_writer| column_writer.clone())
             })
             .collect::<Result<Vec<_>>>()?;
 

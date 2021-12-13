@@ -1,15 +1,26 @@
-#![feature(test)]
-#![feature(map_try_insert)]
-#![feature(box_patterns)]
-#![feature(once_cell)]
-#![feature(backtrace)]
-#![warn(rust_2018_compatibility, rust_2018_idioms, rust_2021_compatibility)]
-
-#[macro_use]
-extern crate lazy_static;
-
-#[macro_use]
-extern crate derive_new;
+#![feature(backtrace, box_patterns, map_try_insert, once_cell, test)]
+#![warn(
+    rust_2018_compatibility,
+    rust_2018_idioms,
+    rust_2021_compatibility,
+    deprecated_in_future,
+    elided_lifetimes_in_paths,
+    explicit_outlives_requirements,
+    keyword_idents,
+    macro_use_extern_crate,
+    meta_variable_misuse,
+    missing_abi,
+    non_ascii_idents,
+    noop_method_call,
+    pointer_structural_match,
+    // Do we want this?
+    // unsafe_op_in_unsafe_fn,
+    unused_crate_dependencies,
+    unused_extern_crates,
+    unused_import_braces,
+    unused_lifetimes,
+    unused_qualifications,
+)]
 
 pub mod config;
 pub mod datastore;

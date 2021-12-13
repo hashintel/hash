@@ -230,7 +230,7 @@ impl<'mv8> Value<'mv8> {
     }
 }
 
-impl<'mv8> fmt::Debug for Value<'mv8> {
+impl fmt::Debug for Value<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Value::Undefined => write!(f, "undefined"),

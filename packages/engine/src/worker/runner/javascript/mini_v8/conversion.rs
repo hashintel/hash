@@ -226,7 +226,7 @@ impl<'mv8> ToValue<'mv8> for bool {
 }
 
 impl<'mv8> FromValue<'mv8> for bool {
-    fn from_value(value: Value<'_, >, mv8: &'mv8 MiniV8) -> Result<'mv8, Self> {
+    fn from_value(value: Value<'_>, mv8: &'mv8 MiniV8) -> Result<'mv8, Self> {
         Ok(mv8.coerce_boolean(value))
     }
 }
@@ -243,7 +243,7 @@ impl<'mv8> FromValue<'mv8> for StdString {
     }
 }
 
-impl<'mv8, 'a> ToValue<'mv8> for &'a str {
+impl<'mv8> ToValue<'mv8> for &str {
     fn to_value(self, mv8: &'mv8 MiniV8) -> Result<'mv8, Value<'mv8>> {
         Ok(Value::String(mv8.create_string(self)))
     }
@@ -337,7 +337,7 @@ impl<'mv8> ToValues<'mv8> for () {
 }
 
 impl<'mv8> FromValues<'mv8> for () {
-    fn from_values(_values: Values<'_, >, _mv8: &'mv8 MiniV8) -> Result<'mv8, Self> {
+    fn from_values(_values: Values<'_>, _mv8: &'mv8 MiniV8) -> Result<'mv8, Self> {
         Ok(())
     }
 }

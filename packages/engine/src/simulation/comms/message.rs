@@ -6,7 +6,7 @@ use crate::{
     types::TaskId,
 };
 
-#[derive(new, Debug)]
+#[derive(derive_new::new, Debug)]
 pub struct WrappedTask {
     pub task_id: TaskId,
     pub package_id: PackageId,

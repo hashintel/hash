@@ -13,7 +13,6 @@ use crate::{
     config::{ExperimentConfig, Globals},
     experiment::controller::comms::{exp_pkg_ctl::ExpPkgCtlSend, exp_pkg_update::ExpPkgUpdateRecv},
     proto,
-    proto::{ExperimentPackageConfig, SimulationShortId},
 };
 
 pub type SharedDataset = proto::SharedDataset;
@@ -87,27 +86,27 @@ pub struct Initializer {
 #[derive(Debug)]
 pub enum ExperimentControl {
     StartSim {
-        sim_id: SimulationShortId,
+        sim_id: proto::SimulationShortId,
         changed_properties: serde_json::Value,
         max_num_steps: usize,
     },
-    PauseSim(SimulationShortId),
-    ResumeSim(SimulationShortId),
-    StopSim(SimulationShortId),
+    PauseSim(proto::SimulationShortId),
+    ResumeSim(proto::SimulationShortId),
+    StopSim(proto::SimulationShortId),
 }
 
 pub fn init_exp_package(
     experiment_config: Arc<ExperimentConfig>,
-    exp_package_config: ExperimentPackageConfig,
+    exp_package_config: proto::ExperimentPackageConfig,
     pkg_to_exp: ExpPkgCtlSend,
     exp_pkg_update_recv: ExpPkgUpdateRecv,
 ) -> Result<JoinHandle<Result<()>>> {
     let future = match exp_package_config {
-        ExperimentPackageConfig::Simple(config) => {
+        proto::ExperimentPackageConfig::Simple(config) => {
             let pkg = package::simple::SimpleExperiment::new(&experiment_config, config)?;
             tokio::spawn(async move { pkg.run(pkg_to_exp, exp_pkg_update_recv).await })
         }
-        ExperimentPackageConfig::SingleRun(config) => {
+        proto::ExperimentPackageConfig::SingleRun(config) => {
             let pkg = package::single::SingleRunExperiment::new(
                 &Arc::new(experiment_config.as_ref().into()),
                 config,

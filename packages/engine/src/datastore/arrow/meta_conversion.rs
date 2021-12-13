@@ -137,7 +137,7 @@ pub trait HashDynamicMeta {
     fn into_meta(&self, data_length: usize) -> Result<DynamicMeta>;
 }
 
-impl<'a> HashDynamicMeta for RecordBatch<'a> {
+impl HashDynamicMeta for RecordBatch<'_> {
     fn into_meta(&self, data_length: usize) -> Result<DynamicMeta> {
         let nodes = self
             .nodes()

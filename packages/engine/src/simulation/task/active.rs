@@ -9,7 +9,7 @@ use crate::simulation::{
     Error, Result,
 };
 
-#[derive(new)]
+#[derive(derive_new::new)]
 pub struct ActiveTask {
     comms: ActiveTaskOwnerComms,
     #[new(value = "true")]

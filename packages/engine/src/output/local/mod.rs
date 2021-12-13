@@ -10,7 +10,7 @@ use crate::{
     proto::{ExperimentId, SimulationShortId},
 };
 
-#[derive(new)]
+#[derive(derive_new::new)]
 pub struct LocalOutputPersistence {
     exp_id: ExperimentId,
     config: LocalPersistenceConfig,

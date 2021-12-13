@@ -10,7 +10,7 @@ use crate::{
     worker::runner::comms::inbound::InboundToRunnerMsgPayload,
 };
 
-#[derive(new, Clone)]
+#[derive(derive_new::new, Clone)]
 pub struct StateSync {
     pub agent_pool: AgentPool,
     pub message_pool: MessagePool,
@@ -22,7 +22,7 @@ impl fmt::Debug for StateSync {
     }
 }
 
-#[derive(new, Clone)]
+#[derive(derive_new::new, Clone)]
 pub struct ContextBatchSync {
     pub context_batch: Arc<RwLock<ContextBatch>>,
     pub state_group_start_indices: Arc<Vec<usize>>,

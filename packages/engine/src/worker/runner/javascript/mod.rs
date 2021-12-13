@@ -1184,7 +1184,7 @@ impl JavaScriptRunner {
         // TODO: Move tokio spawn into worker?
         log::debug!("Running JavaScript runner");
         if !self.spawn {
-            return Ok(Box::pin(async move { Ok(Ok(())) }) as _);
+            return Ok(Box::pin(async move { Ok(Ok(())) }));
         }
 
         let init_msg = Arc::clone(&self.init_msg);
@@ -1192,7 +1192,7 @@ impl JavaScriptRunner {
         let outbound_sender = self.outbound_sender.take().ok_or(Error::AlreadyRunning)?;
 
         let f = || _run(init_msg, inbound_receiver, outbound_sender);
-        Ok(Box::pin(tokio::task::spawn_blocking(f)) as _)
+        Ok(Box::pin(tokio::task::spawn_blocking(f)))
     }
 }
 

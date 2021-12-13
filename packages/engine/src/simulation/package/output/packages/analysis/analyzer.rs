@@ -22,7 +22,7 @@ pub(crate) type OutputRunner<'agents> =
 pub(crate) type OutputRunnerCreator =
     Box<dyn for<'agents> Fn(Agents<'agents>) -> Result<OutputRunner<'agents>> + Send + Sync>;
 
-pub(crate) type NumberIterator<'a> = Box<dyn Iterator<Item = Option<f64>> + Send + Sync + 'a>;
+pub(crate) type _NumberIterator<'a> = Box<dyn Iterator<Item = Option<f64>> + Send + Sync + 'a>;
 pub(crate) type ValueIterator<'a> = Box<dyn Iterator<Item = serde_json::Value> + Send + Sync + 'a>;
 pub(crate) type ValueIteratorCreator =
     Box<dyn for<'agents> Fn(Agents<'agents>) -> Result<ValueIterator<'agents>> + Send + Sync>;
@@ -173,7 +173,7 @@ impl OutputCreator {
                     move |iterator: Box<dyn Iterator<Item = usize> + Send + Sync>| {
                         Ok(AnalysisSingleOutput::some_number(iterator.count() as f64))
                     },
-                ) as OutputRunner<'_>)
+                ))
             })),
             AnalysisOperationRepr::Sum
             | AnalysisOperationRepr::Min

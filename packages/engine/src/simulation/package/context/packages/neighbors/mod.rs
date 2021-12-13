@@ -24,7 +24,7 @@ use crate::{
                 PackageCreator,
             },
             ext_traits::{GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound},
-            prelude::{ArrowArray, ContextPackage},
+            prelude::ContextPackage,
         },
         Result,
     },
@@ -162,9 +162,6 @@ impl Package for Neighbors {
             .get_agent_scoped_field_spec("neighbors")?
             .to_key()?;
 
-        Ok(vec![(
-            field_key,
-            Arc::new(neighbors_builder.finish()) as Arc<dyn ArrowArray>,
-        )])
+        Ok(vec![(field_key, Arc::new(neighbors_builder.finish()))])
     }
 }

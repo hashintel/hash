@@ -149,7 +149,7 @@ impl<'a> MessageReader<'a> {
     }
 }
 
-impl<'a> MessageReader<'a> {
+impl MessageReader<'_> {
     pub fn type_iter<'b: 'r, 'r>(
         &'b self,
         message_references: &'r [AgentMessageReference],

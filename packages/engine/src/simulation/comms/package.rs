@@ -10,7 +10,7 @@ use crate::{
     },
 };
 
-#[derive(new)]
+#[derive(derive_new::new)]
 pub struct PackageComms {
     inner: Comms,
     package_id: PackageId,

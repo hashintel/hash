@@ -56,12 +56,12 @@ impl<'mv8> Array<'mv8> {
     }
 }
 
-impl<'mv8> fmt::Debug for Array<'mv8> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_, >) -> fmt::Result {
+impl fmt::Debug for Array<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let len = self.len();
         write!(f, "[")?;
         for i in 0..len {
-            match self.get::<Value<'_, >>(i) {
+            match self.get::<Value<'_>>(i) {
                 Ok(v) => write!(f, "{:?}", v)?,
                 Err(_) => write!(f, "?")?,
             };

@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use super::*;
-use crate::{config, datastore::batch::AgentIndex, simulation::Error};
+use crate::{datastore::batch::AgentIndex, simulation::Error};
 
 pub(super) type PositionSubType = f64;
 pub(super) type Position = [PositionSubType; 3];
@@ -37,7 +37,7 @@ fn gather_neighbors(
     idx: AgentIndex,
     position: &Position,
     search_radius: &Option<PositionSubType>,
-    topology: &config::TopologyConfig,
+    topology: &TopologyConfig,
 ) -> Result<Vec<AgentIndex>> {
     // Check if the agent has a custom search radius. If not, fall back to the topology search
     // radius
