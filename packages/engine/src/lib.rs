@@ -15,7 +15,6 @@ pub mod datastore;
 pub mod error;
 pub mod experiment;
 pub mod fetch;
-pub mod gen;
 pub mod hash_types;
 pub mod language;
 pub mod nano;

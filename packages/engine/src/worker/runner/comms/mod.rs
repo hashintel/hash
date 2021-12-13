@@ -54,14 +54,14 @@ impl From<Language> for MessageTarget {
     }
 }
 
-impl From<crate::gen::target_generated::Target> for MessageTarget {
-    fn from(target: crate::gen::target_generated::Target) -> Self {
+impl From<flatbuffers_gen::target_generated::Target> for MessageTarget {
+    fn from(target: flatbuffers_gen::target_generated::Target) -> Self {
         match target {
-            crate::gen::target_generated::Target::Rust => Self::Rust,
-            crate::gen::target_generated::Target::Python => Self::Python,
-            crate::gen::target_generated::Target::JavaScript => Self::JavaScript,
-            crate::gen::target_generated::Target::Dynamic => Self::Dynamic,
-            crate::gen::target_generated::Target::Main => Self::Main,
+            flatbuffers_gen::target_generated::Target::Rust => Self::Rust,
+            flatbuffers_gen::target_generated::Target::Python => Self::Python,
+            flatbuffers_gen::target_generated::Target::JavaScript => Self::JavaScript,
+            flatbuffers_gen::target_generated::Target::Dynamic => Self::Dynamic,
+            flatbuffers_gen::target_generated::Target::Main => Self::Main,
             _ => unreachable!(),
         }
     }
@@ -84,7 +84,7 @@ pub struct TargetedRunnerTaskMsg {
 
 impl TargetedRunnerTaskMsg {
     pub fn try_from_fbs(
-        task_msg: crate::gen::runner_outbound_msg_generated::TaskMsg,
+        task_msg: flatbuffers_gen::runner_outbound_msg_generated::TaskMsg,
         sent_tasks: &mut HashMap<TaskId, SentTask>,
     ) -> Result<Self> {
         let task_id = task_msg.task_id().ok_or_else(|| {

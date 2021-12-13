@@ -1,4 +1,4 @@
-use crate::{datastore::storage::BufferChange, gen};
+use crate::datastore::storage::BufferChange;
 
 // Simple way for every component (language-runner + engine)
 // using the datastore to track whether it has to reload memory
@@ -49,8 +49,8 @@ impl Metaversion {
     }
 }
 
-impl<'a> From<gen::metaversion_generated::Metaversion<'a>> for Metaversion {
-    fn from(state: gen::metaversion_generated::Metaversion) -> Metaversion {
+impl<'a> From<flatbuffers_gen::metaversion_generated::Metaversion<'a>> for Metaversion {
+    fn from(state: flatbuffers_gen::metaversion_generated::Metaversion) -> Metaversion {
         Metaversion {
             memory: state.memory(),
             batch: state.batch(),

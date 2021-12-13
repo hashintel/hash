@@ -809,6 +809,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "flatbuffers_gen"
+version = "0.0.0"
+dependencies = [
+ "flatbuffers 2.0.0",
+]
+
+[[package]]
 name = "float-cmp"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1069,6 +1076,7 @@ dependencies = [
  "enum_dispatch",
  "flatbuffers 0.6.1",
  "flatbuffers 2.0.0",
+ "flatbuffers_gen",
  "float-cmp",
  "fs2",
  "futures",
