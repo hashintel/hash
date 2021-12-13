@@ -3,6 +3,7 @@
 #![feature(box_patterns)]
 #![feature(once_cell)]
 #![feature(backtrace)]
+#![warn(rust_2018_compatibility, rust_2018_idioms, rust_2021_compatibility)]
 
 #[macro_use]
 extern crate lazy_static;

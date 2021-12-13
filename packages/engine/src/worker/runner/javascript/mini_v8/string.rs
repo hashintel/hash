@@ -21,7 +21,7 @@ impl<'mv8> String<'mv8> {
 }
 
 impl<'mv8> fmt::Debug for String<'mv8> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self.to_string())
     }
 }

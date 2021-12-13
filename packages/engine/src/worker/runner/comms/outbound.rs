@@ -34,7 +34,7 @@ impl RunnerError {
 }
 
 impl From<flatbuffers_gen::runner_error_generated::RunnerError<'_>> for RunnerError {
-    fn from(runner_error: flatbuffers_gen::runner_error_generated::RunnerError) -> Self {
+    fn from(runner_error: flatbuffers_gen::runner_error_generated::RunnerError<'_>) -> Self {
         Self {
             message: runner_error.msg().map(|msg| msg.to_string()),
             // TODO: these are currently not encapsulated within the Flatbuffers
@@ -46,7 +46,7 @@ impl From<flatbuffers_gen::runner_error_generated::RunnerError<'_>> for RunnerEr
 }
 
 impl From<flatbuffers_gen::runner_warning_generated::RunnerWarning<'_>> for RunnerError {
-    fn from(runner_warning: flatbuffers_gen::runner_warning_generated::RunnerWarning) -> Self {
+    fn from(runner_warning: flatbuffers_gen::runner_warning_generated::RunnerWarning<'_>) -> Self {
         Self {
             message: Some(runner_warning.msg().to_string()),
             details: runner_warning.details().map(|details| details.to_string()),
@@ -73,7 +73,7 @@ pub enum OutboundFromRunnerMsgPayload {
 
 impl OutboundFromRunnerMsgPayload {
     pub fn try_from_fbs(
-        parsed_msg: flatbuffers_gen::runner_outbound_msg_generated::RunnerOutboundMsg,
+        parsed_msg: flatbuffers_gen::runner_outbound_msg_generated::RunnerOutboundMsg<'_>,
         sent_tasks: &mut HashMap<TaskId, SentTask>,
     ) -> Result<Self> {
         Ok(match parsed_msg.payload_type() {

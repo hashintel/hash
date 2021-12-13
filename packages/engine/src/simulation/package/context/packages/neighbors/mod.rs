@@ -99,7 +99,7 @@ struct Neighbors {
 
 impl Neighbors {
     fn neighbor_vec<'a>(
-        batches: &'a Vec<RwLockReadGuard<AgentBatch>>,
+        batches: &'a Vec<RwLockReadGuard<'_, AgentBatch>>,
     ) -> Result<Vec<NeighborRef<'a>>> {
         Ok(iterators::agent::position_iter(batches)?
             .zip(iterators::agent::index_iter(batches))

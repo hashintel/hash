@@ -50,7 +50,7 @@ impl Metaversion {
 }
 
 impl<'a> From<flatbuffers_gen::metaversion_generated::Metaversion<'a>> for Metaversion {
-    fn from(state: flatbuffers_gen::metaversion_generated::Metaversion) -> Metaversion {
+    fn from(state: flatbuffers_gen::metaversion_generated::Metaversion<'_>) -> Metaversion {
         Metaversion {
             memory: state.memory(),
             batch: state.batch(),

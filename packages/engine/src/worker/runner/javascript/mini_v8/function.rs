@@ -110,7 +110,7 @@ fn manually_drop_arg_descs(arg_descs: Vec<ValueDesc>) {
 }
 
 impl<'mv8> fmt::Debug for Function<'mv8> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_, >) -> fmt::Result {
         write!(f, "<function>")
     }
 }

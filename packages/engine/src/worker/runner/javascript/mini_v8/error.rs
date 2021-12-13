@@ -81,7 +81,7 @@ impl<'mv8> StdError for Error<'mv8> {
 }
 
 impl<'mv8> fmt::Display for Error<'mv8> {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_, >) -> fmt::Result {
         match self {
             Error::ToJsConversionError { from, to } => {
                 write!(fmt, "error converting {} to JavaScript {}", from, to)

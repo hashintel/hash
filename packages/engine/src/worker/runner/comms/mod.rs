@@ -84,7 +84,7 @@ pub struct TargetedRunnerTaskMsg {
 
 impl TargetedRunnerTaskMsg {
     pub fn try_from_fbs(
-        task_msg: flatbuffers_gen::runner_outbound_msg_generated::TaskMsg,
+        task_msg: flatbuffers_gen::runner_outbound_msg_generated::TaskMsg<'_>,
         sent_tasks: &mut HashMap<TaskId, SentTask>,
     ) -> Result<Self> {
         let task_id = task_msg.task_id().ok_or_else(|| {

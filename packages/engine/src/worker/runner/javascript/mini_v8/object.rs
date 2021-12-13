@@ -64,7 +64,7 @@ impl<'mv8> Object<'mv8> {
         A: ToValues<'mv8>,
         R: FromValue<'mv8>,
     {
-        let func: Function = self.get(key)?;
+        let func: Function<'_> = self.get(key)?;
         func.call_method(self.clone(), args)
     }
 
@@ -103,7 +103,7 @@ impl<'mv8> Object<'mv8> {
 }
 
 impl<'mv8> fmt::Debug for Object<'mv8> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let keys = match self.keys(false) {
             Ok(keys) => keys,
             Err(_) => return write!(f, "<object with keys exception>"),
@@ -117,11 +117,11 @@ impl<'mv8> fmt::Debug for Object<'mv8> {
         write!(f, "{{ ")?;
         for i in 0..len {
             if let Ok(k) = keys
-                .get::<Value>(i)
+                .get::<Value<'_>>(i)
                 .and_then(|k| self.0.mv8.coerce_string(k))
             {
                 write!(f, "{:?}: ", k)?;
-                match self.get::<_, Value>(k) {
+                match self.get::<_, Value<'_>>(k) {
                     Ok(v) => write!(f, "{:?}", v)?,
                     Err(_) => write!(f, "?")?,
                 };
@@ -158,7 +158,7 @@ where
             return None;
         }
 
-        let key = self.keys.get::<Value>(self.index);
+        let key = self.keys.get::<Value<'_>>(self.index);
         self.index += 1;
 
         let key = match key {

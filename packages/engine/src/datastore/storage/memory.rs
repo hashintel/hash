@@ -206,7 +206,7 @@ impl Memory {
         Ok(())
     }
 
-    pub fn get_batch_buffers(&self) -> Result<Buffers> {
+    pub fn get_batch_buffers(&self) -> Result<Buffers<'_>> {
         let visitor = self.visitor();
         Ok((
             visitor.schema(),

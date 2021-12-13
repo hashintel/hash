@@ -99,7 +99,7 @@ pub mod tests {
     use crate::{
         config::WorkerPoolConfig,
         proto::{
-            ExperimentRunBase, ExperimentRunRepr, InitialState, InitialStateName, ProjectBase,
+            ExperimentRunBase, InitialState, InitialStateName, ProjectBase,
         },
         simulation::{Error, Result},
         ExperimentConfig,
@@ -126,7 +126,7 @@ pub mod tests {
     macro_rules! validate {
         ($module:ident, $config:expr, $pkg_name:expr) => {
             $module::PACKAGE_CREATORS.initialize_for_experiment_run($config);
-            for (name, creator) in $module::PACKAGE_CREATORS.iter_checked()? {
+            for (name, _creator) in $module::PACKAGE_CREATORS.iter_checked()? {
                 validate(vec![], $pkg_name(name.clone()))?;
             }
         };

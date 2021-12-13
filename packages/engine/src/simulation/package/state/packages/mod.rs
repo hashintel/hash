@@ -91,7 +91,7 @@ impl PackageCreators {
     }
 
     #[allow(dead_code)] // It is used in a test in deps.rs but the compiler fails to pick it up
-    pub(crate) fn iter_checked(&self) -> Result<Iter<Name, Box<dyn super::PackageCreator>>> {
+    pub(crate) fn iter_checked(&self) -> Result<Iter<'_, Name, Box<dyn super::PackageCreator>>> {
         Ok(self
             .0
             .get()

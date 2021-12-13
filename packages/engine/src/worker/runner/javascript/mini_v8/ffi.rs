@@ -160,11 +160,11 @@ pub(super) struct Ref<'mv8> {
 }
 
 impl<'mv8> Ref<'mv8> {
-    pub(super) fn new(mv8: &MiniV8, value_ptr: ValuePtr) -> Ref {
+    pub(super) fn new(mv8: &MiniV8, value_ptr: ValuePtr) -> Ref<'_> {
         Ref { mv8, value_ptr }
     }
 
-    pub(super) fn from_value_desc(mv8: &MiniV8, desc: ValueDesc) -> Ref {
+    pub(super) fn from_value_desc(mv8: &MiniV8, desc: ValueDesc) -> Ref<'_> {
         let value_ptr = unsafe { desc.payload.value_ptr };
         // `Ref` has taken ownership of the `value_ptr`, so there's no need to run `ValueDesc`'s
         // drop:
@@ -196,7 +196,7 @@ pub(super) fn ffi_init() {
     INIT.call_once(|| unsafe { mv8_init(callback_wrapper as _, callback_drop as _) });
 }
 
-pub(super) fn desc_to_result(mv8: &MiniV8, desc: TryCatchDesc) -> Result<Value> {
+pub(super) fn desc_to_result(mv8: &MiniV8, desc: TryCatchDesc) -> Result<'_, Value<'_>> {
     let value = desc_to_value(mv8, desc.value_desc);
     if desc.is_exception == 0 {
         Ok(value)
@@ -205,7 +205,7 @@ pub(super) fn desc_to_result(mv8: &MiniV8, desc: TryCatchDesc) -> Result<Value> 
     }
 }
 
-pub(super) fn desc_to_result_noval(mv8: &MiniV8, desc: TryCatchDesc) -> Result<()> {
+pub(super) fn desc_to_result_noval(mv8: &MiniV8, desc: TryCatchDesc) -> Result<'_, ()> {
     let is_exception = desc.is_exception == 1;
     if !is_exception {
         Ok(())
@@ -214,7 +214,7 @@ pub(super) fn desc_to_result_noval(mv8: &MiniV8, desc: TryCatchDesc) -> Result<(
     }
 }
 
-pub(super) fn desc_to_result_val(mv8: &MiniV8, desc: TryCatchDesc) -> Result<ValueDesc> {
+pub(super) fn desc_to_result_val(mv8: &MiniV8, desc: TryCatchDesc) -> Result<'_, ValueDesc> {
     let is_exception = desc.is_exception == 1;
     let desc = desc.value_desc;
     if !is_exception {
@@ -224,7 +224,7 @@ pub(super) fn desc_to_result_val(mv8: &MiniV8, desc: TryCatchDesc) -> Result<Val
     }
 }
 
-pub(super) fn desc_to_value(mv8: &MiniV8, desc: ValueDesc) -> Value {
+pub(super) fn desc_to_value(mv8: &MiniV8, desc: ValueDesc) -> Value<'_> {
     use ValueDescTag as VT;
     let value = match desc.tag {
         VT::Null => Value::Null,
@@ -242,7 +242,7 @@ pub(super) fn desc_to_value(mv8: &MiniV8, desc: ValueDesc) -> Value {
 }
 
 pub(super) fn value_to_desc<'mv8, 'a>(mv8: &'mv8 MiniV8, value: &'a Value<'mv8>) -> ValueDesc {
-    fn ref_val(r: &Ref) -> ValuePtr {
+    fn ref_val(r: &Ref<'_>) -> ValuePtr {
         unsafe { mv8_value_ptr_clone(r.mv8.interface, r.value_ptr) }
     }
 
@@ -295,7 +295,7 @@ pub(super) unsafe extern "C" fn callback_wrapper(
         let arg_descs = slice::from_raw_parts(arg_descs, arg_descs_len as usize);
         // We take ownership of the `arg_descs` here, but C++ still manages the array and will free
         // it after this function ends:
-        let args: Vec<Value> = arg_descs
+        let args: Vec<Value<'_>> = arg_descs
             .iter()
             .map(|v| {
                 desc_to_value(&mv8, ValueDesc {
@@ -306,7 +306,7 @@ pub(super) unsafe extern "C" fn callback_wrapper(
             .collect();
         let args = Values::from_vec(args);
 
-        let callback = callback_ptr as *mut Callback;
+        let callback = callback_ptr as *mut Callback<'_, '_>;
         let result = (*callback)(&mv8, this, args);
         let (is_exception, value) = match result {
             Ok(value) => (0, value),
@@ -329,6 +329,6 @@ pub(super) unsafe extern "C" fn callback_wrapper(
     }
 }
 
-pub(super) unsafe extern "C" fn callback_drop(callback: *mut Callback) {
+pub(super) unsafe extern "C" fn callback_drop(callback: *mut Callback<'_, '_>) {
     drop(Box::from_raw(callback));
 }

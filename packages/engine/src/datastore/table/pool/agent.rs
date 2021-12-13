@@ -22,7 +22,7 @@ impl AgentPool {
         AgentPool { batches }
     }
 
-    pub fn read_batches(&self) -> Result<Vec<RwLockReadGuard<AgentBatch>>> {
+    pub fn read_batches(&self) -> Result<Vec<RwLockReadGuard<'_, AgentBatch>>> {
         self.batches()
             .iter()
             .map(|a| {
@@ -32,7 +32,7 @@ impl AgentPool {
             .collect::<Result<_>>()
     }
 
-    pub fn write_batches(&mut self) -> Result<Vec<RwLockWriteGuard<AgentBatch>>> {
+    pub fn write_batches(&mut self) -> Result<Vec<RwLockWriteGuard<'_, AgentBatch>>> {
         self.batches()
             .iter()
             .map(|a| {
@@ -46,7 +46,10 @@ impl AgentPool {
         self.batches().len()
     }
 
-    pub fn get_batch_at_index(&self, index: usize) -> Result<Option<RwLockWriteGuard<AgentBatch>>> {
+    pub fn get_batch_at_index(
+        &self,
+        index: usize,
+    ) -> Result<Option<RwLockWriteGuard<'_, AgentBatch>>> {
         let batch = self
             .batches
             .get(index)

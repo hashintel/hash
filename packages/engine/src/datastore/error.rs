@@ -22,7 +22,7 @@ pub enum SupportedType {
 }
 
 impl fmt::Display for SupportedType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::NullableField => write!(f, "NullableField"),
             Self::DataType(s) => write!(f, "DataType: {}", s),

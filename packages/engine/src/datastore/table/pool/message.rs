@@ -29,7 +29,7 @@ impl MessagePool {
         &mut self.batches
     }
 
-    pub fn read_batches(&self) -> Result<Vec<RwLockReadGuard<MessageBatch>>> {
+    pub fn read_batches(&self) -> Result<Vec<RwLockReadGuard<'_, MessageBatch>>> {
         self.batches()
             .iter()
             .map(|a| {

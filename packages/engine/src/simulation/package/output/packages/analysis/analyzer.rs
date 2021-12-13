@@ -173,7 +173,7 @@ impl OutputCreator {
                     move |iterator: Box<dyn Iterator<Item = usize> + Send + Sync>| {
                         Ok(AnalysisSingleOutput::some_number(iterator.count() as f64))
                     },
-                ) as OutputRunner)
+                ) as OutputRunner<'_>)
             })),
             AnalysisOperationRepr::Sum
             | AnalysisOperationRepr::Min

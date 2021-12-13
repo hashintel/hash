@@ -159,7 +159,7 @@ impl<'de> Deserialize<'de> for AgentStateField {
         impl<'de> Visitor<'de> for FieldVisitor {
             type Value = AgentStateField;
 
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 formatter.write_str("json keys")
             }
 
@@ -201,7 +201,7 @@ impl<'de> Deserialize<'de> for Agent {
         impl<'de> Visitor<'de> for AgentVisitor {
             type Value = Agent;
 
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
                 formatter.write_str("struct AgentState")
             }
 

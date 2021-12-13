@@ -71,7 +71,7 @@ impl CreateRemoveCommands {
 
     pub fn from_hash_messages(
         message_map: &MessageMap,
-        message_pool: MessagePoolRead,
+        message_pool: MessagePoolRead<'_>,
     ) -> Result<CreateRemoveCommands> {
         let message_reader = message_pool.get_reader();
 
