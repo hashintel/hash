@@ -353,7 +353,7 @@ fn get_behavior_from_dependency_projects(
         let dir = if full_parts.len() == 3 {
             full_parts[1].to_string()
         } else {
-            name_root.replace("_", "-")
+            name_root.replace('_', "-")
         };
         let full_name = "@hash/".to_string() + &dir + "/" + file_name;
 
@@ -374,7 +374,7 @@ fn get_behavior_from_dependency_projects(
     match dependency_projects
         .iter()
         .find(|(path, _proj)| path.ends_with(&dependency_path))
-        .map(|(_path, proj)| {
+        .and_then(|(_path, proj)| {
             proj.behaviors.iter().find(|behavior| {
                 // TODO: Are all of these checks necessary
                 behavior.name == name
@@ -384,9 +384,7 @@ fn get_behavior_from_dependency_projects(
                         .iter()
                         .any(|possible_name| behavior.shortnames.contains(possible_name))
             })
-        })
-        .flatten()
-    {
+        }) {
         None => bail!("Couldn't find dependency in project dependencies: {name}"),
         Some(behavior) => {
             let mut behavior = behavior.clone();
@@ -420,7 +418,7 @@ fn get_dataset_from_dependency_projects(
     match dependency_projects
         .iter()
         .find(|(path, _proj)| path.ends_with(&dependency_path))
-        .map(|(_path, proj)| {
+        .and_then(|(_path, proj)| {
             proj.datasets.iter().find(|dataset| {
                 // TODO: Are all of these checks necessary
                 dataset.name == Some(name.clone())
@@ -430,9 +428,7 @@ fn get_dataset_from_dependency_projects(
                     || dataset.filename == file_name.clone()
                     || dataset.shortname == file_name.clone()
             })
-        })
-        .flatten()
-    {
+        }) {
         None => bail!("Couldn't find dependency in project dependencies: {name}"),
         Some(dataset) => {
             let mut dataset = dataset.clone();

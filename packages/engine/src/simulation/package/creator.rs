@@ -13,8 +13,7 @@ use crate::{
     config::{Globals, PackageConfig, SimRunConfig},
     datastore::schema::{
         accessor::FieldSpecMapAccessor, context::ContextSchema, state::AgentSchema, FieldScope,
-        FieldSource, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant, PresetFieldType,
-        RootFieldSpec, RootFieldSpecCreator,
+        FieldSource, FieldSpec, FieldSpecMap, FieldType, RootFieldSpec, RootFieldSpecCreator,
     },
     simulation::{
         comms::package::PackageComms,

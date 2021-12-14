@@ -1,0 +1,100 @@
+name: Rust-Lint
+
+on:
+  pull_request:
+    paths:
+      - "packages/engine/**.rs"
+      - "packages/engine/rustfmt.toml"
+      - "packages/engine/Cargo.*"
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: ${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  rustfmt:
+    name: rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+          components: rustfmt
+
+      - name: Run rustfmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --manifest-path packages/engine/Cargo.toml --all -- --check --verbose
+
+      - name: Setup PHP
+        if: ${{ failure() }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 7.3
+          coverage: none
+          tools: cs2pr
+
+      - name: Generate checkstyle
+        if: ${{ failure() }}
+        run: |
+          cargo fmt --manifest-path packages/engine/Cargo.toml --all -- --emit checkstyle | cs2pr
+
+  clippy:
+    name: clippy
+    runs-on: ubuntu-latest
+    env:
+      V8_PATH: ${{ github.workspace }}/.v8
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Install Rust
+        id: toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+          components: clippy
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-dependencies
+        with:
+          path: |
+            ~/.cargo/.crates.toml
+            ~/.cargo/.crates2.json
+            ~/.cargo/bin
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            **/target/
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install v8
+        run: |
+          mkdir -p ${V8_PATH}/tmp
+          cd ${V8_PATH}/tmp
+          curl -L -o libv8.tar.gz https://github.com/rubyjs/libv8/releases/download/v8.4.255.0/libv8-8.4.255.0-x86_64-linux.gem
+          tar xf libv8.tar.gz # Extract the gem
+          tar xf data.tar.gz # Extract the data folder
+          mv -v vendor/v8/* .. # Move out the wanted files
+          cd ..
+          rm -rf tmp # Delete the tmp folder
+
+      - name: Run clippy
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --manifest-path packages/engine/Cargo.toml --all --all-features -- -Dwarnings

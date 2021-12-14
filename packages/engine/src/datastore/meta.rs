@@ -146,8 +146,7 @@ impl Dynamic {
     ) -> Dynamic {
         let nodes = cols
             .iter()
-            .map(|meta| meta.nodes.iter())
-            .flatten()
+            .flat_map(|meta| meta.nodes.iter())
             .cloned()
             .collect();
         let mut buffers = Vec::with_capacity(cols.iter().map(|d| d.buffers.len()).sum());
