@@ -18,14 +18,14 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
 
   return (
     <div className={styles.SidebarList}>
-      {data?.accountPages.map((page) => {
+      {data.map((page) => {
         if (page.entityId === currentPageEntityId) {
-          return <div key={page.id}>{page.properties.title}</div>;
+          return <div key={page.id}>{page.title}</div>;
         }
         return (
           <div key={page.id}>
             <Link href={`/${accountId}/${page.entityId}`}>
-              <a>{page.properties.title}</a>
+              <a>{page.title}</a>
             </Link>
           </div>
         );

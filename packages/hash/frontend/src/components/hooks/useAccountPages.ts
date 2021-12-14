@@ -1,4 +1,5 @@
 import { useQuery } from "@apollo/client";
+import { useMemo } from "react";
 
 import {
   GetAccountPagesQuery,
@@ -6,10 +7,7 @@ import {
 } from "../../graphql/apiTypes.gen";
 import { getAccountPages } from "../../graphql/queries/account.queries";
 
-export const useAccountPages: (accountId: string) => {
-  loading: boolean;
-  data: GetAccountPagesQuery | undefined;
-} = (accountId) => {
+export const useAccountPages = (accountId: string) => {
   const { data, loading } = useQuery<
     GetAccountPagesQuery,
     GetAccountPagesQueryVariables
@@ -17,5 +15,17 @@ export const useAccountPages: (accountId: string) => {
     variables: { accountId },
   });
 
-  return { data, loading };
+  const accountPages = useMemo(() => {
+    if (!data) {
+      return [];
+    }
+
+    return data?.accountPages.map((page) => ({
+      id: page.id,
+      title: page.properties.title,
+      entityId: page.entityId,
+    }));
+  }, [data]);
+
+  return { data: accountPages, loading };
 };

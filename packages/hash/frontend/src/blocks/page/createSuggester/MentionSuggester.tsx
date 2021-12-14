@@ -2,7 +2,7 @@ import { useMemo, VFC } from "react";
 import { tw } from "twind";
 import ArticleIcon from "@mui/icons-material/Article";
 
-import { useAccountInfos } from "../../../components/hooks/useAccountInfos";
+import { useUsers } from "../../../components/hooks/useUsers";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
 import { fuzzySearchBy } from "./fuzzySearchBy";
 import { Suggester } from "./Suggester";
@@ -27,7 +27,7 @@ export const MentionSuggester: VFC<MentionSuggesterProps> = ({
   className,
   accountId,
 }) => {
-  const { data: accounts, loading: accountsLoading } = useAccountInfos();
+  const { data: accounts, loading: accountsLoading } = useUsers();
   const { data: pages, loading: pagesLoading } = useAccountPages(accountId);
 
   const loading = accountsLoading && pagesLoading;
@@ -40,11 +40,9 @@ export const MentionSuggester: VFC<MentionSuggesterProps> = ({
       type: "user",
     }));
 
-    const iterablePages: Array<SearchableItem> = (
-      pages?.accountPages ?? []
-    ).map((page) => ({
-      shortname: page.properties.title,
-      name: page.properties.title,
+    const iterablePages: Array<SearchableItem> = pages.map((page) => ({
+      shortname: page.title,
+      name: page.title,
       entityId: page.entityId,
       type: "page",
     }));
@@ -63,7 +61,7 @@ export const MentionSuggester: VFC<MentionSuggesterProps> = ({
     <Suggester
       options={options}
       renderItem={(option) => (
-        <div className={tw`flex items-center py-1 px-2 mention-suggester`}>
+        <div className={tw`flex items-center py-1 px-2`}>
           {option.type === "user" ? (
             <div
               className={tw`w-6 h-6 flex items-center justify-center text-sm rounded-full bg-gray-200 mr-2`}
@@ -73,7 +71,7 @@ export const MentionSuggester: VFC<MentionSuggesterProps> = ({
           ) : (
             <div className={tw`w-6 h-6 flex items-center justify-center mr-2`}>
               {/* @todo display page emoji/icon when available */}
-              <ArticleIcon />
+              <ArticleIcon style={{ fontSize: "1em" }} />
             </div>
           )}
           <p className={tw`text-sm`}>{option.name}</p>

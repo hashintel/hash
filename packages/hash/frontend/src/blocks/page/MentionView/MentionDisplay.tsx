@@ -1,8 +1,9 @@
 import { useMemo, VFC } from "react";
 import { tw } from "twind";
 import Link from "next/link";
+import ArticleIcon from "@mui/icons-material/Article";
 
-import { useAccountInfos } from "../../../components/hooks/useAccountInfos";
+import { useUsers } from "../../../components/hooks/useUsers";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
 
 interface MentionDisplayProps {
@@ -16,24 +17,23 @@ export const MentionDisplay: VFC<MentionDisplayProps> = ({
   mentionType,
   accountId,
 }) => {
-  const { data: accounts } = useAccountInfos();
+  const { data: accounts } = useUsers();
   const { data: pages } = useAccountPages(accountId);
 
-  const { title, href } = useMemo(() => {
+  const { title, href, icon } = useMemo(() => {
     const getPageData = (pageEntityId: string) => {
-      const foundPage = pages?.accountPages.find(
+      const foundPage = pages.find(
         (page) => page.entityId === pageEntityId,
       ) ?? {
-        properties: {
-          title: "",
-        },
+        title: "",
       };
 
-      const pageTitle = foundPage.properties.title;
+      const pageTitle = foundPage.title;
 
       return {
         title: pageTitle,
         href: `/${accountId}/${pageEntityId}`,
+        icon: <ArticleIcon style={{ fontSize: "1em" }} />,
       };
     };
 
@@ -43,11 +43,12 @@ export const MentionDisplay: VFC<MentionDisplayProps> = ({
           title:
             accounts.find((item) => item.entityId === entityId)?.name ?? "",
           href: `/${entityId}`,
+          icon: "@",
         };
       case "page":
         return getPageData(entityId);
       default:
-        return { title: "", href: "" };
+        return { title: "", href: "", icon: "@" };
     }
   }, [accountId, entityId, mentionType, accounts, pages]);
 
@@ -55,7 +56,8 @@ export const MentionDisplay: VFC<MentionDisplayProps> = ({
     <Link href={href}>
       <a>
         <span className={tw`text-gray-400 font-medium cursor-pointer`}>
-          @{title}
+          {icon}
+          {title}
         </span>
       </a>
     </Link>
