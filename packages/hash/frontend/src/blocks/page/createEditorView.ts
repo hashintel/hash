@@ -1,23 +1,24 @@
 import { ApolloClient } from "@apollo/client";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
+import { ProsemirrorNode } from "@hashintel/hash-shared/dist/node";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
-import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { entityStoreFromProsemirror } from "@hashintel/hash-shared/entityStorePlugin";
+import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
 // import applyDevTools from "prosemirror-dev-tools";
 import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { MentionView } from "./MentionView/MentionView";
-import { createSuggester } from "./createSuggester/createSuggester";
-import { createFormatPlugins } from "./createFormatPlugins";
 import { BlockView } from "./BlockView";
 import { EditorConnection } from "./collab/EditorConnection";
 import { Reporter } from "./collab/Reporter";
 import { collabEnabled } from "./collabEnabled";
 import { ComponentView } from "./ComponentView";
+import { createFormatPlugins } from "./createFormatPlugins";
+import { createSuggester } from "./createSuggester/createSuggester";
+import { MentionView } from "./MentionView/MentionView";
 import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
 
@@ -107,6 +108,18 @@ export const createEditorView = (
 
   const view = new EditorView<Schema>(renderNode, {
     state,
+    clipboardTextSerializer: (slice) => {
+      // @todo type this
+      return slice.content.textBetween(0, slice.content.size, "\n\n", ((
+        node: ProsemirrorNode<Schema>,
+      ) => {
+        if (node.type === view.state.schema.nodes.hardBreak) {
+          return "\n";
+        }
+
+        return "";
+      }) as any);
+    },
     nodeViews: {
       block(currentNode, currentView, getPos) {
         if (typeof getPos === "boolean") {
