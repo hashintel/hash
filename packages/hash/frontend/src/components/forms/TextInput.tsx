@@ -50,7 +50,7 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
         }`}
         onChange={_onChange}
         ref={ref}
-        {...value}
+        {...(value !== undefined ? { value } : {})}
       />
     );
 
