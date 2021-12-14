@@ -14,13 +14,13 @@ const createInitialDoc = (schema: Schema = createSchema()) =>
   schema.node("doc", {}, [schema.node("blank")]);
 
 const defaultPlugins: Plugin<any, Schema>[] = [
+  ...wrapEntitiesPlugin(baseKeymap),
   entityStorePlugin,
   history(),
   keymap<Schema>({
     "Mod-z": chainCommands(undo, undoInputRule),
     "Mod-y": redo,
   }),
-  ...wrapEntitiesPlugin(baseKeymap),
   // This enables an indicator to appear when drag and dropping blocks
   dropCursor(),
 ];
