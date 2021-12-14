@@ -35,9 +35,6 @@ export const useBlockProtocolUpdateEntityType = (
     updateEntityTypeMutation,
     {
       onCompleted,
-      refetchQueries: [
-        { query: getAccountEntityTypes, variables: { accountId } },
-      ],
     },
   );
 

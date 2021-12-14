@@ -1,23 +1,32 @@
-import { useQuery } from "@apollo/client";
-import {
-  GetAccountEntityTypesQuery,
-  GetAccountEntityTypesQueryVariables,
-} from "../../graphql/apiTypes.gen";
-import { getAccountEntityTypes } from "../../graphql/queries/account.queries";
+import { useEffect, useState } from "react";
+import { BlockProtocolEntityType } from "@hashintel/block-protocol";
 
+import { useBlockProtocolAggregateEntityTypes } from "./blockProtocolFunctions/useBlockProtocolAggregateEntityTypes";
+
+// this is a way of returning entitytypes without adding a different state
 export const useAccountEntityTypes = (
   accountId: string,
   includeOtherTypesInUse?: boolean,
 ) => {
-  const { data } = useQuery<
-    GetAccountEntityTypesQuery,
-    GetAccountEntityTypesQueryVariables
-  >(getAccountEntityTypes, {
-    variables: {
-      accountId,
-      includeOtherTypesInUse: includeOtherTypesInUse ?? false,
-    },
-  });
+  const [accountEntityTypes, setAccountEntityTypes] = useState<
+    BlockProtocolEntityType[] | null
+  >(null);
 
-  return { data };
+  const { aggregateEntityTypes } =
+    useBlockProtocolAggregateEntityTypes(accountId);
+
+  useEffect(() => {
+    if (aggregateEntityTypes) {
+      aggregateEntityTypes({
+        includeOtherTypesInUse: includeOtherTypesInUse ?? false,
+      })
+        .then((response) => setAccountEntityTypes(response.results))
+        .catch((err) =>
+          // eslint-disable-next-line no-console -- TODO: consider using logger
+          console.error(`Error fetching entity type options: ${err.message}`),
+        );
+    }
+  }, [aggregateEntityTypes]);
+
+  return { accountEntityTypes };
 };
