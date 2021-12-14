@@ -23,7 +23,7 @@
   * [Possible Dependencies and Debugging](#possible-dependencies-and-debugging)
   * [Project Setup / Building](#project-setup--building)
   * [Running for development](#running-for-development)
-- [Quick start](#quick-start)
+- [Quick Start Guide](#quick-start-guide)
 - [Usage](#usage)
   * [CLI Arguments and Options](#cli-arguments-and-options)
   * [Run a simulation](#run-a-simulation)
@@ -143,7 +143,7 @@ Where CLI args are described below in the [Usage](#usage) section, an example of
 * `cargo run --bin cli -- <CLI ARGS> -p  "<PATH TO HASH PROJECT DIR>" single-run --num-steps <NUM-STEPS>`
 
 
-## Quick start
+## Quick Start Guide
 
 This guide will walk you through downloading a [demo simulation], running it, and then finding and verifying its output.
 
@@ -160,9 +160,9 @@ In order to run the demo:
     cargo run --bin cli -- --project 'path/to/ageing-agents' single-run --num-steps 5
     ```
 
-After a short time, the simulation should complete and the process will end. Once this is done, a `./parts` folder should have been created. In the parts folder for every simulation a directory is created. For a deeper explanation of the output, please take a look at [Simulation Outputs](#simulation-outputs).
+After a short time, the simulation should complete and the process will end. Once this is done, an `./outputs` folder should have been created. Within that folder a directory is created for every simulation. For a deeper explanation of the output, please take a look at [Simulation Outputs](#simulation-outputs).
 
-The ageing simulation increases the age of each agent by one every step. Looking in the _json_state-0.part_ file, one can see the outputted JSON state has an `"age"` field for each agent. It should be apparent that the age is increasing with each snapshot of state.
+The ageing simulation increases the age of each agent by one every step. Looking in the _json_state.json_ file, one can see the outputted JSON state has an `"age"` field for each agent. It should be apparent that the age is increasing with each snapshot of state.
 
 **Congratulations!** 🎉 , you just ran your first simulation with the hEngine!
 
