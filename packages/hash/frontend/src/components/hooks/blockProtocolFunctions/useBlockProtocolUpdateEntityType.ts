@@ -6,6 +6,7 @@ import {
   UpdateEntityTypeMutation,
   UpdateEntityTypeMutationVariables,
 } from "../../../graphql/apiTypes.gen";
+import { getAccountEntityTypes } from "../../../graphql/queries/account.queries";
 import { updateEntityTypeMutation } from "../../../graphql/queries/entityType.queries";
 
 export const useBlockProtocolUpdateEntityType = (
@@ -34,6 +35,9 @@ export const useBlockProtocolUpdateEntityType = (
     updateEntityTypeMutation,
     {
       onCompleted,
+      refetchQueries: [
+        { query: getAccountEntityTypes, variables: { accountId } },
+      ],
     },
   );
 

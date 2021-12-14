@@ -26,6 +26,8 @@ export const AccountEntityTypeList: VoidFunctionComponent<
     variables: { accountId },
   });
 
+  console.log({ data });
+
   return (
     <div className={styles.SidebarList}>
       {data?.getAccountEntityTypes.map((entityType) => {
