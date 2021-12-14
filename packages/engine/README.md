@@ -210,13 +210,20 @@ $ export RUST_LOG=debug
 > **WIP** - This section is a work-in-progress. More in-depth documentation is in the works for describing all output formats and options. As such some functionality may not be mentioned here, and some functionality alluded to here might not be complete at present. 
 Currently the engine has two main form of outputs, one coming from the [json_state package](./src/simulation/package/output/packages/json_state) and the other from the [analysis package](./src/simulation/package/output/packages/analysis).
 
-#### JSON-State
-By default, the engine outputs a serialized snapshot of Agent state every step. This is written to the `./parts` folder. At the present it's possible that these files will not be valid JSON as the resultant blob may be split across multiple files (hence `part`) for buffering purposes. Development is planned for a different output format that ensures a valid JSON blob in a single file.
+At the end of each simulation run, various outputs appear within the `./<OUTPUT FOLDER>/<EXPERIMENT ID>/<SIMULATION ID>` directories. (At the moment `<OUTPUT FOLDER>` is always `./output`)
 
-#### Analysis
+#### JSON-State [`json_state.json`]
+> Better documentation describing the structure of the file is planned
+
+By default, the engine outputs a serialized snapshot of Agent state every step.
+
+During the run, the output may be buffered into the `./parts` folder in multiple files. These files are not necessarily valid JSON as the resultant state blob that appears within `json_state.json` is split up (hence `part`) for buffering purposes. 
+
+#### Analysis [`analysis_outputs.json`]
 > **WIP** - This feature is currently unstable
 
 [hCore] currently provides functionality where simulations can apply custom analysis on user-defined metrics. The functionality has been ported across to this codebase in the [analysis package](./src/simulation/package/output/packages/analysis), however development is planned to stabilise it. As such, this functionality is neither tested, nor considered supported.
+
 
 ## Main Concepts
 

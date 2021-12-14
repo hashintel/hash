@@ -14,7 +14,7 @@ use crate::{
 #[derive(derive_new::new)]
 pub struct LocalSimulationOutputPersistence {
     exp_id: ExperimentId,
-    _sim_id: SimulationShortId,
+    sim_id: SimulationShortId,
     // TODO: Should this be unused? If so remove
     buffers: Buffers,
     config: LocalPersistenceConfig,
@@ -43,7 +43,11 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
         log::trace!("Finalizing output");
         // JSON state
         let (_, parts) = self.buffers.json_state.finalize()?;
-        let path = self.config.output_folder.join(&self.exp_id);
+        let path = self
+            .config
+            .output_folder
+            .join(&self.exp_id)
+            .join(self.sim_id.to_string());
 
         log::trace!("Making new output directory directory: {:?}", path);
         std::fs::create_dir_all(&path)?;
