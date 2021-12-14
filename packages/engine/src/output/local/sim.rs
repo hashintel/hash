@@ -1,10 +1,8 @@
+use std::io::{BufReader, BufWriter};
+
 use super::{config::LocalPersistenceConfig, result::LocalPersistenceResult};
 use crate::{
-    output::{
-        buffer::Buffers,
-        error::{Error, Result},
-        SimulationOutputPersistenceRepr,
-    },
+    output::{buffer::Buffers, error::Result, SimulationOutputPersistenceRepr},
     proto::{ExperimentId, SimulationShortId},
     simulation::{package::output::packages::Output, step_output::SimulationStepOutput},
 };
@@ -12,7 +10,7 @@ use crate::{
 #[derive(derive_new::new)]
 pub struct LocalSimulationOutputPersistence {
     exp_id: ExperimentId,
-    _sim_id: SimulationShortId,
+    sim_id: SimulationShortId,
     // TODO: Should this be unused? If so remove
     buffers: Buffers,
     config: LocalPersistenceConfig,
@@ -41,18 +39,28 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
         log::trace!("Finalizing output");
         // JSON state
         let (_, parts) = self.buffers.json_state.finalize()?;
-        let path = self.config.output_folder.join(&self.exp_id);
+        let path = self
+            .config
+            .output_folder
+            .join(&self.exp_id)
+            .join(self.sim_id.to_string());
 
         log::trace!("Making new output directory directory: {:?}", path);
         std::fs::create_dir_all(&path)?;
 
+        let json_state_path = path.join("json_state.json");
+        std::fs::File::create(&json_state_path)?;
+
+        let file_out = std::fs::OpenOptions::new()
+            .append(true)
+            .open(json_state_path)?;
+
+        let mut buf_writer = BufWriter::new(file_out);
+
         parts.into_iter().try_for_each(|v| -> Result<()> {
-            let mut new = path.clone();
-            new.push(
-                v.file_name()
-                    .ok_or_else(|| Error::from("Missing file name in output parts"))?,
-            );
-            std::fs::copy(v, new)?;
+            let file_in = std::fs::File::open(v)?;
+            let mut buf_reader = BufReader::new(file_in);
+            std::io::copy(&mut buf_reader, &mut buf_writer)?;
             Ok(())
         })?;
 

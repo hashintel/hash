@@ -23,7 +23,7 @@
   * [Possible Dependencies and Debugging](#possible-dependencies-and-debugging)
   * [Project Setup / Building](#project-setup--building)
   * [Running for development](#running-for-development)
-- [Quick start](#quick-start)
+- [Quick Start Guide](#quick-start-guide)
 - [Usage](#usage)
   * [CLI Arguments and Options](#cli-arguments-and-options)
   * [Run a simulation](#run-a-simulation)
@@ -143,7 +143,7 @@ Where CLI args are described below in the [Usage](#usage) section, an example of
 * `cargo run --bin cli -- <CLI ARGS> -p  "<PATH TO HASH PROJECT DIR>" single-run --num-steps <NUM-STEPS>`
 
 
-## Quick start
+## Quick Start Guide
 
 This guide will walk you through downloading a [demo simulation], running it, and then finding and verifying its output.
 
@@ -160,9 +160,9 @@ In order to run the demo:
     cargo run --bin cli -- --project 'path/to/ageing-agents' single-run --num-steps 5
     ```
 
-After a short time, the simulation should complete and the process will end. Once this is done, a `./parts` folder should have been created. In the parts folder for every simulation a directory is created. For a deeper explanation of the output, please take a look at [Simulation Outputs](#simulation-outputs).
+After a short time, the simulation should complete and the process will end. Once this is done, an `./outputs` folder should have been created. Within that folder a directory is created for every simulation. For a deeper explanation of the output, please take a look at [Simulation Outputs](#simulation-outputs).
 
-The ageing simulation increases the age of each agent by one every step. Looking in the _json_state-0.part_ file, one can see the outputted JSON state has an `"age"` field for each agent. It should be apparent that the age is increasing with each snapshot of state.
+The ageing simulation increases the age of each agent by one every step. Looking in the _json_state.json_ file, one can see the outputted JSON state has an `"age"` field for each agent. It should be apparent that the age is increasing with each snapshot of state.
 
 **Congratulations!** 🎉 , you just ran your first simulation with the hEngine!
 
@@ -210,13 +210,20 @@ $ export RUST_LOG=debug
 > **WIP** - This section is a work-in-progress. More in-depth documentation is in the works for describing all output formats and options. As such some functionality may not be mentioned here, and some functionality alluded to here might not be complete at present. 
 Currently the engine has two main form of outputs, one coming from the [json_state package](./src/simulation/package/output/packages/json_state) and the other from the [analysis package](./src/simulation/package/output/packages/analysis).
 
-#### JSON-State
-By default, the engine outputs a serialized snapshot of Agent state every step. This is written to the `./parts` folder. At the present it's possible that these files will not be valid JSON as the resultant blob may be split across multiple files (hence `part`) for buffering purposes. Development is planned for a different output format that ensures a valid JSON blob in a single file.
+At the end of each simulation run, various outputs appear within the `./<OUTPUT FOLDER>/<EXPERIMENT ID>/<SIMULATION ID>` directories. (At the moment `<OUTPUT FOLDER>` is always `./output`)
 
-#### Analysis
+#### JSON-State [`json_state.json`]
+> Better documentation describing the structure of the file is planned
+
+By default, the engine outputs a serialized snapshot of Agent state every step.
+
+During the run, the output may be buffered into the `./parts` folder in multiple files. These files are not necessarily valid JSON as the resultant state blob that appears within `json_state.json` is split up (hence `part`) for buffering purposes. 
+
+#### Analysis [`analysis_outputs.json`]
 > **WIP** - This feature is currently unstable
 
 [hCore] currently provides functionality where simulations can apply custom analysis on user-defined metrics. The functionality has been ported across to this codebase in the [analysis package](./src/simulation/package/output/packages/analysis), however development is planned to stabilise it. As such, this functionality is neither tested, nor considered supported.
+
 
 ## Main Concepts
 
