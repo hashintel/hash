@@ -44,9 +44,13 @@ export const joinOrg: Resolver<
 
     /** @todo: verify the invitation hasn't expired */
 
-    await user.joinOrg(client, { org, responsibility });
+    await user.joinOrg(client, {
+      updatedByAccountId: user.accountId,
+      org,
+      responsibility,
+    });
 
-    await invitation.use(client);
+    await invitation.use(client, user.accountId);
 
     if (invitation instanceof OrgEmailInvitation) {
       const { inviteeEmailAddress } = invitation.properties;
@@ -56,14 +60,20 @@ export const joinOrg: Resolver<
       if (!existingUserEmail) {
         // ...we can create it.
         await user.addEmailAddress(client, {
-          address: inviteeEmailAddress,
-          primary: false,
-          verified: true,
+          updatedByAccountId: user.accountId,
+          email: {
+            address: inviteeEmailAddress,
+            primary: false,
+            verified: true,
+          },
         });
         // If the user has an email with the inviteeEmailAddress that isn't verified...
       } else if (!existingUserEmail.verified) {
         // ...we can verify it.
-        await user.verifyExistingEmailAddress(client, inviteeEmailAddress);
+        await user.verifyExistingEmailAddress(client, {
+          updatedByAccountId: user.accountId,
+          emailAddress: inviteeEmailAddress,
+        });
       }
     }
 

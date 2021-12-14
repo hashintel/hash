@@ -260,7 +260,7 @@ export const getImpliedEntityHistory = async (
     let oldest: EntityVersion | null = null;
     for (const ver of subGraph.entities) {
       if (
-        (!oldest || ver.createdAt < oldest.createdAt) &&
+        (!oldest || ver.updatedAt < oldest.updatedAt) &&
         hasNextVersion(ver)
       ) {
         oldest = ver;

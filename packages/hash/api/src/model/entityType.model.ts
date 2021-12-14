@@ -26,12 +26,12 @@ export type UnresolvedGQLEntityType = Omit<
 export type EntityTypeConstructorArgs = {
   entityId: string;
   entityVersionId: string;
-  createdById: string;
   accountId: string;
   properties: JSONObject;
-  entityCreatedAt: Date;
-  entityVersionCreatedAt: Date;
-  entityVersionUpdatedAt: Date;
+  createdByAccountId: string;
+  createdAt: Date;
+  updatedByAccountId: string;
+  updatedAt: Date;
 };
 
 const schemaIdWithFrontendDomain = ($id?: string) =>
@@ -41,49 +41,49 @@ const schemaIdWithFrontendDomain = ($id?: string) =>
 class __EntityType {
   entityId: string;
   entityVersionId: string;
-  createdById: string;
   accountId: string;
   properties: JSONObject;
-  entityCreatedAt: Date;
-  entityVersionCreatedAt: Date;
-  entityVersionUpdatedAt: Date;
+  createdByAccountId: string;
+  createdAt: Date;
+  updatedByAccountId: string;
+  updatedAt: Date;
 
   constructor({
     entityId,
     entityVersionId,
-    createdById,
     accountId,
     properties,
-    entityCreatedAt,
-    entityVersionCreatedAt,
-    entityVersionUpdatedAt,
+    createdByAccountId,
+    createdAt,
+    updatedByAccountId,
+    updatedAt,
   }: EntityTypeConstructorArgs) {
     this.entityId = entityId;
     this.entityVersionId = entityVersionId;
-    this.createdById = createdById;
     this.accountId = accountId;
     this.properties = properties;
-    this.entityCreatedAt = entityCreatedAt;
-    this.entityVersionCreatedAt = entityVersionCreatedAt;
-    this.entityVersionUpdatedAt = entityVersionUpdatedAt;
+    this.createdByAccountId = createdByAccountId;
+    this.createdAt = createdAt;
+    this.updatedByAccountId = updatedByAccountId;
+    this.updatedAt = updatedAt;
   }
 
   static async create(
     client: DBClient,
     params: {
       accountId: string;
-      createdById: string;
+      createdByAccountId: string;
       description?: string | null;
       name: string;
       schema?: JSONObject | null;
     },
   ): Promise<EntityType> {
-    const { accountId, createdById, description, schema, name } = params;
+    const { accountId, createdByAccountId, description, schema, name } = params;
 
     const entityType = await client
       .createEntityType({
         accountId,
-        createdById,
+        createdByAccountId,
         description,
         name,
         schema,
@@ -102,9 +102,10 @@ class __EntityType {
     client: DBClient,
     params: {
       accountId: string;
-      createdById: string;
+      createdByAccountId: string;
       entityId: string;
       schema: JSONObject;
+      updatedByAccountId: string;
     },
   ) {
     const updatedDbEntityType = await client.updateEntityType(params);
@@ -142,7 +143,7 @@ class __EntityType {
       id: this.entityVersionId,
       entityId: this.entityId,
       entityVersionId: this.entityVersionId,
-      createdById: this.createdById,
+      createdByAccountId: this.createdByAccountId,
       accountId: this.accountId,
       properties: {
         ...this.properties,
@@ -151,9 +152,9 @@ class __EntityType {
         ),
       },
       metadataId: this.entityId,
-      createdAt: this.entityCreatedAt.toISOString(),
-      entityVersionCreatedAt: this.entityVersionCreatedAt.toISOString(),
-      updatedAt: this.entityVersionUpdatedAt.toISOString(),
+      createdAt: this.createdAt.toISOString(),
+      entityVersionCreatedAt: this.updatedAt.toISOString(),
+      updatedAt: this.updatedAt.toISOString(),
       visibility: Visibility.Public /** @todo: get from entity metadata */,
     };
   }

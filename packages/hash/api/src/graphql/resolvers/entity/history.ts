@@ -15,8 +15,11 @@ export const history: Resolver<
     order: "desc",
   });
 
+  /** TODO: Should we consider updating the history gql definition to include both createdAt and updatedAt
+   * because this doesn't make sense for non-versioned entities
+   */
   return versions?.map((ver) => ({
     entityVersionId: ver.entityVersionId,
-    createdAt: ver.createdAt.toISOString(),
+    createdAt: ver.updatedAt.toISOString(),
   }));
 };

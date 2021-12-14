@@ -1,15 +1,15 @@
 import { ApolloError } from "apollo-server-express";
 
 import { MutationUpdatePageArgs, Resolver } from "../../apiTypes.gen";
-import { GraphQLContext } from "../../context";
+import { LoggedInGraphQLContext } from "../../context";
 import { Entity, UnresolvedGQLEntity } from "../../../model";
 
 export const updatePage: Resolver<
   Promise<UnresolvedGQLEntity>,
   {},
-  GraphQLContext,
+  LoggedInGraphQLContext,
   MutationUpdatePageArgs
-> = async (_, { accountId, entityId, properties }, { dataSources }) => {
+> = async (_, { accountId, entityId, properties }, { dataSources, user }) => {
   return await dataSources.db.transaction(async (client) => {
     // @todo: always get the latest version for now. This is a temporary measure.
     // return here when strict vs. optimistic entity mutation question is resolved.
@@ -23,10 +23,13 @@ export const updatePage: Resolver<
         "NOT_FOUND",
       );
     }
-
+    // @todo: lock entity to prevent potential race-condition when updating entity's properties
     await entity.updateEntityProperties(client, {
-      ...(entity.properties ?? {}),
-      ...properties,
+      properties: {
+        ...(entity.properties ?? {}),
+        ...properties,
+      },
+      updatedByAccountId: user.accountId,
     });
 
     // @todo: for now, all entities are non-versioned, so the array only has a single

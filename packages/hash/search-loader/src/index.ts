@@ -167,7 +167,6 @@ class SearchLoader {
     const table = wal2jsonMsg.table;
     if (table === "entity_versions") {
       const entity = EntityVersion.parseWal2JsonMsg(wal2jsonMsg);
-
       const entityType = await getEntityType(this.pool, {
         entityTypeVersionId: entity.entityTypeVersionId,
       });
@@ -178,9 +177,8 @@ class SearchLoader {
         entityTypeId: entityType.entityTypeId,
         entityTypeVersionId: entity.entityTypeVersionId,
         entityTypeName: entityType.name,
-        createdAt: entity.createdAt.toISOString(),
         updatedAt: entity.updatedAt.toISOString(),
-        createdBy: entity.createdBy,
+        updatedByAccountId: entity.updatedByAccountId,
       };
       // @todo: could move the `SYSTEM_TYPES` definition from the backend to backend-utils
       // and use it here rather than checking the string value of the entity type name.

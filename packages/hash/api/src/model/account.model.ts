@@ -1,6 +1,14 @@
 import { ApolloError, UserInputError } from "apollo-server-express";
 
-import { Account, Entity, EntityConstructorArgs, Org, User } from ".";
+import {
+  Account,
+  Entity,
+  EntityConstructorArgs,
+  Org,
+  PartialPropertiesUpdatePayload,
+  UpdatePropertiesPayload,
+  User,
+} from ".";
 import { DBClient } from "../db";
 import { RESTRICTED_SHORTNAMES } from "./util";
 import { DBOrgProperties, DBUserProperties } from "../db/adapter";
@@ -14,8 +22,18 @@ export type AccountConstructorArgs = {
 } & EntityConstructorArgs;
 
 abstract class __Account extends Entity {
-  protected updateProperties(client: DBClient, properties: any) {
-    return super.updateProperties(client, properties);
+  protected partialPropertiesUpdate(
+    client: DBClient,
+    params: PartialPropertiesUpdatePayload<DBAccountProperties>,
+  ) {
+    return super.partialPropertiesUpdate(client, params);
+  }
+
+  protected updateProperties(
+    client: DBClient,
+    params: UpdatePropertiesPayload<DBAccountProperties>,
+  ) {
+    return super.updateProperties(client, params);
   }
 
   static async getAll(client: DBClient): Promise<(User | Org)[]> {
@@ -91,10 +109,18 @@ abstract class __Account extends Entity {
    * Must occur in the same db transaction as when `this.properties` was fetched
    * to prevent overriding externally-updated properties
    */
-  updateShortname(db: DBClient, updatedShortname: string) {
-    return this.updateProperties(db, {
-      ...this.properties,
-      shortname: updatedShortname,
+  updateShortname(
+    db: DBClient,
+    params: {
+      updatedByAccountId: string;
+      updatedShortname: string;
+    },
+  ) {
+    return this.partialPropertiesUpdate(db, {
+      updatedByAccountId: params.updatedByAccountId,
+      properties: {
+        shortname: params.updatedShortname,
+      },
     });
   }
 }

@@ -1,6 +1,11 @@
 import crypto from "crypto";
 import { DBClient } from "../db";
-import { Entity, EntityConstructorArgs } from ".";
+import {
+  Entity,
+  EntityConstructorArgs,
+  PartialPropertiesUpdatePayload,
+  UpdatePropertiesPayload,
+} from ".";
 
 export type DBAccessTokenProperties = {
   accessToken: string;
@@ -27,24 +32,36 @@ abstract class __AccessToken extends Entity {
     return crypto.randomBytes(16).toString("hex");
   }
 
-  protected async updateProperties(client: DBClient, properties: any) {
-    await super.updateProperties(client, properties);
-    this.properties = properties;
-    return properties;
+  protected async partialPropertiesUpdate(
+    client: DBClient,
+    params: PartialPropertiesUpdatePayload<DBAccessTokenProperties>,
+  ) {
+    return super.partialPropertiesUpdate(client, params);
+  }
+
+  protected async updateProperties(
+    client: DBClient,
+    params: UpdatePropertiesPayload<DBAccessTokenProperties>,
+  ) {
+    await super.updateProperties(client, params);
+    this.properties = params.properties;
+    return params.properties;
   }
 
   /**
    * Revokes the access token, so that it can no longer be used.
    */
-  revoke(client: DBClient) {
+  revoke(client: DBClient, updatedByAccountId: string) {
     if (this.hasBeenRevoked()) {
       throw new Error(
         `${this.entityType.properties.title} access token with entityId ${this.entityId} has already been revoked`,
       );
     }
-    return this.updateProperties(client, {
-      ...this.properties,
-      revokedAt: new Date().toISOString(),
+    return this.partialPropertiesUpdate(client, {
+      updatedByAccountId,
+      properties: {
+        revokedAt: new Date().toISOString(),
+      },
     });
   }
 

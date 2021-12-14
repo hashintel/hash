@@ -41,7 +41,7 @@ export class IntegrationTestsHandler {
     if (migration.status !== 0) {
       // eslint-disable-next-line no-console -- this will be only shown in Jest output
       console.error(
-        `Error running database schema migration script:\n${migration.stderr}`,
+        `Error running database schema migration script:\n ${migration.stderr}`,
       );
       process.exit(1);
     }

@@ -26,12 +26,16 @@ export const createOrg: Resolver<
         },
         memberships: [],
       },
-      createdById: user.entityId,
+      createdByAccountId: user.entityId,
     });
 
     await org.acquireLock(client).then(() => org.refetchLatestVersion(client));
 
-    await user.joinOrg(client, { org, responsibility });
+    await user.joinOrg(client, {
+      updatedByAccountId: user.accountId,
+      org,
+      responsibility,
+    });
 
     return org.toGQLUnknownEntity();
   });

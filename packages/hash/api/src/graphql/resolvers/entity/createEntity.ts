@@ -26,7 +26,7 @@ export const createEntity: Resolver<
     dataSources.db,
     createEntityArgsBuilder({
       accountId,
-      createdById: user.entityId,
+      createdByAccountId: user.accountId,
       properties,
       versioned: versioned ?? true,
       entityTypeId,

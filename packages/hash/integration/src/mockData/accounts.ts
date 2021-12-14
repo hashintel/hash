@@ -85,7 +85,11 @@ export const createUsers =
             ...remainingProperties,
           });
 
-          await user.joinOrg(client, { org, responsibility: "Developer" });
+          await user.joinOrg(client, {
+            updatedByAccountId: user.accountId,
+            org,
+            responsibility: "Developer",
+          });
 
           return user;
         }),
@@ -98,7 +102,8 @@ export const createUsers =
  * The HASH org is now created as part of migration, as it doubles up as the 'system' account.
  */
 export const createOrgs = async (db: DBAdapter): Promise<Org[]> => {
-  const orgs: { properties: DBOrgProperties; createdById: string }[] = [];
+  const orgs: { properties: DBOrgProperties; createdByAccountId: string }[] =
+    [];
 
   return await Promise.all(orgs.map((params) => Org.createOrg(db, params)));
 };

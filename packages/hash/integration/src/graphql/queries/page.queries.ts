@@ -7,6 +7,7 @@ const pageFieldsFragment = gql`
     entityVersionId
     accountId
     createdAt
+    updatedAt
     history {
       createdAt
       entityVersionId
@@ -25,7 +26,7 @@ const pageFieldsFragment = gql`
         updatedAt
         createdAt
         entityVersionCreatedAt
-        createdById
+        createdByAccountId
         properties {
           componentId
           entity {
@@ -37,7 +38,7 @@ const pageFieldsFragment = gql`
             updatedAt
             createdAt
             entityVersionCreatedAt
-            createdById
+            createdByAccountId
             properties
           }
         }

@@ -69,11 +69,11 @@ export class PostgresClient implements DBClient {
   async createEntityType(params: {
     name: string;
     accountId: string;
-    createdById: string;
+    createdByAccountId: string;
     description?: string;
     schema?: Record<string, any>;
   }): Promise<EntityType> {
-    const { name, accountId, createdById, description, schema } = params;
+    const { name, accountId, createdByAccountId, description, schema } = params;
 
     return this.conn.transaction(async (conn) => {
       // The fixed type id
@@ -95,15 +95,15 @@ export class PostgresClient implements DBClient {
         entityId: entityTypeId,
         entityVersionId: entityTypeVersionId,
         entityTypeName: "EntityType",
-        createdById,
         properties,
         metadata: {
           extra: {},
           versioned: true,
         },
-        entityCreatedAt: now,
-        entityVersionCreatedAt: now,
-        entityVersionUpdatedAt: now,
+        createdAt: now,
+        createdByAccountId,
+        updatedAt: now,
+        updatedByAccountId: createdByAccountId,
         visibility: Visibility.Public,
       };
 
@@ -130,7 +130,7 @@ export class PostgresClient implements DBClient {
    */
   async createEntity(params: {
     accountId: string;
-    createdById: string;
+    createdByAccountId: string;
     entityId?: string;
     entityVersionId?: string;
     entityTypeId?: string;
@@ -167,7 +167,6 @@ export class PostgresClient implements DBClient {
       const entityId = params.entityId ?? genId();
       const entity: Entity = {
         accountId: params.accountId,
-        createdById: params.createdById,
         entityId,
         entityVersionId,
         entityType,
@@ -179,9 +178,10 @@ export class PostgresClient implements DBClient {
           versioned: params.versioned,
           extra: {}, // @todo: decide what to put in here
         },
-        entityCreatedAt: now,
-        entityVersionCreatedAt: now,
-        entityVersionUpdatedAt: now,
+        createdByAccountId: params.createdByAccountId,
+        createdAt: now,
+        updatedByAccountId: params.createdByAccountId,
+        updatedAt: now,
         visibility: Visibility.Public,
       };
 
@@ -203,7 +203,8 @@ export class PostgresClient implements DBClient {
         insertEntityMetadata(conn, {
           accountId: entity.accountId,
           entityId: entity.entityId,
-          entityCreatedAt: entity.entityCreatedAt,
+          createdAt: entity.createdAt,
+          createdByAccountId: entity.createdByAccountId,
           ...entity.metadata,
         }),
 
@@ -258,16 +259,20 @@ export class PostgresClient implements DBClient {
    * @param params.accountId the account ID the entity belongs to.
    * @param params.entityId the entity's fixed ID.
    * @param params.properties the entity's new properties.
+   * @param params.updatedByAccountId the account id of the user that is updating the entity
    * @returns the entity's updated state.
    * @throws `DbEntityNotFoundError` if the entity does not exist.
    * @throws `DbInvalidLinksError` if the entity's new properties link to an entity which
    *          does not exist.
    */
-  updateEntity = async (params: {
+  async updateEntity(params: {
     accountId: string;
     entityId: string;
     properties: any;
-  }): Promise<Entity> => updateEntity(this.conn, params);
+    updatedByAccountId: string;
+  }): Promise<Entity> {
+    return updateEntity(this.conn, params);
+  }
 
   async updateEntityAccountId(params: {
     originalAccountId: string;
@@ -313,9 +318,8 @@ export class PostgresClient implements DBClient {
     const newType: EntityType = {
       ...entity,
       entityVersionId: genId(),
-      entityVersionCreatedAt: now,
-      entityVersionUpdatedAt: now,
-      createdById: params.createdById,
+      updatedAt: now,
+      updatedByAccountId: params.updatedByAccountId,
       properties: schemaToSet,
     };
 

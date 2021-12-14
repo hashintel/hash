@@ -27,7 +27,6 @@ export type EntityTypeTypeFields =
 
 export type Entity = {
   accountId: string;
-  createdById: string;
   entityId: string;
   entityVersionId: string;
   entityType: EntityType;
@@ -38,14 +37,14 @@ export type Entity = {
   metadata: EntityMeta;
 
   /** The time at which the first version of this entity was created. */
-  entityCreatedAt: Date;
+  createdAt: Date;
+  /** The id of the account that created the first version of this entity */
+  createdByAccountId: string;
 
-  /** The time at which this version of the entity was created. */
-  entityVersionCreatedAt: Date;
-
-  /** The time at which this entity version was updated. For versioned entities, this
-   * always matches `entityVersionCreatedAt`. */
-  entityVersionUpdatedAt: Date;
+  /** The time at which this entity version was updated. */
+  updatedAt: Date;
+  /** The id of the account that last updated this version */
+  updatedByAccountId: string;
 
   visibility: Visibility;
 };
@@ -70,8 +69,8 @@ export type EntityVersion = {
   accountId: string;
   entityId: string;
   entityVersionId: string;
-  createdAt: Date;
-  createdById: string;
+  updatedAt: Date;
+  updatedByAccountId: string;
 };
 
 export type VerificationCode = {
@@ -164,7 +163,7 @@ export interface DBClient {
    */
   createEntityType(params: {
     accountId: string;
-    createdById: string;
+    createdByAccountId: string;
     description?: string | null;
     name: string;
     schema?: Record<string, any> | null;
@@ -180,7 +179,7 @@ export interface DBClient {
    * */
   createEntity(params: {
     accountId: string;
-    createdById: string;
+    createdByAccountId: string;
     entityId?: string | null | undefined;
     entityVersionId?: string | null | undefined;
     entityTypeId?: string;
@@ -240,14 +239,15 @@ export interface DBClient {
    * Creates a new version of the entity type for any update.
    * @param params.entityId the fixed id of the entityType
    * @param params.entityVersionId optionally provide the version the update is based on.
+   * @param params.updatedByAccountId The account id of the user performing the update
    *   the function will throw an error if this does not match the latest in the database.
    * @param params.schema JSON schema fields (e.g. 'properties', 'definition).
    *    The unique name should be under "title"
    */
   updateEntityType(params: {
     accountId: string; // @todo: can we remove this?
-    createdById: string;
     entityId: string;
+    updatedByAccountId: string;
     entityVersionId?: string;
     schema: JSONObject;
   }): Promise<EntityType>;
@@ -258,6 +258,7 @@ export interface DBClient {
    * @param params.accountId the account ID the entity belongs to.
    * @param params.entityId the entity's fixed ID.
    * @param params.properties the entity's new properties.
+   * @param params.updatedByAccountId the account id of the user that is updating the entity
    * @returns the entity's updated state.
    * @throws `DbEntityNotFoundError` if the entity does not exist.
    * @throws `DbInvalidLinksError` if the entity's new properties link to an entity which
@@ -267,6 +268,7 @@ export interface DBClient {
     accountId: string;
     entityId: string;
     properties: any;
+    updatedByAccountId: string;
   }): Promise<Entity>;
 
   /**

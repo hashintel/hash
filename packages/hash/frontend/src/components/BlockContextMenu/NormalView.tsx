@@ -82,7 +82,8 @@ export const NormalView: VoidFunctionComponent<NormalViewComponentProps> = ({
           {
             accounts.find(
               (account) =>
-                account.entityId === blockData?.properties.entity.createdById,
+                account.entityId ===
+                blockData?.properties.entity.createdByAccountId,
             )?.name
           }
         </p>

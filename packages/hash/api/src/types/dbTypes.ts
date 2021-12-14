@@ -19,7 +19,7 @@ export type DbPage = Omit<Page, "properties" | "type"> & {
 };
 
 export type DbUnknownEntity = Omit<UnknownEntity, "type" | "__typename"> & {
-  createdById: string;
+  createdByAccountId: string;
   type: string;
   __typename?: string;
   metadataId: string;

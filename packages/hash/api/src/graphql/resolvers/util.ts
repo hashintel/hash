@@ -32,7 +32,7 @@ export type LinkedDataDefinition = {
  */
 export const createEntityArgsBuilder = (params: {
   accountId: string;
-  createdById: string;
+  createdByAccountId: string;
   properties: JSONObject;
   versioned: boolean;
   entityTypeId?: string | null;
@@ -56,7 +56,7 @@ export const createEntityArgsBuilder = (params: {
   let args: CreateEntityArgs;
   const _args = {
     accountId: params.accountId,
-    createdById: params.createdById,
+    createdByAccountId: params.createdByAccountId,
     versioned: params.versioned,
     properties: params.properties,
   };

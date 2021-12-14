@@ -35,7 +35,7 @@ export type CreateUploadRequestArgs = {
 export type CreateFileFromLinkArgs = {
   name: string;
   accountId: string;
-  createdById: string;
+  createdByAccountId: string;
   url: string;
 };
 
@@ -77,7 +77,7 @@ class __File extends Entity {
     client: DBClient,
     params: CreateFileFromLinkArgs,
   ): Promise<File> {
-    const { name, accountId, url, createdById } = params;
+    const { name, accountId, url, createdByAccountId } = params;
     // We set the `key` of the file to be the URL for external links
     // The external file storage will know to use the key to retrieve the url.
     const key = url;
@@ -92,7 +92,7 @@ class __File extends Entity {
       };
       const entityArgs = createEntityArgsBuilder({
         accountId,
-        createdById,
+        createdByAccountId,
         systemTypeName: "File",
         versioned: true,
         properties,
@@ -143,7 +143,7 @@ class __File extends Entity {
       };
       const entityArgs = createEntityArgsBuilder({
         accountId,
-        createdById: accountId,
+        createdByAccountId: accountId,
         systemTypeName: "File",
         versioned: true,
         properties,

@@ -1,8 +1,8 @@
-import { sql, QueryResultRowType, NotFoundError } from "slonik";
+import { sql, NotFoundError } from "slonik";
 
 import { Entity, EntityType, EntityVersion } from "../adapter";
 import { Connection } from "./types";
-import { mapPGRowToEntityType } from "./entitytypes";
+import { EntityTypePGRow, mapPGRowToEntityType } from "./entitytypes";
 import { Visibility } from "../../graphql/apiTypes.gen";
 import { genId } from "../../util";
 import { insertLinks } from "./link";
@@ -13,24 +13,25 @@ import { DbEntityNotFoundError } from "../errors";
 const entityTypeFieldPrefix = "type.";
 
 /** maps a postgres row to its corresponding Entity object */
-export const mapPGRowToEntity = (row: QueryResultRowType): Entity => {
+export const mapPGRowToEntity = (row: EntityPGRow): Entity => {
   const entity: Omit<Entity, "entityType"> & { entityType?: EntityType } = {
-    accountId: row.account_id as string,
-    entityId: row.entity_id as string,
-    entityVersionId: row.entity_version_id as string,
-    createdById: row.created_by as string,
-    entityTypeId: row["type.entity_type_id"] as string,
-    entityTypeName: (row["type.properties"] as any)
-      ?.title /** @see https://github.com/gajus/slonik/issues/275 */,
-    entityTypeVersionId: row.entity_type_version_id as string,
+    accountId: row.account_id,
+    entityId: row.entity_id,
+    entityVersionId: row.entity_version_id,
+    entityTypeId: row["type.entity_type_id"],
+    entityTypeName:
+      row["type.properties"]
+        ?.title /** @see https://github.com/gajus/slonik/issues/275 */,
+    entityTypeVersionId: row.entity_type_version_id,
     properties: row.properties,
     metadata: {
-      versioned: row.versioned as boolean,
+      versioned: row.versioned,
       extra: row.extra,
     },
-    entityCreatedAt: new Date(row.entity_created_at as number),
-    entityVersionCreatedAt: new Date(row.version_created_at as number),
-    entityVersionUpdatedAt: new Date(row.version_updated_at as number),
+    createdAt: new Date(row.created_at),
+    createdByAccountId: row.created_by,
+    updatedAt: new Date(row.updated_at),
+    updatedByAccountId: row.updated_by,
     visibility: Visibility.Public /** @todo implement this */,
   };
 
@@ -42,38 +43,62 @@ export const mapPGRowToEntity = (row: QueryResultRowType): Entity => {
   for (const field of dbEntityTypeFields) {
     dbEntityType[field.slice(entityTypeFieldPrefix.length)] = row[field];
   }
-  entity.entityType = mapPGRowToEntityType(dbEntityType);
+  entity.entityType = mapPGRowToEntityType(dbEntityType as EntityTypePGRow);
 
   return entity as Entity;
 };
 
+export type EntityPGRow = {
+  // Map all other keys to any for possible entity type fields
+  [key: string]: any;
+  // Fields that are explicitly defined by the query
+  account_id: string;
+  entity_version_id: string;
+  entity_type_version_id: string;
+  properties: any;
+  created_by: string;
+  created_at: number;
+  updated_by: string;
+  updated_at: number;
+  entity_id: string;
+  extra: any;
+  versioned: boolean;
+  ["type.entity_type_id"]: string;
+  ["type.account_id"]: string;
+  ["type.entity_type_version_id"]: string;
+  ["type.properties"]: any;
+  ["type.created_by"]: string;
+  ["type.created_at"]: number;
+  ["type.updated_by"]: string;
+  ["type.updated_at"]: number;
+};
 /**
  * @todo since many entities will be of the same small number of system types (e.g. block),
  *    for non-nested queries it will probably end up faster to request and cache types separately.
  *    the extra join to get the type's createdAt date seems particularly wasteful.
  */
-export const selectEntities = sql`
+export const selectEntities = sql<EntityPGRow>`
   select
     e.account_id,
     e.entity_version_id,
     e.entity_type_version_id,
     e.properties,
-    e.created_by,
-    e.created_at as version_created_at,
-    e.updated_at as version_updated_at,
+    e.updated_by,
+    e.updated_at,
     e.entity_id,
-    meta.created_at as entity_created_at,
     meta.extra,
     meta.versioned,
+    meta.created_by,
+    meta.created_at,
 
     type.account_id as "type.account_id",
     type.entity_type_id as "type.entity_type_id",
     type.entity_type_version_id as "type.entity_type_version_id",
     type.properties as "type.properties",
-    type.created_by as "type.created_by",
-    type.created_at as "type.version_created_at",
-    type.updated_at as "type.version_updated_at",
-    typeMeta.created_at as "type.created_at"
+    typeMeta.created_by as "type.created_by",
+    typeMeta.created_at as "type.created_at",
+    type.updated_at as "type.updated_at",
+    type.updated_by as "type.updated_by"
   from
     entity_versions as e
     join entity_type_versions as type on
@@ -158,7 +183,7 @@ export const getEntity = async (
     ? sql`${selectEntityVersion(params)} for update`
     : selectEntityVersion(params);
 
-  const row = await conn.maybeOne(query);
+  const row = await conn.maybeOne<EntityPGRow>(query);
   return row ? mapPGRowToEntity(row) : undefined;
 };
 
@@ -172,13 +197,13 @@ export const getEntityLatestVersion = async (
     entityId: string;
   },
 ): Promise<Entity | undefined> => {
-  const row = await conn.maybeOne(
+  const row = await conn.maybeOne<EntityPGRow>(
     sql`
     with all_matches as (
       ${selectEntityAllVersions(params)}
     )
     select distinct on (entity_id) * from all_matches
-    order by entity_id, version_created_at desc`,
+    order by entity_id, updated_at desc`,
   );
   return row ? mapPGRowToEntity(row) : undefined;
 };
@@ -193,11 +218,11 @@ const getEntitiesLatestVersion = async (
     entityIds: string[];
   },
 ): Promise<Entity[]> => {
-  const rows = await conn.any(sql`
+  const rows = await conn.any<EntityPGRow>(sql`
     select * from (
       select
         *,
-        row_number() over (partition by entity_id order by version_created_at desc) as rank
+        row_number() over (partition by entity_id order by updated_at desc) as rank
       from (${selectEntitiesAllVersions(params)}) as all_matches
     ) as ranking
     where rank = 1;
@@ -215,7 +240,7 @@ const getEntityVersions = async (
     entityVersionIds: string[];
   },
 ): Promise<Entity[]> => {
-  const rows = await conn.any(sql`
+  const rows = await conn.any<EntityPGRow>(sql`
     with all_matches as (
       ${selectEntities}
     )
@@ -243,7 +268,7 @@ export const getEntityLatestVersionId = async (
       ${selectEntityAllVersions(params)}
     )
     select distinct on (entity_id) entity_version_id from all_matches
-    order by entity_id, version_created_at desc`,
+    order by entity_id, updated_at desc`,
   );
   return id ? (id as string) : undefined;
 };
@@ -262,12 +287,12 @@ export const getEntitiesByTypeLatestVersion = async (
     accountId: string;
   },
 ): Promise<Entity[]> => {
-  const rows = await conn.any(sql`
+  const rows = await conn.any<EntityPGRow>(sql`
     with all_matches as (
       ${selectEntitiesByType(params)}
     )
     select distinct on (entity_id) * from all_matches
-    order by entity_id, version_created_at desc
+    order by entity_id, updated_at desc
   `);
   return rows.map(mapPGRowToEntity);
 };
@@ -286,7 +311,7 @@ export const getEntitiesByTypeAllVersions = async (
     accountId: string;
   },
 ) => {
-  const rows = await conn.any(selectEntitiesByType(params));
+  const rows = await conn.any<EntityPGRow>(selectEntitiesByType(params));
   return rows.map(mapPGRowToEntity);
 };
 
@@ -295,7 +320,7 @@ export const getEntitiesByTypeAllVersions = async (
  * @todo check explicitly on the User and Org system types (and add a partial index for speed)
  * */
 export const getAllAccounts = async (conn: Connection) => {
-  const rows = await conn.any(sql`
+  const rows = await conn.any<EntityPGRow>(sql`
     with entities as (${selectEntities})
     select * from entities where account_id = entity_id
   `);
@@ -310,21 +335,20 @@ export const insertEntityVersion = async (
     entityId: string;
     entityTypeVersionId: string;
     properties: any;
-    createdById: string;
-    entityVersionCreatedAt: Date;
-    entityVersionUpdatedAt: Date;
+    updatedByAccountId: string;
+    updatedAt: Date;
   },
 ): Promise<void> => {
   await conn.query(sql`
     insert into entity_versions (
       account_id, entity_version_id, entity_id, entity_type_version_id,
-      properties, created_at, updated_at, created_by
+      properties, updated_at, updated_by
     )
     values (
       ${params.accountId}, ${params.entityVersionId}, ${params.entityId},
       ${params.entityTypeVersionId}, ${sql.json(params.properties)},
-      ${params.entityVersionCreatedAt.toISOString()},
-      ${params.entityVersionUpdatedAt.toISOString()}, ${params.createdById}
+      ${params.updatedAt.toISOString()},
+      ${params.updatedByAccountId}
     )
   `);
 };
@@ -333,15 +357,17 @@ export const updateEntityVersionProperties = async (
   conn: Connection,
   params: {
     accountId: string;
+    updatedByAccountId: string;
+    updatedAt: Date;
     entityVersionId: string;
     properties: any;
-    entityVersionUpdatedAt: Date;
   },
 ) => {
   await conn.one(sql`
     update entity_versions set
       properties = ${sql.json(params.properties)},
-      updated_at = ${params.entityVersionUpdatedAt.toISOString()}
+      updated_at = ${params.updatedAt.toISOString()},
+      updated_by = ${params.updatedByAccountId}
     where
       account_id = ${params.accountId}
       and entity_version_id = ${params.entityVersionId}
@@ -445,19 +471,19 @@ export const getEntityHistory = async (
 ): Promise<EntityVersion[]> => {
   const rows = await conn.any(sql`
     select
-      entity_version_id, created_by, created_at
+      entity_version_id, updated_by, updated_at
     from entity_versions
     where
       account_id = ${params.accountId}
       and entity_id = ${params.entityId}
-    order by created_at ${params.order === "asc" ? sql`asc` : sql`desc`}
+    order by updated_at ${params.order === "asc" ? sql`asc` : sql`desc`}
   `);
   return rows.map((row) => ({
     entityId: params.entityId,
     accountId: params.accountId,
     entityVersionId: row.entity_version_id as string,
-    createdAt: new Date(row.created_at as string),
-    createdById: row.created_by as string,
+    updatedAt: new Date(row.updated_at as string),
+    updatedByAccountId: row.updated_by as string,
   }));
 };
 
@@ -528,7 +554,7 @@ export const getEntities = async (
     const latest = latestLookup.get(entity.entityId);
     if (!latest) {
       latestLookup.set(entity.entityId, entity);
-    } else if (latest.entityCreatedAt < entity.entityCreatedAt) {
+    } else if (latest.updatedAt < entity.updatedAt) {
       latestLookup.set(entity.entityId, entity);
     }
   }
@@ -581,6 +607,7 @@ const updateVersionedEntity = async (
   params: {
     entity: Entity;
     properties: any;
+    updatedByAccountId: string;
   },
 ) => {
   const { entity, properties } = params;
@@ -593,9 +620,8 @@ const updateVersionedEntity = async (
     ...params.entity,
     entityVersionId: genId(),
     properties,
-    entityCreatedAt: now,
-    entityVersionCreatedAt: now,
-    entityVersionUpdatedAt: now,
+    updatedAt: now,
+    updatedByAccountId: params.updatedByAccountId,
   };
 
   // Lock the entity to ensure no other transaction may update it concurrently until
@@ -630,6 +656,7 @@ const updateNonVersionedEntity = async (
   params: {
     entity: Entity;
     properties: any;
+    updatedByAccountId: string;
   },
 ): Promise<Entity> => {
   if (params.entity.metadata.versioned) {
@@ -638,7 +665,8 @@ const updateNonVersionedEntity = async (
 
   const updatedEntity: Entity = {
     ...params.entity,
-    entityVersionUpdatedAt: new Date(),
+    updatedAt: new Date(),
+    updatedByAccountId: params.updatedByAccountId,
     properties: params.properties,
   };
 
@@ -670,6 +698,7 @@ export const updateEntity = async (
     accountId: string;
     entityId: string;
     properties: any;
+    updatedByAccountId: string;
   },
 ): Promise<Entity> => {
   const { accountId, entityId, properties } = params;
@@ -679,8 +708,12 @@ export const updateEntity = async (
   }
 
   // @todo validate new entity properties against the schema of its entityType
-
+  const updateData = {
+    entity,
+    properties,
+    updatedByAccountId: params.updatedByAccountId,
+  };
   return entity.metadata.versioned
-    ? updateVersionedEntity(conn, { entity, properties })
-    : updateNonVersionedEntity(conn, { entity, properties });
+    ? updateVersionedEntity(conn, updateData)
+    : updateNonVersionedEntity(conn, updateData);
 };

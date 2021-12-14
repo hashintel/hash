@@ -40,10 +40,7 @@ create table if not exists entity_type_versions (
     entity_type_id          uuid not null references entity_types (entity_type_id),
     properties              jsonb not null,
 
-    created_by              uuid not null, -- todo add: references accounts (account_id)
-
-    -- The time at which this version was created
-    created_at              timestamp with time zone not null,
+    updated_by              uuid not null, -- todo add: references accounts (account_id)
 
     -- Versioned types are never mutated, so the updated_at time always matches the
     -- created_at time. Non-versioned types may be mutatated in-place, and the
@@ -63,6 +60,9 @@ create table if not exists entities (
 
     -- The time at which the first version of this entity was created
     created_at           timestamp with time zone not null,
+
+    -- The account id of the account that created this entity
+    created_by           uuid not null,
 
     -- The time at which the shared entity metadata was last updated
     metadata_updated_at  timestamp with time zone not null,
@@ -90,10 +90,9 @@ create table if not exists entity_versions (
     entity_type_version_id  uuid not null references entity_type_versions (entity_type_version_id),
 
     properties              jsonb not null,
-    created_by              uuid not null,
 
-    -- The time at which this version was created
-    created_at              timestamp with time zone not null,
+    -- The account id of the account that updated (or created) this entity version
+    updated_by              uuid not null,
 
     -- Versioned entities are never mutated, so the updated_at time always matches the
     -- created_at time. Non-versioned entities may be mutatated in-place, and the

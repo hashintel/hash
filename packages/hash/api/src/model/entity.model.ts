@@ -34,20 +34,20 @@ export type UnresolvedGQLUnknownEntity = Omit<
 export type EntityConstructorArgs = {
   entityId: string;
   entityVersionId: string;
-  createdById: string;
   accountId: string;
   entityType: DbEntityType | EntityType;
   properties: JSONObject;
   visibility: Visibility;
   metadata: EntityMeta;
-  entityCreatedAt: Date;
-  entityVersionCreatedAt: Date;
-  entityVersionUpdatedAt: Date;
+  createdByAccountId: string;
+  createdAt: Date;
+  updatedByAccountId: string;
+  updatedAt: Date;
 };
 
 type CreateEntityArgsWithoutType = {
   accountId: string;
-  createdById: string;
+  createdByAccountId: string;
   versioned: boolean;
   properties: any;
   entityVersionId?: string;
@@ -71,35 +71,52 @@ export type CreateEntityArgs =
   | CreateEntityWithEntityTypeVersionIdArgs
   | CreateEntityWithSystemTypeArgs;
 
+export type UpdatePropertiesPayload<T = JSONObject> = {
+  properties: T;
+  updatedByAccountId: string;
+};
+
+export type PartialPropertiesUpdatePayload<T = JSONObject> = {
+  properties: Partial<T>;
+  updatedByAccountId: string;
+};
+
+export type UpdateEntityPropertiesParams<T = JSONObject> = {
+  accountId: string;
+  entityId: string;
+  properties: T;
+  updatedByAccountId: string;
+};
+
 class __Entity {
   entityId: string;
   entityVersionId: string;
-  createdById: string;
   accountId: string;
   entityType: EntityType;
   properties: JSONObject;
   visibility: Visibility;
   metadata: EntityMeta;
-  entityCreatedAt: Date;
-  entityVersionCreatedAt: Date;
-  entityVersionUpdatedAt: Date;
+  createdByAccountId: string;
+  createdAt: Date;
+  updatedByAccountId: string;
+  updatedAt: Date;
 
   constructor({
     entityId,
     entityVersionId,
-    createdById,
     accountId,
     entityType,
     properties,
     visibility,
     metadata,
-    entityCreatedAt,
-    entityVersionCreatedAt,
-    entityVersionUpdatedAt,
+    createdByAccountId,
+    createdAt,
+    updatedByAccountId,
+    updatedAt,
   }: EntityConstructorArgs) {
     this.entityId = entityId;
     this.entityVersionId = entityVersionId;
-    this.createdById = createdById;
+    this.createdByAccountId = createdByAccountId;
     this.accountId = accountId;
     this.entityType =
       entityType instanceof EntityType
@@ -108,9 +125,10 @@ class __Entity {
     this.properties = properties;
     this.visibility = visibility;
     this.metadata = metadata;
-    this.entityCreatedAt = entityCreatedAt;
-    this.entityVersionCreatedAt = entityVersionCreatedAt;
-    this.entityVersionUpdatedAt = entityVersionUpdatedAt;
+    this.createdAt = createdAt;
+    this.createdByAccountId = createdByAccountId;
+    this.updatedAt = updatedAt;
+    this.updatedByAccountId = updatedByAccountId;
   }
 
   static async create(
@@ -154,7 +172,7 @@ class __Entity {
     });
     return entities.map((entity) => ({
       ...entity,
-      createdAt: entity.createdAt.toISOString(),
+      createdAt: entity.updatedAt.toISOString(),
     }));
   }
 
@@ -212,7 +230,7 @@ class __Entity {
 
   static async updateProperties(
     client: DBClient,
-    params: { accountId: string; entityId: string; properties: string },
+    params: UpdateEntityPropertiesParams,
   ) {
     const updatedDbEntity = await client.updateEntity(params);
 
@@ -228,19 +246,36 @@ class __Entity {
     };
   }
 
-  protected async updateProperties(client: DBClient, properties: any) {
+  protected async partialPropertiesUpdate(
+    client: DBClient,
+    params: PartialPropertiesUpdatePayload,
+  ) {
+    return this.updateProperties(client, {
+      updatedByAccountId: params.updatedByAccountId,
+      properties: {
+        ...this.properties,
+        ...params.properties,
+      } as JSONObject,
+    });
+  }
+
+  protected async updateProperties(
+    client: DBClient,
+    params: UpdatePropertiesPayload,
+  ) {
     const updatedDbEntity = await client.updateEntity({
       accountId: this.accountId,
       entityId: this.entityId,
-      properties,
+      properties: params.properties,
+      updatedByAccountId: params.updatedByAccountId,
     });
     merge(this, new Entity(updatedDbEntity));
 
     return this.properties;
   }
 
-  updateEntityProperties(client: DBClient, properties: JSONObject) {
-    return this.updateProperties(client, properties);
+  updateEntityProperties(client: DBClient, params: UpdatePropertiesPayload) {
+    return this.updateProperties(client, params);
   }
 
   async transferEntity(client: DBClient, newAccountId: string) {
@@ -299,7 +334,7 @@ class __Entity {
       id: this.entityVersionId,
       entityId: this.entityId,
       entityVersionId: this.entityVersionId,
-      createdById: this.createdById,
+      createdByAccountId: this.createdByAccountId,
       accountId: this.accountId,
       entityTypeId: this.entityType.entityId,
       entityTypeVersionId: this.entityType.entityVersionId,
@@ -307,9 +342,12 @@ class __Entity {
       entityTypeName: this.entityType.properties.title as string,
       entityType: this.entityType.toGQLEntityType(),
       metadataId: this.entityId,
-      createdAt: this.entityCreatedAt.toISOString(),
-      entityVersionCreatedAt: this.entityVersionCreatedAt.toISOString(),
-      updatedAt: this.entityVersionUpdatedAt.toISOString(),
+      createdAt: this.createdAt.toISOString(),
+      /** TODO: We should update the gql definition of entities to match the new created_at/updated_at system
+       * For now keeping it as it is to avoid changing too many things at once
+       */
+      entityVersionCreatedAt: this.updatedAt.toISOString(),
+      updatedAt: this.updatedAt.toISOString(),
       visibility: this.visibility,
     };
   }

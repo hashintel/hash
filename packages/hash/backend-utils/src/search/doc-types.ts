@@ -9,8 +9,7 @@ export type EntitiesDocument = {
   entityTypeId: string;
   entityTypeVersionId: string;
   entityTypeName: string;
-  createdAt: string;
   updatedAt: string;
-  createdBy: string;
+  updatedByAccountId: string;
   fullTextSearch?: string;
 };

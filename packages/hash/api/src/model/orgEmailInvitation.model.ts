@@ -8,6 +8,7 @@ import {
   AccessTokenConstructorArgs,
   Org,
   User,
+  UpdatePropertiesPayload,
 } from ".";
 import { sendOrgEmailInvitationToEmailAddress } from "../email";
 import { EmailTransporter } from "../email/transporters";
@@ -70,7 +71,7 @@ class __OrgEmailInvitation extends AccessToken {
 
     const entity = await client.createEntity({
       accountId: org.accountId,
-      createdById: org.entityId,
+      createdByAccountId: org.entityId,
       entityTypeId: (await OrgEmailInvitation.getEntityType(client)).entityId,
       properties,
       versioned: false,
@@ -95,25 +96,27 @@ class __OrgEmailInvitation extends AccessToken {
 
   async updateProperties(
     client: DBClient,
-    properties: DBOrgEmailInvitationProperties,
+    params: UpdatePropertiesPayload<any>,
   ) {
-    await super.updateProperties(client, properties);
-    this.properties = properties;
-    return properties;
+    await super.updateProperties(client, params);
+    this.properties = params.properties;
+    return params.properties;
   }
 
   /**
    * Sets the email invitation to used.
    */
-  use(client: DBClient) {
+  use(client: DBClient, updatedByAccountId: string) {
     if (this.hasBeenUsed()) {
       throw new Error(
         `OrgEmailInvitation with entityId ${this.entityId} has already been used`,
       );
     }
-    return this.updateProperties(client, {
-      ...this.properties,
-      revokedAt: new Date().toISOString(),
+    return this.partialPropertiesUpdate(client, {
+      updatedByAccountId,
+      properties: {
+        revokedAt: new Date().toISOString(),
+      },
     });
   }
 

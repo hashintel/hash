@@ -6,6 +6,8 @@ import {
   VerificationCode,
   Org,
   OrgMembership,
+  UpdatePropertiesPayload,
+  PartialPropertiesUpdatePayload,
 } from ".";
 import { DBClient } from "../db";
 import {
@@ -94,7 +96,7 @@ class __User extends Account {
     const entity = await client.createEntity({
       accountId: id,
       entityId: id,
-      createdById: id, // Users "create" themselves
+      createdByAccountId: id, // Users "create" themselves
       entityTypeId: (await User.getEntityType(client)).entityId,
       properties,
       versioned: false, // @todo: should user's be versioned?
@@ -103,21 +105,39 @@ class __User extends Account {
     return new User({ ...entity, properties });
   }
 
-  async updateProperties(client: DBClient, properties: DBUserProperties) {
-    await super.updateProperties(client, properties);
-    this.properties = properties;
+  async partialPropertiesUpdate(
+    client: DBClient,
+    params: PartialPropertiesUpdatePayload<DBUserProperties>,
+  ) {
+    return await super.partialPropertiesUpdate(client, params);
+  }
 
-    return properties;
+  async updateProperties(
+    client: DBClient,
+    params: UpdatePropertiesPayload<DBUserProperties>,
+  ) {
+    await super.updateProperties(client, params);
+    this.properties = params.properties;
+
+    return params.properties;
   }
 
   /**
    * Must occur in the same db transaction as when `this.properties` was fetched
    * to prevent overriding externally-updated properties
    */
-  updateShortname(client: DBClient, updatedShortname: string) {
-    return this.updateProperties(client, {
-      ...this.properties,
-      shortname: updatedShortname,
+  updateShortname(
+    client: DBClient,
+    params: {
+      updatedByAccountId: string;
+      updatedShortname: string;
+    },
+  ) {
+    return this.partialPropertiesUpdate(client, {
+      updatedByAccountId: params.updatedByAccountId,
+      properties: {
+        shortname: params.updatedShortname,
+      },
     });
   }
 
@@ -129,10 +149,18 @@ class __User extends Account {
    * Must occur in the same db transaction as when `this.properties` was fetched
    * to prevent overriding externally-updated properties
    */
-  updatePreferredName(client: DBClient, updatedPreferredName: string) {
-    return this.updateProperties(client, {
-      ...this.properties,
-      preferredName: updatedPreferredName,
+  updatePreferredName(
+    client: DBClient,
+    params: {
+      updatedByAccountId: string;
+      updatedPreferredName: string;
+    },
+  ) {
+    return this.partialPropertiesUpdate(client, {
+      updatedByAccountId: params.updatedByAccountId,
+      properties: {
+        preferredName: params.updatedPreferredName,
+      },
     });
   }
 
@@ -142,13 +170,18 @@ class __User extends Account {
    */
   updateInfoProvidedAtSignup(
     client: DBClient,
-    updatedInfo: UserInfoProvidedAtSignup,
+    params: {
+      updatedByAccountId: string;
+      updatedInfo: UserInfoProvidedAtSignup;
+    },
   ) {
-    return this.updateProperties(client, {
-      ...this.properties,
-      infoProvidedAtSignup: {
-        ...this.properties.infoProvidedAtSignup,
-        ...updatedInfo,
+    return this.partialPropertiesUpdate(client, {
+      updatedByAccountId: params.updatedByAccountId,
+      properties: {
+        infoProvidedAtSignup: {
+          ...this.properties.infoProvidedAtSignup,
+          ...params.updatedInfo,
+        },
       },
     });
   }
@@ -189,10 +222,16 @@ class __User extends Account {
    * Must occur in the same db transaction as when `this.properties` was fetched
    * to prevent overriding externally-updated properties
    */
-  async addEmailAddress(client: DBClient, email: Email): Promise<User> {
+  async addEmailAddress(
+    client: DBClient,
+    params: {
+      updatedByAccountId: string;
+      email: Email;
+    },
+  ): Promise<User> {
     if (
       await User.getUserByEmail(client, {
-        email: email.address,
+        email: params.email.address,
         verified: true,
       })
     ) {
@@ -201,15 +240,17 @@ class __User extends Account {
       );
     }
 
-    if (this.getEmail(email.address)) {
+    if (this.getEmail(params.email.address)) {
       throw new Error(
-        `User with entityId ${this.entityId} already has email address ${email.address}`,
+        `User with entityId ${this.entityId} already has email address ${params.email.address}`,
       );
     }
 
-    await this.updateProperties(client, {
-      ...this.properties,
-      emails: [...this.properties.emails, email],
+    await this.partialPropertiesUpdate(client, {
+      updatedByAccountId: params.updatedByAccountId,
+      properties: {
+        emails: [...this.properties.emails, params.email],
+      },
     });
 
     return this;
@@ -219,18 +260,28 @@ class __User extends Account {
    * Must occur in the same db transaction as when `this.properties` was fetched
    * to prevent overriding externally-updated properties
    */
-  verifyExistingEmailAddress(client: DBClient, emailAddress: string) {
-    if (!this.getEmail(emailAddress)) {
+  verifyExistingEmailAddress(
+    client: DBClient,
+    params: {
+      updatedByAccountId: string;
+      emailAddress: string;
+    },
+  ) {
+    if (!this.getEmail(params.emailAddress)) {
       throw new Error(
-        `User with entityId ${this.entityId} does not have email address ${emailAddress}`,
+        `User with entityId ${this.entityId} does not have email address ${params.emailAddress}`,
       );
     }
 
-    return this.updateProperties(client, {
-      ...this.properties,
-      emails: this.properties.emails.map((email) =>
-        email.address === emailAddress ? { ...email, verified: true } : email,
-      ),
+    return this.partialPropertiesUpdate(client, {
+      updatedByAccountId: params.updatedByAccountId,
+      properties: {
+        emails: this.properties.emails.map((email) =>
+          email.address === params.emailAddress
+            ? { ...email, verified: true }
+            : email,
+        ),
+      },
     });
   }
 
@@ -375,7 +426,7 @@ class __User extends Account {
    */
   async joinOrg(
     client: DBClient,
-    params: { org: Org; responsibility: string },
+    params: { org: Org; responsibility: string; updatedByAccountId: string },
   ) {
     if (await this.isMemberOfOrg(client, params.org.entityId)) {
       throw new Error(
@@ -392,19 +443,23 @@ class __User extends Account {
     });
 
     await Promise.all([
-      this.updateProperties(client, {
-        ...this.properties,
-        memberOf: [
-          ...this.properties.memberOf,
-          orgMembership.convertToDBLink(),
-        ],
+      this.partialPropertiesUpdate(client, {
+        updatedByAccountId: params.updatedByAccountId,
+        properties: {
+          memberOf: [
+            ...this.properties.memberOf,
+            orgMembership.convertToDBLink(),
+          ],
+        },
       }),
-      org.updateProperties(client, {
-        ...org.properties,
-        memberships: [
-          ...org.properties.memberships,
-          orgMembership.convertToDBLink(),
-        ],
+      org.partialPropertiesUpdate(client, {
+        updatedByAccountId: params.updatedByAccountId,
+        properties: {
+          memberships: [
+            ...org.properties.memberships,
+            orgMembership.convertToDBLink(),
+          ],
+        },
       }),
     ]);
 

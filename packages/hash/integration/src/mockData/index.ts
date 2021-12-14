@@ -88,7 +88,7 @@ void (async () => {
     requiredTypes.map(async (name) => {
       const entityType = await EntityType.create(db, {
         accountId: hashOrg.accountId,
-        createdById: hashOrg.entityId, // TODO
+        createdByAccountId: hashOrg.entityId, // TODO
         name,
         schema: {},
       });
@@ -141,7 +141,7 @@ void (async () => {
         {
           systemTypeName: SystemTypeName.Text,
           accountId: user.accountId,
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           properties: {
             tokens: [
               { tokenType: "text", text: "About me", bold: true },
@@ -155,7 +155,7 @@ void (async () => {
         {
           systemTypeName: SystemTypeName.Text,
           accountId: user.accountId,
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           properties: {
             tokens: [{ tokenType: "text", text: "My colleagues", bold: true }],
           },
@@ -166,7 +166,7 @@ void (async () => {
         {
           systemTypeName: SystemTypeName.Text,
           accountId: user.accountId,
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           properties: {
             tokens: [
               {
@@ -183,7 +183,7 @@ void (async () => {
         {
           entityTypeId: newTypeIds.Divider,
           accountId: user.accountId,
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           properties: {},
         },
       ],
@@ -192,7 +192,7 @@ void (async () => {
         {
           systemTypeName: SystemTypeName.Text,
           accountId: user.accountId,
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           properties: {
             tokens: [
               { tokenType: "text", text: "A paragraph of regular text " },
@@ -223,7 +223,7 @@ void (async () => {
         {
           systemTypeName: SystemTypeName.Text,
           accountId: user.accountId,
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           properties: {
             tokens: [
               {
@@ -240,7 +240,7 @@ void (async () => {
         {
           systemTypeName: SystemTypeName.Text,
           accountId: user.accountId,
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           properties: {
             tokens: [
               {
@@ -257,7 +257,7 @@ void (async () => {
         {
           systemTypeName: SystemTypeName.Text,
           accountId: hashOrg.accountId,
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           properties: {
             tokens: [
               { tokenType: "text", text: "HASH's Header Text", bold: true },
@@ -270,7 +270,7 @@ void (async () => {
         {
           accountId: hashOrg.accountId,
           entityTypeId: newTypeIds.Embed,
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           properties: {},
         },
       ],
@@ -279,7 +279,7 @@ void (async () => {
         {
           entityTypeId: newTypeIds.Embed,
           accountId: hashOrg.accountId,
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           properties: {},
         },
       ],
@@ -288,7 +288,7 @@ void (async () => {
         {
           entityTypeId: newTypeIds.Image,
           accountId: user.accountId,
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           properties: {},
         },
       ],
@@ -297,7 +297,7 @@ void (async () => {
         {
           entityTypeId: newTypeIds.Image,
           accountId: user.accountId,
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           properties: {},
         },
       ],
@@ -306,7 +306,7 @@ void (async () => {
         {
           entityTypeId: newTypeIds.Code,
           accountId: hashOrg.accountId,
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           properties: {},
         },
       ],
@@ -315,7 +315,7 @@ void (async () => {
         {
           entityTypeId: newTypeIds.Video,
           accountId: user.accountId,
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           properties: {},
         },
       ],
@@ -333,7 +333,7 @@ void (async () => {
           },
           entityTypeId: newTypeIds.Location,
           accountId: user.accountId,
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
         },
       ],
       [
@@ -345,7 +345,7 @@ void (async () => {
           },
           entityTypeId: newTypeIds.Location,
           accountId: user.accountId,
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
         },
       ],
       [
@@ -357,7 +357,7 @@ void (async () => {
           },
           entityTypeId: newTypeIds.Company,
           accountId: user.accountId,
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
         },
       ],
     ]),
@@ -380,7 +380,7 @@ void (async () => {
             },
           },
           accountId: user.accountId,
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           entityTypeId: newTypeIds.Person,
         },
       ],
@@ -399,7 +399,7 @@ void (async () => {
           },
           entityTypeId: newTypeIds.Person,
           accountId: user.accountId,
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
         },
       ],
       [
@@ -416,7 +416,7 @@ void (async () => {
             },
           },
           accountId: user.accountId,
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           entityTypeId: newTypeIds.Person,
         },
       ],
@@ -435,7 +435,7 @@ void (async () => {
           },
           entityTypeId: newTypeIds.Person,
           accountId: user.accountId,
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
         },
       ],
       [
@@ -453,7 +453,7 @@ void (async () => {
           },
           entityTypeId: newTypeIds.Person,
           accountId: user.accountId,
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
         },
       ],
       [
@@ -471,7 +471,7 @@ void (async () => {
           },
           entityTypeId: newTypeIds.Person,
           accountId: user.accountId,
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
         },
       ],
     ]),
@@ -484,7 +484,7 @@ void (async () => {
         {
           entityTypeId: newTypeIds.Table,
           accountId: user.accountId,
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           properties: {
             initialState: {
               hiddenColumns: [
@@ -516,7 +516,7 @@ void (async () => {
         {
           entityTypeId: newTypeIds.Table,
           accountId: user.accountId,
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           properties: {
             data: {},
           },
@@ -537,7 +537,7 @@ void (async () => {
             entityId: results.get("text1")!.entityId,
             accountId: results.get("text1")!.accountId,
           },
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           accountId: user.accountId,
         },
       ],
@@ -549,7 +549,7 @@ void (async () => {
             entityId: results.get("text2")!.entityId,
             accountId: results.get("text2")!.accountId,
           },
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           accountId: user.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -562,7 +562,7 @@ void (async () => {
             entityId: results.get("text3")!.entityId,
             accountId: results.get("text3")!.accountId,
           },
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           accountId: user.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -575,7 +575,7 @@ void (async () => {
             entityId: results.get("t1")!.entityId,
             accountId: results.get("t1")!.accountId,
           },
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           accountId: user.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -588,7 +588,7 @@ void (async () => {
             entityId: results.get("text5")!.entityId,
             accountId: results.get("text5")!.accountId,
           },
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           accountId: hashOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -601,7 +601,7 @@ void (async () => {
             entityId: results.get("text2")!.entityId,
             accountId: results.get("text2")!.accountId,
           },
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           accountId: hashOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -614,7 +614,7 @@ void (async () => {
             entityId: results.get("text3")!.entityId,
             accountId: results.get("text3")!.accountId,
           },
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           accountId: hashOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -627,7 +627,7 @@ void (async () => {
             entityId: results.get("text4")!.entityId,
             accountId: results.get("text4")!.accountId,
           },
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           accountId: hashOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -640,7 +640,7 @@ void (async () => {
             entityId: results.get("p2")!.entityId,
             accountId: results.get("p2")!.accountId,
           },
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           accountId: hashOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -653,7 +653,7 @@ void (async () => {
             entityId: results.get("header1text")!.entityId,
             accountId: results.get("header1text")!.accountId,
           },
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           accountId: hashOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -666,7 +666,7 @@ void (async () => {
             entityId: results.get("divider1")!.entityId,
             accountId: results.get("divider1")!.accountId,
           },
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           accountId: hashOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -679,7 +679,7 @@ void (async () => {
             entityId: results.get("embed1")!.entityId,
             accountId: results.get("embed1")!.accountId,
           },
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           accountId: hashOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -692,7 +692,7 @@ void (async () => {
             entityId: results.get("embed2")!.entityId,
             accountId: results.get("embed2")!.accountId,
           },
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           accountId: hashOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -705,7 +705,7 @@ void (async () => {
             entityId: results.get("img1")!.entityId,
             accountId: results.get("img1")!.accountId,
           },
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           accountId: hashOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -718,7 +718,7 @@ void (async () => {
             entityId: results.get("img2")!.entityId,
             accountId: results.get("img2")!.accountId,
           },
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           accountId: hashOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -731,7 +731,7 @@ void (async () => {
             entityId: results.get("video1")!.entityId,
             accountId: results.get("video1")!.accountId,
           },
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           accountId: hashOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -744,7 +744,7 @@ void (async () => {
             entityId: results.get("header2text")!.entityId,
             accountId: results.get("header2text")!.accountId,
           },
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           accountId: hashOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -757,7 +757,7 @@ void (async () => {
             entityId: results.get("t2")!.entityId,
             accountId: results.get("t2")!.accountId,
           },
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           accountId: user.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -770,7 +770,7 @@ void (async () => {
             entityId: results.get("t2")!.entityId,
             accountId: results.get("t2")!.accountId,
           },
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           accountId: user.accountId,
           systemTypeName: SystemTypeName.Block,
         },
@@ -786,7 +786,7 @@ void (async () => {
         {
           systemTypeName: SystemTypeName.Page,
           accountId: user.accountId,
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           properties: {
             contents: [
               {
@@ -848,7 +848,7 @@ void (async () => {
         {
           systemTypeName: SystemTypeName.Page,
           accountId: hashOrg.accountId,
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           properties: {
             contents: [
               {

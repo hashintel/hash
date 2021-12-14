@@ -1,15 +1,19 @@
 import { ApolloError } from "apollo-server-express";
 
 import { MutationUpdateEntityArgs, Resolver } from "../../apiTypes.gen";
-import { GraphQLContext } from "../../context";
-import { Entity, UnresolvedGQLEntity } from "../../../model";
+import { LoggedInGraphQLContext } from "../../context";
+import {
+  Entity,
+  UnresolvedGQLEntity,
+  UpdatePropertiesPayload,
+} from "../../../model";
 
 export const updateEntity: Resolver<
   Promise<UnresolvedGQLEntity>,
   {},
-  GraphQLContext,
+  LoggedInGraphQLContext,
   MutationUpdateEntityArgs
-> = async (_, { accountId, entityId, properties }, { dataSources }) => {
+> = async (_, { accountId, entityId, properties }, { dataSources, user }) => {
   return await dataSources.db.transaction(async (client) => {
     // @todo: always get the latest version for now. This is a temporary measure.
     // return here when strict vs. optimistic entity mutation question is resolved.
@@ -26,8 +30,12 @@ export const updateEntity: Resolver<
     // How do they update things on the root entity, e.g. type?
     const propertiesToUpdate = properties.properties ?? properties;
     entity.properties = propertiesToUpdate;
+    const updatePayload: UpdatePropertiesPayload = {
+      updatedByAccountId: user.accountId,
+      properties: entity.properties,
+    };
 
-    await entity.updateEntityProperties(client, propertiesToUpdate);
+    await entity.updateEntityProperties(client, updatePayload);
 
     // TODO: for now, all entities are non-versioned, so the array only has a single
     // element. Return when versioned entities are implemented at the API layer.

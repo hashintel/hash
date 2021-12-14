@@ -11,8 +11,7 @@ export class EntityVersion {
     public entityVersionId: string,
     public entityTypeVersionId: string,
     public properties: any,
-    public createdBy: string,
-    public createdAt: Date,
+    public updatedByAccountId: string,
     public updatedAt: Date,
   ) {}
 
@@ -26,8 +25,7 @@ export class EntityVersion {
         typeof row.properties === "string"
           ? JSON.parse(row.properties)
           : row.properties,
-      createdBy: row.created_by as string,
-      createdAt: new Date(row.created_at as string),
+      updatedByAccountId: row.updated_by as string,
       updatedAt: new Date(row.updated_at as string),
     };
   }

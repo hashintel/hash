@@ -6,7 +6,7 @@ export const createOrg = gql`
       __typename
       entityId
       entityTypeName
-      createdById
+      createdByAccountId
       createdAt
       updatedAt
       accountId
