@@ -1,12 +1,8 @@
-use std::io::{BufReader, BufWriter, Read, Write};
+use std::io::{BufReader, BufWriter};
 
 use super::{config::LocalPersistenceConfig, result::LocalPersistenceResult};
 use crate::{
-    output::{
-        buffer::Buffers,
-        error::{Error, Result},
-        SimulationOutputPersistenceRepr,
-    },
+    output::{buffer::Buffers, error::Result, SimulationOutputPersistenceRepr},
     proto::{ExperimentId, SimulationShortId},
     simulation::{package::output::packages::Output, step_output::SimulationStepOutput},
 };
@@ -55,7 +51,7 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
         let json_state_path = path.join("json_state.json");
         std::fs::File::create(&json_state_path)?;
 
-        let mut file_out = std::fs::OpenOptions::new()
+        let file_out = std::fs::OpenOptions::new()
             .append(true)
             .open(json_state_path)?;
 
