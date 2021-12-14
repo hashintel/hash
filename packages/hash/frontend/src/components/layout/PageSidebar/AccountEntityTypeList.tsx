@@ -2,7 +2,6 @@ import { VoidFunctionComponent } from "react";
 import Link from "next/link";
 import { tw } from "twind";
 
-
 import styles from "./PageSidebar.module.scss";
 import { Button } from "../../forms/Button";
 import { useAccountEntityTypes } from "../../hooks/useAccountEntityTypes";
