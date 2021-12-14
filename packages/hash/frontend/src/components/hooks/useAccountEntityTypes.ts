@@ -26,7 +26,7 @@ export const useAccountEntityTypes = (
           console.error(`Error fetching entity type options: ${err.message}`),
         );
     }
-  }, [aggregateEntityTypes]);
+  }, [aggregateEntityTypes, includeOtherTypesInUse]);
 
   return { accountEntityTypes };
 };
