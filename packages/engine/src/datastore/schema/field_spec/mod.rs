@@ -135,9 +135,9 @@ impl FieldKey {
         Ok(Self(name.to_string()))
     }
 
-    /// Create a new private or hidden `FieldKey`
+    /// Create a new private or hidden scoped `FieldKey`
     ///
-    /// Builds a `FieldKey` from a given name, the [`FieldSource`], and the [`FieldScope`]. `scope`
+    /// Builds a `FieldKey` from a given name, [`FieldSource`], and [`FieldScope`]. `scope`
     /// must be either [`FieldScope::Private`] or [`FieldScope::Hidden`].
     ///
     /// # Errors
@@ -331,7 +331,7 @@ impl FieldSpecMap {
         self.len() == 0
     }
 
-    pub(in crate::datastore) fn _get_field_spec(
+    pub(in crate::datastore) fn get_field_spec(
         &self,
         field_key: &FieldKey,
     ) -> Result<&RootFieldSpec> {

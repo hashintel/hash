@@ -2,10 +2,26 @@ use crate::datastore::schema::field_spec::{
     FieldScope, FieldSource, FieldSpec, FieldType, RootFieldSpec,
 };
 
-/// Factory for creating `RootFieldSpec`s for a given `FieldSource`.
+/// A factory-like object that can be set with a [`FieldSource`] and then passed to a context such
+/// as a package.
 ///
-/// A `RootFieldSpecCreator` abstracts over a [`FieldSource`] to create [`RootFieldSpec`]s with
-/// a name, a [`FieldType`], and a [`FieldScope`].
+/// This allows packages to not need to be aware of the [`FieldSource`], which can get rather
+/// complicated.
+///
+/// # Example
+///
+/// ```
+/// use hash_engine::{
+///     datastore::schema::{FieldSource, RootFieldSpecCreator},
+///     simulation::package::{name::PackageName, output::Name as OutputName},
+/// };
+///
+/// // Create an output package for the field specification
+/// let package = PackageName::Output(OutputName::JsonState);
+///
+/// // Create the RootFieldSpecCreator
+/// let rfs_creator = RootFieldSpecCreator::new(FieldSource::Package(package));
+/// ```
 pub struct RootFieldSpecCreator {
     field_source: FieldSource,
 }
@@ -35,7 +51,7 @@ impl RootFieldSpecCreator {
     ///     FieldScope, FieldSource, FieldType, FieldTypeVariant, RootFieldSpecCreator,
     /// };
     ///
-    /// // Create the root field spec creator
+    /// // Create the RootFieldSpecCreator
     /// let rfs_creator = RootFieldSpecCreator::new(FieldSource::Engine);
     ///
     /// // Create a non-nullable `Number` field type
