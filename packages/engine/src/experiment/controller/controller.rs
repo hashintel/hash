@@ -350,8 +350,8 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
                     }
                 }
                 _ = async { waiting_for_completion.as_mut().expect("must be some").await }, if waiting_for_completion.is_some() => {
-                    log::warn!("Experiment Controller received a termination message, waiting {} seconds for sim run tasks to complete", time_to_wait);
                     time_to_wait *= WAITING_MULTIPLIER;
+                    log::warn!("Experiment Controller received a termination message, waiting {} seconds for sim run tasks to complete", time_to_wait);
                     waiting_for_completion = Some(Box::pin(tokio::time::sleep(Duration::from_secs(time_to_wait))));
                 }
             }

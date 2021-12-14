@@ -1,3 +1,5 @@
+use std::io::{BufReader, BufWriter, Read, Write};
+
 use super::{config::LocalPersistenceConfig, result::LocalPersistenceResult};
 use crate::{
     output::{
@@ -46,13 +48,19 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
         log::trace!("Making new output directory directory: {:?}", path);
         std::fs::create_dir_all(&path)?;
 
+        let json_state_path = path.join("json_state.json");
+        std::fs::File::create(&json_state_path)?;
+
+        let mut file_out = std::fs::OpenOptions::new()
+            .append(true)
+            .open(json_state_path)?;
+
+        let mut buf_writer = BufWriter::new(file_out);
+
         parts.into_iter().try_for_each(|v| -> Result<()> {
-            let mut new = path.clone();
-            new.push(
-                v.file_name()
-                    .ok_or_else(|| Error::from("Missing file name in output parts"))?,
-            );
-            std::fs::copy(v, new)?;
+            let file_in = std::fs::File::open(v)?;
+            let mut buf_reader = BufReader::new(file_in);
+            std::io::copy(&mut buf_reader, &mut buf_writer)?;
             Ok(())
         })?;
 
