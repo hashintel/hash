@@ -11,6 +11,7 @@ import {
 
 import styles from "./PageSidebar.module.scss";
 import { Button } from "../../forms/Button";
+import { useAccountEntityTypes } from "../../hooks/useAccountEntityTypes";
 
 type AccountEntityTypeListProps = {
   accountId: string;
@@ -19,14 +20,7 @@ type AccountEntityTypeListProps = {
 export const AccountEntityTypeList: VoidFunctionComponent<
   AccountEntityTypeListProps
 > = ({ accountId }) => {
-  const { data } = useQuery<
-    GetAccountEntityTypesQuery,
-    GetAccountEntityTypesQueryVariables
-  >(getAccountEntityTypes, {
-    variables: { accountId },
-  });
-
-  console.log({ data });
+  const { data } = useAccountEntityTypes(accountId);
 
   return (
     <div className={styles.SidebarList}>

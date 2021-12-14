@@ -16,6 +16,7 @@ import {
 import { useBlockProtocolCreate } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolCreate";
 import { useBlockProtocolAggregate } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregate";
 import { MainContentWrapper } from "../../../components/pages/MainContentWrapper";
+import { useAccountEntityTypes } from "../../../components/hooks/useAccountEntityTypes";
 
 const NewEntity: VoidFunctionComponent = () => {
   const router = useRouter();
@@ -54,15 +55,7 @@ const NewEntity: VoidFunctionComponent = () => {
     }
   }, [router.query.entityTypeId, selectedTypeId]);
 
-  const { data } = useQuery<
-    GetAccountEntityTypesQuery,
-    GetAccountEntityTypesQueryVariables
-  >(getAccountEntityTypes, {
-    variables: {
-      accountId,
-      includeOtherTypesInUse: true,
-    },
-  });
+  const { data } = useAccountEntityTypes(accountId, true);
 
   const typeOptions = data?.getAccountEntityTypes;
   const selectedType = useMemo(() => {
