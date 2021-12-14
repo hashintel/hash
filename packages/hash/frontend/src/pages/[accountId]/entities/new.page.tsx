@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState, VoidFunctionComponent } from "react";
-import { useQuery } from "@apollo/client";
 import { tw } from "twind";
 
 import { useRouter } from "next/router";
@@ -7,12 +6,7 @@ import { useRouter } from "next/router";
 import { BlockProtocolCreateFn } from "@hashintel/block-protocol";
 import { EntityEditor } from "../../../components/EntityEditor/EntityEditor";
 
-import { getAccountEntityTypes } from "../../../graphql/queries/account.queries";
-import {
-  GetAccountEntityTypesQuery,
-  GetAccountEntityTypesQueryVariables,
-  UnknownEntity,
-} from "../../../graphql/apiTypes.gen";
+import { UnknownEntity } from "../../../graphql/apiTypes.gen";
 import { useBlockProtocolCreate } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolCreate";
 import { useBlockProtocolAggregate } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregate";
 import { MainContentWrapper } from "../../../components/pages/MainContentWrapper";

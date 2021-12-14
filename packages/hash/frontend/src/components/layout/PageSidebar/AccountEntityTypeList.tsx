@@ -1,13 +1,7 @@
 import { VoidFunctionComponent } from "react";
 import Link from "next/link";
-import { useQuery } from "@apollo/client";
-
 import { tw } from "twind";
-import { getAccountEntityTypes } from "../../../graphql/queries/account.queries";
-import {
-  GetAccountEntityTypesQuery,
-  GetAccountEntityTypesQueryVariables,
-} from "../../../graphql/apiTypes.gen";
+
 
 import styles from "./PageSidebar.module.scss";
 import { Button } from "../../forms/Button";
