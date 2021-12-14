@@ -548,8 +548,7 @@ fn f64_iter_aggregate(
                             (false, true) => Ordering::Less,
                             (false, false) => a.partial_cmp(b).unwrap(),
                         })
-                        .map(|a| if a.is_finite() { Some(a) } else { None })
-                        .flatten()
+                        .and_then(|a| if a.is_finite() { Some(a) } else { None })
                 ))
             )
         }
@@ -571,8 +570,7 @@ fn f64_iter_aggregate(
                             (false, true) => Ordering::Greater,
                             (false, false) => a.partial_cmp(b).unwrap(),
                         })
-                        .map(|a| if a.is_finite() { Some(a) } else { None })
-                        .flatten()
+                        .and_then(|a| if a.is_finite() { Some(a) } else { None })
                 ))
             )
         }
@@ -836,8 +834,7 @@ pub(super) fn index_iterator_mapper_creator(
                                 (false, true) => Ordering::Less,
                                 (false, false) => a.partial_cmp(b).unwrap(),
                             })
-                            .map(|a| if a.is_finite() { Some(a) } else { None })
-                            .flatten()
+                            .and_then(|a| if a.is_finite() { Some(a) } else { None })
                     ))
                 )
             }
@@ -859,8 +856,7 @@ pub(super) fn index_iterator_mapper_creator(
                                 (false, true) => Ordering::Greater,
                                 (false, false) => a.partial_cmp(b).unwrap(),
                             })
-                            .map(|a| if a.is_finite() { Some(a) } else { None })
-                            .flatten()
+                            .and_then(|a| if a.is_finite() { Some(a) } else { None })
                     ))
                 )
             }
