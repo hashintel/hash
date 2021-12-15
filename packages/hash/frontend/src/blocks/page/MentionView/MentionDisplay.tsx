@@ -21,32 +21,20 @@ export const MentionDisplay: VFC<MentionDisplayProps> = ({
   const { data: pages } = useAccountPages(accountId);
 
   const { title, href, icon } = useMemo(() => {
-    const getPageData = (pageEntityId: string) => {
-      const foundPage = pages.find(
-        (page) => page.entityId === pageEntityId,
-      ) ?? {
-        title: "",
-      };
-
-      const pageTitle = foundPage.title;
-
-      return {
-        title: pageTitle,
-        href: `/${accountId}/${pageEntityId}`,
-        icon: <ArticleIcon style={{ fontSize: "1em" }} />,
-      };
-    };
-
     switch (mentionType) {
       case "user":
         return {
           title:
-            users.find((item) => item.entityId === entityId)?.name ?? "",
+            users.find((item) => item.entityId === entityId)?.name ?? "User",
           href: `/${entityId}`,
           icon: "@",
         };
       case "page":
-        return getPageData(entityId);
+        return {
+          title: pages.find((page) => page.entityId === entityId) ?? "Page",
+          href: `/${accountId}/${entityId}`,
+          icon: <ArticleIcon style={{ fontSize: "1em" }} />,
+        };
       default:
         return { title: "", href: "", icon: "@" };
     }
