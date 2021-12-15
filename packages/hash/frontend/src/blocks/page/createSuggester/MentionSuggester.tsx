@@ -15,7 +15,7 @@ export interface MentionSuggesterProps {
 }
 
 type SearchableItem = {
-  shortname: string;
+  shortname?: string;
   name: string;
   entityId: string;
   type: "user" | "page";
@@ -27,13 +27,13 @@ export const MentionSuggester: VFC<MentionSuggesterProps> = ({
   className,
   accountId,
 }) => {
-  const { data: accounts, loading: accountsLoading } = useUsers();
+  const { data: users, loading: usersLoading } = useUsers();
   const { data: pages, loading: pagesLoading } = useAccountPages(accountId);
 
-  const loading = accountsLoading && pagesLoading;
+  const loading = usersLoading && pagesLoading;
 
   const options = useMemo(() => {
-    const iterableAccounts: Array<SearchableItem> = accounts.map((account) => ({
+    const iterableAccounts: Array<SearchableItem> = users.map((account) => ({
       shortname: account.shortname,
       name: account.name,
       entityId: account.entityId,
@@ -41,7 +41,6 @@ export const MentionSuggester: VFC<MentionSuggesterProps> = ({
     }));
 
     const iterablePages: Array<SearchableItem> = pages.map((page) => ({
-      shortname: page.title,
       name: page.title,
       entityId: page.entityId,
       type: "page",
@@ -55,7 +54,7 @@ export const MentionSuggester: VFC<MentionSuggesterProps> = ({
     return fuzzySearchBy(searchData, search, (option) =>
       [option.shortname, option.name].map((str) => str ?? "").join(" "),
     );
-  }, [search, accounts, pages]);
+  }, [search, users, pages]);
 
   return (
     <Suggester
@@ -77,7 +76,7 @@ export const MentionSuggester: VFC<MentionSuggesterProps> = ({
           <p className={tw`text-sm`}>{option.name}</p>
         </div>
       )}
-      itemKey={(option) => option.shortname}
+      itemKey={(option) => option.entityId}
       onChange={(option) => onChange(option.entityId, option.type)}
       className={className}
       loading={loading}

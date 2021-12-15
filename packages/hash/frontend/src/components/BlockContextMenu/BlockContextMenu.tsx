@@ -56,7 +56,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [subMenuVisible, setSubMenuVisible] = useState(false);
 
-  const { data: accounts } = useUsers();
+  const { data: users } = useUsers();
 
   const blockData = entityId ? entityStore.saved[entityId] : null;
 
@@ -156,7 +156,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
         <p>
           Last edited by {/* @todo use lastedited value when available */}
           {
-            accounts.find(
+            users.find(
               (account) =>
                 account.entityId === blockData?.properties.entity.createdById,
             )?.name

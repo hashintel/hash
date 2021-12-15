@@ -17,7 +17,7 @@ export const MentionDisplay: VFC<MentionDisplayProps> = ({
   mentionType,
   accountId,
 }) => {
-  const { data: accounts } = useUsers();
+  const { data: users } = useUsers();
   const { data: pages } = useAccountPages(accountId);
 
   const { title, href, icon } = useMemo(() => {
@@ -41,7 +41,7 @@ export const MentionDisplay: VFC<MentionDisplayProps> = ({
       case "user":
         return {
           title:
-            accounts.find((item) => item.entityId === entityId)?.name ?? "",
+            users.find((item) => item.entityId === entityId)?.name ?? "",
           href: `/${entityId}`,
           icon: "@",
         };
@@ -50,7 +50,7 @@ export const MentionDisplay: VFC<MentionDisplayProps> = ({
       default:
         return { title: "", href: "", icon: "@" };
     }
-  }, [accountId, entityId, mentionType, accounts, pages]);
+  }, [accountId, entityId, mentionType, users, pages]);
 
   return (
     <Link href={href}>

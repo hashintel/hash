@@ -21,7 +21,6 @@ export const useAccountPages = (accountId: string) => {
     }
 
     return data?.accountPages.map((page) => ({
-      id: page.id,
       title: page.properties.title,
       entityId: page.entityId,
     }));

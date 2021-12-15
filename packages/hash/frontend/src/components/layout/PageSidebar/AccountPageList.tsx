@@ -20,10 +20,10 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
     <div className={styles.SidebarList}>
       {data.map((page) => {
         if (page.entityId === currentPageEntityId) {
-          return <div key={page.id}>{page.title}</div>;
+          return <div key={page.entityId}>{page.title}</div>;
         }
         return (
-          <div key={page.id}>
+          <div key={page.entityId}>
             <Link href={`/${accountId}/${page.entityId}`}>
               <a>{page.title}</a>
             </Link>
