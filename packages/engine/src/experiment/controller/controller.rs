@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use super::{
     comms::{
@@ -42,7 +42,8 @@ use crate::{
 };
 
 pub struct ExperimentController<P: OutputPersistenceCreatorRepr> {
-    _exp_config: Arc<ExperimentConfig>, // TODO: unused, remove?
+    _exp_config: Arc<ExperimentConfig>,
+    // TODO: unused, remove?
     exp_base_config: Arc<ExperimentConfig>,
     env: Environment,
     shared_store: Arc<SharedStore>,
@@ -66,11 +67,11 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
     async fn handle_orch_msg(&mut self, orch_msg: EngineMsg) -> Result<()> {
         match orch_msg {
             EngineMsg::Init(_) => Err(Error::from("Unexpected init message")),
-            EngineMsg::SimRegistered(short_id, registered_id) => self
-                .sim_id_store
-                .set_registered_id(short_id, registered_id)
-                .await
-                .into(),
+            EngineMsg::SimRegistered(short_id, registered_id) => {
+                self.sim_id_store
+                    .set_registered_id(short_id, registered_id)
+                    .await
+            }
         }
     }
 
@@ -97,7 +98,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
             .experiment_package_comms
             .step_update_sender
             .send(StepUpdate {
-                sim_id: status.sim_id.clone(),
+                sim_id: status.sim_id,
                 was_error: status.error.is_some(),
                 stop_signal: status.stop_signal,
             })
@@ -229,7 +230,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
             persistence_service,
             self.sim_status_send.clone(),
         )
-        .map_err(|e| SimulationError::from(e))?;
+        .map_err(SimulationError::from)?;
         let sim_sender = sim_controller.sender;
         self.add_sim_sender(sim_short_id, sim_sender)?;
         self.sim_run_tasks.new_run(sim_controller.task_handle);
@@ -302,6 +303,11 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
 impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
     pub async fn run(mut self) -> Result<()> {
         let mut terminate_recv = self.terminate_recv.take_recv()?;
+
+        let mut waiting_for_completion = None;
+        let mut time_to_wait = 1;
+        const WAITING_MULTIPLIER: u64 = 3;
+
         loop {
             tokio::select! {
                 Some(msg) = self.experiment_package_comms.ctl_recv.recv() => {
@@ -311,6 +317,13 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
                 result = self.sim_run_tasks.next() => {
                     if let Some(result) = result.map_err(|_| Error::from("Couldn't join `sim_run_tasks.next()`"))? {
                         self.handle_sim_run_stop(result?).await?;
+
+                        if self.sim_run_tasks.is_empty() && waiting_for_completion.is_some() {
+                            log::debug!("Stopping experiment controller");
+                            return Ok(())
+                        }
+
+                        log::trace!("There was a result from a sim run but: self.sim_run_tasks.is_empty(): {}, waiting_for_completion.is_some(): {} so continuing", self.sim_run_tasks.is_empty(), waiting_for_completion.is_some());
                     }
                 }
                 Some(msg) = self.sim_status_recv.recv() => {
@@ -324,16 +337,29 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
                 Ok(msg) = self.env.orch_listener.recv::<EngineMsg>() => {
                     self.handle_orch_msg(msg).await?;
                 }
-                terminate_res = &mut terminate_recv => {
+                terminate_res = &mut terminate_recv, if waiting_for_completion.is_none() => {
                     terminate_res.map_err(|err| Error::from(format!("Couldn't receive terminate: {:?}", err)))?;
-                    log::debug!("Stopping experiment controller");
-                    return Ok(())
+                    log::trace!("Received terminate message");
+
+                    if self.sim_run_tasks.is_empty() {
+                        log::debug!("Stopping experiment controller");
+                        return Ok(())
+                    } else {
+                        log::trace!("sim_run_tasks wasn't empty, starting a wait and warn loop");
+                        waiting_for_completion = Some(Box::pin(tokio::time::sleep(Duration::from_secs(time_to_wait))));
+                    }
+                }
+                _ = async { waiting_for_completion.as_mut().expect("must be some").await }, if waiting_for_completion.is_some() => {
+                    time_to_wait *= WAITING_MULTIPLIER;
+                    log::warn!("Experiment Controller received a termination message, waiting {} seconds for sim run tasks to complete", time_to_wait);
+                    waiting_for_completion = Some(Box::pin(tokio::time::sleep(Duration::from_secs(time_to_wait))));
                 }
             }
         }
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
     pub fn new(
         exp_config: Arc<ExperimentConfig>,
@@ -361,8 +387,8 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
             worker_pool_controller_recv,
             experiment_package_comms,
             output_persistence_service_creator,
-            sim_run_tasks: std::default::Default::default(),
-            sim_senders: std::default::Default::default(),
+            sim_run_tasks: Default::default(),
+            sim_senders: Default::default(),
             worker_pool_send_base,
             package_creators,
             sim_id_store,

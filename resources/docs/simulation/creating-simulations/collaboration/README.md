@@ -37,4 +37,3 @@ Other features coming soon include:
 * Cross-team billing
 * Shared storage and compute caps
 * Single Sign-On \(SSO\)
-

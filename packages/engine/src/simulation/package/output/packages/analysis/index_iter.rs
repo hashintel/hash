@@ -4,8 +4,8 @@ use float_cmp::approx_eq;
 
 use super::{
     analyzer::{
-        IndexIterator, NumberIterator, OutputCreator, OutputRunner, OutputRunnerCreator,
-        ValueIterator, ValueIteratorCreator, ULPS,
+        IndexIterator, OutputCreator, OutputRunner, OutputRunnerCreator, ValueIterator,
+        ValueIteratorCreator, ULPS,
     },
     output::AnalysisSingleOutput,
     value_iter::{value_iterator_filter, value_iterator_mapper},
@@ -200,11 +200,9 @@ fn index_iterator_null_filter(
         ComparisonRepr::Neq => {
             apply_index_filter_null!(operations, accessor, field, exists, exists)
         }
-        _ => {
-            return Err(Error::from(
-                "Filters that compare to a null only can apply the 'eq' and 'neq' comparisons",
-            ));
-        }
+        _ => Err(Error::from(
+            "Filters that compare to a null only can apply the 'eq' and 'neq' comparisons",
+        )),
     }
 }
 
@@ -222,11 +220,9 @@ fn index_iterator_boolean_filter(
         ComparisonRepr::Neq => {
             apply_index_filter_bool!(operations, accessor, field, |v| v != boolean, true)
         }
-        _ => {
-            return Err(Error::from(
-                "Filters that compare to a boolean only can apply the 'eq' and 'neq' comparisons",
-            ));
-        }
+        _ => Err(Error::from(
+            "Filters that compare to a boolean only can apply the 'eq' and 'neq' comparisons",
+        )),
     }
 }
 
@@ -241,25 +237,19 @@ fn index_iterator_serialized_null_filter(
             operations,
             accessor,
             field,
-            |v| {
-                if v == "null" { true } else { false }
-            },
+            |v| { v == "null" },
             true
         ),
         ComparisonRepr::Neq => apply_index_filter_serialized_json!(
             operations,
             accessor,
             field,
-            |v| {
-                if v == "null" { false } else { true }
-            },
+            |v| { v == "null" },
             false
         ),
-        _ => {
-            return Err(Error::from(
-                "For Boolean comparison 'eq' and 'neq' operators are only allowed",
-            ));
-        }
+        _ => Err(Error::from(
+            "For Boolean comparison 'eq' and 'neq' operators are only allowed",
+        )),
     }
 }
 
@@ -303,11 +293,9 @@ fn index_iterator_serialized_boolean_filter(
             },
             true
         ),
-        _ => {
-            return Err(Error::from(
-                "For Boolean comparison 'eq' and 'neq' operators are only allowed",
-            ));
-        }
+        _ => Err(Error::from(
+            "For Boolean comparison 'eq' and 'neq' operators are only allowed",
+        )),
     }
 }
 
@@ -352,13 +340,7 @@ fn index_iterator_string_filter(
             field,
             string,
             cloned,
-            |v| {
-                match v.cmp(&cloned) {
-                    Ordering::Less => true,
-                    Ordering::Equal => true,
-                    _ => false,
-                }
-            },
+            |v| matches!(v.cmp(&cloned), Ordering::Less | Ordering::Equal),
             false
         ),
         ComparisonRepr::Gt => apply_index_filter_str!(
@@ -376,13 +358,7 @@ fn index_iterator_string_filter(
             field,
             string,
             cloned,
-            |v| {
-                match v.cmp(&cloned) {
-                    Ordering::Greater => true,
-                    Ordering::Equal => true,
-                    _ => false,
-                }
-            },
+            |v| matches!(v.cmp(&cloned), Ordering::Greater | Ordering::Equal),
             false
         ),
     }
@@ -461,11 +437,7 @@ fn index_iterator_serialized_string_filter(
                     .expect("Should be able to deserialize")
                     .as_str()
                 {
-                    match as_str.cmp(&cloned) {
-                        Ordering::Less => true,
-                        Ordering::Equal => true,
-                        _ => false,
-                    }
+                    matches!(as_str.cmp(&cloned), Ordering::Less | Ordering::Equal)
                 } else {
                     false
                 }
@@ -501,11 +473,7 @@ fn index_iterator_serialized_string_filter(
                     .expect("Should be able to deserialize")
                     .as_str()
                 {
-                    match as_str.cmp(&cloned) {
-                        Ordering::Greater => true,
-                        Ordering::Equal => true,
-                        _ => false,
-                    }
+                    matches!(as_str.cmp(&cloned), Ordering::Greater | Ordering::Equal)
                 } else {
                     false
                 }
@@ -540,11 +508,9 @@ fn index_iterator_serialized_filter(
         serde_json::Value::Null => {
             index_iterator_serialized_null_filter(operations, accessor, field, comparison)
         }
-        _ => {
-            return Err(Error::from(
-                "Filtering can only be done with number/boolean or string values",
-            ));
-        }
+        _ => Err(Error::from(
+            "Filtering can only be done with number/boolean or string values",
+        )),
     }
 }
 
@@ -582,8 +548,7 @@ fn f64_iter_aggregate(
                             (false, true) => Ordering::Less,
                             (false, false) => a.partial_cmp(b).unwrap(),
                         })
-                        .map(|a| if a.is_finite() { Some(a) } else { None })
-                        .flatten()
+                        .and_then(|a| if a.is_finite() { Some(a) } else { None })
                 ))
             )
         }
@@ -605,8 +570,7 @@ fn f64_iter_aggregate(
                             (false, true) => Ordering::Greater,
                             (false, false) => a.partial_cmp(b).unwrap(),
                         })
-                        .map(|a| if a.is_finite() { Some(a) } else { None })
-                        .flatten()
+                        .and_then(|a| if a.is_finite() { Some(a) } else { None })
                 ))
             )
         }
@@ -643,7 +607,7 @@ fn f64_iter_aggregate(
              'mean'",
         )),
     }?;
-    return Ok(result);
+    Ok(result)
 }
 
 pub(super) fn index_iterator_filter_creator(
@@ -679,10 +643,8 @@ pub(super) fn index_iterator_filter_creator(
                 value.as_f64().unwrap()
             } else {
                 return Err(Error::from(format!(
-                    "The agent field '{}' is of a number type, however the value given for \
-                     comparison ('{}') is not",
-                    field,
-                    value.to_string()
+                    "The agent field '{field}' is of a number type, however the value given for \
+                     comparison ('{value}') is not"
                 )));
             };
 
@@ -695,19 +657,16 @@ pub(super) fn index_iterator_filter_creator(
                     v
                 } else {
                     return Err(Error::from(format!(
-                        "The agent field '{}' is of a boolean type, however the value given for \
-                         comparison ('{}') is not",
-                        field, string
+                        "The agent field '{field}' is of a boolean type, however the value given \
+                         for comparison ('{string}') is not"
                     )));
                 }
             } else if value.is_boolean() {
                 value.as_bool().unwrap()
             } else {
                 return Err(Error::from(format!(
-                    "The agent field '{}' is of a boolean type, however the value given for \
-                     comparison ('{}') is not",
-                    field,
-                    value.to_string()
+                    "The agent field '{field}' is of a boolean type, however the value given for \
+                     comparison ('{value}') is not"
                 )));
             };
 
@@ -718,10 +677,8 @@ pub(super) fn index_iterator_filter_creator(
                 value.as_str().unwrap().to_string()
             } else {
                 return Err(Error::from(format!(
-                    "The agent field '{}' is of a boolean type, however the value given for \
-                     comparison ('{}') is not",
-                    field,
-                    value.to_string()
+                    "The agent field '{field}' is of a boolean type, however the value given for \
+                     comparison ('{value}') is not"
                 )));
             };
 
@@ -749,7 +706,7 @@ fn default_first_getter(
     let first_field = first_field.to_string();
     let a: ValueIteratorCreator = Box::new(move |agents: &_| {
         let iterator = json_value_iter_cols(agents, &first_field, &data_type)?;
-        Ok(iterator as ValueIterator)
+        Ok(iterator as ValueIterator<'_>)
     });
     Ok(a)
 }
@@ -796,7 +753,7 @@ pub(super) fn index_iterator_mapper_creator(
         FieldTypeVariant::AnyType => {
             let a: ValueIteratorCreator = Box::new(move |agents| {
                 let iterator = json_serialized_value_iter(agents, &first_field)?;
-                Ok(Box::new(iterator) as ValueIterator)
+                Ok(Box::new(iterator) as ValueIterator<'_>)
             });
             a
         }
@@ -877,8 +834,7 @@ pub(super) fn index_iterator_mapper_creator(
                                 (false, true) => Ordering::Less,
                                 (false, false) => a.partial_cmp(b).unwrap(),
                             })
-                            .map(|a| if a.is_finite() { Some(a) } else { None })
-                            .flatten()
+                            .and_then(|a| if a.is_finite() { Some(a) } else { None })
                     ))
                 )
             }
@@ -900,8 +856,7 @@ pub(super) fn index_iterator_mapper_creator(
                                 (false, true) => Ordering::Greater,
                                 (false, false) => a.partial_cmp(b).unwrap(),
                             })
-                            .map(|a| if a.is_finite() { Some(a) } else { None })
-                            .flatten()
+                            .and_then(|a| if a.is_finite() { Some(a) } else { None })
                     ))
                 )
             }
@@ -935,7 +890,7 @@ pub(super) fn index_iterator_mapper_creator(
         }?
     } else {
         let runner: OutputRunnerCreator = Box::new(move |agents: &_| {
-            let value_runner: ValueIterator = combined_mapper(agents)?;
+            let value_runner: ValueIterator<'_> = combined_mapper(agents)?;
             Ok(Box::new(
                 move |iterator: Box<dyn Iterator<Item = usize> + Send + Sync>| {
                     let mut value_iter = value_runner;
@@ -949,7 +904,7 @@ pub(super) fn index_iterator_mapper_creator(
                             (&mut value_iter).next();
                         }
                         current_index = index + 1;
-                        let value = value_iter.next().unwrap_or_else(|| serde_json::Value::Null);
+                        let value = value_iter.next().unwrap_or(serde_json::Value::Null);
 
                         if value.is_number() && !single_array_unwrap {
                             result.push(Some(value.as_f64().unwrap()));

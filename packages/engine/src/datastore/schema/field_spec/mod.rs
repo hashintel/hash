@@ -20,6 +20,7 @@ pub mod short_json;
 
 pub const HIDDEN_PREFIX: &str = "_HIDDEN_";
 pub const PRIVATE_PREFIX: &str = "_PRIVATE_";
+pub const PREVIOUS_INDEX_FIELD_NAME: &str = "previous_index";
 
 // TODO: better encapsulate the supported underlying field types, and the selection of those that
 //   we expose to the user compared to this thing where we have a variant and an 'extension'. So
@@ -103,17 +104,26 @@ impl FieldSource {
 pub struct FieldKey(String);
 
 impl FieldKey {
+    /// Returns the key as string
     pub fn value(&self) -> &str {
         &self.0
     }
 
-    pub(in super::super) fn from_key_as_str(key_as_str: &str) -> Self {
-        Self(key_as_str.to_string())
+    /// Returns a string as key
+    pub(in super::super) fn new(key: &str) -> Self {
+        Self(key.to_string())
     }
 
-    // TODO: do we want these checks to only be present on debug builds
+    /// Create a new agent scoped `FieldKey`
+    ///
+    /// Builds a `FieldKey` from a given name.
+    ///
+    /// # Errors
+    ///
+    /// - Returns [`Error`] if name starts with [`PRIVATE_PREFIX`] or [`HIDDEN_PREFIX`]
     #[inline]
-    pub fn new_agent_scoped(name: &str) -> Result<FieldKey> {
+    pub fn new_agent_scoped(name: &str) -> Result<Self> {
+        // TODO: do we want these checks to only be present on debug builds
         if name.starts_with(PRIVATE_PREFIX) || name.starts_with(HIDDEN_PREFIX) {
             return Err(Error::from(format!(
                 "Field names cannot start with the protected prefixes: ['{}', '{}'], received \
@@ -122,15 +132,25 @@ impl FieldKey {
             )));
         }
 
-        return Ok(FieldKey(name.to_string()));
+        Ok(Self(name.to_string()))
     }
 
+    /// Create a new private or hidden scoped `FieldKey`
+    ///
+    /// Builds a `FieldKey` from a given name, [`FieldSource`], and [`FieldScope`]. `scope`
+    /// must be either [`FieldScope::Private`] or [`FieldScope::Hidden`].
+    ///
+    /// # Errors
+    ///
+    /// - Returns [`Error`] if name starts with [`PRIVATE_PREFIX`] or [`HIDDEN_PREFIX`]
+    /// - Returns [`Error`] if `scope` is [`FieldScope::Agent`]
     #[inline]
     pub fn new_private_or_hidden_scoped(
         name: &str,
         source: &FieldSource,
         scope: &FieldScope,
-    ) -> Result<FieldKey> {
+    ) -> Result<Self> {
+        // TODO: do we want these checks to only be present on debug builds
         if name.starts_with(PRIVATE_PREFIX) || name.starts_with(HIDDEN_PREFIX) {
             return Err(Error::from(format!(
                 "Field names cannot start with the protected prefixes: ['{}', '{}']",
@@ -138,24 +158,21 @@ impl FieldKey {
             )));
         }
 
-        let mut key = String::new();
-        match scope {
-            FieldScope::Private => {
-                key.push_str(PRIVATE_PREFIX);
-            }
-            FieldScope::Hidden => {
-                key.push_str(HIDDEN_PREFIX);
-            }
+        let scope_prefix = match scope {
+            FieldScope::Private => PRIVATE_PREFIX,
+            FieldScope::Hidden => HIDDEN_PREFIX,
             FieldScope::Agent => {
                 return Err(Error::from(
                     "Use new_agent_scoped to create a key with FieldScope::Agent",
                 ));
             }
-        }
-        key.push_str(&source.unique_id()?);
-        key.push_str("_");
-        key.push_str(name);
-        Ok(FieldKey(key))
+        };
+        Ok(Self(format!(
+            "{}{}_{}",
+            scope_prefix,
+            source.unique_id()?,
+            name
+        )))
     }
 }
 
@@ -166,10 +183,40 @@ impl Display for FieldKey {
 }
 
 /// A single specification of a field
-#[derive(new, Clone, PartialEq, Eq, Hash)]
+#[derive(derive_new::new, Clone, PartialEq, Eq, Hash)]
 pub struct FieldSpec {
     pub name: String,
     pub field_type: FieldType,
+}
+
+impl FieldSpec {
+    /// This key is required for accessing neighbors' outboxes (new inboxes).
+    /// Since the neighbor agent state is always the previous step state of the
+    /// agent, then we need to know where its outbox is. This would be
+    /// straightforward if we didn't add/remove/move agents between batches.
+    /// This means `AgentBatch` ordering gets changed at the beginning of the step
+    /// meaning agents are not aligned with their `OutboxBatch` anymore.
+    #[must_use]
+    // TODO: migrate this to be logic handled by the Engine
+    pub fn last_state_index_key() -> FieldSpec {
+        // There are 2 indices for every agent: 1) Group index 2) Row (agent) index. This points
+        // to the relevant old outbox (i.e. new inbox)
+        FieldSpec {
+            name: PREVIOUS_INDEX_FIELD_NAME.to_string(),
+            field_type: FieldType::new(
+                FieldTypeVariant::FixedLengthArray {
+                    kind: Box::new(FieldType::new(
+                        FieldTypeVariant::Preset(PresetFieldType::Uint32),
+                        false,
+                    )),
+                    len: 2,
+                },
+                // This key is nullable because new agents
+                // do not get an index (their outboxes are empty by default)
+                true,
+            ),
+        }
+    }
 }
 
 /// A single specification of a root field, for instance in the case of a struct field it's the top
@@ -225,8 +272,8 @@ impl FieldSpecMap {
                 return Ok(());
             }
             if existing_field.scope == FieldScope::Agent
-                && &new_field.scope == &FieldScope::Agent
-                && &existing_field.inner.field_type == &new_field.inner.field_type
+                && new_field.scope == FieldScope::Agent
+                && existing_field.inner.field_type == new_field.inner.field_type
             {
                 if existing_field.source == new_field.source {
                     return Err(Error::AgentScopedFieldKeyClash(
@@ -234,17 +281,15 @@ impl FieldSpecMap {
                         new_field.inner.field_type,
                         existing_field.inner.field_type.clone(),
                     ));
-                } else {
-                    if let FieldSource::Package(_package_src) = &new_field.source {
-                        if existing_field.source == FieldSource::Engine {
-                            log::warn!(
-                                "Key clash when a package attempted to insert a new agent-scoped \
-                                 field with key: {:?}, the existing field was created by the \
-                                 engine, the new field will be ignored",
-                                field_key
-                            );
-                            return Ok(());
-                        }
+                } else if let FieldSource::Package(_package_src) = &new_field.source {
+                    if existing_field.source == FieldSource::Engine {
+                        log::warn!(
+                            "Key clash when a package attempted to insert a new agent-scoped \
+                             field with key: {:?}, the existing field was created by the engine, \
+                             the new field will be ignored",
+                            field_key
+                        );
+                        return Ok(());
                     }
                 }
             }
@@ -270,7 +315,7 @@ impl FieldSpecMap {
         self.field_specs.contains_key(key)
     }
 
-    pub(crate) fn iter(&self) -> Iter<FieldKey, RootFieldSpec> {
+    pub(crate) fn iter(&self) -> Iter<'_, FieldKey, RootFieldSpec> {
         self.field_specs.iter()
     }
 
@@ -282,7 +327,11 @@ impl FieldSpecMap {
         self.field_specs.len()
     }
 
-    pub(in crate::datastore) fn _get_field_spec(
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    pub(in crate::datastore) fn get_field_spec(
         &self,
         field_key: &FieldKey,
     ) -> Result<&RootFieldSpec> {
@@ -379,7 +428,7 @@ pub mod tests {
                 FieldScope::Agent,
             ))
             .unwrap_err();
-        assert!(matches!(err, Error::FieldKeyClash(..)))
+        assert!(matches!(err, Error::FieldKeyClash(..)));
     }
 
     #[test]
@@ -411,7 +460,7 @@ pub mod tests {
 
     #[test]
     fn unchanged_size_built_in() {
-        let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
+        let _field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
         let mut field_spec_map = FieldSpecMap::empty();
 
         field_spec_map

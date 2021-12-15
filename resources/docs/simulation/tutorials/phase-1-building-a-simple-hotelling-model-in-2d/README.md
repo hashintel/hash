@@ -11,4 +11,3 @@ This tutorial simulates businesses competing for customers based on location and
 ![Two agents competing for customers by moving around a &quot;market&quot;](https://cdn-us1.hash.ai/site/docs/lc_p1_overview.gif)
 
 This model demonstrates some basic principles of spatial and price competition.
-

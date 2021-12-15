@@ -17,7 +17,7 @@ use hash_engine::{
 use rand::{Rng, RngCore};
 use rand_distr::{Beta, Distribution, LogNormal, Normal, Poisson};
 use serde::{self, Deserialize, Serialize};
-use serde_json::{Map as SerdeMap, Value as SerdeValue};
+use serde_json::{json, Map as SerdeMap, Value as SerdeValue};
 
 use crate::{ExperimentType, SimpleExperimentArgs};
 
@@ -36,7 +36,7 @@ pub fn read_manifest(
         .with_context(|| format!("Could not read project: {project_path:?}"))?;
     let experiment_run_id = create_experiment_run_id(experiment_type);
     let base = ExperimentRunBase {
-        id: experiment_run_id.to_string(),
+        id: experiment_run_id,
         project_base,
     };
 
@@ -277,7 +277,7 @@ fn _try_read_local_dependencies(local_project: &Project) -> std::io::Result<Vec<
         .filter_map(|dir_res| {
             if let Ok(entry) = dir_res {
                 // check it's a folder and matches the pattern of a user namespace (i.e. `@user`)
-                if entry.path().is_dir() && entry.file_name().to_str()?.starts_with("@") {
+                if entry.path().is_dir() && entry.file_name().to_str()?.starts_with('@') {
                     return Some(entry);
                 }
             }
@@ -302,7 +302,7 @@ fn _try_read_local_dependencies(local_project: &Project) -> std::io::Result<Vec<
 
 fn local_dependencies_folders(local_project: &Project) -> Vec<PathBuf> {
     // TODO: OS: do we want this wrapper to provide a default, or should we just unwrap
-    _try_read_local_dependencies(local_project).unwrap_or(vec![])
+    _try_read_local_dependencies(local_project).unwrap_or_default()
 }
 
 // TODO: Should these Strings be swapped with their own enums like BehaviorType::JavaScript
@@ -340,9 +340,9 @@ fn get_behavior_from_dependency_projects(
     // is a Hash behavior
     // TODO: Could be cleaned up
     if name.starts_with("@hash") {
-        let full_parts = name.split("/").collect::<Vec<_>>();
+        let full_parts = name.split('/').collect::<Vec<_>>();
         let file_name = full_parts[full_parts.len() - 1];
-        let file_parts = file_name.split(".").collect::<Vec<_>>();
+        let file_parts = file_name.split('.').collect::<Vec<_>>();
         if file_parts.len() != 2 {
             // return Err("Expected shared behavior name to have a file extension".into());
             panic!();
@@ -353,7 +353,7 @@ fn get_behavior_from_dependency_projects(
         let dir = if full_parts.len() == 3 {
             full_parts[1].to_string()
         } else {
-            name_root.replace("_", "-")
+            name_root.replace('_', "-")
         };
         let full_name = "@hash/".to_string() + &dir + "/" + file_name;
 
@@ -374,7 +374,7 @@ fn get_behavior_from_dependency_projects(
     match dependency_projects
         .iter()
         .find(|(path, _proj)| path.ends_with(&dependency_path))
-        .map(|(_path, proj)| {
+        .and_then(|(_path, proj)| {
             proj.behaviors.iter().find(|behavior| {
                 // TODO: Are all of these checks necessary
                 behavior.name == name
@@ -382,12 +382,9 @@ fn get_behavior_from_dependency_projects(
                     || possible_names.contains(&behavior.name)
                     || possible_names
                         .iter()
-                        .find(|possible_name| behavior.shortnames.contains(possible_name))
-                        .is_some()
+                        .any(|possible_name| behavior.shortnames.contains(possible_name))
             })
-        })
-        .flatten()
-    {
+        }) {
         None => bail!("Couldn't find dependency in project dependencies: {name}"),
         Some(behavior) => {
             let mut behavior = behavior.clone();
@@ -421,7 +418,7 @@ fn get_dataset_from_dependency_projects(
     match dependency_projects
         .iter()
         .find(|(path, _proj)| path.ends_with(&dependency_path))
-        .map(|(_path, proj)| {
+        .and_then(|(_path, proj)| {
             proj.datasets.iter().find(|dataset| {
                 // TODO: Are all of these checks necessary
                 dataset.name == Some(name.clone())
@@ -431,9 +428,7 @@ fn get_dataset_from_dependency_projects(
                     || dataset.filename == file_name.clone()
                     || dataset.shortname == file_name.clone()
             })
-        })
-        .flatten()
-    {
+        }) {
         None => bail!("Couldn't find dependency in project dependencies: {name}"),
         Some(dataset) => {
             let mut dataset = dataset.clone();
@@ -505,7 +500,7 @@ fn add_dependencies_to_project(
 }
 
 fn read_project(project_path: &Path) -> Result<ProjectBase> {
-    let mut local_project = read_local_project(&project_path)?;
+    let mut local_project = read_local_project(project_path)?;
     let behaviors_deps_folders = local_dependencies_folders(&local_project);
     let dep_projects = behaviors_deps_folders
         .into_iter()
@@ -514,7 +509,7 @@ fn read_project(project_path: &Path) -> Result<ProjectBase> {
             Err(err) => Err(err),
         })
         .collect::<Result<HashMap<PathBuf, Project>>>()
-        .with_context(|| format!("TS"))?;
+        .with_context(|| "TS")?;
     add_dependencies_to_project(&mut local_project, dep_projects)?;
 
     let project_base = ProjectBase {
@@ -532,7 +527,7 @@ fn read_project(project_path: &Path) -> Result<ProjectBase> {
         // field
         packages: vec![SimPackageArgs {
             name: "analysis".into(),
-            data: SerdeValue::String(local_project.analysis_json.unwrap_or("".into())),
+            data: SerdeValue::String(local_project.analysis_json.unwrap_or_default()),
         }],
     };
 
@@ -573,7 +568,11 @@ fn get_simple_experiment_config(
         changed_properties: plan
             .inner
             .into_iter()
-            .flat_map(|v| v.fields.into_values())
+            .flat_map(|v| {
+                v.fields
+                    .into_iter()
+                    .map(|(property_path, changed_value)| json!({ property_path: changed_value }))
+            })
             .collect(),
         num_steps: plan.num_steps,
     };
@@ -596,8 +595,8 @@ fn create_experiment_plan(
         .as_str()
         .ok_or_else(|| format_err!("Expected experiment definition type to have a string value"))?;
     match experiment_type {
-        "group" => create_group_variant(selected_experiment, &experiments),
-        "multiparameter" => create_multiparameter_variant(selected_experiment, &experiments),
+        "group" => create_group_variant(selected_experiment, experiments),
+        "multiparameter" => create_multiparameter_variant(selected_experiment, experiments),
         "optimization" => bail!("Not implemented for optimization experiment types"),
         _ => create_basic_variant(selected_experiment, experiment_type)
             .context("Could not parse basic variant"),
@@ -703,7 +702,7 @@ pub type Mapper = Box<dyn Fn(SerdeValue, usize) -> SerdeValue>;
 
 fn create_variant_with_mapped_value(
     field: &str,
-    items: &Vec<SerdeValue>,
+    items: &[SerdeValue],
     mapper: &Mapper,
     num_steps: usize,
 ) -> SimpleExperimentPlan {
@@ -795,7 +794,7 @@ fn create_monte_carlo_variant_plan(
     }
 
     let var: MonteCarloVariant = serde_json::from_value(selected_experiment.clone())?;
-    let values = (0..var.samples as usize).map(|_| 0.into()).collect();
+    let values: Vec<_> = (0..var.samples as usize).map(|_| 0.into()).collect();
     Ok(create_variant_with_mapped_value(
         &var.field,
         &values,
@@ -826,7 +825,7 @@ fn create_value_variant_plan(selected_experiment: &SerdeValue) -> Result<SimpleE
 }
 
 fn create_linspace_variant_plan(selected_experiment: &SerdeValue) -> Result<SimpleExperimentPlan> {
-    #[derive(Clone, Serialize, Deserialize)]
+    #[derive(Clone, Serialize, Deserialize, Debug)]
     struct LinspaceVariant {
         #[serde(rename = "type")]
         _type: String,
@@ -837,14 +836,18 @@ fn create_linspace_variant_plan(selected_experiment: &SerdeValue) -> Result<Simp
         stop: f64,
     }
     let var: LinspaceVariant = serde_json::from_value(selected_experiment.clone())?;
-    let values = (0..var.samples as usize).map(|_| 0.into()).collect();
+    let values: Vec<_> = (0..var.samples as usize).map(|_| 0.into()).collect();
 
     let closure_var = var.clone();
     let mapper: Mapper = Box::new(move |_val, index| {
-        (closure_var.start
-            + (index as f64 * (closure_var.stop - closure_var.start))
-                / ((closure_var.samples - 1 as f64) as f64))
-            .into()
+        let denominator = if closure_var.samples > 1.0 {
+            (closure_var.samples - 1.0) as f64
+        } else {
+            1.0
+        };
+        let x = closure_var.start
+            + (index as f64 * (closure_var.stop - closure_var.start)) / denominator;
+        x.into()
     });
 
     Ok(create_variant_with_mapped_value(
@@ -924,7 +927,7 @@ fn linspace(start: f64, stop: f64, num_samples: usize) -> Vec<f64> {
     samples
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct ExperimentPlanEntry {
     fields: HashMap<String, SerdeValue>,
 }

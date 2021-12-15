@@ -52,7 +52,7 @@ fn tuple() {
     assert_eq!((true, false), out);
 
     type Overflow<'a> = (bool, bool, bool, Value<'a>, Value<'a>);
-    let (a, b, c, d, e): Overflow = FromValues::from_values(values.clone(), &mv8).unwrap();
+    let (a, b, c, d, e): Overflow<'_> = FromValues::from_values(values.clone(), &mv8).unwrap();
     assert_eq!((true, false, true), (a, b, c));
     assert!(d.is_undefined());
     assert!(e.is_undefined());
@@ -79,7 +79,7 @@ fn hash_map() {
     let list = map
         .to_value(&mv8)
         .unwrap()
-        .into::<Object>(&mv8)
+        .into::<Object<'_>>(&mv8)
         .unwrap()
         .properties(false)
         .unwrap()
@@ -102,7 +102,7 @@ fn btree_map() {
     let list = map
         .to_value(&mv8)
         .unwrap()
-        .into::<Object>(&mv8)
+        .into::<Object<'_>>(&mv8)
         .unwrap()
         .properties(false)
         .unwrap()
@@ -118,10 +118,10 @@ fn btree_map() {
 fn vec() {
     let vec = vec![1, 2, 3];
     let mv8 = MiniV8::new();
-    let list: Result<Vec<usize>> = vec
+    let list: Result<'_, Vec<usize>> = vec
         .to_value(&mv8)
         .unwrap()
-        .into::<Array>(&mv8)
+        .into::<Array<'_>>(&mv8)
         .unwrap()
         .elements()
         .collect();
@@ -132,10 +132,10 @@ fn vec() {
 fn btree_set() {
     let btree_set: BTreeSet<_> = vec![1, 2, 3].into_iter().collect();
     let mv8 = MiniV8::new();
-    let list: Result<BTreeSet<usize>> = btree_set
+    let list: Result<'_, BTreeSet<usize>> = btree_set
         .to_value(&mv8)
         .unwrap()
-        .into::<Array>(&mv8)
+        .into::<Array<'_>>(&mv8)
         .unwrap()
         .elements()
         .collect();
@@ -146,10 +146,10 @@ fn btree_set() {
 fn hash_set() {
     let hash_set: HashSet<_> = vec![1, 2, 3].into_iter().collect();
     let mv8 = MiniV8::new();
-    let list: Result<HashSet<usize>> = hash_set
+    let list: Result<'_, HashSet<usize>> = hash_set
         .to_value(&mv8)
         .unwrap()
-        .into::<Array>(&mv8)
+        .into::<Array<'_>>(&mv8)
         .unwrap()
         .elements()
         .collect();

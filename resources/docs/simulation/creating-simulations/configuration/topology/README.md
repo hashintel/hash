@@ -73,6 +73,7 @@ function behavior(state, context) {
     });
 }
 ```
+
 </Tab>
 
 <Tab title="Python" >
@@ -89,6 +90,7 @@ def behavior(state, context):
     map(lambda n: ..., neighbors)
 }
 ```
+
 </Tab>
 </Tabs>
 
@@ -107,8 +109,8 @@ In addition to being able to set the search radius for all agents in the simulat
 In addition to setting the search radius, it is also possible to set the distance function that the engine uses to compute the distance between agents. This can only be set in the `globals.json` file. The following pre-built distance functions are supported:
 
 * `manhattan` or `taxicab`: L1 norm distance function that return the grid distance between two points
-* `euclidean`: L2 norm distance function that returns the direct distance between two points 
-* `euclidean_squared`: Similar to euclidean but distances are left squared for performance reasons. 
+* `euclidean`: L2 norm distance function that returns the direct distance between two points
+* `euclidean_squared`: Similar to euclidean but distances are left squared for performance reasons
 * `chebyshev` or `conway`: L-infinity norm distance function that return the longest distance in **x**, **y**, and **z**
 
 ```javascript
@@ -119,4 +121,3 @@ In addition to setting the search radius, it is also possible to set the distanc
     }
 }
 ```
-

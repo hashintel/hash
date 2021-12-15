@@ -16,14 +16,14 @@ Certain HASH features rely on cutting-edge technology that may not be supported 
 **JavaScript** and **Python** behaviors can be authored via the in-browser IDE at this time. Support for Rust behavior authoring in hCore is [coming soon](/roadmap) - at present only hIndex-listed Rust behaviors are available for import within simulations.
 </Hint>
 
-| Environment execution ability | Chrome | Firefox | Safari |
-| :--- | :--- | :--- | :--- |
-| Local JS Behaviors | <Check /> | <Check /> | <Check /> |
-| Local Python Behaviors | <Check /> | <Check /> | <Cross /> |
-| Local Rust Behaviors | <Check /> | <Check /> | <Check /> |
-| Cloud JS Behaviors | <Check /> | <Check /> | <Check /> |
-| Cloud Python Behaviors | <Check /> | <Check /> | <Check /> |
-| Cloud Rust Behaviors | <Check /> | <Check /> | <Check /> |
+| Feature Supported | Chrome    | Firefox   | Safari    |
+| :---------------------------- | :-------- | :-------- | :-------- |
+| Local JS Behaviors            | <Check /> | <Check /> | <Check /> |
+| Local Python Behaviors        | <Check /> | <Check /> | <Check opacity={0.6} onHoverDisplay={"Only some versions; may not work on iOS or WebKit-based devices"} /> |
+| Local Rust Behaviors          | <Check /> | <Check /> | <Check /> |
+| Cloud JS Behaviors            | <Check /> | <Check /> | <Check /> |
+| Cloud Python Behaviors        | <Check /> | <Check /> | <Check /> |
+| Cloud Rust Behaviors          | <Check /> | <Check /> | <Check /> |
 
 <Hint style="success">
 **Simulations can be run on** [**HASH Cloud**](/docs/simulation/creating-simulations/h.cloud) **with results streamed back to any browser.** For example, Safari users running Python simulations can execute Python simulations in hCloud.
@@ -38,4 +38,3 @@ Local simulations run in hCore typically scale easily to ~2,000 agents, but if y
 ### Mobile Support
 
 While hCore will run on Safari and Chrome mobile browsers, it is not officially supported.
-

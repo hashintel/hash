@@ -5,9 +5,9 @@ pub mod agent {
 
     use crate::datastore::{prelude::*, POSITION_DIM, UUID_V4_LEN};
 
-    pub fn agent_id_iter<'a, B: Deref<Target = AgentBatch>>(
-        agent_pool: &'a [B],
-    ) -> Result<impl Iterator<Item = &'a [u8; UUID_V4_LEN]>> {
+    pub fn agent_id_iter<B: Deref<Target = AgentBatch>>(
+        agent_pool: &[B],
+    ) -> Result<impl Iterator<Item = &[u8; UUID_V4_LEN]>> {
         let mut iterables = Vec::with_capacity(agent_pool.len());
 
         // Collect iterators first, because we want to check for any errors.
@@ -31,9 +31,9 @@ pub mod agent {
         Ok(iterables.into_iter().flatten())
     }
 
-    pub fn agent_name_iter<'a, B: Deref<Target = AgentBatch>>(
-        agent_pool: &'a [B],
-    ) -> Result<impl Iterator<Item = Option<&'a str>>> {
+    pub fn agent_name_iter<B: Deref<Target = AgentBatch>>(
+        agent_pool: &[B],
+    ) -> Result<impl Iterator<Item = Option<&str>>> {
         let mut iterables = Vec::with_capacity(agent_pool.len());
 
         // Collect iterators first, because we want to check for any errors.
@@ -69,16 +69,13 @@ pub mod agent {
             let iterable = agent_batch.as_ref().json_values(field_name, data_type)?;
             iterables.push(iterable.into_iter());
         }
-        Ok(Box::new(iterables.into_iter().flatten())
-            as Box<
-                dyn Iterator<Item = serde_json::Value> + Send + Sync,
-            >)
+        Ok(Box::new(iterables.into_iter().flatten()))
     }
 
     /// Get the index of an agent in Context Batch
-    pub fn index_iter<'a, B: Deref<Target = AgentBatch>>(
-        agent_pool: &'a [B],
-    ) -> impl Iterator<Item = AgentIndex> + 'a {
+    pub fn index_iter<B: Deref<Target = AgentBatch>>(
+        agent_pool: &[B],
+    ) -> impl Iterator<Item = AgentIndex> + '_ {
         agent_pool.iter().enumerate().flat_map(|(i, g)| {
             let num_agents = g.as_ref().batch.num_rows() as u32;
             let group_index = i as u32;
@@ -86,9 +83,9 @@ pub mod agent {
         })
     }
 
-    pub fn position_iter<'a, B: Deref<Target = AgentBatch>>(
-        agent_pool: &'a [B],
-    ) -> Result<impl Iterator<Item = Option<&'a [f64; POSITION_DIM]>> + 'a> {
+    pub fn position_iter<B: Deref<Target = AgentBatch>>(
+        agent_pool: &[B],
+    ) -> Result<impl Iterator<Item = Option<&[f64; POSITION_DIM]>>> {
         let mut iterables = Vec::with_capacity(agent_pool.len());
 
         // Collect iterators first, because we want to check for any errors.
@@ -100,9 +97,9 @@ pub mod agent {
         Ok(iterables.into_iter().flatten())
     }
 
-    pub fn search_radius_iter<'a, B: Deref<Target = AgentBatch>>(
-        agent_pool: &'a [B],
-    ) -> Result<impl Iterator<Item = Option<f64>> + 'a> {
+    pub fn search_radius_iter<B: Deref<Target = AgentBatch>>(
+        agent_pool: &[B],
+    ) -> Result<impl Iterator<Item = Option<f64>> + '_> {
         let mut iterables = Vec::with_capacity(agent_pool.len());
 
         // Collect iterators first, because we want to check for any errors.

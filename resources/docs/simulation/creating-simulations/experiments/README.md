@@ -17,7 +17,7 @@ In HASH, experiments are defined in the `experiments.json` file. Currently suppo
 * `monte-carlo` - generate random numbers according to a distribution
 * `group` - group together multiple experiment types into a single experiment
 * `multiparameter` - create all possible parameter combinations from multiple experiments
-* `optimization` - efficiently identify optimal parameter combinations that minimize or maximize desired metrics 
+* `optimization` - efficiently identify optimal parameter combinations that minimize or maximize desired metrics
 
 Experiments can be created with the Experiments Wizard, or by manually defining them in the `experiments.json` file. You can access the wizard through the Experiments icon \(beaker\) in the runner controls, or from the menu bar along the top of hCore.
 
@@ -71,5 +71,3 @@ You can run experiments locally or in [hCloud](/docs/simulation/creating-simulat
 For more information on specific syntax, read more about [Experiment Types](/docs/simulation/creating-simulations/experiments/experiment-types).
 
 <Embed type="youtube" url="https://youtu.be/tLcrXQxN70c" />
-
-

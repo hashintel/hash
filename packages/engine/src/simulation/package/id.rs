@@ -1,3 +1,6 @@
+use core::fmt;
+use std::fmt::Formatter;
+
 use serde::Serialize;
 
 use crate::simulation::package::PackageType;
@@ -10,9 +13,11 @@ impl PackageId {
     pub fn as_usize(&self) -> usize {
         self.0
     }
+}
 
-    pub fn to_string(&self) -> String {
-        self.0.to_string()
+impl fmt::Display for PackageId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 

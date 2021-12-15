@@ -85,7 +85,7 @@ impl Markers {
     ///
     /// This is safe as:
     /// * Markers is of `repr(C)`
-    pub fn new<'ptr, 'a: 'ptr>(mem: &MemoryPtr) -> &'a Markers {
+    pub fn new<'a>(mem: &MemoryPtr) -> &'a Markers {
         let values = unsafe { mem.read_mut_exact(0, Self::MARKER_SIZE * Self::NUMBER_OF_MARKERS) };
         let (_prefix, shorts, _suffix) = unsafe { values.align_to::<Markers>() };
         &shorts[0]
@@ -99,7 +99,7 @@ impl Markers {
     ///
     /// This is safe as:
     /// * Markers is of `repr(C)`
-    pub fn new_mut<'ptr, 'a: 'ptr>(mem: &MemoryPtr) -> &'a mut Markers {
+    pub fn new_mut<'a>(mem: &MemoryPtr) -> &'a mut Markers {
         let values = unsafe { mem.read_mut_exact(0, Self::MARKER_SIZE * Self::NUMBER_OF_MARKERS) };
         let (_prefix, shorts, _suffix) = unsafe { values.align_to_mut::<Markers>() };
         &mut shorts[0]

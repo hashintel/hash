@@ -22,8 +22,7 @@ impl AnalysisSourceRepr {
                 }
 
                 let mut prev_operation = &operations[0];
-                for i in 1..operations.len() {
-                    let operation = &operations[i];
+                for operation in operations.iter().skip(1) {
                     if let Some(err) =
                         operation.is_not_valid_subsequent_operation(prev_operation)?
                     {

@@ -156,8 +156,7 @@ impl Batch {
         let agent_count = agents.batch.num_rows();
         let column_name = AgentStateField::AgentId.name();
         let id_column = agents.get_arrow_column(column_name)?;
-        let empty_message_column =
-            message::empty_messages_column(agent_count).map(Arc::new)? as Arc<dyn ArrowArray>;
+        let empty_message_column = message::empty_messages_column(agent_count).map(Arc::new)?;
 
         let batch = RecordBatch::try_new(self.arrow_schema.clone(), vec![
             id_column.clone(),
@@ -168,19 +167,17 @@ impl Batch {
 
         // Perform some light bound checks
         // we can't release memory on mac because we can't resize the segment
-        if cfg!(not(target_os = "macos")) {
-            if self.memory.size > LOWER_BOUND {
-                let upper_bound = agent_count * UPPER_MULTIPLIER;
-                if self.memory.size > upper_bound
-                    && self
-                        .memory
-                        .target_total_size_accommodates_data_size(upper_bound, data_len)
-                {
-                    self.memory.resize(upper_bound)?;
-                    self.memory.set_data_length(data_len)?;
-                    // Always increment when resizing
-                    self.metaversion.increment();
-                }
+        if cfg!(not(target_os = "macos")) && self.memory.size > LOWER_BOUND {
+            let upper_bound = agent_count * UPPER_MULTIPLIER;
+            if self.memory.size > upper_bound
+                && self
+                    .memory
+                    .target_total_size_accommodates_data_size(upper_bound, data_len)
+            {
+                self.memory.resize(upper_bound)?;
+                self.memory.set_data_length(data_len)?;
+                // Always increment when resizing
+                self.metaversion.increment();
             }
         }
 
@@ -220,8 +217,8 @@ impl Batch {
         let agent_count = agents.batch.num_rows();
         let column_name = AgentStateField::AgentId.name();
         let id_column = agents.get_arrow_column(column_name)?;
-        let empty_message_column =
-            message::empty_messages_column(agent_count).map(Arc::new)? as Arc<dyn ArrowArray>;
+        let empty_message_column: Arc<dyn ArrowArray> =
+            message::empty_messages_column(agent_count).map(Arc::new)?;
 
         let batch = RecordBatch::try_new(schema.clone(), vec![
             id_column.clone(),
@@ -244,7 +241,7 @@ impl Batch {
         meta: Arc<StaticMeta>,
         experiment_run_id: &str,
     ) -> Result<Batch> {
-        let arrow_batch = agents.into_empty_message_batch(&schema)?;
+        let arrow_batch = agents.into_empty_message_batch(schema)?;
         Self::from_record_batch(&arrow_batch, schema.clone(), meta, experiment_run_id)
     }
 
@@ -360,7 +357,7 @@ impl Batch {
     pub fn message_index_iter(&self, i: usize) -> impl Iterator<Item = MessageIndex> {
         let num_agents = self.batch.num_rows();
         let group_index = i as u32;
-        let column = self.batch.column(message::MESSAGE_COLUMN_INDEX);
+        let column = self.batch.column(MESSAGE_COLUMN_INDEX);
         let data = column.data_ref();
         // This is the offset buffer for message objects.
         // offset_buffers[1] - offset_buffers[0] = number of messages from the 1st agent
@@ -382,7 +379,7 @@ impl Batch {
     ) -> impl IndexedParallelIterator<Item = impl ParallelIterator<Item = AgentMessageReference>>
     {
         let num_agents = self.batch.num_rows();
-        let column = self.batch.column(message::MESSAGE_COLUMN_INDEX);
+        let column = self.batch.column(MESSAGE_COLUMN_INDEX);
         let data = column.data_ref();
         // This is the offset buffer for message objects.
         // offset_buffers[1] - offset_buffers[0] = number of messages from the 1st agent
@@ -473,7 +470,7 @@ impl Batch {
         let mut buffers = Vec::with_capacity(3);
 
         let num_agents = self.batch.num_rows();
-        let column = self.batch.column(message::MESSAGE_COLUMN_INDEX);
+        let column = self.batch.column(MESSAGE_COLUMN_INDEX);
         let data = column.data_ref();
         // This is the offset buffer for message objects.
         // offset_buffers[1] - offset_buffers[0] = number of messages from the 1st agent

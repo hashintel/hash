@@ -13,7 +13,7 @@ use crate::{
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
-lazy_static! {
+lazy_static::lazy_static! {
     static ref INIT_MSG_RECV_TIMEOUT: Duration = Duration::from_secs(60);
 }
 
@@ -105,13 +105,13 @@ where
     } = recv_init_msg(&mut orch_listener).await?;
     log::debug!("Received initialization message from the orchestrator");
 
-    return Ok(Environment {
+    Ok(Environment {
         orch_client,
         orch_listener,
         experiment,
         execution_env,
         dyn_payloads,
-    });
+    })
 }
 
 async fn recv_init_msg(orch_listener: &mut nano::Server) -> Result<InitMessage> {
@@ -119,8 +119,8 @@ async fn recv_init_msg(orch_listener: &mut nano::Server) -> Result<InitMessage> 
         .await
         .map_err(|_| Error::from("receive init message timeout"))??;
 
-    return match msg {
+    match msg {
         EngineMsg::Init(init) => Ok(init),
         _ => Err(Error::UnexpectedEngineMsgExpectedInit),
-    };
+    }
 }

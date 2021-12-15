@@ -29,7 +29,7 @@ impl MessagePool {
         &mut self.batches
     }
 
-    pub fn read_batches(&self) -> Result<Vec<RwLockReadGuard<MessageBatch>>> {
+    pub fn read_batches(&self) -> Result<Vec<RwLockReadGuard<'_, MessageBatch>>> {
         self.batches()
             .iter()
             .map(|a| {
@@ -64,6 +64,10 @@ impl MessagePool {
         self.batches.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn reset(&mut self, agent_pool: &AgentPool, sim_config: &SimRunConfig) -> Result<()> {
         let message_schema = &sim_config.sim.store.message_schema;
         let experiment_run_id = &sim_config.exp.run_id;
@@ -96,7 +100,7 @@ impl MessagePool {
                             .deref(),
                         &message_schema.arrow,
                         message_schema.static_meta.clone(),
-                        &experiment_run_id,
+                        experiment_run_id,
                     )?;
                     self.batches_mut().push(Arc::new(RwLock::new(inbox)));
                     Ok(())
@@ -149,7 +153,7 @@ impl<'a> MessageReader<'a> {
     }
 }
 
-impl<'a> MessageReader<'a> {
+impl MessageReader<'_> {
     pub fn type_iter<'b: 'r, 'r>(
         &'b self,
         message_references: &'r [AgentMessageReference],

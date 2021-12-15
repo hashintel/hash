@@ -32,4 +32,3 @@ If you need help or support, check out the [support forum](https://hash.communit
 ## Upcoming Features
 
 Check out our [changelog](/updates) to learn more about recent updates to HASH, or visit our [roadmap](/roadmap) for a look at what's next.
-

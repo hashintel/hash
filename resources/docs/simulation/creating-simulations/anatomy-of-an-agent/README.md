@@ -22,7 +22,6 @@ The HASH Engine by default will set the `agent_id`, so don't worry about setting
 <Tabs>
 <Tab title="JavaScript" >
 
-
 ```javascript
 const agent = {
     agent_id: <uuid v4>, // Set on_create by the hEngine
@@ -33,7 +32,6 @@ const agent = {
 </Tab >
 
 <Tab title="Python" >
-
 
 ```python
 agent = {

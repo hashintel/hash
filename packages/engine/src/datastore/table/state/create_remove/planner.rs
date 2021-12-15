@@ -38,7 +38,7 @@ impl CreateRemovePlanner {
         })
     }
 
-    pub fn run(&mut self, state: &impl ReadState) -> Result<MigrationPlan> {
+    pub fn run(&mut self, state: &impl ReadState) -> Result<MigrationPlan<'_>> {
         let mut pending = self.pending_plan(state.agent_pool())?;
 
         let number_inbound = self.commands.get_number_inbound();
@@ -173,6 +173,6 @@ fn buffer_actions_from_pending_batch<'a>(
         batch.old_batch_index(),
         range_actions,
         &schema.static_meta,
-        inbound_agents.clone(),
+        *inbound_agents,
     )
 }

@@ -28,7 +28,7 @@ impl ApiResponseMap {
                     })
                     .collect()
             })
-            .unwrap_or_else(|| vec![])
+            .unwrap_or_else(Vec::new)
     }
 }
 
@@ -56,7 +56,7 @@ pub struct ApiResponses<'a> {
     phantom: PhantomData<&'a ()>,
 }
 
-impl<'a> From<Vec<Vec<ApiResponseToAnonymous>>> for ApiResponses<'a> {
+impl From<Vec<Vec<ApiResponseToAnonymous>>> for ApiResponses<'_> {
     fn from(v: Vec<Vec<ApiResponseToAnonymous>>) -> Self {
         // TODO: performance: into_iter to access fields at same time and avoid clones
         ApiResponses {

@@ -47,7 +47,7 @@ impl WorkerPoolToWorkerMsg {
                 Ok(WorkerPoolToWorkerMsgPayload::Sync(inner.try_clone()?))
             }
             WorkerPoolToWorkerMsgPayload::CancelTask(inner) => {
-                Ok(WorkerPoolToWorkerMsgPayload::CancelTask(inner.clone()))
+                Ok(WorkerPoolToWorkerMsgPayload::CancelTask(*inner))
             }
             WorkerPoolToWorkerMsgPayload::NewSimulationRun(inner) => Ok(
                 WorkerPoolToWorkerMsgPayload::NewSimulationRun(inner.clone()),
@@ -55,7 +55,7 @@ impl WorkerPoolToWorkerMsg {
         }?;
 
         Ok(WorkerPoolToWorkerMsg {
-            sim_id: self.sim_id.clone(),
+            sim_id: self.sim_id,
             payload,
         })
     }
@@ -162,7 +162,7 @@ impl WorkerPoolCommsWithWorkers {
     )> {
         self.send_to_w
             .get(worker_index)
-            .ok_or_else(|| Error::MissingWorkerWithIndex(worker_index))
+            .ok_or(Error::MissingWorkerWithIndex(worker_index))
     }
 
     fn get_mut_worker_senders(
@@ -174,7 +174,7 @@ impl WorkerPoolCommsWithWorkers {
     )> {
         self.send_to_w
             .get_mut(worker_index)
-            .ok_or_else(|| Error::MissingWorkerWithIndex(worker_index))
+            .ok_or(Error::MissingWorkerWithIndex(worker_index))
     }
 
     pub fn send(&self, worker_index: WorkerIndex, msg: WorkerPoolToWorkerMsg) -> Result<()> {

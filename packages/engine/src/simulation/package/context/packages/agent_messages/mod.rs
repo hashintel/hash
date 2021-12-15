@@ -116,9 +116,6 @@ impl Package for AgentMessages {
             .get_agent_scoped_field_spec(MESSAGES_FIELD_NAME)?
             .to_key()?;
 
-        Ok(vec![(
-            field_key,
-            Arc::new(messages_builder.finish()) as Arc<dyn ArrowArray>,
-        )])
+        Ok(vec![(field_key, Arc::new(messages_builder.finish()))])
     }
 }

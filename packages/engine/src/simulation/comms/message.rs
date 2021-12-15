@@ -16,7 +16,7 @@ use crate::{
 pub type SyncCompletionReceiver = tokio::sync::oneshot::Receiver<WorkerResult<()>>;
 pub type SyncCompletionSender = tokio::sync::oneshot::Sender<WorkerResult<()>>;
 
-#[derive(new, Debug)]
+#[derive(derive_new::new, Debug)]
 pub struct WrappedTask {
     pub task_id: TaskId,
     pub package_id: PackageId,

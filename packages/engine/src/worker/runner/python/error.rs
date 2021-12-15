@@ -20,13 +20,13 @@ pub enum Error {
     PackageImport(String, String), // First element is path/name.
 
     #[error("Missing simulation run with id {0}")]
-    MissingSimRun(crate::proto::SimulationShortId),
+    MissingSimRun(SimulationShortId),
 
     #[error("Couldn't spawn Python child process: {0:?}")]
     Spawn(std::io::Error),
 
     #[error("Couldn't send terminate message to Python: {0}")]
-    TerminateSend(tokio::sync::mpsc::error::SendError<()>),
+    TerminateSend(SendError<()>),
 
     #[error("Couldn't send inbound message to runner: {0}")]
     InboundSend(#[from] SendError<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>),

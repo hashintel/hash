@@ -18,7 +18,7 @@ Query customers → Businesses will send their neighbors every possible position
 Collect customer responses → Businesses will collect and store all the customer responses to determine the position and item_price combination with the largest profit
 </Hint>
 
-This action can be split into three separate functions within business.js: _send_message_, _price_messaging_, _movement_messaging_.
+This action can be split into three separate functions within `business.js`: `send_message`, `price_messaging`, `movement_messaging`.
 
 Let’s start with sending the message. **`send_message()`** will add messages to state.messages with a neighbor agent_id, position, item_price, and rgb. Add this function to business.js.
 
@@ -34,6 +34,7 @@ const send_message = (agent_id, position, price) => {
   });
 }
 ```
+
 </Tab>
 </Tabs>
 
@@ -85,13 +86,13 @@ Find the messages field for a Business agent and it should be filled with “bus
 
 Since Business agents are sending around 100 \(neighbors\) x 6 \(positions\) x 3 \(prices\) messages at one time, we don’t want this to occur every time step. We'll add a counter to ensure it happens at the rate we want.
 
-1. Add the HASH shared behavior **Counter** \(shortname: @hash/counter/counter.rs\) to your simulation and add the counter behavior to your business agents BEFORE your behavior **`business.js`**. \(You want the counter to increment before **`business.js`** is called\)
-2. In **`init.json`** give your Business agents three more variables:
+1. Add the HASH shared behavior **Counter** \(shortname: @hash/counter/counter.rs\) to your simulation and add the counter behavior to your business agents BEFORE your behavior `business.js`. \(You want the counter to increment before `business.js` is called\)
+2. In `init.json` give your Business agents three more variables:
 3. counter: 0
 4. counter_reset_at: 2
 5. counter_reset_to: 0
 
-** In the `business.js` ** behavior, wrap the `query_customers()` call in the following if statement:
+**In the `business.js`** behavior, wrap the `query_customers()` call in the following if statement:
 </Hint>
 
 ```javascript
@@ -142,6 +143,6 @@ const behavior = (state, context) => {
  }
 }
 ```
+
 </Tab>
 </Tabs>
-

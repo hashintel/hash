@@ -43,4 +43,3 @@ If you want to make a change to the model, you can select the process model you 
 ![Updating a process model](https://cdn-us1.hash.ai/site/docs/updating_processes.gif)
 
 If you have multiple process models in your simulation, you can set the name of the model by clicking the gear icon.
-

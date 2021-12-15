@@ -55,7 +55,7 @@ impl SimRunConfig {
             id,
             globals,
             engine,
-            &global,
+            global,
             store,
             persistence,
             max_num_steps,

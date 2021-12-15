@@ -71,7 +71,7 @@ impl CreateRemoveCommands {
 
     pub fn from_hash_messages(
         message_map: &MessageMap,
-        message_pool: MessagePoolRead,
+        message_pool: MessagePoolRead<'_>,
     ) -> Result<CreateRemoveCommands> {
         let message_reader = message_pool.get_reader();
 
@@ -124,7 +124,7 @@ impl CreateRemoveCommands {
         mut self,
         schema: &Arc<AgentSchema>,
     ) -> Result<ProcessedCommands> {
-        let new_agents = if self.create.len() > 0 {
+        let new_agents = if !self.create.is_empty() {
             Some(
                 self.create
                     .drain(..)
@@ -177,17 +177,17 @@ fn handle_remove_data(
     from: &[u8; UUID_V4_LEN],
 ) -> Result<()> {
     let uuid = if data == "null" {
-        Ok(uuid::Uuid::from_bytes(from.clone()))
+        Ok(uuid::Uuid::from_bytes(*from))
     } else {
         match serde_json::from_str::<RemoveAgentPayload>(data) {
             Ok(payload) => Ok(uuid::Uuid::parse_str(&payload.agent_id)?),
             Err(_) => {
                 if data == "null"
-                    || data == ""
+                    || data.is_empty()
                     || serde_json::from_str::<std::collections::HashMap<String, String>>(data)
                         .is_ok()
                 {
-                    Ok(uuid::Uuid::from_bytes(from.clone()))
+                    Ok(uuid::Uuid::from_bytes(*from))
                 } else {
                     Err(Error::RemoveAgentMessage(data.to_string()))
                 }

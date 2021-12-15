@@ -22,7 +22,7 @@ pub(crate) type OutputRunner<'agents> =
 pub(crate) type OutputRunnerCreator =
     Box<dyn for<'agents> Fn(Agents<'agents>) -> Result<OutputRunner<'agents>> + Send + Sync>;
 
-pub(crate) type NumberIterator<'a> = Box<dyn Iterator<Item = Option<f64>> + Send + Sync + 'a>;
+pub(crate) type _NumberIterator<'a> = Box<dyn Iterator<Item = Option<f64>> + Send + Sync + 'a>;
 pub(crate) type ValueIterator<'a> = Box<dyn Iterator<Item = serde_json::Value> + Send + Sync + 'a>;
 pub(crate) type ValueIteratorCreator =
     Box<dyn for<'agents> Fn(Agents<'agents>) -> Result<ValueIterator<'agents>> + Send + Sync>;
@@ -112,10 +112,9 @@ impl<'a> TryFrom<&'a str> for AnalysisSourceRepr {
         } else {
             let repr = match serde_json::from_str(source) {
                 Ok(repr) => repr,
-                Err(why) => {
+                Err(err) => {
                     return Err(Error::from(format!(
-                        "Parsing the Analysis definition ('analysis.json') failed: {}",
-                        why.to_string()
+                        "Parsing the Analysis definition ('analysis.json') failed: {err}"
                     )));
                 }
             };
@@ -173,16 +172,14 @@ impl OutputCreator {
                     move |iterator: Box<dyn Iterator<Item = usize> + Send + Sync>| {
                         Ok(AnalysisSingleOutput::some_number(iterator.count() as f64))
                     },
-                ) as OutputRunner)
+                ))
             })),
             AnalysisOperationRepr::Sum
             | AnalysisOperationRepr::Min
             | AnalysisOperationRepr::Max
-            | AnalysisOperationRepr::Mean => {
-                return Err(Error::from(
-                    "Aggregators of numbers may not be called directly",
-                ));
-            }
+            | AnalysisOperationRepr::Mean => Err(Error::from(
+                "Aggregators of numbers may not be called directly",
+            )),
         }
     }
 }

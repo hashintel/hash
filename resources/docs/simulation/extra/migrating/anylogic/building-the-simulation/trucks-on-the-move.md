@@ -39,7 +39,6 @@ const behavior = (state, context) => {
 };
 ```
 
-
 When `order_quantity` is set, two other custom behaviors we've written will trigger:
 
 * `choose_order_from.js` - finds the nearest **Distributor** to order from
@@ -78,7 +77,6 @@ for (order of orders) {
 }
 ```
 
-
 When we first write the code to create the truck, we might not know exactly what behaviors and properties it will have. We'll have to fully define the behaviors of the fuel **Truck**, and jump back to `deliver.js` to update the code here.
 
 ## Truck
@@ -105,7 +103,6 @@ We can detect when we've reached our destination in similar fashion to the **Tan
   }
 ```
 
-
 Finally, the Retailer will need to accept the shipment of oil which the Truck deposits. We'll write a receive.js behavior to handle the delivery message the truck sends, and adjust its stock levels.
 
 ```javascript
@@ -125,4 +122,3 @@ oil += deliveries;
 ```
 
 Once we've successfully tested this final step, we're done building all the behavioral logic to run this simulation!
-

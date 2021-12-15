@@ -106,7 +106,7 @@ pub fn get_generic(to: &[&str], r#type: &str, data_string: &str) -> Result<Outbo
     Ok(Outbound::new(GenericPayload {
         to: to_clone,
         r#type: r#type.to_string(),
-        data: if data_string == "" {
+        data: if data_string.is_empty() {
             None
         } else {
             Some(serde_json::Value::from(data_string))
@@ -159,7 +159,7 @@ pub fn get_system(to: &[&str], r#type: &str, data_string: &str) -> Result<Outbou
 }
 
 pub fn outbound_messages_to_arrow_column(
-    column: &Vec<Vec<Outbound>>,
+    column: &[Vec<Outbound>],
     mut builder: array::ListBuilder<array::StructBuilder>,
 ) -> Result<array::ListArray> {
     for messages in column {
@@ -367,10 +367,10 @@ pub fn batch_from_json(
     let agent_count = ids.len();
     let ids = Arc::new(super::batch_conversion::get_agent_id_array(ids)?);
 
-    let messages = messages.map_or_else(
+    let messages: Arc<dyn ArrowArray> = messages.map_or_else(
         || empty_messages_column(agent_count).map(Arc::new),
         |values| messages_column_from_serde_values(values).map(Arc::new),
-    )? as Arc<dyn ArrowArray>;
+    )?;
 
     RecordBatch::try_new(schema.clone(), vec![ids, messages]).map_err(Error::from)
 }

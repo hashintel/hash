@@ -10,7 +10,7 @@ use crate::{
     },
 };
 
-#[derive(new)]
+#[derive(derive_new::new)]
 pub struct PackageComms {
     inner: Comms,
     package_id: PackageId,
@@ -34,7 +34,7 @@ impl PackageComms {
         shared_store: TaskSharedStore,
     ) -> Result<ActiveTask> {
         self.inner
-            .new_task(self.package_id.clone(), task, shared_store)
+            .new_task(self.package_id, task, shared_store)
             .await
     }
 }

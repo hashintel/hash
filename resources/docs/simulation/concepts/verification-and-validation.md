@@ -22,7 +22,6 @@ While there are a lot of ways to add unit tests to a simulation, a straightforwa
 <Tabs>
 <Tab title="JavaScript" >
 
-
 ```javascript
 // test_behavior.js
 function testCaseOne(state) {
@@ -57,7 +56,6 @@ const behavior = (state, context) => {
 
 <Tab title="Python" >
 
-
 ```python
 # test_behavior.py
   
@@ -86,7 +84,7 @@ def behavior(state, context):
 
 ## Validation
 
-While verification will ensure that the simulation meets the desired specification, you'll also want to ensure that the desired specifications map to the real world. 
+While verification will ensure that the simulation meets the desired specification, you'll also want to ensure that the desired specifications map to the real world.
 
 A common way to validate a simulation is by comparing the results of a simulation run against external data. You can use HASH's dataset features to add data and visualize it against a simulation run. For example, in the [Multi-Stage Cell Replication simulation](https://core.hash.ai/@hash/multi-stage-cell-replication/1.0.0), the validate.js behavior takes an external dataset and saves the values for a given time step to a value on state to then be visualized as a metric.
 
@@ -108,5 +106,3 @@ A common way to validate a simulation is by comparing the results of a simulatio
 ![A simulation that would \(probably\) pass a validation](https://cdn-us1.hash.ai/site/docs/image%20%2876%29.png)
 
 Additionally you can use [Complex Metrics](/docs/simulation/creating-simulations/experiments/optimization-experiments/complex-metrics) to score the error difference between a simulation and an external dataset, to get a more quantitative validation measure.
-
-

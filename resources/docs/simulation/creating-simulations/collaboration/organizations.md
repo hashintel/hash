@@ -23,4 +23,3 @@ You can leave an organization at any time by clicking the 'Leave' button on your
 ## Request admin permissions
 
 If you are a member of an organization without administrative permissions over that org, please contact an existing admin to request access.
-

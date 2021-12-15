@@ -13,8 +13,7 @@ use crate::{
     config::{Globals, PackageConfig, SimRunConfig},
     datastore::schema::{
         accessor::FieldSpecMapAccessor, context::ContextSchema, state::AgentSchema, FieldScope,
-        FieldSource, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant, PresetFieldType,
-        RootFieldSpec, RootFieldSpecCreator,
+        FieldSource, FieldSpec, FieldSpecMap, FieldType, RootFieldSpec, RootFieldSpecCreator,
     },
     simulation::{
         comms::package::PackageComms,
@@ -119,10 +118,10 @@ impl PackageCreators {
             let wrapped = PackageInitMsgForWorker {
                 name: name.clone(),
                 r#type: PackageType::Init,
-                id: id.clone(),
+                id: *id,
                 payload,
             };
-            msgs.insert(id.clone(), wrapped);
+            msgs.insert(*id, wrapped);
         }
 
         for (id, name, creator) in &self.context {
@@ -130,10 +129,10 @@ impl PackageCreators {
             let wrapped = PackageInitMsgForWorker {
                 name: name.clone(),
                 r#type: PackageType::Context,
-                id: id.clone(),
+                id: *id,
                 payload,
             };
-            msgs.insert(id.clone(), wrapped);
+            msgs.insert(*id, wrapped);
         }
 
         for (id, name, creator) in &self.state {
@@ -141,10 +140,10 @@ impl PackageCreators {
             let wrapped = PackageInitMsgForWorker {
                 name: name.clone(),
                 r#type: PackageType::State,
-                id: id.clone(),
+                id: *id,
                 payload,
             };
-            msgs.insert(id.clone(), wrapped);
+            msgs.insert(*id, wrapped);
         }
 
         for (id, name, creator) in &self.output {
@@ -152,10 +151,10 @@ impl PackageCreators {
             let wrapped = PackageInitMsgForWorker {
                 name: name.clone(),
                 r#type: PackageType::Output,
-                id: id.clone(),
+                id: *id,
                 payload,
             };
-            msgs.insert(id.clone(), wrapped);
+            msgs.insert(*id, wrapped);
         }
 
         Ok(PackageMsgs(msgs))
@@ -176,7 +175,7 @@ impl PackageCreators {
             .map(|(package_id, package_name, creator)| {
                 let package = creator.create(
                     config,
-                    PackageComms::new(comms.clone(), package_id.clone(), PackageType::Init),
+                    PackageComms::new(comms.clone(), *package_id, PackageType::Init),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(package_name.clone()),
                         state_field_spec_map.clone(),
@@ -186,10 +185,10 @@ impl PackageCreators {
                 let wrapped_msg = PackageInitMsgForWorker {
                     name: package_name.clone(),
                     r#type: PackageType::Init,
-                    id: package_id.clone(),
+                    id: *package_id,
                     payload: start_msg,
                 };
-                messages.insert(package_id.clone(), wrapped_msg);
+                messages.insert(*package_id, wrapped_msg);
                 Ok(package)
             })
             .collect::<Result<Vec<_>>>()?;
@@ -199,7 +198,7 @@ impl PackageCreators {
             .map(|(package_id, package_name, creator)| {
                 let package = creator.create(
                     config,
-                    PackageComms::new(comms.clone(), package_id.clone(), PackageType::Context),
+                    PackageComms::new(comms.clone(), *package_id, PackageType::Context),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(package_name.clone()),
                         Arc::clone(state_field_spec_map),
@@ -213,10 +212,10 @@ impl PackageCreators {
                 let wrapped_msg = PackageInitMsgForWorker {
                     name: package_name.clone(),
                     r#type: PackageType::Context,
-                    id: package_id.clone(),
+                    id: *package_id,
                     payload: start_msg,
                 };
-                messages.insert(package_id.clone(), wrapped_msg);
+                messages.insert(*package_id, wrapped_msg);
                 Ok(package)
             })
             .collect::<Result<Vec<_>>>()?;
@@ -226,7 +225,7 @@ impl PackageCreators {
             .map(|(package_id, package_name, creator)| {
                 let package = creator.create(
                     config,
-                    PackageComms::new(comms.clone(), package_id.clone(), PackageType::State),
+                    PackageComms::new(comms.clone(), *package_id, PackageType::State),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(package_name.clone()),
                         Arc::clone(state_field_spec_map),
@@ -236,10 +235,10 @@ impl PackageCreators {
                 let wrapped_msg = PackageInitMsgForWorker {
                     name: package_name.clone(),
                     r#type: PackageType::State,
-                    id: package_id.clone(),
+                    id: *package_id,
                     payload: start_msg,
                 };
-                messages.insert(package_id.clone(), wrapped_msg);
+                messages.insert(*package_id, wrapped_msg);
                 Ok(package)
             })
             .collect::<Result<Vec<_>>>()?;
@@ -249,7 +248,7 @@ impl PackageCreators {
             .map(|(package_id, package_name, creator)| {
                 let package = creator.create(
                     config,
-                    PackageComms::new(comms.clone(), package_id.clone(), PackageType::Output),
+                    PackageComms::new(comms.clone(), *package_id, PackageType::Output),
                     FieldSpecMapAccessor::new(
                         FieldSource::Package(package_name.clone()),
                         Arc::clone(state_field_spec_map),
@@ -259,10 +258,10 @@ impl PackageCreators {
                 let wrapped_msg = PackageInitMsgForWorker {
                     name: package_name.clone(),
                     r#type: PackageType::State,
-                    id: package_id.clone(),
+                    id: *package_id,
                     payload: start_msg,
                 };
-                messages.insert(package_id.clone(), wrapped_msg);
+                messages.insert(*package_id, wrapped_msg);
                 Ok(package)
             })
             .collect::<Result<Vec<_>>>()?;
@@ -275,7 +274,7 @@ impl PackageCreators {
 
     pub fn get_output_persistence_config(
         &self,
-        exp_config: &crate::ExperimentConfig,
+        exp_config: &ExperimentConfig,
         globals: &Globals,
     ) -> Result<OutputPackagesSimConfig> {
         let mut map = HashMap::new();
@@ -291,7 +290,7 @@ impl PackageCreators {
 
     pub fn get_agent_schema(
         &self,
-        exp_config: &crate::ExperimentConfig,
+        exp_config: &ExperimentConfig,
         globals: &Globals,
     ) -> Result<AgentSchema> {
         let mut field_spec_map = FieldSpecMap::empty();
@@ -356,7 +355,7 @@ impl PackageCreators {
 
     pub fn get_context_schema(
         &self,
-        exp_config: &crate::ExperimentConfig,
+        exp_config: &ExperimentConfig,
         globals: &Globals,
     ) -> std::result::Result<ContextSchema, Error> {
         let mut field_spec_map = FieldSpecMap::empty();
@@ -380,7 +379,6 @@ impl PackageCreators {
     }
 }
 
-pub const PREVIOUS_INDEX_FIELD_NAME: &str = "previous_index";
 // TODO: this should be deleted, i.e. if this value is required use
 //      something like `get_hidden_column_name(PREVIOUS_INDEX_FIELD_NAME)`
 pub const PREVIOUS_INDEX_FIELD_KEY: &str = "_HIDDEN_0_previous_index";
@@ -402,38 +400,10 @@ pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec>> {
         ));
     }
 
-    // This key is required for accessing neighbors' outboxes (new inboxes).
-    // Since the neighbor agent state is always the previous step state of the
-    // agent, then we need to know where its outbox is. This would be
-    // straightforward if we didn't add/remove/move agents between batches.
-    // This means `AgentBatch` ordering gets changed at the beginning of the step
-    // meaning agents are not aligned with their `OutboxBatch` anymore.
-    #[must_use]
-    // TODO: migrate this to be logic handled by the Engine
-    pub fn last_state_index_key() -> FieldSpec {
-        // There are 2 indices for every agent: 1) Group index 2) Row (agent) index. This points
-        // to the relevant old outbox (i.e. new inbox)
-        FieldSpec {
-            name: PREVIOUS_INDEX_FIELD_NAME.to_string(),
-            field_type: FieldType::new(
-                FieldTypeVariant::FixedLengthArray {
-                    kind: Box::new(FieldType::new(
-                        FieldTypeVariant::Preset(PresetFieldType::Uint32),
-                        false,
-                    )),
-                    len: 2,
-                },
-                // This key is nullable because new agents
-                // do not get an index (their outboxes are empty by default)
-                true,
-            ),
-        }
-    }
-
-    let last_state_index = last_state_index_key();
+    let last_state_index = FieldSpec::last_state_index_key();
 
     field_specs.push(field_spec_creator.create(
-        last_state_index.name.into(),
+        last_state_index.name,
         last_state_index.field_type,
         FieldScope::Hidden,
     ));

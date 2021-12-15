@@ -31,4 +31,3 @@ function behavior(state, context) {
     state.addMessage("hash", "create_agent", parent_agent)
 }
 ```
-

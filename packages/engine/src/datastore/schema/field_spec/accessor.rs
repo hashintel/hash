@@ -8,7 +8,7 @@ use crate::datastore::{
     },
 };
 
-#[derive(new)]
+#[derive(derive_new::new)]
 pub struct FieldSpecMapAccessor {
     accessor_source: FieldSource,
     field_spec_map: Arc<FieldSpecMap>,
@@ -37,7 +37,7 @@ pub trait GetFieldSpec {
 impl GetFieldSpec for FieldSpecMapAccessor {
     fn get_agent_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec> {
         let key = FieldKey::new_agent_scoped(field_name)?;
-        self.field_spec_map._get_field_spec(&key)
+        self.field_spec_map.get_field_spec(&key)
     }
 
     fn get_hidden_scoped_field_spec(
@@ -47,7 +47,7 @@ impl GetFieldSpec for FieldSpecMapAccessor {
     ) -> Result<&RootFieldSpec> {
         let key =
             FieldKey::new_private_or_hidden_scoped(field_name, field_source, &FieldScope::Hidden)?;
-        self.field_spec_map._get_field_spec(&key)
+        self.field_spec_map.get_field_spec(&key)
     }
 
     fn get_local_private_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec> {
@@ -56,7 +56,7 @@ impl GetFieldSpec for FieldSpecMapAccessor {
             &self.accessor_source,
             &FieldScope::Private,
         )?;
-        self.field_spec_map._get_field_spec(&key)
+        self.field_spec_map.get_field_spec(&key)
     }
 
     fn get_local_hidden_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec> {
@@ -65,7 +65,7 @@ impl GetFieldSpec for FieldSpecMapAccessor {
             &self.accessor_source,
             &FieldScope::Hidden,
         )?;
-        self.field_spec_map._get_field_spec(&key)
+        self.field_spec_map.get_field_spec(&key)
     }
 }
 
@@ -84,7 +84,7 @@ impl RootFieldSpecMapAccessor {
     #[allow(dead_code)]
     fn get_agent_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec> {
         let key = FieldKey::new_agent_scoped(field_name)?;
-        self.field_spec_map._get_field_spec(&key)
+        self.field_spec_map.get_field_spec(&key)
     }
 
     #[allow(dead_code)]
@@ -96,6 +96,6 @@ impl RootFieldSpecMapAccessor {
     ) -> Result<&RootFieldSpec> {
         let key = FieldKey::new_private_or_hidden_scoped(field_name, field_source, field_scope)?;
 
-        self.field_spec_map._get_field_spec(&key)
+        self.field_spec_map.get_field_spec(&key)
     }
 }

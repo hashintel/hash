@@ -1,12 +1,8 @@
-> **Notice**: This branch is currently a _work-in-progress_ and as such this documentation is subject to heavy change. Clarifications and improvements will be coming in the near future, however in the mean-time a high-level explanation of the main concepts is provided below to guide understanding of the source-code and project structure. 
-> 
->**An updated README including setup and usage instructions will follow shortly.**
-
 <p align="center">
   <img src="https://cdn-us1.hash.ai/assets/hengine-github-readme-header%402x.png">
 </p>
 <div align="center">
- <a href="https://github.com/hashintel/engine/blob/master/LICENSE.md"><img src="https://cdn-us1.hash.ai/assets/license-badge-sspl.svg" alt="Server Side Public License" /></a>
+ <a href="https://github.com/hashintel/hash/blob/master/LICENSE.md"><img src="https://cdn-us1.hash.ai/assets/license-badge-sspl.svg" alt="Server Side Public License" /></a>
  <a href="https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_engine"><img src="https://img.shields.io/discord/840573247803097118" alt="Join HASH on Discord" /></a>
 </div>
 
@@ -27,6 +23,7 @@
   * [Possible Dependencies and Debugging](#possible-dependencies-and-debugging)
   * [Project Setup / Building](#project-setup--building)
   * [Running for development](#running-for-development)
+- [Quick Start Guide](#quick-start-guide)
 - [Usage](#usage)
   * [CLI Arguments and Options](#cli-arguments-and-options)
   * [Run a simulation](#run-a-simulation)
@@ -41,7 +38,7 @@
     + [DataStore](#datastore)
 
 ## Issue Tracking
-We use [GitHub Issues](https://github.com/hashintel/engine/issues) to help prioritize and track bugs and feature requests for HASH. This includes hEngine, as well as our **hCore** IDE, and the [**HASH.ai site**](https://hash.ai/platform/index?utm_medium=organic&utm_source=github_readme_engine). You can also report issues and get support on our public [Discord server](https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_engine). Please submit any issues you encounter.
+We use [GitHub Issues](https://github.com/hashintel/hash/issues) to help prioritize and track bugs and feature requests for HASH. This includes hEngine, as well as our **hCore** IDE, and the [**HASH.ai site**](https://hash.ai/platform/index?utm_medium=organic&utm_source=github_readme_engine). You can also report issues and get support on our public [Discord server](https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_engine). Please submit any issues you encounter.
 
 ## Additional Documentation
 Our [simulation docs](https://hash.ai/docs/simulation?utm_medium=organic&utm_source=github_readme_engine) contain beginner guides and in-depth tutorials for **hCore** today.
@@ -63,6 +60,7 @@ There are a number of other functionalities in the HASH platform that are possib
 * Analysis views are also untested at the moment and thus presently are not considered stable or supported.
 
 ## Building and Testing
+> The following section assumes execution of commands are from within this directory (i.e. [/packages/engine](/packages/engine) relative to the repository root). As such, paths are relative to the folder this README is in.
 
 Depending on your needs, different dependencies are required.
 Building this project requires the following.
@@ -111,7 +109,7 @@ Due to ARM-Based Macs, the `macos` `target_os` has some added complications for 
 
 #### For Intel Macs
 Due to limitations in Cargo at the moment we can't properly check if it's being built _on_ an ARM Mac (rather than _for_ an ARM Mac). Due to this it's necessary to:
-* Enable the `build-nng` feature by passing `--features "build-nng"` to any cargo commands such as `cargo build`
+* Enable the `hash_engine/build-nng` feature by passing `--features "hash_engine/build-nng"` to any cargo commands such as `cargo build`
 
 #### For ARM-Based Macs
 At the moment the project only seems to be compiling if you use the `x86_64-apple-darwin` target. This has some added complexity, especially due to the fact that rustc fails to link 'fat-binaries' in certain scenarios.
@@ -144,6 +142,32 @@ Then, run the CLI using:
 Where CLI args are described below in the [Usage](#usage) section, an example of a run command during development would be:
 * `cargo run --bin cli -- <CLI ARGS> -p  "<PATH TO HASH PROJECT DIR>" single-run --num-steps <NUM-STEPS>`
 
+
+## Quick Start Guide
+
+This guide will walk you through downloading a [demo simulation], running it, and then finding and verifying its output.
+
+In order to run the demo:
+
+0. Build the engine as [described above](#project-setup--building)
+1. Open the [demo simulation] and optionally read the overview
+2. Press `Open` at the upper right to view the simulation in [hCore].
+3. Download it by pressing `File -> Export Project`
+4. Unzip it either with your file browser or by e.g. `unzip ageing-agents.zip -d path/to/ageing-agents`
+5. Run the simulation from the _packages/engine_ directory and pass the path to the downloaded project as a parameter:
+
+    ```
+    cargo run --bin cli -- --project 'path/to/ageing-agents' single-run --num-steps 5
+    ```
+
+After a short time, the simulation should complete and the process will end. Once this is done, an `./outputs` folder should have been created. Within that folder a directory is created for every simulation. For a deeper explanation of the output, please take a look at [Simulation Outputs](#simulation-outputs).
+
+The ageing simulation increases the age of each agent by one every step. Looking in the _json_state.json_ file, one can see the outputted JSON state has an `"age"` field for each agent. It should be apparent that the age is increasing with each snapshot of state.
+
+**Congratulations!** 🎉 , you just ran your first simulation with the hEngine!
+
+
+[demo simulation]: https://core.hash.ai/@hash/ageing-agents?utm_medium=organic&utm_source=github_readme_engine
 ## Usage
 
 > **WIP** - This section is a work-in-progress. Guidance on production usage will appear here.
@@ -186,13 +210,20 @@ $ export RUST_LOG=debug
 > **WIP** - This section is a work-in-progress. More in-depth documentation is in the works for describing all output formats and options. As such some functionality may not be mentioned here, and some functionality alluded to here might not be complete at present. 
 Currently the engine has two main form of outputs, one coming from the [json_state package](./src/simulation/package/output/packages/json_state) and the other from the [analysis package](./src/simulation/package/output/packages/analysis).
 
-#### JSON-State
-By default, the engine outputs a serialized snapshot of Agent state every step. This is written to the `./parts` folder. At the present it's possible that these files will not be valid JSON as the resultant blob may be split across multiple files (hence `part`) for buffering purposes. Development is planned for a different output format that ensures a valid JSON blob in a single file.
+At the end of each simulation run, various outputs appear within the `./<OUTPUT FOLDER>/<EXPERIMENT ID>/<SIMULATION ID>` directories. (At the moment `<OUTPUT FOLDER>` is always `./output`)
 
-#### Analysis
+#### JSON-State [`json_state.json`]
+> Better documentation describing the structure of the file is planned
+
+By default, the engine outputs a serialized snapshot of Agent state every step.
+
+During the run, the output may be buffered into the `./parts` folder in multiple files. These files are not necessarily valid JSON as the resultant state blob that appears within `json_state.json` is split up (hence `part`) for buffering purposes. 
+
+#### Analysis [`analysis_outputs.json`]
 > **WIP** - This feature is currently unstable
 
 [hCore] currently provides functionality where simulations can apply custom analysis on user-defined metrics. The functionality has been ported across to this codebase in the [analysis package](./src/simulation/package/output/packages/analysis), however development is planned to stabilise it. As such, this functionality is neither tested, nor considered supported.
+
 
 ## Main Concepts
 

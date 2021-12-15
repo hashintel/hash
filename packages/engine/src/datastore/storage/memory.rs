@@ -10,6 +10,7 @@ use super::{
     BufferChange,
 };
 use crate::datastore::prelude::*;
+
 pub type Buffers<'a> = (&'a [u8], &'a [u8], &'a [u8], &'a [u8]);
 
 /// A memory-mapped shared memory segment wrapper.
@@ -140,12 +141,12 @@ impl Memory {
         }
     }
 
-    fn visitor<'a>(&'a self) -> Visitor<'a> {
-        Visitor::new(MemoryPtr::from_memory(&self))
+    fn visitor(&self) -> Visitor<'_> {
+        Visitor::new(MemoryPtr::from_memory(self))
     }
 
-    fn visitor_mut<'mem>(&'mem mut self) -> VisitorMut<'mem> {
-        VisitorMut::new(MemoryPtr::from_memory(&self), self)
+    fn visitor_mut(&mut self) -> VisitorMut<'_> {
+        VisitorMut::new(MemoryPtr::from_memory(self), self)
     }
 
     pub fn duplicate_from(memory: &Memory, experiment_run_id: &str) -> Result<Memory> {
@@ -200,13 +201,11 @@ impl Memory {
 
     /// Copy a slice into the shared memory segment, with offset 0
     pub fn overwrite_no_bounds_check(&mut self, src: &[u8]) -> Result<()> {
-        unsafe {
-            std::ptr::copy_nonoverlapping(src.as_ptr(), self.data.as_ptr() as *mut u8, src.len())
-        };
+        unsafe { std::ptr::copy_nonoverlapping(src.as_ptr(), self.data.as_ptr(), src.len()) };
         Ok(())
     }
 
-    pub fn get_batch_buffers(&self) -> Result<Buffers> {
+    pub fn get_batch_buffers(&self) -> Result<Buffers<'_>> {
         let visitor = self.visitor();
         Ok((
             visitor.schema(),
@@ -222,7 +221,7 @@ impl Memory {
 
     // We can't resize memory on macos
     #[cfg(target_os = "macos")]
-    pub fn shrink_memory_with_data_length(&mut self, data_length: usize) -> Result<BufferChange> {
+    pub fn shrink_memory_with_data_length(&mut self, _data_length: usize) -> Result<BufferChange> {
         Ok(BufferChange(false, false))
     }
 
@@ -308,18 +307,11 @@ impl Memory {
         )?;
 
         if cfg!(target_os = "macos") {
-            match env::var("OS_MEMORY_ALLOC_OVERRIDE") {
-                Ok(val) => {
-                    size = val.parse().expect(&format!(
-                        "OS_MEMORY_ALLOC_OVERRIDE was an invalid value: {}",
-                        val
-                    ));
-                    log::debug!(
-                        "Memory size was overridden by value set in envvar, set to: {}",
-                        size
-                    );
-                }
-                Err(_) => {}
+            if let Ok(val) = env::var("OS_MEMORY_ALLOC_OVERRIDE") {
+                size = val.parse().expect(&format!(
+                    "OS_MEMORY_ALLOC_OVERRIDE was an invalid value: {val}"
+                ));
+                log::debug!("Memory size was overridden by value set in envvar, set to: {size}");
             }
         }
 
@@ -354,18 +346,11 @@ impl Memory {
         )?;
 
         if cfg!(target_os = "macos") {
-            match env::var("OS_MEMORY_ALLOC_OVERRIDE") {
-                Ok(val) => {
-                    size = val.parse().expect(&format!(
-                        "OS_MEMORY_ALLOC_OVERRIDE was an invalid value: {}",
-                        val
-                    ));
-                    log::debug!(
-                        "Memory size was overridden by value set in envvar, set to: {}",
-                        size
-                    );
-                }
-                Err(_) => {}
+            if let Ok(val) = env::var("OS_MEMORY_ALLOC_OVERRIDE") {
+                size = val.parse().expect(&format!(
+                    "OS_MEMORY_ALLOC_OVERRIDE was an invalid value: {val}"
+                ));
+                log::debug!("Memory size was overridden by value set in envvar, set to: {size}");
             }
         }
 

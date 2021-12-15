@@ -14,16 +14,19 @@ else:
     prefix = script_path.replace("./", "").replace("/", ".") + "."
 
 setup(
-    ext_modules = cythonize([
+    ext_modules=cythonize([
         Extension(prefix + "wrappers",
                   [script_path + "/wrappers.pyx"],
                   include_dirs=[numpy.get_include()],
-                  libraries=["hash-engine"],
-                  library_dirs = [ # Process directory should be cloud repo root.
-                      "./target/release", # Prioritize release over debug.
+                  libraries=["hash_engine"],
+                  library_dirs=[  # Process directory should be packages/engine.
+                      # TODO, should we just add all possibilities for targets here, we might need to do a
+                      #  programmatic directory search
+                      "./target/release",  # Prioritize release over debug.
+                      "./target/x86_64-apple-darwin/release",
                       "./",
                       "./target/debug",
-                      "./target/x86_64-apple-darwin/debug"
+                      "./target/x86_64-apple-darwin/debug",
                   ]
                   )
     ])

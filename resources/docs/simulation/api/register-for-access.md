@@ -20,4 +20,3 @@ The **hCloud API** provides access to the results of simulation and experiment r
 ## hIndex API
 
 The **hIndex API** enables data and other projects contained within hIndex to be accessed and updated externally.
-

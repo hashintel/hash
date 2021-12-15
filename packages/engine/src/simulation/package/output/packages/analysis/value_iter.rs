@@ -10,11 +10,11 @@ use crate::simulation::package::output::packages::analysis::analyzer::Comparison
 
 fn array_element_exists_as_non_null(value: &serde_json::Value, index: usize) -> bool {
     if let Some(array) = value.as_array() {
-        if let Some(value) = array.get(index as usize) {
+        if let Some(value) = array.get(index) {
             return !value.is_null();
         }
     }
-    return false;
+    false
 }
 
 fn object_field_exists_as_non_null(value: &serde_json::Value, field: &str) -> bool {
@@ -23,7 +23,7 @@ fn object_field_exists_as_non_null(value: &serde_json::Value, field: &str) -> bo
             return !value.is_null();
         }
     }
-    return false;
+    false
 }
 
 fn value_iterator_filter_on_array_element_null(
@@ -201,11 +201,7 @@ fn value_iterator_filter_on_array_element_string(
             val,
             string,
             cloned,
-            match val.cmp(&cloned) {
-                Ordering::Less => true,
-                Ordering::Equal => true,
-                _ => false,
-            },
+            matches!(val.cmp(&cloned), Ordering::Less | Ordering::Equal),
             false
         ),
         ComparisonRepr::Gt => value_filter_string_array_element!(
@@ -221,11 +217,7 @@ fn value_iterator_filter_on_array_element_string(
             val,
             string,
             cloned,
-            match val.cmp(&cloned) {
-                Ordering::Greater => true,
-                Ordering::Equal => true,
-                _ => false,
-            },
+            matches!(val.cmp(&cloned), Ordering::Greater | Ordering::Equal),
             false
         ),
     };
@@ -257,11 +249,7 @@ fn value_iterator_filter_on_object_field_string(
             val,
             string,
             cloned,
-            match val.cmp(&cloned) {
-                Ordering::Less => true,
-                Ordering::Equal => true,
-                _ => false,
-            },
+            matches!(val.cmp(&cloned), Ordering::Less | Ordering::Equal),
             false
         ),
         ComparisonRepr::Gt => value_filter_string_object_field!(
@@ -277,11 +265,7 @@ fn value_iterator_filter_on_object_field_string(
             val,
             string,
             cloned,
-            match val.cmp(&cloned) {
-                Ordering::Greater => true,
-                Ordering::Equal => true,
-                _ => false,
-            },
+            matches!(val.cmp(&cloned), Ordering::Greater | Ordering::Equal),
             false
         ),
     };
@@ -293,10 +277,10 @@ pub(super) fn value_iterator_filter(
     comparison: &ComparisonRepr,
     value: &serde_json::Value,
 ) -> Result<MapIterator> {
-    let map: MapIterator = if let Some(index) = field.clone().as_u64() {
+    let map: MapIterator = if let Some(index) = field.as_u64() {
         match value {
             serde_json::Value::Bool(boolean) => {
-                value_iterator_filter_on_array_element_boolean(index, boolean.clone(), comparison)?
+                value_iterator_filter_on_array_element_boolean(index, *boolean, comparison)?
             }
             serde_json::Value::Number(number) => value_iterator_filter_on_array_element_number(
                 index,
@@ -315,11 +299,11 @@ pub(super) fn value_iterator_filter(
                 ));
             }
         }
-    } else if let Some(field_name) = field.clone().as_str() {
+    } else if let Some(field_name) = field.as_str() {
         let name = field_name.to_string();
         match value {
             serde_json::Value::Bool(boolean) => {
-                value_iterator_filter_on_object_field_boolean(name, boolean.clone(), comparison)?
+                value_iterator_filter_on_object_field_boolean(name, *boolean, comparison)?
             }
             serde_json::Value::Number(number) => value_iterator_filter_on_object_field_number(
                 name,
@@ -349,10 +333,10 @@ pub(super) fn value_iterator_filter(
 }
 
 pub(super) fn value_iterator_mapper(field: serde_json::Value) -> Result<MapIterator> {
-    let map: MapIterator = if let Some(index) = field.clone().as_u64() {
+    let map: MapIterator = if let Some(index) = field.as_u64() {
         // Iterator must be over array types
         Box::new(move |value_iterator| {
-            let mapped: ValueIterator = Box::new(value_iterator.map(move |a| {
+            let mapped: ValueIterator<'_> = Box::new(value_iterator.map(move |a| {
                 if let Some(array) = a.as_array() {
                     if (index as usize) < array.len() {
                         array[index as usize].clone()
@@ -365,14 +349,14 @@ pub(super) fn value_iterator_mapper(field: serde_json::Value) -> Result<MapItera
             }));
             Ok(mapped)
         })
-    } else if let Some(field_name) = field.clone().as_str() {
+    } else if let Some(field_name) = field.as_str() {
         let name = field_name.to_string();
         Box::new(move |value_iterator| {
             let name = name.clone();
             // Iterator must be over struct types
-            let mapped: ValueIterator = Box::new(value_iterator.map(move |mut a| {
+            let mapped: ValueIterator<'_> = Box::new(value_iterator.map(move |mut a| {
                 if let Some(map) = a.as_object_mut() {
-                    map.remove(&name).unwrap_or_else(|| serde_json::Value::Null)
+                    map.remove(&name).unwrap_or(serde_json::Value::Null)
                 } else {
                     serde_json::Value::Null
                 }

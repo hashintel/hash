@@ -8,7 +8,7 @@ use super::{
     spmc,
 };
 
-lazy_static! {
+lazy_static::lazy_static! {
     // Time after which NNG will try to retry sending a message
     static ref RESEND_TIME: Duration = Duration::from_secs(1);
     // Minimum time to wait before attempting to retry NNG dial
@@ -113,7 +113,7 @@ impl Client {
 
         let workers = (0..num_workers)
             .map(|_| {
-                let mut worker = Worker::new(&url, receiver.clone())?;
+                let mut worker = Worker::new(url, receiver.clone())?;
                 // let (stop_tx, stop_rx) = mpsc::channel(1);
                 let (stop_tx, stop_rx) = mpsc::unbounded_channel();
                 let handle = tokio::spawn(async move { worker.run(stop_rx).await });

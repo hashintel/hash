@@ -13,6 +13,7 @@ use crate::config::{
 
 #[allow(clippy::module_name_repetitions)]
 pub trait DistanceFn: Fn(&[f64], &[f64]) -> f64 + Send + Sync + 'static {}
+
 impl<T> DistanceFn for T where T: Fn(&[f64], &[f64]) -> f64 + Send + Sync + 'static {}
 
 pub mod functions {
@@ -77,11 +78,11 @@ pub struct AxisBoundary {
     pub max: f64,
 }
 
-impl std::default::Default for AxisBoundary {
+impl Default for AxisBoundary {
     fn default() -> AxisBoundary {
         AxisBoundary {
-            min: std::f64::NEG_INFINITY,
-            max: std::f64::INFINITY,
+            min: f64::NEG_INFINITY,
+            max: f64::INFINITY,
         }
     }
 }
@@ -123,7 +124,7 @@ pub struct Config {
     pub wrapping_combinations: usize,
 }
 
-impl std::default::Default for Config {
+impl Default for Config {
     fn default() -> Config {
         Config {
             x_bounds: AxisBoundary::default(),
@@ -133,7 +134,7 @@ impl std::default::Default for Config {
             wrap_y_mode: WrappingBehavior::default(),
             wrap_z_mode: WrappingBehavior::default(),
             search_radius: None,
-            distance_function: Box::new(functions::conway),
+            distance_function: Box::new(conway),
             move_wrapped_agents: true,
             wrapping_combinations: 1,
         }
@@ -163,7 +164,7 @@ pub enum WrappingBehavior {
     NoWrap,
 }
 
-impl std::default::Default for WrappingBehavior {
+impl Default for WrappingBehavior {
     fn default() -> WrappingBehavior {
         WrappingBehavior::NoWrap
     }
@@ -284,22 +285,22 @@ impl Config {
                 }
             }
 
-            if config.x_bounds.min > std::f64::NEG_INFINITY
-                && config.x_bounds.max < std::f64::INFINITY
+            if config.x_bounds.min > f64::NEG_INFINITY
+                && config.x_bounds.max < f64::INFINITY
                 && config.wrap_x_mode == WrappingBehavior::NoWrap
             {
                 config.wrap_x_mode = WrappingBehavior::Reflection;
             }
 
-            if config.y_bounds.min > std::f64::NEG_INFINITY
-                && config.y_bounds.max < std::f64::INFINITY
+            if config.y_bounds.min > f64::NEG_INFINITY
+                && config.y_bounds.max < f64::INFINITY
                 && config.wrap_y_mode == WrappingBehavior::NoWrap
             {
                 config.wrap_y_mode = WrappingBehavior::Reflection;
             }
 
-            if config.z_bounds.min > std::f64::NEG_INFINITY
-                && config.z_bounds.max < std::f64::INFINITY
+            if config.z_bounds.min > f64::NEG_INFINITY
+                && config.z_bounds.max < f64::INFINITY
                 && config.wrap_z_mode == WrappingBehavior::NoWrap
             {
                 config.wrap_z_mode = WrappingBehavior::Reflection;

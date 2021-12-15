@@ -32,9 +32,8 @@ pub struct DataFfi {
     pub null_bits_capacity: usize,
 }
 
-impl MiniV8 {
-    /// Creates a new JavaScript execution environment.
-    pub fn new() -> MiniV8 {
+impl Default for MiniV8 {
+    fn default() -> MiniV8 {
         ffi_init();
         let interface = unsafe { mv8_interface_new() };
         let any_map = Box::into_raw(Box::new(AnyMap::new()));
@@ -46,11 +45,18 @@ impl MiniV8 {
             is_top: true,
         }
     }
+}
+
+impl MiniV8 {
+    /// Creates a new JavaScript execution environment.
+    pub fn new() -> MiniV8 {
+        Self::default()
+    }
 
     /// Returns the global JavaScript object.
-    pub fn global(&self) -> Object {
+    pub fn global(&self) -> Object<'_> {
         Object(Ref::new(self, unsafe {
-            ffi::mv8_interface_global(self.interface)
+            mv8_interface_global(self.interface)
         }))
     }
 
@@ -78,7 +84,7 @@ impl MiniV8 {
         }
     }
 
-    fn eval_inner(&self, script: Script) -> Result<Value> {
+    fn eval_inner(&self, script: Script) -> Result<'_, Value<'_>> {
         let origin = script.origin.as_ref();
         desc_to_result(self, unsafe {
             mv8_interface_eval(
@@ -130,19 +136,19 @@ impl MiniV8 {
     }
 
     /// Creates and returns a string managed by V8.
-    pub fn create_string(&self, value: &str) -> String {
+    pub fn create_string(&self, value: &str) -> String<'_> {
         let len = value.len() as u32;
         let value_ptr = unsafe { mv8_string_new(self.interface, value.as_ptr(), len) };
         String(Ref::new(self, value_ptr))
     }
 
     /// Creates and returns an empty `Array` managed by V8.
-    pub fn create_array(&self) -> Array {
+    pub fn create_array(&self) -> Array<'_> {
         Array(Ref::new(self, unsafe { mv8_array_new(self.interface) }))
     }
 
     /// Creates and returns an empty `Object` managed by V8.
-    pub fn create_object(&self) -> Object {
+    pub fn create_object(&self) -> Object<'_> {
         Object(Ref::new(self, unsafe { mv8_object_new(self.interface) }))
     }
 
@@ -207,7 +213,7 @@ impl MiniV8 {
         match value {
             Value::Boolean(b) => b,
             ref value => unsafe {
-                mv8_coerce_boolean(self.interface, value_to_desc(self, &value)) != 0
+                mv8_coerce_boolean(self.interface, value_to_desc(self, value)) != 0
             },
         }
     }
@@ -231,11 +237,11 @@ impl MiniV8 {
     /// Coerces a value to a string. Nearly all JavaScript values are coercible to strings, but this
     /// may fail with a runtime error if `toString()` fails or under otherwise extraordinary
     /// circumstances (e.g. if the ECMAScript `ToString` implementation throws an error).
-    pub fn coerce_string<'mv8>(&'mv8 self, value: Value<'mv8>) -> Result<'mv8, String> {
+    pub fn coerce_string<'mv8>(&'mv8 self, value: Value<'mv8>) -> Result<'mv8, String<'_>> {
         match value {
             Value::String(ref s) => Ok(s.clone()),
             ref value => unsafe {
-                let result = mv8_coerce_string(self.interface, value_to_desc(self, &value));
+                let result = mv8_coerce_string(self.interface, value_to_desc(self, value));
                 let string_desc = desc_to_result_val(self, result)?;
                 Ok(String(Ref::from_value_desc(self, string_desc)))
             },
@@ -249,13 +255,13 @@ impl MiniV8 {
     ///////////////////////////////////////////////////////////////
     // Added arraybuffer and Arrow array data node conversion.
 
-    pub fn create_arraybuffer(&self, data: *mut u8, len: usize) -> Object {
+    pub fn create_arraybuffer(&self, data: *mut u8, len: usize) -> Object<'_> {
         Object(Ref::new(self, unsafe {
             mv8_arraybuffer_new(self.interface, data, len)
         }))
     }
 
-    pub fn data_node_from_js(&self, data: &Value) -> DataFfi {
+    pub fn data_node_from_js(&self, data: &Value<'_>) -> DataFfi {
         unsafe { mv8_data_node_from_js(self.interface, value_to_desc(self, data)) }
     }
 }

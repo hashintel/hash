@@ -170,7 +170,7 @@ impl<'a> BufferActions<'a> {
         affinity: usize,
     ) -> Result<AgentBatch> {
         let mut memory = AgentBatch::get_prepared_memory_for_data(
-            &schema,
+            schema,
             &self.new_dynamic_meta,
             experiment_run_id,
         )?;
@@ -246,7 +246,7 @@ impl<'a> BufferActions<'a> {
                                         // We are going left-to-right so we can at most change the
                                         // same value we're inspecting
                                         let new_offsets = unsafe {
-                                            let ptr = &data_buffer[new_start_offset] as *const u8;
+                                            let ptr: *const u8 = &data_buffer[new_start_offset];
                                             let ptr = ptr as *mut Offset;
                                             std::slice::from_raw_parts_mut(ptr, *len)
                                         };
@@ -423,7 +423,7 @@ impl<'a> BufferActions<'a> {
         debug_assert!(offsets_start_at_zero(
             &batch.memory,
             &batch.static_meta,
-            &batch.dynamic_meta
+            &batch.dynamic_meta,
         )?);
 
         batch.metaversion.increment_with(
@@ -437,7 +437,7 @@ impl<'a> BufferActions<'a> {
         debug_assert!(offsets_start_at_zero(
             &batch.memory,
             &batch.static_meta,
-            &batch.dynamic_meta
+            &batch.dynamic_meta,
         )?);
         // Reload RecordBatch from memory
         batch.reload_record_batch()?;
@@ -463,6 +463,7 @@ impl<'a> BufferActions<'a> {
         let node_static_meta = &static_meta.get_node_meta()[next_state.node_index];
         let unit_multiplier = node_static_meta.get_unit_multiplier();
         debug_assert!(parent_range_actions.is_well_ordered_remove());
+        #[allow(clippy::redundant_closure)] // Not able to elide static lifetime
         let node_dynamic_meta = dynamic_meta.map_or_else(
             || Node::null(),
             |dynamic_meta| &dynamic_meta.nodes[next_state.node_index],
@@ -486,6 +487,7 @@ impl<'a> BufferActions<'a> {
         for (i, buffer_index) in
             (next_state.buffer_index..next_state.buffer_index + buffer_count).enumerate()
         {
+            #[allow(clippy::redundant_closure)] // Not able to elide static lifetime
             let buffer_meta = dynamic_meta.map_or_else(
                 || Buffer::null(),
                 |dynamic_meta| &dynamic_meta.buffers[buffer_index],
@@ -531,7 +533,7 @@ impl<'a> BufferActions<'a> {
                                 next_bit_index
                             );
                             unset_bit_count += copy_bits_unchecked(
-                                &data,
+                                data,
                                 &mut bytes,
                                 next_bit_index,
                                 range.index - next_bit_index,
@@ -542,7 +544,7 @@ impl<'a> BufferActions<'a> {
                         });
                         // Also translate final slice
                         unset_bit_count += copy_bits_unchecked(
-                            &data,
+                            data,
                             &mut bytes,
                             next_bit_index,
                             original_length - next_bit_index,
@@ -563,7 +565,7 @@ impl<'a> BufferActions<'a> {
 
                             v.iter().for_each(|range| {
                                 unset_bit_count += copy_bits_unchecked(
-                                    &src_buffer,
+                                    src_buffer,
                                     &mut bytes,
                                     range.index,
                                     range.len,
@@ -586,7 +588,7 @@ impl<'a> BufferActions<'a> {
                             let src_buffer = buffer.data();
                             range_actions.create().iter().for_each(|range| {
                                 unset_bit_count += copy_bits_unchecked(
-                                    &src_buffer,
+                                    src_buffer,
                                     &mut bytes,
                                     range.index,
                                     range.len,
@@ -982,7 +984,7 @@ impl<'a> BufferActions<'a> {
             next_state = Self::traverse_nodes(
                 next_state,
                 child,
-                &column_meta,
+                column_meta,
                 static_meta,
                 dynamic_meta,
                 range_actions,
@@ -1078,7 +1080,7 @@ impl<'a> BufferActions<'a> {
 unsafe fn get_offset_by_index(data: &[u8], index: usize) -> i32 {
     let i32_size = std::mem::size_of::<Offset>();
     let offset = index * i32_size;
-    let ptr = &data[offset] as *const u8;
+    let ptr: *const u8 = &data[offset];
 
     // Assuming little endian
     *(ptr as *const i32)
@@ -1086,7 +1088,7 @@ unsafe fn get_offset_by_index(data: &[u8], index: usize) -> i32 {
 
 fn copy_bits_unchecked(
     src: &[u8],
-    mut dest: &mut [u8],
+    dest: &mut [u8],
     src_bit_index: usize,
     bit_len: usize,
     dest_bit_index: usize,
@@ -1096,7 +1098,7 @@ fn copy_bits_unchecked(
         .enumerate()
         .for_each(|(j, i)| {
             if bit_util::get_bit(src, i) {
-                bit_util::set_bit(&mut dest, dest_bit_index + j);
+                bit_util::set_bit(dest, dest_bit_index + j);
             } else {
                 unset_bit_count += 1;
             }
@@ -1119,7 +1121,7 @@ impl RowActions {
                 last_i = action.val;
             }
         }
-        return true;
+        true
     }
 }
 
@@ -1229,7 +1231,7 @@ impl RangeActions {
                 last_i = action.index;
             }
         }
-        return true;
+        true
     }
 
     pub fn collect_indices(actions: &[IndexAction]) -> (usize, Vec<IndexRange>) {
@@ -1340,7 +1342,7 @@ pub(super) mod test {
     // use crate::datastore::schema::PREVIOUS_INDEX_COLUMN_NAME;
     // use std::sync::Arc;
 
-    lazy_static! {
+    lazy_static::lazy_static! {
         pub static ref JSON_KEYS: serde_json::Value = serde_json::json!({
             "defined": {
                 "foo": {

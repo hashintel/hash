@@ -48,7 +48,7 @@ impl SimConfigurer {
             num_workers,
         };
         let config = SimRunConfig::new(
-            &exp_config,
+            exp_config,
             id,
             globals,
             engine,

@@ -46,7 +46,7 @@ impl Chain {
                             )),
                         }
                     })?;
-                    Ok(index.clone())
+                    Ok(*index)
                 })
                 .collect::<Result<_>>()?,
         })
@@ -77,8 +77,7 @@ impl IntoArrowChange for ChainList {
         let mut data = new_buffer::<BehaviorIdInnerDataType>(num_indices);
         let mut_data = data.typed_data_mut::<BehaviorIdInnerDataType>();
         let mut next_index = 0;
-        for i in 0..num_agents {
-            let chain = &chains[i];
+        for chain in chains.iter().take(num_agents) {
             for indices in &chain.inner {
                 mut_data[next_index] = indices.lang_index();
                 mut_data[next_index + 1] = indices.lang_behavior_index();

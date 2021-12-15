@@ -6,7 +6,7 @@ objectId: 62f732ca-a109-4c8b-8c07-40e3781199ff
 
 # Business Collect and Update
 
-The final step for this simulation is for the Businesses to collect the Customer replies and update their position and price to the combination that produced the largest profit. Create a `collect_customer_data()` function in **`business.js`** and add the following code.
+The final step for this simulation is for the Businesses to collect the Customer replies and update their position and price to the combination that produced the largest profit. Create a `collect_customer_data()` function in `business.js` and add the following code.
 
 ```javascript
  const collect_customer_data = (messages) => {
@@ -156,6 +156,6 @@ const behavior = (state, context) => {
  }
 }
 ```
+
 </Tab>
 </Tabs>
-

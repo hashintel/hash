@@ -53,7 +53,7 @@ pub enum StateTaskMessage {
     ExecuteBehaviorsTaskMessage,
 }
 
-pub struct PackageCreators(SyncOnceCell<HashMap<Name, Box<dyn super::PackageCreator>>>);
+pub struct PackageCreators(SyncOnceCell<HashMap<Name, Box<dyn PackageCreator>>>);
 
 pub static PACKAGE_CREATORS: PackageCreators = PackageCreators(SyncOnceCell::new());
 
@@ -76,9 +76,8 @@ impl PackageCreators {
         Ok(())
     }
 
-    pub(crate) fn get_checked(&self, name: &Name) -> Result<&Box<dyn super::PackageCreator>> {
-        Ok(self
-            .0
+    pub(crate) fn get_checked(&self, name: &Name) -> Result<&Box<dyn PackageCreator>> {
+        self.0
             .get()
             .ok_or_else(|| Error::from("State Package Creators weren't initialized"))?
             .get(name)
@@ -87,11 +86,11 @@ impl PackageCreators {
                     "Package creator: {} wasn't within the State Package Creators map",
                     name
                 ))
-            })?)
+            })
     }
 
     #[allow(dead_code)] // It is used in a test in deps.rs but the compiler fails to pick it up
-    pub(crate) fn iter_checked(&self) -> Result<Iter<Name, Box<dyn super::PackageCreator>>> {
+    pub(crate) fn iter_checked(&self) -> Result<Iter<'_, Name, Box<dyn PackageCreator>>> {
         Ok(self
             .0
             .get()

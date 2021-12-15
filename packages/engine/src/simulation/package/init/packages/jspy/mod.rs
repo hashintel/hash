@@ -33,8 +33,7 @@ impl PackageCreator for Creator {
             InitialStateName::InitPy | InitialStateName::InitJs => Ok(Box::new(Package {
                 initial_state: config.exp.run.base().project_base.initial_state.clone(),
                 comms,
-            })
-                as Box<dyn InitPackage>),
+            })),
             name => {
                 return Err(Error::from(format!(
                     "Trying to create a JS/Python init package but the initial state source \
@@ -107,10 +106,7 @@ impl InitPackage for Package {
                     e
                 ))
             }),
-            Err(err) => Err(Error::from(format!(
-                "Init Task failed: {}",
-                err.to_string()
-            ))),
+            Err(err) => Err(Error::from(format!("Init Task failed: {err}"))),
         }
     }
 }

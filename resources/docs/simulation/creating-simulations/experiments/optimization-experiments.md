@@ -63,4 +63,3 @@ While the optimization experiment is running, individual runs will populate the 
 When the optimization run completes, the best run - the run where the parameters maximized or minimized the metric - will be highlighted.
 
 ![](https://cdn-us1.hash.ai/site/docs/image%20%2861%29.png)
-

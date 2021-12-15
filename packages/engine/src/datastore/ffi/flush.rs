@@ -4,6 +4,7 @@
     clippy::cast_ptr_alignment,
     clippy::missing_safety_doc
 )]
+
 use super::{memory::CMemory, ArrowArray};
 use crate::datastore::{
     batch::flush::{GrowableArrayData, GrowableBatch, GrowableColumn},
@@ -11,6 +12,7 @@ use crate::datastore::{
 };
 
 type Flag = usize;
+
 const MEMORY_SIZE_UNCHANGED: usize = 0;
 const MEMORY_WAS_RESIZED: usize = 1;
 const ERROR_FLAG: usize = 2;
@@ -36,7 +38,7 @@ unsafe extern "C" fn flush_changes(
     let num_changes = (*changes).len;
     let indices = std::slice::from_raw_parts(changes.indices, num_changes);
     let arrays = std::slice::from_raw_parts(changes.columns, num_changes);
-    let prepared_columns: Vec<PreparedColumn> = match (0..num_changes)
+    let prepared_columns: Vec<PreparedColumn<'_>> = match (0..num_changes)
         .map(|i| {
             let column_index = indices[i];
             let arrow_array = arrays[i];
@@ -68,18 +70,12 @@ unsafe extern "C" fn flush_changes(
 
     let resized = match prepared.flush_changes() {
         Ok(resized) => resized,
-        Err(why) => {
-            match &why {
-                Error::SharedMemory(err) => match err {
-                    shared_memory::ShmemError::DevShmOutOfMemory => {
-                        println!("Out of memory in `flush_changes`");
-                        return OUT_OF_MEMORY;
-                    }
-                    _ => (),
-                },
-                _ => (),
-            }
-            println!("Error in `flush_changes`: {:?}", &why);
+        Err(Error::SharedMemory(shared_memory::ShmemError::DevShmOutOfMemory)) => {
+            log::error!("Out of memory in `flush_changes`");
+            return OUT_OF_MEMORY;
+        }
+        Err(err) => {
+            log::error!("Error in `flush_changes`: {err}");
             return ERROR_FLAG;
         }
     };
@@ -97,11 +93,11 @@ unsafe extern "C" fn flush_changes(
 }
 
 // Assumes all buffers are properly aligned
-unsafe fn node_into_prepared_array_data<'a>(
+unsafe fn node_into_prepared_array_data(
     arrow_array: *const ArrowArray,
-    static_meta: &'a StaticMeta,
+    static_meta: &StaticMeta,
     node_index: usize,
-) -> Result<(PreparedArrayData<'a>, usize)> {
+) -> Result<(PreparedArrayData<'_>, usize)> {
     let arrow_array_ref = &*arrow_array;
 
     let meta = &static_meta.get_node_meta()[node_index];
@@ -215,7 +211,7 @@ pub struct PreparedArrayData<'a> {
     _node_index: usize, // TODO: unused, delete?
 }
 
-impl<'a> GrowableArrayData for PreparedArrayData<'a> {
+impl GrowableArrayData for PreparedArrayData<'_> {
     fn _len(&self) -> usize {
         unsafe { (*self.inner).length as usize }
     }
@@ -265,7 +261,7 @@ pub struct PreparedBatch<'a> {
 
 impl<'a> GrowableBatch<PreparedColumn<'a>, PreparedArrayData<'a>> for PreparedBatch<'a> {
     fn take_changes(&mut self) -> Vec<PreparedColumn<'a>> {
-        std::mem::replace(&mut self.changes, vec![])
+        std::mem::take(&mut self.changes)
     }
 
     fn static_meta(&self) -> &StaticMeta {
@@ -273,7 +269,7 @@ impl<'a> GrowableBatch<PreparedColumn<'a>, PreparedArrayData<'a>> for PreparedBa
     }
 
     fn dynamic_meta(&self) -> &DynamicMeta {
-        &self.dynamic_meta
+        self.dynamic_meta
     }
 
     fn mut_dynamic_meta(&mut self) -> &mut DynamicMeta {
@@ -281,7 +277,7 @@ impl<'a> GrowableBatch<PreparedColumn<'a>, PreparedArrayData<'a>> for PreparedBa
     }
 
     fn memory(&self) -> &Memory {
-        &self.memory
+        self.memory
     }
 
     fn mut_memory(&mut self) -> &mut Memory {

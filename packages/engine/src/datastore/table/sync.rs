@@ -14,7 +14,7 @@ use crate::{
     },
 };
 
-#[derive(new)]
+#[derive(derive_new::new)]
 pub struct WaitableStateSync {
     pub completion_sender: SyncCompletionSender,
     pub agent_pool: AgentPool,
@@ -45,7 +45,7 @@ impl WaitableStateSync {
     }
 }
 
-#[derive(new, Clone)]
+#[derive(derive_new::new, Clone)]
 pub struct StateSync {
     pub agent_pool: AgentPool,
     pub message_pool: MessagePool,
@@ -57,7 +57,7 @@ impl fmt::Debug for StateSync {
     }
 }
 
-#[derive(new, Clone)]
+#[derive(derive_new::new, Clone)]
 pub struct ContextBatchSync {
     pub context_batch: Arc<RwLock<ContextBatch>>,
     pub state_group_start_indices: Arc<Vec<usize>>,
@@ -90,12 +90,12 @@ impl SyncPayload {
     }
 }
 
-impl Into<InboundToRunnerMsgPayload> for SyncPayload {
-    fn into(self) -> InboundToRunnerMsgPayload {
-        match self {
-            SyncPayload::State(s) => InboundToRunnerMsgPayload::StateSync(s),
-            SyncPayload::StateSnapshot(s) => InboundToRunnerMsgPayload::StateSnapshotSync(s),
-            SyncPayload::ContextBatch(c) => InboundToRunnerMsgPayload::ContextBatchSync(c),
+impl From<SyncPayload> for InboundToRunnerMsgPayload {
+    fn from(payload: SyncPayload) -> Self {
+        match payload {
+            SyncPayload::State(s) => Self::StateSync(s),
+            SyncPayload::StateSnapshot(s) => Self::StateSnapshotSync(s),
+            SyncPayload::ContextBatch(c) => Self::ContextBatchSync(c),
         }
     }
 }

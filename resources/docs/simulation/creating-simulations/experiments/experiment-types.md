@@ -127,4 +127,3 @@ Optimization experiments allow you to identify the best combination of parameter
 </Hint>
 
 Read more about [Optimization Experiments](/docs/simulation/creating-simulations/experiments/optimization-experiments) in the next section of the docs.
-

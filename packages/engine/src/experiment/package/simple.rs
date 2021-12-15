@@ -8,7 +8,8 @@ use crate::{
 };
 
 pub struct SimpleExperiment {
-    _experiment_config: Arc<ExperimentConfig>, // TODO: unused, remove?
+    _experiment_config: Arc<ExperimentConfig>,
+    // TODO: unused, remove?
     config: SimpleExperimentConfig,
 }
 
@@ -80,8 +81,8 @@ impl SimpleExperiment {
                 }
             }
 
-            let step_progress = maybe_step_progress
-                .ok_or_else(|| Error::MissingSimulationRun(response.sim_id.clone()))?;
+            let step_progress =
+                maybe_step_progress.ok_or(Error::MissingSimulationRun(response.sim_id))?;
 
             if !step_progress.stopped {
                 step_progress.n_steps += 1;
@@ -95,10 +96,8 @@ impl SimpleExperiment {
                 max_num_steps
             );
 
-            if n_steps == max_num_steps {
-                if finish_run(&mut n_remaining) {
-                    break;
-                }
+            if n_steps == max_num_steps && finish_run(&mut n_remaining) {
+                break;
             }
         }
         Ok(())

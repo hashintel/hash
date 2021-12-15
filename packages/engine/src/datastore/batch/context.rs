@@ -87,9 +87,7 @@ impl Batch {
                 Some(s) => s,
                 None => return Err(Error::ArrowSchemaRead),
             };
-            let schema = Arc::new(arrow_ipc::convert::fb_to_schema(ipc_schema));
-
-            schema
+            Arc::new(arrow_ipc::convert::fb_to_schema(ipc_schema))
         };
         let rb_msg = arrow_ipc::get_root_as_message(meta_buffer)
             .header_as_record_batch()

@@ -11,3 +11,4 @@ src/worker/runner/python/wrappers.c*
 *-frompy*
 *hash-orchestrator-*
 parts/
+output/

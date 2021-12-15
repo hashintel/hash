@@ -40,79 +40,47 @@ pub enum Value<'mv8> {
 impl<'mv8> Value<'mv8> {
     /// Returns `true` if this is a `Value::Undefined`, `false` otherwise.
     pub fn is_undefined(&self) -> bool {
-        if let Value::Undefined = *self {
-            true
-        } else {
-            false
-        }
+        matches!(*self, Value::Undefined)
     }
 
     /// Returns `true` if this is a `Value::Null`, `false` otherwise.
     pub fn is_null(&self) -> bool {
-        if let Value::Null = *self { true } else { false }
+        matches!(*self, Value::Null)
     }
 
     /// Returns `true` if this is a `Value::Boolean`, `false` otherwise.
     pub fn is_boolean(&self) -> bool {
-        if let Value::Boolean(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(*self, Value::Boolean(_))
     }
 
     /// Returns `true` if this is a `Value::Number`, `false` otherwise.
     pub fn is_number(&self) -> bool {
-        if let Value::Number(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(*self, Value::Number(_))
     }
 
     /// Returns `true` if this is a `Value::Date`, `false` otherwise.
     pub fn is_date(&self) -> bool {
-        if let Value::Date(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(*self, Value::Date(_))
     }
 
     /// Returns `true` if this is a `Value::String`, `false` otherwise.
     pub fn is_string(&self) -> bool {
-        if let Value::String(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(*self, Value::String(_))
     }
 
     /// Returns `true` if this is a `Value::Array`, `false` otherwise.
     pub fn is_array(&self) -> bool {
-        if let Value::Array(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(*self, Value::Array(_))
     }
 
     /// Returns `true` if this is a `Value::Function`, `false` otherwise.
     pub fn is_function(&self) -> bool {
-        if let Value::Function(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(*self, Value::Function(_))
     }
 
     /// Returns `true` if this is a `Value::Object`, `false` otherwise.
     pub fn is_object(&self) -> bool {
-        if let Value::Object(_) = *self {
-            true
-        } else {
-            false
-        }
+        matches!(*self, Value::Object(_))
     }
 
     /// Returns `Some(())` if this is a `Value::Undefined`, `None` otherwise.
@@ -215,7 +183,7 @@ impl<'mv8> Value<'mv8> {
         }
     }
 
-    pub(super) fn inner_ref(&self) -> Option<&Ref> {
+    pub(super) fn inner_ref(&self) -> Option<&Ref<'_>> {
         match *self {
             Value::Array(Array(ref r))
             | Value::Function(Function(ref r))
@@ -230,8 +198,8 @@ impl<'mv8> Value<'mv8> {
     }
 }
 
-impl<'mv8> fmt::Debug for Value<'mv8> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl fmt::Debug for Value<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Value::Undefined => write!(f, "undefined"),
             Value::Null => write!(f, "null"),
@@ -259,13 +227,13 @@ pub trait FromValue<'mv8>: Sized {
 }
 
 /// A collection of multiple JavaScript values used for interacting with function arguments.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Values<'mv8>(Vec<Value<'mv8>>);
 
 impl<'mv8> Values<'mv8> {
     /// Creates an empty `Values`.
     pub fn new() -> Values<'mv8> {
-        Values(Vec::new())
+        Self::default()
     }
 
     pub fn from_vec(vec: Vec<Value<'mv8>>) -> Values<'mv8> {
@@ -326,7 +294,7 @@ impl<'a, 'mv8> IntoIterator for &'a Values<'mv8> {
     type Item = &'a Value<'mv8>;
 
     fn into_iter(self) -> Self::IntoIter {
-        (&self.0).into_iter()
+        (&self.0).iter()
     }
 }
 
@@ -362,14 +330,20 @@ pub trait FromValues<'mv8>: Sized {
 #[derive(Clone, Debug)]
 pub struct Variadic<T>(pub(super) Vec<T>);
 
+impl<T> Default for Variadic<T> {
+    fn default() -> Self {
+        Self(Vec::new())
+    }
+}
+
 impl<T> Variadic<T> {
     /// Creates an empty `Variadic` wrapper containing no values.
     pub fn new() -> Variadic<T> {
-        Variadic(Vec::new())
+        Self::default()
     }
 
     pub fn from_vec(vec: Vec<T>) -> Variadic<T> {
-        Variadic(vec)
+        Self(vec)
     }
 
     pub fn into_vec(self) -> Vec<T> {

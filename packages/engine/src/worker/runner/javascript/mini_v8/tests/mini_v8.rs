@@ -26,7 +26,7 @@ fn eval_origin() {
 #[test]
 fn eval_timeout() {
     let mv8 = MiniV8::new();
-    let result = mv8.eval::<_, Value>(Script {
+    let result = mv8.eval::<_, Value<'_>>(Script {
         source: "a = 0; while (true) { a++; }".to_owned(),
         timeout: Some(Duration::from_millis(50)),
         ..Default::default()
@@ -47,7 +47,7 @@ fn eval_timeout() {
 #[test]
 fn eval_wasm() {
     let mv8 = MiniV8::new();
-    let result = mv8.eval::<_, Value>(
+    let result = mv8.eval::<_, Value<'_>>(
         r#"
         let bytes = new Uint8Array([
             0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, 0x01, 0x07, 0x01, 0x60, 0x02, 0x7f,
@@ -179,7 +179,7 @@ fn coerce_number() {
 
 #[test]
 fn coerce_string() {
-    fn assert_string_eq(mv8: &MiniV8, value: Value, expected: &str) {
+    fn assert_string_eq(mv8: &MiniV8, value: Value<'_>, expected: &str) {
         assert_eq!(expected, mv8.coerce_string(value).unwrap().to_string());
     }
 

@@ -28,9 +28,13 @@ pub struct FlatBufferWrapper<'fbb> {
     finished_builder: FlatBufferBuilder<'fbb>,
 }
 
-impl<'fbb> FlatBufferWrapper<'fbb> {
+impl FlatBufferWrapper<'_> {
     pub fn len(&self) -> usize {
         self.finished_builder.finished_data().len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 }
 
@@ -40,13 +44,13 @@ impl<'fbb> From<FlatBufferBuilder<'fbb>> for FlatBufferWrapper<'fbb> {
     }
 }
 
-impl<'fbb> AsRef<[u8]> for FlatBufferWrapper<'fbb> {
+impl AsRef<[u8]> for FlatBufferWrapper<'_> {
     fn as_ref(&self) -> &[u8] {
         self.finished_builder.finished_data()
     }
 }
 
-pub fn bool_to_arrow(data: &Vec<bool>) -> Arc<array::ArrayData> {
+pub fn bool_to_arrow(data: &[bool]) -> Arc<array::ArrayData> {
     let num_byte = arrow_bit_util::ceil(data.len(), 8);
     let mut mut_buf = ArrowMutableBuffer::new(num_byte).with_bitset(num_byte, false);
     {
@@ -57,14 +61,13 @@ pub fn bool_to_arrow(data: &Vec<bool>) -> Arc<array::ArrayData> {
             }
         }
     }
-    let array_data = array::ArrayData::builder(ArrowDataType::Boolean)
+    array::ArrayData::builder(ArrowDataType::Boolean)
         .len(data.len())
         .add_buffer(mut_buf.freeze())
-        .build();
-    array_data
+        .build()
 }
 
-pub fn opt_bool_to_arrow(data: &Vec<Option<bool>>) -> Arc<array::ArrayData> {
+pub fn opt_bool_to_arrow(data: &[Option<bool>]) -> Arc<array::ArrayData> {
     let num_byte = arrow_bit_util::ceil(data.len(), 8);
     let mut nulls = ArrowMutableBuffer::new(num_byte).with_bitset(num_byte, false);
     let mut mut_buf = ArrowMutableBuffer::new(num_byte).with_bitset(num_byte, false);
@@ -83,13 +86,12 @@ pub fn opt_bool_to_arrow(data: &Vec<Option<bool>>) -> Arc<array::ArrayData> {
             }
         }
     }
-    let array_data = array::ArrayData::builder(ArrowDataType::Boolean)
+    array::ArrayData::builder(ArrowDataType::Boolean)
         .len(data.len())
         .add_buffer(mut_buf.freeze())
         .null_bit_buffer(nulls.freeze())
         .null_count(null_count)
-        .build();
-    array_data
+        .build()
 }
 
 pub fn get_bit(buffer: &[u8], i: usize) -> bool {

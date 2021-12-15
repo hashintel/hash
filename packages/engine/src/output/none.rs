@@ -8,11 +8,12 @@ use crate::{
     simulation::step_output::SimulationStepOutput,
 };
 
+#[derive(Default)]
 pub struct NoOutputPersistence {}
 
 impl NoOutputPersistence {
     pub fn new() -> NoOutputPersistence {
-        NoOutputPersistence {}
+        Self::default()
     }
 }
 

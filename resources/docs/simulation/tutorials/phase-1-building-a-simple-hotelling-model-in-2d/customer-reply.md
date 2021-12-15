@@ -6,7 +6,7 @@ objectId: 91eaa467-7855-4948-adc0-5d325d839f4d
 
 # Customer Reply
 
-Now that Business agents are communicating with Customers, we need the Customers to send a reply back. To do this, let’s look at **`customer.js`**. Every time a Customer agent receives a batch of messages, it will:
+Now that Business agents are communicating with Customers, we need the Customers to send a reply back. To do this, let’s look at `customer.js`. Every time a Customer agent receives a batch of messages, it will:
 
 - Run the message data through a cost function to determine the change with the lowest cost for each Business
 - Notify each Business where they would choose to shop given all the possibilities
@@ -16,10 +16,9 @@ The cost function will be as follows, where price is the Business’s `item_pric
 
 <Math formula="C(B_i)=price_i+D(position_i)" />
 
-
 <Math formula="D(p) = \sqrt{p_x^2+p_y^2}" />
 
-Create the function `calculate_cost()` in **`customer.js`**.
+Create the function `calculate_cost()` in `customer.js`.
 
 <Tabs>
 <Tab title="customer.js" >
@@ -109,8 +108,8 @@ Define a `find_min()` function like the one below.
 
 <Hint style="info">
 
-* **overall_min →** store the data for the business position/price combination that yields the lowest cost across all businesses
-* **Individual_min →** store the data for the business position/price combination that yields the lowest cost across for each individual business
+- **overall_min →** store the data for the business position/price combination that yields the lowest cost across all businesses
+- **Individual_min →** store the data for the business position/price combination that yields the lowest cost across for each individual business
 
 </Hint>
 
@@ -183,7 +182,7 @@ state.addMessage(individual_min.agent_id, "customer_cost", {
 });
 ```
 
-All that’s left to do now for **`customer.js`** is to update the agent’s color to the `overall_min`’s color. This signifies that the Customer decided it would want to purchase from that particular business. Set the agent’s color after the closing of the object key iterator \(on line 89\).
+All that’s left to do now for `customer.js` is to update the agent’s color to the `overall_min`’s color. This signifies that the Customer decided it would want to purchase from that particular business. Set the agent’s color after the closing of the object key iterator \(on line 89\).
 
 ```javascript
 // Only update color if min cost was determined during this time step
@@ -199,7 +198,7 @@ const businesses = collect_business_data(context.messages());
 find_min(businesses);
 ```
 
-The **`customer.js`** behavior is finally complete!
+The `customer.js` behavior is finally complete!
 
 <Hint style="success">
 To see **customer.js** in full, navigate to bottom of this section or click on ‘**Phase 1** **Final Code**’ in the sidebar.
@@ -312,6 +311,7 @@ const behavior = (state, context) => {
  find_min(businesses);
 }
 ```
+
 </Tab>
 
 <Tab title="init.json" >
@@ -359,6 +359,7 @@ const behavior = (state, context) => {
  }
 ]
 ```
+
 </Tab>
 
 <Tab title="business.js" >
@@ -399,5 +400,6 @@ const behavior = (state, context) => {
  }
 }
 ```
+
 </Tab>
 </Tabs>

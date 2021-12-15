@@ -22,6 +22,7 @@ agents["people"].push({
     at_risk: Math.random() < 0.5 ? true : false
 }
 ```
+
 </Tab>
 
 <Tab title="Python" >
@@ -33,6 +34,7 @@ person = {
     'at_risk': True if random() < 0.5 else False
 }
 ```
+
 </Tab>
 </Tabs>
 
@@ -71,14 +73,13 @@ When we instantiate a Person currently, they'll have a 50% chance of being at_ri
 
 Of course during different scenarios and experiments we might want to vary the likelihood that someone will be at risk. Instead of hardcoding the likelihood, we will add a property called **at_risk_percent** to "globals.json". Here we set it to 5%:
 
-** globals.json **
+**globals.json**
 
 ```javascript
 {
 "at_risk_percent": 0.05
 }
 ```
-
 
 And in the "create_people" behavior, we substitute that value for the hardcoded one:
 
@@ -92,6 +93,7 @@ agents["people"].push({
     at_risk: Math.random() < context.globals().at_risk_percent ? true : false,
 }
 ```
+
 </Tab>
 
 <Tab title="Python" >
@@ -103,6 +105,6 @@ person = {
     'at_risk': True if random() < context.globals()['at_risk_percent'] else False
 }
 ```
+
 </Tab>
 </Tabs>
-

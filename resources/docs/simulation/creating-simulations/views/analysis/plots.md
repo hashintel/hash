@@ -10,8 +10,8 @@ objectId: f14b16d1-1cc0-463a-923c-92efa40be340
 
 Plots allow you to learn more about your simulation. For instance:
 
-* Is a certain variable converging upon a value? 
-* What emergent phenomena are appearing? 
+* Is a certain variable converging upon a value?
+* What emergent phenomena are appearing?
 * How do stochasticity and the initial conditions affect the simulation run?
 
 We currently support five different types of Plots. Their syntax and intended usage are described below.
@@ -93,4 +93,3 @@ Each plot provides extra functionality to interact with it. You need to hover th
 8. Toggle spike lines
 9. Show the closest data on hover
 10. Compare data on hover.
-

@@ -245,7 +245,7 @@ pub trait GrowableBatch<C: GrowableColumn<D>, D: GrowableArrayData> {
 
 /// Add an action for buffer(s) whose data is not changed but might have to be moved
 fn push_non_modify_actions(
-    buffer_actions: &mut Vec<BufferAction>,
+    buffer_actions: &mut Vec<BufferAction<'_>>,
     first_index: usize,
     last_index: usize,
     mut this_buffer_offset: usize,
@@ -277,7 +277,7 @@ fn push_non_modify_actions(
     this_buffer_offset
 }
 
-fn gather_array_datas_depth_first<'a, D: GrowableArrayData>(array_ref: &'a D) -> Vec<&'a D> {
+fn gather_array_datas_depth_first<D: GrowableArrayData>(array_ref: &D) -> Vec<&D> {
     let mut ret = vec![array_ref];
     // Depth-first get all nodes
     array_ref._child_data().iter().for_each(|v| {

@@ -107,12 +107,10 @@ impl FieldType {
                     Ok(FieldType::new(FieldTypeVariant::AnyType, is_nullable))
                 }
                 _ => {
-                    if let Some(ref key) = definitions.and_then(|defs| defs.get(name)) {
+                    if let Some(key) = definitions.and_then(|defs| defs.get(name)) {
                         Ok(key.field_type.clone())
                     } else {
-                        return Err(
-                            ShortJsonError::InvalidFieldType(ExpectedFieldType::String).into()
-                        );
+                        Err(ShortJsonError::InvalidFieldType(ExpectedFieldType::String).into())
                     }
                 }
             }
@@ -199,6 +197,12 @@ impl FieldSpecMap {
                         };
                         field_spec_map.add(root)?;
                     }
+                    let previous_index_spec = RootFieldSpec {
+                        inner: FieldSpec::last_state_index_key(),
+                        source: FieldSource::Engine,
+                        scope: FieldScope::Hidden,
+                    };
+                    field_spec_map.add(previous_index_spec)?;
                     Ok(field_spec_map)
                 } else {
                     Err(ShortJsonError::FieldsIsNotObject.into())

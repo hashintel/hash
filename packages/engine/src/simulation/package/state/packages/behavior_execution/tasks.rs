@@ -22,7 +22,7 @@ pub struct ExecuteBehaviorsTask {
 }
 
 impl GetTaskArgs for ExecuteBehaviorsTask {
-    fn distribution(&self) -> crate::config::TaskDistributionConfig {
+    fn distribution(&self) -> TaskDistributionConfig {
         TaskDistributionConfig::Distributed(Distribution {
             single_read_access: true,
         })

@@ -9,26 +9,30 @@ use super::{
     fbs::{pkgs_to_fbs, shared_ctx_to_fbs},
 };
 use crate::{
-    gen, proto::ExperimentId, types::WorkerIndex, worker::runner::comms::ExperimentInitRunnerMsg,
+    proto::ExperimentId, types::WorkerIndex, worker::runner::comms::ExperimentInitRunnerMsg,
 };
 
 fn experiment_init_to_nng(init: &ExperimentInitRunnerMsg) -> Result<nng::Message> {
     // TODO: initial buffer size
     let mut fbb = flatbuffers::FlatBufferBuilder::new();
-    let experiment_id =
-        gen::init_generated::ExperimentId(*(Uuid::from_str(&init.experiment_id)?.as_bytes()));
+    let experiment_id = flatbuffers_gen::init_generated::ExperimentId(
+        *(Uuid::from_str(&init.experiment_id)?.as_bytes()),
+    );
 
     // Build the SharedContext Flatbuffer Batch objects and collect their offsets in a vec
     let shared_context = shared_ctx_to_fbs(&mut fbb, &init.shared_context);
 
     // Build the Flatbuffer Package objects and collect their offsets in a vec
     let package_config = pkgs_to_fbs(&mut fbb, &init.package_config)?;
-    let msg = gen::init_generated::Init::create(&mut fbb, &crate::gen::init_generated::InitArgs {
-        experiment_id: Some(&experiment_id),
-        worker_index: init.worker_index as u64,
-        shared_context: Some(shared_context),
-        package_config: Some(package_config),
-    });
+    let msg = flatbuffers_gen::init_generated::Init::create(
+        &mut fbb,
+        &flatbuffers_gen::init_generated::InitArgs {
+            experiment_id: Some(&experiment_id),
+            worker_index: init.worker_index as u64,
+            shared_context: Some(shared_context),
+            package_config: Some(package_config),
+        },
+    );
 
     fbb.finish(msg, None);
     let bytes = fbb.finished_data();
