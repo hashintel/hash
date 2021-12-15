@@ -1,16 +1,10 @@
 use super::active::ActiveTaskExecutorComms;
 use crate::{
-    datastore::table::{
-        sync::{SyncPayload, WaitableStateSync},
-        task_shared_store::TaskSharedStore,
-    },
+    datastore::table::{sync::SyncPayload, task_shared_store::TaskSharedStore},
     proto::SimulationShortId,
     simulation::{package::id::PackageId, task::Task},
     types::TaskId,
-    worker::{
-        error::{Error as WorkerError, Result as WorkerResult},
-        runner::comms::inbound::InboundToRunnerMsgPayload,
-    },
+    worker::error::Result as WorkerResult,
 };
 
 pub type SyncCompletionReceiver = tokio::sync::oneshot::Receiver<WorkerResult<()>>;

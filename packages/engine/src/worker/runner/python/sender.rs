@@ -13,7 +13,6 @@ use crate::{
         arrow::util::arrow_continuation,
         table::{
             pool::{agent::AgentPool, message::MessagePool},
-            sync::{StateSync, WaitableStateSync},
             task_shared_store::{PartialSharedState, SharedState},
         },
     },

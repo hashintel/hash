@@ -126,7 +126,7 @@ impl Engine {
             .await?;
 
         log::trace!("Waiting for active state sync");
-        active_sync.await?;
+        active_sync.await?.map_err(|e| Error::state_sync(e))?;
         log::trace!("State sync finished");
         // State sync finished, so the workers should have dropped
         // their `Arc`s with state by this point.

@@ -1,4 +1,5 @@
 use std::{fmt, sync::Arc};
+use futures::future::join_all;
 
 use parking_lot::RwLock;
 
@@ -28,8 +29,9 @@ impl fmt::Debug for WaitableStateSync {
 }
 
 impl WaitableStateSync {
-    /// Wait for all child messages to be handled before sending that this message was handled.
-    pub fn children(&self, n_children: usize) -> (Vec<Self>, Vec<SyncCompletionReceiver>) {
+    /// Create child messages with the same payload as `self`, which must complete
+    /// for `self` to be complete.
+    pub fn create_children(&self, n_children: usize) -> (Vec<Self>, Vec<SyncCompletionReceiver>) {
         let mut child_msgs = Vec::new();
         let mut child_receivers = Vec::new();
         for _ in 0..n_children {
@@ -42,6 +44,28 @@ impl WaitableStateSync {
             });
         }
         (child_msgs, child_receivers)
+    }
+
+    /// Wait for all child messages to be handled and then send that
+    /// `self` was handled. If any errors occurred while handling a
+    /// child message, send that an error occurred while handling `self`.
+    /// TODO: Return Result (instead of `expect`) and
+    ///       handle where this function is awaited.
+    pub async fn forward_children(self, child_receivers: Vec<SyncCompletionReceiver>) {
+        log::trace!("Getting state sync completions");
+        let child_results: Vec<_> = join_all(child_receivers).await;
+        log::trace!("Got all state sync completions");
+        let result = child_results
+            .into_iter()
+            .map(|recv_result| {
+                recv_result.expect("Couldn't receive waitable sync result from child")
+            })
+            .collect::<WorkerResult<Vec<()>>>()
+            .map(|_| ());
+        self.completion_sender
+            .send(result)
+            .expect("Couldn't send waitable sync result to engine");
+        log::trace!("Sent main state sync completion");
     }
 }
 
