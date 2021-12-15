@@ -13,9 +13,9 @@ COPY tsconfig.base.json .
 COPY yarn.lock .
 COPY packages/hash/docker/api/dev/start.sh .
 
-RUN --mount=type=cache,target=/yarn-cache \
-  --mount=type=cache,target=/var/cache/apt \
-  --mount=type=cache,target=/var/lib/apt \
+RUN --mount=type=cache,mode=0755,target=/yarn-cache \
+  --mount=type=cache,mode=0755,target=/var/cache/apt \
+  --mount=type=cache,mode=0755,target=/var/lib/apt \
   apt-get update \
   && apt-get install wait-for-it \
   && chmod +x start.sh \
