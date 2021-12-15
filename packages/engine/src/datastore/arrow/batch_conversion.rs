@@ -31,6 +31,7 @@ use crate::{
 pub trait IntoRecordBatch {
     fn into_message_batch(&self, schema: &Arc<ArrowSchema>) -> Result<RecordBatch>;
     fn into_empty_message_batch(&self, schema: &Arc<ArrowSchema>) -> Result<RecordBatch>;
+    /// TODO: docstring describe, explain self is initialization data
     fn into_agent_batch(&self, schema: &Arc<AgentSchema>) -> Result<RecordBatch>;
 }
 
