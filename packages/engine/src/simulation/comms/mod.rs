@@ -51,6 +51,7 @@ use crate::{
     workerpool::comms::MainMsgSend,
 };
 
+// TODO: DOC
 #[derive(Clone)]
 /// All relevant to communication between the Loop and the Language Runtime(s)
 pub struct Comms {
@@ -120,6 +121,7 @@ impl Comms {
         Ok(completion_receiver)
     }
 
+    /// TODO: DOC
     pub async fn state_snapshot_sync(&self, state: &StateSnapshot) -> Result<()> {
         log::trace!("Synchronizing state snapshot");
         // Synchronize the state snapshot batches
@@ -173,6 +175,7 @@ impl Comms {
     }
 }
 
+/// TODO: DOC
 fn wrap_task<T: Into<Task>>(
     task_id: TaskId,
     package_id: PackageId,
