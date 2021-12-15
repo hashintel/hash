@@ -3,14 +3,14 @@ mod pending;
 pub mod runner;
 pub mod task;
 
-use std::future::Future;
-use std::pin::Pin;
-use std::time::Duration;
+use std::{future::Future, pin::Pin, time::Duration};
 
 pub use error::{Error, Result};
-use futures::{stream::FuturesOrdered, StreamExt};
-use futures::future::join_all;
-use futures::stream::FuturesUnordered;
+use futures::{
+    future::join_all,
+    stream::{FuturesOrdered, FuturesUnordered},
+    StreamExt,
+};
 use tokio::time::timeout;
 
 use self::{
@@ -129,7 +129,8 @@ impl WorkerController {
                 ))
             })?;
 
-        let mut pending_syncs: FuturesUnordered<Pin<Box<dyn Future<Output=()> + Send>>> = FuturesUnordered::new();
+        let mut pending_syncs: FuturesUnordered<Pin<Box<dyn Future<Output = ()> + Send>>> =
+            FuturesUnordered::new();
         tokio::pin!(pending_syncs);
         loop {
             tokio::select! {
@@ -204,7 +205,7 @@ impl WorkerController {
     async fn handle_worker_pool_msg(
         &mut self,
         msg: WorkerPoolToWorkerMsg,
-        pending_syncs: &mut FuturesUnordered<Pin<Box<dyn Future<Output=()> + Send>>>,
+        pending_syncs: &mut FuturesUnordered<Pin<Box<dyn Future<Output = ()> + Send>>>,
     ) -> Result<()> {
         match msg.payload {
             WorkerPoolToWorkerMsgPayload::Task(task) => {
@@ -497,7 +498,7 @@ impl WorkerController {
         &mut self,
         sim_id: Option<SimulationShortId>,
         sync_msg: SyncPayload,
-        pending_syncs: &mut FuturesUnordered<Pin<Box<dyn Future<Output=()> + Send>>>,
+        pending_syncs: &mut FuturesUnordered<Pin<Box<dyn Future<Output = ()> + Send>>>,
     ) -> Result<()> {
         if let SyncPayload::State(sync) = sync_msg {
             let (runner_msgs, runner_receivers) = sync.children(1);
@@ -507,19 +508,19 @@ impl WorkerController {
                 .collect();
             let js_msg = runner_msgs.remove(0);
             tokio::try_join!(
-                    self.js.send_if_spawned(sim_id, js_msg),
-                    // TODO: self.py.send_if_spawned(msg.sim_id, runner_msgs[1]),
-                    // TODO: self.rs.send_if_spawned(msg.sim_id, runner_msgs[2]),
-                )?;
+                self.js.send_if_spawned(sim_id, js_msg),
+                /* TODO: self.py.send_if_spawned(msg.sim_id, runner_msgs[1]),
+                 * TODO: self.rs.send_if_spawned(msg.sim_id, runner_msgs[2]), */
+            )?;
             let fut = async move {
                 log::trace!("Getting state sync completions");
                 let results: Vec<_> = join_all(runner_receivers).await;
                 log::trace!("Got all state sync completions");
                 let result = results
                     .into_iter()
-                    .map(|recv_result| recv_result.expect(
-                        "Couldn't receive waitable sync result from runner"
-                    ))
+                    .map(|recv_result| {
+                        recv_result.expect("Couldn't receive waitable sync result from runner")
+                    })
                     .collect::<Result<Vec<()>>>()
                     .map(|_| ());
                 sync.completion_sender
@@ -530,8 +531,10 @@ impl WorkerController {
             pending_syncs.push(Box::pin(fut) as _);
         } else {
             tokio::try_join!(
-                self.py.send_if_spawned(sim_id, sync_msg.try_clone()?.into()),
-                self.js.send_if_spawned(sim_id, sync_msg.try_clone()?.into()),
+                self.py
+                    .send_if_spawned(sim_id, sync_msg.try_clone()?.into()),
+                self.js
+                    .send_if_spawned(sim_id, sync_msg.try_clone()?.into()),
                 self.rs.send_if_spawned(sim_id, sync_msg.into())
             )?;
         }

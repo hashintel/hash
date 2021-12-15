@@ -40,17 +40,16 @@ use crate::{
         prelude::{Context, State},
         table::{
             state::{view::StateSnapshot, ReadState},
-            sync::{ContextBatchSync, StateSync, SyncPayload},
+            sync::{ContextBatchSync, StateSync, SyncPayload, WaitableStateSync},
             task_shared_store::TaskSharedStore,
         },
     },
     hash_types::Agent,
     proto::SimulationShortId,
+    simulation::comms::message::SyncCompletionReceiver,
     types::TaskId,
     workerpool::comms::MainMsgSend,
 };
-use crate::datastore::table::sync::WaitableStateSync;
-use crate::simulation::comms::message::SyncCompletionReceiver;
 
 #[derive(Clone)]
 /// All relevant to communication between the Loop and the Language Runtime(s)

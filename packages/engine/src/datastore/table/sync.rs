@@ -7,10 +7,12 @@ use crate::{
         prelude::ContextBatch,
         table::pool::{agent::AgentPool, message::MessagePool},
     },
-    worker::error::{Error as WorkerError, Result as WorkerResult},
-    worker::runner::comms::inbound::InboundToRunnerMsgPayload,
+    simulation::comms::message::{SyncCompletionReceiver, SyncCompletionSender},
+    worker::{
+        error::{Error as WorkerError, Result as WorkerResult},
+        runner::comms::inbound::InboundToRunnerMsgPayload,
+    },
 };
-use crate::simulation::comms::message::{SyncCompletionReceiver, SyncCompletionSender};
 
 #[derive(new)]
 pub struct WaitableStateSync {

@@ -3,13 +3,13 @@ pub mod error;
 mod pending;
 pub mod runs;
 
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::Arc;
+use std::{future::Future, pin::Pin, sync::Arc};
 
 pub use error::{Error, Result};
-use futures::future::{join_all, try_join_all};
-use futures::stream::{FuturesUnordered, StreamExt};
+use futures::{
+    future::{join_all, try_join_all},
+    stream::{FuturesUnordered, StreamExt},
+};
 use rand::prelude::SliceRandom;
 use tokio::{pin, task::JoinHandle};
 
@@ -25,25 +25,27 @@ use self::{
 use crate::{
     config,
     config::{TaskDistributionConfig, Worker, WorkerPoolConfig},
-    datastore::table::task_shared_store::TaskSharedStore,
+    datastore::table::{sync::SyncPayload, task_shared_store::TaskSharedStore},
     proto::SimulationShortId,
     simulation::{
-        comms::message::{EngineToWorkerPoolMsg, EngineToWorkerPoolMsgPayload},
+        comms::message::{
+            EngineToWorkerPoolMsg, EngineToWorkerPoolMsgPayload, SyncCompletionReceiver,
+        },
         package::id::PackageId,
         task::{args::GetTaskArgs, handler::WorkerPoolHandler, Task},
     },
     types::{TaskId, WorkerIndex},
     worker::{
+        error::Result as WorkerResult,
         runner::comms::{ExperimentInitRunnerMsg, ExperimentInitRunnerMsgBase, NewSimulationRun},
         task::WorkerTask,
         WorkerController,
-        error::Result as WorkerResult,
     },
-    workerpool::comms::{top::WorkerPoolToExpCtlMsg, WorkerPoolToWorkerMsg, WorkerToWorkerPoolMsg},
+    workerpool::comms::{
+        top::WorkerPoolToExpCtlMsg, WorkerPoolToWorkerMsg, WorkerPoolToWorkerMsgPayload,
+        WorkerToWorkerPoolMsg,
+    },
 };
-use crate::datastore::table::sync::SyncPayload;
-use crate::simulation::comms::message::SyncCompletionReceiver;
-use crate::workerpool::comms::WorkerPoolToWorkerMsgPayload;
 
 pub struct WorkerPoolController {
     worker_controllers: Option<Vec<WorkerController>>,
@@ -149,7 +151,8 @@ impl WorkerPoolController {
         pin!(let workers = self.run_worker_controllers()?;);
         pin!(let terminate_recv = self.terminate_recv.take_recv()?;);
 
-        let mut pending_syncs: FuturesUnordered<Pin<Box<dyn Future<Output=()> + Send>>> = FuturesUnordered::new();
+        let mut pending_syncs: FuturesUnordered<Pin<Box<dyn Future<Output = ()> + Send>>> =
+            FuturesUnordered::new();
         pin!(pending_syncs);
 
         loop {
@@ -195,7 +198,7 @@ impl WorkerPoolController {
     async fn handle_sim_msg(
         &mut self,
         msg: EngineToWorkerPoolMsg,
-        pending_syncs: &mut FuturesUnordered<Pin<Box<dyn Future<Output=()> + Send>>>,
+        pending_syncs: &mut FuturesUnordered<Pin<Box<dyn Future<Output = ()> + Send>>>,
     ) -> Result<()> {
         let sim_id = msg.sim_id;
         match msg.payload {
@@ -220,26 +223,27 @@ impl WorkerPoolController {
                 if let SyncPayload::State(sync) = sync {
                     // TODO: Only send to workers that simulation run is registered with
                     log::trace!("num_workers: {}", self.comms.num_workers());
-                    let (worker_msgs, worker_completion_receivers) = sync.children(
-                        self.comms.num_workers()
-                    );
+                    let (worker_msgs, worker_completion_receivers) =
+                        sync.children(self.comms.num_workers());
                     for (worker_index, msg) in worker_msgs.into_iter().enumerate() {
                         self.comms.send(worker_index, WorkerPoolToWorkerMsg {
                             sim_id: Some(sim_id),
-                            payload: WorkerPoolToWorkerMsgPayload::Sync(SyncPayload::State(msg))
+                            payload: WorkerPoolToWorkerMsgPayload::Sync(SyncPayload::State(msg)),
                         })?;
                     }
 
-                    // TODO: Return Result from future (instead of `expect`) and handle in `self.run`.
+                    // TODO: Return Result from future (instead of `expect`) and handle in
+                    // `self.run`.
                     let fut = async move {
                         log::trace!("Getting state sync completions");
                         let results: Vec<_> = join_all(worker_completion_receivers).await;
                         log::trace!("Got all state sync completions");
                         let result = results
                             .into_iter()
-                            .map(|recv_result| recv_result.expect(
-                                "Couldn't receive waitable sync result from worker"
-                            ))
+                            .map(|recv_result| {
+                                recv_result
+                                    .expect("Couldn't receive waitable sync result from worker")
+                            })
                             .collect::<WorkerResult<Vec<()>>>()
                             .map(|_| ());
                         sync.completion_sender

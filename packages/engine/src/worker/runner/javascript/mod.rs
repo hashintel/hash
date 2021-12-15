@@ -35,7 +35,7 @@ use crate::{
         table::{
             pool::{agent::AgentPool, message::MessagePool, BatchPool},
             proxy::StateWriteProxy,
-            sync::{ContextBatchSync, StateSync},
+            sync::{ContextBatchSync, StateSync, WaitableStateSync},
             task_shared_store::{PartialSharedState, SharedState},
         },
     },
@@ -47,7 +47,6 @@ use crate::{
     worker::{Error as WorkerError, Result as WorkerResult, TaskMessage},
     Language,
 };
-use crate::datastore::table::sync::WaitableStateSync;
 
 struct JsPackage<'m> {
     fns: mv8::Array<'m>,
@@ -1006,11 +1005,12 @@ impl<'m> RunnerImpl<'m> {
         state.msg_pool = msg.message_pool;
 
         log::trace!("Sending state sync completion");
-        msg.completion_sender
-            .send(Ok(()))
-            .map_err(|e| {
-                Error::from(format!("Couldn't send state sync completion to worker: {:?}", e))
-            })?;
+        msg.completion_sender.send(Ok(())).map_err(|e| {
+            Error::from(format!(
+                "Couldn't send state sync completion to worker: {:?}",
+                e
+            ))
+        })?;
         log::trace!("Sent state sync completion");
         Ok(())
     }

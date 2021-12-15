@@ -11,7 +11,8 @@ use crate::{
     datastore::{
         arrow::util::arrow_continuation,
         table::{
-            sync::StateSync,
+            pool::{agent::AgentPool, message::MessagePool},
+            sync::{StateSync, WaitableStateSync},
             task_shared_store::{PartialSharedState, SharedState},
         },
     },
@@ -21,9 +22,6 @@ use crate::{
     types::WorkerIndex,
     worker::runner::comms::inbound::InboundToRunnerMsgPayload,
 };
-use crate::datastore::table::pool::agent::AgentPool;
-use crate::datastore::table::pool::message::MessagePool;
-use crate::datastore::table::sync::WaitableStateSync;
 
 /// Only used for sending messages to the Python process
 pub struct NngSender {
@@ -162,9 +160,8 @@ fn inbound_to_nng(
         }
         InboundToRunnerMsgPayload::CancelTask(_) => todo!(), // Unused for now
         InboundToRunnerMsgPayload::StateSync(msg) => {
-            let (agent_pool, message_pool) = state_sync_to_fbs(
-                fbb, &msg.agent_pool, &msg.message_pool,
-            )?;
+            let (agent_pool, message_pool) =
+                state_sync_to_fbs(fbb, &msg.agent_pool, &msg.message_pool)?;
             let msg = crate::gen::sync_state_generated::StateSync::create(
                 fbb,
                 &crate::gen::sync_state_generated::StateSyncArgs {
@@ -179,9 +176,8 @@ fn inbound_to_nng(
             )
         }
         InboundToRunnerMsgPayload::StateSnapshotSync(msg) => {
-            let (agent_pool, message_pool) = state_sync_to_fbs(
-                fbb, &msg.agent_pool, &msg.message_pool,
-            )?;
+            let (agent_pool, message_pool) =
+                state_sync_to_fbs(fbb, &msg.agent_pool, &msg.message_pool)?;
             let msg = crate::gen::sync_state_snapshot_generated::StateSnapshotSync::create(
                 fbb,
                 &crate::gen::sync_state_snapshot_generated::StateSnapshotSyncArgs {

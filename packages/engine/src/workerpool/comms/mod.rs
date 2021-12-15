@@ -49,9 +49,9 @@ impl WorkerPoolToWorkerMsg {
             WorkerPoolToWorkerMsgPayload::CancelTask(inner) => {
                 Ok(WorkerPoolToWorkerMsgPayload::CancelTask(inner.clone()))
             }
-            WorkerPoolToWorkerMsgPayload::NewSimulationRun(inner) => {
-                Ok(WorkerPoolToWorkerMsgPayload::NewSimulationRun(inner.clone()))
-            },
+            WorkerPoolToWorkerMsgPayload::NewSimulationRun(inner) => Ok(
+                WorkerPoolToWorkerMsgPayload::NewSimulationRun(inner.clone()),
+            ),
         }?;
 
         Ok(WorkerPoolToWorkerMsg {

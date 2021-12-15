@@ -2,11 +2,10 @@ use std::fmt;
 
 use super::{NewSimulationRun, RunnerTaskMsg, StateInterimSync};
 use crate::{
-    datastore::table::sync::{ContextBatchSync, StateSync},
+    datastore::table::sync::{ContextBatchSync, StateSync, WaitableStateSync},
     proto::SimulationShortId,
     types::TaskId,
 };
-use crate::datastore::table::sync::WaitableStateSync;
 
 pub enum InboundToRunnerMsgPayload {
     TaskMsg(RunnerTaskMsg),
