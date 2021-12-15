@@ -1,6 +1,6 @@
 use std::{fmt, sync::Arc};
-use futures::future::join_all;
 
+use futures::future::join_all;
 use parking_lot::RwLock;
 
 use crate::{

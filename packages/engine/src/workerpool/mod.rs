@@ -25,10 +25,7 @@ use self::{
 use crate::{
     config,
     config::{TaskDistributionConfig, Worker, WorkerPoolConfig},
-    datastore::table::{
-        sync::SyncPayload,
-        task_shared_store::TaskSharedStore,
-    },
+    datastore::table::{sync::SyncPayload, task_shared_store::TaskSharedStore},
     proto::SimulationShortId,
     simulation::{
         comms::message::{EngineToWorkerPoolMsg, EngineToWorkerPoolMsgPayload},
