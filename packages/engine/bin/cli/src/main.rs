@@ -26,11 +26,17 @@ pub struct Args {
     #[structopt(short, long, env = "HASH_PROJECT")]
     project: String,
 
-    /// (Unimplemented) Project output path folder.
+    /// The Project Name.
+    ///
+    /// If not provided, the name of the project directory will be used.
+    #[structopt(short = "n", long)]
+    project_name: Option<String>,
+
+    /// Project output path folder.
     ///
     /// The folder will be created if it's missing.
     #[structopt(short, long, default_value = "./output", env = "HASH_OUTPUT")]
-    _output: String, // TODO - unused
+    output: String,
 
     /// Experiment type to be run.
     #[structopt(subcommand)]
