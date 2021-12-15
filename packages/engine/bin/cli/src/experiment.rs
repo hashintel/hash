@@ -27,8 +27,16 @@ pub async fn run_experiment(args: Args, handler: Handler) -> Result<()> {
     let absolute_project_path = PathBuf::from(project)
         .canonicalize()
         .with_context(|| format!("Could not canonicalize project path: {project:?}"))?;
+    let project_name = args.project_name.clone().unwrap_or(
+        absolute_project_path
+            .file_name()
+            .with_context(|| format!("Project path didn't point to a directory: {absolute_project_path:?}"))? // Shouldn't be able to fail as we canonicalize above
+            .to_string_lossy()
+            .to_string(),
+    );
+
     let experiment_run = read_manifest(&absolute_project_path, &args.r#type)?;
-    run_experiment_with_manifest(args, experiment_run, handler).await?;
+    run_experiment_with_manifest(args, experiment_run, project_name, handler).await?;
     Ok(())
 }
 
@@ -48,6 +56,7 @@ fn create_engine_command(
 async fn run_experiment_with_manifest(
     args: Args,
     experiment_run: proto::ExperimentRun,
+    project_name: String,
     mut handler: Handler,
 ) -> Result<()> {
     let experiment_id = experiment_run.base.id.clone();
@@ -84,11 +93,13 @@ async fn run_experiment_with_manifest(
     };
     debug!("Received start message from {experiment_id}");
 
+    let mut output_folder = PathBuf::from(args.output);
+    output_folder.push(project_name);
+
     let map_iter = [(
         OUTPUT_PERSISTENCE_KEY.to_string(),
-        // TODO: Make this a CLI arg:
         json!(OutputPersistenceConfig::Local(LocalPersistenceConfig {
-            output_folder: PathBuf::from(r"./output")
+            output_folder
         })),
     )];
     // Now we can send the init message
