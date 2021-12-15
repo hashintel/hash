@@ -23,7 +23,7 @@ setup(
                       # TODO, should we just add all possibilities for targets here, we might need to do a
                       #  programmatic directory search
                       "./target/release",  # Prioritize release over debug.
-                      "./target/x86_64-apple-darwin/release"
+                      "./target/x86_64-apple-darwin/release",
                       "./",
                       "./target/debug",
                       "./target/x86_64-apple-darwin/debug",
