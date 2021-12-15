@@ -28,9 +28,15 @@ impl Config {
 
         let run = Arc::new(experiment_run);
 
-        // TODO: ask packages for what language execution they require this would mean that Rust
-        // will not be in them
-        let worker_base_config = worker::Config::default();
+        // TODO: Rust, Python
+        // TODO: Ask packages for what language execution they require.
+        let worker_base_config = worker::Config {
+            spawn: worker::SpawnConfig {
+                python: false,
+                rust: false,
+                javascript: true,
+            },
+        };
         let worker_pool = Arc::new(worker_pool::Config::new(
             worker_base_config,
             max_num_workers,

@@ -30,9 +30,7 @@ pub enum Name {
     Neighbors,
 }
 
-// TODO: Camel case names with consecutive capital letters (e.g. APIRequests)
-//       are converted to snake case incorrectly by serde. Fix this and then
-//       reduce code duplication between names for different package types.
+// TODO: Reduce code duplication between Name enums of different package types.
 impl std::fmt::Display for Name {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(

@@ -512,6 +512,8 @@ impl WorkerController {
         };
 
         // TODO: Change to `children(3)` after enabling all runners.
+        debug_assert!(!self.py.spawned());
+        debug_assert!(!self.rs.spawned());
         let (runner_msgs, runner_receivers) = sync.create_children(1);
         let mut runner_msgs: Vec<_> = runner_msgs
             .into_iter()
