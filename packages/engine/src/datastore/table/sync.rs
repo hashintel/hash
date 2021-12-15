@@ -15,6 +15,18 @@ use crate::{
     },
 };
 
+/// A state sync message with a tokio channel, so that
+/// the sender of the message can wait for the state
+/// sync to complete and find out whether the state
+/// sync succeeded.
+///
+/// Fields:
+/// `completion_sender`: After finishing or failing to sync state,
+///                      used by the receiver/handler of the message
+///                      to notify the sender of the message that the
+///                      state sync completed.
+/// `agent_pool`: Agent batches to load state from
+/// `message_pool`: Message batches to load state from
 #[derive(derive_new::new)]
 pub struct WaitableStateSync {
     pub completion_sender: SyncCompletionSender,
@@ -51,6 +63,11 @@ impl WaitableStateSync {
     /// child message, send that an error occurred while handling `self`.
     /// TODO: Return Result (instead of `expect`) and
     ///       handle where this function is awaited.
+    ///
+    /// Usage:
+    /// let (child_msgs, child_receivers) = self.create_children(2);
+    /// // Send `child_msgs` to appropriate message handlers.
+    /// self.forward_children(child_receivers).await;
     pub async fn forward_children(self, child_receivers: Vec<SyncCompletionReceiver>) {
         log::trace!("Getting state sync completions");
         let child_results: Vec<_> = join_all(child_receivers).await;
