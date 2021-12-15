@@ -23,6 +23,7 @@ enum LoopControl {
 }
 
 // TODO: Sort out error into/from to avoid so many explicit err conversions using to_string
+/// TODO: Doc-string
 pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     config: Arc<SimRunConfig>,
     shared_store: Arc<SharedStore>,
