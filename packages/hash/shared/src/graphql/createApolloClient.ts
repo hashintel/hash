@@ -73,8 +73,25 @@ export const createApolloClient = (params?: {
 
   const link = ApolloLink.from([errorLink, httpLink]);
 
+  const entityKeyFields = { keyFields: ["entityId"] };
+
   return new ApolloClient({
-    cache: new InMemoryCache({ possibleTypes: possibleTypes.possibleTypes }),
+    cache: new InMemoryCache({
+      possibleTypes: possibleTypes.possibleTypes,
+      typePolicies: {
+        Block: entityKeyFields,
+        UnknownEntity: entityKeyFields,
+        EntityType: entityKeyFields,
+        OrgEmailInvitation: entityKeyFields,
+        OrgInvitationLink: entityKeyFields,
+        Org: entityKeyFields,
+        OrgMembership: entityKeyFields,
+        Page: entityKeyFields,
+        Text: entityKeyFields,
+        User: entityKeyFields,
+        File: entityKeyFields,
+      },
+    }),
     credentials: "include",
     link,
     name: params?.name,
