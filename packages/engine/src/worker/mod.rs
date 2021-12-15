@@ -121,12 +121,7 @@ impl WorkerController {
         let mut terminate_recv = self
             .worker_pool_comms
             .take_terminate_recv()
-            .map_err(|err| {
-                Error::from(format!(
-                    "Failed to take terminate_recv: {}",
-                    err.to_string()
-                ))
-            })?;
+            .map_err(|err| Error::from(format!("Failed to take terminate_recv: {}", err)))?;
 
         let pending_syncs: FuturesUnordered<Pin<Box<dyn Future<Output = ()> + Send>>> =
             FuturesUnordered::new();
@@ -520,7 +515,7 @@ impl WorkerController {
         let (runner_msgs, runner_receivers) = sync.create_children(1);
         let mut runner_msgs: Vec<_> = runner_msgs
             .into_iter()
-            .map(|msg| InboundToRunnerMsgPayload::StateSync(msg))
+            .map(InboundToRunnerMsgPayload::StateSync)
             .collect();
         // Borrow checker doesn't allow just `runner_msgs[0]`,
         // because it would be a partial move.
