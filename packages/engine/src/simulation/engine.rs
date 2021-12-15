@@ -98,11 +98,15 @@ impl Engine {
 
         // Context packages use the snapshot and state packages use state.
         // Context packages will be run before state packages, so start
-        // snapshot sync before state sync.
+        // snapshot sync before state sync, so workers have more time to
+        // get the respective syncs done in parallel with packages.
 
         // Synchronize snapshot with workers
         self.comms.state_snapshot_sync(&snapshot).await?;
 
+        // After this point, we'll only need read access to state until
+        // running the first state package. (Context packages don't have
+        // write access to state.)
         let state = Arc::new(state.downgrade());
         // Synchronize state with workers
         let active_sync = self.comms.state_sync(&state).await?;
@@ -115,7 +119,8 @@ impl Engine {
             .await?
             .downgrade();
 
-        // Synchronize context with workers
+        // Synchronize context with workers. `context` won't change
+        // again until the next step.
         self.comms
             .context_batch_sync(&context, state.group_start_indices())
             .await?;
@@ -123,6 +128,8 @@ impl Engine {
         log::trace!("Waiting for active state sync");
         active_sync.await?;
         log::trace!("State sync finished");
+        // State sync finished, so the workers should have dropped
+        // their `Arc`s with state by this point.
         let state = Arc::try_unwrap(state)
             .map_err(|_| Error::from("Unable to unwrap state after context package execution"))?;
         self.store.set(state, context);

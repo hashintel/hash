@@ -90,9 +90,20 @@ impl Comms {
 
 // Datastore synchronization methods
 impl Comms {
-    // State sync is distinct from state interim sync in that state sync
-    // can update the number of batches (after adding/removing agents or
-    // partitioning them differently), but 
+    /// Sends a message to workers (via the worker pool) that tells them
+    /// to load state from Arrow in shared memory.
+    ///
+    /// State sync is distinct from state interim sync in that state sync
+    /// can update the number of batches (after adding/removing agents or
+    /// partitioning them differently), but state interim sync only makes
+    /// changes within (some subset of) batches.
+    ///
+    /// Returns a handle (inside a Result) that can be used to wait for the
+    /// state sync to complete. The handle returns whether the sync itself
+    /// succeeded (as opposed to whether sending the message succeeded).
+    ///
+    /// Errors: tokio failed to send the message to the worker pool for some reason;
+    ///         e.g. the worker pool already stopped due to some other error.
     pub async fn state_sync(&self, state: &State) -> Result<SyncCompletionReceiver> {
         log::trace!("Synchronizing state");
         let (completion_sender, completion_receiver) = tokio::sync::oneshot::channel();

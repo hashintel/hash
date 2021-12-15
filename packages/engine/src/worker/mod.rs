@@ -133,7 +133,7 @@ impl WorkerController {
         tokio::pin!(pending_syncs);
         loop {
             tokio::select! {
-                _ = pending_syncs.next() => {}
+                Some(_) = pending_syncs.next() => {}
                 Some(msg) = wp_recv.recv() => {
                     log::debug!("Handle worker pool message: {:?}", &msg);
                     self.handle_worker_pool_msg(msg, &mut pending_syncs).await?;
@@ -512,12 +512,9 @@ impl WorkerController {
                     // TODO: self.rs.send_if_spawned(msg.sim_id, runner_msgs[2]),
                 )?;
             let fut = async move {
-                log::trace!("Getting completions");
-                // let mut rs = runner_receivers;
-                // let r = rs.remove(0);
-                // let results = vec![r.await];
+                log::trace!("Getting state sync completions");
                 let results: Vec<_> = join_all(runner_receivers).await;
-                log::trace!("Got all completions");
+                log::trace!("Got all state sync completions");
                 let result = results
                     .into_iter()
                     .map(|recv_result| recv_result.expect(
@@ -528,7 +525,7 @@ impl WorkerController {
                 sync.completion_sender
                     .send(result)
                     .expect("Couldn't send waitable sync result to engine");
-                log::trace!("Sent main completion");
+                log::trace!("Sent main state sync completion");
             };
             pending_syncs.push(Box::pin(fut) as _);
         } else {

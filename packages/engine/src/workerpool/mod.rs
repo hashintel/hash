@@ -154,7 +154,7 @@ impl WorkerPoolController {
 
         loop {
             tokio::select! {
-                _ = pending_syncs.next() => {}
+                Some(_) = pending_syncs.next() => {}
                 Some(msg) = self.sim_recv.recv() => {
                     log::debug!("Handle simulation message: {:?}", msg);
                     self.handle_sim_msg(msg, &mut pending_syncs).await?;
@@ -230,16 +230,11 @@ impl WorkerPoolController {
                         })?;
                     }
 
-                    // TODO: Return Result from future and handle in `self.run` instead of `expect`.
+                    // TODO: Return Result from future (instead of `expect`) and handle in `self.run`.
                     let fut = async move {
-                        log::trace!("Getting completions");
-                        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-                        log::trace!("Still getting completions");
-                        let mut rs = worker_completion_receivers;
-                        let r = rs.remove(0);
-                        let results = vec![r.await];
-                        // let results: Vec<_> = join_all(worker_completion_receivers).await;
-                        log::trace!("Got all completions");
+                        log::trace!("Getting state sync completions");
+                        let results: Vec<_> = join_all(worker_completion_receivers).await;
+                        log::trace!("Got all state sync completions");
                         let result = results
                             .into_iter()
                             .map(|recv_result| recv_result.expect(
@@ -250,7 +245,7 @@ impl WorkerPoolController {
                         sync.completion_sender
                             .send(result)
                             .expect("Couldn't send waitable sync result to engine");
-                        log::trace!("Sent main completion");
+                        log::trace!("Sent main state sync completion");
                     };
                     pending_syncs.push(Box::pin(fut) as _);
                 } else {
