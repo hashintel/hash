@@ -56,7 +56,7 @@ describe("Org model class ", () => {
     ]);
 
     org = await Org.createOrg(db, {
-      createdById: orgMember1.entityId,
+      createdByAccountId: orgMember1.entityId,
       properties: {
         shortname: "bigco",
         name: "Big Company",
@@ -64,8 +64,16 @@ describe("Org model class ", () => {
       },
     });
 
-    await orgMember1.joinOrg(db, { org, responsibility: "Developer" });
-    await orgMember2.joinOrg(db, { org, responsibility: "Developer" });
+    await orgMember1.joinOrg(db, {
+      updatedByAccountId: orgMember1.accountId,
+      org,
+      responsibility: "Developer",
+    });
+    await orgMember2.joinOrg(db, {
+      updatedByAccountId: orgMember2.accountId,
+      org,
+      responsibility: "Developer",
+    });
   });
 
   it("getOrgMemberships method returns orgMemberships", async () => {

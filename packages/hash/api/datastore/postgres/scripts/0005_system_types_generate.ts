@@ -31,11 +31,11 @@ for (const typeName of SYSTEM_TYPES.filter((name: string) => name !== "Org")) {
 ) on conflict do nothing;
 insert into entity_type_versions (
   entity_type_id, entity_type_version_id, account_id,
-  properties, created_by, created_at, updated_at
+  properties, updated_by, updated_at
 ) values (
   '${type.fixedId}', '${type.firstVersionId}', '${systemAccount.fixedId}',
   '${entityTypeJson(typeName)}',
-  '${systemAccount.fixedId}', '${now}', '${now}'
+  '${systemAccount.fixedId}', '${now}'
 ) on conflict do nothing;
 `;
 }

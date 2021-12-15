@@ -44,6 +44,26 @@ const snakeToCamel = (str: string) => {
   return leading + remaining;
 };
 
+type EntityTypeResult = {
+  account_id: string;
+  entity_type_id: string;
+  entity_type_version_id: string;
+  properties: any;
+  versioned: boolean;
+  created_by: string;
+  created_at: number;
+  updated_by: string;
+  updated_at: number;
+  entity_id: string;
+  extra: any;
+  ["type.entity_type_id"]: string;
+  ["type.account_id"]: string;
+  ["type.entity_type_version_id"]: string;
+  ["type.properties"]: any;
+  ["type.created_by"]: string;
+  ["type.created_at"]: number;
+};
+
 /** Get an entity type by its version ID. */
 export const getEntityType = async (
   pool: PgPool,
@@ -54,17 +74,17 @@ export const getEntityType = async (
   if (value) {
     return value;
   }
-  const row = await pool.one(sql`
+  const row = await pool.one(sql<EntityTypeResult>`
     select
       type.account_id,
       type.entity_type_id,
       type.versioned,
       type.created_by,
-      type.extra,
       type.created_at,
+      type.extra,
       type.name,
-      ver.created_at as version_created_at,
-      ver.updated_at as version_updated_at,
+      ver.updated_by,
+      ver.updated_at,
       ver.properties,
       ver.entity_type_version_id
     from

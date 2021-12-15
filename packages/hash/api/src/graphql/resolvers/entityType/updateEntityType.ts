@@ -10,7 +10,8 @@ export const updateEntityType: Resolver<
 > = async (_, { accountId, entityId, schema }, { dataSources, user }) => {
   const entityType = await EntityType.updateSchema(dataSources.db, {
     accountId,
-    createdById: user.entityId,
+    updatedByAccountId: user.accountId,
+    createdByAccountId: user.entityId,
     entityId,
     schema,
   });

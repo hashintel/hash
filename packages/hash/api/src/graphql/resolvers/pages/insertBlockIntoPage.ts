@@ -49,7 +49,7 @@ export const insertBlockIntoPage: Resolver<
         client,
         createEntityArgsBuilder({
           accountId,
-          createdById: user.entityId,
+          createdByAccountId: user.entityId,
           entityTypeId,
           entityTypeVersionId,
           systemTypeName,
@@ -72,7 +72,7 @@ export const insertBlockIntoPage: Resolver<
     const newBlock = await Entity.create(client, {
       accountId,
       systemTypeName: "Block",
-      createdById: user.entityId,
+      createdByAccountId: user.entityId,
       properties: blockProperties,
       versioned: true,
     });
@@ -105,7 +105,10 @@ export const insertBlockIntoPage: Resolver<
       ...(page.properties as DbPageProperties).contents.slice(position),
     ];
 
-    await page.updateEntityProperties(client, page.properties);
+    await page.updateEntityProperties(client, {
+      properties: page.properties,
+      updatedByAccountId: user.accountId,
+    });
 
     // TODO: for now, all entities are non-versioned, so the list array only have a single
     // element. Return when versioned entities are implemented at the API layer.

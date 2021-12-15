@@ -49,7 +49,10 @@ export const verifyEmail: Resolver<
       // Otherwise the email address can be verified with the user
       await Promise.all(
         [
-          user.verifyExistingEmailAddress(client, email.address),
+          user.verifyExistingEmailAddress(client, {
+            updatedByAccountId: user.accountId,
+            emailAddress: email.address,
+          }),
           ctx.user ? undefined : passport.login(user, {}),
         ].flat<(Promise<any> | undefined)[]>(),
       );

@@ -7,6 +7,8 @@ import {
   OrgEmailInvitation,
   OrgMembership,
   User,
+  UpdatePropertiesPayload,
+  PartialPropertiesUpdatePayload,
 } from ".";
 import { DBClient } from "../db";
 import { DBLinkedEntity, DBOrgProperties, EntityType } from "../db/adapter";
@@ -61,18 +63,18 @@ class __Org extends Account {
   static async createOrg(
     client: DBClient,
     params: {
-      createdById: string;
+      createdByAccountId: string;
       properties: DBOrgProperties;
     },
   ): Promise<Org> {
-    const { properties, createdById } = params;
+    const { properties, createdByAccountId } = params;
 
     const id = genId();
 
     const entity = await client.createEntity({
       accountId: id,
       entityId: id,
-      createdById,
+      createdByAccountId,
       properties,
       entityTypeId: (await Org.getEntityType(client)).entityId,
       versioned: false, // @todo: should Org's be versioned?
@@ -82,16 +84,26 @@ class __Org extends Account {
 
     await OrgInvitationLink.createOrgInvitationLink(client, {
       org,
-      createdById,
+      createdByAccountId,
     });
 
     return org;
   }
 
-  async updateProperties(client: DBClient, properties: DBOrgProperties) {
-    await super.updateProperties(client, properties);
-    this.properties = properties;
-    return properties;
+  async partialPropertiesUpdate(
+    client: DBClient,
+    params: PartialPropertiesUpdatePayload<DBOrgProperties>,
+  ) {
+    return super.partialPropertiesUpdate(client, params);
+  }
+
+  async updateProperties(
+    client: DBClient,
+    params: UpdatePropertiesPayload<DBOrgProperties>,
+  ) {
+    await super.updateProperties(client, params);
+    this.properties = params.properties;
+    return params.properties;
   }
 
   async getOrgMemberships(client: DBClient): Promise<OrgMembership[]> {

@@ -1,9 +1,8 @@
 import React, { useState, VFC } from "react";
 import { tw } from "twind";
+
 import { WayToUseHash } from "../../../../graphql/apiTypes.gen";
-import { IconHumanGreeting } from "../../../Icons/IconHumanGreeting";
-import { PeopleIcon } from "../../../Icons/PeopleIcon";
-import { SpinnerIcon } from "../../../Icons/SpinnerIcon";
+import { HumanGreetingIcon, PeopleIcon, SpinnerIcon } from "../../../icons";
 
 type AccountUsageProps = {
   updateWayToUseHash: (usingHow: WayToUseHash) => void;
@@ -13,7 +12,7 @@ type AccountUsageProps = {
 
 const USAGE_OPTIONS = [
   {
-    icon: <IconHumanGreeting className={tw`mb-6 w-20 h-20`} />,
+    icon: <HumanGreetingIcon className={tw`mb-6 w-20 h-20`} />,
     title: "By myself",
     description: "Create a personal knowledge graph",
     value: WayToUseHash.ByThemselves,

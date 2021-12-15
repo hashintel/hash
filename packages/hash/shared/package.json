@@ -19,9 +19,10 @@
     "clean": "rimraf './src/**/*.gen.*' ./dist/ ./tsconfig.tsbuildinfo",
     "codegen": "graphql-codegen --config codegen.yml",
     "dev": "nodemon --watch ./src/ --ignore './src/**/*.gen.*' --ext js,ts,json --exec 'tsc -b'",
-    "fix": "eslint --ext .js,.ts,.tsx --fix ./src/",
+    "fix:eslint": "eslint --ext .js,.ts,.tsx --fix ./src/",
     "postinstall": "yarn build",
-    "lint": "eslint --ext .js,.ts,.tsx ./src/ && tsc --noEmit # @hashintel/hash-shared"
+    "lint:eslint": "eslint --ext .js,.ts,.tsx ./src/",
+    "lint:tsc": "tsc --noEmit"
   },
   "dependencies": {
     "@apollo/client": "3.3.19",
@@ -81,6 +82,6 @@
     "nodemon": "2.0.12",
     "react": "17.0.2",
     "rimraf": "^3.0.2",
-    "typescript": "4.3.5"
+    "typescript": "4.5.2"
   }
 }

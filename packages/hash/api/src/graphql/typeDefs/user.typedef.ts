@@ -35,7 +35,7 @@ export const userTypedef = gql`
     """
     The user who created the entity
     """
-    createdById: ID!
+    createdByAccountId: ID!
     """
     The date the entity was last updated
     """

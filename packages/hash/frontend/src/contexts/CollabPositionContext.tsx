@@ -10,6 +10,5 @@ export {
   Provider as CollabPositionProvider,
   Consumer as CollabPositionConsumer,
   useCollabPositionContext,
+  CollabPositionContext,
 };
-
-export default CollabPositionContext;

@@ -1,8 +1,5 @@
 import corsMiddleware from "cors";
 import { StorageType } from "../graphql/apiTypes.gen";
-import { getRequiredEnv } from "../util";
-import { ExternalStorageProvider, StorageProviders } from "../storage";
-import { AwsS3StorageProvider } from "../storage/aws-s3-storage-provider";
 
 function getEnvStorageType() {
   const envUploadProvider = process.env.FILE_UPLOAD_PROVIDER as StorageType;
@@ -17,10 +14,6 @@ function getEnvStorageType() {
   }
   return envUploadProvider;
 }
-
-export const AWS_S3_BUCKET = getRequiredEnv("AWS_S3_UPLOADS_BUCKET");
-export const AWS_REGION = getRequiredEnv("AWS_REGION");
-export const AWS_S3_REGION = process.env.AWS_S3_REGION || AWS_REGION;
 
 /** Uses optional `FILE_UPLOAD_PROVIDER` env variable. Defaults to S3 */
 export const FILE_UPLOAD_PROVIDER = getEnvStorageType() || StorageType.AwsS3;
@@ -46,15 +39,6 @@ export const SYSTEM_TYPES = [
   "OrgEmailInvitation",
 ] as const;
 export type SYSTEM_TYPE = typeof SYSTEM_TYPES[number];
-
-/** All storage providers usable by the API should be added here */
-export const storageProviders: StorageProviders = {
-  [StorageType.AwsS3]: new AwsS3StorageProvider({
-    bucket: AWS_S3_BUCKET,
-    region: AWS_S3_REGION,
-  }),
-  [StorageType.ExternalLink]: new ExternalStorageProvider(),
-};
 
 export const CORS_CONFIG: corsMiddleware.CorsOptions = {
   credentials: true,

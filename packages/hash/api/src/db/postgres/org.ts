@@ -1,7 +1,7 @@
 import { sql } from "slonik";
 
 import { Connection } from "./types";
-import { mapPGRowToEntity, selectEntities } from "./entity";
+import { EntityPGRow, mapPGRowToEntity, selectEntities } from "./entity";
 import { selectSystemEntityTypeIds } from "./entitytypes";
 
 const matchesOrgType = sql`
@@ -19,7 +19,7 @@ export const getOrgByShortname = async (
   conn: Connection,
   params: { shortname: string },
 ) => {
-  const row = await conn.maybeOne(sql`
+  const row = await conn.maybeOne<EntityPGRow>(sql`
     ${selectEntities}
     where
       e.properties ->> 'shortname' = ${params.shortname} and ${matchesOrgType}

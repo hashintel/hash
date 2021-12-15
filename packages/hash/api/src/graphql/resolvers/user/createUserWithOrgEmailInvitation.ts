@@ -50,7 +50,10 @@ export const createUserWithOrgEmailInvitation: Resolver<
     // If an existing User entity was found with the primary un-verified email...
     if (danglingExistingUser) {
       // ...we can verify it now and re-use it instead of creating a new user entity.
-      await danglingExistingUser.verifyExistingEmailAddress(client, email);
+      await danglingExistingUser.verifyExistingEmailAddress(client, {
+        updatedByAccountId: danglingExistingUser.accountId,
+        emailAddress: email,
+      });
     }
 
     /**

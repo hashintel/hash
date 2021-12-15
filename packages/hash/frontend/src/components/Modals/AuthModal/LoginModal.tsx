@@ -77,6 +77,7 @@ function reducer(state: State, action: Actions): State {
       return {
         ...state,
         errorMessage: action.payload || "",
+        syntheticLoading: false,
       };
     case "UPDATE_STATE":
       return {
@@ -221,12 +222,12 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     requestLoginCode,
   ]);
 
-  const login = (providedCode: string, withSynthenticLoading?: boolean) => {
+  const login = (providedCode: string, withSyntheticLoading?: boolean) => {
     if (!verificationCodeMetadata) return;
 
     const verificationId = verificationCodeMetadata.id;
 
-    if (withSynthenticLoading) {
+    if (withSyntheticLoading) {
       dispatch({
         type: "UPDATE_STATE",
         payload: {
@@ -240,7 +241,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
       }, SYNTHETIC_LOADING_TIME_MS);
     } else {
       void loginWithLoginCode({
-        variables: { verificationId, verificationCode },
+        variables: { verificationId, verificationCode: providedCode },
       });
     }
   };

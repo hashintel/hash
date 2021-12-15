@@ -36,7 +36,10 @@ export const updateUser: Resolver<
 
       await Account.validateShortname(client, shortname);
 
-      await user.updateShortname(client, shortname);
+      await user.updateShortname(client, {
+        updatedByAccountId: user.accountId,
+        updatedShortname: shortname,
+      });
     }
 
     if (preferredName) {
@@ -54,7 +57,10 @@ export const updateUser: Resolver<
         );
       }
 
-      await user.updatePreferredName(client, preferredName);
+      await user.updatePreferredName(client, {
+        updatedByAccountId: user.accountId,
+        updatedPreferredName: preferredName,
+      });
     }
 
     if (usingHow) {
@@ -65,7 +71,10 @@ export const updateUser: Resolver<
         );
       }
 
-      await user.updateInfoProvidedAtSignup(client, { usingHow });
+      await user.updateInfoProvidedAtSignup(client, {
+        updatedByAccountId: user.accountId,
+        updatedInfo: { usingHow },
+      });
     }
 
     return user.toGQLUnknownEntity();

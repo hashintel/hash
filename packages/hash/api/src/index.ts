@@ -21,12 +21,7 @@ import {
   DummyEmailTransporter,
 } from "./email/transporters";
 import { createApolloServer } from "./graphql/createApolloServer";
-import {
-  AWS_REGION,
-  CORS_CONFIG,
-  FILE_UPLOAD_PROVIDER,
-  storageProviders,
-} from "./lib/config";
+import { CORS_CONFIG, FILE_UPLOAD_PROVIDER } from "./lib/config";
 import {
   isDevEnv,
   isProdEnv,
@@ -37,6 +32,8 @@ import {
 import { logger } from "./logger";
 import { UploadableStorageProvider } from "./storage";
 import { getRequiredEnv } from "./util";
+import { AWS_REGION } from "./lib/aws-config";
+import { storageProviders } from "./storage/storage-providers";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 

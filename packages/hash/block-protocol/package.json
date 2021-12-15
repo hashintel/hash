@@ -17,9 +17,10 @@
   "scripts": {
     "build": "yarn clean; tsc -b",
     "clean": "rimraf ./dist/ ./tsconfig.tsbuildinfo",
-    "fix": "eslint --ext .ts --fix ./src",
+    "fix:eslint": "eslint --ext .ts --fix ./src/",
     "postinstall": "yarn build",
-    "lint": "eslint --ext .ts ./src && tsc --noEmit # @hashintel/block-protocol"
+    "lint:eslint": "eslint --ext .ts ./src/",
+    "lint:tsc": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/react": "17.0.7",
@@ -35,6 +36,6 @@
     "eslint-plugin-react": "^7.25.1",
     "eslint-plugin-react-hooks": "4.2.0",
     "rimraf": "^3.0.2",
-    "typescript": "4.3.5"
+    "typescript": "4.5.2"
   }
 }

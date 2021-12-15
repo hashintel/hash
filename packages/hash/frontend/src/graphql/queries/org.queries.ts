@@ -5,7 +5,7 @@ export const createOrg = gql`
     createOrg(org: $org, responsibility: $responsibility) {
       __typename
       id
-      createdById
+      createdByAccountId
       createdAt
       updatedAt
       accountId

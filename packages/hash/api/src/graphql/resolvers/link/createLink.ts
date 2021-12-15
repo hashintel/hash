@@ -15,7 +15,7 @@ export const createLink: Resolver<
   {},
   LoggedInGraphQLContext,
   MutationCreateLinkArgs
-> = async (_, { link }, { dataSources }) =>
+> = async (_, { link }, { dataSources, user }) =>
   dataSources.db.transaction(async (client) => {
     const { sourceAccountId, sourceEntityId } = link;
     const sourceEntity = await Entity.getEntityLatestVersion(client, {
@@ -70,7 +70,10 @@ export const createLink: Resolver<
 
     removeArrayNulls(sourceEntity.properties);
 
-    await sourceEntity.updateEntityProperties(client, sourceEntity.properties);
+    await sourceEntity.updateEntityProperties(client, {
+      properties: sourceEntity.properties,
+      updatedByAccountId: user.accountId,
+    });
 
     return { ...link, id: genId() };
   });

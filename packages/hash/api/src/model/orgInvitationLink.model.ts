@@ -7,6 +7,7 @@ import {
   DBAccessTokenProperties,
   AccessTokenConstructorArgs,
   Org,
+  UpdatePropertiesPayload,
 } from ".";
 
 export type DBOrgInvitationLinkProperties = {
@@ -46,10 +47,10 @@ class __OrgInvitationLink extends AccessToken {
     client: DBClient,
     params: {
       org: Org;
-      createdById: string;
+      createdByAccountId: string;
     },
   ): Promise<OrgInvitationLink> {
-    const { org, createdById } = params;
+    const { org, createdByAccountId } = params;
 
     const properties: DBOrgInvitationLinkProperties = {
       useCount: 0,
@@ -59,7 +60,7 @@ class __OrgInvitationLink extends AccessToken {
 
     const entity = await client.createEntity({
       accountId: org.accountId,
-      createdById,
+      createdByAccountId,
       entityTypeId: (await OrgInvitationLink.getEntityType(client)).entityId,
       properties,
       versioned: false,
@@ -82,21 +83,23 @@ class __OrgInvitationLink extends AccessToken {
 
   async updateProperties(
     client: DBClient,
-    properties: DBOrgInvitationLinkProperties,
+    params: UpdatePropertiesPayload<any>,
   ) {
-    await super.updateProperties(client, properties);
-    this.properties = properties;
-    return properties;
+    await super.updateProperties(client, params);
+    this.properties = params.properties;
+    return params.properties;
   }
 
   /**
    * Increments the use count of the invitation.
    */
-  use(client: DBClient) {
-    return this.updateProperties(client, {
-      ...this.properties,
-      useCount: this.properties.useCount + 1,
-    });
+  use(client: DBClient, updatedByAccountId: string) {
+    return this.partialPropertiesUpdate(client, {
+      updatedByAccountId,
+      properties: {
+        useCount: this.properties.useCount + 1,
+      },
+    } as any);
   }
 
   validate(errorCodePrefix?: string) {

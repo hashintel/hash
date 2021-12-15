@@ -5,7 +5,7 @@ export const getEntity = gql`
   query getEntity($accountId: ID!, $entityId: ID!) {
     entity(accountId: $accountId, entityId: $entityId) {
       __typename
-      createdById
+      createdByAccountId
       createdAt
       entityId
       entityVersionId
@@ -59,7 +59,7 @@ export const createEntity = gql`
     ) {
       __typename
       id
-      createdById
+      createdByAccountId
       createdAt
       entityId
       entityTypeId

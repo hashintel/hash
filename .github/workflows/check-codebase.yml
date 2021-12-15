@@ -10,14 +10,14 @@ jobs:
 
       - uses: ./.github/actions/warm-up-repo
 
-      - name: Run yarn lint:workspaces
+      - name: Run yarn lint:eslint
         if: ${{ success() || failure() }}
         run: |
-          if ! yarn lint:workspaces; then
+          if ! yarn lint:eslint; then
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Try running `yarn fix:workspaces` locally to apply autofixes.'
+            echo 'Try running `yarn fix:eslint` locally to apply autofixes.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi
@@ -42,6 +42,19 @@ jobs:
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
             echo 'Try running `yarn fix:prettier` locally to apply autofixes.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
+      - name: Run yarn lint:tsc
+        if: ${{ success() || failure() }}
+        run: |
+          if ! yarn lint:tsc; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Please fix the above errors locally for the check to pass.'
+            echo 'If you don’t see them, try merging target branch into yours.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi
@@ -176,6 +189,8 @@ jobs:
           yarn workspace @hashintel/hash-frontend next build ## not using plain build script to skip codegen call
           yarn workspace @hashintel/hash-frontend start & ## ampersand enables background mode
           npx wait-on --timeout $(expr 1000 \* 60 \* 2) http://localhost:3000
+        env:
+          NEXT_PUBLIC_COLLAB: true
 
       - run: yarn playwright install-deps
         if: ${{ success() || failure() }}
@@ -184,6 +199,7 @@ jobs:
         if: ${{ success() || failure() }}
 
       - uses: actions/upload-artifact@v2
+        if: ${{ success() || failure() }}
         with:
           name: playwright-report
           path: playwright-report

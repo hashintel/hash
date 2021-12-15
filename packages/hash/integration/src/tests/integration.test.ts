@@ -62,7 +62,7 @@ const createNewBobWithOrg = async () => {
   bobCounter += 1;
 
   const bobOrg = await Org.createOrg(db, {
-    createdById: bobUser.entityId,
+    createdByAccountId: bobUser.entityId,
     properties: {
       shortname: `${bobUser.properties.shortname}-org`,
       name: `${bobUser.properties.preferredName}'s Org`,
@@ -70,7 +70,11 @@ const createNewBobWithOrg = async () => {
     },
   });
 
-  await bobUser.joinOrg(db, { org: bobOrg, responsibility: "CEO" });
+  await bobUser.joinOrg(db, {
+    updatedByAccountId: bobUser.accountId,
+    org: bobOrg,
+    responsibility: "CEO",
+  });
 
   return { bobUser, bobOrg };
 };
@@ -102,7 +106,7 @@ beforeAll(async () => {
   });
 
   existingOrg = await Org.createOrg(db, {
-    createdById: existingUser.entityId,
+    createdByAccountId: existingUser.entityId,
     properties: {
       shortname: "bigco",
       name: "Big Company",
@@ -110,7 +114,11 @@ beforeAll(async () => {
     },
   });
 
-  await existingUser.joinOrg(db, { org: existingOrg, responsibility: "CEO" });
+  await existingUser.joinOrg(db, {
+    updatedByAccountId: existingUser.accountId,
+    org: existingOrg,
+    responsibility: "CEO",
+  });
 });
 
 afterAll(async () => {
@@ -136,7 +144,7 @@ it("can create user", async () => {
   expect(user.properties.emails).toEqual([
     { address: email, primary: true, verified: false },
   ]);
-  expect(user.entityCreatedAt).toEqual(user.entityVersionUpdatedAt);
+  expect(user.createdAt).toEqual(user.updatedAt);
   expect(user.entityType.properties.title).toEqual("User");
 
   /** @todo: check whether the verification code was sent to the email address */
@@ -499,7 +507,7 @@ describe("logged in user ", () => {
       expect(updatedPage.history).toHaveLength(2);
       expect(updatedPage.history).toEqual([
         {
-          createdAt: updatedPage.createdAt,
+          createdAt: updatedPage.updatedAt,
           entityVersionId: updatedPage.entityVersionId,
         },
         { createdAt: page.createdAt, entityVersionId: page.entityVersionId },

@@ -1,13 +1,12 @@
-import React, { VFC, useMemo } from "react";
+import React, { useMemo, VFC } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { tw } from "twind";
 
-import { useForm, Controller } from "react-hook-form";
 import Logo from "../../../../assets/svg/logo.svg";
-import IconInfo from "../../../Icons/IconInfo";
-import { SpinnerIcon } from "../../../Icons/SpinnerIcon";
-import { useShortnameInput } from "../../../hooks/useShortnameInput";
 import { SelectInput } from "../../../forms/SelectInput";
-import { ORG_ROLES, InvitationInfo } from "../utils";
+import { useShortnameInput } from "../../../hooks/useShortnameInput";
+import { InfoIcon, SpinnerIcon } from "../../../icons";
+import { InvitationInfo, ORG_ROLES } from "../utils";
 
 type AccountSetupProps = {
   onSubmit: (details: {
@@ -148,7 +147,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
                   shortnameError ? "border-red-300" : "border-blue-300"
                 } rounded-md px-3.5`}
               >
-                <IconInfo
+                <InfoIcon
                   className={tw`h-6 w-6 mr-3 ${
                     shortnameError ? "text-red-500" : "text-blue-500"
                   }`}

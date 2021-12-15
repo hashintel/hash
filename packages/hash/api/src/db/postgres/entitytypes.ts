@@ -1,8 +1,4 @@
-import {
-  QueryResultRowType,
-  sql,
-  UniqueIntegrityConstraintViolationError,
-} from "slonik";
+import { sql, UniqueIntegrityConstraintViolationError } from "slonik";
 
 import { Connection } from "./types";
 import { selectSystemAccountIds } from "./account";
@@ -11,36 +7,57 @@ import { SYSTEM_TYPES, SystemType } from "../../types/entityTypes";
 import { Visibility } from "../../graphql/apiTypes.gen";
 
 /** maps a postgres row to its corresponding EntityType object */
-export const mapPGRowToEntityType = (row: QueryResultRowType): EntityType => ({
-  accountId: row.account_id as string,
-  entityId: row.entity_type_id as string,
-  entityVersionId: row.entity_type_version_id as string,
+export const mapPGRowToEntityType = (row: EntityTypePGRow): EntityType => ({
+  accountId: row.account_id,
+  entityId: row.entity_type_id,
+  entityVersionId: row.entity_type_version_id,
   entityTypeName: "EntityType",
   properties: row.properties,
   metadata: {
-    versioned: row.versioned as boolean,
+    versioned: row.versioned,
     extra: {},
   },
-  createdById: row.created_by as string,
-  entityCreatedAt: new Date(row.created_at as number),
-  entityVersionCreatedAt: new Date(row.version_created_at as number),
-  entityVersionUpdatedAt: new Date(row.version_updated_at as number),
+  createdByAccountId: row.created_by,
+  createdAt: new Date(row.created_at),
+  updatedByAccountId: row.updated_by,
+  updatedAt: new Date(row.updated_at),
   visibility: Visibility.Public /** @todo implement this */,
 });
 
-export const selectEntityTypes = sql`
+export type EntityTypePGRow = {
+  account_id: string;
+  entity_type_id: string;
+  entity_type_version_id: string;
+  properties: any;
+  versioned: boolean;
+  created_by: string;
+  created_at: number;
+  updated_by: string;
+  updated_at: number;
+  entity_id: string;
+  extra: any;
+  ["type.entity_type_id"]: string;
+  ["type.account_id"]: string;
+  ["type.entity_type_version_id"]: string;
+  ["type.properties"]: any;
+  ["type.created_by"]: string;
+  ["type.created_at"]: number;
+};
+
+export const selectEntityTypes = sql<EntityTypePGRow>`
   select
     type.account_id,
     type.entity_type_id,
     type.versioned,
-    type.created_by,
     type.extra,
+    type.created_by,
     type.created_at,
     type.name,
-    ver.created_at as version_created_at,
-    ver.updated_at as version_updated_at,
     ver.properties,
-    ver.entity_type_version_id
+    ver.entity_type_version_id,
+    ver.updated_by,
+    ver.updated_at
+    
   from
     entity_types as type
     join entity_type_versions as ver on
@@ -99,12 +116,12 @@ export const getSystemTypeLatestVersion = async (
   if (!SYSTEM_TYPES.includes(systemTypeName)) {
     throw new Error(`Provided type ${systemTypeName} is not a system type.`);
   }
-  const row = await conn.one(sql`
+  const row = await conn.one<EntityTypePGRow>(sql`
     with all_matches as (
       ${selectSystemEntityTypes(params)}
     )
     select distinct on (entity_type_id) * from all_matches
-    order by entity_type_id, version_created_at desc
+    order by entity_type_id, updated_at desc
   `);
   return mapPGRowToEntityType(row);
 };
@@ -127,9 +144,9 @@ export const getAccountEntityTypes = async (
         }
     ) 
     select distinct on (entity_type_id) * from all_matches
-    order by entity_type_id, version_created_at desc
+    order by entity_type_id, updated_at desc
   `;
-  const rows = await conn.any(query);
+  const rows = await conn.any<EntityTypePGRow>(query);
   return rows.map(mapPGRowToEntityType);
 };
 
@@ -149,7 +166,7 @@ export const getEntityType = async (
     ? sql`${selectEntityTypeVersion(params)} for update`
     : selectEntityTypeVersion(params);
 
-  const row = await conn.maybeOne(query);
+  const row = await conn.maybeOne<EntityTypePGRow>(query);
   return row ? mapPGRowToEntityType(row) : undefined;
 };
 
@@ -162,12 +179,12 @@ export const getEntityTypeLatestVersion = async (
     entityId: string;
   },
 ): Promise<EntityType | null> => {
-  const row = await conn.maybeOne(sql`
+  const row = await conn.maybeOne<EntityTypePGRow>(sql`
     with all_matches as (
       ${selectEntityTypeAllVersions(params)}
     )
     select distinct on (entity_type_id) * from all_matches
-    order by entity_type_id, version_created_at desc
+    order by entity_type_id, updated_at desc
   `);
   return row ? mapPGRowToEntityType(row) : null;
 };
@@ -179,8 +196,8 @@ export const insertEntityType = async (
     accountId: string;
     entityId: string;
     name: string;
-    createdById: string;
-    entityCreatedAt: Date;
+    createdByAccountId: string;
+    createdAt: Date;
   },
 ): Promise<void> => {
   try {
@@ -191,8 +208,8 @@ export const insertEntityType = async (
       )
       values (
         ${params.name}, ${params.accountId}, ${params.entityId}, true,
-        ${params.createdById}, ${params.entityCreatedAt.toISOString()},
-        ${params.entityCreatedAt.toISOString()}
+        ${params.createdByAccountId}, ${params.createdAt.toISOString()},
+        ${params.createdAt.toISOString()}
       )
     `);
   } catch (err) {
@@ -241,21 +258,19 @@ export const insertEntityTypeVersion = async (
     entityId: string;
     entityVersionId: string;
     properties: Record<string, any>;
-    createdById: string;
-    entityVersionCreatedAt: Date;
-    entityVersionUpdatedAt: Date;
+    updatedByAccountId: string;
+    updatedAt: Date;
   },
 ): Promise<void> => {
   await conn.query(sql`
     insert into entity_type_versions (
       account_id, entity_type_id, entity_type_version_id, properties,
-      created_by, created_at, updated_at
+      updated_by, updated_at
     )
     values (
       ${params.accountId}, ${params.entityId}, ${params.entityVersionId},
-      ${JSON.stringify(params.properties)}, ${params.createdById},
-      ${params.entityVersionCreatedAt.toISOString()},
-      ${params.entityVersionUpdatedAt.toISOString()}
+      ${JSON.stringify(params.properties)}, ${params.updatedByAccountId},
+      ${params.updatedAt.toISOString()}
     )
   `);
 };
@@ -268,9 +283,8 @@ export const updateVersionedEntityType = async (
     entityVersionId: string;
     name: string;
     properties: Record<string, any>;
-    createdById: string;
-    entityVersionCreatedAt: Date;
-    entityVersionUpdatedAt: Date;
+    updatedByAccountId: string;
+    updatedAt: Date;
   },
 ): Promise<void> => {
   /** @todo consider updating the name if it hasn't changed. */

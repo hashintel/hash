@@ -1,6 +1,6 @@
 import "./loadTestEnv";
 import { AwsSesEmailTransporter } from "@hashintel/hash-api/src/email/transporters";
-import { AWS_REGION } from "@hashintel/hash-api/src/lib/config";
+import { AWS_REGION } from "@hashintel/hash-api/src/lib/aws-config";
 
 if (process.env.HASH_DEV_INTEGRATION_EMAIL) {
   const to = process.env.HASH_DEV_INTEGRATION_EMAIL;

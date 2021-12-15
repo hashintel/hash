@@ -17,9 +17,10 @@
   "scripts": {
     "build": "yarn clean; tsc -b",
     "clean": "rimraf ./dist/ ./tsconfig.tsbuildinfo",
-    "fix": "eslint --ext .ts --fix ./src/",
+    "fix:eslint": "eslint --ext .ts --fix ./src/",
     "postinstall": "yarn build",
-    "lint": "eslint --ext .ts ./src/ && tsc --noEmit # @hashintel/hash-backend-utils",
+    "lint:eslint": "eslint --ext .ts ./src/",
+    "lint:tsc": "tsc --noEmit",
     "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json"
   },
   "dependencies": {
@@ -34,7 +35,7 @@
     "@types/node": "16.7.6",
     "@types/redis": "2.8.32",
     "rimraf": "^3.0.2",
-    "ts-node": "10.2.1",
-    "typescript": "4.3.5"
+    "ts-node": "10.4.0",
+    "typescript": "4.5.2"
   }
 }

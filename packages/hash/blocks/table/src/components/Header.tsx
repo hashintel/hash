@@ -31,7 +31,7 @@ export const Header: VFC<HeaderProps> = ({
   entityTypeDropdown,
 }) => {
   return (
-    <div className={tw`pb-3 relative`}>
+    <div className={tw`pb-3 relative z-0`}>
       <div className={tw`flex items-center`}>
         <div className={tw`mr-3 flex-grow-1`}>{entityTypeDropdown}</div>
         <div className={tw`mr-3`}>

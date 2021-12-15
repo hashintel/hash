@@ -5,7 +5,7 @@ const userFieldsFragment = gql`
     __typename
     id
     entityId
-    createdById
+    createdByAccountId
     accountId
     entityTypeId
     entityTypeVersionId

@@ -48,7 +48,7 @@ export const loginWithLoginCode = gql`
     ) {
       __typename
       entityId
-      createdById
+      createdByAccountId
       createdAt
       updatedAt
       accountId

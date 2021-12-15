@@ -1,6 +1,6 @@
 import React from "react";
 import { tw } from "twind";
-import IconDropdown from "../../../components/Icons/IconDropdown";
+import { DropdownIcon } from "../../../components/icons";
 
 interface MarksTooltipProps {
   activeMarks: { name: string; attrs?: Record<string, string> }[];
@@ -73,7 +73,7 @@ export const MarksTooltip: React.VFC<MarksTooltipProps> = ({
             type="button"
           >
             {text}
-            {name === "link" && <IconDropdown className={tw`ml-2`} />}
+            {name === "link" && <DropdownIcon className={tw`ml-2`} />}
           </button>
         ))}
       </div>

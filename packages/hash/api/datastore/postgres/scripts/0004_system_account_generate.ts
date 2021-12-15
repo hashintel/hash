@@ -35,31 +35,31 @@ insert into entity_types (
 
 insert into entity_type_versions (
   entity_type_id, entity_type_version_id, account_id,
-  properties, created_by, created_at, updated_at
+  properties, updated_by, updated_at
 ) values (
   '${Org.fixedId}', '${Org.firstVersionId}', '${systemAccount.fixedId}',
   '${entityTypeJson("Org")}',
-  '${systemAccount.fixedId}', '${now}', '${now}'
+  '${systemAccount.fixedId}', '${now}'
 ) on conflict do nothing;
 
 -- create system account
 insert into entities (
-  account_id, entity_id, versioned, created_at, metadata_updated_at
+  account_id, entity_id, versioned, created_at, created_by, metadata_updated_at
 ) values (
   '${systemAccount.fixedId}', '${systemAccount.fixedId}', false,
-  '${now}', '${now}'
+  '${now}', '${systemAccount.fixedId}', '${now}'
 ) on conflict do nothing;
 
 insert into entity_versions (
   account_id, entity_version_id, entity_type_version_id,
   properties, entity_id,
-  created_by, created_at, updated_at
+  updated_by, updated_at
 ) values (
   '${systemAccount.fixedId}', '${systemAccount.firstVersionId}', '${
   Org.firstVersionId
 }',
   '${systemAccountPropertiesStringified}', '${systemAccount.fixedId}',
-  '${systemAccount.fixedId}', '${now}', '${now}'
+  '${systemAccount.fixedId}', '${now}'
 ) on conflict do nothing;
 
 insert into entity_account (

@@ -57,7 +57,8 @@ export const createEntityTypes =
       accountIds.map(async (accountId) => {
         const baseParams = {
           accountId,
-          createdById: accountId,
+          createdByAccountId: accountId,
+          updatedByAccountId: accountId,
         };
         let entityType = await EntityType.create(db, {
           ...taskEntityType,

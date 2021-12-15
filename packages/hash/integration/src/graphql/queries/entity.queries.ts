@@ -19,7 +19,7 @@ export const createEntity = gql`
       id
       entityId
       entityVersionId
-      createdById
+      createdByAccountId
       createdAt
       updatedAt
       accountId

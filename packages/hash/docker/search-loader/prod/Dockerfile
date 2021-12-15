@@ -14,9 +14,9 @@ COPY yarn.lock .
 RUN --mount=type=cache,target=/yarn-cache \
   --mount=type=cache,target=/var/cache/apt \
   --mount=type=cache,target=/var/lib/apt \
-  yarn ws:hash-search-loader install \
-  && yarn ws:hash-search-loader build \
-  && yarn ws:hash-search-loader install --production --ignore-scripts --prefer-offline # Remove devDependencies
+  yarn workspace @hashintel/hash-search-loader install \
+  && yarn workspace @hashintel/hash-search-loader build \
+  && yarn workspace @hashintel/hash-search-loader install --production --ignore-scripts --prefer-offline # Remove devDependencies
 
 #########################################################################################
 

@@ -26,7 +26,7 @@ export const deleteLinkByPath: Resolver<
   {},
   LoggedInGraphQLContext,
   MutationDeleteLinkByPathArgs
-> = async (_, args, { dataSources }) =>
+> = async (_, args, { dataSources, user }) =>
   dataSources.db.transaction(async (client) => {
     const { sourceAccountId, sourceEntityId } = args;
     const sourceEntity = await Entity.getEntityLatestVersion(client, {
@@ -65,7 +65,10 @@ export const deleteLinkByPath: Resolver<
 
     removeArrayNulls(sourceEntity.properties);
 
-    await sourceEntity.updateEntityProperties(client, sourceEntity.properties);
+    await sourceEntity.updateEntityProperties(client, {
+      properties: sourceEntity.properties,
+      updatedByAccountId: user.accountId,
+    });
 
     return true;
   });

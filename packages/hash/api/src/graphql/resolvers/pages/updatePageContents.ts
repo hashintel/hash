@@ -45,7 +45,7 @@ const createBlock = async (
     client,
     createEntityArgsBuilder({
       accountId: params.accountId,
-      createdById: user.entityId,
+      createdByAccountId: user.entityId,
       properties: params.entityProperties,
       versioned: params.versioned ?? true,
       entityTypeId: params.entityTypeId,
@@ -62,7 +62,7 @@ const createBlock = async (
   };
   const newBlock = await Entity.create(client, {
     accountId: params.accountId,
-    createdById: user.entityId,
+    createdByAccountId: user.entityId,
     systemTypeName: "Block",
     versioned: true,
     properties: blockProperties,
@@ -139,7 +139,16 @@ export const updatePageContents: Resolver<
     await Promise.all(
       actions
         .filter((action) => action.updateEntity)
-        .map((action) => Entity.updateProperties(client, action.updateEntity!)),
+        .map((action) => {
+          // Populate the update entity action with the current user id before using it
+          return {
+            ...action.updateEntity!,
+            updatedByAccountId: user.accountId,
+          };
+        })
+        .map((populatedAction) =>
+          Entity.updateProperties(client, populatedAction),
+        ),
     );
 
     // Lock the page so that no other concurrent call to this resolver will conflict
@@ -184,7 +193,10 @@ export const updatePageContents: Resolver<
       }
     }
     if (propertiesChanged) {
-      await page.updateEntityProperties(client, pageProperties);
+      await page.updateEntityProperties(client, {
+        properties: pageProperties,
+        updatedByAccountId: user.accountId,
+      });
     }
 
     // Return the new state of the page

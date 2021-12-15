@@ -169,8 +169,8 @@ export class Instance {
                * @todo remove this comment when we have flat entities
                */
               properties: data.entity.properties,
-              createdById: entityVersion.createdBy,
-              createdAt: entityVersion.createdAt.toISOString(),
+              createdByAccountId: entityVersion.updatedByAccountId,
+              createdAt: entityVersion.updatedAt.toISOString(),
               updatedAt: entityVersion.updatedAt.toISOString(),
             };
           }

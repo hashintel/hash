@@ -16,4 +16,4 @@ RUN --mount=type=cache,target=/yarn-cache \
   --mount=type=cache,target=/var/lib/apt \
   yarn install --ignore-scripts --cache-folder /yarn-cache
 
-ENTRYPOINT [ "yarn", "ws:hash-search-loader", "dev" ]
+ENTRYPOINT [ "yarn", "workspace", "@hashintel/hash-search-loader", "dev" ]

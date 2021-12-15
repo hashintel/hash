@@ -3,7 +3,7 @@ import { gql } from "@apollo/client";
 const entityTypeFieldsFragment = gql`
   fragment EntityTypeFields on EntityType {
     accountId
-    createdById
+    createdByAccountId
     createdAt
     entityId
     entityVersionId

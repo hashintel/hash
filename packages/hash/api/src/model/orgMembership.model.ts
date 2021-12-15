@@ -1,4 +1,11 @@
-import { OrgMembership, Account, AccountConstructorArgs, User, Org } from ".";
+import {
+  OrgMembership,
+  AccountConstructorArgs,
+  User,
+  Org,
+  UpdatePropertiesPayload,
+  Entity,
+} from ".";
 import { DBClient } from "../db";
 import { DBOrgMembershipProperties, EntityType } from "../db/adapter";
 import { genId } from "../util";
@@ -9,7 +16,7 @@ type OrgMembershipConstructorArgs = {
   properties: OrgMembershipModelProperties;
 } & Omit<AccountConstructorArgs, "type">;
 
-class __OrgMembership extends Account {
+class __OrgMembership extends Entity {
   properties: OrgMembershipModelProperties;
 
   constructor({ properties, ...remainingArgs }: OrgMembershipConstructorArgs) {
@@ -54,7 +61,7 @@ class __OrgMembership extends Account {
     const entity = await client.createEntity({
       accountId: org.entityId,
       entityId: id,
-      createdById: org.entityId,
+      createdByAccountId: org.entityId,
       properties,
       entityTypeId: (await OrgMembership.getEntityType(client)).entityId,
       versioned: false, // @todo: should OrgMembership's be versioned?
@@ -65,13 +72,14 @@ class __OrgMembership extends Account {
     return orgMembership;
   }
 
+  // Have to use properties as any because `OrgMembership` inherits from `Account` even though their properties are very different and not compatible
   async updateProperties(
     client: DBClient,
-    properties: DBOrgMembershipProperties,
+    params: UpdatePropertiesPayload<DBOrgMembershipProperties>,
   ) {
-    await super.updateProperties(client, properties);
-    this.properties = properties;
-    return properties;
+    await super.updateProperties(client, params);
+    this.properties = params.properties;
+    return params.properties;
   }
 
   async getUser(client: DBClient): Promise<User> {
