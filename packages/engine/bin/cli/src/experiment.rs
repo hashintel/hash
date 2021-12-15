@@ -31,8 +31,7 @@ pub async fn run_experiment(args: Args, handler: Handler) -> Result<()> {
         absolute_project_path
             .file_name()
             .with_context(|| format!("Project path didn't point to a directory: {absolute_project_path:?}"))? // Shouldn't be able to fail as we canonicalize above
-            .to_str()
-            .context("Project directory name wasn't UTF-8 formatted")?
+            .to_string_lossy()
             .to_string(),
     );
 
