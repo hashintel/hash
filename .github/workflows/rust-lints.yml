@@ -3,31 +3,60 @@ name: Rust-Lint
 on:
   pull_request:
     paths:
-      - "packages/engine/**.rs"
-      - "packages/engine/rustfmt.toml"
-      - "packages/engine/Cargo.*"
+      - '**.rs'
+      - '**.toml'
+      - '**Cargo.*'
 
 defaults:
   run:
     shell: bash
 
+
 concurrency:
   group: ${{ github.head_ref }}
   cancel-in-progress: true
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
-  rustfmt:
-    name: rustfmt
+  find-crates:
+    name: Find all crates
     runs-on: ubuntu-latest
+    outputs:
+      crates: ${{ steps.find.outputs.crates }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
+      - name: Find crates
+        id: find
+        run: echo "::set-output name=crates::$(find -name Cargo.toml -printf '%h\n' | sed 's:./::' | jq -R | jq -sc)"
+
+  rustfmt:
+    name: rustfmt
+    needs: find-crates
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        directory: ${{ fromJSON(needs.find-crates.outputs.crates) }}
+      fail-fast: false
+    env:
+      V8_PATH: ${{ github.workspace }}/.v8
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+        
+        # Emitting checkstyle results in multiple xml documents for each crate so rustfmt is run for each crate
+      - name: Remove default members
+        run: |
+          sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly
+          # TODO: Read this from rust-toolchain.toml
+          toolchain: nightly-2021-11-24
           override: true
           components: rustfmt
 
@@ -35,7 +64,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: --manifest-path packages/engine/Cargo.toml --all -- --check --verbose
+          args: --manifest-path ${{ matrix.directory }}/Cargo.toml -- --check
 
       - name: Setup PHP
         if: ${{ failure() }}
@@ -45,14 +74,19 @@ jobs:
           coverage: none
           tools: cs2pr
 
-      - name: Generate checkstyle
+      - name: Annotate
         if: ${{ failure() }}
         run: |
-          cargo fmt --manifest-path packages/engine/Cargo.toml --all -- --emit checkstyle | cs2pr
+          cargo fmt --manifest-path ${{ matrix.directory }}/Cargo.toml -- --emit checkstyle | cs2pr
 
   clippy:
     name: clippy
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        directory:
+          - packages/engine
+      fail-fast: false
     env:
       V8_PATH: ${{ github.workspace }}/.v8
     steps:
@@ -64,7 +98,8 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly
+          # TODO: Read this from rust-toolchain.toml
+          toolchain: nightly-2021-11-24
           override: true
           components: clippy
 
@@ -80,7 +115,7 @@ jobs:
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             **/target/
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.directory }}-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install v8
         run: |
@@ -94,7 +129,15 @@ jobs:
           rm -rf tmp # Delete the tmp folder
 
       - name: Run clippy
-        uses: actions-rs/clippy-check@v1
+        run: |
+          cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml --all --all-features -- -D warnings
+
+      - name: Annotate
+        if: ${{ failure() }}
+        # use `actions-rs/clippy-check@v1` when https://github.com/actions-rs/clippy-check/pull/158 is merged
+        uses: reinismu/clippy-check@master
         with:
+          name: clippy (${{ matrix.directory }})
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --manifest-path packages/engine/Cargo.toml --all --all-features -- -Dwarnings
+          working-directory: ${{ matrix.directory }}
+          args: --all --all-features
