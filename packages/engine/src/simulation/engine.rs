@@ -125,6 +125,15 @@ impl Engine {
             .context_batch_sync(&context, state.group_start_indices())
             .await?;
 
+        // We need to wait for state sync because state packages in the main loop
+        // shouldn't write to state before workers have finished reading state.
+        // In the case of the state snapshot, the main loop also shouldn't write to
+        // the snapshot before the workers have finished reading it. But there's
+        // no risk of that happening, because the snapshot isn't written to at all
+        // until the next step (i.e. after all packages and their language runner
+        // components have finished running), so we don't need confirmation of
+        // snapshot_sync.
+
         log::trace!("Waiting for active state sync");
         active_sync.await?.map_err(Error::state_sync)?;
         log::trace!("State sync finished");
