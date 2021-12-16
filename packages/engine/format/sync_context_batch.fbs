@@ -10,6 +10,7 @@ include "batch.fbs";
 table ContextBatchSync {
   context_batch:Batch (required);
   current_step:int64;
+  // TODO: state_group_start_indices
 }
 
 root_type ContextBatchSync;

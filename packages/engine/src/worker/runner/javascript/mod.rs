@@ -247,10 +247,12 @@ struct RunnerImpl<'m> {
     sims_state: HashMap<SimulationShortId, SimState>,
 }
 
+// we pass in _mv8 for the return values lifetime
 fn sim_id_to_js(_mv8: &MiniV8, sim_run_id: SimulationShortId) -> mv8::Value<'_> {
     mv8::Value::Number(sim_run_id as f64)
 }
 
+// we pass in _mv8 for the return values lifetime
 fn pkg_id_to_js(_mv8: &MiniV8, pkg_id: PackageId) -> mv8::Value<'_> {
     mv8::Value::Number(pkg_id.as_usize() as f64)
 }
@@ -261,6 +263,11 @@ fn idxs_to_js<'m>(mv8: &'m MiniV8, idxs: &[usize]) -> Result<mv8::Value<'m>> {
         a.set(i as u32, mv8::Value::Number(*idx as u32 as f64))?;
     }
     Ok(mv8::Value::Array(a))
+}
+
+// we pass in _mv8 for the return values lifetime
+fn current_step_to_js(_mv8: &MiniV8, current_step: usize) -> mv8::Value<'_> {
+    mv8::Value::Number(current_step as f64)
 }
 
 fn batches_from_shared_store(
@@ -948,17 +955,22 @@ impl<'m> RunnerImpl<'m> {
         &mut self,
         mv8: &'m MiniV8,
         sim_run_id: SimulationShortId,
-        ctx_batch: ContextBatchSync,
+        ctx_batch_sync: ContextBatchSync,
     ) -> Result<()> {
-        let start_indices = &ctx_batch.state_group_start_indices;
-        let ctx_batch = &ctx_batch
-            .context_batch
+        let ContextBatchSync {
+            context_batch,
+            current_step,
+            state_group_start_indices,
+        } = ctx_batch_sync;
+
+        let ctx_batch = context_batch
             .try_read()
             .ok_or_else(|| Error::from("Couldn't read context batch"))?;
         let args = mv8::Values::from_vec(vec![
             sim_id_to_js(mv8, sim_run_id),
             batch_to_js(mv8, ctx_batch.memory(), ctx_batch.metaversion())?,
-            idxs_to_js(mv8, start_indices)?,
+            idxs_to_js(mv8, &state_group_start_indices)?,
+            current_step_to_js(mv8, current_step),
         ]);
         let _: mv8::Value<'_> = self
             .embedded

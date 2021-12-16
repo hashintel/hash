@@ -60,9 +60,9 @@ impl Engine {
     /// is a possible future extension. Also, while we do require that
     /// output packages are run only once, context and state packages
     /// can technically be run any number of times.
-    pub async fn next(&mut self) -> Result<SimulationStepResult> {
+    pub async fn next(&mut self, current_step: usize) -> Result<SimulationStepResult> {
         log::debug!("Running next step");
-        self.run_context_packages().await?;
+        self.run_context_packages(current_step).await?;
         self.run_state_packages().await?;
         let output = self.run_output_packages().await?;
         let result = SimulationStepResult {
@@ -89,7 +89,7 @@ impl Engine {
     /// of data associated with each agent. Since these sequences of data are not
     /// dependent on each other, then all context packages are run in parallel
     /// and their outputs are merged into one Context object.
-    async fn run_context_packages(&mut self) -> Result<()> {
+    async fn run_context_packages(&mut self, current_step: usize) -> Result<()> {
         log::trace!("Starting run context packages stage");
         let (mut state, mut context) = self.store.take_upgraded()?;
         let snapshot = self.prepare_for_context_packages(&mut state, &mut context)?;
@@ -110,7 +110,7 @@ impl Engine {
 
         // Synchronize context with workers
         self.comms
-            .context_batch_sync(&context, state.group_start_indices())
+            .context_batch_sync(&context, current_step, state.group_start_indices())
             .await?;
 
         // TODO: Previously we didn't need responses from state syncs, because
