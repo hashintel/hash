@@ -21,10 +21,10 @@ use crate::{
 /// sync succeeded.
 ///
 /// Fields:
-/// `completion_sender`: After finishing or failing to sync state,
-///                      used by the receiver/handler of the message
-///                      to notify the sender of the message that the
-///                      state sync completed.
+/// `completion_sender`: Used by the receiver/handler of the 
+///                                        message after finishing or failing to
+///                                        sync state, to notify the sender of the 
+///                                        message that the state sync completed.
 /// `agent_pool`: Agent batches to load state from
 /// `message_pool`: Message batches to load state from
 #[derive(derive_new::new)]
