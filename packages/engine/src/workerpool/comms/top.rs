@@ -22,6 +22,7 @@ pub struct WorkerPoolMsgSend {
 pub enum WorkerPoolToExpCtlMsg {
     Errors(Vec<RunnerError>),
     Warnings(Vec<RunnerError>),
+    Logs(Vec<String>),
 }
 
 pub fn new_pair() -> (WorkerPoolMsgSend, WorkerPoolMsgRecv) {

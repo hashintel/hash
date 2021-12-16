@@ -96,6 +96,7 @@ pub enum WorkerToWorkerPoolMsg {
     TaskResultOrCancelled(WorkerTaskResultOrCancelled),
     RunnerErrors(Vec<RunnerError>),
     RunnerWarnings(Vec<RunnerError>),
+    RunnerLogs(Vec<String>),
 }
 
 pub struct WorkerCommsWithWorkerPool {

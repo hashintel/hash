@@ -264,6 +264,8 @@ impl WorkerController {
             RunnerErrors(errs) => self.handle_errors(errs).await?,
             RunnerWarning(warning) => self.handle_warnings(vec![warning]).await?,
             RunnerWarnings(warnings) => self.handle_warnings(warnings).await?,
+            RunnerLog(log) => self.handle_logs(vec![log]).await?,
+            RunnerLogs(logs) => self.handle_logs(logs).await?,
         }
         Ok(())
     }
@@ -435,6 +437,12 @@ impl WorkerController {
     async fn handle_warnings(&mut self, warnings: Vec<RunnerError>) -> Result<()> {
         self.worker_pool_comms
             .send(WorkerToWorkerPoolMsg::RunnerWarnings(warnings))?;
+        Ok(())
+    }
+
+    async fn handle_logs(&mut self, logs: Vec<String>) -> Result<()> {
+        self.worker_pool_comms
+            .send(WorkerToWorkerPoolMsg::RunnerLogs(logs))?;
         Ok(())
     }
 

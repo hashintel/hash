@@ -65,6 +65,8 @@ pub enum OutboundFromRunnerMsgPayload {
     RunnerErrors(Vec<RunnerError>),
     RunnerWarning(RunnerError),
     RunnerWarnings(Vec<RunnerError>),
+    RunnerLog(String),
+    RunnerLogs(Vec<String>),
     /* TODO: add
      * PackageError
      * UserErrors
