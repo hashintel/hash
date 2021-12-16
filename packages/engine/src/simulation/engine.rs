@@ -97,7 +97,7 @@ impl Engine {
         let snapshot = self.prepare_for_context_packages(&mut state, &mut context)?;
 
         // Context packages use the snapshot and state packages use state.
-        // Context packages will be run before state packages, so start
+        // Context packages will be ran before state packages, so start
         // snapshot sync before state sync, so workers have more time to
         // get the respective syncs done in parallel with packages.
 
