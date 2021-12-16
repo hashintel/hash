@@ -135,16 +135,18 @@ impl Comms {
         Ok(())
     }
 
+    /// TODO: DOC
     pub async fn context_batch_sync(
         &self,
         context: &Context,
+        current_step: usize,
         state_group_start_indices: &Arc<Vec<usize>>,
     ) -> Result<()> {
         log::trace!("Synchronizing context batch");
         // Synchronize the context batch
         let batch = context.batch();
         let indices = Arc::clone(state_group_start_indices);
-        let sync_msg = ContextBatchSync::new(batch, indices);
+        let sync_msg = ContextBatchSync::new(batch, current_step, indices);
         self.worker_pool_sender
             .send(EngineToWorkerPoolMsg::sync(
                 self.sim_id,
