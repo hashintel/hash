@@ -23,6 +23,7 @@
   * [Possible Dependencies and Debugging](#possible-dependencies-and-debugging)
   * [Project Setup / Building](#project-setup--building)
   * [Running for development](#running-for-development)
+  * [Contributing](#contributing)
 - [Quick Start Guide](#quick-start-guide)
 - [Usage](#usage)
   * [CLI Arguments and Options](#cli-arguments-and-options)
@@ -97,7 +98,7 @@ Building this project requires the following.
   * Flatbuffers installation guidance from [their website](https://google.github.io/flatbuffers/flatbuffers_guide_building.html)
     * It's necessary to match the version (2.0.0) with the Rust crate, so build (or otherwise acquire a compiled flatc binary of) the commit associated with the [2.0.0 release](https://github.com/google/flatbuffers/releases/tag/v2.0.0)
       * One way of checking out the right commit is running the following from within the flatbuffers repository:
-      
+
         ```shell
         latestTag=$(git describe --tags `git rev-list --tags --max-count=1`)
         git checkout $latestTag
@@ -142,6 +143,16 @@ Then, run the CLI using:
 Where CLI args are described below in the [Usage](#usage) section, an example of a run command during development would be:
 * `cargo run --bin cli -- <CLI ARGS> -p  "<PATH TO HASH PROJECT DIR>" single-run --num-steps <NUM-STEPS>`
 
+### Contributing 
+> **WIP** - This section will be expanded in the future.
+
+If you like to contribute to hEngine, feel free to open a pull request. We are using Rustfmt and clippy as tools for linting every Rust-related pull request. In order to run those, you need to install them first (unless they are already installed, which is the default):
+* `rustup component add rustfmt`
+* `rustup component add clippy`
+
+Then simply run them with:
+* `cargo fmt`
+* `cargo clippy`
 
 ## Quick Start Guide
 
@@ -201,6 +212,12 @@ In order to see more logging information while the simulation is running, you ca
 
 ```shell
 $ export RUST_LOG=debug
+```
+
+If you only want to see the output from your behaviors, you may set 
+
+```shell
+$ export RUST_LOG=cli::experiment=info
 ```
 
 [docs]: https://hash.ai/docs/simulation?utm_medium=organic&utm_source=github_readme_engine
