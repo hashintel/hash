@@ -431,6 +431,14 @@ fn get_user_warnings(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Vec<RunnerErr
     None
 }
 
+fn get_print(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Vec<String>> {
+    if let Ok(mv8::Value::String(e)) = r.get("print") {
+        Some(e.to_string().split('\n').map(|s| s.to_string()).collect())
+    } else {
+        None
+    }
+}
+
 fn get_next_task(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Result<(MessageTarget, String)> {
     let target = if let Ok(mv8::Value::String(target)) = r.get("target") {
         let target = target.to_string();
@@ -853,7 +861,11 @@ impl<'m> RunnerImpl<'m> {
         mv8: &'m MiniV8,
         sim_run_id: SimulationShortId,
         mut msg: RunnerTaskMsg,
-    ) -> Result<(TargetedRunnerTaskMsg, Option<Vec<RunnerError>>)> {
+    ) -> Result<(
+        TargetedRunnerTaskMsg,
+        Option<Vec<RunnerError>>,
+        Option<Vec<String>>,
+    )> {
         log::debug!("Starting state interim sync before running task");
         // TODO: Move JS part of sync into `run_task` function in JS for better performance.
         self.state_interim_sync(mv8, sim_run_id, &msg.shared_store)?;
@@ -910,7 +922,7 @@ impl<'m> RunnerImpl<'m> {
             return Err(error);
         }
         let warnings = get_user_warnings(mv8, &r);
-        // TODO: Send `r.print` (if any) to main loop to display to user.
+        let logs = get_print(mv8, &r);
         let (next_target, next_task_payload) = get_next_task(mv8, &r)?;
 
         let next_inner_task_msg: serde_json::Value = serde_json::from_str(&next_task_payload)?;
@@ -941,7 +953,7 @@ impl<'m> RunnerImpl<'m> {
                 payload: next_task_payload,
             },
         };
-        Ok((next_task_msg, warnings))
+        Ok((next_task_msg, warnings, logs))
     }
 
     fn ctx_batch_sync(
@@ -1089,7 +1101,7 @@ impl<'m> RunnerImpl<'m> {
             }
             InboundToRunnerMsgPayload::TaskMsg(msg) => {
                 let sim_id = sim_id.ok_or(Error::SimulationIdRequired("run task"))?;
-                let (next_task_msg, warnings) = self.run_task(mv8, sim_id, msg)?;
+                let (next_task_msg, warnings, logs) = self.run_task(mv8, sim_id, msg)?;
                 // TODO: `send` fn to reduce code duplication.
                 outbound_sender.send(OutboundFromRunnerMsg {
                     source: Language::JavaScript,
@@ -1101,6 +1113,13 @@ impl<'m> RunnerImpl<'m> {
                         source: Language::JavaScript,
                         sim_id,
                         payload: OutboundFromRunnerMsgPayload::RunnerWarnings(warnings),
+                    })?;
+                }
+                if let Some(logs) = logs {
+                    outbound_sender.send(OutboundFromRunnerMsg {
+                        source: Language::JavaScript,
+                        sim_id,
+                        payload: OutboundFromRunnerMsgPayload::RunnerLogs(logs),
                     })?;
                 }
             }

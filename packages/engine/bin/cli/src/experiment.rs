@@ -154,6 +154,17 @@ async fn run_experiment_with_manifest(
                     warn!("Warnings occurred within the engine: {warnings:?}");
                 }
             }
+            proto::EngineStatus::Logs(sim_id, logs) => {
+                if let Some(sim_id) = sim_id {
+                    for log in logs {
+                        info!("[{sim_id}]: {log}");
+                    }
+                } else {
+                    for log in logs {
+                        info!("{log}");
+                    }
+                }
+            }
             proto::EngineStatus::Exit => {
                 debug!("Process exited successfully for experiment run with id {experiment_id}",);
                 break;

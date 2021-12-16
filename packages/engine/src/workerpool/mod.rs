@@ -249,6 +249,12 @@ impl WorkerPoolController {
                     .inner
                     .send((None, WorkerPoolToExpCtlMsg::Warnings(warnings)))?;
             }
+            WorkerToWorkerPoolMsg::RunnerLogs(logs) => {
+                log::debug!("Received RunnerLogs Message from Worker");
+                self.top_send
+                    .inner
+                    .send((None, WorkerPoolToExpCtlMsg::Logs(logs)))?;
+            }
         }
         Ok(())
     }

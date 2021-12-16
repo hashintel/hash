@@ -153,6 +153,10 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
                     .collect();
                 EngineStatus::Warnings(id, runner_warnings)
             }
+            WorkerPoolToExpCtlMsg::Logs(logs) => {
+                log::debug!("Received Logs Experiment Control Message from Worker Pool");
+                EngineStatus::Logs(id, logs)
+            }
         };
         self.orch_client().send(engine_status).await?;
         Ok(())
