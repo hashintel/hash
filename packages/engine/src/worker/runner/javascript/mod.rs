@@ -856,6 +856,18 @@ impl<'m> RunnerImpl<'m> {
         Ok(())
     }
 
+    /// Runs a task on JavaScript with the provided simulation id.
+    ///
+    /// Returns the next task ([`TargetedRunnerTaskMsg`]) and, if present, warnings
+    /// ([`RunnerError`]) and logging statements.
+    ///
+    /// # Errors
+    ///
+    /// May return an error if:
+    ///
+    /// - a value from Javascript could not be parsed,
+    /// - the task errored, or
+    /// - the state could not be flushed to the datastore.
     fn run_task(
         &mut self,
         mv8: &'m MiniV8,
