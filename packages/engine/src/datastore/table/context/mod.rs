@@ -12,7 +12,7 @@ use crate::{
     simulation::package::context::ContextColumn,
 };
 
-/// TODO: docstring, also field descriptions aren't particularly useful/correct
+/// TODO: DOC, also field descriptions aren't particularly useful/correct
 pub struct Inner {
     batch: Arc<RwLock<ContextBatch>>,
     /// Pool which contains all Static Agent Batches

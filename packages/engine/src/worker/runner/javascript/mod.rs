@@ -60,7 +60,7 @@ fn get_pkg_path(name: &str, pkg_type: PackageType) -> String {
     )
 }
 
-// TODO: docstrings on impl'd methods
+// TODO: DOC add docstrings on impl'd methods
 impl<'m> JsPackage<'m> {
     fn import(
         mv8: &'m MiniV8,
@@ -539,7 +539,7 @@ impl<'m> RunnerImpl<'m> {
         s.into()
     }
 
-    /// TODO: docstring, flushing from a single column
+    /// TODO: DOC, flushing from a single column
     fn array_data_from_js(
         &mut self,
         mv8: &'m MiniV8,

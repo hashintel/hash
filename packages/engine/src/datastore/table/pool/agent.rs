@@ -8,7 +8,7 @@ use crate::{
     simulation::package::state::StateColumn,
 };
 
-/// TODO: docstring
+/// TODO: DOC
 #[derive(Clone)]
 pub struct AgentPool {
     batches: Vec<Arc<RwLock<AgentBatch>>>,

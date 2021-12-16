@@ -1,4 +1,4 @@
-//! TODO: Docstring
+//! TODO: DOC
 pub mod error;
 mod pending;
 pub mod runner;

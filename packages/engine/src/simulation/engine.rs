@@ -18,7 +18,7 @@ use crate::{
     simulation::agent_control::AgentControl,
 };
 
-/// TODO: Docstring
+/// TODO: DOC
 pub struct Engine {
     packages: Packages,
     store: Store,
@@ -77,7 +77,7 @@ impl Engine {
         Ok(result)
     }
 
-    /// TODO: update docstring, the "see" is wrong
+    /// TODO: DOC, the "see" is wrong
     /// Finalize state (see [`SimulationEngine::finalize_state`]) and create a new context
     /// for the agents.
     ///

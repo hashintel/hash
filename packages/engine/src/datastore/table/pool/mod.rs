@@ -10,7 +10,7 @@ use self::proxy::{PoolReadProxy, PoolWriteProxy};
 use super::proxy::{BatchReadProxy, BatchWriteProxy};
 use crate::datastore::{batch::Batch, prelude::Result};
 
-/// TODO: docstring
+/// TODO: DOC
 pub trait BatchPool<K: Batch>: Send + Sync {
     fn batches(&self) -> &[Arc<RwLock<K>>];
     fn mut_batches(&mut self) -> &mut Vec<Arc<RwLock<K>>>;

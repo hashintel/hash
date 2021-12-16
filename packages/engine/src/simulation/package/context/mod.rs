@@ -39,7 +39,6 @@ pub trait Package: MaybeCpuBound + GetWorkerSimStartMsg + Send + Sync {
 }
 
 pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
-    // TODO: TODO
     /// A per-experiment initialization step that provide the creator with experiment config.
     /// This step is called when packages are loaded by the experiment controller.
     ///

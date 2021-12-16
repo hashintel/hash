@@ -29,7 +29,7 @@ pub struct Packages {
     pub step: StepPackages,
 }
 
-/// TODO: Docstring: explain link to init/mod.rs
+/// TODO: DOC: explain link to init/mod.rs
 pub struct InitPackages {
     inner: Vec<Box<dyn init::Package>>,
 }

@@ -17,7 +17,7 @@ use crate::{
     hash_types::{message::RemoveAgentPayload, Agent},
 };
 
-//TODO[9](docs) Update docs to reflect that these variants are only allowed
+//TODO: DOC Update docs to reflect that these variants are only allowed
 static HASH: [&str; 3] = ["hash", "Hash", "HASH"];
 
 enum HashMessageType {
@@ -33,7 +33,7 @@ struct RemoveCommand {
     uuid: Uuid,
 }
 
-/// TODO: docstring
+/// TODO: DOC
 #[derive(Default)]
 pub struct CreateRemoveCommands {
     create: Vec<CreateCommand>,
@@ -49,7 +49,7 @@ impl CreateRemoveCommands {
         self.remove.push(RemoveCommand { uuid });
     }
 
-    /// TODO: Docstring
+    /// TODO: DOC
     pub fn verify(&self, schema: &Arc<AgentSchema>) -> Result<()> {
         let field_spec_map = &schema.field_spec_map; // Fields for entire simulation.
 
@@ -71,7 +71,7 @@ impl CreateRemoveCommands {
         self.remove.append(&mut other.remove);
     }
 
-    /// TODO: Docstring
+    /// TODO: DOC
     pub fn from_hash_messages(
         message_map: &MessageMap,
         message_pool: MessagePoolRead<'_>,
@@ -123,7 +123,7 @@ impl CreateRemoveCommands {
         Ok(res)
     }
 
-    /// TODO: Docstring
+    /// TODO: DOC
     pub fn try_into_processed_commands(
         mut self,
         schema: &Arc<AgentSchema>,
@@ -154,7 +154,7 @@ impl CreateRemoveCommands {
     }
 }
 
-/// TODO: Docstring
+/// TODO: DOC
 fn handle_hash_message(
     cmds: &mut CreateRemoveCommands,
     message_type: HashMessageType,
@@ -176,7 +176,7 @@ fn handle_hash_message(
     Ok(())
 }
 
-/// TODO: Docstring
+/// TODO: DOC
 fn handle_remove_data(
     cmds: &mut CreateRemoveCommands,
     data: &str,

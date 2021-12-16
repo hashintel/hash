@@ -10,7 +10,7 @@ use self::comms::{
 pub use super::error::{Error, Result};
 use crate::proto::SimulationShortId;
 
-/// TODO: docstring
+/// TODO: DOC
 #[async_trait::async_trait]
 pub trait LanguageWorker {
     async fn new(spawn: bool, exp_init: ExperimentInitRunnerMsg) -> Self;

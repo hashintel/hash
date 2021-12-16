@@ -11,7 +11,7 @@ use crate::{
     SimRunConfig,
 };
 
-/// TODO: Docstring
+/// TODO: DOC
 #[derive(Clone)]
 pub struct MessagePool {
     batches: Vec<Arc<RwLock<MessageBatch>>>,
