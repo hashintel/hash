@@ -124,7 +124,7 @@ async fn run_experiment_with_manifest(
             m = engine_handle.recv() => { msg = Some(m) },
         }
         let msg = msg.unwrap();
-        info!("Got message from experiment run with type: {}", msg.kind());
+        debug!("Got message from experiment run with type: {}", msg.kind());
 
         match msg {
             proto::EngineStatus::Stopping => {
@@ -157,11 +157,15 @@ async fn run_experiment_with_manifest(
             proto::EngineStatus::Logs(sim_id, logs) => {
                 if let Some(sim_id) = sim_id {
                     for log in logs {
-                        info!("[{sim_id}]: {log}");
+                        if !log.is_empty() {
+                            info!("[{sim_id}]: {log}");
+                        }
                     }
                 } else {
                     for log in logs {
-                        info!("{log}");
+                        if !log.is_empty() {
+                            info!("{log}");
+                        }
                     }
                 }
             }
