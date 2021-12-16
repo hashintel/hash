@@ -119,7 +119,7 @@ impl Comms {
         Ok(())
     }
 
-    /// TODO: docstring
+    /// TODO: DOC
     pub async fn context_batch_sync(
         &self,
         context: &Context,
