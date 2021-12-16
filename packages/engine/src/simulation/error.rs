@@ -164,15 +164,24 @@ pub enum Error {
 
     #[error("{0}")]
     RwLock(String),
+
+    #[error("State sync failed: {0}")]
+    StateSync(String),
 }
 
 impl Error {
+    /// TODO: This is a temporary fix for the dependency cycle
+    ///       between simulation and worker errors.
+    pub fn state_sync(worker_error: crate::worker::error::Error) -> Self {
+        Self::StateSync(format!("{:?}", worker_error))
+    }
+
     pub fn access_not_allowed(
         state: &SharedState,
         ctx: &SharedContext,
         package_type: String,
-    ) -> Error {
-        Error::AccessNotAllowed(format!("{:?}", state), format!("{:?}", ctx), package_type)
+    ) -> Self {
+        Self::AccessNotAllowed(format!("{:?}", state), format!("{:?}", ctx), package_type)
     }
 }
 

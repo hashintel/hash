@@ -44,7 +44,7 @@ impl WorkerPoolToWorkerMsg {
                 Err(Error::from("Cannot clone worker task message"))
             }
             WorkerPoolToWorkerMsgPayload::Sync(inner) => {
-                Ok(WorkerPoolToWorkerMsgPayload::Sync(inner.clone()))
+                Ok(WorkerPoolToWorkerMsgPayload::Sync(inner.try_clone()?))
             }
             WorkerPoolToWorkerMsgPayload::CancelTask(inner) => {
                 Ok(WorkerPoolToWorkerMsgPayload::CancelTask(*inner))
@@ -150,6 +150,10 @@ pub struct WorkerPoolCommsWithWorkers {
 }
 
 impl WorkerPoolCommsWithWorkers {
+    pub fn num_workers(&self) -> usize {
+        self.send_to_w.len()
+    }
+
     fn get_worker_senders(
         &self,
         worker_index: WorkerIndex,

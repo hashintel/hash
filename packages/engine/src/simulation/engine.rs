@@ -91,16 +91,27 @@ impl Engine {
     /// and their outputs are merged into one Context object.
     async fn run_context_packages(&mut self) -> Result<()> {
         log::trace!("Starting run context packages stage");
+        // Need write access to state to prepare for context packages,
+        // so can't start state sync (with workers) yet.
         let (mut state, mut context) = self.store.take_upgraded()?;
         let snapshot = self.prepare_for_context_packages(&mut state, &mut context)?;
-        self.comms.state_snapshot_sync(&snapshot).await?; // Synchronize snapshot with workers
-        let pre_context = context.into_pre_context();
 
+        // Context packages use the snapshot and state packages use state.
+        // Context packages will be ran before state packages, so start
+        // snapshot sync before state sync, so workers have more time to
+        // get the respective syncs done in parallel with packages.
+
+        // Synchronize snapshot with workers
+        self.comms.state_snapshot_sync(&snapshot).await?;
+
+        // After this point, we'll only need read access to state until
+        // running the first state package. (Context packages don't have
+        // write access to state.)
         let state = Arc::new(state.downgrade());
-        // TODO: Do we want to sync state here? At the moment we expect
-        //       task messages to cause sync of state
-        self.comms.state_sync(&state).await?; // Synchronize state with workers
+        // Synchronize state with workers
+        let active_sync = self.comms.state_sync(&state).await?;
 
+        let pre_context = context.into_pre_context();
         let context = self
             .packages
             .step
@@ -108,25 +119,26 @@ impl Engine {
             .await?
             .downgrade();
 
-        // Synchronize context with workers
+        // Synchronize context with workers. `context` won't change
+        // again until the next step.
         self.comms
             .context_batch_sync(&context, state.group_start_indices())
             .await?;
 
-        // TODO: Previously we didn't need responses from state syncs, because
-        //       we could guarantee that no writes to state would happen before
-        //       a task was first sent to a worker (after which we could just
-        //       wait for that task to complete, instead of waiting for the
-        //       sync explicitly), but now we should either (1) put a one-shot
-        //       channel in inbound StateSync messages and wait for a response
-        //       here (like for active tasks) or (2) let an inbound RunTask
-        //       message contain a StateSync (rather than a StateInterimSync)
-        //       message if it is the first RunTask / StateSync message on that
-        //       step (i.e. no StateSync message has yet been sent on that step).
-        //       This sleep should be removed, but for now it can only fail with
-        //       a panic, not a silent data race, due to the `Arc::try_unwrap` below.
-        tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+        // We need to wait for state sync because state packages in the main loop
+        // shouldn't write to state before workers have finished reading state.
+        // In the case of the state snapshot, the main loop also shouldn't write to
+        // the snapshot before the workers have finished reading it. But there's
+        // no risk of that happening, because the snapshot isn't written to at all
+        // until the next step (i.e. after all packages and their language runner
+        // components have finished running), so we don't need confirmation of
+        // snapshot_sync.
 
+        log::trace!("Waiting for active state sync");
+        active_sync.await?.map_err(Error::state_sync)?;
+        log::trace!("State sync finished");
+        // State sync finished, so the workers should have dropped
+        // their `Arc`s with state by this point.
         let state = Arc::try_unwrap(state)
             .map_err(|_| Error::from("Unable to unwrap state after context package execution"))?;
         self.store.set(state, context);

@@ -3,10 +3,13 @@ mod pending;
 pub mod runner;
 pub mod task;
 
-use std::time::Duration;
+use std::{future::Future, pin::Pin, time::Duration};
 
 pub use error::{Error, Result};
-use futures::{stream::FuturesOrdered, StreamExt};
+use futures::{
+    stream::{FuturesOrdered, FuturesUnordered},
+    StreamExt,
+};
 use tokio::time::timeout;
 
 use self::{
@@ -118,12 +121,17 @@ impl WorkerController {
         let mut terminate_recv = self
             .worker_pool_comms
             .take_terminate_recv()
-            .map_err(|err| Error::from(format!("Failed to take terminate_recv: {err}")))?;
+            .map_err(|err| Error::from(format!("Failed to take terminate_recv: {}", err)))?;
+
+        let pending_syncs: FuturesUnordered<Pin<Box<dyn Future<Output = ()> + Send>>> =
+            FuturesUnordered::new();
+        tokio::pin!(pending_syncs);
         loop {
             tokio::select! {
+                Some(_) = pending_syncs.next() => {}
                 Some(msg) = wp_recv.recv() => {
                     log::debug!("Handle worker pool message: {:?}", &msg);
-                    self.handle_worker_pool_msg(msg).await?;
+                    self.handle_worker_pool_msg(msg, &mut pending_syncs).await?;
                 }
                 res = self.recv_from_runners() => {
                     match res {
@@ -189,7 +197,11 @@ impl WorkerController {
         Ok(())
     }
 
-    async fn handle_worker_pool_msg(&mut self, msg: WorkerPoolToWorkerMsg) -> Result<()> {
+    async fn handle_worker_pool_msg(
+        &mut self,
+        msg: WorkerPoolToWorkerMsg,
+        pending_syncs: &mut FuturesUnordered<Pin<Box<dyn Future<Output = ()> + Send>>>,
+    ) -> Result<()> {
         match msg.payload {
             WorkerPoolToWorkerMsgPayload::Task(task) => {
                 self.spawn_task(
@@ -199,8 +211,8 @@ impl WorkerController {
                 )
                 .await?;
             }
-            WorkerPoolToWorkerMsgPayload::Sync(sync_msg) => {
-                self.sync_runners(msg.sim_id, sync_msg).await?;
+            WorkerPoolToWorkerMsgPayload::Sync(sync) => {
+                self.sync_runners(msg.sim_id, sync, pending_syncs).await?;
             }
             WorkerPoolToWorkerMsgPayload::CancelTask(task_id) => {
                 log::trace!("Received cancel task msg from Worker Pool");
@@ -492,12 +504,42 @@ impl WorkerController {
         &mut self,
         sim_id: Option<SimulationShortId>,
         sync_msg: SyncPayload,
+        pending_syncs: &mut FuturesUnordered<Pin<Box<dyn Future<Output = ()> + Send>>>,
     ) -> Result<()> {
+        let sync = if let SyncPayload::State(sync) = sync_msg {
+            sync
+        } else {
+            tokio::try_join!(
+                self.py
+                    .send_if_spawned(sim_id, sync_msg.try_clone()?.into()),
+                self.js
+                    .send_if_spawned(sim_id, sync_msg.try_clone()?.into()),
+                self.rs.send_if_spawned(sim_id, sync_msg.into())
+            )?;
+            return Ok(());
+        };
+
+        // TODO: Change to `children(3)` after enabling all runners.
+        debug_assert!(!self.py.spawned());
+        debug_assert!(!self.rs.spawned());
+        let (runner_msgs, runner_receivers) = sync.create_children(1);
+        let mut runner_msgs: Vec<_> = runner_msgs
+            .into_iter()
+            .map(InboundToRunnerMsgPayload::StateSync)
+            .collect();
+        // Borrow checker doesn't allow just `runner_msgs[0]`,
+        // because it would be a partial move.
+        let js_msg = runner_msgs.remove(0);
         tokio::try_join!(
-            self.py.send_if_spawned(sim_id, sync_msg.clone().into()),
-            self.js.send_if_spawned(sim_id, sync_msg.clone().into()),
-            self.rs.send_if_spawned(sim_id, sync_msg.into())
+            self.js.send_if_spawned(sim_id, js_msg),
+            /* TODO: self.py.send_if_spawned(msg.sim_id, runner_msgs[1]),
+             * TODO: self.rs.send_if_spawned(msg.sim_id, runner_msgs[2]), */
         )?;
+        let fut = async move {
+            let sync = sync; // Capture `sync` in lambda.
+            sync.forward_children(runner_receivers).await
+        };
+        pending_syncs.push(Box::pin(fut) as _);
         Ok(())
     }
 

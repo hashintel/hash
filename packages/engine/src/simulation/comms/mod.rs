@@ -40,12 +40,13 @@ use crate::{
         prelude::{Context, State},
         table::{
             state::{view::StateSnapshot, ReadState},
-            sync::{ContextBatchSync, StateSync, SyncPayload},
+            sync::{ContextBatchSync, StateSync, SyncPayload, WaitableStateSync},
             task_shared_store::TaskSharedStore,
         },
     },
     hash_types::Agent,
     proto::SimulationShortId,
+    simulation::comms::message::SyncCompletionReceiver,
     types::TaskId,
     workerpool::comms::MainMsgSend,
 };
@@ -88,20 +89,35 @@ impl Comms {
 
 // Datastore synchronization methods
 impl Comms {
-    // TODO: Docstring, explain why and how this would be used. As it is not currently.
-    pub async fn state_sync(&self, state: &State) -> Result<()> {
+    /// Sends a message to workers (via the worker pool) that tells them
+    /// to load state from Arrow in shared memory.
+    ///
+    /// State sync is distinct from state interim sync in that state sync
+    /// can update the number of batches (after adding/removing agents or
+    /// partitioning them differently), but state interim sync only makes
+    /// changes within (some subset of) batches.
+    ///
+    /// Returns a handle (inside a Result) that can be used to wait for the
+    /// state sync to complete. The handle returns whether the sync itself
+    /// succeeded (as opposed to whether sending the message succeeded).
+    ///
+    /// Errors: tokio failed to send the message to the worker pool for some reason;
+    ///         e.g. the worker pool already stopped due to some other error.
+    pub async fn state_sync(&self, state: &State) -> Result<SyncCompletionReceiver> {
         log::trace!("Synchronizing state");
+        let (completion_sender, completion_receiver) = tokio::sync::oneshot::channel();
+
         // Synchronize the state batches
         let agents = state.agent_pool().clone();
         let agent_messages = state.message_pool().clone();
-        let sync_msg = StateSync::new(agents, agent_messages);
+        let sync_msg = WaitableStateSync::new(completion_sender, agents, agent_messages);
         self.worker_pool_sender
             .send(EngineToWorkerPoolMsg::sync(
                 self.sim_id,
                 SyncPayload::State(sync_msg),
             ))
             .map_err(|e| Error::from(format!("Worker pool error: {:?}", e)))?;
-        Ok(())
+        Ok(completion_receiver)
     }
 
     pub async fn state_snapshot_sync(&self, state: &StateSnapshot) -> Result<()> {

@@ -35,7 +35,7 @@ use crate::{
         table::{
             pool::{agent::AgentPool, message::MessagePool, BatchPool},
             proxy::StateWriteProxy,
-            sync::{ContextBatchSync, StateSync},
+            sync::{ContextBatchSync, StateSync, WaitableStateSync},
             task_shared_store::{PartialSharedState, SharedState},
         },
     },
@@ -995,7 +995,7 @@ impl<'m> RunnerImpl<'m> {
         &mut self,
         mv8: &'m MiniV8,
         sim_run_id: SimulationShortId,
-        msg: StateSync,
+        msg: WaitableStateSync,
     ) -> Result<()> {
         // TODO: Technically this might violate Rust's aliasing rules, because
         //       at this point, the state batches are immutable, but we pass
@@ -1024,6 +1024,15 @@ impl<'m> RunnerImpl<'m> {
             .ok_or(Error::MissingSimulationRun(sim_run_id))?;
         state.agent_pool = msg.agent_pool;
         state.msg_pool = msg.message_pool;
+
+        log::trace!("Sending state sync completion");
+        msg.completion_sender.send(Ok(())).map_err(|e| {
+            Error::from(format!(
+                "Couldn't send state sync completion to worker: {:?}",
+                e
+            ))
+        })?;
+        log::trace!("Sent state sync completion");
         Ok(())
     }
 

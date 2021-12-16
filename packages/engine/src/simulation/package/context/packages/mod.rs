@@ -30,6 +30,7 @@ pub enum Name {
     Neighbors,
 }
 
+// TODO: Reduce code duplication between Name enums of different package types.
 impl std::fmt::Display for Name {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(

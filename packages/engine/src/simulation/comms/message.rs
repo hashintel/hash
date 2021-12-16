@@ -4,7 +4,11 @@ use crate::{
     proto::SimulationShortId,
     simulation::{package::id::PackageId, task::Task},
     types::TaskId,
+    worker::error::Result as WorkerResult,
 };
+
+pub type SyncCompletionReceiver = tokio::sync::oneshot::Receiver<WorkerResult<()>>;
+pub type SyncCompletionSender = tokio::sync::oneshot::Sender<WorkerResult<()>>;
 
 #[derive(derive_new::new, Debug)]
 pub struct WrappedTask {

@@ -160,18 +160,18 @@ impl StepPackages {
         let snapshot_arc = Arc::new(snapshot);
 
         pkgs.into_iter().for_each(|mut package| {
-            let state_arc = state.clone();
+            let state = state.clone();
             let snapshot_clone = snapshot_arc.clone();
 
             let cpu_bound = package.cpu_bound();
             futs.push(if cpu_bound {
                 tokio::task::spawn_blocking(move || {
-                    let res = block_on(package.run(state_arc, snapshot_clone));
+                    let res = block_on(package.run(state, snapshot_clone));
                     (package, res)
                 })
             } else {
                 tokio::task::spawn(async {
-                    let res = package.run(state_arc, snapshot_clone).await;
+                    let res = package.run(state, snapshot_clone).await;
                     (package, res)
                 })
             });
