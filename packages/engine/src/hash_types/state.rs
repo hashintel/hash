@@ -23,15 +23,13 @@ pub type DatasetMap = serde_json::Map<String, serde_json::Value>;
 
 // NOTE: This is used in conjunction with the custom deserializaer
 // PLEASE UPDATE THIS LIST WHEN YOU ADD ANOTHER BUILT IN FIELD
-pub const BUILTIN_FIELDS: [&str; 14] = [
+pub const BUILTIN_FIELDS: [&str; 12] = [
     "agent_id",
     "agent_name",
     "messages",
     "position",
     "direction",
     "velocity",
-    "search_radius",
-    "position_was_corrected",
     "shape",
     "height",
     "scale",
@@ -70,10 +68,6 @@ pub struct Agent {
     pub direction: Option<Vec3>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub velocity: Option<Vec3>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub search_radius: Option<f64>,
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub position_was_corrected: bool,
 
     // Visualizer-specific
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -517,8 +511,6 @@ impl Agent {
             position: None,
             direction: None,
             velocity: None,
-            search_radius: None,
-            position_was_corrected: false,
 
             shape: None,
             height: None,
@@ -636,8 +628,6 @@ impl Agent {
             position: self.position,
             direction: self.direction,
             velocity: self.velocity,
-            search_radius: self.search_radius,
-            position_was_corrected: self.position_was_corrected,
 
             shape: self.shape.clone(),
             height: self.height,
@@ -663,8 +653,6 @@ impl Agent {
             position: self.position,
             direction: self.direction,
             velocity: self.velocity,
-            search_radius: self.search_radius,
-            position_was_corrected: false,
 
             shape: self.shape.clone(),
             height: self.height,
@@ -690,8 +678,6 @@ impl Agent {
             "position" => serde_json::to_value(&self.position),
             "direction" => serde_json::to_value(&self.direction),
             "velocity" => serde_json::to_value(&self.velocity),
-            "search_radius" => serde_json::to_value(&self.search_radius),
-            "position_was_corrected" => serde_json::to_value(&self.position_was_corrected),
             "shape" => serde_json::to_value(&self.shape),
             "height" => serde_json::to_value(&self.height),
             "scale" => serde_json::to_value(&self.scale),
@@ -719,10 +705,6 @@ impl Agent {
             "position" => self.position = serde_json::from_value(value)?,
             "direction" => self.direction = serde_json::from_value(value)?,
             "velocity" => self.velocity = serde_json::from_value(value)?,
-            "search_radius" => self.search_radius = serde_json::from_value(value)?,
-            "position_was_corrected" => {
-                self.position_was_corrected = serde_json::from_value(value)?
-            }
             "shape" => self.shape = serde_json::from_value(value)?,
             "height" => self.height = serde_json::from_value(value)?,
             "scale" => self.scale = serde_json::from_value(value)?,
