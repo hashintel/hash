@@ -79,9 +79,9 @@ impl Package for JsonState {
             .agent_pool()
             .read_batches()?
             .into_iter()
-            .map(|batch| {
-                batch
-                    .record_batch()
+            .zip(state.message_pool().read_batches()?.into_iter())
+            .map(|(agent_batch, message_batch)| {
+                (agent_batch.record_batch(), message_batch.record_batch())
                     .into_agent_states(Some(&self.sim_run_config.sim.store.agent_schema))
             })
             .collect();
