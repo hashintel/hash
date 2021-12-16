@@ -27,6 +27,7 @@ use crate::{
 ///                                        message that the state sync completed.
 /// `agent_pool`: Agent batches to load state from
 /// `message_pool`: Message batches to load state from
+// TODO: remove derive_new from structs with all pub fields
 #[derive(derive_new::new)]
 pub struct WaitableStateSync {
     pub completion_sender: SyncCompletionSender,
