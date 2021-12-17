@@ -34,21 +34,17 @@ jobs:
         id: check_files
         run: |
           echo "=============== list changed files ==============="
-          git diff --name-only HEAD^ HEAD
+          git diff --name-only HEAD^ HEAD 
           
           echo "========== check paths of changed files =========="
-          git diff --name-only HEAD^ HEAD > files.txt
-          while IFS= read -r file
-          do
+          git diff --name-only HEAD^ HEAD | while read file; do
             echo $file
-            if [[ $file != "packages/engine/"* ]]; then
-              echo "This file is not under the directory 'packages/engine/'."
-              echo "::set-output name=run_job::false"
-              break
-            else
+            if [[ $file == *.rs || $file == *.toml || $file == *Cargo* ]]; then
               echo "::set-output name=run_job::true"
+              exit 0
             fi
-          done < files.txt
+          done
+          echo "::set-output name=run_job::false"
 
   rustfmt:
     name: rustfmt
