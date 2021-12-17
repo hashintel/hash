@@ -24,7 +24,7 @@ impl Messages {
                         .to_string(), //TODO[6](optimization) lose the string creation
                 );
 
-                let by_name = agent_name.map(|val| message_map.get_msg_refs(&val.to_lowercase()));
+                let by_name = agent_name.map(|val| message_map.get_msg_refs(val));
 
                 let mut indices = AgentMessageIndices::new();
                 indices.add(by_id);
