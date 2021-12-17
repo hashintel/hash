@@ -228,7 +228,7 @@ Behavior keys define the **data type** of the fields that a behavior accesses on
 - **`"number"`**: A 64 bit floating point number
 - **`"string"`**: The encoding depends on the language used for the behavior
 - **`"boolean"`**: Either `true` or `false`
-- **`"struct"`**: A nested object, additionally requires a `"fields"`-dictinary with the same schema as the top-level key `"keys"`. Example:
+- **`"struct"`**: A nested object, which then additionally requires adding a new member called `"fields"` with the same schema as the top-level `"keys"`. Example:
     ```json
     {
       "keys": {
