@@ -220,6 +220,8 @@ Behavior keys define the **data type** of the fields that a behavior accesses on
 }
 ```
 
+> Note: JSON Objects have fields/members specified by [key]/[value] pairs. To avoid confusion between behavior _keys_ and the _keys_ in JSON Objects, we will be referring to the pairs as members or fields.
+
 `"keys"` is a dictionary of state fields, every key corresponds to a field. Each field requires at least two keys: `"type"` and `"nullable"`. Depending on `"type"` other keys may be required. We support the following `"type"` values:
 
 - **`"any"`**: Can be any datatype (should be avoided if possible to improve performance)
