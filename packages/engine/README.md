@@ -207,7 +207,7 @@ $ export RUST_LOG=debug
 
 
 ### Simulation Inputs
-> **WIP** - This section is a work-in-progress. More in-depth documentation is in the works for describing all input formats and options, and a project structure.
+> **WIP** - This section is a work-in-progress. More in-depth documentation is in the works for describing all input formats and options, and expected project structure. For now, it's recommended that you create your simulations within [hCore] and use the "Export Project" functionality.
 
 #### Behavior keys
 Behavior keys define the fields, and their respective **data type**, that a behavior accesses on an agent's state. See the [docs](https://hash.ai/docs/simulation/creating-simulations/behaviors/behavior-keys?utm_medium=organic&utm_source=github_readme_engine) for an explanation of behavior keys in general. 
