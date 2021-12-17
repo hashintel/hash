@@ -178,7 +178,7 @@ const run_task = (experiment, sim, task_message, group_state, group_context) => 
 
         const behavior_ids = agent_state[behavior_ids_field_key];
         const n_behaviors = behavior_ids.length;
-        for (var i_behavior = 0; i_behavior < n_behaviors; ++i_behavior) {
+        for (var i_behavior = agent_state.behavior_index; i_behavior < n_behaviors; ++i_behavior) {
             agent_state.behavior_index = i_behavior;
 
             const key = behavior_ids.get(i_behavior)
