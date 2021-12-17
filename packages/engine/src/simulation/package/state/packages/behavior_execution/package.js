@@ -171,9 +171,9 @@ const run_task = (experiment, sim, task_message, group_state, group_context) => 
 
     const n_agents_in_group = group_state.n_agents();
     for (var i_agent = 0; i_agent < n_agents_in_group; ++i_agent) {
-        
-        // Reuse `agent_state` and `agent_ctx` objects.
-        agent_state = group_state.get_agent(i_agent, agent_state);
+        // TODO: Reuse `agent_state` objects. When using the old `agent_state`, the indices for behaviors are borked
+        agent_state = group_state.get_agent(i_agent, null);
+        // Reuse `agent_ctx` objects.
         agent_ctx = group_context.get_agent(i_agent, agent_ctx);
 
         const behavior_ids = agent_state[behavior_ids_field_key];
@@ -198,7 +198,6 @@ const run_task = (experiment, sim, task_message, group_state, group_context) => 
             behavior.fn(agent_state, agent_ctx);
             postprocess(agent_state);
         }
-        agent_state.behavior_index = i_behavior;
     }
     
     return {
