@@ -27,10 +27,11 @@
 - [Usage](#usage)
   * [CLI Arguments and Options](#cli-arguments-and-options)
   * [Run a simulation](#run-a-simulation)
+  * [Simulation Inputs](#simulation-inputs)
+    + [Behavior keys](#behavior-keys)
   * [Simulation Outputs](#simulation-outputs)
     + [JSON-State](#json-state-json_statejson)
     + [Analysis](#analysis-analysis_outputsjson)
-  * [Behavior keys](#behavior-keys)
 - [Main Concepts](#main-concepts)
   * [High-level Overview](#high-level-overview)
     + [Starting an Experiment / the CLI](#starting-an-experiment--the-cli)
@@ -52,7 +53,7 @@ We're building a community of people who care about enabling better decision-mak
 ## The State of Development
 
 As outlined above, this project is the next-generation of our simulation engine, and differs from the one currently powering [hCore](https://hash.ai/platform/core?utm_medium=organic&utm_source=github_readme_engine) and [hCloud](https://hash.ai/platform/cloud?utm_medium=organic&utm_source=github_readme_engine). It's published here as a pre-release technology preview, and as such the feature-set and codebase should be considered unstable until it's released. That means that there are a number of features you may use on the HASH platform that at present may not be supported by this project, notably:
-* Python runners, and therefore **Python behaviors** are currently **disabled**. This is a high-priority item for us and will be one of the main items of development focused on in the near future. Much of the implementation is finished and in this repository should explore it be of interest (Although as it is _not_ completely finished, expect to find bugs).
+* Python runners, and therefore **Python behaviors** are currently **disabled**. This is a high-priority item for us and will be one of the main items of development focused on in the near future. A large part of the implementation is finished and can be found in this repository, if you are interested in exploring it (Although as it is _not_ completely finished, expect to find bugs).
 * Rust runners, and therefore **Rust behaviors** (which are generally a subset of the @hash behaviors found within hIndex) are currently **disabled**. This will be taken on after we have enabled the Python runners. Similar to Python, a large amount of the implementation is finished and available to explore, but currently not-in-use.
 
 There are a number of other functionalities in the HASH platform that are possibly under-development and/or not stable within the current repository. Feel free to try things out, but don't be dissuaded if they don't work yet. We don't want to make any guarantees until we've had time to properly test features, and for now we're prioritising development to get those features out!
@@ -205,27 +206,10 @@ $ export RUST_LOG=debug
 [docs]: https://hash.ai/docs/simulation?utm_medium=organic&utm_source=github_readme_engine
 
 
-### Simulation Outputs
-> **WIP** - This section is a work-in-progress. More in-depth documentation is in the works for describing all output formats and options. As such some functionality may not be mentioned here, and some functionality alluded to here might not be complete at present. Currently, the engine has two main form of outputs, one coming from the [json_state package](./src/simulation/package/output/packages/json_state) and the other from the [analysis package](./src/simulation/package/output/packages/analysis).
+### Simulation Inputs
+> **WIP** - This section is a work-in-progress. More in-depth documentation is in the works for describing all input formats and options, and a project structure.
 
-At the end of each simulation run, various outputs appear within the `./<OUTPUT FOLDER>/<PROJECT NAME>/<EXPERIMENT ID>/<SIMULATION ID>` directories.
-
-There are overrides ([CLI Arguments and Options](#cli-arguments-and-options)) for the defaults of the output folder and project name.
-
-#### JSON-State [`json_state.json`]
-> Better documentation describing the structure of the file is planned
-
-By default, the engine outputs a serialized snapshot of Agent state every step.
-
-During the run, the output may be buffered into the `./parts` folder in multiple files. These files are not necessarily valid JSON as the resultant state blob that appears within `json_state.json` is split up (hence `part`) for buffering purposes.
-
-#### Analysis [`analysis_outputs.json`]
-> **WIP** - This feature is currently unstable
-
-[hCore] currently provides functionality where simulations can apply custom analysis on user-defined metrics. The functionality has been ported across to this codebase in the [analysis package](./src/simulation/package/output/packages/analysis), however development is planned to stabilise it. As such, this functionality is neither tested, nor considered supported.
-
-### Behavior keys
-
+#### Behavior keys
 Behavior keys define the **data type** of the fields that a behavior accesses on an agent's state. See the [docs](https://hash.ai/docs/simulation/creating-simulations/behaviors/behavior-keys?utm_medium=organic&utm_source=github_readme_engine) for an explanation for behavior keys in general. If you don't have a project set up in [hCore], it's also possible to create the behaviors keys by hand. Generally, every state variable requires a key. The top level dictionary consist of up to three fields: `"keys"`, `"built_in_key_use"`, and `"dynamic_access"`, while the latter two are neither required, nor used currently:
 
 ```json
@@ -294,6 +278,26 @@ Behavior keys define the **data type** of the fields that a behavior accesses on
       }
     }
     ```
+
+### Simulation Outputs
+> **WIP** - This section is a work-in-progress. More in-depth documentation is in the works for describing all output formats and options. As such some functionality may not be mentioned here, and some functionality alluded to here might not be complete at present. Currently, the engine has two main form of outputs, one coming from the [json_state package](./src/simulation/package/output/packages/json_state) and the other from the [analysis package](./src/simulation/package/output/packages/analysis).
+
+At the end of each simulation run, various outputs appear within the `./<OUTPUT FOLDER>/<PROJECT NAME>/<EXPERIMENT ID>/<SIMULATION ID>` directories.
+
+There are overrides ([CLI Arguments and Options](#cli-arguments-and-options)) for the defaults of the output folder and project name.
+
+#### JSON-State [`json_state.json`]
+> Better documentation describing the structure of the file is planned
+
+By default, the engine outputs a serialized snapshot of Agent state every step.
+
+During the run, the output may be buffered into the `./parts` folder in multiple files. These files are not necessarily valid JSON as the resultant state blob that appears within `json_state.json` is split up (hence `part`) for buffering purposes.
+
+#### Analysis [`analysis_outputs.json`]
+> **WIP** - This feature is currently unstable
+
+[hCore] currently provides functionality where simulations can apply custom analysis on user-defined metrics. The functionality has been ported across to this codebase in the [analysis package](./src/simulation/package/output/packages/analysis), however development is planned to stabilise it. As such, this functionality is neither tested, nor considered supported.
+
 
 ## Main Concepts
 
