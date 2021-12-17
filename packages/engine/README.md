@@ -210,7 +210,9 @@ $ export RUST_LOG=debug
 > **WIP** - This section is a work-in-progress. More in-depth documentation is in the works for describing all input formats and options, and a project structure.
 
 #### Behavior keys
-Behavior keys define the **data type** of the fields that a behavior accesses on an agent's state. See the [docs](https://hash.ai/docs/simulation/creating-simulations/behaviors/behavior-keys?utm_medium=organic&utm_source=github_readme_engine) for an explanation for behavior keys in general. If you don't have a project set up in [hCore], it's also possible to create the behaviors keys by hand. Generally, every state variable requires a key. The top level dictionary consist of up to three fields: `"keys"`, `"built_in_key_use"`, and `"dynamic_access"`, while the latter two are neither required, nor used currently:
+Behavior keys define the fields, and their respective **data type**, that a behavior accesses on an agent's state. See the [docs](https://hash.ai/docs/simulation/creating-simulations/behaviors/behavior-keys?utm_medium=organic&utm_source=github_readme_engine) for an explanation of behavior keys in general. 
+
+If you haven't created and exported a project from [hCore], it's also possible to manually create the file that specifies the behaviors keys. Generally, every user-defined variable on state (i.e. a behavior key) requires it to be specified within the accompanying `.json` file. The top level JSON object has up to three members, `"keys"`, `"built_in_key_use"`, and `"dynamic_access"`, while the latter two are neither required, nor used currently:
 
 ```json
 {
