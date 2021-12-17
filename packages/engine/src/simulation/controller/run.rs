@@ -60,6 +60,7 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     'sim_main: loop {
         // Behaviors expect context.step() to give the current step rather than steps_taken
         let current_step = steps_taken + 1;
+        log::trace!("Current step: {}", current_step);
         if current_step >= max_num_steps {
             break;
         }

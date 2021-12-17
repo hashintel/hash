@@ -173,8 +173,8 @@ const run_task = (experiment, sim, task_message, group_state, group_context) => 
     for (var i_agent = 0; i_agent < n_agents_in_group; ++i_agent) {
         // TODO: Reuse `agent_state` objects. When using the old `agent_state`, the indices for behaviors are borked
         agent_state = group_state.get_agent(i_agent, null);
-        // Reuse `agent_ctx` objects.
-        agent_ctx = group_context.get_agent(i_agent, agent_ctx);
+        // TODO: Reuse `agent_ctx` objects. When using the old `agent_ctx`
+        agent_ctx = group_context.get_agent(i_agent, null);
 
         const behavior_ids = agent_state[behavior_ids_field_key];
         const n_behaviors = behavior_ids.length;
@@ -195,7 +195,12 @@ const run_task = (experiment, sim, task_message, group_state, group_context) => 
             }
             
             agent_state.set_dynamic_access(behavior.dyn_access);
-            behavior.fn(agent_state, agent_ctx);
+            try {
+                behavior.fn(agent_state, agent_ctx);
+            } catch (e) {
+                // TODO expose/return user error properly
+                throw Error(behavior.name + "\n" + e.stack);
+            }
             postprocess(agent_state);
         }
     }
