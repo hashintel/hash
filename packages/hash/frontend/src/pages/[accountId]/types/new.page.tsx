@@ -13,6 +13,7 @@ import {
 import { TextInput } from "../../../components/forms/TextInput";
 import { Button } from "../../../components/forms/Button";
 import { MainContentWrapper } from "../../../components/pages/MainContentWrapper";
+import { getAccountEntityTypes } from "../../../graphql/queries/account.queries";
 
 export const NewEntityType: VoidFunctionComponent = () => {
   const router = useRouter();
@@ -21,6 +22,7 @@ export const NewEntityType: VoidFunctionComponent = () => {
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const [createEntityType] = useMutation<
     CreateEntityTypeMutation,
@@ -28,13 +30,21 @@ export const NewEntityType: VoidFunctionComponent = () => {
   >(createEntityTypeMutation, {
     onCompleted: ({ createEntityType: entityType }) =>
       router.push(`/${entityType.accountId}/types/${entityType.entityId}`),
+    refetchQueries: [
+      { query: getAccountEntityTypes, variables: { accountId } },
+    ],
   });
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    setLoading(true);
     createEntityType({ variables: { description, name, accountId } }).catch(
-      // eslint-disable-next-line no-console -- TODO: consider using logger
-      (err) => console.error("Could not create EntityType: ", err),
+      (err) => {
+        setLoading(false);
+
+        // eslint-disable-next-line no-console -- TODO: consider using logger
+        console.error("Could not create EntityType: ", err);
+      },
     );
   };
 
@@ -67,7 +77,9 @@ export const NewEntityType: VoidFunctionComponent = () => {
             />
           </div>
           <div>
-            <Button type="submit">Create Entity Type</Button>
+            <Button disabled={loading} type="submit">
+              Create Entity Type
+            </Button>
           </div>
         </form>
       </section>
