@@ -2,10 +2,10 @@ name: Rust-Lint
 
 on:
   pull_request:
-    paths:
-      - '**.rs'
-      - '**.toml'
-      - '**Cargo.*'
+#    paths:
+#      - '**.rs'
+#      - '**.toml'
+#      - '**Cargo.*'
 
 defaults:
   run:
