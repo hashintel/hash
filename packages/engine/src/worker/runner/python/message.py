@@ -32,6 +32,11 @@ from fbs import UserWarnings
 from batch import load_dataset
 
 
+# TODO(permanently?): Keep in sync with PACKAGE_TYPE
+def str_from_pkg_type(t):
+    return ["init", "context", "state", "output"][t]
+
+
 def assert_eq(a, b):
     assert a == b, (a, b)
 
@@ -71,8 +76,8 @@ class PySharedContext:
 
 class PyPackage:
     def __init__(self, fb):
-        self.type = fb.Type()
-        self.name = fb.Name()
+        self.type = str_from_pkg_type(fb.Type())
+        self.name = fb.Name().decode('utf-8')
         # TODO: Instead of using numpy, just replace `Serialized` with
         #       a string in the flatbuffers file?
         self.payload = json_from_np(fb.InitPayload().InnerAsNumpy())

@@ -26,11 +26,12 @@ class Sim:
 
         custom_fns = getattr(self, pkg.type + '_' + custom_property)
         for field_name in to_add:
-            if not pkg.owns_field.get(field_name):
-                raise RuntimeError(
-                    "Packages can only specify " + custom_property + " for fields they own, not '" +
-                    field_name + "' in " + pkg.name
-                )
+            # TODO: Uncomment after propagating owned_fields:
+            # if not pkg.owns_field.get(field_name):
+            #     raise RuntimeError(
+            #         "Packages can only specify " + custom_property + " for fields they own, not '" +
+            #         field_name + "' in " + pkg.name
+            #     )
 
             if field_name in custom_fns:
                 raise RuntimeError(
