@@ -178,27 +178,30 @@ export class DummyEmailTransporter implements EmailTransporter {
     const { copyCodesOrLinksToClipboard, displayCodesOrLinksInStdout } =
       this.config;
 
-    const rowsToDisplay: string[] = [];
+    const rowsToDisplay: string[] = [`New email to ${emailDump.to}!`, ""];
 
     switch (emailDump.derivedPayload.payloadType) {
       case "loginVerification":
         rowsToDisplay.push(
-          "Login verification from email:",
+          "Login link:",
+          emailDump.derivedPayload.magicLink,
           "",
+          "Verification code:",
           emailDump.derivedPayload.verificationCode,
         );
         break;
       case "signupVerification":
         rowsToDisplay.push(
-          "Signup verification from email:",
+          "Signup link:",
+          emailDump.derivedPayload.magicLink,
           "",
+          "Verification code:",
           emailDump.derivedPayload.verificationCode,
         );
         break;
       case "orgInvitation":
         rowsToDisplay.push(
-          "Org invitation from email:",
-          "",
+          "Org invitation link:",
           emailDump.derivedPayload.invitationLink,
         );
         break;
