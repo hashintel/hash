@@ -1,14 +1,14 @@
 import { ApolloClient } from "@apollo/client";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
-import { ProsemirrorNode } from "@hashintel/hash-shared/dist/node";
+import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { entityStoreFromProsemirror } from "@hashintel/hash-shared/entityStorePlugin";
 import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
 // import applyDevTools from "prosemirror-dev-tools";
-import { Schema } from "prosemirror-model";
+import { Fragment, Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { BlockView } from "./BlockView";
@@ -85,6 +85,25 @@ const createSavePlugin = (
   });
 };
 
+/**
+ * The official typescript types for prosemirror don't yet understand that
+ * `textBetween` supports a function for `leafText`
+ *
+ * @see https://github.com/DefinitelyTyped/DefinitelyTyped/discussions/57769
+ * @todo remove this when the types are updated
+ */
+interface ExtendedFragment extends Fragment<Schema> {
+  textBetween(
+    from: number,
+    to: number,
+    blockSeparator?: string | null,
+    leafText?:
+      | string
+      | null
+      | ((leafNode: ProsemirrorNode<Schema>) => string | null),
+  ): string;
+}
+
 export const createEditorView = (
   renderNode: HTMLElement,
   renderPortal: RenderPortal,
@@ -108,17 +127,31 @@ export const createEditorView = (
 
   const view = new EditorView<Schema>(renderNode, {
     state,
-    clipboardTextSerializer: (slice) => {
-      // @todo type this
-      return slice.content.textBetween(0, slice.content.size, "\n\n", ((
-        node: ProsemirrorNode<Schema>,
-      ) => {
-        if (node.type === view.state.schema.nodes.hardBreak) {
-          return "\n";
-        }
 
-        return "";
-      }) as any);
+    /**
+     * Prosemirror doesn't know to convert hard breaks into new line characters
+     * in the plain text version of the clipboard when we copy out of the
+     * editor. In the HTML version, they get converted as their `toDOM`
+     * method instructs, but we have to use this for the plain text version.
+     *
+     * @todo find a way of not having to do this centrally
+     * @todo look into whether this is needed for mentions and for links
+     */
+    clipboardTextSerializer: (slice) => {
+      const fragment: ExtendedFragment = slice.content;
+
+      return fragment.textBetween(
+        0,
+        fragment.size,
+        "\n\n",
+        (node: ProsemirrorNode<Schema>) => {
+          if (node.type === view.state.schema.nodes.hardBreak) {
+            return "\n";
+          }
+
+          return "";
+        },
+      );
     },
     nodeViews: {
       block(currentNode, currentView, getPos) {

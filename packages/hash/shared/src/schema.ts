@@ -50,6 +50,13 @@ export const createSchema = () =>
       text: {
         group: "inline",
       },
+      /**
+       * This is serialized as a new line in `createEditorView` when copying to
+       * plain text
+       *
+       * @todo figure out out to do this here
+       * @see createEditorView
+       */
       hardBreak: {
         inline: true,
         group: "inline",
