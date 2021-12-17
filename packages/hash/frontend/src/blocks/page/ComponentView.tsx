@@ -54,6 +54,11 @@ const createComponentViewTarget = () => {
  */
 export const componentViewTargetSelector = "div[data-target=true]";
 
+/**
+ * This is the node view that renders the block component,
+ *    and attaches an editable DOM node if the component provides for it.
+ *    The node type name is the id of the block component (i.e. its URI).
+ */
 export class ComponentView implements NodeView<Schema> {
   dom: HTMLDivElement = document.createElement("div");
   contentDOM: HTMLElement | undefined = undefined;

@@ -42,12 +42,16 @@ const ensureEntitiesAreWrapped = (
     const wrapperNodes = wrappers?.find(([pos]) => position === pos)?.[1];
 
     /**
-     * This position may already be wrapped – due to blocks merging
+     * This position may already be wrapped, e.g.
+     *    1. due to blocks merging
+     *    2. non-text entities are not unwrapped (and all blocks are wrapped on creation)
+     * Where positions have been unwrapped, wrapperNodes _should_ be provided to re-wrap them.
      */
     if (
       node.type !== schema.nodes.blank &&
       parent.type === schema.nodes.doc &&
-      (wrapperNodes || node.type !== schema.nodes.block)
+      // a block node is the outermost wrapping layer, and therefore already wrapped
+      node.type !== schema.nodes.block
     ) {
       const range = getRangeForNodeAtMappedPosition(position, node, tr);
 
@@ -65,9 +69,14 @@ const ensureEntitiesAreWrapped = (
         });
       }
 
+      /**
+       * In the event that a block is not fully wrapped (i.e. is _not_ a block node), we provide a fallback
+       *    in case wrapperNodes were not provided.
+       * We need to ensure that the layers match those provided in ProsemirrorSchemaManager
+       * @see ProsemirrorSchemaManager, createRemoteBlock
+       * @todo this should never happen, can we remove it?
+       */
       const DEFAULT_WRAPPERS = [{ type: schema.nodes.block }];
-
-      // @todo when would entity be at the top level?
       if (node.type !== schema.nodes.entity) {
         DEFAULT_WRAPPERS.push(
           { type: schema.nodes.entity },
@@ -119,8 +128,8 @@ const combineTransactions = (
  * This wraps a prosemirror command to unwrap relevant nodes out of their
  * containing block node in order to ensure prosemirror logic that expects text
  * block nodes to be at the top level works as intended. Rewrapping after the
- * prosemirror commands are applied is not handled here, but in a plugin (to
- * ensure that nodes being wrapped by a block is an invariant that can't be
+ * prosemirror commands are applied is handled by ensureEntitiesAreWrapped
+ * (to ensure that nodes being wrapped by a block is an invariant that can't be
  * accidentally breached)
  *
  * @todo ensure we remove undo item if command fails
@@ -138,7 +147,7 @@ const prepareCommandForWrappedEntities =
     const wrappers: WrapperNodesList = [];
 
     /**
-     * First we apply changes to the transaction to unwrap every block
+     * First we apply changes to the transaction to unwrap blocks
      */
     state.doc.descendants((node, pos) => {
       if ([schema.nodes.block, schema.nodes.entity].includes(node.type)) {
