@@ -76,15 +76,14 @@ class Runner:
             # TODO: Pass `task_id` to package?
             continuation = pkg.run_task(pkg.experiment, pkg.sims[sim_id], task_msg, state, ctx) or {}
 
-        except Exception as e:
+        except Exception:
             # Have to catch generic Exception, because package could throw anything.
-
-            tb = str(traceback.format_exception(type(e), e, sys.exc_info()))
-            error = "Package {} error: {}".format(pkg.name, tb)
+            e = str(traceback.format_exception(*sys.exc_info()))
+            e = "Package {} error: {}".format(pkg.name, e)
             # TODO: Custom log level(s) for non-engine (i.e. package/user) errors/warnings,
             #       e.g. `logging.external_error`?
-            logging.error(error)
-            self.messenger.send_pkg_error(error)
+            logging.error(e)
+            self.messenger.send_pkg_error(e)
             return
 
         changes = state.flush_changes(sim.schema)

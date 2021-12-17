@@ -1,9 +1,10 @@
-import importlib
+import logging
 from pathlib import Path
 import sys
 import traceback
 
-import logging
+import hash_util
+
 
 def get_pkg_path(pkg_name, pkg_type):
     # The engine should be started from the engine's root directory in the repo.
@@ -17,21 +18,13 @@ def load_fns(pkg_name, pkg_type):
     path = get_pkg_path(pkg_name, pkg_type)
 
     try:
-        # TODO: Discuss whether there is some significant drawback to
-        #       changing `sys.path` here (vs some more complicated way
-        #       of importing files from parent directories of the
-        #       package file's directory).
-        code = ("import pathlib\n" +
-                "import sys\n" +
-                "sys.path.insert(1, pathlib.Path.cwd()/'worker'/'runner'/'python')\n" +
-                "import hash_util\n" +
-                path.read_text())
+        code = path.read_text()
     except IOError:
         logging.info("`" + str(path) + "` doesn't exist, possibly intentionally")
         return [None, None, None]
 
     # Run code.
-    pkg_globals = {}
+    pkg_globals = {"hash_util": hash_util}
     try:
         bytecode = compile(code, pkg_name, "exec")
         exec(bytecode, pkg_globals)

@@ -1,10 +1,12 @@
 import sys
+import traceback
+
 
 # `behavior_descs` should be a list of objects that have fields `id`, `name`, `source`, `columns`,
 # `language` and `dyn_access`.
 def load_behaviors(behavior_descs):
     behaviors = {}
-    warnings = [] # TODO: Accumulate warnings automatically with something like `hash_util.warn`
+    warnings = []  # TODO: Accumulate warnings automatically with something like `hash_util.warn`
     for desc in behavior_descs:
         if desc.language != "py":
             behaviors[desc.id] = {
@@ -30,19 +32,19 @@ def load_behaviors(behavior_descs):
                 }
             else:
                 warnings.append(
-                    "Couldn't load behavior: No function named 'behavior': " + desc.name
+                    "Couldn't load behavior: No function named 'behavior': " + desc['name']
                 )
             
-        except Exception as e:
+        except Exception:
             # Have to catch generic `Exception`, because user's code could throw anything.
             n_pkg_fns = 2
-            tb = str(traceback.format_exception(type(exc), exc, tb)[n_pkg_fns:])
-            warnings.append("Couldn't load behavior: {}: {}".format(desc.name, tb))
+            e = str(traceback.format_exception(*sys.exc_info())[n_pkg_fns:])
+            warnings.append("Couldn't load behavior `{}`: {}".format(desc['name'], e))
 
         # With the current implementation, failing to load a behavior
         # isn't an error if the behavior is never actually used. This
         # is consistent with Python usually not giving errors until an
-        # erronous piece of code is actually run.
+        # erroneous piece of code is actually run.
         # TODO: Discuss whether making it an error would help user's debugging.
 
     return behaviors, warnings
@@ -53,10 +55,11 @@ def start_experiment(experiment, init_message, experiment_context):
         "warnings": warnings
     }
 
-def format_behavior_error(behavior_name, exc, tb):
+
+def format_behavior_error(behavior_name, exc_info):
     n_pkg_fns = 2
-    full_msg = "Behavior error: " + str(traceback.format_exception(type(exc), exc, tb)[n_pkg_fns:])
-    return full_msg
+    return "Behavior error: " + str(traceback.format_exception(*exc_info)[n_pkg_fns:])
+
 
 def postprocess(agent_state):
     msgs = agent_state.messages
@@ -116,7 +119,7 @@ def run_task(experiment, sim, _task_message, group_state, group_context):
             except Exception as e:
                 # Have to catch generic `Exception`, because user's code could throw anything.
                 
-                error = format_behavior_error(behavior.name, e, sys.exc_info())
+                error = format_behavior_error(behavior.name, sys.exc_info())
                 agent_state.__i_behavior = i_behavior
                 return {
                     "target": "main",
