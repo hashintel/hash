@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { loginUsingUi } from "./utils/loginUsingUi";
 
-test("user can create page", async ({ page }) => {
+test("user can create and update entity", async ({ page }) => {
   await loginUsingUi({ page, accountShortName: "alice" });
 
   // Check if we are on the user page
