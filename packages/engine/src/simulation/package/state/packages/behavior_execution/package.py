@@ -2,32 +2,40 @@ import sys
 import traceback
 
 
+def hash_behavior_id(behavior_id):
+    # `behavior_id[0]` is language index and we support fewer than 10 languages.
+    # TODO: Either keep in sync with behavior id generation in Rust part of
+    #       behavior execution package or change Rust part to generate
+    #       single numbers (rather than pairs of numbers) in the first place.
+    return behavior_id[0]*10 + behavior_id[1]
+
+
 # `behavior_descs` should be a list of objects that have fields `id`, `name`, `source`, `columns`,
 # `language` and `dyn_access`.
 def load_behaviors(behavior_descs):
     behaviors = {}
     warnings = []  # TODO: Accumulate warnings automatically with something like `hash_util.warn`
     for desc in behavior_descs:
-        if desc.language != "py":
-            behaviors[desc.id] = {
-                "name": desc.name,
-                "language": desc.language,
+        if desc['language'] != "py":
+            behaviors[hash_behavior_id(desc['id'])] = {
+                "name": desc['name'],
+                "language": desc['language'],
             }
             continue
 
         try:
             # behavior_globals should contain a callable `behavior` if the user's code is correct
             behavior_globals = {}
-            bytecode = compile(desc.source.decode("utf-8"), desc.name, "exec")
+            bytecode = compile(desc['source'].decode("utf-8"), desc['name'], "exec")
             exec(bytecode, behavior_globals)
             behavior_fn = behavior_globals.get("behavior")
             
             if callable(behavior_fn):
-                behaviors[desc.id] = {
-                    "name": desc.name,
-                    "language": desc.language,
-                    "required_col_names": desc.columns,
-                    "dyn_access": desc.dyn_access,
+                behaviors[hash_behavior_id(desc['id'])] = {
+                    "name": desc['name'],
+                    "language": desc['language'],
+                    "required_col_names": desc['columns'],
+                    "dyn_access": desc['dyn_access'],
                     "fn": behavior_fn
                 }
             else:
@@ -49,8 +57,9 @@ def load_behaviors(behavior_descs):
 
     return behaviors, warnings
 
+
 def start_experiment(experiment, init_message, experiment_context):
-    experiment['behaviors'], warnings = load_behaviors(init_message.behavior_descs)
+    experiment['behaviors'], warnings = load_behaviors(init_message)
     return {
         "warnings": warnings
     }
@@ -89,6 +98,7 @@ def postprocess(agent_state):
         while len(direction) < 3:
             direction.append(0.0)
 
+
 def run_task(experiment, sim, _task_message, group_state, group_context):
     next_lang = None
     agent_state = None
@@ -104,9 +114,9 @@ def run_task(experiment, sim, _task_message, group_state, group_context):
         while i_behavior < len(behavior_ids):
             agent_state.__i_behavior = i_behavior
 
-            behavior = experiment.behaviors[behavior_ids[i_behavior]]
+            behavior = experiment.behaviors[hash_behavior_id(behavior_ids[i_behavior])]
             if behavior.language != "js":
-                next_lang = behavior.language # Multiple assignments are fine.
+                next_lang = behavior.language  # Multiple assignments are fine.
                 break
             
             group_state.set_dynamic_access(behavior.dyn_access)
