@@ -264,7 +264,7 @@ Behavior keys define the **data type** of the fields that a behavior accesses on
       }
     }
     ```
-- **`"fixed-size-list"`**: an array with exactly `"length"` number of subelements of the same type, which has to be specified with the `"child"` key:
+- **`"fixed-size-list"`**: an array with exactly `"length"` number of sub-elements of the same type, which then have to be specified with the addition of another member called `"child"`:
     ```json
     {
       "keys": {
