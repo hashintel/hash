@@ -28,8 +28,9 @@
   * [CLI Arguments and Options](#cli-arguments-and-options)
   * [Run a simulation](#run-a-simulation)
   * [Simulation Outputs](#simulation-outputs)
-    + [JSON-State](#json-state)
-    + [Analysis](#analysis)
+    + [JSON-State](#json-state-json_statejson)
+    + [Analysis](#analysis-analysis_outputsjson)
+  * [Behavior keys](#behavior-keys)
 - [Main Concepts](#main-concepts)
   * [High-level Overview](#high-level-overview)
     + [Starting an Experiment / the CLI](#starting-an-experiment--the-cli)
@@ -48,13 +49,13 @@ The [HASH glossary](https://hash.ai/glossary?utm_medium=organic&utm_source=githu
 ## Questions & Support
 We're building a community of people who care about enabling better decision-making through modeling and simulation. Our [support forum](https://hash.community/?utm_medium=organic&utm_source=github_readme_engine) and [HASH community Discord server](https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_engine) (requires login) are both great places to meet other modelers and get help.
 
-## The State of Development 
+## The State of Development
 
-As outlined above, this project is the next-generation of our simulation engine, and differs from the one currently powering [hCore](https://hash.ai/platform/core?utm_medium=organic&utm_source=github_readme_engine) and [hCloud](https://hash.ai/platform/cloud?utm_medium=organic&utm_source=github_readme_engine). It's published here as a pre-release technology preview, and as such the feature-set and codebase should be considered unstable until it's released. That means that there are a number of features you  may use on the HASH platform that at present may not be supported by this project, notably:
-* Python runners, and therefore **Python behaviors** are currently **disabled**. This is a high-priority item for us and will be one of the main items of development focused on in the near future. Much of the implementation is finished and in this repository should exploring it be of interest (Although as it is _not_ completely finished, expect to find bugs).
+As outlined above, this project is the next-generation of our simulation engine, and differs from the one currently powering [hCore](https://hash.ai/platform/core?utm_medium=organic&utm_source=github_readme_engine) and [hCloud](https://hash.ai/platform/cloud?utm_medium=organic&utm_source=github_readme_engine). It's published here as a pre-release technology preview, and as such the feature-set and codebase should be considered unstable until it's released. That means that there are a number of features you may use on the HASH platform that at present may not be supported by this project, notably:
+* Python runners, and therefore **Python behaviors** are currently **disabled**. This is a high-priority item for us and will be one of the main items of development focused on in the near future. Much of the implementation is finished and in this repository should explore it be of interest (Although as it is _not_ completely finished, expect to find bugs).
 * Rust runners, and therefore **Rust behaviors** (which are generally a subset of the @hash behaviors found within hIndex) are currently **disabled**. This will be taken on after we have enabled the Python runners. Similar to Python, a large amount of the implementation is finished and available to explore, but currently not-in-use.
 
-There are a number of other functionalities in the HASH platform that are possibly under-development and/or not stable within the current repository. Feel free to try things out, but don't be dissuaded if they don't work as of yet. We don't want to make any guarantees until we've had time to properly test features, and for now we're prioritising development to get those features out!
+There are a number of other functionalities in the HASH platform that are possibly under-development and/or not stable within the current repository. Feel free to try things out, but don't be dissuaded if they don't work yet. We don't want to make any guarantees until we've had time to properly test features, and for now we're prioritising development to get those features out!
 
 * For now, running of simulations should be easiest with _'single runs'_. (More in-depth usage documentation is found below in [Running for development](#running-for-development)) Various Experiment types have not been fully tested at the moment, and documentation and support may be lacking.
 * Analysis views are also untested at the moment and thus presently are not considered stable or supported.
@@ -62,15 +63,14 @@ There are a number of other functionalities in the HASH platform that are possib
 ## Building and Testing
 > The following section assumes execution of commands are from within this directory (i.e. [/packages/engine](/packages/engine) relative to the repository root). As such, paths are relative to the folder this README is in.
 
-Depending on your needs, different dependencies are required.
-Building this project requires the following.
+Depending on your needs, different dependencies are required. Building this project requires the following.
 
 ### Required dependencies
 * The Rust Compiler
   * We recommend installing and using rustup, following the [instructions on the Rust-Lang website](https://www.rust-lang.org/tools/install)
   * hEngine runs on the Nightly toolchain. The version is managed by the [rust-toolchain.toml](./rust-toolchain.toml) file. To verify, run `rustup show` from the [engine](.) directory.
 * CMake [3.X.X >= 3.21.2]
-  * CMake installation guidance from the [CMake page](https://cmake.org/install/) or if on MacOS through [brew](https://brew.sh/)
+  * CMake installation guidance from the [CMake page](https://cmake.org/install/) or if on macOS through [brew](https://brew.sh/)
 * a C++ compiler, pkg-config, openssl development files (see [Possible Dependencies and Debugging](#possible-dependencies-and-debugging))
 * For now, you need a pre-compiled _libv8_monolith.a_ accessible under the `$V8_PATH` environment variable
   * The following will produce the necessary files under `~/.v8/vendor` by downloading a precompiled library from a Ruby Gem. The `<URL TO GEM>` should be the link to the relevant gem on the [rubyjs/libv8 releases page](https://github.com/rubyjs/libv8/releases/tag/v8.4.255.0)
@@ -93,11 +93,11 @@ Building this project requires the following.
   > **Warning**: The Python runner currently is not supported by the CLI.
   * Python installation guidance from [their website](https://www.python.org/downloads/)
 
-* Flatbuffers [2.0.0] is required to generate structs in Javascript, Python, or Rust for messaging between processes in hCloud. Unless the schema files in [./format](./format) are changed (and thus require generation to be reran), flatc is not needed.
+* Flatbuffers [2.0.0] is required to generate structs in Javascript, Python, or Rust for messaging between processes in hCloud. Unless the schema files in [./format](./format) are changed (and thus require generation to be rerun), flatc is not needed.
   * Flatbuffers installation guidance from [their website](https://google.github.io/flatbuffers/flatbuffers_guide_building.html)
     * It's necessary to match the version (2.0.0) with the Rust crate, so build (or otherwise acquire a compiled flatc binary of) the commit associated with the [2.0.0 release](https://github.com/google/flatbuffers/releases/tag/v2.0.0)
       * One way of checking out the right commit is running the following from within the flatbuffers repository:
-      
+
         ```shell
         latestTag=$(git describe --tags `git rev-list --tags --max-count=1`)
         git checkout $latestTag
@@ -105,7 +105,7 @@ Building this project requires the following.
 
 ### macOS Developer Specific Instructions
 
-Due to ARM-Based Macs, the `macos` `target_os` has some added complications for development. 
+Due to ARM-Based Macs, the `macos` `target_os` has some added complications for development.
 
 #### For Intel Macs
 Due to limitations in Cargo at the moment we can't properly check if it's being built _on_ an ARM Mac (rather than _for_ an ARM Mac). Due to this it's necessary to:
@@ -113,8 +113,8 @@ Due to limitations in Cargo at the moment we can't properly check if it's being 
 
 #### For ARM-Based Macs
 At the moment the project only seems to be compiling if you use the `x86_64-apple-darwin` target. This has some added complexity, especially due to the fact that rustc fails to link 'fat-binaries' in certain scenarios.
-* It's necessary to acquire an x86 version of `nng`. Currently the easiest known way to do this is through:
-  * Creating a homebrew installation under Rosetta, [an example guide is here](https://stackoverflow.com/questions/64882584/how-to-run-the-homebrew-installer-under-rosetta-2-on-m1-macbook) 
+* It's necessary to acquire an x86 version of `nng`. Currently, the easiest known way to do this is through:
+  * Creating a homebrew installation under Rosetta, [an example guide is here](https://stackoverflow.com/questions/64882584/how-to-run-the-homebrew-installer-under-rosetta-2-on-m1-macbook)
   * Using the x86 brew to install `nng` (which will then install an x86 version). This should result in an nng installation at: `/usr/local/Cellar/nng/1.5.2`
 * It's then necessary to set the `NNG_PATH` environment variable, similar to `V8_PATH`
   * The command is likely to be: `export NNG_PATH=/usr/local/Cellar/nng/1.5.2`
@@ -141,7 +141,6 @@ Then, run the CLI using:
 
 Where CLI args are described below in the [Usage](#usage) section, an example of a run command during development would be:
 * `cargo run --bin cli -- <CLI ARGS> -p  "<PATH TO HASH PROJECT DIR>" single-run --num-steps <NUM-STEPS>`
-
 
 ## Quick Start Guide
 
@@ -183,7 +182,7 @@ If one of the environment variables shown in the help page is passed, it will ov
 
 > **Warning** - Python and Rust runners are currently not supported. Within your simulation project, you should only see `.js` files within dependencies (for example, dependencies/@hash/age/src/behaviors/age.js). Files ending in `.rs` and `.py` will be ignored and the run will possibly fail in unclear ways. This also means that only an `init.json` or `init.js` is supported at the moment, not `init.py`.
 >
-> Currently the easiest way of creating a project is by using the integrated IDE at [https://core.hash.ai][hCore] (hCore). In the absence of an in-depth description of expected project structure (which will be coming in the future), downloading a project from hCore is currently the easiest way to learn how one should be set out.
+> Currently, the easiest way of creating a project is by using the integrated IDE at [https://core.hash.ai][hCore] (hCore). In the absence of an in-depth description of expected project structure (which will be coming in the future), downloading a project from hCore is currently the easiest way to learn how one should be set out.
 
 In order to download and then run a simulation from hCore, you can download it by clicking `File -> Export Project` from the toolbar on the top. For help in finding or creating, and editing, simulations in hCore, take a look at our [online documentation][docs]. Then save and unzip the downloaded project to a location of your choice, for example by
 
@@ -207,8 +206,7 @@ $ export RUST_LOG=debug
 
 
 ### Simulation Outputs
-> **WIP** - This section is a work-in-progress. More in-depth documentation is in the works for describing all output formats and options. As such some functionality may not be mentioned here, and some functionality alluded to here might not be complete at present. 
-Currently the engine has two main form of outputs, one coming from the [json_state package](./src/simulation/package/output/packages/json_state) and the other from the [analysis package](./src/simulation/package/output/packages/analysis).
+> **WIP** - This section is a work-in-progress. More in-depth documentation is in the works for describing all output formats and options. As such some functionality may not be mentioned here, and some functionality alluded to here might not be complete at present. Currently, the engine has two main form of outputs, one coming from the [json_state package](./src/simulation/package/output/packages/json_state) and the other from the [analysis package](./src/simulation/package/output/packages/analysis).
 
 At the end of each simulation run, various outputs appear within the `./<OUTPUT FOLDER>/<PROJECT NAME>/<EXPERIMENT ID>/<SIMULATION ID>` directories.
 
@@ -219,13 +217,83 @@ There are overrides ([CLI Arguments and Options](#cli-arguments-and-options)) fo
 
 By default, the engine outputs a serialized snapshot of Agent state every step.
 
-During the run, the output may be buffered into the `./parts` folder in multiple files. These files are not necessarily valid JSON as the resultant state blob that appears within `json_state.json` is split up (hence `part`) for buffering purposes. 
+During the run, the output may be buffered into the `./parts` folder in multiple files. These files are not necessarily valid JSON as the resultant state blob that appears within `json_state.json` is split up (hence `part`) for buffering purposes.
 
 #### Analysis [`analysis_outputs.json`]
 > **WIP** - This feature is currently unstable
 
 [hCore] currently provides functionality where simulations can apply custom analysis on user-defined metrics. The functionality has been ported across to this codebase in the [analysis package](./src/simulation/package/output/packages/analysis), however development is planned to stabilise it. As such, this functionality is neither tested, nor considered supported.
 
+### Behavior keys
+
+Behavior keys define the **data type** of the fields that a behavior accesses on an agent's state. See the [docs](https://hash.ai/docs/simulation/creating-simulations/behaviors/behavior-keys?utm_medium=organic&utm_source=github_readme_engine) for an explanation for behavior keys in general. If you don't have a project set up in [hCore], it's also possible to create the behaviors keys by hand. Generally, every state variable requires a key. The top level dictionary consist of up to three fields: `"keys"`, `"built_in_key_use"`, and `"dynamic_access"`, while the latter two are neither required, nor used currently:
+
+```json
+{
+  "keys": {},
+  "built_in_key_use": null,
+  "dynamic_access": true
+}
+```
+
+`"keys"` is a dictionary of state fields, every key corresponds to a field. Each field requires at least two keys: `"type"` and `"nullable"`. Depending on `"type"` other keys may be required. We support the following `"type"` values:
+
+- **`"any"`**: Can be any datatype (should be avoided if possible to improve performance)
+- **`"number"`**: A 64 bit floating point number
+- **`"string"`**: The encoding depends on the language used for the behavior
+- **`"boolean"`**: Either `true` or `false`
+- **`"struct"`**: A nested object, additionally requires a `"fields"`-dictinary with the same schema as the top-level key `"keys"`. Example:
+    ```json
+    {
+      "keys": {
+        "struct_field": {
+          "nullable": true,
+          "type": "struct",
+          "fields": {
+            "field1": {
+              "type": "number",
+              "nullable": true
+            },
+            "field2": {
+              "type": "number",
+              "nullable": true
+            }
+          }
+        }
+      }
+    }
+    ```
+- **`"list"`**: an array with an abitirary number of subelements of the same type, which has to be specified with the `"child"` key:
+    ```json
+    {
+      "keys": {
+        "list_field": {
+          "nullable": true,
+          "type": "list",
+          "child": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      }
+    }
+    ```
+- **`"fixed-size-list"`**: an array with exactly `"length"` number of subelements of the same type, which has to be specified with the `"child"` key:
+    ```json
+    {
+      "keys": {
+        "fixed_size_list_field": {
+          "nullable": true,
+          "type": "fixed_size_list",
+          "length": 4,
+          "child": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
+      }
+    }
+    ```
 
 ## Main Concepts
 
@@ -261,7 +329,7 @@ Output packages are responsible for creating feedback to be given to the user ab
 
 Upon using the initialization packages to initialize the run, the main loop is started which consists of a pipeline going from context packages -> state packages -> output packages for every step.
 
-The packages utilize a [communication implementation](./src/simulation/comms) to interface with the [Workers](./src/worker) mostly through the use of of defined types of [Tasks](./src/simulation/task). The communication therefore defines the control-flow of the Runner's executions. Any substantial data that isn't encapsulated within a message is shared that between Packages and Runners through the [DataStore](./src/datastore).
+The packages utilize a [communication implementation](./src/simulation/comms) to interface with the [Workers](./src/worker) mostly through the use of defined types of [Tasks](./src/simulation/task). The communication therefore defines the control-flow of the Runner's executions. Any substantial data that isn't encapsulated within a message is shared that between Packages and Runners through the [DataStore](./src/datastore).
 
 #### DataStore
 
