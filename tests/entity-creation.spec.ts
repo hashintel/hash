@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { loginUsingUi } from "./utils/loginUsingUi";
 
 test("user can create page", async ({ page }) => {
-  await loginUsingUi({ page, accountShortName: "alice" });
+  await loginUsingUi({ page, accountShortName: "bob" });
 
   // Check if we are on the user page
   await expect(
