@@ -43,7 +43,38 @@ const init = (context) => {
 ```
 
 </Tab>
+<Tab title="init.py" >
 
+```python
+import hstd, random
+
+def init(context):
+  # You can define the topology object here or in globals.json
+  topology = context.globals()['topology']
+
+  # Define agents without a position, since the scatter() function
+  # will assign random positions
+  template = {
+    'behaviors': ['move.js'],
+    'color': 'green'
+  }
+
+  # You can also pass a function instead of an object. This allows your agents
+  # to initialize certain properties stochastically
+  def template_function():
+    return {
+      'behaviors: ['move.js'],
+      'color': 'green' if random.random() > 0.5 else 'blue
+    }
+
+  # Generate the randomly scattered agents
+  agents = hstd.init.scatter(100, topology, template)
+  agents_from_function = hstd.init.scatter(100, topology, template_function)
+
+  return agents
+```
+
+</Tab>
 <Tab title="globals.json" >
   
 ```javascript
@@ -61,6 +92,9 @@ const init = (context) => {
 ## stack(count, template)
 
 Returns an array of agents generated from the `template`. Agents are generated as copies of the `template` if you pass an object, or as the return value if you pass a function.
+
+<Tabs>
+<Tab title="init.js">
 
 ```javascript
 const init = (context) => {
@@ -85,6 +119,39 @@ const init = (context) => {
   return agents;
 }
 ```
+
+</Tab>
+<Tab title="init.py">
+
+```python
+import hstd, random
+
+def behavior(context):
+  template = {
+    'behaviors': ['move.js'],
+    'position': [2, 10, 0],
+    'color': 'green'
+  }
+
+  # You can also pass a function instead of an object. This allows your agents
+  # to initialize certain properties stochastically
+
+  def template_function():
+    return {
+      'behaviors': ['move.js'],
+      'position': [2, 10, 0],
+      'color': 'green' if random.random() > 0.5 else 'blue'
+    }
+
+  # Generate the randomly scattered agents
+  agents = hstd.init.stack(100, template)
+  agents_from_function = hstd.init.stack(100, template_function)
+
+  return agents
+```
+
+</Tab>
+</Tabs>
 
 ## grid(topology, template)
 
@@ -121,7 +188,38 @@ const init = (context) => {
 ```
 
 </Tab>
+<Tab title="init.py">
 
+```python
+import hstd, random
+
+def init(context):
+  # You can define the topology object here or in globals.json
+  topology = context.globals()['topology']
+
+  # Define agents without a position, since the grid() function
+  # will assign positions
+  template = {
+    'behaviors': ['move.js'],
+    'color': 'green'
+  }
+
+  # You can also pass a function instead of an object. This allows your agents
+  # to initialize certain properties stochastically
+  def template_function():
+    return {
+      'behaviors': ['move.js'],
+      'color': 'green' if random.random() > 0.5 else 'blue'
+    }
+
+  # Generate the grid of agents
+  agents = hstd.init.grid(topology, template)
+  agents_from_function = hstd.init.grid(topology, template_function)
+
+  return agents
+```
+
+</Tab>
 <Tab title="globals.json" >
   
 ```javascript
@@ -173,7 +271,39 @@ const init = (context) => {
 ```
 
 </Tab>
+<Tab title="init.py">
 
+```python
+import hstd
+
+def init(context):
+  layout = context.data()["/layout_data.csv"]
+
+  # Note that templates don't have position, since that is assigned
+  # based on the layout file
+  templates = {
+    'c': {
+      'agent_name': 'crane',
+      'behaviors': ['crane.js']
+    },
+    'f': {
+      'agent_name': 'forklift',
+      'behaviors': ['move.js', 'lift.js']
+    },
+    'w': {
+      'agent_name': 'wall',
+      'color': 'black'
+    }
+  }
+
+  # Optional position offset
+  offset = [5, 5, 0]
+
+  agents = hstd.init.create_layout(layout, templates, offset)
+  return agents
+```
+
+</Tab>
 <Tab title="layout_data.csv" >
   
 ```text
