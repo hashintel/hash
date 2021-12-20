@@ -3,7 +3,7 @@ use std::sync::Arc;
 use super::{package, worker, worker_pool, Result};
 use crate::{
     config::globals::Globals,
-    proto::{ExperimentId, ExperimentRunRepr, ExperimentRunTrait},
+    proto::{ExperimentId, ExperimentRegisteredId, ExperimentRunRepr, ExperimentRunTrait},
 };
 
 #[derive(Clone)]
@@ -61,6 +61,10 @@ impl Config {
             worker_pool: self.worker_pool.clone(),
             base_globals: self.base_globals.clone(),
         })
+    }
+
+    pub fn id(&self) -> &ExperimentRegisteredId {
+        &self.run.base().id
     }
 }
 

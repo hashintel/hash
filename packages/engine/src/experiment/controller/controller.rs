@@ -136,7 +136,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
 
     async fn handle_worker_pool_controller_msg(
         &mut self,
-        id: Option<SimulationShortId>,
+        id: SimulationShortId,
         msg: WorkerPoolToExpCtlMsg,
     ) -> Result<()> {
         let engine_status = match msg {

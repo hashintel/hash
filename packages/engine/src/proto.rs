@@ -33,9 +33,9 @@ pub enum EngineStatus {
     },
     SimStop(SimulationShortId),
     // TODO: OS - Confirm are these only Runner/Simulation errors, if so rename
-    Errors(Option<SimulationShortId>, Vec<RunnerError>),
-    Warnings(Option<SimulationShortId>, Vec<RunnerError>),
-    Logs(Option<SimulationShortId>, Vec<String>),
+    Errors(SimulationShortId, Vec<RunnerError>),
+    Warnings(SimulationShortId, Vec<RunnerError>),
+    Logs(SimulationShortId, Vec<String>),
 }
 
 /// The message type sent from the orchestrator to the engine.

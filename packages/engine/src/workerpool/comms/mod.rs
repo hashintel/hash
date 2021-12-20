@@ -101,7 +101,7 @@ pub enum WorkerToWorkerPoolMsg {
 
 pub struct WorkerCommsWithWorkerPool {
     index: WorkerIndex,
-    send_to_wp: UnboundedSender<(WorkerIndex, WorkerToWorkerPoolMsg)>,
+    send_to_wp: UnboundedSender<(WorkerIndex, SimulationShortId, WorkerToWorkerPoolMsg)>,
     recv_from_wp: Option<UnboundedReceiver<WorkerPoolToWorkerMsg>>,
     terminate_recv: TerminateRecv,
 }
@@ -111,8 +111,12 @@ impl WorkerCommsWithWorkerPool {
         &self.index
     }
 
-    pub fn send(&self, msg: WorkerToWorkerPoolMsg) -> crate::worker::error::Result<()> {
-        self.send_to_wp.send((self.index, msg))?;
+    pub fn send(
+        &self,
+        sim_id: SimulationShortId,
+        msg: WorkerToWorkerPoolMsg,
+    ) -> crate::worker::error::Result<()> {
+        self.send_to_wp.send((self.index, sim_id, msg))?;
         Ok(())
     }
 
@@ -146,7 +150,7 @@ pub struct WorkerPoolCommsWithWorkers {
         UnboundedSender<WorkerPoolToWorkerMsg>,
         terminate::TerminateSend,
     )>,
-    recv_from_w: UnboundedReceiver<(WorkerIndex, WorkerToWorkerPoolMsg)>,
+    recv_from_w: UnboundedReceiver<(WorkerIndex, SimulationShortId, WorkerToWorkerPoolMsg)>,
 }
 
 impl WorkerPoolCommsWithWorkers {
@@ -211,7 +215,9 @@ impl WorkerPoolCommsWithWorkers {
         Ok(())
     }
 
-    pub async fn recv(&mut self) -> Option<(WorkerIndex, WorkerToWorkerPoolMsg)> {
+    pub async fn recv(
+        &mut self,
+    ) -> Option<(WorkerIndex, SimulationShortId, WorkerToWorkerPoolMsg)> {
         self.recv_from_w.recv().await
     }
 }

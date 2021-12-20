@@ -3,13 +3,13 @@ use std::io::{BufReader, BufWriter};
 use super::{config::LocalPersistenceConfig, result::LocalPersistenceResult};
 use crate::{
     output::{buffer::Buffers, error::Result, SimulationOutputPersistenceRepr},
-    proto::{ExperimentId, SimulationShortId},
+    proto::{ExperimentRegisteredId, SimulationShortId},
     simulation::{package::output::packages::Output, step_output::SimulationStepOutput},
 };
 
 #[derive(derive_new::new)]
 pub struct LocalSimulationOutputPersistence {
-    exp_id: ExperimentId,
+    exp_id: ExperimentRegisteredId,
     sim_id: SimulationShortId,
     // TODO: Should this be unused? If so remove
     buffers: Buffers,

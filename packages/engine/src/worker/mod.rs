@@ -263,21 +263,21 @@ impl WorkerController {
                     }
                     Main => {
                         log::trace!("Task message came back to main, finishing task");
-                        self.finish_task_from_runner_msg(task.msg, msg.source)
+                        self.finish_task_from_runner_msg(sim_id, task.msg, msg.source)
                             .await?;
                     }
                 }
             }
             TaskCancelled(task_id) => {
-                self.handle_cancel_task_confirmation(task_id, msg.source)
+                self.handle_cancel_task_confirmation(task_id, sim_id, msg.source)
                     .await?;
             }
-            RunnerError(err) => self.handle_errors(vec![err]).await?,
-            RunnerErrors(errs) => self.handle_errors(errs).await?,
-            RunnerWarning(warning) => self.handle_warnings(vec![warning]).await?,
-            RunnerWarnings(warnings) => self.handle_warnings(warnings).await?,
-            RunnerLog(log) => self.handle_logs(vec![log]).await?,
-            RunnerLogs(logs) => self.handle_logs(logs).await?,
+            RunnerError(err) => self.handle_errors(sim_id, vec![err]).await?,
+            RunnerErrors(errs) => self.handle_errors(sim_id, errs).await?,
+            RunnerWarning(warning) => self.handle_warnings(sim_id, vec![warning]).await?,
+            RunnerWarnings(warnings) => self.handle_warnings(sim_id, warnings).await?,
+            RunnerLog(log) => self.handle_logs(sim_id, vec![log]).await?,
+            RunnerLogs(logs) => self.handle_logs(sim_id, logs).await?,
         }
         Ok(())
     }
@@ -297,6 +297,7 @@ impl WorkerController {
     async fn finish_task(
         &mut self,
         task_id: TaskId,
+        sim_id: SimulationShortId,
         source: Language,
         message: TaskMessage,
         shared_store: TaskSharedStore,
@@ -310,23 +311,24 @@ impl WorkerController {
             log::trace!("Cancelling tasks on the other runners");
             self.cancel_task_except_for_runner(task_id, source).await?;
 
-            self.worker_pool_comms
-                .send(WorkerToWorkerPoolMsg::TaskResultOrCancelled(
-                    WorkerTaskResultOrCancelled {
-                        task_id,
-                        payload: TaskResultOrCancelled::Result(message),
-                    },
-                ))?;
+            self.worker_pool_comms.send(
+                sim_id,
+                WorkerToWorkerPoolMsg::TaskResultOrCancelled(WorkerTaskResultOrCancelled {
+                    task_id,
+                    payload: TaskResultOrCancelled::Result(message),
+                }),
+            )?;
         }
         Ok(())
     }
 
     async fn finish_task_from_runner_msg(
         &mut self,
+        sim_id: SimulationShortId,
         msg: RunnerTaskMsg,
         source: Language,
     ) -> Result<()> {
-        self.finish_task(msg.task_id, source, msg.payload, msg.shared_store)
+        self.finish_task(msg.task_id, sim_id, source, msg.payload, msg.shared_store)
             .await
     }
 
@@ -401,7 +403,7 @@ impl WorkerController {
                 Dynamic => return Err(Error::UnexpectedTarget(next.target)),
                 Main => {
                     log::trace!("Task message came back to main, finishing task");
-                    self.finish_task(msg.task_id, source, next.payload, msg.shared_store)
+                    self.finish_task(msg.task_id, sim_id, source, next.payload, msg.shared_store)
                         .await?
                 }
             }
@@ -412,6 +414,7 @@ impl WorkerController {
     async fn handle_cancel_task_confirmation(
         &mut self,
         task_id: TaskId,
+        sim_id: SimulationShortId,
         source: Language,
     ) -> Result<()> {
         if let Some(task) = self.tasks.inner.get_mut(&task_id) {
@@ -427,34 +430,42 @@ impl WorkerController {
                 // Safe unwrap, since we know it must be in `tasks`
                 // We want to drop so we lose the locks on the datastore
                 drop(self.tasks.inner.remove(&task_id).unwrap());
-                self.worker_pool_comms
-                    .send(WorkerToWorkerPoolMsg::TaskResultOrCancelled(
-                        WorkerTaskResultOrCancelled {
-                            task_id,
-                            payload: TaskResultOrCancelled::Cancelled,
-                        },
-                    ))?;
+                self.worker_pool_comms.send(
+                    sim_id,
+                    WorkerToWorkerPoolMsg::TaskResultOrCancelled(WorkerTaskResultOrCancelled {
+                        task_id,
+                        payload: TaskResultOrCancelled::Cancelled,
+                    }),
+                )?;
             }
         }
         // else ignore, since it must be that either the active runner cancelled or completed
         Ok(())
     }
 
-    async fn handle_errors(&mut self, errors: Vec<RunnerError>) -> Result<()> {
+    async fn handle_errors(
+        &mut self,
+        sim_id: SimulationShortId,
+        errors: Vec<RunnerError>,
+    ) -> Result<()> {
         self.worker_pool_comms
-            .send(WorkerToWorkerPoolMsg::RunnerErrors(errors))?;
+            .send(sim_id, WorkerToWorkerPoolMsg::RunnerErrors(errors))?;
         Ok(())
     }
 
-    async fn handle_warnings(&mut self, warnings: Vec<RunnerError>) -> Result<()> {
+    async fn handle_warnings(
+        &mut self,
+        sim_id: SimulationShortId,
+        warnings: Vec<RunnerError>,
+    ) -> Result<()> {
         self.worker_pool_comms
-            .send(WorkerToWorkerPoolMsg::RunnerWarnings(warnings))?;
+            .send(sim_id, WorkerToWorkerPoolMsg::RunnerWarnings(warnings))?;
         Ok(())
     }
 
-    async fn handle_logs(&mut self, logs: Vec<String>) -> Result<()> {
+    async fn handle_logs(&mut self, sim_id: SimulationShortId, logs: Vec<String>) -> Result<()> {
         self.worker_pool_comms
-            .send(WorkerToWorkerPoolMsg::RunnerLogs(logs))?;
+            .send(sim_id, WorkerToWorkerPoolMsg::RunnerLogs(logs))?;
         Ok(())
     }
 
