@@ -8,4 +8,8 @@ This repository contains HASH's open-source and public code, documentation, and 
 - `resources/docs`: A user guide to the whole HASH platform ([hash.ai/docs](https://hash.ai/docs))
 - `resources/glossary`: A glossary of terms explaining common concepts relevant to the use of HASH ([hash.ai/glossary](https://hash.ai/glossary))
 
-Please see the [LICENSE](LICENSE.md) file for more information on the terms under which the various parts of this repository are made available.
+Please see:
+
+- [LICENSE.md](LICENSE.md) for more information about the terms under which the various parts of this repository are made available
+- [CONTRIBUTING.md](CONTRIBUTING.md) if you're interested in getting involved in the design or development of HASH
+- [SECURITY.md](SECURITY.md) for instructions around reporting issues, and details of which package versions we actively support
