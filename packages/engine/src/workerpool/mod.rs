@@ -281,19 +281,19 @@ impl WorkerPoolController {
                 log::debug!("Received RunnerErrors Message from Worker");
                 self.top_send
                     .inner
-                    .send((Some(sim_id), WorkerPoolToExpCtlMsg::Errors(errors)))?;
+                    .send((sim_id, WorkerPoolToExpCtlMsg::Errors(errors)))?;
             }
             WorkerToWorkerPoolMsg::RunnerWarnings(warnings) => {
                 log::debug!("Received RunnerWarnings Message from Worker");
                 self.top_send
                     .inner
-                    .send((Some(sim_id), WorkerPoolToExpCtlMsg::Warnings(warnings)))?;
+                    .send((sim_id, WorkerPoolToExpCtlMsg::Warnings(warnings)))?;
             }
             WorkerToWorkerPoolMsg::RunnerLogs(logs) => {
                 log::debug!("Received RunnerLogs Message from Worker");
                 self.top_send
                     .inner
-                    .send((Some(sim_id), WorkerPoolToExpCtlMsg::Logs(logs)))?;
+                    .send((sim_id, WorkerPoolToExpCtlMsg::Logs(logs)))?;
             }
         }
         Ok(())

@@ -141,31 +141,15 @@ async fn run_experiment_with_manifest(
                 debug!("Simulation stopped: {sim_id}");
             }
             proto::EngineStatus::Errors(sim_id, errs) => {
-                if let Some(sim_id) = sim_id {
-                    error!("There were errors when running simulation [{sim_id}]: {errs:?}");
-                } else {
-                    error!("Errors occurred within the engine: {errs:?}");
-                }
+                error!("There were errors when running simulation [{sim_id}]: {errs:?}");
             }
             proto::EngineStatus::Warnings(sim_id, warnings) => {
-                if let Some(sim_id) = sim_id {
-                    warn!("There were warnings when running simulation [{sim_id}]: {warnings:?}");
-                } else {
-                    warn!("Warnings occurred within the engine: {warnings:?}");
-                }
+                warn!("There were warnings when running simulation [{sim_id}]: {warnings:?}");
             }
             proto::EngineStatus::Logs(sim_id, logs) => {
-                if let Some(sim_id) = sim_id {
-                    for log in logs {
-                        if !log.is_empty() {
-                            info!("[{sim_id}]: {log}");
-                        }
-                    }
-                } else {
-                    for log in logs {
-                        if !log.is_empty() {
-                            info!("{log}");
-                        }
+                for log in logs {
+                    if !log.is_empty() {
+                        info!("[{sim_id}]: {log}");
                     }
                 }
             }
