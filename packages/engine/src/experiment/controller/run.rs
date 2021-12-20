@@ -20,7 +20,7 @@ use crate::{
 };
 
 pub async fn run_experiment(exp_config: ExperimentConfig, env: Environment) -> Result<()> {
-    let experiment_id = exp_config.run.base().id.clone();
+    let experiment_id = exp_config.id().clone();
     log::info!(
         "Running experiment {} with run ID: {}",
         experiment_id,
@@ -75,7 +75,7 @@ pub async fn run_local_experiment(exp_config: ExperimentConfig, env: Environment
         OutputPersistenceConfig::Local(local) => {
             log::debug!("Running experiment with local persistence");
             let persistence = LocalOutputPersistence::new(
-                exp_config.run.base().id.clone(),
+                exp_config.id().clone(),
                 (*exp_config.run_id).clone(),
                 local.clone(),
             );
