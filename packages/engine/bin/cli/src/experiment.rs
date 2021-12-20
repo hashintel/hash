@@ -48,7 +48,6 @@ fn create_engine_command(
     Ok(Box::new(process::LocalCommand::new(
         experiment_id,
         args.num_workers as usize,
-        true,
         controller_url,
     )?))
 }
@@ -106,7 +105,7 @@ async fn run_experiment_with_manifest(
     let init_message = proto::InitMessage {
         experiment: experiment_run.clone().into(),
         env: ExecutionEnvironment::None, // We don't connect to the API
-        dyn_payloads: serde_json::Map::from_iter(map_iter), // TODO
+        dyn_payloads: serde_json::Map::from_iter(map_iter),
     };
     engine_process
         .send(&proto::EngineMsg::Init(init_message))

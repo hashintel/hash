@@ -76,10 +76,6 @@ pub struct SimpleExperimentArgs {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // TODO: project conversion into manifest...
-    // TODO: persist output
-    //   1) send absolute path to engine process
-    //   2) within engine process, save to folder
     pretty_env_logger::init();
     let args = Args::from_args();
 
