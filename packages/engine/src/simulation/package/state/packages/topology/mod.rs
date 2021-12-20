@@ -29,12 +29,7 @@ impl PackageCreator for Creator {
         _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
         let topology = Topology {
-            config: Arc::new(
-                // TODO OS: do we want to make a default if topology config is missing in Globals,
-                // or do we want to error
-                TopologyConfig::create_from_globals(&config.sim.globals)
-                    .unwrap_or_else(|_| TopologyConfig::default()),
-            ),
+            config: Arc::new(TopologyConfig::from_globals(&config.sim.globals)?),
         };
         Ok(Box::new(topology))
     }
