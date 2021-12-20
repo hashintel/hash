@@ -1,78 +1,20 @@
-use std::sync::Arc;
+use core::fmt::{self};
+
+use serde::{
+    de::{self, Deserializer, Visitor},
+    Deserialize, Serialize, Serializer,
+};
+use serde_json::Value;
 
 use super::Result;
-use crate::config::{
-    globals::Globals,
-    topology::functions::{conway, euclidean, euclidean_squared, manhattan},
-};
+use crate::config::globals::Globals;
 
 // TODO: think about creating a system of ConfigProviders whereby packages can depend on them
 //   and decrease the amount of assumptions the core engine has to make, for example position
 //   correction and neighbor search depend on this config, but this config is useless if those
 //   packages are not run
 
-#[allow(clippy::module_name_repetitions)]
-pub trait DistanceFn: Fn(&[f64], &[f64]) -> f64 + Send + Sync + 'static {}
-
-impl<T> DistanceFn for T where T: Fn(&[f64], &[f64]) -> f64 + Send + Sync + 'static {}
-
-pub mod functions {
-    /// The distance function associated with the infinite norm
-    /// In simpler terms - the distance function that returns the largest distance in any given axes
-    ///
-    /// Takes two positions as an array of coordinates
-    #[must_use]
-    pub fn conway(a: &[f64], b: &[f64]) -> f64 {
-        debug_assert!(a.len() == b.len());
-        a.iter()
-            .zip(b.iter()) // Line the two coordinates up in a set of hstacked pairs
-            .map(|(x1, x2)| (*x1 - *x2).abs()) // pull in each hstack pair and return the abs of their difference
-            .fold(0_f64, |a, b| a.max(b)) //
-    }
-
-    /// The distance function associated with the L-1 norm
-    /// Also known as the Taxicab distance - returns the total distance traveled in all axes
-    ///
-    /// Takes two positions as an array of coordinates
-    #[must_use]
-    pub fn manhattan(a: &[f64], b: &[f64]) -> f64 {
-        debug_assert!(a.len() == b.len());
-        a.iter()
-            .zip(b.iter())
-            .map(|(x1, x2)| (*x1 - *x2).abs())
-            .fold(0_f64, |acc, add| acc + add)
-    }
-
-    /// The distance function associated with the L-2 norm
-    /// Most familiar distance function - is the straightline distance between two points
-    /// Results are left squared for efficient comparisons
-    ///
-    /// Takes two positions as an array of coordinates
-    #[must_use]
-    pub fn euclidean_squared(a: &[f64], b: &[f64]) -> f64 {
-        debug_assert!(a.len() == b.len());
-        a.iter()
-            .zip(b.iter())
-            .map(|(x1, x2)| (*x1 - *x2).powi(2))
-            .fold(0_f64, |acc, add| acc + add)
-    }
-
-    /// The distance function associated with the L-2 norm
-    /// Most familiar distance function - is the straightline distance between two points
-    ///
-    /// Takes two positions as an array of coordinates
-    #[must_use]
-    pub fn euclidean(a: &[f64], b: &[f64]) -> f64 {
-        debug_assert!(a.len() == b.len());
-        a.iter()
-            .zip(b.iter())
-            .map(|(x1, x2)| (*x1 - *x2).powi(2))
-            .fold(0_f64, |acc, add| acc + add)
-            .sqrt()
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct AxisBoundary {
     pub min: f64,
     pub max: f64,
@@ -87,61 +29,105 @@ impl Default for AxisBoundary {
     }
 }
 
-/// Configuration of the topology relevant to movement and neighbor calculation
-pub struct Config {
-    /// Dimensions of board associated with "width"
-    pub x_bounds: AxisBoundary,
+#[derive(Serialize, Deserialize)]
+#[serde(transparent)]
+#[repr(transparent)]
+struct Float(
+    #[serde(
+        serialize_with = "serialize_float",
+        deserialize_with = "deserialize_float"
+    )]
+    f64,
+);
 
-    /// Dimensions of board associated with "length"
-    pub y_bounds: AxisBoundary,
-
-    /// Dimensions of board associated with "height"
-    pub z_bounds: AxisBoundary,
-
-    /// Determines how agents interact with the boundaries of the simulation associated with
-    /// "width"
-    pub wrap_x_mode: WrappingBehavior,
-
-    /// Determines how agents interact with the boundaries of the simulation associated with
-    /// "length"
-    pub wrap_y_mode: WrappingBehavior,
-
-    /// Determines how agents interact with the boundaries of the simulation associated with
-    /// "height"
-    pub wrap_z_mode: WrappingBehavior,
-
-    /// The search radius for the kd-tree distance function
-    pub search_radius: Option<f64>,
-
-    /// The type of distance function to be used
-    /// Currently can be any of Manhattan, Euclidean, Lnorm(p), and Chebyshev
-    pub distance_function: Box<dyn DistanceFn>,
-
-    /// Whether or not position and velocity wrapping are enabled by default
-    pub move_wrapped_agents: bool,
-
-    /// Cache how many wrapped points we need to calculate
-    pub wrapping_combinations: usize,
-}
-
-impl Default for Config {
-    fn default() -> Config {
-        Config {
-            x_bounds: AxisBoundary::default(),
-            y_bounds: AxisBoundary::default(),
-            z_bounds: AxisBoundary::default(),
-            wrap_x_mode: WrappingBehavior::default(),
-            wrap_y_mode: WrappingBehavior::default(),
-            wrap_z_mode: WrappingBehavior::default(),
-            search_radius: None,
-            distance_function: Box::new(conway),
-            move_wrapped_agents: true,
-            wrapping_combinations: 1,
+fn serialize_float<S>(x: &f64, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    if x.is_infinite() {
+        if x.is_sign_positive() {
+            serializer.serialize_str("Infinity")
+        } else {
+            serializer.serialize_str("-Infinity")
         }
+    } else {
+        serializer.serialize_f64(*x)
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Debug)]
+fn deserialize_float<'de, D>(deserializer: D) -> Result<f64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct FloatDeserializeVisitor;
+
+    impl<'de> Visitor<'de> for FloatDeserializeVisitor {
+        type Value = f64;
+
+        fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(f, "f64")
+        }
+
+        fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            self.visit_f64(v as f64)
+        }
+
+        fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            self.visit_f64(v as f64)
+        }
+
+        fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(v)
+        }
+
+        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            match v {
+                "Infinity" => Ok(f64::INFINITY),
+                "-Infinity" => Ok(f64::NEG_INFINITY),
+                _ => Err(E::invalid_value(de::Unexpected::Str(v), &self)),
+            }
+        }
+    }
+
+    deserializer.deserialize_any(FloatDeserializeVisitor)
+}
+
+impl Serialize for AxisBoundary {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        [Float(self.min), Float(self.max)].serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for AxisBoundary {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let bounds: [Float; 2] = Deserialize::deserialize(deserializer)?;
+        Ok(Self {
+            min: bounds[0].0,
+            max: bounds[1].0,
+        })
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum WrappingBehavior {
     /// Agents crossing the border re-enter on the other side
     ///
@@ -164,287 +150,471 @@ pub enum WrappingBehavior {
     NoWrap,
 }
 
+impl WrappingBehavior {
+    /// Changes wrapping behavior to [`WrappingBehavior::Reflection`] if bounds are not +/- INF.
+    fn adjust_for_bound(self, bounds: AxisBoundary) -> Self {
+        if bounds.min > f64::NEG_INFINITY
+            && bounds.max < f64::INFINITY
+            && self == WrappingBehavior::NoWrap
+        {
+            WrappingBehavior::Reflection
+        } else {
+            self
+        }
+    }
+
+    /// Returns a wrapping behavior from a wrapping preset.
+    ///
+    /// For [`WrappingPreset::Spherical`] and [`WrappingPreset::Torus`] the `wrap_z_modes` is set to
+    /// `fallback`.
+    fn from_preset(preset: WrappingPreset, fallback: WrappingBehavior) -> [WrappingBehavior; 3] {
+        Self::verify_offset_reflection(match preset {
+            WrappingPreset::Spherical => [
+                WrappingBehavior::Continuous,
+                WrappingBehavior::OffsetReflection,
+                fallback,
+            ],
+            WrappingPreset::Torus => [
+                WrappingBehavior::Continuous,
+                WrappingBehavior::Continuous,
+                fallback,
+            ],
+            WrappingPreset::Continuous => [
+                WrappingBehavior::Continuous,
+                WrappingBehavior::Continuous,
+                WrappingBehavior::Continuous,
+            ],
+            WrappingPreset::Reflection => [
+                WrappingBehavior::Reflection,
+                WrappingBehavior::Reflection,
+                WrappingBehavior::Reflection,
+            ],
+        })
+    }
+
+    /// Verifies and adjusts for [`OffsetReflection`] in a 3-dimensional wrapping behavior.
+    ///
+    /// Only **one** [`OffsetReflection`] is allowed and only on the y-axis and z-axis. If
+    /// [`OffsetReflection`] is set on axis `n`, then the axis `n-1` is set to [`Continuous`].
+    ///
+    /// This is related to the way in which the wrapped positions for each agent are calculated.
+    /// Each wrap mode is expected to have exactly one wrapped position, but for OffsetReflection,
+    /// this is not true: an agent may have two wrapped positions. Implementing the general case
+    /// is very computationally expensive. Limiting to only have one OffsetReflection axis makes it
+    /// more manageable.
+    ///
+    /// To understand why OffsetReflection generates two wrapped positions,
+    /// look at this example situation:
+    ///
+    /// ```text
+    /// __________________
+    /// |        x       |
+    /// ```
+    ///
+    /// the agent "x" is at the middle of the top border of the map. Which
+    /// are its wrapped positions? They are:
+    ///
+    /// ```text
+    /// x________________x
+    /// |        x       |
+    /// ```
+    ///
+    /// but the algorithm only considers one:
+    ///
+    /// ```text
+    /// x_________________
+    /// |        x       |
+    /// ```
+    ///
+    /// The "trick" to overcome this problem is to always consider the axis with
+    /// [`OffsetReflection`] before the axis along which the offset happens (which is always the
+    /// "previous" one), and to mandate that the offset axis is set to Continuous wrapping mode,
+    /// because at that point the other wrap mode kicks in and covers the issue:
+    ///
+    /// ```text
+    /// x________________x
+    /// x       |        x       |
+    /// ```
+    // If it does not make sense, try to answer this question: what algorithm should we use to find
+    // all the neighbors of this point:
+    //
+    // ```text
+    // __________________
+    // |        x       |
+    // ```
+    //
+    // with all possible combinations of wrapping behaviors? You'll either find a solution that
+    // works and you can get rid of this whole comment, or understand what I am trying to say :D
+    ///
+    /// # Panics
+    ///
+    /// - if x-wrapping behavior is [`OffsetReflection`]
+    /// - if y-wrapping behavior **and** z-wrapping behavior is [`OffsetReflection`]
+    ///
+    /// [`OffsetReflection`]: Self::OffsetReflection
+    /// [`Continuous`]: Self::Continuous
+    #[must_use]
+    fn verify_offset_reflection(mut behaviors: [WrappingBehavior; 3]) -> [WrappingBehavior; 3] {
+        if behaviors[0] == WrappingBehavior::OffsetReflection {
+            panic!("HASH does not support OffsetReflection along the x axis");
+        }
+
+        if behaviors[1] == WrappingBehavior::OffsetReflection
+            && behaviors[2] == WrappingBehavior::OffsetReflection
+        {
+            panic!("HASH support only one axis with OffsetReflection (either y or z)");
+        }
+
+        if behaviors[1] == WrappingBehavior::OffsetReflection {
+            behaviors[0] = WrappingBehavior::Continuous;
+        }
+        if behaviors[2] == WrappingBehavior::OffsetReflection {
+            behaviors[1] = WrappingBehavior::Continuous;
+        }
+        behaviors
+    }
+
+    #[must_use]
+    fn calculate_wrapping_combinations(behaviors: [WrappingBehavior; 3]) -> usize {
+        behaviors.iter().fold(1, |acc, wrap| {
+            if let WrappingBehavior::NoWrap = wrap {
+                acc
+            } else {
+                acc * 2
+            }
+        })
+    }
+}
+
 impl Default for WrappingBehavior {
     fn default() -> WrappingBehavior {
         WrappingBehavior::NoWrap
     }
 }
 
-impl WrappingBehavior {
-    pub fn from_string<S>(source: S) -> Option<WrappingBehavior>
-    where
-        S: AsRef<str>,
-    {
-        Some(match source.as_ref() {
-            "continuous" => WrappingBehavior::Continuous,
-            "reflection" => WrappingBehavior::Reflection,
-            "offset_reflection" => WrappingBehavior::OffsetReflection,
-            "none" => WrappingBehavior::NoWrap,
-            _ => return None,
-        })
+#[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WrappingPreset {
+    Spherical,
+    Torus,
+    Continuous,
+    Reflection,
+}
+
+#[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DistanceFunction {
+    /// The distance function associated with the L-1 norm
+    /// Also known as the Taxicab distance - returns the total distance traveled in all axes
+    ///
+    /// Takes two positions as an array of coordinates
+    Manhatten,
+
+    /// The distance function associated with the L-2 norm
+    /// Most familiar distance function - is the straightline distance between two points
+    ///
+    /// Takes two positions as an array of coordinates
+    Euclidean,
+
+    /// The distance function associated with the L-2 norm
+    /// Most familiar distance function - is the straightline distance between two points
+    /// Results are left squared for efficient comparisons
+    ///
+    /// Takes two positions as an array of coordinates
+    EuclideanSquared,
+
+    /// The distance function associated with the infinite norm
+    /// In simpler terms - the distance function that returns the largest distance in any given
+    /// axes
+    ///
+    /// Takes two positions as an array of coordinates
+    Conway,
+}
+
+impl Default for DistanceFunction {
+    fn default() -> Self {
+        Self::Conway
+    }
+}
+
+impl DistanceFunction {
+    fn as_function(self) -> fn(&[f64], &[f64]) -> f64 {
+        #[must_use]
+        fn conway(a: &[f64], b: &[f64]) -> f64 {
+            debug_assert!(a.len() == b.len());
+            a.iter()
+                .zip(b.iter()) // Line the two coordinates up in a set of hstacked pairs
+                .map(|(x1, x2)| (*x1 - *x2).abs()) // pull in each hstack pair and return the abs of their difference
+                .fold(0_f64, |a, b| a.max(b)) //
+        }
+
+        #[must_use]
+        fn manhattan(a: &[f64], b: &[f64]) -> f64 {
+            debug_assert!(a.len() == b.len());
+            a.iter()
+                .zip(b.iter())
+                .map(|(x1, x2)| (*x1 - *x2).abs())
+                .fold(0_f64, |acc, add| acc + add)
+        }
+
+        #[must_use]
+        fn euclidean_squared(a: &[f64], b: &[f64]) -> f64 {
+            debug_assert!(a.len() == b.len());
+            a.iter()
+                .zip(b.iter())
+                .map(|(x1, x2)| (*x1 - *x2).powi(2))
+                .fold(0_f64, |acc, add| acc + add)
+        }
+
+        #[must_use]
+        fn euclidean(a: &[f64], b: &[f64]) -> f64 {
+            debug_assert!(a.len() == b.len());
+            a.iter()
+                .zip(b.iter())
+                .map(|(x1, x2)| (*x1 - *x2).powi(2))
+                .fold(0_f64, |acc, add| acc + add)
+                .sqrt()
+        }
+
+        match self {
+            Self::Manhatten => manhattan,
+            Self::Euclidean => euclidean,
+            Self::EuclideanSquared => euclidean_squared,
+            Self::Conway => conway,
+        }
+    }
+}
+
+/// Configuration of the topology relevant to movement and neighbor calculation
+pub struct Config {
+    /// x/y/z-Dimensions of board associated with "width"/"length"/"height"
+    pub bounds: [AxisBoundary; 3],
+
+    /// Determines how agents interact with the boundaries in x/y/z of the simulation associated
+    /// with "width"/"length"/"height"
+    pub wrap_modes: [WrappingBehavior; 3],
+
+    /// The search radius for the kd-tree distance function
+    pub search_radius: Option<f64>,
+
+    /// The type of distance function to be used
+    /// Currently can be any of Manhattan, Euclidean, Lnorm(p), and Chebyshev
+    pub distance_function: fn(&[f64], &[f64]) -> f64,
+
+    /// Whether or not position and velocity wrapping are enabled by default
+    pub move_wrapped_agents: bool,
+
+    /// Cache how many wrapped points we need to calculate
+    pub wrapping_combinations: usize,
+}
+
+impl Default for Config {
+    fn default() -> Config {
+        Config {
+            bounds: Default::default(),
+            wrap_modes: Default::default(),
+            search_radius: None,
+            distance_function: DistanceFunction::default().as_function(),
+            move_wrapped_agents: true,
+            wrapping_combinations: 1,
+        }
     }
 }
 
 impl Config {
-    /// # Errors
-    /// Will return an error if there is no suitable `topology::Config` specified within
-    /// the Globals JSON object.
-    pub fn create_from_globals(globals: &Arc<Globals>) -> Result<Self> {
-        Self::_try_extract_topology_config(globals)
-            .ok_or_else(|| "TopologyConfig not found within Globals".into())
-    }
-
-    /// `_try_extract_topology_config` will attempt to create a `topology::Config` struct from the
-    /// given json value stored within the globals, otherwise it will return None.
+    /// Creates a topology configuration from [`Globals`].
     ///
-    /// This should be used in conjunction with `topology::Config::default()`
-    #[allow(clippy::cognitive_complexity, clippy::too_many_lines)] // TODO: split up
-    #[must_use]
-    fn _try_extract_topology_config(globals: &Arc<Globals>) -> Option<Self> {
-        // Start interpreting the user's global properties into a topology without tripping on
-        // errors
-        if let Some(serde_json::Value::Object(topology_props)) = globals.0.get("topology") {
-            let mut config = Config::default();
-            if let Some(serde_json::Value::Array(x_bounds_arr)) = topology_props.get("x_bounds") {
-                if let Some(x_bounds_min) = x_bounds_arr.get(0).and_then(serde_json::Value::as_f64)
-                {
-                    config.x_bounds.min = x_bounds_min;
-                }
-                if let Some(x_bounds_max) = x_bounds_arr.get(1).and_then(serde_json::Value::as_f64)
-                {
-                    config.x_bounds.max = x_bounds_max;
-                }
-            }
-            if let Some(serde_json::Value::Array(y_bounds_arr)) = topology_props.get("y_bounds") {
-                if let Some(y_bounds_min) = y_bounds_arr.get(0).and_then(serde_json::Value::as_f64)
-                {
-                    config.y_bounds.min = y_bounds_min;
-                }
-                if let Some(y_bounds_max) = y_bounds_arr.get(1).and_then(serde_json::Value::as_f64)
-                {
-                    config.y_bounds.max = y_bounds_max;
-                }
-            }
-            if let Some(serde_json::Value::Array(z_bounds_arr)) = topology_props.get("z_bounds") {
-                if let Some(z_bounds_min) = z_bounds_arr.get(0).and_then(serde_json::Value::as_f64)
-                {
-                    config.z_bounds.min = z_bounds_min;
-                }
-                if let Some(z_bounds_max) = z_bounds_arr.get(1).and_then(serde_json::Value::as_f64)
-                {
-                    config.z_bounds.max = z_bounds_max;
-                }
-            }
-            // Misspellings currently default to NoWrap but don't alert the user. Need to add error
-            // alerts here
-            if let Some(wrap) = topology_props
-                .get("wrap_x_mode")
-                .and_then(|v| v.as_str().and_then(WrappingBehavior::from_string))
-            {
-                config.wrap_x_mode = wrap;
-            }
-
-            if let Some(wrap) = topology_props
-                .get("wrap_y_mode")
-                .and_then(|v| v.as_str().and_then(WrappingBehavior::from_string))
-            {
-                config.wrap_y_mode = wrap;
-            }
-
-            if let Some(wrap) = topology_props
-                .get("wrap_z_mode")
-                .and_then(|v| v.as_str().and_then(WrappingBehavior::from_string))
-            {
-                config.wrap_z_mode = wrap;
-            }
-
-            // Override whatever the user entered for x and y wrap if they entered a preset
-            if let Some(serde_json::Value::String(wrapping_preset_str)) =
-                topology_props.get("wrapping_preset")
-            {
-                match &**wrapping_preset_str {
-                    "spherical" => {
-                        config.wrap_x_mode = WrappingBehavior::Continuous;
-                        config.wrap_y_mode = WrappingBehavior::OffsetReflection;
-                    }
-                    "torus" => {
-                        config.wrap_x_mode = WrappingBehavior::Continuous;
-                        config.wrap_y_mode = WrappingBehavior::Continuous;
-                    }
-                    "continuous" => {
-                        config.wrap_x_mode = WrappingBehavior::Continuous;
-                        config.wrap_y_mode = WrappingBehavior::Continuous;
-                        config.wrap_z_mode = WrappingBehavior::Continuous;
-                    }
-                    "reflection" => {
-                        config.wrap_x_mode = WrappingBehavior::Reflection;
-                        config.wrap_y_mode = WrappingBehavior::Reflection;
-                        config.wrap_z_mode = WrappingBehavior::Reflection;
-                    }
-                    _ => {}
-                }
-            }
-
-            if config.x_bounds.min > f64::NEG_INFINITY
-                && config.x_bounds.max < f64::INFINITY
-                && config.wrap_x_mode == WrappingBehavior::NoWrap
-            {
-                config.wrap_x_mode = WrappingBehavior::Reflection;
-            }
-
-            if config.y_bounds.min > f64::NEG_INFINITY
-                && config.y_bounds.max < f64::INFINITY
-                && config.wrap_y_mode == WrappingBehavior::NoWrap
-            {
-                config.wrap_y_mode = WrappingBehavior::Reflection;
-            }
-
-            if config.z_bounds.min > f64::NEG_INFINITY
-                && config.z_bounds.max < f64::INFINITY
-                && config.wrap_z_mode == WrappingBehavior::NoWrap
-            {
-                config.wrap_z_mode = WrappingBehavior::Reflection;
-            }
-
-            /*
-               We only support ONE OffsetReflection, and not on the x axis. The "offset" axis,
-               which is always the previous one (eg: x if y is OffsetReflection, y if z is
-               OffsetReflection), gets always set to Continuous.
-
-               This is related to the way in which we calculate the wrapped positions
-               for each agent. We expect each wrap mode to have exactly one wrapped
-               position, but for OffsetReflection, this is not true: an agent may
-               have two wrapped positions.
-               Implementing the general case is very computationally expensive. Limiting
-               ourselves to only have one OffsetReflection axis makes it more manageable.
-
-               To understand why OffsetReflection generates two wrapped positions,
-               look at this example situation:
-
-               __________________
-               |        x       |
-
-               the agent "x" is at the middle of the top border of the map. Which
-               are its wrapped positions? They are:
-
-               _x_______________x
-               |        x       |
-
-               but our algorithm only considers one:
-
-               _x________________
-               |        x       |
-
-               The "trick" to overcome this problem is to always consider the axis with OffsetReflection
-               before the axis along which the offset happens (which is always the "previous" one), and to
-               mandate that the offset axis is set to Continuous wrapping mode, because at that point
-               the other wrap mode kicks in and covers the issue:
-
-               _x_______________x
-               x       |        x       |
-
-               If it does not make sense, try to answer this question: what algorithm should we use to find
-               all the neighbors of this point:
-
-               __________________
-               |        x       |
-
-               with all possible combinations of wrapping behaviors? You'll either find a solution that works
-               and you can get rid of this whole comment, or understand what I am trying to say :D
-            */
-            if config.wrap_x_mode == WrappingBehavior::OffsetReflection {
-                panic!("HASH does not support OffsetReflection along the x axis");
-            }
-
-            if config.wrap_y_mode == WrappingBehavior::OffsetReflection
-                && config.wrap_z_mode == WrappingBehavior::OffsetReflection
-            {
-                panic!("HASH support only one axis with OffsetReflection (either y or z)");
-            }
-
-            if config.wrap_y_mode == WrappingBehavior::OffsetReflection {
-                config.wrap_x_mode = WrappingBehavior::Continuous;
-            }
-            if config.wrap_z_mode == WrappingBehavior::OffsetReflection {
-                config.wrap_y_mode = WrappingBehavior::Continuous;
-            }
-
-            let wrapping_combinations =
-                vec![config.wrap_x_mode, config.wrap_y_mode, config.wrap_z_mode]
-                    .iter()
-                    .fold(1, |acc, wrap| -> usize {
-                        if let WrappingBehavior::NoWrap = wrap {
-                            acc
-                        } else {
-                            acc * 2
-                        }
-                    });
-            config.wrapping_combinations = wrapping_combinations;
-
-            if let Some(search_radius) = topology_props
-                .get("search_radius")
-                .and_then(serde_json::Value::as_f64)
-            {
-                config.search_radius = Some(search_radius);
-            }
-
-            if let Some(serde_json::Value::String(distance_func_str)) =
-                topology_props.get("distance_function")
-            {
-                config.distance_function = Box::new(match &**distance_func_str {
-                    "manhattan" => manhattan,
-                    "euclidean" => euclidean,
-                    "euclidean_squared" => euclidean_squared,
-                    // "conway" | "chebyshev" => conway,
-                    // default is already conway, TODO nicer alternative
-                    _ => conway,
-                });
-            }
-
-            if let Some(serde_json::Value::Bool(move_wrapped_agents)) =
-                topology_props.get("move_wrapped_agents")
-            {
-                config.move_wrapped_agents = *move_wrapped_agents;
-            }
-
-            return Some(config);
+    /// If a value is not set, it will fallback as specified in [`Config::default()`].
+    ///
+    /// # Panics
+    ///
+    /// - if x-wrapping behavior is [`WrappingBehavior::OffsetReflection`]
+    /// - if y-wrapping behavior **and** z-wrapping behavior is
+    ///   [`WrappingBehavior::OffsetReflection`]
+    pub fn from_globals(globals: &Globals) -> Self {
+        fn from_json<T>(topology: &mut serde_json::Map<String, Value>, key: &str, fallback: T) -> T
+        where
+            T: Serialize + for<'de> Deserialize<'de>,
+        {
+            topology
+                .remove(key)
+                .and_then(|value| {
+                    serde_json::from_value(value)
+                        .map_err(|err| {
+                            log::warn!("Could not parse \"{key}\": {err}");
+                            if let Ok(fallback) = serde_json::to_string(&fallback) {
+                                log::warn!("Falling back to \"{fallback}\"");
+                            } else {
+                                log::warn!("Falling back to default");
+                            }
+                        })
+                        .ok()
+                })
+                .unwrap_or(fallback)
         }
-        None
+
+        let default = Self::default();
+        if let Some(serde_json::Value::Object(mut topology_props)) =
+            globals.0.get("topology").cloned()
+        {
+            let bounds = [
+                from_json(&mut topology_props, "x_bounds", default.bounds[0]),
+                from_json(&mut topology_props, "y_bounds", default.bounds[1]),
+                from_json(&mut topology_props, "z_bounds", default.bounds[2]),
+            ];
+
+            let wrap_z_mode = from_json(&mut topology_props, "wrap_z_mode", default.wrap_modes[2])
+                .adjust_for_bound(bounds[2]);
+
+            let wrap_modes =
+                if let Some(preset) = from_json(&mut topology_props, "wrapping_preset", None) {
+                    WrappingBehavior::from_preset(preset, wrap_z_mode)
+                } else {
+                    WrappingBehavior::verify_offset_reflection([
+                        from_json(&mut topology_props, "wrap_x_mode", default.wrap_modes[0])
+                            .adjust_for_bound(bounds[0]),
+                        from_json(&mut topology_props, "wrap_y_mode", default.wrap_modes[1])
+                            .adjust_for_bound(bounds[1]),
+                        wrap_z_mode,
+                    ])
+                };
+
+            let config = Self {
+                bounds,
+                wrap_modes,
+                wrapping_combinations: WrappingBehavior::calculate_wrapping_combinations(
+                    wrap_modes,
+                ),
+                search_radius: from_json(
+                    &mut topology_props,
+                    "search_radius",
+                    default.search_radius,
+                ),
+                distance_function: from_json(
+                    &mut topology_props,
+                    "distance_function",
+                    DistanceFunction::default(),
+                )
+                .as_function(),
+                move_wrapped_agents: from_json(
+                    &mut topology_props,
+                    "move_wrapped_agents",
+                    default.move_wrapped_agents,
+                ),
+            };
+            // All keys from the topology object are consumed to check for remaining keys
+            for (key, _) in topology_props {
+                log::warn!("Unused key in topology: \"{key}\"")
+            }
+            config
+        } else {
+            default
+        }
     }
 
-    /// Get the halfway axis of x dimensions
+    /// Get the halfway axis of dimensions
     #[must_use]
-    pub fn get_half_x(&self) -> f64 {
-        self.x_bounds.max - (self.x_bounds.max - self.x_bounds.min) * 0.5
-    }
-
-    /// Get the halfway axis of x dimensions
-    #[must_use]
-    pub fn get_half_y(&self) -> f64 {
-        self.y_bounds.max - (self.y_bounds.max - self.y_bounds.min) * 0.5
-    }
-
-    /// Get the halfway axis of x dimensions
-    #[must_use]
-    pub fn get_half_z(&self) -> f64 {
-        self.z_bounds.max - (self.z_bounds.max - self.z_bounds.min) * 0.5
+    pub fn get_half_dim(&self, dim: usize) -> f64 {
+        self.bounds[dim].max - self.get_dim_size(dim) * 0.5
     }
 
     /// Get distance between each end of the dimension
     #[must_use]
-    pub fn get_x_size(&self) -> f64 {
-        self.x_bounds.max - self.x_bounds.min
+    pub fn get_dim_size(&self, dim: usize) -> f64 {
+        self.bounds[dim].max - self.bounds[dim].min
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::*;
+
+    fn assert_equality(lhs: &Config, rhs: &Config) {
+        assert_eq!(lhs.bounds, rhs.bounds);
+        assert_eq!(lhs.wrap_modes, rhs.wrap_modes);
+        assert_eq!(lhs.wrapping_combinations, rhs.wrapping_combinations);
+        assert_eq!(lhs.move_wrapped_agents, rhs.move_wrapped_agents);
+        assert_eq!(lhs.search_radius, rhs.search_radius);
     }
 
-    /// Get distance between each end of the dimension
-    #[must_use]
-    pub fn get_y_size(&self) -> f64 {
-        self.y_bounds.max - self.y_bounds.min
+    #[test]
+    fn test_defaults() {
+        assert_equality(
+            &Config::default(),
+            &Config::from_globals(&Globals(json!({}))),
+        );
+        assert_equality(
+            &Config::default(),
+            &Config::from_globals(&Globals(json!({"topology": {}}))),
+        );
     }
 
-    /// Get distance between each end of the dimension
-    #[must_use]
-    pub fn get_z_size(&self) -> f64 {
-        self.z_bounds.max - self.z_bounds.min
+    #[test]
+    fn test_axis_boundary() {
+        let target = Config {
+            bounds: [
+                AxisBoundary {
+                    min: -20.,
+                    max: 20.,
+                },
+                AxisBoundary {
+                    min: -40.,
+                    max: 40.,
+                },
+                AxisBoundary::default(),
+            ],
+            wrap_modes: [
+                WrappingBehavior::Reflection,
+                WrappingBehavior::Reflection,
+                WrappingBehavior::default(),
+            ],
+            wrapping_combinations: 4,
+            ..Config::default()
+        };
+        let from_json = Config::from_globals(&Globals(json!({
+            "topology": {
+                "x_bounds": [-20, 20],
+                "y_bounds": [-40, 40],
+            }
+        })));
+        assert_equality(&target, &from_json);
+
+        let target = Config {
+            bounds: [
+                AxisBoundary {
+                    min: f64::NEG_INFINITY,
+                    max: 0.,
+                },
+                AxisBoundary {
+                    min: 0.,
+                    max: f64::INFINITY,
+                },
+                AxisBoundary::default(),
+            ],
+            ..Config::default()
+        };
+        let from_json = Config::from_globals(&Globals(json!({
+            "topology": {
+                "x_bounds": ["-Infinity", 0],
+                "y_bounds": [0, "Infinity"]
+            }
+        })));
+        assert_equality(&target, &from_json);
+    }
+
+    #[test]
+    fn test_search_radius() {
+        let target = Config {
+            search_radius: Some(4.),
+            ..Config::default()
+        };
+        let from_json = Config::from_globals(&Globals(json!({
+            "topology": {
+                "search_radius": 4
+            }
+        })));
+        assert_equality(&target, &from_json);
     }
 }

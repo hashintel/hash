@@ -822,27 +822,7 @@ mod tests {
 
         let agent: Agent = serde_json::from_str(&json).unwrap();
 
-        assert!(!agent.position_was_corrected);
         assert_eq!(agent.agent_id.len(), 36);
-    }
-
-    #[test]
-    fn test_position_was_corrected() {
-        let agent = Agent {
-            position_was_corrected: true,
-            ..Agent::empty()
-        };
-
-        match serde_json::to_value(&agent).unwrap() {
-            serde_json::Value::Object(map) => {
-                assert!(map.contains_key("position_was_corrected"));
-                match map["position_was_corrected"] {
-                    serde_json::Value::Bool(b) => assert!(b),
-                    _ => panic!("`serde_json::Value::Bool` expected"),
-                }
-            }
-            _ => panic!("`serde_json::Value::Object` expected"),
-        }
     }
 
     #[test]

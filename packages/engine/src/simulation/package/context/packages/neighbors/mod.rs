@@ -38,6 +38,7 @@ mod writer;
 
 const CPU_BOUND: bool = true;
 pub const NEIGHBOR_INDEX_COUNT: usize = 2;
+
 pub type IndexType = u32;
 pub type ArrowIndexBuilder = arrow::array::UInt32Builder;
 
@@ -56,10 +57,7 @@ impl PackageCreator for Creator {
         context_field_spec_accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn ContextPackage>> {
         let neighbors = Neighbors {
-            topology: Arc::new(
-                TopologyConfig::create_from_globals(&config.sim.globals)
-                    .unwrap_or_else(|_| TopologyConfig::default()),
-            ),
+            topology: Arc::new(TopologyConfig::from_globals(&config.sim.globals)),
             context_field_spec_accessor,
         };
         Ok(Box::new(neighbors))
