@@ -57,7 +57,7 @@ impl PackageCreator for Creator {
         context_field_spec_accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn ContextPackage>> {
         let neighbors = Neighbors {
-            topology: Arc::new(TopologyConfig::from_globals(&config.sim.globals)),
+            topology: Arc::new(TopologyConfig::from_globals(&config.sim.globals)?),
             context_field_spec_accessor,
         };
         Ok(Box::new(neighbors))

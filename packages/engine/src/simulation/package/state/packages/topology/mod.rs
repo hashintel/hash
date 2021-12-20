@@ -29,7 +29,7 @@ impl PackageCreator for Creator {
         _accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
         let topology = Topology {
-            config: Arc::new(TopologyConfig::from_globals(&config.sim.globals)),
+            config: Arc::new(TopologyConfig::from_globals(&config.sim.globals)?),
         };
         Ok(Box::new(topology))
     }

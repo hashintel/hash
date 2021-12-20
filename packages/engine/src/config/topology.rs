@@ -1,8 +1,8 @@
-use core::fmt::{self};
+use core::fmt;
 
 use serde::{
     de::{self, Deserializer, Visitor},
-    Deserialize, Serialize, Serializer,
+    Deserialize,
 };
 use serde_json::Value;
 
@@ -29,31 +29,10 @@ impl Default for AxisBoundary {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 #[serde(transparent)]
 #[repr(transparent)]
-struct Float(
-    #[serde(
-        serialize_with = "serialize_float",
-        deserialize_with = "deserialize_float"
-    )]
-    f64,
-);
-
-fn serialize_float<S>(x: &f64, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    if x.is_infinite() {
-        if x.is_sign_positive() {
-            serializer.serialize_str("Infinity")
-        } else {
-            serializer.serialize_str("-Infinity")
-        }
-    } else {
-        serializer.serialize_f64(*x)
-    }
-}
+struct Float(#[serde(deserialize_with = "deserialize_float")] f64);
 
 fn deserialize_float<'de, D>(deserializer: D) -> Result<f64, D::Error>
 where
@@ -104,15 +83,6 @@ where
     deserializer.deserialize_any(FloatDeserializeVisitor)
 }
 
-impl Serialize for AxisBoundary {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        [Float(self.min), Float(self.max)].serialize(serializer)
-    }
-}
-
 impl<'de> Deserialize<'de> for AxisBoundary {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -126,7 +96,7 @@ impl<'de> Deserialize<'de> for AxisBoundary {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WrappingBehavior {
     /// Agents crossing the border re-enter on the other side
@@ -292,7 +262,7 @@ impl Default for WrappingBehavior {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WrappingPreset {
     Spherical,
@@ -301,14 +271,14 @@ pub enum WrappingPreset {
     Reflection,
 }
 
-#[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DistanceFunction {
     /// The distance function associated with the L-1 norm
     /// Also known as the Taxicab distance - returns the total distance traveled in all axes
     ///
     /// Takes two positions as an array of coordinates
-    Manhatten,
+    Manhattan,
 
     /// The distance function associated with the L-2 norm
     /// Most familiar distance function - is the straightline distance between two points
@@ -377,7 +347,7 @@ impl DistanceFunction {
         }
 
         match self {
-            Self::Manhatten => manhattan,
+            Self::Manhattan => manhattan,
             Self::Euclidean => euclidean,
             Self::EuclideanSquared => euclidean_squared,
             Self::Conway => conway,
@@ -431,26 +401,20 @@ impl Config {
     /// - if x-wrapping behavior is [`WrappingBehavior::OffsetReflection`]
     /// - if y-wrapping behavior **and** z-wrapping behavior is
     ///   [`WrappingBehavior::OffsetReflection`]
-    pub fn from_globals(globals: &Globals) -> Self {
-        fn from_json<T>(topology: &mut serde_json::Map<String, Value>, key: &str, fallback: T) -> T
+    pub fn from_globals(globals: &Globals) -> Result<Self, serde_json::Error> {
+        fn from_json<T>(
+            topology: &mut serde_json::Map<String, Value>,
+            key: &str,
+            fallback: T,
+        ) -> Result<T, serde_json::Error>
         where
-            T: Serialize + for<'de> Deserialize<'de>,
+            T: for<'de> Deserialize<'de>,
         {
-            topology
+            Ok(topology
                 .remove(key)
-                .and_then(|value| {
-                    serde_json::from_value(value)
-                        .map_err(|err| {
-                            log::warn!("Could not parse \"{key}\": {err}");
-                            if let Ok(fallback) = serde_json::to_string(&fallback) {
-                                log::warn!("Falling back to \"{fallback}\"");
-                            } else {
-                                log::warn!("Falling back to default");
-                            }
-                        })
-                        .ok()
-                })
-                .unwrap_or(fallback)
+                .map(|value| serde_json::from_value(value))
+                .transpose()?
+                .unwrap_or(fallback))
         }
 
         let default = Self::default();
@@ -458,22 +422,22 @@ impl Config {
             globals.0.get("topology").cloned()
         {
             let bounds = [
-                from_json(&mut topology_props, "x_bounds", default.bounds[0]),
-                from_json(&mut topology_props, "y_bounds", default.bounds[1]),
-                from_json(&mut topology_props, "z_bounds", default.bounds[2]),
+                from_json(&mut topology_props, "x_bounds", default.bounds[0])?,
+                from_json(&mut topology_props, "y_bounds", default.bounds[1])?,
+                from_json(&mut topology_props, "z_bounds", default.bounds[2])?,
             ];
 
-            let wrap_z_mode = from_json(&mut topology_props, "wrap_z_mode", default.wrap_modes[2])
+            let wrap_z_mode = from_json(&mut topology_props, "wrap_z_mode", default.wrap_modes[2])?
                 .adjust_for_bound(bounds[2]);
 
             let wrap_modes =
-                if let Some(preset) = from_json(&mut topology_props, "wrapping_preset", None) {
+                if let Some(preset) = from_json(&mut topology_props, "wrapping_preset", None)? {
                     WrappingBehavior::from_preset(preset, wrap_z_mode)
                 } else {
                     WrappingBehavior::verify_offset_reflection([
-                        from_json(&mut topology_props, "wrap_x_mode", default.wrap_modes[0])
+                        from_json(&mut topology_props, "wrap_x_mode", default.wrap_modes[0])?
                             .adjust_for_bound(bounds[0]),
-                        from_json(&mut topology_props, "wrap_y_mode", default.wrap_modes[1])
+                        from_json(&mut topology_props, "wrap_y_mode", default.wrap_modes[1])?
                             .adjust_for_bound(bounds[1]),
                         wrap_z_mode,
                     ])
@@ -489,26 +453,26 @@ impl Config {
                     &mut topology_props,
                     "search_radius",
                     default.search_radius,
-                ),
+                )?,
                 distance_function: from_json(
                     &mut topology_props,
                     "distance_function",
                     DistanceFunction::default(),
-                )
+                )?
                 .as_function(),
                 move_wrapped_agents: from_json(
                     &mut topology_props,
                     "move_wrapped_agents",
                     default.move_wrapped_agents,
-                ),
+                )?,
             };
             // All keys from the topology object are consumed to check for remaining keys
             for (key, _) in topology_props {
                 log::warn!("Unused key in topology: \"{key}\"")
             }
-            config
+            Ok(config)
         } else {
-            default
+            Ok(default)
         }
     }
 
@@ -543,11 +507,11 @@ mod tests {
     fn test_defaults() {
         assert_equality(
             &Config::default(),
-            &Config::from_globals(&Globals(json!({}))),
+            &Config::from_globals(&Globals(json!({}))).unwrap(),
         );
         assert_equality(
             &Config::default(),
-            &Config::from_globals(&Globals(json!({"topology": {}}))),
+            &Config::from_globals(&Globals(json!({"topology": {}}))).unwrap(),
         );
     }
 
@@ -578,7 +542,8 @@ mod tests {
                 "x_bounds": [-20, 20],
                 "y_bounds": [-40, 40],
             }
-        })));
+        })))
+        .unwrap();
         assert_equality(&target, &from_json);
 
         let target = Config {
@@ -600,7 +565,8 @@ mod tests {
                 "x_bounds": ["-Infinity", 0],
                 "y_bounds": [0, "Infinity"]
             }
-        })));
+        })))
+        .unwrap();
         assert_equality(&target, &from_json);
     }
 
@@ -614,7 +580,8 @@ mod tests {
             "topology": {
                 "search_radius": 4
             }
-        })));
+        })))
+        .unwrap();
         assert_equality(&target, &from_json);
     }
 }
