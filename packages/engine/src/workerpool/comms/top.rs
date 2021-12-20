@@ -5,17 +5,17 @@ use crate::{proto::SimulationShortId, worker::runner::comms::outbound::RunnerErr
 // Mainly used only for passing errors and warnings.
 
 pub struct WorkerPoolMsgRecv {
-    pub inner: UnboundedReceiver<(Option<SimulationShortId>, WorkerPoolToExpCtlMsg)>,
+    pub inner: UnboundedReceiver<(SimulationShortId, WorkerPoolToExpCtlMsg)>,
 }
 
 impl WorkerPoolMsgRecv {
-    pub async fn recv(&mut self) -> Option<(Option<SimulationShortId>, WorkerPoolToExpCtlMsg)> {
+    pub async fn recv(&mut self) -> Option<(SimulationShortId, WorkerPoolToExpCtlMsg)> {
         self.inner.recv().await
     }
 }
 
 pub struct WorkerPoolMsgSend {
-    pub inner: UnboundedSender<(Option<SimulationShortId>, WorkerPoolToExpCtlMsg)>,
+    pub inner: UnboundedSender<(SimulationShortId, WorkerPoolToExpCtlMsg)>,
 }
 
 #[derive(Debug)]

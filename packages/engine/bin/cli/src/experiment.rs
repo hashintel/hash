@@ -48,7 +48,6 @@ fn create_engine_command(
     Ok(Box::new(process::LocalCommand::new(
         experiment_id,
         args.num_workers as usize,
-        true,
         controller_url,
     )?))
 }
@@ -106,7 +105,7 @@ async fn run_experiment_with_manifest(
     let init_message = proto::InitMessage {
         experiment: experiment_run.clone().into(),
         env: ExecutionEnvironment::None, // We don't connect to the API
-        dyn_payloads: serde_json::Map::from_iter(map_iter), // TODO
+        dyn_payloads: serde_json::Map::from_iter(map_iter),
     };
     engine_process
         .send(&proto::EngineMsg::Init(init_message))
@@ -141,31 +140,15 @@ async fn run_experiment_with_manifest(
                 debug!("Simulation stopped: {sim_id}");
             }
             proto::EngineStatus::Errors(sim_id, errs) => {
-                if let Some(sim_id) = sim_id {
-                    error!("There were errors when running simulation [{sim_id}]: {errs:?}");
-                } else {
-                    error!("Errors occurred within the engine: {errs:?}");
-                }
+                error!("There were errors when running simulation [{sim_id}]: {errs:?}");
             }
             proto::EngineStatus::Warnings(sim_id, warnings) => {
-                if let Some(sim_id) = sim_id {
-                    warn!("There were warnings when running simulation [{sim_id}]: {warnings:?}");
-                } else {
-                    warn!("Warnings occurred within the engine: {warnings:?}");
-                }
+                warn!("There were warnings when running simulation [{sim_id}]: {warnings:?}");
             }
             proto::EngineStatus::Logs(sim_id, logs) => {
-                if let Some(sim_id) = sim_id {
-                    for log in logs {
-                        if !log.is_empty() {
-                            info!("[{sim_id}]: {log}");
-                        }
-                    }
-                } else {
-                    for log in logs {
-                        if !log.is_empty() {
-                            info!("{log}");
-                        }
+                for log in logs {
+                    if !log.is_empty() {
+                        info!("[{sim_id}]: {log}");
                     }
                 }
             }

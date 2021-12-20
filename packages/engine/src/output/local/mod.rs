@@ -7,12 +7,12 @@ use super::{buffer::Buffers, OutputPersistenceCreatorRepr};
 use crate::{
     config::PersistenceConfig,
     output::error::Result,
-    proto::{ExperimentId, SimulationShortId},
+    proto::{ExperimentRegisteredId, SimulationShortId},
 };
 
 #[derive(derive_new::new)]
 pub struct LocalOutputPersistence {
-    exp_id: ExperimentId,
+    exp_id: ExperimentRegisteredId,
     config: LocalPersistenceConfig,
 }
 

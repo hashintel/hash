@@ -55,16 +55,10 @@ pub struct LocalCommand {
     experiment_id: String,
     controller_url: String,
     max_num_workers: usize,
-    persist_data: bool,
 }
 
 impl LocalCommand {
-    pub fn new(
-        experiment_id: &str,
-        max_num_workers: usize,
-        persist_data: bool,
-        controller_url: &str,
-    ) -> Result<Self> {
+    pub fn new(experiment_id: &str, max_num_workers: usize, controller_url: &str) -> Result<Self> {
         // The NNG URL that the engine process will listen on
         let engine_url = format!("ipc://run-{experiment_id}");
 
@@ -73,7 +67,6 @@ impl LocalCommand {
             experiment_id: experiment_id.to_string(),
             controller_url: controller_url.to_string(),
             max_num_workers,
-            persist_data,
         })
     }
 }
@@ -100,9 +93,6 @@ impl process::Command for LocalCommand {
             .stdout(std::process::Stdio::inherit())
             .stderr(std::process::Stdio::inherit());
         debug!("Running `{cmd:?}`");
-        if self.persist_data {
-            cmd.arg("--persist");
-        }
 
         let child = cmd
             .spawn()
