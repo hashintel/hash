@@ -16,10 +16,6 @@ pub struct Args {
     /// max number of workers per simulation run (optional).
     #[argh(option)]
     pub max_workers: Option<usize>,
-
-    /// persist data to S3
-    #[argh(switch)]
-    pub persist: bool,
 }
 
 pub fn args() -> Args {
