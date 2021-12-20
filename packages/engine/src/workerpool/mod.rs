@@ -166,9 +166,9 @@ impl WorkerPoolController {
                     log::debug!("Handle experiment message: {:?}", msg);
                     self.handle_exp_msg(msg).await?;
                 }
-                Some((worker_index, msg)) = self.comms.recv() => {
-                    log::debug!("Handle comms message for worker [{}]: {:?}", worker_index, msg);
-                    self.handle_worker_msg(worker_index, msg).await?;
+                Some((worker_index, sim_id, msg)) = self.comms.recv() => {
+                    log::debug!("Handle comms message for worker [{}] and simulation [{}]: {:?}", worker_index, sim_id, msg);
+                    self.handle_worker_msg(worker_index, sim_id, msg).await?;
                 }
                 // TODO: Revisit this
                 // cancel_msgs = self.pending_tasks.run_cancel_check() => {
@@ -260,6 +260,7 @@ impl WorkerPoolController {
     async fn handle_worker_msg(
         &mut self,
         worker: WorkerIndex,
+        sim_id: SimulationShortId,
         worker_msg: WorkerToWorkerPoolMsg,
     ) -> Result<()> {
         match worker_msg {
@@ -280,19 +281,19 @@ impl WorkerPoolController {
                 log::debug!("Received RunnerErrors Message from Worker");
                 self.top_send
                     .inner
-                    .send((None, WorkerPoolToExpCtlMsg::Errors(errors)))?;
+                    .send((Some(sim_id), WorkerPoolToExpCtlMsg::Errors(errors)))?;
             }
             WorkerToWorkerPoolMsg::RunnerWarnings(warnings) => {
                 log::debug!("Received RunnerWarnings Message from Worker");
                 self.top_send
                     .inner
-                    .send((None, WorkerPoolToExpCtlMsg::Warnings(warnings)))?;
+                    .send((Some(sim_id), WorkerPoolToExpCtlMsg::Warnings(warnings)))?;
             }
             WorkerToWorkerPoolMsg::RunnerLogs(logs) => {
                 log::debug!("Received RunnerLogs Message from Worker");
                 self.top_send
                     .inner
-                    .send((None, WorkerPoolToExpCtlMsg::Logs(logs)))?;
+                    .send((Some(sim_id), WorkerPoolToExpCtlMsg::Logs(logs)))?;
             }
         }
         Ok(())
