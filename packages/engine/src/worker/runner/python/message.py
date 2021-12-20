@@ -44,6 +44,10 @@ def pkgs_from_config(config):
     return pkgs
 
 
+def json_from_np(np_utf8):
+    return json.loads(np_utf8.tobytes().decode('utf-8'))
+
+
 class PyInit:
     def __init__(self, fbs_bytes):
         # TODO: Remove `experiment_id` and `worker_index` from fbs,
@@ -69,7 +73,9 @@ class PyPackage:
     def __init__(self, fb):
         self.type = fb.Type()
         self.name = fb.Name()
-        self.payload = json.loads(fb.InitPayload().Inner().decode('utf-8'))
+        # TODO: Instead of using numpy, just replace `Serialized` with
+        #       a string in the flatbuffers file?
+        self.payload = json_from_np(fb.InitPayload().InnerAsNumpy())
 
 
 class PyBatchMsg:
@@ -92,7 +98,7 @@ class PyTaskMsg:
         self.pkg_id = fb.PackageSid()
         self.task_id = fb.TaskId()
         self.sync = PyStateInterimSync(fb.Metaversioning())
-        self.payload = json.loads(fb.Payload().Inner().decode('utf-8'))
+        self.payload = json_from_np(fb.Payload().InnerAsNumpy())
 
 
 class PyStateInterimSync:

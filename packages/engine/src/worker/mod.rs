@@ -114,7 +114,7 @@ impl WorkerController {
 
     async fn _run(&mut self) -> Result<()> {
         // TODO: Rust, JS
-        // let mut py_handle = self.py.run().await?;
+        let mut py_handle = self.py.run().await?;
         let mut js_handle = self.js.run().await?;
 
         let mut wp_recv = self.worker_pool_comms.take_recv()?;
@@ -176,23 +176,23 @@ impl WorkerController {
                     self.worker_pool_comms.confirm_terminate().map_err(|err| Error::from(format!("Failed to send confirmation of terminating workers: {:?}", err)))?;
                     break;
                 }
-                // py_res = &mut py_handle => {
-                //     log::debug!("Python runner finished unexpectedly");
-                //     py_res??;
-                //     // TODO: send termination to js_handle
-                //     js_handle.await??;
-                //     return Ok(());
-                // }
+                py_res = &mut py_handle => {
+                    log::debug!("Python runner finished unexpectedly");
+                    py_res??;
+                    // TODO: send termination to js_handle
+                    js_handle.await??;
+                    return Ok(());
+                }
                 js_res = &mut js_handle => {
                     log::debug!("Javascript runner finished unexpectedly: {:?}", js_res);
                     js_res??;
                     // TODO: send termination to py_handle
-                    // py_handle.await??;
+                    py_handle.await??;
                     return Ok(());
                 }
             }
         }
-        // py_handle.await??;
+        py_handle.await??;
         js_handle.await??;
         Ok(())
     }
@@ -520,9 +520,8 @@ impl WorkerController {
         };
 
         // TODO: Change to `children(3)` after enabling all runners.
-        debug_assert!(!self.py.spawned());
         debug_assert!(!self.rs.spawned());
-        let (runner_msgs, runner_receivers) = sync.create_children(1);
+        let (runner_msgs, runner_receivers) = sync.create_children(2);
         let mut runner_msgs: Vec<_> = runner_msgs
             .into_iter()
             .map(InboundToRunnerMsgPayload::StateSync)
@@ -532,8 +531,8 @@ impl WorkerController {
         let js_msg = runner_msgs.remove(0);
         tokio::try_join!(
             self.js.send_if_spawned(sim_id, js_msg),
-            /* TODO: self.py.send_if_spawned(msg.sim_id, runner_msgs[1]),
-             * TODO: self.rs.send_if_spawned(msg.sim_id, runner_msgs[2]), */
+            self.py.send_if_spawned(sim_id, runner_msgs.remove(0))
+             /* TODO: self.rs.send_if_spawned(sim_id, runner_msgs[2]), */
         )?;
         let fut = async move {
             let sync = sync; // Capture `sync` in lambda.
