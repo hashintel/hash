@@ -9,7 +9,7 @@ use super::{
     fbs::{pkgs_to_fbs, shared_ctx_to_fbs},
 };
 use crate::{
-    proto::ExperimentId, types::WorkerIndex, worker::runner::comms::ExperimentInitRunnerMsg,
+    proto::ExperimentRunId, types::WorkerIndex, worker::runner::comms::ExperimentInitRunnerMsg,
 };
 
 fn experiment_init_to_nng(init: &ExperimentInitRunnerMsg) -> Result<nng::Message> {
@@ -55,7 +55,7 @@ pub struct NngReceiver {
 }
 
 impl NngReceiver {
-    pub fn new(experiment_id: ExperimentId, worker_index: WorkerIndex) -> Result<Self> {
+    pub fn new(experiment_id: ExperimentRunId, worker_index: WorkerIndex) -> Result<Self> {
         let route = format!("ipc://{}-frompy{}", experiment_id, worker_index);
         let from_py = Socket::new(nng::Protocol::Pair0)?;
         from_py.listen(&route)?;

@@ -3,14 +3,14 @@ use std::sync::Arc;
 use super::{package, worker, worker_pool, Result};
 use crate::{
     config::globals::Globals,
-    proto::{ExperimentId, ExperimentRunRepr, ExperimentRunTrait},
+    proto::{ExperimentRunId, ExperimentRunRepr, ExperimentRunTrait},
 };
 
 #[derive(Clone)]
 /// Experiment level configuration
 pub struct Config {
     // we need this only for non-pod runs TODO remove and create random internal ids?
-    pub run_id: Arc<ExperimentId>,
+    pub run_id: Arc<ExperimentRunId>,
     pub packages: Arc<package::Config>,
     pub run: Arc<ExperimentRunRepr>,
     pub worker_pool: Arc<worker_pool::Config>,

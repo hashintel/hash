@@ -7,7 +7,7 @@ use crate::{config::Globals, hash_types::worker::RunnerError, simulation::status
 
 pub type SerdeMap = serde_json::Map<String, SerdeValue>;
 
-pub type ExperimentRegisteredId = String;
+pub type ExperimentId = String;
 pub type SimulationRegisteredId = String;
 pub type SimulationShortId = u32;
 
@@ -299,7 +299,7 @@ pub enum ExperimentRunRepr {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct ExperimentRunBase {
-    pub id: ExperimentRegisteredId,
+    pub id: ExperimentId,
     pub project_base: ProjectBase,
 }
 
@@ -379,7 +379,7 @@ pub struct ProcessedExperimentRun {
 }
 
 // TODO: Replace with UUID?
-pub type ExperimentId = String;
+pub type ExperimentRunId = String;
 
 /// A wrapper around an Option to avoid displaying the inner for Debug outputs,
 /// i.e. debug::Debug now outputs: `Some(..)`

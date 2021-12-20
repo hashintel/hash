@@ -3,13 +3,14 @@ use std::io::{BufReader, BufWriter};
 use super::{config::LocalPersistenceConfig, result::LocalPersistenceResult};
 use crate::{
     output::{buffer::Buffers, error::Result, SimulationOutputPersistenceRepr},
-    proto::{ExperimentId, SimulationShortId},
+    proto::{ExperimentId, ExperimentRunId, SimulationShortId},
     simulation::{package::output::packages::Output, step_output::SimulationStepOutput},
 };
 
 #[derive(derive_new::new)]
 pub struct LocalSimulationOutputPersistence {
     exp_id: ExperimentId,
+    exp_run_id: ExperimentRunId,
     sim_id: SimulationShortId,
     // TODO: Should this be unused? If so remove
     buffers: Buffers,
@@ -43,6 +44,7 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
             .config
             .output_folder
             .join(&self.exp_id)
+            .join(&self.exp_run_id)
             .join(self.sim_id.to_string());
 
         log::info!("Making new output directory directory: {:?}", path);

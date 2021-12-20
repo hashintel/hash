@@ -27,7 +27,7 @@ use crate::{
         POSITION_DIM, UUID_V4_LEN,
     },
     hash_types::state::AgentStateField,
-    proto::ExperimentId,
+    proto::ExperimentRunId,
     simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY,
 };
 
@@ -142,7 +142,7 @@ impl Batch {
     pub fn from_agent_states<K: IntoRecordBatch>(
         agents: K,
         schema: &Arc<AgentSchema>,
-        experiment_run_id: &ExperimentId,
+        experiment_run_id: &ExperimentRunId,
     ) -> Result<Batch> {
         let rb = agents.into_agent_batch(schema)?;
         Batch::from_record_batch(&rb, schema, experiment_run_id)
@@ -159,7 +159,7 @@ impl Batch {
     pub fn duplicate_from(
         batch: &Batch,
         schema: &AgentSchema,
-        experiment_run_id: &ExperimentId,
+        experiment_run_id: &ExperimentRunId,
     ) -> Result<Batch> {
         let memory = Memory::duplicate_from(&batch.memory, experiment_run_id)?;
         Self::from_memory(memory, Some(schema), Some(batch.affinity))
@@ -169,7 +169,7 @@ impl Batch {
     pub fn from_record_batch(
         record_batch: &RecordBatch,
         schema: &AgentSchema,
-        experiment_run_id: &ExperimentId,
+        experiment_run_id: &ExperimentRunId,
     ) -> Result<Batch> {
         let schema_buffer = schema_to_bytes(&schema.arrow);
 
@@ -242,7 +242,7 @@ impl Batch {
     pub fn get_prepared_memory_for_data(
         schema: &Arc<AgentSchema>,
         dynamic_meta: &DynamicMeta,
-        experiment_run_id: &ExperimentId,
+        experiment_run_id: &ExperimentRunId,
     ) -> Result<Memory> {
         let schema_buffer = schema_to_bytes(&schema.arrow);
         let header_buffer = vec![];

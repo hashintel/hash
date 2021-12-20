@@ -6,7 +6,7 @@ pub use util::cleanup_experiment;
 
 use crate::{
     output::error::{Error, Result},
-    proto::{ExperimentId, SimulationShortId},
+    proto::{ExperimentRunId, SimulationShortId},
     simulation::package::{
         name::PackageName,
         output,
@@ -29,7 +29,7 @@ pub struct Buffers {
 
 impl Buffers {
     pub(crate) fn new(
-        exp_id: ExperimentId,
+        exp_id: ExperimentRunId,
         sim_id: SimulationShortId,
         output_packages_sim_config: &OutputPackagesSimConfig,
     ) -> Result<Buffers> {

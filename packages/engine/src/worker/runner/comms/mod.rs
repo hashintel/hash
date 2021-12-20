@@ -8,7 +8,7 @@ use std::{
 use crate::{
     config::{EngineConfig, Globals},
     datastore::{prelude::ArrowSchema, schema::state::AgentSchema, shared_store::SharedStore},
-    proto::{ExperimentId, SimulationShortId},
+    proto::{ExperimentRunId, SimulationShortId},
     simulation::{
         enum_dispatch::TaskSharedStore,
         package::{id::PackageId, worker_init::PackageInitMsgForWorker},
@@ -163,14 +163,14 @@ impl Debug for DatastoreSimulationPayload {
 
 #[derive(Clone)]
 pub struct ExperimentInitRunnerMsgBase {
-    pub experiment_id: ExperimentId,
+    pub experiment_id: ExperimentRunId,
     pub shared_context: Arc<SharedStore>,
     pub package_config: Arc<PackageMsgs>,
 }
 
 #[derive(Clone)]
 pub struct ExperimentInitRunnerMsg {
-    pub experiment_id: ExperimentId,
+    pub experiment_id: ExperimentRunId,
     pub worker_index: WorkerIndex,
     pub shared_context: Arc<SharedStore>,
     pub package_config: Arc<PackageMsgs>,

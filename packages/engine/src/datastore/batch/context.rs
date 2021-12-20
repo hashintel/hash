@@ -15,7 +15,7 @@ use crate::{
         },
         prelude::*,
     },
-    proto::ExperimentId,
+    proto::ExperimentRunId,
     simulation::package::context::ContextColumn,
 };
 
@@ -62,7 +62,7 @@ impl Batch {
     pub fn from_record_batch(
         record_batch: &RecordBatch,
         schema: Option<&Arc<ArrowSchema>>,
-        experiment_run_id: &Arc<ExperimentId>,
+        experiment_run_id: &Arc<ExperimentRunId>,
     ) -> Result<Batch> {
         let (meta_buffer, data_buffer) = static_record_batch_to_bytes(record_batch);
 
