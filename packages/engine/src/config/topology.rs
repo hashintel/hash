@@ -29,11 +29,11 @@ impl Default for AxisBoundary {
     }
 }
 
-/// Small new type struct to deserialize [`f64::INFINITY`] and [`f64::NEG_INFINITY`].
+/// Small newtype wrapper around `f64` to deserialize [`f64::INFINITY`] and [`f64::NEG_INFINITY`].
 #[derive(Deserialize)]
 #[serde(transparent)]
 #[repr(transparent)]
-struct FloatWithInfinity(#[serde(deserialize_with = "deserialize_float")] f64);
+struct Float(#[serde(deserialize_with = "deserialize_float")] f64);
 
 fn deserialize_float<'de, D>(deserializer: D) -> Result<f64, D::Error>
 where
@@ -89,7 +89,7 @@ impl<'de> Deserialize<'de> for AxisBoundary {
     where
         D: Deserializer<'de>,
     {
-        let bounds: [FloatWithInfinity; 2] = Deserialize::deserialize(deserializer)?;
+        let bounds: [Float; 2] = Deserialize::deserialize(deserializer)?;
         Ok(Self {
             min: bounds[0].0,
             max: bounds[1].0,
