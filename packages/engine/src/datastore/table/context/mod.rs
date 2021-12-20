@@ -8,7 +8,7 @@ use super::{
     state::view::StateSnapshot,
 };
 use crate::{
-    config::StoreConfig, datastore::prelude::*, proto::ExperimentRunId,
+    config::StoreConfig, datastore::prelude::*, proto::ExperimentId,
     simulation::package::context::ContextColumn,
 };
 
@@ -34,7 +34,7 @@ impl Context {
     pub fn new_from_columns(
         cols: Vec<Arc<dyn arrow::array::Array>>,
         config: Arc<StoreConfig>,
-        experiment_run_id: &Arc<ExperimentRunId>,
+        experiment_run_id: &Arc<ExperimentId>,
     ) -> Result<Context> {
         let context_record_batch = RecordBatch::try_new(config.context_schema.arrow.clone(), cols)?;
 

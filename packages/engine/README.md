@@ -160,7 +160,7 @@ In order to run the demo:
     cargo run --bin cli -- --project 'path/to/ageing-agents' single-run --num-steps 5
     ```
 
-After a short time, the simulation should complete and the process will end. Once this is done, an `./output` folder should have been created. Within that, a directory is created for each combination of [project/experiment_name/experiment_run/simulation_run]. For a deeper explanation of the output, please take a look at [Simulation Outputs](#simulation-outputs).
+After a short time, the simulation should complete and the process will end. Once this is done, an `./output` folder should have been created. Within that, a directory is created for each combination of [project/experiment_run/simulation_run]. For a deeper explanation of the output, please take a look at [Simulation Outputs](#simulation-outputs).
 
 The ageing simulation increases the age of each agent by one every step. Looking in the _json_state.json_ file, one can see the outputted JSON state has an `"age"` field for each agent. It should be apparent that the age is increasing with each snapshot of state.
 
@@ -286,7 +286,7 @@ If you haven't created and exported a project from [hCore], it's also possible t
 ### Simulation Outputs
 > **WIP** - This section is a work-in-progress. More in-depth documentation is in the works for describing all output formats and options. As such some functionality may not be mentioned here, and some functionality alluded to here might not be complete at present. Currently, the engine has two main form of outputs, one coming from the [json_state package](./src/simulation/package/output/packages/json_state) and the other from the [analysis package](./src/simulation/package/output/packages/analysis).
 
-At the end of each simulation run, various outputs appear within the `./<OUTPUT FOLDER>/<PROJECT NAME>/<EXPERIMENT NAME>/<EXPERIMENT ID>/<SIMULATION ID>` directories.
+At the end of each simulation run, various outputs appear within the `./<OUTPUT FOLDER>/<PROJECT NAME>/<EXPERIMENT ID>/<SIMULATION ID>` directories.
 
 Where `<EXPERIMENT ID>` and `<SIMULATION ID>` are unique identifiers created for each run of an experiment or simulation.
 

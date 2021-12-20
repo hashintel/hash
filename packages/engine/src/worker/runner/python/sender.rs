@@ -16,7 +16,7 @@ use crate::{
             task_shared_store::{PartialSharedState, SharedState},
         },
     },
-    proto::{ExperimentRunId, SimulationShortId},
+    proto::{ExperimentId, SimulationShortId},
     simulation::enum_dispatch::TaskSharedStore,
     types::WorkerIndex,
     worker::runner::comms::inbound::InboundToRunnerMsgPayload,
@@ -33,7 +33,7 @@ pub struct NngSender {
 }
 
 impl NngSender {
-    pub fn new(experiment_id: ExperimentRunId, worker_index: WorkerIndex) -> Result<Self> {
+    pub fn new(experiment_id: ExperimentId, worker_index: WorkerIndex) -> Result<Self> {
         let route = format!("ipc://{}-topy{}", experiment_id, worker_index);
         let to_py = Socket::new(nng::Protocol::Pair0)?;
         to_py.set_opt::<nng::options::SendBufferSize>(30)?;

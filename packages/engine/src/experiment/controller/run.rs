@@ -21,11 +21,7 @@ use crate::{
 
 pub async fn run_experiment(exp_config: ExperimentConfig, env: Environment) -> Result<()> {
     let experiment_id = exp_config.id().clone();
-    log::info!(
-        "Running experiment {} with run ID: {}",
-        experiment_id,
-        exp_config.run_id
-    );
+    log::info!("Running experiment {}", experiment_id);
     // TODO: Get cloud-specific configuration from `env`
     let _output_persistence_config = config::output_persistence(&env)?;
 
@@ -74,11 +70,7 @@ pub async fn run_local_experiment(exp_config: ExperimentConfig, env: Environment
     match config::output_persistence(&env)? {
         OutputPersistenceConfig::Local(local) => {
             log::debug!("Running experiment with local persistence");
-            let persistence = LocalOutputPersistence::new(
-                exp_config.id().clone(),
-                (*exp_config.run_id).clone(),
-                local.clone(),
-            );
+            let persistence = LocalOutputPersistence::new(exp_config.id().clone(), local.clone());
             run_experiment_with_persistence(exp_config, env, persistence).await?;
         }
         OutputPersistenceConfig::None => {

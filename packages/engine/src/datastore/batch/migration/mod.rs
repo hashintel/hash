@@ -7,7 +7,7 @@ use arrow::util::bit_util;
 use super::ArrowBatch;
 use crate::{
     datastore::{batch::AgentBatch, prelude::*, schema::state::AgentSchema},
-    proto::ExperimentRunId,
+    proto::ExperimentId,
 };
 
 type Offset = i32;
@@ -166,7 +166,7 @@ impl<'a> BufferActions<'a> {
     pub fn new_batch(
         &self,
         schema: &Arc<AgentSchema>,
-        experiment_run_id: &ExperimentRunId,
+        experiment_run_id: &ExperimentId,
         affinity: usize,
     ) -> Result<AgentBatch> {
         let mut memory = AgentBatch::get_prepared_memory_for_data(

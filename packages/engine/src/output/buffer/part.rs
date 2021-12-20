@@ -5,7 +5,7 @@ use serde::Serialize;
 use super::RELATIVE_PARTS_FOLDER;
 use crate::{
     output::error::Result,
-    proto::{ExperimentRunId, SimulationShortId},
+    proto::{ExperimentId, SimulationShortId},
 };
 
 /// Maximum size of a string kept in memory.
@@ -31,7 +31,7 @@ pub struct OutputPartBuffer {
 impl OutputPartBuffer {
     pub fn new(
         output_type_name: &'static str,
-        experiment_id: ExperimentRunId,
+        experiment_id: ExperimentId,
         simulation_run_id: SimulationShortId,
     ) -> Result<OutputPartBuffer> {
         let mut base_path = PathBuf::from(RELATIVE_PARTS_FOLDER);

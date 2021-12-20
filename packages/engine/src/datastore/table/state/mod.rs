@@ -16,7 +16,7 @@ use crate::{
     datastore::{
         batch::DynamicBatch, prelude::*, schema::state::AgentSchema, table::pool::BatchPool,
     },
-    proto::ExperimentRunId,
+    proto::ExperimentId,
     simulation::{command::CreateRemoveCommands, package::state::StateColumn},
     SimRunConfig,
 };
@@ -153,7 +153,7 @@ impl ExState {
         &mut self,
         context: &mut ExContext,
         agent_schema: &AgentSchema,
-        experiment_run_id: &ExperimentRunId,
+        experiment_run_id: &ExperimentId,
     ) -> Result<()> {
         let mut static_pool = context.inner_mut().agent_pool_mut().write_batches()?;
         let dynamic_pool = self.agent_pool().read_batches()?;
