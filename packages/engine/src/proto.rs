@@ -46,6 +46,7 @@ pub enum EngineMsg {
     SimRegistered(SimulationShortId, SimulationRegisteredId),
 }
 
+/// TODO: DOC
 #[derive(Serialize, Deserialize, Debug)]
 pub struct InitMessage {
     pub experiment: ExperimentRunRepr,
