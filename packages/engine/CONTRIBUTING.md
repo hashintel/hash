@@ -82,15 +82,17 @@ So you've found a bug, next up is collecting useful information to give us to in
 
 ### Suggesting Enhancements
 
-> TODO
+If you have ideas of how to improve the hEngine, feel free to submit them on the [Product Feedback section of our community forum](https://community.hash.ai/c/product-feedback/2). If you want a more informal discussion around your ideas feel free to start a conversation on the Discord!
 
-#### Before Submitting An Enhancement Suggestion
 
-> TODO
+[comment]: <> (The following sections are comments until the wishlist section of the new website is live)
+[comment]: <> (#### Before Submitting An Enhancement Suggestion)
 
-#### How Do I Submit A (Good) Enhancement Suggestion?
+[comment]: <> (> TODO)
 
-> TODO
+[comment]: <> (#### How Do I Submit A &#40;Good&#41; Enhancement Suggestion?)
+
+[comment]: <> (> TODO)
 
 ### Your First Code Contribution
 
@@ -102,13 +104,19 @@ So you've found a bug, next up is collecting useful information to give us to in
 
 ### Pull Requests
 
-> TODO
+> WIP - More information incoming regarding PR description formatting, etc. 
+
+#### Some good practices
+
+- Have well encapsulated commits on your PR, this helps with reviewing. If you're comfortable with it, rebasing before opening your PR can help with cleaning up WIP commits.
+- Write unit-tests _as_ you write code. Submitting unit-tests alongside the code within commits improves confidence in your changes and helps us understand your intentions with the code.
+
 
 ## Styleguides
 
 ### Rust Styleguide
 
-> TODO
+> WIP
 
 We are using [`cargo fmt`](https://github.com/rust-lang/rustfmt) and [`cargo clippy`](https://github.com/rust-lang/rust-clippy) to apply linting rules to our Rust codebase. In order to run those, you need to install them first (unless they are already installed, which is the default):
 * `rustup component add rustfmt`
