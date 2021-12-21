@@ -6,6 +6,7 @@ use crate::{
     output::{error::Result, OutputPersistenceResultRepr},
     proto::SimulationShortId,
     simulation::step_output::SimulationStepOutput,
+    SimRunConfig,
 };
 
 #[derive(Default)]
@@ -39,7 +40,7 @@ impl SimulationOutputPersistenceRepr for NoSimulationOutputPersistence {
         Ok(())
     }
 
-    async fn finalize(self) -> Result<Self::OutputPersistenceResult> {
+    async fn finalize(self, _config: &SimRunConfig) -> Result<Self::OutputPersistenceResult> {
         Ok(())
     }
 }
