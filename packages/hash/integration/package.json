@@ -8,18 +8,14 @@
     "directory": "packages/hash/integration"
   },
   "license": "GPL-3.0",
-  "main": "src/index.ts",
   "scripts": {
-    "build": "yarn clean; yarn codegen; tsc -b",
-    "clean": "rimraf './src/**/*.gen.*' ./dist/ ./tsconfig.tsbuildinfo",
-    "codegen": "graphql-codegen --config codegen.yml",
+    "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.yml",
     "fix:eslint": "eslint --ext .ts --fix ./src/",
     "postinstall": "yarn codegen",
     "lint:eslint": "eslint --ext .ts ./src/",
     "lint:tsc": "tsc --noEmit",
     "mock-data": "yarn codegen && ts-node src/mockData/index.ts",
-    "test": "jest --runInBand",
-    "ts-node": "node --max-old-space-size=2048 node_modules/.bin/ts-node --files --project tsconfig.json"
+    "test": "jest --runInBand"
   },
   "dependencies": {
     "@hashintel/hash-api": "*",
@@ -54,7 +50,6 @@
     "jest": "27.0.6",
     "rimraf": "^3.0.2",
     "ts-jest": "27.0.5",
-    "ts-node": "10.4.0",
     "typescript": "4.5.2"
   }
 }

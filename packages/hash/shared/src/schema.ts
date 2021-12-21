@@ -80,8 +80,8 @@ export const createSchema = () =>
             tag: 'span[data-hash-type="mention"]',
             getAttrs(dom) {
               return {
-                mentionType: dom.getAttribute("data-mention-type"),
-                entityId: dom.getAttribute("data-entity-id"),
+                mentionType: (dom as Element).getAttribute("data-mention-type"),
+                entityId: (dom as Element).getAttribute("data-entity-id"),
               };
             },
           },
@@ -116,7 +116,7 @@ export const createSchema = () =>
             tag: "a[href]",
             getAttrs(dom) {
               return {
-                href: dom.getAttribute("href"),
+                href: (dom as Element).getAttribute("href"),
               };
             },
           },

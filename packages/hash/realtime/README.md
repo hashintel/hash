@@ -39,7 +39,7 @@ yarn dev
 Production mode:
 
 ```sh
-yarn build && yarn start
+yarn start
 ```
 
 For health checks, the service listens on port `3333` by default at the path

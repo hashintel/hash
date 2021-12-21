@@ -1,7 +1,3 @@
 {
-  "files": [],
-  "references": [
-    { "path": "./packages/hash/block-protocol/tsconfig.ref.json" },
-    { "path": "./packages/hash/shared/tsconfig.json" }
-  ]
+  "extends": "./tsconfig.base.json"
 }

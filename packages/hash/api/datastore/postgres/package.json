@@ -5,7 +5,6 @@
   "repository": "github.com/hashintel/dev/packages/hash/api/datastore/postgres",
   "license": "GPL-3.0",
   "type": "commonjs",
-  "main": "migration.js",
   "scripts": {
     "fix:eslint": "eslint --ext .ts --fix .",
     "generate-ids": "ts-node scripts/generateIds.ts",

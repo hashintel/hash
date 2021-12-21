@@ -4,11 +4,12 @@ import {
   LogLevel,
   LOG_LEVELS,
 } from "@hashintel/hash-backend-utils/logger";
-import { getRequiredEnv } from "@hashintel/hash-backend-utils/env";
 
 export const INSTANCE_ID = randomUUID();
 
-export const NODE_ENV = getRequiredEnv("NODE_ENV");
+// TODO: Switch to https://www.npmjs.com/package/envalid
+
+export const NODE_ENV = process.env.NODE_ENV ?? "development";
 export const LOG_LEVEL = process.env.LOG_LEVEL;
 
 if (LOG_LEVEL && !LOG_LEVELS.includes(LOG_LEVEL as LogLevel)) {

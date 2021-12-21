@@ -41,7 +41,7 @@ module.exports = withSentryConfig(
             "@hashintel/hash-shared": path.join(
               __dirname,
               "../../..",
-              "node_modules/@hashintel/hash-shared/dist",
+              "node_modules/@hashintel/hash-shared/src",
             ),
           };
 

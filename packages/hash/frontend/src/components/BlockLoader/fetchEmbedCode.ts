@@ -1,10 +1,9 @@
 import { JSONObject } from "@hashintel/block-protocol";
 import { apiGraphQLEndpoint } from "@hashintel/hash-shared/environment";
-import { ProviderNames } from "../../../../blocks/embed/src/types";
 
 export type FetchEmbedCodeFn = (
   url: string,
-  type?: ProviderNames,
+  type?: string,
 ) => Promise<JSONObject>;
 
 export const fetchEmbedCode: FetchEmbedCodeFn = (url, type?) => {

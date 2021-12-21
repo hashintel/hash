@@ -5,20 +5,17 @@
   "description": "block-protocol",
   "license": "SSPL-1.0",
   "exports": {
-    "./*": "./dist/*"
+    "./*": "./src/*.ts"
   },
   "typesVersions": {
     "*": {
       "*": [
-        "dist/*"
+        "src/*"
       ]
     }
   },
   "scripts": {
-    "build": "yarn clean; tsc -b",
-    "clean": "rimraf ./dist/ ./tsconfig.tsbuildinfo",
     "fix:eslint": "eslint --ext .ts --fix ./src/",
-    "postinstall": "yarn build",
     "lint:eslint": "eslint --ext .ts ./src/",
     "lint:tsc": "tsc --noEmit"
   },

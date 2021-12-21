@@ -1,4 +1,4 @@
-import { BlockProtocolFileUploadFn } from "@hashintel/block-protocol/src/index";
+import { BlockProtocolFileUploadFn } from "@hashintel/block-protocol";
 import { isFileProperties } from "@hashintel/hash-shared/util";
 import {
   GetEntityQuery,
@@ -130,7 +130,7 @@ export const useFileUpload = (accountId: string) => {
       });
 
       if (!data) {
-        throw new Error("An error occured while uploading the file ");
+        throw new Error("An error occurred while uploading the file ");
       }
 
       /**

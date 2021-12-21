@@ -1,16 +1,4 @@
 {
   "extends": "../../../tsconfig.base.json",
-  "compilerOptions": {
-    // specifics
-    "baseUrl": "./",
-    "outDir": "./dist",
-
-    // overrides
-    "lib": ["es2020"],
-    "target": "es2019"
-  },
-  "include": ["./src"],
-
-  // enables nodemon (yarn dev) to pick up live changes made to this dependency
-  "references": [{ "path": "../backend-utils/tsconfig.ref.json" }]
+  "include": ["./src/"]
 }

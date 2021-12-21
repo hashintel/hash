@@ -7,7 +7,10 @@ import {
 } from "@apollo/client";
 import { onError } from "@apollo/client/link/error";
 import * as Sentry from "@sentry/browser";
-import { RequestInfo, RequestInit } from "node-fetch";
+import {
+  RequestInfo as RequestInfoFromNodeFetch,
+  RequestInit as RequestInitFromNodeFetch,
+} from "node-fetch";
 
 import { apiGraphQLEndpoint } from "../environment";
 
@@ -46,7 +49,10 @@ export const createApolloClient = (params?: {
    *
    * @todo disable this in production due to caching concerns
    */
-  const wrappedFetch = (uri: RequestInfo, options: RequestInit | undefined) => {
+  const wrappedFetch = (
+    uri: RequestInfoFromNodeFetch | Request,
+    options: RequestInitFromNodeFetch | RequestInit | undefined,
+  ) => {
     let operationName: string | null = null;
 
     if (typeof options?.body === "string") {

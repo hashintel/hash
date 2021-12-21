@@ -15,7 +15,6 @@ RUN --mount=type=cache,mode=0755,target=/yarn-cache \
   --mount=type=cache,mode=0755,target=/var/cache/apt \
   --mount=type=cache,mode=0755,target=/var/lib/apt \
   yarn workspace @hashintel/hash-search-loader install \
-  && yarn workspace @hashintel/hash-search-loader build \
   && yarn workspace @hashintel/hash-search-loader install --production --ignore-scripts --prefer-offline # Remove devDependencies
 
 #########################################################################################
@@ -33,4 +32,4 @@ RUN groupadd -g 999 appuser \
 
 USER appuser
 
-ENTRYPOINT ["node", "packages/hash/search-loader/dist/index.js"]
+CMD ["yarn", "workspace","@hashintel/hash-search-loader", "start"]

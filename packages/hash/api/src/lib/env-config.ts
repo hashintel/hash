@@ -1,16 +1,16 @@
-import { getRequiredEnv } from "../util";
-
-const NODE_ENV = getRequiredEnv("NODE_ENV");
 const PORT = process.env.PORT;
 
+// TODO: Switch to https://www.npmjs.com/package/envalid
+
 /** Whether the backend is running in the test environment. */
-export const isTestEnv = NODE_ENV === "test";
+export const isTestEnv = process.env.NODE_ENV === "test";
 
 /** Whether the backend is running in the development environment. */
-export const isDevEnv = NODE_ENV === "development";
+export const isDevEnv =
+  process.env.NODE_ENV === "development" || !process.env.NODE_ENV;
 
 /** Whether the backend is running in the production environment. */
-export const isProdEnv = NODE_ENV === "production";
+export const isProdEnv = process.env.NODE_ENV === "production";
 
 /** The port the backend server should be running on */
 export const port = PORT ? parseInt(PORT, 10) : 5001;

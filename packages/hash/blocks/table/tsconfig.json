@@ -5,7 +5,6 @@
     "allowJs": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    "moduleResolution": "node",
     "noEmit": true,
 
     // overrides

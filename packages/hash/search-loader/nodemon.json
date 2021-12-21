@@ -1,5 +1,0 @@
-{
-  "ignoreRoot": [".git"],
-  "watch": [".", "../backend-utils"],
-  "ext": "js,ts"
-}

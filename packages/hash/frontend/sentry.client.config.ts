@@ -3,8 +3,6 @@
 
 import * as Sentry from "@sentry/nextjs";
 
-import { apiOrigin } from "../shared/dist/environment";
-
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 
 export const SENTRY_CONFIG = {

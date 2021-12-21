@@ -5,9 +5,8 @@
   "description": "Frontend for HASH.dev",
   "license": "SSPL-1.0",
   "scripts": {
-    "build": "yarn clean; yarn codegen; next build",
-    "clean": "rimraf './src/**/*.gen.*' ./.next/",
-    "codegen": "graphql-codegen --config codegen.yml",
+    "build": "yarn codegen; next build",
+    "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.yml",
     "dev": "next dev",
     "fix:eslint": "eslint --ext .js,.ts,.tsx --fix ./src/",
     "postinstall": "yarn codegen",

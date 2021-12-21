@@ -5,22 +5,19 @@
   "description": "Temporary catchall place for shared code",
   "license": "SSPL-1.0",
   "exports": {
-    "./": "./dist/"
+    "./*": "./src/*.ts"
   },
   "typesVersions": {
     "*": {
       "*": [
-        "dist/*"
+        "src/*"
       ]
     }
   },
   "scripts": {
-    "build": "yarn clean; yarn codegen; tsc -b",
-    "clean": "rimraf './src/**/*.gen.*' ./dist/ ./tsconfig.tsbuildinfo",
-    "codegen": "graphql-codegen --config codegen.yml",
-    "dev": "nodemon --watch ./src/ --ignore './src/**/*.gen.*' --ext js,ts,json --exec 'tsc -b'",
+    "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.yml",
     "fix:eslint": "eslint --ext .js,.ts,.tsx --fix ./src/",
-    "postinstall": "yarn build",
+    "postinstall": "yarn codegen",
     "lint:eslint": "eslint --ext .js,.ts,.tsx ./src/",
     "lint:tsc": "tsc --noEmit"
   },
@@ -79,7 +76,6 @@
     "eslint-plugin-no-restricted-imports": "0.0.0",
     "eslint-plugin-react": "^7.25.1",
     "eslint-plugin-react-hooks": "4.2.0",
-    "nodemon": "2.0.12",
     "react": "17.0.2",
     "rimraf": "^3.0.2",
     "typescript": "4.5.2"
