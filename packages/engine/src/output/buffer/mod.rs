@@ -34,12 +34,14 @@ impl Buffers {
         output_packages_sim_config: &OutputPackagesSimConfig,
     ) -> Result<Buffers> {
         Ok(Buffers {
+            // TODO: This should be dynamically created by the output packages
             json_state: OutputPartBuffer::new("json_state", exp_id, sim_id)?,
             analysis: AnalysisBuffer::new(output_packages_sim_config)?,
         })
     }
 }
 
+// TODO: These should live in the respective output package really
 #[derive(Serialize)]
 pub struct AnalysisBuffer {
     pub manifest: String,
