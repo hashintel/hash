@@ -134,7 +134,7 @@ jobs:
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             **/target/
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.directory }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-clippy-${{ env.cache-name }}-${{ matrix.directory }}-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install v8
         if: ${{ needs.find-crates.outputs.run_job == 'true' }}
@@ -203,7 +203,7 @@ jobs:
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             **/target/
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.directory }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ matrix.directory }}-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install v8
         if: ${{ needs.find-crates.outputs.run_job == 'true' }}
