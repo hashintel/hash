@@ -40,7 +40,7 @@ impl SimulationOutputPersistenceRepr for NoSimulationOutputPersistence {
         Ok(())
     }
 
-    async fn finalize(mut self, _config: &SimRunConfig) -> Result<Self::OutputPersistenceResult> {
+    async fn finalize(self, _config: &SimRunConfig) -> Result<Self::OutputPersistenceResult> {
         Ok(())
     }
 }
