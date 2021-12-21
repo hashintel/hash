@@ -34,17 +34,14 @@ jobs:
         id: check_files
         run: |
           echo "=============== list changed files ==============="
-          git diff --name-only HEAD^ HEAD 
-          
-          echo "========== check paths of changed files =========="
           git diff --name-only HEAD^ HEAD | while read file; do
-            echo $file
             if [[ $file == *.rs || $file == *.toml || $file == *Cargo* ]]; then
+              echo "[proceed] $file"
               echo "::set-output name=run_job::true"
-              exit 0
+            else
+              echo "[skipped] $file"
             fi
           done
-          echo "::set-output name=run_job::false"
 
   rustfmt:
     name: rustfmt
@@ -58,17 +55,17 @@ jobs:
       V8_PATH: ${{ github.workspace }}/.v8
     steps:
       - name: Checkout source code
-        if: needs.check.outputs.run_job == 'true'
+        if: ${{ needs.find-crates.outputs.run_job == 'true' }}
         uses: actions/checkout@v2
         
         # Emitting checkstyle results in multiple xml documents for each crate so rustfmt is run for each crate
       - name: Remove default members
-        if: needs.check.outputs.run_job == 'true'
+        if: ${{ needs.find-crates.outputs.run_job == 'true' }}
         run: |
           sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
 
       - name: Install Rust
-        if: needs.check.outputs.run_job == 'true'
+        if: ${{ needs.find-crates.outputs.run_job == 'true' }}
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -78,14 +75,14 @@ jobs:
           components: rustfmt
 
       - name: Run rustfmt
-        if: needs.check.outputs.run_job == 'true'
+        if: ${{ needs.find-crates.outputs.run_job == 'true' }}
         uses: actions-rs/cargo@v1
         with:
           command: fmt
           args: --manifest-path ${{ matrix.directory }}/Cargo.toml -- --check
 
       - name: Setup PHP
-        if: ${{ failure() && needs.check.outputs.run_job == 'true' }}
+        if: ${{ failure() }}
         uses: shivammathur/setup-php@v2
         with:
           php-version: 7.3
@@ -93,7 +90,7 @@ jobs:
           tools: cs2pr
 
       - name: Annotate
-        if: ${{ failure() && needs.check.outputs.run_job == 'true' }}
+        if: ${{ failure() }}
         run: |
           cargo fmt --manifest-path ${{ matrix.directory }}/Cargo.toml -- --emit checkstyle | cs2pr
 
@@ -110,11 +107,11 @@ jobs:
       V8_PATH: ${{ github.workspace }}/.v8
     steps:
       - name: Checkout source code
-        if: needs.check.outputs.run_job == 'true'
+        if: ${{ needs.find-crates.outputs.run_job == 'true' }}
         uses: actions/checkout@v2
 
       - name: Install Rust
-        if: needs.check.outputs.run_job == 'true'
+        if: ${{ needs.find-crates.outputs.run_job == 'true' }}
         id: toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -125,7 +122,7 @@ jobs:
           components: clippy
 
       - name: Cache dependencies
-        if: needs.check.outputs.run_job == 'true'
+        if: ${{ needs.find-crates.outputs.run_job == 'true' }}
         uses: actions/cache@v2
         env:
           cache-name: cache-dependencies
@@ -140,7 +137,7 @@ jobs:
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.directory }}-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install v8
-        if: needs.check.outputs.run_job == 'true'
+        if: ${{ needs.find-crates.outputs.run_job == 'true' }}
         run: |
           mkdir -p ${V8_PATH}/tmp
           cd ${V8_PATH}/tmp
@@ -152,12 +149,12 @@ jobs:
           rm -rf tmp # Delete the tmp folder
 
       - name: Run clippy
-        if: needs.check.outputs.run_job == 'true'
+        if: ${{ needs.find-crates.outputs.run_job == 'true' }}
         run: |
           cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml --all --all-features -- -D warnings
 
       - name: Annotate
-        if: ${{ failure() && needs.check.outputs.run_job == 'true' }}
+        if: ${{ failure() }}
         # use `actions-rs/clippy-check@v1` when https://github.com/actions-rs/clippy-check/pull/158 is merged
         uses: reinismu/clippy-check@master
         with:
