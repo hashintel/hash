@@ -2,7 +2,7 @@ use serde::Serialize;
 
 use crate::{
     config::PersistenceConfig, proto::SimulationShortId,
-    simulation::step_output::SimulationStepOutput,
+    simulation::step_output::SimulationStepOutput, SimRunConfig,
 };
 
 pub mod buffer;
@@ -26,7 +26,7 @@ pub trait OutputPersistenceCreatorRepr: Send + Sync + 'static {
 pub trait SimulationOutputPersistenceRepr: Send + Sync + 'static {
     type OutputPersistenceResult: OutputPersistenceResultRepr;
     async fn add_step_output(&mut self, output: SimulationStepOutput) -> Result<()>;
-    async fn finalize(self) -> Result<Self::OutputPersistenceResult>;
+    async fn finalize(self, config: &SimRunConfig) -> Result<Self::OutputPersistenceResult>;
 }
 
 pub trait OutputPersistenceResultRepr: Serialize + Send + Sync {
