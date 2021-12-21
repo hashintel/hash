@@ -127,7 +127,7 @@ async fn run_experiment_with_manifest(
 
         match msg {
             proto::EngineStatus::Stopping => {
-                debug!("Stopping experiment");
+                debug!("Stopping experiment {experiment_id}");
             }
             proto::EngineStatus::SimStart { sim_id, globals: _ } => {
                 debug!("Started simulation: {sim_id}");
@@ -148,7 +148,7 @@ async fn run_experiment_with_manifest(
             proto::EngineStatus::Logs(sim_id, logs) => {
                 for log in logs {
                     if !log.is_empty() {
-                        info!("[{sim_id}]: {log}");
+                        info!(target: "behaviors", "[{experiment_id}][{sim_id}]: {log}");
                     }
                 }
             }
