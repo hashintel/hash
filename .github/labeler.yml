@@ -1,0 +1,27 @@
+A-infra:
+  - '.github/*'
+  - '.github/hash/.*'
+  - '.github/hash/**/*'
+  - '.github/hash/**/.*'
+  - '*.md'
+  - '.markdownlint*'
+  - '.gitignore'
+A-hash:
+  - 'packages/hash/*'
+  - 'packages/hash/.*'
+  - 'packages/hash/**/*'
+  - 'packages/hash/**/.*'
+A-engine:
+  - 'packages/engine/*'
+  - 'packages/engine/.*'
+  - 'packages/engine/**/*'
+  - 'packages/engine/**/.*'
+A-learn:
+  - 'resources/*'
+  - 'resources/.*'
+  - 'resources/**/*'
+  - 'resources/**/.*'
+
+C-dependencies:
+  - '**/Cargo.lock'
+  - '**/yarn.lock'
