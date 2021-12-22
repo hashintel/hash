@@ -1,8 +1,8 @@
 A-infra:
   - '.github/*'
-  - '.github/hash/.*'
-  - '.github/hash/**/*'
-  - '.github/hash/**/.*'
+  - '.github/.*'
+  - '.github/**/*'
+  - '.github/**/.*'
   - '*.md'
   - '.markdownlint*'
   - '.gitignore'

@@ -188,7 +188,6 @@ jobs:
           # TODO: Read this from rust-toolchain.toml
           toolchain: nightly-2021-12-14
           override: true
-          components: clippy
 
       - name: Cache dependencies
         if: ${{ needs.find-crates.outputs.run_job == 'true' }}
