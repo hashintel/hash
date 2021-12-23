@@ -60,9 +60,9 @@ See the [docker/README](./docker) for further details.
 
 Use `yarn serve:hash-frontend` to start the frontend application.
 
-## Integration w/ blockprotocol.org
+## Integration with the Block Protocol
 
-By default, `packages/hash/shared/src/blockPaths.json` point to the `dev` branch’s deployment of the blockprotocol.org CDN at https://blockprotocol-git-dev-hashintel.vercel.app.
+HASH is built around the open [Block Protocol](https://blockprotocol.org/) ([@blockprotocol/blockprotocol](https://github.com/blockprotocol/blockprotocol) on GitHub). By default, `packages/hash/shared/src/blockPaths.json` points to the `dev` branch’s deployment of the blockprotocol.org CDN at https://blockprotocol-git-dev-hashintel.vercel.app.
 This can be changed to either a local instance of blockprotocol.org (see its `/site/README.md` on how to do that) or a webpack-dev-server instance of a block in development `yarn workspace @hashintel/block-<block-under-development> run dev --port 3010`.
 
 When referring to local blocks in `blockPaths.json`, please note that you need to use `http://host.docker.internal:PORT` instead of `http://localhost:PORT`.
