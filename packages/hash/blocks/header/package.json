@@ -16,7 +16,7 @@
     "lint:eslint": "eslint --ext .ts,.tsx ./src/",
     "lint:tsc": "tsc --noEmit",
     "schema": "typescript-json-schema tsconfig.json AppProps --required true --out dist/block-schema.json",
-    "serve": "serve -C -l 5000 ./dist/",
+    "serve": "serve -C -l 63282 ./dist/",
     "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev -- --watch --verbose\" \"yarn dev\""
   },
   "dependencies": {

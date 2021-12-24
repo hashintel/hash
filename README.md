@@ -232,7 +232,7 @@ plugin's settings:
 
 The backend Docker instance may not be able to reach your locally hosted block. In that case, you can use [Cloudflare Tunnels](https://developers.cloudflare.com/pages/how-to/preview-with-cloudflare-tunnel) to serve your localhost port via a URL, and use that in `blockPaths.json`.
 
-### API server: request to http://localhost:\*/metadata.json failed, reason: connect ECONNREFUSED 127.0.0.1:\*
+### API server: request to http://localhost:\*/block-metadata.json failed, reason: connect ECONNREFUSED 127.0.0.1:\*
 
 The collab server (which is a part of the API container) fails to reach a locally developed block.
 You can fix it by replacing `localhost` with `host.docker.internal` in `blockPaths.json`.

@@ -27,7 +27,7 @@ export const EntityType: VoidFunctionComponent = () => {
   const typeId = query.typeId as string;
   const accountId = query.accountId as string;
 
-  const { updateEntityType } = useBlockProtocolUpdateEntityType(accountId);
+  const { updateEntityTypes } = useBlockProtocolUpdateEntityType(accountId);
   const { aggregateEntityTypes } =
     useBlockProtocolAggregateEntityTypes(accountId);
 
@@ -130,7 +130,7 @@ export const EntityType: VoidFunctionComponent = () => {
             schema={schema}
             GoToSchemaElement={schemaSelectElement}
             subSchemaReference={subSchemaReference}
-            updateEntityType={updateEntityType}
+            updateEntityTypes={updateEntityTypes}
           />
         </>
       )}

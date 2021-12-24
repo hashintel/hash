@@ -7,7 +7,7 @@ import React, {
   VoidFunctionComponent,
 } from "react";
 import {
-  BlockProtocolAggregateFn,
+  BlockProtocolAggregateEntitiesFunction,
   BlockProtocolEntity,
 } from "@hashintel/block-protocol";
 import { tw } from "twind";
@@ -19,7 +19,7 @@ import { entityName } from "../../lib/entities";
 type MinimalEntity = { accountId: string; entityId: string; name: string };
 
 type EntitySelectProps = {
-  aggregate: BlockProtocolAggregateFn;
+  aggregateEntities: BlockProtocolAggregateEntitiesFunction;
   allowsMultipleSelections: boolean;
   entityTypeId: string;
   selectedEntities: MinimalEntity[];
@@ -50,7 +50,7 @@ const SelectInput: VoidFunctionComponent<
  * Allows a user to select one or more entities of a given type
  */
 export const EntitySelect: VoidFunctionComponent<EntitySelectProps> = ({
-  aggregate,
+  aggregateEntities,
   allowsMultipleSelections,
   entityTypeId,
   selectedEntities,
@@ -59,7 +59,7 @@ export const EntitySelect: VoidFunctionComponent<EntitySelectProps> = ({
   const [entityOptions, setEntityOptions] = useState<MinimalEntity[]>([]);
 
   useEffect(() => {
-    aggregate({
+    aggregateEntities({
       entityTypeId,
       operation: {
         itemsPerPage: 100, // @todo paginate
@@ -87,7 +87,7 @@ export const EntitySelect: VoidFunctionComponent<EntitySelectProps> = ({
           `Error fetching entities to populate select options: ${err.message}`,
         ),
       );
-  }, [aggregate, entityTypeId, selectedEntities]);
+  }, [aggregateEntities, entityTypeId, selectedEntities]);
 
   const removeLink = (index: number) => {
     const newSelection: MinimalEntity[] = [

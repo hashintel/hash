@@ -3,12 +3,12 @@ import { tw } from "twind";
 
 import { useRouter } from "next/router";
 
-import { BlockProtocolCreateFn } from "@hashintel/block-protocol";
+import { BlockProtocolCreateEntitiesFunction } from "@hashintel/block-protocol";
 import { EntityEditor } from "../../../components/EntityEditor/EntityEditor";
 
 import { UnknownEntity } from "../../../graphql/apiTypes.gen";
-import { useBlockProtocolCreate } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolCreate";
-import { useBlockProtocolAggregate } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregate";
+import { useBlockProtocolCreateEntities } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateEntitities";
+import { useBlockProtocolAggregateEntities } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregateEntities";
 import { MainContentWrapper } from "../../../components/pages/MainContentWrapper";
 import { useAccountEntityTypes } from "../../../components/hooks/useAccountEntityTypes";
 
@@ -22,11 +22,13 @@ const NewEntity: VoidFunctionComponent = () => {
     entityTypeId,
   );
 
-  const { create } = useBlockProtocolCreate(accountId);
-  const { aggregate } = useBlockProtocolAggregate(accountId);
+  const { createEntities } = useBlockProtocolCreateEntities(accountId);
+  const { aggregateEntities } = useBlockProtocolAggregateEntities(accountId);
 
-  const createAndNavigateToFirstEntity: BlockProtocolCreateFn = (args) => {
-    return create(args)
+  const createAndNavigateToFirstEntity: BlockProtocolCreateEntitiesFunction = (
+    args,
+  ) => {
+    return createEntities(args)
       .then((res) => {
         void router.push(
           `/${accountId}/entities/${(res[0] as UnknownEntity).entityId}`,
@@ -86,8 +88,8 @@ const NewEntity: VoidFunctionComponent = () => {
         {selectedType && (
           <EntityEditor
             accountId={accountId}
-            aggregate={aggregate}
-            create={createAndNavigateToFirstEntity}
+            aggregateEntities={aggregateEntities}
+            createEntities={createAndNavigateToFirstEntity}
             entityTypeId={selectedTypeId!}
             schema={selectedType.properties}
           />

@@ -19,7 +19,7 @@ const initialData = {
 const App = () => {
   const [data, setData] = useState(initialData);
 
-  const updateData = async (actions) => {
+  const handleUpdateEntities = async (actions) => {
     // do something with the data
     const newData = actions[0].data;
 
@@ -32,7 +32,7 @@ const App = () => {
         entityTypeId="code"
         entityId="entity-code"
         accountId="account-code"
-        update={updateData}
+        updateEntities={handleUpdateEntities}
         {...data}
       />
     </div>

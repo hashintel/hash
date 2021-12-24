@@ -42,10 +42,14 @@ class StatsPlugin {
         ...blockprotocol,
       };
 
-      // We don’t emit metadata.json in dev mode. Otherwise we will override a file
+      // We don’t emit block-metadata.json in dev mode. Otherwise we will override a file
       // that mentions main.SOME_HASH.js and this will produce a faulty block in dist.
       if (main !== "main.js") {
-        return writeFile("dist/metadata.json", beautify(blockMetadata), "utf8");
+        return writeFile(
+          "dist/block-metadata.json",
+          beautify(blockMetadata),
+          "utf8",
+        );
       }
     });
   }

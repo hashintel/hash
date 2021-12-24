@@ -8,13 +8,13 @@ import React, {
 } from "react";
 import router from "next/router";
 import { blockDomId } from "../../blocks/page/BlockView";
-import { useBlockProtocolUpdate } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdate";
+import { useBlockProtocolUpdateEntities } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateEntities";
 import { cloneEntityTreeWithPropertiesMovedUp } from "../../lib/entities";
 import { fetchEmbedCode } from "./fetchEmbedCode";
 import { BlockFramer } from "../sandbox/BlockFramer/BlockFramer";
 import { RemoteBlock } from "../RemoteBlock/RemoteBlock";
 import { useBlockProtocolAggregateEntityTypes } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregateEntityTypes";
-import { useBlockProtocolAggregate } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregate";
+import { useBlockProtocolAggregateEntities } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregateEntities";
 import { useFileUpload } from "../hooks/useFileUpload";
 
 type BlockLoaderProps = {
@@ -40,8 +40,8 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
 }) => {
   const { aggregateEntityTypes } =
     useBlockProtocolAggregateEntityTypes(accountId);
-  const { update } = useBlockProtocolUpdate(accountId);
-  const { aggregate } = useBlockProtocolAggregate(accountId);
+  const { updateEntities } = useBlockProtocolUpdateEntities(accountId);
+  const { aggregateEntities } = useBlockProtocolAggregateEntities(accountId);
   const { uploadFile } = useFileUpload(accountId);
 
   const flattenedProperties = useMemo(
@@ -57,8 +57,8 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
 
   const functions = {
     aggregateEntityTypes,
-    update,
-    aggregate,
+    updateEntities,
+    aggregateEntities,
     /** @todo pick one of getEmbedBlock or fetchEmbedCode */
     getEmbedBlock: fetchEmbedCode,
     uploadFile,

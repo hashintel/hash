@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { tw } from "twind";
 
 import { BlockComponent } from "@hashintel/block-protocol/react";
-import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
+import { BlockProtocolUpdateEntitiesAction } from "@hashintel/block-protocol";
 import { CopyIcon } from "./Icons";
 import { languages, LanguageType } from "./utils";
 import { Editor } from "./components/Editor";
@@ -23,7 +23,7 @@ export const App: BlockComponent<AppProps> = ({
   caption,
   content,
   language,
-  update,
+  updateEntities,
 }) => {
   const [localData, setLocalData] = useState(() => ({
     caption,
@@ -52,14 +52,14 @@ export const App: BlockComponent<AppProps> = ({
   };
 
   const updateRemoteData = () => {
-    void update?.([
+    void updateEntities?.([
       {
         entityId,
         entityTypeId,
         accountId,
         data: localData,
       },
-    ] as BlockProtocolUpdatePayload<AppProps>[]);
+    ] as BlockProtocolUpdateEntitiesAction<AppProps>[]);
   };
 
   const copyToClipboard = async () => {

@@ -7,11 +7,11 @@ import ReactDOM from "react-dom";
 import { tw } from "twind";
 
 import {
-  BlockProtocolUpdateFn,
-  BlockProtocolUpdatePayload,
+  BlockProtocolUpdateEntitiesFunction,
+  BlockProtocolUpdateEntitiesAction,
   BlockProtocolLinkedDataDefinition,
-  BlockProtocolAggregateFn,
-  BlockProtocolAggregateOperationOutput,
+  BlockProtocolAggregateEntitiesFunction,
+  BlockProtocolAggregateEntitiesResult,
 } from "@hashintel/block-protocol";
 import { cloneDeep } from "lodash";
 import Component from "./index";
@@ -102,7 +102,7 @@ const useMockData = () => {
     [tableData, entities],
   );
 
-  const aggregateData: BlockProtocolAggregateFn = useCallback(
+  const aggregateEntities: BlockProtocolAggregateEntitiesFunction = useCallback(
     async (action) => {
       const results = getResolvedData({
         aggregate: action.operation,
@@ -112,14 +112,14 @@ const useMockData = () => {
       return Promise.resolve({
         results,
         operation: action.operation,
-      } as BlockProtocolAggregateOperationOutput);
+      } as BlockProtocolAggregateEntitiesResult);
     },
     [getResolvedData],
   );
 
-  const updateData: BlockProtocolUpdateFn = useCallback(
+  const updateEntities: BlockProtocolUpdateEntitiesFunction = useCallback(
     async (
-      actions: BlockProtocolUpdatePayload<{
+      actions: BlockProtocolUpdateEntitiesAction<{
         data?: { __linkedData: BlockProtocolLinkedDataDefinition };
         initialState?: Record<string, any>;
       }>[],
@@ -163,17 +163,18 @@ const useMockData = () => {
       initialState: tableData.initialState,
       data: getResolvedData(),
       entityId: tableData.entityId,
-      updateData,
-      aggregateData,
+      updateEntities,
+      aggregateEntities,
     }),
-    [tableData, getResolvedData, updateData, aggregateData],
+    [tableData, getResolvedData, updateEntities, aggregateEntities],
   );
 };
 
 const node = document.getElementById("app");
 
 const App = () => {
-  const { data, initialState, updateData, aggregateData } = useMockData();
+  const { data, initialState, updateEntities, aggregateEntities } =
+    useMockData();
 
   return (
     <div className={tw`flex justify-center py-8`}>
@@ -181,8 +182,8 @@ const App = () => {
         data={data}
         initialState={initialState}
         schemas={schemas}
-        update={updateData}
-        aggregate={aggregateData}
+        updateEntities={updateEntities}
+        aggregateEntities={aggregateEntities}
         entityId="table-1"
       />
     </div>

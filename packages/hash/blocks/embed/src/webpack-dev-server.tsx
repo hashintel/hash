@@ -6,8 +6,8 @@ import React, { useState } from "react";
 import ReactDOM from "react-dom";
 import { tw } from "twind";
 import {
-  BlockProtocolUpdateFn,
-  BlockProtocolUpdatePayload,
+  BlockProtocolUpdateEntitiesFunction,
+  BlockProtocolUpdateEntitiesAction,
 } from "@hashintel/block-protocol";
 // import { apiGraphQLEndpoint } from "@hashintel/hash-shared/environment";
 
@@ -58,8 +58,8 @@ function AppComponent() {
     }));
   };
 
-  const updateBlockData: BlockProtocolUpdateFn = async (
-    actions: BlockProtocolUpdatePayload<any>[],
+  const updateBlockData: BlockProtocolUpdateEntitiesFunction = async (
+    actions: BlockProtocolUpdateEntitiesAction<any>[],
   ) => {
     if (actions[0]) {
       updateState(actions[0].data);
@@ -76,7 +76,7 @@ function AppComponent() {
         entityId="uuid-1234-id"
         entityTypeId="Embed"
         getEmbedBlock={getEmbedBlock}
-        update={updateBlockData}
+        updateEntities={updateBlockData}
         {...state}
       />
     </div>

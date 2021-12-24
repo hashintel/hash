@@ -4,8 +4,8 @@ import { BlockComponent } from "@hashintel/block-protocol/react";
 
 import { unstable_batchedUpdates } from "react-dom";
 import {
-  BlockProtocolFileUploadFn,
-  BlockProtocolUpdatePayload,
+  BlockProtocolUploadFileFunction,
+  BlockProtocolUpdateEntitiesAction,
 } from "@hashintel/block-protocol";
 import Loader from "./svgs/Loader";
 import Pencil from "./svgs/Pencil";
@@ -14,17 +14,17 @@ import Cross from "./svgs/Cross";
 // https://www.typescriptlang.org/docs/handbook/release-notes/overview.html#recursive-conditional-types
 type Awaited<T> = T extends PromiseLike<infer U> ? Awaited<U> : T;
 
-type FileType = Awaited<ReturnType<BlockProtocolFileUploadFn>>;
+type FileType = Awaited<ReturnType<BlockProtocolUploadFileFunction>>;
 
 type AppProps = {
   initialSrc?: string;
   initialCaption?: string;
-  uploadFile: BlockProtocolFileUploadFn;
+  uploadFile: BlockProtocolUploadFileFunction;
   entityId: string;
   entityTypeId?: string;
 };
 
-type BlockProtocolUpdatePayloadData = Pick<
+type BlockProtocolUpdateEntitiesActionData = Pick<
   AppProps,
   "initialSrc" | "initialCaption"
 > & {
@@ -44,7 +44,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
     uploadFile,
     entityId,
     entityTypeId,
-    update,
+    updateEntities,
   } = props;
 
   // TODO: Consider replacing multiple states with useReducer()
@@ -107,8 +107,8 @@ export const Video: BlockComponent<AppProps> = (props) => {
   const updateData = useCallback(
     ({ file, src }: { src: string | undefined; file?: FileType }) => {
       if (src?.trim()) {
-        if (update) {
-          const updateAction: BlockProtocolUpdatePayload<BlockProtocolUpdatePayloadData> =
+        if (updateEntities) {
+          const updateAction: BlockProtocolUpdateEntitiesAction<BlockProtocolUpdateEntitiesActionData> =
             {
               data: {
                 initialSrc: src,
@@ -125,13 +125,13 @@ export const Video: BlockComponent<AppProps> = (props) => {
             updateAction.entityTypeId = entityTypeId;
           }
 
-          void update([updateAction]);
+          void updateEntities([updateAction]);
         }
 
         updateStateObject({ src });
       }
     },
-    [captionText, entityId, entityTypeId, updateStateObject, update],
+    [captionText, entityId, entityTypeId, updateStateObject, updateEntities],
   );
 
   const handleVideoUpload = useCallback(

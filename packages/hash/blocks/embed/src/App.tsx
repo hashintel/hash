@@ -10,7 +10,7 @@ import { tw } from "twind";
 
 import { BlockComponent } from "@hashintel/block-protocol/react";
 
-import { BlockProtocolUpdatePayload } from "@hashintel/block-protocol";
+import { BlockProtocolUpdateEntitiesAction } from "@hashintel/block-protocol";
 import { ProviderNames, AppState, Actions } from "./types";
 import { HtmlBlock } from "./HtmlBlock";
 import { getFormCopy } from "./utils";
@@ -88,7 +88,7 @@ export const App: BlockComponent<AppProps> = ({
   initialWidth,
   entityId,
   entityTypeId,
-  update,
+  updateEntities,
 }) => {
   const [
     {
@@ -159,7 +159,7 @@ export const App: BlockComponent<AppProps> = ({
         embedType: properties.embedType,
       };
 
-      const updateAction: BlockProtocolUpdatePayload<{
+      const updateAction: BlockProtocolUpdateEntitiesAction<{
         initialHtml: string | undefined;
         initialHeight: number | undefined;
         initialWidth: number | undefined;
@@ -173,11 +173,11 @@ export const App: BlockComponent<AppProps> = ({
         updateAction.entityTypeId = entityTypeId;
       }
 
-      if (update) {
-        void update<any>([updateAction]);
+      if (updateEntities) {
+        void updateEntities<any>([updateAction]);
       }
     },
-    [entityId, entityTypeId, update],
+    [entityId, entityTypeId, updateEntities],
   );
 
   const handleGetEmbed = async () => {

@@ -7,7 +7,7 @@ import React, {
   VoidFunctionComponent,
 } from "react";
 import { tw } from "twind";
-import { useBlockProtocolUpdate } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdate";
+import { useBlockProtocolUpdateEntities } from "../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntities";
 
 type PageTitleProps = {
   value: string;
@@ -28,7 +28,8 @@ export const PageTitle: VoidFunctionComponent<PageTitleProps> = ({
   accountId,
 }) => {
   // TODO: Display update error once expected UX is discussed
-  const { update, updateLoading } = useBlockProtocolUpdate(accountId);
+  const { updateEntities, updateEntitiesLoading } =
+    useBlockProtocolUpdateEntities(accountId);
   const [inputValue, setInputValue] = useState<string>(value);
 
   useEffect(() => {
@@ -58,7 +59,7 @@ export const PageTitle: VoidFunctionComponent<PageTitleProps> = ({
       return;
     }
 
-    void update([
+    void updateEntities([
       {
         entityId: metadataId,
         entityTypeId: "Page",
@@ -71,12 +72,12 @@ export const PageTitle: VoidFunctionComponent<PageTitleProps> = ({
   return (
     <input
       placeholder="A title for the page"
-      disabled={updateLoading}
+      disabled={updateEntitiesLoading}
       onChange={handleInputChange}
       onKeyDown={handleInputKeyDown}
       onBlur={handleInputBlur}
       className={tw`font-medium text-2xl w-full py-0.5 -mx-1 px-1 mt-px ${
-        updateLoading ? "opacity-50" : undefined
+        updateEntitiesLoading ? "opacity-50" : undefined
       }`}
       value={inputValue}
     />

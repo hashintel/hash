@@ -1,6 +1,6 @@
 import { useApolloClient, useMutation } from "@apollo/client";
 
-import { BlockProtocolUpdateFn } from "@hashintel/block-protocol";
+import { BlockProtocolUpdateEntitiesFunction } from "@hashintel/block-protocol";
 import { updateEntity } from "@hashintel/hash-shared/queries/entity.queries";
 import { useCallback } from "react";
 import { updatePage } from "@hashintel/hash-shared/queries/page.queries";
@@ -11,13 +11,13 @@ import {
   UpdatePageMutationVariables,
 } from "../../../graphql/apiTypes.gen";
 
-export const useBlockProtocolUpdate = (
+export const useBlockProtocolUpdateEntities = (
   /** Providing accountId here saves blocks from having to know it */
   accountId: string,
 ): {
-  update: BlockProtocolUpdateFn;
-  updateLoading: boolean;
-  updateError: any;
+  updateEntities: BlockProtocolUpdateEntitiesFunction;
+  updateEntitiesLoading: boolean;
+  updateEntitiesError: any;
 } => {
   const apolloClient = useApolloClient();
 
@@ -43,7 +43,7 @@ export const useBlockProtocolUpdate = (
       onCompleted,
     });
 
-  const update: BlockProtocolUpdateFn = useCallback(
+  const updateEntities: BlockProtocolUpdateEntitiesFunction = useCallback(
     async (actions) =>
       Promise.all(
         actions.map(async (action) =>
@@ -63,12 +63,12 @@ export const useBlockProtocolUpdate = (
     [accountId, updateEntityFn, updatePageFn],
   );
 
-  const updateLoading = updateEntityLoading || updatePageLoading;
-  const updateError = updateEntityError ?? updatePageError;
+  const updateEntitiesLoading = updateEntityLoading || updatePageLoading;
+  const updateEntitiesError = updateEntityError ?? updatePageError;
 
   return {
-    update,
-    updateLoading,
-    updateError,
+    updateEntities,
+    updateEntitiesLoading,
+    updateEntitiesError,
   };
 };

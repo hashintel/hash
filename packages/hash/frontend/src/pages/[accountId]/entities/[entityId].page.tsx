@@ -3,7 +3,7 @@ import { useQuery } from "@apollo/client";
 
 import { useRouter } from "next/router";
 
-import { BlockProtocolUpdateFn } from "@hashintel/block-protocol";
+import { BlockProtocolUpdateEntitiesFunction } from "@hashintel/block-protocol";
 import { getEntity } from "@hashintel/hash-shared/queries/entity.queries";
 import { EntityEditor } from "../../../components/EntityEditor/EntityEditor";
 
@@ -12,11 +12,11 @@ import {
   GetEntityQueryVariables,
   UnknownEntity,
 } from "../../../graphql/apiTypes.gen";
-import { useBlockProtocolUpdate } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdate";
+import { useBlockProtocolUpdateEntities } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntities";
 import { entityName } from "../../../lib/entities";
-import { useBlockProtocolAggregate } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregate";
-import { useBlockProtocolDeleteLink } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolDeleteLink";
-import { useBlockProtocolCreateLink } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateLink";
+import { useBlockProtocolAggregateEntities } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregateEntities";
+import { useBlockProtocolDeleteLinks } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolDeleteLinks";
+import { useBlockProtocolCreateLinks } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateLinks";
 import { MainContentWrapper } from "../../../components/pages/MainContentWrapper";
 
 const Entity: VoidFunctionComponent = () => {
@@ -34,13 +34,15 @@ const Entity: VoidFunctionComponent = () => {
       entityId,
     },
   });
-  const { createLink } = useBlockProtocolCreateLink(accountId);
-  const { deleteLink } = useBlockProtocolDeleteLink(accountId);
-  const { update } = useBlockProtocolUpdate(accountId);
-  const { aggregate } = useBlockProtocolAggregate(accountId);
+  const { createLinks } = useBlockProtocolCreateLinks(accountId);
+  const { deleteLinks } = useBlockProtocolDeleteLinks(accountId);
+  const { updateEntities } = useBlockProtocolUpdateEntities(accountId);
+  const { aggregateEntities } = useBlockProtocolAggregateEntities(accountId);
 
-  const updateAndNavigateToFirstEntity: BlockProtocolUpdateFn = (args) => {
-    return update(args)
+  const updateAndNavigateToFirstEntity: BlockProtocolUpdateEntitiesFunction = (
+    args,
+  ) => {
+    return updateEntities(args)
       .then((res) => {
         void router.push(
           `/${accountId}/entities/${(res[0] as UnknownEntity).entityId}`,
@@ -68,10 +70,10 @@ const Entity: VoidFunctionComponent = () => {
       <div>
         {entity && (
           <EntityEditor
-            aggregate={aggregate}
-            createLink={createLink}
-            deleteLink={deleteLink}
-            update={updateAndNavigateToFirstEntity}
+            aggregateEntities={aggregateEntities}
+            createLinks={createLinks}
+            deleteLinks={deleteLinks}
+            updateEntities={updateAndNavigateToFirstEntity}
             entityProperties={entity.properties}
             schema={entity.entityType.properties}
             refetchEntity={refetchEntity}

@@ -6,7 +6,7 @@ import React, {
   VoidFunctionComponent,
 } from "react";
 import { Column, Row } from "react-table";
-import { BlockProtocolUpdateFn } from "@hashintel/block-protocol";
+import { BlockProtocolUpdateEntitiesFunction } from "@hashintel/block-protocol";
 import { tw } from "twind";
 import { identityEntityAndProperty } from "../lib/identifyEntity";
 
@@ -15,7 +15,7 @@ type EditableCellProps = {
   row: Row;
   column: Column;
   readOnly?: boolean;
-  updateData: BlockProtocolUpdateFn;
+  updateEntities: BlockProtocolUpdateEntitiesFunction;
 };
 
 export const EditableCell: VoidFunctionComponent<EditableCellProps> = ({
@@ -23,7 +23,7 @@ export const EditableCell: VoidFunctionComponent<EditableCellProps> = ({
   row,
   column,
   readOnly,
-  updateData,
+  updateEntities,
 }) => {
   const [value, setValue] = useState(initialValue);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
@@ -71,7 +71,7 @@ export const EditableCell: VoidFunctionComponent<EditableCellProps> = ({
       }
     }
 
-    updateData([
+    updateEntities([
       {
         data: newEntity,
         entityId: objectToUpdate.entityId,

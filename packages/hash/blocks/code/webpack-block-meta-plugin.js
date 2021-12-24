@@ -39,7 +39,11 @@ class StatsPlugin {
         ...blockprotocol,
       };
 
-      return writeFile("dist/metadata.json", beautify(blockMetadata), "utf8");
+      return writeFile(
+        "dist/block-metadata.json",
+        beautify(blockMetadata),
+        "utf8",
+      );
     });
   }
 }

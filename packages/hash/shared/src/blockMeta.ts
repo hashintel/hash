@@ -94,7 +94,7 @@ export const fetchBlockMeta = async (
 
   const promise = (async () => {
     const metadata: BlockMetadata = await (
-      await fetch(`${url}/metadata.json`)
+      await fetch(`${url}/block-metadata.json`)
     ).json();
 
     const schema: Block["componentSchema"] = await (

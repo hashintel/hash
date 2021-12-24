@@ -1,9 +1,9 @@
 import { useEffect, useState, VoidFunctionComponent } from "react";
 import {
-  BlockProtocolAggregateEntityTypesFn,
-  BlockProtocolAggregateFn,
-  BlockProtocolCreateFn,
-  BlockProtocolUpdateFn,
+  BlockProtocolAggregateEntityTypesFunction,
+  BlockProtocolAggregateEntitiesFunction,
+  BlockProtocolCreateEntitiesFunction,
+  BlockProtocolUpdateEntitiesFunction,
   JSONObject,
 } from "@hashintel/block-protocol";
 
@@ -61,13 +61,15 @@ export const FramedBlock: VoidFunctionComponent = () => {
    * @todo set loading / error states based on promise status and pass into block.
    *    in order to provide aggregateLoading, aggregateError, etc
    */
-  const aggregate: BlockProtocolAggregateFn = (...payload) =>
+  const aggregateEntities: BlockProtocolAggregateEntitiesFunction = (
+    ...payload
+  ) =>
     sendMessage({
       payload,
-      type: "aggregate",
+      type: "aggregateEntities",
     });
 
-  const aggregateEntityTypes: BlockProtocolAggregateEntityTypesFn = (
+  const aggregateEntityTypes: BlockProtocolAggregateEntityTypesFunction = (
     ...payload
   ) =>
     sendMessage({
@@ -75,25 +77,25 @@ export const FramedBlock: VoidFunctionComponent = () => {
       type: "aggregateEntityTypes",
     });
 
-  const create: BlockProtocolCreateFn = (...payload) =>
+  const createEntities: BlockProtocolCreateEntitiesFunction = (...payload) =>
     sendMessage({
       payload,
-      type: "aggregate",
+      type: "createEntities",
     });
 
-  const update: BlockProtocolUpdateFn = (...payload) =>
-    sendMessage({ payload, type: "update" });
+  const updateEntities: BlockProtocolUpdateEntitiesFunction = (...payload) =>
+    sendMessage({ payload, type: "updateEntities" });
 
   const getEmbedBlock: FetchEmbedCodeFn = (...payload) =>
     sendMessage({ payload, type: "getEmbedBlock" });
 
   const props = {
     ...blockProperties,
-    aggregate,
+    aggregateEntities,
     aggregateEntityTypes,
-    create,
+    createEntities,
     getEmbedBlock,
-    update,
+    updateEntities,
   };
 
   if (sourceUrl.endsWith(".html")) {

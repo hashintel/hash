@@ -2,10 +2,8 @@ import JSONSchemaForm from "@rjsf/material-ui";
 import jsonpath from "jsonpath";
 import { FormEvent, useMemo, VoidFunctionComponent } from "react";
 import {
-  BlockProtocolAggregateFn,
+  BlockProtocolAggregateEntitiesFunction,
   BlockProtocolProps,
-  BlockProtocolCreateLinkFn,
-  BlockProtocolDeleteLinkFn,
   JSONObject,
 } from "@hashintel/block-protocol";
 import { unset } from "lodash";
@@ -22,22 +20,25 @@ import { entityName } from "../../lib/entities";
 
 type EntityEditorProps = {
   accountId: string; // @todo figure out if accountId is a part of the protocol or not
-  aggregate: BlockProtocolAggregateFn;
+  aggregateEntities: BlockProtocolAggregateEntitiesFunction;
   disabled?: boolean;
   readonly?: boolean;
   refetchEntity?: () => void; // @todo handle this via the collab server or some other way
   schema: JSONObject;
 } & (
   | /** @todo handle creating links along with a new entity - needs API provision for this */
-  Required<Pick<BlockProtocolProps, "create" | "entityTypeId">> // for new entities
+  Required<Pick<BlockProtocolProps, "createEntities" | "entityTypeId">> // for new entities
   | Required<
       // for existing entities
       Pick<
         BlockProtocolProps,
-        "entityId" | "linkedEntities" | "linkGroups" | "update"
+        | "entityId"
+        | "linkedEntities"
+        | "linkGroups"
+        | "updateEntities"
+        | "createLinks"
+        | "deleteLinks"
       > & {
-        createLink: BlockProtocolCreateLinkFn;
-        deleteLink: BlockProtocolDeleteLinkFn;
         entityProperties: JSONObject;
       }
     >
@@ -145,7 +146,7 @@ const splitSchema = (
 
 export const EntityEditor: VoidFunctionComponent<EntityEditorProps> = ({
   accountId,
-  aggregate,
+  aggregateEntities: aggregate,
   disabled,
   readonly,
   refetchEntity,
@@ -153,8 +154,8 @@ export const EntityEditor: VoidFunctionComponent<EntityEditorProps> = ({
   ...entityProps
 }) => {
   const {
-    createLink = undefined,
-    deleteLink = undefined,
+    createLinks = undefined,
+    deleteLinks = undefined,
     entityId = undefined,
     entityProperties: existingProperties = undefined,
     linkedEntities = [],
@@ -165,7 +166,7 @@ export const EntityEditor: VoidFunctionComponent<EntityEditorProps> = ({
     event.preventDefault();
     if ("entityId" in entityProps) {
       entityProps
-        .update([
+        .updateEntities([
           {
             data: {
               ...existingProperties,
@@ -178,7 +179,7 @@ export const EntityEditor: VoidFunctionComponent<EntityEditorProps> = ({
         .catch((err) => console.error(`Error creating entity: ${err.message}`));
     } else {
       entityProps
-        .create([
+        .createEntities([
           { data: args.formData, entityTypeId: entityProps.entityTypeId },
         ])
         // eslint-disable-next-line no-console -- TODO: consider using logger
@@ -196,23 +197,27 @@ export const EntityEditor: VoidFunctionComponent<EntityEditorProps> = ({
     : "New Entity";
 
   const createLinkWithFixedSource: CreateLinkFnWithFixedSource | undefined =
-    createLink && entityId
-      ? (payload) =>
-          createLink({
-            ...payload,
-            sourceAccountId: accountId,
-            sourceEntityId: entityId,
-          })
+    createLinks && entityId
+      ? (action) =>
+          createLinks([
+            {
+              ...action,
+              sourceAccountId: accountId,
+              sourceEntityId: entityId,
+            },
+          ])
       : undefined;
 
   const deleteLinkWithFixedSource: DeleteLinkFnWithFixedSource | undefined =
-    deleteLink && entityId
-      ? (payload) =>
-          deleteLink({
-            ...payload,
-            sourceAccountId: accountId,
-            sourceEntityId: entityId,
-          })
+    deleteLinks && entityId
+      ? (action) =>
+          deleteLinks([
+            {
+              ...action,
+              sourceAccountId: accountId,
+              sourceEntityId: entityId,
+            },
+          ])
       : undefined;
 
   return (
@@ -238,7 +243,7 @@ export const EntityEditor: VoidFunctionComponent<EntityEditorProps> = ({
             Entities linked from <em>{name}</em>
           </h2>
           <EntityLinkEditor
-            aggregateEntity={aggregate}
+            aggregateEntities={aggregate}
             createLinkFromEntity={createLinkWithFixedSource}
             deleteLinkFromEntity={deleteLinkWithFixedSource}
             existingLinkGroups={existingLinkGroups}

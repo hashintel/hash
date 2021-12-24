@@ -4,8 +4,8 @@ import { unstable_batchedUpdates } from "react-dom";
 import { tw } from "twind";
 import { BlockComponent } from "@hashintel/block-protocol/react";
 import {
-  BlockProtocolFileUploadFn,
-  BlockProtocolUpdatePayload,
+  BlockProtocolUploadFileFunction,
+  BlockProtocolUpdateEntitiesAction,
 } from "@hashintel/block-protocol";
 
 import { ResizeImageBlock } from "./components/ResizeImageBlock";
@@ -17,18 +17,18 @@ import Cross from "./svgs/Cross";
 // https://www.typescriptlang.org/docs/handbook/release-notes/overview.html#recursive-conditional-types
 type Awaited<T> = T extends PromiseLike<infer U> ? Awaited<U> : T;
 
-type FileType = Awaited<ReturnType<BlockProtocolFileUploadFn>>;
+type FileType = Awaited<ReturnType<BlockProtocolUploadFileFunction>>;
 
 type AppProps = {
   initialSrc?: string;
   initialCaption?: string;
   initialWidth?: number;
-  uploadFile: BlockProtocolFileUploadFn;
+  uploadFile: BlockProtocolUploadFileFunction;
   entityId: string;
   entityTypeId?: string;
 };
 
-type BlockProtocolUpdatePayloadData = Pick<
+type BlockProtocolUpdateEntitiesActionData = Pick<
   AppProps,
   "initialSrc" | "initialCaption" | "initialWidth"
 > & {
@@ -49,7 +49,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
     initialWidth,
     entityId,
     entityTypeId,
-    update,
+    updateEntities,
   } = props;
 
   // TODO: Consider replacing multiple states with useReducer()
@@ -124,8 +124,8 @@ export const Image: BlockComponent<AppProps> = (props) => {
       file?: FileType;
     }) => {
       if (src?.trim()) {
-        if (update) {
-          const updateAction: BlockProtocolUpdatePayload<BlockProtocolUpdatePayloadData> =
+        if (updateEntities) {
+          const updateAction: BlockProtocolUpdateEntitiesAction<BlockProtocolUpdateEntitiesActionData> =
             {
               data: {
                 initialSrc: src,
@@ -146,13 +146,13 @@ export const Image: BlockComponent<AppProps> = (props) => {
             updateAction.entityTypeId = entityTypeId;
           }
 
-          void update([updateAction]);
+          void updateEntities([updateAction]);
         }
 
         updateStateObject(width ? { src, width } : { src });
       }
     },
-    [captionText, entityId, entityTypeId, updateStateObject, update],
+    [captionText, entityId, entityTypeId, updateStateObject, updateEntities],
   );
 
   const updateWidth = useCallback(

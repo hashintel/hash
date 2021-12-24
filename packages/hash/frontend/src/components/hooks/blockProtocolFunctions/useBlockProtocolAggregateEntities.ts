@@ -1,8 +1,8 @@
 import { useApolloClient } from "@apollo/client";
 
 import {
-  BlockProtocolAggregateFn,
-  BlockProtocolAggregateOperationOutput,
+  BlockProtocolAggregateEntitiesFunction,
+  BlockProtocolAggregateEntitiesResult,
 } from "@hashintel/block-protocol";
 import { aggregateEntity } from "@hashintel/hash-shared/queries/entity.queries";
 import { useCallback } from "react";
@@ -12,15 +12,15 @@ import {
   AggregateEntityQueryVariables,
 } from "../../../graphql/apiTypes.gen";
 
-export const useBlockProtocolAggregate = (
+export const useBlockProtocolAggregateEntities = (
   /** Providing accountId here saves blocks from having to know it */
   accountId: string,
 ): {
-  aggregate: BlockProtocolAggregateFn;
+  aggregateEntities: BlockProtocolAggregateEntitiesFunction;
 } => {
   const client = useApolloClient();
 
-  const aggregate: BlockProtocolAggregateFn = useCallback(
+  const aggregateEntities: BlockProtocolAggregateEntitiesFunction = useCallback(
     async (action) => {
       /**
        * Using client.query since useLazyQuery does not return anything
@@ -47,12 +47,12 @@ export const useBlockProtocolAggregate = (
       return {
         operation,
         results: newResults,
-      } as BlockProtocolAggregateOperationOutput;
+      } as BlockProtocolAggregateEntitiesResult;
     },
     [accountId, client],
   );
 
   return {
-    aggregate,
+    aggregateEntities,
   };
 };

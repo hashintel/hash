@@ -1,5 +1,5 @@
 import {
-  BlockProtocolAggregateFn,
+  BlockProtocolAggregateEntitiesFunction,
   BlockProtocolEntity,
   BlockProtocolLink,
   BlockProtocolLinkGroup,
@@ -17,7 +17,7 @@ import { entityName } from "../../lib/entities";
 import { isNonNullable } from "../../lib/typeguards";
 
 type EntityLinkEditorProps = {
-  aggregateEntity: BlockProtocolAggregateFn;
+  aggregateEntities: BlockProtocolAggregateEntitiesFunction;
   createLinkFromEntity: CreateLinkFnWithFixedSource;
   deleteLinkFromEntity: DeleteLinkFnWithFixedSource;
   existingLinkGroups: BlockProtocolLinkGroup[];
@@ -29,7 +29,7 @@ type EntityLinkEditorProps = {
 const pathToString = (pathAsArray: string[]) => pathAsArray.join(".");
 
 export const EntityLinkEditor: VoidFunctionComponent<EntityLinkEditorProps> = ({
-  aggregateEntity,
+  aggregateEntities,
   createLinkFromEntity,
   deleteLinkFromEntity,
   existingLinkGroups,
@@ -68,7 +68,7 @@ export const EntityLinkEditor: VoidFunctionComponent<EntityLinkEditorProps> = ({
       )?.linkedEntities;
 
       // @todo we should have an easier way of batch updating links via the API
-      await Promise.all<boolean | null | BlockProtocolLink>([
+      await Promise.all<boolean[] | null | BlockProtocolLink[]>([
         // Compare the list of new and old linked entities and replace links where they differ
         ...linkedEntitiesToSet.map(async (newEntity, index) => {
           const entityCurrentlyInLinkPosition = oldLinkedEntities?.[index];
@@ -115,7 +115,7 @@ export const EntityLinkEditor: VoidFunctionComponent<EntityLinkEditorProps> = ({
               {pathString.replace(/^\$\./, "")}
             </div>
             <EntitySelect
-              aggregate={aggregateEntity}
+              aggregateEntities={aggregateEntities}
               entityTypeId={link.permittedTypeIds[0]} // @todo handle multiple permitted types
               allowsMultipleSelections={!!link.array}
               selectedEntities={link.linkedEntities.map(

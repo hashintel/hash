@@ -30,11 +30,11 @@ const fetchSource = memoizeFetchFunction((url) =>
 
 export const BlockFramer: VoidFunctionComponent<CrossFrameProxyProps> = ({
   sourceUrl,
-  aggregate,
+  aggregateEntities,
   aggregateEntityTypes,
-  create,
+  createEntities,
   getEmbedBlock,
-  update,
+  updateEntities,
   blockProperties,
   onBlockLoaded,
 }) => {
@@ -140,8 +140,8 @@ export const BlockFramer: VoidFunctionComponent<CrossFrameProxyProps> = ({
        *    this naive passing through of requests provides no security at present.
        */
       switch (data.type) {
-        case "aggregate":
-          asyncCallAndResponse(aggregate, data.payload, data.requestId);
+        case "aggregateEntities":
+          asyncCallAndResponse(aggregateEntities, data.payload, data.requestId);
           break;
         case "aggregateEntityTypes":
           asyncCallAndResponse(
@@ -150,11 +150,11 @@ export const BlockFramer: VoidFunctionComponent<CrossFrameProxyProps> = ({
             data.requestId,
           );
           break;
-        case "create":
-          asyncCallAndResponse(create, data.payload, data.requestId);
+        case "createEntities":
+          asyncCallAndResponse(createEntities, data.payload, data.requestId);
           break;
-        case "update":
-          asyncCallAndResponse(update, data.payload, data.requestId);
+        case "updateEntities":
+          asyncCallAndResponse(updateEntities, data.payload, data.requestId);
           break;
         case "getEmbedBlock":
           asyncCallAndResponse(getEmbedBlock, data.payload, data.requestId);
@@ -169,11 +169,11 @@ export const BlockFramer: VoidFunctionComponent<CrossFrameProxyProps> = ({
 
     return () => window.removeEventListener("message", msgHandler);
   }, [
-    aggregate,
+    aggregateEntities,
     getEmbedBlock,
     asyncCallAndResponse,
-    create,
-    update,
+    createEntities,
+    updateEntities,
     aggregateEntityTypes,
   ]);
 

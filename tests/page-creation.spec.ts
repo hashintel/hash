@@ -10,7 +10,8 @@ const pageName = `Test page ${pageNameSuffix}`;
 const listOfPagesSelector = 'nav header:has-text("Pages")';
 const pageTitleInputSelector = '[placeholder="A title for the page"]';
 
-test("user can create page", async ({ page }) => {
+// TODO: Revert after https://github.com/hashintel/dev/pull/432 is merged
+test.skip("user can create page", async ({ page }) => {
   await loginUsingUi({ page, accountShortName: "alice" });
 
   // Check if we are on the user page

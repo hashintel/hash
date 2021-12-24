@@ -1,4 +1,4 @@
-import { BlockProtocolFileUploadFn } from "@hashintel/block-protocol";
+import { BlockProtocolUploadFileFunction } from "@hashintel/block-protocol";
 import { isFileProperties } from "@hashintel/hash-shared/util";
 import {
   GetEntityQuery,
@@ -91,7 +91,7 @@ export const useFileUpload = (accountId: string) => {
     });
   };
 
-  const uploadFile: BlockProtocolFileUploadFn = useCallback(
+  const uploadFile: BlockProtocolUploadFileFunction = useCallback(
     async ({ file, url, mediaType }) => {
       if (url?.trim()) {
         const result = await createFileFromLinkFn({

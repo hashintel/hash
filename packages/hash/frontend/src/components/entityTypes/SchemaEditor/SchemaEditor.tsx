@@ -1,6 +1,6 @@
 import {
   BlockProtocolEntityType,
-  BlockProtocolUpdateEntityTypeFn,
+  BlockProtocolUpdateEntityTypesFunction,
   BlockProtocolProps,
   JSONObject,
 } from "@hashintel/block-protocol";
@@ -37,7 +37,7 @@ type JsonSchemaEditorProps = {
   subSchemaReference?: string;
 } & Pick<
   BlockProtocolProps,
-  "aggregateEntityTypes" | "entityId" | "updateEntityType"
+  "aggregateEntityTypes" | "entityId" | "updateEntityTypes"
 >;
 
 export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
@@ -46,7 +46,7 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
   GoToSchemaElement,
   schema: possiblyStaleDbSchema,
   subSchemaReference,
-  updateEntityType,
+  updateEntityTypes,
 }) => {
   const [availableEntityTypes, setAvailableEntityTypes] = useState<
     BlockProtocolEntityType[] | undefined
@@ -71,15 +71,15 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
 
   const debouncedUpdate = useMemo(
     () =>
-      debounce<BlockProtocolUpdateEntityTypeFn>((...args) => {
-        if (!updateEntityType) {
+      debounce<BlockProtocolUpdateEntityTypesFunction>((...args) => {
+        if (!updateEntityTypes) {
           throw new Error(
             "updateEntityType function not provided. Schema cannot be updated.",
           );
         }
-        return updateEntityType(...args);
+        return updateEntityTypes(...args);
       }, 800),
-    [updateEntityType],
+    [updateEntityTypes],
   );
 
   useEffect(() => {
@@ -93,10 +93,12 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
       return;
     }
     // Send updates to the API periodically when the draft is updated
-    debouncedUpdate({
-      entityId,
-      schema: workingSchemaDraft as JSONObject,
-    })?.catch((err) => {
+    debouncedUpdate([
+      {
+        entityId,
+        schema: workingSchemaDraft as JSONObject,
+      },
+    ])?.catch((err) => {
       // eslint-disable-next-line no-console -- TODO: consider using logger
       console.error(`Error updating schema: ${err.message}`);
       throw err;
@@ -152,7 +154,7 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
   const { title } = workingSchemaDraft;
   const { description } = selectedSchema;
 
-  const readonly = !updateEntityType || !entityId;
+  const readonly = !updateEntityTypes || !entityId;
 
   const addSubSchema = (newSubSchemaName: string) =>
     dispatchSchemaUpdate({
@@ -211,7 +213,7 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
         </div>
       </section>
 
-      {updateEntityType || subSchemas.length > 0 ? (
+      {updateEntityTypes || subSchemas.length > 0 ? (
         <section className={tw`mt-8`}>
           <h2>Sub-schemas in {title}</h2>
           {subSchemas.map((subSchema) => (
@@ -219,7 +221,7 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
               <GoToSchemaElement schemaRef={`#/$defs/${subSchema[0]}`} />
             </div>
           ))}
-          {updateEntityType ? (
+          {updateEntityTypes ? (
             <div className={tw`mt-8`}>
               <div className={tw`text-uppercase font-bold text-sm mr-12 mb-1`}>
                 New sub-schema

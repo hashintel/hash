@@ -65,9 +65,9 @@ export const App: BlockComponent<AppProps> = ({
   data = defaultData,
   initialState,
   schemas,
-  update,
+  updateEntities,
   entityId,
-  aggregate: aggregateFn,
+  aggregateEntities,
   aggregateEntityTypes,
 }) => {
   const [tableData, setTableData] = useTableData(data);
@@ -111,7 +111,7 @@ export const App: BlockComponent<AppProps> = ({
       defaultColumn: {
         Cell: EditableCell,
       },
-      updateData: update,
+      updateEntities,
       manualSortBy: true,
     },
     useSortBy,
@@ -130,7 +130,11 @@ export const App: BlockComponent<AppProps> = ({
     }) => {
       const linkedData = omitTypenameDeep(tableData.__linkedData);
 
-      if (!aggregateFn || !linkedData?.aggregate || !linkedData.entityTypeId) {
+      if (
+        !aggregateEntities ||
+        !linkedData?.aggregate ||
+        !linkedData.entityTypeId
+      ) {
         return;
       }
 
@@ -144,7 +148,7 @@ export const App: BlockComponent<AppProps> = ({
         delete linkedData.aggregate.pageCount;
       }
 
-      aggregateFn({
+      aggregateEntities({
         entityTypeId: linkedData.entityTypeId,
         operation: omit(linkedData.aggregate, "entityTypeId"),
       })
@@ -161,12 +165,12 @@ export const App: BlockComponent<AppProps> = ({
           // @todo properly handle error
         });
     },
-    [aggregateFn, setTableData, tableData.__linkedData],
+    [aggregateEntities, setTableData, tableData.__linkedData],
   );
 
   const handleUpdate = useCallback(
     ({ operation, multiFilter, multiSort, itemsPerPage }: AggregateArgs) => {
-      if (!update || !tableData.__linkedData) return;
+      if (!updateEntities || !tableData.__linkedData) return;
 
       const newLinkedData = omitTypenameDeep(tableData.__linkedData);
       const newState = {
@@ -199,7 +203,7 @@ export const App: BlockComponent<AppProps> = ({
         delete newLinkedData.aggregate.pageNumber;
       }
 
-      void update<{
+      void updateEntities<{
         data: { __linkedData: BlockProtocolLinkedDataDefinition };
         initialState?: Record<string, any>;
       }>([
@@ -212,14 +216,14 @@ export const App: BlockComponent<AppProps> = ({
         },
       ]);
     },
-    [update, tableData.__linkedData, entityId, initialState],
+    [updateEntities, tableData.__linkedData, entityId, initialState],
   );
 
   const updateRemoteColumns = (properties: {
     hiddenColumns?: string[];
     columns?: { Header: string; accessor: string }[];
   }) => {
-    if (!update) return;
+    if (!updateEntities) return;
 
     const newState = {
       ...initialState,
@@ -228,7 +232,7 @@ export const App: BlockComponent<AppProps> = ({
       }),
       ...(properties.columns && { columns: properties.columns }),
     };
-    void update<{
+    void updateEntities<{
       data: { __linkedData: BlockProtocolLinkedDataDefinition };
       initialState?: Record<string, any>;
     }>([
@@ -320,7 +324,7 @@ export const App: BlockComponent<AppProps> = ({
 
   const handleEntityTypeChange = useCallback(
     (entityTypeId: string | undefined) => {
-      void update?.([
+      void updateEntities?.([
         {
           data: {
             data: {
@@ -339,7 +343,7 @@ export const App: BlockComponent<AppProps> = ({
         },
       ]);
     },
-    [update, data.__linkedData?.aggregate?.itemsPerPage, entityId],
+    [updateEntities, data.__linkedData?.aggregate?.itemsPerPage, entityId],
   );
 
   const entityTypeDropdown = entityTypes ? (

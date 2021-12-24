@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client";
 
-import { BlockProtocolCreateFn } from "@hashintel/block-protocol";
+import { BlockProtocolCreateEntitiesFunction } from "@hashintel/block-protocol";
 import { createEntity } from "@hashintel/hash-shared/queries/entity.queries";
 import { useCallback } from "react";
 import {
@@ -8,20 +8,22 @@ import {
   CreateEntityMutationVariables,
 } from "../../../graphql/apiTypes.gen";
 
-export const useBlockProtocolCreate = (
+export const useBlockProtocolCreateEntities = (
   /** Providing accountId here saves blocks from having to know it */
   accountId: string,
 ): {
-  create: BlockProtocolCreateFn;
-  createLoading: boolean;
-  createError: any;
+  createEntities: BlockProtocolCreateEntitiesFunction;
+  createEntitiesLoading: boolean;
+  createEntitiesError: any;
 } => {
-  const [createFn, { loading: createLoading, error: createError }] =
-    useMutation<CreateEntityMutation, CreateEntityMutationVariables>(
-      createEntity,
-    );
+  const [
+    createFn,
+    { loading: createEntitiesLoading, error: createEntitiesError },
+  ] = useMutation<CreateEntityMutation, CreateEntityMutationVariables>(
+    createEntity,
+  );
 
-  const create: BlockProtocolCreateFn = useCallback(
+  const createEntities: BlockProtocolCreateEntitiesFunction = useCallback(
     (actions) =>
       Promise.all(
         actions.map((action) => {
@@ -39,8 +41,8 @@ export const useBlockProtocolCreate = (
   );
 
   return {
-    create,
-    createLoading,
-    createError,
+    createEntities,
+    createEntitiesLoading,
+    createEntitiesError,
   };
 };

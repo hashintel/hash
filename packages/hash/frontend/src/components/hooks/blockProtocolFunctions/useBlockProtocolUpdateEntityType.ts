@@ -1,6 +1,9 @@
 import { useApolloClient, useMutation } from "@apollo/client";
 
-import { BlockProtocolUpdateEntityTypeFn } from "@hashintel/block-protocol";
+import {
+  BlockProtocolEntityType,
+  BlockProtocolUpdateEntityTypesFunction,
+} from "@hashintel/block-protocol";
 import { useCallback } from "react";
 import {
   UpdateEntityTypeMutation,
@@ -12,9 +15,9 @@ export const useBlockProtocolUpdateEntityType = (
   /** Providing accountId here saves blocks from having to know it */
   accountId: string,
 ): {
-  updateEntityType: BlockProtocolUpdateEntityTypeFn;
-  updateEntityTypeLoading: boolean;
-  updateEntityTypeError: any;
+  updateEntityTypes: BlockProtocolUpdateEntityTypesFunction;
+  updateEntityTypesLoading: boolean;
+  updateEntityTypesError: any;
 } => {
   const apolloClient = useApolloClient();
 
@@ -28,8 +31,8 @@ export const useBlockProtocolUpdateEntityType = (
     );
 
   const [
-    updateEntityTypeFn,
-    { loading: updateEntityTypeLoading, error: updateEntityTypeError },
+    runUpdateEntityTypeMutation,
+    { loading: updateEntityTypesLoading, error: updateEntityTypesError },
   ] = useMutation<UpdateEntityTypeMutation, UpdateEntityTypeMutationVariables>(
     updateEntityTypeMutation,
     {
@@ -37,31 +40,39 @@ export const useBlockProtocolUpdateEntityType = (
     },
   );
 
-  const updateEntityType: BlockProtocolUpdateEntityTypeFn = useCallback(
-    async ({ entityId, schema }) => {
-      const variables: UpdateEntityTypeMutationVariables = {
-        entityId,
-        accountId,
-        schema,
-      };
-      return updateEntityTypeFn({ variables }).then(({ data, errors }) => {
+  const updateEntityTypes: BlockProtocolUpdateEntityTypesFunction = useCallback(
+    async (actions) => {
+      const results: BlockProtocolEntityType[] = [];
+      // TODO: Support multiple actions in one GraphQL mutation for transaction integrity and better status reporting
+      for (const { entityId, schema } of actions) {
+        const variables: UpdateEntityTypeMutationVariables = {
+          entityId,
+          accountId,
+          schema,
+        };
+        const { data, errors } = await runUpdateEntityTypeMutation({
+          variables,
+        });
+
         if (!data) {
           throw new Error(
             errors?.[0].message || "Could not update entity type",
           );
         }
-        return {
+
+        results.push({
           entityTypeId: data.updateEntityType.entityId,
           ...data.updateEntityType.properties,
-        };
-      });
+        });
+      }
+      return results;
     },
-    [accountId, updateEntityTypeFn],
+    [accountId, runUpdateEntityTypeMutation],
   );
 
   return {
-    updateEntityType,
-    updateEntityTypeLoading,
-    updateEntityTypeError,
+    updateEntityTypes,
+    updateEntityTypesLoading,
+    updateEntityTypesError,
   };
 };

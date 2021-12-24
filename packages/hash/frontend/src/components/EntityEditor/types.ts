@@ -1,6 +1,6 @@
 import {
-  BlockProtocolCreateLinkFn,
-  BlockProtocolDeleteLinkFn,
+  BlockProtocolCreateLinksFunction,
+  BlockProtocolDeleteLinksFunction,
 } from "@hashintel/block-protocol";
 
 export type EntityLinkDefinition = {
@@ -12,17 +12,17 @@ export type EntityLinkDefinition = {
 export type CreateLinkFnWithFixedSource = {
   (
     payload: Omit<
-      Parameters<BlockProtocolCreateLinkFn>[0],
+      Parameters<BlockProtocolCreateLinksFunction>[0][0],
       "sourceAccountId" | "sourceEntityId"
     >,
-  ): ReturnType<BlockProtocolCreateLinkFn>;
+  ): ReturnType<BlockProtocolCreateLinksFunction>;
 };
 
 export type DeleteLinkFnWithFixedSource = {
   (
     payload: Omit<
-      Parameters<BlockProtocolDeleteLinkFn>[0],
+      Parameters<BlockProtocolDeleteLinksFunction>[0][0],
       "sourceAccountId" | "sourceEntityId"
     >,
-  ): ReturnType<BlockProtocolDeleteLinkFn>;
+  ): ReturnType<BlockProtocolDeleteLinksFunction>;
 };
