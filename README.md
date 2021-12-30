@@ -12,36 +12,24 @@ This repository contains HASH's open-source and public code, documentation, and 
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-
-
-<!-- CONTRIBUTING -->
 ## Contributing
 
 Please see [CONTRIBUTING.md](CONTRIBUTING.md) if you're interested in getting involved in the design or development of HASH
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-
-
-<!-- LICENSE -->
 ## License
 
 Please see [LICENSE.md](LICENSE.md) for more information about the terms under which the various parts of this repository are made available
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-
-
-<!-- SECURITY -->
 ## Security
 
 Please see [SECURITY.md](SECURITY.md) for instructions around reporting issues, and details of which package versions we actively support
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-
-
-<!-- CONTACT -->
 ## Contact
 
 Find us on Twitter at [@hashintel](https://twitter.com/hashintel), join our [Discord server](https://hash.ai/discord) for quick help and support, or post in our [community forum](https://hash.community/).
