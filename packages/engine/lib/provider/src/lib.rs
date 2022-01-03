@@ -156,7 +156,7 @@ pub trait TypeTag<'p>: Sized + 'static {
 /// A helper object for providing objects by type.
 ///
 /// An object provider provides values by calling this type's provide methods. Note, that
-/// `Requisition` is a wrapper around a mutable reference to a [`TypeTag`]ed value.
+/// `Requisition` is a wrapper around a mutable reference to a [`TypeTag`]ged value.
 #[allow(missing_debug_implementations)]
 pub struct Requisition<'p, 'r>(&'r mut RequisitionImpl<dyn Tagged<'p> + 'p>);
 
