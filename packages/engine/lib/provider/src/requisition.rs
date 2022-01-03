@@ -25,8 +25,7 @@ impl<'p> Requisition<'p, '_> {
         self.provide_with::<tags::Value<T>, F>(f)
     }
 
-    /// Provide a reference, note that the referee type must be bounded by `'static`, but may be
-    /// unsized.
+    /// Provide a reference, note that `T` must be bounded by `'static`, but may be unsized.
     pub fn provide_ref<T: ?Sized + 'static>(&mut self, value: &'p T) -> &mut Self {
         self.provide::<tags::Ref<T>>(value)
     }

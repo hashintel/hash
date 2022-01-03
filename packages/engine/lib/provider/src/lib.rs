@@ -157,7 +157,6 @@ pub trait TypeTag<'p>: Sized + 'static {
 ///
 /// An object provider provides values by calling this type's provide methods. Note, that
 /// `Requisition` is a wrapper around a mutable reference to a [`TypeTag`]ged value.
-#[allow(missing_debug_implementations)]
 pub struct Requisition<'p, 'r>(&'r mut RequisitionImpl<dyn Tagged<'p> + 'p>);
 
 #[cfg(test)]
@@ -230,5 +229,25 @@ pub(crate) mod tests {
     #[test]
     fn provide() {
         assert_eq!(crate::request_by_type_tag::<CustomTagB, _>(&ERR), Some(4));
+    }
+
+    #[test]
+    fn tags() {
+        assert_eq!(
+            crate::request_by_type_tag::<tags::OptionTag<tags::Value<usize>>, _>(&ERR),
+            Some(Some(5))
+        );
+        assert_eq!(
+            crate::request_by_type_tag::<tags::ResultTag<tags::Value<u32>, tags::Value<i32>>, _>(
+                &ERR
+            ),
+            Some(Ok(6))
+        );
+        assert_eq!(
+            crate::request_by_type_tag::<tags::ResultTag<tags::Value<i32>, tags::Value<u32>>, _>(
+                &ERR
+            ),
+            Some(Err(7))
+        );
     }
 }

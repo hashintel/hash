@@ -41,47 +41,4 @@ impl<'p, I: TypeTag<'p>, E: TypeTag<'p>> TypeTag<'p> for ResultTag<I, E> {
     type Type = Result<I::Type, E::Type>;
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::{tags, tests::ERR};
-
-    #[test]
-    fn reference() {
-        assert_eq!(
-            crate::request_by_type_tag::<tags::Ref<usize>, _>(&ERR),
-            Some(&2)
-        );
-    }
-
-    #[test]
-    fn value() {
-        assert_eq!(
-            crate::request_by_type_tag::<tags::Value<usize>, _>(&ERR),
-            Some(1)
-        );
-    }
-
-    #[test]
-    fn option() {
-        assert_eq!(
-            crate::request_by_type_tag::<tags::OptionTag<tags::Value<usize>>, _>(&ERR),
-            Some(Some(5))
-        );
-    }
-
-    #[test]
-    fn result() {
-        assert_eq!(
-            crate::request_by_type_tag::<tags::ResultTag<tags::Value<u32>, tags::Value<i32>>, _>(
-                &ERR
-            ),
-            Some(Ok(6))
-        );
-        assert_eq!(
-            crate::request_by_type_tag::<tags::ResultTag<tags::Value<i32>, tags::Value<u32>>, _>(
-                &ERR
-            ),
-            Some(Err(7))
-        );
-    }
-}
+// Tested in `crate::tests`
