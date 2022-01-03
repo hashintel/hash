@@ -28,6 +28,7 @@ kdtree = "0.6.0"
 lazy_static = "1.4.0"
 log = "0.4.11"
 num_cpus = "1.13.0"
+nng = { version = "1.0.1", default-features = false }
 parking_lot = "0.11.1"
 pretty_env_logger = "0.4.0"
 rand = "0.8.3"
@@ -43,17 +44,8 @@ thiserror = "1.0.21"
 tokio = { version = "1.5.0", features = ["macros", "rt-multi-thread", "sync", "process", "io-util", "net", "rt", "fs", "time"] }
 uuid = { version = "0.8.1", features = ["v4", "serde"] }
 
-# The nng compilation functionality of nng-sys doesn't compile on Arch-based Mac's so it's necessary to
-# disable default-features on nng (which calls nng-sys's build step). We currently have to build on arm Macs by
-# targetting x86, so we can't use a cfg conditional to check for arm as the target. So, Intel Mac users will
-# just have to manually enable the build-nng feature flag. Or they will have to set an NNG_PATH (see README).
-[target.'cfg(target_os = "macos")'.dependencies]
-nng = { version = "1.0.1", default-features = false }
-
-[target.'cfg(not(target_os = "macos"))'.dependencies]
-nng = { version = "1.0.1", default-features = true }
-
 [features]
+default = ["build-nng"]
 build-nng = ["nng/build-nng"]
 
 [lib]
