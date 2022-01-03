@@ -108,11 +108,10 @@ Depending on your needs, different dependencies are required. Building this proj
 
 Due to ARM-Based Macs, the `macos` `target_os` has some added complications for development.
 
-#### For Intel Macs
-Due to limitations in Cargo at the moment we can't properly check if it's being built _on_ an ARM Mac (rather than _for_ an ARM Mac). Due to this it's necessary to:
-* Enable the `hash_engine/build-nng` feature by passing `--features "hash_engine/build-nng"` to any cargo commands such as `cargo build`
-
 #### For ARM-Based Macs
+Due to limitations in Cargo at the moment we can't properly check if it's being built _on_ an ARM Mac (rather than _for_ an ARM Mac). Due to this it's necessary to:
+* _Disable_ the `hash_engine/build-nng` feature by passing `--no-default-features` to any cargo commands such as `cargo build`
+
 At the moment the project only seems to be compiling if you use the `x86_64-apple-darwin` target. This has some added complexity, especially due to the fact that rustc fails to link 'fat-binaries' in certain scenarios.
 * It's necessary to acquire an x86 version of `nng`. Currently, the easiest known way to do this is through:
   * Creating a homebrew installation under Rosetta, [an example guide is here](https://stackoverflow.com/questions/64882584/how-to-run-the-homebrew-installer-under-rosetta-2-on-m1-macbook)
