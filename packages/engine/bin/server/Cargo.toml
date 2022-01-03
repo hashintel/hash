@@ -4,7 +4,7 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
-hash_engine = { path = "../.." }
+hash_engine = { path = "../..", default-features = false }
 
 anyhow = "1.0.51"
 log = "0.4.11"
@@ -13,3 +13,7 @@ tokio = { version = "1.5.0", features = ["macros", "rt-multi-thread", "sync", "p
 [[bin]]
 name = "hash_engine"
 path = "src/main.rs"
+
+[features]
+default = ["build-nng"]
+build-nng = ["hash_engine/build-nng"]
