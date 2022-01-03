@@ -5,6 +5,8 @@
 name = "cli"
 version = "0.0.0"
 edition = "2021"
+# TODO: Add authors to be shown in CLI
+description = "The hEngine Command line interface"
 
 [dependencies]
 hash_engine = { path = "../.." }
@@ -12,6 +14,7 @@ hash_engine = { path = "../.." }
 
 anyhow = "1.0.51"
 async-trait = "0.1.48"
+clap = { version = "3.0.0", features = ["cargo", "derive", "env"] }
 lazy_static = "1.4.0"
 log = "0.4.11"
 pretty_env_logger = "0.4.0"
@@ -19,5 +22,4 @@ rand = "0.8.3"
 rand_distr = "0.4.2"
 serde = { version = "1.0.111", features = ["derive"] }
 serde_json = "1.0.59"
-structopt = "0.3.25"
 tokio = { version = "1.5.0", features = ["macros", "rt-multi-thread", "sync", "process", "io-util", "net", "rt", "fs"] }

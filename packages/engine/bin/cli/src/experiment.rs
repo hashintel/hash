@@ -1,4 +1,4 @@
-use std::{iter::FromIterator, path::PathBuf, time::Duration};
+use std::{iter::FromIterator, time::Duration};
 
 use anyhow::{bail, format_err, Context, Result};
 use hash_engine::{
@@ -23,10 +23,10 @@ lazy_static::lazy_static! {
 /// The simulations will run to completion and the connection will finish once the last run is done,
 /// or if there is an error.
 pub async fn run_experiment(args: Args, handler: Handler) -> Result<()> {
-    let project = &args.project;
-    let absolute_project_path = PathBuf::from(project)
+    let absolute_project_path = args
+        .project
         .canonicalize()
-        .with_context(|| format!("Could not canonicalize project path: {project:?}"))?;
+        .with_context(|| format!("Could not canonicalize project path: {:?}", args.project))?;
     let project_name = args.project_name.clone().unwrap_or(
         absolute_project_path
             .file_name()
@@ -92,8 +92,7 @@ async fn run_experiment_with_manifest(
     };
     debug!("Received start message from {experiment_id}");
 
-    let mut output_folder = PathBuf::from(args.output);
-    output_folder.push(project_name);
+    let output_folder = args.output.join(project_name);
 
     let map_iter = [(
         OUTPUT_PERSISTENCE_KEY.to_string(),
