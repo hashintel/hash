@@ -6,7 +6,10 @@ use super::{TypeId, TypeTag};
 ///
 /// # Safety
 ///
-/// This trait must be exclusively implemented by the [`TagValue`] type.
+/// This trait must be exclusively implemented by the [`TagValue`] type as [`Tagged::is`] relies on
+/// `tag_id` and the [`TypeId`] must not be overwritten.
+///
+/// [`Tagged::is`]: #method.is
 pub(super) unsafe trait Tagged<'p>: 'p {
     /// The [`TypeId`] of the [`TypeTag`] this value was tagged with.
     fn tag_id(&self) -> TypeId;
