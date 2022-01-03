@@ -11,7 +11,7 @@ use serde_json::json;
 use tokio::time::{self, timeout};
 
 use super::process;
-use crate::{exsrv::Handler, manifest::read_manifest, Args};
+use crate::{exsrv::Handler, manifest::read_manifest, App};
 
 lazy_static::lazy_static! {
     static ref ENGINE_START_TIMEOUT: Duration = parse_env_duration("ENGINE_START_TIMEOUT", 2);
@@ -22,7 +22,7 @@ lazy_static::lazy_static! {
 /// requests over the websocket will be handled and sent to the appropriate worker (if available).
 /// The simulations will run to completion and the connection will finish once the last run is done,
 /// or if there is an error.
-pub async fn run_experiment(args: Args, handler: Handler) -> Result<()> {
+pub async fn run_experiment(args: App, handler: Handler) -> Result<()> {
     let absolute_project_path = args
         .project
         .canonicalize()
@@ -41,7 +41,7 @@ pub async fn run_experiment(args: Args, handler: Handler) -> Result<()> {
 }
 
 fn create_engine_command(
-    args: &Args,
+    args: &App,
     experiment_id: &str,
     controller_url: &str,
 ) -> Result<Box<dyn process::Command + Send>> {
@@ -53,7 +53,7 @@ fn create_engine_command(
 }
 
 async fn run_experiment_with_manifest(
-    args: Args,
+    args: App,
     experiment_run: proto::ExperimentRun,
     project_name: String,
     mut handler: Handler,

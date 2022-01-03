@@ -14,7 +14,7 @@ pub mod process;
 use std::path::PathBuf;
 
 use anyhow::Result;
-use clap::{AppSettings, Parser};
+use clap::{AppSettings, Args, Parser, Subcommand};
 use experiment::run_experiment;
 
 use crate::exsrv::create_server;
@@ -24,7 +24,7 @@ use crate::exsrv::create_server;
 #[clap(about, version, author)]
 #[clap(global_setting(AppSettings::PropagateVersion))]
 #[clap(setting(AppSettings::UseLongFormatForHelpSubcommand))]
-pub struct Args {
+pub struct App {
     /// Path to the project to be run.
     #[clap(short, long, env = "HASH_PROJECT")]
     project: PathBuf,
@@ -51,7 +51,7 @@ pub struct Args {
 }
 
 /// Type of experiment to be run.
-#[derive(Debug, Parser)]
+#[derive(Debug, Subcommand)]
 pub enum ExperimentType {
     /// Run a single run experiment.
     #[clap(name = "single-run")]
@@ -59,10 +59,11 @@ pub enum ExperimentType {
     /// Run a simple experiment.
     #[clap(name = "simple")]
     SimpleExperiment(SimpleExperimentArgs),
+    // Generate shell completitions
 }
 
 /// Single Run Experiment.
-#[derive(PartialEq, Debug, Parser)]
+#[derive(PartialEq, Debug, Args)]
 pub struct SingleExperimentArgs {
     /// Number of steps to run.
     #[clap(short, long, env = "HASH_NUM_STEPS")]
@@ -70,7 +71,7 @@ pub struct SingleExperimentArgs {
 }
 
 /// Simple Experiment.
-#[derive(PartialEq, Debug, Parser)]
+#[derive(PartialEq, Debug, Args)]
 pub struct SimpleExperimentArgs {
     /// Name of the experiment to be run.
     #[clap(short = 'n', long, env = "HASH_EXPERIMENT")]
@@ -80,7 +81,7 @@ pub struct SimpleExperimentArgs {
 #[tokio::main]
 async fn main() -> Result<()> {
     pretty_env_logger::init();
-    let args = Args::parse();
+    let args = App::parse();
 
     let nng_listen_url = {
         use std::time::{SystemTime, UNIX_EPOCH};

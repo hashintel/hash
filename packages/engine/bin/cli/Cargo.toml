@@ -14,7 +14,7 @@ hash_engine = { path = "../.." }
 
 anyhow = "1.0.51"
 async-trait = "0.1.48"
-clap = { version = "3.0.0-rc.7", features = ["cargo", "derive", "env"] }
+clap = { version = "3.0.0", features = ["cargo", "derive", "env"] }
 lazy_static = "1.4.0"
 log = "0.4.11"
 pretty_env_logger = "0.4.0"
