@@ -55,8 +55,9 @@ impl<'p> dyn Tagged<'p> {
         I: TypeTag<'p>,
     {
         if self.is::<I>() {
+            let tag_value = (self as *mut Self).cast::<TagValue<'p, I>>();
             // SAFETY: Just checked whether we're pointing to a `TagValue<'p, I>`
-            unsafe { Some(&mut *(self as *mut Self).cast::<TagValue<'p, I>>()) }
+            unsafe { Some(&mut *tag_value) }
         } else {
             None
         }
