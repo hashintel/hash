@@ -26,7 +26,7 @@ These parameters are set in the `globals.json:`
     "z_bounds":[-15, 15],
     "wrap_x_mode": "continuous",
     "wrap_y_mode": "continuous",
-    "wrap_x_mode": "reflection",
+    "wrap_z_mode": "reflection",
   }
 }
 ```
