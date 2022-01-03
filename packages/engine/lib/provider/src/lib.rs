@@ -110,6 +110,8 @@
 //
 //   TODO: replace library with https://github.com/rust-lang/project-error-handling/issues/3.
 
+#![warn(clippy::pedantic, clippy::nursery)]
+
 pub mod tags;
 
 mod internal;
