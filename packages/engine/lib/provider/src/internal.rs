@@ -4,7 +4,7 @@ use super::{TypeId, TypeTag};
 ///
 /// # Safety
 ///
-/// This trait must be  exclusively implemented by the `TagValue` type.
+/// This trait must be exclusively implemented by the `TagValue` type.
 pub(super) unsafe trait Tagged<'p>: 'p {
     /// The `TypeId` of the `TypeTag` this value was tagged with.
     fn tag_id(&self) -> TypeId;
@@ -45,8 +45,7 @@ impl<'p> dyn Tagged<'p> {
         I: TypeTag<'p>,
     {
         if self.is::<I>() {
-            // SAFETY: Just checked whether we're pointing to a
-            // `TagValue<'p, I>`.
+            // SAFETY: Just checked whether we're pointing to a `TagValue<'p, I>`
             unsafe { Some(&mut *(self as *mut Self).cast::<TagValue<'p, I>>()) }
         } else {
             None
