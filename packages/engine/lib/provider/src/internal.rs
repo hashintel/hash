@@ -1,21 +1,27 @@
+//! Internal API
+
 use super::{TypeId, TypeTag};
 
 /// Sealed trait representing a type-erased tagged object.
 ///
 /// # Safety
 ///
-/// This trait must be exclusively implemented by the `TagValue` type.
+/// This trait must be exclusively implemented by the [`TagValue`] type.
 pub(super) unsafe trait Tagged<'p>: 'p {
-    /// The `TypeId` of the `TypeTag` this value was tagged with.
+    /// The [`TypeId`] of the [`TypeTag`] this value was tagged with.
     fn tag_id(&self) -> TypeId;
 }
 
 /// A concrete tagged value for a given tag `I`.
 ///
-/// This is the only type which implements the `Tagged` trait, and encodes additional information
-/// about the specific `TypeTag` into the type. This allows for multiple different tags to support
-/// overlapping value ranges, for example, both the `Ref<str>` and `Value<&'static str>` tags can be
-/// used to tag a value of type `&'static str`.
+/// This is the only type which implements the [`Tagged`] trait, and encodes additional information
+/// about the specific [`TypeTag`] into the type. This allows for multiple different tags to support
+/// overlapping value ranges, for example, both the [`Ref<str>`] and [`Value<&'static str>`] tags
+/// can be used to tag a value of type [`&'static str`].
+///
+/// [`Ref<str>`]: crate::tags::Ref
+/// [`Value<&'static str>`]: crate::tags::Value
+/// [`&'static str`]: str
 #[repr(transparent)]
 pub(super) struct TagValue<'p, I: TypeTag<'p>>(pub(super) I::Type);
 
@@ -38,7 +44,8 @@ impl<'p> dyn Tagged<'p> {
         self.tag_id() == TypeId::of::<I>()
     }
 
-    /// Returns some reference to the dynamic value if it is tagged with `I`, or `None` if it isn't.
+    /// Returns some reference to the dynamic value if it is tagged with `I`, or [`None`] if it
+    /// isn't.
     #[inline]
     pub(super) fn downcast_mut<I>(&mut self) -> Option<&mut TagValue<'p, I>>
     where

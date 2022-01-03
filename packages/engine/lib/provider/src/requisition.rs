@@ -1,7 +1,9 @@
+//! Internal API
+
 use crate::{tags, Requisition, TagValue, TypeTag};
 
 impl<'p> Requisition<'p, '_> {
-    /// Provide a value with the given `TypeTag`.
+    /// Provide a value with the given [`TypeTag`].
     pub fn provide<I>(&mut self, value: I::Type) -> &mut Self
     where
         I: TypeTag<'p>,
@@ -29,7 +31,7 @@ impl<'p> Requisition<'p, '_> {
         self.provide::<tags::Ref<T>>(value)
     }
 
-    /// Provide a value with the given `TypeTag`, using a closure to prevent unnecessary work.
+    /// Provide a value with the given [`TypeTag`], using a closure to prevent unnecessary work.
     pub fn provide_with<I, F>(&mut self, f: F) -> &mut Self
     where
         I: TypeTag<'p>,
@@ -44,13 +46,13 @@ impl<'p> Requisition<'p, '_> {
     }
 }
 
-/// A concrete request for a tagged value. Can be coerced to `Requisition` to be passed to provider
-/// methods.
+/// A concrete request for a tagged value. Can be coerced to [`Requisition`] to be passed to
+/// provider methods.
 pub(super) type ConcreteRequisition<'p, I> = RequisitionImpl<TagValue<'p, tags::OptionTag<I>>>;
 
-/// Implementation detail shared between `Requisition` and `ConcreteRequisition`.
+/// Implementation detail shared between [`Requisition`] and [`ConcreteRequisition`].
 ///
-/// Generally this value is used through the `Requisition` type as an `&mut Requisition<'p>` out
+/// Generally this value is used through the [`Requisition`] type as an `&mut Requisition<'p>` out
 /// parameter, or constructed with the `ConcreteRequisition<'p, I>` type alias.
 #[repr(transparent)]
 pub(super) struct RequisitionImpl<T: ?Sized> {

@@ -1,31 +1,32 @@
-//! Contains the `Provider` trait and accompanying API, which enable trait objects to provide data
+//! Contains the [`Provider`] trait and accompanying API, which enable trait objects to provide data
 //! based on typed requests, an alternate form of runtime reflection.
 //!
-//! `Provider` and the associated APIs support generic, type-driven access to data, and a mechanism
-//! for implementers to provide such data. The key parts of the interface are the `Provider` trait
-//! for objects which can provide data, and the [`request_by_type_tag`] function for data from an
-//! object which implements `Provider`. Note that end users should not call requesting
-//! `request_by_type_tag` directly, it is a helper function for intermediate implementers to use to
-//! implement a user-facing interface.
+//! [`Provider`] and the associated APIs support generic, type-driven access to data, and a
+//! mechanism for implementers to provide such data. The key parts of the interface are the
+//! [`Provider`] trait for objects which can provide data, and the [`request_by_type_tag`] function
+//! for data from an object which implements [`Provider`]. Note that end users should not call
+//! requesting [`request_by_type_tag`] directly, it is a helper function for intermediate
+//! implementers to use to implement a user-facing interface.
 //!
-//! Typically, a data provider is a trait object of a trait which extends `Provider`. A user will
+//! Typically, a data provider is a trait object of a trait which extends [`Provider`]. A user will
 //! request data from the trait object by specifying the type or a type tag (a type tag is a type
 //! used only as a type parameter to identify the type which the user wants to receive).
 //!
 //! ## Data flow
 //!
-//! * A user requests an object, which is delegated to `request_by_type_tag`
-//! * `request_by_type_tag` creates a `Requisition` object and passes it to `Provider::provide`
+//! * A user requests an object, which is delegated to [`request_by_type_tag`]
+//! * [`request_by_type_tag`] creates a [`Requisition`] object and passes it to
+//!   [`Provider::provide`]
 //! * The object provider's implementation of `Provider::provide` tries providing values of
 //!   different types using `Requisition::provide_*`. If the type tag matches the type requested by
-//!   the user, it will be stored in the `Requisition` object.
-//! * `request_by_type_tag` unpacks the `Requisition` object and returns any stored value to the
+//!   the user, it will be stored in the [`Requisition`] object.
+//! * [`request_by_type_tag`] unpacks the [`Requisition`] object and returns any stored value to the
 //!   user.
 //!
 //! # Examples
 // Taken from https://github.com/rust-lang/rfcs/pull/3192
 //!
-//! To provide data for example on an error type, the `Provider` API enables:
+//! To provide data for example on an error type, the [`Provider`] API enables:
 //!
 //! ```rust
 //! # #![feature(backtrace)]
@@ -154,7 +155,8 @@ pub trait TypeTag<'p>: Sized + 'static {
 
 /// A helper object for providing objects by type.
 ///
-/// An object provider provides values by calling this type's provide methods.
+/// An object provider provides values by calling this type's provide methods. Note, that
+/// `Requisition` is a wrapper around a mutable reference to a [`TypeTag`]ed value.
 #[allow(missing_debug_implementations)]
 pub struct Requisition<'p, 'r>(&'r mut RequisitionImpl<dyn Tagged<'p> + 'p>);
 
