@@ -85,7 +85,8 @@ fn _get_singleton_inner(
 
 /// Takes in a `serde_json::Value` with the assumption that its structure is doubly nested in
 /// single-childrened objects with arbitrary keys:
-/// ```
+// TODO: reenable test
+/// ```ignore
 /// SerdeValue::Object({
 ///     "some_key1": SerdeValue::Object({
 ///         "some_key2": SerdeValue::Object({

@@ -1,4 +1,4 @@
-name: Rust-Lint
+name: Rust
 
 on:
   pull_request:
@@ -134,7 +134,7 @@ jobs:
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             **/target/
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ matrix.directory }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-clippy-${{ env.cache-name }}-${{ matrix.directory }}-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install v8
         if: ${{ needs.find-crates.outputs.run_job == 'true' }}
@@ -162,3 +162,61 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           working-directory: ${{ matrix.directory }}
           args: --all --all-features
+
+  test:
+    name: test
+    needs: find-crates
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        directory:
+          - packages/engine
+      fail-fast: false
+    env:
+      V8_PATH: ${{ github.workspace }}/.v8
+    steps:
+      - name: Checkout source code
+        if: ${{ needs.find-crates.outputs.run_job == 'true' }}
+        uses: actions/checkout@v2
+
+      - name: Install Rust
+        if: ${{ needs.find-crates.outputs.run_job == 'true' }}
+        id: toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          # TODO: Read this from rust-toolchain.toml
+          toolchain: nightly-2021-12-14
+          override: true
+
+      - name: Cache dependencies
+        if: ${{ needs.find-crates.outputs.run_job == 'true' }}
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-dependencies
+        with:
+          path: |
+            ~/.cargo/.crates.toml
+            ~/.cargo/.crates2.json
+            ~/.cargo/bin
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            **/target/
+          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ matrix.directory }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install v8
+        if: ${{ needs.find-crates.outputs.run_job == 'true' }}
+        run: |
+          mkdir -p ${V8_PATH}/tmp
+          cd ${V8_PATH}/tmp
+          curl -L -o libv8.tar.gz https://github.com/rubyjs/libv8/releases/download/v8.4.255.0/libv8-8.4.255.0-x86_64-linux.gem
+          tar xf libv8.tar.gz # Extract the gem
+          tar xf data.tar.gz # Extract the data folder
+          mv -v vendor/v8/* .. # Move out the wanted files
+          cd ..
+          rm -rf tmp # Delete the tmp folder
+
+      - name: Run tests
+        if: ${{ needs.find-crates.outputs.run_job == 'true' }}
+        run: |
+          cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --all --all-features --no-fail-fast
