@@ -380,7 +380,7 @@ class __Entity {
 
   async deleteOutgoingLink(
     client: DBClient,
-    params: { linkId: string },
+    params: { linkId: string; deletedByAccountId: string },
   ): Promise<void> {
     const link = await this.getOutgoingLink(client, params);
 
@@ -393,7 +393,9 @@ class __Entity {
 
     /** @todo: check entity type whether this link can be deleted */
 
-    await link.delete(client);
+    await link.delete(client, {
+      deletedByAccountId: params.deletedByAccountId,
+    });
 
     if (this.metadata.versioned) {
       await this.refetchLatestVersion(client);

@@ -70,10 +70,12 @@ class __OrgMembership extends Entity {
 
     await Promise.all([
       orgMembership.createOutgoingLink(client, {
+        createdByAccountId: user.accountId,
         stringifiedPath: Link.stringifyPath(["user"]),
         destination: user,
       }),
       orgMembership.createOutgoingLink(client, {
+        createdByAccountId: user.accountId,
         stringifiedPath: Link.stringifyPath(["org"]),
         destination: org,
       }),

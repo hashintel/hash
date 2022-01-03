@@ -354,6 +354,7 @@ export interface DBClient {
 
   /** Create a link */
   createLink(params: {
+    createdByAccountId: string;
     path: string;
     index?: number;
     sourceAccountId: string;
@@ -370,6 +371,7 @@ export interface DBClient {
   }): Promise<DBLink | null>;
 
   deleteLink(params: {
+    deletedByAccountId: string;
     sourceAccountId: string;
     linkId: string;
   }): Promise<void>;

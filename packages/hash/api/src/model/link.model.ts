@@ -9,6 +9,7 @@ export type GQLLinkExternalResolvers = "__typename";
 export type UnresolvedGQLLink = Omit<GQLLink, GQLLinkExternalResolvers>;
 
 export type CreateLinkArgs = {
+  createdByAccountId: string;
   stringifiedPath: string;
   index?: number;
   source: Entity;
@@ -180,8 +181,9 @@ class __Link {
     return dbLink ? new Link({ ...dbLink }) : null;
   }
 
-  async delete(client: DBClient) {
+  async delete(client: DBClient, params: { deletedByAccountId: string }) {
     await client.deleteLink({
+      deletedByAccountId: params.deletedByAccountId,
       sourceAccountId: this.sourceAccountId,
       linkId: this.linkId,
     });

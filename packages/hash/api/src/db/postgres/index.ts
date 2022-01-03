@@ -201,6 +201,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
   /** Create a link */
   createLink(params: {
+    createdByAccountId: string;
     accountId: string;
     path: string;
     index?: number;
@@ -222,6 +223,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   }
 
   deleteLink(params: {
+    deletedByAccountId: string;
     sourceAccountId: string;
     linkId: string;
   }): Promise<void> {

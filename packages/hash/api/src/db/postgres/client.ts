@@ -405,6 +405,7 @@ export class PostgresClient implements DBClient {
   }
 
   async createLink(params: {
+    createdByAccountId: string;
     path: string;
     index?: number;
     sourceAccountId: string;
@@ -425,6 +426,7 @@ export class PostgresClient implements DBClient {
   }
 
   async deleteLink(params: {
+    deletedByAccountId: string;
     sourceAccountId: string;
     linkId: string;
   }): Promise<void> {

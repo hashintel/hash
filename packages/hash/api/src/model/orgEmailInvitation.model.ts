@@ -88,15 +88,18 @@ class __OrgEmailInvitation extends AccessToken {
 
     await Promise.all([
       entity.createOutgoingLink(client, {
+        createdByAccountId: inviter.accountId,
         destination: org,
         stringifiedPath: Link.stringifyPath(["org"]),
       }),
       /** @todo: remove this when inverse relationships are automatically created */
       org.createOutgoingLink(client, {
+        createdByAccountId: inviter.accountId,
         destination: entity,
         stringifiedPath: Link.stringifyPath(["emailInvitationLink"]),
       }),
       entity.createOutgoingLink(client, {
+        createdByAccountId: inviter.accountId,
         destination: inviter,
         stringifiedPath: Link.stringifyPath(["inviter"]),
       }),

@@ -45,7 +45,7 @@ beforeAll(async () => {
 
   dummyEntityType = await EntityType.create(db, {
     accountId: existingUser.accountId,
-    createdById: existingUser.entityId,
+    createdByAccountId: existingUser.entityId,
     name: "Dummy",
   });
 });
@@ -75,11 +75,11 @@ describe("Link model class ", () => {
 
   it("static create method can create a link", async () => {
     const accountId = existingUser.accountId;
-    const createdById = existingUser.entityId;
+    const createdByAccountId = accountId;
 
     const entity1 = await Entity.create(db, {
       accountId,
-      createdById,
+      createdByAccountId,
       versioned: false,
       entityTypeId: dummyEntityType.entityId,
       properties: {},
@@ -87,13 +87,14 @@ describe("Link model class ", () => {
 
     const entity2 = await Entity.create(db, {
       accountId,
-      createdById,
+      createdByAccountId,
       versioned: false,
       entityTypeId: dummyEntityType.entityId,
       properties: {},
     });
 
     const link = await Link.create(db, {
+      createdByAccountId,
       stringifiedPath: "$.linkName",
       source: entity1,
       destination: entity2,
@@ -105,11 +106,11 @@ describe("Link model class ", () => {
 
   it("static create method can create a link on a versioned source entity", async () => {
     const accountId = existingUser.accountId;
-    const createdById = existingUser.entityId;
+    const createdByAccountId = accountId;
 
     const entityA = await Entity.create(db, {
       accountId,
-      createdById,
+      createdByAccountId,
       versioned: true,
       entityTypeId: dummyEntityType.entityId,
       properties: {},
@@ -119,13 +120,14 @@ describe("Link model class ", () => {
 
     const entityB = await Entity.create(db, {
       accountId,
-      createdById,
+      createdByAccountId,
       versioned: false,
       entityTypeId: dummyEntityType.entityId,
       properties: {},
     });
 
     const link = await Link.create(db, {
+      createdByAccountId,
       stringifiedPath: "$.linkName",
       source: entityA,
       destination: entityB,
@@ -165,11 +167,11 @@ describe("Link model class ", () => {
 
   it("static get method can retrieve a link from the datastore", async () => {
     const accountId = existingUser.accountId;
-    const createdById = existingUser.entityId;
+    const createdByAccountId = accountId;
 
     const entity1 = await Entity.create(db, {
       accountId,
-      createdById,
+      createdByAccountId,
       versioned: true,
       entityTypeId: dummyEntityType.entityId,
       properties: {},
@@ -177,13 +179,14 @@ describe("Link model class ", () => {
 
     const entity2 = await Entity.create(db, {
       accountId,
-      createdById,
+      createdByAccountId,
       versioned: true,
       entityTypeId: dummyEntityType.entityId,
       properties: {},
     });
 
     const link = await Link.create(db, {
+      createdByAccountId,
       stringifiedPath: "$.linkName",
       source: entity1,
       destination: entity2,
@@ -211,11 +214,11 @@ describe("Link model class ", () => {
 
   it("static create/delete methods can create/delete indexed links on versioned source entity", async () => {
     const accountId = existingUser.accountId;
-    const createdById = existingUser.entityId;
+    const createdByAccountId = accountId;
 
     const entityA = await Entity.create(db, {
       accountId,
-      createdById,
+      createdByAccountId,
       versioned: true,
       entityTypeId: dummyEntityType.entityId,
       properties: {},
@@ -226,14 +229,14 @@ describe("Link model class ", () => {
     const [entityB, entityC] = await Promise.all([
       Entity.create(db, {
         accountId,
-        createdById,
+        createdByAccountId,
         versioned: false,
         entityTypeId: dummyEntityType.entityId,
         properties: {},
       }),
       Entity.create(db, {
         accountId,
-        createdById,
+        createdByAccountId,
         versioned: false,
         entityTypeId: dummyEntityType.entityId,
         properties: {},
@@ -241,6 +244,7 @@ describe("Link model class ", () => {
     ]);
 
     const linkAToB = await Link.create(db, {
+      createdByAccountId,
       source: entityA,
       destination: entityB,
       stringifiedPath: "$.test",
@@ -254,6 +258,7 @@ describe("Link model class ", () => {
     expect(entityAVersionId1).not.toBe(entityAVersionId2);
 
     const linkAToC = await Link.create(db, {
+      createdByAccountId,
       source: entityA,
       destination: entityC,
       stringifiedPath: "$.test",
@@ -266,7 +271,10 @@ describe("Link model class ", () => {
 
     expect(entityAVersionId2).not.toBe(entityAVersionId3);
 
-    await entityA.deleteOutgoingLink(db, linkAToC);
+    await entityA.deleteOutgoingLink(db, {
+      linkId: linkAToC.linkId,
+      deletedByAccountId: accountId,
+    });
 
     const entityAVersionId4 = entityA.entityVersionId;
 

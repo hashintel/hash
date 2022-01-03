@@ -18,6 +18,7 @@ import {
 export const createLink = async (
   existingConnection: Connection,
   params: {
+    createdByAccountId: string;
     path: string;
     index?: number;
     sourceAccountId: string;
@@ -57,7 +58,7 @@ export const createLink = async (
       return dbEntity;
     });
 
-    const { index, path } = params;
+    const { index, path, createdByAccountId } = params;
     /** @todo: check index isn't out of bounds */
 
     if (dbSourceEntity.metadata.versioned) {
@@ -85,6 +86,7 @@ export const createLink = async (
 
       dbSourceEntity = await updateVersionedEntity(conn, {
         entity: dbSourceEntity,
+        updatedByAccountId: createdByAccountId,
         /** @todo: re-implement method to not require updated `properties` */
         properties: dbSourceEntity.properties,
         /**

@@ -16,7 +16,11 @@ import {
 
 export const deleteLink = async (
   existingConnection: Connection,
-  params: { sourceAccountId: string; linkId: string },
+  params: {
+    sourceAccountId: string;
+    linkId: string;
+    deletedByAccountId: string;
+  },
 ): Promise<void> =>
   existingConnection.transaction(async (conn) => {
     const dbLink = await getLink(conn, params);
@@ -66,10 +70,13 @@ export const deleteLink = async (
             })
           : [];
 
+      const { deletedByAccountId } = params;
+
       dbSourceEntity = await updateVersionedEntity(conn, {
         entity: dbSourceEntity,
         /** @todo: re-implement method to not require updated `properties` */
         properties: dbSourceEntity.properties,
+        updatedByAccountId: deletedByAccountId,
         omittedOutgoingLinks: [
           ...affectedOutgoingLinks,
           { sourceAccountId, linkId: params.linkId },

@@ -453,10 +453,12 @@ class __User extends Account {
     /** @todo: remove this when inverse relationships are automatically created */
     await Promise.all([
       this.createOutgoingLink(client, {
+        createdByAccountId: this.accountId,
         stringifiedPath: Link.stringifyPath(["memberOf"]),
         destination: orgMembership,
       }),
       org.createOutgoingLink(client, {
+        createdByAccountId: this.accountId,
         stringifiedPath: Link.stringifyPath(["membership"]),
         destination: orgMembership,
       }),

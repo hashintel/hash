@@ -8,7 +8,7 @@ export const createLink: Resolver<
   {},
   LoggedInGraphQLContext,
   MutationCreateLinkArgs
-> = async (_, { link: linkInput }, { dataSources }) =>
+> = async (_, { link: linkInput }, { dataSources, user }) =>
   dataSources.db.transaction(async (client) => {
     const { sourceAccountId, sourceEntityId } = linkInput;
     const source = await Entity.getEntityLatestVersion(client, {
@@ -49,6 +49,7 @@ export const createLink: Resolver<
     }
 
     const link = await source.createOutgoingLink(client, {
+      createdByAccountId: user.accountId,
       stringifiedPath: linkInput.path,
       index: typeof linkInput.index === "number" ? linkInput.index : undefined,
       destination,
