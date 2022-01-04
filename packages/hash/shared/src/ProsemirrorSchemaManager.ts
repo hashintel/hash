@@ -107,13 +107,15 @@ export class ProsemirrorSchemaManager {
     }
 
     const spec = createComponentNodeSpec({
+      /**
+       * @todo consider if we should encode the component id here / any other
+       *       information
+       */
       toDOM: (node) => {
         if (node.type.isTextblock) {
-          // @todo encode the hash type
-          return ["span", {}, 0];
+          return ["span", { "data-hash-type": "component" }, 0];
         } else {
-          // @todo check this
-          return [];
+          return ["span", { "data-hash-type": "component" }];
         }
       },
 
