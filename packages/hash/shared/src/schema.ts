@@ -101,18 +101,37 @@ export const createSchema = () =>
         toDOM: () => ["strong", { style: "font-weight:bold;" }, 0] as const,
         parseDOM: [
           { tag: "strong" },
-          // This works around a Google Docs misbehavior where
-          // pasted content will be inexplicably wrapped in `<b>`
-          // tags with a font-weight normal.
-          // @see https://github.com/ProseMirror/prosemirror-schema-basic/blob/860d60f764dcdcf186bcba0423d2c589a5e34ae5/src/schema-basic.js#L136
+          /**
+           * This works around a Google Docs misbehavior where
+           * pasted content will be inexplicably wrapped in `<b>`
+           * tags with a font-weight normal.
+           * @see https://github.com/ProseMirror/prosemirror-schema-basic/blob/860d60f764dcdcf186bcba0423d2c589a5e34ae5/src/schema-basic.js#L136
+           */
           {
             tag: "b",
-            getAttrs: (node) => node.style.fontWeight !== "normal" && null,
+            getAttrs: (node) => {
+              /**
+               * It is always a Node for tag rules but the types aren't
+               * smart enough for that
+               *
+               * @todo remove the need for this cast
+               */
+              const castNode = node as unknown as HTMLElement;
+
+              return castNode.style.fontWeight !== "normal" && null;
+            },
           },
           {
             style: "font-weight",
             getAttrs(value) {
-              if (/^(bold(er)?|[5-9]\d{2,})$/.test(value)) {
+              /**
+               * It is always a string for style rules but the types aren't
+               * smart enough for that
+               *
+               * @todo remove the need for this cast
+               */
+              const castValue = value as unknown as string;
+              if (/^(bold(er)?|[5-9]\d{2,})$/.test(castValue)) {
                 return null;
               }
               return false;
