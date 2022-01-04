@@ -22,6 +22,7 @@ export const createSchema = () =>
               // @todo this isn't applied because of the node view
               "data-hash-type": "block",
             },
+            0,
           ] as const;
         },
         parseDOM: [
