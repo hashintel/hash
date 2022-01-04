@@ -404,9 +404,9 @@ export const updateEntityAccountId = async (
           entity_versions_account_id_entity_id_fk,
           entity_account_account_id_entity_version_id_fk,
           outgoing_links_source_account_id_source_entity_id_fk,
-          outgoing_links_destination_account_id_destination_entity_id_fk,
+          outgoing_links_source_account_id_link_id_fk,
           incoming_links_destination_account_id_destination_entity_id_fk,
-          incoming_links_source_account_id_source_entity_id_fk
+          incoming_links_source_account_id_link_id_fk
         deferred
       `),
       /** Update the account id in all the entity tables:
@@ -433,7 +433,21 @@ export const updateEntityAccountId = async (
           account_id = ${originalAccountId}
           and entity_id = ${entityId}
       `),
-      /** Update incoming_links and outgoing_links account ids */
+      /** Update links, incoming_links and outgoing_links account ids */
+      transaction.query(sql`
+        update links set
+          source_account_id = ${newAccountId}
+        where
+          source_account_id = ${originalAccountId}
+          and source_entity_id = ${entityId}
+      `),
+      transaction.query(sql`
+        update links set
+          destination_account_id = ${newAccountId}
+        where
+          destination_account_id = ${originalAccountId}
+          and destination_entity_id = ${entityId}
+      `),
       transaction.query(sql`
         update incoming_links set
           source_account_id = ${newAccountId}
