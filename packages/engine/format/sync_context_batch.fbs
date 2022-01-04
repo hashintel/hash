@@ -1,0 +1,16 @@
+include "batch.fbs";
+
+// `ContextBatchSync` Message Body Type.
+//
+// Used by the engine to signal about the state of the Context object.
+//
+// fields:
+//    `context_batch`    : the batch which contains the context (+reference) data
+//    `current_step`     : the current step index
+table ContextBatchSync {
+  context_batch:Batch (required);
+  current_step:int64;
+  // TODO: state_group_start_indices
+}
+
+root_type ContextBatchSync;

@@ -1,0 +1,55 @@
+[package]
+name = "hash_engine"
+version = "0.0.0"
+edition = "2021"
+
+[workspace]
+members = [".", "bin/*", "lib/*"]
+default-members = [".", "bin/*", "lib/*"]
+
+[dependencies]
+flatbuffers_gen = { path = "lib/flatbuffers_gen" }
+
+arr_macro = "0.1.3"
+arrow = { version = "1.0.1", default-features = false }
+async-trait = "0.1.48"
+clap = { version = "3.0.0", features = ["cargo", "derive", "env"] }
+csv = "1.1.5"
+derive-new = "0.5"
+enum_dispatch = "0.3.7"
+flatbuffers = "2.0.0"
+# Need this for our arrow semi-vendor
+flatbuffers-arrow = { package = "flatbuffers", version = "0.6.1" }
+float-cmp = "0.8.0"
+futures = { version = "0.3.6", features = ["std"] }
+glob = "0.3.0"
+http-types = "2.6.0"
+kdtree = "0.6.0"
+lazy_static = "1.4.0"
+log = "0.4.11"
+num_cpus = "1.13.0"
+nng = { version = "1.0.1", default-features = false }
+parking_lot = "0.11.1"
+pretty_env_logger = "0.4.0"
+rand = "0.8.3"
+rayon = "1.4.1"
+regex = "1.5.4"
+serde_json = "1.0.59"
+shared_memory = { git = "https://github.com/hashdeps/shared_memory-rs" }
+serde = { version = "1.0.111", features = ["derive"] }
+serde-aux = "0.6.1"
+strum_macros = "0.19.4"
+surf = "2.0.0"
+thiserror = "1.0.21"
+tokio = { version = "1.5.0", features = ["macros", "rt-multi-thread", "sync", "process", "io-util", "net", "rt", "fs", "time"] }
+uuid = { version = "0.8.1", features = ["v4", "serde"] }
+
+[features]
+default = ["build-nng"]
+build-nng = ["nng/build-nng"]
+
+[lib]
+crate-type = ["lib", "cdylib"]
+
+[build-dependencies.cc]
+version = "1.0"

@@ -1,0 +1,29 @@
+# Wait for https://github.com/rust-lang/cargo/pull/9992 to land
+# cargo-features = ["bindeps"]
+
+[package]
+name = "cli"
+version = "0.0.0"
+edition = "2021"
+# TODO: Add authors to be shown in CLI
+description = "The hEngine Command line interface"
+
+[dependencies]
+hash_engine = { path = "../..", default-features = false }
+#server = { path = "../server", artifact = "bin" }
+
+anyhow = "1.0.51"
+async-trait = "0.1.48"
+clap = { version = "3.0.0", features = ["cargo", "derive", "env"] }
+lazy_static = "1.4.0"
+log = "0.4.11"
+pretty_env_logger = "0.4.0"
+rand = "0.8.3"
+rand_distr = "0.4.2"
+serde = { version = "1.0.111", features = ["derive"] }
+serde_json = "1.0.59"
+tokio = { version = "1.5.0", features = ["macros", "rt-multi-thread", "sync", "process", "io-util", "net", "rt", "fs"] }
+
+[features]
+default = ["build-nng"]
+build-nng = ["hash_engine/build-nng"]

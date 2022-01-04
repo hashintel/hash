@@ -69,6 +69,9 @@ typings/
 # vscode config
 .vscode
 
+# intellij IDEs config
+/.idea/
+
 # Python compiled files and package metadata
 **/__pycache__
 **/*.egg-info

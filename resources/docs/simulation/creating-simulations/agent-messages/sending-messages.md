@@ -12,7 +12,7 @@ Agents send messages by adding JSON objects to their `messages` array. The objec
 
 ```javascript
 {
-    to: "string" // an agent_id or agent_name
+    to: "string" || "string"[]// an agent_id or agent_name
     type: "string" // a string that defines the type of the message
     data: {} // an object that serves as the payload 
 }

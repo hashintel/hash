@@ -1,0 +1,8 @@
+// Different represented targets (possibly with respective runners)
+enum Target: byte {
+  Python,
+  JavaScript,
+  Rust,
+  Main,
+  Dynamic,
+}

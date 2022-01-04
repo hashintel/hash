@@ -1,0 +1,52 @@
+use std::sync::Arc;
+
+use super::super::{Error, ExperimentControl, Result};
+use crate::{
+    config::ExperimentConfig,
+    experiment::controller::comms::{exp_pkg_ctl::ExpPkgCtlSend, exp_pkg_update::ExpPkgUpdateRecv},
+    proto::{SimulationShortId, SingleRunExperimentConfig},
+};
+
+pub struct SingleRunExperiment {
+    _experiment_config: Arc<ExperimentConfig>, // TODO: unused, remove?
+    config: SingleRunExperimentConfig,
+}
+
+impl SingleRunExperiment {
+    pub fn new(
+        experiment_config: &Arc<ExperimentConfig>,
+        config: SingleRunExperimentConfig,
+    ) -> Result<SingleRunExperiment> {
+        Ok(SingleRunExperiment {
+            _experiment_config: experiment_config.clone(),
+            config,
+        })
+    }
+
+    pub async fn run(
+        self,
+        mut pkg_to_exp: ExpPkgCtlSend,
+        mut pkg_from_exp: ExpPkgUpdateRecv,
+    ) -> Result<()> {
+        let msg = ExperimentControl::StartSim {
+            sim_id: 1 as SimulationShortId,
+            changed_properties: serde_json::Map::new().into(), // Don't change properties
+            max_num_steps: self.config.num_steps,
+        };
+        pkg_to_exp.send(msg).await?;
+
+        loop {
+            let response = pkg_from_exp.recv().await.ok_or_else(|| {
+                Error::ExperimentRecv(
+                    "Experiment main loop closed when experiment package was still running".into(),
+                )
+            })?;
+
+            if response.stop_signal || response.was_error {
+                break;
+            }
+        }
+        log::debug!("Experiment package exiting");
+        Ok(())
+    }
+}

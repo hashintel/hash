@@ -1,0 +1,10 @@
+include "batch.fbs";
+
+// Represents the context that can be shared across all the workers
+// regardless of simulation run.
+//
+// fields:
+//    `datasets`             : shared data which contain datasets
+table SharedContext {
+  datasets:[Batch] (required);
+}

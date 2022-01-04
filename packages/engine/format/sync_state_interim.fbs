@@ -1,0 +1,18 @@
+include "batch.fbs";
+
+// `StateInterimSync` Message
+//
+// Used by the engine (as a top-level message or a Task message)
+// to signal about the state of the State object.
+//
+// fields:
+//    `group_idx`       : indices of the groups that are updated
+//    `agent_batches`   : list of respective group agent batches
+//    `message_batches` : list of respective group message batches
+table StateInterimSync {
+  group_idx:[uint] (required);
+  agent_batches:[Batch] (required);
+  message_batches:[Batch] (required);
+}
+
+root_type StateInterimSync;
