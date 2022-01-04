@@ -1,14 +1,14 @@
 import { ApolloClient } from "@apollo/client";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
-import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { entityStoreFromProsemirror } from "@hashintel/hash-shared/entityStorePlugin";
 import { apiOrigin } from "@hashintel/hash-shared/environment";
+import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
 // import applyDevTools from "prosemirror-dev-tools";
-import { Fragment, Schema } from "prosemirror-model";
+import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { BlockView } from "./BlockView";
@@ -85,25 +85,6 @@ const createSavePlugin = (
   });
 };
 
-/**
- * The official typescript types for prosemirror don't yet understand that
- * `textBetween` supports a function for `leafText`
- *
- * @see https://github.com/DefinitelyTyped/DefinitelyTyped/discussions/57769
- * @todo remove this when the types are updated
- */
-interface ExtendedFragment extends Fragment<Schema> {
-  textBetween(
-    from: number,
-    to: number,
-    blockSeparator?: string | null,
-    leafText?:
-      | string
-      | null
-      | ((leafNode: ProsemirrorNode<Schema>) => string | null),
-  ): string;
-}
-
 export const createEditorView = (
   renderNode: HTMLElement,
   renderPortal: RenderPortal,
@@ -138,11 +119,9 @@ export const createEditorView = (
      * @todo look into whether this is needed for mentions and for links
      */
     clipboardTextSerializer: (slice) => {
-      const fragment: ExtendedFragment = slice.content;
-
-      return fragment.textBetween(
+      return slice.content.textBetween(
         0,
-        fragment.size,
+        slice.content.size,
         "\n\n",
         (node: ProsemirrorNode<Schema>) => {
           if (node.type === view.state.schema.nodes.hardBreak) {
