@@ -233,17 +233,17 @@ export const addSourceEntityVersionIdToLink = async (
   params: {
     sourceAccountId: string;
     linkId: string;
-    newsourceEntityVersionId: string;
+    newSourceEntityVersionId: string;
   },
 ) => {
   await conn.many(
     sql`
       update links
-      set source_entity_version_ids = array_append(links.source_entity_version_ids, ${params.newsourceEntityVersionId})
+      set source_entity_version_ids = array_append(links.source_entity_version_ids, ${params.newSourceEntityVersionId})
       where
         source_account_id = ${params.sourceAccountId}
         and link_id = ${params.linkId}
-        and not ${params.newsourceEntityVersionId} = ANY(links.source_entity_version_ids)
+        and not ${params.newSourceEntityVersionId} = ANY(links.source_entity_version_ids)
       returning link_id
     `,
   );

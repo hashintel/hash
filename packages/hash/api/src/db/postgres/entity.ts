@@ -602,6 +602,42 @@ export const acquireEntityLock = async (
     .query(sql`select pg_advisory_xact_lock(${hashCode(params.entityId)})`)
     .then((_) => null);
 
+const addSourceEntityVersionIdToOutgoingLinks = async (
+  conn: Connection,
+  params: {
+    entity: Entity;
+    omittedOutgoingLinks?: { sourceAccountId: string; linkId: string }[];
+    newSourceEntityVersionId: string;
+  },
+) => {
+  const { entity } = params;
+
+  const outgoingLinks = await getEntityOutgoingLinks(conn, {
+    accountId: entity.accountId,
+    entityId: entity.entityId,
+    entityVersionId: entity.entityVersionId,
+  });
+
+  const isDbLinkInNextVersion = (link: DBLink): boolean =>
+    params.omittedOutgoingLinks?.find(
+      ({ linkId }) => link.linkId === linkId,
+    ) === undefined;
+
+  const { newSourceEntityVersionId } = params;
+
+  await Promise.all(
+    outgoingLinks
+      .filter(isDbLinkInNextVersion)
+      .map(({ sourceAccountId, linkId }) =>
+        addSourceEntityVersionIdToLink(conn, {
+          sourceAccountId,
+          linkId,
+          newSourceEntityVersionId,
+        }),
+      ),
+  );
+};
+
 /** Update the properties of the provided entity by creating a new version.
  * @throws `DbEntityNotFoundError` if the entity does not exist.
  * @throws `DbInvalidLinksError` if the entity's new properties link to an entity which
@@ -646,31 +682,16 @@ export const updateVersionedEntity = async (
     deferred
   `);
 
-  const isDbLinkInNextVersion = (link: DBLink): boolean =>
-    params.omittedOutgoingLinks?.find(
-      ({ linkId }) => link.linkId === linkId,
-    ) === undefined;
+  const { omittedOutgoingLinks } = params;
 
   await Promise.all([
     insertEntityVersion(conn, newEntityVersion),
 
-    getEntityOutgoingLinks(conn, {
-      accountId: entity.accountId,
-      entityId: entity.entityId,
-      entityVersionId: entity.entityVersionId,
-    }).then((outgoingLinks) =>
-      Promise.all(
-        outgoingLinks
-          .filter(isDbLinkInNextVersion)
-          .map(({ sourceAccountId, linkId }) =>
-            addSourceEntityVersionIdToLink(conn, {
-              sourceAccountId,
-              linkId,
-              newsourceEntityVersionId: newEntityVersion.entityVersionId,
-            }),
-          ),
-      ),
-    ),
+    addSourceEntityVersionIdToOutgoingLinks(conn, {
+      entity,
+      omittedOutgoingLinks,
+      newSourceEntityVersionId: newEntityVersion.entityVersionId,
+    }),
 
     // Make a reference to this entity's account in the `entity_account` lookup table
     insertEntityAccount(conn, newEntityVersion),
@@ -742,6 +763,31 @@ export const updateEntity = async (
     : updateNonVersionedEntity(conn, updateData);
 };
 
+export const getDestinationEntityOfLink = async (
+  conn: Connection,
+  link: DBLink,
+): Promise<Entity> => {
+  const destinationEntity = link.destinationEntityVersionId
+    ? await getEntity(conn, {
+        accountId: link.destinationAccountId,
+        entityVersionId: link.destinationEntityVersionId,
+      })
+    : await getEntityLatestVersion(conn, {
+        accountId: link.destinationAccountId,
+        entityId: link.destinationEntityId,
+      });
+
+  if (!destinationEntity) {
+    throw new DbEntityNotFoundError({
+      accountId: link.destinationAccountId,
+      entityId: link.destinationEntityId,
+      entityVersionId: link.destinationEntityVersionId,
+    });
+  }
+
+  return destinationEntity;
+};
+
 export const getAncestorReferences = async (
   conn: Connection,
   params: {
@@ -788,24 +834,6 @@ export const getChildren = async (
   const outgoing = await getEntityOutgoingLinks(conn, params);
 
   return Promise.all(
-    outgoing.map(async (link) => {
-      const entity = link.destinationEntityVersionId
-        ? await getEntity(conn, {
-            accountId: link.destinationAccountId,
-            entityVersionId: link.destinationEntityVersionId,
-          })
-        : await getEntityLatestVersion(conn, {
-            accountId: link.destinationAccountId,
-            entityId: link.destinationEntityId,
-          });
-      if (!entity) {
-        throw new DbEntityNotFoundError({
-          accountId: link.destinationAccountId,
-          entityId: link.destinationEntityId,
-          entityVersionId: link.destinationEntityVersionId,
-        });
-      }
-      return entity;
-    }),
+    outgoing.map(async (link) => getDestinationEntityOfLink(conn, link)),
   );
 };
