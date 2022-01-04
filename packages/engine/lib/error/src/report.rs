@@ -7,16 +7,16 @@ use std::error::Error as StdError;
 
 use provider::{
     tags::{Ref, Value},
-    Provider, TypeTag,
+    TypeTag,
 };
 #[cfg(feature = "spantrace")]
 use tracing_error::{SpanTrace, SpanTraceStatus};
 
-use super::{ErrorType, Frame};
-use crate::{tags, Chain, Report, Request};
+use super::{Error, Frame};
+use crate::{tags, Context, ErrorKind, FrameStack, Report, RequestStack};
 
 pub(super) struct ReportImpl {
-    pub(super) error: Frame,
+    pub(super) frame: Frame,
     #[cfg(feature = "backtrace")]
     backtrace: Option<Backtrace>,
     #[cfg(feature = "spantrace")]
@@ -27,24 +27,27 @@ impl Report {
     /// Creates a new `Report` from the provided message.
     // TODO: Specialize on trait `Provider` to remove `fn from_provider`
     #[track_caller]
-    pub fn new(message: impl fmt::Display + fmt::Debug + Send + Sync + 'static) -> Self {
-        Self::from_error_type(
+    pub fn new<C>(context: C) -> Self
+    where
+        C: Context,
+    {
+        Self::from_error(
             Location::caller(),
             #[cfg(feature = "backtrace")]
             Some(Backtrace::capture()),
             #[cfg(feature = "spantrace")]
             Some(SpanTrace::capture()),
-            ErrorType::Message(Box::new(message)),
+            Error::Context(Box::new(context)),
         )
     }
 }
 
 impl<S> Report<S> {
-    fn from_error_type(
+    fn from_error(
         location: &'static Location<'static>,
         #[cfg(feature = "backtrace")] backtrace: Option<Backtrace>,
         #[cfg(feature = "spantrace")] span_trace: Option<SpanTrace>,
-        error: ErrorType,
+        error: Error,
     ) -> Self {
         Self {
             inner: Box::new(ReportImpl {
@@ -52,7 +55,7 @@ impl<S> Report<S> {
                 backtrace,
                 #[cfg(feature = "spantrace")]
                 span_trace,
-                error: Frame {
+                frame: Frame {
                     error,
                     location,
                     source: None,
@@ -63,15 +66,15 @@ impl<S> Report<S> {
     }
 
     /// Creates a new `Report<S>` from a provided scope.
-    ///
-    /// See the [`tags`] submodule for built-in [`TypeTag`]s used.
     #[track_caller]
-    pub fn from_scope(provider: S) -> Self
+    pub fn with_error_kind<E>(error_kind: E) -> Self
     where
-        S: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+        E: ErrorKind,
     {
+        let error = Error::Kind(Box::new(error_kind));
+        #[allow(clippy::option_if_let_else)] // #[track_caller] on closures are unstable
         let location = if let Some(location) =
-            provider::request_by_type_tag::<'_, tags::FrameLocation, _>(&provider)
+            provider::request_by_type_tag::<'_, tags::FrameLocation, _>(&error)
         {
             location
         } else {
@@ -79,40 +82,40 @@ impl<S> Report<S> {
         };
         #[cfg(feature = "backtrace")]
         let backtrace =
-            if provider::request_by_type_tag::<'_, tags::ReportBackTrace, _>(&provider).is_some() {
+            if provider::request_by_type_tag::<'_, tags::ReportBackTrace, _>(&error).is_some() {
                 None
             } else {
                 Some(Backtrace::capture())
             };
         #[cfg(feature = "spantrace")]
         let span_trace =
-            if provider::request_by_type_tag::<'_, tags::ReportSpanTrace, _>(&provider).is_some() {
+            if provider::request_by_type_tag::<'_, tags::ReportSpanTrace, _>(&error).is_some() {
                 None
             } else {
                 Some(SpanTrace::capture())
             };
-        Self::from_error_type(
+        Self::from_error(
             location,
             #[cfg(feature = "backtrace")]
             backtrace,
             #[cfg(feature = "spantrace")]
             span_trace,
-            ErrorType::Provider(Box::new(provider)),
+            error,
         )
     }
 
     #[track_caller]
-    fn wrap_error_type<P>(self, error: ErrorType) -> Report<P> {
+    fn wrap<P>(self, error: Error) -> Report<P> {
         Report {
             inner: Box::new(ReportImpl {
                 #[cfg(feature = "backtrace")]
                 backtrace: self.inner.backtrace,
                 #[cfg(feature = "spantrace")]
                 span_trace: self.inner.span_trace,
-                error: Frame {
+                frame: Frame {
                     error,
                     location: Location::caller(),
-                    source: Some(Box::new(self.inner.error)),
+                    source: Some(Box::new(self.inner.frame)),
                 },
             }),
             _scope: PhantomData,
@@ -122,24 +125,25 @@ impl<S> Report<S> {
     /// Adds `context` information to the [`Frame`] stack.
     // TODO: Specialize on trait `Provider` to remove `fn provide`
     #[track_caller]
-    pub fn wrap<C>(self, context: C) -> Self
+    pub fn context<C>(self, context: C) -> Self
     where
-        C: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        C: Context,
     {
-        self.wrap_error_type(ErrorType::Message(Box::new(context)))
+        self.wrap(Error::Context(Box::new(context)))
     }
 
     /// Adds `provider` to the [`Frame`] stack and changes the scope to `P`.
     #[track_caller]
-    pub fn provide<P>(self, provider: P) -> Report<P>
+    pub fn error_kind<E>(self, error_kind: E) -> Report<E>
     where
-        P: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+        E: ErrorKind,
     {
-        self.wrap_error_type(ErrorType::Provider(Box::new(provider)))
+        self.wrap(Error::Kind(Box::new(error_kind)))
     }
 
     /// Converts the `Report<S>` to `Report` without modifying the frame stack.
-    pub fn leave_scope(self) -> Report {
+    #[allow(clippy::missing_const_for_fn)] // False positive
+    pub fn compat(self) -> Report {
         Report {
             inner: self.inner,
             _scope: PhantomData,
@@ -152,7 +156,6 @@ impl<S> Report<S> {
     ///
     /// [`ReportBackTrace`]: crate::tags::ReportBackTrace
     #[cfg(feature = "backtrace")]
-    #[cfg_attr(doc, doc(cfg(feature = "backtrace")))]
     pub fn backtrace(&self) -> Option<&Backtrace> {
         let backtrace = self.inner.backtrace.as_ref().unwrap_or_else(|| {
             // Should never panic as it's either stored inside of `Report` or is provided by a frame
@@ -174,7 +177,6 @@ impl<S> Report<S> {
     /// [`ReportSpanTrace`]: crate::tags::ReportSpanTrace
     /// [`ErrorLayer`]: tracing_error::ErrorLayer
     #[cfg(feature = "spantrace")]
-    #[cfg_attr(doc, doc(cfg(feature = "spantrace")))]
     pub fn span_trace(&self) -> Option<&SpanTrace> {
         let span_trace = self.inner.span_trace.as_ref().unwrap_or_else(|| {
             // Should never panic as it's either stored inside of `Report` or is provided by a frame
@@ -190,34 +192,34 @@ impl<S> Report<S> {
     }
 
     /// Returns an iterator over the [`Frame`] stack of the report.
-    pub const fn chain(&self) -> Chain<'_> {
-        Chain::new(self)
+    pub const fn frames(&self) -> FrameStack<'_> {
+        FrameStack::new(self)
     }
 
     /// Creates an iterator over the [`Frame`] stack requesting the type specified by [`I::Type`].
     ///
     /// [`I::Type`]: provider::TypeTag::Type
-    pub fn request<'p, I: 'static>(&'p self) -> Request<'p, I>
+    pub fn request<'p, I: 'static>(&'p self) -> RequestStack<'p, I>
     where
         I: TypeTag<'p>,
     {
-        Request::new(self)
+        RequestStack::new(self)
     }
 
     /// Creates an iterator over the [`Frame`] stack requesting a reference of type `T`.
-    pub const fn request_ref<T: ?Sized + 'static>(&self) -> Request<'_, Ref<T>> {
-        Request::new(self)
+    pub const fn request_ref<T: ?Sized + 'static>(&self) -> RequestStack<'_, Ref<T>> {
+        RequestStack::new(self)
     }
 
     /// Creates an iterator over the [`Frame`] stack requesting a value of type `T`.
-    pub const fn request_value<T: 'static>(&self) -> Request<'_, Value<T>> {
-        Request::new(self)
+    pub const fn request_value<T: 'static>(&self) -> RequestStack<'_, Value<T>> {
+        RequestStack::new(self)
     }
 }
 
 impl<S> fmt::Display for Report<S> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-        let mut chain = self.chain();
+        let mut chain = self.frames();
         let error = chain.next().expect("No error occurred");
         fmt::Display::fmt(&error, fmt)?;
         if let Some(cause) = chain.next() {
@@ -233,12 +235,12 @@ impl<S> fmt::Debug for Report<S> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         if fmt.alternate() {
             let mut debug = fmt.debug_struct("Report");
-            debug.field("frames", &self.chain());
+            debug.field("frames", &self.frames());
             #[cfg(feature = "backtrace")]
             debug.field("backtrace", &self.backtrace());
             debug.finish()
         } else {
-            let mut chain = self.chain();
+            let mut chain = self.frames();
             let error = chain.next().expect("No error occurred");
             write!(fmt, "{error}")?;
             write!(fmt, "\n             at {}", error.location())?;
@@ -267,7 +269,6 @@ impl<S> fmt::Debug for Report<S> {
 }
 
 #[cfg(feature = "std")]
-#[cfg_attr(doc, doc(cfg(feature = "std")))]
 impl<E> From<E> for Report
 where
     E: StdError + Send + Sync + 'static,
@@ -280,13 +281,13 @@ where
         } else {
             Some(Backtrace::capture())
         };
-        Self::from_error_type(
+        Self::from_error(
             Location::caller(),
             #[cfg(feature = "backtrace")]
             backtrace,
             #[cfg(feature = "spantrace")]
             Some(SpanTrace::capture()),
-            ErrorType::Error(Box::new(error)),
+            Error::Std(Box::new(error)),
         )
     }
 }

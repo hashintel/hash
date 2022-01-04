@@ -2,7 +2,6 @@
 //!
 //! [`Report`]: crate::Report
 
-use alloc::boxed::Box;
 use core::panic::Location;
 
 use provider::TypeTag;
@@ -30,20 +29,6 @@ impl<'p> TypeTag<'p> for FrameSource {
     type Type = &'p Frame;
 }
 
-/// Used for generating the [`Display`] implementation of a [`Frame`].
-///
-/// This may be set by a [`Provider`] to be used as displayed error message. If not set, it is
-/// provided by the [`Display`] implementation of the underlying error.
-///
-/// [`Frame`]: crate::Frame
-/// [`Display`]: core::fmt::Display
-/// [`Provider`]: provider::Provider
-pub struct FrameMessage;
-
-impl<'p> TypeTag<'p> for FrameMessage {
-    type Type = Box<str>;
-}
-
 /// The [`Backtrace`] of the [`Report`].
 ///
 /// This may be provided by a [`Provider`], otherwise it is generated.
@@ -52,7 +37,6 @@ impl<'p> TypeTag<'p> for FrameMessage {
 /// [`Report`]: crate::Report
 /// [`Provider`]: provider::Provider
 #[cfg(feature = "backtrace")]
-#[cfg_attr(doc, doc(cfg(feature = "backtrace")))]
 pub struct ReportBackTrace;
 
 #[cfg(feature = "backtrace")]
@@ -68,7 +52,6 @@ impl<'p> TypeTag<'p> for ReportBackTrace {
 /// [`Report`]: crate::Report
 /// [`Provider`]: provider::Provider
 #[cfg(feature = "spantrace")]
-#[cfg_attr(doc, doc(cfg(feature = "spantrace")))]
 pub struct ReportSpanTrace;
 
 #[cfg(feature = "spantrace")]

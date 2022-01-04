@@ -3,8 +3,8 @@ use core::{fmt, fmt::Formatter, panic::Location};
 
 use provider::{self, tags, Provider, Requisition, TypeTag};
 
-use super::tags::{FrameLocation, FrameMessage, FrameSource};
-use crate::Frame;
+use super::tags::{FrameLocation, FrameSource};
+use crate::{Context, ErrorKind, Frame};
 
 pub(super) trait DisplayError: fmt::Display + fmt::Debug {}
 impl<T: fmt::Display + fmt::Debug> DisplayError for T {}
@@ -12,36 +12,50 @@ impl<T: fmt::Display + fmt::Debug> DisplayError for T {}
 pub(super) trait ProviderError: Provider + DisplayError {}
 impl<T: Provider + DisplayError> ProviderError for T {}
 
-// TODO: Use thin pointer + vtable to reduce overhead
-pub(super) enum ErrorType {
-    Message(Box<dyn DisplayError + Send + Sync + 'static>),
+// TODO: Use thin pointer + vtable to reduce overhead and size
+pub(super) enum Error {
+    Kind(Box<dyn ErrorKind>),
+    Context(Box<dyn Context>),
     #[cfg(feature = "std")]
-    Error(Box<dyn std::error::Error + Send + Sync + 'static>),
-    Provider(Box<dyn ProviderError + Send + Sync + 'static>),
+    Std(Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
-impl fmt::Debug for ErrorType {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+impl fmt::Display for Error {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Message(msg) => fmt::Debug::fmt(&msg, fmt),
+            Self::Kind(kind) => fmt::Display::fmt(kind, fmt),
+            Self::Context(context) => fmt::Display::fmt(context, fmt),
             #[cfg(feature = "std")]
-            Self::Error(err) => fmt::Debug::fmt(&err, fmt),
-            Self::Provider(prov) => fmt::Debug::fmt(&prov, fmt),
+            Self::Std(error) => fmt::Display::fmt(error, fmt),
+        }
+    }
+}
+
+impl Provider for Error {
+    fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
+        match self {
+            Self::Kind(kind) => ErrorKind::provide(kind.as_ref(), req),
+            Self::Context(context) => Context::provide(context.as_ref(), req),
+            #[cfg(feature = "std")]
+            Self::Std(error) =>
+            {
+                #[cfg(feature = "backtrace")]
+                if let Some(backtrace) = error.backtrace() {
+                    req.provide_with::<crate::tags::ReportBackTrace, _>(|| backtrace);
+                }
+            }
         }
     }
 }
 
 impl Frame {
+    /// Returns the location where this `Frame` was created.
     #[must_use]
     pub const fn location(&self) -> &'static Location<'static> {
         self.location
     }
 
-    #[must_use]
-    pub fn source(&self) -> Option<&Self> {
-        self.source.as_ref().map(Box::as_ref)
-    }
-
+    /// Requests the value specified by the [`TypeTag`] from the `Frame` if provided.
     #[must_use]
     pub fn request<'p, I>(&'p self) -> Option<I::Type>
     where
@@ -50,6 +64,7 @@ impl Frame {
         provider::request_by_type_tag::<'p, I, _>(self)
     }
 
+    /// Requests the reference to `T` from the `Frame` if provided.
     #[must_use]
     pub fn request_ref<T>(&self) -> Option<&T>
     where
@@ -58,6 +73,7 @@ impl Frame {
         self.request::<'_, tags::Ref<T>>()
     }
 
+    /// Requests the value of `T` from the `Frame` if provided.
     #[must_use]
     pub fn request_value<T>(&self) -> Option<T>
     where
@@ -68,23 +84,11 @@ impl Frame {
 }
 
 impl Provider for Frame {
-    fn provide<'p>(&'p self, mut req: Requisition<'p, '_>) {
+    fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
+        Provider::provide(&self.error, req);
         req.provide_with::<FrameLocation, _>(|| self.location);
-        req.provide_with::<FrameMessage, _>(|| self.to_string().into_boxed_str());
-        if let Some(ref cause) = self.source {
-            req.provide_with::<FrameSource, _>(|| cause);
-        }
-        match &self.error {
-            #[cfg(feature = "backtrace")]
-            ErrorType::Error(err) => {
-                if let Some(backtrace) = err.backtrace() {
-                    req.provide_with::<crate::tags::ReportBackTrace, _>(|| backtrace);
-                }
-            }
-            ErrorType::Provider(prov) => {
-                prov.provide(req);
-            }
-            _ => {}
+        if let Some(source) = &self.source {
+            req.provide_with::<FrameSource, _>(|| source);
         }
     }
 }
@@ -92,7 +96,7 @@ impl Provider for Frame {
 impl fmt::Debug for Frame {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("Frame")
-            .field("error", &self.error)
+            .field("error", &self.to_string())
             .field("location", &self.location)
             .finish()
     }
@@ -100,19 +104,6 @@ impl fmt::Debug for Frame {
 
 impl fmt::Display for Frame {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self.error {
-            ErrorType::Message(msg) => fmt::Display::fmt(&msg, fmt),
-            #[cfg(feature = "std")]
-            ErrorType::Error(err) => fmt::Display::fmt(&err, fmt),
-            ErrorType::Provider(prov) => {
-                if let Some(msg) =
-                    provider::request_by_type_tag::<'_, FrameMessage, _>(prov.as_ref())
-                {
-                    fmt::Display::fmt(&msg, fmt)
-                } else {
-                    write!(fmt, "{prov}")
-                }
-            }
-        }
+        fmt::Display::fmt(&self.error, fmt)
     }
 }

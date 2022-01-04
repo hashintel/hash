@@ -1,48 +1,47 @@
-use alloc::boxed::Box;
 use core::{fmt, fmt::Formatter, iter::FusedIterator, marker::PhantomData};
 
 use provider::TypeTag;
 
 use super::Frame;
-use crate::{Chain, Report, Request};
+use crate::{tags::FrameSource, FrameStack, Report, RequestStack};
 
-impl<'r> Chain<'r> {
+impl<'r> FrameStack<'r> {
     pub(super) const fn new<S>(report: &'r Report<S>) -> Self {
         Self {
-            current: Some(&report.inner.error),
+            current: Some(&report.inner.frame),
         }
     }
 }
 
-impl<'r> Iterator for Chain<'r> {
+impl<'r> Iterator for FrameStack<'r> {
     type Item = &'r Frame;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.current.take().map(|current| {
-            self.current = current.source.as_ref().map(Box::as_ref);
+            self.current = current.request::<FrameSource>();
             current
         })
     }
 }
 
-impl<'r> FusedIterator for Chain<'r> {}
+impl<'r> FusedIterator for FrameStack<'r> {}
 
-impl fmt::Debug for Chain<'_> {
+impl fmt::Debug for FrameStack<'_> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         fmt.debug_list().entries(self.clone()).finish()
     }
 }
 
-impl<'r, I> Request<'r, I> {
+impl<'r, I> RequestStack<'r, I> {
     pub(super) const fn new<S>(report: &'r Report<S>) -> Self {
         Self {
-            chain: report.chain(),
+            chain: report.frames(),
             _marker: PhantomData,
         }
     }
 }
 
-impl<'r, I: TypeTag<'r>> Iterator for Request<'r, I> {
+impl<'r, I: TypeTag<'r>> Iterator for RequestStack<'r, I> {
     type Item = I::Type;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -50,9 +49,9 @@ impl<'r, I: TypeTag<'r>> Iterator for Request<'r, I> {
     }
 }
 
-impl<'r, I: TypeTag<'r>> FusedIterator for Request<'r, I> {}
+impl<'r, I: TypeTag<'r>> FusedIterator for RequestStack<'r, I> {}
 
-impl<I> Clone for Request<'_, I> {
+impl<I> Clone for RequestStack<'_, I> {
     fn clone(&self) -> Self {
         Self {
             chain: self.chain.clone(),
@@ -61,7 +60,7 @@ impl<I> Clone for Request<'_, I> {
     }
 }
 
-impl<'r, I: TypeTag<'r>> fmt::Debug for Request<'r, I>
+impl<'r, I: TypeTag<'r>> fmt::Debug for RequestStack<'r, I>
 where
     I::Type: fmt::Debug,
 {

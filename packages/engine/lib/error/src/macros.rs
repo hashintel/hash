@@ -7,7 +7,7 @@ pub mod __private {
     pub mod kinds {
         use core::{fmt, marker::PhantomData};
 
-        use crate::Report;
+        use crate::{Context, Report};
 
         pub trait AdhocKind: Sized {
             fn __kind(&self) -> Adhoc {
@@ -18,9 +18,10 @@ pub mod __private {
 
         pub struct Adhoc;
         impl Adhoc {
-            pub fn report<M>(self, message: M) -> Report
+            #[allow(clippy::unused_self)]
+            pub fn report<C>(self, message: C) -> Report
             where
-                M: fmt::Display + fmt::Debug + Send + Sync + 'static,
+                C: Context,
             {
                 Report::new(message)
             }
@@ -35,6 +36,7 @@ pub mod __private {
 
         pub struct Trait<S>(PhantomData<S>);
         impl<S> Trait<S> {
+            #[allow(clippy::unused_self)]
             pub fn report<E: Into<Report<S>>>(self, error: E) -> Report<S> {
                 error.into()
             }
@@ -57,85 +59,87 @@ pub mod __private {
 /// Create a [`Report`] from a message:
 ///
 /// ```
-/// # fn has_permission(user: usize, resource: usize) -> bool { true }
-/// # let user = 0;
-/// # let resource = 0;
+/// # fn has_permission(user: &User, resource: &Resource) -> bool { false }
+/// # struct User;
+/// # struct Resource;
+/// # use core::fmt;
+/// # impl fmt::Display for Resource { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
 /// use error::format_err;
 ///
-/// if !has_permission(user, resource) {
+/// # fn use_resource(user: User, resource: Resource) -> error::Result<()> {
+/// if !has_permission(&user, &resource) {
 ///     return Err(format_err!("permission denied for accessing {resource}"));
 /// }
-/// # error::Result::Ok(())
+/// # Ok(()) }
+/// # let err = use_resource(User, Resource).unwrap_err();
+/// # assert_eq!(err.frames().count(), 1);
+/// # assert_eq!(err.frames().next().unwrap().to_string(), "permission denied for accessing ");
 /// ```
 ///
 /// Create a [`Report`] from an error:
 ///
-/// ```should_panic
-/// # fn has_permission(user: usize, resource: usize) -> bool { true }
-/// # let user = 0;
-/// # let resource = 0;
-/// use std::fs::read_to_string;
-///
-/// use error::format_err;
-///
-/// match read_to_string("/path/to/invalid/file") {
+/// ```
+/// # use std::fs;
+/// # use error::format_err;
+/// # fn func() -> error::Result<()> {
+/// match fs::read_to_string("/path/to/file") {
 ///     Ok(content) => println!("File contents: {content}"),
 ///     Err(err) => return Err(format_err!(err)),
 /// }
-/// # error::Result::Ok(())
+/// # Ok(())
+/// # }
+/// # let err = func().unwrap_err();
+/// # assert_eq!(err.frames().count(), 1);
 /// ```
 ///
-/// Optionally, a scope can be provided:
+/// Optionally, an [`ErrorKind`][crate::ErrorKind] can be provided:
 ///
 /// ```
-/// # fn has_permission(user: usize, resource: usize) -> bool { true }
-/// # let user = 0;
-/// # let resource = 0;
-/// use core::fmt;
-///
-/// use error::format_err;
+/// # fn has_permission(user: &User, resource: &Resource) -> bool { false }
+/// # #[derive(Debug)] struct User;
+/// # #[derive(Debug)] struct Resource;
+/// # use core::fmt;
+/// # use error::format_err;
+/// # impl fmt::Display for Resource { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
+/// # impl fmt::Display for PermissionDenied { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
+/// use error::{ErrorKind, Report};
 /// use provider::{Provider, Requisition};
 ///
-/// #[derive(Debug, Copy, Clone)]
-/// enum ErrorKind {
-///     PermissionDenied,
-/// }
+/// #[derive(Debug)]
+/// struct PermissionDenied(User, Resource);
 ///
-/// impl fmt::Display for ErrorKind {
-///     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-///         match self {
-///             Self::PermissionDenied => f.write_str("Permission denied for resource"),
-///         }
+/// impl ErrorKind for PermissionDenied {
+///     fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
+///         req.provide_ref(&self.0).provide_ref(&self.1);
 ///     }
 /// }
 ///
-/// impl Provider for ErrorKind {
-///     fn provide<'p>(&'p self, mut req: Requisition<'p, '_>) {
-///         req.provide_value(|| *self);
-///     }
-/// }
-///
-/// if !has_permission(user, resource) {
+/// # fn use_resource(user: User, resource: Resource) -> Result<(), Report<PermissionDenied>> {
+/// if !has_permission(&user, &resource) {
 ///     return Err(format_err!(
-///         scope: ErrorKind::PermissionDenied,
+///         error_kind: PermissionDenied(user, resource),
 ///         "permission denied for accessing {resource}"
 ///     ));
 /// }
-/// # error::Result::Ok(())
+/// # Ok(()) }
+/// # let err = use_resource(User, Resource).unwrap_err();
+/// # assert_eq!(err.frames().count(), 2);
+/// # assert_eq!(err.request_ref::<User>().count(), 1);
+/// # assert_eq!(err.request_ref::<Resource>().count(), 1);
 /// ```
 #[macro_export]
 macro_rules! format_err {
-    (scope: $scope:expr $(,)?) => ({
-        $crate::Report::from_scope($scope)
+    (error_kind: $error_kind:expr $(,)?) => ({
+        $crate::Report::with_error_kind($error_kind)
     });
-    (scope: $scope:expr, $msg:literal $(,)?) => ({
-        $crate::format_err!($msg).provide($scope)
+    (error_kind: $error_kind:expr, $msg:literal $(,)?) => ({
+        $crate::format_err!($msg).error_kind($error_kind)
     });
-    (scope: $scope:expr, $err:expr $(,)?) => ({
-        $crate::format_err!($err).provide($scope)
+    (error_kind: $error_kind:expr, $err:expr $(,)?) => ({
+        $crate::format_err!($err).error_kind($error_kind)
     });
-    (scope: $scope:expr, $fmt:expr, $($arg:tt)+) => {
-        $crate::format_err!($fmt, $($arg)+).provide($scope)
+    (error_kind: $error_kind:expr, $fmt:expr, $($arg:tt)+) => {
+        $crate::format_err!($fmt, $($arg)+).error_kind($error_kind)
     };
     ($msg:literal $(,)?) => ({
         $crate::Report::new($crate::__private::format_err(core::format_args!($msg)))
@@ -152,94 +156,97 @@ macro_rules! format_err {
 
 /// Creates a [`Report`] and returns it as [`Result`].
 ///
-/// Shorthand for `return Err(format_err!(...))`
+/// Shorthand for `return Err(`[`format_err!(...)`]`)`
 ///
 /// [`Report`]: crate::Report
+/// [`format_err!(...)`]: format_err
 ///
 /// # Examples
 ///
 /// Create a [`Report`] from a message:
 ///
 /// ```
-/// # fn has_permission(user: usize, resource: usize) -> bool { true }
-/// # let user = 0;
-/// # let resource = 0;
+/// # fn has_permission(user: &User, resource: &Resource) -> bool { false }
+/// # struct User;
+/// # struct Resource;
+/// # use core::fmt;
+/// # impl fmt::Display for Resource { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
 /// use error::bail;
 ///
-/// if !has_permission(user, resource) {
+/// # fn use_resource(user: User, resource: Resource) -> error::Result<()> {
+/// if !has_permission(&user, &resource) {
 ///     bail!("permission denied for accessing {resource}");
 /// }
-/// # error::Result::Ok(())
+/// # Ok(()) }
+/// # let err = use_resource(User, Resource).unwrap_err();
+/// # assert_eq!(err.frames().count(), 1);
+/// # assert_eq!(err.frames().next().unwrap().to_string(), "permission denied for accessing ");
 /// ```
 ///
 /// Create a [`Report`] from an error:
 ///
-/// ```should_panic
-/// # fn has_permission(user: usize, resource: usize) -> bool { true }
-/// # let user = 0;
-/// # let resource = 0;
-/// use std::fs::read_to_string;
-///
-/// use error::bail;
-///
-/// match read_to_string("/path/to/invalid/file") {
+/// ```
+/// # use std::fs;
+/// # use error::bail;
+/// # fn func() -> error::Result<()> {
+/// match fs::read_to_string("/path/to/file") {
 ///     Ok(content) => println!("File contents: {content}"),
 ///     Err(err) => bail!(err),
 /// }
-/// # error::Result::Ok(())
+/// # Ok(())
+/// # }
+/// # let err = func().unwrap_err();
+/// # assert_eq!(err.frames().count(), 1);
 /// ```
 ///
-/// Optionally, a scope can be provided:
+/// Optionally, an [`ErrorKind`][crate::ErrorKind] can be provided:
 ///
 /// ```
-/// # fn has_permission(user: usize, resource: usize) -> bool { true }
-/// # let user = 0;
-/// # let resource = 0;
-/// use core::fmt;
-///
-/// use error::bail;
+/// # fn has_permission(user: &User, resource: &Resource) -> bool { false }
+/// # #[derive(Debug)] struct User;
+/// # #[derive(Debug)] struct Resource;
+/// # use core::fmt;
+/// # use error::bail;
+/// # impl fmt::Display for Resource { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
+/// # impl fmt::Display for PermissionDenied { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
+/// use error::{ErrorKind, Report};
 /// use provider::{Provider, Requisition};
 ///
-/// #[derive(Debug, Copy, Clone)]
-/// enum ErrorKind {
-///     PermissionDenied,
-/// }
+/// #[derive(Debug)]
+/// struct PermissionDenied(User, Resource);
 ///
-/// impl fmt::Display for ErrorKind {
-///     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-///         match self {
-///             Self::PermissionDenied => f.write_str("Permission denied for resource"),
-///         }
+/// impl ErrorKind for PermissionDenied {
+///     fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
+///         req.provide_ref(&self.0).provide_ref(&self.1);
 ///     }
 /// }
 ///
-/// impl Provider for ErrorKind {
-///     fn provide<'p>(&'p self, mut req: Requisition<'p, '_>) {
-///         req.provide_value(|| *self);
-///     }
-/// }
-///
-/// if !has_permission(user, resource) {
+/// # fn use_resource(user: User, resource: Resource) -> Result<(), Report<PermissionDenied>> {
+/// if !has_permission(&user, &resource) {
 ///     bail!(
-///         scope: ErrorKind::PermissionDenied,
+///         error_kind: PermissionDenied(user, resource),
 ///         "permission denied for accessing {resource}"
 ///     );
 /// }
-/// # error::Result::Ok(())
+/// # Ok(()) }
+/// # let err = dbg!(use_resource(User, Resource).unwrap_err());
+/// # assert_eq!(err.frames().count(), 2);
+/// # assert_eq!(err.request_ref::<Resource>().count(), 1);
+/// # assert_eq!(err.request_ref::<User>().count(), 1);
 /// ```
 #[macro_export]
 macro_rules! bail {
-    (scope: $scope:expr $(,)?) => ({
-        return $crate::Result::Err($crate::format_err!(scope: $scope))
+    (error_kind: $error_kind:expr $(,)?) => ({
+        return $crate::Result::Err($crate::format_err!(error_kind: $error_kind))
     });
-    (scope: $scope:expr, $msg:literal $(,)?) => ({
-        return $crate::Result::Err($crate::format_err!(scope: $scope, $msg))
+    (error_kind: $error_kind:expr, $msg:literal $(,)?) => ({
+        return $crate::Result::Err($crate::format_err!(error_kind: $error_kind, $msg))
     });
-    (scope: $scope:expr, $err:expr $(,)?) => ({
-        return $crate::Result::Err($crate::format_err!(scope: $scope, $err))
+    (error_kind: $error_kind:expr, $err:expr $(,)?) => ({
+        return $crate::Result::Err($crate::format_err!(error_kind: $error_kind, $err))
     });
-    (scope: $scope:expr, $fmt:expr, $($arg:tt)+) => {
-        return $crate::Result::Err($crate::format_err!(scope: $scope, $fmt, $($arg)+))
+    (error_kind: $error_kind:expr, $fmt:expr, $($arg:tt)+) => {
+        return $crate::Result::Err($crate::format_err!(error_kind: $error_kind, $fmt, $($arg)+))
     };
     ($msg:literal $(,)?) => ({
         return $crate::Result::Err($crate::format_err!($msg))
@@ -254,84 +261,87 @@ macro_rules! bail {
 
 /// Ensures `$cond` is met, otherwise return an error.
 ///
-/// Shorthand for `if !$cond { bail!(...)) }`
+/// Shorthand for `if !$cond { `[`bail!(...)`]`) }`
+///
+/// [`Report`]: crate::Report
+/// [`bail!(...)`]: bail
 ///
 /// # Examples
 ///
 /// Create a [`Report`] from a message:
 ///
 /// ```
-/// # fn has_permission(user: usize, resource: usize) -> bool { true }
-/// # let user = 0;
-/// # let resource = 0;
+/// # fn has_permission(user: &User, resource: &Resource) -> bool { false }
+/// # struct User;
+/// # struct Resource;
+/// # use core::fmt;
+/// # impl fmt::Display for Resource { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
 /// use error::ensure;
 ///
-/// ensure!(
-///     has_permission(user, resource),
-///     "permission denied for accessing {resource}"
-/// );
-/// # error::Result::Ok(())
+/// # fn use_resource(user: User, resource: Resource) -> error::Result<()> {
+/// ensure!(has_permission(&user, &resource), "permission denied for accessing {resource}");
+/// # Ok(()) }
+/// # let err = use_resource(User, Resource).unwrap_err();
+/// # assert_eq!(err.frames().count(), 1);
+/// # assert_eq!(err.frames().next().unwrap().to_string(), "permission denied for accessing ");
 /// ```
 ///
-/// Optionally, a scope can be provided:
+/// Optionally, an [`ErrorKind`][crate::ErrorKind] can be provided:
 ///
 /// ```
-/// # fn has_permission(user: usize, resource: usize) -> bool { true }
-/// # let user = 0;
-/// # let resource = 0;
-/// use core::fmt;
-///
-/// use error::ensure;
+/// # fn has_permission(user: &User, resource: &Resource) -> bool { false }
+/// # #[derive(Debug)] struct User;
+/// # #[derive(Debug)] struct Resource;
+/// # use core::fmt;
+/// # use error::ensure;
+/// # impl fmt::Display for Resource { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
+/// # impl fmt::Display for PermissionDenied { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
+/// use error::{ErrorKind, Report};
 /// use provider::{Provider, Requisition};
 ///
-/// #[derive(Debug, Copy, Clone)]
-/// enum ErrorKind {
-///     PermissionDenied,
-/// }
+/// #[derive(Debug)]
+/// struct PermissionDenied(User, Resource);
 ///
-/// impl fmt::Display for ErrorKind {
-///     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-///         match self {
-///             Self::PermissionDenied => f.write_str("Permission denied for resource"),
-///         }
+/// impl ErrorKind for PermissionDenied {
+///     fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
+///         req.provide_ref(&self.0).provide_ref(&self.1);
 ///     }
 /// }
 ///
-/// impl Provider for ErrorKind {
-///     fn provide<'p>(&'p self, mut req: Requisition<'p, '_>) {
-///         req.provide_value(|| *self);
-///     }
-/// }
-///
+/// # fn use_resource(user: User, resource: Resource) -> Result<(), Report<PermissionDenied>> {
 /// ensure!(
-///     has_permission(user, resource),
-///     scope: ErrorKind::PermissionDenied,
-///     "permission denied for accessing {resource}"
+///     has_permission(&user, &resource),
+///     error_kind: PermissionDenied(user, resource),
+///     "permission denied for accessing {resource}",
 /// );
-/// # error::Result::Ok(())
+/// # Ok(()) }
+/// # let err = use_resource(User, Resource).unwrap_err();
+/// # assert_eq!(err.frames().count(), 2);
+/// # assert_eq!(err.request_ref::<User>().count(), 1);
+/// # assert_eq!(err.request_ref::<Resource>().count(), 1);
 /// ```
 ///
 /// [`Report`]: crate::Report
 #[macro_export]
 macro_rules! ensure {
-    ($cond:expr, scope: $scope:expr $(,)?) => ({
+    ($cond:expr, error_kind: $error_kind:expr $(,)?) => ({
         if !$cond {
-            $crate::bail!(scope: $scope)
+            $crate::bail!(error_kind: $error_kind)
         }
     });
-    ($cond:expr, scope: $scope:expr, $msg:literal $(,)?) => ({
+    ($cond:expr, error_kind: $error_kind:expr, $msg:literal $(,)?) => ({
         if !$cond {
-            $crate::bail!(scope: $scope, $msg)
+            $crate::bail!(error_kind: $error_kind, $msg)
         }
     });
-    ($cond:expr, scope: $scope:expr, $err:expr $(,)?) => ({
+    ($cond:expr, error_kind: $error_kind:expr, $err:expr $(,)?) => ({
         if !$cond {
-            $crate::bail!(scope: $scope, $err)
+            $crate::bail!(error_kind: $error_kind, $err)
         }
     });
-    ($cond:expr, scope: $scope:expr, $fmt:expr, $($arg:tt)+) => {
+    ($cond:expr, error_kind: $error_kind:expr, $fmt:expr, $($arg:tt)+) => {
         if !$cond {
-            $crate::bail!(scope: $scope, $fmt, $($arg)+)
+            $crate::bail!(error_kind: $error_kind, $fmt, $($arg)+)
         }
     };
     ($cond:expr, $msg:literal $(,)?) => ({
