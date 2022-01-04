@@ -29,7 +29,7 @@ const createEntityType = async () => {
   entityTypeCounter += 1;
   return EntityType.create(db, {
     accountId: existingUser.accountId,
-    createdById: existingUser.entityId,
+    createdByAccountId: existingUser.entityId,
     name: `Dummy-${entityTypeCounter}`,
   });
 };
@@ -37,7 +37,7 @@ const createEntityType = async () => {
 const createEntity = async (params: { versioned: boolean }) =>
   Entity.create(db, {
     accountId: existingUser.accountId,
-    createdById: existingUser.entityId,
+    createdByAccountId: existingUser.entityId,
     versioned: params.versioned,
     entityTypeId: dummyEntityType.entityId,
     properties: {},
@@ -71,11 +71,11 @@ beforeAll(async () => {
 describe("Aggregation model class ", () => {
   it("static create method can create an aggregation with a non-versioned source entity", async () => {
     const accountId = existingUser.accountId;
-    const createdById = existingUser.entityId;
+    const createdByAccountId = existingUser.entityId;
 
     const source = await Entity.create(db, {
       accountId,
-      createdById,
+      createdByAccountId,
       versioned: false,
       entityTypeId: dummyEntityType.entityId,
       properties: {},
@@ -95,18 +95,18 @@ describe("Aggregation model class ", () => {
     expect(aggregation.sourceEntityVersionIds.has(source.entityVersionId)).toBe(
       true,
     );
-    expect(aggregation.createdById).toBe(existingUser.entityId);
+    expect(aggregation.createdByAccountId).toBe(existingUser.entityId);
   });
 
   it("results method retrieves aggregation results", async () => {
     const accountId = existingUser.accountId;
-    const createdById = existingUser.entityId;
+    const createdByAccountId = existingUser.entityId;
 
     const resultEntityType = await createEntityType();
 
     const entityA = await Entity.create(db, {
       accountId,
-      createdById,
+      createdByAccountId,
       versioned: false,
       entityTypeId: dummyEntityType.entityId,
       properties: {},
@@ -115,14 +115,14 @@ describe("Aggregation model class ", () => {
     const [entityB, entityC] = await Promise.all([
       Entity.create(db, {
         accountId,
-        createdById,
+        createdByAccountId,
         versioned: false,
         entityTypeId: resultEntityType.entityId,
         properties: {},
       }),
       Entity.create(db, {
         accountId,
-        createdById,
+        createdByAccountId,
         versioned: false,
         entityTypeId: resultEntityType.entityId,
         properties: {},
@@ -151,11 +151,11 @@ describe("Aggregation model class ", () => {
 
   it("updateOperation method updates an aggregation operation with a non-versioned source entity", async () => {
     const accountId = existingUser.accountId;
-    const createdById = existingUser.entityId;
+    const createdByAccountId = existingUser.entityId;
 
     const source = await Entity.create(db, {
       accountId,
-      createdById,
+      createdByAccountId,
       versioned: false,
       entityTypeId: dummyEntityType.entityId,
       properties: {},
@@ -194,11 +194,11 @@ describe("Aggregation model class ", () => {
 
   it("delete method deletes an aggregation with a non-versioned source entity", async () => {
     const accountId = existingUser.accountId;
-    const createdById = existingUser.entityId;
+    const createdByAccountId = existingUser.entityId;
 
     const entityA = await Entity.create(db, {
       accountId,
-      createdById,
+      createdByAccountId,
       versioned: true,
       entityTypeId: dummyEntityType.entityId,
       properties: {},
@@ -284,7 +284,10 @@ describe("Aggregation model class ", () => {
     // Unrelated update to the source to see if aggregation persists
 
     await source.updateEntityProperties(db, {
-      testing: "test update that results in new source version",
+      updatedByAccountId: existingUser.accountId,
+      properties: {
+        testing: "test update that results in new source version",
+      },
     });
 
     await source.refetchLatestVersion(db);
@@ -325,7 +328,9 @@ describe("Aggregation model class ", () => {
 
     // Delete the aggregation
 
-    await aggregation.delete(db);
+    await aggregation.delete(db, {
+      deletedByAccountId: existingUser.accountId,
+    });
 
     await source.refetchLatestVersion(db);
 

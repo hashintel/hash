@@ -45,7 +45,7 @@ export type AggregationConstructorArgs = {
 
   operation: UnresolvedGQLAggregateOperation;
 
-  createdById: string;
+  createdByAccountId: string;
   createdAt: Date;
 };
 
@@ -66,7 +66,7 @@ class __Aggregation {
 
   operation: UnresolvedGQLAggregateOperation;
 
-  createdById: string;
+  createdByAccountId: string;
   createdAt: Date;
 
   constructor({
@@ -76,7 +76,7 @@ class __Aggregation {
     sourceEntityId,
     sourceEntityVersionIds,
     createdAt,
-    createdById,
+    createdByAccountId,
   }: AggregationConstructorArgs) {
     this.stringifiedPath = stringifiedPath;
     this.path = Link.parseStringifiedPath(stringifiedPath);
@@ -85,7 +85,7 @@ class __Aggregation {
     this.sourceEntityId = sourceEntityId;
     this.sourceEntityVersionIds = sourceEntityVersionIds;
     this.createdAt = createdAt;
-    this.createdById = createdById;
+    this.createdByAccountId = createdByAccountId;
   }
 
   static isPathValid(path: string): boolean {
@@ -231,7 +231,7 @@ class __Aggregation {
       sourceAccountId,
       sourceEntityId,
       operation,
-      createdById: createdBy.accountId,
+      createdByAccountId: createdBy.accountId,
     });
 
     return mapDBAggregationToModel(dbAggregation);
@@ -341,8 +341,13 @@ class __Aggregation {
     return results;
   }
 
-  async delete(client: DBClient): Promise<void> {
+  async delete(
+    client: DBClient,
+    params: { deletedByAccountId: string },
+  ): Promise<void> {
+    const { deletedByAccountId } = params;
     await client.deleteAggregation({
+      deletedByAccountId,
       sourceAccountId: this.sourceAccountId,
       sourceEntityId: this.sourceEntityId,
       path: this.stringifiedPath,

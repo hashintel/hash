@@ -22,7 +22,7 @@ export const mapRowToDBAggregation = (
   path: row.path,
   operation: row.operation,
   sourceEntityVersionIds: new Set(row.source_entity_version_ids),
-  createdById: row.created_by,
+  createdByAccountId: row.created_by,
   createdAt: new Date(row.created_at),
 });
 
@@ -59,7 +59,7 @@ export const insertAggregation = async (
         aggregation.path,
         sql.array(Array.from(aggregation.sourceEntityVersionIds), "uuid"),
         JSON.stringify(aggregation.operation),
-        aggregation.createdById,
+        aggregation.createdByAccountId,
         aggregation.createdAt.toISOString(),
       ],
       sql`, `,

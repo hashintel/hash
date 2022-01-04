@@ -187,62 +187,6 @@ class __OrgEmailInvitation extends AccessToken {
     return inviter;
   }
 
-  async getOrg(client: DBClient): Promise<Org> {
-    const outgoingOrgLinks = await this.getOutgoingLinks(client, {
-      path: ["org"],
-    });
-
-    const orgLink = outgoingOrgLinks[0];
-
-    if (!orgLink) {
-      throw new Error(
-        `OrgEmailInvitation with entityId ${this.entityId} does not have an outgoing org link`,
-      );
-    }
-
-    const { destinationEntityId } = orgLink;
-
-    const org = await Org.getOrgById(client, {
-      entityId: destinationEntityId,
-    });
-
-    if (!org) {
-      throw new Error(
-        `OrgEmailInvitation with entityId ${this.entityId} links to org with entityId ${destinationEntityId} that cannot be found`,
-      );
-    }
-
-    return org;
-  }
-
-  async getInviter(client: DBClient): Promise<User> {
-    const outgoingInviterLinks = await this.getOutgoingLinks(client, {
-      path: ["inviter"],
-    });
-
-    const inviterLink = outgoingInviterLinks[0];
-
-    if (!inviterLink) {
-      throw new Error(
-        `OrgEmailInvitation with entityId ${this.entityId} does not have an outgoing inviter link`,
-      );
-    }
-
-    const { destinationEntityId } = inviterLink;
-
-    const inviter = await User.getUserById(client, {
-      entityId: destinationEntityId,
-    });
-
-    if (!inviter) {
-      throw new Error(
-        `OrgEmailInvitation with entityId ${this.entityId} links to org with entityId ${destinationEntityId} that cannot be found`,
-      );
-    }
-
-    return inviter;
-  }
-
   /**
    * Sets the email invitation to used.
    */

@@ -27,7 +27,7 @@ export const updateAggregationOperation = (
     const now = new Date();
 
     const {
-      createdById,
+      createdByAccountId,
       createdAt,
       sourceEntityVersionIds: prevSourceEntityVersionIds,
     } = await getAggregation(conn, params);
@@ -51,6 +51,7 @@ export const updateAggregationOperation = (
 
     if (dbSourceEntity.metadata.versioned) {
       dbSourceEntity = await updateVersionedEntity(conn, {
+        updatedByAccountId: createdByAccountId,
         entity: dbSourceEntity,
         /** @todo: re-implement method to not require updated `properties` */
         properties: dbSourceEntity.properties,
@@ -65,7 +66,7 @@ export const updateAggregationOperation = (
           sourceEntityVersionIds,
           operation,
           createdAt: now,
-          createdById,
+          createdByAccountId,
         },
       });
     } else {
@@ -75,7 +76,7 @@ export const updateAggregationOperation = (
     return {
       ...params,
       sourceEntityVersionIds,
-      createdById,
+      createdByAccountId,
       createdAt,
     };
   });

@@ -11,15 +11,15 @@ import { insertAggregation } from "./util";
 export const createAggregation = async (
   existingConnection: Connection,
   params: {
+    createdByAccountId: string;
     sourceAccountId: string;
     sourceEntityId: string;
     path: string;
     operation: object;
-    createdById: string;
   },
 ): Promise<DBAggregation> =>
   existingConnection.transaction(async (conn) => {
-    const { sourceAccountId, sourceEntityId } = params;
+    const { sourceAccountId, sourceEntityId, createdByAccountId } = params;
 
     await acquireEntityLock(conn, { entityId: sourceEntityId });
 
@@ -39,6 +39,7 @@ export const createAggregation = async (
     if (dbSourceEntity.metadata.versioned) {
       dbSourceEntity = await updateVersionedEntity(conn, {
         entity: dbSourceEntity,
+        updatedByAccountId: createdByAccountId,
         /** @todo: re-implement method to not require updated `properties` */
         properties: dbSourceEntity.properties,
       });

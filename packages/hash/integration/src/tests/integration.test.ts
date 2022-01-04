@@ -49,7 +49,7 @@ const createEntity = (params: { entityTypeId: string }) =>
   Entity.create(db, {
     ...params,
     accountId: existingUser.accountId,
-    createdById: existingUser.entityId,
+    createdByAccountId: existingUser.entityId,
     versioned: false,
     properties: {},
   });
@@ -60,7 +60,7 @@ const createEntityType = async () => {
   entityTypeCounter += 1;
   return EntityType.create(db, {
     accountId: existingUser.accountId,
-    createdById: existingUser.entityId,
+    createdByAccountId: existingUser.entityId,
     name: `Dummy-${entityTypeCounter}`,
   });
 };

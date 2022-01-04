@@ -68,7 +68,7 @@ export type DBAggregation = {
   sourceEntityVersionIds: Set<string>;
   path: string;
   operation: object;
-  createdById: string;
+  createdByAccountId: string;
   createdAt: Date;
 };
 
@@ -401,11 +401,11 @@ export interface DBClient {
   }): Promise<VerificationCode>;
 
   createAggregation(params: {
+    createdByAccountId: string;
     sourceAccountId: string;
     sourceEntityId: string;
     path: string;
     operation: object;
-    createdById: string;
   }): Promise<DBAggregation>;
 
   updateAggregationOperation(params: {
@@ -429,6 +429,7 @@ export interface DBClient {
   }): Promise<DBAggregation[]>;
 
   deleteAggregation(params: {
+    deletedByAccountId: string;
     sourceAccountId: string;
     sourceEntityId: string;
     path: string;

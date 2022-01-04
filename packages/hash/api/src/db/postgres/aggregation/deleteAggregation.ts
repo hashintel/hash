@@ -9,10 +9,15 @@ import { deleteAggregationRow } from "./util";
 
 export const deleteAggregation = async (
   existingConnection: Connection,
-  params: { sourceAccountId: string; sourceEntityId: string; path: string },
+  params: {
+    sourceAccountId: string;
+    sourceEntityId: string;
+    path: string;
+    deletedByAccountId: string;
+  },
 ): Promise<void> =>
   existingConnection.transaction(async (conn) => {
-    const { sourceAccountId, sourceEntityId } = params;
+    const { sourceAccountId, sourceEntityId, deletedByAccountId } = params;
 
     await acquireEntityLock(conn, { entityId: sourceEntityId });
 
@@ -37,6 +42,7 @@ export const deleteAggregation = async (
        */
 
       dbSourceEntity = await updateVersionedEntity(conn, {
+        updatedByAccountId: deletedByAccountId,
         entity: dbSourceEntity,
         /** @todo: re-implement method to not require updated `properties` */
         properties: dbSourceEntity.properties,
