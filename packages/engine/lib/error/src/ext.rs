@@ -1,7 +1,7 @@
-use crate::{Context, ErrorKind, Report, ReportContext, ReportErrorKind, Result};
+use crate::{Context, ErrorKind, Report, Result, ResultExt};
 
 #[cfg(feature = "std")]
-impl<T, E> ReportContext<T> for Result<T, E>
+impl<T, E> ResultExt<T> for Result<T, E>
 where
     E: std::error::Error + Send + Sync + 'static,
 {
@@ -29,13 +29,7 @@ where
             Err(error) => Err(Report::from(error).context(context())),
         }
     }
-}
 
-#[cfg(feature = "std")]
-impl<T, E> ReportErrorKind<T> for Result<T, E>
-where
-    E: std::error::Error + Send + Sync + 'static,
-{
     #[track_caller]
     fn error_kind<K>(self, error_kind: K) -> Result<T, Report<K>>
     where
@@ -60,7 +54,7 @@ where
     }
 }
 
-impl<T, E> ReportContext<T> for Result<T, Report<E>> {
+impl<T, E> ResultExt<T> for Result<T, Report<E>> {
     type ErrorKind = E;
 
     #[track_caller]
@@ -85,9 +79,7 @@ impl<T, E> ReportContext<T> for Result<T, Report<E>> {
             Err(report) => Err(report.context(context())),
         }
     }
-}
 
-impl<T, E> ReportErrorKind<T> for Result<T, Report<E>> {
     #[track_caller]
     fn error_kind<K>(self, error_kind: K) -> Result<T, Report<K>>
     where
@@ -108,33 +100,6 @@ impl<T, E> ReportErrorKind<T> for Result<T, Report<E>> {
         match self {
             Ok(t) => Ok(t),
             Err(report) => Err(report.error_kind(error_kind())),
-        }
-    }
-}
-
-impl<T> ReportContext<T> for Option<T> {
-    type ErrorKind = ();
-
-    #[track_caller]
-    fn context<C>(self, context: C) -> Result<T, Report>
-    where
-        C: Context,
-    {
-        match self {
-            Some(t) => Ok(t),
-            None => Err(Report::new(context)),
-        }
-    }
-
-    #[track_caller]
-    fn with_context<C, F>(self, context: F) -> Result<T, Report>
-    where
-        C: Context,
-        F: FnOnce() -> C,
-    {
-        match self {
-            Some(t) => Ok(t),
-            None => Err(Report::new(context())),
         }
     }
 }

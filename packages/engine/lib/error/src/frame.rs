@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, string::ToString};
+use alloc::boxed::Box;
 use core::{fmt, fmt::Formatter, panic::Location};
 
 use provider::{self, tags, Provider, Requisition, TypeTag};
@@ -27,6 +27,17 @@ impl fmt::Display for Error {
             Self::Context(context) => fmt::Display::fmt(context, fmt),
             #[cfg(feature = "std")]
             Self::Std(error) => fmt::Display::fmt(error, fmt),
+        }
+    }
+}
+
+impl fmt::Debug for Error {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Kind(kind) => fmt::Debug::fmt(kind, fmt),
+            Self::Context(context) => fmt::Debug::fmt(context, fmt),
+            #[cfg(feature = "std")]
+            Self::Std(error) => fmt::Debug::fmt(error, fmt),
         }
     }
 }
@@ -96,7 +107,7 @@ impl Provider for Frame {
 impl fmt::Debug for Frame {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("Frame")
-            .field("error", &self.to_string())
+            .field("error", &self.error)
             .field("location", &self.location)
             .finish()
     }

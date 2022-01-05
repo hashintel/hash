@@ -66,17 +66,22 @@
 //! A context can be provided to lower level errors.
 //!
 //! ```
-//! use error::{ReportContext, Result};
+//! use error::{ResultExt, Result};
 //!
 //! fn main() -> Result<()> {
-//!     # return Ok(());
+//!     # fn fake_main() -> Result<()> {
 //!     let config_path = "./path/to/config.file";
+//!     # #[cfg(all(not(miri), feature = "std"))]
 //!     let content = std::fs::read_to_string(config_path)
 //!         .with_context(|| format!("Failed to read config file {config_path:?}"))?;
+//!     # #[cfg(any(miri, not(feature = "std")))]
+//!     # Err(error::format_err!("")).with_context(|| format!("Failed to read config file {config_path:?}"))?;
 //!
 //!     # const _: &str = stringify! {
 //!     ...
 //!     # };
+//!     # Ok(()) }
+//!     # fake_main().unwrap_err();
 //!     # Ok(())
 //! }
 //! ```
@@ -129,13 +134,13 @@ use self::{frame::Error, report::ReportImpl};
 /// the [`Backtrace` documentation][`Backtrace`]. To enable the span trace, [`ErrorLayer`] has to
 /// be enabled.
 ///
-/// Context information can be added by using [`context()`] or [`ReportContext`]. The [`Frame`]
+/// Context information can be added by using [`context()`] or [`ResultExt`]. The [`Frame`]
 /// stack can be iterated by using [`frames()`].
 ///
 /// To enforce context information generation, an optional [`ErrorKind`] may be used. When creating
 /// a `Report` from a message with [`new()`] or from an std-error by using [`from()`], the `Report`
 /// does not have an [`ErrorKind`]. To provide one, the [`provider`] API is used. Use
-/// [`error_kind()`] or [`ReportErrorKind`] to add it, which may also be used to provide more
+/// [`error_kind()`] or [`ResultExt`] to add it, which may also be used to provide more
 /// context information than only a display message. This information can the be retrieved by
 /// calling [`request()`], [`request_ref()`], or [`request_value()`].
 ///
@@ -157,15 +162,15 @@ use self::{frame::Error, report::ReportImpl};
 ///
 ///
 /// ```
-/// use error::{ReportContext, Result};
+/// use error::{ResultExt, Result};
 ///
 /// fn main() -> Result<()> {
 ///     # fn fake_main() -> Result<()> {
 ///     let config_path = "./path/to/config.file";
-///     # #[cfg(not(miri))]
+///     # #[cfg(all(not(miri), feature = "std"))]
 ///     let content = std::fs::read_to_string(config_path)
 ///         .with_context(|| format!("Failed to read config file {config_path:?}"))?;
-///     # #[cfg(miri)]
+///     # #[cfg(any(miri, not(feature = "std")))]
 ///     # Err(error::format_err!("")).with_context(|| format!("Failed to read config file {config_path:?}"))?;
 ///
 ///     # const _: &str = stringify! {
@@ -185,7 +190,7 @@ use self::{frame::Error, report::ReportImpl};
 /// use std::fmt::Write;
 /// use std::path::{Path, PathBuf};
 ///
-/// use error::{ErrorKind, Report, ReportErrorKind};
+/// use error::{ErrorKind, Report, ResultExt};
 ///
 /// #[derive(Debug)]
 /// enum RuntimeError {
@@ -226,9 +231,9 @@ use self::{frame::Error, report::ReportImpl};
 /// impl ErrorKind for ConfigError {}
 ///
 /// fn read_config(path: impl AsRef<Path>) -> Result<String, Report<ConfigError>> {
-///     # #[cfg(miri)]
+///     # #[cfg(any(miri, not(feature = "std")))]
 ///     # { error::bail!(error_kind: ConfigError::IoError, "No such file"); return Ok("".to_string()); }
-///     # #[cfg(not(miri))]
+///     # #[cfg(all(not(miri), feature = "std"))]
 ///     std::fs::read_to_string(path.as_ref()).error_kind(ConfigError::IoError)
 /// }
 ///
@@ -321,10 +326,11 @@ pub type Result<T, E = Report> = core::result::Result<T, E>;
 /// use error::ErrorKind;
 /// use provider::Requisition;
 ///
-/// # struct User;
-/// # struct Resource;
+/// # #[derive(Debug)] struct User;
+/// # #[derive(Debug)] struct Resource;
 /// # impl fmt::Display for User { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
 /// # impl fmt::Display for Resource { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
+/// #[derive(Debug)]
 /// struct PermissionDenied {
 ///     user: User,
 ///     resource: Resource,
@@ -342,19 +348,10 @@ pub type Result<T, E = Report> = core::result::Result<T, E>;
 ///     }
 /// }
 /// ```
-pub trait ErrorKind: fmt::Display + Send + Sync + 'static {
+pub trait ErrorKind: fmt::Display + fmt::Debug + Send + Sync + 'static {
     /// Provides error information for a [`Frame`] similar to the [`provider`] API.
     fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
         let _ = req;
-    }
-}
-
-impl<P> ErrorKind for P
-where
-    P: Provider + fmt::Display + Send + Sync + 'static,
-{
-    fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
-        Provider::provide(self, req);
     }
 }
 
@@ -381,6 +378,7 @@ where
 /// use error::Context;
 /// use provider::Requisition;
 ///
+/// #[derive(Debug)]
 /// struct MyContext;
 ///
 /// impl fmt::Display for MyContext {
@@ -393,21 +391,32 @@ where
 ///     fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {}
 /// }
 /// ```
-pub trait Context: fmt::Display + Send + Sync + 'static {
+pub trait Context: fmt::Display + fmt::Debug + Send + Sync + 'static {
     /// Provides error information for a [`Frame`] similar to the [`provider`] API.
     fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>);
 }
 
+impl<P> ErrorKind for P
+where
+    P: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+{
+    fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
+        Provider::provide(self, req);
+    }
+}
+
 impl<E> Context for E
 where
-    E: fmt::Display + Send + Sync + 'static,
+    E: fmt::Display + fmt::Debug + Send + Sync + 'static,
 {
     default fn provide<'p>(&'p self, _req: &mut Requisition<'p, '_>) {}
 }
 
-/// Extension trait to provide context information on [`Report`]s.
-pub trait ReportContext<T> {
-    /// Type of the resulting error `E` inside of [`Report<E>`][`Report`].
+/// Extension trait for [`Result`][core::result::Result] to provide context information on
+/// [`Report`]s.
+pub trait ResultExt<T> {
+    /// Type of the resulting error `E` inside of [`Report<E>`][`Report`] when not providing an
+    /// error kind.
     type ErrorKind;
 
     /// Adds new context information to the [`Frame`] stack of a [`Report`].
@@ -420,10 +429,7 @@ pub trait ReportContext<T> {
     where
         C: Context,
         F: FnOnce() -> C;
-}
 
-/// Extension trait to provide the error `E` inside of [`Report<E>`][`Report`].
-pub trait ReportErrorKind<T> {
     /// Adds a new error kind to the [`Frame`] stack of a [`Report`].
     fn error_kind<E>(self, error_kind: E) -> Result<T, Report<E>>
     where
