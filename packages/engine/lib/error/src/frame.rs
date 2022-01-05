@@ -12,7 +12,7 @@ impl<T: fmt::Display + fmt::Debug> DisplayError for T {}
 pub(super) trait ProviderError: Provider + DisplayError {}
 impl<T: Provider + DisplayError> ProviderError for T {}
 
-// TODO: Use thin pointer + vtable to reduce overhead and size
+// TODO: Use thin pointer + vtable to enable downcasting
 pub(super) enum Error {
     Kind(Box<dyn ErrorKind>),
     Context(Box<dyn Context>),

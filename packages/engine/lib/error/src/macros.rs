@@ -102,7 +102,7 @@ pub mod __private {
 /// # impl fmt::Display for User { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
 /// # impl fmt::Display for Resource { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
 /// use core::fmt;
-/// 
+///
 /// use error::{ErrorKind, Report};
 /// use provider::{Provider, Requisition};
 ///
@@ -216,7 +216,7 @@ macro_rules! format_err {
 /// # impl fmt::Display for User { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
 /// # impl fmt::Display for Resource { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
 /// use core::fmt;
-/// 
+///
 /// use error::{ErrorKind, Report};
 /// use provider::{Provider, Requisition};
 ///
@@ -310,7 +310,7 @@ macro_rules! bail {
 /// # impl fmt::Display for User { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
 /// # impl fmt::Display for Resource { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
 /// use core::fmt;
-/// 
+///
 /// use error::{ErrorKind, Report};
 /// use provider::{Provider, Requisition};
 ///
