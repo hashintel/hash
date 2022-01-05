@@ -522,17 +522,19 @@ impl WorkerController {
         // TODO: Change to `children(3)` after enabling all runners.
         debug_assert!(!self.rs.spawned());
         let (runner_msgs, runner_receivers) = sync.create_children(2);
-        let mut runner_msgs: Vec<_> = runner_msgs
+        let runner_msgs: Vec<_> = runner_msgs
             .into_iter()
             .map(InboundToRunnerMsgPayload::StateSync)
             .collect();
         // Borrow checker doesn't allow just `runner_msgs[0]`,
         // because it would be a partial move.
-        let js_msg = runner_msgs.remove(0);
+        let [js_msg, py_msg]: [InboundToRunnerMsgPayload; 2] = runner_msgs
+            .try_into()
+            .unwrap();
         tokio::try_join!(
             self.js.send_if_spawned(sim_id, js_msg),
-            self.py.send_if_spawned(sim_id, runner_msgs.remove(0))
-             /* TODO: self.rs.send_if_spawned(sim_id, runner_msgs[2]), */
+            self.py.send_if_spawned(sim_id, py_msg),
+             /* TODO: self.rs.send_if_spawned(sim_id, rs_msg), */
         )?;
         let fut = async move {
             let sync = sync; // Capture `sync` in lambda.
