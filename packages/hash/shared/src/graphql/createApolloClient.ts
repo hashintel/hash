@@ -10,6 +10,7 @@ import * as Sentry from "@sentry/browser";
 import { RequestInfo, RequestInit } from "node-fetch";
 
 import { apiGraphQLEndpoint } from "../environment";
+import { SystemTypeName } from "./apiTypes.gen";
 
 import possibleTypes from "./fragmentTypes.gen.json";
 
@@ -75,21 +76,25 @@ export const createApolloClient = (params?: {
 
   const entityKeyFields = { keyFields: ["entityId"] };
 
+  const typePolicies: Record<SystemTypeName, typeof entityKeyFields> = {
+    Block: entityKeyFields,
+    EntityType: entityKeyFields,
+    OrgEmailInvitation: entityKeyFields,
+    OrgInvitationLink: entityKeyFields,
+    Org: entityKeyFields,
+    OrgMembership: entityKeyFields,
+    Page: entityKeyFields,
+    Text: entityKeyFields,
+    User: entityKeyFields,
+    File: entityKeyFields,
+  };
+  
   return new ApolloClient({
     cache: new InMemoryCache({
       possibleTypes: possibleTypes.possibleTypes,
       typePolicies: {
-        Block: entityKeyFields,
+        ...typePolicies,
         UnknownEntity: entityKeyFields,
-        EntityType: entityKeyFields,
-        OrgEmailInvitation: entityKeyFields,
-        OrgInvitationLink: entityKeyFields,
-        Org: entityKeyFields,
-        OrgMembership: entityKeyFields,
-        Page: entityKeyFields,
-        Text: entityKeyFields,
-        User: entityKeyFields,
-        File: entityKeyFields,
       },
     }),
     credentials: "include",
