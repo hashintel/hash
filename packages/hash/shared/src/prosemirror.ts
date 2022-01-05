@@ -1,4 +1,4 @@
-import { NodeType, Schema } from "prosemirror-model";
+import { Schema } from "prosemirror-model";
 import { Text } from "./graphql/apiTypes.gen";
 import { TextToken } from "./graphql/types";
 import { ProsemirrorNode } from "./node";
@@ -103,15 +103,13 @@ export const isEntityNode = (
   node: ProsemirrorNode<Schema> | null,
 ): node is EntityNode => !!node && node.type === node.type.schema.nodes.entity;
 
-export const isComponentNodeType = (nodeType: NodeType<Schema>) =>
-  !!nodeType.spec.attrs && "blockEntityId" in nodeType.spec.attrs;
-
 /**
  * @todo use group name for this
  */
 export const isComponentNode = (
   node: ProsemirrorNode<Schema>,
-): node is ComponentNode => isComponentNodeType(node.type);
+): node is ComponentNode =>
+  !!node.type.spec.attrs && "blockEntityId" in node.type.spec.attrs;
 
 export const findComponentNodes = (doc: ProsemirrorNode<Schema>) => {
   const componentNodes: [ComponentNode, number][] = [];

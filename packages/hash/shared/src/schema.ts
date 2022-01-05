@@ -4,13 +4,23 @@ export const createSchema = () =>
   new Schema({
     nodes: {
       doc: {
-        content: "((block|blockItem|entity)+)|blank",
+        content: "((componentNode|block)+)|blank",
       },
       blank: {
+        /**
+         * As we don't have any component nodes defined by default, we need a
+         * placeholder, otherwise Prosemirror will crash when trying to
+         * interpret the content expressions in other nodes. However, as soon
+         * as we have defined a different component node, we remove the blank
+         * node from the componentNode group, which ensures that when
+         * Prosemirror attempts to instantiate a componentNode it uses that
+         * node instead of the blank one
+         */
+        group: "componentNode",
         toDOM: () => ["div", 0] as const,
       },
       block: {
-        content: "entity*",
+        content: "entity",
         /**
          * These properties are necessary for copy and paste (which is
          * necessary for drag and drop)
@@ -32,10 +42,8 @@ export const createSchema = () =>
           },
         ],
       },
-      // @todo perhaps we shouldn't use a nested structure here, but draftId / entityId should be arrays
       entity: {
-        group: "blockItem",
-        content: "blockItem*",
+        content: "componentNode | entity",
         attrs: {
           entityId: { default: null },
           draftId: { default: null },
