@@ -17,28 +17,57 @@ export const MentionDisplay: VFC<MentionDisplayProps> = ({
   mentionType,
   accountId,
 }) => {
-  const { data: users } = useUsers();
-  const { data: pages } = useAccountPages(accountId);
+  const { data: users, loading: usersLoading } = useUsers();
+  const { data: pages, loading: pagesLoading } = useAccountPages(accountId);
 
   const { title, href, icon } = useMemo(() => {
     switch (mentionType) {
-      case "user":
+      case "user": {
+        // If the users query is still loading, only display "User" as name
+        let userName = "User";
+
+        if (!usersLoading) {
+          // Once the query loads, either display the found name, or display "Unknown User" if the user doesn't exist in the users array
+          userName =
+            users.find((item) => item.entityId === entityId)?.name ??
+            "Unknown User";
+        }
+
         return {
-          title:
-            users.find((item) => item.entityId === entityId)?.name ?? "User",
+          title: userName,
           href: `/${entityId}`,
           icon: "@",
         };
-      case "page":
+      }
+      case "page": {
+        // If the pages query is still loading, only display "Page" as title
+        let pageTitle = "Page";
+
+        if (!pagesLoading) {
+          // Once the query loads, either display the found title, or display "Unknown Page" if the page doesn't exist in the page array
+          pageTitle =
+            pages.find((page) => page.entityId === entityId)?.title ??
+            "Unknown Page";
+        }
+
         return {
-          title: pages.find((page) => page.entityId === entityId) ?? "Page",
+          title: pageTitle,
           href: `/${accountId}/${entityId}`,
           icon: <ArticleIcon style={{ fontSize: "1em" }} />,
         };
+      }
       default:
         return { title: "", href: "", icon: "@" };
     }
-  }, [accountId, entityId, mentionType, users, pages]);
+  }, [
+    accountId,
+    entityId,
+    mentionType,
+    users,
+    usersLoading,
+    pages,
+    pagesLoading,
+  ]);
 
   return (
     <Link href={href}>
