@@ -8,6 +8,7 @@ import {
   Plugin,
   Transaction,
 } from "prosemirror-state";
+import { Mapping } from "prosemirror-transform";
 import { ProsemirrorNode } from "./node";
 
 type WrapperNodes = [number, ProsemirrorNode<Schema>[]];
@@ -115,6 +116,10 @@ const stateWithTransaction = (
     plugins: state.plugins,
   });
 
+/**
+ * @todo this isn't sufficient to combine transactions – need to copy meta and
+ *       other things across
+ */
 const combineTransactions = (
   targetTransaction: Transaction<Schema>,
   sourceTransaction: Transaction<Schema>,
@@ -122,6 +127,10 @@ const combineTransactions = (
   for (const step of sourceTransaction.steps) {
     targetTransaction.step(step);
   }
+
+  targetTransaction.setSelection(
+    sourceTransaction.selection.map(targetTransaction.doc, new Mapping()),
+  );
 };
 
 /**
