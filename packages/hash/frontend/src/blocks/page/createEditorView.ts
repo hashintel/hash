@@ -99,7 +99,7 @@ export const createEditorView = (
   const plugins: Plugin<unknown, Schema>[] = [
     createSavePlugin(accountId, pageEntityId, getLastSavedValue, client),
     ...createFormatPlugins(renderPortal),
-    createSuggester(renderPortal, () => manager),
+    createSuggester(renderPortal, () => manager, accountId),
   ];
 
   const state = createProseMirrorState({ plugins });
@@ -156,6 +156,7 @@ export const createEditorView = (
           getPos,
           renderPortal,
           manager,
+          accountId,
         );
       },
     },

@@ -91,6 +91,7 @@ const key = new PluginKey<SuggesterState, Schema>("suggester");
 export const createSuggester = (
   renderPortal: RenderPortal,
   getManager: () => ProsemirrorSchemaManager,
+  accountId: string,
 ) =>
   new Plugin<SuggesterState, Schema>({
     key,
@@ -217,6 +218,7 @@ export const createSuggester = (
                 <MentionSuggester
                   search={search.substring(1)}
                   onChange={onMentionChange}
+                  accountId={accountId}
                 />
               );
           }

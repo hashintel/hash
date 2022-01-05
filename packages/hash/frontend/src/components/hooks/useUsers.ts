@@ -3,7 +3,7 @@ import { useQuery } from "@apollo/client";
 import { GetAccountsQuery } from "../../graphql/apiTypes.gen";
 import { getAccounts } from "../../graphql/queries/account.queries";
 
-export const useAccountInfos = (): {
+export const useUsers = (): {
   loading: boolean;
   data: { entityId: string; shortname: string; name: string }[];
 } => {

@@ -7,7 +7,7 @@ import {
   BlockSuggester,
   BlockSuggesterProps,
 } from "../../blocks/page/createSuggester/BlockSuggester";
-import { useAccountInfos } from "../hooks/useAccountInfos";
+import { useUsers } from "../hooks/useUsers";
 import { BlockContextMenuItem } from "./BlockContextMenuItem";
 import {
   MenuItemType,
@@ -34,7 +34,7 @@ export const NormalView: VoidFunctionComponent<NormalViewComponentProps> = ({
   blockSuggesterProps,
   blockData,
 }) => {
-  const { data: accounts } = useAccountInfos();
+  const { data: users } = useUsers();
 
   return (
     <>
@@ -80,7 +80,7 @@ export const NormalView: VoidFunctionComponent<NormalViewComponentProps> = ({
         <p>
           Last edited by {/* @todo use lastedited value when available */}
           {
-            accounts.find(
+            users.find(
               (account) =>
                 account.entityId ===
                 blockData?.properties.entity.createdByAccountId,
