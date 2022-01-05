@@ -162,8 +162,11 @@ use self::{frame::Error, report::ReportImpl};
 /// fn main() -> Result<()> {
 ///     # fn fake_main() -> Result<()> {
 ///     let config_path = "./path/to/config.file";
+///     # #[cfg(not(miri))]
 ///     let content = std::fs::read_to_string(config_path)
 ///         .with_context(|| format!("Failed to read config file {config_path:?}"))?;
+///     # #[cfg(miri)]
+///     # Err(error::format_err!("")).with_context(|| format!("Failed to read config file {config_path:?}"))?;
 ///
 ///     # const _: &str = stringify! {
 ///     ...
@@ -223,6 +226,9 @@ use self::{frame::Error, report::ReportImpl};
 /// impl ErrorKind for ConfigError {}
 ///
 /// fn read_config(path: impl AsRef<Path>) -> Result<String, Report<ConfigError>> {
+///     # #[cfg(miri)]
+///     # { error::bail!(error_kind: ConfigError::IoError, "No such file"); return Ok("".to_string()); }
+///     # #[cfg(not(miri))]
 ///     std::fs::read_to_string(path.as_ref()).error_kind(ConfigError::IoError)
 /// }
 ///

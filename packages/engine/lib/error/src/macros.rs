@@ -79,13 +79,17 @@ pub mod __private {
 /// Create a [`Report`] from an error:
 ///
 /// ```
+/// # #[cfg(not(miri))]
 /// # use std::fs;
 /// # use error::format_err;
 /// # fn func() -> error::Result<()> {
+/// # #[cfg(not(miri))]
 /// match fs::read_to_string("/path/to/file") {
 ///     Ok(content) => println!("File contents: {content}"),
 ///     Err(err) => return Err(format_err!(err)),
 /// }
+/// # #[cfg(miri)]
+/// # error::bail!("");
 /// # Ok(())
 /// # }
 /// # let err = func().unwrap_err();
@@ -93,7 +97,6 @@ pub mod __private {
 /// ```
 ///
 /// Optionally, an [`ErrorKind`][crate::ErrorKind] can be provided:
-///
 /// ```
 /// # fn has_permission(user: &User, resource: &Resource) -> bool { false }
 /// # #[derive(Debug)] struct User;
@@ -196,10 +199,13 @@ macro_rules! format_err {
 /// # use std::fs;
 /// # use error::bail;
 /// # fn func() -> error::Result<()> {
+/// # #[cfg(not(miri))]
 /// match fs::read_to_string("/path/to/file") {
 ///     Ok(content) => println!("File contents: {content}"),
 ///     Err(err) => bail!(err),
 /// }
+/// # #[cfg(miri)]
+/// # bail!("");
 /// # Ok(())
 /// # }
 /// # let err = func().unwrap_err();
