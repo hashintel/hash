@@ -4,15 +4,13 @@ import { Entity, EntityType, Link, User } from "@hashintel/hash-api/src/model";
 import { WayToUseHash } from "@hashintel/hash-api/src/graphql/apiTypes.gen";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 
-import { IntegrationTestsHandler } from "../setup";
+import { recreateDbAndRunSchemaMigrations } from "../setup";
 
 const logger = new Logger({
   mode: "dev",
   level: "debug",
   serviceName: "integration-tests",
 });
-
-let handler: IntegrationTestsHandler;
 
 let db: PostgresAdapter;
 
@@ -21,15 +19,14 @@ let existingUser: User;
 let dummyEntityType: EntityType;
 
 beforeAll(async () => {
-  handler = new IntegrationTestsHandler();
-  await handler.init();
+  await recreateDbAndRunSchemaMigrations();
 
   db = new PostgresAdapter(
     {
       host: "localhost",
       user: "postgres",
       port: 5432,
-      database: "integration_tests",
+      database: process.env.HASH_PG_DATABASE ?? "backend_integration_tests",
       password: "postgres",
       maxPoolSize: 10,
     },
@@ -359,6 +356,5 @@ describe("Link model class ", () => {
 });
 
 afterAll(async () => {
-  await handler.close();
   await db.close();
 });
