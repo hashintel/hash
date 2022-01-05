@@ -88,7 +88,7 @@ export const createApolloClient = (params?: {
     User: entityKeyFields,
     File: entityKeyFields,
   };
-  
+
   return new ApolloClient({
     cache: new InMemoryCache({
       possibleTypes: possibleTypes.possibleTypes,
