@@ -11,8 +11,8 @@
     "generate-migration": "ts-node scripts/0004_system_account_generate.ts && ts-node scripts/0005_system_types_generate.ts",
     "lint:eslint": "eslint --ext .ts .",
     "lint:tsc": "tsc --noEmit",
-    "migration": "ts-node migration.ts",
-    "refresh": "ts-node migration.ts refresh"
+    "recreate-db": "ts-node scripts/recreate-db.ts",
+    "run-schema-migrations": "ts-node scripts/run-schema-migrations.ts"
   },
   "dependencies": {
     "id128": "1.6.6",

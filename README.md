@@ -83,16 +83,25 @@ build all blocks concurrently.
 
 ### Backend integration tests
 
-Backend integration tests are located at [packages/hash/integration](./packages/hash/integration). To run
-these tests, ensure the API and database are running in test mode (`yarn serve:hash-backend-test`),
-which sets a test database name, and execute:
+Backend integration tests are located in [packages/hash/integration](./packages/hash/integration) folder.
+
+If you run a local instance of the app, please stop it before running the tests to free network ports.
+
+#### Terminal 1
 
 ```sh
-yarn test:backend-integration
+yarn rebuild:backend
+NODE_ENV=test HASH_PG_DATABASE=backend_integration_tests yarn serve:hash-backend
 ```
 
-**N.B.** Don't forget to re-start the backend in regular mode (`yarn serve:hash-backend`) for normal
-development.
+#### Terminal 2
+
+```sh
+HASH_PG_DATABASE=backend_integration_tests yarn test:backend-integration
+```
+
+We plan to use Playwright [API testing](https://playwright.dev/docs/test-api-testing/) feature instead of Jest.
+Thus, `yarn test:backend-integration` and `yarn test:playwright` will probably converge.
 
 ### Playwright tests
 
@@ -100,7 +109,7 @@ development.
 They apply to the monorepo as a whole, so are located in the top-level [tests](./tests) folder.
 To run these tests locally, you will need to have both backend and frontend running.
 
-To ensure that your local changes are unaffected by the tests, it is recommended to use another database instance (`HASH_PG_DATABASE=integration_tests`).
+To ensure that your local changes are unaffected by the tests, it is recommended to use another database instance (`HASH_PG_DATABASE=playwright`).
 The database needs to be re-seeded before each test run.
 
 If you run a local instance of the app, please stop it before running the tests to free network ports.
@@ -109,13 +118,13 @@ If you run a local instance of the app, please stop it before running the tests 
 
 ```sh
 yarn rebuild:backend
-HASH_PG_DATABASE=integration_tests yarn serve:hash-backend
+HASH_PG_DATABASE=playwright yarn serve:hash-backend
 ```
 
 #### Terminal 2
 
 ```sh
-HASH_PG_DATABASE=integration_tests yarn seed-db
+HASH_PG_DATABASE=playwright yarn seed-db
 
 ## option 1: frontend in dev mode
 yarn serve:hash-frontend

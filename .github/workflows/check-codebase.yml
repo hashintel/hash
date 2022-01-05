@@ -114,7 +114,7 @@ jobs:
       - name: Launch backend in test mode
         run: |
           docker volume create --name=hash-dev-pg
-          yarn serve:hash-backend-test & ## ampersand enables background mode
+          yarn serve:hash-backend & ## ampersand enables background mode
           npx wait-on --timeout $(expr 1000 \* 60 \* 2) http://localhost:5001
         if: ${{ success() || failure() }}
         env:
@@ -122,12 +122,16 @@ jobs:
           AWS_ACCESS_KEY_ID: na
           AWS_SECRET_ACCESS_KEY: na
           AWS_S3_UPLOADS_BUCKET: na
+          HASH_PG_DATABASE: backend_integration_tests
+          NODE_ENV: test
 
       - run: docker ps --all
         if: ${{ success() || failure() }}
 
       - run: yarn test:backend-integration
         if: ${{ success() || failure() }}
+        env:
+          HASH_PG_DATABASE: backend_integration_tests
 
       - run: docker logs docker_hash-dev-api_1
         if: ${{ success() || failure() }}
@@ -178,7 +182,7 @@ jobs:
           AWS_ACCESS_KEY_ID: na
           AWS_SECRET_ACCESS_KEY: na
           AWS_S3_UPLOADS_BUCKET: na
-          HASH_PG_DATABASE: integration_tests
+          HASH_PG_DATABASE: playwright
 
       - run: docker ps --all
         if: ${{ success() || failure() }}

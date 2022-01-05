@@ -13,7 +13,8 @@ ENV POSTGRES_INITDB_ARGS="--auth-host=scram-sha-256"
 RUN apt-get update \
   && apt-get install -y curl \
   && curl https://install.citusdata.com/community/deb.sh | bash \
-  && apt-get -y install postgresql-13-citus-10.1 postgresql-13-wal2json
+  && apt-get -y install postgresql-13-citus-10.1 postgresql-13-wal2json \
+  && rm -rf /var/lib/apt/lists/*
 
 COPY packages/hash/docker/citus/prod/postgresql.conf /etc/postgresql/
 COPY packages/hash/docker/citus/prod/pg_hba.conf /etc/postgresql/

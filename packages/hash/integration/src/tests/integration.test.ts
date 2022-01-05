@@ -11,7 +11,7 @@ import { Logger } from "@hashintel/hash-backend-utils/logger";
 
 import { ClientError } from "graphql-request";
 import { ApiClient } from "./util";
-import { IntegrationTestsHandler } from "./setup";
+import { recreateDbAndRunSchemaMigrations } from "./setup";
 import {
   CreateOrgMutationVariables,
   OrgSize,
@@ -31,8 +31,6 @@ const logger = new Logger({
 const client = new ApiClient("http://localhost:5001/graphql");
 
 let bobCounter = 0;
-
-let handler: IntegrationTestsHandler;
 
 let db: PostgresAdapter;
 
@@ -80,15 +78,14 @@ const createNewBobWithOrg = async () => {
 };
 
 beforeAll(async () => {
-  handler = new IntegrationTestsHandler();
-  await handler.init();
+  await recreateDbAndRunSchemaMigrations();
 
   db = new PostgresAdapter(
     {
       host: "localhost",
       user: "postgres",
       port: 5432,
-      database: "integration_tests",
+      database: process.env.HASH_PG_DATABASE ?? "backend_integration_tests",
       password: "postgres",
       maxPoolSize: 10,
     },
@@ -122,7 +119,6 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await handler.close();
   await db.close();
 });
 

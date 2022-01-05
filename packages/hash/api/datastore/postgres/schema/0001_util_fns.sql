@@ -1,7 +1,7 @@
 /** Checks if Citus is enabled on the database */
 create or replace function is_citus_enabled() returns boolean
 as $$ begin
-  perform 1 from config.hdev_config where key = 'citus' and (value->>'enabled')::bool = true;
+  perform 1 from pg_extension where extname='citus';
   return found;
 end $$ language plpgsql;
 

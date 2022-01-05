@@ -1,13 +1,6 @@
 /* eslint-disable no-console -- OK for CLI scripts */
 /**
- * Apply the schema migration files. If "refresh" is passed as the first argument
- * then the script will drop everything in the database before applying the schema.
- * This option is only valid when the database is running on localhost.
- *
- * Examples:
- *  node migration.js
- *
- *  node migration.js refresh
+ * Apply the schema migration files
  */
 import pg from "pg";
 import path from "path";
@@ -50,8 +43,14 @@ const main = async () => {
     })
     .help("help").argv;
 
-  const user = argv.user || process.env.HASH_PG_USER || "postgres";
   const host = argv.host || process.env.HASH_PG_HOST || "localhost";
+  const user = argv.user || process.env.HASH_PG_USER || "postgres";
+  const database = argv.database || process.env.HASH_PG_DATABASE || "postgres";
+  const port = argv.port
+    ? argv.port
+    : process.env.HASH_PG_PORT
+    ? parseInt(process.env.HASH_PG_PORT, 10)
+    : 5432;
 
   let password = process.env.HASH_PG_PASSWORD;
   if (!password) {
@@ -84,30 +83,12 @@ const main = async () => {
     }
   }
 
-  const cfg: pg.PoolConfig = {
-    host,
-    user,
-    port: argv.port
-      ? argv.port
-      : process.env.HASH_PG_PORT
-      ? parseInt(process.env.HASH_PG_PORT, 10)
-      : 5432,
-    database: argv.database || process.env.HASH_PG_DATABASE || "postgres",
-    password: password || process.env.HASH_PG_PASSWORD || "postgres",
-  };
+  const poolConfig: pg.PoolConfig = { host, user, port, password, database };
+  const pool = new pg.Pool(poolConfig);
 
-  let refresh = false;
-  if (process.argv.length > 2 && process.argv[2] === "refresh") {
-    if (cfg.host !== "localhost") {
-      console.error("A refresh may only be performed on a localhost database.");
-      process.exit(1);
-    }
-    refresh = true;
-  }
-
-  const pool = new pg.Pool(cfg);
-
-  const tx = async (fn: (client: pg.PoolClient) => void | Promise<void>) => {
+  const runTransaction = async (
+    fn: (client: pg.PoolClient) => Promise<void>,
+  ) => {
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
@@ -122,22 +103,14 @@ const main = async () => {
     }
   };
 
-  if (refresh) {
-    console.log("Refreshing the database");
-    await tx(async (client: pg.PoolClient) => {
-      await client.query("drop schema public cascade");
-      await client.query("create schema public;");
-    });
-  }
-
-  const schemaDir = path.join(__dirname, "schema/");
+  const schemaDir = path.resolve(__dirname, "../schema/");
   const schemaFiles = fs.readdirSync(schemaDir);
   schemaFiles.sort();
 
   for (const name of schemaFiles) {
     console.log(`Applying ${name}`);
-    const sql = fs.readFileSync(path.join(schemaDir, name)).toString();
-    await tx(async (client) => {
+    const sql = fs.readFileSync(path.resolve(schemaDir, name)).toString();
+    await runTransaction(async (client) => {
       await client.query(sql);
     });
   }

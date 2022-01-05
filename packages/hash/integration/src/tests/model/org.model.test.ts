@@ -2,8 +2,10 @@ import "../loadTestEnv";
 import { PostgresAdapter } from "@hashintel/hash-api/src/db";
 import { Org, User } from "@hashintel/hash-api/src/model";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
-import { IntegrationTestsHandler } from "../setup";
 import { WayToUseHash } from "../../graphql/apiTypes.gen";
+import { recreateDbAndRunSchemaMigrations } from "../setup";
+
+jest.setTimeout(60000);
 
 const logger = new Logger({
   mode: "dev",
@@ -11,20 +13,17 @@ const logger = new Logger({
   serviceName: "integration-tests",
 });
 
-let handler: IntegrationTestsHandler;
-
 let db: PostgresAdapter;
 
 beforeAll(async () => {
-  handler = new IntegrationTestsHandler();
-  await handler.init();
+  await recreateDbAndRunSchemaMigrations();
 
   db = new PostgresAdapter(
     {
       host: "localhost",
       user: "postgres",
       port: 5432,
-      database: "integration_tests",
+      database: process.env.HASH_PG_DATABASE ?? "backend_integration_tests",
       password: "postgres",
       maxPoolSize: 10,
     },
@@ -96,6 +95,5 @@ describe("Org model class ", () => {
 });
 
 afterAll(async () => {
-  await handler.close();
   await db.close();
 });
