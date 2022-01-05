@@ -108,6 +108,18 @@ export class ProsemirrorSchemaManager {
 
     const spec = createComponentNodeSpec({
       /**
+       * @todo consider if we should encode the component id here / any other
+       *       information
+       */
+      toDOM: (node) => {
+        if (node.type.isTextblock) {
+          return ["span", { "data-hash-type": "component" }, 0];
+        } else {
+          return ["span", { "data-hash-type": "component" }];
+        }
+      },
+
+      /**
        * Currently we detect whether a block takes editable text by detecting if
        * it has an editableRef prop in its schema – we need a more sophisticated
        * way for block authors to communicate this to us

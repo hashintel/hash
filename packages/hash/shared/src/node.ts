@@ -4,6 +4,8 @@
  * import of Node from prosemirror-model and enforced the use of this
  * ProsemirrorNode alias via eslint which allows to then enforce the use of the
  * Schema generic argument.
+ *
+ * @todo look into using an extension of `prosemirror-model` for this
  */
 // eslint-disable-next-line no-restricted-imports
 export { Node as ProsemirrorNode } from "prosemirror-model";

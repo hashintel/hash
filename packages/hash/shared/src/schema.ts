@@ -22,6 +22,7 @@ export const createSchema = () =>
               // @todo this isn't applied because of the node view
               "data-hash-type": "block",
             },
+            0,
           ] as const;
         },
         parseDOM: [
@@ -50,6 +51,13 @@ export const createSchema = () =>
       text: {
         group: "inline",
       },
+      /**
+       * This is serialized as a new line in `createEditorView` when copying to
+       * plain text
+       *
+       * @todo figure out out to do this here
+       * @see createEditorView
+       */
       hardBreak: {
         inline: true,
         group: "inline",
@@ -91,12 +99,66 @@ export const createSchema = () =>
     marks: {
       strong: {
         toDOM: () => ["strong", { style: "font-weight:bold;" }, 0] as const,
+        parseDOM: [
+          { tag: "strong" },
+          /**
+           * This works around a Google Docs misbehavior where
+           * pasted content will be inexplicably wrapped in `<b>`
+           * tags with a font-weight normal.
+           * @see https://github.com/ProseMirror/prosemirror-schema-basic/blob/860d60f764dcdcf186bcba0423d2c589a5e34ae5/src/schema-basic.js#L136
+           */
+          {
+            tag: "b",
+            getAttrs: (node) => {
+              /**
+               * It is always a Node for tag rules but the types aren't
+               * smart enough for that
+               *
+               * @todo remove the need for this cast
+               */
+              const castNode = node as unknown as HTMLElement;
+
+              return castNode.style.fontWeight !== "normal" && null;
+            },
+          },
+          {
+            style: "font-weight",
+            getAttrs(value) {
+              /**
+               * It is always a string for style rules but the types aren't
+               * smart enough for that
+               *
+               * @todo remove the need for this cast
+               */
+              const castValue = value as unknown as string;
+              if (/^(bold(er)?|[5-9]\d{2,})$/.test(castValue)) {
+                return null;
+              }
+              return false;
+            },
+          },
+        ],
       },
       em: {
         toDOM: () => ["em", 0] as const,
+        parseDOM: [{ tag: "em" }, { tag: "i" }, { style: "font-style=italic" }],
       },
+      /**
+       * Some apps export underlines as HTML includes a style tag
+       * creating some classes, which are then applied to the underlined
+       * text. This includes Pages. It has not yet been figured out how to
+       * handle this within Prosemirror, so this formatting will be lost
+       * when pasting from these apps.
+       *
+       * @todo fix this
+       */
       underlined: {
         toDOM: () => ["u", 0] as const,
+        parseDOM: [
+          { tag: "u" },
+          { style: "text-decoration=underline" },
+          { style: "text-decoration-line=underline" },
+        ],
       },
       link: {
         attrs: {
