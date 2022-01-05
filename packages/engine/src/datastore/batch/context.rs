@@ -152,6 +152,8 @@ impl Batch {
             .zip_eq(column_dynamic_meta_list.par_iter())
             .try_for_each(|((column_writer, buffer), meta)| column_writer.write(buffer, meta))?;
 
+        self.metaversion.increment_batch();
+
         let meta_buffer = get_dynamic_meta_flatbuffers(&dynamic)?;
         self.memory.set_metadata(&meta_buffer)?;
 

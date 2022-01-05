@@ -1,4 +1,4 @@
-use std::{iter::FromIterator, path::PathBuf, time::Duration};
+use std::{iter::FromIterator, time::Duration};
 
 use anyhow::{bail, format_err, Context, Result};
 use hash_engine::{
@@ -23,10 +23,10 @@ lazy_static::lazy_static! {
 /// The simulations will run to completion and the connection will finish once the last run is done,
 /// or if there is an error.
 pub async fn run_experiment(args: Args, handler: Handler) -> Result<()> {
-    let project = &args.project;
-    let absolute_project_path = PathBuf::from(project)
+    let absolute_project_path = args
+        .project
         .canonicalize()
-        .with_context(|| format!("Could not canonicalize project path: {project:?}"))?;
+        .with_context(|| format!("Could not canonicalize project path: {:?}", args.project))?;
     let project_name = args.project_name.clone().unwrap_or(
         absolute_project_path
             .file_name()
@@ -48,7 +48,6 @@ fn create_engine_command(
     Ok(Box::new(process::LocalCommand::new(
         experiment_id,
         args.num_workers as usize,
-        true,
         controller_url,
     )?))
 }
@@ -93,8 +92,7 @@ async fn run_experiment_with_manifest(
     };
     debug!("Received start message from {experiment_id}");
 
-    let mut output_folder = PathBuf::from(args.output);
-    output_folder.push(project_name);
+    let output_folder = args.output.join(project_name);
 
     let map_iter = [(
         OUTPUT_PERSISTENCE_KEY.to_string(),
@@ -106,7 +104,7 @@ async fn run_experiment_with_manifest(
     let init_message = proto::InitMessage {
         experiment: experiment_run.clone().into(),
         env: ExecutionEnvironment::None, // We don't connect to the API
-        dyn_payloads: serde_json::Map::from_iter(map_iter), // TODO
+        dyn_payloads: serde_json::Map::from_iter(map_iter),
     };
     engine_process
         .send(&proto::EngineMsg::Init(init_message))
@@ -124,11 +122,11 @@ async fn run_experiment_with_manifest(
             m = engine_handle.recv() => { msg = Some(m) },
         }
         let msg = msg.unwrap();
-        info!("Got message from experiment run with type: {}", msg.kind());
+        debug!("Got message from experiment run with type: {}", msg.kind());
 
         match msg {
             proto::EngineStatus::Stopping => {
-                debug!("Stopping experiment");
+                debug!("Stopping experiment {experiment_id}");
             }
             proto::EngineStatus::SimStart { sim_id, globals: _ } => {
                 debug!("Started simulation: {sim_id}");
@@ -141,27 +139,15 @@ async fn run_experiment_with_manifest(
                 debug!("Simulation stopped: {sim_id}");
             }
             proto::EngineStatus::Errors(sim_id, errs) => {
-                if let Some(sim_id) = sim_id {
-                    error!("There were errors when running simulation [{sim_id}]: {errs:?}");
-                } else {
-                    error!("Errors occurred within the engine: {errs:?}");
-                }
+                error!("There were errors when running simulation [{sim_id}]: {errs:?}");
             }
             proto::EngineStatus::Warnings(sim_id, warnings) => {
-                if let Some(sim_id) = sim_id {
-                    warn!("There were warnings when running simulation [{sim_id}]: {warnings:?}");
-                } else {
-                    warn!("Warnings occurred within the engine: {warnings:?}");
-                }
+                warn!("There were warnings when running simulation [{sim_id}]: {warnings:?}");
             }
             proto::EngineStatus::Logs(sim_id, logs) => {
-                if let Some(sim_id) = sim_id {
-                    for log in logs {
-                        info!("[{sim_id}]: {log}");
-                    }
-                } else {
-                    for log in logs {
-                        info!("{log}");
+                for log in logs {
+                    if !log.is_empty() {
+                        info!(target: "behaviors", "[{experiment_id}][{sim_id}]: {log}");
                     }
                 }
             }

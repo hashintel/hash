@@ -265,10 +265,9 @@ impl FieldSpecMap {
         let field_key = new_field.to_key()?;
         if let Some(existing_field) = self.field_specs.get(&field_key) {
             if existing_field == &new_field {
-                log::warn!(
-                    "FieldSpec: [{}], already exists within the FieldSpecMap",
-                    field_key
-                );
+                // This likely only happens when behaviors declare duplicate keys, it can't cause
+                // problems as the fields are equal and therefore the sources (and types) are the
+                // same, meaning the field can't override another package's field
                 return Ok(());
             }
             if existing_field.scope == FieldScope::Agent

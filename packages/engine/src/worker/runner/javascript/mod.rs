@@ -439,8 +439,13 @@ fn get_user_warnings(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Vec<RunnerErr
 }
 
 fn get_print(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Vec<String>> {
-    if let Ok(mv8::Value::String(e)) = r.get("print") {
-        Some(e.to_string().split('\n').map(|s| s.to_string()).collect())
+    if let Ok(mv8::Value::String(printed_val)) = r.get("print") {
+        let printed_val = printed_val.to_string();
+        if !printed_val.is_empty() {
+            Some(printed_val.split('\n').map(|s| s.to_string()).collect())
+        } else {
+            None
+        }
     } else {
         None
     }

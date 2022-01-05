@@ -68,18 +68,10 @@ const gen_state_accessors = (AgentState, agent_schema, custom_getters) => {
 
     const msgs_getter = function() {
         const idx  = this.__idx_in_group;
-        const msgs = this.__msgs[idx];
-        if (!this.__msgs_native[idx]) {
-            for (var i_msg = 0; i_msg < msgs.length; ++i_msg) {
-                msgs[i_msg].data = JSON.parse(msgs[i_msg].data);
-            }
-            this.__msgs_native[idx] = 1;
-        }
-        return msgs;
+        return this.__msgs[idx];
     }
     const msgs_setter = function(value) {
         this.__msgs[this.__idx_in_group] = value;
-        this.__msgs_native[this.__idx_in_group] = 1;
     };
     Object.defineProperty(
         AgentState.prototype, "messages", { get: msgs_getter, set: msgs_setter }
@@ -91,7 +83,6 @@ const gen_agent_state = (agent_schema, getters) => {
         this.__group_state = group_state;
         this.__cols = group_state.__agent_batch.cols;
         this.__msgs = group_state.__msg_batch.cols.messages;
-        this.__msgs_native = group_state.__msgs_native;
         this.__idx_in_group = i_agent_in_group;
         this.__dyn_access = false;
     }
@@ -138,9 +129,7 @@ const gen_agent_state = (agent_schema, getters) => {
         this.__msgs[this.__idx_in_group].push({
             "to": (typeof to === 'string') ? [to] : to.slice(),
             "type": msg_type, // `msg_type` is a string, so don't need to deepcopy it.
-            "data": this.__msgs_native[this.__idx_in_group]
-                    ? hash_util.json_deepcopy(data)
-                    : (data === undefined ? 'null' : JSON.stringify(data))
+            "data": hash_util.json_deepcopy(data)
         }); // json_stringify(null) === 'null'.
     };
     
@@ -158,7 +147,6 @@ const gen_group_state = (agent_schema, getters) => {
     const GroupState = function(agent_batch, msg_batch, loaders) {
         this.__agent_batch = agent_batch;
         this.__msg_batch = msg_batch;
-        this.__msgs_native = new Uint8Array(agent_batch.cols.agent_id.length);
         this.__loaders = loaders;
     }
 
@@ -197,26 +185,22 @@ const gen_group_state = (agent_schema, getters) => {
         //       (Set written flag in `state.set` and `state.addMessage`.)
         // TODO: Only flush columns that can't be written to in-place.
         // TODO: Don't flush e.g. the `agent_id` column, which only needs to be read, not written.
-        
-        // `msgs_native[i] === 0` doesn't mean that the i-th agent's
-        // outbox wasn't written to -- `state.addMessage` can convert
-        // a message's data to JSON and add it without converting existing
-        // messages to native JavaScript objects.
 
         const skip = Object.create(null);
         skip.agent_id = true;
         const agent_changes = this.__agent_batch.flush_changes(schema.agent, skip);
 
-        // Convert any native message objects to JSON before flushing message batch.
+        // Convert message objects to JSON before flushing message batch.
         // Note that this is distinct from (though analogous to) 'any'-type handling
         // in `batch.flush_changes`.
+        // TODO: Overwriting data is not ideal, preferably we only deserialize when we need it (i.e. we should only have
+        //  have to call JSON.stringify on messages we've accessed and deserialized), instead right now we do that for
+        //  all messages, that is, they're all native JS objects
         const group_msgs = this.__msg_batch.cols.messages;
         for (var i_agent = 0; i_agent < group_msgs.length; ++i_agent) {
-            if (this.__msgs_native[i_agent]) {
-                const agent_msgs = group_msgs[i_agent];
-                for (var i = 0; i < agent_msgs.length; ++i) {
-                    agent_msgs[i].data = JSON.stringify(agent_msgs[i].data);
-                }
+            const agent_msgs = group_msgs[i_agent];
+            for (var i = 0; i < agent_msgs.length; ++i) {
+                agent_msgs[i].data = JSON.stringify(agent_msgs[i].data);
             }
         }
         const msg_changes = this.__msg_batch.flush_changes(schema.msg, {});

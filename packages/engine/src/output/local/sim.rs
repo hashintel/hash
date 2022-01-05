@@ -3,13 +3,14 @@ use std::io::{BufReader, BufWriter};
 use super::{config::LocalPersistenceConfig, result::LocalPersistenceResult};
 use crate::{
     output::{buffer::Buffers, error::Result, SimulationOutputPersistenceRepr},
-    proto::{ExperimentId, SimulationShortId},
+    proto::{ExperimentRegisteredId, SimulationShortId},
     simulation::{package::output::packages::Output, step_output::SimulationStepOutput},
+    SimRunConfig,
 };
 
 #[derive(derive_new::new)]
 pub struct LocalSimulationOutputPersistence {
-    exp_id: ExperimentId,
+    exp_id: ExperimentRegisteredId,
     sim_id: SimulationShortId,
     // TODO: Should this be unused? If so remove
     buffers: Buffers,
@@ -35,7 +36,7 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
         Ok(())
     }
 
-    async fn finalize(mut self) -> Result<Self::OutputPersistenceResult> {
+    async fn finalize(mut self, config: &SimRunConfig) -> Result<Self::OutputPersistenceResult> {
         log::trace!("Finalizing output");
         // JSON state
         let (_, parts) = self.buffers.json_state.finalize()?;
@@ -71,6 +72,11 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
             &analysis_path,
             serde_json::to_string(&self.buffers.analysis)?,
         )?;
+
+        // Globals
+        let globals_path = path.join("globals.json");
+        std::fs::File::create(&globals_path)?;
+        std::fs::write(&globals_path, serde_json::to_string(&config.sim.globals)?)?;
 
         Ok(LocalPersistenceResult::new(
             path.canonicalize()?.to_string_lossy().to_string(),

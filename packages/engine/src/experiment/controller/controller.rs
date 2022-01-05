@@ -136,7 +136,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
 
     async fn handle_worker_pool_controller_msg(
         &mut self,
-        id: Option<SimulationShortId>,
+        id: SimulationShortId,
         msg: WorkerPoolToExpCtlMsg,
     ) -> Result<()> {
         let engine_status = match msg {
@@ -309,7 +309,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
         let mut terminate_recv = self.terminate_recv.take_recv()?;
 
         let mut waiting_for_completion = None;
-        let mut time_to_wait = 1;
+        let mut time_to_wait = 3;
         const WAITING_MULTIPLIER: u64 = 3;
 
         loop {
@@ -355,7 +355,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
                 }
                 _ = async { waiting_for_completion.as_mut().expect("must be some").await }, if waiting_for_completion.is_some() => {
                     time_to_wait *= WAITING_MULTIPLIER;
-                    log::warn!("Experiment Controller received a termination message, waiting {} seconds for sim run tasks to complete", time_to_wait);
+                    log::warn!("Experiment Controller received a termination message, but simulation runs haven't finished, waiting {} seconds", time_to_wait);
                     waiting_for_completion = Some(Box::pin(tokio::time::sleep(Duration::from_secs(time_to_wait))));
                 }
             }

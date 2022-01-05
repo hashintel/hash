@@ -46,7 +46,7 @@ impl SingleRunExperiment {
                 break;
             }
         }
-        log::info!("Experiment package exiting");
+        log::debug!("Experiment package exiting");
         Ok(())
     }
 }

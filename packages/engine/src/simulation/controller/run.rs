@@ -60,6 +60,7 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     'sim_main: loop {
         // Behaviors expect context.step() to give the current step rather than steps_taken
         let current_step = steps_taken + 1;
+        log::trace!("Current step: {}", current_step);
         if current_step >= max_num_steps {
             break;
         }
@@ -75,7 +76,7 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
             Err(error) => {
                 log::error!("Got error within the engine step process: {:?}", error);
                 // Try to persist before exiting
-                let persistence_result = Some(persistence_service.finalize().await?);
+                let persistence_result = Some(persistence_service.finalize(&config).await?);
                 let runner_error = RunnerError {
                     message: Some(format!("{:?}", error)),
                     code: None,
@@ -146,7 +147,7 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
         })?;
 
     let now = std::time::Instant::now();
-    let persistence_result = persistence_service.finalize().await?;
+    let persistence_result = persistence_service.finalize(&config).await?;
     sims_to_exp
         .send(
             SimStatus::ended(
