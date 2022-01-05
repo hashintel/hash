@@ -42,7 +42,7 @@ impl Report {
     }
 }
 
-impl<S> Report<S> {
+impl<E> Report<E> {
     fn from_error(
         location: &'static Location<'static>,
         #[cfg(feature = "backtrace")] backtrace: Option<Backtrace>,
@@ -67,7 +67,7 @@ impl<S> Report<S> {
 
     /// Creates a new `Report<S>` from a provided scope.
     #[track_caller]
-    pub fn with_error_kind<E>(error_kind: E) -> Self
+    pub fn from_error_kind(error_kind: E) -> Self
     where
         E: ErrorKind,
     {
@@ -122,8 +122,7 @@ impl<S> Report<S> {
         }
     }
 
-    /// Adds `context` information to the [`Frame`] stack.
-    // TODO: Specialize on trait `Provider` to remove `fn provide`
+    /// Adds a [`Context`] information to the [`Frame`] stack.
     #[track_caller]
     pub fn context<C>(self, context: C) -> Self
     where
@@ -132,11 +131,11 @@ impl<S> Report<S> {
         self.wrap(Error::Context(Box::new(context)))
     }
 
-    /// Adds `provider` to the [`Frame`] stack and changes the scope to `P`.
+    /// Adds an [`ErrorKind`] to the [`Frame`] stack enforcing a typed `Report`.
     #[track_caller]
-    pub fn error_kind<E>(self, error_kind: E) -> Report<E>
+    pub fn error_kind<K>(self, error_kind: K) -> Report<K>
     where
-        E: ErrorKind,
+        K: ErrorKind,
     {
         self.wrap(Error::Kind(Box::new(error_kind)))
     }
@@ -155,6 +154,7 @@ impl<S> Report<S> {
     /// Note, that `RUST_BACKTRACE` or `RUST_LIB_BACKTRACE` has to be set to enable backtraces.
     ///
     /// [`ReportBackTrace`]: crate::tags::ReportBackTrace
+    #[must_use]
     #[cfg(feature = "backtrace")]
     pub fn backtrace(&self) -> Option<&Backtrace> {
         let backtrace = self.inner.backtrace.as_ref().unwrap_or_else(|| {
@@ -176,6 +176,7 @@ impl<S> Report<S> {
     ///
     /// [`ReportSpanTrace`]: crate::tags::ReportSpanTrace
     /// [`ErrorLayer`]: tracing_error::ErrorLayer
+    #[must_use]
     #[cfg(feature = "spantrace")]
     pub fn span_trace(&self) -> Option<&SpanTrace> {
         let span_trace = self.inner.span_trace.as_ref().unwrap_or_else(|| {

@@ -79,7 +79,9 @@
 //! # }
 //! fn report_error(e: &(dyn MyErrorTrait + 'static)) {
 //!     // Generic error handling
-//!     // ...
+//!     # const _: &str = stringify! {
+//!     ...
+//!     # };
 //!
 //!     // print backtrace
 //!     if let Some(backtrace) = e.request_ref::<Backtrace>() {
