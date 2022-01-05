@@ -9,6 +9,7 @@ provider = { path = "../provider" }
 tracing-error = { version = "0.2.0", optional = true }
 
 [features]
+default = ["backtrace"]
 backtrace = ["std"]
 spantrace = ["tracing-error"]
 std = []
