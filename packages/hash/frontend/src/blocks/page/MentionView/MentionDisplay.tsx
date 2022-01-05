@@ -23,10 +23,12 @@ export const MentionDisplay: VFC<MentionDisplayProps> = ({
   const { title, href, icon } = useMemo(() => {
     switch (mentionType) {
       case "user": {
-        // If the users query is still loading, only display "User" as name
-        let userName = "User";
+        let userName = "";
 
-        if (!usersLoading) {
+        // Only set username to "User" if the query hasn't already run before
+        if (usersLoading && !users.length) {
+          userName = "User";
+        } else {
           // Once the query loads, either display the found name, or display "Unknown User" if the user doesn't exist in the users array
           userName =
             users.find((item) => item.entityId === entityId)?.name ??
@@ -40,10 +42,12 @@ export const MentionDisplay: VFC<MentionDisplayProps> = ({
         };
       }
       case "page": {
-        // If the pages query is still loading, only display "Page" as title
-        let pageTitle = "Page";
+        let pageTitle = "";
 
-        if (!pagesLoading) {
+        // Only set the title to "Page" if the query hasn't run before
+        if (pagesLoading && !pages.length) {
+          pageTitle = "Page";
+        } else {
           // Once the query loads, either display the found title, or display "Unknown Page" if the page doesn't exist in the page array
           pageTitle =
             pages.find((page) => page.entityId === entityId)?.title ??
