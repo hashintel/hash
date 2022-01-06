@@ -537,8 +537,6 @@ impl WorkerController {
             .into_iter()
             .map(InboundToRunnerMsgPayload::StateSync)
             .collect();
-        // Borrow checker doesn't allow just `runner_msgs[0]`,
-        // because it would be a partial move.
         let [js_msg, py_msg]: [InboundToRunnerMsgPayload; 2] = runner_msgs.try_into().unwrap();
         tokio::try_join!(
             self.js.send_if_spawned(sim_id, js_msg),
