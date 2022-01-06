@@ -4,9 +4,19 @@ export const createSchema = () =>
   new Schema({
     nodes: {
       doc: {
-        content: "((block|blockItem)+)|blank",
+        content: "((componentNode|block)+)|blank",
       },
       blank: {
+        /**
+         * As we don't have any component nodes defined by default, we need a
+         * placeholder, otherwise Prosemirror will crash when trying to
+         * interpret the content expressions in other nodes. However, as soon
+         * as we have defined a different component node, we remove the blank
+         * node from the componentNode group, which ensures that when
+         * Prosemirror attempts to instantiate a componentNode it uses that
+         * node instead of the blank one
+         */
+        group: "componentNode",
         toDOM: () => ["div", 0] as const,
       },
       block: {
@@ -33,8 +43,7 @@ export const createSchema = () =>
         ],
       },
       entity: {
-        group: "blockItem",
-        content: "blockItem",
+        content: "componentNode | entity",
         attrs: {
           entityId: { default: null },
           draftId: { default: null },

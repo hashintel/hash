@@ -26,7 +26,7 @@ declare interface OrderedMapPrivateInterface<T> {
 const createComponentNodeSpec = (spec: Partial<NodeSpec>): NodeSpec => ({
   ...spec,
   selectable: false,
-  group: "blockItem",
+  group: "componentNode",
   attrs: {
     ...(spec.attrs ?? {}),
     // @todo remove this
@@ -87,6 +87,8 @@ export class ProsemirrorSchemaManager {
           if (!this.nodes[key]) {
             value.schema = existingSchema;
             this.nodes[key] = value;
+          } else {
+            this.nodes[key].contentMatch = value.contentMatch;
           }
         }
       }
@@ -105,6 +107,8 @@ export class ProsemirrorSchemaManager {
     if (this.schema.nodes[componentId]) {
       return;
     }
+
+    this.prepareToDisableBlankDefaultComponentNode();
 
     const spec = createComponentNodeSpec({
       /**
@@ -134,6 +138,35 @@ export class ProsemirrorSchemaManager {
 
     this.defineNewNode(componentId, spec);
     this.defineNodeView(componentId, meta);
+  }
+
+  /**
+   * We have a "blank" node type which by default is allowed in place of
+   * component nodes, which is useful as we don't have any component nodes
+   * defined when the schema is first created (as they'll all defined
+   * dynamically). However, once we have defined a component node, we want that
+   * node to be created by default when needed to create a component node (i.e,
+   * when creating a new block, or when clearing the document) which means we
+   * need to remove the blank node from the component node group.
+   *
+   * @warning This does not actually immediately update the default component
+   *          node, as it does not take full effect until the next call to
+   *          {@link ProsemirrorSchemaManager#defineNewNode}
+   */
+  private prepareToDisableBlankDefaultComponentNode() {
+    const blankType = this.schema.nodes.blank;
+
+    if (blankType.spec.group === "componentNode") {
+      delete blankType.spec.group;
+    }
+
+    // Accessing private API here, hence the casting
+    const groups = (blankType as any).groups as string[];
+
+    const idx = groups.indexOf("componentNode");
+    if (idx > -1) {
+      groups.splice(idx, 1);
+    }
   }
 
   defineNodeView(componentId: string, meta: BlockMeta) {
@@ -252,10 +285,14 @@ export class ProsemirrorSchemaManager {
         : [];
 
       /**
-       * Wrap the component node itself (rendered by ComponentView) in the following:
-       *    1. An entity node to store draft ids for the Text entity (if any) linked to the block
+       * Wrap the component node itself (rendered by ComponentView) in the
+       * following:
+       *
+       *    1. An entity node to store draft ids for the Text entity (if any)
+       *       linked to the block
        *    2. An entity node to store ids for the entity linked to the block
-       *    3. [Outermost] The block node (rendered by BlockView) which provides the surrounding UI
+       *    3. [Outermost] The block node (rendered by BlockView) which
+       *       provides the surrounding UI
        */
       return this.schema.nodes.block.create({}, [
         this.schema.nodes.entity.create(
