@@ -202,6 +202,7 @@ use self::{frame::ErrorRepr, report::ReportImpl};
 /// use error::{Report, ResultExt};
 ///
 /// #[derive(Debug)]
+/// # #[derive(PartialEq)]
 /// enum RuntimeError {
 ///     InvalidConfig(PathBuf),
 /// # }
@@ -264,6 +265,8 @@ use self::{frame::ErrorRepr, report::ReportImpl};
 ///     # Ok(()) }
 ///     # let err = fake_main().unwrap_err();
 ///     # assert_eq!(err.frames().count(), 3);
+///     # assert!(err.contains::<ConfigError>());
+///     # assert_eq!(err.downcast_ref::<RuntimeError>(), Some(&RuntimeError::InvalidConfig(PathBuf::from("./path/to/config.file"))));
 ///     # Ok(())
 /// }
 /// ```

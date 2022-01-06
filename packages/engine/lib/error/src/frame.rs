@@ -2,7 +2,14 @@
 #![deny(clippy::used_underscore_binding)]
 
 use alloc::boxed::Box;
-use core::{fmt, fmt::Formatter, mem::ManuallyDrop, panic::Location, ptr};
+use core::{
+    any::TypeId,
+    fmt,
+    fmt::Formatter,
+    mem::ManuallyDrop,
+    panic::Location,
+    ptr::{self, NonNull},
+};
 
 use provider::{self, tags, Provider, Requisition, TypeTag};
 
@@ -12,6 +19,7 @@ use crate::Frame;
 struct VTable {
     object_drop: unsafe fn(Box<ErrorRepr<()>>),
     object_ref: unsafe fn(&ErrorRepr<()>) -> &dyn Context,
+    object_downcast: unsafe fn(&ErrorRepr<()>, target: TypeId) -> Option<NonNull<()>>,
 }
 
 pub trait Context: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static {}
@@ -86,6 +94,27 @@ impl VTable {
         #[allow(clippy::used_underscore_binding)]
         &(*(unerased))._error
     }
+
+    /// Downcasts error to `target`
+    ///
+    /// # Safety
+    ///
+    /// - Layout of `Self` must match `ErrorRepr<E>`.
+    unsafe fn object_downcast<E: Context>(
+        frame: &ErrorRepr<()>,
+        target: TypeId,
+    ) -> Option<NonNull<()>> {
+        if TypeId::of::<E>() == target {
+            // Attach E's native vtable onto the pointer to self._error
+            let unerased = (frame as *const ErrorRepr<()>).cast::<ErrorRepr<E>>();
+            // inside of vtable it's allowed to access `_error`
+            #[allow(clippy::used_underscore_binding)]
+            let addr = &(*(unerased))._error as *const E as *mut ();
+            Some(NonNull::new_unchecked(addr))
+        } else {
+            None
+        }
+    }
 }
 
 #[repr(C)]
@@ -104,6 +133,7 @@ impl<E> ErrorRepr<E> {
             vtable: &VTable {
                 object_drop: VTable::object_drop::<E>,
                 object_ref: VTable::object_ref::<E>,
+                object_downcast: VTable::object_downcast::<E>,
             },
             _error: error,
         });
@@ -131,6 +161,16 @@ impl ErrorRepr<()> {
     pub fn unerase(&self) -> &dyn Context {
         // Use vtable to attach E's native vtable for the right original type E.
         unsafe { (self.vtable.object_ref)(self) }
+    }
+
+    pub fn downcast<E>(&self) -> Option<NonNull<E>>
+    where
+        E: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+    {
+        let target = TypeId::of::<E>();
+        // Use vtable to attach E's native vtable for the right original type E.
+        let addr = unsafe { (self.vtable.object_downcast)(self, target) };
+        addr.map(NonNull::cast)
     }
 }
 
@@ -166,6 +206,24 @@ impl Frame {
         T: 'static,
     {
         self.request::<'_, tags::Value<T>>()
+    }
+
+    /// Returns if `E` is the type held by this frame.
+    #[must_use]
+    pub fn is<E>(&self) -> bool
+    where
+        E: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+    {
+        self.error.downcast::<E>().is_some()
+    }
+
+    /// Downcast this error object by a shared reference.
+    #[must_use]
+    pub fn downcast_ref<E>(&self) -> Option<&E>
+    where
+        E: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+    {
+        self.error.downcast().map(|addr| unsafe { &*addr.as_ptr() })
     }
 }
 

@@ -41,7 +41,7 @@ impl Report {
     }
 }
 
-impl<E> Report<E> {
+impl<Context> Report<Context> {
     fn from_frame(
         frame: Box<ErrorRepr<()>>,
         location: &'static Location<'static>,
@@ -66,9 +66,9 @@ impl<E> Report<E> {
 
     /// Creates a new `Report<S>` from a provided scope.
     #[track_caller]
-    pub fn from_context(context: E) -> Self
+    pub fn from_context(context: Context) -> Self
     where
-        E: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+        Context: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
         let frame = ErrorRepr::new(context);
         #[allow(clippy::option_if_let_else)] // #[track_caller] on closures are unstable
@@ -218,6 +218,24 @@ impl<E> Report<E> {
     /// Creates an iterator over the [`Frame`] stack requesting a value of type `T`.
     pub const fn request_value<T: 'static>(&self) -> Requests<'_, Value<T>> {
         Requests::new(self)
+    }
+
+    /// Returns if `E` is the type held by any frame inside of the report.
+    #[must_use]
+    pub fn contains<E>(&self) -> bool
+    where
+        E: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+    {
+        self.frames().any(Frame::is::<E>)
+    }
+
+    /// Downcast this error object by a shared reference.
+    #[must_use]
+    pub fn downcast_ref<E>(&self) -> Option<&E>
+    where
+        E: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+    {
+        self.frames().find_map(Frame::downcast_ref::<E>)
     }
 }
 
