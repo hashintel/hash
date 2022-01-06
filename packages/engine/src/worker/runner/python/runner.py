@@ -137,6 +137,10 @@ class Runner:
         self.batches.free()
         self.messenger = None
 
+    # `exc_info` is whatever tuple of info `sys.exc_info()` returned about
+    # an exception. Calling `sys.exc_info()` inside `handle_runner_error`
+    # wouldn't work, because `sys.exc_info` can only return info about an
+    # exception that has just occurred.
     def handle_runner_error(self, exc_info):
         # User errors definitely need to be sent back to the Rust process, so
         # they can be sent further to the user and displayed.
