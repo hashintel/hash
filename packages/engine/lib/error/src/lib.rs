@@ -1,13 +1,16 @@
 //! Error reporting library based on type-based data access
 //!
-//! This crate provides the [`Report`] struct and accompanying API.
+//! This crate provides [`Report`], a trait object based, context sensitive, error handling type.
 //!
 //! ## Yet another error crate?
 //!
-//! Error reporting in Rust is a long story and many crates tried to optimize the error reporting
-//! strategy. This crates uses a reflection-like API - the [`provider`]-API - to add context data to
-//! a [`Report`]. This way, it is possible to attach any data to an error. Also it is possible to
-//! enforce providing context information by using [`ErrorKind`].
+//! Error reporting strategies in Rust are still developing and there are many approaches at the
+//! moment with various pros and cons. This crates takes inspiration from an
+//! [RFC to the core library ](https://github.com/nrc/rfcs/blob/dyno/text/0000-dyno.md) to introduce
+//! a reflection-like API - the [`provider`]-API - to add context data to a [`Report`]. Using this,
+//! it becomes possible to attach any data to an error. Beyond this, the design also allows Errors
+//! to have additional requirements, such as _enforcing_ the provision of contextual information by
+//! using [`Report::provide_context()`].
 //!
 //! ### Why not...
 //!
@@ -42,7 +45,7 @@
 //! return type:
 //!
 //! ```
-//! # fn has_permission(user: usize, resource: usize) -> bool { true }
+//! # fn has_permission(_: usize, _: usize) -> bool { true }
 //! # fn get_user() -> Result<usize> { Ok(0) }
 //! # fn get_resource() -> Result<usize> { Ok(0) }
 //! use error::{ensure, Result};
@@ -63,7 +66,7 @@
 //! }
 //! ```
 //!
-//! A context can be provided to lower level errors.
+//! A contextual message can be provided to lower level errors.
 //!
 //! ```
 //! use error::{ResultExt, Result};
@@ -72,16 +75,17 @@
 //!     # fn fake_main() -> Result<()> {
 //!     let config_path = "./path/to/config.file";
 //!     # #[cfg(all(not(miri), feature = "std"))]
+//!     # #[allow(unused_variables)]
 //!     let content = std::fs::read_to_string(config_path)
-//!         .with_context(|| format!("Failed to read config file {config_path:?}"))?;
+//!         .wrap_err_lazy(|| format!("Failed to read config file {config_path:?}"))?;
 //!     # #[cfg(any(miri, not(feature = "std")))]
-//!     # Err(error::format_err!("")).with_context(|| format!("Failed to read config file {config_path:?}"))?;
+//!     # Err(error::format_err!("")).wrap_err_lazy(|| format!("Failed to read config file {config_path:?}"))?;
 //!
 //!     # const _: &str = stringify! {
 //!     ...
 //!     # };
 //!     # Ok(()) }
-//!     # fake_main().unwrap_err();
+//!     # assert!(fake_main().is_err());
 //!     # Ok(())
 //! }
 //! ```
@@ -109,6 +113,7 @@
 #![feature(min_specialization)]
 #![warn(missing_docs, clippy::pedantic, clippy::nursery)]
 #![allow(clippy::missing_errors_doc)] // This is an error handling library producing Results, not Errors
+#![doc(test(attr(deny(warnings, clippy::pedantic, clippy::nursery))))]
 
 extern crate alloc;
 
@@ -120,12 +125,12 @@ mod report;
 pub mod tags;
 
 use alloc::boxed::Box;
-use core::{fmt, marker::PhantomData, panic::Location};
+use core::{fmt, marker::PhantomData, mem::ManuallyDrop, panic::Location};
 
-use provider::{Provider, Requisition};
+use provider::Provider;
 
 pub use self::macros::*;
-use self::{frame::Error, report::ReportImpl};
+use self::{frame::ErrorRepr, report::ReportImpl};
 
 /// Contains a [`Frame`] stack consisting of an original error, context information, and optionally
 /// a [`Backtrace`] and a [`SpanTrace`].
@@ -134,24 +139,24 @@ use self::{frame::Error, report::ReportImpl};
 /// the [`Backtrace` documentation][`Backtrace`]. To enable the span trace, [`ErrorLayer`] has to
 /// be enabled.
 ///
-/// Context information can be added by using [`context()`] or [`ResultExt`]. The [`Frame`]
-/// stack can be iterated by using [`frames()`].
+/// Context information can be added by using [`wrap()`] or [`ResultExt`]. The [`Frame`] stack can
+/// be iterated by using [`frames()`].
 ///
-/// To enforce context information generation, an optional [`ErrorKind`] may be used. When creating
-/// a `Report` from a message with [`new()`] or from an std-error by using [`from()`], the `Report`
-/// does not have an [`ErrorKind`]. To provide one, the [`provider`] API is used. Use
-/// [`error_kind()`] or [`ResultExt`] to add it, which may also be used to provide more
-/// context information than only a display message. This information can the be retrieved by
-/// calling [`request()`], [`request_ref()`], or [`request_value()`].
+/// To enforce context information generation, an optional context [`Provider`] may be used. When
+/// creating a `Report` from a message with [`new()`] or from an std-error by using [`from()`], the
+/// `Report` does not have an context associated. To provide one, the [`provider`] API is used. Use
+/// [`provide_context()`] or [`ResultExt`] to add it, which may also be used to provide more context
+/// information than only a display message. This information can the be retrieved by calling
+/// [`request()`], [`request_ref()`], or [`request_value()`].
 ///
 /// [`Backtrace`]: std::backtrace::Backtrace
 /// [`SpanTrace`]: tracing_error::SpanTrace
 /// [`ErrorLayer`]: tracing_error::ErrorLayer
-/// [`context()`]: Self::context
+/// [`wrap()`]: Self::wrap
 /// [`from()`]: Self::from
 /// [`frames()`]: Self::frames
 /// [`new()`]: Self::new
-/// [`error_kind()`]: Self::error_kind
+/// [`provide_context()`]: Self::provide_context
 /// [`request()`]: Self::request
 /// [`request_ref()`]: Self::request_ref
 /// [`request_value()`]: Self::request_value
@@ -168,10 +173,11 @@ use self::{frame::Error, report::ReportImpl};
 ///     # fn fake_main() -> Result<()> {
 ///     let config_path = "./path/to/config.file";
 ///     # #[cfg(all(not(miri), feature = "std"))]
+///     # #[allow(unused_variables)]
 ///     let content = std::fs::read_to_string(config_path)
-///         .with_context(|| format!("Failed to read config file {config_path:?}"))?;
+///         .wrap_err_lazy(|| format!("Failed to read config file {config_path:?}"))?;
 ///     # #[cfg(any(miri, not(feature = "std")))]
-///     # Err(error::format_err!("")).with_context(|| format!("Failed to read config file {config_path:?}"))?;
+///     # Err(error::format_err!("")).wrap_err_lazy(|| format!("Failed to read config file {config_path:?}"))?;
 ///
 ///     # const _: &str = stringify! {
 ///     ...
@@ -187,10 +193,10 @@ use self::{frame::Error, report::ReportImpl};
 ///
 /// ```
 /// use core::fmt;
-/// use std::fmt::Write;
 /// use std::path::{Path, PathBuf};
 ///
-/// use error::{ErrorKind, Report, ResultExt};
+/// use provider::{Provider, Requisition};
+/// use error::{Report, ResultExt};
 ///
 /// #[derive(Debug)]
 /// enum RuntimeError {
@@ -211,7 +217,7 @@ use self::{frame::Error, report::ReportImpl};
 /// # ;
 ///
 /// impl fmt::Display for RuntimeError {
-///     # fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+///     # fn fmt(&self, _fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
 ///     # const _: &str = stringify! {
 ///     ...
 ///     # };
@@ -219,7 +225,7 @@ use self::{frame::Error, report::ReportImpl};
 ///     # }
 /// }
 /// impl fmt::Display for ConfigError {
-///     # fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+///     # fn fmt(&self, _fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
 ///     # const _: &str = stringify! {
 ///     ...
 ///     # };
@@ -227,21 +233,27 @@ use self::{frame::Error, report::ReportImpl};
 ///     # }
 /// }
 ///
-/// impl ErrorKind for RuntimeError {}
-/// impl ErrorKind for ConfigError {}
+/// impl Provider for RuntimeError {
+///     fn provide<'p>(&'p self, _req: &mut Requisition<'p, '_>) {}
+/// }
+/// impl Provider for ConfigError {
+///     fn provide<'p>(&'p self, _req: &mut Requisition<'p, '_>) {}
+/// }
 ///
+/// # #[allow(unused_variables)]
 /// fn read_config(path: impl AsRef<Path>) -> Result<String, Report<ConfigError>> {
 ///     # #[cfg(any(miri, not(feature = "std")))]
-///     # { error::bail!(error_kind: ConfigError::IoError, "No such file"); return Ok("".to_string()); }
+///     # error::bail!(context: ConfigError::IoError, "No such file");
 ///     # #[cfg(all(not(miri), feature = "std"))]
-///     std::fs::read_to_string(path.as_ref()).error_kind(ConfigError::IoError)
+///     std::fs::read_to_string(path.as_ref()).provide_context(ConfigError::IoError)
 /// }
 ///
 /// fn main() -> Result<(), Report<RuntimeError>> {
 ///     # fn fake_main() -> Result<(), Report<RuntimeError>> {
 ///     let config_path = "./path/to/config.file";
+///     # #[allow(unused_variables)]
 ///     let config = read_config(config_path)
-///             .with_error_kind(|| RuntimeError::InvalidConfig(PathBuf::from(config_path)))?;
+///             .provide_context_lazy(|| RuntimeError::InvalidConfig(PathBuf::from(config_path)))?;
 ///
 ///     # const _: &str = stringify! {
 ///     ...
@@ -253,21 +265,21 @@ use self::{frame::Error, report::ReportImpl};
 /// }
 /// ```
 #[must_use]
-pub struct Report<ErrorKind = ()> {
+pub struct Report<Context = ()> {
     inner: Box<ReportImpl>,
-    _scope: PhantomData<ErrorKind>,
+    _context: PhantomData<Context>,
 }
 
-/// A single error, error [`Context`], or [`ErrorKind`] inside of a [`Report`].
+/// A single error, contextual message, or error context inside of a [`Report`].
 ///
-/// `Frame`s are an intrusive singly linked list. The head is pointing to the most recent
-/// [`Context`] or [`ErrorKind`], the tail is the root error created by [`Report::new()`],
-/// [`Report::from_error_kind()`], or [`Report::from()`]. The list can be advanced by [`request`]ing
+/// `Frame`s are an intrusive singly linked list. The head is pointing to the most recent error
+/// message or context, the tail is the root error created by [`Report::new()`],
+/// [`Report::from_context()`], or [`Report::from()`]. The list can be advanced by [`request`]ing
 /// [`tags::FrameSource`] or be iterated by calling [`Report::frames()`].
 ///
 /// [`request`]: Self::request
 pub struct Frame {
-    error: Error,
+    error: ManuallyDrop<Box<ErrorRepr<()>>>,
     location: &'static Location<'static>,
     source: Option<Box<Frame>>,
 }
@@ -283,7 +295,7 @@ pub struct Frame {
 /// `Result` can also be used in `fn main()`:
 ///
 /// ```
-/// # fn has_permission(user: usize, resource: usize) -> bool { true }
+/// # fn has_permission(_: usize, _: usize) -> bool { true }
 /// # fn get_user() -> Result<usize> { Ok(0) }
 /// # fn get_resource() -> Result<usize> { Ok(0) }
 /// use error::{ensure, Result};
@@ -305,112 +317,11 @@ pub struct Frame {
 /// If additional error kinds are required, `Result` should be redefined:
 ///
 /// ```
+/// # #![allow(dead_code)]
 /// # struct MyErrorKind;
 /// type Result<T, E = error::Report<MyErrorKind>> = error::Result<T, E>;
 /// ```
 pub type Result<T, E = Report> = core::result::Result<T, E>;
-
-/// Provides error information for a [`Frame`].
-///
-/// In comparison to [`Context`], `ErrorKind` is not implemented for [`Display`] automatically. It
-/// can be used to force the user to provide more context information.
-///
-/// See the [`tags`] submodule for built-in [`TypeTag`]s used by this API.
-///
-/// [`TypeTag`]: provider::TypeTag
-/// [`Display`]: core::fmt::Display
-///
-/// ```
-/// use core::fmt;
-///
-/// use error::ErrorKind;
-/// use provider::Requisition;
-///
-/// # #[derive(Debug)] struct User;
-/// # #[derive(Debug)] struct Resource;
-/// # impl fmt::Display for User { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
-/// # impl fmt::Display for Resource { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
-/// #[derive(Debug)]
-/// struct PermissionDenied {
-///     user: User,
-///     resource: Resource,
-/// }
-///
-/// impl fmt::Display for PermissionDenied {
-///     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-///         write!(fmt, "Permission denied accessing {} as {}", self.resource, self.user)
-///     }
-/// }
-///
-/// impl ErrorKind for PermissionDenied {
-///     fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
-///         req.provide_ref(&self.user).provide_ref(&self.resource);
-///     }
-/// }
-/// ```
-pub trait ErrorKind: fmt::Display + fmt::Debug + Send + Sync + 'static {
-    /// Provides error information for a [`Frame`] similar to the [`provider`] API.
-    fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
-        let _ = req;
-    }
-}
-
-/// Provides error information for a [`Frame`].
-///
-/// In comparison to [`ErrorKind`], `Context` is implemented for [`Display`] automatically, so even
-/// simple data like [`&str`][str] can be used to provide a better error context.
-///
-/// See the [`tags`] submodule for built-in [`TypeTag`]s used by this API.
-///
-/// [`TypeTag`]: provider::TypeTag
-/// [`Display`]: core::fmt::Display
-///
-/// # Example
-///
-/// You can create new context objects by implementing this trait, however the `min_specialization`
-/// feature has to be enabled:
-///
-/// ```
-/// #![feature(min_specialization)]
-///
-/// use core::fmt;
-///
-/// use error::Context;
-/// use provider::Requisition;
-///
-/// #[derive(Debug)]
-/// struct MyContext;
-///
-/// impl fmt::Display for MyContext {
-///     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-///         fmt.write_str("Context information")
-///     }
-/// }
-///
-/// impl Context for MyContext {
-///     fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {}
-/// }
-/// ```
-pub trait Context: fmt::Display + fmt::Debug + Send + Sync + 'static {
-    /// Provides error information for a [`Frame`] similar to the [`provider`] API.
-    fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>);
-}
-
-impl<P> ErrorKind for P
-where
-    P: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
-{
-    fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
-        Provider::provide(self, req);
-    }
-}
-
-impl<E> Context for E
-where
-    E: fmt::Display + fmt::Debug + Send + Sync + 'static,
-{
-    default fn provide<'p>(&'p self, _req: &mut Requisition<'p, '_>) {}
-}
 
 /// Extension trait for [`Result`][core::result::Result] to provide context information on
 /// [`Report`]s.
@@ -420,25 +331,25 @@ pub trait ResultExt<T> {
     type ErrorKind;
 
     /// Adds new context information to the [`Frame`] stack of a [`Report`].
-    fn context<C>(self, context: C) -> Result<T, Report<Self::ErrorKind>>
+    fn wrap_err<C>(self, context: C) -> Result<T, Report<Self::ErrorKind>>
     where
-        C: Context;
+        C: fmt::Display + fmt::Debug + Send + Sync + 'static;
 
     /// Lazily adds new context information to the [`Frame`] stack of a [`Report`].
-    fn with_context<C, F>(self, context: F) -> Result<T, Report<Self::ErrorKind>>
+    fn wrap_err_lazy<C, F>(self, context: F) -> Result<T, Report<Self::ErrorKind>>
     where
-        C: Context,
+        C: fmt::Display + fmt::Debug + Send + Sync + 'static,
         F: FnOnce() -> C;
 
     /// Adds a new error kind to the [`Frame`] stack of a [`Report`].
-    fn error_kind<E>(self, error_kind: E) -> Result<T, Report<E>>
+    fn provide_context<E>(self, context: E) -> Result<T, Report<E>>
     where
-        E: ErrorKind;
+        E: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static;
 
     /// Lazily adds a new error kind to the [`Frame`] stack of a [`Report`].
-    fn with_error_kind<E, F>(self, error_kind: F) -> Result<T, Report<E>>
+    fn provide_context_lazy<E, F>(self, context: F) -> Result<T, Report<E>>
     where
-        E: ErrorKind,
+        E: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
         F: FnOnce() -> E;
 }
 
@@ -447,7 +358,7 @@ pub trait ResultExt<T> {
 /// Use [`Report::frames()`] to create this iterator.
 #[must_use]
 #[derive(Clone)]
-pub struct FrameStack<'r> {
+pub struct Frames<'r> {
     current: Option<&'r Frame>,
 }
 
@@ -459,8 +370,8 @@ pub struct FrameStack<'r> {
 ///
 /// [`I::Type`]: provider::TypeTag::Type
 #[must_use]
-pub struct RequestStack<'r, I> {
-    chain: FrameStack<'r>,
+pub struct Requests<'r, I> {
+    chain: Frames<'r>,
     _marker: PhantomData<I>,
 }
 
@@ -472,19 +383,19 @@ pub(crate) mod test_helper {
     };
     use core::{fmt, fmt::Formatter};
 
-    use provider::{Requisition, TypeTag};
+    use provider::{Provider, Requisition, TypeTag};
 
-    use crate::{ErrorKind, Report};
+    use crate::Report;
 
-    pub const CONTEXT_A: &str = "Context A";
-    pub const CONTEXT_B: &str = "Context B";
+    pub const MESSAGE_A: &str = "Message A";
+    // pub const MESSAGE_B: &str = "Message B";
 
     #[derive(Debug)]
-    pub struct ErrorKindA(pub u32);
+    pub struct ContextA(pub u32);
 
-    impl fmt::Display for ErrorKindA {
+    impl fmt::Display for ContextA {
         fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-            fmt.write_str("Error Kind A")
+            fmt.write_str("Context A")
         }
     }
 
@@ -494,16 +405,16 @@ pub(crate) mod test_helper {
         type Type = u32;
     }
 
-    impl ErrorKind for ErrorKindA {
+    impl Provider for ContextA {
         fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
             req.provide::<TagA>(self.0);
         }
     }
 
     #[derive(Debug)]
-    pub struct ErrorKindB(pub i32);
+    pub struct ContextB(pub i32);
 
-    impl fmt::Display for ErrorKindB {
+    impl fmt::Display for ContextB {
         fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
             fmt.write_str("Error Kind B")
         }
@@ -515,7 +426,7 @@ pub(crate) mod test_helper {
         type Type = i32;
     }
 
-    impl ErrorKind for ErrorKindB {
+    impl Provider for ContextB {
         fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
             req.provide::<TagB>(self.0);
         }

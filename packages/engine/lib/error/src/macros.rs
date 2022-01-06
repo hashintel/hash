@@ -7,7 +7,7 @@ pub mod __private {
     pub mod kinds {
         use core::{fmt, marker::PhantomData};
 
-        use crate::{Context, Report};
+        use crate::Report;
 
         pub trait AdhocKind: Sized {
             fn __kind(&self) -> Adhoc {
@@ -19,11 +19,11 @@ pub mod __private {
         pub struct Adhoc;
         impl Adhoc {
             #[allow(clippy::unused_self)]
-            pub fn report<C>(self, message: C) -> Report
+            pub fn report<C>(self, context: C) -> Report
             where
-                C: Context,
+                C: fmt::Display + fmt::Debug + Send + Sync + 'static,
             {
-                Report::new(message)
+                Report::new(context)
             }
         }
 
@@ -59,11 +59,11 @@ pub mod __private {
 /// Create a [`Report`] from a message:
 ///
 /// ```
-/// # fn has_permission(user: &User, resource: &Resource) -> bool { false }
+/// # fn has_permission(_: &User, _: &Resource) -> bool { false }
 /// # struct User;
 /// # struct Resource;
 /// # use core::fmt;
-/// # impl fmt::Display for Resource { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
+/// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
 /// use error::format_err;
 ///
 /// # fn use_resource(user: User, resource: Resource) -> error::Result<()> {
@@ -96,17 +96,17 @@ pub mod __private {
 /// # assert_eq!(err.frames().count(), 1);
 /// ```
 ///
-/// Optionally, an [`ErrorKind`][crate::ErrorKind] can be provided:
+/// Optionally, a context can be provided:
 /// ```
-/// # fn has_permission(user: &User, resource: &Resource) -> bool { false }
+/// # fn has_permission(_: &User, _: &Resource) -> bool { false }
 /// # #[derive(Debug)] struct User;
 /// # #[derive(Debug)] struct Resource;
 /// # use error::format_err;
-/// # impl fmt::Display for User { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
-/// # impl fmt::Display for Resource { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
+/// # impl fmt::Display for User { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
+/// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
 /// use core::fmt;
 ///
-/// use error::{ErrorKind, Report};
+/// use error::Report;
 /// use provider::{Provider, Requisition};
 ///
 /// #[derive(Debug)]
@@ -118,7 +118,7 @@ pub mod __private {
 ///     }
 /// }
 ///
-/// impl ErrorKind for PermissionDenied {
+/// impl Provider for PermissionDenied {
 ///     fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
 ///         req.provide_ref(&self.0).provide_ref(&self.1);
 ///     }
@@ -127,7 +127,7 @@ pub mod __private {
 /// # fn use_resource(user: User, resource: Resource) -> Result<(), Report<PermissionDenied>> {
 /// if !has_permission(&user, &resource) {
 ///     return Err(format_err!(
-///         error_kind: PermissionDenied(user, resource),
+///         context: PermissionDenied(user, resource),
 ///         "permission denied accessing {resource}"
 ///     ));
 /// }
@@ -139,17 +139,17 @@ pub mod __private {
 /// ```
 #[macro_export]
 macro_rules! format_err {
-    (error_kind: $error_kind:expr $(,)?) => ({
-        $crate::Report::from_error_kind($error_kind)
+    (context: $context:expr $(,)?) => ({
+        $crate::Report::from_context($context)
     });
-    (error_kind: $error_kind:expr, $msg:literal $(,)?) => ({
-        $crate::format_err!($msg).error_kind($error_kind)
+    (context: $context:expr, $msg:literal $(,)?) => ({
+        $crate::format_err!($msg).provide_context($context)
     });
-    (error_kind: $error_kind:expr, $err:expr $(,)?) => ({
-        $crate::format_err!($err).error_kind($error_kind)
+    (context: $context:expr, $err:expr $(,)?) => ({
+        $crate::format_err!($err).provide_context($context)
     });
-    (error_kind: $error_kind:expr, $fmt:expr, $($arg:tt)+) => {
-        $crate::format_err!($fmt, $($arg)+).error_kind($error_kind)
+    (context: $context:expr, $fmt:expr, $($arg:tt)+) => {
+        $crate::format_err!($fmt, $($arg)+).provide_context($context)
     };
     ($msg:literal $(,)?) => ({
         $crate::Report::new($crate::__private::format_err(core::format_args!($msg)))
@@ -166,7 +166,7 @@ macro_rules! format_err {
 
 /// Creates a [`Report`] and returns it as [`Result`].
 ///
-/// Shorthand for `return Err(`[`format_err!(...)`]`)`
+/// Shorthand for `return `[`Err`]`(`[`format_err!(...)`]`)`
 ///
 /// [`Report`]: crate::Report
 /// [`format_err!(...)`]: format_err
@@ -176,11 +176,11 @@ macro_rules! format_err {
 /// Create a [`Report`] from a message:
 ///
 /// ```
-/// # fn has_permission(user: &User, resource: &Resource) -> bool { false }
+/// # fn has_permission(_: &User, _: &Resource) -> bool { false }
 /// # struct User;
 /// # struct Resource;
 /// # use core::fmt;
-/// # impl fmt::Display for Resource { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
+/// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
 /// use error::bail;
 ///
 /// # fn use_resource(user: User, resource: Resource) -> error::Result<()> {
@@ -212,18 +212,18 @@ macro_rules! format_err {
 /// # assert_eq!(err.frames().count(), 1);
 /// ```
 ///
-/// Optionally, an [`ErrorKind`][crate::ErrorKind] can be provided:
+/// Optionally, a context can be provided:
 ///
 /// ```
-/// # fn has_permission(user: &User, resource: &Resource) -> bool { false }
+/// # fn has_permission(_: &User, _: &Resource) -> bool { false }
 /// # #[derive(Debug)] struct User;
 /// # #[derive(Debug)] struct Resource;
 /// # use error::bail;
-/// # impl fmt::Display for User { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
-/// # impl fmt::Display for Resource { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
+/// # impl fmt::Display for User { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
+/// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
 /// use core::fmt;
 ///
-/// use error::{ErrorKind, Report};
+/// use error::Report;
 /// use provider::{Provider, Requisition};
 ///
 /// #[derive(Debug)]
@@ -235,7 +235,7 @@ macro_rules! format_err {
 ///     }
 /// }
 ///
-/// impl ErrorKind for PermissionDenied {
+/// impl Provider for PermissionDenied {
 ///     fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
 ///         req.provide_ref(&self.0).provide_ref(&self.1);
 ///     }
@@ -244,7 +244,7 @@ macro_rules! format_err {
 /// # fn use_resource(user: User, resource: Resource) -> Result<(), Report<PermissionDenied>> {
 /// if !has_permission(&user, &resource) {
 ///     bail!(
-///         error_kind: PermissionDenied(user, resource),
+///         context: PermissionDenied(user, resource),
 ///         "permission denied for accessing {resource}"
 ///     );
 /// }
@@ -256,17 +256,17 @@ macro_rules! format_err {
 /// ```
 #[macro_export]
 macro_rules! bail {
-    (error_kind: $error_kind:expr $(,)?) => ({
-        return $crate::Result::Err($crate::format_err!(error_kind: $error_kind))
+    (context: $context:expr $(,)?) => ({
+        return $crate::Result::Err($crate::format_err!(context: $context))
     });
-    (error_kind: $error_kind:expr, $msg:literal $(,)?) => ({
-        return $crate::Result::Err($crate::format_err!(error_kind: $error_kind, $msg))
+    (context: $context:expr, $msg:literal $(,)?) => ({
+        return $crate::Result::Err($crate::format_err!(context: $context, $msg))
     });
-    (error_kind: $error_kind:expr, $err:expr $(,)?) => ({
-        return $crate::Result::Err($crate::format_err!(error_kind: $error_kind, $err))
+    (context: $context:expr, $err:expr $(,)?) => ({
+        return $crate::Result::Err($crate::format_err!(context: $context, $err))
     });
-    (error_kind: $error_kind:expr, $fmt:expr, $($arg:tt)+) => {
-        return $crate::Result::Err($crate::format_err!(error_kind: $error_kind, $fmt, $($arg)+))
+    (context: $context:expr, $fmt:expr, $($arg:tt)+) => {
+        return $crate::Result::Err($crate::format_err!(context: $context, $fmt, $($arg)+))
     };
     ($msg:literal $(,)?) => ({
         return $crate::Result::Err($crate::format_err!($msg))
@@ -291,11 +291,11 @@ macro_rules! bail {
 /// Create a [`Report`] from a message:
 ///
 /// ```
-/// # fn has_permission(user: &User, resource: &Resource) -> bool { false }
+/// # fn has_permission(_: &User, _: &Resource) -> bool { false }
 /// # struct User;
 /// # struct Resource;
 /// # use core::fmt;
-/// # impl fmt::Display for Resource { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
+/// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
 /// use error::ensure;
 ///
 /// # fn use_resource(user: User, resource: Resource) -> error::Result<()> {
@@ -306,18 +306,18 @@ macro_rules! bail {
 /// # assert_eq!(err.frames().next().unwrap().to_string(), "permission denied for accessing ");
 /// ```
 ///
-/// Optionally, an [`ErrorKind`][crate::ErrorKind] can be provided:
+/// Optionally, a context can be provided:
 ///
 /// ```
-/// # fn has_permission(user: &User, resource: &Resource) -> bool { false }
+/// # fn has_permission(_: &User, _: &Resource) -> bool { false }
 /// # #[derive(Debug)] struct User;
 /// # #[derive(Debug)] struct Resource;
 /// # use error::ensure;
-/// # impl fmt::Display for User { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
-/// # impl fmt::Display for Resource { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
+/// # impl fmt::Display for User { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
+/// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
 /// use core::fmt;
 ///
-/// use error::{ErrorKind, Report};
+/// use error::Report;
 /// use provider::{Provider, Requisition};
 ///
 /// #[derive(Debug)]
@@ -329,7 +329,7 @@ macro_rules! bail {
 ///     }
 /// }
 ///
-/// impl ErrorKind for PermissionDenied {
+/// impl Provider for PermissionDenied {
 ///     fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
 ///         req.provide_ref(&self.0).provide_ref(&self.1);
 ///     }
@@ -338,7 +338,7 @@ macro_rules! bail {
 /// # fn use_resource(user: User, resource: Resource) -> Result<(), Report<PermissionDenied>> {
 /// ensure!(
 ///     has_permission(&user, &resource),
-///     error_kind: PermissionDenied(user, resource),
+///     context: PermissionDenied(user, resource),
 ///     "permission denied for accessing {resource}",
 /// );
 /// # Ok(()) }
@@ -351,24 +351,24 @@ macro_rules! bail {
 /// [`Report`]: crate::Report
 #[macro_export]
 macro_rules! ensure {
-    ($cond:expr, error_kind: $error_kind:expr $(,)?) => ({
+    ($cond:expr, context: $context:expr $(,)?) => ({
         if !$cond {
-            $crate::bail!(error_kind: $error_kind)
+            $crate::bail!(context: $context)
         }
     });
-    ($cond:expr, error_kind: $error_kind:expr, $msg:literal $(,)?) => ({
+    ($cond:expr, context: $context:expr, $msg:literal $(,)?) => ({
         if !$cond {
-            $crate::bail!(error_kind: $error_kind, $msg)
+            $crate::bail!(context: $context, $msg)
         }
     });
-    ($cond:expr, error_kind: $error_kind:expr, $err:expr $(,)?) => ({
+    ($cond:expr, context: $context:expr, $err:expr $(,)?) => ({
         if !$cond {
-            $crate::bail!(error_kind: $error_kind, $err)
+            $crate::bail!(context: $context, $err)
         }
     });
-    ($cond:expr, error_kind: $error_kind:expr, $fmt:expr, $($arg:tt)+) => {
+    ($cond:expr, context: $context:expr, $fmt:expr, $($arg:tt)+) => {
         if !$cond {
-            $crate::bail!(error_kind: $error_kind, $fmt, $($arg)+)
+            $crate::bail!(context: $context, $fmt, $($arg)+)
         }
     };
     ($cond:expr, $msg:literal $(,)?) => ({
@@ -395,49 +395,41 @@ mod tests {
 
     #[test]
     fn format_err() {
-        let err = capture_error(|| Err(format_err!(error_kind: ErrorKindA(10))));
+        let err = capture_error(|| Err(format_err!(context: ContextA(10))));
         assert_eq!(err.frames().count(), 1);
         assert_eq!(err.request::<TagA>().collect::<Vec<_>>(), [10]);
-        assert_eq!(request_messages(&err), ["Error Kind A"]);
+        assert_eq!(request_messages(&err), ["Context A"]);
 
-        let err = capture_error(|| Err(format_err!(error_kind: ErrorKindA(10), "Literal")));
+        let err = capture_error(|| Err(format_err!(context: ContextA(10), "Literal")));
         assert_eq!(err.frames().count(), 2);
         assert_eq!(err.request::<TagA>().collect::<Vec<_>>(), [10]);
-        assert_eq!(request_messages(&err), ["Error Kind A", "Literal"]);
+        assert_eq!(request_messages(&err), ["Context A", "Literal"]);
 
-        let err = capture_error(|| Err(format_err!(error_kind: ErrorKindA(10), CONTEXT_A)));
+        let err = capture_error(|| Err(format_err!(context: ContextA(10), MESSAGE_A)));
         assert_eq!(err.frames().count(), 2);
         assert_eq!(err.request::<TagA>().collect::<Vec<_>>(), [10]);
-        assert_eq!(request_messages(&err), ["Error Kind A", "Context A"]);
-
-        let var = "foo";
-        let err = capture_error(|| {
-            Err(format_err!(error_kind: ErrorKindA(10), "Format String: {}", var))
-        });
-        assert_eq!(err.frames().count(), 2);
-        assert_eq!(err.request::<TagA>().collect::<Vec<_>>(), [10]);
-        assert_eq!(request_messages(&err), [
-            "Error Kind A",
-            "Format String: foo"
-        ]);
+        assert_eq!(request_messages(&err), ["Context A", "Message A"]);
 
         let var = "foo";
         let err =
-            capture_error(|| Err(format_err!(error_kind: ErrorKindA(10), "Format String: {var}")));
+            capture_error(|| Err(format_err!(context: ContextA(10), "Format String: {}", var)));
         assert_eq!(err.frames().count(), 2);
         assert_eq!(err.request::<TagA>().collect::<Vec<_>>(), [10]);
-        assert_eq!(request_messages(&err), [
-            "Error Kind A",
-            "Format String: foo"
-        ]);
+        assert_eq!(request_messages(&err), ["Context A", "Format String: foo"]);
+
+        let var = "foo";
+        let err = capture_error(|| Err(format_err!(context: ContextA(10), "Format String: {var}")));
+        assert_eq!(err.frames().count(), 2);
+        assert_eq!(err.request::<TagA>().collect::<Vec<_>>(), [10]);
+        assert_eq!(request_messages(&err), ["Context A", "Format String: foo"]);
 
         let err = capture_error(|| Err(format_err!("Literal")));
         assert_eq!(err.frames().count(), 1);
         assert_eq!(request_messages(&err), ["Literal"]);
 
-        let err = capture_error(|| Err(format_err!(CONTEXT_A)));
+        let err = capture_error(|| Err(format_err!(MESSAGE_A)));
         assert_eq!(err.frames().count(), 1);
-        assert_eq!(request_messages(&err), ["Context A"]);
+        assert_eq!(request_messages(&err), ["Message A"]);
 
         let var = "foo";
         let err = capture_error(|| Err(format_err!("Format String: {}", var)));
@@ -452,46 +444,40 @@ mod tests {
 
     #[test]
     fn bail() {
-        let err = capture_error(|| bail!(error_kind: ErrorKindA(10)));
+        let err = capture_error(|| bail!(context: ContextA(10)));
         assert_eq!(err.frames().count(), 1);
         assert_eq!(err.request::<TagA>().collect::<Vec<_>>(), [10]);
-        assert_eq!(request_messages(&err), ["Error Kind A"]);
+        assert_eq!(request_messages(&err), ["Context A"]);
 
-        let err = capture_error(|| bail!(error_kind: ErrorKindA(10), "Literal"));
+        let err = capture_error(|| bail!(context: ContextA(10), "Literal"));
         assert_eq!(err.frames().count(), 2);
         assert_eq!(err.request::<TagA>().collect::<Vec<_>>(), [10]);
-        assert_eq!(request_messages(&err), ["Error Kind A", "Literal"]);
+        assert_eq!(request_messages(&err), ["Context A", "Literal"]);
 
-        let err = capture_error(|| bail!(error_kind: ErrorKindA(10), CONTEXT_A));
+        let err = capture_error(|| bail!(context: ContextA(10), MESSAGE_A));
         assert_eq!(err.frames().count(), 2);
         assert_eq!(err.request::<TagA>().collect::<Vec<_>>(), [10]);
-        assert_eq!(request_messages(&err), ["Error Kind A", "Context A"]);
-
-        let var = "foo";
-        let err = capture_error(|| bail!(error_kind: ErrorKindA(10), "Format String: {}", var));
-        assert_eq!(err.frames().count(), 2);
-        assert_eq!(err.request::<TagA>().collect::<Vec<_>>(), [10]);
-        assert_eq!(request_messages(&err), [
-            "Error Kind A",
-            "Format String: foo"
-        ]);
+        assert_eq!(request_messages(&err), ["Context A", "Message A"]);
 
         let var = "foo";
-        let err = capture_error(|| bail!(error_kind: ErrorKindA(10), "Format String: {var}"));
+        let err = capture_error(|| bail!(context: ContextA(10), "Format String: {}", var));
         assert_eq!(err.frames().count(), 2);
         assert_eq!(err.request::<TagA>().collect::<Vec<_>>(), [10]);
-        assert_eq!(request_messages(&err), [
-            "Error Kind A",
-            "Format String: foo"
-        ]);
+        assert_eq!(request_messages(&err), ["Context A", "Format String: foo"]);
+
+        let var = "foo";
+        let err = capture_error(|| bail!(context: ContextA(10), "Format String: {var}"));
+        assert_eq!(err.frames().count(), 2);
+        assert_eq!(err.request::<TagA>().collect::<Vec<_>>(), [10]);
+        assert_eq!(request_messages(&err), ["Context A", "Format String: foo"]);
 
         let err = capture_error(|| bail!("Literal"));
         assert_eq!(err.frames().count(), 1);
         assert_eq!(request_messages(&err), ["Literal"]);
 
-        let err = capture_error(|| bail!(CONTEXT_A));
+        let err = capture_error(|| bail!(MESSAGE_A));
         assert_eq!(err.frames().count(), 1);
-        assert_eq!(request_messages(&err), ["Context A"]);
+        assert_eq!(request_messages(&err), ["Message A"]);
 
         let var = "foo";
         let err = capture_error(|| bail!("Format String: {}", var));
@@ -507,52 +493,46 @@ mod tests {
     #[test]
     fn ensure() {
         let err = capture_error(|| {
-            ensure!(false, error_kind: ErrorKindA(10));
+            ensure!(false, context: ContextA(10));
             Ok(())
         });
         assert_eq!(err.frames().count(), 1);
         assert_eq!(err.request::<TagA>().collect::<Vec<_>>(), [10]);
-        assert_eq!(request_messages(&err), ["Error Kind A"]);
+        assert_eq!(request_messages(&err), ["Context A"]);
 
         let err = capture_error(|| {
-            ensure!(false, error_kind: ErrorKindA(10), "Literal");
+            ensure!(false, context: ContextA(10), "Literal");
             Ok(())
         });
         assert_eq!(err.frames().count(), 2);
         assert_eq!(err.request::<TagA>().collect::<Vec<_>>(), [10]);
-        assert_eq!(request_messages(&err), ["Error Kind A", "Literal"]);
+        assert_eq!(request_messages(&err), ["Context A", "Literal"]);
 
         let err = capture_error(|| {
-            ensure!(false, error_kind: ErrorKindA(10), CONTEXT_A);
+            ensure!(false, context: ContextA(10), MESSAGE_A);
             Ok(())
         });
         assert_eq!(err.frames().count(), 2);
         assert_eq!(err.request::<TagA>().collect::<Vec<_>>(), [10]);
-        assert_eq!(request_messages(&err), ["Error Kind A", "Context A"]);
-
-        let var = "foo";
-        let err = capture_error(|| {
-            ensure!(false, error_kind: ErrorKindA(10), "Format String: {}", var);
-            Ok(())
-        });
-        assert_eq!(err.frames().count(), 2);
-        assert_eq!(err.request::<TagA>().collect::<Vec<_>>(), [10]);
-        assert_eq!(request_messages(&err), [
-            "Error Kind A",
-            "Format String: foo"
-        ]);
+        assert_eq!(request_messages(&err), ["Context A", "Message A"]);
 
         let var = "foo";
         let err = capture_error(|| {
-            ensure!(false, error_kind: ErrorKindA(10), "Format String: {var}");
+            ensure!(false, context: ContextA(10), "Format String: {}", var);
             Ok(())
         });
         assert_eq!(err.frames().count(), 2);
         assert_eq!(err.request::<TagA>().collect::<Vec<_>>(), [10]);
-        assert_eq!(request_messages(&err), [
-            "Error Kind A",
-            "Format String: foo"
-        ]);
+        assert_eq!(request_messages(&err), ["Context A", "Format String: foo"]);
+
+        let var = "foo";
+        let err = capture_error(|| {
+            ensure!(false, context: ContextA(10), "Format String: {var}");
+            Ok(())
+        });
+        assert_eq!(err.frames().count(), 2);
+        assert_eq!(err.request::<TagA>().collect::<Vec<_>>(), [10]);
+        assert_eq!(request_messages(&err), ["Context A", "Format String: foo"]);
 
         let err = capture_error(|| {
             ensure!(false, "Literal");
@@ -562,11 +542,11 @@ mod tests {
         assert_eq!(request_messages(&err), ["Literal"]);
 
         let err = capture_error(|| {
-            ensure!(false, CONTEXT_A);
+            ensure!(false, MESSAGE_A);
             Ok(())
         });
         assert_eq!(err.frames().count(), 1);
-        assert_eq!(request_messages(&err), ["Context A"]);
+        assert_eq!(request_messages(&err), ["Message A"]);
 
         let var = "foo";
         let err = capture_error(|| {
