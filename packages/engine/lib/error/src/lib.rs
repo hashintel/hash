@@ -113,7 +113,10 @@
 #![feature(min_specialization)]
 #![warn(missing_docs, clippy::pedantic, clippy::nursery)]
 #![allow(clippy::missing_errors_doc)] // This is an error handling library producing Results, not Errors
-#![doc(test(attr(deny(warnings, clippy::pedantic, clippy::nursery))))]
+#![cfg_attr(
+    not(miri),
+    doc(test(attr(deny(warnings, clippy::pedantic, clippy::nursery))))
+)]
 
 extern crate alloc;
 
