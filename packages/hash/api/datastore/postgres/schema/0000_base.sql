@@ -82,6 +82,9 @@ create table if not exists entities (
     primary key (account_id, entity_id)
 );
 
+-- Partial index for entities that are "accounts".
+-- Index is used in query plan when these entities make up no more than than a significant minority of entities (<10%) in the table.
+create index if not exists account_entities on entities (account_id, entity_id) where account_id = entity_id;
 
 create table if not exists entity_versions (
     account_id              uuid not null references accounts (account_id),
@@ -101,6 +104,9 @@ create table if not exists entity_versions (
 
     primary key (account_id, entity_version_id)
 );
+
+-- Along with the account_entities index, these make up the partial indices that increase performance when querying for "accounts".
+create index if not exists account_entity_versions on entity_versions (account_id, entity_id) where account_id = entity_id;
 
 create index if not exists entity_versions_entity_id on entity_versions (account_id, entity_id);
 

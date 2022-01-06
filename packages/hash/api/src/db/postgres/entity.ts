@@ -322,6 +322,8 @@ export const getEntitiesByTypeAllVersions = async (
 export const getAllAccounts = async (conn: Connection) => {
   const rows = await conn.any<EntityPGRow>(sql`
     with entities as (${selectEntities})
+    -- A partial index exists on entities for account_id = entity_id
+    -- Note: assumption is made about accounts having no version history in selectEntities query.
     select * from entities where account_id = entity_id
   `);
   return rows.map(mapPGRowToEntity);
