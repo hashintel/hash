@@ -32,7 +32,7 @@ impl Config {
         // TODO: Ask packages for what language execution they require.
         let worker_base_config = worker::Config {
             spawn: worker::SpawnConfig {
-                python: false,
+                python: true,
                 rust: false,
                 javascript: true,
             },

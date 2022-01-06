@@ -83,7 +83,7 @@ def load_record_batch(mem, schema=None):
 
 # Returns dataset name, dataset contents and whether JSON could be loaded.
 def load_dataset(batch_id):
-    mem = load_shared_mem(shared_buf_from_c_memory(batch_id))
+    mem = shared_buf_from_c_memory(load_shared_mem(batch_id))
     (_, _, header_offset, header_size, _, _, data_offset, data_size) = load_markers(mem)
 
     # The header has the shortname of the dataset
