@@ -1,8 +1,13 @@
+import importlib
 from pathlib import Path
+import sys
+import traceback
 
+import logging
 
 def get_pkg_path(pkg_name, pkg_type):
-    return Path("../../../simulation/package/{}/packages/{}/package.py".format(
+    # The engine should be started from the engine's root directory in the repo.
+    return Path("./src/simulation/package/{}/packages/{}/package.py".format(
         pkg_type, pkg_name
     ))
 
@@ -10,19 +15,40 @@ def get_pkg_path(pkg_name, pkg_type):
 def load_fns(pkg_name, pkg_type):
     # Read code.
     path = get_pkg_path(pkg_name, pkg_type)
-    code = "import ........worker.runner.python.hash_util\n"+path.read_text()
+
+    try:
+        # TODO: Discuss whether there is some significant drawback to
+        #       changing `sys.path` here (vs some more complicated way
+        #       of importing files from parent directories of the
+        #       package file's directory).
+        code = ("import pathlib\n" +
+                "import sys\n" +
+                "sys.path.insert(1, pathlib.Path.cwd()/'worker'/'runner'/'python')\n" +
+                "import hash_util\n" +
+                path.read_text())
+    except IOError:
+        logging.info("`" + str(path) + "` doesn't exist, possibly intentionally")
+        return [None, None, None]
 
     # Run code.
     pkg_globals = {}
-    bytecode = compile(code.decode("utf-8"), pkg_name, "exec")
-    exec(bytecode, pkg_globals)
+    try:
+        bytecode = compile(code, pkg_name, "exec")
+        exec(bytecode, pkg_globals)
+    except Exception:
+        # Have to catch generic Exception, because
+        # package author's code could throw anything
+        e = str(traceback.format_exception(*sys.exc_info()))
+        raise RuntimeError(
+            "Couldn't import package " + str(path) + ": " + e
+        )
 
     # Extract functions.
     fn_names = ["start_experiment", "start_sim", "run_task"]
-    fns = [(name, pkg_globals.get(name)) for name in fn_names]
+    fns = [pkg_globals.get(name) for name in fn_names]
 
     # Validate functions.
-    for (fn_name, fn) in fns:
+    for (fn_name, fn) in zip(fn_names, fns):
         if fn is not None and not callable(fn):
             raise Exception(
                 "Couldn't import package {}: {} should be callable, not {}".format(

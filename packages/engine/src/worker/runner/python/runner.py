@@ -26,7 +26,7 @@ class Runner:
         try:
             self.experiment_ctx = self.start_experiment()
         except Exception as e:  # Have to catch generic Exception
-            self.handle_runner_error(e, sys.exc_info())
+            self.handle_runner_error(sys.exc_info())
             raise e
 
     def start_experiment(self):
@@ -36,7 +36,7 @@ class Runner:
             self.pkgs[pkg_id] = pkg = Package(
                 name=config.name,
                 pkg_type=config.type,
-                owned_fields=config.owned_fields
+                owned_fields=[]  # TODO: Propagate `config.owned_fields` here.
             )
 
             if pkg.start_experiment is not None:
@@ -137,7 +137,11 @@ class Runner:
         self.batches.free()
         self.messenger = None
 
-    def handle_runner_error(self, exc, tb):
+    # `exc_info` is whatever tuple of info `sys.exc_info()` returned about
+    # an exception. Calling `sys.exc_info()` inside `handle_runner_error`
+    # wouldn't work, because `sys.exc_info` can only return info about an
+    # exception that has just occurred.
+    def handle_runner_error(self, exc_info):
         # User errors definitely need to be sent back to the Rust process, so
         # they can be sent further to the user and displayed.
 
@@ -149,7 +153,7 @@ class Runner:
         # Rust process that a runner error occurred so it immediately knows
         # that the runner exited.
 
-        error = "Runner error: " + str(traceback.format_exception(type(exc), exc, tb))
+        error = "Runner error: " + str(traceback.format_exception(*exc_info))
         logging.error(error)  # First make sure the error gets logged; then try to send it.
         self.messenger.send_runner_error(error)
         time.sleep(2)  # Give the Rust process time to receive the error message.
@@ -202,4 +206,4 @@ class Runner:
 
         except Exception as e:
             # Catch generic Exception to make sure it's logged before the runner exits.
-            self.handle_runner_error(e, sys.exc_info())
+            self.handle_runner_error(sys.exc_info())
