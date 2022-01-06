@@ -7,6 +7,8 @@ export const userTypedef = gql`
 
     properties: UserProperties!
 
+    memberOf: [OrgMembership!]!
+
     # ENTITY INTERFACE FIELDS BEGIN #
     """
     The id of the entity - alias of 'entityId'
@@ -99,7 +101,6 @@ export const userTypedef = gql`
     emails: [Email!]!
     shortname: String
     preferredName: String
-    memberOf: [LinkedOrgMembership!]!
   }
 
   type VerificationCodeMetadata {

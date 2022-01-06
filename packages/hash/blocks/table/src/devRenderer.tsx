@@ -59,7 +59,7 @@ const useMockData = () => {
       }
 
       resolvedData = entities.filter(
-        ({ type }) => type === linkedData.entityTypeId,
+        ({ type }) => type === linkedData.aggregate?.entityTypeId,
       ) as Person[];
 
       if (!linkedData.aggregate) {
@@ -106,7 +106,6 @@ const useMockData = () => {
     async (action) => {
       const results = getResolvedData({
         aggregate: action.operation,
-        entityTypeId: action.entityTypeId,
       }).data;
 
       return Promise.resolve({

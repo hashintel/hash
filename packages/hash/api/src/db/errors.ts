@@ -53,6 +53,18 @@ export class DbEntityTypeNotFoundError extends Error {
   }
 }
 
+export class DbLinkNotFoundError extends Error {
+  accountId?: string;
+  linkId: string;
+
+  constructor(params: { accountId?: string; linkId: string }) {
+    const { accountId, linkId } = params;
+    super(`Link ${linkId} not found in account ${accountId}`);
+    this.accountId = accountId;
+    this.linkId = linkId;
+  }
+}
+
 export class DbInvalidLinksError extends Error {
   entity: Entity;
   invalid: { entityId: string; entityVersionId?: string }[];

@@ -16,13 +16,11 @@ export const createOrg = gql`
       visibility
       properties {
         shortname
-        invitationLink {
-          data {
-            entityId
-            properties {
-              accessToken
-            }
-          }
+      }
+      invitationLinks {
+        id
+        properties {
+          accessToken
         }
       }
     }
@@ -42,18 +40,6 @@ export const joinOrg = gql`
     ) {
       entityId
       properties {
-        memberOf {
-          data {
-            properties {
-              responsibility
-              org {
-                data {
-                  entityId
-                }
-              }
-            }
-          }
-        }
         emails {
           address
           verified
@@ -74,14 +60,6 @@ export const createOrgEmailInvitation = gql`
       inviteeEmailAddress: $inviteeEmailAddress
     ) {
       properties {
-        org {
-          data {
-            properties {
-              name
-              shortname
-            }
-          }
-        }
         inviteeEmailAddress
       }
     }
@@ -99,22 +77,19 @@ export const getOrgEmailInvitation = gql`
     ) {
       entityId
       properties {
-        org {
-          data {
-            properties {
-              name
-            }
-          }
-        }
-        inviter {
-          data {
-            entityId
-            properties {
-              preferredName
-            }
-          }
-        }
         inviteeEmailAddress
+      }
+      org {
+        id
+        properties {
+          name
+        }
+      }
+      inviter {
+        id
+        properties {
+          preferredName
+        }
       }
     }
   }
@@ -127,14 +102,11 @@ export const getOrgInvitationLink = gql`
       invitationLinkToken: $invitationLinkToken
     ) {
       entityId
-      properties {
-        org {
-          data {
-            entityId
-            properties {
-              name
-            }
-          }
+
+      org {
+        id
+        properties {
+          name
         }
       }
     }

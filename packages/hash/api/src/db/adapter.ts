@@ -49,6 +49,29 @@ export type Entity = {
   visibility: Visibility;
 };
 
+export type DBLink = {
+  linkId: string;
+  path: string;
+  index?: number;
+  sourceAccountId: string;
+  sourceEntityId: string;
+  sourceEntityVersionIds: Set<string>;
+  destinationAccountId: string;
+  destinationEntityId: string;
+  destinationEntityVersionId?: string;
+  createdAt: Date;
+};
+
+export type DBAggregation = {
+  sourceAccountId: string;
+  sourceEntityId: string;
+  sourceEntityVersionIds: Set<string>;
+  path: string;
+  operation: object;
+  createdByAccountId: string;
+  createdAt: Date;
+};
+
 export type EntityType = Omit<Entity, EntityTypeTypeFields> & {
   /**
    *  @todo make these non-optional if we figure a way of getting the EntityType entityType
@@ -84,13 +107,6 @@ export type VerificationCode = {
   createdAt: Date;
 };
 
-export type DBLinkedEntity = {
-  __linkedData: {
-    entityTypeId: string;
-    entityId: string;
-  };
-};
-
 export type DBUserEmail = {
   address: string;
   verified: boolean;
@@ -106,12 +122,9 @@ export type DBUserProperties = {
   shortname?: string;
   preferredName?: string;
   infoProvidedAtSignup: UserInfoProvidedAtSignup;
-  memberOf: DBLinkedEntity[];
 };
 
 export type DBOrgMembershipProperties = {
-  org: DBLinkedEntity;
-  user: DBLinkedEntity;
   responsibility: string;
 };
 
@@ -131,7 +144,6 @@ export type OrgInfoProvidedAtCreation = {
 export type DBOrgProperties = {
   shortname: string;
   name: string;
-  memberships: DBLinkedEntity[];
   infoProvidedAtCreation?: OrgInfoProvidedAtCreation;
 };
 
@@ -307,7 +319,6 @@ export interface DBClient {
    * @param params.entityTypeId the fixed entityTypeId
    * @param params.entityTypeVersionId optionally limit results to entities of a specific version of the type
    * @param params.latestOnly optionally limit results to the latest version of each entity
-
    * */
   getEntitiesByType(params: {
     accountId: string;
@@ -350,6 +361,37 @@ export interface DBClient {
     extra: any;
   }): Promise<EntityMeta>;
 
+  /** Create a link */
+  createLink(params: {
+    createdByAccountId: string;
+    path: string;
+    index?: number;
+    sourceAccountId: string;
+    sourceEntityId: string;
+    sourceEntityVersionIds: Set<string>;
+    destinationAccountId: string;
+    destinationEntityId: string;
+    destinationEntityVersionId?: string;
+  }): Promise<DBLink>;
+
+  getLink(params: {
+    sourceAccountId: string;
+    linkId: string;
+  }): Promise<DBLink | null>;
+
+  deleteLink(params: {
+    deletedByAccountId: string;
+    sourceAccountId: string;
+    linkId: string;
+  }): Promise<void>;
+
+  getEntityOutgoingLinks(params: {
+    accountId: string;
+    entityId: string;
+    entityVersionId?: string;
+    path?: string;
+  }): Promise<DBLink[]>;
+
   /** Create a verification code */
   createVerificationCode(params: {
     accountId: string;
@@ -357,6 +399,41 @@ export interface DBClient {
     code: string;
     emailAddress: string;
   }): Promise<VerificationCode>;
+
+  createAggregation(params: {
+    createdByAccountId: string;
+    sourceAccountId: string;
+    sourceEntityId: string;
+    path: string;
+    operation: object;
+  }): Promise<DBAggregation>;
+
+  updateAggregationOperation(params: {
+    sourceAccountId: string;
+    sourceEntityId: string;
+    path: string;
+    operation: object;
+  }): Promise<DBAggregation>;
+
+  getEntityAggregation(params: {
+    sourceAccountId: string;
+    sourceEntityId: string;
+    sourceEntityVersionId?: string;
+    path: string;
+  }): Promise<DBAggregation | null>;
+
+  getEntityAggregations(params: {
+    sourceAccountId: string;
+    sourceEntityId: string;
+    sourceEntityVersionId?: string;
+  }): Promise<DBAggregation[]>;
+
+  deleteAggregation(params: {
+    deletedByAccountId: string;
+    sourceAccountId: string;
+    sourceEntityId: string;
+    path: string;
+  }): Promise<void>;
 
   /** Get a verification code (it may be invalid!) */
   getVerificationCode(params: { id: string }): Promise<VerificationCode | null>;

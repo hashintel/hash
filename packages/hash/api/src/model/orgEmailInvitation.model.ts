@@ -1,6 +1,6 @@
 import { ApolloError } from "apollo-server-errors";
 import { DBClient } from "../db";
-import { DBLinkedEntity, EntityType } from "../db/adapter";
+import { EntityType } from "../db/adapter";
 import {
   AccessToken,
   OrgEmailInvitation,
@@ -9,15 +9,15 @@ import {
   Org,
   User,
   UpdatePropertiesPayload,
+  Entity,
+  Link,
 } from ".";
 import { sendOrgEmailInvitationToEmailAddress } from "../email";
 import { EmailTransporter } from "../email/transporters";
 
 export type DBOrgEmailInvitationProperties = {
-  inviter: DBLinkedEntity;
   inviteeEmailAddress: string;
   usedAt?: string;
-  org: DBLinkedEntity;
 } & DBAccessTokenProperties;
 
 type OrgEmailInvitationConstructorArgs = {
@@ -35,7 +35,7 @@ class __OrgEmailInvitation extends AccessToken {
   }: OrgEmailInvitationConstructorArgs) {
     super({ ...remainingArgs, properties });
     this.properties = properties;
-    this.errorMsgPrefix = `The email invitation with entityId ${this.entityId} associated with org with entityId ${this.properties.org.__linkedData.entityId}`;
+    this.errorMsgPrefix = `The email invitation with entityId ${this.entityId} `;
   }
 
   static async getEntityType(client: DBClient): Promise<EntityType> {
@@ -43,6 +43,17 @@ class __OrgEmailInvitation extends AccessToken {
       systemTypeName: "OrgEmailInvitation",
     });
     return dbEntityType;
+  }
+
+  static async getOrgEmailInvitation(
+    client: DBClient,
+    params: { accountId: string; entityId: string },
+  ): Promise<OrgEmailInvitation | null> {
+    const dbOrgEmailInvitation = await client.getEntityLatestVersion(params);
+
+    return dbOrgEmailInvitation
+      ? new OrgEmailInvitation(dbOrgEmailInvitation)
+      : null;
   }
 
   /**
@@ -65,17 +76,34 @@ class __OrgEmailInvitation extends AccessToken {
     const properties: DBOrgEmailInvitationProperties = {
       inviteeEmailAddress /** @todo: validate email address */,
       accessToken: AccessToken.generateAccessToken(),
-      org: org.convertToDBLink(),
-      inviter: inviter.convertToDBLink(),
     };
 
-    const entity = await client.createEntity({
+    const entity = await Entity.create(client, {
       accountId: org.accountId,
       createdByAccountId: org.entityId,
       entityTypeId: (await OrgEmailInvitation.getEntityType(client)).entityId,
       properties,
       versioned: false,
     });
+
+    await Promise.all([
+      entity.createOutgoingLink(client, {
+        createdByAccountId: inviter.accountId,
+        destination: org,
+        stringifiedPath: Link.stringifyPath(["org"]),
+      }),
+      /** @todo: remove this when inverse relationships are automatically created */
+      org.createOutgoingLink(client, {
+        createdByAccountId: inviter.accountId,
+        destination: entity,
+        stringifiedPath: Link.stringifyPath(["emailInvitationLink"]),
+      }),
+      entity.createOutgoingLink(client, {
+        createdByAccountId: inviter.accountId,
+        destination: inviter,
+        stringifiedPath: Link.stringifyPath(["inviter"]),
+      }),
+    ]);
 
     const emailInvitation = new OrgEmailInvitation({ ...entity, properties });
 
@@ -101,6 +129,62 @@ class __OrgEmailInvitation extends AccessToken {
     await super.updateProperties(client, params);
     this.properties = params.properties;
     return params.properties;
+  }
+
+  async getOrg(client: DBClient): Promise<Org> {
+    const outgoingOrgLinks = await this.getOutgoingLinks(client, {
+      path: ["org"],
+    });
+
+    const orgLink = outgoingOrgLinks[0];
+
+    if (!orgLink) {
+      throw new Error(
+        `OrgEmailInvitation with entityId ${this.entityId} does not have an outgoing org link`,
+      );
+    }
+
+    const { destinationEntityId } = orgLink;
+
+    const org = await Org.getOrgById(client, {
+      entityId: destinationEntityId,
+    });
+
+    if (!org) {
+      throw new Error(
+        `OrgEmailInvitation with entityId ${this.entityId} links to org with entityId ${destinationEntityId} that cannot be found`,
+      );
+    }
+
+    return org;
+  }
+
+  async getInviter(client: DBClient): Promise<User> {
+    const outgoingInviterLinks = await this.getOutgoingLinks(client, {
+      path: ["inviter"],
+    });
+
+    const inviterLink = outgoingInviterLinks[0];
+
+    if (!inviterLink) {
+      throw new Error(
+        `OrgEmailInvitation with entityId ${this.entityId} does not have an outgoing inviter link`,
+      );
+    }
+
+    const { destinationEntityId } = inviterLink;
+
+    const inviter = await User.getUserById(client, {
+      entityId: destinationEntityId,
+    });
+
+    if (!inviter) {
+      throw new Error(
+        `OrgEmailInvitation with entityId ${this.entityId} links to org with entityId ${destinationEntityId} that cannot be found`,
+      );
+    }
+
+    return inviter;
   }
 
   /**

@@ -11,19 +11,15 @@ import {
   PartialPropertiesUpdatePayload,
 } from ".";
 import { DBClient } from "../db";
-import { DBLinkedEntity, DBOrgProperties, EntityType } from "../db/adapter";
+import { DBOrgProperties, EntityType } from "../db/adapter";
 import { genId } from "../util";
 
-type OrgModelProperties = {
-  invitationLink?: DBLinkedEntity;
-} & DBOrgProperties;
-
 type OrgConstructorArgs = {
-  properties: OrgModelProperties;
+  properties: DBOrgProperties;
 } & Omit<AccountConstructorArgs, "type">;
 
 class __Org extends Account {
-  properties: OrgModelProperties;
+  properties: DBOrgProperties;
 
   constructor({ properties, ...remainingArgs }: OrgConstructorArgs) {
     super({ ...remainingArgs, properties });
@@ -107,24 +103,30 @@ class __Org extends Account {
   }
 
   async getOrgMemberships(client: DBClient): Promise<OrgMembership[]> {
+    const outgoingMembershipLinks = await this.getOutgoingLinks(client, {
+      path: ["membership"],
+    });
+
     return await Promise.all(
-      this.properties.memberships.map(async ({ __linkedData }) => {
-        const { entityId } = __linkedData;
-        const accountId = await client.getEntityAccountId({ entityId });
-
-        const orgMembership = await OrgMembership.getOrgMembershipById(client, {
-          accountId,
-          entityId,
-        });
-
-        if (!orgMembership) {
-          throw new Error(
-            `Org with entityId ${this.entityId} links to membership with entityId ${entityId} that cannot be found`,
+      outgoingMembershipLinks.map(
+        async ({ destinationAccountId, destinationEntityId }) => {
+          const orgMembership = await OrgMembership.getOrgMembershipById(
+            client,
+            {
+              accountId: destinationAccountId,
+              entityId: destinationEntityId,
+            },
           );
-        }
 
-        return orgMembership;
-      }),
+          if (!orgMembership) {
+            throw new Error(
+              `Org with entityId ${this.entityId} links to membership with entityId ${destinationEntityId} that cannot be found`,
+            );
+          }
+
+          return orgMembership;
+        },
+      ),
     );
   }
 

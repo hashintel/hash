@@ -1,7 +1,9 @@
 import { sql } from "slonik";
 
 import {
+  DBAggregation,
   DBClient,
+  DBLink,
   Entity,
   EntityMeta,
   EntityType,
@@ -36,12 +38,17 @@ import {
   getEntity,
   getEntityHistory,
   getEntityLatestVersion,
+  getAncestorReferences,
+  getChildren,
   insertEntityVersion,
   acquireEntityLock,
   updateEntity,
   updateEntityAccountId,
 } from "./entity";
-import { insertLinks, getAncestorReferences, getChildren } from "./link";
+import { getEntityOutgoingLinks } from "./link/getEntityOutgoingLinks";
+import { getLink } from "./link/getLink";
+import { createLink } from "./link/createLink";
+import { deleteLink } from "./link/deleteLink";
 import { getUserByEmail, getUserByShortname } from "./user";
 import {
   insertVerificationCode,
@@ -57,6 +64,11 @@ import { SystemType } from "../../types/entityTypes";
 import { Visibility } from "../../graphql/apiTypes.gen";
 import { getOrgByShortname } from "./org";
 import { DbEntityTypeNotFoundError } from "../errors";
+import { createAggregation } from "./aggregation/createAggregation";
+import { getEntityAggregations } from "./aggregation/getEntityAggregations";
+import { updateAggregationOperation } from "./aggregation/updateAggregationOperation";
+import { deleteAggregation } from "./aggregation/deleteAggregation";
+import { getEntityAggregation } from "./aggregation/getEntityAggregation";
 
 export class PostgresClient implements DBClient {
   private conn: Connection;
@@ -191,15 +203,13 @@ export class PostgresClient implements DBClient {
           entity_versions_account_id_entity_id_fk,
           entity_account_account_id_entity_version_id_fk,
           outgoing_links_source_account_id_source_entity_id_fk,
-          outgoing_links_destination_account_id_destination_entity_id_fk,
+          outgoing_links_source_account_id_link_id_fk,
           incoming_links_destination_account_id_destination_entity_id_fk,
-          incoming_links_source_account_id_source_entity_id_fk
+          incoming_links_source_account_id_link_id_fk
         deferred
       `);
 
       await Promise.all([
-        insertLinks(conn, entity),
-
         insertEntityMetadata(conn, {
           accountId: entity.accountId,
           entityId: entity.entityId,
@@ -398,6 +408,74 @@ export class PostgresClient implements DBClient {
     extra: any;
   }): Promise<EntityMeta> {
     return await updateEntityMetadata(this.conn, params);
+  }
+
+  async createLink(params: {
+    createdByAccountId: string;
+    path: string;
+    index?: number;
+    sourceAccountId: string;
+    sourceEntityId: string;
+    sourceEntityVersionIds: Set<string>;
+    destinationAccountId: string;
+    destinationEntityId: string;
+    destinationEntityVersionId?: string;
+  }): Promise<DBLink> {
+    return await createLink(this.conn, params);
+  }
+
+  async getLink(params: {
+    sourceAccountId: string;
+    linkId: string;
+  }): Promise<DBLink | null> {
+    return await getLink(this.conn, params);
+  }
+
+  async deleteLink(params: {
+    deletedByAccountId: string;
+    sourceAccountId: string;
+    linkId: string;
+  }): Promise<void> {
+    return await deleteLink(this.conn, params);
+  }
+
+  async createAggregation(
+    params: Parameters<DBClient["createAggregation"]>[0],
+  ): Promise<DBAggregation> {
+    return await createAggregation(this.conn, params);
+  }
+
+  async updateAggregationOperation(
+    params: Parameters<DBClient["updateAggregationOperation"]>[0],
+  ): Promise<DBAggregation> {
+    return await updateAggregationOperation(this.conn, params);
+  }
+
+  async getEntityAggregation(
+    params: Parameters<DBClient["getEntityAggregation"]>[0],
+  ): Promise<DBAggregation | null> {
+    return await getEntityAggregation(this.conn, params);
+  }
+
+  async getEntityAggregations(
+    params: Parameters<DBClient["getEntityAggregations"]>[0],
+  ): Promise<DBAggregation[]> {
+    return await getEntityAggregations(this.conn, params);
+  }
+
+  async deleteAggregation(
+    params: Parameters<DBClient["deleteAggregation"]>[0],
+  ): Promise<void> {
+    return await deleteAggregation(this.conn, params);
+  }
+
+  async getEntityOutgoingLinks(params: {
+    accountId: string;
+    entityId: string;
+    entityVersionId?: string;
+    path?: string;
+  }): Promise<DBLink[]> {
+    return await getEntityOutgoingLinks(this.conn, params);
   }
 
   async createVerificationCode(params: {

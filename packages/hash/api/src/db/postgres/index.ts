@@ -9,7 +9,9 @@ import {
 import { PostgresClient } from "./client";
 import {
   DBAdapter,
+  DBAggregation,
   DBClient,
+  DBLink,
   Entity,
   EntityMeta,
   EntityType,
@@ -196,6 +198,76 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     extra: any;
   }): Promise<EntityMeta> {
     return this.query((adapter) => adapter.updateEntityMetadata(params));
+  }
+
+  /** Create a link */
+  createLink(params: {
+    createdByAccountId: string;
+    accountId: string;
+    path: string;
+    index?: number;
+    sourceAccountId: string;
+    sourceEntityId: string;
+    sourceEntityVersionIds: Set<string>;
+    destinationAccountId: string;
+    destinationEntityId: string;
+    destinationEntityVersionId?: string;
+  }): Promise<DBLink> {
+    return this.query((adapter) => adapter.createLink(params));
+  }
+
+  getLink(params: {
+    sourceAccountId: string;
+    linkId: string;
+  }): Promise<DBLink | null> {
+    return this.query((adapter) => adapter.getLink(params));
+  }
+
+  deleteLink(params: {
+    deletedByAccountId: string;
+    sourceAccountId: string;
+    linkId: string;
+  }): Promise<void> {
+    return this.query((adapter) => adapter.deleteLink(params));
+  }
+
+  getEntityOutgoingLinks(params: {
+    accountId: string;
+    entityId: string;
+    entityVersionId?: string;
+    path?: string;
+  }): Promise<DBLink[]> {
+    return this.query((adapter) => adapter.getEntityOutgoingLinks(params));
+  }
+
+  createAggregation(
+    params: Parameters<DBClient["createAggregation"]>[0],
+  ): Promise<DBAggregation> {
+    return this.query((adapter) => adapter.createAggregation(params));
+  }
+
+  updateAggregationOperation(
+    params: Parameters<DBClient["updateAggregationOperation"]>[0],
+  ): Promise<DBAggregation> {
+    return this.query((adapter) => adapter.updateAggregationOperation(params));
+  }
+
+  getEntityAggregation(
+    params: Parameters<DBClient["getEntityAggregation"]>[0],
+  ): Promise<DBAggregation | null> {
+    return this.query((adapter) => adapter.getEntityAggregation(params));
+  }
+
+  getEntityAggregations(
+    params: Parameters<DBClient["getEntityAggregations"]>[0],
+  ): Promise<DBAggregation[]> {
+    return this.query((adapter) => adapter.getEntityAggregations(params));
+  }
+
+  deleteAggregation(
+    params: Parameters<DBClient["deleteAggregation"]>[0],
+  ): Promise<void> {
+    return this.query((adapter) => adapter.deleteAggregation(params));
   }
 
   createVerificationCode(params: {

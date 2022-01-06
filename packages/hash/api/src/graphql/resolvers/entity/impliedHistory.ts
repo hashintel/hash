@@ -113,8 +113,7 @@ const hydrateEntity = async (
     const ld = record.__linkedData! as LinkedDataDefinition;
     const { results, operation } = await dbAggregateEntity(db)({
       accountId: entity.accountId,
-      entityTypeId: ld.entityTypeId!,
-      operation: ld.aggregate,
+      operation: { entityTypeId: ld.entityTypeId!, ...ld.aggregate },
     });
     // eslint-disable-next-line no-param-reassign
     record.data = results;

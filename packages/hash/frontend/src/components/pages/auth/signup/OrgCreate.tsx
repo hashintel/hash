@@ -125,7 +125,7 @@ export const OrgCreate: VFC<OrgCreateProps> = ({
     errorPolicy: "ignore",
     onCompleted: (res) => {
       const accessToken =
-        res.createOrg.properties.invitationLink?.data.properties.accessToken;
+        res.createOrg.invitationLinks[0].properties.accessToken;
       if (accessToken) {
         onCreateOrgSuccess({
           orgEntityId: res.createOrg.accountId,

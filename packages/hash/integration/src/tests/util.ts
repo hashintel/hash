@@ -2,6 +2,11 @@ import { print } from "graphql/language/printer";
 import { GraphQLClient, ClientError } from "graphql-request";
 
 import {
+  createLinkedAggregation,
+  deleteLinkedAggregation,
+  updateLinkedAggregationOperation,
+} from "../graphql/queries/aggregation.queries";
+import {
   SendLoginCodeMutation,
   SendLoginCodeMutationVariables,
   CreateEntityMutation,
@@ -38,6 +43,12 @@ import {
   GetOrgInvitationLinkQuery,
   JoinOrgMutationVariables,
   JoinOrgMutation,
+  CreateLinkedAggregationMutationVariables,
+  CreateLinkedAggregationMutation,
+  UpdateLinkedAggregationOperationMutation,
+  UpdateLinkedAggregationOperationMutationVariables,
+  DeleteLinkedAggregationMutation,
+  DeleteLinkedAggregationMutationVariables,
 } from "../graphql/apiTypes.gen";
 import {
   createEntity,
@@ -248,4 +259,34 @@ export class ApiClient {
         vars,
       )
       .then((res) => res.updatePageContents);
+
+  createLinkedAggregation = async (
+    vars: CreateLinkedAggregationMutationVariables,
+  ) =>
+    this.client
+      .request<
+        CreateLinkedAggregationMutation,
+        CreateLinkedAggregationMutationVariables
+      >(createLinkedAggregation, vars)
+      .then((res) => res.createLinkedAggregation);
+
+  updateLinkedAggregationOperation = async (
+    vars: UpdateLinkedAggregationOperationMutationVariables,
+  ) =>
+    this.client
+      .request<
+        UpdateLinkedAggregationOperationMutation,
+        UpdateLinkedAggregationOperationMutationVariables
+      >(updateLinkedAggregationOperation, vars)
+      .then((res) => res.updateLinkedAggregationOperation);
+
+  deleteLinkedAggregation = async (
+    vars: DeleteLinkedAggregationMutationVariables,
+  ) =>
+    this.client
+      .request<
+        DeleteLinkedAggregationMutation,
+        DeleteLinkedAggregationMutationVariables
+      >(deleteLinkedAggregation, vars)
+      .then((res) => res.deleteLinkedAggregation);
 }

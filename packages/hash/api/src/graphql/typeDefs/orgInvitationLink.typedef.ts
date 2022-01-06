@@ -2,12 +2,13 @@ import { gql } from "apollo-server-express";
 
 export const orgInvitationLinkTypedef = gql`
   type OrgInvitationLinkProperties {
-    org: LinkedOrg!
     accessToken: String
   }
 
   type OrgInvitationLink implements Entity {
     properties: OrgInvitationLinkProperties!
+
+    org: Org!
 
     # ENTITY INTERFACE FIELDS BEGIN #
     """

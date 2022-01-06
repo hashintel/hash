@@ -65,7 +65,6 @@ export const createUserWithOrgEmailInvitation: Resolver<
       (await User.createUser(client, {
         emails: [{ address: email, primary: true, verified: true }],
         infoProvidedAtSignup: {},
-        memberOf: [],
       }));
 
     await passport.login(user, {});

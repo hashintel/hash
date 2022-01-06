@@ -2,61 +2,60 @@ import { ApolloError } from "apollo-server-errors";
 import { Resolver } from "../../apiTypes.gen";
 import { DbUnknownEntity } from "../../../types/dbTypes";
 import { GraphQLContext } from "../../context";
-import { parseLinksFromPropertiesObject } from "./linkGroups";
 import { Entity, UnresolvedGQLUnknownEntity } from "../../../model";
+import {
+  generateEntityLinkGroupsObject,
+  linkHasSameDestinationAs,
+} from "./linkGroups";
 
 export const linkedEntities: Resolver<
   Promise<UnresolvedGQLUnknownEntity[]>,
   DbUnknownEntity,
   GraphQLContext
 > = async (entity, _, { dataSources }) => {
-  const { db } = dataSources;
+  const source = await Entity.getEntity(dataSources.db, {
+    accountId: entity.accountId,
+    entityVersionId: entity.entityVersionId,
+  });
 
-  // Temporarily obtain links by parsing the entity's properties object
-  const parsedLinks = await parseLinksFromPropertiesObject(
+  if (!source) {
+    const msg = `entity with version ID ${entity.entityVersionId} not found in account ${entity.accountId}`;
+    throw new ApolloError(msg, "NOT_FOUND");
+  }
+
+  /**
+   * @todo: figure out how the linkGroups object can be accessed without reproducing it
+   * (when both the `linkedGroups` and `linkedEntities` field resolvers are called in the
+   * same entity GQL query)
+   */
+  const linkGroupsObject = await generateEntityLinkGroupsObject(
     dataSources.db,
-    entity.properties,
-    entity.entityId,
+    source,
   );
 
-  return Promise.all(
-    parsedLinks
-      .map(
-        ({
-          destinationAccountId,
-          destinationEntityId,
-          destinationEntityVersionId,
-        }) => ({
-          accountId: destinationAccountId,
-          entityId: destinationEntityId,
-          entityVersionId: destinationEntityVersionId || undefined,
-        }),
-      )
-      // Remove duplicates
+  const allLinks = Object.values(linkGroupsObject)
+    .flatMap((linkPathsByEntityVersion) =>
+      Object.values(linkPathsByEntityVersion),
+    )
+    .map((linksByPath) => Object.values(linksByPath))
+    .flat(2);
+
+  const entities = await Promise.all(
+    allLinks
+      // ensure we only fetch the destination entities for links...
       .filter(
-        (link, i, allLinks) =>
-          allLinks.findIndex(({ entityId }) => link.entityId === entityId) ===
-          i,
+        (link, i, all) =>
+          // ...that don't have the source entity as their destination (these are redundant)
+          !(
+            link.destinationEntityId === source.entityId &&
+            (link.destinationEntityVersionId === undefined ||
+              link.destinationEntityVersionId === source.entityVersionId)
+          ) &&
+          // ...and that are not duplicates
+          all.findIndex(linkHasSameDestinationAs(link)) === i,
       )
-      .map(async ({ accountId, entityId, entityVersionId }) => {
-        const linkedEntity = entityVersionId
-          ? await Entity.getEntity(db, {
-              accountId,
-              entityVersionId,
-            })
-          : await Entity.getEntityLatestVersion(db, {
-              accountId,
-              entityId,
-            });
-
-        if (!linkedEntity) {
-          throw new ApolloError(
-            `linked entity ${entityId} not found in account ${accountId}`,
-            "NOT_FOUND",
-          );
-        }
-
-        return linkedEntity.toGQLUnknownEntity();
-      }),
+      .map((link) => link.getDestination(dataSources.db)),
   );
+
+  return entities.map((linkedEntity) => linkedEntity.toGQLUnknownEntity());
 };

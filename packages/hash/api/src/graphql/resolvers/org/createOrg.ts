@@ -24,7 +24,6 @@ export const createOrg: Resolver<
         infoProvidedAtCreation: {
           orgSize,
         },
-        memberships: [],
       },
       createdByAccountId: user.entityId,
     });

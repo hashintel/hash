@@ -36,15 +36,15 @@ export const useGetInvitationInfo = () => {
     GetOrgEmailInvitationQueryVariables
   >(getOrgEmailInvitationQuery, {
     onCompleted: (res) => {
-      const { org, inviter } = res.getOrgEmailInvitation.properties;
+      const { org, inviter } = res.getOrgEmailInvitation;
       if (!getOrgEmailInvitationVariables) return;
       const { orgEntityId, invitationEmailToken } =
         getOrgEmailInvitationVariables;
       setInvitationInfo({
         orgEntityId,
-        orgName: org.data.properties.name || "",
-        inviterPreferredName: inviter.data.properties.preferredName || "",
         invitationEmailToken,
+        orgName: org.properties.name || "",
+        inviterPreferredName: inviter.properties.preferredName || "",
       });
     },
     onError: ({ graphQLErrors }) => {
@@ -65,14 +65,14 @@ export const useGetInvitationInfo = () => {
     GetOrgInvitationLinkQueryVariables
   >(getOrgInvitationLinkQuery, {
     onCompleted: (res) => {
-      const { org } = res.getOrgInvitationLink.properties;
+      const { org } = res.getOrgInvitationLink;
       if (!getOrgInvitationLinkVariables) return;
       const { orgEntityId, invitationLinkToken } =
         getOrgInvitationLinkVariables;
       setInvitationInfo({
         orgEntityId,
         invitationLinkToken,
-        orgName: org.data.properties.name || "",
+        orgName: org.properties.name,
       });
     },
   });

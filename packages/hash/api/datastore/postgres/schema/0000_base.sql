@@ -118,34 +118,90 @@ create table if not exists entity_account (
 );
 create index if not exists entity_account_entity_id on entity_account (entity_id);
 
+/** Stores links between entities */
+create table if not exists links (
+    -- The UUID of the link
+    link_id                       uuid not null,
+    -- The JSON path of the link on the source entity's properties JSON blob
+    path                          text not null,
+    -- The index of the link
+    index                         integer default null,
+    -- The account id of the source entity
+    source_account_id             uuid not null,
+    -- The entity id of the source entity.
+    source_entity_id              uuid not null,
+    -- The entity version ids of the source entity's versions where
+    -- the link exists.
+    source_entity_version_ids     uuid[] not null,
+    -- The account id of the destination entity
+    destination_account_id        uuid not null,
+    -- The entity id of the destination entity
+    destination_entity_id         uuid not null,
+    -- The entity version id of a specific version of the link's destination
+    -- entity which is defined only if this link is pinned to a specific version
+    -- of the destination entity. When set to null, the link is to the latest
+    -- version of the destination entity.
+    destination_entity_version_id  uuid,
+    created_at                     timestamp with time zone not null,
 
-/** Stores parent --> child link references */
-create table if not exists outgoing_links (
-    source_account_id              uuid not null,
-    source_entity_id               uuid not null,
-    destination_account_id         uuid not null,
-    destination_entity_id          uuid not null,
-    -- destination_entity_version_id is part of the primary key, which means it cannot be null,
-    -- so we just set it to the zero UUID. We're not currently using outgoing_links for
-    -- anything, but when we do, we will need to be aware of this.
-    destination_entity_version_id  uuid not null default '00000000-0000-0000-0000-000000000000'::uuid,
-    source_entity_version_ids      uuid[] not null,
-
-    constraint outgoing_links_pk primary key (
-      source_account_id, source_entity_id, destination_entity_id, destination_entity_version_id
+    constraint links_pk primary key (
+      source_account_id, -- included in the primary key so it can be used as a sharding key
+      link_id
     )
 );
 
+/** @todo: create link table index */
 
-/** Stores reverse child --> parent link references */
+/** Stores parent --> child link references for looking up the outgoing links for a given entity */
+create table if not exists outgoing_links (
+    source_account_id           uuid not null,
+    source_entity_id            uuid not null,
+    link_id                     uuid not null,
+
+    constraint outgoing_links_pk primary key (
+      source_account_id, -- included in the primary key so it can be used as a sharding key
+      source_entity_id,
+      link_id
+    )
+);
+
+/** Stores reverse child --> parent link references for looking up the incoming links for a given entity */
 create table if not exists incoming_links (
-    destination_account_id              uuid not null,
-    destination_entity_id               uuid not null,
-    source_account_id              uuid not null,
-    source_entity_id               uuid not null,
+    destination_account_id      uuid not null,
+    destination_entity_id       uuid not null,
+    source_account_id           uuid not null,
+    link_id                     uuid not null,
 
     constraint incoming_links_pk primary key (
-      destination_account_id, destination_entity_id, source_entity_id
+      destination_account_id, -- included in the primary key so it can be used as a sharding key
+      destination_entity_id,
+      link_id
+    )
+);
+
+/** Stores aggregations of entities */
+create table if not exists aggregations (
+    -- The account id of the source entity
+    source_account_id             uuid not null,
+    -- The entity id of the source entity.
+    source_entity_id              uuid not null,
+    -- The JSON path of the aggregation on the source entity's properties JSON blob
+    path                          text not null,
+    -- The entity version ids of the source entity's versions where
+    -- this aggregation exists.
+    source_entity_version_ids     uuid[] not null,
+    -- The aggregation operation
+    operation                     jsonb not null,
+    -- The account that created this aggregation
+    created_by                    uuid not null,
+    -- The time at which the first version of this type was created
+    created_at                    timestamp with time zone not null,
+
+    constraint aggregations_pk primary key (
+      source_account_id, -- included in the primary key so it can be used as a sharding key
+      source_entity_id,
+      path,
+			source_entity_version_ids
     )
 );
 

@@ -54,13 +54,8 @@ export const linkTypedef = gql`
     """
     createLink(link: CreateLinkInput!): Link!
     """
-    Delete a link using its path
+    Delete a link using its id
     """
-    deleteLinkByPath(
-      sourceAccountId: ID!
-      sourceEntityId: ID!
-      path: String!
-      index: Int
-    ): Boolean!
+    deleteLink(sourceAccountId: ID!, sourceEntityId: ID!, linkId: ID!): Boolean!
   }
 `;

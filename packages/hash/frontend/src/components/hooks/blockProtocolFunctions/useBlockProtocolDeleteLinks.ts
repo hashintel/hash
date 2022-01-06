@@ -37,7 +37,7 @@ export const useBlockProtocolDeleteLinks = (
             sourceAccountId,
           },
         });
-        results.push(!!data?.deleteLinkByPath);
+        results.push(!!data?.deleteLink);
       }
       return results;
     },

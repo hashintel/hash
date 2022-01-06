@@ -4,6 +4,12 @@ export const orgTypedef = gql`
   type Org implements Entity {
     properties: OrgProperties!
 
+    memberships: [OrgMembership!]!
+
+    invitationLinks: [OrgInvitationLink!]!
+
+    emailInvitations: [OrgEmailInvitation!]!
+
     # ENTITY INTERFACE FIELDS BEGIN #
     """
     The id of the entity - alias of 'entityId'
@@ -88,19 +94,9 @@ export const orgTypedef = gql`
     TWO_HUNDRED_AND_FIFTY_PLUS
   }
 
-  type LinkedOrgInvitationLink {
-    data: OrgInvitationLink!
-  }
-
-  type LinkedOrg {
-    data: Org!
-  }
-
   type OrgProperties {
     shortname: String
     name: String!
-    memberships: [LinkedOrgMembership!]!
-    invitationLink: LinkedOrgInvitationLink
   }
 
   input CreateOrgInput {

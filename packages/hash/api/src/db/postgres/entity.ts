@@ -1,13 +1,24 @@
 import { sql, NotFoundError } from "slonik";
+import { uniq } from "lodash";
 
-import { Entity, EntityType, EntityVersion } from "../adapter";
+import {
+  DBAggregation,
+  DBLink,
+  Entity,
+  EntityType,
+  EntityVersion,
+} from "../adapter";
 import { Connection } from "./types";
 import { EntityTypePGRow, mapPGRowToEntityType } from "./entitytypes";
 import { Visibility } from "../../graphql/apiTypes.gen";
 import { genId } from "../../util";
-import { insertLinks } from "./link";
 import { insertEntityAccount } from "./account";
 import { DbEntityNotFoundError } from "../errors";
+import { getEntityOutgoingLinks } from "./link/getEntityOutgoingLinks";
+import { addSourceEntityVersionIdToLink } from "./link/util";
+import { getEntityIncomingLinks } from "./link/getEntityIncomingLinks";
+import { getEntityAggregations } from "./aggregation/getEntityAggregations";
+import { addSourceEntityVersionIdToAggregation } from "./aggregation/util";
 
 /** Prefix to distinguish identical fields when joining with a type record */
 const entityTypeFieldPrefix = "type.";
@@ -401,9 +412,9 @@ export const updateEntityAccountId = async (
           entity_versions_account_id_entity_id_fk,
           entity_account_account_id_entity_version_id_fk,
           outgoing_links_source_account_id_source_entity_id_fk,
-          outgoing_links_destination_account_id_destination_entity_id_fk,
+          outgoing_links_source_account_id_link_id_fk,
           incoming_links_destination_account_id_destination_entity_id_fk,
-          incoming_links_source_account_id_source_entity_id_fk
+          incoming_links_source_account_id_link_id_fk
         deferred
       `),
       /** Update the account id in all the entity tables:
@@ -430,7 +441,21 @@ export const updateEntityAccountId = async (
           account_id = ${originalAccountId}
           and entity_id = ${entityId}
       `),
-      /** Update incoming_links and outgoing_links account ids */
+      /** Update links, incoming_links and outgoing_links account ids */
+      transaction.query(sql`
+        update links set
+          source_account_id = ${newAccountId}
+        where
+          source_account_id = ${originalAccountId}
+          and source_entity_id = ${entityId}
+      `),
+      transaction.query(sql`
+        update links set
+          destination_account_id = ${newAccountId}
+        where
+          destination_account_id = ${originalAccountId}
+          and destination_entity_id = ${entityId}
+      `),
       transaction.query(sql`
         update incoming_links set
           source_account_id = ${newAccountId}
@@ -599,17 +624,100 @@ export const acquireEntityLock = async (
     .query(sql`select pg_advisory_xact_lock(${hashCode(params.entityId)})`)
     .then((_) => null);
 
+const addSourceEntityVersionIdToAggregations = async (
+  conn: Connection,
+  params: {
+    entity: Entity;
+    omittedAggregations?: {
+      sourceAccountId: string;
+      sourceEntityId: string;
+      path: string;
+    }[];
+    newSourceEntityVersionId: string;
+  },
+) => {
+  const { entity } = params;
+
+  const aggregations = await getEntityAggregations(conn, {
+    sourceAccountId: entity.accountId,
+    sourceEntityId: entity.entityId,
+    sourceEntityVersionId: entity.entityVersionId,
+  });
+
+  const isDbAggregationInNextVersion = (aggregation: DBAggregation): boolean =>
+    params.omittedAggregations?.find(
+      ({ path }) => path === aggregation.path,
+    ) === undefined;
+
+  const { newSourceEntityVersionId } = params;
+
+  await Promise.all(
+    aggregations
+      .filter(isDbAggregationInNextVersion)
+      .map(({ sourceAccountId, sourceEntityId, path }) =>
+        addSourceEntityVersionIdToAggregation(conn, {
+          sourceAccountId,
+          sourceEntityId,
+          path,
+          newSourceEntityVersionId,
+        }),
+      ),
+  );
+};
+
+const addSourceEntityVersionIdToOutgoingLinks = async (
+  conn: Connection,
+  params: {
+    entity: Entity;
+    omittedOutgoingLinks?: { sourceAccountId: string; linkId: string }[];
+    newSourceEntityVersionId: string;
+  },
+) => {
+  const { entity } = params;
+
+  const outgoingLinks = await getEntityOutgoingLinks(conn, {
+    accountId: entity.accountId,
+    entityId: entity.entityId,
+    entityVersionId: entity.entityVersionId,
+  });
+
+  const isDbLinkInNextVersion = (link: DBLink): boolean =>
+    params.omittedOutgoingLinks?.find(
+      ({ linkId }) => link.linkId === linkId,
+    ) === undefined;
+
+  const { newSourceEntityVersionId } = params;
+
+  await Promise.all(
+    outgoingLinks
+      .filter(isDbLinkInNextVersion)
+      .map(({ sourceAccountId, linkId }) =>
+        addSourceEntityVersionIdToLink(conn, {
+          sourceAccountId,
+          linkId,
+          newSourceEntityVersionId,
+        }),
+      ),
+  );
+};
+
 /** Update the properties of the provided entity by creating a new version.
  * @throws `DbEntityNotFoundError` if the entity does not exist.
  * @throws `DbInvalidLinksError` if the entity's new properties link to an entity which
  *          does not exist.
  */
-const updateVersionedEntity = async (
+export const updateVersionedEntity = async (
   conn: Connection,
   params: {
     entity: Entity;
     properties: any;
     updatedByAccountId: string;
+    omittedOutgoingLinks?: { sourceAccountId: string; linkId: string }[];
+    omittedAggregations?: {
+      sourceAccountId: string;
+      sourceEntityId: string;
+      path: string;
+    }[];
   },
 ) => {
   const { entity, properties } = params;
@@ -631,20 +739,32 @@ const updateVersionedEntity = async (
   await acquireEntityLock(conn, { entityId: entity.entityId });
 
   // Defer FKs until end of transaction so we can insert concurrently
+  /** @todo: only defer violated FKs */
   await conn.query(sql`
     set constraints
       entity_account_account_id_entity_version_id_fk,
       outgoing_links_source_account_id_source_entity_id_fk,
-      outgoing_links_destination_account_id_destination_entity_id_fk,
+      outgoing_links_source_account_id_link_id_fk,
       incoming_links_destination_account_id_destination_entity_id_fk,
-      incoming_links_source_account_id_source_entity_id_fk
+      incoming_links_source_account_id_link_id_fk
     deferred
   `);
+
+  const { omittedOutgoingLinks, omittedAggregations } = params;
 
   await Promise.all([
     insertEntityVersion(conn, newEntityVersion),
 
-    insertLinks(conn, newEntityVersion),
+    addSourceEntityVersionIdToOutgoingLinks(conn, {
+      entity,
+      omittedOutgoingLinks,
+      newSourceEntityVersionId: newEntityVersion.entityVersionId,
+    }),
+    addSourceEntityVersionIdToAggregations(conn, {
+      entity,
+      omittedAggregations,
+      newSourceEntityVersionId: newEntityVersion.entityVersionId,
+    }),
 
     // Make a reference to this entity's account in the `entity_account` lookup table
     insertEntityAccount(conn, newEntityVersion),
@@ -673,11 +793,7 @@ const updateNonVersionedEntity = async (
   };
 
   try {
-    await Promise.all([
-      updateEntityVersionProperties(conn, updatedEntity),
-
-      insertLinks(conn, updatedEntity),
-    ]);
+    await updateEntityVersionProperties(conn, updatedEntity);
   } catch (err) {
     if (err instanceof NotFoundError) {
       throw new DbEntityNotFoundError(params.entity);
@@ -718,4 +834,79 @@ export const updateEntity = async (
   return entity.metadata.versioned
     ? updateVersionedEntity(conn, updateData)
     : updateNonVersionedEntity(conn, updateData);
+};
+
+export const getDestinationEntityOfLink = async (
+  conn: Connection,
+  link: DBLink,
+): Promise<Entity> => {
+  const destinationEntity = link.destinationEntityVersionId
+    ? await getEntity(conn, {
+        accountId: link.destinationAccountId,
+        entityVersionId: link.destinationEntityVersionId,
+      })
+    : await getEntityLatestVersion(conn, {
+        accountId: link.destinationAccountId,
+        entityId: link.destinationEntityId,
+      });
+
+  if (!destinationEntity) {
+    throw new DbEntityNotFoundError({
+      accountId: link.destinationAccountId,
+      entityId: link.destinationEntityId,
+      entityVersionId: link.destinationEntityVersionId,
+    });
+  }
+
+  return destinationEntity;
+};
+
+export const getAncestorReferences = async (
+  conn: Connection,
+  params: {
+    accountId: string;
+    entityId: string;
+    depth?: number;
+  },
+) => {
+  // @todo: this implementation cannot handle cycles in the graph.
+  if (params.depth !== undefined && params.depth < 1) {
+    throw new Error("parameter depth must be at least 1");
+  }
+  const depth = params.depth || 1;
+  let refs = [{ accountId: params.accountId, entityId: params.entityId }];
+  for (let i = 0; i < depth; i++) {
+    const incomingLinks = await Promise.all(
+      refs.map((ref) => getEntityIncomingLinks(conn, ref)),
+    );
+
+    const incomingRefs = incomingLinks
+      .flat()
+      .map(({ sourceAccountId, sourceEntityId }) => ({
+        accountId: sourceAccountId,
+        entityId: sourceEntityId,
+      }));
+
+    refs = uniq(incomingRefs.flat());
+  }
+  return refs;
+};
+
+export const getChildren = async (
+  conn: Connection,
+  params: {
+    accountId: string;
+    entityId: string;
+    entityVersionId: string;
+  },
+): Promise<Entity[]> => {
+  if (!(await getEntity(conn, params))) {
+    throw new DbEntityNotFoundError(params);
+  }
+
+  const outgoing = await getEntityOutgoingLinks(conn, params);
+
+  return Promise.all(
+    outgoing.map(async (link) => getDestinationEntityOfLink(conn, link)),
+  );
 };

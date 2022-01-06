@@ -5,6 +5,7 @@ import {
   Org,
   UpdatePropertiesPayload,
   Entity,
+  Link,
 } from ".";
 import { DBClient } from "../db";
 import { DBOrgMembershipProperties, EntityType } from "../db/adapter";
@@ -53,8 +54,6 @@ class __OrgMembership extends Entity {
     const id = genId();
 
     const properties: DBOrgMembershipProperties = {
-      org: org.convertToDBLink(),
-      user: user.convertToDBLink(),
       responsibility,
     };
 
@@ -68,6 +67,19 @@ class __OrgMembership extends Entity {
     });
 
     const orgMembership = new OrgMembership(entity);
+
+    await Promise.all([
+      orgMembership.createOutgoingLink(client, {
+        createdByAccountId: user.accountId,
+        stringifiedPath: Link.stringifyPath(["user"]),
+        destination: user,
+      }),
+      orgMembership.createOutgoingLink(client, {
+        createdByAccountId: user.accountId,
+        stringifiedPath: Link.stringifyPath(["org"]),
+        destination: org,
+      }),
+    ]);
 
     return orgMembership;
   }
@@ -83,15 +95,27 @@ class __OrgMembership extends Entity {
   }
 
   async getUser(client: DBClient): Promise<User> {
-    const { entityId } = this.properties.user.__linkedData;
+    const outgoingUserLinks = await this.getOutgoingLinks(client, {
+      path: ["user"],
+    });
+
+    const userLink = outgoingUserLinks[0];
+
+    if (!userLink) {
+      throw new Error(
+        `OrgMembership with entityId ${this.entityId} does not have an outgoing user link`,
+      );
+    }
+
+    const { destinationEntityId } = userLink;
 
     const user = await User.getUserById(client, {
-      entityId,
+      entityId: destinationEntityId,
     });
 
     if (!user) {
       throw new Error(
-        `OrgMembership with entityId ${this.entityId} links to user with entityId ${entityId} that cannot be found`,
+        `OrgMembership with entityId ${this.entityId} links to user with entityId ${destinationEntityId} that cannot be found`,
       );
     }
 
@@ -99,15 +123,27 @@ class __OrgMembership extends Entity {
   }
 
   async getOrg(client: DBClient): Promise<Org> {
-    const { entityId } = this.properties.org.__linkedData;
+    const outgoingOrgLinks = await this.getOutgoingLinks(client, {
+      path: ["org"],
+    });
+
+    const orgLink = outgoingOrgLinks[0];
+
+    if (!orgLink) {
+      throw new Error(
+        `OrgMembership with entityId ${this.entityId} does not have an outgoing org link`,
+      );
+    }
+
+    const { destinationEntityId } = orgLink;
 
     const org = await Org.getOrgById(client, {
-      entityId,
+      entityId: destinationEntityId,
     });
 
     if (!org) {
       throw new Error(
-        `OrgMembership with entityId ${this.entityId} links to org with entityId ${entityId} that cannot be found`,
+        `OrgMembership with entityId ${this.entityId} links to org with entityId ${destinationEntityId} that cannot be found`,
       );
     }
 

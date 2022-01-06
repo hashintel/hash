@@ -1,6 +1,6 @@
 import { ApolloError } from "apollo-server-errors";
 import { DBClient } from "../db";
-import { DBLinkedEntity, EntityType } from "../db/adapter";
+import { EntityType } from "../db/adapter";
 import {
   AccessToken,
   OrgInvitationLink,
@@ -8,11 +8,12 @@ import {
   AccessTokenConstructorArgs,
   Org,
   UpdatePropertiesPayload,
+  Entity,
+  Link,
 } from ".";
 
 export type DBOrgInvitationLinkProperties = {
   useCount: number;
-  org: DBLinkedEntity;
 } & DBAccessTokenProperties;
 
 type OrgInvitationLinkConstructorArgs = {
@@ -29,7 +30,7 @@ class __OrgInvitationLink extends AccessToken {
   }: OrgInvitationLinkConstructorArgs) {
     super({ ...remainingArgs, properties });
     this.properties = properties;
-    this.errorMsgPrefix = `The invitation link with entityId ${this.entityId} associated with org with entityId ${this.properties.org.__linkedData.entityId}`;
+    this.errorMsgPrefix = `The invitation link with entityId ${this.entityId}`;
   }
 
   static async getEntityType(client: DBClient): Promise<EntityType> {
@@ -37,6 +38,17 @@ class __OrgInvitationLink extends AccessToken {
       systemTypeName: "OrgInvitationLink",
     });
     return dbEntityType;
+  }
+
+  static async getOrgInvitationLink(
+    client: DBClient,
+    params: { accountId: string; entityId: string },
+  ): Promise<OrgInvitationLink | null> {
+    const dbOrgInvitationLink = await client.getEntityLatestVersion(params);
+
+    return dbOrgInvitationLink
+      ? new OrgInvitationLink(dbOrgInvitationLink)
+      : null;
   }
 
   /**
@@ -55,10 +67,9 @@ class __OrgInvitationLink extends AccessToken {
     const properties: DBOrgInvitationLinkProperties = {
       useCount: 0,
       accessToken: AccessToken.generateAccessToken(),
-      org: org.convertToDBLink(),
     };
 
-    const entity = await client.createEntity({
+    const entity = await Entity.create(client, {
       accountId: org.accountId,
       createdByAccountId,
       entityTypeId: (await OrgInvitationLink.getEntityType(client)).entityId,
@@ -66,19 +77,54 @@ class __OrgInvitationLink extends AccessToken {
       versioned: false,
     });
 
+    await Promise.all([
+      entity.createOutgoingLink(client, {
+        createdByAccountId,
+        destination: org,
+        stringifiedPath: Link.stringifyPath(["org"]),
+      }),
+      /** @todo: remove this when inverse relationships are automatically created */
+      org.createOutgoingLink(client, {
+        createdByAccountId,
+        destination: entity,
+        stringifiedPath: Link.stringifyPath(["invitationLink"]),
+      }),
+    ]);
+
     const orgInvitationLink = new OrgInvitationLink({
       ...entity,
       properties,
     });
 
-    /**
-     * @todo: remove this when we have a way of resolving the inverse
-     * relationship of (OrgInvitationLink)-[org]->(Org)
-     */
-
-    org.properties.invitationLink = orgInvitationLink.convertToDBLink();
-
     return orgInvitationLink;
+  }
+
+  async getOrg(client: DBClient): Promise<Org> {
+    const outgoingOrgLinks = await this.getOutgoingLinks(client, {
+      path: ["org"],
+    });
+
+    const orgLink = outgoingOrgLinks[0];
+
+    if (!orgLink) {
+      throw new Error(
+        `OrgInvitationLink with entityId ${this.entityId} does not have an outgoing org link`,
+      );
+    }
+
+    const { destinationEntityId } = orgLink;
+
+    const org = await Org.getOrgById(client, {
+      entityId: destinationEntityId,
+    });
+
+    if (!org) {
+      throw new Error(
+        `OrgInvitationLink with entityId ${this.entityId} links to org with entityId ${destinationEntityId} that cannot be found`,
+      );
+    }
+
+    return org;
   }
 
   async updateProperties(

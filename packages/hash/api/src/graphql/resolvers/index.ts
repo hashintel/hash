@@ -11,7 +11,7 @@ import {
   transferEntity,
 } from "./entity";
 import { createLink } from "./link/createLink";
-import { deleteLinkByPath } from "./link/deleteLinkByPath";
+import { deleteLink } from "./link/deleteLink";
 import { blockFields } from "./block";
 import {
   createPage,
@@ -29,10 +29,13 @@ import { createUser } from "./user/createUser";
 import { createUserWithOrgEmailInvitation } from "./user/createUserWithOrgEmailInvitation";
 import { updateUser } from "./user/updateUser";
 import { createOrg } from "./org/createOrg";
+import { orgLinkedEntities } from "./org/linkedEntities";
 import { accountSignupComplete } from "./user/accountSignupComplete";
 import { verifyEmail } from "./user/verifyEmail";
 import { sendLoginCode } from "./user/sendLoginCode";
 import { loginWithLoginCode } from "./user/loginWithLoginCode";
+import { userLinkedEntities } from "./user/linkedEntities";
+import { orgMembershipLinkedEntities } from "./orgMembership/linkedEntities";
 import { embedCode } from "./embed";
 import {
   getImpliedEntityHistory,
@@ -58,6 +61,10 @@ import { loggedIn } from "./middlewares/loggedIn";
 import { loggedInAndSignedUp } from "./middlewares/loggedInAndSignedUp";
 import { canAccessAccount } from "./middlewares/canAccessAccount";
 import { updateEntityType } from "./entityType/updateEntityType";
+import { deleteLinkedAggregation } from "./linkedAggregation/deleteLinkedAggregation";
+import { updateLinkedAggregationOperation } from "./linkedAggregation/updateLinkedAggregationOperation";
+import { createLinkedAggregation } from "./linkedAggregation/createLinkedAggregation";
+import { linkedAggregationResults } from "./linkedAggregation/linkedAggregationResults";
 
 export const resolvers = {
   Query: {
@@ -88,6 +95,12 @@ export const resolvers = {
     // Logged in and signed up users only
     createEntity: loggedInAndSignedUp(createEntity),
     createLink: loggedInAndSignedUp(createLink),
+    deleteLink: loggedInAndSignedUp(deleteLink),
+    createLinkedAggregation: loggedInAndSignedUp(createLinkedAggregation),
+    updateLinkedAggregationOperation: loggedInAndSignedUp(
+      updateLinkedAggregationOperation,
+    ),
+    deleteLinkedAggregation: loggedInAndSignedUp(deleteLinkedAggregation),
     createEntityType: loggedInAndSignedUp(createEntityType),
     createFileFromLink: loggedInAndSignedUp(createFileFromLink),
     createPage: loggedInAndSignedUp(createPage),
@@ -100,7 +113,6 @@ export const resolvers = {
     updateEntityType: loggedInAndSignedUp(updateEntityType),
     updatePage: loggedInAndSignedUp(updatePage),
     updatePageContents: loggedInAndSignedUp(updatePageContents),
-    deleteLinkByPath: loggedInAndSignedUp(deleteLinkByPath),
     joinOrg: loggedInAndSignedUp(joinOrg),
     requestFileUpload: loggedInAndSignedUp(requestFileUpload),
     // Logged in users only
@@ -128,10 +140,17 @@ export const resolvers = {
   User: {
     accountSignupComplete,
     properties: entityFields.properties,
+    ...userLinkedEntities,
   },
 
   Org: {
     properties: entityFields.properties,
+    ...orgLinkedEntities,
+  },
+
+  OrgMembership: {
+    properties: entityFields.properties,
+    ...orgMembershipLinkedEntities,
   },
 
   FileProperties: {
@@ -165,6 +184,10 @@ export const resolvers = {
     linkGroups: entityFields.linkGroups,
     linkedEntities: entityFields.linkedEntities,
     linkedAggregations: entityFields.linkedAggregations,
+  },
+
+  LinkedAggregation: {
+    results: linkedAggregationResults,
   },
 
   EntityType: {

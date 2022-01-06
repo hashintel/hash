@@ -24,16 +24,14 @@ export const createLinkMutation = gql`
 
 export const deleteLinkMutation = gql`
   mutation deleteLink(
-    $path: String!
-    $index: Int
     $sourceAccountId: ID!
     $sourceEntityId: ID!
+    $linkId: ID!
   ) {
-    deleteLinkByPath(
-      path: $path
-      index: $index
+    deleteLink(
       sourceAccountId: $sourceAccountId
       sourceEntityId: $sourceEntityId
+      linkId: $linkId
     )
   }
 `;

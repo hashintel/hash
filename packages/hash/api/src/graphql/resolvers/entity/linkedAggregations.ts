@@ -1,100 +1,29 @@
-import jp from "jsonpath";
-import { UnresolvedGQLEntity } from "../../../model";
-import {
-  Resolver,
-  LinkedAggregation,
-  AggregateOperationInput,
-} from "../../apiTypes.gen";
+import { ApolloError } from "apollo-server-express";
+import { Entity, UnresolvedGQLLinkedAggregation } from "../../../model";
+import { Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { LinkedDataDefinition } from "../util";
-import { isRecord } from "../../../util";
-import { aggregateEntity } from ".";
 import { DbUnknownEntity } from "../../../types/dbTypes";
 
-/**
- * Temporary function for extracting aggregations from the __linkedData
- * fields in an entity's `properties` JSON blob.
- *
- * This function will be deprecated when links are no longer stored
- * in an entity's `properties` JSON blob.
- */
-
-export const parseAggregationsFromPropertiesObject = (
-  propertiesObject: any,
-  path: jp.PathComponent[] = ["$"],
-): {
-  entityTypeId: string;
-  operationInput: AggregateOperationInput;
-  path: string;
-}[] =>
-  Object.entries(propertiesObject)
-    .map(
-      ([key, value]): {
-        entityTypeId: string;
-        operationInput: AggregateOperationInput;
-        path: string;
-      }[] => {
-        if (Array.isArray(value)) {
-          return value
-            .filter(isRecord)
-            .map((arrayItem, i) =>
-              parseAggregationsFromPropertiesObject(arrayItem, [
-                ...path,
-                key,
-                i,
-              ]),
-            )
-            .flat();
-        }
-        if (isRecord(value)) {
-          if (key === "__linkedData") {
-            const { entityTypeId, aggregate: operationInput } =
-              value as LinkedDataDefinition;
-
-            if (entityTypeId && operationInput) {
-              return [
-                { entityTypeId, operationInput, path: jp.stringify(path) },
-              ];
-            }
-          } else {
-            return parseAggregationsFromPropertiesObject(value, [...path, key]);
-          }
-        }
-
-        return [];
-      },
-    )
-    .flat();
-
-type UnresolvedLinkedAggregationResponse = Omit<
-  LinkedAggregation,
-  "results"
-> & {
-  results: UnresolvedGQLEntity[];
-};
-
 export const linkedAggregations: Resolver<
-  Promise<UnresolvedLinkedAggregationResponse[]>,
+  Promise<UnresolvedGQLLinkedAggregation[]>,
   DbUnknownEntity,
   GraphQLContext
-> = (entity, _, ctx, info) => {
-  // Temporarily obtain links by parsing the entity's properties object
-  const parsedAggregations = parseAggregationsFromPropertiesObject(
-    entity.properties,
-  );
+> = async ({ accountId, entityId }, _, { dataSources }) => {
+  const source = await Entity.getEntityLatestVersion(dataSources.db, {
+    accountId,
+    entityId,
+  });
 
-  const { accountId } = entity;
+  if (!source) {
+    const msg = `entity with fixed ID ${entityId} not found in account ${accountId}`;
+    throw new ApolloError(msg, "NOT_FOUND");
+  }
 
-  return Promise.all(
-    parsedAggregations.map(async ({ entityTypeId, operationInput, path }) => {
-      const { operation, results } = await aggregateEntity(
-        {},
-        { accountId, entityTypeId, operation: operationInput },
-        ctx,
-        info,
-      );
+  const aggregations = await source.getAggregations(dataSources.db);
 
-      return { operation, results, path };
-    }),
+  return await Promise.all(
+    aggregations.map((aggregation) =>
+      aggregation.toGQLLinkedAggregation(dataSources.db),
+    ),
   );
 };

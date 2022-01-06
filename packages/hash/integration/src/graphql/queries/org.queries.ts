@@ -13,14 +13,17 @@ export const createOrg = gql`
       visibility
       properties {
         shortname
-        invitationLink {
-          data {
-            entityId
-            properties {
-              accessToken
-            }
-          }
+      }
+      linkGroups {
+        sourceEntityId
+        path
+        links {
+          destinationEntityId
         }
+      }
+      linkedEntities {
+        entityId
+        properties
       }
     }
   }
@@ -35,13 +38,20 @@ export const createOrgEmailInvitation = gql`
       orgEntityId: $orgEntityId
       inviteeEmailAddress: $inviteeEmailAddress
     ) {
+      entityId
       properties {
-        inviter {
-          data {
-            entityId
-          }
-        }
         inviteeEmailAddress
+      }
+      linkGroups {
+        sourceEntityId
+        path
+        links {
+          destinationEntityId
+        }
+      }
+      linkedEntities {
+        entityId
+        properties
       }
     }
   }
@@ -58,12 +68,18 @@ export const orgEmailInvitation = gql`
     ) {
       entityId
       properties {
-        inviter {
-          data {
-            entityId
-          }
-        }
         inviteeEmailAddress
+      }
+      linkGroups {
+        sourceEntityId
+        path
+        links {
+          destinationEntityId
+        }
+      }
+      linkedEntities {
+        entityId
+        properties
       }
     }
   }
@@ -76,12 +92,16 @@ export const orgInvitationLink = gql`
       invitationLinkToken: $invitationLinkToken
     ) {
       entityId
-      properties {
-        org {
-          data {
-            entityId
-          }
+      linkGroups {
+        sourceEntityId
+        path
+        links {
+          destinationEntityId
         }
+      }
+      linkedEntities {
+        entityId
+        properties
       }
     }
   }
@@ -100,22 +120,17 @@ export const joinOrg = gql`
     ) {
       entityId
       properties {
-        memberOf {
-          data {
-            properties {
-              responsibility
-              org {
-                data {
-                  entityId
-                }
-              }
-            }
-          }
-        }
         emails {
           address
           verified
           primary
+        }
+      }
+      linkGroups {
+        path
+        sourceEntityId
+        links {
+          destinationEntityId
         }
       }
     }

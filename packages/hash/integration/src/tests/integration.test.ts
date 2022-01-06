@@ -1,5 +1,7 @@
 import "./loadTestEnv";
 import {
+  Entity,
+  EntityType,
   Org,
   OrgEmailInvitation,
   User,
@@ -14,6 +16,7 @@ import { ApiClient } from "./util";
 import { recreateDbAndRunSchemaMigrations } from "./setup";
 import {
   CreateOrgMutationVariables,
+  OrgInvitationLinkProperties,
   OrgSize,
   PageFieldsFragment,
   SystemTypeName,
@@ -42,6 +45,26 @@ let existingUser: User;
 
 let existingOrg: Org;
 
+const createEntity = (params: { entityTypeId: string }) =>
+  Entity.create(db, {
+    ...params,
+    accountId: existingUser.accountId,
+    createdByAccountId: existingUser.entityId,
+    versioned: false,
+    properties: {},
+  });
+
+let entityTypeCounter = 0;
+
+const createEntityType = async () => {
+  entityTypeCounter += 1;
+  return EntityType.create(db, {
+    accountId: existingUser.accountId,
+    createdByAccountId: existingUser.entityId,
+    name: `Dummy-${entityTypeCounter}`,
+  });
+};
+
 const createNewBobWithOrg = async () => {
   const bobUser = await User.createUser(db, {
     shortname: `bob-${bobCounter}`,
@@ -53,7 +76,6 @@ const createNewBobWithOrg = async () => {
         verified: true,
       },
     ],
-    memberOf: [],
     infoProvidedAtSignup: { usingHow: WayToUseHash.WithATeam },
   });
 
@@ -64,7 +86,6 @@ const createNewBobWithOrg = async () => {
     properties: {
       shortname: `${bobUser.properties.shortname}-org`,
       name: `${bobUser.properties.preferredName}'s Org`,
-      memberships: [],
     },
   });
 
@@ -98,7 +119,6 @@ beforeAll(async () => {
     shortname: "test-user",
     preferredName: "Alice",
     emails: [{ address: "alice@hash.test", primary: true, verified: true }],
-    memberOf: [],
     infoProvidedAtSignup: { usingHow: WayToUseHash.ByThemselves },
   });
 
@@ -107,7 +127,6 @@ beforeAll(async () => {
     properties: {
       shortname: "bigco",
       name: "Big Company",
-      memberships: [],
     },
   });
 
@@ -266,11 +285,9 @@ describe("logged in user ", () => {
       responsibility: "CEO",
     };
 
-    const { entityId, properties: gqlOrgProperties } = await client.createOrg(
-      variables,
-    );
+    const gqlOrg = await client.createOrg(variables);
 
-    const org = (await Org.getOrgById(db, { entityId }))!;
+    const org = (await Org.getOrgById(db, gqlOrg))!;
 
     // Test the org has been created correctly
     expect(org).not.toBeNull();
@@ -288,13 +305,27 @@ describe("logged in user ", () => {
     const [invitationLink] = invitationLinks;
     expect(invitationLink).not.toBeUndefined();
 
-    // Test the invitation link has been returned in the createOrg GraphQL mutation
-    expect(gqlOrgProperties.invitationLink?.data.entityId).toEqual(
+    // Test a linked invitationLink has been returned in the createOrg GraphQL mutation
+
+    const invitationLinkLinkGroup = gqlOrg.linkGroups.find(
+      ({ sourceEntityId, path }) =>
+        sourceEntityId === org.entityId && path === "$.invitationLink",
+    )!;
+
+    expect(invitationLinkLinkGroup).not.toBeUndefined();
+    expect(invitationLinkLinkGroup.links).toHaveLength(1);
+    expect(invitationLinkLinkGroup.links[0].destinationEntityId).toBe(
       invitationLink.entityId,
     );
+
+    const gqlInvitationLink = gqlOrg.linkedEntities.find(
+      ({ entityId }) => entityId === invitationLink.entityId,
+    )!;
+
+    expect(gqlInvitationLink).not.toBeUndefined();
     expect(
-      gqlOrgProperties.invitationLink?.data.properties.accessToken,
-    ).toEqual(invitationLink.properties.accessToken);
+      (gqlInvitationLink.properties as OrgInvitationLinkProperties).accessToken,
+    ).toBe(invitationLink.properties.accessToken);
 
     // Test the user is now a member of the org
     const updatedExistingUser = (await User.getUserById(db, existingUser))!;
@@ -311,15 +342,35 @@ describe("logged in user ", () => {
 
     bobCounter += 1;
 
-    const response = await client.createOrgEmailInvitation({
+    const gqlOrgEmailInvitation = await client.createOrgEmailInvitation({
       orgEntityId: existingOrg.entityId,
       inviteeEmailAddress,
     });
 
-    expect(response.properties.inviter.data.entityId).toEqual(
+    const inviterLinkGroup = gqlOrgEmailInvitation.linkGroups.find(
+      ({ sourceEntityId, path }) =>
+        sourceEntityId === gqlOrgEmailInvitation.entityId &&
+        path === "$.inviter",
+    )!;
+
+    expect(inviterLinkGroup).not.toBeUndefined();
+    expect(inviterLinkGroup.links).toHaveLength(1);
+    expect(inviterLinkGroup.links[0].destinationEntityId).toBe(
       existingUser.entityId,
     );
-    expect(response.properties.inviteeEmailAddress).toEqual(
+
+    const orgLinkGroup = gqlOrgEmailInvitation.linkGroups.find(
+      ({ sourceEntityId, path }) =>
+        sourceEntityId === gqlOrgEmailInvitation.entityId && path === "$.org",
+    )!;
+
+    expect(orgLinkGroup).not.toBeUndefined();
+    expect(orgLinkGroup.links).toHaveLength(1);
+    expect(orgLinkGroup.links[0].destinationEntityId).toBe(
+      existingOrg.entityId,
+    );
+
+    expect(gqlOrgEmailInvitation.properties.inviteeEmailAddress).toEqual(
       inviteeEmailAddress,
     );
 
@@ -376,7 +427,15 @@ describe("logged in user ", () => {
     expect(gqlEmailInvitation.properties.inviteeEmailAddress).toEqual(
       inviteeEmailAddress,
     );
-    expect(gqlEmailInvitation.properties.inviter.data.entityId).toEqual(
+
+    const inviterLinkGroup = gqlEmailInvitation.linkGroups.find(
+      ({ sourceEntityId, path }) =>
+        sourceEntityId === gqlEmailInvitation.entityId && path === "$.inviter",
+    )!;
+
+    expect(inviterLinkGroup).not.toBeUndefined();
+    expect(inviterLinkGroup.links).toHaveLength(1);
+    expect(inviterLinkGroup.links[0].destinationEntityId).toBe(
       bobUser.entityId,
     );
 
@@ -394,7 +453,14 @@ describe("logged in user ", () => {
     });
 
     expect(gqlInvitation.entityId).toEqual(invitation.entityId);
-    expect(gqlInvitation.properties.org.data.entityId).toEqual(bobOrg.entityId);
+    const orgLinkGroup = gqlInvitation.linkGroups.find(
+      ({ sourceEntityId, path }) =>
+        sourceEntityId === gqlInvitation.entityId && path === "$.org",
+    )!;
+
+    expect(orgLinkGroup).not.toBeUndefined();
+    expect(orgLinkGroup.links).toHaveLength(1);
+    expect(orgLinkGroup.links[0].destinationEntityId).toBe(bobOrg.entityId);
 
     /** @todo: cleanup created bob user and org */
   });
@@ -424,12 +490,7 @@ describe("logged in user ", () => {
 
     expect(gqlUser.entityId).toEqual(existingUser.entityId);
 
-    const gqlMemberOf = gqlUser.properties.memberOf.find(
-      ({ data }) => data.properties.org.data.entityId === bobOrg.entityId,
-    )!;
-
-    expect(gqlMemberOf).not.toBeUndefined();
-    expect(gqlMemberOf.data.properties.responsibility).toEqual(responsibility);
+    expect(await existingUser.isMemberOfOrg(db, bobOrg.entityId)).toBe(true);
 
     const { emails } = gqlUser.properties;
 
@@ -459,12 +520,7 @@ describe("logged in user ", () => {
 
     expect(gqlUser.entityId).toEqual(existingUser.entityId);
 
-    const gqlMemberOf = gqlUser.properties.memberOf.find(
-      ({ data }) => data.properties.org.data.entityId === bobOrg.entityId,
-    )!;
-
-    expect(gqlMemberOf).not.toBeUndefined();
-    expect(gqlMemberOf.data.properties.responsibility).toEqual(responsibility);
+    expect(await existingUser.isMemberOfOrg(db, bobOrg.entityId)).toBe(true);
   });
 
   describe("can create and update pages", () => {
@@ -751,7 +807,7 @@ describe("logged in user ", () => {
     });
   });
 
-  it("Can only create 5 login codes before being rate limited", async () => {
+  it("can only create 5 login codes before being rate limited", async () => {
     // The first code is the one when the account was created, so we should fail at the fourth one
     const { address: emailAddress } = existingUser.getPrimaryEmail();
     for (let i = 0; i < 3; i++) {
@@ -768,5 +824,137 @@ describe("logged in user ", () => {
         emailOrShortname: emailAddress,
       }),
     ).rejects.toThrowError(/has created too many verification codes recently/);
+  });
+
+  it("can create linked aggregation for an entity", async () => {
+    const sourceEntityType = await createEntityType();
+
+    const sourceEntity = await createEntity({
+      entityTypeId: sourceEntityType.entityId,
+    });
+
+    const aggregateEntityType = await createEntityType();
+
+    const numberOfAggregateEntities = 3;
+
+    await Promise.all(
+      [...Array(numberOfAggregateEntities).keys()].map(() =>
+        createEntity({ entityTypeId: aggregateEntityType.entityId }),
+      ),
+    );
+
+    const variables = {
+      sourceAccountId: sourceEntity.accountId,
+      sourceEntityId: sourceEntity.entityId,
+      path: "$.test",
+      operation: {
+        entityTypeId: aggregateEntityType.entityId,
+        itemsPerPage: 10,
+        pageNumber: 1,
+      },
+    };
+
+    const gqlAggregation = await client.createLinkedAggregation(variables);
+
+    expect(gqlAggregation.path).toBe(variables.path);
+    expect(gqlAggregation.sourceAccountId).toBe(variables.sourceAccountId);
+    expect(gqlAggregation.sourceEntityId).toBe(variables.sourceEntityId);
+    expect(gqlAggregation.operation).toEqual({
+      ...variables.operation,
+      pageCount: 1,
+    });
+    expect(gqlAggregation.results).toHaveLength(numberOfAggregateEntities);
+
+    const aggregation = (await sourceEntity.getAggregation(db, {
+      stringifiedPath: variables.path,
+    }))!;
+
+    expect(aggregation).not.toBeNull();
+    expect(aggregation.stringifiedPath).toBe(variables.path);
+  });
+
+  it("can update operation of existing linked aggregation for an entity", async () => {
+    const sourceEntityType = await createEntityType();
+
+    const sourceEntity = await createEntity({
+      entityTypeId: sourceEntityType.entityId,
+    });
+
+    const aggregateEntityType1 = await createEntityType();
+
+    const stringifiedPath = "$.test";
+
+    await sourceEntity.createAggregation(db, {
+      stringifiedPath,
+      createdBy: existingUser,
+      operation: {
+        entityTypeId: aggregateEntityType1.entityId,
+        itemsPerPage: 10,
+        pageNumber: 1,
+      },
+    });
+
+    const aggregateEntityType2 = await createEntityType();
+
+    const updatedOperation = {
+      entityTypeId: aggregateEntityType2.entityId,
+      itemsPerPage: 10,
+      pageNumber: 1,
+    };
+
+    const updatedGQLAggregation = await client.updateLinkedAggregationOperation(
+      {
+        sourceAccountId: sourceEntity.accountId,
+        sourceEntityId: sourceEntity.entityId,
+        path: stringifiedPath,
+        updatedOperation,
+      },
+    );
+
+    expect(updatedGQLAggregation.operation).toEqual({
+      ...updatedOperation,
+      pageCount: 0,
+    });
+
+    const aggregation = (await sourceEntity.getAggregation(db, {
+      stringifiedPath,
+    }))!;
+
+    expect(aggregation).not.toBeNull();
+    expect(aggregation.operation).toEqual(updatedOperation);
+  });
+
+  it("can delete existing linked aggregation for an entity", async () => {
+    const sourceEntityType = await createEntityType();
+
+    const sourceEntity = await createEntity({
+      entityTypeId: sourceEntityType.entityId,
+    });
+
+    const aggregateEntityType = await createEntityType();
+
+    const stringifiedPath = "$.test";
+
+    await sourceEntity.createAggregation(db, {
+      stringifiedPath,
+      createdBy: existingUser,
+      operation: {
+        entityTypeId: aggregateEntityType.entityId,
+        itemsPerPage: 10,
+        pageNumber: 1,
+      },
+    });
+
+    await client.deleteLinkedAggregation({
+      sourceAccountId: sourceEntity.accountId,
+      sourceEntityId: sourceEntity.entityId,
+      path: stringifiedPath,
+    });
+
+    const aggregation = await sourceEntity.getAggregation(db, {
+      stringifiedPath,
+    });
+
+    expect(aggregation).toBeNull();
   });
 });

@@ -1,5 +1,14 @@
+import { sql } from "slonik";
 import { DbPageProperties, DbBlockProperties } from "../../types/dbTypes";
 import { Entity } from "../adapter";
+
+export const mapColumnNamesToSQL = (columnNames: string[], prefix?: string) =>
+  sql.join(
+    columnNames.map((columnName) =>
+      sql.identifier([prefix || [], columnName].flat()),
+    ),
+    sql`, `,
+  );
 
 const isObject = (val: any) => typeof val === "object" && val !== null;
 

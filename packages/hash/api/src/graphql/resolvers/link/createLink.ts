@@ -1,31 +1,24 @@
 import { ApolloError } from "apollo-server-errors";
-import jp from "jsonpath";
-import {
-  MutationCreateLinkArgs,
-  Link as GQLLink,
-  Resolver,
-} from "../../apiTypes.gen";
-import { Entity } from "../../../model";
+import { MutationCreateLinkArgs, Resolver } from "../../apiTypes.gen";
+import { Entity, UnresolvedGQLLink } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
-import { genId } from "../../../util";
-import { removeArrayNulls } from "./deleteLinkByPath";
 
 export const createLink: Resolver<
-  Promise<GQLLink>,
+  Promise<UnresolvedGQLLink>,
   {},
   LoggedInGraphQLContext,
   MutationCreateLinkArgs
-> = async (_, { link }, { dataSources, user }) =>
+> = async (_, { link: linkInput }, { dataSources, user }) =>
   dataSources.db.transaction(async (client) => {
-    const { sourceAccountId, sourceEntityId } = link;
-    const sourceEntity = await Entity.getEntityLatestVersion(client, {
+    const { sourceAccountId, sourceEntityId } = linkInput;
+    const source = await Entity.getEntityLatestVersion(client, {
       accountId: sourceAccountId,
       entityId: sourceEntityId,
     });
 
     /** @todo: lock the entity on retrieval */
 
-    if (!sourceEntity) {
+    if (!source) {
       const msg = `entity with fixed ID ${sourceEntityId} not found in account ${sourceAccountId}`;
       throw new ApolloError(msg, "NOT_FOUND");
     }
@@ -34,8 +27,9 @@ export const createLink: Resolver<
       destinationAccountId,
       destinationEntityId,
       destinationEntityVersionId,
-    } = link;
-    const destinationEntity = destinationEntityVersionId
+    } = linkInput;
+
+    const destination = destinationEntityVersionId
       ? await Entity.getEntity(client, {
           accountId: destinationAccountId,
           entityVersionId: destinationEntityVersionId,
@@ -45,7 +39,7 @@ export const createLink: Resolver<
           entityId: destinationEntityId,
         });
 
-    if (!destinationEntity) {
+    if (!destination) {
       const msg = `entity with fixed ID ${destinationEntityId}${
         destinationEntityVersionId
           ? ` and version ID ${destinationEntityVersionId}`
@@ -54,26 +48,13 @@ export const createLink: Resolver<
       throw new ApolloError(msg, "NOT_FOUND");
     }
 
-    const { path: stringifiedPathWithoutIndex, index } = link;
-
-    const stringifiedPath =
-      typeof index === "number"
-        ? `${stringifiedPathWithoutIndex}[${index}]`
-        : stringifiedPathWithoutIndex;
-
-    jp.value(sourceEntity.properties, stringifiedPath, {
-      __linkedData: {
-        entityId: destinationEntityId,
-        entityVersionId: destinationEntityVersionId,
-      },
+    const link = await source.createOutgoingLink(client, {
+      createdByAccountId: user.accountId,
+      stringifiedPath: linkInput.path,
+      index: typeof linkInput.index === "number" ? linkInput.index : undefined,
+      destination,
+      destinationEntityVersionId: destinationEntityVersionId || undefined,
     });
 
-    removeArrayNulls(sourceEntity.properties);
-
-    await sourceEntity.updateEntityProperties(client, {
-      properties: sourceEntity.properties,
-      updatedByAccountId: user.accountId,
-    });
-
-    return { ...link, id: genId() };
+    return link.toUnresolvedGQLLink();
   });

@@ -42,14 +42,12 @@ describe("Org model class ", () => {
         shortname: "test-user-1",
         preferredName: "Alice",
         emails: [{ address: "alice@hash.test", primary: true, verified: true }],
-        memberOf: [],
         infoProvidedAtSignup: { usingHow: WayToUseHash.ByThemselves },
       }),
       User.createUser(db, {
         shortname: "test-user-2",
         preferredName: "Bob",
         emails: [{ address: "bob@hash.test", primary: true, verified: true }],
-        memberOf: [],
         infoProvidedAtSignup: { usingHow: WayToUseHash.ByThemselves },
       }),
     ]);
@@ -59,7 +57,6 @@ describe("Org model class ", () => {
       properties: {
         shortname: "bigco",
         name: "Big Company",
-        memberships: [],
       },
     });
 

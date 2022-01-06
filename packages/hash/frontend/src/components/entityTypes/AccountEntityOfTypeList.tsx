@@ -23,8 +23,8 @@ export const AccountEntityOfTypeList: VoidFunctionComponent<
   >(aggregateEntity, {
     variables: {
       accountId,
-      entityTypeId,
       operation: {
+        entityTypeId,
         itemsPerPage: 100, // @todo paginate properly
       },
     },

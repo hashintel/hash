@@ -34,9 +34,10 @@ export const useBlockProtocolAggregateEntities = (
       >({
         query: aggregateEntity,
         variables: {
-          operation: action.operation,
-          entityTypeId: action.entityTypeId!,
-          entityTypeVersionId: action.entityTypeVersionId,
+          operation: {
+            ...action.operation,
+            entityTypeId: action.operation.entityTypeId!,
+          },
           accountId,
         },
       });

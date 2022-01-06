@@ -15,7 +15,7 @@ import {
   DeleteLinkFnWithFixedSource,
   EntityLinkDefinition,
 } from "./types";
-import { EntityLinkEditor } from "./EntityLinkEditor";
+import { EntityLinksEditor } from "./EntityLinksEditor";
 import { entityName } from "../../lib/entities";
 
 type EntityEditorProps = {
@@ -205,7 +205,10 @@ export const EntityEditor: VoidFunctionComponent<EntityEditorProps> = ({
               sourceAccountId: accountId,
               sourceEntityId: entityId,
             },
-          ])
+          ]).then((res) => {
+            refetchEntity?.();
+            return res;
+          })
       : undefined;
 
   const deleteLinkWithFixedSource: DeleteLinkFnWithFixedSource | undefined =
@@ -217,7 +220,10 @@ export const EntityEditor: VoidFunctionComponent<EntityEditorProps> = ({
               sourceAccountId: accountId,
               sourceEntityId: entityId,
             },
-          ])
+          ]).then((res) => {
+            refetchEntity?.();
+            return res;
+          })
       : undefined;
 
   return (
@@ -242,14 +248,13 @@ export const EntityEditor: VoidFunctionComponent<EntityEditorProps> = ({
           <h2>
             Entities linked from <em>{name}</em>
           </h2>
-          <EntityLinkEditor
+          <EntityLinksEditor
             aggregateEntities={aggregate}
             createLinkFromEntity={createLinkWithFixedSource}
             deleteLinkFromEntity={deleteLinkWithFixedSource}
             existingLinkGroups={existingLinkGroups}
             linksInSchema={linksInSchema}
             linkedEntities={linkedEntities}
-            refetchEntity={refetchEntity}
           />
         </div>
       ) : null}

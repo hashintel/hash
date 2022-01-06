@@ -1,12 +1,19 @@
 import { JSONObject } from "@hashintel/block-protocol";
+import { ApolloError } from "apollo-server-errors";
+import { PathComponent } from "jsonpath";
 import { merge } from "lodash";
-import { Account, Entity, EntityType, UnresolvedGQLEntityType } from ".";
-import { DBClient } from "../db";
 import {
-  DBLinkedEntity,
-  EntityMeta,
-  EntityType as DbEntityType,
-} from "../db/adapter";
+  Account,
+  Entity,
+  EntityType,
+  UnresolvedGQLEntityType,
+  Link,
+  CreateLinkArgs,
+  Aggregation,
+  CreateAggregationArgs,
+} from ".";
+import { DBClient } from "../db";
+import { EntityMeta, EntityType as DbEntityType } from "../db/adapter";
 import {
   Visibility,
   Entity as GQLEntity,
@@ -237,15 +244,6 @@ class __Entity {
     return new Entity(updatedDbEntity);
   }
 
-  convertToDBLink(): DBLinkedEntity {
-    return {
-      __linkedData: {
-        entityId: this.entityId,
-        entityTypeId: this.entityType.entityId,
-      },
-    };
-  }
-
   protected async partialPropertiesUpdate(
     client: DBClient,
     params: PartialPropertiesUpdatePayload,
@@ -327,6 +325,136 @@ class __Entity {
     merge(this, new Entity(refetchedDbEntity));
 
     return this;
+  }
+
+  isEquivalentTo(otherEntity: Entity): boolean {
+    return (
+      this.accountId === otherEntity.accountId &&
+      this.entityId === otherEntity.entityId &&
+      this.entityVersionId === otherEntity.entityVersionId
+    );
+  }
+
+  async getHistory(client: DBClient, params?: { order: "desc" | "asc" }) {
+    const history = await Entity.getEntityHistory(client, {
+      accountId: this.accountId,
+      entityId: this.entityId,
+      order: params?.order ?? "desc",
+    });
+
+    return history;
+  }
+
+  async createAggregation(
+    client: DBClient,
+    params: Omit<CreateAggregationArgs, "source">,
+  ): Promise<Aggregation> {
+    const aggregation = await Aggregation.create(client, {
+      ...params,
+      source: this,
+    });
+
+    return aggregation;
+  }
+
+  async getAggregations(client: DBClient) {
+    const aggregations = await Aggregation.getAllEntityAggregations(client, {
+      source: this,
+    });
+
+    return aggregations;
+  }
+
+  async getAggregation(
+    client: DBClient,
+    params: {
+      stringifiedPath: string;
+    },
+  ) {
+    const { stringifiedPath } = params;
+    const aggregation = await Aggregation.getEntityAggregation(client, {
+      source: this,
+      stringifiedPath,
+    });
+
+    return aggregation;
+  }
+
+  async getOutgoingLinks(
+    client: DBClient,
+    params?: {
+      stringifiedPath?: string;
+      path?: PathComponent[];
+    },
+  ) {
+    const outgoingDBLinks = await client.getEntityOutgoingLinks({
+      accountId: this.accountId,
+      entityId: this.entityId,
+      entityVersionId: this.metadata.versioned
+        ? this.entityVersionId
+        : undefined,
+      path:
+        params?.stringifiedPath ??
+        (params?.path ? Link.stringifyPath(params.path) : undefined),
+    });
+    return outgoingDBLinks.map((dbLink) => new Link(dbLink));
+  }
+
+  async getOutgoingLink(
+    client: DBClient,
+    params: {
+      linkId: string;
+    },
+  ) {
+    const link = await Link.get(client, {
+      ...params,
+      sourceAccountId: this.accountId,
+    });
+
+    return link;
+  }
+
+  async createOutgoingLink(
+    client: DBClient,
+    params: Omit<CreateLinkArgs, "source">,
+  ) {
+    /** @todo: check entity type whether this link can be created */
+
+    const link = await Link.create(client, {
+      ...params,
+      source: this,
+    });
+
+    // If this is a versioned entity, fetch the updated entityVersionId
+    if (this.metadata.versioned) {
+      await this.refetchLatestVersion(client);
+    }
+
+    return link;
+  }
+
+  async deleteOutgoingLink(
+    client: DBClient,
+    params: { linkId: string; deletedByAccountId: string },
+  ): Promise<void> {
+    const link = await this.getOutgoingLink(client, params);
+
+    if (!link) {
+      throw new ApolloError(
+        `Link with sourceAccountId ${this.accountId}, sourceEntityId ${this.entityId} and linkId ${params.linkId} not found`,
+        "NOT_FOUND",
+      );
+    }
+
+    /** @todo: check entity type whether this link can be deleted */
+
+    await link.delete(client, {
+      deletedByAccountId: params.deletedByAccountId,
+    });
+
+    if (this.metadata.versioned) {
+      await this.refetchLatestVersion(client);
+    }
   }
 
   toGQLEntity(): Omit<UnresolvedGQLEntity, "properties"> {
