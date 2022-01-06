@@ -12,7 +12,7 @@ import {
 } from "@hashintel/block-protocol";
 import { BlockComponent } from "@hashintel/block-protocol/react";
 import { tw } from "twind";
-import { omit, orderBy } from "lodash";
+import { orderBy } from "lodash";
 import { EditableCell } from "./components/EditableCell";
 import { makeColumns } from "./lib/columns";
 import { getSchemaPropertyDefinition } from "./lib/getSchemaProperty";
@@ -133,7 +133,7 @@ export const App: BlockComponent<AppProps> = ({
       if (
         !aggregateEntities ||
         !linkedData?.aggregate ||
-        !linkedData.entityTypeId
+        !linkedData.aggregate.entityTypeId
       ) {
         return;
       }
@@ -149,8 +149,7 @@ export const App: BlockComponent<AppProps> = ({
       }
 
       aggregateEntities({
-        entityTypeId: linkedData.entityTypeId,
-        operation: omit(linkedData.aggregate, "entityTypeId"),
+        operation: linkedData.aggregate,
       })
         .then(({ operation, results }) => {
           setTableData({
@@ -349,12 +348,12 @@ export const App: BlockComponent<AppProps> = ({
   const entityTypeDropdown = entityTypes ? (
     <EntityTypeDropdown
       options={entityTypes}
-      value={data?.__linkedData?.entityTypeId}
+      value={data?.__linkedData?.aggregate?.entityTypeId}
       onChange={handleEntityTypeChange}
     />
   ) : null;
 
-  if (!data.__linkedData?.entityTypeId) {
+  if (!data.__linkedData?.aggregate?.entityTypeId) {
     if (!aggregateEntityTypes) {
       return (
         <div>

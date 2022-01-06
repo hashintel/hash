@@ -66,6 +66,8 @@ export type BlockProtocolMultiSort = {
 }[];
 
 export type BlockProtocolAggregateOperationInput = {
+  entityTypeId?: string;
+  entityTypeVersionId?: string | null;
   pageNumber?: number;
   itemsPerPage?: number;
   multiSort?: BlockProtocolMultiSort | null;
@@ -74,13 +76,10 @@ export type BlockProtocolAggregateOperationInput = {
 
 export type BlockProtocolLinkedDataDefinition = {
   aggregate?: BlockProtocolAggregateOperationInput & { pageCount?: number };
-  entityTypeId?: string;
   entityId?: string;
 };
 
 export type BlockProtocolAggregateEntitiesPayload = {
-  entityTypeId?: string;
-  entityTypeVersionId?: string | null;
   operation: BlockProtocolAggregateOperationInput;
   accountId?: string;
 };

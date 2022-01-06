@@ -76,8 +76,8 @@ export const EntityFieldLinkEditor: VoidFunctionComponent<
 
   useEffect(() => {
     aggregateEntities({
-      entityTypeId,
       operation: {
+        entityTypeId,
         itemsPerPage: 100, // @todo paginate
       },
     })
