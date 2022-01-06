@@ -133,7 +133,7 @@ use core::{fmt, marker::PhantomData, mem::ManuallyDrop, panic::Location};
 use provider::Provider;
 
 pub use self::macros::*;
-use self::{frame::ErrorRepr, report::ReportImpl};
+use self::{frame::FrameRepr, report::ReportImpl};
 
 /// Contains a [`Frame`] stack consisting of an original error, context information, and optionally
 /// a [`Backtrace`] and a [`SpanTrace`].
@@ -285,12 +285,12 @@ pub struct Report<Context = ()> {
 ///
 /// [`request`]: Self::request
 pub struct Frame {
-    error: ManuallyDrop<Box<ErrorRepr<()>>>,
+    error: ManuallyDrop<Box<FrameRepr>>,
     location: &'static Location<'static>,
     source: Option<Box<Frame>>,
 }
 
-/// `Result<T, Report>`
+/// `Result<T, Report<C>>`
 ///
 /// A reasonable return type to use throughout an application if no scope is used.
 ///
@@ -319,44 +319,36 @@ pub struct Frame {
 ///     # Ok(())
 /// }
 /// ```
-///
-/// If additional error kinds are required, `Result` should be redefined:
-///
-/// ```
-/// # #![allow(dead_code)]
-/// # struct MyErrorKind;
-/// type Result<T, E = error::Report<MyErrorKind>> = error::Result<T, E>;
-/// ```
-pub type Result<T, E = Report> = core::result::Result<T, E>;
+pub type Result<T, C = ()> = core::result::Result<T, Report<C>>;
 
 /// Extension trait for [`Result`][core::result::Result] to provide context information on
 /// [`Report`]s.
 pub trait ResultExt<T> {
     /// Type of the resulting error `E` inside of [`Report<E>`][`Report`] when not providing an
     /// error kind.
-    type ErrorKind;
+    type Context;
 
     /// Adds new context information to the [`Frame`] stack of a [`Report`].
-    fn wrap_err<C>(self, context: C) -> Result<T, Report<Self::ErrorKind>>
+    fn wrap_err<M>(self, message: M) -> Result<T, Self::Context>
     where
-        C: fmt::Display + fmt::Debug + Send + Sync + 'static;
+        M: fmt::Display + fmt::Debug + Send + Sync + 'static;
 
     /// Lazily adds new context information to the [`Frame`] stack of a [`Report`].
-    fn wrap_err_lazy<C, F>(self, context: F) -> Result<T, Report<Self::ErrorKind>>
+    fn wrap_err_lazy<M, F>(self, message: F) -> Result<T, Self::Context>
     where
-        C: fmt::Display + fmt::Debug + Send + Sync + 'static,
-        F: FnOnce() -> C;
+        M: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        F: FnOnce() -> M;
 
     /// Adds a new error kind to the [`Frame`] stack of a [`Report`].
-    fn provide_context<E>(self, context: E) -> Result<T, Report<E>>
+    fn provide_context<Context>(self, context: Context) -> Result<T, Context>
     where
-        E: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static;
+        Context: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static;
 
     /// Lazily adds a new error kind to the [`Frame`] stack of a [`Report`].
-    fn provide_context_lazy<E, F>(self, context: F) -> Result<T, Report<E>>
+    fn provide_context_lazy<E, Context>(self, context: Context) -> Result<T, E>
     where
         E: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
-        F: FnOnce() -> E;
+        Context: FnOnce() -> E;
 }
 
 /// Iterator over the [`Frame`] stack of a [`Report`].

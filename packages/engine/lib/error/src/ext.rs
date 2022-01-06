@@ -2,42 +2,44 @@ use core::fmt;
 
 use provider::Provider;
 
-use crate::{Report, Result, ResultExt};
+#[cfg(feature = "std")]
+use crate::Report;
+use crate::{Result, ResultExt};
 
 #[cfg(feature = "std")]
-impl<T, E> ResultExt<T> for Result<T, E>
+impl<T, E> ResultExt<T> for std::result::Result<T, E>
 where
     E: std::error::Error + Send + Sync + 'static,
 {
-    type ErrorKind = ();
+    type Context = ();
 
     #[track_caller]
-    fn wrap_err<C>(self, context: C) -> Result<T, Report>
+    fn wrap_err<M>(self, message: M) -> Result<T>
     where
-        C: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        M: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
         match self {
             Ok(t) => Ok(t),
-            Err(error) => Err(Report::from(error).wrap(context)),
+            Err(error) => Err(Report::from(error).wrap(message)),
         }
     }
 
     #[track_caller]
-    fn wrap_err_lazy<C, F>(self, context: F) -> Result<T, Report>
+    fn wrap_err_lazy<M, F>(self, message: F) -> Result<T>
     where
-        C: fmt::Display + fmt::Debug + Send + Sync + 'static,
-        F: FnOnce() -> C,
+        M: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        F: FnOnce() -> M,
     {
         match self {
             Ok(t) => Ok(t),
-            Err(error) => Err(Report::from(error).wrap(context())),
+            Err(error) => Err(Report::from(error).wrap(message())),
         }
     }
 
     #[track_caller]
-    fn provide_context<K>(self, context: K) -> Result<T, Report<K>>
+    fn provide_context<C>(self, context: C) -> Result<T, C>
     where
-        K: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+        C: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
         match self {
             Ok(t) => Ok(t),
@@ -46,10 +48,10 @@ where
     }
 
     #[track_caller]
-    fn provide_context_lazy<K, F>(self, context: F) -> Result<T, Report<K>>
+    fn provide_context_lazy<C, F>(self, context: F) -> Result<T, C>
     where
-        K: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
-        F: FnOnce() -> K,
+        C: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+        F: FnOnce() -> C,
     {
         match self {
             Ok(t) => Ok(t),
@@ -58,13 +60,13 @@ where
     }
 }
 
-impl<T, E> ResultExt<T> for Result<T, Report<E>> {
-    type ErrorKind = E;
+impl<T, C> ResultExt<T> for Result<T, C> {
+    type Context = C;
 
     #[track_caller]
-    fn wrap_err<C>(self, context: C) -> Self
+    fn wrap_err<M>(self, context: M) -> Self
     where
-        C: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        M: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
         match self {
             Ok(t) => Ok(t),
@@ -73,10 +75,10 @@ impl<T, E> ResultExt<T> for Result<T, Report<E>> {
     }
 
     #[track_caller]
-    fn wrap_err_lazy<C, F>(self, context: F) -> Self
+    fn wrap_err_lazy<M, F>(self, context: F) -> Self
     where
-        C: fmt::Display + fmt::Debug + Send + Sync + 'static,
-        F: FnOnce() -> C,
+        M: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        F: FnOnce() -> M,
     {
         match self {
             Ok(t) => Ok(t),
@@ -85,9 +87,9 @@ impl<T, E> ResultExt<T> for Result<T, Report<E>> {
     }
 
     #[track_caller]
-    fn provide_context<K>(self, context: K) -> Result<T, Report<K>>
+    fn provide_context<Context>(self, context: Context) -> Result<T, Context>
     where
-        K: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+        Context: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
         match self {
             Ok(t) => Ok(t),
@@ -96,10 +98,10 @@ impl<T, E> ResultExt<T> for Result<T, Report<E>> {
     }
 
     #[track_caller]
-    fn provide_context_lazy<K, F>(self, context: F) -> Result<T, Report<K>>
+    fn provide_context_lazy<Context, F>(self, context: F) -> Result<T, Context>
     where
-        K: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
-        F: FnOnce() -> K,
+        Context: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+        F: FnOnce() -> Context,
     {
         match self {
             Ok(t) => Ok(t),

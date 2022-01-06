@@ -16,15 +16,21 @@ use provider::{self, tags, Provider, Requisition, TypeTag};
 use super::tags::{FrameLocation, FrameSource};
 use crate::Frame;
 
+// Stores information for acting on `Frame` without knowing the internal type
 struct VTable {
-    object_drop: unsafe fn(Box<ErrorRepr<()>>),
-    object_ref: unsafe fn(&ErrorRepr<()>) -> &dyn Context,
-    object_downcast: unsafe fn(&ErrorRepr<()>, target: TypeId) -> Option<NonNull<()>>,
+    object_drop: unsafe fn(Box<FrameRepr>),
+    object_ref: unsafe fn(&FrameRepr) -> &dyn Context,
+    object_downcast: unsafe fn(&FrameRepr, target: TypeId) -> Option<NonNull<()>>,
 }
 
+// We need a trait-alias like trait for writing `&dyn Context` because only auto traits can be used
+// as additional traits in a trait object
 pub trait Context: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static {}
+// Need to implement it to get
 impl<T: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static> Context for T {}
 
+// Contextual messages don't necessarily implement `Provider`, `WrapErr` adds an empty
+// implementation.
 struct WrapErr<T>(T);
 
 impl<T: fmt::Display> fmt::Display for WrapErr<T> {
@@ -43,6 +49,8 @@ impl<T> Provider for WrapErr<T> {
     fn provide<'p>(&'p self, _req: &mut Requisition<'p, '_>) {}
 }
 
+// std errors don't necessarily implement `Provider`, `StdError` adds an implementation providing
+// the backtrace if any.
 #[cfg(feature = "std")]
 struct StdError<T>(T);
 
@@ -75,10 +83,10 @@ impl VTable {
     ///
     /// # Safety
     ///
-    /// - Layout of `*frame` must match `ErrorRepr<E>`.
-    unsafe fn object_drop<E>(frame: Box<ErrorRepr<()>>) {
+    /// - Layout of `*frame` must match `FrameRepr<E>`.
+    unsafe fn object_drop<E>(frame: Box<FrameRepr>) {
         // Attach E's native vtable onto the pointer to self._error
-        let unerased = Box::from_raw(Box::into_raw(frame).cast::<ErrorRepr<E>>());
+        let unerased = Box::from_raw(Box::into_raw(frame).cast::<FrameRepr<E>>());
         drop(unerased);
     }
 
@@ -86,10 +94,10 @@ impl VTable {
     ///
     /// # Safety
     ///
-    /// - Layout of `Self` must match `ErrorRepr<E>`.
-    unsafe fn object_ref<E: Context>(frame: &ErrorRepr<()>) -> &dyn Context {
+    /// - Layout of `Self` must match `FrameRepr<E>`.
+    unsafe fn object_ref<E: Context>(frame: &FrameRepr) -> &dyn Context {
         // Attach E's native vtable onto the pointer to self._error
-        let unerased = (frame as *const ErrorRepr<()>).cast::<ErrorRepr<E>>();
+        let unerased = (frame as *const FrameRepr).cast::<FrameRepr<E>>();
         // inside of vtable it's allowed to access `_error`
         #[allow(clippy::used_underscore_binding)]
         &(*(unerased))._error
@@ -99,14 +107,14 @@ impl VTable {
     ///
     /// # Safety
     ///
-    /// - Layout of `Self` must match `ErrorRepr<E>`.
+    /// - Layout of `Self` must match `FrameRepr<E>`.
     unsafe fn object_downcast<E: Context>(
-        frame: &ErrorRepr<()>,
+        frame: &FrameRepr,
         target: TypeId,
     ) -> Option<NonNull<()>> {
         if TypeId::of::<E>() == target {
             // Attach E's native vtable onto the pointer to self._error
-            let unerased = (frame as *const ErrorRepr<()>).cast::<ErrorRepr<E>>();
+            let unerased = (frame as *const FrameRepr).cast::<FrameRepr<E>>();
             // inside of vtable it's allowed to access `_error`
             #[allow(clippy::used_underscore_binding)]
             let addr = &(*(unerased))._error as *const E as *mut ();
@@ -118,14 +126,15 @@ impl VTable {
 }
 
 #[repr(C)]
-pub struct ErrorRepr<E> {
+#[allow(clippy::module_name_repetitions)]
+pub struct FrameRepr<E = ()> {
     vtable: &'static VTable,
     // Must not be used directly, only through vtable
     _error: E,
 }
 
-impl<E> ErrorRepr<E> {
-    pub fn new(error: E) -> Box<ErrorRepr<()>>
+impl<E> FrameRepr<E> {
+    pub fn new(error: E) -> Box<FrameRepr>
     where
         E: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
@@ -142,12 +151,12 @@ impl<E> ErrorRepr<E> {
 }
 
 #[allow(clippy::used_underscore_binding)]
-impl ErrorRepr<()> {
+impl FrameRepr {
     pub fn from_message<M>(message: M) -> Box<Self>
     where
         M: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
-        ErrorRepr::new(WrapErr(message))
+        FrameRepr::new(WrapErr(message))
     }
 
     #[cfg(feature = "std")]
@@ -155,7 +164,7 @@ impl ErrorRepr<()> {
     where
         M: std::error::Error + Send + Sync + 'static,
     {
-        ErrorRepr::new(StdError(error))
+        FrameRepr::new(StdError(error))
     }
 
     pub fn unerase(&self) -> &dyn Context {

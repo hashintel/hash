@@ -13,7 +13,7 @@ use provider::{
 use tracing_error::{SpanTrace, SpanTraceStatus};
 
 use super::Frame;
-use crate::{tags, ErrorRepr, Frames, Report, Requests};
+use crate::{tags, FrameRepr, Frames, Report, Requests};
 
 pub(super) struct ReportImpl {
     pub(super) frame: Frame,
@@ -23,7 +23,7 @@ pub(super) struct ReportImpl {
     span_trace: Option<SpanTrace>,
 }
 
-impl Report {
+impl Report<()> {
     /// Creates a new `Report` from the provided message.
     #[track_caller]
     pub fn new<C>(message: C) -> Self
@@ -31,7 +31,7 @@ impl Report {
         C: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
         Self::from_frame(
-            ErrorRepr::from_message(message),
+            FrameRepr::from_message(message),
             Location::caller(),
             #[cfg(feature = "backtrace")]
             Some(Backtrace::capture()),
@@ -43,7 +43,7 @@ impl Report {
 
 impl<Context> Report<Context> {
     fn from_frame(
-        frame: Box<ErrorRepr<()>>,
+        frame: Box<FrameRepr>,
         location: &'static Location<'static>,
         #[cfg(feature = "backtrace")] backtrace: Option<Backtrace>,
         #[cfg(feature = "spantrace")] span_trace: Option<SpanTrace>,
@@ -70,7 +70,7 @@ impl<Context> Report<Context> {
     where
         Context: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
-        let frame = ErrorRepr::new(context);
+        let frame = FrameRepr::new(context);
         #[allow(clippy::option_if_let_else)] // #[track_caller] on closures are unstable
         let location = if let Some(location) =
             provider::request_by_type_tag::<'_, tags::FrameLocation, _>(frame.unerase())
@@ -108,7 +108,7 @@ impl<Context> Report<Context> {
     }
 
     #[track_caller]
-    fn wrap_context<P>(self, frame: Box<ErrorRepr<()>>) -> Report<P> {
+    fn wrap_context<P>(self, frame: Box<FrameRepr>) -> Report<P> {
         Report {
             inner: Box::new(ReportImpl {
                 #[cfg(feature = "backtrace")]
@@ -131,7 +131,7 @@ impl<Context> Report<Context> {
     where
         M: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
-        self.wrap_context(ErrorRepr::from_message(message))
+        self.wrap_context(FrameRepr::from_message(message))
     }
 
     /// Adds context information to the [`Frame`] stack enforcing a typed `Report`.
@@ -140,7 +140,7 @@ impl<Context> Report<Context> {
     where
         P: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
-        self.wrap_context(ErrorRepr::new(context))
+        self.wrap_context(FrameRepr::new(context))
     }
 
     /// Converts the `Report<S>` to `Report` without modifying the frame stack.
@@ -304,7 +304,7 @@ where
             Some(Backtrace::capture())
         };
         Self::from_frame(
-            ErrorRepr::from_std(error),
+            FrameRepr::from_std(error),
             Location::caller(),
             #[cfg(feature = "backtrace")]
             backtrace,
