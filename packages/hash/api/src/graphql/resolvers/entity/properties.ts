@@ -1,8 +1,9 @@
-import { isFileProperties } from "@hashintel/hash-shared/util";
 import { GraphQLResolveInfo } from "graphql";
+
+import { File } from "../../../model";
 import { DbUnknownEntity } from "../../../types/dbTypes";
 import { isRecord } from "../../../util";
-import { Resolver, UnknownEntity } from "../../apiTypes.gen";
+import { Resolver, UnknownEntity, FileProperties } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { fileUrlResolver } from "../file/fileUrlResolver";
 
@@ -147,12 +148,17 @@ export const properties: Resolver<
   const props = { ...entity.properties };
 
   /**
-   * @todo: instead of using a type-guard, check whether `entity` is a File
-   *        system type using `entity.entityTypeId`
+   * If this resolver needs more of these cases, it would be preferable to delegate the the logic away from here.
    */
-  if (isFileProperties(props)) {
-    // "Detecting" that it's a file entity
-    props.url = await fileUrlResolver(props, {}, ctx, info);
+  if (
+    entity.entityTypeId ===
+    (await File.getEntityType(ctx.dataSources.db)).entityId
+  ) {
+    // Since the type of tne entityTypeId equals the DB's File system type entityId
+    // this assumption would hold true.
+    // Props is a reference here with a type assertion, modifications will mutate `props`
+    const fileProps = props as FileProperties;
+    fileProps.url = await fileUrlResolver(fileProps, {}, ctx, info);
   }
   return props;
 };

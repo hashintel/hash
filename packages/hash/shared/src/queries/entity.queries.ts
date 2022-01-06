@@ -32,6 +32,7 @@ export const getEntity = gql`
         properties
       }
       entityType {
+        entityId
         properties
       }
       visibility

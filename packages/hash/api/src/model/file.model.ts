@@ -4,7 +4,7 @@ import { DBClient } from "../db";
 import { CreateEntityArgs, Entity, EntityConstructorArgs, File } from ".";
 import { genId } from "../util";
 import { createEntityArgsBuilder } from "../graphql/resolvers/util";
-import { DBFileProperties } from "../db/adapter";
+import { DBFileProperties, EntityType } from "../db/adapter";
 import {
   StorageProvider,
   UploadableStorageProvider,
@@ -50,6 +50,13 @@ class __File extends Entity {
   constructor(args: FileConstructorArgs) {
     super(args);
     this.properties = args.properties;
+  }
+
+  static async getEntityType(client: DBClient): Promise<EntityType> {
+    const fileEntityType = await client.getSystemTypeLatestVersion({
+      systemTypeName: "File",
+    });
+    return fileEntityType;
   }
 
   static async createFile(
