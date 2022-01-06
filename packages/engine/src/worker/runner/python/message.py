@@ -33,8 +33,8 @@ from batch import load_dataset
 
 
 # TODO(permanently?): Keep in sync with PACKAGE_TYPE
-def str_from_pkg_type(t):
-    return ["init", "context", "state", "output"][t]
+def str_from_pkg_type(pkg_type):
+    return ["init", "context", "state", "output"][pkg_type]
 
 
 def assert_eq(a, b):
