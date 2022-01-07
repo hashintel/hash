@@ -79,7 +79,7 @@ class Runner:
         except Exception:
             # Have to catch generic Exception, because package could throw anything.
             e = str(traceback.format_exception(*sys.exc_info()))
-            e = "Package {} error: {}".format(pkg.name, e)
+            e = f"Package {pkg.name} error: {e}"
             # TODO: Custom log level(s) for non-engine (i.e. package/user) errors/warnings,
             #       e.g. `logging.external_error`?
             logging.error(e)
