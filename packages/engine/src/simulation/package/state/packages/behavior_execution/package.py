@@ -58,7 +58,7 @@ def start_experiment(experiment, init_message, experiment_context):
 
 def format_behavior_error(behavior_name, exc_info):
     n_pkg_fns = 2
-    return "Behavior error: " + str(traceback.format_exception(*exc_info)[n_pkg_fns:])
+    return f"Behavior error: {traceback.format_exception(*exc_info)[n_pkg_fns:]}"
 
 
 def postprocess(agent_state):
