@@ -6,72 +6,96 @@ HASH is an open-source, data-centric, all-in-one workspace. HASH combines a rich
 
 ## Getting started
 
-In order to run the app in its entirety, you will need to follow these steps:
+To run HASH locally, please follow these steps:
 
-1.  Add the following entry to your `/etc/hosts` file. This is to allow the docker container to reach
-    the blocks servers, which are hosted outside the container.
+1.  Make sure you have [Node LTS](https://nodejs.org), [Yarn Classic](https://classic.yarnpkg.com) and [Docker](https://docs.docker.com/get-docker/):
 
-    ```txt
-    127.0.0.1 host.docker.internal
+    ```sh
+    node --version
+    ## ≥ 16.13
+    
+    yarn --version
+    ## ≥ 1.22
+    
+    docker --version
+    ## ≥ 20.10
+    
+    docker-compose --version
+    ## ≥ 2.2
     ```
 
-1.  Add the `packages/hash/docker/.env` file (found in the 1Password "HASH.dev/ai" vault with the
-    name "HASH.dev backend .env")
-1.  Run `yarn install`
-1.  Start the backend and seed the db if necessary (see instructions below)
-1.  Install the frontend and blocks
-1.  Start the frontend and blocks
-
-## System requirements
-
-The following programs must be present on your development system:
-
-- A recent version of [Docker](https://docs.docker.com/get-docker/) with BuildKit enabled.
-- [Docker Compose](https://docs.docker.com/compose/install/)
-- The [Yarn](https://classic.yarnpkg.com/en/docs/install/) v1 package manager
-
-## Start the backend & database
-
-1.  Make sure you have the `packages/hash/docker/.env` file present (found in 1Password)
-1.  Ensure Docker is running.
     If you use Docker for macOS or Windows, go to _Preferences_ → _Resources_ and ensure that Docker can use at least 4GB of RAM (8GB is recommended).
-1.  Ensure port 5432 is not occupied (i.e. no other postgres service) - You can check with
-    `lsof -n -i:5432`
-1.  If it's your first time, run `docker volume create hash-dev-pg` to create the storage volume.
-1.  **To start the backend & Postgres Docker container**:
+
+1.  [Clone](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) this repository and navigate to the project folder in your terminal.
+
+1.  Install dependencies:
 
     ```sh
-    yarn serve:hash-backend
+    yarn install
     ```
 
-1.  **On first run**, or if you want to reset the database to the initial mock data, after starting
-    the backend, and having run `yarn install`, run:
+1.  Create an empty file called `.env.local`:
 
     ```sh
-    yarn seed-db
+    npx touch .env.local
     ```
+
+    It will be used for storing locally defined environment variables (the ones we don’t want to store in git).
+
+1.  Launch external services (Postgres, Redis and OpenSearch) as Docker containers:
+
+    ```sh
+    yarn external-services up --detach
+    ```
+
+    You can keep external services running between app restarts.
+    To stop the containers, run:
+
+    ```sh
+    yarn external-services down
+    ```
+
+    Container data is persisted locally inside `var/external-services`.
+    You can delete this directory when containers are stopped for a ‘hard reset’.
+
+1.  **On first run**, or if you want to reset app data, run this command in a separate terminal:
+
+    ```sh
+    yarn seed-data
+    ```
+
+1.  Launch app services:
+
+    ```sh
+    yarn dev
+    ```
+
+    This will start backend and frontend in a single terminal.
+
+    You can also launch parts of the app in separate terminals, e.g.:
+
+    ```sh
+    yarn dev:backend
+    yarn dev:frontend
+    ```
+
+    See `package.json` → `scripts` for details and more options.
+
+## User authentication
 
 Our login and signup flows rely on emails with links or authentication codes.
 By default, the API server uses `DummyEmailTransporter` which simulates email sending for local development and testing.
-You will find authentication codes in `var/api/dummy-email-transporter/email-dumps.yml` and in the CLI output.
+You will find authentication codes in `var/api/dummy-email-transporter/email-dumps.yml` and in the terminal output.
+If you chose to run the backend and frontend separately, it will be in the backend terminal.
 
-To use `AwsSesEmailTransporter` instead, set `export HASH_EMAIL_TRANSPORTER=aws_ses`.
-Note that you will need valid credentials for this email transporter to work.
-
-See the [docker/README](./docker) for further details.
-
-## Start the frontend
-
-Use `yarn serve:hash-frontend` to start the frontend application.
+To use `AwsSesEmailTransporter` instead, set `export HASH_EMAIL_TRANSPORTER=aws_ses` in your terminal before running the app.
+Note that you will need valid AWS credentials for this email transporter to work.
 
 ## Integration with the Block Protocol
 
 HASH is built around the open [Block Protocol](https://blockprotocol.org) ([@blockprotocol/blockprotocol](https://github.com/blockprotocol/blockprotocol) on GitHub).
 By default, `packages/hash/shared/src/blockPaths.json` points to the `dev` branch’s deployment of the blockprotocol.org CDN at https://blockprotocol-git-dev-hashintel.vercel.app.
 This can be changed to either a local instance of blockprotocol.org (see its `/site/README.md` on how to do that) or a webpack-dev-server instance of a block in development `yarn workspace @hashintel/block-<block-under-development> run dev --port 3010`.
-
-When referring to local blocks in `blockPaths.json`, please note that you need to use `http://host.docker.internal:PORT` instead of `http://localhost:PORT`.
-You also need to make sure that your `/etc/hosts` file is configured (see [Getting started](#getting-started) section).
 
 ## Build blocks
 
@@ -128,7 +152,7 @@ HASH_PG_DATABASE=playwright yarn serve:hash-backend
 #### Terminal 2
 
 ```sh
-HASH_PG_DATABASE=playwright yarn seed-db
+HASH_PG_DATABASE=playwright yarn seed-data
 
 ## option 1: frontend in dev mode
 yarn serve:hash-frontend
@@ -223,10 +247,6 @@ linted.
 
 ## Troubleshooting
 
-### Can't log in / not receiving an email
-
-Make sure you have the `.env` file added at `packages/hash/docker/.env`
-
 ### eslint `parserOptions.project`
 
 There is a mismatch between VSCode's eslint plugin and the eslint cli tool. Specifically the option
@@ -245,9 +265,14 @@ plugin's settings:
 
 The backend Docker instance may not be able to reach your locally hosted block. In that case, you can use [Cloudflare Tunnels](https://developers.cloudflare.com/pages/how-to/preview-with-cloudflare-tunnel) to serve your localhost port via a URL, and use that in `blockPaths.json`.
 
-### API server: request to http://localhost:\*/block-metadata.json failed, reason: connect ECONNREFUSED 127.0.0.1:\*
+### Services are not launched because ports are reported as busy
 
-The collab server (which is a part of the API container) fails to reach a locally developed block.
-You can fix it by replacing `localhost` with `host.docker.internal` in `blockPaths.json`.
+Make sure that ports 3000, 3333, 3838, 5001, 5432, 6379 and 9200 are not used by any other processes.
+You can test this by running:
 
-Check [Integration w/ blockprotocol.org](#integration-w-blockprotocolorg) section for details.
+```sh
+lsof -n -i:PORT_NUMBER
+```
+
+> **TODO:** replace `lsof` with `npx ??? A,B,...N` for a better DX.
+> Suggestions welcome!

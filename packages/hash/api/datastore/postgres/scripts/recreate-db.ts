@@ -1,11 +1,20 @@
+import "@hashintel/hash-backend-utils/load-dotenv-files";
+
+import sleep from "sleep-promise";
+
+import {
+  getRequiredEnv,
+  waitOnResource,
+} from "@hashintel/hash-backend-utils/environment";
+
 import pg from "pg";
 
 const main = async () => {
-  const host = process.env.HASH_PG_HOST || "localhost";
-  const user = process.env.HASH_PG_USER || "postgres";
-  const database = process.env.HASH_PG_DATABASE || "postgres";
-  const password = process.env.HASH_PG_PASSWORD || "postgres";
-  const port = parseInt(process.env.HASH_PG_PORT || "5432", 10);
+  const host = getRequiredEnv("HASH_PG_HOST");
+  const user = getRequiredEnv("HASH_PG_USER");
+  const database = getRequiredEnv("HASH_PG_DATABASE");
+  const password = getRequiredEnv("HASH_PG_PASSWORD");
+  const port = parseInt(getRequiredEnv("HASH_PG_PORT"), 10);
 
   if (host !== "localhost") {
     console.error(
@@ -14,8 +23,28 @@ const main = async () => {
     process.exit(1);
   }
 
-  const serverClient = new pg.Client({ host, user, port, password });
-  await serverClient.connect();
+  await waitOnResource(`tcp:${host}:${port}`, console);
+
+  let serverClient;
+  while (!serverClient) {
+    try {
+      serverClient = new pg.Client({ host, user, port, password });
+      await serverClient.connect();
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === "Connection terminated unexpectedly"
+      ) {
+        console.error(
+          `Error connecting to Postgres server (${host}:${port}). The instance might be warming up. Retrying...`,
+        );
+        await sleep(1000);
+        serverClient = undefined;
+      } else {
+        throw error;
+      }
+    }
+  }
 
   const databaseAlreadyExists =
     (

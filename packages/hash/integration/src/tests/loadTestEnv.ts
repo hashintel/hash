@@ -1,3 +1,5 @@
+import "@hashintel/hash-backend-utils/load-dotenv-files";
+
 // Load the test environment variables
 Object.assign(process.env, {
   PORT: "5003",

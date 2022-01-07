@@ -1,5 +1,8 @@
+import "@hashintel/hash-backend-utils/load-dotenv-files";
+
 import { promisify } from "util";
 import http from "http";
+import path from "path";
 
 import { json } from "body-parser";
 import express from "express";
@@ -12,6 +15,10 @@ import { GracefulShutdown } from "@hashintel/hash-backend-utils/shutdown";
 import { RedisQueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/redis";
 import { AsyncRedisClient } from "@hashintel/hash-backend-utils/redis";
 
+import {
+  monorepoRootDir,
+  waitOnResource,
+} from "@hashintel/hash-backend-utils/environment";
 import setupAuth from "./auth";
 import { RedisCache } from "./cache";
 import { createCollabApp } from "./collab/collabApp";
@@ -32,8 +39,8 @@ import {
 import { logger } from "./logger";
 import { UploadableStorageProvider } from "./storage";
 import { getRequiredEnv } from "./util";
-import { AWS_REGION } from "./lib/aws-config";
 import { storageProviders } from "./storage/storage-providers";
+import { getAwsRegion } from "./lib/aws-config";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -48,9 +55,13 @@ const main = async () => {
   let statsd: StatsD | undefined;
   try {
     if (isStatsDEnabled) {
+      const statsdHost = process.env.STATSD_HOST;
+      const statsdPort = parseInt(process.env.STATSD_PORT || "8125", 10);
+      await waitOnResource(`tcp:${statsdHost}:${statsdPort}`, logger);
+
       statsd = new StatsD({
-        port: parseInt(process.env.STATSD_PORT || "8125", 10), // 8125 is default StatsD port
-        host: process.env.STATSD_HOST,
+        host: statsdHost,
+        port: statsdPort,
       });
       shutdown.addCleanup("StatsD", async () => {
         await promisify((statsd as StatsD).close).bind(statsd)();
@@ -63,13 +74,23 @@ const main = async () => {
   // Configure the Express server
   const app = express();
 
+  const pgHost = getRequiredEnv("HASH_PG_HOST");
+  const pgPort = parseInt(getRequiredEnv("HASH_PG_PORT"), 10);
+  const redisHost = getRequiredEnv("HASH_REDIS_HOST");
+  const redisPort = parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10);
+
+  await Promise.all([
+    waitOnResource(`tcp:${pgHost}:${pgPort}`, logger),
+    waitOnResource(`tcp:${redisHost}:${redisPort}`, logger),
+  ]);
+
   // Connect to the database
   const pgConfig = {
-    host: getRequiredEnv("HASH_PG_HOST"),
+    host: pgHost,
     user: getRequiredEnv("HASH_PG_USER"),
     password: getRequiredEnv("HASH_PG_PASSWORD"),
     database: getRequiredEnv("HASH_PG_DATABASE"),
-    port: parseInt(getRequiredEnv("HASH_PG_PORT"), 10),
+    port: pgPort,
     maxPoolSize: 10, // @todo: needs tuning
   };
   const db = new PostgresAdapter(pgConfig, logger, statsd);
@@ -77,8 +98,8 @@ const main = async () => {
 
   // Connect to Redis
   const redis = new RedisCache({
-    host: getRequiredEnv("HASH_REDIS_HOST"),
-    port: parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10),
+    host: redisHost,
+    port: redisPort,
   });
   shutdown.addCleanup("Redis", async () => redis.close());
 
@@ -106,13 +127,19 @@ const main = async () => {
   const emailTransporter =
     (isTestEnv || isDevEnv) && process.env.HASH_EMAIL_TRANSPORTER === "dummy"
       ? new DummyEmailTransporter({
-          copyCodesOrLinksToClipboard: false, // TODO: enable when we stop using Docker in dev
+          copyCodesOrLinksToClipboard:
+            process.env.DUMMY_EMAIL_TRANSPORTER_USE_CLIPBOARD === "true",
           displayCodesOrLinksInStdout: true,
-          filePath: process.env.DUMMY_EMAIL_TRANSPORTER_FILE_PATH,
+          filePath: process.env.DUMMY_EMAIL_TRANSPORTER_FILE_PATH
+            ? path.resolve(
+                monorepoRootDir,
+                process.env.DUMMY_EMAIL_TRANSPORTER_FILE_PATH,
+              )
+            : undefined,
         })
       : new AwsSesEmailTransporter({
           from: "HASH <support@hash.ai>",
-          region: AWS_REGION,
+          region: getAwsRegion(),
           subjectPrefix: isProdEnv ? undefined : "[DEV SITE] ",
         });
 

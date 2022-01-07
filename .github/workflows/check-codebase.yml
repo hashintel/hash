@@ -104,55 +104,52 @@ jobs:
 
       - uses: ./.github/actions/warm-up-repo
 
-      - run: yarn codegen
-        if: ${{ success() || failure() }}
+      - name: Create temp files and folders
+        run: |
+          touch .env.local
+          mkdir -p var/logs
 
-      - name: Build backend images
-        run: yarn rebuild:backend
+      - name: Launch external services
         if: ${{ success() || failure() }}
+        run: |
+          docker-compose --file external-services/docker-compose.yml build
+          docker-compose --file external-services/docker-compose.yml up --detach
+
+      - name: Seed data
+        if: ${{ success() || failure() }}
+        run: |
+          yarn seed-data
 
       - name: Launch backend in test mode
+        if: ${{ success() || failure() }}
         run: |
-          docker volume create --name=hash-dev-pg
-          yarn serve:hash-backend & ## ampersand enables background mode
-          npx wait-on --timeout $(expr 1000 \* 60 \* 2) http://localhost:5001
-        if: ${{ success() || failure() }}
+          yarn dev:backend 2>&1 | tee var/logs/backend.log & ## ampersand enables background mode
+          yarn wait-on --timeout 30000 http://localhost:5001
         env:
-          AWS_REGION: na
-          AWS_ACCESS_KEY_ID: na
-          AWS_SECRET_ACCESS_KEY: na
-          AWS_S3_UPLOADS_BUCKET: na
-          HASH_PG_DATABASE: backend_integration_tests
           NODE_ENV: test
-
-      - run: docker ps --all
-        if: ${{ success() || failure() }}
 
       - run: yarn test:backend-integration
         if: ${{ success() || failure() }}
-        env:
-          HASH_PG_DATABASE: backend_integration_tests
 
-      - run: docker logs docker_hash-dev-api_1
+      - name: Show external services logs
         if: ${{ success() || failure() }}
+        run: |
+          docker-compose --file external-services/docker-compose.yml logs 2>&1 | tee var/logs/external-services.log
 
-      - run: docker logs docker_hash-dev-opensearch_1
+      - name: Show backend logs
         if: ${{ success() || failure() }}
+        run: cat var/logs/backend.log
 
-      - run: docker logs docker_hash-dev-pg_1
+      - name: Upload artifact backend-integration-tests-var
+        uses: actions/upload-artifact@v2
         if: ${{ success() || failure() }}
-
-      - run: docker logs docker_hash-dev-realtime_1
-        if: ${{ success() || failure() }}
-
-      - run: docker logs docker_hash-dev-redis_1
-        if: ${{ success() || failure() }}
-
-      - run: docker logs docker_hash-dev-search-loader_1
-        if: ${{ success() || failure() }}
-
-      - run: docker ps --all
-        if: ${{ success() || failure() }}
+        with:
+          name: backend-integration-tests-var
+          path: |
+            var/api
+            var/logs
+          ## Getting permission denied for docker volumes (e.g. postgres data)
+          ## https://github.com/actions/upload-artifact/issues/192
 
   playwright-tests:
     name: Playwright tests
@@ -162,72 +159,76 @@ jobs:
 
       - uses: ./.github/actions/warm-up-repo
 
-      - run: yarn codegen
-        if: ${{ success() || failure() }}
+      - name: Create temp files and folders
+        run: |
+          touch .env.local
+          mkdir -p var/logs
 
-      - name: Build backend images
-        run: yarn rebuild:backend
+      - name: Launch external services
         if: ${{ success() || failure() }}
+        run: |
+          docker-compose --file external-services/docker-compose.yml build
+          docker-compose --file external-services/docker-compose.yml up --detach
+
+      - name: Seed data
+        if: ${{ success() || failure() }}
+        run: |
+          yarn seed-data
 
       - name: Launch backend
+        if: ${{ success() || failure() }}
         run: |
-          docker volume create --name=hash-dev-pg
-          yarn serve:hash-backend & ## ampersand enables background mode
-          npx wait-on --timeout $(expr 1000 \* 60 \* 2) tcp:localhost:5001
-          yarn seed-db & ## ampersand enables background mode
-          npx wait-on --timeout $(expr 1000 \* 60 \* 2) http://localhost:5001
-        if: ${{ success() || failure() }}
-        env:
-          AWS_REGION: na
-          AWS_ACCESS_KEY_ID: na
-          AWS_SECRET_ACCESS_KEY: na
-          AWS_S3_UPLOADS_BUCKET: na
-          HASH_PG_DATABASE: playwright
-
-      - run: docker ps --all
-        if: ${{ success() || failure() }}
+          yarn dev:backend 2>&1 | tee var/logs/backend.log & ## ampersand enables background mode
+          yarn wait-on --timeout 30000 http://localhost:5001
 
       - name: Build and launch frontend
         if: ${{ success() || failure() }}
         run: |
-          yarn workspace @hashintel/hash-frontend next build ## not using plain build script to skip codegen call
-          yarn workspace @hashintel/hash-frontend start & ## ampersand enables background mode
-          npx wait-on --timeout $(expr 1000 \* 60 \* 2) http://localhost:3000
+          yarn workspace @hashintel/hash-frontend next build
+          yarn workspace @hashintel/hash-frontend start 2>&1 | tee var/logs/frontend.log & ## ampersand enables background mode
+          yarn wait-on --timeout 30000 http://localhost:3000
         env:
           NEXT_PUBLIC_COLLAB: true
 
       - run: yarn playwright install-deps
         if: ${{ success() || failure() }}
 
-      - run: yarn test:playwright
+      - name: Run Playwright tests
         if: ${{ success() || failure() }}
+        run: |
+          yarn test:playwright
 
-      - uses: actions/upload-artifact@v2
+      - name: Show external services logs
         if: ${{ success() || failure() }}
+        run: |
+          docker-compose --file external-services/docker-compose.yml logs 2>&1 | tee var/logs/external-services.log
+          cat var/logs/external-services.log
+
+      - name: Show backend logs
+        if: ${{ success() || failure() }}
+        run: cat var/logs/backend.log
+
+      - name: Show frontend logs
+        if: ${{ success() || failure() }}
+        run: cat var/logs/frontend.log
+
+      - name: Upload artifact playwright-report
+        if: ${{ success() || failure() }}
+        uses: actions/upload-artifact@v2
         with:
           name: playwright-report
           path: playwright-report
 
-      - run: docker logs docker_hash-dev-api_1
+      - name: Upload artifact playwright-var
+        uses: actions/upload-artifact@v2
         if: ${{ success() || failure() }}
-
-      - run: docker logs docker_hash-dev-opensearch_1
-        if: ${{ success() || failure() }}
-
-      - run: docker logs docker_hash-dev-pg_1
-        if: ${{ success() || failure() }}
-
-      - run: docker logs docker_hash-dev-realtime_1
-        if: ${{ success() || failure() }}
-
-      - run: docker logs docker_hash-dev-redis_1
-        if: ${{ success() || failure() }}
-
-      - run: docker logs docker_hash-dev-search-loader_1
-        if: ${{ success() || failure() }}
-
-      - run: docker ps --all
-        if: ${{ success() || failure() }}
+        with:
+          name: playwright-var
+          path: |
+            var/api
+            var/logs
+          ## Getting permission denied for docker volumes (e.g. postgres data)
+          ## https://github.com/actions/upload-artifact/issues/192
 
   unit-tests:
     name: Unit tests

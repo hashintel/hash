@@ -1,8 +1,5 @@
 # HASH.dev backend
 
-You will need to add `host.docker.internal` to your `/etc/hosts` file to point to `127.0.0.1`. This is to allow the
-docker container to reach the blocks servers, which are hosted outside the container.
-
 ## Configuration
 
 The backend API service is configured using the following environment variables:

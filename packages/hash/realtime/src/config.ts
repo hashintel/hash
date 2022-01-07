@@ -1,4 +1,4 @@
-import { getRequiredEnv } from "@hashintel/hash-backend-utils/env";
+import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { RedisQueueProducer } from "@hashintel/hash-backend-utils/queue/redis";
 import { QueueProducer } from "@hashintel/hash-backend-utils/queue/adapter";
 import { AsyncRedisClient } from "@hashintel/hash-backend-utils/redis";

@@ -2,11 +2,11 @@
 ## Markdownlint-specific
 ########################
 
-# Ignore all extensions (folders with . are allowed)
-*.*
-!*.*/
+# Ignore all files (but still allow sub-folder scanning)
+*
+!*/
 
-# Allow certain extensions
+# Allow certain file types
 !*.md
 !*.mdx
 
@@ -60,12 +60,9 @@ typings/
 # Yarn Integrity file
 .yarn-integrity
 
-# environment variable file
-.env
+# local environment variable files
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*.local
 
 # macOS directory file
 .DS_Store
@@ -91,3 +88,6 @@ build
 
 # Sentry
 .sentryclirc
+
+# Application data
+/var

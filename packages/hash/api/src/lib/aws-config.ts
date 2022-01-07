@@ -1,5 +1,10 @@
 import { getRequiredEnv } from "../util";
 
-export const AWS_S3_BUCKET = getRequiredEnv("AWS_S3_UPLOADS_BUCKET");
-export const AWS_REGION = getRequiredEnv("AWS_REGION");
-export const AWS_S3_REGION = process.env.AWS_S3_REGION || AWS_REGION;
+export const getAwsRegion = (): string => getRequiredEnv("AWS_REGION");
+
+export const getAwsS3Config = () => {
+  return {
+    bucket: getRequiredEnv("AWS_S3_UPLOADS_BUCKET"),
+    region: process.env.AWS_S3_REGION ?? getAwsRegion(),
+  };
+};

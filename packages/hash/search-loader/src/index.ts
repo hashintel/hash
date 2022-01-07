@@ -1,3 +1,5 @@
+import "@hashintel/hash-backend-utils/load-dotenv-files";
+
 import * as http from "http";
 import { promisify } from "util";
 
@@ -5,7 +7,7 @@ import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import { AsyncRedisClient } from "@hashintel/hash-backend-utils/redis";
 import { QueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/adapter";
 import { RedisQueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/redis";
-import { getRequiredEnv } from "@hashintel/hash-backend-utils/env";
+import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { GracefulShutdown } from "@hashintel/hash-backend-utils/shutdown";
 import { Wal2JsonMsg } from "@hashintel/hash-backend-utils/wal2json";
 import { EntityVersion } from "@hashintel/hash-backend-utils/pgTables";

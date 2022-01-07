@@ -15,10 +15,12 @@
     "run-schema-migrations": "ts-node scripts/run-schema-migrations.ts"
   },
   "dependencies": {
+    "@hashintel/hash-backend-utils": "0.1.0",
     "id128": "1.6.6",
     "node-postgres": "0.6.2",
     "pg": "8.7.1",
     "prompts": "2.4.1",
+    "sleep-promise": "9.1.0",
     "ts-node": "10.4.0",
     "yargs": "17.1.1"
   },

@@ -1,3 +1,5 @@
+import "@hashintel/hash-backend-utils/load-dotenv-files";
+
 import * as crypto from "crypto";
 import * as http from "http";
 
@@ -8,7 +10,10 @@ import {
   PgPool,
 } from "@hashintel/hash-backend-utils/postgres";
 import { Wal2JsonMsg } from "@hashintel/hash-backend-utils/wal2json";
-import { getRequiredEnv } from "@hashintel/hash-backend-utils/env";
+import {
+  getRequiredEnv,
+  waitOnResource,
+} from "@hashintel/hash-backend-utils/environment";
 
 import { MONITOR_TABLES, QUEUES } from "./config";
 
@@ -159,10 +164,14 @@ const main = async () => {
   httpServer.listen({ host: "::", port });
   logger.info(`HTTP server listening on port ${port}`);
 
+  const pgHost = getRequiredEnv("HASH_PG_HOST");
+  const pgPort = parseInt(getRequiredEnv("HASH_PG_PORT"), 10);
+  await waitOnResource(`tcp:${pgHost}:${pgPort}`, logger);
+
   const pool = createPostgresConnPool(logger, {
     user: getRequiredEnv("HASH_PG_USER"),
-    host: getRequiredEnv("HASH_PG_HOST"),
-    port: parseInt(getRequiredEnv("HASH_PG_PORT"), 10),
+    host: pgHost,
+    port: pgPort,
     database: getRequiredEnv("HASH_PG_DATABASE"),
     password: getRequiredEnv("HASH_PG_PASSWORD"),
     maxPoolSize: 1,

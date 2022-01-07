@@ -15,7 +15,7 @@ export const LOG_LEVEL = process.env.LOG_LEVEL;
 if (LOG_LEVEL && !LOG_LEVELS.includes(LOG_LEVEL as LogLevel)) {
   throw new Error(`Invalid value "${LOG_LEVEL}" for envvar "LOG_LEVEL"`);
 }
-if (!["development", "production"].includes(NODE_ENV)) {
+if (!["development", "production", "test"].includes(NODE_ENV)) {
   throw new Error(`Invalid value "${NODE_ENV}" for envvar "NODE_ENV"`);
 }
 

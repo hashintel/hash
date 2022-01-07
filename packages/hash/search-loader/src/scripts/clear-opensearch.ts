@@ -1,3 +1,7 @@
+import "@hashintel/hash-backend-utils/load-dotenv-files";
+
+import { waitOnResource } from "@hashintel/hash-backend-utils/environment";
+
 /**
  * This script clears all indices created by the search-loader service. It is intended
  * for use during development.
@@ -15,6 +19,11 @@ const logger = new Logger({
 const INDICES = ["entities"];
 
 const main = async () => {
+  const host = process.env.HASH_OPENSEARCH_HOST || "localhost";
+  const port = parseInt(process.env.HASH_OPENSEARCH_PORT || "9200", 10);
+
+  await waitOnResource(`http://${host}:${port}`, logger);
+
   const searchAuth =
     process.env.HASH_OPENSEARCH_USERNAME === undefined
       ? undefined
@@ -23,11 +32,12 @@ const main = async () => {
           password: process.env.HASH_OPENSEARCH_PASSWORD || "",
         };
   const search = await OpenSearch.connect(logger, {
-    host: process.env.HASH_OPENSEARCH_HOST || "localhost",
-    port: parseInt(process.env.HASH_OPENSEARCH_PORT || "9200", 10),
+    host,
+    port,
     auth: searchAuth,
     httpsEnabled: !!process.env.HASH_OPENSEARCH_HTTPS_ENABLED,
   });
+
   try {
     for (const index of INDICES) {
       if (await search.indexExists({ index })) {
@@ -35,6 +45,8 @@ const main = async () => {
       }
       logger.info(`search index "${index}" cleared`);
     }
+  } catch (error) {
+    console.log("Error deleting one of indexes:", error);
   } finally {
     await search.close();
   }

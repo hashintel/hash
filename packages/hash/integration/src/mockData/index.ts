@@ -1,8 +1,4 @@
-/**
- * `import "./loadEnv";` has to come before importing anything from the backend,
- * to ensure that required environment variables have been loaded.
- */
-import "./loadEnv";
+import "@hashintel/hash-backend-utils/load-dotenv-files";
 
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { PostgresAdapter } from "@hashintel/hash-api/src/db";
@@ -15,6 +11,7 @@ import {
   CreateEntityWithSystemTypeArgs,
 } from "@hashintel/hash-api/src/model";
 
+import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createOrgs, createUsers } from "./accounts";
 import { SystemTypeName } from "../graphql/apiTypes.gen";
 import { createEntityTypes } from "./entityTypes";
@@ -36,11 +33,11 @@ const logger = new Logger({
 void (async () => {
   const db = new PostgresAdapter(
     {
-      host: process.env.HASH_PG_HOST || "localhost",
-      user: process.env.HASH_PG_USER || "postgres",
-      password: process.env.HASH_PG_PASSWORD || "postgres",
-      database: process.env.HASH_PG_DATABASE || "postgres",
-      port: parseInt(process.env.HASH_PG_PORT || "5432", 10),
+      host: getRequiredEnv("HASH_PG_HOST"),
+      user: getRequiredEnv("HASH_PG_USER"),
+      password: getRequiredEnv("HASH_PG_PASSWORD"),
+      database: getRequiredEnv("HASH_PG_DATABASE"),
+      port: parseInt(getRequiredEnv("HASH_PG_PORT"), 10),
       maxPoolSize: 10,
     },
     logger,

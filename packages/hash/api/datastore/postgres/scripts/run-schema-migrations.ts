@@ -1,3 +1,5 @@
+import "@hashintel/hash-backend-utils/load-dotenv-files";
+
 /* eslint-disable no-console -- OK for CLI scripts */
 /**
  * Apply the schema migration files
@@ -7,6 +9,7 @@ import path from "path";
 import fs from "fs";
 import yargs from "yargs";
 import prompts from "prompts";
+import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 
 const cliDescription = `Database schema migration runner
 
@@ -43,14 +46,12 @@ const main = async () => {
     })
     .help("help").argv;
 
-  const host = argv.host || process.env.HASH_PG_HOST || "localhost";
-  const user = argv.user || process.env.HASH_PG_USER || "postgres";
-  const database = argv.database || process.env.HASH_PG_DATABASE || "postgres";
+  const host = argv.host || getRequiredEnv("HASH_PG_HOST");
+  const user = argv.user || getRequiredEnv("HASH_PG_USER");
+  const database = argv.database || getRequiredEnv("HASH_PG_DATABASE");
   const port = argv.port
     ? argv.port
-    : process.env.HASH_PG_PORT
-    ? parseInt(process.env.HASH_PG_PORT, 10)
-    : 5432;
+    : parseInt(getRequiredEnv("HASH_PG_PORT"), 10);
 
   let password = process.env.HASH_PG_PASSWORD;
   if (!password) {
