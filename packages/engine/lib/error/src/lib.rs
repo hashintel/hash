@@ -300,9 +300,9 @@ use self::{frame::FrameRepr, report::ReportImpl};
 /// }
 /// ```
 #[must_use]
-pub struct Report<Context = ()> {
+pub struct Report<C = ()> {
     inner: Box<ReportImpl>,
-    _context: PhantomData<Context>,
+    _context: PhantomData<C>,
 }
 
 /// A single error, contextual message, or error context inside of a [`Report`].
@@ -324,7 +324,7 @@ pub struct Frame {
 /// A reasonable return type to use throughout an application.
 ///
 /// The `Result` type can be used with one or two parameters, where the first parameter represents
-/// the [`Ok`] arm and the second parameter `Context` is used as in [`Report<Context>`].
+/// the [`Ok`] arm and the second parameter `Context` is used as in [`Report<C>`].
 ///
 /// # Examples
 ///
@@ -349,7 +349,25 @@ pub struct Frame {
 ///     # Ok(())
 /// }
 /// ```
-pub type Result<T, Context = ()> = core::result::Result<T, Report<Context>>;
+pub type Result<T, C = ()> = core::result::Result<T, Report<C>>;
+
+/// Trait alias for an error context.
+///
+/// Note: This is currently defined as trait but will be changed to be a trait alias as soon as
+///   it's stabilized
+// TODO: change to `pub trait Context = ...`
+//   Tracking issue: https://github.com/rust-lang/rust/issues/41517
+pub trait Context: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static {}
+impl<C: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static> Context for C {}
+
+/// Trait alias for a contextual message.
+///
+/// Note: This is currently defined as trait but will be changed to be a trait alias as soon as
+///   it's stabilized
+// TODO: change to `pub trait Context = ...`
+//   Tracking issue: https://github.com/rust-lang/rust/issues/41517
+pub trait Message: fmt::Display + fmt::Debug + Send + Sync + 'static {}
+impl<M: fmt::Display + fmt::Debug + Send + Sync + 'static> Message for M {}
 
 /// Extension trait for [`Result`][core::result::Result] to provide context information on
 /// [`Report`]s.
@@ -374,9 +392,9 @@ pub trait ResultExt<T> {
     /// let resource = load_resource(&user, &resource).wrap_err("Could not load resource")?;
     /// # Result::Ok(())
     /// ```
-    fn wrap_err<Message>(self, message: Message) -> Result<T, Self::Context>
+    fn wrap_err<M>(self, message: M) -> Result<T, Self::Context>
     where
-        Message: fmt::Display + fmt::Debug + Send + Sync + 'static;
+        M: Message;
 
     /// Lazily adds new contextual message to the [`Frame`] stack of a [`Report`].
     ///
@@ -400,25 +418,25 @@ pub trait ResultExt<T> {
     ///     .wrap_err_lazy(|| format!("Could not load resource {resource}"))?;
     /// # Result::Ok(())
     /// ```
-    fn wrap_err_lazy<Message, F>(self, op: F) -> Result<T, Self::Context>
+    fn wrap_err_lazy<M, F>(self, op: F) -> Result<T, Self::Context>
     where
-        Message: fmt::Display + fmt::Debug + Send + Sync + 'static,
-        F: FnOnce() -> Message;
+        M: Message,
+        F: FnOnce() -> M;
 
     /// Adds a context provider to the [`Frame`] stack of a [`Report`] returning
     /// [`Result<T, Context>`]).
     // TODO: come up with a decent example
-    fn provide_context<Context>(self, context: Context) -> Result<T, Context>
+    fn provide_context<C>(self, context: C) -> Result<T, C>
     where
-        Context: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static;
+        C: Context;
 
     /// Lazily adds a context provider to the [`Frame`] stack of a [`Report`] returning
-    /// [`Result<T, Context>`]).
+    /// [`Result<T, C>`]).
     // TODO: come up with a decent example
-    fn provide_context_lazy<Context, F>(self, op: F) -> Result<T, Context>
+    fn provide_context_lazy<C, F>(self, op: F) -> Result<T, C>
     where
-        Context: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
-        F: FnOnce() -> Context;
+        C: Context,
+        F: FnOnce() -> C;
 }
 
 /// Iterator over the [`Frame`] stack of a [`Report`].

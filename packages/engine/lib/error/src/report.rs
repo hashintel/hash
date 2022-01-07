@@ -7,13 +7,13 @@ use std::error::Error as StdError;
 
 use provider::{
     tags::{Ref, Value},
-    Provider, TypeTag,
+    TypeTag,
 };
 #[cfg(feature = "spantrace")]
 use tracing_error::{SpanTrace, SpanTraceStatus};
 
 use super::Frame;
-use crate::{tags, Frames, Report, Requests};
+use crate::{tags, Context, Frames, Message, Report, Requests};
 
 pub(super) struct ReportImpl {
     pub(super) frame: Frame,
@@ -28,7 +28,7 @@ impl Report<()> {
     #[track_caller]
     pub fn new<M>(message: M) -> Self
     where
-        M: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        M: Message,
     {
         // SAFETY: `FrameRepr` is wrapped in `ManuallyDrop`
         Self::from_frame(
@@ -41,7 +41,7 @@ impl Report<()> {
     }
 }
 
-impl<Context> Report<Context> {
+impl<C> Report<C> {
     fn from_frame(
         frame: Frame,
         #[cfg(feature = "backtrace")] backtrace: Option<Backtrace>,
@@ -61,9 +61,9 @@ impl<Context> Report<Context> {
 
     /// Creates a new `Report<Context>` from a provided scope.
     #[track_caller]
-    pub fn from_context(context: Context) -> Self
+    pub fn from_context(context: C) -> Self
     where
-        Context: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+        C: Context,
     {
         #[allow(clippy::option_if_let_else)] // #[track_caller] on closures are unstable
         let location = if let Some(location) =
@@ -103,7 +103,7 @@ impl<Context> Report<Context> {
     #[track_caller]
     pub fn wrap<M>(self, message: M) -> Self
     where
-        M: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        M: Message,
     {
         Self::from_frame(
             Frame::from_message(
@@ -120,9 +120,9 @@ impl<Context> Report<Context> {
 
     /// Adds context information to the [`Frame`] stack enforcing a typed `Report`.
     #[track_caller]
-    pub fn provide_context<C>(self, context: C) -> Report<C>
+    pub fn provide_context<C2>(self, context: C2) -> Report<C2>
     where
-        C: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+        C2: Context,
     {
         Report::from_frame(
             Frame::from_context(
@@ -216,21 +216,21 @@ impl<Context> Report<Context> {
 
     /// Returns if `C` is the type held by any frame inside of the report.
     #[must_use]
-    pub fn contains<C>(&self) -> bool
+    pub fn contains<C2>(&self) -> bool
     where
-        C: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+        C2: Context,
     {
-        self.frames().any(Frame::is::<C>)
+        self.frames().any(Frame::is::<C2>)
     }
 
     /// Searches the frame stack for a context provider `C` and returns the most recent context
     /// found.
     #[must_use]
-    pub fn downcast_ref<C>(&self) -> Option<&C>
+    pub fn downcast_ref<C2>(&self) -> Option<&C2>
     where
-        C: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+        C2: Context,
     {
-        self.frames().find_map(Frame::downcast_ref::<C>)
+        self.frames().find_map(Frame::downcast_ref::<C2>)
     }
 }
 

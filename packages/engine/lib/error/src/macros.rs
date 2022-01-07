@@ -5,23 +5,23 @@ pub mod __private {
     use crate::Report;
 
     pub mod kinds {
-        use core::{fmt, marker::PhantomData};
+        use core::marker::PhantomData;
 
-        use crate::Report;
+        use crate::{Message, Report};
 
         pub trait AdhocKind: Sized {
             fn __kind(&self) -> Adhoc {
                 Adhoc
             }
         }
-        impl<T> AdhocKind for &T where T: ?Sized + fmt::Display + fmt::Debug + Send + Sync + 'static {}
+        impl<T> AdhocKind for &T where T: ?Sized + Message {}
 
         pub struct Adhoc;
         impl Adhoc {
             #[allow(clippy::unused_self)]
             pub fn report<C>(self, context: C) -> Report
             where
-                C: fmt::Display + fmt::Debug + Send + Sync + 'static,
+                C: Message,
             {
                 Report::new(context)
             }

@@ -14,7 +14,7 @@ use core::{
 use provider::{self, tags, Provider, Requisition, TypeTag};
 
 use super::tags::{FrameLocation, FrameSource};
-use crate::Frame;
+use crate::{Context, Frame, Message};
 
 /// Stores functions to act on the associated context without knowing the internal type.
 ///
@@ -27,29 +27,23 @@ struct VTable {
     object_downcast: unsafe fn(&FrameRepr, target: TypeId) -> Option<NonNull<()>>,
 }
 
-// We need a trait-alias like trait for writing `&dyn Context` because only auto traits can be used
-// as additional traits in a trait object
-pub trait Context: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static {}
-// Need to implement it to get
-impl<T: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static> Context for T {}
-
 // Contextual messages don't necessarily implement `Provider`, `Message` adds an empty
 // implementation.
-struct Message<E>(E);
+struct MessageRepr<E>(E);
 
-impl<E: fmt::Display> fmt::Display for Message<E> {
+impl<E: fmt::Display> fmt::Display for MessageRepr<E> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0, fmt)
     }
 }
 
-impl<E: fmt::Debug> fmt::Debug for Message<E> {
+impl<E: fmt::Debug> fmt::Debug for MessageRepr<E> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         fmt::Debug::fmt(&self.0, fmt)
     }
 }
 
-impl<E> Provider for Message<E> {
+impl<E> Provider for MessageRepr<E> {
     // An empty impl is fine as it's not possible to safely create a Requisition outside of the
     // provider API, so this won't cause silent problems
     fn provide<'p>(&'p self, _req: &mut Requisition<'p, '_>) {}
@@ -58,24 +52,24 @@ impl<E> Provider for Message<E> {
 // std errors don't necessarily implement `Provider`, `std::error::Error` adds an implementation
 // providing the backtrace if any.
 #[cfg(feature = "std")]
-struct StdError<E>(E);
+struct ErrorRepr<E>(E);
 
 #[cfg(feature = "std")]
-impl<E: fmt::Display> fmt::Display for StdError<E> {
+impl<E: fmt::Display> fmt::Display for ErrorRepr<E> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0, fmt)
     }
 }
 
 #[cfg(feature = "std")]
-impl<E: fmt::Debug> fmt::Debug for StdError<E> {
+impl<E: fmt::Debug> fmt::Debug for ErrorRepr<E> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         fmt::Debug::fmt(&self.0, fmt)
     }
 }
 
 #[cfg(feature = "std")]
-impl<E: std::error::Error> Provider for StdError<E> {
+impl<E: std::error::Error> Provider for ErrorRepr<E> {
     fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
         #[cfg(feature = "backtrace")]
         if let Some(backtrace) = self.0.backtrace() {
@@ -139,23 +133,23 @@ impl VTable {
 // casting between `FrameRepr<C>` and `FrameRepr<()>`.
 #[repr(C)]
 #[allow(clippy::module_name_repetitions)]
-pub struct FrameRepr<Context = ()> {
+pub struct FrameRepr<C = ()> {
     vtable: &'static VTable,
     // As we cast between `FrameRepr<C>` and `FrameRepr<()>`, `_context` must not be used directly,
     // only through `vtable`
-    _context: Context,
+    _context: C,
 }
 
-impl<C> FrameRepr<C> {
+impl<C> FrameRepr<C>
+where
+    C: Context,
+{
     /// Creates a new frame from a context
     ///
     /// # Safety
     ///
     /// Must not be dropped without calling `vtable.object_drop`
-    unsafe fn new(context: C) -> Box<FrameRepr>
-    where
-        C: Context,
-    {
+    unsafe fn new(context: C) -> Box<FrameRepr> {
         let unerased_frame = Self {
             vtable: &VTable {
                 object_drop: VTable::object_drop::<C>,
@@ -211,11 +205,11 @@ impl Frame {
         source: Option<Box<Self>>,
     ) -> Self
     where
-        M: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        M: Message,
     {
         // SAFETY: `inner` is wrapped in `ManuallyDrop`
         Self {
-            inner: unsafe { ManuallyDrop::new(FrameRepr::new(Message(message))) },
+            inner: unsafe { ManuallyDrop::new(FrameRepr::new(MessageRepr(message))) },
             location,
             source,
         }
@@ -232,7 +226,7 @@ impl Frame {
     {
         // SAFETY: `inner` is wrapped in `ManuallyDrop`
         Self {
-            inner: unsafe { ManuallyDrop::new(FrameRepr::new(StdError(error))) },
+            inner: unsafe { ManuallyDrop::new(FrameRepr::new(ErrorRepr(error))) },
             location,
             source,
         }
@@ -275,7 +269,7 @@ impl Frame {
     #[must_use]
     pub fn is<C>(&self) -> bool
     where
-        C: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+        C: Context,
     {
         self.inner.downcast::<C>().is_some()
     }
@@ -284,7 +278,7 @@ impl Frame {
     #[must_use]
     pub fn downcast_ref<C>(&self) -> Option<&C>
     where
-        C: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+        C: Context,
     {
         self.inner.downcast().map(|addr| unsafe { &*addr.as_ptr() })
     }

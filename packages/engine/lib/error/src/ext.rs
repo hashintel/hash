@@ -1,10 +1,6 @@
-use core::fmt;
-
-use provider::Provider;
-
 #[cfg(feature = "std")]
 use crate::Report;
-use crate::{Result, ResultExt};
+use crate::{Context, Message, Result, ResultExt};
 
 #[cfg(feature = "std")]
 impl<T, E> ResultExt<T> for std::result::Result<T, E>
@@ -14,9 +10,9 @@ where
     type Context = ();
 
     #[track_caller]
-    fn wrap_err<Message>(self, message: Message) -> Result<T>
+    fn wrap_err<M>(self, message: M) -> Result<T>
     where
-        Message: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        M: Message,
     {
         match self {
             Ok(t) => Ok(t),
@@ -25,10 +21,10 @@ where
     }
 
     #[track_caller]
-    fn wrap_err_lazy<Message, F>(self, op: F) -> Result<T, Self::Context>
+    fn wrap_err_lazy<M, F>(self, op: F) -> Result<T, Self::Context>
     where
-        Message: fmt::Display + fmt::Debug + Send + Sync + 'static,
-        F: FnOnce() -> Message,
+        M: Message,
+        F: FnOnce() -> M,
     {
         match self {
             Ok(t) => Ok(t),
@@ -37,9 +33,9 @@ where
     }
 
     #[track_caller]
-    fn provide_context<Context>(self, context: Context) -> Result<T, Context>
+    fn provide_context<C>(self, context: C) -> Result<T, C>
     where
-        Context: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+        C: Context,
     {
         match self {
             Ok(t) => Ok(t),
@@ -48,10 +44,10 @@ where
     }
 
     #[track_caller]
-    fn provide_context_lazy<Context, F>(self, op: F) -> Result<T, Context>
+    fn provide_context_lazy<C, F>(self, op: F) -> Result<T, C>
     where
-        Context: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
-        F: FnOnce() -> Context,
+        C: Context,
+        F: FnOnce() -> C,
     {
         match self {
             Ok(t) => Ok(t),
@@ -60,13 +56,13 @@ where
     }
 }
 
-impl<T, Context> ResultExt<T> for Result<T, Context> {
-    type Context = Context;
+impl<T, C> ResultExt<T> for Result<T, C> {
+    type Context = C;
 
     #[track_caller]
-    fn wrap_err<Message>(self, message: Message) -> Self
+    fn wrap_err<M>(self, message: M) -> Self
     where
-        Message: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        M: Message,
     {
         match self {
             Ok(t) => Ok(t),
@@ -75,10 +71,10 @@ impl<T, Context> ResultExt<T> for Result<T, Context> {
     }
 
     #[track_caller]
-    fn wrap_err_lazy<Message, F>(self, op: F) -> Result<T, Self::Context>
+    fn wrap_err_lazy<M, F>(self, op: F) -> Result<T, Self::Context>
     where
-        Message: fmt::Display + fmt::Debug + Send + Sync + 'static,
-        F: FnOnce() -> Message,
+        M: Message,
+        F: FnOnce() -> M,
     {
         match self {
             Ok(t) => Ok(t),
@@ -87,9 +83,9 @@ impl<T, Context> ResultExt<T> for Result<T, Context> {
     }
 
     #[track_caller]
-    fn provide_context<NewContext>(self, context: NewContext) -> Result<T, NewContext>
+    fn provide_context<C2>(self, context: C2) -> Result<T, C2>
     where
-        NewContext: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+        C2: Context,
     {
         match self {
             Ok(t) => Ok(t),
@@ -98,10 +94,10 @@ impl<T, Context> ResultExt<T> for Result<T, Context> {
     }
 
     #[track_caller]
-    fn provide_context_lazy<NewContext, F>(self, op: F) -> Result<T, NewContext>
+    fn provide_context_lazy<C2, F>(self, op: F) -> Result<T, C2>
     where
-        NewContext: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
-        F: FnOnce() -> NewContext,
+        C2: Context,
+        F: FnOnce() -> C2,
     {
         match self {
             Ok(t) => Ok(t),
