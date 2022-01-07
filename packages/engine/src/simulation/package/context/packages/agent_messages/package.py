@@ -1,10 +1,11 @@
 from json import loads as json_loads
 from uuid import UUID
 
+
 class InboxMessage:
     def __init__(self, ctx_msg_pool, msg_loc):
         self.__pool = ctx_msg_pool
-        self.__loc = msg_loc; # i_group, i_agent, i_msg
+        self.__loc = msg_loc # i_group, i_agent, i_msg
         # (`i_msg` was index in  `agent_state.messages` on the previous step.)
         self.__data = None
 
@@ -32,13 +33,17 @@ class InboxMessage:
         
         return self.__pool[loc[0]].cols["messages"][loc[1]][loc[2]][key]
 
+
 def _get_msgs(agent_context, msg_locs):
     pool = agent_context.state_snapshot.message_pool
     msgs = [InboxMessage(pool, loc) for loc in msg_locs]
     
-    api_responses = agent_context.api_responses
-    if (api_responses) msgs.extend(api_responses)
+    try:
+        msgs.extend(agent_context.api_responses)
+    except AttributeError:
+        pass  # Assume API responses package is disabled
     return msgs
+
 
 def start_sim(experiment, sim, init_message, init_context):
     loaders = {
