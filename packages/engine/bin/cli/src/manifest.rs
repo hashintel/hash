@@ -560,6 +560,13 @@ fn get_simple_experiment_config(
         .wrap_err("Could not parse experiment manifest")?;
     let plan = create_experiment_plan(&parsed, &args.experiment_name)
         .wrap_err("Could not read experiment plan")?;
+
+    let max_sims_in_parallel = if let Some(val) = parsed.get("max_sims_in_parallel") {
+        val.as_u64().map(|val| val as usize)
+    } else {
+        None
+    };
+
     let config = SimpleExperimentConfig {
         experiment_name: args.experiment_name.clone(),
         changed_properties: plan
@@ -572,6 +579,7 @@ fn get_simple_experiment_config(
             })
             .collect(),
         num_steps: plan.num_steps,
+        max_sims_in_parallel,
     };
     Ok(config)
 }
