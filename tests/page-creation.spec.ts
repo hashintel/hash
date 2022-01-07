@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { loginUsingUi } from "./utils/loginUsingUi";
-import sleep from "sleep-promise";
+import { sleep } from "@hashintel/hash-shared/sleep";
 
 // TODO: Remove dynamic page suffix when we start seeding the DB before each test
 // Partially blocked by https://github.com/hashintel/dev/pull/379

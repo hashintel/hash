@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from "react";
 import { apiOrigin } from "@hashintel/hash-shared/environment";
-import sleep from "sleep-promise";
+import { sleep } from "@hashintel/hash-shared/sleep";
 import { POST } from "./http";
 import { collabEnabled } from "../collabEnabled";
 

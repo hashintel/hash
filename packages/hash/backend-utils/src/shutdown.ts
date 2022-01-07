@@ -58,4 +58,8 @@ export class GracefulShutdown {
     this.logger.info("Shutdown successful");
     process.exit(0);
   }
+
+  isTriggered() {
+    return this.alreadyShutdown;
+  }
 }

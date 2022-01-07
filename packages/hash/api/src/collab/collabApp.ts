@@ -1,6 +1,5 @@
 import { ApolloClient, NormalizedCacheObject } from "@apollo/client";
 import { QueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/adapter";
-import { Repeater } from "@hashintel/hash-backend-utils/timers";
 import { entityStoreFromProsemirror } from "@hashintel/hash-shared/entityStorePlugin";
 import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
 import { getBasicWhoAmI } from "@hashintel/hash-shared/queries/auth.queries";
@@ -78,16 +77,11 @@ interface SessionSupport {
 export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
   logger.info(`Acquiring read ownership on queue "${COLLAB_QUEUE_NAME}" ...`);
 
-  const repeater = new Repeater(async () => {
-    const res = await queue.acquire(COLLAB_QUEUE_NAME, 5_000);
-    if (!res) {
-      logger.info(
-        "Queue is owned by another consumer. Attempting to acquire ownership again ...",
-      );
-    }
-    return res;
-  });
-  await repeater.start();
+  while (!(await queue.acquire(COLLAB_QUEUE_NAME, 5_000))) {
+    logger.info(
+      "Queue is owned by another consumer. Attempting to acquire ownership again ...",
+    );
+  }
 
   const entityWatcher = new EntityWatcher(queue);
 

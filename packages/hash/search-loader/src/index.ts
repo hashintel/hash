@@ -2,6 +2,7 @@ import "@hashintel/hash-backend-utils/load-dotenv-files";
 
 import * as http from "http";
 import { promisify } from "util";
+import { sleep } from "@hashintel/hash-shared/sleep";
 
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import { AsyncRedisClient } from "@hashintel/hash-backend-utils/redis";
@@ -11,7 +12,6 @@ import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { GracefulShutdown } from "@hashintel/hash-backend-utils/shutdown";
 import { Wal2JsonMsg } from "@hashintel/hash-backend-utils/wal2json";
 import { EntityVersion } from "@hashintel/hash-backend-utils/pgTables";
-import { Repeater, waitFor } from "@hashintel/hash-backend-utils/timers";
 import {
   createPostgresConnPool,
   PgPool,
@@ -219,7 +219,7 @@ class SearchLoader {
       if (this.isStopped) {
         return;
       }
-      await waitFor(1000);
+      await sleep(1000);
     }
     throw new Error("could not stop `SearchLoader` instance.");
   }
@@ -287,17 +287,16 @@ const main = async () => {
   // Note: must `.release()` ownership before closing the Redis connection.
   const queue = new RedisQueueExclusiveConsumer(redis);
   logger.info(`Acquiring read ownership on queue "${SEARCH_QUEUE_NAME}" ...`);
-  const repeater = new Repeater(async () => {
-    const res = await queue.acquire(SEARCH_QUEUE_NAME, 5_000);
-    if (!res) {
-      logger.info(
-        "Queue is owned by another consumer. Attempting to acquire ownership again ...",
-      );
+
+  while (!(await queue.acquire(SEARCH_QUEUE_NAME, 5_000))) {
+    if (shutdown.isTriggered()) {
+      break;
     }
-    return res;
-  });
-  shutdown.addCleanup("repeater", async () => repeater.stop());
-  await repeater.start();
+    logger.info(
+      "Queue is owned by another consumer. Attempting to acquire ownership again ...",
+    );
+  }
+
   queueAcquired = true;
   logger.info("Queue acquired");
   shutdown.addCleanup("queue ownership", async () => queue.release());

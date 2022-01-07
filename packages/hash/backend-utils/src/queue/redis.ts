@@ -1,8 +1,8 @@
 import { randomUUID } from "crypto";
 
+import { sleep } from "@hashintel/hash-shared/sleep";
 import { QueueProducer, QueueExclusiveConsumer } from "./adapter";
 import { AsyncRedisClient } from "../redis";
-import { waitFor } from "../timers";
 
 // The interval on which a consumer which owns the queue will re-affirm their ownership.
 const QUEUE_CONSUMER_OWNERSHIP_HEARTBEAT_MS = 3_000;
@@ -124,7 +124,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
         await this.setOwnership(name);
         return true;
       }
-      await waitFor(ttlMs + 100);
+      await sleep(ttlMs + 100);
     }
 
     return false;

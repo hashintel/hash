@@ -1,7 +1,7 @@
 import path from "path";
 import { loadAll } from "js-yaml";
 import fs from "fs/promises";
-import sleep from "sleep-promise";
+import { sleep } from "@hashintel/hash-shared/sleep";
 
 const emailDumpsFilePath = path.resolve(
   __dirname,

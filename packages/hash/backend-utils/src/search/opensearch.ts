@@ -2,7 +2,7 @@ import { JSONObject } from "@hashintel/block-protocol";
 import { Client, ClientOptions } from "@opensearch-project/opensearch";
 import { DataSource } from "apollo-datasource";
 
-import { waitFor } from "../timers";
+import { sleep } from "@hashintel/hash-shared/sleep";
 import { Logger } from "../logger";
 import { SearchAdapter, SearchResult, SearchHit } from "./adapter";
 
@@ -60,7 +60,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
           } seconds`,
           error: err,
         });
-        await waitFor(retryIntervalMillis);
+        await sleep(retryIntervalMillis);
       }
     }
     throw new Error(`connecting to OpenSearch: ${connErr}`);

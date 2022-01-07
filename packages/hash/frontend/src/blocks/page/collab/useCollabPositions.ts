@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { CollabPosition } from "@hashintel/hash-shared/collab";
 import { apiOrigin } from "@hashintel/hash-shared/environment";
-import sleep from "sleep-promise";
+import { sleep } from "@hashintel/hash-shared/sleep";
 import { AbortingPromise, GET } from "./http";
 import { collabEnabled } from "../collabEnabled";
 

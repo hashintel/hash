@@ -1,6 +1,6 @@
 import "@hashintel/hash-backend-utils/load-dotenv-files";
 
-import sleep from "sleep-promise";
+import { sleep } from "@hashintel/hash-shared/sleep";
 
 import {
   getRequiredEnv,
