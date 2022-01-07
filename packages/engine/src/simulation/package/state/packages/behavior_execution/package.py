@@ -32,7 +32,7 @@ def load_behaviors(behavior_descs):
                 }
             else:
                 warnings.append(
-                    "Couldn't load behavior: No function named 'behavior': " + desc['name']
+                    f"Couldn't load behavior: No function named 'behavior': {desc['name']}"
                 )
             
         except Exception:
