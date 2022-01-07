@@ -1,5 +1,3 @@
-// TODO inheritence vs composition
-
 //! Error reporting library based on type-based data access
 //!
 //! This crate provides [`Report`], a trait object based, context sensitive, error handling type.
@@ -27,6 +25,11 @@
 //!   fully featured than `thiserror`, it is still nesting errors.
 //! - [`failure`]? [`Report`] works similar to `failure::Error`, but also `failure` is only able to
 //!   provide string-like contexts. Also `failure` uses a weird `Fail` trait instead of [`Error`].
+//!
+//! Generally comparing this and similar crates like [`anyhow`] or [`eyre`] with crates like
+//! [`thiserror`], context information are stored internally in the latter case, so accessing
+//! context requires to destructuring the error. The former kind of crates relies on composition of
+//! causes, which can either be retrieved directly ([`Report::request`]) or by downcasting.   
 //!
 //! This crates does not claim to be better than the mentioned crates, it's a different approach to
 //! error handling.
@@ -371,9 +374,9 @@ pub trait ResultExt<T> {
     /// let resource = load_resource(&user, &resource).wrap_err("Could not load resource")?;
     /// # Result::Ok(())
     /// ```
-    fn wrap_err<M>(self, message: M) -> Result<T, Self::Context>
+    fn wrap_err<Message>(self, message: Message) -> Result<T, Self::Context>
     where
-        M: fmt::Display + fmt::Debug + Send + Sync + 'static;
+        Message: fmt::Display + fmt::Debug + Send + Sync + 'static;
 
     /// Lazily adds new contextual message to the [`Frame`] stack of a [`Report`].
     ///
@@ -397,25 +400,25 @@ pub trait ResultExt<T> {
     ///     .wrap_err_lazy(|| format!("Could not load resource {resource}"))?;
     /// # Result::Ok(())
     /// ```
-    fn wrap_err_lazy<M, F>(self, op: F) -> Result<T, Self::Context>
+    fn wrap_err_lazy<Message, F>(self, op: F) -> Result<T, Self::Context>
     where
-        M: fmt::Display + fmt::Debug + Send + Sync + 'static,
-        F: FnOnce() -> M;
+        Message: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        F: FnOnce() -> Message;
 
     /// Adds a context provider to the [`Frame`] stack of a [`Report`] returning
     /// [`Result<T, Context>`]).
     // TODO: come up with a decent example
-    fn provide_context<C>(self, context: C) -> Result<T, C>
+    fn provide_context<Context>(self, context: Context) -> Result<T, Context>
     where
-        C: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static;
+        Context: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static;
 
     /// Lazily adds a context provider to the [`Frame`] stack of a [`Report`] returning
     /// [`Result<T, Context>`]).
     // TODO: come up with a decent example
-    fn provide_context_lazy<C, F>(self, op: F) -> Result<T, C>
+    fn provide_context_lazy<Context, F>(self, op: F) -> Result<T, Context>
     where
-        C: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
-        F: FnOnce() -> C;
+        Context: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+        F: FnOnce() -> Context;
 }
 
 /// Iterator over the [`Frame`] stack of a [`Report`].

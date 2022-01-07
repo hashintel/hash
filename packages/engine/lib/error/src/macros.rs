@@ -27,17 +27,17 @@ pub mod __private {
             }
         }
 
-        pub trait TraitKind<S>: Sized {
-            fn __kind(&self) -> Trait<S> {
+        pub trait TraitKind<Context>: Sized {
+            fn __kind(&self) -> Trait<Context> {
                 Trait(PhantomData)
             }
         }
-        impl<E, S> TraitKind<S> for E where E: Into<Report<S>> {}
+        impl<E, Context> TraitKind<Context> for E where E: Into<Report<Context>> {}
 
-        pub struct Trait<S>(PhantomData<S>);
-        impl<S> Trait<S> {
+        pub struct Trait<Context>(PhantomData<Context>);
+        impl<Context> Trait<Context> {
             #[allow(clippy::unused_self)]
-            pub fn report<E: Into<Report<S>>>(self, error: E) -> Report<S> {
+            pub fn report<E: Into<Report<Context>>>(self, error: E) -> Report<Context> {
                 error.into()
             }
         }

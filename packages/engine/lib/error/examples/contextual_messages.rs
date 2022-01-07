@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use error::{ensure, Report, Result, ResultExt};
 
 fn lookup_key(map: &HashMap<&str, u64>, key: &str) -> Result<u64> {
-    // `ensure!` creates a `Report` if the condition fails
+    // `ensure!` returns `Err(Report)` if the condition fails
     ensure!(key.len() == 8, "Key must be 8 characters long");
 
     // A `Report` can also be created directly

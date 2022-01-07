@@ -18,7 +18,7 @@ use crate::Frame;
 
 /// Stores functions to act on the associated context without knowing the internal type.
 ///
-/// This works around the limitation to not being able to coerce from `Box<dyn Context>` to
+/// This works around the limitation of not being able to coerce from `Box<dyn Context>` to
 /// `Box<dyn Any>` to add downcasting. Also this works around dynamic dispatching, as the functions
 /// are stored and called directly.
 struct VTable {
@@ -33,7 +33,7 @@ pub trait Context: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static 
 // Need to implement it to get
 impl<T: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static> Context for T {}
 
-// Contextual messages don't necessarily implement `Provider`, `WrapErr` adds an empty
+// Contextual messages don't necessarily implement `Provider`, `Message` adds an empty
 // implementation.
 struct Message<E>(E);
 
@@ -55,8 +55,8 @@ impl<E> Provider for Message<E> {
     fn provide<'p>(&'p self, _req: &mut Requisition<'p, '_>) {}
 }
 
-// std errors don't necessarily implement `Provider`, `StdError` adds an implementation providing
-// the backtrace if any.
+// std errors don't necessarily implement `Provider`, `std::error::Error` adds an implementation
+// providing the backtrace if any.
 #[cfg(feature = "std")]
 struct StdError<E>(E);
 
@@ -135,15 +135,15 @@ impl VTable {
     }
 }
 
-// repr(c): It must be ensured, that vtable is always stored at the same memory position when
+// repr(C): It must be ensured, that vtable is always stored at the same memory position when
 // casting between `FrameRepr<C>` and `FrameRepr<()>`.
 #[repr(C)]
 #[allow(clippy::module_name_repetitions)]
-pub struct FrameRepr<C = ()> {
+pub struct FrameRepr<Context = ()> {
     vtable: &'static VTable,
     // As we cast between `FrameRepr<C>` and `FrameRepr<()>`, `_context` must not be used directly,
     // only through `vtable`
-    _context: C,
+    _context: Context,
 }
 
 impl<C> FrameRepr<C> {
@@ -151,7 +151,7 @@ impl<C> FrameRepr<C> {
     ///
     /// # Safety
     ///
-    /// Must not be dropped without vtable
+    /// Must not be dropped without calling `vtable.object_drop`
     unsafe fn new(context: C) -> Box<FrameRepr>
     where
         C: Context,
@@ -179,7 +179,7 @@ impl FrameRepr {
 
     fn downcast<C>(&self) -> Option<NonNull<C>>
     where
-        C: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+        C: Context,
     {
         let target = TypeId::of::<C>();
         // Use vtable to attach C's native vtable for the right original type C.
@@ -195,7 +195,7 @@ impl Frame {
         source: Option<Box<Self>>,
     ) -> Self
     where
-        C: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+        C: Context,
     {
         // SAFETY: `inner` is wrapped in `ManuallyDrop`
         Self {

@@ -33,7 +33,7 @@ impl fmt::Debug for Frames<'_> {
 }
 
 impl<'r, I> Requests<'r, I> {
-    pub(super) const fn new<S>(report: &'r Report<S>) -> Self {
+    pub(super) const fn new<Context>(report: &'r Report<Context>) -> Self {
         Self {
             frames: report.frames(),
             _marker: PhantomData,

@@ -59,7 +59,7 @@ impl<Context> Report<Context> {
         }
     }
 
-    /// Creates a new `Report<S>` from a provided scope.
+    /// Creates a new `Report<Context>` from a provided scope.
     #[track_caller]
     pub fn from_context(context: Context) -> Self
     where
@@ -139,7 +139,7 @@ impl<Context> Report<Context> {
 
     /// Converts the `Report<Context>` to `Report<()>` without modifying the frame stack.
     #[allow(clippy::missing_const_for_fn)] // False positive
-    pub fn compat(self) -> Report {
+    pub fn generalise(self) -> Report {
         Report {
             inner: self.inner,
             _context: PhantomData,
