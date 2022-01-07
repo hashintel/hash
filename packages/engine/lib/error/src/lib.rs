@@ -1,3 +1,5 @@
+// TODO inheritence vs composition
+
 //! Error reporting library based on type-based data access
 //!
 //! This crate provides [`Report`], a trait object based, context sensitive, error handling type.
@@ -41,7 +43,7 @@
 //! # Usage
 //!
 //! [`Report`] is supposed to be used as the [`Err`] variant of a `Result`. This crates provides a
-//! [`Result`] type alias, which uses [`Report<()>`][Report] as [`Err`] variant and can be used as
+//! [`Result<E, C = ()>`] type alias, which uses [`Report<C>`] as [`Err`] variant and can be used as
 //! return type:
 //!
 //! ```
@@ -61,44 +63,69 @@
 //!
 //!     # const _: &str = stringify! {
 //!     ...
-//!     # };
-//!     # Ok(())
+//!     # }; Ok(())
 //! }
 //! ```
 //!
 //! A contextual message can be provided to lower level errors.
 //!
 //! ```
-//! use error::{ResultExt, Result};
+//! use std::collections::HashMap;
+//!
+//! use error::{ensure, error, Result, ResultExt};
+//!
+//! fn lookup_key(map: &HashMap<&str, u64>, key: &str) -> Result<u64> {
+//!     ensure!(key.len() == 8, "Key must be 8 characters long");
+//!
+//!     map.get(key)
+//!         .cloned()
+//!         .ok_or_else(|| error!("key does not exist"))
+//! }
+//!
+//! fn parse_config(config: &HashMap<&str, u64>) -> Result<u64> {
+//!     let key = "abcd-efgh";
+//!     let value =
+//!         lookup_key(&config, key).wrap_err_lazy(|| format!("Could not lookup key {key:?}"))?;
+//!
+//!     Ok(value)
+//! }
 //!
 //! fn main() -> Result<()> {
-//!     # fn fake_main() -> Result<()> {
-//!     let config_path = "./path/to/config.file";
-//!     # #[cfg(all(not(miri), feature = "std"))]
+//!     # fn fake_main() -> Result<()> { // We want to assert on the result
+//!     let config = HashMap::default();
 //!     # #[allow(unused_variables)]
-//!     let content = std::fs::read_to_string(config_path)
-//!         .wrap_err_lazy(|| format!("Failed to read config file {config_path:?}"))?;
-//!     # #[cfg(any(miri, not(feature = "std")))]
-//!     # Err(error::format_err!("")).wrap_err_lazy(|| format!("Failed to read config file {config_path:?}"))?;
+//!     let config_value = parse_config(&config).wrap_err("Unable to parse config")?;
 //!
 //!     # const _: &str = stringify! {
 //!     ...
-//!     # };
-//!     # Ok(()) }
-//!     # assert!(fake_main().is_err());
-//!     # Ok(())
+//!     # }; Ok(())
 //! }
+//! # assert_eq!(fake_main().unwrap_err().frames().count(), 3);
+//! # Ok(()) }
 //! ```
 //!
-//! which probably prints something like
+//! which will produce an error and prints it
 //!
 //! ```text
-//! Error: Failed to read config file "./path/to/config.file"
-//!              at main.rs:7:10
+//! Error: Unable to parse config
+//!              at main.rs:23:46
 //!
 //! Caused by:
-//!    0: No such file or directory (os error 2)
-//!              at main.rs:7:10
+//!    0: Could not lookup key "abcd-efgh"
+//!              at main.rs:16:34
+//!    1: Key must be 8 characters long
+//!              at main.rs:6:5
+//!
+//! Stack backtrace:
+//!    0: <error::Report>::new::<error::Report>
+//!              at error/src/report.rs:37:18
+//!    1: main::lookup_key
+//!              at main.rs:6:5
+//!    2: main::parse_config
+//!              at main.rs:16:9
+//!    3: main::main
+//!              at main.rs:23:24
+//!    4: ...
 //! ```
 //!
 //! # Feature flags
@@ -110,7 +137,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(doc, feature(doc_auto_cfg))]
 #![cfg_attr(feature = "backtrace", feature(backtrace))]
-#![feature(min_specialization)]
 #![warn(missing_docs, clippy::pedantic, clippy::nursery)]
 #![allow(clippy::missing_errors_doc)] // This is an error handling library producing Results, not Errors
 #![cfg_attr(
@@ -180,7 +206,7 @@ use self::{frame::FrameRepr, report::ReportImpl};
 ///     let content = std::fs::read_to_string(config_path)
 ///         .wrap_err_lazy(|| format!("Failed to read config file {config_path:?}"))?;
 ///     # #[cfg(any(miri, not(feature = "std")))]
-///     # Err(error::format_err!("")).wrap_err_lazy(|| format!("Failed to read config file {config_path:?}"))?;
+///     # Err(error::error!("")).wrap_err_lazy(|| format!("Failed to read config file {config_path:?}"))?;
 ///
 ///     # const _: &str = stringify! {
 ///     ...
@@ -278,23 +304,24 @@ pub struct Report<Context = ()> {
 
 /// A single error, contextual message, or error context inside of a [`Report`].
 ///
-/// `Frame`s are an intrusive singly linked list. The head is pointing to the most recent error
-/// message or context, the tail is the root error created by [`Report::new()`],
-/// [`Report::from_context()`], or [`Report::from()`]. The list can be advanced by [`request`]ing
-/// [`tags::FrameSource`] or be iterated by calling [`Report::frames()`].
+/// `Frame`s are organized as a singly linked list, which can be iterated by calling
+/// [`Report::frames()`]. The head is pointing to the most recent context or contextual message,
+/// the tail is the root error created by [`Report::new()`], [`Report::from_context()`], or
+/// [`Report::from()`]. The next `Frame` can be accessed by [`request`]ing [`tags::FrameSource`].
 ///
 /// [`request`]: Self::request
 pub struct Frame {
-    error: ManuallyDrop<Box<FrameRepr>>,
+    inner: ManuallyDrop<Box<FrameRepr>>,
     location: &'static Location<'static>,
     source: Option<Box<Frame>>,
 }
 
 /// `Result<T, Report<C>>`
 ///
-/// A reasonable return type to use throughout an application if no scope is used.
+/// A reasonable return type to use throughout an application.
 ///
-/// The `Result` type can be used with one or two parameters.
+/// The `Result` type can be used with one or two parameters, where the first parameter represents
+/// the [`Ok`] arm and the second parameter `Context` is used as in [`Report<Context>`].
 ///
 /// # Examples
 ///
@@ -319,36 +346,76 @@ pub struct Frame {
 ///     # Ok(())
 /// }
 /// ```
-pub type Result<T, C = ()> = core::result::Result<T, Report<C>>;
+pub type Result<T, Context = ()> = core::result::Result<T, Report<Context>>;
 
 /// Extension trait for [`Result`][core::result::Result] to provide context information on
 /// [`Report`]s.
 pub trait ResultExt<T> {
-    /// Type of the resulting error `E` inside of [`Report<E>`][`Report`] when not providing an
-    /// error kind.
+    /// Type of the resulting context `C` inside of [`Report<C>`] when not providing a context.
     type Context;
 
-    /// Adds new context information to the [`Frame`] stack of a [`Report`].
+    /// Adds new contextual message to the [`Frame`] stack of a [`Report`].
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use error::Result;
+    /// # fn load_resource(_: &User, _: &Resource) -> Result<()> { Ok(()) }
+    /// # struct User;
+    /// # struct Resource;
+    /// use error::ResultExt;
+    ///
+    /// # let user = User;
+    /// # let resource = Resource;
+    /// # #[allow(unused_variables)]
+    /// let resource = load_resource(&user, &resource).wrap_err("Could not load resource")?;
+    /// # Result::Ok(())
+    /// ```
     fn wrap_err<M>(self, message: M) -> Result<T, Self::Context>
     where
         M: fmt::Display + fmt::Debug + Send + Sync + 'static;
 
-    /// Lazily adds new context information to the [`Frame`] stack of a [`Report`].
-    fn wrap_err_lazy<M, F>(self, message: F) -> Result<T, Self::Context>
+    /// Lazily adds new contextual message to the [`Frame`] stack of a [`Report`].
+    ///
+    /// The function is only executed in the `Err` arm.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use core::fmt;
+    /// # use error::Result;
+    /// # fn load_resource(_: &User, _: &Resource) -> Result<()> { Ok(()) }
+    /// # struct User;
+    /// # struct Resource;
+    /// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
+    /// use error::ResultExt;
+    ///
+    /// # let user = User;
+    /// # let resource = Resource;
+    /// # #[allow(unused_variables)]
+    /// let resource = load_resource(&user, &resource)
+    ///     .wrap_err_lazy(|| format!("Could not load resource {resource}"))?;
+    /// # Result::Ok(())
+    /// ```
+    fn wrap_err_lazy<M, F>(self, op: F) -> Result<T, Self::Context>
     where
         M: fmt::Display + fmt::Debug + Send + Sync + 'static,
         F: FnOnce() -> M;
 
-    /// Adds a new error kind to the [`Frame`] stack of a [`Report`].
-    fn provide_context<Context>(self, context: Context) -> Result<T, Context>
+    /// Adds a context provider to the [`Frame`] stack of a [`Report`] returning
+    /// [`Result<T, Context>`]).
+    // TODO: come up with a decent example
+    fn provide_context<C>(self, context: C) -> Result<T, C>
     where
-        Context: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static;
+        C: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static;
 
-    /// Lazily adds a new error kind to the [`Frame`] stack of a [`Report`].
-    fn provide_context_lazy<E, Context>(self, context: Context) -> Result<T, E>
+    /// Lazily adds a context provider to the [`Frame`] stack of a [`Report`] returning
+    /// [`Result<T, Context>`]).
+    // TODO: come up with a decent example
+    fn provide_context_lazy<C, F>(self, op: F) -> Result<T, C>
     where
-        E: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
-        Context: FnOnce() -> E;
+        C: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+        F: FnOnce() -> C;
 }
 
 /// Iterator over the [`Frame`] stack of a [`Report`].
@@ -369,7 +436,7 @@ pub struct Frames<'r> {
 /// [`I::Type`]: provider::TypeTag::Type
 #[must_use]
 pub struct Requests<'r, I> {
-    chain: Frames<'r>,
+    frames: Frames<'r>,
     _marker: PhantomData<I>,
 }
 

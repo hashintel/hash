@@ -1,4 +1,4 @@
-// Ensure `_error` is only accessed through vtable
+// Ensure `_context` is only accessed through vtable
 #![deny(clippy::used_underscore_binding)]
 
 use alloc::boxed::Box;
@@ -16,7 +16,11 @@ use provider::{self, tags, Provider, Requisition, TypeTag};
 use super::tags::{FrameLocation, FrameSource};
 use crate::Frame;
 
-// Stores information for acting on `Frame` without knowing the internal type
+/// Stores functions to act on the associated context without knowing the internal type.
+///
+/// This works around the limitation to not being able to coerce from `Box<dyn Context>` to
+/// `Box<dyn Any>` to add downcasting. Also this works around dynamic dispatching, as the functions
+/// are stored and called directly.
 struct VTable {
     object_drop: unsafe fn(Box<FrameRepr>),
     object_ref: unsafe fn(&FrameRepr) -> &dyn Context,
@@ -31,45 +35,47 @@ impl<T: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static> Context fo
 
 // Contextual messages don't necessarily implement `Provider`, `WrapErr` adds an empty
 // implementation.
-struct WrapErr<T>(T);
+struct Message<E>(E);
 
-impl<T: fmt::Display> fmt::Display for WrapErr<T> {
+impl<E: fmt::Display> fmt::Display for Message<E> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0, fmt)
     }
 }
 
-impl<T: fmt::Debug> fmt::Debug for WrapErr<T> {
+impl<E: fmt::Debug> fmt::Debug for Message<E> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         fmt::Debug::fmt(&self.0, fmt)
     }
 }
 
-impl<T> Provider for WrapErr<T> {
+impl<E> Provider for Message<E> {
+    // An empty impl is fine as it's not possible to safely create a Requisition outside of the
+    // provider API, so this won't cause silent problems
     fn provide<'p>(&'p self, _req: &mut Requisition<'p, '_>) {}
 }
 
 // std errors don't necessarily implement `Provider`, `StdError` adds an implementation providing
 // the backtrace if any.
 #[cfg(feature = "std")]
-struct StdError<T>(T);
+struct StdError<E>(E);
 
 #[cfg(feature = "std")]
-impl<T: fmt::Display> fmt::Display for StdError<T> {
+impl<E: fmt::Display> fmt::Display for StdError<E> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0, fmt)
     }
 }
 
 #[cfg(feature = "std")]
-impl<T: fmt::Debug> fmt::Debug for StdError<T> {
+impl<E: fmt::Debug> fmt::Debug for StdError<E> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         fmt::Debug::fmt(&self.0, fmt)
     }
 }
 
 #[cfg(feature = "std")]
-impl<T: std::error::Error> Provider for StdError<T> {
+impl<E: std::error::Error> Provider for StdError<E> {
     fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
         #[cfg(feature = "backtrace")]
         if let Some(backtrace) = self.0.backtrace() {
@@ -83,41 +89,45 @@ impl VTable {
     ///
     /// # Safety
     ///
-    /// - Layout of `*frame` must match `FrameRepr<E>`.
-    unsafe fn object_drop<E>(frame: Box<FrameRepr>) {
-        // Attach E's native vtable onto the pointer to self._error
-        let unerased = Box::from_raw(Box::into_raw(frame).cast::<FrameRepr<E>>());
+    /// - Layout of `*frame` must match `FrameRepr<C>`.
+    unsafe fn object_drop<C>(frame: Box<FrameRepr>) {
+        // Attach C's native vtable onto the pointer to `self._context`
+        // Note: This must not use `mem::transmute` because it tries to reborrow the `Unique`
+        //   contained in `Box`, which must not be done. In practice this probably won't make any
+        //   difference by now, but technically it's unsound.
+        //   see: https://github.com/rust-lang/unsafe-code-guidelines/blob/master/wip/stacked-borrows.md
+        let unerased = Box::from_raw(Box::into_raw(frame).cast::<FrameRepr<C>>());
         drop(unerased);
     }
 
-    /// Unerase error as `&dyn Error`
+    /// Unerase the context as `&dyn Error`
     ///
     /// # Safety
     ///
-    /// - Layout of `Self` must match `FrameRepr<E>`.
-    unsafe fn object_ref<E: Context>(frame: &FrameRepr) -> &dyn Context {
-        // Attach E's native vtable onto the pointer to self._error
-        let unerased = (frame as *const FrameRepr).cast::<FrameRepr<E>>();
-        // inside of vtable it's allowed to access `_error`
+    /// - Layout of `Self` must match `FrameRepr<C>`.
+    unsafe fn object_ref<C: Context>(frame: &FrameRepr) -> &dyn Context {
+        // Attach C's native vtable onto the pointer to `self._context`
+        let unerased = (frame as *const FrameRepr).cast::<FrameRepr<C>>();
+        // inside of vtable it's allowed to access `_context`
         #[allow(clippy::used_underscore_binding)]
-        &(*(unerased))._error
+        &(*(unerased))._context
     }
 
-    /// Downcasts error to `target`
+    /// Downcasts the context to `target`
     ///
     /// # Safety
     ///
-    /// - Layout of `Self` must match `FrameRepr<E>`.
-    unsafe fn object_downcast<E: Context>(
+    /// - Layout of `Self` must match `FrameRepr<C>`.
+    unsafe fn object_downcast<C: Context>(
         frame: &FrameRepr,
         target: TypeId,
     ) -> Option<NonNull<()>> {
-        if TypeId::of::<E>() == target {
-            // Attach E's native vtable onto the pointer to self._error
-            let unerased = (frame as *const FrameRepr).cast::<FrameRepr<E>>();
-            // inside of vtable it's allowed to access `_error`
+        if TypeId::of::<C>() == target {
+            // Attach C's native vtable onto the pointer to `self._context`
+            let unerased = (frame as *const FrameRepr).cast::<FrameRepr<C>>();
+            // inside of vtable it's allowed to access `_context`
             #[allow(clippy::used_underscore_binding)]
-            let addr = &(*(unerased))._error as *const E as *mut ();
+            let addr = &(*(unerased))._context as *const C as *mut ();
             Some(NonNull::new_unchecked(addr))
         } else {
             None
@@ -125,65 +135,109 @@ impl VTable {
     }
 }
 
+// repr(c): It must be ensured, that vtable is always stored at the same memory position when
+// casting between `FrameRepr<C>` and `FrameRepr<()>`.
 #[repr(C)]
 #[allow(clippy::module_name_repetitions)]
-pub struct FrameRepr<E = ()> {
+pub struct FrameRepr<C = ()> {
     vtable: &'static VTable,
-    // Must not be used directly, only through vtable
-    _error: E,
+    // As we cast between `FrameRepr<C>` and `FrameRepr<()>`, `_context` must not be used directly,
+    // only through `vtable`
+    _context: C,
 }
 
-impl<E> FrameRepr<E> {
-    pub fn new(error: E) -> Box<FrameRepr>
+impl<C> FrameRepr<C> {
+    /// Creates a new frame from a context
+    ///
+    /// # Safety
+    ///
+    /// Must not be dropped without vtable
+    unsafe fn new(context: C) -> Box<FrameRepr>
     where
-        E: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+        C: Context,
     {
-        let unerased = Box::new(Self {
+        let unerased_frame = Self {
             vtable: &VTable {
-                object_drop: VTable::object_drop::<E>,
-                object_ref: VTable::object_ref::<E>,
-                object_downcast: VTable::object_downcast::<E>,
+                object_drop: VTable::object_drop::<C>,
+                object_ref: VTable::object_ref::<C>,
+                object_downcast: VTable::object_downcast::<C>,
             },
-            _error: error,
-        });
-        unsafe { Box::from_raw(Box::into_raw(unerased).cast()) }
+            _context: context,
+        };
+        let unerased_box = Box::new(unerased_frame);
+        // erase the frame by casting the pointer to `FrameBox<()>`
+        Box::from_raw(Box::into_raw(unerased_box).cast())
     }
 }
 
 #[allow(clippy::used_underscore_binding)]
 impl FrameRepr {
-    pub fn from_message<M>(message: M) -> Box<Self>
-    where
-        M: fmt::Display + fmt::Debug + Send + Sync + 'static,
-    {
-        FrameRepr::new(WrapErr(message))
-    }
-
-    #[cfg(feature = "std")]
-    pub fn from_std<M>(error: M) -> Box<Self>
-    where
-        M: std::error::Error + Send + Sync + 'static,
-    {
-        FrameRepr::new(StdError(error))
-    }
-
-    pub fn unerase(&self) -> &dyn Context {
-        // Use vtable to attach E's native vtable for the right original type E.
+    fn unerase(&self) -> &dyn Context {
+        // Use vtable to attach C's native vtable for the right original type C.
         unsafe { (self.vtable.object_ref)(self) }
     }
 
-    pub fn downcast<E>(&self) -> Option<NonNull<E>>
+    fn downcast<C>(&self) -> Option<NonNull<C>>
     where
-        E: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+        C: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
-        let target = TypeId::of::<E>();
-        // Use vtable to attach E's native vtable for the right original type E.
+        let target = TypeId::of::<C>();
+        // Use vtable to attach C's native vtable for the right original type C.
         let addr = unsafe { (self.vtable.object_downcast)(self, target) };
         addr.map(NonNull::cast)
     }
 }
 
 impl Frame {
+    pub(crate) fn from_context<C>(
+        context: C,
+        location: &'static Location<'static>,
+        source: Option<Box<Self>>,
+    ) -> Self
+    where
+        C: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+    {
+        // SAFETY: `inner` is wrapped in `ManuallyDrop`
+        Self {
+            inner: unsafe { ManuallyDrop::new(FrameRepr::new(context)) },
+            location,
+            source,
+        }
+    }
+
+    pub(crate) fn from_message<M>(
+        message: M,
+        location: &'static Location<'static>,
+        source: Option<Box<Self>>,
+    ) -> Self
+    where
+        M: fmt::Display + fmt::Debug + Send + Sync + 'static,
+    {
+        // SAFETY: `inner` is wrapped in `ManuallyDrop`
+        Self {
+            inner: unsafe { ManuallyDrop::new(FrameRepr::new(Message(message))) },
+            location,
+            source,
+        }
+    }
+
+    #[cfg(feature = "std")]
+    pub(crate) fn from_std<E>(
+        error: E,
+        location: &'static Location<'static>,
+        source: Option<Box<Self>>,
+    ) -> Self
+    where
+        E: std::error::Error + Send + Sync + 'static,
+    {
+        // SAFETY: `inner` is wrapped in `ManuallyDrop`
+        Self {
+            inner: unsafe { ManuallyDrop::new(FrameRepr::new(StdError(error))) },
+            location,
+            source,
+        }
+    }
+
     /// Returns the location where this `Frame` was created.
     #[must_use]
     pub const fn location(&self) -> &'static Location<'static> {
@@ -219,26 +273,26 @@ impl Frame {
 
     /// Returns if `E` is the type held by this frame.
     #[must_use]
-    pub fn is<E>(&self) -> bool
+    pub fn is<C>(&self) -> bool
     where
-        E: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+        C: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
-        self.error.downcast::<E>().is_some()
+        self.inner.downcast::<C>().is_some()
     }
 
-    /// Downcast this error object by a shared reference.
+    /// Downcasts this frame if the held provider object is the same as `C`.
     #[must_use]
-    pub fn downcast_ref<E>(&self) -> Option<&E>
+    pub fn downcast_ref<C>(&self) -> Option<&C>
     where
-        E: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+        C: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
-        self.error.downcast().map(|addr| unsafe { &*addr.as_ptr() })
+        self.inner.downcast().map(|addr| unsafe { &*addr.as_ptr() })
     }
 }
 
 impl Provider for Frame {
     fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
-        self.error.unerase().provide(req);
+        self.inner.unerase().provide(req);
         req.provide_with::<FrameLocation, _>(|| self.location);
         if let Some(source) = &self.source {
             req.provide_with::<FrameSource, _>(|| source);
@@ -249,7 +303,7 @@ impl Provider for Frame {
 impl fmt::Debug for Frame {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("Frame")
-            .field("error", &self.error.unerase())
+            .field("context", &self.inner.unerase())
             .field("location", &self.location)
             .finish()
     }
@@ -257,15 +311,15 @@ impl fmt::Debug for Frame {
 
 impl fmt::Display for Frame {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(self.error.unerase(), fmt)
+        fmt::Display::fmt(self.inner.unerase(), fmt)
     }
 }
-//
+
 impl Drop for Frame {
     fn drop(&mut self) {
         unsafe {
             // Read Box<ErrorImpl<()>> from self.
-            let inner = ptr::read(&self.error);
+            let inner = ptr::read(&self.inner);
             let erased = ManuallyDrop::into_inner(inner);
 
             // Invoke the vtable's drop behavior.

@@ -1,5 +1,5 @@
 pub(super) use alloc::boxed::Box;
-use core::{fmt, fmt::Formatter, marker::PhantomData, mem::ManuallyDrop, panic::Location};
+use core::{fmt, fmt::Formatter, marker::PhantomData, panic::Location};
 #[cfg(feature = "backtrace")]
 use std::backtrace::{Backtrace, BacktraceStatus};
 #[cfg(feature = "std")]
@@ -13,7 +13,7 @@ use provider::{
 use tracing_error::{SpanTrace, SpanTraceStatus};
 
 use super::Frame;
-use crate::{tags, FrameRepr, Frames, Report, Requests};
+use crate::{tags, Frames, Report, Requests};
 
 pub(super) struct ReportImpl {
     pub(super) frame: Frame,
@@ -26,13 +26,13 @@ pub(super) struct ReportImpl {
 impl Report<()> {
     /// Creates a new `Report` from the provided message.
     #[track_caller]
-    pub fn new<C>(message: C) -> Self
+    pub fn new<M>(message: M) -> Self
     where
-        C: fmt::Display + fmt::Debug + Send + Sync + 'static,
+        M: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
+        // SAFETY: `FrameRepr` is wrapped in `ManuallyDrop`
         Self::from_frame(
-            FrameRepr::from_message(message),
-            Location::caller(),
+            Frame::from_message(message, Location::caller(), None),
             #[cfg(feature = "backtrace")]
             Some(Backtrace::capture()),
             #[cfg(feature = "spantrace")]
@@ -43,22 +43,17 @@ impl Report<()> {
 
 impl<Context> Report<Context> {
     fn from_frame(
-        frame: Box<FrameRepr>,
-        location: &'static Location<'static>,
+        frame: Frame,
         #[cfg(feature = "backtrace")] backtrace: Option<Backtrace>,
         #[cfg(feature = "spantrace")] span_trace: Option<SpanTrace>,
     ) -> Self {
         Self {
             inner: Box::new(ReportImpl {
+                frame,
                 #[cfg(feature = "backtrace")]
                 backtrace,
                 #[cfg(feature = "spantrace")]
                 span_trace,
-                frame: Frame {
-                    error: ManuallyDrop::new(frame),
-                    location,
-                    source: None,
-                },
             }),
             _context: PhantomData,
         }
@@ -70,59 +65,38 @@ impl<Context> Report<Context> {
     where
         Context: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
-        let frame = FrameRepr::new(context);
         #[allow(clippy::option_if_let_else)] // #[track_caller] on closures are unstable
         let location = if let Some(location) =
-            provider::request_by_type_tag::<'_, tags::FrameLocation, _>(frame.unerase())
+            provider::request_by_type_tag::<'_, tags::FrameLocation, _>(&context)
         {
             location
         } else {
             Location::caller()
         };
+
         #[cfg(feature = "backtrace")]
         let backtrace =
-            if provider::request_by_type_tag::<'_, tags::ReportBackTrace, _>(frame.unerase())
-                .is_some()
-            {
+            if provider::request_by_type_tag::<'_, tags::ReportBackTrace, _>(&context).is_some() {
                 None
             } else {
                 Some(Backtrace::capture())
             };
+
         #[cfg(feature = "spantrace")]
         let span_trace =
-            if provider::request_by_type_tag::<'_, tags::ReportSpanTrace, _>(frame.unerase())
-                .is_some()
-            {
+            if provider::request_by_type_tag::<'_, tags::ReportSpanTrace, _>(&context).is_some() {
                 None
             } else {
                 Some(SpanTrace::capture())
             };
+
         Self::from_frame(
-            frame,
-            location,
+            Frame::from_context(context, location, None),
             #[cfg(feature = "backtrace")]
             backtrace,
             #[cfg(feature = "spantrace")]
             span_trace,
         )
-    }
-
-    #[track_caller]
-    fn wrap_context<P>(self, frame: Box<FrameRepr>) -> Report<P> {
-        Report {
-            inner: Box::new(ReportImpl {
-                #[cfg(feature = "backtrace")]
-                backtrace: self.inner.backtrace,
-                #[cfg(feature = "spantrace")]
-                span_trace: self.inner.span_trace,
-                frame: Frame {
-                    error: ManuallyDrop::new(frame),
-                    location: Location::caller(),
-                    source: Some(Box::new(self.inner.frame)),
-                },
-            }),
-            _context: PhantomData,
-        }
     }
 
     /// Adds a contextual message to the [`Frame`] stack.
@@ -131,19 +105,39 @@ impl<Context> Report<Context> {
     where
         M: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
-        self.wrap_context(FrameRepr::from_message(message))
+        Self::from_frame(
+            Frame::from_message(
+                message,
+                Location::caller(),
+                Some(Box::new(self.inner.frame)),
+            ),
+            #[cfg(feature = "backtrace")]
+            self.inner.backtrace,
+            #[cfg(feature = "spantrace")]
+            self.inner.span_trace,
+        )
     }
 
     /// Adds context information to the [`Frame`] stack enforcing a typed `Report`.
     #[track_caller]
-    pub fn provide_context<P>(self, context: P) -> Report<P>
+    pub fn provide_context<C>(self, context: C) -> Report<C>
     where
-        P: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+        C: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
-        self.wrap_context(FrameRepr::new(context))
+        Report::from_frame(
+            Frame::from_context(
+                context,
+                Location::caller(),
+                Some(Box::new(self.inner.frame)),
+            ),
+            #[cfg(feature = "backtrace")]
+            self.inner.backtrace,
+            #[cfg(feature = "spantrace")]
+            self.inner.span_trace,
+        )
     }
 
-    /// Converts the `Report<S>` to `Report` without modifying the frame stack.
+    /// Converts the `Report<Context>` to `Report<()>` without modifying the frame stack.
     #[allow(clippy::missing_const_for_fn)] // False positive
     pub fn compat(self) -> Report {
         Report {
@@ -220,26 +214,27 @@ impl<Context> Report<Context> {
         Requests::new(self)
     }
 
-    /// Returns if `E` is the type held by any frame inside of the report.
+    /// Returns if `C` is the type held by any frame inside of the report.
     #[must_use]
-    pub fn contains<E>(&self) -> bool
+    pub fn contains<C>(&self) -> bool
     where
-        E: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+        C: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
-        self.frames().any(Frame::is::<E>)
+        self.frames().any(Frame::is::<C>)
     }
 
-    /// Downcast this error object by a shared reference.
+    /// Searches the frame stack for a context provider `C` and returns the most recent context
+    /// found.
     #[must_use]
-    pub fn downcast_ref<E>(&self) -> Option<&E>
+    pub fn downcast_ref<C>(&self) -> Option<&C>
     where
-        E: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
+        C: Provider + fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
-        self.frames().find_map(Frame::downcast_ref::<E>)
+        self.frames().find_map(Frame::downcast_ref::<C>)
     }
 }
 
-impl<S> fmt::Display for Report<S> {
+impl<Context> fmt::Display for Report<Context> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         let mut chain = self.frames();
         let error = chain.next().expect("No error occurred");
@@ -253,7 +248,7 @@ impl<S> fmt::Display for Report<S> {
     }
 }
 
-impl<S> fmt::Debug for Report<S> {
+impl<Context> fmt::Debug for Report<Context> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         if fmt.alternate() {
             let mut debug = fmt.debug_struct("Report");
@@ -303,9 +298,9 @@ where
         } else {
             Some(Backtrace::capture())
         };
+
         Self::from_frame(
-            FrameRepr::from_std(error),
-            Location::caller(),
+            Frame::from_std(error, Location::caller(), None),
             #[cfg(feature = "backtrace")]
             backtrace,
             #[cfg(feature = "spantrace")]

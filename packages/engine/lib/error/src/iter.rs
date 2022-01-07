@@ -6,7 +6,7 @@ use super::Frame;
 use crate::{tags::FrameSource, Frames, Report, Requests};
 
 impl<'r> Frames<'r> {
-    pub(super) const fn new<S>(report: &'r Report<S>) -> Self {
+    pub(super) const fn new<C>(report: &'r Report<C>) -> Self {
         Self {
             current: Some(&report.inner.frame),
         }
@@ -35,7 +35,7 @@ impl fmt::Debug for Frames<'_> {
 impl<'r, I> Requests<'r, I> {
     pub(super) const fn new<S>(report: &'r Report<S>) -> Self {
         Self {
-            chain: report.frames(),
+            frames: report.frames(),
             _marker: PhantomData,
         }
     }
@@ -45,7 +45,7 @@ impl<'r, I: TypeTag<'r>> Iterator for Requests<'r, I> {
     type Item = I::Type;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.chain.by_ref().find_map(Frame::request::<I>)
+        self.frames.by_ref().find_map(Frame::request::<I>)
     }
 }
 
@@ -54,7 +54,7 @@ impl<'r, I: TypeTag<'r>> FusedIterator for Requests<'r, I> {}
 impl<I> Clone for Requests<'_, I> {
     fn clone(&self) -> Self {
         Self {
-            chain: self.chain.clone(),
+            frames: self.frames.clone(),
             _marker: PhantomData,
         }
     }
