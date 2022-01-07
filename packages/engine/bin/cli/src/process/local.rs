@@ -1,5 +1,5 @@
-use anyhow::{format_err, Context, Error, Result};
 use async_trait::async_trait;
+use error::{Report, Result, ResultExt};
 use hash_engine::{nano, proto::EngineMsg};
 
 use super::process;
@@ -24,9 +24,9 @@ impl process::Process for LocalProcess {
             .kill()
             .or_else(|e| match e.kind() {
                 std::io::ErrorKind::InvalidInput => Ok(()),
-                _ => Err(format_err!("{}", e)),
+                _ => Err(Report::new(e)),
             })
-            .context("Could not kill the process")?;
+            .wrap_err("Could not kill the process")?;
 
         debug!(
             "Cleaned up local engine process for experiment {}",
@@ -46,7 +46,7 @@ impl process::Process for LocalProcess {
             .unwrap()
             .send(msg)
             .await
-            .map_err(Error::from)
+            .map_err(Report::from)
     }
 }
 
@@ -96,7 +96,7 @@ impl process::Command for LocalCommand {
 
         let child = cmd
             .spawn()
-            .with_context(|| format!("Could not run command: {process_path:?}"))?;
+            .wrap_err_lazy(|| format!("Could not run command: {process_path:?}"))?;
         debug!(
             "Spawned local engine process for experiment {}",
             &self.experiment_id

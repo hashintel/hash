@@ -13,8 +13,8 @@ pub mod process;
 
 use std::path::PathBuf;
 
-use anyhow::Result;
 use clap::{AppSettings, Parser};
+use error::Result;
 use experiment::run_experiment;
 
 use crate::exsrv::create_server;
