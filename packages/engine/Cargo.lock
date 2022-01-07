@@ -402,9 +402,9 @@ dependencies = [
 name = "cli"
 version = "0.0.0"
 dependencies = [
- "anyhow",
  "async-trait",
  "clap",
+ "error",
  "hash_engine",
  "lazy_static",
  "log",

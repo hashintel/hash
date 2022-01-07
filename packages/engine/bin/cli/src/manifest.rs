@@ -5,7 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::{bail, format_err, Context, Result};
+use error::{bail, report, Result, ResultExt};
 use hash_engine::{
     fetch::parse_raw_csv_into_json,
     proto::{
@@ -33,7 +33,7 @@ pub fn read_manifest(
     experiment_type: &ExperimentType,
 ) -> Result<ExperimentRun> {
     let project_base = read_project(project_path)
-        .with_context(|| format!("Could not read project: {project_path:?}"))?;
+        .wrap_err_lazy(|| format!("Could not read project: {project_path:?}"))?;
     let experiment_run_id = create_experiment_run_id(experiment_type);
     let base = ExperimentRunBase {
         id: experiment_run_id,
@@ -41,7 +41,7 @@ pub fn read_manifest(
     };
 
     let package_config = get_package_config(&base, experiment_type)
-        .with_context(|| format!("Could not read package config: {project_path:?}"))?;
+        .wrap_err_lazy(|| format!("Could not read package config: {project_path:?}"))?;
     let experiment_run = ExperimentRun {
         base,
         package_config,
@@ -75,7 +75,7 @@ struct Project {
 
 fn get_file_contents(path: &Path) -> Result<String> {
     debug!("Reading contents at path: {path:?}");
-    fs::read_to_string(path).with_context(|| format!("Could not read file: {path:?}"))
+    fs::read_to_string(path).wrap_err_lazy(|| format!("Could not read file: {path:?}"))
 }
 
 fn get_file_contents_opt(path: &Path) -> Result<Option<String>> {
@@ -106,17 +106,17 @@ fn read_local_project(project_path: &Path) -> Result<Project> {
     Ok(Project {
         path: project_path.into(),
         behaviors: read_local_behaviors(&behaviors_folder)
-            .context("Could not read local behaviors")?,
+            .wrap_err("Could not read local behaviors")?,
         initial_state: read_local_init_file(init_json, init_js, init_py)
-            .context("Could not read local init file")?,
-        globals_json: get_file_contents_opt(&globals_json).context("Could not read globals")?,
+            .wrap_err("Could not read local init file")?,
+        globals_json: get_file_contents_opt(&globals_json).wrap_err("Could not read globals")?,
         analysis_json: get_file_contents_opt(&analysis_json)
-            .context("Could not read analysis data")?,
+            .wrap_err("Could not read analysis data")?,
         experiments_json: get_file_contents_opt(&experiments_json)
-            .context("Could not read experiments")?,
+            .wrap_err("Could not read experiments")?,
         dependencies_json: get_file_contents_opt(&dependencies_json)
-            .context("Could not read dependencies")?,
-        datasets: read_local_datasets(data_folder).context("Could not read local datasets")?,
+            .wrap_err("Could not read dependencies")?,
+        datasets: read_local_datasets(data_folder).wrap_err("Could not read local datasets")?,
     })
 }
 
@@ -166,7 +166,7 @@ fn read_local_datasets(data_folder: PathBuf) -> Result<Vec<SharedDataset>> {
     } else {
         data_folder
             .read_dir()
-            .with_context(|| format!("Could not read directory: {data_folder:?}"))?
+            .wrap_err_lazy(|| format!("Could not read directory: {data_folder:?}"))?
             .filter_map(|entry| match entry {
                 Ok(entry) => {
                     if !entry.path().is_file() {
@@ -181,7 +181,7 @@ fn read_local_datasets(data_folder: PathBuf) -> Result<Vec<SharedDataset>> {
                     }
 
                     let mut data =
-                        match get_file_contents(&entry.path()).context("Could not read dataset") {
+                        match get_file_contents(&entry.path()).wrap_err("Could not read dataset") {
                             Ok(data) => data,
                             Err(err) => {
                                 warn!("{err:?}");
@@ -190,7 +190,7 @@ fn read_local_datasets(data_folder: PathBuf) -> Result<Vec<SharedDataset>> {
                         };
 
                     if lossy_file_name.ends_with(".csv") {
-                        data = match parse_raw_csv_into_json(data).with_context(|| {
+                        data = match parse_raw_csv_into_json(data).wrap_err_lazy(|| {
                             format!("Could not convert csv into json: {file_name:?}")
                         }) {
                             Ok(data) => data,
@@ -245,7 +245,7 @@ fn read_local_behaviors(behaviors_folder: &Path) -> Result<Vec<SharedBehavior>> 
     for behavior_file_path in behavior_files {
         let behavior_file_name = behavior_file_path
             .file_name()
-            .ok_or_else(|| format_err!("behavior file expected to have proper file name"))?
+            .ok_or_else(|| report!("behavior file expected to have proper file name"))?
             .to_string_lossy()
             .to_string();
         let behavior_key_file_name = format!("{behavior_file_name}.json");
@@ -257,17 +257,17 @@ fn read_local_behaviors(behaviors_folder: &Path) -> Result<Vec<SharedBehavior>> 
             name: behavior_file_name,
             shortnames: vec![], // if this is a dependency, then these will be updated later
             behavior_src: get_file_contents_opt(&behavior_file_path)
-                .context("Could not read behavior")?,
+                .wrap_err("Could not read behavior")?,
             // this may not return anything if file doesn't exist
             behavior_keys_src: get_file_contents_opt(&behavior_key_file_path)
-                .context("Could not read behavior keys")?,
+                .wrap_err("Could not read behavior keys")?,
         };
         behaviors.push(behavior);
     }
     Ok(behaviors)
 }
 
-fn _try_read_local_dependencies(local_project: &Project) -> std::io::Result<Vec<PathBuf>> {
+fn _try_read_local_dependencies(local_project: &Project) -> Result<Vec<PathBuf>> {
     let mut dependency_path = local_project.path.clone();
     dependency_path.push("dependencies/");
     debug!("Parsing the dependencies folder: {dependency_path:?}");
@@ -283,8 +283,8 @@ fn _try_read_local_dependencies(local_project: &Project) -> std::io::Result<Vec<
             }
             None
         })
-        .map(|user_dir| user_dir.path().read_dir())
-        .collect::<Result<Vec<_>, _>>()? // Intermediary collect and iter to handle errors from read_dir
+        .map(|user_dir| user_dir.path().read_dir().wrap_err_lazy(|| format!("Could not read directory {:?}", user_dir.path())))
+        .collect::<Result<Vec<_>>>()? // Intermediary collect and iter to handle errors from read_dir
         .into_iter()
         .flatten()
         .filter_map(|dir_res| {
@@ -315,7 +315,7 @@ fn get_dependency_type_from_name(dependency_name: &str) -> Result<DependencyType
     // TODO: dependency names aren't real paths, is this safe?
     let extension = std::path::Path::new(dependency_name)
         .extension()
-        .ok_or_else(|| format_err!("Dependency has no file extension"))?;
+        .ok_or_else(|| report!("Dependency has no file extension"))?;
 
     if BEHAVIOR_FILE_EXTENSIONS.contains(&extension) {
         Ok(DependencyType::Behavior(
@@ -404,7 +404,7 @@ fn get_dataset_from_dependency_projects(
     let file_name = dependency_path
         .file_name()
         .ok_or_else(|| {
-            format_err!(
+            report!(
                 "Expected there to be a filename component of the dataset dependency path: \
                  {dependency_path:?}"
             )
@@ -454,13 +454,13 @@ fn add_dependencies_to_project(
     dependency_projects: HashMap<PathBuf, Project>,
 ) -> Result<()> {
     if let Some(dependencies_str) = &local_project.dependencies_json {
-        let dependencies_map =
-            read_dependencies_from_json(dependencies_str).context("Could not read dependencies")?;
+        let dependencies_map = read_dependencies_from_json(dependencies_str)
+            .wrap_err("Could not read dependencies")?;
 
         // TODO: How to handle versions
         for (dependency_name, _version) in dependencies_map {
             match get_dependency_type_from_name(&dependency_name)
-                .with_context(|| format!("Could not read dependency: {dependency_name}"))?
+                .wrap_err_lazy(|| format!("Could not read dependency: {dependency_name}"))?
             {
                 DependencyType::Behavior(extension) => {
                     let behavior = if &extension == ".rs" {
@@ -476,11 +476,8 @@ fn add_dependencies_to_project(
                             &dependency_name,
                             &dependency_projects,
                         )
-                        .with_context(|| {
-                            format!(
-                                "Could not get behavior from dependency: {}",
-                                dependency_name
-                            )
+                        .wrap_err_lazy(|| {
+                            format!("Could not get behavior from dependency: {dependency_name}")
                         })?
                     };
 
@@ -509,16 +506,16 @@ fn read_project(project_path: &Path) -> Result<ProjectBase> {
             Err(err) => Err(err),
         })
         .collect::<Result<HashMap<PathBuf, Project>>>()
-        .with_context(|| "TS")?;
+        .wrap_err("TS")?;
     add_dependencies_to_project(&mut local_project, dep_projects)?;
 
     let project_base = ProjectBase {
         initial_state: local_project
             .initial_state
-            .ok_or_else(|| format_err!("Project must specify an initial state file."))?,
+            .ok_or_else(|| report!("Project must specify an initial state file."))?,
         globals_src: local_project
             .globals_json
-            .ok_or_else(|| format_err!("Project must contain a `globals.json` file"))?,
+            .ok_or_else(|| report!("Project must contain a `globals.json` file"))?,
         dependencies_src: local_project.dependencies_json,
         experiments_src: local_project.experiments_json,
         behaviors: local_project.behaviors,
@@ -558,11 +555,11 @@ fn get_simple_experiment_config(
         .project_base
         .experiments_src
         .clone()
-        .ok_or_else(|| format_err!("Experiment configuration not found: experiments.json"))?;
+        .ok_or_else(|| report!("Experiment configuration not found: experiments.json"))?;
     let parsed = serde_json::from_str::<SerdeMap<String, SerdeValue>>(&experiments_manifest)
-        .context("Could not parse experiment manifest")?;
+        .wrap_err("Could not parse experiment manifest")?;
     let plan = create_experiment_plan(&parsed, &args.experiment_name)
-        .context("Could not read experiment plan")?;
+        .wrap_err("Could not read experiment plan")?;
     let config = SimpleExperimentConfig {
         experiment_name: args.experiment_name.clone(),
         changed_properties: plan
@@ -584,22 +581,22 @@ fn create_experiment_plan(
     experiment_name: &str,
 ) -> Result<SimpleExperimentPlan> {
     let selected_experiment = experiments.get(experiment_name).ok_or_else(|| {
-        format_err!(
+        report!(
             "Expected experiments.json to contain the specified experiment definition for \
              experiment with name: {experiment_name}"
         )
     })?;
     let experiment_type = selected_experiment
         .get("type")
-        .ok_or_else(|| format_err!("Expected experiment definition to contain an experiment type"))?
+        .ok_or_else(|| report!("Expected experiment definition to contain an experiment type"))?
         .as_str()
-        .ok_or_else(|| format_err!("Expected experiment definition type to have a string value"))?;
+        .ok_or_else(|| report!("Expected experiment definition type to have a string value"))?;
     match experiment_type {
         "group" => create_group_variant(selected_experiment, experiments),
         "multiparameter" => create_multiparameter_variant(selected_experiment, experiments),
         "optimization" => bail!("Not implemented for optimization experiment types"),
         _ => create_basic_variant(selected_experiment, experiment_type)
-            .context("Could not parse basic variant"),
+            .wrap_err("Could not parse basic variant"),
     }
 }
 
@@ -616,7 +613,7 @@ fn create_multiparameter_variant(
     }
 
     let var: MultiparameterVariant = serde_json::from_value(selected_experiment.clone())
-        .context("Could not parse multiparameter variant")?;
+        .wrap_err("Could not parse multiparameter variant")?;
     let subplans = var
         .runs
         .iter()
@@ -624,15 +621,13 @@ fn create_multiparameter_variant(
             let selected = experiments
                 .get(run_name)
                 .ok_or_else(|| {
-                    format_err!(
-                        "Experiment plan does not define the specified experiment: {run_name}"
-                    )
+                    report!("Experiment plan does not define the specified experiment: {run_name}")
                 })
-                .context("Could not parse experiment file")?;
-            create_basic_variant(selected, run_name).context("Could not parse basic variant")
+                .wrap_err("Could not parse experiment file")?;
+            create_basic_variant(selected, run_name).wrap_err("Could not parse basic variant")
         })
         .collect::<Result<Vec<SimpleExperimentPlan>>>()
-        .context("Unable to create sub plans")?;
+        .wrap_err("Unable to create sub plans")?;
 
     let mut variant_list: Vec<ExperimentPlanEntry> = vec![];
     for (i, subplan) in subplans.into_iter().enumerate() {
@@ -675,7 +670,7 @@ fn create_group_variant(
         SimpleExperimentPlan::new(var.steps as usize),
         |mut acc, name| {
             let variants = create_experiment_plan(experiments, name)
-                .context("Could not read experiment plan")?;
+                .wrap_err("Could not read experiment plan")?;
             variants.inner.into_iter().for_each(|v| {
                 acc.push(v);
             });
@@ -764,27 +759,27 @@ fn create_monte_carlo_variant_plan(
             let distribution = match self.distribution.as_str() {
                 "normal" => Box::new(
                     Normal::new(self.mean.unwrap_or(1.0), self.std.unwrap_or(1.0))
-                        .context("Unable to create normal distribution")?,
+                        .wrap_err("Unable to create normal distribution")?,
                 ) as Box<dyn DynDistribution<f64>>,
                 "log-normal" => Box::new(
                     LogNormal::new(self.mu.unwrap_or(1.0), self.sigma.unwrap_or(1.0))
-                        .context("Unable to create log-normal distribution")?,
+                        .wrap_err("Unable to create log-normal distribution")?,
                 ),
                 "poisson" => Box::new(
                     Poisson::new(self.rate.unwrap_or(1.0))
-                        .context("Unable to create poisson distribution")?,
+                        .wrap_err("Unable to create poisson distribution")?,
                 ),
                 "beta" => Box::new(
                     Beta::new(self.alpha.unwrap_or(1.0), self.beta.unwrap_or(1.0))
-                        .context("Unable to create beta distribution")?,
+                        .wrap_err("Unable to create beta distribution")?,
                 ),
                 "gamma" => Box::new(
                     rand_distr::Gamma::new(self.shape.unwrap_or(1.0), self.scale.unwrap_or(1.0))
-                        .context("Unable to create gamma distribution")?,
+                        .wrap_err("Unable to create gamma distribution")?,
                 ),
-                _ => {
-                    Box::new(Normal::new(1.0, 1.0).context("Unable to create normal distribution")?)
-                }
+                _ => Box::new(
+                    Normal::new(1.0, 1.0).wrap_err("Unable to create normal distribution")?,
+                ),
             };
             Ok(Box::new(move |_, _| {
                 let mut rng = rand::thread_rng();
@@ -814,7 +809,7 @@ fn create_value_variant_plan(selected_experiment: &SerdeValue) -> Result<SimpleE
     }
 
     let var: ValueVariant = serde_json::from_value(selected_experiment.clone())
-        .context("Could not parse value variant")?;
+        .wrap_err("Could not parse value variant")?;
     let mapper: Mapper = Box::new(|val, _index| val);
     Ok(create_variant_with_mapped_value(
         &var.field,

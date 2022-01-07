@@ -10,9 +10,9 @@ description = "The hEngine Command line interface"
 
 [dependencies]
 hash_engine = { path = "../..", default-features = false }
+error = { path = "../../lib/error" }
 #server = { path = "../server", artifact = "bin" }
 
-anyhow = "1.0.51"
 async-trait = "0.1.48"
 clap = { version = "3.0.0", features = ["cargo", "derive", "env"] }
 lazy_static = "1.4.0"
