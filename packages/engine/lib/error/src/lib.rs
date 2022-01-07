@@ -75,14 +75,14 @@
 //! ```
 //! use std::collections::HashMap;
 //!
-//! use error::{ensure, error, Result, ResultExt};
+//! use error::{ensure, report, Result, ResultExt};
 //!
 //! fn lookup_key(map: &HashMap<&str, u64>, key: &str) -> Result<u64> {
 //!     ensure!(key.len() == 8, "Key must be 8 characters long");
 //!
 //!     map.get(key)
 //!         .cloned()
-//!         .ok_or_else(|| error!("key does not exist"))
+//!         .ok_or_else(|| report!("key does not exist"))
 //! }
 //!
 //! fn parse_config(config: &HashMap<&str, u64>) -> Result<u64> {
@@ -209,7 +209,7 @@ use self::{frame::FrameRepr, report::ReportImpl};
 ///     let content = std::fs::read_to_string(config_path)
 ///         .wrap_err_lazy(|| format!("Failed to read config file {config_path:?}"))?;
 ///     # #[cfg(any(miri, not(feature = "std")))]
-///     # Err(error::error!("")).wrap_err_lazy(|| format!("Failed to read config file {config_path:?}"))?;
+///     # Err(error::report!("")).wrap_err_lazy(|| format!("Failed to read config file {config_path:?}"))?;
 ///
 ///     # const _: &str = stringify! {
 ///     ...

@@ -43,7 +43,7 @@ pub mod __private {
         }
     }
 
-    pub fn error(args: fmt::Arguments) -> Report {
+    pub fn report(args: fmt::Arguments) -> Report {
         Report::new(alloc::format!("{}", args))
     }
 }
@@ -64,11 +64,11 @@ pub mod __private {
 /// # struct Resource;
 /// # use core::fmt;
 /// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
-/// use error::error;
+/// use error::report;
 ///
 /// # fn use_resource(user: User, resource: Resource) -> error::Result<()> {
 /// if !has_permission(&user, &resource) {
-///     return Err(error!("permission denied for accessing {resource}"));
+///     return Err(report!("permission denied for accessing {resource}"));
 /// }
 /// # Ok(()) }
 /// # let err = use_resource(User, Resource).unwrap_err();
@@ -81,12 +81,12 @@ pub mod __private {
 /// ```
 /// # #[cfg(not(miri))]
 /// # use std::fs;
-/// # use error::error;
+/// # use error::report;
 /// # fn func() -> error::Result<()> {
 /// # #[cfg(not(miri))]
 /// match fs::read_to_string("/path/to/file") {
 ///     Ok(content) => println!("File contents: {content}"),
-///     Err(err) => return Err(error!(err)),
+///     Err(err) => return Err(report!(err)),
 /// }
 /// # #[cfg(miri)]
 /// # error::bail!("");
@@ -101,7 +101,7 @@ pub mod __private {
 /// # fn has_permission(_: &User, _: &Resource) -> bool { false }
 /// # #[derive(Debug)] struct User;
 /// # #[derive(Debug)] struct Resource;
-/// # use error::error;
+/// # use error::report;
 /// # impl fmt::Display for User { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
 /// # impl fmt::Display for Resource { fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result { Ok(()) }}
 /// use core::fmt;
@@ -126,7 +126,7 @@ pub mod __private {
 ///
 /// # fn use_resource(user: User, resource: Resource) -> Result<(), Report<PermissionDenied>> {
 /// if !has_permission(&user, &resource) {
-///     return Err(error!(
+///     return Err(report!(
 ///         context: PermissionDenied(user, resource),
 ///         "permission denied accessing {resource}"
 ///     ));
@@ -138,21 +138,21 @@ pub mod __private {
 /// # assert_eq!(err.request_ref::<Resource>().count(), 1);
 /// ```
 #[macro_export]
-macro_rules! error {
+macro_rules! report {
     (context: $context:expr $(,)?) => ({
         $crate::Report::from_context($context)
     });
     (context: $context:expr, $msg:literal $(,)?) => ({
-        $crate::error!($msg).provide_context($context)
+        $crate::report!($msg).provide_context($context)
     });
     (context: $context:expr, $err:expr $(,)?) => ({
-        $crate::error!($err).provide_context($context)
+        $crate::report!($err).provide_context($context)
     });
     (context: $context:expr, $fmt:expr, $($arg:tt)+) => {
-        $crate::error!($fmt, $($arg)+).provide_context($context)
+        $crate::report!($fmt, $($arg)+).provide_context($context)
     };
     ($msg:literal $(,)?) => ({
-        $crate::Report::new($crate::__private::error(core::format_args!($msg)))
+        $crate::Report::new($crate::__private::report(core::format_args!($msg)))
     });
     ($err:expr $(,)?) => ({
         use $crate::__private::kinds::*;
@@ -160,16 +160,16 @@ macro_rules! error {
         (&error).__kind().report(error)
     });
     ($fmt:expr, $($arg:tt)+) => {
-        $crate::Report::new($crate::__private::error(core::format_args!($fmt, $($arg)+)))
+        $crate::Report::new($crate::__private::report(core::format_args!($fmt, $($arg)+)))
     };
 }
 
 /// Creates a [`Report`] and returns it as [`Result`].
 ///
-/// Shorthand for `return `[`Err`]`(`[`error!(...)`]`)`
+/// Shorthand for `return `[`Err`]`(`[`report!(...)`]`)`
 ///
 /// [`Report`]: crate::Report
-/// [`error!(...)`]: error
+/// [`report!(...)`]: report
 ///
 /// # Examples
 ///
@@ -257,25 +257,25 @@ macro_rules! error {
 #[macro_export]
 macro_rules! bail {
     (context: $context:expr $(,)?) => ({
-        return $crate::Result::Err($crate::error!(context: $context))
+        return $crate::Result::Err($crate::report!(context: $context))
     });
     (context: $context:expr, $msg:literal $(,)?) => ({
-        return $crate::Result::Err($crate::error!(context: $context, $msg))
+        return $crate::Result::Err($crate::report!(context: $context, $msg))
     });
     (context: $context:expr, $err:expr $(,)?) => ({
-        return $crate::Result::Err($crate::error!(context: $context, $err))
+        return $crate::Result::Err($crate::report!(context: $context, $err))
     });
     (context: $context:expr, $fmt:expr, $($arg:tt)+) => {
-        return $crate::Result::Err($crate::error!(context: $context, $fmt, $($arg)+))
+        return $crate::Result::Err($crate::report!(context: $context, $fmt, $($arg)+))
     };
     ($msg:literal $(,)?) => ({
-        return $crate::Result::Err($crate::error!($msg))
+        return $crate::Result::Err($crate::report!($msg))
     });
     ($err:expr $(,)?) => ({
-        return $crate::Result::Err($crate::error!($err))
+        return $crate::Result::Err($crate::report!($err))
     });
     ($fmt:expr, $($arg:tt)+) => {
-        return $crate::Result::Err($crate::error!($fmt, $($arg)+))
+        return $crate::Result::Err($crate::report!($fmt, $($arg)+))
     };
 }
 
@@ -395,48 +395,48 @@ mod tests {
 
     #[test]
     fn error() {
-        let err = capture_error(|| Err(error!(context: ContextA(10))));
+        let err = capture_error(|| Err(report!(context: ContextA(10))));
         assert_eq!(err.frames().count(), 1);
         assert_eq!(err.request::<TagA>().collect::<Vec<_>>(), [10]);
         assert_eq!(request_messages(&err), ["Context A"]);
 
-        let err = capture_error(|| Err(error!(context: ContextA(10), "Literal")));
+        let err = capture_error(|| Err(report!(context: ContextA(10), "Literal")));
         assert_eq!(err.frames().count(), 2);
         assert_eq!(err.request::<TagA>().collect::<Vec<_>>(), [10]);
         assert_eq!(request_messages(&err), ["Context A", "Literal"]);
 
-        let err = capture_error(|| Err(error!(context: ContextA(10), MESSAGE_A)));
+        let err = capture_error(|| Err(report!(context: ContextA(10), MESSAGE_A)));
         assert_eq!(err.frames().count(), 2);
         assert_eq!(err.request::<TagA>().collect::<Vec<_>>(), [10]);
         assert_eq!(request_messages(&err), ["Context A", "Message A"]);
 
         let var = "foo";
-        let err = capture_error(|| Err(error!(context: ContextA(10), "Format String: {}", var)));
+        let err = capture_error(|| Err(report!(context: ContextA(10), "Format String: {}", var)));
         assert_eq!(err.frames().count(), 2);
         assert_eq!(err.request::<TagA>().collect::<Vec<_>>(), [10]);
         assert_eq!(request_messages(&err), ["Context A", "Format String: foo"]);
 
         let var = "foo";
-        let err = capture_error(|| Err(error!(context: ContextA(10), "Format String: {var}")));
+        let err = capture_error(|| Err(report!(context: ContextA(10), "Format String: {var}")));
         assert_eq!(err.frames().count(), 2);
         assert_eq!(err.request::<TagA>().collect::<Vec<_>>(), [10]);
         assert_eq!(request_messages(&err), ["Context A", "Format String: foo"]);
 
-        let err = capture_error(|| Err(error!("Literal")));
+        let err = capture_error(|| Err(report!("Literal")));
         assert_eq!(err.frames().count(), 1);
         assert_eq!(request_messages(&err), ["Literal"]);
 
-        let err = capture_error(|| Err(error!(MESSAGE_A)));
+        let err = capture_error(|| Err(report!(MESSAGE_A)));
         assert_eq!(err.frames().count(), 1);
         assert_eq!(request_messages(&err), ["Message A"]);
 
         let var = "foo";
-        let err = capture_error(|| Err(error!("Format String: {}", var)));
+        let err = capture_error(|| Err(report!("Format String: {}", var)));
         assert_eq!(err.frames().count(), 1);
         assert_eq!(request_messages(&err), ["Format String: foo"]);
 
         let var = "foo";
-        let err = capture_error(|| Err(error!("Format String: {var}")));
+        let err = capture_error(|| Err(report!("Format String: {var}")));
         assert_eq!(err.frames().count(), 1);
         assert_eq!(request_messages(&err), ["Format String: foo"]);
     }
