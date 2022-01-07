@@ -7,7 +7,7 @@ def hash_behavior_id(behavior_id):
     # TODO: Either keep in sync with behavior id generation in Rust part of
     #       behavior execution package or change Rust part to generate
     #       single numbers (rather than pairs of numbers) in the first place.
-    return behavior_id[0]*10 + behavior_id[1]
+    return (behavior_id[0] * 10) + behavior_id[1]
 
 
 # `behavior_descs` should be a list of objects that have fields `id`, `name`, `source`, `columns`,
