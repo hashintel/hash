@@ -100,7 +100,7 @@ impl VTable {
         drop(unerased);
     }
 
-    /// Unerase the context as `&dyn Error`
+    /// Unerase the context as `&dyn Context`
     ///
     /// # Safety
     ///
