@@ -397,10 +397,11 @@ export class ProsemirrorSchemaManager {
     draftBlockId: string,
     targetComponentId: string,
     node: ProsemirrorNode<Schema>,
-    getPos: () => number,
+    pos: number,
   ) {
     const { view } = this;
 
+    // @todo consider separating the logic that uses a view to something else
     if (!view) {
       throw new Error("Cannot trigger replaceNodeWithRemoteBlock without view");
     }
@@ -420,7 +421,6 @@ export class ProsemirrorSchemaManager {
      * we're currently not re-focusing the editor view.
      */
 
-    const pos = getPos();
     const { tr } = view.state;
 
     tr.replaceRangeWith(pos, pos + node.nodeSize, newNode);

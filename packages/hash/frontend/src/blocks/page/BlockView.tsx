@@ -287,7 +287,7 @@ export class BlockView implements NodeView<Schema> {
         draftId,
         meta.componentMetadata.componentId,
         node,
-        getPos,
+        getPos(),
       )
       .catch((err: Error) => {
         // eslint-disable-next-line no-console -- TODO: consider using logger
