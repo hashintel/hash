@@ -39,7 +39,7 @@ def load_behaviors(behavior_descs):
             # Have to catch generic `Exception`, because user's code could throw anything.
             n_pkg_fns = 2
             e = str(traceback.format_exception(*sys.exc_info())[n_pkg_fns:])
-            warnings.append("Couldn't load behavior `{}`: {}".format(desc['name'], e))
+            warnings.append(f"Couldn't load behavior `{desc['name']}`: {e}")
 
         # With the current implementation, failing to load a behavior
         # isn't an error if the behavior is never actually used. This
