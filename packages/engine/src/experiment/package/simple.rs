@@ -26,7 +26,7 @@ struct SimQueue<'a> {
     finished: HashMap<SimulationShortId, SimProgress>,
 }
 
-impl<'i> SimQueue<'i> {
+impl<'a> SimQueue<'a> {
     async fn start_sim_if_available(&mut self) -> Result<()> {
         if let Some((sim_idx, changed_props)) = self.pending_iter.next() {
             self.active
