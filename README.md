@@ -1,4 +1,8 @@
-# HASH.dev
+# HASH
+
+HASH is an open-source, data-centric, all-in-one workspace. HASH combines a rich frontend editor with a powerful entity graph that makes it easy to capture and work with structured data. HASH is built atop the open [Block Protocol](https://github.com/blockprotocol/blockprotocol) allowing users to easily add new block types and functionality to their workspaces.
+
+**This app is not yet ready for production use.** For now it is intended to be used as a test-harness for developers building Block Protocol compliant blocks.
 
 ## Getting started
 
