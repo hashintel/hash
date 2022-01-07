@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use error::{Result, ResultExt};
 use hash_engine::{
     experiment::controller::run::run_experiment, fetch::FetchDependencies, proto::ExperimentRun,
 };
@@ -15,16 +15,16 @@ async fn main() -> Result<()> {
 
     let mut env = hash_engine::env::<ExperimentRun>(&args)
         .await
-        .context("Could not create environment for experiment")?;
+        .wrap_err("Could not create environment for experiment")?;
     // Fetch all dependencies of the experiment run such as datasets
     env.experiment
         .fetch_deps()
         .await
-        .context("Could not fetch dependencies for experiment")?;
+        .wrap_err("Could not fetch dependencies for experiment")?;
     // Generate the configuration for packages from the environment
     let config = hash_engine::experiment_config(&args, &env).await?;
 
     run_experiment(config, env)
         .await
-        .context("Could not run experiment")
+        .wrap_err("Could not run experiment")
 }
