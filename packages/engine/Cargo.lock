@@ -1906,7 +1906,7 @@ dependencies = [
 name = "server"
 version = "0.0.0"
 dependencies = [
- "anyhow",
+ "error",
  "hash_engine",
  "log",
  "tokio",
