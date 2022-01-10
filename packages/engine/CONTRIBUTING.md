@@ -56,7 +56,7 @@ To help you help us, we've written this section to give some guidelines on the s
 
 #### Before Submitting A Bug Report
 
-Try and check to see if it's already been reported, the main place to look would be the [Github Issues board](https://github.com/hashintel/hash/issues). If you can't find something similar, then feel free to create a new one! Be sure to label it with the `hengine` label to help the right team find it.
+Try and check to see if it's already been reported, the main place to look would be the [Github Issues board](https://github.com/hashintel/hash/issues). If you can't find something similar, then feel free to create a new one! Be sure to label it with the `A-engine + C-bug` label to help the right team find it.
 
 #### How Do I Submit A (Good) Bug Report?
 
