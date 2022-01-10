@@ -568,8 +568,7 @@ fn get_simple_experiment_config(
                 report!("max_sims_in_parallel in globals.json was set, but wasn't a valid integer")
             })
         })
-        // Report error if not a valid integer, ignore if key is not set
-        .transpose()?;
+        .transpose()?; // Extract and report the error for failed parsing
 
     let config = SimpleExperimentConfig {
         experiment_name: args.experiment_name.clone(),
