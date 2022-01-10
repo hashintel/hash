@@ -564,7 +564,7 @@ fn get_simple_experiment_config(
     let max_sims_in_parallel = parsed
         .get("max_sims_in_parallel")
         .map(|val| {
-            val.as_u64().ok_or_else(|| {
+            val.as_u64().map(|val| val as usize).ok_or_else(|| {
                 report!("max_sims_in_parallel in globals.json was set, but wasn't a valid integer")
             })
         })
