@@ -41,6 +41,7 @@ pub struct Inner {
 }
 
 impl Inner {
+    /// TODO: DOC
     fn from_agent_states(
         agent_state_batches: &[&[AgentState]],
         num_agents: usize,
@@ -85,12 +86,14 @@ impl Inner {
     }
 }
 
+/// TODO: DOC
 pub struct State {
     inner: Inner,
     sim_config: Arc<SimRunConfig>,
 }
 
 impl State {
+    /// TODO: DOC
     pub fn from_agent_states(
         agent_states: Vec<AgentState>,
         sim_config: Arc<SimRunConfig>,
@@ -138,6 +141,7 @@ pub struct ExState {
 }
 
 impl ExState {
+    /// TODO: DOC
     pub fn downgrade(self) -> State {
         State {
             inner: self.inner,
