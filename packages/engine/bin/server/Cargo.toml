@@ -5,10 +5,10 @@ edition = "2021"
 
 [dependencies]
 hash_engine = { path = "../..", default-features = false }
-error = { path = "../../lib/error" }
+error = { path = "../../lib/error", features = ["spantrace"] }
 
-log = "0.4.11"
 tokio = { version = "1.5.0", features = ["macros", "rt-multi-thread", "sync", "process", "io-util", "net", "rt", "fs"] }
+tracing = "0.1.29"
 
 [[bin]]
 name = "hash_engine"
