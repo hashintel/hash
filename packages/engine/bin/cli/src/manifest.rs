@@ -560,6 +560,16 @@ fn get_simple_experiment_config(
         .wrap_err("Could not parse experiment manifest")?;
     let plan = create_experiment_plan(&parsed, &args.experiment_name)
         .wrap_err("Could not read experiment plan")?;
+
+    let max_sims_in_parallel = parsed
+        .get("max_sims_in_parallel")
+        .map(|val| {
+            val.as_u64().map(|val| val as usize).ok_or_else(|| {
+                report!("max_sims_in_parallel in globals.json was set, but wasn't a valid integer")
+            })
+        })
+        .transpose()?; // Extract and report the error for failed parsing
+
     let config = SimpleExperimentConfig {
         experiment_name: args.experiment_name.clone(),
         changed_properties: plan
@@ -572,6 +582,7 @@ fn get_simple_experiment_config(
             })
             .collect(),
         num_steps: plan.num_steps,
+        max_sims_in_parallel,
     };
     Ok(config)
 }

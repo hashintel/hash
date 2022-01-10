@@ -13,16 +13,36 @@ pub struct SimpleExperiment {
     config: SimpleExperimentConfig,
 }
 
-// Returns whether to stop experiment.
-fn finish_run(n_remaining: &mut isize) -> bool {
-    assert!(*n_remaining > 0, "n_remaining {} <= 0", *n_remaining);
-    *n_remaining -= 1;
-    *n_remaining == 0
-}
-
-struct StepProgress {
+struct SimProgress {
     n_steps: usize,
     stopped: bool,
+}
+
+struct SimQueue<'a> {
+    max_num_steps: usize,
+    pkg_to_exp: &'a mut ExpPkgCtlSend,
+    pending_iter: &'a mut (dyn Iterator<Item = (SimulationShortId, &'a serde_json::Value)> + Send),
+    active: HashMap<SimulationShortId, SimProgress>,
+    finished: HashMap<SimulationShortId, SimProgress>,
+}
+
+impl<'a> SimQueue<'a> {
+    async fn start_sim_if_available(&mut self) -> Result<()> {
+        if let Some((sim_id, changed_props)) = self.pending_iter.next() {
+            self.active.insert(sim_id, SimProgress {
+                n_steps: 0,
+                stopped: false,
+            });
+            let msg = ExperimentControl::StartSim {
+                sim_id,
+                changed_properties: changed_props.clone(),
+                max_num_steps: self.max_num_steps,
+            };
+            self.pkg_to_exp.send(msg).await?;
+        }
+
+        Ok(())
+    }
 }
 
 impl SimpleExperiment {
@@ -42,24 +62,33 @@ impl SimpleExperiment {
         mut exp_pkg_update_recv: ExpPkgUpdateRecv,
     ) -> Result<()> {
         let max_num_steps = self.config.num_steps;
-        let mut n_sims_steps = HashMap::new();
         let num_sims = self.config.changed_properties.len();
-        for (sim_index, changed_properties) in self.config.changed_properties.iter().enumerate() {
-            let sim_id = sim_index + 1; // We sometimes use 0 as a default/null value, therefore it's not a valid SimulationShortId
-            n_sims_steps.insert(sim_id as SimulationShortId, StepProgress {
-                n_steps: 0,
-                stopped: false,
-            });
-            let msg = ExperimentControl::StartSim {
-                sim_id: sim_id as SimulationShortId,
-                changed_properties: changed_properties.clone(),
-                max_num_steps,
-            };
-            pkg_to_exp.send(msg).await?;
+        let max_sims_in_parallel = self.config.max_sims_in_parallel.unwrap_or(num_sims);
+
+        let mut queued_iter =
+            self.config
+                .changed_properties
+                .iter()
+                .enumerate()
+                .map(|(sim_idx, props)| {
+                    // We sometimes use 0 as a default/null value, therefore it's not a valid
+                    // SimulationShortId
+                    ((sim_idx + 1) as SimulationShortId, props)
+                });
+
+        let mut sim_queue = SimQueue {
+            pending_iter: &mut queued_iter,
+            max_num_steps,
+            pkg_to_exp: &mut pkg_to_exp,
+            active: HashMap::new(),
+            finished: HashMap::new(),
+        };
+
+        log::trace!("Starting {max_sims_in_parallel} sims in parallel");
+        for _ in 0..max_sims_in_parallel {
+            sim_queue.start_sim_if_available().await?;
         }
 
-        // Use `isize` to avoid issues with decrementing zero.
-        let mut n_remaining = num_sims as isize;
         loop {
             let response = exp_pkg_update_recv.recv().await.ok_or_else(|| {
                 Error::ExperimentRecv(
@@ -67,37 +96,35 @@ impl SimpleExperiment {
                 )
             })?;
 
-            let mut maybe_step_progress = n_sims_steps.get_mut(&response.sim_id);
-
             if response.was_error || response.stop_signal {
-                if let Some(step_progress) = &mut maybe_step_progress {
-                    step_progress.stopped = true;
-                } else {
-                    log::warn!("Stopped sim run with unknown id {}", &response.sim_id);
-                }
+                let mut sim_progress =
+                    sim_queue.active.remove(&response.sim_id).ok_or_else(|| {
+                        log::warn!("Sim run with unknown id {} stopped", &response.sim_id);
+                        Error::MissingSimulationRun(response.sim_id)
+                    })?;
 
-                if finish_run(&mut n_remaining) {
+                sim_progress.stopped = true;
+                sim_queue.finished.insert(response.sim_id, sim_progress);
+
+                sim_queue.start_sim_if_available().await?;
+
+                if sim_queue.active.is_empty() {
                     break;
                 }
-            }
+            } else {
+                let mut sim_progress = sim_queue
+                    .active
+                    .get_mut(&response.sim_id)
+                    .ok_or(Error::MissingSimulationRun(response.sim_id))?;
 
-            let step_progress =
-                maybe_step_progress.ok_or(Error::MissingSimulationRun(response.sim_id))?;
+                sim_progress.n_steps += 1;
 
-            if !step_progress.stopped {
-                step_progress.n_steps += 1;
-            }
-
-            let n_steps = step_progress.n_steps;
-            assert!(
-                n_steps <= max_num_steps,
-                "{} > max_num_steps {}",
-                n_steps,
-                max_num_steps
-            );
-
-            if n_steps == max_num_steps && finish_run(&mut n_remaining) {
-                break;
+                assert!(
+                    sim_progress.n_steps <= max_num_steps,
+                    "{} > max_num_steps {}",
+                    sim_progress.n_steps,
+                    max_num_steps
+                );
             }
         }
         Ok(())
