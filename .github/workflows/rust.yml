@@ -239,8 +239,16 @@ jobs:
   merging-enabled:
     name: merging enabled
     needs: [rustfmt, clippy, test]
-    if: ${{ !cancelled() && !failure() }}
+    if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: pass
+      - name: check rustfmt
         run: |
+          [[ ${{ needs.rustfmt.result }} =~ success|skipped ]]
+      - name: check clippy
+        run: |
+          [[ ${{ needs.clippy.result }} =~ success|skipped ]]
+      - name: check test
+        run: |
+          [[ ${{ needs.test.result }} =~ success|skipped ]]
+
