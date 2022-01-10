@@ -16,7 +16,7 @@ env:
 
 jobs:
   setup:
-    name: start actions
+    name: setup
     runs-on: ubuntu-latest
     outputs:
       rustfmt: ${{ steps.crates.outputs.rustfmt }}
@@ -236,8 +236,8 @@ jobs:
           cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} --no-fail-fast
 
 
-  enable-merging:
-    name: enable merging
+  merging-enabled:
+    name: merging enabled
     needs: [rustfmt, clippy, test]
     if: ${{ !cancelled() && !failure() }}
     runs-on: ubuntu-latest
