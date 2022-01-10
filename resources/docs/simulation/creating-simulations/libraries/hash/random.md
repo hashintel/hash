@@ -41,7 +41,7 @@ def behavior(state, context):
 Sets a seed for the random number generator used in hash_stdlib.random\(\) and in any stochastic function in [hash_stdlib.stats](/docs/simulation/creating-simulations/libraries/hash/javascript-libraries#jstat-distributions). The seed will apply across all behaviors and agents within a simulation run.
 
 <Tabs>
-<Tab title="JavaScript>
+<Tab title="JavaScript">
 
 ```javascript
 function behavior(state, context) {
