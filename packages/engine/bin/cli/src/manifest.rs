@@ -561,15 +561,15 @@ fn get_simple_experiment_config(
     let plan = create_experiment_plan(&parsed, &args.experiment_name)
         .wrap_err("Could not read experiment plan")?;
 
-    let max_sims_in_parallel = match parsed.get("max_sims_in_parallel") {
-        Some(val) => {
-            let num = val.as_u64().ok_or_else(|| {
-                report!("max_sims_in_parallel in globals.json must be set to a valid integer")
-            })?;
-            Some(num as usize)
-        }
-        None => None,
-    };
+    let max_sims_in_parallel = parsed
+        .get("max_sims_in_parallel")
+        .map(|val| {
+            val.as_u64().ok_or_else(|| {
+                report!("max_sims_in_parallel in globals.json was set, but wasn't a valid integer")
+            })
+        })
+        // Report error if not a valid integer, ignore if key is not set
+        .transpose()?;
 
     let config = SimpleExperimentConfig {
         experiment_name: args.experiment_name.clone(),
