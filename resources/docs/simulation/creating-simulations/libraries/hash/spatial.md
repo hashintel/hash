@@ -81,7 +81,7 @@ function behavior(state, context) {
 ```
 
 </Tab>
-<Tab title="Python>
+<Tab title="Python">
 
 ```python
 import hstd
