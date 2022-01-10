@@ -141,8 +141,9 @@ async fn _run(
             Some(nng_send_result) = nng_sender.get_send_result() => {
                 nng_send_result?;
             }
-            Some((sim_id, inbound)) = inbound_receiver.recv() => {
-                let (task_payload_json, task_wrapper) = match &inbound {
+            Some((_sim_id, inbound)) = inbound_receiver.recv() => {
+                // Need to get payload before sending nng message.
+                let (_task_payload_json, task_wrapper) = match &inbound {
                     InboundToRunnerMsgPayload::TaskMsg(msg) => {
                         // TODO: Error message duplication with JS runner
                         let (payload, wrapper) = msg.payload
@@ -160,10 +161,23 @@ async fn _run(
 
                 // Send nng first, because need inbound by reference for nng,
                 // but by value for saving sent task.
-                nng_sender.send(sim_id, &inbound, &task_payload_json)?;
+                // TODO: Don't ignore inbound messages (after fixing fbs parsing in Python).
+                // nng_sender.send(sim_id, &inbound, &task_payload_json)?;
 
+                // Do Rust part of message handling, if any.
                 match inbound {
                     InboundToRunnerMsgPayload::TerminateRunner => break 'select_loop,
+                    InboundToRunnerMsgPayload::StateSync(sync) => {
+                        // TODO: Remember inbound state sync (store completion sender
+                        //       in some hashmap) and only send the completion message
+                        //       after receiving the corresponding outbound nng message
+                        //       from the Python process -- not immediately.
+                        sync.completion_sender
+                            .send(Ok(()))
+                            .map_err(|e| Error::from(format!(
+                                "Couldn't send state sync completion from Python: {:?}", e
+                            )))?;
+                    }
                     InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMsg {
                         task_id,
                         shared_store,

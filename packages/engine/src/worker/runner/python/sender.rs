@@ -1,3 +1,5 @@
+#![allow(dead_code)] // TODO: Remove
+
 use arrow::{datatypes::Schema, ipc::writer::schema_to_bytes};
 use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Vector, WIPOffset};
 use flatbuffers_gen::sync_state_interim_generated::StateInterimSyncArgs;
