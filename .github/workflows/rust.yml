@@ -30,19 +30,20 @@ jobs:
           fetch-depth: 2
       - name: Find changed crates
         id: crates
-        run: |
-          changed_crates=""
-          
-          available_crates="$(find . -name Cargo.toml -printf '%h\n' | sed 's:./::')"
+        run: |          
+          available_crates="$(find . -name Cargo.toml -printf '%h\n' | sed 's:./::' | sort | tac)"
           changed_files="$(git diff --name-only HEAD^ HEAD)"
           
-          while read -r crate; do
-            while read -r file; do
+          changed_crates=""
+          
+          while read -r file; do
+            while read -r crate; do
               if [[ $file =~ $crate ]]; then
                 changed_crates=$(echo -e "${crate}\n$changed_crates")
+                break
               fi
-            done <<< "$changed_files"
-          done <<< "$available_crates"
+            done <<< "$available_crates"
+          done <<< "$changed_files"
           
           changed_crates=$(echo "$changed_crates" | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
           
