@@ -51,7 +51,7 @@ use crate::{
     workerpool::comms::MainMsgSend,
 };
 
-// TODO: DOC
+/// TODO: DOC
 #[derive(Clone)]
 /// All relevant to communication between the Loop and the Language Runtime(s)
 pub struct Comms {

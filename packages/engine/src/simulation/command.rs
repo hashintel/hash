@@ -17,7 +17,7 @@ use crate::{
     hash_types::{message::RemoveAgentPayload, Agent},
 };
 
-//TODO: DOC Update docs to reflect that these variants are only allowed
+/// TODO: DOC Update docs to reflect that these variants are only allowed
 static HASH: [&str; 3] = ["hash", "Hash", "HASH"];
 
 enum HashMessageType {

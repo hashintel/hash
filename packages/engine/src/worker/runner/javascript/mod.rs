@@ -60,7 +60,7 @@ fn get_pkg_path(name: &str, pkg_type: PackageType) -> String {
     )
 }
 
-// TODO: DOC add docstrings on impl'd methods
+/// TODO: DOC add docstrings on impl'd methods
 impl<'m> JsPackage<'m> {
     fn import(
         mv8: &'m MiniV8,
