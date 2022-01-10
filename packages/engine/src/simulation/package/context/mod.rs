@@ -87,7 +87,7 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
     }
 }
 
-/// TODO docstring: also probably rename and make it clearer
+/// TODO: DOC - also probably rename and make it clearer
 pub struct ContextColumn {
     pub(crate) field_key: FieldKey,
     inner: Box<dyn ContextColumnWriter + Send + Sync>,
