@@ -52,6 +52,7 @@ fn create_engine_command(
     )?))
 }
 
+#[instrument(skip_all, fields(project_name = project_name.as_str(), experiment_id = experiment_run.base.id.as_str()))]
 async fn run_experiment_with_manifest(
     args: Args,
     experiment_run: proto::ExperimentRun,

@@ -8,7 +8,7 @@ async fn main() -> Result<()> {
     hash_engine::init_logger();
     let args = hash_engine::args();
 
-    log::info!(
+    tracing::info!(
         "HASH Engine process started for experiment {}",
         &args.experiment_id
     );

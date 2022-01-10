@@ -1,6 +1,8 @@
 use std::{env::VarError, time::Duration};
 
 pub fn init_logger() {
+    use tracing_subscriber::{fmt::time, prelude::*, EnvFilter};
+
     if cfg!(debug_assertions) && std::env::var("RUST_LOG").is_err() {
         std::env::set_var(
             "RUST_LOG",
@@ -8,7 +10,16 @@ pub fn init_logger() {
              apiclient=debug",
         );
     }
-    pretty_env_logger::init();
+
+    let stdout_layer = tracing_subscriber::fmt::layer()
+        .with_timer(time::Uptime::default())
+        .pretty();
+
+    let error_layer = tracing_error::ErrorLayer::default();
+    tracing_subscriber::registry()
+        .with(EnvFilter::from_default_env().and_then(stdout_layer))
+        .with(error_layer)
+        .init();
 }
 
 pub fn parse_env_duration(name: &str, default: u64) -> Duration {
