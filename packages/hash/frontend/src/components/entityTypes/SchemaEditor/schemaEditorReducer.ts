@@ -1,4 +1,5 @@
 import produce from "immer";
+import { Schema } from "jsonschema";
 import { get } from "lodash";
 import { Reducer } from "react";
 import { JsonSchema } from "../../../lib/json-utils";
@@ -8,9 +9,11 @@ type Action<S, T> = {
   payload: T & { pathToSubSchema?: string };
 };
 
-type SchemaEditorReducerAction =
+export type SchemaEditorReducerAction =
   | Action<"addProperty", { newPropertyName: string }>
   | Action<"addSubSchema", { newSubSchemaName: string }>
+  | Action<"deleteProperty", { propertyName: string }>
+  | Action<"deleteSubSchema", { subSchemaName: string }>
   | Action<"togglePropertyIsArray", { propertyName: string }>
   | Action<"togglePropertyIsRequired", { propertyName: string }>
   | Action<
@@ -35,6 +38,105 @@ const selectSubSchema = (
   schema: JsonSchema,
   pathToSubSchema: string | undefined,
 ): JsonSchema => (pathToSubSchema ? get(schema, pathToSubSchema) : schema);
+
+const updatePropertyType = (
+  schemaToEdit: JsonSchema,
+  propertyName: string,
+  newType: string,
+): Schema => {
+  let propertyToEdit = schemaToEdit.properties?.[propertyName];
+
+  if (!propertyToEdit) {
+    throw new Error(`Property '${propertyName}' not found.`);
+  }
+
+  const isArray = propertyToEdit.type === "array";
+  const isRef = /^(http|#|\/)/.test(newType);
+
+  if (isArray) {
+    if (isRef) {
+      propertyToEdit.items = {
+        $ref: newType,
+      };
+    } else {
+      // @todo handle multiple permitted types
+      propertyToEdit.items ??= {};
+      (propertyToEdit.items as JsonSchema).type = newType;
+      delete (propertyToEdit.items as JsonSchema).$ref;
+    }
+  } else if (isRef) {
+    propertyToEdit = {
+      description: propertyToEdit.description,
+      $ref: newType,
+    };
+  } else {
+    propertyToEdit.type = newType;
+    delete propertyToEdit.$ref;
+  }
+
+  return propertyToEdit;
+};
+
+const getDependentProperties = (
+  properties:
+    | {
+        [name: string]: Schema;
+      }
+    | undefined,
+  subSchemaNameToDelete: string,
+  prefix?: string,
+) => {
+  const dependentProperties = [];
+
+  for (const propertyName of Object.keys(properties ?? {})) {
+    const property = properties?.[propertyName];
+
+    // @todo revisit when we have multiple types
+    // @todo also check for properties of type "object" and check that object's properties
+    if (
+      property?.$ref?.includes(subSchemaNameToDelete) ||
+      (Array.isArray(property?.items)
+        ? property?.items[0].$ref?.includes(subSchemaNameToDelete)
+        : property?.items?.$ref?.includes(subSchemaNameToDelete))
+    ) {
+      dependentProperties.push(prefix ? [prefix, propertyName] : propertyName);
+    }
+  }
+
+  return dependentProperties;
+};
+
+// returns propertyname as string or path to propertyname as string[]
+export const getSubschemaDependentProperties = (
+  schema: JsonSchema,
+  subSchemaNameToDelete: string,
+): (string | string[])[] => {
+  const { properties, $defs } = schema;
+
+  const dependentProperties = [];
+
+  dependentProperties.push(
+    ...getDependentProperties(properties, subSchemaNameToDelete),
+  );
+
+  for (const subSchemaName of Object.keys($defs ?? {})) {
+    if (subSchemaName === subSchemaNameToDelete) {
+      continue;
+    }
+
+    const { properties: subschemaProperties } = $defs?.[subSchemaName] ?? {};
+
+    dependentProperties.push(
+      ...getDependentProperties(
+        subschemaProperties,
+        subSchemaNameToDelete,
+        subSchemaName,
+      ),
+    );
+  }
+
+  return dependentProperties;
+};
 
 export const schemaEditorReducer: Reducer<
   JsonSchema,
@@ -77,6 +179,44 @@ export const schemaEditorReducer: Reducer<
         schemaToEdit.$defs[action.payload.newSubSchemaName] = {
           type: "object",
         };
+      });
+    }
+
+    case "deleteProperty": {
+      return produce(schemaState, (draftRootSchema) => {
+        const schemaToEdit = selectSubSchema(draftRootSchema, pathToSubSchema);
+        schemaToEdit.properties ??= {};
+
+        delete schemaToEdit.properties[action.payload.propertyName];
+      });
+    }
+
+    case "deleteSubSchema": {
+      return produce(schemaState, (draftRootSchema) => {
+        const { subSchemaName: subSchemaNameToDelete } = action.payload;
+        const { $defs } = draftRootSchema;
+
+        const dependentProperties = getSubschemaDependentProperties(
+          draftRootSchema,
+          subSchemaNameToDelete,
+        );
+
+        dependentProperties.forEach((dependentProperty) => {
+          // Update the subschema property
+          if (Array.isArray(dependentProperty)) {
+            return updatePropertyType(
+              $defs![dependentProperty[0]],
+              dependentProperty[1],
+              "string",
+            );
+          }
+
+          // Update the schema property
+          updatePropertyType(draftRootSchema, dependentProperty, "string");
+        });
+
+        draftRootSchema.$defs ??= {};
+        delete draftRootSchema.$defs[subSchemaNameToDelete];
       });
     }
 
@@ -178,34 +318,16 @@ export const schemaEditorReducer: Reducer<
         const schemaToEdit = selectSubSchema(draftRootSchema, pathToSubSchema);
 
         const { propertyName, newType } = action.payload;
-        const propertyToEdit = schemaToEdit.properties?.[propertyName];
-        if (!propertyToEdit) {
+
+        if (!schemaToEdit.properties?.[propertyName]) {
           throw new Error(`Property '${propertyName}' not found.`);
         }
 
-        const isArray = propertyToEdit.type === "array";
-        const isRef = /^(http|#|\/)/.test(newType);
-
-        if (isArray) {
-          if (isRef) {
-            propertyToEdit.items = {
-              $ref: newType,
-            };
-          } else {
-            // @todo handle multiple permitted types
-            propertyToEdit.items ??= {};
-            (propertyToEdit.items as JsonSchema).type = newType;
-            delete (propertyToEdit.items as JsonSchema).$ref;
-          }
-        } else if (isRef) {
-          schemaToEdit.properties![propertyName] = {
-            description: propertyToEdit.description,
-            $ref: newType,
-          };
-        } else {
-          propertyToEdit.type = newType;
-          delete propertyToEdit.$ref;
-        }
+        schemaToEdit.properties[propertyName] = updatePropertyType(
+          schemaToEdit,
+          propertyName,
+          newType,
+        );
       });
     }
 

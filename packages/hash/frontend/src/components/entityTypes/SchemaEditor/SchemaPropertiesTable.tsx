@@ -1,10 +1,11 @@
-import React, { VoidFunctionComponent } from "react";
+import React, { FormEvent, useState, VoidFunctionComponent } from "react";
 import { tw } from "twind";
 import { SchemaSelectElementType } from "./SchemaEditor";
 import { SchemaPropertyRow } from "./SchemaPropertyRow";
 import { JsonSchema } from "../../../lib/json-utils";
 import { TextInputOrDisplay } from "./Inputs";
 import { SchemaEditorDispatcher } from "./schemaEditorReducer";
+import { Button } from "../../forms/Button";
 
 type SchemaPropertiesTableProps = {
   dispatchSchemaUpdate: SchemaEditorDispatcher;
@@ -31,6 +32,19 @@ export const SchemaPropertiesTable: VoidFunctionComponent<
       payload: { newPropertyName },
     });
 
+  const [newPropertyName, setNewPropertyName] = useState("");
+
+  const onAddPropertyFormSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!newPropertyName.trim()) {
+      return false;
+    }
+
+    addProperty(newPropertyName);
+    setNewPropertyName("");
+  };
+
   return (
     <table
       className={tw`max-w-full w-full text-sm text-left border-separate border border-gray-100 rounded-2xl`}
@@ -44,6 +58,7 @@ export const SchemaPropertiesTable: VoidFunctionComponent<
           <th className={thClasses}>Array</th>
           <th className={thClasses}>Required</th>
           <th className={thClasses}>Constraints</th>
+          <th className={thClasses}>Delete</th>
         </tr>
       </thead>
       <tbody>
@@ -66,18 +81,22 @@ export const SchemaPropertiesTable: VoidFunctionComponent<
           })}
         {!readonly ? (
           <tr className={trClasses}>
-            <td className={tdClasses} colSpan={6}>
+            <td className={tdClasses} colSpan={7}>
               <div className={tw`text-uppercase font-bold mr-12 mb-1`}>
                 New property
               </div>
-              <TextInputOrDisplay
-                className={tw`w-64`}
-                clearOnUpdate
-                placeholder="newProperty"
-                readonly={false}
-                updateText={addProperty}
-                value=""
-              />
+              <form onSubmit={onAddPropertyFormSubmit}>
+                <TextInputOrDisplay
+                  className={tw`w-64`}
+                  placeholder="newProperty"
+                  readonly={false}
+                  updateText={setNewPropertyName}
+                  value={newPropertyName}
+                  required
+                />
+                <br />
+                <Button type="submit">Create Property</Button>
+              </form>
             </td>
           </tr>
         ) : null}

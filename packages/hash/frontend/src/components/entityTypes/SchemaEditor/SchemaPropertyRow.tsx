@@ -7,6 +7,7 @@ import { SchemaSelectElementType } from "./SchemaEditor";
 import { ToggleInputOrDisplay, TextInputOrDisplay } from "./Inputs";
 import { JsonSchema } from "../../../lib/json-utils";
 import { SchemaEditorDispatcher } from "./schemaEditorReducer";
+import { Button } from "../../forms/Button";
 
 type SchemaPropertyRowProps = {
   dispatchSchemaUpdate: SchemaEditorDispatcher;
@@ -53,10 +54,16 @@ export const SchemaPropertyRow: VoidFunctionComponent<
       payload: { oldPropertyName: name, newPropertyName: newName },
     });
 
-  const updatePropertyPermittedType = (newType: string) =>
+  const updatePermittedType = (newType: string) =>
     dispatchSchemaUpdate({
       type: "updatePropertyPermittedType",
       payload: { newType, propertyName: name },
+    });
+
+  const deleteProperty = () =>
+    dispatchSchemaUpdate({
+      type: "deleteProperty",
+      payload: { propertyName: name },
     });
 
   /**
@@ -82,6 +89,7 @@ export const SchemaPropertyRow: VoidFunctionComponent<
           readonly={readonly}
           updateText={updatePropertyName}
           value={name}
+          updateOnBlur
         />
       </td>
       <td className={tdClasses}>
@@ -92,7 +100,7 @@ export const SchemaPropertyRow: VoidFunctionComponent<
           readonly={readonly}
           $ref={$ref}
           type={type}
-          updatePermittedType={updatePropertyPermittedType}
+          updatePermittedType={updatePermittedType}
         />
       </td>
       <td className={tdClasses}>
@@ -101,6 +109,7 @@ export const SchemaPropertyRow: VoidFunctionComponent<
           readonly={readonly}
           updateText={updatePropertyDescription}
           value={description ?? ""}
+          updateOnBlur
         />
       </td>
       <td className={tdClasses}>
@@ -124,6 +133,11 @@ export const SchemaPropertyRow: VoidFunctionComponent<
             {typeName}: {value}
           </div>
         ))}
+      </td>
+      <td className={tdClasses}>
+        <Button onClick={deleteProperty} danger>
+          Delete
+        </Button>
       </td>
     </tr>
   );

@@ -35,7 +35,7 @@ test("user can create and update entity", async ({ page }) => {
   // Create a new Property
   await page.click('[placeholder="newProperty"]');
   await page.fill('[placeholder="newProperty"]', "Property1");
-  await page.click('[placeholder="Describe your schema"]');
+  await page.click("text=Create Property");
 
   // Click on New Entity button to create new instance of entity
   await page.click(`text=New ${entityName}`);
@@ -51,7 +51,7 @@ test("user can create and update entity", async ({ page }) => {
 
   await page.click('[placeholder="newProperty"]');
   await page.fill('[placeholder="newProperty"]', "Property2");
-  await page.click('[placeholder="Describe your schema"]');
+  await page.click("text=Create Property");
 
   // Click on New Entity button to create new instance of entity
   await page.click(`text=New ${entityName}`);

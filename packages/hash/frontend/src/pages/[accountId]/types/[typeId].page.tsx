@@ -39,7 +39,10 @@ export const EntityType: VoidFunctionComponent = () => {
 
   const { data } = useQuery<GetEntityTypeQuery, GetEntityTypeQueryVariables>(
     getEntityTypeQuery,
-    { variables: { entityTypeId: typeId } },
+    {
+      variables: { entityTypeId: typeId },
+      pollInterval: 5000,
+    },
   );
 
   const schema = data?.getEntityType.properties;

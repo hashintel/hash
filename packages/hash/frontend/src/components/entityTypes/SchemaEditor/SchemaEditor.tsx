@@ -7,6 +7,7 @@ import {
 import Link from "next/link";
 import React, {
   createContext,
+  FormEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -20,7 +21,12 @@ import { debounce, get } from "lodash";
 import { SchemaPropertiesTable } from "./SchemaPropertiesTable";
 import { JsonSchema } from "../../../lib/json-utils";
 import { TextInputOrDisplay } from "./Inputs";
-import { schemaEditorReducer } from "./schemaEditorReducer";
+import {
+  schemaEditorReducer,
+  SchemaEditorReducerAction,
+} from "./schemaEditorReducer";
+import { Button } from "../../forms/Button";
+import { SubSchemaItem } from "./SubSchemaItem";
 
 export type SchemaSelectElementType = VoidFunctionComponent<{
   schemaRef: string;
@@ -123,7 +129,7 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
     .replace(/\//g, ".");
 
   const dispatchSchemaUpdate = useCallback(
-    (action: Parameters<typeof dispatch>[0]) => {
+    (action: SchemaEditorReducerAction) => {
       if (pathToSubSchema && action.type !== "addSubSchema") {
         // don't support sub-schemas with their own sub-schemas for now. the UI doesn't handle it
         // eslint-disable-next-line no-param-reassign
@@ -162,11 +168,25 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
       payload: { newSubSchemaName },
     });
 
-  const updateSchemaDescription = (newSchemaDescription: string) =>
-    dispatchSchemaUpdate({
+  const [newSubSchemaName, setNewSubSchemaName] = useState("");
+
+  const onNewSubSchemaFormSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!newSubSchemaName.trim()) {
+      return;
+    }
+
+    addSubSchema(newSubSchemaName);
+    setNewSubSchemaName("");
+  };
+
+  const updateSchemaDescription = (newSchemaDescription: string) => {
+    return dispatchSchemaUpdate({
       type: "updateSchemaDescription",
       payload: { newSchemaDescription },
     });
+  };
 
   return (
     <div>
@@ -195,6 +215,7 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
             readonly={readonly}
             updateText={updateSchemaDescription}
             value={description ?? ""}
+            updateOnBlur
           />
         </div>
         <div>
@@ -217,23 +238,32 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
         <section className={tw`mt-8`}>
           <h2>Sub-schemas in {title}</h2>
           {subSchemas.map((subSchema) => (
-            <div className={tw`mb-4`} key={subSchema[0]}>
-              <GoToSchemaElement schemaRef={`#/$defs/${subSchema[0]}`} />
-            </div>
+            <SubSchemaItem
+              dispatchSchemaUpdate={dispatchSchemaUpdate}
+              GoToSchemaElement={GoToSchemaElement}
+              key={subSchema[0]}
+              subSchema={subSchema}
+              subSchemaReference={subSchemaReference}
+              workingSchemaDraft={workingSchemaDraft}
+            />
           ))}
           {updateEntityTypes ? (
             <div className={tw`mt-8`}>
               <div className={tw`text-uppercase font-bold text-sm mr-12 mb-1`}>
                 New sub-schema
               </div>
-              <TextInputOrDisplay
-                className={tw`w-64`}
-                clearOnUpdate
-                placeholder="MySubSchema"
-                readonly={false}
-                updateText={addSubSchema}
-                value=""
-              />
+              <form onSubmit={onNewSubSchemaFormSubmit}>
+                <TextInputOrDisplay
+                  className={tw`w-64`}
+                  required
+                  placeholder="MySubSchema"
+                  readonly={false}
+                  updateText={(value) => setNewSubSchemaName(value)}
+                  value={newSubSchemaName}
+                />
+                <br />
+                <Button type="submit">Create Sub-schema</Button>
+              </form>
             </div>
           ) : null}
         </section>

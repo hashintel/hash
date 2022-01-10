@@ -30,6 +30,7 @@ import {
   Action,
 } from "../../pages/auth/utils";
 import { useGetInvitationInfo } from "../../hooks/useGetInvitationInfo";
+import { useUser } from "../../hooks/useUser";
 
 enum Screen {
   Intro,
@@ -111,6 +112,12 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   const router = useRouter();
   const [requestedLoginCodeForDefault, setRequestedLoginCodeForDefault] =
     useState<boolean>(false);
+  const { user: currentUser } = useUser();
+
+  if (currentUser) {
+    // Redirect logged in user to their account page
+    void router.push(`/${currentUser.accountId}`);
+  }
 
   const [sendLoginCodeFn, { loading: sendLoginCodeLoading }] = useMutation<
     SendLoginCodeMutation,

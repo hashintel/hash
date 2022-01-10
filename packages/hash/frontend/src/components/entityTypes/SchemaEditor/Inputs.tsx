@@ -8,6 +8,8 @@ export const TextInputOrDisplay: VoidFunctionComponent<{
   clearOnUpdate?: boolean;
   placeholder?: string;
   readonly: boolean;
+  required?: boolean;
+  updateOnBlur?: boolean;
   updateText: (value: string) => void;
   value: string;
 }> = ({
@@ -15,6 +17,8 @@ export const TextInputOrDisplay: VoidFunctionComponent<{
   clearOnUpdate,
   placeholder,
   readonly,
+  required,
+  updateOnBlur,
   updateText,
   value,
 }) => {
@@ -28,18 +32,32 @@ export const TextInputOrDisplay: VoidFunctionComponent<{
     return <span>{value}</span>;
   }
 
-  return (
-    <TextInput
-      className={tw`${className}`}
-      onBlur={() => {
+  let textChangeEvents: {
+    onBlur?: () => void;
+    onChangeText: (value: string) => void;
+  } = {
+    onChangeText: updateText,
+  };
+
+  if (updateOnBlur) {
+    textChangeEvents = {
+      onBlur: () => {
         updateText(draftText);
         if (clearOnUpdate) {
           setDraftText("");
         }
-      }}
-      onChangeText={setDraftText}
+      },
+      onChangeText: setDraftText,
+    };
+  }
+
+  return (
+    <TextInput
+      className={tw`${className}`}
       placeholder={placeholder}
       value={draftText}
+      required={required}
+      {...textChangeEvents}
     />
   );
 };
