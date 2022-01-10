@@ -141,9 +141,9 @@ async fn _run(
             Some(nng_send_result) = nng_sender.get_send_result() => {
                 nng_send_result?;
             }
-            Some((sim_id, inbound)) = inbound_receiver.recv() => {
+            Some((_sim_id, inbound)) = inbound_receiver.recv() => {
                 // Need to get payload before sending nng message.
-                let (task_payload_json, task_wrapper) = match &inbound {
+                let (_task_payload_json, task_wrapper) = match &inbound {
                     InboundToRunnerMsgPayload::TaskMsg(msg) => {
                         // TODO: Error message duplication with JS runner
                         let (payload, wrapper) = msg.payload
