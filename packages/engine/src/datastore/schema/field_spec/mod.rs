@@ -274,6 +274,7 @@ impl FieldSpecMap {
                 && new_field.scope == FieldScope::Agent
                 && existing_field.inner.field_type == new_field.inner.field_type
             {
+                // TODO can this even happen, pretty sure it's equality
                 if existing_field.source == new_field.source {
                     return Err(Error::AgentScopedFieldKeyClash(
                         field_key,

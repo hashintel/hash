@@ -1,3 +1,4 @@
+//! TODO: DOC
 use std::fmt;
 
 use super::{NewSimulationRun, RunnerTaskMsg, StateInterimSync};
@@ -7,6 +8,7 @@ use crate::{
     types::TaskId,
 };
 
+/// TODO: DOC
 pub enum InboundToRunnerMsgPayload {
     TaskMsg(RunnerTaskMsg),
     CancelTask(TaskId),
@@ -41,6 +43,7 @@ impl fmt::Debug for InboundToRunnerMsgPayload {
     }
 }
 
+/// TODO: DOC
 pub struct InboundToRunnerMsg {
     pub sim_id: SimulationShortId,
     pub payload: InboundToRunnerMsgPayload,

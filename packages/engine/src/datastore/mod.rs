@@ -1,3 +1,4 @@
+//! TODO: DOC explaining use datastore
 pub mod arrow;
 pub mod batch;
 pub mod error;

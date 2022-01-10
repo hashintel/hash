@@ -143,9 +143,7 @@ impl GetWorkerSimStartMsg for BehaviorExecution {
     }
 }
 
-// TODO: OS - Needs implementing
 impl BehaviorExecution {
-    // TODO: update doc with correct key, not __behaviors
     /// Iterates over all "behaviors" fields of agents and writes them into their "behaviors" field.
     /// This fixation guarantees that all behaviors that were there in the beginning of behavior
     /// execution will be executed accordingly
