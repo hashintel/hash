@@ -21,21 +21,20 @@ struct SimProgress {
 struct SimQueue<'a> {
     max_num_steps: usize,
     pkg_to_exp: &'a mut ExpPkgCtlSend,
-    pending_iter: &'a mut (dyn Iterator<Item = (usize, &'a serde_json::Value)> + Send),
+    pending_iter: &'a mut (dyn Iterator<Item = (SimulationShortId, &'a serde_json::Value)> + Send),
     active: HashMap<SimulationShortId, SimProgress>,
     finished: HashMap<SimulationShortId, SimProgress>,
 }
 
 impl<'a> SimQueue<'a> {
     async fn start_sim_if_available(&mut self) -> Result<()> {
-        if let Some((sim_idx, changed_props)) = self.pending_iter.next() {
-            self.active
-                .insert(sim_idx as SimulationShortId, SimProgress {
-                    n_steps: 0,
-                    stopped: false,
-                });
+        if let Some((sim_id, changed_props)) = self.pending_iter.next() {
+            self.active.insert(sim_id, SimProgress {
+                n_steps: 0,
+                stopped: false,
+            });
             let msg = ExperimentControl::StartSim {
-                sim_id: sim_idx as SimulationShortId,
+                sim_id,
                 changed_properties: changed_props.clone(),
                 max_num_steps: self.max_num_steps,
             };
@@ -74,7 +73,7 @@ impl SimpleExperiment {
                 .map(|(sim_idx, props)| {
                     // We sometimes use 0 as a default/null value, therefore it's not a valid
                     // SimulationShortId
-                    (sim_idx + 1, props)
+                    ((sim_idx + 1) as SimulationShortId, props)
                 });
 
         let mut sim_queue = SimQueue {

@@ -561,10 +561,15 @@ fn get_simple_experiment_config(
     let plan = create_experiment_plan(&parsed, &args.experiment_name)
         .wrap_err("Could not read experiment plan")?;
 
-    let max_sims_in_parallel = parsed
-        .get("max_sims_in_parallel")
-        .and_then(|val| val.as_u64())
-        .map(|val| val as usize);
+    let max_sims_in_parallel = match parsed.get("max_sims_in_parallel") {
+        Some(val) => {
+            let num = val.as_u64().ok_or_else(|| {
+                report!("max_sims_in_parallel in globals.json must be set to a valid integer")
+            })?;
+            Some(num as usize)
+        }
+        None => None,
+    };
 
     let config = SimpleExperimentConfig {
         experiment_name: args.experiment_name.clone(),
