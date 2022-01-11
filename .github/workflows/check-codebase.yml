@@ -1,0 +1,72 @@
+name: Check codebase
+on: pull_request
+
+jobs:
+  linting:
+    name: Linting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: ./.github/actions/warm-up-repo
+
+      - name: Run yarn lint:markdownlint
+        if: ${{ success() || failure() }}
+        run: |
+          if ! yarn lint:markdownlint; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Try running `yarn fix:markdownlint` locally to apply autofixes.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
+      - name: Run yarn lint:prettier
+        if: ${{ success() || failure() }}
+        run: |
+          if ! yarn lint:prettier; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Try running `yarn fix:prettier` locally to apply autofixes.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
+        ## TODO: Replace with `yarn fix:yarn-dedupe` after upgrading to Yarn v3+
+        ## https://yarnpkg.com/cli/dedupe
+        ## https://github.com/yarnpkg/berry/issues/2297
+      - name: Run yarn lint:yarn-deduplicate
+        if: ${{ success() || failure() }}
+        run: |
+          if ! yarn lint:yarn-deduplicate; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Some dependencies can be deduplicated, which will make node_modules'
+            echo 'lighter and potentially save us from unexplainable bugs.'
+            echo 'Please run `yarn fix:yarn-deduplicate` locally and commit yarn.lock.'
+            echo 'You may need to run the command 2-3 times in some rare cases.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
+        ## yarn --frozen-lockfile does not work for monorepos, so using a workaround:
+        ## https://github.com/yarnpkg/yarn/issues/5840#issuecomment-467516207
+        ## TODO: Use `yarn install --immutable` after upgrading to Yarn v3+
+      - name: Check yarn.lock stability
+        if: ${{ success() || failure() }}
+        run: |
+          git diff yarn.lock
+          if ! git diff --exit-code yarn.lock; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Changes were detected in yarn.lock file after running `yarn install`.'
+            echo 'This makes runtime less stable, so should be avoided.'
+            echo 'Please run `yarn install` locally and commit yarn.lock.'
+            echo 'You may also want to run `yarn fix:yarn-deduplicate` just in case.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1;
+          fi
