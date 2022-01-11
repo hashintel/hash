@@ -112,6 +112,11 @@ impl Engine {
         let state = Arc::new(state.downgrade());
         // Synchronize state with workers
         let active_sync = self.comms.state_sync(&state).await?;
+        // TODO: fix issues with getting write access to batch while state sync runs in parallel
+        //   with the context batch
+        log::trace!("Waiting for active state sync");
+        active_sync.await?.map_err(Error::state_sync)?;
+        log::trace!("State sync finished");
 
         let pre_context = context.into_pre_context();
         let context = self
@@ -127,6 +132,7 @@ impl Engine {
             .context_batch_sync(&context, current_step, state.group_start_indices())
             .await?;
 
+        // Note: the comment below is mostly invalid until state sync is fixed
         // We need to wait for state sync because state packages in the main loop
         // shouldn't write to state before workers have finished reading state.
         // In the case of the state snapshot, the main loop also shouldn't write to
@@ -136,9 +142,8 @@ impl Engine {
         // components have finished running), so we don't need confirmation of
         // snapshot_sync.
 
-        log::trace!("Waiting for active state sync");
-        active_sync.await?.map_err(Error::state_sync)?;
-        log::trace!("State sync finished");
+        // TODO move state sync back down here.
+
         // State sync finished, so the workers should have dropped
         // their `Arc`s with state by this point.
         let state = Arc::try_unwrap(state)
