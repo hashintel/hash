@@ -118,8 +118,8 @@ If you run a local instance of the app, please stop it before running the tests 
 #### Terminal 1
 
 ```sh
-yarn rebuild:backend
-NODE_ENV=test HASH_PG_DATABASE=backend_integration_tests yarn serve:hash-backend
+yarn external-services up --detach
+NODE_ENV=test HASH_PG_DATABASE=backend_integration_tests yarn dev:backend
 ```
 
 #### Terminal 2
@@ -145,8 +145,8 @@ If you run a local instance of the app, please stop it before running the tests 
 #### Terminal 1
 
 ```sh
-yarn rebuild:backend
-HASH_PG_DATABASE=playwright yarn serve:hash-backend
+yarn external-services up --detach
+HASH_PG_DATABASE=playwright yarn dev:backend
 ```
 
 #### Terminal 2
@@ -155,7 +155,7 @@ HASH_PG_DATABASE=playwright yarn serve:hash-backend
 HASH_PG_DATABASE=playwright yarn seed-data
 
 ## option 1: frontend in dev mode
-yarn serve:hash-frontend
+yarn dev:frontend
 
 ## option 2: frontend in prod mode
 yarn workspace @hashintel/hash-frontend build
