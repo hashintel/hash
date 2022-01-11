@@ -10,30 +10,22 @@ This repository contains HASH's open-source and public code, documentation, and 
 - `resources/docs`: A user guide to the whole HASH platform ([hash.ai/docs](https://hash.ai/docs))
 - `resources/glossary`: A glossary of terms explaining common concepts relevant to the use of HASH ([hash.ai/glossary](https://hash.ai/glossary))
 
-<p align="right">(<a href="#top">back to top</a>)</p>
-
 ## Contributing
 
-Please see [CONTRIBUTING.md](CONTRIBUTING.md) if you're interested in getting involved in the design or development of HASH
+Please see [CONTRIBUTING.md](CONTRIBUTING.md) if you're interested in getting involved in the design or development of HASH.
 
-<p align="right">(<a href="#top">back to top</a>)</p>
+We're also [hiring](https://hash.ai/careers) for a number of key roles. If you contribute to HASH's public monorepo be sure to mention this in your application.
 
 ## License
 
 Please see [LICENSE.md](LICENSE.md) for more information about the terms under which the various parts of this repository are made available
 
-<p align="right">(<a href="#top">back to top</a>)</p>
-
 ## Security
 
 Please see [SECURITY.md](SECURITY.md) for instructions around reporting issues, and details of which package versions we actively support
-
-<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Contact
 
 Find us on Twitter at [@hashintel](https://twitter.com/hashintel), join our [Discord server](https://hash.ai/discord) for quick help and support, or post in our [community forum](https://hash.community/).
 
-Project Link: [https://github.com/hashintel/hash](https://github.com/hashintel/hash)
-
-<p align="right">(<a href="#top">back to top</a>)</p>
+Project permalink: `https://github.com/hashintel/hash`

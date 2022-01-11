@@ -34,11 +34,7 @@ to contribute to and benefit from HASH. Please follow these when interacting wit
 
 ## I have a question, where do I go?
 
-> **Note:** Please don't use GitHub issues for help, we have a friendly community on...
-
-* [Discord](https://discord.com/invite/BPMrGAhjPh)
-* [Our Forum](https://community.hash.ai/)
-* And any other methods outlined on [our site](https://hash.ai/contact)
+If you have a question, you can ask it on our [community forum](https://hash.community/) or join our public [Discord server](https://hash.ai/discord) (requires a HASH account). Please don't use GitHub issues for general help or discussions. You can also get in touch with us directly via any of the methods outlined on [our site](https://hash.ai/contact).
 
 ## Getting started, what do I need to know?
 
@@ -150,3 +146,7 @@ Then simply run them with:
 ### Issue and Pull Request Labels
 
 > TODO
+
+### Hiring
+
+**We're growing the team behind HASH.** If you like what we've built, have contributed to the repo, or are otherwise interested in a full-time role, check out our [open opportunities](hash.ai/careers).
