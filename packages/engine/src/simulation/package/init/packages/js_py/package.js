@@ -31,7 +31,8 @@ const _load_init_fn = (console, source) => {
         return fn;
     } catch (e) {
         // Catch errors while loading the init function
-        Error.prepareStackTrace = prepare_user_trace;
+        // TODO
+        // Error.prepareStackTrace = prepare_user_trace;
         const trace = e.stack;
         trace.msg = "Couldn't load init function (SOURCE " + source + "):" + trace.msg;
         throw new Error(json_stringify(trace));
@@ -77,7 +78,8 @@ const run_task = (experiment, _sim, task_message, _group_state, context) => {
     try {
         agents = init_fn(context);
     } catch(e) {
-        Error.prepareStackTrace = prepare_user_trace;
+        // TODO
+        // Error.prepareStackTrace = prepare_user_trace;
         const trace = e.stack;
         throw new Error(JSON.stringify(trace));
     }
@@ -88,14 +90,18 @@ const run_task = (experiment, _sim, task_message, _group_state, context) => {
 
     let data;
     try {
-        data = JSON.stringify(agents);
+        data = {
+            "SuccessMessage": {
+                "agent_json": JSON.stringify(agents)
+            }
+        };
     } catch(e) {
         throw new Error(`could not serialize init return value to JSON: ${e.message}`);
     }
 
     // TODO: Change the runner to avoid this, perhaps a function or a well-defined object would make this clearer.
     return {
-        'task': data,
+        'task': JSON.stringify(data),
         'print': experiment.logged
     }
 }

@@ -2,7 +2,7 @@ use crate::{
     config::TaskDistributionConfig,
     simulation::{
         enum_dispatch::InitTaskMessage,
-        package::init::packages::jspy::{JsPyInitTaskMessage, StartMessage},
+        package::init::packages::js_py::{JsPyInitTaskMessage, StartMessage},
         task::{
             args::GetTaskArgs,
             handler::{WorkerHandler, WorkerPoolHandler},

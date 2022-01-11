@@ -8,7 +8,7 @@ use crate::{
     proto::{ExperimentRunTrait, InitialState, InitialStateName},
     simulation::{
         enum_dispatch::*,
-        package::init::packages::jspy::{js::JsInitTask, py::PyInitTask},
+        package::init::packages::js_py::{js::JsInitTask, py::PyInitTask},
         Error, Result,
     },
 };
@@ -87,7 +87,7 @@ impl InitPackage for Package {
                 // should be unreachable
                 return Err(Error::from(format!(
                     "Trying to run an init package for JS/Py but the init source wasn't .js or \
-                     .py: {:?}",
+                     .py but instead was: {:?}",
                     name
                 )));
             }
