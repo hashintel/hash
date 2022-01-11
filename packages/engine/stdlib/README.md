@@ -16,7 +16,7 @@ To contribute to the JavaScript standard library, please install [npm](https://w
 
 Some useful commands:
 
-```sh
+```shell
 # Build the standard library
 npm run build
 
@@ -26,7 +26,7 @@ npm run test
 
 We use ESLint to help find errors and enforce code style. Your editor or IDE likely has an ESLint plugin which will show these errors and warnings automatically. Alternatively, you can run ESLint from your terminal:
 
-```sh
+```shell
 npm run lint
 ```
 
@@ -37,13 +37,13 @@ environment.
 
 To install the development dependencies run:
 
-```sh
+```shell
 pip install -r src/py/dev_requirements.txt
 ```
 
 Useful commands:
 
-```sh
+```shell
 # Run the tests
 pytest
 

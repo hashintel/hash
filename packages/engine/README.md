@@ -77,11 +77,16 @@ Depending on your needs, different dependencies are required. Building this proj
 ### Required dependencies
 
 - The Rust Compiler
+
   - We recommend installing and using rustup, following the [instructions on the Rust-Lang website](https://www.rust-lang.org/tools/install)
   - hEngine runs on the Nightly toolchain. The version is managed by the [rust-toolchain.toml](./rust-toolchain.toml) file. To verify, run `rustup show` from the [engine](.) directory.
+
 - CMake [3.X.X >= 3.21.2]
+
   - CMake installation guidance from the [CMake page](https://cmake.org/install/) or if on macOS through [brew](https://brew.sh/)
+
 - a C++ compiler, pkg-config, openssl development files (see [Possible Dependencies and Debugging](#possible-dependencies-and-debugging))
+
 - For now, you need a pre-compiled _libv8_monolith.a_ accessible under the `$V8_PATH` environment variable
 
   - The following will produce the necessary files under `~/.v8/vendor` by downloading a precompiled library from a Ruby Gem. The `<URL TO GEM>` should be the link to the relevant gem on the [rubyjs/libv8 releases page](https://github.com/rubyjs/libv8/releases/tag/v8.4.255.0)
@@ -98,6 +103,7 @@ Depending on your needs, different dependencies are required. Building this proj
     ```
 
   - With the V8 folder containing `include` and `out.gn` you can then set the variable for your terminal session with `export V8_PATH=<path to folder>` or you can set it permanently by [adding it to your shell's environment](https://unix.stackexchange.com/questions/117467/how-to-permanently-set-environmental-variables)
+
   - Please also see [macOS Developer Specific Instructions](#macos-developer-specific-instructions) if you are running macOS
 
 ### Optional dependencies
@@ -131,13 +137,18 @@ Due to limitations in Cargo at the moment we can't properly check if it's being 
 
 - _Disable_ the `hash_engine/build-nng` feature by passing `--no-default-features` to any cargo commands such as `cargo build`
 
-At the moment the project only seems to be compiling if you use the `x86_64-apple-darwin` target. This has some added complexity, especially due to the fact that rustc fails to link 'fat-binaries' in certain scenarios.
+  At the moment the project only seems to be compiling if you use the `x86_64-apple-darwin` target. This has some added complexity, especially due to the fact that rustc fails to link 'fat-binaries' in certain scenarios.
 
 - It's necessary to acquire an x86 version of `nng`. Currently, the easiest known way to do this is through:
+
   - Creating a homebrew installation under Rosetta, [an example guide is here](https://stackoverflow.com/questions/64882584/how-to-run-the-homebrew-installer-under-rosetta-2-on-m1-macbook)
+
   - Using the x86 brew to install `nng` (which will then install an x86 version). This should result in an nng installation at: `/usr/local/Cellar/nng/1.5.2`
+
 - It's then necessary to set the `NNG_PATH` environment variable, similar to `V8_PATH`
+
   - The command is likely to be: `export NNG_PATH=/usr/local/Cellar/nng/1.5.2`
+
 - If the V8 monolith is failing to link due to symbol errors, it might be necessary to download the gem for the "darwin_universal" version.
 
 ### Possible Dependencies and Debugging
@@ -162,11 +173,15 @@ The CLI binary handles parsing a HASH project, and the lifetime of the engine fo
 
 Then, run the CLI using:
 
-- `cargo run --bin cli -- <CLI ARGS>`
+```shell
+cargo run --bin cli -- <CLI ARGS>
+```
 
 Where CLI args are described below in the [Usage](#usage) section, an example of a run command during development would be:
 
-- `cargo run --bin cli -- <CLI ARGS> -p "<PATH TO HASH PROJECT DIR>" single-run --num-steps <NUM-STEPS>`
+```shell
+cargo run --bin cli -- <CLI ARGS> -p "<PATH TO HASH PROJECT DIR>" single-run --num-steps <NUM-STEPS>
+```
 
 ## Quick Start Guide
 
@@ -181,7 +196,7 @@ In order to run the demo:
 1.  Unzip it either with your file browser or by e.g. `unzip ageing-agents.zip -d path/to/ageing-agents`
 1.  Run the simulation from the _packages/engine_ directory and pass the path to the downloaded project as a parameter:
 
-    ```sh
+    ```shell
     cargo run --bin cli -- --project 'path/to/ageing-agents' single-run --num-steps 5
     ```
 

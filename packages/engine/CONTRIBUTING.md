@@ -119,13 +119,17 @@ If you have ideas of how to improve the hEngine, feel free to submit them on the
 
 We are using [`cargo fmt`](https://github.com/rust-lang/rustfmt) and [`cargo clippy`](https://github.com/rust-lang/rust-clippy) to apply linting rules to our Rust codebase. In order to run those, you need to install them first (unless they are already installed, which is the default):
 
-- `rustup component add rustfmt`
-- `rustup component add clippy`
+```shell
+rustup component add rustfmt
+rustup component add clippy
+```
 
 Then simply run them with:
 
-- `cargo fmt`
-- `cargo clippy`
+```shell
+cargo fmt
+cargo clippy
+```
 
 ### JavaScript Styleguide
 
