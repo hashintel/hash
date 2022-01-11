@@ -202,19 +202,16 @@ export class Instance {
        *
        * @todo fix this
        */
-      this.updateSavedContents(nextSavedContents, true);
+      this.updateSavedContents(nextSavedContents);
     }
   }
 
-  private updateSavedContents(nextSavedContents: BlockEntity[], notify = true) {
+  private updateSavedContents(nextSavedContents: BlockEntity[]) {
     const { tr } = this.state;
     addEntityStoreAction(tr, { type: "contents", payload: nextSavedContents });
     this.state = this.state.apply(tr);
     this.savedContents = nextSavedContents;
-
-    if (notify) {
-      this.recordStoreUpdate();
-    }
+    this.recordStoreUpdate();
   }
 
   /**
@@ -281,7 +278,7 @@ export class Instance {
         ).then((newPage) => {
           const componentNodes = findComponentNodes(this.state.doc);
 
-          this.updateSavedContents(newPage.properties.contents, true);
+          this.updateSavedContents(newPage.properties.contents);
 
           for (let idx = 0; idx < componentNodes.length; idx++) {
             const [componentNode, pos] = componentNodes[idx];
