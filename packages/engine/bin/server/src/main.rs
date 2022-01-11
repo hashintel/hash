@@ -5,8 +5,8 @@ use hash_engine::{
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    hash_engine::init_logger();
     let args = hash_engine::args();
+    hash_engine::init_logger(args.emit);
 
     tracing::info!(
         "HASH Engine process started for experiment {}",
