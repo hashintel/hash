@@ -38,52 +38,47 @@ This behavior provides the agent with a field that allows the other process beha
 
 **init.json**
 
-````javascript
+```json
 {
-    "behaviors": [
-        "@hash/age/age.rs",
-        // more process behaviors such as source, delay, etc...
-    ],
-    ...
+  "behaviors": [
+    "@hash/age/age.rs"
+    // more process behaviors such as source, delay, etc...
+  ],
+  "...": "..."
 }
-
+```
 
 ### Process Labels
 
 The agent must also contain an array of labels for each process behavior. The labels allow you to give a descriptive name to each block. Only the behaviors listed on the following Process Behaviors page require a label; all other published or custom behaviors should have a `""` placeholder string.
 
-** init.json **
+**init.json**
 
-```javascript
+```json
 {
-    "behaviors": [
-        "@hash/age/age.rs",
-        "@hash/process/source.js",
-        "@hash/process/delay.js",
-        "@hash/process/sink.js"
-    ],
-    "process_labels": [
-        "",
-        "start_process",
-        "perform_action",
-        "end_process"
-    ],
-    ...
+  "behaviors": [
+    "@hash/age/age.rs",
+    "@hash/process/source.js",
+    "@hash/process/delay.js",
+    "@hash/process/sink.js"
+  ],
+  "process_labels": ["", "start_process", "perform_action", "end_process"],
+  "...": "..."
 }
-
+```
 
 ### Resources
 
 Certain blocks need to access `resources` to perform their functions. Resources can represent any quantifiable thing required to complete a task, for instance: staff, workstations, and wrenches. Resources should be represented on the process agents state as a field, with a number value representing how many are currently available. For example:
 
-```javascript
+```json
 {
-    ...,
-    "staff": 10,
-    "workstations": 3,
-    "wrenches": 5
+  "...": "...",
+  "staff": 10,
+  "workstations": 3,
+  "wrenches": 5
 }
-````
+```
 
 ### Parameters
 
@@ -93,37 +88,37 @@ The parameters for each block must be specified in the agent's fields. Each para
 - Its corresponding label is `start_process`
 - Its parameters will be a struct keyed to `"start_process"`
 
-```javascript
+```json
 {
-    "behaviors": [
-        "@hash/age/age.rs",
-        "@hash/process/source.js",
-        "@hash/process/delay.js",
-        "@hash/process/delay.js",
-        "@hash/process/sink.js"
-    ],
-    "process_labels": [
-        "",
-        "start_process",
-        "perform_action",
-        "verify_action",
-        "end_process"
-    ],
-    "process_parameters" : {
-        "start_process": {
-            // parameters for the Source block
-        },
-        "perform_action": {
-            // parameters for the first Delay block
-        },
-        "verify_action": {
-            // parameters for the second Delay block
-        },
-        "end_process": {
-            // parameters for the Sink block
-        }
-     }
-    ...
+  "behaviors": [
+    "@hash/age/age.rs",
+    "@hash/process/source.js",
+    "@hash/process/delay.js",
+    "@hash/process/delay.js",
+    "@hash/process/sink.js"
+  ],
+  "process_labels": [
+    "",
+    "start_process",
+    "perform_action",
+    "verify_action",
+    "end_process"
+  ],
+  "process_parameters": {
+    "start_process": {
+      // parameters for the Source block
+    },
+    "perform_action": {
+      // parameters for the first Delay block
+    },
+    "verify_action": {
+      // parameters for the second Delay block
+    },
+    "end_process": {
+      // parameters for the Sink block
+    }
+  },
+  "...": "..."
 }
 ```
 

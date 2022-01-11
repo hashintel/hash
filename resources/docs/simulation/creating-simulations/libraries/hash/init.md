@@ -14,34 +14,33 @@ Returns an array of agents at random positions within the bounds defined in `top
 
 <Tabs>
 <Tab title="init.js" >
-  
+
 ```javascript
 const init = (context) => {
   // You can define the topology object here or in globals.json
   const topology = context.globals().topology;
 
-// Define agents without a position, since the scatter() function
-// will assign random positions
-const template = {
-"behaviors": ["move.js"],
-"color": "green"
-}
+  // Define agents without a position, since the scatter() function
+  // will assign random positions
+  const template = {
+    behaviors: ["move.js"],
+    color: "green",
+  };
 
-// You can also pass a function instead of an object. This allows your agents
-// to initialize certain properties stochastically
-const templateFunction = () => ({
-"behaviors": ["move.js"],
-"color": Math.random() > 0.5 ? "green" : "blue"
-})
+  // You can also pass a function instead of an object. This allows your agents
+  // to initialize certain properties stochastically
+  const templateFunction = () => ({
+    behaviors: ["move.js"],
+    color: Math.random() > 0.5 ? "green" : "blue",
+  });
 
-// Generate the randomly scattered agents
-const agents = hstd.init.scatter(100, topology, template);
-const agentsFromFunction = hstd.init.scatter(100, topology, templateFunction);
+  // Generate the randomly scattered agents
+  const agents = hstd.init.scatter(100, topology, template);
+  const agentsFromFunction = hstd.init.scatter(100, topology, templateFunction);
 
-return agents;
-}
-
-````
+  return agents;
+};
+```
 
 </Tab>
 <Tab title="init.py" >
@@ -73,12 +72,12 @@ def init(context):
   agents_from_function = hstd.init.scatter(100, topology, template_function)
 
   return agents
-````
+```
 
 </Tab>
 <Tab title="globals.json" >
-  
-```javascript
+
+```json
 {
   "topology": {
     "x_bounds": [0, 20],
@@ -160,34 +159,33 @@ Returns an array of agents occupying every integer location within the bounds de
 
 <Tabs>
 <Tab title="init.js" >
-  
+
 ```javascript
 const init = (context) => {
   // You can define the topology object here or in globals.json
   const topology = context.globals().topology;
 
-// Define agents without a position, since the grid() function
-// will assign positions
-const template = {
-"behaviors": ["move.js"],
-"color": "green"
-}
+  // Define agents without a position, since the grid() function
+  // will assign positions
+  const template = {
+    behaviors: ["move.js"],
+    color: "green",
+  };
 
-// You can also pass a function instead of an object. This allows your agents
-// to initialize certain properties stochastically
-const templateFunction = () => ({
-"behaviors": ["move.js"],
-"color": Math.random() > 0.5 ? "green" : "blue"
-})
+  // You can also pass a function instead of an object. This allows your agents
+  // to initialize certain properties stochastically
+  const templateFunction = () => ({
+    behaviors: ["move.js"],
+    color: Math.random() > 0.5 ? "green" : "blue",
+  });
 
-// Generate the grid of agents
-const agents = hstd.init.grid(topology, template);
-const agentsFromFunction = hstd.init.grid(topology, templateFunction);
+  // Generate the grid of agents
+  const agents = hstd.init.grid(topology, template);
+  const agentsFromFunction = hstd.init.grid(topology, templateFunction);
 
-return agents;
-}
-
-````
+  return agents;
+};
+```
 
 </Tab>
 <Tab title="init.py">
@@ -219,12 +217,12 @@ def init(context):
   agents_from_function = hstd.init.grid(topology, template_function)
 
   return agents
-````
+```
 
 </Tab>
 <Tab title="globals.json" >
-  
-```javascript
+
+```json
 {
   "topology": {
     "x_bounds": [0, 20],
@@ -242,37 +240,35 @@ Returns an array of agents based on a specified `layout` and set of `templates`.
 
 <Tabs>
 <Tab title="init.js" >
-  
+
 ```javascript
 const init = (context) => {
-    const layout = context.data()["/layout_data.csv"];
+  const layout = context.data()["/layout_data.csv"];
 
-    // Note that templates don't have position, since that is assigned
-    // based on the layout file
-    const templates = {
-        "c": {
-          "agent_name": "crane",
-          "behaviors": ["crane.js"]
-        },
-        "f": {
-          "agent_name": "forklift",
-          "behaviors": ["move.js", "lift.js"]
-        },
-        "w": {
-          "agent_name": "wall",
-          "color": "black"
-        }
-    };
+  // Note that templates don't have position, since that is assigned
+  // based on the layout file
+  const templates = {
+    c: {
+      agent_name: "crane",
+      behaviors: ["crane.js"],
+    },
+    f: {
+      agent_name: "forklift",
+      behaviors: ["move.js", "lift.js"],
+    },
+    w: {
+      agent_name: "wall",
+      color: "black",
+    },
+  };
 
-    // Optional position offset
-    const offset = [5, 5, 0];
+  // Optional position offset
+  const offset = [5, 5, 0];
 
-    const agents = hstd.init.createLayout(layout, templates, offset);
-    return agents;
-
-}
-
-````
+  const agents = hstd.init.createLayout(layout, templates, offset);
+  return agents;
+};
+```
 
 </Tab>
 <Tab title="init.py">
@@ -305,11 +301,11 @@ def init(context):
 
   agents = hstd.init.create_layout(layout, templates, offset)
   return agents
-````
+```
 
 </Tab>
 <Tab title="layout_data.csv" >
-  
+
 ```text
 w,,,,,
 w,,f,,,

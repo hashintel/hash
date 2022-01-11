@@ -24,6 +24,7 @@ While there are a lot of ways to add unit tests to a simulation, a straightforwa
 
 ```javascript
 // test_behavior.js
+
 function testCaseOne(state) {
   if (state.test_case_one == state.actual_value) {
     console.info("Test Case One Passes");

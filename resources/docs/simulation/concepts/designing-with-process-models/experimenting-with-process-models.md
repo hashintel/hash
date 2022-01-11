@@ -14,15 +14,17 @@ See the [experiments section](/docs/simulation/creating-simulations/experiments/
 
 To run an experiment, you'll want to first identify the parameter of the process you want to explore. For example, in a model with a service block:
 
-```javascript
+```json
 // Snippet of a process model
 
+{
   "support_resources_solving_stuff": {
-       "time": 2,
-       "resource": "service_agents",
-       "track_wait": true
-     },
-   "service_agents": 6
+    "time": 2,
+    "resource": "service_agents",
+    "track_wait": true
+  },
+  "service_agents": 6
+}
 ```
 
 In this model we could run experiments with the “service_agents” property and see how it responds to different numbers of agents.

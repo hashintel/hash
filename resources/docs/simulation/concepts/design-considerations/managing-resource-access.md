@@ -41,7 +41,7 @@ if (requests.length) {
 <Tab title="JavaScript" >
 
 ```javascript
-// sugar_patch.js"
+// sugar_patch.js
 
 if (requests.length) {
   // Send all sugar to randomly selected agent

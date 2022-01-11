@@ -30,9 +30,9 @@ _@hash/physics/spring.rs_
 
 This behavior simulates a spring connected between the agent and one of its neighbors. It adds a force to the agent's `force` field proportional to it's distance from a certain neighbor, based on the base length of the spring, the spring constant, and the amount of damping. To run this behavior, the agent must have a `springs` field, which contains an array of objects defined like so:
 
-```javascript
+```json
 {
-  ...
+  "...": "...",
   "behaviors": ["@hash/physics/spring.rs", "@hash/physics/forces.rs"],
   "springs": [
     {
@@ -40,8 +40,8 @@ This behavior simulates a spring connected between the agent and one of its neig
       "length": number, // The neutral length of the spring
       "k": number, // The spring constant
       "damping": number, // OPTIONAL The damping constant B
-    }
-    ...
+    },
+    "..."
   ]
 }
 ```

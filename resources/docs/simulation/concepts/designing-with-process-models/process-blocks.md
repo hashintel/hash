@@ -300,15 +300,17 @@ Each **Service** or **Seize/Release** block in your process agent has an associa
 
 To use the behavior, you'll also need to specify a new object in `process_parameters`_._ The `max_resources` must specify the maximum, or starting number, of resources the agent begins with.
 
-```javascript
-...
-"process_parameters": {
-  ...
-  "max_resources": {
-    "senior_billers": 3,
-    "account_billers": 4,
-    "billing_clerks": 3,
-    "printers": 1
+```json
+{
+  "...": "...",
+  "process_parameters": {
+    "...": "...",
+    "max_resources": {
+      "senior_billers": 3,
+      "account_billers": 4,
+      "billing_clerks": 3,
+      "printers": 1
+    }
   }
 }
 ```

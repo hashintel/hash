@@ -89,29 +89,31 @@ In the actor model, agents consist of **state**, have **behaviors**, and communi
 
 The same simulation shown in object-oriented form can easily be implemented using the actor-based framework in HASH. This simulation is available to view and run on [hIndex](https://hash.ai/@hash/random-coins). We start by initializing the simulation — specifying which agents should be created and setting their initial state. This may be performed declaratively as shown in `init.json` below.
 
-```js
-[{
-  "behaviors": [
-    "@hash/create-scatters/create_scatters.js",
-    "@hash/create-agents/create_agents.js",
-    "@hash/remove-self/remove_self.js"
-  ],
-  "scatter_templates": [{
-    "template_name": "people",
-    "template_count": 20,
-    "coins": 1000,
+```json
+[
+  {
     "behaviors": [
-      "make_bet.js",
-      "@hash/random-movement/random_movement.rs"
-  ]
-}]
+      "@hash/create-scatters/create_scatters.js",
+      "@hash/create-agents/create_agents.js",
+      "@hash/remove-self/remove_self.js"
+    ],
+    "scatter_templates": [
+      {
+        "template_name": "people",
+        "template_count": 20,
+        "coins": 1000,
+        "behaviors": ["make_bet.js", "@hash/random-movement/random_movement.rs"]
+      }
+    ]
+  }
+]
 ```
 
 There a few interesting points of note here. First, agents in hash can create other agents. The simulation is initialized with a single agent which in-turn creates all people agents in the model. Second, behaviors compose with each other. All people agents have two behaviors: `make_bet.js` and `@hash/random-movement/random_movement.rs`. The first is a user-defined behavior which allows an agent to engage in bets, and the second allows agents to move throughout the grid as the simulation progresses — one of the many behaviors made available by the community on [hIndex](https://hash.ai/index).
 
 The `make_bet.js` behavior is shown below.
 
-```js
+```javascript
 // make_bet.js
 
 const behavior = (state, context) => {
