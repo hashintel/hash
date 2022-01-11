@@ -86,7 +86,7 @@ typings/
 **/dist
 
 # vscode config
-.vscode
+.vscode/settings.json
 
 # intellij IDEs config
 /.idea/
