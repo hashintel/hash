@@ -14,15 +14,15 @@ A technical deep-dive into how process models are structured. This is optional c
 
 Process models in HASH are built on a single agent, and there are three elements to their definition:
 
-* The `behaviors` array — just like any agent in HASH, you'll be filling this with a mix of published behaviors from the Process Modeling Library and custom behaviors you've written.
-* A `process_labels` array — this allows you to add descriptive labels to each process, and link them to their parameters.
-* Parameter fields — most process behaviors will have corresponding parameters that you need to define in the agent's fields, and can be used to accurately describe the real-world system.
+- The `behaviors` array — just like any agent in HASH, you'll be filling this with a mix of published behaviors from the Process Modeling Library and custom behaviors you've written.
+- A `process_labels` array — this allows you to add descriptive labels to each process, and link them to their parameters.
+- Parameter fields — most process behaviors will have corresponding parameters that you need to define in the agent's fields, and can be used to accurately describe the real-world system.
 
 Each process block behavior operates in three parts:
 
-1. The block retrieves all objects in its queue.
-2. The block then performs a function, such as modifying on object property or seizing a resource from the agent.
-3. The block puts modified objects back into its queue, or into the queue of the following block.
+1.  The block retrieves all objects in its queue.
+1.  The block then performs a function, such as modifying on object property or seizing a resource from the agent.
+1.  The block puts modified objects back into its queue, or into the queue of the following block.
 
 <Hint style="warning">
 The only exception to this is the Sink block. Since it represents the end of a process, it does not send objects into a new queue.
@@ -38,7 +38,7 @@ This behavior provides the agent with a field that allows the other process beha
 
 **init.json**
 
-```javascript
+````javascript
 {
     "behaviors": [
         "@hash/age/age.rs",
@@ -58,8 +58,8 @@ The agent must also contain an array of labels for each process behavior. The la
 {
     "behaviors": [
         "@hash/age/age.rs",
-        "@hash/process/source.js", 
-        "@hash/process/delay.js", 
+        "@hash/process/source.js",
+        "@hash/process/delay.js",
         "@hash/process/sink.js"
     ],
     "process_labels": [
@@ -83,23 +83,23 @@ Certain blocks need to access `resources` to perform their functions. Resources 
     "workstations": 3,
     "wrenches": 5
 }
-```
+````
 
 ### Parameters
 
 The parameters for each block must be specified in the agent's fields. Each parameter is keyed according to the label in the `process_labels` array. For example:
 
-* The first process block on the agent is a Source block
-* Its corresponding label is `start_process`
-* Its parameters will be a struct keyed to `"start_process"`
+- The first process block on the agent is a Source block
+- Its corresponding label is `start_process`
+- Its parameters will be a struct keyed to `"start_process"`
 
 ```javascript
 {
     "behaviors": [
         "@hash/age/age.rs",
-        "@hash/process/source.js", 
+        "@hash/process/source.js",
         "@hash/process/delay.js",
-        "@hash/process/delay.js", 
+        "@hash/process/delay.js",
         "@hash/process/sink.js"
     ],
     "process_labels": [

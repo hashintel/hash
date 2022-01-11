@@ -18,8 +18,8 @@ System Dynamics models exist on an agent, either on their own, or in conjunction
 
 Your agent only needs to run two behaviors to execute a system dynamics model:
 
-* `@hash/sd/calc_rates.js` - determines and assigns all flow rates for the current time step
-* `@hash/sd/step.js` - runs the model one step forward using the current flow rates and stock values
+- `@hash/sd/calc_rates.js` - determines and assigns all flow rates for the current time step
+- `@hash/sd/step.js` - runs the model one step forward using the current flow rates and stock values
 
 <Hint style="info">
 Make sure that your agent's `behaviors` array always contains the two behaviors in that order.
@@ -49,10 +49,10 @@ An model that calculates population levels might look something like this:
 
 The final step is to define the rates in your model. Each rate will have 3 or 4 properties defined:
 
-* `rate` - the rate value for the curren time step. Can initially be 0.
-* `rate_expression` - a string expression that will be evaluated to determine the rate at every timestep. You may access `state` fields in this expression.
-* `from` - the stock from which this rate is flowing. This stock will decrease at the rate.
-* `to` - the stock to which this rate is flowing. This stock will increase at the rate.
+- `rate` - the rate value for the curren time step. Can initially be 0.
+- `rate_expression` - a string expression that will be evaluated to determine the rate at every timestep. You may access `state` fields in this expression.
+- `from` - the stock from which this rate is flowing. This stock will decrease at the rate.
+- `to` - the stock to which this rate is flowing. This stock will increase at the rate.
 
 <Hint style="info">
 Some rates will only have one of "to" or "from" if they are coming from a sink, or going to a source.

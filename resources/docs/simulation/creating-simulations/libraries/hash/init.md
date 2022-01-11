@@ -20,27 +20,28 @@ const init = (context) => {
   // You can define the topology object here or in globals.json
   const topology = context.globals().topology;
 
-  // Define agents without a position, since the scatter() function
-  // will assign random positions
-  const template = {
-    "behaviors": ["move.js"],
-    "color": "green"
-  }
-
-  // You can also pass a function instead of an object. This allows your agents
-  // to initialize certain properties stochastically
-  const templateFunction = () => ({
-    "behaviors": ["move.js"],
-    "color": Math.random() > 0.5 ? "green" : "blue"
-  })
-
-  // Generate the randomly scattered agents
-  const agents = hstd.init.scatter(100, topology, template);
-  const agentsFromFunction = hstd.init.scatter(100, topology, templateFunction);
-
-  return agents;
+// Define agents without a position, since the scatter() function
+// will assign random positions
+const template = {
+"behaviors": ["move.js"],
+"color": "green"
 }
-```
+
+// You can also pass a function instead of an object. This allows your agents
+// to initialize certain properties stochastically
+const templateFunction = () => ({
+"behaviors": ["move.js"],
+"color": Math.random() > 0.5 ? "green" : "blue"
+})
+
+// Generate the randomly scattered agents
+const agents = hstd.init.scatter(100, topology, template);
+const agentsFromFunction = hstd.init.scatter(100, topology, templateFunction);
+
+return agents;
+}
+
+````
 
 </Tab>
 <Tab title="init.py" >
@@ -72,7 +73,7 @@ def init(context):
   agents_from_function = hstd.init.scatter(100, topology, template_function)
 
   return agents
-```
+````
 
 </Tab>
 <Tab title="globals.json" >
@@ -99,25 +100,25 @@ Returns an array of agents generated from the `template`. Agents are generated a
 ```javascript
 const init = (context) => {
   const template = {
-    "behaviors": ["move.js"],
-    "position": [2, 10, 0],
-    "color": "green"
-  }
+    behaviors: ["move.js"],
+    position: [2, 10, 0],
+    color: "green",
+  };
 
   // You can also pass a function instead of an object. This allows your agents
   // to initialize certain properties stochastically
   const templateFunction = () => ({
-    "behaviors": ["move.js"],
-    "position": [2, 10, 0],
-    "color": Math.random() > 0.5 ? "green" : "blue"
-  })
+    behaviors: ["move.js"],
+    position: [2, 10, 0],
+    color: Math.random() > 0.5 ? "green" : "blue",
+  });
 
   // Generate the randomly scattered agents
   const agents = hstd.init.stack(100, template);
   const agentsFromFunction = hstd.init.stack(100, templateFunction);
 
   return agents;
-}
+};
 ```
 
 </Tab>
@@ -165,27 +166,28 @@ const init = (context) => {
   // You can define the topology object here or in globals.json
   const topology = context.globals().topology;
 
-  // Define agents without a position, since the grid() function
-  // will assign positions
-  const template = {
-    "behaviors": ["move.js"],
-    "color": "green"
-  }
-
-  // You can also pass a function instead of an object. This allows your agents
-  // to initialize certain properties stochastically
-  const templateFunction = () => ({
-    "behaviors": ["move.js"],
-    "color": Math.random() > 0.5 ? "green" : "blue"
-  })
-
-  // Generate the grid of agents
-  const agents = hstd.init.grid(topology, template);
-  const agentsFromFunction = hstd.init.grid(topology, templateFunction);
-
-  return agents;
+// Define agents without a position, since the grid() function
+// will assign positions
+const template = {
+"behaviors": ["move.js"],
+"color": "green"
 }
-```
+
+// You can also pass a function instead of an object. This allows your agents
+// to initialize certain properties stochastically
+const templateFunction = () => ({
+"behaviors": ["move.js"],
+"color": Math.random() > 0.5 ? "green" : "blue"
+})
+
+// Generate the grid of agents
+const agents = hstd.init.grid(topology, template);
+const agentsFromFunction = hstd.init.grid(topology, templateFunction);
+
+return agents;
+}
+
+````
 
 </Tab>
 <Tab title="init.py">
@@ -217,7 +219,7 @@ def init(context):
   agents_from_function = hstd.init.grid(topology, template_function)
 
   return agents
-```
+````
 
 </Tab>
 <Tab title="globals.json" >
@@ -267,8 +269,10 @@ const init = (context) => {
 
     const agents = hstd.init.createLayout(layout, templates, offset);
     return agents;
+
 }
-```
+
+````
 
 </Tab>
 <Tab title="init.py">
@@ -301,7 +305,7 @@ def init(context):
 
   agents = hstd.init.create_layout(layout, templates, offset)
   return agents
-```
+````
 
 </Tab>
 <Tab title="layout_data.csv" >

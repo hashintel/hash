@@ -85,11 +85,11 @@ For example, if you have a collection of agents with an age attribute in your si
 
 It's likely that the most common operation you'll use is "filter". You can filter with numeric, boolean, and string values. The valid comparisons are listed below:
 
-| Comparison Name | Comparison Description |
-| :--- | :--- |
-| eq | Equal to \(===\) |
-| neq | Not equal to \(!==\) |
-| lt | Less than \(&lt;\) |
-| lte | Less than or equal to \(&lt;=\) |
-| gt | Greater than \(&gt;\) |
-| gte | Greater than or equal to \(&gt;=\) |
+| Comparison Name | Comparison Description             |
+| :-------------- | :--------------------------------- |
+| eq              | Equal to \(===\)                   |
+| neq             | Not equal to \(!==\)               |
+| lt              | Less than \(&lt;\)                 |
+| lte             | Less than or equal to \(&lt;=\)    |
+| gt              | Greater than \(&gt;\)              |
+| gte             | Greater than or equal to \(&gt;=\) |

@@ -76,34 +76,34 @@ Now that all the Business data is stored successfully, we need to iterate throug
 Define a `find_min()` function like the one below.
 
 ```javascript
- const find_min = (businesses) => {
-   let overall_min = {
-     cost: null,
-     agent_id: "",
-     position: [],
-     price: 0,
-     rgb: null
-   };
+const find_min = (businesses) => {
+  let overall_min = {
+    cost: null,
+    agent_id: "",
+    position: [],
+    price: 0,
+    rgb: null,
+  };
 
-   Object.keys(businesses).forEach((shop) => {
-     let individual_min = {
-       cost: null,
-       agent_id: "",
-       position: [],
-       price: 0,
-       rgb: null
-     }
+  Object.keys(businesses).forEach((shop) => {
+    let individual_min = {
+      cost: null,
+      agent_id: "",
+      position: [],
+      price: 0,
+      rgb: null,
+    };
 
-     // Find min cost for each business
-     businesses[shop].data.forEach((business_change) => {
-       const position = business_change[0]
-       const price = business_change[1]
-       const rgb = business_change[2]
+    // Find min cost for each business
+    businesses[shop].data.forEach((business_change) => {
+      const position = business_change[0];
+      const price = business_change[1];
+      const rgb = business_change[2];
 
-       const cost = calculate_cost(position, price)
-     })
-   })
- }
+      const cost = calculate_cost(position, price);
+    });
+  });
+};
 ```
 
 <Hint style="info">
@@ -117,68 +117,74 @@ Let’s add the cost comparisons for both the individual Business and overall. P
 
 ```javascript
 // Check min for individual business
- if (cost < individual_min.cost || individual_min.cost === null) {
- // TODO: Update individual_min
- } else if (cost === individual_min.cost) {
-   if (Math.random() < 0.5) {
-     // TODO: Update individual_min
-   }
- }
+if (cost < individual_min.cost || individual_min.cost === null) {
+  // TODO: Update individual_min
+} else if (cost === individual_min.cost) {
+  if (Math.random() < 0.5) {
+    // TODO: Update individual_min
+  }
+}
 
- // Check min for all business
- if (cost < overall_min.cost || overall_min.cost === null) {
-   // TODO: Update overall_min
- } else if (cost === overall_min.cost) {
-   // 50% chance of picking another business if cost is the same or will pick the shop they shopped at last tick
-   if (Math.random() < 0.5 || JSON.stringify(state.rgb) === JSON.stringify(rgb)) {
-     // TODO: Update overall_min
-   }
- }
+// Check min for all business
+if (cost < overall_min.cost || overall_min.cost === null) {
+  // TODO: Update overall_min
+} else if (cost === overall_min.cost) {
+  // 50% chance of picking another business if cost is the same or will pick the shop they shopped at last tick
+  if (
+    Math.random() < 0.5 ||
+    JSON.stringify(state.rgb) === JSON.stringify(rgb)
+  ) {
+    // TODO: Update overall_min
+  }
+}
 ```
 
 Notice how many times you need to update `overall_min` and `individual_min`. Since both objects have the same structure and to save lines of code, let’s create another function in customer.js called `update_min()`. \(Add it before `find_min()`\).
 
 ```javascript
- // Update properties of 'type' object (individual_min or overall_min)
- const update_min = (type, cost, id, position, price, rgb) => {
-   type.cost = cost
-   type.agent_id = id
-   type.position = position
-   type.price = price
-   type.rgb = rgb
- }
+// Update properties of 'type' object (individual_min or overall_min)
+const update_min = (type, cost, id, position, price, rgb) => {
+  type.cost = cost;
+  type.agent_id = id;
+  type.position = position;
+  type.price = price;
+  type.rgb = rgb;
+};
 ```
 
 Now we can replace the ‘TODO’ comments with a call to update_min\(\) with the proper parameters. We've inserted those calls in the snippet below.
 
 ```javascript
 // Check min for individual business
- if (cost < individual_min.cost || individual_min.cost === null) {
-   update_min(individual_min, cost, shop, position, price, rgb)
- } else if (cost === individual_min.cost) {
-   if (Math.random() < 0.5) {
-     update_min(individual_min, cost, shop, position, price, rgb)
-   }
- }
+if (cost < individual_min.cost || individual_min.cost === null) {
+  update_min(individual_min, cost, shop, position, price, rgb);
+} else if (cost === individual_min.cost) {
+  if (Math.random() < 0.5) {
+    update_min(individual_min, cost, shop, position, price, rgb);
+  }
+}
 
- // Check min for all business
- if (cost < overall_min.cost || overall_min.cost === null) {
-   update_min(overall_min, cost, shop, position, price, rgb)
- } else if (cost === overall_min.cost) {
-   // 50% chance of picking another business if cost is the same or will pick the shop they shopped at last tick
-   if (Math.random() < 0.5 || JSON.stringify(state.rgb) === JSON.stringify(rgb)) {
-     update_min(overall_min, cost, shop, position, price, rgb)
-   }
- }
+// Check min for all business
+if (cost < overall_min.cost || overall_min.cost === null) {
+  update_min(overall_min, cost, shop, position, price, rgb);
+} else if (cost === overall_min.cost) {
+  // 50% chance of picking another business if cost is the same or will pick the shop they shopped at last tick
+  if (
+    Math.random() < 0.5 ||
+    JSON.stringify(state.rgb) === JSON.stringify(rgb)
+  ) {
+    update_min(overall_min, cost, shop, position, price, rgb);
+  }
+}
 ```
 
 After all the comparisons have been made, we want to notify that particular Business where this Customer would prefer to shop. Let's send a message just below the `businesses[shop].data.forEach()` call within the key iterator.
 
 ```javascript
 state.addMessage(individual_min.agent_id, "customer_cost", {
-    cost: individual_min.cost,
-    position: individual_min.position,
-    price: individual_min.price
+  cost: individual_min.cost,
+  position: individual_min.position,
+  price: individual_min.price,
 });
 ```
 
@@ -186,9 +192,9 @@ All that’s left to do now for `customer.js` is to update the agent’s color t
 
 ```javascript
 // Only update color if min cost was determined during this time step
- if (overall_min.rgb !== null) {
-   state.rgb = overall_min.rgb;
- }
+if (overall_min.rgb !== null) {
+  state.rgb = overall_min.rgb;
+}
 ```
 
 Finally, call find_min\(\) below your call to collect_business_data\(\) and pass in the const variable `businesses`.
@@ -215,101 +221,117 @@ If you followed all the steps above, run the simulation a couple times and you s
 
 ```javascript
 const behavior = (state, context) => {
- // Function to determine cost --> business price + distance from business
- const calculate_cost = (position, price) => {
-   const state_position = state.position;
-   return price + Math.sqrt(Math.pow((state_position[0] - position[0]), 2) + Math.pow((state_position[1] - position[1]), 2))
- }
+  // Function to determine cost --> business price + distance from business
+  const calculate_cost = (position, price) => {
+    const state_position = state.position;
+    return (
+      price +
+      Math.sqrt(
+        Math.pow(state_position[0] - position[0], 2) +
+          Math.pow(state_position[1] - position[1], 2)
+      )
+    );
+  };
 
- const collect_business_data = (messages) => {
-   let shops = {};
-   messages.filter((message) => message.type === "business_movement")
-     .forEach((message) => {
-       const agent_id = message.from;
+  const collect_business_data = (messages) => {
+    let shops = {};
+    messages
+      .filter((message) => message.type === "business_movement")
+      .forEach((message) => {
+        const agent_id = message.from;
 
-       if (agent_id in shops) {
-         shops[agent_id].data.push([message.data.position, message.data.price, message.data.rgb]);
-       } else {
-         shops[agent_id] = {
-           data: [[message.data.position, message.data.price, message.data.rgb]]
-         }
-       }
-     });
+        if (agent_id in shops) {
+          shops[agent_id].data.push([
+            message.data.position,
+            message.data.price,
+            message.data.rgb,
+          ]);
+        } else {
+          shops[agent_id] = {
+            data: [
+              [message.data.position, message.data.price, message.data.rgb],
+            ],
+          };
+        }
+      });
 
-   return shops;
- }
+    return shops;
+  };
 
- // Update properties of 'type' object (individual_min or overall_min)
- const update_min = (type, cost, id, position, price, rgb) => {
-   type.cost = cost
-   type.agent_id = id
-   type.position = position
-   type.price = price
-   type.rgb = rgb
- }
+  // Update properties of 'type' object (individual_min or overall_min)
+  const update_min = (type, cost, id, position, price, rgb) => {
+    type.cost = cost;
+    type.agent_id = id;
+    type.position = position;
+    type.price = price;
+    type.rgb = rgb;
+  };
 
- const find_min = (businesses) => {
-   let overall_min = {
-     cost: null,
-     agent_id: "",
-     position: [],
-     price: 0,
-     rgb: null
-   };
+  const find_min = (businesses) => {
+    let overall_min = {
+      cost: null,
+      agent_id: "",
+      position: [],
+      price: 0,
+      rgb: null,
+    };
 
-   Object.keys(businesses).forEach((shop) => {
-     let individual_min = {
-       cost: null,
-       agent_id: "",
-       position: [],
-       price: 0,
-       rgb: null
-     }
+    Object.keys(businesses).forEach((shop) => {
+      let individual_min = {
+        cost: null,
+        agent_id: "",
+        position: [],
+        price: 0,
+        rgb: null,
+      };
 
-     // Find min cost for each business
-     businesses[shop].data.forEach((business_change) => {
-       const position = business_change[0]
-       const price = business_change[1]
-       const rgb = business_change[2]
+      // Find min cost for each business
+      businesses[shop].data.forEach((business_change) => {
+        const position = business_change[0];
+        const price = business_change[1];
+        const rgb = business_change[2];
 
-       const cost = calculate_cost(position, price)
+        const cost = calculate_cost(position, price);
 
-       // Check min for individual business
-       if (cost < individual_min.cost || individual_min.cost === null) {
-         update_min(individual_min, cost, shop, position, price, rgb)
-       } else if (cost === individual_min.cost) {
-         if (Math.random() < 0.5) {
-           update_min(individual_min, cost, shop, position, price, rgb)
-         }
-       }
+        // Check min for individual business
+        if (cost < individual_min.cost || individual_min.cost === null) {
+          update_min(individual_min, cost, shop, position, price, rgb);
+        } else if (cost === individual_min.cost) {
+          if (Math.random() < 0.5) {
+            update_min(individual_min, cost, shop, position, price, rgb);
+          }
+        }
 
-       // Check min for all business
-       if (cost < overall_min.cost || overall_min.cost === null) {
-         update_min(overall_min, cost, shop, position, price, rgb)
-       } else if (cost === overall_min.cost) {
-         // 50% chance of picking another business if cost is the same or will pick the shop they shopped at last tick
-         if (Math.random() < 0.5 || JSON.stringify(state.rgb) === JSON.stringify(rgb)) {
-           update_min(overall_min, cost, shop, position, price, rgb)
-         }
-       }
-     })
+        // Check min for all business
+        if (cost < overall_min.cost || overall_min.cost === null) {
+          update_min(overall_min, cost, shop, position, price, rgb);
+        } else if (cost === overall_min.cost) {
+          // 50% chance of picking another business if cost is the same or will pick the shop they shopped at last tick
+          if (
+            Math.random() < 0.5 ||
+            JSON.stringify(state.rgb) === JSON.stringify(rgb)
+          ) {
+            update_min(overall_min, cost, shop, position, price, rgb);
+          }
+        }
+      });
 
-     state.addMessage(individual_min.agent_id, "customer_cost", {
-         cost: individual_min.cost,
-         position: individual_min.position,
-         price: individual_min.price
-       });
-   })
+      state.addMessage(individual_min.agent_id, "customer_cost", {
+        cost: individual_min.cost,
+        position: individual_min.position,
+        price: individual_min.price,
+      });
+    });
 
-   // Only update color if min cost was determined during this time step
-   if (overall_min.rgb !== null) {
-     state.rgb = overall_min.rgb;
-   }
- }
+    // Only update color if min cost was determined during this time step
+    if (overall_min.rgb !== null) {
+      state.rgb = overall_min.rgb;
+    }
+  };
 
- const businesses = collect_business_data(context.messages());
- find_min(businesses);
-}
+  const businesses = collect_business_data(context.messages());
+  find_min(businesses);
+};
 ```
 
 </Tab>
@@ -366,39 +388,48 @@ const behavior = (state, context) => {
 
 ```javascript
 const behavior = (state, context) => {
- const send_message = (agent_id, position, price) => {
-   state.addMessage(agent_id, "business_movement", {
-     position,
-     price,
-     rgb: state.rgb
-   });
- }
+  const send_message = (agent_id, position, price) => {
+    state.addMessage(agent_id, "business_movement", {
+      position,
+      price,
+      rgb: state.rgb,
+    });
+  };
 
- const price_messaging = (agent_id, position) => {
-   const item_price = state.item_price;
-   send_message(agent_id, position, item_price);
-   send_message(agent_id, position, item_price + 1);
-   if (item_price > 1) {
-     send_message(agent_id, position, item_price - 1);
-   }
- }
+  const price_messaging = (agent_id, position) => {
+    const item_price = state.item_price;
+    send_message(agent_id, position, item_price);
+    send_message(agent_id, position, item_price + 1);
+    if (item_price > 1) {
+      send_message(agent_id, position, item_price - 1);
+    }
+  };
 
- const query_customers = (neighbors, state_position) => {
-   const possible_movement = [[-1, 0], [0, 0], [1, 0], [0, -1], [0, 1]];
-   neighbors.filter((neighbor) => neighbor.behaviors.includes("customer.js"))
-     .forEach((neighbor) => {
-       possible_movement.forEach((movement) => {
-         const new_position = [state_position[0] + movement[0], state_position[1] + movement[1]];
-         price_messaging(neighbor.agent_id, new_position);
-       })
-     })
- }
+  const query_customers = (neighbors, state_position) => {
+    const possible_movement = [
+      [-1, 0],
+      [0, 0],
+      [1, 0],
+      [0, -1],
+      [0, 1],
+    ];
+    neighbors
+      .filter((neighbor) => neighbor.behaviors.includes("customer.js"))
+      .forEach((neighbor) => {
+        possible_movement.forEach((movement) => {
+          const new_position = [
+            state_position[0] + movement[0],
+            state_position[1] + movement[1],
+          ];
+          price_messaging(neighbor.agent_id, new_position);
+        });
+      });
+  };
 
-
- if (state.counter === 0) {
-   query_customers(context.neighbors(), state.position);
- }
-}
+  if (state.counter === 0) {
+    query_customers(context.neighbors(), state.position);
+  }
+};
 ```
 
 </Tab>

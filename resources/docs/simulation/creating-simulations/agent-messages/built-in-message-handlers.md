@@ -24,8 +24,8 @@ Any agent can remove any other agent with a special message sent directly to `ha
 
 ```javascript
 const behavior = (state, context) => {
-    state.addMessage("hash", "remove_agent", { agent_id: "Bill" });
-}
+  state.addMessage("hash", "remove_agent", { agent_id: "Bill" });
+};
 ```
 
 </Tab>
@@ -53,11 +53,11 @@ Here, anything in the data field will be used to create the new agent. The `newb
 
 ```javascript
 const behavior = (state, context) => {
-    state.addMessage("hash", "create_agent", {
-        parent: state.agent_id,
-        behaviors: ["newborn.js"]
-    });
-}
+  state.addMessage("hash", "create_agent", {
+    parent: state.agent_id,
+    behaviors: ["newborn.js"],
+  });
+};
 ```
 
 </Tab>
@@ -94,18 +94,18 @@ You can then create the message by providing starting and ending coordinates, as
 
 ```javascript
 const behavior = (state, context) => {
-    // Longitude and Latitude coordinates
-    const start_lng_lat = [-71.117128, 42.389755];
-    const end_lng_lat = [-71.096227, 42.304433];
+  // Longitude and Latitude coordinates
+  const start_lng_lat = [-71.117128, 42.389755];
+  const end_lng_lat = [-71.096227, 42.304433];
 
-    const start_string = start_lng_lat[0] + "," + start_lng_lat[1];
-    const end_string = end_lng_lat[0] + "," + end_lng_lat[1];
+  const start_string = start_lng_lat[0] + "," + start_lng_lat[1];
+  const end_string = end_lng_lat[0] + "," + end_lng_lat[1];
 
-    state.addMessage("mapbox", "mapbox_request", {
-        "transportation_method": "driving",
-        "request_route": start_string + ";" + end_string
-    });
-}
+  state.addMessage("mapbox", "mapbox_request", {
+    transportation_method: "driving",
+    request_route: start_string + ";" + end_string,
+  });
+};
 ```
 
 </Tab>
@@ -178,8 +178,8 @@ For further information about the Mapbox API and error messages, see the [offici
 
 **Check out these two examples to see Navigation in action:**
 
-* [Citi Bike Visualization](/@hash/citi-bike-visualization)
-* [Product Delivery](/@hash/product-delivery)
+- [Citi Bike Visualization](/@hash/citi-bike-visualization)
+- [Product Delivery](/@hash/product-delivery)
 
 ## Stopping a simulation
 
@@ -197,7 +197,7 @@ const behavior = (state, context) => {
   if (context.step() > 10) {
     state.addMessage("hash", "stop", { status: "success", reason: "10 steps" });
   }
-}
+};
 ```
 
 </Tab>
@@ -217,5 +217,5 @@ def behavior(state, context):
 The message `data` is optional, but may be used to signify why the simulation
 stopped. The following fields may be included:
 
-  1. `"status"`: one of `"success"`, `"warning"` or `"error"`. Defaults to `"warning"` if not specified.
-  2. `"reason"`: a message describing why the simulation was stopped.
+1.  `"status"`: one of `"success"`, `"warning"` or `"error"`. Defaults to `"warning"` if not specified.
+1.  `"reason"`: a message describing why the simulation was stopped.

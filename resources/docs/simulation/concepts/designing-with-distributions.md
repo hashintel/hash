@@ -12,10 +12,10 @@ Multi-Agent Simulation approaches problem-solving from a stochastic lens. Instea
 
 Initializing agent properties using different types of distributions is a common practice in Multi-Agent models. In HASH, you can use the [jStats](http://jstat.github.io/distributions.html) library or the [NumPy](https://docs.scipy.org/doc/numpy-1.15.4/reference/routines.random.html) package for sampling distributions. Here's an example that uses a number of these distributions to create agents:
 
-* We've sampled a Poisson distribution to determine how many new birds arrive at each step.
-* We've sampled a uniform distribution to determine its `x` and `y` coordinates.
-* We've sampled a triangular distribution to determine its altitude.
-* We've sampled a normal distribution to determine its speed.
+- We've sampled a Poisson distribution to determine how many new birds arrive at each step.
+- We've sampled a uniform distribution to determine its `x` and `y` coordinates.
+- We've sampled a triangular distribution to determine its altitude.
+- We've sampled a normal distribution to determine its speed.
 
 <Tabs>
 <Tab title="JavaScript" >
@@ -30,15 +30,15 @@ function behavior(state, context) {
     const x = uniform.sample(0, 10); // min, max
     const y = uniform.sample(0, 10);
 
-    const altitude = triangular.sample(10, 10000, 500) // min, max, mode
+    const altitude = triangular.sample(10, 10000, 500); // min, max, mode
 
     state.addMessage("hash", "create_agent", {
-      "agent_name": "bird",
-      "position": [x, y, altitude],
-      "speed": normal.sample(25, 10), // mean, standard deviation
-    })
+      agent_name: "bird",
+      position: [x, y, altitude],
+      speed: normal.sample(25, 10), // mean, standard deviation
+    });
   }
-};
+}
 ```
 
 </Tab >

@@ -13,20 +13,21 @@ description: >-
 
 In HASH, agents interact and change the world using an 'actor model', where each agent is an actor. This means that:
 
-* **Each agent has its own private** [**state**](/docs/simulation/creating-simulations/anatomy-of-an-agent/state): an agent can only change its own state. No other agent can reach in from outside and change it directly. They must send a message instead.
-* **Agents communicate by sending and receiving** [**messages**](/docs/simulation/creating-simulations/agent-messages/): these messages might include requests, information, or responses to earlier messages. Messages are how agents influence the world around them.
+- **Each agent has its own private** [**state**](/docs/simulation/creating-simulations/anatomy-of-an-agent/state): an agent can only change its own state. No other agent can reach in from outside and change it directly. They must send a message instead.
+- **Agents communicate by sending and receiving** [**messages**](/docs/simulation/creating-simulations/agent-messages/): these messages might include requests, information, or responses to earlier messages. Messages are how agents influence the world around them.
 
 At the beginning of each time step, agents have an inbox of messages sent from other agents: a queue of requests, instructions, responses, and so on. In their [**behaviors**](/docs/simulation/creating-simulations/behaviors/), they check these messages, and in response can do one or both of:
 
-* **Update their private state**: e.g. reduce their stock if they have received a message with an order they can fulfil, or increase their stock if they have received a message confirming delivery of stock.
-* **Queue a message to send to another agent**: e.g. confirming that the order has been fulfilled, or requesting further delivery of stock. This message is available to the receiving agent on the next time step.
+- **Update their private state**: e.g. reduce their stock if they have received a message with an order they can fulfil, or increase their stock if they have received a message confirming delivery of stock.
+- **Queue a message to send to another agent**: e.g. confirming that the order has been fulfilled, or requesting further delivery of stock. This message is available to the receiving agent on the next time step.
 
 This process happens in private: given the same inbox, starting [**state**](/docs/simulation/creating-simulations/anatomy-of-an-agent/state) and external [**context**](/docs/simulation/creating-simulations/anatomy-of-an-agent/context), an agent will always end up with the same outbox and finishing state \(unless there is randomness in its behaviors\).
 
 ## Benefits of the Actor Model
 
-1. **Predictability**: how each agent behaves can easily be reasoned about from the messages it starts each time step with. You do not have to worry about race conditions, side effects, or locking access to resources while others attempt to access them. The agent can process its complete inbox for a time step in private, deciding what to do based on all the messages it has received.
-2. **Scalability**:  the actor model allows us to have millions of agents running on dozens of servers, enabling much bigger simulations than other approaches which need to have agents communicate in the middle of a time step. HASH has been designed from the ground up to enable you to model entire countries without having to worry about the underlying infrastructure.
+1.  **Predictability**: how each agent behaves can easily be reasoned about from the messages it starts each time step with. You do not have to worry about race conditions, side effects, or locking access to resources while others attempt to access them. The agent can process its complete inbox for a time step in private, deciding what to do based on all the messages it has received.
+
+1.  **Scalability**: the actor model allows us to have millions of agents running on dozens of servers, enabling much bigger simulations than other approaches which need to have agents communicate in the middle of a time step. HASH has been designed from the ground up to enable you to model entire countries without having to worry about the underlying infrastructure.
 
 > “The big idea is 'messaging' … The key in making great and growable systems is much more to design how its modules communicate rather than what their internal properties and behaviors should be.”  
 > **Alan Kay**
@@ -37,9 +38,9 @@ This process happens in private: given the same inbox, starting [**state**](/doc
 
 Because agents receive all the messages sent to them in the previous time step at the start of the next time step, you must take into account the "travel time" of messages:
 
-* Agent A adds a message to Agent B in Step 1
-* Agent B receives it and processes it in Step 2, adding a message to Agent A in response
-* Agent A receives the response and processes it in Step 3
+- Agent A adds a message to Agent B in Step 1
+- Agent B receives it and processes it in Step 2, adding a message to Agent A in response
+- Agent A receives the response and processes it in Step 3
 
 ![](https://cdn-us1.hash.ai/site/docs/message-exchange-diagram.svg)
 
@@ -50,12 +51,12 @@ Agent A will not know the result of the message it added in Step 1 until it rece
 **Watch out for redundant messaging.** You can run into trouble with a naive message sending pattern where an agent sends messages until it receives a response.
 
 ```javascript
-// Potentially Bad 
+// Potentially Bad
 
 function behavior(state, behavior) {
-    if (!receivedResponse) {
-        sendStateChangeMessage()
-    }
+  if (!receivedResponse) {
+    sendStateChangeMessage();
+  }
 }
 ```
 
@@ -77,8 +78,8 @@ A process for handling conflicts must be defined in any modeling approach - in t
 
 To streamline this, consider:
 
-* including any information in messages which might help resolve the dispute - e.g. include a second preference order if the first cannot be fulfilled \(where the agent receiving the order can handle both\).
-* for more complex scenarios, using a mediating or manager agent which receives information from multiple agents, and can determine the best match in a single step.
+- including any information in messages which might help resolve the dispute - e.g. include a second preference order if the first cannot be fulfilled \(where the agent receiving the order can handle both\).
+- for more complex scenarios, using a mediating or manager agent which receives information from multiple agents, and can determine the best match in a single step.
 
 <Hint style="info">
 We are introducing a new feature to eliminate the need for manager agents and multiple back-and-forth messages to resolve conflicts. [**Contact us**](/contact) if you want to be one of the first to try this feature.
@@ -98,8 +99,8 @@ There are strategies for aligning timescales discussed in detail in [**Designing
 
 **Another potential pitfall to be aware of is that behaviors run sequentially.** So if in Behavior A you send a message and in Behavior B you check if you received a message and set receivedResponse = True, if the agents behavior array is:
 
-```javascript
- ["behaviorA", "behaviorB"]
+```json
+["behaviorA", "behaviorB"]
 ```
 
 a message would be sent before the agent checks if they've received a response.

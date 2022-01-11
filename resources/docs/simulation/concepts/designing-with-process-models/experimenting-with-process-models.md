@@ -25,7 +25,6 @@ To run an experiment, you'll want to first identify the parameter of the process
    "service_agents": 6
 ```
 
-
 In this model we could run experiments with the “service_agents” property and see how it responds to different numbers of agents.
 
 To do that, we'll set service_agents as a global parameter.
@@ -34,9 +33,9 @@ To do that, we'll set service_agents as a global parameter.
 The [Globals](/docs/simulation/creating-simulations/configuration/) section describes how and why to use globals.
 </Hint>
 
-1. Add a property to globals.json.
+1.  Add a property to globals.json.
 
-** globals.json **
+**globals.json**
 
 ```javascript
 {
@@ -44,8 +43,7 @@ The [Globals](/docs/simulation/creating-simulations/configuration/) section desc
 }
 ```
 
-
-1. Replace the property on the process model with the global parameter.
+1.  Replace the property on the process model with the global parameter.
 
 ```javascript
 // create_process.js
@@ -53,8 +51,7 @@ The [Globals](/docs/simulation/creating-simulations/configuration/) section desc
 "service_agents": Math.floor(context.globals().num_service_agents),
 ```
 
-
-1. Create an experiment and use the parameter as the field for the experiment
+1.  Create an experiment and use the parameter as the field for the experiment
 
 ![Experiment model](https://cdn-us1.hash.ai/site/docs/process+models+experiment.png)
 

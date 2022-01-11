@@ -19,11 +19,11 @@ Single-run simulations are not supported on hCloud at this time. Please ensure y
 
 Simulations within **hCore** can be run in one of two ways: locally inside your browser, or at scale on our **hCloud** compute platform.
 
-|  | **Browser** | **Cloud** |
-| :--- | :--- | :--- |
-| **Stage of Development** | Prototyping | Running Experiments or Large Simulations |
-| **Number of Agents** | 1..10,000 | 10,000+ to ∞ |
-| **Pricing** | Always Free | Free tier, pay-as-you-go, and subscription options |
+|                          | **Browser** | **Cloud**                                          |
+| :----------------------- | :---------- | :------------------------------------------------- |
+| **Stage of Development** | Prototyping | Running Experiments or Large Simulations           |
+| **Number of Agents**     | 1..10,000   | 10,000+ to ∞                                       |
+| **Pricing**              | Always Free | Free tier, pay-as-you-go, and subscription options |
 
 Exact in-browser limits will depend on the amount of processing power and RAM available to the browser tab running hCore. The prime constraint is often the power of the local machine's underlying hardware.
 
@@ -51,8 +51,8 @@ In our current _Early Access_ phase, by default all simulation run using a singl
 
 Let's take a look at two examples:
 
-1. **I'm building a simulation and I want to try to run a larger simulation with more agents than I can do it on my local machine.** I've set the `number_of_agents` in my globals, so I create an experiment with 10x the number and then toggle the Cloud Runner button to connect to cloud and run the experiment for 100 steps. Each execution of a run, from start to finish, will count towards your cloud minute \(not including connect/upload/download times\).  _If it takes about a second to generate a state for this simulation the total billed time would be 100 cloud seconds._
-2. **After iterating on my simulation I'm confident the underlying logic is correct and I'm ready to start exploring the effect of different parameters on the outcomes of simulations.** I create a linear space [experiment](/docs/simulation/creating-simulations/experiments/) that will sample ten times from a range of 1 to 100, and will run for 500 time steps. This creates ten separate simulations that each run for around 50 seconds to 60 seconds.  _In this second example the total time used would be between 8.3 to 10 minutes._
+1.  **I'm building a simulation and I want to try to run a larger simulation with more agents than I can do it on my local machine.** I've set the `number_of_agents` in my globals, so I create an experiment with 10x the number and then toggle the Cloud Runner button to connect to cloud and run the experiment for 100 steps. Each execution of a run, from start to finish, will count towards your cloud minute \(not including connect/upload/download times\). _If it takes about a second to generate a state for this simulation the total billed time would be 100 cloud seconds._
+1.  **After iterating on my simulation I'm confident the underlying logic is correct and I'm ready to start exploring the effect of different parameters on the outcomes of simulations.** I create a linear space [experiment](/docs/simulation/creating-simulations/experiments/) that will sample ten times from a range of 1 to 100, and will run for 500 time steps. This creates ten separate simulations that each run for around 50 seconds to 60 seconds. _In this second example the total time used would be between 8.3 to 10 minutes._
 
 ### hCloud Distributed Compute
 

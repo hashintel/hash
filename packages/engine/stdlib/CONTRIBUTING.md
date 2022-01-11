@@ -18,14 +18,14 @@ When in doubt, [ask](https://hash.ai/discord)!
 
 ## Pull Request Process
 
-1. Before opening a Pull Request, you must sign HASH's Contributor License Agreement available at [hash.ai/legal/cla](https://hash.ai/legal/cla).
-2. Once you've signed the CLA and finalized your PR, please ensure any install or build dependencies are removed before doing a build.
-3. After submitting your PR, it'll be reviewed by a HASH standard library maintainer. After you have the approval of a maintainer, you may merge the pull request.
+1.  Before opening a Pull Request, you must sign HASH's Contributor License Agreement available at [hash.ai/legal/cla](https://hash.ai/legal/cla).
+1.  Once you've signed the CLA and finalized your PR, please ensure any install or build dependencies are removed before doing a build.
+1.  After submitting your PR, it'll be reviewed by a HASH standard library maintainer. After you have the approval of a maintainer, you may merge the pull request.
 
 ## Contribution requirements
 
-1. All PRs should include tests.
-2. You may contribute functions in either Python or TypeScript, or both.
+1.  All PRs should include tests.
+1.  You may contribute functions in either Python or TypeScript, or both.
 
 ## Code of Conduct
 
@@ -48,7 +48,7 @@ include:
 Examples of unacceptable behavior by participants include:
 
 - The use of sexualized language or imagery and unwelcome sexual attention or
-advances
+  advances
 - Trolling, insulting/derogatory comments, and personal or political attacks
 - Public or private harassment
 - Publishing others' private information, such as a physical or electronic

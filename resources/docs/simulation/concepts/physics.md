@@ -46,7 +46,7 @@ This behavior simulates a spring connected between the agent and one of its neig
 }
 ```
 
-The spring force is calculated according to Hooke's Law: _F  = -kx - Bv._
+The spring force is calculated according to Hooke's Law: _F = -kx - Bv._
 
 <Hint style="warning">
 If the agent referenced in a spring definition is outside of the `search_radius`, then it will be ignored since it cannot find the position of that agent.

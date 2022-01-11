@@ -13,7 +13,7 @@ Context passed to every agent provides a list of messages in the agent's inbox a
 ```javascript
 context {
     messages(): [
-    /*  
+    /*
         Any messages sent to the given agent on this step.
         If the agent wants to preserve access to these on future steps,
         they'll need to store them in their own state.
@@ -25,8 +25,8 @@ context {
 
 It's best to think of the `messages` field like a mailbox.
 
-* When **sending** a message, we put the message in the outbox  under the `messages` field on state.
-* When **receiving** a message, it will show up in our inbox, under the `messages` field on context.
+- When **sending** a message, we put the message in the outbox under the `messages` field on state.
+- When **receiving** a message, it will show up in our inbox, under the `messages` field on context.
 
 Notice the distinction. Context is immutable and any accidental changes made to it will not propagate.
 
@@ -83,16 +83,16 @@ fn (state: AgentState, context: &Context) -> AgentState {
 
 ```javascript
 const behavior = (state, context) => {
-    for (const message of context.messages()) {
-        // ...
-    }
+  for (const message of context.messages()) {
+    // ...
+  }
 
-    // OR
+  // OR
 
-    context.messages().forEach(m => {
-        // ...
-    })
-}
+  context.messages().forEach((m) => {
+    // ...
+  });
+};
 ```
 
 </Tab>

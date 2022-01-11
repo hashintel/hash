@@ -22,11 +22,11 @@ ELT pipelines re-order the **T**ransform and **L**oad operations, instead loadin
 
 ELT pipelines are often configured to capture all raw data of interest that a source emits, and the products of transformations are appended as additional columns within the warehouse in which that data is stored. The raw data extracted meanwhile remains accessible in its original form. This has a number of benefits:
 
-* **Provenance:** It becomes possible to view the original source data that was used in the production of a finalized data product.
-* **Robustness:** Compared to ETL pipelines, ELT pipelines are typically less brittle and prone to breakage.
-* **Speed:** Data loading is quicker, as transformations are executed once the raw data is in the warehouse.
-* **Agile and accessible:** ELT pipelines have the advantage of not requiring their users to know ahead of time exactly how they’ll use the data. Querying, slicing and transforming data can be conducted at any time. When it comes to enabling self-service analytics, this is particularly important.
-* **Differing cost profile:** All these things typically mean that data storage and processing costs are higher than in ETL solutions, but data bandwidth costs are reduced with ELTs as data is only ever loaded once.
+- **Provenance:** It becomes possible to view the original source data that was used in the production of a finalized data product.
+- **Robustness:** Compared to ETL pipelines, ELT pipelines are typically less brittle and prone to breakage.
+- **Speed:** Data loading is quicker, as transformations are executed once the raw data is in the warehouse.
+- **Agile and accessible:** ELT pipelines have the advantage of not requiring their users to know ahead of time exactly how they’ll use the data. Querying, slicing and transforming data can be conducted at any time. When it comes to enabling self-service analytics, this is particularly important.
+- **Differing cost profile:** All these things typically mean that data storage and processing costs are higher than in ETL solutions, but data bandwidth costs are reduced with ELTs as data is only ever loaded once.
 
 ### ML Pipelines
 
@@ -41,8 +41,8 @@ Different software packages exist for orchestrating data pipelines such as _Airf
 There are three ways to utilize data pipelines in HASH:
 
 1.  With an external data warehouse and pipelines, using HASH solely as a modeling engine
-2.  With an external data warehouse, using HASH to manage data pipelines as well as models
-3.  Using HASH as your data warehouse, pipeline, and modeling engine
+1.  With an external data warehouse, using HASH to manage data pipelines as well as models
+1.  Using HASH as your data warehouse, pipeline, and modeling engine
 
 Users are free to create, run and maintain their data pipelines outside of HASH, both operating on and feeding external data warehouses which can then be accessed from or imported into HASH.
 

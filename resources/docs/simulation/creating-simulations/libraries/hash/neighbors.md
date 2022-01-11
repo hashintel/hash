@@ -15,16 +15,16 @@ This function returns all neighbors that share the same position as `agentA`. Th
 
 ```javascript
 function behavior(state, context) {
-    // Find neighbors on my position
-    const neighbors = context.neighbors();
-    const cohabitators = hstd.neighborsOnPosition(state, neighbors);
+  // Find neighbors on my position
+  const neighbors = context.neighbors();
+  const cohabitators = hstd.neighborsOnPosition(state, neighbors);
 
-    // Create an adjacent "agent"
-    let adjPos = state.position;
-    adjPos[0] += 1;
+  // Create an adjacent "agent"
+  let adjPos = state.position;
+  adjPos[0] += 1;
 
-    // Find the agents adjacent to me
-    const adjacents = hstd.neighborsOnPosition({ "position": adjPos }, neighbors);
+  // Find the agents adjacent to me
+  const adjacents = hstd.neighborsOnPosition({ position: adjPos }, neighbors);
 }
 ```
 
@@ -44,7 +44,7 @@ def behavior(state, context):
     adj_pos[0] += 1
 
     # Find the agents adjacent to me
-    adjacents = hstd.neighbors_on_position({ 'position': adj_pos }, neighbors) 
+    adjacents = hstd.neighbors_on_position({ 'position': adj_pos }, neighbors)
 ```
 
 </Tab>
@@ -59,9 +59,17 @@ This function returns all neighbors within the specified radii. The current agen
 
 ```javascript
 function behavior(state, context) {
-    // Count the number of electrons close to me
-    const electrons = context.neighbors().filter(n => n.agent_type === "electron");   
-    const close_electrons = hstd.neighborsInRadius(state, electrons, 2, 0, true).length;
+  // Count the number of electrons close to me
+  const electrons = context
+    .neighbors()
+    .filter((n) => n.agent_type === "electron");
+  const close_electrons = hstd.neighborsInRadius(
+    state,
+    electrons,
+    2,
+    0,
+    true
+  ).length;
 }
 ```
 
@@ -89,13 +97,13 @@ This function returns all neighbors located in front of an agent. `agentA` must 
 
 ```javascript
 function behavior(state, context) {
-    const neighbors = context.neighbors();
+  const neighbors = context.neighbors();
 
-    // Check which of my neighbors I can see "in front" of me
-    const visibleAgents = hstd.neighborsInFront(state, neighbors);
+  // Check which of my neighbors I can see "in front" of me
+  const visibleAgents = hstd.neighborsInFront(state, neighbors);
 
-    // Check which agents are in front of one of my neighbors
-    const neighborFront = hstd.neighborsInFront(neighbors[0], neighbors);
+  // Check which agents are in front of one of my neighbors
+  const neighborFront = hstd.neighborsInFront(neighbors[0], neighbors);
 }
 ```
 
@@ -127,14 +135,14 @@ This function returns all neighbors located behind the agent. It functions ident
 
 ```javascript
 function behavior(state, context) {
-    const neighbors = context.neighbors();
+  const neighbors = context.neighbors();
 
-    // Check which of my neighbors are tailing me
-    const tailingAgents = hstd.neighborsBehind(state, neighbors, true);
+  // Check which of my neighbors are tailing me
+  const tailingAgents = hstd.neighborsBehind(state, neighbors, true);
 
-    // Check if my neighbor is being tailed
-    const neighborTail = hstd.neighborsBehind(neighbors[0], neighbors, true);
-    const neighborTailed = neighborTail.length > 0;
+  // Check if my neighbor is being tailed
+  const neighborTail = hstd.neighborsBehind(neighbors[0], neighbors, true);
+  const neighborTailed = neighborTail.length > 0;
 }
 ```
 

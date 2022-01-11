@@ -29,8 +29,8 @@ We're now planning to introduce support for **Agent Types** in HASH which go fur
 
 Schemas published to hIndex may describe either:
 
-1. agents \(Agent Types\); or
-2. actions taken by agents \(Behaviors\).
+1.  agents \(Agent Types\); or
+1.  actions taken by agents \(Behaviors\).
 
 Schemas consist of _properties_ with _expected types_, and in some cases these may have _default values_. Going forward, all agent schemas in HASH will contain a `behavior` property. This can be set to contain one or more behaviors.
 

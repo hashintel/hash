@@ -22,6 +22,7 @@ When finding the neighbors of agents in a simulation, HASH depends on a few impo
 
 ## Options
 
+<!-- prettier-ignore -->
 | Function Name | Behavior |
 | :--- | :--- |
 | `chebyshev` | The greatest distance between two points in any axis also known as the L-infinity norm. [Wikipedia](https://en.wikipedia.org/wiki/Chebyshev_distance) |

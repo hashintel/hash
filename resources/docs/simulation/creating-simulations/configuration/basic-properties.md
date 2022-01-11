@@ -29,9 +29,9 @@ The associated tree growth behavior would follow:
 
 ```javascript
 function behavior(state, context) {
-    if (state.height + growth <= context.globals()["maxTreeHeight"]) {
-        growtree()
-    }
+  if (state.height + growth <= context.globals()["maxTreeHeight"]) {
+    growtree();
+  }
 }
 ```
 
@@ -40,7 +40,7 @@ function behavior(state, context) {
 <Tab title="Python" >
 
 ```python
-def behavior(state, context):   
+def behavior(state, context):
     if state['height'] + growth <= context.globals()['maxTreeHeight']):
         growtree()
 ```
@@ -60,8 +60,8 @@ By default a non-signed in viewer of a simulation will see and interact with the
 
 The type of field input for a simulation parameter can be varied by adding a "schema" property to globals. Currently you can use schemas to specify these types of interfaces be displayed in the _visual globals_ interface:
 
-* Color Picker
-* Slider
+- Color Picker
+- Slider
 
 ### Color Picker
 
@@ -95,9 +95,9 @@ The type of field input for a simulation parameter can be varied by adding a "sc
       "properties": {
         "<property_name>": {
           "type": "number",
-          "minimum": 0, 
-          "maximum": 10, 
-          "multipleOf": 1 
+          "minimum": 0,
+          "maximum": 10,
+          "multipleOf": 1
         }
       }
     }

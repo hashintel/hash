@@ -2,7 +2,7 @@
 title: Experiments
 slug: simulation/creating-simulations/experiments
 objectId: d8aaa790-5ce3-45cd-95e7-9e1024be7305
-description: 'Sweep parameters, explore a search space, and find optimal configurations'
+description: "Sweep parameters, explore a search space, and find optimal configurations"
 ---
 
 # Experiments
@@ -11,13 +11,13 @@ In addition to running single simulation runs, HASH enables simultaneous simulat
 
 In HASH, experiments are defined in the `experiments.json` file. Currently supported are:
 
-* `linspace` - vary a single parameter within a range
-* `arange` - vary a parameter based on an increment
-* `values` - manually enter values for a specific parameter
-* `monte-carlo` - generate random numbers according to a distribution
-* `group` - group together multiple experiment types into a single experiment
-* `multiparameter` - create all possible parameter combinations from multiple experiments
-* `optimization` - efficiently identify optimal parameter combinations that minimize or maximize desired metrics
+- `linspace` - vary a single parameter within a range
+- `arange` - vary a parameter based on an increment
+- `values` - manually enter values for a specific parameter
+- `monte-carlo` - generate random numbers according to a distribution
+- `group` - group together multiple experiment types into a single experiment
+- `multiparameter` - create all possible parameter combinations from multiple experiments
+- `optimization` - efficiently identify optimal parameter combinations that minimize or maximize desired metrics
 
 Experiments can be created with the Experiments Wizard, or by manually defining them in the `experiments.json` file. You can access the wizard through the Experiments icon \(beaker\) in the runner controls, or from the menu bar along the top of hCore.
 
@@ -34,7 +34,7 @@ For example, this `values` experiment will run seven experiments, setting a diff
         "type": "values",
         "field": "radius",
         "values": [0,1,2,3,4,5,6],
-        "steps": 100    
+        "steps": 100
     }
 }
 ```

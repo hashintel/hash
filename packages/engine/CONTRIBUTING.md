@@ -8,27 +8,30 @@ We've provided the following guidelines to help you with contributions, in addit
 also established a set of [community guidelines](https://hash.ai/legal/community) to enable as many people as possible
 to contribute to and benefit from HASH. Please follow these when interacting with this repo.
 
-#### Table Of Contents
+## Table Of Contents
 
 - [I have a question, where do I go?](#i-have-a-question--where-do-i-go-)
 
 - [Getting started, what do I need to know?](#getting-started--what-do-i-need-to-know-)
-    * [Design Decisions](#design-decisions)
+
+  - [Design Decisions](#design-decisions)
 
 - [How Can I Contribute?](#how-can-i-contribute-)
-    * [Reporting Bugs](#reporting-bugs)
-    * [Suggesting Enhancements](#suggesting-enhancements)
-    * [Your First Code Contribution](#your-first-code-contribution)
-    * [Pull Requests](#pull-requests)
+
+  - [Reporting Bugs](#reporting-bugs)
+  - [Suggesting Enhancements](#suggesting-enhancements)
+  - [Your First Code Contribution](#your-first-code-contribution)
+  - [Pull Requests](#pull-requests)
 
 - [Styleguides](#styleguides)
-    * [Rust Styleguide](#rust-styleguide)
-    * [JavaScript Styleguide](#javascript-styleguide)
-    * [Python Styleguide](#python-styleguide)
-    * [Documentation Styleguide](#documentation-styleguide)
+
+  - [Rust Styleguide](#rust-styleguide)
+  - [JavaScript Styleguide](#javascript-styleguide)
+  - [Python Styleguide](#python-styleguide)
+  - [Documentation Styleguide](#documentation-styleguide)
 
 - [Additional Notes](#additional-notes)
-    * [Issue and Pull Request Labels](#issue-and-pull-request-labels)
+  - [Issue and Pull Request Labels](#issue-and-pull-request-labels)
 
 > **WIP** This document is a work in-progress, if the section you need isn't finished, please feel free to reach out to us for clarification!
 
@@ -46,7 +49,7 @@ If you have a question, you can ask it on our [community forum](https://hash.com
 
 ### Reporting Bugs
 
-While using our products, you may encounter unwanted behavior, and if that should happen, please do report it to us! No project is perfect, and helping us keeping track of problems is always appreciated. 
+While using our products, you may encounter unwanted behavior, and if that should happen, please do report it to us! No project is perfect, and helping us keeping track of problems is always appreciated.
 
 To help you help us, we've written this section to give some guidelines on the sort of information that will help us investigate and hopefully help you.
 
@@ -58,28 +61,27 @@ Try and check to see if it's already been reported, the main place to look would
 
 So you've found a bug, next up is collecting useful information to give us to investigate.
 
-* **Give a clear title of what the problem is** (or what you believe it to be)
-* If you can, **describe how to reproduce it**, otherwise try and give as much information about how it happened. (What you did, _how_ you did it, etc.) As an example of some useful information depending on the context:
-  * Runtime parameters
-  * The simulation you were running
-  * The step of the build you were at
-  * Any configuration you've supplied
-* **Describe the environment it was running in**
-  * What hardware, as an example:
-    * Your computer manufacturer
-    * Amount of RAM
-    * CPU model
-  * What operating system was it running on
-  * What versions of the dependencies are you running
-    * e.g. tell us your version of Rust, Python, cmake, etc.
-  * Any environment variables that might have affected it
-* **Provide _all_ relevant logs**
-  * Try not to just provide summarised descriptions of what was logged, we like full log-outputs. If you can reproduce it, try running it with trace logs (RUST_LOG=trace)
+- **Give a clear title of what the problem is** (or what you believe it to be)
+- If you can, **describe how to reproduce it**, otherwise try and give as much information about how it happened. (What you did, _how_ you did it, etc.) As an example of some useful information depending on the context:
+  - Runtime parameters
+  - The simulation you were running
+  - The step of the build you were at
+  - Any configuration you've supplied
+- **Describe the environment it was running in**
+  - What hardware, as an example:
+    - Your computer manufacturer
+    - Amount of RAM
+    - CPU model
+  - What operating system was it running on
+  - What versions of the dependencies are you running
+    - e.g. tell us your version of Rust, Python, cmake, etc.
+  - Any environment variables that might have affected it
+- **Provide _all_ relevant logs**
+  - Try not to just provide summarised descriptions of what was logged, we like full log-outputs. If you can reproduce it, try running it with trace logs (RUST_LOG=trace)
 
 ### Suggesting Enhancements
 
 If you have ideas of how to improve the hEngine, feel free to submit them on the [Product Feedback section of our community forum](https://community.hash.ai/c/product-feedback/2). If you want a more informal discussion around your ideas feel free to start a conversation on the Discord!
-
 
 [comment]: <> (The following sections are comments until the wishlist section of the new website is live)
 [comment]: <> (#### Before Submitting An Enhancement Suggestion)
@@ -100,30 +102,30 @@ If you have ideas of how to improve the hEngine, feel free to submit them on the
 
 ### Pull Requests
 
-> WIP - More information incoming regarding PR description formatting, etc. 
+> WIP - More information incoming regarding PR description formatting, etc.
 
 #### Some good practices
 
 - Have well encapsulated commits on your PR, this helps with reviewing. If you're comfortable with it, rebasing before opening your PR can help with cleaning up WIP commits.
 - Write unit-tests _as_ you write code. Submitting unit-tests alongside the code within commits improves confidence in your changes and helps us understand your intentions with the code.
 
-
 ## Styleguides
 
 [comment]: <> (Cross-link to global style guides for the repo when they're added)
-
 
 ### Rust Styleguide
 
 > WIP
 
 We are using [`cargo fmt`](https://github.com/rust-lang/rustfmt) and [`cargo clippy`](https://github.com/rust-lang/rust-clippy) to apply linting rules to our Rust codebase. In order to run those, you need to install them first (unless they are already installed, which is the default):
-* `rustup component add rustfmt`
-* `rustup component add clippy`
+
+- `rustup component add rustfmt`
+- `rustup component add clippy`
 
 Then simply run them with:
-* `cargo fmt`
-* `cargo clippy`
+
+- `cargo fmt`
+- `cargo clippy`
 
 ### JavaScript Styleguide
 

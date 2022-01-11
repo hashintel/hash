@@ -22,17 +22,17 @@ In this case, you are passing messages between the webpage and the iFrame - the 
 
 There are three types of messages we'll send:
 
-* updateFile: changes a file in the simulation
-  * id: &lt;uuid&gt;
-  * type: "updateFile"
-  * file: the file name to update
-  * contents: the new contents of the file
-* requestState: gets the output state from a simulation
-  * id: &lt;uuid&gt;
-  * type: "sendState"
-* resetAndRun: resets the embedded simulation and reruns it
-  * id: &lt;uuid&gt;
-  * type: "resetAndRun"
+- updateFile: changes a file in the simulation
+  - id: &lt;uuid&gt;
+  - type: "updateFile"
+  - file: the file name to update
+  - contents: the new contents of the file
+- requestState: gets the output state from a simulation
+  - id: &lt;uuid&gt;
+  - type: "sendState"
+- resetAndRun: resets the embedded simulation and reruns it
+  - id: &lt;uuid&gt;
+  - type: "resetAndRun"
 
 _There's a fourth, initialize, that will cause hCore to send updates to the webpage for every file changed, but we're not going to use that._
 
@@ -46,7 +46,7 @@ Both types of messages contain an id and message type. For the ID, we recommend 
 
 For our dashboard, we're going to embed the [Wildfires simulation](https://core.hash.ai/@hash/wildfires-regrowth/9.7.0). Open the simulation and click the share button in the top right. Click the embed tab and copy the code to the clipboard.
 
-![Click the share button and then copy the iframe code by clicking &apos;copy to clipboard&apos;](https://cdn-us1.hash.ai/site/docs/screely-1621889688418.png)
+![Click the share button and then copy the iframe code by clicking 'copy to clipboard'](https://cdn-us1.hash.ai/site/docs/screely-1621889688418.png)
 
 All HASH simulations are embeddable as iFrames. You can add an iFrame as a block in the `<body>` of the website. We'll add an `id` property to the iFrame with the value "sim" to make it easier to reference.
 
@@ -67,7 +67,7 @@ Like a lot of dashboards, a key feature to implement is letting users set parame
 So we'll add buttons:
 
 ```markup
-<button id="scenario_one" onclick="setGlobals('one')">Scenario 1</button> 
+<button id="scenario_one" onclick="setGlobals('one')">Scenario 1</button>
 <button id="scenario_two" onclick="setGlobals('two')">Scenario 2</button>
 ```
 
@@ -81,51 +81,39 @@ We'll do this in a new file called `script.js`.
 // script.js
 
 const scenarios = {
-    "one": {
-        "forestColor": "green",
-        "fireColor": "red",
-        "emberColor": "yellow",
-        "lightningColor": "silver",
-        "forestHeight": 10,
-        "emberHeight": 0,
-        "lightningChance": 0.01,
-        "regrowthChance": 0.1,
-        "wildfire_count": 20,
-        "topology": {
-            "x_bounds": [
-                -20,
-                20
-            ],
-            "y_bounds": [
-                -20,
-                20
-            ],
-            "search_radius": 1
-        }
+  one: {
+    forestColor: "green",
+    fireColor: "red",
+    emberColor: "yellow",
+    lightningColor: "silver",
+    forestHeight: 10,
+    emberHeight: 0,
+    lightningChance: 0.01,
+    regrowthChance: 0.1,
+    wildfire_count: 20,
+    topology: {
+      x_bounds: [-20, 20],
+      y_bounds: [-20, 20],
+      search_radius: 1,
     },
-    "two": {
-        "forestColor": "green",
-        "fireColor": "red",
-        "emberColor": "yellow",
-        "lightningColor": "silver",
-        "forestHeight": 10,
-        "emberHeight": 0,
-        "lightningChance": 0.1,
-        "regrowthChance": 0.01,
-        "wildfire_count": 20,
-        "topology": {
-            "x_bounds": [
-                -20,
-                20
-            ],
-            "y_bounds": [
-                -20,
-                20
-            ],
-            "search_radius": 1
-        }
-    }
-}
+  },
+  two: {
+    forestColor: "green",
+    fireColor: "red",
+    emberColor: "yellow",
+    lightningColor: "silver",
+    forestHeight: 10,
+    emberHeight: 0,
+    lightningChance: 0.1,
+    regrowthChance: 0.01,
+    wildfire_count: 20,
+    topology: {
+      x_bounds: [-20, 20],
+      y_bounds: [-20, 20],
+      search_radius: 1,
+    },
+  },
+};
 ```
 
 When the user clicks scenario 1, we want the globals file to have the data of the value of the dictionary "one". And when the user clicks scenario 2, the data from two.
@@ -137,23 +125,23 @@ Additionally, we'll have it `resetAndRun` the simulation, so that when you click
 ```javascript
 // script.js
 
-function setGlobals(ind){
-    document.getElementById("sim").contentWindow.postMessage(
-      {
-        "id": generateUUID(),
-        "type": "updateFile",
-        "file": "globals.json",
-        "contents": JSON.stringify(scenarios[ind]),
-      },
-      "*"
-    );
-    document.getElementById("sim").contentWindow.postMessage(
-      {
-        "id": generateUUID(),
-        "type": "resetAndRun",
-      },
-      "*"
-    );
+function setGlobals(ind) {
+  document.getElementById("sim").contentWindow.postMessage(
+    {
+      id: generateUUID(),
+      type: "updateFile",
+      file: "globals.json",
+      contents: JSON.stringify(scenarios[ind]),
+    },
+    "*"
+  );
+  document.getElementById("sim").contentWindow.postMessage(
+    {
+      id: generateUUID(),
+      type: "resetAndRun",
+    },
+    "*"
+  );
 }
 ```
 
@@ -176,11 +164,10 @@ We'll create a function that will request the state of the simulation.
 ```javascript
 // script.js
 
-function getState(){    
-  document.getElementById("sim").contentWindow.postMessage(
-    {id: generateUUID(),
-     type: "sendState"},      
-  "*");
+function getState() {
+  document
+    .getElementById("sim")
+    .contentWindow.postMessage({ id: generateUUID(), type: "sendState" }, "*");
 }
 ```
 
@@ -190,11 +177,12 @@ However, we've only only added the send message function. We also need a functio
 
 ```javascript
 // script.js
-function eventHandler(event) {  
-  if (event.data.type == 'state') {    
-  console.log({ state: event.data.contents })
-  //do something  
-}}
+function eventHandler(event) {
+  if (event.data.type == "state") {
+    console.log({ state: event.data.contents });
+    //do something
+  }
+}
 
 window.addEventListener("message", eventHandler);
 ```
@@ -204,15 +192,15 @@ We'll want to store the state data in a variable that we can then provide to a v
 ```javascript
 // script.js
 
-var stateData = []
+var stateData = [];
 
-function eventHandler(event) {  
-  if (event.data.type == 'state') {    
-    stateData = event.data.contents.steps[event.data.contents.steps.length - 1];  
+function eventHandler(event) {
+  if (event.data.type == "state") {
+    stateData = event.data.contents.steps[event.data.contents.steps.length - 1];
   }
 }
 
-window.addEventListener("message", eventHandler)
+window.addEventListener("message", eventHandler);
 ```
 
 We can now parse the steps and add a custom visualization to the dashboard. Using the [simple-heatmap.js](https://github.com/mourner/simpleheat) library, we can attach a visualization to a canvas element. Download the simpleheat.js file and add it to your project.
@@ -240,14 +228,15 @@ So now our full eventHandler will look like this:
 ```javascript
 // script.js
 
-function eventHandler(event) {  
-  if (event.data.type == 'state') {
-    stateData = parseFire(event.data.contents.steps
-      [event.data.contents.steps.length - 1]);
+function eventHandler(event) {
+  if (event.data.type == "state") {
+    stateData = parseFire(
+      event.data.contents.steps[event.data.contents.steps.length - 1]
+    );
   }
 }
 
-window.addEventListener("message", eventHandler)
+window.addEventListener("message", eventHandler);
 ```
 
 Now we've got all the pieces in place, we just need to start requesting the data from HASH. We're going to add a simple polling function to get the data - for simplicity we'll use `setTimeout()`.
@@ -258,18 +247,18 @@ Now we've got all the pieces in place, we just need to start requesting the data
 <script>
 var heat = simpleheat("canvas");
 
-function redrawHeatMap() { 
+function redrawHeatMap() {
   heat.clear();
-  heat.data(stateData).draw(); 
+  heat.data(stateData).draw();
  }
 
-function poll() { 
-  getState(); 
+function poll() {
+  getState();
   redrawHeatMap();
   //poll every second
   setTimeout(poll, 1000);
 }
-  
+
 setTimeout(poll, 1000);
 </script>
 ```

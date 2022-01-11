@@ -26,14 +26,14 @@ The patch then sends sugar to only one of the agents who made a request \(lines 
 // sugar_patch.js
 
 if (requests.length) {
-    // Send all sugar to randomly selected agent
-    const randInd = Math.floor(Math.random() * requests.length);
-    state.addMessage(requests[randInd].from, "delivery", { 
-      "sugar": sugar,
-      "position": state.position
-    });
+  // Send all sugar to randomly selected agent
+  const randInd = Math.floor(Math.random() * requests.length);
+  state.addMessage(requests[randInd].from, "delivery", {
+    sugar: sugar,
+    position: state.position,
+  });
 
-    sugar = 0;
+  sugar = 0;
 }
 ```
 
@@ -42,16 +42,16 @@ if (requests.length) {
 
 ```javascript
 // sugar_patch.js"
-    
-if (requests.length) {
-    // Send all sugar to randomly selected agent
-    const randInd = Math.floor(Math.random() * requests.length);
-    state.addMessage(requests[randInd].from, "delivery", { 
-      "sugar": sugar,
-      "position": state.position
-    });
 
-    sugar = 0;
+if (requests.length) {
+  // Send all sugar to randomly selected agent
+  const randInd = Math.floor(Math.random() * requests.length);
+  state.addMessage(requests[randInd].from, "delivery", {
+    sugar: sugar,
+    position: state.position,
+  });
+
+  sugar = 0;
 }
 ```
 
@@ -72,14 +72,16 @@ The best solution here is often to leverage manager agents to help resolve these
 
 ```javascript
 //manager agent receives messages
-const requests = context.messages().filter(m => m.type == "request");
-const providers = context.messages().filter(m => m.type == "provider");
+const requests = context.messages().filter((m) => m.type == "request");
+const providers = context.messages().filter((m) => m.type == "provider");
 
 //it runs a matching function of some kind
-const {matched, unmatched} = match(requests, providers)
+const { matched, unmatched } = match(requests, providers);
 
 //it gives matched agents the agent_id of the requester/provider
-// and notifies unmatched agents no resources are available for them. 
-matched.forEach(m => state.addMessage(m.agent_id, "match", {partner: m.partner_id}))
-unmatched.forEach(u => state.addMessage(u.agent_id, "unmatched"))
+// and notifies unmatched agents no resources are available for them.
+matched.forEach((m) =>
+  state.addMessage(m.agent_id, "match", { partner: m.partner_id })
+);
+unmatched.forEach((u) => state.addMessage(u.agent_id, "unmatched"));
 ```
