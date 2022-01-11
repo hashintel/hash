@@ -68,7 +68,7 @@ function behavior(state, context) {
     electrons,
     2,
     0,
-    true
+    true,
   ).length;
 }
 ```

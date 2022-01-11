@@ -33,7 +33,7 @@ const behavior = (state, context) => {
       price +
       Math.sqrt(
         Math.pow(state_position[0] - position[0], 2) +
-          Math.pow(state_position[1] - position[1], 2)
+          Math.pow(state_position[1] - position[1], 2),
       )
     );
   };
@@ -228,7 +228,7 @@ const behavior = (state, context) => {
       price +
       Math.sqrt(
         Math.pow(state_position[0] - position[0], 2) +
-          Math.pow(state_position[1] - position[1], 2)
+          Math.pow(state_position[1] - position[1], 2),
       )
     );
   };

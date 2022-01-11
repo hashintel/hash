@@ -133,14 +133,14 @@ function setGlobals(ind) {
       file: "globals.json",
       contents: JSON.stringify(scenarios[ind]),
     },
-    "*"
+    "*",
   );
   document.getElementById("sim").contentWindow.postMessage(
     {
       id: generateUUID(),
       type: "resetAndRun",
     },
-    "*"
+    "*",
   );
 }
 ```
@@ -231,7 +231,7 @@ So now our full eventHandler will look like this:
 function eventHandler(event) {
   if (event.data.type == "state") {
     stateData = parseFire(
-      event.data.contents.steps[event.data.contents.steps.length - 1]
+      event.data.contents.steps[event.data.contents.steps.length - 1],
     );
   }
 }

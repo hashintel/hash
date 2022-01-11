@@ -81,7 +81,7 @@ const { matched, unmatched } = match(requests, providers);
 //it gives matched agents the agent_id of the requester/provider
 // and notifies unmatched agents no resources are available for them.
 matched.forEach((m) =>
-  state.addMessage(m.agent_id, "match", { partner: m.partner_id })
+  state.addMessage(m.agent_id, "match", { partner: m.partner_id }),
 );
 unmatched.forEach((u) => state.addMessage(u.agent_id, "unmatched"));
 ```

@@ -65,6 +65,6 @@ Both out truck agents and our tankers could look more realistic as they move alo
 ```javascript
 state.set(
   "direction",
-  new_lng_lat.map((c, i) => state.get("lng_lat")[i] - c)
+  new_lng_lat.map((c, i) => state.get("lng_lat")[i] - c),
 );
 ```

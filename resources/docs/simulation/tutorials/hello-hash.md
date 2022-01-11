@@ -245,7 +245,7 @@ const behavior = (state, context) => {
     greetings.forEach((m) =>
       state.addMessage(m.from, "greeting", {
         msg: "Go away, I’m social-distancing!",
-      })
+      }),
     );
   }
 };
@@ -421,7 +421,7 @@ const behavior = (state, context) => {
     greetings.forEach((m) =>
       state.addMessage(m.from, "greeting", {
         msg: "Go away, I’m social-distancing!",
-      })
+      }),
     );
   }
 };

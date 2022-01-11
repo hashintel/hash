@@ -179,7 +179,7 @@ Let's check all of the messages and respond to each person, letting them know th
 test_messages.forEach((m) =>
   state.addMessage(m.from, "test_result", {
     sick: true,
-  })
+  }),
 );
 ```
 
