@@ -114,6 +114,9 @@ If you have ideas of how to improve the hEngine, feel free to submit them on the
 
 ## Styleguides
 
+[comment]: <> (Cross-link to global style guides for the repo when they're added)
+
+
 ### Rust Styleguide
 
 > WIP
