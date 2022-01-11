@@ -94,11 +94,13 @@ pub fn init_logger(output_format: OutputFormat) {
         OutputFormat::Compact => OutputFormatter::Compact(formatter.compact()),
     };
 
-    let stdout_layer = fmt::layer().event_format(formatter);
+    let stderr_layer = fmt::layer()
+        .event_format(formatter)
+        .with_writer(std::io::stderr);
 
     let error_layer = tracing_error::ErrorLayer::default();
     tracing_subscriber::registry()
-        .with(filter.and_then(stdout_layer))
+        .with(filter.and_then(stderr_layer))
         .with(error_layer)
         .init();
 }
