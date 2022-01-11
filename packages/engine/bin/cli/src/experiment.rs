@@ -49,6 +49,7 @@ fn create_engine_command(
         experiment_id,
         args.num_workers as usize,
         controller_url,
+        args.emit,
     )?))
 }
 

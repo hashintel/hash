@@ -15,6 +15,7 @@ use std::path::PathBuf;
 use clap::{AppSettings, Parser};
 use error::Result;
 use experiment::run_experiment;
+use hash_engine::utils::OutputFormat;
 
 use crate::exsrv::create_server;
 
@@ -39,6 +40,10 @@ pub struct Args {
     /// The folder will be created if it's missing.
     #[clap(short, long, default_value = "./output", env = "HASH_OUTPUT")]
     output: PathBuf,
+
+    /// Output format emitted to the terminal.
+    #[clap(long, default_value = "full", arg_enum, env = "HASH_EMIT")]
+    emit: OutputFormat,
 
     /// Experiment type to be run.
     #[clap(subcommand)]
@@ -79,8 +84,8 @@ pub struct SimpleExperimentArgs {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    hash_engine::init_logger();
     let args = Args::parse();
+    hash_engine::init_logger(args.emit);
 
     let nng_listen_url = {
         use std::time::{SystemTime, UNIX_EPOCH};

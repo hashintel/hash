@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use error::{Report, Result, ResultExt};
-use hash_engine::{nano, proto::EngineMsg};
+use hash_engine::{nano, proto::EngineMsg, utils::OutputFormat};
 
 use super::process;
 
@@ -55,10 +55,16 @@ pub struct LocalCommand {
     experiment_id: String,
     controller_url: String,
     max_num_workers: usize,
+    output_format: OutputFormat,
 }
 
 impl LocalCommand {
-    pub fn new(experiment_id: &str, max_num_workers: usize, controller_url: &str) -> Result<Self> {
+    pub fn new(
+        experiment_id: &str,
+        max_num_workers: usize,
+        controller_url: &str,
+        output_format: OutputFormat,
+    ) -> Result<Self> {
         // The NNG URL that the engine process will listen on
         let engine_url = format!("ipc://run-{experiment_id}");
 
@@ -67,6 +73,7 @@ impl LocalCommand {
             experiment_id: experiment_id.to_string(),
             controller_url: controller_url.to_string(),
             max_num_workers,
+            output_format,
         })
     }
 }
@@ -90,6 +97,8 @@ impl process::Command for LocalCommand {
             .arg(&self.engine_url)
             .arg("--max-workers")
             .arg(self.max_num_workers.to_string())
+            .arg("--emit")
+            .arg(self.output_format.to_string())
             .stdout(std::process::Stdio::inherit())
             .stderr(std::process::Stdio::inherit());
         debug!("Running `{cmd:?}`");

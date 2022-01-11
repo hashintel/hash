@@ -1,5 +1,7 @@
 use clap::{AppSettings, Parser};
 
+use crate::utils::OutputFormat;
+
 /// Arguments passed to hEngine
 #[derive(Debug, Parser)]
 #[clap(about, version, author)]
@@ -22,6 +24,10 @@ pub struct Args {
     /// max number of workers per simulation run (optional).
     #[clap(short, long)]
     pub max_workers: Option<usize>,
+
+    /// Output format emitted to the terminal.
+    #[clap(long, default_value = "full", arg_enum, env = "HASH_EMIT")]
+    pub emit: OutputFormat,
 }
 
 pub fn args() -> Args {
