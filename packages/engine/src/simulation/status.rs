@@ -55,6 +55,8 @@ impl SimStatus {
             steps_taken,
             early_stop,
             stop_msg,
+            stop_signal: true,
+            running: false,
             persistence_result: Some(persistence_result),
             ..SimStatus::default()
         })
