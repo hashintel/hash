@@ -1,6 +1,6 @@
-###########################
-## Specific to Markdownlint
-###########################
+#######################
+## Specific to Prettier
+#######################
 
 # Ignore all files (but still allow sub-folder scanning)
 *
@@ -9,6 +9,7 @@
 # Allow certain file types
 !*.md
 !*.mdx
+# TODO: add more types
 
 # Keep license files as is
 LICENSE.md

@@ -1,13 +1,17 @@
 {
-  "no-inline-html": false,
-  "no-bare-urls": false,
-  "line-length": false,
+  "default": true,
+
   "first-line-h1": false,
-  "single-h1": false,
-  "no-duplicate-header": false,
-  "no-alt-text": false,
-  "no-emphasis-as-header": false,
-  "no-trailing-punctuation": false,
+  "first-line-heading": false,
+  "line-length": false,
   "list-marker-space": { "ol_multi": 2, "ol_single": 2 },
-  "ol-prefix": false
+  "no-alt-text": false,
+  "no-bare-urls": false,
+  "no-duplicate-header": false,
+  "no-emphasis-as-header": false,
+  "no-inline-html": false,
+  "no-trailing-punctuation": false,
+  "no-trailing-spaces": false,
+  "ol-prefix": { "style": "one" },
+  "single-h1": false
 }
