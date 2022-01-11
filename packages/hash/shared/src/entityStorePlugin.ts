@@ -30,10 +30,10 @@ type EntityStorePluginStateListener = (store: EntityStore) => void;
 type EntityStorePluginState = {
   store: EntityStore;
   listeners: EntityStorePluginStateListener[];
-  trackedActions: EntityStorePluginAction[];
+  trackedActions: { action: EntityStorePluginAction; id: string }[];
 };
 
-type EntityStorePluginAction =
+export type EntityStorePluginAction = { received?: boolean } & (
   | /**
    * This is an action that merges in a new set of blocks from a Page
    * entity's contents property, usually post save while attempting to
@@ -64,7 +64,8 @@ type EntityStorePluginAction =
         entityId: string | null;
         draftId: string;
       };
-    };
+    }
+);
 
 const entityStorePluginKey = new PluginKey<EntityStorePluginState, Schema>(
   "entityStore",
@@ -87,7 +88,7 @@ export const entityStorePluginState = (state: EditorState<Schema>) => {
 /**
  * @use {@link subscribeToEntityStore} if you need a live subscription
  */
-export const pluginStateFromTransaction = (
+const entityStorePluginStateFromTransaction = (
   tr: Transaction<Schema>,
   state: EditorState<Schema>,
 ): EntityStorePluginState =>
@@ -137,7 +138,9 @@ const entityStoreReducer = (
       }
 
       return produce(state, (draftState) => {
-        draftState.trackedActions.push(action);
+        if (!action.received) {
+          draftState.trackedActions.push({ action, id: uuid() });
+        }
 
         const entities: Draft<DraftEntity>[] = [
           draftState.store.draft[action.payload.draftId],
@@ -169,7 +172,9 @@ const entityStoreReducer = (
       }
 
       return produce(state, (draftState) => {
-        draftState.trackedActions.push(action);
+        if (!action.received) {
+          draftState.trackedActions.push({ action, id: uuid() });
+        }
 
         draftState.store.draft[action.payload.draftId] = {
           entityId: action.payload.entityId,
@@ -182,12 +187,15 @@ const entityStoreReducer = (
   return state;
 };
 
+/**
+ * @todo store actions on transaction
+ */
 export const addEntityStoreAction = (
   state: EditorState<Schema>,
   tr: Transaction<Schema>,
   action: EntityStorePluginAction,
 ) => {
-  const prevState = pluginStateFromTransaction(tr, state);
+  const prevState = entityStorePluginStateFromTransaction(tr, state);
   const nextState = entityStoreReducer(prevState, action);
 
   tr.setMeta(entityStorePluginKey, nextState);
@@ -468,7 +476,8 @@ class ProsemirrorStateChangeHandler {
   }
 
   private getDraftEntityStoreFromTransaction() {
-    return pluginStateFromTransaction(this.tr, this.state).store.draft;
+    return entityStorePluginStateFromTransaction(this.tr, this.state).store
+      .draft;
   }
 }
 
@@ -499,6 +508,9 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
   /**
    * This is necessary to ensure the draft entity store stays in sync with the
    * changes made by users to the document
+   *
+   * @todo we need to take the state left by the transactions as the start
+   * for nodeChangeHandler
    */
   appendTransaction(transactions, _, state) {
     if (!transactions.some((tr) => tr.docChanged)) {

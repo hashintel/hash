@@ -10,6 +10,7 @@ import {
 } from "@hashintel/hash-shared/entityStore";
 import {
   addEntityStoreAction,
+  EntityStorePluginAction,
   entityStorePluginState,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import {
@@ -57,7 +58,13 @@ type StoreUpdate = {
   type: "store";
   payload: EntityStore;
 };
-type Update = StepUpdate | StoreUpdate;
+
+type ActionUpdate = {
+  type: "action";
+  payload: EntityStorePluginAction;
+};
+
+type Update = StepUpdate | StoreUpdate | ActionUpdate;
 
 // A collaborative editing document instance.
 export class Instance {
@@ -235,7 +242,12 @@ export class Instance {
 
   addEvents =
     (apolloClient?: ApolloClient<unknown>) =>
-    (version: number, steps: Step[], clientID: string) => {
+    (
+      version: number,
+      steps: Step[],
+      clientID: string,
+      actions: EntityStorePluginAction[] = [],
+    ) => {
       this.checkVersion(version);
       if (this.version !== version) return false;
       const tr = this.state.tr;
@@ -249,10 +261,20 @@ export class Instance {
           this.saveMapping.appendMap(steps[i].getMap());
         }
       }
+
+      for (const action of actions) {
+        addEntityStoreAction(this.state, tr, { ...action, received: true });
+      }
+
       this.state = this.state.apply(tr);
 
       // this.doc = doc;
       this.addUpdates(steps.map((step) => ({ type: "step", payload: step })));
+
+      for (const action of actions) {
+        this.addUpdates([{ type: "action", payload: action }]);
+      }
+
       this.sendUpdates();
 
       if (apolloClient) {
@@ -343,6 +365,7 @@ export class Instance {
       jsonSteps: any[],
       clientId: string,
       blockIds: string[],
+      actions: EntityStorePluginAction[] = [],
     ) => {
       /**
        * This isn't strictly necessary, and will result in more laggy collab
@@ -369,7 +392,12 @@ export class Instance {
         Step.fromJSON(this.state.doc.type.schema, step),
       );
 
-      const res = this.addEvents(apolloClient)(version, steps, clientId);
+      const res = this.addEvents(apolloClient)(
+        version,
+        steps,
+        clientId,
+        actions,
+      );
 
       /**
        * This isn't strictly necessary, and will result in more laggy collab
@@ -420,11 +448,16 @@ export class Instance {
         .find((update): update is StoreUpdate => update.type === "store")
         ?.payload ?? null;
 
+    const actions = updates
+      .filter((update): update is ActionUpdate => update.type === "action")
+      .map((update) => update.payload);
+
     return {
       steps,
       users: this.userCount,
       clientIDs: steps.map((step) => this.clientIds.get(step)),
       store,
+      actions,
       shouldRespondImmediately: updates.length > 0,
     };
   }
