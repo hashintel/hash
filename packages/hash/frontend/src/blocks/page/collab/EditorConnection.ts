@@ -2,7 +2,7 @@ import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirror
 import { EntityStore } from "@hashintel/hash-shared/entityStore";
 import {
   addEntityStoreAction,
-  EntityStorePluginAction,
+  disableEntityStoreTransactionInterpretation,
   entityStorePluginState,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
@@ -263,6 +263,7 @@ export class EditorConnection {
           }
 
           if (shouldDispatch) {
+            disableEntityStoreTransactionInterpretation(tr);
             this.dispatch({
               type: "update",
               transaction: tr,
@@ -282,6 +283,7 @@ export class EditorConnection {
             data.steps.map((json: any) => Step.fromJSON(this.schema, json)),
             data.clientIDs,
           );
+          disableEntityStoreTransactionInterpretation(tr);
         }
 
         if (

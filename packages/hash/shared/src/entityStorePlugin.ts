@@ -71,6 +71,18 @@ const entityStorePluginKey = new PluginKey<EntityStorePluginState, Schema>(
   "entityStore",
 );
 
+type EntityStoreMeta = {
+  store?: EntityStorePluginState;
+  disableInterpretation?: boolean;
+};
+
+const getMeta = (
+  transaction: Transaction<Schema>,
+): EntityStoreMeta | undefined => transaction.getMeta(entityStorePluginKey);
+
+const setMeta = (transaction: Transaction<Schema>, meta: EntityStoreMeta) =>
+  transaction.setMeta(entityStorePluginKey, meta);
+
 /**
  * @use {@link subscribeToEntityStore} if you need a live subscription
  */
@@ -92,7 +104,7 @@ const entityStorePluginStateFromTransaction = (
   tr: Transaction<Schema>,
   state: EditorState<Schema>,
 ): EntityStorePluginState =>
-  tr.getMeta(entityStorePluginKey) ?? entityStorePluginState(state);
+  getMeta(tr)?.store ?? entityStorePluginState(state);
 
 /**
  * We currently violate Immer's rules, as properties inside entities can be
@@ -187,6 +199,15 @@ const entityStoreReducer = (
   return state;
 };
 
+export const disableEntityStoreTransactionInterpretation = (
+  tr: Transaction<Schema>,
+) => {
+  setMeta(tr, {
+    ...(getMeta(tr) ?? {}),
+    disableInterpretation: true,
+  });
+};
+
 /**
  * @todo store actions on transaction
  */
@@ -197,8 +218,10 @@ export const addEntityStoreAction = (
 ) => {
   const prevState = entityStorePluginStateFromTransaction(tr, state);
   const nextState = entityStoreReducer(prevState, action);
-
-  tr.setMeta(entityStorePluginKey, nextState);
+  setMeta(tr, {
+    ...(getMeta(tr) ?? {}),
+    store: nextState,
+  });
 
   return nextState;
 };
@@ -492,8 +515,7 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
       };
     },
     apply(tr, initialState): EntityStorePluginState {
-      const nextState: EntityStorePluginState =
-        tr.getMeta(entityStorePluginKey) ?? initialState;
+      const nextState = getMeta(tr)?.store ?? initialState;
 
       if (nextState !== initialState) {
         for (const listener of nextState.listeners) {
@@ -514,6 +536,10 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
    */
   appendTransaction(transactions, _, state) {
     if (!transactions.some((tr) => tr.docChanged)) {
+      return;
+    }
+
+    if (getMeta(transactions[transactions.length - 1])?.disableInterpretation) {
       return;
     }
 

@@ -10,6 +10,7 @@ import {
 } from "@hashintel/hash-shared/entityStore";
 import {
   addEntityStoreAction,
+  disableEntityStoreTransactionInterpretation,
   EntityStorePluginAction,
   entityStorePluginState,
 } from "@hashintel/hash-shared/entityStorePlugin";
@@ -247,10 +248,15 @@ export class Instance {
       steps: Step[],
       clientID: string,
       actions: EntityStorePluginAction[] = [],
+      fromClient = true,
     ) => {
       this.checkVersion(version);
       if (this.version !== version) return false;
       const tr = this.state.tr;
+
+      if (fromClient) {
+        disableEntityStoreTransactionInterpretation(tr);
+      }
 
       for (let i = 0; i < steps.length; i++) {
         this.clientIds.set(steps[i], clientID);
@@ -341,6 +347,8 @@ export class Instance {
               this.version,
               transform.steps,
               `${clientID}-server`,
+              [],
+              false,
             );
           }
 
