@@ -24,7 +24,7 @@ describe("Signup page", () => {
       <Signup />,
       { mocks: SIGNUP_MOCKS },
     );
-    const email = "test@hash.ai";
+    const email = "test@example.com";
     const input = getByPlaceholderText("Enter your email address", {
       exact: false,
     });

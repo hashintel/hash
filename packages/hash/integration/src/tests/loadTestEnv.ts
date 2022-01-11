@@ -1,4 +1,4 @@
-import "@hashintel/hash-backend-utils/load-dotenv-files";
+import "@hashintel/hash-backend-utils/environment";
 
 // Load the test environment variables
 Object.assign(process.env, {

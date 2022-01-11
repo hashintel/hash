@@ -1,5 +1,3 @@
-import "@hashintel/hash-backend-utils/load-dotenv-files";
-
 import * as http from "http";
 import { promisify } from "util";
 import { sleep } from "@hashintel/hash-shared/sleep";

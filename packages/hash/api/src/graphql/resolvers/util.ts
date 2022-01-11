@@ -10,7 +10,7 @@ import { AggregateOperationInput } from "../apiTypes.gen";
 // that property should be expressed as this object under a __linkedData key
 // e.g.
 // properties: {
-//   email: "c@hash.ai",
+//   email: "alice@example.com",
 //   employer: { <-- will be resolved to the data requested in __linkedData
 //     __linkedData: {
 //       entityTypeId: "companyType1",

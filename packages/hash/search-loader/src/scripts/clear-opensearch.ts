@@ -1,6 +1,7 @@
-import "@hashintel/hash-backend-utils/load-dotenv-files";
-
-import { waitOnResource } from "@hashintel/hash-backend-utils/environment";
+import {
+  getRequiredEnv,
+  waitOnResource,
+} from "@hashintel/hash-backend-utils/environment";
 
 /**
  * This script clears all indices created by the search-loader service. It is intended
@@ -19,8 +20,8 @@ const logger = new Logger({
 const INDICES = ["entities"];
 
 const main = async () => {
-  const host = process.env.HASH_OPENSEARCH_HOST || "localhost";
-  const port = parseInt(process.env.HASH_OPENSEARCH_PORT || "9200", 10);
+  const host = getRequiredEnv("HASH_OPENSEARCH_HOST");
+  const port = parseInt(getRequiredEnv("HASH_OPENSEARCH_PORT"), 10);
 
   await waitOnResource(`http://${host}:${port}`, logger);
 

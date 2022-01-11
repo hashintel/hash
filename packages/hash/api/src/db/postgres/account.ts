@@ -1,8 +1,8 @@
 import { NotFoundError, sql } from "slonik";
 
+import { SYSTEM_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 import { Connection } from "./types";
 
-import { SYSTEM_ACCOUNT_SHORTNAME } from "../../lib/config";
 import { DbEntityNotFoundError } from "../errors";
 
 export const insertAccount = async (

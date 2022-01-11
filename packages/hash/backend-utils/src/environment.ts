@@ -1,6 +1,11 @@
-import waitOn from "wait-on";
+import { config } from "dotenv-flow";
 
 import path from "path";
+import waitOn from "wait-on";
+
+export const monorepoRootDir = path.resolve(__dirname, "../../../..");
+
+config({ silent: true, path: monorepoRootDir });
 
 /**
  * Get a required environment variable. Throws an error if it's not set.
@@ -14,8 +19,6 @@ export const getRequiredEnv = (name: string) => {
   }
   return value;
 };
-
-export const monorepoRootDir = path.resolve(__dirname, "../../../..");
 
 export const waitOnResource = async (
   resource: string,

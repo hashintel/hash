@@ -1,5 +1,6 @@
 // This module is temporary. If we move the DbAdapter from @hashintel/hash-api to
 // @hashintel/hash-backend-utils we can use it here.
+import { SYSTEM_ACCOUNT_SHORTNAME } from "@hashintel/hash-backend-utils/system";
 import { PgPool } from "@hashintel/hash-backend-utils/postgres";
 import { sql } from "slonik";
 
@@ -19,7 +20,7 @@ export const getSystemAccountId = async (pool: PgPool) => {
   const res = await pool.oneFirst(sql`
     select account_id from entity_versions
     where account_id = entity_id
-      and properties->>'shortname' = 'hash'
+      and properties->>'shortname' = ${SYSTEM_ACCOUNT_SHORTNAME}
   `);
   systemAccountId = res as string;
   return systemAccountId;

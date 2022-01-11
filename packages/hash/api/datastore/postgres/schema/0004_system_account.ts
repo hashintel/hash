@@ -1,17 +1,14 @@
-import fs from "fs";
-import path from "path";
-
-import generatedIds from "./data/generatedIds.json";
-import { entityTypeJson } from "./data/systemTypeSchemas";
 import {
-  SYSTEM_ACCOUNT_SHORTNAME,
   SYSTEM_ACCOUNT_NAME,
-} from "../../../src/lib/config";
+  SYSTEM_ACCOUNT_SHORTNAME,
+} from "@hashintel/hash-backend-utils/system";
+import generatedIds from "../scripts/data/generatedIds.json";
+import { entityTypeJson } from "../scripts/data/systemTypeSchemas";
 
 const now = "2021-08-19T11:00:14.587Z";
 
 const { Org } = generatedIds.types;
-const systemAccount = generatedIds.orgs[SYSTEM_ACCOUNT_SHORTNAME];
+const systemAccount = generatedIds.orgs.__system__;
 
 const systemAccountPropertiesStringified = JSON.stringify({
   shortname: SYSTEM_ACCOUNT_SHORTNAME,
@@ -72,5 +69,4 @@ insert into entity_account (
 
 `;
 
-const outputPath = path.join(__dirname, "../schema/0004_system_account.sql");
-fs.writeFileSync(outputPath, sqlString);
+export default sqlString;

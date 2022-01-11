@@ -1,5 +1,3 @@
-import "@hashintel/hash-backend-utils/load-dotenv-files";
-
 /* eslint-disable no-console -- OK for CLI scripts */
 /**
  * Apply the schema migration files
@@ -110,7 +108,12 @@ const main = async () => {
 
   for (const name of schemaFiles) {
     console.log(`Applying ${name}`);
-    const sql = fs.readFileSync(path.resolve(schemaDir, name)).toString();
+    const schemaFilePath = path.resolve(schemaDir, name);
+
+    const sql =
+      path.extname(schemaFilePath) === ".ts"
+        ? (await import(schemaFilePath)).default
+        : fs.readFileSync(schemaFilePath, "utf-8");
     await runTransaction(async (client) => {
       await client.query(sql);
     });

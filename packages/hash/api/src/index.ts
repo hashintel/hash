@@ -1,5 +1,3 @@
-import "@hashintel/hash-backend-utils/load-dotenv-files";
-
 import { promisify } from "util";
 import http from "http";
 import path from "path";
@@ -138,7 +136,9 @@ const main = async () => {
             : undefined,
         })
       : new AwsSesEmailTransporter({
-          from: "HASH <support@hash.ai>",
+          from: `${getRequiredEnv(
+            "SYSTEM_EMAIL_SENDER_NAME",
+          )} <${getRequiredEnv("SYSTEM_EMAIL_ADDRESS")}>`,
           region: getAwsRegion(),
           subjectPrefix: isProdEnv ? undefined : "[DEV SITE] ",
         });

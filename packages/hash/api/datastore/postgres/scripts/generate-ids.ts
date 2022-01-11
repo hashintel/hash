@@ -1,14 +1,10 @@
 import fs from "fs";
 import path from "path";
 import { Uuid4 } from "id128";
-
-const {
-  SYSTEM_ACCOUNT_SHORTNAME,
-  SYSTEM_TYPES,
-} = require("../../../src/lib/config");
+import { SYSTEM_TYPES } from "@hashintel/hash-api/src/types/entityTypes";
 
 const requiredIds = {
-  orgs: [SYSTEM_ACCOUNT_SHORTNAME],
+  orgs: ["__system__"],
   types: SYSTEM_TYPES,
 };
 

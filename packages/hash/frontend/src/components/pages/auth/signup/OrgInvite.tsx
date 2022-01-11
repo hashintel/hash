@@ -128,7 +128,7 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
           <label className={tw`flex items-center`}>
             <input type="checkbox" className={tw`w-4 h-4`} />
             <span className={tw`ml-2 text-sm`}>
-              Allow anyone with a <strong>@acme.com</strong> email to join this
+              Allow anyone with a <strong>@example.com</strong> email to join this
               workspace
             </span>
           </label>

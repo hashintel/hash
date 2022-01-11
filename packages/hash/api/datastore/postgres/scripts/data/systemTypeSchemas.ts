@@ -1,20 +1,17 @@
-import {
-  SYSTEM_ACCOUNT_SHORTNAME,
-  SYSTEM_TYPE,
-} from "../../../../src/lib/config";
+import { SystemType } from "@hashintel/hash-api/src/types/entityTypes";
 import generatedIds from "./generatedIds.json";
 import {
   generateSchema$id,
   jsonSchemaVersion,
 } from "../../../../src/lib/schemas/jsonSchema";
 
-const systemAccount = generatedIds.orgs[SYSTEM_ACCOUNT_SHORTNAME];
+const systemAccount = generatedIds.orgs.__system__;
 
 /**
  * Generate the URI for a schema.
  * Use relative for $refs to other schemas in the same system.
  */
-const schemaId = (name: SYSTEM_TYPE, relative: boolean = false) =>
+const schemaId = (name: SystemType, relative: boolean = false) =>
   generateSchema$id(
     systemAccount.fixedId,
     generatedIds.types[name].fixedId,
@@ -189,7 +186,7 @@ const systemTypeSchemas: {
   },
 };
 
-export const entityTypeJson = (name: SYSTEM_TYPE) =>
+export const entityTypeJson = (name: SystemType) =>
   JSON.stringify({
     $schema: jsonSchemaVersion,
     $id: schemaId(name),

@@ -1,5 +1,3 @@
-import "@hashintel/hash-backend-utils/load-dotenv-files";
-
 import * as crypto from "crypto";
 import * as http from "http";
 

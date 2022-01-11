@@ -40,17 +40,17 @@ const newYork: Location = {
   type: "Location",
 };
 
-const HASH1: Company = {
-  name: "HASH",
-  url: "https://hash.ai",
+const company1: Company = {
+  name: "Example Company",
+  url: "https://example.com",
   locationId: "place1",
   entityId: "c1",
   type: "Company",
 };
 
-const HASH2: Company = {
-  name: "HASH",
-  url: "https://hash.ai",
+const company2: Company = {
+  name: "Example Company #2",
+  url: "https://another.example.com",
   locationId: "place2",
   entityId: "c2",
   type: "Company",
@@ -58,66 +58,59 @@ const HASH2: Company = {
 
 const people: Person[] = [
   {
-    email: "aj@hash.ai",
+    email: "alice@example.com",
     employerId: "c1",
     entityId: "1",
-    name: "Akash Joshi",
+    name: "Alice Alison",
     type: "Person",
   },
   {
-    email: "c@hash.ai",
+    email: "bob@example.com",
     employerId: "c1",
     entityId: "2",
-    name: "Ciaran Morinan",
+    name: "Bob Bobson",
     type: "Person",
   },
   {
-    email: "d@hash.ai",
+    email: "charlie@example.com",
     employerId: "c1",
     entityId: "3",
-    name: "David Wilkinson",
+    name: "Charlie Charlson",
     type: "Person",
   },
   {
-    email: "ef@hash.ai",
+    email: "david@example.com",
     employerId: "c1",
     entityId: "4",
-    name: "Eaden Fahey",
+    name: "David Davidson",
     type: "Person",
   },
   {
-    email: "nh@hash.ai",
+    email: "eve@example.com",
     employerId: "c1",
     entityId: "5",
-    name: "Nate Higgins",
+    name: "Eve Everson",
     type: "Person",
   },
   {
-    email: "vu@hash.ai",
+    email: "frances@example.com",
     employerId: "c1",
     entityId: "6",
-    name: "Valentino Ugbala",
+    name: "Frances Franceson",
     type: "Person",
   },
   {
-    email: "bw@hash.ai",
+    email: "george@example.com",
     employerId: "c1",
     entityId: "7",
-    name: "Ben Werner",
+    name: "George Georgeson",
     type: "Person",
   },
   {
-    email: "al@hash.ai",
+    email: "harriet@example.com",
     employerId: "c1",
     entityId: "8",
-    name: "Andre Litvin",
-    type: "Person",
-  },
-  {
-    email: "ns@hash.ai",
-    employerId: "c2",
-    entityId: "9",
-    name: "Nur Shlapobersky",
+    name: "Harriet Harrisson",
     type: "Person",
   },
 ];
@@ -153,4 +146,4 @@ export const initialTableData = {
   entityId: "table1",
 };
 
-export const entities = [...people, HASH1, HASH2, london, newYork];
+export const entities = [...people, company1, company2, london, newYork];

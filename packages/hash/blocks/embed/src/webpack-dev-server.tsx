@@ -9,7 +9,6 @@ import {
   BlockProtocolUpdateEntitiesFunction,
   BlockProtocolUpdateEntitiesAction,
 } from "@hashintel/block-protocol";
-// import { apiGraphQLEndpoint } from "@hashintel/hash-shared/environment";
 
 import Component from "./index";
 import { ProviderNames } from "./types";

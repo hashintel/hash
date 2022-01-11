@@ -1,5 +1,3 @@
-import "@hashintel/hash-backend-utils/load-dotenv-files";
-
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { PostgresAdapter } from "@hashintel/hash-api/src/db";
 import {
@@ -43,24 +41,28 @@ void (async () => {
     logger,
   );
 
-  // Get the hash org - it's already been created as part of db migration
-  const hashOrg = await Org.getOrgByShortname(db, { shortname: "hash" });
+  // Get the system org - it's already been created as part of db migration
+  const systemOrg = await Org.getOrgByShortname(db, {
+    shortname: getRequiredEnv("SYSTEM_ACCOUNT_SHORTNAME"),
+  });
 
-  if (!hashOrg) {
+  if (!systemOrg) {
     throw new Error(`
-      No org with shortname 'hash' found.
+      No org with shortname '${getRequiredEnv(
+        "SYSTEM_ACCOUNT_SHORTNAME",
+      )}' found.
       Has the db migration been run?
       Has the system account name been changed?
     `);
   }
 
   const [users, _orgs] = await Promise.all([
-    createUsers(db)(hashOrg),
+    createUsers(db)(systemOrg),
     createOrgs(db),
   ]);
 
   await createEntityTypes(db)([
-    hashOrg.accountId,
+    systemOrg.accountId,
     ...users.map((user) => user.accountId),
   ]);
 
@@ -84,8 +86,8 @@ void (async () => {
   await Promise.all(
     requiredTypes.map(async (name) => {
       const entityType = await EntityType.create(db, {
-        accountId: hashOrg.accountId,
-        createdByAccountId: hashOrg.entityId, // TODO
+        accountId: systemOrg.accountId,
+        createdByAccountId: systemOrg.entityId, // TODO
         name,
         schema: {},
       });
@@ -124,9 +126,7 @@ void (async () => {
     });
   };
 
-  const user = users.find(
-    ({ properties }) => properties.shortname === "ciaran",
-  );
+  const user = users.find(({ properties }) => properties.shortname === "alice");
   if (!user) {
     throw new Error("user not found");
   }
@@ -253,7 +253,7 @@ void (async () => {
         "text5",
         {
           systemTypeName: SystemTypeName.Text,
-          accountId: hashOrg.accountId,
+          accountId: systemOrg.accountId,
           createdByAccountId: user.entityId,
           properties: {
             tokens: [
@@ -265,7 +265,7 @@ void (async () => {
       [
         "embed1",
         {
-          accountId: hashOrg.accountId,
+          accountId: systemOrg.accountId,
           entityTypeId: newTypeIds.Embed,
           createdByAccountId: user.entityId,
           properties: {},
@@ -275,7 +275,7 @@ void (async () => {
         "embed2",
         {
           entityTypeId: newTypeIds.Embed,
-          accountId: hashOrg.accountId,
+          accountId: systemOrg.accountId,
           createdByAccountId: user.entityId,
           properties: {},
         },
@@ -302,7 +302,7 @@ void (async () => {
         "code1",
         {
           entityTypeId: newTypeIds.Code,
-          accountId: hashOrg.accountId,
+          accountId: systemOrg.accountId,
           createdByAccountId: user.entityId,
           properties: {},
         },
@@ -349,8 +349,8 @@ void (async () => {
         "c1",
         {
           properties: {
-            name: "HASH",
-            url: "https://hash.ai",
+            name: "Example Org",
+            url: "https://example.com",
           },
           entityTypeId: newTypeIds.Company,
           accountId: user.accountId,
@@ -367,8 +367,8 @@ void (async () => {
         "p1",
         {
           properties: {
-            email: "aj@hash.ai",
-            name: "Akash Joshi",
+            email: "alice@example.com",
+            name: "Alice Alison",
             employer: {
               __linkedData: {
                 entityTypeId: newTypeIds.Company,
@@ -385,8 +385,8 @@ void (async () => {
         "p2",
         {
           properties: {
-            email: "c@hash.ai",
-            name: "Ciaran Morinan",
+            email: "bob@example.com",
+            name: "Bob Bobson",
             employer: {
               __linkedData: {
                 entityTypeId: newTypeIds.Company,
@@ -403,8 +403,8 @@ void (async () => {
         "p3",
         {
           properties: {
-            email: "d@hash.ai",
-            name: "David Wilkinson",
+            email: "charlie@example.com",
+            name: "Charlie Charlson",
             employer: {
               __linkedData: {
                 entityTypeId: newTypeIds.Company,
@@ -421,8 +421,8 @@ void (async () => {
         "p4",
         {
           properties: {
-            email: "ef@hash.ai",
-            name: "Eadan Fahey",
+            email: "david@example.com",
+            name: "David Davidson",
             employer: {
               __linkedData: {
                 entityTypeId: newTypeIds.Company,
@@ -439,8 +439,8 @@ void (async () => {
         "p5",
         {
           properties: {
-            email: "nh@hash.ai",
-            name: "Nate Higgins",
+            email: "eve@example.com",
+            name: "Eve Everson",
             employer: {
               __linkedData: {
                 entityTypeId: newTypeIds.Company,
@@ -457,8 +457,8 @@ void (async () => {
         "p6",
         {
           properties: {
-            email: "mr@hash.ai",
-            name: "Marius Runge",
+            email: "frances@example.com",
+            name: "Frances Franceson",
             employer: {
               __linkedData: {
                 entityTypeId: newTypeIds.Company,
@@ -586,7 +586,7 @@ void (async () => {
             accountId: results.get("text5")!.accountId,
           },
           createdByAccountId: user.entityId,
-          accountId: hashOrg.accountId,
+          accountId: systemOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
       ],
@@ -599,7 +599,7 @@ void (async () => {
             accountId: results.get("text2")!.accountId,
           },
           createdByAccountId: user.entityId,
-          accountId: hashOrg.accountId,
+          accountId: systemOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
       ],
@@ -612,7 +612,7 @@ void (async () => {
             accountId: results.get("text3")!.accountId,
           },
           createdByAccountId: user.entityId,
-          accountId: hashOrg.accountId,
+          accountId: systemOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
       ],
@@ -625,7 +625,7 @@ void (async () => {
             accountId: results.get("text4")!.accountId,
           },
           createdByAccountId: user.entityId,
-          accountId: hashOrg.accountId,
+          accountId: systemOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
       ],
@@ -638,7 +638,7 @@ void (async () => {
             accountId: results.get("p2")!.accountId,
           },
           createdByAccountId: user.entityId,
-          accountId: hashOrg.accountId,
+          accountId: systemOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
       ],
@@ -651,7 +651,7 @@ void (async () => {
             accountId: results.get("header1text")!.accountId,
           },
           createdByAccountId: user.entityId,
-          accountId: hashOrg.accountId,
+          accountId: systemOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
       ],
@@ -664,7 +664,7 @@ void (async () => {
             accountId: results.get("divider1")!.accountId,
           },
           createdByAccountId: user.entityId,
-          accountId: hashOrg.accountId,
+          accountId: systemOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
       ],
@@ -677,7 +677,7 @@ void (async () => {
             accountId: results.get("embed1")!.accountId,
           },
           createdByAccountId: user.entityId,
-          accountId: hashOrg.accountId,
+          accountId: systemOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
       ],
@@ -690,7 +690,7 @@ void (async () => {
             accountId: results.get("embed2")!.accountId,
           },
           createdByAccountId: user.entityId,
-          accountId: hashOrg.accountId,
+          accountId: systemOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
       ],
@@ -703,7 +703,7 @@ void (async () => {
             accountId: results.get("img1")!.accountId,
           },
           createdByAccountId: user.entityId,
-          accountId: hashOrg.accountId,
+          accountId: systemOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
       ],
@@ -716,7 +716,7 @@ void (async () => {
             accountId: results.get("img2")!.accountId,
           },
           createdByAccountId: user.entityId,
-          accountId: hashOrg.accountId,
+          accountId: systemOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
       ],
@@ -729,7 +729,7 @@ void (async () => {
             accountId: results.get("video1")!.accountId,
           },
           createdByAccountId: user.entityId,
-          accountId: hashOrg.accountId,
+          accountId: systemOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
       ],
@@ -742,7 +742,7 @@ void (async () => {
             accountId: results.get("header2text")!.accountId,
           },
           createdByAccountId: user.entityId,
-          accountId: hashOrg.accountId,
+          accountId: systemOrg.accountId,
           systemTypeName: SystemTypeName.Block,
         },
       ],
@@ -844,7 +844,7 @@ void (async () => {
         "page2",
         {
           systemTypeName: SystemTypeName.Page,
-          accountId: hashOrg.accountId,
+          accountId: systemOrg.accountId,
           createdByAccountId: user.entityId,
           properties: {
             contents: [

@@ -5,7 +5,7 @@ import {
 
 const newUser = {
   shortname: "tester",
-  email: "test@hash.ai",
+  email: "test@example.com",
   verificationCode: "exhorted-focalising-fluidity-wingmen",
   verificationCodeMetadata: {
     id: "ec2ce5a9-7c95-4061-b3bd-39a258682439",
