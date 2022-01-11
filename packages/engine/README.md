@@ -189,12 +189,14 @@ This guide will walk you through downloading a [demo simulation], running it, an
 
 In order to run the demo:
 
-1.  Build the engine as [described above](#project-setup--building)
+<!-- markdownlint-disable ol-prefix -->
+
+0.  Build the engine as [described above](#project-setup--building)
 1.  Open the [demo simulation] and optionally read the overview
-1.  Press `Open` at the upper right to view the simulation in [hCore].
-1.  Download it by pressing `File -> Export Project`
-1.  Unzip it either with your file browser or by e.g. `unzip ageing-agents.zip -d path/to/ageing-agents`
-1.  Run the simulation from the _packages/engine_ directory and pass the path to the downloaded project as a parameter:
+2.  Press `Open` at the upper right to view the simulation in [hCore].
+3.  Download it by pressing `File -> Export Project`
+4.  Unzip it either with your file browser or by e.g. `unzip ageing-agents.zip -d path/to/ageing-agents`
+5.  Run the simulation from the _packages/engine_ directory and pass the path to the downloaded project as a parameter:
 
     ```shell
     cargo run --bin cli -- --project 'path/to/ageing-agents' single-run --num-steps 5
