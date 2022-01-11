@@ -22,7 +22,7 @@ pub enum OutputFormat {
     Full,
     /// excessively pretty, multi-line logs, optimized for human readability.
     Pretty,
-    // TODO: Readd JSON output. Currently it's failing when adding spans, we probably need to add
+    // TODO: Add JSON output. Currently it's failing when adding spans, we probably need to add
     //   it ourself
     // /// Newline-delimited JSON logs.
     // Json,
