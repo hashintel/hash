@@ -1,27 +1,27 @@
 A-infra:
-  - '.github/*'
-  - '.github/.*'
-  - '.github/**/*'
-  - '.github/**/.*'
-  - '*.md'
-  - '.markdownlint*'
-  - '.gitignore'
+  - ".github/*"
+  - ".github/.*"
+  - ".github/**/*"
+  - ".github/**/.*"
+  - "*.md"
+  - ".markdownlint*"
+  - ".gitignore"
 A-hash:
-  - 'packages/hash/*'
-  - 'packages/hash/.*'
-  - 'packages/hash/**/*'
-  - 'packages/hash/**/.*'
+  - "packages/hash/*"
+  - "packages/hash/.*"
+  - "packages/hash/**/*"
+  - "packages/hash/**/.*"
 A-engine:
-  - 'packages/engine/*'
-  - 'packages/engine/.*'
-  - 'packages/engine/**/*'
-  - 'packages/engine/**/.*'
+  - "packages/engine/*"
+  - "packages/engine/.*"
+  - "packages/engine/**/*"
+  - "packages/engine/**/.*"
 A-learn:
-  - 'resources/*'
-  - 'resources/.*'
-  - 'resources/**/*'
-  - 'resources/**/.*'
+  - "resources/*"
+  - "resources/.*"
+  - "resources/**/*"
+  - "resources/**/.*"
 
 C-dependencies:
-  - '**/Cargo.lock'
-  - '**/yarn.lock'
+  - "**/Cargo.lock"
+  - "**/yarn.lock"
