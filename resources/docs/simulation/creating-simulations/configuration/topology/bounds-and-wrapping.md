@@ -15,7 +15,7 @@ A gas particle in a box might have a topology configuration like:
     "topology": {
         "x_bounds": [0, 20],
         "y_bounds": [0, 20],
-        "z_bounds": [0, 20],        
+        "z_bounds": [0, 20],
         "wrapping_preset": "reflection"
     }
 }
@@ -29,6 +29,7 @@ Play around with the wrapping preset and bounds in [this HASH Simulation](/@hash
 
 The wrapping presents we support out-of-the box are:
 
+<!-- prettier-ignore -->
 | Wrapping Preset | Effect |
 | :--- | :--- |
 | Spherical | Agents will be wrapped continuously along the x-axis and will be reflected against the Y-axis borders. Imagine flying across a map of the world. |

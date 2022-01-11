@@ -20,9 +20,9 @@ const behavior = (state, context) => {
 
   let rate = state.get("refining_rate") * context.globals().seconds_per_step;
 
-  if ((crude - rate) < 0) {
+  if (crude - rate < 0) {
     rate = crude;
-  } else if ((oil + rate) > refined_capacity) {
+  } else if (oil + rate > refined_capacity) {
     rate = refined_capacity - oil;
   }
 

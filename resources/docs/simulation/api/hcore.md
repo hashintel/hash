@@ -114,12 +114,11 @@ Trigger hCore to reset the simulation, generate a new simulation run, and start 
 
 <Tab title="Message" >
 
-```javascript
+```json
 // resetAndRun message example
-
 {
- "id": "1625b2ce-441f-4b42-8d44-80ec3bae2495",
- "type": "resetAndRun"
+  "id": "1625b2ce-441f-4b42-8d44-80ec3bae2495",
+  "type": "resetAndRun"
 }
 ```
 

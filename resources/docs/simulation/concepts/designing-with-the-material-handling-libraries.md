@@ -20,7 +20,7 @@ Conveyors allow agents to be transported from one location to another. A conveyo
 
 ## Cranes
 
-![An overhead \(green\) and jib \(blue\) crane moving box agents](https://cdn-us1.hash.ai/site/docs/cranes.gif)
+![An overhead (green) and jib (blue) crane moving box agents](https://cdn-us1.hash.ai/site/docs/cranes.gif)
 
 Cranes are able to pick up and place agents in a new location. Cranes are able to freely move above other agents, but are constrained to travel within a certain area. This Library allows you to create two different types of cranes: **Jib** and **Overhead** cranes. You can learn more about the Crane Library at the link below:
 
@@ -28,7 +28,7 @@ Cranes are able to pick up and place agents in a new location. Cranes are able t
 
 ## Racks and Forklifts
 
-![Racks \(green\) change height as items are picked by the red agent, or placed by the blue agent](https://cdn-us1.hash.ai/site/docs/racks.gif)
+![Racks (green) change height as items are picked by the red agent, or placed by the blue agent](https://cdn-us1.hash.ai/site/docs/racks.gif)
 
 Racks are able to store objects or agents in them. This Library allows you to initialize racks, and give other agents the ability to place or pick from them. For instance, you can create forklifts using the "pick.js" and "place.js" behaviors in this library. You can learn more about the Rack Library at the link below:
 

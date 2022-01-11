@@ -75,16 +75,16 @@ Monte Carlo sweeping allows random sampling from a custom distribution. Each sup
   "mu": 1,
   "sigma": 1
 
-  // or  
+  // or
   "distribution": "poisson",
   "rate": 1
 
-  // or  
+  // or
   "distribution": "beta",
   "alpha": 1,
   "beta": 1
 
-  // or  
+  // or
   "distribution": "gamma",
   "shape": 1,
   "scale": 1
@@ -112,9 +112,9 @@ In order to discover interaction effects in your model, you'll have to perform s
   "steps": 100,
   "type": "multiparameter",
   "runs": [
-    "Radius values", 
-    "Radius linspace", 
-    "Radius arange", 
+    "Radius values",
+    "Radius linspace",
+    "Radius arange",
     "Radius monte"
   ]
 }

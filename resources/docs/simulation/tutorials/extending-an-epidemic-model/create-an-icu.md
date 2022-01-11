@@ -10,8 +10,8 @@ So now we can tell people they’re sick, and when they hear they’re sick they
 
 Let’s breakdown what we’ll need to modify in our existing model:
 
-1. **At risk.** Right now a person is infected or not infected, but we want to delineate between the mild and severe cases.
-2. **ICU Capacity.** A hospital, so long as it has room in its intensive care unit, should treat severe cases. Instead of going home, the person will move to the hospital and stay there until they’re recovered.
+1.  **At risk.** Right now a person is infected or not infected, but we want to delineate between the mild and severe cases.
+1.  **ICU Capacity.** A hospital, so long as it has room in its intensive care unit, should treat severe cases. Instead of going home, the person will move to the hospital and stay there until they’re recovered.
 
 On your Hospital initialization \(in `init.json`\), add a value for `icu_beds`. This will represent the number of Intensive Care Unit beds that a hospital has.
 
@@ -71,12 +71,12 @@ In this case, let's include a key-value pair in the message data packet for `at_
 <Tab title="JavaScript" >
 
 ```javascript
-function check_hospital(){
-   state.addMessage("Hospital", "test", {
-       "test_sick": true,
-       "at_risk": state.at_risk
-    })
- }
+function check_hospital() {
+  state.addMessage("Hospital", "test", {
+    test_sick: true,
+    at_risk: state.at_risk,
+  });
+}
 ```
 
 </Tab>
@@ -102,16 +102,15 @@ Open the `test_for_virus` behavior and, in our message parsing loop, add control
 ```javascript
 // test_for_virus.js
 
-test_messages.forEach(m => {
+test_messages.forEach((m) => {
+  let icu_or_home = false;
 
-    let icu_or_home = false;
-
-    if (state.icu_beds && m.data.at_risk) {
-        state.icu_beds -= 1;
-        icu_or_home = true;
-    }    
-    //existing code    
-})
+  if (state.icu_beds && m.data.at_risk) {
+    state.icu_beds -= 1;
+    icu_or_home = true;
+  }
+  //existing code
+});
 ```
 
 </Tab>
@@ -142,20 +141,20 @@ Let’s add a flag that the person has a case severe enough that they will stay 
 ```javascript
 // test_for_virus.js
 
-test_messages.forEach(m => {
-    // ... 
-    let icu_or_home = false;
+test_messages.forEach((m) => {
+  // ...
+  let icu_or_home = false;
 
-    if (state.icu_beds && m.data.at_risk) {
-      state.icu_beds -= 1;
-      icu_or_home = true;
-    }
+  if (state.icu_beds && m.data.at_risk) {
+    state.icu_beds -= 1;
+    icu_or_home = true;
+  }
 
-    state.addMessage(m.from, "test_result", {
-        "sick": true,
-        "icu_or_home": icu_or_home
-    })
-})
+  state.addMessage(m.from, "test_result", {
+    sick: true,
+    icu_or_home: icu_or_home,
+  });
+});
 ```
 
 </Tab>
@@ -191,18 +190,16 @@ Let’s return to our person agent. They’ve just received a message from the h
 ```javascript
 // check_infected.js
 //A person checks for messages from the hospital telling them their test results
-let msgs = context.messages().filter(msg => msg.type === "test_result");
+let msgs = context.messages().filter((msg) => msg.type === "test_result");
 
-  msgs.forEach(msg => {
-    if (msg.data.sick && msg.data.icu_or_home) {
-      state.icu = true
-      state.destination = state.hospital;
-    }
-    else if (msg.data.sick) {
-      state.destination = state.home;
-    }
+msgs.forEach((msg) => {
+  if (msg.data.sick && msg.data.icu_or_home) {
+    state.icu = true;
+    state.destination = state.hospital;
+  } else if (msg.data.sick) {
+    state.destination = state.home;
   }
-  )
+});
 ```
 
 </Tab>
@@ -258,8 +255,8 @@ When they recover, we want agents to signal to the hospital that they’re leavi
 
 We need to add:
 
-* A message sender that, when a person is recovered, sends a message to the hospital that they’re better.
-* A message handler that increments the hospital's `icu_capacity` by 1 when it receives the “recovered” message.
+- A message sender that, when a person is recovered, sends a message to the hospital that they’re better.
+- A message handler that increments the hospital's `icu_capacity` by 1 when it receives the “recovered” message.
 
 The `infection` behavior handles the logic for infection state:
 
@@ -350,9 +347,11 @@ Finally, let's handle the message logic on the Hospitals side in the "test_for_v
 ```javascript
 // test_for_virus.js
 
- const recovered_messages = context.messages().filter(m => m.type === "recovered");
- //Frees up a bed for each (recovered,severe) case
- recovered_messages.forEach(m => state.icu_beds += 1);
+const recovered_messages = context
+  .messages()
+  .filter((m) => m.type === "recovered");
+//Frees up a bed for each (recovered,severe) case
+recovered_messages.forEach((m) => (state.icu_beds += 1));
 ```
 
 </Tab>

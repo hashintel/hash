@@ -2,7 +2,7 @@
 title: Hello, HASH!
 slug: simulation/tutorials/hello-hash
 objectId: 96392257-39b5-46e2-b655-6a4a78ab1450
-description: 'Get started creating agents in our Hello, HASH tutorial!'
+description: "Get started creating agents in our Hello, HASH tutorial!"
 ---
 
 # Hello, HASH
@@ -20,14 +20,14 @@ The **init.json** file defines the 'initial state' of the simulation as a collec
 We'll begin by adding two agents into the array, and give them names.
 
 ```javascript
-[ 
-  { 
-    "agent_name": "Alice" 
+[
+  {
+    agent_name: "Alice",
   },
-  { 
-    "agent_name": "Bob"
-  } 
-]
+  {
+    agent_name: "Bob",
+  },
+];
 ```
 
 <Hint style="info">
@@ -39,16 +39,16 @@ Beneath the workspace's right-hand view-pane, you'll find the simulation control
 However, if you toggle back from the raw output view to the 3D viewer, you may notice... nothing at all. Alice and Bob haven't been rendered, because they haven't been given a position in space. Let's go ahead and fix that.
 
 ```javascript
-[ 
-  { 
-    "agent_name": "Alice", 
-    "position": [0,0] 
+[
+  {
+    agent_name: "Alice",
+    position: [0, 0],
   },
-  { 
-    "agent_name": "Bob", 
-    "position": [2,0] 
-  }
-]
+  {
+    agent_name: "Bob",
+    position: [2, 0],
+  },
+];
 ```
 
 When you've finished adding positions to your agents, reset the simulation. You should now see two blocks in the 3D viewer representing our agents.
@@ -66,17 +66,17 @@ You can build Python behaviors instead of JavaScript behaviors if you prefer. Ju
 
 ```javascript
 [
-  { 
-    "agent_name": "Alice", 
-    "behaviors": ["hello_bob.js"],
-    "position": [0,0] 
-  }, 
-  { 
-    "agent_name": "Bob", 
-    "behaviors": ["hello_alice.js"],
-    "position": [2,0] 
-  }
-]
+  {
+    agent_name: "Alice",
+    behaviors: ["hello_bob.js"],
+    position: [0, 0],
+  },
+  {
+    agent_name: "Bob",
+    behaviors: ["hello_alice.js"],
+    position: [2, 0],
+  },
+];
 ```
 
 </Tab>
@@ -85,15 +85,15 @@ You can build Python behaviors instead of JavaScript behaviors if you prefer. Ju
 
 ```python
 [
-  { 
-    "agent_name": "Alice", 
+  {
+    "agent_name": "Alice",
     "behaviors": ["hello_bob.py"],
-    "position": [0,0] 
-  }, 
-  { 
-    "agent_name": "Bob", 
+    "position": [0,0]
+  },
+  {
+    "agent_name": "Bob",
     "behaviors": ["hello_alice.py"],
-    "position": [2,0] 
+    "position": [2,0]
   }
 ]
 ```
@@ -111,9 +111,9 @@ HASH has built in support for [message](/docs/simulation/creating-simulations/ag
 
 A message has three parts:
 
-* `to`: the `agent_id` or an `agent_name`
-* `type`: a string that identifies the type of message that is being sent
-* `data`: a JSON object containing the message data
+- `to`: the `agent_id` or an `agent_name`
+- `type`: a string that identifies the type of message that is being sent
+- `data`: a JSON object containing the message data
 
 Since we're only sending a message to one agent, Alice, we can use her `agent_name` in the `to` field. Let's call this type of message a "greeting", and add a friendly greeting in the data payload.
 
@@ -123,14 +123,10 @@ Since we're only sending a message to one agent, Alice, we can use her `agent_na
 ```javascript
 // hello_alice.js
 const behavior = (state, context) => {
-  state.addMessage(
-      "Alice",
-      "greeting",
-      {
-        msg: "Hello, Alice."
-      }
-  )
-}
+  state.addMessage("Alice", "greeting", {
+    msg: "Hello, Alice.",
+  });
+};
 ```
 
 </Tab>
@@ -159,7 +155,7 @@ def behavior(state, context):
 
 Now click **Run Simulation**.
 
-![The Run Simulation is the &apos;Running Person&apos; Icon in the bottom left of the editor.](https://cdn-us1.hash.ai/site/docs/image%20%2831%29.png)
+![The Run Simulation is the 'Running Person' Icon in the bottom left of the editor.](https://cdn-us1.hash.ai/site/docs/image%20%2831%29.png)
 
 You won't see anything happen in the 3D viewer, but if you click Raw Output you'll see our Bob agent now has an array of messages with one message to Alice. _**Bob is sending this same message every time step to Alice.**_
 
@@ -174,12 +170,12 @@ Let's find all of the messages that are greetings:
 // hello_bob.js
 
 const behavior = (state, context) => {
-  const greetings = context.messages().filter(msg => msg.type === "greeting");
+  const greetings = context.messages().filter((msg) => msg.type === "greeting");
 
   if (greetings.length > 0) {
-        // do something
-    }
-}
+    // do something
+  }
+};
 ```
 
 </Tab>
@@ -207,11 +203,11 @@ Adding visual indicators of state changes is an easy way to communicate what's h
 // hello_bob.js
 
 const behavior = (state, context) => {
-  const greetings = context.messages().filter(msg => msg.type === "greeting");
+  const greetings = context.messages().filter((msg) => msg.type === "greeting");
   if (greetings.length > 0) {
-    state.color = "blue"
+    state.color = "blue";
   }
-}
+};
 ```
 
 </Tab>
@@ -220,7 +216,7 @@ const behavior = (state, context) => {
 
 ```python
 # hello_bob.py
- 
+
 def behavior(state, context):
     greetings = list(filter(lambda m: m['type'] == "greeting", context.messages()))
 
@@ -242,19 +238,17 @@ To respond to Bob's greeting, we can send a message back addressed to the first 
 // hello_bob.js
 
 const behavior = (state, context) => {
-  const greetings = context.messages().filter(msg => msg.type === "greeting");
+  const greetings = context.messages().filter((msg) => msg.type === "greeting");
   if (greetings.length > 0) {
     state.color = "blue";
 
-    greetings.forEach(m => state.addMessage(
-      m.from, 
-      "greeting", 
-      {
-        msg: "Go away, I’m social-distancing!"
-      }
-    ));
+    greetings.forEach((m) =>
+      state.addMessage(m.from, "greeting", {
+        msg: "Go away, I’m social-distancing!",
+      }),
+    );
   }
-}
+};
 ```
 
 </Tab>
@@ -290,18 +284,14 @@ Over in **hello_alice**, we can add a similar message handler for Bob, too.
 // hello_alice.js
 
 const behavior = (state, context) => {
-  const greetings = context.messages().filter(msg => msg.type === "greeting");
+  const greetings = context.messages().filter((msg) => msg.type === "greeting");
   if (greetings.length > 0) {
-        state.color = "red";
+    state.color = "red";
   }
-  state.addMessage(
-      "Alice",
-      "greeting",
-      {
-        msg: "Hello, Alice."
-      }
-  )
-}
+  state.addMessage("Alice", "greeting", {
+    msg: "Hello, Alice.",
+  });
+};
 ```
 
 </Tab>
@@ -337,7 +327,7 @@ It's a little boring to just have them stay red and blue throughout the rest of 
 <Tab title="JavaScript" >
 
 ```javascript
-    state.color = state.color === "blue" ? "green" : "blue"
+state.color = state.color === "blue" ? "green" : "blue";
 ```
 
 </Tab>
@@ -357,7 +347,7 @@ or:
 <Tab title="JavaScript" >
 
 ```javascript
-    state.color = state.color === "purple" ? "red" : "purple"
+state.color = state.color === "purple" ? "red" : "purple";
 ```
 
 </Tab>
@@ -380,21 +370,16 @@ We can refactor our code slightly to implement this.
 // hello_alice.js
 
 const behavior = (state, context) => {
-  const greetings = context.messages().filter(msg => msg.type === "greeting");
-
+  const greetings = context.messages().filter((msg) => msg.type === "greeting");
 
   if (greetings.length > 0) {
-    state.color = state.color === "purple" ? "red" : "purple"
+    state.color = state.color === "purple" ? "red" : "purple";
   }
 
-  state.addMessage(
-    "Alice", 
-    "greeting", 
-    {
-      msg: "Hello, Alice."
-    }
-  )
-}
+  state.addMessage("Alice", "greeting", {
+    msg: "Hello, Alice.",
+  });
+};
 ```
 
 </Tab>
@@ -429,19 +414,17 @@ def behavior(state, context):
 // hello_bob.js
 
 const behavior = (state, context) => {
-  const greetings = context.messages().filter(msg => msg.type === "greeting");
+  const greetings = context.messages().filter((msg) => msg.type === "greeting");
   if (greetings.length > 0) {
     state.color = state.color === "blue" ? "green" : "blue";
 
-    greetings.forEach(m => state.addMessage(
-      m.from, 
-      "greeting", 
-      {
-        msg: "Go away, I’m social-distancing!"
-      }
-    ));
+    greetings.forEach((m) =>
+      state.addMessage(m.from, "greeting", {
+        msg: "Go away, I’m social-distancing!",
+      }),
+    );
   }
-}
+};
 ```
 
 </Tab>
@@ -476,18 +459,18 @@ Finally, since Alice clearly would like some socially-responsible distance from 
 <Tab title="JavaScript" >
 
 ```javascript
-[ 
-  { 
-    "agent_name": "Alice",
-    "behaviors": ["hello_bob.js", "@hash/random-movement/random_movement.rs"], 
-    "position": [0,0] 
+[
+  {
+    agent_name: "Alice",
+    behaviors: ["hello_bob.js", "@hash/random-movement/random_movement.rs"],
+    position: [0, 0],
   },
-  { 
-    "agent_name": "Bob", 
-    "behaviors": ["hello_alice.js", "@hash/random-movement/random_movement.rs"], 
-    "position": [2,0] 
-  }
-]
+  {
+    agent_name: "Bob",
+    behaviors: ["hello_alice.js", "@hash/random-movement/random_movement.rs"],
+    position: [2, 0],
+  },
+];
 ```
 
 </Tab>
@@ -498,13 +481,13 @@ Finally, since Alice clearly would like some socially-responsible distance from 
 [
   {
     "agent_name": "Alice",
-    "behaviors": ["hello_bob.py", "@hash/random-movement/random_movement.rs"], 
-    "position": [0,0] 
+    "behaviors": ["hello_bob.py", "@hash/random-movement/random_movement.rs"],
+    "position": [0,0]
   },
-  { 
-    "agent_name": "Bob", 
-    "behaviors": ["hello_alice.py", "@hash/random-movement/random_movement.rs"], 
-    "position": [2,0] 
+  {
+    "agent_name": "Bob",
+    "behaviors": ["hello_alice.py", "@hash/random-movement/random_movement.rs"],
+    "position": [2,0]
   }
 ]
 ```

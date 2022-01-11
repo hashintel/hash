@@ -8,8 +8,8 @@ objectId: 78ba7242-a732-466c-b9fe-7e983b120100
 
 Before putting a simulation into production it's important to confirm its trustworthiness and authenticate that it works as intended. This process of quality assurance is made up of two separate procedures:
 
-* **Verification:** Checking a model against the desired requirements to ensure that it works as intended.
-* **Validation:** Comparing a model against external data or a trusted source of truth to ensure that it mirrors reality.
+- **Verification:** Checking a model against the desired requirements to ensure that it works as intended.
+- **Validation:** Comparing a model against external data or a trusted source of truth to ensure that it mirrors reality.
 
 ## Verification
 
@@ -24,6 +24,7 @@ While there are a lot of ways to add unit tests to a simulation, a straightforwa
 
 ```javascript
 // test_behavior.js
+
 function testCaseOne(state) {
   if (state.test_case_one == state.actual_value) {
     console.info("Test Case One Passes");
@@ -39,7 +40,7 @@ function testCaseTwo(state) {
     throw "Test Case Two Fails";
   }
 }
-  
+
 const behavior = (state, context) => {
   switch (context.step()) {
     case 1:
@@ -49,7 +50,7 @@ const behavior = (state, context) => {
       testCaseTwo(state);
       break;
   }
-}
+};
 ```
 
 </Tab>
@@ -58,7 +59,7 @@ const behavior = (state, context) => {
 
 ```python
 # test_behavior.py
-  
+
 def test_case_one():
   if state.test_case_one == state.actual_value:
     print("Test Case One Passes")
@@ -89,20 +90,24 @@ While verification will ensure that the simulation meets the desired specificati
 A common way to validate a simulation is by comparing the results of a simulation run against external data. You can use HASH's dataset features to add data and visualize it against a simulation run. For example, in the [Multi-Stage Cell Replication simulation](https://core.hash.ai/@hash/multi-stage-cell-replication/1.0.0), the validate.js behavior takes an external dataset and saves the values for a given time step to a value on state to then be visualized as a metric.
 
 ```javascript
-  // validate.js
-  
-  const data = context.data()[context.globals().dataset][state.counter];
-  const [red_data, yellow_data, green_data] = [parseFloat(data[1]), parseFloat(data[2]), parseFloat(data[3])]
+// validate.js
 
-  state.red_data = red_data
-  state.yellow_data = yellow_data
-  state.green_data = green_data
+const data = context.data()[context.globals().dataset][state.counter];
+const [red_data, yellow_data, green_data] = [
+  parseFloat(data[1]),
+  parseFloat(data[2]),
+  parseFloat(data[3]),
+];
 
-  state.cells_data = red_data + yellow_data + green_data;
+state.red_data = red_data;
+state.yellow_data = yellow_data;
+state.green_data = green_data;
+
+state.cells_data = red_data + yellow_data + green_data;
 ```
 
 ![A simulation that would not pass a validation test](https://cdn-us1.hash.ai/site/docs/image%20%2875%29.png)
 
-![A simulation that would \(probably\) pass a validation](https://cdn-us1.hash.ai/site/docs/image%20%2876%29.png)
+![A simulation that would (probably) pass a validation](https://cdn-us1.hash.ai/site/docs/image%20%2876%29.png)
 
 Additionally you can use [Complex Metrics](/docs/simulation/creating-simulations/experiments/optimization-experiments/complex-metrics) to score the error difference between a simulation and an external dataset, to get a more quantitative validation measure.

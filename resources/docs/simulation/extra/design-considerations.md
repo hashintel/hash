@@ -28,12 +28,12 @@ Since HASH implements an actor oriented paradigm, information is sent between ag
 You can run into trouble with a naive message sending pattern where an agent sends messages until it receives a response.
 
 ```javascript
-// Potentially Bad 
+// Potentially Bad
 
 function behavior(state, behavior) {
-    if (!receivedResponse) {
-        sendStateChangeMessage()
-    }
+  if (!receivedResponse) {
+    sendStateChangeMessage();
+  }
 }
 ```
 
@@ -44,7 +44,7 @@ You can avoid this in several ways, including modifying Agent A's send behavior 
 One other potential pitfall is forgetting that behaviors run in sequential order. So if in Behavior A you send a message and in Behavior B you check if you received a message and set receivedRespone = True, if the agents behavior array is:
 
 ```javascript
- ["behaviorA", "behaviorB"]
+["behaviorA", "behaviorB"];
 ```
 
 a message would be sent before the agent checks if they've received a response.

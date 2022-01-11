@@ -10,6 +10,7 @@ If you've used a statically defined language before - like Rust, Go, or Clojure 
 
 ## Valid Types
 
+<!-- prettier-ignore -->
 | Type | Example |
 | :--- | :--- |
 | Strings | "Hello" |

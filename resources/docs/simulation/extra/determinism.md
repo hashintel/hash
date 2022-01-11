@@ -12,9 +12,9 @@ Stochasticity is a key element of many multi-agent models. Introducing randomnes
 
 HASH is designed to execute deterministically; however, there can be situations where simulation runs are different even with the same parameters. This usually happens because of:
 
-1. randomness included within the simulation logic;
-2. reliance on external APIs/data sources which can't always be guaranteed to return the same results \(for example, the most efficient public transportation route between two destinations\); or
-3. the manner in which the hEngine builds [context](/docs/simulation/creating-simulations/anatomy-of-an-agent/context) for an agent.
+1.  randomness included within the simulation logic;
+1.  reliance on external APIs/data sources which can't always be guaranteed to return the same results \(for example, the most efficient public transportation route between two destinations\); or
+1.  the manner in which the hEngine builds [context](/docs/simulation/creating-simulations/anatomy-of-an-agent/context) for an agent.
 
 ### 1. Simulation Logic
 
@@ -24,7 +24,7 @@ Often you'll create simulations with probabilities, where an agent takes an acti
 <Tab title="JavaScript" >
 
 ```javascript
-state.foo = hstd.random() > 0.5 ? true : false
+state.foo = hstd.random() > 0.5 ? true : false;
 ```
 
 </Tab>
@@ -47,8 +47,8 @@ or by using one of the [Statistic libraries](/docs/simulation/creating-simulatio
 
 To ensure the same numbers are generated every execution run, you can **set the seed** of the random number generator.
 
-1. Call `hstd.setSeed(str: s)` to set a seed at the beginning of your simulation run.
-2. Use `hstd` functions for stochasticity. They'll return the same random number every simulation run.
+1.  Call `hstd.setSeed(str: s)` to set a seed at the beginning of your simulation run.
+1.  Use `hstd` functions for stochasticity. They'll return the same random number every simulation run.
 
 <Tabs>
 <Tab title="JavaScript" >

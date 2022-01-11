@@ -19,14 +19,14 @@ Agents can create a message to send to either another agent or the simulation en
 
 ```javascript
 const behavior = (state, context) => {
-    state.messages.push({
-        to: "schelling",
-        type: "data_point",
-        data: {
-            num_agents: 50
-        }
-    });
-}
+  state.messages.push({
+    to: "schelling",
+    type: "data_point",
+    data: {
+      num_agents: 50,
+    },
+  });
+};
 ```
 
 </Tab >
@@ -34,7 +34,7 @@ const behavior = (state, context) => {
 <Tab title="Python" >
 
 ```python
-def behavior(state, context):  
+def behavior(state, context):
   state['messages'].append({
     "to": "schelling",
     "type": "data_point",
@@ -53,9 +53,9 @@ If you want to jump right into code you can take a look at our [Message Passing 
 
 You'll notice that each message is comprised of three fields: "to", "type", and "data."
 
-* `to`:  the `agent_name` or `agent_id` of the agent that the message will be deliever to (this can also be an array of agents)
-* `type`: the type of message being sent for the message handler to select the right course of action
-* `data`: any data you want to send along with the message
+- `to`: the `agent_name` or `agent_id` of the agent that the message will be deliever to (this can also be an array of agents)
+- `type`: the type of message being sent for the message handler to select the right course of action
+- `data`: any data you want to send along with the message
 
 <Hint style="info">
 You can use the helper function state.addMessage\(to&lt;String&gt;, type&lt;String&gt;, data&lt;Dict&gt;\) to add messages directly to the state messages field (the helper function can only take one agent as a "to" argument).
@@ -66,8 +66,8 @@ You can use the helper function state.addMessage\(to&lt;String&gt;, type&lt;Stri
 
 ```javascript
 const behavior = (state, context) => {
-    state.addMessage("foo", "bar", {msg: "hello"});
-}
+  state.addMessage("foo", "bar", { msg: "hello" });
+};
 ```
 
 </Tab >
