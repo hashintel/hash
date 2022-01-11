@@ -168,16 +168,18 @@ export class EditorConnection {
   start() {
     this.run(GET(this.url))
       .then((stringifiedData) => {
+        // @todo type this
         const data = JSON.parse(stringifiedData);
+        const doc = this.schema.nodeFromJSON(data.doc);
 
-        return this.manager.ensureDocBlocksLoaded(data.doc).then(() => data);
+        return this.manager.ensureDocDefined(doc).then(() => ({ doc, data }));
       })
-      .then((data) => {
+      .then(({ data, doc }) => {
         this.report.success();
         this.backOff = 0;
         this.dispatch({
           type: "loaded",
-          doc: this.schema.nodeFromJSON(data.doc),
+          doc,
           store: data.store,
           version: data.version,
           users: data.users,

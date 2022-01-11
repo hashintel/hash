@@ -212,29 +212,25 @@ export class ProsemirrorSchemaManager {
     }
   }
 
-  /**
-   * @todo work with doc, not docJson
-   */
-  async ensureBlockLoaded(blockJson: { [key: string]: any }) {
-    const url = blockJson.type;
+  async ensureDocDefined(doc: ProsemirrorNode<Schema>) {
+    const componentIds = new Set<string>();
+    doc.descendants((node) => {
+      if (
+        node.type.spec.group === "componentNode" &&
+        node.type.name.startsWith("http")
+      ) {
+        componentIds.add(node.type.name);
+      }
 
-    if (!url.startsWith("http")) {
-      return;
+      return true;
+    });
+
+    /**
+     * @todo we should have some concurrency here
+     */
+    for (const componentId of Array.from(componentIds.values())) {
+      await this.defineRemoteBlock(componentId);
     }
-
-    await this.defineRemoteBlock(url);
-  }
-
-  /**
-   * @todo work with doc, not docJson
-   */
-  async ensureDocBlocksLoaded(docJson: { [key: string]: any }) {
-    return await Promise.all(
-      (docJson.content as any[]).map(async (block) => {
-        const content = block.type === "block" ? block.content?.[0] : block;
-        await this.ensureBlockLoaded(content);
-      }),
-    );
   }
 
   /**
