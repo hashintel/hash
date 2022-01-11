@@ -13,14 +13,24 @@
     "lint:markdownlint": "markdownlint \"**/*\"",
     "lint:prettier": "prettier --check \"**/*\"",
     "lint:yarn-deduplicate": "yarn-deduplicate --fail --list --strategy=fewer",
+    "prepare": "husky install",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "lint-staged": {
+    "**/*": [
+      "suppress-exit-code markdownlint --fix",
+      "suppress-exit-code prettier --write"
+    ]
+  },
   "devDependencies": {
+    "husky": "7.0.4",
+    "lint-staged": "12.1.7",
     "markdownlint-cli": "0.30.0",
     "npm-run-all": "4.1.5",
     "prettier": "2.5.1",
     "prettier-plugin-packagejson": "2.2.13",
     "prettier-plugin-sh": "0.7.1",
+    "suppress-exit-code": "1.0.0",
     "yarn-deduplicate": "3.1.0"
   }
 }
