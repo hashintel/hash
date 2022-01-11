@@ -18,14 +18,15 @@ You can contribute to the HASH standard library by submitting pull requests to o
 
 The HASH Standard Library contains the following types of functions:
 
-| Category                                 | Description                                                               |
-| :--------------------------------------- | :------------------------------------------------------------------------ |
-| [Spatial](hash/spatial)                  | Functions describing and modifying the location of agents in x,y,z space. |
-| [Init](hash/init)                        | Functions for initializing a simulation with new agents.                  |
-| [Neighbors](hash/neighbors)              | Functions related to neighbors and neighbor calculations.                 |
-| [Statistical](hash/javascript-libraries) | Functions for performing complex statistical modeling or analysis.        |
-| [Random](hash/random)                    | Functions related to random number generation                             |
-| [Agent](hash/agent)                      | Functions for helping build and use agents.                               |
+<!-- prettier-ignore -->
+| Category | Description |
+| :--- | :--- |
+| [Spatial](hash/spatial) | Functions describing and modifying the location of agents in x,y,z space. |
+| [Init](hash/init) | Functions for initializing a simulation with new agents. |
+| [Neighbors](hash/neighbors) | Functions related to neighbors and neighbor calculations. |
+| [Statistical](hash/javascript-libraries) | Functions for performing complex statistical modeling or analysis. |
+| [Random](hash/random) | Functions related to random number generation |
+| [Agent](hash/agent) | Functions for helping build and use agents. |
 
 ### Using the HASH Standard Library
 

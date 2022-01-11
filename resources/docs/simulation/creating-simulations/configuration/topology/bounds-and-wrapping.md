@@ -29,9 +29,10 @@ Play around with the wrapping preset and bounds in [this HASH Simulation](/@hash
 
 The wrapping presents we support out-of-the box are:
 
-| Wrapping Preset | Effect                                                                                                                                           |
-| :-------------- | :----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Spherical       | Agents will be wrapped continuously along the x-axis and will be reflected against the Y-axis borders. Imagine flying across a map of the world. |
-| Reflection      | Agents are simply bounced off the border and have their direction flipped                                                                        |
-| Torus           | Like the classic arcade games Asteroids and Pacman, agents will be wrapped continuously on both borders. This only applies to the X and Y axis   |
-| Continuous      | Like Torus, but applies in all three dimensions, X, Y, and Z.                                                                                    |
+<!-- prettier-ignore -->
+| Wrapping Preset | Effect |
+| :--- | :--- |
+| Spherical | Agents will be wrapped continuously along the x-axis and will be reflected against the Y-axis borders. Imagine flying across a map of the world. |
+| Reflection | Agents are simply bounced off the border and have their direction flipped |
+| Torus | Like the classic arcade games Asteroids and Pacman, agents will be wrapped continuously on both borders. This only applies to the X and Y axis |
+| Continuous | Like Torus, but applies in all three dimensions, X, Y, and Z. |

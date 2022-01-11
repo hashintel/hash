@@ -11,11 +11,12 @@ We run Python3 in the browser through [Pyodide](https://github.com/iodide-projec
 
 **The packages below have proven particularly popular with modelers using HASH:**
 
-| Package                                                            | Version | Description                                     |
-| :----------------------------------------------------------------- | :------ | :---------------------------------------------- |
-| [NetworkX](https://networkx.github.io/documentation/networkx-2.2/) | 2.2     | Graphs and networks                             |
-| [pandas](https://pandas.pydata.org/pandas-docs/version/1.0.5/)     | 1.0.5   | Data transformation and analysis                |
-| [scikit-learn](https://scikit-learn.org/0.20/)                     | 0.20.1  | Machine Learning                                |
-| [NumPy](https://docs.scipy.org/doc/numpy-1.15.4/reference/)        | 1.15.4  | Base library for scientific computing in Python |
-| [SciPy](https://docs.scipy.org/doc/scipy-0.17.1/reference/)        | 0.17.1  | Optimization, linear algebra, and statistics    |
-| [uncertainties](https://pythonhosted.org/uncertainties/index.html) | 3.1.2   | Numbers with uncertainties                      |
+<!-- prettier-ignore -->
+| Package | Version | Description |
+| :--- | :--- | :--- |
+| [NetworkX](https://networkx.github.io/documentation/networkx-2.2/) | 2.2 | Graphs and networks |
+| [pandas](https://pandas.pydata.org/pandas-docs/version/1.0.5/) | 1.0.5 | Data transformation and analysis |
+| [scikit-learn](https://scikit-learn.org/0.20/) | 0.20.1 | Machine Learning |
+| [NumPy](https://docs.scipy.org/doc/numpy-1.15.4/reference/) | 1.15.4 | Base library for scientific computing in Python |
+| [SciPy](https://docs.scipy.org/doc/scipy-0.17.1/reference/) | 0.17.1 | Optimization, linear algebra, and statistics |
+| [uncertainties](https://pythonhosted.org/uncertainties/index.html) | 3.1.2 | Numbers with uncertainties |

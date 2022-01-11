@@ -10,15 +10,16 @@ If you've used a statically defined language before - like Rust, Go, or Clojure 
 
 ## Valid Types
 
-| Type                                                    | Example                                 |
-| :------------------------------------------------------ | :-------------------------------------- |
-| Strings                                                 | "Hello"                                 |
-| Booleans                                                | True                                    |
-| Numbers                                                 | 4.00                                    |
-| Structs \(objects with typed fields\)                   | {"foo": "bar"}                          |
-| Arrays \(ordered collections containing the same type\) | \[1,2,3\]                               |
-| Fixed-size Arrays                                       | \[1,2,3\] \(max 3 elements\)            |
-| Any                                                     | JS objects, arrays, Python objects, etc |
+<!-- prettier-ignore -->
+| Type | Example |
+| :--- | :--- |
+| Strings | "Hello" |
+| Booleans | True |
+| Numbers | 4.00 |
+| Structs \(objects with typed fields\) | {"foo": "bar"} |
+| Arrays \(ordered collections containing the same type\) | \[1,2,3\] |
+| Fixed-size Arrays | \[1,2,3\] \(max 3 elements\) |
+| Any | JS objects, arrays, Python objects, etc |
 
 The `any` type designation can apply, appropriately enough, to any data type - it tells HASH to store the value as JSON and deserialize it at runtime. The generic `any` type can be used to simplify behavior key representations, but will result in slower simulation execution speeds than other type designations, so should be used sparingly.
 

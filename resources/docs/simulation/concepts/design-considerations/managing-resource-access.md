@@ -29,7 +29,7 @@ if (requests.length) {
   // Send all sugar to randomly selected agent
   const randInd = Math.floor(Math.random() * requests.length);
   state.addMessage(requests[randInd].from, "delivery", {
-    sugar: sugar,
+    sugar,
     position: state.position,
   });
 
@@ -47,7 +47,7 @@ if (requests.length) {
   // Send all sugar to randomly selected agent
   const randInd = Math.floor(Math.random() * requests.length);
   state.addMessage(requests[randInd].from, "delivery", {
-    sugar: sugar,
+    sugar,
     position: state.position,
   });
 

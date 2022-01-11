@@ -19,11 +19,12 @@ Single-run simulations are not supported on hCloud at this time. Please ensure y
 
 Simulations within **hCore** can be run in one of two ways: locally inside your browser, or at scale on our **hCloud** compute platform.
 
-|                          | **Browser** | **Cloud**                                          |
-| :----------------------- | :---------- | :------------------------------------------------- |
-| **Stage of Development** | Prototyping | Running Experiments or Large Simulations           |
-| **Number of Agents**     | 1..10,000   | 10,000+ to ∞                                       |
-| **Pricing**              | Always Free | Free tier, pay-as-you-go, and subscription options |
+<!-- prettier-ignore -->
+|  | **Browser** | **Cloud** |
+| :--- | :--- | :--- |
+| **Stage of Development** | Prototyping | Running Experiments or Large Simulations |
+| **Number of Agents** | 1..10,000 | 10,000+ to ∞ |
+| **Pricing** | Always Free | Free tier, pay-as-you-go, and subscription options |
 
 Exact in-browser limits will depend on the amount of processing power and RAM available to the browser tab running hCore. The prime constraint is often the power of the local machine's underlying hardware.
 

@@ -44,15 +44,16 @@ state.set("height", state.get("crude") / 500);
 
 HASH has built in poly models which allow you to more accurately represent many different types of agents. We'll create a dummy agent next to each one we edited in the previous section, and edit the actual **Tanker** and **Truck** agents with a `shape` and a `scale` to size them properly.
 
-| Agent       | Shape     |
-| :---------- | :-------- |
-| Tanker      | "boat"    |
-| Port        | "cube'"   |
-| Refinery    | "factory" |
-| Storage     | "silo"    |
-| Distributor | "silo"    |
-| Retailer    | "store"   |
-| Truck       | "car"     |
+<!-- prettier-ignore -->
+| Agent | Shape |
+| :--- | :--- |
+| Tanker | "boat" |
+| Port | "cube'" |
+| Refinery | "factory" |
+| Storage | "silo" |
+| Distributor | "silo" |
+| Retailer | "store" |
+| Truck | "car" |
 
 ### Adding Edges
 
