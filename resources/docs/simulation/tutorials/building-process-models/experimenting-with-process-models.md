@@ -37,9 +37,9 @@ The [Globals](/docs/simulation/creating-simulations/configuration/) section desc
 
     **globals.json**
 
-    ```javascript
+    ```json
     {
-    "num_service_agents": 6
+      "num_service_agents": 6
     }
     ```
 

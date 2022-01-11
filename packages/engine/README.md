@@ -1,3 +1,4 @@
+<!-- markdownlint-disable-next-line first-line-heading -->
 <p align="center">
   <img src="https://cdn-us1.hash.ai/assets/hengine-github-readme-header%402x.png">
 </p>

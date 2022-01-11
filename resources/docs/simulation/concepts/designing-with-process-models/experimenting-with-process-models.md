@@ -35,21 +35,21 @@ The [Globals](/docs/simulation/creating-simulations/configuration/) section desc
 
 1.  Add a property to globals.json.
 
-**globals.json**
+    **globals.json**
 
-```javascript
-{
- "num_service_agents": 6
-}
-```
+    ```json
+    {
+      "num_service_agents": 6
+    }
+    ```
 
 1.  Replace the property on the process model with the global parameter.
 
-```javascript
-// create_process.js
+    ```javascript
+    // create_process.js
 
-"service_agents": Math.floor(context.globals().num_service_agents),
-```
+    "service_agents": Math.floor(context.globals().num_service_agents),
+    ```
 
 1.  Create an experiment and use the parameter as the field for the experiment
 
