@@ -1,7 +1,5 @@
-import { baseKeymap, chainCommands, toggleMark } from "prosemirror-commands";
+import { baseKeymap, toggleMark } from "prosemirror-commands";
 import { dropCursor } from "prosemirror-dropcursor";
-import { history, redo, undo } from "prosemirror-history";
-import { undoInputRule } from "prosemirror-inputrules";
 import { keymap } from "prosemirror-keymap";
 import { Schema } from "prosemirror-model";
 import { EditorState, Plugin } from "prosemirror-state";
@@ -16,11 +14,6 @@ const createInitialDoc = (schema: Schema = createSchema()) =>
 const defaultPlugins: Plugin<any, Schema>[] = [
   ...wrapEntitiesPlugin(baseKeymap),
   entityStorePlugin,
-  history(),
-  keymap<Schema>({
-    "Mod-z": chainCommands(undo, undoInputRule),
-    "Mod-y": redo,
-  }),
   // This enables an indicator to appear when drag and dropping blocks
   dropCursor(),
 ];
