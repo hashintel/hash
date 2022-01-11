@@ -140,7 +140,7 @@ let peak = (min + max + mode(tickets)) / 3;
 ```
 
 ```json
-//in the process parameters ...
+// in the process parameters ...
 {
  "process_parameters": {
       "start": {
