@@ -202,6 +202,8 @@ In order to run the demo:
     cargo run --bin cli -- --project 'path/to/ageing-agents' single-run --num-steps 5
     ```
 
+<!-- markdownlint-enable ol-prefix -->
+
 After a short time, the simulation should complete and the process will end. Once this is done, an `./output` folder should have been created. Within that, a directory is created for each combination of [project/experiment_run/simulation_run]. For a deeper explanation of the output, please take a look at [Simulation Outputs](#simulation-outputs).
 
 The ageing simulation increases the age of each agent by one every step. Looking in the _json_state.json_ file, one can see the outputted JSON state has an `"age"` field for each agent. It should be apparent that the age is increasing with each snapshot of state.
