@@ -7,11 +7,11 @@
   "scripts": {
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "fix:markdownlint": "markdownlint --fix \"**/*\"",
-    "fix:prettier": "prettier --write  --ignore-unknown \"**/*\"",
+    "fix:prettier": "prettier --write \"**/*\"",
     "fix:yarn-deduplicate": "yarn install && yarn-deduplicate --strategy=fewer && yarn install",
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
     "lint:markdownlint": "markdownlint \"**/*\"",
-    "lint:prettier": "prettier --check --ignore-unknown \"**/*\"",
+    "lint:prettier": "prettier --check \"**/*\"",
     "lint:yarn-deduplicate": "yarn-deduplicate --fail --list --strategy=fewer",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
