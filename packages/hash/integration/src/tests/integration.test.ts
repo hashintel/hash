@@ -556,10 +556,12 @@ describe("logged in user ", () => {
           {
             insertNewBlock: {
               accountId: existingUser.accountId,
-              componentId: "https://block.blockprotocol.org/header",
               position: 0,
-              systemTypeName: SystemTypeName.Text,
-              entityProperties: textProperties,
+              entity: {
+                componentId: "https://block.blockprotocol.org/header",
+                systemTypeName: SystemTypeName.Text,
+                entityProperties: textProperties,
+              },
             },
           },
         ],
@@ -660,9 +662,11 @@ describe("logged in user ", () => {
           {
             insertNewBlock: {
               accountId: existingUser.accountId,
-              componentId,
               position: 0,
-              entityProperties: {},
+              entity: {
+                componentId,
+                entityProperties: {},
+              },
             },
           },
         ],
@@ -716,9 +720,11 @@ describe("logged in user ", () => {
           {
             insertNewBlock: {
               accountId: existingUser.accountId,
-              componentId,
               position: 0,
-              entityProperties: {},
+              entity: {
+                componentId,
+                entityProperties: {},
+              },
             },
           },
         ],
@@ -784,19 +790,23 @@ describe("logged in user ", () => {
         {
           insertNewBlock: {
             accountId: page.accountId,
-            componentId: "https://block.blockprotocol.org/paragraph",
             position: 1,
-            systemTypeName: SystemTypeName.Text,
-            entityProperties: textPropertiesA,
+            entity: {
+              componentId: "https://block.blockprotocol.org/paragraph",
+              systemTypeName: SystemTypeName.Text,
+              entityProperties: textPropertiesA,
+            },
           },
         },
         {
           insertNewBlock: {
             accountId: page.accountId,
-            componentId: "https://block.blockprotocol.org/paragraph",
             position: 2,
-            systemTypeName: SystemTypeName.Text,
-            entityProperties: textPropertiesB,
+            entity: {
+              componentId: "https://block.blockprotocol.org/paragraphj",
+              systemTypeName: SystemTypeName.Text,
+              entityProperties: textPropertiesB,
+            },
           },
         },
         {

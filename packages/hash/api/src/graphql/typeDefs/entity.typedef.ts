@@ -224,6 +224,37 @@ export const entityTypedef = gql`
     entityType: EntityTypeFilter
   }
 
+  input EntityDefinitionParameters {
+    """
+    Existing Entity to use instead of a new entity.
+    """
+    entityId: ID
+    """
+    Whether the new entity should be versioned. Default is true.
+    """
+    versioned: Boolean
+    """
+    The block component ID.
+    """
+    componentId: ID!
+    """
+    The fixed entity type ID of the new entity.
+    """
+    entityTypeId: ID
+    """
+    The type version ID of the new entity.
+    """
+    entityTypeVersionId: ID
+    """
+    The system type name of the new entity.
+    """
+    systemTypeName: SystemTypeName
+    """
+    The properties of new entity.
+    """
+    entityProperties: JSONObject!
+  }
+
   extend type Query {
     entity(accountId: ID!, entityVersionId: ID, entityId: ID): UnknownEntity!
     entities(accountId: ID!, filter: EntityFilter): [UnknownEntity!]!

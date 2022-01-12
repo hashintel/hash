@@ -60,7 +60,7 @@ const capitalizeComponentName = (cId: string) => {
 /** Create a block and a new entity contained inside it. Returns the new block entity. */
 const createBlock = async (
   client: DBClient,
-  params: InsertNewBlock,
+  { accountId, entity: entityDefinition }: InsertNewBlock,
   user: User,
 ) => {
   const {
@@ -69,12 +69,11 @@ const createBlock = async (
     entityProperties,
     entityTypeId,
     systemTypeName,
-    accountId,
     versioned,
-  } = params;
+  } = entityDefinition;
 
+  let entityTypeVersionId = entityDefinition.entityTypeVersionId;
   let entity;
-  let entityTypeVersionId = params.entityTypeVersionId;
 
   if (entityId) {
     // Use existing entityId
@@ -136,7 +135,7 @@ const createBlock = async (
   const blockProperties: DbBlockProperties = {
     componentId,
     entityId: entity.entityId,
-    accountId: params.accountId,
+    accountId,
   };
 
   const newBlock = await Entity.create(client, {
