@@ -44,6 +44,7 @@ state.set("height", state.get("crude") / 500);
 
 HASH has built in poly models which allow you to more accurately represent many different types of agents. We'll create a dummy agent next to each one we edited in the previous section, and edit the actual **Tanker** and **Truck** agents with a `shape` and a `scale` to size them properly.
 
+<!-- prettier-ignore -->
 | Agent | Shape |
 | :--- | :--- |
 | Tanker | "boat" |
@@ -63,5 +64,8 @@ We'll also add edges to help visualize the flows between different agents. Take 
 Both out truck agents and our tankers could look more realistic as they move along their routes. We'll add some logic to ensure that they are facing in the direction they are moving. The code that can help us with that is simply takes the vector difference between the current and next `lng_lat` position:
 
 ```javascript
-state.set("direction", new_lng_lat.map((c, i) => state.get("lng_lat")[i] - c));
+state.set(
+  "direction",
+  new_lng_lat.map((c, i) => state.get("lng_lat")[i] - c),
+);
 ```

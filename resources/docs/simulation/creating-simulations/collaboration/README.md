@@ -31,9 +31,9 @@ To generate a share link, click the 'Share' button in the top-right hand corner 
 
 Other features coming soon include:
 
-* Merge Requests in hCore and hIndex
-* Google Docs-style editing history
-* Real-time editing \(Google Docs-style\) - see other editors'
-* Cross-team billing
-* Shared storage and compute caps
-* Single Sign-On \(SSO\)
+- Merge Requests in hCore and hIndex
+- Google Docs-style editing history
+- Real-time editing \(Google Docs-style\) - see other editors'
+- Cross-team billing
+- Shared storage and compute caps
+- Single Sign-On \(SSO\)

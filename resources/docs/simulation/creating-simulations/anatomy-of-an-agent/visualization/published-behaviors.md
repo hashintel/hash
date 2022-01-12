@@ -12,18 +12,18 @@ To use these behaviors on an agent, you will need to both add it to the "behavio
 
 **Height**
 
-* [**Scaling Height**](/@hash/display-height-scale)
-* [**Discrete Heights**](/@hash/display-height-discrete)
+- [**Scaling Height**](/@hash/display-height-scale)
+- [**Discrete Heights**](/@hash/display-height-discrete)
 
 **Color**
 
-* [**Discrete Color**](/@hash/display-color-discrete)
-* [**Scaling RGB**](/@hash/display-rgb-scale)
+- [**Discrete Color**](/@hash/display-color-discrete)
+- [**Scaling RGB**](/@hash/display-rgb-scale)
 
 **Shape**
 
-* [**Discrete Shape**](/@hash/display-shape-discrete)
-* [**Scaling "Scale"**](/@hash/display-scale-scaling)
+- [**Discrete Shape**](/@hash/display-shape-discrete)
+- [**Scaling "Scale"**](/@hash/display-scale-scaling)
 
 You can find a working demonstration of these behaviors in the [Published Display Behaviors](/@hash/published-display-behaviors) simulation.
 

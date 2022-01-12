@@ -46,10 +46,12 @@ In the "infection" behavior, when a **Person** agent gets infected, let's add lo
 ```javascript
 // infection.js
 // line 81
-const severe_chance = state.at_risk ? at_risk_chance_of_severe : chance_of_severe;
+const severe_chance = state.at_risk
+  ? at_risk_chance_of_severe
+  : chance_of_severe;
 
-if ((state.severity === "moderate") && (Math.random() < severe_chance)) {
-    state.severity = "severe";
+if (state.severity === "moderate" && Math.random() < severe_chance) {
+  state.severity = "severe";
 }
 ```
 

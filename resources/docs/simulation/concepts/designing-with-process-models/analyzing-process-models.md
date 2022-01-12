@@ -40,15 +40,17 @@ Each Service or Seize/Release block in your process agent has an associated `res
 
 To use the behavior, you'll also need to specify a new object in `process_parameters` :
 
-```javascript
-...
-"process_parameters": {
-  ...
-  "max_resources": {
-    "senior_billers": 3,
-    "account_billers": 4,
-    "billing_clerks": 3,
-    "printers": 1
+```json
+{
+  "...": "...",
+  "process_parameters": {
+    "...": "...",
+    "max_resources": {
+      "senior_billers": 3,
+      "account_billers": 4,
+      "billing_clerks": 3,
+      "printers": 1
+    }
   }
 }
 ```

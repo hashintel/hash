@@ -47,7 +47,7 @@ We'll use another dataset to determine the demand **Retailers** experience. The 
 const behavior = (state, context) => {
   const data = context.data()["@useia/petrol-and-liquids/week-supply-gas.csv"];
 
-  // Average data so that we can access it as a yearly average. 
+  // Average data so that we can access it as a yearly average.
   // Users can then specify a year to use in globals.json
   let yearly_supply = {};
 
@@ -56,19 +56,20 @@ const behavior = (state, context) => {
     const supply = Number(line[1]);
 
     // Skip NaN values
-    if (isNaN(year)) { continue; }
+    if (isNaN(year)) {
+      continue;
+    }
 
     if (yearly_supply[year]) {
       yearly_supply[year].push(supply);
-    }
-    else {
+    } else {
       yearly_supply[year] = [supply];
     }
   }
 
   for (year in yearly_supply) {
-    const supply = yearly_supply[year]
-    yearly_supply[year] = hstd.stats.sum(supply) / supply.length
+    const supply = yearly_supply[year];
+    yearly_supply[year] = hstd.stats.sum(supply) / supply.length;
   }
 
   state.set("yearly_supply", yearly_supply);

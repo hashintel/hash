@@ -14,9 +14,9 @@ The process chart view in the hCore editor leverages the [HASH process library](
 
 With the process chart, you can:
 
-* Use a dead simple drag and drop interface for defining your process.
-* In one click, add it to your HASH simulation. It will automatically interpret the model and add the correct behaviors and parameters.
-* Run the simulation and explore the results to find the best process model and the optimal parameters.
+- Use a dead simple drag and drop interface for defining your process.
+- In one click, add it to your HASH simulation. It will automatically interpret the model and add the correct behaviors and parameters.
+- Run the simulation and explore the results to find the best process model and the optimal parameters.
 
 Additionally, you can use the [Process Modeling Library](/@hash/process) behaviors directly to build a process model. Because it's all still powered with HASH, you can customize and extend any part of it. Combine it with other models, add data, modify a behavior - it's all there for you to fit to your own use cases.
 
@@ -32,5 +32,5 @@ For a framework for applying process models, check out [Simulating Constraints: 
 
 Example simulation built with the process model library:
 
-* [Billing Department simulation](https://core.hash.ai/@hash/billing-department-process/stable)
-* [Call Center simulation](https://core.hash.ai/@hash/interconnected-call-center-single-agent/stable)
+- [Billing Department simulation](https://core.hash.ai/@hash/billing-department-process/stable)
+- [Call Center simulation](https://core.hash.ai/@hash/interconnected-call-center-single-agent/stable)

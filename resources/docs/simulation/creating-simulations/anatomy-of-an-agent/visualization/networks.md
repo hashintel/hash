@@ -28,25 +28,25 @@ In this example, bills are being processed and passed around to different employ
 ```javascript
 // This function returns an "edge" agent that will point from position a to b
 function make_edge(a, b) {
-    const dx = b[0] - a[0];
-    const dy = b[1] - a[1];
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
 
-    const dx2 = dx**2;
-    const dy2 = dy**2;
-    const norm = (dx2 + dy2)**0.5;
+  const dx2 = dx ** 2;
+  const dy2 = dy ** 2;
+  const norm = (dx2 + dy2) ** 0.5;
 
-    const mid_x = dx/2 + a[0];
-    const mid_y = dy/2 + a[1];
+  const mid_x = dx / 2 + a[0];
+  const mid_y = dy / 2 + a[1];
 
-    const edge_agent = {
-        "scale": [0.05, norm, 0.05],
-        "height": 0,
-        "position": [mid_x, mid_y],
-        "direction": [2*dx, 2*dy],
-        "behaviors": ["edge.js"]
-    }
+  const edge_agent = {
+    scale: [0.05, norm, 0.05],
+    height: 0,
+    position: [mid_x, mid_y],
+    direction: [2 * dx, 2 * dy],
+    behaviors: ["edge.js"],
+  };
 
-    return edge_agent;
+  return edge_agent;
 }
 ```
 

@@ -39,20 +39,22 @@ This agent must have a search radius that allows it to see all other agents in t
 // calculate_metric.js
 
 const behavior = () => {
-    // Gather data
-    const num_centers = context.globals().n_call_centers;
-    
-    const ns = context.neighbors().filter(n => n.nBalked > 0).map(n => n.nBalked);
-    const balked_calls = hstd.stats.sum(ns);
-    
-    // Assign weights to different components of the metric
-    const w_num_centers = 10;
-    const w_balked_calls = 0.1;
-    
-    // Calculate the complex metric
-    state.metric = w_num_centers * num_centers + w_balked_calls * balked_calls;
+  // Gather data
+  const num_centers = context.globals().n_call_centers;
 
-}
+  const ns = context
+    .neighbors()
+    .filter((n) => n.nBalked > 0)
+    .map((n) => n.nBalked);
+  const balked_calls = hstd.stats.sum(ns);
+
+  // Assign weights to different components of the metric
+  const w_num_centers = 10;
+  const w_balked_calls = 0.1;
+
+  // Calculate the complex metric
+  state.metric = w_num_centers * num_centers + w_balked_calls * balked_calls;
+};
 ```
 
 <Hint style="info">
@@ -81,17 +83,17 @@ Let's set up a slightly different complex metric:
 // gather_data.js
 
 const behavior = () => {
-    // Gather data from agents
-    const ns = context.neighbors().map(n => n.field);
-    const agent_avg = hstd.stats.mean(ns);
-    
-    // Gather data from the uploaded dataset
-    const data_avg = context.data()[""][state.timestep];
-    
-    // Calculate the error between them
-    state.error_metric = calc_error(agent_avg, data_avg);
-    state.cumulative_error_metric += state.error_metric;
-}
+  // Gather data from agents
+  const ns = context.neighbors().map((n) => n.field);
+  const agent_avg = hstd.stats.mean(ns);
+
+  // Gather data from the uploaded dataset
+  const data_avg = context.data()[""][state.timestep];
+
+  // Calculate the error between them
+  state.error_metric = calc_error(agent_avg, data_avg);
+  state.cumulative_error_metric += state.error_metric;
+};
 ```
 
 <Hint style="info">
@@ -104,8 +106,8 @@ Sum of squares is the typical method for calculating the error between a sample 
 
 Now that we have the error captured in a metric, we can apply it. You can:
 
-1. Run an experiment to compare different models or sets of parameters to the real-world data. By defining a maximum tolerable error, you can determine whether your model is a valid digital twin, or representation of reality.
-2. Use optimization experiments to minimize the error. This effectively calibrates your model to the data. You’ll need to have some estimate for the ranges of your global parameters to provide to the optimization engine.
+1.  Run an experiment to compare different models or sets of parameters to the real-world data. By defining a maximum tolerable error, you can determine whether your model is a valid digital twin, or representation of reality.
+1.  Use optimization experiments to minimize the error. This effectively calibrates your model to the data. You’ll need to have some estimate for the ranges of your global parameters to provide to the optimization engine.
 
 ![Defining an optimization experiment that will calibrate our model](https://cdn-us1.hash.ai/site/docs/image%20%2871%29.png)
 

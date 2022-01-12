@@ -15,10 +15,10 @@ To start let**'**s create a message from the Person agent that contains the basi
 // check_infected.js
 
 function check_hospital(state) {
-   state.addMessage("Hospital", "test", {
-      test_sick: true
-   })
- }
+  state.addMessage("Hospital", "test", {
+    test_sick: true,
+  });
+}
 ```
 
 </Tab>
@@ -62,10 +62,9 @@ function behavior(state, context) {
 
   function check_hospital() {
     state.addMessage("Hospital", "test", {
-       test_sick: true
-    })
+      test_sick: true,
+    });
   }
-
 
   if (state.infected && state.infection_length >= time_to_symptoms) {
     check_hospital();
@@ -107,7 +106,7 @@ On the receiving end we need to add a message handler for the hospital. Create a
 // test_for_virus.js
 
 function behavior(state, context) {
-    const test_messages = context.messages().filter(m => m.type === "test");
+  const test_messages = context.messages().filter((m) => m.type === "test");
 }
 ```
 
@@ -139,7 +138,7 @@ Make sure to attach it to the Hospital. Since we know we'll always want the beha
     "template_name": "hospitals",
     "template_count": 1,
     "template_position": "center",
-    "agent_name": "Hospital", 
+    "agent_name": "Hospital",
     "behaviors": ["test_for_virus.js"],
     "height": 4,
     "color": "blue",
@@ -156,7 +155,7 @@ Make sure to attach it to the Hospital. Since we know we'll always want the beha
     "template_name": "hospitals",
     "template_count": 1,
     "template_position": "center",
-    "agent_name": "Hospital", 
+    "agent_name": "Hospital",
     "behaviors": ["test_for_virus.py"],
     "height": 4,
     "color": "blue",
@@ -177,13 +176,11 @@ Let's check all of the messages and respond to each person, letting them know th
 ```javascript
 // test_for_virus.js
 
- test_messages.forEach(m => state.addMessage(
-   m.from,
-   "test_result",
-   {
-     sick: true,
-   }
- ))
+test_messages.forEach((m) =>
+  state.addMessage(m.from, "test_result", {
+    sick: true,
+  }),
+);
 ```
 
 </Tab>
@@ -332,12 +329,12 @@ For now though in `check_infected`, you can set the destination as home.
 <Tab title="JavaScript" >
 
 ```javascript
-let msgs = context.messages().filter(msg => msg.type === "test_result");
- msgs.forEach(msg => {
-   if (msg.data.sick) {
-      state.destination = "home"; 
-   }
- })
+let msgs = context.messages().filter((msg) => msg.type === "test_result");
+msgs.forEach((msg) => {
+  if (msg.data.sick) {
+    state.destination = "home";
+  }
+});
 ```
 
 </Tab>
@@ -363,22 +360,22 @@ Now our full `check_infected` behavior looks like this:
 function behavior(state, context) {
   const { time_to_symptoms } = context.globals();
 
-  function check_hospital(){
-     state.addMessage("Hospital", "test",{
-         test_sick: true,
-     });
-   }
+  function check_hospital() {
+    state.addMessage("Hospital", "test", {
+      test_sick: true,
+    });
+  }
 
-  let msgs = context.messages().filter(msg => msg.type === "test_result");
-   msgs.forEach(msg => {
-     if (msg.data.sick) {
-        state.destination = "home"; 
-     }
-   })
+  let msgs = context.messages().filter((msg) => msg.type === "test_result");
+  msgs.forEach((msg) => {
+    if (msg.data.sick) {
+      state.destination = "home";
+    }
+  });
 
   if (state.infected && state.infection_length === time_to_symptoms) {
-     check_hospital();
-   }
+    check_hospital();
+  }
 }
 ```
 

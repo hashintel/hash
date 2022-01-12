@@ -8,9 +8,9 @@ objectId: beaf7fe2-b926-452c-a38a-3299e74a34e4
 
 There are several possible reasons your simulation is running slowly. Broadly we bucket them in three categories: data, compute, and hardware.
 
-* **Data**: You're creating a lot of agents or importing a very large dataset
-* **Compute**: Your agents' behaviors are performing expensive calculations.
-* **Hardware**: Your local compute isn't powerful enough to run the underlying HASH environment.
+- **Data**: You're creating a lot of agents or importing a very large dataset
+- **Compute**: Your agents' behaviors are performing expensive calculations.
+- **Hardware**: Your local compute isn't powerful enough to run the underlying HASH environment.
 
 Below we explain these common performance bottlenecks and solutions you can use to improve your simulation's performance. Alternatively you can use [hCloud](/docs/simulation/creating-simulations/h.cloud) to run simulations on dedicated remote hardware and stream these results back to your local machine.
 
@@ -50,9 +50,9 @@ hCore is designed to be run on a wide variety of machines but it prefers modern 
 
 In the 3D viewer, you can `Open Controls > Toggle Stats` to view live stats on your simulation. These statistics can help diagnose what is causing the slowdown.
 
-* MS: Number of milliseconds to return the new state.
-* FPS: Frames per second in the 3d viewer.
-* MB: Total size of the simulation
+- MS: Number of milliseconds to return the new state.
+- FPS: Frames per second in the 3d viewer.
+- MB: Total size of the simulation
 
 MS and FPS reflect the total time from state _t_ to state _t_+1. If this is taking thousands of MS, you likely have too many agents or too complex of behaviors. If the FPS are particularly low, consider turning on 2D mode.
 
