@@ -5,7 +5,6 @@ use super::{
         sim_status::{SimStatusRecv, SimStatusSend},
         simulation::SimCtlSend,
     },
-    id_store::SimIdStore,
     sim_configurer::SimConfigurer,
     Error, Result,
 };
@@ -55,7 +54,6 @@ pub struct ExperimentController<P: OutputPersistenceCreatorRepr> {
     sim_senders: HashMap<SimulationShortId, SimCtlSend>,
     worker_pool_send_base: workerpool::comms::main::MainMsgSendBase,
     package_creators: PackageCreators,
-    sim_id_store: SimIdStore,
     sim_configurer: SimConfigurer,
     sim_status_send: SimStatusSend,
     sim_status_recv: SimStatusRecv,
@@ -67,11 +65,6 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
     async fn handle_orch_msg(&mut self, orch_msg: EngineMsg) -> Result<()> {
         match orch_msg {
             EngineMsg::Init(_) => Err(Error::from("Unexpected init message")),
-            EngineMsg::SimRegistered(short_id, registered_id) => {
-                self.sim_id_store
-                    .set_registered_id(short_id, registered_id)
-                    .await
-            }
         }
     }
 
@@ -376,7 +369,6 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
         output_persistence_service_creator: P,
         worker_pool_send_base: workerpool::comms::main::MainMsgSendBase,
         package_creators: PackageCreators,
-        sim_id_store: SimIdStore,
         sim_configurer: SimConfigurer,
         sim_status_send: SimStatusSend,
         sim_status_recv: SimStatusRecv,
@@ -395,7 +387,6 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
             sim_senders: Default::default(),
             worker_pool_send_base,
             package_creators,
-            sim_id_store,
             sim_configurer,
             sim_status_send,
             sim_status_recv,

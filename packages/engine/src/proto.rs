@@ -42,8 +42,6 @@ pub enum EngineStatus {
 #[derive(Serialize, Deserialize, Debug)]
 pub enum EngineMsg {
     Init(InitMessage),
-    // TODO: this is unused, is that intended
-    SimRegistered(SimulationShortId, SimulationRegisteredId),
 }
 
 /// TODO: DOC
