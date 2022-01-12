@@ -2,17 +2,17 @@
 import { PotentialAgent } from "./agent";
 
 export interface Topology {
-    x_bounds: number[];
-    y_bounds: number[];
-    z_bounds?: number[];
+  x_bounds: number[];
+  y_bounds: number[];
+  z_bounds?: number[];
 }
 
 export interface Globals {
-    topology: Topology
+  topology: Topology;
 }
 
 export interface Context {
-    globals: () => Globals
+  globals: () => Globals;
 }
 
 /** Initialization functions */
@@ -20,20 +20,23 @@ export const init = {
   scatter: (
     count: number,
     topology: Topology,
-    template: PotentialAgent | Function
+    template: PotentialAgent | Function,
   ) => scatter(count, topology, template),
   stack: (count: number, template: PotentialAgent | Function) =>
     stack(count, template),
   grid: (topology: Topology, template: PotentialAgent | Function) =>
     grid(topology, template),
-  createLayout: (layout: string[][], templates: { [key: string]: PotentialAgent }, offset: number[]) =>
-    createLayout(layout, templates, offset)
+  createLayout: (
+    layout: string[][],
+    templates: { [key: string]: PotentialAgent },
+    offset: number[],
+  ) => createLayout(layout, templates, offset),
 };
 
 function scatter(
   count: number,
   topology: Topology,
-  template: PotentialAgent | Function
+  template: PotentialAgent | Function,
 ) {
   const { x_bounds, y_bounds } = topology;
 
@@ -112,7 +115,7 @@ export function grid(topology: Topology, template: PotentialAgent | Function) {
 export function createLayout(
   layout: string[][],
   templates: { [key: string]: PotentialAgent },
-  offset: number[] = [0, 0, 0]
+  offset: number[] = [0, 0, 0],
 ) {
   const height = layout.length;
   const agents: { [key: string]: PotentialAgent[] } = {};
@@ -126,7 +129,7 @@ export function createLayout(
         }
 
         const agent_name =
-            (templates[type].agent_name ?? type) + agents[type].length;
+          (templates[type].agent_name ?? type) + agents[type].length;
 
         agents[type].push({
           ...templates[type],

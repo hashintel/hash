@@ -12,7 +12,7 @@ const dirError = new Error("agent must have a direction");
  * */
 export function neighborsOnPosition(
   agent: PotentialAgent,
-  neighbors: PotentialAgent[]
+  neighbors: PotentialAgent[],
 ) {
   return neighbors.filter((neighbor) => {
     const aPos = agent.position;
@@ -48,17 +48,21 @@ export function neighborsInRadius(
   max_radius: number = 1,
   min_radius: number = 0,
   distanceFunction: Distance = "euclidean",
-  z_axis: boolean = false
+  z_axis: boolean = false,
 ) {
   const aPos = agent.position;
-  if (!aPos) { throw posError; }
+  if (!aPos) {
+    throw posError;
+  }
 
   return neighbors.filter((neighbor) => {
     const nPos = neighbor.position;
-    if (!nPos) { return false; }
+    if (!nPos) {
+      return false;
+    }
 
     const d = distanceBetween(neighbor, agent, distanceFunction, z_axis);
-    return (d <= max_radius) && (d >= min_radius);
+    return d <= max_radius && d >= min_radius;
   });
 }
 
@@ -73,7 +77,7 @@ export function neighborsInRadius(
 export function neighborsInFront(
   agent: PotentialAgent,
   neighbors: PotentialAgent[],
-  colinear: boolean = false
+  colinear: boolean = false,
 ) {
   return neighbors.filter((neighbor) => {
     const aPos = agent.position;
@@ -107,13 +111,15 @@ export function neighborsInFront(
           (yt > 0 && dx === 0 && dz === 0) ||
           (zt > 0 && dx === 0 && dy === 0)
         );
-      } else if (count === 2) { // Two directions set
+      } else if (count === 2) {
+        // Two directions set
         return (
           (xt === yt && xt > 0 && dz === 0) ||
           (yt === zt && yt > 0 && dx === 0) ||
           (xt === zt && xt > 0 && dy === 0)
         );
-      } else if (count === 3) { // Three directions set
+      } else if (count === 3) {
+        // Three directions set
         return xt === yt && yt === zt && xt > 0;
       }
 
@@ -148,7 +154,7 @@ export function neighborsInFront(
 export function neighborsBehind(
   agent: PotentialAgent,
   neighbors: PotentialAgent[],
-  colinear = false
+  colinear = false,
 ) {
   return neighbors.filter((neighbor) => {
     const aPos = agent.position;
@@ -182,13 +188,15 @@ export function neighborsBehind(
           (yt < 0 && dx === 0 && dz === 0) ||
           (zt < 0 && dx === 0 && dy === 0)
         );
-      } else if (count === 2) { // Two directions set
+      } else if (count === 2) {
+        // Two directions set
         return (
           (xt === yt && xt < 0 && dz === 0) ||
           (yt === zt && yt < 0 && dx === 0) ||
           (xt === zt && xt < 0 && dy === 0)
         );
-      } else if (count === 3) { // Three directions set
+      } else if (count === 3) {
+        // Three directions set
         return xt === yt && yt === zt && xt < 0;
       }
 

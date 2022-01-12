@@ -5,18 +5,13 @@ module.exports = {
     node: true,
     "jest/globals": true,
   },
-  extends: [
-    "standard"
-  ],
+  extends: ["standard"],
   parser: "@typescript-eslint/parser",
   parserOptions: {
     ecmaVersion: 12,
-    sourceType: "module"
+    sourceType: "module",
   },
-  plugins: [
-    "@typescript-eslint",
-    "jest",
-  ],
+  plugins: ["@typescript-eslint", "jest"],
   rules: {
     quotes: [1, "double", "avoid-escape"],
     semi: [1, "always"],
@@ -28,11 +23,9 @@ module.exports = {
     {
       files: ["*.spec.ts"],
       rules: {
-        "no-unused-expressions": "off"
-      }
-    }
+        "no-unused-expressions": "off",
+      },
+    },
   ],
-  ignorePatterns: [
-    "**/dist"
-  ]
+  ignorePatterns: ["**/dist"],
 };

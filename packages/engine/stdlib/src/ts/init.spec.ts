@@ -23,7 +23,7 @@ const scatterAgents = init.scatter(numAgents, initTopology, agent);
 const scatterAgentsFunction = init.scatter(
   numAgents,
   initTopology,
-  agentFunction
+  agentFunction,
 );
 function scatterTest(a: { [key: string]: any }) {
   expect(a.position[0]).toBeGreaterThanOrEqual(initTopology.x_bounds[0]);
