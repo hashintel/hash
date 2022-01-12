@@ -14,14 +14,11 @@ To initialize our simulation, we'll define a **Creator** agent in our [initial s
 
 ```javascript
 [
-    {
-        "agent_name": "creator",
-        "behaviors": [
-            "initialize.py",
-            "@hash/remove-self/remove_self.js"
-        ]
-    }
-]
+  {
+    agent_name: "creator",
+    behaviors: ["initialize.py", "@hash/remove-self/remove_self.js"],
+  },
+];
 ```
 
 We'll import the `Remove Self` published behavior using the lower left sidebar, and create the initialize.js behavior in our simulation files sidebar \(top left\).

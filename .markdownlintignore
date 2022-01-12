@@ -1,3 +1,22 @@
+###########################
+## Specific to Markdownlint
+###########################
+
+# Ignore all files (but still allow sub-folder scanning)
+*
+!*/
+
+# Allow certain file types
+!*.md
+!*.mdx
+
+# Keep license files as is
+LICENSE.md
+
+########################
+## Same as in .gitignore
+########################
+
 # Logs
 logs
 *.log
@@ -67,7 +86,10 @@ typings/
 **/dist
 
 # vscode config
-.vscode
+.vscode/settings.json
+
+# intellij IDEs config
+/.idea/
 
 # Python compiled files and package metadata
 **/__pycache__

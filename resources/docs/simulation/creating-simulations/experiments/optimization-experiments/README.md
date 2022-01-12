@@ -29,24 +29,24 @@ Now use the experiment wizard to create a new experiment and fill in the options
 
 ![](https://cdn-us1.hash.ai/site/docs/image%20%2860%29%20%281%29.png)
 
-* Select `optimization` as the type.
-* Use the metric name you previously defined as the metric.
-* Decide whether to `maximize` or `minimize` the objective.
-* Select the fields \([globals](/docs/simulation/creating-simulations/configuration/)\) that will be varied and define their constraints.
+- Select `optimization` as the type.
+- Use the metric name you previously defined as the metric.
+- Decide whether to `maximize` or `minimize` the objective.
+- Select the fields \([globals](/docs/simulation/creating-simulations/configuration/)\) that will be varied and define their constraints.
 
 ### Specifying Constraints
 
 For each field being varied, you must specify the valid values \(constraints\) for the optimization experiment. You can specify discrete values with a comma separated list, with or without spaces:
 
-* `true, false`
-* `1,2,3`
-* `"one", "two"`
+- `true, false`
+- `1,2,3`
+- `"one", "two"`
 
 You can also specify ranges of values using `-` for fields which accept `numbers`.
 
-* `1-3`
-* `-3-0`
-* `-10 - -3`
+- `1-3`
+- `-3-0`
+- `-10 - -3`
 
 ### Running an Optimization
 

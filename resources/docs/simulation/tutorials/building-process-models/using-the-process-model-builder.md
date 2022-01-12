@@ -28,9 +28,9 @@ Clicking on a block will bring up the parameters for the block. You can customiz
 
 By clicking the 'Add to Model' button, the visual interface will automatically create an agent that represents the process model. Specifically, three things will happen:
 
-* A behavior, called `create_process.js` will be created. This behavior contains the logic of the process model. Any necessary dependencies from the process library will be imported.
-* `init.json` will be modified to include an agent that will first call `create_process.js`, telling the engine to create the process model agent, and then `remove_self.js`, removing itself from the simulation so that the process agent is only created once.
-* `analysis.json` will be modified to include useful plots for the process model.
+- A behavior, called `create_process.js` will be created. This behavior contains the logic of the process model. Any necessary dependencies from the process library will be imported.
+- `init.json` will be modified to include an agent that will first call `create_process.js`, telling the engine to create the process model agent, and then `remove_self.js`, removing itself from the simulation so that the process agent is only created once.
+- `analysis.json` will be modified to include useful plots for the process model.
 
 Now you can run your simulation. The process model will execute based on the logic you defined in the process chart. You can see the execution by clicking [Raw Output](/docs/simulation/creating-simulations/views/raw-data#raw-output) to watch objects move through the model, or [Analysis](/docs/simulation/creating-simulations/views/analysis/README) and viewing the plots of the behaviors.
 

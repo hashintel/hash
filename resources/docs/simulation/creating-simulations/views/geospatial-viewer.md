@@ -26,10 +26,10 @@ HASH will draw any agent with a `lng_lat` field as a point in the geospatial vie
 
 The full list of fields are:
 
-* `lng_lat`: the longitude and latitude of the agent.
-* `geo_color`: \(optional\) the color of the circle.
-* `geo_radius`: \(optional\) the radius, in pixels, of the circle.
-* `geo_opacity`: \(optional\) the opacity of the circle. A number in the range 0.0-1.0.
+- `lng_lat`: the longitude and latitude of the agent.
+- `geo_color`: \(optional\) the color of the circle.
+- `geo_radius`: \(optional\) the radius, in pixels, of the circle.
+- `geo_opacity`: \(optional\) the opacity of the circle. A number in the range 0.0-1.0.
 
 You can change these fields at any time during the simulation, and the agent will move, change color, or otherwise update as the simulation runs.
 

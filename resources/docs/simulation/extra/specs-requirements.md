@@ -16,6 +16,7 @@ Certain HASH features rely on cutting-edge technology that may not be supported 
 **JavaScript** and **Python** behaviors can be authored via the in-browser IDE at this time. Support for Rust behavior authoring in hCore is [coming soon](/roadmap) - at present only hIndex-listed Rust behaviors are available for import within simulations.
 </Hint>
 
+<!-- prettier-ignore -->
 | Feature Supported | Chrome    | Firefox   | Safari    |
 | :---------------------------- | :-------- | :-------- | :-------- |
 | Local JS Behaviors            | <Check /> | <Check /> | <Check /> |
