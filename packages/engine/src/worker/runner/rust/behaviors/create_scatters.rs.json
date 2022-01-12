@@ -1,13 +1,13 @@
 {
-    "keys": {
-        "agents": {
-            "type": "any",
-            "nullable": true
-        },
-        "scatter_templates": {
-            "type": "any",
-            "nullable": true
-        }
+  "keys": {
+    "agents": {
+      "type": "any",
+      "nullable": true
     },
-    "built_in_key_use": {"selected": []}
+    "scatter_templates": {
+      "type": "any",
+      "nullable": true
+    }
+  },
+  "built_in_key_use": { "selected": [] }
 }

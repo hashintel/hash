@@ -30,12 +30,12 @@ jobs:
           fetch-depth: 2
       - name: Find changed crates
         id: crates
-        run: |          
+        run: |
           available_crates="$(find . -name Cargo.toml -printf '%h\n' | sed 's:./::' | sort | tac)"
           changed_files="$(git diff --name-only HEAD^ HEAD)"
-          
+
           changed_crates=""
-          
+
           while read -r file; do
             while read -r crate; do
               if [[ $file =~ $crate ]]; then
@@ -44,13 +44,13 @@ jobs:
               fi
             done <<< "$available_crates"
           done <<< "$changed_files"
-          
+
           changed_crates=$(echo "$changed_crates" | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
-          
+
           echo "::set-output name=rustfmt::$changed_crates"
           echo "::set-output name=clippy::$changed_crates"
           echo "::set-output name=test::$changed_crates"
-          
+
           echo "run \`cargo fmt\` for: $(echo $changed_crates | jq -r)"
           echo "run \`cargo clippy\` for: $(echo $changed_crates | jq -r)"
           echo "run \`cargo test\` for: $(echo $changed_crates | jq -r)"
@@ -236,7 +236,6 @@ jobs:
         run: |
           cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} --no-fail-fast
 
-
   merging-enabled:
     name: merging enabled
     needs: [rustfmt, clippy, test]
@@ -252,4 +251,3 @@ jobs:
       - name: check test
         run: |
           [[ ${{ needs.test.result }} =~ success|skipped ]]
-
