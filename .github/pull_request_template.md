@@ -28,10 +28,10 @@
 
 ## ❓ How to test this?
 
-1. Make sure you have selected this branch and have installed the latest dependencies.
-2. Open LINK_TO_LOCALHOST_PAGE
-3. Do action X
-4. Confirm output is Z
+1.  Make sure you have selected this branch and have installed the latest dependencies.
+1.  Open LINK_TO_LOCALHOST_PAGE
+1.  Do action X
+1.  Confirm output is Z
 
 ## 📹 Demo
 

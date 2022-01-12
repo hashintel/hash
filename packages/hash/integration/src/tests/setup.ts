@@ -1,18 +1,16 @@
-import * as path from "path";
 import execa from "execa";
+import { monorepoRootDir } from "@hashintel/hash-backend-utils/environment";
 
 export const recreateDbAndRunSchemaMigrations = async () => {
-  const monorepoRoot = path.resolve(__dirname, "../../../../..");
-
   await execa(
     "yarn",
     ["workspace", "@hashintel/hash-postgres", "recreate-db"],
-    { cwd: monorepoRoot },
+    { cwd: monorepoRootDir },
   );
 
   await execa(
     "yarn",
     ["workspace", "@hashintel/hash-postgres", "run-schema-migrations"],
-    { cwd: monorepoRoot },
+    { cwd: monorepoRootDir },
   );
 };
