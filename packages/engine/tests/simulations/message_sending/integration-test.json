@@ -1,0 +1,28 @@
+{
+  "experiments": [
+    {
+      "experiment-name": "test",
+      "expected-outputs": [
+        {
+          "json-state": [
+            [
+              {}
+            ],
+            [
+              {
+                "messages": [
+                  {
+                    "type": "test",
+                    "to": [
+                      "a"
+                    ]
+                  }
+                ]
+              }
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}
