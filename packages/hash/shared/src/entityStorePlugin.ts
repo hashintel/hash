@@ -158,6 +158,48 @@ const draftIdForNode = (
   return draftId;
 };
 
+const entityStoreReducer = (
+  state: EntityStorePluginState,
+  action: EntityStorePluginAction,
+): EntityStorePluginState => {
+  switch (action.type) {
+    case "contents":
+      return {
+        ...state,
+        store: createEntityStore(action.payload, state.store.draft),
+      };
+
+    case "draft":
+      return {
+        ...state,
+        store: {
+          ...state.store,
+          draft: action.payload,
+        },
+      };
+
+    case "store": {
+      return { ...state, store: action.payload };
+    }
+
+    case "subscribe":
+      return {
+        ...state,
+        listeners: Array.from(new Set([...state.listeners, action.payload])),
+      };
+
+    case "unsubscribe":
+      return {
+        ...state,
+        listeners: state.listeners.filter(
+          (listener) => listener !== action.payload,
+        ),
+      };
+  }
+
+  return state;
+};
+
 export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
   key: entityStorePluginKey,
   state: {
@@ -171,49 +213,7 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
       const actions: EntityStorePluginMessage =
         tr.getMeta(entityStorePluginKey) ?? [];
 
-      const nextState = actions.reduce(
-        (state, action): EntityStorePluginState => {
-          switch (action.type) {
-            case "contents":
-              return {
-                ...state,
-                store: createEntityStore(action.payload, state.store.draft),
-              };
-
-            case "draft":
-              return {
-                ...state,
-                store: {
-                  ...state.store,
-                  draft: action.payload,
-                },
-              };
-
-            case "store": {
-              return { ...state, store: action.payload };
-            }
-
-            case "subscribe":
-              return {
-                ...state,
-                listeners: Array.from(
-                  new Set([...state.listeners, action.payload]),
-                ),
-              };
-
-            case "unsubscribe":
-              return {
-                ...state,
-                listeners: state.listeners.filter(
-                  (listener) => listener !== action.payload,
-                ),
-              };
-          }
-
-          return state;
-        },
-        initialState,
-      );
+      const nextState = actions.reduce(entityStoreReducer, initialState);
 
       if (nextState !== initialState) {
         for (const listener of nextState.listeners) {
