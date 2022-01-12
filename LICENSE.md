@@ -5,8 +5,9 @@ All source code should have information at the beginning of its respective file
 which specifies its licensing information.
 
 * Within the `/packages/engine` folder, source code in a given file is
-  dually-licensed under both the Server Side Public License and the Elastic
-  License 2.0, unless otherwise noted.
+  dually-licensed under either the Server Side Public License or the Elastic
+  License 2.0, unless otherwise noted, giving users the choice of which
+  license to apply.
   
 * Within the `/packages/hash` folder, source code in a given file is
   licensed under version 3 of the GNU Affero General Public License, unless
