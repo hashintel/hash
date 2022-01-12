@@ -120,6 +120,5 @@ async fn recv_init_msg(orch_listener: &mut nano::Server) -> Result<InitMessage> 
 
     match msg {
         EngineMsg::Init(init) => Ok(init),
-        _ => Err(Error::UnexpectedEngineMsgExpectedInit),
     }
 }
