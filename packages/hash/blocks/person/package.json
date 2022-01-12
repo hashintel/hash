@@ -4,7 +4,7 @@
   "private": true,
   "description": "person block component",
   "license": "MIT",
-  "author": "Ciaran Morinan",
+  "author": "HASH",
   "main": "src/index.ts",
   "browser": "dist/main.js",
   "scripts": {

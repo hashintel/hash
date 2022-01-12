@@ -4,7 +4,7 @@
   "private": true,
   "description": "Capture a code snippet",
   "license": "MIT",
-  "author": "teenoh",
+  "author": "HASH",
   "main": "src/index.ts",
   "browser": "dist/main.js",
   "scripts": {

@@ -2,6 +2,7 @@
   "name": "@hashintel/block-html-para",
   "version": "0.1.0",
   "license": "MIT",
+  "author": "HASH",
   "scripts": {
     "build": "echo \"@hashintel/block-html-para contains no resources to build\"",
     "build:dev": "echo \"@hashintel/block-html-para contains no resources to build\"",

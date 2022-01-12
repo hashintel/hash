@@ -4,7 +4,7 @@
   "private": true,
   "description": "Just start writing",
   "license": "MIT",
-  "author": "Ciaran Morinan",
+  "author": "HASH",
   "main": "src/index.ts",
   "browser": "dist/main.js",
   "scripts": {

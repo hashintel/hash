@@ -4,7 +4,7 @@
   "private": true,
   "description": "Embed external content",
   "license": "MIT",
-  "author": "hashintel",
+  "author": "HASH",
   "main": "src/index.ts",
   "browser": "dist/main.js",
   "scripts": {

@@ -2,11 +2,11 @@
   "name": "@hashintel/block-html-para",
   "version": "0.1.0",
   "description": "Basic HTML para block component",
-  "author": "Ciaran Morinan",
   "license": "MIT",
+  "author": "HASH",
+  "source": "index.html",
   "externals": {
     "react": "react"
   },
-  "schema": "block-schema.json",
-  "source": "index.html"
+  "schema": "block-schema.json"
 }

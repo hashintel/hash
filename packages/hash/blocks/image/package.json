@@ -4,7 +4,7 @@
   "private": true,
   "description": "Insert an image",
   "license": "MIT",
-  "author": "Akash Joshi",
+  "author": "HASH",
   "main": "src/index.ts",
   "browser": "dist/main.js",
   "scripts": {

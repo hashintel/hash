@@ -4,7 +4,7 @@
   "private": true,
   "description": "Visually break up content on a page with dividing lines",
   "license": "MIT",
-  "author": "Marius Runge",
+  "author": "HASH",
   "main": "src/index.ts",
   "browser": "dist/main.js",
   "scripts": {
