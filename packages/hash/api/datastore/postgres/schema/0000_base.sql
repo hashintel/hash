@@ -49,6 +49,10 @@ create table if not exists entity_type_versions (
 );
 create index if not exists entity_type_versions_entity_type_id on entity_type_versions (entity_type_id);
 
+/** @todo: Does this play well with citus? */
+-- JSONB index for componentIds, this will speed up checking for an entity with a specific componentId property.
+create index if not exists entity_type_version_component_id ON entity_type_versions ((properties ->> 'componentId'::text));
+
 /**
 The entities table stores metadata which is shared across all versions of an entity.
 */

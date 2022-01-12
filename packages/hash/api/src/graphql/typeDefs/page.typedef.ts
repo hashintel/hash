@@ -154,23 +154,6 @@ export const pageTypedef = gql`
   }
 
   """
-  Data to create a block with a new entity in it.
-  As well as entityProperties, entity type info must be provided.
-  Type info must be ONE OF:
-  - entityTypeId (the latest version of this type will be assigned)
-  - entityTypeVersionId (this specific version of the type will be assigned)
-  - systemTypeName (this version will be assigned)
-  """
-  input InsertBlocksData {
-    componentId: ID!
-    entityProperties: JSONObject!
-    entityTypeId: ID
-    entityTypeVersionId: ID
-    systemTypeName: SystemTypeName
-    accountId: ID!
-  }
-
-  """
   Insert a new block into a page with a corresonding new entity. Exactly one of
   entityTypeId, entityTypeVersionId or systemTypeName must be specified.
   """
@@ -184,9 +167,17 @@ export const pageTypedef = gql`
     """
     position: Int!
     """
+    Whether the new entity should be versioned. Default is true.
+    """
+    versioned: Boolean = true
+    """
     The block component ID.
     """
     componentId: ID!
+    """
+    Existing Entity to link to instead of a new entity.
+    """
+    entityId: ID
     """
     The fixed entity type ID of the new entity.
     """
@@ -203,10 +194,6 @@ export const pageTypedef = gql`
     The properties of new entity.
     """
     entityProperties: JSONObject!
-    """
-    Whether the new entity should be versioned. Default is true.
-    """
-    versioned: Boolean = true
   }
 
   """
@@ -272,61 +259,6 @@ export const pageTypedef = gql`
       accountId: ID!
       entityId: ID!
       properties: PageUpdateData!
-    ): Page!
-
-    """
-    Insert a block into a given page.
-    EITHER:
-    - entityId (for rendering an existing entity)
-    OR
-    - entityProperties and type info for creating a new entity.
-      Type info must be ONE OF:
-        - entityTypeId (the latest version of this type will be assigned)
-        - entityTypeVersionId (this specific version of the type will be assigned)
-        - systemTypeName (this version will be assigned)
-    must be provided.
-    """
-    insertBlockIntoPage(
-      componentId: ID!
-      entityId: ID
-      entityProperties: JSONObject
-      entityTypeId: ID
-      entityTypeVersionId: ID
-      systemTypeName: SystemTypeName
-      """
-      The accountId for the block and entity.
-      Defaults to the page's accountId.
-      """
-      accountId: ID!
-      pageEntityVersionId: ID!
-      pageEntityId: ID!
-      versioned: Boolean! = false
-      """
-      The position of the block in the page contents, starting at 0
-      """
-      position: Int!
-    ): Page!
-
-    insertBlocksIntoPage(
-      accountId: ID!
-      """
-      The fixed entity ID of the page.
-      """
-      entityId: ID!
-      """
-      The entity version ID of the page.
-      """
-      entityVersionId: ID!
-      """
-      The blocks to insert.
-      """
-      blocks: [InsertBlocksData!]!
-
-      """
-      The ID of the block in the page after which the new blocks should be inserted.
-      If null, the blocks will be inserted at the start of the page.
-      """
-      previousBlockId: ID
     ): Page!
 
     """

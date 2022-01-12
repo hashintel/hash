@@ -31,6 +31,17 @@ export const createEntity = gql`
   }
 `;
 
+export const getEntityType = gql`
+  query getEntityType($entityTypeId: ID!) {
+    getEntityType(entityTypeId: $entityTypeId) {
+      entityId
+      entityVersionId
+      properties
+      __typename
+    }
+  }
+`;
+
 export const createEntityType = gql`
   mutation createEntityType(
     $accountId: ID!
@@ -78,6 +89,8 @@ export const getUnknownEntity = gql`
     ) {
       entityId
       entityVersionId
+      entityTypeId
+      entityTypeVersionId
       properties
       history {
         entityVersionId

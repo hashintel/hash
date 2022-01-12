@@ -18,6 +18,12 @@ export const ajv = new Ajv2019({
   addUsedSchema: false, // stop AJV trying to add compiled schemas to the instance
   loadSchema: checkExternalSchemaExists,
 });
+
+ajv.addKeyword({
+  keyword: "componentId",
+  schemaType: "string",
+});
+
 addFormats(ajv);
 
 export const jsonSchemaVersion = "https://json-schema.org/draft/2019-09/schema";

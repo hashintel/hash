@@ -17,8 +17,6 @@ import {
   CreatePageMutationVariables,
   CreateUserMutation,
   CreateUserMutationVariables,
-  InsertBlocksIntoPageMutation,
-  InsertBlocksIntoPageMutationVariables,
   LoginWithLoginCodeMutationVariables,
   LoginWithLoginCodeMutation,
   GetEntityQueryVariables,
@@ -49,10 +47,13 @@ import {
   UpdateLinkedAggregationOperationMutationVariables,
   DeleteLinkedAggregationMutation,
   DeleteLinkedAggregationMutationVariables,
+  QueryGetEntityTypeArgs,
+  Query,
 } from "../graphql/apiTypes.gen";
 import {
   createEntity,
   createEntityType,
+  getEntityType,
   getUnknownEntity,
   updateEntity,
   updateEntityType,
@@ -72,7 +73,6 @@ import {
 } from "../graphql/queries/user.queries";
 import {
   createPage,
-  insertBlocksIntoPage,
   getPage,
   updatePageContents,
 } from "../graphql/queries/page.queries";
@@ -221,6 +221,15 @@ export class ApiClient {
     ).createPage;
   }
 
+  async getEntityType(vars: QueryGetEntityTypeArgs) {
+    return (
+      await this.client.request<
+        Pick<Query, "getEntityType">,
+        QueryGetEntityTypeArgs
+      >(getEntityType, vars)
+    ).getEntityType;
+  }
+
   async createEntityType(vars: CreateEntityTypeMutationVariables) {
     return (
       await this.client.request<
@@ -238,14 +247,6 @@ export class ApiClient {
       >(updateEntityType, vars)
     ).updateEntityType;
   }
-
-  insertBlocksIntoPage = async (vars: InsertBlocksIntoPageMutationVariables) =>
-    this.client
-      .request<
-        InsertBlocksIntoPageMutation,
-        InsertBlocksIntoPageMutationVariables
-      >(insertBlocksIntoPage, vars)
-      .then((res) => res.insertBlocksIntoPage);
 
   getPage = async (vars: GetPageQueryVariables) =>
     this.client

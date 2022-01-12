@@ -22,6 +22,7 @@ import {
 import {
   getAccountEntityTypes,
   getEntityType,
+  getEntityTypeByComponentId,
   getEntityTypeLatestVersion,
   getSystemTypeLatestVersion,
   insertEntityType,
@@ -261,6 +262,12 @@ export class PostgresClient implements DBClient {
         entityId: params.entityTypeId,
       })) || null
     );
+  }
+
+  async getEntityTypeByComponentId(
+    params: Parameters<DBClient["getEntityTypeByComponentId"]>[0],
+  ): ReturnType<DBClient["getEntityTypeByComponentId"]> {
+    return await getEntityTypeByComponentId(this.conn, params);
   }
 
   /**

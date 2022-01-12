@@ -68,23 +68,40 @@ void (async () => {
 
   const results = new Map<string, Entity>();
 
-  const requiredTypes = [
-    "Company",
+  const requiredBlockTypes = [
     "Divider",
     "Embed",
     "Image",
-    "Location",
-    "Person",
     "Table",
     "Code",
     "Video",
     "Header",
   ] as const;
+
+  const requiredOtherTypes = ["Company", "Location", "Person"] as const;
   // create the types we'll need below so we can assign their ids to entities
-  const newTypeIds: Record<typeof requiredTypes[number], string> = {} as any;
+  const newTypeIds: Record<
+    typeof requiredBlockTypes[number] | typeof requiredOtherTypes[number],
+    string
+  > = {} as any;
 
   await Promise.all(
-    requiredTypes.map(async (name) => {
+    requiredBlockTypes.map(async (name) => {
+      const entityType = await EntityType.create(db, {
+        accountId: systemOrg.accountId,
+        createdByAccountId: systemOrg.entityId, // TODO
+        name,
+        schema: {
+          componentId: `https://block.blockprotocol.org/${name.toLowerCase()}`,
+        },
+      });
+
+      newTypeIds[name] = entityType.entityId;
+    }),
+  );
+
+  await Promise.all(
+    requiredOtherTypes.map(async (name) => {
       const entityType = await EntityType.create(db, {
         accountId: systemOrg.accountId,
         createdByAccountId: systemOrg.entityId, // TODO

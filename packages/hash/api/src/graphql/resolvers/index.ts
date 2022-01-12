@@ -15,8 +15,6 @@ import { deleteLink } from "./link/deleteLink";
 import { blockFields } from "./block";
 import {
   createPage,
-  insertBlockIntoPage,
-  insertBlocksIntoPage,
   accountPages,
   page,
   pageFields,
@@ -106,8 +104,6 @@ export const resolvers = {
     createPage: loggedInAndSignedUp(createPage),
     createOrg: loggedInAndSignedUp(createOrg),
     createOrgEmailInvitation: loggedInAndSignedUp(createOrgEmailInvitation),
-    insertBlockIntoPage: loggedInAndSignedUp(insertBlockIntoPage),
-    insertBlocksIntoPage: loggedInAndSignedUp(insertBlocksIntoPage),
     transferEntity: loggedInAndSignedUp(transferEntity),
     updateEntity: loggedInAndSignedUp(updateEntity),
     updateEntityType: loggedInAndSignedUp(updateEntityType),

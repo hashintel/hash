@@ -525,12 +525,20 @@ describe("logged in user ", () => {
 
   describe("can create and update pages", () => {
     let page: PageFieldsFragment;
+    const pageHistory: {
+      createdAt: string;
+      entityVersionId: string;
+    }[] = [];
     it("can create a page", async () => {
       page = await client.createPage({
         accountId: existingUser.accountId,
         properties: {
           title: "My first page",
         },
+      });
+      pageHistory.unshift({
+        createdAt: page.createdAt,
+        entityVersionId: page.entityVersionId,
       });
       return page;
     });
@@ -540,30 +548,32 @@ describe("logged in user ", () => {
       const textProperties = {
         tokens: [{ tokenType: "text", text: "Hello World!" }],
       };
-      const updatedPage = await client.insertBlocksIntoPage({
-        accountId: existingUser.accountId,
+
+      const updatedPage = await client.updatePageContents({
+        accountId: page.accountId,
         entityId: page.entityId,
-        entityVersionId: page.entityVersionId,
-        blocks: [
+        actions: [
           {
-            accountId: existingUser.accountId,
-            componentId: "https://block.blockprotocol.org/header",
-            systemTypeName: SystemTypeName.Text,
-            entityProperties: textProperties,
+            insertNewBlock: {
+              accountId: existingUser.accountId,
+              componentId: "https://block.blockprotocol.org/header",
+              position: 0,
+              systemTypeName: SystemTypeName.Text,
+              entityProperties: textProperties,
+            },
           },
         ],
+      });
+
+      pageHistory.unshift({
+        createdAt: updatedPage.updatedAt,
+        entityVersionId: updatedPage.entityVersionId,
       });
 
       expect(updatedPage.entityId).toEqual(page.entityId);
       expect(updatedPage.entityVersionId).not.toEqual(page.entityVersionId); // new version
       expect(updatedPage.history).toHaveLength(2);
-      expect(updatedPage.history).toEqual([
-        {
-          createdAt: updatedPage.updatedAt,
-          entityVersionId: updatedPage.entityVersionId,
-        },
-        { createdAt: page.createdAt, entityVersionId: page.entityVersionId },
-      ]);
+      expect(updatedPage.history).toEqual(pageHistory);
       expect(updatedPage.properties.title).toEqual("My first page");
 
       // We inserted a block at the beginning of the page. The remaining blocks should
@@ -634,6 +644,120 @@ describe("logged in user ", () => {
       expect(updatedPage.properties.contents[1].properties.entity.id).toEqual(
         headerUpdate.entityVersionId,
       );
+    });
+
+    // ComponentId doesn't exist in the database
+    const componentId = "https://block.blockprotocol.org/unknown";
+    let entityTypeComponentId: string;
+    it("can add a block with unknown componentId", async () => {
+      // No type argument given to insertNewBlock, only componentId
+      const updatedPage = await client.updatePageContents({
+        accountId: page.accountId,
+        entityId: page.entityId,
+        actions: [
+          {
+            insertNewBlock: {
+              accountId: existingUser.accountId,
+              componentId,
+              position: 0,
+              entityProperties: {},
+            },
+          },
+        ],
+      });
+
+      pageHistory.unshift({
+        createdAt: updatedPage.updatedAt,
+        entityVersionId: updatedPage.entityVersionId,
+      });
+
+      expect(updatedPage.entityId).toEqual(page.entityId);
+      expect(updatedPage.entityVersionId).not.toEqual(page.entityVersionId); // new version
+      expect(updatedPage.history).toHaveLength(3);
+      expect(updatedPage.history).toEqual(pageHistory);
+      expect(updatedPage.properties.title).toEqual("My first page");
+
+      // Get the new entity we just inserted and make sure it matches
+      const newBlock = updatedPage.properties.contents[0];
+      const entityId = newBlock.properties.entity.entityId;
+      entityTypeComponentId = newBlock.properties.entity.entityTypeId;
+
+      // Get the EntitType that has been created because of the ComponentId
+      const componentIdType = await client.getEntityType({
+        entityTypeId: entityTypeComponentId,
+      });
+
+      const entityWithComponentIdType = await client.getUnknownEntity({
+        entityId,
+        accountId: existingUser.accountId,
+      });
+
+      expect(entityWithComponentIdType.entityVersionId).toEqual(
+        newBlock.properties.entity.id,
+      );
+      expect(entityWithComponentIdType.properties).toEqual({});
+      expect(entityWithComponentIdType.entityTypeId).toEqual(
+        componentIdType.entityId,
+      );
+      expect(entityWithComponentIdType.entityTypeVersionId).toEqual(
+        componentIdType.entityVersionId,
+      );
+      expect(componentIdType.properties.componentId).toEqual(componentId);
+    });
+
+    it("can use entityType that has been created through componentId", async () => {
+      // Again, no type argument given to insertNewBlock, only componentId
+      const updatedPage = await client.updatePageContents({
+        accountId: page.accountId,
+        entityId: page.entityId,
+        actions: [
+          {
+            insertNewBlock: {
+              accountId: existingUser.accountId,
+              componentId,
+              position: 0,
+              entityProperties: {},
+            },
+          },
+        ],
+      });
+
+      pageHistory.unshift({
+        createdAt: updatedPage.updatedAt,
+        entityVersionId: updatedPage.entityVersionId,
+      });
+
+      expect(updatedPage.entityId).toEqual(page.entityId);
+      expect(updatedPage.entityVersionId).not.toEqual(page.entityVersionId); // new version
+      expect(updatedPage.history).toHaveLength(4);
+      expect(updatedPage.history).toEqual(pageHistory);
+      expect(updatedPage.properties.title).toEqual("My first page");
+
+      // Get the new entity we just inserted and make sure it matches
+      const newBlock = updatedPage.properties.contents[0];
+      const entityId = newBlock.properties.entity.entityId;
+
+      // Get the EntitType that has been created _previously_ because of the ComponentId
+      const componentIdType = await client.getEntityType({
+        entityTypeId: entityTypeComponentId,
+      });
+
+      const entityWithComponentIdType = await client.getUnknownEntity({
+        entityId,
+        accountId: existingUser.accountId,
+      });
+
+      expect(entityWithComponentIdType.entityVersionId).toEqual(
+        newBlock.properties.entity.id,
+      );
+      expect(entityWithComponentIdType.properties).toEqual({});
+      expect(entityWithComponentIdType.entityTypeId).toEqual(
+        componentIdType.entityId,
+      );
+      expect(entityWithComponentIdType.entityTypeVersionId).toEqual(
+        componentIdType.entityVersionId,
+      );
+      expect(componentIdType.properties.componentId).toEqual(componentId);
     });
   });
 

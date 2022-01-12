@@ -37,6 +37,8 @@ const pageFieldsFragment = gql`
             accountId
             updatedAt
             createdAt
+            entityTypeId
+            entityTypeVersionId
             entityVersionCreatedAt
             createdByAccountId
             properties
@@ -50,27 +52,6 @@ const pageFieldsFragment = gql`
 export const createPage = gql`
   mutation createPage($accountId: ID!, $properties: PageCreationData!) {
     createPage(accountId: $accountId, properties: $properties) {
-      ...PageFields
-    }
-  }
-  ${pageFieldsFragment}
-`;
-
-export const insertBlocksIntoPage = gql`
-  mutation insertBlocksIntoPage(
-    $accountId: ID!
-    $entityVersionId: ID!
-    $entityId: ID!
-    $blocks: [InsertBlocksData!]!
-    $previousBlockId: ID
-  ) {
-    insertBlocksIntoPage(
-      accountId: $accountId
-      entityId: $entityId
-      entityVersionId: $entityVersionId
-      blocks: $blocks
-      previousBlockId: $previousBlockId
-    ) {
       ...PageFields
     }
   }

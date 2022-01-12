@@ -9,7 +9,7 @@ import {
   RemoveBlock,
   MoveBlock,
 } from "../../apiTypes.gen";
-import { Entity, UnresolvedGQLEntity, User } from "../../../model";
+import { Entity, EntityType, UnresolvedGQLEntity, User } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 import { DBClient } from "../../../db";
 import { exactlyOne } from "../../../util";
@@ -32,40 +32,119 @@ const validateActionsInput = (actions: UpdatePageAction[]) => {
   }
 };
 
+/**
+ * @todo this assumption of the slug might be brittle,
+ */
+const capitalizeComponentName = (cId: string) => {
+  let componentId = cId;
+
+  // If there's a trailing slash, remove it
+  const indexLastSlash = componentId.lastIndexOf("/");
+  if (indexLastSlash === componentId.length - 1) {
+    componentId = componentId.slice(0, -1);
+  }
+
+  //                      *
+  // "https://example.org/value"
+  const indexAfterLastSlash = componentId.lastIndexOf("/") + 1;
+  return (
+    //                      * and uppercase it
+    // "https://example.org/value"
+    componentId.charAt(indexAfterLastSlash).toUpperCase() +
+    //                       ****
+    // "https://example.org/value"
+    componentId.substring(indexAfterLastSlash + 1)
+  );
+};
+
 /** Create a block and a new entity contained inside it. Returns the new block entity. */
 const createBlock = async (
   client: DBClient,
   params: InsertNewBlock,
   user: User,
 ) => {
-  // @todo: if we generate the entity IDs up-front, the entity and the block may
-  // be created concurrently.
+  const {
+    componentId,
+    entityId,
+    entityProperties,
+    entityTypeId,
+    systemTypeName,
+    accountId,
+    versioned,
+  } = params;
 
-  const newEntity = await Entity.create(
-    client,
-    createEntityArgsBuilder({
-      accountId: params.accountId,
-      createdByAccountId: user.entityId,
-      properties: params.entityProperties,
-      versioned: params.versioned ?? true,
-      entityTypeId: params.entityTypeId,
-      entityTypeVersionId: params.entityTypeVersionId,
-      systemTypeName: params.systemTypeName,
-    }),
-  );
+  let entity;
+  let entityTypeVersionId = params.entityTypeVersionId;
+
+  if (entityId) {
+    // Use existing entityId
+    entity = await Entity.getEntityLatestVersion(client, {
+      accountId,
+      entityId,
+    });
+    if (!entity) {
+      throw new ApolloError(`entity ${entityId} not found`, "NOT_FOUND");
+    }
+  } else if (entityProperties) {
+    if (!entityTypeId && !entityTypeVersionId && !systemTypeName) {
+      // If type ID doesn't exist, we check the componentId
+
+      let entityTypeWithComponentId =
+        await EntityType.getEntityTypeByComponentId(client, {
+          componentId,
+        });
+
+      // In case the entityType doesn't exist, create one with the appropriate component ID and name
+      if (!entityTypeWithComponentId) {
+        const systemAccountId = await client.getSystemAccountId();
+
+        const name = capitalizeComponentName(componentId);
+        entityTypeWithComponentId = await EntityType.create(client, {
+          accountId: systemAccountId,
+          createdByAccountId: user.accountId,
+          name,
+          schema: { componentId },
+        });
+      }
+
+      entityTypeVersionId = entityTypeWithComponentId.entityVersionId;
+    }
+
+    // @todo: if we generate the entity IDs up-front, the entity and the block may
+    // be created concurrently.
+
+    // Create new entity since entityId has not been given.
+    entity = await Entity.create(
+      client,
+      createEntityArgsBuilder({
+        accountId,
+        createdByAccountId: user.accountId,
+        entityTypeId,
+        entityTypeVersionId,
+        systemTypeName,
+        properties: entityProperties,
+        versioned: versioned ?? true,
+      }),
+    );
+  } else {
+    throw new Error(
+      `One of entityId OR entityProperties and entityType must be provided`,
+    );
+  }
 
   // Create the block
   const blockProperties: DbBlockProperties = {
-    entityId: newEntity.entityId,
+    componentId,
+    entityId: entity.entityId,
     accountId: params.accountId,
-    componentId: params.componentId,
   };
+
   const newBlock = await Entity.create(client, {
-    accountId: params.accountId,
-    createdByAccountId: user.entityId,
+    accountId,
     systemTypeName: "Block",
-    versioned: true,
+    createdByAccountId: user.accountId,
     properties: blockProperties,
+    versioned: true,
   });
 
   return newBlock;
@@ -120,7 +199,7 @@ export const updatePageContents: Resolver<
   validateActionsInput(actions);
 
   return await dataSources.db.transaction(async (client) => {
-    // Create any new blocks
+    // Create any _new_ blocks
     const newBlocks = await Promise.all(
       actions
         .map((action, i) => ({ action, i }))

@@ -240,6 +240,14 @@ export interface DBClient {
   }): Promise<EntityType | null>;
 
   /**
+   * Get an `EntityType` by the componentId property of its schema.
+   * @param params.componentId the component ID that could exist on an entity Type.
+   */
+  getEntityTypeByComponentId(params: {
+    componentId: string;
+  }): Promise<EntityType | null>;
+
+  /**
    * Get the latest version of a system entity type.
    * */
   getSystemTypeLatestVersion(params: {

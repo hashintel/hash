@@ -170,6 +170,39 @@ export const getEntityType = async (
   return row ? mapPGRowToEntityType(row) : undefined;
 };
 
+/** Get an entityType by componentId
+ */
+export const getEntityTypeByComponentId = async (
+  conn: Connection,
+  {
+    componentId,
+  }: {
+    componentId: string;
+  },
+): Promise<EntityType | null> => {
+  /**
+   * @todo currently we are making an assumption about having distinct componentIds in the system
+   * if we would like for other accounts to own entity types imported from componentId, this distinctness needs to change
+   * and with it this query.
+   */
+  const row = await conn.maybeOne<EntityTypePGRow>(sql`
+    with all_matches as (
+      ${selectEntityTypes}
+      where
+        -- todo does this play well with citus? Like the index used for this query, we might need to add accountId.
+        properties ->> 'componentId' = ${componentId}
+    )
+    select distinct on (entity_type_id) * from all_matches
+    order by entity_type_id, updated_at desc
+
+    -- We only want the latest, maybeOne throws if it finds more, which it wouldn't because of distinct on (entity_type_id)
+    -- but since we might allow for accounts to be the owner of the imported entitytypes, this would make it so nothing breaks.
+    limit 1 
+  `);
+
+  return row ? mapPGRowToEntityType(row) : null;
+};
+
 /** Get the latest version of an entity type.
  * Returns `undefined` if the entity type does not exist.
  */

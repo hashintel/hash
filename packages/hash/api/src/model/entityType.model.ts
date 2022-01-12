@@ -122,6 +122,14 @@ class __EntityType {
     return dbEntityType ? new EntityType(dbEntityType) : null;
   }
 
+  static async getEntityTypeByComponentId(
+    client: DBClient,
+    params: { componentId: string },
+  ) {
+    const dbEntityType = await client.getEntityTypeByComponentId(params);
+    return dbEntityType ? new EntityType(dbEntityType) : null;
+  }
+
   static async getEntityTypeType(client: DBClient) {
     const dbEntityTypeEntityType = await client.getSystemTypeLatestVersion({
       systemTypeName: "EntityType",
