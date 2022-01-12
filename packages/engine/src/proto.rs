@@ -8,7 +8,6 @@ use crate::{config::Globals, hash_types::worker::RunnerError, simulation::status
 pub type SerdeMap = serde_json::Map<String, SerdeValue>;
 
 pub type ExperimentRegisteredId = String;
-pub type SimulationRegisteredId = String;
 pub type SimulationShortId = u32;
 
 use crate::simulation::enum_dispatch::*;
