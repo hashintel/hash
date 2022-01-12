@@ -1,5 +1,8 @@
 import {
-  neighborsBehind, neighborsInFront, neighborsInRadius, neighborsOnPosition
+  neighborsBehind,
+  neighborsInFront,
+  neighborsInRadius,
+  neighborsOnPosition,
 } from "./neighbor";
 
 /** Neighbor Function tests */
@@ -25,19 +28,25 @@ test("find neighbors with same position", () => {
 });
 
 test("find neighbors within a radius of 3", () => {
-  expect(neighborsInRadius(ng, [na, nb, nc, nd, ne, nf, nh, ni], 3, 0, "chebyshev")).toEqual([
-    { position: [6, 9, 0] },
-    { position: [4, 9, 0] },
-  ]);
+  expect(
+    neighborsInRadius(ng, [na, nb, nc, nd, ne, nf, nh, ni], 3, 0, "chebyshev"),
+  ).toEqual([{ position: [6, 9, 0] }, { position: [4, 9, 0] }]);
 });
 
 test("find neighbors within a max radius of 4 and min radius of 3", () => {
   expect(
-    neighborsInRadius(ng, [na, nb, nc, nd, nf, nh, ni, nj], 4, 3.5)
+    neighborsInRadius(ng, [na, nb, nc, nd, nf, nh, ni, nj], 4, 3.5),
   ).toEqual([ni]);
 
   expect(
-    neighborsInRadius(ng, [na, nb, nc, nd, nf, nh, ni, nj], 7, 3.5, "euclidean", true)
+    neighborsInRadius(
+      ng,
+      [na, nb, nc, nd, nf, nh, ni, nj],
+      7,
+      3.5,
+      "euclidean",
+      true,
+    ),
   ).toEqual([nb, nf, ni, nj]);
 });
 
@@ -51,16 +60,16 @@ test("find neighbors in front of agent tests", () => {
   ]);
 
   expect(
-    neighborsInFront(na, [nb, nc, ne, nf, ng, nh, nj, nk, nl], true)
+    neighborsInFront(na, [nb, nc, ne, nf, ng, nh, nj, nk, nl], true),
   ).toEqual([{ position: [3, 1, 0] }]);
 
   expect(
-    neighborsInFront(nl, [na, nb, nc, ne, nf, ng, nh, nj, nk], true)
+    neighborsInFront(nl, [na, nb, nc, ne, nf, ng, nh, nj, nk], true),
   ).toEqual([{ position: [3, 2, 2] }]);
 
-  expect(
-    neighborsInFront(nb, [na, nc, ne, nf, ng, nh, nj, nk], true)
-  ).toEqual([{ position: [2, 3, 0] }]);
+  expect(neighborsInFront(nb, [na, nc, ne, nf, ng, nh, nj, nk], true)).toEqual([
+    { position: [2, 3, 0] },
+  ]);
 });
 
 test("find neighbors located behind agent tests", () => {
@@ -79,6 +88,6 @@ test("find neighbors located behind agent tests", () => {
   ]);
 
   expect(
-    neighborsBehind(nl, [na, nb, nc, ne, ng, nh, nj, nm, nn], true)
+    neighborsBehind(nl, [na, nb, nc, ne, ng, nh, nj, nm, nn], true),
   ).toEqual([{ position: [0, -1, -1] }]);
 });

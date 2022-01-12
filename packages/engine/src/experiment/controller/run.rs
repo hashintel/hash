@@ -1,6 +1,6 @@
 use std::{pin::Pin, sync::Arc, time::Duration};
 
-use super::{config, controller::ExperimentController, id_store::SimIdStore, Error, Result};
+use super::{config, controller::ExperimentController, Error, Result};
 use crate::{
     datastore::prelude::SharedStore,
     experiment::{
@@ -120,7 +120,6 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
         .map_err(|experiment_err| Error::from(experiment_err.to_string()))?;
     let mut experiment_package_handle = experiment_package.join_handle;
 
-    let sim_id_store = SimIdStore::default();
     let package_config = match exp_config.run.package_config() {
         PackageConfig::ExperimentPackageConfig(package_config) => package_config,
         _ => unreachable!(),
@@ -142,7 +141,6 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
         output_persistence_service_creator,
         worker_pool_send_base,
         package_creators,
-        sim_id_store,
         worker_allocator,
         sim_status_send,
         sim_status_recv,

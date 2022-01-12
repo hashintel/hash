@@ -3,15 +3,15 @@ import { PotentialAgent } from "./agent";
 
 const posError = new Error("agent must have a position");
 
-export type Distance =
-  "euclidean" |
-  "manhattan" |
-  "euclidean_sq" |
-  "chebyshev";
+export type Distance = "euclidean" | "manhattan" | "euclidean_sq" | "chebyshev";
 
 const { abs, pow, max, sqrt } = Math;
 
-export function manhattan_distance(a_pos: number[], b_pos: number[], z_axis: boolean = true) {
+export function manhattan_distance(
+  a_pos: number[],
+  b_pos: number[],
+  z_axis: boolean = true,
+) {
   const dx = abs(a_pos[0] - b_pos[0]);
   const dy = abs(a_pos[1] - b_pos[1]);
   const dz = abs(a_pos[2] - b_pos[2]);
@@ -19,7 +19,11 @@ export function manhattan_distance(a_pos: number[], b_pos: number[], z_axis: boo
   return dx + dy + (z_axis ? dz : 0);
 }
 
-export function euclidean_squared_distance(a_pos: number[], b_pos: number[], z_axis: boolean = true) {
+export function euclidean_squared_distance(
+  a_pos: number[],
+  b_pos: number[],
+  z_axis: boolean = true,
+) {
   const dx = pow(a_pos[0] - b_pos[0], 2);
   const dy = pow(a_pos[1] - b_pos[1], 2);
   const dz = pow(a_pos[2] - b_pos[2], 2);
@@ -27,16 +31,24 @@ export function euclidean_squared_distance(a_pos: number[], b_pos: number[], z_a
   return dx + dy + (z_axis ? dz : 0);
 }
 
-export function euclidean_distance(a_pos: number[], b_pos: number[], z_axis: boolean = true) {
+export function euclidean_distance(
+  a_pos: number[],
+  b_pos: number[],
+  z_axis: boolean = true,
+) {
   return sqrt(euclidean_squared_distance(a_pos, b_pos, z_axis));
 }
 
-export function chebyshev_distance(a_pos: number[], b_pos: number[], z_axis: boolean = true) {
+export function chebyshev_distance(
+  a_pos: number[],
+  b_pos: number[],
+  z_axis: boolean = true,
+) {
   const dx = abs(a_pos[0] - b_pos[0]);
   const dy = abs(a_pos[1] - b_pos[1]);
   const dz = abs(a_pos[2] - b_pos[2]);
 
-  return max(dx, dy, (z_axis ? dz : 0));
+  return max(dx, dy, z_axis ? dz : 0);
 }
 
 /**
@@ -51,7 +63,7 @@ export function distanceBetween(
   agentA: PotentialAgent,
   agentB: PotentialAgent,
   distance: Distance = "euclidean",
-  zAxis: boolean = true
+  zAxis: boolean = true,
 ) {
   const aPos = agentA.position;
   const bPos = agentB.position;
@@ -70,7 +82,9 @@ export function distanceBetween(
     case "chebyshev":
       return chebyshev_distance(aPos, bPos, zAxis);
     default:
-      throw new Error("distance must be one of 'euclidean', 'manhattan', 'euclidean_sq' or 'chebyshev'");
+      throw new Error(
+        "distance must be one of 'euclidean', 'manhattan', 'euclidean_sq' or 'chebyshev'",
+      );
   }
 }
 
@@ -80,15 +94,15 @@ export function distanceBetween(
  */
 export function normalizeVector(vec: number[]) {
   const magnitude = Math.sqrt(
-    vec.reduce((acc: number, val: number) => acc + val ** 2, 0)
+    vec.reduce((acc: number, val: number) => acc + val ** 2, 0),
   );
   return vec.map((v) => v / magnitude);
 }
 
 export interface Topology {
-    x_bounds: number[];
-    y_bounds: number[];
-    z_bounds?: number[];
+  x_bounds: number[];
+  y_bounds: number[];
+  z_bounds?: number[];
 }
 
 /**
@@ -97,7 +111,8 @@ export interface Topology {
  * @param z_plane defaults to false
  */
 export function randomPosition(topology: Topology, z_plane = false) {
-  const randRange = (a: number, b: number) => Math.floor(Math.random() * (b - a) + a);
+  const randRange = (a: number, b: number) =>
+    Math.floor(Math.random() * (b - a) + a);
 
   let z_pos = 0;
   if (z_plane) {
