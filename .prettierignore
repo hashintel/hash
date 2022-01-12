@@ -7,8 +7,10 @@
 !*/
 
 # Allow certain file types
+!*.json
 !*.md
 !*.mdx
+!*.yml
 # TODO: add more types
 
 # Keep license files as is

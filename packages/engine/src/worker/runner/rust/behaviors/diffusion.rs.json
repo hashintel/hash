@@ -1,13 +1,13 @@
 {
-    "keys": {
-        "diffusion_coef": {
-            "type": "number",
-            "nullable": false
-        },
-        "diffusion_targets": {
-            "type": "any",
-            "nullable": true
-        }
+  "keys": {
+    "diffusion_coef": {
+      "type": "number",
+      "nullable": false
     },
-    "built_in_key_use": {"selected": []}
+    "diffusion_targets": {
+      "type": "any",
+      "nullable": true
+    }
+  },
+  "built_in_key_use": { "selected": [] }
 }
