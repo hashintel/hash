@@ -13,8 +13,8 @@ Expressing multiple timescales in a simulation is a difficult problem that exist
 
 There are a couple of different ways you can solve this problem in HASH. Common approaches are:
 
-* Add discrete event features  to signal when agents should pause to allow for different computation times
-* Add delays to normalize the actions across timescales.
+- Add discrete event features to signal when agents should pause to allow for different computation times
+- Add delays to normalize the actions across timescales.
 
 <Hint style="info">
 We are also going to introduce in-built ways of handling a global timescale - enabling the duration or trigger points of behaviors to be specified in line with calendar-time schedules.
@@ -26,8 +26,8 @@ Discrete Event Simulations \(DES\) are event driven simulations. Agents take act
 
 The important features of a DES simulation are:
 
-* A way to generate events
-* Triggers that cause agents to act or stop acting.
+- A way to generate events
+- Triggers that cause agents to act or stop acting.
 
 When an event occurs, specific agents in a simulation need to take certain actions, and when they've completed those actions, pause until the next appropriate event.
 
@@ -37,11 +37,11 @@ The most common way to implement this in HASH is through a manager agent - it's 
 
 A ManagerAgent in this role - lets call it TimeManager - has a basic design:
 
-* It can message any agent in the simulation that might be affected by time differences. You can accomplish that by adding an array of agent names or ids to a TimeManager field, or by increasing the TimeManager's search radius and getting agents from `context.neighbors()`.
-* It will be signaled, either by a message sent from an agent or by global properties \(such as a specific time-step\) when certain agents need to pause their actions.
-* It then sends a message to those agents. The message could include a time-step when they can resume computation.
-* The agents that are signaled by the time manager will need a behavior that can handle this message; most likely it will change the agents behavior array`state.behaviors = ['time_handler.js']`
-* The time manager, if it receives a message that the faster agent has finished, will send a restart message to the other messages.
+- It can message any agent in the simulation that might be affected by time differences. You can accomplish that by adding an array of agent names or ids to a TimeManager field, or by increasing the TimeManager's search radius and getting agents from `context.neighbors()`.
+- It will be signaled, either by a message sent from an agent or by global properties \(such as a specific time-step\) when certain agents need to pause their actions.
+- It then sends a message to those agents. The message could include a time-step when they can resume computation.
+- The agents that are signaled by the time manager will need a behavior that can handle this message; most likely it will change the agents behavior array`state.behaviors = ['time_handler.js']`
+- The time manager, if it receives a message that the faster agent has finished, will send a restart message to the other messages.
 
 In essence the time manager is specifying which agents run on any given time-step based on business logic. [Here's an example simulation using a generic time manager](/@hash/time-management).
 

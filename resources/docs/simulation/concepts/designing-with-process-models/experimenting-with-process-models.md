@@ -14,17 +14,18 @@ See the [experiments section](/docs/simulation/creating-simulations/experiments/
 
 To run an experiment, you'll want to first identify the parameter of the process you want to explore. For example, in a model with a service block:
 
-```javascript
+```json
 // Snippet of a process model
 
+{
   "support_resources_solving_stuff": {
-       "time": 2,
-       "resource": "service_agents",
-       "track_wait": true
-     },
-   "service_agents": 6
+    "time": 2,
+    "resource": "service_agents",
+    "track_wait": true
+  },
+  "service_agents": 6
+}
 ```
-
 
 In this model we could run experiments with the “service_agents” property and see how it responds to different numbers of agents.
 
@@ -34,27 +35,25 @@ To do that, we'll set service_agents as a global parameter.
 The [Globals](/docs/simulation/creating-simulations/configuration/) section describes how and why to use globals.
 </Hint>
 
-1. Add a property to globals.json.
+1.  Add a property to globals.json.
 
-** globals.json **
+    **globals.json**
 
-```javascript
-{
- "num_service_agents": 6
-}
-```
+    ```json
+    {
+      "num_service_agents": 6
+    }
+    ```
 
+1.  Replace the property on the process model with the global parameter.
 
-1. Replace the property on the process model with the global parameter.
+    ```javascript
+    // create_process.js
 
-```javascript
-// create_process.js
+    "service_agents": Math.floor(context.globals().num_service_agents),
+    ```
 
-"service_agents": Math.floor(context.globals().num_service_agents),
-```
-
-
-1. Create an experiment and use the parameter as the field for the experiment
+1.  Create an experiment and use the parameter as the field for the experiment
 
 ![Experiment model](https://cdn-us1.hash.ai/site/docs/process+models+experiment.png)
 

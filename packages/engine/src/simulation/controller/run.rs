@@ -136,17 +136,6 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     }
     let main_loop_dur = now.elapsed().as_millis();
 
-    // Tell the experiment controller that the sim is stopping
-    sims_to_exp
-        .send(SimStatus::stop_signal(sim_run_id))
-        .await
-        .map_err(|exp_controller_err| {
-            Error::from(format!(
-                "Experiment controller error: {:?}",
-                exp_controller_err
-            ))
-        })?;
-
     let now = std::time::Instant::now();
     let persistence_result = persistence_service.finalize(&config).await?;
     sims_to_exp

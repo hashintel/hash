@@ -18,6 +18,7 @@ You can contribute to the HASH standard library by submitting pull requests to o
 
 The HASH Standard Library contains the following types of functions:
 
+<!-- prettier-ignore -->
 | Category | Description |
 | :--- | :--- |
 | [Spatial](hash/spatial) | Functions describing and modifying the location of agents in x,y,z space. |
@@ -33,7 +34,7 @@ To call a standard library function, use the `hash_stblib` object followed by th
 
 ```javascript
 function behavior(state, context) {
-    let distance = hstd.distanceBetween(agentA, agentB)
+  let distance = hstd.distanceBetween(agentA, agentB);
 }
 ```
 

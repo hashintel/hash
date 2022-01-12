@@ -13,10 +13,10 @@ Sometimes behaviors may need to know which behaviors executed before it, and whi
 
 ```javascript
 const behavior = (state, context) => {
-    const index = state.behaviorIndex();
-    console.log("behavior index =", index);
-    console.log("behavior name =", state.behaviors[index]);
-}
+  const index = state.behaviorIndex();
+  console.log("behavior index =", index);
+  console.log("behavior name =", state.behaviors[index]);
+};
 ```
 
 </Tab>
@@ -43,12 +43,11 @@ The switching is accomplished by indexing into the agent's behavior array using 
 // fire.js
 
 function behavior(state, context) {
-
   // Replace the fire behavior with the ember behavior
   state.behaviors[state.behaviorIndex()] = "ember.js";
 
   state.color = context.globals().fireColor;
   state.shape = "fire";
   state.height = 3;
-};
+}
 ```

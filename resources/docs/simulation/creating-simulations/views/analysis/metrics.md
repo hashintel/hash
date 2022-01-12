@@ -69,22 +69,21 @@ Your first step is to define Metrics that you are interested in plotting. Each M
   </tbody>
 </table>
 
-‌
+Many of these operations are aggregators: they will reduce the current output array to a single value.
 
-Many of these operations are aggregators: they will reduce the current output array to a single value.‌
+Like many data pipelines you first filter your data to the set you're interested in, and then aggregate it into a final metric.
 
-Like many data pipelines you first filter your data to the set you're interested in, and then aggregate it into a final metric.‌
-
-The Metrics Wizard will help you construct your metrics and fill in the appropriate parameters.​‌
+The Metrics Wizard will help you construct your metrics and fill in the appropriate parameters.
 
 ![](https://cdn-us1.hash.ai/site/docs/analysis-metrics-1.png)
 
-For example, if you have a collection of agents with an age attribute in your simulation, you might want to count the number over 50. You will chain together operations like so:​‌
+For example, if you have a collection of agents with an age attribute in your simulation, you might want to count the number over 50. You will chain together operations like so:
 
 ![](https://cdn-us1.hash.ai/site/docs/analysis-metrics-2.png)
 
 It's likely that the most common operation you'll use is "filter". You can filter with numeric, boolean, and string values. The valid comparisons are listed below:
 
+<!-- prettier-ignore -->
 | Comparison Name | Comparison Description |
 | :--- | :--- |
 | eq | Equal to \(===\) |

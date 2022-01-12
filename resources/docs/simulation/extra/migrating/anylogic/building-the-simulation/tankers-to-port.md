@@ -24,7 +24,10 @@ function new_coords(lng_lat, destination) {
 
   const vec = hstd.normalizeVector([dx, dy]);
 
-  return [lng_lat[0] + (vec[0] * state.get("speed")), lng_lat[1] + (vec[1] * state.get("speed"))]
+  return [
+    lng_lat[0] + vec[0] * state.get("speed"),
+    lng_lat[1] + vec[1] * state.get("speed"),
+  ];
 }
 
 const ll = state.get("lng_lat");
@@ -77,7 +80,7 @@ def behavior(state, context):
 
     for agent in agents:
       messages.append({
-        'to': 'hash', 
+        'to': 'hash',
         'type': 'create_agent',
         'data': agent
       })
@@ -132,7 +135,7 @@ def behavior(state, context):
 
     for agent in agents:
       messages.append({
-        'to': 'hash', 
+        'to': 'hash',
         'type': 'create_agent',
         'data': agent
       })

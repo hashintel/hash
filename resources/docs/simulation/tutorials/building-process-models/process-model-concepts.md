@@ -20,13 +20,13 @@ When designing your own process models, your primary task is to factor the real 
 
 With the HASH process library, we provide ready made behaviors for implementing process models. Each corresponds with a common element for process models.
 
-* Source: Generates objects based on a template.
-* Delay: Holds objects for a set number of timesteps.
-* Seize: Takes a resource and 'holds' it.
-* Release: Releases a resource that has been held by a seize block.
-* Service: A combination of Seize, Delay, And Release.
-* Select Output: Routes an object to a specific behavior depending on the state of the output or a conditional check.
-* Sink: Accepts objects and removes them from the process model.
+- Source: Generates objects based on a template.
+- Delay: Holds objects for a set number of timesteps.
+- Seize: Takes a resource and 'holds' it.
+- Release: Releases a resource that has been held by a seize block.
+- Service: A combination of Seize, Delay, And Release.
+- Select Output: Routes an object to a specific behavior depending on the state of the output or a conditional check.
+- Sink: Accepts objects and removes them from the process model.
 
 <Hint style="info">
 The full list of process blocks and their parameters are listed in [Process Blocks](/docs/simulation/concepts/designing-with-process-models/process-blocks).
@@ -39,31 +39,32 @@ Each of these elements has a built-in-queue, and will move objects in its queue 
 // that will increment a property on the object called count by 1.
 
 /**
-* @param {AgentState} state
-* @param {AgentContext} context
-*/
+ * @param {AgentState} state
+ * @param {AgentContext} context
+ */
 const behavior = (state, context) => {
- // Get the queue of the next process block
- let next_process_ind = state.behaviorIndex() + 1;
- const behaviors = state.behaviors;
- 
- while (next_process_ind < behaviors.length) {
-   if (behaviors[next_process_ind].includes("@hash/process")
-       || context.globals().process_behaviors.includes(behaviors[next_process_ind])) {
-     break;
-   } else {
-     next_process_ind += 1;
-   }
- }
- 
- const next_process = state.process_labels[next_process_ind];
- let queue = state[next_process + "_queue"];
-  // Run custom logic with the queue
- for (obj of queue) {
-   obj.count ? obj.count += 1 : obj.count = 1
- }
- // Reassign to the process queue
- state[next_process + "_queue"] = queue;
-};
+  // Get the queue of the next process block
+  let next_process_ind = state.behaviorIndex() + 1;
+  const behaviors = state.behaviors;
 
+  while (next_process_ind < behaviors.length) {
+    if (
+      behaviors[next_process_ind].includes("@hash/process") ||
+      context.globals().process_behaviors.includes(behaviors[next_process_ind])
+    ) {
+      break;
+    } else {
+      next_process_ind += 1;
+    }
+  }
+
+  const next_process = state.process_labels[next_process_ind];
+  let queue = state[next_process + "_queue"];
+  // Run custom logic with the queue
+  for (obj of queue) {
+    obj.count ? (obj.count += 1) : (obj.count = 1);
+  }
+  // Reassign to the process queue
+  state[next_process + "_queue"] = queue;
+};
 ```

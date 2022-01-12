@@ -24,14 +24,14 @@ The source behavior is the entry point to a process model. It can generate objec
     // REQUIRED - one of template or code_template
     // The definition for each object sent through the process model
     "template": struct,
-    // An executable string evaluated as JavaScript to create 
+    // An executable string evaluated as JavaScript to create
     // the definition for each object sent through the process model
     "code_template": string,
     // OPTIONAL - generate a unique uuid and append it to each generated object
     "add_id": boolean
-    // OPTIONAL - specify the block that objects will be sent to next, 
-    // instead of the subsequent one in the behaviors array 
-    "next_block": string 
+    // OPTIONAL - specify the block that objects will be sent to next,
+    // instead of the subsequent one in the behaviors array
+    "next_block": string
 }
 ```
 
@@ -52,7 +52,7 @@ The sink behavior is generally the endpoint of a process model. It disposes of o
     // in `state.process_data.through_times.<block_name>`.
     // Record the average in `state.process_data.avg_through_times.<block_name>`
     "record_through_time": boolean
-    // OPTIONAL - Record the times objects waited for resources 
+    // OPTIONAL - Record the times objects waited for resources
     // in `state.process_data.wait_times.<block_name>`.
     // Record the average in `state.process_data.avg_wait_times.<block_name>`
     "record_wait_times": boolean
@@ -79,9 +79,9 @@ The delay behavior causes objects in the process model to wait a certain amount 
     // Generate the delay time by executing a string as JavaScript code.
     // Must return a number
     "code_time": string,
-    // OPTIONAL - specify the block that objects will be sent to next, 
-    // instead of the subsequent one in the behaviors array 
-    "next_block": string 
+    // OPTIONAL - specify the block that objects will be sent to next,
+    // instead of the subsequent one in the behaviors array
+    "next_block": string
 }
 ```
 
@@ -97,15 +97,15 @@ The name of the resource being seized should match that of a resource recovered 
 // parameters
 
 <block_name>: {
-    // REQUIRED - the name of the agent field which tracks the number of available 
+    // REQUIRED - the name of the agent field which tracks the number of available
     // resources. The <string> field on the agent must contain a number.
     "resource": string,
     // OPTIONAL - if true, objects will track the amount of time they wait for a
     // resource to become available.
     "track_wait": boolean,
-    // OPTIONAL - specify the block that objects will be sent to next, 
-    // instead of the subsequent one in the behaviors array 
-    "next_block": string 
+    // OPTIONAL - specify the block that objects will be sent to next,
+    // instead of the subsequent one in the behaviors array
+    "next_block": string
 }
 ```
 
@@ -121,12 +121,12 @@ The name of the resource being seized **must** match that of a resource reserved
 // parameters
 
 <block_name>: {
-    // REQUIRED - the name of the agent field which tracks the number of available 
+    // REQUIRED - the name of the agent field which tracks the number of available
     // resources. The <string> field on the agent must contain a number.
     "resource": string,
-    // OPTIONAL - specify the block that objects will be sent to next, 
-    // instead of the subsequent one in the behaviors array 
-    "next_block": string 
+    // OPTIONAL - specify the block that objects will be sent to next,
+    // instead of the subsequent one in the behaviors array
+    "next_block": string
 }
 ```
 
@@ -150,15 +150,15 @@ The service behavior seizes resources, delays the object, and then releases the 
     // Generate the delay time by executing a string as JavaScript code.
     // Must return a number
     "code_time": string,
-    // REQUIRED - the name of the agent field which tracks the number of available 
+    // REQUIRED - the name of the agent field which tracks the number of available
     // resources. The <string> field on the agent must contain a number.
     "resource": string,
     // OPTIONAL - if true, objects will track the amount of time they wait for a
     // resources to become available.
     "track_wait": boolean,
-    // OPTIONAL - specify the block that objects will be sent to next, 
+    // OPTIONAL - specify the block that objects will be sent to next,
     // instead of the subsequent one in the behaviors array.
-    "next_block": string 
+    "next_block": string
 }
 ```
 
@@ -168,10 +168,10 @@ _@hash/process/select_output.js_
 
 This behavior allows a process to branch along two different paths, based on a conditional. There are three different ways to specify this conditional:
 
-* based on a whether a field on the object is `true` or not
-* based on a likelihood or rate
-* based on executing a code string — the string may reference `obj` to access fields on the object being processed.
-  * An example code_condition is `obj.difficulty > 0.5 ? true : false`
+- based on a whether a field on the object is `true` or not
+- based on a likelihood or rate
+- based on executing a code string — the string may reference `obj` to access fields on the object being processed.
+  - An example code_condition is `obj.difficulty > 0.5 ? true : false`
 
 After the Select Output block, you should specify the blocks that make up the rest of the "true" path, then the blocks that make up the "false" path. If the two paths eventually rejoin, specify the rest of the blocks after the "false" path.
 
@@ -183,19 +183,19 @@ On the final block of the "true" path, specify the first block where the two pat
 <block_name>: {
     // REQUIRED - one of condition_field, true_chance, or code_condition
 
-    // Checks whether the <string> field on the object is true or false to 
+    // Checks whether the <string> field on the object is true or false to
     // determine which path it will take.
     "condition_field": string
     // If set, generates a random number between 0 & 1. If less than true_chance
     // the object is sent to the true_block, else it's sent to the false_block
     "true_chance": number,
-    // Evaluate a string as javascript code to determine the path taken. 
+    // Evaluate a string as javascript code to determine the path taken.
     // It must return a boolean, and can reference an `obj` variable
     "code_condition": string,
     // REQUIRED - specify the block that objects failing the condition check
     // will be sent to.
     "false_block": string,
-    // OPTIONAL - specify the block that objects will be sent to next, 
+    // OPTIONAL - specify the block that objects will be sent to next,
     // instead of the subsequent one in the behaviors array.
     "true_block": string,
     // Remove the field checked in "condition_field"
@@ -209,9 +209,9 @@ _@hash/processs/exit.js_
 
 This behavior allows a process model to communicate with other agents, including other process models. Typically you can use an Exit block to communicate with an Enter block. The Exit block sends a message with the following fields:
 
-* `to` - the agent_id of the target agent
-* `type` - the name of the paired Enter block
-* `data` - the definition of the object
+- `to` - the agent_id of the target agent
+- `type` - the name of the paired Enter block
+- `data` - the definition of the object
 
 Exit blocks can also be used to send arbitrary messages to other agents, or even create new agents by sending `"create_agent"` messages to `"hash"`.
 
@@ -221,13 +221,13 @@ Exit blocks can also be used to send arbitrary messages to other agents, or even
 <block_name>: {
     // The agent_id of the recipient of the message
     "to": string,
-    // Checks the <string> field on the object to determine 
+    // Checks the <string> field on the object to determine
     // the agent_id of the recipient
     "to_field": string,
-    // Evaluate a string as javascript code to determine the recipient. 
+    // Evaluate a string as javascript code to determine the recipient.
     // It must return a string, and can reference an `obj` variable
     "to_code": string,
-    // OPTIONAL - specify the block that objects will be sent to next, 
+    // OPTIONAL - specify the block that objects will be sent to next,
     // or an arbitrary message type
     "next_block": string
 
@@ -242,15 +242,15 @@ This behavior allows any agent, including other process models, to insert a new 
 
 An agent can do so by sending a message with the following fields:
 
-* `to` - the `agent_id` of the process model
-* `type` - the name of the Enter block
-* `data` - the definition of the new object
+- `to` - the `agent_id` of the process model
+- `type` - the name of the Enter block
+- `data` - the definition of the new object
 
 ```javascript
 // parameters
 
 <block_name>: {
-    // OPTIONAL - specify the block that objects will be sent to next, 
+    // OPTIONAL - specify the block that objects will be sent to next,
     // instead of the subsequent one in the behaviors array.
     "next_block": string
 
@@ -267,9 +267,9 @@ This behavior records the time an object reached it, to enable calculating the e
 // parameters
 
 <block_name>: {
-    // OPTIONAL - specify the block that objects will be sent to next, 
+    // OPTIONAL - specify the block that objects will be sent to next,
     // instead of the subsequent one in the behaviors array.
-    "next_block": string 
+    "next_block": string
 }
 ```
 
@@ -286,9 +286,9 @@ The process label of this behavior must match that of its corresponding Time Mea
 
 // Block name must match the time_measure_start
 <block_name>: {
-    // OPTIONAL - specify the block that objects will be sent to next, 
+    // OPTIONAL - specify the block that objects will be sent to next,
     // instead of the subsequent one in the behaviors array.
-    "next_block": string 
+    "next_block": string
 }
 ```
 
@@ -300,15 +300,17 @@ Each **Service** or **Seize/Release** block in your process agent has an associa
 
 To use the behavior, you'll also need to specify a new object in `process_parameters`_._ The `max_resources` must specify the maximum, or starting number, of resources the agent begins with.
 
-```javascript
-...
-"process_parameters": {
-  ...
-  "max_resources": {
-    "senior_billers": 3,
-    "account_billers": 4,
-    "billing_clerks": 3,
-    "printers": 1
+```json
+{
+  "...": "...",
+  "process_parameters": {
+    "...": "...",
+    "max_resources": {
+      "senior_billers": 3,
+      "account_billers": 4,
+      "billing_clerks": 3,
+      "printers": 1
+    }
   }
 }
 ```
