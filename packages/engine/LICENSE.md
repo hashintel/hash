@@ -1,5 +1,5 @@
 Source code in this repository is made available under both the Server
-Side Public License v1  and the Elastic License 2.0.
+Side Public License v1 and the Elastic License 2.0.
 
 ---
 
