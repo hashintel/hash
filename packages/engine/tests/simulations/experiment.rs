@@ -186,7 +186,7 @@ pub fn run_experiment(
         println!("{}", String::from_utf8_lossy(&experiment.stdout));
     }
     if !experiment.stderr.is_empty() {
-        println!("{}", String::from_utf8_lossy(&experiment.stderr));
+        eprintln!("{}", String::from_utf8_lossy(&experiment.stderr));
     }
 
     ensure!(experiment.status.success(), "Could not run experiment");
