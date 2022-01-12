@@ -1,4 +1,4 @@
-# HASH.dev backend
+# HASH backend
 
 ## Configuration
 

@@ -66,7 +66,7 @@ const systemTypeSchemas: {
     required: ["shortname", "memberships"],
   },
   User: {
-    description: "A user with an account in a HASH.dev instance.",
+    description: "A user with an account in a HASH instance.",
     properties: {
       emails: {
         type: "array",

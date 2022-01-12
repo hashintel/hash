@@ -2,7 +2,7 @@
   "name": "@hashintel/hash-frontend",
   "version": "0.1.0",
   "private": true,
-  "description": "Frontend for HASH.dev",
+  "description": "HASH frontend",
   "license": "SSPL-1.0",
   "scripts": {
     "build": "yarn codegen; next build",

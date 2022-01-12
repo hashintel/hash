@@ -1,4 +1,4 @@
-# HASH.dev block-protocol
+# HASH block-protocol
 
 ## Introduction
 

@@ -76,7 +76,7 @@ export const EditableCell: VoidFunctionComponent<EditableCellProps> = ({
         data: newEntity,
         entityId: objectToUpdate.entityId,
         entityTypeId: objectToUpdate.entityTypeId,
-        // @todo shouldn't need this – hash.dev should know it
+        // @todo shouldn't need this – HASH should know it
         accountId: objectToUpdate.accountId,
       },
       // eslint-disable-next-line no-console -- TODO: consider using logger

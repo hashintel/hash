@@ -1,4 +1,4 @@
-# HASH.dev frontend
+# HASH frontend
 
 ## Getting Started
 

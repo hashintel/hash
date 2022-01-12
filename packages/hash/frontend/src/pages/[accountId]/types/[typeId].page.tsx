@@ -62,7 +62,7 @@ export const EntityType: VoidFunctionComponent = () => {
 
       let schemaLinkPath = "";
       /**
-       * @todo catch links to schemas served from outside HASH.dev, and instead of opening their off-site pages,
+       * @todo catch links to schemas served from outside HASH, and instead of opening their off-site pages,
        *    fetch them and load them into our viewer. Will need to update relative approaches too.
        */
       if (schemaRef.startsWith("#")) {
