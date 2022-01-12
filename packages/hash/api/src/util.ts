@@ -119,3 +119,135 @@ export const intersection = <T>(left: Set<T>, right: Set<T>): Set<T> => {
   }
   return result;
 };
+
+export class Queue<T> {
+  private readonly queue: T[];
+  private start: number;
+  private end: number;
+
+  constructor(array: T[] = []) {
+    this.queue = array;
+
+    // pointers
+    this.start = 0;
+    this.end = array.length;
+  }
+
+  isEmpty() {
+    return this.end === this.start;
+  }
+
+  dequeue(): T | null {
+    if (this.isEmpty()) {
+      return null;
+    } else {
+      return this.queue[this.start++];
+    }
+  }
+
+  enqueue(...value: T[]) {
+    this.queue.push(...value);
+    this.end += value.length;
+  }
+
+  toString() {
+    return `Queue (${this.end - this.start})`;
+  }
+
+  get length() {
+    return this.end - this.start;
+  }
+
+  [Symbol.iterator]() {
+    let index = this.start;
+    return {
+      next: () =>
+        index < this.end
+          ? {
+              value: this.queue[index++],
+            }
+          : { done: true },
+    };
+  }
+}
+
+/**
+ * Given a tree structure that has links, flatten into an array with indices pointing to parent.
+ * Note, this _will_ behave badly with circular structures!
+ * This uses BFS.
+ * @param graph The graph structure containing `key` for links
+ * @param key The key that allows recursive sub-graphs.
+ * @param depthLimit The maximum depth a tree may have before bailing.
+ * @returns A flattened list of all nodes with an index referring to where in the list the parent is. Index = 0 means root.
+ */
+export const linkedTreeFlatten = <
+  Outer extends { [_ in K]?: Inner[] | null },
+  Inner extends { [_ in K2]: Outer },
+  K extends string,
+  K2 extends string,
+>(
+  graph: Outer,
+  outerKey: K,
+  innerKey: K2,
+  depthLimit: number = 50,
+) => {
+  type AugmentedOuter = Outer & {
+    meta?: Omit<Inner, K2>;
+    parentIndex: number;
+    currentIndex: number;
+  };
+  type ResultWithMeta = Omit<AugmentedOuter, K | "currentIndex">;
+
+  const queue: Queue<AugmentedOuter[]> = new Queue([
+    [{ parentIndex: -1, currentIndex: 0, ...graph }],
+  ]);
+  const result: ResultWithMeta[] = [];
+
+  let index = 1;
+  let depth = 0;
+  while (!queue.isEmpty()) {
+    let currentIndex = index;
+
+    const toInsert = queue.dequeue();
+    if (!toInsert) {
+      continue;
+    }
+
+    result.push(
+      ...toInsert.map((entry) => {
+        const { [outerKey]: _1, currentIndex: _2, ...values } = entry;
+        return values;
+      }),
+    );
+
+    depth++;
+
+    const descendantsToQueue = toInsert.reduce((acc, current) => {
+      const outer = current[outerKey];
+      if (outer) {
+        const extractedFromInner = outer.map((entry) => {
+          const { [innerKey]: _omitted, ...innerValues } = entry;
+          return {
+            parentIndex: current.currentIndex,
+            currentIndex: currentIndex++,
+            meta: innerValues,
+            ...entry[innerKey],
+          };
+        });
+
+        acc.push(extractedFromInner);
+      }
+      return acc;
+    }, [] as AugmentedOuter[][]);
+    index = currentIndex;
+    if (descendantsToQueue.length > 0) {
+      queue.enqueue(...descendantsToQueue);
+    }
+
+    if (depth >= depthLimit && !queue.isEmpty()) {
+      throw new Error("Depth limit reached!");
+    }
+  }
+
+  return result;
+};

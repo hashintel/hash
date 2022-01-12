@@ -1,4 +1,4 @@
-import { topologicalSort, intersection } from "./util";
+import { topologicalSort, linkedTreeFlatten, intersection } from "./util";
 
 it("can do topological sort", () => {
   // ┌────── A ─────┐
@@ -61,4 +61,83 @@ it("can compute intersection of sets", () => {
   expect(intersection(setA, setB)).toEqual(new Set([2, 3]));
   expect(intersection(setA, setC)).toEqual(new Set([]));
   expect(intersection(setB, setD)).toEqual(new Set([]));
+});
+
+type Entity = {
+  name: string;
+  linkedGraphs?: LinkedEntity[];
+};
+
+type LinkedEntity = {
+  entity: Entity;
+};
+
+it("can flatten a tree structure", () => {
+  // ┌───────E1──────┐
+  // │       │       │
+  // ▼       ▼       ▼
+  // E2      E3      E4
+  // │               │
+  // ▼               ▼
+  // E5              E6
+  const graph: Entity = {
+    name: "N1",
+    linkedGraphs: [
+      { entity: { name: "N2", linkedGraphs: [{ entity: { name: "N5" } }] } },
+      { entity: { name: "N3" } },
+      { entity: { name: "N4", linkedGraphs: [{ entity: { name: "N6" } }] } },
+    ],
+  };
+
+  const result = linkedTreeFlatten(graph, "linkedGraphs", "entity");
+  // eslint-disable-next-line no-console
+  console.log(result);
+  expect(result).toEqual([
+    {
+      parentIndex: -1,
+      name: "N1",
+    },
+    {
+      meta: {},
+      parentIndex: 0,
+      name: "N2",
+    },
+    {
+      meta: {},
+      parentIndex: 0,
+      name: "N3",
+    },
+    {
+      meta: {},
+      parentIndex: 0,
+      name: "N4",
+    },
+    {
+      meta: {},
+      parentIndex: 1,
+      name: "N5",
+    },
+    {
+      meta: {},
+      parentIndex: 3,
+      name: "N6",
+    },
+  ]);
+});
+
+it("can bail out of a circular tree", () => {
+  const graph: Entity = {
+    name: "N1",
+    linkedGraphs: [
+      { entity: { name: "N2" } },
+      { entity: { name: "N3" } },
+      { entity: { name: "N4", linkedGraphs: [{ entity: { name: "N5" } }] } },
+    ],
+  };
+
+  graph.linkedGraphs![0].entity = graph;
+
+  expect(() => {
+    linkedTreeFlatten(graph, "linkedGraphs", "entity");
+  }).toThrowError(/limit reached/);
 });
