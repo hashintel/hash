@@ -276,3 +276,81 @@ lsof -n -i:PORT_NUMBER
 
 > **TODO:** replace `lsof` with `npx ??? A,B,...N` for a better DX.
 > Suggestions welcome!
+
+## Environment variables
+
+Here's a list of possible environment variables. Everything that's necessary already has a default value.
+
+You **do not** need to set any environment variables to run the application.
+
+### General API server environment variables
+
+- `NODE_ENV`: ("development" or "production") the runtime environment. Controls
+  default logging levels and output formatting.
+- `PORT`: the port number the API will listen on.
+- `SESSION_SECRET` The secret used to sign login sessions (default: `secret`)
+- `HTTPS_ENABLED`: (optional) Set to `"1"` if HTTPS is enabled on the frontend host.
+
+### AWS configuration
+
+If you want to use AWS for file uploads or emails, you will need to have it configured:
+
+- `AWS_REGION`: The region, eg. `us-east-1`
+- `AWS_ACCESS_KEY_ID`: Your aws access key
+- `AWS_SECRET_ACCESS_KEY`: Your aws secret key
+- `AWS_S3_UPLOADS_BUCKET`: The name of the bucket to use for file uploads (if you want to use S3 for file uploads), eg: `my_uploads_bucket`
+
+### File uploads
+
+By default, files are uploaded locally. It is also possible to upload files on AWS S3.
+
+- `FILE_UPLOAD_PROVIDER`: Which type of provider is used for file uploads. Possible values `LOCAL_FILE_SYSTEM`, or `AWS_S3`. If choosing S3, then you need to configure the aws variables above.
+- `LOCAL_FILE_UPLOAD_PATH`: Relative path to store uploaded files if using the local file system storage provider. Default is `var/uploads` (the `var` folder is the folder normally used for application data)
+
+### Email
+
+During development, the dummy email transporter writes emails to a local folder.
+
+- `HASH_EMAIL_TRANSPORTER`: `dummy` or `aws`. If set to dummy, the local dummy email transporter will be used during development instead of aws (default: `dummy`)
+- `DUMMY_EMAIL_TRANSPORTER_FILE_PATH`: Default is `var/api/dummy-email-transporter/email-dumps.yml`
+- `DUMMY_EMAIL_TRANSPORTER_USE_CLIPBOARD`: `true` or `false` (default: `true`)
+
+### OpenSearch
+
+- `HASH_OPENSEARCH_HOST`: the hostname of the OpenSearch cluster to connect to. (default: `localhost`)
+- `HASH_OPENSEARCH_PASSWORD`: the password to use when making the connection. (default: `admin`)
+- `HASH_OPENSEARCH_PORT`: the port number that the cluster accepts (default: `9200`)
+- `HASH_OPENSEARCH_USERNAME`: the username to connect to the cluster as. (default: `admin`)
+- `HASH_OPENSEARCH_HTTPS_ENABLED`: (optional) set to "1" to connect to the cluster
+  over an HTTPS connection.
+
+### Postgres
+
+- `HASH_PG_DATABASE` (default: `postgres`)
+- `HASH_PG_HOST` (default: `localhost`)
+- `HASH_PG_PASSWORD` (default: `postgres`)
+- `HASH_PG_PORT` (default: `5432`)
+- `HASH_PG_USER` (default: `postgres`)
+
+### Redis
+
+- `HASH_REDIS_HOST` (default: `localhost`)
+- `HASH_REDIS_PORT` (default: `6379`)
+
+### Statsd
+
+If the service should report metrics to a StatsD server, the following variables must be set.
+
+- `STATSD_ENABLED`: Set to "1" if the service should report metrics to a StatsD server.
+- `STATSD_HOST`: the hostname of the StatsD server.
+- `STATSD_PORT`: (default: 8125) the port number the StatsD server is listening on.
+
+### Others
+
+- `FRONTEND_DOMAIN`: URL of the frontend website for links (default: `localhost:3000`)
+- `HASH_COLLAB_QUEUE_NAME` The name of the Redis queue which updates to entities are published to (default: `collab`)
+- `HASH_REALTIME_PORT`: Realtime service listening port. (default: `3333`)
+- `HASH_SEARCH_LOADER_PORT`: (default: `3838`)
+- `HASH_SEARCH_QUEUE_NAME`: The name of the queue to push changes for the search loader service (default: `search`)
+- `NEXT_PUBLIC_API_ORIGIN`: The origin that the API service can be reached on (default: `http://localhost:5001`)
+- `SESSION_SECRET`: The secret used to sign login sessions (default: `secret`)
