@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fmt::Display};
 
 use error::{bail, report, Result, ResultExt};
-use hash_engine::{nano, proto};
+use hash_engine::{nano, proto, proto::ExperimentNameRef};
 use tokio::sync::{mpsc, oneshot};
 
 type ExperimentId = String;
@@ -87,16 +87,19 @@ impl Handler {
 
     /// Register a new experiment execution with the server, returning a Handle from which messages
     /// from the execution may be received.
-    pub async fn register_experiment(&mut self, experiment_id: &str) -> Result<Handle> {
+    pub async fn register_experiment(
+        &mut self,
+        experiment_name: ExperimentNameRef<'_>,
+    ) -> Result<Handle> {
         let (msg_tx, msg_rx) = mpsc::unbounded_channel();
         self.send_ctrl(Ctrl::Register {
-            id: experiment_id.into(),
+            id: experiment_name.into(),
             msg_tx,
         })
         .await?;
 
         let handle = Handle {
-            id: experiment_id.into(),
+            id: experiment_name.into(),
             msg_rx,
             close_tx: self.close_tx.clone(),
         };
@@ -167,15 +170,15 @@ impl Server {
     /// Dispatch a message received from an experiment run to its respective handle. Returns an
     /// error if the experiment ID set in the message has not been registered.
     fn dispatch_message(&self, msg: proto::OrchestratorMsg) -> Result<()> {
-        match self.routes.get(&msg.experiment_id) {
+        match self.routes.get(&msg.experiment_name) {
             None => {
                 // Experiment not found. This can happen if the experiment runner
                 // completes before sending de-registering the experiment.
                 Ok(())
             }
-            Some(sender) => sender
-                .send(msg.body)
-                .wrap_err_lazy(|| format!("Routing message for experiment {}", msg.experiment_id)),
+            Some(sender) => sender.send(msg.body).wrap_err_lazy(|| {
+                format!("Routing message for experiment {}", msg.experiment_name)
+            }),
         }
     }
 

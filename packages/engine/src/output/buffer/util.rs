@@ -1,12 +1,15 @@
 use std::path::PathBuf;
 
 use super::RELATIVE_PARTS_FOLDER;
-use crate::output::error::{Error, Result};
+use crate::{
+    output::error::{Error, Result},
+    proto::ExperimentId,
+};
 
 // TODO: move this to top-level
 /// Shared memory cleanup in the process hard crash case.
 /// Not required for pod instances.
-pub fn cleanup_experiment(experiment_id: &str) -> Result<()> {
+pub fn cleanup_experiment(experiment_id: &ExperimentId) -> Result<()> {
     log::trace!("Cleaning up experiment: {}", experiment_id);
     let shm_files = glob::glob(&format!("/dev/shm/shm_{}_*", experiment_id))
         .map_err(|e| Error::Unique(format!("cleanup glob error: {}", e)))?;
@@ -32,12 +35,12 @@ pub fn cleanup_experiment(experiment_id: &str) -> Result<()> {
 }
 
 #[allow(dead_code)]
-fn remove_experiment_parts(experiment_id: &str) -> Result<()> {
+fn remove_experiment_parts(experiment_id: &ExperimentId) -> Result<()> {
     let mut base_path = PathBuf::from(RELATIVE_PARTS_FOLDER);
     // TODO: this is unused at the moment so it's fine, but this logic is wrong, we name our folders
     //  differently, we should update the design to store the paths and use them here when we use
     //  the clean up code again
-    base_path.push(experiment_id);
+    base_path.push(experiment_id.to_string());
     log::trace!("Removing all parts files in: {base_path:?}");
     std::fs::remove_dir_all(base_path)?;
     Ok(())

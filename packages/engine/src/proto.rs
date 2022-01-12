@@ -2,12 +2,15 @@ use std::fmt::{Debug, Formatter};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
+use uuid::Uuid;
 
 use crate::{config::Globals, hash_types::worker::RunnerError, simulation::status::SimStatus};
 
 pub type SerdeMap = serde_json::Map<String, SerdeValue>;
 
-pub type ExperimentRegisteredId = String;
+pub type ExperimentName = String;
+pub type ExperimentNameRef<'a> = &'a str;
+pub type SimulationRegisteredId = String;
 pub type SimulationShortId = u32;
 
 use crate::simulation::enum_dispatch::*;
@@ -15,7 +18,7 @@ use crate::simulation::enum_dispatch::*;
 /// The message type sent from the engine to the orchestrator.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct OrchestratorMsg {
-    pub experiment_id: String,
+    pub experiment_name: ExperimentName,
     pub body: EngineStatus,
 }
 
@@ -306,7 +309,7 @@ pub enum ExperimentRunRepr {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct ExperimentRunBase {
-    pub id: ExperimentRegisteredId,
+    pub name: ExperimentName,
     pub project_base: ProjectBase,
 }
 
@@ -386,7 +389,7 @@ pub struct ProcessedExperimentRun {
 }
 
 // TODO: Replace with UUID?
-pub type ExperimentId = String;
+pub type ExperimentId = Uuid;
 
 /// A wrapper around an Option to avoid displaying the inner for Debug outputs,
 /// i.e. debug::Debug now outputs: `Some(..)`

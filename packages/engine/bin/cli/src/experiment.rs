@@ -4,7 +4,7 @@ use error::{bail, ensure, report, Result, ResultExt};
 use hash_engine::{
     experiment::controller::config::{OutputPersistenceConfig, OUTPUT_PERSISTENCE_KEY},
     output::local::config::LocalPersistenceConfig,
-    proto::{self, ExecutionEnvironment},
+    proto::{self, ExecutionEnvironment, ExperimentNameRef},
     utils::parse_env_duration,
 };
 use serde_json::json;
@@ -42,32 +42,32 @@ pub async fn run_experiment(args: Args, handler: Handler) -> Result<()> {
 
 fn create_engine_command(
     args: &Args,
-    experiment_id: &str,
+    experiment_name: ExperimentNameRef,
     controller_url: &str,
 ) -> Result<Box<dyn process::Command + Send>> {
     Ok(Box::new(process::LocalCommand::new(
-        experiment_id,
+        experiment_name,
         args.num_workers as usize,
         controller_url,
         args.emit,
     )?))
 }
 
-#[instrument(skip_all, fields(project_name = project_name.as_str(), experiment_id = experiment_run.base.id.as_str()))]
+#[instrument(skip_all, fields(project_name = project_name.as_str(), experiment_name = experiment_run.base.name.as_str()))]
 async fn run_experiment_with_manifest(
     args: Args,
     experiment_run: proto::ExperimentRun,
     project_name: String,
     mut handler: Handler,
 ) -> Result<()> {
-    let experiment_id = experiment_run.base.id.clone();
+    let experiment_name = experiment_run.base.name.clone();
     let mut engine_handle = handler
-        .register_experiment(&experiment_id)
+        .register_experiment(&experiment_name)
         .await
-        .wrap_err_lazy(|| format!("Could not register experiment: {experiment_id}"))?;
+        .wrap_err_lazy(|| format!("Could not register experiment: {experiment_name}"))?;
 
     // Create and start the experiment run
-    let cmd = create_engine_command(&args, &experiment_id, handler.url())
+    let cmd = create_engine_command(&args, &experiment_name, handler.url())
         .wrap_err("Could not build engine command")?;
     let mut engine_process = cmd.run().await.wrap_err("Could not run experiment")?;
 
@@ -84,7 +84,7 @@ async fn run_experiment_with_manifest(
             );
         }
         Err(e) => {
-            error!("Engine start timeout for experiment {experiment_id}");
+            error!("Engine start timeout for experiment {experiment_name}");
             engine_process
                 .exit_and_cleanup()
                 .await
@@ -92,7 +92,7 @@ async fn run_experiment_with_manifest(
             bail!(e);
         }
     };
-    debug!("Received start message from {experiment_id}");
+    debug!("Received start message from {experiment_name}");
 
     let output_folder = args.output.join(project_name);
 
@@ -112,14 +112,14 @@ async fn run_experiment_with_manifest(
         .send(&proto::EngineMsg::Init(init_message))
         .await
         .wrap_err("Could not send `Init` message")?;
-    debug!("Sent init message to {experiment_id}");
+    debug!("Sent init message to {experiment_name}");
 
     let mut errored = false;
     loop {
         let msg: Option<proto::EngineStatus>;
         tokio::select! {
             _ = time::sleep(*ENGINE_WAIT_TIMEOUT) => {
-                error!("Did not receive status from experiment {experiment_id} for over {:?}. Exiting now.", *ENGINE_WAIT_TIMEOUT);
+                error!("Did not receive status from experiment {experiment_name} for over {:?}. Exiting now.", *ENGINE_WAIT_TIMEOUT);
                 break;
             }
             m = engine_handle.recv() => { msg = Some(m) },
@@ -129,7 +129,7 @@ async fn run_experiment_with_manifest(
 
         match msg {
             proto::EngineStatus::Stopping => {
-                debug!("Stopping experiment {experiment_id}");
+                debug!("Stopping experiment {experiment_name}");
             }
             proto::EngineStatus::SimStart { sim_id, globals: _ } => {
                 debug!("Started simulation: {sim_id}");
@@ -151,12 +151,12 @@ async fn run_experiment_with_manifest(
             proto::EngineStatus::Logs(sim_id, logs) => {
                 for log in logs {
                     if !log.is_empty() {
-                        info!(target: "behaviors", "[{experiment_id}][{sim_id}]: {log}");
+                        info!(target: "behaviors", "[{experiment_name}][{sim_id}]: {log}");
                     }
                 }
             }
             proto::EngineStatus::Exit => {
-                debug!("Process exited successfully for experiment run with id {experiment_id}",);
+                debug!("Process exited successfully for experiment: {experiment_name}",);
                 break;
             }
             proto::EngineStatus::ProcessError(error) => {

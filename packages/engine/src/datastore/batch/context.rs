@@ -62,12 +62,12 @@ impl Batch {
     pub fn from_record_batch(
         record_batch: &RecordBatch,
         schema: Option<&Arc<ArrowSchema>>,
-        experiment_run_id: &Arc<ExperimentId>,
+        experiment_id: &Arc<ExperimentId>,
     ) -> Result<Batch> {
         let (meta_buffer, data_buffer) = static_record_batch_to_bytes(record_batch);
 
         let memory = Memory::from_batch_buffers(
-            experiment_run_id,
+            experiment_id,
             &[],
             &[],
             meta_buffer.as_ref(),

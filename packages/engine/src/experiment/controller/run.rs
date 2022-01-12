@@ -20,8 +20,9 @@ use crate::{
 };
 
 pub async fn run_experiment(exp_config: ExperimentConfig, env: Environment) -> Result<()> {
-    let experiment_id = exp_config.id().clone();
-    log::info!("Running experiment {}", experiment_id);
+    let experiment_name = exp_config.name().to_string();
+    let experiment_id = Arc::clone(&exp_config.id);
+    log::info!("Running experiment {}", experiment_name);
     // TODO: Get cloud-specific configuration from `env`
     let _output_persistence_config = config::output_persistence(&env)?;
 
@@ -31,12 +32,12 @@ pub async fn run_experiment(exp_config: ExperimentConfig, env: Environment) -> R
         Ok(result) => {
             let final_result = match result {
                 Ok(()) => {
-                    log::debug!("Successful termination ({})", experiment_id);
+                    log::debug!("Successful termination ({})", experiment_name);
                     EngineStatus::Exit
                 }
                 Err(err) => {
                     let err = CrateError::from(ExperimentError::from(err)).user_facing_string();
-                    log::debug!("Terminating ({}) with error: {}", experiment_id, err);
+                    log::debug!("Terminating ({}) with error: {}", experiment_name, err);
                     EngineStatus::ProcessError(err)
                 }
             };
@@ -45,7 +46,7 @@ pub async fn run_experiment(exp_config: ExperimentConfig, env: Environment) -> R
         Err(join_err) => {
             log::error!(
                 "Experiment run ({}) task join error: {:?}",
-                experiment_id,
+                experiment_name,
                 join_err
             );
             return if join_err.is_panic() {
@@ -62,7 +63,7 @@ pub async fn run_experiment(exp_config: ExperimentConfig, env: Environment) -> R
 
     // Allow messages to be picked up.
     std::thread::sleep(std::time::Duration::from_millis(100));
-    log::info!("Exiting: {}", experiment_id);
+    log::info!("Exiting: {}", experiment_name);
     Ok(())
 }
 
@@ -70,7 +71,11 @@ pub async fn run_local_experiment(exp_config: ExperimentConfig, env: Environment
     match config::output_persistence(&env)? {
         OutputPersistenceConfig::Local(local) => {
             log::debug!("Running experiment with local persistence");
-            let persistence = LocalOutputPersistence::new(exp_config.id().clone(), local.clone());
+            let persistence = LocalOutputPersistence::new(
+                exp_config.name().to_string(),
+                Arc::clone(&exp_config.id),
+                local.clone(),
+            );
             run_experiment_with_persistence(exp_config, env, persistence).await?;
         }
         OutputPersistenceConfig::None => {

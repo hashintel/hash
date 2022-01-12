@@ -142,10 +142,10 @@ impl Batch {
     pub fn from_agent_states<K: IntoRecordBatch>(
         agents: K,
         schema: &Arc<AgentSchema>,
-        experiment_run_id: &ExperimentId,
+        experiment_id: &ExperimentId,
     ) -> Result<Batch> {
         let rb = agents.into_agent_batch(schema)?;
-        Batch::from_record_batch(&rb, schema, experiment_run_id)
+        Batch::from_record_batch(&rb, schema, experiment_id)
     }
 
     pub fn set_dynamic_meta(&mut self, dynamic_meta: &DynamicMeta) -> Result<()> {
@@ -159,9 +159,9 @@ impl Batch {
     pub fn duplicate_from(
         batch: &Batch,
         schema: &AgentSchema,
-        experiment_run_id: &ExperimentId,
+        experiment_id: &ExperimentId,
     ) -> Result<Batch> {
-        let memory = Memory::duplicate_from(&batch.memory, experiment_run_id)?;
+        let memory = Memory::duplicate_from(&batch.memory, experiment_id)?;
         Self::from_memory(memory, Some(schema), Some(batch.affinity))
     }
 
@@ -169,7 +169,7 @@ impl Batch {
     pub fn from_record_batch(
         record_batch: &RecordBatch,
         schema: &AgentSchema,
-        experiment_run_id: &ExperimentId,
+        experiment_id: &ExperimentId,
     ) -> Result<Batch> {
         let schema_buffer = schema_to_bytes(&schema.arrow);
 
@@ -178,7 +178,7 @@ impl Batch {
         let (meta_buffer, data_len) = simulate_record_batch_to_bytes(record_batch);
 
         let mut memory = Memory::from_sizes(
-            experiment_run_id,
+            experiment_id,
             schema_buffer.len(),
             header_buffer.len(),
             meta_buffer.len(),
@@ -242,14 +242,14 @@ impl Batch {
     pub fn get_prepared_memory_for_data(
         schema: &Arc<AgentSchema>,
         dynamic_meta: &DynamicMeta,
-        experiment_run_id: &ExperimentId,
+        experiment_id: &ExperimentId,
     ) -> Result<Memory> {
         let schema_buffer = schema_to_bytes(&schema.arrow);
         let header_buffer = vec![];
         let meta_buffer = get_dynamic_meta_flatbuffers(dynamic_meta)?;
 
         let mut memory = Memory::from_sizes(
-            experiment_run_id,
+            experiment_id,
             schema_buffer.len(),
             header_buffer.len(),
             meta_buffer.len(),

@@ -1,16 +1,20 @@
-use std::io::{BufReader, BufWriter};
+use std::{
+    io::{BufReader, BufWriter},
+    sync::Arc,
+};
 
 use super::{config::LocalPersistenceConfig, result::LocalPersistenceResult};
 use crate::{
     output::{buffer::Buffers, error::Result, SimulationOutputPersistenceRepr},
-    proto::{ExperimentRegisteredId, SimulationShortId},
+    proto::{ExperimentId, ExperimentName, SimulationShortId},
     simulation::{package::output::packages::Output, step_output::SimulationStepOutput},
     SimRunConfig,
 };
 
 #[derive(derive_new::new)]
 pub struct LocalSimulationOutputPersistence {
-    exp_id: ExperimentRegisteredId,
+    exp_name: ExperimentName,
+    exp_id: Arc<ExperimentId>,
     sim_id: SimulationShortId,
     // TODO: Should this be unused? If so remove
     buffers: Buffers,
@@ -43,7 +47,8 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
         let path = self
             .config
             .output_folder
-            .join(&self.exp_id)
+            .join(self.exp_name)
+            .join(self.exp_id.to_string())
             .join(self.sim_id.to_string());
 
         log::info!("Making new output directory: {:?}", path);

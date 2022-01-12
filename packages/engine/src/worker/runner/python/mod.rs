@@ -123,7 +123,7 @@ async fn _run(
     // Spawn Python process.
     let mut cmd = Command::new("sh");
     cmd.arg("./src/worker/runner/python/run.sh")
-        .arg(&init_msg.experiment_id)
+        .arg(&init_msg.experiment_id.to_string())
         .arg(&init_msg.worker_index.to_string());
     let _process = cmd.spawn().map_err(Error::Spawn)?;
     log::debug!("Started Python process {}", init_msg.worker_index);

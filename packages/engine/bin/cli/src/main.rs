@@ -15,7 +15,7 @@ use std::path::PathBuf;
 use clap::{AppSettings, Parser};
 use error::Result;
 use experiment::run_experiment;
-use hash_engine::utils::OutputFormat;
+use hash_engine::{proto::ExperimentName, utils::OutputFormat};
 
 use crate::exsrv::create_server;
 
@@ -79,7 +79,7 @@ pub struct SingleExperimentArgs {
 pub struct SimpleExperimentArgs {
     /// Name of the experiment to be run.
     #[clap(short = 'n', long, env = "HASH_EXPERIMENT")]
-    experiment_name: String,
+    experiment_name: ExperimentName,
 }
 
 #[tokio::main]

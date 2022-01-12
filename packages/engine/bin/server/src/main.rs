@@ -10,7 +10,7 @@ async fn main() -> Result<()> {
 
     tracing::info!(
         "HASH Engine process started for experiment {}",
-        &args.experiment_id
+        &args.experiment_name
     );
 
     let mut env = hash_engine::env::<ExperimentRun>(&args)

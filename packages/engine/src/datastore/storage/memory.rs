@@ -9,7 +9,7 @@ use super::{
     visitor::{Visit, Visitor, VisitorMut},
     BufferChange,
 };
-use crate::datastore::prelude::*;
+use crate::{datastore::prelude::*, proto::ExperimentId};
 
 pub type Buffers<'a> = (&'a [u8], &'a [u8], &'a [u8], &'a [u8]);
 
@@ -102,14 +102,14 @@ impl Memory {
     }
 
     pub fn shared_memory(
-        experiment_run_id: &str,
+        experiment_id: &ExperimentId,
         size: usize,
         droppable: bool,
         include_terminal_padding: bool,
     ) -> Result<Memory> {
         Self::validate_size(size)?;
         let data = ShmemConf::new(droppable)
-            .os_id(Self::generate_shmem_id(experiment_run_id))
+            .os_id(Self::generate_shmem_id(experiment_id))
             .size(size)
             .create()?;
         Ok(Memory {
@@ -149,10 +149,10 @@ impl Memory {
         VisitorMut::new(MemoryPtr::from_memory(self), self)
     }
 
-    pub fn duplicate_from(memory: &Memory, experiment_run_id: &str) -> Result<Memory> {
+    pub fn duplicate_from(memory: &Memory, experiment_id: &ExperimentId) -> Result<Memory> {
         let shmem = &memory.data;
         let data = ShmemConf::new(true)
-            .os_id(Self::generate_shmem_id(experiment_run_id))
+            .os_id(Self::generate_shmem_id(experiment_id))
             .size(memory.size)
             .create()?;
         unsafe { std::ptr::copy_nonoverlapping(shmem.as_ptr(), data.as_ptr(), memory.size) };
@@ -163,14 +163,23 @@ impl Memory {
         })
     }
 
-    fn generate_shmem_id(experiment_run_id: &str) -> String {
+    fn generate_shmem_id(experiment_id: &ExperimentId) -> String {
         loop {
-            // MacOS shmem seems to be limited to 31 chars, probably remnants of HFS
-            let cur_id = format!(
-                "/shm_{:.20}_{:.6}",
-                experiment_run_id,
-                rand::random::<u16>()
-            );
+            let cur_id = if cfg!(target_os = "macos") {
+                // MacOS shmem seems to be limited to 31 chars, probably remnants of HFS
+                format!(
+                    "/shm_{:.20}_{:.6}",
+                    experiment_id.to_simple(),
+                    rand::random::<u16>()
+                )
+            } else {
+                format!(
+                    "/shm_{}_{}",
+                    experiment_id.to_simple(),
+                    rand::random::<u16>()
+                )
+            };
+
             if !Path::new(&format!("/dev/shm{}", cur_id)).exists() {
                 return cur_id;
             }
@@ -293,7 +302,7 @@ impl Memory {
     }
 
     pub fn from_sizes(
-        experiment_run_id: &str,
+        experiment_id: &ExperimentId,
         schema_size: usize,
         header_size: usize,
         meta_size: usize,
@@ -316,7 +325,7 @@ impl Memory {
         }
 
         let mut memory =
-            Memory::shared_memory(experiment_run_id, size, true, include_terminal_padding)?;
+            Memory::shared_memory(experiment_id, size, true, include_terminal_padding)?;
 
         let mut visitor = memory.visitor_mut();
         let markers_mut = visitor.markers_mut();
@@ -330,7 +339,7 @@ impl Memory {
     }
 
     pub fn from_batch_buffers(
-        experiment_run_id: &str,
+        experiment_id: &ExperimentId,
         schema: &[u8],
         header: &[u8],
         meta: &[u8],
@@ -355,7 +364,7 @@ impl Memory {
         }
 
         let mut memory =
-            Memory::shared_memory(experiment_run_id, size, true, include_terminal_padding)?;
+            Memory::shared_memory(experiment_id, size, true, include_terminal_padding)?;
 
         let mut visitor = memory.visitor_mut();
         let markers_mut = visitor.markers_mut();

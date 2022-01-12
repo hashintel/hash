@@ -9,9 +9,9 @@ use error::{bail, report, Result, ResultExt};
 use hash_engine::{
     fetch::parse_raw_csv_into_json,
     proto::{
-        ExperimentPackageConfig, ExperimentRun, ExperimentRunBase, InitialState, InitialStateName,
-        ProjectBase, SharedBehavior, SharedDataset, SimPackageArgs, SimpleExperimentConfig,
-        SingleRunExperimentConfig,
+        ExperimentNameRef, ExperimentPackageConfig, ExperimentRun, ExperimentRunBase, InitialState,
+        InitialStateName, ProjectBase, SharedBehavior, SharedDataset, SimPackageArgs,
+        SimpleExperimentConfig, SingleRunExperimentConfig,
     },
 };
 use rand::{Rng, RngCore};
@@ -34,9 +34,13 @@ pub fn read_manifest(
 ) -> Result<ExperimentRun> {
     let project_base = read_project(project_path)
         .wrap_err_lazy(|| format!("Could not read project: {project_path:?}"))?;
-    let experiment_run_id = create_experiment_run_id(experiment_type);
+
     let base = ExperimentRunBase {
-        id: experiment_run_id,
+        name: match experiment_type {
+            ExperimentType::SingleRunExperiment(_) => "single_run",
+            ExperimentType::SimpleExperiment(simple) => &simple.experiment_name,
+        }
+        .to_string(),
         project_base,
     };
 
@@ -47,18 +51,6 @@ pub fn read_manifest(
         package_config,
     };
     Ok(experiment_run)
-}
-
-fn create_experiment_run_id(experiment_type: &ExperimentType) -> String {
-    // Generates a 6-digit hexadecimal and concats with the experiment name by
-    // {experiment_name}-{6-digit hex}
-    let mut rng = rand::thread_rng();
-    let num = rng.gen_range(0_usize..16_777_216);
-    let name = match experiment_type {
-        ExperimentType::SingleRunExperiment(_) => "single_run",
-        ExperimentType::SimpleExperiment(simple) => &simple.experiment_name,
-    };
-    return format!("{name}-{num:06x}");
 }
 
 #[derive(Debug)]
@@ -589,7 +581,7 @@ fn get_simple_experiment_config(
 
 fn create_experiment_plan(
     experiments: &SerdeMap<String, SerdeValue>,
-    experiment_name: &str,
+    experiment_name: ExperimentNameRef<'_>,
 ) -> Result<SimpleExperimentPlan> {
     let selected_experiment = experiments.get(experiment_name).ok_or_else(|| {
         report!(

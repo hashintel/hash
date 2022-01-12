@@ -130,11 +130,11 @@ pub mod tests {
     #[test]
     fn validate_dependencies() -> Result<()> {
         let experiment_config = &Arc::new(ExperimentConfig {
-            run_id: Arc::new("".to_string()),
+            id: Arc::new("".to_string()),
             packages: Arc::new(Default::default()),
             run: Arc::new(
                 ExperimentRunBase {
-                    id: "".to_string(),
+                    name: "".to_string(),
                     project_base: ProjectBase {
                         initial_state: InitialState {
                             name: InitialStateName::InitJson,

@@ -90,7 +90,7 @@ impl<'a> MigrationPlan<'a> {
                 let new_batch = buffer_actions
                     .new_batch(
                         &config.sim.store.agent_schema,
-                        &config.exp.run_id,
+                        &config.exp.id,
                         action.affinity,
                     )
                     .map_err(Error::from)?;

@@ -253,7 +253,7 @@ impl Engine {
         state.finalize_agent_pool(
             context,
             &self.config.sim.store.agent_schema,
-            &self.config.exp.run_id,
+            &self.config.exp.id,
         )?;
         Ok(context.take_agent_pool())
     }
