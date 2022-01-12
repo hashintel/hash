@@ -18,6 +18,8 @@ which specifies its licensing information.
   the metadata of a package (e.g. its `package.json` file) or (c) within a
   folder's `LICENSE.md` file (or that of its nearest parent).
 
+If you have any questions please [contact us](https://hash.ai/contact].
+
 Written content, illustrations and graphics published under the `resources`
 folder within this repository are made available under the [Creative Commons
 Attribution-ShareAlike 4.0 International](resources/LICENSE.md) license.
