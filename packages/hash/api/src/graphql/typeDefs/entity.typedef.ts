@@ -208,8 +208,25 @@ export const entityTypedef = gql`
     createdAt: Date!
   }
 
+  """
+  Filter entity types by any of entityType, componentId, entityTypeId, entityTypeVersionId, systemTypeName
+  """
+  input EntityTypeFilter {
+    componentId: ID
+    entityTypeId: ID
+    entityTypeVersionId: ID
+    systemTypeName: SystemTypeName
+  }
+  """
+  Filter entities
+  """
+  input EntityFilter {
+    entityType: EntityTypeFilter
+  }
+
   extend type Query {
     entity(accountId: ID!, entityVersionId: ID, entityId: ID): UnknownEntity!
+    entities(accountId: ID!, filter: EntityFilter): [UnknownEntity!]!
   }
 
   extend type Mutation {

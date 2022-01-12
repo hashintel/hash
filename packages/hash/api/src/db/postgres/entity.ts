@@ -19,6 +19,7 @@ import { addSourceEntityVersionIdToLink } from "./link/util";
 import { getEntityIncomingLinks } from "./link/getEntityIncomingLinks";
 import { getEntityAggregations } from "./aggregation/getEntityAggregations";
 import { addSourceEntityVersionIdToAggregation } from "./aggregation/util";
+import { SystemType } from "../../types/entityTypes";
 
 /** Prefix to distinguish identical fields when joining with a type record */
 const entityTypeFieldPrefix = "type.";
@@ -108,6 +109,7 @@ export const selectEntities = sql<EntityPGRow>`
     type.properties as "type.properties",
     typeMeta.created_by as "type.created_by",
     typeMeta.created_at as "type.created_at",
+    typeMeta.name as "type.name",
     type.updated_at as "type.updated_at",
     type.updated_by as "type.updated_by"
   from
@@ -512,6 +514,65 @@ export const getEntityHistory = async (
     updatedAt: new Date(row.updated_at as string),
     updatedByAccountId: row.updated_by as string,
   }));
+};
+
+const filterEntitiesFragment = (
+  systemAccountId: string,
+  params?: {
+    componentId?: string;
+    entityTypeId?: string;
+    entityTypeVersionId?: string;
+    systemTypeName?: SystemType;
+  },
+) => {
+  const { componentId, entityTypeId, entityTypeVersionId, systemTypeName } =
+    params ?? {};
+  if (componentId) {
+    return sql`and properties ->> 'componentId' = ${componentId}`;
+  } else if (entityTypeId) {
+    return sql`and "type.entity_type_id" = ${entityTypeId}`;
+  } else if (entityTypeVersionId) {
+    return sql`and entity_type_version_id = ${entityTypeVersionId}`;
+  } else if (systemTypeName) {
+    return sql`and "type.name" = ${systemTypeName} and "type.account_id" = ${systemAccountId}`;
+  }
+
+  return sql``;
+};
+
+/**
+ * Get all entities associated with a given account ID.
+ * Different from `getEntitiesInAccount` since it does not query for specific entities
+ * Filters
+ */
+export const getAccountEntities = async (
+  conn: Connection,
+  params: {
+    systemAccountId: string;
+    accountId: string;
+    entityTypeFilter?: {
+      componentId?: string;
+      entityTypeId?: string;
+      entityTypeVersionId?: string;
+      systemTypeName?: SystemType;
+    };
+  },
+): Promise<Entity[]> => {
+  const query = sql`
+  with uniq as (
+    with all_entities as (${selectEntities})
+    select distinct on (entity_id) * from all_entities
+    where account_id = ${params.accountId} ${filterEntitiesFragment(
+    params.systemAccountId,
+    params.entityTypeFilter,
+  )}
+    order by entity_id, updated_at desc)
+  select * from uniq 
+  order by updated_at desc`;
+
+  const rows = await conn.any<EntityPGRow>(query);
+
+  return rows.map(mapPGRowToEntity);
 };
 
 /**

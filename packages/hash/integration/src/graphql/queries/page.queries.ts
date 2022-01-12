@@ -8,6 +8,8 @@ const pageFieldsFragment = gql`
     accountId
     createdAt
     updatedAt
+    entityTypeId
+    entityTypeVersionId
     history {
       createdAt
       entityVersionId

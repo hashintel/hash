@@ -49,12 +49,15 @@ import {
   DeleteLinkedAggregationMutationVariables,
   QueryGetEntityTypeArgs,
   Query,
+  GetEntitiesQuery,
+  GetEntitiesQueryVariables,
 } from "../graphql/apiTypes.gen";
 import {
   createEntity,
   createEntityType,
   getEntityType,
   getUnknownEntity,
+  getEntities,
   updateEntity,
   updateEntityType,
 } from "../graphql/queries/entity.queries";
@@ -147,6 +150,12 @@ export class ApiClient {
     this.client
       .request<GetEntityQuery, GetEntityQueryVariables>(getUnknownEntity, vars)
       .then((res) => res.entity);
+
+  getEntities = async (vars: GetEntitiesQueryVariables) =>
+    this.client.request<GetEntitiesQuery, GetEntitiesQueryVariables>(
+      getEntities,
+      vars,
+    );
 
   updateEntity = async (vars: UpdateEntityMutationVariables) =>
     this.client

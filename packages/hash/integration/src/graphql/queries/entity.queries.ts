@@ -104,6 +104,18 @@ export const getUnknownEntity = gql`
   }
 `;
 
+export const getEntities = gql`
+  query getEntities($accountId: ID!, $filter: EntityFilter) {
+    entities(accountId: $accountId, filter: $filter) {
+      entityId
+      accountId
+      entityTypeId
+      entityTypeName
+      properties
+    }
+  }
+`;
+
 export const updateEntity = gql`
   mutation updateEntity(
     $accountId: ID!

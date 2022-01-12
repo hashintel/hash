@@ -15,5 +15,6 @@ export const entityFields = {
 export { aggregateEntity } from "./aggregateEntity";
 export { createEntity } from "./createEntity";
 export { entity } from "./entity";
+export { entities } from "./entities";
 export { updateEntity } from "./updateEntity";
 export { transferEntity } from "./transferEntity";

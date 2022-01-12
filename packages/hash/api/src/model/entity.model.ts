@@ -235,6 +235,23 @@ class __Entity {
     return dbEntities.map((dbEntity) => new Entity(dbEntity));
   }
 
+  static async getAccountEntities(
+    client: DBClient,
+    params: {
+      accountId: string;
+      entityTypeFilter?: {
+        componentId?: string;
+        entityTypeId?: string;
+        entityTypeVersionId?: string;
+        systemTypeName?: SystemType;
+      };
+    },
+  ): Promise<Entity[]> {
+    const dbEntities = await client.getAccountEntities(params);
+
+    return dbEntities.map((dbEntity) => new Entity(dbEntity));
+  }
+
   static async updateProperties(
     client: DBClient,
     params: UpdateEntityPropertiesParams,

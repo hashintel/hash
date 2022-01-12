@@ -489,6 +489,17 @@ export interface DBClient {
     }[],
   ): Promise<Entity[]>;
 
+  /** Get all entities associated with the given account ID. */
+  getAccountEntities(params: {
+    accountId: string;
+    entityTypeFilter?: {
+      componentId?: string;
+      entityTypeId?: string;
+      entityTypeVersionId?: string;
+      systemTypeName?: SystemType;
+    };
+  }): Promise<Entity[]>;
+
   /**
    * Get entity types associated with a given accountId.
    * Optionally include other types the account uses.

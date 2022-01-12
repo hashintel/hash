@@ -45,6 +45,7 @@ import {
   acquireEntityLock,
   updateEntity,
   updateEntityAccountId,
+  getAccountEntities,
 } from "./entity";
 import { getEntityOutgoingLinks } from "./link/getEntityOutgoingLinks";
 import { getLink } from "./link/getLink";
@@ -536,6 +537,14 @@ export class PostgresClient implements DBClient {
     order: "asc" | "desc";
   }): Promise<EntityVersion[]> {
     return await getEntityHistory(this.conn, params);
+  }
+
+  async getAccountEntities(
+    params: Parameters<DBClient["getAccountEntities"]>[0],
+  ): ReturnType<DBClient["getAccountEntities"]> {
+    const systemAccountId = await this.getSystemAccountId();
+
+    return await getAccountEntities(this.conn, { systemAccountId, ...params });
   }
 
   async getEntities(

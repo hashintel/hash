@@ -336,6 +336,12 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.getEntities(entities));
   }
 
+  getAccountEntities(
+    params: Parameters<DBClient["getAccountEntities"]>[0],
+  ): ReturnType<DBClient["getAccountEntities"]> {
+    return this.query((adapter) => adapter.getAccountEntities(params));
+  }
+
   getAccountEntityTypes(params: {
     accountId: string;
     includeOtherTypesInUse?: boolean | null;

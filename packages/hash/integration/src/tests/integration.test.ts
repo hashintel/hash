@@ -822,6 +822,142 @@ describe("logged in user ", () => {
     expect(pageEntities[0].properties).toMatchObject(textPropertiesC);
   });
 
+  describe("can get and filter their entities", () => {
+    let page: PageFieldsFragment;
+    let pageTypeId: string;
+    let pageTypeVersionId: string;
+    beforeAll(async () => {
+      const createPage = await client.createPage({
+        accountId: existingUser.accountId,
+        properties: {
+          title: "Page with entities",
+        },
+      });
+      pageTypeId = createPage.entityTypeId;
+      pageTypeVersionId = createPage.entityTypeVersionId;
+
+      page = await client.updatePageContents({
+        accountId: createPage.accountId,
+        entityId: createPage.entityId,
+        actions: [
+          {
+            insertNewBlock: {
+              accountId: existingUser.accountId,
+              componentId: "https://block.blockprotocol.org/header",
+              position: 0,
+              systemTypeName: SystemTypeName.Text,
+              entityProperties: {
+                tokens: [{ tokenType: "text", text: "Hello World!" }],
+              },
+            },
+          },
+        ],
+      });
+
+      page = await client.updatePageContents({
+        accountId: createPage.accountId,
+        entityId: createPage.entityId,
+        actions: [
+          {
+            insertNewBlock: {
+              accountId: existingUser.accountId,
+              componentId: "https://block.blockprotocol.org/divider",
+              position: 1,
+              entityProperties: {},
+            },
+          },
+        ],
+      });
+    });
+
+    it("can get all their entities", async () => {
+      const { entities } = await client.getEntities({
+        accountId: page.accountId,
+      });
+
+      // There's many entities from the ones added before this test
+      expect(entities.length).toEqual(24);
+      expect(entities.map((ents) => ents.entityTypeName)).toEqual([
+        "Page",
+        "Block",
+        "Divider",
+        "Block",
+        "Text",
+        "Block",
+        "Text",
+        "Page",
+        "Text",
+        "Block",
+        "Block",
+        "Text",
+        "Text",
+        "Block",
+        "Page",
+        "Block",
+        "Unknown",
+        "Block",
+        "Unknown",
+        "Text",
+        "Text",
+        "Block",
+        "Block",
+        "User",
+      ]);
+    });
+
+    it("can get all divider entities by componentId", async () => {
+      const { entities } = await client.getEntities({
+        accountId: existingUser.accountId,
+        filter: {
+          entityType: {
+            componentId: "https://block.blockprotocol.org/divider",
+          },
+        },
+      });
+
+      expect(entities.length).toEqual(1);
+    });
+
+    it("can get all text entities by systemTypeName", async () => {
+      const { entities } = await client.getEntities({
+        accountId: existingUser.accountId,
+        filter: {
+          entityType: {
+            systemTypeName: SystemTypeName.Text,
+          },
+        },
+      });
+
+      expect(entities.length).toEqual(7);
+    });
+
+    it("can get all page entities by typeId", async () => {
+      const { entities } = await client.getEntities({
+        accountId: existingUser.accountId,
+        filter: {
+          entityType: {
+            entityTypeId: pageTypeId,
+          },
+        },
+      });
+
+      expect(entities.length).toEqual(3);
+    });
+
+    it("can get all page entities by typeVersionId", async () => {
+      const { entities } = await client.getEntities({
+        accountId: existingUser.accountId,
+        filter: {
+          entityType: {
+            entityTypeVersionId: pageTypeVersionId,
+          },
+        },
+      });
+
+      expect(entities.length).toEqual(3);
+    });
+  });
+
   describe("can create entity types", () => {
     const validSchemaInput = {
       description: "Test description",
