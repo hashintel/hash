@@ -166,7 +166,14 @@ export const pageTypedef = gql`
     The position in the page to place the block.
     """
     position: Int!
-    entity: EntityDefinitionParameters!
+    """
+    The block component ID.
+    """
+    componentId: ID!
+    """
+    The entity to associate with the new block
+    """
+    entity: EntityDefinitionArgs!
   }
 
   """
