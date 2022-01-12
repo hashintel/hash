@@ -46,7 +46,7 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
             .join(&self.exp_id)
             .join(self.sim_id.to_string());
 
-        log::info!("Making new output directory directory: {:?}", path);
+        log::info!("Making new output directory: {:?}", path);
         std::fs::create_dir_all(&path)?;
 
         let json_state_path = path.join("json_state.json");
