@@ -5,17 +5,13 @@
       "expected-outputs": [
         {
           "json-state": [
-            [
-              {}
-            ],
+            [{}],
             [
               {
                 "messages": [
                   {
                     "type": "test",
-                    "to": [
-                      "a"
-                    ]
+                    "to": ["a"]
                   }
                 ]
               }

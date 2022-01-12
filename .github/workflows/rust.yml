@@ -232,6 +232,10 @@ jobs:
           cd ..
           rm -rf tmp # Delete the tmp folder
 
+      - name: Build test dependencies
+        if: matrix.directory == 'packages/engine'
+        run: cargo build -p server --manifest-path ${{ matrix.directory }}/Cargo.toml
+
       - name: Run tests
         run: |
           cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} --no-fail-fast

@@ -49,6 +49,8 @@ uuid = { version = "0.8.1", features = ["v4", "serde"] }
 provider = { path = "lib/provider" }
 error = { path = "lib/error" }
 
+regex = "1.5.4"
+
 [features]
 default = ["build-nng"]
 build-nng = ["nng/build-nng"]
