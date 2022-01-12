@@ -17,7 +17,7 @@ type DocsFrontMatter = {
 const getFileInfos = (
   dirPath: string,
   arrayOfFiles: Array<{ inputPath: string; outputPath: string; type: string }>,
-  type: string
+  type: string,
 ): {
   inputPath: string;
   outputPath: string;
@@ -36,7 +36,7 @@ const getFileInfos = (
         "./output/",
         dirPath,
         "/",
-        file
+        file,
       )}`;
       if (inputPath.endsWith(".md") || inputPath.endsWith(".mdx")) {
         arrayOfFiles.push({ inputPath, outputPath, type });
@@ -74,12 +74,12 @@ const generateAlgoliaRecords: () => AlgoliaRecord[] = () => {
   const glossaryFiles = getFileInfos(
     "../../../resources/glossary",
     [],
-    "glossary"
+    "glossary",
   );
   const docsFiles = getFileInfos(
     "../../../resources/docs/simulation",
     [],
-    "docs"
+    "docs",
   );
 
   const fileInfos = [...glossaryFiles, ...docsFiles];
@@ -98,7 +98,7 @@ const generateAlgoliaRecords: () => AlgoliaRecord[] = () => {
 const syncAlgoliaIndex = async () => {
   const client = algoliasearch(
     process.env.ALGOLIA_PROJECT,
-    process.env.AGOLIA_WRITE_KEY
+    process.env.AGOLIA_WRITE_KEY,
   );
 
   const index = client.initIndex("hash_learn");
