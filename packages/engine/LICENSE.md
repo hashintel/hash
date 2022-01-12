@@ -3,15 +3,16 @@ Side Public License v1  and the Elastic License 2.0.
 
 ---
 
-                     Server Side Public License
-                     VERSION 1, OCTOBER 16, 2018
+# Server Side Public License
 
-                    Copyright © 2018 MongoDB, Inc.
+VERSION 1, OCTOBER 16, 2018
 
-  Everyone is permitted to copy and distribute verbatim copies of this
-  license document, but changing it is not allowed.
+Copyright © 2018 MongoDB, Inc.
 
-                       TERMS AND CONDITIONS
+Everyone is permitted to copy and distribute verbatim copies of this
+license document, but changing it is not allowed.
+
+**TERMS AND CONDITIONS**
 
   0. Definitions.
   
@@ -559,11 +560,11 @@ Side Public License v1  and the Elastic License 2.0.
   warranty or assumption of liability accompanies a copy of the Program in
   return for a fee.
   
-                        END OF TERMS AND CONDITIONS
+**END OF TERMS AND CONDITIONS**
                         
 ---
 
-Elastic License 2.0
+# Elastic License 2.0
 
 URL: https://www.elastic.co/licensing/elastic-license
 
