@@ -5,14 +5,14 @@ import { CreateEntityArgs, Entity, EntityConstructorArgs, File } from ".";
 import { genId } from "../util";
 import { createEntityArgsBuilder } from "../graphql/resolvers/util";
 import { DBFileProperties, EntityType } from "../db/adapter";
-import {
-  StorageProvider,
-  UploadableStorageProvider,
-} from "../storage/storage-provider";
 import { StorageType } from "../graphql/apiTypes.gen";
+import {
+  getStorageProvider,
+  getUploadStorageProvider,
+} from "../storage/storage-provider-lookup";
 
 const MAX_FILE_SIZE_BYTES = 1000 * 1000 * 1000;
-const FILE_EXTENSION_REGEX = /\.[0-9a-z]+$/i;
+
 const DOWNLOAD_URL_EXPIRATION_SECONDS = 60 * 60 * 24 * 7;
 const UPLOAD_URL_EXPIRATION_SECONDS = 60 * 30;
 
@@ -68,10 +68,10 @@ class __File extends Entity {
   }
 
   static async getFileDownloadURL(
-    storage: StorageProvider,
+    usedStorage: StorageType,
     params: { key: string },
   ): Promise<string> {
-    return await storage.presignDownload({
+    return await getStorageProvider(usedStorage).presignDownload({
       ...params,
       expiresInSeconds: DOWNLOAD_URL_EXPIRATION_SECONDS,
     });
@@ -116,13 +116,12 @@ class __File extends Entity {
 
   static async createFileEntityFromUploadRequest(
     client: DBClient,
-    storage: UploadableStorageProvider,
     params: CreateUploadRequestArgs,
   ): Promise<CreateUploadRequestFileResponse> {
     const { name, contentMd5, accountId, size } = params;
-
+    const storage = getUploadStorageProvider();
     const entityVersionId = genId();
-    const key = File.getFileEntityStorageKey({
+    const key = storage.getFileEntityStorageKey({
       accountId,
       entityVersionId,
       fileName: name,
@@ -167,24 +166,6 @@ class __File extends Entity {
         "INTERNAL_SERVER_ERROR",
       );
     }
-  }
-
-  static getFileEntityStorageKey({
-    accountId,
-    fileName,
-    entityVersionId,
-  }: {
-    accountId: string;
-    fileName: string;
-    entityVersionId: string;
-  }) {
-    let fileKey = `files/${accountId}/${entityVersionId}`;
-    // Find and add the file extension to the path if it exists
-    const extension = fileName.match(FILE_EXTENSION_REGEX);
-    if (extension) {
-      fileKey += extension[0];
-    }
-    return fileKey;
   }
 }
 

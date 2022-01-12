@@ -3,11 +3,13 @@ import { createPresignedPost } from "@aws-sdk/s3-presigned-post";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { StorageType } from "../graphql/apiTypes.gen";
 import {
+  GetFileEntityStorageKeyParams,
   PresignedDownloadRequest,
   PresignedPostUpload,
   PresignedStorageRequest,
-  StorageProvider,
+  UploadableStorageProvider,
 } from "./storage-provider";
+import { getFileExtension } from "./storage-utils";
 
 export interface AwsS3StorageProviderConstructorArgs {
   /** Name of the S3 bucket */
@@ -16,7 +18,7 @@ export interface AwsS3StorageProviderConstructorArgs {
   region: string;
 }
 /** Inplementation of the storage provider for AWS S3. Uploads all files to a single bucket */
-export class AwsS3StorageProvider implements StorageProvider {
+export class AwsS3StorageProvider implements UploadableStorageProvider {
   /** The S3 client is created in the constructor and kept as long as the instance lives */
   private client: S3Client;
   private bucket: string;
@@ -48,5 +50,19 @@ export class AwsS3StorageProvider implements StorageProvider {
       expiresIn: params.expiresInSeconds,
     });
     return url;
+  }
+
+  getFileEntityStorageKey({
+    accountId,
+    fileName,
+    entityVersionId,
+  }: GetFileEntityStorageKeyParams) {
+    let fileKey = `files/${accountId}/${entityVersionId}`;
+    // Find and add the file extension to the path if it exists
+    const extension = getFileExtension(fileName);
+    if (extension) {
+      fileKey += extension[0];
+    }
+    return fileKey;
   }
 }

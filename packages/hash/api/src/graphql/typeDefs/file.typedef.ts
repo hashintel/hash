@@ -92,6 +92,7 @@ export const fileTypedef = gql`
   enum StorageType {
     AWS_S3
     EXTERNAL_LINK
+    LOCAL_FILE_SYSTEM
   }
 
   type FileProperties {

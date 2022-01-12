@@ -16,7 +16,10 @@ function getEnvStorageType() {
 }
 
 /** Uses optional `FILE_UPLOAD_PROVIDER` env variable. Defaults to S3 */
-export const FILE_UPLOAD_PROVIDER = getEnvStorageType() || StorageType.AwsS3;
+export const FILE_UPLOAD_PROVIDER =
+  getEnvStorageType() || StorageType.LocalFileSystem;
+export const LOCAL_FILE_UPLOAD_PATH =
+  process.env.LOCAL_FILE_UPLOAD_PATH || "var/uploads/";
 
 export const FRONTEND_DOMAIN = process.env.FRONTEND_DOMAIN || "localhost:3000";
 

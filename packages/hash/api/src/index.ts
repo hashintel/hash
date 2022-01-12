@@ -1,3 +1,5 @@
+import cors from "cors";
+
 import { promisify } from "util";
 import http from "http";
 import path from "path";
@@ -35,9 +37,8 @@ import {
   port,
 } from "./lib/env-config";
 import { logger } from "./logger";
-import { UploadableStorageProvider } from "./storage";
 import { getRequiredEnv } from "./util";
-import { storageProviders } from "./storage/storage-providers";
+import { setupStorageProviders } from "./storage/storage-provider-lookup";
 import { getAwsRegion } from "./lib/aws-config";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
@@ -71,6 +72,7 @@ const main = async () => {
 
   // Configure the Express server
   const app = express();
+  app.use(cors(CORS_CONFIG));
 
   const pgHost = getRequiredEnv("HASH_PG_HOST");
   const pgPort = parseInt(getRequiredEnv("HASH_PG_PORT"), 10);
@@ -165,16 +167,16 @@ const main = async () => {
     emailTransporter,
     logger,
     statsd,
-    storageProviders,
-    uploadProvider: storageProviders[
-      FILE_UPLOAD_PROVIDER
-    ] as UploadableStorageProvider,
+    uploadProvider: FILE_UPLOAD_PROVIDER,
   });
 
   app.get("/", (_, res) => res.send("Hello World"));
 
   // Used by AWS Application Load Balancer (ALB) for health checks
   app.get("/health-check", (_, res) => res.status(200).send("Hello World!"));
+
+  // Setup upload storage provider and express routes for local file uploads
+  setupStorageProviders(app, FILE_UPLOAD_PROVIDER);
 
   app.use((req, res, next) => {
     const requestId = nanoid();

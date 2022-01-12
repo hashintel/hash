@@ -13,12 +13,23 @@ export interface StorageProvider {
   presignDownload(params: PresignedDownloadRequest): Promise<string>;
 }
 
+export interface GetFileEntityStorageKeyParams {
+  accountId: string;
+  fileName: string;
+  entityVersionId: string;
+}
+
 export interface UploadableStorageProvider extends StorageProvider {
   /** Presigns a file upload request for a client to later upload a file
    * @return {Promise<PresignedPostUpload>} Object containing the data and url needed to POST the file
    */
   presignUpload(params: PresignedStorageRequest): Promise<PresignedPostUpload>;
+  /** For a given file upload request, generates the path/key to store the file. This method
+   * needs to be defined by each storage provider, as different storage providers might want to store files in different paths
+   */
+  getFileEntityStorageKey(params: GetFileEntityStorageKeyParams): string;
 }
+
 /** Parameters needed to allow the storage of a file */
 export interface PresignedStorageRequest {
   /** Key (or path) of the file in the storage */
@@ -52,7 +63,6 @@ export interface PresignedPostUpload {
 }
 
 /** Helper type to create a typed "dictionary" of storage types to their storage provider instance */
-export type StorageProviders = Record<
-  StorageType,
-  StorageProvider | UploadableStorageProvider | undefined
+export type StorageProviderLookup = Partial<
+  Record<StorageType, StorageProvider | UploadableStorageProvider>
 >;

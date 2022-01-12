@@ -6,7 +6,7 @@ import { User } from "../model";
 import { DBAdapter } from "../db";
 import { CacheAdapter } from "../cache";
 import { EmailTransporter } from "../email/transporters";
-import { StorageProviders, UploadableStorageProvider } from "../storage";
+import { StorageType } from "./apiTypes.gen";
 
 /**
  * Apollo context object with dataSources. For details see:
@@ -19,8 +19,7 @@ export interface GraphQLContext {
     search: SearchAdapter;
   };
   emailTransporter: EmailTransporter;
-  storageProviders: StorageProviders;
-  uploadProvider: UploadableStorageProvider;
+  uploadProvider: StorageType;
   passport: PassportGraphQLMethods;
   logger: Logger;
   user?: Omit<User, "entityType">;
