@@ -112,8 +112,8 @@ impl Engine {
         let state = Arc::new(state.downgrade());
         // Synchronize state with workers
         let active_sync = self.comms.state_sync(&state).await?;
-        // TODO: fix issues with getting write access to batch while state sync runs in parallel
-        //   with the context batch
+        // TODO: fix issues with getting write access to the message batch while state sync runs in parallel
+        //   with context packages
         log::trace!("Waiting for active state sync");
         active_sync.await?.map_err(Error::state_sync)?;
         log::trace!("State sync finished");
