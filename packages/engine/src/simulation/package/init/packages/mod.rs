@@ -4,7 +4,7 @@ use std::{
     sync::Arc,
 };
 
-use jspy::{js::JsInitTask, py::PyInitTask};
+use js_py::{js::JsInitTask, py::PyInitTask};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
@@ -18,8 +18,8 @@ use crate::{
     ExperimentConfig,
 };
 
+pub mod js_py;
 pub mod json;
-pub mod jspy;
 
 /// All init package names are registered in this enum
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
@@ -67,7 +67,7 @@ impl PackageCreators {
         use Name::*;
         let mut m = HashMap::new();
         m.insert(Json, json::Creator::new(experiment_config)?);
-        m.insert(JsPy, jspy::Creator::new(experiment_config)?);
+        m.insert(JsPy, js_py::Creator::new(experiment_config)?);
         self.0
             .set(m)
             .map_err(|_| Error::from("Failed to initialize Init Package Creators"))?;
@@ -108,7 +108,7 @@ lazy_static! {
         });
         m.insert(JsPy, PackageMetadata {
             id: id_creator.next(),
-            dependencies: jspy::Creator::dependencies(),
+            dependencies: js_py::Creator::dependencies(),
         });
         m
     };

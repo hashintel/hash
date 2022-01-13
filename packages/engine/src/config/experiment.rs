@@ -3,7 +3,11 @@ use std::sync::Arc;
 use super::{package, worker, worker_pool, Result};
 use crate::{
     config::globals::Globals,
-    proto::{ExperimentId, ExperimentRegisteredId, ExperimentRunRepr, ExperimentRunTrait},
+    proto::{
+        ExperimentId, ExperimentRegisteredId, ExperimentRunRepr, ExperimentRunTrait,
+        InitialStateName,
+    },
+    simulation::package::init,
 };
 
 #[derive(Clone)]
@@ -21,7 +25,15 @@ impl Config {
     pub(super) fn new(experiment_run: ExperimentRunRepr, max_num_workers: usize) -> Result<Config> {
         // For differentiation purposes when multiple experiment runs are active in the same system
         let run_id = uuid::Uuid::new_v4().to_string();
-        let packages = Arc::new(package::ConfigBuilder::new().build()?);
+        let package_config = package::ConfigBuilder::new()
+            .add_init_package(
+                match experiment_run.base().project_base.initial_state.name {
+                    InitialStateName::InitJson => init::Name::Json,
+                    InitialStateName::InitPy | InitialStateName::InitJs => init::Name::JsPy,
+                },
+            )
+            .build()?;
+
         let base_globals = Globals::from_json(serde_json::from_str(
             &experiment_run.base().project_base.globals_src,
         )?)?;
@@ -44,7 +56,7 @@ impl Config {
 
         Ok(Config {
             run_id: Arc::new(run_id),
-            packages,
+            packages: Arc::new(package_config),
             run,
             base_globals,
             worker_pool,
