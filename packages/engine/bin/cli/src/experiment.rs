@@ -1,6 +1,6 @@
 use std::{iter::FromIterator, time::Duration};
 
-use error::{bail, report, Result, ResultExt};
+use error::{bail, ensure, report, Result, ResultExt};
 use hash_engine::{
     experiment::controller::config::{OutputPersistenceConfig, OUTPUT_PERSISTENCE_KEY},
     output::local::config::LocalPersistenceConfig,
@@ -114,6 +114,7 @@ async fn run_experiment_with_manifest(
         .wrap_err("Could not send `Init` message")?;
     debug!("Sent init message to {experiment_id}");
 
+    let mut errored = false;
     loop {
         let msg: Option<proto::EngineStatus>;
         tokio::select! {
@@ -142,6 +143,7 @@ async fn run_experiment_with_manifest(
             }
             proto::EngineStatus::Errors(sim_id, errs) => {
                 error!("There were errors when running simulation [{sim_id}]: {errs:?}");
+                errored = true;
             }
             proto::EngineStatus::Warnings(sim_id, warnings) => {
                 warn!("There were warnings when running simulation [{sim_id}]: {warnings:?}");
@@ -159,6 +161,7 @@ async fn run_experiment_with_manifest(
             }
             proto::EngineStatus::ProcessError(error) => {
                 error!("Got error: {error:?}");
+                errored = true;
                 break;
             }
             proto::EngineStatus::Started => {
@@ -176,5 +179,8 @@ async fn run_experiment_with_manifest(
         .exit_and_cleanup()
         .await
         .wrap_err("Could not cleanup after finish")?;
+
+    ensure!(!errored, "experiment had errors");
+
     Ok(())
 }
