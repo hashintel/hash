@@ -8,6 +8,7 @@
     "packages/hash/blocks/*",
     "packages/hash/frontend",
     "packages/hash/integration",
+    "packages/hash/playwright",
     "packages/hash/realtime",
     "packages/hash/search-loader",
     "packages/hash/shared"
@@ -39,18 +40,15 @@
     "seed-data:redis": "yarn workspace @hashintel/hash-realtime clear-redis",
     "seed-data": "concurrently \"yarn:seed-data:*\"",
     "test:backend-integration": "yarn workspace @hashintel/hash-integration test",
-    "test:playwright": "playwright test",
+    "test:playwright": "yarn workspace @hashintel/hash-playwright playwright test",
     "test:unit": "yarn workspace @hashintel/hash-api test && yarn workspace @hashintel/hash-frontend test"
   },
   "devDependencies": {
-    "@playwright/test": "1.17.1",
     "concurrently": "6.2.0",
     "cross-env": "^7.0.3",
-    "js-yaml": "4.1.0",
     "markdownlint-cli": "0.29.0",
     "npm-run-all": "4.1.5",
     "patch-package": "6.4.7",
-    "playwright": "1.17.1",
     "postinstall-postinstall": "2.1.0",
     "prettier": "2.5.0",
     "prettier-plugin-packagejson": "2.2.13",

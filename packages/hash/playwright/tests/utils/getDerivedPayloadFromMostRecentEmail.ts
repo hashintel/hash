@@ -2,10 +2,10 @@ import path from "path";
 import { loadAll } from "js-yaml";
 import fs from "fs/promises";
 import { sleep } from "@hashintel/hash-shared/sleep";
+import { monorepoRootDir } from "@hashintel/hash-backend-utils/environment";
 
 const emailDumpsFilePath = path.resolve(
-  __dirname,
-  "../..",
+  monorepoRootDir,
   "var/api/dummy-email-transporter/email-dumps.yml",
 );
 
