@@ -176,5 +176,9 @@ export const createEntityStore = (
     );
   }
 
+  for (const [draftId, draftEntity] of Object.entries(draftData)) {
+    draft[draftId] ??= draftEntity;
+  }
+
   return { saved, draft };
 };
