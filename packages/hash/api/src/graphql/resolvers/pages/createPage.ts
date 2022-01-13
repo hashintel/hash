@@ -23,9 +23,13 @@ export const createPage: Resolver<
       {},
       {
         accountId,
-        systemTypeName: SystemTypeName[type],
-        properties: entityProperties,
-        versioned: true,
+        entity: {
+          entityProperties,
+          versioned: true,
+          entityType: {
+            systemTypeName: SystemTypeName[type],
+          },
+        },
       },
       ctx,
       info,

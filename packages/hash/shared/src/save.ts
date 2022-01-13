@@ -137,13 +137,16 @@ const insertBlocks = defineOperation(
       actions.push({
         insertNewBlock: {
           position: Number(position),
+          componentId: componentNodeToId(node),
           accountId,
           // @todo support new non-text nodes
           entity: {
             entityProperties: node.type.isTextblock
               ? textBlockNodeToEntityProperties(node)
               : {},
-            systemTypeName: SystemTypeName.Text,
+            entityType: {
+              systemTypeName: SystemTypeName.Text,
+            },
           },
         },
       });

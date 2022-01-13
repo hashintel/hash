@@ -90,8 +90,6 @@ it("can flatten a tree structure", () => {
   };
 
   const result = linkedTreeFlatten(graph, "linkedGraphs", "entity");
-  // eslint-disable-next-line no-console
-  console.log(result);
   expect(result).toEqual([
     {
       parentIndex: -1,

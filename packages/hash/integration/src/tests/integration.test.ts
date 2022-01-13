@@ -556,10 +556,12 @@ describe("logged in user ", () => {
           {
             insertNewBlock: {
               accountId: existingUser.accountId,
+              componentId: "https://block.blockprotocol.org/header",
               position: 0,
               entity: {
-                componentId: "https://block.blockprotocol.org/header",
-                systemTypeName: SystemTypeName.Text,
+                entityType: {
+                  systemTypeName: SystemTypeName.Text,
+                },
                 entityProperties: textProperties,
               },
             },
@@ -662,9 +664,12 @@ describe("logged in user ", () => {
           {
             insertNewBlock: {
               accountId: existingUser.accountId,
+              componentId,
               position: 0,
               entity: {
-                componentId,
+                entityType: {
+                  componentId,
+                },
                 entityProperties: {},
               },
             },
@@ -720,9 +725,12 @@ describe("logged in user ", () => {
           {
             insertNewBlock: {
               accountId: existingUser.accountId,
+              componentId,
               position: 0,
               entity: {
-                componentId,
+                entityType: {
+                  componentId,
+                },
                 entityProperties: {},
               },
             },
@@ -790,10 +798,12 @@ describe("logged in user ", () => {
         {
           insertNewBlock: {
             accountId: page.accountId,
+            componentId: "https://block.blockprotocol.org/paragraph",
             position: 1,
             entity: {
-              componentId: "https://block.blockprotocol.org/paragraph",
-              systemTypeName: SystemTypeName.Text,
+              entityType: {
+                systemTypeName: SystemTypeName.Text,
+              },
               entityProperties: textPropertiesA,
             },
           },
@@ -801,10 +811,12 @@ describe("logged in user ", () => {
         {
           insertNewBlock: {
             accountId: page.accountId,
+            componentId: "https://block.blockprotocol.org/paragraph",
             position: 2,
             entity: {
-              componentId: "https://block.blockprotocol.org/paragraphj",
-              systemTypeName: SystemTypeName.Text,
+              entityType: {
+                systemTypeName: SystemTypeName.Text,
+              },
               entityProperties: textPropertiesB,
             },
           },
@@ -857,9 +869,13 @@ describe("logged in user ", () => {
               accountId: existingUser.accountId,
               componentId: "https://block.blockprotocol.org/header",
               position: 0,
-              systemTypeName: SystemTypeName.Text,
-              entityProperties: {
-                tokens: [{ tokenType: "text", text: "Hello World!" }],
+              entity: {
+                entityType: {
+                  systemTypeName: SystemTypeName.Text,
+                },
+                entityProperties: {
+                  tokens: [{ tokenType: "text", text: "Hello World!" }],
+                },
               },
             },
           },
@@ -875,7 +891,12 @@ describe("logged in user ", () => {
               accountId: existingUser.accountId,
               componentId: "https://block.blockprotocol.org/divider",
               position: 1,
-              entityProperties: {},
+              entity: {
+                entityType: {
+                  componentId: "https://block.blockprotocol.org/divider",
+                },
+                entityProperties: {},
+              },
             },
           },
         ],
@@ -968,6 +989,92 @@ describe("logged in user ", () => {
 
       expect(entities.length).toEqual(3);
     });
+  });
+
+  it("can create linked entitites when updating page contents", async () => {
+    const page = await client.createPage({
+      accountId: existingUser.accountId,
+      properties: {
+        title: "Linked page",
+      },
+    });
+
+    const textPropertiesA = { tokens: [{ tokenType: "text", text: "A" }] };
+    const textPropertiesB = { tokens: [{ tokenType: "text", text: "B" }] };
+    const textPropertiesC = { tokens: [{ tokenType: "text", text: "C" }] };
+
+    const updatedPage = await client.updatePageContents({
+      accountId: page.accountId,
+      entityId: page.entityId,
+      actions: [
+        {
+          insertNewBlock: {
+            accountId: page.accountId,
+            componentId: "https://block.blockprotocol.org/paragraph",
+            position: 1,
+            entity: {
+              entityType: {
+                systemTypeName: SystemTypeName.Text,
+              },
+              entityProperties: textPropertiesA,
+              linkedEntities: [
+                {
+                  destinationPath: "$.textB",
+                  destinationAccountId: existingUser.accountId,
+                  entity: {
+                    entityType: {
+                      systemTypeName: SystemTypeName.Text,
+                    },
+                    entityProperties: textPropertiesB,
+                    linkedEntities: [
+                      {
+                        destinationPath: "$.textB.textC",
+                        destinationAccountId: existingUser.accountId,
+                        entity: {
+                          entityType: {
+                            systemTypeName: SystemTypeName.Text,
+                          },
+                          entityProperties: textPropertiesC,
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        },
+      ],
+    });
+
+    expect(updatedPage.properties.contents).toHaveLength(2);
+
+    const pageEntities = updatedPage.properties.contents.map(
+      (block) => block.properties.entity,
+    );
+
+    // The page will have an empty paragraph and a text paragraph with textPropertiesA
+    expect(pageEntities[0].properties).toMatchObject({ tokens: [] });
+    expect(pageEntities[1].properties).toMatchObject(textPropertiesA);
+
+    // getEntities gives back entitites orderes by updated_at
+    const { entities } = await client.getEntities({
+      accountId: page.accountId,
+    });
+
+    expect(
+      entities.slice(0, 5).map((entity) => ({
+        type: entity.entityTypeName,
+        props: entity.entityTypeName === "Text" ? entity.properties : undefined,
+      })),
+    ).toEqual([
+      { type: "Page", props: undefined },
+      { type: "Block", props: undefined },
+      // The following 3 Text elements should be
+      { type: "Text", props: textPropertiesB },
+      { type: "Text", props: textPropertiesA },
+      { type: "Text", props: textPropertiesC },
+    ]);
   });
 
   describe("can create entity types", () => {

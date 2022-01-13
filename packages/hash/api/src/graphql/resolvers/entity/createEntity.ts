@@ -130,7 +130,7 @@ export const createEntityWithLinks = async (
   },
 ): Promise<Entity> => {
   const { user, accountId, entityDefinition: entityDefinitions } = params;
-  if (params.entityDefinition.linkedEntities) {
+  if (params.entityDefinition.linkedEntities != null) {
     const result = linkedTreeFlatten<
       EntityDefinitionArgs,
       LinkedEntityDefinitionArgs,

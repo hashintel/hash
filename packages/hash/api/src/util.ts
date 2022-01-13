@@ -176,14 +176,19 @@ export class Queue<T> {
  * Note, this _will_ behave badly with circular structures!
  * This uses BFS.
  * @param graph The graph structure containing `key` for links
- * @param key The key that allows recursive sub-graphs.
+ * @param outerKey The key that allows recursive sub-graphs.
+ * @param innerKey The key on the object, that contains metadata about the node, which contains the outer type.
  * @param depthLimit The maximum depth a tree may have before bailing.
- * @returns A flattened list of all nodes with an index referring to where in the list the parent is. Index = 0 means root.
+ * @returns A flattened list of all nodes with an index referring to where in the list the parent is. parentIndex = -1 means root.
  */
 export const linkedTreeFlatten = <
+  // Example: type Entity = { name: string; linkedGraphs?: LinkedEntity[]; };
   Outer extends { [_ in K]?: Inner[] | null },
+  // Example: type LinkedEntity = { entity: Entity; };
   Inner extends { [_ in K2]: Outer },
+  // Given example above: "linkedGraphs"
   K extends string,
+  // Given example above: "entity"
   K2 extends string,
 >(
   graph: Outer,
@@ -196,6 +201,7 @@ export const linkedTreeFlatten = <
     parentIndex: number;
     currentIndex: number;
   };
+  // The return value will be a list of the Outer type optionally augmented with metadata and a parentid
   type ResultWithMeta = Omit<AugmentedOuter, K | "currentIndex">;
 
   const queue: Queue<AugmentedOuter[]> = new Queue([
@@ -205,6 +211,8 @@ export const linkedTreeFlatten = <
 
   let index = 1;
   let depth = 0;
+
+  // BFS traversal using FIFO queue
   while (!queue.isEmpty()) {
     let currentIndex = index;
 
@@ -213,6 +221,7 @@ export const linkedTreeFlatten = <
       continue;
     }
 
+    // Add current nodes to result array
     result.push(
       ...toInsert.map((entry) => {
         const { [outerKey]: _1, currentIndex: _2, ...values } = entry;
@@ -221,11 +230,12 @@ export const linkedTreeFlatten = <
     );
 
     depth++;
-
+    // Traverse direct descendants of all nodes in the current depth
     const descendantsToQueue = toInsert.reduce((acc, current) => {
       const outer = current[outerKey];
       if (outer) {
         const extractedFromInner = outer.map((entry) => {
+          // The direct descendants' structures get flattened
           const { [innerKey]: _omitted, ...innerValues } = entry;
           return {
             parentIndex: current.currentIndex,
@@ -240,10 +250,13 @@ export const linkedTreeFlatten = <
       return acc;
     }, [] as AugmentedOuter[][]);
     index = currentIndex;
+    // all descendants of all of the nodes in this depth layer
+    // added to queue to explore.
     if (descendantsToQueue.length > 0) {
       queue.enqueue(...descendantsToQueue);
     }
 
+    // To prevent infinite loops, a depth is given to limit traversal.
     if (depth >= depthLimit && !queue.isEmpty()) {
       throw new Error("Depth limit reached!");
     }
