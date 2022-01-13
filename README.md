@@ -100,15 +100,22 @@ HASH is built around the open [Block Protocol](https://blockprotocol.org) ([@blo
 By default, `packages/hash/shared/src/blockPaths.json` points to the `dev` branch’s deployment of the blockprotocol.org CDN at https://blockprotocol-git-dev-hashintel.vercel.app.
 This can be changed to either a local instance of blockprotocol.org (see its `/site/README.md` on how to do that) or a webpack-dev-server instance of a block in development `yarn workspace @hashintel/block-<block-under-development> run dev --port 3010`.
 
-## Build blocks
+## HASH blocks
 
-In order to build individual blocks, use `yarn build-block:<blockname>`. Use `yarn build-blocks` to
-build all blocks concurrently.
+This repository contains a number of https://blockprotocol.org blocks.
+If you want to develop, build or serve a single block, run:
 
-## Create a new block bundle from template
+```sh
+yarn workspace @hashintel/block-name dev
+## or
+yarn workspace @hashintel/block-name build
+## or
+yarn workspace @hashintel/block-name serve
+```
 
-1.  `yarn new:block <name>`
-1.  code in `packages/hash/blocks/<name>`
+## Creating new blocks
+
+See https://blockprotocol.org/docs/developing-blocks
 
 ## Testing
 
