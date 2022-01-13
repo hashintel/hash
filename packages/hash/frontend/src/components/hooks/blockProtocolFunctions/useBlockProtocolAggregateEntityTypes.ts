@@ -1,6 +1,6 @@
 import { useApolloClient } from "@apollo/client";
 
-import { BlockProtocolAggregateEntityTypesFunction } from "@hashintel/block-protocol";
+import { BlockProtocolAggregateEntityTypesFunction } from "blockprotocol";
 import { useCallback } from "react";
 import {
   GetAccountEntityTypesQuery,

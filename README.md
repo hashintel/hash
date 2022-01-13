@@ -8,9 +8,12 @@ HASH is an open-source, data-centric, all-in-one workspace. HASH combines a rich
 
 To run HASH locally, please follow these steps:
 
-1.  Make sure you have [Node LTS](https://nodejs.org), [Yarn Classic](https://classic.yarnpkg.com) and [Docker](https://docs.docker.com/get-docker/):
+1.  Make sure you have, [Git](https://git-scm.com), [Node LTS](https://nodejs.org), [Yarn Classic](https://classic.yarnpkg.com) and [Docker](https://docs.docker.com/get-docker/):
 
     ```sh
+    git --version
+    ## ≥ 2.34
+    
     node --version
     ## ≥ 16.13
     

@@ -1,4 +1,4 @@
-import { JSONObject } from "@hashintel/block-protocol";
+import { JSONObject } from "blockprotocol";
 import { apiGraphQLEndpoint } from "@hashintel/hash-shared/environment";
 
 export type FetchEmbedCodeFn = (

@@ -1,4 +1,4 @@
-import { JSONValue, JSONObject, JSONArray } from "@hashintel/block-protocol";
+import { JSONValue, JSONObject, JSONArray } from "blockprotocol";
 import { Schema } from "jsonschema";
 
 export const isParsedJsonObject = (val: JSONValue): val is JSONObject =>

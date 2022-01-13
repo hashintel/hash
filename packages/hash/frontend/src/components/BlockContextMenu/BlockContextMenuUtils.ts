@@ -1,5 +1,5 @@
 import { tw } from "twind";
-import { BlockVariant } from "@hashintel/block-protocol";
+import { BlockVariant } from "blockprotocol";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 
 export type MenuState = {

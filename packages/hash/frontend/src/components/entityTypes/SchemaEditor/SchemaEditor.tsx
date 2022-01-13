@@ -3,7 +3,7 @@ import {
   BlockProtocolUpdateEntityTypesFunction,
   BlockProtocolProps,
   JSONObject,
-} from "@hashintel/block-protocol";
+} from "blockprotocol";
 import Link from "next/link";
 import React, {
   createContext,

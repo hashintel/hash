@@ -1,6 +1,6 @@
 import { ApolloError } from "apollo-server-express";
 import url from "url";
-import { JSONObject } from "@hashintel/block-protocol";
+import { JSONObject } from "blockprotocol";
 
 import { EntityExternalResolvers, EntityType } from ".";
 import { DBClient } from "../db";

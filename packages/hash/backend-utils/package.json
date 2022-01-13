@@ -20,9 +20,9 @@
     "lint:tsc": "tsc --noEmit"
   },
   "dependencies": {
-    "@hashintel/block-protocol": "*",
     "@opensearch-project/opensearch": "1.0.0",
     "apollo-datasource": "3.3.0",
+    "blockprotocol": "0.0.1",
     "dotenv-flow": "3.2.0",
     "redis": "3.1.2",
     "slonik": "24.1.2",

@@ -1,5 +1,5 @@
 import { DataSource } from "apollo-datasource";
-import { JSONObject } from "@hashintel/block-protocol";
+import { JSONObject } from "blockprotocol";
 
 export type SearchHit = {
   /** The ID of the document matching the query.  */

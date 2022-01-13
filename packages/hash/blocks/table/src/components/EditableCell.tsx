@@ -6,7 +6,7 @@ import React, {
   VoidFunctionComponent,
 } from "react";
 import { Column, Row } from "react-table";
-import { BlockProtocolUpdateEntitiesFunction } from "@hashintel/block-protocol";
+import { BlockProtocolUpdateEntitiesFunction } from "blockprotocol";
 import { tw } from "twind";
 import { identityEntityAndProperty } from "../lib/identifyEntity";
 

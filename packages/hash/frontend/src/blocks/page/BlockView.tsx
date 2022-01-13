@@ -1,4 +1,4 @@
-import { BlockVariant } from "@hashintel/block-protocol";
+import { BlockVariant } from "blockprotocol";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";

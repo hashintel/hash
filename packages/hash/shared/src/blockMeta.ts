@@ -1,4 +1,4 @@
-import { BlockMetadata, BlockVariant } from "@hashintel/block-protocol";
+import { BlockMetadata, BlockVariant } from "blockprotocol";
 import { Schema as JSONSchema } from "jsonschema";
 import { blockPaths } from "./paths";
 

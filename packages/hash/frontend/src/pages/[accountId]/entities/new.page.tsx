@@ -3,7 +3,7 @@ import { tw } from "twind";
 
 import { useRouter } from "next/router";
 
-import { BlockProtocolCreateEntitiesFunction } from "@hashintel/block-protocol";
+import { BlockProtocolCreateEntitiesFunction } from "blockprotocol";
 import { EntityEditor } from "../../../components/EntityEditor/EntityEditor";
 
 import { UnknownEntity } from "../../../graphql/apiTypes.gen";

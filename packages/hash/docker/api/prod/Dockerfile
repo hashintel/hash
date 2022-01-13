@@ -4,7 +4,6 @@ WORKDIR /app
 
 COPY packages/hash/api packages/hash/api
 COPY packages/hash/shared packages/hash/shared
-COPY packages/hash/block-protocol packages/hash/block-protocol
 COPY packages/hash/frontend packages/hash/frontend
 COPY packages/hash/backend-utils packages/hash/backend-utils
 COPY package.json .

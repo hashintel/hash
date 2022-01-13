@@ -2,7 +2,7 @@
  * webpack-dev-server entry point for debugging.
  * This file is not bundled with the library during the build process.
  */
-import { BlockProtocolUploadFileFunction } from "@hashintel/block-protocol";
+import { BlockProtocolUploadFileFunction } from "blockprotocol";
 import React from "react";
 import ReactDOM from "react-dom";
 import { tw } from "twind";

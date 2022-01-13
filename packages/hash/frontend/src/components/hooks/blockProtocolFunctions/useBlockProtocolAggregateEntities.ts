@@ -3,7 +3,7 @@ import { useApolloClient } from "@apollo/client";
 import {
   BlockProtocolAggregateEntitiesFunction,
   BlockProtocolAggregateEntitiesResult,
-} from "@hashintel/block-protocol";
+} from "blockprotocol";
 import { aggregateEntity } from "@hashintel/hash-shared/queries/entity.queries";
 import { useCallback } from "react";
 import { cloneEntityTreeWithPropertiesMovedUp } from "../../../lib/entities";

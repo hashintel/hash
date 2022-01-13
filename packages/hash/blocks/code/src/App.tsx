@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { tw } from "twind";
 
-import { BlockComponent } from "@hashintel/block-protocol/react";
-import { BlockProtocolUpdateEntitiesAction } from "@hashintel/block-protocol";
+import { BlockComponent } from "blockprotocol/react";
+import { BlockProtocolUpdateEntitiesAction } from "blockprotocol";
 import { CopyIcon } from "./Icons";
 import { languages, LanguageType } from "./utils";
 import { Editor } from "./components/Editor";

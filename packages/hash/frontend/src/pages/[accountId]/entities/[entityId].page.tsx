@@ -3,7 +3,7 @@ import { useQuery } from "@apollo/client";
 
 import { useRouter } from "next/router";
 
-import { BlockProtocolUpdateEntitiesFunction } from "@hashintel/block-protocol";
+import { BlockProtocolUpdateEntitiesFunction } from "blockprotocol";
 import { getEntity } from "@hashintel/hash-shared/queries/entity.queries";
 import { EntityEditor } from "../../../components/EntityEditor/EntityEditor";
 

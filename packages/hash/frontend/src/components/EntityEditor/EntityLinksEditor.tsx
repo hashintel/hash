@@ -3,7 +3,7 @@ import {
   BlockProtocolEntity,
   BlockProtocolLink,
   BlockProtocolLinkGroup,
-} from "@hashintel/block-protocol";
+} from "blockprotocol";
 import { useMemo, VoidFunctionComponent } from "react";
 import { tw } from "twind";
 

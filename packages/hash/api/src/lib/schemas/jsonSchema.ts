@@ -1,4 +1,4 @@
-import { JSONObject } from "@hashintel/block-protocol";
+import { JSONObject } from "blockprotocol";
 import Ajv2019 from "ajv/dist/2019";
 import addFormats from "ajv-formats";
 import { FRONTEND_URL } from "../config";

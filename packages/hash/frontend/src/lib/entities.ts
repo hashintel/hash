@@ -1,5 +1,5 @@
 import { cloneDeep } from "lodash";
-import { JSONObject } from "@hashintel/block-protocol";
+import { JSONObject } from "blockprotocol";
 
 import { UnknownEntity } from "../graphql/apiTypes.gen";
 import { isParsedJsonObject, isParsedJsonObjectOrArray } from "./json-utils";

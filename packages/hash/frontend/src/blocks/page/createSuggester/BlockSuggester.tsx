@@ -1,4 +1,4 @@
-import { BlockVariant } from "@hashintel/block-protocol";
+import { BlockVariant } from "blockprotocol";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { useContext, useMemo, VFC } from "react";
 import { tw } from "twind";

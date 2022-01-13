@@ -6,7 +6,7 @@ import {
   BlockProtocolAggregateOperationInput,
   BlockProtocolMultiFilterOperatorType,
   BlockProtocolFilterOperatorType,
-} from "@hashintel/block-protocol";
+} from "blockprotocol";
 import { unstable_batchedUpdates } from "react-dom";
 import { debounce } from "lodash";
 import { AddIcon } from "./Icons";

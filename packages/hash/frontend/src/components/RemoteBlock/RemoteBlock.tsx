@@ -1,5 +1,5 @@
 import React, { VoidFunctionComponent } from "react";
-import { BlockProtocolProps } from "@hashintel/block-protocol";
+import { BlockProtocolProps } from "blockprotocol";
 
 import { useRemoteBlock } from "./useRemoteBlock";
 import { HtmlBlock } from "../HtmlBlock/HtmlBlock";

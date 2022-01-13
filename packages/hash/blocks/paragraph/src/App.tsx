@@ -1,6 +1,6 @@
 import React, { RefCallback } from "react";
 
-import { BlockComponent } from "@hashintel/block-protocol/react";
+import { BlockComponent } from "blockprotocol/react";
 
 type AppProps = {
   editableRef?: RefCallback<HTMLElement>;

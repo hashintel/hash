@@ -12,7 +12,7 @@ import {
   BlockProtocolLinkedDataDefinition,
   BlockProtocolAggregateEntitiesFunction,
   BlockProtocolAggregateEntitiesResult,
-} from "@hashintel/block-protocol";
+} from "blockprotocol";
 import { cloneDeep } from "lodash";
 import Component from "./index";
 import { schemas } from "./schemas";

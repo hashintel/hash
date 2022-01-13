@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { tw } from "twind";
-import { BlockComponent } from "@hashintel/block-protocol/react";
+import { BlockComponent } from "blockprotocol/react";
 
 import { unstable_batchedUpdates } from "react-dom";
 import {
   BlockProtocolUploadFileFunction,
   BlockProtocolUpdateEntitiesAction,
-} from "@hashintel/block-protocol";
+} from "blockprotocol";
 import Loader from "./svgs/Loader";
 import Pencil from "./svgs/Pencil";
 import Cross from "./svgs/Cross";

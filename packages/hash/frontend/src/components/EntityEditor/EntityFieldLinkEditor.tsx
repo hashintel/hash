@@ -10,7 +10,7 @@ import {
   BlockProtocolAggregateEntitiesFunction,
   BlockProtocolEntity,
   BlockProtocolLink,
-} from "@hashintel/block-protocol";
+} from "blockprotocol";
 import { tw } from "twind";
 import Link from "next/link";
 

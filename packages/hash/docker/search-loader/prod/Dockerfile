@@ -3,9 +3,7 @@ FROM node:16 AS builder
 WORKDIR /app
 
 COPY packages/hash/backend-utils packages/hash/backend-utils
-COPY packages/hash/block-protocol packages/hash/block-protocol
 COPY packages/hash/search-loader packages/hash/search-loader
-COPY packages/hash/block-protocol packages/hash/block-protocol
 COPY packages/hash/shared packages/hash/shared
 COPY package.json .
 COPY tsconfig.base.json .

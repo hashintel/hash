@@ -1,6 +1,6 @@
 import React from "react";
 
-import { BlockComponent } from "@hashintel/block-protocol/react";
+import { BlockComponent } from "blockprotocol/react";
 
 type AppProps = {
   name: string;

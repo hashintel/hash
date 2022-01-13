@@ -1,5 +1,5 @@
 import { DataSource } from "apollo-datasource";
-import { JSONObject } from "@hashintel/block-protocol";
+import { JSONObject } from "blockprotocol";
 
 import { SystemType } from "../types/entityTypes";
 

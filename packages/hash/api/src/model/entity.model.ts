@@ -1,4 +1,4 @@
-import { JSONObject } from "@hashintel/block-protocol";
+import { JSONObject } from "blockprotocol";
 import { ApolloError } from "apollo-server-errors";
 import { PathComponent } from "jsonpath";
 import { merge } from "lodash";

@@ -1,6 +1,6 @@
 import React, { VFC } from "react";
 import { tw } from "twind";
-import { BlockProtocolAggregateOperationInput } from "@hashintel/block-protocol";
+import { BlockProtocolAggregateOperationInput } from "blockprotocol";
 import { ColumnInstance } from "react-table";
 import { SearchIcon } from "./Icons";
 import { SortDetail } from "./SortDetail";

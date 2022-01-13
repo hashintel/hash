@@ -8,9 +8,9 @@ import React, {
 
 import { tw } from "twind";
 
-import { BlockComponent } from "@hashintel/block-protocol/react";
+import { BlockComponent } from "blockprotocol/react";
 
-import { BlockProtocolUpdateEntitiesAction } from "@hashintel/block-protocol";
+import { BlockProtocolUpdateEntitiesAction } from "blockprotocol";
 import { ProviderNames, AppState, Actions } from "./types";
 import { HtmlBlock } from "./HtmlBlock";
 import { getFormCopy } from "./utils";

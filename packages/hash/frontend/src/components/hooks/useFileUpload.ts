@@ -1,4 +1,4 @@
-import { BlockProtocolUploadFileFunction } from "@hashintel/block-protocol";
+import { BlockProtocolUploadFileFunction } from "blockprotocol";
 import { isFileProperties } from "@hashintel/hash-shared/util";
 import {
   GetEntityQuery,

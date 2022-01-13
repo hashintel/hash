@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { tw } from "twind";
 import { ColumnInstance } from "react-table";
 import { v4 as uuid } from "uuid";
-import { BlockProtocolAggregateOperationInput } from "@hashintel/block-protocol";
+import { BlockProtocolAggregateOperationInput } from "blockprotocol";
 import { AddIcon } from "./Icons";
 
 type SortDetailProps = {

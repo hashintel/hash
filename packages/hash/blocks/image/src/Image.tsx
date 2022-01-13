@@ -2,11 +2,11 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 
 import { tw } from "twind";
-import { BlockComponent } from "@hashintel/block-protocol/react";
+import { BlockComponent } from "blockprotocol/react";
 import {
   BlockProtocolUploadFileFunction,
   BlockProtocolUpdateEntitiesAction,
-} from "@hashintel/block-protocol";
+} from "blockprotocol";
 
 import { ResizeImageBlock } from "./components/ResizeImageBlock";
 

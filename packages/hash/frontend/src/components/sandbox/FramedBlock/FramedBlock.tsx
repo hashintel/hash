@@ -5,7 +5,7 @@ import {
   BlockProtocolCreateEntitiesFunction,
   BlockProtocolUpdateEntitiesFunction,
   JSONObject,
-} from "@hashintel/block-protocol";
+} from "blockprotocol";
 
 import { sendMessage, settlePromiseFromResponse } from "./util";
 import { MessageFromBlockFramer } from "../types";

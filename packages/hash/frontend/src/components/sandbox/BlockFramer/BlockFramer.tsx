@@ -9,7 +9,7 @@ import {
   BlockProtocolFunction,
   BlockProtocolProps,
   JSONObject,
-} from "@hashintel/block-protocol";
+} from "blockprotocol";
 import { v4 as uuid } from "uuid";
 
 import { ResizingIFrame } from "../ResizingIFrame/ResizingIFrame";

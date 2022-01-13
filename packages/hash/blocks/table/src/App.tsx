@@ -9,8 +9,8 @@ import { TableOptions, useSortBy, useTable } from "react-table";
 import {
   BlockProtocolEntityType,
   BlockProtocolLinkedDataDefinition,
-} from "@hashintel/block-protocol";
-import { BlockComponent } from "@hashintel/block-protocol/react";
+} from "blockprotocol";
+import { BlockComponent } from "blockprotocol/react";
 import { tw } from "twind";
 import { orderBy } from "lodash";
 import { EditableCell } from "./components/EditableCell";

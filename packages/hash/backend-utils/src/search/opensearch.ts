@@ -1,4 +1,4 @@
-import { JSONObject } from "@hashintel/block-protocol";
+import { JSONObject } from "blockprotocol";
 import { Client, ClientOptions } from "@opensearch-project/opensearch";
 import { DataSource } from "apollo-datasource";
 

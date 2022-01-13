@@ -1,4 +1,4 @@
-import type { BlockVariant } from "@hashintel/block-protocol";
+import type { BlockVariant } from "blockprotocol";
 import {
   blockComponentRequiresText,
   BlockMeta,

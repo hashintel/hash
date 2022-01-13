@@ -3,7 +3,7 @@ import { useApolloClient, useMutation } from "@apollo/client";
 import {
   BlockProtocolEntityType,
   BlockProtocolUpdateEntityTypesFunction,
-} from "@hashintel/block-protocol";
+} from "blockprotocol";
 import { useCallback } from "react";
 import {
   UpdateEntityTypeMutation,

@@ -3,7 +3,7 @@ import { useMutation } from "@apollo/client";
 import {
   BlockProtocolCreateLinksFunction,
   BlockProtocolLink,
-} from "@hashintel/block-protocol";
+} from "blockprotocol";
 import { createLinkMutation } from "@hashintel/hash-shared/queries/link.queries";
 import { useCallback } from "react";
 import {

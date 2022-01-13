@@ -8,7 +8,7 @@ import { tw } from "twind";
 import {
   BlockProtocolUpdateEntitiesFunction,
   BlockProtocolUpdateEntitiesAction,
-} from "@hashintel/block-protocol";
+} from "blockprotocol";
 
 import Component from "./index";
 import { ProviderNames } from "./types";

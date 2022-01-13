@@ -1,7 +1,7 @@
 import {
   BlockProtocolCreateLinksFunction,
   BlockProtocolDeleteLinksFunction,
-} from "@hashintel/block-protocol";
+} from "blockprotocol";
 
 export type EntityLinkDefinition = {
   array?: boolean;

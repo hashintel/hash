@@ -1,5 +1,5 @@
 import { TableOptions } from "react-table";
-import { BlockProtocolLinkedDataDefinition } from "@hashintel/block-protocol";
+import { BlockProtocolLinkedDataDefinition } from "blockprotocol";
 
 export interface Person {
   email: string;

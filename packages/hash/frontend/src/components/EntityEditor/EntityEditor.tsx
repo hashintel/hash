@@ -5,7 +5,7 @@ import {
   BlockProtocolAggregateEntitiesFunction,
   BlockProtocolProps,
   JSONObject,
-} from "@hashintel/block-protocol";
+} from "blockprotocol";
 import { unset } from "lodash";
 import { ISubmitEvent } from "@rjsf/core";
 import { tw } from "twind";

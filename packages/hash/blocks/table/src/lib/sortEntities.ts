@@ -1,4 +1,4 @@
-import { BlockProtocolAggregateOperationInput } from "@hashintel/block-protocol";
+import { BlockProtocolAggregateOperationInput } from "blockprotocol";
 import { orderBy } from "lodash";
 
 export const sortEntities = (

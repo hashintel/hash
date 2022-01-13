@@ -1,6 +1,6 @@
 import * as React from "react";
 import { tw } from "twind";
-import { BlockProtocolEntityType } from "@hashintel/block-protocol";
+import { BlockProtocolEntityType } from "blockprotocol";
 
 type EntityTypeDropdownProps = {
   onChange?: (entityTypeId?: string) => void;

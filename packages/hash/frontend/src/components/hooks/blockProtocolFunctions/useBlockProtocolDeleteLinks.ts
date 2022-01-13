@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client";
 
-import { BlockProtocolDeleteLinksFunction } from "@hashintel/block-protocol";
+import { BlockProtocolDeleteLinksFunction } from "blockprotocol";
 import { deleteLinkMutation } from "@hashintel/hash-shared/queries/link.queries";
 import { useCallback } from "react";
 import {

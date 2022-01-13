@@ -1,4 +1,4 @@
-import { BlockComponent } from "@hashintel/block-protocol/react";
+import { BlockComponent } from "blockprotocol/react";
 import React, { RefCallback } from "react";
 
 type AppProps = {

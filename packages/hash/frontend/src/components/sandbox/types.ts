@@ -4,7 +4,7 @@ import {
   BlockProtocolUpdateEntitiesFunction,
   BlockProtocolAggregateEntityTypesFunction,
   JSONObject,
-} from "@hashintel/block-protocol";
+} from "blockprotocol";
 import { FetchEmbedCodeFn } from "../BlockLoader/fetchEmbedCode";
 
 export type MessageFromFramedBlock = {

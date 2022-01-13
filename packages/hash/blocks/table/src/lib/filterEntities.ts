@@ -1,4 +1,4 @@
-import { BlockProtocolMultiFilter } from "@hashintel/block-protocol";
+import { BlockProtocolMultiFilter } from "blockprotocol";
 import { get } from "lodash";
 
 export const filterEntities = (

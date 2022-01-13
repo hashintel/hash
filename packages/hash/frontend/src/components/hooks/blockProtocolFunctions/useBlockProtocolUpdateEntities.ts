@@ -1,6 +1,6 @@
 import { useApolloClient, useMutation } from "@apollo/client";
 
-import { BlockProtocolUpdateEntitiesFunction } from "@hashintel/block-protocol";
+import { BlockProtocolUpdateEntitiesFunction } from "blockprotocol";
 import { updateEntity } from "@hashintel/hash-shared/queries/entity.queries";
 import { useCallback } from "react";
 import { updatePage } from "@hashintel/hash-shared/queries/page.queries";
