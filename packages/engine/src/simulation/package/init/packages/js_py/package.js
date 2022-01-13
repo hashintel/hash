@@ -96,7 +96,7 @@ const run_task = (experiment, _sim, task_message, _group_state, context) => {
   try {
     data = {
             "SuccessMessage": {
-                "agent_json": JSON.stringify(agents)
+                "agents": agents
             }
         };
   } catch (e) {

@@ -34,7 +34,6 @@ impl Config {
             )
             .build()?;
 
-        let packages = Arc::new(package_config);
         let base_globals = Globals::from_json(serde_json::from_str(
             &experiment_run.base().project_base.globals_src,
         )?)?;
@@ -57,7 +56,7 @@ impl Config {
 
         Ok(Config {
             run_id: Arc::new(run_id),
-            packages,
+            packages: Arc::new(package_config),
             run,
             base_globals,
             worker_pool,

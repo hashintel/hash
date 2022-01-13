@@ -100,12 +100,7 @@ impl InitPackage for Package {
         )?;
 
         match TryInto::<SuccessMessage>::try_into(task_message) {
-            Ok(SuccessMessage { agent_json }) => serde_json::from_str(&agent_json).map_err(|e| {
-                Error::from(format!(
-                    "Failed to parse agent state JSON to Vec<Agent>: {:?}",
-                    e
-                ))
-            }),
+            Ok(SuccessMessage { agents }) => Ok(agents),
             Err(err) => Err(Error::from(format!("Init Task failed: {err}"))),
         }
     }
@@ -126,7 +121,7 @@ pub struct StartMessage {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SuccessMessage {
-    agent_json: String,
+    agents: Vec<Agent>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
