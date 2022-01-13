@@ -5,6 +5,7 @@ use std::{
 };
 
 use ::error::{ensure, Result, ResultExt};
+use error::bail;
 use hash_engine::utils::OutputFormat;
 use regex::Regex;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -13,7 +14,7 @@ use serde_json::Value;
 // TODO: Unify with CLI when splitted up into binary+library
 #[derive(Debug, Clone)]
 pub enum ExperimentType {
-    SingleRun { num_runs: u64 },
+    SingleRun { num_steps: u64 },
     Simple { experiment_name: String },
 }
 
@@ -36,76 +37,85 @@ pub struct ExperimentOutput {
     pub analysis_outputs: Option<Value>,
 }
 
-fn assert_subset_object(subset: &Value, superset: &Value, path: String) {
+fn assert_subset_value(subset: &Value, superset: &Value, path: String) -> Result<()> {
     match (subset, superset) {
-        (Value::Null, Value::Null) => {}
-        (Value::Bool(a), Value::Bool(b)) => assert_eq!(a, b, "{path:?}: Expected `{a} == {b}`"),
-        (Value::Number(a), Value::Number(b)) => match (a.as_f64(), b.as_f64()) {
-            (Some(a), Some(b)) if (a - b).abs() < f64::EPSILON => {}
-            // Also match floats if they are not equal to keep output from `assert_eq!`
-            _ => assert_eq!(a, b, "Expected `{a} == {b}` at {path:?}"),
-        },
-        (Value::String(a), Value::String(b)) => {
-            assert_eq!(a, b, "{path:?}: Expected `{a:?} == {b:?}`")
+        (Value::Number(a), Value::Number(b)) if a.is_f64() && b.is_f64() => {
+            ensure!(
+                (a.as_f64().unwrap() - b.as_f64().unwrap()).abs() < f64::EPSILON,
+                "{path:?}: Expected `{a} == {b}`"
+            );
         }
-        (Value::Array(a), Value::Array(b)) if a.len() == b.len() => a
-            .iter()
-            .zip(b.iter())
-            .enumerate()
-            .for_each(|(i, (a, b))| assert_subset_object(a, b, format!("{path}.{i}"))),
         (Value::Array(a), Value::Array(b)) => {
-            panic!(
+            ensure!(
+                a.len() == b.len(),
                 "{path:?}: expected length {}, got {}.\nexpected: {}\ngot: {}",
                 a.len(),
                 b.len(),
                 serde_json::to_string_pretty(a).unwrap(),
                 serde_json::to_string_pretty(b).unwrap(),
-            )
-        }
-        (Value::Object(a), Value::Object(b)) => a.into_iter().for_each(|(key, sub_value)| {
-            if let Some(super_value) = b.get(key) {
-                assert_subset_object(sub_value, super_value, format!("{path}.{key}"));
-            } else {
-                panic!(
-                    "{path:?}: {key:?} is not present output.\nexpected: {}\ngot: {}",
-                    serde_json::to_string_pretty(a).unwrap(),
-                    serde_json::to_string_pretty(b).unwrap(),
-                )
+            );
+            for (i, (sub_value, super_value)) in a.iter().zip(b.iter()).enumerate() {
+                assert_subset_value(sub_value, super_value, format!("{path}.{i}"))?;
             }
-        }),
+        }
+        (Value::Object(a), Value::Object(b)) => {
+            for (key, sub_value) in a {
+                if let Some(super_value) = b.get(key) {
+                    assert_subset_value(sub_value, super_value, format!("{path}.{key}"))?;
+                } else {
+                    bail!("{path:?}: {key:?} is not present output")
+                }
+            }
+        }
         _ => {
-            panic!(
+            ensure!(
+                subset == superset,
                 "{path:?}: Expected `{} == {}`",
                 serde_json::to_string_pretty(subset).unwrap(),
                 serde_json::to_string_pretty(superset).unwrap()
             );
         }
     }
+
+    Ok(())
 }
 
 impl ExperimentOutput {
-    pub fn assert_subset_of(&self, superset: &Self) {
+    /// Compares to another `ExperimentOutput` and returns [`Err`], if this output is not a subset
+    /// of `superset`.
+    ///
+    /// It's considered a subset if for any output (`json_state`, `globals`, `analysis_output`) the
+    /// following conditions are true:
+    /// - All non-array and non-object values must be equal to the corresponding value in `superset`
+    /// - For arrays, the length must match and for each element this list applies
+    /// - For objects, for each key present in the subset there must be a corresponding key in
+    ///   `superset`, for which the value needs to be equal as in this list
+    pub fn assert_subset_of(&self, superset: &Self) -> Result<()> {
         if let Some(sub_value) = &self.json_state {
-            assert_subset_object(
+            assert_subset_value(
                 sub_value,
                 superset.json_state.as_ref().unwrap(),
-                String::from("json_state.json: "),
-            )
+                String::from("json_state.json"),
+            )?;
         }
+
         if let Some(sub_value) = &self.globals {
-            assert_subset_object(
+            assert_subset_value(
                 sub_value,
                 superset.globals.as_ref().unwrap(),
-                String::from("globals.json: "),
-            )
+                String::from("globals.json"),
+            )?;
         }
+
         if let Some(sub_value) = &self.analysis_outputs {
-            assert_subset_object(
+            assert_subset_value(
                 sub_value,
                 superset.analysis_outputs.as_ref().unwrap(),
-                String::from("analysis_outputs.json: "),
-            )
+                String::from("analysis_outputs.json"),
+            )?;
         }
+
+        Ok(())
     }
 }
 
@@ -120,7 +130,7 @@ pub fn read_config(path: impl AsRef<Path>) -> Result<Vec<(ExperimentType, Vec<Ex
     #[derive(Deserialize)]
     #[serde(rename_all = "kebab-case")]
     struct SingleRun {
-        num_runs: u64,
+        num_steps: u64,
         expected_output: ExperimentOutput,
     }
 
@@ -129,26 +139,26 @@ pub fn read_config(path: impl AsRef<Path>) -> Result<Vec<(ExperimentType, Vec<Ex
         #[serde(default)]
         experiments: Vec<Simple>,
         #[serde(default)]
-        runs: Vec<SingleRun>,
+        single: Option<SingleRun>,
     }
 
     let config: Config = parse_file(path).wrap_err("Could not read configuration")?;
-    let simple_iter = config.experiments.into_iter().map(
-        |Simple {
-             experiment_name,
-             expected_outputs,
-         }| { (ExperimentType::Simple { experiment_name }, expected_outputs) },
-    );
-    let single_run_iter = config.runs.into_iter().map(
-        |SingleRun {
-             num_runs,
-             expected_output,
-         }| {
-            (ExperimentType::SingleRun { num_runs }, vec![
-                expected_output,
-            ])
-        },
-    );
+    let simple_iter = config.experiments.into_iter().map(|simple| {
+        (
+            ExperimentType::Simple {
+                experiment_name: simple.experiment_name,
+            },
+            simple.expected_outputs,
+        )
+    });
+    let single_run_iter = config.single.map(|single_run| {
+        (
+            ExperimentType::SingleRun {
+                num_steps: single_run.num_steps,
+            },
+            vec![single_run.expected_output],
+        )
+    });
     Ok(simple_iter.chain(single_run_iter).collect())
 }
 
@@ -170,10 +180,10 @@ pub fn run_experiment(
         .arg("1");
 
     match experiment {
-        ExperimentType::SingleRun { num_runs } => {
+        ExperimentType::SingleRun { num_steps } => {
             cmd.arg("single-run")
                 .arg("--num-steps")
-                .arg(num_runs.to_string());
+                .arg(num_steps.to_string());
         }
         ExperimentType::Simple { experiment_name } => {
             cmd.arg("simple")
@@ -217,4 +227,56 @@ pub fn run_experiment(
             })
         })
         .collect()
+}
+
+#[test]
+fn test_subset() {
+    // Note, that the function is also implicitly tested by integration tests
+
+    // Compare nulls
+    let lhs = serde_json::json!(null);
+    let rhs = serde_json::json!(null);
+    assert_subset_value(&lhs, &rhs, String::new()).unwrap();
+
+    // Compare boolean
+    let lhs = serde_json::json!(true);
+    let rhs = serde_json::json!(true);
+    assert_subset_value(&lhs, &rhs, String::new()).unwrap();
+
+    // Compare different types
+    let lhs = serde_json::json!(false);
+    let rhs = serde_json::json!(null);
+    let _ = assert_subset_value(&lhs, &rhs, String::new()).unwrap_err();
+
+    // Compare numbers
+    let lhs = serde_json::json!(0.5_f64);
+    let rhs = serde_json::json!(0.5_f64);
+    assert_subset_value(&lhs, &rhs, String::new()).unwrap();
+    let lhs = serde_json::json!(5_u32);
+    let rhs = serde_json::json!(5_u32);
+    assert_subset_value(&lhs, &rhs, String::new()).unwrap();
+    let lhs = serde_json::json!(5_i32);
+    let rhs = serde_json::json!(5_i32);
+    assert_subset_value(&lhs, &rhs, String::new()).unwrap();
+
+    // Compare strings
+    let lhs = serde_json::json!("a");
+    let rhs = serde_json::json!("a");
+    assert_subset_value(&lhs, &rhs, String::new()).unwrap();
+
+    // Compare objects
+    let lhs = serde_json::json!({"a": "string"});
+    let rhs = serde_json::json!({"a": "string"});
+    assert_subset_value(&lhs, &rhs, String::new()).unwrap();
+    let lhs = serde_json::json!({"a": "string"});
+    let rhs = serde_json::json!({});
+    let _ = assert_subset_value(&lhs, &rhs, String::new()).unwrap_err();
+
+    // Compare arrays
+    let lhs = serde_json::json!(["1", "2", "3"]);
+    let rhs = serde_json::json!(["1", "2"]);
+    let _ = assert_subset_value(&lhs, &rhs, String::new()).unwrap_err();
+    let lhs = serde_json::json!([{"1": null}, {"2": "2"}, {"3": true}]);
+    let rhs = serde_json::json!([{"1": null}, {"2": "2"}, {"3": true, "_": false}]);
+    assert_subset_value(&lhs, &rhs, String::new()).unwrap();
 }
