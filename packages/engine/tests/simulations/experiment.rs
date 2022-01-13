@@ -8,11 +8,10 @@ use ::error::{ensure, Result, ResultExt};
 use error::bail;
 use hash_engine::utils::OutputFormat;
 use regex::Regex;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize};
 use serde_json::Value;
 
 // TODO: Unify with CLI when splitted up into binary+library
-#[derive(Debug, Clone)]
 pub enum ExperimentType {
     SingleRun { num_steps: u64 },
     Simple { experiment_name: String },
@@ -26,14 +25,11 @@ fn parse_file<T: DeserializeOwned>(path: impl AsRef<Path>) -> Result<T> {
     .wrap_err_lazy(|| format!("Could not parse {path:?}"))
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ExperimentOutput {
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub json_state: Option<Value>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub globals: Option<Value>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub analysis_outputs: Option<Value>,
 }
 
