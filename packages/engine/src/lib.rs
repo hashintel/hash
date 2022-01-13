@@ -54,6 +54,7 @@ pub mod env;
 pub mod utils;
 
 // Suppress weird warning about unused dev-dependencies
+// TODO: Remove when overhauling error handling
 #[cfg(test)]
 mod suppress_weird_warning_about_unused_dev_dependencies {
     use ::error as _;

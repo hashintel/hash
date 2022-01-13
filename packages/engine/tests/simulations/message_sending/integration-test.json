@@ -1,7 +1,7 @@
 {
   "experiments": [
     {
-      "experiment-name": "test",
+      "experiment-name": "send-one",
       "expected-outputs": [
         {
           "json-state": [

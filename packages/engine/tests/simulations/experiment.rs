@@ -10,6 +10,7 @@ use regex::Regex;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Value;
 
+// TODO: Unify with CLI when splitted up into binary+library
 #[derive(Debug, Clone)]
 pub enum ExperimentType {
     SingleRun { num_runs: u64 },

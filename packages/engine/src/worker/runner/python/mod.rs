@@ -26,8 +26,8 @@ use crate::{
 };
 
 pub struct PythonRunner {
-    init_msg: Arc<ExperimentInitRunnerMsg>,
     // Args to RunnerImpl::new
+    init_msg: Arc<ExperimentInitRunnerMsg>,
     inbound_sender: UnboundedSender<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>,
     inbound_receiver:
         Option<UnboundedReceiver<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>>,
