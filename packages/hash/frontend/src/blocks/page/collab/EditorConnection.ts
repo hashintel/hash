@@ -241,6 +241,8 @@ export class EditorConnection {
           let shouldDispatch = false;
 
           if (data.store) {
+            const unsentActions = this.unsentActions(this.state.edit);
+
             /**
              * @todo remove the need to do this – have it send us the relevant
              *       actions instead
@@ -249,6 +251,9 @@ export class EditorConnection {
               type: "store",
               payload: data.store,
             });
+            for (const action of unsentActions) {
+              addEntityStoreAction(this.state.edit, tr, action.action);
+            }
             shouldDispatch = true;
           }
 
@@ -324,9 +329,7 @@ export class EditorConnection {
     editState: EditorState<Schema>,
     { steps }: { steps?: ReturnType<typeof sendableSteps> } = {},
   ) {
-    const actions = entityStorePluginState(editState).trackedActions.filter(
-      (action) => !this.sentActions.has(action.id),
-    );
+    const actions = this.unsentActions(editState);
 
     for (const action of actions) {
       this.sentActions.add(action.id);
@@ -385,6 +388,12 @@ export class EditorConnection {
           this.dispatch({ type: "recover", error: err });
         }
       },
+    );
+  }
+
+  private unsentActions(editState: EditorState<Schema>) {
+    return entityStorePluginState(editState).trackedActions.filter(
+      (action) => !this.sentActions.has(action.id),
     );
   }
 

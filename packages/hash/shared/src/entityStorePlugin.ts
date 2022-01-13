@@ -127,7 +127,11 @@ const entityStoreReducer = (
       };
 
     case "store": {
-      return { ...state, store: action.payload };
+      return {
+        ...state,
+        store: action.payload,
+        trackedActions: [],
+      };
     }
 
     case "subscribe":
