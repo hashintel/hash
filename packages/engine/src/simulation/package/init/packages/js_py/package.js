@@ -34,7 +34,8 @@ const _load_init_fn = (console, source) => {
     // TODO
     // Error.prepareStackTrace = prepare_user_trace;
     const trace = e.stack;
-    trace.msg = "Couldn't load init function (SOURCE " + source + "):" + trace.msg;
+    trace.msg =
+      "Couldn't load init function (SOURCE " + source + "):" + trace.msg;
     throw new Error(json_stringify(trace));
   }
 };
@@ -68,8 +69,7 @@ const run_task = (experiment, _sim, task_message, _group_state, context) => {
             experiment.logged = experiment.logged + "\n";
           };
 
-        return (...args) => {
-        }; // generic noop function.
+        return (...args) => {}; // generic noop function.
       },
       // TODO: non-noop implementation of `console` functions other than `log`
       // TODO: give error instead of returning noop function for methods that
@@ -96,9 +96,9 @@ const run_task = (experiment, _sim, task_message, _group_state, context) => {
   let task_as_str;
   try {
     const msg = {
-      "SuccessMessage": {
-        "agents": agents
-      }
+      SuccessMessage: {
+        agents: agents,
+      },
     };
 
     task_as_str = JSON.stringify(msg);
