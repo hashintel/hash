@@ -65,6 +65,13 @@ export type EntityStorePluginAction = { received?: boolean } & (
         draftId: string;
       };
     }
+  | {
+      type: "updateEntityId";
+      payload: {
+        draftId: string;
+        entityId: string;
+      };
+    }
 );
 
 const entityStorePluginKey = new PluginKey<EntityStorePluginState, Schema>(
@@ -182,6 +189,33 @@ const entityStoreReducer = (
         }
       });
     }
+    case "updateEntityId": {
+      if (!state.store.draft[action.payload.draftId]) {
+        throw new Error("Entity missing to update entity id");
+      }
+
+      return produce(state, (draft) => {
+        if (!action.received) draft.trackedActions.push({ action, id: uuid() });
+
+        const entities: Draft<DraftEntity>[] = [
+          draft.store.draft[action.payload.draftId],
+        ];
+
+        for (const entity of Object.values(draft.store.draft)) {
+          if (
+            isDraftBlockEntity(entity) &&
+            entity.properties.entity.draftId === action.payload.draftId
+          ) {
+            entities.push(entity.properties.entity);
+          }
+        }
+
+        for (const entity of entities) {
+          entity.entityId = action.payload.entityId;
+        }
+      });
+    }
+
     case "newDraftEntity":
       if (state.store.draft[action.payload.draftId]) {
         throw new Error("Draft entity already exists");
