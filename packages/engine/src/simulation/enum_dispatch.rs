@@ -85,7 +85,7 @@ pub use crate::{
     simulation::{
         package::{
             context::{ContextTask, ContextTaskMessage},
-            init::{packages::jspy::JsPyInitTaskMessage, InitTask, InitTaskMessage},
+            init::{packages::js_py::JsPyInitTaskMessage, InitTask, InitTaskMessage},
             output::{OutputTask, OutputTaskMessage},
             state::{
                 packages::behavior_execution::tasks::ExecuteBehaviorsTask, StateTask,

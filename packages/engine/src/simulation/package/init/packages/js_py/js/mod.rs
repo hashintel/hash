@@ -2,7 +2,7 @@ use crate::{
     config::TaskDistributionConfig,
     simulation::{
         package::init::{
-            packages::jspy::{JsPyInitTaskMessage, StartMessage},
+            packages::js_py::{JsPyInitTaskMessage, StartMessage},
             InitTaskMessage,
         },
         task::{
