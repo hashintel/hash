@@ -15,6 +15,8 @@ import {
 import {
   GetEntityQuery,
   GetEntityQueryVariables,
+  GetPageQuery,
+  GetPageQueryVariables,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 import {
   getComponentNodeAttrs,
@@ -573,7 +575,10 @@ const newInstance =
       }
     }
 
-    const { data } = await apolloClient.query({
+    const { data } = await apolloClient.query<
+      GetPageQuery,
+      GetPageQueryVariables
+    >({
       query: getPageQuery,
       variables: { entityId: pageEntityId, accountId },
     });
