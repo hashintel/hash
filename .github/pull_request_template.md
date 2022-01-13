@@ -1,5 +1,3 @@
-<!-- markdownlint-disable MD041 -->
-
 ## 🌟 What is the purpose of this PR?
 
 <!-- Explain, at a high level, what this does and why. -->

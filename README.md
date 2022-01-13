@@ -1,4 +1,3 @@
-<!-- markdownlint-disable-next-line first-line-heading -->
 <div id="top"></div>
 
 # HASH
