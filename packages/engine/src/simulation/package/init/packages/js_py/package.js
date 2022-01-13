@@ -32,11 +32,11 @@ const _load_init_fn = (console, source) => {
   } catch (e) {
     // Catch errors while loading the init function
     // TODO
-        // Error.prepareStackTrace = prepare_user_trace;
-        const trace = e.stack;
-        trace.msg = "Couldn't load init function (SOURCE " + source + "):" + trace.msg;
-        throw new Error(json_stringify(trace));
-    }
+    // Error.prepareStackTrace = prepare_user_trace;
+    const trace = e.stack;
+    trace.msg = "Couldn't load init function (SOURCE " + source + "):" + trace.msg;
+    throw new Error(json_stringify(trace));
+  }
 };
 
 const run_task = (experiment, _sim, task_message, _group_state, context) => {
@@ -68,7 +68,8 @@ const run_task = (experiment, _sim, task_message, _group_state, context) => {
             experiment.logged = experiment.logged + "\n";
           };
 
-        return (...args) => {}; // generic noop function.
+        return (...args) => {
+        }; // generic noop function.
       },
       // TODO: non-noop implementation of `console` functions other than `log`
       // TODO: give error instead of returning noop function for methods that
@@ -83,22 +84,24 @@ const run_task = (experiment, _sim, task_message, _group_state, context) => {
     agents = init_fn(context);
   } catch (e) {
     // TODO
-        // Error.prepareStackTrace = prepare_user_trace;
-        const trace = e.stack;
-        throw new Error(JSON.stringify(trace));
-    }
+    // Error.prepareStackTrace = prepare_user_trace;
+    const trace = e.stack;
+    throw new Error(JSON.stringify(trace));
+  }
 
   if (!Array.isArray(agents)) {
     throw new Error(`init must return an array not '${typeof agents}'`);
   }
 
-  let data;
+  let task_as_str;
   try {
-    data = {
-            "SuccessMessage": {
-                "agents": agents
-            }
-        };
+    const msg = {
+      "SuccessMessage": {
+        "agents": agents
+      }
+    };
+
+    task_as_str = JSON.stringify(msg);
   } catch (e) {
     throw new Error(
       `could not serialize init return value to JSON: ${e.message}`,
@@ -107,7 +110,7 @@ const run_task = (experiment, _sim, task_message, _group_state, context) => {
 
   // TODO: Change the runner to avoid this, perhaps a function or a well-defined object would make this clearer.
   return {
-    task: JSON.stringify(data),
+    task: task_as_str,
     print: experiment.logged,
   };
 };
