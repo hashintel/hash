@@ -1,12 +1,8 @@
-import { ApolloClient } from "@apollo/client";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
-import { BlockEntity } from "@hashintel/hash-shared/entity";
-import { entityStoreFromProsemirror } from "@hashintel/hash-shared/entityStorePlugin";
 import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
-import { updatePageMutation } from "@hashintel/hash-shared/save";
 // import applyDevTools from "prosemirror-dev-tools";
 import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
@@ -14,7 +10,6 @@ import { EditorView } from "prosemirror-view";
 import { BlockView } from "./BlockView";
 import { EditorConnection } from "./collab/EditorConnection";
 import { Reporter } from "./collab/Reporter";
-import { collabEnabled } from "./collabEnabled";
 import { ComponentView } from "./ComponentView";
 import { createFormatPlugins } from "./createFormatPlugins";
 import { createSuggester } from "./createSuggester/createSuggester";
@@ -22,89 +17,23 @@ import { MentionView } from "./MentionView/MentionView";
 import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
 
-const createSavePlugin = (
-  accountId: string,
-  pageEntityId: string,
-  getLastSavedValue: () => BlockEntity[],
-  client: ApolloClient<unknown>,
-) => {
-  let saveQueue = Promise.resolve<unknown>(null);
-
-  const triggerSave = (view: EditorView<Schema>) => {
-    if (collabEnabled) {
-      return;
-    }
-
-    saveQueue = saveQueue
-      .catch()
-      .then(() =>
-        updatePageMutation(
-          accountId,
-          pageEntityId,
-          view.state.doc,
-          getLastSavedValue(),
-          entityStoreFromProsemirror(view.state).store,
-          client,
-        ),
-      );
-  };
-
-  let timeout: ReturnType<typeof setTimeout> | null = null;
-
-  return new Plugin<unknown, Schema>({
-    props: {
-      handleDOMEvents: {
-        keydown(view, evt) {
-          // Manual save for cmd+s
-          if (evt.key === "s" && evt.metaKey) {
-            evt.preventDefault();
-            triggerSave(view);
-
-            return true;
-          }
-          return false;
-        },
-        focus() {
-          // Cancel the in-progress save
-          if (timeout) {
-            clearTimeout(timeout);
-          }
-          return false;
-        },
-        blur(view) {
-          if (timeout) {
-            clearTimeout(timeout);
-          }
-
-          timeout = setTimeout(() => triggerSave(view), 500);
-
-          return false;
-        },
-      },
-    },
-  });
-};
-
 export const createEditorView = (
   renderNode: HTMLElement,
   renderPortal: RenderPortal,
   accountId: string,
   pageEntityId: string,
   preloadedBlocks: BlockMeta[],
-  getLastSavedValue: () => BlockEntity[],
-  client: ApolloClient<unknown>,
 ) => {
   let manager: ProsemirrorSchemaManager;
 
   const plugins: Plugin<unknown, Schema>[] = [
-    createSavePlugin(accountId, pageEntityId, getLastSavedValue, client),
     ...createFormatPlugins(renderPortal),
     createSuggester(renderPortal, () => manager, accountId),
   ];
 
   const state = createProseMirrorState({ plugins });
 
-  let connection: EditorConnection | null = null;
+  let connection: EditorConnection;
 
   const view = new EditorView<Schema>(renderNode, {
     state,
@@ -160,9 +89,7 @@ export const createEditorView = (
         );
       },
     },
-    dispatchTransaction: collabEnabled
-      ? (...args) => connection?.dispatchTransaction(...args)
-      : undefined,
+    dispatchTransaction: (...args) => connection?.dispatchTransaction(...args),
   });
 
   manager = new ProsemirrorSchemaManager(
@@ -184,16 +111,14 @@ export const createEditorView = (
     },
   );
 
-  if (collabEnabled) {
-    connection = new EditorConnection(
-      new Reporter(),
-      `${apiOrigin}/collab-backend/${accountId}/${pageEntityId}`,
-      view.state.schema,
-      view,
-      manager,
-      plugins,
-    );
-  }
+  connection = new EditorConnection(
+    new Reporter(),
+    `${apiOrigin}/collab-backend/${accountId}/${pageEntityId}`,
+    view.state.schema,
+    view,
+    manager,
+    plugins,
+  );
 
   view.dom.classList.add(styles.ProseMirror);
 

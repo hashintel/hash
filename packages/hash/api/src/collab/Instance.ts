@@ -101,6 +101,7 @@ export class Instance {
   }
 
   stop() {
+    this.sendUpdates();
     if (this.collecting != null) clearTimeout(this.collecting);
 
     clearInterval(this.positionCleanupInterval);
@@ -329,6 +330,19 @@ export class Instance {
       blockIds: string[],
     ) => {
       /**
+       * This isn't strictly necessary, and will result in more laggy collab
+       * performance. However, it is a quick way to improve stability by
+       * reducing moving parts – because it means each client will not try to
+       * send another set of updates until the previous updates (even those
+       * from other clients are finished saving). This is a good way to improve
+       * stability until we're more confident in collab not breaking with
+       * frequent updates.
+       *
+       * @todo remove this
+       */
+      await this.saveChain;
+
+      /**
        * This is a potential security risk as the frontend can instruct us
        * to make a web request
        */
@@ -340,7 +354,22 @@ export class Instance {
         Step.fromJSON(this.state.doc.type.schema, step),
       );
 
-      return this.addEvents(apolloClient)(version, steps, clientId);
+      const res = this.addEvents(apolloClient)(version, steps, clientId);
+
+      /**
+       * This isn't strictly necessary, and will result in more laggy collab
+       * performance. However, it is a quick way to improve stability by
+       * reducing moving parts – because it means each client will not try to
+       * send another set of updates until the previous updates (even those
+       * from other clients are finished saving). This is a good way to improve
+       * stability until we're more confident in collab not breaking with
+       * frequent updates.
+       *
+       * @todo remove this
+       */
+      await this.saveChain;
+
+      return res;
     };
 
   sendUpdates() {
@@ -547,7 +576,16 @@ const newInstance =
 
 export const getInstance =
   (apolloClient: ApolloClient<unknown>, entityWatcher: EntityWatcher) =>
-  async (accountId: string, pageEntityId: string, userId: string | null) => {
+  async (
+    accountId: string,
+    pageEntityId: string,
+    userId: string | null,
+    forceNewInstance = false,
+  ) => {
+    if (forceNewInstance) {
+      instances[pageEntityId]?.stop();
+      delete instances[pageEntityId];
+    }
     const inst =
       instances[pageEntityId] ||
       (await newInstance(apolloClient, entityWatcher)(accountId, pageEntityId));

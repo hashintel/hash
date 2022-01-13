@@ -159,7 +159,7 @@ export const Page: VoidFunctionComponent<{
     );
   }
 
-  const { title, contents } = data.page.properties;
+  const { title } = data.page.properties;
 
   return (
     <MainContentWrapper>
@@ -203,7 +203,6 @@ export const Page: VoidFunctionComponent<{
         <CollabPositionProvider value={collabPositions}>
           <PageBlock
             accountId={data.page.accountId}
-            contents={contents}
             blocksMeta={preloadedBlocks}
             entityId={data.page.entityId}
           />

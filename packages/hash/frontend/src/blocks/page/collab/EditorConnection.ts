@@ -61,6 +61,8 @@ type EditorConnectionAction =
       requestDone?: boolean;
     };
 
+const NEW_INSTANCE_KEY = "collab-force-new-instance";
+
 export class EditorConnection {
   state = new State(null, "start");
   backOff = 0;
@@ -75,6 +77,11 @@ export class EditorConnection {
     public additionalPlugins: Plugin<unknown, Schema>[],
   ) {
     this.start();
+  }
+
+  restart() {
+    localStorage.setItem(NEW_INSTANCE_KEY, "true");
+    window.location.reload();
   }
 
   // All state changes go through this
@@ -166,7 +173,14 @@ export class EditorConnection {
 
   // Load the document from the server and start up
   start() {
-    this.run(GET(this.url))
+    let url = this.url;
+
+    if (localStorage.getItem(NEW_INSTANCE_KEY) === "true") {
+      url += "?forceNewInstance=true";
+      localStorage.removeItem(NEW_INSTANCE_KEY);
+    }
+
+    this.run(GET(url))
       .then((stringifiedData) => {
         // @todo type this
         const data = JSON.parse(stringifiedData);

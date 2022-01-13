@@ -1,19 +1,17 @@
-import { useApolloClient } from "@apollo/client";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
-import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { Schema } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
 import "prosemirror-view/style/prosemirror.css";
 import React, { useLayoutEffect, useRef, VoidFunctionComponent } from "react";
+import { tw } from "twind";
+import { Button } from "../../components/forms/Button";
 import { BlockMetaContext } from "../blockMeta";
 import { EditorConnection } from "./collab/EditorConnection";
-import { collabEnabled } from "./collabEnabled";
 import { createEditorView } from "./createEditorView";
 import { usePortals } from "./usePortals";
 
 type PageBlockProps = {
-  contents: BlockEntity[];
   blocksMeta: Map<string, BlockMeta>;
   accountId: string;
   entityId: string;
@@ -26,14 +24,11 @@ type PageBlockProps = {
  * do that
  */
 export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
-  contents,
   blocksMeta,
   accountId,
   entityId,
 }) => {
   const root = useRef<HTMLDivElement>(null);
-  const client = useApolloClient();
-
   const [portals, renderPortal] = usePortals();
 
   const prosemirrorSetup = useRef<null | {
@@ -41,15 +36,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     connection: EditorConnection | null;
     manager: ProsemirrorSchemaManager;
   }>(null);
-
-  /**
-   * smart hack: provide a live reference to "contents" for all other effects
-   * that cannot list "contents" as a dependency for reasons.
-   */
-  const currentContents = useRef(contents);
-  useLayoutEffect(() => {
-    currentContents.current = contents;
-  }, [contents]);
 
   /**
    * This effect runs once and just sets up the prosemirror instance. It is not
@@ -70,8 +56,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       accountId,
       entityId,
       Array.from(blocksMeta.values()),
-      () => currentContents.current,
-      client,
     );
 
     prosemirrorSetup.current = {
@@ -86,65 +70,23 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       prosemirrorSetup.current = null;
       connection?.close();
     };
-  }, [accountId, blocksMeta, client, entityId, renderPortal]);
-
-  /**
-   * Whenever contents are updated, we want to sync them to the prosemirror
-   * document, which is an async operation as it may involved defining new node
-   * types (and fetching the metadata for them). Contents change whenever we
-   * save (as we replace our already loaded contents with another request for
-   * the contents, which ensures that blocks referencing the same entity are
-   * all updated, and that empty IDs are properly filled (i.e, when creating a
-   * new block)
-   */
-  useLayoutEffect(() => {
-    const controller = new AbortController();
-
-    if (!collabEnabled) {
-      (async function updateContents(
-        updatedContents: BlockEntity[],
-        signal?: AbortSignal,
-      ): Promise<void> {
-        const setup = prosemirrorSetup.current;
-        if (!setup) {
-          return;
-        }
-        const { state } = setup.view;
-        const tr = await setup.manager.createEntityUpdateTransaction(
-          updatedContents,
-          state,
-        );
-
-        if (signal?.aborted) {
-          return;
-        }
-
-        /**
-         * The view's state may have changed, making our current transaction
-         * invalid – so lets start again.
-         *
-         * @todo probably better way of dealing with this
-         */
-        if (setup.view.state !== state || prosemirrorSetup.current !== setup) {
-          return updateContents(updatedContents, signal);
-        }
-
-        setup.view.dispatch(tr);
-      })(contents, controller.signal).catch((err) =>
-        // eslint-disable-next-line no-console -- TODO: consider using logger
-        console.error("Could not update page contents: ", err),
-      );
-    }
-
-    return () => {
-      controller.abort();
-    };
-  }, [contents]);
+  }, [accountId, blocksMeta, entityId, renderPortal]);
 
   return (
     <BlockMetaContext.Provider value={blocksMeta}>
       <div id="root" ref={root} />
       {portals}
+      {/**
+       * @todo position this better
+       */}
+      <Button
+        className={tw`fixed bottom-5 right-5 opacity-30 hover:(opacity-100) transition-all`}
+        onClick={() => {
+          prosemirrorSetup.current?.connection?.restart();
+        }}
+      >
+        Restart Collab Instance
+      </Button>
     </BlockMetaContext.Provider>
   );
 };

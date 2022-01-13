@@ -131,6 +131,7 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
 
   const prepareSessionSupportWithInstance = async (
     request: Request,
+    forceNewInstance = false,
   ): Promise<SessionSupport & { instance: Instance }> => {
     const { apolloClient, userInfo } = await prepareSessionSupport(
       request.headers.cookie,
@@ -140,6 +141,7 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
       request.params.accountId,
       request.params.pageEntityId,
       userInfo.entityId,
+      forceNewInstance,
     );
 
     return {
@@ -160,7 +162,10 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
     // eslint-disable-next-line @typescript-eslint/no-misused-promises -- Consider using express-async-handler
     async (request, response, next) => {
       try {
-        const { instance } = await prepareSessionSupportWithInstance(request);
+        const { instance } = await prepareSessionSupportWithInstance(
+          request,
+          request.query.forceNewInstance === "true",
+        );
 
         response.json({
           doc: instance.state.doc.toJSON(),

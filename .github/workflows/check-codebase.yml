@@ -187,8 +187,6 @@ jobs:
           yarn workspace @hashintel/hash-frontend next build
           yarn workspace @hashintel/hash-frontend start 2>&1 | tee var/logs/frontend.log & ## ampersand enables background mode
           yarn wait-on --timeout 30000 http://localhost:3000
-        env:
-          NEXT_PUBLIC_COLLAB: true
 
       - run: yarn playwright install-deps
         if: ${{ success() || failure() }}

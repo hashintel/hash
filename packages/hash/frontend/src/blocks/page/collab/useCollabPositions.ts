@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
 import { CollabPosition } from "@hashintel/hash-shared/collab";
 import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { sleep } from "@hashintel/hash-shared/sleep";
+import { useEffect, useState } from "react";
 import { AbortingPromise, GET } from "./http";
-import { collabEnabled } from "../collabEnabled";
 
 const requestRetryInterval = 5000;
 
@@ -36,7 +35,7 @@ interface PositionInfo {
   positions: CollabPosition[];
 }
 
-const useCollabPositionsWhenCollabIsEnabled = (
+export const useCollabPositions = (
   accountId: string,
   pageEntityId: string,
 ): CollabPosition[] => {
@@ -86,14 +85,3 @@ const useCollabPositionsWhenCollabIsEnabled = (
     ? positionInfo.positions
     : [];
 };
-
-// Prevents new array ref on each render
-const emptyListOfPositions: CollabPosition[] = [];
-
-const useCollabPositionsWhenCollabIsDisabled = (): CollabPosition[] => {
-  return emptyListOfPositions;
-};
-
-export const useCollabPositions = collabEnabled
-  ? useCollabPositionsWhenCollabIsEnabled
-  : useCollabPositionsWhenCollabIsDisabled;

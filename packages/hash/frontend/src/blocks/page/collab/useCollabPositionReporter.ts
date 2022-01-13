@@ -1,8 +1,7 @@
-import { useEffect, useRef, useCallback } from "react";
 import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { sleep } from "@hashintel/hash-shared/sleep";
+import { useCallback, useEffect, useRef } from "react";
 import { POST } from "./http";
-import { collabEnabled } from "../collabEnabled";
 
 export type CollabPositionReporter = (entityId: string | null) => void;
 
@@ -29,7 +28,7 @@ const sendCollabPosition = ({
 // and thus reduce the number of re-renders. Each time we change to a new page,
 // we redefine reportWithHeartbeatRef, while keeping outer function ref stable.
 
-const useCollabPositionReporterWhenCollabIsEnabled = (
+export const useCollabPositionReporter = (
   accountId: string,
   pageEntityId: string,
 ): CollabPositionReporter => {
@@ -82,15 +81,3 @@ const useCollabPositionReporterWhenCollabIsEnabled = (
 
   return reportPosition;
 };
-
-// Prevents new function ref on each render without involving useCallback
-const noop = () => {};
-
-const useCollabPositionReporterWhenCollabIsDisabled =
-  (): CollabPositionReporter => {
-    return noop;
-  };
-
-export const useCollabPositionReporter = collabEnabled
-  ? useCollabPositionReporterWhenCollabIsEnabled
-  : useCollabPositionReporterWhenCollabIsDisabled;
