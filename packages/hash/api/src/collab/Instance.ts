@@ -240,7 +240,6 @@ export class Instance {
 
         const result = tr.maybeStep(steps[i]);
         if (!result.doc) return false;
-        // @todo look into whether this is needed now we use a tr
         if (this.saveMapping) {
           this.saveMapping.appendMap(steps[i].getMap());
         }
@@ -278,7 +277,7 @@ export class Instance {
         ).then((newPage) => {
           const componentNodes = findComponentNodes(this.state.doc);
 
-          this.updateSavedContents(newPage.properties.contents);
+          const steps: Step<Schema>[] = [];
 
           for (let idx = 0; idx < componentNodes.length; idx++) {
             const [componentNode, pos] = componentNodes[idx];
@@ -301,14 +300,19 @@ export class Instance {
                 ...attrs,
               });
 
-              // @todo need to do this outside the loop
-              this.addEvents(apolloClient)(
-                this.version,
-                transform.steps,
-                `${clientID}-server`,
-              );
+              steps.push(...transform.steps);
             }
           }
+
+          if (steps.length) {
+            this.addEvents(apolloClient)(
+              this.version,
+              steps,
+              `${clientID}-server`,
+            );
+          }
+
+          this.updateSavedContents(newPage.properties.contents);
         });
       })
       .catch((err) => {
