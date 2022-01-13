@@ -7,7 +7,6 @@ import { BlockEntity } from "./entity";
 import {
   createEntityStore,
   draftEntityForEntityId,
-  draftIdForEntityId,
   EntityStore,
   isBlockEntity,
   isDraftBlockEntity,
@@ -139,7 +138,7 @@ const draftIdForNode = (
      * @todo this will lead to the frontend setting draft id uuids for new
      *       blocks – this is potentially insecure and needs considering
      */
-    draftId ??= draftIdForEntityId(uuid());
+    draftId ??= `fake-${uuid()}`;
 
     draftDraftEntityStore[draftId] = {
       draftId,

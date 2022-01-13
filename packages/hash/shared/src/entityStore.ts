@@ -112,8 +112,6 @@ const findEntities = (contents: EntityStoreType[]) => {
   return entities;
 };
 
-export const draftIdForEntityId = (entityId: string) => `draft-${entityId}`;
-
 /**
  * @todo restore dealing with links
  * @todo this should be flat – so that we don't have to traverse links
@@ -136,7 +134,7 @@ export const createEntityStore = (
 
   for (const entity of entities) {
     if (!entityToDraft[entity.entityId]) {
-      entityToDraft[entity.entityId] = draftIdForEntityId(entity.entityId);
+      entityToDraft[entity.entityId] = `draft-${entity.entityId}`;
     }
   }
 
