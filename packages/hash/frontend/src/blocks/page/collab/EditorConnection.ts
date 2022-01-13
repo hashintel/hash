@@ -342,7 +342,14 @@ export class EditorConnection {
       ),
       actions: actions.map((action) => action.action),
     });
-    this.run(POST(`${this.url}/events`, json, "application/json")).then(
+    const removeActions = () => {
+      for (const action of actions) {
+        this.sentActions.delete(action.id);
+      }
+    };
+    this.run(
+      POST(`${this.url}/events`, json, "application/json", removeActions),
+    ).then(
       (data) => {
         this.report.success();
         this.backOff = 0;
@@ -365,9 +372,7 @@ export class EditorConnection {
         });
       },
       (err) => {
-        for (const action of actions) {
-          this.sentActions.delete(action.id);
-        }
+        removeActions();
         if (err.status === 409) {
           // The client's document conflicts with the server's version.
           // Poll for changes and then try again.
