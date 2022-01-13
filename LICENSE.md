@@ -31,4 +31,4 @@ Attribution-ShareAlike 4.0 International](resources/LICENSE.md) license.
   the metadata of a package (e.g. its `package.json` file) or (c) within a
   folder's `LICENSE.md` file (or that of its nearest parent).
 
-If you have any questions please [contact us](https://hash.ai/contact].
+If you have any questions please [contact us](https://hash.ai/contact).
