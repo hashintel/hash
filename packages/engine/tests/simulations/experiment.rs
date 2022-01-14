@@ -72,8 +72,8 @@ impl Experiment {
         ensure!(experiment.status.success(), "Could not run experiment");
 
         // Split output directory into `path/to/simulation/` and `<num>` to make it sortable
-        // We need to be able to sort it as outputs happens in any order and it has to be mapped
-        // properly expected outputs
+        // We need to be able to sort it as outputs happen in any order and it has to be mapped
+        // properly to the order of the expected outputs that are given
         let mut outputs = Regex::new(r#"Making new output directory: "(.*)""#)
             .wrap_err("Could not compile regex")?
             .captures_iter(&String::from_utf8_lossy(&experiment.stderr))
