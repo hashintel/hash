@@ -463,7 +463,12 @@ export const updateEntityAccountId = async (
           source_account_id = ${newAccountId}
         where
           source_account_id = ${originalAccountId}
-          and source_entity_id = ${entityId}
+          and link_id in (
+            select link_id from links 
+            where 
+              source_account_id = ${originalAccountId}
+              and source_entity_id = ${entityId}
+          )
       `),
       transaction.query(sql`
         update incoming_links set
@@ -478,13 +483,6 @@ export const updateEntityAccountId = async (
         where
           source_account_id = ${originalAccountId}
           and source_entity_id = ${entityId}
-      `),
-      transaction.query(sql`
-        update outgoing_links set
-          destination_account_id = ${newAccountId}
-        where
-          destination_account_id = ${originalAccountId}
-          and destination_entity_id = ${entityId}
       `),
     ]);
   });

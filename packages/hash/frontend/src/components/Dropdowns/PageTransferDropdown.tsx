@@ -5,10 +5,7 @@ import { useMutation } from "@apollo/client";
 import { AccountSelect } from "../layout/PageSidebar/AccountSelect";
 import { MutationTransferEntityArgs } from "../../graphql/apiTypes.gen";
 import { transferEntityMutation } from "../../graphql/queries/entityType.queries";
-import {
-  getAccountEntityTypes,
-  getAccountPages,
-} from "../../graphql/queries/account.queries";
+import { getAccountPages } from "../../graphql/queries/account.queries";
 
 type PageTransferDropdownType = {
   pageEntityId: string;
@@ -29,11 +26,6 @@ export const PageTransferDropdown: VoidFunctionComponent<
 
   const [transferEntity] = useMutation<MutationTransferEntityArgs>(
     transferEntityMutation,
-    {
-      refetchQueries: [
-        { query: getAccountEntityTypes, variables: { accountId } },
-      ],
-    },
   );
 
   const transferAccount = (newAccountId: string) => {

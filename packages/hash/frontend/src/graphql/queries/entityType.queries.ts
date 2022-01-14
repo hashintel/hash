@@ -71,6 +71,7 @@ export const transferEntityMutation = gql`
       newAccountId: $newAccountId
     ) {
       accountId
+      entityId
     }
   }
 `;
