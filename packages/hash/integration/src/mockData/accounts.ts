@@ -24,36 +24,6 @@ export const createUsers =
         shortname: "bob",
         preferredName: "Bob Bobson",
       },
-      {
-        email: "charlie@example.com",
-        shortname: "charlie",
-        preferredName: "Bob Bobson",
-      },
-      {
-        email: "david@example.com",
-        shortname: "david",
-        preferredName: "David Davidson",
-      },
-      {
-        email: "eve@example.com",
-        shortname: "eve",
-        preferredName: "Eve Everson",
-      },
-      {
-        email: "frances@example.com",
-        shortname: "frances",
-        preferredName: "Frances Franceson",
-      },
-      {
-        email: "george@example.com",
-        shortname: "george",
-        preferredName: "George Georgeson",
-      },
-      {
-        email: "harriet@example.com",
-        shortname: "harriet",
-        preferredName: "Harriet Harrisson",
-      },
     ];
 
     return Promise.all(

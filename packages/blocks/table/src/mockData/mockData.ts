@@ -42,7 +42,7 @@ const newYork: Location = {
 
 const company1: Company = {
   name: "Example Company",
-  url: "https://example.com",
+  url: "https://example.org",
   locationId: "place1",
   entityId: "c1",
   type: "Company",
@@ -50,7 +50,7 @@ const company1: Company = {
 
 const company2: Company = {
   name: "Example Company #2",
-  url: "https://another.example.com",
+  url: "https://example.net",
   locationId: "place2",
   entityId: "c2",
   type: "Company",
@@ -58,56 +58,56 @@ const company2: Company = {
 
 const people: Person[] = [
   {
-    email: "alice@example.com",
+    email: "a@example.org",
     employerId: "c1",
     entityId: "1",
     name: "Alice Alison",
     type: "Person",
   },
   {
-    email: "bob@example.com",
+    email: "b@example.org",
     employerId: "c1",
     entityId: "2",
     name: "Bob Bobson",
     type: "Person",
   },
   {
-    email: "charlie@example.com",
+    email: "c@example.org",
     employerId: "c1",
     entityId: "3",
     name: "Charlie Charlson",
     type: "Person",
   },
   {
-    email: "david@example.com",
+    email: "d@example.org",
     employerId: "c1",
     entityId: "4",
     name: "David Davidson",
     type: "Person",
   },
   {
-    email: "eve@example.com",
+    email: "e@example.org",
     employerId: "c1",
     entityId: "5",
     name: "Eve Everson",
     type: "Person",
   },
   {
-    email: "frances@example.com",
+    email: "f@example.org",
     employerId: "c1",
     entityId: "6",
     name: "Frances Franceson",
     type: "Person",
   },
   {
-    email: "george@example.com",
+    email: "g@example.org",
     employerId: "c1",
     entityId: "7",
     name: "George Georgeson",
     type: "Person",
   },
   {
-    email: "harriet@example.com",
+    email: "h@example.org",
     employerId: "c1",
     entityId: "8",
     name: "Harriet Harrisson",
