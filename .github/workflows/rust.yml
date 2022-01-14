@@ -208,23 +208,19 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           override: true
 
-      - name: Cache dependencies
-        uses: actions/cache@v2
-        env:
-          cache-name: cache-dependencies
-        with:
-          path: |
-            ~/.cargo/.crates.toml
-            ~/.cargo/.crates2.json
-            ~/.cargo/bin
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
-            **/target/
-          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Clean
-        run: |
-          cargo clean --manifest-path ${{ matrix.directory }}/Cargo.toml
+      #      - name: Cache dependencies
+      #        uses: actions/cache@v2
+      #        env:
+      #          cache-name: cache-dependencies
+      #        with:
+      #          path: |
+      #            ~/.cargo/.crates.toml
+      #            ~/.cargo/.crates2.json
+      #            ~/.cargo/bin
+      #            ~/.cargo/registry/index
+      #            ~/.cargo/registry/cache
+      #            **/target/
+      #          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install v8
         run: |
