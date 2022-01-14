@@ -175,9 +175,11 @@ async fn run_experiment_with_manifest(
         }
     }
 
-    // Allow Engine to exit gracefully.
-    std::thread::sleep(std::time::Duration::from_millis(200));
+    // Allow Engine to exit gracefully (including releasing shared memory).
+    std::thread::sleep(std::time::Duration::from_millis(300));
 
+    // Allow flamegraph to write
+    std::thread::sleep(std::time::Duration::from_millis(5000));
     debug!("Performing cleanup");
     engine_process
         .exit_and_cleanup()
