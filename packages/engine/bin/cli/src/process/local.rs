@@ -130,8 +130,8 @@ impl process::Command for LocalCommand {
         let mut cmd = std::process::Command::new("cargo");
         cmd.arg("flamegraph")
             .arg("--bin=hash_engine")
-            .arg("--output=./test.svg")
-            .arg("--no-inline")
+            .arg("--output=./ssh_sync/flamegraph.svg")
+            // .arg("--no-inline")
             .arg("--");
         cmd.arg("--experiment-id")
             .arg(&self.experiment_id)
