@@ -1,0 +1,9 @@
+{
+  "Simple": {
+    "type": "values",
+    "steps": 10,
+    "field": "num_agents",
+    "values": [1, 100, 1000, 10000, 100000]
+  },
+  "max_sims_in_parallel": 1
+}
