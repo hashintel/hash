@@ -27,6 +27,12 @@ pub struct Engine {
 }
 
 impl Engine {
+    /// Creates a new simulation engine from a given collection of Packages, an uninitialized
+    /// store, a configuration for the simulation run, and a set of Comms to communicate with the
+    /// Worker Pool.
+    /// - Initializes Agent State through the init packages
+    /// - Creates an empty Context
+    /// - Initializes the Store using the Agent State and empty Context
     pub async fn new(
         mut packages: Packages,
         mut uninitialized_store: Store,
