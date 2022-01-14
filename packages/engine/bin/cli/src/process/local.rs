@@ -34,7 +34,7 @@ impl process::Process for LocalProcess {
                 std::thread::sleep(std::time::Duration::from_millis(500));
             }
             Err(e) => {
-                error!(Report::new(e));
+                error!("{}", Report::new(e));
             }
         };
 
@@ -42,7 +42,7 @@ impl process::Process for LocalProcess {
             .kill()
             .or_else(|e| match e.kind() {
                 std::io::ErrorKind::InvalidInput => Ok(()),
-                _ => Err(Report::new(e)),
+                _ => Err("{}", Report::new(e)),
             })
             .wrap_err("Could not kill the process")?;
 

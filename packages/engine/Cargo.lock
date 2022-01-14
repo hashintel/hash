@@ -416,6 +416,7 @@ dependencies = [
  "error",
  "hash_engine",
  "lazy_static",
+ "nix",
  "rand 0.8.4",
  "rand_distr",
  "serde",
