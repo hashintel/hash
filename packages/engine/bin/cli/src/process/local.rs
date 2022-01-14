@@ -21,7 +21,6 @@ pub struct LocalProcess {
 impl process::Process for LocalProcess {
     #[cfg(target_os = "linux")]
     async fn exit_and_cleanup(mut self: Box<Self>) -> Result<()> {
-        debug!("TESTING");
         use nix::{
             sys::signal::{self, Signal},
             unistd::Pid,
@@ -31,10 +30,30 @@ impl process::Process for LocalProcess {
             Ok(_) => {
                 // Allow Engine to exit gracefully.
                 debug!("Giving engine a chance to clean-up");
-                std::thread::sleep(std::time::Duration::from_millis(1000));
+                for attempt in 0..5 {
+                    match self.child.try_wait() {
+                        Ok(Some(status)) => break,
+                        Ok(None) => {
+                            std::thread::sleep(std::time::Duration::from_millis(1000 * attempt));
+                        }
+                        Err(e) => {
+                            error!("error attempting to wait for engine process to exit: {}", e)
+                        }
+                    }
+                }
                 // TODO: remove - here for flamegraph
                 signal::kill(Pid::from_raw(self.child.id() as i32), Signal::SIGINT)?;
-                std::thread::sleep(std::time::Duration::from_millis(1000));
+                for attempt in 0..5 {
+                    match self.child.try_wait() {
+                        Ok(Some(status)) => break,
+                        Ok(None) => {
+                            std::thread::sleep(std::time::Duration::from_millis(1000 * attempt));
+                        }
+                        Err(e) => {
+                            error!("error attempting to wait for engine process to exit: {}", e)
+                        }
+                    }
+                }
             }
             Err(e) => {
                 error!("{}", Report::new(e));
@@ -58,6 +77,15 @@ impl process::Process for LocalProcess {
 
     #[cfg(not(target_os = "linux"))]
     async fn exit_and_cleanup(mut self: Box<Self>) -> Result<()> {
+        for attempt in 0..5 {
+            match self.child.try_wait() {
+                Ok(Some(status)) => break,
+                Ok(None) => {
+                    std::thread::sleep(std::time::Duration::from_millis(100 * attempt));
+                }
+                Err(e) => error!("error attempting to wait for engine process to exit: {}", e),
+            }
+        }
         self.child
             .kill()
             .or_else(|e| match e.kind() {
