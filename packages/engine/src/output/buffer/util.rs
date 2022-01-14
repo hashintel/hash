@@ -11,6 +11,7 @@ use crate::{
 /// Not required for pod instances.
 pub fn cleanup_experiment(experiment_id: &ExperimentId) -> Result<()> {
     log::trace!("Cleaning up experiment: {}", experiment_id);
+    // TODO: Mac differences in shared_memory
     let shm_files = glob::glob(&format!("/dev/shm/shm_{}_*", experiment_id))
         .map_err(|e| Error::Unique(format!("cleanup glob error: {}", e)))?;
 
