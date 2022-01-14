@@ -32,6 +32,9 @@ impl process::Process for LocalProcess {
                 // Allow Engine to exit gracefully.
                 debug!("Giving engine a chance to clean-up");
                 std::thread::sleep(std::time::Duration::from_millis(500));
+                // TODO: remove - here for flamegraph
+                signal::kill(Pid::from_raw(self.child.id() as i32), Signal::SIGINT)?;
+                std::thread::sleep(std::time::Duration::from_millis(500));
             }
             Err(e) => {
                 error!("{}", Report::new(e));
