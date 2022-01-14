@@ -146,7 +146,13 @@ jobs:
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             **/target/
-          key: ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
+          key: ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
+            ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}
+            ${{ runner.os }}-clippy-${{ matrix.directory }}
+            ${{ runner.os }}-clippy
+            ${{ runner.os }}
 
       - name: Install v8
         run: |
@@ -211,7 +217,13 @@ jobs:
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             **/target/
-          key: ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
+          key: ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
+            ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}
+            ${{ runner.os }}-test-${{ matrix.directory }}
+            ${{ runner.os }}-test
+            ${{ runner.os }}
 
       - name: Install v8
         run: |
