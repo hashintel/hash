@@ -159,7 +159,7 @@ impl process::Command for LocalCommand {
         cmd.arg("flamegraph")
             .arg("--bin=hash_engine")
             .arg("--output=./ssh_sync/flamegraph.svg")
-            // .arg("--no-inline")
+            .arg("--no-inline")
             .arg("--");
         cmd.arg("--experiment-id")
             .arg(&self.experiment_id)
