@@ -5,8 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use ::error::{ensure, Result, ResultExt};
-use error::{bail, report};
+use error::{bail, ensure, report, Result, ResultExt};
 use hash_engine::utils::OutputFormat;
 use regex::Regex;
 use serde::{de::DeserializeOwned, Deserialize};
