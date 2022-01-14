@@ -1,0 +1,20 @@
+{
+  "keys": {
+    "one": {
+      "type": "struct",
+      "nullable": true,
+      "fields": {
+        "a": {
+          "type": "number",
+          "nullable": true
+        },
+        "b": {
+          "type": "number",
+          "nullable": true
+        }
+      }
+    }
+  },
+  "built_in_key_use": null,
+  "dynamic_access": false
+}

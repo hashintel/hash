@@ -73,6 +73,12 @@ macro_rules! run_test {
 
 mod state {
     run_test!(edit_state_number);
+    run_test!(edit_state_string);
+    run_test!(edit_state_bool);
+    run_test!(edit_state_struct);
+    run_test!(edit_state_number_array);
+    run_test!(edit_state_bool_array);
+    run_test!(edit_state_struct_array);
 }
 
 mod messages {

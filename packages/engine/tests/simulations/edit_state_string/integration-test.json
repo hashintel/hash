@@ -1,0 +1,17 @@
+[
+  {
+    "experiment": "test",
+    "expected-outputs": [
+      {
+        "json-state": {
+          "1": [
+            {
+              "a": "beret",
+              "b": "top hat"
+            }
+          ]
+        }
+      }
+    ]
+  }
+]
