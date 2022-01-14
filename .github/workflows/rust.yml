@@ -239,9 +239,7 @@ jobs:
 
       - name: Remove target directories test dependencies
         if: matrix.directory == 'packages/engine'
-        run:
-          cargo build -p server -p cli --manifest-path ${{ matrix.directory }}/Cargo.toml
-          rm -rf target ${{ matrix.directory }}/target
+        run: cargo build -p server -p cli --manifest-path ${{ matrix.directory }}/Cargo.toml
 
       - name: Run tests
         run: |
