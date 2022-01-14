@@ -1,18 +1,20 @@
 mod experiment;
 
-/// Opens `$project` relatively to this file as HASH project and uses
-/// `$project/integration-test.json` as configuration for the test.
+/// Opens `$project` relative to this file as a HASH simulation project and expects
+/// `$project/integration-test.json` to exist and be configuration for the test.
 ///
 /// The configuration contains a list of objects, where each object has the following values:
 /// - for a simple experiment:
 ///   - "experiment": Name of the experiment to run as specified in `experiments.json`
 ///   - "expected-outputs": List of expected outputs, where the length of the list must be equal to
-///     the number of simulations of the experiment. Each entry of the list is an objects with the
-///     step number as key mapping to the expected outputs of the corresponding step in the
-///     simulation run:
-///     - "json-state": subset of the values expected in the `json_state.json` output
-///     - "globals": subset of the values expected in the `globals.json` output
-///     - "analysis-outputs": subset of the values expected in the `analysis_outputs.json` output
+///     the number of simulations of the experiment. Each entry of the list is an object with the
+///     step number as its key mapped to the expected outputs of the corresponding step in the
+///     simulation run as its value:
+///     - "json-state": set of values required to exist and match for the given step in the
+///       simulation output
+///     - "globals": set of values required to exist and match the `globals.json` output
+///     - "analysis-outputs": set of values required to exist and match the `analysis_outputs.json`
+///       output
 /// - for single-run experiments:
 ///   - "steps": Number of steps to run
 ///   - "expected-output": Expected output of the simulation containing with the same schema as one
@@ -23,9 +25,7 @@ macro_rules! run_test {
         fn $project() {
             use $crate::simulations::experiment::*;
 
-            let project_path = std::path::Path::new(file!())
-                .parent()
-                .unwrap()
+            let project_path = std::path::Path::new("tests/simulations")
                 .join(stringify!($project))
                 .canonicalize()
                 .unwrap();

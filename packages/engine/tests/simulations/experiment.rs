@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     fs::{self, File},
     io::BufReader,
-    path::{Path, PathBuf},
+    path::Path,
 };
 
 use error::{bail, ensure, report, Result, ResultExt};
@@ -39,7 +39,8 @@ impl Experiment {
         let manifest_path = Path::new(&manifest_path);
 
         let mut cmd = std::process::Command::new(manifest_path.join("target/debug/cli"));
-        cmd.env("RUST_LOG", "trace")
+        // TODO: Consider running with `RUST_LOG=info` and rerun with `trace` on failure
+        cmd.env("RUST_LOG", "info")
             .arg("--project")
             .arg(project.as_ref())
             .arg("--output")
@@ -73,12 +74,21 @@ impl Experiment {
         let mut outputs = Regex::new(r#"Making new output directory: "(.*)""#)
             .wrap_err("Could not compile regex")?
             .captures_iter(&String::from_utf8_lossy(&experiment.stderr))
-            .map(|output_dir_capture| PathBuf::from(&output_dir_capture[1]))
+            .map(|output_dir| Path::new(&output_dir[1]).parent().unwrap().to_path_buf())
             .collect::<Vec<_>>();
-        outputs.sort_unstable();
-        outputs
-            .into_iter()
-            .map(|output_dir| {
+        // TODO: Remove workaround when CLI is split into library+binary
+        let num_outputs = outputs.len();
+        outputs.dedup();
+        assert_eq!(
+            outputs.len(),
+            1,
+            "Different output directory found for the same experiment"
+        );
+        let output_dir_base = &outputs[0];
+        (1..)
+            .take(num_outputs)
+            .map(|simulation_number| {
+                let output_dir = output_dir_base.join(simulation_number.to_string());
                 let json_state = parse_file(Path::new(&output_dir).join("json_state.json"))
                     .wrap_err("Could not read JSON state")?;
                 let globals = parse_file(Path::new(&output_dir).join("globals.json"))
@@ -197,7 +207,7 @@ impl ExpectedOutput {
         for (step, expected_states) in &self.json_state {
             let step = step
                 .parse::<usize>()
-                .wrap_err_lazy(|| format!("{step} is not a valid step"))?;
+                .wrap_err_lazy(|| format!("Could not parse {step:?} as number of a step"))?;
             let result_states = agent_states
                 .get(step)
                 .ok_or_else(|| report!("Experiment output does not contain {step} steps"))?;
