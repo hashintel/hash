@@ -31,7 +31,7 @@ impl process::Process for LocalProcess {
             Ok(_) => {
                 // Allow Engine to exit gracefully.
                 debug!("Giving engine a chance to clean-up");
-                for attempt in 0..5 {
+                for attempt in 0..1000 {
                     match self.child.try_wait() {
                         Ok(Some(_)) => {
                             successful = true;
@@ -49,7 +49,7 @@ impl process::Process for LocalProcess {
                 if !successful {
                     signal::kill(Pid::from_raw(self.child.id() as i32), Signal::SIGINT)?;
                 }
-                for attempt in 0..5 {
+                for attempt in 0..1000 {
                     match self.child.try_wait() {
                         Ok(Some(_)) => {
                             successful = true;
@@ -177,7 +177,7 @@ impl process::Command for LocalCommand {
         cmd.arg("flamegraph")
             .arg("--bin=hash_engine")
             .arg("--output=./ssh_sync/flamegraph.svg")
-            .arg("--no-inline")
+            // .arg("--no-inline")
             .arg("--");
         cmd.arg("--experiment-id")
             .arg(&self.experiment_id)
