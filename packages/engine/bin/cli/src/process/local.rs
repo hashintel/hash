@@ -89,11 +89,8 @@ impl process::Command for LocalCommand {
         };
 
         // let mut cmd = std::process::Command::new(process_path);
-        let mut cmd = std::process::Command::new("flamegraph");
-        cmd.arg("--no-inline")
-            .arg("-o")
-            .arg("my_flamegraph.svg")
-            .arg(process_path);
+        let mut cmd = std::process::Command::new("cargo");
+        cmd.arg("flamegraph").arg("--bin=hash_engine").arg("--");
         cmd.arg("--experiment-id")
             .arg(&self.experiment_id)
             .arg("--orchestrator-url")
