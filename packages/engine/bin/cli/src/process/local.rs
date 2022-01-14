@@ -26,16 +26,23 @@ impl process::Process for LocalProcess {
             unistd::Pid,
         };
 
-        if let Err(e) = signal::kill(Pid::from_raw(self.child.id()), Signal::SIGINT) {
-            error!(Report::new(e));
-            self.child
-                .kill()
-                .or_else(|e| match e.kind() {
-                    std::io::ErrorKind::InvalidInput => Ok(()),
-                    _ => Err(Report::new(e)),
-                })
-                .wrap_err("Could not kill the process")?;
-        }
+        match signal::kill(Pid::from_raw(self.child.id()), Signal::SIGINT) {
+            Ok(_) => {
+                // Allow Engine to exit gracefully.
+                std::thread::sleep(std::time::Duration::from_millis(300));
+            }
+            Err(e) => {
+                error!(Report::new(e));
+            }
+        };
+
+        self.child
+            .kill()
+            .or_else(|e| match e.kind() {
+                std::io::ErrorKind::InvalidInput => Ok(()),
+                _ => Err(Report::new(e)),
+            })
+            .wrap_err("Could not kill the process")?;
 
         debug!(
             "Cleaned up local engine process for experiment {}",
