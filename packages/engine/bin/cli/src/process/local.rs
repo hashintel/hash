@@ -19,7 +19,7 @@ pub struct LocalProcess {
 
 #[async_trait]
 impl process::Process for LocalProcess {
-    #[cfg(target_os = "unix")]
+    #[cfg(target_os = "linux")]
     async fn exit_and_cleanup(mut self: Box<Self>) -> Result<()> {
         debug!("TESTING");
         use nix::{
@@ -53,7 +53,7 @@ impl process::Process for LocalProcess {
         Ok(())
     }
 
-    #[cfg(not(target_os = "unix"))]
+    #[cfg(not(target_os = "linux"))]
     async fn exit_and_cleanup(mut self: Box<Self>) -> Result<()> {
         self.child
             .kill()
