@@ -34,8 +34,11 @@ pub enum Experiment {
 impl Experiment {
     pub fn run(&self, project: impl AsRef<Path>) -> Result<Vec<(AgentStates, Globals, Analysis)>> {
         let output = std::env::var("OUT_DIR").wrap_err("$OUT_DIR is not set")?;
+        let manifest_path =
+            std::env::var("CARGO_MANIFEST_DIR").wrap_err("$CARGO_MANIFEST_DIR is not set")?;
+        let manifest_path = Path::new(&manifest_path);
 
-        let mut cmd = std::process::Command::new("target/debug/cli");
+        let mut cmd = std::process::Command::new(manifest_path.join("target/debug/cli"));
         cmd.env("RUST_LOG", "trace")
             .arg("--project")
             .arg(project.as_ref())
