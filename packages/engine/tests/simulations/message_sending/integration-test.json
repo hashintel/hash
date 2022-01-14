@@ -1,0 +1,21 @@
+[
+  {
+    "experiment": "send-one",
+    "expected-outputs": [
+      {
+        "json-state": {
+          "1": [
+            {
+              "messages": [
+                {
+                  "type": "test",
+                  "to": ["a"]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  }
+]

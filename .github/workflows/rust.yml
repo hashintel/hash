@@ -78,8 +78,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Remove default members
-        run: |
-          sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
+        run: sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
@@ -105,8 +104,7 @@ jobs:
 
       - name: Annotate
         if: ${{ failure() }}
-        run: |
-          cargo fmt --manifest-path ${{ matrix.directory }}/Cargo.toml -- --emit checkstyle | cs2pr
+        run: cargo fmt --manifest-path ${{ matrix.directory }}/Cargo.toml -- --emit checkstyle | cs2pr
 
   clippy:
     name: clippy
@@ -140,8 +138,6 @@ jobs:
 
       - name: Cache dependencies
         uses: actions/cache@v2
-        env:
-          cache-name: cache-dependencies
         with:
           path: |
             ~/.cargo/.crates.toml
@@ -150,7 +146,10 @@ jobs:
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             **/target/
-          key: ${{ runner.os }}-clippy-${{ env.cache-name }}-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
+            ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}
 
       - name: Install v8
         run: |
@@ -164,8 +163,7 @@ jobs:
           rm -rf tmp # Delete the tmp folder
 
       - name: Run clippy
-        run: |
-          cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} -- -D warnings
+        run: cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} -- -D warnings
 
       - name: Annotate
         if: ${{ failure() }}
@@ -196,8 +194,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Remove default members
-        run: |
-          sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
+        run: sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
 
       - name: Install Rust
         id: toolchain
@@ -209,8 +206,6 @@ jobs:
 
       - name: Cache dependencies
         uses: actions/cache@v2
-        env:
-          cache-name: cache-dependencies
         with:
           path: |
             ~/.cargo/.crates.toml
@@ -219,7 +214,10 @@ jobs:
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             **/target/
-          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
+            ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}
 
       - name: Install v8
         run: |
@@ -232,9 +230,19 @@ jobs:
           cd ..
           rm -rf tmp # Delete the tmp folder
 
-      - name: Run tests
-        run: |
-          cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} --no-fail-fast
+      - name: Build test dependencies
+        if: matrix.directory == 'packages/engine'
+        run: cargo build -p server -p cli --manifest-path ${{ matrix.directory }}/Cargo.toml
+
+      - name: Run tests (parallel)
+        continue-on-error: true
+        id: test-parallel
+        run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} --no-fail-fast
+
+        # TODO: Only use parallel tests
+      - name: Run tests (sequential)
+        if: steps.test-parallel.outcome == 'failure'
+        run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} -- --test-threads=1
 
   merging-enabled:
     name: merging enabled
