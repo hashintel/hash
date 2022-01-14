@@ -150,6 +150,7 @@ pub fn read_config<P: AsRef<Path>>(path: P) -> Result<Vec<(Experiment, Vec<Expec
         .collect())
 }
 
+/// Implementation for [`ExpectedOutput::assert_subset_of`]
 fn assert_subset_value(subset: &Value, superset: &Value, path: String) -> Result<()> {
     match (subset, superset) {
         (Value::Number(a), Value::Number(b)) if a.is_f64() && b.is_f64() => {
