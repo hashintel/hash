@@ -27,7 +27,7 @@ impl process::Process for LocalProcess {
             unistd::Pid,
         };
 
-        match signal::kill(Pid::from_raw(self.child.id()), Signal::SIGINT) {
+        match signal::kill(Pid::from_raw(self.child.id() as i32), Signal::SIGINT) {
             Ok(_) => {
                 // Allow Engine to exit gracefully.
                 debug!("Giving engine a chance to clean-up");
