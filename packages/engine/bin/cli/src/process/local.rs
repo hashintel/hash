@@ -42,7 +42,7 @@ impl process::Process for LocalProcess {
             .kill()
             .or_else(|e| match e.kind() {
                 std::io::ErrorKind::InvalidInput => Ok(()),
-                _ => Err("{}", Report::new(e)),
+                _ => Err(Report::new(e)),
             })
             .wrap_err("Could not kill the process")?;
 
