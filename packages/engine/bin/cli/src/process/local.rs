@@ -88,7 +88,13 @@ impl process::Command for LocalCommand {
             env_process_path.as_ref().unwrap()
         };
 
-        let mut cmd = std::process::Command::new(process_path);
+        // let mut cmd = std::process::Command::new(process_path);
+        let mut cmd = std::process::Command::new("sudo");
+        cmd.arg("flamegraph")
+            .arg("--no-inline")
+            .arg("-o")
+            .arg("my_flamegraph.svg")
+            .arg(process_path);
         cmd.arg("--experiment-id")
             .arg(&self.experiment_id)
             .arg("--orchestrator-url")

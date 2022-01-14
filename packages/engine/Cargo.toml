@@ -54,3 +54,6 @@ crate-type = ["lib", "cdylib"]
 
 [build-dependencies.cc]
 version = "1.0"
+
+[profile.release]
+debug = true
