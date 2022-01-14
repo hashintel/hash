@@ -14,9 +14,13 @@ import {
   subscribeToEntityStore,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
+import type { Scope } from "@sentry/browser";
+import * as Sentry from "@sentry/nextjs";
 import { Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
+
 import { BlockLoader } from "../../components/BlockLoader/BlockLoader";
+import { ErrorBlock } from "../../components/ErrorBlock/ErrorBlock";
 import { RenderPortal } from "./usePortals";
 
 /**
@@ -126,22 +130,37 @@ export class ComponentView implements NodeView<Schema> {
 
       const childEntity = getChildEntity(entity);
 
+      const beforeCapture = (scope: Scope) => {
+        scope.setTag("block", this.componentId);
+      };
+
+      const onRetry = () => {
+        this.renderPortal(null, this.target);
+        this.update(node);
+      };
+
       this.renderPortal(
-        <BlockLoader
-          sourceUrl={`${mappedUrl}/${this.sourceName}`}
-          blockEntityId={entityId}
-          shouldSandbox={!this.editable}
-          editableRef={this.editable ? this.editableRef : undefined}
-          accountId={childEntity?.accountId ?? this.accountId}
-          entityId={childEntity?.entityId}
-          entityProperties={
-            childEntity && "properties" in childEntity
-              ? childEntity.properties
-              : BLANK_PROPERTIES
-          }
-          linkGroups={childEntity?.linkGroups ?? []}
-          linkedEntities={childEntity?.linkedEntities ?? []}
-        />,
+        <Sentry.ErrorBoundary
+          beforeCapture={beforeCapture}
+          fallback={(props) => <ErrorBlock {...props} onRetry={onRetry} />}
+        >
+          <BlockLoader
+            sourceUrl={`${mappedUrl}/${this.sourceName}`}
+            blockEntityId={entityId}
+            shouldSandbox={!this.editable}
+            editableRef={this.editable ? this.editableRef : undefined}
+            accountId={childEntity?.accountId ?? this.accountId}
+            entityId={childEntity?.entityId}
+            entityProperties={
+              childEntity && "properties" in childEntity
+                ? childEntity.properties
+                : BLANK_PROPERTIES
+            }
+            linkGroups={childEntity?.linkGroups ?? []}
+            linkedEntities={childEntity?.linkedEntities ?? []}
+          />
+          ,
+        </Sentry.ErrorBoundary>,
         this.target,
       );
 

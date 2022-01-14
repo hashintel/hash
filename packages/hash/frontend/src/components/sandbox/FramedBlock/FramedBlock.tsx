@@ -1,21 +1,23 @@
-import { useEffect, useState, VoidFunctionComponent } from "react";
+import type { Scope } from "@sentry/browser";
+import * as Sentry from "@sentry/nextjs";
 import {
-  BlockProtocolAggregateEntityTypesFunction,
   BlockProtocolAggregateEntitiesFunction,
+  BlockProtocolAggregateEntityTypesFunction,
   BlockProtocolCreateEntitiesFunction,
   BlockProtocolUpdateEntitiesFunction,
   JSONObject,
 } from "blockprotocol";
+import "iframe-resizer/js/iframeResizer.contentWindow";
+import { useCallback, useEffect, useState, VoidFunctionComponent } from "react";
 
-import { sendMessage, settlePromiseFromResponse } from "./util";
-import { MessageFromBlockFramer } from "../types";
+import { FetchEmbedCodeFn } from "../../BlockLoader/fetchEmbedCode";
+import { ErrorBlock } from "../../ErrorBlock/ErrorBlock";
 import {
   BlockLoadingIndicator,
   RemoteBlock,
 } from "../../RemoteBlock/RemoteBlock";
-
-import "iframe-resizer/js/iframeResizer.contentWindow";
-import { FetchEmbedCodeFn } from "../../BlockLoader/fetchEmbedCode";
+import { MessageFromBlockFramer } from "../types";
+import { sendMessage, settlePromiseFromResponse } from "./util";
 
 const params = new URL(window.location.href).searchParams;
 
@@ -28,6 +30,13 @@ export const FramedBlock: VoidFunctionComponent = () => {
   const [blockProperties, setBlockProperties] = useState<
     JSONObject | undefined
   >(initialData);
+
+  const beforeCapture = useCallback(
+    (scope: Scope) => {
+      scope.setTag("block", blockProperties?.id as string);
+    },
+    [blockProperties],
+  );
 
   useEffect(() => {
     const msgHandler = ({ data }: MessageEvent<MessageFromBlockFramer>) => {
@@ -106,5 +115,14 @@ export const FramedBlock: VoidFunctionComponent = () => {
     Object.assign(window, props);
   }
 
-  return <RemoteBlock {...props} crossFrame sourceUrl={sourceUrl} />;
+  return (
+    <Sentry.ErrorBoundary
+      beforeCapture={beforeCapture}
+      fallback={(errorData) => (
+        <ErrorBlock {...errorData} onRetry={() => window.location.reload()} />
+      )}
+    >
+      <RemoteBlock {...props} crossFrame sourceUrl={sourceUrl} />
+    </Sentry.ErrorBoundary>
+  );
 };
