@@ -2,7 +2,13 @@
  * webpack-dev-server entry point for debugging.
  * This file is not bundled with the library during the build process.
  */
-import { BlockProtocolUploadFileFunction } from "blockprotocol";
+import {
+  BlockProtocolCreateLinksFunction,
+  BlockProtocolDeleteLinksFunction,
+  BlockProtocolLink,
+  BlockProtocolUploadFileFunction,
+} from "blockprotocol";
+
 import React from "react";
 import ReactDOM from "react-dom";
 import { tw } from "twind";
@@ -28,6 +34,7 @@ const App = () => {
 
       if (url?.trim()) {
         resolve({
+          accountId: "xxx",
           entityId: "xxx",
           url,
           mediaType,
@@ -41,6 +48,7 @@ const App = () => {
         reader.onload = (event) => {
           if (event.target?.result) {
             resolve({
+              accountId: "xxx",
               entityId: "xxx",
               url: event.target.result.toString(),
               mediaType,
@@ -55,12 +63,23 @@ const App = () => {
     });
   };
 
+  const createLinks: BlockProtocolCreateLinksFunction = async () => {
+    const results: BlockProtocolLink[] = [];
+    return results;
+  };
+
+  const deleteLinks: BlockProtocolDeleteLinksFunction = async () => {
+    return [true];
+  };
+
   return (
     <div className={tw`mt-5`}>
       <Component
-        initialSrc="https://www.google.com/logos/doodles/2021/doodle-champion-island-games-july-26-6753651837109017-s.png"
-        initialCaption="ASDASDASDSAD"
+        accountId="account-asdasd"
+        createLinks={createLinks}
+        deleteLinks={deleteLinks}
         entityId="entity-asdasd"
+        initialCaption="ASDASDASDSAD"
         uploadFile={uploadFile}
       />
     </div>

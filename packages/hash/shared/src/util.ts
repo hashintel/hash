@@ -45,5 +45,11 @@ type Entries<T> = {
 export const typeSafeEntries = <T>(obj: T): Entries<T> =>
   Object.entries(obj) as any;
 
-export const isFileProperties = (props: {}): props is FileProperties =>
-  "key" in props && "size" in props && "url" in props && "storageType" in props;
+export const isFileProperties = (props: {}): props is FileProperties => {
+  return (
+    "key" in props &&
+    "size" in props &&
+    "url" in props &&
+    "storageType" in props
+  );
+};

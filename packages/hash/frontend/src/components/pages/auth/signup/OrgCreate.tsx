@@ -13,7 +13,6 @@ import { PictureIcon, SpinnerIcon } from "../../../icons";
 import { ORG_ROLES, ORG_SIZES } from "../utils";
 import { createOrg as createOrgMutation } from "../../../../graphql/queries/org.queries";
 import { useShortnameInput } from "../../../hooks/useShortnameInput";
-// import { useFileUpload } from "../../../hooks/useFileUpload";
 
 type OrgCreateProps = {
   // accountId: string;
@@ -113,7 +112,6 @@ export const OrgCreate: VFC<OrgCreateProps> = ({
       orgSize: undefined,
     },
   });
-  // const { uploadFile } = useFileUpload(accountId);
 
   const { parseShortnameInput, validateShortname, getShortnameError } =
     useShortnameInput();

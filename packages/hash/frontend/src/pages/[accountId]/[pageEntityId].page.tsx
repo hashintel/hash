@@ -7,6 +7,10 @@ import { Router, useRouter } from "next/router";
 import { tw } from "twind";
 
 import { useEffect, useMemo, useState, VoidFunctionComponent } from "react";
+import {
+  GetPageQuery,
+  GetPageQueryVariables,
+} from "@hashintel/hash-shared/graphql/apiTypes.gen";
 import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
 import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
 import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
@@ -14,10 +18,6 @@ import { PageBlock } from "../../blocks/page/PageBlock";
 import { PageTitle } from "../../blocks/page/PageTitle";
 import { VersionDropdown } from "../../components/Dropdowns/VersionDropdown";
 
-import {
-  GetPageQuery,
-  GetPageQueryVariables,
-} from "../../graphql/apiTypes.gen";
 import styles from "../index.module.scss";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import { PageTransferDropdown } from "../../components/Dropdowns/PageTransferDropdown";

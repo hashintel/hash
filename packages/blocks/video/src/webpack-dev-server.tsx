@@ -2,7 +2,13 @@
  * webpack-dev-server entry point for debugging.
  * This file is not bundled with the library during the build process.
  */
-import { BlockProtocolUploadFileFunction } from "blockprotocol";
+import {
+  BlockProtocolCreateLinksFunction,
+  BlockProtocolDeleteLinksFunction,
+  BlockProtocolLink,
+  BlockProtocolUploadFileFunction,
+} from "blockprotocol";
+
 import React from "react";
 import ReactDOM from "react-dom";
 import Component from "./index";
@@ -27,6 +33,7 @@ const App = () => {
 
       if (url?.trim()) {
         resolve({
+          accountId: "account-xxx",
           entityId: "xxx",
           url,
           mediaType,
@@ -40,6 +47,7 @@ const App = () => {
         reader.onload = (event) => {
           if (event.target?.result) {
             resolve({
+              accountId: "account-xxx",
               entityId: "xxx",
               url: event.target.result.toString(),
               mediaType,
@@ -54,10 +62,21 @@ const App = () => {
     });
   };
 
+  const createLinks: BlockProtocolCreateLinksFunction = async () => {
+    const results: BlockProtocolLink[] = [];
+    return results;
+  };
+
+  const deleteLinks: BlockProtocolDeleteLinksFunction = async () => {
+    return [true];
+  };
+
   return (
     <div style={{ marginTop: 20 }}>
       <Component
-        initialSrc="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm"
+        accountId="account-asdasd"
+        createLinks={createLinks}
+        deleteLinks={deleteLinks}
         initialCaption="ASDASDASDSAD"
         entityId="entity-asdasd"
         uploadFile={uploadFile}

@@ -5,21 +5,17 @@ import {
   isBlockEntity,
   isDraftBlockEntity,
 } from "./entityStore";
-import {
-  PageFieldsFragment,
-  Text,
-  UnknownEntity,
-} from "./graphql/apiTypes.gen";
-import { DistributivePick } from "./util";
+import { PageFieldsFragment, Text } from "./graphql/apiTypes.gen";
+import { DistributiveOmit, DistributivePick } from "./util";
 
 type ContentsEntity = PageFieldsFragment["properties"]["contents"][number];
 
-export type BlockEntity = Omit<ContentsEntity, "properties"> & {
-  properties: Omit<ContentsEntity["properties"], "entity"> & {
+export type BlockEntity = DistributiveOmit<ContentsEntity, "properties"> & {
+  properties: DistributiveOmit<ContentsEntity["properties"], "entity"> & {
     entity: DistributivePick<
-      UnknownEntity | Text,
+      ContentsEntity["properties"]["entity"] | Text,
       keyof ContentsEntity["properties"]["entity"] &
-        keyof (UnknownEntity | Text)
+        keyof (ContentsEntity["properties"]["entity"] | Text)
     >;
   };
 };

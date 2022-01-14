@@ -3,6 +3,7 @@ import {
   BlockMeta,
   componentIdToUrl,
 } from "@hashintel/hash-shared/blockMeta";
+import { BlockEntity } from "@hashintel/hash-shared/entity";
 import {
   EntityStore,
   EntityStoreType,
@@ -26,7 +27,7 @@ const BLANK_PROPERTIES = {};
 
 const getChildEntity = (
   entity: EntityStoreType | null | undefined,
-): EntityStoreType | null => {
+): BlockEntity["properties"]["entity"] | null => {
   if (entity) {
     if (!isBlockEntity(entity)) {
       throw new Error("Cannot prepare non-block entity for prosemirrior");
@@ -138,6 +139,8 @@ export class ComponentView implements NodeView<Schema> {
               ? childEntity.properties
               : BLANK_PROPERTIES
           }
+          linkGroups={childEntity?.linkGroups ?? []}
+          linkedEntities={childEntity?.linkedEntities ?? []}
         />,
         this.target,
       );

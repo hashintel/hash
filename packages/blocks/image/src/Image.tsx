@@ -4,6 +4,8 @@ import { unstable_batchedUpdates } from "react-dom";
 import { tw } from "twind";
 import { BlockComponent } from "blockprotocol/react";
 import {
+  BlockProtocolLinkGroup,
+  BlockProtocolEntity,
   BlockProtocolUploadFileFunction,
   BlockProtocolUpdateEntitiesAction,
 } from "blockprotocol";
@@ -20,17 +22,13 @@ type Awaited<T> = T extends PromiseLike<infer U> ? Awaited<U> : T;
 type FileType = Awaited<ReturnType<BlockProtocolUploadFileFunction>>;
 
 type AppProps = {
-  initialSrc?: string;
   initialCaption?: string;
   initialWidth?: number;
-  uploadFile: BlockProtocolUploadFileFunction;
-  entityId: string;
-  entityTypeId?: string;
 };
 
 type BlockProtocolUpdateEntitiesActionData = Pick<
   AppProps,
-  "initialSrc" | "initialCaption" | "initialWidth"
+  "initialCaption" | "initialWidth"
 > & {
   file?: FileType;
 };
@@ -41,14 +39,64 @@ const bottomText = "Works with web-supported image formats";
 
 const IMG_MIME_TYPE = "image/*";
 
+function getLinkGroup(params: {
+  linkGroups: BlockProtocolLinkGroup[];
+  path: string;
+  sourceEntityId: string;
+}): BlockProtocolLinkGroup | undefined {
+  const { linkGroups, path, sourceEntityId } = params;
+
+  const matchingLinkGroup = linkGroups.find(
+    (linkGroup) =>
+      linkGroup.path === path && linkGroup.sourceEntityId === sourceEntityId,
+  );
+
+  return matchingLinkGroup;
+}
+
+function getLinkedEntities<T>(params: {
+  sourceEntityId: string;
+  path: string;
+  linkGroups: BlockProtocolLinkGroup[];
+  linkedEntities: BlockProtocolEntity[];
+}): (BlockProtocolEntity & T)[] | null {
+  const { sourceEntityId, path, linkGroups, linkedEntities } = params;
+
+  const matchingLinkGroup = getLinkGroup({
+    linkGroups,
+    path,
+    sourceEntityId,
+  });
+
+  if (!matchingLinkGroup) {
+    return null;
+  }
+
+  const destinationEntityId = matchingLinkGroup.links[0].destinationEntityId;
+
+  const matchingLinkedEntities = linkedEntities.filter(
+    (link) => link.entityId === destinationEntityId,
+  );
+
+  if (!matchingLinkedEntities) {
+    return null;
+  }
+
+  return matchingLinkedEntities as (BlockProtocolEntity & T)[];
+}
+
 export const Image: BlockComponent<AppProps> = (props) => {
   const {
-    initialSrc,
-    initialCaption,
-    uploadFile,
-    initialWidth,
+    accountId,
+    createLinks,
+    deleteLinks,
     entityId,
     entityTypeId,
+    initialCaption,
+    initialWidth,
+    linkGroups,
+    linkedEntities,
+    uploadFile,
     updateEntities,
   } = props;
 
@@ -60,7 +108,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
     width: number | undefined;
     errorString: string | null;
   }>({
-    src: initialSrc ?? "",
+    src: "",
     width: initialWidth,
     loading: false,
     errorString: null,
@@ -99,9 +147,24 @@ export const Image: BlockComponent<AppProps> = (props) => {
 
   useEffect(() => {
     const newPartialStateObject: Partial<typeof stateObject> = {};
-    if (stateObjectRef.current.src !== initialSrc) {
-      newPartialStateObject.src = initialSrc;
+
+    if (linkGroups && linkedEntities && entityId) {
+      const matchingLinkedEntities = getLinkedEntities<{
+        url: string;
+      }>({
+        sourceEntityId: entityId,
+        path: "$.file",
+        linkGroups,
+        linkedEntities,
+      });
+
+      const { url } = matchingLinkedEntities?.[0] ?? {};
+
+      if (url && stateObjectRef.current.src !== url) {
+        newPartialStateObject.src = url;
+      }
     }
+
     if (stateObjectRef.current.width !== initialWidth) {
       newPartialStateObject.width = initialWidth;
     }
@@ -111,7 +174,14 @@ export const Image: BlockComponent<AppProps> = (props) => {
     if (initialCaption && captionTextRef.current !== initialCaption) {
       setCaptionText(initialCaption);
     }
-  }, [initialSrc, initialWidth, initialCaption, updateStateObject]);
+  }, [
+    entityId,
+    initialWidth,
+    initialCaption,
+    linkedEntities,
+    linkGroups,
+    updateStateObject,
+  ]);
 
   const updateData = useCallback(
     ({
@@ -124,11 +194,10 @@ export const Image: BlockComponent<AppProps> = (props) => {
       file?: FileType;
     }) => {
       if (src?.trim()) {
-        if (updateEntities) {
+        if (updateEntities && entityId) {
           const updateAction: BlockProtocolUpdateEntitiesAction<BlockProtocolUpdateEntitiesActionData> =
             {
               data: {
-                initialSrc: src,
                 initialCaption: captionText,
               },
               entityId,
@@ -170,21 +239,57 @@ export const Image: BlockComponent<AppProps> = (props) => {
     (imageProp: { url: string } | { file: FileList[number] }) => {
       updateStateObject({ loading: true });
 
-      uploadFile({ ...imageProp, mediaType: "image" })
-        .then((file) => {
-          if (isMounted.current) {
-            updateStateObject({ loading: false });
-            updateData({ src: file.url, file });
-          }
-        })
-        .catch((error: Error) =>
-          updateStateObject({
-            errorString: error.message,
-            loading: false,
-          }),
-        );
+      if (entityId && createLinks && deleteLinks && uploadFile) {
+        uploadFile({ ...imageProp, mediaType: "image" })
+          .then(async (file) => {
+            const existingLinkGroup = getLinkGroup({
+              sourceEntityId: entityId,
+              linkGroups: linkGroups ?? [],
+              path: "$.file",
+            });
+
+            if (existingLinkGroup) {
+              await deleteLinks(
+                existingLinkGroup.links.map((link) => ({
+                  linkId: link.id,
+                  sourceEntityId: link.sourceEntityId,
+                })),
+              );
+            }
+
+            await createLinks([
+              {
+                sourceAccountId: accountId,
+                sourceEntityId: entityId,
+                destinationEntityId: file.entityId,
+                destinationAccountId: file.accountId,
+                path: "$.file",
+              },
+            ]);
+
+            if (isMounted.current) {
+              updateStateObject({ loading: false });
+              updateData({ src: file.url, file });
+            }
+          })
+          .catch((error: Error) =>
+            updateStateObject({
+              errorString: error.message,
+              loading: false,
+            }),
+          );
+      }
     },
-    [updateData, updateStateObject, uploadFile],
+    [
+      accountId,
+      createLinks,
+      deleteLinks,
+      entityId,
+      linkGroups,
+      updateData,
+      updateStateObject,
+      uploadFile,
+    ],
   );
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {

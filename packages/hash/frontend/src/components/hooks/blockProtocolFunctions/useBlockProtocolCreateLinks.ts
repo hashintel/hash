@@ -36,7 +36,9 @@ export const useBlockProtocolCreateLinks = (
             link: {
               ...action,
               sourceAccountId,
-              destinationAccountId: sourceAccountId, // @todo handle cross-account links
+              destinationAccountId: action.destinationAccountId
+                ? action.destinationAccountId
+                : sourceAccountId,
             },
           },
         });

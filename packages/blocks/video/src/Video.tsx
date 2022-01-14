@@ -4,6 +4,8 @@ import { BlockComponent } from "blockprotocol/react";
 
 import { unstable_batchedUpdates } from "react-dom";
 import {
+  BlockProtocolEntity,
+  BlockProtocolLinkGroup,
   BlockProtocolUploadFileFunction,
   BlockProtocolUpdateEntitiesAction,
 } from "blockprotocol";
@@ -17,16 +19,12 @@ type Awaited<T> = T extends PromiseLike<infer U> ? Awaited<U> : T;
 type FileType = Awaited<ReturnType<BlockProtocolUploadFileFunction>>;
 
 type AppProps = {
-  initialSrc?: string;
   initialCaption?: string;
-  uploadFile: BlockProtocolUploadFileFunction;
-  entityId: string;
-  entityTypeId?: string;
 };
 
 type BlockProtocolUpdateEntitiesActionData = Pick<
   AppProps,
-  "initialSrc" | "initialCaption"
+  "initialCaption"
 > & {
   file?: FileType;
 };
@@ -37,13 +35,63 @@ const bottomText = "Works with web-supported video formats";
 
 const VIDEO_MIME_TYPE = "video/*";
 
+function getLinkGroup(params: {
+  linkGroups: BlockProtocolLinkGroup[];
+  path: string;
+  sourceEntityId: string;
+}): BlockProtocolLinkGroup | undefined {
+  const { linkGroups, path, sourceEntityId } = params;
+
+  const matchingLinkGroup = linkGroups.find(
+    (linkGroup) =>
+      linkGroup.path === path && linkGroup.sourceEntityId === sourceEntityId,
+  );
+
+  return matchingLinkGroup;
+}
+
+function getLinkedEntities<T>(params: {
+  sourceEntityId: string;
+  path: string;
+  linkGroups: BlockProtocolLinkGroup[];
+  linkedEntities: BlockProtocolEntity[];
+}): (BlockProtocolEntity & T)[] | null {
+  const { sourceEntityId, path, linkGroups, linkedEntities } = params;
+
+  const matchingLinkGroup = getLinkGroup({
+    linkGroups,
+    path,
+    sourceEntityId,
+  });
+
+  if (!matchingLinkGroup) {
+    return null;
+  }
+
+  const destinationEntityId = matchingLinkGroup.links[0].destinationEntityId;
+
+  const matchingLinkedEntities = linkedEntities.filter(
+    (link) => link.entityId === destinationEntityId,
+  );
+
+  if (!matchingLinkedEntities) {
+    return null;
+  }
+
+  return matchingLinkedEntities as (BlockProtocolEntity & T)[];
+}
+
 export const Video: BlockComponent<AppProps> = (props) => {
   const {
-    initialSrc,
-    initialCaption,
-    uploadFile,
+    accountId,
+    createLinks,
+    deleteLinks,
     entityId,
     entityTypeId,
+    initialCaption,
+    linkGroups,
+    linkedEntities,
+    uploadFile,
     updateEntities,
   } = props;
 
@@ -54,7 +102,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
     loading: boolean;
     errorString: string | null;
   }>({
-    src: initialSrc ?? "",
+    src: "",
     loading: false,
     errorString: null,
   });
@@ -91,14 +139,27 @@ export const Video: BlockComponent<AppProps> = (props) => {
   });
 
   useEffect(() => {
-    if (stateObjectRef.current.src !== initialSrc) {
-      updateStateObject({ src: initialSrc });
+    if (linkGroups && linkedEntities && entityId) {
+      const matchingLinkedEntities = getLinkedEntities<{
+        url: string;
+      }>({
+        sourceEntityId: entityId,
+        path: "$.file",
+        linkGroups,
+        linkedEntities,
+      });
+
+      const { url } = matchingLinkedEntities?.[0] ?? {};
+
+      if (url && stateObjectRef.current.src !== url) {
+        updateStateObject({ src: url });
+      }
     }
 
     if (initialCaption && captionTextRef.current !== initialCaption) {
       setCaptionText(initialCaption);
     }
-  }, [initialSrc, initialCaption, updateStateObject]);
+  }, [entityId, linkedEntities, linkGroups, initialCaption, updateStateObject]);
 
   function displayError(errorString: string) {
     updateStateObject({ errorString });
@@ -107,11 +168,10 @@ export const Video: BlockComponent<AppProps> = (props) => {
   const updateData = useCallback(
     ({ file, src }: { src: string | undefined; file?: FileType }) => {
       if (src?.trim()) {
-        if (updateEntities) {
+        if (updateEntities && entityId) {
           const updateAction: BlockProtocolUpdateEntitiesAction<BlockProtocolUpdateEntitiesActionData> =
             {
               data: {
-                initialSrc: src,
                 initialCaption: captionText,
               },
               entityId,
@@ -137,21 +197,58 @@ export const Video: BlockComponent<AppProps> = (props) => {
   const handleVideoUpload = useCallback(
     (videoProp: { url: string } | { file: FileList[number] }) => {
       updateStateObject({ loading: true });
-      uploadFile({ ...videoProp, mediaType: "video" })
-        .then((file) => {
-          if (isMounted.current) {
-            updateStateObject({ loading: false });
-            updateData({ file, src: file.url });
-          }
-        })
-        .catch((error: Error) =>
-          updateStateObject({
-            errorString: error.message,
-            loading: false,
-          }),
-        );
+
+      if (entityId && createLinks && deleteLinks && uploadFile) {
+        uploadFile({ ...videoProp, mediaType: "video" })
+          .then(async (file) => {
+            const existingLinkGroup = getLinkGroup({
+              sourceEntityId: entityId,
+              linkGroups: linkGroups ?? [],
+              path: "$.file",
+            });
+
+            if (existingLinkGroup) {
+              await deleteLinks(
+                existingLinkGroup.links.map((link) => ({
+                  linkId: link.id,
+                  sourceEntityId: entityId,
+                })),
+              );
+            }
+
+            await createLinks([
+              {
+                sourceAccountId: accountId,
+                sourceEntityId: entityId,
+                destinationEntityId: file.entityId,
+                destinationAccountId: file.accountId,
+                path: "$.file",
+              },
+            ]);
+
+            if (isMounted.current) {
+              updateStateObject({ loading: false });
+              updateData({ file, src: file.url });
+            }
+          })
+          .catch((error: Error) =>
+            updateStateObject({
+              errorString: error.message,
+              loading: false,
+            }),
+          );
+      }
     },
-    [updateData, updateStateObject, uploadFile],
+    [
+      accountId,
+      createLinks,
+      deleteLinks,
+      entityId,
+      linkGroups,
+      updateData,
+      updateStateObject,
+      uploadFile,
+    ],
   );
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {

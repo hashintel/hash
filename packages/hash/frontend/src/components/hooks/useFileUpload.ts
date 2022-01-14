@@ -107,10 +107,15 @@ export const useFileUpload = (accountId: string) => {
         }
 
         const {
-          createFileFromLink: { entityId, properties },
+          createFileFromLink: { entityId: fileEntityId, properties },
         } = result.data;
 
-        return { entityId, url: properties.url, mediaType };
+        return {
+          entityId: fileEntityId,
+          url: properties.url,
+          mediaType,
+          accountId,
+        };
       }
 
       if (!file) {
@@ -163,6 +168,7 @@ export const useFileUpload = (accountId: string) => {
       }
 
       return {
+        accountId: uploadedFileEntity.accountId,
         entityId: uploadedFileEntity.entityId,
         url: properties.url,
         mediaType,

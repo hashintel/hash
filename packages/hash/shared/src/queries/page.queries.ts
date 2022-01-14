@@ -1,5 +1,18 @@
 import { gql } from "@apollo/client";
 
+const linkFieldsFragment = gql`
+  fragment LinkFields on Link {
+    id
+    path
+    index
+    sourceAccountId
+    sourceEntityId
+    destinationAccountId
+    destinationEntityId
+    destinationEntityVersionId
+  }
+`;
+
 const pageFieldsFragment = gql`
   fragment PageFields on Page {
     __typename
@@ -41,11 +54,26 @@ const pageFieldsFragment = gql`
             entityVersionCreatedAt
             createdByAccountId
             properties
+            linkGroups {
+              links {
+                ...LinkFields
+              }
+              sourceEntityId
+              sourceEntityVersionId
+              path
+            }
+            linkedEntities {
+              accountId
+              entityId
+              entityTypeId
+              properties
+            }
           }
         }
       }
     }
   }
+  ${linkFieldsFragment}
 `;
 
 export const getPageQuery = gql`

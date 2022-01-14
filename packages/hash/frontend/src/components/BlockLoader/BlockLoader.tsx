@@ -6,7 +6,9 @@ import React, {
   useState,
   VoidFunctionComponent,
 } from "react";
-import router from "next/router";
+import { useRouter } from "next/router";
+import { BlockEntity } from "@hashintel/hash-shared/entity";
+
 import { blockDomId } from "../../blocks/page/BlockView";
 import { useBlockProtocolUpdateEntities } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateEntities";
 import { cloneEntityTreeWithPropertiesMovedUp } from "../../lib/entities";
@@ -16,51 +18,77 @@ import { RemoteBlock } from "../RemoteBlock/RemoteBlock";
 import { useBlockProtocolAggregateEntityTypes } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregateEntityTypes";
 import { useBlockProtocolAggregateEntities } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregateEntities";
 import { useFileUpload } from "../hooks/useFileUpload";
+import { LinkGroup, UnknownEntity } from "../../graphql/apiTypes.gen";
+import { useBlockProtocolCreateLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateLinks";
+import { useBlockProtocolDeleteLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolDeleteLinks";
 
 type BlockLoaderProps = {
-  shouldSandbox?: boolean;
-  sourceUrl: string;
+  accountId: string;
   blockEntityId: string;
   editableRef: unknown;
-  accountId: string;
   entityId: string | undefined;
   entityProperties: {};
+  linkGroups: LinkGroup[];
+  linkedEntities: BlockEntity["properties"]["entity"]["linkedEntities"];
+  shouldSandbox?: boolean;
+  sourceUrl: string;
 };
 
 const sandboxingEnabled = !!process.env.NEXT_PUBLIC_SANDBOX;
 
 export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
-  shouldSandbox,
-  sourceUrl,
+  accountId,
   blockEntityId,
   editableRef,
-  accountId,
   entityId,
   entityProperties,
+  linkGroups,
+  linkedEntities,
+  shouldSandbox,
+  sourceUrl,
 }) => {
+  const router = useRouter();
+
   const { aggregateEntityTypes } =
     useBlockProtocolAggregateEntityTypes(accountId);
+
   const { updateEntities } = useBlockProtocolUpdateEntities(accountId);
   const { aggregateEntities } = useBlockProtocolAggregateEntities(accountId);
+
   const { uploadFile } = useFileUpload(accountId);
+  const { createLinks } = useBlockProtocolCreateLinks(accountId);
+  const { deleteLinks } = useBlockProtocolDeleteLinks(accountId);
 
-  const flattenedProperties = useMemo(
-    () =>
-      cloneEntityTreeWithPropertiesMovedUp({
-        accountId,
-        properties: entityProperties,
-      }),
-    [accountId, entityProperties],
-  );
+  const flattenedProperties = useMemo(() => {
+    let flattenedLinkedEntities: UnknownEntity[] = [];
 
-  const blockProperties = { ...flattenedProperties, entityId };
+    if (linkedEntities) {
+      flattenedLinkedEntities = linkedEntities.map((linkedEntity) => {
+        return cloneEntityTreeWithPropertiesMovedUp(linkedEntity);
+      }) as UnknownEntity[];
+    }
+
+    return cloneEntityTreeWithPropertiesMovedUp({
+      accountId,
+      linkGroups,
+      linkedEntities: flattenedLinkedEntities,
+      properties: entityProperties,
+    });
+  }, [accountId, entityProperties, linkGroups, linkedEntities]);
+
+  const blockProperties = {
+    ...flattenedProperties,
+    entityId,
+  };
 
   const functions = {
     aggregateEntityTypes,
-    updateEntities,
     aggregateEntities,
+    createLinks,
+    deleteLinks,
     /** @todo pick one of getEmbedBlock or fetchEmbedCode */
     getEmbedBlock: fetchEmbedCode,
+    updateEntities,
     uploadFile,
   };
 
@@ -106,7 +134,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
     return () => {
       clearScrollInterval();
     };
-  }, [blockLoaded, blockEntityId]);
+  }, [blockLoaded, blockEntityId, router.asPath]);
 
   if (sandboxingEnabled && (shouldSandbox || sourceUrl.endsWith(".html"))) {
     return (

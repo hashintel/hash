@@ -271,10 +271,6 @@ plugin's settings:
 ]
 ```
 
-### ECONNREFUSED: Refused to connect to your block
-
-The backend Docker instance may not be able to reach your locally hosted block. In that case, you can use [Cloudflare Tunnels](https://developers.cloudflare.com/pages/how-to/preview-with-cloudflare-tunnel) to serve your localhost port via a URL, and use that in `blockPaths.json`.
-
 ### Services are not launched because ports are reported as busy
 
 Make sure that ports 3000, 3333, 3838, 5001, 5432, 6379 and 9200 are not used by any other processes.
