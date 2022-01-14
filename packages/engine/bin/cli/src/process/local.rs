@@ -26,7 +26,8 @@ impl process::Process for LocalProcess {
             unistd::Pid,
         };
 
-        if let Err(_) = signal::kill(Pid::from_raw(self.child.id()), Signal::SIGINT) {
+        if let Err(e) = signal::kill(Pid::from_raw(self.child.id()), Signal::SIGINT) {
+            error!(Report::new(e));
             self.child
                 .kill()
                 .or_else(|e| match e.kind() {
@@ -43,7 +44,7 @@ impl process::Process for LocalProcess {
         Ok(())
     }
 
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(not(target_os = "unix"))]
     async fn exit_and_cleanup(mut self: Box<Self>) -> Result<()> {
         self.child
             .kill()
