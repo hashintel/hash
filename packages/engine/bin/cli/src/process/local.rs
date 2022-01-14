@@ -31,10 +31,10 @@ impl process::Process for LocalProcess {
             Ok(_) => {
                 // Allow Engine to exit gracefully.
                 debug!("Giving engine a chance to clean-up");
-                std::thread::sleep(std::time::Duration::from_millis(500));
+                std::thread::sleep(std::time::Duration::from_millis(1000));
                 // TODO: remove - here for flamegraph
                 signal::kill(Pid::from_raw(self.child.id() as i32), Signal::SIGINT)?;
-                std::thread::sleep(std::time::Duration::from_millis(500));
+                std::thread::sleep(std::time::Duration::from_millis(1000));
             }
             Err(e) => {
                 error!("{}", Report::new(e));
