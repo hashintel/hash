@@ -1,5 +1,5 @@
 {
-  "dot": {
+  "test": {
     "type": "values",
     "steps": 2,
     "field": "a",

@@ -1,14 +1,13 @@
 [
   {
-    "experiment": "dot",
+    "experiment": "test",
     "expected-outputs": [
       {
         "json-state": {
           "1": [
             {
-              "a": 1.0,
-              "b": 2.0,
-              "c": 3.0
+              "a": 2.0,
+              "b": 3.0
             }
           ]
         }

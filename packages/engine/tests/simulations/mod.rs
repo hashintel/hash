@@ -71,5 +71,10 @@ macro_rules! run_test {
     };
 }
 
-run_test!(message_sending);
-run_test!(edit_state_number);
+mod state {
+    run_test!(edit_state_number);
+}
+
+mod messages {
+    run_test!(message_sending);
+}
