@@ -174,6 +174,10 @@ async fn run_experiment_with_manifest(
             }
         }
     }
+
+    // Allow Engine to exit gracefully.
+    std::thread::sleep(std::time::Duration::from_millis(200));
+
     debug!("Performing cleanup");
     engine_process
         .exit_and_cleanup()
