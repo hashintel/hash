@@ -223,7 +223,7 @@ jobs:
 
       - name: Clean
         run: |
-          cargo clean
+          cargo clean --manifest-path ${{ matrix.directory }}/Cargo.toml
 
       - name: Install v8
         run: |
