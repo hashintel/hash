@@ -234,13 +234,18 @@ jobs:
 
       - name: Manually clean cache
         run: |
-          rm -rf ~/.cargo/.crates.toml
-          rm -rf ~/.cargo/.crates2.json
-          rm -rf ~/.cargo/bin
-          rm -rf ~/.cargo/registry/index
-          rm -rf ~/.cargo/registry/cache
           rm -rf target
           rm -rf ${{ matrix.directory }}/target
+
+      - name: Remove target directories test dependencies
+        if: matrix.directory == 'packages/engine'
+        run:
+          cargo build -p server -p cli --manifest-path ${{ matrix.directory }}/Cargo.toml
+          rm -rf target ${{ matrix.directory }}/target
+
+      - name: Run tests
+        run: |
+          cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} --no-fail-fast
 
   merging-enabled:
     name: merging enabled
