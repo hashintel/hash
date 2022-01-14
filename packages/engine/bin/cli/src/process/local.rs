@@ -29,7 +29,8 @@ impl process::Process for LocalProcess {
         match signal::kill(Pid::from_raw(self.child.id()), Signal::SIGINT) {
             Ok(_) => {
                 // Allow Engine to exit gracefully.
-                std::thread::sleep(std::time::Duration::from_millis(300));
+                debug!("Giving engine a chance to clean-up");
+                std::thread::sleep(std::time::Duration::from_millis(500));
             }
             Err(e) => {
                 error!(Report::new(e));
