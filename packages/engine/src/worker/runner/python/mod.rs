@@ -5,16 +5,15 @@ mod sender;
 
 use std::{collections::HashMap, future::Future, pin::Pin, result::Result as StdResult, sync::Arc};
 
-pub use error::{Error, Result};
 use futures::FutureExt;
-use receiver::NngReceiver;
-use sender::NngSender;
 use tokio::{
     process::Command,
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     task::JoinError,
 };
 
+pub use self::error::{Error, Result};
+use self::{receiver::NngReceiver, sender::NngSender};
 use super::comms::{
     inbound::InboundToRunnerMsgPayload, outbound::OutboundFromRunnerMsg, ExperimentInitRunnerMsg,
     RunnerTaskMsg, SentTask,
@@ -27,7 +26,9 @@ use crate::{
 };
 
 pub struct PythonRunner {
-    init_msg: Arc<ExperimentInitRunnerMsg>, // Args to RunnerImpl::new
+    // Args to RunnerImpl::new
+    init_msg: Arc<ExperimentInitRunnerMsg>,
+
     inbound_sender: UnboundedSender<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>,
     inbound_receiver:
         Option<UnboundedReceiver<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>>,

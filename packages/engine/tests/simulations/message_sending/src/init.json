@@ -1,0 +1,5 @@
+[
+  {
+    "behaviors": ["send_message.js"]
+  }
+]
