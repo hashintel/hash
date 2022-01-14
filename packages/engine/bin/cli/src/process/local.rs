@@ -19,6 +19,31 @@ pub struct LocalProcess {
 
 #[async_trait]
 impl process::Process for LocalProcess {
+    #[cfg(target_os = "unix")]
+    async fn exit_and_cleanup(mut self: Box<Self>) -> Result<()> {
+        use nix::{
+            sys::signal::{self, Signal},
+            unistd::Pid,
+        };
+
+        if let Err(_) = signal::kill(Pid::from_raw(self.child.id()), Signal::SIGINT) {
+            self.child
+                .kill()
+                .or_else(|e| match e.kind() {
+                    std::io::ErrorKind::InvalidInput => Ok(()),
+                    _ => Err(Report::new(e)),
+                })
+                .wrap_err("Could not kill the process")?;
+        }
+
+        debug!(
+            "Cleaned up local engine process for experiment {}",
+            &self.experiment_id
+        );
+        Ok(())
+    }
+
+    #[cfg(not(target_os = "macos"))]
     async fn exit_and_cleanup(mut self: Box<Self>) -> Result<()> {
         self.child
             .kill()
