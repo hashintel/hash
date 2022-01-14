@@ -23,7 +23,7 @@ pub type DatasetMap = serde_json::Map<String, serde_json::Value>;
 
 // NOTE: This is used in conjunction with the custom deserializaer
 // PLEASE UPDATE THIS LIST WHEN YOU ADD ANOTHER BUILT IN FIELD
-/// Fields built into the engine.
+/// Built-in fields -- by default, these are automatically added to Agent State by the engine.
 ///
 /// Also see [`AgentStateField`].
 pub const BUILTIN_FIELDS: [&str; 12] = [
@@ -41,15 +41,18 @@ pub const BUILTIN_FIELDS: [&str; 12] = [
     AgentStateField::Hidden.name(),
 ];
 
-/// The context is the parts of the simulation that the agent is exposed to.
+/// The context is global, consistent data about the simulation at a single point in time, which is
+/// shared between all agents.
 ///
-/// Another way of thinking about it is that an agent's context are the parts of the simulation that
-/// the agent "can see". It is an immutable object, which is passed to each behavior and has data
-/// not stored in an agent itself like neighboring information, message handling, and globals.
+/// This struct is a specific Agent's view into the context. It contains information about the
+/// general simulation, rather than data belonging to specific agents. This is effectively what the
+/// agent 'can see', e.g. neighboring agents, incoming messages and globals. Due to it being a
+/// description of the current environment surrounding the agent, it's immutable (unlike an agent's
+/// specific state).
 ///
-/// Agent runners tries to only give agents the context information they need to execute. All values
-/// accessed through context are read-only, and if modified, will not directly change the state of
-/// the simulation or any other agent.
+/// Language runners attempt to only give agents the context information they need to execute.
+/// All values accessed through context are read-only, and if modified, will not directly change
+/// the state of the simulation or any other agent.
 #[derive(Serialize, Debug)]
 pub struct Context<'a> {
     pub properties: &'a Globals,
@@ -64,14 +67,14 @@ pub struct Context<'a> {
 /// _state_ of an agent. Every field corresponds to an [`AgentStateField`].
 #[derive(Clone, Serialize, Debug, PartialEq)]
 pub struct Agent {
-    /// The unique identifier of an agent.
+    /// The unique identifier (UUIDv4) of an agent.
     #[serde(default = "generate_agent_id")]
     pub agent_id: String,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub agent_name: Option<Name>,
 
-    /// Message to be send at the next step.
+    /// Messages to be sent at the next step. (The Agent's "Outbox")
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub messages: Vec<message::Outbound>,
 
@@ -96,12 +99,12 @@ pub struct Agent {
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub hidden: bool,
 
-    /// Arbitrary field used as non-built-in field. Corresponds to [`AgentStateField::Extra`].
+    /// All fields that aren't built-in. Corresponds to [`AgentStateField::Extra`].
     #[serde(default, flatten)]
     pub custom: HashMap<String, serde_json::Value>,
 }
 
-/// The type of a field in an agent state.
+/// The possible fields in an agent's state.
 ///
 /// It's used in `batch`es to determine the type of a field stored in the corresponding `batch`.
 #[derive(Eq, PartialEq, Hash, Debug, Clone)]
