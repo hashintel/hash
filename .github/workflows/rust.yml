@@ -234,7 +234,7 @@ jobs:
 
       - name: Build test dependencies
         if: matrix.directory == 'packages/engine'
-        run: cargo build -p server --manifest-path ${{ matrix.directory }}/Cargo.toml
+        run: cargo build -p server -p cli --manifest-path ${{ matrix.directory }}/Cargo.toml
 
       - name: Run tests
         run: |
