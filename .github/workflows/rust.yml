@@ -241,7 +241,7 @@ jobs:
         run: cargo build -p server -p cli --manifest-path ${{ matrix.directory }}/Cargo.toml
 
       - name: Run tests
-        run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} --no-fail-fast
+        run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} --no-fail-fast -- --test-threads=1
 
   merging-enabled:
     name: merging enabled
