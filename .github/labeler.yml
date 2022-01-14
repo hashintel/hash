@@ -11,10 +11,10 @@ api:
   - packages/hash/api/**/.*
 
 blocks:
-  - packages/hash/blocks/*
-  - packages/hash/blocks/.*
-  - packages/hash/blocks/**/*
-  - packages/hash/blocks/**/.*
+  - packages/blocks/*
+  - packages/blocks/.*
+  - packages/blocks/**/*
+  - packages/blocks/**/.*
 
 integration:
   - packages/hash/integration/*

@@ -2,10 +2,10 @@
   "private": true,
   "description": "HASH monorepo",
   "workspaces": [
+    "packages/blocks/*",
     "packages/hash/api",
     "packages/hash/api/datastore/postgres",
     "packages/hash/backend-utils",
-    "packages/hash/blocks/*",
     "packages/hash/frontend",
     "packages/hash/integration",
     "packages/hash/playwright",
