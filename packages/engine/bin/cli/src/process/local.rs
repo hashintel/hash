@@ -26,13 +26,17 @@ impl process::Process for LocalProcess {
             unistd::Pid,
         };
 
+        let mut successful = false;
         match signal::kill(Pid::from_raw(self.child.id() as i32), Signal::SIGINT) {
             Ok(_) => {
                 // Allow Engine to exit gracefully.
                 debug!("Giving engine a chance to clean-up");
                 for attempt in 0..5 {
                     match self.child.try_wait() {
-                        Ok(Some(status)) => break,
+                        Ok(Some(_)) => {
+                            successful = true;
+                            break;
+                        }
                         Ok(None) => {
                             std::thread::sleep(std::time::Duration::from_millis(1000 * attempt));
                         }
@@ -42,10 +46,15 @@ impl process::Process for LocalProcess {
                     }
                 }
                 // TODO: remove - here for flamegraph
-                signal::kill(Pid::from_raw(self.child.id() as i32), Signal::SIGINT)?;
+                if !successful {
+                    signal::kill(Pid::from_raw(self.child.id() as i32), Signal::SIGINT)?;
+                }
                 for attempt in 0..5 {
                     match self.child.try_wait() {
-                        Ok(Some(status)) => break,
+                        Ok(Some(_)) => {
+                            successful = true;
+                            break;
+                        }
                         Ok(None) => {
                             std::thread::sleep(std::time::Duration::from_millis(1000 * attempt));
                         }
@@ -60,13 +69,15 @@ impl process::Process for LocalProcess {
             }
         };
 
-        self.child
-            .kill()
-            .or_else(|e| match e.kind() {
-                std::io::ErrorKind::InvalidInput => Ok(()),
-                _ => Err(Report::new(e)),
-            })
-            .wrap_err("Could not kill the process")?;
+        if !successful {
+            self.child
+                .kill()
+                .or_else(|e| match e.kind() {
+                    std::io::ErrorKind::InvalidInput => Ok(()),
+                    _ => Err(Report::new(e)),
+                })
+                .wrap_err("Could not kill the process")?;
+        }
 
         debug!(
             "Cleaned up local engine process for experiment {}",
@@ -77,22 +88,29 @@ impl process::Process for LocalProcess {
 
     #[cfg(not(target_os = "linux"))]
     async fn exit_and_cleanup(mut self: Box<Self>) -> Result<()> {
+        let mut successful = false;
         for attempt in 0..5 {
             match self.child.try_wait() {
-                Ok(Some(status)) => break,
+                Ok(Some(_)) => {
+                    successful = true;
+                    break;
+                }
                 Ok(None) => {
                     std::thread::sleep(std::time::Duration::from_millis(100 * attempt));
                 }
                 Err(e) => error!("error attempting to wait for engine process to exit: {}", e),
             }
         }
-        self.child
-            .kill()
-            .or_else(|e| match e.kind() {
-                std::io::ErrorKind::InvalidInput => Ok(()),
-                _ => Err(Report::new(e)),
-            })
-            .wrap_err("Could not kill the process")?;
+
+        if !successful {
+            self.child
+                .kill()
+                .or_else(|e| match e.kind() {
+                    std::io::ErrorKind::InvalidInput => Ok(()),
+                    _ => Err(Report::new(e)),
+                })
+                .wrap_err("Could not kill the process")?;
+        }
 
         debug!(
             "Cleaned up local engine process for experiment {}",
