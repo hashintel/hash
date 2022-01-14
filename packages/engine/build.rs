@@ -13,12 +13,7 @@ fn main() {
         .map(path)
         .expect("`V8_PATH` environment variable wasn't set, refer to README");
     let v8_include = path(Path::new(&v8).join("include"));
-    let v8_obj = path(
-        Path::new(&v8)
-            .join("out.gn")
-            .join("x64.release")
-            .join("obj"),
-    );
+    let v8_obj = path(Path::new(&v8).join("out.gn").join("libv8").join("obj"));
 
     println!("cargo:rerun-if-changed=src/worker/runner/javascript/mini_v8/ffi.cc");
     println!("cargo:rustc-link-search=native={v8_obj}",);
