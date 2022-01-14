@@ -3,19 +3,20 @@ mod experiment;
 /// Opens `$project` relatively to this file as HASH project and uses
 /// `$project/integration-test.json` as configuration for the test.
 ///
-/// The configuration contains the following (optional) values:
-/// - "experiments": List of objects describing an experiment:
-///   - "experiment-name": Name of the experiment to run specified in `experiments.json`
-///   - "expected-outputs": List of expected outputs from the experiment run. The length of the list
-///     is expected to be equal to the number of simulations run in the experiment. Each element in
-///     the list is an object with these (optional) elements:
+/// The configuration contains a list of objects, where each object has the following values:
+/// - for a simple experiment:
+///   - "experiment": Name of the experiment to run as specified in `experiments.json`
+///   - "expected-outputs": List of expected outputs, where the length of the list must be equal to
+///     the number of simulations of the experiment. Each entry of the list is an objects with the
+///     step number as key mapping to the expected outputs of the corresponding step in the
+///     simulation run:
 ///     - "json-state": subset of the values expected in the `json_state.json` output
 ///     - "globals": subset of the values expected in the `globals.json` output
 ///     - "analysis-outputs": subset of the values expected in the `analysis_outputs.json` output
-/// - "single": Runs a single simulation with described as:
-///   - "num-steps": Number of steps to run
-///   - "expected-output": Expected output of the simulation containing the same (optional) objects
-///     as one element in "expected-outputs": "json-state", "globals", "analysis-outputs"
+/// - for single-run experiments:
+///   - "steps": Number of steps to run
+///   - "expected-output": Expected output of the simulation containing with the same schema as one
+///     element in "expected-outputs"
 macro_rules! run_test {
     ($project:tt) => {
         #[test]
@@ -33,8 +34,9 @@ macro_rules! run_test {
                 .expect("Could not read experiments");
 
             for (experiment, expected_outputs) in experiments {
-                let outputs =
-                    run_experiment(&project_path, &experiment).expect("Could not run experiment");
+                let outputs = experiment
+                    .run(&project_path)
+                    .expect("Could not run experiment");
 
                 assert_eq!(
                     expected_outputs.len(),
@@ -43,9 +45,11 @@ macro_rules! run_test {
              results"
                 );
 
-                for (got, expected) in outputs.into_iter().zip(expected_outputs.into_iter()) {
+                for ((states, globals, analysis), expected) in
+                    outputs.into_iter().zip(expected_outputs.into_iter())
+                {
                     expected
-                        .assert_subset_of(&got)
+                        .assert_subset_of(&states, &globals, &analysis)
                         .expect("Output does not match expected output");
                 }
             }

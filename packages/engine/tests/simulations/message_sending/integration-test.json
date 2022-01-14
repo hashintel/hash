@@ -1,24 +1,21 @@
-{
-  "experiments": [
-    {
-      "experiment-name": "send-one",
-      "expected-outputs": [
-        {
-          "json-state": [
-            [{}],
-            [
-              {
-                "messages": [
-                  {
-                    "type": "test",
-                    "to": ["a"]
-                  }
-                ]
-              }
-            ]
+[
+  {
+    "experiment": "send-one",
+    "expected-outputs": [
+      {
+        "json-state": {
+          "1": [
+            {
+              "messages": [
+                {
+                  "type": "test",
+                  "to": ["a"]
+                }
+              ]
+            }
           ]
         }
-      ]
-    }
-  ]
-}
+      }
+    ]
+  }
+]

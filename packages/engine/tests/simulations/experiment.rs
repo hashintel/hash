@@ -1,23 +1,99 @@
 use std::{
+    collections::HashMap,
     fs::{self, File},
     io::BufReader,
     path::{Path, PathBuf},
 };
 
 use ::error::{ensure, Result, ResultExt};
-use error::bail;
+use error::{bail, report};
 use hash_engine::utils::OutputFormat;
 use regex::Regex;
 use serde::{de::DeserializeOwned, Deserialize};
 use serde_json::Value;
 
-// TODO: Unify with CLI when splitted up into binary+library
-pub enum ExperimentType {
-    SingleRun { num_steps: u64 },
-    Simple { experiment_name: String },
+pub type AgentStates = Value;
+pub type Globals = Value;
+pub type Analysis = Value;
+
+#[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ExpectedOutput {
+    #[serde(default)]
+    pub json_state: HashMap<String, AgentStates>,
+    #[serde(default)]
+    pub globals: Option<Globals>,
+    #[serde(default)]
+    pub analysis_outputs: Option<Analysis>,
 }
 
-fn parse_file<T: DeserializeOwned>(path: impl AsRef<Path>) -> Result<T> {
+pub enum Experiment {
+    Simple { experiment: String },
+    SingleRun { steps: u64 },
+}
+
+impl Experiment {
+    pub fn run(&self, project: impl AsRef<Path>) -> Result<Vec<(AgentStates, Globals, Analysis)>> {
+        let output = std::env::var("OUT_DIR").wrap_err("$OUT_DIR is not set")?;
+
+        let mut cmd = std::process::Command::new("target/debug/cli");
+        cmd.env("RUST_LOG", "trace")
+            .arg("--project")
+            .arg(project.as_ref())
+            .arg("--output")
+            .arg(output)
+            .arg("--emit")
+            .arg(OutputFormat::Full.to_string())
+            .arg("--num-workers")
+            .arg("1");
+
+        match self {
+            Experiment::SingleRun { steps } => {
+                cmd.arg("single-run")
+                    .arg("--num-steps")
+                    .arg(steps.to_string());
+            }
+            Experiment::Simple { experiment } => {
+                cmd.arg("simple").arg("--experiment-name").arg(experiment);
+            }
+        }
+
+        let experiment = cmd.output().wrap_err("Could not run experiment command")?;
+        if !experiment.stdout.is_empty() {
+            println!("{}", String::from_utf8_lossy(&experiment.stdout));
+        }
+        if !experiment.stderr.is_empty() {
+            eprintln!("{}", String::from_utf8_lossy(&experiment.stderr));
+        }
+
+        ensure!(experiment.status.success(), "Could not run experiment");
+
+        let mut outputs = Regex::new(r#"Making new output directory: "(.*)""#)
+            .wrap_err("Could not compile regex")?
+            .captures_iter(&String::from_utf8_lossy(&experiment.stderr))
+            .map(|output_dir_capture| PathBuf::from(&output_dir_capture[1]))
+            .collect::<Vec<_>>();
+        outputs.sort_unstable();
+        outputs
+            .into_iter()
+            .map(|output_dir| {
+                let json_state = parse_file(Path::new(&output_dir).join("json_state.json"))
+                    .wrap_err("Could not read JSON state")?;
+                let globals = parse_file(Path::new(&output_dir).join("globals.json"))
+                    .wrap_err("Could not read globals")?;
+                let analysis_outputs =
+                    parse_file(Path::new(&output_dir).join("analysis_outputs.json"))
+                        .wrap_err("Could not read analysis outputs`")?;
+
+                let _ = fs::remove_dir_all(&output_dir);
+
+                Ok((json_state, globals, analysis_outputs))
+            })
+            .collect()
+    }
+}
+
+fn parse_file<T: DeserializeOwned, P: AsRef<Path>>(path: P) -> Result<T> {
     let path = path.as_ref();
     serde_json::from_reader(BufReader::new(
         File::open(path).wrap_err_lazy(|| format!("Could not open file {path:?}"))?,
@@ -25,12 +101,36 @@ fn parse_file<T: DeserializeOwned>(path: impl AsRef<Path>) -> Result<T> {
     .wrap_err_lazy(|| format!("Could not parse {path:?}"))
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct ExperimentOutput {
-    pub json_state: Option<Value>,
-    pub globals: Option<Value>,
-    pub analysis_outputs: Option<Value>,
+pub fn read_config<P: AsRef<Path>>(path: P) -> Result<Vec<(Experiment, Vec<ExpectedOutput>)>> {
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    pub enum ConfigValue {
+        #[serde(rename_all = "kebab-case")]
+        Simple {
+            experiment: String,
+            expected_outputs: Vec<ExpectedOutput>,
+        },
+        #[serde(rename_all = "kebab-case")]
+        SingleRun {
+            steps: u64,
+            expected_output: ExpectedOutput,
+        },
+    }
+
+    Ok(parse_file::<Vec<ConfigValue>, P>(path)
+        .wrap_err("Could not read integration test configuration")?
+        .into_iter()
+        .map(|config_value| match config_value {
+            ConfigValue::Simple {
+                experiment,
+                expected_outputs,
+            } => (Experiment::Simple { experiment }, expected_outputs),
+            ConfigValue::SingleRun {
+                steps,
+                expected_output,
+            } => (Experiment::SingleRun { steps }, vec![expected_output]),
+        })
+        .collect())
 }
 
 fn assert_subset_value(subset: &Value, superset: &Value, path: String) -> Result<()> {
@@ -76,8 +176,8 @@ fn assert_subset_value(subset: &Value, superset: &Value, path: String) -> Result
     Ok(())
 }
 
-impl ExperimentOutput {
-    /// Compares to another `ExperimentOutput` and returns [`Err`], if this output is not a subset
+impl ExpectedOutput {
+    /// Compares to an experiment output and returns [`Err`], if this output is not a subset
     /// of `superset`.
     ///
     /// It's considered a subset if for any output (`json_state`, `globals`, `analysis_output`) the
@@ -86,143 +186,40 @@ impl ExperimentOutput {
     /// - For arrays, the length must match and for each element this list applies
     /// - For objects, for each key present in the subset there must be a corresponding key in
     ///   `superset`, for which the value needs to be equal as in this list
-    pub fn assert_subset_of(&self, superset: &Self) -> Result<()> {
-        if let Some(sub_value) = &self.json_state {
+    pub fn assert_subset_of(
+        &self,
+        agent_states: &AgentStates,
+        globals: &Globals,
+        analysis: &Analysis,
+    ) -> Result<()> {
+        for (step, expected_states) in &self.json_state {
+            let step = step
+                .parse::<usize>()
+                .wrap_err_lazy(|| format!("{step} is not a valid step"))?;
+            let result_states = agent_states
+                .get(step)
+                .ok_or_else(|| report!("Experiment output does not contain {step} steps"))?;
             assert_subset_value(
-                sub_value,
-                superset.json_state.as_ref().unwrap(),
+                expected_states,
+                result_states,
                 String::from("json_state.json"),
             )?;
         }
 
-        if let Some(sub_value) = &self.globals {
-            assert_subset_value(
-                sub_value,
-                superset.globals.as_ref().unwrap(),
-                String::from("globals.json"),
-            )?;
+        if let Some(expected_globals) = &self.globals {
+            assert_subset_value(expected_globals, globals, String::from("globals.json"))?;
         }
 
-        if let Some(sub_value) = &self.analysis_outputs {
+        if let Some(expected_analysis) = &self.analysis_outputs {
             assert_subset_value(
-                sub_value,
-                superset.analysis_outputs.as_ref().unwrap(),
+                expected_analysis,
+                analysis,
                 String::from("analysis_outputs.json"),
             )?;
         }
 
         Ok(())
     }
-}
-
-pub fn read_config(path: impl AsRef<Path>) -> Result<Vec<(ExperimentType, Vec<ExperimentOutput>)>> {
-    #[derive(Deserialize)]
-    #[serde(rename_all = "kebab-case")]
-    struct Simple {
-        experiment_name: String,
-        expected_outputs: Vec<ExperimentOutput>,
-    }
-
-    #[derive(Deserialize)]
-    #[serde(rename_all = "kebab-case")]
-    struct SingleRun {
-        num_steps: u64,
-        expected_output: ExperimentOutput,
-    }
-
-    #[derive(Deserialize)]
-    struct Config {
-        #[serde(default)]
-        experiments: Vec<Simple>,
-        #[serde(default)]
-        single: Option<SingleRun>,
-    }
-
-    let config: Config = parse_file(path).wrap_err("Could not read configuration")?;
-    let simple_iter = config.experiments.into_iter().map(|simple| {
-        (
-            ExperimentType::Simple {
-                experiment_name: simple.experiment_name,
-            },
-            simple.expected_outputs,
-        )
-    });
-    let single_run_iter = config.single.map(|single_run| {
-        (
-            ExperimentType::SingleRun {
-                num_steps: single_run.num_steps,
-            },
-            vec![single_run.expected_output],
-        )
-    });
-    Ok(simple_iter.chain(single_run_iter).collect())
-}
-
-pub fn run_experiment(
-    project: impl AsRef<Path>,
-    experiment: &ExperimentType,
-) -> Result<Vec<ExperimentOutput>> {
-    let output = std::env::var("OUT_DIR").wrap_err("$OUT_DIR is not set")?;
-
-    let mut cmd = std::process::Command::new("target/debug/cli");
-    cmd.env("RUST_LOG", "trace")
-        .arg("--project")
-        .arg(project.as_ref())
-        .arg("--output")
-        .arg(output)
-        .arg("--emit")
-        .arg(OutputFormat::Full.to_string())
-        .arg("--num-workers")
-        .arg("1");
-
-    match experiment {
-        ExperimentType::SingleRun { num_steps } => {
-            cmd.arg("single-run")
-                .arg("--num-steps")
-                .arg(num_steps.to_string());
-        }
-        ExperimentType::Simple { experiment_name } => {
-            cmd.arg("simple")
-                .arg("--experiment-name")
-                .arg(experiment_name);
-        }
-    }
-
-    let experiment = cmd.output().wrap_err("Could not run experiment command")?;
-    if !experiment.stdout.is_empty() {
-        println!("{}", String::from_utf8_lossy(&experiment.stdout));
-    }
-    if !experiment.stderr.is_empty() {
-        eprintln!("{}", String::from_utf8_lossy(&experiment.stderr));
-    }
-
-    ensure!(experiment.status.success(), "Could not run experiment");
-
-    let mut outputs = Regex::new(r#"Making new output directory: "(.*)""#)
-        .wrap_err("Could not compile regex")?
-        .captures_iter(&String::from_utf8_lossy(&experiment.stderr))
-        .map(|output_dir_capture| PathBuf::from(&output_dir_capture[1]))
-        .collect::<Vec<_>>();
-    outputs.sort_unstable();
-    outputs
-        .into_iter()
-        .map(|output_dir| {
-            let json_state = parse_file(Path::new(&output_dir).join("json_state.json"))
-                .wrap_err("Could not read JSON state")?;
-            let globals = parse_file(Path::new(&output_dir).join("globals.json"))
-                .wrap_err("Could not read globals")?;
-            let analysis_outputs = parse_file(Path::new(&output_dir).join("analysis_outputs.json"))
-                .wrap_err("Could not read analysis outputs`")?;
-
-            let _ = fs::remove_dir_all(&output_dir);
-
-            Ok(ExperimentOutput {
-                globals: Some(globals),
-                json_state: Some(json_state),
-                analysis_outputs: Some(analysis_outputs),
-            })
-        })
-        .collect()
 }
 
 #[test]
