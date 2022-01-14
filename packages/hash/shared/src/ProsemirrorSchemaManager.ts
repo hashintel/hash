@@ -19,6 +19,8 @@ import {
 import {
   addEntityStoreAction,
   entityStorePluginState,
+  entityStorePluginStateFromTransaction,
+  newDraftId,
 } from "./entityStorePlugin";
 import { ProsemirrorNode } from "./node";
 import { childrenForTextEntity, getComponentNodeAttrs } from "./prosemirror";
@@ -253,10 +255,6 @@ export class ProsemirrorSchemaManager {
   /**
    * Creating a new type of block in prosemirror, without necessarily having
    * requested the block metadata yet.
-   *
-   * @todo support taking a signal
-   * @todo consider merging this into replaceNodeWithRemoteBlock as
-   *       realistically cannot use this without a node to replace
    */
   async createRemoteBlock(
     targetComponentId: string,
@@ -348,11 +346,6 @@ export class ProsemirrorSchemaManager {
     }
   }
 
-  /**
-   * @todo i think we need to put placeholders for the not-yet-fetched blocks
-   *   immediately, and then have the actual blocks pop in – it being delayed
-   *   too much will mess with collab
-   */
   async createEntityUpdateTransaction(
     entities: BlockEntity[],
     state: EditorState<Schema>,
@@ -390,9 +383,7 @@ export class ProsemirrorSchemaManager {
     return tr;
   }
 
-  /**
-   * @todo if these are both text nodes, look into using setNodeMarkup
-   */
+  // @todo consider removing the old block from the entity store
   async replaceNodeWithRemoteBlock(
     draftBlockId: string,
     targetComponentId: string,
@@ -407,21 +398,45 @@ export class ProsemirrorSchemaManager {
     }
 
     const entityStoreState = entityStorePluginState(view.state);
+
+    const blockEntity = entityStoreState.store.draft[draftBlockId];
+
+    if (!blockEntity || !isDraftBlockEntity(blockEntity)) {
+      throw new Error("draft id does not belong to a block");
+    }
+
+    const innerEntity = blockEntity.properties.entity;
+    const { tr } = view.state;
+
+    const newBlockDraftId = newDraftId();
+
+    addEntityStoreAction(view.state, tr, {
+      type: "newDraftEntity",
+      payload: {
+        draftId: newBlockDraftId,
+        entityId: null,
+      },
+    });
+
+    addEntityStoreAction(view.state, tr, {
+      type: "updateEntityProperties",
+      payload: {
+        draftId: newBlockDraftId,
+        merge: false,
+        properties: {
+          componentId: targetComponentId,
+          entity: innerEntity,
+        },
+      },
+    });
+
+    const updated = entityStorePluginStateFromTransaction(tr, view.state);
+
     const newNode = await this.createRemoteBlock(
       targetComponentId,
-      entityStoreState.store,
-      draftBlockId,
+      updated.store,
+      newBlockDraftId,
     );
-
-    /**
-     * The code below used to ensure the cursor was positioned
-     * within the new node, depending on its type, but because we
-     * now want to trigger saves when we change node type, and
-     * because triggering saves can mess up the cursor position,
-     * we're currently not re-focusing the editor view.
-     */
-
-    const { tr } = view.state;
 
     tr.replaceRangeWith(pos, pos + node.nodeSize, newNode);
     view.dispatch(tr);

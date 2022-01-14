@@ -218,21 +218,6 @@ const updateBlocks = defineOperation(
           }
 
           const updates: UpdatePageAction[] = [];
-          const componentId = componentNodeToId(node);
-
-          if (componentId !== existingBlock.properties.componentId) {
-            updates.push({
-              updateEntity: {
-                entityId: blockEntityId,
-                accountId: savedEntity.accountId,
-                properties: {
-                  componentId,
-                  entityId: savedChildEntity.entityId,
-                  accountId: savedChildEntity.accountId,
-                },
-              },
-            });
-          }
 
           if (node.type.isTextblock) {
             const textEntity = getTextEntityFromSavedBlock(
@@ -247,7 +232,6 @@ const updateBlocks = defineOperation(
             }
 
             const { tokens } = textEntity.properties;
-            // @todo consider using draft entity store for this
             const entityProperties = textBlockNodeToEntityProperties(node);
 
             if (!isEqual(tokens, entityProperties.tokens)) {

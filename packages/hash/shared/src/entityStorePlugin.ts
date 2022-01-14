@@ -107,7 +107,7 @@ export const entityStorePluginState = (state: EditorState<Schema>) => {
 /**
  * @use {@link subscribeToEntityStore} if you need a live subscription
  */
-const entityStorePluginStateFromTransaction = (
+export const entityStorePluginStateFromTransaction = (
   tr: Transaction<Schema>,
   state: EditorState<Schema>,
 ): EntityStorePluginState =>
@@ -342,6 +342,8 @@ const getRequiredDraftIdFromEntityNode = (entityNode: EntityNode): string => {
   return entityNode.attrs.draftId;
 };
 
+export const newDraftId = () => `fake-${uuid()}`;
+
 class ProsemirrorStateChangeHandler {
   private readonly tr: Transaction<Schema>;
   private handled = false;
@@ -511,7 +513,7 @@ class ProsemirrorStateChangeHandler {
          *   new blocks – this is potentially insecure and needs
          *   considering
          */
-        node.attrs.draftId ?? `fake-${uuid()}`;
+        node.attrs.draftId ?? newDraftId();
 
     if (!draftEntityStore[draftId]) {
       addEntityStoreAction(this.state, this.tr, {
