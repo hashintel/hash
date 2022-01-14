@@ -1,0 +1,18 @@
+{
+  "keys": {
+    "a": {
+      "type": "number",
+      "nullable": true
+    },
+    "b": {
+      "type": "number",
+      "nullable": true
+    },
+    "c": {
+      "type": "number",
+      "nullable": true
+    }
+  },
+  "built_in_key_use": null,
+  "dynamic_access": false
+}
