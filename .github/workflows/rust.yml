@@ -150,9 +150,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
             ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}
-            ${{ runner.os }}-clippy-${{ matrix.directory }}
-            ${{ runner.os }}-clippy
-            ${{ runner.os }}
 
       - name: Install v8
         run: |
@@ -221,9 +218,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
             ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}
-            ${{ runner.os }}-test-${{ matrix.directory }}
-            ${{ runner.os }}-test
-            ${{ runner.os }}
 
       - name: Install v8
         run: |
