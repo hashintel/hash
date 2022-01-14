@@ -43,11 +43,16 @@ pub enum EngineMsg {
     Init(InitMessage),
 }
 
-/// TODO: DOC
+/// The initialization message sent by an Orchestrator implementation to the Engine
 #[derive(Serialize, Deserialize, Debug)]
 pub struct InitMessage {
+    /// Defines the type of Experiment that's being ran (e.g. a wrapper around a single-run of a
+    /// simulation, or the configuration for a normal experiment)
     pub experiment: ExperimentRunRepr,
+    /// Unused
     pub env: ExecutionEnvironment,
+    /// A JSON object of dynamic configurations for things like packages, see
+    /// [`experiment::controller::config::OUTPUT_PERSISTENCE_KEY`] for an example
     pub dyn_payloads: serde_json::Map<String, serde_json::Value>,
 }
 
