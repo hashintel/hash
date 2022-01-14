@@ -9,7 +9,11 @@ import {
   BlockMeta,
   fetchBlockMeta,
 } from "./blockMeta";
-import { BlockEntity, getTextEntityFromDraftBlock } from "./entity";
+import {
+  BlockEntity,
+  getTextEntityFromDraftBlock,
+  isTextContainingEntityProperties,
+} from "./entity";
 import {
   createEntityStore,
   draftEntityForEntityId,
@@ -442,6 +446,22 @@ export class ProsemirrorSchemaManager {
       updated.store,
       newBlockDraftId,
     );
+
+    const blockEntity = entityStoreState.store.draft[draftBlockId];
+
+    if (
+      isDraftBlockEntity(blockEntity) // &&
+      // isTextContainingEntityProperties(blockEntity.properties.entity.properties)
+    ) {
+      addEntityStoreAction(this.view.state, tr, {
+        type: "updateEntityProperties",
+        payload: {
+          draftId: blockEntity.properties.entity.draftId,
+          properties: targetVariant.properties ?? {},
+          merge: true,
+        },
+      });
+    }
 
     tr.replaceRangeWith(pos, pos + node.nodeSize, newNode);
     view.dispatch(tr);
