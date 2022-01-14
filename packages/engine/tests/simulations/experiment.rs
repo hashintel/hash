@@ -85,7 +85,7 @@ impl Experiment {
                     .unwrap()
                     .to_string_lossy()
                     .parse::<u64>()
-                    .expect("Unable to parse experiment number as integer");
+                    .expect("Unable to parse simulation run ID as integer");
                 (output_dir_base, simulation_number)
             })
             .collect::<Vec<_>>();
