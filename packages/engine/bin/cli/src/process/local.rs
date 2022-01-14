@@ -21,6 +21,7 @@ pub struct LocalProcess {
 impl process::Process for LocalProcess {
     #[cfg(target_os = "unix")]
     async fn exit_and_cleanup(mut self: Box<Self>) -> Result<()> {
+        debug!("TESTING");
         use nix::{
             sys::signal::{self, Signal},
             unistd::Pid,
