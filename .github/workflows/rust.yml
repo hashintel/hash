@@ -232,13 +232,15 @@ jobs:
           cd ..
           rm -rf tmp # Delete the tmp folder
 
-      - name: Build test dependencies
-        if: matrix.directory == 'packages/engine'
-        run: cargo build -p server -p cli --manifest-path ${{ matrix.directory }}/Cargo.toml
-
-      - name: Run tests
+      - name: Manually clean cache
         run: |
-          cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} --no-fail-fast
+          rm -rf ~/.cargo/.crates.toml
+          rm -rf ~/.cargo/.crates2.json
+          rm -rf ~/.cargo/bin
+          rm -rf ~/.cargo/registry/index
+          rm -rf ~/.cargo/registry/cache
+          rm -rf target
+          rm -rf ${{ matrix.directory }}/target
 
   merging-enabled:
     name: merging enabled
