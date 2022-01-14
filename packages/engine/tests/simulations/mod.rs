@@ -34,9 +34,23 @@ macro_rules! run_test {
                 .expect("Could not read experiments");
 
             for (experiment, expected_outputs) in experiments {
-                let outputs = experiment
-                    .run(&project_path)
-                    .expect("Could not run experiment");
+                // TODO: Remove attempting strategy
+                let mut outputs = None;
+                let attempts = 3;
+                for attempt in 1..=attempts {
+                    println!(
+                        "\n\n\nRunning {} attempt {attempt}/{attempts}:\n",
+                        stringify!($project)
+                    );
+                    match experiment.run(&project_path) {
+                        Ok(out) => {
+                            outputs.replace(out);
+                            break;
+                        }
+                        Err(err) => eprintln!("\n\n{err:?}\n\n"),
+                    }
+                }
+                let outputs = outputs.expect("Could not run experiment");
 
                 assert_eq!(
                     expected_outputs.len(),
