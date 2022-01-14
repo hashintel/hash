@@ -991,7 +991,7 @@ describe("logged in user ", () => {
     });
   });
 
-  it("can create linked entitites when updating page contents", async () => {
+  it("can create linked entities when updating page contents", async () => {
     const page = await client.createPage({
       accountId: existingUser.accountId,
       properties: {
@@ -1057,22 +1057,34 @@ describe("logged in user ", () => {
     expect(pageEntities[0].properties).toMatchObject({ tokens: [] });
     expect(pageEntities[1].properties).toMatchObject(textPropertiesA);
 
-    // getEntities gives back entitites orderes by updated_at
+    // getEntities gives back entities orderes by updated_at
     const { entities } = await client.getEntities({
       accountId: page.accountId,
     });
 
     expect(
-      entities.slice(0, 5).map((entity) => ({
-        type: entity.entityTypeName,
-        props: entity.entityTypeName === "Text" ? entity.properties : undefined,
-      })),
+      entities
+        .slice(0, 5)
+        .map((entity) => ({
+          type: entity.entityTypeName,
+          props:
+            entity.entityTypeName === "Text" ? entity.properties : undefined,
+        }))
+        .sort((a, b) =>
+          // lexical sorting to circumvent concurrency of linked entity ordering when they are inserted
+          // Non-text blocks are first, page and block are not inserted concurrently and will be stable.
+          a.props === undefined || b.props === undefined
+            ? (a.props === undefined) !== (b.props === undefined)
+            : (a.props as any).tokens![0].text.localeCompare(
+                (b.props as any).tokens![0].text,
+              ),
+        ),
     ).toEqual([
       { type: "Page", props: undefined },
       { type: "Block", props: undefined },
       // The following 3 Text elements should be
-      { type: "Text", props: textPropertiesB },
       { type: "Text", props: textPropertiesA },
+      { type: "Text", props: textPropertiesB },
       { type: "Text", props: textPropertiesC },
     ]);
   });
@@ -1250,6 +1262,39 @@ describe("logged in user ", () => {
 
     expect(aggregation).not.toBeNull();
     expect(aggregation.stringifiedPath).toBe(variables.path);
+  });
+
+  it("can create linked entities outside a page", async () => {
+    const sourceEntityType = await createEntityType();
+    const linkedEntityType = await createEntityType();
+
+    const entityWithLinks = await client.createEntity({
+      accountId: existingUser.accountId,
+      entityTypeId: sourceEntityType.entityId,
+      properties: {},
+      linkedEntities: {
+        destinationAccountId: existingUser.accountId,
+        destinationPath: "$.second",
+        entity: {
+          entityProperties: {},
+          entityType: {
+            entityTypeId: linkedEntityType.entityId,
+          },
+        },
+      },
+    });
+
+    const withLinks = await client.getEntityAndLinks({
+      accountId: existingUser.accountId,
+      entityId: entityWithLinks.entityId,
+    });
+
+    expect(withLinks.entityId).toEqual(entityWithLinks.entityId);
+    expect(withLinks.linkedEntities.length).toEqual(1);
+    expect(withLinks.linkedEntities[0].entityTypeName).toEqual("Dummy-4");
+    expect(withLinks.linkedEntities[0].entityTypeId).toEqual(
+      linkedEntityType.entityId,
+    );
   });
 
   it("can update operation of existing linked aggregation for an entity", async () => {

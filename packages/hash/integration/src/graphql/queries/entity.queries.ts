@@ -7,6 +7,7 @@ export const createEntity = gql`
     $systemTypeName: SystemTypeName
     $entityTypeId: ID
     $versioned: Boolean! = true
+    $linkedEntities: [LinkedEntityDefinitionArgs!]
   ) {
     createEntity(
       accountId: $accountId
@@ -17,6 +18,7 @@ export const createEntity = gql`
           entityTypeId: $entityTypeId
           systemTypeName: $systemTypeName
         }
+        linkedEntities: $linkedEntities
       }
     ) {
       __typename
@@ -103,6 +105,39 @@ export const getUnknownEntity = gql`
       createdAt
       updatedAt
       properties
+    }
+  }
+`;
+
+export const getEntityAndLinks = gql`
+  query getEntityAndLinks(
+    $accountId: ID!
+    $entityId: ID
+    $entityVersionId: ID
+  ) {
+    entity(
+      accountId: $accountId
+      entityId: $entityId
+      entityVersionId: $entityVersionId
+    ) {
+      entityId
+      entityVersionId
+      entityTypeId
+      entityTypeVersionId
+      properties
+      history {
+        entityVersionId
+        createdAt
+      }
+      entityVersionCreatedAt
+      createdAt
+      updatedAt
+      properties
+      linkedEntities {
+        entityId
+        entityTypeId
+        entityTypeName
+      }
     }
   }
 `;

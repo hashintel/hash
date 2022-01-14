@@ -1,5 +1,8 @@
+import { JSONObject } from "blockprotocol";
 import { Uuid4 } from "id128";
 import { uniq } from "lodash";
+import { CreateEntityArgs } from "./model";
+import { isSystemType } from "./types/entityTypes";
 
 /**
  * Generate a new ID.
@@ -53,6 +56,63 @@ export const isRecord = (thing: unknown): thing is Record<string, any> => {
     return false;
   }
   return true;
+};
+
+/**
+ * Builds the argument object for the createEntity function. It checks that exactly
+ * one of entityTypeId, entityTypeVersionId or systemTypeName is set, and returns
+ * the correct variant of CreateEntityArgs.
+ */
+export const createEntityArgsBuilder = (params: {
+  accountId: string;
+  createdByAccountId: string;
+  properties: JSONObject;
+  versioned: boolean;
+  entityTypeId?: string | null;
+  entityTypeVersionId?: string | null;
+  entityId?: string;
+  entityVersionId?: string;
+  systemTypeName?: string | null;
+}): CreateEntityArgs => {
+  if (
+    !exactlyOne(
+      params.entityTypeId,
+      params.entityTypeVersionId,
+      params.systemTypeName,
+    )
+  ) {
+    throw new Error(
+      "exactly one of entityTypeId, entityTypeVersionId or systemTypeName must be provided",
+    );
+  }
+
+  let args: CreateEntityArgs;
+  const _args = {
+    accountId: params.accountId,
+    createdByAccountId: params.createdByAccountId,
+    versioned: params.versioned,
+    properties: params.properties,
+  };
+  if (params.entityTypeId) {
+    args = { ..._args, entityTypeId: params.entityTypeId };
+  } else if (params.entityTypeVersionId) {
+    args = { ..._args, entityTypeVersionId: params.entityTypeVersionId };
+  } else if (params.systemTypeName) {
+    if (!isSystemType(params.systemTypeName)) {
+      throw new Error(`Invalid systemTypeName "${params.systemTypeName}"`);
+    }
+    args = { ..._args, systemTypeName: params.systemTypeName };
+  } else {
+    throw new Error("unreachable");
+  }
+  if (params.entityId) {
+    args.entityId = params.entityId;
+  }
+  if (params.entityVersionId) {
+    args.entityVersionId = params.entityVersionId;
+  }
+
+  return args;
 };
 
 /**
@@ -170,6 +230,31 @@ export class Queue<T> {
     };
   }
 }
+
+/**
+ * @todo this assumption of the slug might be brittle,
+ */
+export const capitalizeComponentName = (cId: string) => {
+  let componentId = cId;
+
+  // If there's a trailing slash, remove it
+  const indexLastSlash = componentId.lastIndexOf("/");
+  if (indexLastSlash === componentId.length - 1) {
+    componentId = componentId.slice(0, -1);
+  }
+
+  //                      *
+  // "https://example.org/value"
+  const indexAfterLastSlash = componentId.lastIndexOf("/") + 1;
+  return (
+    //                      * and uppercase it
+    // "https://example.org/value"
+    componentId.charAt(indexAfterLastSlash).toUpperCase() +
+    //                       ****
+    // "https://example.org/value"
+    componentId.substring(indexAfterLastSlash + 1)
+  );
+};
 
 /**
  * Given a tree structure that has links, flatten into an array with indices pointing to parent.

@@ -13,7 +13,6 @@ import { Entity, UnresolvedGQLEntity, User } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 import { DBClient } from "../../../db";
 import { exactlyOne } from "../../../util";
-import { createEntityWithLinks } from "../entity/createEntity";
 
 const validateActionsInput = (actions: UpdatePageAction[]) => {
   for (const [i, action] of actions.entries()) {
@@ -38,7 +37,7 @@ const createBlock = async (
   { accountId, componentId, entity: entityDefinition }: InsertNewBlock,
   user: User,
 ) => {
-  const entity = await createEntityWithLinks(client, {
+  const entity = await Entity.createEntityWithLinks(client, {
     accountId,
     user,
     entityDefinition,

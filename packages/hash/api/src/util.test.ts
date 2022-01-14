@@ -80,56 +80,87 @@ it("can flatten a tree structure", () => {
   // │               │
   // ▼               ▼
   // E5              E6
+
   const graph: Entity = {
-    name: "N1",
+    name: "E1",
     linkedGraphs: [
-      { entity: { name: "N2", linkedGraphs: [{ entity: { name: "N5" } }] } },
-      { entity: { name: "N3" } },
-      { entity: { name: "N4", linkedGraphs: [{ entity: { name: "N6" } }] } },
+      { entity: { name: "E2", linkedGraphs: [{ entity: { name: "E5" } }] } },
+      { entity: { name: "E3" } },
+      { entity: { name: "E4", linkedGraphs: [{ entity: { name: "E6" } }] } },
     ],
+  };
+
+  const result = linkedTreeFlatten(graph, "linkedGraphs", "entity");
+
+  //   ┌─┬──┬──┐
+  //   │ │  │  │
+  // ┌─▼┌┴─┬┴─┬┴─┬──┬──┐
+  // │E1│E2│E3│E4│E5│E6│
+  // └──┴─▲└──┴─▲┴┬─┴┬─┘
+  //      │     │ │  │
+  //      └─────┼─┘  │
+  //            └────┘
+  expect(result).toEqual([
+    {
+      parentIndex: -1,
+      name: "E1",
+    },
+    {
+      meta: {},
+      parentIndex: 0,
+      name: "E2",
+    },
+    {
+      meta: {},
+      parentIndex: 0,
+      name: "E3",
+    },
+    {
+      meta: {},
+      parentIndex: 0,
+      name: "E4",
+    },
+    {
+      meta: {},
+      parentIndex: 1,
+      name: "E5",
+    },
+    {
+      meta: {},
+      parentIndex: 3,
+      name: "E6",
+    },
+  ]);
+});
+
+it("can handle non-linked tree structure", () => {
+  // ┌───────E1──────┐
+  // │       │       │
+  // ▼       ▼       ▼
+  // E2      E3      E4
+  // │               │
+  // ▼               ▼
+  // E5              E6
+  const graph: Entity = {
+    name: "E1",
   };
 
   const result = linkedTreeFlatten(graph, "linkedGraphs", "entity");
   expect(result).toEqual([
     {
       parentIndex: -1,
-      name: "N1",
-    },
-    {
-      meta: {},
-      parentIndex: 0,
-      name: "N2",
-    },
-    {
-      meta: {},
-      parentIndex: 0,
-      name: "N3",
-    },
-    {
-      meta: {},
-      parentIndex: 0,
-      name: "N4",
-    },
-    {
-      meta: {},
-      parentIndex: 1,
-      name: "N5",
-    },
-    {
-      meta: {},
-      parentIndex: 3,
-      name: "N6",
+      name: "E1",
     },
   ]);
 });
 
 it("can bail out of a circular tree", () => {
   const graph: Entity = {
-    name: "N1",
+    name: "E1",
     linkedGraphs: [
-      { entity: { name: "N2" } },
-      { entity: { name: "N3" } },
-      { entity: { name: "N4", linkedGraphs: [{ entity: { name: "N5" } }] } },
+      { entity: { name: "E2" } },
+      { entity: { name: "E3" } },
+      { entity: { name: "E4", linkedGraphs: [{ entity: { name: "E5" } }] } },
     ],
   };
 
