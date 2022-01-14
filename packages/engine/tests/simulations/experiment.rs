@@ -71,23 +71,28 @@ impl Experiment {
 
         ensure!(experiment.status.success(), "Could not run experiment");
 
+        // Split output directory into `path/to/simulation/` and `<num>` to make it sortable
+        // We need to be able to sort it as outputs happens in any order and it has to be mapped
+        // properly expected outputs
         let mut outputs = Regex::new(r#"Making new output directory: "(.*)""#)
             .wrap_err("Could not compile regex")?
             .captures_iter(&String::from_utf8_lossy(&experiment.stderr))
-            .map(|output_dir| Path::new(&output_dir[1]).parent().unwrap().to_path_buf())
+            .map(|output_dir_capture| {
+                let output_dir = Path::new(&output_dir_capture[1]);
+                let output_dir_base = output_dir.parent().unwrap().to_path_buf();
+                let simulation_number = output_dir
+                    .strip_prefix(&output_dir_base)
+                    .unwrap()
+                    .to_string_lossy()
+                    .parse::<u64>()
+                    .expect("Unable to parse experiment number as integer");
+                (output_dir_base, simulation_number)
+            })
             .collect::<Vec<_>>();
-        // TODO: Remove workaround when CLI is split into library+binary
-        let num_outputs = outputs.len();
-        outputs.dedup();
-        assert_eq!(
-            outputs.len(),
-            1,
-            "Different output directory found for the same experiment"
-        );
-        let output_dir_base = &outputs[0];
-        (1..)
-            .take(num_outputs)
-            .map(|simulation_number| {
+        outputs.sort_unstable();
+        outputs
+            .into_iter()
+            .map(|(output_dir_base, simulation_number)| {
                 let output_dir = output_dir_base.join(simulation_number.to_string());
                 let json_state = parse_file(Path::new(&output_dir).join("json_state.json"))
                     .wrap_err("Could not read JSON state")?;
