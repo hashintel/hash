@@ -209,11 +209,11 @@ export const entityTypedef = gql`
   }
 
   """
-  Select entity types by any of entityType, componentId, entityTypeId, entityTypeVersionId, systemTypeName
+  Select entity types by ONE of entityType, componentId, entityTypeId, entityTypeVersionId, systemTypeName
   """
   input EntityTypeChoice {
     """
-    A Component ID found through the properties field.
+    For entity types related to block types, the URI of the block. 'componentId' in the entity type's schema.
     """
     componentId: ID
     """
@@ -236,17 +236,32 @@ export const entityTypedef = gql`
     entityType: EntityTypeChoice
   }
 
-  input LinkedEntityDefinitionArgs {
-    destinationPath: String!
+  input LinkedEntityDefinition {
+    """
+    The JSON path where the link occurs on its source entity's properties.
+    """
+    path: String!
     destinationAccountId: ID!
-    entity: EntityDefinitionArgs!
+    """
+    The index of the link (if any)
+    """
+    index: Int
+    entity: EntityDefinition!
   }
 
-  input EntityDefinitionArgs {
+  """
+  For referring to an existing entity owned by a specific accountId
+  """
+  input ExistingEntity {
+    entityId: ID!
+    accountId: ID!
+  }
+
+  input EntityDefinition {
     """
-    Existing Entity to use instead of a new entity.
+    Existing Entity to use instead of creating a new entity.
     """
-    entityId: ID
+    existingEntity: ExistingEntity
     """
     Whether the new entity should be versioned. Default is true.
     """
@@ -254,7 +269,7 @@ export const entityTypedef = gql`
     """
     The type of which to instantiate the new entity.
     """
-    entityType: EntityTypeChoice!
+    entityType: EntityTypeChoice
     """
     The properties of new entity.
     """
@@ -262,7 +277,7 @@ export const entityTypedef = gql`
     """
     Associated Entities to either create/get and link to this entity.
     """
-    linkedEntities: [LinkedEntityDefinitionArgs!]
+    linkedEntities: [LinkedEntityDefinition!]
   }
 
   extend type Query {
@@ -274,7 +289,7 @@ export const entityTypedef = gql`
     """
     Create an entity
     """
-    createEntity(accountId: ID!, entity: EntityDefinitionArgs!): Entity!
+    createEntity(accountId: ID!, entity: EntityDefinition!): Entity!
 
     """
     Update an entity

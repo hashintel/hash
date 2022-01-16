@@ -167,13 +167,13 @@ export const pageTypedef = gql`
     """
     position: Int!
     """
-    The block component ID.
+    The block componentId.
     """
     componentId: ID!
     """
     The entity to associate with the new block
     """
-    entity: EntityDefinitionArgs!
+    entity: EntityDefinition!
   }
 
   """

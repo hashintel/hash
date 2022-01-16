@@ -1019,7 +1019,7 @@ describe("logged in user ", () => {
               entityProperties: textPropertiesA,
               linkedEntities: [
                 {
-                  destinationPath: "$.textB",
+                  path: "$.textB",
                   destinationAccountId: existingUser.accountId,
                   entity: {
                     entityType: {
@@ -1028,7 +1028,7 @@ describe("logged in user ", () => {
                     entityProperties: textPropertiesB,
                     linkedEntities: [
                       {
-                        destinationPath: "$.textB.textC",
+                        path: "$.textC",
                         destinationAccountId: existingUser.accountId,
                         entity: {
                           entityType: {
@@ -1082,7 +1082,8 @@ describe("logged in user ", () => {
     ).toEqual([
       { type: "Page", props: undefined },
       { type: "Block", props: undefined },
-      // The following 3 Text elements should be
+      // The following 3 Text elements should be the concurrently inserted, nested entities
+      // sorting beforehand ensures reproducibility.
       { type: "Text", props: textPropertiesA },
       { type: "Text", props: textPropertiesB },
       { type: "Text", props: textPropertiesC },
@@ -1274,7 +1275,7 @@ describe("logged in user ", () => {
       properties: {},
       linkedEntities: {
         destinationAccountId: existingUser.accountId,
-        destinationPath: "$.second",
+        path: "$.second",
         entity: {
           entityProperties: {},
           entityType: {

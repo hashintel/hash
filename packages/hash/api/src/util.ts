@@ -180,57 +180,6 @@ export const intersection = <T>(left: Set<T>, right: Set<T>): Set<T> => {
   return result;
 };
 
-export class Queue<T> {
-  private readonly queue: T[];
-  private start: number;
-  private end: number;
-
-  constructor(array: T[] = []) {
-    this.queue = array;
-
-    // pointers
-    this.start = 0;
-    this.end = array.length;
-  }
-
-  isEmpty() {
-    return this.end === this.start;
-  }
-
-  dequeue(): T | null {
-    if (this.isEmpty()) {
-      return null;
-    } else {
-      return this.queue[this.start++];
-    }
-  }
-
-  enqueue(...value: T[]) {
-    this.queue.push(...value);
-    this.end += value.length;
-  }
-
-  toString() {
-    return `Queue (${this.end - this.start})`;
-  }
-
-  get length() {
-    return this.end - this.start;
-  }
-
-  [Symbol.iterator]() {
-    let index = this.start;
-    return {
-      next: () =>
-        index < this.end
-          ? {
-              value: this.queue[index++],
-            }
-          : { done: true },
-    };
-  }
-}
-
 /**
  * @todo this assumption of the slug might be brittle,
  */
@@ -289,19 +238,19 @@ export const linkedTreeFlatten = <
   // The return value will be a list of the Outer type optionally augmented with metadata and a parentid
   type ResultWithMeta = Omit<AugmentedOuter, K | "currentIndex">;
 
-  const queue: Queue<AugmentedOuter[]> = new Queue([
+  const queue: AugmentedOuter[][] = [
     [{ parentIndex: -1, currentIndex: 0, ...graph }],
-  ]);
+  ];
   const result: ResultWithMeta[] = [];
 
   let index = 1;
   let depth = 0;
 
   // BFS traversal using FIFO queue
-  while (!queue.isEmpty()) {
+  while (queue.length !== 0) {
     let currentIndex = index;
 
-    const toInsert = queue.dequeue();
+    const toInsert = queue.shift();
     if (!toInsert) {
       continue;
     }
@@ -338,11 +287,11 @@ export const linkedTreeFlatten = <
     // all descendants of all of the nodes in this depth layer
     // added to queue to explore.
     if (descendantsToQueue.length > 0) {
-      queue.enqueue(...descendantsToQueue);
+      queue.push(...descendantsToQueue);
     }
 
     // To prevent infinite loops, a depth is given to limit traversal.
-    if (depth >= depthLimit && !queue.isEmpty()) {
+    if (depth >= depthLimit && queue.length !== 0) {
       throw new Error("Depth limit reached!");
     }
   }

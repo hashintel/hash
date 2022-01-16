@@ -7,7 +7,7 @@ export const createEntity = gql`
     $systemTypeName: SystemTypeName
     $entityTypeId: ID
     $versioned: Boolean! = true
-    $linkedEntities: [LinkedEntityDefinitionArgs!]
+    $linkedEntities: [LinkedEntityDefinition!]
   ) {
     createEntity(
       accountId: $accountId
