@@ -1,0 +1,16 @@
+[
+  {
+    "experiment": "test",
+    "expected-outputs": [
+      {
+        "json-state": {
+          "1": [
+            {
+              "a": 1.0
+            }
+          ]
+        }
+      }
+    ]
+  }
+]

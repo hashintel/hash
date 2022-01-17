@@ -75,6 +75,13 @@ mod state {
     run_test!(edit_state_number);
 }
 
+mod globals {
+    run_test!(globals_access_from_behaviors);
+    run_test!(globals_access_from_init);
+    run_test!(globals_immutable_from_behaviors);
+    run_test!(globals_immutable_from_init);
+}
+
 mod messages {
     run_test!(message_sending);
 }
