@@ -28,17 +28,18 @@ export const isTextEntity = (
 /**
  * @deprecated
  */
-type LegacyLink<Type extends EntityStoreType | DraftEntity = EntityStoreType> = {
-  /**
-   * @deprecated
-   */
-  data: Type;
+type LegacyLink<Type extends EntityStoreType | DraftEntity = EntityStoreType> =
+  {
+    /**
+     * @deprecated
+     */
+    data: Type;
 
-  /**
-   * @deprecated
-   */
-  __linkedData: {};
-};
+    /**
+     * @deprecated
+     */
+    __linkedData: {};
+  };
 
 /**
  * @deprecated
@@ -61,6 +62,16 @@ export const isTextContainingEntityProperties = (
     "text" in entityProperties &&
     isLegacyLink(entityProperties.text) &&
     isTextEntity(entityProperties.text.data)
+  );
+};
+
+// @todo use in more places
+export const isDraftTextContainingEntityProperties = (
+  entityProperties: unknown,
+): entityProperties is { text: LegacyLink<DraftEntity<Text>> } => {
+  return (
+    isTextContainingEntityProperties(entityProperties) &&
+    isDraftEntity(entityProperties.text.data)
   );
 };
 

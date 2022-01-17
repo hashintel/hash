@@ -5,7 +5,7 @@ import { Schema } from "prosemirror-model";
 import { EditorState, Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { v4 as uuid } from "uuid";
-import { BlockEntity } from "./entity";
+import { BlockEntity, isDraftTextContainingEntityProperties } from "./entity";
 import {
   createEntityStore,
   DraftEntity,
@@ -130,11 +130,19 @@ const updateEntitiesByDraftId = (
   const entities: Draft<DraftEntity>[] = [draftEntityStore[draftId]];
 
   for (const entity of Object.values(draftEntityStore)) {
-    if (
-      isDraftBlockEntity(entity) &&
-      entity.properties.entity.draftId === draftId
-    ) {
-      entities.push(entity.properties.entity);
+    if (isDraftBlockEntity(entity)) {
+      if (entity.properties.entity.draftId === draftId) {
+        entities.push(entity.properties.entity);
+      }
+
+      if (
+        isDraftTextContainingEntityProperties(
+          entity.properties.entity.properties,
+        ) &&
+        entity.properties.entity.properties.text.data.draftId === draftId
+      ) {
+        entities.push(entity.properties.entity.properties.text.data);
+      }
     }
   }
 
@@ -151,6 +159,8 @@ const updateEntitiesByDraftId = (
  *
  * @todo address this
  * @see https://immerjs.github.io/immer/pitfalls#immer-only-supports-unidirectional-trees
+ *
+ * @todo reduce duplication
  */
 const entityStoreReducer = (
   state: EntityStorePluginState,
