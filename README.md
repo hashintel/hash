@@ -5,7 +5,7 @@
 This repository contains HASH's open-source and public code, documentation, and other key resources, including:
 
 - [`packages/hash`](packages/hash): The codebase for [HASH](https://hash.ai/platform/hash) - a data-driven, schema-centric, all-in-one workspace based on the [Block Protocol](https://github.com/blockprotocol/blockprotocol)
-- [`packages/engine`](packages/engine): The codebase for [hEngine](https://hash.ai/platform/engine)
+- [`packages/engine`](packages/engine): The codebase for our next-gen version of [hEngine](https://hash.ai/platform/engine) - a versatile agent-based simulation engine written in Rust
 - [`packages/engine/stdlib`](packages/engine/stdlib): The standard library of helper functions available in all HASH simulations
 - [`resources/docs`](resources/docs): A user guide to the whole HASH platform ([hash.ai/docs](https://hash.ai/docs))
 - [`resources/glossary`](resources/glossary): A glossary of terms explaining common concepts relevant to the use of HASH ([hash.ai/glossary](https://hash.ai/glossary))
