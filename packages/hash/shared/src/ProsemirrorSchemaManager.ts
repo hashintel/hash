@@ -417,6 +417,9 @@ export class ProsemirrorSchemaManager {
   }
 
   // @todo handle empty variant properties
+  // @todo handle saving the results of this
+  // @todo handle non-intermediary entities
+  // @todo preserving text of previous text block
   async createRemoteBlockTr(
     targetComponentId: string,
     draftBlockId: string | null,
@@ -508,51 +511,89 @@ export class ProsemirrorSchemaManager {
           });
         }
       } else {
-        throw new Error("Do not yet know how to change component");
-      }
+        blockIdForNode = newDraftId();
+        addEntityStoreAction(this.view.state, tr, {
+          type: "newDraftEntity",
+          payload: {
+            draftId: blockIdForNode,
+            entityId: null,
+          },
+        });
 
-      // let innerEntity = blockEntity.properties.entity;
-      //
-      //
-      //
-      //
-      // addEntityStoreAction(this.view.state, tr, {
-      //   type: "newDraftEntity",
-      //   payload: {
-      //     // @todo cleanup
-      //     draftId: newBlockDraftId!,
-      //     entityId: null,
-      //   },
-      // });
-      //
-      // // @todo handle non-intermediary entities
-      // addEntityStoreAction(this.view.state, tr, {
-      //   type: "updateEntityProperties",
-      //   payload: {
-      //     draftId: innerEntity.draftId,
-      //     properties: targetVariant?.properties ?? {},
-      //     // @todo maybe need to remove this?
-      //     merge: true,
-      //   },
-      // });
-      //
-      // innerEntity = entityStorePluginStateFromTransaction(tr, this.view.state)
-      //   .store.draft[innerEntity.draftId];
-      //
-      // console.log(innerEntity);
-      //
-      // addEntityStoreAction(this.view.state, tr, {
-      //   type: "updateEntityProperties",
-      //   payload: {
-      //     // @todo cleanup
-      //     draftId: newBlockDraftId!,
-      //     merge: false,
-      //     properties: {
-      //       componentId: targetComponentId,
-      //       entity: innerEntity,
-      //     },
-      //   },
-      // });
+        const newVariantDraftId = newDraftId();
+        addEntityStoreAction(this.view.state, tr, {
+          type: "newDraftEntity",
+          payload: {
+            draftId: newVariantDraftId,
+            entityId: null,
+          },
+        });
+
+        // // @todo handle non-intermediary entities
+        addEntityStoreAction(this.view.state, tr, {
+          type: "updateEntityProperties",
+          payload: {
+            draftId: newVariantDraftId,
+            properties: targetVariant?.properties ?? {},
+            // @todo maybe need to remove this?
+            merge: true,
+          },
+        });
+
+        if (blockComponentRequiresText(meta.componentSchema)) {
+          const newTextDraftId = newDraftId();
+
+          addEntityStoreAction(this.view.state, tr, {
+            type: "newDraftEntity",
+            payload: {
+              draftId: newTextDraftId,
+              entityId: null,
+            },
+          });
+
+          addEntityStoreAction(this.view.state, tr, {
+            type: "updateEntityProperties",
+            payload: {
+              draftId: newTextDraftId,
+              // @todo indicate the entity type?
+              properties: {
+                tokens: [],
+              },
+              merge: false,
+            },
+          });
+
+          addEntityStoreAction(this.view.state, tr, {
+            type: "updateEntityProperties",
+            payload: {
+              draftId: newVariantDraftId,
+              properties: {
+                text: {
+                  __linkedData: {},
+                  data: entityStorePluginStateFromTransaction(
+                    tr,
+                    this.view.state,
+                  ).store.draft[newTextDraftId],
+                },
+              },
+              merge: true,
+            },
+          });
+        }
+
+        addEntityStoreAction(this.view.state, tr, {
+          type: "updateEntityProperties",
+          payload: {
+            draftId: blockIdForNode,
+            merge: false,
+            properties: {
+              componentId: targetComponentId,
+              entity: entityStorePluginStateFromTransaction(tr, this.view.state)
+                .store.draft[newVariantDraftId],
+            },
+          },
+        });
+      }
     }
 
     const updated = entityStorePluginStateFromTransaction(tr, this.view.state);
