@@ -6,13 +6,14 @@ import {
   OrgSize,
   CreateOrgMutation,
   CreateOrgMutationVariables,
-} from "../../../../graphql/apiTypes.gen";
-import { SelectInput } from "../../../forms/SelectInput";
-import { TextInput } from "../../../forms/TextInput";
-import { PictureIcon, SpinnerIcon } from "../../../icons";
+} from "../../../graphql/apiTypes.gen";
+import { SelectInput } from "../../forms/SelectInput";
+import { TextInput } from "../../forms/TextInput";
+import { PictureIcon, SpinnerIcon } from "../../icons";
 import { ORG_ROLES, ORG_SIZES } from "../utils";
-import { createOrg as createOrgMutation } from "../../../../graphql/queries/org.queries";
-import { useShortnameInput } from "../../../hooks/useShortnameInput";
+import { createOrg as createOrgMutation } from "../../../graphql/queries/org.queries";
+import { useShortnameInput } from "../../hooks/useShortnameInput";
+// import { useFileUpload } from "../../../hooks/useFileUpload";
 
 type OrgCreateProps = {
   // accountId: string;

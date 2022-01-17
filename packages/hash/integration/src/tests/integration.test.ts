@@ -592,7 +592,9 @@ describe("logged in user ", () => {
         entityId: textEntityId,
         accountId: existingUser.accountId,
       });
-      expect(textEntity.entityVersionId).toEqual(newBlock.properties.entity.id);
+      expect(textEntity.entityVersionId).toEqual(
+        newBlock.properties.entity.entityVersionId,
+      );
       expect(textEntity.properties).toEqual(textProperties);
     });
 
@@ -621,9 +623,9 @@ describe("logged in user ", () => {
         accountId: existingUser.accountId,
         entityId: page.entityId,
       });
-      expect(updatedPage.properties.contents[0].properties.entity.id).toEqual(
-        newTextEntity.entityVersionId,
-      );
+      expect(
+        updatedPage.properties.contents[0].properties.entity.entityVersionId,
+      ).toEqual(newTextEntity.entityVersionId);
 
       // Update the header block text entity (2nd block)
       const newHeaderTextProperties = {
@@ -641,9 +643,9 @@ describe("logged in user ", () => {
         accountId: existingUser.accountId,
         entityId: page.entityId,
       });
-      expect(updatedPage.properties.contents[1].properties.entity.id).toEqual(
-        headerUpdate.entityVersionId,
-      );
+      expect(
+        updatedPage.properties.contents[1].properties.entity.entityVersionId,
+      ).toEqual(headerUpdate.entityVersionId);
     });
 
     // ComponentId doesn't exist in the database
@@ -693,7 +695,7 @@ describe("logged in user ", () => {
       });
 
       expect(entityWithComponentIdType.entityVersionId).toEqual(
-        newBlock.properties.entity.id,
+        newBlock.properties.entity.entityVersionId,
       );
       expect(entityWithComponentIdType.properties).toEqual({});
       expect(entityWithComponentIdType.entityTypeId).toEqual(
@@ -748,7 +750,7 @@ describe("logged in user ", () => {
       });
 
       expect(entityWithComponentIdType.entityVersionId).toEqual(
-        newBlock.properties.entity.id,
+        newBlock.properties.entity.entityVersionId,
       );
       expect(entityWithComponentIdType.properties).toEqual({});
       expect(entityWithComponentIdType.entityTypeId).toEqual(

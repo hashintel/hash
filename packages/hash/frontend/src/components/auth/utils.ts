@@ -1,6 +1,6 @@
 import { GraphQLError } from "graphql";
 import { ParsedUrlQueryInput } from "querystring";
-import { OrgSize } from "../../../graphql/apiTypes.gen";
+import { OrgSize } from "../../graphql/apiTypes.gen";
 
 export const SYNTHETIC_LOADING_TIME_MS = 700;
 

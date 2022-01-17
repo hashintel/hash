@@ -1,8 +1,8 @@
 import React, { useState, VFC } from "react";
 import { tw } from "twind";
 
-import { WayToUseHash } from "../../../../graphql/apiTypes.gen";
-import { HumanGreetingIcon, PeopleIcon, SpinnerIcon } from "../../../icons";
+import { WayToUseHash } from "../../../graphql/apiTypes.gen";
+import { HumanGreetingIcon, PeopleIcon, SpinnerIcon } from "../../icons";
 
 type AccountUsageProps = {
   updateWayToUseHash: (usingHow: WayToUseHash) => void;

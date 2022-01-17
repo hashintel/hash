@@ -17,7 +17,7 @@ import { entityName } from "../../../lib/entities";
 import { useBlockProtocolAggregateEntities } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregateEntities";
 import { useBlockProtocolDeleteLinks } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolDeleteLinks";
 import { useBlockProtocolCreateLinks } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateLinks";
-import { MainContentWrapper } from "../../../components/pages/MainContentWrapper";
+import { MainContentWrapper } from "../../../components/layout/MainContentWrapper";
 
 const Entity: VoidFunctionComponent = () => {
   const router = useRouter();

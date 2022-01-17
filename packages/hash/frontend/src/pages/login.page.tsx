@@ -5,7 +5,7 @@ import { useUser } from "../components/hooks/useUser";
 import {
   isParsedInvitationEmailQuery,
   isParsedInvitationLinkQuery,
-} from "../components/pages/auth/utils";
+} from "../components/auth/utils";
 
 const LoginPage: NextPage = () => {
   const { refetch } = useUser();

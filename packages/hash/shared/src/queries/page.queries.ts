@@ -16,11 +16,10 @@ const linkFieldsFragment = gql`
 const pageFieldsFragment = gql`
   fragment PageFields on Page {
     __typename
-    id
     accountId
+    entityId
     entityVersionId
     createdAt
-    entityId
     history {
       createdAt
       entityVersionId

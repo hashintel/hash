@@ -20,7 +20,7 @@ import {
   isParsedInvitationLinkQuery,
   ORG_ROLES,
   SYNTHETIC_LOADING_TIME_MS,
-} from "../components/pages/auth/utils";
+} from "../components/auth/utils";
 import { useGetInvitationInfo } from "../components/hooks/useGetInvitationInfo";
 
 // @todo add error component for invalid links

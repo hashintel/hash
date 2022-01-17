@@ -34,7 +34,6 @@ const pageFieldsFragment = gql`
       title
       contents {
         __typename
-        id
         entityVersionId
         entityId
         accountId
@@ -46,7 +45,6 @@ const pageFieldsFragment = gql`
           componentId
           entity {
             __typename
-            id
             entityVersionId
             entityId
             accountId

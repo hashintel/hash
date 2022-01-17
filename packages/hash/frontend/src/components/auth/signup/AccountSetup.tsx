@@ -2,10 +2,10 @@ import React, { useMemo, VFC } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { tw } from "twind";
 
-import Logo from "../../../../assets/svg/logo.svg";
-import { SelectInput } from "../../../forms/SelectInput";
-import { useShortnameInput } from "../../../hooks/useShortnameInput";
-import { InfoIcon, SpinnerIcon } from "../../../icons";
+import Logo from "../../../assets/svg/logo.svg";
+import { SelectInput } from "../../forms/SelectInput";
+import { useShortnameInput } from "../../hooks/useShortnameInput";
+import { InfoIcon, SpinnerIcon } from "../../icons";
 import { InvitationInfo, ORG_ROLES } from "../utils";
 
 type AccountSetupProps = {

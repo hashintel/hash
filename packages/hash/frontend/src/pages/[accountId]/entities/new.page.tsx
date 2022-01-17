@@ -9,7 +9,7 @@ import { EntityEditor } from "../../../components/EntityEditor/EntityEditor";
 import { UnknownEntity } from "../../../graphql/apiTypes.gen";
 import { useBlockProtocolCreateEntities } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateEntitities";
 import { useBlockProtocolAggregateEntities } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregateEntities";
-import { MainContentWrapper } from "../../../components/pages/MainContentWrapper";
+import { MainContentWrapper } from "../../../components/layout/MainContentWrapper";
 import { useAccountEntityTypes } from "../../../components/hooks/useAccountEntityTypes";
 
 const NewEntity: VoidFunctionComponent = () => {

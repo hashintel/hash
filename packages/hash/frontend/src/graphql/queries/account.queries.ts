@@ -32,7 +32,6 @@ export const getAccounts = gql`
 export const getAccountPages = gql`
   query getAccountPages($accountId: ID!) {
     accountPages(accountId: $accountId) {
-      id
       entityId
       properties {
         title

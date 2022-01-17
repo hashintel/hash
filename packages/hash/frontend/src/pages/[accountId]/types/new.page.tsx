@@ -12,7 +12,7 @@ import {
 } from "../../../graphql/apiTypes.gen";
 import { TextInput } from "../../../components/forms/TextInput";
 import { Button } from "../../../components/forms/Button";
-import { MainContentWrapper } from "../../../components/pages/MainContentWrapper";
+import { MainContentWrapper } from "../../../components/layout/MainContentWrapper";
 import { getAccountEntityTypes } from "../../../graphql/queries/account.queries";
 
 export const NewEntityType: VoidFunctionComponent = () => {

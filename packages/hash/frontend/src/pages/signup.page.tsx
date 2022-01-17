@@ -4,12 +4,12 @@ import { useRouter } from "next/router";
 import { useMutation } from "@apollo/client";
 import { useUser } from "../components/hooks/useUser";
 
-import { SignupIntro as SignupIntroScreen } from "../components/pages/auth/signup/SignupIntro";
-import { VerifyCode as VerifyCodeScreen } from "../components/pages/auth/VerifyCode";
-import { AccountSetup as AccountSetupScreen } from "../components/pages/auth/signup/AccountSetup";
-import { AccountUsage as AccountUsageScreen } from "../components/pages/auth/signup/AccountUsage";
-import { OrgCreate as OrgCreateScreen } from "../components/pages/auth/signup/OrgCreate";
-import { OrgInvite as OrgInviteScreen } from "../components/pages/auth/signup/OrgInvite";
+import { SignupIntro as SignupIntroScreen } from "../components/auth/signup/SignupIntro";
+import { VerifyCode as VerifyCodeScreen } from "../components/auth/VerifyCode";
+import { AccountSetup as AccountSetupScreen } from "../components/auth/signup/AccountSetup";
+import { AccountUsage as AccountUsageScreen } from "../components/auth/signup/AccountUsage";
+import { OrgCreate as OrgCreateScreen } from "../components/auth/signup/OrgCreate";
+import { OrgInvite as OrgInviteScreen } from "../components/auth/signup/OrgInvite";
 
 import {
   CreateUserMutation,
@@ -39,7 +39,7 @@ import {
   Action,
   InvitationInfo,
   parseGraphQLError,
-} from "../components/pages/auth/utils";
+} from "../components/auth/utils";
 import { AuthLayout } from "../components/layout/PageLayout/AuthLayout";
 import { useGetInvitationInfo } from "../components/hooks/useGetInvitationInfo";
 

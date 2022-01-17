@@ -4,10 +4,10 @@ import { tw } from "twind";
 import {
   CreateOrgEmailInvitationMutation,
   CreateOrgEmailInvitationMutationVariables,
-} from "../../../../graphql/apiTypes.gen";
-import { createOrgEmailInvitation as createOrgEmailInvitationMutation } from "../../../../graphql/queries/org.queries";
-import { TagsInput } from "../../../forms/TagsInput";
-import { SpinnerIcon } from "../../../icons";
+} from "../../../graphql/apiTypes.gen";
+import { createOrgEmailInvitation as createOrgEmailInvitationMutation } from "../../../graphql/queries/org.queries";
+import { TagsInput } from "../../forms/TagsInput";
+import { SpinnerIcon } from "../../icons";
 import { EMAIL_REGEX } from "../utils";
 
 type OrgInviteProps = {

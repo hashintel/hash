@@ -4,7 +4,6 @@ export const createOrg = gql`
   mutation createOrg($org: CreateOrgInput!, $responsibility: String!) {
     createOrg(org: $org, responsibility: $responsibility) {
       __typename
-      id
       createdByAccountId
       createdAt
       updatedAt
@@ -18,7 +17,7 @@ export const createOrg = gql`
         shortname
       }
       invitationLinks {
-        id
+        entityId
         properties {
           accessToken
         }
@@ -59,6 +58,7 @@ export const createOrgEmailInvitation = gql`
       orgEntityId: $orgEntityId
       inviteeEmailAddress: $inviteeEmailAddress
     ) {
+      entityId
       properties {
         inviteeEmailAddress
       }
@@ -80,13 +80,13 @@ export const getOrgEmailInvitation = gql`
         inviteeEmailAddress
       }
       org {
-        id
+        entityId
         properties {
           name
         }
       }
       inviter {
-        id
+        entityId
         properties {
           preferredName
         }
@@ -104,7 +104,7 @@ export const getOrgInvitationLink = gql`
       entityId
 
       org {
-        id
+        entityId
         properties {
           name
         }

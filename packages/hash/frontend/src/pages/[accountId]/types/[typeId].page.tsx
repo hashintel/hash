@@ -18,7 +18,7 @@ import {
 import { AccountEntityOfTypeList } from "../../../components/entityTypes/AccountEntityOfTypeList";
 import { useBlockProtocolUpdateEntityType } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntityType";
 import { useBlockProtocolAggregateEntityTypes } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregateEntityTypes";
-import { MainContentWrapper } from "../../../components/pages/MainContentWrapper";
+import { MainContentWrapper } from "../../../components/layout/MainContentWrapper";
 
 export const EntityType: VoidFunctionComponent = () => {
   const router = useRouter();

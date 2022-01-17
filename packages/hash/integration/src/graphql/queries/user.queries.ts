@@ -19,7 +19,6 @@ export const createUserWithOrgEmailInvitation = gql`
       orgEntityId: $orgEntityId
       invitationEmailToken: $invitationEmailToken
     ) {
-      id
       accountId
       entityId
       accountSignupComplete

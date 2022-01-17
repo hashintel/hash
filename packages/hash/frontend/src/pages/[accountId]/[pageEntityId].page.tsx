@@ -21,7 +21,7 @@ import { VersionDropdown } from "../../components/Dropdowns/VersionDropdown";
 import styles from "../index.module.scss";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import { PageTransferDropdown } from "../../components/Dropdowns/PageTransferDropdown";
-import { MainContentWrapper } from "../../components/pages/MainContentWrapper";
+import { MainContentWrapper } from "../../components/layout/MainContentWrapper";
 
 /**
  * preload all configured blocks for now. in the future these will be loaded

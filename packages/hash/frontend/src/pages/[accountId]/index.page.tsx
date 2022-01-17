@@ -1,7 +1,7 @@
 import { VoidFunctionComponent } from "react";
 import { useRouter } from "next/router";
 
-import { MainContentWrapper } from "../../components/pages/MainContentWrapper";
+import { MainContentWrapper } from "../../components/layout/MainContentWrapper";
 
 export const AccountHome: VoidFunctionComponent = () => {
   const { query } = useRouter();

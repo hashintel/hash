@@ -8,8 +8,8 @@ import React, {
 } from "react";
 import { tw } from "twind";
 
-import Logo from "../../../assets/svg/logo.svg";
-import { HashIcon, KeyboardReturnIcon } from "../../icons";
+import Logo from "../../assets/svg/logo.svg";
+import { HashIcon, KeyboardReturnIcon } from "../icons";
 import { InviteHeader } from "./InviteHeader";
 import { InvitationInfo, SYNTHETIC_LOADING_TIME_MS } from "./utils";
 

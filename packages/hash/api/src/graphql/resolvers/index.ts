@@ -64,6 +64,8 @@ import { deleteLinkedAggregation } from "./linkedAggregation/deleteLinkedAggrega
 import { updateLinkedAggregationOperation } from "./linkedAggregation/updateLinkedAggregationOperation";
 import { createLinkedAggregation } from "./linkedAggregation/createLinkedAggregation";
 import { linkedAggregationResults } from "./linkedAggregation/linkedAggregationResults";
+import { orgEmailInvitationLinkedEntities } from "./orgEmailInvitation/linkedEntities";
+import { orgInvitationLinkLinkedEntities } from "./orgInvitationLink/linkedEntities";
 
 export const resolvers = {
   Query: {
@@ -157,10 +159,12 @@ export const resolvers = {
 
   OrgEmailInvitation: {
     properties: entityFields.properties,
+    ...orgEmailInvitationLinkedEntities,
   },
 
   OrgInvitationLink: {
     properties: entityFields.properties,
+    ...orgInvitationLinkLinkedEntities,
   },
 
   UnknownEntity: {

@@ -3,7 +3,6 @@ import { gql } from "@apollo/client";
 const userFieldsFragment = gql`
   fragment UserFields on User {
     __typename
-    id
     entityId
     createdByAccountId
     accountId

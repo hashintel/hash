@@ -16,7 +16,6 @@ export const createEntity = gql`
       versioned: $versioned
     ) {
       __typename
-      id
       entityId
       entityVersionId
       createdByAccountId

@@ -15,7 +15,7 @@ import {
   isParsedInvitationEmailQuery,
   isParsedInvitationLinkQuery,
   InvitationInfo,
-} from "../pages/auth/utils";
+} from "../auth/utils";
 
 export const useGetInvitationInfo = () => {
   const [invitationInfo, setInvitationInfo] = useState<InvitationInfo | null>(

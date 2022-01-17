@@ -10,8 +10,8 @@ import { useRouter } from "next/router";
 
 import { useMutation } from "@apollo/client";
 import { AuthModalLayout, AuthModalLayoutProps } from "./AuthModalLayout";
-import { LoginIntro as LoginIntroScreen } from "../../pages/auth/login/LoginIntro";
-import { VerifyCode as VerifyCodeScreen } from "../../pages/auth/VerifyCode";
+import { LoginIntro as LoginIntroScreen } from "../../auth/login/LoginIntro";
+import { VerifyCode as VerifyCodeScreen } from "../../auth/VerifyCode";
 import {
   VerificationCodeMetadata,
   LoginWithLoginCodeMutation,
@@ -28,7 +28,7 @@ import {
   isParsedAuthQuery,
   SYNTHETIC_LOADING_TIME_MS,
   Action,
-} from "../../pages/auth/utils";
+} from "../../auth/utils";
 import { useGetInvitationInfo } from "../../hooks/useGetInvitationInfo";
 import { useUser } from "../../hooks/useUser";
 
