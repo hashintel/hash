@@ -3,6 +3,7 @@ import { Resolver, EntityType as GQLEntityType } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { EntityType, UnresolvedGQLEntityType } from "../../../model";
 import { EntityTypeTypeFields } from "../../../db/adapter";
+import { generateSchema$id } from "../../../lib/schemas/jsonSchema";
 
 type EntityTypeMaybeTypeFields = UnresolvedGQLEntityType & {
   entityType?: GQLEntityType["entityType"];
@@ -19,10 +20,27 @@ const getEntityTypeType = async (dataSources: GraphQLContext["dataSources"]) =>
     throw new ApolloError(err.message);
   });
 
+const getEntityTypeById = async (
+  dataSources: GraphQLContext["dataSources"],
+  entityTypeId: string,
+) =>
+  EntityType.getEntityType(dataSources.db, { entityTypeId })
+    .then((type) => {
+      if (!type) {
+        throw new ApolloError(
+          `Could not find EntityType with entityTypeId ${entityTypeId}`,
+        );
+      }
+      return type.toGQLEntityType();
+    })
+    .catch((err) => {
+      throw new ApolloError(err.message);
+    });
+
 /**
  * Get the entityType of an EntityType, i.e. the "EntityType" EntityType
  */
-const entityType: Resolver<
+const entityTypeResolver: Resolver<
   Omit<
     GQLEntityType["entityType"],
     | EntityTypeTypeFields
@@ -36,30 +54,30 @@ const entityType: Resolver<
   if (gqlEntityType.entityType) {
     return gqlEntityType.entityType;
   }
-  return getEntityTypeType(dataSources).then((type) => type.toGQLEntityType());
+  return getEntityTypeById(dataSources, gqlEntityType.entityId);
 };
 
 /**
  * Get the entityTypeId of an EntityType, i.e. the entityId of the "EntityType" EntityType.
  */
-const entityTypeId: Resolver<
+const entityTypeIdResolver: Resolver<
   GQLEntityType["entityTypeId"],
   EntityTypeMaybeTypeFields,
   GraphQLContext
-> = async (gqlEntityType, __, { dataSources }) => {
+> = async (gqlEntityType, __, _) => {
   if (gqlEntityType.entityType) {
     return gqlEntityType.entityType.entityId;
   }
   if (gqlEntityType.entityTypeId) {
     return gqlEntityType.entityTypeId;
   }
-  return getEntityTypeType(dataSources).then((type) => type.entityId);
+  return gqlEntityType.entityId;
 };
 
 /**
  * Get the entityTypeName of an EntityType, i.e. the name of the "EntityType" EntityType.
  */
-const entityTypeName: Resolver<
+const entityTypeNameResolver: Resolver<
   GQLEntityType["entityTypeName"],
   EntityTypeMaybeTypeFields,
   GraphQLContext
@@ -78,7 +96,7 @@ const entityTypeName: Resolver<
 /**
  * Get the entityTypeVersionId of an EntityType, i.e. the entityVersionId of the "EntityType" EntityType.
  */
-const entityTypeVersionId: Resolver<
+const entityTypeVersionIdResolver: Resolver<
   GQLEntityType["entityTypeVersionId"],
   EntityTypeMaybeTypeFields,
   GraphQLContext
@@ -93,8 +111,41 @@ const entityTypeVersionId: Resolver<
 };
 
 export const entityTypeTypeFields = {
-  entityType,
-  entityTypeId,
-  entityTypeName,
-  entityTypeVersionId,
+  entityType: entityTypeResolver,
+  entityTypeId: entityTypeIdResolver,
+  entityTypeName: entityTypeNameResolver,
+  entityTypeVersionId: entityTypeVersionIdResolver,
+};
+
+const entityTypeChildrenResolver: Resolver<
+  Promise<UnresolvedGQLEntityType[]>,
+  GQLEntityType,
+  GraphQLContext
+> = async (params, _, { dataSources: { db } }) => {
+  const { accountId, entityId: entityTypeId } = params;
+  const $ref = generateSchema$id(accountId, entityTypeId);
+  const schema$id = JSON.stringify([{ $ref }]);
+
+  const entityTypes = await EntityType.getEntityTypeChildren(db, { schema$id });
+
+  return entityTypes.map((entityType) => entityType.toGQLEntityType());
+};
+
+const entityTypeParentsResolver: Resolver<
+  Promise<UnresolvedGQLEntityType[]>,
+  EntityTypeMaybeTypeFields,
+  GraphQLContext
+> = async (params, _, { dataSources }) => {
+  const { entityId: entityTypeId } = params;
+
+  const entityTypes = await EntityType.getEntityTypeParents(dataSources.db, {
+    entityTypeId,
+  });
+
+  return entityTypes.map((ent) => ent.toGQLEntityType());
+};
+
+export const entityTypeInheritance = {
+  entityTypeChildren: entityTypeChildrenResolver,
+  entityTypeParents: entityTypeParentsResolver,
 };

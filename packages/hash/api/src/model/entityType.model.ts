@@ -146,6 +146,24 @@ class __EntityType {
     return dbTypes.map((dbType) => new EntityType(dbType).toGQLEntityType());
   }
 
+  static async getEntityTypeChildren(
+    client: DBClient,
+    params: { schema$id: string },
+  ) {
+    const dbEntityTypes = await client.getEntityTypeChildren(params);
+
+    return dbEntityTypes.map((entityType) => new EntityType(entityType));
+  }
+
+  static async getEntityTypeParents(
+    client: DBClient,
+    params: { entityTypeId: string },
+  ) {
+    const dbEntityTypes = await client.getEntityTypeParents(params);
+
+    return dbEntityTypes.map((entityType) => new EntityType(entityType));
+  }
+
   toGQLEntityType(): UnresolvedGQLEntityType {
     return {
       id: this.entityVersionId,
