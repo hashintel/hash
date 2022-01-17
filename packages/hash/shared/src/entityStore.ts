@@ -1,6 +1,7 @@
 import { Draft, produce } from "immer";
 import { BlockEntity, isTextContainingEntityProperties } from "./entity";
 import { DistributiveOmit, typeSafeEntries } from "./util";
+import { Text } from "./graphql/apiTypes.gen";
 
 export type EntityStoreType = BlockEntity | BlockEntity["properties"]["entity"];
 
@@ -44,10 +45,15 @@ export const isBlockEntity = (entity: unknown): entity is BlockEntity =>
   "entity" in entity.properties &&
   isEntity(entity.properties.entity);
 
+// @todo does this need to be more robust?
+export const isDraftEntity = <T extends EntityStoreType>(
+  entity: T | DraftEntity<T>,
+): entity is DraftEntity<T> => "draftId" in entity;
+
 export const isDraftBlockEntity = (
   entity: unknown,
 ): entity is DraftEntity<BlockEntity> =>
-  isBlockEntity(entity) && "draftId" in entity;
+  isBlockEntity(entity) && isDraftEntity(entity);
 
 /**
  * @todo we could store a map of entity id <-> draft id to make this easier
@@ -125,8 +131,8 @@ const findEntities = (contents: EntityStoreType[]) => {
 };
 
 /**
- * @todo restore dealing with links
  * @todo this should be flat – so that we don't have to traverse links
+ * @todo clean up
  */
 export const createEntityStore = (
   contents: EntityStoreType[],
@@ -182,12 +188,39 @@ export const createEntityStore = (
       (draftEntity: Draft<DraftEntity>) => {
         if (isDraftBlockEntity(draftEntity)) {
           const innerEntityId = draftEntity.properties.entity.entityId;
-          if (innerEntityId) {
-            draftEntity.properties.entity.draftId =
-              entityToDraft[innerEntityId];
-          } else {
+          if (!innerEntityId) {
             throw new Error("entity id does not exist when expected to");
           }
+
+          draftEntity.properties.entity.draftId = entityToDraft[innerEntityId];
+
+          if (
+            isTextContainingEntityProperties(
+              draftEntity.properties.entity.properties,
+            )
+          ) {
+            const linkEntityId =
+              draftEntity.properties.entity.properties.text.data.entityId;
+            if (!linkEntityId) {
+              throw new Error("entity id does not exist when expected to");
+            }
+
+            (
+              draftEntity.properties.entity.properties.text
+                .data as unknown as DraftEntity<Text>
+            ).draftId = entityToDraft[linkEntityId];
+          }
+        }
+
+        if (isTextContainingEntityProperties(draftEntity.properties)) {
+          const linkEntityId = draftEntity.properties.text.data.entityId;
+          if (!linkEntityId) {
+            throw new Error("entity id does not exist when expected to");
+          }
+
+          (
+            draftEntity.properties.text.data as unknown as DraftEntity<Text>
+          ).draftId = entityToDraft[linkEntityId];
         }
       },
     );
