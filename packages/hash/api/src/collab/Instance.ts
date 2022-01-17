@@ -26,9 +26,9 @@ import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { updatePageMutation } from "@hashintel/hash-shared/save";
 import { Response } from "express";
 import { isEqual } from "lodash";
-import { Schema, Slice } from "prosemirror-model";
+import { Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
-import { Mapping, ReplaceStep, Step, Transform } from "prosemirror-transform";
+import { Mapping, Step, Transform } from "prosemirror-transform";
 import { logger } from "../logger";
 import { EntityWatcher } from "./EntityWatcher";
 import { InvalidVersionError } from "./errors";
@@ -46,11 +46,21 @@ const isUnused = (response: Response): boolean => {
   );
 };
 
+type StepUpdate = {
+  type: "step";
+  payload: Step<Schema>;
+};
+
+type StoreUpdate = {
+  type: "store";
+  payload: EntityStore;
+};
+type Update = StepUpdate | StoreUpdate;
+
 // A collaborative editing document instance.
 export class Instance {
   // The version number of the document instance.
   version = 0;
-  steps: Step[] = [];
   lastActive = Date.now();
   users: Record<string, boolean> = Object.create(null);
   userCount = 0;
@@ -64,7 +74,10 @@ export class Instance {
   timedPositions: TimedCollabPosition[] = [];
   positionCleanupInterval: ReturnType<typeof setInterval>;
 
-  private entityStore: { version: number; store: EntityStore };
+  /**
+   * @todo absorb position updates into this
+   */
+  private updates: Update[] = [];
 
   private readonly unsubscribeFromEntityWatcher: () => void;
 
@@ -89,11 +102,6 @@ export class Instance {
       this.cleanupPositions();
       this.cleanupPositionPollers();
     }, POSITION_CLEANUP_INTERVAL);
-
-    this.entityStore = {
-      version: this.version,
-      store: entityStoreFromProsemirror(state).store,
-    };
 
     this.unsubscribeFromEntityWatcher = this.entityWatcher.subscribe(
       (entityVersion) => this.processEntityVersion(entityVersion),
@@ -204,22 +212,23 @@ export class Instance {
     this.state = this.state.apply(tr);
     this.savedContents = nextSavedContents;
 
-    this.entityStore = {
-      version: notify ? this.version + 1 : this.version,
-      store: entityStoreFromProsemirror(this.state).store,
-    };
-
     if (notify) {
-      /**
-       * This is a hack to do with version number hacking
-       * @todo come up with something better
-       */
-      this.addEvents()(
-        this.version,
-        [new ReplaceStep<Schema>(0, 0, Slice.empty)],
-        "graphql",
-      );
+      this.recordStoreUpdate();
     }
+  }
+
+  /**
+   * @todo remove this – we should be able to send the tracked actions to other
+   *       clients, instead of the whole store
+   */
+  private recordStoreUpdate() {
+    this.addUpdates([
+      {
+        type: "store",
+        payload: entityStoreFromProsemirror(this.state).store,
+      },
+    ]);
+    this.sendUpdates();
   }
 
   addEvents =
@@ -242,12 +251,7 @@ export class Instance {
       this.state = this.state.apply(tr);
 
       // this.doc = doc;
-      this.version += steps.length;
-      this.steps = this.steps.concat(steps);
-      if (this.steps.length > MAX_STEP_HISTORY) {
-        this.steps = this.steps.slice(this.steps.length - MAX_STEP_HISTORY);
-      }
-
+      this.addUpdates(steps.map((step) => ({ type: "step", payload: step })));
       this.sendUpdates();
 
       if (apolloClient) {
@@ -385,23 +389,32 @@ export class Instance {
     }
   }
 
-  // : (Number, Number)
-  // Get events between a given document version and
-  // the current document version.
+  /**
+   * Get events between a given document version and the current document
+   * version.
+   */
   getEvents(version: number) {
     this.checkVersion(version);
-    const startIndex = this.steps.length - (this.version - version);
+    const startIndex = this.updates.length - (this.version - version);
     if (startIndex < 0) return false;
 
-    const steps = this.steps.slice(startIndex);
+    const updates = this.updates.slice(startIndex);
+    const steps = updates
+      .filter((update): update is StepUpdate => update.type === "step")
+      .map((update) => update.payload);
+
     const store =
-      this.entityStore.version > version ? this.entityStore.store : null;
+      [...updates]
+        .reverse()
+        .find((update): update is StoreUpdate => update.type === "store")
+        ?.payload ?? null;
 
     return {
       steps,
       users: this.userCount,
       clientIDs: steps.map((step) => this.clientIds.get(step)),
       store,
+      shouldRespondImmediately: updates.length > 0,
     };
   }
 
@@ -514,6 +527,23 @@ export class Instance {
     this.positionPollers = this.positionPollers.filter(({ response }) =>
       isUnused(response),
     );
+  }
+
+  /**
+   * @todo do we want to force sending updates here too?
+   */
+  private addUpdates(updates: Update[]) {
+    this.updates = [...this.updates, ...updates];
+
+    /**
+     * @todo this needs to be synced with the collab plugin on the frontend
+     *       which is based on steps, so it's not as simple as this
+     */
+    this.version += updates.length;
+
+    if (this.updates.length > MAX_STEP_HISTORY) {
+      this.updates = this.updates.slice(this.updates.length - MAX_STEP_HISTORY);
+    }
   }
 }
 

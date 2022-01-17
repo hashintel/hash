@@ -28,7 +28,7 @@ const parseVersion = (rawValue: Request["query"][string]) => {
   throw new InvalidVersionError(rawValue);
 };
 
-const jsonEvents = (
+const formatGetEventsResponse = (
   instance: Instance,
   data: Exclude<ReturnType<Instance["getEvents"]>, boolean>,
 ) => ({
@@ -194,9 +194,9 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
           response.status(410).send("History no longer available");
           return;
         }
-        // If the server version is greater than the given version,
-        // return the data immediately.
-        if (data.steps.length) return response.json(jsonEvents(instance, data));
+        if (data.shouldRespondImmediately) {
+          return response.json(formatGetEventsResponse(instance, data));
+        }
         // If the server version matches the given version,
         // wait until a new version is published to return the event data.
         const wait = new Waiting(response, instance, userInfo.entityId, () => {
@@ -206,7 +206,7 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
             return;
           }
 
-          wait.send(jsonEvents(instance, events));
+          wait.send(formatGetEventsResponse(instance, events));
         });
         instance.waiting.push(wait);
         response.on("close", () => wait.abort());

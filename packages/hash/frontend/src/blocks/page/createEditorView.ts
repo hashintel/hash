@@ -89,7 +89,8 @@ export const createEditorView = (
         );
       },
     },
-    dispatchTransaction: (...args) => connection?.dispatchTransaction(...args),
+    dispatchTransaction: (tr) =>
+      connection?.dispatchTransaction(tr, connection?.state.version ?? 0),
   });
 
   manager = new ProsemirrorSchemaManager(

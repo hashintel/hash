@@ -3,12 +3,7 @@ import { EntityStore } from "@hashintel/hash-shared/entityStore";
 import { addEntityStoreAction } from "@hashintel/hash-shared/entityStorePlugin";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
-import {
-  collab,
-  getVersion,
-  receiveTransaction,
-  sendableSteps,
-} from "prosemirror-collab";
+import { collab, receiveTransaction, sendableSteps } from "prosemirror-collab";
 import { Schema } from "prosemirror-model";
 import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { Step } from "prosemirror-transform";
@@ -33,6 +28,7 @@ class State {
   constructor(
     public edit: EditorState<Schema> | null,
     public comm: string | null,
+    public version: number,
   ) {}
 }
 
@@ -56,15 +52,16 @@ type EditorConnectionAction =
       error: StatusError;
     }
   | {
-      type: "transaction";
-      transaction: Transaction<Schema>;
+      type: "update";
+      transaction: Transaction<Schema> | null;
       requestDone?: boolean;
+      version: number;
     };
 
 const NEW_INSTANCE_KEY = "collab-force-new-instance";
 
 export class EditorConnection {
-  state = new State(null, "start");
+  state = new State(null, "start", 0);
   backOff = 0;
   request: AbortingPromise<string> | null = null;
 
@@ -87,6 +84,8 @@ export class EditorConnection {
   // All state changes go through this
   dispatch = (action: EditorConnectionAction) => {
     let newEditState = null;
+    let nextVersion = this.state.version;
+
     switch (action.type) {
       case "loaded": {
         const editorState = createProseMirrorState({
@@ -106,56 +105,62 @@ export class EditorConnection {
         });
 
         const result = editorState.apply(tr);
-        this.state = new State(result, "poll");
+        this.state = new State(result, "poll", action.version);
         this.poll();
         break;
       }
       case "restart":
-        this.state = new State(null, "start");
+        this.state = new State(null, "start", 0);
         this.start();
         break;
       case "poll":
-        this.state = new State(this.state.edit, "poll");
+        this.state = new State(this.state.edit, "poll", nextVersion);
         this.poll();
         break;
       case "recover":
         if (action.error.status && action.error.status < 500) {
           this.report.failure(action.error);
-          this.state = new State(null, null);
+          this.state = new State(null, null, 0);
         } else {
-          this.state = new State(this.state.edit, "recover");
+          this.state = new State(this.state.edit, "recover", nextVersion);
           this.recover(action.error);
         }
         break;
-      case "transaction":
+      case "update":
         if (!this.state.edit) {
           throw new Error("Cannot apply transaction without state to apply to");
         }
-        newEditState = this.state.edit.apply(action.transaction);
+        if (action.transaction) {
+          newEditState = this.state.edit.apply(action.transaction);
+        } else {
+          newEditState = this.state.edit;
+        }
+        nextVersion = action.version;
         break;
     }
 
     if (newEditState) {
+      const requestDone = "requestDone" in action && action.requestDone;
+
       let sendable;
       if (newEditState.doc.content.size > 40000) {
         if (this.state.comm !== "detached") {
           this.report.failure(new Error("Document too big. Detached."));
         }
-        this.state = new State(newEditState, "detached");
+        this.state = new State(newEditState, "detached", nextVersion);
       } else if (
-        (this.state.comm === "poll" ||
-          ("requestDone" in action && action.requestDone)) &&
+        (this.state.comm === "poll" || requestDone) &&
         // eslint-disable-next-line no-cond-assign
         (sendable = this.sendable(newEditState))
       ) {
         this.closeRequest();
-        this.state = new State(newEditState, "send");
+        this.state = new State(newEditState, "send", nextVersion);
         this.send(newEditState, sendable);
-      } else if ("requestDone" in action && action.requestDone) {
-        this.state = new State(newEditState, "poll");
+      } else if (requestDone) {
+        this.state = new State(newEditState, "poll", nextVersion);
         this.poll();
       } else {
-        this.state = new State(newEditState, this.state.comm);
+        this.state = new State(newEditState, this.state.comm, nextVersion);
       }
     }
 
@@ -167,8 +172,8 @@ export class EditorConnection {
     }
   };
 
-  dispatchTransaction = (transaction: Transaction<Schema>) => {
-    this.dispatch({ type: "transaction", transaction });
+  dispatchTransaction = (transaction: Transaction<Schema>, version: number) => {
+    this.dispatch({ type: "update", transaction, version });
   };
 
   // Load the document from the server and start up
@@ -218,7 +223,7 @@ export class EditorConnection {
     if (!this.state.edit) {
       throw new Error("Cannot poll without state");
     }
-    const query = `version=${getVersion(this.state.edit)}`;
+    const query = `version=${this.state.version}`;
     this.run(GET(`${this.url}/events?${query}`)).then(
       (stringifiedData) => {
         this.report.success();
@@ -228,22 +233,37 @@ export class EditorConnection {
         if (data.store && this.state.edit) {
           const tr = this.state.edit.tr;
           addEntityStoreAction(tr, { type: "store", payload: data.store });
-          this.dispatch({ type: "transaction", transaction: tr });
+          // @todo remove need to dispatch here, combine with below dispatch
+          this.dispatch({
+            type: "update",
+            transaction: tr,
+            version: this.state.version,
+          });
         }
 
-        if (data.steps) {
+        let tr: Transaction<Schema> | null = null;
+
+        if (data.steps?.length) {
           if (!this.state.edit) {
             throw new Error("Cannot receive transaction without state");
           }
-          const tr = receiveTransaction(
+          tr = receiveTransaction(
             this.state.edit,
             data.steps.map((json: any) => Step.fromJSON(this.schema, json)),
             data.clientIDs,
           );
+        }
+
+        if (
+          tr ||
+          (typeof data.version !== "undefined" &&
+            data.version !== this.state.version)
+        ) {
           this.dispatch({
-            type: "transaction",
+            type: "update",
             transaction: tr,
             requestDone: true,
+            version: data.version ?? this.state.version,
           });
         } else {
           this.poll();
@@ -273,7 +293,7 @@ export class EditorConnection {
     { steps }: { steps?: ReturnType<typeof sendableSteps> } = {},
   ) {
     const json = JSON.stringify({
-      version: getVersion(editState),
+      version: this.state.version,
       steps: steps ? steps.steps.map((step) => step.toJSON()) : [],
       clientID: steps ? steps.clientID : 0,
       // @todo do something smarter
@@ -282,7 +302,7 @@ export class EditorConnection {
       ),
     });
     this.run(POST(`${this.url}/events`, json, "application/json")).then(
-      () => {
+      (data) => {
         this.report.success();
         this.backOff = 0;
         if (!this.state.edit) {
@@ -295,10 +315,12 @@ export class EditorConnection {
               repeat(steps.clientID, steps.steps.length),
             )
           : this.state.edit.tr;
+        const version = JSON.parse(data).version;
         this.dispatch({
-          type: "transaction",
+          type: "update",
           transaction: tr,
           requestDone: true,
+          version,
         });
       },
       (err) => {
