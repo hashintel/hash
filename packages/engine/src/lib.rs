@@ -53,10 +53,20 @@ mod args;
 pub mod env;
 pub mod utils;
 
-pub use args::{args, Args};
-pub use config::{experiment_config, ExperimentConfig, SimRunConfig, SimulationConfig};
-pub use env::{env, Environment};
-pub use error::{Error, Result};
-pub use experiment::init_exp_package;
-pub use language::Language;
-pub use utils::init_logger;
+// Suppress weird warning about unused dev-dependencies
+// TODO: Remove when overhauling error handling
+#[cfg(test)]
+mod suppress_weird_warning_about_unused_dev_dependencies {
+    use ::error as _;
+    use ::provider as _;
+}
+
+pub use self::{
+    args::{args, Args},
+    config::{experiment_config, ExperimentConfig, SimRunConfig, SimulationConfig},
+    env::{env, Environment},
+    error::{Error, Result},
+    experiment::init_exp_package,
+    language::Language,
+    utils::init_logger,
+};

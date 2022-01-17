@@ -11,15 +11,15 @@ use arrow::{
     datatypes::{DataType, Schema},
     ipc::writer::schema_to_bytes,
 };
-pub use error::{Error, Result};
 use futures::FutureExt;
-use mini_v8 as mv8;
 use mv8::MiniV8;
 use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     task::JoinError,
 };
 
+pub use self::error::{Error, Result};
+use self::mini_v8 as mv8;
 use super::comms::{
     inbound::InboundToRunnerMsgPayload,
     outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, RunnerError},

@@ -4,11 +4,11 @@ pub mod package;
 
 use std::sync::Arc;
 
-pub use error::{Error, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
 use tokio::task::JoinHandle;
 
+pub use self::error::{Error, Result};
 use crate::{
     config::{ExperimentConfig, Globals},
     experiment::controller::comms::{exp_pkg_ctl::ExpPkgCtlSend, exp_pkg_update::ExpPkgUpdateRecv},

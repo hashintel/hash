@@ -45,6 +45,10 @@ tracing-subscriber = { version = "0.3.3", features = ["env-filter"] }
 tracing-error = "0.2.0"
 uuid = { version = "0.8.1", features = ["v4", "serde"] }
 
+[dev-dependencies]
+provider = { path = "lib/provider" }
+error = { path = "lib/error" }
+
 [features]
 default = ["build-nng"]
 build-nng = ["nng/build-nng"]

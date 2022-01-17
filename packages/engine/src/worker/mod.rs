@@ -6,13 +6,13 @@ pub mod task;
 
 use std::{future::Future, pin::Pin, time::Duration};
 
-pub use error::{Error, Result};
 use futures::{
     stream::{FuturesOrdered, FuturesUnordered},
     StreamExt,
 };
 use tokio::time::timeout;
 
+pub use self::error::{Error, Result};
 use self::{
     pending::PendingWorkerTasks,
     runner::{

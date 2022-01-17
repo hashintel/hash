@@ -12,12 +12,6 @@ mod string;
 mod tests;
 mod value;
 
-pub use array::*;
-pub use error::*;
 //#[ignore(unused_imports)]
-use ffi::*;
-pub use function::*;
-pub use mini_v8::*;
-pub use object::*;
-pub use string::*;
-pub use value::*;
+use self::ffi::*;
+pub use self::{array::*, error::*, function::*, mini_v8::*, object::*, string::*, value::*};

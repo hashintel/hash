@@ -6,4 +6,4 @@ pub mod run;
 pub mod sim_configurer;
 pub mod utils;
 
-pub use error::{Error, Result};
+pub use self::error::{Error, Result};

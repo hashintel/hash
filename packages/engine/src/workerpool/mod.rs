@@ -6,7 +6,6 @@ pub mod runs;
 
 use std::{future::Future, pin::Pin, sync::Arc};
 
-pub use error::{Error, Result};
 use futures::{
     future::try_join_all,
     stream::{FuturesUnordered, StreamExt},
@@ -14,6 +13,7 @@ use futures::{
 use rand::prelude::SliceRandom;
 use tokio::{pin, task::JoinHandle};
 
+pub use self::error::{Error, Result};
 use self::{
     comms::{
         experiment::ExperimentToWorkerPoolMsg, main::MainMsgSendBase, top::WorkerPoolMsgSend,
