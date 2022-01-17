@@ -10,7 +10,7 @@ import {
 } from "@hashintel/hash-shared/entityStore";
 import {
   addEntityStoreAction,
-  entityStoreFromProsemirror,
+  entityStorePluginState,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import {
   GetEntityQuery,
@@ -225,7 +225,7 @@ export class Instance {
     this.addUpdates([
       {
         type: "store",
-        payload: entityStoreFromProsemirror(this.state).store,
+        payload: entityStorePluginState(this.state).store,
       },
     ]);
     this.sendUpdates();

@@ -10,13 +10,15 @@ import {
 } from "./blockMeta";
 import { BlockEntity, getTextEntityFromDraftBlock } from "./entity";
 import {
+  createEntityStore,
   draftEntityForEntityId,
   EntityStore,
   isBlockEntity,
+  isDraftBlockEntity,
 } from "./entityStore";
 import {
-  entityStoreAndTransactionForEntities,
-  entityStoreFromProsemirror,
+  addEntityStoreAction,
+  entityStorePluginState,
 } from "./entityStorePlugin";
 import { ProsemirrorNode } from "./node";
 import { childrenForTextEntity, getComponentNodeAttrs } from "./prosemirror";
@@ -306,23 +308,19 @@ export class ProsemirrorSchemaManager {
        *       provides the surrounding UI
        */
       return this.schema.nodes.block.create({}, [
-        this.schema.nodes.entity.create(
-          { entityId: blockEntity?.entityId, draftId: draftBlockId },
-          [
-            this.schema.nodes.entity.create(
-              {
-                entityId: draftTextEntity?.entityId,
-                draftId: draftTextEntity?.draftId,
-              },
-              [
-                this.schema.nodes[targetComponentId].create(
-                  componentNodeAttributes,
-                  content,
-                ),
-              ],
-            ),
-          ],
-        ),
+        this.schema.nodes.entity.create({ draftId: draftBlockId }, [
+          this.schema.nodes.entity.create(
+            {
+              draftId: draftTextEntity?.draftId,
+            },
+            [
+              this.schema.nodes[targetComponentId].create(
+                componentNodeAttributes,
+                content,
+              ),
+            ],
+          ),
+        ]),
       ]);
     } else {
       /**
@@ -331,12 +329,11 @@ export class ProsemirrorSchemaManager {
        */
       return this.schema.nodes.block.create({}, [
         this.schema.nodes.entity.create(
-          { entityId: blockEntity?.entityId, draftId: draftBlockId },
+          { draftId: draftBlockId },
           this.schema.nodes.entity.create(
             {
-              // @todo add draftId
-              entityId: isBlockEntity(blockEntity)
-                ? blockEntity.properties.entity.entityId
+              draftId: isDraftBlockEntity(blockEntity)
+                ? blockEntity.properties.entity.draftId
                 : null,
             },
             [
@@ -360,7 +357,10 @@ export class ProsemirrorSchemaManager {
     entities: BlockEntity[],
     state: EditorState<Schema>,
   ) {
-    const { store, tr } = entityStoreAndTransactionForEntities(state, entities);
+    const store = createEntityStore(
+      entities,
+      entityStorePluginState(state).store.draft,
+    );
 
     const newNodes = await Promise.all(
       entities.map((blockEntity) => {
@@ -380,6 +380,10 @@ export class ProsemirrorSchemaManager {
         );
       }),
     );
+
+    const { tr } = state;
+
+    addEntityStoreAction(tr, { type: "store", payload: store });
 
     tr.replaceWith(0, state.doc.content.size, newNodes);
 
@@ -401,7 +405,7 @@ export class ProsemirrorSchemaManager {
       throw new Error("Cannot trigger replaceNodeWithRemoteBlock without view");
     }
 
-    const entityStoreState = entityStoreFromProsemirror(view.state);
+    const entityStoreState = entityStorePluginState(view.state);
     const newNode = await this.createRemoteBlock(
       targetComponentId,
       entityStoreState.store,

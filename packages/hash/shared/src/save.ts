@@ -19,7 +19,7 @@ import {
   ComponentNode,
   componentNodeToId,
   findComponentNodes,
-  nodeToEntityProperties,
+  textBlockNodeToEntityProperties,
 } from "./prosemirror";
 import { updatePageContents } from "./queries/page.queries";
 
@@ -139,7 +139,9 @@ const insertBlocks = defineOperation(
           position: Number(position),
           componentId: componentNodeToId(node),
           accountId,
-          entityProperties: nodeToEntityProperties(node),
+          entityProperties: node.type.isTextblock
+            ? textBlockNodeToEntityProperties(node)
+            : {},
           // @todo support new non-text nodes
           systemTypeName: SystemTypeName.Text,
         },
@@ -242,7 +244,7 @@ const updateBlocks = defineOperation(
 
             const { tokens } = textEntity.properties;
             // @todo consider using draft entity store for this
-            const entityProperties = nodeToEntityProperties(node);
+            const entityProperties = textBlockNodeToEntityProperties(node);
 
             if (!isEqual(tokens, entityProperties.tokens)) {
               updates.push({

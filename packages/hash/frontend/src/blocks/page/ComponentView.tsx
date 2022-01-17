@@ -10,7 +10,7 @@ import {
   isBlockEntity,
 } from "@hashintel/hash-shared/entityStore";
 import {
-  entityStoreFromProsemirror,
+  entityStorePluginState,
   subscribeToEntityStore,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
@@ -108,7 +108,7 @@ export class ComponentView implements NodeView<Schema> {
 
     this.dom.appendChild(this.target);
 
-    this.store = entityStoreFromProsemirror(view.state).store;
+    this.store = entityStorePluginState(view.state).store;
     this.unsubscribe = subscribeToEntityStore(this.view, (store) => {
       this.store = store;
       this.update(this.node);

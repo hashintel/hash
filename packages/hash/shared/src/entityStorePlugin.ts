@@ -7,6 +7,7 @@ import { BlockEntity } from "./entity";
 import {
   createEntityStore,
   draftEntityForEntityId,
+  draftIdForEntityId,
   EntityStore,
   isBlockEntity,
   isDraftBlockEntity,
@@ -16,7 +17,7 @@ import {
   EntityNode,
   isComponentNode,
   isEntityNode,
-  nodeToEntityProperties,
+  textBlockNodeToEntityProperties,
 } from "./prosemirror";
 import { collect } from "./util";
 
@@ -88,7 +89,7 @@ const updateEntityStoreListeners = collect<
 /**
  * @use subscribeToEntityStore if you need a live subscription
  */
-export const entityStoreFromProsemirror = (state: EditorState<Schema>) => {
+export const entityStorePluginState = (state: EditorState<Schema>) => {
   const pluginState = entityStorePluginKey.getState(state);
 
   if (!pluginState) {
@@ -110,72 +111,6 @@ export const subscribeToEntityStore = (
   };
 };
 
-/**
- * When updating the view with a new set of entities, we need a draft store
- * to construct the Prosemirror nodes for. However, the process of creating
- * a draft store for a set of entities involves generating random IDs, and
- * the only way we have of doing it is by dispatching a transaction with a
- * certain meta key. Therefore we need to create a copy of the state with the
- * transaction setting the meta key, and then "remember" the entity store
- * that we create by setting another meta key.
- *
- * We additionally remove the draftIds that should have had entities created
- * for them on the last save, to prepare for correcting them in the plugin
- *
- * @todo it would be nice if this weren't necessary. It's an implementation
- *       detail of the plugin that consumers shouldn't care about
- */
-export const entityStoreAndTransactionForEntities = (
-  state: EditorState<Schema>,
-  entities: BlockEntity[],
-) => {
-  const { tr } = state;
-
-  /**
-   * @todo we should remove this action once its been applied
-   * @todo this is a pretty crude way of getting a store – why not just call
-   *       it directly?
-   */
-  addEntityStoreAction(tr, { type: "contents", payload: entities });
-
-  /**
-   * We need to remove the draft ids were previously generated for nodes
-   * that did not yet have entity ids, so that the draft ids created when we
-   * updated with the new entities can be matched to the nodes representing
-   * those entities (in appendTransaction).
-   */
-  tr.doc.descendants((node, pos) => {
-    if (
-      node.type === state.schema.nodes.entity &&
-      node.attrs.draftId &&
-      !node.attrs.entityId
-    ) {
-      tr.setNodeMarkup(pos, undefined, {
-        ...node.attrs,
-        draftId: null,
-      });
-    }
-  });
-
-  /**
-   * Create a copy of the prosemirror state with the above transaction
-   * applied to, in order to get the entity store for this set of entities,
-   * without yet dispatching the transaction
-   */
-  const { store } = entityStoreFromProsemirror(state.apply(tr));
-
-  /**
-   * We've generated a new entity store for the new set of entities, but we need
-   * to ensure that when the transaction that uses this entity store is
-   * dispatched, that that entity store overwrites the one currently stored in
-   * Prosemirror, as the use of state.apply above does not actually replace the
-   * store inside Prosemirror
-   */
-  addEntityStoreAction(tr, { type: "store", payload: store });
-
-  return { store, tr };
-};
-
 const draftIdForNode = (
   tr: Transaction<Schema>,
   node: EntityNode,
@@ -185,10 +120,12 @@ const draftIdForNode = (
   let draftId = node.attrs.draftId;
 
   if (draftId && draftDraftEntityStore[draftId]) {
-    if (node.attrs.entityId) {
+    const entityId = draftDraftEntityStore[draftId].entityId;
+
+    if (entityId) {
       const existingDraftId = draftEntityForEntityId(
         draftDraftEntityStore,
-        node.attrs.entityId,
+        entityId,
       )?.draftId;
 
       if (!existingDraftId) {
@@ -202,7 +139,7 @@ const draftIdForNode = (
      * @todo this will lead to the frontend setting draft id uuids for new
      *       blocks – this is potentially insecure and needs considering
      */
-    draftId ??= uuid();
+    draftId ??= draftIdForEntityId(uuid());
 
     draftDraftEntityStore[draftId] = {
       draftId,
@@ -297,7 +234,7 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
       return;
     }
 
-    const pluginState = entityStoreFromProsemirror(state);
+    const pluginState = entityStorePluginState(state);
     const prevDraft = pluginState.store.draft;
     const { tr } = state;
 
@@ -351,8 +288,14 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
           throw new Error("invariant: draft entity missing from store");
         }
 
-        if ("properties" in draftEntity && node.firstChild) {
-          draftEntity.properties = nodeToEntityProperties(node.firstChild);
+        if (
+          "properties" in draftEntity &&
+          node.firstChild &&
+          node.firstChild.isTextblock
+        ) {
+          draftEntity.properties = textBlockNodeToEntityProperties(
+            node.firstChild,
+          );
         }
 
         const parent = tr.doc.resolve(pos).parent;

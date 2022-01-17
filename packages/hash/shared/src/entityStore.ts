@@ -1,5 +1,4 @@
 import { Draft, produce } from "immer";
-import { v4 as uuid } from "uuid";
 import { BlockEntity } from "./entity";
 import { DistributiveOmit, typeSafeEntries } from "./util";
 
@@ -113,6 +112,8 @@ const findEntities = (contents: EntityStoreType[]) => {
   return entities;
 };
 
+export const draftIdForEntityId = (entityId: string) => `draft-${entityId}`;
+
 /**
  * @todo restore dealing with links
  * @todo this should be flat – so that we don't have to traverse links
@@ -124,11 +125,9 @@ export const createEntityStore = (
   const saved: EntityStore["saved"] = {};
   const draft: EntityStore["draft"] = {};
 
-  const draftToEntity: Record<string, string | null> = {};
   const entityToDraft: Record<string, string> = {};
 
   for (const row of Object.values(draftData)) {
-    draftToEntity[row.draftId] = row.entityId;
     if (row.entityId) {
       entityToDraft[row.entityId] = row.draftId;
     }
@@ -137,7 +136,7 @@ export const createEntityStore = (
 
   for (const entity of entities) {
     if (!entityToDraft[entity.entityId]) {
-      entityToDraft[entity.entityId] = uuid();
+      entityToDraft[entity.entityId] = draftIdForEntityId(entity.entityId);
     }
   }
 
@@ -167,9 +166,10 @@ export const createEntityStore = (
       draft[draftId],
       (draftEntity: Draft<DraftEntity>) => {
         if (isDraftBlockEntity(draftEntity)) {
-          if (draftEntity.properties.entity.entityId) {
+          const innerEntityId = draftEntity.properties.entity.entityId;
+          if (innerEntityId) {
             draftEntity.properties.entity.draftId =
-              entityToDraft[draftEntity.properties.entity.entityId];
+              entityToDraft[innerEntityId];
           } else {
             throw new Error("entity id does not exist when expected to");
           }

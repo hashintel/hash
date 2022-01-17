@@ -38,51 +38,53 @@ export const childrenForTextEntity = (
       }
     });
 
-export const nodeToEntityProperties = (node: ProsemirrorNode<Schema>) => {
-  if (node.type.isTextblock) {
-    const tokens: TextToken[] = [];
-
-    node.content.descendants((child) => {
-      switch (child.type.name) {
-        case "hardBreak": {
-          tokens.push({ tokenType: "hardBreak" });
-          break;
-        }
-        case "mention": {
-          tokens.push({
-            tokenType: "mention",
-            mentionType: child.attrs.mentionType,
-            entityId: child.attrs.entityId,
-          });
-          break;
-        }
-        case "text": {
-          const marks = new Set<string>(
-            child.marks.map((mark) => mark.type.name),
-          );
-
-          tokens.push({
-            tokenType: "text",
-            text: child.text ?? "",
-            ...(marks.has("strong") ? { bold: true } : {}),
-            ...(marks.has("em") ? { italics: true } : {}),
-            ...(marks.has("underlined") ? { underline: true } : {}),
-            ...(marks.has("link")
-              ? {
-                  link: child.marks.find((mark) => mark.type.name === "link")
-                    ?.attrs?.href,
-                }
-              : {}),
-          });
-          break;
-        }
-      }
-    });
-
-    return { tokens };
+export const textBlockNodeToEntityProperties = (
+  node: ProsemirrorNode<Schema>,
+) => {
+  if (!node.isTextblock) {
+    throw new Error("Can only be used on text blocks");
   }
 
-  return {};
+  const tokens: TextToken[] = [];
+
+  node.content.descendants((child) => {
+    switch (child.type.name) {
+      case "hardBreak": {
+        tokens.push({ tokenType: "hardBreak" });
+        break;
+      }
+      case "mention": {
+        tokens.push({
+          tokenType: "mention",
+          mentionType: child.attrs.mentionType,
+          entityId: child.attrs.entityId,
+        });
+        break;
+      }
+      case "text": {
+        const marks = new Set<string>(
+          child.marks.map((mark) => mark.type.name),
+        );
+
+        tokens.push({
+          tokenType: "text",
+          text: child.text ?? "",
+          ...(marks.has("strong") ? { bold: true } : {}),
+          ...(marks.has("em") ? { italics: true } : {}),
+          ...(marks.has("underlined") ? { underline: true } : {}),
+          ...(marks.has("link")
+            ? {
+                link: child.marks.find((mark) => mark.type.name === "link")
+                  ?.attrs?.href,
+              }
+            : {}),
+        });
+        break;
+      }
+    }
+  });
+
+  return { tokens };
 };
 
 type NodeWithAttrs<Attrs extends {}> = Omit<
@@ -95,7 +97,6 @@ export type ComponentNode = NodeWithAttrs<{
 }>;
 
 export type EntityNode = NodeWithAttrs<{
-  entityId: string | null;
   draftId: string | null;
 }>;
 

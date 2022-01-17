@@ -11,7 +11,7 @@ import { useOutsideClick } from "rooks";
 import { tw } from "twind";
 import { EntityStore } from "@hashintel/hash-shared/entityStore";
 import {
-  entityStoreFromProsemirror,
+  entityStorePluginState,
   subscribeToEntityStore,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { BlockContextMenu } from "../../components/BlockContextMenu/BlockContextMenu";
@@ -117,7 +117,7 @@ export class BlockView implements NodeView<Schema> {
     this.dom.appendChild(this.contentDOM);
     this.contentDOM.classList.add(styles.Block__Content);
 
-    this.store = entityStoreFromProsemirror(view.state).store;
+    this.store = entityStorePluginState(view.state).store;
     this.unsubscribe = subscribeToEntityStore(this.view, (store) => {
       this.store = store;
       this.update(this.node);

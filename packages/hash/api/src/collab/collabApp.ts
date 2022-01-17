@@ -1,6 +1,6 @@
 import { ApolloClient, NormalizedCacheObject } from "@apollo/client";
 import { QueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/adapter";
-import { entityStoreFromProsemirror } from "@hashintel/hash-shared/entityStorePlugin";
+import { entityStorePluginState } from "@hashintel/hash-shared/entityStorePlugin";
 import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
 import { getBasicWhoAmI } from "@hashintel/hash-shared/queries/auth.queries";
 import { ApolloError } from "apollo-server-express";
@@ -169,7 +169,7 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
 
         response.json({
           doc: instance.state.doc.toJSON(),
-          store: entityStoreFromProsemirror(instance.state).store,
+          store: entityStorePluginState(instance.state).store,
           users: instance.userCount,
           version: instance.version,
         });

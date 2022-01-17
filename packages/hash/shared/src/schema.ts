@@ -45,7 +45,6 @@ export const createSchema = () =>
       entity: {
         content: "componentNode | entity",
         attrs: {
-          entityId: { default: null },
           draftId: { default: null },
         },
         toDOM: () => {
