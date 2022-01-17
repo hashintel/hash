@@ -1,0 +1,32 @@
+html,
+body {
+  padding: 0;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
+    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  height: 100%;
+}
+
+a {
+  text-decoration: none;
+  padding-bottom: 3px;
+  color: initial;
+  font-weight: 400;
+  border-bottom: 3px solid transparent;
+
+  &:hover {
+    border-bottom: 3px solid $bright-blue;
+  }
+
+  &:visited {
+    color: initial;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+#__next {
+  height: 100%;
+}

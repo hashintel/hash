@@ -1,15 +1,15 @@
 {
   "default": true,
-
+  "first-line-heading": false,
   "line-length": false,
   "list-marker-space": { "ol_multi": 2, "ol_single": 2 },
   "no-alt-text": false,
   "no-bare-urls": false,
-  "first-line-heading": false,
   "no-duplicate-heading": { "siblings_only": true },
   "no-emphasis-as-heading": false,
   "no-inline-html": false,
   "no-trailing-punctuation": false,
+  "no-trailing-spaces": false,
   "ol-prefix": { "style": "one" },
-  "single-h1": false
+  "single-title": false
 }
