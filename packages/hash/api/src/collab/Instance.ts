@@ -2,7 +2,10 @@ import { ApolloClient } from "@apollo/client";
 import { EntityVersion } from "@hashintel/hash-backend-utils/pgTables";
 import { CollabPosition } from "@hashintel/hash-shared/collab";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
-import { BlockEntity } from "@hashintel/hash-shared/entity";
+import {
+  BlockEntity,
+  isTextContainingEntityProperties,
+} from "@hashintel/hash-shared/entity";
 import {
   EntityStore,
   walkValueForEntity,
@@ -353,7 +356,12 @@ export class Instance {
                   break;
 
                 case 2:
-                  targetEntityId = blockEntity.properties.entity.entityId;
+                  targetEntityId = isTextContainingEntityProperties(
+                    blockEntity.properties.entity.properties,
+                  )
+                    ? blockEntity.properties.entity.properties.text.data
+                        .entityId
+                    : blockEntity.properties.entity.entityId;
                   break;
 
                 default:
