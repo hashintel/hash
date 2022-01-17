@@ -4,7 +4,6 @@ import { CollabPosition } from "@hashintel/hash-shared/collab";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import {
-  createEntityStore,
   EntityStore,
   walkValueForEntity,
 } from "@hashintel/hash-shared/entityStore";
@@ -307,8 +306,7 @@ export class Instance {
           this.pageEntityId,
           doc,
           this.savedContents,
-          // @todo get this from this.state
-          createEntityStore(this.savedContents, {}),
+          entityStorePluginState(this.state).store,
           apolloClient,
         ).then((newPage) => {
           /**
@@ -345,6 +343,10 @@ export class Instance {
                 );
               }
 
+              /**
+               * @todo doesn't update entity id for text containing entities
+               *       when created
+               */
               switch (resolved.depth) {
                 case 1:
                   targetEntityId = blockEntity.entityId;
