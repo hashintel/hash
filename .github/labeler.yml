@@ -1,27 +1,48 @@
-A-infra:
-  - ".github/*"
-  - ".github/.*"
-  - ".github/**/*"
-  - ".github/**/.*"
-  - "*.md"
-  - ".markdownlint*"
-  - ".gitignore"
-A-hash:
-  - "packages/hash/*"
-  - "packages/hash/.*"
-  - "packages/hash/**/*"
-  - "packages/hash/**/.*"
-A-engine:
-  - "packages/engine/*"
-  - "packages/engine/.*"
-  - "packages/engine/**/*"
-  - "packages/engine/**/.*"
-A-learn:
-  - "resources/*"
-  - "resources/.*"
-  - "resources/**/*"
-  - "resources/**/.*"
+frontend:
+  - packages/hash/frontend/*
+  - packages/hash/frontend/.*
+  - packages/hash/frontend/**/*
+  - packages/hash/frontend/**/.*
 
-C-dependencies:
-  - "**/Cargo.lock"
-  - "**/yarn.lock"
+api:
+  - packages/hash/api/*
+  - packages/hash/api/.*
+  - packages/hash/api/**/*
+  - packages/hash/api/**/.*
+
+blocks:
+  - packages/blocks/*
+  - packages/blocks/.*
+  - packages/blocks/**/*
+  - packages/blocks/**/.*
+
+integration:
+  - packages/hash/integration/*
+  - packages/hash/integration/.*
+  - packages/hash/integration/**/*
+  - packages/hash/integration/**/.*
+
+docker:
+  - packages/hash/docker/*
+  - packages/hash/docker/.*
+  - packages/hash/docker/**/*
+  - packages/hash/docker/**/.*
+
+playwright:
+  - playwright.config.ts
+  - tests/*
+  - tests/.*
+  - tests/**/*
+  - tests/**/.*
+
+realtime:
+  - packages/hash/realtime/*
+  - packages/hash/realtime/.*
+  - packages/hash/realtime/**/*
+  - packages/hash/realtime/**/.*
+
+search-loader:
+  - packages/hash/search-loader/*
+  - packages/hash/search-loader/.*
+  - packages/hash/search-loader/**/*
+  - packages/hash/search-loader/**/.*

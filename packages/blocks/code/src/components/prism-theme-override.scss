@@ -1,0 +1,30 @@
+.prism-theme-override {
+  pre[class*="language-"],
+  :not(pre) > code[class*="language-"] {
+    padding: 0;
+    margin: 0;
+    border-radius: 0;
+    background-color: transparent;
+  }
+
+  code[class*="language-"],
+  pre[class*="language-"],
+  textarea {
+    font-family: Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace;
+    font-size: 18px;
+    line-height: 24px;
+    min-height: 24px;
+    tab-size: 2;
+
+    &::selection,
+    & ::selection {
+      background: rgba(45, 170, 219, 0.3);
+    }
+  }
+
+  textarea {
+    caret-color: #dc322f;
+    white-space: nowrap;
+    overflow-x: auto;
+  }
+}
