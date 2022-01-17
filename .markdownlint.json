@@ -9,7 +9,6 @@
   "no-emphasis-as-heading": false,
   "no-inline-html": false,
   "no-trailing-punctuation": false,
-  "no-trailing-spaces": false,
   "ol-prefix": { "style": "one" },
   "single-title": false
 }
