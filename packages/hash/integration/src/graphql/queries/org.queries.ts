@@ -18,7 +18,7 @@ export const createOrg = gql`
         sourceEntityId
         path
         links {
-          id
+          linkId
           destinationEntityId
         }
       }
