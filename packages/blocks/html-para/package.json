@@ -28,6 +28,7 @@
   },
   "blockprotocol": {
     "displayName": "Inline HTML",
-    "icon": "public/html.svg"
+    "icon": "public/html.svg",
+    "image": "public/preview.svg"
   }
 }

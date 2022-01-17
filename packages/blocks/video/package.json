@@ -63,6 +63,7 @@
   },
   "blockprotocol": {
     "displayName": "Video",
-    "icon": "public/play-box-outline.svg"
+    "icon": "public/play-box-outline.svg",
+    "image": "public/preview.svg"
   }
 }

@@ -68,6 +68,7 @@
   },
   "blockprotocol": {
     "displayName": "Image",
-    "icon": "public/image.svg"
+    "icon": "public/image.svg",
+    "image": "public/preview.svg"
   }
 }

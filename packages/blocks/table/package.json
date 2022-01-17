@@ -80,6 +80,7 @@
   },
   "blockprotocol": {
     "displayName": "Table",
-    "icon": "public/table.svg"
+    "icon": "public/table.svg",
+    "image": "public/preview.svg"
   }
 }

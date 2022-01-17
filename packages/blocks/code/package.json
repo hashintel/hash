@@ -70,6 +70,7 @@
   },
   "blockprotocol": {
     "displayName": "Code",
-    "icon": "public/code.svg"
+    "icon": "public/code.svg",
+    "image": "public/preview.svg"
   }
 }

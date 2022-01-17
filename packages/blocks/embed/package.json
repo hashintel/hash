@@ -71,6 +71,7 @@
   },
   "blockprotocol": {
     "displayName": "Embed",
-    "icon": "public/embed.svg"
+    "icon": "public/embed.svg",
+    "image": "public/preview.svg"
   }
 }

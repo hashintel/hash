@@ -68,6 +68,7 @@
   },
   "blockprotocol": {
     "displayName": "Divider",
-    "icon": "public/divider.svg"
+    "icon": "public/divider.svg",
+    "image": "public/preview.svg"
   }
 }
