@@ -1,4 +1,5 @@
-//! The hEngine integration test suite is based on whole simulation runs.
+//! The hEngine integration test suite runs a variety of specially-designed simulations and
+//! experiments of specific functionalities to verify outputs.
 
 mod units;
 
