@@ -25,3 +25,52 @@ A-learn:
 C-dependencies:
   - "**/Cargo.lock"
   - "**/yarn.lock"
+
+frontend:
+  - packages/hash/frontend/*
+  - packages/hash/frontend/.*
+  - packages/hash/frontend/**/*
+  - packages/hash/frontend/**/.*
+
+api:
+  - packages/hash/api/*
+  - packages/hash/api/.*
+  - packages/hash/api/**/*
+  - packages/hash/api/**/.*
+
+blocks:
+  - packages/blocks/*
+  - packages/blocks/.*
+  - packages/blocks/**/*
+  - packages/blocks/**/.*
+
+integration:
+  - packages/hash/integration/*
+  - packages/hash/integration/.*
+  - packages/hash/integration/**/*
+  - packages/hash/integration/**/.*
+
+docker:
+  - packages/hash/docker/*
+  - packages/hash/docker/.*
+  - packages/hash/docker/**/*
+  - packages/hash/docker/**/.*
+
+playwright:
+  - playwright.config.ts
+  - tests/*
+  - tests/.*
+  - tests/**/*
+  - tests/**/.*
+
+realtime:
+  - packages/hash/realtime/*
+  - packages/hash/realtime/.*
+  - packages/hash/realtime/**/*
+  - packages/hash/realtime/**/.*
+
+search-loader:
+  - packages/hash/search-loader/*
+  - packages/hash/search-loader/.*
+  - packages/hash/search-loader/**/*
+  - packages/hash/search-loader/**/.*
