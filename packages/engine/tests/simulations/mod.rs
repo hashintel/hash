@@ -75,6 +75,10 @@ mod state {
     run_test!(edit_state_number);
 }
 
+mod behavior {
+    run_test!(behavior_composability);
+}
+
 mod messages {
     run_test!(message_sending);
 }
