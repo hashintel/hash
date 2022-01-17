@@ -1,0 +1,8 @@
+[
+  {
+    "behaviors": ["test.js"],
+    "one": {
+      "a": 1
+    }
+  }
+]

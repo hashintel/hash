@@ -72,13 +72,20 @@ macro_rules! run_test {
 }
 
 mod state {
-    run_test!(edit_state_number);
-    run_test!(edit_state_string);
-    run_test!(edit_state_bool);
-    run_test!(edit_state_struct);
-    run_test!(edit_state_number_array);
-    run_test!(edit_state_bool_array);
-    run_test!(edit_state_struct_array);
+    run_test!(edit_state_bool_dot);
+    run_test!(edit_state_bool_getset);
+    run_test!(edit_state_bool_array_dot);
+    run_test!(edit_state_bool_array_getset);
+    run_test!(edit_state_number_dot);
+    run_test!(edit_state_number_getset);
+    run_test!(edit_state_number_array_dot);
+    run_test!(edit_state_number_array_getset);
+    run_test!(edit_state_string_dot);
+    run_test!(edit_state_string_getset);
+    run_test!(edit_state_struct_dot);
+    run_test!(edit_state_struct_getset);
+    run_test!(edit_state_struct_array_dot);
+    run_test!(edit_state_struct_array_getset);
 }
 
 mod messages {

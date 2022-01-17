@@ -1,0 +1,14 @@
+{
+  "keys": {
+    "a": {
+      "type": "boolean",
+      "nullable": true
+    },
+    "b": {
+      "type": "boolean",
+      "nullable": true
+    }
+  },
+  "built_in_key_use": null,
+  "dynamic_access": false
+}

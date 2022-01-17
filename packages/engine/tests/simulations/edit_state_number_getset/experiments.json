@@ -1,0 +1,8 @@
+{
+  "test": {
+    "type": "values",
+    "steps": 2,
+    "field": "a",
+    "values": [1]
+  }
+}
