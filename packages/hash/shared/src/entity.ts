@@ -4,6 +4,7 @@ import {
   EntityStoreType,
   isBlockEntity,
   isDraftBlockEntity,
+  isDraftEntity,
   isEntity,
 } from "./entityStore";
 import { PageFieldsFragment, Text } from "./graphql/apiTypes.gen";
@@ -100,13 +101,14 @@ export const getTextEntityFromDraftBlock = (
   }
 
   if (isTextContainingEntityProperties(blockPropertiesEntity.properties)) {
-    /**
-     * @todo make this lookup not necessary
-     */
-    const targetEntityId = blockPropertiesEntity.properties.text.data.entityId;
-    const textEntity = Object.values(entityStore.draft).find(
-      (entity) => entity.entityId === targetEntityId,
-    );
+    // @todo look into why this was using entityId
+    const linkEntity = blockPropertiesEntity.properties.text.data;
+
+    if (!isDraftEntity(linkEntity)) {
+      throw new Error("Expected linked entity to be draft");
+    }
+
+    const textEntity = entityStore.draft[linkEntity.draftId];
 
     if (!textEntity || !isTextEntity(textEntity)) {
       throw new Error("Missing text entity from draft store");
