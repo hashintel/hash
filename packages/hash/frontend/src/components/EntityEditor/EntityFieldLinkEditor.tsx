@@ -132,7 +132,7 @@ export const EntityFieldLinkEditor: VoidFunctionComponent<
         });
       } else {
         if (lastLinkData) {
-          void deleteLinkFromEntity({ linkId: linksOnField[0].link.id });
+          void deleteLinkFromEntity({ linkId: linksOnField[0].link.linkId });
         }
         if (selectedEntityId !== noSelectionValue) {
           void createLinkFromEntity({
@@ -170,7 +170,7 @@ export const EntityFieldLinkEditor: VoidFunctionComponent<
       />
       {allowsMultipleSelections
         ? linksOnField.map(({ link, linkedEntity }) => (
-            <div className={tw`flex my-6`} key={link.id}>
+            <div className={tw`flex my-6`} key={link.linkId}>
               <div className={tw`font-bold w-32`}>
                 {/*
                  * @todo remove the need for this component to know about links and accountId
@@ -184,7 +184,7 @@ export const EntityFieldLinkEditor: VoidFunctionComponent<
               </div>
               <button
                 className={tw`text-red-500 text-sm`}
-                onClick={() => deleteLinkFromEntity({ linkId: link.id })}
+                onClick={() => deleteLinkFromEntity({ linkId: link.linkId })}
                 type="button"
               >
                 Remove

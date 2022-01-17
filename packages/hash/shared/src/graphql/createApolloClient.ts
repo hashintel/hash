@@ -101,6 +101,7 @@ export const createApolloClient = (params?: {
       typePolicies: {
         ...typePolicies,
         UnknownEntity: entityKeyFields,
+        Link: { keyFields: ["linkId"] },
       },
     }),
     credentials: "include",

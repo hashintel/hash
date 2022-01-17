@@ -210,7 +210,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
             if (existingLinkGroup) {
               await deleteLinks(
                 existingLinkGroup.links.map((link) => ({
-                  linkId: link.id,
+                  linkId: link.linkId,
                   sourceEntityId: entityId,
                 })),
               );

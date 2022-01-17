@@ -2,7 +2,7 @@ import { gql } from "@apollo/client";
 
 const linkFieldsFragment = gql`
   fragment LinkFields on Link {
-    id
+    linkId
     path
     index
     sourceAccountId

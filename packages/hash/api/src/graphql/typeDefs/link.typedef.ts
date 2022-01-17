@@ -5,7 +5,7 @@ export const linkTypedef = gql`
     """
     The id of the link.
     """
-    id: ID!
+    linkId: ID!
     """
     The JSON path where the link occurs on its source entity's properties.
     """

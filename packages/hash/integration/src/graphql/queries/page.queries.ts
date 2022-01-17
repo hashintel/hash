@@ -2,7 +2,7 @@ import gql from "graphql-tag";
 
 const linkFieldsFragment = gql`
   fragment LinkFields on Link {
-    id
+    linkId
     path
     index
     sourceAccountId

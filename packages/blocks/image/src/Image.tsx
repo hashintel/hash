@@ -251,7 +251,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
             if (existingLinkGroup) {
               await deleteLinks(
                 existingLinkGroup.links.map((link) => ({
-                  linkId: link.id,
+                  linkId: link.linkId,
                   sourceEntityId: link.sourceEntityId,
                 })),
               );

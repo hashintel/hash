@@ -230,7 +230,7 @@ class __Link {
 
   toUnresolvedGQLLink(): UnresolvedGQLLink {
     return {
-      id: this.linkId,
+      linkId: this.linkId,
       sourceAccountId: this.sourceAccountId,
       sourceEntityId: this.sourceEntityId,
       destinationAccountId: this.destinationAccountId,
