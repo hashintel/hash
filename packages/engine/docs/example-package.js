@@ -98,7 +98,7 @@ const start_sim = (experiment, sim, init_message, init_context) => {
         "loaders": {
             "column_name": hash_util.load_shallow,
             "another_column": hash_util.load_full
-        }
+        },
         "getters": {
             "column_name": (agent_context, column_element) => column_element
         }
