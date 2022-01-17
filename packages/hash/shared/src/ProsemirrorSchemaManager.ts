@@ -264,7 +264,7 @@ export class ProsemirrorSchemaManager {
   async createRemoteBlock(
     targetComponentId: string,
     entityStore?: EntityStore,
-    draftBlockId?: string,
+    draftBlockId?: string | null,
   ) {
     const meta = await this.fetchAndDefineBlock(targetComponentId);
     const requiresText = blockComponentRequiresText(meta.componentSchema);
@@ -406,64 +406,162 @@ export class ProsemirrorSchemaManager {
       throw new Error("Cannot trigger replaceNodeWithRemoteBlock without view");
     }
 
-    const entityStoreState = entityStorePluginState(view.state);
-
-    const blockEntity = entityStoreState.store.draft[draftBlockId];
-
-    if (!blockEntity || !isDraftBlockEntity(blockEntity)) {
-      throw new Error("draft id does not belong to a block");
-    }
-
-    const innerEntity = blockEntity.properties.entity;
-    const { tr } = view.state;
-
-    const newBlockDraftId = newDraftId();
-
-    addEntityStoreAction(view.state, tr, {
-      type: "newDraftEntity",
-      payload: {
-        draftId: newBlockDraftId,
-        entityId: null,
-      },
-    });
-
-    addEntityStoreAction(view.state, tr, {
-      type: "updateEntityProperties",
-      payload: {
-        draftId: newBlockDraftId,
-        merge: false,
-        properties: {
-          componentId: targetComponentId,
-          entity: innerEntity,
-        },
-      },
-    });
-
-    const updated = entityStorePluginStateFromTransaction(tr, view.state);
-
-    const newNode = await this.createRemoteBlock(
+    const [tr, newNode] = await this.createRemoteBlockTr(
       targetComponentId,
-      updated.store,
-      newBlockDraftId,
+      draftBlockId,
+      targetVariant,
     );
-
-    const blockEntity = entityStoreState.store.draft[draftBlockId];
-
-    if (
-      isDraftBlockEntity(blockEntity) // &&
-      // isTextContainingEntityProperties(blockEntity.properties.entity.properties)
-    ) {
-      addEntityStoreAction(this.view.state, tr, {
-        type: "updateEntityProperties",
-        payload: {
-          draftId: blockEntity.properties.entity.draftId,
-          properties: targetVariant.properties ?? {},
-          merge: true,
-        },
-      });
-    }
 
     tr.replaceRangeWith(pos, pos + node.nodeSize, newNode);
     view.dispatch(tr);
+  }
+
+  // @todo handle empty variant properties
+  async createRemoteBlockTr(
+    targetComponentId: string,
+    draftBlockId: string | null,
+    targetVariant: BlockVariant,
+  ) {
+    if (!this.view) {
+      throw new Error("Cannot trigger createRemoteBlockTr without view");
+    }
+
+    const { tr } = this.view.state;
+    const meta = await this.fetchAndDefineBlock(targetComponentId);
+
+    let blockIdForNode = draftBlockId;
+
+    if (blockIdForNode) {
+      const entityStoreState = entityStorePluginState(this.view.state);
+
+      const blockEntity = entityStoreState.store.draft[blockIdForNode];
+
+      if (!blockEntity || !isDraftBlockEntity(blockEntity)) {
+        throw new Error("draft id does not belong to a block");
+      }
+
+      if (targetComponentId === blockEntity.properties.componentId) {
+        if (
+          !blockComponentRequiresText(meta.componentSchema) ||
+          isTextContainingEntityProperties(
+            blockEntity.properties.entity.properties,
+          )
+        ) {
+          /**
+           * In the event we're switching to another variant of the same
+           * component, and we are either not dealing with text components,
+           * or we are, and we've already got an "intermediary" entity –
+           * i.e, an entity on which to store non-text properties, we assume
+           * we can just update this entity with the properties of this
+           * variant. This prevents us dealing with components that have
+           * variants requiring different entity types, but we have no
+           * use case for that yet, and this simplifies things somewhat.
+           */
+          addEntityStoreAction(this.view.state, tr, {
+            type: "updateEntityProperties",
+            payload: {
+              draftId: blockEntity.properties.entity.draftId,
+              properties: targetVariant.properties ?? {},
+              merge: true,
+            },
+          });
+        } else {
+          const intermediaryEntityId = newDraftId();
+
+          addEntityStoreAction(this.view.state, tr, {
+            type: "newDraftEntity",
+            payload: {
+              // @todo cleanup
+              draftId: intermediaryEntityId,
+              entityId: null,
+            },
+          });
+
+          addEntityStoreAction(this.view.state, tr, {
+            type: "updateEntityProperties",
+            payload: {
+              draftId: intermediaryEntityId,
+              properties: {
+                ...targetVariant.properties,
+                text: {
+                  // @todo ensure save knows how to save this
+                  __linkedData: {},
+                  data: blockEntity.properties.entity,
+                },
+              },
+              merge: false,
+            },
+          });
+
+          addEntityStoreAction(this.view.state, tr, {
+            type: "updateEntityProperties",
+            payload: {
+              draftId: blockEntity.draftId,
+              properties: {
+                entity: entityStorePluginStateFromTransaction(
+                  tr,
+                  this.view.state,
+                ).store.draft[intermediaryEntityId],
+              },
+              merge: true,
+            },
+          });
+        }
+      } else {
+        throw new Error("Do not yet know how to change component");
+      }
+
+      // let innerEntity = blockEntity.properties.entity;
+      //
+      //
+      //
+      //
+      // addEntityStoreAction(this.view.state, tr, {
+      //   type: "newDraftEntity",
+      //   payload: {
+      //     // @todo cleanup
+      //     draftId: newBlockDraftId!,
+      //     entityId: null,
+      //   },
+      // });
+      //
+      // // @todo handle non-intermediary entities
+      // addEntityStoreAction(this.view.state, tr, {
+      //   type: "updateEntityProperties",
+      //   payload: {
+      //     draftId: innerEntity.draftId,
+      //     properties: targetVariant?.properties ?? {},
+      //     // @todo maybe need to remove this?
+      //     merge: true,
+      //   },
+      // });
+      //
+      // innerEntity = entityStorePluginStateFromTransaction(tr, this.view.state)
+      //   .store.draft[innerEntity.draftId];
+      //
+      // console.log(innerEntity);
+      //
+      // addEntityStoreAction(this.view.state, tr, {
+      //   type: "updateEntityProperties",
+      //   payload: {
+      //     // @todo cleanup
+      //     draftId: newBlockDraftId!,
+      //     merge: false,
+      //     properties: {
+      //       componentId: targetComponentId,
+      //       entity: innerEntity,
+      //     },
+      //   },
+      // });
+    }
+
+    const updated = entityStorePluginStateFromTransaction(tr, this.view.state);
+    const newNode = await this.createRemoteBlock(
+      targetComponentId,
+      updated.store,
+      blockIdForNode,
+    );
+
+    return [tr, newNode] as const;
   }
 }
