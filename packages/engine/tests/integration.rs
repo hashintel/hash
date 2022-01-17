@@ -1,3 +1,5 @@
+//! The hEngine integration test suite is based on whole simulation runs.
+
 mod units;
 
 /// Opens `$project` relative to the caller's file as a HASH simulation project and expects
