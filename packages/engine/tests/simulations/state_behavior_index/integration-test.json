@@ -1,0 +1,16 @@
+[
+  {
+    "experiment": "test",
+    "expected-outputs": [
+      {
+        "json-state": {
+          "1": [
+            {
+              "valid": true
+            }
+          ]
+        }
+      }
+    ]
+  }
+]

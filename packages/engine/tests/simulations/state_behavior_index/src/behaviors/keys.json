@@ -1,0 +1,14 @@
+{
+  "keys": {
+    "index": {
+      "type": "number",
+      "nullable": true
+    },
+    "valid": {
+      "type": "boolean",
+      "nullable": true
+    }
+  },
+  "built_in_key_use": null,
+  "dynamic_access": false
+}

@@ -1,0 +1,22 @@
+{
+  "keys": {
+    "a": {
+      "type": "list",
+      "nullable": true,
+      "child": {
+        "type": "boolean",
+        "nullable": true
+      }
+    },
+    "b": {
+      "type": "list",
+      "nullable": true,
+      "child": {
+        "type": "boolean",
+        "nullable": true
+      }
+    }
+  },
+  "built_in_key_use": null,
+  "dynamic_access": false
+}

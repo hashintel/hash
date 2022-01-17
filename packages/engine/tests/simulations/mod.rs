@@ -72,20 +72,28 @@ macro_rules! run_test {
 }
 
 mod state {
-    run_test!(edit_state_bool_dot);
-    run_test!(edit_state_bool_getset);
-    run_test!(edit_state_bool_array_dot);
-    run_test!(edit_state_bool_array_getset);
-    run_test!(edit_state_number_dot);
-    run_test!(edit_state_number_getset);
-    run_test!(edit_state_number_array_dot);
-    run_test!(edit_state_number_array_getset);
-    run_test!(edit_state_string_dot);
-    run_test!(edit_state_string_getset);
-    run_test!(edit_state_struct_dot);
-    run_test!(edit_state_struct_getset);
-    run_test!(edit_state_struct_array_dot);
-    run_test!(edit_state_struct_array_getset);
+    run_test!(state_edit_bool_dot);
+    run_test!(state_edit_bool_getset);
+    run_test!(state_edit_bool_array_dot);
+    run_test!(state_edit_bool_array_getset);
+    run_test!(state_edit_number_dot);
+    run_test!(state_edit_number_getset);
+    run_test!(state_edit_number_array_dot);
+    run_test!(state_edit_number_array_getset);
+    run_test!(state_edit_string_dot);
+    run_test!(state_edit_string_getset);
+    run_test!(state_edit_struct_dot);
+    run_test!(state_edit_struct_getset);
+    run_test!(state_edit_struct_array_dot);
+    run_test!(state_edit_struct_array_getset);
+
+    // TODO: Evaluate if we want to write `null` when accessing non-existing field.
+    //   see https://app.asana.com/0/1201481007343159/1201671951990159/f
+    // run_test!(state_edit_non_existing_field);
+
+    // TODO: Fix behaviorIndex() returns `undefined`
+    //   see https://app.asana.com/0/1201481007343159/1201671951990162/f
+    // run_test!(state_behavior_index);
 }
 
 mod messages {
