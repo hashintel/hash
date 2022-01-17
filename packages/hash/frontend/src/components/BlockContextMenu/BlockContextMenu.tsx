@@ -1,4 +1,4 @@
-import React, { useContext, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { tw } from "twind";
 
 import DeleteIcon from "@material-ui/icons/DeleteOutline";
@@ -12,7 +12,7 @@ import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
 
 import { blockDomId } from "../../blocks/page/BlockView";
 import { BlockSuggesterProps } from "../../blocks/page/createSuggester/BlockSuggester";
-import { BlockMetaContext } from "../../blocks/blockMeta";
+import { useBlocksMeta } from "../../blocks/blocksMeta";
 import { NormalView } from "./NormalView";
 import { SearchView } from "./SearchView";
 import {
@@ -22,6 +22,7 @@ import {
   ItemClickMethod,
   iconStyles,
 } from "./BlockContextMenuUtils";
+import { BlockLoaderInput } from "./BlockLoaderInput";
 
 type BlockContextMenuProps = {
   blockSuggesterProps: BlockSuggesterProps;
@@ -82,7 +83,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
     }));
   };
 
-  const blocksMeta = useContext(BlockMetaContext);
+  const { value: blocksMeta } = useBlocksMeta();
 
   const blockOptions = useMemo(() => {
     return Array.from(blocksMeta.values()).flatMap((blockMeta) =>
@@ -245,6 +246,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
             }
           }}
         />
+        <BlockLoaderInput />
       </div>
       {currentView === "normal" ? (
         <NormalView

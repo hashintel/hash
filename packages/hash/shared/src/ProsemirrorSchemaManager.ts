@@ -1,6 +1,8 @@
+import { isString } from "lodash";
 import { NodeSpec, Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import { EditorProps, EditorView } from "prosemirror-view";
+
 import {
   blockComponentRequiresText,
   BlockMeta,
@@ -210,6 +212,19 @@ export class ProsemirrorSchemaManager {
 
       this.defineNewBlock(await blockMetaPromise);
     }
+  }
+
+  /**
+   * used to ensure all blocks
+   * @todo type this
+   */
+  async ensureBlocksDefined(data: any) {
+    return Promise.all(
+      Object.values(data.store.saved)
+        .map((entity: any) => entity.properties?.componentId)
+        .filter(isString)
+        .map(this.fetchAndDefineBlock, this),
+    );
   }
 
   async ensureDocDefined(doc: ProsemirrorNode<Schema>) {

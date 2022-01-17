@@ -1,9 +1,9 @@
 import { BlockVariant } from "blockprotocol";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
-import { useContext, useMemo, VFC } from "react";
+import { useMemo, VFC } from "react";
 import { tw } from "twind";
 
-import { BlockMetaContext } from "../../blockMeta";
+import { useBlocksMeta } from "../../blocksMeta";
 import { fuzzySearchBy } from "./fuzzySearchBy";
 import { Suggester } from "./Suggester";
 
@@ -23,7 +23,7 @@ export const BlockSuggester: VFC<BlockSuggesterProps> = ({
   onChange,
   className,
 }) => {
-  const blocksMeta = useContext(BlockMetaContext);
+  const { value: blocksMeta } = useBlocksMeta();
 
   const options = useMemo(() => {
     const allOptions = Array.from(blocksMeta.values()).flatMap((blockMeta) =>

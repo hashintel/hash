@@ -6,13 +6,7 @@ import { findComponentNodes } from "@hashintel/hash-shared/prosemirror";
 import { Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
-import React, {
-  createRef,
-  forwardRef,
-  RefObject,
-  useMemo,
-  useState,
-} from "react";
+import { createRef, forwardRef, RefObject, useMemo, useState } from "react";
 import { useOutsideClick } from "rooks";
 import { tw } from "twind";
 import { EntityStore } from "@hashintel/hash-shared/entityStore";
@@ -26,6 +20,7 @@ import { DragVerticalIcon } from "../../components/icons";
 import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
 import { CollabPositionIndicators } from "./CollabPositionIndicators";
+import { BlockViewContext } from "./BlockViewContext";
 
 type BlockHandleProps = {
   entityId: string | null;
@@ -77,13 +72,15 @@ export class BlockView implements NodeView<Schema> {
   dom: HTMLDivElement;
   selectContainer: HTMLDivElement;
   contentDOM: HTMLDivElement;
-  handle: HTMLElement | null = null;
 
   allowDragging = false;
   dragging = false;
 
   /** used to hide node-view specific events from prosemirror */
   blockHandleRef = createRef<HTMLDivElement>();
+
+  /** used to hide dragging-related events from prosemirror */
+  dragHandleRef = createRef<HTMLDivElement>();
 
   private store: EntityStore;
   private unsubscribe: Function;
@@ -156,8 +153,8 @@ export class BlockView implements NodeView<Schema> {
      * they're handled by React
      */
     return (
-      evt.target === this.blockHandleRef.current ||
-      (evt.target === this.handle && evt.type === "mousedown")
+      this.blockHandleRef.current?.contains(evt.target as Node) ||
+      (evt.target === this.dragHandleRef.current && evt.type === "mousedown")
     );
   }
 
@@ -213,17 +210,13 @@ export class BlockView implements NodeView<Schema> {
     }
 
     this.renderPortal(
-      <>
+      <BlockViewContext.Provider value={this}>
         <CollabPositionIndicators blockEntityId={blockEntityId} />
         {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
         <div
           data-testid="block-handle"
           className={styles.Block__Handle}
-          ref={(handle) => {
-            // We need a reference to this elsewhere in the
-            // NodeView for event handling
-            this.handle = handle;
-          }}
+          ref={this.dragHandleRef}
           onMouseDown={() => {
             /**
              * We only want to allow dragging from the drag handle
@@ -261,7 +254,7 @@ export class BlockView implements NodeView<Schema> {
           onTypeChange={this.onBlockChange}
           entityStore={this.store}
         />
-      </>,
+      </BlockViewContext.Provider>,
       this.selectContainer,
     );
 

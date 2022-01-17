@@ -181,9 +181,13 @@ export class EditorConnection {
     }
 
     this.run(GET(url))
-      .then((stringifiedData) => {
+      .then((responseText) => {
         // @todo type this
-        const data = JSON.parse(stringifiedData);
+        const data = JSON.parse(responseText);
+
+        return this.manager.ensureBlocksDefined(data).then(() => data);
+      })
+      .then((data) => {
         const doc = this.schema.nodeFromJSON(data.doc);
 
         return this.manager.ensureDocDefined(doc).then(() => ({ doc, data }));

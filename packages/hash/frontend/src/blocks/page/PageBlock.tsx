@@ -4,9 +4,10 @@ import { Schema } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
 import "prosemirror-view/style/prosemirror.css";
 import React, { useLayoutEffect, useRef, VoidFunctionComponent } from "react";
+
 import { tw } from "twind";
 import { Button } from "../../components/forms/Button";
-import { BlockMetaContext } from "../blockMeta";
+import { BlocksMetaProvider } from "../blocksMeta";
 import { EditorConnection } from "./collab/EditorConnection";
 import { createEditorView } from "./createEditorView";
 import { usePortals } from "./usePortals";
@@ -73,7 +74,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   }, [accountId, blocksMeta, entityId, renderPortal]);
 
   return (
-    <BlockMetaContext.Provider value={blocksMeta}>
+    <BlocksMetaProvider value={blocksMeta}>
       <div id="root" ref={root} />
       {portals}
       {/**
@@ -87,6 +88,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       >
         Restart Collab Instance
       </Button>
-    </BlockMetaContext.Provider>
+    </BlocksMetaProvider>
   );
 };
