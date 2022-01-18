@@ -6,7 +6,7 @@ use hash_engine::{
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = hash_engine::args();
-    hash_engine::init_logger(args.emit);
+    let _guard = hash_engine::init_logger(args.emit, "./engine-tracing.folded");
 
     tracing::info!(
         "HASH Engine process started for experiment {}",

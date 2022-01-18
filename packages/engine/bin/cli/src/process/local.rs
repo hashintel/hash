@@ -172,13 +172,7 @@ impl process::Command for LocalCommand {
             env_process_path.as_ref().unwrap()
         };
 
-        // let mut cmd = std::process::Command::new(process_path);
-        let mut cmd = std::process::Command::new("cargo");
-        cmd.arg("flamegraph")
-            .arg("--bin=hash_engine")
-            .arg("--output=./ssh_sync/flamegraph.svg")
-            // .arg("--no-inline")
-            .arg("--");
+        let mut cmd = std::process::Command::new(process_path);
         cmd.arg("--experiment-id")
             .arg(&self.experiment_id)
             .arg("--orchestrator-url")

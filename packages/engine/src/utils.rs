@@ -1,6 +1,7 @@
 use std::{env::VarError, fmt::Display, time::Duration};
 
 use log::{Event, Subscriber};
+use tracing_flame::FlameLayer;
 use tracing_subscriber::{
     filter::{Directive, LevelFilter},
     fmt::{
@@ -75,7 +76,7 @@ impl Default for OutputFormat {
     }
 }
 
-pub fn init_logger(output_format: OutputFormat) {
+pub fn init_logger(output_format: OutputFormat, flame_output: &str) -> impl Drop {
     let filter = match std::env::var("RUST_LOG") {
         Ok(env) => EnvFilter::new(env),
         #[cfg(debug_assertions)]
@@ -97,12 +98,17 @@ pub fn init_logger(output_format: OutputFormat) {
     let stderr_layer = fmt::layer()
         .event_format(formatter)
         .with_writer(std::io::stderr);
-
     let error_layer = tracing_error::ErrorLayer::default();
+
+    let (flame_layer, _guard) = FlameLayer::with_file(flame_output).unwrap();
+
     tracing_subscriber::registry()
         .with(filter.and_then(stderr_layer))
         .with(error_layer)
+        .with(flame_layer)
         .init();
+
+    _guard
 }
 
 pub fn parse_env_duration(name: &str, default: u64) -> Duration {
