@@ -217,23 +217,24 @@ impl ExpectedOutput {
             let result_states = agent_states
                 .get(step)
                 .ok_or_else(|| report!("Experiment output does not contain {step} steps"))?;
-            assert_subset_value(
-                expected_states,
-                result_states,
-                String::from("json_state.json"),
-            )?;
+            assert_subset_value(expected_states, result_states, String::from("json_state"))
+                .wrap_err_lazy(|| {
+                    format!("`json_state.json` does not match expected output in step {step}")
+                })?;
         }
 
         if let Some(expected_globals) = &self.globals {
-            assert_subset_value(expected_globals, globals, String::from("globals.json"))?;
+            assert_subset_value(expected_globals, globals, String::from("globals"))
+                .wrap_err("`globals.json` does not contain expected output")?;
         }
 
         if let Some(expected_analysis) = &self.analysis_outputs {
             assert_subset_value(
                 expected_analysis,
                 analysis,
-                String::from("analysis_outputs.json"),
-            )?;
+                String::from("analysis_outputs"),
+            )
+            .wrap_err("`analysis_outputs.json` does not contain expected output")?;
         }
 
         Ok(())
