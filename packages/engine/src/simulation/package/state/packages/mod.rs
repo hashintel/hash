@@ -62,7 +62,7 @@ impl PackageCreators {
         &self,
         experiment_config: &Arc<ExperimentConfig>,
     ) -> Result<()> {
-        log::debug!("Initializing State Package Creators");
+        tracing::debug!("Initializing State Package Creators");
         use Name::*;
         let mut m = HashMap::new();
         m.insert(

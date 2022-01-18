@@ -50,14 +50,14 @@ impl NngSender {
                     aio_result_sender.send(Ok(())).unwrap();
                 }
                 Err((msg, err)) => {
-                    log::warn!(
+                    tracing::warn!(
                         "External worker receiving socket tried to send but failed w/ error: {}",
                         err
                     );
                     match aio_result_sender.send(Err(Error::NngSend(msg, err))) {
                         Ok(_) => {}
                         Err(err) => {
-                            log::warn!(
+                            tracing::warn!(
                                 "Failed to pass send error back to message handler thread {}",
                                 err
                             );
@@ -67,7 +67,7 @@ impl NngSender {
             },
             nng::AioResult::Sleep(res) => {
                 if let Err(err) = res {
-                    log::error!("AIO sleep error: {}", err);
+                    tracing::error!("AIO sleep error: {}", err);
                     aio_result_sender.send(Err(Error::Nng(err))).unwrap();
                 }
             }
@@ -102,7 +102,7 @@ impl NngSender {
         self.to_py
             .send_async(&self.aio, msg)
             .map_err(|(msg, err)| {
-                log::warn!("Send failed: {:?}", (&msg, &err));
+                tracing::warn!("Send failed: {:?}", (&msg, &err));
                 Error::NngSend(msg, err)
             })?;
         Ok(())

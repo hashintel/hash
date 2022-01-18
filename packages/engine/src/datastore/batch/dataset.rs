@@ -25,14 +25,14 @@ impl super::Batch for Batch {
     fn maybe_reload(&mut self, _reload_state: Metaversion) -> Result<()> {
         // TODO: ret these errors
         // Error::from("Datasets are not updated");
-        log::error!("Datasets are not updated");
+        tracing::error!("Datasets are not updated");
         Ok(())
     }
 
     fn reload(&mut self) -> Result<()> {
         // TODO: ret these errors
         // Error::from("Datasets are not updated");
-        log::error!("Datasets are not updated");
+        tracing::error!("Datasets are not updated");
         Ok(())
     }
 }

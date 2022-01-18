@@ -151,7 +151,7 @@ impl StepPackages {
         snapshot: StateSnapshot,
         pre_context: PreContext,
     ) -> Result<ExContext> {
-        log::debug!("Running context packages");
+        tracing::debug!("Running context packages");
         // Execute packages in parallel and collect the data
         let mut futs = FuturesOrdered::new();
 
@@ -230,7 +230,7 @@ impl StepPackages {
     }
 
     pub async fn run_state(&mut self, mut state: ExState, context: &Context) -> Result<ExState> {
-        log::debug!("Running state packages");
+        tracing::debug!("Running state packages");
         // Design-choices:
         // Cannot use trait bounds as dyn Package won't be object-safe
         // Traits are tricky anyway for working with iterators

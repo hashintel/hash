@@ -688,7 +688,7 @@ impl Batch {
             a.map(|v| match serde_json::from_str(v) {
                 Ok(v) => v,
                 Err(_) => {
-                    log::warn!("Cannot deserialize value {}", v);
+                    tracing::warn!("Cannot deserialize value {}", v);
                     serde_json::Value::Null
                 }
             })
