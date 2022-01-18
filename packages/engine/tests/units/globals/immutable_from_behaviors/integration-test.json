@@ -1,9 +1,14 @@
 [
   {
-    "steps": 2,
+    "steps": 3,
     "expected-output": {
       "json-state": {
         "1": [
+          {
+            "a": 1.0
+          }
+        ],
+        "2": [
           {
             "a": 1.0
           }
