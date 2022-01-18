@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "lib": ["dom", "es2020"], // We use types like File and Window in shared packages, so depend on DOM in backend too.
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "es2020",
+    "baseUrl": ".",
+    "paths": {
+      "@hashintel/hash-shared/*": ["./packages/hash/shared/src/*"],
+      "@hashintel/hash-backend-utils/*": ["./packages/hash/backend-utils/src/*"]
+    }
+  },
+  "ts-node": {
+    "transpileOnly": true
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "name": "@hashintel/hash-realtime",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Realtime streaming update server from the HASH datstore",
+  "repository": {
+    "url": "https://github.com/hashintel/dev/packages/hash/realtime",
+    "directory": "packages/hash/realtime"
+  },
+  "license": "GPL-3.0",
+  "scripts": {
+    "clear-redis": "ts-node ./src/scripts/clear-redis.ts",
+    "dev": "ts-node-dev --respawn --transpile-only ./src/index.ts",
+    "fix:eslint": "eslint --ext .ts --fix ./src/",
+    "lint:eslint": "eslint --ext .ts ./src/",
+    "lint:tsc": "tsc --noEmit",
+    "start": "cross-env NODE_ENV=production ts-node ./src/index.ts"
+  },
+  "dependencies": {
+    "@hashintel/hash-backend-utils": "*",
+    "slonik": "24.1.2"
+  },
+  "devDependencies": {
+    "@types/node": "16.7.6",
+    "rimraf": "^3.0.2",
+    "ts-node": "10.4.0",
+    "ts-node-dev": "2.0.0-0",
+    "typescript": "4.5.2"
+  }
+}
