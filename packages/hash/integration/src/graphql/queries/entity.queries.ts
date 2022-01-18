@@ -36,6 +36,17 @@ export const getEntityType = gql`
       entityId
       entityVersionId
       properties
+      children {
+        entityTypeId
+        entityTypeVersionId
+        properties
+      }
+
+      parents {
+        entityTypeId
+        entityTypeVersionId
+        properties
+      }
       __typename
     }
   }
