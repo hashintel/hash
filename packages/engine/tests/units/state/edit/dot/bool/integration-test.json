@@ -1,0 +1,25 @@
+[
+  {
+    "steps": 3,
+    "expected-output": {
+      "json-state": {
+        "1": [
+          {
+            "b1": false,
+            "b1_type": "boolean",
+            "b2": true,
+            "b2_type": "boolean"
+          }
+        ],
+        "2": [
+          {
+            "b1": false,
+            "b1_type": "boolean",
+            "b2": false,
+            "b2_type": "boolean"
+          }
+        ]
+      }
+    }
+  }
+]

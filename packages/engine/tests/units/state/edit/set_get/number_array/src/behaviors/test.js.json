@@ -1,0 +1,28 @@
+{
+  "keys": {
+    "n1": {
+      "type": "list",
+      "nullable": false,
+      "child": {
+        "type": "number",
+        "nullable": false
+      }
+    },
+    "n1_0_type": {
+      "type": "string",
+      "nullable": false
+    },
+    "n2": {
+      "type": "list",
+      "nullable": true,
+      "child": {
+        "type": "number",
+        "nullable": false
+      }
+    },
+    "n2_0_type": {
+      "type": "string",
+      "nullable": false
+    }
+  }
+}
