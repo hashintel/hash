@@ -1,0 +1,16 @@
+[
+  {
+    "steps": 2,
+    "expected-output": {
+      "json-state": {
+        "1": [
+          {
+            "column_1": ["1", "true", "black"],
+            "column_2": ["2", "false", "red"],
+            "column_3": ["3", "true", "gold"]
+          }
+        ]
+      }
+    }
+  }
+]
