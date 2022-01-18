@@ -1,6 +1,5 @@
 /**
- * @param {AgentState} state of the agent
- * @param {AgentContext} context of the agent
+ * Checks `state.index` to be equal to `state.behaviorIndex()`
  */
 const behavior = (state, context) => {
   if (state.behaviorIndex() !== state.index) {
