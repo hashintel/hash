@@ -30,12 +30,10 @@ import { MainContentWrapper } from "../../components/layout/MainContentWrapper";
 const preloadedComponentIds = Object.keys(blockPaths);
 
 // Apparently defining this is necessary in order to get server rendered props?
-export const getStaticPaths: GetStaticPaths<{ slug: string }> = async () => {
-  return {
-    paths: [], // indicates that no page needs be created at build time
-    fallback: "blocking", // indicates the type of fallback
-  };
-};
+export const getStaticPaths: GetStaticPaths<{ slug: string }> = () => ({
+  paths: [], // indicates that no page needs be created at build time
+  fallback: "blocking", // indicates the type of fallback
+});
 
 /**
  * This is used to fetch the metadata associated with blocks that're preloaded
