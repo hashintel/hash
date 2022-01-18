@@ -1,7 +1,8 @@
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { createContext, useContext, useMemo } from "react";
 import { useLocalstorageState } from "rooks";
 
-type BlocksMetaMap = Map<string, BlockMeta>;
+export type BlocksMetaMap = Record<string, BlockMeta>;
 
 interface BlocksMetaContextState {
   value: BlocksMetaMap;
@@ -9,7 +10,7 @@ interface BlocksMetaContextState {
 }
 
 const BlocksMetaContext = createContext<BlocksMetaContextState>({
-  value: new Map(),
+  value: {},
   setValue(_) {},
 });
 

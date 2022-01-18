@@ -1,4 +1,3 @@
-import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
@@ -7,6 +6,7 @@ import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSche
 import { Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
+import type { BlocksMetaMap } from "../blocksMeta";
 import { BlockView } from "./BlockView";
 import { EditorConnection } from "./collab/EditorConnection";
 import { Reporter } from "./collab/Reporter";
@@ -22,7 +22,7 @@ export const createEditorView = (
   renderPortal: RenderPortal,
   accountId: string,
   pageEntityId: string,
-  preloadedBlocks: BlockMeta[],
+  blocksMeta: BlocksMetaMap,
 ) => {
   let manager: ProsemirrorSchemaManager;
 
@@ -123,9 +123,13 @@ export const createEditorView = (
 
   view.dom.classList.add(styles.ProseMirror);
 
-  for (const meta of preloadedBlocks) {
-    manager.defineNewBlock(meta);
-  }
+  // prosemirror will use the first node type (per group) for auto-creation.
+  // we want this to be the paragraph node type.
+  Object.values(blocksMeta)
+    .sort((blockMeta) =>
+      blockMeta.componentMetadata.name === "paragraph" ? -1 : 0,
+    )
+    .forEach(manager.defineNewBlock, manager);
 
   // @todo figure out how to use dev tools without it breaking fast refresh
   // applyDevTools(view);
