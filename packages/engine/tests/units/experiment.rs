@@ -1,3 +1,4 @@
+use core::fmt;
 use std::{
     collections::HashMap,
     fs::{self, File},
@@ -29,6 +30,15 @@ pub struct ExpectedOutput {
 pub enum Experiment {
     Simple { experiment: String },
     SingleRun { steps: u64 },
+}
+
+impl fmt::Display for Experiment {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Experiment::Simple { experiment } => write!(fmt, r#"experiment "{experiment}""#),
+            Experiment::SingleRun { steps } => write!(fmt, "experiment with {steps} steps"),
+        }
+    }
 }
 
 impl Experiment {
@@ -169,7 +179,7 @@ fn assert_subset_value(subset: &Value, superset: &Value, path: String) -> Result
                 serde_json::to_string_pretty(b).unwrap(),
             );
             for (i, (sub_value, super_value)) in a.iter().zip(b.iter()).enumerate() {
-                assert_subset_value(sub_value, super_value, format!("{path}.{i}"))?;
+                assert_subset_value(sub_value, super_value, format!("{path}[{i}]"))?;
             }
         }
         (Value::Object(a), Value::Object(b)) => {

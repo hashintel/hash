@@ -45,7 +45,7 @@ macro_rules! run_test {
                 let attempts = 3;
                 for attempt in 1..=attempts {
                     println!(
-                        "\n\n\nRunning {} attempt {attempt}/{attempts}:\n",
+                        "\n\n\nRunning test \"{}\" attempt {attempt}/{attempts}:\n",
                         stringify!($project)
                     );
                     match experiment.run(&project_path) {
@@ -56,21 +56,27 @@ macro_rules! run_test {
                         Err(err) => eprintln!("\n\n{err:?}\n\n"),
                     }
                 }
-                let outputs = outputs.expect("Could not run experiment");
+                let outputs = outputs.expect(&format!("Could not run {experiment}"));
 
                 assert_eq!(
                     expected_outputs.len(),
                     outputs.len(),
                     "Number of expected outputs does not match number of returned simulation \
-             results"
+             results for {experiment}"
                 );
 
-                for ((states, globals, analysis), expected) in
-                    outputs.into_iter().zip(expected_outputs.into_iter())
+                for (output_idx, ((states, globals, analysis), expected)) in outputs
+                    .into_iter()
+                    .zip(expected_outputs.into_iter())
+                    .enumerate()
                 {
                     expected
                         .assert_subset_of(&states, &globals, &analysis)
-                        .expect("Output does not match expected output");
+                        .expect(&format!(
+                            "Output of simulation {} does not match expected output in \
+                     {experiment}",
+                            output_idx + 1
+                        ));
                 }
             }
         }
