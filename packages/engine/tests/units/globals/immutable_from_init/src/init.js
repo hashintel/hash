@@ -1,12 +1,8 @@
 /**
- * @param {InitContext} context for initialization
+ * Try to modify globals in init
  */
 const init = (context) => {
   context.globals().a = 5;
 
-  return [
-    {
-      a: context.globals().a,
-    },
-  ];
+  return [{ a: context.globals().a }];
 };
