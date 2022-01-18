@@ -1,0 +1,46 @@
+{
+  "keys": {
+    "o1": {
+      "type": "list",
+      "nullable": false,
+      "child": {
+        "type": "struct",
+        "nullable": false,
+        "fields": {
+          "n1": {
+            "type": "number",
+            "nullable": true
+          },
+          "n2": {
+            "type": "number",
+            "nullable": true
+          },
+          "n3": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      }
+    },
+    "o1_type": {
+      "type": "string",
+      "nullable": false
+    },
+    "o1_0_type": {
+      "type": "string",
+      "nullable": false
+    },
+    "o1_0_n1_type": {
+      "type": "string",
+      "nullable": false
+    },
+    "o1_0_n2_type": {
+      "type": "string",
+      "nullable": false
+    },
+    "o1_1_n3_type": {
+      "type": "string",
+      "nullable": false
+    }
+  }
+}
