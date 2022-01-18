@@ -31,9 +31,11 @@ const waitForRecentFileChange = async (
     await sleep(checkIntervalInMs);
     remainingWaitTime -= checkIntervalInMs;
   } while (remainingWaitTime > 0);
-
+  const timeLastEdited = (await fs.stat(filePath)).mtimeMs;
   throw new Error(
-    `Expected ${filePath} to be modified since timestamp ${minFileChangeTimestamp}. Giving up after ${maxWaitTimeInMs}ms.`,
+    `Expected ${filePath} to be modified (${timeLastEdited}) since timestamp ${minFileChangeTimestamp}. Diff between last change and minimum expected file change time: ${
+      timeLastEdited - minFileChangeTimestamp
+    }. Giving up after ${maxWaitTimeInMs}ms.`,
   );
 };
 
