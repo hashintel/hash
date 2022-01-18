@@ -10,4 +10,5 @@ mod experiment;
 mod behavior;
 mod globals;
 mod message;
+mod neighbors;
 mod state;

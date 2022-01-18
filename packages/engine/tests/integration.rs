@@ -24,7 +24,8 @@ mod units;
 ///     element in "expected-outputs"
 #[macro_export]
 macro_rules! run_test {
-    ($project:ident) => {
+    ($project:ident $(,)? $(#[$attr:meta])* ) => {
+        $(#[$attr])*
         #[test]
         fn $project() {
             use $crate::units::experiment::*;
