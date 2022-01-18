@@ -69,6 +69,41 @@ const pageFieldsFragment = gql`
               entityTypeId
               properties
             }
+            linkedAggregations {
+              sourceAccountId
+              sourceEntityId
+              path
+              operation {
+                entityTypeId
+                entityTypeVersionId
+                multiFilter {
+                  filters {
+                    field
+                    value
+                    operator
+                  }
+                  operator
+                }
+                multiSort {
+                  field
+                  desc
+                }
+                itemsPerPage
+                pageNumber
+                pageCount
+              }
+              results {
+                id
+                entityVersionId
+                entityId
+                accountId
+                updatedAt
+                createdAt
+                entityVersionCreatedAt
+                createdByAccountId
+                properties
+              }
+            }
           }
         }
       }

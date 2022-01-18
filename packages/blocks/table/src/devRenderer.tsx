@@ -178,7 +178,6 @@ const App = () => {
   return (
     <div className={tw`flex justify-center py-8`}>
       <Component
-        data={data}
         initialState={initialState}
         schemas={schemas}
         updateEntities={updateEntities}

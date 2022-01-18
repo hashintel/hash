@@ -18,9 +18,14 @@ import { RemoteBlock } from "../RemoteBlock/RemoteBlock";
 import { useBlockProtocolAggregateEntityTypes } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregateEntityTypes";
 import { useBlockProtocolAggregateEntities } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregateEntities";
 import { useFileUpload } from "../hooks/useFileUpload";
-import { LinkGroup, UnknownEntity } from "../../graphql/apiTypes.gen";
+import {
+  LinkedAggregation,
+  LinkGroup,
+  UnknownEntity,
+} from "../../graphql/apiTypes.gen";
 import { useBlockProtocolCreateLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateLinks";
 import { useBlockProtocolDeleteLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolDeleteLinks";
+import { useBlockProtocolUpdateLinkedAggregations } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLinkedAggregations";
 
 type BlockLoaderProps = {
   accountId: string;
@@ -30,6 +35,8 @@ type BlockLoaderProps = {
   entityProperties: {};
   linkGroups: LinkGroup[];
   linkedEntities: BlockEntity["properties"]["entity"]["linkedEntities"];
+  // @todo update type inline to only get those elements which pagefieldfragments is querying
+  linkedAggregations: LinkedAggregation[];
   shouldSandbox?: boolean;
   sourceUrl: string;
 };
@@ -44,6 +51,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   entityProperties,
   linkGroups,
   linkedEntities,
+  linkedAggregations,
   shouldSandbox,
   sourceUrl,
 }) => {
@@ -58,6 +66,8 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   const { uploadFile } = useFileUpload(accountId);
   const { createLinks } = useBlockProtocolCreateLinks(accountId);
   const { deleteLinks } = useBlockProtocolDeleteLinks(accountId);
+  const { updateLinkedAggregations } =
+    useBlockProtocolUpdateLinkedAggregations(accountId);
 
   const flattenedProperties = useMemo(() => {
     let flattenedLinkedEntities: UnknownEntity[] = [];
@@ -72,6 +82,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
       accountId,
       linkGroups,
       linkedEntities: flattenedLinkedEntities,
+      linkedAggregations,
       properties: entityProperties,
     });
   }, [accountId, entityProperties, linkGroups, linkedEntities]);
@@ -89,6 +100,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
     /** @todo pick one of getEmbedBlock or fetchEmbedCode */
     getEmbedBlock: fetchEmbedCode,
     updateEntities,
+    updateLinkedAggregations,
     uploadFile,
   };
 

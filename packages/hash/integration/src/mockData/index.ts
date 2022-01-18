@@ -8,6 +8,7 @@ import {
   CreateEntityWithEntityTypeVersionIdArgs,
   CreateEntityWithSystemTypeArgs,
 } from "@hashintel/hash-api/src/model";
+import { createLinkedAggregationRaw } from "@hashintel/hash-api/src/graphql/resolvers/linkedAggregation/createLinkedAggregation";
 
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createOrgs, createUsers } from "./accounts";
@@ -437,22 +438,11 @@ void (async () => {
                 "employer.entityType",
               ],
             },
-            data: {
-              __linkedData: {
-                entityTypeId: newTypeIds.Person,
-                aggregate: {
-                  itemsPerPage: 5,
-                  multiSort: [
-                    {
-                      field: "createdAt",
-                    },
-                  ],
-                },
-              },
-            },
+            data: {},
           },
         },
       ],
+      // @todo: should this block be removed?
       [
         "t2",
         {
@@ -466,6 +456,32 @@ void (async () => {
       ],
     ]),
   );
+
+  const table1AccountId = results.get("t1")?.accountId;
+  const table1EntityId = results.get("t1")?.entityId;
+
+  if (table1AccountId && table1EntityId) {
+    await createLinkedAggregationRaw(
+      {
+        sourceAccountId: table1AccountId,
+        sourceEntityId: table1EntityId,
+        path: "$.operation",
+        operation: {
+          entityTypeId: newTypeIds.Person,
+          itemsPerPage: 5,
+          multiSort: [
+            {
+              field: "createdAt",
+            },
+          ],
+        },
+      },
+      {
+        db,
+        user,
+      },
+    );
+  }
 
   // Block Entities
   await createEntities(

@@ -35,3 +35,42 @@ export const deleteLinkMutation = gql`
     )
   }
 `;
+
+export const updateLinkedAggregationMutation = gql`
+  mutation updateLinkedAggregationOperation(
+    $sourceAccountId: ID!
+    $sourceEntityId: ID!
+    $path: String!
+    $updatedOperation: AggregateOperationInput!
+  ) {
+    updateLinkedAggregationOperation(
+      sourceAccountId: $sourceAccountId
+      sourceEntityId: $sourceEntityId
+      path: $path
+      updatedOperation: $updatedOperation
+    ) {
+      sourceAccountId
+      sourceEntityId
+      path
+      operation {
+        entityTypeId
+        entityTypeVersionId
+        multiFilter {
+          filters {
+            field
+            value
+            operator
+          }
+          operator
+        }
+        multiSort {
+          field
+          desc
+        }
+        itemsPerPage
+        pageNumber
+        pageCount
+      }
+    }
+  }
+`;

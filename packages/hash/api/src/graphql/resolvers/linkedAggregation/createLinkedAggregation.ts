@@ -5,18 +5,17 @@ import {
 } from "../../apiTypes.gen";
 import { Entity, UnresolvedGQLLinkedAggregation } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
+import { DBAdapter } from "../../../db";
+import __User from "../../../model/user.model";
 
-export const createLinkedAggregation: Resolver<
-  Promise<UnresolvedGQLLinkedAggregation>,
-  {},
-  LoggedInGraphQLContext,
-  MutationCreateLinkedAggregationArgs
-> = async (
-  _,
-  { sourceAccountId, sourceEntityId, path, operation },
-  { dataSources, user },
-) =>
-  dataSources.db.transaction(async (client) => {
+export const createLinkedAggregationRaw: (
+  args: MutationCreateLinkedAggregationArgs,
+  config: { db: DBAdapter; user: __User },
+) => Promise<UnresolvedGQLLinkedAggregation> = async (args, config) => {
+  const { operation, path, sourceAccountId, sourceEntityId } = args;
+  const { db, user } = config;
+
+  return db.transaction(async (client) => {
     const source = await Entity.getEntityLatestVersion(client, {
       accountId: sourceAccountId,
       entityId: sourceEntityId,
@@ -39,5 +38,14 @@ export const createLinkedAggregation: Resolver<
       createdBy: user,
     });
 
-    return aggregation.toGQLLinkedAggregation(dataSources.db);
+    return aggregation.toGQLLinkedAggregation(db);
   });
+};
+
+export const createLinkedAggregation: Resolver<
+  Promise<UnresolvedGQLLinkedAggregation>,
+  {},
+  LoggedInGraphQLContext,
+  MutationCreateLinkedAggregationArgs
+> = async (_, args, { dataSources, user }) =>
+  createLinkedAggregationRaw(args, { db: dataSources.db, user });
