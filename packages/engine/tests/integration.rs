@@ -70,7 +70,7 @@ macro_rules! run_test {
                 {
                     expected
                         .assert_subset_of(&states, &globals, &analysis)
-                        .expect("Invalid simulation output");
+                        .expect("Output does not match expected output");
                 }
             }
         }
