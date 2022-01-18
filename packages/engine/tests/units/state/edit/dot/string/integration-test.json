@@ -9,9 +9,21 @@
             "s1_type": "string",
             "s2": "top hat",
             "s2_type": "string"
+          },
+          {
+            "s1": "beret",
+            "s1_type": "string",
+            "s2": "bottom hat",
+            "s2_type": "string"
           }
         ],
         "2": [
+          {
+            "s1": "beret",
+            "s1_type": "string",
+            "s2": "beret hat",
+            "s2_type": "string"
+          },
           {
             "s1": "beret",
             "s1_type": "string",
