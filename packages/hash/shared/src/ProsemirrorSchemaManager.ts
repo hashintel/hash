@@ -217,8 +217,8 @@ export class ProsemirrorSchemaManager {
   }
 
   /**
-   * used to ensure all blocks
-   * @todo type this
+   * used to ensure all blocks used by a given document are loaded before
+   * PM tries to instanciate them.
    */
   async ensureBlocksDefined(data: any) {
     return Promise.all(
