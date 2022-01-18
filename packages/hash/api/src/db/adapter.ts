@@ -250,7 +250,7 @@ export interface DBClient {
   /**
    * Get all types that inherit from a specific type.
    */
-  getEntityTypeChildren(params: { schema$id: string }): Promise<EntityType[]>;
+  getEntityTypeChildren(params: { schemaRef: string }): Promise<EntityType[]>;
 
   /**
    * Get all types that a specific type inherits from.

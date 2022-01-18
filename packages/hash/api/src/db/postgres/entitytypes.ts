@@ -208,15 +208,15 @@ export const getEntityTypeByComponentId = async (
 export const getEntityTypeChildren = async (
   conn: Connection,
   {
-    schema$id,
+    schemaRef,
   }: {
-    schema$id: string;
+    schemaRef: string;
   },
 ): Promise<EntityType[]> => {
   const query = sql`
   with all_entity_types as (${selectEntityTypes})
   select distinct on (entity_type_id) * from all_entity_types
-  where properties->'allOf' @> ${schema$id}
+  where properties->'allOf' @> ${schemaRef}
   order by entity_type_id, updated_at desc`;
 
   const rows = await conn.any<EntityTypePGRow>(query);

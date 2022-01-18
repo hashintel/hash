@@ -148,7 +148,7 @@ class __EntityType {
 
   static async getEntityTypeChildren(
     client: DBClient,
-    params: { schema$id: string },
+    params: { schemaRef: string },
   ) {
     const dbEntityTypes = await client.getEntityTypeChildren(params);
 

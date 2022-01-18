@@ -3,7 +3,10 @@ import { Resolver, EntityType as GQLEntityType } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { EntityType, UnresolvedGQLEntityType } from "../../../model";
 import { EntityTypeTypeFields } from "../../../db/adapter";
-import { generateSchema$id } from "../../../lib/schemas/jsonSchema";
+import {
+  generateSchema$id,
+  schema$idRef,
+} from "../../../lib/schemas/jsonSchema";
 
 type EntityTypeMaybeTypeFields = UnresolvedGQLEntityType & {
   entityType?: GQLEntityType["entityType"];
@@ -123,10 +126,10 @@ const entityTypeChildrenResolver: Resolver<
   GraphQLContext
 > = async (params, _, { dataSources: { db } }) => {
   const { accountId, entityId: entityTypeId } = params;
-  const $ref = generateSchema$id(accountId, entityTypeId);
-  const schema$id = JSON.stringify([{ $ref }]);
+  const schema$ID = generateSchema$id(accountId, entityTypeId);
+  const schemaRef = schema$idRef(schema$ID);
 
-  const entityTypes = await EntityType.getEntityTypeChildren(db, { schema$id });
+  const entityTypes = await EntityType.getEntityTypeChildren(db, { schemaRef });
 
   return entityTypes.map((entityType) => entityType.toGQLEntityType());
 };
