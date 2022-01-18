@@ -16,7 +16,6 @@
 !*.ts
 !*.tsx
 !*.yml
-# TODO: add more types
 
 # Keep license files as is
 LICENSE.md
@@ -60,6 +59,10 @@ bower_components
 # node-waf configuration
 .lock-wscript
 
+# Tests
+playwright-report/
+test-results/
+
 # Compiled binary addons (https://nodejs.org/api/addons.html)
 build/Release
 
@@ -85,8 +88,9 @@ typings/
 # Yarn Integrity file
 .yarn-integrity
 
-# dotenv environment variables file
-.env
+# local environment variable files
+.env.local
+.env.*.local
 
 # macOS directory file
 .DS_Store
@@ -95,7 +99,8 @@ typings/
 .next
 
 # build files
-**/dist
+dist
+build
 
 # vscode config
 .vscode/settings.json
@@ -106,3 +111,13 @@ typings/
 # Python compiled files and package metadata
 **/__pycache__
 **/*.egg-info
+
+# generated files
+**/*.gen.*
+**/*.tsbuildinfo
+
+# Sentry
+.sentryclirc
+
+# Application data
+/var

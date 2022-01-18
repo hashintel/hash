@@ -1,0 +1,20 @@
+{
+  "keys": {
+    "n1": {
+      "type": "number",
+      "nullable": false
+    },
+    "n1_type": {
+      "type": "string",
+      "nullable": false
+    },
+    "n2": {
+      "type": "number",
+      "nullable": false
+    },
+    "n2_type": {
+      "type": "string",
+      "nullable": false
+    }
+  }
+}

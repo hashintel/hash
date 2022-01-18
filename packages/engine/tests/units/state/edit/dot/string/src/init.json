@@ -1,0 +1,10 @@
+[
+  {
+    "behaviors": ["test.js"],
+    "s1": "top"
+  },
+  {
+    "behaviors": ["test.js"],
+    "s1": "bottom"
+  }
+]
