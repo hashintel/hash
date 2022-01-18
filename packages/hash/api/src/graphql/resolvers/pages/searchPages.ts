@@ -1,5 +1,5 @@
 import { uniq } from "lodash";
-import { UserInputError } from "apollo-server-express";
+import { ApolloError, UserInputError } from "apollo-server-express";
 import { EntitiesDocument } from "@hashintel/hash-backend-utils/search/doc-types";
 import { SearchHit } from "@hashintel/hash-backend-utils/search/adapter";
 
@@ -159,6 +159,12 @@ export const searchPages: Resolver<
   QuerySearchPagesArgs
 > = async (_, { accountId, query }, ctx, __) => {
   const { search, db } = ctx.dataSources;
+  if (!search) {
+    throw new ApolloError(
+      `Search is currently disabled so this search can't return any results`,
+      "INTERNAL_SERVER_ERROR",
+    );
+  }
 
   if (query === "") {
     throw new UserInputError("field 'query' cannot be empty");
