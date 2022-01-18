@@ -11,4 +11,5 @@ mod behavior;
 mod context;
 mod globals;
 mod message;
+mod neighbors;
 mod state;
