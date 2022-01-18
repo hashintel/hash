@@ -1,5 +1,5 @@
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
-import { createContext, useContext, useMemo, useState } from "react";
+import { useLocalstorageState } from "rooks";
 
 type BlocksMetaMap = Map<string, BlockMeta>;
 
@@ -17,7 +17,7 @@ export const BlocksMetaProvider: React.FC<{ value: BlocksMetaMap }> = ({
   value: initialValue,
   children,
 }) => {
-  const [value, setValue] = useState(initialValue);
+  const [value, setValue] = useLocalstorageState("blocks-meta", initialValue);
 
   const state = useMemo(() => ({ value, setValue }), [value, setValue]);
 
