@@ -1,3 +1,4 @@
+const { config } = require("dotenv-flow");
 const path = require("path");
 const withTM = require("next-transpile-modules")(["@hashintel/hash-shared"]); // pass the modules you would like to see transpiled
 const withImages = require("next-images");
@@ -8,6 +9,8 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
 const { withSentryConfig } = require("@sentry/nextjs");
 
 const { buildStamp } = require("./buildstamp");
+
+config({ silent: true, path: "../../.." });
 
 const sentryWebpackPluginOptions = {
   dryRun: !process.env.SENTRY_AUTH_TOKEN,
