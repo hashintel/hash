@@ -1,0 +1,23 @@
+[
+  {
+    "steps": 2,
+    "expected-output": {
+      "json-state": {
+        "1": [
+          {
+            "num_neighbors": 1.0
+          },
+          {
+            "num_neighbors": 2.0
+          },
+          {
+            "num_neighbors": 1.0
+          },
+          {
+            "num_neighbors": 0.0
+          }
+        ]
+      }
+    }
+  }
+]
