@@ -7,5 +7,8 @@
 /// Helper for parsing an experiment and run it.
 mod experiment;
 
+mod behavior;
+mod context;
+mod globals;
 mod message;
 mod state;

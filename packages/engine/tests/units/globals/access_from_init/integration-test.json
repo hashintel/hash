@@ -1,0 +1,14 @@
+[
+  {
+    "steps": 1,
+    "expected-output": {
+      "json-state": {
+        "0": [
+          {
+            "a": 1.0
+          }
+        ]
+      }
+    }
+  }
+]
