@@ -14,6 +14,8 @@ import { searchPages } from "../../../graphql/queries/search.queries";
 import { useUser } from "../../hooks/useUser";
 import { SearchIcon } from "../../Icons/SearchIcon";
 
+// NOTE: This component is currently "disabled" to hide the search bar
+const COMPONENT_DISABLED = true;
 /** finds the query's words in the result and chops it into parts at the words' boundaries */
 const splitByMatches = (result: string, query: string) => {
   const separator = query
@@ -73,76 +75,80 @@ const useQueryText = (): [string, string, (queryText: string) => void] => {
 };
 
 export const SearchBar: React.VFC = () => {
-  // NOTE: This component is commented out because search is currently disabled (opensearch functionality has issues)
-  return <div />;
-  // const inputRef = useRef<HTMLInputElement>(null);
-  // const [isResultListVisible, setResultListVisible] = useState(false);
-  // const [displayedQuery, submittedQuery, setQueryText] = useQueryText();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [isResultListVisible, setResultListVisible] = useState(false);
+  const [displayedQuery, submittedQuery, setQueryText] = useQueryText();
 
-  // const { user } = useUser();
+  const { user } = useUser();
 
-  // const { data, loading } = useQuery<
-  //   SearchPagesQuery,
-  //   SearchPagesQueryVariables
-  // >(searchPages, {
-  //   variables: { accountId: user?.accountId!, query: submittedQuery },
-  //   skip: !user?.accountId || !submittedQuery,
-  //   fetchPolicy: "network-only",
-  // });
+  const { data, loading } = useQuery<
+    SearchPagesQuery,
+    SearchPagesQueryVariables
+  >(searchPages, {
+    variables: { accountId: user?.accountId!, query: submittedQuery },
+    skip: !user?.accountId || !submittedQuery,
+    fetchPolicy: "network-only",
+  });
 
-  // useKey(["Escape"], () => setResultListVisible(false));
+  useKey(["Escape"], () => setResultListVisible(false));
 
-  // useKeys(["AltLeft", "KeyK"], () => inputRef.current?.focus());
+  useKeys(["AltLeft", "KeyK"], () => inputRef.current?.focus());
 
-  // const [rootRef] = useOutsideClickRef(() => setResultListVisible(false));
+  const [rootRef] = useOutsideClickRef(() => setResultListVisible(false));
 
-  // // present loading screen while waiting for the user to stop typing
-  // const isLoading = loading || displayedQuery !== submittedQuery;
+  // present loading screen while waiting for the user to stop typing
+  const isLoading = loading || displayedQuery !== submittedQuery;
 
-  // return (
-  //   <div ref={rootRef} className={tw`relative h-full w-full`}>
-  //     <div className={tw`absolute h-full flex flex-row items-center`}>
-  //       <SearchIcon className={tw`m-2 scale-150`} />
-  //     </div>
-  //     <input
-  //       className={tw`p-2 pl-10 w-1/2 border border-gray-200 rounded-lg focus:outline-none`}
-  //       ref={inputRef}
-  //       placeholder="Search (Alt+k)"
-  //       type="text"
-  //       value={displayedQuery}
-  //       onFocus={() => setResultListVisible(true)}
-  //       onChange={(event) => {
-  //         setResultListVisible(true);
-  //         setQueryText(event.target.value);
-  //       }}
-  //     />
-  //     {isResultListVisible && displayedQuery && (
-  //       <ResultList>
-  //         {isLoading ? (
-  //           <ResultItem>
-  //             Loading results for&nbsp;<b>{submittedQuery}</b>.
-  //           </ResultItem>
-  //         ) : !data?.searchPages.length ? (
-  //           <ResultItem>
-  //             No results found for&nbsp;<b>{submittedQuery}</b>.
-  //           </ResultItem>
-  //         ) : (
-  //           data.searchPages.map((searchPage) => (
-  //             <ResultItem
-  //               key={searchPage.block?.entityId ?? searchPage.page.entityId}
-  //             >
-  //               <Link href={toBlockUrl(searchPage)}>
-  //                 <a>
-  //                   {splitByMatches(searchPage.content, submittedQuery).map(
-  //                     (str, i) => (i % 2 === 1 ? <b>{str}</b> : str),
-  //                   )}
-  //                 </a>
-  //               </Link>
-  //             </ResultItem>
-  //           ))
-  //         )}
-  //       </ResultList>
-  //     )}
-  //   </div>
-  // );
+  // /!\ /!\ /!\
+  // NOTE: This component is currently returning an empty div as a way to disable it temporarily due to search being broken
+  // /!\ /!\ /!\
+  if (COMPONENT_DISABLED) {
+    return <div />;
+  }
+  return (
+    <div ref={rootRef} className={tw`relative h-full w-full`}>
+      <div className={tw`absolute h-full flex flex-row items-center`}>
+        <SearchIcon className={tw`m-2 scale-150`} />
+      </div>
+      <input
+        className={tw`p-2 pl-10 w-1/2 border border-gray-200 rounded-lg focus:outline-none`}
+        ref={inputRef}
+        placeholder="Search (Alt+k)"
+        type="text"
+        value={displayedQuery}
+        onFocus={() => setResultListVisible(true)}
+        onChange={(event) => {
+          setResultListVisible(true);
+          setQueryText(event.target.value);
+        }}
+      />
+      {isResultListVisible && displayedQuery && (
+        <ResultList>
+          {isLoading ? (
+            <ResultItem>
+              Loading results for&nbsp;<b>{submittedQuery}</b>.
+            </ResultItem>
+          ) : !data?.searchPages.length ? (
+            <ResultItem>
+              No results found for&nbsp;<b>{submittedQuery}</b>.
+            </ResultItem>
+          ) : (
+            data.searchPages.map((searchPage) => (
+              <ResultItem
+                key={searchPage.block?.entityId ?? searchPage.page.entityId}
+              >
+                <Link href={toBlockUrl(searchPage)}>
+                  <a>
+                    {splitByMatches(searchPage.content, submittedQuery).map(
+                      (str, i) => (i % 2 === 1 ? <b>{str}</b> : str),
+                    )}
+                  </a>
+                </Link>
+              </ResultItem>
+            ))
+          )}
+        </ResultList>
+      )}
+    </div>
+  );
 };
