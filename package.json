@@ -1,20 +1,48 @@
 {
   "private": true,
-  "keywords": [],
-  "license": "ISC",
-  "author": "",
-  "main": "index.js",
+  "description": "HASH monorepo",
+  "workspaces": [
+    "packages/blocks/*",
+    "packages/hash/api",
+    "packages/hash/api/datastore/postgres",
+    "packages/hash/backend-utils",
+    "packages/hash/frontend",
+    "packages/hash/integration",
+    "packages/hash/playwright",
+    "packages/hash/realtime",
+    "packages/hash/search-loader",
+    "packages/hash/shared"
+  ],
   "scripts": {
+    "codegen": "yarn workspace @hashintel/hash-api codegen && yarn workspace @hashintel/hash-frontend codegen && yarn workspace @hashintel/hash-integration codegen && yarn workspace @hashintel/hash-shared codegen",
+    "dev": "concurrently \"yarn:dev:backend:*\" \"yarn:dev:frontend\"",
+    "dev:backend": "concurrently \"yarn:dev:backend:*\"",
+    "dev:backend:api": "yarn workspace @hashintel/hash-api dev",
+    "dev:backend:realtime": "yarn workspace @hashintel/hash-realtime dev",
+    "dev:backend:search-loader": "yarn workspace @hashintel/hash-search-loader dev",
+    "dev:frontend": "yarn workspace @hashintel/hash-frontend dev",
+    "external-services": "docker-compose --file external-services/docker-compose.yml",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
+    "fix:eslint": "yarn workspaces run fix:eslint",
     "fix:markdownlint": "markdownlint --dot --fix \"**/*\"",
-    "fix:prettier": "prettier --write \"**/*\"",
+    "fix:prettier": "prettier --write  --ignore-unknown \"**/*\"",
     "fix:yarn-deduplicate": "yarn install && yarn-deduplicate --strategy=fewer && yarn install",
+    "install-hooks": "bash hooks/install.sh",
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
+    "lint:eslint": "yarn workspaces run lint:eslint",
     "lint:markdownlint": "markdownlint --dot \"**/*\"",
-    "lint:prettier": "prettier --check \"**/*\"",
+    "lint:prettier": "prettier --check --ignore-unknown \"**/*\"",
+    "lint:tsc": "yarn workspaces run lint:tsc",
     "lint:yarn-deduplicate": "yarn-deduplicate --fail --list --strategy=fewer",
+    "postinstall": "patch-package",
     "prepare": "husky install",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "seed-data:opensearch": "yarn workspace @hashintel/hash-search-loader clear-opensearch",
+    "seed-data:postgres": "yarn workspace @hashintel/hash-postgres recreate-db && yarn workspace @hashintel/hash-postgres run-schema-migrations && yarn workspace @hashintel/hash-integration mock-data",
+    "seed-data:redis": "yarn workspace @hashintel/hash-realtime clear-redis",
+    "seed-data": "concurrently \"yarn:seed-data:*\"",
+    "test:backend-integration": "yarn workspace @hashintel/hash-integration test",
+    "test:playwright": "yarn workspace @hashintel/hash-playwright playwright test",
+    "test:unit": "yarn workspace @hashintel/hash-api test && yarn workspace @hashintel/hash-frontend test"
   },
   "lint-staged": {
     "**/*": [
@@ -23,14 +51,20 @@
     ]
   },
   "devDependencies": {
+    "concurrently": "6.2.0",
+    "cross-env": "^7.0.3",
     "husky": "7.0.4",
     "lint-staged": "12.1.7",
     "markdownlint-cli": "0.30.0",
     "npm-run-all": "4.1.5",
+    "patch-package": "6.4.7",
+    "postinstall-postinstall": "2.1.0",
     "prettier": "2.5.1",
     "prettier-plugin-packagejson": "2.2.13",
     "prettier-plugin-sh": "0.7.1",
+    "serve": "13.0.2",
     "suppress-exit-code": "1.0.0",
+    "wait-on": "6.0.0",
     "yarn-deduplicate": "3.1.0"
   }
 }

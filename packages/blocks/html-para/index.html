@@ -1,0 +1,10 @@
+<p id="para-block" style="font-family: var(--font-family, 'Courier')">
+  Hello, world!
+  <script>
+    (() => {
+      const para = document.getElementById("para-block");
+      para.addEventListener("mouseover", () => (para.style.color = "red"));
+      para.addEventListener("mouseout", () => (para.style.color = "black"));
+    })();
+  </script>
+</p>

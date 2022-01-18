@@ -1,0 +1,15 @@
+[
+  {
+    "steps": 2,
+    "expected-output": {
+      "json-state": {
+        "1": [
+          {
+            "non_existing_field": null,
+            "field_to_be_set": null
+          }
+        ]
+      }
+    }
+  }
+]

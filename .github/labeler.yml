@@ -6,16 +6,25 @@ A-infra:
   - "*.md"
   - ".markdownlint*"
   - ".gitignore"
+
+A-blocks:
+  - "packages/blocks/*"
+  - "packages/blocks/.*"
+  - "packages/blocks/**/*"
+  - "packages/blocks/**/.*"
+
 A-hash:
   - "packages/hash/*"
   - "packages/hash/.*"
   - "packages/hash/**/*"
   - "packages/hash/**/.*"
+
 A-engine:
   - "packages/engine/*"
   - "packages/engine/.*"
   - "packages/engine/**/*"
   - "packages/engine/**/.*"
+
 A-learn:
   - "resources/*"
   - "resources/.*"
@@ -25,3 +34,45 @@ A-learn:
 C-dependencies:
   - "**/Cargo.lock"
   - "**/yarn.lock"
+
+frontend:
+  - packages/hash/frontend/*
+  - packages/hash/frontend/.*
+  - packages/hash/frontend/**/*
+  - packages/hash/frontend/**/.*
+
+api:
+  - packages/hash/api/*
+  - packages/hash/api/.*
+  - packages/hash/api/**/*
+  - packages/hash/api/**/.*
+
+integration:
+  - packages/hash/integration/*
+  - packages/hash/integration/.*
+  - packages/hash/integration/**/*
+  - packages/hash/integration/**/.*
+
+docker:
+  - packages/hash/docker/*
+  - packages/hash/docker/.*
+  - packages/hash/docker/**/*
+  - packages/hash/docker/**/.*
+
+playwright:
+  - packages/hash/playwright/*
+  - packages/hash/playwright/.*
+  - packages/hash/playwright/**/*
+  - packages/hash/playwright/**/.*
+
+realtime:
+  - packages/hash/realtime/*
+  - packages/hash/realtime/.*
+  - packages/hash/realtime/**/*
+  - packages/hash/realtime/**/.*
+
+search-loader:
+  - packages/hash/search-loader/*
+  - packages/hash/search-loader/.*
+  - packages/hash/search-loader/**/*
+  - packages/hash/search-loader/**/.*
