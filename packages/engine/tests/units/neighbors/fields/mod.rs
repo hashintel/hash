@@ -7,3 +7,5 @@ run_test!(number_array);
 run_test!(string);
 run_test!(object);
 run_test!(object_array);
+
+run_test!(multiple);
