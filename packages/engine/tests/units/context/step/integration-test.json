@@ -1,0 +1,29 @@
+[
+  {
+    "steps": 11,
+    "expected-output": {
+      "json-state": {
+        "0": [
+          {
+            "valid": true
+          }
+        ],
+        "1": [
+          {
+            "valid": true
+          }
+        ],
+        "5": [
+          {
+            "valid": true
+          }
+        ],
+        "10": [
+          {
+            "valid": true
+          }
+        ]
+      }
+    }
+  }
+]
