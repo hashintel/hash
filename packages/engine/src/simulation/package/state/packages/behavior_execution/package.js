@@ -197,7 +197,11 @@ const run_task = (
       i_behavior < n_behaviors;
       ++i_behavior
     ) {
-      agent_state.behavior_index = i_behavior;
+      // TODO: reevaluate when other runners are implemented: If there are failing tests,
+      //   - either this has to be changed to `agent_state.behavior_index = i_behavior` and `AgentState.behaviorIndex()`
+      //     has to be adjusted to use `behavior_index` instead of `__i_behavior`, or
+      //   - `agent_state.behavior_index = i_behavior;` has to be added.
+      agent_state.__i_behavior = i_behavior;
 
       const key = behavior_ids.get(i_behavior);
       // We do this because it's shallow-loaded and the key is an Arrow Vec rather than a clean array
