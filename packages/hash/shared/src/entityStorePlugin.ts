@@ -51,6 +51,20 @@ const entityStorePluginKey = new PluginKey<EntityStorePluginState, Schema>(
 );
 
 /**
+ * @use {@link subscribeToEntityStore} if you need a live subscription
+ */
+export const entityStorePluginState = (state: EditorState<Schema>) => {
+  const pluginState = entityStorePluginKey.getState(state);
+
+  if (!pluginState) {
+    throw new Error(
+      "Cannot get entity store when state does not have entity store plugin",
+    );
+  }
+  return pluginState;
+};
+
+/**
  * We current violate Immer's rules, as properties inside entities can be
  * other entities themselves, and we expect `entity.property.entity` to be
  * the same object as the other entity. We either need to change that, or
@@ -191,20 +205,6 @@ const updateEntityStoreListeners = collect<
     view.dispatch(transaction);
   }
 });
-
-/**
- * @use {@link subscribeToEntityStore} if you need a live subscription
- */
-export const entityStorePluginState = (state: EditorState<Schema>) => {
-  const pluginState = entityStorePluginKey.getState(state);
-
-  if (!pluginState) {
-    throw new Error(
-      "Cannot get entity store when state does not have entity store plugin",
-    );
-  }
-  return pluginState;
-};
 
 export const subscribeToEntityStore = (
   view: EditorView<Schema>,
