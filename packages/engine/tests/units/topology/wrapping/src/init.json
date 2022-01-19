@@ -1,0 +1,6 @@
+[
+  {
+    "behaviors": ["test.js"],
+    "position": [0, 1]
+  }
+]
