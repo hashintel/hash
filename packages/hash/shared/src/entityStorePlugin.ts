@@ -34,12 +34,9 @@ type EntityStorePluginState = {
 
 type EntityStorePluginAction =
   | {
+      // @todo remove this
       type: "contents";
       payload: BlockEntity[];
-    }
-  | {
-      type: "draft";
-      payload: EntityStore["draft"];
     }
   | { type: "store"; payload: EntityStore }
   | { type: "subscribe"; payload: EntityStorePluginStateListener }
@@ -101,15 +98,6 @@ const entityStoreReducer = (
       return {
         ...state,
         store: createEntityStore(action.payload, state.store.draft),
-      };
-
-    case "draft":
-      return {
-        ...state,
-        store: {
-          ...state.store,
-          draft: action.payload,
-        },
       };
 
     case "store": {
