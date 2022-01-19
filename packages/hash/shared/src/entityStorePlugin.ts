@@ -135,63 +135,43 @@ const entityStoreReducer = (
         throw new Error("Entity missing to merge entity properties");
       }
 
-      const nextDraft = produce(
-        state.store.draft,
-        (draftedDraftEntityStore) => {
-          const entities: Draft<DraftEntity>[] = [
-            draftedDraftEntityStore[action.payload.draftId],
-          ];
+      return produce(state, (draftState) => {
+        const entities: Draft<DraftEntity>[] = [
+          draftState.store.draft[action.payload.draftId],
+        ];
 
-          for (const entity of Object.values(draftedDraftEntityStore)) {
-            if (
-              isDraftBlockEntity(entity) &&
-              entity.properties.entity.draftId === action.payload.draftId
-            ) {
-              entities.push(entity.properties.entity);
-            }
+        for (const entity of Object.values(draftState.store.draft)) {
+          if (
+            isDraftBlockEntity(entity) &&
+            entity.properties.entity.draftId === action.payload.draftId
+          ) {
+            entities.push(entity.properties.entity);
           }
+        }
 
-          if (action.payload.merge) {
-            for (const entity of entities) {
-              Object.assign(entity.properties, action.payload.properties);
-            }
-          } else {
-            for (const entity of entities) {
-              entity.properties = action.payload.properties;
-            }
+        if (action.payload.merge) {
+          for (const entity of entities) {
+            Object.assign(entity.properties, action.payload.properties);
           }
-        },
-      );
-
-      return {
-        ...state,
-        store: {
-          ...state.store,
-          draft: nextDraft,
-        },
-      };
+        } else {
+          for (const entity of entities) {
+            entity.properties = action.payload.properties;
+          }
+        }
+      });
     }
-    case "newDraftEntity": {
+    case "newDraftEntity":
       if (state.store.draft[action.payload.draftId]) {
         throw new Error("Draft entity already exists");
       }
 
-      const nextDraft = produce(state.store.draft, (draft) => {
-        draft[action.payload.draftId] = {
+      return produce(state, (draftState) => {
+        draftState.store.draft[action.payload.draftId] = {
           entityId: action.payload.entityId,
           draftId: action.payload.draftId,
           properties: {},
         };
       });
-
-      return {
-        ...state,
-        store: {
-          ...state.store,
-          draft: nextDraft,
-        },
-      };
-    }
   }
 
   return state;
