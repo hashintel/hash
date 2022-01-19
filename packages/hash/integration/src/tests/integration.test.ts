@@ -795,7 +795,7 @@ describe("logged in user ", () => {
         .then((entyp) => entyp.parents);
 
       expect(subTypeParent).toHaveLength(1);
-      expect(subTypeParent![0].entityTypeId).toEqual(superType.entityId);
+      expect(subTypeParent![0].entityId).toEqual(superType.entityId);
     });
 
     it("can get all children of supertype", async () => {
@@ -814,9 +814,9 @@ describe("logged in user ", () => {
 
       expect(superTypeChldren).toHaveLength(2);
 
-      expect(
-        superTypeChldren!.map((child) => child.entityTypeId).sort(),
-      ).toEqual([subType1.entityId, subType2.entityId].sort());
+      expect(superTypeChldren!.map((child) => child.entityId).sort()).toEqual(
+        [subType1.entityId, subType2.entityId].sort(),
+      );
     });
   });
 
