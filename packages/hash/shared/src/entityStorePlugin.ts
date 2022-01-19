@@ -351,28 +351,43 @@ const handleNode = (
   return draft;
 };
 
-const handleDoc = (state: EditorState<Schema>) => {
-  const pluginState = entityStorePluginState(state);
-  let draft = pluginState.store.draft;
-  const { tr } = state;
+class ProsemirrorStateChangeHandler {
+  private readonly tr: Transaction<Schema>;
+  private handled = false;
+  private draft: EntityStore["draft"];
 
-  /**
-   * We current violate Immer's rules, as properties inside entities can be
-   * other entities themselves, and we expect `entity.property.entity` to be
-   * the same object as the other entity. We either need to change that, or
-   * remove immer, or both.
-   *
-   * @todo address this
-   * @see https://immerjs.github.io/immer/pitfalls#immer-only-supports-unidirectional-trees
-   */
-  state.doc.descendants((node, pos) => {
-    draft = handleNode(node, tr, pos, draft);
-  });
+  constructor(private state: EditorState<Schema>) {
+    this.tr = state.tr;
+    this.draft = entityStorePluginState(state).store.draft;
+  }
 
-  addEntityStoreAction(tr, { type: "draft", payload: draft });
+  handleDoc() {
+    if (this.handled) {
+      throw new Error("already used");
+    }
 
-  return tr;
-};
+    this.handled = true;
+
+    let draft = this.draft;
+
+    /**
+     * We current violate Immer's rules, as properties inside entities can be
+     * other entities themselves, and we expect `entity.property.entity` to be
+     * the same object as the other entity. We either need to change that, or
+     * remove immer, or both.
+     *
+     * @todo address this
+     * @see https://immerjs.github.io/immer/pitfalls#immer-only-supports-unidirectional-trees
+     */
+    this.state.doc.descendants((node, pos) => {
+      draft = handleNode(node, this.tr, pos, draft);
+    });
+
+    addEntityStoreAction(this.tr, { type: "draft", payload: draft });
+
+    return this.tr;
+  }
+}
 
 export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
   key: entityStorePluginKey,
@@ -408,6 +423,6 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
       return;
     }
 
-    return handleDoc(state);
+    return new ProsemirrorStateChangeHandler(state).handleDoc();
   },
 });
