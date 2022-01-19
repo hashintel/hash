@@ -1,0 +1,8 @@
+{
+  "test": {
+    "type": "values",
+    "steps": 5,
+    "field": "topology.wrapping_preset",
+    "values": ["torus", "spherical", "reflection"]
+  }
+}
