@@ -50,6 +50,57 @@ const entityStorePluginKey = new PluginKey<EntityStorePluginState, Schema>(
   "entityStore",
 );
 
+/**
+ * We current violate Immer's rules, as properties inside entities can be
+ * other entities themselves, and we expect `entity.property.entity` to be
+ * the same object as the other entity. We either need to change that, or
+ * remove immer, or both.
+ *
+ * @todo address this
+ * @see https://immerjs.github.io/immer/pitfalls#immer-only-supports-unidirectional-trees
+ */
+const entityStoreReducer = (
+  state: EntityStorePluginState,
+  action: EntityStorePluginAction,
+): EntityStorePluginState => {
+  switch (action.type) {
+    case "contents":
+      return {
+        ...state,
+        store: createEntityStore(action.payload, state.store.draft),
+      };
+
+    case "draft":
+      return {
+        ...state,
+        store: {
+          ...state.store,
+          draft: action.payload,
+        },
+      };
+
+    case "store": {
+      return { ...state, store: action.payload };
+    }
+
+    case "subscribe":
+      return {
+        ...state,
+        listeners: Array.from(new Set([...state.listeners, action.payload])),
+      };
+
+    case "unsubscribe":
+      return {
+        ...state,
+        listeners: state.listeners.filter(
+          (listener) => listener !== action.payload,
+        ),
+      };
+  }
+
+  return state;
+};
+
 const updateEntityProperties = (
   draftEntityStore: EntityStore["draft"],
   draftId: string,
@@ -369,57 +420,6 @@ class ProsemirrorStateChangeHandler {
     return updatedNode;
   }
 }
-
-/**
- * We current violate Immer's rules, as properties inside entities can be
- * other entities themselves, and we expect `entity.property.entity` to be
- * the same object as the other entity. We either need to change that, or
- * remove immer, or both.
- *
- * @todo address this
- * @see https://immerjs.github.io/immer/pitfalls#immer-only-supports-unidirectional-trees
- */
-const entityStoreReducer = (
-  state: EntityStorePluginState,
-  action: EntityStorePluginAction,
-): EntityStorePluginState => {
-  switch (action.type) {
-    case "contents":
-      return {
-        ...state,
-        store: createEntityStore(action.payload, state.store.draft),
-      };
-
-    case "draft":
-      return {
-        ...state,
-        store: {
-          ...state.store,
-          draft: action.payload,
-        },
-      };
-
-    case "store": {
-      return { ...state, store: action.payload };
-    }
-
-    case "subscribe":
-      return {
-        ...state,
-        listeners: Array.from(new Set([...state.listeners, action.payload])),
-      };
-
-    case "unsubscribe":
-      return {
-        ...state,
-        listeners: state.listeners.filter(
-          (listener) => listener !== action.payload,
-        ),
-      };
-  }
-
-  return state;
-};
 
 export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
   key: entityStorePluginKey,
