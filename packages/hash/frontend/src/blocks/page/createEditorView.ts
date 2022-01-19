@@ -1,6 +1,7 @@
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
+import { PARAGRAPH_COMPONENT_ID } from "@hashintel/hash-shared/paths";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 // import applyDevTools from "prosemirror-dev-tools";
 import { Schema } from "prosemirror-model";
@@ -125,11 +126,19 @@ export const createEditorView = (
 
   // prosemirror will use the first node type (per group) for auto-creation.
   // we want this to be the paragraph node type.
-  Object.values(blocksMeta)
-    .sort((blockMeta) =>
-      blockMeta.componentMetadata.name === "paragraph" ? -1 : 0,
-    )
-    .forEach(manager.defineNewBlock, manager);
+  const blocksMetaArray = Object.values(blocksMeta);
+
+  const paragraphBlockMeta = blocksMetaArray.find(
+    (blockMeta) => blockMeta.componentMetadata.name === "paragraph",
+  );
+
+  if (!paragraphBlockMeta) {
+    throw new Error("missing required block-type paragraph");
+  }
+
+  /** note that {@link ProsemirrorSchemaManager#defineNewBlock} is idempotent */
+  manager.defineNewBlock(paragraphBlockMeta);
+  blocksMetaArray.forEach((blockMeta) => manager.defineNewBlock(blockMeta));
 
   // @todo figure out how to use dev tools without it breaking fast refresh
   // applyDevTools(view);
