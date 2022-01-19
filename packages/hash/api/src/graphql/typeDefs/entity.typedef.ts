@@ -273,7 +273,7 @@ export const entityTypedef = gql`
     """
     The properties of new entity.
     """
-    entityProperties: JSONObject!
+    entityProperties: JSONObject
     """
     Associated Entities to either create/get and link to this entity.
     """
