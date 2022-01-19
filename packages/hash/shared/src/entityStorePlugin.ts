@@ -1,5 +1,6 @@
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { Draft, produce } from "immer";
+import { isEqual } from "lodash";
 import { Schema } from "prosemirror-model";
 import { EditorState, Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
@@ -378,14 +379,17 @@ class ProsemirrorStateChangeHandler {
       node.firstChild.isTextblock
     ) {
       const nextProps = textBlockNodeToEntityProperties(node.firstChild);
-      this.setDraftEntityStoreToTransaction(
-        updateEntityProperties(
-          draftEntityStore,
-          draftEntity.draftId,
-          false,
-          nextProps,
-        ),
-      );
+
+      if (!isEqual(draftEntity.properties, nextProps)) {
+        this.setDraftEntityStoreToTransaction(
+          updateEntityProperties(
+            draftEntityStore,
+            draftEntity.draftId,
+            false,
+            nextProps,
+          ),
+        );
+      }
     }
   }
 
