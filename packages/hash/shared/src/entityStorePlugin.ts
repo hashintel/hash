@@ -332,25 +332,6 @@ const handleEntityNode = (
   });
 };
 
-const handleNode = (
-  node: ProsemirrorNode<Schema>,
-  tr: Transaction<Schema>,
-  pos: number,
-  _draft: EntityStore["draft"],
-): EntityStore["draft"] => {
-  let draft = _draft;
-
-  if (isComponentNode(node)) {
-    draft = handleComponentNode(tr, pos, draft, node);
-  }
-
-  if (isEntityNode(node)) {
-    draft = handleEntityNode(draft, tr, node, pos);
-  }
-
-  return draft;
-};
-
 class ProsemirrorStateChangeHandler {
   private readonly tr: Transaction<Schema>;
   private handled = false;
@@ -368,8 +349,6 @@ class ProsemirrorStateChangeHandler {
 
     this.handled = true;
 
-    let draft = this.draft;
-
     /**
      * We current violate Immer's rules, as properties inside entities can be
      * other entities themselves, and we expect `entity.property.entity` to be
@@ -380,12 +359,22 @@ class ProsemirrorStateChangeHandler {
      * @see https://immerjs.github.io/immer/pitfalls#immer-only-supports-unidirectional-trees
      */
     this.state.doc.descendants((node, pos) => {
-      draft = handleNode(node, this.tr, pos, draft);
+      this.handleNode(node, pos);
     });
 
-    addEntityStoreAction(this.tr, { type: "draft", payload: draft });
+    addEntityStoreAction(this.tr, { type: "draft", payload: this.draft });
 
     return this.tr;
+  }
+
+  handleNode(node: ProsemirrorNode<Schema>, pos: number) {
+    if (isComponentNode(node)) {
+      this.draft = handleComponentNode(this.tr, pos, this.draft, node);
+    }
+
+    if (isEntityNode(node)) {
+      this.draft = handleEntityNode(this.draft, this.tr, node, pos);
+    }
   }
 }
 
