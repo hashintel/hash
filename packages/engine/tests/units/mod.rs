@@ -9,6 +9,7 @@ mod experiment;
 
 mod behavior;
 mod context;
+mod data;
 mod globals;
 mod message;
 mod neighbors;
