@@ -193,7 +193,7 @@ const run_task = (
     const behavior_ids = agent_state[behavior_ids_field_key];
     const n_behaviors = behavior_ids.length;
     for (
-      var i_behavior = agent_state.__i_behavior;
+      var i_behavior = agent_state.behavior_index;
       i_behavior < n_behaviors;
       ++i_behavior
     ) {
