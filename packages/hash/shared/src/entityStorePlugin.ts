@@ -306,11 +306,15 @@ class ProsemirrorStateChangeHandler {
         );
       }
 
-      this.setDraftEntityStoreToTransaction(
-        updateEntityProperties(draftEntityStore, entity.draftId, true, {
-          componentId: componentNodeToId(node),
-        }),
-      );
+      const componentId = componentNodeToId(node);
+
+      if (entity.properties.componentId !== componentId) {
+        this.setDraftEntityStoreToTransaction(
+          updateEntityProperties(draftEntityStore, entity.draftId, true, {
+            componentId,
+          }),
+        );
+      }
     }
   }
 
