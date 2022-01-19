@@ -146,7 +146,7 @@ const main = async () => {
         });
 
   let search: OpenSearch | undefined;
-  if (process.env.HASH_OPENSEARCH_ENABLED === "true") {
+  if (process.env.NEXT_PUBLIC_HASH_OPENSEARCH_ENABLED === "true") {
     const searchAuth =
       process.env.HASH_OPENSEARCH_USERNAME === undefined
         ? undefined

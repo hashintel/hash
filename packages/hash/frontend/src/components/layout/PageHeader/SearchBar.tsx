@@ -14,8 +14,6 @@ import { searchPages } from "../../../graphql/queries/search.queries";
 import { useUser } from "../../hooks/useUser";
 import { SearchIcon } from "../../Icons/SearchIcon";
 
-// NOTE: This component is currently "disabled" to hide the search bar
-const COMPONENT_DISABLED = true;
 /** finds the query's words in the result and chops it into parts at the words' boundaries */
 const splitByMatches = (result: string, query: string) => {
   const separator = query
@@ -99,10 +97,8 @@ export const SearchBar: React.VFC = () => {
   // present loading screen while waiting for the user to stop typing
   const isLoading = loading || displayedQuery !== submittedQuery;
 
-  // /!\ /!\ /!\
-  // NOTE: This component is currently returning an empty div as a way to disable it temporarily due to search being broken
-  // /!\ /!\ /!\
-  if (COMPONENT_DISABLED) {
+  // NOTE: This component is currently returning an empty div as a way to disable it when opensearch is off
+  if (process.env.NEXT_PUBLIC_HASH_OPENSEARCH_ENABLED !== "true") {
     return <div />;
   }
   return (

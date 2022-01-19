@@ -22,7 +22,8 @@ import { StatsD } from "hot-shots";
 import { getSystemAccountId, getEntityType } from "./db";
 import { logger, INSTANCE_ID } from "./config";
 
-const OPENSEARCH_ENABLED = process.env.HASH_OPENSEARCH_ENABLED === "true";
+const OPENSEARCH_ENABLED =
+  process.env.NEXT_PUBLIC_HASH_OPENSEARCH_ENABLED === "true";
 if (!OPENSEARCH_ENABLED) {
   // eslint-disable-next-line no-console
   console.log("Opensearch is not enabled. Shutting down search-loader");
