@@ -262,6 +262,47 @@ class ProsemirrorStateChangeHandler {
     this.handlePotentialTextContentChangesInEntityNode(updatedNode);
   }
 
+  private potentialUpdateParentBlockEntity(node: EntityNode, pos: number) {
+    const parent = this.tr.doc.resolve(pos).parent;
+
+    if (isEntityNode(parent)) {
+      const parentDraftId = parent.attrs.draftId;
+      if (!parentDraftId) {
+        throw new Error("invariant: parents must have a draft id");
+      }
+
+      const parentEntity = this.draft[parentDraftId];
+      if (!parentEntity) {
+        throw new Error("invariant: parent node missing from draft store");
+      }
+
+      // @todo in what circumstances does this occur
+      if (!isDraftBlockEntity(parentEntity)) {
+        const componentNodeChild = findComponentNodes(node)[0][0];
+
+        this.draft = updateEntityProperties(
+          this.draft,
+          parentEntity.draftId,
+          false,
+          {
+            entity: this.draft[getRequiredDraftIdFromEntityNode(node)],
+            /**
+             * We don't currently rely on componentId of the draft
+             * right
+             * now, but this will be a problem in the future (i.e, if
+             * save starts using the draft entity store)
+             *
+             * @todo set this properly
+             */
+            componentId: componentNodeChild
+              ? componentNodeToId(componentNodeChild)
+              : "",
+          },
+        );
+      }
+    }
+  }
+
   private handlePotentialTextContentChangesInEntityNode(node: EntityNode) {
     const draftEntity = this.draft[getRequiredDraftIdFromEntityNode(node)];
 
@@ -326,47 +367,6 @@ class ProsemirrorStateChangeHandler {
     this.potentialUpdateParentBlockEntity(updatedNode, pos);
 
     return updatedNode;
-  }
-
-  private potentialUpdateParentBlockEntity(node: EntityNode, pos: number) {
-    const parent = this.tr.doc.resolve(pos).parent;
-
-    if (isEntityNode(parent)) {
-      const parentDraftId = parent.attrs.draftId;
-      if (!parentDraftId) {
-        throw new Error("invariant: parents must have a draft id");
-      }
-
-      const parentEntity = this.draft[parentDraftId];
-      if (!parentEntity) {
-        throw new Error("invariant: parent node missing from draft store");
-      }
-
-      // @todo in what circumstances does this occur
-      if (!isDraftBlockEntity(parentEntity)) {
-        const componentNodeChild = findComponentNodes(node)[0][0];
-
-        this.draft = updateEntityProperties(
-          this.draft,
-          parentEntity.draftId,
-          false,
-          {
-            entity: this.draft[getRequiredDraftIdFromEntityNode(node)],
-            /**
-             * We don't currently rely on componentId of the draft
-             * right
-             * now, but this will be a problem in the future (i.e, if
-             * save starts using the draft entity store)
-             *
-             * @todo set this properly
-             */
-            componentId: componentNodeChild
-              ? componentNodeToId(componentNodeChild)
-              : "",
-          },
-        );
-      }
-    }
   }
 }
 
