@@ -97,8 +97,16 @@ impl PythonRunner {
         self.spawn
     }
 
+    // TODO: hopefully get rid of this (https://github.com/tokio-rs/tracing/issues/1840)
     #[instrument(skip_all)]
     pub async fn run(
+        &mut self,
+    ) -> WorkerResult<Pin<Box<dyn Future<Output = StdResult<WorkerResult<()>, JoinError>> + Send>>>
+    {
+        self.run_impl().await
+    }
+
+    async fn run_impl(
         &mut self,
     ) -> WorkerResult<Pin<Box<dyn Future<Output = StdResult<WorkerResult<()>, JoinError>> + Send>>>
     {
