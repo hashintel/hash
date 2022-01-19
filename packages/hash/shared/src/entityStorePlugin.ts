@@ -271,7 +271,7 @@ class ProsemirrorStateChangeHandler {
     return this.tr;
   }
 
-  handleNode(node: ProsemirrorNode<Schema>, pos: number) {
+  private handleNode(node: ProsemirrorNode<Schema>, pos: number) {
     if (isComponentNode(node)) {
       this.componentNode(node, pos);
     }
@@ -305,7 +305,6 @@ class ProsemirrorStateChangeHandler {
         );
       }
 
-      // eslint-disable-next-line no-param-reassign
       this.draft = updateEntityProperties(
         this.draft,
         blockEntityNode.attrs.draftId,
@@ -318,11 +317,15 @@ class ProsemirrorStateChangeHandler {
   }
 
   private entityNode(node: EntityNode, pos: number) {
+    // @todo clean this up
     const res = produce({ draftId: "", draft: this.draft }, (draftRes) => {
       draftRes.draftId = draftIdForNode(this.tr, node, pos, draftRes.draft);
     });
+
     this.draft = res.draft;
     const draftId = res.draftId;
+
+    // @todo remove mutation
     this.draft = produce(this.draft, (draftDraftEntityStore) => {
       const draftEntity = draftDraftEntityStore[draftId];
 
