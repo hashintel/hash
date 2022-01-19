@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use tracing::instrument;
+
 use super::{
     command::CreateRemoveCommands, comms::Comms, package::run::Packages,
     step_output::SimulationStepOutput, step_result::SimulationStepResult, Error, Result,
@@ -33,6 +35,7 @@ impl Engine {
     /// - Initializes Agent State through the init packages
     /// - Creates an empty Context
     /// - Initializes the Store using the Agent State and empty Context
+    #[instrument(skip_all)]
     pub async fn new(
         mut packages: Packages,
         mut uninitialized_store: Store,
@@ -67,6 +70,7 @@ impl Engine {
     /// is a possible future extension. Also, while we do require that
     /// output packages are run only once, context and state packages
     /// can technically be run any number of times.
+    #[instrument(skip_all)]
     pub async fn next(&mut self, current_step: usize) -> Result<SimulationStepResult> {
         tracing::debug!("Running next step");
         self.run_context_packages(current_step).await?;
@@ -169,6 +173,7 @@ impl Engine {
         Ok(())
     }
 
+    #[instrument(skip_all)]
     pub async fn run_output_packages(&mut self) -> Result<SimulationStepOutput> {
         let (state, context) = self.store.take()?;
         let state = Arc::new(state);

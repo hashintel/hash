@@ -26,6 +26,7 @@ pub mod package;
 
 use std::sync::{Arc, RwLock};
 
+use tracing::instrument;
 use uuid::Uuid;
 
 use self::message::{EngineToWorkerPoolMsg, WrappedTask};
@@ -104,6 +105,7 @@ impl Comms {
     ///
     /// Errors: tokio failed to send the message to the worker pool for some reason;
     ///         e.g. the worker pool already stopped due to some other error.
+    #[instrument(skip_all)]
     pub async fn state_sync(&self, state: &State) -> Result<SyncCompletionReceiver> {
         tracing::trace!("Synchronizing state");
         let (completion_sender, completion_receiver) = tokio::sync::oneshot::channel();
@@ -122,6 +124,7 @@ impl Comms {
     }
 
     /// TODO: DOC
+    #[instrument(skip_all)]
     pub async fn state_snapshot_sync(&self, state: &StateSnapshot) -> Result<()> {
         tracing::trace!("Synchronizing state snapshot");
         // Synchronize the state snapshot batches
@@ -138,6 +141,7 @@ impl Comms {
     }
 
     /// TODO: DOC
+    #[instrument(skip_all)]
     pub async fn context_batch_sync(
         &self,
         context: &Context,
@@ -160,6 +164,7 @@ impl Comms {
 }
 
 impl Comms {
+    #[instrument(skip_all)]
     pub async fn new_task<T: Into<Task>>(
         &self,
         package_id: PackageId,

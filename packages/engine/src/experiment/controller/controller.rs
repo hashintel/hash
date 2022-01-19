@@ -1,5 +1,7 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
+use tracing::instrument;
+
 use super::{
     comms::{
         sim_status::{SimStatusRecv, SimStatusSend},
@@ -269,6 +271,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
         }
     }
 
+    #[instrument(skip_all)]
     pub async fn exp_init_msg_base(&self) -> Result<ExperimentInitRunnerMsgBase> {
         let pkg_start_msgs = self.package_creators.get_worker_exp_start_msgs()?;
         Ok(ExperimentInitRunnerMsgBase {
@@ -298,6 +301,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
 }
 
 impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
+    #[instrument(skip_all)]
     pub async fn run(mut self) -> Result<()> {
         let mut terminate_recv = self.terminate_recv.take_recv()?;
 

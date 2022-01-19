@@ -2,6 +2,7 @@ use std::collections::hash_map;
 
 use serde_json::Value;
 use thiserror::Error as ThisError;
+use tracing::instrument;
 
 use super::*;
 use crate::datastore::{
@@ -36,6 +37,7 @@ pub fn gather_requests(
     Ok(Requests { inner })
 }
 
+#[instrument(skip_all)]
 pub async fn run_custom_message_handler(name: &str, requests: Requests) -> Result<ApiResponseMap> {
     match name {
         "mapbox" => handlers::mapbox::get(requests).await,
@@ -98,6 +100,7 @@ pub mod mapbox {
         //     .map(|s| (from, s))
     }
 
+    #[instrument(skip_all)]
     pub async fn get<'a>(requests: Requests) -> Result<ApiResponseMap> {
         let responses = futures::stream::iter(requests.inner.into_iter().map(get_))
             .buffer_unordered(ACTIVE_REQUESTS)

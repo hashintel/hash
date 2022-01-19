@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use tokio::sync::oneshot;
+use tracing::instrument;
 
 use super::error::{Error, Result};
 use crate::{
@@ -161,6 +162,7 @@ pub struct PendingWorkerPoolTasks {
 impl PendingWorkerPoolTasks {
     // TODO: delete or use when cancel is revisited
     #[allow(dead_code)]
+    #[instrument(skip_all)]
     pub async fn run_cancel_check(&mut self) -> Vec<TaskId> {
         self.inner
             .iter_mut()

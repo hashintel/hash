@@ -1,4 +1,5 @@
 use tokio::sync::mpsc;
+use tracing::instrument;
 
 /// Based on the server example at:
 /// https://github.com/nanomsg/nng/blob/708cdf1a8938b0ff128b134dcc2241ff99763209/demo/async/server.c
@@ -80,6 +81,7 @@ impl Server {
     }
 
     /// Receive a JSON-serialized message.
+    #[instrument(skip_all)]
     pub async fn recv<T>(&mut self) -> Result<T>
     where
         for<'de> T: serde::Deserialize<'de>,

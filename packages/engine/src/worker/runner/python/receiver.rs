@@ -2,6 +2,7 @@ use std::str::FromStr;
 
 use nng::{Aio, Socket};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
+use tracing::instrument;
 use uuid::Uuid;
 
 use super::{
@@ -93,6 +94,7 @@ impl NngReceiver {
         Ok(())
     }
 
+    #[instrument(skip_all)]
     pub async fn get_recv_result(&mut self) -> Result<nng::Message> {
         // TODO: Return `Option::None` instead of using ok_or to convert to an Err?
         let nng_msg = self

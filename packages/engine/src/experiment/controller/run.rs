@@ -1,5 +1,7 @@
 use std::{pin::Pin, sync::Arc, time::Duration};
 
+use tracing::instrument;
+
 use super::{config, controller::ExperimentController, Error, Result};
 use crate::{
     datastore::prelude::SharedStore,
@@ -19,6 +21,7 @@ use crate::{
     Environment, Error as CrateError, ExperimentConfig,
 };
 
+#[instrument(skip_all)]
 pub async fn run_experiment(exp_config: ExperimentConfig, env: Environment) -> Result<()> {
     let experiment_id = exp_config.id().clone();
     tracing::info!("Running experiment {}", experiment_id);
@@ -66,6 +69,7 @@ pub async fn run_experiment(exp_config: ExperimentConfig, env: Environment) -> R
     Ok(())
 }
 
+#[instrument(skip_all)]
 pub async fn run_local_experiment(exp_config: ExperimentConfig, env: Environment) -> Result<()> {
     match config::output_persistence(&env)? {
         OutputPersistenceConfig::Local(local) => {

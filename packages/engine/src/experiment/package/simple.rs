@@ -1,5 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
+use tracing::instrument;
+
 use super::super::{Error, ExperimentControl, Result};
 use crate::{
     config::ExperimentConfig,
@@ -56,6 +58,7 @@ impl SimpleExperiment {
         })
     }
 
+    #[instrument(skip_all)]
     pub async fn run(
         self,
         mut pkg_to_exp: ExpPkgCtlSend,

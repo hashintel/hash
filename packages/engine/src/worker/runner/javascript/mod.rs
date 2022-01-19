@@ -17,6 +17,7 @@ use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     task::JoinError,
 };
+use tracing::instrument;
 
 pub use self::error::{Error, Result};
 use self::mini_v8 as mv8;
@@ -1196,6 +1197,7 @@ impl JavaScriptRunner {
         })
     }
 
+    #[instrument(skip_all)]
     pub async fn send(
         &self,
         sim_id: Option<SimulationShortId>,
@@ -1207,6 +1209,7 @@ impl JavaScriptRunner {
             .map_err(|e| WorkerError::JavaScript(Error::InboundSend(e)))
     }
 
+    #[instrument(skip_all)]
     pub async fn send_if_spawned(
         &self,
         sim_id: Option<SimulationShortId>,
@@ -1219,6 +1222,7 @@ impl JavaScriptRunner {
         Ok(())
     }
 
+    #[instrument(skip_all)]
     pub async fn recv(&mut self) -> WorkerResult<OutboundFromRunnerMsg> {
         self.outbound_receiver
             .recv()
@@ -1226,6 +1230,7 @@ impl JavaScriptRunner {
             .ok_or(WorkerError::JavaScript(Error::OutboundReceive))
     }
 
+    #[instrument(skip_all)]
     pub async fn recv_now(&mut self) -> WorkerResult<Option<OutboundFromRunnerMsg>> {
         self.recv().now_or_never().transpose()
     }
@@ -1234,6 +1239,7 @@ impl JavaScriptRunner {
         self.spawn
     }
 
+    #[instrument(skip_all)]
     pub async fn run(
         &mut self,
     ) -> WorkerResult<Pin<Box<dyn Future<Output = StdResult<WorkerResult<()>, JoinError>> + Send>>>

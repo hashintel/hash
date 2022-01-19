@@ -1,5 +1,6 @@
 use futures::FutureExt;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
+use tracing::instrument;
 
 use super::comms::{
     inbound::InboundToRunnerMsgPayload, outbound::OutboundFromRunnerMsg, ExperimentInitRunnerMsg,
@@ -32,6 +33,7 @@ impl RustRunner {
         })
     }
 
+    #[instrument(skip_all)]
     pub async fn send(
         &self,
         _sim_id: Option<SimulationShortId>,
@@ -40,6 +42,7 @@ impl RustRunner {
         Ok(())
     }
 
+    #[instrument(skip_all)]
     pub async fn send_if_spawned(
         &self,
         _sim_id: Option<SimulationShortId>,
@@ -49,6 +52,7 @@ impl RustRunner {
         Ok(())
     }
 
+    #[instrument(skip_all)]
     pub async fn recv(&mut self) -> WorkerResult<OutboundFromRunnerMsg> {
         self.outbound_receiver
             .recv()
@@ -56,6 +60,7 @@ impl RustRunner {
             .ok_or_else(|| WorkerError::from("Rust outbound receive"))
     }
 
+    #[instrument(skip_all)]
     pub async fn recv_now(&mut self) -> WorkerResult<Option<OutboundFromRunnerMsg>> {
         self.recv().now_or_never().transpose()
     }
@@ -64,6 +69,7 @@ impl RustRunner {
         false
     }
 
+    #[instrument(skip_all)]
     pub async fn run(&mut self) -> WorkerResult<()> {
         Ok(())
     }

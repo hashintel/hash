@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use futures::{executor::block_on, stream::FuturesOrdered, StreamExt};
+use tracing::instrument;
 
 use crate::{
     datastore::{
@@ -39,6 +40,7 @@ impl InitPackages {
         InitPackages { inner }
     }
 
+    #[instrument(skip_all)]
     pub async fn run(&mut self, sim_config: Arc<SimRunConfig>) -> Result<State> {
         // Execute packages in parallel and collect the data
         let mut futs = FuturesOrdered::new();
@@ -145,6 +147,7 @@ impl StepPackages {
         Ok(context)
     }
 
+    #[instrument(skip_all)]
     pub async fn run_context(
         &mut self,
         state: Arc<State>,
@@ -229,6 +232,7 @@ impl StepPackages {
         Ok(context)
     }
 
+    #[instrument(skip_all)]
     pub async fn run_state(&mut self, mut state: ExState, context: &Context) -> Result<ExState> {
         tracing::debug!("Running state packages");
         // Design-choices:
@@ -242,6 +246,7 @@ impl StepPackages {
         Ok(state)
     }
 
+    #[instrument(skip_all)]
     pub async fn run_output(
         &mut self,
         state: Arc<State>,

@@ -4,6 +4,7 @@ use tokio::{
     sync::oneshot::{channel, Receiver, Sender},
     time::timeout,
 };
+use tracing::instrument;
 
 pub use super::{Error, Result};
 
@@ -71,6 +72,7 @@ impl TerminateSend {
         Ok(())
     }
 
+    #[instrument(skip_all)]
     pub async fn recv_terminate_confirmation_with_ms_timeout(
         &mut self,
         millis: usize,

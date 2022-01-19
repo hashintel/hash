@@ -11,6 +11,7 @@ use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     task::JoinError,
 };
+use tracing::instrument;
 
 pub use self::error::{Error, Result};
 use self::{receiver::NngReceiver, sender::NngSender};
@@ -51,6 +52,7 @@ impl PythonRunner {
         })
     }
 
+    #[instrument(skip_all)]
     pub async fn send(
         &self,
         sim_id: Option<SimulationShortId>,
@@ -62,6 +64,7 @@ impl PythonRunner {
             .map_err(|e| WorkerError::Python(Error::InboundSend(e)))
     }
 
+    #[instrument(skip_all)]
     pub async fn send_if_spawned(
         &self,
         sim_id: Option<SimulationShortId>,
@@ -73,6 +76,7 @@ impl PythonRunner {
         Ok(())
     }
 
+    #[instrument(skip_all)]
     pub async fn recv(&mut self) -> WorkerResult<OutboundFromRunnerMsg> {
         self.outbound_receiver
             .recv()
@@ -81,6 +85,7 @@ impl PythonRunner {
     }
 
     // TODO: Duplication with other runners (move into worker?)
+    #[instrument(skip_all)]
     pub async fn recv_now(&mut self) -> WorkerResult<Option<OutboundFromRunnerMsg>> {
         // TODO: `now_or_never` on a receiver can very rarely drop messages (known
         //       issue with tokio). Replace with better solution once tokio has one.
@@ -92,6 +97,7 @@ impl PythonRunner {
         self.spawn
     }
 
+    #[instrument(skip_all)]
     pub async fn run(
         &mut self,
     ) -> WorkerResult<Pin<Box<dyn Future<Output = StdResult<WorkerResult<()>, JoinError>> + Send>>>

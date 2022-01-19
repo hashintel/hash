@@ -4,6 +4,7 @@ pub mod single;
 use std::sync::Arc;
 
 use tokio::task::JoinHandle;
+use tracing::instrument;
 
 use super::{
     controller::comms::{exp_pkg_ctl::ExpPkgCtlRecv, exp_pkg_update::ExpPkgUpdateSend},
@@ -26,6 +27,7 @@ pub struct ExperimentPackage {
 }
 
 impl ExperimentPackage {
+    #[instrument(skip_all)]
     pub async fn new(exp_config: Arc<ExperimentConfig>) -> Result<ExperimentPackage> {
         let (ctl_send, ctl_recv) = super::controller::comms::exp_pkg_ctl::new_pair();
         let package_config = match exp_config.run.package_config() {

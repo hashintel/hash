@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use tokio::time::timeout;
+use tracing::instrument;
 
 use super::cancel::CancelTask;
 use crate::simulation::{
@@ -19,6 +20,7 @@ pub struct ActiveTask {
 }
 
 impl ActiveTask {
+    #[instrument(skip_all)]
     pub async fn drive_to_completion(mut self) -> Result<TaskMessage> {
         if self.running {
             let recv = self
@@ -42,6 +44,7 @@ impl ActiveTask {
         }
     }
 
+    #[instrument(skip_all)]
     pub async fn cancel(mut self) -> Result<()> {
         if self.running && !self.cancel_sent {
             let cancel_send = self

@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use nng::options::{protocol::reqrep::ResendTime, Options, ReconnectMaxTime, ReconnectMinTime};
 use tokio::sync::{mpsc, oneshot};
+use tracing::instrument;
 
 use super::{
     error::{Error, Result},
@@ -128,6 +129,7 @@ impl Client {
     }
 
     /// Sends a JSON-serializable message.
+    #[instrument(skip_all)]
     pub async fn send<T: serde::Serialize>(&mut self, msg: &T) -> Result<()> {
         let mut nng_msg = nng::Message::new();
         serde_json::to_writer(&mut nng_msg, msg)?;

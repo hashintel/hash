@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use futures::FutureExt;
 use tokio::time::Duration;
+use tracing::instrument;
 
 use super::{Error, Result};
 use crate::{
@@ -43,6 +44,7 @@ enum LoopControl {
 ///   - Runs Output packages
 /// - Persists Output
 /// - Sends an update on the Step result to the Experiment Controller
+#[instrument(skip_all)]
 pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     config: Arc<SimRunConfig>,
     shared_store: Arc<SharedStore>,

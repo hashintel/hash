@@ -10,6 +10,7 @@ use tokio::sync::{
     mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     oneshot::Receiver,
 };
+use tracing::instrument;
 
 pub use super::{Error, Result};
 use crate::{
@@ -198,6 +199,7 @@ impl WorkerPoolCommsWithWorkers {
             .map_err(Error::from)
     }
 
+    #[instrument(skip_all)]
     pub async fn send_terminate_and_confirm(&mut self, worker_index: WorkerIndex) -> Result<()> {
         let sender = &mut self.get_mut_worker_senders(worker_index)?.1;
         sender.send()?;
@@ -207,6 +209,7 @@ impl WorkerPoolCommsWithWorkers {
         Ok(())
     }
 
+    #[instrument(skip_all)]
     pub async fn send_terminate_all(&mut self) -> Result<()> {
         // No need to join all as this is called on exit
         for worker_index in 0..self.send_to_w.len() {
@@ -215,6 +218,7 @@ impl WorkerPoolCommsWithWorkers {
         Ok(())
     }
 
+    #[instrument(skip_all)]
     pub async fn recv(
         &mut self,
     ) -> Option<(WorkerIndex, SimulationShortId, WorkerToWorkerPoolMsg)> {

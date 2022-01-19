@@ -12,6 +12,7 @@ use futures::{
 };
 use rand::prelude::SliceRandom;
 use tokio::{pin, task::JoinHandle};
+use tracing::instrument;
 
 pub use self::error::{Error, Result};
 use self::{
@@ -94,6 +95,7 @@ impl WorkerPoolController {
         ))
     }
 
+    #[instrument(skip_all)]
     pub async fn spawn_workers(
         &mut self,
         exp_init_base: ExperimentInitRunnerMsgBase,
@@ -146,6 +148,7 @@ impl WorkerPoolController {
     }
 
     /// TODO: DOC
+    #[instrument(skip_all)]
     pub async fn run(mut self) -> Result<()> {
         tracing::debug!("Running Worker Pool Controller");
         pin!(let workers = self.run_worker_controllers()?;);

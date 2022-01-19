@@ -1,3 +1,4 @@
+use tracing::instrument;
 use uuid::Uuid;
 
 use super::{Comms, Result};
@@ -28,6 +29,7 @@ impl PackageComms {
 }
 
 impl PackageComms {
+    #[instrument(skip_all)]
     pub async fn new_task<T: Into<Task>>(
         &self,
         task: T,

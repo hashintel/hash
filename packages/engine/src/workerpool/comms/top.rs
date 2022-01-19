@@ -1,4 +1,5 @@
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
+use tracing::instrument;
 
 use crate::{proto::SimulationShortId, worker::runner::comms::outbound::RunnerError};
 // This is for communications between the worker pool and the simulation top-level controller.
@@ -9,6 +10,7 @@ pub struct WorkerPoolMsgRecv {
 }
 
 impl WorkerPoolMsgRecv {
+    #[instrument(skip_all)]
     pub async fn recv(&mut self) -> Option<(SimulationShortId, WorkerPoolToExpCtlMsg)> {
         self.inner.recv().await
     }

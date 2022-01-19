@@ -1,6 +1,7 @@
 use serde::Deserialize;
 use thiserror::Error as ThisError;
 use tokio::time::Duration;
+use tracing::instrument;
 
 use crate::{
     nano,
@@ -57,6 +58,7 @@ impl OrchClient {
         })
     }
 
+    #[instrument(skip_all)]
     pub async fn send(&mut self, msg: EngineStatus) -> Result<()> {
         let m = crate::proto::OrchestratorMsg {
             experiment_id: self.experiment_id.clone(),
@@ -81,6 +83,7 @@ pub struct Environment {
     pub dyn_payloads: serde_json::Map<String, serde_json::Value>,
 }
 
+#[instrument(skip_all)]
 pub async fn env<E>(args: &Args) -> Result<Environment>
 where
     E: ExperimentRunTrait + for<'de> Deserialize<'de>,

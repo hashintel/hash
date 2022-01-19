@@ -11,6 +11,7 @@ use futures::{
     StreamExt,
 };
 use tokio::time::timeout;
+use tracing::instrument;
 
 pub use self::error::{Error, Result};
 use self::{
@@ -71,6 +72,7 @@ pub struct WorkerController {
 
 // TODO: impl drop for worker controller?
 impl WorkerController {
+    #[instrument(skip_all)]
     pub async fn spawn(
         config: WorkerConfig,
         worker_pool_comms: WorkerCommsWithWorkerPool,
@@ -97,6 +99,7 @@ impl WorkerController {
     ///
     /// Runs a loop which allows the worker to receive/register tasks,
     /// drive tasks to completion and send back completed tasks.
+    #[instrument(skip_all)]
     pub async fn run(&mut self) -> Result<()> {
         tracing::debug!("Running worker");
         match self._run().await {

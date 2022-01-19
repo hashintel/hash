@@ -3,6 +3,7 @@ use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Vector, WIPOffset};
 use flatbuffers_gen::sync_state_interim_generated::StateInterimSyncArgs;
 use nng::{options::Options, Aio, Socket};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
+use tracing::instrument;
 
 use super::{
     error::{Error, Result},
@@ -108,6 +109,7 @@ impl NngSender {
         Ok(())
     }
 
+    #[instrument(skip_all)]
     pub async fn get_send_result(&mut self) -> Option<Result<()>> {
         self.aio_result_receiver.recv().await
     }

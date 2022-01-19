@@ -2,6 +2,7 @@ use std::{fmt, sync::Arc};
 
 use futures::future::join_all;
 use parking_lot::RwLock;
+use tracing::instrument;
 
 use crate::{
     datastore::{
@@ -69,6 +70,7 @@ impl WaitableStateSync {
     /// let (child_msgs, child_receivers) = self.create_children(2);
     /// // Send `child_msgs` to appropriate message handlers.
     /// self.forward_children(child_receivers).await;
+    #[instrument(skip_all)]
     pub async fn forward_children(self, child_receivers: Vec<SyncCompletionReceiver>) {
         tracing::trace!("Getting state sync completions");
         let child_results: Vec<_> = join_all(child_receivers).await;
