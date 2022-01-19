@@ -43,7 +43,18 @@ type EntityStorePluginAction =
     }
   | { type: "store"; payload: EntityStore }
   | { type: "subscribe"; payload: EntityStorePluginStateListener }
-  | { type: "unsubscribe"; payload: EntityStorePluginStateListener };
+  | { type: "unsubscribe"; payload: EntityStorePluginStateListener }
+  | {
+      type: "updateEntityProperties";
+      payload: { draftId: string; properties: {}; merge: boolean };
+    }
+  | {
+      type: "newDraftEntity";
+      payload: {
+        entityId: string | null;
+        draftId: string;
+      };
+    };
 
 const entityStorePluginKey = new PluginKey<EntityStorePluginState, Schema>(
   "entityStore",
@@ -71,57 +82,6 @@ export const pluginStateFromTransaction = (
   state: EditorState<Schema>,
 ): EntityStorePluginState =>
   tr.getMeta(entityStorePluginKey) ?? entityStorePluginState(state);
-
-/**
- * We current violate Immer's rules, as properties inside entities can be
- * other entities themselves, and we expect `entity.property.entity` to be
- * the same object as the other entity. We either need to change that, or
- * remove immer, or both.
- *
- * @todo address this
- * @see https://immerjs.github.io/immer/pitfalls#immer-only-supports-unidirectional-trees
- */
-const entityStoreReducer = (
-  state: EntityStorePluginState,
-  action: EntityStorePluginAction,
-): EntityStorePluginState => {
-  switch (action.type) {
-    case "contents":
-      return {
-        ...state,
-        store: createEntityStore(action.payload, state.store.draft),
-      };
-
-    case "draft":
-      return {
-        ...state,
-        store: {
-          ...state.store,
-          draft: action.payload,
-        },
-      };
-
-    case "store": {
-      return { ...state, store: action.payload };
-    }
-
-    case "subscribe":
-      return {
-        ...state,
-        listeners: Array.from(new Set([...state.listeners, action.payload])),
-      };
-
-    case "unsubscribe":
-      return {
-        ...state,
-        listeners: state.listeners.filter(
-          (listener) => listener !== action.payload,
-        ),
-      };
-  }
-
-  return state;
-};
 
 const updateEntityProperties = (
   draftEntityStore: EntityStore["draft"],
@@ -173,6 +133,84 @@ const newDraftEntity = (
       properties: {},
     };
   });
+};
+
+/**
+ * We current violate Immer's rules, as properties inside entities can be
+ * other entities themselves, and we expect `entity.property.entity` to be
+ * the same object as the other entity. We either need to change that, or
+ * remove immer, or both.
+ *
+ * @todo address this
+ * @see https://immerjs.github.io/immer/pitfalls#immer-only-supports-unidirectional-trees
+ */
+const entityStoreReducer = (
+  state: EntityStorePluginState,
+  action: EntityStorePluginAction,
+): EntityStorePluginState => {
+  switch (action.type) {
+    case "contents":
+      return {
+        ...state,
+        store: createEntityStore(action.payload, state.store.draft),
+      };
+
+    case "draft":
+      return {
+        ...state,
+        store: {
+          ...state.store,
+          draft: action.payload,
+        },
+      };
+
+    case "store": {
+      return { ...state, store: action.payload };
+    }
+
+    case "subscribe":
+      return {
+        ...state,
+        listeners: Array.from(new Set([...state.listeners, action.payload])),
+      };
+
+    case "unsubscribe":
+      return {
+        ...state,
+        listeners: state.listeners.filter(
+          (listener) => listener !== action.payload,
+        ),
+      };
+
+    case "updateEntityProperties":
+      return {
+        ...state,
+        store: {
+          ...state.store,
+          draft: updateEntityProperties(
+            state.store.draft,
+            action.payload.draftId,
+            action.payload.merge,
+            action.payload.properties,
+          ),
+        },
+      };
+
+    case "newDraftEntity":
+      return {
+        ...state,
+        store: {
+          ...state.store,
+          draft: newDraftEntity(
+            state.store.draft,
+            action.payload.draftId,
+            action.payload.entityId,
+          ),
+        },
+      };
+  }
+
+  return state;
 };
 
 export const addEntityStoreAction = (
@@ -309,11 +347,14 @@ class ProsemirrorStateChangeHandler {
       const componentId = componentNodeToId(node);
 
       if (entity.properties.componentId !== componentId) {
-        this.setDraftEntityStoreToTransaction(
-          updateEntityProperties(draftEntityStore, entity.draftId, true, {
-            componentId,
-          }),
-        );
+        addEntityStoreAction(this.state, this.tr, {
+          type: "updateEntityProperties",
+          payload: {
+            merge: true,
+            draftId: entity.draftId,
+            properties: { componentId },
+          },
+        });
       }
     }
   }
@@ -343,12 +384,12 @@ class ProsemirrorStateChangeHandler {
       if (!isDraftBlockEntity(parentEntity)) {
         const componentNodeChild = findComponentNodes(node)[0][0];
 
-        this.setDraftEntityStoreToTransaction(
-          updateEntityProperties(
-            draftEntityStore,
-            parentEntity.draftId,
-            false,
-            {
+        addEntityStoreAction(this.state, this.tr, {
+          type: "updateEntityProperties",
+          payload: {
+            merge: false,
+            draftId: parentEntity.draftId,
+            properties: {
               entity: draftEntityStore[getRequiredDraftIdFromEntityNode(node)],
               /**
                * We don't currently rely on componentId of the draft
@@ -362,8 +403,8 @@ class ProsemirrorStateChangeHandler {
                 ? componentNodeToId(componentNodeChild)
                 : "",
             },
-          ),
-        );
+          },
+        });
       }
     }
   }
@@ -385,14 +426,14 @@ class ProsemirrorStateChangeHandler {
       const nextProps = textBlockNodeToEntityProperties(node.firstChild);
 
       if (!isEqual(draftEntity.properties, nextProps)) {
-        this.setDraftEntityStoreToTransaction(
-          updateEntityProperties(
-            draftEntityStore,
-            draftEntity.draftId,
-            false,
-            nextProps,
-          ),
-        );
+        addEntityStoreAction(this.state, this.tr, {
+          type: "updateEntityProperties",
+          payload: {
+            merge: false,
+            draftId: draftEntity.draftId,
+            properties: nextProps,
+          },
+        });
       }
     }
   }
@@ -414,9 +455,13 @@ class ProsemirrorStateChangeHandler {
         node.attrs.draftId ?? `fake-${uuid()}`;
 
     if (!draftEntityStore[draftId]) {
-      this.setDraftEntityStoreToTransaction(
-        newDraftEntity(draftEntityStore, draftId, entityId ?? null),
-      );
+      addEntityStoreAction(this.state, this.tr, {
+        type: "newDraftEntity",
+        payload: {
+          entityId: entityId ?? null,
+          draftId,
+        },
+      });
     }
 
     /**
@@ -451,13 +496,6 @@ class ProsemirrorStateChangeHandler {
 
   private getDraftEntityStoreFromTransaction() {
     return pluginStateFromTransaction(this.tr, this.state).store.draft;
-  }
-
-  private setDraftEntityStoreToTransaction(draft: EntityStore["draft"]) {
-    addEntityStoreAction(this.state, this.tr, {
-      type: "draft",
-      payload: draft,
-    });
   }
 }
 
