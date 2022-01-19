@@ -21,19 +21,19 @@ To run HASH locally, please follow these steps:
 
     ```sh
     git --version
-    ## ≥ 2.34
+    ## ≥ 2.17
     
     node --version
     ## ≥ 16.13
     
     yarn --version
-    ## ≥ 1.22
+    ## ≥ 1.16
     
     docker --version
     ## ≥ 20.10
     
     docker-compose --version
-    ## ≥ 2.2
+    ## ≥ 1.29
     ```
 
     If you have difficulties with `git --version` on macOS you may need to install Xcode Command Line Tools first: `xcode-select --install`.
