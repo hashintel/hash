@@ -66,6 +66,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
     /// Handle an inbound message from the orchestrator (or CLI)
     #[instrument(skip_all)]
     async fn handle_orch_msg(&mut self, orch_msg: EngineMsg) -> Result<()> {
+        let _ = &orch_msg; // TODO: hopefully remove this (https://github.com/tokio-rs/tracing/issues/1841)
         match orch_msg {
             EngineMsg::Init(_) => Err(Error::from("Unexpected init message")),
         }
