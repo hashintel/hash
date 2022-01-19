@@ -78,7 +78,6 @@ const getLinkedAggregation = (params: {
 };
 
 export const Table: BlockComponent<AppProps> = ({
-  accountId,
   aggregateEntities,
   aggregateEntityTypes,
   entityId,
@@ -141,6 +140,7 @@ export const Table: BlockComponent<AppProps> = ({
       initialState: {
         ...initialState,
       },
+      updateEntities,
       data: tableData.data || [],
       defaultColumn: {
         Cell: EditableCell,

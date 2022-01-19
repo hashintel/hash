@@ -81,6 +81,8 @@ export const getAggregation = async (
       source_account_id = ${params.sourceAccountId}
       and source_entity_id = ${params.sourceEntityId}
       and path = ${params.path}
+    order by created_at desc  
+    limit 1
   `);
 
   return mapRowToDBAggregation(row);
@@ -140,6 +142,7 @@ export const addSourceEntityVersionIdToAggregation = async (
 ) => {
   await conn.one(
     sql`
+    with updated as (
       update aggregations
       set source_entity_version_ids = array_append(aggregations.source_entity_version_ids, ${params.newSourceEntityVersionId})
       where
@@ -147,7 +150,8 @@ export const addSourceEntityVersionIdToAggregation = async (
         and source_entity_id = ${params.sourceEntityId}
         and path = ${params.path}
         and not ${params.newSourceEntityVersionId} = ANY(aggregations.source_entity_version_ids)
-      returning *;
+      returning *
+    ) select * from updated order by created_at desc limit 1;
     `,
   );
 };
