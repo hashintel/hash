@@ -1,3 +1,4 @@
+import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { Draft, produce } from "immer";
 import { Schema } from "prosemirror-model";
 import { EditorState, Plugin, PluginKey, Transaction } from "prosemirror-state";
@@ -13,6 +14,7 @@ import {
   isDraftBlockEntity,
 } from "./entityStore";
 import {
+  ComponentNode,
   componentNodeToId,
   EntityNode,
   isComponentNode,
@@ -234,6 +236,144 @@ const entityStoreReducer = (
   return state;
 };
 
+const handleComponentNode = (
+  tr: Transaction<Schema>,
+  pos: number,
+  draft: EntityStore["draft"],
+  node: ComponentNode,
+) => {
+  let blockEntityNode: EntityNode | null = null;
+  const resolved = tr.doc.resolve(pos);
+  for (let depth = 0; depth < resolved.depth; depth++) {
+    const parentNode = resolved.node(depth);
+    if (isEntityNode(parentNode)) {
+      blockEntityNode = parentNode;
+      break;
+    }
+  }
+
+  if (!blockEntityNode) {
+    throw new Error("invariant: unexpected structure");
+  }
+
+  if (blockEntityNode.attrs.draftId) {
+    const entity = draft[blockEntityNode.attrs.draftId];
+
+    if (!entity || !isBlockEntity(entity)) {
+      throw new Error(
+        "Block entity node points at non-block entity in draft store",
+      );
+    }
+
+    // eslint-disable-next-line no-param-reassign
+    draft = updateEntityProperties(draft, blockEntityNode.attrs.draftId, true, {
+      componentId: componentNodeToId(node),
+    });
+  }
+  return draft;
+};
+
+const handleEntityNode = (
+  _draft: EntityStore["draft"],
+  tr: Transaction<Schema>,
+  node: EntityNode,
+  pos: number,
+) => {
+  let draft = _draft;
+
+  const res = produce({ draftId: "", draft }, (draftRes) => {
+    draftRes.draftId = draftIdForNode(tr, node, pos, draftRes.draft);
+  });
+  draft = res.draft;
+  const draftId = res.draftId;
+  return produce(draft, (draftDraftEntityStore) => {
+    const draftEntity = draftDraftEntityStore[draftId];
+
+    if (!draftEntity) {
+      throw new Error("invariant: draft entity missing from store");
+    }
+
+    if (
+      "properties" in draftEntity &&
+      node.firstChild &&
+      node.firstChild.isTextblock
+    ) {
+      draftEntity.properties = textBlockNodeToEntityProperties(node.firstChild);
+    }
+
+    const parent = tr.doc.resolve(pos).parent;
+
+    if (isEntityNode(parent)) {
+      const parentDraftId = parent.attrs.draftId;
+      if (!parentDraftId) {
+        throw new Error("invariant: parents must have a draft id");
+      }
+      const parentEntity = draftDraftEntityStore[parentDraftId];
+      if (!parentEntity) {
+        throw new Error("invariant: parent node missing from draft store");
+      }
+      if (!isDraftBlockEntity(parentEntity)) {
+        draftDraftEntityStore[parentEntity.draftId] = {
+          ...parentEntity,
+          properties: {
+            entity: draftEntity,
+            /**
+             * We don't currently rely on componentId of the draft right
+             * now, but this will be a problem in the future (i.e, if save
+             * starts using the draft entity store)
+             *
+             * @todo set this properly
+             */
+            componentId: "",
+          },
+        };
+      }
+    }
+  });
+};
+
+const handleNode = (
+  node: ProsemirrorNode<Schema>,
+  tr: Transaction<Schema>,
+  pos: number,
+  _draft: EntityStore["draft"],
+): EntityStore["draft"] => {
+  let draft = _draft;
+
+  if (isComponentNode(node)) {
+    draft = handleComponentNode(tr, pos, draft, node);
+  }
+
+  if (isEntityNode(node)) {
+    draft = handleEntityNode(draft, tr, node, pos);
+  }
+
+  return draft;
+};
+
+const handleDoc = (state: EditorState<Schema>) => {
+  const pluginState = entityStorePluginState(state);
+  let draft = pluginState.store.draft;
+  const { tr } = state;
+
+  /**
+   * We current violate Immer's rules, as properties inside entities can be
+   * other entities themselves, and we expect `entity.property.entity` to be
+   * the same object as the other entity. We either need to change that, or
+   * remove immer, or both.
+   *
+   * @todo address this
+   * @see https://immerjs.github.io/immer/pitfalls#immer-only-supports-unidirectional-trees
+   */
+  state.doc.descendants((node, pos) => {
+    draft = handleNode(node, tr, pos, draft);
+  });
+
+  addEntityStoreAction(tr, { type: "draft", payload: draft });
+
+  return tr;
+};
+
 export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
   key: entityStorePluginKey,
   state: {
@@ -268,122 +408,6 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
       return;
     }
 
-    const pluginState = entityStorePluginState(state);
-    let draft = pluginState.store.draft;
-    const { tr } = state;
-
-    /**
-     * We current violate Immer's rules, as properties inside entities can be
-     * other entities themselves, and we expect `entity.property.entity` to be
-     * the same object as the other entity. We either need to change that, or
-     * remove immer, or both.
-     *
-     * @todo address this
-     * @see https://immerjs.github.io/immer/pitfalls#immer-only-supports-unidirectional-trees
-     */
-    state.doc.descendants((node, pos) => {
-      if (isComponentNode(node)) {
-        let blockEntityNode: EntityNode | null = null;
-        const resolved = tr.doc.resolve(pos);
-        for (let depth = 0; depth < resolved.depth; depth++) {
-          const parentNode = resolved.node(depth);
-          if (isEntityNode(parentNode)) {
-            blockEntityNode = parentNode;
-            break;
-          }
-        }
-
-        if (!blockEntityNode) {
-          throw new Error("invariant: unexpected structure");
-        }
-
-        if (blockEntityNode.attrs.draftId) {
-          const entity = draft[blockEntityNode.attrs.draftId];
-
-          if (!entity || !isBlockEntity(entity)) {
-            throw new Error(
-              "Block entity node points at non-block entity in draft store",
-            );
-          }
-
-          // eslint-disable-next-line no-param-reassign
-          draft = updateEntityProperties(
-            draft,
-            blockEntityNode.attrs.draftId,
-            true,
-            {
-              componentId: componentNodeToId(node),
-            },
-          );
-        }
-      }
-
-      if (!isEntityNode(node)) {
-        return;
-      }
-
-      const res = produce({ draftId: "", draft }, (draftRes) => {
-        draftRes.draftId = draftIdForNode(tr, node, pos, draftRes.draft);
-      });
-      draft = res.draft;
-      const draftId = res.draftId;
-
-      draft = produce(draft, (draftDraftEntityStore) => {
-        const draftEntity = draftDraftEntityStore[draftId];
-
-        if (!draftEntity) {
-          throw new Error("invariant: draft entity missing from store");
-        }
-
-        if (
-          "properties" in draftEntity &&
-          node.firstChild &&
-          node.firstChild.isTextblock
-        ) {
-          draftEntity.properties = textBlockNodeToEntityProperties(
-            node.firstChild,
-          );
-        }
-
-        const parent = tr.doc.resolve(pos).parent;
-
-        if (!isEntityNode(parent)) {
-          return;
-        }
-
-        const parentDraftId = parent.attrs.draftId;
-
-        if (!parentDraftId) {
-          throw new Error("invariant: parents must have a draft id");
-        }
-
-        const parentEntity = draftDraftEntityStore[parentDraftId];
-
-        if (!parentEntity) {
-          throw new Error("invariant: parent node missing from draft store");
-        }
-
-        if (!isDraftBlockEntity(parentEntity)) {
-          draftDraftEntityStore[parentEntity.draftId] = {
-            ...parentEntity,
-            properties: {
-              entity: draftEntity,
-              /**
-               * We don't currently rely on componentId of the draft right
-               * now, but this will be a problem in the future (i.e, if save
-               * starts using the draft entity store)
-               *
-               * @todo set this properly
-               */
-              componentId: "",
-            },
-          };
-        }
-      });
-    });
-
-    addEntityStoreAction(tr, { type: "draft", payload: draft });
-
-    return tr;
+    return handleDoc(state);
   },
 });
