@@ -236,65 +236,6 @@ const entityStoreReducer = (
   return state;
 };
 
-const handleEntityNode = (
-  _draft: EntityStore["draft"],
-  tr: Transaction<Schema>,
-  node: EntityNode,
-  pos: number,
-) => {
-  let draft = _draft;
-
-  const res = produce({ draftId: "", draft }, (draftRes) => {
-    draftRes.draftId = draftIdForNode(tr, node, pos, draftRes.draft);
-  });
-  draft = res.draft;
-  const draftId = res.draftId;
-  return produce(draft, (draftDraftEntityStore) => {
-    const draftEntity = draftDraftEntityStore[draftId];
-
-    if (!draftEntity) {
-      throw new Error("invariant: draft entity missing from store");
-    }
-
-    if (
-      "properties" in draftEntity &&
-      node.firstChild &&
-      node.firstChild.isTextblock
-    ) {
-      draftEntity.properties = textBlockNodeToEntityProperties(node.firstChild);
-    }
-
-    const parent = tr.doc.resolve(pos).parent;
-
-    if (isEntityNode(parent)) {
-      const parentDraftId = parent.attrs.draftId;
-      if (!parentDraftId) {
-        throw new Error("invariant: parents must have a draft id");
-      }
-      const parentEntity = draftDraftEntityStore[parentDraftId];
-      if (!parentEntity) {
-        throw new Error("invariant: parent node missing from draft store");
-      }
-      if (!isDraftBlockEntity(parentEntity)) {
-        draftDraftEntityStore[parentEntity.draftId] = {
-          ...parentEntity,
-          properties: {
-            entity: draftEntity,
-            /**
-             * We don't currently rely on componentId of the draft right
-             * now, but this will be a problem in the future (i.e, if save
-             * starts using the draft entity store)
-             *
-             * @todo set this properly
-             */
-            componentId: "",
-          },
-        };
-      }
-    }
-  });
-};
-
 class ProsemirrorStateChangeHandler {
   private readonly tr: Transaction<Schema>;
   private handled = false;
@@ -336,7 +277,7 @@ class ProsemirrorStateChangeHandler {
     }
 
     if (isEntityNode(node)) {
-      this.draft = handleEntityNode(this.draft, this.tr, node, pos);
+      this.entityNode(node, pos);
     }
   }
 
@@ -374,6 +315,60 @@ class ProsemirrorStateChangeHandler {
         },
       );
     }
+  }
+
+  private entityNode(node: EntityNode, pos: number) {
+    const res = produce({ draftId: "", draft: this.draft }, (draftRes) => {
+      draftRes.draftId = draftIdForNode(this.tr, node, pos, draftRes.draft);
+    });
+    this.draft = res.draft;
+    const draftId = res.draftId;
+    this.draft = produce(this.draft, (draftDraftEntityStore) => {
+      const draftEntity = draftDraftEntityStore[draftId];
+
+      if (!draftEntity) {
+        throw new Error("invariant: draft entity missing from store");
+      }
+
+      if (
+        "properties" in draftEntity &&
+        node.firstChild &&
+        node.firstChild.isTextblock
+      ) {
+        draftEntity.properties = textBlockNodeToEntityProperties(
+          node.firstChild,
+        );
+      }
+
+      const parent = this.tr.doc.resolve(pos).parent;
+
+      if (isEntityNode(parent)) {
+        const parentDraftId = parent.attrs.draftId;
+        if (!parentDraftId) {
+          throw new Error("invariant: parents must have a draft id");
+        }
+        const parentEntity = draftDraftEntityStore[parentDraftId];
+        if (!parentEntity) {
+          throw new Error("invariant: parent node missing from draft store");
+        }
+        if (!isDraftBlockEntity(parentEntity)) {
+          draftDraftEntityStore[parentEntity.draftId] = {
+            ...parentEntity,
+            properties: {
+              entity: draftEntity,
+              /**
+               * We don't currently rely on componentId of the draft right
+               * now, but this will be a problem in the future (i.e, if save
+               * starts using the draft entity store)
+               *
+               * @todo set this properly
+               */
+              componentId: "",
+            },
+          };
+        }
+      }
+    });
   }
 }
 
