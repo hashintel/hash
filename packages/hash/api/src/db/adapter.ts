@@ -248,6 +248,14 @@ export interface DBClient {
   }): Promise<EntityType | null>;
 
   /**
+   * Get an `EntityType` by its Schema ID.
+   * @param params.schemaId the schema ID that exists on an `EntityType`.
+   */
+  getEntityTypeBySchemaId(params: {
+    schemaId: string;
+  }): Promise<EntityType | null>;
+
+  /**
    * Get the latest version of a system entity type.
    * */
   getSystemTypeLatestVersion(params: {

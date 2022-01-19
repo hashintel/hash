@@ -23,6 +23,7 @@ import {
   getAccountEntityTypes,
   getEntityType,
   getEntityTypeByComponentId,
+  getEntityTypeBySchemaId,
   getEntityTypeLatestVersion,
   getSystemTypeLatestVersion,
   insertEntityType,
@@ -61,7 +62,7 @@ import {
   getUserVerificationCodes,
 } from "./verificationCode";
 import { getImpliedEntityHistory } from "./history";
-import { jsonSchema } from "../../lib/schemas/jsonSchema";
+import { JsonSchemaCompiler } from "../../lib/schemas/jsonSchema";
 import { SystemType } from "../../types/entityTypes";
 import { Visibility } from "../../graphql/apiTypes.gen";
 import { getOrgByShortname } from "./org";
@@ -96,8 +97,14 @@ export class PostgresClient implements DBClient {
       // The id to assign this (first) version
       const entityTypeVersionId = genId();
 
+      // Conn is used here to prevent transaction-mismatching.
+      // this.conn is a parent of this transaction conn at this time.
+      const jsonSchemaCompiler = new JsonSchemaCompiler(async (url) => {
+        return PostgresClient.getJsonSchemaBySchemaId(conn, url);
+      });
+
       const now = new Date();
-      const properties = await jsonSchema(
+      const properties = await jsonSchemaCompiler.jsonSchema(
         name,
         accountId,
         entityTypeId,
@@ -129,6 +136,18 @@ export class PostgresClient implements DBClient {
 
       return entityType;
     });
+  }
+
+  /**
+   * Conn is interchangable for allowing usage in transactions as well as standard connections.
+   */
+  static async getJsonSchemaBySchemaId(conn: Connection, schemaId: string) {
+    const schema = await getEntityTypeBySchemaId(conn, { schemaId });
+    if (schema) {
+      return schema.properties;
+    } else {
+      throw new Error(`Could not find schema with $ref = ${schemaId}`);
+    }
   }
 
   async getSystemTypeLatestVersion(params: {
@@ -271,6 +290,12 @@ export class PostgresClient implements DBClient {
     return await getEntityTypeByComponentId(this.conn, params);
   }
 
+  async getEntityTypeBySchemaId(
+    params: Parameters<DBClient["getEntityTypeBySchemaId"]>[0],
+  ): ReturnType<DBClient["getEntityTypeBySchemaId"]> {
+    return await getEntityTypeBySchemaId(this.conn, params);
+  }
+
   /**
    * Update an entity, either versioned or non-versioned. Note: the update is always
    * applied to the latest version of the entity.
@@ -324,7 +349,11 @@ export class PostgresClient implements DBClient {
       throw new Error("Schema requires a name set via a 'title' property");
     }
 
-    const schemaToSet = await jsonSchema(
+    const jsonSchemaCompiler = new JsonSchemaCompiler((url) => {
+      return PostgresClient.getJsonSchemaBySchemaId(this.conn, url);
+    });
+
+    const schemaToSet = await jsonSchemaCompiler.jsonSchema(
       nameToSet,
       entity.accountId,
       entityId,

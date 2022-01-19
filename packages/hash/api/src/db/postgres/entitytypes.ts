@@ -203,6 +203,33 @@ export const getEntityTypeByComponentId = async (
   return row ? mapPGRowToEntityType(row) : null;
 };
 
+/** Get an entityType by componentId
+ */
+export const getEntityTypeBySchemaId = async (
+  conn: Connection,
+  {
+    schemaId,
+  }: {
+    schemaId: string;
+  },
+): Promise<EntityType | null> => {
+  const row = await conn.maybeOne<EntityTypePGRow>(sql`
+    with all_matches as (
+      ${selectEntityTypes}
+    )
+    select distinct on (entity_type_id) * from all_matches
+    where
+      properties ->> '$id' = ${schemaId}
+    order by entity_type_id, updated_at desc
+
+    -- We only want the latest, maybeOne throws if it finds more, which it wouldn't because of distinct on (entity_type_id)
+    -- but since we might allow for accounts to be the owner of the imported entitytypes, this would make it so nothing breaks.
+    limit 1 
+  `);
+
+  return row ? mapPGRowToEntityType(row) : null;
+};
+
 /** Get the latest version of an entity type.
  * Returns `undefined` if the entity type does not exist.
  */
