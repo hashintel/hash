@@ -211,20 +211,14 @@ class ProsemirrorStateChangeHandler {
 
     this.handled = true;
 
-    /**
-     * We current violate Immer's rules, as properties inside entities can be
-     * other entities themselves, and we expect `entity.property.entity` to be
-     * the same object as the other entity. We either need to change that, or
-     * remove immer, or both.
-     *
-     * @todo address this
-     * @see https://immerjs.github.io/immer/pitfalls#immer-only-supports-unidirectional-trees
-     */
     this.tr.doc.descendants((node, pos) => {
       this.handleNode(node, pos);
     });
 
-    addEntityStoreAction(this.tr, { type: "draft", payload: this.draft });
+    addEntityStoreAction(this.tr, {
+      type: "draft",
+      payload: this.draft,
+    });
 
     return this.tr;
   }
@@ -263,14 +257,9 @@ class ProsemirrorStateChangeHandler {
         );
       }
 
-      this.draft = updateEntityProperties(
-        this.draft,
-        blockEntityNode.attrs.draftId,
-        true,
-        {
-          componentId: componentNodeToId(node),
-        },
-      );
+      this.draft = updateEntityProperties(this.draft, entity.draftId, true, {
+        componentId: componentNodeToId(node),
+      });
     }
   }
 
@@ -283,13 +272,13 @@ class ProsemirrorStateChangeHandler {
     this.draft = res.draft;
     const draftId = res.draftId;
 
+    if (!draftId) {
+      throw new Error("Should be assigned");
+    }
+
     // @todo remove mutation
     this.draft = produce(this.draft, (draftDraftEntityStore) => {
       const draftEntity = draftDraftEntityStore[draftId];
-
-      if (!draftEntity) {
-        throw new Error("invariant: draft entity missing from store");
-      }
 
       if (
         "properties" in draftEntity &&
@@ -303,36 +292,51 @@ class ProsemirrorStateChangeHandler {
 
       const parent = this.tr.doc.resolve(pos).parent;
 
-      if (isEntityNode(parent)) {
-        const parentDraftId = parent.attrs.draftId;
-        if (!parentDraftId) {
-          throw new Error("invariant: parents must have a draft id");
-        }
-        const parentEntity = draftDraftEntityStore[parentDraftId];
-        if (!parentEntity) {
-          throw new Error("invariant: parent node missing from draft store");
-        }
-        if (!isDraftBlockEntity(parentEntity)) {
-          draftDraftEntityStore[parentEntity.draftId] = {
-            ...parentEntity,
-            properties: {
-              entity: draftEntity,
-              /**
-               * We don't currently rely on componentId of the draft right
-               * now, but this will be a problem in the future (i.e, if save
-               * starts using the draft entity store)
-               *
-               * @todo set this properly
-               */
-              componentId: "",
-            },
-          };
-        }
+      if (!isEntityNode(parent)) {
+        return;
+      }
+
+      const parentDraftId = parent.attrs.draftId;
+
+      if (!parentDraftId) {
+        throw new Error("invariant: parents must have a draft id");
+      }
+
+      const parentEntity = draftDraftEntityStore[parentDraftId];
+
+      if (!parentEntity) {
+        throw new Error("invariant: parent node missing from draft store");
+      }
+
+      if (!isDraftBlockEntity(parentEntity)) {
+        draftDraftEntityStore[parentEntity.draftId] = {
+          ...parentEntity,
+          properties: {
+            entity: draftEntity,
+            /**
+             * We don't currently rely on componentId of the draft right
+             * now, but this will be a problem in the future (i.e, if save
+             * starts using the draft entity store)
+             *
+             * @todo set this properly
+             */
+            componentId: "",
+          },
+        };
       }
     });
   }
 }
 
+/**
+ * We current violate Immer's rules, as properties inside entities can be
+ * other entities themselves, and we expect `entity.property.entity` to be
+ * the same object as the other entity. We either need to change that, or
+ * remove immer, or both.
+ *
+ * @todo address this
+ * @see https://immerjs.github.io/immer/pitfalls#immer-only-supports-unidirectional-trees
+ */
 const entityStoreReducer = (
   state: EntityStorePluginState,
   action: EntityStorePluginAction,
