@@ -1,4 +1,5 @@
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { noop } from "lodash";
 import {
   createContext,
   Dispatch,
@@ -15,10 +16,8 @@ interface BlocksMetaContextState {
   setValue: Dispatch<SetStateAction<BlocksMetaMap>>;
 }
 
-const BlocksMetaContext = createContext<BlocksMetaContextState>({
-  value: {},
-  setValue(_) {},
-});
+/** @private enforces use of custom provider */
+const BlocksMetaContext = createContext<BlocksMetaContextState | null>(null);
 
 export const BlocksMetaProvider: React.FC<{ value: BlocksMetaMap }> = ({
   value: initialValue,
@@ -35,4 +34,12 @@ export const BlocksMetaProvider: React.FC<{ value: BlocksMetaMap }> = ({
   );
 };
 
-export const useBlocksMeta = () => useContext(BlocksMetaContext);
+export const useBlocksMeta = () => {
+  const state = useContext(BlocksMetaContext);
+
+  if (state === null) {
+    throw new Error("no value has been provided to BlocksMetaContext");
+  }
+
+  return state;
+};
