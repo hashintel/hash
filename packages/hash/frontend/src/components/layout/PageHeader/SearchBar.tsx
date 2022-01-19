@@ -2,7 +2,12 @@ import { useQuery } from "@apollo/client";
 import { PageSearchResult } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 import { escapeRegExp } from "lodash";
 import Link from "next/link";
-import React, { useCallback, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useRef,
+  useState,
+  VoidFunctionComponent,
+} from "react";
 import { useDebounce, useKey, useKeys, useOutsideClickRef } from "rooks";
 import { tw } from "twind";
 import { blockDomId } from "../../../blocks/page/BlockView";
@@ -13,7 +18,7 @@ import {
 import { searchPages } from "../../../graphql/queries/search.queries";
 import { useUser } from "../../hooks/useUser";
 import { SearchIcon } from "../../Icons/SearchIcon";
-
+import { HASH_OPENSEARCH_ENABLED } from "../../../lib/public-env";
 /** finds the query's words in the result and chops it into parts at the words' boundaries */
 const splitByMatches = (result: string, query: string) => {
   const separator = query
@@ -72,7 +77,7 @@ const useQueryText = (): [string, string, (queryText: string) => void] => {
   return [displayedQuery, submittedQuery, setQuery];
 };
 
-export const SearchBar: React.VFC = () => {
+const SearchBarWhenSearchIsEnabled: React.VFC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isResultListVisible, setResultListVisible] = useState(false);
   const [displayedQuery, submittedQuery, setQueryText] = useQueryText();
@@ -97,10 +102,6 @@ export const SearchBar: React.VFC = () => {
   // present loading screen while waiting for the user to stop typing
   const isLoading = loading || displayedQuery !== submittedQuery;
 
-  // NOTE: This component is currently returning an empty div as a way to disable it when opensearch is off
-  if (process.env.NEXT_PUBLIC_HASH_OPENSEARCH_ENABLED !== "true") {
-    return <div />;
-  }
   return (
     <div ref={rootRef} className={tw`relative h-full w-full`}>
       <div className={tw`absolute h-full flex flex-row items-center`}>
@@ -148,3 +149,13 @@ export const SearchBar: React.VFC = () => {
     </div>
   );
 };
+
+const SearchBarWhenSearchIsDisabled: VoidFunctionComponent = () => {
+  return <div />;
+};
+
+// Note: This component becomes empty is opensearch is disabled
+export const SearchBar =
+  HASH_OPENSEARCH_ENABLED === "true"
+    ? SearchBarWhenSearchIsEnabled
+    : SearchBarWhenSearchIsDisabled;
