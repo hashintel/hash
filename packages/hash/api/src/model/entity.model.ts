@@ -496,7 +496,7 @@ class __Entity {
     let entity;
 
     if (existingEntity) {
-      // Use existing entityId
+      // Use existing entity
       entity = await Entity.getEntityLatestVersion(client, {
         accountId: existingEntity.accountId,
         entityId: existingEntity.entityId,
