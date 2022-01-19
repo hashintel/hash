@@ -84,7 +84,7 @@ impl WorkerController {
         worker_pool_comms: WorkerCommsWithWorkerPool,
         exp_init: ExperimentInitRunnerMsg,
     ) -> Result<WorkerController> {
-        log::debug!("Spawning worker controller");
+        tracing::debug!("Spawning worker controller");
         let WorkerSpawnConfig {
             python,
             javascript,
@@ -108,7 +108,7 @@ impl WorkerController {
     ///
     /// [`await`]: https://doc.rust-lang.org/std/keyword.await.html
     pub async fn run(&mut self) -> Result<()> {
-        log::debug!("Running worker");
+        tracing::debug!("Running worker");
         match self._run().await {
             Ok(()) => self.shutdown(),
             Err(e) => self.shutdown_with_error(e),
@@ -145,13 +145,13 @@ impl WorkerController {
             tokio::select! {
                 Some(_) = pending_syncs.next() => {}
                 Some(msg) = wp_recv.recv() => {
-                    log::debug!("Handle worker pool message: {:?}", &msg);
+                    tracing::debug!("Handle worker pool message: {:?}", &msg);
                     self.handle_worker_pool_msg(msg, &mut pending_syncs).await?;
                 }
                 res = self.recv_from_runners() => {
                     match res {
                         Ok(msg) => {
-                            log::debug!("Handle message from runners: {:?}", &msg);
+                            tracing::debug!("Handle message from runners: {:?}", &msg);
                             self.handle_runner_msg(msg).await?;
                         }
                         Err(recv_err) => {
@@ -184,7 +184,7 @@ impl WorkerController {
                 }
                 terminate_res = &mut terminate_recv => {
                     terminate_res.map_err(|err| Error::from(format!("Couldn't receive terminate: {:?}", err)))?;
-                    log::debug!("Sending terminate msg to all workers");
+                    tracing::debug!("Sending terminate msg to all workers");
                     // Tell runners to terminate
                     self.terminate_runners().await?;
                     // Send confirmation of success
@@ -192,14 +192,14 @@ impl WorkerController {
                     break;
                 }
                 // py_res = &mut py_handle => {
-                //     log::debug!("Python runner finished unexpectedly");
+                //     tracing::debug!("Python runner finished unexpectedly");
                 //     py_res??;
                 //     // TODO: send termination to js_handle
                 //     js_handle.await??;
                 //     return Ok(());
                 // }
                 js_res = &mut js_handle => {
-                    log::debug!("Javascript runner finished unexpectedly: {:?}", js_res);
+                    tracing::debug!("Javascript runner finished unexpectedly: {:?}", js_res);
                     js_res??;
                     // TODO: send termination to py_handle
                     // py_handle.await??;
@@ -249,7 +249,7 @@ impl WorkerController {
                 self.sync_runners(msg.sim_id, sync, pending_syncs).await?;
             }
             WorkerPoolToWorkerMsgPayload::CancelTask(task_id) => {
-                log::trace!("Received cancel task msg from Worker Pool");
+                tracing::trace!("Received cancel task msg from Worker Pool");
                 self.cancel_task(task_id).await?;
             }
             WorkerPoolToWorkerMsgPayload::NewSimulationRun(new_simulation_run) => {
@@ -326,7 +326,7 @@ impl WorkerController {
                             .await?;
                     }
                     MessageTarget::Main => {
-                        log::trace!("Task message came back to main, finishing task");
+                        tracing::trace!("Task message came back to main, finishing task");
                         self.finish_task(
                             task.msg.task_id,
                             sim_id,
@@ -382,7 +382,7 @@ impl WorkerController {
             // Important to drop here since we then lose the access to the shared store
             drop(shared_store);
 
-            log::trace!("Cancelling tasks on the other runners");
+            tracing::trace!("Cancelling tasks on the other runners");
             self.cancel_task_except_for_runner(task_id, source).await?;
 
             self.worker_pool_comms.send(
@@ -429,7 +429,7 @@ impl WorkerController {
                         shared_store: msg.shared_store,
                         payload: next.payload,
                     });
-                    log::trace!(
+                    tracing::trace!(
                         "Task resulted in a new message from Runner, sending new one to Rust: {:?}",
                         &inbound
                     );
@@ -443,7 +443,7 @@ impl WorkerController {
                         shared_store: msg.shared_store,
                         payload: next.payload,
                     });
-                    log::trace!(
+                    tracing::trace!(
                         "Task resulted in a new message from Runner, sending new one to Python: \
                          {:?}",
                         &inbound
@@ -458,7 +458,7 @@ impl WorkerController {
                         shared_store: msg.shared_store,
                         payload: next.payload,
                     });
-                    log::trace!(
+                    tracing::trace!(
                         "Task resulted in a new message from Runner, sending new one to \
                          JavaScript: {:?}",
                         &inbound
@@ -468,7 +468,7 @@ impl WorkerController {
                 }
                 MessageTarget::Dynamic => return Err(Error::UnexpectedTarget(next.target)),
                 MessageTarget::Main => {
-                    log::trace!("Task message came back to main, finishing task");
+                    tracing::trace!("Task message came back to main, finishing task");
                     self.finish_task(msg.task_id, sim_id, source, next.payload, msg.shared_store)
                         .await?;
                 }
@@ -501,7 +501,7 @@ impl WorkerController {
                     }
                 }
                 CancelState::None => {
-                    log::warn!("Unexpected task cancelling confirmation");
+                    tracing::warn!("Unexpected task cancelling confirmation");
                     task.cancelling = CancelState::Active(vec![source]);
                 }
             }
@@ -563,17 +563,17 @@ impl WorkerController {
         });
         let active_runner = match init_msg.target {
             MessageTarget::Python => {
-                log::debug!("Sending task message to Python");
+                tracing::debug!("Sending task message to Python");
                 self.py.send(Some(sim_id), runner_msg).await?;
                 Language::Python
             }
             MessageTarget::JavaScript => {
-                log::debug!("Sending task message to JavaScript");
+                tracing::debug!("Sending task message to JavaScript");
                 self.js.send(Some(sim_id), runner_msg).await?;
                 Language::JavaScript
             }
             MessageTarget::Rust => {
-                log::debug!("Sending task message to Rust");
+                tracing::debug!("Sending task message to Rust");
                 self.rs.send(Some(sim_id), runner_msg).await?;
                 Language::Rust
             }

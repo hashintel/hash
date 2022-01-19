@@ -1,6 +1,6 @@
 use std::{env::VarError, fmt::Display, time::Duration};
 
-use log::{Event, Subscriber};
+use tracing::{Event, Subscriber};
 use tracing_subscriber::{
     filter::{Directive, LevelFilter},
     fmt::{
@@ -143,12 +143,12 @@ pub fn parse_env_duration(name: &str, default: u64) -> Duration {
         std::env::var(name)
             .and_then(|timeout| {
                 timeout.parse().map_err(|e| {
-                    log::error!("Could not parse `{}` as integral: {}", name, e);
+                    tracing::error!("Could not parse `{}` as integral: {}", name, e);
                     VarError::NotPresent
                 })
             })
             .unwrap_or_else(|_| {
-                log::info!("Setting `{}={}`", name, default);
+                tracing::info!("Setting `{}={}`", name, default);
                 default
             }),
     )

@@ -54,7 +54,7 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
 ) -> Result<SimulationShortId> {
     let sim_run_id = config.sim.id;
     let max_num_steps = config.sim.max_num_steps;
-    log::info!(
+    tracing::info!(
         "Beginning simulation run with id {} for a maximum of {} steps",
         &sim_run_id,
         max_num_steps,
@@ -79,7 +79,7 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     'sim_main: loop {
         // Behaviors expect context.step() to give the current step rather than steps_taken
         let current_step = steps_taken + 1;
-        log::trace!("Current step: {}", current_step);
+        tracing::trace!("Current step: {}", current_step);
         if current_step >= max_num_steps {
             break;
         }
@@ -93,7 +93,7 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
         let step_result = match engine.next(current_step).await {
             Ok(step_result) => step_result,
             Err(error) => {
-                log::error!("Got error within the engine step process: {:?}", error);
+                tracing::error!("Got error within the engine step process: {:?}", error);
                 // Try to persist before exiting
                 let persistence_result = Some(persistence_service.finalize(&config).await?);
                 let runner_error = RunnerError {
@@ -176,7 +176,7 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
         })?;
     let persistence_dur = now.elapsed().as_millis();
 
-    log::info!(
+    tracing::info!(
         "Finished simulation run. Main loop took {} ms. Persistence took: {} ms",
         main_loop_dur,
         persistence_dur
@@ -194,7 +194,7 @@ async fn maybe_handle_sim_ctl_msg(sim_from_exp: &mut SimCtlRecv) -> Result<LoopC
                 if let Some(control) = sim_from_exp.recv().await {
                     match control {
                         SimControl::Pause => {
-                            log::warn!("Pausing when already paused");
+                            tracing::warn!("Pausing when already paused");
                         }
                         SimControl::Resume => {
                             break;
@@ -202,12 +202,12 @@ async fn maybe_handle_sim_ctl_msg(sim_from_exp: &mut SimCtlRecv) -> Result<LoopC
                         SimControl::Stop => return Ok(LoopControl::Stop),
                     }
                 } else {
-                    log::warn!("Experiment runner exited while paused.");
+                    tracing::warn!("Experiment runner exited while paused.");
                     return Ok(LoopControl::Stop);
                 }
             },
             SimControl::Resume => {
-                log::warn!("Resuming when not paused");
+                tracing::warn!("Resuming when not paused");
             }
             SimControl::Stop => return Ok(LoopControl::Stop),
         }

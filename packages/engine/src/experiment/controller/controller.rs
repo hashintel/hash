@@ -106,7 +106,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
         if let Err(err) = send_step_update {
             if !status.running || status.stop_signal {
                 // non-fatal error if the sim is stopping
-                log::debug!(
+                tracing::debug!(
                     "Failed to send the step update to the experiment package, logging rather \
                      than error as simulation has been marked as ending this step: {}",
                     err.to_string()
@@ -134,12 +134,12 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
     ) -> Result<()> {
         let engine_status = match msg {
             WorkerPoolToExpCtlMsg::Errors(errors) => {
-                log::debug!("Received Errors Experiment Control Message from Worker Pool");
+                tracing::debug!("Received Errors Experiment Control Message from Worker Pool");
                 let runner_errors = errors.into_iter().map(|w| w.into_sendable(false)).collect();
                 EngineStatus::Errors(id, runner_errors)
             }
             WorkerPoolToExpCtlMsg::Warnings(warnings) => {
-                log::debug!("Received Warnings Experiment Control Message from Worker Pool");
+                tracing::debug!("Received Warnings Experiment Control Message from Worker Pool");
                 let runner_warnings = warnings
                     .into_iter()
                     .map(|w| w.into_sendable(true))
@@ -147,7 +147,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
                 EngineStatus::Warnings(id, runner_warnings)
             }
             WorkerPoolToExpCtlMsg::Logs(logs) => {
-                log::debug!("Received Logs Experiment Control Message from Worker Pool");
+                tracing::debug!("Received Logs Experiment Control Message from Worker Pool");
                 EngineStatus::Logs(id, logs)
             }
         };
@@ -285,7 +285,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
     ) -> Result<()> {
         if self.sim_senders.contains_key(&sim_short_id) {
             let msg = "Cannot mutate a simulation control msg sender";
-            log::error!("{}, sim short id: {}", msg, sim_short_id);
+            tracing::error!("{}, sim short id: {}", msg, sim_short_id);
             return Err(Error::from(msg));
         }
         self.sim_senders.insert(sim_short_id, sender);
@@ -308,7 +308,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
         loop {
             tokio::select! {
                 Some(msg) = self.experiment_package_comms.ctl_recv.recv() => {
-                    log::debug!("Handling experiment control message: {:?}", &msg);
+                    tracing::debug!("Handling experiment control message: {:?}", &msg);
                     self.handle_experiment_control_msg(msg).await?;
                 }
                 result = self.sim_run_tasks.next() => {
@@ -316,11 +316,11 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
                         self.handle_sim_run_stop(result?).await?;
 
                         if self.sim_run_tasks.is_empty() && waiting_for_completion.is_some() {
-                            log::debug!("Stopping experiment controller");
+                            tracing::debug!("Stopping experiment controller");
                             return Ok(())
                         }
 
-                        log::trace!("There was a result from a sim run but: self.sim_run_tasks.is_empty(): {}, waiting_for_completion.is_some(): {} so continuing", self.sim_run_tasks.is_empty(), waiting_for_completion.is_some());
+                        tracing::trace!("There was a result from a sim run but: self.sim_run_tasks.is_empty(): {}, waiting_for_completion.is_some(): {} so continuing", self.sim_run_tasks.is_empty(), waiting_for_completion.is_some());
                     }
                 }
                 Some(msg) = self.sim_status_recv.recv() => {
@@ -336,19 +336,19 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
                 }
                 terminate_res = &mut terminate_recv, if waiting_for_completion.is_none() => {
                     terminate_res.map_err(|err| Error::from(format!("Couldn't receive terminate: {:?}", err)))?;
-                    log::trace!("Received terminate message");
+                    tracing::trace!("Received terminate message");
 
                     if self.sim_run_tasks.is_empty() {
-                        log::debug!("Stopping experiment controller");
+                        tracing::debug!("Stopping experiment controller");
                         return Ok(())
                     } else {
-                        log::trace!("sim_run_tasks wasn't empty, starting a wait and warn loop");
+                        tracing::trace!("sim_run_tasks wasn't empty, starting a wait and warn loop");
                         waiting_for_completion = Some(Box::pin(tokio::time::sleep(Duration::from_secs(time_to_wait))));
                     }
                 }
                 _ = async { waiting_for_completion.as_mut().expect("must be some").await }, if waiting_for_completion.is_some() => {
                     time_to_wait *= WAITING_MULTIPLIER;
-                    log::warn!("Experiment Controller received a termination message, but simulation runs haven't finished, waiting {} seconds", time_to_wait);
+                    tracing::warn!("Experiment Controller received a termination message, but simulation runs haven't finished, waiting {} seconds", time_to_wait);
                     waiting_for_completion = Some(Box::pin(tokio::time::sleep(Duration::from_secs(time_to_wait))));
                 }
             }

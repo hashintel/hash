@@ -84,7 +84,7 @@ impl SimpleExperiment {
             finished: HashMap::new(),
         };
 
-        log::trace!("Starting {max_sims_in_parallel} sims in parallel");
+        tracing::trace!("Starting {max_sims_in_parallel} sims in parallel");
         for _ in 0..max_sims_in_parallel {
             sim_queue.start_sim_if_available().await?;
         }
@@ -99,7 +99,7 @@ impl SimpleExperiment {
             if response.was_error || response.stop_signal {
                 let mut sim_progress =
                     sim_queue.active.remove(&response.sim_id).ok_or_else(|| {
-                        log::warn!("Sim run with unknown id {} stopped", &response.sim_id);
+                        tracing::warn!("Sim run with unknown id {} stopped", &response.sim_id);
                         Error::MissingSimulationRun(response.sim_id)
                     })?;
 

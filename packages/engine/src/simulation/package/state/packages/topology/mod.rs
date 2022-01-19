@@ -78,7 +78,7 @@ impl GetWorkerSimStartMsg for Topology {
 #[async_trait]
 impl Package for Topology {
     async fn run(&mut self, state: &mut ExState, _context: &Context) -> Result<()> {
-        log::trace!("Running Topology package");
+        tracing::trace!("Running Topology package");
         if self.config.move_wrapped_agents {
             for mut mut_table in state.agent_pool_mut().write_batches()? {
                 if self.topology_correction(&mut mut_table)? {

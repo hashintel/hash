@@ -69,7 +69,7 @@ impl Engine {
     /// output packages are run only once, context and state packages
     /// can technically be run any number of times.
     pub async fn next(&mut self, current_step: usize) -> Result<SimulationStepResult> {
-        log::debug!("Running next step");
+        tracing::debug!("Running next step");
         self.run_context_packages(current_step).await?;
         self.run_state_packages().await?;
         let output = self.run_output_packages().await?;
@@ -99,7 +99,7 @@ impl Engine {
     /// dependent on each other, then all context packages are run in parallel
     /// and their outputs are merged into one Context object.
     async fn run_context_packages(&mut self, current_step: usize) -> Result<()> {
-        log::trace!("Starting run context packages stage");
+        tracing::trace!("Starting run context packages stage");
         // Need write access to state to prepare for context packages,
         // so can't start state sync (with workers) yet.
         let (mut state, mut context) = self.store.take_upgraded()?;
@@ -121,9 +121,9 @@ impl Engine {
         let active_sync = self.comms.state_sync(&state).await?;
         // TODO: fix issues with getting write access to the message batch while state sync runs in
         //  parallel with context packages
-        log::trace!("Waiting for active state sync");
+        tracing::trace!("Waiting for active state sync");
         active_sync.await?.map_err(Error::state_sync)?;
-        log::trace!("State sync finished");
+        tracing::trace!("State sync finished");
 
         let pre_context = context.into_pre_context();
         let context = self
@@ -209,7 +209,7 @@ impl Engine {
         state: &mut ExState,
         context: &mut ExContext,
     ) -> Result<StateSnapshot> {
-        log::trace!("Preparing for context packages");
+        tracing::trace!("Preparing for context packages");
         let message_map = state.message_map()?;
         self.add_remove_agents(state, &message_map)?;
         let message_pool = self.finalize_agent_messages(state, context)?;
