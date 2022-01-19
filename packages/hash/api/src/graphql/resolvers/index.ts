@@ -46,10 +46,8 @@ import { me } from "./user/me";
 import { isShortnameTaken } from "./user/isShortnameTaken";
 import { createEntityType } from "./entityType/createEntityType";
 import { SYSTEM_TYPES, SystemType } from "../../types/entityTypes";
-import {
-  entityTypeTypeFields,
-  entityTypeInheritance,
-} from "./entityType/entityTypeTypeFields";
+import { entityTypeTypeFields } from "./entityType/entityTypeTypeFields";
+import { entityTypeInheritance } from "./entityType/entityTypeInheritance";
 import { getAccountEntityTypes } from "./entityType/getAccountEntityTypes";
 import { getEntityType } from "./entityType/getEntityType";
 import { createOrgEmailInvitation } from "./org/createOrgEmailInvitation";
