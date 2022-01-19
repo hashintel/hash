@@ -30,6 +30,7 @@ type EntityStorePluginStateListener = (store: EntityStore) => void;
 type EntityStorePluginState = {
   store: EntityStore;
   listeners: EntityStorePluginStateListener[];
+  trackedActions: EntityStorePluginAction[];
 };
 
 type EntityStorePluginAction =
@@ -136,6 +137,8 @@ const entityStoreReducer = (
       }
 
       return produce(state, (draftState) => {
+        draftState.trackedActions.push(action);
+
         const entities: Draft<DraftEntity>[] = [
           draftState.store.draft[action.payload.draftId],
         ];
@@ -166,6 +169,8 @@ const entityStoreReducer = (
       }
 
       return produce(state, (draftState) => {
+        draftState.trackedActions.push(action);
+
         draftState.store.draft[action.payload.draftId] = {
           entityId: action.payload.entityId,
           draftId: action.payload.draftId,
@@ -390,6 +395,10 @@ class ProsemirrorStateChangeHandler {
       const nextProps = textBlockNodeToEntityProperties(node.firstChild);
 
       if (!isEqual(draftEntity.properties, nextProps)) {
+        /**
+         * @todo this is communicated by the contents of the
+         * prosemirror tree – do we really need to send this too?
+         */
         addEntityStoreAction(this.state, this.tr, {
           type: "updateEntityProperties",
           payload: {
@@ -470,6 +479,7 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
       return {
         store: createEntityStore([], {}),
         listeners: [],
+        trackedActions: [],
       };
     },
     apply(tr, initialState): EntityStorePluginState {
