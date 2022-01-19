@@ -123,14 +123,14 @@ const updateEntityStoreListeners = collect<
 });
 
 /**
- * @use subscribeToEntityStore if you need a live subscription
+ * @use {@link subscribeToEntityStore} if you need a live subscription
  */
 export const entityStorePluginState = (state: EditorState<Schema>) => {
   const pluginState = entityStorePluginKey.getState(state);
 
   if (!pluginState) {
     throw new Error(
-      "Cannot process transaction when state does not have entity store plugin",
+      "Cannot get entity store when state does not have entity store plugin",
     );
   }
   return pluginState;
@@ -192,48 +192,6 @@ const draftIdForNode = (
   }
 
   return draftId;
-};
-
-const entityStoreReducer = (
-  state: EntityStorePluginState,
-  action: EntityStorePluginAction,
-): EntityStorePluginState => {
-  switch (action.type) {
-    case "contents":
-      return {
-        ...state,
-        store: createEntityStore(action.payload, state.store.draft),
-      };
-
-    case "draft":
-      return {
-        ...state,
-        store: {
-          ...state.store,
-          draft: action.payload,
-        },
-      };
-
-    case "store": {
-      return { ...state, store: action.payload };
-    }
-
-    case "subscribe":
-      return {
-        ...state,
-        listeners: Array.from(new Set([...state.listeners, action.payload])),
-      };
-
-    case "unsubscribe":
-      return {
-        ...state,
-        listeners: state.listeners.filter(
-          (listener) => listener !== action.payload,
-        ),
-      };
-  }
-
-  return state;
 };
 
 class ProsemirrorStateChangeHandler {
@@ -374,6 +332,48 @@ class ProsemirrorStateChangeHandler {
     });
   }
 }
+
+const entityStoreReducer = (
+  state: EntityStorePluginState,
+  action: EntityStorePluginAction,
+): EntityStorePluginState => {
+  switch (action.type) {
+    case "contents":
+      return {
+        ...state,
+        store: createEntityStore(action.payload, state.store.draft),
+      };
+
+    case "draft":
+      return {
+        ...state,
+        store: {
+          ...state.store,
+          draft: action.payload,
+        },
+      };
+
+    case "store": {
+      return { ...state, store: action.payload };
+    }
+
+    case "subscribe":
+      return {
+        ...state,
+        listeners: Array.from(new Set([...state.listeners, action.payload])),
+      };
+
+    case "unsubscribe":
+      return {
+        ...state,
+        listeners: state.listeners.filter(
+          (listener) => listener !== action.payload,
+        ),
+      };
+  }
+
+  return state;
+};
 
 export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
   key: entityStorePluginKey,
