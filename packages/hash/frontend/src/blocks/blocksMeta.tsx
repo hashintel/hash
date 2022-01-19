@@ -1,12 +1,18 @@
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
-import { createContext, useContext, useMemo } from "react";
+import {
+  createContext,
+  Dispatch,
+  SetStateAction,
+  useContext,
+  useMemo,
+} from "react";
 import { useLocalstorageState } from "rooks";
 
 export type BlocksMetaMap = Record<string, BlockMeta>;
 
 interface BlocksMetaContextState {
   value: BlocksMetaMap;
-  setValue(value: BlocksMetaMap): void;
+  setValue: Dispatch<SetStateAction<BlocksMetaMap>>;
 }
 
 const BlocksMetaContext = createContext<BlocksMetaContextState>({

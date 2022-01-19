@@ -23,7 +23,7 @@ export const BlockLoaderInput: React.VFC = () => {
       .fetchAndDefineBlock(blockUrl)
       .then((blockMeta) => {
         setError(null);
-        setBlocksMeta({ ...blocksMeta, [blockUrl]: blockMeta });
+        setBlocksMeta((prev) => ({ ...prev, [blockUrl]: blockMeta }));
         return blockView.manager.createRemoteBlock(blockUrl);
       })
       .then((block) => {
