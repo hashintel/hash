@@ -193,11 +193,11 @@ const run_task = (
     const behavior_ids = agent_state[behavior_ids_field_key];
     const n_behaviors = behavior_ids.length;
     for (
-      var i_behavior = agent_state.behavior_index;
+      var i_behavior = agent_state.__i_behavior;
       i_behavior < n_behaviors;
       ++i_behavior
     ) {
-      agent_state.behavior_index = i_behavior;
+      agent_state.__i_behavior = i_behavior;
 
       const key = behavior_ids.get(i_behavior);
       // We do this because it's shallow-loaded and the key is an Arrow Vec rather than a clean array
