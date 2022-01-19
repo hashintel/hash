@@ -44,8 +44,6 @@ type EntityStorePluginAction =
   | { type: "subscribe"; payload: EntityStorePluginStateListener }
   | { type: "unsubscribe"; payload: EntityStorePluginStateListener };
 
-type EntityStorePluginMessage = EntityStorePluginAction[];
-
 const entityStorePluginKey = new PluginKey<EntityStorePluginState, Schema>(
   "entityStore",
 );
@@ -63,6 +61,15 @@ export const entityStorePluginState = (state: EditorState<Schema>) => {
   }
   return pluginState;
 };
+
+/**
+ * @use {@link subscribeToEntityStore} if you need a live subscription
+ */
+export const pluginStateFromTransaction = (
+  tr: Transaction<Schema>,
+  state: EditorState<Schema>,
+): EntityStorePluginState =>
+  tr.getMeta(entityStorePluginKey) ?? entityStorePluginState(state);
 
 /**
  * We current violate Immer's rules, as properties inside entities can be
@@ -168,13 +175,16 @@ const newDraftEntity = (
 };
 
 export const addEntityStoreAction = (
+  state: EditorState<Schema>,
   tr: Transaction<Schema>,
   action: EntityStorePluginAction,
 ) => {
-  const actions: EntityStorePluginMessage =
-    tr.getMeta(entityStorePluginKey) ?? [];
+  const prevState = pluginStateFromTransaction(tr, state);
+  const nextState = entityStoreReducer(prevState, action);
 
-  tr.setMeta(entityStorePluginKey, [...actions, action]);
+  tr.setMeta(entityStorePluginKey, nextState);
+
+  return nextState;
 };
 
 const updateEntityStoreListeners = collect<
@@ -195,7 +205,7 @@ const updateEntityStoreListeners = collect<
 
     const tr = transactions.get(view)!;
 
-    addEntityStoreAction(tr, {
+    addEntityStoreAction(view.state, tr, {
       type: unsubscribe ? "unsubscribe" : "subscribe",
       payload: listener,
     });
@@ -241,11 +251,9 @@ const getRequiredDraftIdFromEntityNode = (entityNode: EntityNode): string => {
 class ProsemirrorStateChangeHandler {
   private readonly tr: Transaction<Schema>;
   private handled = false;
-  private draft: EntityStore["draft"];
 
   constructor(private state: EditorState<Schema>) {
     this.tr = state.tr;
-    this.draft = entityStorePluginState(state).store.draft;
   }
 
   handleDoc() {
@@ -257,11 +265,6 @@ class ProsemirrorStateChangeHandler {
 
     this.tr.doc.descendants((node, pos) => {
       this.handleNode(node, pos);
-    });
-
-    addEntityStoreAction(this.tr, {
-      type: "draft",
-      payload: this.draft,
     });
 
     return this.tr;
@@ -293,7 +296,8 @@ class ProsemirrorStateChangeHandler {
     }
 
     if (blockEntityNode.attrs.draftId) {
-      const entity = this.draft[blockEntityNode.attrs.draftId];
+      const draftEntityStore = this.getDraftEntityStoreFromTransaction();
+      const entity = draftEntityStore[blockEntityNode.attrs.draftId];
 
       if (!entity || !isBlockEntity(entity)) {
         throw new Error(
@@ -301,9 +305,11 @@ class ProsemirrorStateChangeHandler {
         );
       }
 
-      this.draft = updateEntityProperties(this.draft, entity.draftId, true, {
-        componentId: componentNodeToId(node),
-      });
+      this.setDraftEntityStoreToTransaction(
+        updateEntityProperties(draftEntityStore, entity.draftId, true, {
+          componentId: componentNodeToId(node),
+        }),
+      );
     }
   }
 
@@ -322,7 +328,8 @@ class ProsemirrorStateChangeHandler {
         throw new Error("invariant: parents must have a draft id");
       }
 
-      const parentEntity = this.draft[parentDraftId];
+      const draftEntityStore = this.getDraftEntityStoreFromTransaction();
+      const parentEntity = draftEntityStore[parentDraftId];
       if (!parentEntity) {
         throw new Error("invariant: parent node missing from draft store");
       }
@@ -331,31 +338,35 @@ class ProsemirrorStateChangeHandler {
       if (!isDraftBlockEntity(parentEntity)) {
         const componentNodeChild = findComponentNodes(node)[0][0];
 
-        this.draft = updateEntityProperties(
-          this.draft,
-          parentEntity.draftId,
-          false,
-          {
-            entity: this.draft[getRequiredDraftIdFromEntityNode(node)],
-            /**
-             * We don't currently rely on componentId of the draft
-             * right
-             * now, but this will be a problem in the future (i.e, if
-             * save starts using the draft entity store)
-             *
-             * @todo set this properly
-             */
-            componentId: componentNodeChild
-              ? componentNodeToId(componentNodeChild)
-              : "",
-          },
+        this.setDraftEntityStoreToTransaction(
+          updateEntityProperties(
+            draftEntityStore,
+            parentEntity.draftId,
+            false,
+            {
+              entity: draftEntityStore[getRequiredDraftIdFromEntityNode(node)],
+              /**
+               * We don't currently rely on componentId of the draft
+               * right
+               * now, but this will be a problem in the future (i.e, if
+               * save starts using the draft entity store)
+               *
+               * @todo set this properly
+               */
+              componentId: componentNodeChild
+                ? componentNodeToId(componentNodeChild)
+                : "",
+            },
+          ),
         );
       }
     }
   }
 
   private handlePotentialTextContentChangesInEntityNode(node: EntityNode) {
-    const draftEntity = this.draft[getRequiredDraftIdFromEntityNode(node)];
+    const draftEntityStore = this.getDraftEntityStoreFromTransaction();
+    const draftEntity =
+      draftEntityStore[getRequiredDraftIdFromEntityNode(node)];
 
     if (!draftEntity) {
       throw new Error("invariant: draft entity missing from store");
@@ -367,25 +378,26 @@ class ProsemirrorStateChangeHandler {
       node.firstChild.isTextblock
     ) {
       const nextProps = textBlockNodeToEntityProperties(node.firstChild);
-      this.draft = updateEntityProperties(
-        this.draft,
-        draftEntity.draftId,
-        false,
-        nextProps,
+      this.setDraftEntityStoreToTransaction(
+        updateEntityProperties(
+          draftEntityStore,
+          draftEntity.draftId,
+          false,
+          nextProps,
+        ),
       );
     }
   }
 
-  private potentialNewDraftEntityForEntityNode(
-    node: EntityNode,
-    pos: number,
-  ): EntityNode {
+  private potentialDraftIdSetForEntityNode(node: EntityNode, pos: number) {
+    const draftEntityStore = this.getDraftEntityStoreFromTransaction();
+
     const entityId = node.attrs.draftId
-      ? this.draft[node.attrs.draftId]?.entityId
+      ? draftEntityStore[node.attrs.draftId]?.entityId
       : null;
 
     const draftId = entityId
-      ? getDraftIdFromEntityByEntityId(this.draft, entityId)
+      ? getDraftIdFromEntityByEntityId(draftEntityStore, entityId)
       : /**
          * @todo this will lead to the frontend setting draft id uuids for
          *   new blocks – this is potentially insecure and needs
@@ -393,8 +405,10 @@ class ProsemirrorStateChangeHandler {
          */
         node.attrs.draftId ?? `fake-${uuid()}`;
 
-    if (!this.draft[draftId]) {
-      this.draft = newDraftEntity(this.draft, draftId, entityId ?? null);
+    if (!draftEntityStore[draftId]) {
+      this.setDraftEntityStoreToTransaction(
+        newDraftEntity(draftEntityStore, draftId, entityId ?? null),
+      );
     }
 
     /**
@@ -408,6 +422,13 @@ class ProsemirrorStateChangeHandler {
         draftId,
       });
     }
+  }
+
+  private potentialNewDraftEntityForEntityNode(
+    node: EntityNode,
+    pos: number,
+  ): EntityNode {
+    this.potentialDraftIdSetForEntityNode(node, pos);
 
     const updatedNode = this.tr.doc.resolve(this.tr.mapping.map(pos)).nodeAfter;
 
@@ -418,6 +439,17 @@ class ProsemirrorStateChangeHandler {
     this.potentialUpdateParentBlockEntity(updatedNode, pos);
 
     return updatedNode;
+  }
+
+  private getDraftEntityStoreFromTransaction() {
+    return pluginStateFromTransaction(this.tr, this.state).store.draft;
+  }
+
+  private setDraftEntityStoreToTransaction(draft: EntityStore["draft"]) {
+    addEntityStoreAction(this.state, this.tr, {
+      type: "draft",
+      payload: draft,
+    });
   }
 }
 
@@ -431,10 +463,8 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
       };
     },
     apply(tr, initialState): EntityStorePluginState {
-      const actions: EntityStorePluginMessage =
-        tr.getMeta(entityStorePluginKey) ?? [];
-
-      const nextState = actions.reduce(entityStoreReducer, initialState);
+      const nextState: EntityStorePluginState =
+        tr.getMeta(entityStorePluginKey) ?? initialState;
 
       if (nextState !== initialState) {
         for (const listener of nextState.listeners) {
