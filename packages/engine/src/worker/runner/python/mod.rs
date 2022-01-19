@@ -124,7 +124,7 @@ impl PythonRunner {
         Ok(Box::pin(tokio::task::spawn(f)))
     }
 }
-
+#[instrument(skip_all)]
 async fn _run(
     init_msg: Arc<ExperimentInitRunnerMsg>,
     mut inbound_receiver: UnboundedReceiver<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>,

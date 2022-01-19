@@ -89,7 +89,7 @@ pub async fn run_local_experiment(exp_config: ExperimentConfig, env: Environment
 type ExperimentPackageResult = Option<crate::experiment::Result<()>>;
 type ExperimentControllerResult = Option<Result<()>>;
 type WorkerPoolResult = Option<crate::workerpool::Result<()>>;
-
+#[instrument(skip_all)]
 async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     exp_config: ExperimentConfig,
     env: Environment,

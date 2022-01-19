@@ -115,7 +115,7 @@ where
         dyn_payloads,
     })
 }
-
+#[instrument(skip_all)]
 async fn recv_init_msg(orch_listener: &mut nano::Server) -> Result<InitMessage> {
     let msg = tokio::time::timeout(*INIT_MSG_RECV_TIMEOUT, orch_listener.recv::<EngineMsg>())
         .await

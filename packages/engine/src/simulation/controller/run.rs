@@ -188,7 +188,7 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     tokio::time::sleep(Duration::from_secs(1)).await;
     Ok(config.sim.id)
 }
-
+#[instrument(skip_all)]
 async fn maybe_handle_sim_ctl_msg(sim_from_exp: &mut SimCtlRecv) -> Result<LoopControl> {
     if let Some(Some(control)) = sim_from_exp.recv().now_or_never() {
         match control {
