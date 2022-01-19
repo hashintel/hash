@@ -236,43 +236,6 @@ const entityStoreReducer = (
   return state;
 };
 
-const handleComponentNode = (
-  tr: Transaction<Schema>,
-  pos: number,
-  draft: EntityStore["draft"],
-  node: ComponentNode,
-) => {
-  let blockEntityNode: EntityNode | null = null;
-  const resolved = tr.doc.resolve(pos);
-  for (let depth = 0; depth < resolved.depth; depth++) {
-    const parentNode = resolved.node(depth);
-    if (isEntityNode(parentNode)) {
-      blockEntityNode = parentNode;
-      break;
-    }
-  }
-
-  if (!blockEntityNode) {
-    throw new Error("invariant: unexpected structure");
-  }
-
-  if (blockEntityNode.attrs.draftId) {
-    const entity = draft[blockEntityNode.attrs.draftId];
-
-    if (!entity || !isBlockEntity(entity)) {
-      throw new Error(
-        "Block entity node points at non-block entity in draft store",
-      );
-    }
-
-    // eslint-disable-next-line no-param-reassign
-    draft = updateEntityProperties(draft, blockEntityNode.attrs.draftId, true, {
-      componentId: componentNodeToId(node),
-    });
-  }
-  return draft;
-};
-
 const handleEntityNode = (
   _draft: EntityStore["draft"],
   tr: Transaction<Schema>,
@@ -369,11 +332,47 @@ class ProsemirrorStateChangeHandler {
 
   handleNode(node: ProsemirrorNode<Schema>, pos: number) {
     if (isComponentNode(node)) {
-      this.draft = handleComponentNode(this.tr, pos, this.draft, node);
+      this.componentNode(node, pos);
     }
 
     if (isEntityNode(node)) {
       this.draft = handleEntityNode(this.draft, this.tr, node, pos);
+    }
+  }
+
+  private componentNode(node: ComponentNode, pos: number) {
+    let blockEntityNode: EntityNode | null = null;
+    const resolved = this.tr.doc.resolve(pos);
+    for (let depth = 0; depth < resolved.depth; depth++) {
+      const parentNode = resolved.node(depth);
+      if (isEntityNode(parentNode)) {
+        blockEntityNode = parentNode;
+        break;
+      }
+    }
+
+    if (!blockEntityNode) {
+      throw new Error("invariant: unexpected structure");
+    }
+
+    if (blockEntityNode.attrs.draftId) {
+      const entity = this.draft[blockEntityNode.attrs.draftId];
+
+      if (!entity || !isBlockEntity(entity)) {
+        throw new Error(
+          "Block entity node points at non-block entity in draft store",
+        );
+      }
+
+      // eslint-disable-next-line no-param-reassign
+      this.draft = updateEntityProperties(
+        this.draft,
+        blockEntityNode.attrs.draftId,
+        true,
+        {
+          componentId: componentNodeToId(node),
+        },
+      );
     }
   }
 }
