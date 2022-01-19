@@ -83,58 +83,6 @@ export const pluginStateFromTransaction = (
 ): EntityStorePluginState =>
   tr.getMeta(entityStorePluginKey) ?? entityStorePluginState(state);
 
-const updateEntityProperties = (
-  draftEntityStore: EntityStore["draft"],
-  draftId: string,
-  shouldMerge: boolean,
-  properties: {},
-) => {
-  if (!draftEntityStore[draftId]) {
-    throw new Error("Entity missing to merge entity properties");
-  }
-
-  return produce(draftEntityStore, (draftedDraftEntityStore) => {
-    const entities: Draft<DraftEntity>[] = [draftedDraftEntityStore[draftId]];
-
-    for (const entity of Object.values(draftedDraftEntityStore)) {
-      if (
-        isDraftBlockEntity(entity) &&
-        entity.properties.entity.draftId === draftId
-      ) {
-        entities.push(entity.properties.entity);
-      }
-    }
-
-    if (shouldMerge) {
-      for (const entity of entities) {
-        Object.assign(entity.properties, properties);
-      }
-    } else {
-      for (const entity of entities) {
-        entity.properties = properties;
-      }
-    }
-  });
-};
-
-const newDraftEntity = (
-  draftEntityStore: EntityStore["draft"],
-  draftId: string,
-  entityId: string | null,
-) => {
-  if (draftEntityStore[draftId]) {
-    throw new Error("Draft entity already exists");
-  }
-
-  return produce(draftEntityStore, (draft) => {
-    draft[draftId] = {
-      entityId,
-      draftId,
-      properties: {},
-    };
-  });
-};
-
 /**
  * We current violate Immer's rules, as properties inside entities can be
  * other entities themselves, and we expect `entity.property.entity` to be
@@ -182,32 +130,68 @@ const entityStoreReducer = (
         ),
       };
 
-    case "updateEntityProperties":
-      return {
-        ...state,
-        store: {
-          ...state.store,
-          draft: updateEntityProperties(
-            state.store.draft,
-            action.payload.draftId,
-            action.payload.merge,
-            action.payload.properties,
-          ),
-        },
-      };
+    case "updateEntityProperties": {
+      if (!state.store.draft[action.payload.draftId]) {
+        throw new Error("Entity missing to merge entity properties");
+      }
 
-    case "newDraftEntity":
+      const nextDraft = produce(
+        state.store.draft,
+        (draftedDraftEntityStore) => {
+          const entities: Draft<DraftEntity>[] = [
+            draftedDraftEntityStore[action.payload.draftId],
+          ];
+
+          for (const entity of Object.values(draftedDraftEntityStore)) {
+            if (
+              isDraftBlockEntity(entity) &&
+              entity.properties.entity.draftId === action.payload.draftId
+            ) {
+              entities.push(entity.properties.entity);
+            }
+          }
+
+          if (action.payload.merge) {
+            for (const entity of entities) {
+              Object.assign(entity.properties, action.payload.properties);
+            }
+          } else {
+            for (const entity of entities) {
+              entity.properties = action.payload.properties;
+            }
+          }
+        },
+      );
+
       return {
         ...state,
         store: {
           ...state.store,
-          draft: newDraftEntity(
-            state.store.draft,
-            action.payload.draftId,
-            action.payload.entityId,
-          ),
+          draft: nextDraft,
         },
       };
+    }
+    case "newDraftEntity": {
+      if (state.store.draft[action.payload.draftId]) {
+        throw new Error("Draft entity already exists");
+      }
+
+      const nextDraft = produce(state.store.draft, (draft) => {
+        draft[action.payload.draftId] = {
+          entityId: action.payload.entityId,
+          draftId: action.payload.draftId,
+          properties: {},
+        };
+      });
+
+      return {
+        ...state,
+        store: {
+          ...state.store,
+          draft: nextDraft,
+        },
+      };
+    }
   }
 
   return state;
