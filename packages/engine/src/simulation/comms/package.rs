@@ -1,4 +1,3 @@
-use tracing::instrument;
 use uuid::Uuid;
 
 use super::{Comms, Result};
@@ -19,17 +18,19 @@ pub struct PackageComms {
 }
 
 impl PackageComms {
+    #[tracing::instrument(skip_all)]
     pub fn add_create_agent_command(&mut self, agent: Agent) -> Result<()> {
         self.inner.add_create_agent_command(agent)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn add_remove_agent_command(&mut self, uuid: Uuid) -> Result<()> {
         self.inner.add_remove_agent_command(uuid)
     }
 }
 
 impl PackageComms {
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn new_task<T: Into<Task>>(
         &self,
         task: T,

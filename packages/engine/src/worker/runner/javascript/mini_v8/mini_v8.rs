@@ -33,6 +33,7 @@ pub struct DataFfi {
 }
 
 impl Default for MiniV8 {
+    #[tracing::instrument(skip_all)]
     fn default() -> MiniV8 {
         ffi_init();
         let interface = unsafe { mv8_interface_new() };
@@ -84,6 +85,7 @@ impl MiniV8 {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     fn eval_inner(&self, script: Script) -> Result<'_, Value<'_>> {
         let origin = script.origin.as_ref();
         desc_to_result(self, unsafe {
@@ -255,18 +257,21 @@ impl MiniV8 {
     ///////////////////////////////////////////////////////////////
     // Added arraybuffer and Arrow array data node conversion.
 
+    #[tracing::instrument(skip_all)]
     pub fn create_arraybuffer(&self, data: *mut u8, len: usize) -> Object<'_> {
         Object(Ref::new(self, unsafe {
             mv8_arraybuffer_new(self.interface, data, len)
         }))
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn data_node_from_js(&self, data: &Value<'_>) -> DataFfi {
         unsafe { mv8_data_node_from_js(self.interface, value_to_desc(self, data)) }
     }
 }
 
 impl Drop for MiniV8 {
+    #[tracing::instrument(skip_all)]
     fn drop(&mut self) {
         if !self.is_top {
             return;
@@ -312,6 +317,7 @@ pub struct ScriptOrigin {
 }
 
 impl From<StdString> for Script {
+    #[tracing::instrument(skip_all)]
     fn from(source: StdString) -> Script {
         Script {
             source,
@@ -321,11 +327,13 @@ impl From<StdString> for Script {
 }
 
 impl<'a> From<&'a str> for Script {
+    #[tracing::instrument(skip_all)]
     fn from(source: &'a str) -> Script {
         source.to_string().into()
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn execute_with_timeout<T>(
     timeout: Duration,
     execute_fn: impl FnOnce() -> T,

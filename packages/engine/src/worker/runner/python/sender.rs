@@ -3,7 +3,6 @@ use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Vector, WIPOffset};
 use flatbuffers_gen::sync_state_interim_generated::StateInterimSyncArgs;
 use nng::{options::Options, Aio, Socket};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
-use tracing::instrument;
 
 use super::{
     error::{Error, Result},
@@ -34,6 +33,7 @@ pub struct NngSender {
 }
 
 impl NngSender {
+    #[tracing::instrument(skip_all)]
     pub fn new(experiment_id: ExperimentId, worker_index: WorkerIndex) -> Result<Self> {
         let route = format!("ipc://{}-topy{}", experiment_id, worker_index);
         let to_py = Socket::new(nng::Protocol::Pair0)?;
@@ -86,11 +86,13 @@ impl NngSender {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn init(&self) -> Result<()> {
         self.to_py.dial(&self.route)?;
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn send(
         &self,
         sim_id: Option<SimulationShortId>,
@@ -109,13 +111,14 @@ impl NngSender {
         Ok(())
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn get_send_result(&mut self) -> Option<Result<()>> {
         self.aio_result_receiver.recv().await
     }
 }
 
 impl Drop for NngSender {
+    #[tracing::instrument(skip_all)]
     fn drop(&mut self) {
         // TODO: Check whether nng already does this when a socket is dropped
         self.to_py.close();
@@ -123,6 +126,8 @@ impl Drop for NngSender {
 }
 
 // TODO: Make this function shorter.
+
+#[tracing::instrument(skip_all)]
 fn inbound_to_nng(
     sim_id: Option<SimulationShortId>,
     msg: &InboundToRunnerMsgPayload,
@@ -294,6 +299,7 @@ fn inbound_to_nng(
     Ok(nanomsg)
 }
 
+#[tracing::instrument(skip_all)]
 fn state_sync_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
     agent_pool: &AgentPool,
@@ -320,6 +326,8 @@ fn state_sync_to_fbs<'f>(
 }
 
 // TODO: Reduce code duplication between enum variants.
+
+#[tracing::instrument(skip_all)]
 fn shared_store_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
     shared_store: &TaskSharedStore,
@@ -402,6 +410,7 @@ fn shared_store_to_fbs<'f>(
     flatbuffers_gen::sync_state_interim_generated::StateInterimSync::create(fbb, &args)
 }
 
+#[tracing::instrument(skip_all)]
 fn str_to_serialized<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
     s: &str,
@@ -414,6 +423,8 @@ fn str_to_serialized<'f>(
 }
 
 // TODO: Code duplication with JS runner; move this function into datastore?
+
+#[tracing::instrument(skip_all)]
 fn schema_to_stream_bytes(schema: &Schema) -> Vec<u8> {
     let content = schema_to_bytes(schema);
     let mut stream_bytes = arrow_continuation(content.len());

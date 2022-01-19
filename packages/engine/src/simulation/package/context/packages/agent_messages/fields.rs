@@ -5,6 +5,7 @@ use crate::datastore::schema::{
 
 pub(super) const MESSAGES_FIELD_NAME: &str = "messages";
 
+#[tracing::instrument(skip_all)]
 fn agent_messages() -> FieldType {
     let variant = VariableLengthArray(Box::new(FieldType::new(
         FixedLengthArray {

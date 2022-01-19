@@ -11,7 +11,6 @@ use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     task::JoinError,
 };
-use tracing::instrument;
 
 pub use self::error::{Error, Result};
 use self::{receiver::NngReceiver, sender::NngSender};
@@ -39,6 +38,7 @@ pub struct PythonRunner {
 }
 
 impl PythonRunner {
+    #[tracing::instrument(skip_all)]
     pub fn new(spawn: bool, init_msg: ExperimentInitRunnerMsg) -> WorkerResult<Self> {
         let (inbound_sender, inbound_receiver) = unbounded_channel();
         let (outbound_sender, outbound_receiver) = unbounded_channel();
@@ -52,7 +52,7 @@ impl PythonRunner {
         })
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn send(
         &self,
         sim_id: Option<SimulationShortId>,
@@ -64,7 +64,7 @@ impl PythonRunner {
             .map_err(|e| WorkerError::Python(Error::InboundSend(e)))
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn send_if_spawned(
         &self,
         sim_id: Option<SimulationShortId>,
@@ -76,7 +76,7 @@ impl PythonRunner {
         Ok(())
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn recv(&mut self) -> WorkerResult<OutboundFromRunnerMsg> {
         self.outbound_receiver
             .recv()
@@ -85,7 +85,7 @@ impl PythonRunner {
     }
 
     // TODO: Duplication with other runners (move into worker?)
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn recv_now(&mut self) -> WorkerResult<Option<OutboundFromRunnerMsg>> {
         // TODO: `now_or_never` on a receiver can very rarely drop messages (known
         //       issue with tokio). Replace with better solution once tokio has one.
@@ -98,7 +98,7 @@ impl PythonRunner {
     }
 
     // TODO: hopefully get rid of this (https://github.com/tokio-rs/tracing/issues/1840)
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn run(
         &mut self,
     ) -> WorkerResult<Pin<Box<dyn Future<Output = StdResult<WorkerResult<()>, JoinError>> + Send>>>
@@ -124,7 +124,7 @@ impl PythonRunner {
         Ok(Box::pin(tokio::task::spawn(f)))
     }
 }
-#[instrument(skip_all)]
+#[tracing::instrument(skip_all)]
 async fn _run(
     init_msg: Arc<ExperimentInitRunnerMsg>,
     mut inbound_receiver: UnboundedReceiver<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>,

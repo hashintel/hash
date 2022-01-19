@@ -29,6 +29,7 @@ impl Globals {
         Globals(serde_json::Value::Object(serde_json::Map::new()))
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get<S>(&self, key: S) -> Option<&serde_json::Value>
     where
         S: AsRef<str>,
@@ -36,6 +37,7 @@ impl Globals {
         self.0.get(key.as_ref())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_cloned<S>(&self, key: S) -> Option<serde_json::Value>
     where
         S: AsRef<str>,
@@ -45,6 +47,7 @@ impl Globals {
 }
 
 impl Default for Globals {
+    #[tracing::instrument(skip_all)]
     fn default() -> Globals {
         Globals::empty()
     }

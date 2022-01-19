@@ -9,6 +9,7 @@ pub struct JsonStateOutputConfig {
 }
 
 impl JsonStateOutputConfig {
+    #[tracing::instrument(skip_all)]
     pub fn new(_config: &ExperimentConfig) -> Result<JsonStateOutputConfig> {
         // TODO: make this configurable
         Ok(JsonStateOutputConfig::default())

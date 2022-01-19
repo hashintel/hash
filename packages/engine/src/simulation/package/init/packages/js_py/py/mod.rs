@@ -19,12 +19,14 @@ pub struct PyInitTask {
 }
 
 impl GetTaskArgs for PyInitTask {
+    #[tracing::instrument(skip_all)]
     fn distribution(&self) -> TaskDistributionConfig {
         TaskDistributionConfig::None
     }
 }
 
 impl WorkerHandler for PyInitTask {
+    #[tracing::instrument(skip_all)]
     fn start_message(&self) -> SimulationResult<TargetedTaskMessage> {
         let start_msg = StartMessage {
             initial_state_source: self.initial_state_source.clone(),

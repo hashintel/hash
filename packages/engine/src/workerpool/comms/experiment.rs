@@ -29,6 +29,7 @@ impl ExpMsgRecv {
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub fn new_pair() -> (ExpMsgSend, ExpMsgRecv) {
     let (send, recv) = unbounded_channel();
     (ExpMsgSend { inner: send }, ExpMsgRecv { inner: recv })

@@ -19,6 +19,7 @@ pub struct AgentSchema {
 }
 
 impl AgentSchema {
+    #[tracing::instrument(skip_all)]
     pub fn new(field_spec_map: FieldSpecMap) -> Result<AgentSchema> {
         let arrow_schema = Arc::new(field_spec_map.get_arrow_schema()?);
         let static_meta = arrow_schema.get_static_metadata();
@@ -30,6 +31,7 @@ impl AgentSchema {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn column_index_of(&self, name: &str) -> Result<usize> {
         let index = self.arrow.index_of(name)?;
         Ok(index)

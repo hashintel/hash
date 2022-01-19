@@ -1,5 +1,6 @@
 use super::{Context, Result, SharedBehavior, State};
 
+#[tracing::instrument(skip_all)]
 pub fn behavior(state: &mut State<'_>, _context: &Context<'_>) -> Result<()> {
     let increment_col = state.counter_increment()?;
     let reset_at_col = state.counter_reset_at()?;
@@ -32,6 +33,7 @@ pub fn behavior(state: &mut State<'_>, _context: &Context<'_>) -> Result<()> {
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub fn get_named_behavior() -> SharedBehavior {
     SharedBehavior {
         id: "@hash/counter/counter.rs".into(),

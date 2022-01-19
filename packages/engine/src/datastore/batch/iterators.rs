@@ -5,6 +5,7 @@ pub mod agent {
 
     use crate::datastore::{prelude::*, POSITION_DIM, UUID_V4_LEN};
 
+    #[tracing::instrument(skip_all)]
     pub fn agent_id_iter<B: Deref<Target = AgentBatch>>(
         agent_pool: &[B],
     ) -> Result<impl Iterator<Item = &[u8; UUID_V4_LEN]>> {
@@ -18,6 +19,7 @@ pub mod agent {
         Ok(iterables.into_iter().flatten())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn agent_id_iter_ref<'b: 'a, 'a, B: Deref<Target = AgentBatch>>(
         agent_pool: &'a [&'b B],
     ) -> Result<impl Iterator<Item = &'b [u8; UUID_V4_LEN]> + 'a> {
@@ -31,6 +33,7 @@ pub mod agent {
         Ok(iterables.into_iter().flatten())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn agent_name_iter<B: Deref<Target = AgentBatch>>(
         agent_pool: &[B],
     ) -> Result<impl Iterator<Item = Option<&str>>> {
@@ -44,6 +47,7 @@ pub mod agent {
         Ok(iterables.into_iter().flatten())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn agent_name_iter_ref<'b: 'a, 'a, B: Deref<Target = AgentBatch>>(
         agent_pool: &'a [&'b B],
     ) -> Result<impl Iterator<Item = Option<&'b str>> + 'a> {
@@ -57,6 +61,7 @@ pub mod agent {
         Ok(iterables.into_iter().flatten())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn json_value_iter_cols<'a, B: Deref<Target = AgentBatch>>(
         agent_pool: &'a [B],
         field_name: &str,
@@ -83,6 +88,7 @@ pub mod agent {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn position_iter<B: Deref<Target = AgentBatch>>(
         agent_pool: &[B],
     ) -> Result<impl Iterator<Item = Option<&[f64; POSITION_DIM]>>> {
@@ -97,6 +103,7 @@ pub mod agent {
         Ok(iterables.into_iter().flatten())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn search_radius_iter<B: Deref<Target = AgentBatch>>(
         agent_pool: &[B],
     ) -> Result<impl Iterator<Item = Option<f64>> + '_> {
@@ -110,6 +117,7 @@ pub mod agent {
         Ok(iterables.into_iter().flatten())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn behavior_list_bytes_iter<'a, B: Deref<Target = AgentBatch>>(
         agent_pool: &'a [B],
     ) -> Result<impl Iterator<Item = Vec<&[u8]>> + 'a> {
@@ -122,6 +130,7 @@ pub mod agent {
         Ok(iterables.into_iter().flatten())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn f64_iter<'a, B: Deref<Target = AgentBatch>>(
         agent_pool: &'a [B],
         field_name: &str,
@@ -136,6 +145,7 @@ pub mod agent {
         Ok(iterables.into_iter().flatten())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn exists_iter<'a, B: AsRef<AgentBatch>>(
         agent_pool: &'a [B],
         field_name: &str,
@@ -150,6 +160,7 @@ pub mod agent {
         Ok(iterables.into_iter().flatten())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn str_iter<'a, B: AsRef<AgentBatch>>(
         agent_pool: &'a [B],
         field_name: &str,
@@ -164,6 +175,7 @@ pub mod agent {
         Ok(iterables.into_iter().flatten())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn bool_iter<'a, B: AsRef<AgentBatch>>(
         agent_pool: &'a [B],
         field_name: &str,
@@ -178,6 +190,7 @@ pub mod agent {
         Ok(iterables.into_iter().flatten())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn json_serialized_value_iter<'a, B: AsRef<AgentBatch>>(
         agent_pool: &'a [B],
         field_name: &str,

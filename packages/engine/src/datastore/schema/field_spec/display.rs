@@ -3,6 +3,7 @@ use std::fmt;
 use super::{FieldSpec, FieldTypeVariant};
 
 impl fmt::Debug for FieldTypeVariant {
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             FieldTypeVariant::Number => write!(f, "number"),
@@ -23,6 +24,7 @@ impl fmt::Debug for FieldTypeVariant {
 
 // TODO: Do we want the other fields such as source
 impl fmt::Debug for FieldSpec {
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("field_spec")
             .field("name", &self.name)

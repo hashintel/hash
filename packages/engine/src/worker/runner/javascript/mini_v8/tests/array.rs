@@ -3,6 +3,7 @@ use std::string::String as StdString;
 use super::super::*;
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn set_get() {
     let mv8 = MiniV8::new();
 
@@ -16,6 +17,7 @@ fn set_get() {
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn len() {
     let mv8 = MiniV8::new();
 
@@ -28,6 +30,7 @@ fn len() {
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn push() {
     let mv8 = MiniV8::new();
 
@@ -45,6 +48,7 @@ fn push() {
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn elements() {
     let mv8 = MiniV8::new();
 

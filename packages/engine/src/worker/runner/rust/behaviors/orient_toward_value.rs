@@ -1,7 +1,8 @@
-use super::{Context, Error, Result, SharedBehavior, State};
-
 use std::collections::HashMap;
 
+use super::{Context, Error, Result, SharedBehavior, State};
+
+#[tracing::instrument(skip_all)]
 pub fn behavior(state: &mut State, context: &Context) -> Result<()> {
     let mut json_state = state.get_json_state()?;
 
@@ -87,6 +88,7 @@ pub fn behavior(state: &mut State, context: &Context) -> Result<()> {
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub fn get_named_behavior() -> SharedBehavior {
     SharedBehavior {
         id: "@hash/orient_toward_value/orient_toward_value.rs".into(),

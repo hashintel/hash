@@ -1,6 +1,8 @@
-use super::{accessors::field_or_property, Context, Result, SharedBehavior, State};
 use rand::Rng;
 
+use super::{accessors::field_or_property, Context, Result, SharedBehavior, State};
+
+#[tracing::instrument(skip_all)]
 pub fn behavior(state: &mut State<'_>, context: &Context<'_>) -> Result<()> {
     let globals = context.globals();
     let infection_chance_property = globals.get("infection_chance").cloned();
@@ -50,6 +52,7 @@ pub fn behavior(state: &mut State<'_>, context: &Context<'_>) -> Result<()> {
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub fn get_named_behavior() -> SharedBehavior {
     SharedBehavior {
         id: "@hash/viral_spread/viral_spread.rs".into(),

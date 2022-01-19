@@ -14,6 +14,7 @@ pub struct SimConfigurer {
 }
 
 impl SimConfigurer {
+    #[tracing::instrument(skip_all)]
     pub fn new(package_config: &ExperimentPackageConfig, num_workers: usize) -> SimConfigurer {
         let num_workers_per_sim = match package_config {
             ExperimentPackageConfig::Simple(config) => {
@@ -32,6 +33,7 @@ impl SimConfigurer {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn configure_next(
         &mut self,
         exp_config: &Arc<ExperimentConfig>,
@@ -67,6 +69,7 @@ struct WorkerAllocator {
 }
 
 impl WorkerAllocator {
+    #[tracing::instrument(skip_all)]
     pub fn next(&mut self) -> WorkerAllocation {
         (0..self.num_workers_per_sim)
             .map(|_| {

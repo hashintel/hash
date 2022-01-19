@@ -8,6 +8,7 @@ pub enum CancelState {
 }
 
 impl Default for CancelState {
+    #[tracing::instrument(skip_all)]
     fn default() -> Self {
         CancelState::None
     }

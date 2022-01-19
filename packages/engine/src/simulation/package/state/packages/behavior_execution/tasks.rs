@@ -22,6 +22,7 @@ pub struct ExecuteBehaviorsTask {
 }
 
 impl GetTaskArgs for ExecuteBehaviorsTask {
+    #[tracing::instrument(skip_all)]
     fn distribution(&self) -> TaskDistributionConfig {
         TaskDistributionConfig::Distributed(Distribution {
             single_read_access: true,
@@ -30,6 +31,7 @@ impl GetTaskArgs for ExecuteBehaviorsTask {
 }
 
 impl WorkerHandler for ExecuteBehaviorsTask {
+    #[tracing::instrument(skip_all)]
     fn start_message(&self) -> Result<TargetedTaskMessage> {
         let task_msg: StateTaskMessage = ExecuteBehaviorsTaskMessage {}.into();
         SimulationResult::Ok(TargetedTaskMessage {
@@ -40,6 +42,7 @@ impl WorkerHandler for ExecuteBehaviorsTask {
 }
 
 impl WorkerPoolHandler for ExecuteBehaviorsTask {
+    #[tracing::instrument(skip_all)]
     fn split_task(&self, split_config: &SplitConfig) -> Result<Vec<Task>> {
         split_config
             .agent_distribution
@@ -52,6 +55,7 @@ impl WorkerPoolHandler for ExecuteBehaviorsTask {
             .collect())
     }
 
+    #[tracing::instrument(skip_all)]
     fn combine_messages(&self, split_tasks: Vec<TaskMessage>) -> Result<TaskMessage> {
         for _task in split_tasks {
             // TODO: How can we match an enum_dispatch nested enum?

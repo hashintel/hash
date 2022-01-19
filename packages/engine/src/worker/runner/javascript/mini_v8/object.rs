@@ -103,6 +103,7 @@ impl<'mv8> Object<'mv8> {
 }
 
 impl fmt::Debug for Object<'_> {
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let keys = match self.keys(false) {
             Ok(keys) => keys,
@@ -153,6 +154,8 @@ where
 
     /// This will return `Some(Err(...))` if the next property's key or value failed to be converted
     /// into `K` or `V` respectively (through `ToValue`).
+
+    #[tracing::instrument(skip_all)]
     fn next(&mut self) -> Option<Self::Item> {
         if self.index >= self.keys.len() {
             return None;

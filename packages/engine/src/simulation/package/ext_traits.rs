@@ -13,6 +13,7 @@ pub trait GetWorkerExpStartMsg {
     /// for packages but their respective package creator.
     /// If a package creator doesn't want to pass anything it should return a
     /// `Ok(serde_json::Value::Null)`.
+
     fn get_worker_exp_start_msg(&self) -> Result<serde_json::Value>;
 }
 
@@ -26,6 +27,7 @@ pub trait GetWorkerSimStartMsg {
     /// has been instantiated.
     /// If a package doesn't want to pass anything it should return a
     /// `Ok(serde_json::Value::Null)`.
+
     fn get_worker_sim_start_msg(&self) -> Result<serde_json::Value>;
 }
 

@@ -44,6 +44,7 @@ pub struct Foo {
     quux: Option<[String; 16]>,
 }
 
+#[tracing::instrument(skip_all)]
 fn rand_string(seed: u64) -> String {
     let mut rng = StdRng::seed_from_u64(seed);
     let count = rng.gen_range(0..64);
@@ -57,6 +58,7 @@ fn rand_string(seed: u64) -> String {
 }
 
 impl Foo {
+    #[tracing::instrument(skip_all)]
     fn new(seed: u64) -> Foo {
         let mut rng = StdRng::seed_from_u64(seed);
         Foo {
@@ -81,6 +83,7 @@ pub struct Complex {
 }
 
 impl Complex {
+    #[tracing::instrument(skip_all)]
     fn new(seed: u64) -> Complex {
         let mut rng = StdRng::seed_from_u64(seed);
 
@@ -93,6 +96,7 @@ impl Complex {
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn make_dummy_agent(seed: u64) -> Result<Agent, Error> {
     let mut rng = StdRng::seed_from_u64(seed);
 

@@ -89,18 +89,21 @@ pub enum Error {
 }
 
 impl From<mv8::Error<'_>> for Error {
+    #[tracing::instrument(skip_all)]
     fn from(e: mv8::Error<'_>) -> Self {
         Error::V8(format!("{:?}", e))
     }
 }
 
 impl From<&str> for Error {
+    #[tracing::instrument(skip_all)]
     fn from(s: &str) -> Self {
         Error::Unique(s.to_string())
     }
 }
 
 impl From<String> for Error {
+    #[tracing::instrument(skip_all)]
     fn from(s: String) -> Self {
         Error::Unique(s)
     }

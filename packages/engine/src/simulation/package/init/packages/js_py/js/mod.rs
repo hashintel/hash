@@ -21,12 +21,14 @@ pub struct JsInitTask {
 }
 
 impl GetTaskArgs for JsInitTask {
+    #[tracing::instrument(skip_all)]
     fn distribution(&self) -> TaskDistributionConfig {
         TaskDistributionConfig::None
     }
 }
 
 impl WorkerHandler for JsInitTask {
+    #[tracing::instrument(skip_all)]
     fn start_message(&self) -> SimulationResult<TargetedTaskMessage> {
         let jspy_init_task_msg: JsPyInitTaskMessage = StartMessage {
             initial_state_source: self.initial_state_source.clone(),

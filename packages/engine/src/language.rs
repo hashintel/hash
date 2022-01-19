@@ -16,14 +16,17 @@ impl Language {
     pub const ORDERED: [Language; Self::NUM] =
         [Language::JavaScript, Language::Python, Language::Rust];
 
+    #[tracing::instrument(skip_all)]
     pub fn as_index(self) -> usize {
         self as usize
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn from_index(i: usize) -> Self {
         Self::ORDERED[i]
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn from_file_name(file_name: &str) -> Result<Language> {
         if !(file_name.contains('.') || file_name.contains('/')) {
             // This is so we're on-par w/ the web-engine, see `extract_hash_builtin` in

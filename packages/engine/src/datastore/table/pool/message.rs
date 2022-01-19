@@ -18,18 +18,22 @@ pub struct MessagePool {
 }
 
 impl MessagePool {
+    #[tracing::instrument(skip_all)]
     pub fn new(batches: Vec<Arc<RwLock<MessageBatch>>>) -> MessagePool {
         MessagePool { batches }
     }
 
+    #[tracing::instrument(skip_all)]
     fn batches(&self) -> &Vec<Arc<RwLock<MessageBatch>>> {
         &self.batches
     }
 
+    #[tracing::instrument(skip_all)]
     fn batches_mut(&mut self) -> &mut Vec<Arc<RwLock<MessageBatch>>> {
         &mut self.batches
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn read_batches(&self) -> Result<Vec<RwLockReadGuard<'_, MessageBatch>>> {
         self.batches()
             .iter()
@@ -40,6 +44,7 @@ impl MessagePool {
             .collect::<Result<_>>()
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn read(&self) -> Result<MessagePoolRead<'_>> {
         let read_batches = self
             .batches()
@@ -55,20 +60,24 @@ impl MessagePool {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn empty() -> MessagePool {
         MessagePool {
             batches: Default::default(),
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn len(&self) -> usize {
         self.batches.len()
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn reset(&mut self, agent_pool: &AgentPool, sim_config: &SimRunConfig) -> Result<()> {
         let message_schema = &sim_config.sim.store.message_schema;
         let experiment_run_id = &sim_config.exp.run_id;
@@ -117,6 +126,7 @@ pub struct MessagePoolRead<'a> {
 }
 
 impl<'a> MessagePoolRead<'a> {
+    #[tracing::instrument(skip_all)]
     pub fn get_reader(&'a self) -> MessageReader<'a> {
         let mut loaders = Vec::with_capacity(self.batches.len());
         for batch in &self.batches {
@@ -126,6 +136,7 @@ impl<'a> MessagePoolRead<'a> {
         MessageReader { loaders }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn recipient_iter_all<'b: 'r, 'r>(
         &'b self,
     ) -> impl ParallelIterator<Item = (Vec<&'b str>, AgentMessageReference)> + 'r {
@@ -147,6 +158,7 @@ pub struct MessageReader<'a> {
 }
 
 impl<'a> MessageReader<'a> {
+    #[tracing::instrument(skip_all)]
     pub fn get_loader(&self, batch_index: usize) -> Result<&batch::message::MessageLoader<'a>> {
         self.loaders
             .get(batch_index)
@@ -155,6 +167,7 @@ impl<'a> MessageReader<'a> {
 }
 
 impl MessageReader<'_> {
+    #[tracing::instrument(skip_all)]
     pub fn type_iter<'b: 'r, 'r>(
         &'b self,
         message_references: &'r [AgentMessageReference],
@@ -165,6 +178,7 @@ impl MessageReader<'_> {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn data_iter<'b: 'r, 'r>(
         &'b self,
         message_references: &'r [AgentMessageReference],
@@ -175,6 +189,7 @@ impl MessageReader<'_> {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn from_iter<'b: 'r, 'r>(
         &'b self,
         message_references: &'r [AgentMessageReference],
@@ -184,6 +199,7 @@ impl MessageReader<'_> {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn raw_msg_iter<'b: 'r, 'r>(
         &'b self,
         message_references: &'r [AgentMessageReference],
@@ -196,10 +212,12 @@ impl MessageReader<'_> {
 }
 
 impl BatchPool<MessageBatch> for MessagePool {
+    #[tracing::instrument(skip_all)]
     fn batches(&self) -> &[Arc<RwLock<MessageBatch>>] {
         &self.batches
     }
 
+    #[tracing::instrument(skip_all)]
     fn mut_batches(&mut self) -> &mut Vec<Arc<RwLock<MessageBatch>>> {
         &mut self.batches
     }

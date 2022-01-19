@@ -199,6 +199,7 @@ impl<'mv8> Value<'mv8> {
 }
 
 impl fmt::Debug for Value<'_> {
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Value::Undefined => write!(f, "undefined"),
@@ -217,12 +218,14 @@ impl fmt::Debug for Value<'_> {
 /// Trait for types convertible to `Value`.
 pub trait ToValue<'mv8> {
     /// Performs the conversion.
+
     fn to_value(self, mv8: &'mv8 MiniV8) -> Result<'mv8, Value<'mv8>>;
 }
 
 /// Trait for types convertible from `Value`.
 pub trait FromValue<'mv8>: Sized {
     /// Performs the conversion.
+
     fn from_value(value: Value<'mv8>, mv8: &'mv8 MiniV8) -> Result<'mv8, Self>;
 }
 
@@ -236,14 +239,17 @@ impl<'mv8> Values<'mv8> {
         Self::default()
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn from_vec(vec: Vec<Value<'mv8>>) -> Values<'mv8> {
         Values(vec)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn into_vec(self) -> Vec<Value<'mv8>> {
         self.0
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get(&self, index: usize) -> Value<'mv8> {
         self.0
             .get(index)
@@ -251,6 +257,7 @@ impl<'mv8> Values<'mv8> {
             .unwrap_or(Value::Undefined)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn from<T: FromValue<'mv8>>(&self, mv8: &'mv8 MiniV8, index: usize) -> Result<'mv8, T> {
         T::from_value(
             self.0
@@ -261,20 +268,24 @@ impl<'mv8> Values<'mv8> {
         )
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn into<T: FromValues<'mv8>>(self, mv8: &'mv8 MiniV8) -> Result<'mv8, T> {
         T::from_values(self, mv8)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn iter<'a>(&'a self) -> impl Iterator<Item = &'a Value<'mv8>> {
         self.0.iter()
     }
 }
 
 impl<'mv8> FromIterator<Value<'mv8>> for Values<'mv8> {
+    #[tracing::instrument(skip_all)]
     fn from_iter<I: IntoIterator<Item = Value<'mv8>>>(iter: I) -> Self {
         Values::from_vec(Vec::from_iter(iter))
     }
@@ -284,6 +295,7 @@ impl<'mv8> IntoIterator for Values<'mv8> {
     type IntoIter = vec::IntoIter<Value<'mv8>>;
     type Item = Value<'mv8>;
 
+    #[tracing::instrument(skip_all)]
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
     }
@@ -293,6 +305,7 @@ impl<'a, 'mv8> IntoIterator for &'a Values<'mv8> {
     type IntoIter = slice::Iter<'a, Value<'mv8>>;
     type Item = &'a Value<'mv8>;
 
+    #[tracing::instrument(skip_all)]
     fn into_iter(self) -> Self::IntoIter {
         (&self.0).iter()
     }
@@ -304,6 +317,7 @@ impl<'a, 'mv8> IntoIterator for &'a Values<'mv8> {
 /// instead of just one. Any type that implements `ToValue` will automatically implement this trait.
 pub trait ToValues<'mv8> {
     /// Performs the conversion.
+
     fn to_values(self, mv8: &'mv8 MiniV8) -> Result<'mv8, Values<'mv8>>;
 }
 
@@ -318,6 +332,7 @@ pub trait FromValues<'mv8>: Sized {
     /// In case `values` contains more values than needed to perform the conversion, the excess
     /// values should be ignored. Similarly, if not enough values are given, conversions should
     /// assume that any missing values are undefined.
+
     fn from_values(values: Values<'mv8>, mv8: &'mv8 MiniV8) -> Result<'mv8, Self>;
 }
 
@@ -331,6 +346,7 @@ pub trait FromValues<'mv8>: Sized {
 pub struct Variadic<T>(pub(super) Vec<T>);
 
 impl<T> Default for Variadic<T> {
+    #[tracing::instrument(skip_all)]
     fn default() -> Self {
         Self(Vec::new())
     }
@@ -342,16 +358,19 @@ impl<T> Variadic<T> {
         Self::default()
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn from_vec(vec: Vec<T>) -> Variadic<T> {
         Self(vec)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn into_vec(self) -> Vec<T> {
         self.0
     }
 }
 
 impl<T> FromIterator<T> for Variadic<T> {
+    #[tracing::instrument(skip_all)]
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
         Variadic(Vec::from_iter(iter))
     }
@@ -361,6 +380,7 @@ impl<T> IntoIterator for Variadic<T> {
     type IntoIter = <Vec<T> as IntoIterator>::IntoIter;
     type Item = T;
 
+    #[tracing::instrument(skip_all)]
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
     }
@@ -369,12 +389,14 @@ impl<T> IntoIterator for Variadic<T> {
 impl<T> Deref for Variadic<T> {
     type Target = Vec<T>;
 
+    #[tracing::instrument(skip_all)]
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
 impl<T> DerefMut for Variadic<T> {
+    #[tracing::instrument(skip_all)]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }

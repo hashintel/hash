@@ -1,5 +1,6 @@
-use arrow::array::UInt32Array;
 use std::{collections::HashMap, sync::Arc};
+
+use arrow::array::UInt32Array;
 
 use super::{state::StateSnapshot, Error, Result, SimSchema};
 use crate::datastore::batch::{AgentBatch, MessageBatch};
@@ -15,6 +16,7 @@ pub struct Neighbor<'c> {
 }
 
 impl<'c> Neighbor<'c> {
+    #[tracing::instrument(skip_all)]
     pub fn get_custom_as_json(&self, name: &str) -> Result<serde_json::Value> {
         if name == "messages" {
             return Err(Error::NotCustomField(name.to_string()));

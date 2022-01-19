@@ -4,7 +4,6 @@ use tokio::{
     sync::oneshot::{channel, Receiver, Sender},
     time::timeout,
 };
-use tracing::instrument;
 
 pub use super::{Error, Result};
 
@@ -21,6 +20,7 @@ pub struct TerminateRecv {
 }
 
 impl TerminateRecv {
+    #[tracing::instrument(skip_all)]
     pub fn take_recv(&mut self) -> Result<Receiver<TerminateMessage>> {
         let receiver = self
             .inner
@@ -29,6 +29,7 @@ impl TerminateRecv {
         Ok(receiver)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn confirm_terminate(&mut self) -> Result<()> {
         let confirm = self
             .confirm
@@ -47,6 +48,7 @@ pub struct TerminateSend {
 }
 
 impl TerminateSend {
+    #[tracing::instrument(skip_all)]
     pub fn send(&mut self) -> Result<()> {
         let sender = self
             .inner
@@ -58,7 +60,7 @@ impl TerminateSend {
         Ok(())
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn recv_terminate_confirmation(&mut self) -> Result<()> {
         if self.inner.is_some() {
             return Err(Error::TerminateMessageNotSent);
@@ -73,7 +75,7 @@ impl TerminateSend {
         Ok(())
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn recv_terminate_confirmation_with_ms_timeout(
         &mut self,
         millis: usize,
@@ -91,6 +93,7 @@ impl TerminateSend {
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub fn new_pair() -> (TerminateSend, TerminateRecv) {
     let (terminate_send, terminate_recv) = channel();
     let (confirm_send, confirm_recv) = channel();

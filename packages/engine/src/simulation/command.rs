@@ -41,10 +41,12 @@ pub struct CreateRemoveCommands {
 }
 
 impl CreateRemoveCommands {
+    #[tracing::instrument(skip_all)]
     pub fn add_create(&mut self, agent: Agent) {
         self.create.push(CreateCommand { agent });
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn add_remove(&mut self, uuid: Uuid) {
         self.remove.push(RemoveCommand { uuid });
     }
@@ -66,6 +68,7 @@ impl CreateRemoveCommands {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn merge(&mut self, mut other: CreateRemoveCommands) {
         self.create.append(&mut other.create);
         self.remove.append(&mut other.remove);
@@ -155,6 +158,8 @@ impl CreateRemoveCommands {
 }
 
 /// TODO: DOC
+
+#[tracing::instrument(skip_all)]
 fn handle_hash_message(
     cmds: &mut CreateRemoveCommands,
     message_type: HashMessageType,
@@ -177,6 +182,8 @@ fn handle_hash_message(
 }
 
 /// TODO: DOC
+
+#[tracing::instrument(skip_all)]
 fn handle_remove_data(
     cmds: &mut CreateRemoveCommands,
     data: &str,

@@ -8,6 +8,7 @@ pub struct MessageSchema {
 }
 
 impl Default for MessageSchema {
+    #[tracing::instrument(skip_all)]
     fn default() -> Self {
         let arrow = Arc::new(MESSAGE_BATCH_SCHEMA.clone());
         let static_meta = Arc::new(arrow.get_static_metadata());
@@ -17,6 +18,7 @@ impl Default for MessageSchema {
 }
 
 impl MessageSchema {
+    #[tracing::instrument(skip_all)]
     pub fn new() -> Self {
         Self::default()
     }

@@ -86,6 +86,7 @@ pub enum Outbound {
 #[test]
 // the goal of this test is to check whether or not 'remove_agent' messages automatically
 // have their data (agent to remove's id and hash system recipient) filled out during json_decoding
+#[tracing::instrument(skip_all)]
 fn ensure_blank_remove_agent_is_inferred() -> Result<()> {
     let state: Agent = serde_json::from_str(
         r#"
@@ -120,6 +121,7 @@ pub enum Error {
 }
 
 impl fmt::Display for Error {
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Error::InvalidMessageType(Some(received)) => write!(
@@ -136,6 +138,7 @@ impl fmt::Display for Error {
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn is_system_message(kind: &str) -> bool {
     kind == "create_agent" || kind == "remove_agent"
 }
@@ -164,6 +167,7 @@ impl Outbound {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     fn is_json_message_remove_agent(value: &serde_json::Value) -> bool {
         if let Some(serde_json::Value::String(kind)) = value.get("type") {
             return kind == RemoveAgentPayload::IDENTIFIER;
@@ -171,6 +175,7 @@ impl Outbound {
         false
     }
 
+    #[tracing::instrument(skip_all)]
     fn infer_remove_agent_with_state(
         value: &mut serde_json::Value,
         state: &Agent,
@@ -189,6 +194,7 @@ impl Outbound {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     fn ensure_has_recipient(value: &mut serde_json::Value) {
         if value.get("to").is_none() {
             if let Some(obj) = value.as_object_mut() {
@@ -203,6 +209,8 @@ impl Outbound {
     /// preprocess should be used as the main driver for the custom deserializer for
     /// outbound messages. This acts as a gate / validator for messages before they are fully
     /// parsed, providing nicer error messages and sensible, stateful defaults
+
+    #[tracing::instrument(skip_all)]
     fn preprocess(value: &mut serde_json::Value, state: &Agent) -> Result<(), Error> {
         // if the message has a recipient, and the recipient is the hash engine, make sure its a
         // valid message type
@@ -216,6 +224,7 @@ impl Outbound {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     fn is_hash_engine_message(value: &mut serde_json::Value) -> bool {
         if let Some(serde_json::Value::String(recipient)) = value.get("to") {
             return recipient.eq_ignore_ascii_case("hash");
@@ -226,6 +235,8 @@ impl Outbound {
     /// `ensure_is_valid_hash_engine_message` will return an error if the type of system message
     /// does not match an expected type. This is used as a nicer error alternative to
     /// serdes missing variant error
+
+    #[tracing::instrument(skip_all)]
     fn ensure_is_valid_hash_engine_message(value: &serde_json::Value) -> Result<(), Error> {
         // message is intended for hash already, so only ensure type
         if let Some(serde_json::Value::String(kind /* is a &String */)) = value.get("type") {
@@ -374,6 +385,7 @@ pub struct GenericPayload {
     pub data: Option<serde_json::Value>,
 }
 
+#[tracing::instrument(skip_all)]
 fn value_or_string_array<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
 where
     D: Deserializer<'de>,

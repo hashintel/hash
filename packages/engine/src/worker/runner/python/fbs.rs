@@ -8,6 +8,7 @@ use crate::{
     worker::runner::comms::PackageMsgs,
 };
 
+#[tracing::instrument(skip_all)]
 pub fn pkgs_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
     pkgs: &PackageMsgs,
@@ -50,6 +51,7 @@ pub fn pkgs_to_fbs<'f>(
     )
 }
 
+#[tracing::instrument(skip_all)]
 pub fn shared_ctx_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
     shared_ctx: &SharedStore,
@@ -73,6 +75,7 @@ pub fn shared_ctx_to_fbs<'f>(
     )
 }
 
+#[tracing::instrument(skip_all)]
 pub fn batch_to_fbs<'f, B: Batch, T: Deref<Target = B>>(
     fbb: &mut FlatBufferBuilder<'f>,
     batch: &T,
@@ -88,6 +91,7 @@ pub fn batch_to_fbs<'f, B: Batch, T: Deref<Target = B>>(
     )
 }
 
+#[tracing::instrument(skip_all)]
 pub fn metaversion_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
     metaversion: &crate::datastore::batch::metaversion::Metaversion,

@@ -17,6 +17,7 @@ pub struct MainMsgSend {
     inner: UnboundedSender<EngineToWorkerPoolMsg>,
 }
 
+#[tracing::instrument(skip_all)]
 pub fn new_no_sim() -> (MainMsgSendBase, MainMsgRecv) {
     let (send, recv) = mpsc::unbounded_channel();
     (MainMsgSendBase { inner: send }, MainMsgRecv { inner: recv })
@@ -31,6 +32,7 @@ impl MainMsgSend {
 }
 
 impl MainMsgSendBase {
+    #[tracing::instrument(skip_all)]
     pub fn sender_with_sim_id(&self, sim_id: SimulationShortId) -> MainMsgSend {
         MainMsgSend {
             _sim_id: sim_id,

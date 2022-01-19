@@ -13,6 +13,7 @@ use serde_json::value::Value;
 use super::{batch_conversion::col_to_json_vals, prelude::*};
 use crate::datastore::prelude::*;
 
+#[tracing::instrument(skip_all)]
 fn numeric_element_to_json_val<T: ArrowPrimitiveType + ArrowNumericType>(
     col: &ArrayRef,
     index: usize,
@@ -29,6 +30,7 @@ fn numeric_element_to_json_val<T: ArrowPrimitiveType + ArrowNumericType>(
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn bool_element_to_json_val(col: &ArrayRef, index: usize) -> Result<Value> {
     let array = array::as_boolean_array(col);
     if !array.is_valid(index) {
@@ -39,6 +41,7 @@ fn bool_element_to_json_val(col: &ArrayRef, index: usize) -> Result<Value> {
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn utf8_element_to_json_val(col: &ArrayRef, index: usize) -> Result<Value> {
     let array = array::as_string_array(col);
     if !array.is_valid(index) {
@@ -49,6 +52,7 @@ fn utf8_element_to_json_val(col: &ArrayRef, index: usize) -> Result<Value> {
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn list_element_to_json_val(col: &ArrayRef, index: usize, inner_dt: &DataType) -> Result<Value> {
     let array =
         col.as_any()
@@ -65,6 +69,7 @@ fn list_element_to_json_val(col: &ArrayRef, index: usize, inner_dt: &DataType) -
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn fixed_size_list_element_to_json_val(
     col: &ArrayRef,
     index: usize,
@@ -86,6 +91,7 @@ fn fixed_size_list_element_to_json_val(
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn struct_element_to_json_val(
     col: &ArrayRef,
     index: usize,
@@ -116,6 +122,7 @@ fn struct_element_to_json_val(
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub fn col_element_to_json_val(col: &ArrayRef, index: usize, dt: &DataType) -> Result<Value> {
     match dt {
         ArrowDataType::Float32 => numeric_element_to_json_val::<datatypes::Float32Type>(col, index),
@@ -156,6 +163,7 @@ pub mod tests {
     use super::*;
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn numeric_element_conversion() {
         let int_dtypes_and_array_refs: Vec<(DataType, ArrayRef)> = vec![
             (
@@ -223,6 +231,7 @@ pub mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn bool_element_conversion() {
         // 9 values to somewhat check bit packing
         let vals = vec![true, true, false, true, false, false, true, false, true];
@@ -238,6 +247,7 @@ pub mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn utf8_element_conversion() {
         let vals = vec!["foo", "bar", "baz"];
         let string_array = StringArray::from(vals.clone());
@@ -252,6 +262,7 @@ pub mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn list_element_conversion() {
         let vals = vec![
             vec![1, 2],
@@ -287,6 +298,7 @@ pub mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn fixed_size_list_element_conversion() {
         let vals = vec![vec![1, 2], vec![3, 4], vec![5, 6], vec![7, 8], vec![9, 10]];
 
@@ -316,6 +328,7 @@ pub mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn struct_element_conversion() {
         let string_vals = vec![
             "foobar", "foo", "bar", "ran", "out", "of", "test", "words", "hash",

@@ -10,6 +10,7 @@ pub struct StateSnapshot {
 }
 
 impl StateSnapshot {
+    #[tracing::instrument(skip_all)]
     pub fn new(
         agent_pool: AgentPool,
         message_pool: MessagePool,
@@ -22,18 +23,22 @@ impl StateSnapshot {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn agent_pool(&self) -> &AgentPool {
         &self.agent_pool
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn message_pool(&self) -> &MessagePool {
         &self.message_pool
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn message_map(&self) -> &MessageMap {
         &self.message_map
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn deconstruct(self) -> (AgentPool, MessagePool) {
         (self.agent_pool, self.message_pool)
     }

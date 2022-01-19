@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use tokio::sync::oneshot;
-use tracing::instrument;
 
 use super::error::{Error, Result};
 use crate::{
@@ -42,6 +41,7 @@ pub struct PendingWorkerPoolTask {
 }
 
 impl PendingWorkerPoolTask {
+    #[tracing::instrument(skip_all)]
     fn handle_result_state(
         &mut self,
         worker: Worker,
@@ -83,6 +83,7 @@ impl PendingWorkerPoolTask {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     fn handle_cancel_state(&mut self, worker: Worker, _task_id: TaskId) -> Result<HasTerminated> {
         if let DistributionController::Distributed {
             active_workers: active_workers_comms,
@@ -114,6 +115,7 @@ impl PendingWorkerPoolTask {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn handle_result_or_cancel(
         &mut self,
         worker: Worker,
@@ -162,7 +164,7 @@ pub struct PendingWorkerPoolTasks {
 impl PendingWorkerPoolTasks {
     // TODO: delete or use when cancel is revisited
     #[allow(dead_code)]
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn run_cancel_check(&mut self) -> Vec<TaskId> {
         self.inner
             .iter_mut()

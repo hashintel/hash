@@ -1,10 +1,12 @@
+use rand::Rng;
+
 use super::{
     accessors::field_or_property, error::SimulationError, Context, Result, SharedBehavior, State,
 };
 
-use rand::Rng;
-
+#[tracing::instrument(skip_all)]
 pub fn behavior(state: &mut State<'_>, context: &Context<'_>) -> Result<()> {
+    #[tracing::instrument(skip_all)]
     fn get_satisfaction(neighbor_count: i64, min_neighbors: i64, max_neighbors: i64) -> bool {
         let min_satisfied = neighbor_count >= min_neighbors;
         let min_defined = min_neighbors >= 0;
@@ -31,6 +33,8 @@ pub fn behavior(state: &mut State<'_>, context: &Context<'_>) -> Result<()> {
     }
 
     // Take a step forward, backwards, or nowhere by step_size.
+
+    #[tracing::instrument(skip_all)]
     fn step(step_size: f64) -> f64 {
         let mod3 = rand::thread_rng().gen::<u8>() % 3;
         if mod3 == 0 {
@@ -55,8 +59,8 @@ pub fn behavior(state: &mut State<'_>, context: &Context<'_>) -> Result<()> {
     let mut position = state.take_position()?;
 
     for i in 0..state.num_agents() {
-        // If min and/or max neighbors are defined, move until our neighbor count is within those bounds.
-        // if one or the other is undefined, it's open-ended.
+        // If min and/or max neighbors are defined, move until our neighbor count is within those
+        // bounds. if one or the other is undefined, it's open-ended.
         let neighbor_count = context.neighbors(i)?.len() as i64;
         let min_neighbors: i64 = field_or_property(
             &state.random_movement_seek_min_neighbors()?[i],
@@ -94,6 +98,7 @@ pub fn behavior(state: &mut State<'_>, context: &Context<'_>) -> Result<()> {
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub fn get_named_behavior() -> SharedBehavior {
     SharedBehavior {
         id: "@hash/random_movement/random_movement.rs".into(),
@@ -115,7 +120,10 @@ use rand::Rng;
 /// # Errors
 /// This function cannot fail
 pub fn random_movement(state: &mut AgentState, context: &Context) -> SimulationResult<()> {
-    fn get_satisfaction(neighbor_count: i64, min_neighbors: i64, max_neighbors: i64) -> bool {
+
+
+#[tracing::instrument(skip_all)]
+fn get_satisfaction(neighbor_count: i64, min_neighbors: i64, max_neighbors: i64) -> bool {
         let min_satisfied = neighbor_count >= min_neighbors;
         let min_defined = min_neighbors >= 0;
         let max_satisfied = neighbor_count <= max_neighbors;
@@ -141,7 +149,10 @@ pub fn random_movement(state: &mut AgentState, context: &Context) -> SimulationR
     }
 
     // Take a step forward, backwards, or nowhere by step_size.
-    fn step(step_size: f64) -> f64 {
+
+
+#[tracing::instrument(skip_all)]
+fn step(step_size: f64) -> f64 {
         let mod3 = rand::thread_rng().gen::<u8>() % 3;
         if mod3 == 0 {
             step_size

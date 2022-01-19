@@ -32,6 +32,7 @@ pub fn cleanup_experiment(experiment_id: &str) -> Result<()> {
 }
 
 #[allow(dead_code)]
+#[tracing::instrument(skip_all)]
 fn remove_experiment_parts(experiment_id: &str) -> Result<()> {
     let mut base_path = PathBuf::from(RELATIVE_PARTS_FOLDER);
     // TODO: this is unused at the moment so it's fine, but this logic is wrong, we name our folders

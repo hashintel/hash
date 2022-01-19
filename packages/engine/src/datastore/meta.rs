@@ -122,6 +122,7 @@ impl Dynamic {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn set_column_root_null_count(
         &mut self,
         static_meta: &Static,
@@ -140,6 +141,7 @@ impl Dynamic {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn from_column_dynamic_meta_list(
         cols: &[ColumnDynamicMetadata],
         num_elements: usize,
@@ -284,6 +286,7 @@ impl Static {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn validate_lengths(&self, dynamic: &Dynamic) -> bool {
         let base_length = dynamic.length;
         for (i, col) in self.column_meta.iter().enumerate() {
@@ -335,6 +338,7 @@ pub struct ColumnDynamicMetadata {
 }
 
 impl ColumnDynamicMetadata {
+    #[tracing::instrument(skip_all)]
     pub fn byte_length(&self) -> usize {
         self.buffers
             .last()
@@ -351,10 +355,12 @@ pub struct ColumnDynamicMetadataBuilder {
 }
 
 impl ColumnDynamicMetadataBuilder {
+    #[tracing::instrument(skip_all)]
     pub fn new() -> ColumnDynamicMetadataBuilder {
         Self::default()
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn with_capacities(
         node_capacity: usize,
         buffer_capacity: usize,
@@ -366,27 +372,32 @@ impl ColumnDynamicMetadataBuilder {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     fn add_buffer(&mut self, num_bytes: usize, num_padding_bytes: usize) {
         let buffer = Buffer::new(self.next_offset, num_bytes, num_padding_bytes);
         self.next_offset = buffer.get_next_offset();
         self.buffers.push(buffer);
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn add_static_bit_buffer(&mut self, num_elements: usize) {
         let buf_len = arrow::util::bit_util::ceil(num_elements, 8);
         let buf_padding = padding::get_static_buffer_pad(buf_len);
         self.add_buffer(buf_len, buf_padding);
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn add_static_byte_buffer(&mut self, num_bytes: usize) {
         let num_padding_bytes = padding::get_static_buffer_pad(num_bytes);
         self.add_buffer(num_bytes, num_padding_bytes);
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn add_node(&mut self, num_elements: usize, num_null_elements: usize) {
         self.nodes.push(Node::new(num_elements, num_null_elements));
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn add_string_array_dynamic_meta(&mut self, num_elements: usize, num_total_chars: usize) {
         self.add_node(num_elements, 0);
         self.add_static_bit_buffer(num_elements);
@@ -394,6 +405,7 @@ impl ColumnDynamicMetadataBuilder {
         self.add_static_byte_buffer(num_total_chars);
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn finish(self) -> ColumnDynamicMetadata {
         ColumnDynamicMetadata {
             nodes: self.nodes,

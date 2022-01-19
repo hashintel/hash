@@ -20,11 +20,13 @@ use crate::{
 pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
     /// We can't derive a default as that returns Self which implies Sized which in turn means we
     /// can't create Trait Objects out of PackageCreator
+
     fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>>
     where
         Self: Sized;
 
     /// Create the package.
+
     fn create(
         &self,
         config: &Arc<SimRunConfig>,
@@ -32,6 +34,7 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>>;
 
+    #[tracing::instrument(skip_all)]
     fn dependencies() -> Dependencies
     where
         Self: Sized,
@@ -39,6 +42,7 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
         Dependencies::empty()
     }
 
+    #[tracing::instrument(skip_all)]
     fn persistence_config(
         &self,
         _config: &ExperimentConfig,
@@ -47,6 +51,7 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
         Ok(serde_json::Value::Null)
     }
 
+    #[tracing::instrument(skip_all)]
     fn get_state_field_specs(
         &self,
         _config: &ExperimentConfig,

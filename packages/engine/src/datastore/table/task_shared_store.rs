@@ -20,6 +20,7 @@ pub struct TaskSharedStore {
 }
 
 impl TaskSharedStore {
+    #[tracing::instrument(skip_all)]
     pub fn context(&self) -> &SharedContext {
         &self.context
     }
@@ -55,12 +56,14 @@ pub enum SharedContext {
 }
 
 impl Default for SharedState {
+    #[tracing::instrument(skip_all)]
     fn default() -> Self {
         Self::None
     }
 }
 
 impl Default for SharedContext {
+    #[tracing::instrument(skip_all)]
     fn default() -> Self {
         Self::None
     }
@@ -72,14 +75,17 @@ pub struct TaskSharedStoreBuilder {
 }
 
 impl TaskSharedStoreBuilder {
+    #[tracing::instrument(skip_all)]
     pub fn new() -> Self {
         Self::default()
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn build(self) -> TaskSharedStore {
         self.inner
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn partial_write_state<K: WriteState>(
         mut self,
         state: &K,
@@ -91,6 +97,7 @@ impl TaskSharedStoreBuilder {
         Ok(self)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn partial_read_state<K: ReadState>(
         mut self,
         state: &K,
@@ -132,6 +139,7 @@ pub enum PartialSharedState {
 }
 
 impl PartialSharedState {
+    #[tracing::instrument(skip_all)]
     fn new_write<K: WriteState>(state: &K, indices: Vec<usize>) -> Result<PartialSharedState> {
         let inner = StateWriteProxy::new_partial(state, &indices)?;
         Ok(PartialSharedState::Write(PartialStateWriteProxy {
@@ -140,6 +148,7 @@ impl PartialSharedState {
         }))
     }
 
+    #[tracing::instrument(skip_all)]
     fn new_read<K: ReadState>(state: &K, indices: Vec<usize>) -> Result<PartialSharedState> {
         let inner = StateReadProxy::new_partial(state, &indices)?;
         Ok(PartialSharedState::Read(PartialStateReadProxy {
@@ -150,6 +159,8 @@ impl PartialSharedState {
 }
 
 /// TODO: DOC
+
+#[tracing::instrument(skip_all)]
 fn distribute_batches<A, M>(
     worker_list: &WorkerAllocation,
     agent_batches: Vec<A>,
@@ -191,6 +202,8 @@ fn distribute_batches<A, M>(
 
 impl TaskSharedStore {
     /// Number of agents in the sim that can be accessed through this store
+
+    #[tracing::instrument(skip_all)]
     fn n_accessible_agents(&self) -> usize {
         match &self.state {
             SharedState::None => 0,
@@ -203,6 +216,7 @@ impl TaskSharedStore {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     fn reads_state(&self) -> bool {
         matches!(&self.state, SharedState::Read(_))
             || matches!(
@@ -211,6 +225,7 @@ impl TaskSharedStore {
             )
     }
 
+    #[tracing::instrument(skip_all)]
     fn writes_state(&self) -> bool {
         matches!(&self.state, SharedState::Write(_))
             || matches!(
@@ -341,6 +356,8 @@ impl TaskSharedStore {
 
 impl TaskSharedStore {
     /// Fallible clone. Fails with write access to state.
+
+    #[tracing::instrument(skip_all)]
     fn try_clone(&self) -> Result<Self> {
         let state = match &self.state {
             SharedState::Write(_) => {

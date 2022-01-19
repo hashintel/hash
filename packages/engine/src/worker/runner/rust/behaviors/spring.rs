@@ -1,6 +1,7 @@
+use serde::{Deserialize, Serialize};
+
 use super::{Context, Result, SharedBehavior, State};
 use crate::hash_types::{Agent, Vec3};
-use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 struct SpringDefinition {
@@ -64,6 +65,7 @@ pub fn spring(state: &mut Agent, i: usize, context: &Context) -> Result<()> {
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub fn get_named_behavior() -> SharedBehavior {
     SharedBehavior {
         id: "@hash/physics/spring.rs".into(),
@@ -74,6 +76,7 @@ pub fn get_named_behavior() -> SharedBehavior {
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub fn behavior(state: &mut State, context: &Context) -> Result<()> {
     let mut json_state = state.get_json_state()?;
     for (i, agent) in json_state.iter_mut().enumerate() {

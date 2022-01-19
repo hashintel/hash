@@ -42,6 +42,8 @@ pub struct Inner {
 
 impl Inner {
     /// TODO: DOC
+
+    #[tracing::instrument(skip_all)]
     fn from_agent_states(
         agent_state_batches: &[&[AgentState]],
         num_agents: usize,
@@ -116,6 +118,7 @@ impl State {
         Ok(State { inner, sim_config })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn upgrade(self) -> ExState {
         ExState {
             inner: self.inner,
@@ -125,10 +128,12 @@ impl State {
 }
 
 impl ReadState for State {
+    #[tracing::instrument(skip_all)]
     fn inner(&self) -> &Inner {
         &self.inner
     }
 
+    #[tracing::instrument(skip_all)]
     fn sim_config(&self) -> &Arc<SimRunConfig> {
         &self.sim_config
     }
@@ -149,10 +154,12 @@ impl ExState {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn local_meta(&mut self) -> &mut Meta {
         &mut self.inner.local_meta
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn finalize_agent_pool(
         &mut self,
         context: &mut ExContext,
@@ -229,6 +236,7 @@ impl ExState {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn create_remove(
         &mut self,
         commands: CreateRemoveCommands,
@@ -251,22 +259,26 @@ impl ExState {
         self.inner.agent_pool.set_pending_column(column)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn flush_pending_columns(&mut self) -> Result<()> {
         self.inner.agent_pool.flush_pending_columns()
     }
 }
 
 impl ReadState for ExState {
+    #[tracing::instrument(skip_all)]
     fn inner(&self) -> &Inner {
         &self.inner
     }
 
+    #[tracing::instrument(skip_all)]
     fn sim_config(&self) -> &Arc<SimRunConfig> {
         &self.global_meta
     }
 }
 
 impl WriteState for ExState {
+    #[tracing::instrument(skip_all)]
     fn inner_mut(&mut self) -> &mut Inner {
         &mut self.inner
     }
@@ -275,10 +287,12 @@ impl WriteState for ExState {
 pub trait WriteState: ReadState {
     fn inner_mut(&mut self) -> &mut Inner;
 
+    #[tracing::instrument(skip_all)]
     fn agent_pool_mut(&mut self) -> &mut AgentPool {
         &mut self.inner_mut().agent_pool
     }
 
+    #[tracing::instrument(skip_all)]
     fn message_pool_mut(&mut self) -> &mut MessagePool {
         &mut self.inner_mut().message_pool
     }
@@ -299,6 +313,8 @@ pub trait WriteState: ReadState {
     ///              Everything else is O(m), where `m` is the
     ///              number of batches, so this function shouldn't
     ///              take very long to run.
+
+    #[tracing::instrument(skip_all)]
     fn reset_messages(
         &mut self,
         mut old_context_message_pool: MessagePool,
@@ -313,6 +329,7 @@ pub trait WriteState: ReadState {
         ))
     }
 
+    #[tracing::instrument(skip_all)]
     fn num_agents_mut(&mut self) -> &mut usize {
         &mut self.inner_mut().num_elements
     }
@@ -323,23 +340,28 @@ pub trait ReadState {
 
     fn sim_config(&self) -> &Arc<SimRunConfig>;
 
+    #[tracing::instrument(skip_all)]
     fn message_pool(&self) -> &MessagePool {
         &self.inner().message_pool
     }
 
+    #[tracing::instrument(skip_all)]
     fn message_map(&self) -> Result<MessageMap> {
         let read = self.message_pool().read()?;
         MessageMap::new(&read)
     }
 
+    #[tracing::instrument(skip_all)]
     fn agent_pool(&self) -> &AgentPool {
         &self.inner().agent_pool
     }
 
+    #[tracing::instrument(skip_all)]
     fn num_agents(&self) -> usize {
         self.inner().num_elements
     }
 
+    #[tracing::instrument(skip_all)]
     fn group_start_indices(&self) -> &Arc<Vec<usize>> {
         &self.inner().group_start_indices
     }

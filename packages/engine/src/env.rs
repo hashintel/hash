@@ -1,7 +1,6 @@
 use serde::Deserialize;
 use thiserror::Error as ThisError;
 use tokio::time::Duration;
-use tracing::instrument;
 
 use crate::{
     nano,
@@ -31,12 +30,14 @@ pub enum Error {
 }
 
 impl From<&str> for Error {
+    #[tracing::instrument(skip_all)]
     fn from(s: &str) -> Self {
         Error::Unique(s.to_string())
     }
 }
 
 impl From<String> for Error {
+    #[tracing::instrument(skip_all)]
     fn from(s: String) -> Self {
         Error::Unique(s)
     }
@@ -49,6 +50,7 @@ pub struct OrchClient {
 }
 
 impl OrchClient {
+    #[tracing::instrument(skip_all)]
     pub fn new(url: &str, experiment_id: &str) -> Result<Self> {
         let client = nano::Client::new(url, 1)?;
         Ok(OrchClient {
@@ -58,7 +60,7 @@ impl OrchClient {
         })
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn send(&mut self, msg: EngineStatus) -> Result<()> {
         let m = crate::proto::OrchestratorMsg {
             experiment_id: self.experiment_id.clone(),
@@ -70,6 +72,7 @@ impl OrchClient {
             .map_err(Error::from)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn try_clone(&self) -> Result<Self> {
         OrchClient::new(&self.url, &self.experiment_id)
     }
@@ -83,7 +86,7 @@ pub struct Environment {
     pub dyn_payloads: serde_json::Map<String, serde_json::Value>,
 }
 
-#[instrument(skip_all)]
+#[tracing::instrument(skip_all)]
 pub async fn env<E>(args: &Args) -> Result<Environment>
 where
     E: ExperimentRunTrait + for<'de> Deserialize<'de>,
@@ -115,7 +118,7 @@ where
         dyn_payloads,
     })
 }
-#[instrument(skip_all)]
+#[tracing::instrument(skip_all)]
 async fn recv_init_msg(orch_listener: &mut nano::Server) -> Result<InitMessage> {
     let msg = tokio::time::timeout(*INIT_MSG_RECV_TIMEOUT, orch_listener.recv::<EngineMsg>())
         .await

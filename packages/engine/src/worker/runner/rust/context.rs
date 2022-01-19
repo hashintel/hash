@@ -5,36 +5,13 @@ use std::{
     sync::Arc,
 };
 
-use arrow::array::Array;
 use arrow::{
-    array::{FixedSizeListArray, ListArray, UInt32Array},
+    array::{Array, FixedSizeListArray, ListArray, UInt32Array},
     datatypes::Schema,
 };
 use parking_lot::{RwLock, RwLockWriteGuard};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
-use crate::config::Globals;
-use crate::datastore::prelude::{AgentBatch, MessageBatch};
-use crate::datastore::{batch::Metaversion, storage::memory::Memory};
-use crate::worker::{Error as WorkerError, Result as WorkerResult, TaskMessage};
-use crate::{
-    datastore::{
-        arrow::{
-            message::{outbound_messages_to_arrow_column, MESSAGE_COLUMN_INDEX},
-            util::arrow_continuation,
-        },
-        batch::{change::ArrayChange, ContextBatch},
-        table::sync::{ContextBatchSync, StateSync},
-    },
-    hash_types::Agent,
-    simulation::packages::{
-        state::packages::behavior_execution::config::BehaviorDescription,
-        worker_init::PackageInitMsgForWorker,
-    },
-    Language,
-};
-
-use super::state::{SimState, StateSnapshot};
 use super::{
     super::comms::{
         inbound::{InboundToRunnerMsg, InboundToRunnerMsgPayload},
@@ -43,8 +20,29 @@ use super::{
         TargetedRunnerTaskMsg,
     },
     neighbor::Neighbor,
+    state::{SimState, StateSnapshot},
+    Error, Result, SimSchema,
 };
-use super::{Error, Result, SimSchema};
+use crate::{
+    config::Globals,
+    datastore::{
+        arrow::{
+            message::{outbound_messages_to_arrow_column, MESSAGE_COLUMN_INDEX},
+            util::arrow_continuation,
+        },
+        batch::{change::ArrayChange, ContextBatch, Metaversion},
+        prelude::{AgentBatch, MessageBatch},
+        storage::memory::Memory,
+        table::sync::{ContextBatchSync, StateSync},
+    },
+    hash_types::Agent,
+    simulation::packages::{
+        state::packages::behavior_execution::config::BehaviorDescription,
+        worker_init::PackageInitMsgForWorker,
+    },
+    worker::{Error as WorkerError, Result as WorkerResult, TaskMessage},
+    Language,
+};
 
 /// Wrapper for running columnar behaviors on single agents
 pub struct AgentContext<'c> {
@@ -59,6 +57,7 @@ pub struct AgentContext<'c> {
 }
 
 impl<'c> AgentContext<'c> {
+    #[tracing::instrument(skip_all)]
     pub fn neighbors(&'c self, _i: usize) -> Result<Vec<Neighbor<'c>>> {
         // TODO: Use buffers from `data_ref` directly for better performance.
         let neighbor_array = self
@@ -94,10 +93,12 @@ impl<'c> AgentContext<'c> {
         Ok(neighbors)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn globals(&self) -> &Arc<Globals> {
         &self.globals
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn _set_index(&mut self, i_agent_in_group: usize) {
         self.index_in_sim = i_agent_in_group + self.group_start_index;
     }
@@ -113,6 +114,7 @@ pub struct GroupContext<'c> {
 }
 
 impl<'c> GroupContext<'c> {
+    #[tracing::instrument(skip_all)]
     pub fn get_agent(&'c self, i_agent_in_group: usize) -> AgentContext<'c> {
         AgentContext {
             schema: self.schema,
@@ -126,6 +128,7 @@ impl<'c> GroupContext<'c> {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_json_state(&'c self) -> Vec<Agent> {
         vec![]
     }
@@ -142,6 +145,7 @@ pub struct SimContext {
 }
 
 impl SimContext {
+    #[tracing::instrument(skip_all)]
     pub fn new(schema: SimSchema, globals: Arc<Globals>) -> Self {
         let mut col_indices = HashMap::new();
         for field in schema.agent.arrow.fields().iter() {
@@ -166,15 +170,18 @@ impl SimContext {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn sync_batch(&mut self, ctx_batch: Arc<ContextBatch>) {
         self.batch = Some(ctx_batch);
         self.current_step += 1; // TODO: Is this the correct moment to increment it?
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn sync_snapshot(&mut self, snapshot: StateSnapshot) {
         self.snapshot = Some(snapshot);
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_group<'c>(&'c self, i_group: usize) -> GroupContext<'c> {
         GroupContext {
             schema: &self.schema,

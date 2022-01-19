@@ -65,12 +65,14 @@ pub enum ExecutionEnvironment {
 }
 
 impl Default for ExecutionEnvironment {
+    #[tracing::instrument(skip_all)]
     fn default() -> Self {
         ExecutionEnvironment::None
     }
 }
 
 impl EngineStatus {
+    #[tracing::instrument(skip_all)]
     pub fn kind(&self) -> &'static str {
         match self {
             EngineStatus::Started => "Started",
@@ -102,6 +104,7 @@ pub struct SharedDataset {
 }
 
 impl Debug for SharedDataset {
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SharedDataset")
             .field("name", &self.name)
@@ -138,6 +141,7 @@ pub struct SharedBehavior {
 }
 
 impl Debug for SharedBehavior {
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SharedBehavior")
             .field("id", &self.id)
@@ -200,6 +204,7 @@ pub enum MetricObjective {
 }
 
 impl Serialize for MetricObjective {
+    #[tracing::instrument(skip_all)]
     fn serialize<S: serde::Serializer>(&self, ser: S) -> std::result::Result<S::Ok, S::Error> {
         ser.serialize_str(match self {
             MetricObjective::Max => "max",
@@ -210,6 +215,7 @@ impl Serialize for MetricObjective {
 }
 
 impl<'de> Deserialize<'de> for MetricObjective {
+    #[tracing::instrument(skip_all)]
     fn deserialize<D: ::serde::Deserializer<'de>>(
         deserializer: D,
     ) -> std::result::Result<Self, D::Error> {
@@ -325,53 +331,65 @@ pub struct ExtendedExperimentRun {
 #[enum_dispatch]
 pub trait ExperimentRunTrait: Clone + for<'a> Deserialize<'a> + Serialize {
     fn base(&self) -> &ExperimentRunBase;
+
     fn base_mut(&mut self) -> &mut ExperimentRunBase;
+
     fn package_config(&self) -> PackageConfig<'_>;
 }
 
 impl ExperimentRunTrait for ExperimentRunBase {
+    #[tracing::instrument(skip_all)]
     fn base(&self) -> &ExperimentRunBase {
         self
     }
 
+    #[tracing::instrument(skip_all)]
     fn base_mut(&mut self) -> &mut ExperimentRunBase {
         self
     }
 
+    #[tracing::instrument(skip_all)]
     fn package_config(&self) -> PackageConfig<'_> {
         PackageConfig::EmptyPackageConfig
     }
 }
 
 impl ExperimentRunTrait for ExperimentRun {
+    #[tracing::instrument(skip_all)]
     fn base(&self) -> &ExperimentRunBase {
         &self.base
     }
 
+    #[tracing::instrument(skip_all)]
     fn base_mut(&mut self) -> &mut ExperimentRunBase {
         &mut self.base
     }
 
+    #[tracing::instrument(skip_all)]
     fn package_config(&self) -> PackageConfig<'_> {
         PackageConfig::ExperimentPackageConfig(&self.package_config)
     }
 }
 
 impl ExperimentRunTrait for ExtendedExperimentRun {
+    #[tracing::instrument(skip_all)]
     fn base(&self) -> &ExperimentRunBase {
         &self.base
     }
 
+    #[tracing::instrument(skip_all)]
     fn base_mut(&mut self) -> &mut ExperimentRunBase {
         &mut self.base
     }
 
+    #[tracing::instrument(skip_all)]
     fn package_config(&self) -> PackageConfig<'_> {
         PackageConfig::ExtendedExperimentPackageConfig(&self.package_config)
     }
 }
 
 impl<E: ExperimentRunTrait> From<&E> for ExperimentRunBase {
+    #[tracing::instrument(skip_all)]
     fn from(value: &E) -> Self {
         value.base().clone()
     }
@@ -393,6 +411,7 @@ pub type ExperimentId = String;
 struct CleanOption<'a, T>(&'a Option<T>);
 
 impl<T> Debug for CleanOption<'_, T> {
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self.0 {
             Some(_) => f.write_str("Some(..)"),

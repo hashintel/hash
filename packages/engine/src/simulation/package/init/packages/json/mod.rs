@@ -1,5 +1,4 @@
 use serde_json::Value;
-use tracing::instrument;
 
 use super::super::*;
 use crate::{
@@ -10,10 +9,12 @@ use crate::{
 pub struct Creator {}
 
 impl PackageCreator for Creator {
+    #[tracing::instrument(skip_all)]
     fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>> {
         Ok(Box::new(Creator {}))
     }
 
+    #[tracing::instrument(skip_all)]
     fn create(
         &self,
         config: &Arc<SimRunConfig>,
@@ -36,6 +37,7 @@ impl PackageCreator for Creator {
 }
 
 impl GetWorkerExpStartMsg for Creator {
+    #[tracing::instrument(skip_all)]
     fn get_worker_exp_start_msg(&self) -> Result<Value> {
         // TODO: possibly pass init.json here to optimize
         Ok(Value::Null)
@@ -46,12 +48,14 @@ pub struct Package {
 }
 
 impl MaybeCpuBound for Package {
+    #[tracing::instrument(skip_all)]
     fn cpu_bound(&self) -> bool {
         false
     }
 }
 
 impl GetWorkerSimStartMsg for Package {
+    #[tracing::instrument(skip_all)]
     fn get_worker_sim_start_msg(&self) -> Result<Value> {
         Ok(Value::Null)
     }
@@ -59,7 +63,7 @@ impl GetWorkerSimStartMsg for Package {
 
 #[async_trait]
 impl InitPackage for Package {
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn run(&mut self) -> Result<Vec<Agent>> {
         // TODO: Map Error when we design package errors
         serde_json::from_str(&self.initial_state_src).map_err(|e| {

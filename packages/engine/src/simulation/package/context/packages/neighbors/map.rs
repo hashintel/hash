@@ -21,6 +21,8 @@ pub type NeighborRef<'a> = ((Option<&'a [f64; 3]>, (u32, u32)), Option<f64>);
 
 /// # Errors
 /// This function will not fail
+
+#[tracing::instrument(skip_all)]
 fn agents_adjacency_map<'a>(agents: &'a [NeighborRef<'_>]) -> Result<Tree<'a>> {
     let mut tree = kdtree::kdtree::KdTree::new(3);
     agents.iter().try_for_each(|((pos, idx), _)| {
@@ -32,6 +34,7 @@ fn agents_adjacency_map<'a>(agents: &'a [NeighborRef<'_>]) -> Result<Tree<'a>> {
 }
 
 #[allow(clippy::module_name_repetitions)]
+#[tracing::instrument(skip_all)]
 fn gather_neighbors(
     adjacency_map: &Tree<'_>,
     idx: AgentIndex,
@@ -88,6 +91,7 @@ fn gather_neighbors(
 }
 
 impl NeighborMap {
+    #[tracing::instrument(skip_all)]
     pub fn gather(
         states: Vec<NeighborRef<'_>>,
         topology_config: &TopologyConfig,

@@ -17,6 +17,7 @@ pub(super) const BEHAVIORS_FIELD_NAME: &str = "behaviors";
 pub(super) const BEHAVIOR_INDEX_FIELD_NAME: &str = "behavior_index";
 pub(super) const BEHAVIOR_IDS_FIELD_NAME: &str = "behavior_ids";
 
+#[tracing::instrument(skip_all)]
 fn get_behaviors_field_spec(field_spec_creator: &RootFieldSpecCreator) -> Result<RootFieldSpec> {
     let field_type = FieldType::new(
         FTV::VariableLengthArray(Box::new(FieldType::new(FTV::String, false))),
@@ -25,6 +26,7 @@ fn get_behaviors_field_spec(field_spec_creator: &RootFieldSpecCreator) -> Result
     Ok(field_spec_creator.create(BEHAVIORS_FIELD_NAME.into(), field_type, FieldScope::Agent))
 }
 
+#[tracing::instrument(skip_all)]
 fn get_behavior_index_field_spec(
     field_spec_creator: &RootFieldSpecCreator,
 ) -> Result<RootFieldSpec> {
@@ -36,10 +38,12 @@ fn get_behavior_index_field_spec(
     ))
 }
 
+#[tracing::instrument(skip_all)]
 fn behavior_id_inner_field_type() -> FieldType {
     FieldType::new(FTV::Preset(PresetFieldType::Uint16), false)
 }
 
+#[tracing::instrument(skip_all)]
 fn behavior_id_field_type() -> FieldType {
     FieldType::new(
         FTV::FixedLengthArray {
@@ -50,11 +54,13 @@ fn behavior_id_field_type() -> FieldType {
     )
 }
 
+#[tracing::instrument(skip_all)]
 fn behavior_ids_field_type() -> FieldType {
     let variant = FTV::VariableLengthArray(Box::new(behavior_id_field_type()));
     FieldType::new(variant, false)
 }
 
+#[tracing::instrument(skip_all)]
 fn get_behavior_ids_field_spec(field_spec_creator: &RootFieldSpecCreator) -> Result<RootFieldSpec> {
     let field_type = behavior_ids_field_type();
     Ok(field_spec_creator.create(

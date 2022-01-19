@@ -2,7 +2,6 @@ use std::time::Duration;
 
 use nng::options::{protocol::reqrep::ResendTime, Options, ReconnectMaxTime, ReconnectMinTime};
 use tokio::sync::{mpsc, oneshot};
-use tracing::instrument;
 
 use super::{
     error::{Error, Result},
@@ -42,6 +41,7 @@ struct WorkerHandle {
 }
 
 impl Worker {
+    #[tracing::instrument(skip_all)]
     fn new(url: &str, request_rx: spmc::Receiver<Request>) -> Result<Self> {
         let socket = nng::Socket::new(nng::Protocol::Req0)?;
 
@@ -84,7 +84,7 @@ impl Worker {
         })
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn handle_request(&mut self, (msg, sender): Request) {
         // Send the message to the server
         if let Err((_, e)) = self.ctx.send(&self.aio, msg) {
@@ -97,7 +97,7 @@ impl Worker {
         sender.send(res).unwrap();
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn run(&mut self, mut stop_rx: mpsc::UnboundedReceiver<()>) {
         loop {
             tokio::select! {
@@ -131,7 +131,7 @@ impl Client {
     }
 
     /// Sends a JSON-serializable message.
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn send<T: serde::Serialize>(&mut self, msg: &T) -> Result<()> {
         let mut nng_msg = nng::Message::new();
         serde_json::to_writer(&mut nng_msg, msg)?;
@@ -143,6 +143,7 @@ impl Client {
 }
 
 impl Drop for Client {
+    #[tracing::instrument(skip_all)]
     fn drop(&mut self) {
         for worker in self.workers.iter() {
             worker.stop_tx.send(()).unwrap();

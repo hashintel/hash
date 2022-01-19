@@ -18,6 +18,7 @@ pub struct AnalysisOutputConfig {
 }
 
 impl AnalysisOutputConfig {
+    #[tracing::instrument(skip_all)]
     pub fn new(config: &ExperimentConfig) -> Result<AnalysisOutputConfig> {
         let manifest = get_analysis_source(&config.run.base().project_base.packages)?;
         let analysis_src_repr = AnalysisSourceRepr::try_from(&manifest as &str)?;

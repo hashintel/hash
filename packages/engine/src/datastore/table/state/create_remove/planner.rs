@@ -28,6 +28,7 @@ pub struct CreateRemovePlanner {
 }
 
 impl CreateRemovePlanner {
+    #[tracing::instrument(skip_all)]
     pub fn new(
         commands: CreateRemoveCommands,
         config: Arc<SimRunConfig>,
@@ -38,6 +39,7 @@ impl CreateRemovePlanner {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn run(&mut self, state: &impl ReadState) -> Result<MigrationPlan<'_>> {
         let mut pending = self.pending_plan(state.agent_pool())?;
 
@@ -46,6 +48,7 @@ impl CreateRemovePlanner {
         pending.complete(state, self.commands.new_agents.as_ref(), &self.config)
     }
 
+    #[tracing::instrument(skip_all)]
     fn pending_plan(&mut self, agent_pool: &AgentPool) -> Result<PendingPlan> {
         let pending_batches: Vec<PendingBatch> = agent_pool
             .batches()
@@ -76,6 +79,8 @@ struct PendingPlan {
 
 impl PendingPlan {
     /// Distribution of agents across all workers and their batches
+
+    #[tracing::instrument(skip_all)]
     fn distribute_inbound(&mut self, num_inbound: usize) -> Result<()> {
         // Number of inbound agents per worker (to-be-deleted agents are taken into account here)
         let worker_inbound_distribution = self
@@ -85,6 +90,7 @@ impl PendingPlan {
             .set_batch_level_inbounds(worker_inbound_distribution)
     }
 
+    #[tracing::instrument(skip_all)]
     fn complete<'b>(
         &mut self,
         state: &impl ReadState,
@@ -146,6 +152,7 @@ impl PendingPlan {
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn buffer_actions_from_pending_batch<'a>(
     state: &impl ReadState,
     batch: &PendingBatch,

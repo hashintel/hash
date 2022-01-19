@@ -13,8 +13,10 @@ use crate::datastore::{arrow::util, prelude::*};
 
 pub(in crate::datastore) trait Visit<'mem: 'v, 'v> {
     fn ptr(&self) -> &MemoryPtr;
+
     fn markers(&self) -> &Markers;
 
+    #[tracing::instrument(skip_all)]
     fn maybe_continuation(buffer: &Buffer) -> usize {
         match *buffer {
             Buffer::Schema => util::CONTINUATION,
@@ -24,6 +26,7 @@ pub(in crate::datastore) trait Visit<'mem: 'v, 'v> {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     fn markers_from_sizes(
         schema_size: usize,
         header_size: usize,
@@ -38,6 +41,7 @@ pub(in crate::datastore) trait Visit<'mem: 'v, 'v> {
         )
     }
 
+    #[tracing::instrument(skip_all)]
     fn schema(&'v self) -> &'mem [u8] {
         unsafe {
             util::buffer_without_continuation(
@@ -47,6 +51,7 @@ pub(in crate::datastore) trait Visit<'mem: 'v, 'v> {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     fn header(&'v self) -> &'mem [u8] {
         unsafe {
             self.ptr()
@@ -54,6 +59,7 @@ pub(in crate::datastore) trait Visit<'mem: 'v, 'v> {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     fn meta(&'v self) -> &'mem [u8] {
         unsafe {
             util::buffer_without_continuation(
@@ -63,6 +69,7 @@ pub(in crate::datastore) trait Visit<'mem: 'v, 'v> {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     fn data(&'v self) -> &'mem [u8] {
         unsafe {
             self.ptr()
@@ -70,11 +77,13 @@ pub(in crate::datastore) trait Visit<'mem: 'v, 'v> {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     fn get_all_buffers(&'v self) -> Result<&'mem [u8]> {
         let total_contents_size = self.markers().get_total_contents_size();
         Ok(unsafe { self.ptr().read_exact(0, total_contents_size) })
     }
 
+    #[tracing::instrument(skip_all)]
     fn target_total_size_accommodates_data_size(
         &self,
         target_total_size: usize,
@@ -84,6 +93,8 @@ pub(in crate::datastore) trait Visit<'mem: 'v, 'v> {
     }
 
     // Validation function for debugging
+
+    #[tracing::instrument(skip_all)]
     fn validate_markers(&self, message: &str, size: usize) -> bool {
         let markers = self.markers();
 
@@ -113,16 +124,19 @@ pub(in crate::datastore) struct Visitor<'a> {
 }
 
 impl<'mem: 'v, 'v> Visit<'mem, 'v> for Visitor<'mem> {
+    #[tracing::instrument(skip_all)]
     fn ptr(&self) -> &MemoryPtr {
         &self.ptr
     }
 
+    #[tracing::instrument(skip_all)]
     fn markers(&self) -> &Markers {
         self.markers
     }
 }
 
 impl<'a> Visitor<'a> {
+    #[tracing::instrument(skip_all)]
     pub fn new(ptr: MemoryPtr) -> Visitor<'a> {
         let markers = Markers::new(&ptr);
         Visitor { ptr, markers }
@@ -136,16 +150,19 @@ pub(in crate::datastore) struct VisitorMut<'mem> {
 }
 
 impl<'mem: 'v, 'v> Visit<'mem, 'v> for VisitorMut<'mem> {
+    #[tracing::instrument(skip_all)]
     fn ptr(&self) -> &MemoryPtr {
         &self.ptr
     }
 
+    #[tracing::instrument(skip_all)]
     fn markers(&self) -> &Markers {
         self.markers
     }
 }
 
 impl<'mem: 'v, 'v> VisitorMut<'mem> {
+    #[tracing::instrument(skip_all)]
     pub fn new(ptr: MemoryPtr, memory: &'mem mut Memory) -> VisitorMut<'mem> {
         let markers = Markers::new_mut(&ptr);
         VisitorMut {
@@ -155,6 +172,7 @@ impl<'mem: 'v, 'v> VisitorMut<'mem> {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn resize(&mut self, size: usize) -> Result<()> {
         self.memory.resize(size)?;
         self.ptr = MemoryPtr::from_memory(self.memory);
@@ -162,14 +180,17 @@ impl<'mem: 'v, 'v> VisitorMut<'mem> {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn markers_mut(&mut self) -> &mut Markers {
         self.markers
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn set_data_length(&mut self, size: usize) -> Result<BufferChange> {
         self.prepare_buffer_write(&Buffer::Data, size)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn shrink_with_data_length(&mut self, size: usize) -> Result<BufferChange> {
         let markers = self.markers_mut();
         if size >= markers.data_size() {
@@ -188,6 +209,7 @@ impl<'mem: 'v, 'v> VisitorMut<'mem> {
 
     // Mutable access to subbuffers
 
+    #[tracing::instrument(skip_all)]
     pub fn schema_mut(&'v self) -> &'mem mut [u8] {
         unsafe {
             self.ptr()
@@ -195,6 +217,7 @@ impl<'mem: 'v, 'v> VisitorMut<'mem> {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn header_mut(&'v self) -> &'mem mut [u8] {
         unsafe {
             self.ptr()
@@ -202,6 +225,7 @@ impl<'mem: 'v, 'v> VisitorMut<'mem> {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn meta_mut(&'v self) -> &'mem mut [u8] {
         unsafe {
             self.ptr()
@@ -209,6 +233,7 @@ impl<'mem: 'v, 'v> VisitorMut<'mem> {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn data_mut(&'v self) -> &'mem mut [u8] {
         unsafe {
             self.ptr()
@@ -218,43 +243,53 @@ impl<'mem: 'v, 'v> VisitorMut<'mem> {
 
     // Subbuffer write
 
+    #[tracing::instrument(skip_all)]
     pub fn write_schema_buffer(&mut self, bytes: &[u8]) -> Result<BufferChange> {
         self.write_buffer(Buffer::Schema, bytes)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn write_header_buffer(&mut self, bytes: &[u8]) -> Result<BufferChange> {
         self.write_buffer(Buffer::Header, bytes)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn write_meta_buffer(&mut self, bytes: &[u8]) -> Result<BufferChange> {
         self.write_buffer(Buffer::Meta, bytes)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn _write_data_buffer(&mut self, bytes: &[u8]) -> Result<BufferChange> {
         self.write_buffer(Buffer::Data, bytes)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn write_schema_buffer_unchecked(&mut self, bytes: &[u8]) {
         self.write_buffer_unchecked(Buffer::Schema, bytes)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn write_header_buffer_unchecked(&mut self, bytes: &[u8]) {
         self.write_buffer_unchecked(Buffer::Header, bytes)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn write_meta_buffer_unchecked(&mut self, bytes: &[u8]) {
         self.write_buffer_unchecked(Buffer::Meta, bytes)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn write_data_buffer_unchecked(&mut self, bytes: &[u8]) {
         self.write_buffer_unchecked(Buffer::Data, bytes)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn write_buffer_unchecked(&mut self, buffer: Buffer, bytes: &[u8]) {
         let continuation = Self::maybe_continuation(&buffer);
         self[buffer][continuation..continuation + bytes.len()].copy_from_slice(bytes);
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn write_buffer(&mut self, buffer: Buffer, bytes: &[u8]) -> Result<BufferChange> {
         let continuation = Self::maybe_continuation(&buffer);
         let total_size = continuation + bytes.len();
@@ -263,6 +298,7 @@ impl<'mem: 'v, 'v> VisitorMut<'mem> {
         Ok(res)
     }
 
+    #[tracing::instrument(skip_all)]
     fn prepare_buffer_write(&mut self, buffer: &Buffer, num_bytes: usize) -> Result<BufferChange> {
         let cur_accommodation_size = self
             .markers()
@@ -309,6 +345,7 @@ impl<'mem: 'v, 'v> VisitorMut<'mem> {
         Ok(BufferChange(shifted, resized))
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn write_schema_continuation(&self) {
         let markers = self.markers();
         let schema_continuation = unsafe {
@@ -320,6 +357,7 @@ impl<'mem: 'v, 'v> VisitorMut<'mem> {
         ));
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn write_meta_continuation(&self) {
         let markers = self.markers();
         let schema_continuation = unsafe {
@@ -331,11 +369,13 @@ impl<'mem: 'v, 'v> VisitorMut<'mem> {
         ));
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn write_continuations(&self) {
         self.write_schema_continuation();
         self.write_meta_continuation();
     }
 
+    #[tracing::instrument(skip_all)]
     fn get_all_mut(&'v self) -> &'mem mut [u8] {
         unsafe { self.ptr().read_mut_exact(0, self.memory.size) }
     }
@@ -344,6 +384,7 @@ impl<'mem: 'v, 'v> VisitorMut<'mem> {
 impl Index<Buffer> for VisitorMut<'_> {
     type Output = [u8];
 
+    #[tracing::instrument(skip_all)]
     fn index(&self, index: Buffer) -> &Self::Output {
         match index {
             Buffer::Schema => self.schema(),
@@ -355,6 +396,7 @@ impl Index<Buffer> for VisitorMut<'_> {
 }
 
 impl IndexMut<Buffer> for VisitorMut<'_> {
+    #[tracing::instrument(skip_all)]
     fn index_mut(&mut self, index: Buffer) -> &mut Self::Output {
         match index {
             Buffer::Schema => self.schema_mut(),

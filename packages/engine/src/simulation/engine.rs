@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use tracing::instrument;
-
 use super::{
     command::CreateRemoveCommands, comms::Comms, package::run::Packages,
     step_output::SimulationStepOutput, step_result::SimulationStepResult, Error, Result,
@@ -35,7 +33,7 @@ impl Engine {
     /// - Initializes Agent State through the init packages
     /// - Creates an empty Context
     /// - Initializes the Store using the Agent State and empty Context
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn new(
         mut packages: Packages,
         mut uninitialized_store: Store,
@@ -70,7 +68,7 @@ impl Engine {
     /// is a possible future extension. Also, while we do require that
     /// output packages are run only once, context and state packages
     /// can technically be run any number of times.
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn next(&mut self, current_step: usize) -> Result<SimulationStepResult> {
         tracing::debug!("Running next step");
         self.run_context_packages(current_step).await?;
@@ -101,7 +99,7 @@ impl Engine {
     /// of data associated with each agent. Since these sequences of data are not
     /// dependent on each other, then all context packages are run in parallel
     /// and their outputs are merged into one Context object.
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn run_context_packages(&mut self, current_step: usize) -> Result<()> {
         tracing::trace!("Starting run context packages stage");
         // Need write access to state to prepare for context packages,
@@ -163,7 +161,7 @@ impl Engine {
         Ok(())
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn run_state_packages(&mut self) -> Result<()> {
         let (state, context) = self.store.take()?;
         let state = self
@@ -175,7 +173,7 @@ impl Engine {
         Ok(())
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn run_output_packages(&mut self) -> Result<SimulationStepOutput> {
         let (state, context) = self.store.take()?;
         let state = Arc::new(state);
@@ -210,6 +208,8 @@ impl Engine {
     /// 4) A static dataframe is created by copying the state (dynamic) dataframe.
     /// This is done as context packages can take references to previous state.
     /// One example of this happening is the Neighbors Context Package.
+
+    #[tracing::instrument(skip_all)]
     fn prepare_for_context_packages(
         &mut self,
         state: &mut ExState,
@@ -228,6 +228,8 @@ impl Engine {
     /// Operates based on the "create_agent" and "remove_agent"
     /// messages sent to "hash" through agent inboxes. Also creates
     /// and removes agents that have been requested by State packages.
+
+    #[tracing::instrument(skip_all)]
     fn add_remove_agents(&mut self, state: &mut ExState, message_map: &MessageMap) -> Result<()> {
         let read = state.message_pool().read()?;
         let mut commands = CreateRemoveCommands::from_hash_messages(message_map, read)?;
@@ -240,6 +242,8 @@ impl Engine {
 
     /// Replace the inbox dataframe with the outbox dataframe. Reset
     /// the old inbox dataframe and use it as the new outbox dataframe.
+
+    #[tracing::instrument(skip_all)]
     fn finalize_agent_messages(
         &mut self,
         state: &mut ExState,
@@ -252,6 +256,8 @@ impl Engine {
 
     /// Update the old static dataframe with the new updated dynamic
     /// dataframe.
+
+    #[tracing::instrument(skip_all)]
     fn finalize_agent_state(
         &mut self,
         state: &mut ExState,

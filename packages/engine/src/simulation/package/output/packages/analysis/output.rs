@@ -20,14 +20,17 @@ pub enum AnalysisSingleOutput {
 }
 
 impl AnalysisSingleOutput {
+    #[tracing::instrument(skip_all)]
     pub fn null_number() -> AnalysisSingleOutput {
         AnalysisSingleOutput::Number(None)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn some_number(value: f64) -> AnalysisSingleOutput {
         AnalysisSingleOutput::Number(Some(value))
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn number_vec(value: Vec<Option<f64>>) -> AnalysisSingleOutput {
         AnalysisSingleOutput::Vec(Some(value))
     }

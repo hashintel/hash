@@ -16,6 +16,7 @@ pub struct ApiResponseMap {
 }
 
 impl ApiResponseMap {
+    #[tracing::instrument(skip_all)]
     pub fn take_for_agent(&mut self, id: &[u8; UUID_V4_LEN]) -> Vec<ApiResponseToAnonymous> {
         self.map
             .remove(id)
@@ -57,6 +58,7 @@ pub struct ApiResponses<'a> {
 }
 
 impl From<Vec<Vec<ApiResponseToAnonymous>>> for ApiResponses<'_> {
+    #[tracing::instrument(skip_all)]
     fn from(v: Vec<Vec<ApiResponseToAnonymous>>) -> Self {
         // TODO: performance: into_iter to access fields at same time and avoid clones
         ApiResponses {

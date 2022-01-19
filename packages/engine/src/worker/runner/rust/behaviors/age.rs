@@ -1,5 +1,6 @@
 use super::{Context, Result, SharedBehavior, State};
 
+#[tracing::instrument(skip_all)]
 pub fn behavior(state: &mut State<'_>, _context: &Context<'_>) -> Result<()> {
     let age = state.age_mut()?;
     age.iter_mut().for_each(|opt| {
@@ -12,6 +13,7 @@ pub fn behavior(state: &mut State<'_>, _context: &Context<'_>) -> Result<()> {
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub fn get_named_behavior() -> SharedBehavior {
     SharedBehavior {
         id: "@hash/age/age.rs".into(),

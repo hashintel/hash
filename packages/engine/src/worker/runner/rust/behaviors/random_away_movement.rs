@@ -1,7 +1,8 @@
-use super::{error::SimulationError, Context, Result, SharedBehavior, State};
-
 use rand::Rng;
 
+use super::{error::SimulationError, Context, Result, SharedBehavior, State};
+
+#[tracing::instrument(skip_all)]
 pub fn behavior(state: &mut State<'_>, context: &Context<'_>) -> Result<()> {
     let mut position = state.take_position()?;
 
@@ -28,6 +29,7 @@ pub fn behavior(state: &mut State<'_>, context: &Context<'_>) -> Result<()> {
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub fn get_named_behavior() -> SharedBehavior {
     SharedBehavior {
         id: "@hash/random_away_movement/random_away_movement.rs".into(),

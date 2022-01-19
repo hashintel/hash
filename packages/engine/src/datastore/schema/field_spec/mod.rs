@@ -61,6 +61,7 @@ pub struct FieldType {
 }
 
 impl FieldType {
+    #[tracing::instrument(skip_all)]
     pub fn new(variant: FieldTypeVariant, nullable: bool) -> FieldType {
         FieldType { variant, nullable }
     }
@@ -177,6 +178,7 @@ impl FieldKey {
 }
 
 impl Display for FieldKey {
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.value())
     }
@@ -229,6 +231,7 @@ pub struct RootFieldSpec {
 }
 
 impl RootFieldSpec {
+    #[tracing::instrument(skip_all)]
     pub fn to_key(&self) -> Result<FieldKey> {
         match &self.scope {
             FieldScope::Agent => FieldKey::new_agent_scoped(&self.inner.name),
@@ -248,12 +251,14 @@ pub struct FieldSpecMap {
 }
 
 impl FieldSpecMap {
+    #[tracing::instrument(skip_all)]
     pub fn empty() -> FieldSpecMap {
         FieldSpecMap {
             field_specs: HashMap::new(),
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn add_multiple(&mut self, new_field_specs: Vec<RootFieldSpec>) -> Result<()> {
         new_field_specs
             .into_iter()
@@ -261,6 +266,7 @@ impl FieldSpecMap {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn add(&mut self, new_field: RootFieldSpec) -> Result<()> {
         let field_key = new_field.to_key()?;
         if let Some(existing_field) = self.field_specs.get(&field_key) {
@@ -305,12 +311,14 @@ impl FieldSpecMap {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn union(&mut self, set: FieldSpecMap) -> Result<()> {
         set.field_specs
             .into_iter()
             .try_for_each(|(_, field_spec)| self.add(field_spec))
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn contains_key(&self, key: &FieldKey) -> bool {
         self.field_specs.contains_key(key)
     }
@@ -323,10 +331,12 @@ impl FieldSpecMap {
         self.field_specs.values()
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn len(&self) -> usize {
         self.field_specs.len()
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -344,6 +354,7 @@ impl FieldSpecMap {
 impl TryInto<RootFieldSpec> for AgentStateField {
     type Error = Error;
 
+    #[tracing::instrument(skip_all)]
     fn try_into(self) -> Result<RootFieldSpec> {
         Ok(RootFieldSpec {
             inner: FieldSpec {
@@ -360,6 +371,7 @@ impl TryInto<RootFieldSpec> for AgentStateField {
 impl TryInto<FieldType> for AgentStateField {
     type Error = Error;
 
+    #[tracing::instrument(skip_all)]
     fn try_into(self) -> Result<FieldType> {
         let name = self.name();
 
@@ -413,6 +425,7 @@ pub mod tests {
     };
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn name_collision_built_in() {
         let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
         let mut field_spec_map = FieldSpecMap::empty();
@@ -432,6 +445,7 @@ pub mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn name_collision_custom() {
         let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
         let mut field_spec_map = FieldSpecMap::empty();
@@ -459,6 +473,7 @@ pub mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn unchanged_size_built_in() {
         let _field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
         let mut field_spec_map = FieldSpecMap::empty();
@@ -477,6 +492,7 @@ pub mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn unchanged_size_custom() {
         let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
         let mut field_spec_map = FieldSpecMap::empty();

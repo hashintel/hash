@@ -1,6 +1,5 @@
 use futures::FutureExt;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
-use tracing::instrument;
 
 use super::comms::{
     inbound::InboundToRunnerMsgPayload, outbound::OutboundFromRunnerMsg, ExperimentInitRunnerMsg,
@@ -24,6 +23,7 @@ pub struct RustRunner {
 }
 
 impl RustRunner {
+    #[tracing::instrument(skip_all)]
     pub fn new(spawn: bool, _init_msg: ExperimentInitRunnerMsg) -> WorkerResult<Self> {
         let (outbound_sender, outbound_receiver) = unbounded_channel();
         Ok(Self {
@@ -33,7 +33,7 @@ impl RustRunner {
         })
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn send(
         &self,
         _sim_id: Option<SimulationShortId>,
@@ -42,7 +42,7 @@ impl RustRunner {
         Ok(())
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn send_if_spawned(
         &self,
         _sim_id: Option<SimulationShortId>,
@@ -52,7 +52,7 @@ impl RustRunner {
         Ok(())
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn recv(&mut self) -> WorkerResult<OutboundFromRunnerMsg> {
         self.outbound_receiver
             .recv()
@@ -60,16 +60,17 @@ impl RustRunner {
             .ok_or_else(|| WorkerError::from("Rust outbound receive"))
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn recv_now(&mut self) -> WorkerResult<Option<OutboundFromRunnerMsg>> {
         self.recv().now_or_never().transpose()
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn spawned(&self) -> bool {
         false
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn run(&mut self) -> WorkerResult<()> {
         Ok(())
     }
@@ -86,10 +87,22 @@ mod state;
 type KeepRunning = bool;
 
 trait Column: Send + Sync {
-    fn get<'s>(&self, state: &AgentState<'s>) -> Result<serde_json::Value>;
-    fn set<'s>(&self, state: &mut AgentState<'s>, value: serde_json::Value) -> Result<()>;
-    fn load<'s>(&self, state: &mut GroupState<'s>) -> Result<()>;
-    fn commit<'s>(&self, state: &mut GroupState<'s>) -> Result<()>;
+
+
+
+fn get<'s>(&self, state: &AgentState<'s>) -> Result<serde_json::Value>;
+
+
+
+fn set<'s>(&self, state: &mut AgentState<'s>, value: serde_json::Value) -> Result<()>;
+
+
+
+fn load<'s>(&self, state: &mut GroupState<'s>) -> Result<()>;
+
+
+
+fn commit<'s>(&self, state: &mut GroupState<'s>) -> Result<()>;
 }
 
 struct SimSchema {
@@ -110,7 +123,8 @@ pub struct RustRunner {
 }
 
 impl RustRunner {
-    pub fn new(spawn: bool, init_msg: ExperimentInitRunnerMsg) -> WorkerResult<Self> {
+#[tracing::instrument(skip_all)]
+pub fn new(spawn: bool, init_msg: ExperimentInitRunnerMsg) -> WorkerResult<Self> {
         let mut behavior_execution = None;
         for (pkg_id, pkg_init) in init_msg.package_config.0 {
             if pkg_init.name == "behavior_execution" {
@@ -165,7 +179,8 @@ impl RustRunner {
         self.recv().now_or_never().transpose()
     }
 
-    pub fn spawned(&self) -> bool {
+#[tracing::instrument(skip_all)]
+pub fn spawned(&self) -> bool {
         self.spawned
     }
 
@@ -187,7 +202,11 @@ impl RustRunner {
         Ok(())
     }
 
-    fn handle_msg(
+#[tracing::instrument(skip_all)]
+
+
+#[tracing::instrument(skip_all)]
+fn handle_msg(
         &mut self,
         sim_id: Option<SimulationShortId>,
         msg: InboundToRunnerMsgPayload,
@@ -244,7 +263,11 @@ impl RustRunner {
         Ok(true) // Continue running.
     }
 
-    fn start_sim(&mut self, run: NewSimulationRun) -> Result<()> {
+#[tracing::instrument(skip_all)]
+
+
+#[tracing::instrument(skip_all)]
+fn start_sim(&mut self, run: NewSimulationRun) -> Result<()> {
         // TODO: Shouldn't rely on behavior package to start sim runs.
         let (col_map, all_behavior_col_names) = match self.behavior_execution.as_ref() {
             Some(b) => (b.col_map.clone(), b.all_behavior_col_names.clone()),
@@ -274,12 +297,20 @@ impl RustRunner {
         Ok(())
     }
 
-    fn flush(&mut self, state: &mut GroupState<'_>) -> Result<()> {
+#[tracing::instrument(skip_all)]
+
+
+#[tracing::instrument(skip_all)]
+fn flush(&mut self, state: &mut GroupState<'_>) -> Result<()> {
         state.flush()?;
         Ok(())
     }
 
-    fn run_behavior_execution_task(
+#[tracing::instrument(skip_all)]
+
+
+#[tracing::instrument(skip_all)]
+fn run_behavior_execution_task(
         &mut self,
         sim_run_id: SimulationShortId,
         msg: RunnerTaskMsg,
@@ -321,7 +352,11 @@ impl RustRunner {
         Ok((next_task_msg, Vec::new()))
     }
 
-    fn run_task(
+#[tracing::instrument(skip_all)]
+
+
+#[tracing::instrument(skip_all)]
+fn run_task(
         &mut self,
         sim_run_id: SimulationShortId,
         msg: RunnerTaskMsg,
@@ -336,7 +371,11 @@ impl RustRunner {
         self.run_behavior_execution_task(sim_run_id, msg)
     }
 
-    fn ctx_batch_sync(
+#[tracing::instrument(skip_all)]
+
+
+#[tracing::instrument(skip_all)]
+fn ctx_batch_sync(
         &mut self,
         sim_run_id: SimulationShortId,
         ctx_batch: ContextBatchSync,
@@ -349,7 +388,11 @@ impl RustRunner {
         Ok(())
     }
 
-    fn state_sync(&mut self, sim_run_id: SimulationShortId, msg: StateSync) -> Result<()> {
+#[tracing::instrument(skip_all)]
+
+
+#[tracing::instrument(skip_all)]
+fn state_sync(&mut self, sim_run_id: SimulationShortId, msg: StateSync) -> Result<()> {
         let state = self
             .sims_state
             .get_mut(&sim_run_id)
@@ -359,7 +402,11 @@ impl RustRunner {
         Ok(())
     }
 
-    fn state_interim_sync(
+#[tracing::instrument(skip_all)]
+
+
+#[tracing::instrument(skip_all)]
+fn state_interim_sync(
         &mut self,
         sim_run_id: SimulationShortId,
         msg: StateInterimSync,
@@ -379,7 +426,11 @@ impl RustRunner {
         Ok(())
     }
 
-    fn state_snapshot_sync(&mut self, sim_run_id: SimulationShortId, msg: StateSync) -> Result<()> {
+#[tracing::instrument(skip_all)]
+
+
+#[tracing::instrument(skip_all)]
+fn state_snapshot_sync(&mut self, sim_run_id: SimulationShortId, msg: StateSync) -> Result<()> {
         let ctx = self
             .sims_ctx
             .get_mut(&sim_run_id)

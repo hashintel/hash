@@ -58,6 +58,7 @@ pub enum SupportedArrowDataTypes {
 impl TryFrom<ArrowDataType> for SupportedArrowDataTypes {
     type Error = Error;
 
+    #[tracing::instrument(skip_all)]
     fn try_from(arrow_data_type: ArrowDataType) -> Result<Self, Self::Error> {
         match arrow_data_type {
             ArrowDataType::Boolean => Ok(Self::Boolean),
@@ -127,6 +128,7 @@ pub trait HashStaticMeta {
 }
 
 impl HashStaticMeta for Arc<ArrowSchema> {
+    #[tracing::instrument(skip_all)]
     fn get_static_metadata(&self) -> StaticMeta {
         let (indices, padding, data) = schema_to_column_hierarchy(self.clone());
         StaticMeta::new(indices, padding, data)
@@ -138,6 +140,7 @@ pub trait HashDynamicMeta {
 }
 
 impl HashDynamicMeta for RecordBatch<'_> {
+    #[tracing::instrument(skip_all)]
     fn into_meta(&self, data_length: usize) -> Result<DynamicMeta> {
         let nodes = self
             .nodes()
@@ -229,6 +232,8 @@ pub fn get_dynamic_meta_flatbuffers<'a>(meta: &DynamicMeta) -> Result<FlatBuffer
 
 /// Column hierarchy is the mapping from column index to buffer and node indices.
 /// This also returns information about which buffers are growable
+
+#[tracing::instrument(skip_all)]
 fn schema_to_column_hierarchy(
     schema: Arc<ArrowSchema>,
 ) -> (Vec<ColumnMeta>, Vec<bool>, Vec<NodeStaticMeta>) {
@@ -452,6 +457,7 @@ pub fn data_type_to_metadata(
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn data_type_metadata(
     is_parent_growable: bool,
     multiplier: usize,
@@ -493,6 +499,7 @@ pub mod tests {
 
     use super::*;
 
+    #[tracing::instrument(skip_all)]
     fn get_dummy_metadata() -> HashMap<String, String> {
         [("Key".to_string(), "Value".to_string())]
             .iter()
@@ -500,12 +507,14 @@ pub mod tests {
             .collect()
     }
 
+    #[tracing::instrument(skip_all)]
     fn get_num_nodes_from_array_data(data: &Arc<ArrowArrayData>) -> usize {
         data.child_data().iter().fold(0, |total_children, child| {
             total_children + get_num_nodes_from_array_data(child)
         }) + 1
     }
 
+    #[tracing::instrument(skip_all)]
     fn get_buffer_counts_from_array_data<'a>(
         node_data: &Arc<ArrowArrayData>,
         node_meta: &'a [NodeStaticMeta],
@@ -542,6 +551,7 @@ pub mod tests {
         (buffers, node_meta)
     }
 
+    #[tracing::instrument(skip_all)]
     fn get_node_mapping_from_array_data(data: &Arc<ArrowArrayData>) -> NodeMapping {
         if data.child_data().is_empty() {
             NodeMapping::empty()
@@ -557,6 +567,8 @@ pub mod tests {
 
     // Extracts column hierarchy metadata from the Arrow Array data for a given FieldNode, and its
     // children
+
+    #[tracing::instrument(skip_all)]
     fn get_col_hierarchy_from_arrow_array(
         arrow_array: &dyn ArrowArray,
         node_infos: &[NodeStaticMeta],
@@ -570,6 +582,7 @@ pub mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn bool_dtype_schema_to_col_hierarchy() {
         let schema = ArrowSchema::new_with_metadata(
             vec![ArrowField::new("c0", D::Boolean, false)],
@@ -623,6 +636,7 @@ pub mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn num_dtypes_schema_to_col_hierarchy() {
         let fields = vec![
             ArrowField::new("c1", D::Int8, false),
@@ -718,6 +732,7 @@ pub mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn time_dtypes_schema_to_col_hierarchy() {
         let mut fields = vec![];
         let mut unit_byte_sizes = vec![];
@@ -815,6 +830,7 @@ pub mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn date_dtypes_schema_to_col_hierarchy() {
         let mut fields = vec![];
         let mut unit_byte_sizes = vec![];
@@ -907,6 +923,7 @@ pub mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn duration_dtypes_schema_to_col_hierarchy() {
         let fields: Vec<ArrowField> = [
             TimeUnit::Nanosecond,
@@ -994,6 +1011,7 @@ pub mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn interval_dtypes_schema_to_col_hierarchy() {
         let mut fields = vec![];
         let mut unit_byte_sizes = vec![];
@@ -1079,6 +1097,7 @@ pub mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn timestamp_dtypes_schema_to_col_hierarchy() {
         let mut fields = vec![];
 
@@ -1183,6 +1202,7 @@ pub mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn fixed_size_binary_dtype_schema_to_col_hierarchy() {
         // try a variety of sizes
         let fixed_sizes = [2, 3, 6, 8];
@@ -1267,6 +1287,7 @@ pub mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn variable_length_base_dtypes_schema_to_col_hierarchy() {
         let fields = vec![
             ArrowField::new("c0", D::Utf8, false),
@@ -1345,6 +1366,7 @@ pub mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn list_dtype_schema_to_col_hierarchy() {
         let fields = vec![
             ArrowField::new("c0", D::List(Box::new(D::Boolean)), false),
@@ -1466,6 +1488,7 @@ pub mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn struct_dtypes_schema_to_col_hierarchy() {
         let fields = vec![
             ArrowField::new(

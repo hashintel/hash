@@ -87,6 +87,7 @@ unsafe fn c_datatype_to_rust(c_field: &ArrowSchema) -> Result<DataType> {
     Ok(dt)
 }
 
+#[tracing::instrument(skip_all)]
 fn dt_error(description: &str, value: &str) -> Error {
     Error::from(format!(
         "Schema parse error: {}. Value: \"{}\".",

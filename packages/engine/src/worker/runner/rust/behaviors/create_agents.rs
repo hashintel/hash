@@ -1,6 +1,9 @@
-use super::super::{Agent, OutboundMessage};
-use super::{Context, Result, SharedBehavior, State};
+use super::{
+    super::{Agent, OutboundMessage},
+    Context, Result, SharedBehavior, State,
+};
 
+#[tracing::instrument(skip_all)]
 pub fn behavior(state: &mut State<'_>, _context: &Context<'_>) -> Result<()> {
     for i in 0..state.num_agents() {
         if let Some(agents_object) = &state.agents()?[i] {
@@ -20,6 +23,7 @@ pub fn behavior(state: &mut State<'_>, _context: &Context<'_>) -> Result<()> {
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub fn get_named_behavior() -> SharedBehavior {
     SharedBehavior {
         id: "@hash/create_agents/create_agents.rs".into(),

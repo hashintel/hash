@@ -15,14 +15,17 @@ pub struct AgentPool {
 }
 
 impl AgentPool {
+    #[tracing::instrument(skip_all)]
     pub fn empty() -> AgentPool {
         AgentPool { batches: vec![] }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn new(batches: Vec<Arc<RwLock<AgentBatch>>>) -> AgentPool {
         AgentPool { batches }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn read_batches(&self) -> Result<Vec<RwLockReadGuard<'_, AgentBatch>>> {
         self.batches()
             .iter()
@@ -33,6 +36,7 @@ impl AgentPool {
             .collect::<Result<_>>()
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn write_batches(&mut self) -> Result<Vec<RwLockWriteGuard<'_, AgentBatch>>> {
         self.batches()
             .iter()
@@ -43,14 +47,17 @@ impl AgentPool {
             .collect::<Result<_>>()
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn len(&self) -> usize {
         self.batches().len()
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_batch_at_index(
         &self,
         index: usize,
@@ -68,6 +75,7 @@ impl AgentPool {
         Ok(batch)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn set_pending_column(&mut self, column: StateColumn) -> Result<()> {
         let write = self.write_batches()?;
         let mut index = 0;
@@ -81,6 +89,7 @@ impl AgentPool {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn flush_pending_columns(&mut self) -> Result<()> {
         let write = self.write_batches()?;
         for mut batch in write {
@@ -91,10 +100,12 @@ impl AgentPool {
 }
 
 impl BatchPool<AgentBatch> for AgentPool {
+    #[tracing::instrument(skip_all)]
     fn batches(&self) -> &[Arc<RwLock<AgentBatch>>] {
         &self.batches
     }
 
+    #[tracing::instrument(skip_all)]
     fn mut_batches(&mut self) -> &mut Vec<Arc<RwLock<AgentBatch>>> {
         &mut self.batches
     }

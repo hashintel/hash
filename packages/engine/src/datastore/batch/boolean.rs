@@ -56,6 +56,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn unset() {
         let mut rng = rand::thread_rng();
         let unset = 40;
@@ -79,6 +80,7 @@ mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn set() {
         let mut rng = rand::thread_rng();
         let size = 200;

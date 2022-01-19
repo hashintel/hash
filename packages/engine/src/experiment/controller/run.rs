@@ -1,7 +1,5 @@
 use std::{pin::Pin, sync::Arc, time::Duration};
 
-use tracing::instrument;
-
 use super::{config, controller::ExperimentController, Error, Result};
 use crate::{
     datastore::prelude::SharedStore,
@@ -21,7 +19,7 @@ use crate::{
     Environment, Error as CrateError, ExperimentConfig,
 };
 
-#[instrument(skip_all)]
+#[tracing::instrument(skip_all)]
 pub async fn run_experiment(exp_config: ExperimentConfig, env: Environment) -> Result<()> {
     let experiment_id = exp_config.id().clone();
     tracing::info!("Running experiment {}", experiment_id);
@@ -69,7 +67,7 @@ pub async fn run_experiment(exp_config: ExperimentConfig, env: Environment) -> R
     Ok(())
 }
 
-#[instrument(skip_all)]
+#[tracing::instrument(skip_all)]
 pub async fn run_local_experiment(exp_config: ExperimentConfig, env: Environment) -> Result<()> {
     match config::output_persistence(&env)? {
         OutputPersistenceConfig::Local(local) => {
@@ -89,7 +87,7 @@ pub async fn run_local_experiment(exp_config: ExperimentConfig, env: Environment
 type ExperimentPackageResult = Option<crate::experiment::Result<()>>;
 type ExperimentControllerResult = Option<Result<()>>;
 type WorkerPoolResult = Option<crate::workerpool::Result<()>>;
-#[instrument(skip_all)]
+#[tracing::instrument(skip_all)]
 async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
     exp_config: ExperimentConfig,
     env: Environment,
@@ -260,6 +258,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
 }
 
 #[inline]
+#[tracing::instrument(skip_all)]
 fn experiment_package_exit_logic(
     experiment_controller_result: &ExperimentControllerResult,
     worker_pool_result: &WorkerPoolResult,
@@ -292,6 +291,7 @@ fn experiment_package_exit_logic(
 }
 
 #[inline]
+#[tracing::instrument(skip_all)]
 fn experiment_controller_exit_logic(
     experiment_package_result: &ExperimentPackageResult,
     worker_pool_result: &WorkerPoolResult,
@@ -321,6 +321,7 @@ fn experiment_controller_exit_logic(
 }
 
 #[inline]
+#[tracing::instrument(skip_all)]
 fn worker_pool_exit_logic(
     experiment_package_result: &ExperimentPackageResult,
     experiment_controller_result: &ExperimentControllerResult,

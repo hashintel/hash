@@ -11,10 +11,12 @@ pub enum OutputPersistenceConfig {
     None,
 }
 
+#[tracing::instrument(skip_all)]
 pub fn output_persistence(env: &Environment) -> Result<OutputPersistenceConfig> {
     get_dynamic(env, OUTPUT_PERSISTENCE_KEY)
 }
 
+#[tracing::instrument(skip_all)]
 pub fn get_dynamic<K>(env: &Environment, key: &str) -> Result<K>
 where
     K: for<'de> Deserialize<'de>,

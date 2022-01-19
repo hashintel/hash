@@ -14,6 +14,7 @@ pub struct ProcessedCommands {
 }
 
 impl ProcessedCommands {
+    #[tracing::instrument(skip_all)]
     pub fn new(
         commands: CreateRemoveCommands,
         schema: &Arc<AgentSchema>,
@@ -23,6 +24,7 @@ impl ProcessedCommands {
             .map_err(|e| Error::from(format!("Error processing CreateRemoveCommands: {:?}", e)))
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_number_inbound(&self) -> usize {
         self.new_agents.as_ref().map(|b| b.num_rows()).unwrap_or(0)
     }

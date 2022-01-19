@@ -30,8 +30,10 @@ use crate::{
 /// Conversion into Arrow `RecordBatch`
 pub trait IntoRecordBatch {
     fn into_message_batch(&self, schema: &Arc<ArrowSchema>) -> Result<RecordBatch>;
+
     fn into_empty_message_batch(&self, schema: &Arc<ArrowSchema>) -> Result<RecordBatch>;
     /// TODO: DOC describe, explain self is initialization data
+
     fn into_agent_batch(&self, schema: &Arc<AgentSchema>) -> Result<RecordBatch>;
 }
 
@@ -72,6 +74,7 @@ pub fn new_offsets_buffer(n_elem: usize) -> MutableBuffer {
     buffer
 }
 
+#[tracing::instrument(skip_all)]
 pub fn new_buffer<T>(n_elem: usize) -> MutableBuffer {
     let offset_size = std::mem::size_of::<T>();
     let byte_length = n_elem * offset_size;
@@ -82,6 +85,7 @@ pub fn new_buffer<T>(n_elem: usize) -> MutableBuffer {
     buffer
 }
 
+#[tracing::instrument(skip_all)]
 fn builder_add_id(builder: &mut array::FixedSizeBinaryBuilder, id: &str) -> Result<()> {
     if id.is_empty() {
         // Generates UUID if it does not exist
@@ -97,6 +101,7 @@ fn builder_add_id(builder: &mut array::FixedSizeBinaryBuilder, id: &str) -> Resu
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub fn get_agent_id_array(values: Vec<&str>) -> Result<array::FixedSizeBinaryArray> {
     let mut builder =
         array::FixedSizeBinaryBuilder::new(values.len() * UUID_V4_LEN, UUID_V4_LEN as i32);
@@ -108,6 +113,8 @@ pub fn get_agent_id_array(values: Vec<&str>) -> Result<array::FixedSizeBinaryArr
 
 // `get_agent_id_array` is needed for public interface, but
 // this function avoids copying ids to separate `Vec`.
+
+#[tracing::instrument(skip_all)]
 fn agents_to_id_col(agents: &[&AgentState]) -> Result<ArrayRef> {
     let mut builder =
         array::FixedSizeBinaryBuilder::new(agents.len() * UUID_V4_LEN, UUID_V4_LEN as i32);
@@ -119,6 +126,7 @@ fn agents_to_id_col(agents: &[&AgentState]) -> Result<ArrayRef> {
 
 macro_rules! agents_to_vec_col_gen {
     ($field_name:ident, $function_name:ident) => {
+        #[tracing::instrument(skip_all)]
         fn $function_name(agents: &[&AgentState]) -> Result<ArrayRef> {
             let mut flat: Vec<f64> = Vec::with_capacity(agents.len() * 3);
             let mut null_bits = new_zero_bits(agents.len());
@@ -159,6 +167,7 @@ agents_to_vec_col_gen!(position, agents_to_position_col);
 agents_to_vec_col_gen!(scale, agents_to_scale_col);
 agents_to_vec_col_gen!(rgb, agents_to_rgb_col);
 
+#[tracing::instrument(skip_all)]
 fn json_vals_to_bool(vals: Vec<Value>) -> Result<ArrayRef> {
     let bools: Vec<bool> = vals
         .iter()
@@ -173,6 +182,7 @@ fn json_vals_to_bool(vals: Vec<Value>) -> Result<ArrayRef> {
     Ok(Arc::new(list))
 }
 
+#[tracing::instrument(skip_all)]
 fn json_vals_to_primitive<T: ArrowPrimitiveType>(
     vals: Vec<Value>,
     nullable: bool,
@@ -191,6 +201,7 @@ where
     Ok(Arc::new(builder.finish()))
 }
 
+#[tracing::instrument(skip_all)]
 fn json_vals_to_utf8(vals: Vec<Value>, nullable: bool) -> Result<ArrayRef> {
     // TODO: some better heuristics for capacity estimation?
     let mut builder = array::StringBuilder::new(vals.len() * 64);
@@ -210,6 +221,7 @@ fn json_vals_to_utf8(vals: Vec<Value>, nullable: bool) -> Result<ArrayRef> {
     Ok(Arc::new(builder.finish()))
 }
 
+#[tracing::instrument(skip_all)]
 fn json_vals_to_list(vals: Vec<Value>, _nullable: bool, inner_dt: &DataType) -> Result<ArrayRef> {
     let mut null_count = 0;
     let n_elem = vals.len();
@@ -252,6 +264,7 @@ fn json_vals_to_list(vals: Vec<Value>, _nullable: bool, inner_dt: &DataType) -> 
     Ok(Arc::new(list))
 }
 
+#[tracing::instrument(skip_all)]
 fn json_vals_to_fixed_size_list(
     vals: Vec<Value>,
     _nullable: bool,
@@ -299,6 +312,7 @@ fn json_vals_to_fixed_size_list(
     Ok(Arc::new(list))
 }
 
+#[tracing::instrument(skip_all)]
 fn json_vals_to_struct(
     vals: Vec<Value>,
     _nullable: bool,
@@ -371,6 +385,8 @@ fn json_vals_to_struct(
 // TODO: As an optimization, we could look at both whether a column is *nullable* (i.e.
 //       can have nulls) and whether it has a *non-zero null count* (i.e. currently
 //       has nulls). Right now it only matters whether the column is nullable.
+
+#[tracing::instrument(skip_all)]
 fn json_vals_to_col(vals: Vec<Value>, dt: &DataType, nullable: bool) -> Result<ArrayRef> {
     // Inner columns (i.e. columns that are elements of list or struct arrays) are
     // always nullable; fields might not be.
@@ -398,6 +414,7 @@ fn json_vals_to_col(vals: Vec<Value>, dt: &DataType, nullable: bool) -> Result<A
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn json_vals_to_any_type_col(vals: Vec<Value>, dt: &DataType) -> Result<ArrayRef> {
     debug_assert!(matches!(dt, DataType::Utf8));
 
@@ -409,6 +426,7 @@ fn json_vals_to_any_type_col(vals: Vec<Value>, dt: &DataType) -> Result<ArrayRef
     Ok(Arc::new(builder.finish()))
 }
 
+#[tracing::instrument(skip_all)]
 fn previous_index_to_empty_col(num_agents: usize, dt: &ArrowDataType) -> Result<ArrayRef> {
     if let ArrowDataType::FixedSizeList(inner_type, inner_len) = dt.clone() {
         debug_assert!(matches!(*inner_type, DataType::UInt32));
@@ -438,6 +456,7 @@ fn previous_index_to_empty_col(num_agents: usize, dt: &ArrowDataType) -> Result<
 }
 
 impl IntoRecordBatch for &[AgentState] {
+    #[tracing::instrument(skip_all)]
     fn into_message_batch(&self, schema: &Arc<ArrowSchema>) -> Result<RecordBatch> {
         self.iter()
             .collect::<Vec<_>>()
@@ -445,6 +464,7 @@ impl IntoRecordBatch for &[AgentState] {
             .into_message_batch(schema)
     }
 
+    #[tracing::instrument(skip_all)]
     fn into_empty_message_batch(&self, schema: &Arc<ArrowSchema>) -> Result<RecordBatch> {
         self.iter()
             .collect::<Vec<_>>()
@@ -452,6 +472,7 @@ impl IntoRecordBatch for &[AgentState] {
             .into_empty_message_batch(schema)
     }
 
+    #[tracing::instrument(skip_all)]
     fn into_agent_batch(&self, schema: &Arc<AgentSchema>) -> Result<RecordBatch> {
         self.iter()
             .collect::<Vec<_>>()
@@ -461,6 +482,7 @@ impl IntoRecordBatch for &[AgentState] {
 }
 
 impl IntoRecordBatch for &[&AgentState] {
+    #[tracing::instrument(skip_all)]
     fn into_message_batch(&self, schema: &Arc<ArrowSchema>) -> Result<RecordBatch> {
         let ids = self
             .iter()
@@ -474,6 +496,7 @@ impl IntoRecordBatch for &[&AgentState] {
         message::batch_from_json(schema, ids, Some(messages))
     }
 
+    #[tracing::instrument(skip_all)]
     fn into_empty_message_batch(&self, schema: &Arc<ArrowSchema>) -> Result<RecordBatch> {
         let ids = self
             .iter()
@@ -482,6 +505,7 @@ impl IntoRecordBatch for &[&AgentState] {
         message::batch_from_json(schema, ids, None)
     }
 
+    #[tracing::instrument(skip_all)]
     fn into_agent_batch(&self, schema: &Arc<AgentSchema>) -> Result<RecordBatch> {
         let mut cols = Vec::with_capacity(schema.arrow.fields().len());
 
@@ -551,6 +575,7 @@ pub trait IntoAgentStates {
 
     // Conversion into `AgentState` where certain built-in fields and
     // null values are selectively ignored
+
     fn into_filtered_agent_states(
         &self,
         agent_schema: &Arc<AgentSchema>,
@@ -566,6 +591,7 @@ pub trait IntoAgentStates {
 // }
 // This works: https://docs.rs/arrow/1.0.1/src/arrow/array/cast.rs.html
 
+#[tracing::instrument(skip_all)]
 fn get_i_col(field: AgentStateField, rb: &RecordBatch) -> Result<Option<usize>> {
     match rb.schema().column_with_name(field.name()) {
         Some((i, _)) => Ok(Some(i)),
@@ -579,6 +605,7 @@ fn get_i_col(field: AgentStateField, rb: &RecordBatch) -> Result<Option<usize>> 
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn set_states_agent_id(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Result<()> {
     let field = AgentStateField::AgentId;
     if let Some(i_col) = get_i_col(field, rb)? {
@@ -601,6 +628,7 @@ fn set_states_agent_id(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Result
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 fn set_states_agent_name(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Result<()> {
     let field = AgentStateField::AgentName;
     if let Some(i_col) = get_i_col(field.clone(), rb)? {
@@ -623,6 +651,7 @@ fn set_states_agent_name(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Resu
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 fn set_states_shape(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Result<()> {
     let field = AgentStateField::Shape;
     if let Some(i_col) = get_i_col(field.clone(), rb)? {
@@ -645,6 +674,7 @@ fn set_states_shape(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Result<()
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 fn set_states_color(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Result<()> {
     let field = AgentStateField::Color;
     if let Some(i_col) = get_i_col(field.clone(), rb)? {
@@ -675,6 +705,8 @@ macro_rules! set_states_opt_vec3_gen {
         // At least for now, need `field` parameter in addition to `field_name` parameter,
         // because other functions use `field` enum, not just the field name.
 
+        #[tracing::instrument(skip_all)]
+        #[tracing::instrument(skip_all)]
         fn $function_name(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Result<()> {
             if let Some(i_col) = get_i_col($field, rb)? {
                 let vec3_array = rb
@@ -717,6 +749,7 @@ set_states_opt_vec3_gen!(velocity, set_states_velocity, AgentStateField::Velocit
 
 macro_rules! set_states_opt_f64_gen {
     ($field_name:ident, $function_name:ident, $field:expr) => {
+        #[tracing::instrument(skip_all)]
         fn $function_name(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Result<()> {
             if let Some(i_col) = get_i_col($field, rb)? {
                 let array = rb
@@ -742,6 +775,7 @@ macro_rules! set_states_opt_f64_gen {
 
 set_states_opt_f64_gen!(height, set_states_height, AgentStateField::Height);
 
+#[tracing::instrument(skip_all)]
 fn set_states_hidden(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Result<()> {
     let field = AgentStateField::Hidden;
     if let Some(i_col) = get_i_col(field.clone(), rb)? {
@@ -760,6 +794,7 @@ fn set_states_hidden(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Result<(
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 fn set_states_previous_index(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Result<()> {
     let index = rb
         .schema()
@@ -797,6 +832,7 @@ fn set_states_previous_index(states: &mut Vec<AgentState>, rb: &RecordBatch) -> 
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 fn set_states_messages(states: &mut Vec<AgentState>, messages: &RecordBatch) -> Result<()> {
     debug_assert_eq!(
         messages.schema(),
@@ -805,6 +841,7 @@ fn set_states_messages(states: &mut Vec<AgentState>, messages: &RecordBatch) -> 
     super::message::column_into_state(states, messages, super::message::MESSAGE_COLUMN_INDEX)
 }
 
+#[tracing::instrument(skip_all)]
 fn set_states_builtins(states: &mut Vec<AgentState>, agents: &RecordBatch) -> Result<()> {
     set_states_agent_id(states, agents)?;
     set_states_agent_name(states, agents)?;
@@ -824,6 +861,7 @@ fn set_states_builtins(states: &mut Vec<AgentState>, agents: &RecordBatch) -> Re
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 fn numeric_to_json_vals<T: ArrowPrimitiveType + ArrowNumericType>(
     col: &ArrayRef,
 ) -> Result<Vec<Value>> {
@@ -852,6 +890,8 @@ fn numeric_to_json_vals<T: ArrowPrimitiveType + ArrowNumericType>(
 // Have to pretty much copy-paste `numeric_to_json_vals`, because
 // the Rust Arrow crate doesn't have the function `value` in the
 // `Array` trait, even though all arrays do implement that function.
+
+#[tracing::instrument(skip_all)]
 fn bool_to_json_vals(col: &ArrayRef) -> Result<Vec<Value>> {
     let array = array::as_boolean_array(col);
     let mut json_vals: Vec<Value> = Vec::with_capacity(array.len());
@@ -868,6 +908,7 @@ fn bool_to_json_vals(col: &ArrayRef) -> Result<Vec<Value>> {
     Ok(json_vals)
 }
 
+#[tracing::instrument(skip_all)]
 fn utf8_to_json_vals(col: &ArrayRef) -> Result<Vec<Value>> {
     let array = array::as_string_array(col);
     let mut json_vals: Vec<Value> = Vec::with_capacity(array.len());
@@ -884,6 +925,7 @@ fn utf8_to_json_vals(col: &ArrayRef) -> Result<Vec<Value>> {
     Ok(json_vals)
 }
 
+#[tracing::instrument(skip_all)]
 fn json_utf8_json_vals(col: &ArrayRef) -> Result<Vec<Value>> {
     let array = array::as_string_array(col);
     let mut json_vals: Vec<Value> = Vec::with_capacity(array.len());
@@ -900,6 +942,7 @@ fn json_utf8_json_vals(col: &ArrayRef) -> Result<Vec<Value>> {
     Ok(json_vals)
 }
 
+#[tracing::instrument(skip_all)]
 fn list_to_json_vals(col: &ArrayRef, inner_dt: &DataType) -> Result<Vec<Value>> {
     let array =
         col.as_any()
@@ -922,6 +965,7 @@ fn list_to_json_vals(col: &ArrayRef, inner_dt: &DataType) -> Result<Vec<Value>> 
     Ok(json_vals)
 }
 
+#[tracing::instrument(skip_all)]
 fn fixed_size_list_to_json_vals(col: &ArrayRef, inner_dt: &DataType) -> Result<Vec<Value>> {
     let array = col
         .as_any()
@@ -944,6 +988,7 @@ fn fixed_size_list_to_json_vals(col: &ArrayRef, inner_dt: &DataType) -> Result<V
     Ok(json_vals)
 }
 
+#[tracing::instrument(skip_all)]
 fn struct_to_json_vals(col: &ArrayRef, fields: &[ArrowField]) -> Result<Vec<Value>> {
     let array =
         col.as_any()
@@ -1006,6 +1051,7 @@ pub(in crate::datastore) fn col_to_json_vals(col: &ArrayRef, dt: &DataType) -> R
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn set_states_custom(
     states: &mut Vec<AgentState>,
     rb: &RecordBatch,
@@ -1024,6 +1070,7 @@ fn set_states_custom(
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 fn set_states_serialized(
     states: &mut Vec<AgentState>,
     rb: &RecordBatch,
@@ -1043,6 +1090,7 @@ fn set_states_serialized(
 }
 
 impl IntoAgentStates for (&AgentBatch, &MessageBatch) {
+    #[tracing::instrument(skip_all)]
     fn into_agent_states(
         &self,
         agent_schema: Option<&Arc<AgentSchema>>,
@@ -1054,6 +1102,7 @@ impl IntoAgentStates for (&AgentBatch, &MessageBatch) {
         Ok(states)
     }
 
+    #[tracing::instrument(skip_all)]
     fn into_filtered_agent_states(
         &self,
         agent_schema: &Arc<AgentSchema>,
@@ -1067,6 +1116,7 @@ impl IntoAgentStates for (&AgentBatch, &MessageBatch) {
 }
 
 impl IntoAgentStates for (&RecordBatch, &RecordBatch) {
+    #[tracing::instrument(skip_all)]
     fn into_agent_states(
         &self,
         agent_schema: Option<&Arc<AgentSchema>>,
@@ -1078,6 +1128,7 @@ impl IntoAgentStates for (&RecordBatch, &RecordBatch) {
         Ok(states)
     }
 
+    #[tracing::instrument(skip_all)]
     fn into_filtered_agent_states(
         &self,
         agent_schema: &Arc<AgentSchema>,
@@ -1091,6 +1142,7 @@ impl IntoAgentStates for (&RecordBatch, &RecordBatch) {
 }
 
 impl IntoAgentStates for RecordBatch {
+    #[tracing::instrument(skip_all)]
     fn into_agent_states(
         &self,
         agent_schema: Option<&Arc<AgentSchema>>,
@@ -1144,6 +1196,7 @@ impl IntoAgentStates for RecordBatch {
         Ok(states)
     }
 
+    #[tracing::instrument(skip_all)]
     fn into_filtered_agent_states(
         &self,
         agent_schema: &Arc<AgentSchema>,
@@ -1186,6 +1239,7 @@ pub mod tests {
     use crate::datastore::test_utils::gen_schema_and_test_agents;
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn agent_state_into_record_batch() -> Result<()> {
         let mut failed_agent_seeds = vec![];
 

@@ -1,7 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
 use futures::{executor::block_on, stream::FuturesOrdered, StreamExt};
-use tracing::instrument;
 
 use crate::{
     datastore::{
@@ -36,11 +35,12 @@ pub struct InitPackages {
 }
 
 impl InitPackages {
+    #[tracing::instrument(skip_all)]
     pub fn new(inner: Vec<Box<dyn init::Package>>) -> InitPackages {
         InitPackages { inner }
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn run(&mut self, sim_config: Arc<SimRunConfig>) -> Result<State> {
         // Execute packages in parallel and collect the data
         let mut futs = FuturesOrdered::new();
@@ -85,6 +85,7 @@ pub struct StepPackages {
 }
 
 impl StepPackages {
+    #[tracing::instrument(skip_all)]
     pub fn new(
         context: Vec<Box<dyn context::Package>>,
         state: Vec<Box<dyn state::Package>>,
@@ -99,6 +100,7 @@ impl StepPackages {
 }
 
 impl StepPackages {
+    #[tracing::instrument(skip_all)]
     pub fn empty_context(
         &self,
         sim_run_config: &SimRunConfig,
@@ -147,7 +149,7 @@ impl StepPackages {
         Ok(context)
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn run_context(
         &mut self,
         state: Arc<State>,
@@ -232,7 +234,7 @@ impl StepPackages {
         Ok(context)
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn run_state(&mut self, mut state: ExState, context: &Context) -> Result<ExState> {
         tracing::debug!("Running state packages");
         // Design-choices:
@@ -246,7 +248,7 @@ impl StepPackages {
         Ok(state)
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn run_output(
         &mut self,
         state: Arc<State>,

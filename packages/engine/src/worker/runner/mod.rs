@@ -27,5 +27,6 @@ pub trait LanguageWorker {
     async fn recv(&mut self) -> Result<OutboundFromRunnerMsg>;
     async fn recv_now(&mut self) -> Result<Option<OutboundFromRunnerMsg>>;
     async fn run(&mut self) -> Result<()>;
+
     fn spawned(&self) -> bool;
 }

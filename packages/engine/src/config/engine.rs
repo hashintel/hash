@@ -13,10 +13,12 @@ pub type WorkerAllocation = Vec<Worker>;
 pub struct Worker(WorkerIndex);
 
 impl Worker {
+    #[tracing::instrument(skip_all)]
     pub fn new(index: WorkerIndex) -> Worker {
         Worker(index)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn index(&self) -> WorkerIndex {
         self.0
     }

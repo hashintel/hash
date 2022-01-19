@@ -19,6 +19,7 @@ pub struct AgentMessageReference {
 }
 
 impl AgentMessageReference {
+    #[tracing::instrument(skip_all)]
     pub fn new(
         batch_index: usize,
         agent_index: usize,
@@ -39,6 +40,7 @@ pub struct MessageMap {
 }
 
 impl MessageMap {
+    #[tracing::instrument(skip_all)]
     pub fn new(pool: &MessagePoolRead<'_>) -> Result<MessageMap> {
         let iter = pool.recipient_iter_all();
         let inner = iter
@@ -74,10 +76,12 @@ impl MessageMap {
         Ok(MessageMap { inner })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_msg_refs(&self, recipient: &str) -> &[AgentMessageReference] {
         self.inner.get(recipient).map(Deref::deref).unwrap_or(&[])
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_types<'a: 'b, 'b>(
         &'b self,
         recipient: &str,
@@ -88,6 +92,7 @@ impl MessageMap {
         Ok(types)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_datas<'a: 'b, 'b>(
         &'b self,
         recipient: &str,
@@ -98,6 +103,7 @@ impl MessageMap {
         Ok(datas)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_froms<'a: 'b, 'b>(
         &'b self,
         recipient: &str,

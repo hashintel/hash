@@ -8,6 +8,7 @@ use super::{
 };
 use crate::simulation::package::output::packages::analysis::analyzer::ComparisonRepr;
 
+#[tracing::instrument(skip_all)]
 fn array_element_exists_as_non_null(value: &serde_json::Value, index: usize) -> bool {
     if let Some(array) = value.as_array() {
         if let Some(value) = array.get(index) {
@@ -17,6 +18,7 @@ fn array_element_exists_as_non_null(value: &serde_json::Value, index: usize) -> 
     false
 }
 
+#[tracing::instrument(skip_all)]
 fn object_field_exists_as_non_null(value: &serde_json::Value, field: &str) -> bool {
     if let Some(object) = value.as_object() {
         if let Some(value) = object.get(field) {
@@ -26,6 +28,7 @@ fn object_field_exists_as_non_null(value: &serde_json::Value, field: &str) -> bo
     false
 }
 
+#[tracing::instrument(skip_all)]
 fn value_iterator_filter_on_array_element_null(
     index: u64,
     comparison: &ComparisonRepr,
@@ -42,6 +45,7 @@ fn value_iterator_filter_on_array_element_null(
     Ok(map)
 }
 
+#[tracing::instrument(skip_all)]
 fn value_iterator_filter_on_object_field_null(
     name: String,
     comparison: &ComparisonRepr,
@@ -58,6 +62,7 @@ fn value_iterator_filter_on_object_field_null(
     Ok(map)
 }
 
+#[tracing::instrument(skip_all)]
 fn value_iterator_filter_on_array_element_boolean(
     index: u64,
     boolean: bool,
@@ -79,6 +84,7 @@ fn value_iterator_filter_on_array_element_boolean(
     Ok(map)
 }
 
+#[tracing::instrument(skip_all)]
 fn value_iterator_filter_on_object_field_boolean(
     name: String,
     boolean: bool,
@@ -96,6 +102,7 @@ fn value_iterator_filter_on_object_field_boolean(
     Ok(map)
 }
 
+#[tracing::instrument(skip_all)]
 fn value_iterator_filter_on_array_element_number(
     index: u64,
     float: f64,
@@ -136,6 +143,7 @@ fn value_iterator_filter_on_array_element_number(
     Ok(map)
 }
 
+#[tracing::instrument(skip_all)]
 fn value_iterator_filter_on_object_field_number(
     name: String,
     float: f64,
@@ -176,6 +184,7 @@ fn value_iterator_filter_on_object_field_number(
     Ok(map)
 }
 
+#[tracing::instrument(skip_all)]
 fn value_iterator_filter_on_array_element_string(
     index: u64,
     string: String,
@@ -224,6 +233,7 @@ fn value_iterator_filter_on_array_element_string(
     Ok(map)
 }
 
+#[tracing::instrument(skip_all)]
 fn value_iterator_filter_on_object_field_string(
     name: String,
     string: String,

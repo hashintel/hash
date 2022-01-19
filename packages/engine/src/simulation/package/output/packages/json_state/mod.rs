@@ -1,5 +1,4 @@
 use serde_json::Value;
-use tracing::instrument;
 
 pub use self::config::JsonStateOutputConfig;
 use super::super::*;
@@ -20,10 +19,12 @@ pub enum Task {}
 pub struct Creator {}
 
 impl PackageCreator for Creator {
+    #[tracing::instrument(skip_all)]
     fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>> {
         Ok(Box::new(Creator {}))
     }
 
+    #[tracing::instrument(skip_all)]
     fn create(
         &self,
         config: &Arc<SimRunConfig>,
@@ -44,6 +45,7 @@ impl PackageCreator for Creator {
         }))
     }
 
+    #[tracing::instrument(skip_all)]
     fn persistence_config(&self, config: &ExperimentConfig, _globals: &Globals) -> Result<Value> {
         let config = JsonStateOutputConfig::new(config)?;
         Ok(serde_json::to_value(config)?)
@@ -51,6 +53,7 @@ impl PackageCreator for Creator {
 }
 
 impl GetWorkerExpStartMsg for Creator {
+    #[tracing::instrument(skip_all)]
     fn get_worker_exp_start_msg(&self) -> Result<Value> {
         Ok(Value::Null)
     }
@@ -62,12 +65,14 @@ struct JsonState {
 }
 
 impl MaybeCpuBound for JsonState {
+    #[tracing::instrument(skip_all)]
     fn cpu_bound(&self) -> bool {
         true
     }
 }
 
 impl GetWorkerSimStartMsg for JsonState {
+    #[tracing::instrument(skip_all)]
     fn get_worker_sim_start_msg(&self) -> Result<Value> {
         Ok(Value::Null)
     }
@@ -75,7 +80,7 @@ impl GetWorkerSimStartMsg for JsonState {
 
 #[async_trait]
 impl Package for JsonState {
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn run(&mut self, state: Arc<State>, _context: Arc<Context>) -> Result<Output> {
         let agent_states: std::result::Result<Vec<_>, crate::datastore::error::Error> = state
             .agent_pool()

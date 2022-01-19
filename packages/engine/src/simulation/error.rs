@@ -176,6 +176,7 @@ impl Error {
         Self::StateSync(format!("{:?}", worker_error))
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn access_not_allowed(
         state: &SharedState,
         ctx: &SharedContext,
@@ -186,24 +187,28 @@ impl Error {
 }
 
 impl From<&str> for Error {
+    #[tracing::instrument(skip_all)]
     fn from(s: &str) -> Self {
         Error::Unique(s.to_string())
     }
 }
 
 impl From<String> for Error {
+    #[tracing::instrument(skip_all)]
     fn from(s: String) -> Self {
         Error::Unique(s)
     }
 }
 
 impl<'a, T> From<std::sync::TryLockError<std::sync::RwLockReadGuard<'a, T>>> for Error {
+    #[tracing::instrument(skip_all)]
     fn from(_: std::sync::TryLockError<std::sync::RwLockReadGuard<'a, T>>) -> Self {
         Error::RwLock("RwLock read error for simulation".into())
     }
 }
 
 impl<'a, T> From<std::sync::TryLockError<std::sync::RwLockWriteGuard<'a, T>>> for Error {
+    #[tracing::instrument(skip_all)]
     fn from(_: std::sync::TryLockError<std::sync::RwLockWriteGuard<'a, T>>) -> Self {
         Error::RwLock("RwLock write error for simulation".into())
     }

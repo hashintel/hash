@@ -11,7 +11,6 @@ use futures::{
     StreamExt,
 };
 use tokio::time::timeout;
-use tracing::instrument;
 
 pub use self::error::{Error, Result};
 use self::{
@@ -72,7 +71,7 @@ pub struct WorkerController {
 
 // TODO: impl drop for worker controller?
 impl WorkerController {
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn spawn(
         config: WorkerConfig,
         worker_pool_comms: WorkerCommsWithWorkerPool,
@@ -99,7 +98,7 @@ impl WorkerController {
     ///
     /// Runs a loop which allows the worker to receive/register tasks,
     /// drive tasks to completion and send back completed tasks.
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn run(&mut self) -> Result<()> {
         tracing::debug!("Running worker");
         match self._run().await {
@@ -108,15 +107,17 @@ impl WorkerController {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     fn shutdown(&mut self) -> Result<()> {
         Ok(()) // TODO
     }
 
+    #[tracing::instrument(skip_all)]
     fn shutdown_with_error(&mut self, e: Error) -> Result<()> {
         Err(e) // TODO
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn _run(&mut self) -> Result<()> {
         // TODO: Rust, JS
         // let mut py_handle = self.py.run().await?;
@@ -203,7 +204,7 @@ impl WorkerController {
     }
 
     /// TODO: DOC
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn handle_worker_pool_msg(
         &mut self,
         msg: WorkerPoolToWorkerMsg,
@@ -233,7 +234,7 @@ impl WorkerController {
     }
 
     /// TODO: DOC
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn handle_runner_msg(&mut self, msg: OutboundFromRunnerMsg) -> Result<()> {
         use MessageTarget::*;
         use OutboundFromRunnerMsgPayload::*;
@@ -292,7 +293,7 @@ impl WorkerController {
     }
 
     /// TODO: DOC
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn terminate_runners(&mut self) -> Result<()> {
         tokio::try_join!(
             self.py
@@ -306,7 +307,7 @@ impl WorkerController {
     }
 
     /// TODO: DOC
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn finish_task(
         &mut self,
         task_id: TaskId,
@@ -335,7 +336,7 @@ impl WorkerController {
         Ok(())
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn finish_task_from_runner_msg(
         &mut self,
         sim_id: SimulationShortId,
@@ -346,6 +347,7 @@ impl WorkerController {
             .await
     }
 
+    #[tracing::instrument(skip_all)]
     fn inbound_from_task_msg(
         task_id: TaskId,
         package_id: PackageId,
@@ -361,7 +363,7 @@ impl WorkerController {
     }
 
     /// TODO: DOC
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn run_task_handler_on_outbound(
         &mut self,
         sim_id: SimulationShortId,
@@ -428,7 +430,7 @@ impl WorkerController {
     }
 
     /// TODO: DOC
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn handle_cancel_task_confirmation(
         &mut self,
         task_id: TaskId,
@@ -461,7 +463,7 @@ impl WorkerController {
         Ok(())
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn handle_errors(
         &mut self,
         sim_id: SimulationShortId,
@@ -472,7 +474,7 @@ impl WorkerController {
         Ok(())
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn handle_warnings(
         &mut self,
         sim_id: SimulationShortId,
@@ -483,7 +485,7 @@ impl WorkerController {
         Ok(())
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn handle_logs(&mut self, sim_id: SimulationShortId, logs: Vec<String>) -> Result<()> {
         self.worker_pool_comms
             .send(sim_id, WorkerToWorkerPoolMsg::RunnerLogs(logs))?;
@@ -491,7 +493,7 @@ impl WorkerController {
     }
 
     /// TODO: DOC
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn spawn_task(&mut self, sim_id: SimulationShortId, task: WorkerTask) -> Result<()> {
         use MessageTarget::*;
         let task_id = task.task_id;
@@ -534,7 +536,7 @@ impl WorkerController {
         Ok(())
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn sync_runners(
         &mut self,
         sim_id: Option<SimulationShortId>,
@@ -578,7 +580,7 @@ impl WorkerController {
         Ok(())
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn cancel_task(&mut self, task_id: TaskId) -> Result<()> {
         if let Some(task) = self.tasks.inner.get_mut(&task_id) {
             task.cancelling = CancelState::Active(vec![task.active_runner]); // TODO: Or `CancelState::None`?
@@ -594,7 +596,7 @@ impl WorkerController {
         Ok(())
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn cancel_task_except_for_runner(
         &self,
         task_id: TaskId,
@@ -627,7 +629,7 @@ impl WorkerController {
         Ok(())
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn new_simulation_run(&mut self, new_simulation_run: NewSimulationRun) -> Result<()> {
         tokio::try_join!(
             self.py.send_if_spawned(
@@ -646,7 +648,7 @@ impl WorkerController {
         Ok(())
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn recv_from_runners(&mut self) -> Result<OutboundFromRunnerMsg> {
         tokio::select! {
             res = self.py.recv(), if self.py.spawned() => {

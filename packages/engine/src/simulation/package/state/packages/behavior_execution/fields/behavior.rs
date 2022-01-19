@@ -26,6 +26,7 @@ pub struct BehaviorKeys {
 }
 
 impl BehaviorKeys {
+    #[tracing::instrument(skip_all)]
     pub fn from_json_str<K: AsRef<str>>(
         json_str: K,
         field_spec_creator: &RootFieldSpecCreator,
@@ -33,6 +34,7 @@ impl BehaviorKeys {
         Self::_from_json_str(json_str.as_ref(), field_spec_creator)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn _from_json_str(
         json_str: &str,
         field_spec_creator: &RootFieldSpecCreator,
@@ -132,6 +134,8 @@ impl BehaviorKeys {
     }
 
     // add all of the fields within self into builder
+
+    #[tracing::instrument(skip_all)]
     fn get_field_specs(&self) -> Values<'_, FieldKey, RootFieldSpec> {
         self.inner.field_specs()
     }
@@ -144,10 +148,12 @@ pub struct Behavior {
 }
 
 impl Behavior {
+    #[tracing::instrument(skip_all)]
     pub fn shared(&self) -> &SharedBehavior {
         &self.shared
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn keys(&self) -> &BehaviorKeys {
         &self.keys
     }
@@ -162,6 +168,7 @@ pub struct BehaviorMap {
 impl TryFrom<(&ExperimentConfig, &RootFieldSpecCreator)> for BehaviorMap {
     type Error = Error;
 
+    #[tracing::instrument(skip_all)]
     fn try_from(
         (experiment_config, field_spec_creator): (&ExperimentConfig, &RootFieldSpecCreator),
     ) -> Result<Self> {
@@ -223,6 +230,7 @@ impl TryFrom<(&ExperimentConfig, &RootFieldSpecCreator)> for BehaviorMap {
 }
 
 impl BehaviorMap {
+    #[tracing::instrument(skip_all)]
     pub fn iter_behaviors(&self) -> impl Iterator<Item = &Behavior> {
         self.inner.values()
     }
@@ -241,6 +249,7 @@ enum BaseKeyType {
 impl TryFrom<&str> for BaseKeyType {
     type Error = BehaviorKeyJsonError;
 
+    #[tracing::instrument(skip_all)]
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match value {
             "string" => Ok(BaseKeyType::String),
@@ -256,6 +265,7 @@ impl TryFrom<&str> for BaseKeyType {
 }
 
 impl FieldSpec {
+    #[tracing::instrument(skip_all)]
     fn from_json(name: &str, source: &serde_json::Value) -> Result<FieldSpec> {
         Ok(FieldSpec {
             name: name.to_string(),
@@ -265,6 +275,7 @@ impl FieldSpec {
 }
 
 impl FieldType {
+    #[tracing::instrument(skip_all)]
     fn from_json(name: &str, source: &serde_json::Value) -> Result<FieldType> {
         match source {
             serde_json::Value::Object(map) => {
@@ -351,6 +362,7 @@ impl FieldType {
 }
 
 impl From<BehaviorKeyJsonError> for Error {
+    #[tracing::instrument(skip_all)]
     fn from(err: BehaviorKeyJsonError) -> Self {
         Error::from(format!("Behavior Key Error {:?}", err))
     }
@@ -412,12 +424,14 @@ pub enum BehaviorKeyJsonError {
 }
 
 impl From<&str> for BehaviorKeyJsonError {
+    #[tracing::instrument(skip_all)]
     fn from(string: &str) -> Self {
         BehaviorKeyJsonError::Unique(string.to_string())
     }
 }
 
 impl From<String> for BehaviorKeyJsonError {
+    #[tracing::instrument(skip_all)]
     fn from(string: String) -> Self {
         BehaviorKeyJsonError::Unique(string)
     }

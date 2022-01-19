@@ -23,10 +23,12 @@ pub struct BehaviorDescription {
 pub struct BehaviorId(u16, u16);
 
 impl BehaviorId {
+    #[tracing::instrument(skip_all)]
     pub fn lang_index(&self) -> u16 {
         self.0
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn lang_behavior_index(&self) -> u16 {
         self.1
     }
@@ -64,10 +66,12 @@ impl BehaviorIds {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_index<K: Deref<Target = [u8]>>(&self, key: &K) -> Option<&BehaviorId> {
         self.name_to_index.get(key.deref())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_name(&self, behavior_index: &BehaviorId) -> Option<&String> {
         self.index_to_name.get(behavior_index)
     }
@@ -77,14 +81,17 @@ impl BehaviorIds {
 pub struct BehaviorName(Vec<u8>);
 
 impl BehaviorName {
+    #[tracing::instrument(skip_all)]
     pub fn from_string(s: String) -> BehaviorName {
         BehaviorName(s.as_bytes().to_vec())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn from_str<K: AsRef<str>>(s: K) -> BehaviorName {
         BehaviorName(s.as_ref().as_bytes().to_vec())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn as_str(&self) -> &str {
         // Safe as creation only possible through strings
         std::str::from_utf8(&self.0).unwrap()
@@ -98,6 +105,7 @@ pub struct SendableBehaviorKeys {
     built_in_key_use: Option<Vec<String>>,
 }
 
+#[tracing::instrument(skip_all)]
 pub fn exp_init_message(
     behavior_ids: &BehaviorIds,
     behavior_map: &BehaviorMap,

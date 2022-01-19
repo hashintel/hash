@@ -14,6 +14,7 @@ pub trait IsRequired {
 }
 
 impl IsRequired for AgentStateField {
+    #[tracing::instrument(skip_all)]
     fn is_required(&self) -> bool {
         REQUIRED.contains(self)
     }

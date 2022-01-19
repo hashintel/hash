@@ -3,6 +3,7 @@ use std::string::String as StdString;
 use super::super::*;
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn js_function() {
     let mv8 = MiniV8::new();
     let func: Value<'_> = mv8.eval("(function(y) { return this + y; })").unwrap();
@@ -19,6 +20,7 @@ fn js_function() {
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn js_constructor() {
     let mv8 = MiniV8::new();
     let func: Function<'_> = mv8.eval("(function(x) { this.x = x; })").unwrap();
@@ -28,7 +30,9 @@ fn js_constructor() {
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn rust_function() {
+    #[tracing::instrument(skip_all)]
     fn add(inv: Invocation<'_>) -> Result<'_, usize> {
         let (a, b): (usize, usize) = inv.args.into(inv.mv8)?;
         return Ok(a + b);
@@ -45,7 +49,9 @@ fn rust_function() {
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn rust_function_error() {
+    #[tracing::instrument(skip_all)]
     fn err(inv: Invocation<'_>) -> Result<'_, ()> {
         let _: (Function<'_>,) = inv.args.into(inv.mv8)?;
         Ok(())
@@ -70,6 +76,7 @@ fn rust_function_error() {
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn rust_closure() {
     let mv8 = MiniV8::new();
     let func = mv8.create_function(|inv| {
@@ -81,6 +88,7 @@ fn rust_closure() {
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn double_drop_rust_function() {
     let mv8 = MiniV8::new();
     let func = mv8.create_function(|_| Ok(()));
@@ -90,6 +98,7 @@ fn double_drop_rust_function() {
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn return_unit() {
     let mv8 = MiniV8::new();
     let func = mv8.create_function(|_| Ok(()));
@@ -101,6 +110,7 @@ fn return_unit() {
 
 #[test]
 #[ignore] // TODO: reenable test
+#[tracing::instrument(skip_all)]
 fn rust_closure_mut_callback_error() {
     let mv8 = MiniV8::new();
 
@@ -139,7 +149,9 @@ fn rust_closure_mut_callback_error() {
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn number_this() {
+    #[tracing::instrument(skip_all)]
     fn add(inv: Invocation<'_>) -> Result<'_, f64> {
         let this: f64 = inv.this.into(inv.mv8)?;
         let (acc,): (f64,) = inv.args.into(inv.mv8)?;

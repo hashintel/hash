@@ -17,7 +17,6 @@ use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     task::JoinError,
 };
-use tracing::instrument;
 
 pub use self::error::{Error, Result};
 use self::mini_v8 as mv8;
@@ -53,6 +52,7 @@ struct JsPackage<'m> {
     fns: mv8::Array<'m>,
 }
 
+#[tracing::instrument(skip_all)]
 fn get_pkg_path(name: &str, pkg_type: PackageType) -> String {
     format!(
         "./src/simulation/package/{}/packages/{}/package.js",
@@ -63,6 +63,7 @@ fn get_pkg_path(name: &str, pkg_type: PackageType) -> String {
 
 /// TODO: DOC add docstrings on impl'd methods
 impl<'m> JsPackage<'m> {
+    #[tracing::instrument(skip_all)]
     fn import(
         mv8: &'m MiniV8,
         embedded: &Embedded<'m>,
@@ -77,8 +78,11 @@ impl<'m> JsPackage<'m> {
                 tracing::debug!("Couldn't read package file. It might intentionally not exist.");
                 // Packages don't have to use JS.
                 let fns = mv8.create_array();
+
                 fns.set(0, mv8::Value::Undefined)?;
+
                 fns.set(1, mv8::Value::Undefined)?;
+
                 fns.set(2, mv8::Value::Undefined)?;
                 return Ok(JsPackage { fns });
             }
@@ -143,10 +147,12 @@ struct Embedded<'m> {
     state_snapshot_sync: mv8::Function<'m>,
 }
 
+#[tracing::instrument(skip_all)]
 fn read_file(path: &str) -> Result<String> {
     fs::read_to_string(path).map_err(|e| Error::IO(path.into(), e))
 }
 
+#[tracing::instrument(skip_all)]
 fn eval_file<'m>(mv8: &'m MiniV8, path: &str) -> Result<mv8::Value<'m>> {
     let code = read_file(path)?;
     let v: mv8::Value<'_> = mv8
@@ -155,6 +161,7 @@ fn eval_file<'m>(mv8: &'m MiniV8, path: &str) -> Result<mv8::Value<'m>> {
     Ok(v)
 }
 
+#[tracing::instrument(skip_all)]
 fn import_file<'m>(
     mv8: &'m MiniV8,
     path: &str,
@@ -181,6 +188,7 @@ fn import_file<'m>(
 }
 
 impl<'m> Embedded<'m> {
+    #[tracing::instrument(skip_all)]
     fn import(mv8: &'m MiniV8) -> Result<Self> {
         let arrow = eval_file(mv8, "./src/worker/runner/javascript/bundle_arrow.js")?;
         let hash_stdlib = eval_file(mv8, "./src/worker/runner/javascript/hash_stdlib.js")?;
@@ -250,15 +258,20 @@ struct RunnerImpl<'m> {
 }
 
 // we pass in _mv8 for the return values lifetime
+
+#[tracing::instrument(skip_all)]
 fn sim_id_to_js(_mv8: &MiniV8, sim_run_id: SimulationShortId) -> mv8::Value<'_> {
     mv8::Value::Number(sim_run_id as f64)
 }
 
 // we pass in _mv8 for the return values lifetime
+
+#[tracing::instrument(skip_all)]
 fn pkg_id_to_js(_mv8: &MiniV8, pkg_id: PackageId) -> mv8::Value<'_> {
     mv8::Value::Number(pkg_id.as_usize() as f64)
 }
 
+#[tracing::instrument(skip_all)]
 fn idxs_to_js<'m>(mv8: &'m MiniV8, idxs: &[usize]) -> Result<mv8::Value<'m>> {
     let a = mv8.create_array();
     for (i, idx) in idxs.iter().enumerate() {
@@ -268,10 +281,13 @@ fn idxs_to_js<'m>(mv8: &'m MiniV8, idxs: &[usize]) -> Result<mv8::Value<'m>> {
 }
 
 // we pass in _mv8 for the return values lifetime
+
+#[tracing::instrument(skip_all)]
 fn current_step_to_js(_mv8: &MiniV8, current_step: usize) -> mv8::Value<'_> {
     mv8::Value::Number(current_step as f64)
 }
 
+#[tracing::instrument(skip_all)]
 fn batches_from_shared_store(
     shared_store: &TaskSharedStore,
 ) -> Result<(Vec<&AgentBatch>, Vec<&MessageBatch>, Vec<usize>)> {
@@ -305,6 +321,7 @@ fn batches_from_shared_store(
     })
 }
 
+#[tracing::instrument(skip_all)]
 fn mem_batch_to_js<'m>(
     mv8: &'m MiniV8,
     batch_id: &str,
@@ -320,6 +337,7 @@ fn mem_batch_to_js<'m>(
     Ok(mv8::Value::Object(batch))
 }
 
+#[tracing::instrument(skip_all)]
 fn batch_to_js<'m>(
     mv8: &'m MiniV8,
     mem: &Memory,
@@ -331,6 +349,7 @@ fn batch_to_js<'m>(
     mem_batch_to_js(mv8, batch_id, arraybuffer, metaversion)
 }
 
+#[tracing::instrument(skip_all)]
 fn _mut_batch_to_js<'m>(
     mv8: &'m MiniV8,
     mem: &mut Memory,
@@ -342,6 +361,7 @@ fn _mut_batch_to_js<'m>(
     mem_batch_to_js(mv8, batch_id, arraybuffer, metaversion)
 }
 
+#[tracing::instrument(skip_all)]
 fn state_to_js<'m>(
     mv8: &'m MiniV8,
     agent_batches: &[&AgentBatch],
@@ -365,10 +385,12 @@ fn state_to_js<'m>(
     ))
 }
 
+#[tracing::instrument(skip_all)]
 fn bytes_to_js<'m>(mv8: &'m MiniV8, bytes: &mut [u8]) -> mv8::Value<'m> {
     mv8::Value::Object(mv8.create_arraybuffer(bytes.as_mut_ptr(), bytes.len()))
 }
 
+#[tracing::instrument(skip_all)]
 fn schema_to_stream_bytes(schema: &Schema) -> Vec<u8> {
     let content = schema_to_bytes(schema);
     let mut stream_bytes = arrow_continuation(content.len());
@@ -376,6 +398,7 @@ fn schema_to_stream_bytes(schema: &Schema) -> Vec<u8> {
     stream_bytes
 }
 
+#[tracing::instrument(skip_all)]
 fn array_to_errors(array: mv8::Value<'_>) -> Vec<RunnerError> {
     // TODO: Extract optional line numbers
     let fallback = format!("Unparsed: {:?}", array);
@@ -404,6 +427,7 @@ fn array_to_errors(array: mv8::Value<'_>) -> Vec<RunnerError> {
     }]
 }
 
+#[tracing::instrument(skip_all)]
 fn get_js_error(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Error> {
     if let Ok(errors) = r.get("user_errors") {
         if !matches!(errors, mv8::Value::Undefined) && !matches!(errors, mv8::Value::Null) {
@@ -428,6 +452,7 @@ fn get_js_error(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Error> {
     None
 }
 
+#[tracing::instrument(skip_all)]
 fn get_user_warnings(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Vec<RunnerError>> {
     if let Ok(warnings) = r.get::<&str, mv8::Value<'_>>("user_warnings") {
         if !(warnings.is_undefined() || warnings.is_null()) {
@@ -440,6 +465,7 @@ fn get_user_warnings(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Vec<RunnerErr
     None
 }
 
+#[tracing::instrument(skip_all)]
 fn get_print(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Vec<String>> {
     if let Ok(mv8::Value::String(printed_val)) = r.get("print") {
         let printed_val = printed_val.to_string();
@@ -453,6 +479,7 @@ fn get_print(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Vec<String>> {
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn get_next_task(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Result<(MessageTarget, String)> {
     let target = if let Ok(mv8::Value::String(target)) = r.get("target") {
         let target = target.to_string();
@@ -479,6 +506,7 @@ fn get_next_task(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Result<(MessageTarget, S
 }
 
 impl<'m> RunnerImpl<'m> {
+    #[tracing::instrument(skip_all)]
     fn load_datasets(mv8: &'m MiniV8, shared_ctx: &SharedStore) -> Result<mv8::Value<'m>> {
         let js_datasets = mv8.create_object();
         for (dataset_name, dataset) in shared_ctx.datasets.iter() {
@@ -496,6 +524,7 @@ impl<'m> RunnerImpl<'m> {
         Ok(mv8::Value::Object(js_datasets))
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn new(mv8: &'m MiniV8, init: &ExperimentInitRunnerMsg) -> Result<Self> {
         let embedded = Embedded::import(mv8)?;
         let datasets = Self::load_datasets(mv8, &init.shared_context)?;
@@ -541,6 +570,8 @@ impl<'m> RunnerImpl<'m> {
     }
 
     /// TODO: DOC, flushing from a single column
+
+    #[tracing::instrument(skip_all)]
     fn array_data_from_js(
         &mut self,
         mv8: &'m MiniV8,
@@ -693,6 +724,7 @@ impl<'m> RunnerImpl<'m> {
         Ok(data)
     }
 
+    #[tracing::instrument(skip_all)]
     fn flush_batch<B: DynamicBatch>(
         &mut self,
         mv8: &'m MiniV8,
@@ -724,6 +756,7 @@ impl<'m> RunnerImpl<'m> {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     fn flush_group(
         &mut self,
         mv8: &'m MiniV8,
@@ -754,6 +787,7 @@ impl<'m> RunnerImpl<'m> {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     fn flush(
         &mut self,
         mv8: &'m MiniV8,
@@ -812,6 +846,8 @@ impl<'m> RunnerImpl<'m> {
     ///  - Run init packages (e.g. init.js)
     ///      - init.js can depend on globals, which vary between sim runs, so it has to be executed
     ///        at the start of a sim run, not at the start of the experiment run.
+
+    #[tracing::instrument(skip_all)]
     fn start_sim(&mut self, mv8: &'m MiniV8, run: NewSimulationRun) -> Result<()> {
         // Initialize JS.
 
@@ -883,6 +919,8 @@ impl<'m> RunnerImpl<'m> {
     /// - a value from Javascript could not be parsed,
     /// - the task errored, or
     /// - the state could not be flushed to the datastore.
+
+    #[tracing::instrument(skip_all)]
     fn run_task(
         &mut self,
         mv8: &'m MiniV8,
@@ -983,6 +1021,7 @@ impl<'m> RunnerImpl<'m> {
         Ok((next_task_msg, warnings, logs))
     }
 
+    #[tracing::instrument(skip_all)]
     fn ctx_batch_sync(
         &mut self,
         mv8: &'m MiniV8,
@@ -1011,6 +1050,7 @@ impl<'m> RunnerImpl<'m> {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     fn state_sync(
         &mut self,
         mv8: &'m MiniV8,
@@ -1056,6 +1096,7 @@ impl<'m> RunnerImpl<'m> {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     fn state_interim_sync(
         &mut self,
         mv8: &'m MiniV8,
@@ -1078,6 +1119,7 @@ impl<'m> RunnerImpl<'m> {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     fn state_snapshot_sync(
         &mut self,
         mv8: &'m MiniV8,
@@ -1101,6 +1143,7 @@ impl<'m> RunnerImpl<'m> {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn handle_msg(
         &mut self,
         mv8: &'m MiniV8,
@@ -1184,6 +1227,7 @@ pub struct JavaScriptRunner {
 }
 
 impl JavaScriptRunner {
+    #[tracing::instrument(skip_all)]
     pub fn new(spawn: bool, init_msg: ExperimentInitRunnerMsg) -> WorkerResult<Self> {
         let (inbound_sender, inbound_receiver) = unbounded_channel();
         let (outbound_sender, outbound_receiver) = unbounded_channel();
@@ -1197,7 +1241,7 @@ impl JavaScriptRunner {
         })
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn send(
         &self,
         sim_id: Option<SimulationShortId>,
@@ -1209,7 +1253,7 @@ impl JavaScriptRunner {
             .map_err(|e| WorkerError::JavaScript(Error::InboundSend(e)))
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn send_if_spawned(
         &self,
         sim_id: Option<SimulationShortId>,
@@ -1222,7 +1266,7 @@ impl JavaScriptRunner {
         Ok(())
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn recv(&mut self) -> WorkerResult<OutboundFromRunnerMsg> {
         self.outbound_receiver
             .recv()
@@ -1230,17 +1274,18 @@ impl JavaScriptRunner {
             .ok_or(WorkerError::JavaScript(Error::OutboundReceive))
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn recv_now(&mut self) -> WorkerResult<Option<OutboundFromRunnerMsg>> {
         self.recv().now_or_never().transpose()
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn spawned(&self) -> bool {
         self.spawn
     }
 
     // TODO: hopefully get rid of this (https://github.com/tokio-rs/tracing/issues/1840)
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn run(
         &mut self,
     ) -> WorkerResult<Pin<Box<dyn Future<Output = StdResult<WorkerResult<()>, JoinError>> + Send>>>
@@ -1267,6 +1312,7 @@ impl JavaScriptRunner {
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn _run(
     init_msg: Arc<ExperimentInitRunnerMsg>,
     mut inbound_receiver: UnboundedReceiver<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>,

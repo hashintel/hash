@@ -147,6 +147,7 @@ mod test {
     const TEST_VALS: [usize; 7] = [5, 8, 15, 16, 356, 2048, 2049];
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn dynamic_buffer_padding() {
         TEST_VALS.iter().for_each(|i| {
             assert_eq!(
@@ -157,6 +158,7 @@ mod test {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn static_buffer_padding() {
         TEST_VALS.iter().for_each(|i| {
             assert_eq!(get_static_buffer_length(*i) - get_static_buffer_pad(*i), *i);

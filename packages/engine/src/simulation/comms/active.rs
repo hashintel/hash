@@ -15,11 +15,13 @@ pub struct ActiveTaskExecutorComms {
 }
 
 impl Debug for ActiveTaskExecutorComms {
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_str("ActiveTaskExecutorComms(...)")
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub fn comms() -> (ActiveTaskOwnerComms, ActiveTaskExecutorComms) {
     let (result_send, result_recv) = channel::<TaskResultOrCancelled>();
     let (cancel_send, cancel_recv) = channel::<CancelTask>();

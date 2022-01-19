@@ -22,6 +22,7 @@ pub enum InboundToRunnerMsgPayload {
 }
 
 impl InboundToRunnerMsgPayload {
+    #[tracing::instrument(skip_all)]
     pub fn as_str(&self) -> &'static str {
         match self {
             InboundToRunnerMsgPayload::TaskMsg(_) => "TaskMsg",
@@ -38,6 +39,7 @@ impl InboundToRunnerMsgPayload {
 }
 
 impl fmt::Debug for InboundToRunnerMsgPayload {
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.as_str())
     }

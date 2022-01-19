@@ -2,7 +2,6 @@ use std::convert::TryInto;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use tracing::instrument;
 
 use super::super::*;
 use crate::{
@@ -20,10 +19,12 @@ pub mod py;
 pub struct Creator {}
 
 impl PackageCreator for Creator {
+    #[tracing::instrument(skip_all)]
     fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>> {
         Ok(Box::new(Creator {}))
     }
 
+    #[tracing::instrument(skip_all)]
     fn create(
         &self,
         config: &Arc<SimRunConfig>,
@@ -50,6 +51,8 @@ impl GetWorkerExpStartMsg for Creator {
     // TODO: Since the init.js/py file is the same for the whole experiment
     //      consider sending it out here instead of inside `PyInitTask`
     //      and `JsInitTask`
+
+    #[tracing::instrument(skip_all)]
     fn get_worker_exp_start_msg(&self) -> Result<Value> {
         Ok(Value::Null)
     }
@@ -61,12 +64,14 @@ pub struct Package {
 }
 
 impl MaybeCpuBound for Package {
+    #[tracing::instrument(skip_all)]
     fn cpu_bound(&self) -> bool {
         false
     }
 }
 
 impl GetWorkerSimStartMsg for Package {
+    #[tracing::instrument(skip_all)]
     fn get_worker_sim_start_msg(&self) -> Result<Value> {
         Ok(Value::Null)
     }
@@ -74,7 +79,7 @@ impl GetWorkerSimStartMsg for Package {
 
 #[async_trait]
 impl InitPackage for Package {
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn run(&mut self) -> Result<Vec<Agent>> {
         let task: InitTask = match &self.initial_state.name {
             InitialStateName::InitPy => PyInitTask {

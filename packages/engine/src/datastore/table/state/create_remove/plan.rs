@@ -22,6 +22,7 @@ pub struct MigrationPlan<'a> {
 }
 
 impl<'a> MigrationPlan<'a> {
+    #[tracing::instrument(skip_all)]
     pub fn delete_all(num_batches: usize) -> MigrationPlan<'a> {
         MigrationPlan {
             existing_mutations: (0..num_batches)
@@ -32,6 +33,7 @@ impl<'a> MigrationPlan<'a> {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn execute(self, state: &mut AgentPool, config: &SimRunConfig) -> Result<Vec<String>> {
         // tracing::debug!("Updating");
         let mut_batches = state.mut_batches();

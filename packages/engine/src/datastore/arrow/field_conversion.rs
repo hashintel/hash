@@ -16,6 +16,7 @@ use crate::datastore::{
 };
 
 impl PresetFieldType {
+    #[tracing::instrument(skip_all)]
     fn is_fixed_size(&self) -> bool {
         match self {
             PresetFieldType::Uint32 => true,
@@ -37,6 +38,7 @@ impl PresetFieldType {
 }
 
 impl FieldType {
+    #[tracing::instrument(skip_all)]
     fn is_fixed_size(&self) -> bool {
         match &self.variant {
             FieldTypeVariant::Number | FieldTypeVariant::Boolean => true,
@@ -51,6 +53,7 @@ impl FieldType {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_arrow_data_type(&self) -> Result<ArrowDataType> {
         match &self.variant {
             FieldTypeVariant::Number => Ok(ArrowDataType::Float64),
@@ -87,6 +90,7 @@ impl RootFieldSpec {
 }
 
 impl FieldSpec {
+    #[tracing::instrument(skip_all)]
     fn is_fixed_size(&self) -> bool {
         self.field_type.is_fixed_size()
     }
@@ -122,6 +126,7 @@ impl FieldSpec {
 }
 
 impl FieldSpecMap {
+    #[tracing::instrument(skip_all)]
     pub fn get_arrow_schema(&self) -> Result<ArrowSchema> {
         let mut partitioned_fields = Vec::with_capacity(self.len());
         let mut fixed_size_no = 0;
@@ -198,6 +203,7 @@ pub mod tests {
 
     #[test]
     #[ignore] // TODO: reenable test
+    #[tracing::instrument(skip_all)]
     fn get_schema() -> Result<()> {
         let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
         let mut field_spec_map = FieldSpecMap::empty();

@@ -13,6 +13,7 @@ pub trait StoreAccessVerify {
 }
 
 impl StoreAccessVerify for ContextTask {
+    #[tracing::instrument(skip_all)]
     fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
         let state = &access.state;
         let context = access.context();
@@ -27,6 +28,7 @@ impl StoreAccessVerify for ContextTask {
 }
 
 impl StoreAccessVerify for InitTask {
+    #[tracing::instrument(skip_all)]
     fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
         let state = &access.state;
         let context = access.context();
@@ -39,6 +41,7 @@ impl StoreAccessVerify for InitTask {
 }
 
 impl StoreAccessVerify for StateTask {
+    #[tracing::instrument(skip_all)]
     fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
         let state = &access.state;
         let context = access.context();
@@ -56,6 +59,7 @@ impl StoreAccessVerify for StateTask {
 }
 
 impl StoreAccessVerify for OutputTask {
+    #[tracing::instrument(skip_all)]
     fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
         let state = &access.state;
         let context = access.context();

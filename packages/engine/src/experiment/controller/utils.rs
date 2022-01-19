@@ -22,6 +22,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn range_parsing() {
         assert_eq!(parse_range(".123-24"), Some((0.123, 24.0)));
         assert_eq!(parse_range("+23.123--24.123"), Some((23.123, -24.123)));

@@ -1,8 +1,9 @@
-use super::super::OutboundMessage;
-use super::{accessors::field_or_property, Context, Result, SharedBehavior, State};
-
 use rand::Rng;
 use serde::{Deserialize, Serialize};
+
+use super::{
+    super::OutboundMessage, accessors::field_or_property, Context, Result, SharedBehavior, State,
+};
 
 #[derive(Serialize, Deserialize, Clone)]
 enum DecayEffect {
@@ -11,6 +12,7 @@ enum DecayEffect {
     RemoveAgent,
 }
 
+#[tracing::instrument(skip_all)]
 pub fn behavior(state: &mut State, context: &Context) -> Result<()> {
     let properties = &context.properties;
 
@@ -63,6 +65,7 @@ pub fn behavior(state: &mut State, context: &Context) -> Result<()> {
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub fn get_named_behavior() -> SharedBehavior {
     SharedBehavior {
         id: "@hash/decay/decay.rs".into(),

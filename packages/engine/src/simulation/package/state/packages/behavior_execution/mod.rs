@@ -7,7 +7,6 @@ pub mod tasks;
 
 use reset_index_col::reset_index_col;
 use serde_json::Value;
-use tracing::instrument;
 
 use self::{config::exp_init_message, fields::behavior::BehaviorMap};
 use super::super::*;
@@ -41,6 +40,7 @@ pub struct Creator {
 }
 
 impl Creator {
+    #[tracing::instrument(skip_all)]
     fn get_behavior_ids(&self) -> Result<&Arc<BehaviorIds>> {
         self.behavior_ids.as_ref().ok_or_else(|| {
             Error::from(
@@ -50,6 +50,7 @@ impl Creator {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     fn get_behavior_map(&self) -> Result<&Arc<BehaviorMap>> {
         self.behavior_map.as_ref().ok_or_else(|| {
             Error::from(
@@ -61,6 +62,7 @@ impl Creator {
 }
 
 impl GetWorkerExpStartMsg for Creator {
+    #[tracing::instrument(skip_all)]
     fn get_worker_exp_start_msg(&self) -> Result<Value> {
         let msg = exp_init_message(self.get_behavior_ids()?, self.get_behavior_map()?)?;
         Ok(serde_json::to_value(msg)?)
@@ -68,6 +70,7 @@ impl GetWorkerExpStartMsg for Creator {
 }
 
 impl PackageCreator for Creator {
+    #[tracing::instrument(skip_all)]
     fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>> {
         // TODO: Packaages shouldn't have to set the source
         let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Package(
@@ -83,6 +86,7 @@ impl PackageCreator for Creator {
         }))
     }
 
+    #[tracing::instrument(skip_all)]
     fn create(
         &self,
         config: &Arc<SimRunConfig>,
@@ -120,6 +124,7 @@ impl PackageCreator for Creator {
         }))
     }
 
+    #[tracing::instrument(skip_all)]
     fn get_state_field_specs(
         &self,
         config: &ExperimentConfig,
@@ -139,6 +144,7 @@ struct BehaviorExecution {
 }
 
 impl GetWorkerSimStartMsg for BehaviorExecution {
+    #[tracing::instrument(skip_all)]
     fn get_worker_sim_start_msg(&self) -> Result<Value> {
         Ok(Value::Null)
     }
@@ -148,6 +154,8 @@ impl BehaviorExecution {
     /// Iterates over all "behaviors" fields of agents and writes them into their "behaviors" field.
     /// This fixation guarantees that all behaviors that were there in the beginning of behavior
     /// execution will be executed accordingly
+
+    #[tracing::instrument(skip_all)]
     fn fix_behavior_chains(&mut self, state: &mut ExState) -> Result<()> {
         let behavior_ids = chain::gather_behavior_chains(
             state,
@@ -160,6 +168,7 @@ impl BehaviorExecution {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     fn reset_behavior_index_col(&mut self, state: &mut ExState) -> Result<()> {
         let behavior_index_col = reset_index_col(self.behavior_index_col_index)?;
         state.set_pending_column(behavior_index_col)?;
@@ -168,6 +177,8 @@ impl BehaviorExecution {
     }
 
     /// Iterate over languages of first behaviors to choose first language runner to send task to
+
+    #[tracing::instrument(skip_all)]
     fn get_first_lang(&self, state: &ExState) -> Result<Option<Language>> {
         for batch in state.agent_pool().read_batches()? {
             for agent_behaviors in batch.behavior_list_bytes_iter()? {
@@ -192,7 +203,7 @@ impl BehaviorExecution {
     }
 
     /// Sends out behavior execution commands to workers
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn begin_execution(
         &mut self,
         state: &mut ExState,
@@ -215,7 +226,7 @@ impl BehaviorExecution {
 
 #[async_trait]
 impl Package for BehaviorExecution {
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn run(&mut self, state: &mut ExState, context: &Context) -> Result<()> {
         tracing::trace!("Running BehaviorExecution");
         self.fix_behavior_chains(state)?;

@@ -3,6 +3,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use super::super::*;
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn option() {
     let mv8 = MiniV8::new();
 
@@ -26,6 +27,7 @@ fn option() {
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn variadic() {
     let mv8 = MiniV8::new();
     let values = (true, false, true).to_values(&mv8).unwrap();
@@ -41,6 +43,7 @@ fn variadic() {
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn tuple() {
     let mv8 = MiniV8::new();
     let values = (true, false, true).to_values(&mv8).unwrap();
@@ -69,6 +72,7 @@ fn tuple() {
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn hash_map() {
     let mut map = HashMap::new();
     map.insert(1, 2);
@@ -92,6 +96,7 @@ fn hash_map() {
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn btree_map() {
     let mut map = BTreeMap::new();
     map.insert(1, 2);
@@ -115,6 +120,7 @@ fn btree_map() {
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn vec() {
     let vec = vec![1, 2, 3];
     let mv8 = MiniV8::new();
@@ -129,6 +135,7 @@ fn vec() {
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn btree_set() {
     let btree_set: BTreeSet<_> = vec![1, 2, 3].into_iter().collect();
     let mv8 = MiniV8::new();
@@ -143,6 +150,7 @@ fn btree_set() {
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn hash_set() {
     let hash_set: HashSet<_> = vec![1, 2, 3].into_iter().collect();
     let mv8 = MiniV8::new();

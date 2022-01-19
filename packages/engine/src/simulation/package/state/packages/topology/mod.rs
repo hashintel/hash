@@ -1,5 +1,4 @@
 use serde_json::Value;
-use tracing::instrument;
 
 use super::super::*;
 use crate::{
@@ -19,10 +18,12 @@ type Direction = [DirectionSubType; 3];
 pub struct Creator {}
 
 impl PackageCreator for Creator {
+    #[tracing::instrument(skip_all)]
     fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>> {
         Ok(Box::new(Creator {}))
     }
 
+    #[tracing::instrument(skip_all)]
     fn create(
         &self,
         config: &Arc<SimRunConfig>,
@@ -35,6 +36,7 @@ impl PackageCreator for Creator {
         Ok(Box::new(topology))
     }
 
+    #[tracing::instrument(skip_all)]
     fn get_state_field_specs(
         &self,
         _config: &ExperimentConfig,
@@ -48,6 +50,7 @@ impl PackageCreator for Creator {
 }
 
 impl GetWorkerExpStartMsg for Creator {
+    #[tracing::instrument(skip_all)]
     fn get_worker_exp_start_msg(&self) -> Result<Value> {
         Ok(Value::Null)
     }
@@ -58,6 +61,7 @@ pub struct Topology {
 }
 
 impl Topology {
+    #[tracing::instrument(skip_all)]
     fn topology_correction(&self, batch: &mut AgentBatch) -> Result<bool> {
         let mut ret = false;
         let (pos_dir_mut_iter, mut position_was_corrected_col) = batch.topology_mut_iter()?;
@@ -71,6 +75,7 @@ impl Topology {
 }
 
 impl GetWorkerSimStartMsg for Topology {
+    #[tracing::instrument(skip_all)]
     fn get_worker_sim_start_msg(&self) -> Result<Value> {
         Ok(Value::Null)
     }
@@ -78,7 +83,7 @@ impl GetWorkerSimStartMsg for Topology {
 
 #[async_trait]
 impl Package for Topology {
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn run(&mut self, state: &mut ExState, _context: &Context) -> Result<()> {
         tracing::trace!("Running Topology package");
         if self.config.move_wrapped_agents {

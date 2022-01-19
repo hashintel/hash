@@ -27,6 +27,7 @@ pub fn wrapped_positions(pos: &Position, topology: &TopologyConfig) -> Vec<Posit
     all_points
 }
 
+#[tracing::instrument(skip_all)]
 fn wrap_pos_coord(pos: &mut Position, i: usize, config: &TopologyConfig) {
     use crate::config::topology::WrappingBehavior::{
         Continuous, NoWrap, OffsetReflection, Reflection,

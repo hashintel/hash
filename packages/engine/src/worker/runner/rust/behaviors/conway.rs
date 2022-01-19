@@ -1,5 +1,6 @@
 use super::{Context, Result, SharedBehavior, State};
 
+#[tracing::instrument(skip_all)]
 pub fn behavior(state: &mut State<'_>, context: &Context<'_>) -> Result<()> {
     let alive = state.alive_mut()?;
     alive
@@ -21,6 +22,7 @@ pub fn behavior(state: &mut State<'_>, context: &Context<'_>) -> Result<()> {
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub fn get_named_behavior() -> SharedBehavior {
     SharedBehavior {
         id: "@hash/conway/conway.rs".into(),

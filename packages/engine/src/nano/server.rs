@@ -1,5 +1,4 @@
 use tokio::sync::mpsc;
-use tracing::instrument;
 
 /// Based on the server example at:
 /// https://github.com/nanomsg/nng/blob/708cdf1a8938b0ff128b134dcc2241ff99763209/demo/async/server.c
@@ -26,6 +25,7 @@ struct Worker {
 }
 
 impl Worker {
+    #[tracing::instrument(skip_all)]
     fn new(socket: &nng::Socket, sender: MsgSender, url: &str) -> Result<Self> {
         let ctx_orig = nng::Context::new(socket)?;
         let ctx = ctx_orig.clone();
@@ -63,6 +63,7 @@ impl Worker {
 }
 
 impl Server {
+    #[tracing::instrument(skip_all)]
     pub fn new(url: &str) -> Result<Self> {
         let socket = nng::Socket::new(nng::Protocol::Rep0)?;
         socket.listen(url)?;
@@ -81,7 +82,7 @@ impl Server {
     }
 
     /// Receive a JSON-serialized message.
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn recv<T>(&mut self) -> Result<T>
     where
         for<'de> T: serde::Deserialize<'de>,

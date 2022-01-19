@@ -16,13 +16,16 @@ pub fn behavior(state: &mut State, context: &Context) -> Result<()> {
     v[0] += dv;
 
     let dp = v * dt;
-    let pos = state.position_mut()?[0].as_mut().ok_or("Agent must have a position")?;
+    let pos = state.position_mut()?[0]
+        .as_mut()
+        .ok_or("Agent must have a position")?;
     *pos += dp;
 
     *force = Vec3(0.0, 0.0, 0.0);
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub fn get_named_behavior() -> SharedBehavior {
     SharedBehavior {
         id: "@hash/physics/forces.rs".into(),

@@ -26,7 +26,6 @@ pub mod package;
 
 use std::sync::{Arc, RwLock};
 
-use tracing::instrument;
 use uuid::Uuid;
 
 use self::message::{EngineToWorkerPoolMsg, WrappedTask};
@@ -62,6 +61,7 @@ pub struct Comms {
 }
 
 impl Comms {
+    #[tracing::instrument(skip_all)]
     pub fn new(sim_id: SimulationShortId, worker_pool_sender: MainMsgSend) -> Result<Comms> {
         Ok(Comms {
             sim_id,
@@ -70,18 +70,21 @@ impl Comms {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn take_create_remove_commands(&self) -> Result<CreateRemoveCommands> {
         let mut cmds = self.cmds.try_write()?;
         let taken = std::mem::take(&mut *cmds);
         Ok(taken)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn add_create_agent_command(&mut self, agent: Agent) -> Result<()> {
         let cmds = &mut self.cmds.try_write()?;
         cmds.add_create(agent);
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn add_remove_agent_command(&mut self, uuid: Uuid) -> Result<()> {
         let cmds = &mut self.cmds.try_write()?;
         cmds.add_remove(uuid);
@@ -105,7 +108,7 @@ impl Comms {
     ///
     /// Errors: tokio failed to send the message to the worker pool for some reason;
     ///         e.g. the worker pool already stopped due to some other error.
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn state_sync(&self, state: &State) -> Result<SyncCompletionReceiver> {
         tracing::trace!("Synchronizing state");
         let (completion_sender, completion_receiver) = tokio::sync::oneshot::channel();
@@ -124,7 +127,7 @@ impl Comms {
     }
 
     /// TODO: DOC
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn state_snapshot_sync(&self, state: &StateSnapshot) -> Result<()> {
         tracing::trace!("Synchronizing state snapshot");
         // Synchronize the state snapshot batches
@@ -141,7 +144,7 @@ impl Comms {
     }
 
     /// TODO: DOC
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn context_batch_sync(
         &self,
         context: &Context,
@@ -164,7 +167,7 @@ impl Comms {
 }
 
 impl Comms {
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn new_task<T: Into<Task>>(
         &self,
         package_id: PackageId,
@@ -181,6 +184,8 @@ impl Comms {
 }
 
 /// TODO: DOC
+
+#[tracing::instrument(skip_all)]
 fn wrap_task<T: Into<Task>>(
     task_id: TaskId,
     package_id: PackageId,

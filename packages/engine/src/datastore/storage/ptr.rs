@@ -6,10 +6,12 @@ pub struct MemoryPtr {
 }
 
 impl<'s> MemoryPtr {
+    #[tracing::instrument(skip_all)]
     pub fn from_memory(memory: &Memory) -> MemoryPtr {
         Self::new(memory.data.as_ptr())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn new(ptr: *const u8) -> MemoryPtr {
         MemoryPtr { ptr }
     }

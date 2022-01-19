@@ -20,6 +20,7 @@ pub struct RunnerError {
 }
 
 impl RunnerError {
+    #[tracing::instrument(skip_all)]
     pub fn into_sendable(self, is_warning: bool) -> worker::RunnerError {
         worker::RunnerError {
             message: self.message,
@@ -34,6 +35,7 @@ impl RunnerError {
 }
 
 impl From<flatbuffers_gen::runner_error_generated::RunnerError<'_>> for RunnerError {
+    #[tracing::instrument(skip_all)]
     fn from(runner_error: flatbuffers_gen::runner_error_generated::RunnerError<'_>) -> Self {
         Self {
             message: runner_error.msg().map(|msg| msg.to_string()),
@@ -46,6 +48,7 @@ impl From<flatbuffers_gen::runner_error_generated::RunnerError<'_>> for RunnerEr
 }
 
 impl From<flatbuffers_gen::runner_warning_generated::RunnerWarning<'_>> for RunnerError {
+    #[tracing::instrument(skip_all)]
     fn from(runner_warning: flatbuffers_gen::runner_warning_generated::RunnerWarning<'_>) -> Self {
         Self {
             message: Some(runner_warning.msg().to_string()),
@@ -74,6 +77,7 @@ pub enum OutboundFromRunnerMsgPayload {
 }
 
 impl OutboundFromRunnerMsgPayload {
+    #[tracing::instrument(skip_all)]
     pub fn try_from_fbs(
         parsed_msg: flatbuffers_gen::runner_outbound_msg_generated::RunnerOutboundMsg<'_>,
         sent_tasks: &mut HashMap<TaskId, SentTask>,
@@ -197,6 +201,7 @@ pub struct OutboundFromRunnerMsg {
 }
 
 impl OutboundFromRunnerMsg {
+    #[tracing::instrument(skip_all)]
     pub fn try_from_nng(
         msg: nng::Message,
         source: Language,

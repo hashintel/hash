@@ -25,6 +25,7 @@ pub enum Buffer {
 }
 
 impl Buffer {
+    #[tracing::instrument(skip_all)]
     pub fn next_offset(&self, offset: usize, size: usize) -> usize {
         let end_offset = offset + size;
         let padding = match self {
@@ -36,6 +37,7 @@ impl Buffer {
         end_offset + padding
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn next(&self) -> Option<Buffer> {
         match self {
             Buffer::Schema => Some(Buffer::Header),
@@ -45,6 +47,7 @@ impl Buffer {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn previous(&self) -> Option<Buffer> {
         match self {
             Buffer::Schema => None,
@@ -54,6 +57,7 @@ impl Buffer {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn last() -> Buffer {
         Buffer::Data
     }
@@ -105,6 +109,7 @@ impl Markers {
         &mut shorts[0]
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn from_sizes(
         schema_size: usize,
         header_size: usize,
@@ -133,34 +138,42 @@ impl Markers {
 
 // Helper functions
 impl Markers {
+    #[tracing::instrument(skip_all)]
     pub fn schema_offset(&self) -> usize {
         self[Val::SchemaOffset] as usize
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn schema_size(&self) -> usize {
         self[Val::SchemaSize] as usize
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn header_offset(&self) -> usize {
         self[Val::HeaderOffset] as usize
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn header_size(&self) -> usize {
         self[Val::HeaderSize] as usize
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn meta_offset(&self) -> usize {
         self[Val::MetaOffset] as usize
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn meta_size(&self) -> usize {
         self[Val::MetaSize] as usize
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn data_offset(&self) -> usize {
         self[Val::DataOffset] as usize
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn data_size(&self) -> usize {
         self[Val::DataSize] as usize
     }
@@ -179,6 +192,7 @@ impl Markers {
         next_buffer_offset - this_buffer_offset
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn extend_buffer_with_shift(&mut self, buffer: &Buffer, size: usize) {
         let offset = self.buffer_offset(buffer);
         let mut next_buffer_offset = buffer.next_offset(offset, size);
@@ -191,10 +205,12 @@ impl Markers {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn buffer_offset(&self, buffer: &Buffer) -> usize {
         self.inner[*buffer as usize - 1] as usize
     }
 
+    #[tracing::instrument(skip_all)]
     fn buffer_offset_mut(&mut self, buffer: &Buffer) -> &mut u64 {
         &mut self.inner[*buffer as usize - 1]
     }
@@ -203,12 +219,14 @@ impl Markers {
 impl Index<Val> for Markers {
     type Output = u64;
 
+    #[tracing::instrument(skip_all)]
     fn index(&self, index: Val) -> &Self::Output {
         &self.inner[index as usize]
     }
 }
 
 impl IndexMut<Val> for Markers {
+    #[tracing::instrument(skip_all)]
     fn index_mut(&mut self, index: Val) -> &mut Self::Output {
         &mut self.inner[index as usize]
     }
@@ -217,12 +235,14 @@ impl IndexMut<Val> for Markers {
 impl Index<Buffer> for Markers {
     type Output = u64;
 
+    #[tracing::instrument(skip_all)]
     fn index(&self, index: Buffer) -> &Self::Output {
         &self.inner[index as usize]
     }
 }
 
 impl IndexMut<Buffer> for Markers {
+    #[tracing::instrument(skip_all)]
     fn index_mut(&mut self, index: Buffer) -> &mut Self::Output {
         &mut self.inner[index as usize]
     }

@@ -71,6 +71,7 @@ pub fn get_message_arrow_builder() -> array::ListBuilder<array::StructBuilder> {
     array::ListBuilder::new(message_builder)
 }
 
+#[tracing::instrument(skip_all)]
 fn get_columns_from_struct_array(
     array: &array::StructArray,
 ) -> Result<(&array::ListArray, &array::StringArray, &array::StringArray)> {
@@ -100,6 +101,7 @@ fn get_columns_from_struct_array(
     Ok((to_column, type_column, data_column))
 }
 
+#[tracing::instrument(skip_all)]
 pub fn get_generic(to: &[&str], r#type: &str, data_string: &str) -> Result<Outbound> {
     let to_clone = to.iter().map(|v| (*v).to_string()).collect();
 
@@ -114,6 +116,7 @@ pub fn get_generic(to: &[&str], r#type: &str, data_string: &str) -> Result<Outbo
     }))
 }
 
+#[tracing::instrument(skip_all)]
 pub fn get_system(to: &[&str], r#type: &str, data_string: &str) -> Result<Outbound> {
     let to_clone = to.iter().map(|v| (*v).to_string()).collect();
 
@@ -158,6 +161,7 @@ pub fn get_system(to: &[&str], r#type: &str, data_string: &str) -> Result<Outbou
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub fn outbound_messages_to_arrow_column(
     column: &[Vec<Outbound>],
     mut builder: array::ListBuilder<array::StructBuilder>,
@@ -265,12 +269,14 @@ pub fn outbound_messages_to_arrow_column(
     Ok(builder.finish())
 }
 
+#[tracing::instrument(skip_all)]
 pub fn empty_messages_column(len: usize) -> Result<array::ListArray> {
     let mut builder = get_message_arrow_builder();
     (0..len).try_for_each(|_| builder.append(true))?;
     Ok(builder.finish())
 }
 
+#[tracing::instrument(skip_all)]
 pub fn messages_column_from_serde_values(
     values: Vec<serde_json::Value>,
 ) -> Result<array::ListArray> {
@@ -282,6 +288,7 @@ pub fn messages_column_from_serde_values(
     outbound_messages_to_arrow_column(&native_column, builder)
 }
 
+#[tracing::instrument(skip_all)]
 pub fn get_column_from_list_array(array: &array::ListArray) -> Result<Vec<Vec<Outbound>>> {
     let mut result = Vec::with_capacity(array.len());
     let vals = array.values();
@@ -321,6 +328,7 @@ pub fn get_column_from_list_array(array: &array::ListArray) -> Result<Vec<Vec<Ou
     Ok(result)
 }
 
+#[tracing::instrument(skip_all)]
 pub fn column_into_state(
     states: &mut Vec<AgentState>,
     batch: &RecordBatch,
@@ -342,6 +350,7 @@ pub fn column_into_state(
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub fn get_messages_column_from_batch(batch: &RecordBatch) -> Result<Vec<Vec<Outbound>>> {
     let (index, _) = batch
         .schema()
@@ -359,6 +368,7 @@ pub fn get_messages_column_from_batch(batch: &RecordBatch) -> Result<Vec<Vec<Out
     get_column_from_list_array(reference)
 }
 
+#[tracing::instrument(skip_all)]
 pub fn batch_from_json(
     schema: &Arc<ArrowSchema>,
     ids: Vec<&str>,

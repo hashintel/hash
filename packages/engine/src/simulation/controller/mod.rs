@@ -30,6 +30,7 @@ pub struct SimulationController {
 }
 
 impl SimulationController {
+    #[tracing::instrument(skip_all)]
     pub fn new<P: SimulationOutputPersistenceRepr>(
         config: Arc<SimRunConfig>,
         comms: Comms,
@@ -56,6 +57,7 @@ impl SimulationController {
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn new_task_handle<P: SimulationOutputPersistenceRepr>(
     config: Arc<SimRunConfig>,
     receiver: SimCtlRecv,

@@ -74,6 +74,7 @@ impl PackageType {
 }
 
 impl Serialize for PackageType {
+    #[tracing::instrument(skip_all)]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -83,6 +84,7 @@ impl Serialize for PackageType {
 }
 
 impl From<PackageType> for flatbuffers_gen::package_config_generated::PackageType {
+    #[tracing::instrument(skip_all)]
     fn from(package_type: PackageType) -> Self {
         match package_type {
             PackageType::Init => flatbuffers_gen::package_config_generated::PackageType::Init,

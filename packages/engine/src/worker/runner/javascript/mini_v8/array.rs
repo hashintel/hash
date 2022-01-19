@@ -57,6 +57,7 @@ impl<'mv8> Array<'mv8> {
 }
 
 impl fmt::Debug for Array<'_> {
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let len = self.len();
         write!(f, "[")?;
@@ -83,6 +84,7 @@ pub struct Elements<'mv8, V> {
 impl<'mv8, V: FromValue<'mv8>> Iterator for Elements<'mv8, V> {
     type Item = Result<'mv8, V>;
 
+    #[tracing::instrument(skip_all)]
     fn next(&mut self) -> Option<Self::Item> {
         if self.len.is_none() {
             self.len = Some(self.array.len());

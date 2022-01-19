@@ -13,8 +13,6 @@ mod worker_pool;
 
 use std::sync::Arc;
 
-use tracing::instrument;
-
 pub use self::{
     engine::{Config as EngineConfig, Worker, WorkerAllocation},
     error::{Error, Result},
@@ -37,7 +35,7 @@ pub struct SimRunConfig {
     pub sim: Arc<SimulationConfig>,
 }
 
-#[instrument(skip_all)]
+#[tracing::instrument(skip_all)]
 pub async fn experiment_config(args: &Args, env: &Environment) -> Result<ExperimentConfig> {
     ExperimentConfig::new(
         env.experiment.clone(),
@@ -46,6 +44,7 @@ pub async fn experiment_config(args: &Args, env: &Environment) -> Result<Experim
 }
 
 impl SimRunConfig {
+    #[tracing::instrument(skip_all)]
     pub fn new(
         global: &Arc<ExperimentConfig>,
         id: SimulationShortId,
@@ -71,6 +70,7 @@ impl SimRunConfig {
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn simulation_config(
     id: SimulationShortId,
     globals: Globals,

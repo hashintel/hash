@@ -9,6 +9,7 @@ pub struct ContextSchema {
 }
 
 impl ContextSchema {
+    #[tracing::instrument(skip_all)]
     pub fn new(field_spec_map: FieldSpecMap) -> Result<ContextSchema> {
         let arrow_schema = Arc::new(field_spec_map.get_arrow_schema()?);
         let static_meta = arrow_schema.get_static_metadata();

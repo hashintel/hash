@@ -12,6 +12,7 @@ pub struct BatchDistribution {
 }
 
 impl BatchDistribution {
+    #[tracing::instrument(skip_all)]
     pub fn new(num_workers: usize, current_batches: Vec<PendingBatch>) -> BatchDistribution {
         let mut inner = vec![vec![]; num_workers];
 
@@ -34,6 +35,7 @@ impl BatchDistribution {
         &mut self.inner[worker_index][worker_batch_index]
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn _get_elem(
         &mut self,
         worker_index: WorkerIndex,
@@ -51,6 +53,7 @@ impl BatchDistribution {
             })
     }
 
+    #[tracing::instrument(skip_all)]
     fn get_current_worker_level_distribution(&self) -> Vec<usize> {
         self.inner
             .iter()
@@ -104,12 +107,14 @@ impl BatchDistribution {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_worker_level_distribution(&mut self, number_inbound: usize) -> Result<Vec<usize>> {
         // `number_inbound`: number of agents that are created (or are migrating from other batches)
         let current_distribution = self.get_current_worker_level_distribution();
         get_inbound_distribution(&current_distribution, number_inbound)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn iter(&self) -> impl Iterator<Item = (WorkerIndex, &PendingBatch)> {
         self.inner
             .iter()
@@ -122,6 +127,8 @@ impl BatchDistribution {
 
 /// Given a discrete distribution of objects, get the distribution which would
 /// distribute `number_inbound` objects such that the result would be as even as possible
+
+#[tracing::instrument(skip_all)]
 fn get_inbound_distribution(
     current_distribution: &[usize],
     number_inbound: usize,

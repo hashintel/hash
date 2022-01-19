@@ -3,6 +3,7 @@ use std::{cell::RefCell, rc::Rc, string::String as StdString, time::Duration};
 use super::super::*;
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn eval_origin() {
     let mv8 = MiniV8::new();
     let result: StdString = mv8
@@ -25,6 +26,7 @@ fn eval_origin() {
 
 #[test]
 #[ignore] // TODO: reenable test
+#[tracing::instrument(skip_all)]
 fn eval_timeout() {
     let mv8 = MiniV8::new();
     let result = mv8.eval::<_, Value<'_>>(Script {
@@ -46,6 +48,7 @@ fn eval_timeout() {
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn eval_wasm() {
     let mv8 = MiniV8::new();
     let result = mv8.eval::<_, Value<'_>>(
@@ -70,6 +73,7 @@ fn eval_wasm() {
 
 #[test]
 #[should_panic(expected = "`Value` passed from one `MiniV8` instance to another")]
+#[tracing::instrument(skip_all)]
 fn value_cross_contamination() {
     let mv8_1 = MiniV8::new();
     let str_1 = mv8_1.create_string("123");
@@ -79,6 +83,7 @@ fn value_cross_contamination() {
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn user_data_drop() {
     let mut mv8 = MiniV8::new();
     let (count, data) = make_test_user_data();
@@ -88,6 +93,7 @@ fn user_data_drop() {
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn user_data_get() {
     let mut mv8 = MiniV8::new();
     let (_, data) = make_test_user_data();
@@ -104,6 +110,7 @@ fn user_data_get() {
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn user_data_remove() {
     let mut mv8 = MiniV8::new();
     let (count, data) = make_test_user_data();
@@ -122,27 +129,32 @@ struct TestUserData {
 }
 
 impl TestUserData {
+    #[tracing::instrument(skip_all)]
     fn increase(&self) {
         *self.count.borrow_mut() += 1;
     }
 
+    #[tracing::instrument(skip_all)]
     fn get(&self) -> usize {
         *self.count.borrow()
     }
 }
 
 impl Drop for TestUserData {
+    #[tracing::instrument(skip_all)]
     fn drop(&mut self) {
         *self.count.borrow_mut() = 1000;
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn make_test_user_data() -> (Rc<RefCell<usize>>, TestUserData) {
     let count = Rc::new(RefCell::new(0));
     (count.clone(), TestUserData { count })
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn coerce_boolean() {
     let mv8 = MiniV8::new();
     assert!(!mv8.coerce_boolean(Value::Undefined));
@@ -155,6 +167,7 @@ fn coerce_boolean() {
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn coerce_number() {
     let mv8 = MiniV8::new();
     assert!(mv8.coerce_number(Value::Undefined).unwrap().is_nan());
@@ -179,7 +192,9 @@ fn coerce_number() {
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn coerce_string() {
+    #[tracing::instrument(skip_all)]
     fn assert_string_eq(mv8: &MiniV8, value: Value<'_>, expected: &str) {
         assert_eq!(expected, mv8.coerce_string(value).unwrap().to_string());
     }

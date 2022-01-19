@@ -1,6 +1,7 @@
 use super::{Context, Result, SharedBehavior, State};
 use crate::hash_types::{Agent, Vec3};
 
+#[tracing::instrument(skip_all)]
 pub fn get_named_behavior() -> SharedBehavior {
     SharedBehavior {
         id: "@hash/physics/collision.rs".into(),

@@ -6,28 +6,40 @@ use crate::datastore::{
 
 pub trait GrowableArrayData: Sized + std::fmt::Debug {
     fn _len(&self) -> usize;
+
     fn _null_count(&self) -> usize;
+
     fn _null_buffer(&self) -> Option<&[u8]>;
+
     fn _get_buffer(&self, index: usize) -> &[u8];
+
     fn _get_non_null_buffer_count(&self) -> usize;
+
     fn _child_data(&self) -> &[Self];
 }
 
 pub trait GrowableColumn<D: GrowableArrayData> {
     fn get_column_index(&self) -> usize;
+
     fn get_data(&self) -> &D;
 }
 
 pub trait GrowableBatch<C: GrowableColumn<D>, D: GrowableArrayData> {
     fn take_changes(&mut self) -> Vec<C>;
+
     fn static_meta(&self) -> &StaticMeta;
+
     fn dynamic_meta(&self) -> &DynamicMeta;
+
     fn mut_dynamic_meta(&mut self) -> &mut DynamicMeta;
+
     fn memory(&self) -> &Memory;
+
     fn mut_memory(&mut self) -> &mut Memory;
     /// All changes that have been added into `self.changes` are commited into memory.
     /// Calculates all moves, copies and resizes required to commit the changes.
     #[allow(clippy::too_many_lines)]
+    #[tracing::instrument(skip_all)]
     fn flush_changes(&mut self) -> Result<bool> {
         let mut changes = self.take_changes();
         // Sort the changes by the order in which the columns are
@@ -244,6 +256,8 @@ pub trait GrowableBatch<C: GrowableColumn<D>, D: GrowableArrayData> {
 }
 
 /// Add an action for buffer(s) whose data is not changed but might have to be moved
+
+#[tracing::instrument(skip_all)]
 fn push_non_modify_actions(
     buffer_actions: &mut Vec<BufferAction<'_>>,
     first_index: usize,
@@ -277,6 +291,7 @@ fn push_non_modify_actions(
     this_buffer_offset
 }
 
+#[tracing::instrument(skip_all)]
 fn gather_array_datas_depth_first<D: GrowableArrayData>(array_ref: &D) -> Vec<&D> {
     let mut ret = vec![array_ref];
     // Depth-first get all nodes

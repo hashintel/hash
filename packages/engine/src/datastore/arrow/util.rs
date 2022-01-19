@@ -29,27 +29,32 @@ pub struct FlatBufferWrapper<'fbb> {
 }
 
 impl FlatBufferWrapper<'_> {
+    #[tracing::instrument(skip_all)]
     pub fn len(&self) -> usize {
         self.finished_builder.finished_data().len()
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 }
 
 impl<'fbb> From<FlatBufferBuilder<'fbb>> for FlatBufferWrapper<'fbb> {
+    #[tracing::instrument(skip_all)]
     fn from(finished_builder: FlatBufferBuilder<'fbb>) -> Self {
         FlatBufferWrapper { finished_builder }
     }
 }
 
 impl AsRef<[u8]> for FlatBufferWrapper<'_> {
+    #[tracing::instrument(skip_all)]
     fn as_ref(&self) -> &[u8] {
         self.finished_builder.finished_data()
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub fn bool_to_arrow(data: &[bool]) -> Arc<array::ArrayData> {
     let num_byte = arrow_bit_util::ceil(data.len(), 8);
     let mut mut_buf = ArrowMutableBuffer::new(num_byte).with_bitset(num_byte, false);
@@ -67,6 +72,7 @@ pub fn bool_to_arrow(data: &[bool]) -> Arc<array::ArrayData> {
         .build()
 }
 
+#[tracing::instrument(skip_all)]
 pub fn opt_bool_to_arrow(data: &[Option<bool>]) -> Arc<array::ArrayData> {
     let num_byte = arrow_bit_util::ceil(data.len(), 8);
     let mut nulls = ArrowMutableBuffer::new(num_byte).with_bitset(num_byte, false);
@@ -94,23 +100,30 @@ pub fn opt_bool_to_arrow(data: &[Option<bool>]) -> Arc<array::ArrayData> {
         .build()
 }
 
+#[tracing::instrument(skip_all)]
 pub fn get_bit(buffer: &[u8], i: usize) -> bool {
     arrow_bit_util::get_bit(buffer, i)
 }
 
 pub trait DataSliceUtils<'a> {
     fn from_offset(&'a mut self, buffer: &crate::datastore::meta::Buffer) -> &'a mut [u8];
+
     fn fill_with_ones(&mut self);
+
     fn write_i32_offsets_from_iter(&mut self, iter: impl Iterator<Item = usize>);
 }
 
 impl<'a> DataSliceUtils<'a> for &mut [u8] {
     // TODO: Rename to from_buffer/buffer_slice?
+
+    #[tracing::instrument(skip_all)]
     fn from_offset(&'a mut self, buffer: &crate::datastore::meta::Buffer) -> &'a mut [u8] {
         &mut self[buffer.offset..buffer.offset + buffer.length]
     }
 
     /// If this is a null buffer, all elements will be valid
+
+    #[tracing::instrument(skip_all)]
     fn fill_with_ones(&mut self) {
         self.iter_mut().for_each(|v| *v = 255);
     }
@@ -118,6 +131,8 @@ impl<'a> DataSliceUtils<'a> for &mut [u8] {
     /// If this is an offset buffer, write n + 1 offsets as i32 (Arrow format)
     /// `lens` gives the length of each element in the Arrow array, i.e. the
     /// difference between consecutive offsets.
+
+    #[tracing::instrument(skip_all)]
     fn write_i32_offsets_from_iter(&mut self, lens: impl Iterator<Item = usize>) {
         let offsets = unsafe {
             let aligned = self.align_to_mut::<i32>();

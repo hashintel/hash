@@ -13,8 +13,10 @@ use crate::datastore::{batch::Batch, prelude::Result};
 /// TODO: DOC
 pub trait BatchPool<K: Batch>: Send + Sync {
     fn batches(&self) -> &[Arc<RwLock<K>>];
+
     fn mut_batches(&mut self) -> &mut Vec<Arc<RwLock<K>>>;
 
+    #[tracing::instrument(skip_all)]
     fn update<T: BatchPool<K>>(&mut self, other: &T, indices: &[usize]) {
         let own = self.mut_batches();
         let other = other.batches();
@@ -23,6 +25,7 @@ pub trait BatchPool<K: Batch>: Send + Sync {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     fn read_proxy(&self) -> Result<PoolReadProxy<K>> {
         Ok(PoolReadProxy::from(
             self.batches()
@@ -32,6 +35,7 @@ pub trait BatchPool<K: Batch>: Send + Sync {
         ))
     }
 
+    #[tracing::instrument(skip_all)]
     fn partial_read_proxy(&self, indices: &[usize]) -> Result<PoolReadProxy<K>> {
         Ok(PoolReadProxy::from(
             self.batches()
@@ -43,6 +47,7 @@ pub trait BatchPool<K: Batch>: Send + Sync {
         ))
     }
 
+    #[tracing::instrument(skip_all)]
     fn write_proxy(&mut self) -> Result<PoolWriteProxy<K>> {
         Ok(PoolWriteProxy::from(
             self.batches()
@@ -52,6 +57,7 @@ pub trait BatchPool<K: Batch>: Send + Sync {
         ))
     }
 
+    #[tracing::instrument(skip_all)]
     fn partial_write_proxy(&self, indices: &[usize]) -> Result<PoolWriteProxy<K>> {
         Ok(PoolWriteProxy::from(
             self.batches()

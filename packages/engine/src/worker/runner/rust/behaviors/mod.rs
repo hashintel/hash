@@ -522,6 +522,7 @@ macro_rules! match_native_column {
 }
 
 impl NativeState {
+    #[tracing::instrument(skip_all)]
     pub fn from_column_set(
         columns: &HashSet<String>,
         schema: &Arc<arrow::datatypes::Schema>,
@@ -576,6 +577,7 @@ impl NativeState {
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub fn is_built_in(name: &str) -> bool {
     for (short_name, file_name, full_name) in BEHAVIOR_NAMES.iter() {
         if name == *short_name
@@ -589,6 +591,7 @@ pub fn is_built_in(name: &str) -> bool {
     return false;
 }
 
+#[tracing::instrument(skip_all)]
 pub fn get_full_name(name: &str) -> Result<&str> {
     for (short_name, file_name, full_name) in BEHAVIOR_NAMES.iter() {
         if name == *short_name
@@ -602,6 +605,7 @@ pub fn get_full_name(name: &str) -> Result<&str> {
     Err(Error::InvalidRustBuiltIn(name.to_string()))
 }
 
+#[tracing::instrument(skip_all)]
 pub fn get_built_in(
     name: &str,
 ) -> Result<Box<dyn Fn(&mut AgentState, &AgentContext) -> Result<()> + Send + Sync + 'static>> {
@@ -640,6 +644,7 @@ pub fn get_built_in(
     return Err(Error::InvalidRustBuiltIn(name.to_string()));
 }
 
+#[tracing::instrument(skip_all)]
 pub fn get_built_in_columns(name: &str) -> Result<HashMap<String, Box<dyn Column>>> {
     let mut map = HashMap::new();
 
@@ -834,6 +839,7 @@ pub fn get_built_in_columns(name: &str) -> Result<HashMap<String, Box<dyn Column
     return Err(Error::InvalidRustBuiltIn(name.to_string()));
 }
 
+#[tracing::instrument(skip_all)]
 pub fn get_named_behavior(name: &str) -> Result<SharedBehavior> {
     for (short_name, file_name, full_name) in BEHAVIOR_NAMES.iter() {
         if name == *short_name

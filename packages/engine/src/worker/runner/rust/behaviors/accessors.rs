@@ -20,6 +20,7 @@ use crate::{
     },
 };
 
+#[tracing::instrument(skip_all)]
 pub fn vec3arr_to_arrow(arr: &Vec<Vec3>) -> Result<Arc<array::ArrayData>> {
     let mut flat_positions: Vec<f64> = Vec::with_capacity(arr.len() * 3);
 
@@ -40,7 +41,9 @@ pub fn vec3arr_to_arrow(arr: &Vec<Vec3>) -> Result<Arc<array::ArrayData>> {
 
 pub trait Accessors: Sized {
     fn load_elem(data_ref: &Arc<array::ArrayData>, _name: &'static str, i: usize) -> Result<Self>;
+
     fn load(data_ref: &Arc<array::ArrayData>, name: &'static str) -> Result<Vec<Self>>;
+
     fn as_change(col: &NativeColumn<Self>) -> Result<Option<ArrayChange>>;
 }
 
@@ -49,6 +52,7 @@ pub trait Accessors: Sized {
 //       `impl Accessors for Option<T> where T: RawAccessors`
 
 impl Accessors for Option<f64> {
+    #[tracing::instrument(skip_all)]
     fn load_elem(data_ref: &Arc<array::ArrayData>, _name: &'static str, i: usize) -> Result<Self> {
         if data_ref
             .null_bitmap()
@@ -63,6 +67,7 @@ impl Accessors for Option<f64> {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     fn load(data_ref: &Arc<array::ArrayData>, _name: &'static str) -> Result<Vec<Option<f64>>> {
         let nulls = data_ref.null_bitmap();
         let data = &data_ref.buffers()[0];
@@ -84,6 +89,7 @@ impl Accessors for Option<f64> {
         Ok(ret)
     }
 
+    #[tracing::instrument(skip_all)]
     fn as_change(col: &NativeColumn<Option<f64>>) -> Result<Option<ArrayChange>> {
         let mut builder = array::Float64Builder::new(col.data.len());
         for elem in &col.data {
@@ -99,6 +105,7 @@ impl Accessors for Option<f64> {
 }
 
 impl Accessors for f64 {
+    #[tracing::instrument(skip_all)]
     fn load_elem(data_ref: &Arc<array::ArrayData>, name: &'static str, i: usize) -> Result<Self> {
         if data_ref
             .null_bitmap()
@@ -114,6 +121,7 @@ impl Accessors for f64 {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     fn load(data_ref: &Arc<array::ArrayData>, name: &'static str) -> Result<Vec<Self>> {
         if data_ref.null_count() > 0 {
             Err(SimulationError::from(format!(
@@ -126,6 +134,7 @@ impl Accessors for f64 {
         Ok(floats.to_vec())
     }
 
+    #[tracing::instrument(skip_all)]
     fn as_change(col: &NativeColumn<Self>) -> Result<Option<ArrayChange>> {
         let array = array::Float64Array::from(col.data.clone());
         return Ok(Some(ArrayChange::new(array.data(), col.index)));
@@ -133,6 +142,7 @@ impl Accessors for f64 {
 }
 
 impl Accessors for Vec3 {
+    #[tracing::instrument(skip_all)]
     fn load_elem(data_ref: &Arc<array::ArrayData>, name: &'static str, i: usize) -> Result<Self> {
         if data_ref
             .null_bitmap()
@@ -156,6 +166,7 @@ impl Accessors for Vec3 {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     fn load(data_ref: &Arc<array::ArrayData>, name: &'static str) -> Result<Vec<Self>> {
         if data_ref.null_count() > 0 {
             Err(SimulationError::from(format!(
@@ -180,6 +191,7 @@ impl Accessors for Vec3 {
             .collect())
     }
 
+    #[tracing::instrument(skip_all)]
     fn as_change(col: &NativeColumn<Self>) -> Result<Option<ArrayChange>> {
         let array = vec3arr_to_arrow(&col.data)?;
         return Ok(Some(ArrayChange::new(array, col.index)));
@@ -187,6 +199,7 @@ impl Accessors for Vec3 {
 }
 
 impl Accessors for bool {
+    #[tracing::instrument(skip_all)]
     fn load_elem(data_ref: &Arc<array::ArrayData>, name: &'static str, i: usize) -> Result<Self> {
         if data_ref
             .null_bitmap()
@@ -203,6 +216,7 @@ impl Accessors for bool {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     fn load(data_ref: &Arc<array::ArrayData>, name: &'static str) -> Result<Vec<Self>> {
         if data_ref.null_count() > 0 {
             return Err(SimulationError::from(format!(
@@ -217,6 +231,7 @@ impl Accessors for bool {
         Ok(data)
     }
 
+    #[tracing::instrument(skip_all)]
     fn as_change(col: &NativeColumn<Self>) -> Result<Option<ArrayChange>> {
         let data = &col.data;
         let change = arrow_util::bool_to_arrow(data);
@@ -226,6 +241,7 @@ impl Accessors for bool {
 }
 
 impl Accessors for Option<bool> {
+    #[tracing::instrument(skip_all)]
     fn load_elem(data_ref: &Arc<array::ArrayData>, _name: &'static str, i: usize) -> Result<Self> {
         if data_ref
             .null_bitmap()
@@ -238,6 +254,7 @@ impl Accessors for Option<bool> {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     fn load(data_ref: &Arc<array::ArrayData>, _name: &'static str) -> Result<Vec<Self>> {
         let bitmap = &data_ref.buffers()[0].data();
         let nulls = data_ref.null_buffer();
@@ -258,6 +275,7 @@ impl Accessors for Option<bool> {
         Ok(data)
     }
 
+    #[tracing::instrument(skip_all)]
     fn as_change(col: &NativeColumn<Self>) -> Result<Option<ArrayChange>> {
         let data = &col.data;
         let change = arrow_util::opt_bool_to_arrow(data);
@@ -267,6 +285,7 @@ impl Accessors for Option<bool> {
 }
 
 impl Accessors for Option<String> {
+    #[tracing::instrument(skip_all)]
     fn load_elem(data_ref: &Arc<array::ArrayData>, _name: &'static str, i: usize) -> Result<Self> {
         if data_ref
             .null_bitmap()
@@ -283,6 +302,7 @@ impl Accessors for Option<String> {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     fn load(data_ref: &Arc<array::ArrayData>, _name: &'static str) -> Result<Vec<Option<String>>> {
         let nulls = data_ref.null_bitmap();
         let offsets = &data_ref.buffers()[0];
@@ -310,6 +330,7 @@ impl Accessors for Option<String> {
         Ok(ret)
     }
 
+    #[tracing::instrument(skip_all)]
     fn as_change(col: &NativeColumn<Option<String>>) -> Result<Option<ArrayChange>> {
         let num_offset_bytes = std::mem::size_of::<i32>() * (col.data.len() + 1);
         let mut offsets = MutableBuffer::new(num_offset_bytes);
@@ -369,6 +390,7 @@ impl Accessors for Option<String> {
 }
 
 impl Accessors for Option<serde_json::Value> {
+    #[tracing::instrument(skip_all)]
     fn load_elem(data_ref: &Arc<array::ArrayData>, _name: &'static str, i: usize) -> Result<Self> {
         if data_ref
             .null_bitmap()
@@ -384,6 +406,7 @@ impl Accessors for Option<serde_json::Value> {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     fn load(data_ref: &Arc<array::ArrayData>, _name: &'static str) -> Result<Vec<Self>> {
         let nulls = data_ref.null_bitmap();
         let offsets = &data_ref.buffers()[0];
@@ -412,6 +435,7 @@ impl Accessors for Option<serde_json::Value> {
         Ok(ret)
     }
 
+    #[tracing::instrument(skip_all)]
     fn as_change(col: &NativeColumn<Self>) -> Result<Option<ArrayChange>> {
         let string_data: Vec<Option<String>> = col
             .data
@@ -487,6 +511,7 @@ macro_rules! accessors {
         $base_load:ident,
         $base_commit:ident
     ) => {
+        #[tracing::instrument(skip_all)]
         pub fn $base(index: usize, agent_batch: &AgentBatch) -> Result<NativeColumn<$native_type>> {
             let data = Accessors::load(
                 agent_batch.batch.column(index).data_ref(),
@@ -501,21 +526,28 @@ macro_rules! accessors {
 
         pub struct $column {}
         impl Column for $column {
+            #[tracing::instrument(skip_all)]
             fn get<'s>(&self, state: &AgentState<'s>) -> Result<serde_json::Value> {
                 // All columns in NativeState must be JSON-serializable.
                 Ok(serde_json::to_value(AgentState::$base(&state)?[0]).unwrap())
             }
 
+            #[tracing::instrument(skip_all)]
+            #[tracing::instrument(skip_all)]
             fn set<'s>(&self, state: &mut AgentState<'s>, value: serde_json::Value) -> Result<()> {
                 // All columns in NativeState must be JSON-deserializable.
                 let native_value: $native_type = serde_json::from_value(value).unwrap();
                 AgentState::$base_set(state, vec![native_value])
             }
 
+            #[tracing::instrument(skip_all)]
+            #[tracing::instrument(skip_all)]
             fn load<'s>(&self, state: &mut GroupState<'s>) -> Result<()> {
                 GroupState::$base_load(state)
             }
 
+            #[tracing::instrument(skip_all)]
+            #[tracing::instrument(skip_all)]
             fn commit<'s>(&self, state: &mut GroupState<'s>) -> Result<()> {
                 GroupState::$base_commit(state)
             }
@@ -524,16 +556,19 @@ macro_rules! accessors {
         /// This is a temporary wrapper to allow executing columnar behaviors on single agents.
         #[allow(dead_code)]
         impl<'s> AgentState<'s> {
+            #[tracing::instrument(skip_all)]
             pub fn $base(&self) -> Result<&[$native_type]> {
                 Ok(&self.inner.$base.u_ref()?.data[self.index_in_group..=self.index_in_group])
             }
 
+            #[tracing::instrument(skip_all)]
             pub fn $base_set(&mut self, value: Vec<$native_type>) -> Result<()> {
                 self.inner.$base.u_mut()?.set = true;
                 self.inner.$base.u_mut()?.data[self.index_in_group] = value[0];
                 Ok(())
             }
 
+            #[tracing::instrument(skip_all)]
             pub fn $base_mut(&mut self) -> Result<&mut [$native_type]> {
                 self.inner.$base.u_mut()?.set = true;
                 Ok(&mut self.inner.$base.u_mut()?.data[self.index_in_group..=self.index_in_group])
@@ -542,21 +577,25 @@ macro_rules! accessors {
 
         #[allow(dead_code)]
         impl<'s> GroupState<'s> {
+            #[tracing::instrument(skip_all)]
             pub fn $base(&self) -> Result<&[$native_type]> {
                 Ok(&self.inner.$base.u_ref()?.data)
             }
 
+            #[tracing::instrument(skip_all)]
             pub fn $base_set(&mut self, value: Vec<$native_type>) -> Result<()> {
                 self.inner.$base.u_mut()?.set = true;
                 self.inner.$base.u_mut()?.data = value;
                 Ok(())
             }
 
+            #[tracing::instrument(skip_all)]
             pub fn $base_mut(&mut self) -> Result<&mut [$native_type]> {
                 self.inner.$base.u_mut()?.set = true;
                 Ok(&mut self.inner.$base.u_mut()?.data)
             }
 
+            #[tracing::instrument(skip_all)]
             pub fn $base_load(&mut self) -> Result<()> {
                 self.inner.$base.u_mut()?.data = Accessors::load(
                     self.data_ref(self.inner.$base.u_ref()?.index),
@@ -565,6 +604,7 @@ macro_rules! accessors {
                 Ok(())
             }
 
+            #[tracing::instrument(skip_all)]
             pub fn $base_commit(&mut self) -> Result<()> {
                 // Do not commit if mutable actions were not done
                 if self.inner.$base.u_mut()?.set {
@@ -577,6 +617,7 @@ macro_rules! accessors {
         }
 
         impl<'c> Neighbor<'c> {
+            #[tracing::instrument(skip_all)]
             pub fn $base(&self) -> $native_type {
                 // TODO: this is expensive
                 let col_index = self
@@ -593,6 +634,7 @@ macro_rules! accessors {
     };
 }
 
+#[tracing::instrument(skip_all)]
 pub fn field_or_property<T: for<'de> Deserialize<'de> + Clone>(
     field: &Option<T>,
     property: &Option<serde_json::Value>,
@@ -620,18 +662,22 @@ pub enum OptionNativeColumnExtError {
 
 pub trait OptionNativeColumnExt {
     type Value;
+
     fn u_ref(&self) -> std::result::Result<&Self::Value, OptionNativeColumnExtError>;
+
     fn u_mut(&mut self) -> std::result::Result<&mut Self::Value, OptionNativeColumnExtError>;
 }
 
 impl<T> OptionNativeColumnExt for Option<NativeColumn<T>> {
     type Value = NativeColumn<T>;
 
+    #[tracing::instrument(skip_all)]
     fn u_ref(&self) -> std::result::Result<&Self::Value, OptionNativeColumnExtError> {
         self.as_ref()
             .ok_or_else(|| OptionNativeColumnExtError::UnwrapRefFailed(std::any::type_name::<T>()))
     }
 
+    #[tracing::instrument(skip_all)]
     fn u_mut(&mut self) -> std::result::Result<&mut Self::Value, OptionNativeColumnExtError> {
         self.as_mut()
             .ok_or_else(|| OptionNativeColumnExtError::UnwrapMutFailed(std::any::type_name::<T>()))

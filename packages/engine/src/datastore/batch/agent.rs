@@ -57,22 +57,27 @@ pub struct Batch {
 }
 
 impl BatchRepr for Batch {
+    #[tracing::instrument(skip_all)]
     fn memory(&self) -> &Memory {
         &self.memory
     }
 
+    #[tracing::instrument(skip_all)]
     fn memory_mut(&mut self) -> &mut Memory {
         &mut self.memory
     }
 
+    #[tracing::instrument(skip_all)]
     fn metaversion(&self) -> &Metaversion {
         &self.metaversion
     }
 
+    #[tracing::instrument(skip_all)]
     fn metaversion_mut(&mut self) -> &mut Metaversion {
         &mut self.metaversion
     }
 
+    #[tracing::instrument(skip_all)]
     fn maybe_reload(&mut self, state: Metaversion) -> Result<()> {
         if self.metaversion.memory() != state.memory() {
             self.reload()?;
@@ -85,6 +90,8 @@ impl BatchRepr for Batch {
     }
 
     /// Reload the memory (for when ftruncate has been called) and batch
+
+    #[tracing::instrument(skip_all)]
     fn reload(&mut self) -> Result<()> {
         self.memory.reload()?;
         self.reload_record_batch_and_dynamic_meta()
@@ -92,20 +99,24 @@ impl BatchRepr for Batch {
 }
 
 impl ArrowBatch for Batch {
+    #[tracing::instrument(skip_all)]
     fn record_batch(&self) -> &RecordBatch {
         &self.batch
     }
 
+    #[tracing::instrument(skip_all)]
     fn record_batch_mut(&mut self) -> &mut RecordBatch {
         &mut self.batch
     }
 }
 
 impl DynamicBatch for Batch {
+    #[tracing::instrument(skip_all)]
     fn dynamic_meta(&self) -> &DynamicMeta {
         &self.dynamic_meta
     }
 
+    #[tracing::instrument(skip_all)]
     fn dynamic_meta_mut(&mut self) -> &mut DynamicMeta {
         &mut self.dynamic_meta
     }
@@ -113,11 +124,14 @@ impl DynamicBatch for Batch {
     /// Push an `ArrayChange` into pending list of changes
     /// NB: These changes are not written into memory if
     /// `self.flush_changes` is not called.
+
+    #[tracing::instrument(skip_all)]
     fn push_change(&mut self, change: ArrayChange) -> Result<()> {
         self.changes.push(change);
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     fn flush_changes(&mut self) -> Result<()> {
         let resized = GrowableBatch::flush_changes(self)?;
 
@@ -148,6 +162,7 @@ impl Batch {
         Batch::from_record_batch(&rb, schema, experiment_run_id)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn set_dynamic_meta(&mut self, dynamic_meta: &DynamicMeta) -> Result<()> {
         self.dynamic_meta = dynamic_meta.clone();
         let meta_buffer = get_dynamic_meta_flatbuffers(dynamic_meta)?;
@@ -156,6 +171,7 @@ impl Batch {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn duplicate_from(
         batch: &Batch,
         schema: &AgentSchema,
@@ -197,6 +213,7 @@ impl Batch {
         Self::from_memory(memory, Some(schema), None)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn from_memory(
         memory: Memory,
         schema: Option<&AgentSchema>,
@@ -239,6 +256,7 @@ impl Batch {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_prepared_memory_for_data(
         schema: &Arc<AgentSchema>,
         dynamic_meta: &DynamicMeta,
@@ -266,10 +284,12 @@ impl Batch {
         Ok(memory)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn num_agents(&self) -> usize {
         self.batch.num_rows()
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_buffer(&self, buffer_index: usize) -> Result<&[u8]> {
         let data_buffer = self.memory.get_data_buffer()?;
         let meta_data = &self.dynamic_meta.buffers[buffer_index];
@@ -278,26 +298,32 @@ impl Batch {
 }
 
 impl GrowableBatch<ArrayChange, Arc<array::ArrayData>> for Batch {
+    #[tracing::instrument(skip_all)]
     fn take_changes(&mut self) -> Vec<ArrayChange> {
         std::mem::take(&mut self.changes)
     }
 
+    #[tracing::instrument(skip_all)]
     fn static_meta(&self) -> &StaticMeta {
         &self.static_meta
     }
 
+    #[tracing::instrument(skip_all)]
     fn dynamic_meta(&self) -> &DynamicMeta {
         &self.dynamic_meta
     }
 
+    #[tracing::instrument(skip_all)]
     fn mut_dynamic_meta(&mut self) -> &mut DynamicMeta {
         &mut self.dynamic_meta
     }
 
+    #[tracing::instrument(skip_all)]
     fn memory(&self) -> &Memory {
         &self.memory
     }
 
+    #[tracing::instrument(skip_all)]
     fn mut_memory(&mut self) -> &mut Memory {
         &mut self.memory
     }
@@ -334,11 +360,13 @@ impl Batch {
 }
 
 impl Batch {
+    #[tracing::instrument(skip_all)]
     pub fn from_message(message: &str) -> Result<Box<Self>> {
         let memory = Memory::from_message(message, true, true)?;
         Ok(Box::new(Batch::from_memory(memory, None, None)?))
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn set_affinity(&mut self, affinity: usize) {
         self.affinity = affinity;
     }
@@ -359,6 +387,7 @@ impl Batch {
 
 // Special-case columns getter and setters
 impl Batch {
+    #[tracing::instrument(skip_all)]
     pub fn get_arrow_column_ref(&self, key: &FieldKey) -> Result<&ArrayRef> {
         self.get_arrow_column(key.value())
     }
@@ -408,11 +437,13 @@ impl Batch {
         }))
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn agent_name_iter(&self) -> Result<impl Iterator<Item = Option<&str>>> {
         let column_name = AgentStateField::AgentName.name();
         self.str_iter(column_name)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_agent_name(&self) -> Result<Vec<Option<Cow<'_, str>>>> {
         let column_name = AgentStateField::AgentName.name();
         let row_count = self.batch.num_rows();
@@ -459,6 +490,7 @@ impl Batch {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn topology_mut_iter(
         &mut self,
     ) -> Result<(
@@ -535,6 +567,7 @@ impl Batch {
         ))
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn position_iter(&self) -> Result<impl Iterator<Item = Option<&[f64; POSITION_DIM]>>> {
         let column_name = AgentStateField::Position.name();
         let row_count = self.batch.num_rows();
@@ -566,6 +599,7 @@ impl Batch {
         }))
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn direction_iter(&self) -> Result<impl Iterator<Item = Option<&[f64; POSITION_DIM]>>> {
         let column_name = AgentStateField::Direction.name();
         let row_count = self.batch.num_rows();
@@ -597,12 +631,14 @@ impl Batch {
         }))
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn search_radius_iter(&self) -> Result<impl Iterator<Item = Option<f64>> + '_> {
         // TODO[1] remove dependency on neighbors package
         let column_name = "search_radius";
         self.f64_iter(column_name)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn f64_iter<'a>(
         &'a self,
         column_name: &str,
@@ -626,6 +662,7 @@ impl Batch {
         }))
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn exists_iter<'a>(&'a self, column_name: &str) -> Result<impl Iterator<Item = bool> + 'a> {
         let row_count = self.batch.num_rows();
         let column = self.get_arrow_column(column_name)?;
@@ -633,6 +670,7 @@ impl Batch {
         Ok((0..row_count).map(move |i| column.is_valid(i)))
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn str_iter<'a>(
         &'a self,
         column_name: &str,
@@ -656,6 +694,7 @@ impl Batch {
         }))
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn bool_iter<'a>(
         &'a self,
         column_name: &str,
@@ -709,6 +748,7 @@ impl Batch {
         col_to_json_vals(column, data_type)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn behavior_list_bytes_iter(&self) -> Result<impl Iterator<Item = Vec<&[u8]>>> {
         behavior_list_bytes_iter(&self.batch)
     }
@@ -719,23 +759,27 @@ pub trait AgentList {
 }
 
 impl AgentList for RecordBatch {
+    #[tracing::instrument(skip_all)]
     fn record_batch(&self) -> &RecordBatch {
         self
     }
 }
 
 impl AgentList for Batch {
+    #[tracing::instrument(skip_all)]
     fn record_batch(&self) -> &RecordBatch {
         &self.batch
     }
 }
 
 impl AsRef<Batch> for Batch {
+    #[tracing::instrument(skip_all)]
     fn as_ref(&self) -> &Batch {
         self
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub fn behavior_list_bytes_iter<K: AgentList>(
     agent_list: &K,
 ) -> Result<impl Iterator<Item = Vec<&[u8]>>> {
@@ -780,6 +824,7 @@ mod tests {
     use crate::datastore::test_utils::gen_schema_and_test_agents;
 
     #[bench]
+    #[tracing::instrument(skip_all)]
     fn agent_batch_from_states(b: &mut Bencher) {
         let num_agents = 100;
         let (schema, agents) = gen_schema_and_test_agents(num_agents, 0).unwrap();

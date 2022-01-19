@@ -1,6 +1,6 @@
-use super::super::OutboundMessage;
-use super::{Context, Result, SharedBehavior, State};
+use super::{super::OutboundMessage, Context, Result, SharedBehavior, State};
 
+#[tracing::instrument(skip_all)]
 pub fn behavior(state: &mut State<'_>, _context: &Context<'_>) -> Result<()> {
     let mut messages = state.take_messages()?;
     for i in 0..state.num_agents() {
@@ -15,6 +15,7 @@ pub fn behavior(state: &mut State<'_>, _context: &Context<'_>) -> Result<()> {
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub fn get_named_behavior() -> SharedBehavior {
     SharedBehavior {
         id: "@hash/remove_self/remove_self.rs".into(),

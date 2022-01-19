@@ -2,7 +2,6 @@ use std::{fmt, sync::Arc};
 
 use futures::future::join_all;
 use parking_lot::RwLock;
-use tracing::instrument;
 
 use crate::{
     datastore::{
@@ -37,6 +36,7 @@ pub struct WaitableStateSync {
 }
 
 impl fmt::Debug for WaitableStateSync {
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         f.write_str("WaitableStateSync(...)")
     }
@@ -70,7 +70,7 @@ impl WaitableStateSync {
     /// let (child_msgs, child_receivers) = self.create_children(2);
     /// // Send `child_msgs` to appropriate message handlers.
     /// self.forward_children(child_receivers).await;
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn forward_children(self, child_receivers: Vec<SyncCompletionReceiver>) {
         let _ = &self; // TODO: hopefully remove this (https://github.com/tokio-rs/tracing/issues/1841)
         tracing::trace!("Getting state sync completions");
@@ -97,6 +97,7 @@ pub struct StateSync {
 }
 
 impl fmt::Debug for StateSync {
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         f.write_str("StateSync(...)")
     }
@@ -110,6 +111,7 @@ pub struct ContextBatchSync {
 }
 
 impl fmt::Debug for ContextBatchSync {
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         f.write_str("ContextBatchSync(...)")
     }
@@ -127,6 +129,7 @@ pub enum SyncPayload {
 }
 
 impl SyncPayload {
+    #[tracing::instrument(skip_all)]
     pub fn try_clone(&self) -> WorkerResult<Self> {
         match self {
             Self::State(_) => Err(WorkerError::from("Waitable sync message can't be cloned")),
@@ -137,6 +140,7 @@ impl SyncPayload {
 }
 
 impl From<SyncPayload> for InboundToRunnerMsgPayload {
+    #[tracing::instrument(skip_all)]
     fn from(payload: SyncPayload) -> Self {
         match payload {
             SyncPayload::State(s) => Self::StateSync(s),

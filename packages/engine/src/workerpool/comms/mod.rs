@@ -10,7 +10,6 @@ use tokio::sync::{
     mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     oneshot::Receiver,
 };
-use tracing::instrument;
 
 pub use super::{Error, Result};
 use crate::{
@@ -39,6 +38,7 @@ pub struct WorkerPoolToWorkerMsg {
 }
 
 impl WorkerPoolToWorkerMsg {
+    #[tracing::instrument(skip_all)]
     pub fn try_clone(&self) -> Result<WorkerPoolToWorkerMsg> {
         let payload = match &self.payload {
             WorkerPoolToWorkerMsgPayload::Task(_) => {
@@ -63,6 +63,7 @@ impl WorkerPoolToWorkerMsg {
 }
 
 impl WorkerPoolToWorkerMsg {
+    #[tracing::instrument(skip_all)]
     pub fn sync(sim_id: SimulationShortId, sync_payload: SyncPayload) -> WorkerPoolToWorkerMsg {
         WorkerPoolToWorkerMsg {
             sim_id: Some(sim_id),
@@ -70,6 +71,7 @@ impl WorkerPoolToWorkerMsg {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn task(sim_id: SimulationShortId, task_payload: WorkerTask) -> WorkerPoolToWorkerMsg {
         WorkerPoolToWorkerMsg {
             sim_id: Some(sim_id),
@@ -77,6 +79,7 @@ impl WorkerPoolToWorkerMsg {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn cancel_task(task_id: TaskId) -> WorkerPoolToWorkerMsg {
         WorkerPoolToWorkerMsg {
             sim_id: None,
@@ -84,6 +87,7 @@ impl WorkerPoolToWorkerMsg {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn new_simulation_run(new_simulation_run: NewSimulationRun) -> WorkerPoolToWorkerMsg {
         WorkerPoolToWorkerMsg {
             sim_id: Some(new_simulation_run.short_id),
@@ -108,10 +112,12 @@ pub struct WorkerCommsWithWorkerPool {
 }
 
 impl WorkerCommsWithWorkerPool {
+    #[tracing::instrument(skip_all)]
     pub fn index(&self) -> &WorkerIndex {
         &self.index
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn send(
         &self,
         sim_id: SimulationShortId,
@@ -141,6 +147,7 @@ impl WorkerCommsWithWorkerPool {
         self.terminate_recv.take_recv()
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn confirm_terminate(&mut self) -> Result<()> {
         self.terminate_recv.confirm_terminate()
     }
@@ -155,10 +162,12 @@ pub struct WorkerPoolCommsWithWorkers {
 }
 
 impl WorkerPoolCommsWithWorkers {
+    #[tracing::instrument(skip_all)]
     pub fn num_workers(&self) -> usize {
         self.send_to_w.len()
     }
 
+    #[tracing::instrument(skip_all)]
     fn get_worker_senders(
         &self,
         worker_index: WorkerIndex,
@@ -171,6 +180,7 @@ impl WorkerPoolCommsWithWorkers {
             .ok_or(Error::MissingWorkerWithIndex(worker_index))
     }
 
+    #[tracing::instrument(skip_all)]
     fn get_mut_worker_senders(
         &mut self,
         worker_index: WorkerIndex,
@@ -183,12 +193,14 @@ impl WorkerPoolCommsWithWorkers {
             .ok_or(Error::MissingWorkerWithIndex(worker_index))
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn send(&self, worker_index: WorkerIndex, msg: WorkerPoolToWorkerMsg) -> Result<()> {
         let sender = &self.get_worker_senders(worker_index)?.0;
         sender.send(msg)?;
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn send_all(&self, msg: WorkerPoolToWorkerMsg) -> Result<()> {
         self.send_to_w
             .iter()
@@ -199,7 +211,7 @@ impl WorkerPoolCommsWithWorkers {
             .map_err(Error::from)
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn send_terminate_and_confirm(&mut self, worker_index: WorkerIndex) -> Result<()> {
         let sender = &mut self.get_mut_worker_senders(worker_index)?.1;
         sender.send()?;
@@ -209,7 +221,7 @@ impl WorkerPoolCommsWithWorkers {
         Ok(())
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn send_terminate_all(&mut self) -> Result<()> {
         // No need to join all as this is called on exit
         for worker_index in 0..self.send_to_w.len() {
@@ -218,7 +230,7 @@ impl WorkerPoolCommsWithWorkers {
         Ok(())
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn recv(
         &mut self,
     ) -> Option<(WorkerIndex, SimulationShortId, WorkerToWorkerPoolMsg)> {
@@ -226,6 +238,7 @@ impl WorkerPoolCommsWithWorkers {
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub fn new_pool_comms(
     num_workers: usize,
 ) -> (WorkerPoolCommsWithWorkers, Vec<WorkerCommsWithWorkerPool>) {

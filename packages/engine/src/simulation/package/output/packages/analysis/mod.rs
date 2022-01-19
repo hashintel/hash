@@ -3,7 +3,6 @@ use std::ops::Deref;
 use analyzer::Analyzer;
 pub use output::{AnalysisOutput, AnalysisSingleOutput};
 use serde_json::Value;
-use tracing::instrument;
 
 pub use self::config::AnalysisOutputConfig;
 pub use super::super::*;
@@ -25,10 +24,12 @@ pub enum Task {}
 pub struct Creator {}
 
 impl PackageCreator for Creator {
+    #[tracing::instrument(skip_all)]
     fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>> {
         Ok(Box::new(Creator {}))
     }
 
+    #[tracing::instrument(skip_all)]
     fn create(
         &self,
         config: &Arc<SimRunConfig>,
@@ -47,6 +48,7 @@ impl PackageCreator for Creator {
         Ok(Box::new(Analysis { analyzer }))
     }
 
+    #[tracing::instrument(skip_all)]
     fn persistence_config(&self, config: &ExperimentConfig, _globals: &Globals) -> Result<Value> {
         let config = AnalysisOutputConfig::new(config)?;
         Ok(serde_json::to_value(config)?)
@@ -54,6 +56,7 @@ impl PackageCreator for Creator {
 }
 
 impl GetWorkerExpStartMsg for Creator {
+    #[tracing::instrument(skip_all)]
     fn get_worker_exp_start_msg(&self) -> Result<Value> {
         Ok(Value::Null)
     }
@@ -64,12 +67,14 @@ struct Analysis {
 }
 
 impl MaybeCpuBound for Analysis {
+    #[tracing::instrument(skip_all)]
     fn cpu_bound(&self) -> bool {
         true
     }
 }
 
 impl GetWorkerSimStartMsg for Analysis {
+    #[tracing::instrument(skip_all)]
     fn get_worker_sim_start_msg(&self) -> Result<Value> {
         Ok(Value::Null)
     }
@@ -77,7 +82,7 @@ impl GetWorkerSimStartMsg for Analysis {
 
 #[async_trait]
 impl Package for Analysis {
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn run(&mut self, state: Arc<State>, _context: Arc<Context>) -> Result<Output> {
         // TODO: use filtering to avoid exposing hidden values to users
         let read = state.agent_pool().read_batches()?;

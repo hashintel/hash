@@ -4,6 +4,7 @@ pub struct Meta {
 }
 
 impl Meta {
+    #[tracing::instrument(skip_all)]
     pub fn removed_batch(&mut self, id: String) {
         self.removed_ids.push(id);
     }

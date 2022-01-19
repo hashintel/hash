@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use futures::StreamExt;
-use tracing::instrument;
 
 use crate::{
     error::{Error, Result},
@@ -18,7 +17,7 @@ pub trait FetchDependencies {
 
 #[async_trait]
 impl FetchDependencies for SharedDataset {
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn fetch_deps(&mut self) -> Result<()> {
         if self.data.is_some() {
             return Ok(());
@@ -52,7 +51,7 @@ impl FetchDependencies for SharedDataset {
 
 #[async_trait]
 impl FetchDependencies for ExperimentRunRepr {
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn fetch_deps(&mut self) -> Result<()> {
         let datasets = std::mem::take(&mut self.base_mut().project_base.datasets);
 
@@ -74,6 +73,7 @@ impl FetchDependencies for ExperimentRunRepr {
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub fn parse_raw_csv_into_json(contents: String) -> Result<String> {
     let mut reader = csv::ReaderBuilder::new()
         .has_headers(false)

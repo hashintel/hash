@@ -7,12 +7,14 @@ pub enum SimulationError {
 }
 
 impl From<&str> for SimulationError {
+    #[tracing::instrument(skip_all)]
     fn from(s: &str) -> Self {
         SimulationError::Unique(s.to_string())
     }
 }
 
 impl From<String> for SimulationError {
+    #[tracing::instrument(skip_all)]
     fn from(s: String) -> Self {
         SimulationError::Unique(s)
     }

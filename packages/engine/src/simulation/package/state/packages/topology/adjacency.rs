@@ -25,6 +25,7 @@ pub fn correct_agent(
     position_was_corrected
 }
 
+#[tracing::instrument(skip_all)]
 fn wrap_pos_coord(pos: &mut Position, i: usize, config: &TopologyConfig) {
     use crate::config::topology::WrappingBehavior::{
         Continuous, NoWrap, OffsetReflection, Reflection,
@@ -62,6 +63,7 @@ fn wrap_pos_coord(pos: &mut Position, i: usize, config: &TopologyConfig) {
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn wrap_dir_coord(dir: &mut Direction, i: usize, config: &TopologyConfig) {
     use crate::config::topology::WrappingBehavior::{OffsetReflection, Reflection};
     match config.wrap_modes[i] {

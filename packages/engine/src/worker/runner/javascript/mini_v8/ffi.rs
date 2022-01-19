@@ -123,6 +123,7 @@ pub(super) struct ValueDesc {
 }
 
 impl Drop for ValueDesc {
+    #[tracing::instrument(skip_all)]
     fn drop(&mut self) {
         match self.tag {
             ValueDescTag::String
@@ -174,6 +175,7 @@ impl Ref<'_> {
 }
 
 impl<'mv8> Clone for Ref<'mv8> {
+    #[tracing::instrument(skip_all)]
     fn clone(&self) -> Ref<'mv8> {
         let value_ptr = unsafe { mv8_value_ptr_clone(self.mv8.interface, self.value_ptr) };
         Ref {
@@ -184,6 +186,7 @@ impl<'mv8> Clone for Ref<'mv8> {
 }
 
 impl Drop for Ref<'_> {
+    #[tracing::instrument(skip_all)]
     fn drop(&mut self) {
         unsafe {
             mv8_value_ptr_drop(self.value_ptr);
@@ -242,6 +245,7 @@ pub(super) fn desc_to_value(mv8: &MiniV8, desc: ValueDesc) -> Value<'_> {
 }
 
 pub(super) fn value_to_desc<'mv8>(mv8: &'mv8 MiniV8, value: &Value<'mv8>) -> ValueDesc {
+    #[tracing::instrument(skip_all)]
     fn ref_val(r: &Ref<'_>) -> ValuePtr {
         unsafe { mv8_value_ptr_clone(r.mv8.interface, r.value_ptr) }
     }

@@ -1,5 +1,6 @@
 use super::{error::SimulationError, Context, Result, SharedBehavior, State};
 
+#[tracing::instrument(skip_all)]
 pub fn behavior(state: &mut State<'_>, _context: &Context<'_>) -> Result<()> {
     let mut position = state.take_position()?;
 
@@ -19,6 +20,7 @@ pub fn behavior(state: &mut State<'_>, _context: &Context<'_>) -> Result<()> {
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub fn get_named_behavior() -> SharedBehavior {
     SharedBehavior {
         id: "@hash/move_in_direction/move_in_direction.rs".into(),

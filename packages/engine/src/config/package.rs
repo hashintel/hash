@@ -22,11 +22,13 @@ pub struct Config {
 }
 
 impl Config {
+    #[tracing::instrument(skip_all)]
     fn default_init_packages() -> Vec<InitPackage> {
         let default = [InitPackage::Json];
         Vec::from_iter(default.iter().cloned())
     }
 
+    #[tracing::instrument(skip_all)]
     fn default_context_packages() -> Vec<ContextPackage> {
         let default = [
             ContextPackage::Neighbors,
@@ -36,33 +38,40 @@ impl Config {
         Vec::from_iter(default.iter().cloned())
     }
 
+    #[tracing::instrument(skip_all)]
     fn default_state_packages() -> Vec<StatePackage> {
         vec![StatePackage::BehaviorExecution, StatePackage::Topology]
     }
 
+    #[tracing::instrument(skip_all)]
     fn default_output_packages() -> Vec<OutputPackage> {
         let default = [OutputPackage::JsonState, OutputPackage::Analysis];
         Vec::from_iter(default.iter().cloned())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn init_packages(&self) -> &Vec<InitPackage> {
         &self.init
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn state_packages(&self) -> &[StatePackage] {
         &self.state
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn context_packages(&self) -> &Vec<ContextPackage> {
         &self.context
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn output_packages(&self) -> &Vec<OutputPackage> {
         &self.output
     }
 }
 
 impl Default for Config {
+    #[tracing::instrument(skip_all)]
     fn default() -> Self {
         Config {
             init: Self::default_init_packages(),
@@ -82,10 +91,12 @@ pub struct ConfigBuilder {
 }
 
 impl ConfigBuilder {
+    #[tracing::instrument(skip_all)]
     pub fn new() -> ConfigBuilder {
         ConfigBuilder::default()
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn set_init_packages<'a, K: IntoIterator<Item = &'a InitPackage>>(
         mut self,
         init_packages: K,
@@ -94,6 +105,7 @@ impl ConfigBuilder {
         self
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn set_context_packages<'a, K: IntoIterator<Item = &'a ContextPackage>>(
         mut self,
         context_packages: K,
@@ -102,11 +114,13 @@ impl ConfigBuilder {
         self
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn set_state_packages(mut self, state_packages: Vec<StatePackage>) -> ConfigBuilder {
         self.state = Some(state_packages);
         self
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn set_output_packages<'a, K: IntoIterator<Item = &'a OutputPackage>>(
         mut self,
         output_packages: K,
@@ -115,6 +129,7 @@ impl ConfigBuilder {
         self
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn add_init_package(mut self, init_package: InitPackage) -> ConfigBuilder {
         match self.init {
             Some(ref mut pkgs) => {
@@ -127,6 +142,7 @@ impl ConfigBuilder {
         self
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn add_context_package(mut self, context_package: ContextPackage) -> ConfigBuilder {
         match self.context {
             Some(ref mut pkgs) => {
@@ -139,6 +155,7 @@ impl ConfigBuilder {
         self
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn add_state_package(mut self, state_package: StatePackage) -> ConfigBuilder {
         match self.state {
             Some(ref mut pkgs) => {
@@ -151,6 +168,7 @@ impl ConfigBuilder {
         self
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn add_output_package(mut self, output_package: OutputPackage) -> ConfigBuilder {
         match self.output {
             Some(ref mut pkgs) => {
@@ -163,6 +181,7 @@ impl ConfigBuilder {
         self
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn build(self) -> Result<Config> {
         let mut init = self.init.unwrap_or_else(Config::default_init_packages);
 

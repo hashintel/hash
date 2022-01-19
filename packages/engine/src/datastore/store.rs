@@ -20,6 +20,7 @@ pub struct Store {
 }
 
 impl Store {
+    #[tracing::instrument(skip_all)]
     pub fn new_uninitialized(shared_store: Arc<SharedStore>, config: &SimRunConfig) -> Store {
         Store {
             state: None,
@@ -30,6 +31,7 @@ impl Store {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn take(&mut self) -> Result<(State, Context)> {
         Ok((
             self.state
@@ -41,11 +43,13 @@ impl Store {
         ))
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn take_upgraded(&mut self) -> Result<(ExState, ExContext)> {
         let (state, context) = self.take()?;
         Ok((state.upgrade(), context.upgrade()))
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn set(&mut self, state: State, context: Context) {
         self.state = Some(state);
         self.context = Some(context);

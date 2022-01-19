@@ -38,18 +38,22 @@ pub enum Error<'mv8> {
 }
 
 impl<'mv8> Error<'mv8> {
+    #[tracing::instrument(skip_all)]
     pub fn from_js_conversion(from: &'static str, to: &'static str) -> Error<'mv8> {
         Error::FromJsConversionError { from, to }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn to_js_conversion(from: &'static str, to: &'static str) -> Error<'mv8> {
         Error::ToJsConversionError { from, to }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn recursive_mut_callback() -> Error<'mv8> {
         Error::RecursiveMutCallback
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn invalid_timeout() -> Error<'mv8> {
         Error::InvalidTimeout
     }
@@ -75,12 +79,14 @@ impl<'mv8> Error<'mv8> {
 }
 
 impl StdError for Error<'_> {
+    #[tracing::instrument(skip_all)]
     fn description(&self) -> &'static str {
         "JavaScript execution error"
     }
 }
 
 impl fmt::Display for Error<'_> {
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Error::ToJsConversionError { from, to } => {
@@ -98,6 +104,7 @@ impl fmt::Display for Error<'_> {
 }
 
 impl From<Error<'_>> for std::string::String {
+    #[tracing::instrument(skip_all)]
     fn from(e: Error<'_>) -> Self {
         format!("{}", e)
     }

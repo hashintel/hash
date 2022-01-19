@@ -1,8 +1,8 @@
-use super::super::OutboundMessage;
-use super::{Context, Result, SharedBehavior, State};
-
 use rand::Rng;
 
+use super::{super::OutboundMessage, Context, Result, SharedBehavior, State};
+
+#[tracing::instrument(skip_all)]
 pub fn behavior(state: &mut State<'_>, _context: &Context<'_>) -> Result<()> {
     let mut messages = state.take_messages()?;
     let children = state.child()?;
@@ -38,6 +38,7 @@ pub fn behavior(state: &mut State<'_>, _context: &Context<'_>) -> Result<()> {
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub fn get_named_behavior() -> SharedBehavior {
     SharedBehavior {
         id: "@hash/reproduce/reproduce.rs".into(),

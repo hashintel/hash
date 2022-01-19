@@ -30,6 +30,7 @@ pub enum Name {
 }
 
 impl std::fmt::Display for Name {
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -62,6 +63,7 @@ impl WorkerHandler for OutputTask {}
 impl WorkerPoolHandler for OutputTask {}
 
 impl GetTaskArgs for OutputTask {
+    #[tracing::instrument(skip_all)]
     fn distribution(&self) -> TaskDistributionConfig {
         unimplemented!()
     }

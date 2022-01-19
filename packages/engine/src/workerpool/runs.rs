@@ -10,6 +10,7 @@ pub struct SimulationRuns {
 }
 
 impl SimulationRuns {
+    #[tracing::instrument(skip_all)]
     pub fn push(
         &mut self,
         sim_id: SimulationShortId,
@@ -21,6 +22,7 @@ impl SimulationRuns {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_worker_allocation(&self, id: SimulationShortId) -> Result<&WorkerAllocation> {
         self.worker_allocations
             .get(&id)

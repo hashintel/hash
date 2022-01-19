@@ -12,7 +12,6 @@ use futures::{
 };
 use rand::prelude::SliceRandom;
 use tokio::{pin, task::JoinHandle};
-use tracing::instrument;
 
 pub use self::error::{Error, Result};
 use self::{
@@ -61,6 +60,7 @@ pub struct WorkerPoolController {
 }
 
 impl WorkerPoolController {
+    #[tracing::instrument(skip_all)]
     pub fn new_with_sender(
         config: Arc<config::ExperimentConfig>,
         experiment_control_recv: ExpMsgRecv,
@@ -95,7 +95,7 @@ impl WorkerPoolController {
         ))
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn spawn_workers(
         &mut self,
         exp_init_base: ExperimentInitRunnerMsgBase,
@@ -120,12 +120,13 @@ impl WorkerPoolController {
         Ok(())
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn register_simulation(&mut self, payload: NewSimulationRun) -> Result<()> {
         // TODO: Only send to workers that simulation run is registered with
         self.send_to_all_workers(WorkerPoolToWorkerMsg::new_simulation_run(payload))
     }
 
+    #[tracing::instrument(skip_all)]
     fn run_worker_controllers(&mut self) -> Result<JoinHandle<Result<Vec<()>>>> {
         tracing::debug!("Running workers");
         let worker_controllers = self
@@ -149,7 +150,7 @@ impl WorkerPoolController {
     }
 
     /// TODO: DOC
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn run(mut self) -> Result<()> {
         tracing::debug!("Running Worker Pool Controller");
         pin!(let workers = self.run_worker_controllers()?;);
@@ -203,7 +204,7 @@ impl WorkerPoolController {
     }
 
     /// TODO DOC
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn handle_sim_msg(
         &mut self,
         msg: EngineToWorkerPoolMsg,
@@ -256,7 +257,7 @@ impl WorkerPoolController {
     }
 
     /// TODO: DOC
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn handle_exp_msg(&mut self, msg: ExperimentToWorkerPoolMsg) -> Result<()> {
         match msg {
             ExperimentToWorkerPoolMsg::NewSimulationRun(payload) => {
@@ -269,7 +270,7 @@ impl WorkerPoolController {
     }
 
     /// TODO: DOC
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn handle_worker_msg(
         &mut self,
         worker: WorkerIndex,
@@ -314,7 +315,7 @@ impl WorkerPoolController {
 
     // TODO: delete or use when cancel is revisited
     #[allow(dead_code)]
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn handle_cancel_msgs(&mut self, cancel_msgs: Vec<TaskId>) -> Result<()> {
         for id in cancel_msgs {
             tracing::trace!("Handling cancel msg for task with id: {}", id);
@@ -345,15 +346,19 @@ impl WorkerPoolController {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     fn send_to_worker(&self, index: WorkerIndex, msg: WorkerPoolToWorkerMsg) -> Result<()> {
         self.comms.send(index, msg).map_err(Error::from)
     }
 
+    #[tracing::instrument(skip_all)]
     fn send_to_all_workers(&mut self, msg: WorkerPoolToWorkerMsg) -> Result<()> {
         self.comms.send_all(msg)
     }
 
     /// TODO: DOC
+
+    #[tracing::instrument(skip_all)]
     fn new_worker_tasks(
         &self,
         sim_id: SimulationShortId,

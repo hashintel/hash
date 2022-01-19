@@ -71,6 +71,7 @@ impl TaskMessage {
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn _get_singleton_inner(
     object: &mut serde_json::Value,
 ) -> &mut serde_json::Map<String, serde_json::Value> {
@@ -97,6 +98,8 @@ fn _get_singleton_inner(
 /// ```
 /// It then swaps the inner_value with a given serde_json::Value, returning the resultant Object
 /// and extracted nested inner
+
+#[tracing::instrument(skip_all)]
 fn _swap_doubly_nested_val(
     mut object_map: serde_json::Value,
     mut value_to_swap: serde_json::Value,

@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use futures::FutureExt;
 use tokio::time::Duration;
-use tracing::instrument;
 
 use super::{Error, Result};
 use crate::{
@@ -44,7 +43,7 @@ enum LoopControl {
 ///   - Runs Output packages
 /// - Persists Output
 /// - Sends an update on the Step result to the Experiment Controller
-#[instrument(skip_all)]
+#[tracing::instrument(skip_all)]
 pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     config: Arc<SimRunConfig>,
     shared_store: Arc<SharedStore>,
@@ -188,7 +187,7 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     tokio::time::sleep(Duration::from_secs(1)).await;
     Ok(config.sim.id)
 }
-#[instrument(skip_all)]
+#[tracing::instrument(skip_all)]
 async fn maybe_handle_sim_ctl_msg(sim_from_exp: &mut SimCtlRecv) -> Result<LoopControl> {
     if let Some(Some(control)) = sim_from_exp.recv().now_or_never() {
         match control {

@@ -3,6 +3,7 @@ use std::string::String as StdString;
 use super::super::*;
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn set_get() {
     let mv8 = MiniV8::new();
 
@@ -19,6 +20,7 @@ fn set_get() {
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn remove() {
     let mv8 = MiniV8::new();
     let globals = mv8.global();
@@ -31,6 +33,7 @@ fn remove() {
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn has() {
     let mv8 = MiniV8::new();
     let globals = mv8.global();
@@ -39,6 +42,7 @@ fn has() {
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn keys() {
     let mv8 = MiniV8::new();
     let object = mv8.create_object();
@@ -54,6 +58,7 @@ fn keys() {
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn properties() {
     let mv8 = MiniV8::new();
 

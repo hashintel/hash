@@ -57,12 +57,14 @@ pub enum Error {
 }
 
 impl From<&str> for Error {
+    #[tracing::instrument(skip_all)]
     fn from(s: &str) -> Self {
         Error::Unique(s.to_string())
     }
 }
 
 impl From<String> for Error {
+    #[tracing::instrument(skip_all)]
     fn from(s: String) -> Self {
         Error::Unique(s)
     }
@@ -72,6 +74,7 @@ impl<T> From<SendError<T>> for Error
 where
     T: std::fmt::Debug,
 {
+    #[tracing::instrument(skip_all)]
     fn from(e: SendError<T>) -> Self {
         Error::Unique(format!("Tokio Send Error: {:?}", e))
     }

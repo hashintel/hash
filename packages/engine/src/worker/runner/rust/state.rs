@@ -5,45 +5,49 @@ use std::{
     sync::Arc,
 };
 
-use arrow::array::Array;
-use arrow::{array::ArrayData, datatypes::Schema};
+use arrow::{
+    array::{Array, ArrayData},
+    datatypes::Schema,
+};
 use parking_lot::{RwLock, RwLockWriteGuard};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
-use crate::config::globals::Globals;
-use crate::datastore::arrow::message::get_message_arrow_builder;
-use crate::datastore::prelude::{AgentBatch, IntoAgentStates, MessageBatch};
-use crate::datastore::{batch::Metaversion, storage::memory::Memory};
-use crate::hash_types::message::Outbound as OutboundMessage;
-use crate::worker::{Error as WorkerError, Result as WorkerResult, TaskMessage};
+use super::{
+    super::comms::{
+        inbound::{InboundToRunnerMsg, InboundToRunnerMsgPayload},
+        outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, RunnerError},
+        ExperimentInitRunnerMsg, MessageTarget, NewSimulationRun, RunnerTaskMsg, StateInterimSync,
+        TargetedRunnerTaskMsg,
+    },
+    Column, Error, NativeState, Result, SimSchema,
+};
 use crate::{
+    config::globals::Globals,
     datastore::{
         arrow::{
-            message::{outbound_messages_to_arrow_column, MESSAGE_COLUMN_INDEX},
+            message::{
+                get_message_arrow_builder, outbound_messages_to_arrow_column, MESSAGE_COLUMN_INDEX,
+            },
             util::arrow_continuation,
         },
-        batch::{change::ArrayChange, ContextBatch, DynamicBatch},
+        batch::{change::ArrayChange, ContextBatch, DynamicBatch, Metaversion},
+        prelude::{AgentBatch, IntoAgentStates, MessageBatch},
+        storage::memory::Memory,
         table::sync::{ContextBatchSync, StateSync},
     },
-    hash_types::Agent,
+    hash_types::{message::Outbound as OutboundMessage, Agent},
     simulation::packages::{
         state::packages::behavior_execution::config::BehaviorDescription,
         worker_init::PackageInitMsgForWorker,
     },
+    worker::{Error as WorkerError, Result as WorkerResult, TaskMessage},
     Language,
 };
 
-use super::super::comms::{
-    inbound::{InboundToRunnerMsg, InboundToRunnerMsgPayload},
-    outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, RunnerError},
-    ExperimentInitRunnerMsg, MessageTarget, NewSimulationRun, RunnerTaskMsg, StateInterimSync,
-    TargetedRunnerTaskMsg,
-};
-use super::{Column, Error, NativeState, Result, SimSchema};
-
 /// Wrapper for running columnar behaviors on single agents
 pub struct AgentState<'s> {
-    // `index_in_group`, `inner` and `agent_batch` have to be public due to impl in accessors macro.
+    // `index_in_group`, `inner` and `agent_batch` have to be public due to impl in accessors
+    // macro.
     pub agent_batch: &'s mut RwLockWriteGuard<'s, AgentBatch>,
     msg_batch: &'s mut RwLockWriteGuard<'s, MessageBatch>,
     pub inner: &'s mut NativeState,
@@ -56,10 +60,12 @@ pub struct AgentState<'s> {
 }
 
 impl<'s> AgentState<'s> {
+    #[tracing::instrument(skip_all)]
     pub fn num_agents(&self) -> usize {
         1
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_value(&self, field_name: &str) -> Result<serde_json::Value> {
         self.col_map
             .get(field_name)
@@ -67,6 +73,7 @@ impl<'s> AgentState<'s> {
             .get(self)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn set_value(&'s mut self, field_name: &str, value: serde_json::Value) -> Result<()> {
         self.col_map
             .get(field_name)
@@ -74,10 +81,12 @@ impl<'s> AgentState<'s> {
             .set(self, value)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn _set_index(&mut self, i_agent_in_group: usize) {
         self.index_in_group = i_agent_in_group;
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn messages_mut(&mut self) -> Result<&mut [Vec<OutboundMessage>]> {
         // TODO: the `OutboundMessage` struct is not lightweight
         // enough for our purposes. We don't need this be an enum,
@@ -92,6 +101,7 @@ impl<'s> AgentState<'s> {
         Ok(&mut self.msgs.as_mut().unwrap()[self.index_in_group..=self.index_in_group])
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn messages_take(&mut self) -> Result<Vec<Vec<OutboundMessage>>> {
         if self.msgs.is_none() {
             *self.msgs = Some(self.msg_batch.get_native_messages()?);
@@ -103,10 +113,12 @@ impl<'s> AgentState<'s> {
         Ok(vec![agent_msgs])
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn messages_set(&mut self, mut messages: Vec<Vec<OutboundMessage>>) {
         self.msgs.unwrap()[self.index_in_group] = std::mem::replace(&mut messages[0], Vec::new());
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn messages_commit(&mut self) -> Result<()> {
         if self.msgs.is_none() {
             Ok(())
@@ -139,10 +151,12 @@ pub struct GroupState<'s> {
 }
 
 impl<'s> GroupState<'s> {
+    #[tracing::instrument(skip_all)]
     pub fn num_agents(&self) -> usize {
         self.agent_batch.num_agents()
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_agent(&'s mut self, i_agent_in_group: usize) -> AgentState<'s> {
         AgentState {
             agent_batch: &mut self.agent_batch,
@@ -155,10 +169,12 @@ impl<'s> GroupState<'s> {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn data_ref(&'s self, i_field: usize) -> &'s Arc<ArrayData> {
         self.agent_batch.batch.column(i_field).data_ref()
     }
 
+    #[tracing::instrument(skip_all)]
     fn commit_messages(&mut self) -> Result<()> {
         if let Some(ref msgs) = self.msgs {
             let builder = get_message_arrow_builder();
@@ -171,6 +187,7 @@ impl<'s> GroupState<'s> {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn flush(&mut self) -> Result<()> {
         // flush(
         //     &mut self.agent_batch,
@@ -196,6 +213,7 @@ impl<'s> GroupState<'s> {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_json_state(&'s mut self) -> Result<Vec<Agent>> {
         self.flush()?;
         let json_state = (&*self.agent_batch, &*self.msg_batch)
@@ -219,6 +237,7 @@ pub struct SimState {
 }
 
 impl SimState {
+    #[tracing::instrument(skip_all)]
     pub fn get_group<'s>(&'s mut self, i_group: usize) -> Result<GroupState<'s>> {
         let agent_batch = self.agent_pool[i_group]
             .try_write()

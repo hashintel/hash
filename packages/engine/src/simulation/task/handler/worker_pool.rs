@@ -13,6 +13,8 @@ pub trait WorkerPoolHandler {
     /// When a Chunked/Parallel task is initialized
     /// the init message will have to be split
     /// depending on the provided split configuration
+
+    #[tracing::instrument(skip_all)]
     fn split_task(&self, _split_config: &SplitConfig) -> Result<Vec<Task>> {
         Err(Error::DistributionNodeHandlerNotImplemented)
     }
@@ -20,6 +22,8 @@ pub trait WorkerPoolHandler {
     /// When work is done in multiple worker nodes,
     /// this function is called to compute the
     /// single message that is returned to the package
+
+    #[tracing::instrument(skip_all)]
     fn combine_messages(&self, _split_tasks: Vec<TaskMessage>) -> Result<TaskMessage> {
         Err(Error::DistributionNodeHandlerNotImplemented)
     }

@@ -24,6 +24,7 @@ pub type MetricObjective = proto::MetricObjective;
 pub type PackageName = proto::ExperimentPackageConfig;
 pub type ExperimentRun = proto::ExperimentRun;
 
+#[tracing::instrument(skip_all)]
 pub fn objective_to_string(m: &Option<MetricObjective>) -> Result<String> {
     match m {
         Some(MetricObjective::Max) => Ok("max".into()),
@@ -32,6 +33,7 @@ pub fn objective_to_string(m: &Option<MetricObjective>) -> Result<String> {
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn set_nested_property(
     map: &mut serde_json::Map<String, SerdeValue>,
     property_path: Vec<&str>,
@@ -60,6 +62,7 @@ fn set_nested_property(
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub fn apply_property_changes(base: Globals, changes: &SerdeValue) -> Result<Globals> {
     let mut map = base
         .0
@@ -95,6 +98,7 @@ pub enum ExperimentControl {
     StopSim(proto::SimulationShortId),
 }
 
+#[tracing::instrument(skip_all)]
 pub fn init_exp_package(
     experiment_config: Arc<ExperimentConfig>,
     exp_package_config: proto::ExperimentPackageConfig,

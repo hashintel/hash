@@ -1,7 +1,5 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
-use tracing::instrument;
-
 use super::{
     comms::{
         sim_status::{SimStatusRecv, SimStatusSend},
@@ -64,7 +62,7 @@ pub struct ExperimentController<P: OutputPersistenceCreatorRepr> {
 
 impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
     /// Handle an inbound message from the orchestrator (or CLI)
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn handle_orch_msg(&mut self, orch_msg: EngineMsg) -> Result<()> {
         let _ = &orch_msg; // TODO: hopefully remove this (https://github.com/tokio-rs/tracing/issues/1841)
         match orch_msg {
@@ -72,7 +70,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
         }
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn handle_experiment_control_msg(&mut self, msg: ExperimentControl) -> Result<()> {
         match msg {
             ExperimentControl::StartSim {
@@ -90,7 +88,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
         Ok(())
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn handle_sim_status(&mut self, status: SimStatus) -> Result<()> {
         // Send Step update to experiment package
         let send_step_update = self
@@ -129,12 +127,12 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
             .await?)
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn handle_sim_run_stop(&mut self, id: SimulationShortId) -> Result<()> {
         Ok(self.orch_client().send(EngineStatus::SimStop(id)).await?)
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn handle_worker_pool_controller_msg(
         &mut self,
         id: SimulationShortId,
@@ -163,7 +161,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
         Ok(())
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn start_new_sim_run(
         &mut self,
         sim_short_id: SimulationShortId,
@@ -251,25 +249,25 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
         Ok(())
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn pause_sim_run(&mut self, sim_short_id: SimulationShortId) -> Result<()> {
         self.send_sim(sim_short_id, SimControl::Pause).await?;
         Ok(())
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn resume_sim_run(&mut self, sim_short_id: SimulationShortId) -> Result<()> {
         self.send_sim(sim_short_id, SimControl::Resume).await?;
         Ok(())
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn stop_sim_run(&mut self, sim_short_id: SimulationShortId) -> Result<()> {
         self.send_sim(sim_short_id, SimControl::Stop).await?;
         Ok(())
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn send_sim(&mut self, sim_short_id: SimulationShortId, msg: SimControl) -> Result<()> {
         if let Some(sender) = self.sim_senders.get_mut(&sim_short_id) {
             sender.send(msg).await?;
@@ -282,7 +280,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
         }
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn exp_init_msg_base(&self) -> Result<ExperimentInitRunnerMsgBase> {
         let pkg_start_msgs = self.package_creators.get_worker_exp_start_msgs()?;
         Ok(ExperimentInitRunnerMsgBase {
@@ -292,6 +290,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     fn add_sim_sender(
         &mut self,
         sim_short_id: SimulationShortId,
@@ -306,13 +305,14 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     fn orch_client(&mut self) -> &mut OrchClient {
         &mut self.env.orch_client
     }
 }
 
 impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn run(mut self) -> Result<()> {
         let mut terminate_recv = self.terminate_recv.take_recv()?;
 
@@ -373,6 +373,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
 
 #[allow(clippy::too_many_arguments)]
 impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
+    #[tracing::instrument(skip_all)]
     pub fn new(
         exp_config: Arc<ExperimentConfig>,
         exp_base_config: Arc<ExperimentConfig>,

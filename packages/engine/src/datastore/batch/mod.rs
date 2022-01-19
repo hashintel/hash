@@ -26,10 +26,15 @@ use crate::datastore::batch::change::ArrayChange;
 
 pub trait Batch: Sized {
     fn memory(&self) -> &Memory;
+
     fn memory_mut(&mut self) -> &mut Memory;
+
     fn metaversion(&self) -> &Metaversion;
+
     fn metaversion_mut(&mut self) -> &mut Metaversion;
+
     fn maybe_reload(&mut self, metaversion: Metaversion) -> Result<()>;
+
     fn reload(&mut self) -> Result<()>;
 
     fn get_batch_id(&self) -> &str {
@@ -39,6 +44,8 @@ pub trait Batch: Sized {
 
 pub trait ArrowBatch: Batch {
     /// Reload the recordbatch
+
+    #[tracing::instrument(skip_all)]
     fn reload_record_batch(&mut self) -> Result<()> {
         debug_assert!(self.memory().validate_markers());
         let rb_msg = load::record_batch_message(self)?;
@@ -47,13 +54,16 @@ pub trait ArrowBatch: Batch {
     }
 
     fn record_batch(&self) -> &RecordBatch;
+
     fn record_batch_mut(&mut self) -> &mut RecordBatch;
 }
 
 pub trait DynamicBatch: ArrowBatch {
     fn push_change(&mut self, change: ArrayChange) -> Result<()>;
+
     fn flush_changes(&mut self) -> Result<()>;
 
+    #[tracing::instrument(skip_all)]
     fn reload_record_batch_and_dynamic_meta(&mut self) -> Result<()> {
         let rb_msg = load::record_batch_message(self)?;
         let dynamic_meta = rb_msg.into_meta(self.memory().get_data_buffer()?.len())?;
@@ -62,6 +72,7 @@ pub trait DynamicBatch: ArrowBatch {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     fn copy_from_record_batch(&mut self, record_batch: &RecordBatch) -> Result<()> {
         // Get arrow meta buffer and data length
         let (meta_buffer, data_len) = simulate_record_batch_to_bytes(record_batch);
@@ -89,6 +100,7 @@ pub trait DynamicBatch: ArrowBatch {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     fn sync(&mut self, batch: &Self) -> Result<()> {
         if self.memory().size < batch.memory().size {
             self.memory_mut().resize(batch.memory().size)?;
@@ -110,6 +122,7 @@ pub trait DynamicBatch: ArrowBatch {
     }
 
     fn dynamic_meta(&self) -> &DynamicMeta;
+
     fn dynamic_meta_mut(&mut self) -> &mut DynamicMeta;
 }
 
@@ -126,6 +139,7 @@ mod load {
             .ok_or(Error::InvalidRecordBatchIpcMessage)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn record_batch<'a, K: Batch>(
         batch: &'a K,
         rb_msg: &RecordBatchMessage<'a>,

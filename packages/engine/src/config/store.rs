@@ -17,6 +17,7 @@ pub struct Config {
 }
 
 impl Config {
+    #[tracing::instrument(skip_all)]
     pub fn new_sim(
         exp_config: &super::ExperimentConfig,
         globals: &Globals,

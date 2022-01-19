@@ -33,32 +33,39 @@ pub struct Batch {
 }
 
 impl BatchRepr for Batch {
+    #[tracing::instrument(skip_all)]
     fn memory(&self) -> &Memory {
         &self.memory
     }
 
+    #[tracing::instrument(skip_all)]
     fn memory_mut(&mut self) -> &mut Memory {
         &mut self.memory
     }
 
+    #[tracing::instrument(skip_all)]
     fn metaversion(&self) -> &Metaversion {
         &self.metaversion
     }
 
+    #[tracing::instrument(skip_all)]
     fn metaversion_mut(&mut self) -> &mut Metaversion {
         &mut self.metaversion
     }
 
+    #[tracing::instrument(skip_all)]
     fn maybe_reload(&mut self, _metaversion: Metaversion) -> Result<()> {
         Err(Error::from("`maybe_reload` is not implemented"))
     }
 
+    #[tracing::instrument(skip_all)]
     fn reload(&mut self) -> Result<()> {
         Err(Error::from("`reload` is not implemented"))
     }
 }
 
 impl Batch {
+    #[tracing::instrument(skip_all)]
     pub fn from_record_batch(
         record_batch: &RecordBatch,
         schema: Option<&Arc<ArrowSchema>>,
@@ -77,6 +84,7 @@ impl Batch {
         Self::from_memory(memory, schema)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn from_memory(memory: Memory, schema: Option<&Arc<ArrowSchema>>) -> Result<Batch> {
         let (schema_buffer, _, meta_buffer, data_buffer) = memory.get_batch_buffers()?;
         let schema = if let Some(s) = schema {
@@ -104,6 +112,7 @@ impl Batch {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn write_from_context_datas(
         &mut self,
         column_writers: &[&ContextColumn],

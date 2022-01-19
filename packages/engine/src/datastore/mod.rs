@@ -208,6 +208,7 @@ pub mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn test_print_boolean_array() -> Result<()> {
         let boolean_builder = arrow::array::BooleanBuilder::new(100);
         let mut fixed_size_list_builder =

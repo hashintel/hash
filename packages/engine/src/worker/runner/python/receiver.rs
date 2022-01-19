@@ -2,7 +2,6 @@ use std::str::FromStr;
 
 use nng::{Aio, Socket};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
-use tracing::instrument;
 use uuid::Uuid;
 
 use super::{
@@ -13,6 +12,7 @@ use crate::{
     proto::ExperimentId, types::WorkerIndex, worker::runner::comms::ExperimentInitRunnerMsg,
 };
 
+#[tracing::instrument(skip_all)]
 fn experiment_init_to_nng(init: &ExperimentInitRunnerMsg) -> Result<nng::Message> {
     // TODO: initial buffer size
     let mut fbb = flatbuffers::FlatBufferBuilder::new();
@@ -56,6 +56,7 @@ pub struct NngReceiver {
 }
 
 impl NngReceiver {
+    #[tracing::instrument(skip_all)]
     pub fn new(experiment_id: ExperimentId, worker_index: WorkerIndex) -> Result<Self> {
         let route = format!("ipc://{}-frompy{}", experiment_id, worker_index);
         let from_py = Socket::new(nng::Protocol::Pair0)?;
@@ -84,6 +85,7 @@ impl NngReceiver {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn init(&self, init_msg: &ExperimentInitRunnerMsg) -> Result<()> {
         let _init_request = self.from_py.recv()?;
         self.from_py // Only case where `from_py` is used for sending
@@ -94,7 +96,7 @@ impl NngReceiver {
         Ok(())
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn get_recv_result(&mut self) -> Result<nng::Message> {
         // TODO: Return `Option::None` instead of using ok_or to convert to an Err?
         let nng_msg = self
@@ -109,6 +111,7 @@ impl NngReceiver {
 }
 
 impl Drop for NngReceiver {
+    #[tracing::instrument(skip_all)]
     fn drop(&mut self) {
         // TODO: Check whether nng already does this when a socket is dropped
         self.from_py.close();

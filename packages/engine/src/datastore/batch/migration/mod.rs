@@ -25,12 +25,14 @@ pub struct IndexAction {
 }
 
 impl PartialOrd for IndexAction {
+    #[tracing::instrument(skip_all)]
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.val.cmp(&other.val))
     }
 }
 
 impl Ord for IndexAction {
+    #[tracing::instrument(skip_all)]
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.val.cmp(&other.val)
     }
@@ -101,6 +103,7 @@ pub enum InnerShiftAction {
 }
 
 impl InnerShiftAction {
+    #[tracing::instrument(skip_all)]
     fn get_buffer_length(&self) -> usize {
         match self {
             InnerShiftAction::Data {
@@ -163,6 +166,7 @@ struct NextState {
 }
 
 impl<'a> BufferActions<'a> {
+    #[tracing::instrument(skip_all)]
     pub fn new_batch(
         &self,
         schema: &Arc<AgentSchema>,
@@ -419,6 +423,7 @@ impl<'a> BufferActions<'a> {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn flush(&self, batch: &mut AgentBatch) -> Result<()> {
         debug_assert!(offsets_start_at_zero(
             &batch.memory,
@@ -445,6 +450,7 @@ impl<'a> BufferActions<'a> {
     }
 
     #[allow(clippy::too_many_lines, clippy::too_many_arguments)]
+    #[tracing::instrument(skip_all)]
     fn traverse_nodes<'b, B: Deref<Target = AgentBatch>>(
         mut next_state: NextState,
         children_meta: &NodeMapping,
@@ -1086,6 +1092,7 @@ unsafe fn get_offset_by_index(data: &[u8], index: usize) -> i32 {
     *(ptr as *const i32)
 }
 
+#[tracing::instrument(skip_all)]
 fn copy_bits_unchecked(
     src: &[u8],
     dest: &mut [u8],
@@ -1107,6 +1114,7 @@ fn copy_bits_unchecked(
 }
 
 impl RowActions {
+    #[tracing::instrument(skip_all)]
     pub fn is_well_ordered_remove(&self) -> bool {
         let mut last_i = 0;
         for action in &self.remove {
@@ -1132,14 +1140,17 @@ pub struct IndexRange {
 }
 
 impl IndexRange {
+    #[tracing::instrument(skip_all)]
     pub fn new(index: usize, len: usize) -> IndexRange {
         IndexRange { index, len }
     }
 
+    #[tracing::instrument(skip_all)]
     fn next_index(&self) -> usize {
         self.index + self.len
     }
 
+    #[tracing::instrument(skip_all)]
     fn scale(&mut self, multiplier: usize) {
         self.index *= multiplier;
         self.len *= multiplier;
@@ -1157,6 +1168,7 @@ pub struct RangeActions {
 }
 
 impl RangeActions {
+    #[tracing::instrument(skip_all)]
     pub fn new(
         remove: (usize, Vec<IndexRange>),
         copy: (usize, Vec<(usize, Vec<IndexRange>)>),
@@ -1169,34 +1181,42 @@ impl RangeActions {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     fn remove(&self) -> &Vec<IndexRange> {
         &self.remove.1
     }
 
+    #[tracing::instrument(skip_all)]
     fn remove_mut(&mut self) -> &mut Vec<IndexRange> {
         &mut self.remove.1
     }
 
+    #[tracing::instrument(skip_all)]
     fn copy(&self) -> &Vec<(usize, Vec<IndexRange>)> {
         &self.copy.1
     }
 
+    #[tracing::instrument(skip_all)]
     fn copy_mut(&mut self) -> &mut Vec<(usize, Vec<IndexRange>)> {
         &mut self.copy.1
     }
 
+    #[tracing::instrument(skip_all)]
     fn create(&self) -> &Vec<IndexRange> {
         &self.create.1
     }
 
+    #[tracing::instrument(skip_all)]
     fn create_mut(&mut self) -> &mut Vec<IndexRange> {
         &mut self.create.1
     }
 
+    #[tracing::instrument(skip_all)]
     fn total_size(&self, original_length: usize) -> usize {
         original_length - self.remove.0 + self.copy.0 + self.create.0
     }
 
+    #[tracing::instrument(skip_all)]
     fn scale(&mut self, unit_multiplier: usize) {
         self.remove.0 *= unit_multiplier;
         self.remove
@@ -1217,6 +1237,7 @@ impl RangeActions {
             .for_each(|v| v.scale(unit_multiplier));
     }
 
+    #[tracing::instrument(skip_all)]
     fn is_well_ordered_remove(&self) -> bool {
         let mut last_i = 0;
         for action in self.remove() {
@@ -1234,6 +1255,7 @@ impl RangeActions {
         true
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn collect_indices(actions: &[IndexAction]) -> (usize, Vec<IndexRange>) {
         let size = actions.len();
         // Gather all indices, merging adjacent ones
@@ -1250,6 +1272,7 @@ impl RangeActions {
         (size, ranges)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn from_actions<K: AsRef<Vec<CopyAction>>>(
         remove: &[RemoveAction],
         copy: &[(usize, K)],
@@ -1290,11 +1313,14 @@ impl RangeActions {
 
 impl From<&RowActions> for RangeActions {
     // Assumes that all actions are properly ordered
+
+    #[tracing::instrument(skip_all)]
     fn from(row_actions: &RowActions) -> RangeActions {
         Self::from_actions(&row_actions.remove, &row_actions.copy, &row_actions.create)
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn offsets_start_at_zero(
     memory: &Memory,
     static_meta: &StaticMeta,
@@ -1370,6 +1396,7 @@ pub(super) mod test {
         quux: Option<[String; 16]>,
     }
 
+    #[tracing::instrument(skip_all)]
     fn rand_string() -> String {
         let mut rng = rand::thread_rng();
         let count = rng.gen_range(0..64);
@@ -1383,6 +1410,7 @@ pub(super) mod test {
     }
 
     impl Default for Foo {
+        #[tracing::instrument(skip_all)]
         fn default() -> Foo {
             let mut rng = rand::thread_rng();
             Foo {
@@ -1407,6 +1435,7 @@ pub(super) mod test {
     }
 
     impl Default for Complex {
+        #[tracing::instrument(skip_all)]
         fn default() -> Complex {
             let mut rng = rand::thread_rng();
             Complex {
@@ -1428,6 +1457,7 @@ pub(super) mod test {
 
         #[test]
         #[ignore] // TODO: reenable test
+        #[tracing::instrument(skip_all)]
         fn test_migration_remove() -> Result<()> {
             let experiment_run_id = Arc::new("".to_string());
             let msg_schema = Arc::new(MessageSchema::new());
@@ -1511,6 +1541,7 @@ pub(super) mod test {
 
         #[test]
         #[ignore] // TODO: reenable test
+        #[tracing::instrument(skip_all)]
         fn test_migration_create() -> Result<()> {
             let experiment_run_id = Arc::new("".to_string());
             let msg_schema = Arc::new(MessageSchema::new());
@@ -1597,6 +1628,7 @@ pub(super) mod test {
 
         #[test]
         #[ignore] // TODO: reenable test
+        #[tracing::instrument(skip_all)]
         fn test_migration_move() -> Result<()> {
             let experiment_run_id = Arc::new("".to_string());
             let msg_schema = Arc::new(MessageSchema::new());
@@ -1690,6 +1722,7 @@ pub(super) mod test {
 
         #[test]
         #[ignore] // TODO: reenable test
+        #[tracing::instrument(skip_all)]
         fn test_migration_all() -> Result<()> {
             let experiment_run_id = Arc::new("".to_string());
             let msg_schema = Arc::new(MessageSchema::new());

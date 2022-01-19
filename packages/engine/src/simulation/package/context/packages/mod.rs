@@ -32,6 +32,7 @@ pub enum Name {
 
 // TODO: Reduce code duplication between Name enums of different package types.
 impl std::fmt::Display for Name {
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -52,6 +53,7 @@ impl WorkerHandler for ContextTask {}
 impl WorkerPoolHandler for ContextTask {}
 
 impl GetTaskArgs for ContextTask {
+    #[tracing::instrument(skip_all)]
     fn distribution(&self) -> TaskDistributionConfig {
         unimplemented!()
     }

@@ -48,6 +48,7 @@ pub struct PackageCreators {
 }
 
 impl PackageCreators {
+    #[tracing::instrument(skip_all)]
     pub fn from_config(
         package_config: &PackageConfig,
         experiment_config: &Arc<ExperimentConfig>,
@@ -110,6 +111,7 @@ impl PackageCreators {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_worker_exp_start_msgs(&self) -> Result<PackageMsgs> {
         // TODO: generics to avoid code duplication
         let mut msgs = HashMap::new();
@@ -160,6 +162,7 @@ impl PackageCreators {
         Ok(PackageMsgs(msgs))
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn new_packages_for_sim(
         &self,
         config: &Arc<SimRunConfig>,
@@ -272,6 +275,7 @@ impl PackageCreators {
         Ok((Packages { init, step }, PackageMsgs(messages)))
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_output_persistence_config(
         &self,
         exp_config: &ExperimentConfig,
@@ -288,6 +292,7 @@ impl PackageCreators {
         Ok(OutputPackagesSimConfig { map })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_agent_schema(
         &self,
         exp_config: &ExperimentConfig,
@@ -353,6 +358,7 @@ impl PackageCreators {
         Ok(AgentSchema::new(field_spec_map)?)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_context_schema(
         &self,
         exp_config: &ExperimentConfig,
@@ -383,6 +389,7 @@ impl PackageCreators {
 //      something like `get_hidden_column_name(PREVIOUS_INDEX_FIELD_NAME)`
 pub const PREVIOUS_INDEX_FIELD_KEY: &str = "_HIDDEN_0_previous_index";
 
+#[tracing::instrument(skip_all)]
 pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec>> {
     let mut field_specs = Vec::with_capacity(13);
     let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
@@ -411,6 +418,7 @@ pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec>> {
     Ok(field_specs)
 }
 
+#[tracing::instrument(skip_all)]
 fn get_base_context_fields() -> Result<Vec<RootFieldSpec>> {
     let _field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
     // TODO: previous index and other fields that make sense

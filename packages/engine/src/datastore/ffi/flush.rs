@@ -212,26 +212,32 @@ pub struct PreparedArrayData<'a> {
 }
 
 impl GrowableArrayData for PreparedArrayData<'_> {
+    #[tracing::instrument(skip_all)]
     fn _len(&self) -> usize {
         unsafe { (*self.inner).length as usize }
     }
 
+    #[tracing::instrument(skip_all)]
     fn _null_count(&self) -> usize {
         unsafe { (*self.inner).null_count as usize }
     }
 
+    #[tracing::instrument(skip_all)]
     fn _null_buffer(&self) -> Option<&[u8]> {
         self.null_buffer
     }
 
+    #[tracing::instrument(skip_all)]
     fn _get_buffer(&self, index: usize) -> &[u8] {
         self.buffers[index]
     }
 
+    #[tracing::instrument(skip_all)]
     fn _get_non_null_buffer_count(&self) -> usize {
         self.buffers.len()
     }
 
+    #[tracing::instrument(skip_all)]
     fn _child_data(&self) -> &[Self] {
         &self.child_data
     }
@@ -243,10 +249,12 @@ pub struct PreparedColumn<'a> {
 }
 
 impl<'a> GrowableColumn<PreparedArrayData<'a>> for PreparedColumn<'a> {
+    #[tracing::instrument(skip_all)]
     fn get_column_index(&self) -> usize {
         self.index
     }
 
+    #[tracing::instrument(skip_all)]
     fn get_data(&self) -> &PreparedArrayData<'a> {
         &self.data
     }
@@ -260,26 +268,32 @@ pub struct PreparedBatch<'a> {
 }
 
 impl<'a> GrowableBatch<PreparedColumn<'a>, PreparedArrayData<'a>> for PreparedBatch<'a> {
+    #[tracing::instrument(skip_all)]
     fn take_changes(&mut self) -> Vec<PreparedColumn<'a>> {
         std::mem::take(&mut self.changes)
     }
 
+    #[tracing::instrument(skip_all)]
     fn static_meta(&self) -> &StaticMeta {
         unsafe { &*self.static_meta }
     }
 
+    #[tracing::instrument(skip_all)]
     fn dynamic_meta(&self) -> &DynamicMeta {
         self.dynamic_meta
     }
 
+    #[tracing::instrument(skip_all)]
     fn mut_dynamic_meta(&mut self) -> &mut DynamicMeta {
         self.dynamic_meta
     }
 
+    #[tracing::instrument(skip_all)]
     fn memory(&self) -> &Memory {
         self.memory
     }
 
+    #[tracing::instrument(skip_all)]
     fn mut_memory(&mut self) -> &mut Memory {
         self.memory
     }

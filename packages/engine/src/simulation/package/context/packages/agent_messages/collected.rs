@@ -10,6 +10,7 @@ pub struct Messages {
 }
 
 impl Messages {
+    #[tracing::instrument(skip_all)]
     pub fn gather<'a>(
         message_map: &MessageMap,
         ids_and_names: impl Iterator<Item = (&'a [u8; UUID_V4_LEN], Option<&'a str>)>,

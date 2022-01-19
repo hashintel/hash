@@ -8,6 +8,8 @@ pub struct String<'mv8>(pub(super) Ref<'mv8>);
 
 impl fmt::Display for String<'_> {
     /// Returns a Rust string converted from the V8 string.
+
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         unsafe {
             let utf8 = mv8_string_to_utf8_value(self.0.mv8.interface, self.0.value_ptr);
@@ -21,6 +23,7 @@ impl fmt::Display for String<'_> {
 }
 
 impl fmt::Debug for String<'_> {
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self.to_string())
     }

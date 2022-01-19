@@ -50,6 +50,7 @@ pub struct Memory {
 
 // Constructors for Memory
 impl Memory {
+    #[tracing::instrument(skip_all)]
     pub fn as_ptr(&self) -> *const u8 {
         self.data.as_ptr()
     }
@@ -71,6 +72,7 @@ impl Memory {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     fn calculate_total_size(size: usize, include_terminal_padding: bool) -> Result<usize> {
         Ok(if include_terminal_padding {
             // Leave extra padding in the end to minimize number of ftruncate calls
@@ -88,6 +90,7 @@ impl Memory {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn raw_fd(&self) -> RawFd {
         self.data.raw_fd()
     }
@@ -97,10 +100,12 @@ impl Memory {
         self.data.get_os_id()
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn unmap(self) {
         self.data.unmap()
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn shared_memory(
         experiment_run_id: &str,
         size: usize,
@@ -119,6 +124,7 @@ impl Memory {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn from_message(
         message: &str,
         droppable: bool,
@@ -141,14 +147,17 @@ impl Memory {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     fn visitor(&self) -> Visitor<'_> {
         Visitor::new(MemoryPtr::from_memory(self))
     }
 
+    #[tracing::instrument(skip_all)]
     fn visitor_mut(&mut self) -> VisitorMut<'_> {
         VisitorMut::new(MemoryPtr::from_memory(self), self)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn duplicate_from(memory: &Memory, experiment_run_id: &str) -> Result<Memory> {
         let shmem = &memory.data;
         let data = ShmemConf::new(true)
@@ -163,6 +172,7 @@ impl Memory {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     fn generate_shmem_id(experiment_run_id: &str) -> String {
         loop {
             // MacOS shmem seems to be limited to 31 chars, probably remnants of HFS
@@ -177,6 +187,7 @@ impl Memory {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     fn validate_size(size: usize) -> Result<()> {
         // This comes from the fact we use List and *not* LargeList Arrow types
         // List markers are i32 type, while LargeList markers are i64 type
@@ -190,6 +201,7 @@ impl Memory {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn validate_markers(&self) -> bool {
         self.visitor().validate_markers(self.get_id(), self.size)
     }
@@ -205,6 +217,7 @@ impl Memory {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_batch_buffers(&self) -> Result<Buffers<'_>> {
         let visitor = self.visitor();
         Ok((
@@ -215,6 +228,7 @@ impl Memory {
         ))
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn set_data_length(&mut self, data_length: usize) -> Result<BufferChange> {
         self.visitor_mut().set_data_length(data_length)
     }
@@ -230,34 +244,42 @@ impl Memory {
         self.visitor_mut().shrink_with_data_length(data_length)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn set_schema<K: AsRef<[u8]>>(&mut self, schema: &K) -> Result<BufferChange> {
         self.visitor_mut().write_schema_buffer(schema.as_ref())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_header(&self) -> Result<&[u8]> {
         Ok(self.visitor().header())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn set_header<K: AsRef<[u8]>>(&mut self, header: &K) -> Result<BufferChange> {
         self.visitor_mut().write_header_buffer(header.as_ref())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_metadata(&self) -> Result<&[u8]> {
         Ok(self.visitor().meta())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn set_metadata<K: AsRef<[u8]>>(&mut self, metadata: &K) -> Result<BufferChange> {
         self.visitor_mut().write_meta_buffer(metadata.as_ref())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_data_buffer(&self) -> Result<&[u8]> {
         Ok(self.visitor().data())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_data_buffer_len(&self) -> Result<usize> {
         Ok(self.visitor().markers().data_size())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_mut_data_buffer(&mut self) -> Result<&mut [u8]> {
         Ok(self.visitor_mut().data_mut())
     }
@@ -282,6 +304,7 @@ impl Memory {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn overwrite_in_data_buffer_unchecked_nonoverlapping(
         &mut self,
         offset: usize,
@@ -292,6 +315,7 @@ impl Memory {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn from_sizes(
         experiment_run_id: &str,
         schema_size: usize,
@@ -331,6 +355,7 @@ impl Memory {
         Ok(memory)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn from_batch_buffers(
         experiment_run_id: &str,
         schema: &[u8],
@@ -379,6 +404,7 @@ impl Memory {
         Ok(memory)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn target_total_size_accommodates_data_size(
         &self,
         target_shmem_size: usize,

@@ -59,6 +59,8 @@ use super::{padding, util::FlatBufferWrapper};
 //      debug_assert
 // COPY: ::ipc::reader.rs
 /// Read a buffer based on offset and length
+
+#[tracing::instrument(skip_all)]
 fn read_buffer(buf: &ipc::Buffer, a_data: &[u8]) -> Buffer {
     let start_offset = buf.offset() as usize;
     debug_assert_eq!(padding::get_static_buffer_pad(start_offset), 0);
@@ -79,6 +81,8 @@ fn read_buffer(buf: &ipc::Buffer, a_data: &[u8]) -> Buffer {
 ///     - check if the bit width of non-64-bit numbers is 64, and
 ///     - read the buffer as 64-bit (signed integer or float), and
 ///     - cast the 64-bit array to the appropriate data type
+
+#[tracing::instrument(skip_all)]
 fn create_array(
     nodes: &[ipc::FieldNode],
     data_type: &DataType,
@@ -246,6 +250,8 @@ fn create_array(
 // COPY: ::ipc::reader.rs
 /// Reads the correct number of buffers based on data type and null_count, and creates a
 /// primitive array ref
+
+#[tracing::instrument(skip_all)]
 fn create_primitive_array(
     field_node: &ipc::FieldNode,
     data_type: &DataType,
@@ -375,6 +381,8 @@ fn create_primitive_array(
 // COPY: ::ipc::reader.rs
 /// Reads the correct number of buffers based on list type and null_count, and creates a
 /// list array ref
+
+#[tracing::instrument(skip_all)]
 fn create_list_array(
     field_node: &ipc::FieldNode,
     data_type: &DataType,
@@ -415,6 +423,8 @@ fn create_list_array(
 // COPY: ::ipc::reader.rs
 /// Reads the correct number of buffers based on list type and null_count, and creates a
 /// list array ref
+
+#[tracing::instrument(skip_all)]
 fn create_dictionary_array(
     field_node: &ipc::FieldNode,
     data_type: &DataType,
@@ -713,6 +723,8 @@ pub fn simulate_record_batch_to_bytes<'fbb>(
 }
 
 // ADD
+
+#[tracing::instrument(skip_all)]
 fn simulate_write_array_data(
     array_data: &ArrayDataRef,
     buffers: &mut Vec<ipc::Buffer>,
@@ -764,6 +776,8 @@ pub fn record_batch_data_to_bytes_owned_unchecked(batch: &RecordBatch, buffer: &
 }
 
 // ADD
+
+#[tracing::instrument(skip_all)]
 fn write_array_data_owned(
     array_data: &ArrayDataRef,
     arrow_data: &mut [u8],
@@ -806,6 +820,8 @@ fn write_array_data_owned(
 // MOD: add `padding_meta`
 // COPY: ::ipc::writer.rs
 /// Write array data to a vector of bytes
+
+#[tracing::instrument(skip_all)]
 fn write_array_data(
     array_data: &ArrayDataRef,
     buffers: &mut Vec<ipc::Buffer>,
@@ -858,6 +874,8 @@ fn write_array_data(
 // MOD: `write_array_data` -> `write_static_array_data`
 // COPY: ::ipc::writer.rs
 /// Write array data to a vector of bytes
+
+#[tracing::instrument(skip_all)]
 fn write_static_array_data(
     array_data: &ArrayDataRef,
     buffers: &mut Vec<ipc::Buffer>,
@@ -911,6 +929,8 @@ fn write_static_array_data(
 //      total_len -> len for buffer length
 // COPY: ::ipc::writer.rs
 /// Write a buffer to a vector of bytes, and add its ipc Buffer to a vector
+
+#[tracing::instrument(skip_all)]
 fn write_static_buffer(
     buffer: &Buffer,
     buffers: &mut Vec<ipc::Buffer>,
@@ -932,6 +952,8 @@ fn write_static_buffer(
 //      extra padding for growable buffers
 // COPY: ::ipc::writer.rs
 /// Write a buffer to a vector of bytes, and add its ipc Buffer to a vector
+
+#[tracing::instrument(skip_all)]
 fn write_buffer(
     buffer: &Buffer,
     buffers: &mut Vec<ipc::Buffer>,
@@ -949,6 +971,8 @@ fn write_buffer(
 }
 
 // ADD
+
+#[tracing::instrument(skip_all)]
 fn simulate_write_buffer(buffer_size: usize, buffers: &mut Vec<ipc::Buffer>, offset: i64) -> i64 {
     let total_len = padding::get_dynamic_buffer_length(buffer_size) as i64;
     buffers.push(ipc::Buffer::new(offset, buffer_size as i64));
@@ -956,6 +980,8 @@ fn simulate_write_buffer(buffer_size: usize, buffers: &mut Vec<ipc::Buffer>, off
 }
 
 // ADD
+
+#[tracing::instrument(skip_all)]
 fn write_buffer_owned(buffer: &Buffer, arrow_data: &mut [u8], offset: i64) -> i64 {
     let len = buffer.len();
     let total_len = padding::get_dynamic_buffer_length(len) as i64;

@@ -32,6 +32,7 @@ pub enum OutputFormat {
 }
 
 impl Display for OutputFormat {
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             OutputFormat::Full => f.write_str("full"),
@@ -55,6 +56,7 @@ where
     N: for<'a> FormatFields<'a> + 'static,
     T: FormatTime,
 {
+    #[tracing::instrument(skip_all)]
     fn format_event(
         &self,
         ctx: &FmtContext<'_, S, N>,
@@ -71,11 +73,13 @@ where
 }
 
 impl Default for OutputFormat {
+    #[tracing::instrument(skip_all)]
     fn default() -> Self {
         Self::Pretty
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub fn init_logger(output_format: OutputFormat, flame_output: &str) -> impl Drop {
     let filter = match std::env::var("RUST_LOG") {
         Ok(env) => EnvFilter::new(env),
@@ -111,6 +115,7 @@ pub fn init_logger(output_format: OutputFormat, flame_output: &str) -> impl Drop
     _guard
 }
 
+#[tracing::instrument(skip_all)]
 pub fn parse_env_duration(name: &str, default: u64) -> Duration {
     Duration::from_secs(
         std::env::var(name)

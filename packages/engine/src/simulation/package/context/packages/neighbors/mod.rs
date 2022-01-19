@@ -3,7 +3,6 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use parking_lot::RwLockReadGuard;
 use serde_json::Value;
-use tracing::instrument;
 
 use self::map::{NeighborMap, NeighborRef};
 use crate::{
@@ -46,10 +45,12 @@ pub type ArrowIndexBuilder = arrow::array::UInt32Builder;
 pub struct Creator {}
 
 impl PackageCreator for Creator {
+    #[tracing::instrument(skip_all)]
     fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>> {
         Ok(Box::new(Creator {}))
     }
 
+    #[tracing::instrument(skip_all)]
     fn create(
         &self,
         config: &Arc<SimRunConfig>,
@@ -64,6 +65,7 @@ impl PackageCreator for Creator {
         Ok(Box::new(neighbors))
     }
 
+    #[tracing::instrument(skip_all)]
     fn get_context_field_specs(
         &self,
         _config: &ExperimentConfig,
@@ -73,6 +75,7 @@ impl PackageCreator for Creator {
         Ok(vec![fields::get_neighbors_field_spec(field_spec_creator)?])
     }
 
+    #[tracing::instrument(skip_all)]
     fn get_state_field_specs(
         &self,
         _config: &ExperimentConfig,
@@ -86,6 +89,7 @@ impl PackageCreator for Creator {
 }
 
 impl GetWorkerExpStartMsg for Creator {
+    #[tracing::instrument(skip_all)]
     fn get_worker_exp_start_msg(&self) -> Result<Value> {
         Ok(Value::Null)
     }
@@ -97,6 +101,7 @@ struct Neighbors {
 }
 
 impl Neighbors {
+    #[tracing::instrument(skip_all)]
     fn neighbor_vec<'a>(
         batches: &'a [RwLockReadGuard<'_, AgentBatch>],
     ) -> Result<Vec<NeighborRef<'a>>> {
@@ -108,12 +113,14 @@ impl Neighbors {
 }
 
 impl MaybeCpuBound for Neighbors {
+    #[tracing::instrument(skip_all)]
     fn cpu_bound(&self) -> bool {
         CPU_BOUND
     }
 }
 
 impl GetWorkerSimStartMsg for Neighbors {
+    #[tracing::instrument(skip_all)]
     fn get_worker_sim_start_msg(&self) -> Result<Value> {
         Ok(Value::Null)
     }
@@ -121,7 +128,7 @@ impl GetWorkerSimStartMsg for Neighbors {
 
 #[async_trait]
 impl Package for Neighbors {
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn run<'s>(
         &mut self,
         state: Arc<State>,
@@ -143,6 +150,7 @@ impl Package for Neighbors {
         }])
     }
 
+    #[tracing::instrument(skip_all)]
     fn get_empty_arrow_columns(
         &self,
         num_agents: usize,

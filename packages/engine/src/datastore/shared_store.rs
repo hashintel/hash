@@ -9,6 +9,7 @@ pub struct SharedStore {
 }
 
 impl SharedStore {
+    #[tracing::instrument(skip_all)]
     pub fn new(config: &ExperimentConfig) -> Result<SharedStore> {
         let datasets = &config.run.base().project_base.datasets;
         let mut dataset_batches = HashMap::with_capacity(datasets.len());

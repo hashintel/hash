@@ -19,6 +19,7 @@ pub struct LocalOutputPersistence {
 impl OutputPersistenceCreatorRepr for LocalOutputPersistence {
     type SimulationOutputPersistence = LocalSimulationOutputPersistence;
 
+    #[tracing::instrument(skip_all)]
     fn new_simulation(
         &self,
         sim_id: SimulationShortId,

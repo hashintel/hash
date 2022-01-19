@@ -28,6 +28,7 @@ pub struct PendingBatch {
 }
 
 impl PendingBatch {
+    #[tracing::instrument(skip_all)]
     pub fn new(old_batch: Option<BaseBatch>, num_agents: usize) -> PendingBatch {
         PendingBatch {
             base: old_batch,
@@ -36,6 +37,7 @@ impl PendingBatch {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn from_batch(
         batch_index: usize,
         batch: &AgentBatch,
@@ -66,27 +68,33 @@ impl PendingBatch {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn add_inbound_count(&mut self, count: usize) {
         self.num_inbound += count;
         self.increment_num_agents(count);
     }
 
+    #[tracing::instrument(skip_all)]
     fn increment_num_agents(&mut self, value: usize) {
         self.num_agents += value;
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn num_agents(&self) -> usize {
         self.num_agents
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn num_inbound(&self) -> usize {
         self.num_inbound
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn num_delete_unchecked(&self) -> usize {
         self.base.as_ref().unwrap().remove_indices.len()
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_remove_actions(&self) -> &[AgentIndex] {
         self.base
             .as_ref()
@@ -94,18 +102,22 @@ impl PendingBatch {
             .unwrap_or(&[])
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn old_worker_unchecked(&self) -> usize {
         self.base.as_ref().unwrap().worker
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn old_batch_index_unchecked(&self) -> usize {
         self.base.as_ref().unwrap().index
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn old_batch_index(&self) -> Option<usize> {
         self.base.as_ref().map(|b| b.index)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn wraps_batch(&self) -> bool {
         self.base.is_some()
     }

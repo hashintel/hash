@@ -6,6 +6,7 @@ pub(super) const TYPE_FIELD_NAME: &str = "type";
 pub(super) const DATA_FIELD_NAME: &str = "data";
 pub(super) const API_RESPONSES_FIELD_NAME: &str = "api_responses";
 
+#[tracing::instrument(skip_all)]
 pub fn api_response_fields() -> Vec<FieldSpec> {
     vec![
         FieldSpec::new(FROM_FIELD_NAME.into(), FieldType::new(String, false)),
@@ -14,6 +15,7 @@ pub fn api_response_fields() -> Vec<FieldSpec> {
     ]
 }
 
+#[tracing::instrument(skip_all)]
 fn api_responses() -> FieldType {
     let variant = VariableLengthArray(Box::new(FieldType::new(
         Struct(api_response_fields()),

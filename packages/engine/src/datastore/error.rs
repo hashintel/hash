@@ -22,6 +22,7 @@ pub enum SupportedType {
 }
 
 impl fmt::Display for SupportedType {
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::NullableField => write!(f, "NullableField"),
@@ -237,24 +238,28 @@ pub enum Error {
 }
 
 impl From<&str> for Error {
+    #[tracing::instrument(skip_all)]
     fn from(s: &str) -> Self {
         Error::Unique(s.to_string())
     }
 }
 
 impl From<String> for Error {
+    #[tracing::instrument(skip_all)]
     fn from(s: String) -> Self {
         Error::Unique(s)
     }
 }
 
 impl<'a, T> From<std::sync::TryLockError<std::sync::RwLockReadGuard<'a, T>>> for Error {
+    #[tracing::instrument(skip_all)]
     fn from(_: std::sync::TryLockError<std::sync::RwLockReadGuard<'a, T>>) -> Self {
         Error::RwLock("RwLock read error for Datastore".into())
     }
 }
 
 impl<'a, T> From<std::sync::TryLockError<std::sync::RwLockWriteGuard<'a, T>>> for Error {
+    #[tracing::instrument(skip_all)]
     fn from(_: std::sync::TryLockError<std::sync::RwLockWriteGuard<'a, T>>) -> Self {
         Error::RwLock("RwLock write error for Datastore".into())
     }

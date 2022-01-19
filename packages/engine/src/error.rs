@@ -12,6 +12,7 @@ pub struct SimulationRunError {
 }
 
 impl From<(&str, &str)> for SimulationRunError {
+    #[tracing::instrument(skip_all)]
     fn from(s: (&str, &str)) -> Self {
         SimulationRunError {
             sim_id: s.0.into(),
@@ -22,6 +23,7 @@ impl From<(&str, &str)> for SimulationRunError {
 }
 
 impl Error {
+    #[tracing::instrument(skip_all)]
     pub fn user_facing_string(self) -> String {
         stringify_error(self)
     }
@@ -131,18 +133,22 @@ pub enum Error {
 }
 
 impl From<&str> for Error {
+    #[tracing::instrument(skip_all)]
     fn from(s: &str) -> Self {
         Error::Unique(s.to_string())
     }
 }
 
 impl From<String> for Error {
+    #[tracing::instrument(skip_all)]
     fn from(s: String) -> Self {
         Error::Unique(s)
     }
 }
 
 // TODO: OS - revisit these "stringify" methods, they are messy and clearly WIP.
+
+#[tracing::instrument(skip_all)]
 fn stringify_error(error: Error) -> String {
     match &error {
         Error::Datastore(datastore_error) => stringify_datastore_error(datastore_error, &error),
@@ -153,6 +159,7 @@ fn stringify_error(error: Error) -> String {
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn stringify_datastore_error(
     error: &crate::datastore::error::Error,
     original_error: &Error,
@@ -188,12 +195,14 @@ fn stringify_datastore_error(
 // }
 
 impl<'a, T> From<std::sync::TryLockError<std::sync::RwLockReadGuard<'a, T>>> for Error {
+    #[tracing::instrument(skip_all)]
     fn from(_: std::sync::TryLockError<std::sync::RwLockReadGuard<'a, T>>) -> Self {
         Error::RwLock("RwLock read error".into())
     }
 }
 
 impl<'a, T> From<std::sync::TryLockError<std::sync::RwLockWriteGuard<'a, T>>> for Error {
+    #[tracing::instrument(skip_all)]
     fn from(_: std::sync::TryLockError<std::sync::RwLockWriteGuard<'a, T>>) -> Self {
         Error::RwLock("RwLock write error".into())
     }

@@ -16,6 +16,7 @@ pub enum PackageName {
 }
 
 impl Display for PackageName {
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = serde_json::to_string(self).map_err(|_| std::fmt::Error)?;
         // serde_json puts quotes around the string for some reason, so remove them.
@@ -30,6 +31,7 @@ impl Display for PackageName {
 }
 
 impl Serialize for PackageName {
+    #[tracing::instrument(skip_all)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -44,6 +46,7 @@ impl Serialize for PackageName {
 }
 
 impl PackageName {
+    #[tracing::instrument(skip_all)]
     fn get_metadata(&self) -> Result<&PackageMetadata> {
         match self {
             PackageName::Context(name) => super::context::packages::METADATA.get(name),
@@ -59,10 +62,12 @@ impl PackageName {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_id(&self) -> Result<PackageId> {
         Ok(self.get_metadata()?.id)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_dependencies(&self) -> Result<Dependencies> {
         let dependencies = &self.get_metadata()?.dependencies;
         Ok(dependencies.clone())

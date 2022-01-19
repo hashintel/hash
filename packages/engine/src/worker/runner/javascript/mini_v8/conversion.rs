@@ -8,30 +8,35 @@ use std::{
 use super::*;
 
 impl<'mv8> ToValue<'mv8> for Value<'mv8> {
+    #[tracing::instrument(skip_all)]
     fn to_value(self, _mv8: &'mv8 MiniV8) -> Result<'mv8, Value<'mv8>> {
         Ok(self)
     }
 }
 
 impl<'mv8> FromValue<'mv8> for Value<'mv8> {
+    #[tracing::instrument(skip_all)]
     fn from_value(value: Value<'mv8>, _mv8: &'mv8 MiniV8) -> Result<'mv8, Self> {
         Ok(value)
     }
 }
 
 impl<'mv8> ToValue<'mv8> for () {
+    #[tracing::instrument(skip_all)]
     fn to_value(self, _mv8: &'mv8 MiniV8) -> Result<'mv8, Value<'mv8>> {
         Ok(Value::Undefined)
     }
 }
 
 impl<'mv8> FromValue<'mv8> for () {
+    #[tracing::instrument(skip_all)]
     fn from_value(_value: Value<'mv8>, _mv8: &'mv8 MiniV8) -> Result<'mv8, Self> {
         Ok(())
     }
 }
 
 impl<'mv8, T: ToValue<'mv8>> ToValue<'mv8> for Option<T> {
+    #[tracing::instrument(skip_all)]
     fn to_value(self, mv8: &'mv8 MiniV8) -> Result<'mv8, Value<'mv8>> {
         match self {
             Some(val) => val.to_value(mv8),
@@ -41,6 +46,7 @@ impl<'mv8, T: ToValue<'mv8>> ToValue<'mv8> for Option<T> {
 }
 
 impl<'mv8, T: FromValue<'mv8>> FromValue<'mv8> for Option<T> {
+    #[tracing::instrument(skip_all)]
     fn from_value(value: Value<'mv8>, mv8: &'mv8 MiniV8) -> Result<'mv8, Self> {
         match value {
             Value::Null | Value::Undefined => Ok(None),
@@ -50,24 +56,28 @@ impl<'mv8, T: FromValue<'mv8>> FromValue<'mv8> for Option<T> {
 }
 
 impl<'mv8> ToValue<'mv8> for String<'mv8> {
+    #[tracing::instrument(skip_all)]
     fn to_value(self, _mv8: &'mv8 MiniV8) -> Result<'mv8, Value<'mv8>> {
         Ok(Value::String(self))
     }
 }
 
 impl<'mv8> FromValue<'mv8> for String<'mv8> {
+    #[tracing::instrument(skip_all)]
     fn from_value(value: Value<'mv8>, mv8: &'mv8 MiniV8) -> Result<'mv8, String<'mv8>> {
         mv8.coerce_string(value)
     }
 }
 
 impl<'mv8> ToValue<'mv8> for Array<'mv8> {
+    #[tracing::instrument(skip_all)]
     fn to_value(self, _mv8: &'mv8 MiniV8) -> Result<'mv8, Value<'mv8>> {
         Ok(Value::Array(self))
     }
 }
 
 impl<'mv8> FromValue<'mv8> for Array<'mv8> {
+    #[tracing::instrument(skip_all)]
     fn from_value(value: Value<'mv8>, _mv8: &'mv8 MiniV8) -> Result<'mv8, Array<'mv8>> {
         match value {
             Value::Array(a) => Ok(a),
@@ -77,12 +87,14 @@ impl<'mv8> FromValue<'mv8> for Array<'mv8> {
 }
 
 impl<'mv8> ToValue<'mv8> for Function<'mv8> {
+    #[tracing::instrument(skip_all)]
     fn to_value(self, _mv8: &'mv8 MiniV8) -> Result<'mv8, Value<'mv8>> {
         Ok(Value::Function(self))
     }
 }
 
 impl<'mv8> FromValue<'mv8> for Function<'mv8> {
+    #[tracing::instrument(skip_all)]
     fn from_value(value: Value<'mv8>, _mv8: &'mv8 MiniV8) -> Result<'mv8, Function<'mv8>> {
         match value {
             Value::Function(f) => Ok(f),
@@ -92,12 +104,14 @@ impl<'mv8> FromValue<'mv8> for Function<'mv8> {
 }
 
 impl<'mv8> ToValue<'mv8> for Object<'mv8> {
+    #[tracing::instrument(skip_all)]
     fn to_value(self, _mv8: &'mv8 MiniV8) -> Result<'mv8, Value<'mv8>> {
         Ok(Value::Object(self))
     }
 }
 
 impl<'mv8> FromValue<'mv8> for Object<'mv8> {
+    #[tracing::instrument(skip_all)]
     fn from_value(value: Value<'mv8>, _mv8: &'mv8 MiniV8) -> Result<'mv8, Object<'mv8>> {
         match value {
             Value::Object(o) => Ok(o),
@@ -112,6 +126,7 @@ where
     V: ToValue<'mv8>,
     S: BuildHasher,
 {
+    #[tracing::instrument(skip_all)]
     fn to_value(self, mv8: &'mv8 MiniV8) -> Result<'mv8, Value<'mv8>> {
         let object = mv8.create_object();
         for (k, v) in self.into_iter() {
@@ -127,6 +142,7 @@ where
     V: FromValue<'mv8>,
     S: BuildHasher + Default,
 {
+    #[tracing::instrument(skip_all)]
     fn from_value(value: Value<'mv8>, _mv8: &'mv8 MiniV8) -> Result<'mv8, Self> {
         match value {
             Value::Object(o) => o.properties(false)?.collect(),
@@ -140,6 +156,7 @@ where
     K: Ord + ToValue<'mv8>,
     V: ToValue<'mv8>,
 {
+    #[tracing::instrument(skip_all)]
     fn to_value(self, mv8: &'mv8 MiniV8) -> Result<'mv8, Value<'mv8>> {
         let object = mv8.create_object();
         for (k, v) in self.into_iter() {
@@ -154,6 +171,7 @@ where
     K: Ord + FromValue<'mv8>,
     V: FromValue<'mv8>,
 {
+    #[tracing::instrument(skip_all)]
     fn from_value(value: Value<'mv8>, _mv8: &'mv8 MiniV8) -> Result<'mv8, Self> {
         match value {
             Value::Object(o) => o.properties(false)?.collect(),
@@ -163,6 +181,7 @@ where
 }
 
 impl<'mv8, V: ToValue<'mv8>> ToValue<'mv8> for BTreeSet<V> {
+    #[tracing::instrument(skip_all)]
     fn to_value(self, mv8: &'mv8 MiniV8) -> Result<'mv8, Value<'mv8>> {
         let array = mv8.create_array();
         for v in self.into_iter() {
@@ -173,6 +192,7 @@ impl<'mv8, V: ToValue<'mv8>> ToValue<'mv8> for BTreeSet<V> {
 }
 
 impl<'mv8, V: FromValue<'mv8> + Ord> FromValue<'mv8> for BTreeSet<V> {
+    #[tracing::instrument(skip_all)]
     fn from_value(value: Value<'mv8>, _mv8: &'mv8 MiniV8) -> Result<'mv8, Self> {
         match value {
             Value::Array(a) => a.elements().collect(),
@@ -182,6 +202,7 @@ impl<'mv8, V: FromValue<'mv8> + Ord> FromValue<'mv8> for BTreeSet<V> {
 }
 
 impl<'mv8, V: ToValue<'mv8>> ToValue<'mv8> for HashSet<V> {
+    #[tracing::instrument(skip_all)]
     fn to_value(self, mv8: &'mv8 MiniV8) -> Result<'mv8, Value<'mv8>> {
         let array = mv8.create_array();
         for v in self.into_iter() {
@@ -192,6 +213,7 @@ impl<'mv8, V: ToValue<'mv8>> ToValue<'mv8> for HashSet<V> {
 }
 
 impl<'mv8, V: FromValue<'mv8> + Hash + Eq> FromValue<'mv8> for HashSet<V> {
+    #[tracing::instrument(skip_all)]
     fn from_value(value: Value<'mv8>, _mv8: &'mv8 MiniV8) -> Result<'mv8, Self> {
         match value {
             Value::Array(a) => a.elements().collect(),
@@ -201,6 +223,7 @@ impl<'mv8, V: FromValue<'mv8> + Hash + Eq> FromValue<'mv8> for HashSet<V> {
 }
 
 impl<'mv8, V: ToValue<'mv8>> ToValue<'mv8> for Vec<V> {
+    #[tracing::instrument(skip_all)]
     fn to_value(self, mv8: &'mv8 MiniV8) -> Result<'mv8, Value<'mv8>> {
         let array = mv8.create_array();
         for v in self.into_iter() {
@@ -211,6 +234,7 @@ impl<'mv8, V: ToValue<'mv8>> ToValue<'mv8> for Vec<V> {
 }
 
 impl<'mv8, V: FromValue<'mv8>> FromValue<'mv8> for Vec<V> {
+    #[tracing::instrument(skip_all)]
     fn from_value(value: Value<'mv8>, _mv8: &'mv8 MiniV8) -> Result<'mv8, Self> {
         match value {
             Value::Array(a) => a.elements().collect(),
@@ -220,30 +244,35 @@ impl<'mv8, V: FromValue<'mv8>> FromValue<'mv8> for Vec<V> {
 }
 
 impl<'mv8> ToValue<'mv8> for bool {
+    #[tracing::instrument(skip_all)]
     fn to_value(self, _mv8: &'mv8 MiniV8) -> Result<'mv8, Value<'mv8>> {
         Ok(Value::Boolean(self))
     }
 }
 
 impl<'mv8> FromValue<'mv8> for bool {
+    #[tracing::instrument(skip_all)]
     fn from_value(value: Value<'_>, mv8: &'mv8 MiniV8) -> Result<'mv8, Self> {
         Ok(mv8.coerce_boolean(value))
     }
 }
 
 impl<'mv8> ToValue<'mv8> for StdString {
+    #[tracing::instrument(skip_all)]
     fn to_value(self, mv8: &'mv8 MiniV8) -> Result<'mv8, Value<'mv8>> {
         Ok(Value::String(mv8.create_string(&self)))
     }
 }
 
 impl<'mv8> FromValue<'mv8> for StdString {
+    #[tracing::instrument(skip_all)]
     fn from_value(value: Value<'mv8>, mv8: &'mv8 MiniV8) -> Result<'mv8, Self> {
         Ok(mv8.coerce_string(value)?.to_string())
     }
 }
 
 impl<'mv8> ToValue<'mv8> for &str {
+    #[tracing::instrument(skip_all)]
     fn to_value(self, mv8: &'mv8 MiniV8) -> Result<'mv8, Value<'mv8>> {
         Ok(Value::String(mv8.create_string(self)))
     }
@@ -252,12 +281,14 @@ impl<'mv8> ToValue<'mv8> for &str {
 macro_rules! convert_number {
     ($prim_ty:ty) => {
         impl<'mv8> ToValue<'mv8> for $prim_ty {
+            #[tracing::instrument(skip_all)]
             fn to_value(self, _mv8: &'mv8 MiniV8) -> Result<'mv8, Value<'mv8>> {
                 Ok(Value::Number(self as f64))
             }
         }
 
         impl<'mv8> FromValue<'mv8> for $prim_ty {
+            #[tracing::instrument(skip_all)]
             fn from_value(value: Value<'mv8>, mv8: &'mv8 MiniV8) -> Result<'mv8, Self> {
                 Ok(mv8.coerce_number(value)? as $prim_ty)
             }
@@ -279,6 +310,7 @@ convert_number!(f32);
 convert_number!(f64);
 
 impl<'mv8> ToValue<'mv8> for Duration {
+    #[tracing::instrument(skip_all)]
     fn to_value(self, _mv8: &'mv8 MiniV8) -> Result<'mv8, Value<'mv8>> {
         Ok(Value::Date(
             (self.as_secs() as f64) + (self.as_nanos() as f64) / 1_000_000_000.0,
@@ -287,6 +319,7 @@ impl<'mv8> ToValue<'mv8> for Duration {
 }
 
 impl<'mv8> FromValue<'mv8> for Duration {
+    #[tracing::instrument(skip_all)]
     fn from_value(value: Value<'mv8>, _mv8: &'mv8 MiniV8) -> Result<'mv8, Duration> {
         match value {
             Value::Date(timestamp) => {
@@ -300,18 +333,21 @@ impl<'mv8> FromValue<'mv8> for Duration {
 }
 
 impl<'mv8> ToValues<'mv8> for Values<'mv8> {
+    #[tracing::instrument(skip_all)]
     fn to_values(self, _mv8: &'mv8 MiniV8) -> Result<'mv8, Values<'mv8>> {
         Ok(self)
     }
 }
 
 impl<'mv8> FromValues<'mv8> for Values<'mv8> {
+    #[tracing::instrument(skip_all)]
     fn from_values(values: Values<'mv8>, _mv8: &'mv8 MiniV8) -> Result<'mv8, Self> {
         Ok(values)
     }
 }
 
 impl<'mv8, T: ToValue<'mv8>> ToValues<'mv8> for Variadic<T> {
+    #[tracing::instrument(skip_all)]
     fn to_values(self, mv8: &'mv8 MiniV8) -> Result<'mv8, Values<'mv8>> {
         self.0
             .into_iter()
@@ -321,6 +357,7 @@ impl<'mv8, T: ToValue<'mv8>> ToValues<'mv8> for Variadic<T> {
 }
 
 impl<'mv8, T: FromValue<'mv8>> FromValues<'mv8> for Variadic<T> {
+    #[tracing::instrument(skip_all)]
     fn from_values(values: Values<'mv8>, mv8: &'mv8 MiniV8) -> Result<'mv8, Self> {
         values
             .into_iter()
@@ -331,12 +368,14 @@ impl<'mv8, T: FromValue<'mv8>> FromValues<'mv8> for Variadic<T> {
 }
 
 impl<'mv8> ToValues<'mv8> for () {
+    #[tracing::instrument(skip_all)]
     fn to_values(self, _mv8: &'mv8 MiniV8) -> Result<'mv8, Values<'mv8>> {
         Ok(Values::new())
     }
 }
 
 impl<'mv8> FromValues<'mv8> for () {
+    #[tracing::instrument(skip_all)]
     fn from_values(_values: Values<'_>, _mv8: &'mv8 MiniV8) -> Result<'mv8, Self> {
         Ok(())
     }
@@ -349,7 +388,10 @@ macro_rules! impl_tuple {
             $($name: ToValue<'mv8>,)*
         {
             #[allow(non_snake_case, unused)]
-            fn to_values(self, mv8: &'mv8 MiniV8) -> Result<'mv8, Values<'mv8>> {
+
+
+#[tracing::instrument(skip_all)]
+fn to_values(self, mv8: &'mv8 MiniV8) -> Result<'mv8, Values<'mv8>> {
                 let ($($name,)*) = self;
                 let reservation = $({ &$name; 1 } +)* 0;
                 let mut results = Vec::with_capacity(reservation);
@@ -363,7 +405,10 @@ macro_rules! impl_tuple {
             $($name: FromValue<'mv8>,)*
         {
             #[allow(non_snake_case, unused_mut, unused_variables)]
-            fn from_values(values: Values<'mv8>, mv8: &'mv8 MiniV8) -> Result<'mv8, Self> {
+
+
+#[tracing::instrument(skip_all)]
+fn from_values(values: Values<'mv8>, mv8: &'mv8 MiniV8) -> Result<'mv8, Self> {
                 let mut iter = values.into_vec().into_iter();
                 Ok(($({
                     let $name = ();
@@ -378,7 +423,10 @@ macro_rules! impl_tuple {
             VAR: ToValue<'mv8>,
         {
             #[allow(non_snake_case, unused)]
-            fn to_values(self, mv8: &'mv8 MiniV8) -> Result<'mv8, Values<'mv8>> {
+
+
+#[tracing::instrument(skip_all)]
+fn to_values(self, mv8: &'mv8 MiniV8) -> Result<'mv8, Values<'mv8>> {
                 let ($($name,)* variadic) = self;
                 let reservation = $({ &$name; 1 } +)* 1;
                 let mut results = Vec::with_capacity(reservation);
@@ -398,7 +446,10 @@ macro_rules! impl_tuple {
             VAR: FromValue<'mv8>,
         {
             #[allow(non_snake_case, unused_mut, unused_variables)]
-            fn from_values(values: Values<'mv8>, mv8: &'mv8 MiniV8) -> Result<'mv8, Self> {
+
+
+#[tracing::instrument(skip_all)]
+fn from_values(values: Values<'mv8>, mv8: &'mv8 MiniV8) -> Result<'mv8, Self> {
                 let mut values = values.into_vec();
                 let len = values.len();
                 let split = $({ let $name = (); 1 } +)* 0;

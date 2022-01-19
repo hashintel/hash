@@ -21,6 +21,7 @@ pub struct AxisBoundary {
 }
 
 impl Default for AxisBoundary {
+    #[tracing::instrument(skip_all)]
     fn default() -> AxisBoundary {
         AxisBoundary {
             min: f64::NEG_INFINITY,
@@ -35,6 +36,7 @@ impl Default for AxisBoundary {
 #[repr(transparent)]
 struct Float(#[serde(deserialize_with = "deserialize_float")] f64);
 
+#[tracing::instrument(skip_all)]
 fn deserialize_float<'de, D>(deserializer: D) -> Result<f64, D::Error>
 where
     D: Deserializer<'de>,
@@ -44,10 +46,14 @@ where
     impl<'de> Visitor<'de> for FloatDeserializeVisitor {
         type Value = f64;
 
+        #[tracing::instrument(skip_all)]
+        #[tracing::instrument(skip_all)]
         fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             write!(f, "f64")
         }
 
+        #[tracing::instrument(skip_all)]
+        #[tracing::instrument(skip_all)]
         fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
         where
             E: de::Error,
@@ -55,6 +61,8 @@ where
             self.visit_f64(v as f64)
         }
 
+        #[tracing::instrument(skip_all)]
+        #[tracing::instrument(skip_all)]
         fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
         where
             E: de::Error,
@@ -62,6 +70,8 @@ where
             self.visit_f64(v as f64)
         }
 
+        #[tracing::instrument(skip_all)]
+        #[tracing::instrument(skip_all)]
         fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
         where
             E: de::Error,
@@ -69,6 +79,8 @@ where
             Ok(v)
         }
 
+        #[tracing::instrument(skip_all)]
+        #[tracing::instrument(skip_all)]
         fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
         where
             E: de::Error,
@@ -85,6 +97,7 @@ where
 }
 
 impl<'de> Deserialize<'de> for AxisBoundary {
+    #[tracing::instrument(skip_all)]
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -123,6 +136,8 @@ pub enum WrappingBehavior {
 
 impl WrappingBehavior {
     /// Changes wrapping behavior to [`WrappingBehavior::Reflection`] if bounds are not +/- INF.
+
+    #[tracing::instrument(skip_all)]
     fn adjust_for_bound(self, bounds: AxisBoundary) -> Self {
         if bounds.min > f64::NEG_INFINITY
             && bounds.max < f64::INFINITY
@@ -138,6 +153,8 @@ impl WrappingBehavior {
     ///
     /// For [`WrappingPreset::Spherical`] and [`WrappingPreset::Torus`] the `wrap_z_modes` is set to
     /// `fallback`.
+
+    #[tracing::instrument(skip_all)]
     fn from_preset(preset: WrappingPreset, fallback: WrappingBehavior) -> [WrappingBehavior; 3] {
         Self::verify_offset_reflection(match preset {
             WrappingPreset::Spherical => [
@@ -225,6 +242,7 @@ impl WrappingBehavior {
     /// [`OffsetReflection`]: Self::OffsetReflection
     /// [`Continuous`]: Self::Continuous
     #[must_use]
+    #[tracing::instrument(skip_all)]
     fn verify_offset_reflection(mut behaviors: [WrappingBehavior; 3]) -> [WrappingBehavior; 3] {
         if behaviors[0] == WrappingBehavior::OffsetReflection {
             panic!("HASH does not support OffsetReflection along the x axis");
@@ -246,6 +264,7 @@ impl WrappingBehavior {
     }
 
     #[must_use]
+    #[tracing::instrument(skip_all)]
     fn calculate_wrapping_combinations(behaviors: [WrappingBehavior; 3]) -> usize {
         behaviors.iter().fold(1, |acc, wrap| {
             if let WrappingBehavior::NoWrap = wrap {
@@ -258,6 +277,7 @@ impl WrappingBehavior {
 }
 
 impl Default for WrappingBehavior {
+    #[tracing::instrument(skip_all)]
     fn default() -> WrappingBehavior {
         WrappingBehavior::NoWrap
     }
@@ -303,14 +323,17 @@ pub enum DistanceFunction {
 }
 
 impl Default for DistanceFunction {
+    #[tracing::instrument(skip_all)]
     fn default() -> Self {
         Self::Conway
     }
 }
 
 impl DistanceFunction {
+    #[tracing::instrument(skip_all)]
     fn as_function(self) -> fn(&[f64], &[f64]) -> f64 {
         #[must_use]
+        #[tracing::instrument(skip_all)]
         fn conway(a: &[f64], b: &[f64]) -> f64 {
             debug_assert!(a.len() == b.len());
             a.iter()
@@ -320,6 +343,7 @@ impl DistanceFunction {
         }
 
         #[must_use]
+        #[tracing::instrument(skip_all)]
         fn manhattan(a: &[f64], b: &[f64]) -> f64 {
             debug_assert!(a.len() == b.len());
             a.iter()
@@ -329,6 +353,7 @@ impl DistanceFunction {
         }
 
         #[must_use]
+        #[tracing::instrument(skip_all)]
         fn euclidean_squared(a: &[f64], b: &[f64]) -> f64 {
             debug_assert!(a.len() == b.len());
             a.iter()
@@ -338,6 +363,7 @@ impl DistanceFunction {
         }
 
         #[must_use]
+        #[tracing::instrument(skip_all)]
         fn euclidean(a: &[f64], b: &[f64]) -> f64 {
             debug_assert!(a.len() == b.len());
             a.iter()
@@ -380,6 +406,7 @@ pub struct Config {
 }
 
 impl Default for Config {
+    #[tracing::instrument(skip_all)]
     fn default() -> Config {
         Config {
             bounds: Default::default(),
@@ -403,6 +430,7 @@ impl Config {
     /// - if y-wrapping behavior **and** z-wrapping behavior is
     ///   [`WrappingBehavior::OffsetReflection`]
     pub fn from_globals(globals: &Globals) -> Result<Self, serde_json::Error> {
+        #[tracing::instrument(skip_all)]
         fn from_json<T>(
             topology: &mut serde_json::Map<String, Value>,
             key: &str,
@@ -496,6 +524,7 @@ mod tests {
 
     use super::*;
 
+    #[tracing::instrument(skip_all)]
     fn assert_equality(lhs: &Config, rhs: &Config) {
         assert_eq!(lhs.bounds, rhs.bounds);
         assert_eq!(lhs.wrap_modes, rhs.wrap_modes);
@@ -505,6 +534,7 @@ mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn test_defaults() {
         assert_equality(
             &Config::default(),
@@ -517,6 +547,7 @@ mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn test_axis_boundary() {
         let target = Config {
             bounds: [
@@ -572,6 +603,7 @@ mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn test_search_radius() {
         let target = Config {
             search_radius: Some(4.),

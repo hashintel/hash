@@ -6,6 +6,7 @@ use crate::simulation::package::output::packages::analysis::analyzer::{
 };
 
 impl AnalysisSourceRepr {
+    #[tracing::instrument(skip_all)]
     pub fn validate_def(&self) -> Result<()> {
         let results: Vec<(Arc<String>, Option<String>)> = self
             .outputs
@@ -56,6 +57,7 @@ impl AnalysisSourceRepr {
 }
 
 impl AnalysisOperationRepr {
+    #[tracing::instrument(skip_all)]
     pub fn is_not_valid_first_operation(&self) -> Result<Option<String>> {
         let mut error = ErrorBuilder::new();
         if !(self.is_filter() || self.is_map() || self.is_count()) {
@@ -88,6 +90,7 @@ impl AnalysisOperationRepr {
         Ok(error.finish())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn is_not_valid_subsequent_operation(&self, preceding: &Self) -> Result<Option<String>> {
         let result = match preceding {
             AnalysisOperationRepr::Filter {
@@ -139,14 +142,17 @@ struct ErrorBuilder {
 }
 
 impl ErrorBuilder {
+    #[tracing::instrument(skip_all)]
     fn new() -> ErrorBuilder {
         ErrorBuilder { inner: Vec::new() }
     }
 
+    #[tracing::instrument(skip_all)]
     fn add(&mut self, error: String) {
         self.inner.push(error)
     }
 
+    #[tracing::instrument(skip_all)]
     fn finish(self) -> Option<String> {
         if self.inner.is_empty() {
             return None;

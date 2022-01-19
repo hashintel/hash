@@ -43,6 +43,8 @@ pub unsafe extern "C" fn free_memory(c_memory: *mut CMemory) {
 
 // Hack to get a compile-time error if the Raw File
 // descriptor is of an unexpected size
+
+#[tracing::instrument(skip_all)]
 fn _size_check() {
     unsafe {
         std::mem::transmute::<RawFd, i32>(0);

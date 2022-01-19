@@ -165,6 +165,7 @@ impl AgentStateField {
 }
 
 impl<'de> Deserialize<'de> for AgentStateField {
+    #[tracing::instrument(skip_all)]
     fn deserialize<D>(deserializer: D) -> Result<AgentStateField, D::Error>
     where
         D: Deserializer<'de>,
@@ -174,10 +175,14 @@ impl<'de> Deserialize<'de> for AgentStateField {
         impl Visitor<'_> for FieldVisitor {
             type Value = AgentStateField;
 
+            #[tracing::instrument(skip_all)]
+            #[tracing::instrument(skip_all)]
             fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 formatter.write_str("json keys")
             }
 
+            #[tracing::instrument(skip_all)]
+            #[tracing::instrument(skip_all)]
             fn visit_str<E>(self, value: &str) -> Result<AgentStateField, E>
             where
                 E: de::Error,
@@ -208,6 +213,7 @@ impl<'de> Deserialize<'de> for AgentStateField {
 //  https://serde.rs/deserialize-struct.html
 impl<'de> Deserialize<'de> for Agent {
     #[allow(clippy::too_many_lines)]
+    #[tracing::instrument(skip_all)]
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -216,10 +222,14 @@ impl<'de> Deserialize<'de> for Agent {
         impl<'de> Visitor<'de> for AgentVisitor {
             type Value = Agent;
 
+            #[tracing::instrument(skip_all)]
+            #[tracing::instrument(skip_all)]
             fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
                 formatter.write_str("struct AgentState")
             }
 
+            #[tracing::instrument(skip_all)]
+            #[tracing::instrument(skip_all)]
             fn visit_map<V>(self, mut map: V) -> Result<Agent, V::Error>
             where
                 V: MapAccess<'de>,
@@ -231,6 +241,7 @@ impl<'de> Deserialize<'de> for Agent {
                 // This serves as a simpler, finer constrained alternative
                 struct BufferedOutboundMessageVec(serde_json::Value);
                 impl BufferedOutboundMessageVec {
+                    #[tracing::instrument(skip_all)]
                     fn consume<E: de::Error>(
                         self,
                         buffer_state: &Agent,
@@ -353,6 +364,7 @@ impl<'de> Deserialize<'de> for Agent {
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn to_vec3_default(
     val: serde_json::Value,
     default: f64,
@@ -373,6 +385,7 @@ fn to_vec3_default(
 }
 
 #[inline]
+#[tracing::instrument(skip_all)]
 fn to_f64_default(val: Option<&serde_json::Value>, default: f64) -> Option<f64> {
     match val {
         None => Some(default),
@@ -383,6 +396,8 @@ fn to_f64_default(val: Option<&serde_json::Value>, default: f64) -> Option<f64> 
 #[test]
 /// This test describes the scenario in which a message is parsed before the agent_id key
 /// when enumerating over the MapAccess entries when deserializing JSON
+
+#[tracing::instrument(skip_all)]
 fn deserialize_messages_before_agent_id() {
     let agent: Agent = serde_json::from_str(
         r#"
@@ -404,6 +419,7 @@ fn deserialize_messages_before_agent_id() {
 }
 
 #[test]
+#[tracing::instrument(skip_all)]
 fn deserialize_duplicate_agent_state_field() {
     let agent: serde_json::Result<Agent> = serde_json::from_str(
         r#"
@@ -420,6 +436,7 @@ fn deserialize_duplicate_agent_state_field() {
 }
 
 impl Default for Agent {
+    #[tracing::instrument(skip_all)]
     fn default() -> Self {
         Self {
             agent_id: generate_agent_id(),
@@ -433,6 +450,7 @@ pub trait StrVec {
 }
 
 impl StrVec for &str {
+    #[tracing::instrument(skip_all)]
     fn to_vec(&self) -> Vec<String> {
         vec![(*self).to_string()]
     }
@@ -442,6 +460,7 @@ impl<T> StrVec for &[T]
 where
     T: AsRef<str> + ToString,
 {
+    #[tracing::instrument(skip_all)]
     fn to_vec(&self) -> Vec<String> {
         self.iter().map(ToString::to_string).collect()
     }
@@ -451,6 +470,7 @@ impl<T> StrVec for Vec<T>
 where
     T: AsRef<str> + ToString,
 {
+    #[tracing::instrument(skip_all)]
     fn to_vec(&self) -> Vec<String> {
         self.iter().map(ToString::to_string).collect()
     }
@@ -753,6 +773,7 @@ impl Agent {
 impl Index<&str> for Agent {
     type Output = serde_json::Value;
 
+    #[tracing::instrument(skip_all)]
     fn index(&self, index: &str) -> &Self::Output {
         for &builtin in &BUILTIN_FIELDS {
             if index == builtin {
@@ -769,6 +790,7 @@ impl Index<&str> for Agent {
 }
 
 impl IndexMut<&str> for Agent {
+    #[tracing::instrument(skip_all)]
     fn index_mut(&mut self, index: &str) -> &mut serde_json::Value {
         for &builtin in &BUILTIN_FIELDS {
             if index == builtin {
@@ -786,6 +808,7 @@ impl IndexMut<&str> for Agent {
 }
 
 impl From<serde_json::Value> for Agent {
+    #[tracing::instrument(skip_all)]
     fn from(v: serde_json::Value) -> Self {
         match serde_json::from_value(v) {
             Ok(v) => v,
@@ -800,11 +823,13 @@ pub struct Name(#[serde(deserialize_with = "deserialize_string_from_number")] pu
 impl Deref for Name {
     type Target = str;
 
+    #[tracing::instrument(skip_all)]
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn generate_agent_id() -> String {
     uuid::Uuid::new_v4().to_string()
 }
@@ -816,6 +841,7 @@ mod tests {
     use super::{super::message::GenericPayload, *};
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn agent_state_ergonomics() -> Result<()> {
         let mut agent = Agent::default();
         // testing set
@@ -826,6 +852,7 @@ mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn test_state_custom_fields() {
         let mut agent = Agent::default();
         agent.set("bar", "foo").expect("Failed to set bar to foo");
@@ -838,6 +865,7 @@ mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn test_empty_state() {
         let json = "{}";
 
@@ -847,6 +875,7 @@ mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn test_position_was_corrected_ignored() {
         let agent = Agent::default();
 
@@ -857,6 +886,7 @@ mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn test_position() {
         let json = r#"{ "position": [1, 2] }"#;
 
@@ -869,6 +899,7 @@ mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn test_scale() {
         let json = r#"{ "scale": [5, 2]}"#;
         let agent: Agent = serde_json::from_str(&json).unwrap();
@@ -888,12 +919,14 @@ mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn test_scale_default() {
         let agent = Agent::default();
         assert_eq!(agent.scale, None);
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn test_scale_invalid() {
         let json = r#"{ "scale": [5, 2, "123"]}"#;
         assert!(serde_json::from_str::<Agent>(&json).is_err());
@@ -901,6 +934,7 @@ mod tests {
 
     #[test]
     #[should_panic]
+    #[tracing::instrument(skip_all)]
     fn test_from_invalid_json() {
         let agent: Agent = json!({
             "agent_id": "puppa",
@@ -912,6 +946,7 @@ mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn test_create_agent_message() {
         let msg = message::Outbound::CreateAgent(message::OutboundCreateAgentPayload {
             r#type: message::CreateAgent::Type,
@@ -930,6 +965,7 @@ mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn test_remove_agent_message() {
         let msg = message::Outbound::RemoveAgent(message::OutboundRemoveAgentPayload {
             r#type: message::RemoveAgent::Type,
@@ -950,6 +986,7 @@ mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn test_stop_message() {
         let msg = message::Outbound::StopSim(message::OutboundStopSimPayload {
             r#type: message::StopSim::Type,
@@ -970,6 +1007,7 @@ mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn test_generic_message() {
         let msg = message::Outbound::Generic(GenericPayload {
             r#type: "custom_message".to_string(),
@@ -992,6 +1030,7 @@ mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn test_add_message() {
         let mut agent = Agent::default();
         let data = Some(json!({"foo": "bar"}));
@@ -1008,6 +1047,7 @@ mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn test_add_message_multiple() {
         let mut agent = Agent::default();
         let data = Some(json!({"foo": "bar"}));

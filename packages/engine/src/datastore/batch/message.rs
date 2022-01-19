@@ -47,22 +47,27 @@ pub struct Batch {
 }
 
 impl BatchRepr for Batch {
+    #[tracing::instrument(skip_all)]
     fn memory(&self) -> &Memory {
         &self.memory
     }
 
+    #[tracing::instrument(skip_all)]
     fn memory_mut(&mut self) -> &mut Memory {
         &mut self.memory
     }
 
+    #[tracing::instrument(skip_all)]
     fn metaversion(&self) -> &Metaversion {
         &self.metaversion
     }
 
+    #[tracing::instrument(skip_all)]
     fn metaversion_mut(&mut self) -> &mut Metaversion {
         &mut self.metaversion
     }
 
+    #[tracing::instrument(skip_all)]
     fn maybe_reload(&mut self, state: Metaversion) -> Result<()> {
         if self.metaversion.memory() != state.memory() {
             self.reload()?;
@@ -75,6 +80,8 @@ impl BatchRepr for Batch {
     }
 
     /// Reload the memory (for when ftruncate has been called) and batch
+
+    #[tracing::instrument(skip_all)]
     fn reload(&mut self) -> Result<()> {
         self.memory.reload()?;
         self.reload_record_batch()
@@ -82,20 +89,24 @@ impl BatchRepr for Batch {
 }
 
 impl ArrowBatch for Batch {
+    #[tracing::instrument(skip_all)]
     fn record_batch(&self) -> &RecordBatch {
         &self.batch
     }
 
+    #[tracing::instrument(skip_all)]
     fn record_batch_mut(&mut self) -> &mut RecordBatch {
         &mut self.batch
     }
 }
 
 impl DynamicBatch for Batch {
+    #[tracing::instrument(skip_all)]
     fn dynamic_meta(&self) -> &DynamicMeta {
         &self.dynamic_meta
     }
 
+    #[tracing::instrument(skip_all)]
     fn dynamic_meta_mut(&mut self) -> &mut DynamicMeta {
         &mut self.dynamic_meta
     }
@@ -103,11 +114,14 @@ impl DynamicBatch for Batch {
     /// Push an `ArrayChange` into pending list of changes
     /// NB: These changes are not written into memory if
     /// `self.flush_changes` is not called.
+
+    #[tracing::instrument(skip_all)]
     fn push_change(&mut self, change: ArrayChange) -> Result<()> {
         self.changes.push(change);
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     fn flush_changes(&mut self) -> Result<()> {
         let resized = GrowableBatch::flush_changes(self)?;
         // The current `self.batch` is invalid because offset have been changed.
@@ -125,32 +139,39 @@ impl DynamicBatch for Batch {
 }
 
 impl GrowableBatch<ArrayChange, Arc<array::ArrayData>> for Batch {
+    #[tracing::instrument(skip_all)]
     fn take_changes(&mut self) -> Vec<ArrayChange> {
         std::mem::replace(&mut self.changes, Vec::with_capacity(3))
     }
 
+    #[tracing::instrument(skip_all)]
     fn static_meta(&self) -> &StaticMeta {
         &self.static_meta
     }
 
+    #[tracing::instrument(skip_all)]
     fn dynamic_meta(&self) -> &DynamicMeta {
         &self.dynamic_meta
     }
 
+    #[tracing::instrument(skip_all)]
     fn mut_dynamic_meta(&mut self) -> &mut DynamicMeta {
         &mut self.dynamic_meta
     }
 
+    #[tracing::instrument(skip_all)]
     fn memory(&self) -> &Memory {
         &self.memory
     }
 
+    #[tracing::instrument(skip_all)]
     fn mut_memory(&mut self) -> &mut Memory {
         &mut self.memory
     }
 }
 
 impl Batch {
+    #[tracing::instrument(skip_all)]
     pub fn reset(&mut self, agents: &AgentBatch) -> Result<()> {
         tracing::trace!("Resetting batch");
         let agent_count = agents.batch.num_rows();
@@ -208,6 +229,7 @@ impl Batch {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn empty_from_agent_batch(
         agents: &AgentBatch,
         schema: &Arc<ArrowSchema>,
@@ -235,6 +257,7 @@ impl Batch {
         Self::from_memory(memory, schema.clone(), meta)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn empty(
         agents: &[&AgentState],
         schema: &Arc<ArrowSchema>,
@@ -245,6 +268,7 @@ impl Batch {
         Self::from_record_batch(&arrow_batch, schema.clone(), meta, experiment_run_id)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn from_agent_states<K: IntoRecordBatch>(
         agents: K,
         schema: &Arc<MessageSchema>,
@@ -259,6 +283,7 @@ impl Batch {
         )
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn from_record_batch(
         record_batch: &RecordBatch,
         schema: Arc<ArrowSchema>,
@@ -278,6 +303,7 @@ impl Batch {
         Self::from_memory(memory, schema, meta)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn from_memory(
         memory: Memory,
         schema: Arc<ArrowSchema>,
@@ -319,6 +345,7 @@ pub struct Raw<'a> {
 
 // Iterators and getters
 impl Batch {
+    #[tracing::instrument(skip_all)]
     pub fn get_native_messages(&self) -> Result<Vec<Vec<OutboundMessage>>> {
         let reference = self
             .batch
@@ -331,6 +358,7 @@ impl Batch {
         get_column_from_list_array(reference)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn message_loader(&self) -> MessageLoader<'_> {
         let column = self.batch.column(message::FROM_COLUMN_INDEX);
         let data = column.data_ref();
@@ -354,6 +382,7 @@ impl Batch {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn message_index_iter(&self, i: usize) -> impl Iterator<Item = MessageIndex> {
         let num_agents = self.batch.num_rows();
         let group_index = i as u32;
@@ -373,6 +402,7 @@ impl Batch {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn message_usize_index_iter(
         &self,
         i: usize,
@@ -396,6 +426,7 @@ impl Batch {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn message_recipients_par_iter(
         &self,
     ) -> impl IndexedParallelIterator<Item = impl ParallelIterator<Item = Vec<&str>>> {
@@ -429,6 +460,7 @@ impl Batch {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn message_recipients_iter(&self) -> impl Iterator<Item = Vec<&str>> {
         let num_agents = self.batch.num_rows();
         let (bufs, to) = self.get_message_field(message::FieldIndex::To);
@@ -460,6 +492,7 @@ impl Batch {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     fn get_message_field(&self, index: message::FieldIndex) -> (Vec<&[i32]>, &str) {
         // The "to" field is the 0th field in MESSAGE_ARROW_FIELDS
         // The "type" field is the 1st field in MESSAGE_ARROW_FIELDS
@@ -539,6 +572,7 @@ pub struct MessageLoader<'a> {
 }
 
 impl<'a> MessageLoader<'a> {
+    #[tracing::instrument(skip_all)]
     pub fn get_from(&self, agent_index: usize) -> &'a [u8; UUID_V4_LEN] {
         let content_start = agent_index * UUID_V4_LEN;
         unsafe {
@@ -547,6 +581,7 @@ impl<'a> MessageLoader<'a> {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_recipients(&self, agent_index: usize, message_index: usize) -> Vec<&'a str> {
         let list_index = self.to_bufs[0][agent_index] as usize + message_index;
         let list_start = self.to_bufs[1][list_index] as usize;
@@ -561,6 +596,7 @@ impl<'a> MessageLoader<'a> {
             .collect()
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_type(&self, agent_index: usize, message_index: usize) -> &'a str {
         let list_index = self.typ_bufs[0][agent_index] as usize + message_index;
         let type_start = self.typ_bufs[1][list_index] as usize;
@@ -568,6 +604,7 @@ impl<'a> MessageLoader<'a> {
         &self.typ[type_start..next_type_start]
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_data(&self, agent_index: usize, message_index: usize) -> &'a str {
         let list_index = self.data_bufs[0][agent_index] as usize + message_index;
         let content_start = self.data_bufs[1][list_index] as usize;
@@ -575,6 +612,7 @@ impl<'a> MessageLoader<'a> {
         &self.data[content_start..next_content_start]
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_raw_message(&self, agent_index: usize, message_index: usize) -> Raw<'a> {
         Raw {
             from: self.get_from(agent_index),

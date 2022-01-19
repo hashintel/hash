@@ -16,12 +16,14 @@ impl PackageId {
 }
 
 impl fmt::Display for PackageId {
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
 impl From<usize> for PackageId {
+    #[tracing::instrument(skip_all)]
     fn from(id: usize) -> Self {
         Self(id)
     }
@@ -33,6 +35,7 @@ pub struct PackageIdGenerator {
 }
 
 impl PackageIdGenerator {
+    #[tracing::instrument(skip_all)]
     pub fn new(package_group: PackageType) -> PackageIdGenerator {
         let multiplier = match package_group {
             PackageType::Init => 3,
@@ -44,6 +47,7 @@ impl PackageIdGenerator {
         PackageIdGenerator { cur: 0, multiplier }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn next(&mut self) -> PackageId {
         let id = PackageId(self.multiplier * (2 ^ self.cur));
         self.cur += 1;

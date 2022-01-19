@@ -6,6 +6,7 @@ use crate::datastore::schema::{
 pub(super) const NEIGHBORS_FIELD_NAME: &str = "neighbors";
 pub(super) const SEARCH_RADIUS_FIELD_NAME: &str = "search_radius";
 
+#[tracing::instrument(skip_all)]
 fn neighbors() -> FieldType {
     let variant = VariableLengthArray(Box::new(FieldType::new(
         FixedLengthArray {

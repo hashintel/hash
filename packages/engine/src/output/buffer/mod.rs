@@ -49,6 +49,7 @@ pub struct AnalysisBuffer {
 }
 
 impl AnalysisBuffer {
+    #[tracing::instrument(skip_all)]
     pub fn new(output_packages_config: &OutputPackagesSimConfig) -> Result<AnalysisBuffer> {
         let value = output_packages_config
             .map
@@ -63,6 +64,7 @@ impl AnalysisBuffer {
         Ok(buffer)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn add(&mut self, output: AnalysisOutput) -> Result<()> {
         output.inner.into_iter().try_for_each(|(name, output)| {
             self.buffers

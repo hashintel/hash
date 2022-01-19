@@ -7,6 +7,7 @@ use crate::{
     simulation::package::state::packages::behavior_execution::config::BehaviorId,
 };
 
+#[tracing::instrument(skip_all)]
 pub fn gather_behavior_chains(
     state: &ExState,
     behavior_ids: &BehaviorIds,
@@ -30,6 +31,7 @@ pub struct Chain {
 }
 
 impl Chain {
+    #[tracing::instrument(skip_all)]
     pub fn from_behaviors(behaviors: &[&[u8]], behavior_ids: &BehaviorIds) -> Result<Self> {
         Ok(Chain {
             inner: behaviors
@@ -60,6 +62,7 @@ pub struct ChainList {
 }
 
 impl IntoArrowChange for ChainList {
+    #[tracing::instrument(skip_all)]
     fn get_arrow_change(&self, range: std::ops::Range<usize>) -> DatastoreResult<ArrayChange> {
         debug_assert!(self.inner.len() >= range.end);
         let num_agents = range.end - range.start;

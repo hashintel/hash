@@ -27,6 +27,7 @@ use crate::{
     },
 };
 
+#[tracing::instrument(skip_all)]
 fn index_iterator_f64_filter(
     operations: &[AnalysisOperationRepr],
     accessor: &FieldSpecMapAccessor,
@@ -80,6 +81,7 @@ fn index_iterator_f64_filter(
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn index_iterator_serialized_f64_filter(
     operations: &[AnalysisOperationRepr],
     accessor: &FieldSpecMapAccessor,
@@ -187,6 +189,7 @@ fn index_iterator_serialized_f64_filter(
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn index_iterator_null_filter(
     operations: &[AnalysisOperationRepr],
     accessor: &FieldSpecMapAccessor,
@@ -206,6 +209,7 @@ fn index_iterator_null_filter(
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn index_iterator_boolean_filter(
     operations: &[AnalysisOperationRepr],
     accessor: &FieldSpecMapAccessor,
@@ -226,6 +230,7 @@ fn index_iterator_boolean_filter(
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn index_iterator_serialized_null_filter(
     operations: &[AnalysisOperationRepr],
     accessor: &FieldSpecMapAccessor,
@@ -253,6 +258,7 @@ fn index_iterator_serialized_null_filter(
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn index_iterator_serialized_boolean_filter(
     operations: &[AnalysisOperationRepr],
     accessor: &FieldSpecMapAccessor,
@@ -299,6 +305,7 @@ fn index_iterator_serialized_boolean_filter(
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn index_iterator_string_filter(
     operations: &[AnalysisOperationRepr],
     accessor: &FieldSpecMapAccessor,
@@ -364,6 +371,7 @@ fn index_iterator_string_filter(
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn index_iterator_serialized_string_filter(
     operations: &[AnalysisOperationRepr],
     accessor: &FieldSpecMapAccessor,
@@ -483,6 +491,7 @@ fn index_iterator_serialized_string_filter(
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn index_iterator_serialized_filter(
     operations: &[AnalysisOperationRepr],
     accessor: &FieldSpecMapAccessor,
@@ -514,6 +523,7 @@ fn index_iterator_serialized_filter(
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn f64_iter_aggregate(
     aggregator: &AnalysisOperationRepr,
     first_field: String,
@@ -693,6 +703,7 @@ pub(super) fn index_iterator_filter_creator(
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn default_first_getter(
     accessor: &FieldSpecMapAccessor,
     first_field: &str,

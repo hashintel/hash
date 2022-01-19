@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 pub use packages::{ContextTask, ContextTaskMessage, Name, PACKAGE_CREATORS};
-use tracing::instrument;
 
 use super::{
     deps::Dependencies,
@@ -32,6 +31,7 @@ pub trait Package: MaybeCpuBound + GetWorkerSimStartMsg + Send + Sync {
         state: Arc<State>,
         snapshot: Arc<StateSnapshot>,
     ) -> Result<Vec<ContextColumn>>;
+
     fn get_empty_arrow_columns(
         &self,
         num_agents: usize,
@@ -47,6 +47,7 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
     /// can get it from the simulation config when calling `create`
     /// We can't derive a default as that returns Self which implies Sized which in turn means we
     /// can't create Trait Objects out of PackageCreator
+
     fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>>
     where
         Self: Sized;
@@ -69,6 +70,7 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
 
     // TODO: Limit context packages to only add one field as long as we only allow one column from
     // "get_empty_arrow_column"
+
     fn get_context_field_specs(
         &self,
         _config: &ExperimentConfig,
@@ -95,10 +97,12 @@ pub struct ContextColumn {
 }
 
 impl ContextColumn {
+    #[tracing::instrument(skip_all)]
     pub fn get_dynamic_metadata(&self) -> DatastoreResult<ColumnDynamicMetadata> {
         self.inner.get_dynamic_metadata()
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn write(&self, buffer: &mut [u8], meta: &ColumnDynamicMetadata) -> DatastoreResult<()> {
         self.inner.write(buffer, meta)
     }
@@ -106,5 +110,6 @@ impl ContextColumn {
 
 pub trait ContextColumnWriter {
     fn get_dynamic_metadata(&self) -> DatastoreResult<ColumnDynamicMetadata>;
+
     fn write(&self, buffer: &mut [u8], meta: &ColumnDynamicMetadata) -> DatastoreResult<()>;
 }

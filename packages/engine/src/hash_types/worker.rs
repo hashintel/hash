@@ -30,6 +30,7 @@ pub enum PyodideStatus {
 }
 
 impl Default for PyodideStatus {
+    #[tracing::instrument(skip_all)]
     fn default() -> Self {
         PyodideStatus::Unused
     }

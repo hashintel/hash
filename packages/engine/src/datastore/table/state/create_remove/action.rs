@@ -19,6 +19,7 @@ pub struct CreateActions<'a> {
 }
 
 impl std::fmt::Debug for ExistingGroupBufferActions<'_> {
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ExistingGroupBufferActions::Persist { affinity } => f

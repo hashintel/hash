@@ -28,10 +28,12 @@ pub type ArrowIndexBuilder = arrow::array::UInt32Builder;
 pub struct Creator {}
 
 impl PackageCreator for Creator {
+    #[tracing::instrument(skip_all)]
     fn new(_experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>> {
         Ok(Box::new(Creator {}))
     }
 
+    #[tracing::instrument(skip_all)]
     fn create(
         &self,
         _config: &Arc<SimRunConfig>,
@@ -44,6 +46,7 @@ impl PackageCreator for Creator {
         }))
     }
 
+    #[tracing::instrument(skip_all)]
     fn get_context_field_specs(
         &self,
         _config: &ExperimentConfig,
@@ -55,6 +58,7 @@ impl PackageCreator for Creator {
 }
 
 impl GetWorkerExpStartMsg for Creator {
+    #[tracing::instrument(skip_all)]
     fn get_worker_exp_start_msg(&self) -> Result<Value> {
         Ok(Value::Null)
     }
@@ -65,12 +69,14 @@ struct AgentMessages {
 }
 
 impl MaybeCpuBound for AgentMessages {
+    #[tracing::instrument(skip_all)]
     fn cpu_bound(&self) -> bool {
         CPU_BOUND
     }
 }
 
 impl GetWorkerSimStartMsg for AgentMessages {
+    #[tracing::instrument(skip_all)]
     fn get_worker_sim_start_msg(&self) -> Result<Value> {
         Ok(Value::Null)
     }
@@ -78,7 +84,7 @@ impl GetWorkerSimStartMsg for AgentMessages {
 
 #[async_trait]
 impl Package for AgentMessages {
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn run<'s>(
         &mut self,
         state: Arc<State>,
@@ -101,6 +107,7 @@ impl Package for AgentMessages {
         }])
     }
 
+    #[tracing::instrument(skip_all)]
     fn get_empty_arrow_columns(
         &self,
         num_agents: usize,

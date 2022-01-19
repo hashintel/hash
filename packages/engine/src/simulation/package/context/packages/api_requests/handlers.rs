@@ -2,7 +2,6 @@ use std::collections::hash_map;
 
 use serde_json::Value;
 use thiserror::Error as ThisError;
-use tracing::instrument;
 
 use super::*;
 use crate::datastore::{
@@ -18,6 +17,7 @@ pub struct Requests {
     inner: Vec<Request>,
 }
 
+#[tracing::instrument(skip_all)]
 pub fn gather_requests(
     reader: &MessageReader<'_>,
     messages: &[AgentMessageReference],
@@ -37,7 +37,7 @@ pub fn gather_requests(
     Ok(Requests { inner })
 }
 
-#[instrument(skip_all)]
+#[tracing::instrument(skip_all)]
 pub async fn run_custom_message_handler(name: &str, requests: Requests) -> Result<ApiResponseMap> {
     match name {
         "mapbox" => handlers::mapbox::get(requests).await,
@@ -55,6 +55,7 @@ pub enum CustomApiMessageError {
 }
 
 trait CustomError: Into<CustomApiMessageError> {
+    #[tracing::instrument(skip_all)]
     fn conv(self) -> Error {
         self.into().into()
     }
@@ -80,7 +81,7 @@ pub mod mapbox {
 
     impl CustomError for MapboxError {}
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn get_<'a>(request: Request) -> Result<([u8; UUID_V4_LEN], String)> {
         let (_from, data) = request;
         let _transportation_method = data
@@ -101,7 +102,7 @@ pub mod mapbox {
         //     .map(|s| (from, s))
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn get<'a>(requests: Requests) -> Result<ApiResponseMap> {
         let responses = futures::stream::iter(requests.inner.into_iter().map(get_))
             .buffer_unordered(ACTIVE_REQUESTS)

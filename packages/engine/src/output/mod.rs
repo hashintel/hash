@@ -15,6 +15,7 @@ pub use self::error::{Error, Result};
 
 pub trait OutputPersistenceCreatorRepr: Send + Sync + 'static {
     type SimulationOutputPersistence: SimulationOutputPersistenceRepr;
+
     fn new_simulation(
         &self,
         sim_id: SimulationShortId,

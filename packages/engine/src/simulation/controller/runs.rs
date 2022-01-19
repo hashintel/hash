@@ -1,6 +1,5 @@
 use futures::stream::{FuturesOrdered, StreamExt};
 use tokio::task::JoinHandle;
-use tracing::instrument;
 
 use super::Result;
 use crate::proto::SimulationShortId;
@@ -11,15 +10,17 @@ pub struct SimulationRuns {
 }
 
 impl SimulationRuns {
+    #[tracing::instrument(skip_all)]
     pub fn new_run(&mut self, handle: JoinHandle<Result<SimulationShortId>>) {
         self.inner.push(handle);
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn is_empty(&self) -> bool {
         self.inner.is_empty()
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn next(&mut self) -> Result<Option<Result<SimulationShortId>>>
     where
         Self: Unpin,

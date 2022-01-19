@@ -6,22 +6,27 @@ pub struct Batch {
 }
 
 impl super::Batch for Batch {
+    #[tracing::instrument(skip_all)]
     fn memory(&self) -> &Memory {
         &self.memory
     }
 
+    #[tracing::instrument(skip_all)]
     fn memory_mut(&mut self) -> &mut Memory {
         &mut self.memory
     }
 
+    #[tracing::instrument(skip_all)]
     fn metaversion(&self) -> &Metaversion {
         &self.reload_state
     }
 
+    #[tracing::instrument(skip_all)]
     fn metaversion_mut(&mut self) -> &mut Metaversion {
         &mut self.reload_state
     }
 
+    #[tracing::instrument(skip_all)]
     fn maybe_reload(&mut self, _reload_state: Metaversion) -> Result<()> {
         // TODO: ret these errors
         // Error::from("Datasets are not updated");
@@ -29,6 +34,7 @@ impl super::Batch for Batch {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     fn reload(&mut self) -> Result<()> {
         // TODO: ret these errors
         // Error::from("Datasets are not updated");
@@ -38,6 +44,7 @@ impl super::Batch for Batch {
 }
 
 impl Batch {
+    #[tracing::instrument(skip_all)]
     pub fn new_from_dataset(dataset: &SharedDataset, experiment_run_id: &str) -> Result<Batch> {
         let dataset_name = dataset.shortname.clone();
         let dataset_size = dataset

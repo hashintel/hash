@@ -28,10 +28,12 @@ pub struct Context {
 }
 
 impl Context {
+    #[tracing::instrument(skip_all)]
     pub fn batch(&self) -> Arc<RwLock<ContextBatch>> {
         self.inner.batch.clone()
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn new_from_columns(
         cols: Vec<Arc<dyn arrow::array::Array>>,
         config: Arc<StoreConfig>,
@@ -53,12 +55,14 @@ impl Context {
         Ok(Context { inner })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn upgrade(self) -> ExContext {
         ExContext { inner: self.inner }
     }
 }
 
 impl ReadContext for Context {
+    #[tracing::instrument(skip_all)]
     fn inner(&self) -> &Inner {
         &self.inner
     }
@@ -70,26 +74,32 @@ pub struct ExContext {
 }
 
 impl ExContext {
+    #[tracing::instrument(skip_all)]
     pub fn downgrade(self) -> Context {
         Context { inner: self.inner }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn take_agent_pool(&mut self) -> AgentPool {
         std::mem::replace(&mut self.inner_mut().agent_pool, AgentPool::empty())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn take_message_pool(&mut self) -> MessagePool {
         std::mem::replace(&mut self.inner_mut().message_pool, MessagePool::empty())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn set_message_pool(&mut self, pool: MessagePool) {
         self.inner_mut().message_pool = pool;
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn local_meta(&mut self) -> &mut Meta {
         &mut self.inner.local_meta
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn write_batch(
         &mut self,
         column_writers: &[&ContextColumn],
@@ -102,6 +112,7 @@ impl ExContext {
             .write_from_context_datas(column_writers, num_elements)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn into_pre_context(self) -> PreContext {
         PreContext {
             batch: self.inner.batch,
@@ -117,6 +128,7 @@ pub struct PreContext {
 }
 
 impl PreContext {
+    #[tracing::instrument(skip_all)]
     pub fn finalize(
         self,
         snapshot: StateSnapshot,
@@ -137,12 +149,14 @@ impl PreContext {
 }
 
 impl ReadContext for ExContext {
+    #[tracing::instrument(skip_all)]
     fn inner(&self) -> &Inner {
         &self.inner
     }
 }
 
 impl WriteContext for ExContext {
+    #[tracing::instrument(skip_all)]
     fn inner_mut(&mut self) -> &mut Inner {
         &mut self.inner
     }
@@ -156,18 +170,22 @@ pub trait WriteContext: ReadContext {
 }
 
 impl Inner {
+    #[tracing::instrument(skip_all)]
     pub fn agent_pool_mut(&mut self) -> &mut AgentPool {
         &mut self.agent_pool
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn agent_pool(&self) -> &AgentPool {
         &self.agent_pool
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn message_pool_mut(&mut self) -> &mut MessagePool {
         &mut self.message_pool
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn message_pool(&self) -> &MessagePool {
         &self.message_pool
     }

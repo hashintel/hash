@@ -1,6 +1,8 @@
-use super::{Context, Result, SharedBehavior, State};
 use serde_json::json;
 
+use super::{Context, Result, SharedBehavior, State};
+
+#[tracing::instrument(skip_all)]
 pub fn behavior(state: &mut State, context: &Context) -> Result<()> {
     let properties = &context.globals();
     let topology = properties
@@ -79,6 +81,7 @@ pub fn behavior(state: &mut State, context: &Context) -> Result<()> {
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub fn get_named_behavior() -> SharedBehavior {
     SharedBehavior {
         id: "@hash/create_stacks/create_stacks.rs".into(),

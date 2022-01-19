@@ -28,6 +28,7 @@ pub enum ExpectedFieldType {
 }
 
 impl std::fmt::Display for ExpectedFieldType {
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use ExpectedFieldType::{Custom, String, StringOrCustom};
         match self {
@@ -42,6 +43,7 @@ const DEFINED_KEY: &str = "defined";
 const SPECS_KEY: &str = "keys";
 
 impl FieldType {
+    #[tracing::instrument(skip_all)]
     fn from_short_string(
         name: &str,
         definitions: Option<&HashMap<&str, FieldSpec>>,
@@ -119,6 +121,7 @@ impl FieldType {
 }
 
 impl FieldSpec {
+    #[tracing::instrument(skip_all)]
     fn from_short_json_object(
         name: &str,
         value: &serde_json::Value,
@@ -142,6 +145,7 @@ impl FieldSpec {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     fn from_short_json_value(
         name: &str,
         value: &serde_json::Value,
@@ -221,6 +225,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn parse_keyset_from_json() {
         let json = serde_json::json!({
             "defined": {

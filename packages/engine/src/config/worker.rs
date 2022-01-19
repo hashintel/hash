@@ -6,6 +6,7 @@ pub struct SpawnConfig {
 }
 
 impl Default for SpawnConfig {
+    #[tracing::instrument(skip_all)]
     fn default() -> Self {
         SpawnConfig {
             python: true,

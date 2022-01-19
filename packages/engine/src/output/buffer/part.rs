@@ -29,6 +29,7 @@ pub struct OutputPartBuffer {
 }
 
 impl OutputPartBuffer {
+    #[tracing::instrument(skip_all)]
     pub fn new(
         output_type_name: &'static str,
         experiment_id: ExperimentId,
@@ -53,10 +54,12 @@ impl OutputPartBuffer {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn is_at_capacity(&self) -> bool {
         self.current.len() > IN_MEMORY_SIZE
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn persist_current_on_disk(&mut self) -> Result<()> {
         tracing::trace!("Persisting current output to disk");
         let mut next_i = self.parts.len();
@@ -93,6 +96,7 @@ impl OutputPartBuffer {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn append_step<S: Serialize>(&mut self, step: S) -> Result<()> {
         if !self.initial_step {
             self.current.push(CHAR_COMMA); // Previous step existed
@@ -106,6 +110,7 @@ impl OutputPartBuffer {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn finalize(mut self) -> Result<(Vec<u8>, Vec<PathBuf>)> {
         self.current.push(CHAR_OPEN_RIGHT_SQUARE_BRACKET);
         self.persist_current_on_disk()?;

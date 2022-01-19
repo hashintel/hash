@@ -1,7 +1,6 @@
 use std::{result::Result, sync::Arc};
 
 use tokio::sync::{mpsc, Mutex};
-use tracing::instrument;
 
 /// Create a new single-producer multi-consumer queue. The `Receiver` end of the queue
 /// may be cloned. Each value in the queue will be received by at most one consumer.
@@ -25,7 +24,7 @@ pub struct Sender<T> {
 impl<T> Sender<T> {
     /// Send a value into the queue. Returns an error if all receive ends of the queue
     /// are dropped.
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn send(&mut self, value: T) -> Result<(), mpsc::error::SendError<T>> {
         self.sender.send(value).await
     }
@@ -36,6 +35,7 @@ pub struct Receiver<T> {
 }
 
 impl<T> Clone for Receiver<T> {
+    #[tracing::instrument(skip_all)]
     fn clone(&self) -> Self {
         Receiver {
             receiver: self.receiver.clone(),
@@ -45,7 +45,7 @@ impl<T> Clone for Receiver<T> {
 
 impl<T> Receiver<T> {
     /// Receive a value from the queue. Returns `None` if the send half is dropped.
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn recv(&mut self) -> Option<T> {
         let mut ch = self.receiver.lock().await;
         ch.recv().await

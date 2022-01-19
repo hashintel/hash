@@ -12,6 +12,7 @@ const NUM_NODES: usize = 3;
 const NUM_BUFFERS: usize = 5;
 
 impl ContextColumnWriter for Messages {
+    #[tracing::instrument(skip_all)]
     fn get_dynamic_metadata(&self) -> DatastoreResult<ColumnDynamicMetadata> {
         let mut builder = ColumnDynamicMetadataBuilder::with_capacities(NUM_NODES, NUM_BUFFERS);
         // TODO: Implement and use `builder.add_offset_buffer` convenience function;
@@ -35,6 +36,7 @@ impl ContextColumnWriter for Messages {
         Ok(builder.finish())
     }
 
+    #[tracing::instrument(skip_all)]
     fn write(&self, mut data: &mut [u8], meta: &ColumnDynamicMetadata) -> DatastoreResult<()> {
         tracing::debug!("Writing context message locs");
         // TODO[6](optimization)

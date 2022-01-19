@@ -19,6 +19,7 @@ pub fn behavior(state: &mut State, context: &Context) -> Result<()> {
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub fn get_named_behavior() -> SharedBehavior {
     SharedBehavior {
         id: "@hash/physics/gravity.rs".into(),

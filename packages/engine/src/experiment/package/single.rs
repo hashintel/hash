@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use tracing::instrument;
-
 use super::super::{Error, ExperimentControl, Result};
 use crate::{
     config::ExperimentConfig,
@@ -15,6 +13,7 @@ pub struct SingleRunExperiment {
 }
 
 impl SingleRunExperiment {
+    #[tracing::instrument(skip_all)]
     pub fn new(
         experiment_config: &Arc<ExperimentConfig>,
         config: SingleRunExperimentConfig,
@@ -25,7 +24,7 @@ impl SingleRunExperiment {
         })
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn run(
         self,
         mut pkg_to_exp: ExpPkgCtlSend,

@@ -45,6 +45,7 @@ pub enum MessageTarget {
 }
 
 impl From<Language> for MessageTarget {
+    #[tracing::instrument(skip_all)]
     fn from(l: Language) -> Self {
         match l {
             Language::Rust => Self::Rust,
@@ -55,6 +56,7 @@ impl From<Language> for MessageTarget {
 }
 
 impl From<flatbuffers_gen::target_generated::Target> for MessageTarget {
+    #[tracing::instrument(skip_all)]
     fn from(target: flatbuffers_gen::target_generated::Target) -> Self {
         match target {
             flatbuffers_gen::target_generated::Target::Rust => Self::Rust,
@@ -83,6 +85,7 @@ pub struct TargetedRunnerTaskMsg {
 }
 
 impl TargetedRunnerTaskMsg {
+    #[tracing::instrument(skip_all)]
     pub fn try_from_fbs(
         task_msg: flatbuffers_gen::runner_outbound_msg_generated::TaskMsg<'_>,
         sent_tasks: &mut HashMap<TaskId, SentTask>,
@@ -156,6 +159,7 @@ pub struct DatastoreSimulationPayload {
 }
 
 impl Debug for DatastoreSimulationPayload {
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.write_str("DatastoreSimulationPayload")
     }
@@ -177,6 +181,7 @@ pub struct ExperimentInitRunnerMsg {
 }
 
 impl ExperimentInitRunnerMsg {
+    #[tracing::instrument(skip_all)]
     pub fn new(
         base: &ExperimentInitRunnerMsgBase,
         worker_index: WorkerIndex,

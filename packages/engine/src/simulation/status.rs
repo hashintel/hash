@@ -22,6 +22,7 @@ pub struct SimStatus {
 }
 
 impl SimStatus {
+    #[tracing::instrument(skip_all)]
     pub fn running(sim_id: SimulationShortId, steps_taken: isize) -> SimStatus {
         SimStatus {
             sim_id,
@@ -41,6 +42,7 @@ impl SimStatus {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn ended<P: OutputPersistenceResultRepr>(
         sim_id: SimulationShortId,
         steps_taken: isize,
@@ -62,6 +64,7 @@ impl SimStatus {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn error<P: OutputPersistenceResultRepr>(
         sim_id: SimulationShortId,
         steps_taken: isize,

@@ -16,9 +16,11 @@ pub struct FieldSpecMapAccessor {
 
 pub trait GetFieldSpec {
     /// Get a FieldSpec stored under a given field name with FieldScope::Agent
+
     fn get_agent_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec>;
     /// Get a FieldSpec stored under a given field name with FieldScope::Hidden and belonging to a
     /// given FieldSource
+
     fn get_hidden_scoped_field_spec(
         &self,
         field_name: &str,
@@ -27,19 +29,23 @@ pub trait GetFieldSpec {
 
     /// Get a FieldSpec stored under a given field name with FieldScope::Private that belongs to the
     /// FieldSource of the accessor
+
     fn get_local_private_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec>;
 
     /// Get a FieldSpec stored under a given field name with FieldScope::Hidden that belongs to the
     /// FieldSource of the accessor
+
     fn get_local_hidden_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec>;
 }
 
 impl GetFieldSpec for FieldSpecMapAccessor {
+    #[tracing::instrument(skip_all)]
     fn get_agent_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec> {
         let key = FieldKey::new_agent_scoped(field_name)?;
         self.field_spec_map.get_field_spec(&key)
     }
 
+    #[tracing::instrument(skip_all)]
     fn get_hidden_scoped_field_spec(
         &self,
         field_name: &str,
@@ -50,6 +56,7 @@ impl GetFieldSpec for FieldSpecMapAccessor {
         self.field_spec_map.get_field_spec(&key)
     }
 
+    #[tracing::instrument(skip_all)]
     fn get_local_private_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec> {
         let key = FieldKey::new_private_or_hidden_scoped(
             field_name,
@@ -59,6 +66,7 @@ impl GetFieldSpec for FieldSpecMapAccessor {
         self.field_spec_map.get_field_spec(&key)
     }
 
+    #[tracing::instrument(skip_all)]
     fn get_local_hidden_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec> {
         let key = FieldKey::new_private_or_hidden_scoped(
             field_name,
@@ -82,12 +90,14 @@ impl RootFieldSpecMapAccessor {
     // TODO: We're allowing dead code on these during development, if the engine doesn't
     //   end up needing these it might be worth removing
     #[allow(dead_code)]
+    #[tracing::instrument(skip_all)]
     fn get_agent_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec> {
         let key = FieldKey::new_agent_scoped(field_name)?;
         self.field_spec_map.get_field_spec(&key)
     }
 
     #[allow(dead_code)]
+    #[tracing::instrument(skip_all)]
     fn get_private_or_hidden_scoped_field_spec(
         &self,
         field_name: &str,

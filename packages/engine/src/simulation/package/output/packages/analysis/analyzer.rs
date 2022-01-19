@@ -39,6 +39,7 @@ pub struct Analyzer {
 }
 
 impl Analyzer {
+    #[tracing::instrument(skip_all)]
     pub fn from_analysis_source(
         analysis_source: &str,
         _agent_schema: &AgentSchema,
@@ -63,6 +64,7 @@ impl Analyzer {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn run(&mut self, dynamic_pool: &[&AgentBatch], num_agents: usize) -> Result<()> {
         self.outputs
             .iter_mut()
@@ -79,6 +81,7 @@ impl Analyzer {
             })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_latest_output_set(&self) -> AnalysisOutput {
         AnalysisOutput {
             inner: self
@@ -106,6 +109,7 @@ pub(super) struct AnalysisSourceRepr {
 impl<'a> TryFrom<&'a str> for AnalysisSourceRepr {
     type Error = Error;
 
+    #[tracing::instrument(skip_all)]
     fn try_from(source: &'a str) -> Result<Self> {
         if source.trim().is_empty() {
             Ok(Self::default())
@@ -128,6 +132,7 @@ pub struct OutputCreator {
 }
 
 impl OutputCreator {
+    #[tracing::instrument(skip_all)]
     fn new(
         accessor: &FieldSpecMapAccessor,
         operations: &[AnalysisOperationRepr],
@@ -136,6 +141,7 @@ impl OutputCreator {
         Ok(OutputCreator { creator })
     }
 
+    #[tracing::instrument(skip_all)]
     fn run(&self, dynamic_pool: &[&AgentBatch], num_agents: usize) -> Result<AnalysisSingleOutput> {
         ((&self.creator)(dynamic_pool)?)(Box::new(0..num_agents))
     }
@@ -214,18 +220,22 @@ pub enum AnalysisOperationRepr {
 }
 
 impl AnalysisOperationRepr {
+    #[tracing::instrument(skip_all)]
     pub fn is_filter(&self) -> bool {
         matches!(self, Self::Filter { .. })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn is_map(&self) -> bool {
         matches!(self, Self::Get { .. })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn is_count(&self) -> bool {
         matches!(self, Self::Count)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn is_num_aggregator(&self) -> bool {
         match self {
             Self::Sum | Self::Min | Self::Max | Self::Mean => true,

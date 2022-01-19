@@ -12,6 +12,7 @@ const NUM_NODES: usize = 5;
 const NUM_BUFFERS: usize = 12;
 
 impl ContextColumnWriter for ApiResponses<'_> {
+    #[tracing::instrument(skip_all)]
     fn get_dynamic_metadata(&self) -> DatastoreResult<ColumnDynamicMetadata> {
         let mut builder = ColumnDynamicMetadataBuilder::with_capacities(NUM_NODES, NUM_BUFFERS);
 
@@ -33,6 +34,7 @@ impl ContextColumnWriter for ApiResponses<'_> {
         Ok(builder.finish())
     }
 
+    #[tracing::instrument(skip_all)]
     fn write(&self, mut data: &mut [u8], meta: &ColumnDynamicMetadata) -> DatastoreResult<()> {
         // Null buffer
         data.from_offset(&meta.buffers[0]).fill_with_ones();
@@ -80,6 +82,7 @@ impl ContextColumnWriter for ApiResponses<'_> {
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn write_string_list_inner_column_unchecked<'a, K: AsRef<str> + 'a>(
     data: impl Iterator<Item = &'a Vec<K>>,
     offsets: impl Iterator<Item = usize>,

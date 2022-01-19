@@ -43,14 +43,17 @@ impl Vec3 {
         self.2
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn x_mut(&mut self) -> &mut f64 {
         &mut self.0
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn y_mut(&mut self) -> &mut f64 {
         &mut self.1
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn z_mut(&mut self) -> &mut f64 {
         &mut self.2
     }
@@ -85,6 +88,7 @@ impl Vec3 {
 }
 
 impl AsRef<[f64]> for Vec3 {
+    #[tracing::instrument(skip_all)]
     fn as_ref(&self) -> &[f64] {
         self.as_slice()
     }
@@ -93,6 +97,7 @@ impl AsRef<[f64]> for Vec3 {
 impl Index<usize> for Vec3 {
     type Output = f64;
 
+    #[tracing::instrument(skip_all)]
     fn index(&self, index: usize) -> &Self::Output {
         match index {
             0 => &self.0,
@@ -104,6 +109,7 @@ impl Index<usize> for Vec3 {
 }
 
 impl IndexMut<usize> for Vec3 {
+    #[tracing::instrument(skip_all)]
     fn index_mut(&mut self, index: usize) -> &mut f64 {
         match index {
             0 => &mut self.0,
@@ -117,6 +123,7 @@ impl IndexMut<usize> for Vec3 {
 impl Index<&str> for Vec3 {
     type Output = f64;
 
+    #[tracing::instrument(skip_all)]
     fn index(&self, index: &str) -> &Self::Output {
         match index {
             "x" => &self.0,
@@ -128,6 +135,7 @@ impl Index<&str> for Vec3 {
 }
 
 impl IndexMut<&str> for Vec3 {
+    #[tracing::instrument(skip_all)]
     fn index_mut(&mut self, index: &str) -> &mut f64 {
         match index {
             "x" => &mut self.0,
@@ -139,6 +147,7 @@ impl IndexMut<&str> for Vec3 {
 }
 
 impl From<&[f64]> for Vec3 {
+    #[tracing::instrument(skip_all)]
     fn from(v: &[f64]) -> Self {
         match v.len() {
             0 => Self(0.0, 0.0, 0.0),
@@ -150,30 +159,35 @@ impl From<&[f64]> for Vec3 {
 }
 
 impl From<[f64; 0]> for Vec3 {
+    #[tracing::instrument(skip_all)]
     fn from(_v: [f64; 0]) -> Self {
         Self(0.0, 0.0, 0.0)
     }
 }
 
 impl From<[f64; 1]> for Vec3 {
+    #[tracing::instrument(skip_all)]
     fn from(v: [f64; 1]) -> Self {
         Self(v[0], 0.0, 0.0)
     }
 }
 
 impl From<[f64; 2]> for Vec3 {
+    #[tracing::instrument(skip_all)]
     fn from(v: [f64; 2]) -> Self {
         Self(v[0], v[1], 0.0)
     }
 }
 
 impl From<[f64; 3]> for Vec3 {
+    #[tracing::instrument(skip_all)]
     fn from(v: [f64; 3]) -> Self {
         Self(v[0], v[1], v[2])
     }
 }
 
 impl From<Vec3> for [f64; 3] {
+    #[tracing::instrument(skip_all)]
     fn from(v: Vec3) -> Self {
         [v.0, v.1, v.2]
     }
@@ -182,6 +196,7 @@ impl From<Vec3> for [f64; 3] {
 impl TryFrom<serde_json::Value> for Vec3 {
     type Error = serde_json::Error;
 
+    #[tracing::instrument(skip_all)]
     fn try_from(value: serde_json::Value) -> Result<Self, Self::Error> {
         serde_json::from_value(value)
     }
@@ -190,6 +205,7 @@ impl TryFrom<serde_json::Value> for Vec3 {
 impl Mul<f64> for Vec3 {
     type Output = Self;
 
+    #[tracing::instrument(skip_all)]
     fn mul(mut self, rhs: f64) -> Self::Output {
         self.0 *= rhs;
         self.1 *= rhs;
@@ -199,6 +215,7 @@ impl Mul<f64> for Vec3 {
 }
 
 impl MulAssign<f64> for Vec3 {
+    #[tracing::instrument(skip_all)]
     fn mul_assign(&mut self, rhs: f64) {
         self.0 *= rhs;
         self.1 *= rhs;
@@ -209,6 +226,7 @@ impl MulAssign<f64> for Vec3 {
 impl Div<f64> for Vec3 {
     type Output = Self;
 
+    #[tracing::instrument(skip_all)]
     fn div(mut self, rhs: f64) -> Self::Output {
         self.0 /= rhs;
         self.1 /= rhs;
@@ -218,6 +236,7 @@ impl Div<f64> for Vec3 {
 }
 
 impl DivAssign<f64> for Vec3 {
+    #[tracing::instrument(skip_all)]
     fn div_assign(&mut self, rhs: f64) {
         self.0 /= rhs;
         self.1 /= rhs;
@@ -228,6 +247,7 @@ impl DivAssign<f64> for Vec3 {
 impl Add<Vec3> for Vec3 {
     type Output = Self;
 
+    #[tracing::instrument(skip_all)]
     fn add(mut self, rhs: Vec3) -> Self::Output {
         self.0 += rhs.0;
         self.1 += rhs.1;
@@ -237,6 +257,7 @@ impl Add<Vec3> for Vec3 {
 }
 
 impl AddAssign<Vec3> for Vec3 {
+    #[tracing::instrument(skip_all)]
     fn add_assign(&mut self, rhs: Vec3) {
         self.0 += rhs.0;
         self.1 += rhs.1;
@@ -247,6 +268,7 @@ impl AddAssign<Vec3> for Vec3 {
 impl Sub<Vec3> for Vec3 {
     type Output = Self;
 
+    #[tracing::instrument(skip_all)]
     fn sub(mut self, rhs: Vec3) -> Self::Output {
         self.0 -= rhs.0;
         self.1 -= rhs.1;
@@ -256,6 +278,7 @@ impl Sub<Vec3> for Vec3 {
 }
 
 impl SubAssign<Vec3> for Vec3 {
+    #[tracing::instrument(skip_all)]
     fn sub_assign(&mut self, rhs: Vec3) {
         self.0 -= rhs.0;
         self.1 -= rhs.1;
@@ -264,6 +287,7 @@ impl SubAssign<Vec3> for Vec3 {
 }
 
 impl Default for Vec3 {
+    #[tracing::instrument(skip_all)]
     fn default() -> Self {
         [0.0, 0.0, 0.0].into()
     }
@@ -274,6 +298,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn test_vec3d() {
         let pos: Vec3 = [1.0, 2.0].into();
 

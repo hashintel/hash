@@ -7,19 +7,23 @@ pub struct Dependencies {
 }
 
 impl Dependencies {
+    #[tracing::instrument(skip_all)]
     pub fn new() -> Dependencies {
         Self::default()
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn empty() -> Dependencies {
         Self::default()
     }
 
+    #[tracing::instrument(skip_all)]
     fn add_dependency(&mut self, dep: PackageName) -> Result<()> {
         self.inner.push(dep);
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     fn add_dependency_with_ignore(&mut self, dep: PackageName) -> Result<()> {
         if !self.inner.contains(&dep) {
             self.add_dependency(dep)?;
@@ -27,42 +31,50 @@ impl Dependencies {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn add_context_dep(&mut self, name: context::Name) -> Result<()> {
         let dependency = PackageName::Context(name);
         self.validate_clash(&dependency)?;
         self.add_dependency(dependency)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn add_init_dep(&mut self, name: init::Name) -> Result<()> {
         let dependency = PackageName::Init(name);
         self.validate_clash(&dependency)?;
         self.add_dependency(dependency)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn add_state_dep(&mut self, name: state::Name) -> Result<()> {
         let dependency = PackageName::State(name);
         self.validate_clash(&dependency)?;
         self.add_dependency(dependency)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn add_output_dep(&mut self, name: output::Name) -> Result<()> {
         let dependency = PackageName::Output(name);
         self.validate_clash(&dependency)?;
         self.add_dependency(dependency)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn contains(&self, dep: &PackageName) -> bool {
         self.inner.contains(dep)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn iter_deps(&self) -> impl Iterator<Item = &PackageName> {
         self.inner.iter()
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn into_iter_deps(self) -> impl Iterator<Item = PackageName> {
         self.inner.into_iter()
     }
 
+    #[tracing::instrument(skip_all)]
     fn validate_clash(&self, new: &PackageName) -> Result<()> {
         if self.contains(new) {
             return Err(Error::from(format!(
@@ -75,6 +87,7 @@ impl Dependencies {
 }
 
 impl PackageName {
+    #[tracing::instrument(skip_all)]
     pub fn get_all_dependencies(&self) -> Result<Dependencies> {
         let mut merged = Dependencies::new();
         for dependency in self.get_dependencies()?.into_iter_deps() {
@@ -100,6 +113,7 @@ pub mod tests {
         ExperimentConfig,
     };
 
+    #[tracing::instrument(skip_all)]
     fn validate(mut parents: Vec<PackageName>, src_dep: PackageName) -> Result<()> {
         let cycle_found = parents.contains(&src_dep);
         parents.push(src_dep);
@@ -128,6 +142,7 @@ pub mod tests {
     }
 
     #[test]
+    #[tracing::instrument(skip_all)]
     fn validate_dependencies() -> Result<()> {
         let experiment_config = &Arc::new(ExperimentConfig {
             run_id: Arc::new("".to_string()),

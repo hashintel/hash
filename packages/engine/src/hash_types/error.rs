@@ -25,6 +25,7 @@ impl Error {
 }
 
 impl std::fmt::Display for Error {
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Thread => write!(f, "Thread error"),
@@ -37,6 +38,7 @@ impl std::fmt::Display for Error {
 }
 
 impl StdError for Error {
+    #[tracing::instrument(skip_all)]
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match self {
             OutboundMessageParse(message::Error::UnknownSerdeError(err)) => Some(err),
@@ -48,30 +50,35 @@ impl StdError for Error {
 }
 
 impl From<message::Error> for Error {
+    #[tracing::instrument(skip_all)]
     fn from(err: message::Error) -> Error {
         OutboundMessageParse(err)
     }
 }
 
 impl From<&str> for Error {
+    #[tracing::instrument(skip_all)]
     fn from(t: &str) -> Error {
         Message(t.to_string())
     }
 }
 
 impl From<String> for Error {
+    #[tracing::instrument(skip_all)]
     fn from(t: String) -> Error {
         Message(t)
     }
 }
 
 impl From<serde_json::Error> for Error {
+    #[tracing::instrument(skip_all)]
     fn from(inner: serde_json::Error) -> Error {
         Inner(Box::new(inner))
     }
 }
 
 impl From<std::convert::Infallible> for Error {
+    #[tracing::instrument(skip_all)]
     fn from(inner: std::convert::Infallible) -> Error {
         Inner(Box::new(inner))
     }

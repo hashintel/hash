@@ -30,6 +30,7 @@ pub struct Args {
     pub emit: OutputFormat,
 }
 
+#[tracing::instrument(skip_all)]
 pub fn args() -> Args {
     Args::parse()
 }

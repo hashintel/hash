@@ -86,6 +86,7 @@ impl<'mv8> Function<'mv8> {
 }
 
 #[inline]
+#[tracing::instrument(skip_all)]
 fn args_to_descs<'mv8>(
     args: impl ToValues<'mv8>,
     mv8: &'mv8 MiniV8,
@@ -100,6 +101,7 @@ fn args_to_descs<'mv8>(
 }
 
 #[inline]
+#[tracing::instrument(skip_all)]
 fn manually_drop_arg_descs(arg_descs: Vec<ValueDesc>) {
     // Ownership of the arguments' value pointers was taken by C++. They've already been properly
     // dropped:
@@ -110,6 +112,7 @@ fn manually_drop_arg_descs(arg_descs: Vec<ValueDesc>) {
 }
 
 impl fmt::Debug for Function<'_> {
+    #[tracing::instrument(skip_all)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "<function>")
     }

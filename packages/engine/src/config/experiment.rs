@@ -75,12 +75,14 @@ impl Config {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn id(&self) -> &ExperimentRegisteredId {
         &self.run.base().id
     }
 }
 
 impl From<&Config> for Config {
+    #[tracing::instrument(skip_all)]
     fn from(value: &Config) -> Self {
         Self {
             run_id: value.run_id.clone(),

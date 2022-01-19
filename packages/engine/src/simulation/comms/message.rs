@@ -26,6 +26,7 @@ pub struct EngineToWorkerPoolMsg {
 }
 
 impl EngineToWorkerPoolMsg {
+    #[tracing::instrument(skip_all)]
     pub fn task(sim_id: SimulationShortId, task: WrappedTask) -> Self {
         Self {
             sim_id,
@@ -33,6 +34,7 @@ impl EngineToWorkerPoolMsg {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn sync(sim_id: SimulationShortId, sync_msg: SyncPayload) -> Self {
         Self {
             sim_id,

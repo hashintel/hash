@@ -5,6 +5,7 @@ pub enum AgentControl {
 }
 
 impl Default for AgentControl {
+    #[tracing::instrument(skip_all)]
     fn default() -> AgentControl {
         AgentControl::Continue
     }

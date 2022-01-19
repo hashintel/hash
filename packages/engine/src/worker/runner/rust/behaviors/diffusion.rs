@@ -1,8 +1,11 @@
-use super::{Context, Result, State};
-use crate::experiment::SharedBehavior;
-use crate::worker::runner::rust::behaviors::accessors::field_or_property;
 use serde_json::json;
 
+use super::{Context, Result, State};
+use crate::{
+    experiment::SharedBehavior, worker::runner::rust::behaviors::accessors::field_or_property,
+};
+
+#[tracing::instrument(skip_all)]
 pub fn get_named_behavior() -> SharedBehavior {
     SharedBehavior {
         id: "@hash/diffusion/diffusion.rs".into(),
@@ -13,6 +16,7 @@ pub fn get_named_behavior() -> SharedBehavior {
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn diffuse_multiple(
     target_value: Vec<f64>,
     target: &str,

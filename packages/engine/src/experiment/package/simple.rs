@@ -1,7 +1,5 @@
 use std::{collections::HashMap, sync::Arc};
 
-use tracing::instrument;
-
 use super::super::{Error, ExperimentControl, Result};
 use crate::{
     config::ExperimentConfig,
@@ -29,7 +27,7 @@ struct SimQueue<'a> {
 }
 
 impl<'a> SimQueue<'a> {
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     async fn start_sim_if_available(&mut self) -> Result<()> {
         if let Some((sim_id, changed_props)) = self.pending_iter.next() {
             self.active.insert(sim_id, SimProgress {
@@ -49,6 +47,7 @@ impl<'a> SimQueue<'a> {
 }
 
 impl SimpleExperiment {
+    #[tracing::instrument(skip_all)]
     pub fn new(
         experiment_config: &Arc<ExperimentConfig>,
         config: SimpleExperimentConfig,
@@ -59,7 +58,7 @@ impl SimpleExperiment {
         })
     }
 
-    #[instrument(skip_all)]
+    #[tracing::instrument(skip_all)]
     pub async fn run(
         self,
         mut pkg_to_exp: ExpPkgCtlSend,
