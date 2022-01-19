@@ -3,6 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use parking_lot::RwLockReadGuard;
 use serde_json::Value;
+use tracing::instrument;
 
 use self::map::{NeighborMap, NeighborRef};
 use crate::{
@@ -120,6 +121,7 @@ impl GetWorkerSimStartMsg for Neighbors {
 
 #[async_trait]
 impl Package for Neighbors {
+    #[instrument(skip_all)]
     async fn run<'s>(
         &mut self,
         state: Arc<State>,

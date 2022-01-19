@@ -120,6 +120,7 @@ impl WorkerPoolController {
         Ok(())
     }
 
+    #[instrument(skip_all)]
     async fn register_simulation(&mut self, payload: NewSimulationRun) -> Result<()> {
         // TODO: Only send to workers that simulation run is registered with
         self.send_to_all_workers(WorkerPoolToWorkerMsg::new_simulation_run(payload))
@@ -202,6 +203,7 @@ impl WorkerPoolController {
     }
 
     /// TODO DOC
+    #[instrument(skip_all)]
     async fn handle_sim_msg(
         &mut self,
         msg: EngineToWorkerPoolMsg,
@@ -254,6 +256,7 @@ impl WorkerPoolController {
     }
 
     /// TODO: DOC
+    #[instrument(skip_all)]
     async fn handle_exp_msg(&mut self, msg: ExperimentToWorkerPoolMsg) -> Result<()> {
         match msg {
             ExperimentToWorkerPoolMsg::NewSimulationRun(payload) => {
@@ -266,6 +269,7 @@ impl WorkerPoolController {
     }
 
     /// TODO: DOC
+    #[instrument(skip_all)]
     async fn handle_worker_msg(
         &mut self,
         worker: WorkerIndex,
@@ -310,6 +314,7 @@ impl WorkerPoolController {
 
     // TODO: delete or use when cancel is revisited
     #[allow(dead_code)]
+    #[instrument(skip_all)]
     async fn handle_cancel_msgs(&mut self, cancel_msgs: Vec<TaskId>) -> Result<()> {
         for id in cancel_msgs {
             tracing::trace!("Handling cancel msg for task with id: {}", id);

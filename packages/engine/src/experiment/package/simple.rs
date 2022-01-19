@@ -29,6 +29,7 @@ struct SimQueue<'a> {
 }
 
 impl<'a> SimQueue<'a> {
+    #[instrument(skip_all)]
     async fn start_sim_if_available(&mut self) -> Result<()> {
         if let Some((sim_id, changed_props)) = self.pending_iter.next() {
             self.active.insert(sim_id, SimProgress {

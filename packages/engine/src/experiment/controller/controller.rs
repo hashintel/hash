@@ -64,12 +64,14 @@ pub struct ExperimentController<P: OutputPersistenceCreatorRepr> {
 
 impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
     /// Handle an inbound message from the orchestrator (or CLI)
+    #[instrument(skip_all)]
     async fn handle_orch_msg(&mut self, orch_msg: EngineMsg) -> Result<()> {
         match orch_msg {
             EngineMsg::Init(_) => Err(Error::from("Unexpected init message")),
         }
     }
 
+    #[instrument(skip_all)]
     async fn handle_experiment_control_msg(&mut self, msg: ExperimentControl) -> Result<()> {
         match msg {
             ExperimentControl::StartSim {
@@ -87,6 +89,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
         Ok(())
     }
 
+    #[instrument(skip_all)]
     async fn handle_sim_status(&mut self, status: SimStatus) -> Result<()> {
         // Send Step update to experiment package
         let send_step_update = self
@@ -125,10 +128,12 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
             .await?)
     }
 
+    #[instrument(skip_all)]
     async fn handle_sim_run_stop(&mut self, id: SimulationShortId) -> Result<()> {
         Ok(self.orch_client().send(EngineStatus::SimStop(id)).await?)
     }
 
+    #[instrument(skip_all)]
     async fn handle_worker_pool_controller_msg(
         &mut self,
         id: SimulationShortId,
@@ -157,6 +162,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
         Ok(())
     }
 
+    #[instrument(skip_all)]
     async fn start_new_sim_run(
         &mut self,
         sim_short_id: SimulationShortId,
@@ -244,21 +250,25 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
         Ok(())
     }
 
+    #[instrument(skip_all)]
     async fn pause_sim_run(&mut self, sim_short_id: SimulationShortId) -> Result<()> {
         self.send_sim(sim_short_id, SimControl::Pause).await?;
         Ok(())
     }
 
+    #[instrument(skip_all)]
     async fn resume_sim_run(&mut self, sim_short_id: SimulationShortId) -> Result<()> {
         self.send_sim(sim_short_id, SimControl::Resume).await?;
         Ok(())
     }
 
+    #[instrument(skip_all)]
     async fn stop_sim_run(&mut self, sim_short_id: SimulationShortId) -> Result<()> {
         self.send_sim(sim_short_id, SimControl::Stop).await?;
         Ok(())
     }
 
+    #[instrument(skip_all)]
     async fn send_sim(&mut self, sim_short_id: SimulationShortId, msg: SimControl) -> Result<()> {
         if let Some(sender) = self.sim_senders.get_mut(&sim_short_id) {
             sender.send(msg).await?;

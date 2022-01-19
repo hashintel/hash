@@ -101,6 +101,7 @@ impl Engine {
     /// of data associated with each agent. Since these sequences of data are not
     /// dependent on each other, then all context packages are run in parallel
     /// and their outputs are merged into one Context object.
+    #[instrument(skip_all)]
     async fn run_context_packages(&mut self, current_step: usize) -> Result<()> {
         tracing::trace!("Starting run context packages stage");
         // Need write access to state to prepare for context packages,
@@ -162,6 +163,7 @@ impl Engine {
         Ok(())
     }
 
+    #[instrument(skip_all)]
     async fn run_state_packages(&mut self) -> Result<()> {
         let (state, context) = self.store.take()?;
         let state = self

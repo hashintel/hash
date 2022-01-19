@@ -78,6 +78,7 @@ impl GetWorkerSimStartMsg for AgentMessages {
 
 #[async_trait]
 impl Package for AgentMessages {
+    #[instrument(skip_all)]
     async fn run<'s>(
         &mut self,
         state: Arc<State>,

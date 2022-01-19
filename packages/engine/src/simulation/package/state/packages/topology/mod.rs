@@ -1,4 +1,5 @@
 use serde_json::Value;
+use tracing::instrument;
 
 use super::super::*;
 use crate::{
@@ -77,6 +78,7 @@ impl GetWorkerSimStartMsg for Topology {
 
 #[async_trait]
 impl Package for Topology {
+    #[instrument(skip_all)]
     async fn run(&mut self, state: &mut ExState, _context: &Context) -> Result<()> {
         tracing::trace!("Running Topology package");
         if self.config.move_wrapped_agents {

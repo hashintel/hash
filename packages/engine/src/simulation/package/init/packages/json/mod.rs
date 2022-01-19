@@ -1,4 +1,5 @@
 use serde_json::Value;
+use tracing::instrument;
 
 use super::super::*;
 use crate::{
@@ -58,6 +59,7 @@ impl GetWorkerSimStartMsg for Package {
 
 #[async_trait]
 impl InitPackage for Package {
+    #[instrument(skip_all)]
     async fn run(&mut self) -> Result<Vec<Agent>> {
         // TODO: Map Error when we design package errors
         serde_json::from_str(&self.initial_state_src).map_err(|e| {

@@ -7,6 +7,7 @@ pub mod tasks;
 
 use reset_index_col::reset_index_col;
 use serde_json::Value;
+use tracing::instrument;
 
 use self::{config::exp_init_message, fields::behavior::BehaviorMap};
 use super::super::*;
@@ -191,6 +192,7 @@ impl BehaviorExecution {
     }
 
     /// Sends out behavior execution commands to workers
+    #[instrument(skip_all)]
     async fn begin_execution(
         &mut self,
         state: &mut ExState,
@@ -213,6 +215,7 @@ impl BehaviorExecution {
 
 #[async_trait]
 impl Package for BehaviorExecution {
+    #[instrument(skip_all)]
     async fn run(&mut self, state: &mut ExState, context: &Context) -> Result<()> {
         tracing::trace!("Running BehaviorExecution");
         self.fix_behavior_chains(state)?;

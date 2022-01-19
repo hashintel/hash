@@ -2,6 +2,7 @@ use std::convert::TryInto;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use tracing::instrument;
 
 use super::super::*;
 use crate::{
@@ -73,6 +74,7 @@ impl GetWorkerSimStartMsg for Package {
 
 #[async_trait]
 impl InitPackage for Package {
+    #[instrument(skip_all)]
     async fn run(&mut self) -> Result<Vec<Agent>> {
         let task: InitTask = match &self.initial_state.name {
             InitialStateName::InitPy => PyInitTask {

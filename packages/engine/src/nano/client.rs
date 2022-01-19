@@ -84,6 +84,7 @@ impl Worker {
         })
     }
 
+    #[instrument(skip_all)]
     async fn handle_request(&mut self, (msg, sender): Request) {
         // Send the message to the server
         if let Err((_, e)) = self.ctx.send(&self.aio, msg) {
@@ -96,6 +97,7 @@ impl Worker {
         sender.send(res).unwrap();
     }
 
+    #[instrument(skip_all)]
     async fn run(&mut self, mut stop_rx: mpsc::UnboundedReceiver<()>) {
         loop {
             tokio::select! {

@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use futures::StreamExt;
+use tracing::instrument;
 
 use crate::{
     error::{Error, Result},
@@ -17,6 +18,7 @@ pub trait FetchDependencies {
 
 #[async_trait]
 impl FetchDependencies for SharedDataset {
+    #[instrument(skip_all)]
     async fn fetch_deps(&mut self) -> Result<()> {
         if self.data.is_some() {
             return Ok(());
@@ -50,6 +52,7 @@ impl FetchDependencies for SharedDataset {
 
 #[async_trait]
 impl FetchDependencies for ExperimentRunRepr {
+    #[instrument(skip_all)]
     async fn fetch_deps(&mut self) -> Result<()> {
         let datasets = std::mem::take(&mut self.base_mut().project_base.datasets);
 

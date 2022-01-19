@@ -58,6 +58,7 @@ impl TerminateSend {
         Ok(())
     }
 
+    #[instrument(skip_all)]
     async fn recv_terminate_confirmation(&mut self) -> Result<()> {
         if self.inner.is_some() {
             return Err(Error::TerminateMessageNotSent);

@@ -1,4 +1,5 @@
 use serde_json::Value;
+use tracing::instrument;
 
 pub use self::config::JsonStateOutputConfig;
 use super::super::*;
@@ -74,6 +75,7 @@ impl GetWorkerSimStartMsg for JsonState {
 
 #[async_trait]
 impl Package for JsonState {
+    #[instrument(skip_all)]
     async fn run(&mut self, state: Arc<State>, _context: Arc<Context>) -> Result<Output> {
         let agent_states: std::result::Result<Vec<_>, crate::datastore::error::Error> = state
             .agent_pool()

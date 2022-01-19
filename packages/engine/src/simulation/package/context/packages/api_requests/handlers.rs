@@ -80,6 +80,7 @@ pub mod mapbox {
 
     impl CustomError for MapboxError {}
 
+    #[instrument(skip_all)]
     async fn get_<'a>(request: Request) -> Result<([u8; UUID_V4_LEN], String)> {
         let (_from, data) = request;
         let _transportation_method = data

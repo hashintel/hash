@@ -83,6 +83,7 @@ impl GetWorkerSimStartMsg for ApiRequests {
 
 #[async_trait]
 impl Package for ApiRequests {
+    #[instrument(skip_all)]
     async fn run<'s>(
         &mut self,
         state: Arc<State>,

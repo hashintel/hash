@@ -3,6 +3,7 @@ use std::ops::Deref;
 use analyzer::Analyzer;
 pub use output::{AnalysisOutput, AnalysisSingleOutput};
 use serde_json::Value;
+use tracing::instrument;
 
 pub use self::config::AnalysisOutputConfig;
 pub use super::super::*;
@@ -76,6 +77,7 @@ impl GetWorkerSimStartMsg for Analysis {
 
 #[async_trait]
 impl Package for Analysis {
+    #[instrument(skip_all)]
     async fn run(&mut self, state: Arc<State>, _context: Arc<Context>) -> Result<Output> {
         // TODO: use filtering to avoid exposing hidden values to users
         let read = state.agent_pool().read_batches()?;

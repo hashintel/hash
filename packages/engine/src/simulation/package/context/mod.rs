@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 pub use packages::{ContextTask, ContextTaskMessage, Name, PACKAGE_CREATORS};
+use tracing::instrument;
 
 use super::{
     deps::Dependencies,

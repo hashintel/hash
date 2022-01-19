@@ -1,5 +1,7 @@
 use std::io::{BufReader, BufWriter};
 
+use tracing::instrument;
+
 use super::{config::LocalPersistenceConfig, result::LocalPersistenceResult};
 use crate::{
     output::{buffer::Buffers, error::Result, SimulationOutputPersistenceRepr},
@@ -21,6 +23,7 @@ pub struct LocalSimulationOutputPersistence {
 impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
     type OutputPersistenceResult = LocalPersistenceResult;
 
+    #[instrument(skip_all)]
     async fn add_step_output(&mut self, output: SimulationStepOutput) -> Result<()> {
         output.0.into_iter().try_for_each(|output| {
             match output {
@@ -36,6 +39,7 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
         Ok(())
     }
 
+    #[instrument(skip_all)]
     async fn finalize(mut self, config: &SimRunConfig) -> Result<Self::OutputPersistenceResult> {
         tracing::trace!("Finalizing output");
         // JSON state
