@@ -220,7 +220,7 @@ class ProsemirrorStateChangeHandler {
      * @todo address this
      * @see https://immerjs.github.io/immer/pitfalls#immer-only-supports-unidirectional-trees
      */
-    this.state.doc.descendants((node, pos) => {
+    this.tr.doc.descendants((node, pos) => {
       this.handleNode(node, pos);
     });
 
