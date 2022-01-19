@@ -64,6 +64,7 @@ impl SimpleExperiment {
         mut pkg_to_exp: ExpPkgCtlSend,
         mut exp_pkg_update_recv: ExpPkgUpdateRecv,
     ) -> Result<()> {
+        let _ = &self; // TODO: hopefully remove this (https://github.com/tokio-rs/tracing/issues/1841)
         let max_num_steps = self.config.num_steps;
         let num_sims = self.config.changed_properties.len();
         let max_sims_in_parallel = self.config.max_sims_in_parallel.unwrap_or(num_sims);

@@ -31,6 +31,7 @@ impl SingleRunExperiment {
         mut pkg_to_exp: ExpPkgCtlSend,
         mut pkg_from_exp: ExpPkgUpdateRecv,
     ) -> Result<()> {
+        let _ = &self; // TODO: hopefully remove this (https://github.com/tokio-rs/tracing/issues/1841)
         let msg = ExperimentControl::StartSim {
             sim_id: 1 as SimulationShortId,
             changed_properties: serde_json::Map::new().into(), // Don't change properties

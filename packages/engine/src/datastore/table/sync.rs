@@ -72,6 +72,7 @@ impl WaitableStateSync {
     /// self.forward_children(child_receivers).await;
     #[instrument(skip_all)]
     pub async fn forward_children(self, child_receivers: Vec<SyncCompletionReceiver>) {
+        let _ = &self; // TODO: hopefully remove this (https://github.com/tokio-rs/tracing/issues/1841)
         tracing::trace!("Getting state sync completions");
         let child_results: Vec<_> = join_all(child_receivers).await;
         tracing::trace!("Got all state sync completions");
