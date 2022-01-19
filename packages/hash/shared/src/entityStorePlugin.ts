@@ -17,6 +17,7 @@ import {
   ComponentNode,
   componentNodeToId,
   EntityNode,
+  findComponentNodes,
   isComponentNode,
   isEntityNode,
   textBlockNodeToEntityProperties,
@@ -80,6 +81,24 @@ const updateEntityProperties = (
         entity.properties = properties;
       }
     }
+  });
+};
+
+const newDraftEntity = (
+  draftEntityStore: EntityStore["draft"],
+  draftId: string,
+  entityId: string | null,
+) => {
+  if (draftEntityStore[draftId]) {
+    throw new Error("Draft entity already exists");
+  }
+
+  return produce(draftEntityStore, (draft) => {
+    draft[draftId] = {
+      entityId,
+      draftId,
+      properties: {},
+    };
   });
 };
 
@@ -147,51 +166,25 @@ export const subscribeToEntityStore = (
   };
 };
 
-const draftIdForNode = (
-  tr: Transaction<Schema>,
-  node: EntityNode,
-  pos: number,
-  draftDraftEntityStore: Draft<EntityStore["draft"]>,
+const getDraftIdFromEntityByEntityId = (
+  draftStore: EntityStore["draft"],
+  entityId: string,
 ) => {
-  let draftId = node.attrs.draftId;
+  const existingEntity = draftEntityForEntityId(draftStore, entityId);
 
-  if (draftId && draftDraftEntityStore[draftId]) {
-    const entityId = draftDraftEntityStore[draftId].entityId;
-
-    if (entityId) {
-      const existingDraftId = draftEntityForEntityId(
-        draftDraftEntityStore,
-        entityId,
-      )?.draftId;
-
-      if (!existingDraftId) {
-        throw new Error("invariant: entity missing from entity store");
-      }
-
-      draftId = existingDraftId;
-    }
-  } else {
-    /**
-     * @todo this will lead to the frontend setting draft id uuids for new
-     *       blocks – this is potentially insecure and needs considering
-     */
-    draftId ??= `fake-${uuid()}`;
-
-    draftDraftEntityStore[draftId] = {
-      draftId,
-      entityId: null,
-      properties: {},
-    };
+  if (!existingEntity) {
+    throw new Error("invariant: entity missing from entity store");
   }
 
-  if (draftId !== node.attrs.draftId) {
-    tr.setNodeMarkup(pos, undefined, {
-      ...node.attrs,
-      draftId,
-    });
+  return existingEntity.draftId;
+};
+
+const getRequiredDraftIdFromEntityNode = (entityNode: EntityNode): string => {
+  if (!entityNode.attrs.draftId) {
+    throw new Error("Draft id missing when expected");
   }
 
-  return draftId;
+  return entityNode.attrs.draftId;
 };
 
 class ProsemirrorStateChangeHandler {
@@ -264,67 +257,116 @@ class ProsemirrorStateChangeHandler {
   }
 
   private entityNode(node: EntityNode, pos: number) {
-    // @todo clean this up
-    const res = produce({ draftId: "", draft: this.draft }, (draftRes) => {
-      draftRes.draftId = draftIdForNode(this.tr, node, pos, draftRes.draft);
-    });
+    const updatedNode = this.potentialNewDraftEntityForEntityNode(node, pos);
 
-    this.draft = res.draft;
-    const draftId = res.draftId;
+    this.handlePotentialTextContentChangesInEntityNode(updatedNode);
+  }
 
-    if (!draftId) {
-      throw new Error("Should be assigned");
+  private handlePotentialTextContentChangesInEntityNode(node: EntityNode) {
+    const draftEntity = this.draft[getRequiredDraftIdFromEntityNode(node)];
+
+    if (!draftEntity) {
+      throw new Error("invariant: draft entity missing from store");
     }
 
-    // @todo remove mutation
-    this.draft = produce(this.draft, (draftDraftEntityStore) => {
-      const draftEntity = draftDraftEntityStore[draftId];
+    if (
+      "properties" in draftEntity &&
+      node.firstChild &&
+      node.firstChild.isTextblock
+    ) {
+      const nextProps = textBlockNodeToEntityProperties(node.firstChild);
+      this.draft = updateEntityProperties(
+        this.draft,
+        draftEntity.draftId,
+        false,
+        nextProps,
+      );
+    }
+  }
 
-      if (
-        "properties" in draftEntity &&
-        node.firstChild &&
-        node.firstChild.isTextblock
-      ) {
-        draftEntity.properties = textBlockNodeToEntityProperties(
-          node.firstChild,
-        );
-      }
+  private potentialNewDraftEntityForEntityNode(
+    node: EntityNode,
+    pos: number,
+  ): EntityNode {
+    const entityId = node.attrs.draftId
+      ? this.draft[node.attrs.draftId]?.entityId
+      : null;
 
-      const parent = this.tr.doc.resolve(pos).parent;
+    const draftId = entityId
+      ? getDraftIdFromEntityByEntityId(this.draft, entityId)
+      : /**
+         * @todo this will lead to the frontend setting draft id uuids for
+         *   new blocks – this is potentially insecure and needs
+         *   considering
+         */
+        node.attrs.draftId ?? `fake-${uuid()}`;
 
-      if (!isEntityNode(parent)) {
-        return;
-      }
+    if (!this.draft[draftId]) {
+      this.draft = newDraftEntity(this.draft, draftId, entityId ?? null);
+    }
 
+    /**
+     * @todo need to ensure we throw away now unused draft entities
+     * @todo does this ever happen now? We're trying to make it so draftId
+     * never changes
+     */
+    if (draftId !== node.attrs.draftId) {
+      this.tr.setNodeMarkup(pos, undefined, {
+        ...node.attrs,
+        draftId,
+      });
+    }
+
+    const updatedNode = this.tr.doc.resolve(this.tr.mapping.map(pos)).nodeAfter;
+
+    if (!updatedNode || !isEntityNode(updatedNode)) {
+      throw new Error("Node missing in transaction");
+    }
+
+    this.potentialUpdateParentBlockEntity(updatedNode, pos);
+
+    return updatedNode;
+  }
+
+  private potentialUpdateParentBlockEntity(node: EntityNode, pos: number) {
+    const parent = this.tr.doc.resolve(pos).parent;
+
+    if (isEntityNode(parent)) {
       const parentDraftId = parent.attrs.draftId;
-
       if (!parentDraftId) {
         throw new Error("invariant: parents must have a draft id");
       }
 
-      const parentEntity = draftDraftEntityStore[parentDraftId];
-
+      const parentEntity = this.draft[parentDraftId];
       if (!parentEntity) {
         throw new Error("invariant: parent node missing from draft store");
       }
 
+      // @todo in what circumstances does this occur
       if (!isDraftBlockEntity(parentEntity)) {
-        draftDraftEntityStore[parentEntity.draftId] = {
-          ...parentEntity,
-          properties: {
-            entity: draftEntity,
+        const componentNodeChild = findComponentNodes(node)[0][0];
+
+        this.draft = updateEntityProperties(
+          this.draft,
+          parentEntity.draftId,
+          false,
+          {
+            entity: this.draft[getRequiredDraftIdFromEntityNode(node)],
             /**
-             * We don't currently rely on componentId of the draft right
-             * now, but this will be a problem in the future (i.e, if save
-             * starts using the draft entity store)
+             * We don't currently rely on componentId of the draft
+             * right
+             * now, but this will be a problem in the future (i.e, if
+             * save starts using the draft entity store)
              *
              * @todo set this properly
              */
-            componentId: "",
+            componentId: componentNodeChild
+              ? componentNodeToId(componentNodeChild)
+              : "",
           },
-        };
+        );
       }
-    });
+    }
   }
 }
 
