@@ -27,7 +27,7 @@ const OPENSEARCH_ENABLED =
 if (!OPENSEARCH_ENABLED) {
   // eslint-disable-next-line no-console
   console.log("Opensearch is not enabled. Shutting down search-loader");
-  process.exit(1);
+  process.exit(0);
 }
 
 // Environment variables
