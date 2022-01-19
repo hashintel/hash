@@ -1,0 +1,12 @@
+{
+  "keys": {
+    "column": {
+      "type": "list",
+      "nullable": true,
+      "child": {
+        "type": "string",
+        "nullable": true
+      }
+    }
+  }
+}
