@@ -56,34 +56,34 @@ impl Manifest {
         }))
     }
 
-    pub fn set_initial_state_from_files<P1: AsRef<Path>, P2: AsRef<Path>, P3: AsRef<Path>>(
+    pub fn set_initial_state_from_directory<P: AsRef<Path>>(
         &mut self,
-        js_path: P1,
-        py_path: P2,
-        json_path: P3,
+        src_folder: P,
     ) -> Result<Option<InitialState>> {
-        let js_path = js_path.as_ref();
-        let py_path = py_path.as_ref();
-        let json_path = json_path.as_ref();
+        let src_folder = src_folder.as_ref();
+
+        let js_path = src_folder.join("init.js");
+        let py_path = src_folder.join("init.py");
+        let json_path = src_folder.join("init.json");
 
         debug!("Reading initial state files");
         if js_path.is_file() {
             if py_path.is_file() {
-                warn!("{py_path:?} was supplied with {js_path:?}, ignoring {py_path:?}");
+                warn!(r#""init.py" was supplied with "init.js", ignoring "init.py""#);
             }
             if json_path.is_file() {
-                warn!("{json_path:?} was supplied with {js_path:?}, ignoring {json_path:?}");
+                warn!(r#""init.json" was supplied with "init.js", ignoring "init.json""#);
             }
             self.set_initial_state_from_file(js_path)
         } else if py_path.is_file() {
             if json_path.is_file() {
-                warn!("{json_path:?} was supplied with {py_path:?}, ignoring {json_path:?}");
+                warn!(r#""init.json" was supplied with "init.py", ignoring "init.json""#);
             }
             self.set_initial_state_from_file(py_path)
         } else if json_path.is_file() {
             self.set_initial_state_from_file(json_path)
         } else {
-            bail!("No initial state found in {js_path:?}, {py_path:?}, or {json_path:?}");
+            bail!("No initial state found in {src_folder:?}");
         }
     }
 
@@ -257,7 +257,7 @@ impl Manifest {
         {
             match entry {
                 Ok(entry) => {
-                    self.add_dataset_from_file(path)
+                    self.add_dataset_from_file(entry.path())
                         .wrap_err("Could not add dataset")?;
                 }
                 Err(err) => {
@@ -279,9 +279,6 @@ impl Manifest {
         let dependencies_json = project_path.join("dependencies.json");
         let src_folder = project_path.join("src");
         let behaviors_folder = src_folder.join("behaviors");
-        let init_json = src_folder.join("init.json");
-        let init_js = src_folder.join("init.js");
-        let init_py = src_folder.join("init.py");
         let globals_json = src_folder.join("globals.json");
         let views_folder = project_path.join("views");
         let analysis_json = views_folder.join("analysis.json");
@@ -290,11 +287,9 @@ impl Manifest {
 
         let mut project = Manifest::new();
 
-        if init_js.exists() || init_py.exists() || init_json.exists() {
-            project
-                .set_initial_state_from_files(init_js, init_py, init_json)
-                .wrap_err("Could not read initial state")?;
-        }
+        project
+            .set_initial_state_from_directory(src_folder)
+            .wrap_err("Could not read initial state")?;
         if globals_json.exists() {
             project
                 .set_globals_from_file(globals_json)
