@@ -117,8 +117,8 @@ async fn _run(
     outbound_sender: UnboundedSender<OutboundFromRunnerMsg>,
 ) -> WorkerResult<()> {
     // Open sockets for Python process to connect to (i.e. start listening).
-    let mut nng_sender = NngSender::new(init_msg.experiment_id.clone(), init_msg.worker_index)?;
-    let mut nng_receiver = NngReceiver::new(init_msg.experiment_id.clone(), init_msg.worker_index)?;
+    let mut nng_sender = NngSender::new(init_msg.experiment_id, init_msg.worker_index)?;
+    let mut nng_receiver = NngReceiver::new(init_msg.experiment_id, init_msg.worker_index)?;
 
     // Spawn Python process.
     let mut cmd = Command::new("sh");

@@ -3,9 +3,7 @@ use std::sync::Arc;
 use super::{package, worker, worker_pool, Result};
 use crate::{
     config::globals::Globals,
-    proto::{
-        ExperimentId, ExperimentNameRef, ExperimentRunRepr, ExperimentRunTrait, InitialStateName,
-    },
+    proto::{ExperimentNameRef, ExperimentRunRepr, ExperimentRunTrait, InitialStateName},
     simulation::package::init,
 };
 

@@ -272,7 +272,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
     pub async fn exp_init_msg_base(&self) -> Result<ExperimentInitRunnerMsgBase> {
         let pkg_start_msgs = self.package_creators.get_worker_exp_start_msgs()?;
         Ok(ExperimentInitRunnerMsgBase {
-            experiment_id: self.exp_base_config.run.base().id.clone(),
+            experiment_id: self.exp_base_config.run.base().id,
             shared_context: self.shared_store.clone(),
             package_config: Arc::new(pkg_start_msgs),
         })
