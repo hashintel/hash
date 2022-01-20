@@ -1,5 +1,5 @@
 /**
- * Remove the three specified agents
+ * Remove this agent from the simulation
  */
 const behavior = (state, context) => {
   state.messages = [

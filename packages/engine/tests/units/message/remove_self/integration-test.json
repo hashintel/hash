@@ -3,8 +3,19 @@
     "steps": 3,
     "expected-output": {
       "json-state": {
-        "1": [{}],
-        "2": []
+        "1": [
+          {
+            "agent_name": "to-be-removed"
+          },
+          {
+            "agent_name": "empty"
+          }
+        ],
+        "2": [
+          {
+            "agent_name": "empty"
+          }
+        ]
       }
     }
   }

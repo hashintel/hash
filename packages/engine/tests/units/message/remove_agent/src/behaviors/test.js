@@ -21,7 +21,7 @@ const behavior = (state, context) => {
       to: "Hash",
       type: "remove_agent",
       data: {
-        agent_name: "3",
+        agent_id: "00000000-0000-0000-0000-000000000003",
       },
     },
   ];

@@ -1,5 +1,9 @@
 [
   {
+    "agent_name": "to-be-removed",
     "behaviors": ["test.js"]
+  },
+  {
+    "agent_name": "empty"
   }
 ]
