@@ -1,7 +1,7 @@
 import { useMutation } from "@apollo/client";
 
 import {
-  BlockProtocolLinkedAggregationUpdated,
+  BlockProtocolLinkedAggregationUpdateMutationResults,
   BlockProtocolUpdateLinkedAggregationsFunction,
 } from "blockprotocol";
 
@@ -34,7 +34,8 @@ export const useBlockProtocolUpdateLinkedAggregations = (
   const updateLinkedAggregations: BlockProtocolUpdateLinkedAggregationsFunction =
     useCallback(
       async (actions) => {
-        const results: BlockProtocolLinkedAggregationUpdated[] = [];
+        const results: BlockProtocolLinkedAggregationUpdateMutationResults[] =
+          [];
         // TODO: Support multiple actions in one GraphQL mutation for transaction integrity and better status reporting
         for (const action of actions) {
           const { data, errors } = await runUpdateLinkedAggregationMutation({
@@ -47,8 +48,9 @@ export const useBlockProtocolUpdateLinkedAggregations = (
             throw new Error(`Could not create link: ${errors?.[0].message}`);
           }
 
+          // @todo, add a proper typecheck. The GraphQL query for multiFilter { operator } returns String, but BlockProtocolLinkedAggregationUpdateMutationResults defines the exact type for operator. This typecast is used to typecast string to the one the query expects.
           results.push(
-            data.updateLinkedAggregationOperation as BlockProtocolLinkedAggregationUpdated,
+            data.updateLinkedAggregationOperation as BlockProtocolLinkedAggregationUpdateMutationResults,
           );
         }
         return results;
