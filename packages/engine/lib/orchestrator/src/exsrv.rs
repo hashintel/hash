@@ -15,10 +15,10 @@ type CtrlReceiver = mpsc::Receiver<(Ctrl, ResultSender)>;
 
 /// Create a new Server with an associated Handler. Use `Server::run` to start the server, and use
 /// the Handler to register new experiment executions.
-pub fn create_server(url: &str) -> Result<(Server, Handler)> {
+pub fn create_server(url: String) -> Result<(Server, Handler)> {
     let (ctrl_tx, ctrl_rx) = mpsc::channel(1);
     let (close_tx, close_rx) = mpsc::unbounded_channel();
-    let handler = Handler::new(url, ctrl_tx, close_tx)?;
+    let handler = Handler::new(url.clone(), ctrl_tx, close_tx)?;
     let server = Server::new(url, ctrl_rx, close_rx)?;
     Ok((server, handler))
 }
@@ -60,9 +60,9 @@ pub struct Handler {
 }
 
 impl Handler {
-    fn new(url: &str, ctrl_tx: CtrlSender, close_tx: CloseSender) -> Result<Self> {
+    fn new(url: String, ctrl_tx: CtrlSender, close_tx: CloseSender) -> Result<Self> {
         Ok(Handler {
-            url: url.to_string(),
+            url,
             ctrl_tx,
             close_tx,
         })
@@ -117,14 +117,12 @@ pub struct Server {
 }
 
 impl Server {
-    fn new(url: &str, ctrl_rx: CtrlReceiver, close_rx: CloseReceiver) -> Result<Self> {
-        let routes = HashMap::new();
-        let url = url.to_string();
+    fn new(url: String, ctrl_rx: CtrlReceiver, close_rx: CloseReceiver) -> Result<Self> {
         Ok(Server {
             url,
             ctrl_rx,
             close_rx,
-            routes,
+            routes: HashMap::new(),
         })
     }
 

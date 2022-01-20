@@ -11,18 +11,13 @@ description = "The hEngine Command line interface"
 [dependencies]
 hash_engine = { path = "../..", default-features = false }
 error = { path = "../../lib/error", features = ["spantrace"] }
-#server = { path = "../server", artifact = "bin" }
+orchestrator = { path = "../../lib/orchestrator", default-features = false }
 
-async-trait = "0.1.48"
 clap = { version = "3.0.0", features = ["cargo", "derive", "env"] }
-lazy_static = "1.4.0"
-rand = "0.8.3"
-rand_distr = "0.4.2"
+num_cpus = "1.13.1"
 serde = { version = "1.0.111", features = ["derive"] }
-serde_json = "1.0.59"
-tokio = { version = "1.5.0", features = ["macros", "rt-multi-thread", "sync", "process", "io-util", "net", "rt", "fs"] }
-tracing = "0.1.29"
+tokio = "1.5.0"
 
 [features]
 default = ["build-nng"]
-build-nng = ["hash_engine/build-nng"]
+build-nng = ["hash_engine/build-nng", "orchestrator/build-nng"]
