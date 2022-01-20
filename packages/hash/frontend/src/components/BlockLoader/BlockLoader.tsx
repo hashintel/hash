@@ -35,8 +35,7 @@ type BlockLoaderProps = {
   entityProperties: {};
   linkGroups: LinkGroup[];
   linkedEntities: BlockEntity["properties"]["entity"]["linkedEntities"];
-  // @todo update type inline to only get those elements which pagefieldfragments is querying
-  linkedAggregations: LinkedAggregation[];
+  linkedAggregations: BlockEntity["properties"]["entity"]["linkedAggregations"];
   shouldSandbox?: boolean;
   sourceUrl: string;
 };
@@ -82,10 +81,16 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
       accountId,
       linkGroups,
       linkedEntities: flattenedLinkedEntities,
-      linkedAggregations,
+      linkedAggregations: linkedAggregations as LinkedAggregation[],
       properties: entityProperties,
     });
-  }, [accountId, entityProperties, linkGroups, linkedEntities]);
+  }, [
+    accountId,
+    entityProperties,
+    linkGroups,
+    linkedEntities,
+    linkedAggregations,
+  ]);
 
   const blockProperties = {
     ...flattenedProperties,

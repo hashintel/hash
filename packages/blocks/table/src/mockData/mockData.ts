@@ -139,6 +139,7 @@ export const initialTableData = {
             field: "name",
           },
         ],
+        entityTypeId: "asdasd",
       },
     } as BlockProtocolLinkedDataDefinition,
     data: [] as Person[],

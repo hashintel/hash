@@ -9,7 +9,7 @@ import { TableOptions, useSortBy, useTable } from "react-table";
 import {
   BlockProtocolLinkedAggregation,
   BlockProtocolEntityType,
-  BlockProtocolLinkedDataDefinition,
+  BlockProtocolUpdateLinkedAggregationsAction,
 } from "blockprotocol";
 import { BlockComponent } from "blockprotocol/react";
 import { tw } from "twind";
@@ -75,6 +75,26 @@ const getLinkedAggregation = (params: {
       aggregation.path === path &&
       aggregation.sourceEntityId === sourceEntityId,
   );
+};
+
+const cleanUpdateLinkedAggregationAction = (
+  action: BlockProtocolUpdateLinkedAggregationsAction & {
+    updatedOperation: Partial<BlockProtocolLinkedAggregation>;
+  },
+) => {
+  action.updatedOperation.multiSort = action.updatedOperation.multiSort?.map(
+    (sort) => {
+      const newSort = { ...sort };
+      newSort.__typename = undefined;
+      return newSort;
+    },
+  );
+
+  action.updatedOperation.pageCount = undefined;
+
+  action.updatedOperation.__typename = undefined;
+
+  return action;
 };
 
 export const Table: BlockComponent<AppProps> = ({
@@ -257,12 +277,12 @@ export const Table: BlockComponent<AppProps> = ({
       ]);
 
       void updateLinkedAggregations([
-        {
+        cleanUpdateLinkedAggregationAction({
           sourceAccountId: matchingLinkedAggregation.sourceAccountId,
           sourceEntityId: matchingLinkedAggregation.sourceEntityId,
           path: "$.operation",
           updatedOperation: newLinkedData.operation,
-        },
+        }),
       ]);
     },
     [
@@ -307,12 +327,12 @@ export const Table: BlockComponent<AppProps> = ({
       ]);
 
       void updateLinkedAggregations([
-        {
+        cleanUpdateLinkedAggregationAction({
           sourceAccountId: matchingLinkedAggregation.sourceAccountId,
           sourceEntityId: matchingLinkedAggregation.sourceEntityId,
           path: "$.operation",
           updatedOperation: { ...tableData.linkedAggregation.operation },
-        },
+        }),
       ]);
     }
   };
@@ -359,7 +379,15 @@ export const Table: BlockComponent<AppProps> = ({
 
   const setPageSize = useCallback(
     (size: number) => {
-      handleUpdate({ operation: "changePageSize", itemsPerPage: size });
+      if (!tableData?.linkedAggregation?.operation.entityTypeId) {
+        return;
+      }
+
+      handleUpdate({
+        operation: "changePageSize",
+        itemsPerPage: size,
+        entityTypeId: tableData?.linkedAggregation?.operation.entityTypeId,
+      });
     },
     [handleUpdate],
   );
@@ -416,7 +444,7 @@ export const Table: BlockComponent<AppProps> = ({
 
       if (entityTypeId) {
         void updateLinkedAggregations?.([
-          {
+          cleanUpdateLinkedAggregationAction({
             sourceAccountId: matchingLinkedAggregation.sourceAccountId,
             sourceEntityId: matchingLinkedAggregation.sourceEntityId,
             path: "$.operation",
@@ -426,7 +454,7 @@ export const Table: BlockComponent<AppProps> = ({
               itemsPerPage:
                 tableData.linkedAggregation?.operation?.itemsPerPage,
             },
-          },
+          }),
         ]);
       }
     },
@@ -469,6 +497,7 @@ export const Table: BlockComponent<AppProps> = ({
         onAggregate={handleUpdate}
         aggregateOptions={aggregateOptions}
         entityTypeDropdown={entityTypeDropdown}
+        entityTypeId={tableData?.linkedAggregation.operation.entityTypeId}
       />
       <div className={tw`max-w-full`}>
         <table

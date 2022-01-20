@@ -38,17 +38,6 @@ export const useBlockProtocolUpdateLinkedAggregations = (
         const results: BlockProtocolLinkedAggregationUpdated[] = [];
         // TODO: Support multiple actions in one GraphQL mutation for transaction integrity and better status reporting
         for (const action of actions) {
-          // @todo move this cleanup code to the block
-          action.updatedOperation.multiSort =
-            action.updatedOperation.multiSort?.map((sort) => {
-              sort.__typename = undefined;
-              return sort;
-            });
-
-          action.updatedOperation.pageCount = undefined;
-
-          action.updatedOperation.__typename = undefined;
-
           const { data, errors } = await runUpdateLinkedAggregationMutation({
             variables: {
               ...action,
@@ -59,7 +48,9 @@ export const useBlockProtocolUpdateLinkedAggregations = (
             throw new Error(`Could not create link: ${errors?.[0].message}`);
           }
 
-          results.push(data.updateLinkedAggregationOperation);
+          results.push(
+            data.updateLinkedAggregationOperation as BlockProtocolLinkedAggregationUpdated,
+          );
         }
         return results;
       },

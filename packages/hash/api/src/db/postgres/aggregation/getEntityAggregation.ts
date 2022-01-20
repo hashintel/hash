@@ -32,6 +32,8 @@ export const getEntityAggregation = async (
         ].flat(),
         sql` and `,
       )}
+    order by created_at desc  
+    limit 1
   `);
 
   return row ? mapRowToDBAggregation(row) : null;
