@@ -469,46 +469,18 @@ export class ProsemirrorSchemaManager {
             },
           });
         } else {
-          const intermediaryEntityId = newDraftId();
-
-          addEntityStoreAction(this.view.state, tr, {
-            type: "newDraftEntity",
-            payload: {
-              // @todo cleanup
-              draftId: intermediaryEntityId,
-              entityId: null,
-            },
-          });
-
-          addEntityStoreAction(this.view.state, tr, {
-            type: "updateEntityProperties",
-            payload: {
-              draftId: intermediaryEntityId,
-              properties: {
-                ...targetVariant.properties,
-                text: {
-                  // @todo ensure save knows how to save this
-                  __linkedData: {},
-                  data: blockEntity.properties.entity,
-                },
+          blockIdForNode = await this.createNewDraftBlock(
+            tr,
+            {
+              ...targetVariant.properties,
+              text: {
+                // @todo ensure save knows how to save this
+                __linkedData: {},
+                data: blockEntity.properties.entity,
               },
-              merge: false,
             },
-          });
-
-          addEntityStoreAction(this.view.state, tr, {
-            type: "updateEntityProperties",
-            payload: {
-              draftId: blockEntity.draftId,
-              properties: {
-                entity: entityStorePluginStateFromTransaction(
-                  tr,
-                  this.view.state,
-                ).store.draft[intermediaryEntityId],
-              },
-              merge: true,
-            },
-          });
+            targetComponentId,
+          );
         }
       } else {
         blockIdForNode = newDraftId();
