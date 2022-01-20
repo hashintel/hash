@@ -15,6 +15,8 @@ type PropertiesType<Properties extends {}> = Properties extends {
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   entityId: Type["entityId"] | null;
   draftId: string;
+
+  entityVersionCreatedAt: string;
 } & (Type extends { properties: any }
   ? { properties: PropertiesType<Type["properties"]> }
   : {});
@@ -155,7 +157,12 @@ export const createEntityStore = (
       { ...entity, draftId },
       (draftEntity: Draft<DraftEntity>) => {
         if (draftData[draftId]) {
-          Object.assign(draftEntity, draftData[draftId]);
+          if (
+            new Date(draftData[draftId].entityVersionCreatedAt).getTime() >
+            new Date(draftEntity.entityVersionCreatedAt).getTime()
+          ) {
+            Object.assign(draftEntity, draftData[draftId]);
+          }
         }
       },
     );

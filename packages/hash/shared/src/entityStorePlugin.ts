@@ -245,6 +245,7 @@ const entityStoreReducer = (
         draftState.store.draft[action.payload.draftId] = {
           entityId: action.payload.entityId,
           draftId: action.payload.draftId,
+          entityVersionCreatedAt: new Date().toISOString(),
           properties: {},
         };
       });
