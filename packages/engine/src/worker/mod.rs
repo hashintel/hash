@@ -17,6 +17,7 @@ use futures::{
     StreamExt,
 };
 use tokio::time::timeout;
+use tracing::{Instrument, Span};
 
 pub use self::error::{Error, Result};
 use self::{
@@ -236,6 +237,7 @@ impl WorkerController {
         msg: WorkerPoolToWorkerMsg,
         pending_syncs: &mut FuturesUnordered<Pin<Box<dyn Future<Output = ()> + Send>>>,
     ) -> Result<()> {
+        let span = msg.span;
         match msg.payload {
             WorkerPoolToWorkerMsgPayload::Task(task) => {
                 self.spawn_task(
@@ -243,17 +245,21 @@ impl WorkerController {
                         .ok_or_else(|| Error::from("Expected simulation id for spawning a task"))?,
                     task,
                 )
+                .instrument(span)
                 .await?;
             }
             WorkerPoolToWorkerMsgPayload::Sync(sync) => {
-                self.sync_runners(msg.sim_id, sync, pending_syncs).await?;
+                self.sync_runners(msg.sim_id, sync, pending_syncs)
+                    .instrument(span)
+                    .await?;
             }
             WorkerPoolToWorkerMsgPayload::CancelTask(task_id) => {
-                tracing::trace!("Received cancel task msg from Worker Pool");
-                self.cancel_task(task_id).await?;
+                self.cancel_task(task_id).instrument(span).await?;
             }
             WorkerPoolToWorkerMsgPayload::NewSimulationRun(new_simulation_run) => {
-                self.new_simulation_run(new_simulation_run).await?;
+                self.new_simulation_run(new_simulation_run)
+                    .instrument(span)
+                    .await?;
             }
         }
         Ok(())
@@ -300,6 +306,7 @@ impl WorkerController {
                     MessageTarget::Rust => {
                         self.rs
                             .send(Some(sim_id), InboundToRunnerMsgPayload::TaskMsg(task.msg))
+                            .in_current_span()
                             .await?;
                         if let Some(pending_task) = pending_task {
                             pending_task.active_runner = Language::Rust;
@@ -308,6 +315,7 @@ impl WorkerController {
                     MessageTarget::Python => {
                         self.py
                             .send(Some(sim_id), InboundToRunnerMsgPayload::TaskMsg(task.msg))
+                            .in_current_span()
                             .await?;
                         if let Some(pending_task) = pending_task {
                             pending_task.active_runner = Language::Python;
@@ -316,6 +324,7 @@ impl WorkerController {
                     MessageTarget::JavaScript => {
                         self.js
                             .send(Some(sim_id), InboundToRunnerMsgPayload::TaskMsg(task.msg))
+                            .in_current_span()
                             .await?;
                         if let Some(pending_task) = pending_task {
                             pending_task.active_runner = Language::JavaScript;
@@ -323,6 +332,7 @@ impl WorkerController {
                     }
                     MessageTarget::Dynamic => {
                         self.run_task_handler_on_outbound(sim_id, task.msg, msg.source)
+                            .in_current_span()
                             .await?;
                     }
                     MessageTarget::Main => {
@@ -334,20 +344,38 @@ impl WorkerController {
                             task.msg.payload,
                             task.msg.shared_store,
                         )
+                        .in_current_span()
                         .await?;
                     }
                 }
             }
             TaskCancelled(task_id) => {
                 self.handle_cancel_task_confirmation(task_id, sim_id, msg.source)
+                    .in_current_span()
                     .await?;
             }
-            RunnerError(err) => self.handle_errors(sim_id, vec![err]).await?,
-            RunnerErrors(errs) => self.handle_errors(sim_id, errs).await?,
-            RunnerWarning(warning) => self.handle_warnings(sim_id, vec![warning]).await?,
-            RunnerWarnings(warnings) => self.handle_warnings(sim_id, warnings).await?,
-            RunnerLog(log) => self.handle_logs(sim_id, vec![log]).await?,
-            RunnerLogs(logs) => self.handle_logs(sim_id, logs).await?,
+            RunnerError(err) => {
+                self.handle_errors(sim_id, vec![err])
+                    .in_current_span()
+                    .await?
+            }
+            RunnerErrors(errs) => self.handle_errors(sim_id, errs).in_current_span().await?,
+            RunnerWarning(warning) => {
+                self.handle_warnings(sim_id, vec![warning])
+                    .in_current_span()
+                    .await?
+            }
+            RunnerWarnings(warnings) => {
+                self.handle_warnings(sim_id, warnings)
+                    .in_current_span()
+                    .await?
+            }
+            RunnerLog(log) => {
+                self.handle_logs(sim_id, vec![log])
+                    .in_current_span()
+                    .await?
+            }
+            RunnerLogs(logs) => self.handle_logs(sim_id, logs).in_current_span().await?,
         }
         Ok(())
     }
@@ -639,6 +667,7 @@ impl WorkerController {
 
     /// Sends a message to all spawned runners to cancel the current task.
     async fn cancel_task(&mut self, task_id: TaskId) -> Result<()> {
+        tracing::trace!("Cancelling task");
         if let Some(task) = self.tasks.inner.get_mut(&task_id) {
             // TODO: Or `CancelState::None`?
             task.cancelling = CancelState::Active(vec![task.active_runner]);
@@ -689,19 +718,26 @@ impl WorkerController {
 
     /// Forwards `new_simulation_run` to all spawned workers.
     async fn new_simulation_run(&mut self, new_simulation_run: NewSimulationRun) -> Result<()> {
+        let span = Span::current();
         tokio::try_join!(
-            self.py.send_if_spawned(
-                None,
-                InboundToRunnerMsgPayload::NewSimulationRun(new_simulation_run.clone())
-            ),
-            self.js.send_if_spawned(
-                None,
-                InboundToRunnerMsgPayload::NewSimulationRun(new_simulation_run.clone())
-            ),
-            self.rs.send_if_spawned(
-                None,
-                InboundToRunnerMsgPayload::NewSimulationRun(new_simulation_run)
-            )
+            self.py
+                .send_if_spawned(
+                    Some(new_simulation_run.short_id),
+                    InboundToRunnerMsgPayload::NewSimulationRun(new_simulation_run.clone())
+                )
+                .instrument(span.clone()),
+            self.js
+                .send_if_spawned(
+                    Some(new_simulation_run.short_id),
+                    InboundToRunnerMsgPayload::NewSimulationRun(new_simulation_run.clone())
+                )
+                .instrument(span.clone()),
+            self.rs
+                .send_if_spawned(
+                    Some(new_simulation_run.short_id),
+                    InboundToRunnerMsgPayload::NewSimulationRun(new_simulation_run)
+                )
+                .instrument(span.clone())
         )?;
         Ok(())
     }

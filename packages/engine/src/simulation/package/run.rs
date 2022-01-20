@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use futures::{executor::block_on, stream::FuturesOrdered, StreamExt};
+use tracing::Instrument;
 
 use crate::{
     datastore::{
@@ -168,14 +169,17 @@ impl StepPackages {
             let cpu_bound = package.cpu_bound();
             futs.push(if cpu_bound {
                 tokio::task::spawn_blocking(move || {
-                    let res = block_on(package.run(state, snapshot_clone));
+                    let res = block_on(package.run(state, snapshot_clone).in_current_span());
                     (package, res)
                 })
             } else {
-                tokio::task::spawn(async {
-                    let res = package.run(state, snapshot_clone).await;
-                    (package, res)
-                })
+                tokio::task::spawn(
+                    async {
+                        let res = package.run(state, snapshot_clone).await;
+                        (package, res)
+                    }
+                    .in_current_span(),
+                )
             });
         });
 

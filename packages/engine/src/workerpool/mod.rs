@@ -12,6 +12,7 @@ use futures::{
 };
 use rand::prelude::SliceRandom;
 use tokio::{pin, task::JoinHandle};
+use tracing::{Instrument, Span};
 
 pub use self::error::{Error, Result};
 use self::{
@@ -132,16 +133,21 @@ impl WorkerPoolController {
 
         let futs = worker_controllers
             .into_iter()
-            .map(|mut c| tokio::spawn(async move { c.run().await.map_err(Error::from) }))
+            .map(|mut c| {
+                tokio::spawn(async move { c.run().await.map_err(Error::from) }.in_current_span())
+            })
             .collect::<Vec<_>>();
 
-        let fut = tokio::spawn(async move {
-            try_join_all(futs)
-                .await
-                .map_err(|_| Error::from("Couldn't join!"))?
-                .into_iter()
-                .collect::<Result<_>>()
-        });
+        let fut = tokio::spawn(
+            async move {
+                try_join_all(futs)
+                    .await
+                    .map_err(|_| Error::from("Couldn't join!"))?
+                    .into_iter()
+                    .collect::<Result<_>>()
+            }
+            .in_current_span(),
+        );
         Ok(fut)
     }
 
@@ -165,9 +171,9 @@ impl WorkerPoolController {
                     tracing::debug!("Handle simulation message: {:?}", msg);
                     self.handle_sim_msg(msg, &mut pending_syncs).await?;
                 }
-                Some(msg) = self.exp_recv.recv() => {
+                Some((span, msg)) = self.exp_recv.recv() => {
                     tracing::debug!("Handle experiment message: {:?}", msg);
-                    self.handle_exp_msg(msg).await?;
+                    self.handle_exp_msg(msg).instrument(span).await?;
                 }
                 Some((worker_index, sim_id, msg)) = self.comms.recv() => {
                     tracing::debug!("Handle comms message for worker [{}] and simulation [{}]: {:?}", worker_index, sim_id, msg);
@@ -204,6 +210,7 @@ impl WorkerPoolController {
         msg: EngineToWorkerPoolMsg,
         pending_syncs: &mut FuturesUnordered<Pin<Box<dyn Future<Output = ()> + Send>>>,
     ) -> Result<()> {
+        let _span = msg.span.entered();
         let sim_id = msg.sim_id;
         match msg.payload {
             EngineToWorkerPoolMsgPayload::Task(task_msg) => {
@@ -236,6 +243,7 @@ impl WorkerPoolController {
                     sync.create_children(self.comms.num_workers());
                 for (worker_index, msg) in worker_msgs.into_iter().enumerate() {
                     self.comms.send(worker_index, WorkerPoolToWorkerMsg {
+                        span: Span::current(),
                         sim_id: Some(sim_id),
                         payload: WorkerPoolToWorkerMsgPayload::Sync(SyncPayload::State(msg)),
                     })?;
@@ -243,7 +251,8 @@ impl WorkerPoolController {
                 let fut = async move {
                     let sync = sync; // Capture `sync` in lambda.
                     sync.forward_children(worker_completion_receivers).await
-                };
+                }
+                .in_current_span();
                 pending_syncs.push(Box::pin(fut) as _);
             }
         }

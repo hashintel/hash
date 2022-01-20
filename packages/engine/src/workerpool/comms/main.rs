@@ -3,6 +3,7 @@ use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use super::Result;
 use crate::{proto::SimulationShortId, simulation::comms::message::EngineToWorkerPoolMsg};
 
+// TODO: move span out of msg?
 pub struct MainMsgRecv {
     inner: UnboundedReceiver<EngineToWorkerPoolMsg>,
 }

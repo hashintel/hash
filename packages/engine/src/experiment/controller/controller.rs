@@ -1,5 +1,7 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
+use tracing::{Instrument, Span};
+
 use super::{
     comms::{
         sim_status::{SimStatusRecv, SimStatusSend},
@@ -71,11 +73,15 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
     async fn handle_experiment_control_msg(&mut self, msg: ExperimentControl) -> Result<()> {
         match msg {
             ExperimentControl::StartSim {
+                span_id,
                 sim_id,
                 changed_properties,
                 max_num_steps,
             } => {
+                let sim_span =
+                    tracing::span!(parent: span_id, tracing::Level::INFO, "sim", id = &sim_id);
                 self.start_new_sim_run(sim_id, changed_properties, max_num_steps)
+                    .instrument(sim_span)
                     .await?;
             }
             ExperimentControl::PauseSim(sim_short_id) => self.pause_sim_run(sim_short_id).await?,
@@ -161,6 +167,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
         changed_properties: serde_json::Value,
         max_num_steps: usize,
     ) -> Result<()> {
+        tracing::info!("Starting a new run");
         let worker_pool_sender = self.worker_pool_send_base.sender_with_sim_id(sim_short_id);
 
         // Create the `globals.json` for the simulation
@@ -210,6 +217,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
         self.worker_pool_send
             .send(ExperimentToWorkerPoolMsg::NewSimulationRun(
                 NewSimulationRun {
+                    span: Span::current(),
                     short_id: sim_short_id,
                     engine_config: Arc::clone(&sim_config.sim.engine),
                     packages: sim_start_msgs,

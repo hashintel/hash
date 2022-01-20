@@ -54,11 +54,7 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
 ) -> Result<SimulationShortId> {
     let sim_run_id = config.sim.id;
     let max_num_steps = config.sim.max_num_steps;
-    tracing::info!(
-        "Beginning simulation run with id {} for a maximum of {} steps",
-        &sim_run_id,
-        max_num_steps,
-    );
+    tracing::info!(steps = &max_num_steps, "Beginning simulation run");
 
     let uninitialized_store = Store::new_uninitialized(shared_store, &config);
 

@@ -34,6 +34,7 @@ impl<'a> SimQueue<'a> {
                 stopped: false,
             });
             let msg = ExperimentControl::StartSim {
+                span_id: tracing::Span::current().id(),
                 sim_id,
                 changed_properties: changed_props.clone(),
                 max_num_steps: self.max_num_steps,

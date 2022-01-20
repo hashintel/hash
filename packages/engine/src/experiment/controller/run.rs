@@ -1,5 +1,7 @@
 use std::{pin::Pin, sync::Arc, time::Duration};
 
+use tracing::Instrument;
+
 use super::{config, controller::ExperimentController, Error, Result};
 use crate::{
     datastore::prelude::SharedStore,
@@ -19,6 +21,7 @@ use crate::{
     Environment, Error as CrateError, ExperimentConfig,
 };
 
+#[tracing::instrument(skip_all, fields(experiment_id = %exp_config.run.base().id))]
 pub async fn run_experiment(exp_config: ExperimentConfig, env: Environment) -> Result<()> {
     let experiment_name = exp_config.name().to_string();
     let experiment_id = exp_config.run.base().id;
@@ -28,7 +31,7 @@ pub async fn run_experiment(exp_config: ExperimentConfig, env: Environment) -> R
 
     // Keep another orchestrator client at the top level to send the final result
     let mut orch_client = env.orch_client.try_clone()?;
-    match tokio::spawn(run_local_experiment(exp_config, env)).await {
+    match tokio::spawn(run_local_experiment(exp_config, env).in_current_span()).await {
         Ok(result) => {
             let final_result = match result {
                 Ok(()) => {
@@ -127,6 +130,7 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
         PackageConfig::ExperimentPackageConfig(package_config) => package_config,
         _ => unreachable!(),
     };
+
     let worker_allocator = SimConfigurer::new(package_config, exp_config.worker_pool.num_workers);
     let package_creators = PackageCreators::from_config(&exp_config.packages, &exp_config)?;
     let (sim_status_send, sim_status_recv) = super::comms::sim_status::new_pair();
@@ -152,14 +156,15 @@ async fn run_experiment_with_persistence<P: OutputPersistenceCreatorRepr>(
 
     // Get the experiment-level initialization payload for workers
     let exp_init_msg_base = experiment_controller.exp_init_msg_base().await?;
+    // TODO: does this need to even be async
     worker_pool_controller
         .spawn_workers(exp_init_msg_base)
         .await?;
 
     let mut worker_pool_controller_handle =
-        tokio::spawn(async move { worker_pool_controller.run().await });
+        tokio::spawn(async move { worker_pool_controller.run().await }.in_current_span());
     let mut experiment_controller_handle =
-        tokio::spawn(async move { experiment_controller.run().await });
+        tokio::spawn(async move { experiment_controller.run().await }.in_current_span());
 
     let mut worker_pool_result: WorkerPoolResult = None;
     let mut experiment_package_result: ExperimentPackageResult = None;
