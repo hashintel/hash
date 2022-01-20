@@ -1,10 +1,9 @@
 use std::{collections::HashMap, fmt::Display};
 
 use error::{bail, report, Result, ResultExt};
-use hash_engine::{nano, proto, proto::ExperimentNameRef};
+use hash_engine::{nano, proto, proto::ExperimentId};
 use tokio::sync::{mpsc, oneshot};
 
-type ExperimentId = String;
 type ResultSender = oneshot::Sender<Result<()>>;
 type CloseReceiver = mpsc::UnboundedReceiver<ExperimentId>;
 type CloseSender = mpsc::UnboundedSender<ExperimentId>;
@@ -87,19 +86,16 @@ impl Handler {
 
     /// Register a new experiment execution with the server, returning a Handle from which messages
     /// from the execution may be received.
-    pub async fn register_experiment(
-        &mut self,
-        experiment_name: ExperimentNameRef<'_>,
-    ) -> Result<Handle> {
+    pub async fn register_experiment(&mut self, experiment_id: ExperimentId) -> Result<Handle> {
         let (msg_tx, msg_rx) = mpsc::unbounded_channel();
         self.send_ctrl(Ctrl::Register {
-            id: experiment_name.into(),
+            id: experiment_id,
             msg_tx,
         })
         .await?;
 
         let handle = Handle {
-            id: experiment_name.into(),
+            id: experiment_id,
             msg_rx,
             close_tx: self.close_tx.clone(),
         };
@@ -168,15 +164,15 @@ impl Server {
     /// Dispatch a message received from an experiment run to its respective handle. Returns an
     /// error if the experiment ID set in the message has not been registered.
     fn dispatch_message(&self, msg: proto::OrchestratorMsg) -> Result<()> {
-        match self.routes.get(&msg.experiment_name) {
+        match self.routes.get(&msg.experiment_id) {
             None => {
                 // Experiment not found. This can happen if the experiment runner
                 // completes before sending de-registering the experiment.
                 Ok(())
             }
-            Some(sender) => sender.send(msg.body).wrap_err_lazy(|| {
-                format!("Routing message for experiment {}", msg.experiment_name)
-            }),
+            Some(sender) => sender
+                .send(msg.body)
+                .wrap_err_lazy(|| format!("Routing message for experiment {}", msg.experiment_id)),
         }
     }
 

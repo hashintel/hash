@@ -59,7 +59,7 @@ impl OrchClient {
 
     pub async fn send(&mut self, msg: EngineStatus) -> Result<()> {
         let m = crate::proto::OrchestratorMsg {
-            experiment_name: self.experiment_id.to_string(),
+            experiment_id: self.experiment_id,
             body: msg,
         };
         tokio::time::timeout(Duration::from_secs(5), self.client.send(&m))

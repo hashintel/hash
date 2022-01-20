@@ -79,7 +79,7 @@ impl Experiment {
     ) -> Result<()> {
         let experiment_name = experiment_run.base.name.clone();
         let mut engine_handle = handler
-            .register_experiment(&experiment_name)
+            .register_experiment(experiment_run.base.id)
             .await
             .wrap_err_lazy(|| format!("Could not register experiment: {experiment_name}"))?;
 

@@ -18,7 +18,7 @@ use crate::simulation::enum_dispatch::*;
 /// The message type sent from the engine to the orchestrator.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct OrchestratorMsg {
-    pub experiment_name: ExperimentName,
+    pub experiment_id: ExperimentId,
     pub body: EngineStatus,
 }
 

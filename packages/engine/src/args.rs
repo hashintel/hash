@@ -10,6 +10,7 @@ use crate::{proto::ExperimentId, utils::OutputFormat};
 /// Run the engine.
 pub struct Args {
     /// The unique identifier of the experiment
+    #[clap(short, long, default_value = "")]
     pub experiment_id: ExperimentId,
 
     /// nng URL that the orchestrator is listening on
