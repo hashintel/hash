@@ -8,7 +8,7 @@ const config: PlaywrightTestConfig = {
 
     // TODO: investigate issue with cookie persistence in CI (Ubuntu).
     // GraphQL queries remain unauthenticated after login.
-    // { name: "webkit", use: { ...devices["Desktop Safari"] } },
+    { name: "webkit", use: { ...devices["Desktop Safari"] } },
   ],
   reporter: [
     [process.env.CI ? "github" : "list"],

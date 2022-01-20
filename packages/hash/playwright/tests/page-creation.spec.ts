@@ -73,16 +73,15 @@ test("user can create page", async ({ page }) => {
   // TODO: Move the cursor below the new divider and update the test?
 
   // Insert a paragraph creation with newlines
-  // TODO: Enable and fix by updating ProseMirror code
-  // await page.keyboard.type("Second paragraph");
-  // await page.keyboard.press("Shift+Enter");
-  // await sleep(100); // TODO: investigate flakiness in FF and Webkit
-  // await page.keyboard.press("Shift+Enter");
-  // await sleep(100); // TODO: investigate flakiness in FF and Webkit
-  // await page.keyboard.type("with");
-  // await page.keyboard.press("Shift+Enter");
-  // await sleep(100); // TODO: investigate flakiness in FF and Webkit
-  // await page.keyboard.type("line breaks");
+  await page.keyboard.type("Second paragraph");
+  await page.keyboard.press("Shift+Enter");
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await page.keyboard.press("Shift+Enter");
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await page.keyboard.type("with");
+  await page.keyboard.press("Shift+Enter");
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await page.keyboard.type("line breaks");
 
   // Expect just inserted content to be present on the page
   await expect(blockRegionLocator).toContainText(
@@ -104,10 +103,13 @@ test("user can create page", async ({ page }) => {
 
   await expect(pageTitleLocator).toHaveValue(pageName);
 
-  await expect(blockRegionLocator).toContainText(
+  await expect(blockRegionLocator.locator("p").nth(0)).toContainText(
     "My test paragraph with bold and italics",
-    // "My test paragraph with bold and italics\nSecond paragraph\nwith\nline breaks",
     { useInnerText: true }, // Prevents words from sticking to each other
+  );
+  await expect(blockRegionLocator.locator("p").nth(1)).toContainText(
+    "Second paragraph\n\nwith\nline breaks",
+    { useInnerText: true },
   );
 
   await expect(blockRegionLocator.locator("hr")).toBeVisible();
