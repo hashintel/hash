@@ -209,19 +209,75 @@ export const entityTypedef = gql`
   }
 
   """
-  Filter entity types by any of entityType, componentId, entityTypeId, entityTypeVersionId, systemTypeName
+  Select entity types by ONE of entityType, componentId, entityTypeId, entityTypeVersionId, systemTypeName
   """
-  input EntityTypeFilter {
+  input EntityTypeChoice {
+    """
+    For entity types related to block types, the URI of the block. 'componentId' in the entity type's schema.
+    """
     componentId: ID
+    """
+    A fixed entity type ID.
+    """
     entityTypeId: ID
+    """
+    A specific type version ID.
+    """
     entityTypeVersionId: ID
+    """
+    A system type name.
+    """
     systemTypeName: SystemTypeName
   }
   """
   Filter entities
   """
   input EntityFilter {
-    entityType: EntityTypeFilter
+    entityType: EntityTypeChoice
+  }
+
+  input LinkedEntityDefinition {
+    """
+    The JSON path where the link occurs on its source entity's properties.
+    """
+    path: String!
+    destinationAccountId: ID!
+    """
+    The index of the link (if any)
+    """
+    index: Int
+    entity: EntityDefinition!
+  }
+
+  """
+  For referring to an existing entity owned by a specific accountId
+  """
+  input ExistingEntity {
+    entityId: ID!
+    accountId: ID!
+  }
+
+  input EntityDefinition {
+    """
+    Existing Entity to use instead of creating a new entity.
+    """
+    existingEntity: ExistingEntity
+    """
+    Whether the new entity should be versioned. Default is true.
+    """
+    versioned: Boolean = true
+    """
+    The type of which to instantiate the new entity.
+    """
+    entityType: EntityTypeChoice
+    """
+    The properties of new entity.
+    """
+    entityProperties: JSONObject
+    """
+    Associated Entities to either create/get and link to this entity.
+    """
+    linkedEntities: [LinkedEntityDefinition!]
   }
 
   extend type Query {
@@ -233,24 +289,7 @@ export const entityTypedef = gql`
     """
     Create an entity
     """
-    createEntity(
-      accountId: ID!
-      properties: JSONObject!
-      """
-      The id of an existing entity type to assign this entity
-      """
-      entityTypeId: ID
-      """
-      Optionally use a specific version of the entityType.
-      If not provided, the latest will be used.
-      """
-      entityTypeVersionId: ID
-      """
-      Assign a prefined type to the entity
-      """
-      systemTypeName: SystemTypeName
-      versioned: Boolean! = false
-    ): Entity!
+    createEntity(accountId: ID!, entity: EntityDefinition!): Entity!
 
     """
     Update an entity
