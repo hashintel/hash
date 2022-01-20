@@ -1,7 +1,6 @@
 import { Draft, produce } from "immer";
 import { BlockEntity, isTextContainingEntityProperties } from "./entity";
 import { DistributiveOmit, typeSafeEntries } from "./util";
-import { Text } from "./graphql/apiTypes.gen";
 
 export type EntityStoreType = BlockEntity | BlockEntity["properties"]["entity"];
 
@@ -131,6 +130,22 @@ const findEntities = (contents: EntityStoreType[]) => {
 };
 
 /**
+ * @todo remove need to cast in this function
+ */
+const restoreDraftId = (
+  entity: { entityId: string | null; draftId?: string },
+  entityToDraft: Record<string, string>,
+) => {
+  const textEntityId = entity.entityId;
+
+  if (!textEntityId) {
+    throw new Error("entity id does not exist when expected to");
+  }
+
+  // eslint-disable-next-line no-param-reassign
+  (entity as unknown as DraftEntity).draftId = entityToDraft[textEntityId];
+};
+/**
  * @todo this should be flat – so that we don't have to traverse links
  * @todo clean up
  */
@@ -187,41 +202,21 @@ export const createEntityStore = (
       draft[draftId],
       (draftEntity: Draft<DraftEntity>) => {
         if (isTextContainingEntityProperties(draftEntity.properties)) {
-          const linkEntityId = draftEntity.properties.text.data.entityId;
-          if (!linkEntityId) {
-            throw new Error("entity id does not exist when expected to 3");
-          }
-
-          // @todo clean up
-          (
-            draftEntity.properties.text.data as unknown as DraftEntity<Text>
-          ).draftId = entityToDraft[linkEntityId];
+          restoreDraftId(draftEntity.properties.text.data, entityToDraft);
         }
 
         if (isDraftBlockEntity(draftEntity)) {
-          const innerEntityId = draftEntity.properties.entity.entityId;
-          if (!innerEntityId) {
-            throw new Error("entity id does not exist when expected to 1");
-          }
-
-          draftEntity.properties.entity.draftId = entityToDraft[innerEntityId];
+          restoreDraftId(draftEntity.properties.entity, entityToDraft);
 
           if (
             isTextContainingEntityProperties(
               draftEntity.properties.entity.properties,
             )
           ) {
-            const linkEntityId =
-              draftEntity.properties.entity.properties.text.data.entityId;
-            if (!linkEntityId) {
-              throw new Error("entity id does not exist when expected to 2");
-            }
-
-            // @todo clean up
-            (
-              draftEntity.properties.entity.properties.text
-                .data as unknown as DraftEntity<Text>
-            ).draftId = entityToDraft[linkEntityId];
+            restoreDraftId(
+              draftEntity.properties.entity.properties.text.data,
+              entityToDraft,
+            );
           }
         }
       },
