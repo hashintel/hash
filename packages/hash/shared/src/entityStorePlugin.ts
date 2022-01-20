@@ -114,6 +114,36 @@ const entityStorePluginStateFromTransaction = (
   getMeta(tr)?.store ?? entityStorePluginState(state);
 
 /**
+ * As we're not yet working with a totally flat entity store, the same
+ * entity can exist in multiple places in a draft entity store. This
+ * function finds each instance of an entity by entity id, and calls a
+ * handler which can mutate this entity. This will ensure a desired update
+ * is applied everywhere that's necessary.
+ *
+ * @todo look into removing this when the entity store is flat
+ */
+const updateEntitiesByDraftId = (
+  draftEntityStore: Draft<EntityStore["draft"]>,
+  draftId: string,
+  updateHandler: (entity: Draft<DraftEntity>) => void,
+) => {
+  const entities: Draft<DraftEntity>[] = [draftEntityStore[draftId]];
+
+  for (const entity of Object.values(draftEntityStore)) {
+    if (
+      isDraftBlockEntity(entity) &&
+      entity.properties.entity.draftId === draftId
+    ) {
+      entities.push(entity.properties.entity);
+    }
+  }
+
+  for (const entity of entities) {
+    updateHandler(entity);
+  }
+};
+
+/**
  * We currently violate Immer's rules, as properties inside entities can be
  * other entities themselves, and we expect `entity.property.entity` to be
  * the same object as the other entity. We either need to change that, or
@@ -165,54 +195,40 @@ const entityStoreReducer = (
           draftState.trackedActions.push({ action, id: uuid() });
         }
 
-        const entities: Draft<DraftEntity>[] = [
-          draftState.store.draft[action.payload.draftId],
-        ];
-
-        for (const entity of Object.values(draftState.store.draft)) {
-          if (
-            isDraftBlockEntity(entity) &&
-            entity.properties.entity.draftId === action.payload.draftId
-          ) {
-            entities.push(entity.properties.entity);
-          }
-        }
-
-        if (action.payload.merge) {
-          for (const entity of entities) {
-            Object.assign(entity.properties, action.payload.properties);
-          }
-        } else {
-          for (const entity of entities) {
-            entity.properties = action.payload.properties;
-          }
-        }
+        updateEntitiesByDraftId(
+          draftState.store.draft,
+          action.payload.draftId,
+          action.payload.merge
+            ? (draftEntity) => {
+                Object.assign(
+                  draftEntity.properties,
+                  action.payload.properties,
+                );
+              }
+            : (draftEntity) => {
+                draftEntity.properties = action.payload.properties;
+              },
+        );
       });
     }
+
     case "updateEntityId": {
       if (!state.store.draft[action.payload.draftId]) {
         throw new Error("Entity missing to update entity id");
       }
 
-      return produce(state, (draft) => {
-        if (!action.received) draft.trackedActions.push({ action, id: uuid() });
-
-        const entities: Draft<DraftEntity>[] = [
-          draft.store.draft[action.payload.draftId],
-        ];
-
-        for (const entity of Object.values(draft.store.draft)) {
-          if (
-            isDraftBlockEntity(entity) &&
-            entity.properties.entity.draftId === action.payload.draftId
-          ) {
-            entities.push(entity.properties.entity);
-          }
+      return produce(state, (draftState) => {
+        if (!action.received) {
+          draftState.trackedActions.push({ action, id: uuid() });
         }
 
-        for (const entity of entities) {
-          entity.entityId = action.payload.entityId;
-        }
+        updateEntitiesByDraftId(
+          draftState.store.draft,
+          action.payload.draftId,
+          (draftEntity: Draft<DraftEntity>) => {
+            draftEntity.entityId = action.payload.entityId;
+          },
+        );
       });
     }
 
