@@ -172,8 +172,7 @@ const useMockData = () => {
 const node = document.getElementById("app");
 
 const App = () => {
-  const { data, initialState, updateEntities, aggregateEntities } =
-    useMockData();
+  const { initialState, updateEntities, aggregateEntities } = useMockData();
 
   return (
     <div className={tw`flex justify-center py-8`}>

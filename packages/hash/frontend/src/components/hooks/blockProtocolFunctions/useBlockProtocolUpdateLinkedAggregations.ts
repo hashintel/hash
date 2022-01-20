@@ -1,7 +1,6 @@
 import { useMutation } from "@apollo/client";
 
 import {
-  BlockProtocolLinkedAggregation,
   BlockProtocolLinkedAggregationUpdated,
   BlockProtocolUpdateLinkedAggregationsFunction,
 } from "blockprotocol";
