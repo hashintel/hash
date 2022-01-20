@@ -1,6 +1,6 @@
 use clap::{AppSettings, Parser};
 
-use crate::{proto::ExperimentName, utils::OutputFormat};
+use crate::{proto::ExperimentId, utils::OutputFormat};
 
 /// Arguments passed to hEngine
 #[derive(Debug, Parser)]
@@ -9,9 +9,8 @@ use crate::{proto::ExperimentName, utils::OutputFormat};
 #[clap(setting(AppSettings::UseLongFormatForHelpSubcommand))]
 /// Run the engine.
 pub struct Args {
-    /// experiment name
-    #[clap(short, long, default_value = "")]
-    pub experiment_name: ExperimentName,
+    /// The unique identifier of the experiment
+    pub experiment_id: ExperimentId,
 
     /// nng URL that the orchestrator is listening on
     #[clap(short, long, default_value = "")]

@@ -5,7 +5,7 @@ use tokio::time::Duration;
 use crate::{
     nano,
     proto::{
-        EngineMsg, EngineStatus, ExecutionEnvironment, ExperimentNameRef, ExperimentRunRepr,
+        EngineMsg, EngineStatus, ExecutionEnvironment, ExperimentId, ExperimentRunRepr,
         ExperimentRunTrait, InitMessage,
     },
     Args,
@@ -43,23 +43,23 @@ impl From<String> for Error {
 
 pub struct OrchClient {
     url: String,
-    experiment_name: String,
+    experiment_id: ExperimentId,
     client: nano::Client,
 }
 
 impl OrchClient {
-    pub fn new(url: &str, experiment_name: ExperimentNameRef<'_>) -> Result<Self> {
+    pub fn new(url: &str, experiment_id: ExperimentId) -> Result<Self> {
         let client = nano::Client::new(url, 1)?;
         Ok(OrchClient {
             url: url.into(),
-            experiment_name: experiment_name.to_string(),
+            experiment_id,
             client,
         })
     }
 
     pub async fn send(&mut self, msg: EngineStatus) -> Result<()> {
         let m = crate::proto::OrchestratorMsg {
-            experiment_name: self.experiment_name.to_string(),
+            experiment_name: self.experiment_id.to_string(),
             body: msg,
         };
         tokio::time::timeout(Duration::from_secs(5), self.client.send(&m))
@@ -69,7 +69,7 @@ impl OrchClient {
     }
 
     pub fn try_clone(&self) -> Result<Self> {
-        OrchClient::new(&self.url, &self.experiment_name)
+        OrchClient::new(&self.url, self.experiment_id)
     }
 }
 
@@ -85,7 +85,7 @@ pub async fn env<E>(args: &Args) -> Result<Environment>
 where
     E: ExperimentRunTrait + for<'de> Deserialize<'de>,
 {
-    let mut orch_client = OrchClient::new(&args.orchestrator_url, &args.experiment_name)?;
+    let mut orch_client = OrchClient::new(&args.orchestrator_url, args.experiment_id)?;
     log::debug!("Connected to orchestrator at {}", &args.orchestrator_url);
 
     let mut orch_listener = nano::Server::new(&args.listen_url)?;

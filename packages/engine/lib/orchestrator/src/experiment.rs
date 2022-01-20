@@ -6,8 +6,8 @@ use hash_engine::{
     output::local::config::LocalPersistenceConfig,
     proto,
     proto::{
-        ExecutionEnvironment, ExperimentPackageConfig, ExperimentRunBase, SimpleExperimentConfig,
-        SingleRunExperimentConfig,
+        ExecutionEnvironment, ExperimentId, ExperimentPackageConfig, ExperimentRunBase,
+        SimpleExperimentConfig, SingleRunExperimentConfig,
     },
     utils::OutputFormat,
 };
@@ -59,7 +59,7 @@ impl Experiment {
 
     pub fn create_engine_command(
         &self,
-        experiment_id: &str,
+        experiment_id: ExperimentId,
         controller_url: &str,
     ) -> Result<Box<dyn process::Command + Send>> {
         Ok(Box::new(process::LocalCommand::new(
@@ -85,7 +85,7 @@ impl Experiment {
 
         // Create and start the experiment run
         let cmd = self
-            .create_engine_command(&experiment_name, handler.url())
+            .create_engine_command(experiment_run.base.id, handler.url())
             .wrap_err("Could not build engine command")?;
         let mut engine_process = cmd.run().await.wrap_err("Could not run experiment")?;
 

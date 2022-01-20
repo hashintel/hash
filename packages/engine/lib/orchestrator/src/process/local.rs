@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use error::{Report, Result, ResultExt};
 use hash_engine::{
     nano,
-    proto::{EngineMsg, ExperimentName, ExperimentNameRef},
+    proto::{EngineMsg, ExperimentId},
     utils::OutputFormat,
 };
 
@@ -15,7 +15,6 @@ const PROCESS_PATH_DEFAULT: &str = "./target/debug/hash_engine";
 const PROCESS_PATH_DEFAULT: &str = "./target/release/hash_engine";
 
 pub struct LocalProcess {
-    experiment_name: ExperimentName,
     child: std::process::Child,
     client: Option<nano::Client>,
     engine_url: String,
@@ -32,10 +31,7 @@ impl process::Process for LocalProcess {
             })
             .wrap_err("Could not kill the process")?;
 
-        debug!(
-            "Cleaned up local engine process for experiment {}",
-            &self.experiment_name
-        );
+        debug!("Cleaned up local engine process for experiment");
         Ok(())
     }
 
@@ -55,8 +51,8 @@ impl process::Process for LocalProcess {
 }
 
 pub struct LocalCommand {
+    experiment_id: ExperimentId,
     engine_url: String,
-    experiment_name: String,
     controller_url: String,
     max_num_workers: usize,
     output_format: OutputFormat,
@@ -64,17 +60,17 @@ pub struct LocalCommand {
 
 impl LocalCommand {
     pub fn new(
-        experiment_name: ExperimentNameRef<'_>,
+        experiment_id: ExperimentId,
         max_num_workers: usize,
         controller_url: &str,
         output_format: OutputFormat,
     ) -> Result<Self> {
         // The NNG URL that the engine process will listen on
-        let engine_url = format!("ipc://run-{experiment_name}"); // TODO: is this okay?
+        let engine_url = format!("ipc://run-{experiment_id}");
 
         Ok(LocalCommand {
+            experiment_id,
             engine_url,
-            experiment_name: experiment_name.to_string(),
             controller_url: controller_url.to_string(),
             max_num_workers,
             output_format,
@@ -92,8 +88,8 @@ impl process::Command for LocalCommand {
             .unwrap_or(PROCESS_PATH_DEFAULT);
 
         let mut cmd = std::process::Command::new(process_path);
-        cmd.arg("--experiment-name")
-            .arg(&self.experiment_name)
+        cmd.arg("--experiment-id")
+            .arg(self.experiment_id.to_string())
             .arg("--orchestrator-url")
             .arg(&self.controller_url)
             .arg("--listen-url")
@@ -109,13 +105,9 @@ impl process::Command for LocalCommand {
         let child = cmd
             .spawn()
             .wrap_err_lazy(|| format!("Could not run command: {process_path:?}"))?;
-        debug!(
-            "Spawned local engine process for experiment {}",
-            &self.experiment_name
-        );
+        debug!("Spawned local engine process for experiment");
 
         Ok(Box::new(LocalProcess {
-            experiment_name: self.experiment_name,
             child,
             client: None,
             engine_url: self.engine_url.clone(),
