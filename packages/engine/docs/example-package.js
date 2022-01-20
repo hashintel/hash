@@ -1,3 +1,5 @@
+// TODO: JSDoc
+
 // Each package optionally has a `package.js` file, with three optional functions:
 // * `start_experiment`
 // * `start_sim`
@@ -158,7 +160,7 @@ const run_task = (experiment, sim, task_message, state, context) => {
     warnings: ["user warning"],
     errors: ["user error"],
     target: "Main",
-    task: fits_in_sim,
+    task: JSON.stringify(fits_in_sim),
     print: "sim size: " + sim.size,
   };
 };
