@@ -45,7 +45,7 @@ jobs:
             done <<< "$available_crates"
           done <<< "$changed_files"
 
-          changed_crates=$(echo "$changed_crates" | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
+          changed_crates=$(echo "$changed_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
 
           echo "::set-output name=rustfmt::$changed_crates"
           echo "::set-output name=clippy::$changed_crates"

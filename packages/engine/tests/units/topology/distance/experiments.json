@@ -1,0 +1,8 @@
+{
+  "test": {
+    "type": "values",
+    "steps": 2,
+    "field": "topology.distance_function",
+    "values": ["euclidean_squared", "manhattan", "euclidean", "conway"]
+  }
+}

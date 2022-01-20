@@ -1,0 +1,17 @@
+overwrite: true
+schema: ../api/src/graphql/typeDefs/*.ts
+generates:
+  ./src/graphql/fragmentTypes.gen.json:
+    plugins:
+      - fragment-matcher
+  ./src/graphql/apiTypes.gen.ts:
+    plugins:
+      - "typescript"
+      - "typescript-operations"
+    config:
+      skipTypename: true
+      scalars:
+        TextToken: ./types#TextToken
+        Date: string
+        UnknownEntityProperties: ./types#UnknownEntityProperties
+    documents: ./src/queries/*.ts

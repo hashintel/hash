@@ -1,0 +1,79 @@
+[
+  {
+    "experiment": "test",
+    "expected-outputs": [
+      {
+        "json-state": {
+          "1": [
+            {
+              "num_neighbors": 1.0
+            },
+            {},
+            {},
+            {},
+            {}
+          ]
+        },
+        "globals": {
+          "topology": {
+            "distance_function": "euclidean_squared"
+          }
+        }
+      },
+      {
+        "json-state": {
+          "1": [
+            {
+              "num_neighbors": 2.0
+            },
+            {},
+            {},
+            {},
+            {}
+          ]
+        },
+        "globals": {
+          "topology": {
+            "distance_function": "manhattan"
+          }
+        }
+      },
+      {
+        "json-state": {
+          "1": [
+            {
+              "num_neighbors": 3.0
+            },
+            {},
+            {},
+            {},
+            {}
+          ]
+        },
+        "globals": {
+          "topology": {
+            "distance_function": "euclidean"
+          }
+        }
+      },
+      {
+        "json-state": {
+          "1": [
+            {
+              "num_neighbors": 4.0
+            },
+            {},
+            {},
+            {},
+            {}
+          ]
+        },
+        "globals": {
+          "topology": {
+            "distance_function": "conway"
+          }
+        }
+      }
+    ]
+  }
+]

@@ -1,0 +1,9 @@
+[
+  {
+    "behaviors": ["send.js"]
+  },
+  {
+    "agent_name": "1",
+    "behaviors": ["receive.js"]
+  }
+]
