@@ -163,7 +163,7 @@ jobs:
           rm -rf tmp # Delete the tmp folder
 
       - name: Run clippy
-        run: cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} -- -D warnings
+        run: cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml --no-deps ${{ matrix.flags }} -- -D warnings
 
       - name: Annotate
         if: ${{ failure() }}
@@ -173,7 +173,7 @@ jobs:
           name: clippy (${{ matrix.directory }})
           token: ${{ secrets.GITHUB_TOKEN }}
           working-directory: ${{ matrix.directory }}
-          args: ${{ matrix.flags }}
+          args: --no-deps ${{ matrix.flags }}
 
   test:
     name: test
