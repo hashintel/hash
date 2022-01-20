@@ -143,7 +143,6 @@ pub mod tests {
                             src: "".to_string(),
                         },
                         globals_src: "".to_string(),
-                        dependencies_src: None,
                         experiments_src: None,
                         behaviors: vec![],
                         datasets: vec![],

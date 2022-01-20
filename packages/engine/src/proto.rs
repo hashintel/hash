@@ -136,8 +136,10 @@ pub struct SharedBehavior {
     pub name: String,
     /// These are alternative representations on how one can refer to this behavior
     pub shortnames: Vec<String>,
-    pub behavior_src: Option<String>, // Source code for the behaviors
-    pub behavior_keys_src: Option<String>, // Behavior key definition for this behavior
+    /// Source code for the behaviors
+    pub behavior_src: Option<String>,
+    /// Behavior key definition for this behavior
+    pub behavior_keys_src: Option<String>,
 }
 
 impl Debug for SharedBehavior {
@@ -179,7 +181,6 @@ pub struct InitialState {
 pub struct ProjectBase {
     pub initial_state: InitialState,
     pub globals_src: String,
-    pub dependencies_src: Option<String>,
     pub experiments_src: Option<String>,
     pub behaviors: Vec<SharedBehavior>,
     pub datasets: Vec<SharedDataset>,

@@ -6,7 +6,7 @@ use hash_engine::{
     utils::OutputFormat,
 };
 
-use super::process;
+use crate::process;
 
 #[cfg(debug_assertions)]
 const PROCESS_PATH_DEFAULT: &str = "./target/debug/hash_engine";
@@ -85,12 +85,11 @@ impl LocalCommand {
 #[async_trait]
 impl process::Command for LocalCommand {
     async fn run(self: Box<Self>) -> Result<Box<dyn process::Process + Send>> {
-        let env_process_path = std::env::var("ENGINE_PATH");
-        let process_path = if env_process_path.is_err() {
-            PROCESS_PATH_DEFAULT
-        } else {
-            env_process_path.as_ref().unwrap()
-        };
+        let engine_path = std::env::var("ENGINE_PATH");
+        let process_path = engine_path
+            .as_ref()
+            .map(String::as_str)
+            .unwrap_or(PROCESS_PATH_DEFAULT);
 
         let mut cmd = std::process::Command::new(process_path);
         cmd.arg("--experiment-name")
