@@ -12,6 +12,7 @@ import {
 import {
   BlockEntity,
   getTextEntityFromDraftBlock,
+  isDraftTextContainingEntityProperties,
   isTextContainingEntityProperties,
 } from "./entity";
 import {
@@ -264,6 +265,7 @@ export class ProsemirrorSchemaManager {
   async createRemoteBlock(
     targetComponentId: string,
     entityStore?: EntityStore,
+    // @todo this needs to be mandatory otherwises properties may get lost
     draftBlockId?: string | null,
   ) {
     const meta = await this.fetchAndDefineBlock(targetComponentId);
@@ -419,7 +421,6 @@ export class ProsemirrorSchemaManager {
   // @todo handle empty variant properties
   // @todo handle saving the results of this
   // @todo handle non-intermediary entities
-  // @todo preserving text of previous text block
   async createRemoteBlockTr(
     targetComponentId: string,
     draftBlockId: string | null,
@@ -483,18 +484,68 @@ export class ProsemirrorSchemaManager {
           );
         }
       } else {
-        // @todo combine branches
+        let entityProperties = targetVariant?.properties ?? {};
+        if (blockComponentRequiresText(meta.componentSchema)) {
+          const textEntityLink = isDraftTextContainingEntityProperties(
+            blockEntity.properties.entity.properties,
+          )
+            ? blockEntity.properties.entity.properties.text
+            : {
+                // @todo fix this
+                __linkedData: {},
+                data: blockEntity.properties.entity,
+              };
+
+          entityProperties = {
+            ...entityProperties,
+            text: textEntityLink,
+          };
+        }
+
         blockIdForNode = await this.createNewDraftBlock(
           tr,
-          targetVariant,
+          entityProperties,
           targetComponentId,
         );
       }
     } else {
-      // @todo combine branches
+      let entityProperties = targetVariant?.properties ?? {};
+
+      if (blockComponentRequiresText(meta.componentSchema)) {
+        const newTextDraftId = newDraftId();
+
+        addEntityStoreAction(this.view.state, tr, {
+          type: "newDraftEntity",
+          payload: {
+            draftId: newTextDraftId,
+            entityId: null,
+          },
+        });
+
+        // @todo should we use the text entity directly, or just copy the content?
+        addEntityStoreAction(this.view.state, tr, {
+          type: "updateEntityProperties",
+          payload: {
+            draftId: newTextDraftId,
+            // @todo indicate the entity type?
+            properties: { tokens: [] },
+            merge: false,
+          },
+        });
+
+        entityProperties = {
+          ...entityProperties,
+          text: {
+            __linkedData: {},
+            data: entityStorePluginStateFromTransaction(tr, this.view.state)
+              .store.draft[newTextDraftId],
+          },
+        };
+      }
+
       blockIdForNode = await this.createNewDraftBlock(
         tr,
-        targetVariant,
+        entityProperties,
         targetComponentId,
       );
     }
@@ -511,14 +562,12 @@ export class ProsemirrorSchemaManager {
 
   private async createNewDraftBlock(
     tr: Transaction<Schema>,
-    targetVariant: BlockVariant,
+    entityProperties: {},
     targetComponentId: string,
   ) {
     if (!this.view) {
       throw new Error("Cannot trigger createNewDraftBlock without view");
     }
-
-    const meta = await this.fetchAndDefineBlock(targetComponentId);
 
     const newBlockId = newDraftId();
     addEntityStoreAction(this.view.state, tr, {
@@ -543,50 +592,11 @@ export class ProsemirrorSchemaManager {
       type: "updateEntityProperties",
       payload: {
         draftId: newVariantDraftId,
-        properties: targetVariant?.properties ?? {},
+        properties: entityProperties,
         // @todo maybe need to remove this?
         merge: true,
       },
     });
-
-    if (blockComponentRequiresText(meta.componentSchema)) {
-      const newTextDraftId = newDraftId();
-
-      addEntityStoreAction(this.view.state, tr, {
-        type: "newDraftEntity",
-        payload: {
-          draftId: newTextDraftId,
-          entityId: null,
-        },
-      });
-
-      addEntityStoreAction(this.view.state, tr, {
-        type: "updateEntityProperties",
-        payload: {
-          draftId: newTextDraftId,
-          // @todo indicate the entity type?
-          properties: {
-            tokens: [],
-          },
-          merge: false,
-        },
-      });
-
-      addEntityStoreAction(this.view.state, tr, {
-        type: "updateEntityProperties",
-        payload: {
-          draftId: newVariantDraftId,
-          properties: {
-            text: {
-              __linkedData: {},
-              data: entityStorePluginStateFromTransaction(tr, this.view.state)
-                .store.draft[newTextDraftId],
-            },
-          },
-          merge: true,
-        },
-      });
-    }
 
     addEntityStoreAction(this.view.state, tr, {
       type: "updateEntityProperties",
