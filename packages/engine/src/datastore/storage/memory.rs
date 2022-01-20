@@ -134,7 +134,7 @@ impl Memory {
         droppable: bool,
         include_terminal_padding: bool,
     ) -> Result<Memory> {
-        if message.contains("/shm_") {
+        if message.contains("shm_") {
             let id = &message;
             let data = ShmemConf::new(droppable).os_id(id).open()?;
             let size = data.len();
@@ -145,9 +145,7 @@ impl Memory {
                 include_terminal_padding,
             })
         } else {
-            Err(Error::Memory(
-                "Expected message to contain \"/shm_\"".into(),
-            ))
+            Err(Error::Memory("Expected message to contain \"shm_\"".into()))
         }
     }
 
