@@ -97,6 +97,8 @@ const cleanUpdateLinkedAggregationAction = (
   return action;
 };
 
+const path = "$.data";
+
 export const Table: BlockComponent<AppProps> = ({
   aggregateEntities,
   aggregateEntityTypes,
@@ -112,7 +114,7 @@ export const Table: BlockComponent<AppProps> = ({
   const matchingLinkedAggregation = useMemo(() => {
     return getLinkedAggregation({
       linkedAggregations: linkedAggregations ?? [],
-      path: "$.operation",
+      path,
       sourceEntityId: entityId,
     });
   }, [linkedAggregations]);
@@ -280,7 +282,7 @@ export const Table: BlockComponent<AppProps> = ({
         cleanUpdateLinkedAggregationAction({
           sourceAccountId: matchingLinkedAggregation.sourceAccountId,
           sourceEntityId: matchingLinkedAggregation.sourceEntityId,
-          path: "$.operation",
+          path,
           updatedOperation: newLinkedData.operation,
         }),
       ]);
@@ -330,7 +332,7 @@ export const Table: BlockComponent<AppProps> = ({
         cleanUpdateLinkedAggregationAction({
           sourceAccountId: matchingLinkedAggregation.sourceAccountId,
           sourceEntityId: matchingLinkedAggregation.sourceEntityId,
-          path: "$.operation",
+          path,
           updatedOperation: { ...tableData.linkedAggregation.operation },
         }),
       ]);
@@ -447,7 +449,7 @@ export const Table: BlockComponent<AppProps> = ({
           cleanUpdateLinkedAggregationAction({
             sourceAccountId: matchingLinkedAggregation.sourceAccountId,
             sourceEntityId: matchingLinkedAggregation.sourceEntityId,
-            path: "$.operation",
+            path,
             updatedOperation: {
               entityTypeId,
               // There is scope to include other options if entity properties overlap
