@@ -200,11 +200,8 @@ impl Manifest {
             match entry {
                 Ok(entry) => {
                     let path = entry.path();
-                    if BEHAVIOR_FILE_EXTENSIONS.contains(&file_extension(&path)?.as_str()) {
-                        if let Err(err) = self.add_behavior_from_file(&path) {
-                            warn!("Could not add behavior {path:?}: {err:?}");
-                        }
-                    }
+                    // Ignore files, which are not suitable for behaviors
+                    let _ = self.add_behavior_from_file(&path);
                 }
                 Err(err) => {
                     warn!("Could not ready behavior entry: {err}");
@@ -259,11 +256,8 @@ impl Manifest {
             match entry {
                 Ok(entry) => {
                     let path = entry.path();
-                    if DATASET_FILE_EXTENSIONS.contains(&file_extension(&path)?.as_str()) {
-                        if let Err(err) = self.add_dataset_from_file(&path) {
-                            warn!("Could not add dataset {path:?}: {err:?}");
-                        }
-                    }
+                    // Ignore files, which are not suitable as dataset
+                    let _ = self.add_dataset_from_file(&path);
                 }
                 Err(err) => {
                     warn!("Could not ready directory entry: {err}");
