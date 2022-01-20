@@ -159,7 +159,6 @@ export class ComponentView implements NodeView<Schema> {
             linkGroups={childEntity?.linkGroups ?? []}
             linkedEntities={childEntity?.linkedEntities ?? []}
           />
-          ,
         </Sentry.ErrorBoundary>,
         this.target,
       );

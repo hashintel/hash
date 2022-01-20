@@ -1,0 +1,28 @@
+{
+  "keys": {
+    "b1": {
+      "type": "list",
+      "nullable": false,
+      "child": {
+        "type": "boolean",
+        "nullable": false
+      }
+    },
+    "b1_0_type": {
+      "type": "string",
+      "nullable": false
+    },
+    "b2": {
+      "type": "list",
+      "nullable": true,
+      "child": {
+        "type": "boolean",
+        "nullable": false
+      }
+    },
+    "b2_0_type": {
+      "type": "string",
+      "nullable": false
+    }
+  }
+}
