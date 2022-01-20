@@ -186,10 +186,22 @@ export const createEntityStore = (
     draft[draftId] = produce<DraftEntity>(
       draft[draftId],
       (draftEntity: Draft<DraftEntity>) => {
+        if (isTextContainingEntityProperties(draftEntity.properties)) {
+          const linkEntityId = draftEntity.properties.text.data.entityId;
+          if (!linkEntityId) {
+            throw new Error("entity id does not exist when expected to 3");
+          }
+
+          // @todo clean up
+          (
+            draftEntity.properties.text.data as unknown as DraftEntity<Text>
+          ).draftId = entityToDraft[linkEntityId];
+        }
+
         if (isDraftBlockEntity(draftEntity)) {
           const innerEntityId = draftEntity.properties.entity.entityId;
           if (!innerEntityId) {
-            throw new Error("entity id does not exist when expected to");
+            throw new Error("entity id does not exist when expected to 1");
           }
 
           draftEntity.properties.entity.draftId = entityToDraft[innerEntityId];
@@ -202,25 +214,15 @@ export const createEntityStore = (
             const linkEntityId =
               draftEntity.properties.entity.properties.text.data.entityId;
             if (!linkEntityId) {
-              throw new Error("entity id does not exist when expected to");
+              throw new Error("entity id does not exist when expected to 2");
             }
 
+            // @todo clean up
             (
               draftEntity.properties.entity.properties.text
                 .data as unknown as DraftEntity<Text>
             ).draftId = entityToDraft[linkEntityId];
           }
-        }
-
-        if (isTextContainingEntityProperties(draftEntity.properties)) {
-          const linkEntityId = draftEntity.properties.text.data.entityId;
-          if (!linkEntityId) {
-            throw new Error("entity id does not exist when expected to");
-          }
-
-          (
-            draftEntity.properties.text.data as unknown as DraftEntity<Text>
-          ).draftId = entityToDraft[linkEntityId];
         }
       },
     );

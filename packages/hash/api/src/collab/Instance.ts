@@ -30,7 +30,10 @@ import {
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { getEntity } from "@hashintel/hash-shared/queries/entity.queries";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
-import { updatePageMutation } from "@hashintel/hash-shared/save";
+import {
+  createNecessaryEntities,
+  updatePageMutation,
+} from "@hashintel/hash-shared/save";
 import { Response } from "express";
 import { isEqual } from "lodash";
 import { Schema } from "prosemirror-model";
@@ -299,7 +302,25 @@ export class Instance {
 
     this.saveChain = this.saveChain
       .catch()
-      .then(() => {
+      .then(async () => {
+        const { actions, createdEntities } = await createNecessaryEntities(
+          this.state,
+          this.accountId,
+          apolloClient,
+        );
+
+        if (actions.length) {
+          this.addEvents(apolloClient)(
+            this.version,
+            [],
+            `${clientID}-server`,
+            actions,
+          );
+        }
+
+        return createdEntities;
+      })
+      .then((createdEntities) => {
         this.saveMapping = mapping;
         const { doc } = this.state;
         const store = entityStorePluginState(this.state);
@@ -311,6 +332,7 @@ export class Instance {
           this.savedContents,
           entityStorePluginState(this.state).store,
           apolloClient,
+          createdEntities,
         ).then((newPage) => {
           /**
            * This is purposefully based on the current doc, not the doc at
