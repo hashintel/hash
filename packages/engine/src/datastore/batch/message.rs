@@ -25,8 +25,8 @@ use crate::{
         UUID_V4_LEN,
     },
     hash_types::state::AgentStateField,
+    proto::ExperimentId,
 };
-use crate::proto::ExperimentId;
 
 // 1000 bytes per agent i.e. 10 MB for 10000 agents
 /// Soft upper bound for how many bytes per agent in the shared memory.

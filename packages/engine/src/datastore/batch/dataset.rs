@@ -1,5 +1,7 @@
-use crate::{datastore::prelude::*, proto::SharedDataset};
-use crate::proto::ExperimentId;
+use crate::{
+    datastore::prelude::*,
+    proto::{ExperimentId, SharedDataset},
+};
 
 pub struct Batch {
     pub(crate) memory: Memory,
@@ -39,21 +41,18 @@ impl super::Batch for Batch {
 }
 
 impl Batch {
-    pub fn new_from_dataset(dataset: &SharedDataset, experiment_id: &ExperimentId) -> Result<Batch> {
+    pub fn new_from_dataset(
+        dataset: &SharedDataset,
+        experiment_id: &ExperimentId,
+    ) -> Result<Batch> {
         let dataset_name = dataset.shortname.clone();
         let dataset_size = dataset
             .data
             .as_ref()
             .map(|data| data.len())
             .unwrap_or_default();
-        let mut memory = Memory::from_sizes(
-            experiment_id,
-            0,
-            dataset_name.len(),
-            0,
-            dataset_size,
-            false,
-        )?;
+        let mut memory =
+            Memory::from_sizes(experiment_id, 0, dataset_name.len(), 0, dataset_size, false)?;
         let reload_state = Metaversion::default();
         memory.set_header(&dataset_name)?;
         let buffer = memory.get_mut_data_buffer()?;
