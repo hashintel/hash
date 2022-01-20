@@ -331,6 +331,9 @@ During development, the dummy email transporter writes emails to a local folder.
 
 ### OpenSearch
 
+NOTE: Opensearch is currently disabled by default due to issues.
+
+- `HASH_OPENSEARCH_ENABLED`: whether OpenSearch is used or not. `true` or `false`. (default: `false`).
 - `HASH_OPENSEARCH_HOST`: the hostname of the OpenSearch cluster to connect to. (default: `localhost`)
 - `HASH_OPENSEARCH_PASSWORD`: the password to use when making the connection. (default: `admin`)
 - `HASH_OPENSEARCH_PORT`: the port number that the cluster accepts (default: `9200`)

@@ -2,8 +2,8 @@ import { ApolloError } from "apollo-server-express";
 import { PresignedPost } from "@aws-sdk/s3-presigned-post";
 import { DBClient } from "../db";
 import { CreateEntityArgs, Entity, EntityConstructorArgs, File } from ".";
-import { genId } from "../util";
-import { createEntityArgsBuilder } from "../graphql/resolvers/util";
+import { createEntityArgsBuilder, genId } from "../util";
+
 import { DBFileProperties, EntityType } from "../db/adapter";
 import { StorageType } from "../graphql/apiTypes.gen";
 import {

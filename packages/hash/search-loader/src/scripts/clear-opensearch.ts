@@ -10,6 +10,11 @@ import {
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { OpenSearch } from "@hashintel/hash-backend-utils/search/opensearch";
 
+if (process.env.HASH_OPENSEARCH_ENABLED !== "true") {
+  console.log("Opensearch isn't enabled. Nothing to clear.");
+  process.exit(0);
+}
+
 const logger = new Logger({
   serviceName: "clear-opensearch",
   mode: "dev",
