@@ -14,11 +14,14 @@ import {
   subscribeToEntityStore,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
+import {
+  componentNodeToId,
+  isComponentNode,
+} from "@hashintel/hash-shared/prosemirror";
 import type { Scope } from "@sentry/browser";
 import * as Sentry from "@sentry/nextjs";
 import { Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
-
 import { BlockLoader } from "../../components/BlockLoader/BlockLoader";
 import { ErrorBlock } from "../../components/ErrorBlock/ErrorBlock";
 import { RenderPortal } from "./usePortals";
@@ -117,11 +120,12 @@ export class ComponentView implements NodeView<Schema> {
     this.update(this.node);
   }
 
-  update(node: any) {
+  update(node: ProsemirrorNode<Schema>) {
     this.node = node;
 
-    if (node?.type.name === this.componentId) {
-      const entityId = node.attrs.blockEntityId;
+    if (isComponentNode(node) && componentNodeToId(node) === this.componentId) {
+      // @todo handle entity id not being defined
+      const entityId = node.attrs.blockEntityId ?? "";
       const entity = this.store.saved[entityId];
       const mappedUrl = componentIdToUrl(this.componentId);
 

@@ -1,4 +1,4 @@
-import { topologicalSort, intersection } from "./util";
+import { topologicalSort, linkedTreeFlatten, intersection } from "./util";
 
 it("can do topological sort", () => {
   // ┌────── A ─────┐
@@ -61,4 +61,112 @@ it("can compute intersection of sets", () => {
   expect(intersection(setA, setB)).toEqual(new Set([2, 3]));
   expect(intersection(setA, setC)).toEqual(new Set([]));
   expect(intersection(setB, setD)).toEqual(new Set([]));
+});
+
+type Entity = {
+  name: string;
+  linkedGraphs?: LinkedEntity[];
+};
+
+type LinkedEntity = {
+  entity: Entity;
+};
+
+it("can flatten a tree structure", () => {
+  // ┌───────E1──────┐
+  // │       │       │
+  // ▼       ▼       ▼
+  // E2      E3      E4
+  // │               │
+  // ▼               ▼
+  // E5              E6
+
+  const graph: Entity = {
+    name: "E1",
+    linkedGraphs: [
+      { entity: { name: "E2", linkedGraphs: [{ entity: { name: "E5" } }] } },
+      { entity: { name: "E3" } },
+      { entity: { name: "E4", linkedGraphs: [{ entity: { name: "E6" } }] } },
+    ],
+  };
+
+  const result = linkedTreeFlatten(graph, "linkedGraphs", "entity");
+
+  //   ┌─┬──┬──┐
+  //   │ │  │  │
+  // ┌─▼┌┴─┬┴─┬┴─┬──┬──┐
+  // │E1│E2│E3│E4│E5│E6│
+  // └──┴─▲└──┴─▲┴┬─┴┬─┘
+  //      │     │ │  │
+  //      └─────┼─┘  │
+  //            └────┘
+  expect(result).toEqual([
+    {
+      parentIndex: -1,
+      name: "E1",
+    },
+    {
+      meta: {},
+      parentIndex: 0,
+      name: "E2",
+    },
+    {
+      meta: {},
+      parentIndex: 0,
+      name: "E3",
+    },
+    {
+      meta: {},
+      parentIndex: 0,
+      name: "E4",
+    },
+    {
+      meta: {},
+      parentIndex: 1,
+      name: "E5",
+    },
+    {
+      meta: {},
+      parentIndex: 3,
+      name: "E6",
+    },
+  ]);
+});
+
+it("can handle non-linked tree structure", () => {
+  // ┌───────E1──────┐
+  // │       │       │
+  // ▼       ▼       ▼
+  // E2      E3      E4
+  // │               │
+  // ▼               ▼
+  // E5              E6
+  const graph: Entity = {
+    name: "E1",
+  };
+
+  const result = linkedTreeFlatten(graph, "linkedGraphs", "entity");
+  expect(result).toEqual([
+    {
+      parentIndex: -1,
+      name: "E1",
+    },
+  ]);
+});
+
+it("can bail out of a circular tree", () => {
+  const graph: Entity = {
+    name: "E1",
+    linkedGraphs: [
+      { entity: { name: "E2" } },
+      { entity: { name: "E3" } },
+      { entity: { name: "E4", linkedGraphs: [{ entity: { name: "E5" } }] } },
+    ],
+  };
+
+  graph.linkedGraphs![0].entity = graph;
+
+  expect(() => {
+    linkedTreeFlatten(graph, "linkedGraphs", "entity");
+  }).toThrowError(/limit reached/);
 });
