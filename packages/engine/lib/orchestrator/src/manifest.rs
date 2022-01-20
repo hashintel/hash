@@ -160,10 +160,9 @@ impl Manifest {
             BEHAVIOR_FILE_EXTENSIONS.contains(&file_extension.as_str()),
             "Not a valid behavior extension: {path:?}"
         );
-        ensure!(
-            file_extension != "rs",
-            "Custom Rust behaviors are currently unsupported"
-        );
+        if file_extension == "rs" {
+            warn!("Custom Rust behaviors are currently unsupported")
+        }
 
         let file_name = path
             .file_name()
@@ -200,8 +199,11 @@ impl Manifest {
             match entry {
                 Ok(entry) => {
                     let path = entry.path();
-                    // Ignore files, which are not suitable for behaviors
-                    let _ = self.add_behavior_from_file(&path);
+                    // Filter for `.json` files for behavior keys
+                    if file_extension(&path)? != "json" {
+                        self.add_behavior_from_file(path)
+                            .wrap_err("Could not add behavior")?;
+                    }
                 }
                 Err(err) => {
                     warn!("Could not read behavior entry: {err}");
@@ -255,9 +257,8 @@ impl Manifest {
         {
             match entry {
                 Ok(entry) => {
-                    let path = entry.path();
-                    // Ignore files, which are not suitable as dataset
-                    let _ = self.add_dataset_from_file(&path);
+                    self.add_dataset_from_file(path)
+                        .wrap_err("Could not add dataset")?;
                 }
                 Err(err) => {
                     warn!("Could not ready directory entry: {err}");
