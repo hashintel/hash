@@ -1,17 +1,21 @@
 diff --git a/node_modules/blockprotocol/core.d.ts b/node_modules/blockprotocol/core.d.ts
-index 205630a..1cf433a 100644
+index 205630a..e9c1181 100644
 --- a/node_modules/blockprotocol/core.d.ts
 +++ b/node_modules/blockprotocol/core.d.ts
-@@ -66,6 +66,8 @@ export type BlockProtocolMultiSort = {
+@@ -63,24 +63,17 @@ export type BlockProtocolMultiFilter = {
+ export type BlockProtocolMultiSort = {
+   field: string;
+   desc?: boolean | undefined | null;
++  __typename?: string;
  }[];
  
- export type BlockProtocolAggregateOperationInput = {
-+  entityTypeId?: string;
-+  entityTypeVersionId?: string | null;
-   pageNumber?: number;
-   itemsPerPage?: number;
-   multiSort?: BlockProtocolMultiSort | null;
-@@ -74,13 +76,10 @@ export type BlockProtocolAggregateOperationInput = {
+-export type BlockProtocolAggregateOperationInput = {
+-  pageNumber?: number;
+-  itemsPerPage?: number;
+-  multiSort?: BlockProtocolMultiSort | null;
+-  multiFilter?: BlockProtocolMultiFilter | null;
+-};
++
  
  export type BlockProtocolLinkedDataDefinition = {
    aggregate?: BlockProtocolAggregateOperationInput & { pageCount?: number };
@@ -25,7 +29,7 @@ index 205630a..1cf433a 100644
    operation: BlockProtocolAggregateOperationInput;
    accountId?: string;
  };
-@@ -116,6 +115,7 @@ export type BlockProtocolUploadFileFunction = {
+@@ -116,6 +109,7 @@ export type BlockProtocolUploadFileFunction = {
      url?: string;
      mediaType: BlockProtocolFileMediaType;
    }): Promise<{
@@ -33,7 +37,7 @@ index 205630a..1cf433a 100644
      entityId: string;
      url: string;
      mediaType: BlockProtocolFileMediaType;
-@@ -139,6 +139,7 @@ export type BlockProtocolEntity = {
+@@ -139,6 +133,7 @@ export type BlockProtocolEntity = {
  };
  
  export type BlockProtocolLink = {
@@ -41,27 +45,20 @@ index 205630a..1cf433a 100644
    sourceEntityId: string;
    destinationEntityId: string;
    destinationEntityVersionId?: string | null;
-@@ -153,6 +154,42 @@ export type BlockProtocolLinkGroup = {
+@@ -153,6 +148,33 @@ export type BlockProtocolLinkGroup = {
    links: BlockProtocolLink[];
  };
  
-+export type BlockProtocolAggregateOperation = {
-+  entityTypeId?: string;
++export type BlockProtocolAggregateOperationInput = {
++  entityTypeId: string;
 +  entityTypeVersionId?: string | null;
-+  multiFilter?: {
-+    filters: {
-+      field: string;
-+      value: string;
-+      operator: BlockProtocolFilterOperatorType;
-+    }[]
-+    operator: BlockProtocolMultiFilterOperatorType;
-+  } | null;
-+  multiSort?: {
-+    field: string;
-+    desc?: boolean | null;
-+  }[] | null;
-+  itemsPerPage?: number;
 +  pageNumber?: number;
++  itemsPerPage?: number;
++  multiSort?: BlockProtocolMultiSort | null;
++  multiFilter?: BlockProtocolMultiFilter | null;
++};
++
++export type BlockProtocolAggregateOperation = BlockProtocolAggregateOperationInput & {
 +  pageCount?: number;
 +};
 +
@@ -72,19 +69,17 @@ index 205630a..1cf433a 100644
 +  operation: BlockProtocolAggregateOperation;
 +}
 +
-+export type BlockProtocolLinkedAggregation = {
-+  sourceAccountId: string;
-+  sourceEntityId: string;
-+  path: string;
-+  operation: BlockProtocolAggregateOperation;
++export type BlockProtocolLinkedAggregation = BlockProtocolLinkedAggregationUpdated & {
++  __typename?: string;
 +  results: Array<BlockProtocolEntity>;
++  pageCount?: number;
 +}
 +
 +
  export type BlockProtocolCreateLinksAction = {
    sourceAccountId?: string | null;
    sourceEntityId: string;
-@@ -167,11 +204,21 @@ export type BlockProtocolCreateLinksFunction = {
+@@ -167,11 +189,21 @@ export type BlockProtocolCreateLinksFunction = {
    (actions: BlockProtocolCreateLinksAction[]): Promise<BlockProtocolLink[]>;
  };
  
@@ -92,7 +87,7 @@ index 205630a..1cf433a 100644
 +  sourceAccountId: string;
 +  sourceEntityId: string;
 +  path: string;
-+  updatedOperation: AggregateOperationInput;
++  updatedOperation: BlockProtocolAggregateOperationInput;
 +};
 +
 +export type BlockProtocolUpdateLinkedAggregationsFunction = {
@@ -108,7 +103,7 @@ index 205630a..1cf433a 100644
  };
  
  export type BlockProtocolDeleteLinksFunction = {
-@@ -219,6 +266,7 @@ export interface JSONArray extends Array<JSONValue> {}
+@@ -219,6 +251,7 @@ export interface JSONArray extends Array<JSONValue> {}
   * which the embedding application should provide.
   */
  export type BlockProtocolProps = {
@@ -116,7 +111,7 @@ index 205630a..1cf433a 100644
    aggregateEntities?: BlockProtocolAggregateEntitiesFunction;
    aggregateEntitiesLoading?: boolean;
    aggregateEntitiesError?: Error;
-@@ -236,6 +284,7 @@ export type BlockProtocolProps = {
+@@ -236,6 +269,7 @@ export type BlockProtocolProps = {
    entityTypeId?: string;
    linkedEntities?: BlockProtocolEntity[];
    linkGroups?: BlockProtocolLinkGroup[];
@@ -124,7 +119,7 @@ index 205630a..1cf433a 100644
    id?: string;
    schemas?: Record<string, JSONObject>;
    type?: string;
-@@ -245,4 +294,6 @@ export type BlockProtocolProps = {
+@@ -245,4 +279,6 @@ export type BlockProtocolProps = {
    updateEntityTypes?: BlockProtocolUpdateEntityTypesFunction;
    updateEntityTypesLoading?: boolean;
    updateEntityTypesError?: Error;
