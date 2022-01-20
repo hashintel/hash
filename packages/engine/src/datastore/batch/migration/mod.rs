@@ -1420,6 +1420,8 @@ pub(super) mod test {
 
     #[cfg(test)]
     pub(super) mod test {
+        use uuid::Uuid;
+
         use super::*;
         use crate::{
             datastore::{schema::state::MessageSchema, test_utils::gen_schema_and_test_agents},
@@ -1429,7 +1431,7 @@ pub(super) mod test {
         #[test]
         #[ignore] // TODO: reenable test
         fn test_migration_remove() -> Result<()> {
-            let experiment_id = Arc::new("".to_string());
+            let experiment_id = Uuid::new_v4();
             let msg_schema = Arc::new(MessageSchema::new());
             let remove_indices = [3, 5, 7, 8, 9, 12, 45, 46, 55];
             let num_agents = 100;
@@ -1441,8 +1443,7 @@ pub(super) mod test {
                 &agent_schema,
                 &experiment_id,
             )?;
-            let agents_clone =
-                AgentBatch::duplicate_from(&agents, &agent_schema, &experiment_id)?;
+            let agents_clone = AgentBatch::duplicate_from(&agents, &agent_schema, &experiment_id)?;
 
             let mut pool = vec![agents];
             let batch_index = Some(0);
@@ -1512,7 +1513,7 @@ pub(super) mod test {
         #[test]
         #[ignore] // TODO: reenable test
         fn test_migration_create() -> Result<()> {
-            let experiment_id = Arc::new("".to_string());
+            let experiment_id = Uuid::new_v4();
             let msg_schema = Arc::new(MessageSchema::new());
 
             let num_agents = 150;
@@ -1598,7 +1599,7 @@ pub(super) mod test {
         #[test]
         #[ignore] // TODO: reenable test
         fn test_migration_move() -> Result<()> {
-            let experiment_id = Arc::new("".to_string());
+            let experiment_id = Uuid::new_v4();
             let msg_schema = Arc::new(MessageSchema::new());
 
             let num_agents = 150;
@@ -1611,11 +1612,8 @@ pub(super) mod test {
             let agents =
                 AgentBatch::from_agent_states(json_agents.as_slice(), &schema, &experiment_id)?;
             let agents_clone = AgentBatch::duplicate_from(&agents, &schema, &experiment_id)?;
-            let agents_2 = AgentBatch::from_agent_states(
-                json_agents_2.as_slice(),
-                &schema,
-                &experiment_id,
-            )?;
+            let agents_2 =
+                AgentBatch::from_agent_states(json_agents_2.as_slice(), &schema, &experiment_id)?;
 
             let mut pool = vec![agents, agents_2];
             let batch_index = Some(0);
@@ -1691,7 +1689,7 @@ pub(super) mod test {
         #[test]
         #[ignore] // TODO: reenable test
         fn test_migration_all() -> Result<()> {
-            let experiment_id = Arc::new("".to_string());
+            let experiment_id = Uuid::new_v4();
             let msg_schema = Arc::new(MessageSchema::new());
 
             let num_agents = 150;
@@ -1709,11 +1707,8 @@ pub(super) mod test {
             let agents =
                 AgentBatch::from_agent_states(json_agents.as_slice(), &schema, &experiment_id)?;
             let agents_clone = AgentBatch::duplicate_from(&agents, &schema, &experiment_id)?;
-            let agents_2 = AgentBatch::from_agent_states(
-                json_agents_2.as_slice(),
-                &schema,
-                &experiment_id,
-            )?;
+            let agents_2 =
+                AgentBatch::from_agent_states(json_agents_2.as_slice(), &schema, &experiment_id)?;
             let create_agents = AgentBatch::from_agent_states(
                 json_create_agents.as_slice(),
                 &schema,

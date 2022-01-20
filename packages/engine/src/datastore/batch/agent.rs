@@ -775,6 +775,7 @@ mod tests {
     extern crate test;
 
     use test::Bencher;
+    use uuid::Uuid;
 
     use super::*;
     use crate::datastore::test_utils::gen_schema_and_test_agents;
@@ -783,10 +784,10 @@ mod tests {
     fn agent_batch_from_states(b: &mut Bencher) {
         let num_agents = 100;
         let (schema, agents) = gen_schema_and_test_agents(num_agents, 0).unwrap();
-
+        let experiment_id = Uuid::new_v4();
         b.iter(|| {
             let _agent_batch =
-                AgentBatch::from_agent_states(agents.as_slice(), &schema, &"".to_string()).unwrap();
+                AgentBatch::from_agent_states(agents.as_slice(), &schema, &experiment_id).unwrap();
         });
     }
 }

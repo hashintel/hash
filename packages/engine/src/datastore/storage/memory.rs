@@ -396,17 +396,27 @@ impl Memory {
 
 #[cfg(test)]
 pub mod tests {
+    use uuid::Uuid;
+
     use super::*;
     use crate::error::Result;
 
     #[test]
     pub fn test_identical_buffers() -> Result<()> {
+        let experiment_id = Uuid::new_v4();
         let buffer1: Vec<u8> = vec![1; 1482];
         let buffer2: Vec<u8> = vec![2; 645];
         let buffer3: Vec<u8> = vec![3; 254];
         let buffer4: Vec<u8> = vec![4; 173];
 
-        let memory = Memory::from_batch_buffers("", &buffer1, &buffer2, &buffer3, &buffer4, true)?;
+        let memory = Memory::from_batch_buffers(
+            &experiment_id,
+            &buffer1,
+            &buffer2,
+            &buffer3,
+            &buffer4,
+            true,
+        )?;
 
         let (new_buffer1, new_buffer2, new_buffer3, new_buffer4) = memory.get_batch_buffers()?;
 
@@ -419,12 +429,20 @@ pub mod tests {
 
     #[test]
     pub fn test_message() -> Result<()> {
+        let experiment_id = Uuid::new_v4();
         let buffer1: Vec<u8> = vec![1; 1482];
         let buffer2: Vec<u8> = vec![2; 645];
         let buffer3: Vec<u8> = vec![3; 254];
         let buffer4: Vec<u8> = vec![4; 173];
 
-        let memory = Memory::from_batch_buffers("", &buffer1, &buffer2, &buffer3, &buffer4, true)?;
+        let memory = Memory::from_batch_buffers(
+            &experiment_id,
+            &buffer1,
+            &buffer2,
+            &buffer3,
+            &buffer4,
+            true,
+        )?;
 
         let message = memory.get_id();
 
