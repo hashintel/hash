@@ -110,7 +110,9 @@ const addEntityAggregationResultOutgoingLinks =
       // filter duplicate resulting entities
       .filter((result, i, all) => {
         return (
-          all.findIndex((entity) => areEntitiesEquivalent(entity, result)) === i
+          all.findIndex((resultEntity) =>
+            areEntitiesEquivalent(resultEntity, result),
+          ) === i
         );
       });
 
