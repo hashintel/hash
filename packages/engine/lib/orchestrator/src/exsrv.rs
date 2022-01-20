@@ -47,7 +47,7 @@ impl Drop for Handle {
     fn drop(&mut self) {
         // If send returns an error, it means the server has already been dropped in which case the
         // Handle is already cleaned up.
-        self.close_tx.send(self.id.clone()).unwrap_or(());
+        self.close_tx.send(self.id).unwrap_or(());
     }
 }
 
@@ -127,12 +127,12 @@ impl Server {
 
     /// Add an experiment to the server's routes.
     fn register_experiment(&mut self, id: ExperimentId, msg_tx: MsgSender) -> Result<()> {
-        if self.routes.contains_key(&id) {
-            bail!("Experiment already registered: {id}")
-        } else {
-            self.routes.insert(id.clone(), msg_tx);
+        if let std::collections::hash_map::Entry::Vacant(e) = self.routes.entry(id) {
+            e.insert(msg_tx);
             debug!("Registered experiment {id}");
             Ok(())
+        } else {
+            bail!("Experiment already registered: {id}")
         }
     }
 
