@@ -59,7 +59,7 @@ pub enum ExperimentType {
     /// Run a simple experiment.
     #[clap(name = "simple")]
     SimpleExperiment(SimpleExperimentArgs),
-    // Generate shell completitions
+    // Generate shell completions
 }
 
 impl From<ExperimentType> for orchestrator::ExperimentType {
