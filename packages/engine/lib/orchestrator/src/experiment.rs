@@ -54,7 +54,7 @@ impl ExperimentType {
             )),
             ExperimentType::Simple { name } => Ok(ExperimentPackageConfig::Simple(
                 get_simple_experiment_config(base, name)
-                    .wrap_err_lazy(|| format!("Could not read simple experiment config"))?,
+                    .wrap_err("Could not read simple experiment config")?,
             )),
         }
     }

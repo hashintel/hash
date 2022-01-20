@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use error::{Report, Result, ResultExt};
 use hash_engine::{nano, proto::EngineMsg, utils::OutputFormat};
 
-use super::process;
+use crate::process;
 
 #[cfg(debug_assertions)]
 const PROCESS_PATH_DEFAULT: &str = "./target/debug/hash_engine";

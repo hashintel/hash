@@ -112,8 +112,8 @@ impl Manifest {
         dependency_projects: HashMap<PathBuf, Self>,
     ) -> Result<()> {
         // TODO: How to handle versions
-        for (dependency_name, _version) in &self.dependencies {
-            match get_dependency_type_from_name(&dependency_name)
+        for dependency_name in self.dependencies.keys() {
+            match get_dependency_type_from_name(dependency_name)
                 .wrap_err_lazy(|| format!("Could not read dependency: {dependency_name}"))?
             {
                 DependencyType::Behavior(extension) => {
@@ -126,20 +126,17 @@ impl Manifest {
                             behavior_keys_src: None,
                         }
                     } else {
-                        get_behavior_from_dependency_projects(
-                            &dependency_name,
-                            &dependency_projects,
-                        )
-                        .wrap_err_lazy(|| {
-                            format!("Could not get behavior from dependency: {dependency_name}")
-                        })?
+                        get_behavior_from_dependency_projects(dependency_name, &dependency_projects)
+                            .wrap_err_lazy(|| {
+                                format!("Could not get behavior from dependency: {dependency_name}")
+                            })?
                     };
 
                     self.behaviors.push(behavior);
                 }
                 DependencyType::Dataset(_extension) => {
                     let dataset = get_dataset_from_dependency_projects(
-                        &dependency_name,
+                        dependency_name,
                         &dependency_projects,
                     )?;
                     self.datasets.push(dataset)
