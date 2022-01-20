@@ -21,13 +21,14 @@ import { StorageType } from "./apiTypes.gen";
 export interface CreateApolloServerParams {
   db: DBAdapter;
   cache: CacheAdapter;
-  search: SearchAdapter;
+  search?: SearchAdapter;
   emailTransporter: EmailTransporter;
   /** The storage provider to use for new file uploads */
   uploadProvider: StorageType;
   logger: Logger;
   statsd?: StatsD;
 }
+
 export const createApolloServer = ({
   db,
   cache,
@@ -43,10 +44,17 @@ export const createApolloServer = ({
     resolvers,
     inheritResolversFromInterfaces: true,
   });
+  const getDataSources = () => {
+    const sources: any = { db, cache };
+    if (search) {
+      sources.search = search;
+    }
+    return sources;
+  };
 
   return new ApolloServer({
     schema: combinedSchema,
-    dataSources: () => ({ db, cache, search }),
+    dataSources: getDataSources,
     context: (ctx): Omit<GraphQLContext, "dataSources"> => ({
       ...ctx,
       user: ctx.req.user,
