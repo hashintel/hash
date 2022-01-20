@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use super::RELATIVE_PARTS_FOLDER;
 use crate::{
+    datastore::storage::memory::shmem_id_prefix,
     output::error::{Error, Result},
     proto::ExperimentId,
 };
@@ -12,7 +13,7 @@ use crate::{
 pub fn cleanup_experiment(experiment_id: &ExperimentId) -> Result<()> {
     log::trace!("Cleaning up experiment: {}", experiment_id);
     // TODO: Mac differences in shared_memory
-    let shm_files = glob::glob(&format!("/dev/shm/shm_{}_*", experiment_id))
+    let shm_files = glob::glob(&format!("/dev/shm/{}_*", shmem_id_prefix(experiment_id)))
         .map_err(|e| Error::Unique(format!("cleanup glob error: {}", e)))?;
 
     shm_files.filter_map(Result::ok).for_each(|path| {

@@ -13,6 +13,15 @@ use crate::{datastore::prelude::*, proto::ExperimentId};
 
 pub type Buffers<'a> = (&'a [u8], &'a [u8], &'a [u8], &'a [u8]);
 
+pub fn shmem_id_prefix(experiment_id: &ExperimentId) -> String {
+    if cfg!(target_os = "macos") {
+        // MacOS shmem seems to be limited to 31 chars, probably remnants of HFS
+        format!("/shm_{:.20}", experiment_id.to_simple(),)
+    } else {
+        format!("/shm_{}", experiment_id.to_simple(),)
+    }
+}
+
 /// A memory-mapped shared memory segment wrapper.
 ///
 /// Includes tools to work with internal strucure.
@@ -164,20 +173,13 @@ impl Memory {
     }
 
     fn generate_shmem_id(experiment_id: &ExperimentId) -> String {
+        let id_prefix = shmem_id_prefix(experiment_id);
         loop {
             let cur_id = if cfg!(target_os = "macos") {
                 // MacOS shmem seems to be limited to 31 chars, probably remnants of HFS
-                format!(
-                    "/shm_{:.20}_{:.6}",
-                    experiment_id.to_simple(),
-                    rand::random::<u16>()
-                )
+                format!("{}_{:.6}", id_prefix, rand::random::<u16>())
             } else {
-                format!(
-                    "/shm_{}_{}",
-                    experiment_id.to_simple(),
-                    rand::random::<u16>()
-                )
+                format!("/shm_{}_{}", id_prefix, rand::random::<u16>())
             };
 
             if !Path::new(&format!("/dev/shm{}", cur_id)).exists() {
