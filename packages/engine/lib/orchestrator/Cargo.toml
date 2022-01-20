@@ -6,7 +6,6 @@ edition = "2021"
 [dependencies]
 error = { path = "../../lib/error", features = ["spantrace"] }
 hash_engine = { path = "../..", default-features = false }
-#server = { path = "../server", artifact = "bin" }
 
 async-trait = "0.1.48"
 rand = "0.8.3"
