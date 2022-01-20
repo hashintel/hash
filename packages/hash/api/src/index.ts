@@ -97,7 +97,7 @@ const main = async () => {
   shutdown.addCleanup("Postgres", async () => db.close());
 
   // Connect to Redis
-  const redis = new RedisCache({
+  const redis = new RedisCache(logger, {
     host: redisHost,
     port: redisPort,
   });
@@ -215,7 +215,7 @@ const main = async () => {
   });
 
   // Connect to Redis queue for collab
-  const collabRedisClient = new AsyncRedisClient({
+  const collabRedisClient = new AsyncRedisClient(logger, {
     host: getRequiredEnv("HASH_REDIS_HOST"),
     port: parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10),
   });
