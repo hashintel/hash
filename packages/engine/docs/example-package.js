@@ -1,11 +1,9 @@
-
 // Each package optionally has a `package.js` file, with three optional functions:
 // * `start_experiment`
 // * `start_sim`
 // * `run_task`
 
 // The `hash_util` module is automatically made available to packages.
-
 
 /// `start_experiment` is called once for each worker at the start of an experiment.
 ///
@@ -34,12 +32,12 @@
 ///               user errors and the experiment is stopped.
 ///
 const start_experiment = (experiment, init_message, experiment_context) => {
-    experiment.min_size = init_message.min_size
-    return {
-        "warnings": ["user warning"],
-        "errors": ["user error"]
-    }
-}
+  experiment.min_size = init_message.min_size;
+  return {
+    warnings: ["user warning"],
+    errors: ["user error"],
+  };
+};
 
 /// `start_sim` is called for each worker at the start of each simulation run.
 ///
@@ -91,19 +89,19 @@ const start_experiment = (experiment, init_message, experiment_context) => {
 ///                and context packages can have custom getters.
 ///
 const start_sim = (experiment, sim, init_message, init_context) => {
-    sim.size = experiment.min_size + init_message.additional_size
-    return {
-        "warnings": ["user warning"],
-        "errors": ["user error"],
-        "loaders": {
-            "column_name": hash_util.load_shallow,
-            "another_column": hash_util.load_full
-        },
-        "getters": {
-            "column_name": (agent_context, column_element) => column_element
-        }
-    }
-}
+  sim.size = experiment.min_size + init_message.additional_size;
+  return {
+    warnings: ["user warning"],
+    errors: ["user error"],
+    loaders: {
+      column_name: hash_util.load_shallow,
+      another_column: hash_util.load_full,
+    },
+    getters: {
+      column_name: (agent_context, column_element) => column_element,
+    },
+  };
+};
 
 /// `run_task` is called each time the package sends a task to a language runner.
 ///
@@ -155,14 +153,12 @@ const start_sim = (experiment, sim, init_message, init_context) => {
 ///     `print`: An arbitrary string with info to display to the user.
 ///
 const run_task = (experiment, sim, task_message, state, context) => {
-    const fits_in_sim = task_message.my_number < sim.size;
-    return {
-        "warnings": ["user warning"],
-        "errors": ["user error"],
-        "target": "Main",
-        "task": fits_in_sim,
-        "print": "sim size: " + sim.size
-    }
-}
-
-
+  const fits_in_sim = task_message.my_number < sim.size;
+  return {
+    warnings: ["user warning"],
+    errors: ["user error"],
+    target: "Main",
+    task: fits_in_sim,
+    print: "sim size: " + sim.size,
+  };
+};
