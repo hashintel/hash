@@ -12,8 +12,6 @@ use crate::{
 #[derive(Clone)]
 /// Experiment level configuration
 pub struct Config {
-    // we need this only for non-pod runs TODO remove and create random internal ids?
-    pub id: Arc<ExperimentId>,
     pub packages: Arc<package::Config>,
     pub run: Arc<ExperimentRunRepr>,
     pub worker_pool: Arc<worker_pool::Config>,
@@ -23,7 +21,6 @@ pub struct Config {
 impl Config {
     pub(super) fn new(experiment_run: ExperimentRunRepr, max_num_workers: usize) -> Result<Config> {
         // For differentiation purposes when multiple experiment runs are active in the same system
-        let experiment_id = uuid::Uuid::new_v4();
         let package_config = package::ConfigBuilder::new()
             .add_init_package(
                 match experiment_run.base().project_base.initial_state.name {
@@ -53,7 +50,6 @@ impl Config {
         ));
 
         Ok(Config {
-            id: Arc::new(experiment_id),
             packages: Arc::new(package_config),
             run,
             base_globals,
@@ -65,7 +61,6 @@ impl Config {
     pub fn to_base(&self) -> Result<Config> {
         let run_base = self.run.base().clone();
         Ok(Config {
-            id: self.id.clone(),
             packages: self.packages.clone(),
             run: Arc::new(run_base.into()),
             worker_pool: self.worker_pool.clone(),
@@ -81,7 +76,6 @@ impl Config {
 impl From<&Config> for Config {
     fn from(value: &Config) -> Self {
         Self {
-            id: value.id.clone(),
             packages: value.packages.clone(),
             run: Arc::clone(&value.run),
             worker_pool: value.worker_pool.clone(),

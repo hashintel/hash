@@ -10,6 +10,7 @@ use crate::{
         prelude::*,
         table::pool::{agent::AgentPool, BatchPool},
     },
+    proto::ExperimentRunTrait,
     SimRunConfig,
 };
 
@@ -90,7 +91,7 @@ impl<'a> MigrationPlan<'a> {
                 let new_batch = buffer_actions
                     .new_batch(
                         &config.sim.store.agent_schema,
-                        &config.exp.id,
+                        &config.exp.run.base().id,
                         action.affinity,
                     )
                     .map_err(Error::from)?;

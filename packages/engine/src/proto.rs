@@ -310,6 +310,7 @@ pub enum ExperimentRunRepr {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct ExperimentRunBase {
     pub name: ExperimentName,
+    pub id: ExperimentId,
     pub project_base: ProjectBase,
 }
 
@@ -388,7 +389,6 @@ pub struct ProcessedExperimentRun {
     pub compute_usage_remaining: i64,
 }
 
-// TODO: Replace with UUID?
 pub type ExperimentId = Uuid;
 
 /// A wrapper around an Option to avoid displaying the inner for Debug outputs,

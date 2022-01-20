@@ -8,6 +8,7 @@ use rayon::iter::{
 use super::{agent::AgentPool, BatchPool};
 use crate::{
     datastore::{batch, prelude::*, table::references::AgentMessageReference, UUID_V4_LEN},
+    proto::ExperimentRunTrait,
     SimRunConfig,
 };
 
@@ -71,7 +72,7 @@ impl MessagePool {
 
     pub fn reset(&mut self, agent_pool: &AgentPool, sim_config: &SimRunConfig) -> Result<()> {
         let message_schema = &sim_config.sim.store.message_schema;
-        let experiment_id = &sim_config.exp.id;
+        let experiment_id = &sim_config.exp.run.base().id;
         let mut removed = vec![];
         (0..self.batches.len())
             .rev()

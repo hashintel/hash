@@ -62,7 +62,7 @@ impl Batch {
     pub fn from_record_batch(
         record_batch: &RecordBatch,
         schema: Option<&Arc<ArrowSchema>>,
-        experiment_id: &Arc<ExperimentId>,
+        experiment_id: &ExperimentId,
     ) -> Result<Batch> {
         let (meta_buffer, data_buffer) = static_record_batch_to_bytes(record_batch);
 

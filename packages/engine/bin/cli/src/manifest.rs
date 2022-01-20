@@ -35,12 +35,15 @@ pub fn read_manifest(
     let project_base = read_project(project_path)
         .wrap_err_lazy(|| format!("Could not read project: {project_path:?}"))?;
 
+    let name = match experiment_type {
+        ExperimentType::SingleRunExperiment(_) => "single_run",
+        ExperimentType::SimpleExperiment(simple) => &simple.experiment_name,
+    }
+    .to_string();
+    
     let base = ExperimentRunBase {
-        name: match experiment_type {
-            ExperimentType::SingleRunExperiment(_) => "single_run",
-            ExperimentType::SimpleExperiment(simple) => &simple.experiment_name,
-        }
-        .to_string(),
+        name,
+        id: uuid::Uuid::new_v4(),
         project_base,
     };
 

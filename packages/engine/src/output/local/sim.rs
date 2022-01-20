@@ -1,7 +1,4 @@
-use std::{
-    io::{BufReader, BufWriter},
-    sync::Arc,
-};
+use std::io::{BufReader, BufWriter};
 
 use super::{config::LocalPersistenceConfig, result::LocalPersistenceResult};
 use crate::{
@@ -14,7 +11,7 @@ use crate::{
 #[derive(derive_new::new)]
 pub struct LocalSimulationOutputPersistence {
     exp_name: ExperimentName,
-    exp_id: Arc<ExperimentId>,
+    exp_id: ExperimentId,
     sim_id: SimulationShortId,
     // TODO: Should this be unused? If so remove
     buffers: Buffers,
