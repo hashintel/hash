@@ -52,11 +52,15 @@ export const createEntity = gql`
   ) {
     createEntity(
       accountId: $accountId
-      properties: $properties
-      entityTypeId: $entityTypeId
-      entityTypeVersionId: $entityTypeVersionId
-      systemTypeName: $systemTypeName
-      versioned: $versioned
+      entity: {
+        entityProperties: $properties
+        versioned: $versioned
+        entityType: {
+          entityTypeId: $entityTypeId
+          entityTypeVersionId: $entityTypeVersionId
+          systemTypeName: $systemTypeName
+        }
+      }
     ) {
       __typename
       id
