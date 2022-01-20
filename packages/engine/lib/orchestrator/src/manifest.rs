@@ -375,6 +375,8 @@ impl Manifest {
     }
 }
 
+// TODO: Clean up section below
+
 // TODO: Should these Strings be swapped with their own enums like BehaviorType::JavaScript
 enum DependencyType {
     Behavior(String),

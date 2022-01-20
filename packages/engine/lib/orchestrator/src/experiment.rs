@@ -221,6 +221,8 @@ impl Experiment {
     }
 }
 
+// TODO: cleanup section below
+
 fn get_simple_experiment_config(
     base: &ExperimentRunBase,
     experiment_name: String,
