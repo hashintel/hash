@@ -43,7 +43,7 @@ impl Manifest {
         path: P,
     ) -> Result<Option<InitialState>> {
         let path = path.as_ref();
-        ensure!(path.is_file(), "Not a behavior file: {path:?}");
+        ensure!(path.is_file(), "Couldn't find the init file at: {path:?}");
 
         Ok(self.initial_state.replace(InitialState {
             name: match file_extension(&path)?.as_str() {
