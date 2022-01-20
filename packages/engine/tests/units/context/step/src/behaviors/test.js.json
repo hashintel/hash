@@ -1,0 +1,12 @@
+{
+  "keys": {
+    "step": {
+      "type": "number",
+      "nullable": false
+    },
+    "valid": {
+      "type": "boolean",
+      "nullable": false
+    }
+  }
+}

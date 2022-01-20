@@ -9,11 +9,10 @@ import {
   RemoveBlock,
   MoveBlock,
 } from "../../apiTypes.gen";
-import { Entity, EntityType, UnresolvedGQLEntity, User } from "../../../model";
+import { Entity, UnresolvedGQLEntity, User } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 import { DBClient } from "../../../db";
 import { exactlyOne } from "../../../util";
-import { createEntityArgsBuilder } from "../util";
 
 const validateActionsInput = (actions: UpdatePageAction[]) => {
   for (const [i, action] of actions.entries()) {
@@ -32,111 +31,23 @@ const validateActionsInput = (actions: UpdatePageAction[]) => {
   }
 };
 
-/**
- * @todo this assumption of the slug might be brittle,
- */
-const capitalizeComponentName = (cId: string) => {
-  let componentId = cId;
-
-  // If there's a trailing slash, remove it
-  const indexLastSlash = componentId.lastIndexOf("/");
-  if (indexLastSlash === componentId.length - 1) {
-    componentId = componentId.slice(0, -1);
-  }
-
-  //                      *
-  // "https://example.org/value"
-  const indexAfterLastSlash = componentId.lastIndexOf("/") + 1;
-  return (
-    //                      * and uppercase it
-    // "https://example.org/value"
-    componentId.charAt(indexAfterLastSlash).toUpperCase() +
-    //                       ****
-    // "https://example.org/value"
-    componentId.substring(indexAfterLastSlash + 1)
-  );
-};
-
 /** Create a block and a new entity contained inside it. Returns the new block entity. */
 const createBlock = async (
   client: DBClient,
-  params: InsertNewBlock,
+  { accountId, componentId, entity: entityDefinition }: InsertNewBlock,
   user: User,
 ) => {
-  const {
-    componentId,
-    entityId,
-    entityProperties,
-    entityTypeId,
-    systemTypeName,
+  const entity = await Entity.createEntityWithLinks(client, {
     accountId,
-    versioned,
-  } = params;
-
-  let entity;
-  let entityTypeVersionId = params.entityTypeVersionId;
-
-  if (entityId) {
-    // Use existing entityId
-    entity = await Entity.getEntityLatestVersion(client, {
-      accountId,
-      entityId,
-    });
-    if (!entity) {
-      throw new ApolloError(`entity ${entityId} not found`, "NOT_FOUND");
-    }
-  } else if (entityProperties) {
-    if (!entityTypeId && !entityTypeVersionId && !systemTypeName) {
-      // If type ID doesn't exist, we check the componentId
-
-      let entityTypeWithComponentId =
-        await EntityType.getEntityTypeByComponentId(client, {
-          componentId,
-        });
-
-      // In case the entityType doesn't exist, create one with the appropriate component ID and name
-      if (!entityTypeWithComponentId) {
-        const systemAccountId = await client.getSystemAccountId();
-
-        const name = capitalizeComponentName(componentId);
-        entityTypeWithComponentId = await EntityType.create(client, {
-          accountId: systemAccountId,
-          createdByAccountId: user.accountId,
-          name,
-          schema: { componentId },
-        });
-      }
-
-      entityTypeVersionId = entityTypeWithComponentId.entityVersionId;
-    }
-
-    // @todo: if we generate the entity IDs up-front, the entity and the block may
-    // be created concurrently.
-
-    // Create new entity since entityId has not been given.
-    entity = await Entity.create(
-      client,
-      createEntityArgsBuilder({
-        accountId,
-        createdByAccountId: user.accountId,
-        entityTypeId,
-        entityTypeVersionId,
-        systemTypeName,
-        properties: entityProperties,
-        versioned: versioned ?? true,
-      }),
-    );
-  } else {
-    throw new Error(
-      `One of entityId OR entityProperties and entityType must be provided`,
-    );
-  }
+    user,
+    entityDefinition,
+  });
 
   // Create the block
   const blockProperties: DbBlockProperties = {
     componentId,
     entityId: entity.entityId,
-    accountId: params.accountId,
+    accountId,
   };
 
   const newBlock = await Entity.create(client, {

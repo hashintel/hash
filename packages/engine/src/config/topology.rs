@@ -304,7 +304,7 @@ pub enum DistanceFunction {
 
 impl Default for DistanceFunction {
     fn default() -> Self {
-        Self::Conway
+        Self::Euclidean
     }
 }
 

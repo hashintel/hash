@@ -1,3 +1,4 @@
+const { config } = require("dotenv-flow");
 const path = require("path");
 const withTM = require("next-transpile-modules")(["@hashintel/hash-shared"]); // pass the modules you would like to see transpiled
 const withImages = require("next-images");
@@ -9,6 +10,8 @@ const { withSentryConfig } = require("@sentry/nextjs");
 
 const { buildStamp } = require("./buildstamp");
 
+config({ silent: true, path: "../../.." });
+
 const sentryWebpackPluginOptions = {
   dryRun: !process.env.SENTRY_AUTH_TOKEN,
   release: buildStamp,
@@ -16,6 +19,11 @@ const sentryWebpackPluginOptions = {
   // For all available options, see:
   // https://github.com/getsentry/sentry-webpack-plugin#options.
 };
+
+// Insert other public env variables here. We have to add the `NEXT_PUBLIC` prefix for next to find them.
+// They then get converted into variables with the right name in `frontend/src/lib/public-env.ts`
+process.env.NEXT_PUBLIC_HASH_OPENSEARCH_ENABLED =
+  process.env.HASH_OPENSEARCH_ENABLED;
 
 /**
  * @todo try using next-compose-plugins when upgrading next to 11 and/or to webpack 5

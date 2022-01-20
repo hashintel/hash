@@ -22,6 +22,13 @@ import { StatsD } from "hot-shots";
 import { getSystemAccountId, getEntityType } from "./db";
 import { logger, INSTANCE_ID } from "./config";
 
+const OPENSEARCH_ENABLED = process.env.HASH_OPENSEARCH_ENABLED === "true";
+if (!OPENSEARCH_ENABLED) {
+  // eslint-disable-next-line no-console
+  console.log("Opensearch is not enabled. Shutting down search-loader");
+  process.exit(0);
+}
+
 // Environment variables
 const PORT = process.env.HASH_SEARCH_LOADER_PORT || 3838;
 const REDIS_HOST = getRequiredEnv("HASH_REDIS_HOST");
