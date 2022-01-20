@@ -1,3 +1,4 @@
+import { BlockVariant } from "blockprotocol";
 import { isString } from "lodash";
 import { NodeSpec, Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
@@ -383,10 +384,14 @@ export class ProsemirrorSchemaManager {
     return tr;
   }
 
-  // @todo consider removing the old block from the entity store
+  /**
+   * @todo consider removing the old block from the entity store
+   * @todo need to support variants here
+   */
   async replaceNodeWithRemoteBlock(
     draftBlockId: string,
     targetComponentId: string,
+    targetVariant: BlockVariant,
     node: ProsemirrorNode<Schema>,
     pos: number,
   ) {
