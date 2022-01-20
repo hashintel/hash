@@ -204,7 +204,7 @@ impl Manifest {
                     let _ = self.add_behavior_from_file(&path);
                 }
                 Err(err) => {
-                    warn!("Could not ready behavior entry: {err}");
+                    warn!("Could not read behavior entry: {err}");
                 }
             }
         }
