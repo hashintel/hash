@@ -16,7 +16,8 @@ pub type Buffers<'a> = (&'a [u8], &'a [u8], &'a [u8], &'a [u8]);
 pub fn shmem_id_prefix(experiment_id: &ExperimentId) -> String {
     if cfg!(target_os = "macos") {
         // MacOS shmem seems to be limited to 31 chars, probably remnants of HFS
-        format!("shm_{:.20}", experiment_id.to_simple())
+        // And we need to_string otherwise it's not truncated when formatting
+        format!("shm_{:.20}", experiment_id.to_simple().to_string())
     } else {
         format!("shm_{}", experiment_id.to_simple())
     }
@@ -177,12 +178,13 @@ impl Memory {
         loop {
             let cur_id = if cfg!(target_os = "macos") {
                 // MacOS shmem seems to be limited to 31 chars, probably remnants of HFS
-                format!("{}_{:.6}", id_prefix, rand::random::<u16>())
+                format!("{}_{:.7}", id_prefix, rand::random::<u16>())
             } else {
                 format!("{}_{}", id_prefix, rand::random::<u16>())
             };
 
             if !Path::new(&format!("/dev/shm/{}", cur_id)).exists() {
+                dbg!(&cur_id);
                 return cur_id;
             }
         }
