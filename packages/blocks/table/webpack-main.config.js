@@ -26,7 +26,7 @@ module.exports = {
   ],
 
   entry: {
-    main: "./src/index.tsx",
+    main: "./src/index.ts",
   },
   output: {
     libraryTarget: "commonjs",
