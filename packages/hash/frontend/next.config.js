@@ -20,6 +20,11 @@ const sentryWebpackPluginOptions = {
   // https://github.com/getsentry/sentry-webpack-plugin#options.
 };
 
+// Insert other public env variables here. We have to add the `NEXT_PUBLIC` prefix for next to find them.
+// They then get converted into variables with the right name in `frontend/src/lib/public-env.ts`
+process.env.NEXT_PUBLIC_HASH_OPENSEARCH_ENABLED =
+  process.env.HASH_OPENSEARCH_ENABLED;
+
 /**
  * @todo try using next-compose-plugins when upgrading next to 11 and/or to webpack 5
  *    was not building with compose-plugins on next 10 w/ webpack 4.

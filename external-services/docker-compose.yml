@@ -4,6 +4,9 @@ services:
     deploy:
       restart_policy:
         condition: on-failure
+    env_file:
+      - ../.env
+      - ../.env.local
     environment:
       ## Tell OpenSearch that it's operating in single-node mode
       - discovery.type=single-node
@@ -14,7 +17,8 @@ services:
       ## space is running low. Set the disk high watermark to 100% to ignore this.
       - cluster.routing.allocation.disk.watermark.high=100%
       - cluster.routing.allocation.disk.watermark.flood_stage=100%
-    image: opensearchproject/opensearch:1.2.3
+    build:
+      context: ./opensearch
     ports:
       - 9200:9200
     ulimits:
