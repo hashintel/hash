@@ -1,18 +1,19 @@
 [package]
-name = "server"
+name = "orchestrator"
 version = "0.0.0"
 edition = "2021"
 
 [dependencies]
-hash_engine = { path = "../..", default-features = false }
 error = { path = "../../lib/error", features = ["spantrace"] }
+hash_engine = { path = "../..", default-features = false }
 
-tokio = "1.5.0"
+async-trait = "0.1.48"
+rand = "0.8.3"
+rand_distr = "0.4.2"
+serde = "1.0.133"
+serde_json = "1.0.74"
 tracing = "0.1.29"
-
-[[bin]]
-name = "hash_engine"
-path = "src/main.rs"
+tokio = { version = "1.5.0" }
 
 [features]
 default = ["build-nng"]

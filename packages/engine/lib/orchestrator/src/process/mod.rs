@@ -1,6 +1,9 @@
+mod local;
+
 use async_trait::async_trait;
 use error::Result;
 use hash_engine::proto::EngineMsg;
+pub use local::{LocalCommand, LocalProcess};
 
 #[async_trait]
 pub trait Process {
