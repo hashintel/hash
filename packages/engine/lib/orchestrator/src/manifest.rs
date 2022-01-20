@@ -269,6 +269,10 @@ impl Manifest {
     }
 
     pub fn from_local<P: AsRef<Path>>(project_path: P) -> Result<Self> {
+        Self::from_local_impl(project_path, false)
+    }
+
+    fn from_local_impl<P: AsRef<Path>>(project_path: P, is_dependency: bool) -> Result<Self> {
         let project_path = project_path.as_ref();
         debug!(
             "Reading local project at: {}",
@@ -287,9 +291,11 @@ impl Manifest {
 
         let mut project = Manifest::new();
 
-        project
-            .set_initial_state_from_directory(src_folder)
-            .wrap_err("Could not read initial state")?;
+        if !is_dependency {
+            project
+                .set_initial_state_from_directory(src_folder)
+                .wrap_err("Could not read initial state")?;
+        }
         if globals_json.exists() {
             project
                 .set_globals_from_file(globals_json)
@@ -324,7 +330,7 @@ impl Manifest {
         let behaviors_deps_folders = local_dependencies_folders(dependencies_folder);
         let dep_projects = behaviors_deps_folders
             .into_iter()
-            .map(|path| match Self::from_local(&path) {
+            .map(|path| match Self::from_local_impl(&path, true) {
                 Ok(project) => Ok((path, project)),
                 Err(err) => Err(err),
             })
