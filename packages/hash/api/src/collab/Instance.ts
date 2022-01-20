@@ -15,10 +15,12 @@ import {
 import {
   GetEntityQuery,
   GetEntityQueryVariables,
+  GetPageQuery,
+  GetPageQueryVariables,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 import {
-  findComponentNodes,
   getComponentNodeAttrs,
+  isComponentNode,
 } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { getEntity } from "@hashintel/hash-shared/queries/entity.queries";
@@ -202,19 +204,16 @@ export class Instance {
        *
        * @todo fix this
        */
-      this.updateSavedContents(nextSavedContents, true);
+      this.updateSavedContents(nextSavedContents);
     }
   }
 
-  private updateSavedContents(nextSavedContents: BlockEntity[], notify = true) {
+  private updateSavedContents(nextSavedContents: BlockEntity[]) {
     const { tr } = this.state;
     addEntityStoreAction(tr, { type: "contents", payload: nextSavedContents });
     this.state = this.state.apply(tr);
     this.savedContents = nextSavedContents;
-
-    if (notify) {
-      this.recordStoreUpdate();
-    }
+    this.recordStoreUpdate();
   }
 
   /**
@@ -243,7 +242,6 @@ export class Instance {
 
         const result = tr.maybeStep(steps[i]);
         if (!result.doc) return false;
-        // @todo look into whether this is needed now we use a tr
         if (this.saveMapping) {
           this.saveMapping.appendMap(steps[i].getMap());
         }
@@ -269,49 +267,59 @@ export class Instance {
       .catch()
       .then(() => {
         this.saveMapping = mapping;
+        const { doc } = this.state;
 
         return updatePageMutation(
           this.accountId,
           this.pageEntityId,
-          this.state.doc,
+          doc,
           this.savedContents,
           // @todo get this from this.state
           createEntityStore(this.savedContents, {}),
           apolloClient,
         ).then((newPage) => {
-          const componentNodes = findComponentNodes(this.state.doc);
+          /**
+           * This is purposefully based on the current doc, not the doc at
+           * the time of save, because we need to apply transforms to the
+           * current doc based on the result of the save query (in order to
+           * insert entity ids for new blocks)
+           */
+          const transform = new Transform<Schema>(this.state.doc);
 
-          this.updateSavedContents(newPage.properties.contents, true);
+          /**
+           * We need to look through our doc for any nodes that were missing
+           * entityIds (i.e, that are new) and insert them from the save.
+           *
+           * @todo allow the client to pick entity ids to remove the need to
+           * do this
+           */
+          doc.descendants((node, pos) => {
+            const resolved = doc.resolve(pos);
+            const idx = resolved.index(0);
+            const blockEntity = newPage.properties.contents[idx];
 
-          for (let idx = 0; idx < componentNodes.length; idx++) {
-            const [componentNode, pos] = componentNodes[idx];
-
-            const entity = newPage.properties.contents[idx];
-
-            if (!entity) {
-              throw new Error("Could not find block in saved page");
+            if (!blockEntity) {
+              throw new Error("Cannot find block node in save result");
             }
 
-            if (!componentNode.attrs.blockEntityId) {
-              const transform = new Transform<Schema>(this.state.doc);
-              const attrs = getComponentNodeAttrs(entity);
-              const mappedPos = mapping.map(pos);
-              const blockWithAttrs = this.state.doc.childAfter(mappedPos).node;
-
-              // @todo use a custom step for this so we don't need to copy attrs – we may lose some
-              transform.setNodeMarkup(mappedPos, undefined, {
-                ...blockWithAttrs?.attrs,
-                ...attrs,
-              });
-
-              // @todo need to do this outside the loop
-              this.addEvents(apolloClient)(
-                this.version,
-                transform.steps,
-                `${clientID}-server`,
+            if (isComponentNode(node) && !node.attrs.blockEntityId) {
+              transform.setNodeMarkup(
+                mapping.map(pos),
+                undefined,
+                getComponentNodeAttrs(blockEntity),
               );
             }
+          });
+
+          if (transform.docChanged) {
+            this.addEvents(apolloClient)(
+              this.version,
+              transform.steps,
+              `${clientID}-server`,
+            );
           }
+
+          this.updateSavedContents(newPage.properties.contents);
         });
       })
       .catch((err) => {
@@ -567,7 +575,10 @@ const newInstance =
       }
     }
 
-    const { data } = await apolloClient.query({
+    const { data } = await apolloClient.query<
+      GetPageQuery,
+      GetPageQueryVariables
+    >({
       query: getPageQuery,
       variables: { entityId: pageEntityId, accountId },
     });
