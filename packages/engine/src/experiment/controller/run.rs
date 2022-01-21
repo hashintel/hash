@@ -22,7 +22,7 @@ use crate::{
 pub async fn run_experiment(exp_config: ExperimentConfig, env: Environment) -> Result<()> {
     let experiment_name = exp_config.name().to_string();
     let experiment_id = exp_config.run.base().id;
-    log::info!("Running experiment {}", experiment_name);
+    log::info!("Running experiment \"{experiment_name}\"");
     // TODO: Get cloud-specific configuration from `env`
     let _output_persistence_config = config::output_persistence(&env)?;
 
@@ -32,23 +32,19 @@ pub async fn run_experiment(exp_config: ExperimentConfig, env: Environment) -> R
         Ok(result) => {
             let final_result = match result {
                 Ok(()) => {
-                    log::debug!("Successful termination ({})", experiment_name);
+                    log::debug!("Successful termination of experiment \"{experiment_name}\"");
                     EngineStatus::Exit
                 }
                 Err(err) => {
                     let err = CrateError::from(ExperimentError::from(err)).user_facing_string();
-                    log::debug!("Terminating ({}) with error: {}", experiment_name, err);
+                    log::debug!("Terminating experiment \"{experiment_name}\" with error: {err}");
                     EngineStatus::ProcessError(err)
                 }
             };
             orch_client.send(final_result).await?;
         }
         Err(join_err) => {
-            log::error!(
-                "Experiment run ({}) task join error: {:?}",
-                experiment_name,
-                join_err
-            );
+            log::error!("Experiment run \"{experiment_name}\" task join error: {join_err:?}");
             return if join_err.is_panic() {
                 Err(Error::from(
                     "Error in the experiment runner, please contact support",
