@@ -43,11 +43,11 @@
 
 ## Issue Tracking
 
-We use [GitHub Issues](https://github.com/hashintel/hash/issues) to help prioritize and track bugs and feature requests for HASH. This includes hEngine, as well as our **hCore** IDE, and the [**HASH.ai site**](https://hash.ai/platform/index?utm_medium=organic&utm_source=github_readme_engine). You can also report issues and get support on our public [Discord server](https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_engine). Please submit any issues you encounter.
+We use [GitHub Issues](https://github.com/hashintel/hash/issues) to help prioritize and track bugs and feature requests. This includes hEngine and our **hCore** IDE, as well as the [**HASH**](https://hash.ai/platform/hash?utm_medium=organic&utm_source=github_readme_engine) all-in-one workspace. You can also report issues and get support on our public [Discord server](https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_engine). Please submit any issues you encounter.
 
 ## Additional Documentation
 
-Our [simulation docs](https://hash.ai/docs/simulation?utm_medium=organic&utm_source=github_readme_engine) contain beginner guides and in-depth tutorials for **hCore** today.
+Our [user guide for simulation](https://hash.ai/docs/simulation?utm_medium=organic&utm_source=github_readme_engine) contains a beginner's introduction as well as in-depth tutorials for **hCore** today.
 
 The [HASH glossary](https://hash.ai/glossary?utm_medium=organic&utm_source=github_readme_engine) contains helpful explainers around key modeling, simulation and AI-related terms and concepts.
 
