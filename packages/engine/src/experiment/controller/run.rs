@@ -59,7 +59,7 @@ pub async fn run_experiment(exp_config: ExperimentConfig, env: Environment) -> R
 
     // Allow messages to be picked up.
     std::thread::sleep(std::time::Duration::from_millis(100));
-    log::info!("Exiting: {}", experiment_name);
+    log::info!("Exiting \"{experiment_name}\"");
     Ok(())
 }
 

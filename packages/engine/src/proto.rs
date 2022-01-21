@@ -15,6 +15,7 @@ pub type SerdeMap = serde_json::Map<String, SerdeValue>;
 pub type ExperimentId = Uuid;
 pub type SimulationRegisteredId = String;
 pub type SimulationShortId = u32;
+
 #[derive(Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Serialize, Deserialize)]
 pub struct ExperimentName(String);
 
