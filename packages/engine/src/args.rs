@@ -9,7 +9,7 @@ use crate::{proto::ExperimentId, utils::OutputFormat};
 #[clap(setting(AppSettings::UseLongFormatForHelpSubcommand))]
 /// Run the engine.
 pub struct Args {
-    /// The unique identifier of the experiment
+    /// The unique identifier of the experiment, as a valid v4 UUID
     #[clap(short, long, default_value = "")]
     pub experiment_id: ExperimentId,
 
