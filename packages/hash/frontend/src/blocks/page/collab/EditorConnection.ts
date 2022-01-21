@@ -99,7 +99,7 @@ export class EditorConnection {
         // @todo clear history?
         const { tr } = editorState;
 
-        addEntityStoreAction(tr, {
+        addEntityStoreAction(editorState, tr, {
           type: "store",
           payload: action.store,
         });
@@ -232,7 +232,10 @@ export class EditorConnection {
 
         if (data.store && this.state.edit) {
           const tr = this.state.edit.tr;
-          addEntityStoreAction(tr, { type: "store", payload: data.store });
+          addEntityStoreAction(this.state.edit, tr, {
+            type: "store",
+            payload: data.store,
+          });
           // @todo remove need to dispatch here, combine with below dispatch
           this.dispatch({
             type: "update",

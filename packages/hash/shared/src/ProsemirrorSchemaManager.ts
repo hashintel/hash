@@ -383,7 +383,7 @@ export class ProsemirrorSchemaManager {
 
     const { tr } = state;
 
-    addEntityStoreAction(tr, { type: "store", payload: store });
+    addEntityStoreAction(state, tr, { type: "store", payload: store });
 
     tr.replaceWith(0, state.doc.content.size, newNodes);
 

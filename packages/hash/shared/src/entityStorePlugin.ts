@@ -1,4 +1,6 @@
+import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { Draft, produce } from "immer";
+import { isEqual } from "lodash";
 import { Schema } from "prosemirror-model";
 import { EditorState, Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
@@ -6,14 +8,17 @@ import { v4 as uuid } from "uuid";
 import { BlockEntity } from "./entity";
 import {
   createEntityStore,
+  DraftEntity,
   draftEntityForEntityId,
   EntityStore,
   isBlockEntity,
   isDraftBlockEntity,
 } from "./entityStore";
 import {
+  ComponentNode,
   componentNodeToId,
   EntityNode,
+  findComponentNodes,
   isComponentNode,
   isEntityNode,
   textBlockNodeToEntityProperties,
@@ -28,32 +33,161 @@ type EntityStorePluginState = {
 };
 
 type EntityStorePluginAction =
-  | {
-      type: "contents";
+  | /**
+   * This is an action that merges in a new set of blocks from a Page
+   * entity's contents property, usually post save while attempting to
+   * remember draft data which has not yet been saved. This is not a
+   * fool-proof solution, and is only necessary because we don't yet
+   * convert the changes made during a save into discrete actions. Once
+   * we do that, we should remove this as its a source of complexity and
+   * bugs. It also results in needing to send the entire store to the
+   * other clients, as it is not sync-able.
+   *
+   * @deprecated
+   * @todo remove this once we better handle saves
+   */
+  {
+      type: "mergeNewPageContents";
       payload: BlockEntity[];
-    }
-  | {
-      type: "draft";
-      payload: EntityStore["draft"];
     }
   | { type: "store"; payload: EntityStore }
   | { type: "subscribe"; payload: EntityStorePluginStateListener }
-  | { type: "unsubscribe"; payload: EntityStorePluginStateListener };
-
-type EntityStorePluginMessage = EntityStorePluginAction[];
+  | { type: "unsubscribe"; payload: EntityStorePluginStateListener }
+  | {
+      type: "updateEntityProperties";
+      payload: { draftId: string; properties: {}; merge: boolean };
+    }
+  | {
+      type: "newDraftEntity";
+      payload: {
+        entityId: string | null;
+        draftId: string;
+      };
+    };
 
 const entityStorePluginKey = new PluginKey<EntityStorePluginState, Schema>(
   "entityStore",
 );
 
+/**
+ * @use {@link subscribeToEntityStore} if you need a live subscription
+ */
+export const entityStorePluginState = (state: EditorState<Schema>) => {
+  const pluginState = entityStorePluginKey.getState(state);
+
+  if (!pluginState) {
+    throw new Error(
+      "Cannot get entity store when state does not have entity store plugin",
+    );
+  }
+  return pluginState;
+};
+
+/**
+ * @use {@link subscribeToEntityStore} if you need a live subscription
+ */
+export const pluginStateFromTransaction = (
+  tr: Transaction<Schema>,
+  state: EditorState<Schema>,
+): EntityStorePluginState =>
+  tr.getMeta(entityStorePluginKey) ?? entityStorePluginState(state);
+
+/**
+ * We currently violate Immer's rules, as properties inside entities can be
+ * other entities themselves, and we expect `entity.property.entity` to be
+ * the same object as the other entity. We either need to change that, or
+ * remove immer, or both.
+ *
+ * @todo address this
+ * @see https://immerjs.github.io/immer/pitfalls#immer-only-supports-unidirectional-trees
+ */
+const entityStoreReducer = (
+  state: EntityStorePluginState,
+  action: EntityStorePluginAction,
+): EntityStorePluginState => {
+  switch (action.type) {
+    case "mergeNewPageContents":
+      return {
+        ...state,
+        store: createEntityStore(action.payload, state.store.draft),
+      };
+
+    case "store": {
+      return { ...state, store: action.payload };
+    }
+
+    case "subscribe":
+      return {
+        ...state,
+        listeners: Array.from(new Set([...state.listeners, action.payload])),
+      };
+
+    case "unsubscribe":
+      return {
+        ...state,
+        listeners: state.listeners.filter(
+          (listener) => listener !== action.payload,
+        ),
+      };
+
+    case "updateEntityProperties": {
+      if (!state.store.draft[action.payload.draftId]) {
+        throw new Error("Entity missing to merge entity properties");
+      }
+
+      return produce(state, (draftState) => {
+        const entities: Draft<DraftEntity>[] = [
+          draftState.store.draft[action.payload.draftId],
+        ];
+
+        for (const entity of Object.values(draftState.store.draft)) {
+          if (
+            isDraftBlockEntity(entity) &&
+            entity.properties.entity.draftId === action.payload.draftId
+          ) {
+            entities.push(entity.properties.entity);
+          }
+        }
+
+        if (action.payload.merge) {
+          for (const entity of entities) {
+            Object.assign(entity.properties, action.payload.properties);
+          }
+        } else {
+          for (const entity of entities) {
+            entity.properties = action.payload.properties;
+          }
+        }
+      });
+    }
+    case "newDraftEntity":
+      if (state.store.draft[action.payload.draftId]) {
+        throw new Error("Draft entity already exists");
+      }
+
+      return produce(state, (draftState) => {
+        draftState.store.draft[action.payload.draftId] = {
+          entityId: action.payload.entityId,
+          draftId: action.payload.draftId,
+          properties: {},
+        };
+      });
+  }
+
+  return state;
+};
+
 export const addEntityStoreAction = (
+  state: EditorState<Schema>,
   tr: Transaction<Schema>,
   action: EntityStorePluginAction,
 ) => {
-  const actions: EntityStorePluginMessage =
-    tr.getMeta(entityStorePluginKey) ?? [];
+  const prevState = pluginStateFromTransaction(tr, state);
+  const nextState = entityStoreReducer(prevState, action);
 
-  tr.setMeta(entityStorePluginKey, [...actions, action]);
+  tr.setMeta(entityStorePluginKey, nextState);
+
+  return nextState;
 };
 
 const updateEntityStoreListeners = collect<
@@ -74,7 +208,7 @@ const updateEntityStoreListeners = collect<
 
     const tr = transactions.get(view)!;
 
-    addEntityStoreAction(tr, {
+    addEntityStoreAction(view.state, tr, {
       type: unsubscribe ? "unsubscribe" : "subscribe",
       payload: listener,
     });
@@ -84,20 +218,6 @@ const updateEntityStoreListeners = collect<
     view.dispatch(transaction);
   }
 });
-
-/**
- * @use subscribeToEntityStore if you need a live subscription
- */
-export const entityStorePluginState = (state: EditorState<Schema>) => {
-  const pluginState = entityStorePluginKey.getState(state);
-
-  if (!pluginState) {
-    throw new Error(
-      "Cannot process transaction when state does not have entity store plugin",
-    );
-  }
-  return pluginState;
-};
 
 export const subscribeToEntityStore = (
   view: EditorView<Schema>,
@@ -110,94 +230,238 @@ export const subscribeToEntityStore = (
   };
 };
 
-const draftIdForNode = (
-  tr: Transaction<Schema>,
-  node: EntityNode,
-  pos: number,
-  draftDraftEntityStore: Draft<EntityStore["draft"]>,
+const getDraftIdFromEntityByEntityId = (
+  draftStore: EntityStore["draft"],
+  entityId: string,
 ) => {
-  let draftId = node.attrs.draftId;
+  const existingEntity = draftEntityForEntityId(draftStore, entityId);
 
-  if (draftId && draftDraftEntityStore[draftId]) {
-    const entityId = draftDraftEntityStore[draftId].entityId;
+  if (!existingEntity) {
+    throw new Error("invariant: entity missing from entity store");
+  }
 
-    if (entityId) {
-      const existingDraftId = draftEntityForEntityId(
-        draftDraftEntityStore,
-        entityId,
-      )?.draftId;
+  return existingEntity.draftId;
+};
 
-      if (!existingDraftId) {
-        throw new Error("invariant: entity missing from entity store");
+const getRequiredDraftIdFromEntityNode = (entityNode: EntityNode): string => {
+  if (!entityNode.attrs.draftId) {
+    throw new Error("Draft id missing when expected");
+  }
+
+  return entityNode.attrs.draftId;
+};
+
+class ProsemirrorStateChangeHandler {
+  private readonly tr: Transaction<Schema>;
+  private handled = false;
+
+  constructor(private state: EditorState<Schema>) {
+    this.tr = state.tr;
+  }
+
+  handleDoc() {
+    if (this.handled) {
+      throw new Error("already used");
+    }
+
+    this.handled = true;
+
+    this.tr.doc.descendants((node, pos) => {
+      this.handleNode(node, pos);
+    });
+
+    return this.tr;
+  }
+
+  private handleNode(node: ProsemirrorNode<Schema>, pos: number) {
+    if (isComponentNode(node)) {
+      this.componentNode(node, pos);
+    }
+
+    if (isEntityNode(node)) {
+      this.entityNode(node, pos);
+    }
+  }
+
+  private componentNode(node: ComponentNode, pos: number) {
+    let blockEntityNode: EntityNode | null = null;
+    const resolved = this.tr.doc.resolve(pos);
+    for (let depth = 0; depth < resolved.depth; depth++) {
+      const parentNode = resolved.node(depth);
+      if (isEntityNode(parentNode)) {
+        blockEntityNode = parentNode;
+        break;
+      }
+    }
+
+    if (!blockEntityNode) {
+      throw new Error("invariant: unexpected structure");
+    }
+
+    if (blockEntityNode.attrs.draftId) {
+      const draftEntityStore = this.getDraftEntityStoreFromTransaction();
+      const entity = draftEntityStore[blockEntityNode.attrs.draftId];
+
+      if (!entity || !isBlockEntity(entity)) {
+        throw new Error(
+          "Block entity node points at non-block entity in draft store",
+        );
       }
 
-      draftId = existingDraftId;
+      const componentId = componentNodeToId(node);
+
+      if (entity.properties.componentId !== componentId) {
+        addEntityStoreAction(this.state, this.tr, {
+          type: "updateEntityProperties",
+          payload: {
+            merge: true,
+            draftId: entity.draftId,
+            properties: { componentId },
+          },
+        });
+      }
     }
-  } else {
-    /**
-     * @todo this will lead to the frontend setting draft id uuids for new
-     *       blocks – this is potentially insecure and needs considering
-     */
-    draftId ??= `fake-${uuid()}`;
-
-    draftDraftEntityStore[draftId] = {
-      draftId,
-      entityId: null,
-      properties: {},
-    };
   }
 
-  if (draftId !== node.attrs.draftId) {
-    tr.setNodeMarkup(pos, undefined, {
-      ...node.attrs,
-      draftId,
-    });
+  private entityNode(node: EntityNode, pos: number) {
+    const updatedNode = this.potentialNewDraftEntityForEntityNode(node, pos);
+
+    this.handlePotentialTextContentChangesInEntityNode(updatedNode);
   }
 
-  return draftId;
-};
+  private potentialUpdateParentBlockEntity(node: EntityNode, pos: number) {
+    const parent = this.tr.doc.resolve(pos).parent;
 
-const entityStoreReducer = (
-  state: EntityStorePluginState,
-  action: EntityStorePluginAction,
-): EntityStorePluginState => {
-  switch (action.type) {
-    case "contents":
-      return {
-        ...state,
-        store: createEntityStore(action.payload, state.store.draft),
-      };
+    if (isEntityNode(parent)) {
+      const parentDraftId = parent.attrs.draftId;
+      if (!parentDraftId) {
+        throw new Error("invariant: parents must have a draft id");
+      }
 
-    case "draft":
-      return {
-        ...state,
-        store: {
-          ...state.store,
-          draft: action.payload,
+      const draftEntityStore = this.getDraftEntityStoreFromTransaction();
+      const parentEntity = draftEntityStore[parentDraftId];
+      if (!parentEntity) {
+        throw new Error("invariant: parent node missing from draft store");
+      }
+
+      // @todo in what circumstances does this occur
+      if (!isDraftBlockEntity(parentEntity)) {
+        const componentNodeChild = findComponentNodes(node)[0][0];
+
+        addEntityStoreAction(this.state, this.tr, {
+          type: "updateEntityProperties",
+          payload: {
+            merge: false,
+            draftId: parentEntity.draftId,
+            properties: {
+              entity: draftEntityStore[getRequiredDraftIdFromEntityNode(node)],
+              /**
+               * We don't currently rely on componentId of the draft
+               * right
+               * now, but this will be a problem in the future (i.e, if
+               * save starts using the draft entity store)
+               *
+               * @todo set this properly
+               */
+              componentId: componentNodeChild
+                ? componentNodeToId(componentNodeChild)
+                : "",
+            },
+          },
+        });
+      }
+    }
+  }
+
+  private handlePotentialTextContentChangesInEntityNode(node: EntityNode) {
+    const draftEntityStore = this.getDraftEntityStoreFromTransaction();
+    const draftEntity =
+      draftEntityStore[getRequiredDraftIdFromEntityNode(node)];
+
+    if (!draftEntity) {
+      throw new Error("invariant: draft entity missing from store");
+    }
+
+    if (
+      "properties" in draftEntity &&
+      node.firstChild &&
+      node.firstChild.isTextblock
+    ) {
+      const nextProps = textBlockNodeToEntityProperties(node.firstChild);
+
+      if (!isEqual(draftEntity.properties, nextProps)) {
+        addEntityStoreAction(this.state, this.tr, {
+          type: "updateEntityProperties",
+          payload: {
+            merge: false,
+            draftId: draftEntity.draftId,
+            properties: nextProps,
+          },
+        });
+      }
+    }
+  }
+
+  private potentialDraftIdSetForEntityNode(node: EntityNode, pos: number) {
+    const draftEntityStore = this.getDraftEntityStoreFromTransaction();
+
+    const entityId = node.attrs.draftId
+      ? draftEntityStore[node.attrs.draftId]?.entityId
+      : null;
+
+    const draftId = entityId
+      ? getDraftIdFromEntityByEntityId(draftEntityStore, entityId)
+      : /**
+         * @todo this will lead to the frontend setting draft id uuids for
+         *   new blocks – this is potentially insecure and needs
+         *   considering
+         */
+        node.attrs.draftId ?? `fake-${uuid()}`;
+
+    if (!draftEntityStore[draftId]) {
+      addEntityStoreAction(this.state, this.tr, {
+        type: "newDraftEntity",
+        payload: {
+          entityId: entityId ?? null,
+          draftId,
         },
-      };
-
-    case "store": {
-      return { ...state, store: action.payload };
+      });
     }
 
-    case "subscribe":
-      return {
-        ...state,
-        listeners: Array.from(new Set([...state.listeners, action.payload])),
-      };
-
-    case "unsubscribe":
-      return {
-        ...state,
-        listeners: state.listeners.filter(
-          (listener) => listener !== action.payload,
-        ),
-      };
+    /**
+     * @todo need to ensure we throw away now unused draft entities
+     * @todo does this ever happen now? We're trying to make it so draftId
+     * never changes
+     */
+    if (draftId !== node.attrs.draftId) {
+      this.tr.setNodeMarkup(pos, undefined, {
+        ...node.attrs,
+        draftId,
+      });
+    }
   }
 
-  return state;
-};
+  private potentialNewDraftEntityForEntityNode(
+    node: EntityNode,
+    pos: number,
+  ): EntityNode {
+    this.potentialDraftIdSetForEntityNode(node, pos);
+
+    const updatedNode = this.tr.doc.resolve(this.tr.mapping.map(pos)).nodeAfter;
+
+    if (!updatedNode || !isEntityNode(updatedNode)) {
+      throw new Error("Node missing in transaction");
+    }
+
+    this.potentialUpdateParentBlockEntity(updatedNode, pos);
+
+    return updatedNode;
+  }
+
+  private getDraftEntityStoreFromTransaction() {
+    return pluginStateFromTransaction(this.tr, this.state).store.draft;
+  }
+}
 
 export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
   key: entityStorePluginKey,
@@ -209,10 +473,8 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
       };
     },
     apply(tr, initialState): EntityStorePluginState {
-      const actions: EntityStorePluginMessage =
-        tr.getMeta(entityStorePluginKey) ?? [];
-
-      const nextState = actions.reduce(entityStoreReducer, initialState);
+      const nextState: EntityStorePluginState =
+        tr.getMeta(entityStorePluginKey) ?? initialState;
 
       if (nextState !== initialState) {
         for (const listener of nextState.listeners) {
@@ -233,109 +495,6 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
       return;
     }
 
-    const pluginState = entityStorePluginState(state);
-    const prevDraft = pluginState.store.draft;
-    const { tr } = state;
-
-    /**
-     * We current violate Immer's rules, as properties inside entities can be
-     * other entities themselves, and we expect `entity.property.entity` to be
-     * the same object as the other entity. We either need to change that, or
-     * remove immer, or both.
-     *
-     * @todo address this
-     * @see https://immerjs.github.io/immer/pitfalls#immer-only-supports-unidirectional-trees
-     */
-    const nextDraft = produce(prevDraft, (draftDraftEntityStore) => {
-      state.doc.descendants((node, pos) => {
-        if (isComponentNode(node)) {
-          let blockEntityNode: EntityNode | null = null;
-          const resolved = tr.doc.resolve(pos);
-          for (let depth = 0; depth < resolved.depth; depth++) {
-            const parentNode = resolved.node(depth);
-            if (isEntityNode(parentNode)) {
-              blockEntityNode = parentNode;
-              break;
-            }
-          }
-
-          if (!blockEntityNode) {
-            throw new Error("invariant: unexpected structure");
-          }
-
-          if (blockEntityNode.attrs.draftId) {
-            const entity = draftDraftEntityStore[blockEntityNode.attrs.draftId];
-
-            if (!entity || !isBlockEntity(entity)) {
-              throw new Error(
-                "Block entity node points at non-block entity in draft store",
-              );
-            }
-
-            entity.properties.componentId = componentNodeToId(node);
-          }
-        }
-
-        if (!isEntityNode(node)) {
-          return;
-        }
-
-        const draftId = draftIdForNode(tr, node, pos, draftDraftEntityStore);
-        const draftEntity = draftDraftEntityStore[draftId];
-
-        if (!draftEntity) {
-          throw new Error("invariant: draft entity missing from store");
-        }
-
-        if (
-          "properties" in draftEntity &&
-          node.firstChild &&
-          node.firstChild.isTextblock
-        ) {
-          draftEntity.properties = textBlockNodeToEntityProperties(
-            node.firstChild,
-          );
-        }
-
-        const parent = tr.doc.resolve(pos).parent;
-
-        if (!isEntityNode(parent)) {
-          return;
-        }
-
-        const parentDraftId = parent.attrs.draftId;
-
-        if (!parentDraftId) {
-          throw new Error("invariant: parents must have a draft id");
-        }
-
-        const parentEntity = draftDraftEntityStore[parentDraftId];
-
-        if (!parentEntity) {
-          throw new Error("invariant: parent node missing from draft store");
-        }
-
-        if (!isDraftBlockEntity(parentEntity)) {
-          draftDraftEntityStore[parentEntity.draftId] = {
-            ...parentEntity,
-            properties: {
-              entity: draftEntity,
-              /**
-               * We don't currently rely on componentId of the draft right
-               * now, but this will be a problem in the future (i.e, if save
-               * starts using the draft entity store)
-               *
-               * @todo set this properly
-               */
-              componentId: "",
-            },
-          };
-        }
-      });
-    });
-
-    addEntityStoreAction(tr, { type: "draft", payload: nextDraft });
-
-    return tr;
+    return new ProsemirrorStateChangeHandler(state).handleDoc();
   },
 });
