@@ -211,7 +211,7 @@ export class Instance {
   private updateSavedContents(nextSavedContents: BlockEntity[]) {
     const { tr } = this.state;
     addEntityStoreAction(this.state, tr, {
-      type: "contents",
+      type: "mergeNewPageContents",
       payload: nextSavedContents,
     });
     this.state = this.state.apply(tr);

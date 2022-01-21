@@ -33,9 +33,21 @@ type EntityStorePluginState = {
 };
 
 type EntityStorePluginAction =
-  | {
-      // @todo remove this
-      type: "contents";
+  | /**
+   * This is an action that merges in a new set of blocks from a Page
+   * entity's contents property, usually post save while attempting to
+   * remember draft data which has not yet been saved. This is not a
+   * fool-proof solution, and is only necessary because we don't yet
+   * convert the changes made during a save into discrete actions. Once
+   * we do that, we should remove this as its a source of complexity and
+   * bugs. It also results in needing to send the entire store to the
+   * other clients, as it is not sync-able.
+   *
+   * @deprecated
+   * @todo remove this once we better handle saves
+   */
+  {
+      type: "mergeNewPageContents";
       payload: BlockEntity[];
     }
   | { type: "store"; payload: EntityStore }
@@ -94,7 +106,7 @@ const entityStoreReducer = (
   action: EntityStorePluginAction,
 ): EntityStorePluginState => {
   switch (action.type) {
-    case "contents":
+    case "mergeNewPageContents":
       return {
         ...state,
         store: createEntityStore(action.payload, state.store.draft),
