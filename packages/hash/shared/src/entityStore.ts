@@ -21,6 +21,13 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   draftId: string;
 
   entityVersionCreatedAt: string;
+
+  linkGroups?: Type extends { linkGroups: any }
+    ? Type["linkGroups"]
+    : undefined;
+  linkedEntities?: Type extends { linkedEntities: any }
+    ? Type["linkedEntities"]
+    : undefined;
 } & (Type extends { properties: any }
   ? { properties: PropertiesType<Type["properties"]> }
   : {});
