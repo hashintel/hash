@@ -12,6 +12,7 @@ import {
 } from "@hashintel/hash-shared/queries/entity.queries";
 import { isEqual, uniqBy } from "lodash";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
+import { EditorState } from "prosemirror-state";
 import {
   BlockEntity,
   blockEntityIdExists,
