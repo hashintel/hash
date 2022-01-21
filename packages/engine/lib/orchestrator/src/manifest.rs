@@ -16,6 +16,7 @@ use hash_engine::{
 };
 use serde::{self, de::DeserializeOwned};
 use serde_json::Value as SerdeValue;
+use uuid::Uuid;
 
 use crate::ExperimentType;
 
@@ -358,8 +359,14 @@ impl Manifest {
             }],
         };
 
+        let name = match &experiment_type {
+            ExperimentType::SingleRun { .. } => "single_run".to_string().into(),
+            ExperimentType::Simple { name } => name.clone(),
+        };
+
         let base = ExperimentRunBase {
-            id: experiment_type.create_run_id(),
+            name,
+            id: Uuid::new_v4(),
             project_base,
         };
 
