@@ -135,7 +135,7 @@ pub mod tests {
             packages: Arc::new(Default::default()),
             run: Arc::new(
                 ExperimentRunBase {
-                    name: String::new(),
+                    name: String::new().into(),
                     id: Uuid::new_v4(),
                     project_base: ProjectBase {
                         initial_state: InitialState {
