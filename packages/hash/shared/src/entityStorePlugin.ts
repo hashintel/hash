@@ -81,7 +81,7 @@ export const pluginStateFromTransaction = (
   tr.getMeta(entityStorePluginKey) ?? entityStorePluginState(state);
 
 /**
- * We current violate Immer's rules, as properties inside entities can be
+ * We currently violate Immer's rules, as properties inside entities can be
  * other entities themselves, and we expect `entity.property.entity` to be
  * the same object as the other entity. We either need to change that, or
  * remove immer, or both.
