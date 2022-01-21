@@ -7,6 +7,13 @@
 
 <!-- Are there known issues / intentionally omitted functionality? Flag them here to save reviewers doing so -->
 
+## 🚫 Blocked by
+
+<!-- If the pull request is blocked by anything, list the blockers here. -->
+<!-- If applicable, link to them. -->
+
+- [ ] ...
+
 ## 🐾 Next steps
 
 <!-- Are there are planned/suggested follow ups which are related but won't be done in this PR? -->

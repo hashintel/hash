@@ -1,0 +1,20 @@
+{
+  "keys": {
+    "b1": {
+      "type": "boolean",
+      "nullable": false
+    },
+    "b1_type": {
+      "type": "string",
+      "nullable": false
+    },
+    "b2": {
+      "type": "boolean",
+      "nullable": false
+    },
+    "b2_type": {
+      "type": "string",
+      "nullable": false
+    }
+  }
+}

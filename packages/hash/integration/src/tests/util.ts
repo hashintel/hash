@@ -51,6 +51,8 @@ import {
   Query,
   GetEntitiesQuery,
   GetEntitiesQueryVariables,
+  GetEntityAndLinksQueryVariables,
+  GetEntityAndLinksQuery,
 } from "../graphql/apiTypes.gen";
 import {
   createEntity,
@@ -60,6 +62,7 @@ import {
   getEntities,
   updateEntity,
   updateEntityType,
+  getEntityAndLinks,
 } from "../graphql/queries/entity.queries";
 import {
   createOrg,
@@ -149,6 +152,14 @@ export class ApiClient {
   getUnknownEntity = async (vars: GetEntityQueryVariables) =>
     this.client
       .request<GetEntityQuery, GetEntityQueryVariables>(getUnknownEntity, vars)
+      .then((res) => res.entity);
+
+  getEntityAndLinks = async (vars: GetEntityAndLinksQueryVariables) =>
+    this.client
+      .request<GetEntityAndLinksQuery, GetEntityAndLinksQueryVariables>(
+        getEntityAndLinks,
+        vars,
+      )
       .then((res) => res.entity);
 
   getEntities = async (vars: GetEntitiesQueryVariables) =>

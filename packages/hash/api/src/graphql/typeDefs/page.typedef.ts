@@ -167,33 +167,13 @@ export const pageTypedef = gql`
     """
     position: Int!
     """
-    Whether the new entity should be versioned. Default is true.
-    """
-    versioned: Boolean = true
-    """
-    The block component ID.
+    The block componentId.
     """
     componentId: ID!
     """
-    Existing Entity to link to instead of a new entity.
+    The entity to associate with the new block
     """
-    entityId: ID
-    """
-    The fixed entity type ID of the new entity.
-    """
-    entityTypeId: ID
-    """
-    The type version ID of the new entity.
-    """
-    entityTypeVersionId: ID
-    """
-    The system type name of the new entity.
-    """
-    systemTypeName: SystemTypeName
-    """
-    The properties of new entity.
-    """
-    entityProperties: JSONObject!
+    entity: EntityDefinition!
   }
 
   """

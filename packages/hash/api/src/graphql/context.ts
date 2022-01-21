@@ -16,7 +16,7 @@ export interface GraphQLContext {
   dataSources: {
     db: DBAdapter;
     cache: CacheAdapter;
-    search: SearchAdapter;
+    search?: SearchAdapter;
   };
   emailTransporter: EmailTransporter;
   uploadProvider: StorageType;

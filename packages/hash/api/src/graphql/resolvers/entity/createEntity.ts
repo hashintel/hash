@@ -1,7 +1,6 @@
 import { MutationCreateEntityArgs, Resolver } from "../../apiTypes.gen";
 import { Entity, UnresolvedGQLEntity } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
-import { createEntityArgsBuilder } from "../util";
 
 export const createEntity: Resolver<
   Promise<UnresolvedGQLEntity>,
@@ -10,30 +9,15 @@ export const createEntity: Resolver<
   MutationCreateEntityArgs
 > = async (
   _,
-  {
-    accountId,
-    properties,
-    entityTypeId,
-    entityTypeVersionId,
-    systemTypeName,
-    versioned,
-  },
+  { accountId, entity: entityDefinition },
   { dataSources, user },
 ) => {
   /** @todo restrict creation of protected types, e.g. User, Org */
-
-  const entity = await Entity.create(
-    dataSources.db,
-    createEntityArgsBuilder({
-      accountId,
-      createdByAccountId: user.accountId,
-      properties,
-      versioned: versioned ?? true,
-      entityTypeId,
-      entityTypeVersionId,
-      systemTypeName,
-    }),
-  );
+  const entity = await Entity.createEntityWithLinks(dataSources.db, {
+    user,
+    accountId,
+    entityDefinition,
+  });
 
   return entity.toGQLUnknownEntity();
 };

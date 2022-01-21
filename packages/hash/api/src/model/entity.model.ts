@@ -11,6 +11,7 @@ import {
   CreateLinkArgs,
   Aggregation,
   CreateAggregationArgs,
+  User,
 } from ".";
 import { DBClient } from "../db";
 import { EntityMeta, EntityType as DbEntityType } from "../db/adapter";
@@ -19,8 +20,15 @@ import {
   Entity as GQLEntity,
   UnknownEntity as GQLUnknownEntity,
   EntityVersion,
+  EntityDefinition,
+  LinkedEntityDefinition,
 } from "../graphql/apiTypes.gen";
 import { SystemType } from "../types/entityTypes";
+import {
+  capitalizeComponentName,
+  createEntityArgsBuilder,
+  linkedTreeFlatten,
+} from "../util";
 
 export type EntityExternalResolvers =
   | "entityType" // resolved in resolvers/entityTypeTypeFields
@@ -472,6 +480,180 @@ class __Entity {
     if (this.metadata.versioned) {
       await this.refetchLatestVersion(client);
     }
+  }
+
+  private static async getOrCreate(
+    client: DBClient,
+    params: {
+      user: User;
+      accountId: string;
+      entityDefinition: Omit<EntityDefinition, "linkedEntities">;
+    },
+  ) {
+    const { entityDefinition } = params;
+    const { entityProperties, existingEntity } = params.entityDefinition;
+
+    let entity;
+
+    if (existingEntity) {
+      // Use existing entity
+      entity = await Entity.getEntityLatestVersion(client, {
+        accountId: existingEntity.accountId,
+        entityId: existingEntity.entityId,
+      });
+      if (!entity) {
+        throw new ApolloError(
+          `Entity ${existingEntity.entityId} owned by ${existingEntity.accountId} not found`,
+          "NOT_FOUND",
+        );
+      }
+    } else if (entityProperties) {
+      const { entityType } = entityDefinition;
+      const { componentId, entityTypeId, systemTypeName } = entityType ?? {};
+
+      let { entityTypeVersionId } = entityType ?? {};
+      // entityTypeId, entityTypeVersionId and systemTypeName is handled in Entity.create
+      // We only handle componentId here if it's the only possibility.
+      if (!entityTypeId && !entityTypeVersionId && !systemTypeName) {
+        if (!componentId) {
+          throw new ApolloError(
+            `Given no valid type identifier. Must be one of entityTypeId, entityTypeVersionId, systemTypeName or componentId`,
+            "NOT_FOUND",
+          );
+        }
+
+        // If type ID doesn't exist, we check the componentId
+        let entityTypeWithComponentId =
+          await EntityType.getEntityTypeByComponentId(client, {
+            componentId,
+          });
+
+        // In case the entityType doesn't exist, create one with the appropriate componentId and name
+        if (!entityTypeWithComponentId) {
+          const systemAccountId = await client.getSystemAccountId();
+
+          const name = capitalizeComponentName(componentId);
+          entityTypeWithComponentId = await EntityType.create(client, {
+            accountId: systemAccountId,
+            createdByAccountId: params.user.accountId,
+            name,
+            schema: { componentId },
+          });
+        }
+
+        entityTypeVersionId = entityTypeWithComponentId.entityVersionId;
+      }
+
+      const { versioned } = params.entityDefinition;
+
+      /**
+       * @todo: if we generate the entity IDs up-front, the entity and the block may
+       * be created concurrently.
+       * Create new entity since entityId has not been given.
+       */
+      entity = await Entity.create(
+        client,
+        createEntityArgsBuilder({
+          accountId: params.accountId,
+          createdByAccountId: params.user.accountId,
+          entityTypeId,
+          entityTypeVersionId,
+          systemTypeName,
+          properties: entityProperties,
+          versioned: versioned ?? true,
+        }),
+      );
+    } else {
+      throw new Error(
+        `One of entityId OR entityProperties and entityType must be provided`,
+      );
+    }
+    return entity;
+  }
+
+  static async createEntityWithLinks(
+    client: DBClient,
+    params: {
+      user: User;
+      accountId: string;
+      entityDefinition: EntityDefinition;
+    },
+  ): Promise<Entity> {
+    const { user, accountId, entityDefinition: entityDefinitions } = params;
+    if (params.entityDefinition.linkedEntities != null) {
+      const result = linkedTreeFlatten<
+        EntityDefinition,
+        LinkedEntityDefinition,
+        "linkedEntities",
+        "entity"
+      >(entityDefinitions, "linkedEntities", "entity");
+
+      const entities: {
+        link?: {
+          parentIndex: number;
+          meta: Omit<LinkedEntityDefinition, "entity">;
+        };
+        entity: Entity;
+      }[] = [];
+
+      // Promises are resolved sequentially because of transaction nesting issues
+      // This happens when more than one entity is created.
+      for (const entityDefinition of result) {
+        // Root entity does not have a link.
+        entities.push({
+          link: entityDefinition.meta
+            ? {
+                parentIndex: entityDefinition.parentIndex,
+                meta: entityDefinition.meta,
+              }
+            : undefined,
+          entity: await Entity.getOrCreate(client, {
+            user,
+            accountId,
+            entityDefinition,
+          }),
+        });
+      }
+
+      // insert links between entities in tree
+      // No transactions, so can run concurrently
+      await Promise.all(
+        entities.map(async ({ link, entity }) => {
+          if (link) {
+            const parentEntity = entities[link.parentIndex];
+            if (!parentEntity) {
+              throw new ApolloError("Could not find parent entity");
+            }
+            // links are created as an outgoing link from the parent entity to the children.
+            return await parentEntity.entity.createOutgoingLink(client, {
+              createdByAccountId: user.accountId,
+              destination: entity,
+              stringifiedPath: link.meta.path,
+              index: link.meta.index ?? undefined,
+            });
+          }
+          return null;
+        }),
+      );
+
+      // the root entity is the first result, same of which the user supplied as the top level entity.
+      if (entities.length > 0) {
+        // First element will be the root entity.
+        return entities[0].entity;
+      } else {
+        throw new ApolloError(
+          "Could not create entity tree",
+          "INTERNAL_SERVER_ERROR",
+        );
+      }
+    }
+
+    // In case the given entity has no linked entities.
+    return await Entity.getOrCreate(client, {
+      user,
+      accountId,
+      entityDefinition: params.entityDefinition,
+    });
   }
 
   toGQLEntity(): Omit<UnresolvedGQLEntity, "properties"> {

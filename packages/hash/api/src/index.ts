@@ -145,21 +145,23 @@ const main = async () => {
           subjectPrefix: isProdEnv ? undefined : "[DEV SITE] ",
         });
 
-  const searchAuth =
-    process.env.HASH_OPENSEARCH_USERNAME === undefined
-      ? undefined
-      : {
-          username: process.env.HASH_OPENSEARCH_USERNAME,
-          password: process.env.HASH_OPENSEARCH_PASSWORD || "",
-        };
-  const search = await OpenSearch.connect(logger, {
-    host: getRequiredEnv("HASH_OPENSEARCH_HOST"),
-    port: parseInt(process.env.HASH_OPENSEARCH_PORT || "9200", 10),
-    auth: searchAuth,
-    httpsEnabled: !!process.env.HASH_OPENSEARCH_HTTPS_ENABLED,
-  });
-  shutdown.addCleanup("OpenSearch", async () => search.close());
-
+  let search: OpenSearch | undefined;
+  if (process.env.HASH_OPENSEARCH_ENABLED === "true") {
+    const searchAuth =
+      process.env.HASH_OPENSEARCH_USERNAME === undefined
+        ? undefined
+        : {
+            username: process.env.HASH_OPENSEARCH_USERNAME,
+            password: process.env.HASH_OPENSEARCH_PASSWORD || "",
+          };
+    search = await OpenSearch.connect(logger, {
+      host: getRequiredEnv("HASH_OPENSEARCH_HOST"),
+      port: parseInt(process.env.HASH_OPENSEARCH_PORT || "9200", 10),
+      auth: searchAuth,
+      httpsEnabled: !!process.env.HASH_OPENSEARCH_HTTPS_ENABLED,
+    });
+    shutdown.addCleanup("OpenSearch", async () => search!.close());
+  }
   const apolloServer = createApolloServer({
     db,
     search,

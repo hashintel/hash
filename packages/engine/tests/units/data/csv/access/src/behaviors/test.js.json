@@ -1,0 +1,28 @@
+{
+  "keys": {
+    "column_1": {
+      "type": "list",
+      "nullable": true,
+      "child": {
+        "type": "string",
+        "nullable": true
+      }
+    },
+    "column_2": {
+      "type": "list",
+      "nullable": true,
+      "child": {
+        "type": "string",
+        "nullable": true
+      }
+    },
+    "column_3": {
+      "type": "list",
+      "nullable": true,
+      "child": {
+        "type": "string",
+        "nullable": true
+      }
+    }
+  }
+}
