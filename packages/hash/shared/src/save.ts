@@ -529,7 +529,7 @@ export const createNecessaryEntities = async (
         },
       });
 
-      desiredEntityTypeId = res.data.createEntityType.entityId;
+      desiredEntityTypeId = res.data!.createEntityType.entityId;
     }
 
     const variantEntityResult = await client.mutate<
