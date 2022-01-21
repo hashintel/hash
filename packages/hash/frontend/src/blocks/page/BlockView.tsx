@@ -270,7 +270,7 @@ export class BlockView implements NodeView<Schema> {
   /**
    * @todo restore the ability to load in new block types here
    */
-  onBlockChange = (_variant: BlockVariant, meta: BlockMeta) => {
+  onBlockChange = (variant: BlockVariant, meta: BlockMeta) => {
     const { node, view, getPos } = this;
 
     const state = view.state;
@@ -285,8 +285,9 @@ export class BlockView implements NodeView<Schema> {
       .replaceNodeWithRemoteBlock(
         draftId,
         meta.componentMetadata.componentId,
+        variant,
         node,
-        getPos,
+        getPos(),
       )
       .catch((err: Error) => {
         // eslint-disable-next-line no-console -- TODO: consider using logger

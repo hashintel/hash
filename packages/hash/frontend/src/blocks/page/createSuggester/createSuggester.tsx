@@ -162,15 +162,17 @@ export const createSuggester = (
            *   type variant
            */
           const onBlockSuggesterChange = (
-            _variant: BlockVariant,
+            variant: BlockVariant,
             meta: BlockMeta,
           ) => {
             getManager()
-              .createRemoteBlock(meta.componentMetadata.componentId)
-              .then((node) => {
+              .createRemoteBlockTr(
+                meta.componentMetadata.componentId,
+                null,
+                variant,
+              )
+              .then(([tr, node]) => {
                 const $end = view.state.doc.resolve(to);
-
-                const { tr } = view.state;
                 const endPosition = $end.end(1);
                 tr.insert(endPosition, node);
 

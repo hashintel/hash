@@ -4,7 +4,7 @@ import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { v4 as uuid } from "uuid";
-import { BlockEntity } from "./entity";
+import { BlockEntity, isDraftTextContainingEntityProperties } from "./entity";
 import {
   createEntityStore,
   DraftEntity,
@@ -106,7 +106,7 @@ export const entityStorePluginState = (state: EditorState<Schema>) => {
 /**
  * @use {@link subscribeToEntityStore} if you need a live subscription
  */
-const entityStorePluginStateFromTransaction = (
+export const entityStorePluginStateFromTransaction = (
   tr: Transaction<Schema>,
   state: EditorState<Schema>,
 ): EntityStorePluginState =>
@@ -129,11 +129,19 @@ const updateEntitiesByDraftId = (
   const entities: Draft<DraftEntity>[] = [draftEntityStore[draftId]];
 
   for (const entity of Object.values(draftEntityStore)) {
-    if (
-      isDraftBlockEntity(entity) &&
-      entity.properties.entity.draftId === draftId
-    ) {
-      entities.push(entity.properties.entity);
+    if (isDraftBlockEntity(entity)) {
+      if (entity.properties.entity.draftId === draftId) {
+        entities.push(entity.properties.entity);
+      }
+
+      if (
+        isDraftTextContainingEntityProperties(
+          entity.properties.entity.properties,
+        ) &&
+        entity.properties.entity.properties.text.data.draftId === draftId
+      ) {
+        entities.push(entity.properties.entity.properties.text.data);
+      }
     }
   }
 
@@ -150,6 +158,8 @@ const updateEntitiesByDraftId = (
  *
  * @todo address this
  * @see https://immerjs.github.io/immer/pitfalls#immer-only-supports-unidirectional-trees
+ *
+ * @todo reduce duplication
  */
 const entityStoreReducer = (
   state: EntityStorePluginState,
@@ -244,6 +254,7 @@ const entityStoreReducer = (
         draftState.store.draft[action.payload.draftId] = {
           entityId: action.payload.entityId,
           draftId: action.payload.draftId,
+          entityVersionCreatedAt: new Date().toISOString(),
           properties: {},
         };
       });
@@ -339,6 +350,8 @@ const getRequiredDraftIdFromEntityNode = (entityNode: EntityNode): string => {
 
   return entityNode.attrs.draftId;
 };
+
+export const newDraftId = () => `fake-${uuid()}`;
 
 class ProsemirrorStateChangeHandler {
   private readonly tr: Transaction<Schema>;
@@ -509,7 +522,7 @@ class ProsemirrorStateChangeHandler {
          *   new blocks – this is potentially insecure and needs
          *   considering
          */
-        node.attrs.draftId ?? `fake-${uuid()}`;
+        node.attrs.draftId ?? newDraftId();
 
     if (!draftEntityStore[draftId]) {
       addEntityStoreAction(this.state, this.tr, {
