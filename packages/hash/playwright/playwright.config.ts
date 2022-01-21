@@ -1,20 +1,19 @@
 import { PlaywrightTestConfig, devices } from "@playwright/test";
 
+const ci = process.env.CI === "true";
+
 const config: PlaywrightTestConfig = {
-  forbidOnly: !!process.env.CI,
+  forbidOnly: ci,
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "firefox", use: { ...devices["Desktop Firefox"] } },
-
-    // TODO: investigate issue with cookie persistence in CI (Ubuntu).
-    // GraphQL queries remain unauthenticated after login.
-    // { name: "webkit", use: { ...devices["Desktop Safari"] } },
+    { name: "webkit", use: { ...devices["Desktop Safari"] } },
   ],
   reporter: [
-    [process.env.CI ? "github" : "list"],
-    ["html", { open: !process.env.CI ? "on-failure" : "never" }],
+    [ci ? "github" : "list"],
+    ["html", { open: !ci ? "on-failure" : "never" }],
   ],
-  retries: 1,
+  retries: ci ? 1 : 0, // 1 retry makes in CI compensates flakiness, 0 is more helpful locally
   testDir: "tests",
   use: {
     baseURL: "http://localhost:3000",
@@ -23,6 +22,8 @@ const config: PlaywrightTestConfig = {
     // We can switch to this option when we have more tests and most of them are stable.
     trace: "retain-on-failure",
   },
+
+  workers: 1, // Concurrent tests break login
 };
 
 export default config;
