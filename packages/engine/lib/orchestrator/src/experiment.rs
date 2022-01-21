@@ -177,9 +177,7 @@ impl Experiment {
                     }
                 }
                 proto::EngineStatus::Exit => {
-                    debug!(
-                        "Process exited successfully for experiment run \"{experiment_name}\"",
-                    );
+                    debug!("Process exited successfully for experiment run \"{experiment_name}\"",);
                     break;
                 }
                 proto::EngineStatus::ProcessError(error) => {
