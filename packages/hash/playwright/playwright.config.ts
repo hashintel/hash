@@ -14,7 +14,7 @@ const config: PlaywrightTestConfig = {
     [process.env.CI ? "github" : "list"],
     ["html", { open: !process.env.CI ? "on-failure" : "never" }],
   ],
-  retries: 1,
+  retries: process.env.CI ? 1 : 0,
   testDir: "tests",
   use: {
     baseURL: "http://localhost:3000",
