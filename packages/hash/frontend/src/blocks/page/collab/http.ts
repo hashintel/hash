@@ -17,16 +17,20 @@ export type AbortingPromise<T> = Promise<T> & { abort: () => void };
  * @todo use signal
  * @todo replace with fetch
  */
-export const req = (conf: {
-  method: string;
-  url: string;
-  headers?: Record<string, string>;
+export const req = (
+  conf: {
+    method: string;
+    url: string;
+    headers?: Record<string, string>;
 
-  // @todo type body
-  body?: any;
-}): AbortingPromise<string> => {
+    // @todo type body
+    body?: any;
+  },
+  onAbort?: VoidFunction,
+): AbortingPromise<string> => {
   const request = new XMLHttpRequest();
   let aborted = false;
+  let finished = false;
 
   return Object.assign(
     new Promise<string>((resolve, reject) => {
@@ -35,6 +39,7 @@ export const req = (conf: {
       request.addEventListener("load", () => {
         if (aborted) return;
         if (request.status < 400) {
+          finished = true;
           resolve(request.responseText);
         } else {
           let text = request.responseText;
@@ -48,11 +53,15 @@ export const req = (conf: {
             request.status,
             `Request failed: ${request.statusText}${text ? `\n\n${text}` : ""}`,
           );
+          finished = true;
           reject(err);
         }
       });
       request.addEventListener("error", () => {
-        if (!aborted) reject(new Error("Network error"));
+        if (!aborted) {
+          finished = true;
+          reject(new Error("Network error"));
+        }
       });
       if (conf.headers) {
         for (const header of Object.keys(conf.headers)) {
@@ -63,8 +72,9 @@ export const req = (conf: {
     }),
     {
       abort() {
-        if (!aborted) {
+        if (!aborted && !finished) {
           request.abort();
+          onAbort?.();
           aborted = true;
         }
       },
@@ -75,5 +85,13 @@ export const req = (conf: {
 export const GET = (url: string) => req({ url, method: "GET" });
 
 // @todo type body
-export const POST = (url: string, body: any, type: string) =>
-  req({ url, method: "POST", body, headers: { "Content-Type": type } });
+export const POST = (
+  url: string,
+  body: any,
+  type: string,
+  onAbort?: VoidFunction,
+) =>
+  req(
+    { url, method: "POST", body, headers: { "Content-Type": type } },
+    onAbort,
+  );

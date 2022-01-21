@@ -418,6 +418,7 @@ dependencies = [
  "orchestrator",
  "serde",
  "tokio",
+ "uuid",
 ]
 
 [[package]]
@@ -1466,6 +1467,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tracing",
+ "uuid",
 ]
 
 [[package]]

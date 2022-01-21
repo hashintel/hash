@@ -1,10 +1,9 @@
 use std::{collections::HashMap, fmt::Display};
 
 use error::{bail, report, Result, ResultExt};
-use hash_engine::{nano, proto};
+use hash_engine::{nano, proto, proto::ExperimentId};
 use tokio::sync::{mpsc, oneshot};
 
-type ExperimentId = String;
 type ResultSender = oneshot::Sender<Result<()>>;
 type CloseReceiver = mpsc::UnboundedReceiver<ExperimentId>;
 type CloseSender = mpsc::UnboundedSender<ExperimentId>;
@@ -48,7 +47,7 @@ impl Drop for Handle {
     fn drop(&mut self) {
         // If send returns an error, it means the server has already been dropped in which case the
         // Handle is already cleaned up.
-        self.close_tx.send(self.id.clone()).unwrap_or(());
+        self.close_tx.send(self.id).unwrap_or(());
     }
 }
 
@@ -87,16 +86,16 @@ impl Handler {
 
     /// Register a new experiment execution with the server, returning a Handle from which messages
     /// from the execution may be received.
-    pub async fn register_experiment(&mut self, experiment_id: &str) -> Result<Handle> {
+    pub async fn register_experiment(&mut self, experiment_id: ExperimentId) -> Result<Handle> {
         let (msg_tx, msg_rx) = mpsc::unbounded_channel();
         self.send_ctrl(Ctrl::Register {
-            id: experiment_id.into(),
+            id: experiment_id,
             msg_tx,
         })
         .await?;
 
         let handle = Handle {
-            id: experiment_id.into(),
+            id: experiment_id,
             msg_rx,
             close_tx: self.close_tx.clone(),
         };
@@ -128,12 +127,12 @@ impl Server {
 
     /// Add an experiment to the server's routes.
     fn register_experiment(&mut self, id: ExperimentId, msg_tx: MsgSender) -> Result<()> {
-        if self.routes.contains_key(&id) {
-            bail!("Experiment already registered: {id}")
-        } else {
-            self.routes.insert(id.clone(), msg_tx);
+        if let std::collections::hash_map::Entry::Vacant(e) = self.routes.entry(id) {
+            e.insert(msg_tx);
             debug!("Registered experiment {id}");
             Ok(())
+        } else {
+            bail!("Experiment already registered: {id}")
         }
     }
 

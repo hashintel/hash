@@ -31,12 +31,12 @@ pub struct OutputPartBuffer {
 impl OutputPartBuffer {
     pub fn new(
         output_type_name: &'static str,
-        experiment_id: ExperimentId,
+        experiment_id: &ExperimentId,
         simulation_run_id: SimulationShortId,
     ) -> Result<OutputPartBuffer> {
-        let mut base_path = PathBuf::from(RELATIVE_PARTS_FOLDER);
-        base_path.push(experiment_id);
-        base_path.push(simulation_run_id.to_string());
+        let base_path = PathBuf::from(RELATIVE_PARTS_FOLDER)
+            .join(experiment_id.to_string())
+            .join(simulation_run_id.to_string());
 
         std::fs::create_dir_all(&base_path)?;
 
