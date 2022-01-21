@@ -195,7 +195,7 @@ yarn test:playwright
 You can add extra arguments to configure how Playwright runs, e.g.:
 
 ```sh
-yarn test:playwright --headed --workers=1
+yarn test:playwright --headed
 ```
 
 See `yarn test:playwright --help` for more info.

@@ -1,10 +1,9 @@
 import { baseKeymap, toggleMark } from "prosemirror-commands";
 import { dropCursor } from "prosemirror-dropcursor";
 import { keymap } from "prosemirror-keymap";
-import { Schema } from "prosemirror-model";
+import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Plugin } from "prosemirror-state";
 import { entityStorePlugin } from "./entityStorePlugin";
-import { ProsemirrorNode } from "./node";
 import { createSchema } from "./schema";
 import { wrapEntitiesPlugin } from "./wrapEntitiesPlugin";
 

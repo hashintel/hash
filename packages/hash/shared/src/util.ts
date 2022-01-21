@@ -11,6 +11,14 @@ export type DistributivePick<T, K extends keyof T> = T extends unknown
   : never;
 
 /**
+ * @see https://github.com/microsoft/TypeScript/issues/25720#issuecomment-533438205
+ */
+export const isUnknownObject = (
+  x: unknown,
+): x is { [key in PropertyKey]: unknown } =>
+  x !== null && typeof x === "object";
+
+/**
  * This allows you to collect calls to a function to run at the end of a tick
  */
 export const collect = <P extends Array<any>>(
