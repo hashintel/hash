@@ -72,7 +72,9 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
       this.ownerKey(name),
       QUEUE_CONSUMER_OWNERSHIP_TIMEOUT_MS / 1000,
     );
-    this.queueOwned.lastUpdated = Date.now();
+    if (this.queueOwned) {
+      this.queueOwned.lastUpdated = Date.now();
+    }
   }
 
   private ownershipIsValid(name: string): boolean {

@@ -20,7 +20,7 @@ const main = async () => {
 
   await waitOnResource(`tcp:${host}:${port}`, logger);
 
-  const redis = new AsyncRedisClient({
+  const redis = new AsyncRedisClient(logger, {
     host,
     port,
   });

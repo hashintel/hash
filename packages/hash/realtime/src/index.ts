@@ -13,7 +13,7 @@ import {
   waitOnResource,
 } from "@hashintel/hash-backend-utils/environment";
 
-import { MONITOR_TABLES, QUEUES } from "./config";
+import { MONITOR_TABLES, generateQueues } from "./config";
 
 // The name of the Postgres logical replication slot
 const SLOT_NAME = "realtime";
@@ -38,6 +38,8 @@ const logger = new Logger({
   serviceName: "realtime",
   metadata: { instanceId: INSTANCE_ID },
 });
+
+const QUEUES = generateQueues(logger);
 
 const acquireSlot = async (pool: PgPool) => {
   // Create the slot if it does not exist
