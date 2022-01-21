@@ -2,9 +2,11 @@ import { ApolloClient } from "@apollo/client";
 import { EntityVersion } from "@hashintel/hash-backend-utils/pgTables";
 import { CollabPosition } from "@hashintel/hash-shared/collab";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
-import { BlockEntity } from "@hashintel/hash-shared/entity";
 import {
-  createEntityStore,
+  BlockEntity,
+  isTextContainingEntityProperties,
+} from "@hashintel/hash-shared/entity";
+import {
   EntityStore,
   walkValueForEntity,
 } from "@hashintel/hash-shared/entityStore";
@@ -28,7 +30,10 @@ import {
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { getEntity } from "@hashintel/hash-shared/queries/entity.queries";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
-import { updatePageMutation } from "@hashintel/hash-shared/save";
+import {
+  createNecessaryEntities,
+  updatePageMutation,
+} from "@hashintel/hash-shared/save";
 import { Response } from "express";
 import { isEqual } from "lodash";
 import { Schema } from "prosemirror-model";
@@ -297,7 +302,25 @@ export class Instance {
 
     this.saveChain = this.saveChain
       .catch()
-      .then(() => {
+      .then(async () => {
+        const { actions, createdEntities } = await createNecessaryEntities(
+          this.state,
+          this.accountId,
+          apolloClient,
+        );
+
+        if (actions.length) {
+          this.addEvents(apolloClient)(
+            this.version,
+            [],
+            `${clientID}-server`,
+            actions,
+          );
+        }
+
+        return createdEntities;
+      })
+      .then((createdEntities) => {
         this.saveMapping = mapping;
         const { doc } = this.state;
         const store = entityStorePluginState(this.state);
@@ -307,9 +330,9 @@ export class Instance {
           this.pageEntityId,
           doc,
           this.savedContents,
-          // @todo get this from this.state
-          createEntityStore(this.savedContents, {}),
+          entityStorePluginState(this.state).store,
           apolloClient,
+          createdEntities,
         ).then((newPage) => {
           /**
            * This is purposefully based on the current doc, not the doc at
@@ -345,13 +368,22 @@ export class Instance {
                 );
               }
 
+              /**
+               * @todo doesn't update entity id for text containing entities
+               *       when created
+               */
               switch (resolved.depth) {
                 case 1:
                   targetEntityId = blockEntity.entityId;
                   break;
 
                 case 2:
-                  targetEntityId = blockEntity.properties.entity.entityId;
+                  targetEntityId = isTextContainingEntityProperties(
+                    blockEntity.properties.entity.properties,
+                  )
+                    ? blockEntity.properties.entity.properties.text.data
+                        .entityId
+                    : blockEntity.properties.entity.entityId;
                   break;
 
                 default:

@@ -5,9 +5,9 @@ import {
 } from "@hashintel/hash-shared/blockMeta";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import {
+  DraftEntity,
   EntityStore,
-  EntityStoreType,
-  isBlockEntity,
+  isDraftBlockEntity,
 } from "@hashintel/hash-shared/entityStore";
 import {
   entityStorePluginState,
@@ -33,10 +33,10 @@ import { RenderPortal } from "./usePortals";
 const BLANK_PROPERTIES = {};
 
 const getChildEntity = (
-  entity: EntityStoreType | null | undefined,
-): BlockEntity["properties"]["entity"] | null => {
+  entity: DraftEntity | null | undefined,
+): DraftEntity<BlockEntity["properties"]["entity"]> | null => {
   if (entity) {
-    if (!isBlockEntity(entity)) {
+    if (!isDraftBlockEntity(entity)) {
       throw new Error("Cannot prepare non-block entity for prosemirrior");
     }
 
@@ -124,9 +124,14 @@ export class ComponentView implements NodeView<Schema> {
     this.node = node;
 
     if (isComponentNode(node) && componentNodeToId(node) === this.componentId) {
+      const blockDraftId: string = this.view.state.doc
+        .resolve(this.getPos())
+        .node(2).attrs.draftId;
+
       // @todo handle entity id not being defined
       const entityId = node.attrs.blockEntityId ?? "";
-      const entity = this.store.saved[entityId];
+      const entity = this.store.draft[blockDraftId];
+      const savedEntity = this.store.saved[entityId];
       const mappedUrl = componentIdToUrl(this.componentId);
 
       /** used by collaborative editing feature `FocusTracker` */
@@ -153,8 +158,8 @@ export class ComponentView implements NodeView<Schema> {
             blockEntityId={entityId}
             shouldSandbox={!this.editable}
             editableRef={this.editable ? this.editableRef : undefined}
-            accountId={childEntity?.accountId ?? this.accountId}
-            entityId={childEntity?.entityId}
+            accountId={savedEntity?.accountId ?? this.accountId}
+            entityId={childEntity?.entityId!}
             entityProperties={
               childEntity && "properties" in childEntity
                 ? childEntity.properties
