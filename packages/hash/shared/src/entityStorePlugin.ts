@@ -30,9 +30,10 @@ type EntityStorePluginStateListener = (store: EntityStore) => void;
 type EntityStorePluginState = {
   store: EntityStore;
   listeners: EntityStorePluginStateListener[];
+  trackedActions: { action: EntityStorePluginAction; id: string }[];
 };
 
-type EntityStorePluginAction =
+export type EntityStorePluginAction = { received?: boolean } & (
   | /**
    * This is an action that merges in a new set of blocks from a Page
    * entity's contents property, usually post save while attempting to
@@ -63,11 +64,31 @@ type EntityStorePluginAction =
         entityId: string | null;
         draftId: string;
       };
-    };
+    }
+  | {
+      type: "updateEntityId";
+      payload: {
+        draftId: string;
+        entityId: string;
+      };
+    }
+);
 
 const entityStorePluginKey = new PluginKey<EntityStorePluginState, Schema>(
   "entityStore",
 );
+
+type EntityStoreMeta = {
+  store?: EntityStorePluginState;
+  disableInterpretation?: boolean;
+};
+
+const getMeta = (
+  transaction: Transaction<Schema>,
+): EntityStoreMeta | undefined => transaction.getMeta(entityStorePluginKey);
+
+const setMeta = (transaction: Transaction<Schema>, meta: EntityStoreMeta) =>
+  transaction.setMeta(entityStorePluginKey, meta);
 
 /**
  * @use {@link subscribeToEntityStore} if you need a live subscription
@@ -86,11 +107,41 @@ export const entityStorePluginState = (state: EditorState<Schema>) => {
 /**
  * @use {@link subscribeToEntityStore} if you need a live subscription
  */
-export const pluginStateFromTransaction = (
+const entityStorePluginStateFromTransaction = (
   tr: Transaction<Schema>,
   state: EditorState<Schema>,
 ): EntityStorePluginState =>
-  tr.getMeta(entityStorePluginKey) ?? entityStorePluginState(state);
+  getMeta(tr)?.store ?? entityStorePluginState(state);
+
+/**
+ * As we're not yet working with a totally flat entity store, the same
+ * entity can exist in multiple places in a draft entity store. This
+ * function finds each instance of an entity by entity id, and calls a
+ * handler which can mutate this entity. This will ensure a desired update
+ * is applied everywhere that's necessary.
+ *
+ * @todo look into removing this when the entity store is flat
+ */
+const updateEntitiesByDraftId = (
+  draftEntityStore: Draft<EntityStore["draft"]>,
+  draftId: string,
+  updateHandler: (entity: Draft<DraftEntity>) => void,
+) => {
+  const entities: Draft<DraftEntity>[] = [draftEntityStore[draftId]];
+
+  for (const entity of Object.values(draftEntityStore)) {
+    if (
+      isDraftBlockEntity(entity) &&
+      entity.properties.entity.draftId === draftId
+    ) {
+      entities.push(entity.properties.entity);
+    }
+  }
+
+  for (const entity of entities) {
+    updateHandler(entity);
+  }
+};
 
 /**
  * We currently violate Immer's rules, as properties inside entities can be
@@ -113,7 +164,11 @@ const entityStoreReducer = (
       };
 
     case "store": {
-      return { ...state, store: action.payload };
+      return {
+        ...state,
+        store: action.payload,
+        trackedActions: [],
+      };
     }
 
     case "subscribe":
@@ -136,36 +191,57 @@ const entityStoreReducer = (
       }
 
       return produce(state, (draftState) => {
-        const entities: Draft<DraftEntity>[] = [
-          draftState.store.draft[action.payload.draftId],
-        ];
-
-        for (const entity of Object.values(draftState.store.draft)) {
-          if (
-            isDraftBlockEntity(entity) &&
-            entity.properties.entity.draftId === action.payload.draftId
-          ) {
-            entities.push(entity.properties.entity);
-          }
+        if (!action.received) {
+          draftState.trackedActions.push({ action, id: uuid() });
         }
 
-        if (action.payload.merge) {
-          for (const entity of entities) {
-            Object.assign(entity.properties, action.payload.properties);
-          }
-        } else {
-          for (const entity of entities) {
-            entity.properties = action.payload.properties;
-          }
-        }
+        updateEntitiesByDraftId(
+          draftState.store.draft,
+          action.payload.draftId,
+          action.payload.merge
+            ? (draftEntity) => {
+                Object.assign(
+                  draftEntity.properties,
+                  action.payload.properties,
+                );
+              }
+            : (draftEntity) => {
+                draftEntity.properties = action.payload.properties;
+              },
+        );
       });
     }
+
+    case "updateEntityId": {
+      if (!state.store.draft[action.payload.draftId]) {
+        throw new Error("Entity missing to update entity id");
+      }
+
+      return produce(state, (draftState) => {
+        if (!action.received) {
+          draftState.trackedActions.push({ action, id: uuid() });
+        }
+
+        updateEntitiesByDraftId(
+          draftState.store.draft,
+          action.payload.draftId,
+          (draftEntity: Draft<DraftEntity>) => {
+            draftEntity.entityId = action.payload.entityId;
+          },
+        );
+      });
+    }
+
     case "newDraftEntity":
       if (state.store.draft[action.payload.draftId]) {
         throw new Error("Draft entity already exists");
       }
 
       return produce(state, (draftState) => {
+        if (!action.received) {
+          draftState.trackedActions.push({ action, id: uuid() });
+        }
+
         draftState.store.draft[action.payload.draftId] = {
           entityId: action.payload.entityId,
           draftId: action.payload.draftId,
@@ -177,15 +253,29 @@ const entityStoreReducer = (
   return state;
 };
 
+export const disableEntityStoreTransactionInterpretation = (
+  tr: Transaction<Schema>,
+) => {
+  setMeta(tr, {
+    ...(getMeta(tr) ?? {}),
+    disableInterpretation: true,
+  });
+};
+
+/**
+ * @todo store actions on transaction
+ */
 export const addEntityStoreAction = (
   state: EditorState<Schema>,
   tr: Transaction<Schema>,
   action: EntityStorePluginAction,
 ) => {
-  const prevState = pluginStateFromTransaction(tr, state);
+  const prevState = entityStorePluginStateFromTransaction(tr, state);
   const nextState = entityStoreReducer(prevState, action);
-
-  tr.setMeta(entityStorePluginKey, nextState);
+  setMeta(tr, {
+    ...(getMeta(tr) ?? {}),
+    store: nextState,
+  });
 
   return nextState;
 };
@@ -390,6 +480,10 @@ class ProsemirrorStateChangeHandler {
       const nextProps = textBlockNodeToEntityProperties(node.firstChild);
 
       if (!isEqual(draftEntity.properties, nextProps)) {
+        /**
+         * @todo this is communicated by the contents of the
+         * prosemirror tree – do we really need to send this too?
+         */
         addEntityStoreAction(this.state, this.tr, {
           type: "updateEntityProperties",
           payload: {
@@ -459,7 +553,8 @@ class ProsemirrorStateChangeHandler {
   }
 
   private getDraftEntityStoreFromTransaction() {
-    return pluginStateFromTransaction(this.tr, this.state).store.draft;
+    return entityStorePluginStateFromTransaction(this.tr, this.state).store
+      .draft;
   }
 }
 
@@ -470,11 +565,11 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
       return {
         store: createEntityStore([], {}),
         listeners: [],
+        trackedActions: [],
       };
     },
     apply(tr, initialState): EntityStorePluginState {
-      const nextState: EntityStorePluginState =
-        tr.getMeta(entityStorePluginKey) ?? initialState;
+      const nextState = getMeta(tr)?.store ?? initialState;
 
       if (nextState !== initialState) {
         for (const listener of nextState.listeners) {
@@ -489,9 +584,16 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
   /**
    * This is necessary to ensure the draft entity store stays in sync with the
    * changes made by users to the document
+   *
+   * @todo we need to take the state left by the transactions as the start
+   * for nodeChangeHandler
    */
   appendTransaction(transactions, _, state) {
     if (!transactions.some((tr) => tr.docChanged)) {
+      return;
+    }
+
+    if (getMeta(transactions[transactions.length - 1])?.disableInterpretation) {
       return;
     }
 
