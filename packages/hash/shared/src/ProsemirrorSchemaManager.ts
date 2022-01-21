@@ -1,5 +1,5 @@
 import { isString } from "lodash";
-import { NodeSpec, Schema } from "prosemirror-model";
+import { ProsemirrorNode, NodeSpec, Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import { EditorProps, EditorView } from "prosemirror-view";
 
@@ -20,7 +20,6 @@ import {
   addEntityStoreAction,
   entityStorePluginState,
 } from "./entityStorePlugin";
-import { ProsemirrorNode } from "./node";
 import { childrenForTextEntity, getComponentNodeAttrs } from "./prosemirror";
 
 declare interface OrderedMapPrivateInterface<T> {

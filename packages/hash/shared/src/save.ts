@@ -1,7 +1,7 @@
 /* eslint-disable no-param-reassign */
 import { ApolloClient } from "@apollo/client";
 import { isEqual, uniqBy } from "lodash";
-import { Schema } from "prosemirror-model";
+import { ProsemirrorNode, Schema } from "prosemirror-model";
 import {
   BlockEntity,
   blockEntityIdExists,
@@ -14,7 +14,6 @@ import {
   UpdatePageContentsMutation,
   UpdatePageContentsMutationVariables,
 } from "./graphql/apiTypes.gen";
-import { ProsemirrorNode } from "./node";
 import {
   ComponentNode,
   componentNodeToId,
