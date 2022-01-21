@@ -1,7 +1,6 @@
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { ProsemirrorNode } from "@hashintel/hash-shared/node";
-import { PARAGRAPH_COMPONENT_ID } from "@hashintel/hash-shared/paths";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 // import applyDevTools from "prosemirror-dev-tools";
 import { Schema } from "prosemirror-model";

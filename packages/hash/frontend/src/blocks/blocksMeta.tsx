@@ -1,5 +1,4 @@
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
-import { noop } from "lodash";
 import {
   createContext,
   Dispatch,
