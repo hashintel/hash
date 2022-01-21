@@ -7,8 +7,6 @@ import { BlockEntity } from "@hashintel/hash-shared/entity";
 import {
   DraftEntity,
   EntityStore,
-  EntityStoreType,
-  isBlockEntity,
   isDraftBlockEntity,
 } from "@hashintel/hash-shared/entityStore";
 import {
