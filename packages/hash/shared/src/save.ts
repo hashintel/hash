@@ -11,7 +11,7 @@ import {
   getAccountEntityTypes,
 } from "@hashintel/hash-shared/queries/entity.queries";
 import { isEqual, uniqBy } from "lodash";
-import { Schema } from "prosemirror-model";
+import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import {
   BlockEntity,
@@ -32,7 +32,6 @@ import {
   UpdatePageContentsMutation,
   UpdatePageContentsMutationVariables,
 } from "./graphql/apiTypes.gen";
-import { ProsemirrorNode } from "./node";
 import {
   ComponentNode,
   componentNodeToId,

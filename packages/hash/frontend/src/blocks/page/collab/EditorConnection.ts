@@ -5,10 +5,9 @@ import {
   disableEntityStoreTransactionInterpretation,
   entityStorePluginState,
 } from "@hashintel/hash-shared/entityStorePlugin";
-import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { collab, receiveTransaction, sendableSteps } from "prosemirror-collab";
-import { Schema } from "prosemirror-model";
+import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { Step } from "prosemirror-transform";
 import { EditorView } from "prosemirror-view";

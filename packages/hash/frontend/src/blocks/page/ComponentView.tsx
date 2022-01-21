@@ -13,14 +13,13 @@ import {
   entityStorePluginState,
   subscribeToEntityStore,
 } from "@hashintel/hash-shared/entityStorePlugin";
-import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import {
   componentNodeToId,
   isComponentNode,
 } from "@hashintel/hash-shared/prosemirror";
 import type { Scope } from "@sentry/browser";
 import * as Sentry from "@sentry/nextjs";
-import { Schema } from "prosemirror-model";
+import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
 import { BlockLoader } from "../../components/BlockLoader/BlockLoader";
 import { ErrorBlock } from "../../components/ErrorBlock/ErrorBlock";

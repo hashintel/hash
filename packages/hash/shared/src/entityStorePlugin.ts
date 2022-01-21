@@ -1,7 +1,6 @@
-import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { Draft, produce } from "immer";
 import { isEqual } from "lodash";
-import { Schema } from "prosemirror-model";
+import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { v4 as uuid } from "uuid";
