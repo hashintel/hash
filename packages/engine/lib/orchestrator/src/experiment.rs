@@ -81,7 +81,7 @@ impl Experiment {
         let mut engine_handle = handler
             .register_experiment(experiment_run.base.id)
             .await
-            .wrap_err_lazy(|| format!("Could not register experiment: {experiment_name}"))?;
+            .wrap_err_lazy(|| format!("Could not register experiment \"{experiment_name}\""))?;
 
         // Create and start the experiment run
         let cmd = self
@@ -103,7 +103,7 @@ impl Experiment {
                 );
             }
             Err(e) => {
-                error!("Engine start timeout for experiment {experiment_name}");
+                error!("Engine start timeout for experiment \"{experiment_name}\"");
                 engine_process
                     .exit_and_cleanup()
                     .await
@@ -111,7 +111,7 @@ impl Experiment {
                 bail!(e);
             }
         };
-        debug!("Received start message from {experiment_name}");
+        debug!("Received start message from \"{experiment_name}\"");
 
         let map_iter = [(
             OUTPUT_PERSISTENCE_KEY.to_string(),
@@ -129,7 +129,7 @@ impl Experiment {
             .send(&proto::EngineMsg::Init(init_message))
             .await
             .wrap_err("Could not send `Init` message")?;
-        debug!("Sent init message to {experiment_name}");
+        debug!("Sent init message to \"{experiment_name}\"");
 
         let mut errored = false;
         loop {
@@ -137,7 +137,7 @@ impl Experiment {
             tokio::select! {
                 _ = sleep(self.config.engine_wait_timeout) => {
                     error!(
-                        "Did not receive status from experiment {experiment_name} for over {:?}. \
+                        "Did not receive status from experiment \"{experiment_name}\" for over {:?}. \
                         Exiting now.",
                         self.config.engine_wait_timeout
                     );
@@ -150,7 +150,7 @@ impl Experiment {
 
             match msg {
                 proto::EngineStatus::Stopping => {
-                    debug!("Stopping experiment {experiment_name}");
+                    debug!("Stopping experiment \"{experiment_name}\"");
                 }
                 proto::EngineStatus::SimStart { sim_id, globals: _ } => {
                     debug!("Started simulation: {sim_id}");
@@ -178,7 +178,7 @@ impl Experiment {
                 }
                 proto::EngineStatus::Exit => {
                     debug!(
-                        "Process exited successfully for experiment run with id {experiment_name}",
+                        "Process exited successfully for experiment run \"{experiment_name}\"",
                     );
                     break;
                 }
