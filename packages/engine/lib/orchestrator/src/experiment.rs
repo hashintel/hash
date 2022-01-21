@@ -6,8 +6,8 @@ use hash_engine::{
     output::local::config::LocalPersistenceConfig,
     proto,
     proto::{
-        ExecutionEnvironment, ExperimentId, ExperimentPackageConfig, ExperimentRunBase,
-        SimpleExperimentConfig, SingleRunExperimentConfig,
+        ExecutionEnvironment, ExperimentId, ExperimentName, ExperimentPackageConfig,
+        ExperimentRunBase, SimpleExperimentConfig, SingleRunExperimentConfig,
     },
     utils::OutputFormat,
 };
@@ -31,7 +31,7 @@ pub struct ExperimentConfig {
 #[derive(Debug, Clone)]
 pub enum ExperimentType {
     SingleRun { num_steps: usize },
-    Simple { name: String },
+    Simple { name: ExperimentName },
 }
 
 impl ExperimentType {
@@ -213,7 +213,7 @@ impl Experiment {
 
 fn get_simple_experiment_config(
     base: &ExperimentRunBase,
-    experiment_name: String,
+    experiment_name: ExperimentName,
 ) -> Result<SimpleExperimentConfig> {
     let experiments_manifest = base
         .project_base
@@ -253,9 +253,9 @@ fn get_simple_experiment_config(
 
 fn create_experiment_plan(
     experiments: &HashMap<String, SerdeValue>,
-    experiment_name: &str,
+    experiment_name: &ExperimentName,
 ) -> Result<SimpleExperimentPlan> {
-    let selected_experiment = experiments.get(experiment_name).ok_or_else(|| {
+    let selected_experiment = experiments.get(experiment_name.as_str()).ok_or_else(|| {
         report!(
             "Expected experiments.json to contain the specified experiment definition for \
              experiment with name: {experiment_name}"
@@ -338,7 +338,7 @@ fn create_group_variant(
         #[serde(rename = "type")]
         _type: String,
         steps: f64,
-        runs: Vec<String>,
+        runs: Vec<ExperimentName>,
     }
     let var: GroupVariant = serde_json::from_value(selected_experiment.clone())?;
     var.runs.iter().try_fold(

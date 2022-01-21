@@ -72,7 +72,7 @@ pub async fn run_local_experiment(exp_config: ExperimentConfig, env: Environment
         OutputPersistenceConfig::Local(local) => {
             log::debug!("Running experiment with local persistence");
             let persistence = LocalOutputPersistence::new(
-                exp_config.name().to_string(),
+                exp_config.name().clone(),
                 exp_config.run.base().id,
                 local.clone(),
             );

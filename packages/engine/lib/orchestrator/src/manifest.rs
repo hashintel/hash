@@ -360,7 +360,7 @@ impl Manifest {
         };
 
         let name = match &experiment_type {
-            ExperimentType::SingleRun { .. } => "single_run".to_string(),
+            ExperimentType::SingleRun { .. } => "single_run".to_string().into(),
             ExperimentType::Simple { name } => name.clone(),
         };
 

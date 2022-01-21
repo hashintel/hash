@@ -3,7 +3,7 @@ use std::sync::Arc;
 use super::{package, worker, worker_pool, Result};
 use crate::{
     config::globals::Globals,
-    proto::{ExperimentNameRef, ExperimentRunRepr, ExperimentRunTrait, InitialStateName},
+    proto::{ExperimentName, ExperimentRunRepr, ExperimentRunTrait, InitialStateName},
     simulation::package::init,
 };
 
@@ -66,7 +66,7 @@ impl Config {
         })
     }
 
-    pub fn name(&self) -> ExperimentNameRef<'_> {
+    pub fn name(&self) -> &ExperimentName {
         &self.run.base().name
     }
 }

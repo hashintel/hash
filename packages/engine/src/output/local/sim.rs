@@ -44,7 +44,7 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
         let path = self
             .config
             .output_folder
-            .join(self.exp_name)
+            .join(self.exp_name.as_str())
             .join(self.exp_id.to_string())
             .join(self.sim_id.to_string());
 

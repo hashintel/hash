@@ -1,4 +1,8 @@
-use std::fmt::{Debug, Formatter};
+use std::{
+    convert::Infallible,
+    fmt::{Debug, Display, Formatter},
+    str::FromStr,
+};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
@@ -8,10 +12,45 @@ use crate::{config::Globals, hash_types::worker::RunnerError, simulation::status
 
 pub type SerdeMap = serde_json::Map<String, SerdeValue>;
 
-pub type ExperimentName = String;
-pub type ExperimentNameRef<'a> = &'a str;
+pub type ExperimentId = Uuid;
 pub type SimulationRegisteredId = String;
 pub type SimulationShortId = u32;
+#[derive(Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Serialize, Deserialize)]
+pub struct ExperimentName(String);
+
+impl ExperimentName {
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
+impl Debug for ExperimentName {
+    #[inline]
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Debug::fmt(&self.0, f)
+    }
+}
+
+impl Display for ExperimentName {
+    #[inline]
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
+impl From<String> for ExperimentName {
+    fn from(name: String) -> Self {
+        Self(name)
+    }
+}
+
+impl FromStr for ExperimentName {
+    type Err = Infallible;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        Ok(Self(s.to_string()))
+    }
+}
 
 use crate::simulation::enum_dispatch::*;
 
@@ -230,7 +269,7 @@ impl<'de> Deserialize<'de> for MetricObjective {
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
 pub struct SimpleExperimentConfig {
     /// The experiment name
-    pub experiment_name: String,
+    pub experiment_name: ExperimentName,
     /// The properties changed for each simulation run
     #[serde(rename = "changedProperties")]
     pub changed_properties: Vec<SerdeValue>,
@@ -389,8 +428,6 @@ pub struct ProcessedExperimentRun {
     /// This is only valid at the start of the run
     pub compute_usage_remaining: i64,
 }
-
-pub type ExperimentId = Uuid;
 
 /// A wrapper around an Option to avoid displaying the inner for Debug outputs,
 /// i.e. debug::Debug now outputs: `Some(..)`
