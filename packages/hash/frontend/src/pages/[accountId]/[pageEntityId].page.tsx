@@ -45,7 +45,7 @@ export const getStaticPaths: GetStaticPaths<{ slug: string }> = () => ({
  */
 export const getStaticProps: GetStaticProps = async () => {
   const fetchedBlocksMeta = await Promise.all(
-    preloadedComponentIds.map(fetchBlockMeta),
+    preloadedComponentIds.map((componentId) => fetchBlockMeta(componentId)),
   );
 
   return {
