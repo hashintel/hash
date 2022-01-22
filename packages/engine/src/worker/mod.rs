@@ -1,4 +1,10 @@
-//! TODO: DOC
+//! The `worker` module defines the three different language runners for JavaScript, Python, and
+//! Rust and the accompanying API for their tasks and communication.
+//!
+//! The [`runner`] module contains the implementations for the languages and the
+//! [communication module](runner::comms). The [`task`] module defines tasks executed in the
+//! runners.
+
 pub mod error;
 mod pending;
 pub mod runner;
@@ -32,7 +38,6 @@ use crate::{
     proto::SimulationShortId,
     simulation::{
         enum_dispatch::TaskSharedStore,
-        package::id::PackageId,
         task::{
             handler::WorkerHandler,
             msg::{TaskMessage, TaskResultOrCancelled},
@@ -50,11 +55,11 @@ use crate::{
     Language,
 };
 
-/// A task worker.-
+/// A task worker.
 ///
 /// Represents three dedicated language workers.
 ///
-/// ### Running a task
+/// ## Running a task
 ///
 /// There are three phases to running a task:
 /// - Start a task with a target language
@@ -64,13 +69,16 @@ pub struct WorkerController {
     py: PythonRunner,
     js: JavaScriptRunner,
     rs: RustRunner,
-    _config: WorkerConfig, // TODO: unused, remove?
+    // TODO: unused, remove?
+    _config: WorkerConfig,
     worker_pool_comms: WorkerCommsWithWorkerPool,
     tasks: PendingWorkerTasks,
 }
 
 // TODO: impl drop for worker controller?
 impl WorkerController {
+    /// Spawns a new worker for each language: JavaScript, Python, and Rust and initialize the
+    /// communication channels for each of them.
     pub async fn spawn(
         config: WorkerConfig,
         worker_pool_comms: WorkerCommsWithWorkerPool,
@@ -93,10 +101,12 @@ impl WorkerController {
         })
     }
 
-    /// ### Run the main loop of the Worker
+    /// Runs the main loop of the Worker and [`await`]s for completition.
     ///
-    /// Runs a loop which allows the worker to receive/register tasks,
-    /// drive tasks to completion and send back completed tasks.
+    /// The main loop allows the worker to receive/register tasks, drive tasks to completion and
+    /// send back completed tasks.
+    ///
+    /// [`await`]: https://doc.rust-lang.org/std/keyword.await.html
     pub async fn run(&mut self) -> Result<()> {
         log::debug!("Running worker");
         match self._run().await {
@@ -106,17 +116,20 @@ impl WorkerController {
     }
 
     fn shutdown(&mut self) -> Result<()> {
-        Ok(()) // TODO
+        // TODO
+        Ok(())
     }
 
     fn shutdown_with_error(&mut self, e: Error) -> Result<()> {
-        Err(e) // TODO
+        // TODO
+        Err(e)
     }
 
     async fn _run(&mut self) -> Result<()> {
         // TODO: Rust, JS
-        // let mut py_handle = self.py.run().await?;
         let mut js_handle = self.js.run().await?;
+        // let mut py_handle = self.py.run().await?;
+        // let mut rs_handle = self.rs.run().await?;
 
         let mut wp_recv = self.worker_pool_comms.take_recv()?;
         let mut terminate_recv = self
@@ -193,12 +206,32 @@ impl WorkerController {
                 }
             }
         }
-        // py_handle.await??;
+
         js_handle.await??;
+        // py_handle.await??;
+        // rs_handle.await??;
+
         Ok(())
     }
 
-    /// TODO: DOC
+    /// Handles a message from the worker pool.
+    ///
+    /// Depending of the content of the message, the following actions are executed:
+    ///   - [`Task`]: The contained task is spawned for the specified simulation, [`TaskMsg`] is
+    ///     send to all workers.
+    ///   - [`Sync`]: The workers are synchronized. See [`sync_runners`] for more details.
+    ///   - [`CancelTask`], The specified task is canceled, for all workers. [`CancelTask`] is send
+    ///     to all workers.
+    ///   - [`NewSimulationRun`]: Message is forwarded to all workers.
+    ///
+    /// [`Task`]: WorkerPoolToWorkerMsgPayload::Task
+    /// [`Sync`]: WorkerPoolToWorkerMsgPayload::Sync
+    /// [`CancelTask`]: WorkerPoolToWorkerMsgPayload::CancelTask
+    /// [`NewSimulationRun`]: WorkerPoolToWorkerMsgPayload::NewSimulationRun
+    ///
+    /// [`sync_runners`]: Self::sync_runners
+    /// [`TaskMsg`]: InboundToRunnerMsgPayload::TaskMsg
+    /// [`CancelTask`]: InboundToRunnerMsgPayload::CancelTask
     async fn handle_worker_pool_msg(
         &mut self,
         msg: WorkerPoolToWorkerMsg,
@@ -227,16 +260,45 @@ impl WorkerController {
         Ok(())
     }
 
-    /// TODO: DOC
+    /// Handles an outbound message from a runner.
+    ///
+    /// Depending of the content of the message, the following actions are executed:
+    ///   - [`TaskMsg`]: Depending on the [`target`], the following actions are executed:
+    ///     - [`Javascript`]/[`Python`]/[`Rust`]: The message is forwarded to the corresponding
+    ///       language runner and the active runner is set to the language.
+    ///     - [`Dynamic`]: The message is forwarded to the language runner determined dynamically.
+    ///     - [`Main`]: Finishes the task if any. See [`finish_task`] for more information.
+    ///   - [`TaskCancelled`]: Cancels the task if any. See [`handle_cancel_task_confirmation`] for
+    ///     more information.
+    ///   - [`RunnerError`]/[`RunnerErrors`]: Forwards the error(s) to the worker pool.
+    ///   - [`RunnerWarning`]/[`RunnerWarnings`]: Forwards the warning(s) to the worker pool.
+    ///   - [`RunnerLog`]/[`RunnerLogs`]: Forwards the log entry/entries to the worker pool.
+    ///
+    /// [`TaskMsg`]: OutboundFromRunnerMsgPayload::TaskMsg
+    /// [`TaskCancelled`]: OutboundFromRunnerMsgPayload::TaskCancelled
+    /// [`RunnerError`]: OutboundFromRunnerMsgPayload::RunnerError
+    /// [`RunnerErrors`]: OutboundFromRunnerMsgPayload::RunnerErrors
+    /// [`RunnerWarning`]: OutboundFromRunnerMsgPayload::RunnerWarning
+    /// [`RunnerWarnings`]: OutboundFromRunnerMsgPayload::RunnerWarnings
+    /// [`RunnerLog`]: OutboundFromRunnerMsgPayload::RunnerLog
+    /// [`RunnerLogs`]: OutboundFromRunnerMsgPayload::RunnerLogs
+    ///
+    /// [`target`]: MessageTarget
+    /// [`handle_cancel_task_confirmation`]: Self::handle_cancel_task_confirmation
+    /// [`finish_task`]: Self::finish_task
+    /// [`JavaScript`]: MessageTarget::JavaScript
+    /// [`Python`]: MessageTarget::Python
+    /// [`Rust`]: MessageTarget::Rust
+    /// [`Dynamic`]: MessageTarget::Dynamic
+    /// [`Main`]: MessageTarget::Main
     async fn handle_runner_msg(&mut self, msg: OutboundFromRunnerMsg) -> Result<()> {
-        use MessageTarget::*;
         use OutboundFromRunnerMsgPayload::*;
         let sim_id = msg.sim_id;
         match msg.payload {
             TaskMsg(task) => {
                 let pending_task = self.tasks.inner.get_mut(&task.msg.task_id);
                 match task.target {
-                    Rust => {
+                    MessageTarget::Rust => {
                         self.rs
                             .send(Some(sim_id), InboundToRunnerMsgPayload::TaskMsg(task.msg))
                             .await?;
@@ -244,7 +306,7 @@ impl WorkerController {
                             pending_task.active_runner = Language::Rust;
                         }
                     }
-                    Python => {
+                    MessageTarget::Python => {
                         self.py
                             .send(Some(sim_id), InboundToRunnerMsgPayload::TaskMsg(task.msg))
                             .await?;
@@ -252,7 +314,7 @@ impl WorkerController {
                             pending_task.active_runner = Language::Python;
                         }
                     }
-                    JavaScript => {
+                    MessageTarget::JavaScript => {
                         self.js
                             .send(Some(sim_id), InboundToRunnerMsgPayload::TaskMsg(task.msg))
                             .await?;
@@ -260,14 +322,20 @@ impl WorkerController {
                             pending_task.active_runner = Language::JavaScript;
                         }
                     }
-                    Dynamic => {
+                    MessageTarget::Dynamic => {
                         self.run_task_handler_on_outbound(sim_id, task.msg, msg.source)
                             .await?;
                     }
-                    Main => {
+                    MessageTarget::Main => {
                         log::trace!("Task message came back to main, finishing task");
-                        self.finish_task_from_runner_msg(sim_id, task.msg, msg.source)
-                            .await?;
+                        self.finish_task(
+                            task.msg.task_id,
+                            sim_id,
+                            msg.source,
+                            task.msg.payload,
+                            task.msg.shared_store,
+                        )
+                        .await?;
                     }
                 }
             }
@@ -285,7 +353,7 @@ impl WorkerController {
         Ok(())
     }
 
-    /// TODO: DOC
+    /// Attempts to join the spawned runners.
     async fn terminate_runners(&mut self) -> Result<()> {
         tokio::try_join!(
             self.py
@@ -298,7 +366,8 @@ impl WorkerController {
         Ok(())
     }
 
-    /// TODO: DOC
+    /// Sends a message to runners to cancel the current task and sends `message` to the worker
+    /// pool.
     async fn finish_task(
         &mut self,
         task_id: TaskId,
@@ -327,48 +396,38 @@ impl WorkerController {
         Ok(())
     }
 
-    async fn finish_task_from_runner_msg(
-        &mut self,
-        sim_id: SimulationShortId,
-        msg: RunnerTaskMsg,
-        source: Language,
-    ) -> Result<()> {
-        self.finish_task(msg.task_id, sim_id, source, msg.payload, msg.shared_store)
-            .await
-    }
-
-    fn inbound_from_task_msg(
-        task_id: TaskId,
-        package_id: PackageId,
-        shared_store: TaskSharedStore,
-        task_msg: TaskMessage,
-    ) -> InboundToRunnerMsgPayload {
-        InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMsg {
-            task_id,
-            package_id,
-            shared_store,
-            payload: task_msg,
-        })
-    }
-
-    /// TODO: DOC
+    /// Handles a runner message based on the target of the current task.
+    ///
+    ///   Depending on the [`target`], the following actions are executed:
+    ///   - [`Javascript`]/[`Python`]/[`Rust`]: The message is forwarded to the corresponding
+    ///     language runner and the active runner is set to the language.
+    ///   - [`Main`]: Finishes the task if any. See [`finish_task`] for more information.
+    ///   - [`Dynamic`] is an unexpected target and will return an error.
+    ///
+    /// [`target`]: MessageTarget
+    /// [`finish_task`]: Self::finish_task
+    /// [`JavaScript`]: MessageTarget::JavaScript
+    /// [`Python`]: MessageTarget::Python
+    /// [`Rust`]: MessageTarget::Rust
+    /// [`Main`]: MessageTarget::Main
+    /// [`Dynamic`]: MessageTarget::Dynamic
     async fn run_task_handler_on_outbound(
         &mut self,
         sim_id: SimulationShortId,
         msg: RunnerTaskMsg,
         source: Language,
     ) -> Result<()> {
-        use MessageTarget::*;
         if let Some(pending) = self.tasks.inner.get_mut(&msg.task_id) {
+            // TODO: implement worker node handler
             let next = WorkerHandler::handle_worker_message(&mut pending.inner, msg.payload)?;
             match next.target {
-                Rust => {
-                    let inbound = Self::inbound_from_task_msg(
-                        msg.task_id,
-                        msg.package_id,
-                        msg.shared_store,
-                        next.payload,
-                    );
+                MessageTarget::Rust => {
+                    let inbound = InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMsg {
+                        task_id: msg.task_id,
+                        package_id: msg.package_id,
+                        shared_store: msg.shared_store,
+                        payload: next.payload,
+                    });
                     log::trace!(
                         "Task resulted in a new message from Runner, sending new one to Rust: {:?}",
                         &inbound
@@ -376,13 +435,13 @@ impl WorkerController {
                     self.rs.send(Some(sim_id), inbound).await?;
                     pending.active_runner = Language::Rust;
                 }
-                Python => {
-                    let inbound = Self::inbound_from_task_msg(
-                        msg.task_id,
-                        msg.package_id,
-                        msg.shared_store,
-                        next.payload,
-                    );
+                MessageTarget::Python => {
+                    let inbound = InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMsg {
+                        task_id: msg.task_id,
+                        package_id: msg.package_id,
+                        shared_store: msg.shared_store,
+                        payload: next.payload,
+                    });
                     log::trace!(
                         "Task resulted in a new message from Runner, sending new one to Python: \
                          {:?}",
@@ -391,13 +450,13 @@ impl WorkerController {
                     self.py.send(Some(sim_id), inbound).await?;
                     pending.active_runner = Language::Python;
                 }
-                JavaScript => {
-                    let inbound = Self::inbound_from_task_msg(
-                        msg.task_id,
-                        msg.package_id,
-                        msg.shared_store,
-                        next.payload,
-                    );
+                MessageTarget::JavaScript => {
+                    let inbound = InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMsg {
+                        task_id: msg.task_id,
+                        package_id: msg.package_id,
+                        shared_store: msg.shared_store,
+                        payload: next.payload,
+                    });
                     log::trace!(
                         "Task resulted in a new message from Runner, sending new one to \
                          JavaScript: {:?}",
@@ -406,18 +465,21 @@ impl WorkerController {
                     self.js.send(Some(sim_id), inbound).await?;
                     pending.active_runner = Language::JavaScript;
                 }
-                Dynamic => return Err(Error::UnexpectedTarget(next.target)),
-                Main => {
+                MessageTarget::Dynamic => return Err(Error::UnexpectedTarget(next.target)),
+                MessageTarget::Main => {
                     log::trace!("Task message came back to main, finishing task");
                     self.finish_task(msg.task_id, sim_id, source, next.payload, msg.shared_store)
-                        .await?
+                        .await?;
                 }
             }
         }
         Ok(())
     }
 
-    /// TODO: DOC
+    /// Adds `source` to the list of currently cancelling languages and if there is a running task
+    /// it sends a [`Cancelled`] message for it to the worker pool.
+    ///
+    /// [`Cancelled`]: TaskResultOrCancelled::Cancelled
     async fn handle_cancel_task_confirmation(
         &mut self,
         task_id: TaskId,
@@ -425,12 +487,15 @@ impl WorkerController {
         source: Language,
     ) -> Result<()> {
         if let Some(task) = self.tasks.inner.get_mut(&task_id) {
-            if let CancelState::None = task.cancelling {
-                log::warn!("Unexpected task cancelling confirmation");
-                task.cancelling = CancelState::Active(vec![source]);
-            } else if let CancelState::Active(langs) = &mut task.cancelling {
-                if !langs.contains(&source) {
-                    langs.push(source);
+            match task.cancelling {
+                CancelState::Active(ref mut langs) => {
+                    if !langs.contains(&source) {
+                        langs.push(source);
+                    }
+                }
+                CancelState::None => {
+                    log::warn!("Unexpected task cancelling confirmation");
+                    task.cancelling = CancelState::Active(vec![source]);
                 }
             }
             if source == task.active_runner {
@@ -450,6 +515,7 @@ impl WorkerController {
         Ok(())
     }
 
+    /// Forwards the errors to the worker pool.
     async fn handle_errors(
         &mut self,
         sim_id: SimulationShortId,
@@ -460,6 +526,7 @@ impl WorkerController {
         Ok(())
     }
 
+    /// Forwards the warnings to the worker pool.
     async fn handle_warnings(
         &mut self,
         sim_id: SimulationShortId,
@@ -470,15 +537,15 @@ impl WorkerController {
         Ok(())
     }
 
+    /// Forwards the log entries to the worker pool.
     async fn handle_logs(&mut self, sim_id: SimulationShortId, logs: Vec<String>) -> Result<()> {
         self.worker_pool_comms
             .send(sim_id, WorkerToWorkerPoolMsg::RunnerLogs(logs))?;
         Ok(())
     }
 
-    /// TODO: DOC
+    /// Sends `task` to the appropriate worker.
     async fn spawn_task(&mut self, sim_id: SimulationShortId, task: WorkerTask) -> Result<()> {
-        use MessageTarget::*;
         let task_id = task.task_id;
         let init_msg = WorkerHandler::start_message(&task.inner)?;
         let runner_msg = InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMsg {
@@ -488,22 +555,22 @@ impl WorkerController {
             payload: init_msg.payload,
         });
         let active_runner = match init_msg.target {
-            Python => {
+            MessageTarget::Python => {
                 log::debug!("Sending task message to Python");
                 self.py.send(Some(sim_id), runner_msg).await?;
                 Language::Python
             }
-            JavaScript => {
+            MessageTarget::JavaScript => {
                 log::debug!("Sending task message to JavaScript");
                 self.js.send(Some(sim_id), runner_msg).await?;
                 Language::JavaScript
             }
-            Rust => {
+            MessageTarget::Rust => {
                 log::debug!("Sending task message to Rust");
                 self.rs.send(Some(sim_id), runner_msg).await?;
                 Language::Rust
             }
-            Main | Dynamic => {
+            MessageTarget::Main | MessageTarget::Dynamic => {
                 // Expected initial message to be directed to a language runtime
                 return Err(Error::UnexpectedTarget(init_msg.target));
             }
@@ -538,21 +605,22 @@ impl WorkerController {
             return Ok(());
         };
 
-        // TODO: Change to `children(3)` after enabling all runners.
+        // TODO: Change to `children(n)` for `n` enabled runners and adjust the following lines as
+        //   well.
         debug_assert!(!self.py.spawned());
         debug_assert!(!self.rs.spawned());
         let (runner_msgs, runner_receivers) = sync.create_children(1);
-        let mut runner_msgs: Vec<_> = runner_msgs
+        let messages: [_; 1] = runner_msgs
             .into_iter()
             .map(InboundToRunnerMsgPayload::StateSync)
-            .collect();
-        // Borrow checker doesn't allow just `runner_msgs[0]`,
-        // because it would be a partial move.
-        let js_msg = runner_msgs.remove(0);
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap();
+        let [js_msg /* , py_msg, rs_msg */] = messages;
         tokio::try_join!(
             self.js.send_if_spawned(sim_id, js_msg),
-            /* TODO: self.py.send_if_spawned(msg.sim_id, runner_msgs[1]),
-             * TODO: self.rs.send_if_spawned(msg.sim_id, runner_msgs[2]), */
+            // self.py.send_if_spawned(msg.sim_id, py_msg),
+            // self.rs.send_if_spawned(msg.sim_id, rs_msg),
         )?;
         let fut = async move {
             let sync = sync; // Capture `sync` in lambda.
@@ -562,9 +630,11 @@ impl WorkerController {
         Ok(())
     }
 
+    /// Sends a message to all spawned runners to cancel the current task.
     async fn cancel_task(&mut self, task_id: TaskId) -> Result<()> {
         if let Some(task) = self.tasks.inner.get_mut(&task_id) {
-            task.cancelling = CancelState::Active(vec![task.active_runner]); // TODO: Or `CancelState::None`?
+            // TODO: Or `CancelState::None`?
+            task.cancelling = CancelState::Active(vec![task.active_runner]);
         }
         tokio::try_join!(
             self.py
@@ -577,6 +647,7 @@ impl WorkerController {
         Ok(())
     }
 
+    /// Sends a message to cancel the current task to any runner except for `runner_language`.
     async fn cancel_task_except_for_runner(
         &self,
         task_id: TaskId,
@@ -609,6 +680,7 @@ impl WorkerController {
         Ok(())
     }
 
+    /// Forwards `new_simulation_run` to all spawned workers.
     async fn new_simulation_run(&mut self, new_simulation_run: NewSimulationRun) -> Result<()> {
         tokio::try_join!(
             self.py.send_if_spawned(
@@ -627,6 +699,7 @@ impl WorkerController {
         Ok(())
     }
 
+    /// Waits for a message from any spawned worker.
     async fn recv_from_runners(&mut self) -> Result<OutboundFromRunnerMsg> {
         tokio::select! {
             res = self.py.recv(), if self.py.spawned() => {
