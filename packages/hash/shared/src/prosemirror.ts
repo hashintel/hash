@@ -1,7 +1,6 @@
-import { Schema } from "prosemirror-model";
+import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { Text } from "./graphql/apiTypes.gen";
 import { TextToken } from "./graphql/types";
-import { ProsemirrorNode } from "./node";
 
 export const childrenForTextEntity = (
   entity: Pick<Text, "properties">,

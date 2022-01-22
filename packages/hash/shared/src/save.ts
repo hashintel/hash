@@ -1,24 +1,43 @@
 /* eslint-disable no-param-reassign */
 import { ApolloClient } from "@apollo/client";
+import { fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
+import {
+  EntityStorePluginAction,
+  entityStorePluginState,
+} from "@hashintel/hash-shared/entityStorePlugin";
+import {
+  createEntity,
+  createEntityType,
+  getAccountEntityTypes,
+} from "@hashintel/hash-shared/queries/entity.queries";
 import { isEqual, uniqBy } from "lodash";
-import { Schema } from "prosemirror-model";
+import { ProsemirrorNode, Schema } from "prosemirror-model";
+import { EditorState } from "prosemirror-state";
 import {
   BlockEntity,
   blockEntityIdExists,
   getTextEntityFromSavedBlock,
+  isDraftTextContainingEntityProperties,
 } from "./entity";
-import { EntityStore, isBlockEntity } from "./entityStore";
+import { EntityStore, isBlockEntity, isDraftBlockEntity } from "./entityStore";
 import {
+  CreateEntityMutation,
+  CreateEntityMutationVariables,
+  CreateEntityTypeSharedMutation,
+  CreateEntityTypeSharedMutationVariables,
+  GetAccountEntityTypesSharedQuery,
+  GetAccountEntityTypesSharedQueryVariables,
   SystemTypeName,
   UpdatePageAction,
   UpdatePageContentsMutation,
   UpdatePageContentsMutationVariables,
 } from "./graphql/apiTypes.gen";
-import { ProsemirrorNode } from "./node";
 import {
   ComponentNode,
   componentNodeToId,
   findComponentNodes,
+  isComponentNode,
+  isEntityNode,
   textBlockNodeToEntityProperties,
 } from "./prosemirror";
 import { updatePageContents } from "./queries/page.queries";
@@ -47,9 +66,9 @@ const defineOperation =
   };
 
 const removeBlocks = defineOperation(
-  (entities: BlockEntity[], nodes: ComponentNode[]) => {
+  (entities: BlockEntity[], nodes: [ComponentNode, number][]) => {
     const draftBlockEntityIds = new Set(
-      nodes.map((node) => node.attrs.blockEntityId),
+      nodes.map(([node]) => node.attrs.blockEntityId),
     );
 
     const removedBlockEntities = entities
@@ -79,9 +98,9 @@ const removeBlocks = defineOperation(
 );
 
 const moveBlocks = defineOperation(
-  (entities: BlockEntity[], nodes: ComponentNode[]) => {
+  (entities: BlockEntity[], nodes: [ComponentNode, number][]) => {
     const entitiesWithoutNewBlocks = nodes.filter(
-      (node) => !!node.attrs.blockEntityId,
+      ([node]) => !!node.attrs.blockEntityId,
     );
 
     const actions: UpdatePageAction[] = [];
@@ -90,7 +109,7 @@ const moveBlocks = defineOperation(
     for (let position = 0; position < entities.length; position++) {
       const block = entities[position];
       const positionInDoc = entitiesWithoutNewBlocks.findIndex(
-        (node) => node.attrs.blockEntityId === block.entityId,
+        ([node]) => node.attrs.blockEntityId === block.entityId,
       );
 
       if (positionInDoc < 0) {
@@ -120,36 +139,61 @@ const moveBlocks = defineOperation(
   },
 );
 
+type CreatedEntities = Map<number, CreateEntityMutation["createEntity"]>;
+
 /**
  * @warning this does not apply its actions to the entities it returns as it is
  *          not necessary for the pipeline of calculations. Be wary of this.
  */
 const insertBlocks = defineOperation(
-  (entities: BlockEntity[], nodes: ComponentNode[], accountId: string) => {
+  (
+    entities: BlockEntity[],
+    nodes: [ComponentNode, number][],
+    accountId: string,
+    createdEntities: CreatedEntities,
+  ) => {
     const actions: UpdatePageAction[] = [];
     const exists = blockEntityIdExists(entities);
 
-    for (const [position, node] of Object.entries(nodes)) {
+    for (const [position, [node, nodePosition]] of Object.entries(nodes)) {
       if (exists(node.attrs.blockEntityId)) {
         continue;
       }
 
-      actions.push({
-        insertNewBlock: {
-          position: Number(position),
-          componentId: componentNodeToId(node),
-          accountId,
-          // @todo support new non-text nodes
-          entity: {
-            entityProperties: node.type.isTextblock
-              ? textBlockNodeToEntityProperties(node)
-              : {},
-            entityType: {
-              systemTypeName: SystemTypeName.Text,
+      if (createdEntities.has(nodePosition)) {
+        const createdEntity = createdEntities.get(nodePosition)!;
+
+        actions.push({
+          insertNewBlock: {
+            position: Number(position),
+            componentId: componentNodeToId(node),
+            accountId,
+            entity: {
+              existingEntity: {
+                entityId: createdEntity.entityId,
+                accountId: createdEntity.accountId,
+              },
             },
           },
-        },
-      });
+        });
+      } else {
+        actions.push({
+          insertNewBlock: {
+            position: Number(position),
+            componentId: componentNodeToId(node),
+            accountId,
+            // @todo support new non-text nodes
+            entity: {
+              entityProperties: node.type.isTextblock
+                ? textBlockNodeToEntityProperties(node)
+                : {},
+              entityType: {
+                systemTypeName: SystemTypeName.Text,
+              },
+            },
+          },
+        });
+      }
     }
 
     return [actions, entities] as const;
@@ -159,11 +203,12 @@ const insertBlocks = defineOperation(
 /**
  * @warning this does not apply its actions to the entities it returns as it is
  *          not necessary for the pipeline of calculations. Be wary of this.
+ * @todo handle contents of block changing
  */
 const updateBlocks = defineOperation(
   (
     entities: BlockEntity[],
-    nodes: ComponentNode[],
+    nodes: [ComponentNode, number][],
     entityStore: EntityStore,
   ) => {
     const exists = blockEntityIdExists(entities);
@@ -185,7 +230,7 @@ const updateBlocks = defineOperation(
          * create a list of entities that we need to post updates to via
          * GraphQL
          */
-        .flatMap((node) => {
+        .flatMap(([node]) => {
           const { blockEntityId } = node.attrs;
           if (!exists(blockEntityId)) {
             return [];
@@ -218,21 +263,6 @@ const updateBlocks = defineOperation(
           }
 
           const updates: UpdatePageAction[] = [];
-          const componentId = componentNodeToId(node);
-
-          if (componentId !== existingBlock.properties.componentId) {
-            updates.push({
-              updateEntity: {
-                entityId: blockEntityId,
-                accountId: savedEntity.accountId,
-                properties: {
-                  componentId,
-                  entityId: savedChildEntity.entityId,
-                  accountId: savedChildEntity.accountId,
-                },
-              },
-            });
-          }
 
           if (node.type.isTextblock) {
             const textEntity = getTextEntityFromSavedBlock(
@@ -247,7 +277,6 @@ const updateBlocks = defineOperation(
             }
 
             const { tokens } = textEntity.properties;
-            // @todo consider using draft entity store for this
             const entityProperties = textBlockNodeToEntityProperties(node);
 
             if (!isEqual(tokens, entityProperties.tokens)) {
@@ -295,16 +324,234 @@ const calculateSaveActions = (
   doc: ProsemirrorNode<Schema>,
   blocks: BlockEntity[],
   entityStore: EntityStore,
+  createdEntities: CreatedEntities,
 ) => {
-  const componentNodes = findComponentNodes(doc).map(([node]) => node);
+  const componentNodes = findComponentNodes(doc);
   let actions: UpdatePageAction[] = [];
 
   blocks = [...blocks];
   [actions, blocks] = removeBlocks(actions, blocks, componentNodes);
   [actions, blocks] = moveBlocks(actions, blocks, componentNodes);
-  [actions, blocks] = insertBlocks(actions, blocks, componentNodes, accountId);
+  [actions, blocks] = insertBlocks(
+    actions,
+    blocks,
+    componentNodes,
+    accountId,
+    createdEntities,
+  );
   [actions] = updateBlocks(actions, blocks, componentNodes, entityStore);
   return actions;
+};
+
+/**
+ * @todo this assumption of the slug might be brittle,
+ * @todo don't copy from server
+ */
+const capitalizeComponentName = (cId: string) => {
+  let componentId = cId;
+
+  // If there's a trailing slash, remove it
+  const indexLastSlash = componentId.lastIndexOf("/");
+  if (indexLastSlash === componentId.length - 1) {
+    componentId = componentId.slice(0, -1);
+  }
+
+  //                      *
+  // "https://example.org/value"
+  const indexAfterLastSlash = componentId.lastIndexOf("/") + 1;
+  return (
+    //                      * and uppercase it
+    // "https://example.org/value"
+    componentId.charAt(indexAfterLastSlash).toUpperCase() +
+    //                       ****
+    // "https://example.org/value"
+    componentId.substring(indexAfterLastSlash + 1)
+  );
+};
+
+export const createNecessaryEntities = async (
+  state: EditorState<Schema>,
+  accountId: string,
+  client: ApolloClient<any>,
+) => {
+  const entityStore = entityStorePluginState(state);
+  const actions: EntityStorePluginAction[] = [];
+
+  const entitiesToCreate = Object.values(entityStore.store.draft).flatMap(
+    (entity) => {
+      if (isDraftBlockEntity(entity)) {
+        const innerEntity = entity.properties.entity;
+
+        if (
+          !innerEntity.entityId &&
+          isDraftTextContainingEntityProperties(innerEntity.properties)
+        ) {
+          let blockEntityNodePosition: number | null = null;
+
+          state.doc.descendants((node, pos) => {
+            const resolved = state.doc.resolve(pos);
+
+            if (isComponentNode(node)) {
+              const blockEntityNode = resolved.node(2);
+
+              if (!isEntityNode(blockEntityNode)) {
+                throw new Error("Unexpected structure");
+              }
+
+              if (blockEntityNode.attrs.draftId === entity.draftId) {
+                blockEntityNodePosition = pos;
+              }
+            }
+          });
+
+          if (blockEntityNodePosition === null) {
+            throw new Error("Did not find position");
+          }
+
+          return [
+            {
+              componentId: entity.properties.componentId,
+              entity: innerEntity,
+              textLink: innerEntity.properties.text,
+              blockEntityNodePosition,
+            },
+          ];
+        }
+      }
+
+      return [];
+    },
+  );
+
+  const createdEntities: CreatedEntities = new Map();
+
+  for (const {
+    componentId,
+    entity,
+    textLink,
+    blockEntityNodePosition,
+  } of entitiesToCreate) {
+    let variantEntityProperties;
+
+    if (textLink.data.entityId) {
+      const textLinkDataEntity =
+        entityStore.store.saved[textLink.data.entityId];
+
+      if (!textLinkDataEntity) {
+        throw new Error("Entity belonging to text link is missing");
+      }
+
+      variantEntityProperties = {
+        ...entity.properties,
+        text: {
+          __linkedData: {
+            entityTypeId: textLinkDataEntity.entityTypeId,
+            entityId: textLink.data.entityId,
+          },
+        },
+      };
+    } else {
+      const textEntityResult = await client.mutate<
+        CreateEntityMutation,
+        CreateEntityMutationVariables
+      >({
+        mutation: createEntity,
+        variables: {
+          properties: textLink.data.properties,
+          systemTypeName: SystemTypeName.Text,
+          accountId,
+          versioned: true,
+        },
+      });
+
+      // @todo may not be necessary as may be handled elsewhere
+      actions.push({
+        type: "updateEntityId",
+        payload: {
+          entityId: textEntityResult.data!.createEntity.entityId,
+          draftId: textLink.data.draftId,
+        },
+      });
+
+      variantEntityProperties = {
+        ...entity.properties,
+        text: {
+          __linkedData: {
+            entityTypeId: textEntityResult.data!.createEntity.entityTypeId,
+            entityId: textEntityResult.data!.createEntity.entityId,
+          },
+        },
+      };
+    }
+
+    const entityTypes = await client.query<
+      GetAccountEntityTypesSharedQuery,
+      GetAccountEntityTypesSharedQueryVariables
+    >({
+      query: getAccountEntityTypes,
+      variables: { accountId, includeOtherTypesInUse: true },
+      fetchPolicy: "network-only",
+    });
+
+    const componentMeta = await fetchBlockMeta(componentId);
+
+    // @todo use stored component id for entity type, instead of properties
+    const componentSchemaKeys = Object.keys(
+      componentMeta.componentSchema.properties ?? {},
+    ).sort();
+
+    componentSchemaKeys.splice(componentSchemaKeys.indexOf("editableRef"), 1);
+    let desiredEntityTypeId = entityTypes.data.getAccountEntityTypes.find(
+      (type) =>
+        isEqual(
+          Object.keys(type.properties.properties ?? {}).sort(),
+          componentSchemaKeys,
+        ),
+    )?.entityId;
+
+    if (!desiredEntityTypeId) {
+      const jsonSchema = JSON.parse(
+        JSON.stringify(componentMeta.componentSchema),
+      );
+
+      delete jsonSchema.properties.editableRef;
+
+      const res = await client.mutate<
+        CreateEntityTypeSharedMutation,
+        CreateEntityTypeSharedMutationVariables
+      >({
+        mutation: createEntityType,
+        variables: {
+          accountId,
+          // @todo need to add the text field to this
+          schema: jsonSchema,
+          name: capitalizeComponentName(componentId),
+        },
+      });
+
+      desiredEntityTypeId = res.data!.createEntityType.entityId;
+    }
+
+    const variantEntityResult = await client.mutate<
+      CreateEntityMutation,
+      CreateEntityMutationVariables
+    >({
+      mutation: createEntity,
+      variables: {
+        accountId,
+        entityTypeId: desiredEntityTypeId,
+        versioned: true,
+        properties: variantEntityProperties,
+      },
+    });
+
+    createdEntities.set(
+      blockEntityNodePosition,
+      variantEntityResult.data!.createEntity,
+    );
+  }
+
+  return { actions, createdEntities };
 };
 
 /**
@@ -317,8 +564,15 @@ export const updatePageMutation = async (
   blocks: BlockEntity[],
   entityStore: EntityStore,
   client: ApolloClient<any>,
+  createdEntities: CreatedEntities,
 ) => {
-  const actions = calculateSaveActions(accountId, doc, blocks, entityStore);
+  const actions = calculateSaveActions(
+    accountId,
+    doc,
+    blocks,
+    entityStore,
+    createdEntities,
+  );
 
   const res = await client.mutate<
     UpdatePageContentsMutation,

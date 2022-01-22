@@ -256,7 +256,7 @@ const main = async () => {
   shutdown.addCleanup("Postgres pool", async () => pg.end());
 
   // Connect to Redis
-  const redis = new AsyncRedisClient({
+  const redis = new AsyncRedisClient(logger, {
     host: REDIS_HOST,
     port: REDIS_PORT,
   });

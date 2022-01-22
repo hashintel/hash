@@ -4,7 +4,7 @@ use std::{fmt::Debug, path::PathBuf, time::Duration};
 
 use clap::{AppSettings, Parser};
 use error::{report, Result, ResultExt};
-use hash_engine::utils::OutputFormat;
+use hash_engine::{proto::ExperimentName, utils::OutputFormat};
 use orchestrator::{create_server, Experiment, ExperimentConfig, Manifest};
 
 /// Arguments passed to the CLI
@@ -90,7 +90,7 @@ pub struct SingleExperimentArgs {
 pub struct SimpleExperimentArgs {
     /// Name of the experiment to be run.
     #[clap(short = 'n', long, env = "HASH_EXPERIMENT")]
-    experiment_name: String,
+    experiment_name: ExperimentName,
 }
 
 #[tokio::main]

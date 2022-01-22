@@ -17,6 +17,7 @@ clap = { version = "3.0.0", features = ["cargo", "derive", "env"] }
 num_cpus = "1.13.1"
 serde = { version = "1.0.111", features = ["derive"] }
 tokio = "1.5.0"
+uuid = { version = "0.8.1", features = ["v4", "serde"] }
 
 [features]
 default = ["build-nng"]

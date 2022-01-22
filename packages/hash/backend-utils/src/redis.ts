@@ -3,6 +3,8 @@ import { promisify } from "util";
 import { createClient } from "redis";
 import { DataSource } from "apollo-datasource";
 
+import { Logger } from "./logger";
+
 export type RedisConfig = {
   host: string;
   port: number;
@@ -10,6 +12,7 @@ export type RedisConfig = {
 
 /** An async-await compatible wrapper around a `RedisClient`. */
 export class AsyncRedisClient extends DataSource {
+  private logger: Logger;
   /** Pop an item from the right side of the `src` list, push it onto the left side
    * of the `dst` list, and return the item. If the `src` list is empty, and
    * `timeoutSecs` is `0`, the function blocks indefinitely until an item arrives,
@@ -60,8 +63,9 @@ export class AsyncRedisClient extends DataSource {
 
   private quit: () => Promise<"OK">;
 
-  constructor(cfg: RedisConfig) {
+  constructor(logger: Logger, cfg: RedisConfig) {
     super();
+    this.logger = logger;
     const client = createClient({
       ...cfg,
       retry_strategy: (options) => {
@@ -73,6 +77,26 @@ export class AsyncRedisClient extends DataSource {
         return 1_000;
       },
     });
+    // These are all the Redis events we can listen to, using them for logging.
+    client.on("connect", () => {
+      this.logger.info("Redis client is connecting");
+    });
+    client.on("ready", () => {
+      this.logger.info("Redis client is connected and ready.");
+    });
+    client.on("end", () => {
+      this.logger.info("Redis connection has been disconnected by client.");
+    });
+    client.on("error", (error) => {
+      this.logger.error({
+        message: "Redis connection lost",
+        errorMessage: `${error.name}: ${error.message}`,
+      });
+    });
+    // Keeping this one commented out because it sends too many messages
+    // client.on("reconnecting", () => {
+    //   this.logger.info("Redis client is trying to reconnect...");
+    // });
 
     this.quit = promisify(client.quit).bind(client);
     this.brpoplpush = promisify(client.brpoplpush).bind(client);

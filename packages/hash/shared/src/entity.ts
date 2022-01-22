@@ -4,9 +4,11 @@ import {
   EntityStoreType,
   isBlockEntity,
   isDraftBlockEntity,
+  isDraftEntity,
+  isEntity,
 } from "./entityStore";
 import { PageFieldsFragment, Text } from "./graphql/apiTypes.gen";
-import { DistributiveOmit, DistributivePick } from "./util";
+import { DistributiveOmit, DistributivePick, isUnknownObject } from "./util";
 
 type ContentsEntity = PageFieldsFragment["properties"]["contents"][number];
 
@@ -25,7 +27,56 @@ export const isTextEntity = (
 ): entity is Text => "properties" in entity && "tokens" in entity.properties;
 
 /**
- * @todo reimplement links
+ * @deprecated
+ */
+type LegacyLink<Type extends EntityStoreType | DraftEntity = EntityStoreType> =
+  {
+    /**
+     * @deprecated
+     */
+    data: Type;
+
+    /**
+     * @deprecated
+     */
+    __linkedData: {};
+  };
+
+/**
+ * @deprecated
+ */
+const isLegacyLink = (data: unknown): data is LegacyLink => {
+  return (
+    isUnknownObject(data) &&
+    "__linkedData" in data &&
+    "data" in data &&
+    typeof data.data === "object" &&
+    isEntity(data.data)
+  );
+};
+
+export const isTextContainingEntityProperties = (
+  entityProperties: unknown,
+): entityProperties is { text: LegacyLink<Text> } => {
+  return (
+    isUnknownObject(entityProperties) &&
+    "text" in entityProperties &&
+    isLegacyLink(entityProperties.text) &&
+    isTextEntity(entityProperties.text.data)
+  );
+};
+
+// @todo use in more places
+export const isDraftTextContainingEntityProperties = (
+  entityProperties: unknown,
+): entityProperties is { text: LegacyLink<DraftEntity<Text>> } => {
+  return (
+    isTextContainingEntityProperties(entityProperties) &&
+    isDraftEntity(entityProperties.text.data)
+  );
+};
+
+/**
  * @todo reduce duplication
  */
 export const getTextEntityFromDraftBlock = (
@@ -45,15 +96,31 @@ export const getTextEntityFromDraftBlock = (
     throw new Error("invariant: missing block entity");
   }
 
-  if (!isTextEntity(blockPropertiesEntity)) {
-    return null;
-  } else {
+  if (isTextEntity(blockPropertiesEntity)) {
     return blockPropertiesEntity;
   }
+
+  if (isTextContainingEntityProperties(blockPropertiesEntity.properties)) {
+    // @todo look into why this was using entityId
+    const linkEntity = blockPropertiesEntity.properties.text.data;
+
+    if (!isDraftEntity(linkEntity)) {
+      throw new Error("Expected linked entity to be draft");
+    }
+
+    const textEntity = entityStore.draft[linkEntity.draftId];
+
+    if (!textEntity || !isTextEntity(textEntity)) {
+      throw new Error("Missing text entity from draft store");
+    }
+
+    return textEntity;
+  }
+
+  return null;
 };
 
 /**
- * @todo reimplement links
  * @todo reduce duplication
  */
 export const getTextEntityFromSavedBlock = (
@@ -73,11 +140,15 @@ export const getTextEntityFromSavedBlock = (
     throw new Error("invariant: missing block entity");
   }
 
-  if (!isTextEntity(blockPropertiesEntity)) {
-    return null;
-  } else {
+  if (isTextEntity(blockPropertiesEntity)) {
     return blockPropertiesEntity;
   }
+
+  if (isTextContainingEntityProperties(blockPropertiesEntity.properties)) {
+    return blockPropertiesEntity.properties.text.data;
+  }
+
+  return null;
 };
 
 export const blockEntityIdExists = (entities: BlockEntity[]) => {

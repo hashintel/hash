@@ -7,10 +7,6 @@ type AppProps = {
   editableRef?: RefCallback<HTMLElement>;
 };
 
-/**
- * @todo restore heading level variants when links are handled by the
- *       frontend properly
- */
 export const App: BlockComponent<AppProps> = ({
   color,
   level = 1,

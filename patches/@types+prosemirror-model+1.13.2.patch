@@ -1,0 +1,35 @@
+diff --git a/node_modules/@types/prosemirror-model/index.d.ts b/node_modules/@types/prosemirror-model/index.d.ts
+index f9042e9..f5ce615 100755
+--- a/node_modules/@types/prosemirror-model/index.d.ts
++++ b/node_modules/@types/prosemirror-model/index.d.ts
+@@ -103,8 +103,14 @@ export class Fragment<S extends Schema = any> {
+     ): void;
+     /**
+      * Extract the text between `from` and `to`. See the same method on {@link ProsemirrorNode.textBetween}
++     *
++     * The official typescript types for prosemirror don't yet understand that
++     * `textBetween` supports a function for `leafText`
++     *
++     * @see https://github.com/DefinitelyTyped/DefinitelyTyped/discussions/57769
++     * @todo remove this when the types are updated
+      */
+-    textBetween(from: number, to: number, blockSeparator?: string | null, leafText?: string | null): string;
++    textBetween(from: number, to: number, blockSeparator?: string | null, leafText?: string | null | ((leafNode: Node<S>) => string | null)): string;
+     /**
+      * Create a new fragment containing the combined content of this
+      * fragment and the other.
+@@ -715,6 +721,14 @@ declare class ProsemirrorNode<S extends Schema = any> {
+     static fromJSON<S extends Schema = any>(schema: S, json: { [key: string]: any }): ProsemirrorNode<S>;
+ }
+ export { ProsemirrorNode as Node };
++/**
++ * The term Node is ambiguous which means we can't enforce the use of the Schema
++ * generic argument via eslint. To work around that, we disallow the direct
++ * import of Node from prosemirror-model and enforce the use of this
++ * ProsemirrorNode alias via eslint which allows to then enforce the use of the
++ * Schema generic argument.
++ */
++export { ProsemirrorNode };
+ /**
+  * Error type raised by [`Node.replace`](#model.Node.replace) when
+  * given an invalid replacement.
