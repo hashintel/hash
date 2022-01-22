@@ -26,10 +26,8 @@ mod units;
 macro_rules! run_test {
     ($project:ident $(,)? $(#[$attr:meta])* ) => {
         $(#[$attr])*
-        #[test]
-        fn $project() {
-            use $crate::units::experiment::*;
-
+        #[tokio::test]
+        async fn $project() {
             let project_path = std::path::Path::new(file!())
                 .parent()
                 .unwrap()
@@ -37,48 +35,28 @@ macro_rules! run_test {
                 .canonicalize()
                 .unwrap();
 
-            let experiments = read_config(project_path.join("integration-test.json"))
-                .expect("Could not read experiments");
+            $crate::units::experiment::run_test_suite(project_path, None).await
+        }
+    };
 
-            for (experiment, expected_outputs) in experiments {
-                // TODO: Remove attempting strategy
-                let mut outputs = None;
-                let attempts = 3;
-                for attempt in 1..=attempts {
-                    println!(
-                        "\n\n\nRunning test \"{}\" attempt {attempt}/{attempts}:\n",
-                        stringify!($project)
-                    );
-                    match experiment.run(&project_path) {
-                        Ok(out) => {
-                            outputs.replace(out);
-                            break;
-                        }
-                        Err(err) => eprintln!("\n\n{err:?}\n\n"),
-                    }
-                }
-                let outputs = outputs.expect(&format!("Could not run {experiment}"));
+    ($project:ident $(,)? $language:ident $(,)? $(#[$attr:meta])* ) => {
+        // Enable syntax highlighting and code completition
+        #[allow(unused)]
+        use hash_engine::Language::$language as _;
 
-                assert_eq!(
-                    expected_outputs.len(),
-                    outputs.len(),
-                    "Number of expected outputs does not match number of returned simulation \
-             results for {experiment}"
-                );
+        #[allow(non_snake_case)]
+        mod $language {
+            $(#[$attr])*
+            #[tokio::test]
+            async fn $project() {
+                let project_path = std::path::Path::new(file!())
+                    .parent()
+                    .unwrap()
+                    .join(stringify!($project))
+                    .canonicalize()
+                    .unwrap();
 
-                for (output_idx, ((states, globals, analysis), expected)) in outputs
-                    .into_iter()
-                    .zip(expected_outputs.into_iter())
-                    .enumerate()
-                {
-                    expected
-                        .assert_subset_of(&states, &globals, &analysis)
-                        .expect(&format!(
-                            "Output of simulation {} does not match expected output in \
-                     {experiment}",
-                            output_idx + 1
-                        ));
-                }
+                $crate::units::experiment::run_test_suite(project_path, Some(hash_engine::Language::$language)).await
             }
         }
     };

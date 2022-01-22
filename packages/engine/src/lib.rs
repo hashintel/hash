@@ -58,6 +58,7 @@ pub mod utils;
 #[cfg(test)]
 mod suppress_weird_warning_about_unused_dev_dependencies {
     use ::error as _;
+    use ::orchestrator as _;
     use ::provider as _;
 }
 
