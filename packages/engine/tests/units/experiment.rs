@@ -116,8 +116,8 @@ pub async fn run_test_suite<P: AsRef<Path>>(project_path: P, language: Option<La
                 std::env::set_var("RUST_LOG", "trace");
             }
             println!(
-                "\n\n\nRunning test \"{}\" attempt {attempt}/{attempts}:\n",
-                stringify!($project)
+                "\n\n\nRunning test {:?} attempt {attempt}/{attempts}:\n",
+                project_path.file_name().unwrap()
             );
             let test_result = run_test(
                 experiment_type.clone(),
