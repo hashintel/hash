@@ -4,33 +4,8 @@ include "sync_state_interim.fbs";
 include "sync_state_snapshot.fbs";
 include "sync_state.fbs";
 include "new_simulation_run.fbs";
+include "task_msg.fbs";
 
-// A Task UUID
-//
-// This is duplicated in multiple files since it is a struct
-// and cannot be a root type.
-//
-// fields:
-//    `inner` : the uuid as bytes 
-struct TaskId {
-  inner:[byte:16];
-}
-
-// A task message for a Task (run by a package) 
-// which is inbound to a worker.
-//
-// fields:
-//    `package_sid`    : the short id for the packge
-//    `task_id`        : the uuid for the task
-//    `metaversioning` : included when any batches have changed
-//                       (possibly since the last `StateSync`)
-//    `payload`        : payload for the task message (json)
-table TaskMsg {
-  package_sid:uint64;
-  task_id:TaskId;
-  metaversioning:StateInterimSync;
-  payload:Serialized (required);
-}
 
 // A message for a Task (run by a package) to be cancelled
 //

@@ -21,6 +21,7 @@ pub mod sync_state_generated;
 pub mod sync_state_interim_generated;
 pub mod sync_state_snapshot_generated;
 pub mod target_generated;
+pub mod task_msg_generated;
 pub mod user_error_generated;
 pub mod user_errors_generated;
 pub mod user_warning_generated;
