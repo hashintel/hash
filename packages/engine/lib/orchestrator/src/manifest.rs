@@ -273,6 +273,11 @@ impl Manifest {
         Self::from_local_impl(project_path, false)
     }
 
+    /// Reads the manifest without an initial state.
+    pub fn from_dependency<P: AsRef<Path>>(project_path: P) -> Result<Self> {
+        Self::from_local_impl(project_path, true)
+    }
+
     fn from_local_impl<P: AsRef<Path>>(project_path: P, is_dependency: bool) -> Result<Self> {
         let project_path = project_path.as_ref();
         debug!(
@@ -331,7 +336,7 @@ impl Manifest {
         let behaviors_deps_folders = local_dependencies_folders(dependencies_folder);
         let dep_projects = behaviors_deps_folders
             .into_iter()
-            .map(|path| match Self::from_local_impl(&path, true) {
+            .map(|path| match Self::from_dependency(&path) {
                 Ok(project) => Ok((path, project)),
                 Err(err) => Err(err),
             })

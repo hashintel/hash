@@ -952,6 +952,7 @@ dependencies = [
  "lazy_static",
  "nng",
  "num_cpus",
+ "orchestrator",
  "parking_lot",
  "provider",
  "rand 0.8.4",
