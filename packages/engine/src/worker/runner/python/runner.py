@@ -163,22 +163,28 @@ class Runner:
             while True:
                 msg, t = self.messenger.recv()
                 if t == MESSAGE_TYPE.TerminateRunner:
+                    logging.debug("Terminating runner")
                     self.kill()
                     break
 
                 if t == MESSAGE_TYPE.NewSimulationRun:
+                    logging.debug("Starting simulation run")
                     self.start_sim(msg)
 
                 if t == MESSAGE_TYPE.TerminateSimulationRun:
+                    logging.debug("Terminating simulation run")
                     del self.sims[msg.sim_id]
 
                 if t == MESSAGE_TYPE.ContextBatchSync:
+                    logging.debug("Handling context batch sync")
                     self.ctx_batch_sync(msg.sim_id, msg.batch, msg.cur_step)
 
                 if t == MESSAGE_TYPE.StateSync:
+                    logging.debug("Handling state sync")
                     self.state_sync(msg.sim_id, msg.agent_pool, msg.message_pool)
 
                 if t == MESSAGE_TYPE.StateInterimSync:
+                    logging.debug("Handling state interim sync")
                     self.state_interim_sync(
                         msg.sim_id, msg.group_idxs, msg.agent_batches, msg.message_batches
                     )
@@ -187,6 +193,7 @@ class Runner:
                     self.state_snapshot_sync(msg.sim_id, msg.agent_pool, msg.msg_pool)
 
                 if t == MESSAGE_TYPE.TaskMsg:
+                    logging.debug("Running task")
                     n_groups = self.sims[msg.sim_id].state.n_groups()
 
                     group_idx = None
