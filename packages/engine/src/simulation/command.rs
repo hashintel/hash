@@ -62,8 +62,10 @@ impl CreateRemoveCommands {
         self.remove.push(RemoveCommand { uuid });
     }
 
-    /// Ensures that all agent-creation commands contain valid agent fields. Returns an error if
-    /// a creation command is for an agent that has a field that hasn't been defined in the schema
+    /// Ensures that all agent-creation commands contain valid agent fields.
+    ///
+    /// Returns an error if a creation command is for an agent that has a field that hasn't been
+    /// defined in the schema
     pub fn verify(&self, schema: &Arc<AgentSchema>) -> Result<()> {
         let field_spec_map = &schema.field_spec_map; // Fields for entire simulation.
 
