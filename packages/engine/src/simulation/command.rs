@@ -1,3 +1,7 @@
+/// Logic around the HASH commands exposed to simulation authors. Namely the ability for agents
+/// to:
+/// * Dynamically request the creation of agents
+/// * Dynamically request the deletion of agents
 use std::{collections::HashSet, sync::Arc};
 
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
@@ -18,10 +22,16 @@ use crate::{
 };
 
 /// TODO: DOC Update docs to reflect that these variants are only allowed
+/// Variations of the protected message-target that is associated with the engine. If an agent
+/// sends a message to one of these variations, it's interpreted as a command rather than a message
+/// to be forwarded to another agent.
 static HASH: [&str; 3] = ["hash", "Hash", "HASH"];
 
+/// The commands available to simulation agents
 enum HashMessageType {
+    /// Create an agent
     Create,
+    /// Remove an Agent
     Remove,
 }
 
@@ -33,7 +43,6 @@ struct RemoveCommand {
     uuid: Uuid,
 }
 
-/// TODO: DOC
 #[derive(Default)]
 pub struct CreateRemoveCommands {
     create: Vec<CreateCommand>,
@@ -41,15 +50,18 @@ pub struct CreateRemoveCommands {
 }
 
 impl CreateRemoveCommands {
+    /// Push a command for the request of the creation of an agent
     pub fn add_create(&mut self, agent: Agent) {
         self.create.push(CreateCommand { agent });
     }
 
+    /// Push a command for the request of the deletion of the agent associated with the given UUID
     pub fn add_remove(&mut self, uuid: Uuid) {
         self.remove.push(RemoveCommand { uuid });
     }
 
-    /// TODO: DOC
+    /// Ensures that all agent-creation commands contain valid agent fields. Returns an error if
+    /// a creation command is for an agent that has a field that hasn't been defined in the schema
     pub fn verify(&self, schema: &Arc<AgentSchema>) -> Result<()> {
         let field_spec_map = &schema.field_spec_map; // Fields for entire simulation.
 
@@ -71,7 +83,8 @@ impl CreateRemoveCommands {
         self.remove.append(&mut other.remove);
     }
 
-    /// TODO: DOC
+    /// Reads the messages of a simulation step, and identifies, transforms, and collects the
+    /// commands.
     pub fn from_hash_messages(
         message_map: &MessageMap,
         message_pool: MessagePoolRead<'_>,
@@ -123,7 +136,8 @@ impl CreateRemoveCommands {
         Ok(res)
     }
 
-    /// TODO: DOC
+    /// Processes the commands by creating a new AgentBatch from the create commands, and returning
+    /// that alongside a set of Agent UUIDs to be removed from state.
     pub fn try_into_processed_commands(
         mut self,
         schema: &Arc<AgentSchema>,
@@ -154,7 +168,8 @@ impl CreateRemoveCommands {
     }
 }
 
-/// TODO: DOC
+/// Extends a given `CreateRemoveCommands` with a new command created and parsed depending on the
+/// given HashMessageType
 fn handle_hash_message(
     cmds: &mut CreateRemoveCommands,
     message_type: HashMessageType,
@@ -176,7 +191,8 @@ fn handle_hash_message(
     Ok(())
 }
 
-/// TODO: DOC
+/// Adds a RemoveCommand, reading the UUID either from the payload, or using the from field on the
+/// message if the payload is missing.
 fn handle_remove_data(
     cmds: &mut CreateRemoveCommands,
     data: &str,
