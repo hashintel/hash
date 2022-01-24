@@ -222,7 +222,7 @@ impl WorkerController {
     ///   - [`Sync`]: Tells the runners to synchronize. See [`sync_runners`] for more details.
     ///   - [`CancelTask`], The specified task is canceled, for all runners. A [`CancelTask`] 
     ///     containing the task_id is sent to all runners that have been spawned.
-    ///   - [`NewSimulationRun`]: Message is forwarded to all workers.
+    ///   - [`NewSimulationRun`]: Message is forwarded to all runners.
     ///
     /// [`Task`]: WorkerPoolToWorkerMsgPayload::Task
     /// [`Sync`]: WorkerPoolToWorkerMsgPayload::Sync
