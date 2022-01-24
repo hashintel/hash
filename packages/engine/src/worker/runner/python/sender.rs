@@ -23,6 +23,7 @@ use crate::{
     types::WorkerIndex,
     worker::runner::comms::inbound::InboundToRunnerMsgPayload,
 };
+use crate::worker::runner::comms::{MessageTarget, TargetedRunnerTaskMsg};
 
 /// Only used for sending messages to the Python process
 pub struct NngSender {
@@ -133,6 +134,7 @@ fn inbound_to_nng(
 
     let (msg, msg_type) = match msg {
         InboundToRunnerMsgPayload::TaskMsg(msg) => {
+            log::trace!("Sending TaskMsg");
             let shared_store = shared_store_to_fbs(fbb, &msg.shared_store);
 
             // unwrap: TaskMsg variant, so must have serialized payload earlier (and
@@ -142,13 +144,14 @@ fn inbound_to_nng(
             let payload = str_to_serialized(fbb, &payload);
 
             let task_id =
-                flatbuffers_gen::runner_inbound_msg_generated::TaskId(msg.task_id.to_le_bytes());
+                flatbuffers_gen::task_msg_generated::TaskId(msg.task_id.to_le_bytes());
 
-            let msg = flatbuffers_gen::runner_inbound_msg_generated::TaskMsg::create(
+            let msg = flatbuffers_gen::task_msg_generated::TaskMsg::create(
                 fbb,
-                &flatbuffers_gen::runner_inbound_msg_generated::TaskMsgArgs {
+                &flatbuffers_gen::task_msg_generated::TaskMsgArgs {
                     package_sid: msg.package_id.as_usize() as u64,
                     task_id: Some(&task_id),
+                    target: MessageTarget::Python.into(),
                     payload: Some(payload),
                     metaversioning: Some(shared_store),
                 },
@@ -376,6 +379,11 @@ fn shared_store_to_fbs<'f>(
                 (a, m, partial.indices.clone())
             }
             PartialSharedState::Write(partial) => {
+                log::trace!(
+                    "Partial write: {} groups, {} batches",
+                    partial.indices.len(),
+                    partial.inner.agent_pool().n_batches(),
+                );
                 let state = &partial.inner;
                 let a: Vec<_> = state
                     .agent_pool()

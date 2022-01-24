@@ -25,6 +25,7 @@ use crate::{
     worker::{Error as WorkerError, Result as WorkerResult},
     Language,
 };
+use crate::worker::runner::comms::outbound::OutboundFromRunnerMsgPayload;
 
 pub struct PythonRunner {
     init_msg: Arc<ExperimentInitRunnerMsg>, // Args to RunnerImpl::new
@@ -141,9 +142,9 @@ async fn _run(
             Some(nng_send_result) = nng_sender.get_send_result() => {
                 nng_send_result?;
             }
-            Some((_sim_id, inbound)) = inbound_receiver.recv() => {
+            Some((sim_id, inbound)) = inbound_receiver.recv() => {
                 // Need to get payload before sending nng message.
-                let (_task_payload_json, task_wrapper) = match &inbound {
+                let (task_payload_json, task_wrapper) = match &inbound {
                     InboundToRunnerMsgPayload::TaskMsg(msg) => {
                         // TODO: Error message duplication with JS runner
                         let (payload, wrapper) = msg.payload
@@ -155,6 +156,9 @@ async fn _run(
                                 ))
                             })?;
                         (Some(payload), Some(wrapper))
+                    }
+                    InboundToRunnerMsgPayload::CancelTask(_) => {
+                        continue; // Don't send -- unused for now.
                     }
                     _ => (None, None)
                 };
@@ -182,6 +186,7 @@ async fn _run(
                         shared_store,
                         ..
                     }) => {
+                        log::trace!("Sent task_id {:?}", task_id);
                         // unwrap: TaskMsg variant, so must have serialized payload earlier.
                         let sent = SentTask {
                             task_wrapper: task_wrapper.unwrap(),
@@ -190,13 +195,14 @@ async fn _run(
                         sent_tasks
                             .try_insert(task_id, sent)
                             .map_err(|_| Error::from(format!(
-                                "Inbound message w/o sent task id {:?}", task_id
+                                "Inbound message with duplicate sent task id {:?}", task_id
                             )))?;
                     }
                     _ => {}
                 }
             }
             outbound = nng_receiver.get_recv_result() => {
+                log::trace!("Tried to get outbound {outbound:?}");
                 let outbound = outbound.map_err(WorkerError::from)?;
                 let outbound = OutboundFromRunnerMsg::try_from_nng(
                     outbound,
@@ -204,10 +210,16 @@ async fn _run(
                     &mut sent_tasks,
                 );
                 let outbound = outbound.map_err(|err| {
-                    Error::from(format!(
+                    let err = Error::from(format!(
                         "Failed to convert nng message to OutboundFromRunnerMsg: {err}"
-                    ))
+                    ));
+                    log::trace!("{err}");
+                    err
                 })?;
+                log::trace!("Got outbound {outbound:?}");
+                if let OutboundFromRunnerMsgPayload::RunnerWarnings(warnings) = &outbound.payload {
+                    log::warn!("Sim {} warnings: {warnings:?}", outbound.sim_id);
+                }
                 outbound_sender.send(outbound)?;
             }
         }
