@@ -140,6 +140,10 @@ class Runner:
             return
 
         changes = state.flush_changes(sim.schema)
+        if group_idx is not None:
+            changes['i_group'] = group_idx
+            changes = [changes]
+
         self.messenger.send_task_continuation(
             sim_id,
             changes,
@@ -147,7 +151,7 @@ class Runner:
             task_id,
             continuation
         )
-        # TODO: chaining if `continuation.target == "py"` for better performance
+    # TODO: OPTIM chaining if `continuation.target == "Python"`
 
     def ctx_batch_sync(self, sim_id, batch, cur_step):
         sim = self.sims[sim_id]

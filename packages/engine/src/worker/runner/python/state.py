@@ -153,7 +153,7 @@ class GroupState:
         # a message's data to JSON and add it without converting existing
         # messages to native JavaScript objects.
 
-        skip = {'agent_id': True}
+        skip = set('agent_id',)
         self.__agent_batch.flush_changes(schema.agent, skip)
 
         # Convert any native message objects to JSON before flushing message batch.
@@ -163,9 +163,9 @@ class GroupState:
         for i_agent, agent_msgs in enumerate(group_msgs):
             if self.__msgs_native[i_agent]:
                 for msg in agent_msgs:
-                    msg.data = json.dumps(msg.data)
+                    msg['data'] = json.dumps(msg['data'])
 
-        self.__msg_batch.flush_changes(schema.message, {})
+        self.__msg_batch.flush_changes(schema.message, set())
 
         return {
             "agent": self.__agent_batch,
@@ -198,13 +198,10 @@ class SimState:
                     GroupState(agent_pool[i_group], msg_pool[i_group], loaders)
                 )
 
-    def get_group(self, i_group):
-        return self.groups[i_group]
-
     def flush_changes(self, schema):
-        r = []
+        groups_changes = []
         for i_group, group in enumerate(self.groups):
             changes = group.flush_changes(schema)
             changes["i_group"] = i_group
-            r.append(changes)
-        return r
+            groups_changes.append(changes)
+        return groups_changes
