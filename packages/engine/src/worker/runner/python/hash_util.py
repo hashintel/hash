@@ -11,7 +11,7 @@ def json_deepcopy(x):
     return deepcopy(x)
 
 
-def load_shallow(vector, field):
+def load_shallow(vector, is_nullable, is_any):  # TODO: Change arguments after upgrading Arrow.
     return [elem for elem in vector]
 
 
@@ -26,12 +26,12 @@ def _writable_in_place(typ):
     return False  # TODO: Struct? Union? FixedSizeBinary?
 
 
-def load_full(vector, field):
-    if field.metadata['is_any']:
+def load_full(vector, is_nullable, is_any):  # TODO: Change arguments after upgrading Arrow.
+    if is_any:
         # `any` type fields are expensive
         return [loads(any_obj.as_buffer().to_pybytes()) for any_obj in vector]
 
-    if field.nullable or not _writable_in_place(vector.type):
+    if is_nullable or not _writable_in_place(vector.type):
         # NOTE: Even if some nullable field were writable in place,
         #       changing it could change the null count, so its
         #       dynamic metadata would need to be updated.

@@ -63,20 +63,13 @@ def load_record_batch(mem, schema=None):
     # what is between them is padding.)
     if schema is None:
         schema_buf = mem[schema_offset: schema_offset + schema_size]
-    rb_buf = mem[meta_offset: data_offset + data_size]
-
-    if schema is None:
         schema = pa.ipc.read_schema(schema_buf)
+
+    rb_buf = mem[meta_offset: data_offset + data_size]
     rb = pa.ipc.read_record_batch(rb_buf, schema)
 
     any_type_fields = parse_any_type_fields(schema.metadata)
-
-    # Put data about `any` types and nullability directly in record batch.
-    for i_field in range(rb.num_columns):
-        field = rb.schema.field(i_field)
-        field.add_metadata({'is_any': field.name in any_type_fields})
-
-    return rb
+    return rb, any_type_fields
 
 
 # Returns dataset name, dataset contents and whether JSON could be loaded.
@@ -106,6 +99,8 @@ class Batch:
         self.batch_version = -1
         self.mem = None  # After loading, `mem` will be a shared buffer.
         self.rb = None  # After loading, `rb` will be a record batch.
+        self.any_type_fields = None  # TODO: Remove after upgrading Arrow and putting
+                                     #       schema metadata in individual fields.
         self.cols = {}  # Syncing erases columns that have become invalid.
 
         # For flushing:
@@ -127,24 +122,25 @@ class Batch:
 
         if should_load:
             self.batch_version = latest_batch.batch_version
-            self.rb = load_record_batch(self.mem, schema)
+            self.rb, self.any_type_fields = load_record_batch(self.mem, schema)
             self.cols = {}  # Avoid using obsolete column data.
             self.static_meta = static_meta_from_schema(self.rb.schema)
 
     def load_col(self, name, loader=None):
         i_field = self.rb.schema.get_field_index(name)
         if i_field < 0:
-            raise RuntimeError("Missing field for " + name)
+            raise RuntimeError(f"Missing field for {name}")
 
         field = self.rb.schema.field(i_field)
         vector = self.rb.column(i_field)
+        is_any = name in self.any_type_fields
         if loader is not None:
-            col = loader(vector, field)
+            col = loader(vector, field.nullable, is_any)
         elif name.startswith('_PRIVATE_') or name.startswith('_HIDDEN_'):
             # only agent-scoped fields are fully loaded by default
-            col = hash_util.load_shallow(vector, field)
+            col = hash_util.load_shallow(vector, field.nullable, is_any)
         else:
-            col = hash_util.load_full(vector, field)
+            col = hash_util.load_full(vector, field.nullable, is_any)
 
         self.cols[name] = col
         return col
