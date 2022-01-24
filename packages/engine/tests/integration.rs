@@ -22,6 +22,11 @@ mod units;
 ///   - "steps": Number of steps to run
 ///   - "expected-output": Expected output of the simulation containing with the same schema as one
 ///     element in "expected-outputs"
+///
+/// Optionally, a [`Language`] can be specified. Then the test searches for an `init` file with the
+/// language appended, so for example when [`Python`](Language::Python) is passed, it searches for
+/// the files `init-py.js`, `init-py.py`, and `init-py.json`. If more than one initial state is
+/// specified, the test fails. When no language is specified, it omits the language suffix.
 #[macro_export]
 macro_rules! run_test {
     ($project:ident $(,)? $(#[$attr:meta])* ) => {

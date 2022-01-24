@@ -28,76 +28,39 @@ pub struct ExpectedOutput {
     pub analysis_outputs: Option<Analysis>,
 }
 
+/// Loads the manifest from `project_path` and optionally loads language specific intial states.
+///
+/// If `language` is specified, it searches for an `init` file with the language appended, so for
+/// example when [`Python`](Language::Python) is passed, it searches for the files `init-py.js`,
+/// `init-py.py`, and `init-py.json`. If more than one initial state is specified, the function
+/// fails.
 fn load_manifest<P: AsRef<Path>>(project_path: P, language: Option<Language>) -> Result<Manifest> {
     let project_path = project_path.as_ref();
 
-    let experiments_json = project_path.join("experiments.json");
-    let src_folder = project_path.join("src");
-    let behaviors_folder = src_folder.join("behaviors");
-    let globals_json = src_folder.join("globals.json");
-    let views_folder = project_path.join("views");
-    let analysis_json = views_folder.join("analysis.json");
-    let data_folder = project_path.join("data");
+    // We read the manifest without initial state ...
+    let mut manifest = Manifest::from_dependency(project_path)
+        .wrap_err_lazy(|| format!("Could not load manifest from {project_path:?}"))?;
 
-    let mut project = Manifest::new();
-
-    let (init_js, init_py, init_json) = match language {
-        Some(Language::JavaScript) => (
-            src_folder.join("init-js.js"),
-            src_folder.join("init-js.py"),
-            src_folder.join("init-js.json"),
-        ),
-        Some(Language::Python) => (
-            src_folder.join("init-py.js"),
-            src_folder.join("init-py.py"),
-            src_folder.join("init-py.json"),
-        ),
-        Some(Language::Rust) => (
-            src_folder.join("init-rs.js"),
-            src_folder.join("init-rs.py"),
-            src_folder.join("init-rs.json"),
-        ),
-        None => (
-            src_folder.join("init.js"),
-            src_folder.join("init.py"),
-            src_folder.join("init.json"),
-        ),
+    // ... so we provide it ourself
+    // If `language` is specified, use a `-lang` suffix
+    let suffix = match language {
+        Some(Language::JavaScript) => "-js",
+        Some(Language::Python) => "-py",
+        Some(Language::Rust) => "-rs",
+        None => "",
     };
-    if init_js.is_file() {
-        project.set_initial_state_from_file(init_js)?;
-    } else if init_py.is_file() {
-        project.set_initial_state_from_file(init_py)?;
-    } else if init_json.is_file() {
-        project.set_initial_state_from_file(init_json)?;
-    }
+    let initial_states: Vec<_> = ["js", "py", "json"]
+        .into_iter()
+        .map(|ext| project_path.join("src").join(format!("init{suffix}.{ext}")))
+        .filter(|p| p.is_file())
+        .collect();
+    ensure!(
+        initial_states.len() == 1,
+        "Exactly one initial state has to be provided for the given language"
+    );
+    manifest.set_initial_state_from_file(&initial_states[0])?;
 
-    if globals_json.exists() {
-        project
-            .set_globals_from_file(globals_json)
-            .wrap_err("Could not read globals")?;
-    }
-    if analysis_json.exists() {
-        project
-            .set_analysis_from_file(analysis_json)
-            .wrap_err("Could not read analysis view")?;
-    }
-    if experiments_json.exists() {
-        project
-            .set_experiments_from_file(experiments_json)
-            .wrap_err("Could not read experiments")?;
-    }
-    if behaviors_folder.exists() {
-        project
-            .add_behaviors_from_directory(behaviors_folder)
-            .wrap_err("Could not read local behaviors")?;
-    }
-    if data_folder.exists() {
-        project
-            .add_datasets_from_directory(data_folder)
-            .wrap_err("Could not read local datasets")?;
-    }
-
-    Ok(project)
+    Ok(manifest)
 }
 
 pub async fn run_test_suite<P: AsRef<Path>>(project_path: P, language: Option<Language>) {
@@ -110,7 +73,7 @@ pub async fn run_test_suite<P: AsRef<Path>>(project_path: P, language: Option<La
     for (experiment_type, expected_outputs) in experiments {
         // TODO: Remove attempting strategy
         let mut outputs = None;
-        let attempts = 5;
+        let attempts = 2;
         for attempt in 1..=attempts {
             if attempt > 1 {
                 std::env::set_var("RUST_LOG", "trace");
