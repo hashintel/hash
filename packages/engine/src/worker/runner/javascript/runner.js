@@ -42,6 +42,7 @@ function start_experiment(datasets, pkg_init_msgs, pkg_fns) {
             "sims": {}
         };
         if (pkg_start_experiment) {
+            // TODO: Get warnings from returned object, if any.
             pkg_start_experiment(pkg.experiment, msg.payload, this.experiment_ctx);
         }
     }
