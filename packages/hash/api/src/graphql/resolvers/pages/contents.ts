@@ -1,9 +1,9 @@
 import { ApolloError } from "apollo-server-express";
 
 import { Resolver } from "../../apiTypes.gen";
-import { DbPage } from "../../../types/dbTypes";
 import { GraphQLContext } from "../../context";
 import { Entity, UnresolvedGQLEntity } from "../../../model";
+import { DbPage } from "../../../db/adapter";
 
 export const contents: Resolver<
   Promise<UnresolvedGQLEntity[]>,

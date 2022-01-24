@@ -1,4 +1,4 @@
-import { Entity } from "./adapter";
+import { DbEntity } from "./adapter";
 
 export class DbEntityNotFoundError extends Error {
   accountId?: string;
@@ -66,11 +66,11 @@ export class DbLinkNotFoundError extends Error {
 }
 
 export class DbInvalidLinksError extends Error {
-  entity: Entity;
+  entity: DbEntity;
   invalid: { entityId: string; entityVersionId?: string }[];
 
   constructor(params: {
-    entity: Entity;
+    entity: DbEntity;
     invalid: { entityId: string; entityVersionId?: string }[];
   }) {
     const { entity, invalid } = params;

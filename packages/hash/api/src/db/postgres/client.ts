@@ -4,7 +4,7 @@ import {
   DBAggregation,
   DBClient,
   DBLink,
-  Entity,
+  DbEntity,
   EntityMeta,
   EntityType,
   EntityVersion,
@@ -152,7 +152,7 @@ export class PostgresClient implements DBClient {
     systemTypeName?: SystemType;
     versioned: boolean;
     properties: any;
-  }): Promise<Entity> {
+  }): Promise<DbEntity> {
     return await this.conn.transaction(async (conn) => {
       // Create the account if it does not already exist
       // TODO: this should be performed in a "createAccount" function, or similar.
@@ -179,7 +179,7 @@ export class PostgresClient implements DBClient {
       const entityVersionId = params.entityVersionId ?? genId();
       const now = new Date();
       const entityId = params.entityId ?? genId();
-      const entity: Entity = {
+      const entity: DbEntity = {
         accountId: params.accountId,
         entityId,
         entityVersionId,
@@ -244,14 +244,14 @@ export class PostgresClient implements DBClient {
       entityVersionId: string;
     },
     lock: boolean = false,
-  ): Promise<Entity | undefined> {
+  ): Promise<DbEntity | undefined> {
     return (await getEntity(this.conn, params, lock)) || undefined;
   }
 
   async getEntityLatestVersion(params: {
     accountId: string;
     entityId: string;
-  }): Promise<Entity | undefined> {
+  }): Promise<DbEntity | undefined> {
     return (await getEntityLatestVersion(this.conn, params)) || undefined;
   }
 
@@ -288,7 +288,7 @@ export class PostgresClient implements DBClient {
     entityId: string;
     properties: any;
     updatedByAccountId: string;
-  }): Promise<Entity> {
+  }): Promise<DbEntity> {
     return updateEntity(this.conn, params);
   }
 
@@ -373,7 +373,7 @@ export class PostgresClient implements DBClient {
     accountId: string;
     systemTypeName: SystemType;
     latestOnly?: boolean;
-  }): Promise<Entity[]> {
+  }): Promise<DbEntity[]> {
     const { entity_type_id: entityTypeId } = await this.conn.one(
       selectSystemEntityTypeIds(params),
     );
@@ -395,7 +395,7 @@ export class PostgresClient implements DBClient {
     entityTypeId: string;
     entityTypeVersionId?: string;
     latestOnly: boolean;
-  }): Promise<Entity[]> {
+  }): Promise<DbEntity[]> {
     return params.latestOnly
       ? await getEntitiesByTypeLatestVersion(this.conn, params)
       : await getEntitiesByTypeAllVersions(this.conn, params);
@@ -406,7 +406,7 @@ export class PostgresClient implements DBClient {
   }
 
   /**  Get all account type entities (User or Org). */
-  async getAllAccounts(): Promise<Entity[]> {
+  async getAllAccounts(): Promise<DbEntity[]> {
     return await getAllAccounts(this.conn);
   }
 
@@ -553,7 +553,7 @@ export class PostgresClient implements DBClient {
       entityId: string;
       entityVersionId?: string;
     }[],
-  ): Promise<Entity[]> {
+  ): Promise<DbEntity[]> {
     return await getEntities(this.conn, entities);
   }
 
