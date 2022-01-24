@@ -88,6 +88,7 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
 }
 
 /// Encapsulates the functionality of writing a specific column within the context batch.
+///
 /// Wrapping the logic within this struct allows the caller (i.e. the root context package) to
 /// split up memory into relevant buffers and then independently write to them in any order, even
 /// if a context package's columns aren't next to one another in memory. (It's necessary to reorder
@@ -107,15 +108,19 @@ impl ContextColumn {
     }
 }
 
-/// Provides the functionalities of writing a column into the context batch. Implementing this
-/// trait allows the creation of trait-objects so that the root context package can call the
-/// writing functionality in whatever order it needs, and therefore the other context packages do
-/// not need to be aware of one another.
+/// Provides the functionalities of writing a column into the context batch.
+///
+/// Implementing this trait allows the creation of trait-objects so that the root context package
+/// can call the writing functionality in whatever order it needs, and therefore the other context
+/// packages do not need to be aware of one another.
 pub trait ContextColumnWriter {
     /// Gives the associated metadata for the column, describing the necessary memory layout and
     /// size.
     fn get_dynamic_metadata(&self) -> DatastoreResult<ColumnDynamicMetadata>;
-    /// Takes a mutable slice of memory to write into, and the expectations about that memory (which
-    /// should match `self.get_dynamic_metadata`), and writes the data for the context column.
+    /// Takes a mutable slice of memory to write into, a description of the expectations about
+    /// that memory and writes the data for the context column.
+    ///
+    /// The expectations (i.e. the metadata) of the memory has to match
+    /// [`self.get_dynamic_metadata()`].
     fn write(&self, buffer: &mut [u8], meta: &ColumnDynamicMetadata) -> DatastoreResult<()>;
 }

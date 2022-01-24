@@ -44,6 +44,7 @@ struct RemoveCommand {
     uuid: Uuid,
 }
 
+/// Collection of queued commands for the creation and deletion of agents.
 #[derive(Default)]
 pub struct CreateRemoveCommands {
     create: Vec<CreateCommand>,
@@ -192,8 +193,8 @@ fn handle_hash_message(
     Ok(())
 }
 
-/// Adds a RemoveCommand, reading the UUID either from the payload, or using the from field on the
-/// message if the payload is missing.
+/// Adds a [`RemoveCommand`], reading the UUID either from the payload, or using the from field on
+/// the message if the payload is missing.
 fn handle_remove_data(
     cmds: &mut CreateRemoveCommands,
     data: &str,
