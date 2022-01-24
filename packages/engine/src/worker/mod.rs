@@ -216,7 +216,7 @@ impl WorkerController {
 
     /// Handles a message from the worker pool.
     ///
-    /// Depending of the content of the message, the following actions are executed:
+    /// Depending on the content of the message, the following actions are executed:
     ///   - [`Task`]: The contained task is spawned for the specified simulation, [`TaskMsg`] is
     ///     send to all workers.
     ///   - [`Sync`]: Tells the runners to synchronize. See [`sync_runners`] for more details.
