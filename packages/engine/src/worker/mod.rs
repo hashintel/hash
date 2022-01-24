@@ -262,7 +262,7 @@ impl WorkerController {
 
     /// Handles an outbound message from a runner.
     ///
-    /// Depending of the content of the message, the following actions are executed:
+    /// Depending on the content of the message, the following actions are executed:
     ///   - [`TaskMsg`]: Depending on the [`target`], the following actions are executed:
     ///     - [`Javascript`]/[`Python`]/[`Rust`]: The message is forwarded to the corresponding
     ///       language runner and the active runner is set to the language.
