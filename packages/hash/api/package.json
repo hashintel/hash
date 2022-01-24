@@ -57,7 +57,7 @@
     "lodash": "4.17.21",
     "lru-cache": "6.0.0",
     "multer": "1.4.4",
-    "nanoid": "3.1.23",
+    "nanoid": "3.1.31",
     "nocache": "^3.0.1",
     "node-fetch": "^2.6.7",
     "nodemailer": "6.6.3",
