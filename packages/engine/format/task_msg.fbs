@@ -1,0 +1,31 @@
+include "sync_state_interim.fbs";
+include "target.fbs";
+include "serialized.fbs";
+
+// A Task UUID
+//
+// This is duplicated in multiple files since it is a struct
+// and cannot be a root type.
+//
+// fields:
+//    `inner` : the uuid as bytes
+struct TaskId {
+  inner:[byte:16];
+}
+
+// A task message for a Task (run by a package)
+// which is outbound from a worker.
+//
+// fields:
+//    `package_sid`    : the short id for the package
+//    `task_id`        : the uuid for the task
+//    `metaversioning` : included when any batches have changed
+//                       (possibly since the last `StateSync`)
+//    `payload`        : payload for the task message (json)
+table TaskMsg {
+  package_sid:uint64;
+  task_id:TaskId;
+  target:Target;
+  metaversioning:StateInterimSync;
+  payload:Serialized (required);
+}
