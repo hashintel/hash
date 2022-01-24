@@ -396,7 +396,7 @@ impl WorkerController {
         Ok(())
     }
 
-    /// Handles a runner message based on the target of the current task.
+    /// Handles a message from the runner, dynamically resolving the target for the next one.
     ///
     ///   Depending on the [`target`], the following actions are executed:
     ///   - [`Javascript`]/[`Python`]/[`Rust`]: The message is forwarded to the corresponding
