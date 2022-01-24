@@ -1,7 +1,8 @@
-/// Logic around the HASH commands exposed to simulation authors. Namely the ability for agents
-/// to:
-/// * Dynamically request the creation of agents
-/// * Dynamically request the deletion of agents
+//! Logic around the HASH commands exposed to simulation authors. Namely the ability for agents
+//! to:
+//! * Dynamically request the creation of agents
+//! * Dynamically request the deletion of agents
+
 use std::{collections::HashSet, sync::Arc};
 
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
