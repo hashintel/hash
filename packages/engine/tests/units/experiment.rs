@@ -73,7 +73,7 @@ pub async fn run_test_suite<P: AsRef<Path>>(project_path: P, language: Option<La
     for (experiment_type, expected_outputs) in experiments {
         // TODO: Remove attempting strategy
         let mut outputs = None;
-        let attempts = 2;
+        let attempts = 10;
         for attempt in 1..=attempts {
             if attempt > 1 {
                 std::env::set_var("RUST_LOG", "trace");
