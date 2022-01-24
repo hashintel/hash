@@ -40,7 +40,7 @@ macro_rules! run_test {
     };
 
     ($project:ident $(,)? $language:ident $(,)? $(#[$attr:meta])* ) => {
-        // Enable syntax highlighting and code completition
+        // Enable syntax highlighting and code completion
         #[allow(unused)]
         use hash_engine::Language::$language as _;
 
