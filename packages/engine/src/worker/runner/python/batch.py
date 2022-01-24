@@ -159,7 +159,7 @@ class Batch:
         # Dynamically accessed columns (if any) were added to `cols` by `state`.
         changes = []
         for field_name, col in self.cols.items():
-            if type(col) is not list or skip[field_name]:
+            if field_name in skip or len(col) == 0 or not isinstance(col, list):
                 continue  # Column wasn't written to or was writable in place.
 
             i_field = schema.get_field_index(field_name)
@@ -168,13 +168,20 @@ class Batch:
 
             field = schema.field(i_field)
             if field.name in any_type_fields:
-                c = [json.dumps(elem) for elem in col]
+                # Convert `any`-type array of JSON values to array of JSON strings
+                # for Arrow serialization as a string column.
+                py_col = [json.dumps(elem) for elem in col]
+            elif isinstance(col[0], pa.ArrayValue):
+                # Shallow-loaded column; can be modified in place
+                continue
             else:
-                c = col
+                # TODO: Custom loaders with intermediate level of shallow loading
+                #       (These currently result in an exception from `pa.array`.)
+                py_col = col
 
             changes.append({
                 'i_field': i_field,
-                'data': pa.array(c, type=field.type)
+                'data': pa.array(py_col, type=field.type)
             })
 
         if len(changes) == 0:
@@ -209,4 +216,5 @@ class Batches:
 
     def free(self):
         # TODO: Check that this releases references to shared memory
+        #       (Call _free_rust_static_meta, _free_rust_dynamic_meta, unload_shared_mem here?)
         self.batches = {}

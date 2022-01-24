@@ -131,7 +131,7 @@ class Runner:
     def state_snapshot_sync(self, sim_id, agent_pool, message_pool):
         self.sims[sim_id].context.set_snapshot(agent_pool, message_pool)
 
-    # TODO: rename to terminate?
+    # Prepare for immediate runner exit
     def kill(self):
         self.batches.free()
         self.messenger = None
