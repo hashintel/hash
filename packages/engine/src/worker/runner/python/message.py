@@ -27,6 +27,7 @@ from fbs import RunnerError
 from fbs import PackageError
 from fbs import UserError
 from fbs import UserErrors
+from fbs import UserWarning
 from fbs import UserWarnings
 
 from batch import load_dataset
@@ -282,12 +283,16 @@ class Messenger:
         if len(errors) == 0:
             return
 
+        logging.error(f"User errors: {errors}")
+
         fbs_bytes = user_errors_to_fbs_bytes(errors)
         self.to_rust.send(fbs_bytes)
 
     def send_user_warnings(self, warnings):
         if len(warnings) == 0:
             return
+
+        logging.warning(f"User warnings: {warnings}")
 
         fbs_bytes = user_warnings_to_fbs_bytes(warnings)
         self.to_rust.send(fbs_bytes)
@@ -326,10 +331,7 @@ def user_error_to_fbs(builder, error):
 
     UserError.Start(builder)
     UserError.AddMsg(builder, msg_offset)
-    user_error_offset = UserError.End(builder)
-
-    builder.Finish(user_error_offset)
-    return bytes(builder.Output())
+    return UserError.End(builder)
 
 
 def user_errors_to_fbs_bytes(errors):
@@ -337,7 +339,7 @@ def user_errors_to_fbs_bytes(errors):
     builder = flatbuffers.Builder(initialSize=len(errors))
     error_offsets = [user_error_to_fbs(builder, e) for e in errors]
 
-    UserErrors.StartInnerVector(len(errors))
+    UserErrors.StartInnerVector(builder, len(errors))
     for o in reversed(error_offsets):
         builder.PrependUOffsetTRelative(o)
     vector_offset = builder.EndVector(len(errors))
@@ -353,12 +355,9 @@ def user_errors_to_fbs_bytes(errors):
 def user_warning_to_fbs(builder, warning):
     msg_offset = builder.CreateString(warning)
 
-    fbs.UserWarning.Start(builder)
-    fbs.UserWarning.AddMsg(builder, msg_offset)
-    user_warning_offset = fbs.UserWarning.End(builder)
-
-    builder.Finish(user_warning_offset)
-    return bytes(builder.Output())
+    UserWarning.Start(builder)
+    UserWarning.AddMsg(builder, msg_offset)
+    return UserWarning.End(builder)
 
 
 def user_warnings_to_fbs_bytes(warnings):
@@ -366,7 +365,7 @@ def user_warnings_to_fbs_bytes(warnings):
     builder = flatbuffers.Builder(initialSize=len(warnings))
     warning_offsets = [user_warning_to_fbs(builder, w) for w in warnings]
 
-    UserWarnings.StartInnerVector(len(warnings))
+    UserWarnings.StartInnerVector(builder, len(warnings))
     for o in reversed(warning_offsets):
         builder.PrependUOffsetTRelative(o)
     vector_offset = builder.EndVector(len(warnings))
@@ -377,6 +376,7 @@ def user_warnings_to_fbs_bytes(warnings):
 
     builder.Finish(user_warnings_offset)
     return bytes(builder.Output())
+
 
 def target_to_fbs(target):
     if target == "py":
