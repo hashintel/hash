@@ -219,7 +219,7 @@ impl WorkerController {
     /// Depending of the content of the message, the following actions are executed:
     ///   - [`Task`]: The contained task is spawned for the specified simulation, [`TaskMsg`] is
     ///     send to all workers.
-    ///   - [`Sync`]: The workers are synchronized. See [`sync_runners`] for more details.
+    ///   - [`Sync`]: Tells the runners to synchronize. See [`sync_runners`] for more details.
     ///   - [`CancelTask`], The specified task is canceled, for all workers. [`CancelTask`] is send
     ///     to all workers.
     ///   - [`NewSimulationRun`]: Message is forwarded to all workers.
