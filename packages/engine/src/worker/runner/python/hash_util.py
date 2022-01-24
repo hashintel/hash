@@ -1,6 +1,9 @@
+from copy import deepcopy
 from json import loads
+
 import pyarrow as pa
 from pyarrow.types import is_primitive
+
 from wrappers import np_force_writable
 
 
@@ -8,7 +11,7 @@ def json_deepcopy(x):
     return deepcopy(x)
 
 
-def load_shallow(vector):
+def load_shallow(vector, field):
     return [elem for elem in vector]
 
 
@@ -23,12 +26,12 @@ def _writable_in_place(typ):
     return False  # TODO: Struct? Union? FixedSizeBinary?
 
 
-def load_full(vector):
-    if vector.type.is_any:
+def load_full(vector, field):
+    if field.metadata['is_any']:
         # `any` type fields are expensive
         return [loads(any_obj.as_buffer().to_pybytes()) for any_obj in vector]
 
-    if vector.type.is_nullable or not _writable_in_place(vector.type):
+    if field.nullable or not _writable_in_place(vector.type):
         # NOTE: Even if some nullable field were writable in place,
         #       changing it could change the null count, so its
         #       dynamic metadata would need to be updated.

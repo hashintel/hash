@@ -72,11 +72,9 @@ def load_record_batch(mem, schema=None):
     any_type_fields = parse_any_type_fields(schema.metadata)
 
     # Put data about `any` types and nullability directly in record batch.
-    for i_field in range(len(rb.num_columns)):
+    for i_field in range(rb.num_columns):
         field = rb.schema.field(i_field)
-        vector = rb.column(i_field)
-        vector.type.is_any = field.name in any_type_fields
-        vector.type.is_nullable = field.nullable
+        field.add_metadata({'is_any': field.name in any_type_fields})
 
     return rb
 
@@ -134,16 +132,19 @@ class Batch:
             self.static_meta = static_meta_from_schema(self.rb.schema)
 
     def load_col(self, name, loader=None):
-        vector = self.rb.column(name)
-        if not vector:
-            raise RuntimeError("Missing vector for " + name)
+        i_field = self.rb.schema.get_field_index(name)
+        if i_field < 0:
+            raise RuntimeError("Missing field for " + name)
 
+        field = self.rb.schema.field(i_field)
+        vector = self.rb.column(i_field)
         if loader is not None:
-            col = loader(vector)
-        elif len(name) >= 9 and (name[:2] == '_PRIVATE_' or name[:2] == '_HIDDEN_'): # only agent-scoped fields are fully loaded by default
-            col = hash_util.load_shallow(vector)
+            col = loader(vector, field)
+        elif name.startswith('_PRIVATE_') or name.startswith('_HIDDEN_'):
+            # only agent-scoped fields are fully loaded by default
+            col = hash_util.load_shallow(vector, field)
         else:
-            col = hash_util.load_full(vector)
+            col = hash_util.load_full(vector, field)
 
         self.cols[name] = col
         return col

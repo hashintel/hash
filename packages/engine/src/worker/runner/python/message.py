@@ -153,9 +153,9 @@ class PySimRun:
 
 class PySchema:
     def __init__(self, fb):
-        self.agent = pa.ipc.read_schema(fb.AgentBatchSchema())
-        self.context = pa.ipc.read_schema(fb.ContextBatchSchema())
-        self.message = pa.ipc.read_schema(fb.MessageBatchSchema())
+        self.agent = pa.ipc.read_schema(pa.py_buffer(fb.AgentBatchSchemaAsNumpy().tobytes()))
+        self.context = pa.ipc.read_schema(pa.py_buffer(fb.ContextBatchSchemaAsNumpy().tobytes()))
+        self.message = pa.ipc.read_schema(pa.py_buffer(fb.MessageBatchSchemaAsNumpy().tobytes()))
 
 
 class PyTerminateSim:
@@ -211,24 +211,33 @@ class Messenger:
         p = msg.Payload()
 
         if t == MESSAGE_TYPE.TaskMsg:
-            return PyTaskMsg(sim_sid, TaskMsg().Init(p.Bytes, p.Pos)), t
+            msg = TaskMsg()
+            msg.Init(p.Bytes, p.Pos)
+            return PyTaskMsg(sim_sid, msg), t
 
         if t == MESSAGE_TYPE.CancelTask:
             # TODO: CancelTask isn't used for now
             return None, t
 
         if t == MESSAGE_TYPE.StateSync:
-            return PyStateSync(sim_sid, StateSync().Init(p.Bytes, p.Pos)), t
+            msg = StateSync()
+            msg.Init(p.Bytes, p.Pos)
+            return PyStateSync(sim_sid, msg), t
 
         if t == MESSAGE_TYPE.StateSnapshotSync:
-            # Only message type is different from state sync
-            return PyStateSync(sim_sid, StateSnapshotSync().Init(p.Bytes, p.Pos)), t
+            msg = StateSnapshotSync()
+            msg.Init(p.Bytes, p.Pos)
+            return PyStateSync(sim_sid, msg), t
 
         if t == MESSAGE_TYPE.ContextBatchSync:
-            return PyContextBatchSync(sim_sid, ContextBatchSync().Init(p.Bytes, p.Pos)), t
+            msg = ContextBatchSync()
+            msg.Init(p.Bytes, p.Pos)
+            return PyContextBatchSync(sim_sid, msg), t
 
         if t == MESSAGE_TYPE.StateInterimSync:
-            return PyStateInterimSync(sim_sid, StateInterimSync().Init(p.Bytes, p.Pos)), t
+            msg = StateInterimSync()
+            msg.Init(p.Bytes, p.Pos)
+            return PyStateInterimSync(sim_sid, msg), t
 
         if t == MESSAGE_TYPE.TerminateSimulationRun:
             return PyTerminateSim(sim_sid), t
@@ -237,7 +246,9 @@ class Messenger:
             return None, t  # TerminateRunner payload is empty.
 
         if t == MESSAGE_TYPE.NewSimulationRun:
-            return PySimRun(NewSimulationRun().Init(p.Bytes, p.Pos)), t
+            msg = NewSimulationRun()
+            msg.Init(p.Bytes, p.Pos)
+            return PySimRun(msg), t
 
         raise RuntimeError(
             "Unknown message type {} from sim {}".format(t, sim_sid)
