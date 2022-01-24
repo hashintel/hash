@@ -23,6 +23,11 @@ MESSAGE_TYPE = RunnerInboundMsgPayload
 
 # Outbound
 import fbs
+from fbs import Metaversion
+from fbs import Batch
+from fbs import StateInterimSync as FbStateInterimSync
+from fbs import TaskId
+from fbs import TaskMsg as FbTaskMsg
 from fbs import RunnerError
 from fbs import PackageError
 from fbs import UserError
@@ -103,7 +108,7 @@ class PyTaskMsg:
         self.sim_id = sim_id
         self.pkg_id = fb.PackageSid()
         self.task_id = fb.TaskId()
-        self.sync = PyStateInterimSync(fb.Metaversioning())
+        self.sync = PyStateInterimSync(sim_id, fb.Metaversioning())
         self.payload = json_from_np(fb.Payload().InnerAsNumpy())
 
 
@@ -379,38 +384,26 @@ def user_warnings_to_fbs_bytes(warnings):
 
 
 def target_to_fbs(target):
-    if target == "py":
-        return Target.Python
-
-    if target == "js":
-        return Target.JavaScript
-
-    if target == "rs":
-        return Target.Rust
-
-    if target == "dyn":
-        return Target.Dynamic
-
-    if target == "main":
-        return Target.Main
-
-    raise RuntimeError("Unknown target " + str(target))
+    try:
+        return getattr(Target, target)
+    except AttributeError as e:
+        raise RuntimeError(f"Unknown target {target}: {e}")
 
 
 def metaversion_to_fbs(builder, batch):
-    fbs.Metaversion.Start(builder)
-    fbs.Metaversion.AddBatch(builder, batch.batch_version)
-    fbs.Metaversion.AddMemory(builder, batch.mem_version)
-    return fbs.Metaversion.End(builder)
+    Metaversion.Start(builder)
+    Metaversion.AddBatch(builder, batch.batch_version)
+    Metaversion.AddMemory(builder, batch.mem_version)
+    return Metaversion.End(builder)
 
 
 def batch_to_fbs(builder, batch):
     batch_id = builder.CreateString(batch.id)
-    metaversion = metaversion_to_fbs(batch)
-    fbs.Batch.Start(builder)
-    fbs.Batch.AddBatchId(builder, batch_id)
-    fbs.Batch.AddMetaversion(builder, metaversion)
-    batch_offset = fbs.Batch.End(builder)
+    metaversion = metaversion_to_fbs(builder, batch)
+    Batch.Start(builder)
+    Batch.AddBatchId(builder, batch_id)
+    Batch.AddMetaversion(builder, metaversion)
+    batch_offset = Batch.End(builder)
     return batch_offset
 
 
@@ -425,42 +418,42 @@ def interim_sync_to_fbs(builder, changes):
     for c in changes:
         message_offsets.append(batch_to_fbs(builder, c['message']))
 
-    fbs.StateInterimSync.StartGroupIdxVector(len(group_idxs))
+    FbStateInterimSync.StartGroupIdxVector(builder, len(group_idxs))
     for i in reversed(group_idxs):
         builder.PrependUint32(i)
     idxs_vector = builder.EndVector(len(group_idxs))
 
-    fbs.StateInterimSync.StartAgentBatchesVector(len(agent_offsets))
+    FbStateInterimSync.StartAgentBatchesVector(builder, len(agent_offsets))
     for o in reversed(agent_offsets):
         builder.PrependUOffsetTRelative(o)
     agent_vector = builder.EndVector(len(agent_offsets))
 
-    fbs.StateInterimSync.StartMessageBatchesVector(len(message_offsets))
+    FbStateInterimSync.StartMessageBatchesVector(builder, len(message_offsets))
     for o in reversed(message_offsets):
         builder.PrependUOffsetTRelative(o)
     message_vector = builder.EndVector(len(message_offsets))
 
-    fbs.StateInterimSync.Start(builder)
-    fbs.StateInterimSync.AddGroupIdx(builder, idxs_vector)
-    fbs.StateInterimSync.AddAgentBatches(builder, agent_vector)
-    fbs.StateInterimSync.AddMessageBatches(builder, message_vector)
-    sync_offset = fbs.StateInterimSync.End(builder)
+    FbStateInterimSync.Start(builder)
+    FbStateInterimSync.AddGroupIdx(builder, idxs_vector)
+    FbStateInterimSync.AddAgentBatches(builder, agent_vector)
+    FbStateInterimSync.AddMessageBatches(builder, message_vector)
+    sync_offset = FbStateInterimSync.End(builder)
     return sync_offset
 
 
-def task_to_fbs_bytes(sim_id, changes, pkd_id, task_id, target, task_msg):
+def task_to_fbs_bytes(sim_id, changes, pkg_id, task_id, target, task_msg):
     builder = flatbuffers.Builder(initialSize=0)
 
     sync_offset = interim_sync_to_fbs(builder, changes)
     payload_offset = builder.CreateString(task_msg)
 
-    fbs.TaskMsg.Start(builder)
-    fbs.TaskMsg.AddPackageSid(builder, pkd_id)
-    fbs.TaskMsg.AddTaskId(builder, task_id)
-    fbs.TaskMsg.AddTarget(builder, target_to_fbs(target))
-    fbs.TaskMsg.AddMetaversioning(builder, sync_offset)
-    fbs.TaskMsg.AddPayload(builder, payload_offset)
-    task_msg_offset = fbs.TaskMsg.End(builder)
+    FbTaskMsg.Start(builder)
+    FbTaskMsg.AddPackageSid(builder, pkg_id)
+    FbTaskMsg.AddTaskId(builder, TaskId.CreateTaskId(builder, task_id.Inner()))
+    FbTaskMsg.AddTarget(builder, target_to_fbs(target))
+    FbTaskMsg.AddMetaversioning(builder, sync_offset)
+    FbTaskMsg.AddPayload(builder, payload_offset)
+    task_msg_offset = FbTaskMsg.End(builder)
 
     builder.Finish(task_msg_offset)
     return bytes(builder.Output())
