@@ -1,3 +1,3 @@
 use crate::run_test;
 
-run_test!(composability);
+run_test!(composability, JavaScript);
