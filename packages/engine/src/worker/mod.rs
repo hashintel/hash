@@ -353,7 +353,7 @@ impl WorkerController {
         Ok(())
     }
 
-    /// Attempts to join the spawned runners.
+    /// Sends a termination message to all spawned runners
     async fn terminate_runners(&mut self) -> Result<()> {
         tokio::try_join!(
             self.py
