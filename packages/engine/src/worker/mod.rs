@@ -660,7 +660,8 @@ impl WorkerController {
         let fut = async move {
             let sync = sync; // Capture `sync` in lambda.
             sync.forward_children(runner_receivers).await
-        };
+        }
+        .in_current_span();
         pending_syncs.push(Box::pin(fut) as _);
         Ok(())
     }
