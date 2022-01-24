@@ -161,8 +161,7 @@ async fn _run(
 
                 // Send nng first, because need inbound by reference for nng,
                 // but by value for saving sent task.
-                // TODO: Don't ignore inbound messages (after fixing fbs parsing in Python).
-                // nng_sender.send(sim_id, &inbound, &task_payload_json)?;
+                nng_sender.send(sim_id, &inbound, &task_payload_json)?;
 
                 // Do Rust part of message handling, if any.
                 match inbound {

@@ -166,10 +166,6 @@ class Runner:
                     self.kill()
                     break
 
-
-                continue # TODO: Don't ignore messages (after fixing message handling).
-
-
                 if t == MESSAGE_TYPE.NewSimulationRun:
                     self.start_sim(msg)
 
