@@ -29,8 +29,7 @@ def load_fns(pkg_name, pkg_type):
         bytecode = compile(code, pkg_name, "exec")
         exec(bytecode, pkg_globals)
     except Exception:
-        # Have to catch generic Exception, because
-        # package author's code could throw anything
+        # Have to catch generic Exception, because package could throw anything
         e = str(traceback.format_exception(*sys.exc_info()))
         raise RuntimeError(
             "Couldn't import package " + str(path) + ": " + e

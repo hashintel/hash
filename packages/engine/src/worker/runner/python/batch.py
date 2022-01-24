@@ -86,8 +86,8 @@ def load_dataset(batch_id):
     dataset_utf8 = data_buf.to_pybytes().decode('utf8')
     try:
         return dataset_name, json.loads(dataset_utf8), True
-    except: # TODO: Only catch exact JSON parsing error.
-            # TODO: Extract parsing error line number from exception.
+    except json.JSONDecodeError:
+        # TODO: Extract parsing error line number from exception.
         return dataset_name, dataset_utf8, False
 
 
