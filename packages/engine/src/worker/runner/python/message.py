@@ -153,9 +153,9 @@ class PySimRun:
 
 class PySchema:
     def __init__(self, fb):
-        self.agent = pa.ipc.read_schema(fb.AgentBatchSchema())
-        self.context = pa.ipc.read_schema(fb.ContextBatchSchema())
-        self.message = pa.ipc.read_schema(fb.MessageBatchSchema())
+        self.agent = pa.ipc.read_schema(pa.py_buffer(fb.AgentBatchSchemaAsNumpy().tobytes()))
+        self.context = pa.ipc.read_schema(pa.py_buffer(fb.ContextBatchSchemaAsNumpy().tobytes()))
+        self.message = pa.ipc.read_schema(pa.py_buffer(fb.MessageBatchSchemaAsNumpy().tobytes()))
 
 
 class PyTerminateSim:
