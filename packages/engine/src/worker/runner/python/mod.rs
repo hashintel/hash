@@ -25,6 +25,7 @@ use crate::{
     worker::{Error as WorkerError, Result as WorkerResult},
     Language,
 };
+use crate::worker::runner::comms::outbound::OutboundFromRunnerMsgPayload;
 
 pub struct PythonRunner {
     init_msg: Arc<ExperimentInitRunnerMsg>, // Args to RunnerImpl::new
@@ -208,6 +209,10 @@ async fn _run(
                         "Failed to convert nng message to OutboundFromRunnerMsg: {err}"
                     ))
                 })?;
+                log::trace!("Got outbound {outbound:?}");
+                if let OutboundFromRunnerMsgPayload::RunnerWarnings(warnings) = &outbound.payload {
+                    log::warn!("Sim {} warnings: {warnings:?}", outbound.sim_id);
+                }
                 outbound_sender.send(outbound)?;
             }
         }

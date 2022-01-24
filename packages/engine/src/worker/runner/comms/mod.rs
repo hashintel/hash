@@ -67,6 +67,18 @@ impl From<flatbuffers_gen::target_generated::Target> for MessageTarget {
     }
 }
 
+impl From<MessageTarget> for flatbuffers_gen::target_generated::Target {
+    fn from(target: MessageTarget) -> Self {
+        match target {
+            MessageTarget::Rust => Self::Rust,
+            MessageTarget::Python => Self::Python,
+            MessageTarget::JavaScript => Self::JavaScript,
+            MessageTarget::Dynamic => Self::Dynamic,
+            MessageTarget::Main => Self::Main,
+        }
+    }
+}
+
 // TODO: Group indices have type u32 in RunnerTaskMsg, but usize in StateInterimSync.
 #[derive(Debug)]
 pub struct RunnerTaskMsg {
@@ -84,7 +96,7 @@ pub struct TargetedRunnerTaskMsg {
 
 impl TargetedRunnerTaskMsg {
     pub fn try_from_fbs(
-        task_msg: flatbuffers_gen::runner_outbound_msg_generated::TaskMsg<'_>,
+        task_msg: flatbuffers_gen::task_msg_generated::TaskMsg<'_>,
         sent_tasks: &mut HashMap<TaskId, SentTask>,
     ) -> Result<Self> {
         let task_id = task_msg.task_id().ok_or_else(|| {
