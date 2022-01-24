@@ -189,64 +189,45 @@ class Runner:
         self.batches.free()
         self.messenger = None
 
-    # `exc_info` is whatever tuple of info `sys.exc_info()` returned about
-    # an exception. Calling `sys.exc_info()` inside `handle_runner_error`
-    # wouldn't work, because `sys.exc_info` can only return info about an
-    # exception that has just occurred.
-    def handle_runner_error(self, exc_info):
-        # User errors definitely need to be sent back to the Rust process, so
-        # they can be sent further to the user and displayed.
-
-        # Package error sending is more of a nice-to-have, but helps users
-        # report bugs to package authors. 
-
-        # Runner errors just need to reach our logs, so their contents don't
-        # really need to be sent back, but it's still good to notify the
-        # Rust process that a runner error occurred so it immediately knows
-        # that the runner exited.
-
-        error = "Runner error: " + str(traceback.format_exception(*exc_info))
-        logging.error(error)  # First make sure the error gets logged; then try to send it.
-        self.messenger.send_runner_error(error)
-        time.sleep(2)  # Give the Rust process time to receive the error message.
-        self.kill()
-
+    # Wait for and handle messages from Rust process until
+    # a termination message is received or a fatal error occurs.
+    # Messages are always handled sequentially.
     def run(self):
         try:
             while True:
-                msg, t = self.messenger.recv()
-                if t == MESSAGE_TYPE.TerminateRunner:
+                msg, msg_type = self.messenger.recv()
+                if msg_type == MESSAGE_TYPE.TerminateRunner:
                     logging.debug("Terminating runner")
                     self.kill()
                     break
 
-                if t == MESSAGE_TYPE.NewSimulationRun:
+                elif msg_type == MESSAGE_TYPE.NewSimulationRun:
                     logging.debug("Starting simulation run")
                     self.start_sim(msg)
 
-                if t == MESSAGE_TYPE.TerminateSimulationRun:
+                elif msg_type == MESSAGE_TYPE.TerminateSimulationRun:
                     logging.debug("Terminating simulation run")
                     del self.sims[msg.sim_id]
 
-                if t == MESSAGE_TYPE.ContextBatchSync:
+                elif msg_type == MESSAGE_TYPE.ContextBatchSync:
                     logging.debug("Handling context batch sync")
                     self.ctx_batch_sync(msg.sim_id, msg.batch, msg.cur_step)
 
-                if t == MESSAGE_TYPE.StateSync:
+                elif msg_type == MESSAGE_TYPE.StateSync:
                     logging.debug("Handling state sync")
                     self.state_sync(msg.sim_id, msg.agent_pool, msg.message_pool)
 
-                if t == MESSAGE_TYPE.StateInterimSync:
+                elif msg_type == MESSAGE_TYPE.StateInterimSync:
                     logging.debug("Handling state interim sync")
                     self.state_interim_sync(
                         msg.sim_id, msg.group_idxs, msg.agent_batches, msg.message_batches
                     )
 
-                if t == MESSAGE_TYPE.StateSnapshotSync:
+                elif msg_type == MESSAGE_TYPE.StateSnapshotSync:
                     logging.debug("Handling snapshot sync")
                     self.state_snapshot_sync(msg.sim_id, msg.agent_pool, msg.message_pool)
 
-                if t == MESSAGE_TYPE.TaskMsg:
+                elif msg_type == MESSAGE_TYPE.TaskMsg:
                     logging.debug("Running task")
                     n_groups = self.sims[msg.sim_id].state.n_groups()
 
@@ -261,9 +242,12 @@ class Runner:
 
                     self.run_task(msg.sim_id, group_idx, msg.pkg_id, msg.task_id, msg.payload)
 
-                if t == MESSAGE_TYPE.CancelTask:
+                elif msg_type == MESSAGE_TYPE.CancelTask:
                     pass  # TODO: CancelTask isn't used for now
 
-        except Exception as e:
+                else:
+                    raise RuntimeError(f"Unknown message type: {msg_type}")
+
+        except Exception:
             # Catch generic Exception to make sure it's logged before the runner exits.
-            self.handle_runner_error(sys.exc_info())
+            self._handle_runner_error(sys.exc_info())
