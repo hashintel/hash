@@ -110,17 +110,17 @@ class PyStateInterimSync:
     def __init__(self, sim_id, fb):
         self.sim_id = sim_id
 
-        n_batches = fb.GroupIdxLength()
-        self.group_idxs = [fb.GroupIdx(i) for i in range(n_batches)]
+        n_groups = fb.GroupIdxLength()
+        self.group_idxs = [fb.GroupIdx(i) for i in range(n_groups)]
 
-        assert_eq(fb.AgentBatchesLength(), n_batches)
+        assert_eq(n_groups, fb.AgentBatchesLength())
         self.agent_batches = [
-            PyBatchMsg(fb.AgentBatches(i)) for i in range(n_batches)
+            PyBatchMsg(fb.AgentBatches(i)) for i in range(n_groups)
         ]
 
-        assert_eq(fb.MessageBatchesLength(), n_batches)
+        assert_eq(n_groups, fb.MessageBatchesLength())
         self.message_batches = [
-            PyBatchMsg(fb.MessageBatches(i)) for i in range(n_batches)
+            PyBatchMsg(fb.MessageBatches(i)) for i in range(n_groups)
         ]
 
 
