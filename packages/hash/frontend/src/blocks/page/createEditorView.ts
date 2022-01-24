@@ -61,7 +61,7 @@ export const createEditorView = (
       );
     },
     nodeViews: {
-      block(currentNode, currentView, getPos) {
+      block(currentNode, currentView, getPos, _decorations) {
         if (typeof getPos === "boolean") {
           throw new Error("Invalid config for nodeview");
         }
@@ -73,7 +73,7 @@ export const createEditorView = (
           manager,
         );
       },
-      mention(currentNode, currentView, getPos) {
+      mention(currentNode, currentView, getPos, _decorations) {
         if (typeof getPos === "boolean") {
           throw new Error("Invalid config for nodeview");
         }
@@ -95,7 +95,7 @@ export const createEditorView = (
   manager = new ProsemirrorSchemaManager(
     state.schema,
     view,
-    (meta) => (node, editorView, getPos) => {
+    (meta) => (node, editorView, getPos, _decorations) => {
       if (typeof getPos === "boolean") {
         throw new Error("Invalid config for nodeview");
       }
