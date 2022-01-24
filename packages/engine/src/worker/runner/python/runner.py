@@ -122,14 +122,14 @@ class Runner:
             agent_batch = self.batches.sync(agent_batches[i], sim.schema.agent)
             agent_batch.load_missing_cols(sim.schema.agent, sim.state_loaders)
 
-            msg_batch = self.batches.sync(message_batches[i], sim.schema.msg)
-            msg_batch.load_missing_cols(sim.schema.msg, {})
+            msg_batch = self.batches.sync(message_batches[i], sim.schema.message)
+            msg_batch.load_missing_cols(sim.schema.message, {})
 
             group_state = sim.state.get_group(group_idx)
             group_state.set_batches(agent_batch, msg_batch)
 
-    def state_snapshot_sync(self, sim_id, agent_pool, msg_pool):
-        self.sims[sim_id].context.set_snapshot(agent_pool, msg_pool)
+    def state_snapshot_sync(self, sim_id, agent_pool, message_pool):
+        self.sims[sim_id].context.set_snapshot(agent_pool, message_pool)
 
     # TODO: rename to terminate?
     def kill(self):
@@ -190,7 +190,8 @@ class Runner:
                     )
 
                 if t == MESSAGE_TYPE.StateSnapshotSync:
-                    self.state_snapshot_sync(msg.sim_id, msg.agent_pool, msg.msg_pool)
+                    logging.debug("Handling snapshot sync")
+                    self.state_snapshot_sync(msg.sim_id, msg.agent_pool, msg.message_pool)
 
                 if t == MESSAGE_TYPE.TaskMsg:
                     logging.debug("Running task")
