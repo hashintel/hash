@@ -172,7 +172,7 @@ impl CreateRemoveCommands {
     }
 }
 
-/// Extends a given `CreateRemoveCommands` with a new command created and parsed depending on the
+/// Extends a given [`CreateRemoveCommands`] with a new command created and parsed depending on the
 /// given HashMessageType
 fn handle_hash_message(
     cmds: &mut CreateRemoveCommands,
