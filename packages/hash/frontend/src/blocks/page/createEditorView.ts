@@ -128,7 +128,8 @@ export const createEditorView = (
   const blocksMetaArray = Object.values(blocksMeta);
 
   const paragraphBlockMeta = blocksMetaArray.find(
-    (blockMeta) => blockMeta.componentMetadata.name === "paragraph",
+    (blockMeta) =>
+      blockMeta.componentMetadata.name === "@hashintel/block-paragraph",
   );
 
   if (!paragraphBlockMeta) {
