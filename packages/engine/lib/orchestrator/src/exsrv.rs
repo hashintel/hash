@@ -12,8 +12,12 @@ type MsgReceiver = mpsc::UnboundedReceiver<proto::EngineStatus>;
 type CtrlSender = mpsc::Sender<(Ctrl, ResultSender)>;
 type CtrlReceiver = mpsc::Receiver<(Ctrl, ResultSender)>;
 
-/// Create a new Server with an associated Handler. Use `Server::run` to start the server, and use
-/// the Handler to register new experiment executions.
+/// Create a new Server with an associated Handler.
+///
+/// Use `Server::run` to start the server, and use the Handler to register new experiment
+/// executions.
+///
+/// Note, that the server may return errors when using the same `url` for different servers.
 pub fn create_server(url: String) -> Result<(Server, Handler)> {
     let (ctrl_tx, ctrl_rx) = mpsc::channel(1);
     let (close_tx, close_rx) = mpsc::unbounded_channel();

@@ -232,17 +232,11 @@ jobs:
 
       - name: Build test dependencies
         if: matrix.directory == 'packages/engine'
-        run: cargo build -p server -p cli --manifest-path ${{ matrix.directory }}/Cargo.toml
+        run: cargo build -p server --manifest-path ${{ matrix.directory }}/Cargo.toml
 
-      - name: Run tests (parallel)
-        continue-on-error: true
+      - name: Run tests
         id: test-parallel
         run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} --no-fail-fast
-
-        # TODO: Only use parallel tests
-      - name: Run tests (sequential)
-        if: steps.test-parallel.outcome == 'failure'
-        run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} -- --test-threads=1
 
   merging-enabled:
     name: merging enabled

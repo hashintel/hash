@@ -49,7 +49,7 @@ impl ExperimentType {
 }
 
 pub struct Experiment {
-    config: ExperimentConfig,
+    pub config: ExperimentConfig,
 }
 
 impl Experiment {
