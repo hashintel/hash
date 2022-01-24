@@ -110,6 +110,9 @@ impl Engine {
         let state = Arc::new(state.downgrade());
         // Synchronize state with workers
         let active_sync = self.comms.state_sync(&state).await?;
+        log::trace!("Waiting for active state sync");
+        active_sync.await?.map_err(Error::state_sync)?;
+        log::trace!("State sync finished");
 
         let pre_context = context.into_pre_context();
         let context = self
@@ -134,9 +137,6 @@ impl Engine {
         // components have finished running), so we don't need confirmation of
         // snapshot_sync.
 
-        log::trace!("Waiting for active state sync");
-        active_sync.await?.map_err(Error::state_sync)?;
-        log::trace!("State sync finished");
         // State sync finished, so the workers should have dropped
         // their `Arc`s with state by this point.
         let state = Arc::try_unwrap(state)
