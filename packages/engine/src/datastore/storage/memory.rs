@@ -182,7 +182,6 @@ impl Memory {
             };
 
             if !Path::new(&format!("/dev/shm/{}", cur_id)).exists() {
-                dbg!(&cur_id);
                 return cur_id;
             }
         }
