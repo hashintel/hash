@@ -158,7 +158,7 @@
           {
             "name": "prosemirror-model",
             "importNames": ["Node"],
-            "message": "Please use ProsemirrorNode from @hashintel/shared/node"
+            "message": "Please import ProsemirrorNode instead"
           }
         ]
       }

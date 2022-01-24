@@ -6,8 +6,8 @@ use hash_engine::{
     output::local::config::LocalPersistenceConfig,
     proto,
     proto::{
-        ExecutionEnvironment, ExperimentPackageConfig, ExperimentRunBase, SimpleExperimentConfig,
-        SingleRunExperimentConfig,
+        ExecutionEnvironment, ExperimentId, ExperimentName, ExperimentPackageConfig,
+        ExperimentRunBase, SimpleExperimentConfig, SingleRunExperimentConfig,
     },
     utils::OutputFormat,
 };
@@ -31,22 +31,10 @@ pub struct ExperimentConfig {
 #[derive(Debug, Clone)]
 pub enum ExperimentType {
     SingleRun { num_steps: usize },
-    Simple { name: String },
+    Simple { name: ExperimentName },
 }
 
 impl ExperimentType {
-    pub fn create_run_id(&self) -> String {
-        // Generates a 6-digit hexadecimal and concats with the experiment name by
-        // {experiment_name}-{6-digit hex}
-        let mut rng = rand::thread_rng();
-        let num = rng.gen_range(0_usize..=0x_FF_FF_FF);
-        let name = match self {
-            Self::SingleRun { .. } => "single_run",
-            Self::Simple { name } => name,
-        };
-        return format!("{name}-{num:06x}");
-    }
-
     pub fn get_package_config(self, base: &ExperimentRunBase) -> Result<ExperimentPackageConfig> {
         match self {
             ExperimentType::SingleRun { num_steps } => Ok(ExperimentPackageConfig::SingleRun(
@@ -61,7 +49,7 @@ impl ExperimentType {
 }
 
 pub struct Experiment {
-    config: ExperimentConfig,
+    pub config: ExperimentConfig,
 }
 
 impl Experiment {
@@ -71,7 +59,7 @@ impl Experiment {
 
     pub fn create_engine_command(
         &self,
-        experiment_id: &str,
+        experiment_id: ExperimentId,
         controller_url: &str,
     ) -> Result<Box<dyn process::Command + Send>> {
         Ok(Box::new(process::LocalCommand::new(
@@ -82,22 +70,22 @@ impl Experiment {
         )?))
     }
 
-    #[instrument(skip_all, fields(project_name = project_name.as_str(), experiment_id = experiment_run.base.id.as_str()))]
+    #[instrument(skip_all, fields(project_name = project_name.as_str(), experiment_id = %experiment_run.base.id))]
     pub async fn run(
         &self,
         experiment_run: proto::ExperimentRun,
         project_name: String,
         mut handler: Handler,
     ) -> Result<()> {
-        let experiment_id = experiment_run.base.id.clone();
+        let experiment_name = experiment_run.base.name.clone();
         let mut engine_handle = handler
-            .register_experiment(&experiment_id)
+            .register_experiment(experiment_run.base.id)
             .await
-            .wrap_err_lazy(|| format!("Could not register experiment: {experiment_id}"))?;
+            .wrap_err_lazy(|| format!("Could not register experiment \"{experiment_name}\""))?;
 
         // Create and start the experiment run
         let cmd = self
-            .create_engine_command(&experiment_id, handler.url())
+            .create_engine_command(experiment_run.base.id, handler.url())
             .wrap_err("Could not build engine command")?;
         let mut engine_process = cmd.run().await.wrap_err("Could not run experiment")?;
 
@@ -115,7 +103,7 @@ impl Experiment {
                 );
             }
             Err(e) => {
-                error!("Engine start timeout for experiment {experiment_id}");
+                error!("Engine start timeout for experiment \"{experiment_name}\"");
                 engine_process
                     .exit_and_cleanup()
                     .await
@@ -123,7 +111,7 @@ impl Experiment {
                 bail!(e);
             }
         };
-        debug!("Received start message from {experiment_id}");
+        debug!("Received start message from \"{experiment_name}\"");
 
         let map_iter = [(
             OUTPUT_PERSISTENCE_KEY.to_string(),
@@ -141,7 +129,7 @@ impl Experiment {
             .send(&proto::EngineMsg::Init(init_message))
             .await
             .wrap_err("Could not send `Init` message")?;
-        debug!("Sent init message to {experiment_id}");
+        debug!("Sent init message to \"{experiment_name}\"");
 
         let mut errored = false;
         loop {
@@ -149,7 +137,7 @@ impl Experiment {
             tokio::select! {
                 _ = sleep(self.config.engine_wait_timeout) => {
                     error!(
-                        "Did not receive status from experiment {experiment_id} for over {:?}. \
+                        "Did not receive status from experiment \"{experiment_name}\" for over {:?}. \
                         Exiting now.",
                         self.config.engine_wait_timeout
                     );
@@ -162,7 +150,7 @@ impl Experiment {
 
             match msg {
                 proto::EngineStatus::Stopping => {
-                    debug!("Stopping experiment {experiment_id}");
+                    debug!("Stopping experiment \"{experiment_name}\"");
                 }
                 proto::EngineStatus::SimStart { sim_id, globals: _ } => {
                     debug!("Started simulation: {sim_id}");
@@ -184,14 +172,12 @@ impl Experiment {
                 proto::EngineStatus::Logs(sim_id, logs) => {
                     for log in logs {
                         if !log.is_empty() {
-                            info!(target: "behaviors", "[{experiment_id}][{sim_id}]: {log}");
+                            info!(target: "behaviors", "[{experiment_name}][{sim_id}]: {log}");
                         }
                     }
                 }
                 proto::EngineStatus::Exit => {
-                    debug!(
-                        "Process exited successfully for experiment run with id {experiment_id}",
-                    );
+                    debug!("Process exited successfully for experiment run \"{experiment_name}\"",);
                     break;
                 }
                 proto::EngineStatus::ProcessError(error) => {
@@ -225,7 +211,7 @@ impl Experiment {
 
 fn get_simple_experiment_config(
     base: &ExperimentRunBase,
-    experiment_name: String,
+    experiment_name: ExperimentName,
 ) -> Result<SimpleExperimentConfig> {
     let experiments_manifest = base
         .project_base
@@ -265,9 +251,9 @@ fn get_simple_experiment_config(
 
 fn create_experiment_plan(
     experiments: &HashMap<String, SerdeValue>,
-    experiment_name: &str,
+    experiment_name: &ExperimentName,
 ) -> Result<SimpleExperimentPlan> {
-    let selected_experiment = experiments.get(experiment_name).ok_or_else(|| {
+    let selected_experiment = experiments.get(experiment_name.as_str()).ok_or_else(|| {
         report!(
             "Expected experiments.json to contain the specified experiment definition for \
              experiment with name: {experiment_name}"
@@ -350,7 +336,7 @@ fn create_group_variant(
         #[serde(rename = "type")]
         _type: String,
         steps: f64,
-        runs: Vec<String>,
+        runs: Vec<ExperimentName>,
     }
     let var: GroupVariant = serde_json::from_value(selected_experiment.clone())?;
     var.runs.iter().try_fold(

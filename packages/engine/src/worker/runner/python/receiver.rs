@@ -1,8 +1,5 @@
-use std::str::FromStr;
-
 use nng::{Aio, Socket};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
-use uuid::Uuid;
 
 use super::{
     error::{Error, Result},
@@ -15,9 +12,8 @@ use crate::{
 fn experiment_init_to_nng(init: &ExperimentInitRunnerMsg) -> Result<nng::Message> {
     // TODO: initial buffer size
     let mut fbb = flatbuffers::FlatBufferBuilder::new();
-    let experiment_id = flatbuffers_gen::init_generated::ExperimentId(
-        *(Uuid::from_str(&init.experiment_id)?.as_bytes()),
-    );
+    let experiment_id =
+        flatbuffers_gen::init_generated::ExperimentId(*(init.experiment_id.as_bytes()));
 
     // Build the SharedContext Flatbuffer Batch objects and collect their offsets in a vec
     let shared_context = shared_ctx_to_fbs(&mut fbb, &init.shared_context);

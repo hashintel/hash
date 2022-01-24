@@ -3,6 +3,7 @@ import { Schema } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
 import "prosemirror-view/style/prosemirror.css";
 import React, { useLayoutEffect, useRef, VoidFunctionComponent } from "react";
+import { useLocalstorageState } from "rooks";
 import { tw } from "twind";
 
 import { Button } from "../../components/forms/Button";
@@ -30,6 +31,9 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 }) => {
   const root = useRef<HTMLDivElement>(null);
   const [portals, renderPortal] = usePortals();
+  const [debugging] = useLocalstorageState<
+    { restartCollabButton?: boolean } | boolean
+  >("hash.internal.debugging", false);
 
   const prosemirrorSetup = useRef<null | {
     view: EditorView<Schema>;
@@ -79,14 +83,20 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       {/**
        * @todo position this better
        */}
-      <Button
-        className={tw`fixed bottom-5 right-5 opacity-30 hover:(opacity-100) transition-all`}
-        onClick={() => {
-          prosemirrorSetup.current?.connection?.restart();
-        }}
-      >
-        Restart Collab Instance
-      </Button>
+      {(
+        typeof debugging === "boolean"
+          ? debugging
+          : debugging.restartCollabButton
+      ) ? (
+        <Button
+          className={tw`fixed bottom-5 right-5 opacity-30 hover:(opacity-100) transition-all`}
+          onClick={() => {
+            prosemirrorSetup.current?.connection?.restart();
+          }}
+        >
+          Restart Collab Instance
+        </Button>
+      ) : null}
     </BlocksMetaProvider>
   );
 };
