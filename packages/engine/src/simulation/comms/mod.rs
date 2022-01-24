@@ -160,10 +160,10 @@ impl Comms {
 }
 
 impl Comms {
-    pub async fn new_task<T: Into<Task>>(
+    pub async fn new_task(
         &self,
         package_id: PackageId,
-        task: T,
+        task: Task,
         shared_store: TaskSharedStore,
     ) -> Result<ActiveTask> {
         let task_id = uuid::Uuid::new_v4().as_u128();
@@ -176,13 +176,12 @@ impl Comms {
 }
 
 /// TODO: DOC
-fn wrap_task<T: Into<Task>>(
+fn wrap_task(
     task_id: TaskId,
     package_id: PackageId,
-    task: T,
+    task: Task,
     shared_store: TaskSharedStore,
 ) -> Result<(WrappedTask, ActiveTask)> {
-    let task: Task = task.into();
     task.verify_store_access(&shared_store)?;
     let (owner_channels, executor_channels) = active::comms();
     let wrapped = WrappedTask::new(task_id, package_id, task, executor_channels, shared_store);

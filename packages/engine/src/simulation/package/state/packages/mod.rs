@@ -40,7 +40,7 @@ impl std::fmt::Display for Name {
 }
 
 /// All state package tasks are registered in this enum
-#[enum_dispatch(WorkerHandler, WorkerPoolHandler, GetTaskArgs)]
+#[enum_dispatch(GetTaskName, WorkerHandler, WorkerPoolHandler, GetTaskArgs)]
 #[derive(Clone, Debug)]
 pub enum StateTask {
     ExecuteBehaviorsTask,

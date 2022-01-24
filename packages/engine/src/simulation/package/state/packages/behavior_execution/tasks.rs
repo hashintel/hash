@@ -9,7 +9,7 @@ use crate::{
             args::GetTaskArgs,
             handler::{SplitConfig, WorkerPoolHandler},
             msg::{TargetedTaskMessage, TaskMessage},
-            Task,
+            GetTaskName, Task,
         },
         Result as SimulationResult,
     },
@@ -19,6 +19,12 @@ use crate::{
 #[derive(Clone, Debug)]
 pub struct ExecuteBehaviorsTask {
     pub target: MessageTarget,
+}
+
+impl GetTaskName for ExecuteBehaviorsTask {
+    fn get_task_name(&self) -> &'static str {
+        "BehaviorExecution"
+    }
 }
 
 impl GetTaskArgs for ExecuteBehaviorsTask {

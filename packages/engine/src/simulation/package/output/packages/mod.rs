@@ -52,11 +52,17 @@ pub enum Output {
 }
 
 /// All output package tasks are registered in this enum
-// #[enum_dispatch(WorkerHandler, WorkerPoolHandler, GetTaskArgs)]
+// #[enum_dispatch(GetTaskName, WorkerHandler, WorkerPoolHandler, GetTaskArgs)]
 #[derive(Clone, Debug)]
 pub enum OutputTask {}
 
 // Empty impls to satisfy constraints enum_dispatch while there are no task variants
+impl GetTaskName for OutputTask {
+    fn get_task_name(&self) -> &'static str {
+        unimplemented!()
+    }
+}
+
 impl WorkerHandler for OutputTask {}
 
 impl WorkerPoolHandler for OutputTask {}

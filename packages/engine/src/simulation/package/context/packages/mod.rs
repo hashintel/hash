@@ -42,11 +42,17 @@ impl std::fmt::Display for Name {
 }
 
 /// All context package tasks are registered in this enum
-// #[enum_dispatch(WorkerHandler, WorkerPoolHandler, GetTaskArgs)]
+// #[enum_dispatch(GetTaskName, WorkerHandler, WorkerPoolHandler, GetTaskArgs)]
 #[derive(Clone, Debug)]
 pub struct ContextTask {}
 
 // Empty impls to satisfy constraints from enum_dispatch while there are no task variants
+impl GetTaskName for ContextTask {
+    fn get_task_name(&self) -> &'static str {
+        unimplemented!()
+    }
+}
+
 impl WorkerHandler for ContextTask {}
 
 impl WorkerPoolHandler for ContextTask {}
