@@ -152,5 +152,7 @@ export const entityTypeTypedef = gql`
     """
     linkedAggregations: [LinkedAggregation!]!
     # ENTITY INTERFACE FIELDS END #
+    children: [EntityType!]
+    parents: [EntityType!]
   }
 `;
