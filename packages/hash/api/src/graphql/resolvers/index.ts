@@ -47,6 +47,7 @@ import { isShortnameTaken } from "./user/isShortnameTaken";
 import { createEntityType } from "./entityType/createEntityType";
 import { SYSTEM_TYPES, SystemType } from "../../types/entityTypes";
 import { entityTypeTypeFields } from "./entityType/entityTypeTypeFields";
+import { entityTypeInheritance } from "./entityType/entityTypeInheritance";
 import { getAccountEntityTypes } from "./entityType/getAccountEntityTypes";
 import { getEntityType } from "./entityType/getEntityType";
 import { createOrgEmailInvitation } from "./org/createOrgEmailInvitation";
@@ -197,6 +198,8 @@ export const resolvers = {
     entityTypeId: entityTypeTypeFields.entityTypeId,
     entityTypeName: entityTypeTypeFields.entityTypeName,
     entityTypeVersionId: entityTypeTypeFields.entityTypeVersionId,
+    children: entityTypeInheritance.entityTypeChildren,
+    parents: entityTypeInheritance.entityTypeParents,
   },
 
   Account: {

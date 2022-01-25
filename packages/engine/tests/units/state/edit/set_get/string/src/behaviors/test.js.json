@@ -8,12 +8,12 @@
       "type": "string",
       "nullable": false
     },
-    "s1_type": {
-      "type": "string",
+    "s1_is_string": {
+      "type": "boolean",
       "nullable": false
     },
-    "s2_type": {
-      "type": "string",
+    "s2_is_string": {
+      "type": "boolean",
       "nullable": false
     }
   }

@@ -2,8 +2,8 @@
  * Gets and sets an object value using set/get notation
  */
 const behavior = (state, context) => {
-  state.o1_type = typeof state.get("o1");
-  state.o1_n1_type = typeof state.get("o1").n1;
+  state.set("o1_is_struct", typeof state.get("o1") === "object");
+  state.set("o1_n1_is_number", typeof state.get("o1").n1 === "number");
 
   const o1 = state.get("o1");
 
@@ -12,5 +12,5 @@ const behavior = (state, context) => {
 
   state.set("o1", o1);
 
-  state.o1_n2_type = typeof state.get("o1").n2;
+  state.set("o1_n2_is_number", typeof state.get("o1").n2 === "number");
 };
