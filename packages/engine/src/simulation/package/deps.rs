@@ -92,6 +92,8 @@ impl PackageName {
 pub mod tests {
     use std::sync::Arc;
 
+    use uuid::Uuid;
+
     use super::*;
     use crate::{
         config::WorkerPoolConfig,
@@ -130,18 +132,17 @@ pub mod tests {
     #[test]
     fn validate_dependencies() -> Result<()> {
         let experiment_config = &Arc::new(ExperimentConfig {
-            run_id: Arc::new("".to_string()),
             packages: Arc::new(Default::default()),
             run: Arc::new(
                 ExperimentRunBase {
-                    id: "".to_string(),
+                    name: String::new().into(),
+                    id: Uuid::new_v4(),
                     project_base: ProjectBase {
                         initial_state: InitialState {
                             name: InitialStateName::InitJson,
                             src: "".to_string(),
                         },
                         globals_src: "".to_string(),
-                        dependencies_src: None,
                         experiments_src: None,
                         behaviors: vec![],
                         datasets: vec![],

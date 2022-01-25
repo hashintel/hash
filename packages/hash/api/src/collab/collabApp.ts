@@ -37,6 +37,7 @@ const formatGetEventsResponse = (
   clientIDs: data.clientIDs,
   users: data.users,
   store: data.store,
+  actions: data.actions,
 });
 
 interface UserInfo {
@@ -233,6 +234,8 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
           data.steps,
           data.clientID,
           data.blockIds,
+          // @todo these need to be validated
+          data.actions,
         );
         if (!result) {
           response.status(409).send("Version not current");

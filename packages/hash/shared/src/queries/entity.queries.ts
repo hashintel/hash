@@ -139,3 +139,41 @@ export const aggregateEntity = gql`
     }
   }
 `;
+
+// @todo dedupe
+export const getAccountEntityTypes = gql`
+  query getAccountEntityTypesShared(
+    $accountId: ID!
+    $includeOtherTypesInUse: Boolean = false
+  ) {
+    getAccountEntityTypes(
+      accountId: $accountId
+      includeOtherTypesInUse: $includeOtherTypesInUse
+    ) {
+      entityId
+      entityVersionId
+      properties
+    }
+  }
+`;
+
+// @todo dedupe
+export const createEntityType = gql`
+  mutation createEntityTypeShared(
+    $accountId: ID!
+    $description: String
+    $name: String!
+    $schema: JSONObject!
+  ) {
+    createEntityType(
+      accountId: $accountId
+      description: $description
+      name: $name
+      schema: $schema
+    ) {
+      entityId
+      entityTypeName
+      properties
+    }
+  }
+`;

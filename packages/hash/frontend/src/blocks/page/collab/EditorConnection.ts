@@ -1,10 +1,13 @@
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { EntityStore } from "@hashintel/hash-shared/entityStore";
-import { addEntityStoreAction } from "@hashintel/hash-shared/entityStorePlugin";
-import { ProsemirrorNode } from "@hashintel/hash-shared/node";
+import {
+  addEntityStoreAction,
+  disableEntityStoreTransactionInterpretation,
+  entityStorePluginState,
+} from "@hashintel/hash-shared/entityStorePlugin";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { collab, receiveTransaction, sendableSteps } from "prosemirror-collab";
-import { Schema } from "prosemirror-model";
+import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Plugin, Transaction } from "prosemirror-state";
 import { Step } from "prosemirror-transform";
 import { EditorView } from "prosemirror-view";
@@ -64,6 +67,7 @@ export class EditorConnection {
   state = new State(null, "start", 0);
   backOff = 0;
   request: AbortingPromise<string> | null = null;
+  sentActions = new Set<string>();
 
   constructor(
     public report: Reporter,
@@ -99,7 +103,7 @@ export class EditorConnection {
         // @todo clear history?
         const { tr } = editorState;
 
-        addEntityStoreAction(tr, {
+        addEntityStoreAction(editorState, tr, {
           type: "store",
           payload: action.store,
         });
@@ -227,18 +231,49 @@ export class EditorConnection {
     this.run(GET(`${this.url}/events?${query}`)).then(
       (stringifiedData) => {
         this.report.success();
+        // @todo type this
         const data = JSON.parse(stringifiedData);
         this.backOff = 0;
 
-        if (data.store && this.state.edit) {
+        if (this.state.edit) {
           const tr = this.state.edit.tr;
-          addEntityStoreAction(tr, { type: "store", payload: data.store });
-          // @todo remove need to dispatch here, combine with below dispatch
-          this.dispatch({
-            type: "update",
-            transaction: tr,
-            version: this.state.version,
-          });
+          let shouldDispatch = false;
+
+          if (data.store) {
+            const unsentActions = this.unsentActions(this.state.edit);
+
+            /**
+             * @todo remove the need to do this – have it send us the relevant
+             *       actions instead
+             */
+            addEntityStoreAction(this.state.edit, tr, {
+              type: "store",
+              payload: data.store,
+            });
+            for (const action of unsentActions) {
+              addEntityStoreAction(this.state.edit, tr, action.action);
+            }
+            shouldDispatch = true;
+          }
+
+          if (data.actions?.length) {
+            for (const action of data.actions) {
+              addEntityStoreAction(this.state.edit, tr, {
+                ...action,
+                received: true,
+              });
+            }
+            shouldDispatch = true;
+          }
+
+          if (shouldDispatch) {
+            disableEntityStoreTransactionInterpretation(tr);
+            this.dispatch({
+              type: "update",
+              transaction: tr,
+              version: this.state.version,
+            });
+          }
         }
 
         let tr: Transaction<Schema> | null = null;
@@ -252,6 +287,7 @@ export class EditorConnection {
             data.steps.map((json: any) => Step.fromJSON(this.schema, json)),
             data.clientIDs,
           );
+          disableEntityStoreTransactionInterpretation(tr);
         }
 
         if (
@@ -292,6 +328,12 @@ export class EditorConnection {
     editState: EditorState<Schema>,
     { steps }: { steps?: ReturnType<typeof sendableSteps> } = {},
   ) {
+    const actions = this.unsentActions(editState);
+
+    for (const action of actions) {
+      this.sentActions.add(action.id);
+    }
+
     const json = JSON.stringify({
       version: this.state.version,
       steps: steps ? steps.steps.map((step) => step.toJSON()) : [],
@@ -300,8 +342,16 @@ export class EditorConnection {
       blockIds: Object.keys(editState.schema.nodes).filter((key) =>
         key.startsWith("http"),
       ),
+      actions: actions.map((action) => action.action),
     });
-    this.run(POST(`${this.url}/events`, json, "application/json")).then(
+    const removeActions = () => {
+      for (const action of actions) {
+        this.sentActions.delete(action.id);
+      }
+    };
+    this.run(
+      POST(`${this.url}/events`, json, "application/json", removeActions),
+    ).then(
       (data) => {
         this.report.success();
         this.backOff = 0;
@@ -324,6 +374,7 @@ export class EditorConnection {
         });
       },
       (err) => {
+        removeActions();
         if (err.status === 409) {
           // The client's document conflicts with the server's version.
           // Poll for changes and then try again.
@@ -336,6 +387,12 @@ export class EditorConnection {
           this.dispatch({ type: "recover", error: err });
         }
       },
+    );
+  }
+
+  private unsentActions(editState: EditorState<Schema>) {
+    return entityStorePluginState(editState).trackedActions.filter(
+      (action) => !this.sentActions.has(action.id),
     );
   }
 

@@ -1,6 +1,7 @@
+import { BlockVariant } from "blockprotocol";
 import { isString } from "lodash";
-import { NodeSpec, Schema } from "prosemirror-model";
-import { EditorState } from "prosemirror-state";
+import { ProsemirrorNode, NodeSpec, Schema } from "prosemirror-model";
+import { EditorState, Transaction } from "prosemirror-state";
 import { EditorProps, EditorView } from "prosemirror-view";
 
 import {
@@ -8,7 +9,12 @@ import {
   BlockMeta,
   fetchBlockMeta,
 } from "./blockMeta";
-import { BlockEntity, getTextEntityFromDraftBlock } from "./entity";
+import {
+  BlockEntity,
+  getTextEntityFromDraftBlock,
+  isDraftTextContainingEntityProperties,
+  isTextContainingEntityProperties,
+} from "./entity";
 import {
   createEntityStore,
   draftEntityForEntityId,
@@ -19,8 +25,9 @@ import {
 import {
   addEntityStoreAction,
   entityStorePluginState,
+  entityStorePluginStateFromTransaction,
+  newDraftId,
 } from "./entityStorePlugin";
-import { ProsemirrorNode } from "./node";
 import { childrenForTextEntity, getComponentNodeAttrs } from "./prosemirror";
 
 declare interface OrderedMapPrivateInterface<T> {
@@ -253,15 +260,12 @@ export class ProsemirrorSchemaManager {
   /**
    * Creating a new type of block in prosemirror, without necessarily having
    * requested the block metadata yet.
-   *
-   * @todo support taking a signal
-   * @todo consider merging this into replaceNodeWithRemoteBlock as
-   *       realistically cannot use this without a node to replace
    */
   async createRemoteBlock(
     targetComponentId: string,
     entityStore?: EntityStore,
-    draftBlockId?: string,
+    // @todo this needs to be mandatory otherwises properties may get lost
+    draftBlockId?: string | null,
   ) {
     const meta = await this.fetchAndDefineBlock(targetComponentId);
     const requiresText = blockComponentRequiresText(meta.componentSchema);
@@ -348,11 +352,6 @@ export class ProsemirrorSchemaManager {
     }
   }
 
-  /**
-   * @todo i think we need to put placeholders for the not-yet-fetched blocks
-   *   immediately, and then have the actual blocks pop in – it being delayed
-   *   too much will mess with collab
-   */
   async createEntityUpdateTransaction(
     entities: BlockEntity[],
     state: EditorState<Schema>,
@@ -383,7 +382,7 @@ export class ProsemirrorSchemaManager {
 
     const { tr } = state;
 
-    addEntityStoreAction(tr, { type: "store", payload: store });
+    addEntityStoreAction(state, tr, { type: "store", payload: store });
 
     tr.replaceWith(0, state.doc.content.size, newNodes);
 
@@ -391,39 +390,239 @@ export class ProsemirrorSchemaManager {
   }
 
   /**
-   * @todo if these are both text nodes, look into using setNodeMarkup
+   * @todo consider removing the old block from the entity store
+   * @todo need to support variants here
    */
   async replaceNodeWithRemoteBlock(
     draftBlockId: string,
     targetComponentId: string,
+    targetVariant: BlockVariant,
     node: ProsemirrorNode<Schema>,
-    getPos: () => number,
+    pos: number,
   ) {
     const { view } = this;
 
+    // @todo consider separating the logic that uses a view to something else
     if (!view) {
       throw new Error("Cannot trigger replaceNodeWithRemoteBlock without view");
     }
 
-    const entityStoreState = entityStorePluginState(view.state);
-    const newNode = await this.createRemoteBlock(
+    const [tr, newNode] = await this.createRemoteBlockTr(
       targetComponentId,
-      entityStoreState.store,
       draftBlockId,
+      targetVariant,
     );
-
-    /**
-     * The code below used to ensure the cursor was positioned
-     * within the new node, depending on its type, but because we
-     * now want to trigger saves when we change node type, and
-     * because triggering saves can mess up the cursor position,
-     * we're currently not re-focusing the editor view.
-     */
-
-    const pos = getPos();
-    const { tr } = view.state;
 
     tr.replaceRangeWith(pos, pos + node.nodeSize, newNode);
     view.dispatch(tr);
+  }
+
+  // @todo handle empty variant properties
+  // @todo handle saving the results of this
+  // @todo handle non-intermediary entities
+  async createRemoteBlockTr(
+    targetComponentId: string,
+    draftBlockId: string | null,
+    targetVariant: BlockVariant,
+  ) {
+    if (!this.view) {
+      throw new Error("Cannot trigger createRemoteBlockTr without view");
+    }
+
+    const { tr } = this.view.state;
+    const meta = await this.fetchAndDefineBlock(targetComponentId);
+
+    let blockIdForNode = draftBlockId;
+
+    if (blockIdForNode) {
+      const entityStoreState = entityStorePluginState(this.view.state);
+
+      const blockEntity = entityStoreState.store.draft[blockIdForNode];
+
+      if (!blockEntity || !isDraftBlockEntity(blockEntity)) {
+        throw new Error("draft id does not belong to a block");
+      }
+
+      if (targetComponentId === blockEntity.properties.componentId) {
+        /**
+         * I've temporarily made it so all changes involved text result in
+         * creating a new variant entity, instead of updating the one that's
+         * there. That's because the save mechanism doesn't yet know to process
+         * updates to entities that aren't in the prosemirror document. This
+         * forces the update to be saved anyway, at cost of throw away variant
+         * entities.
+         *
+         * @todo update the existing entity where possible, instead of
+         * creating new ones
+         */
+        if (
+          !blockComponentRequiresText(meta.componentSchema)
+          // ||
+          // // isTextContainingEntityProperties(
+          // //   blockEntity.properties.entity.properties,
+          // // )
+        ) {
+          /**
+           * In the event we're switching to another variant of the same
+           * component, and we are either not dealing with text components,
+           * or we are, and we've already got an "intermediary" entity –
+           * i.e, an entity on which to store non-text properties, we assume
+           * we can just update this entity with the properties of this
+           * variant. This prevents us dealing with components that have
+           * variants requiring different entity types, but we have no
+           * use case for that yet, and this simplifies things somewhat.
+           */
+          addEntityStoreAction(this.view.state, tr, {
+            type: "updateEntityProperties",
+            payload: {
+              draftId: blockEntity.properties.entity.draftId,
+              properties: targetVariant.properties ?? {},
+              merge: true,
+            },
+          });
+        } else {
+          blockIdForNode = await this.createNewDraftBlock(
+            tr,
+            {
+              ...targetVariant.properties,
+              text: {
+                __linkedData: {},
+                data: isTextContainingEntityProperties(
+                  blockEntity.properties.entity.properties,
+                )
+                  ? blockEntity.properties.entity.properties.text.data
+                  : blockEntity.properties.entity,
+              },
+            },
+            targetComponentId,
+          );
+        }
+      } else {
+        let entityProperties = targetVariant?.properties ?? {};
+        if (blockComponentRequiresText(meta.componentSchema)) {
+          const textEntityLink = isDraftTextContainingEntityProperties(
+            blockEntity.properties.entity.properties,
+          )
+            ? blockEntity.properties.entity.properties.text
+            : {
+                __linkedData: {},
+                data: blockEntity.properties.entity,
+              };
+
+          entityProperties = {
+            ...entityProperties,
+            text: textEntityLink,
+          };
+        }
+
+        blockIdForNode = await this.createNewDraftBlock(
+          tr,
+          entityProperties,
+          targetComponentId,
+        );
+      }
+    } else {
+      let entityProperties = targetVariant?.properties ?? {};
+
+      if (blockComponentRequiresText(meta.componentSchema)) {
+        const newTextDraftId = newDraftId();
+
+        addEntityStoreAction(this.view.state, tr, {
+          type: "newDraftEntity",
+          payload: {
+            draftId: newTextDraftId,
+            entityId: null,
+          },
+        });
+
+        // @todo should we use the text entity directly, or just copy the content?
+        addEntityStoreAction(this.view.state, tr, {
+          type: "updateEntityProperties",
+          payload: {
+            draftId: newTextDraftId,
+            // @todo indicate the entity type?
+            properties: { tokens: [] },
+            merge: false,
+          },
+        });
+
+        entityProperties = {
+          ...entityProperties,
+          text: {
+            __linkedData: {},
+            data: entityStorePluginStateFromTransaction(tr, this.view.state)
+              .store.draft[newTextDraftId],
+          },
+        };
+      }
+
+      blockIdForNode = await this.createNewDraftBlock(
+        tr,
+        entityProperties,
+        targetComponentId,
+      );
+    }
+
+    const updated = entityStorePluginStateFromTransaction(tr, this.view.state);
+    const newNode = await this.createRemoteBlock(
+      targetComponentId,
+      updated.store,
+      blockIdForNode,
+    );
+
+    return [tr, newNode] as const;
+  }
+
+  private async createNewDraftBlock(
+    tr: Transaction<Schema>,
+    entityProperties: {},
+    targetComponentId: string,
+  ) {
+    if (!this.view) {
+      throw new Error("Cannot trigger createNewDraftBlock without view");
+    }
+
+    const newBlockId = newDraftId();
+    addEntityStoreAction(this.view.state, tr, {
+      type: "newDraftEntity",
+      payload: {
+        draftId: newBlockId,
+        entityId: null,
+      },
+    });
+
+    const newVariantDraftId = newDraftId();
+    addEntityStoreAction(this.view.state, tr, {
+      type: "newDraftEntity",
+      payload: {
+        draftId: newVariantDraftId,
+        entityId: null,
+      },
+    });
+
+    // // @todo handle non-intermediary entities
+    addEntityStoreAction(this.view.state, tr, {
+      type: "updateEntityProperties",
+      payload: {
+        draftId: newVariantDraftId,
+        properties: entityProperties,
+        // @todo maybe need to remove this?
+        merge: true,
+      },
+    });
+
+    addEntityStoreAction(this.view.state, tr, {
+      type: "updateEntityProperties",
+      payload: {
+        draftId: newBlockId,
+        merge: false,
+        properties: {
+          componentId: targetComponentId,
+          entity: entityStorePluginStateFromTransaction(tr, this.view.state)
+            .store.draft[newVariantDraftId],
+        },
+      },
+    });
+    return newBlockId;
   }
 }
