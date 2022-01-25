@@ -61,6 +61,8 @@ export const createEditorView = (
       );
     },
     nodeViews: {
+      // Reason for adding _decorations;
+      // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
       block(currentNode, currentView, getPos, _decorations) {
         if (typeof getPos === "boolean") {
           throw new Error("Invalid config for nodeview");
@@ -73,6 +75,8 @@ export const createEditorView = (
           manager,
         );
       },
+      // Reason for adding _decorations;
+      // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
       mention(currentNode, currentView, getPos, _decorations) {
         if (typeof getPos === "boolean") {
           throw new Error("Invalid config for nodeview");
@@ -95,6 +99,8 @@ export const createEditorView = (
   manager = new ProsemirrorSchemaManager(
     state.schema,
     view,
+    // Reason for adding _decorations;
+    // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
     (meta) => (node, editorView, getPos, _decorations) => {
       if (typeof getPos === "boolean") {
         throw new Error("Invalid config for nodeview");
