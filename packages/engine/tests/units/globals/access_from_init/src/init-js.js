@@ -2,5 +2,10 @@
  * Initialize state from globals
  */
 const init = (context) => {
-  return [{ a: context.globals().a }];
+  return [
+    {
+      behaviors: ["test.js"],
+      a: context.globals()["a"],
+    },
+  ];
 };

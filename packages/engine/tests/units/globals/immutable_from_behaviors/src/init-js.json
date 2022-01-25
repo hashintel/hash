@@ -1,6 +1,5 @@
 [
   {
-    "behaviors": ["test.js"],
-    "first": true
+    "behaviors": ["test.js"]
   }
 ]
