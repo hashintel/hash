@@ -45,7 +45,7 @@ jobs:
             done <<< "$available_crates"
           done <<< "$changed_files"
 
-          changed_crates=$(echo "$changed_crates" | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
+          changed_crates=$(echo "$changed_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
 
           echo "::set-output name=rustfmt::$changed_crates"
           echo "::set-output name=clippy::$changed_crates"
@@ -163,7 +163,7 @@ jobs:
           rm -rf tmp # Delete the tmp folder
 
       - name: Run clippy
-        run: cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} -- -D warnings
+        run: cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml --no-deps ${{ matrix.flags }} -- -D warnings
 
       - name: Annotate
         if: ${{ failure() }}
@@ -173,7 +173,7 @@ jobs:
           name: clippy (${{ matrix.directory }})
           token: ${{ secrets.GITHUB_TOKEN }}
           working-directory: ${{ matrix.directory }}
-          args: ${{ matrix.flags }}
+          args: --no-deps ${{ matrix.flags }}
 
   test:
     name: test
@@ -232,17 +232,11 @@ jobs:
 
       - name: Build test dependencies
         if: matrix.directory == 'packages/engine'
-        run: cargo build -p server -p cli --manifest-path ${{ matrix.directory }}/Cargo.toml
+        run: cargo build -p server --manifest-path ${{ matrix.directory }}/Cargo.toml
 
-      - name: Run tests (parallel)
-        continue-on-error: true
+      - name: Run tests
         id: test-parallel
         run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} --no-fail-fast
-
-        # TODO: Only use parallel tests
-      - name: Run tests (sequential)
-        if: steps.test-parallel.outcome == 'failure'
-        run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} -- --test-threads=1
 
   merging-enabled:
     name: merging enabled

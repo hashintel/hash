@@ -39,6 +39,7 @@ const pageFieldsFragment = gql`
         createdAt
         entityVersionCreatedAt
         createdByAccountId
+        entityTypeId
         properties {
           __typename
           componentId
@@ -52,6 +53,7 @@ const pageFieldsFragment = gql`
             createdAt
             entityVersionCreatedAt
             createdByAccountId
+            entityTypeId
             properties
             linkGroups {
               links {

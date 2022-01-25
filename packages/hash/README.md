@@ -16,24 +16,27 @@ HASH is an open-source, data-centric, all-in-one workspace. HASH combines a rich
 
 To run HASH locally, please follow these steps:
 
-1.  Make sure you have, [Git](https://git-scm.com), [Node LTS](https://nodejs.org), [Yarn Classic](https://classic.yarnpkg.com) and [Docker](https://docs.docker.com/get-docker/):
+1.  Make sure you have, [Git](https://git-scm.com), [Node LTS](https://nodejs.org), [Yarn Classic](https://classic.yarnpkg.com) and [Docker](https://docs.docker.com/get-docker/).
+    Run each of these version commands and make sure the output is expected:
 
     ```sh
     git --version
-    ## ≥ 2.34
+    ## ≥ 2.17
     
     node --version
     ## ≥ 16.13
     
     yarn --version
-    ## ≥ 1.22
+    ## ≥ 1.16
     
     docker --version
     ## ≥ 20.10
     
     docker-compose --version
-    ## ≥ 2.2
+    ## ≥ 1.29
     ```
+
+    If you have difficulties with `git --version` on macOS you may need to install Xcode Command Line Tools first: `xcode-select --install`.
 
     If you use Docker for macOS or Windows, go to _Preferences_ → _Resources_ and ensure that Docker can use at least 4GB of RAM (8GB is recommended).
 
@@ -60,14 +63,6 @@ To run HASH locally, please follow these steps:
     ```
 
     You can keep external services running between app restarts.
-    To stop the containers, run:
-
-    ```sh
-    yarn external-services down
-    ```
-
-    Container data is persisted locally inside `var/external-services`.
-    You can delete this directory when containers are stopped for a ‘hard reset’.
 
 1.  **On first run**, or if you want to reset app data, run this command in a separate terminal:
 
@@ -91,6 +86,17 @@ To run HASH locally, please follow these steps:
     ```
 
     See `package.json` → `scripts` for details and more options.
+
+---
+
+To stop Docker containers with external services, run:
+
+```sh
+yarn external-services down
+```
+
+Container data is persisted locally inside `var/external-services`.
+You can delete this directory when containers are stopped for a ‘hard reset’.
 
 ## User authentication
 
@@ -189,7 +195,7 @@ yarn test:playwright
 You can add extra arguments to configure how Playwright runs, e.g.:
 
 ```sh
-yarn test:playwright --headed --workers=1
+yarn test:playwright --headed
 ```
 
 See `yarn test:playwright --help` for more info.

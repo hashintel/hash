@@ -1,7 +1,6 @@
-import { Schema } from "prosemirror-model";
+import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
-import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { RenderPortal } from "../usePortals";
 import { MentionDisplay } from "./MentionDisplay";
 

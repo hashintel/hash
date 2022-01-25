@@ -7,7 +7,7 @@ edition = "2021"
 hash_engine = { path = "../..", default-features = false }
 error = { path = "../../lib/error", features = ["spantrace"] }
 
-tokio = { version = "1.5.0", features = ["macros", "rt-multi-thread", "sync", "process", "io-util", "net", "rt", "fs"] }
+tokio = "1.5.0"
 tracing = "0.1.29"
 
 [[bin]]
