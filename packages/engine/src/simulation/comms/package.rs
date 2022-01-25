@@ -36,6 +36,7 @@ impl PackageComms {
     ) -> Result<ActiveTask> {
         let task = task.into();
         let task_name = task.get_task_name();
+
         self.inner
             .new_task(self.package_id, task, shared_store)
             .instrument(tracing::trace_span!("Task", name = task_name))

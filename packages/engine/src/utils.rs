@@ -13,6 +13,7 @@ use tracing_subscriber::{
     registry::LookupSpan,
     EnvFilter,
 };
+use tracing_texray::TeXRayLayer;
 
 /// Output format emitted to the terminal
 #[derive(Debug, Copy, Clone, PartialEq, Eq, clap::ArgEnum)]
@@ -73,7 +74,10 @@ impl Default for OutputFormat {
     }
 }
 
-pub fn init_logger(std_err_output_format: OutputFormat, file_output_name: &str) -> impl Drop {
+pub fn init_logger(
+    std_err_output_format: OutputFormat,
+    file_output_name: &str,
+) -> (impl Drop, impl Drop) {
     let filter = match std::env::var("RUST_LOG") {
         Ok(env) => EnvFilter::new(env),
         #[cfg(debug_assertions)]
@@ -118,14 +122,21 @@ pub fn init_logger(std_err_output_format: OutputFormat, file_output_name: &str) 
         ),
     };
 
-    let file_appender =
+    let json_file_appender =
         tracing_appender::rolling::never("./log", format!("{file_output_name}.log"));
-    let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
+    let (non_blocking, _json_file_guard) = tracing_appender::non_blocking(json_file_appender);
 
     let json_file_layer = fmt::layer()
         .event_format(formatter.json())
         .fmt_fields(JsonFields::new())
         .with_writer(non_blocking);
+
+    let texray_file_appender = tracing_appender::rolling::never("./log", format!("texray.txt"));
+    let (non_blocking, _tex_ray_guard) = tracing_appender::non_blocking(texray_file_appender);
+
+    // we clone update_settings to satisfy move rules as writer takes a `Fn` rather than `FnOnce`
+    let texray_layer =
+        TeXRayLayer::new().update_settings(|settings| settings.writer(non_blocking.clone()));
 
     tracing_subscriber::registry()
         .with(filter)
@@ -133,9 +144,14 @@ pub fn init_logger(std_err_output_format: OutputFormat, file_output_name: &str) 
         .with(json_stderr_layer)
         .with(json_file_layer)
         .with(error_layer)
+        .with(
+            texray_layer
+                // only print spans longer than a certain duration
+                // .min_duration(Duration::from_millis(100)),
+        )
         .init();
 
-    _guard
+    (_json_file_guard, _tex_ray_guard)
 }
 
 pub fn parse_env_duration(name: &str, default: u64) -> Duration {

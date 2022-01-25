@@ -78,8 +78,12 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
                 changed_properties,
                 max_num_steps,
             } => {
-                let sim_span =
-                    tracing::span!(parent: span_id, tracing::Level::INFO, "sim", id = &sim_id);
+                let sim_span = tracing_texray::examine(tracing::span!(
+                    parent: span_id,
+                    tracing::Level::INFO,
+                    "sim",
+                    id = &sim_id
+                ));
                 self.start_new_sim_run(sim_id, changed_properties, max_num_steps)
                     .instrument(sim_span)
                     .await?;
