@@ -1,0 +1,12 @@
+{
+  "keys": {
+    "index": {
+      "type": "number",
+      "nullable": true
+    },
+    "valid": {
+      "type": "boolean",
+      "nullable": false
+    }
+  }
+}

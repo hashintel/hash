@@ -1,0 +1,10 @@
+[
+  {
+    "behaviors": ["test.py"],
+    "n1": 1
+  },
+  {
+    "behaviors": ["test.py"],
+    "n1": -1
+  }
+]
