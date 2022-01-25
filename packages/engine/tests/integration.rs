@@ -49,20 +49,17 @@ macro_rules! run_test {
         #[allow(unused)]
         use hash_engine::Language::$language as _;
 
-        #[allow(non_snake_case)]
-        mod $language {
-            $(#[$attr])*
-            #[tokio::test]
-            async fn $project() {
-                let project_path = std::path::Path::new(file!())
-                    .parent()
-                    .unwrap()
-                    .join(stringify!($project))
-                    .canonicalize()
-                    .unwrap();
+        $(#[$attr])*
+        #[tokio::test]
+        async fn $project() {
+            let project_path = std::path::Path::new(file!())
+                .parent()
+                .unwrap()
+                .join(stringify!($project))
+                .canonicalize()
+                .unwrap();
 
-                $crate::units::experiment::run_test_suite(project_path, Some(hash_engine::Language::$language)).await
-            }
+            $crate::units::experiment::run_test_suite(project_path, Some(hash_engine::Language::$language)).await
         }
     };
 }
