@@ -8,8 +8,12 @@
         "nullable": false
       }
     },
-    "n1_0_type": {
-      "type": "string",
+    "n1_is_list": {
+      "type": "boolean",
+      "nullable": false
+    },
+    "n1_0_is_number": {
+      "type": "boolean",
       "nullable": false
     },
     "n2": {
@@ -20,8 +24,12 @@
         "nullable": false
       }
     },
-    "n2_0_type": {
-      "type": "string",
+    "n2_is_list": {
+      "type": "boolean",
+      "nullable": false
+    },
+    "n2_0_is_number": {
+      "type": "boolean",
       "nullable": false
     }
   }

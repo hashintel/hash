@@ -1,4 +1,3 @@
-import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
@@ -6,6 +5,7 @@ import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSche
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
+import type { BlocksMetaMap } from "../blocksMeta";
 import { BlockView } from "./BlockView";
 import { EditorConnection } from "./collab/EditorConnection";
 import { Reporter } from "./collab/Reporter";
@@ -21,7 +21,7 @@ export const createEditorView = (
   renderPortal: RenderPortal,
   accountId: string,
   pageEntityId: string,
-  preloadedBlocks: BlockMeta[],
+  blocksMeta: BlocksMetaMap,
 ) => {
   let manager: ProsemirrorSchemaManager;
 
@@ -61,6 +61,8 @@ export const createEditorView = (
       );
     },
     nodeViews: {
+      // Reason for adding `_decorations`:
+      // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
       block(currentNode, currentView, getPos, _decorations) {
         if (typeof getPos === "boolean") {
           throw new Error("Invalid config for nodeview");
@@ -73,6 +75,8 @@ export const createEditorView = (
           manager,
         );
       },
+      // Reason for adding `_decorations`:
+      // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
       mention(currentNode, currentView, getPos, _decorations) {
         if (typeof getPos === "boolean") {
           throw new Error("Invalid config for nodeview");
@@ -95,6 +99,8 @@ export const createEditorView = (
   manager = new ProsemirrorSchemaManager(
     state.schema,
     view,
+    // Reason for adding `_decorations`:
+    // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
     (meta) => (node, editorView, getPos, _decorations) => {
       if (typeof getPos === "boolean") {
         throw new Error("Invalid config for nodeview");
@@ -122,9 +128,22 @@ export const createEditorView = (
 
   view.dom.classList.add(styles.ProseMirror);
 
-  for (const meta of preloadedBlocks) {
-    manager.defineNewBlock(meta);
+  // prosemirror will use the first node type (per group) for auto-creation.
+  // we want this to be the paragraph node type.
+  const blocksMetaArray = Object.values(blocksMeta);
+
+  const paragraphBlockMeta = blocksMetaArray.find(
+    (blockMeta) =>
+      blockMeta.componentMetadata.name === "@hashintel/block-paragraph",
+  );
+
+  if (!paragraphBlockMeta) {
+    throw new Error("missing required block-type paragraph");
   }
+
+  /** note that {@link ProsemirrorSchemaManager#defineNewBlock} is idempotent */
+  manager.defineNewBlock(paragraphBlockMeta);
+  blocksMetaArray.forEach((blockMeta) => manager.defineNewBlock(blockMeta));
 
   // @todo figure out how to use dev tools without it breaking fast refresh
   // applyDevTools(view);

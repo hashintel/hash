@@ -4,16 +4,16 @@
       "type": "number",
       "nullable": false
     },
-    "n1_type": {
-      "type": "string",
+    "n1_is_number": {
+      "type": "boolean",
       "nullable": false
     },
     "n2": {
       "type": "number",
       "nullable": false
     },
-    "n2_type": {
-      "type": "string",
+    "n2_is_number": {
+      "type": "boolean",
       "nullable": false
     }
   }

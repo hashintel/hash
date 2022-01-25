@@ -1,6 +1,6 @@
 [
   {
-    "experiment": "test",
+    "experiment": "torus",
     "expected-outputs": [
       {
         "json-state": {
@@ -9,13 +9,13 @@
               "position": [4.0, 0.0, 0.0]
             }
           ]
-        },
-        "globals": {
-          "topology": {
-            "wrapping_preset": "torus"
-          }
         }
-      },
+      }
+    ]
+  },
+  {
+    "experiment": "spherical",
+    "expected-outputs": [
       {
         "json-state": {
           "4": [
@@ -23,13 +23,13 @@
               "position": [1.5, 4.0, 0.0]
             }
           ]
-        },
-        "globals": {
-          "topology": {
-            "wrapping_preset": "spherical"
-          }
         }
-      },
+      }
+    ]
+  },
+  {
+    "experiment": "reflection",
+    "expected-outputs": [
       {
         "json-state": {
           "4": [
@@ -37,11 +37,6 @@
               "position": [4.0, 4.0, 0.0]
             }
           ]
-        },
-        "globals": {
-          "topology": {
-            "wrapping_preset": "reflection"
-          }
         }
       }
     ]
