@@ -86,7 +86,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   const { value: blocksMeta } = useBlocksMeta();
 
   const blockOptions = useMemo(() => {
-    return Array.from(blocksMeta.values()).flatMap((blockMeta) =>
+    return Object.values(blocksMeta).flatMap((blockMeta) =>
       blockMeta.componentMetadata.variants.map((variant) => ({
         variant,
         meta: blockMeta,
