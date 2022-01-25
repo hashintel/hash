@@ -13,7 +13,6 @@
     non_ascii_idents,
     noop_method_call,
     pointer_structural_match,
-    unused_crate_dependencies,
     unused_extern_crates,
     unused_import_braces,
     unused_lifetimes,
@@ -52,14 +51,6 @@ pub mod workerpool;
 mod args;
 pub mod env;
 pub mod utils;
-
-// Suppress weird warning about unused dev-dependencies
-// TODO: Remove when overhauling error handling
-#[cfg(test)]
-mod suppress_weird_warning_about_unused_dev_dependencies {
-    use ::error as _;
-    use ::provider as _;
-}
 
 pub use self::{
     args::{args, Args},
