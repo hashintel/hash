@@ -163,6 +163,10 @@ const systemTypeSchemas: {
         type: "string",
         description: "The title of the page",
       },
+      parentId: {
+        type: "string",
+        description: "ID referring to the parent page",
+      },
     },
     required: ["title", "contents"],
   },

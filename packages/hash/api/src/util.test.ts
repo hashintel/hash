@@ -1,4 +1,9 @@
-import { topologicalSort, linkedTreeFlatten, intersection } from "./util";
+import {
+  topologicalSort,
+  linkedTreeFlatten,
+  intersection,
+  treeFromParentReferences,
+} from "./util";
 
 it("can do topological sort", () => {
   // ┌────── A ─────┐
@@ -169,4 +174,68 @@ it("can bail out of a circular tree", () => {
   expect(() => {
     linkedTreeFlatten(graph, "linkedGraphs", "entity");
   }).toThrowError(/limit reached/);
+});
+
+export type FlatElement = {
+  id: string;
+  ref?: string | undefined;
+  children?: FlatElement[] | undefined;
+};
+
+it("can rebuild tree", () => {
+  const test1 = [
+    { id: "1" },
+    { id: "2", ref: "1" },
+    { id: "3", ref: "2" },
+    { id: "4", ref: "1" },
+    { id: "5" },
+  ] as FlatElement[];
+
+  const result = treeFromParentReferences(test1, "id", "ref", "children");
+
+  // eslint-disable-next-line no-console
+  console.log(result);
+  expect(result).toEqual([
+    {
+      id: "1",
+      children: [
+        { id: "4", ref: "1" },
+        { id: "2", ref: "1", children: [{ id: "3", ref: "2" }] },
+      ],
+      ref: undefined,
+    },
+
+    { id: "5" },
+  ]);
+});
+
+it("can rebuild tree with invalid refs", () => {
+  const test1 = [
+    { id: "1" },
+    { id: "2", ref: "1" },
+    { id: "3", ref: "2" },
+    { id: "4", ref: "1" },
+    { id: "5" },
+    { id: "6", ref: "x1" },
+    { id: "7", ref: "x2" },
+  ] as FlatElement[];
+
+  const result = treeFromParentReferences(test1, "id", "ref", "children");
+
+  // eslint-disable-next-line no-console
+  console.log(result);
+  expect(result).toEqual([
+    {
+      id: "1",
+      children: [
+        { id: "4", ref: "1" },
+        { id: "2", ref: "1", children: [{ id: "3", ref: "2" }] },
+      ],
+      ref: undefined,
+    },
+
+    { id: "5" },
+    { id: "6" },
+    { id: "7" },
+  ]);
 });

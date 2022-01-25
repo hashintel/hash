@@ -298,3 +298,54 @@ export const linkedTreeFlatten = <
 
   return result;
 };
+
+/**
+ * Opposite of linkedTreeFlatten
+ */
+export const treeFromParentReferences = <
+  Element extends {
+    [_ in Key]: string;
+  } & { [_ in Ref]?: string } & { [_ in Rec]?: Element[] },
+  Key extends string,
+  Ref extends string,
+  Rec extends string,
+>(
+  elements: Element[],
+  key: Key,
+  reference: Ref,
+  recursive: Rec,
+) => {
+  // eslint-disable-next-line no-console
+  console.log(elements);
+  const topologicallySorted = topologicalSort(
+    elements
+      .filter((element) => element[reference] != null)
+      .map((element) => [element[key] as string, element[reference]]),
+  );
+
+  const mapping = new Map<string, Element>();
+
+  for (const element of elements) {
+    mapping.set(element[key], element);
+  }
+
+  for (const currentId of topologicallySorted) {
+    const current = mapping.get(currentId);
+    if (!current) {
+      continue;
+    }
+    const existingParent = mapping.get(current[reference]);
+    if (!existingParent) {
+      (current[reference] as string | undefined) = undefined;
+      continue;
+    }
+
+    if (existingParent[recursive]) {
+      existingParent[recursive].push(current);
+    } else {
+      (existingParent[recursive] as Element[]) = [current];
+    }
+  }
+
+  return [...mapping.values()].filter((element) => element[reference] == null);
+};

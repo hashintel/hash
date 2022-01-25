@@ -7,6 +7,7 @@ import {
   DbEntity,
   EntityType,
   EntityVersion,
+  EntityWithParentEntityId,
 } from "../adapter";
 import { Connection } from "./types";
 import { EntityTypePGRow, mapPGRowToEntityType } from "./entitytypes";
@@ -60,6 +61,15 @@ export const mapPGRowToEntity = (row: EntityPGRow): DbEntity => {
   return entity as DbEntity;
 };
 
+/** maps a postgres row with parent to its corresponding EntityWithParent object */
+export const mapEntityWithParentPGRowToEntity = (
+  row: EntityWithParentPGRow,
+): EntityWithParentEntityId =>
+  ({
+    ...mapPGRowToEntity(row),
+    parentEntityId: row.parent_entity_id,
+  } as EntityWithParentEntityId);
+
 export type EntityPGRow = {
   // Map all other keys to any for possible entity type fields
   [key: string]: any;
@@ -84,6 +94,9 @@ export type EntityPGRow = {
   ["type.updated_by"]: string;
   ["type.updated_at"]: number;
 };
+
+export type EntityWithParentPGRow = EntityPGRow & { parent_entity_id: string };
+
 /**
  * @todo since many entities will be of the same small number of system types (e.g. block),
  *    for non-nested queries it will probably end up faster to request and cache types separately.
@@ -308,6 +321,31 @@ export const getEntitiesByTypeLatestVersion = async (
     order by entity_id, updated_at desc
   `);
   return rows.map(mapPGRowToEntity);
+};
+
+/**
+ * Get the latest version of all entities of a given type.
+ * @param params.entityTypeId the entity type id to return entities of
+ * @param params.entityTypeVersionId optionally limit to entities of a specific version of a type
+ * @param params.accountId the account to retrieve entities from
+ */
+export const getEntitiesWithParentReferencesByType = async (
+  conn: Connection,
+  params: {
+    entityTypeId: string;
+    entityTypeVersionId?: string;
+    accountId: string;
+  },
+): Promise<EntityWithParentEntityId[]> => {
+  const rows = await conn.any<EntityWithParentPGRow>(sql`
+    with all_matches as (
+      ${selectEntitiesByType(params)}
+    )
+    select distinct on (a.entity_id) a.*, l.destination_entity_id as parent_entity_id from all_matches as a
+    left join links as l on a.entity_id = l.source_entity_id
+    order by entity_id, updated_at desc
+  `);
+  return rows.map(mapEntityWithParentPGRowToEntity);
 };
 
 /**

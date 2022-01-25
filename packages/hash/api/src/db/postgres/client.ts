@@ -8,6 +8,7 @@ import {
   EntityMeta,
   EntityType,
   EntityVersion,
+  EntityWithParentEntityId,
   VerificationCode,
 } from "../adapter";
 import { genId, exactlyOne } from "../../util";
@@ -48,6 +49,7 @@ import {
   updateEntity,
   updateEntityAccountId,
   getAccountEntities,
+  getEntitiesWithParentReferencesByType,
 } from "./entity";
 import { getEntityOutgoingLinks } from "./link/getEntityOutgoingLinks";
 import { getLink } from "./link/getLink";
@@ -401,6 +403,21 @@ export class PostgresClient implements DBClient {
     return params.latestOnly
       ? await getEntitiesByTypeLatestVersion(this.conn, queryParams)
       : await getEntitiesByTypeAllVersions(this.conn, queryParams);
+  }
+
+  async getLinkedEntityBySystemType(params: {
+    accountId: string;
+    systemTypeName: SystemType;
+  }): Promise<EntityWithParentEntityId[]> {
+    const { entity_type_id: entityTypeId } = await this.conn.one(
+      selectSystemEntityTypeIds(params),
+    );
+    const queryParams = {
+      entityTypeId: entityTypeId as string,
+      accountId: params.accountId,
+    };
+
+    return getEntitiesWithParentReferencesByType(this.conn, queryParams);
   }
 
   /** Get all entities of a given type in a given account. */

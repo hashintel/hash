@@ -16,6 +16,7 @@ import {
   EntityMeta,
   EntityType,
   EntityVersion,
+  EntityWithParentEntityId,
   VerificationCode,
 } from "../adapter";
 import { SystemType } from "../../types/entityTypes";
@@ -200,6 +201,13 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     latestOnly?: boolean;
   }): Promise<DbEntity[]> {
     return this.query((adapter) => adapter.getEntitiesBySystemType(params));
+  }
+
+  getLinkedEntityBySystemType(params: {
+    accountId: string;
+    systemTypeName: SystemType;
+  }): Promise<EntityWithParentEntityId[]> {
+    return this.query((adapter) => adapter.getLinkedEntityBySystemType(params));
   }
 
   accountExists(params: { accountId: string }): Promise<boolean> {

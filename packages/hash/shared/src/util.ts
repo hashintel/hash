@@ -2,6 +2,8 @@
 
 import { FileProperties } from "./graphql/apiTypes.gen";
 
+export { topologicalSort, treeFromParentReferences } from "../../api/src/util";
+
 export type DistributiveOmit<T, K extends keyof any> = T extends any
   ? Omit<T, K>
   : never;

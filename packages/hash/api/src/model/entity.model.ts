@@ -60,6 +60,7 @@ export type EntityConstructorArgs = {
   createdAt: Date;
   updatedByAccountId: string;
   updatedAt: Date;
+  parentEntityId?: string;
 };
 
 type CreateEntityArgsWithoutType = {
@@ -117,6 +118,7 @@ class __Entity {
   createdAt: Date;
   updatedByAccountId: string;
   updatedAt: Date;
+  parentEntityId?: string;
 
   constructor({
     entityId,
@@ -130,6 +132,7 @@ class __Entity {
     createdAt,
     updatedByAccountId,
     updatedAt,
+    parentEntityId,
   }: EntityConstructorArgs) {
     this.entityId = entityId;
     this.entityVersionId = entityVersionId;
@@ -146,6 +149,7 @@ class __Entity {
     this.createdByAccountId = createdByAccountId;
     this.updatedAt = updatedAt;
     this.updatedByAccountId = updatedByAccountId;
+    this.parentEntityId = parentEntityId;
   }
 
   static async create(
@@ -229,6 +233,19 @@ class __Entity {
   ): Promise<Entity[]> {
     const dbEntities = await client.getEntitiesBySystemType(params);
 
+    return dbEntities.map((dbEntity) => new Entity(dbEntity));
+  }
+
+  static async getLinkedEntityBySystemType(
+    client: DBClient,
+    params: {
+      accountId: string;
+      systemTypeName: SystemType;
+    },
+  ): Promise<Entity[]> {
+    const dbEntities = await client.getLinkedEntityBySystemType(params);
+    // eslint-disable-next-line no-console
+    console.log(dbEntities);
     return dbEntities.map((dbEntity) => new Entity(dbEntity));
   }
 

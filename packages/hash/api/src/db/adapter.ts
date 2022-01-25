@@ -49,6 +49,10 @@ export type DbEntity = {
   visibility: Visibility;
 };
 
+export type EntityWithParentEntityId = Entity & {
+  parentEntityId?: string;
+};
+
 export type DBLink = {
   linkId: string;
   path: string;
@@ -379,6 +383,11 @@ export interface DBClient {
     latestOnly?: boolean;
     systemTypeName: SystemType;
   }): Promise<DbEntity[]>;
+
+  getLinkedEntityBySystemType(params: {
+    accountId: string;
+    systemTypeName: SystemType;
+  }): Promise<EntityWithParentEntityId[]>;
 
   /**
    * Get all account type entities (User or Account).
