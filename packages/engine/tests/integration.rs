@@ -40,11 +40,25 @@ macro_rules! run_test {
                 .canonicalize()
                 .unwrap();
 
-            $crate::units::experiment::run_test_suite(project_path, None).await
+            $crate::units::experiment::run_test_suite(project_path, None, None).await
+        }
+    };
+    ($project:ident, experiment: $experiment:ident $(,)? $(#[$attr:meta])* ) => {
+        $(#[$attr])*
+        #[tokio::test]
+        async fn $experiment() {
+            let project_path = std::path::Path::new(file!())
+                .parent()
+                .unwrap()
+                .join(stringify!($project))
+                .canonicalize()
+                .unwrap();
+
+            $crate::units::experiment::run_test_suite(project_path, None, Some(stringify!($experiment))).await
         }
     };
 
-    ($project:ident $(,)? $language:ident $(,)? $(#[$attr:meta])* ) => {
+    ($project:ident, $language:ident $(,)? $(#[$attr:meta])* ) => {
         // Enable syntax highlighting and code completion
         #[allow(unused)]
         use hash_engine::Language::$language as _;
@@ -59,7 +73,25 @@ macro_rules! run_test {
                 .canonicalize()
                 .unwrap();
 
-            $crate::units::experiment::run_test_suite(project_path, Some(hash_engine::Language::$language)).await
+            $crate::units::experiment::run_test_suite(project_path, Some(hash_engine::Language::$language), None).await
+        }
+    };
+    ($project:ident, $language:ident, experiment: $experiment:ident $(,)? $(#[$attr:meta])* ) => {
+        // Enable syntax highlighting and code completion
+        #[allow(unused)]
+        use hash_engine::Language::$language as _;
+
+        $(#[$attr])*
+        #[tokio::test]
+        async fn $experiment() {
+            let project_path = std::path::Path::new(file!())
+                .parent()
+                .unwrap()
+                .join(stringify!($project))
+                .canonicalize()
+                .unwrap();
+
+            $crate::units::experiment::run_test_suite(project_path, Some(hash_engine::Language::$language), Some(stringify!($experiment))).await
         }
     };
 }
