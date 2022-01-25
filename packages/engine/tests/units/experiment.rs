@@ -63,13 +63,25 @@ fn load_manifest<P: AsRef<Path>>(project_path: P, language: Option<Language>) ->
     Ok(manifest)
 }
 
-pub async fn run_test_suite<P: AsRef<Path>>(project_path: P, language: Option<Language>) {
+pub async fn run_test_suite<P: AsRef<Path>>(
+    project_path: P,
+    language: Option<Language>,
+    experiment: Option<&str>,
+) {
     std::env::set_var("RUST_LOG", "info");
 
     let project_path = project_path.as_ref();
 
     let experiments = read_config(project_path.join("integration-test.json"))
-        .expect("Could not read experiments");
+        .expect("Could not read experiments")
+        .into_iter()
+        .filter(|(ty, _)| match (experiment, ty) {
+            (None, _) => true,
+            (Some(experiment), ExperimentType::Simple { name }) if experiment == name.as_str() => {
+                true
+            }
+            _ => false,
+        });
     for (experiment_type, expected_outputs) in experiments {
         // TODO: Remove attempting strategy
         let mut outputs = None;
