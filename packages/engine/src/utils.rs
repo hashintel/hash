@@ -5,13 +5,13 @@ use tracing_subscriber::{
     filter::{Directive, LevelFilter},
     fmt::{
         self,
-        format::{Format, Writer},
+        format::{Format, JsonFields, Writer},
         time::FormatTime,
         FmtContext, FormatEvent, FormatFields,
     },
     prelude::*,
     registry::LookupSpan,
-    EnvFilter,
+    EnvFilter, Layer,
 };
 
 /// Output format emitted to the terminal
@@ -22,10 +22,8 @@ pub enum OutputFormat {
     Full,
     /// excessively pretty, multi-line logs, optimized for human readability.
     Pretty,
-    // TODO: Add JSON output. Currently it's failing when adding spans, we probably need to add
-    //   it ourself
-    // /// Newline-delimited JSON logs.
-    // Json,
+    /// Newline-delimited JSON logs.
+    Json,
     /// Only includes the fields from the most recently entered span.
     Compact,
 }
@@ -35,7 +33,7 @@ impl Display for OutputFormat {
         match self {
             OutputFormat::Full => f.write_str("full"),
             OutputFormat::Pretty => f.write_str("pretty"),
-            // OutputFormat::Json => f.write_str("json"),
+            OutputFormat::Json => f.write_str("json"),
             OutputFormat::Compact => f.write_str("compact"),
         }
     }
@@ -44,7 +42,7 @@ impl Display for OutputFormat {
 enum OutputFormatter<T> {
     Full(Format<fmt::format::Full, T>),
     Pretty(Format<fmt::format::Pretty, T>),
-    // Json(Format<fmt::format::Json, T>),
+    Json(Format<fmt::format::Json, T>),
     Compact(Format<fmt::format::Compact, T>),
 }
 
@@ -63,7 +61,7 @@ where
         match self {
             OutputFormatter::Full(fmt) => fmt.format_event(ctx, writer, event),
             OutputFormatter::Pretty(fmt) => fmt.format_event(ctx, writer, event),
-            // OutputFormatter::Json(fmt) => fmt.format_event(ctx, writer, event),
+            OutputFormatter::Json(fmt) => fmt.format_event(ctx, writer, event),
             OutputFormatter::Compact(fmt) => fmt.format_event(ctx, writer, event),
         }
     }
@@ -90,19 +88,40 @@ pub fn init_logger(output_format: OutputFormat) {
     let formatter = match output_format {
         OutputFormat::Full => OutputFormatter::Full(formatter),
         OutputFormat::Pretty => OutputFormatter::Pretty(formatter.pretty()),
-        // OutputFormat::Json => OutputFormatter::Json(formatter.json()),
+        OutputFormat::Json => OutputFormatter::Json(formatter.json()),
         OutputFormat::Compact => OutputFormatter::Compact(formatter.compact()),
     };
 
-    let stderr_layer = fmt::layer()
-        .event_format(formatter)
-        .with_writer(std::io::stderr);
+    // TODO: Figure out the mess with generics so that we don't need to duplicate the whole of the
+    //  contents of the blocks here
+    match output_format {
+        OutputFormat::Json => {
+            let error_layer = tracing_error::ErrorLayer::default();
 
-    let error_layer = tracing_error::ErrorLayer::default();
-    tracing_subscriber::registry()
-        .with(filter.and_then(stderr_layer))
-        .with(error_layer)
-        .init();
+            let stderr_layer = fmt::layer()
+                .event_format(formatter)
+                .fmt_fields(JsonFields::new())
+                .with_writer(std::io::stderr);
+
+            tracing_subscriber::registry()
+                .with(filter.and_then(stderr_layer))
+                .with(error_layer)
+                .init();
+        }
+
+        _ => {
+            let error_layer = tracing_error::ErrorLayer::default();
+
+            let stderr_layer = fmt::layer()
+                .event_format(formatter)
+                .with_writer(std::io::stderr);
+
+            tracing_subscriber::registry()
+                .with(filter.and_then(stderr_layer))
+                .with(error_layer)
+                .init();
+        }
+    };
 }
 
 pub fn parse_env_duration(name: &str, default: u64) -> Duration {
