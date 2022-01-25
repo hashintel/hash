@@ -11,7 +11,7 @@ use tracing_subscriber::{
     },
     prelude::*,
     registry::LookupSpan,
-    EnvFilter, Layer,
+    EnvFilter,
 };
 
 /// Output format emitted to the terminal
@@ -73,7 +73,7 @@ impl Default for OutputFormat {
     }
 }
 
-pub fn init_logger(output_format: OutputFormat) {
+pub fn init_logger(std_err_output_format: OutputFormat) {
     let filter = match std::env::var("RUST_LOG") {
         Ok(env) => EnvFilter::new(env),
         #[cfg(debug_assertions)]
@@ -85,43 +85,45 @@ pub fn init_logger(output_format: OutputFormat) {
     let formatter = fmt::format()
         .with_timer(fmt::time::Uptime::default())
         .with_target(true);
-    let formatter = match output_format {
+    let output_formatter = match std_err_output_format {
         OutputFormat::Full => OutputFormatter::Full(formatter),
         OutputFormat::Pretty => OutputFormatter::Pretty(formatter.pretty()),
         OutputFormat::Json => OutputFormatter::Json(formatter.json()),
         OutputFormat::Compact => OutputFormatter::Compact(formatter.compact()),
     };
 
-    // TODO: Figure out the mess with generics so that we don't need to duplicate the whole of the
-    //  contents of the blocks here
-    match output_format {
-        OutputFormat::Json => {
-            let error_layer = tracing_error::ErrorLayer::default();
+    let error_layer = tracing_error::ErrorLayer::default();
 
-            let stderr_layer = fmt::layer()
-                .event_format(formatter)
-                .fmt_fields(JsonFields::new())
-                .with_writer(std::io::stderr);
-
-            tracing_subscriber::registry()
-                .with(filter.and_then(stderr_layer))
-                .with(error_layer)
-                .init();
-        }
-
-        _ => {
-            let error_layer = tracing_error::ErrorLayer::default();
-
-            let stderr_layer = fmt::layer()
-                .event_format(formatter)
-                .with_writer(std::io::stderr);
-
-            tracing_subscriber::registry()
-                .with(filter.and_then(stderr_layer))
-                .with(error_layer)
-                .init();
-        }
+    // Because of how the Registry and Layer interface is designed, we can't just have one layer,
+    // as they have different types. We also can't box them as it requires Sized. However,
+    // Option<Layer> implements the Layer trait so we can  just provide None for one and Some
+    // for the other
+    let (stderr_layer, json_stderr_layer) = match std_err_output_format {
+        OutputFormat::Json => (
+            None,
+            Some(
+                fmt::layer()
+                    .event_format(output_formatter)
+                    .fmt_fields(JsonFields::new())
+                    .with_writer(std::io::stderr),
+            ),
+        ),
+        _ => (
+            Some(
+                fmt::layer()
+                    .event_format(output_formatter)
+                    .with_writer(std::io::stderr),
+            ),
+            None,
+        ),
     };
+
+    tracing_subscriber::registry()
+        .with(filter)
+        .with(stderr_layer)
+        .with(json_stderr_layer)
+        .with(error_layer)
+        .init();
 }
 
 pub fn parse_env_duration(name: &str, default: u64) -> Duration {
