@@ -34,7 +34,7 @@ pub struct ExpectedOutput {
 /// example when [`Python`](Language::Python) is passed, it searches for the files `init-py.js`,
 /// `init-py.py`, and `init-py.json`. If more than one initial state is specified, the function
 /// fails.
-fn load_manifest<P: AsRef<Path>>(project_path: P, language: Option<Language>) -> Result<Manifest> {
+fn load_manifest<P: AsRef<Path>>(project_path: P, language: Language) -> Result<Manifest> {
     let project_path = project_path.as_ref();
 
     // We read the manifest without initial state ...
@@ -44,10 +44,9 @@ fn load_manifest<P: AsRef<Path>>(project_path: P, language: Option<Language>) ->
     // ... so we provide it ourself
     // If `language` is specified, use a `-lang` suffix
     let suffix = match language {
-        Some(Language::JavaScript) => "-js",
-        Some(Language::Python) => "-py",
-        Some(Language::Rust) => "-rs",
-        None => "",
+        Language::JavaScript => "-js",
+        Language::Python => "-py",
+        Language::Rust => "-rs",
     };
     let initial_states: Vec<_> = ["js", "py", "json"]
         .into_iter()
@@ -63,13 +62,25 @@ fn load_manifest<P: AsRef<Path>>(project_path: P, language: Option<Language>) ->
     Ok(manifest)
 }
 
-pub async fn run_test_suite<P: AsRef<Path>>(project_path: P, language: Option<Language>) {
+pub async fn run_test_suite<P: AsRef<Path>>(
+    project_path: P,
+    language: Language,
+    experiment: Option<&str>,
+) {
     std::env::set_var("RUST_LOG", "info");
 
     let project_path = project_path.as_ref();
 
     let experiments = read_config(project_path.join("integration-test.json"))
-        .expect("Could not read experiments");
+        .expect("Could not read experiments")
+        .into_iter()
+        .filter(|(ty, _)| match (experiment, ty) {
+            (None, _) => true,
+            (Some(experiment), ExperimentType::Simple { name }) if experiment == name.as_str() => {
+                true
+            }
+            _ => false,
+        });
     for (experiment_type, expected_outputs) in experiments {
         // TODO: Remove attempting strategy
         let mut outputs = None;
@@ -123,7 +134,7 @@ pub async fn run_test_suite<P: AsRef<Path>>(project_path: P, language: Option<La
 pub async fn run_test<P: AsRef<Path>>(
     experiment_type: ExperimentType,
     project_path: P,
-    language: Option<Language>,
+    language: Language,
     num_outputs_expected: usize,
 ) -> Result<Vec<(AgentStates, Globals, Analysis)>> {
     let project_path = project_path.as_ref();
@@ -139,11 +150,7 @@ pub async fn run_test<P: AsRef<Path>>(
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_millis();
-        if let Some(language) = language {
-            format!("ipc://integration-test-suite-{project_name}-{language}-{now}")
-        } else {
-            format!("ipc://integration-test-suite-{project_name}-{now}")
-        }
+        format!("ipc://integration-test-suite-{project_name}-{language}-{now}")
     };
 
     let (mut experiment_server, handler) = create_server(nng_listen_url)?;

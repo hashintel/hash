@@ -22,24 +22,28 @@
         }
       }
     },
-    "o1_type": {
-      "type": "string",
+    "o1_is_list": {
+      "type": "boolean",
       "nullable": false
     },
-    "o1_0_type": {
-      "type": "string",
+    "o1_0_is_struct": {
+      "type": "boolean",
       "nullable": false
     },
-    "o1_0_n1_type": {
-      "type": "string",
+    "o1_0_n1_is_number": {
+      "type": "boolean",
       "nullable": false
     },
-    "o1_0_n2_type": {
-      "type": "string",
+    "o1_0_n2_is_number": {
+      "type": "boolean",
       "nullable": false
     },
-    "o1_1_n3_type": {
-      "type": "string",
+    "o1_1_is_struct": {
+      "type": "boolean",
+      "nullable": false
+    },
+    "o1_1_n3_is_number": {
+      "type": "boolean",
       "nullable": false
     }
   }

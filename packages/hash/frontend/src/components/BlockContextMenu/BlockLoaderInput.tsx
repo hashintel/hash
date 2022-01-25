@@ -4,10 +4,6 @@ import { Button } from "../forms/Button";
 import { useBlocksMeta } from "../../blocks/blocksMeta";
 import { useBlockView } from "../../blocks/page/BlockViewContext";
 
-/** immutable version of {@link Map#set} */
-const setEntry = <K, V>(map: Map<K, V>, entry: [K, V]) =>
-  new Map(Array.from(map.entries()).concat([entry]));
-
 export const BlockLoaderInput: React.VFC = () => {
   const blockView = useBlockView();
   const { value: blocksMeta, setValue: setBlocksMeta } = useBlocksMeta();
@@ -16,7 +12,7 @@ export const BlockLoaderInput: React.VFC = () => {
   const [blockUrl, setBlockUrl] = useState("");
   const blockUrlRef = useRef<HTMLInputElement | null>(null);
 
-  const isDefinedBlock = blocksMeta.has(blockUrl);
+  const isDefinedBlock = blockUrl in blocksMeta;
   const isValidBlockUrl = Boolean(blockUrlRef.current?.validity.valid);
 
   const loadBlockFromUrl = () => {
@@ -27,7 +23,7 @@ export const BlockLoaderInput: React.VFC = () => {
       .fetchAndDefineBlock(blockUrl)
       .then((blockMeta) => {
         setError(null);
-        setBlocksMeta(setEntry(blocksMeta, [blockUrl, blockMeta]));
+        setBlocksMeta((prev) => ({ ...prev, [blockUrl]: blockMeta }));
         return blockView.manager.createRemoteBlock(blockUrl);
       })
       .then((block) => {

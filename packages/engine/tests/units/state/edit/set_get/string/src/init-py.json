@@ -1,0 +1,10 @@
+[
+  {
+    "behaviors": ["test.py"],
+    "s1": "top"
+  },
+  {
+    "behaviors": ["test.py"],
+    "s1": "bottom"
+  }
+]
