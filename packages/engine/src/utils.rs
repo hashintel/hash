@@ -73,7 +73,7 @@ impl Default for OutputFormat {
     }
 }
 
-pub fn init_logger(std_err_output_format: OutputFormat) {
+pub fn init_logger(std_err_output_format: OutputFormat, file_output_name: &str) -> impl Drop {
     let filter = match std::env::var("RUST_LOG") {
         Ok(env) => EnvFilter::new(env),
         #[cfg(debug_assertions)]
@@ -86,10 +86,10 @@ pub fn init_logger(std_err_output_format: OutputFormat) {
         .with_timer(fmt::time::Uptime::default())
         .with_target(true);
     let output_formatter = match std_err_output_format {
-        OutputFormat::Full => OutputFormatter::Full(formatter),
-        OutputFormat::Pretty => OutputFormatter::Pretty(formatter.pretty()),
-        OutputFormat::Json => OutputFormatter::Json(formatter.json()),
-        OutputFormat::Compact => OutputFormatter::Compact(formatter.compact()),
+        OutputFormat::Full => OutputFormatter::Full(formatter.clone()),
+        OutputFormat::Pretty => OutputFormatter::Pretty(formatter.clone().pretty()),
+        OutputFormat::Json => OutputFormatter::Json(formatter.clone().json()),
+        OutputFormat::Compact => OutputFormatter::Compact(formatter.clone().compact()),
     };
 
     let error_layer = tracing_error::ErrorLayer::default();
@@ -118,12 +118,24 @@ pub fn init_logger(std_err_output_format: OutputFormat) {
         ),
     };
 
+    let file_appender =
+        tracing_appender::rolling::never("./log", format!("{file_output_name}.log"));
+    let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
+
+    let json_file_layer = fmt::layer()
+        .event_format(formatter.json())
+        .fmt_fields(JsonFields::new())
+        .with_writer(non_blocking);
+
     tracing_subscriber::registry()
         .with(filter)
         .with(stderr_layer)
         .with(json_stderr_layer)
+        .with(json_file_layer)
         .with(error_layer)
         .init();
+
+    _guard
 }
 
 pub fn parse_env_duration(name: &str, default: u64) -> Duration {

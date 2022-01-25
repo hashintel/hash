@@ -96,7 +96,7 @@ pub struct SimpleExperimentArgs {
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
-    hash_engine::init_logger(args.emit);
+    let _guard = hash_engine::init_logger(args.emit, "cli");
 
     let nng_listen_url = {
         use std::time::{SystemTime, UNIX_EPOCH};
