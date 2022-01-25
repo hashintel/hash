@@ -1,0 +1,32 @@
+{
+  "keys": {
+    "value": {
+      "type": "number",
+      "nullable": true
+    },
+    "value_a": {
+      "type": "list",
+      "nullable": false,
+      "child": {
+        "type": "number",
+        "nullable": false
+      }
+    },
+    "value_b": {
+      "type": "list",
+      "nullable": false,
+      "child": {
+        "type": "number",
+        "nullable": false
+      }
+    },
+    "value_c": {
+      "type": "list",
+      "nullable": false,
+      "child": {
+        "type": "number",
+        "nullable": false
+      }
+    }
+  }
+}
