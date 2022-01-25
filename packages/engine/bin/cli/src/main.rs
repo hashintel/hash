@@ -34,7 +34,7 @@ pub struct Args {
     output: PathBuf,
 
     /// Output format emitted to the terminal.
-    #[clap(long, default_value = "full", arg_enum, env = "HASH_EMIT")]
+    #[clap(long, default_value = "pretty", arg_enum, env = "HASH_EMIT")]
     emit: OutputFormat,
 
     /// Engine start timeout in seconds
