@@ -1,5 +1,5 @@
 /**
- * Ensures a dataset is immutable
+ * Reads content from a dataset
  */
 const behavior = (state, context) => {
   const data = context.data()["dataset.json"];
