@@ -168,7 +168,7 @@ export type DbPageProperties = {
   contents: {
     entityId: string;
     accountId: string;
-  };
+  }[];
   summary?: string | null;
   title: string;
 };

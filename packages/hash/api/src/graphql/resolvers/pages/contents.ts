@@ -3,11 +3,11 @@ import { ApolloError } from "apollo-server-express";
 import { Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { Entity, UnresolvedGQLEntity } from "../../../model";
-import { DbPage } from "../../../db/adapter";
+import { DbPageEntity } from "../../../db/adapter";
 
 export const contents: Resolver<
   Promise<UnresolvedGQLEntity[]>,
-  DbPage["properties"],
+  DbPageEntity["properties"],
   GraphQLContext
 > = async (properties, _, { dataSources }) => {
   const entities = await Entity.getEntities(
