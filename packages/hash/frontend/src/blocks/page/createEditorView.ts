@@ -61,7 +61,9 @@ export const createEditorView = (
       );
     },
     nodeViews: {
-      block(currentNode, currentView, getPos) {
+      // Reason for adding `_decorations`:
+      // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
+      block(currentNode, currentView, getPos, _decorations) {
         if (typeof getPos === "boolean") {
           throw new Error("Invalid config for nodeview");
         }
@@ -73,7 +75,9 @@ export const createEditorView = (
           manager,
         );
       },
-      mention(currentNode, currentView, getPos) {
+      // Reason for adding `_decorations`:
+      // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
+      mention(currentNode, currentView, getPos, _decorations) {
         if (typeof getPos === "boolean") {
           throw new Error("Invalid config for nodeview");
         }
@@ -95,7 +99,9 @@ export const createEditorView = (
   manager = new ProsemirrorSchemaManager(
     state.schema,
     view,
-    (meta) => (node, editorView, getPos) => {
+    // Reason for adding `_decorations`:
+    // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
+    (meta) => (node, editorView, getPos, _decorations) => {
       if (typeof getPos === "boolean") {
         throw new Error("Invalid config for nodeview");
       }
