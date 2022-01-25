@@ -6,29 +6,29 @@
         "1": [
           {
             "s1": "beret",
-            "s1_type": "string",
+            "s1_is_string": true,
             "s2": "top hat",
-            "s2_type": "string"
+            "s2_is_string": true
           },
           {
             "s1": "beret",
-            "s1_type": "string",
+            "s1_is_string": true,
             "s2": "bottom hat",
-            "s2_type": "string"
+            "s2_is_string": true
           }
         ],
         "2": [
           {
             "s1": "beret",
-            "s1_type": "string",
+            "s1_is_string": true,
             "s2": "beret hat",
-            "s2_type": "string"
+            "s2_is_string": true
           },
           {
             "s1": "beret",
-            "s1_type": "string",
+            "s1_is_string": true,
             "s2": "beret hat",
-            "s2_type": "string"
+            "s2_is_string": true
           }
         ]
       }

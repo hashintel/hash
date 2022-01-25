@@ -21,6 +21,7 @@ import {
   PageFieldsFragment,
   SystemTypeName,
   WayToUseHash,
+  EntityType as GQLEntityType,
 } from "../graphql/apiTypes.gen";
 
 jest.setTimeout(60000);
@@ -774,6 +775,62 @@ describe("logged in user ", () => {
         componentIdType.entityVersionId,
       );
       expect(componentIdType.properties.componentId).toEqual(componentId);
+    });
+  });
+
+  describe("can create EntityType inheritance relations", () => {
+    let superType: Pick<
+      GQLEntityType,
+      "entityId" | "properties" | "entityTypeName"
+    >;
+    beforeAll(async () => {
+      superType = await client.createEntityType({
+        accountId: existingUser.accountId,
+        name: "Supertype",
+        schema: {},
+      })!;
+    });
+
+    let subType1: Pick<
+      GQLEntityType,
+      "entityId" | "properties" | "entityTypeName"
+    >;
+    it("can inherit from SuperType", async () => {
+      subType1 = await client.createEntityType({
+        accountId: existingUser.accountId,
+        name: "Subtype1",
+        schema: { allOf: [{ $ref: superType.properties.$id }] },
+      });
+
+      const subTypeParent = await client
+        .getEntityType({
+          entityTypeId: subType1.entityId,
+        })
+        .then((entyp) => entyp.parents);
+
+      expect(subTypeParent).toHaveLength(1);
+      expect(subTypeParent![0].entityId).toEqual(superType.entityId);
+    });
+
+    it("can get all children of supertype", async () => {
+      // new subType
+      const subType2 = await client.createEntityType({
+        accountId: existingUser.accountId,
+        name: "Subtype2",
+        schema: { allOf: [{ $ref: superType.properties.$id }] },
+      });
+
+      const superTypeChldren = await client
+        .getEntityType({
+          entityTypeId: superType.entityId,
+        })
+        .then((entyp) => entyp.children);
+
+      expect(superTypeChldren).toHaveLength(2);
+
+      expect(superTypeChldren!.map((child) => child.entityId).sort()).toEqual(
+        [subType1.entityId, subType2.entityId].sort(),
+      );
     });
   });
 

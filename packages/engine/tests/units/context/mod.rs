@@ -1,3 +1,3 @@
-use crate::run_test;
-
-run_test!(step);
+mod js {
+    crate::run_test!(step, JavaScript);
+}
