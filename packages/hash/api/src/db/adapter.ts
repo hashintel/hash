@@ -173,8 +173,7 @@ export type DbPageProperties = {
   title: string;
 };
 
-export type DbPage = {
-  type: "Page";
+export type DbPageEntity = Omit<DbEntity, "properties"> & {
   properties: DbPageProperties;
 };
 
@@ -269,6 +268,16 @@ export interface DBClient {
   getEntityTypeByComponentId(params: {
     componentId: string;
   }): Promise<EntityType | null>;
+
+  /**
+   * Get all types that inherit from a specific type.
+   */
+  getEntityTypeChildren(params: { schemaRef: string }): Promise<EntityType[]>;
+
+  /**
+   * Get all types that a specific type inherits from.
+   */
+  getEntityTypeParents(params: { entityTypeId: string }): Promise<EntityType[]>;
 
   /**
    * Get the latest version of a system entity type.

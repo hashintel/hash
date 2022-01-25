@@ -6,17 +6,17 @@
         "1": [
           {
             "b1": false,
-            "b1_type": "boolean",
+            "b1_is_boolean": true,
             "b2": true,
-            "b2_type": "boolean"
+            "b2_is_boolean": true
           }
         ],
         "2": [
           {
             "b1": false,
-            "b1_type": "boolean",
+            "b1_is_boolean": true,
             "b2": false,
-            "b2_type": "boolean"
+            "b2_is_boolean": true
           }
         ]
       }
