@@ -77,7 +77,7 @@ pub struct WorkerController {
 
 // TODO: impl drop for worker controller?
 impl WorkerController {
-    /// Spawns a new worker for each language: JavaScript, Python, and Rust and initialize the
+    /// Spawns a new runner for each language: JavaScript, Python, and Rust and initialize the
     /// communication channels for each of them.
     pub async fn spawn(
         config: WorkerConfig,
@@ -101,7 +101,7 @@ impl WorkerController {
         })
     }
 
-    /// Runs the main loop of the Worker and [`await`]s for completition.
+    /// Runs the main loop of the Worker and [`await`]s for completion.
     ///
     /// The main loop allows the worker to receive/register tasks, drive tasks to completion and
     /// send back completed tasks.
@@ -127,9 +127,9 @@ impl WorkerController {
 
     async fn _run(&mut self) -> Result<()> {
         // TODO: Rust, JS
-        let mut js_handle = self.js.run().await?;
+
         // let mut py_handle = self.py.run().await?;
-        // let mut rs_handle = self.rs.run().await?;
+        let mut js_handle = self.js.run().await?;
 
         let mut wp_recv = self.worker_pool_comms.take_recv()?;
         let mut terminate_recv = self
@@ -207,9 +207,8 @@ impl WorkerController {
             }
         }
 
-        js_handle.await??;
         // py_handle.await??;
-        // rs_handle.await??;
+        js_handle.await??;
 
         Ok(())
     }
@@ -217,10 +216,9 @@ impl WorkerController {
     /// Handles a message from the worker pool.
     ///
     /// Depending on the content of the message, the following actions are executed:
-    ///   - [`Task`]: The contained task is spawned for the specified simulation, [`TaskMsg`] is
-    ///     send to all workers.
+    ///   - [`Task`]: The task is forwarded to the appropriate language runner.
     ///   - [`Sync`]: Tells the runners to synchronize. See [`sync_runners`] for more details.
-    ///   - [`CancelTask`], The specified task is canceled, for all runners. A [`CancelTask`] 
+    ///   - [`CancelTask`], The specified task is canceled, for all runners. A [`CancelTask`]
     ///     containing the task_id is sent to all runners that have been spawned.
     ///   - [`NewSimulationRun`]: Message is forwarded to all runners.
     ///
@@ -230,7 +228,6 @@ impl WorkerController {
     /// [`NewSimulationRun`]: WorkerPoolToWorkerMsgPayload::NewSimulationRun
     ///
     /// [`sync_runners`]: Self::sync_runners
-    /// [`TaskMsg`]: InboundToRunnerMsgPayload::TaskMsg
     /// [`CancelTask`]: InboundToRunnerMsgPayload::CancelTask
     async fn handle_worker_pool_msg(
         &mut self,
@@ -354,6 +351,7 @@ impl WorkerController {
     }
 
     /// Sends a termination message to all spawned runners
+    // TODO: these methods don't look like they need to be async
     async fn terminate_runners(&mut self) -> Result<()> {
         tokio::try_join!(
             self.py
@@ -396,7 +394,7 @@ impl WorkerController {
         Ok(())
     }
 
-    /// Handles a message from the runner, dynamically resolving the target for the next one.
+    /// Calls the task's [`WorkerHandler`] implementation to create the follow-up task.
     ///
     ///   Depending on the [`target`], the following actions are executed:
     ///   - [`Javascript`]/[`Python`]/[`Rust`]: The message is forwarded to the corresponding
@@ -418,7 +416,7 @@ impl WorkerController {
         source: Language,
     ) -> Result<()> {
         if let Some(pending) = self.tasks.inner.get_mut(&msg.task_id) {
-            // TODO: implement worker node handler
+            // TODO: `handle_worker_message` always returns `Error::WorkerNodeHandlerNotImplemented`
             let next = WorkerHandler::handle_worker_message(&mut pending.inner, msg.payload)?;
             match next.target {
                 MessageTarget::Rust => {
@@ -476,9 +474,15 @@ impl WorkerController {
         Ok(())
     }
 
-    /// Adds `source` to the list of currently cancelling languages and if there is a running task
-    /// it sends a [`Cancelled`] message for it to the worker pool.
+    /// Handles a [`TaskCancelled`] message returned from a runner.
     ///
+    /// If the worker has a task associated with `task_id` and the active runner is a [`Language`]
+    /// runner for the `source` specified, the task is dropped and a [`Cancelled`] message is sent
+    /// to the worker pool.
+    /// Otherwise, this function does nothing, as it must be that either the active runner is
+    /// cancelled or has completed.
+    ///
+    /// [`TaskCancelled`]: OutboundFromRunnerMsgPayload::TaskCancelled
     /// [`Cancelled`]: TaskResultOrCancelled::Cancelled
     async fn handle_cancel_task_confirmation(
         &mut self,
@@ -544,7 +548,7 @@ impl WorkerController {
         Ok(())
     }
 
-    /// Sends `task` to the appropriate worker.
+    /// Sends a message containing the `task` to the appropriate language runner.
     async fn spawn_task(&mut self, sim_id: SimulationShortId, task: WorkerTask) -> Result<()> {
         let task_id = task.task_id;
         let init_msg = WorkerHandler::start_message(&task.inner)?;
