@@ -170,8 +170,7 @@ export type DbPageProperties = {
   title: string;
 };
 
-export type DbPage = {
-  type: "Page";
+export type DbPageEntity = Omit<DbEntity, "properties"> & {
   properties: DbPageProperties;
 };
 
