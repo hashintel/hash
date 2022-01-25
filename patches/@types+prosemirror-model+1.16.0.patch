@@ -1,5 +1,5 @@
 diff --git a/node_modules/@types/prosemirror-model/index.d.ts b/node_modules/@types/prosemirror-model/index.d.ts
-index f9042e9..f5ce615 100755
+index 3e5aa92..4040b63 100755
 --- a/node_modules/@types/prosemirror-model/index.d.ts
 +++ b/node_modules/@types/prosemirror-model/index.d.ts
 @@ -103,8 +103,14 @@ export class Fragment<S extends Schema = any> {
@@ -18,7 +18,7 @@ index f9042e9..f5ce615 100755
      /**
       * Create a new fragment containing the combined content of this
       * fragment and the other.
-@@ -715,6 +721,14 @@ declare class ProsemirrorNode<S extends Schema = any> {
+@@ -719,6 +725,14 @@ declare class ProsemirrorNode<S extends Schema = any> {
      static fromJSON<S extends Schema = any>(schema: S, json: { [key: string]: any }): ProsemirrorNode<S>;
  }
  export { ProsemirrorNode as Node };
