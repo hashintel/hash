@@ -1,5 +1,5 @@
 /**
- * Accesses neighbors field `value` and pushing it at different lists.
+ * Accesses the neighbors' field `value` and pushing it at different lists.
  *
  * This ensures, that only specific agents are accessed
  */
