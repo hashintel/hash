@@ -160,12 +160,15 @@ export type Graph = {
 export type DbBlockProperties = {
   entityId: string;
   accountId: string;
-  componentId?: string;
+  componentId: string;
 };
 
 export type DbPageProperties = {
   archived?: boolean | null;
-  contents: DbBlockProperties[];
+  contents: {
+    entityId: string;
+    accountId: string;
+  };
   summary?: string | null;
   title: string;
 };
