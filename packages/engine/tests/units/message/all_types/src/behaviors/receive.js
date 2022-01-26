@@ -2,10 +2,10 @@
  * Reads messages and stores them into the agent's state
  */
 const behavior = (state, context) => {
-  const message = context.messages();
+  const messages = context.messages();
 
-  if (message.length > 0) {
-    const data = message[0].data;
+  if (messages.length > 0) {
+    const data = messages[0].data;
 
     state.number = data.number;
     state.string = data.string;
