@@ -77,8 +77,8 @@ pub struct WorkerController {
 
 // TODO: impl drop for worker controller?
 impl WorkerController {
-    /// Spawns a new runner for each language: JavaScript, Python, and Rust and initialize the
-    /// communication channels for each of them.
+    /// Spawns a new worker controller, containing a runner for each language: JavaScript,
+    /// Python, and Rust and initialize the
     pub async fn spawn(
         config: WorkerConfig,
         worker_pool_comms: WorkerCommsWithWorkerPool,
@@ -103,8 +103,8 @@ impl WorkerController {
 
     /// Runs the main loop of the Worker and [`await`]s for completion.
     ///
-    /// The main loop allows the worker to receive/register tasks, drive tasks to completion and
-    /// send back completed tasks.
+    /// The message handling loop allows the worker to receive/register tasks, drive tasks to
+    /// completion and send back completed tasks.
     ///
     /// [`await`]: https://doc.rust-lang.org/std/keyword.await.html
     pub async fn run(&mut self) -> Result<()> {
@@ -129,6 +129,7 @@ impl WorkerController {
         // TODO: Rust, JS
 
         // let mut py_handle = self.py.run().await?;
+        // let mut rs_handle = self.rs.run().await?;
         let mut js_handle = self.js.run().await?;
 
         let mut wp_recv = self.worker_pool_comms.take_recv()?;
@@ -208,6 +209,7 @@ impl WorkerController {
         }
 
         // py_handle.await??;
+        // rs_handle.await??;
         js_handle.await??;
 
         Ok(())
@@ -394,7 +396,9 @@ impl WorkerController {
         Ok(())
     }
 
-    /// Calls the task's [`WorkerHandler`] implementation to create the follow-up task.
+    /// Calls the task's [`WorkerHandler`] implementation to create the follow-up task and depending
+    /// on the target of that, it handles the given message.
+    ///
     ///
     ///   Depending on the [`target`], the following actions are executed:
     ///   - [`Javascript`]/[`Python`]/[`Rust`]: The message is forwarded to the corresponding
@@ -416,7 +420,6 @@ impl WorkerController {
         source: Language,
     ) -> Result<()> {
         if let Some(pending) = self.tasks.inner.get_mut(&msg.task_id) {
-            // TODO: `handle_worker_message` always returns `Error::WorkerNodeHandlerNotImplemented`
             let next = WorkerHandler::handle_worker_message(&mut pending.inner, msg.payload)?;
             match next.target {
                 MessageTarget::Rust => {
