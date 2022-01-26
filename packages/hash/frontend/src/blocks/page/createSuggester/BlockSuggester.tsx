@@ -26,7 +26,7 @@ export const BlockSuggester: VFC<BlockSuggesterProps> = ({
   const { value: blocksMeta } = useBlocksMeta();
 
   const options = useMemo(() => {
-    const allOptions = Array.from(blocksMeta.values()).flatMap((blockMeta) =>
+    const allOptions = Object.values(blocksMeta).flatMap((blockMeta) =>
       blockMeta.componentMetadata.variants.map((variant) => ({
         variant,
         meta: blockMeta,
