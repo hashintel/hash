@@ -236,6 +236,8 @@ class Messenger:
         if t == MESSAGE_TYPE.StateSnapshotSync:
             msg = StateSnapshotSync()
             msg.Init(p.Bytes, p.Pos)
+            # Everything is the same as state sync
+            # except for the message type.
             return PyStateSync(sim_sid, msg), t
 
         if t == MESSAGE_TYPE.ContextBatchSync:

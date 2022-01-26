@@ -217,4 +217,5 @@ class Batches:
     def free(self):
         # TODO: Check that this releases references to shared memory
         #       (Call _free_rust_static_meta, _free_rust_dynamic_meta, unload_shared_mem here?)
+        # TODO: Make this the `__del__` method?
         self.batches = {}
