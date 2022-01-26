@@ -35,7 +35,10 @@ def _load_behaviors(behavior_descs):
                 behaviors[_hash_behavior_id(desc['id'][0], desc['id'][1])] = {
                     "name": desc['name'],
                     "language": desc['language'],
-                    "required_col_names": None,  # TODO: Propagate desc['columns'] here.
+                    # TODO: Propagate desc['columns'] here so we can load
+                    #       fewer columns based on behavior keys.
+                    #       https://app.asana.com/0/1199548034582004/1201494318833036/f
+                    "required_col_names": None,
                     "dyn_access": desc['dyn_access'],
                     "fn": behavior_fn
                 }

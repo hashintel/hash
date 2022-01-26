@@ -160,7 +160,10 @@ async fn _run(
                         (Some(payload), Some(wrapper))
                     }
                     InboundToRunnerMsgPayload::CancelTask(_) => {
-                        continue; // Don't send -- unused for now.
+                        // Don't send to Python process -- unused for now.
+                        // TODO: Remove `continue` when/if a package uses `CancelTask`
+                        //       and it's implemented in Python.
+                        continue;
                     }
                     _ => (None, None)
                 };
