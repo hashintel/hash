@@ -10,6 +10,8 @@ const pageName = `Test page ${pageNameSuffix}`;
 const listOfPagesSelector = 'nav header:has-text("Pages")';
 const pageTitleInputSelector = '[placeholder="A title for the page"]';
 
+const modifierKey = process.platform === "darwin" ? "Meta" : "Control";
+
 test("user can create page", async ({ page }) => {
   await loginUsingUi({ page, accountShortName: "alice" });
 
@@ -49,13 +51,13 @@ test("user can create page", async ({ page }) => {
   // Type in a paragraph block
   await blockRegionLocator.locator("p div").click();
   await page.keyboard.type("My test paragraph with ");
-  await page.keyboard.press("Meta+b");
+  await page.keyboard.press(`${modifierKey}+b`);
   await page.keyboard.type("bold");
-  await page.keyboard.press("Meta+b");
+  await page.keyboard.press(`${modifierKey}+b`);
   await page.keyboard.type(" and ");
-  await page.keyboard.press("Meta+i");
+  await page.keyboard.press(`${modifierKey}+i`);
   await page.keyboard.type("italics");
-  await page.keyboard.press("Meta+i");
+  await page.keyboard.press(`${modifierKey}+i`);
 
   // Insert a divider
   await page.keyboard.press("Enter");
@@ -107,6 +109,15 @@ test("user can create page", async ({ page }) => {
     "My test paragraph with bold and italics",
     { useInnerText: true }, // Prevents words from sticking to each other
   );
+
+  await expect(
+    blockRegionLocator.locator("p").nth(0).locator("strong"),
+  ).toContainText("bold");
+
+  await expect(
+    blockRegionLocator.locator("p").nth(0).locator("em"),
+  ).toContainText("italics");
+
   await expect(blockRegionLocator.locator("p").nth(1)).toContainText(
     "Second paragraph\n\nwith\nline breaks",
     { useInnerText: true },
