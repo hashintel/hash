@@ -1,0 +1,8 @@
+{
+  "keys": {
+    "value": {
+      "type": "number",
+      "nullable": false
+    }
+  }
+}

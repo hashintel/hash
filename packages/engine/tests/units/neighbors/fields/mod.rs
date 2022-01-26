@@ -11,3 +11,17 @@ mod js {
 
     run_test!(multiple, JavaScript);
 }
+
+mod python {
+    use crate::run_test;
+
+    run_test!(bool, Python, #[ignore]);
+    run_test!(bool_array, Python, #[ignore]);
+    run_test!(number, Python, #[ignore]);
+    run_test!(number_array, Python, #[ignore]);
+    run_test!(string, Python, #[ignore]);
+    run_test!(object, Python, #[ignore]);
+    run_test!(object_array, Python, #[ignore]);
+
+    run_test!(multiple, Python, #[ignore]);
+}
