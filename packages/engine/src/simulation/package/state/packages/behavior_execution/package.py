@@ -143,7 +143,10 @@ def run_task(experiment, _sim, _task_message, group_state, group_context):
             b_id = behavior_ids[i_behavior].as_py()
             behavior = experiment['behaviors'][_hash_behavior_id(b_id[0], b_id[1])]
             if behavior['language'] != "Python":
-                next_lang = behavior['language']  # Multiple assignments are fine.
+                # `next_lang` might be assigned to multiple times and overwritten,
+                # but that's ok, because we can just use the last value that was
+                # assigned to it.
+                next_lang = behavior['language']
                 break
 
             agent_state.set_dynamic_access(behavior['dyn_access'])

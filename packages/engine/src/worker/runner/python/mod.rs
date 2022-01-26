@@ -22,10 +22,12 @@ use super::comms::{
 use crate::{
     proto::SimulationShortId,
     types::TaskId,
-    worker::{Error as WorkerError, Result as WorkerResult},
+    worker::{
+        runner::comms::outbound::OutboundFromRunnerMsgPayload, Error as WorkerError,
+        Result as WorkerResult,
+    },
     Language,
 };
-use crate::worker::runner::comms::outbound::OutboundFromRunnerMsgPayload;
 
 pub struct PythonRunner {
     init_msg: Arc<ExperimentInitRunnerMsg>, // Args to RunnerImpl::new
@@ -213,7 +215,10 @@ async fn _run(
                     let err = Error::from(format!(
                         "Failed to convert nng message to OutboundFromRunnerMsg: {err}"
                     ));
-                    log::trace!("{err}");
+                    // TODO: Investigate why `err` sometimes doesn't get logged at all
+                    //       (higher in the call stack) unless we log it here and avoid
+                    //       logging `err` more than once.
+                    log::error!("{err}");
                     err
                 })?;
                 log::trace!("Got outbound {outbound:?}");

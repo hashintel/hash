@@ -98,8 +98,8 @@ class AgentState:
 
     # TODO: Method for backwards compatibility and to make it clear that
     #       the field can't be mutated by behaviors
-    # # Returns the index of the currently executing behavior in the agent's behavior chain.
     # def behavior_index(self):
+    #     """Return the index of the currently executing behavior in the agent's behavior chain."""
     #     return self.behavior_index  # Uses `__getattr__` to get index from column.
 
 
@@ -153,7 +153,7 @@ class GroupState:
         # a message's data to JSON and add it without converting existing
         # messages to native JavaScript objects.
 
-        skip = set('agent_id',)
+        skip = {'agent_id'}
         self.__agent_batch.flush_changes(schema.agent, skip)
 
         # Convert any native message objects to JSON before flushing message batch.

@@ -4,9 +4,6 @@ include "serialized.fbs";
 
 // A Task UUID
 //
-// This is duplicated in multiple files since it is a struct
-// and cannot be a root type.
-//
 // fields:
 //    `inner` : the uuid as bytes
 struct TaskId {

@@ -159,8 +159,10 @@ class Batch:
         # Dynamically accessed columns (if any) were added to `cols` by `state`.
         changes = []
         for field_name, col in self.cols.items():
-            if field_name in skip or len(col) == 0 or not isinstance(col, list):
-                continue  # Column wasn't written to or was writable in place.
+            if field_name in skip or not isinstance(col, list) or len(col) == 0:
+                # Assume that column wasn't written to or was writable in place.
+                # TODO: More robust check for this (i.e. for shallow-loaded columns)
+                continue
 
             i_field = schema.get_field_index(field_name)
             if i_field < 0:
