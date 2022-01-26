@@ -5,7 +5,7 @@ use tracing_subscriber::{
     filter::{Directive, LevelFilter},
     fmt::{
         self,
-        format::{Format, Writer},
+        format::{Format, JsonFields, Writer},
         time::FormatTime,
         FmtContext, FormatEvent, FormatFields,
     },
@@ -22,10 +22,8 @@ pub enum OutputFormat {
     Full,
     /// excessively pretty, multi-line logs, optimized for human readability.
     Pretty,
-    // TODO: Add JSON output. Currently it's failing when adding spans, we probably need to add
-    //   it ourself
-    // /// Newline-delimited JSON logs.
-    // Json,
+    /// Newline-delimited JSON logs.
+    Json,
     /// Only includes the fields from the most recently entered span.
     Compact,
 }
@@ -35,7 +33,7 @@ impl Display for OutputFormat {
         match self {
             OutputFormat::Full => f.write_str("full"),
             OutputFormat::Pretty => f.write_str("pretty"),
-            // OutputFormat::Json => f.write_str("json"),
+            OutputFormat::Json => f.write_str("json"),
             OutputFormat::Compact => f.write_str("compact"),
         }
     }
@@ -44,7 +42,7 @@ impl Display for OutputFormat {
 enum OutputFormatter<T> {
     Full(Format<fmt::format::Full, T>),
     Pretty(Format<fmt::format::Pretty, T>),
-    // Json(Format<fmt::format::Json, T>),
+    Json(Format<fmt::format::Json, T>),
     Compact(Format<fmt::format::Compact, T>),
 }
 
@@ -63,7 +61,7 @@ where
         match self {
             OutputFormatter::Full(fmt) => fmt.format_event(ctx, writer, event),
             OutputFormatter::Pretty(fmt) => fmt.format_event(ctx, writer, event),
-            // OutputFormatter::Json(fmt) => fmt.format_event(ctx, writer, event),
+            OutputFormatter::Json(fmt) => fmt.format_event(ctx, writer, event),
             OutputFormatter::Compact(fmt) => fmt.format_event(ctx, writer, event),
         }
     }
@@ -75,7 +73,7 @@ impl Default for OutputFormat {
     }
 }
 
-pub fn init_logger(output_format: OutputFormat) {
+pub fn init_logger(std_err_output_format: OutputFormat, file_output_name: &str) -> impl Drop {
     let filter = match std::env::var("RUST_LOG") {
         Ok(env) => EnvFilter::new(env),
         #[cfg(debug_assertions)]
@@ -87,22 +85,57 @@ pub fn init_logger(output_format: OutputFormat) {
     let formatter = fmt::format()
         .with_timer(fmt::time::Uptime::default())
         .with_target(true);
-    let formatter = match output_format {
-        OutputFormat::Full => OutputFormatter::Full(formatter),
-        OutputFormat::Pretty => OutputFormatter::Pretty(formatter.pretty()),
-        // OutputFormat::Json => OutputFormatter::Json(formatter.json()),
-        OutputFormat::Compact => OutputFormatter::Compact(formatter.compact()),
+    let output_formatter = match std_err_output_format {
+        OutputFormat::Full => OutputFormatter::Full(formatter.clone()),
+        OutputFormat::Pretty => OutputFormatter::Pretty(formatter.clone().pretty()),
+        OutputFormat::Json => OutputFormatter::Json(formatter.clone().json()),
+        OutputFormat::Compact => OutputFormatter::Compact(formatter.clone().compact()),
     };
 
-    let stderr_layer = fmt::layer()
-        .event_format(formatter)
-        .with_writer(std::io::stderr);
-
     let error_layer = tracing_error::ErrorLayer::default();
+
+    // Because of how the Registry and Layer interface is designed, we can't just have one layer,
+    // as they have different types. We also can't box them as it requires Sized. However,
+    // Option<Layer> implements the Layer trait so we can  just provide None for one and Some
+    // for the other
+    let (stderr_layer, json_stderr_layer) = match std_err_output_format {
+        OutputFormat::Json => (
+            None,
+            Some(
+                fmt::layer()
+                    .event_format(output_formatter)
+                    .fmt_fields(JsonFields::new())
+                    .with_writer(std::io::stderr),
+            ),
+        ),
+        _ => (
+            Some(
+                fmt::layer()
+                    .event_format(output_formatter)
+                    .with_writer(std::io::stderr),
+            ),
+            None,
+        ),
+    };
+
+    let file_appender =
+        tracing_appender::rolling::never("./log", format!("{file_output_name}.log"));
+    let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
+
+    let json_file_layer = fmt::layer()
+        .event_format(formatter.json())
+        .fmt_fields(JsonFields::new())
+        .with_writer(non_blocking);
+
     tracing_subscriber::registry()
-        .with(filter.and_then(stderr_layer))
+        .with(filter)
+        .with(stderr_layer)
+        .with(json_stderr_layer)
+        .with(json_file_layer)
         .with(error_layer)
         .init();
+
+    _guard
 }
 
 pub fn parse_env_duration(name: &str, default: u64) -> Duration {

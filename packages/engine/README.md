@@ -357,6 +357,10 @@ During the run, the output may be buffered into the `./parts` folder in multiple
 
 [hCore] currently provides functionality where simulations can apply custom analysis on user-defined metrics. The functionality has been ported across to this codebase in the [analysis package](./src/simulation/package/output/packages/analysis), however development is planned to stabilise it. As such, this functionality is neither tested, nor considered supported.
 
+### Logging
+
+The engine (and CLI) currently logs to both stderr, and to the `./log` directory. The latter is machine-parseable JSON-formatted structured logging, while the stderr logs are configurable through the command-line arguments of both binaries (see [CLI Arguments and Options](#cli-arguments-and-options)).
+
 ## Main Concepts
 
 Being familiar with running experiments and simulations on the HASH platform will help a lot with understanding the Engine. The [docs](https://hash.ai/docs/simulation/?utm_medium=organic&utm_source=github_readme_engine) are also a good place to search for clarification on some terms used below when unclear.

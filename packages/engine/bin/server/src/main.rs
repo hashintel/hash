@@ -8,7 +8,7 @@ use hash_engine::{
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = hash_engine::args();
-    hash_engine::init_logger(args.emit);
+    let _guard = hash_engine::init_logger(args.emit, &format!("experiment-{}", args.experiment_id));
 
     let mut env = hash_engine::env::<ExperimentRun>(&args)
         .await
