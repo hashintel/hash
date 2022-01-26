@@ -10,6 +10,8 @@ const pageName = `Test page ${pageNameSuffix}`;
 const listOfPagesSelector = 'nav header:has-text("Pages")';
 const pageTitleInputSelector = '[placeholder="A title for the page"]';
 
+const modifierKey = process.platform === "darwin" ? "Meta" : "Control";
+
 test("user can create page", async ({ page }) => {
   await loginUsingUi({ page, accountShortName: "alice" });
 
@@ -49,18 +51,20 @@ test("user can create page", async ({ page }) => {
   // Type in a paragraph block
   await blockRegionLocator.locator("p div").click();
   await page.keyboard.type("My test paragraph with ");
-  await page.keyboard.press("Meta+b");
+  await page.keyboard.press(`${modifierKey}+b`);
   await page.keyboard.type("bold");
-  await page.keyboard.press("Meta+b");
+  await page.keyboard.press(`${modifierKey}+b`);
   await page.keyboard.type(" and ");
-  await page.keyboard.press("Meta+i");
+  await page.keyboard.press(`${modifierKey}+i`);
   await page.keyboard.type("italics");
-  await page.keyboard.press("Meta+i");
+  await page.keyboard.press(`${modifierKey}+i`);
 
   // Insert a divider
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
   await page.keyboard.press("Enter");
   await sleep(100); // TODO: investigate flakiness in FF and Webkit
   await page.keyboard.type("/divider");
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
   await page.keyboard.press("Enter");
   await sleep(100); // TODO: investigate flakiness in FF and Webkit
 
@@ -73,16 +77,18 @@ test("user can create page", async ({ page }) => {
   // TODO: Move the cursor below the new divider and update the test?
 
   // Insert a paragraph creation with newlines
-  // TODO: Enable and fix by updating ProseMirror code
-  // await page.keyboard.type("Second paragraph");
-  // await page.keyboard.press("Shift+Enter");
-  // await sleep(100); // TODO: investigate flakiness in FF and Webkit
-  // await page.keyboard.press("Shift+Enter");
-  // await sleep(100); // TODO: investigate flakiness in FF and Webkit
-  // await page.keyboard.type("with");
-  // await page.keyboard.press("Shift+Enter");
-  // await sleep(100); // TODO: investigate flakiness in FF and Webkit
-  // await page.keyboard.type("line breaks");
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await page.keyboard.type("Second paragraph");
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await page.keyboard.press("Shift+Enter");
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await page.keyboard.press("Shift+Enter");
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await page.keyboard.type("with");
+  await page.keyboard.press("Shift+Enter");
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await page.keyboard.type("line breaks");
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
 
   // Expect just inserted content to be present on the page
   await expect(blockRegionLocator).toContainText(
@@ -104,10 +110,22 @@ test("user can create page", async ({ page }) => {
 
   await expect(pageTitleLocator).toHaveValue(pageName);
 
-  await expect(blockRegionLocator).toContainText(
+  await expect(blockRegionLocator.locator("p").nth(0)).toContainText(
     "My test paragraph with bold and italics",
-    // "My test paragraph with bold and italics\nSecond paragraph\nwith\nline breaks",
     { useInnerText: true }, // Prevents words from sticking to each other
+  );
+
+  await expect(
+    blockRegionLocator.locator("p").nth(0).locator("strong"),
+  ).toContainText("bold");
+
+  await expect(
+    blockRegionLocator.locator("p").nth(0).locator("em"),
+  ).toContainText("italics");
+
+  await expect(blockRegionLocator.locator("p").nth(1)).toContainText(
+    "Second paragraph\n\nwith\nline breaks",
+    { useInnerText: true },
   );
 
   await expect(blockRegionLocator.locator("hr")).toBeVisible();
