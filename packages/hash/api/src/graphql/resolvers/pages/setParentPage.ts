@@ -1,7 +1,7 @@
 import { ApolloError } from "apollo-server-express";
 import { MutationSetParentPageArgs, Resolver } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
-import { Entity, UnresolvedGQLEntity } from "../../../model";
+import { Entity, Link, UnresolvedGQLEntity } from "../../../model";
 
 export const setParentPage: Resolver<
   Promise<UnresolvedGQLEntity>,
@@ -24,6 +24,19 @@ export const setParentPage: Resolver<
 
     if (!parentPageEntity || !pageEntity) {
       throw new ApolloError(`Could not find.`, "NOT_FOUND");
+    }
+
+    const link = await Link.getLinkInAnyDirection(dataSources.db, {
+      accountId,
+      entityIdOne: pageId,
+      entityIdTwo: parentPageId,
+    });
+
+    if (link) {
+      throw new ApolloError(
+        `Could not set ${parentPageId} as parent to ${pageId} as this would create a cyclic dependency.`,
+        "CYCLIC_TREE",
+      );
     }
     // @todo: lock entity to prevent potential race-condition when updating entity's properties
     await pageEntity.createOutgoingLink(client, {

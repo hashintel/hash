@@ -181,6 +181,18 @@ class __Link {
     return dbLink ? new Link({ ...dbLink }) : null;
   }
 
+  static async getLinkInAnyDirection(
+    client: DBClient,
+    params: {
+      accountId: string;
+      entityIdOne: string;
+      entityIdTwo: string;
+    },
+  ): Promise<Link | null> {
+    const dbLink = await client.getLinkInAnyDirection(params);
+    return dbLink ? new Link({ ...dbLink }) : null;
+  }
+
   async delete(client: DBClient, params: { deletedByAccountId: string }) {
     await client.deleteLink({
       deletedByAccountId: params.deletedByAccountId,
