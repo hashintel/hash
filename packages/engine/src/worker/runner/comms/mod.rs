@@ -102,7 +102,7 @@ impl TargetedRunnerTaskMsg {
         let task_id = task_msg.task_id().ok_or_else(|| {
             Error::from("The TaskMessage from the runner didn't have a required task_id field")
         })?;
-        let task_id = TaskId::from_le_bytes(task_id.0.clone());
+        let task_id = TaskId::from_le_bytes(task_id.0);
 
         let sent = sent_tasks.remove(&task_id).ok_or_else(|| {
             Error::from(format!("Outbound message w/o sent task id {:?}", task_id))
