@@ -204,6 +204,12 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           override: true
 
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.7"
+        run: ${{ matrix.directory }}/src/worker/runner/python/setup.sh python3.7
+
       - name: Cache dependencies
         uses: actions/cache@v2
         with:
