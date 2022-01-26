@@ -3,8 +3,6 @@
 # Also may have to run `dos2unix ./setup.sh` for
 # `/bin/sh^M: bad interpreter` or bad line endings
 
-# this is meaningless
-
 HELP="
  Usage: $0 <python run command>
 
