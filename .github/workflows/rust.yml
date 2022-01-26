@@ -248,7 +248,9 @@ jobs:
       - name: Run tests
         id: test-parallel
         working-directory: ${{ matrix.directory }}
-        run: cargo test ${{ matrix.flags }} --no-fail-fast
+        run: | 
+          ls -R
+          cargo test ${{ matrix.flags }} --no-fail-fast
 
   merging-enabled:
     name: merging enabled
