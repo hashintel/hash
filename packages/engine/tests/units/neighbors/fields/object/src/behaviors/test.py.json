@@ -1,0 +1,18 @@
+{
+  "keys": {
+    "value": {
+      "type": "struct",
+      "nullable": false,
+      "fields": {
+        "key-1": {
+          "type": "string",
+          "nullable": true
+        },
+        "key-2": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    }
+  }
+}

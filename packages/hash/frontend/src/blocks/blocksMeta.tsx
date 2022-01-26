@@ -1,23 +1,28 @@
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
-import { createContext, useContext, useMemo, useState } from "react";
+import {
+  createContext,
+  Dispatch,
+  SetStateAction,
+  useContext,
+  useMemo,
+} from "react";
+import { useLocalstorageState } from "rooks";
 
-type BlocksMetaMap = Map<string, BlockMeta>;
+export type BlocksMetaMap = Record<string, BlockMeta>;
 
 interface BlocksMetaContextState {
   value: BlocksMetaMap;
-  setValue(value: BlocksMetaMap): void;
+  setValue: Dispatch<SetStateAction<BlocksMetaMap>>;
 }
 
-const BlocksMetaContext = createContext<BlocksMetaContextState>({
-  value: new Map(),
-  setValue(_) {},
-});
+/** @private enforces use of custom provider */
+const BlocksMetaContext = createContext<BlocksMetaContextState | null>(null);
 
 export const BlocksMetaProvider: React.FC<{ value: BlocksMetaMap }> = ({
   value: initialValue,
   children,
 }) => {
-  const [value, setValue] = useState(initialValue);
+  const [value, setValue] = useLocalstorageState("blocks-meta", initialValue);
 
   const state = useMemo(() => ({ value, setValue }), [value, setValue]);
 
@@ -28,4 +33,12 @@ export const BlocksMetaProvider: React.FC<{ value: BlocksMetaMap }> = ({
   );
 };
 
-export const useBlocksMeta = () => useContext(BlocksMetaContext);
+export const useBlocksMeta = () => {
+  const state = useContext(BlocksMetaContext);
+
+  if (state === null) {
+    throw new Error("no value has been provided to BlocksMetaContext");
+  }
+
+  return state;
+};

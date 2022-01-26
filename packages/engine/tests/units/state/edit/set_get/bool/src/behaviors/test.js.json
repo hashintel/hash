@@ -4,16 +4,16 @@
       "type": "boolean",
       "nullable": false
     },
-    "b1_type": {
-      "type": "string",
+    "b1_is_boolean": {
+      "type": "boolean",
       "nullable": false
     },
     "b2": {
       "type": "boolean",
       "nullable": false
     },
-    "b2_type": {
-      "type": "string",
+    "b2_is_boolean": {
+      "type": "boolean",
       "nullable": false
     }
   }

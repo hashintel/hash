@@ -44,6 +44,13 @@ export const generateSchema$id = (
 ) => `${relative ? "" : FRONTEND_URL}/${accountId}/types/${entityTypeId}`;
 
 /**
+ * Given a Schema$id, generate an appropriate $ref to put into allOf field on JSON schema.
+ * This can be used to inherit from other schemas.
+ * */
+export const schema$idRef = (schema$id: string) =>
+  JSON.stringify([{ $ref: schema$id }]);
+
+/**
  * Create a JSON schema
  * @param title the name of the schema, e.g. Person
  * @param accountId the account it belongs to
