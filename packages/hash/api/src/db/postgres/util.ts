@@ -1,6 +1,5 @@
 import { sql } from "slonik";
-import { DbPageProperties, DbBlockProperties } from "../../types/dbTypes";
-import { Entity } from "../adapter";
+import { DbBlockProperties, DbEntity, DbPageProperties } from "../adapter";
 
 export const mapColumnNamesToSQL = (columnNames: string[], prefix?: string) =>
   sql.join(
@@ -58,7 +57,7 @@ const getLink = (linkedData: any): Link | null => {
  * Recursively traverse the properties of an entity, gathering the IDs of all entities
  * it references through the `__linkedData` field.
  * */
-export const gatherLinks = (entity: Entity): Link[] => {
+export const gatherLinks = (entity: DbEntity): Link[] => {
   // Block entities are a special case. They (currently) don't have a __linkedData field,
   // but reference the entity they wrap with an "entityId" property.
   if (entity.entityTypeName === "Block") {

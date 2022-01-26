@@ -1,7 +1,7 @@
 import { GraphQLResolveInfo } from "graphql";
+import { DbUnknownEntity } from "../../../db/adapter";
 
 import { File } from "../../../model";
-import { DbUnknownEntity } from "../../../types/dbTypes";
 import { isRecord } from "../../../util";
 import { Resolver, UnknownEntity, FileProperties } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
