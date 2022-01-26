@@ -105,7 +105,7 @@ impl Comms {
     /// Errors: tokio failed to send the message to the worker pool for some reason;
     ///         e.g. the worker pool already stopped due to some other error.
     pub async fn state_sync(&self, state: &State) -> Result<SyncCompletionReceiver> {
-        log::trace!("Synchronizing state");
+        tracing::trace!("Synchronizing state");
         let (completion_sender, completion_receiver) = tokio::sync::oneshot::channel();
 
         // Synchronize the state batches
@@ -123,7 +123,7 @@ impl Comms {
 
     /// TODO: DOC
     pub async fn state_snapshot_sync(&self, state: &StateSnapshot) -> Result<()> {
-        log::trace!("Synchronizing state snapshot");
+        tracing::trace!("Synchronizing state snapshot");
         // Synchronize the state snapshot batches
         let agents = state.agent_pool().clone();
         let agent_messages = state.message_pool().clone();
@@ -144,7 +144,7 @@ impl Comms {
         current_step: usize,
         state_group_start_indices: &Arc<Vec<usize>>,
     ) -> Result<()> {
-        log::trace!("Synchronizing context batch");
+        tracing::trace!("Synchronizing context batch");
         // Synchronize the context batch
         let batch = context.batch();
         let indices = Arc::clone(state_group_start_indices);
@@ -160,10 +160,10 @@ impl Comms {
 }
 
 impl Comms {
-    pub async fn new_task<T: Into<Task>>(
+    pub async fn new_task(
         &self,
         package_id: PackageId,
-        task: T,
+        task: Task,
         shared_store: TaskSharedStore,
     ) -> Result<ActiveTask> {
         let task_id = uuid::Uuid::new_v4().as_u128();
@@ -176,13 +176,12 @@ impl Comms {
 }
 
 /// TODO: DOC
-fn wrap_task<T: Into<Task>>(
+fn wrap_task(
     task_id: TaskId,
     package_id: PackageId,
-    task: T,
+    task: Task,
     shared_store: TaskSharedStore,
 ) -> Result<(WrappedTask, ActiveTask)> {
-    let task: Task = task.into();
     task.verify_store_access(&shared_store)?;
     let (owner_channels, executor_channels) = active::comms();
     let wrapped = WrappedTask::new(task_id, package_id, task, executor_channels, shared_store);

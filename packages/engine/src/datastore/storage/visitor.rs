@@ -94,7 +94,7 @@ pub(in crate::datastore) trait Visit<'mem: 'v, 'v> {
             && markers.data_offset() + markers.data_size() <= size;
 
         if !res {
-            log::warn!(
+            tracing::warn!(
                 "Invalid markers in shared buffer with id {}. Markers: {:?}, Shared buffer size: \
                  {}",
                 message,

@@ -71,11 +71,11 @@ unsafe extern "C" fn flush_changes(
     let resized = match prepared.flush_changes() {
         Ok(resized) => resized,
         Err(Error::SharedMemory(shared_memory::ShmemError::DevShmOutOfMemory)) => {
-            log::error!("Out of memory in `flush_changes`");
+            tracing::error!("Out of memory in `flush_changes`");
             return OUT_OF_MEMORY;
         }
         Err(err) => {
-            log::error!("Error in `flush_changes`: {err}");
+            tracing::error!("Error in `flush_changes`: {err}");
             return ERROR_FLAG;
         }
     };

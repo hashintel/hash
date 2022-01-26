@@ -1,3 +1,4 @@
+use tracing::Instrument;
 use uuid::Uuid;
 
 use super::{Comms, Result};
@@ -6,7 +7,7 @@ use crate::{
     hash_types::Agent,
     simulation::{
         package::{id::PackageId, PackageType},
-        task::{active::ActiveTask, Task},
+        task::{active::ActiveTask, GetTaskName, Task},
     },
 };
 
@@ -33,8 +34,12 @@ impl PackageComms {
         task: T,
         shared_store: TaskSharedStore,
     ) -> Result<ActiveTask> {
+        let task = task.into();
+        let task_name = task.get_task_name();
+
         self.inner
             .new_task(self.package_id, task, shared_store)
+            .instrument(tracing::trace_span!("Task", name = task_name))
             .await
     }
 }
