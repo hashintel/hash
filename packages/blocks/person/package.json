@@ -70,9 +70,11 @@
     "displayName": "Person",
     "icon": "public/account-circle.svg",
     "image": "public/preview.svg",
-    "examples": {
-      "email": "alice@example.com",
-      "name": "Alice Alison"
-    }
+    "examples": [
+      {
+        "email": "alice@example.com",
+        "name": "Alice Alison"
+      }
+    ]
   }
 }
