@@ -204,6 +204,11 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           override: true
 
+      - name: Install Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.7"
+
       - name: Cache dependencies
         uses: actions/cache@v2
         with:
@@ -233,23 +238,19 @@ jobs:
       - name: Build test dependencies
         if: matrix.directory == 'packages/engine'
         working-directory: ${{ matrix.directory }}
-        run: cargo build
+        run: |
+          cargo build
+          cargo build -p server
 
-      - name: Setup Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: "3.7"
-
-      - name: Setup Python Script
+      - name: Setup Python environment
         if: matrix.directory == 'packages/engine'
         working-directory: ${{ matrix.directory }}
-        run: src/worker/runner/python/setup.sh python3.7
+        run: |
+          src/worker/runner/python/setup.sh python3.7
 
       - name: Run tests
-        id: test-parallel
         working-directory: ${{ matrix.directory }}
-        run: | 
-          ls -R
+        run: |
           cargo test ${{ matrix.flags }} --no-fail-fast
 
   merging-enabled:
