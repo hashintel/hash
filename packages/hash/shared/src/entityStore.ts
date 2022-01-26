@@ -13,7 +13,7 @@ type PropertiesType<Properties extends {}> = Properties extends {
   : Properties;
 
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
-  accountId: string | null;
+  accountId?: string | null;
   entityId: Type["entityId"] | null;
 
   // @todo thinking about removing this – as they're keyed by this anyway
