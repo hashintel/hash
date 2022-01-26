@@ -242,7 +242,7 @@ jobs:
       - name: Setup Python Script
         if: matrix.directory == 'packages/engine'
         working-directory: ./packages/engine
-        run: ${{ matrix.directory }}/src/worker/runner/python/setup.sh python3.7
+        run: src/worker/runner/python/setup.sh python3.7
 
       - name: Run tests
         id: test-parallel
