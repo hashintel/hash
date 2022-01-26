@@ -1,20 +1,19 @@
-import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { Schema } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
 import "prosemirror-view/style/prosemirror.css";
 import React, { useLayoutEffect, useRef, VoidFunctionComponent } from "react";
 import { useLocalstorageState } from "rooks";
-
 import { tw } from "twind";
+
 import { Button } from "../../components/forms/Button";
-import { BlocksMetaProvider } from "../blocksMeta";
+import { BlocksMetaMap, BlocksMetaProvider } from "../blocksMeta";
 import { EditorConnection } from "./collab/EditorConnection";
 import { createEditorView } from "./createEditorView";
 import { usePortals } from "./usePortals";
 
 type PageBlockProps = {
-  blocksMeta: Map<string, BlockMeta>;
+  blocksMeta: BlocksMetaMap;
   accountId: string;
   entityId: string;
 };
@@ -60,7 +59,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       renderPortal,
       accountId,
       entityId,
-      Array.from(blocksMeta.values()),
+      blocksMeta,
     );
 
     prosemirrorSetup.current = {
