@@ -44,7 +44,7 @@ tracing = "0.1.29"
 tracing-appender = "0.2.0"
 tracing-error = "0.2.0"
 tracing-subscriber = { version = "0.3.7", features = ["env-filter", "json"] }
-tracing-texray = "0.1.2"
+tracing-texray = { version = "0.1.2", optional = true }
 uuid = { version = "0.8.1", features = ["v4", "serde"] }
 
 [dev-dependencies]
@@ -56,6 +56,7 @@ num_cpus = "1.13.1"
 [features]
 default = ["build-nng"]
 build-nng = ["nng/build-nng"]
+texray = ["tracing-texray"]
 
 [lib]
 crate-type = ["lib", "cdylib"]

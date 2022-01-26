@@ -28,6 +28,7 @@ use crate::{
         status::SimStatus,
         Error as SimulationError,
     },
+    utils,
     worker::runner::comms::{
         DatastoreSimulationPayload, ExperimentInitRunnerMsgBase, NewSimulationRun,
     },
@@ -78,7 +79,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
                 changed_properties,
                 max_num_steps,
             } => {
-                let sim_span = tracing_texray::examine(tracing::span!(
+                let sim_span = utils::texray::examine(tracing::span!(
                     parent: span_id,
                     tracing::Level::INFO,
                     "sim",
