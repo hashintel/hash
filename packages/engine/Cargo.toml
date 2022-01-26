@@ -41,7 +41,7 @@ strum_macros = "0.19.4"
 surf = "2.0.0"
 thiserror = "1.0.21"
 tokio = { version = "1.5.0", features = ["macros", "rt-multi-thread", "sync", "process", "time"] }
-tracing-subscriber = { version = "0.3.3", features = ["env-filter", "fmt", "std", "json"] }
+tracing-subscriber = { version = "0.3.7", features = ["env-filter", "json"] }
 tracing-appender = "0.2.0"
 tracing-error = "0.2.0"
 uuid = { version = "0.8.1", features = ["v4", "serde"] }
