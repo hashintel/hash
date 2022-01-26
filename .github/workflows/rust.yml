@@ -208,6 +208,8 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: "3.7"
+
+      - name: Setup Python Script
         run: ${{ matrix.directory }}/src/worker/runner/python/setup.sh python3.7
 
       - name: Cache dependencies
