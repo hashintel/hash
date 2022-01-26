@@ -16,9 +16,9 @@ Returns a number between 0 and 1. If setSeed has been called, it uses the [sfc32
 
 ```javascript
 function behavior(state, context) {
-    if (hstd.random() > 0.5) {
-        // do something
-    }
+  if (hstd.random() > 0.5) {
+    // do something
+  }
 }
 ```
 
@@ -41,15 +41,15 @@ def behavior(state, context):
 Sets a seed for the random number generator used in hash_stdlib.random\(\) and in any stochastic function in [hash_stdlib.stats](/docs/simulation/creating-simulations/libraries/hash/javascript-libraries#jstat-distributions). The seed will apply across all behaviors and agents within a simulation run.
 
 <Tabs>
-<Tab title="JavaScript>
+<Tab title="JavaScript">
 
 ```javascript
 function behavior(state, context) {
-    if (state.timestep == 1) {
+  if (state.timestep == 1) {
     // If it's the first timestep, set the initial seed of the sim.
-        hstd.setSeed("initial_seed");
-    }
-    const num_new_agents = hstd.stats.poisson.sample(10); // will return the same sample every run
+    hstd.setSeed("initial_seed");
+  }
+  const num_new_agents = hstd.stats.poisson.sample(10); // will return the same sample every run
 }
 ```
 

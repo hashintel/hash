@@ -1,3 +1,4 @@
+//! TODO: DOC
 use std::fmt::Debug;
 
 use super::{
@@ -11,6 +12,7 @@ use crate::{
     simulation::task::handler::worker_pool::SplitConfig,
 };
 
+/// TODO: DOC, purpose and fields
 #[derive(Default, Debug)]
 pub struct TaskSharedStore {
     pub state: SharedState,
@@ -23,18 +25,21 @@ impl TaskSharedStore {
     }
 }
 
+/// TODO: DOC
 #[derive(Debug)]
 pub struct PartialStateWriteProxy {
     pub indices: Vec<usize>,
     pub inner: StateWriteProxy,
 }
 
+/// TODO: DOC
 #[derive(Debug, Clone)]
 pub struct PartialStateReadProxy {
     pub indices: Vec<usize>,
     pub inner: StateReadProxy,
 }
 
+/// TODO: DOC
 #[derive(Debug)]
 pub enum SharedState {
     Partial(PartialSharedState),
@@ -115,6 +120,7 @@ impl TaskSharedStoreBuilder {
     }
 }
 
+/// TODO: DOC (expand and reformat below)
 // Represents partial access to the State portion
 // of the data store. Can have both write
 // and read access to different (non-overlapping)
@@ -143,6 +149,7 @@ impl PartialSharedState {
     }
 }
 
+/// TODO: DOC
 fn distribute_batches<A, M>(
     worker_list: &WorkerAllocation,
     agent_batches: Vec<A>,
@@ -212,6 +219,7 @@ impl TaskSharedStore {
             )
     }
 
+    /// TODO: DOC
     pub fn distribute(
         self,
         distribution: &Distribution,

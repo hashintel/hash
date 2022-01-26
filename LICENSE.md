@@ -1,16 +1,34 @@
-Source code in this repository is variously licensed under the Apache License
-Version 2.0, an Apache compatible license, or the [Server Side Public License](packages/engine/LICENSE).
+The HASH monorepo relies upon multiple different licenses.
 
-All source code should have information at the beginning of its respective file
-which specifies its licensing information.
+# License Guide
 
-* Outside of the `/packages/engine` directory, source code in a given file
-  is licensed under the Apache License Version 2.0, unless otherwise noted
-  (e.g. an Apache-compatible license).
+The license for a particular work is defined with following prioritized rules:
+1. License information directly present in the file
+1. `LICENSE`, `LICENSE.md` or `LICENSE.txt` file in the same directory as the work
+1. First `LICENSE`, `LICENSE.md` or `LICENSE.txt` file found when exploring parent directories up to the project top level directory
+1. Defaults to the MIT License
 
-* Within the `/packages/engine` folder, source code in a given file is
-  licensed under the Server Side Public License, unless otherwise noted.
+Source code in this repository is variously licensed under the _MIT License_,
+the _GNU Affero General Public License 3.0_, or dual-licensed under both the
+_Server Side Public License_ and _Elastic License 2.0_.
 
 Written content, illustrations and graphics published under the `resources`
 folder within this repository are made available under the [Creative Commons
 Attribution-ShareAlike 4.0 International](resources/LICENSE.md) license.
+
+# Quick Reference
+
+* Within the `/packages/engine` folder, source code is dually-licensed under
+  either the Server Side Public License or the Elastic License 2.0, unless
+  otherwise noted, giving users the choice of which license to apply.
+  
+* Within the `/packages/hash` folder, source code in a given file is
+  licensed under version 3 of the GNU Affero General Public License, unless
+  otherwise noted.
+  
+* Within the `/packages/hash/blocks` folder, all source code is made
+  available under the MIT License.
+
+# Questions
+
+If you have any questions please [contact us](https://hash.ai/contact).

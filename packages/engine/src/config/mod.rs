@@ -13,19 +13,20 @@ mod worker_pool;
 
 use std::sync::Arc;
 
-pub use engine::{Config as EngineConfig, Worker, WorkerAllocation};
-pub use error::{Error, Result};
-pub use experiment::Config as ExperimentConfig;
-pub use globals::Globals;
-pub use package::{Config as PackageConfig, ConfigBuilder as PackageConfigBuilder};
-pub use persistence::Config as PersistenceConfig;
-pub use simulation::Config as SimulationConfig;
-pub use store::Config as StoreConfig;
-pub use task_distribution::{Config as TaskDistributionConfig, Distribution};
-pub use topology::Config as TopologyConfig;
-pub use worker::{Config as WorkerConfig, SpawnConfig as WorkerSpawnConfig};
-pub use worker_pool::Config as WorkerPoolConfig;
-
+pub use self::{
+    engine::{Config as EngineConfig, Worker, WorkerAllocation},
+    error::{Error, Result},
+    experiment::Config as ExperimentConfig,
+    globals::Globals,
+    package::{Config as PackageConfig, ConfigBuilder as PackageConfigBuilder},
+    persistence::Config as PersistenceConfig,
+    simulation::Config as SimulationConfig,
+    store::Config as StoreConfig,
+    task_distribution::{Config as TaskDistributionConfig, Distribution},
+    topology::Config as TopologyConfig,
+    worker::{Config as WorkerConfig, SpawnConfig as WorkerSpawnConfig},
+    worker_pool::Config as WorkerPoolConfig,
+};
 use crate::{proto::SimulationShortId, Args, Environment};
 
 #[derive(Clone)]

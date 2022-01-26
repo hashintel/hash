@@ -1,0 +1,20 @@
+{
+  "keys": {
+    "s1": {
+      "type": "string",
+      "nullable": false
+    },
+    "s2": {
+      "type": "string",
+      "nullable": false
+    },
+    "s1_is_string": {
+      "type": "boolean",
+      "nullable": false
+    },
+    "s2_is_string": {
+      "type": "boolean",
+      "nullable": false
+    }
+  }
+}

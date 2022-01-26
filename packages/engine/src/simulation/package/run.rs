@@ -10,6 +10,7 @@ use crate::{
             state::{view::StateSnapshot, ReadState},
         },
     },
+    proto::ExperimentRunTrait,
     simulation::{
         package::{
             context,
@@ -29,6 +30,7 @@ pub struct Packages {
     pub step: StepPackages,
 }
 
+/// TODO: DOC: explain link to init/mod.rs
 pub struct InitPackages {
     inner: Vec<Box<dyn init::Package>>,
 }
@@ -139,7 +141,7 @@ impl StepPackages {
         let context = Context::new_from_columns(
             columns,
             sim_run_config.sim.store.clone(),
-            &sim_run_config.exp.run_id,
+            &sim_run_config.exp.run.base().id,
         )?;
         Ok(context)
     }

@@ -1,0 +1,22 @@
+[
+  {
+    "behaviors": ["test.py"],
+    "search_radius": 1,
+    "position": [0, 0]
+  },
+  {
+    "behaviors": ["test.py"],
+    "search_radius": 0,
+    "position": [0, 0]
+  },
+  {
+    "behaviors": ["test.py"],
+    "search_radius": 0,
+    "position": [2, 0]
+  },
+  {
+    "behaviors": ["test.py"],
+    "search_radius": 2,
+    "position": [0, 2]
+  }
+]

@@ -12,11 +12,11 @@ Clicking on any agent in the 3D viewer will open an 'inspector' panel, which pro
 
 There are many ways to display information about agents in the 3D viewer directly which can be controlled through various fields on an agent:
 
-* Position
-* Direction
-* Scale
-* Color
-* Shape
+- Position
+- Direction
+- Scale
+- Color
+- Shape
 
 ## Position
 

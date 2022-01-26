@@ -12,15 +12,15 @@ HASH allows you to incorporate your own data into simulations, or download datas
 
 Example Simulations that use datasets:
 
-* [City Infection Model](https://core.hash.ai/@hash/city-infection-model/main)
-* [Local Competition](/@hash/local-competition)
-* [Wholesale Warehouse](/@hash/wholesale-warehouse1)
+- [City Infection Model](https://core.hash.ai/@hash/city-infection-model/main)
+- [Local Competition](/@hash/local-competition)
+- [Wholesale Warehouse](/@hash/wholesale-warehouse1)
 
 ## Importing data into HASH
 
 To import your own datasets into HASH, click the 'Add Dataset' button above the list of files in hCore, and select a CSV or JSON dataset from your computer to upload:
 
-![Click on &apos;New Dataset&apos; to upload a dataset](https://cdn-us1.hash.ai/site/docs/screenshot-2021-02-04-at-17.24.13.png)
+![Click on 'New Dataset' to upload a dataset](https://cdn-us1.hash.ai/site/docs/screenshot-2021-02-04-at-17.24.13.png)
 
 Once uploaded the dataset will be listed in your simulation's file list.
 
@@ -38,22 +38,22 @@ There are also third-party datasets published in hIndex you can add to your proj
 
 HASH parses imported datasets and generates a new field in `context.data()`with the file name. This contains the content of datasets associated in the simulation. At this time HASH supports datasets imported in CSV or JSON formats.
 
-* If the dataset is a JSON document, it gets parsed for you directly.
-* If a dataset is a CSV file, when we load it into your project we parse it into an array of arrays \(where each row is an array\). If you have a header row, it will be the first array. See **Using data to initialize agents** below for a worked example.
+- If the dataset is a JSON document, it gets parsed for you directly.
+- If a dataset is a CSV file, when we load it into your project we parse it into an array of arrays \(where each row is an array\). If you have a header row, it will be the first array. See **Using data to initialize agents** below for a worked example.
 
 ```javascript
 [
   ["name", "age"],
   ["Bob", 32],
-  ["Alice", 58]
-]
+  ["Alice", 58],
+];
 ```
 
 To access a dataset, use its path on `context.data()`- you can find its path by right-clicking on it in your files list, and clicking 'copy path to clipboard'.
 
 ```javascript
 // Access a dataset in your simulation
-context.data()["dataset-path.csv"]
+context.data()["dataset-path.csv"];
 ```
 
 <Hint style="info">

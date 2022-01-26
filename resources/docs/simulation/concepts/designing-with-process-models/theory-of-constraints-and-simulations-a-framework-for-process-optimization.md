@@ -14,11 +14,11 @@ The benefit of simulation, when applied with this framework, are numerous. Simul
 
 There are five steps in the theory of constraints framework:
 
-1. Identify the system's constraints: Model the system and find the bottlenecks.
-2. Decide how to exploit the system's constraints: Test different strategies for alleviating bottlenecks.
-3. Subordinate everything else to the above decisions: Make the case using graphs and experiments.
-4. Elevate the constraints: Upgrade the necessary components, buy more of the resources, increase capacity, etc.
-5. Repeat: After the targeted intervention, if successful the constraint will shift to another resource. Repeat the above process, practicing the art of continuous improvement.
+1.  Identify the system's constraints: Model the system and find the bottlenecks.
+1.  Decide how to exploit the system's constraints: Test different strategies for alleviating bottlenecks.
+1.  Subordinate everything else to the above decisions: Make the case using graphs and experiments.
+1.  Elevate the constraints: Upgrade the necessary components, buy more of the resources, increase capacity, etc.
+1.  Repeat: After the targeted intervention, if successful the constraint will shift to another resource. Repeat the above process, practicing the art of continuous improvement.
 
 The theory of constraints offers guidelines and heuristic for modeling processes and identifying actions to take; however, it doesn't provide specific tools and scientific approaches for analyzing systems. That's where simulation can help. This article will walk through applying the theory of constraints + simulations, and include examples and principles for applying it to your own problems.
 
@@ -60,7 +60,7 @@ Now that we know where the key constraint in the system is, we can re-engineer o
 
 One of the tricky parts of process modeling and process optimization is it can be non-obvious how different process designs impact process performance. Subtle differences can lead to dramatically different outcomes. The key to improving a system often comes from experimentation with different layouts; these can be guided by principled insights from operations research or through iteration, and trial and error. A benefit of using simulation as an aid in the design process is you can quickly experiment with different designs.
 
-In our example of the billing department senior_billers are used in `auditCustomerAccount`,  `verifyAndFixBills`, and in `registerARAndFinancials`. Regardless of the path the bills take in the process, they end up utilizing some of the senior_billers resource. A potential improvement might be to redesign the system such that the senior_billers are no longer used on all parts, and instead conserving their input until the end.
+In our example of the billing department senior_billers are used in `auditCustomerAccount`, `verifyAndFixBills`, and in `registerARAndFinancials`. Regardless of the path the bills take in the process, they end up utilizing some of the senior_billers resource. A potential improvement might be to redesign the system such that the senior_billers are no longer used on all parts, and instead conserving their input until the end.
 
 ### Adding resources or buffers to a bottleneck
 

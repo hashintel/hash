@@ -1,3 +1,4 @@
+//! TODO: DOC
 pub mod comms;
 pub mod error;
 mod pending;
@@ -5,7 +6,6 @@ pub mod runs;
 
 use std::{future::Future, pin::Pin, sync::Arc};
 
-pub use error::{Error, Result};
 use futures::{
     future::try_join_all,
     stream::{FuturesUnordered, StreamExt},
@@ -13,6 +13,7 @@ use futures::{
 use rand::prelude::SliceRandom;
 use tokio::{pin, task::JoinHandle};
 
+pub use self::error::{Error, Result};
 use self::{
     comms::{
         experiment::ExperimentToWorkerPoolMsg, main::MainMsgSendBase, top::WorkerPoolMsgSend,
@@ -44,6 +45,7 @@ use crate::{
     },
 };
 
+/// TODO: DOC
 pub struct WorkerPoolController {
     worker_controllers: Option<Vec<WorkerController>>,
     comms: WorkerPoolCommsWithWorkers,
@@ -143,6 +145,7 @@ impl WorkerPoolController {
         Ok(fut)
     }
 
+    /// TODO: DOC
     pub async fn run(mut self) -> Result<()> {
         log::debug!("Running Worker Pool Controller");
         pin!(let workers = self.run_worker_controllers()?;);
@@ -195,6 +198,7 @@ impl WorkerPoolController {
         }
     }
 
+    /// TODO DOC
     async fn handle_sim_msg(
         &mut self,
         msg: EngineToWorkerPoolMsg,
@@ -246,6 +250,7 @@ impl WorkerPoolController {
         Ok(())
     }
 
+    /// TODO: DOC
     async fn handle_exp_msg(&mut self, msg: ExperimentToWorkerPoolMsg) -> Result<()> {
         match msg {
             ExperimentToWorkerPoolMsg::NewSimulationRun(payload) => {
@@ -257,6 +262,7 @@ impl WorkerPoolController {
         Ok(())
     }
 
+    /// TODO: DOC
     async fn handle_worker_msg(
         &mut self,
         worker: WorkerIndex,
@@ -339,6 +345,7 @@ impl WorkerPoolController {
         self.comms.send_all(msg)
     }
 
+    /// TODO: DOC
     fn new_worker_tasks(
         &self,
         sim_id: SimulationShortId,

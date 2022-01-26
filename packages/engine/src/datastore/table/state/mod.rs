@@ -16,7 +16,7 @@ use crate::{
     datastore::{
         batch::DynamicBatch, prelude::*, schema::state::AgentSchema, table::pool::BatchPool,
     },
-    proto::ExperimentId,
+    proto::{ExperimentId, ExperimentRunTrait},
     simulation::{command::CreateRemoveCommands, package::state::StateColumn},
     SimRunConfig,
 };
@@ -41,6 +41,7 @@ pub struct Inner {
 }
 
 impl Inner {
+    /// TODO: DOC
     fn from_agent_states(
         agent_state_batches: &[&[AgentState]],
         num_agents: usize,
@@ -51,7 +52,7 @@ impl Inner {
 
         let agent_schema = &sim_config.sim.store.agent_schema;
         let message_schema = &sim_config.sim.store.message_schema;
-        let experiment_run_id = &sim_config.exp.run_id;
+        let experiment_id = &sim_config.exp.run.base().id;
 
         let mut group_start_indices = Vec::new();
         let mut start = 0;
@@ -61,14 +62,10 @@ impl Inner {
             start += agent_state_batch.len();
 
             agent_batches.push(Arc::new(parking_lot::RwLock::new(
-                AgentBatch::from_agent_states(*agent_state_batch, agent_schema, experiment_run_id)?,
+                AgentBatch::from_agent_states(*agent_state_batch, agent_schema, experiment_id)?,
             )));
             message_batches.push(Arc::new(parking_lot::RwLock::new(
-                MessageBatch::from_agent_states(
-                    *agent_state_batch,
-                    message_schema,
-                    experiment_run_id,
-                )?,
+                MessageBatch::from_agent_states(*agent_state_batch, message_schema, experiment_id)?,
             )));
         }
         let agent_pool = AgentPool::new(agent_batches);
@@ -85,12 +82,14 @@ impl Inner {
     }
 }
 
+/// TODO: DOC
 pub struct State {
     inner: Inner,
     sim_config: Arc<SimRunConfig>,
 }
 
 impl State {
+    /// TODO: DOC
     pub fn from_agent_states(
         agent_states: Vec<AgentState>,
         sim_config: Arc<SimRunConfig>,
@@ -138,6 +137,7 @@ pub struct ExState {
 }
 
 impl ExState {
+    /// TODO: DOC
     pub fn downgrade(self) -> State {
         State {
             inner: self.inner,
@@ -153,7 +153,7 @@ impl ExState {
         &mut self,
         context: &mut ExContext,
         agent_schema: &AgentSchema,
-        experiment_run_id: &ExperimentId,
+        experiment_id: &ExperimentId,
     ) -> Result<()> {
         let mut static_pool = context.inner_mut().agent_pool_mut().write_batches()?;
         let dynamic_pool = self.agent_pool().read_batches()?;
@@ -176,8 +176,7 @@ impl ExState {
             dynamic_pool[static_pool.len()..dynamic_pool.len()]
                 .iter()
                 .try_for_each::<_, Result<()>>(|batch| {
-                    let r#static =
-                        AgentBatch::duplicate_from(batch, agent_schema, experiment_run_id)?;
+                    let r#static = AgentBatch::duplicate_from(batch, agent_schema, experiment_id)?;
                     static_pool.push(Arc::new(parking_lot::RwLock::new(r#static)));
                     Ok(())
                 })?;

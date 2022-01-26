@@ -5,10 +5,12 @@ pub mod sim_control;
 
 use std::sync::Arc;
 
-pub use error::{Error, Result};
-pub use sim_control::SimControl;
 use tokio::task::JoinHandle;
 
+pub use self::{
+    error::{Error, Result},
+    sim_control::SimControl,
+};
 use super::comms::Comms;
 use crate::{
     datastore::prelude::SharedStore,

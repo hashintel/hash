@@ -18,8 +18,8 @@ System Dynamics models exist on an agent, either on their own, or in conjunction
 
 Your agent only needs to run two behaviors to execute a system dynamics model:
 
-* `@hash/sd/calc_rates.js` - determines and assigns all flow rates for the current time step
-* `@hash/sd/step.js` - runs the model one step forward using the current flow rates and stock values
+- `@hash/sd/calc_rates.js` - determines and assigns all flow rates for the current time step
+- `@hash/sd/step.js` - runs the model one step forward using the current flow rates and stock values
 
 <Hint style="info">
 Make sure that your agent's `behaviors` array always contains the two behaviors in that order.
@@ -31,7 +31,7 @@ The system dynamics agent needs to have a property for each "stock" in the model
 
 An model that calculates population levels might look something like this:
 
-```javascript
+```json
 {
   "behaviors": ["@hash/sd/calc_rates.js", "@hash/sd/step.js"],
   "children": 200,
@@ -40,7 +40,7 @@ An model that calculates population levels might look something like this:
   "maturation_rate_constant": 0.3,
   "death_rate_constant": 0.11,
   "sd_definition": {
-    ...
+    "...": "..."
   }
 }
 ```
@@ -49,32 +49,34 @@ An model that calculates population levels might look something like this:
 
 The final step is to define the rates in your model. Each rate will have 3 or 4 properties defined:
 
-* `rate` - the rate value for the curren time step. Can initially be 0.
-* `rate_expression` - a string expression that will be evaluated to determine the rate at every timestep. You may access `state` fields in this expression.
-* `from` - the stock from which this rate is flowing. This stock will decrease at the rate.
-* `to` - the stock to which this rate is flowing. This stock will increase at the rate.
+- `rate` - the rate value for the curren time step. Can initially be 0.
+- `rate_expression` - a string expression that will be evaluated to determine the rate at every timestep. You may access `state` fields in this expression.
+- `from` - the stock from which this rate is flowing. This stock will decrease at the rate.
+- `to` - the stock to which this rate is flowing. This stock will increase at the rate.
 
 <Hint style="info">
 Some rates will only have one of "to" or "from" if they are coming from a sink, or going to a source.
 </Hint>
 
-```javascript
-"sd_definition": {
-  "births": {
-    "rate": 0,
-    "rate_expression": "state.birth_rate_constant * state.adults",
-    "to": "children"
-  },
-  "maturing": {
-    "rate": 0,
-    "rate_expression": "state.maturation_rate_constant * state.children",
-    "from": "children",
-    "to": "adults"
-  },
-  "deaths": {
-    "rate": 0,
-    "rate_expression": "state.death_rate_constant * state.adults",
-    "from": "adults"
+```json
+{
+  "sd_definition": {
+    "births": {
+      "rate": 0,
+      "rate_expression": "state.birth_rate_constant * state.adults",
+      "to": "children"
+    },
+    "maturing": {
+      "rate": 0,
+      "rate_expression": "state.maturation_rate_constant * state.children",
+      "from": "children",
+      "to": "adults"
+    },
+    "deaths": {
+      "rate": 0,
+      "rate_expression": "state.death_rate_constant * state.adults",
+      "from": "adults"
+    }
   }
 }
 ```
@@ -83,7 +85,7 @@ Some rates will only have one of "to" or "from" if they are coming from a sink, 
 
 As a final step, set the resolution of your time step in `globals.json` with a `dt` property. The smaller the value, the finer the resolution of your model will be \(but the more time steps it will take to run\).
 
-```javascript
+```json
 {
   "dt": 0.1
 }

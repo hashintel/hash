@@ -15,9 +15,11 @@ use crate::{
             state::{view::StateSnapshot, ExState, ReadState, WriteState},
         },
     },
+    proto::ExperimentRunTrait,
     simulation::agent_control::AgentControl,
 };
 
+/// TODO: DOC
 pub struct Engine {
     packages: Packages,
     store: Store,
@@ -26,6 +28,12 @@ pub struct Engine {
 }
 
 impl Engine {
+    /// Creates a new simulation engine from a given collection of Packages, an uninitialized
+    /// store, a configuration for the simulation run, and a set of Comms to communicate with the
+    /// Worker Pool.
+    /// - Initializes Agent State through the init packages
+    /// - Creates an empty Context
+    /// - Initializes the Store using the Agent State and empty Context
     pub async fn new(
         mut packages: Packages,
         mut uninitialized_store: Store,
@@ -76,6 +84,7 @@ impl Engine {
         Ok(result)
     }
 
+    /// TODO: DOC, the "see" is wrong
     /// Finalize state (see [`SimulationEngine::finalize_state`]) and create a new context
     /// for the agents.
     ///
@@ -110,6 +119,8 @@ impl Engine {
         let state = Arc::new(state.downgrade());
         // Synchronize state with workers
         let active_sync = self.comms.state_sync(&state).await?;
+        // TODO: fix issues with getting write access to the message batch while state sync runs in
+        //  parallel with context packages
         log::trace!("Waiting for active state sync");
         active_sync.await?.map_err(Error::state_sync)?;
         log::trace!("State sync finished");
@@ -128,6 +139,7 @@ impl Engine {
             .context_batch_sync(&context, current_step, state.group_start_indices())
             .await?;
 
+        // Note: the comment below is mostly invalid until state sync is fixed
         // We need to wait for state sync because state packages in the main loop
         // shouldn't write to state before workers have finished reading state.
         // In the case of the state snapshot, the main loop also shouldn't write to
@@ -136,6 +148,8 @@ impl Engine {
         // until the next step (i.e. after all packages and their language runner
         // components have finished running), so we don't need confirmation of
         // snapshot_sync.
+
+        // TODO move state sync back down here.
 
         // State sync finished, so the workers should have dropped
         // their `Arc`s with state by this point.
@@ -240,7 +254,7 @@ impl Engine {
         state.finalize_agent_pool(
             context,
             &self.config.sim.store.agent_schema,
-            &self.config.exp.run_id,
+            &self.config.exp.run.base().id,
         )?;
         Ok(context.take_agent_pool())
     }

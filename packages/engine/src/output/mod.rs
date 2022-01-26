@@ -11,7 +11,7 @@ mod error;
 pub mod local;
 pub mod none;
 
-pub use error::{Error, Result};
+pub use self::error::{Error, Result};
 
 pub trait OutputPersistenceCreatorRepr: Send + Sync + 'static {
     type SimulationOutputPersistence: SimulationOutputPersistenceRepr;

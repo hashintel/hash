@@ -30,13 +30,13 @@ const init = (context) => {
   let agents = [];
   for (let i = 0; i < globals["num_agents"]; i++) {
     agents.push({
-      "behaviors": ["add_one.js"],
-      "age": Math.floor(hstd.stats.normal.sample(avg_age, std_age)),
+      behaviors: ["add_one.js"],
+      age: Math.floor(hstd.stats.normal.sample(avg_age, std_age)),
     });
   }
 
   return agents;
-}
+};
 ```
 
 </Tab>

@@ -23,6 +23,26 @@ enum LoopControl {
 }
 
 // TODO: Sort out error into/from to avoid so many explicit err conversions using to_string
+/// The main function for the run of a simulation. The general flow is in two sections as follows:
+///
+/// # Initialization
+/// - Create an uninitialized store (i.e. create the underlying state of the simulation)
+/// - Create the underlying simulation engine which
+///   - Runs the appropriate init package to initialize Agent state
+///   - Creates an empty context by calling the context packages
+///   - Initializes the datastore with Agent state and the empty context
+/// - Calls the output packages on the initial state
+/// - Starts the main loop
+///
+/// # The Main Loop
+/// The repeating top-level logic of a simulation step.
+/// - Check if the sim has been told to stop by the Experiment Controller
+/// - Tells the simulation engine to take a step [`simulation::engine::Engine::next`]:
+///   - Runs Context Packages in parallel
+///   - Runs State Packages sequentially
+///   - Runs Output packages
+/// - Persists Output
+/// - Sends an update on the Step result to the Experiment Controller
 pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     config: Arc<SimRunConfig>,
     shared_store: Arc<SharedStore>,
@@ -32,7 +52,6 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     mut sims_to_exp: SimStatusSend,
     mut persistence_service: P,
 ) -> Result<SimulationShortId> {
-    // TODO: This is (sometimes?) 0, why?
     let sim_run_id = config.sim.id;
     let max_num_steps = config.sim.max_num_steps;
     log::info!(
@@ -134,17 +153,6 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
         steps_taken += 1;
     }
     let main_loop_dur = now.elapsed().as_millis();
-
-    // Tell the experiment controller that the sim is stopping
-    sims_to_exp
-        .send(SimStatus::stop_signal(sim_run_id))
-        .await
-        .map_err(|exp_controller_err| {
-            Error::from(format!(
-                "Experiment controller error: {:?}",
-                exp_controller_err
-            ))
-        })?;
 
     let now = std::time::Instant::now();
     let persistence_result = persistence_service.finalize(&config).await?;

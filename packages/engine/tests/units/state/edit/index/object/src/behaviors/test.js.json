@@ -1,0 +1,30 @@
+{
+  "keys": {
+    "o1": {
+      "type": "struct",
+      "nullable": false,
+      "fields": {
+        "n1": {
+          "type": "number",
+          "nullable": false
+        },
+        "n2": {
+          "type": "number",
+          "nullable": true
+        }
+      }
+    },
+    "o1_is_struct": {
+      "type": "boolean",
+      "nullable": false
+    },
+    "o1_n1_is_number": {
+      "type": "boolean",
+      "nullable": false
+    },
+    "o1_n2_is_number": {
+      "type": "boolean",
+      "nullable": false
+    }
+  }
+}

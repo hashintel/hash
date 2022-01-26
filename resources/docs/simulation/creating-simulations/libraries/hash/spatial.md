@@ -10,28 +10,28 @@ objectId: 3b8ec1aa-6569-45dd-860e-2a52692ab603
 
 This function returns the distance between two agents, using a specific distance function. You can pass the current agent's `state` as one of the agents. The different distance functions are:
 
-* [Euclidean](https://en.wikipedia.org/wiki/Euclidean_distance) (default)
-* [Manhattan](https://en.wikipedia.org/wiki/Taxicab_geometry)
-* [Euclidean Squared](https://en.wikipedia.org/wiki/Euclidean_distance#Squared_Euclidean_distance)
-* [Chebyshev](https://en.wikipedia.org/wiki/Chebyshev_distance)
+- [Euclidean](https://en.wikipedia.org/wiki/Euclidean_distance) (default)
+- [Manhattan](https://en.wikipedia.org/wiki/Taxicab_geometry)
+- [Euclidean Squared](https://en.wikipedia.org/wiki/Euclidean_distance#Squared_Euclidean_distance)
+- [Chebyshev](https://en.wikipedia.org/wiki/Chebyshev_distance)
 
 <Tabs>
 <Tab title="JavaScript">
 
 ```javascript
 function behavior(state, context) {
-    const { neighborA, neighborB } = context.neighbors();
+  const { neighborA, neighborB } = context.neighbors();
 
-    // Find the closest of 2 neighbors to you
-    const distanceToA = hstd.distanceBetween(state, neighborA);
-    const distanceToB = hstd.distanceBetween(state, neighborB);
-    state.closest = distanceToB > distanceToA ? "A" : "B";
+  // Find the closest of 2 neighbors to you
+  const distanceToA = hstd.distanceBetween(state, neighborA);
+  const distanceToB = hstd.distanceBetween(state, neighborB);
+  state.closest = distanceToB > distanceToA ? "A" : "B";
 
-    // Check if neighbors are closer to each other than to you
-    const neighborDistance = hstd.distanceBetween(neighborA, neighborB);
-    const selfDistance = state.closest === "A" ? distanceToA : distanceToB;
+  // Check if neighbors are closer to each other than to you
+  const neighborDistance = hstd.distanceBetween(neighborA, neighborB);
+  const selfDistance = state.closest === "A" ? distanceToA : distanceToB;
 
-    state.closer_to_neighbors = selfDistance < neighborDistance;
+  state.closer_to_neighbors = selfDistance < neighborDistance;
 }
 ```
 
@@ -69,19 +69,19 @@ This function returns the unit vector of the `vec` array. You can use it to norm
 
 ```javascript
 function behavior(state, context) {
-    const dir = state.direction;
+  const dir = state.direction;
 
-    // Modify the direction by adding a vector [1, 2, 0]
-    dir[0] += 1;
-    dir[1] += 2;
+  // Modify the direction by adding a vector [1, 2, 0]
+  dir[0] += 1;
+  dir[1] += 2;
 
-    // Turn it back into a unit vector
-    state.direction = hstd.normalizeVector(dir);
+  // Turn it back into a unit vector
+  state.direction = hstd.normalizeVector(dir);
 }
 ```
 
 </Tab>
-<Tab title="Python>
+<Tab title="Python">
 
 ```python
 import hstd
@@ -109,11 +109,11 @@ This function returns a random integer position within the bounds of the `topolo
 
 ```javascript
 function behavior(state, context) {
-    // Move to a random position
-    const topology = context.globals().topology;
-    const new_pos = hstd.randomPosition(topology);
+  // Move to a random position
+  const topology = context.globals().topology;
+  const new_pos = hstd.randomPosition(topology);
 
-    state.position = new_pos;
+  state.position = new_pos;
 }
 ```
 

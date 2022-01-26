@@ -17,7 +17,7 @@
 //! * A user requests an object, which is delegated to [`request_by_type_tag`]
 //! * [`request_by_type_tag`] creates a [`Requisition`] object and passes it to
 //!   [`Provider::provide`]
-//! * The object provider's implementation of `Provider::provide` tries providing values of
+//! * The object provider's implementation of [`Provider::provide`] tries providing values of
 //!   different types using `Requisition::provide_*`. If the type tag matches the type requested by
 //!   the user, it will be stored in the [`Requisition`] object.
 //! * [`request_by_type_tag`] unpacks the [`Requisition`] object and returns any stored value to the
@@ -40,7 +40,7 @@
 //! }
 //!
 //! impl Provider for MyError {
-//!     fn provide<'p>(&'p self, mut req: Requisition<'p, '_>) {
+//!     fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
 //!         req.provide_ref(&self.backtrace)
 //!             .provide_ref(self.suggestion.as_str());
 //!     }
@@ -65,7 +65,7 @@
 //! # use provider::{Provider, Requisition, TypeTag, tags};
 //! # struct MyError { backtrace: Backtrace, suggestion: String }
 //! # impl Provider for MyError {
-//! #     fn provide<'p>(&'p self, mut req: Requisition<'p, '_>) {
+//! #     fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
 //! #         req.provide_ref(&self.backtrace)
 //! #             .provide_ref(self.suggestion.as_str());
 //! #     }
@@ -79,7 +79,9 @@
 //! # }
 //! fn report_error(e: &(dyn MyErrorTrait + 'static)) {
 //!     // Generic error handling
-//!     // ...
+//!     # const _: &str = stringify! {
+//!     ...
+//!     # };
 //!
 //!     // print backtrace
 //!     if let Some(backtrace) = e.request_ref::<Backtrace>() {
@@ -111,7 +113,7 @@
 //
 //   TODO: replace library with https://github.com/rust-lang/project-error-handling/issues/3.
 
-#![warn(clippy::pedantic, clippy::nursery)]
+#![warn(missing_docs, clippy::pedantic, clippy::nursery)]
 
 pub mod tags;
 
@@ -127,10 +129,10 @@ use crate::requisition::{ConcreteRequisition, RequisitionImpl};
 pub trait Provider {
     /// Object providers should implement this method to provide *all* values they are able to
     /// provide using `req`.
-    fn provide<'p>(&'p self, req: Requisition<'p, '_>);
+    fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>);
 }
 
-/// Request a specific value by a given tag from the `Provider`.
+/// Request a specific value by a given tag from the [`Provider`].
 pub fn request_by_type_tag<'p, I, P: Provider + ?Sized>(provider: &'p P) -> Option<I::Type>
 where
     I: TypeTag<'p>,
@@ -138,7 +140,7 @@ where
     let mut req: ConcreteRequisition<'p, I> = RequisitionImpl {
         tagged: TagValue(None),
     };
-    provider.provide(Requisition(&mut req));
+    provider.provide(&mut Requisition(&mut req));
     req.tagged.0
 }
 
@@ -184,7 +186,7 @@ pub(crate) mod tests {
     }
 
     impl Provider for MyError {
-        fn provide<'p>(&'p self, mut req: Requisition<'p, '_>) {
+        fn provide<'p>(&'p self, req: &mut Requisition<'p, '_>) {
             req.provide_value(|| self.value)
                 .provide_ref(&self.reference)
                 .provide_with::<CustomTagA, _>(|| self.custom_tag_a)

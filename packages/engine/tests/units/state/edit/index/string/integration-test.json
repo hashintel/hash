@@ -1,0 +1,37 @@
+[
+  {
+    "steps": 3,
+    "expected-output": {
+      "json-state": {
+        "1": [
+          {
+            "s1": "beret",
+            "s1_is_string": true,
+            "s2": "top hat",
+            "s2_is_string": true
+          },
+          {
+            "s1": "beret",
+            "s1_is_string": true,
+            "s2": "bottom hat",
+            "s2_is_string": true
+          }
+        ],
+        "2": [
+          {
+            "s1": "beret",
+            "s1_is_string": true,
+            "s2": "beret hat",
+            "s2_is_string": true
+          },
+          {
+            "s1": "beret",
+            "s1_is_string": true,
+            "s2": "beret hat",
+            "s2_is_string": true
+          }
+        ]
+      }
+    }
+  }
+]

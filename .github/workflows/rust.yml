@@ -7,7 +7,6 @@ defaults:
   run:
     shell: bash
 
-
 concurrency:
   group: ${{ github.head_ref }}
   cancel-in-progress: true
@@ -16,66 +15,80 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  find-crates:
-    name: Find all crates
+  setup:
+    name: setup
     runs-on: ubuntu-latest
     outputs:
-      crates: ${{ steps.find.outputs.crates }}
-      run_job: ${{ steps.check_files.outputs.run_job }}
+      rustfmt: ${{ steps.crates.outputs.rustfmt }}
+      clippy: ${{ steps.crates.outputs.clippy }}
+      test: ${{ steps.crates.outputs.test }}
+      toolchains: ${{ steps.toolchains.outputs.toolchains }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
         with:
           fetch-depth: 2
-      - name: Find crates
-        id: find
-        run: echo "::set-output name=crates::$(find -name Cargo.toml -printf '%h\n' | sed 's:./::' | jq -R | jq -sc)"
-      - name: check files
-        id: check_files
+      - name: Find changed crates
+        id: crates
         run: |
-          echo "=============== list changed files ==============="
-          git diff --name-only HEAD^ HEAD | while read file; do
-            if [[ $file == *.rs || $file == *.toml || $file == *Cargo* ]]; then
-              echo "[proceed] $file"
-              echo "::set-output name=run_job::true"
-            else
-              echo "[skipped] $file"
-            fi
-          done
+          available_crates="$(find . -name Cargo.toml -printf '%h\n' | sed 's:./::' | sort | tac)"
+          changed_files="$(git diff --name-only HEAD^ HEAD)"
+
+          changed_crates=""
+
+          while read -r file; do
+            while read -r crate; do
+              if [[ $file =~ $crate ]]; then
+                changed_crates=$(echo -e "${crate}\n$changed_crates")
+                break
+              fi
+            done <<< "$available_crates"
+          done <<< "$changed_files"
+
+          changed_crates=$(echo "$changed_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
+
+          echo "::set-output name=rustfmt::$changed_crates"
+          echo "::set-output name=clippy::$changed_crates"
+          echo "::set-output name=test::$changed_crates"
+
+          echo "run \`cargo fmt\` for: $(echo $changed_crates | jq -r)"
+          echo "run \`cargo clippy\` for: $(echo $changed_crates | jq -r)"
+          echo "run \`cargo test\` for: $(echo $changed_crates | jq -r)"
+      - name: Find toolchain
+        id: toolchains
+        run: |
+          toolchains=$(cat $(find . -name rust-toolchain.toml) | grep channel | cut -d\" -f2 | jq -R | jq -sc)
+          echo "::set-output name=toolchains::$toolchains"
+          echo "use toolchains: $(echo $toolchains | jq -r)"
 
   rustfmt:
     name: rustfmt
-    needs: find-crates
+    needs: setup
+    if: needs.setup.outputs.rustfmt != '[]'
     runs-on: ubuntu-latest
     strategy:
-      matrix:
-        directory: ${{ fromJSON(needs.find-crates.outputs.crates) }}
       fail-fast: false
+      matrix:
+        directory: ${{ fromJSON(needs.setup.outputs.rustfmt) }}
+        toolchain: ${{ fromJSON(needs.setup.outputs.toolchains) }}
     env:
       V8_PATH: ${{ github.workspace }}/.v8
     steps:
       - name: Checkout source code
-        if: ${{ needs.find-crates.outputs.run_job == 'true' }}
         uses: actions/checkout@v2
-        
-        # Emitting checkstyle results in multiple xml documents for each crate so rustfmt is run for each crate
+
       - name: Remove default members
-        if: ${{ needs.find-crates.outputs.run_job == 'true' }}
-        run: |
-          sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
+        run: sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
 
       - name: Install Rust
-        if: ${{ needs.find-crates.outputs.run_job == 'true' }}
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          # TODO: Read this from rust-toolchain.toml
-          toolchain: nightly-2021-12-14
+          toolchain: ${{ matrix.toolchain }}
           override: true
           components: rustfmt
 
       - name: Run rustfmt
-        if: ${{ needs.find-crates.outputs.run_job == 'true' }}
         uses: actions-rs/cargo@v1
         with:
           command: fmt
@@ -91,41 +104,40 @@ jobs:
 
       - name: Annotate
         if: ${{ failure() }}
-        run: |
-          cargo fmt --manifest-path ${{ matrix.directory }}/Cargo.toml -- --emit checkstyle | cs2pr
+        run: cargo fmt --manifest-path ${{ matrix.directory }}/Cargo.toml -- --emit checkstyle | cs2pr
 
   clippy:
     name: clippy
-    needs: find-crates
+    needs: setup
+    if: needs.setup.outputs.clippy != '[]'
     runs-on: ubuntu-latest
     strategy:
-      matrix:
-        directory:
-          - packages/engine
       fail-fast: false
+      matrix:
+        directory: ${{ fromJSON(needs.setup.outputs.clippy) }}
+        toolchain: ${{ fromJSON(needs.setup.outputs.toolchains) }}
+        flags:
+          - --all-features
     env:
       V8_PATH: ${{ github.workspace }}/.v8
     steps:
       - name: Checkout source code
-        if: ${{ needs.find-crates.outputs.run_job == 'true' }}
         uses: actions/checkout@v2
 
+      - name: Remove default members
+        run: sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
+
       - name: Install Rust
-        if: ${{ needs.find-crates.outputs.run_job == 'true' }}
         id: toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          # TODO: Read this from rust-toolchain.toml
-          toolchain: nightly-2021-12-14
+          toolchain: ${{ matrix.toolchain }}
           override: true
           components: clippy
 
       - name: Cache dependencies
-        if: ${{ needs.find-crates.outputs.run_job == 'true' }}
         uses: actions/cache@v2
-        env:
-          cache-name: cache-dependencies
         with:
           path: |
             ~/.cargo/.crates.toml
@@ -134,10 +146,12 @@ jobs:
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             **/target/
-          key: ${{ runner.os }}-clippy-${{ env.cache-name }}-${{ matrix.directory }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
+            ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}
 
       - name: Install v8
-        if: ${{ needs.find-crates.outputs.run_job == 'true' }}
         run: |
           mkdir -p ${V8_PATH}/tmp
           cd ${V8_PATH}/tmp
@@ -149,9 +163,7 @@ jobs:
           rm -rf tmp # Delete the tmp folder
 
       - name: Run clippy
-        if: ${{ needs.find-crates.outputs.run_job == 'true' }}
-        run: |
-          cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml --all --all-features -- -D warnings
+        run: cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml --no-deps ${{ matrix.flags }} -- -D warnings
 
       - name: Annotate
         if: ${{ failure() }}
@@ -161,39 +173,39 @@ jobs:
           name: clippy (${{ matrix.directory }})
           token: ${{ secrets.GITHUB_TOKEN }}
           working-directory: ${{ matrix.directory }}
-          args: --all --all-features
+          args: --no-deps ${{ matrix.flags }}
 
   test:
     name: test
-    needs: find-crates
+    needs: setup
+    if: needs.setup.outputs.test != '[]'
     runs-on: ubuntu-latest
     strategy:
-      matrix:
-        directory:
-          - packages/engine
       fail-fast: false
+      matrix:
+        directory: ${{ fromJSON(needs.setup.outputs.test) }}
+        toolchain: ${{ fromJSON(needs.setup.outputs.toolchains) }}
+        flags:
+          - --all-features
     env:
       V8_PATH: ${{ github.workspace }}/.v8
     steps:
       - name: Checkout source code
-        if: ${{ needs.find-crates.outputs.run_job == 'true' }}
         uses: actions/checkout@v2
 
+      - name: Remove default members
+        run: sed '/default-members/d' -i ${{ matrix.directory }}/Cargo.toml
+
       - name: Install Rust
-        if: ${{ needs.find-crates.outputs.run_job == 'true' }}
         id: toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          # TODO: Read this from rust-toolchain.toml
-          toolchain: nightly-2021-12-14
+          toolchain: ${{ matrix.toolchain }}
           override: true
 
       - name: Cache dependencies
-        if: ${{ needs.find-crates.outputs.run_job == 'true' }}
         uses: actions/cache@v2
-        env:
-          cache-name: cache-dependencies
         with:
           path: |
             ~/.cargo/.crates.toml
@@ -202,10 +214,12 @@ jobs:
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             **/target/
-          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ matrix.directory }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
+            ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}
 
       - name: Install v8
-        if: ${{ needs.find-crates.outputs.run_job == 'true' }}
         run: |
           mkdir -p ${V8_PATH}/tmp
           cd ${V8_PATH}/tmp
@@ -216,7 +230,26 @@ jobs:
           cd ..
           rm -rf tmp # Delete the tmp folder
 
+      - name: Build test dependencies
+        if: matrix.directory == 'packages/engine'
+        run: cargo build -p server --manifest-path ${{ matrix.directory }}/Cargo.toml
+
       - name: Run tests
-        if: ${{ needs.find-crates.outputs.run_job == 'true' }}
+        id: test-parallel
+        run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} --no-fail-fast
+
+  merging-enabled:
+    name: merging enabled
+    needs: [rustfmt, clippy, test]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: check rustfmt
         run: |
-          cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --all --all-features --no-fail-fast
+          [[ ${{ needs.rustfmt.result }} =~ success|skipped ]]
+      - name: check clippy
+        run: |
+          [[ ${{ needs.clippy.result }} =~ success|skipped ]]
+      - name: check test
+        run: |
+          [[ ${{ needs.test.result }} =~ success|skipped ]]

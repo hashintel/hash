@@ -11,15 +11,15 @@ use arrow::{
     datatypes::{DataType, Schema},
     ipc::writer::schema_to_bytes,
 };
-pub use error::{Error, Result};
 use futures::FutureExt;
-use mini_v8 as mv8;
 use mv8::MiniV8;
 use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     task::JoinError,
 };
 
+pub use self::error::{Error, Result};
+use self::mini_v8 as mv8;
 use super::comms::{
     inbound::InboundToRunnerMsgPayload,
     outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, RunnerError},
@@ -60,6 +60,7 @@ fn get_pkg_path(name: &str, pkg_type: PackageType) -> String {
     )
 }
 
+/// TODO: DOC add docstrings on impl'd methods
 impl<'m> JsPackage<'m> {
     fn import(
         mv8: &'m MiniV8,
@@ -538,6 +539,7 @@ impl<'m> RunnerImpl<'m> {
         s.into()
     }
 
+    /// TODO: DOC, flushing from a single column
     fn array_data_from_js(
         &mut self,
         mv8: &'m MiniV8,

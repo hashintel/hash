@@ -12,6 +12,7 @@ use crate::{
     simulation::package::context::ContextColumn,
 };
 
+/// TODO: DOC, also field descriptions aren't particularly useful/correct
 pub struct Inner {
     batch: Arc<RwLock<ContextBatch>>,
     /// Pool which contains all Static Agent Batches
@@ -34,14 +35,14 @@ impl Context {
     pub fn new_from_columns(
         cols: Vec<Arc<dyn arrow::array::Array>>,
         config: Arc<StoreConfig>,
-        experiment_run_id: &Arc<ExperimentId>,
+        experiment_id: &ExperimentId,
     ) -> Result<Context> {
         let context_record_batch = RecordBatch::try_new(config.context_schema.arrow.clone(), cols)?;
 
         let context_batch = ContextBatch::from_record_batch(
             &context_record_batch,
             Some(&config.context_schema.arrow),
-            experiment_run_id,
+            experiment_id,
         )?;
         let inner = Inner {
             batch: Arc::new(RwLock::new(context_batch)),

@@ -8,6 +8,7 @@ objectId: d3b822a4-2329-4bde-b3bb-a05b1d6819a6
 
 ## In the editor pane
 
+<!-- prettier-ignore -->
 | Command | Windows | Mac |
 | :--- | :--- | :--- |
 | Save | `Ctrl` + `S` | `Command` + `S` |
@@ -44,6 +45,7 @@ objectId: d3b822a4-2329-4bde-b3bb-a05b1d6819a6
 
 ## Outside the editor
 
+<!-- prettier-ignore -->
 | Command | Windows | Mac |
 | :--- | :--- | :--- |
 | Project-wide search | `Ctrl` + `F` | `Command` + `F` |

@@ -1,22 +1,64 @@
-use std::fmt::{Debug, Formatter};
+use std::{
+    convert::Infallible,
+    fmt::{Debug, Display, Formatter},
+    str::FromStr,
+};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
+use uuid::Uuid;
 
 use crate::{config::Globals, hash_types::worker::RunnerError, simulation::status::SimStatus};
 
 pub type SerdeMap = serde_json::Map<String, SerdeValue>;
 
-pub type ExperimentRegisteredId = String;
+pub type ExperimentId = Uuid;
 pub type SimulationRegisteredId = String;
 pub type SimulationShortId = u32;
+
+#[derive(Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Serialize, Deserialize)]
+pub struct ExperimentName(String);
+
+impl ExperimentName {
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+}
+
+impl Debug for ExperimentName {
+    #[inline]
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Debug::fmt(&self.0, f)
+    }
+}
+
+impl Display for ExperimentName {
+    #[inline]
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
+impl From<String> for ExperimentName {
+    fn from(name: String) -> Self {
+        Self(name)
+    }
+}
+
+impl FromStr for ExperimentName {
+    type Err = Infallible;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        Ok(Self(s.to_string()))
+    }
+}
 
 use crate::simulation::enum_dispatch::*;
 
 /// The message type sent from the engine to the orchestrator.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct OrchestratorMsg {
-    pub experiment_id: String,
+    pub experiment_id: ExperimentId,
     pub body: EngineStatus,
 }
 
@@ -42,14 +84,18 @@ pub enum EngineStatus {
 #[derive(Serialize, Deserialize, Debug)]
 pub enum EngineMsg {
     Init(InitMessage),
-    // TODO: this is unused, is that intended
-    SimRegistered(SimulationShortId, SimulationRegisteredId),
 }
 
+/// The initialization message sent by an Orchestrator implementation to the Engine
 #[derive(Serialize, Deserialize, Debug)]
 pub struct InitMessage {
+    /// Defines the type of Experiment that's being ran (e.g. a wrapper around a single-run of a
+    /// simulation, or the configuration for a normal experiment)
     pub experiment: ExperimentRunRepr,
+    /// Unused
     pub env: ExecutionEnvironment,
+    /// A JSON object of dynamic configurations for things like packages, see
+    /// [`experiment::controller::config::OUTPUT_PERSISTENCE_KEY`] for an example
     pub dyn_payloads: serde_json::Map<String, serde_json::Value>,
 }
 
@@ -130,8 +176,10 @@ pub struct SharedBehavior {
     pub name: String,
     /// These are alternative representations on how one can refer to this behavior
     pub shortnames: Vec<String>,
-    pub behavior_src: Option<String>, // Source code for the behaviors
-    pub behavior_keys_src: Option<String>, // Behavior key definition for this behavior
+    /// Source code for the behaviors
+    pub behavior_src: Option<String>,
+    /// Behavior key definition for this behavior
+    pub behavior_keys_src: Option<String>,
 }
 
 impl Debug for SharedBehavior {
@@ -173,7 +221,6 @@ pub struct InitialState {
 pub struct ProjectBase {
     pub initial_state: InitialState,
     pub globals_src: String,
-    pub dependencies_src: Option<String>,
     pub experiments_src: Option<String>,
     pub behaviors: Vec<SharedBehavior>,
     pub datasets: Vec<SharedDataset>,
@@ -219,16 +266,19 @@ impl<'de> Deserialize<'de> for MetricObjective {
     }
 }
 
+// TODO: investigate if the renames are still needed
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
 pub struct SimpleExperimentConfig {
     /// The experiment name
-    pub experiment_name: String,
+    pub experiment_name: ExperimentName,
     /// The properties changed for each simulation run
     #[serde(rename = "changedProperties")]
     pub changed_properties: Vec<SerdeValue>,
     /// Number of steps each run should go for
     #[serde(rename = "numSteps")]
     pub num_steps: usize,
+    /// Maximum amount of simulations that can be ran in parallel - None is unlimited
+    pub max_sims_in_parallel: Option<usize>,
 }
 
 #[derive(Serialize, Deserialize, Eq, PartialEq, Debug, Clone)]
@@ -300,7 +350,8 @@ pub enum ExperimentRunRepr {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct ExperimentRunBase {
-    pub id: ExperimentRegisteredId,
+    pub name: ExperimentName,
+    pub id: ExperimentId,
     pub project_base: ProjectBase,
 }
 
@@ -378,9 +429,6 @@ pub struct ProcessedExperimentRun {
     /// This is only valid at the start of the run
     pub compute_usage_remaining: i64,
 }
-
-// TODO: Replace with UUID?
-pub type ExperimentId = String;
 
 /// A wrapper around an Option to avoid displaying the inner for Debug outputs,
 /// i.e. debug::Debug now outputs: `Some(..)`

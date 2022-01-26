@@ -29,8 +29,8 @@ Notice how we use multiple custom fields to store data in the agent.
 
 The state object can be accessed as an object in JavaScript or a dictionary in Python.
 
-* `state.field_name` : access and edit the value of the field in JavaScript
-* `state['field_name']` : access and edit the field in Python
+- `state.field_name` : access and edit the value of the field in JavaScript
+- `state['field_name']` : access and edit the field in Python
 
 **Example**:
 
@@ -42,7 +42,7 @@ This behavior takes in the current state and [context](/docs/simulation/creating
 ```javascript
 const behavior = (state, context) => {
   state.age += 1;
-}
+};
 ```
 
 </Tab>
@@ -70,14 +70,14 @@ While an agent can store arbitrary data in its own state, some state values have
 We've suggested ranges of values for you to start off with as you're getting to know HASH
 
 ```javascript
-{ 
+{
   // Auto-created identifier. Agents receive messages addressed to their ID
-  "agent_id": string, 
+  "agent_id": string,
 
   // Optional identifier. Agents receive messages that are addressed to their name
-  "agent_name": string,  
+  "agent_name": string,
 
-  // Filenames of the behaviors that the agents run to advance 
+  // Filenames of the behaviors that the agents run to advance
   // their state every simulation step
   "behaviors": [],
 
@@ -90,35 +90,35 @@ We've suggested ranges of values for you to start off with as you're getting to 
 
   // Agents within the search-radius are considered its neighbors
   // Suggested values: 0 to 10
-  "search_radius": number, 
-
-  // Can be used for custom movement logic. Will affect the agent's visualization
-  // Suggested values: 0 to 1 for each axis 
-  "direction": [x, y, z], 
+  "search_radius": number,
 
   // Can be used for custom movement logic. Will affect the agent's visualization
   // Suggested values: 0 to 1 for each axis
-  "velocity": [x, y, z], 
+  "direction": [x, y, z],
+
+  // Can be used for custom movement logic. Will affect the agent's visualization
+  // Suggested values: 0 to 1 for each axis
+  "velocity": [x, y, z],
 
   // Color of the agent
-  "color": string, 
+  "color": string,
 
   // Color of the agent represented as an rgb array. RGB values are 0 to 255
-  "rgb": [r, g, b], 
+  "rgb": [r, g, b],
 
   // Height of the agent in the 3D Viewer
   // Suggested values: 0.1 to 10
-  "height": number, 
+  "height": number,
 
   // Agent model will be scaled along the corresponding axes
   // Suggested values: [1, 1, 1] to [5, 5, 5]
-  "scale": [x, y, z], 
+  "scale": [x, y, z],
 
   // Determines the shape of the agent in the 3D Viewer.
-  "shape": string, 
+  "shape": string,
 
   // Determines whether the agent is hidden in the 3D Viewer.
-  "hidden": boolean, 
+  "hidden": boolean,
 
   // Used by the agent whenever it passes topology boundaries.
   "position_was_corrected": boolean ,
@@ -133,8 +133,8 @@ Additionally, we provide helper methods for **getting** and **setting** a proper
 <Tab title="JavaScript" >
 
 ```javascript
-let foo = state.get("field_name")
-state.set("field_name", "value")
+let foo = state.get("field_name");
+state.set("field_name", "value");
 ```
 
 </Tab>

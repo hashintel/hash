@@ -1,0 +1,12 @@
+{
+  "name": "@hashintel/block-html-para",
+  "version": "0.1.0",
+  "description": "Basic HTML para block component",
+  "license": "MIT",
+  "author": "HASH",
+  "source": "index.html",
+  "externals": {
+    "react": "react"
+  },
+  "schema": "block-schema.json"
+}

@@ -40,14 +40,12 @@ test("random position", () => {
 
 test("normalize direction of [1,1]", () => {
   expect(normalizeVector(a.direction)).toEqual([
-    0.7071067811865475,
-    0.7071067811865475,
+    0.7071067811865475, 0.7071067811865475,
   ]);
 });
 
 test("normalize direction of [1,3]", () => {
   expect(normalizeVector(b.direction)).toEqual([
-    0.31622776601683794,
-    0.9486832980505138,
+    0.31622776601683794, 0.9486832980505138,
   ]);
 });

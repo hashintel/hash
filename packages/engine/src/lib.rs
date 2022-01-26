@@ -13,7 +13,6 @@
     non_ascii_idents,
     noop_method_call,
     pointer_structural_match,
-    unused_crate_dependencies,
     unused_extern_crates,
     unused_import_braces,
     unused_lifetimes,
@@ -53,10 +52,12 @@ mod args;
 pub mod env;
 pub mod utils;
 
-pub use args::{args, Args};
-pub use config::{experiment_config, ExperimentConfig, SimRunConfig, SimulationConfig};
-pub use env::{env, Environment};
-pub use error::{Error, Result};
-pub use experiment::init_exp_package;
-pub use language::Language;
-pub use utils::init_logger;
+pub use self::{
+    args::{args, Args},
+    config::{experiment_config, ExperimentConfig, SimRunConfig, SimulationConfig},
+    env::{env, Environment},
+    error::{Error, Result},
+    experiment::init_exp_package,
+    language::Language,
+    utils::init_logger,
+};

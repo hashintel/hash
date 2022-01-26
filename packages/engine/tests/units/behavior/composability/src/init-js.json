@@ -1,0 +1,5 @@
+[
+  {
+    "behaviors": ["first.js", "second.js"]
+  }
+]

@@ -1,0 +1,23 @@
+overwrite: true
+schema: ./src/graphql/typeDefs/*.ts
+require:
+  - ts-node/register
+generates:
+  ./src/graphql/graphqlSchema.gen.json:
+    plugins:
+      - "introspection"
+    config:
+      noSchemaStitching: true
+  ./src/graphql/apiTypes.gen.ts:
+    hooks:
+      afterOneFileWrite:
+        - prettier --write
+    plugins:
+      - "typescript"
+      - "typescript-resolvers"
+    config:
+      noSchemaStitching: true
+      scalars:
+        TextToken: "@hashintel/hash-shared/graphql/types#TextToken"
+        Date: string
+        UnknownEntityProperties: "@hashintel/hash-shared/graphql/types#UnknownEntityProperties"

@@ -5,16 +5,15 @@ mod sender;
 
 use std::{collections::HashMap, future::Future, pin::Pin, result::Result as StdResult, sync::Arc};
 
-pub use error::{Error, Result};
 use futures::FutureExt;
-use receiver::NngReceiver;
-use sender::NngSender;
 use tokio::{
     process::Command,
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     task::JoinError,
 };
 
+pub use self::error::{Error, Result};
+use self::{receiver::NngReceiver, sender::NngSender};
 use super::comms::{
     inbound::InboundToRunnerMsgPayload, outbound::OutboundFromRunnerMsg, ExperimentInitRunnerMsg,
     RunnerTaskMsg, SentTask,
@@ -30,7 +29,9 @@ use crate::{
 };
 
 pub struct PythonRunner {
-    init_msg: Arc<ExperimentInitRunnerMsg>, // Args to RunnerImpl::new
+    // Args to RunnerImpl::new
+    init_msg: Arc<ExperimentInitRunnerMsg>,
+
     inbound_sender: UnboundedSender<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>,
     inbound_receiver:
         Option<UnboundedReceiver<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>>,
@@ -119,13 +120,13 @@ async fn _run(
     outbound_sender: UnboundedSender<OutboundFromRunnerMsg>,
 ) -> WorkerResult<()> {
     // Open sockets for Python process to connect to (i.e. start listening).
-    let mut nng_sender = NngSender::new(init_msg.experiment_id.clone(), init_msg.worker_index)?;
-    let mut nng_receiver = NngReceiver::new(init_msg.experiment_id.clone(), init_msg.worker_index)?;
+    let mut nng_sender = NngSender::new(init_msg.experiment_id, init_msg.worker_index)?;
+    let mut nng_receiver = NngReceiver::new(init_msg.experiment_id, init_msg.worker_index)?;
 
     // Spawn Python process.
     let mut cmd = Command::new("sh");
     cmd.arg("./src/worker/runner/python/run.sh")
-        .arg(&init_msg.experiment_id)
+        .arg(&init_msg.experiment_id.to_string())
         .arg(&init_msg.worker_index.to_string());
     let _process = cmd.spawn().map_err(Error::Spawn)?;
     log::debug!("Started Python process {}", init_msg.worker_index);
