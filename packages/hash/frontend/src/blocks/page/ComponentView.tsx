@@ -157,7 +157,7 @@ export class ComponentView implements NodeView<Schema> {
             blockEntityId={entityId}
             shouldSandbox={!this.editable}
             editableRef={this.editable ? this.editableRef : undefined}
-            accountId={savedEntity?.accountId ?? this.accountId}
+            accountId={childEntity?.accountId!}
             entityId={childEntity?.entityId!}
             entityProperties={
               childEntity && "properties" in childEntity
