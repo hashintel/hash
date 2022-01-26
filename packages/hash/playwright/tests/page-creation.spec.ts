@@ -60,9 +60,11 @@ test("user can create page", async ({ page }) => {
   await page.keyboard.press(`${modifierKey}+i`);
 
   // Insert a divider
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
   await page.keyboard.press("Enter");
   await sleep(100); // TODO: investigate flakiness in FF and Webkit
   await page.keyboard.type("/divider");
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
   await page.keyboard.press("Enter");
   await sleep(100); // TODO: investigate flakiness in FF and Webkit
 
@@ -75,7 +77,9 @@ test("user can create page", async ({ page }) => {
   // TODO: Move the cursor below the new divider and update the test?
 
   // Insert a paragraph creation with newlines
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
   await page.keyboard.type("Second paragraph");
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
   await page.keyboard.press("Shift+Enter");
   await sleep(100); // TODO: investigate flakiness in FF and Webkit
   await page.keyboard.press("Shift+Enter");
@@ -84,6 +88,7 @@ test("user can create page", async ({ page }) => {
   await page.keyboard.press("Shift+Enter");
   await sleep(100); // TODO: investigate flakiness in FF and Webkit
   await page.keyboard.type("line breaks");
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
 
   // Expect just inserted content to be present on the page
   await expect(blockRegionLocator).toContainText(
