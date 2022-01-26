@@ -71,6 +71,13 @@
   "blockprotocol": {
     "displayName": "Code",
     "icon": "public/code.svg",
-    "image": "public/preview.svg"
+    "image": "public/preview.svg",
+    "examples": [
+      {
+        "caption": "A JavaScript code example.",
+        "language": "javascript",
+        "content": "console.log(\"hello world!\");"
+      }
+    ]
   }
 }
