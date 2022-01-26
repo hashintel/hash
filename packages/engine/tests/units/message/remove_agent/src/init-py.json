@@ -1,7 +1,7 @@
 [
   {
     "agent_name": "tester",
-    "behaviors": ["test.js"]
+    "behaviors": ["test.py"]
   },
   {
     "agent_name": "1",
