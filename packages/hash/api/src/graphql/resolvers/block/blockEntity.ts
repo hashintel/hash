@@ -1,6 +1,6 @@
 import { ApolloError } from "apollo-server-express";
+import { DbBlockProperties } from "../../../db/adapter";
 import { Entity, UnresolvedGQLEntity } from "../../../model";
-import { DbBlockProperties } from "../../../types/dbTypes";
 
 import { Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";

@@ -13,8 +13,12 @@ import { GraphQLContext } from "../../context";
 import { genId, topologicalSort, isRecord } from "../../../util";
 import { UnresolvedGQLEntity, Entity } from "../../../model";
 import { DBAdapter } from "../../../db";
-import { Graph, Entity as DbEntity } from "../../../db/adapter";
-import { DbPageProperties, DbBlockProperties } from "../../../types/dbTypes";
+import {
+  Graph,
+  DbEntity,
+  DbPageProperties,
+  DbBlockProperties,
+} from "../../../db/adapter";
 import { dbAggregateEntity } from "./aggregateEntity";
 
 /**
