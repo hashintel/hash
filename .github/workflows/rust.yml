@@ -204,14 +204,6 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           override: true
 
-      - name: Setup Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: "3.7"
-
-      - name: Setup Python Script
-        run: ${{ matrix.directory }}/src/worker/runner/python/setup.sh python3.7
-
       - name: Cache dependencies
         uses: actions/cache@v2
         with:
@@ -241,6 +233,14 @@ jobs:
       - name: Build test dependencies
         if: matrix.directory == 'packages/engine'
         run: cargo build -p server --manifest-path ${{ matrix.directory }}/Cargo.toml
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.7"
+
+      - name: Setup Python Script
+        run: ${{ matrix.directory }}/src/worker/runner/python/setup.sh python3.7
 
       - name: Run tests
         id: test-parallel
