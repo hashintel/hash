@@ -1,12 +1,13 @@
 import { useQuery } from "@apollo/client";
-import { BlockMeta, fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { blockPaths } from "@hashintel/hash-shared/paths";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
+import { keyBy } from "lodash";
 import { GetStaticPaths, GetStaticProps } from "next";
 import { Router, useRouter } from "next/router";
 import { tw } from "twind";
 
-import { useEffect, useMemo, useState, VoidFunctionComponent } from "react";
+import React, { useEffect, useState } from "react";
 import {
   GetPageQuery,
   GetPageQueryVariables,
@@ -22,6 +23,7 @@ import styles from "../index.module.scss";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import { PageTransferDropdown } from "../../components/Dropdowns/PageTransferDropdown";
 import { MainContentWrapper } from "../../components/layout/MainContentWrapper";
+import type { BlocksMetaMap } from "../../blocks/blocksMeta";
 
 /**
  * preload all configured blocks for now. in the future these will be loaded
@@ -30,12 +32,10 @@ import { MainContentWrapper } from "../../components/layout/MainContentWrapper";
 const preloadedComponentIds = Object.keys(blockPaths);
 
 // Apparently defining this is necessary in order to get server rendered props?
-export const getStaticPaths: GetStaticPaths<{ slug: string }> = async () => {
-  return {
-    paths: [], // indicates that no page needs be created at build time
-    fallback: "blocking", // indicates the type of fallback
-  };
-};
+export const getStaticPaths: GetStaticPaths<{ slug: string }> = () => ({
+  paths: [], // indicates that no page needs be created at build time
+  fallback: "blocking", // indicates the type of fallback
+});
 
 /**
  * This is used to fetch the metadata associated with blocks that're preloaded
@@ -44,17 +44,23 @@ export const getStaticPaths: GetStaticPaths<{ slug: string }> = async () => {
  * @todo Include blocks present in the document in this
  */
 export const getStaticProps: GetStaticProps = async () => {
-  const preloadedBlockMeta = await Promise.all(
-    preloadedComponentIds?.map((componentId) => fetchBlockMeta(componentId)) ??
-      [],
+  const fetchedBlocksMeta = await Promise.all(
+    preloadedComponentIds.map((componentId) => fetchBlockMeta(componentId)),
   );
 
-  return { props: { preloadedBlockMeta } };
+  return {
+    props: {
+      blocksMeta: keyBy(
+        fetchedBlocksMeta,
+        (blockMeta) => blockMeta.componentMetadata.componentId,
+      ),
+    },
+  };
 };
 
-export const Page: VoidFunctionComponent<{
-  preloadedBlockMeta: BlockMeta[];
-}> = ({ preloadedBlockMeta }) => {
+export const Page: React.VFC<{ blocksMeta: BlocksMetaMap }> = ({
+  blocksMeta,
+}) => {
   const router = useRouter();
 
   // entityId is the consistent identifier for pages (across all versions)
@@ -73,41 +79,6 @@ export const Page: VoidFunctionComponent<{
   >(getPageQuery, {
     variables: { entityId: pageEntityId, accountId, versionId },
   });
-
-  /**
-   * This is to ensure that certain blocks are always contained within the
-   * "select type" dropdown even if the document does not yet contain those
-   * blocks. This is important for paragraphs especially, as the first text
-   * block in the schema is what prosemirror defaults to when creating a new
-   * paragraph. We need to change it so the order of blocks in the dropdown
-   * is not determinned by the order in the prosemirror schema, and also so
-   * that items can be in that dropdown without having be loaded into the
-   * schema.
-   *
-   * @todo this doesn't need to be a map.
-   */
-  const preloadedBlocks = useMemo(
-    () =>
-      new Map(
-        preloadedBlockMeta
-          /**
-           * Paragraph must be first for now, as it'll bw the first loaded
-           * into prosemirror and therefore the block chosen when you
-           * press enter.
-           *
-           * @todo remove need for this
-           */
-          .sort((a, b) =>
-            a.componentMetadata.name === "paragraph"
-              ? -1
-              : b.componentMetadata.name === "paragraph"
-              ? 1
-              : 0,
-          )
-          .map((node) => [node.componentMetadata.componentId, node] as const),
-      ),
-    [preloadedBlockMeta],
-  );
 
   const collabPositions = useCollabPositions(accountId, pageEntityId);
   const reportPosition = useCollabPositionReporter(accountId, pageEntityId);
@@ -203,7 +174,7 @@ export const Page: VoidFunctionComponent<{
         <CollabPositionProvider value={collabPositions}>
           <PageBlock
             accountId={data.page.accountId}
-            blocksMeta={preloadedBlocks}
+            blocksMeta={blocksMeta}
             entityId={data.page.entityId}
           />
         </CollabPositionProvider>
