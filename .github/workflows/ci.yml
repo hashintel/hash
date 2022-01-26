@@ -188,7 +188,7 @@ jobs:
           yarn workspace @hashintel/hash-frontend start 2>&1 | tee var/logs/frontend.log & ## ampersand enables background mode
           yarn wait-on --timeout 30000 http://localhost:3000
 
-      - run: yarn playwright install-deps
+      - run: yarn playwright install-deps chrome firefox
         if: ${{ success() || failure() }}
 
       - name: Run Playwright tests
