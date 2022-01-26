@@ -21,4 +21,5 @@ uuid = { version = "0.8.1", features = ["v4", "serde"] }
 
 [features]
 default = ["build-nng"]
+texray = ["hash_engine/texray"]
 build-nng = ["hash_engine/build-nng", "orchestrator/build-nng"]

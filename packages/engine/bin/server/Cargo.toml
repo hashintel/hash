@@ -16,4 +16,5 @@ path = "src/main.rs"
 
 [features]
 default = ["build-nng"]
+texray = ["hash_engine/texray"]
 build-nng = ["hash_engine/build-nng"]
