@@ -232,7 +232,7 @@ jobs:
 
       - name: Build test dependencies
         if: matrix.directory == 'packages/engine'
-        run: cargo build --manifest-path ${{ matrix.directory }}/Cargo.toml
+        run: cargo build -p server --manifest-path ${{ matrix.directory }}/Cargo.toml
 
       - name: Setup Python
         uses: actions/setup-python@v2
