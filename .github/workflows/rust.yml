@@ -232,7 +232,8 @@ jobs:
 
       - name: Build test dependencies
         if: matrix.directory == 'packages/engine'
-        run: cargo build --manifest-path ${{ matrix.directory }}/Cargo.toml
+        working-directory: ${{ matrix.directory }}
+        run: cargo build
 
       - name: Setup Python
         uses: actions/setup-python@v2
@@ -241,7 +242,7 @@ jobs:
 
       - name: Setup Python Script
         if: matrix.directory == 'packages/engine'
-        working-directory: ./packages/engine
+        working-directory: ${{ matrix.directory }}
         run: src/worker/runner/python/setup.sh python3.7
 
       - name: Run tests
