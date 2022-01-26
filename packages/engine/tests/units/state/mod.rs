@@ -5,5 +5,5 @@ mod js {
 }
 
 mod py {
-    crate::run_test!(behavior_index, Python, #[ignore]);
+    crate::run_test!(behavior_index, Python);
 }

@@ -22,16 +22,20 @@ mod js {
 mod py {
     use crate::run_test;
 
-    run_test!(helper, Python, #[ignore]);
-    run_test!(no_recipient, Python, #[ignore]);
-    run_test!(one_recipient, Python, #[ignore]);
-    run_test!(multiple_recipients, Python, #[ignore]);
+    run_test!(helper, Python);
+    run_test!(no_recipient, Python);
+    run_test!(one_recipient, Python);
+    run_test!(multiple_recipients, Python);
 
-    run_test!(all_types, Python, #[ignore]);
+    run_test!(all_types, Python);
+    // TODO: Make mapbox work
+    //   see https://app.asana.com/0/1199548034582004/1200329934588478/f
     run_test!(mapbox, Python, #[ignore]);
 
-    run_test!(create_agent, Python, #[ignore]);
-    run_test!(remove_agent, Python, #[ignore]);
-    run_test!(remove_self, Python, #[ignore]);
+    run_test!(create_agent, Python);
+    run_test!(remove_agent, Python);
+    run_test!(remove_self, Python);
+    // TODO: Handle stop messages
+    //   see https://app.asana.com/0/1199550852792314/1201630005867419/f
     run_test!(stop_simulation, Python, #[ignore]);
 }

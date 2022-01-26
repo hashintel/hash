@@ -13,11 +13,11 @@ mod js {
 mod py {
     use crate::run_test;
 
-    run_test!(bool, Python, #[ignore]);
-    run_test!(bool_array, Python, #[ignore]);
-    run_test!(number, Python, #[ignore]);
-    run_test!(number_array, Python, #[ignore]);
-    run_test!(string, Python, #[ignore]);
-    run_test!(object, Python, #[ignore]);
-    run_test!(object_array, Python, #[ignore]);
+    run_test!(bool, Python);
+    run_test!(bool_array, Python);
+    run_test!(number, Python);
+    run_test!(number_array, Python);
+    run_test!(string, Python);
+    run_test!(object, Python);
+    run_test!(object_array, Python);
 }

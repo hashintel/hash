@@ -21,17 +21,17 @@ mod py {
     mod distance {
         use crate::run_test;
 
-        run_test!(distance, Python, experiment: euclidean_squared, #[ignore]);
-        run_test!(distance, Python, experiment: manhattan, #[ignore]);
-        run_test!(distance, Python, experiment: euclidean, #[ignore]);
-        run_test!(distance, Python, experiment: conway, #[ignore]);
+        run_test!(distance, Python, experiment: euclidean_squared);
+        run_test!(distance, Python, experiment: manhattan);
+        run_test!(distance, Python, experiment: euclidean);
+        run_test!(distance, Python, experiment: conway);
     }
 
     mod wrapping {
         use crate::run_test;
 
-        run_test!(wrapping, Python, experiment: torus, #[ignore]);
-        run_test!(wrapping, Python, experiment: spherical, #[ignore]);
-        run_test!(wrapping, Python, experiment: reflection, #[ignore]);
+        run_test!(wrapping, Python, experiment: torus);
+        run_test!(wrapping, Python, experiment: spherical);
+        run_test!(wrapping, Python, experiment: reflection);
     }
 }

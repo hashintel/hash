@@ -7,5 +7,5 @@ mod js {
 }
 
 mod py {
-    crate::run_test!(non_existing_field, Python, #[ignore]);
+    crate::run_test!(non_existing_field, Python);
 }

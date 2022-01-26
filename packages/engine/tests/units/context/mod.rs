@@ -3,5 +3,5 @@ mod js {
 }
 
 mod py {
-    crate::run_test!(step, Python, #[ignore]);
+    crate::run_test!(step, Python);
 }

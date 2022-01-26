@@ -10,8 +10,8 @@ mod js {
 mod py {
     use crate::run_test;
 
-    run_test!(access_from_behaviors, Python, #[ignore]);
-    run_test!(access_from_init, Python, #[ignore]);
-    run_test!(immutable_from_behaviors, Python, #[ignore]);
-    run_test!(immutable_from_init, Python, #[ignore]);
+    run_test!(access_from_behaviors, Python);
+    run_test!(access_from_init, Python);
+    run_test!(immutable_from_behaviors, Python);
+    run_test!(immutable_from_init, Python);
 }
