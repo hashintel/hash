@@ -76,7 +76,8 @@ impl Default for OutputFormat {
 
 pub fn init_logger(
     std_err_output_format: OutputFormat,
-    file_output_name: &str,
+    log_file_output_name: &str,
+    texray_output_name: &str,
 ) -> (impl Drop, impl Drop) {
     let filter = match std::env::var("RUST_LOG") {
         Ok(env) => EnvFilter::new(env),
@@ -123,7 +124,7 @@ pub fn init_logger(
     };
 
     let json_file_appender =
-        tracing_appender::rolling::never("./log", format!("{file_output_name}.log"));
+        tracing_appender::rolling::never("./log", format!("{log_file_output_name}.log"));
     let (non_blocking, _json_file_guard) = tracing_appender::non_blocking(json_file_appender);
 
     let json_file_layer = fmt::layer()
@@ -131,7 +132,8 @@ pub fn init_logger(
         .fmt_fields(JsonFields::new())
         .with_writer(non_blocking);
 
-    let texray_file_appender = tracing_appender::rolling::never("./log", format!("texray.txt"));
+    let texray_file_appender =
+        tracing_appender::rolling::never("./log", format!("{texray_output_name}.txt"));
     let (non_blocking, _tex_ray_guard) = tracing_appender::non_blocking(texray_file_appender);
 
     // we clone update_settings to satisfy move rules as writer takes a `Fn` rather than `FnOnce`

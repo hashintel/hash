@@ -105,7 +105,11 @@ async fn main() -> Result<()> {
         .unwrap()
         .as_millis();
 
-    let _guard = hash_engine::init_logger(args.emit, &format!("cli-{now}"));
+    let _guard = hash_engine::init_logger(
+        args.emit,
+        &format!("cli-{now}"),
+        &format!("cli-{now}-texray"),
+    );
 
     let nng_listen_url = format!("ipc://hash-orchestrator-{now}");
 
