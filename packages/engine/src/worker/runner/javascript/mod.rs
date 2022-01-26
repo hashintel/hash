@@ -1161,7 +1161,7 @@ impl<'m> RunnerImpl<'m> {
                     })?;
                 }
             }
-            InboundToRunnerMsgPayload::CancelTask(_) => {}
+            InboundToRunnerMsgPayload::CancelTask(_) => todo!(),
         }
         Ok(true) // Continue running.
     }
@@ -1267,8 +1267,8 @@ fn _run(
             let mv8 = MiniV8::new();
             let mut impl_ = RunnerImpl::new(&mv8, &init_msg)?;
             loop {
-                tokio::select! {
-                    Some((sim_id, msg)) = inbound_receiver.recv() => {
+                match inbound_receiver.recv().await {
+                    Some((sim_id, msg)) => {
                         // TODO: Send errors instead of immediately stopping?
                         let msg_str = msg.as_str();
                         log::debug!("JS runner got sim `{:?}` inbound {}", &sim_id, msg_str);
@@ -1278,6 +1278,10 @@ fn _run(
                             log::debug!("JavaScript Runner has finished execution, stopping");
                             break;
                         }
+                    }
+                    None => {
+                        log::error!("Inbound sender to JS exited");
+                        return Err(Error::InboundReceive.into());
                     }
                 }
             }

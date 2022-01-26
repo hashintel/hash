@@ -9,30 +9,27 @@ def raise_missing_field(field_name):
 
 
 class AgentState:
-    def __init__(self, group_state, i_agent_in_group):
-        self.__group_state = group_state
-        self.__cols = group_state.__GroupState_agent_batch.cols
-        self.__msgs = group_state.__GroupState_msg_batch.cols['messages']
-        self.__msgs_native = group_state.__GroupState_msgs_native
-        self.__idx_in_group = i_agent_in_group
-        self.__dyn_access = False
+    def __init__(self, group_state, agent_batch, msg_batch, msgs_native, i_agent_in_group):
+        self.__dict__['__group_state'] = group_state
+        self.__dict__['__cols'] = agent_batch.cols
+        self.__dict__['__msgs'] = msg_batch.cols['messages']
+        self.__dict__['__msgs_native'] = msgs_native
+        self.__dict__['__idx_in_group'] = i_agent_in_group
+        self.__dict__['__dyn_access'] = False
 
     # TODO: It's possible that we don't want package users to
     #       have access to this, though we do want package
     #       authors to.
     def set_dynamic_access(self, enable_dynamic_access):
-        self.__dyn_access = enable_dynamic_access
+        self.__dict__['__dyn_access'] = enable_dynamic_access
 
     def to_json(self):
         r = {}
-        for name, col in self.__cols.items():
-            r[name] = hash_util.json_deepcopy(self.__getattr__(name))
+        for name, col in self.__dict__['__cols'].items():
+            r[name] = hash_util.json_deepcopy(getattr(self, name))
 
         r['messages'] = hash_util.json_deepcopy(self.messages)
         return r
-
-    def _hasattr(self, field):
-        return field == "messages" or field in self.__cols
 
     def __getattr__(self, field):  # Can raise AttributeError.
         idx = self.__dict__['__idx_in_group']
@@ -51,7 +48,7 @@ class AgentState:
         col = self.__dict__['__cols'].get(field)
         if col is None:  # Slow path -- unlikely branch
             if self.__dict__['__dyn_access']:
-                self.__dict__['__cols'][field] = col = self.__group_state.load(field)
+                self.__dict__['__cols'][field] = col = self.__dict__['__group_state'].load(field)
             else:
                 raise_missing_field(field)
 
@@ -69,15 +66,15 @@ class AgentState:
 
         col = self.__dict__['__cols'].get(field)
         if col is None:  # Slow path -- unlikely branch
-            self.__dict__['__cols'][field] = col = self.__group_state.load(field)
+            self.__dict__['__cols'][field] = col = self.__dict__['__group_state'].load(field)
 
         col[idx] = value
 
     def get(self, field_name):
-        return hash_util.json_deepcopy(self.__getattr__(field_name))
+        return hash_util.json_deepcopy(getattr(self, field_name))
 
     def set(self, field_name, value):
-        self.__setattr__(field_name, hash_util.json_deepcopy(value))
+        setattr(self, field_name, hash_util.json_deepcopy(value))
 
     def modify(self, field_name, fn):
         self.set(field_name, fn(self.get(field_name)))
@@ -92,16 +89,18 @@ class AgentState:
 
     # `data` is an optional argument. `data` must be JSON-serializable.
     def add_message(self, to, msg_type, data=None):
-        idx = self.__idx
+        idx = self.__dict__['__idx_in_group']
         self.__dict__['__msgs'][idx].append({
             "to": [to] if isinstance(to, str) else to,
             "type": msg_type,
             "data": deepcopy(data) if self.__dict__['__msgs_native'][idx] else json.dumps(data)
         })
 
-    # Returns the index of the currently executing behavior in the agent's behavior chain.
-    def behavior_index(self):
-        return self.__i_behavior
+    # TODO: Method for backwards compatibility and to make it clear that
+    #       the field can't be mutated by behaviors
+    # def behavior_index(self):
+    #     """Return the index of the currently executing behavior in the agent's behavior chain."""
+    #     return self.behavior_index  # Uses `__getattr__` to get index from column.
 
 
 class GroupState:
@@ -135,7 +134,13 @@ class GroupState:
             old_agent_state.__AgentState_idx = i_agent_in_group
             return old_agent_state
 
-        return AgentState(self, i_agent_in_group)
+        return AgentState(
+            self,
+            self.__agent_batch,
+            self.__msg_batch,
+            self.__msgs_native,
+            i_agent_in_group
+        )
 
     def flush_changes(self, schema):
         # TODO: Only flush columns that were written to.
@@ -148,7 +153,7 @@ class GroupState:
         # a message's data to JSON and add it without converting existing
         # messages to native JavaScript objects.
 
-        skip = {'agent_id': True}
+        skip = {'agent_id'}
         self.__agent_batch.flush_changes(schema.agent, skip)
 
         # Convert any native message objects to JSON before flushing message batch.
@@ -158,9 +163,9 @@ class GroupState:
         for i_agent, agent_msgs in enumerate(group_msgs):
             if self.__msgs_native[i_agent]:
                 for msg in agent_msgs:
-                    msg.data = json.dumps(msg.data)
+                    msg['data'] = json.dumps(msg['data'])
 
-        self.__msg_batch.flush_changes(schema.message, {})
+        self.__msg_batch.flush_changes(schema.message, set())
 
         return {
             "agent": self.__agent_batch,
@@ -176,6 +181,9 @@ class SimState:
     def n_groups(self):
         return len(self.groups)
 
+    def get_group(self, i_group):
+        return self.groups[i_group]
+
     def set_pools(self, agent_pool, msg_pool, loaders):
         for i_group in range(min(len(self.groups), len(agent_pool))):
             self.groups[i_group].set_batches(agent_pool[i_group], msg_pool[i_group])
@@ -190,13 +198,10 @@ class SimState:
                     GroupState(agent_pool[i_group], msg_pool[i_group], loaders)
                 )
 
-    def get_group(self, i_group):
-        return self.groups[i_group]
-
     def flush_changes(self, schema):
-        r = []
+        groups_changes = []
         for i_group, group in enumerate(self.groups):
             changes = group.flush_changes(schema)
             changes["i_group"] = i_group
-            r.append(changes)
-        return r
+            groups_changes.append(changes)
+        return groups_changes

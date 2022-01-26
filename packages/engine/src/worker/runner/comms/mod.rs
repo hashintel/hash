@@ -67,6 +67,18 @@ impl From<flatbuffers_gen::target_generated::Target> for MessageTarget {
     }
 }
 
+impl From<MessageTarget> for flatbuffers_gen::target_generated::Target {
+    fn from(target: MessageTarget) -> Self {
+        match target {
+            MessageTarget::Rust => Self::Rust,
+            MessageTarget::Python => Self::Python,
+            MessageTarget::JavaScript => Self::JavaScript,
+            MessageTarget::Dynamic => Self::Dynamic,
+            MessageTarget::Main => Self::Main,
+        }
+    }
+}
+
 // TODO: Group indices have type u32 in RunnerTaskMsg, but usize in StateInterimSync.
 #[derive(Debug)]
 pub struct RunnerTaskMsg {
@@ -84,13 +96,13 @@ pub struct TargetedRunnerTaskMsg {
 
 impl TargetedRunnerTaskMsg {
     pub fn try_from_fbs(
-        task_msg: flatbuffers_gen::runner_outbound_msg_generated::TaskMsg<'_>,
+        task_msg: flatbuffers_gen::task_msg_generated::TaskMsg<'_>,
         sent_tasks: &mut HashMap<TaskId, SentTask>,
     ) -> Result<Self> {
         let task_id = task_msg.task_id().ok_or_else(|| {
             Error::from("The TaskMessage from the runner didn't have a required task_id field")
         })?;
-        let task_id = uuid::Uuid::from_slice(&task_id.0)?.as_u128();
+        let task_id = TaskId::from_le_bytes(task_id.0);
 
         let sent = sent_tasks.remove(&task_id).ok_or_else(|| {
             Error::from(format!("Outbound message w/o sent task id {:?}", task_id))
@@ -99,6 +111,10 @@ impl TargetedRunnerTaskMsg {
         let target = task_msg.target().into();
         let package_id = (task_msg.package_sid() as usize).into();
 
+        log::trace!(
+            "Outbound task payload string: {:?}",
+            std::str::from_utf8(task_msg.payload().inner())
+        );
         let inner_msg: serde_json::Value = serde_json::from_slice(task_msg.payload().inner())?;
         let payload = TaskMessage::try_from_inner_msg_and_wrapper(inner_msg, sent.task_wrapper);
         // TODO: Error message duplication with JS runner

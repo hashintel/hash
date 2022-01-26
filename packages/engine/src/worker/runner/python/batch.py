@@ -63,22 +63,13 @@ def load_record_batch(mem, schema=None):
     # what is between them is padding.)
     if schema is None:
         schema_buf = mem[schema_offset: schema_offset + schema_size]
-    rb_buf = mem[meta_offset: data_offset + data_size]
-
-    if schema is None:
         schema = pa.ipc.read_schema(schema_buf)
+
+    rb_buf = mem[meta_offset: data_offset + data_size]
     rb = pa.ipc.read_record_batch(rb_buf, schema)
 
     any_type_fields = parse_any_type_fields(schema.metadata)
-
-    # Put data about `any` types and nullability directly in record batch.
-    for i_field in range(len(rb.num_columns)):
-        field = rb.schema.field(i_field)
-        vector = rb.column(i_field)
-        vector.type.is_any = field.name in any_type_fields
-        vector.type.is_nullable = field.nullable
-
-    return rb
+    return rb, any_type_fields
 
 
 # Returns dataset name, dataset contents and whether JSON could be loaded.
@@ -95,8 +86,8 @@ def load_dataset(batch_id):
     dataset_utf8 = data_buf.to_pybytes().decode('utf8')
     try:
         return dataset_name, json.loads(dataset_utf8), True
-    except: # TODO: Only catch exact JSON parsing error.
-            # TODO: Extract parsing error line number from exception.
+    except json.JSONDecodeError:
+        # TODO: Extract parsing error line number from exception.
         return dataset_name, dataset_utf8, False
 
 
@@ -108,6 +99,8 @@ class Batch:
         self.batch_version = -1
         self.mem = None  # After loading, `mem` will be a shared buffer.
         self.rb = None  # After loading, `rb` will be a record batch.
+        self.any_type_fields = None  # TODO: Remove after upgrading Arrow and putting
+                                     #       schema metadata in individual fields.
         self.cols = {}  # Syncing erases columns that have become invalid.
 
         # For flushing:
@@ -129,21 +122,25 @@ class Batch:
 
         if should_load:
             self.batch_version = latest_batch.batch_version
-            self.rb = load_record_batch(self.mem, schema)
+            self.rb, self.any_type_fields = load_record_batch(self.mem, schema)
             self.cols = {}  # Avoid using obsolete column data.
             self.static_meta = static_meta_from_schema(self.rb.schema)
 
     def load_col(self, name, loader=None):
-        vector = self.rb.column(name)
-        if not vector:
-            raise RuntimeError("Missing vector for " + name)
+        i_field = self.rb.schema.get_field_index(name)
+        if i_field < 0:
+            raise RuntimeError(f"Missing field for {name}")
 
+        field = self.rb.schema.field(i_field)
+        vector = self.rb.column(i_field)
+        is_any = name in self.any_type_fields
         if loader is not None:
-            col = loader(vector)
-        elif len(name) >= 9 and (name[:2] == '_PRIVATE_' or name[:2] == '_HIDDEN_'): # only agent-scoped fields are fully loaded by default
-            col = hash_util.load_shallow(vector)
+            col = loader(vector, field.nullable, is_any)
+        elif name.startswith('_PRIVATE_') or name.startswith('_HIDDEN_'):
+            # only agent-scoped fields are fully loaded by default
+            col = hash_util.load_shallow(vector, field.nullable, is_any)
         else:
-            col = hash_util.load_full(vector)
+            col = hash_util.load_full(vector, field.nullable, is_any)
 
         self.cols[name] = col
         return col
@@ -162,8 +159,10 @@ class Batch:
         # Dynamically accessed columns (if any) were added to `cols` by `state`.
         changes = []
         for field_name, col in self.cols.items():
-            if type(col) is not list or skip[field_name]:
-                continue  # Column wasn't written to or was writable in place.
+            if field_name in skip or not isinstance(col, list) or len(col) == 0:
+                # Assume that column wasn't written to or was writable in place.
+                # TODO: More robust check for this (i.e. for shallow-loaded columns)
+                continue
 
             i_field = schema.get_field_index(field_name)
             if i_field < 0:
@@ -171,13 +170,20 @@ class Batch:
 
             field = schema.field(i_field)
             if field.name in any_type_fields:
-                c = [json.dumps(elem) for elem in col]
+                # Convert `any`-type array of JSON values to array of JSON strings
+                # for Arrow serialization as a string column.
+                py_col = [json.dumps(elem) for elem in col]
+            elif isinstance(col[0], pa.ArrayValue):
+                # Shallow-loaded column; can be modified in place
+                continue
             else:
-                c = col
+                # TODO: Custom loaders with intermediate level of shallow loading
+                #       (These currently result in an exception from `pa.array`.)
+                py_col = col
 
             changes.append({
                 'i_field': i_field,
-                'data': pa.array(c, type=field.type)
+                'data': pa.array(py_col, type=field.type)
             })
 
         if len(changes) == 0:
@@ -212,4 +218,6 @@ class Batches:
 
     def free(self):
         # TODO: Check that this releases references to shared memory
+        #       (Call _free_rust_static_meta, _free_rust_dynamic_meta, unload_shared_mem here?)
+        # TODO: Make this the `__del__` method?
         self.batches = {}

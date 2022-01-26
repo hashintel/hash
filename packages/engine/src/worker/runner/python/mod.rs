@@ -22,7 +22,10 @@ use super::comms::{
 use crate::{
     proto::SimulationShortId,
     types::TaskId,
-    worker::{Error as WorkerError, Result as WorkerResult},
+    worker::{
+        runner::comms::outbound::OutboundFromRunnerMsgPayload, Error as WorkerError,
+        Result as WorkerResult,
+    },
     Language,
 };
 
@@ -141,9 +144,9 @@ async fn _run(
             Some(nng_send_result) = nng_sender.get_send_result() => {
                 nng_send_result?;
             }
-            Some((_sim_id, inbound)) = inbound_receiver.recv() => {
+            Some((sim_id, inbound)) = inbound_receiver.recv() => {
                 // Need to get payload before sending nng message.
-                let (_task_payload_json, task_wrapper) = match &inbound {
+                let (task_payload_json, task_wrapper) = match &inbound {
                     InboundToRunnerMsgPayload::TaskMsg(msg) => {
                         // TODO: Error message duplication with JS runner
                         let (payload, wrapper) = msg.payload
@@ -156,13 +159,18 @@ async fn _run(
                             })?;
                         (Some(payload), Some(wrapper))
                     }
+                    InboundToRunnerMsgPayload::CancelTask(_) => {
+                        // Don't send to Python process -- unused for now.
+                        // TODO: Remove `continue` when/if a package uses `CancelTask`
+                        //       and it's implemented in Python.
+                        continue;
+                    }
                     _ => (None, None)
                 };
 
                 // Send nng first, because need inbound by reference for nng,
                 // but by value for saving sent task.
-                // TODO: Don't ignore inbound messages (after fixing fbs parsing in Python).
-                // nng_sender.send(sim_id, &inbound, &task_payload_json)?;
+                nng_sender.send(sim_id, &inbound, &task_payload_json)?;
 
                 // Do Rust part of message handling, if any.
                 match inbound {
@@ -183,6 +191,7 @@ async fn _run(
                         shared_store,
                         ..
                     }) => {
+                        log::trace!("Sent task_id {:?}", task_id);
                         // unwrap: TaskMsg variant, so must have serialized payload earlier.
                         let sent = SentTask {
                             task_wrapper: task_wrapper.unwrap(),
@@ -191,13 +200,14 @@ async fn _run(
                         sent_tasks
                             .try_insert(task_id, sent)
                             .map_err(|_| Error::from(format!(
-                                "Inbound message w/o sent task id {:?}", task_id
+                                "Inbound message with duplicate sent task id {:?}", task_id
                             )))?;
                     }
                     _ => {}
                 }
             }
             outbound = nng_receiver.get_recv_result() => {
+                log::trace!("Tried to get outbound {outbound:?}");
                 let outbound = outbound.map_err(WorkerError::from)?;
                 let outbound = OutboundFromRunnerMsg::try_from_nng(
                     outbound,
@@ -205,10 +215,19 @@ async fn _run(
                     &mut sent_tasks,
                 );
                 let outbound = outbound.map_err(|err| {
-                    Error::from(format!(
+                    let err = Error::from(format!(
                         "Failed to convert nng message to OutboundFromRunnerMsg: {err}"
-                    ))
+                    ));
+                    // TODO: Investigate why `err` sometimes doesn't get logged at all
+                    //       (higher in the call stack) unless we log it here and avoid
+                    //       logging `err` more than once.
+                    log::error!("{err}");
+                    err
                 })?;
+                log::trace!("Got outbound {outbound:?}");
+                if let OutboundFromRunnerMsgPayload::RunnerWarnings(warnings) = &outbound.payload {
+                    log::warn!("Sim {} warnings: {warnings:?}", outbound.sim_id);
+                }
                 outbound_sender.send(outbound)?;
             }
         }
