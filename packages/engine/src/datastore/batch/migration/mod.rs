@@ -1111,7 +1111,7 @@ impl RowActions {
         let mut last_i = 0;
         for action in &self.remove {
             if action.val < last_i {
-                log::error!(
+                tracing::error!(
                     "Remove row actions are not ordered correctly: {} < {}",
                     action.val,
                     last_i
@@ -1221,7 +1221,7 @@ impl RangeActions {
         let mut last_i = 0;
         for action in self.remove() {
             if action.index < last_i {
-                log::error!(
+                tracing::error!(
                     "Remove range actions are not ordered correctly: {} < {}",
                     action.index,
                     last_i

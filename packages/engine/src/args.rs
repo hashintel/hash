@@ -26,7 +26,7 @@ pub struct Args {
     pub max_workers: Option<usize>,
 
     /// Output format emitted to the terminal.
-    #[clap(long, default_value = "full", arg_enum, env = "HASH_EMIT")]
+    #[clap(long, default_value = "pretty", arg_enum, env = "HASH_EMIT")]
     pub emit: OutputFormat,
 }
 

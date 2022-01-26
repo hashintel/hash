@@ -1,3 +1,5 @@
+use tracing::Span;
+
 use super::active::ActiveTaskExecutorComms;
 use crate::{
     datastore::table::{sync::SyncPayload, task_shared_store::TaskSharedStore},
@@ -21,6 +23,7 @@ pub struct WrappedTask {
 
 #[derive(Debug)]
 pub struct EngineToWorkerPoolMsg {
+    pub span: Span,
     pub sim_id: SimulationShortId,
     pub payload: EngineToWorkerPoolMsgPayload,
 }
@@ -28,6 +31,7 @@ pub struct EngineToWorkerPoolMsg {
 impl EngineToWorkerPoolMsg {
     pub fn task(sim_id: SimulationShortId, task: WrappedTask) -> Self {
         Self {
+            span: Span::current(),
             sim_id,
             payload: EngineToWorkerPoolMsgPayload::Task(task),
         }
@@ -35,6 +39,7 @@ impl EngineToWorkerPoolMsg {
 
     pub fn sync(sim_id: SimulationShortId, sync_msg: SyncPayload) -> Self {
         Self {
+            span: Span::current(),
             sim_id,
             payload: EngineToWorkerPoolMsgPayload::Sync(sync_msg),
         }

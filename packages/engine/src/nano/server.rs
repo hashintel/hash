@@ -30,7 +30,7 @@ impl Worker {
         let ctx = ctx_orig.clone();
 
         let socket_url = url.to_string();
-        log::debug!("Creating nng worker listening on socket: {}", socket_url);
+        tracing::debug!("Creating nng worker listening on socket: {}", socket_url);
         // The unwraps in the Aio callback here are fine. If they panic, then it's a logic
         // error, and not something which can be recovered from.
         let aio = nng::Aio::new(move |aio, res| match res {
@@ -44,10 +44,10 @@ impl Worker {
                 sender.send(msg).unwrap();
             }
             nng::AioResult::Recv(Err(nng::Error::Closed)) => {
-                log::debug!("aio context closed for socket listening on: {socket_url}");
+                tracing::debug!("aio context closed for socket listening on: {socket_url}");
             }
             nng::AioResult::Recv(Err(err)) => {
-                log::error!("aio receive error: {err}");
+                tracing::error!("aio receive error: {err}");
             }
             nng::AioResult::Sleep(_) => {
                 panic!("unexpected sleep");

@@ -45,7 +45,7 @@ impl RustRunner {
         _sim_id: Option<SimulationShortId>,
         _msg: InboundToRunnerMsgPayload,
     ) -> WorkerResult<()> {
-        log::trace!("Received message to send to Rust Runner: {:?}", &_msg);
+        tracing::trace!("Received message to send to Rust Runner: {:?}", &_msg);
         Ok(())
     }
 
