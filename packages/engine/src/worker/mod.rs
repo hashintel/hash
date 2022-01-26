@@ -623,11 +623,11 @@ impl WorkerController {
             .collect::<Vec<_>>()
             .try_into()
             .unwrap();
-        let [js_msg, py_msg, /* rs_msg */] = messages;
+        let [js_msg, py_msg /* rs_msg */] = messages;
         tokio::try_join!(
             self.js.send_if_spawned(sim_id, js_msg),
-            self.py.send_if_spawned(msg.sim_id, py_msg),
-            // self.rs.send_if_spawned(msg.sim_id, rs_msg),
+            self.py.send_if_spawned(sim_id, py_msg),
+            // self.rs.send_if_spawned(sim_id, rs_msg),
         )?;
         let fut = async move {
             let sync = sync; // Capture `sync` in lambda.
