@@ -23,8 +23,9 @@ import {
   getAccountEntityTypes,
   getEntityType,
   getEntityTypeByComponentId,
-  getEntityTypeBySchemaId,
+  getEntityTypeBySchema$id,
   getEntityTypeLatestVersion,
+  getJsonSchemaBySchema$id,
   getSystemTypeLatestVersion,
   insertEntityType,
   insertEntityTypeVersion,
@@ -100,7 +101,7 @@ export class PostgresClient implements DBClient {
       // Conn is used here to prevent transaction-mismatching.
       // this.conn is a parent of this transaction conn at this time.
       const jsonSchemaCompiler = new JsonSchemaCompiler(async (url) => {
-        return PostgresClient.getJsonSchemaBySchemaId(conn, url);
+        return getJsonSchemaBySchema$id(conn, url);
       });
 
       const now = new Date();
@@ -136,18 +137,6 @@ export class PostgresClient implements DBClient {
 
       return entityType;
     });
-  }
-
-  /**
-   * Conn is interchangable for allowing usage in transactions as well as standard connections.
-   */
-  static async getJsonSchemaBySchemaId(conn: Connection, schemaId: string) {
-    const schema = await getEntityTypeBySchemaId(conn, { schemaId });
-    if (schema) {
-      return schema.properties;
-    } else {
-      throw new Error(`Could not find schema with $id = ${schemaId}`);
-    }
   }
 
   async getSystemTypeLatestVersion(params: {
@@ -290,10 +279,10 @@ export class PostgresClient implements DBClient {
     return await getEntityTypeByComponentId(this.conn, params);
   }
 
-  async getEntityTypeBySchemaId(
-    params: Parameters<DBClient["getEntityTypeBySchemaId"]>[0],
-  ): ReturnType<DBClient["getEntityTypeBySchemaId"]> {
-    return await getEntityTypeBySchemaId(this.conn, params);
+  async getEntityTypeBySchema$id(
+    params: Parameters<DBClient["getEntityTypeBySchema$id"]>[0],
+  ): ReturnType<DBClient["getEntityTypeBySchema$id"]> {
+    return await getEntityTypeBySchema$id(this.conn, params);
   }
 
   /**
@@ -350,7 +339,7 @@ export class PostgresClient implements DBClient {
     }
 
     const jsonSchemaCompiler = new JsonSchemaCompiler((url) => {
-      return PostgresClient.getJsonSchemaBySchemaId(this.conn, url);
+      return getJsonSchemaBySchema$id(this.conn, url);
     });
 
     const schemaToSet = await jsonSchemaCompiler.jsonSchema(

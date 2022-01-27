@@ -201,12 +201,12 @@ export const getEntityTypeByComponentId = async (
 
 /** Get an entityType by componentId
  */
-export const getEntityTypeBySchemaId = async (
+export const getEntityTypeBySchema$id = async (
   conn: Connection,
   {
-    schemaId,
+    schema$id,
   }: {
-    schemaId: string;
+    schema$id: string;
   },
 ): Promise<EntityType | null> => {
   const row = await conn.maybeOne<EntityTypePGRow>(sql`
@@ -215,7 +215,7 @@ export const getEntityTypeBySchemaId = async (
     )
     select distinct on (entity_type_id) * from all_matches
     where
-      properties ->> '$id' = ${schemaId}
+      properties ->> '$id' = ${schema$id}
     order by entity_type_id, updated_at desc
 
     -- We only want the latest, maybeOne throws if it finds more, which it wouldn't because of distinct on (entity_type_id)
@@ -224,6 +224,18 @@ export const getEntityTypeBySchemaId = async (
   `);
 
   return row ? mapPGRowToEntityType(row) : null;
+};
+
+export const getJsonSchemaBySchema$id = async (
+  conn: Connection,
+  schema$id: string,
+) => {
+  const schema = await getEntityTypeBySchema$id(conn, { schema$id });
+  if (schema) {
+    return schema.properties;
+  } else {
+    throw new Error(`Could not find schema with $id = ${schema$id}`);
+  }
 };
 
 /** Get the latest version of an entity type.
