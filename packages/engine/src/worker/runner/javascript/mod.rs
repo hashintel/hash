@@ -1167,7 +1167,7 @@ impl<'m> RunnerImpl<'m> {
                     })?;
                 }
             }
-            InboundToRunnerMsgPayload::CancelTask(_) => todo!(),
+            InboundToRunnerMsgPayload::CancelTask(_) => {} // TODO
         }
         Ok(true) // Continue running.
     }
