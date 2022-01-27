@@ -72,7 +72,9 @@
     "image": "public/preview.svg",
     "examples": [
       {
-        "text": "Hello World!"
+        "text": "Hello World!",
+        "level": 2,
+        "color": "black"
       }
     ]
   }
