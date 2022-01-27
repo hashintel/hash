@@ -24,6 +24,7 @@ type FileType = Awaited<ReturnType<BlockProtocolUploadFileFunction>>;
 type AppProps = {
   initialCaption?: string;
   initialWidth?: number;
+  url?: string;
 };
 
 type BlockProtocolUpdateEntitiesActionData = Pick<
@@ -98,6 +99,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
     linkedEntities,
     uploadFile,
     updateEntities,
+    url,
   } = props;
 
   // TODO: Consider replacing multiple states with useReducer()
@@ -158,10 +160,10 @@ export const Image: BlockComponent<AppProps> = (props) => {
         linkedEntities,
       });
 
-      const { url } = matchingLinkedEntities?.[0] ?? {};
+      const { url: matchingUrl } = matchingLinkedEntities?.[0] ?? {};
 
-      if (url && stateObjectRef.current.src !== url) {
-        newPartialStateObject.src = url;
+      if (matchingUrl && stateObjectRef.current.src !== matchingUrl) {
+        newPartialStateObject.src = matchingUrl;
       }
     }
 
@@ -329,12 +331,12 @@ export const Image: BlockComponent<AppProps> = (props) => {
     });
   };
 
-  if (stateObject.src?.trim()) {
+  if (stateObject.src?.trim() || url) {
     return (
       <div className={tw`flex justify-center text-center w-full`}>
         <div className={tw`flex flex-col`}>
           <ResizeImageBlock
-            imageSrc={stateObject.src}
+            imageSrc={stateObject.src ? stateObject.src : url!}
             width={stateObject.width}
             updateWidth={updateWidth}
           />

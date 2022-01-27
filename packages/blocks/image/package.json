@@ -69,6 +69,12 @@
   "blockprotocol": {
     "displayName": "Image",
     "icon": "public/image.svg",
-    "image": "public/preview.svg"
+    "image": "public/preview.svg",
+    "examples": [
+      {
+        "initialCaption": "Image of a Dog",
+        "url": "https://placedog.net/450/300"
+      }
+    ]
   }
 }

@@ -77,9 +77,10 @@ const App = () => {
         accountId="account-asdasd"
         createLinks={createLinks}
         deleteLinks={deleteLinks}
-        initialCaption="ASDASDASDSAD"
+        initialCaption="A blooming flower"
         entityId="entity-asdasd"
         uploadFile={uploadFile}
+        url="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm"
       />
     </div>
   );
