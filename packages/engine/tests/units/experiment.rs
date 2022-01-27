@@ -164,7 +164,7 @@ pub async fn run_test<P: AsRef<Path>>(
 
     let experiment = orchestrator::Experiment::new(ExperimentConfig {
         num_workers: num_cpus::get(),
-        emit: OutputFormat::Full,
+        emit: OutputFormat::Pretty,
         output_folder: std::env::var("OUT_DIR")
             .unwrap_or_else(|_| "./output".to_string())
             .into(),
