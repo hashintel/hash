@@ -91,7 +91,6 @@ impl Engine {
             errors: vec![],
             warnings: vec![],
             agent_control,
-            stop_signal: self.stop.is_some(),
         };
         Ok(result)
     }
