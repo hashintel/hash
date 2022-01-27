@@ -64,6 +64,12 @@
   "blockprotocol": {
     "displayName": "Video",
     "icon": "public/play-box-outline.svg",
-    "image": "public/preview.svg"
+    "image": "public/preview.svg",
+    "examples": [
+      {
+        "initialCaption": "A blooming flower",
+        "url": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm"
+      }
+    ]
   }
 }

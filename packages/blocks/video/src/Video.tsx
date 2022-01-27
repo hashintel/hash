@@ -20,6 +20,7 @@ type FileType = Awaited<ReturnType<BlockProtocolUploadFileFunction>>;
 
 type AppProps = {
   initialCaption?: string;
+  url?: string;
 };
 
 type BlockProtocolUpdateEntitiesActionData = Pick<
@@ -93,6 +94,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
     linkedEntities,
     uploadFile,
     updateEntities,
+    url,
   } = props;
 
   // TODO: Consider replacing multiple states with useReducer()
@@ -288,7 +290,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
     });
   };
 
-  if (stateObject.src?.trim()) {
+  if (stateObject.src?.trim() || url) {
     return (
       <div className={tw`flex justify-center text-center w-full`}>
         <div className={tw`max-w-full`}>
@@ -298,7 +300,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
             style={{
               maxWidth: "100%",
             }}
-            src={stateObject.src}
+            src={stateObject.src ? stateObject.src : url}
           />
 
           <input
