@@ -81,7 +81,7 @@ const App = () => {
         entityId="entity-asdasd"
         initialCaption="Image of a Dog"
         uploadFile={uploadFile}
-        url={"https://placedog.net/450/300"}
+        url="https://placedog.net/450/300"
       />
     </div>
   );

@@ -160,10 +160,10 @@ export const Image: BlockComponent<AppProps> = (props) => {
         linkedEntities,
       });
 
-      const { url } = matchingLinkedEntities?.[0] ?? {};
+      const { url: matchingUrl } = matchingLinkedEntities?.[0] ?? {};
 
-      if (url && stateObjectRef.current.src !== url) {
-        newPartialStateObject.src = url;
+      if (matchingUrl && stateObjectRef.current.src !== matchingUrl) {
+        newPartialStateObject.src = matchingUrl;
       }
     }
 
