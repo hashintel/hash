@@ -158,7 +158,7 @@ impl Experiment {
                 }
                 proto::EngineStatus::SimStatus(status) => {
                     debug!("Got simulation run status: {status:?}");
-                    if let Some(stop_message) = &status.stop_msg {
+                    for stop_message in status.stop_msg {
                         let reason = if let Some(reason) = stop_message.reason.as_ref() {
                             format!(": {reason}")
                         } else {

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{mem, sync::Arc};
 
 use tracing::Instrument;
 
@@ -30,7 +30,7 @@ pub struct Engine {
     store: Store,
     comms: Arc<Comms>,
     config: Arc<SimRunConfig>,
-    stop: Option<StopMessage>,
+    stop_messages: Vec<StopMessage>,
 }
 
 impl Engine {
@@ -58,7 +58,7 @@ impl Engine {
             store,
             comms,
             config,
-            stop: None,
+            stop_messages: Vec::new(),
         })
     }
 
@@ -80,8 +80,8 @@ impl Engine {
         self.run_context_packages(current_step).await?;
         self.run_state_packages().await?;
         let output = self.run_output_packages().await?;
-        let agent_control = if let Some(stop_message) = self.stop.take() {
-            AgentControl::Stop(stop_message)
+        let agent_control = if !self.stop_messages.is_empty() {
+            AgentControl::Stop(mem::take(&mut self.stop_messages))
         } else {
             AgentControl::Continue
         };
@@ -250,7 +250,7 @@ impl Engine {
         let mut commands = Commands::from_hash_messages(message_map, read)?;
         commands.merge(self.comms.take_commands()?);
         commands.verify(&self.config.sim.store.agent_schema)?;
-        self.stop = commands.stop;
+        self.stop_messages = commands.stop;
         state.create_remove(commands.create_remove, &self.config)?;
         Ok(())
     }

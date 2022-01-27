@@ -12,7 +12,7 @@ pub struct SimStatus {
     pub sim_id: SimulationShortId,
     pub steps_taken: isize,
     pub early_stop: bool,
-    pub stop_msg: Option<StopMessage>,
+    pub stop_msg: Vec<StopMessage>,
     pub stop_signal: bool,
     pub persistence_result: Option<(String, serde_json::Value)>,
     // TODO: OS do we need these within SimStatus or should they be handled elsewhere, such as
@@ -46,7 +46,7 @@ impl SimStatus {
         sim_id: SimulationShortId,
         steps_taken: isize,
         early_stop: bool,
-        stop_msg: Option<StopMessage>,
+        stop_msg: Vec<StopMessage>,
         persistence_result: P,
     ) -> Result<SimStatus> {
         let persistence_result = OutputPersistenceResultRepr::into_value(persistence_result)
