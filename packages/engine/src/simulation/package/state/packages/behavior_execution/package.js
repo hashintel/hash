@@ -86,7 +86,7 @@ const load_behaviors = (experiment, behavior_descs) => {
       )(hash_stdlib, hash_stdlib, console);
     } catch (e) {
       // Catch behavior code syntax errors and rethrow.
-      // Error.prepareStackTrace = prepare_user_trace; // TODO
+      Error.prepareStackTrace = prepare_user_trace;
       const trace = e.stack;
       trace.msg =
         "Couldn't load behavior (NAME " +
@@ -220,8 +220,9 @@ const run_task = (
       try {
         behavior.fn(agent_state, agent_ctx);
       } catch (e) {
-        // TODO expose/return user error properly
-        throw Error(behavior.name + "\n" + e.stack);
+        Error.prepareStackTrace = prepare_user_trace;
+        const trace = e.stack;
+        throw Error(JSON.stringify(trace));
       }
       postprocess(agent_state);
     }

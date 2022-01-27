@@ -34,7 +34,7 @@ pub struct ExpectedOutput {
 /// example when [`Python`](Language::Python) is passed, it searches for the files `init-py.js`,
 /// `init-py.py`, and `init-py.json`. If more than one initial state is specified, the function
 /// fails.
-fn load_manifest<P: AsRef<Path>>(project_path: P, language: Language) -> Result<Manifest> {
+fn load_manifest<P: AsRef<Path>>(project_path: P, language: Option<Language>) -> Result<Manifest> {
     let project_path = project_path.as_ref();
 
     // We read the manifest without initial state ...
@@ -44,9 +44,10 @@ fn load_manifest<P: AsRef<Path>>(project_path: P, language: Language) -> Result<
     // ... so we provide it ourself
     // If `language` is specified, use a `-lang` suffix
     let suffix = match language {
-        Language::JavaScript => "-js",
-        Language::Python => "-py",
-        Language::Rust => "-rs",
+        Some(Language::JavaScript) => "-js",
+        Some(Language::Python) => "-py",
+        Some(Language::Rust) => "-rs",
+        None => "",
     };
     let initial_states: Vec<_> = ["js", "py", "json"]
         .into_iter()
@@ -64,7 +65,7 @@ fn load_manifest<P: AsRef<Path>>(project_path: P, language: Language) -> Result<
 
 pub async fn run_test_suite<P: AsRef<Path>>(
     project_path: P,
-    language: Language,
+    language: Option<Language>,
     experiment: Option<&str>,
 ) {
     std::env::set_var("RUST_LOG", "info");
@@ -134,7 +135,7 @@ pub async fn run_test_suite<P: AsRef<Path>>(
 pub async fn run_test<P: AsRef<Path>>(
     experiment_type: ExperimentType,
     project_path: P,
-    language: Language,
+    language: Option<Language>,
     num_outputs_expected: usize,
 ) -> Result<Vec<(AgentStates, Globals, Analysis)>> {
     let project_path = project_path.as_ref();
@@ -150,7 +151,11 @@ pub async fn run_test<P: AsRef<Path>>(
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_millis();
-        format!("ipc://integration-test-suite-{project_name}-{language}-{now}")
+        if let Some(language) = language {
+            format!("ipc://integration-test-suite-{project_name}-{language}-{now}")
+        } else {
+            format!("ipc://integration-test-suite-{project_name}-{now}")
+        }
     };
 
     let (mut experiment_server, handler) = create_server(nng_listen_url)?;
