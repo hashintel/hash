@@ -133,7 +133,7 @@ fn inbound_to_nng(
 
     let (msg, msg_type) = match msg {
         InboundToRunnerMsgPayload::TaskMsg(msg) => {
-            log::trace!("Sending TaskMsg");
+            tracing::trace!("Sending TaskMsg");
             let shared_store = shared_store_to_fbs(fbb, &msg.shared_store);
 
             // unwrap: TaskMsg variant, so must have serialized payload earlier (and
@@ -377,7 +377,7 @@ fn shared_store_to_fbs<'f>(
                 (a, m, partial.indices.clone())
             }
             PartialSharedState::Write(partial) => {
-                log::trace!(
+                tracing::trace!(
                     "Partial write: {} groups, {} batches",
                     partial.indices.len(),
                     partial.inner.agent_pool().n_batches(),

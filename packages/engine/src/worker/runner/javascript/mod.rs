@@ -1291,7 +1291,7 @@ fn _run(
                         }
                     }
                     None => {
-                        log::error!("Inbound sender to JS exited");
+                        tracing::error!("Inbound sender to JS exited");
                         return Err(Error::InboundReceive.into());
                     }
                 }

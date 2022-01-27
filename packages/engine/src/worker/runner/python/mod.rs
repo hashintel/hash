@@ -192,7 +192,7 @@ async fn _run(
                         shared_store,
                         ..
                     }) => {
-                        log::trace!("Sent task_id {:?}", task_id);
+                        tracing::trace!("Sent task_id {:?}", task_id);
                         // unwrap: TaskMsg variant, so must have serialized payload earlier.
                         let sent = SentTask {
                             task_wrapper: task_wrapper.unwrap(),
@@ -208,7 +208,7 @@ async fn _run(
                 }
             }
             outbound = nng_receiver.get_recv_result() => {
-                log::trace!("Tried to get outbound {outbound:?}");
+                tracing::trace!("Tried to get outbound {outbound:?}");
                 let outbound = outbound.map_err(WorkerError::from)?;
                 let outbound = OutboundFromRunnerMsg::try_from_nng(
                     outbound,
@@ -222,12 +222,12 @@ async fn _run(
                     // TODO: Investigate why `err` sometimes doesn't get logged at all
                     //       (higher in the call stack) unless we log it here and avoid
                     //       logging `err` more than once.
-                    log::error!("{err}");
+                    tracing::error!("{err}");
                     err
                 })?;
-                log::trace!("Got outbound {outbound:?}");
+                tracing::trace!("Got outbound {outbound:?}");
                 if let OutboundFromRunnerMsgPayload::RunnerWarnings(warnings) = &outbound.payload {
-                    log::warn!("Sim {} warnings: {warnings:?}", outbound.sim_id);
+                    tracing::warn!("Sim {} warnings: {warnings:?}", outbound.sim_id);
                 }
                 outbound_sender.send(outbound)?;
             }

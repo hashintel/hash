@@ -113,7 +113,7 @@ impl TargetedRunnerTaskMsg {
         let target = task_msg.target().into();
         let package_id = (task_msg.package_sid() as usize).into();
 
-        log::trace!(
+        tracing::trace!(
             "Outbound task payload string: {:?}",
             std::str::from_utf8(task_msg.payload().inner())
         );
