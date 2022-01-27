@@ -1,8 +1,8 @@
-use crate::simulation::command::StopMessage;
+use crate::simulation::command::StopCommand;
 #[derive(Debug)]
 pub enum AgentControl {
     Continue,
-    Stop(Vec<StopMessage>),
+    Stop(Vec<StopCommand>),
 }
 
 impl Default for AgentControl {

@@ -158,22 +158,29 @@ impl Experiment {
                 }
                 proto::EngineStatus::SimStatus(status) => {
                     debug!("Got simulation run status: {status:?}");
-                    for stop_message in status.stop_msg {
-                        let reason = if let Some(reason) = stop_message.reason.as_ref() {
+                    for stop_command in status.stop_msg {
+                        let reason = if let Some(reason) = stop_command.message.reason.as_ref() {
                             format!(": {reason}")
                         } else {
                             String::new()
                         };
-                        match stop_message.status {
+                        let agent = &stop_command.agent;
+                        match stop_command.message.status {
                             StopStatus::Success => {
-                                tracing::info!("Simulation stopped sucessfully{reason}");
+                                tracing::info!(
+                                    "Simulation stopped by agent `{agent}` successfully{reason}"
+                                );
                             }
                             StopStatus::Warning => {
-                                tracing::warn!("Simulation stopped with a warning{reason}");
+                                tracing::warn!(
+                                    "Simulation stopped by agent `{agent}` with a warning{reason}"
+                                );
                             }
                             StopStatus::Error => {
                                 errored = true;
-                                tracing::error!("Simulation stopped with an error{reason}");
+                                tracing::error!(
+                                    "Simulation stopped by agent `{agent}` with an error{reason}"
+                                );
                             }
                         }
                     }

@@ -50,7 +50,7 @@ struct RemoveCommand {
     uuid: Uuid,
 }
 
-/// Status of the stop message occurred.
+/// Status of the stop message that occurred.
 ///
 /// See the [HASH-documentation] for more information.
 ///
@@ -67,6 +67,15 @@ impl Default for StopStatus {
     fn default() -> Self {
         Self::Warning
     }
+}
+
+/// Command to stop the simulation.
+///
+/// Stores the [`StopMessage`] and the agent's UUID.
+#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct StopCommand {
+    pub message: StopMessage,
+    pub agent: Uuid,
 }
 
 /// Stop message sent from an agent.
@@ -91,7 +100,7 @@ pub struct CreateRemoveCommands {
 #[derive(Debug, Default)]
 pub struct Commands {
     pub create_remove: CreateRemoveCommands,
-    pub stop: Vec<StopMessage>,
+    pub stop: Vec<StopCommand>,
 }
 
 impl Commands {
@@ -245,7 +254,10 @@ fn handle_hash_message(
             handle_remove_data(cmds, data, from)?;
         }
         HashMessageType::Stop => {
-            cmds.stop.push(serde_json::from_str(data)?);
+            cmds.stop.push(StopCommand {
+                message: serde_json::from_str(data)?,
+                agent: uuid::Uuid::from_bytes(*from),
+            });
         }
     }
     Ok(())

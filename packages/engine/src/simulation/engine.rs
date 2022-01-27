@@ -20,7 +20,7 @@ use crate::{
     proto::ExperimentRunTrait,
     simulation::{
         agent_control::AgentControl,
-        command::{Commands, StopMessage},
+        command::{Commands, StopCommand},
     },
 };
 
@@ -30,7 +30,7 @@ pub struct Engine {
     store: Store,
     comms: Arc<Comms>,
     config: Arc<SimRunConfig>,
-    stop_messages: Vec<StopMessage>,
+    stop_messages: Vec<StopCommand>,
 }
 
 impl Engine {

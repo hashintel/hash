@@ -79,8 +79,9 @@ const App = () => {
         createLinks={createLinks}
         deleteLinks={deleteLinks}
         entityId="entity-asdasd"
-        initialCaption="ASDASDASDSAD"
+        initialCaption="Image of a Dog"
         uploadFile={uploadFile}
+        url="https://placedog.net/450/300"
       />
     </div>
   );
