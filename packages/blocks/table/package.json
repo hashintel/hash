@@ -96,28 +96,28 @@
           },
           "data": [
             {
-              "accountId": "1",
+              "entityId": "1",
               "name": "Alice",
               "email": "alice@example.com",
               "age": 42,
               "country": "England"
             },
             {
-              "accountId": "2",
+              "entityId": "2",
               "name": "Bob",
               "email": "bob@example.com",
               "age": 34,
               "country": "France"
             },
             {
-              "accountId": "3",
+              "entityId": "3",
               "name": "David",
               "email": "david@example.com",
               "age": 24,
               "country": "Denmark"
             },
             {
-              "accountId": "4",
+              "entityId": "4",
               "name": "Eric",
               "email": "eric@example.com",
               "age": 59,
@@ -128,8 +128,8 @@
         "initialState": {
           "columns": [
             {
-              "Header": "accountId",
-              "accessor": "accountId"
+              "Header": "entityId",
+              "accessor": "entityId"
             },
             {
               "Header": "email",
