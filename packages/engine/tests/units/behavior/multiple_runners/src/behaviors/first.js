@@ -1,5 +1,5 @@
 /**
- * Stores a number at the agent's state to pick up by other behaviors
+ * Stores a number in the "a" field to be picked up by other behaviors
  */
 const behavior = (state, context) => {
   state.a = 1;
