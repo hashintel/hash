@@ -22,8 +22,18 @@ export const setParentPage: Resolver<
       entityId: parentPageId,
     });
 
-    if (!parentPageEntity || !pageEntity) {
-      throw new ApolloError(`Could not find.`, "NOT_FOUND");
+    if (!pageEntity || !parentPageEntity) {
+      const notFoundId = pageEntity?.entityId
+        ? `'${parentPageId}'`
+        : `'${pageId}' ${
+            parentPageEntity?.entityId
+              ? ""
+              : `nor parent page with entityId = '${parentPageId}`
+          }`;
+      throw new ApolloError(
+        `Could not find entity with entityId = ${notFoundId}.`,
+        "NOT_FOUND",
+      );
     }
 
     if (pageEntity.parentEntityId) {
