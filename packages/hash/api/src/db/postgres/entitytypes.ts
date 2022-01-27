@@ -194,10 +194,6 @@ export const getEntityTypeByComponentId = async (
     )
     select distinct on (entity_type_id) * from all_matches
     order by entity_type_id, updated_at desc
-
-    -- We only want the latest, maybeOne throws if it finds more, which it wouldn't because of distinct on (entity_type_id)
-    -- but since we might allow for accounts to be the owner of the imported entitytypes, this would make it so nothing breaks.
-    limit 1 
   `);
 
   return row ? mapPGRowToEntityType(row) : null;

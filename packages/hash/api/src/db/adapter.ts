@@ -248,7 +248,7 @@ export interface DBClient {
   }): Promise<EntityType | null>;
 
   /**
-   * Get an `EntityType` by its Schema ID.
+   * Get an `EntityType` by its Schema ID, i.e. the value for `$id` on the schema.
    * @param params.schemaId the schema ID that exists on an `EntityType`.
    */
   getEntityTypeBySchemaId(params: {

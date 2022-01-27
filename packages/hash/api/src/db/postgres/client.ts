@@ -146,7 +146,7 @@ export class PostgresClient implements DBClient {
     if (schema) {
       return schema.properties;
     } else {
-      throw new Error(`Could not find schema with $ref = ${schemaId}`);
+      throw new Error(`Could not find schema with $id = ${schemaId}`);
     }
   }
 

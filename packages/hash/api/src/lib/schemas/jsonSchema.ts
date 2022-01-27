@@ -1,7 +1,6 @@
 import { JSONObject } from "blockprotocol";
 import Ajv2019, { AnySchemaObject } from "ajv/dist/2019";
 import addFormats from "ajv-formats";
-import { DataSource } from "apollo-datasource";
 import $RefParser, {
   FileInfo,
   JSONSchema,
@@ -87,6 +86,12 @@ export const schema$idRef = (schema$id: string) => {
 
 type SchemaResolverFunction = (url: string) => Promise<AnySchemaObject>;
 
+/**
+ * Empty, default resolver for $refs in JSON Schemas
+ * @todo check that $refs point to URIs which return at least valid JSON.
+ *    We might not want to check each is a valid schema as they might link on to many more.
+ *    For schemas stored in HASH, we know they're valid (since each is checked on insert).
+ */
 const emptySchemaResolver = async (_url: string) => ({});
 
 /**
@@ -103,12 +108,11 @@ export class TypeMismatch extends Error {
 /**
  * Class that encapsulates JsonSchema validation.
  */
-export class JsonSchemaCompiler extends DataSource {
-  private ajv!: Ajv2019;
-  private resolver!: SchemaResolverFunction;
+export class JsonSchemaCompiler {
+  private ajv: Ajv2019;
+  private resolver: SchemaResolverFunction;
 
   constructor(resolver: SchemaResolverFunction) {
-    super();
     this.resolver = resolver;
 
     this.ajv = new Ajv2019({

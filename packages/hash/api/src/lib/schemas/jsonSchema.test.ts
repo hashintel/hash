@@ -1,6 +1,6 @@
 import { JsonSchemaCompiler } from "./jsonSchema";
 
-const ajv = new JsonSchemaCompiler(async (_url: string) => ({}));
+const jsonSchemaCompiler = new JsonSchemaCompiler(async (_url: string) => ({}));
 
 describe("compatibility validation", () => {
   it("allows inheritance that do not re-write keys", async () => {
@@ -21,7 +21,7 @@ describe("compatibility validation", () => {
         createdAt: { type: "string", format: "date-time" },
       },
     };
-    await ajv.prevalidateProperties(schema);
+    await jsonSchemaCompiler.prevalidateProperties(schema);
     // no error should be thrown
   });
 
@@ -44,7 +44,9 @@ describe("compatibility validation", () => {
         createdAt: { type: "string", format: "date-time" },
       },
     };
-    await expect(ajv.prevalidateProperties(schema)).rejects.toThrowError(
+    await expect(
+      jsonSchemaCompiler.prevalidateProperties(schema),
+    ).rejects.toThrowError(
       /Type mismatch on "age". Got "string" expected "number"/i,
     );
   });
@@ -67,7 +69,9 @@ describe("compatibility validation", () => {
         createdAt: { type: "string", format: "date-time" },
       },
     };
-    await expect(ajv.prevalidateProperties(schema)).resolves.toBeUndefined();
+    await expect(
+      jsonSchemaCompiler.prevalidateProperties(schema),
+    ).resolves.toBeUndefined();
   });
 
   it("disallows overwriting incompatible, inheriting fields from other parent types", async () => {
@@ -94,7 +98,9 @@ describe("compatibility validation", () => {
         createdAt: { type: "string", format: "date-time" },
       },
     };
-    await expect(ajv.prevalidateProperties(schema)).rejects.toThrowError(
+    await expect(
+      jsonSchemaCompiler.prevalidateProperties(schema),
+    ).rejects.toThrowError(
       /Type mismatch on "age". Got "number" expected "string"/i,
     );
   });
@@ -123,7 +129,9 @@ describe("compatibility validation", () => {
         createdAt: { type: "string", format: "date-time" },
       },
     };
-    await expect(ajv.prevalidateProperties(schema)).resolves.toBeUndefined();
+    await expect(
+      jsonSchemaCompiler.prevalidateProperties(schema),
+    ).resolves.toBeUndefined();
   });
 
   it("disallows overwriting incompatible, inheriting fields from nested parent types", async () => {
@@ -153,7 +161,9 @@ describe("compatibility validation", () => {
         createdAt: { type: "string", format: "date-time" },
       },
     };
-    await expect(ajv.prevalidateProperties(schema)).rejects.toThrowError(
+    await expect(
+      jsonSchemaCompiler.prevalidateProperties(schema),
+    ).rejects.toThrowError(
       /Type mismatch on "height". Got "string" expected "number"/i,
     );
   });
@@ -185,6 +195,8 @@ describe("compatibility validation", () => {
         createdAt: { type: "string", format: "date-time" },
       },
     };
-    await expect(ajv.prevalidateProperties(schema)).resolves.toBeUndefined();
+    await expect(
+      jsonSchemaCompiler.prevalidateProperties(schema),
+    ).resolves.toBeUndefined();
   });
 });
