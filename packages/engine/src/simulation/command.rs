@@ -2,6 +2,7 @@
 //! to:
 //! * Dynamically request the creation of agents
 //! * Dynamically request the deletion of agents
+//! * Dynamically request stopping of the simulation run
 
 use std::{collections::HashSet, sync::Arc};
 
@@ -90,7 +91,7 @@ pub struct CreateRemoveCommands {
 #[derive(Debug, Default)]
 pub struct Commands {
     pub create_remove: CreateRemoveCommands,
-    pub stop: Option<StopMessage>,
+    pub stop: Vec<StopMessage>,
 }
 
 impl Commands {
@@ -131,9 +132,7 @@ impl Commands {
         self.create_remove
             .remove
             .append(&mut other.create_remove.remove);
-        if self.stop.is_none() {
-            self.stop = other.stop;
-        }
+        self.stop.append(&mut other.stop);
     }
 
     /// Reads the messages of a simulation step, and identifies, transforms, and collects the
@@ -153,13 +152,14 @@ impl Commands {
             .into_par_iter()
             .map(|refs| {
                 // TODO[5](optimization) see if collecting type information before (to avoid cache
-                // misses on large batches) yields better results
+                //   misses on large batches) yields better results
                 let hash_message_types =
                     message_reader
                         .type_iter(refs)
                         .map(|type_str| match type_str {
                             "create_agent" => Ok(HashMessageType::Create),
                             "remove_agent" => Ok(HashMessageType::Remove),
+                            // TODO: When implementing "mapbox" don't forget updating module docs
                             "mapbox" => todo!(),
                             "stop" => Ok(HashMessageType::Stop),
                             _ => Err(Error::UnexpectedSystemMessage {
@@ -245,7 +245,7 @@ fn handle_hash_message(
             handle_remove_data(cmds, data, from)?;
         }
         HashMessageType::Stop => {
-            cmds.stop = Some(serde_json::from_str(data)?);
+            cmds.stop = vec![serde_json::from_str(data)?];
         }
     }
     Ok(())
