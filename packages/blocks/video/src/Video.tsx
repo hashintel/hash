@@ -151,10 +151,10 @@ export const Video: BlockComponent<AppProps> = (props) => {
         linkedEntities,
       });
 
-      const { url } = matchingLinkedEntities?.[0] ?? {};
+      const { url: matchingUrl } = matchingLinkedEntities?.[0] ?? {};
 
-      if (url && stateObjectRef.current.src !== url) {
-        updateStateObject({ src: url });
+      if (matchingUrl && stateObjectRef.current.src !== matchingUrl) {
+        updateStateObject({ src: matchingUrl });
       }
     }
 
