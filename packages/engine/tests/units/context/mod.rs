@@ -1,3 +1,7 @@
-use crate::run_test;
+mod js {
+    crate::run_test!(step, JavaScript);
+}
 
-run_test!(step);
+mod py {
+    crate::run_test!(step, Python, #[ignore]);
+}

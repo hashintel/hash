@@ -142,10 +142,10 @@ impl Batch {
     pub fn from_agent_states<K: IntoRecordBatch>(
         agents: K,
         schema: &Arc<AgentSchema>,
-        experiment_run_id: &ExperimentId,
+        experiment_id: &ExperimentId,
     ) -> Result<Batch> {
         let rb = agents.into_agent_batch(schema)?;
-        Batch::from_record_batch(&rb, schema, experiment_run_id)
+        Batch::from_record_batch(&rb, schema, experiment_id)
     }
 
     pub fn set_dynamic_meta(&mut self, dynamic_meta: &DynamicMeta) -> Result<()> {
@@ -159,9 +159,9 @@ impl Batch {
     pub fn duplicate_from(
         batch: &Batch,
         schema: &AgentSchema,
-        experiment_run_id: &ExperimentId,
+        experiment_id: &ExperimentId,
     ) -> Result<Batch> {
-        let memory = Memory::duplicate_from(&batch.memory, experiment_run_id)?;
+        let memory = Memory::duplicate_from(&batch.memory, experiment_id)?;
         Self::from_memory(memory, Some(schema), Some(batch.affinity))
     }
 
@@ -169,7 +169,7 @@ impl Batch {
     pub fn from_record_batch(
         record_batch: &RecordBatch,
         schema: &AgentSchema,
-        experiment_run_id: &ExperimentId,
+        experiment_id: &ExperimentId,
     ) -> Result<Batch> {
         let schema_buffer = schema_to_bytes(&schema.arrow);
 
@@ -178,7 +178,7 @@ impl Batch {
         let (meta_buffer, data_len) = simulate_record_batch_to_bytes(record_batch);
 
         let mut memory = Memory::from_sizes(
-            experiment_run_id,
+            experiment_id,
             schema_buffer.len(),
             header_buffer.len(),
             meta_buffer.len(),
@@ -242,14 +242,14 @@ impl Batch {
     pub fn get_prepared_memory_for_data(
         schema: &Arc<AgentSchema>,
         dynamic_meta: &DynamicMeta,
-        experiment_run_id: &ExperimentId,
+        experiment_id: &ExperimentId,
     ) -> Result<Memory> {
         let schema_buffer = schema_to_bytes(&schema.arrow);
         let header_buffer = vec![];
         let meta_buffer = get_dynamic_meta_flatbuffers(dynamic_meta)?;
 
         let mut memory = Memory::from_sizes(
-            experiment_run_id,
+            experiment_id,
             schema_buffer.len(),
             header_buffer.len(),
             meta_buffer.len(),
@@ -688,7 +688,7 @@ impl Batch {
             a.map(|v| match serde_json::from_str(v) {
                 Ok(v) => v,
                 Err(_) => {
-                    log::warn!("Cannot deserialize value {}", v);
+                    tracing::warn!("Cannot deserialize value {}", v);
                     serde_json::Value::Null
                 }
             })
@@ -775,6 +775,7 @@ mod tests {
     extern crate test;
 
     use test::Bencher;
+    use uuid::Uuid;
 
     use super::*;
     use crate::datastore::test_utils::gen_schema_and_test_agents;
@@ -783,10 +784,10 @@ mod tests {
     fn agent_batch_from_states(b: &mut Bencher) {
         let num_agents = 100;
         let (schema, agents) = gen_schema_and_test_agents(num_agents, 0).unwrap();
-
+        let experiment_id = Uuid::new_v4();
         b.iter(|| {
             let _agent_batch =
-                AgentBatch::from_agent_states(agents.as_slice(), &schema, &"".to_string()).unwrap();
+                AgentBatch::from_agent_states(agents.as_slice(), &schema, &experiment_id).unwrap();
         });
     }
 }

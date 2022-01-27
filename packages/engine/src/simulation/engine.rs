@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use tracing::Instrument;
+
 use super::{
     command::CreateRemoveCommands, comms::Comms, package::run::Packages,
     step_output::SimulationStepOutput, step_result::SimulationStepResult, Error, Result,
@@ -15,6 +17,7 @@ use crate::{
             state::{view::StateSnapshot, ExState, ReadState, WriteState},
         },
     },
+    proto::ExperimentRunTrait,
     simulation::agent_control::AgentControl,
 };
 
@@ -68,7 +71,7 @@ impl Engine {
     /// output packages are run only once, context and state packages
     /// can technically be run any number of times.
     pub async fn next(&mut self, current_step: usize) -> Result<SimulationStepResult> {
-        log::debug!("Running next step");
+        tracing::debug!("Running next step");
         self.run_context_packages(current_step).await?;
         self.run_state_packages().await?;
         let output = self.run_output_packages().await?;
@@ -98,7 +101,7 @@ impl Engine {
     /// dependent on each other, then all context packages are run in parallel
     /// and their outputs are merged into one Context object.
     async fn run_context_packages(&mut self, current_step: usize) -> Result<()> {
-        log::trace!("Starting run context packages stage");
+        tracing::trace!("Starting run context packages stage");
         // Need write access to state to prepare for context packages,
         // so can't start state sync (with workers) yet.
         let (mut state, mut context) = self.store.take_upgraded()?;
@@ -110,25 +113,36 @@ impl Engine {
         // get the respective syncs done in parallel with packages.
 
         // Synchronize snapshot with workers
-        self.comms.state_snapshot_sync(&snapshot).await?;
+        self.comms
+            .state_snapshot_sync(&snapshot)
+            .instrument(tracing::trace_span!("snapshot_sync"))
+            .await?;
 
         // After this point, we'll only need read access to state until
         // running the first state package. (Context packages don't have
         // write access to state.)
         let state = Arc::new(state.downgrade());
         // Synchronize state with workers
-        let active_sync = self.comms.state_sync(&state).await?;
-        // TODO: fix issues with getting write access to the message batch while state sync runs in
-        //  parallel with context packages
-        log::trace!("Waiting for active state sync");
-        active_sync.await?.map_err(Error::state_sync)?;
-        log::trace!("State sync finished");
+        async {
+            let active_sync = self.comms.state_sync(&state).await?;
+
+            // TODO: fix issues with getting write access to the message batch while state sync runs
+            //  in parallel with context packages
+            tracing::trace!("Waiting for active state sync");
+            active_sync.await?.map_err(Error::state_sync)?;
+            tracing::trace!("State sync finished");
+
+            Result::Ok(())
+        }
+        .instrument(tracing::trace_span!("state_sync"))
+        .await?;
 
         let pre_context = context.into_pre_context();
         let context = self
             .packages
             .step
             .run_context(state.clone(), snapshot, pre_context)
+            .instrument(tracing::trace_span!("run_context_packages"))
             .await?
             .downgrade();
 
@@ -136,6 +150,7 @@ impl Engine {
         // again until the next step.
         self.comms
             .context_batch_sync(&context, current_step, state.group_start_indices())
+            .instrument(tracing::trace_span!("context_sync"))
             .await?;
 
         // Note: the comment below is mostly invalid until state sync is fixed
@@ -208,7 +223,7 @@ impl Engine {
         state: &mut ExState,
         context: &mut ExContext,
     ) -> Result<StateSnapshot> {
-        log::trace!("Preparing for context packages");
+        tracing::trace!("Preparing for context packages");
         let message_map = state.message_map()?;
         self.add_remove_agents(state, &message_map)?;
         let message_pool = self.finalize_agent_messages(state, context)?;
@@ -253,7 +268,7 @@ impl Engine {
         state.finalize_agent_pool(
             context,
             &self.config.sim.store.agent_schema,
-            &self.config.exp.run_id,
+            &self.config.exp.run.base().id,
         )?;
         Ok(context.take_agent_pool())
     }

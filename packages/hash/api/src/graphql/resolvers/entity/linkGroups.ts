@@ -1,10 +1,10 @@
 import { ApolloError } from "apollo-server-errors";
 import { set } from "lodash";
 import { Resolver, Entity as GQLEntity, LinkGroup } from "../../apiTypes.gen";
-import { DbUnknownEntity } from "../../../types/dbTypes";
 import { GraphQLContext } from "../../context";
 import { Entity, Link } from "../../../model";
 import { DBClient } from "../../../db";
+import { DbUnknownEntity } from "../../../db/adapter";
 
 export const DEFAULT_LINK_DEPTH = 2;
 

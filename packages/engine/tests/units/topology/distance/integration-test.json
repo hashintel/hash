@@ -1,6 +1,6 @@
 [
   {
-    "experiment": "test",
+    "experiment": "euclidean_squared",
     "expected-outputs": [
       {
         "json-state": {
@@ -13,13 +13,13 @@
             {},
             {}
           ]
-        },
-        "globals": {
-          "topology": {
-            "distance_function": "euclidean_squared"
-          }
         }
-      },
+      }
+    ]
+  },
+  {
+    "experiment": "manhattan",
+    "expected-outputs": [
       {
         "json-state": {
           "1": [
@@ -31,13 +31,13 @@
             {},
             {}
           ]
-        },
-        "globals": {
-          "topology": {
-            "distance_function": "manhattan"
-          }
         }
-      },
+      }
+    ]
+  },
+  {
+    "experiment": "euclidean",
+    "expected-outputs": [
       {
         "json-state": {
           "1": [
@@ -49,13 +49,13 @@
             {},
             {}
           ]
-        },
-        "globals": {
-          "topology": {
-            "distance_function": "euclidean"
-          }
         }
-      },
+      }
+    ]
+  },
+  {
+    "experiment": "conway",
+    "expected-outputs": [
       {
         "json-state": {
           "1": [
@@ -67,11 +67,6 @@
             {},
             {}
           ]
-        },
-        "globals": {
-          "topology": {
-            "distance_function": "conway"
-          }
         }
       }
     ]

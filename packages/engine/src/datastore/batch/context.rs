@@ -62,12 +62,12 @@ impl Batch {
     pub fn from_record_batch(
         record_batch: &RecordBatch,
         schema: Option<&Arc<ArrowSchema>>,
-        experiment_run_id: &Arc<ExperimentId>,
+        experiment_id: &ExperimentId,
     ) -> Result<Batch> {
         let (meta_buffer, data_buffer) = static_record_batch_to_bytes(record_batch);
 
         let memory = Memory::from_batch_buffers(
-            experiment_run_id,
+            experiment_id,
             &[],
             &[],
             meta_buffer.as_ref(),
@@ -146,11 +146,16 @@ impl Batch {
             })
             .collect::<Vec<_>>();
 
+        // We need the span to be captured and entered within the parallel iterator
+        let current_span = tracing::Span::current();
         column_writers
             .par_iter()
             .zip_eq(writable_datas.into_par_iter())
             .zip_eq(column_dynamic_meta_list.par_iter())
-            .try_for_each(|((column_writer, buffer), meta)| column_writer.write(buffer, meta))?;
+            .try_for_each(|((column_writer, buffer), meta)| {
+                let _span = current_span.enter();
+                column_writer.write(buffer, meta)
+            })?;
 
         self.metaversion.increment_batch();
 

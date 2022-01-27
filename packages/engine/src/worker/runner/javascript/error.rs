@@ -1,6 +1,7 @@
 use arrow::{datatypes::DataType, error::ArrowError};
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
+use tracing::Span;
 
 use super::mini_v8 as mv8;
 use crate::{
@@ -73,7 +74,7 @@ pub enum Error {
     UnknownTarget(String),
 
     #[error("Couldn't send inbound message to runner: {0}")]
-    InboundSend(#[from] SendError<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>),
+    InboundSend(#[from] SendError<(Span, Option<SimulationShortId>, InboundToRunnerMsgPayload)>),
 
     #[error("Couldn't send outbound message from runner: {0}")]
     OutboundSend(#[from] SendError<OutboundFromRunnerMsg>),

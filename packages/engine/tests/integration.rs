@@ -22,14 +22,21 @@ mod units;
 ///   - "steps": Number of steps to run
 ///   - "expected-output": Expected output of the simulation containing with the same schema as one
 ///     element in "expected-outputs"
+///
+/// Optionally, a [`Language`] can be specified. Then the test searches for an `init` file with the
+/// language appended, so for example when [`Python`](Language::Python) is passed, it searches for
+/// the files `init-py.js`, `init-py.py`, and `init-py.json`. If more than one initial state is
+/// specified, the test fails. When no language is specified, it omits the language suffix.
 #[macro_export]
 macro_rules! run_test {
-    ($project:ident $(,)? $(#[$attr:meta])* ) => {
-        $(#[$attr])*
-        #[test]
-        fn $project() {
-            use $crate::units::experiment::*;
+    ($project:ident, $language:ident $(,)? $(#[$attr:meta])* ) => {
+        // Enable syntax highlighting and code completion
+        #[allow(unused)]
+        use hash_engine::Language::$language as _;
 
+        $(#[$attr])*
+        #[tokio::test]
+        async fn $project() {
             let project_path = std::path::Path::new(file!())
                 .parent()
                 .unwrap()
@@ -37,49 +44,25 @@ macro_rules! run_test {
                 .canonicalize()
                 .unwrap();
 
-            let experiments = read_config(project_path.join("integration-test.json"))
-                .expect("Could not read experiments");
+            $crate::units::experiment::run_test_suite(project_path, hash_engine::Language::$language, None).await
+        }
+    };
+    ($project:ident, $language:ident, experiment: $experiment:ident $(,)? $(#[$attr:meta])* ) => {
+        // Enable syntax highlighting and code completion
+        #[allow(unused)]
+        use hash_engine::Language::$language as _;
 
-            for (experiment, expected_outputs) in experiments {
-                // TODO: Remove attempting strategy
-                let mut outputs = None;
-                let attempts = 3;
-                for attempt in 1..=attempts {
-                    println!(
-                        "\n\n\nRunning test \"{}\" attempt {attempt}/{attempts}:\n",
-                        stringify!($project)
-                    );
-                    match experiment.run(&project_path) {
-                        Ok(out) => {
-                            outputs.replace(out);
-                            break;
-                        }
-                        Err(err) => eprintln!("\n\n{err:?}\n\n"),
-                    }
-                }
-                let outputs = outputs.expect(&format!("Could not run {experiment}"));
+        $(#[$attr])*
+        #[tokio::test]
+        async fn $experiment() {
+            let project_path = std::path::Path::new(file!())
+                .parent()
+                .unwrap()
+                .join(stringify!($project))
+                .canonicalize()
+                .unwrap();
 
-                assert_eq!(
-                    expected_outputs.len(),
-                    outputs.len(),
-                    "Number of expected outputs does not match number of returned simulation \
-             results for {experiment}"
-                );
-
-                for (output_idx, ((states, globals, analysis), expected)) in outputs
-                    .into_iter()
-                    .zip(expected_outputs.into_iter())
-                    .enumerate()
-                {
-                    expected
-                        .assert_subset_of(&states, &globals, &analysis)
-                        .expect(&format!(
-                            "Output of simulation {} does not match expected output in \
-                     {experiment}",
-                            output_idx + 1
-                        ));
-                }
-            }
+            $crate::units::experiment::run_test_suite(project_path, hash_engine::Language::$language, Some(stringify!($experiment))).await
         }
     };
 }

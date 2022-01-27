@@ -5,8 +5,8 @@ use tokio::time::Duration;
 use crate::{
     nano,
     proto::{
-        EngineMsg, EngineStatus, ExecutionEnvironment, ExperimentRunRepr, ExperimentRunTrait,
-        InitMessage,
+        EngineMsg, EngineStatus, ExecutionEnvironment, ExperimentId, ExperimentRunRepr,
+        ExperimentRunTrait, InitMessage,
     },
     Args,
 };
@@ -43,23 +43,23 @@ impl From<String> for Error {
 
 pub struct OrchClient {
     url: String,
-    experiment_id: String,
+    experiment_id: ExperimentId,
     client: nano::Client,
 }
 
 impl OrchClient {
-    pub fn new(url: &str, experiment_id: &str) -> Result<Self> {
+    pub fn new(url: &str, experiment_id: ExperimentId) -> Result<Self> {
         let client = nano::Client::new(url, 1)?;
         Ok(OrchClient {
             url: url.into(),
-            experiment_id: experiment_id.into(),
+            experiment_id,
             client,
         })
     }
 
     pub async fn send(&mut self, msg: EngineStatus) -> Result<()> {
         let m = crate::proto::OrchestratorMsg {
-            experiment_id: self.experiment_id.clone(),
+            experiment_id: self.experiment_id,
             body: msg,
         };
         tokio::time::timeout(Duration::from_secs(5), self.client.send(&m))
@@ -69,7 +69,7 @@ impl OrchClient {
     }
 
     pub fn try_clone(&self) -> Result<Self> {
-        OrchClient::new(&self.url, &self.experiment_id)
+        OrchClient::new(&self.url, self.experiment_id)
     }
 }
 
@@ -85,16 +85,16 @@ pub async fn env<E>(args: &Args) -> Result<Environment>
 where
     E: ExperimentRunTrait + for<'de> Deserialize<'de>,
 {
-    let mut orch_client = OrchClient::new(&args.orchestrator_url, &args.experiment_id)?;
-    log::debug!("Connected to orchestrator at {}", &args.orchestrator_url);
+    let mut orch_client = OrchClient::new(&args.orchestrator_url, args.experiment_id)?;
+    tracing::debug!("Connected to orchestrator at {}", &args.orchestrator_url);
 
     let mut orch_listener = nano::Server::new(&args.listen_url)?;
-    log::debug!("Listening on NNG socket at {}", &args.listen_url);
+    tracing::debug!("Listening on NNG socket at {}", &args.listen_url);
 
     // Before it will send the init message, we must tell the orchestrator that the
     // engine has started
     orch_client.send(EngineStatus::Started).await?;
-    log::debug!("Sent started message");
+    tracing::debug!("Sent started message");
 
     // Wait for the init message from the orchestrator
     let InitMessage {
@@ -102,7 +102,7 @@ where
         env: execution_env,
         dyn_payloads,
     } = recv_init_msg(&mut orch_listener).await?;
-    log::debug!("Received initialization message from the orchestrator");
+    tracing::debug!("Received initialization message from the orchestrator");
 
     Ok(Environment {
         orch_client,

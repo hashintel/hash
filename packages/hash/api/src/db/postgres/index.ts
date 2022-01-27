@@ -12,7 +12,7 @@ import {
   DBAggregation,
   DBClient,
   DBLink,
-  Entity,
+  DbEntity,
   EntityMeta,
   EntityType,
   EntityVersion,
@@ -91,7 +91,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     createdByAccountId: string;
     versioned: boolean;
     properties: any;
-  }): Promise<Entity> {
+  }): Promise<DbEntity> {
     return this.query((adapter) => adapter.createEntity(params));
   }
 
@@ -105,14 +105,14 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   getEntity(params: {
     accountId: string;
     entityVersionId: string;
-  }): Promise<Entity | undefined> {
+  }): Promise<DbEntity | undefined> {
     return this.query((adapter) => adapter.getEntity(params));
   }
 
   getEntityLatestVersion(params: {
     accountId: string;
     entityId: string;
-  }): Promise<Entity | undefined> {
+  }): Promise<DbEntity | undefined> {
     return this.query((adapter) => adapter.getEntityLatestVersion(params));
   }
 
@@ -140,6 +140,18 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.getEntityTypeBySchema$id(params));
   }
 
+  getEntityTypeChildren(
+    params: Parameters<DBClient["getEntityTypeChildren"]>[0],
+  ): ReturnType<DBClient["getEntityTypeChildren"]> {
+    return this.query((adapter) => adapter.getEntityTypeChildren(params));
+  }
+
+  getEntityTypeParents(
+    params: Parameters<DBClient["getEntityTypeParents"]>[0],
+  ): ReturnType<DBClient["getEntityTypeParents"]> {
+    return this.query((adapter) => adapter.getEntityTypeParents(params));
+  }
+
   updateEntityType(
     params: Parameters<DBClient["updateEntityType"]>[0],
   ): ReturnType<DBClient["updateEntityType"]> {
@@ -151,7 +163,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     accountId: string;
     entityId: string;
     properties: any;
-  }): Promise<Entity> {
+  }): Promise<DbEntity> {
     return this.query((adapter) => adapter.updateEntity(params));
   }
 
@@ -167,15 +179,15 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     email: string;
     verified?: boolean;
     primary?: boolean;
-  }): Promise<Entity | null> {
+  }): Promise<DbEntity | null> {
     return this.query((adapter) => adapter.getUserByEmail(params));
   }
 
-  getUserByShortname(params: { shortname: string }): Promise<Entity | null> {
+  getUserByShortname(params: { shortname: string }): Promise<DbEntity | null> {
     return this.query((adapter) => adapter.getUserByShortname(params));
   }
 
-  getOrgByShortname(params: { shortname: string }): Promise<Entity | null> {
+  getOrgByShortname(params: { shortname: string }): Promise<DbEntity | null> {
     return this.query((adapter) => adapter.getOrgByShortname(params));
   }
 
@@ -184,7 +196,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     entityTypeVersionId?: string;
     accountId: string;
     latestOnly: boolean;
-  }): Promise<Entity[]> {
+  }): Promise<DbEntity[]> {
     return this.query((adapter) => adapter.getEntitiesByType(params));
   }
 
@@ -192,7 +204,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     accountId: string;
     systemTypeName: SystemType;
     latestOnly?: boolean;
-  }): Promise<Entity[]> {
+  }): Promise<DbEntity[]> {
     return this.query((adapter) => adapter.getEntitiesBySystemType(params));
   }
 
@@ -200,7 +212,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.accountExists(params));
   }
 
-  getAllAccounts(): Promise<Entity[]> {
+  getAllAccounts(): Promise<DbEntity[]> {
     return this.query((adapter) => adapter.getAllAccounts());
   }
 
@@ -338,7 +350,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
       entityId: string;
       entityVersionId?: string;
     }[],
-  ): Promise<Entity[]> {
+  ): Promise<DbEntity[]> {
     return this.query((adapter) => adapter.getEntities(entities));
   }
 

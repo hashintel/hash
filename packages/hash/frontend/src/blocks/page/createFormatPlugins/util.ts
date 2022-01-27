@@ -1,6 +1,5 @@
-import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { InputRule } from "prosemirror-inputrules";
-import { Mark, Schema } from "prosemirror-model";
+import { ProsemirrorNode, Mark, Schema } from "prosemirror-model";
 import { EditorState, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import urlRegexSafe from "url-regex-safe";

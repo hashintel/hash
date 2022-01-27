@@ -1,9 +1,8 @@
 import { BlockVariant } from "blockprotocol";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
-import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { findComponentNodes } from "@hashintel/hash-shared/prosemirror";
-import { Schema } from "prosemirror-model";
+import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
 import { createRef, forwardRef, RefObject, useMemo, useState } from "react";
@@ -271,7 +270,7 @@ export class BlockView implements NodeView<Schema> {
   /**
    * @todo restore the ability to load in new block types here
    */
-  onBlockChange = (_variant: BlockVariant, meta: BlockMeta) => {
+  onBlockChange = (variant: BlockVariant, meta: BlockMeta) => {
     const { node, view, getPos } = this;
 
     const state = view.state;
@@ -286,8 +285,9 @@ export class BlockView implements NodeView<Schema> {
       .replaceNodeWithRemoteBlock(
         draftId,
         meta.componentMetadata.componentId,
+        variant,
         node,
-        getPos,
+        getPos(),
       )
       .catch((err: Error) => {
         // eslint-disable-next-line no-console -- TODO: consider using logger

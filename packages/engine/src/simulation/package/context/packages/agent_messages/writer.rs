@@ -36,7 +36,7 @@ impl ContextColumnWriter for Messages {
     }
 
     fn write(&self, mut data: &mut [u8], meta: &ColumnDynamicMetadata) -> DatastoreResult<()> {
-        log::debug!("Writing context message locs");
+        tracing::debug!("Writing context message locs");
         // TODO[6](optimization)
         // we can leave these null buffers out (length = 0) if Rust does not need to read them.
 

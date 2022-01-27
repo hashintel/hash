@@ -1,14 +1,15 @@
-use core::fmt;
 use std::{
     collections::HashMap,
     fs::{self, File},
     io::BufReader,
+    iter,
     path::Path,
+    time::Duration,
 };
 
 use error::{bail, ensure, report, Result, ResultExt};
-use hash_engine::utils::OutputFormat;
-use regex::Regex;
+use hash_engine::{proto::ExperimentName, utils::OutputFormat, Language};
+use orchestrator::{create_server, ExperimentConfig, ExperimentType, Manifest};
 use serde::{de::DeserializeOwned, Deserialize};
 use serde_json::Value;
 
@@ -27,97 +28,179 @@ pub struct ExpectedOutput {
     pub analysis_outputs: Option<Analysis>,
 }
 
-pub enum Experiment {
-    Simple { experiment: String },
-    SingleRun { steps: u64 },
+/// Loads the manifest from `project_path` and optionally loads language specific intial states.
+///
+/// If `language` is specified, it searches for an `init` file with the language appended, so for
+/// example when [`Python`](Language::Python) is passed, it searches for the files `init-py.js`,
+/// `init-py.py`, and `init-py.json`. If more than one initial state is specified, the function
+/// fails.
+fn load_manifest<P: AsRef<Path>>(project_path: P, language: Language) -> Result<Manifest> {
+    let project_path = project_path.as_ref();
+
+    // We read the manifest without initial state ...
+    let mut manifest = Manifest::from_dependency(project_path)
+        .wrap_err_lazy(|| format!("Could not load manifest from {project_path:?}"))?;
+
+    // ... so we provide it ourself
+    // If `language` is specified, use a `-lang` suffix
+    let suffix = match language {
+        Language::JavaScript => "-js",
+        Language::Python => "-py",
+        Language::Rust => "-rs",
+    };
+    let initial_states: Vec<_> = ["js", "py", "json"]
+        .into_iter()
+        .map(|ext| project_path.join("src").join(format!("init{suffix}.{ext}")))
+        .filter(|p| p.is_file())
+        .collect();
+    ensure!(
+        initial_states.len() == 1,
+        "Exactly one initial state has to be provided for the given language"
+    );
+    manifest.set_initial_state_from_file(&initial_states[0])?;
+
+    Ok(manifest)
 }
 
-impl fmt::Display for Experiment {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Experiment::Simple { experiment } => write!(fmt, r#"experiment "{experiment}""#),
-            Experiment::SingleRun { steps } => write!(fmt, "experiment with {steps} steps"),
-        }
-    }
-}
+pub async fn run_test_suite<P: AsRef<Path>>(
+    project_path: P,
+    language: Language,
+    experiment: Option<&str>,
+) {
+    std::env::set_var("RUST_LOG", "info");
 
-impl Experiment {
-    pub fn run(&self, project: impl AsRef<Path>) -> Result<Vec<(AgentStates, Globals, Analysis)>> {
-        let output = std::env::var("OUT_DIR").wrap_err("$OUT_DIR is not set")?;
-        let manifest_path =
-            std::env::var("CARGO_MANIFEST_DIR").wrap_err("$CARGO_MANIFEST_DIR is not set")?;
-        let manifest_path = Path::new(&manifest_path);
+    let project_path = project_path.as_ref();
 
-        let mut cmd = std::process::Command::new(manifest_path.join("target/debug/cli"));
-        // TODO: Consider running with `RUST_LOG=info` and rerun with `trace` on failure
-        cmd.env("RUST_LOG", "info")
-            .arg("--project")
-            .arg(project.as_ref())
-            .arg("--output")
-            .arg(output)
-            .arg("--emit")
-            .arg(OutputFormat::Full.to_string())
-            .arg("--num-workers")
-            .arg("1");
-
-        match self {
-            Experiment::SingleRun { steps } => {
-                cmd.arg("single-run")
-                    .arg("--num-steps")
-                    .arg(steps.to_string());
+    let experiments = read_config(project_path.join("integration-test.json"))
+        .expect("Could not read experiments")
+        .into_iter()
+        .filter(|(ty, _)| match (experiment, ty) {
+            (None, _) => true,
+            (Some(experiment), ExperimentType::Simple { name }) if experiment == name.as_str() => {
+                true
             }
-            Experiment::Simple { experiment } => {
-                cmd.arg("simple").arg("--experiment-name").arg(experiment);
+            _ => false,
+        });
+    for (experiment_type, expected_outputs) in experiments {
+        // TODO: Remove attempting strategy
+        let mut outputs = None;
+        let attempts = 10;
+        for attempt in 1..=attempts {
+            if attempt > 1 {
+                std::env::set_var("RUST_LOG", "trace");
+            }
+            println!(
+                "\n\n\nRunning test {:?} attempt {attempt}/{attempts}:\n",
+                project_path.file_name().unwrap()
+            );
+            let test_result = run_test(
+                experiment_type.clone(),
+                &project_path,
+                language,
+                expected_outputs.len(),
+            );
+            match test_result.await {
+                Ok(out) => {
+                    outputs.replace(out);
+                    break;
+                }
+                Err(err) => eprintln!("\n\n{err:?}\n\n"),
             }
         }
+        let outputs = outputs.expect(&format!("Could not run experiment"));
 
-        let experiment = cmd.output().wrap_err("Could not run experiment command")?;
-        if !experiment.stdout.is_empty() {
-            println!("{}", String::from_utf8_lossy(&experiment.stdout));
-        }
-        if !experiment.stderr.is_empty() {
-            eprintln!("{}", String::from_utf8_lossy(&experiment.stderr));
-        }
+        assert_eq!(
+            expected_outputs.len(),
+            outputs.len(),
+            "Number of expected outputs does not match number of returned simulation results for \
+             experiment"
+        );
 
-        ensure!(experiment.status.success(), "Could not run experiment");
-
-        // Split output directory into `path/to/simulation/` and `<num>` to make it sortable
-        // We need to be able to sort it as outputs happen in any order and it has to be mapped
-        // properly to the order of the expected outputs that are given
-        let mut outputs = Regex::new(r#"Making new output directory: "(.*)""#)
-            .wrap_err("Could not compile regex")?
-            .captures_iter(&String::from_utf8_lossy(&experiment.stderr))
-            .map(|output_dir_capture| {
-                let output_dir = Path::new(&output_dir_capture[1]);
-                let output_dir_base = output_dir.parent().unwrap().to_path_buf();
-                let simulation_number = output_dir
-                    .strip_prefix(&output_dir_base)
-                    .unwrap()
-                    .to_string_lossy()
-                    .parse::<u64>()
-                    .expect("Unable to parse simulation run ID as integer");
-                (output_dir_base, simulation_number)
-            })
-            .collect::<Vec<_>>();
-        outputs.sort_unstable();
-        outputs
+        for (output_idx, ((states, globals, analysis), expected)) in outputs
             .into_iter()
-            .map(|(output_dir_base, simulation_number)| {
-                let output_dir = output_dir_base.join(simulation_number.to_string());
-                let json_state = parse_file(Path::new(&output_dir).join("json_state.json"))
-                    .wrap_err("Could not read JSON state")?;
-                let globals = parse_file(Path::new(&output_dir).join("globals.json"))
-                    .wrap_err("Could not read globals")?;
-                let analysis_outputs =
-                    parse_file(Path::new(&output_dir).join("analysis_outputs.json"))
-                        .wrap_err("Could not read analysis outputs`")?;
-
-                let _ = fs::remove_dir_all(&output_dir);
-
-                Ok((json_state, globals, analysis_outputs))
-            })
-            .collect()
+            .zip(expected_outputs.into_iter())
+            .enumerate()
+        {
+            expected
+                .assert_subset_of(&states, &globals, &analysis)
+                .expect(&format!(
+                    "Output of simulation {} does not match expected output in experiment",
+                    output_idx + 1
+                ));
+        }
     }
+}
+
+pub async fn run_test<P: AsRef<Path>>(
+    experiment_type: ExperimentType,
+    project_path: P,
+    language: Language,
+    num_outputs_expected: usize,
+) -> Result<Vec<(AgentStates, Globals, Analysis)>> {
+    let project_path = project_path.as_ref();
+    let project_name = project_path
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .to_string();
+
+    let nng_listen_url = {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis();
+        format!("ipc://integration-test-suite-{project_name}-{language}-{now}")
+    };
+
+    let (mut experiment_server, handler) = create_server(nng_listen_url)?;
+    tokio::spawn(async move { experiment_server.run().await });
+
+    let manifest = load_manifest(project_path, language)
+        .wrap_err_lazy(|| format!("Could not read project {project_path:?}"))?;
+    let experiment_run = manifest
+        .read(experiment_type)
+        .wrap_err("Could not read manifest")?;
+
+    let experiment = orchestrator::Experiment::new(ExperimentConfig {
+        num_workers: num_cpus::get(),
+        emit: OutputFormat::Full,
+        output_folder: std::env::var("OUT_DIR")
+            .wrap_err("$OUT_DIR is not set")?
+            .into(),
+        engine_start_timeout: Duration::from_secs(10),
+        engine_wait_timeout: Duration::from_secs(10 * 60),
+    });
+
+    let output_base_directory = experiment
+        .config
+        .output_folder
+        .join(experiment_run.base.name.as_str())
+        .join(experiment_run.base.id.to_string());
+
+    experiment
+        .run(experiment_run, project_name, handler)
+        .await
+        .wrap_err("Could not run experiment")?;
+
+    iter::repeat(output_base_directory)
+        .enumerate()
+        .take(num_outputs_expected)
+        .map(|(sim_id, base_dir)| {
+            let output_dir = base_dir.join((sim_id + 1).to_string());
+
+            let json_state = parse_file(Path::new(&output_dir).join("json_state.json"))
+                .wrap_err("Could not read JSON state")?;
+            let globals = parse_file(Path::new(&output_dir).join("globals.json"))
+                .wrap_err("Could not read globals")?;
+            let analysis_outputs = parse_file(Path::new(&output_dir).join("analysis_outputs.json"))
+                .wrap_err("Could not read analysis outputs`")?;
+
+            let _ = fs::remove_dir_all(&output_dir);
+
+            Ok((json_state, globals, analysis_outputs))
+        })
+        .collect()
 }
 
 fn parse_file<T: DeserializeOwned, P: AsRef<Path>>(path: P) -> Result<T> {
@@ -128,18 +211,18 @@ fn parse_file<T: DeserializeOwned, P: AsRef<Path>>(path: P) -> Result<T> {
     .wrap_err_lazy(|| format!("Could not parse {path:?}"))
 }
 
-pub fn read_config<P: AsRef<Path>>(path: P) -> Result<Vec<(Experiment, Vec<ExpectedOutput>)>> {
+pub fn read_config<P: AsRef<Path>>(path: P) -> Result<Vec<(ExperimentType, Vec<ExpectedOutput>)>> {
     #[derive(Deserialize)]
     #[serde(untagged)]
     pub enum ConfigValue {
         #[serde(rename_all = "kebab-case")]
         Simple {
-            experiment: String,
+            experiment: ExperimentName,
             expected_outputs: Vec<ExpectedOutput>,
         },
         #[serde(rename_all = "kebab-case")]
         SingleRun {
-            steps: u64,
+            steps: usize,
             expected_output: ExpectedOutput,
         },
     }
@@ -151,11 +234,16 @@ pub fn read_config<P: AsRef<Path>>(path: P) -> Result<Vec<(Experiment, Vec<Expec
             ConfigValue::Simple {
                 experiment,
                 expected_outputs,
-            } => (Experiment::Simple { experiment }, expected_outputs),
+            } => (
+                ExperimentType::Simple { name: experiment },
+                expected_outputs,
+            ),
             ConfigValue::SingleRun {
                 steps,
                 expected_output,
-            } => (Experiment::SingleRun { steps }, vec![expected_output]),
+            } => (ExperimentType::SingleRun { num_steps: steps }, vec![
+                expected_output,
+            ]),
         })
         .collect())
 }

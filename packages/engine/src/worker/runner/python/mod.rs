@@ -56,7 +56,7 @@ impl PythonRunner {
         sim_id: Option<SimulationShortId>,
         msg: InboundToRunnerMsgPayload,
     ) -> WorkerResult<()> {
-        log::trace!("Sending message to Python: {:?}", &msg);
+        tracing::trace!("Sending message to Python: {:?}", &msg);
         self.inbound_sender
             .send((sim_id, msg))
             .map_err(|e| WorkerError::Python(Error::InboundSend(e)))
@@ -97,7 +97,7 @@ impl PythonRunner {
     ) -> WorkerResult<Pin<Box<dyn Future<Output = StdResult<WorkerResult<()>, JoinError>> + Send>>>
     {
         // TODO: Duplication with other runners (move into worker?)
-        log::debug!("Running Python runner");
+        tracing::debug!("Running Python runner");
         if !self.spawn {
             return Ok(Box::pin(async move { Ok(Ok(())) }));
         }
@@ -117,16 +117,16 @@ async fn _run(
     outbound_sender: UnboundedSender<OutboundFromRunnerMsg>,
 ) -> WorkerResult<()> {
     // Open sockets for Python process to connect to (i.e. start listening).
-    let mut nng_sender = NngSender::new(init_msg.experiment_id.clone(), init_msg.worker_index)?;
-    let mut nng_receiver = NngReceiver::new(init_msg.experiment_id.clone(), init_msg.worker_index)?;
+    let mut nng_sender = NngSender::new(init_msg.experiment_id, init_msg.worker_index)?;
+    let mut nng_receiver = NngReceiver::new(init_msg.experiment_id, init_msg.worker_index)?;
 
     // Spawn Python process.
     let mut cmd = Command::new("sh");
     cmd.arg("./src/worker/runner/python/run.sh")
-        .arg(&init_msg.experiment_id)
+        .arg(&init_msg.experiment_id.to_string())
         .arg(&init_msg.worker_index.to_string());
     let _process = cmd.spawn().map_err(Error::Spawn)?;
-    log::debug!("Started Python process {}", init_msg.worker_index);
+    tracing::debug!("Started Python process {}", init_msg.worker_index);
 
     // Send init message to Python process.
     nng_receiver.init(&init_msg)?;
@@ -134,7 +134,7 @@ async fn _run(
     // so we know that sender init can be done now.
     nng_sender.init()?;
 
-    log::debug!("Waiting for messages to Python runner");
+    tracing::debug!("Waiting for messages to Python runner");
     let mut sent_tasks: HashMap<TaskId, SentTask> = HashMap::new();
     'select_loop: loop {
         // TODO: Send errors instead of immediately stopping?
@@ -204,11 +204,11 @@ async fn _run(
     // // TODO: Drop nng_sender/nng_receiver before killing process?
     // match tokio::time::timeout(std::time::Duration::from_secs(10), process.wait()).await? {
     //     None => {
-    //         log::info!("Python process has failed to exit; killing.");
+    //         tracing::info!("Python process has failed to exit; killing.");
     //         process.kill().await?;
     //     }
     //     Some(status) => {
-    //         log::info!(
+    //         tracing::info!(
     //             "Python runner has successfully exited with status: {:?}.",
     //             status.code().unwrap_or(-1)
     //         );

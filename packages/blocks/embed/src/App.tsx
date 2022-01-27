@@ -26,6 +26,7 @@ import {
 } from "./constants";
 
 type AppProps = {
+  // @todo temporarily using application-provided getEmbedCode - implement fallbacks for CORS-blocked oembed endpoints and remove
   getEmbedBlock: (
     url: string,
     type?: ProviderNames,

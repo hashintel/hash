@@ -1,7 +1,7 @@
 import { mapValues } from "lodash";
 import { Command } from "prosemirror-commands";
 import { keymap } from "prosemirror-keymap";
-import { Schema } from "prosemirror-model";
+import { ProsemirrorNode, Schema } from "prosemirror-model";
 import {
   EditorState,
   NodeSelection,
@@ -9,7 +9,6 @@ import {
   Transaction,
 } from "prosemirror-state";
 import { Mapping } from "prosemirror-transform";
-import { ProsemirrorNode } from "./node";
 
 type WrapperNodes = [number, ProsemirrorNode<Schema>[]];
 type WrapperNodesList = WrapperNodes[];
