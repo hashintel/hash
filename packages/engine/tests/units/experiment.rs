@@ -166,7 +166,7 @@ pub async fn run_test<P: AsRef<Path>>(
         num_workers: num_cpus::get(),
         emit: OutputFormat::Full,
         output_folder: std::env::var("OUT_DIR")
-            .wrap_err("$OUT_DIR is not set")?
+            .unwrap_or_else(|_| "./output".to_string())
             .into(),
         engine_start_timeout: Duration::from_secs(10),
         engine_wait_timeout: Duration::from_secs(10 * 60),
