@@ -73,6 +73,15 @@ def start_experiment(experiment, init_message, _experiment_context):
     }
 
 
+def start_sim(experiment, sim, init_message, init_context):
+    loaders = {
+        BEHAVIOR_INDEX_FIELD_KEY: hash_util.load_full
+    }
+    return {
+        "loaders": loaders,
+    }
+
+
 def _format_behavior_error(behavior_name, exc_info):
     n_pkg_fns = 2
     return f"Behavior `{behavior_name}` error: {traceback.format_exception(*exc_info)[n_pkg_fns:]}"
@@ -138,7 +147,7 @@ def run_task(experiment, _sim, _task_message, group_state, group_context):
 
         # `behavior_index` is the index of the first behavior that
         # hasn't been executed yet (during this step / package call).
-        for i_behavior in range(int(agent_state.behavior_index().as_py()), len(behavior_ids)):
+        for i_behavior in range(int(agent_state.behavior_index()), len(behavior_ids)):
             setattr(agent_state, BEHAVIOR_INDEX_FIELD_KEY, i_behavior)  # Keep up to date for use in behaviors.
 
             # Behavior ids are shallow-loaded as an optimization, so
