@@ -1,14 +1,17 @@
 import json
+import traceback
+
 
 class UserCodeError(Exception):
     def __init__(self, short_msg, full_msg=""):
         self.short_msg = short_msg
         self.full_msg = full_msg
 
+
 def _load_initializer(code):
     try:
         init_globals = dict()
-        bytecode = compile(code.decode("utf-8"), "init.py", "exec")
+        bytecode = compile(code, "init.py", "exec")
         exec(bytecode, init_globals)
         init_fn = init_globals.get("init")
     except Exception as e:
@@ -22,6 +25,7 @@ def _load_initializer(code):
         raise UserCodeError(short_msg="no function named 'init'")
 
     return init_fn
+
 
 def run_task(_experiment, _sim, task_message, _group_state, context):
     if "StartMessage" not in task_message:
@@ -43,8 +47,10 @@ def run_task(_experiment, _sim, task_message, _group_state, context):
         raise UserCodeError(short_msg="init function must return a list")
 
     try:
-        data = json.dumps(agents)
-    except (TypeError, ValueError):
+        data = json.dumps({"SuccessMessage": {
+            "agents": agents,
+        }})
+    except (TypeError, ValueError) as e:
         raise UserCodeError(
             short_msg=f"serializing init return value to JSON failed: {e}"
         )

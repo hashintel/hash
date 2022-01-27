@@ -62,7 +62,7 @@ class Runner:
         :return: Whether a package/user error occurred
         """
         init = self.messenger.recv_init()
-        experiment_ctx = init.shared_ctx
+        self.experiment_ctx = init.shared_ctx
         for pkg_id, config in init.pkgs.items():
             self.pkgs[pkg_id] = pkg = Package(
                 name=config.name,
@@ -73,7 +73,7 @@ class Runner:
             if pkg.start_experiment is not None:
                 try:
                     result = pkg.start_experiment(
-                        pkg.experiment, config.payload, experiment_ctx
+                        pkg.experiment, config.payload, self.experiment_ctx
                     )
                     were_user_errors = self._handle_experiment_init_result(pkg, result)
                     if were_user_errors:

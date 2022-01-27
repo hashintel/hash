@@ -1,7 +1,7 @@
 def behavior(state, context):
     """Reads content from a dataset"""
 
-    data = context.data()["dataset.json"];
+    data = context.data()["dataset.json"]
 
     state.number = data["number"]
     state.string = data["string"]
