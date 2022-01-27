@@ -65,7 +65,7 @@ impl NngReceiver {
             }
             nng::AioResult::Sleep(Ok(_)) => {}
             nng::AioResult::Send(_) => {
-                log::warn!("Unexpected send result");
+                tracing::warn!("Unexpected send result");
             }
             nng::AioResult::Recv(Err(nng::Error::Canceled)) => {}
             nng::AioResult::Recv(Err(nng::Error::Closed)) => {}

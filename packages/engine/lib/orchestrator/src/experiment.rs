@@ -9,6 +9,7 @@ use hash_engine::{
         ExecutionEnvironment, ExperimentId, ExperimentName, ExperimentPackageConfig,
         ExperimentRunBase, SimpleExperimentConfig, SingleRunExperimentConfig,
     },
+    simulation::command::StopStatus,
     utils::OutputFormat,
 };
 use rand::{distributions::Distribution, Rng, RngCore};
@@ -157,7 +158,33 @@ impl Experiment {
                 }
                 proto::EngineStatus::SimStatus(status) => {
                     debug!("Got simulation run status: {status:?}");
-                    // TODO: OS - handle status fields
+                    for stop_command in status.stop_msg {
+                        let reason = if let Some(reason) = stop_command.message.reason.as_ref() {
+                            format!(": {reason}")
+                        } else {
+                            String::new()
+                        };
+                        let agent = &stop_command.agent;
+                        match stop_command.message.status {
+                            StopStatus::Success => {
+                                tracing::info!(
+                                    "Simulation stopped by agent `{agent}` successfully{reason}"
+                                );
+                            }
+                            StopStatus::Warning => {
+                                tracing::warn!(
+                                    "Simulation stopped by agent `{agent}` with a warning{reason}"
+                                );
+                            }
+                            StopStatus::Error => {
+                                errored = true;
+                                tracing::error!(
+                                    "Simulation stopped by agent `{agent}` with an error{reason}"
+                                );
+                            }
+                        }
+                    }
+                    // TODO: OS - handle more status fields
                 }
                 proto::EngineStatus::SimStop(sim_id) => {
                     debug!("Simulation stopped: {sim_id}");

@@ -1,6 +1,10 @@
 #![allow(clippy::module_inception)]
 
-use std::{fmt::Debug, path::PathBuf, time::Duration};
+use std::{
+    fmt::Debug,
+    path::PathBuf,
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
 
 use clap::{AppSettings, Parser};
 use error::{report, Result, ResultExt};
@@ -30,7 +34,7 @@ pub struct Args {
     output: PathBuf,
 
     /// Output format emitted to the terminal.
-    #[clap(long, default_value = "full", arg_enum, env = "HASH_EMIT")]
+    #[clap(long, default_value = "pretty", arg_enum, env = "HASH_EMIT")]
     emit: OutputFormat,
 
     /// Engine start timeout in seconds
@@ -96,16 +100,18 @@ pub struct SimpleExperimentArgs {
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
-    hash_engine::init_logger(args.emit);
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis();
 
-    let nng_listen_url = {
-        use std::time::{SystemTime, UNIX_EPOCH};
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_millis();
-        format!("ipc://hash-orchestrator-{now}")
-    };
+    let _guard = hash_engine::init_logger(
+        args.emit,
+        &format!("cli-{now}"),
+        &format!("cli-{now}-texray"),
+    );
+
+    let nng_listen_url = format!("ipc://hash-orchestrator-{now}");
 
     let (mut experiment_server, handler) = create_server(nng_listen_url)?;
     tokio::spawn(async move { experiment_server.run().await });

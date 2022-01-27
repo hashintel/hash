@@ -289,7 +289,7 @@ impl Static {
         for (i, col) in self.column_meta.iter().enumerate() {
             let node = &dynamic.nodes[col.node_start];
             if node.length != base_length {
-                log::warn!(
+                tracing::warn!(
                     "Column {} base node does not have required length, is {}, should be {}",
                     i,
                     node.length,

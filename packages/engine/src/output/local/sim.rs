@@ -38,7 +38,7 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
     }
 
     async fn finalize(mut self, config: &SimRunConfig) -> Result<Self::OutputPersistenceResult> {
-        log::trace!("Finalizing output");
+        tracing::trace!("Finalizing output");
         // JSON state
         let (_, parts) = self.buffers.json_state.finalize()?;
         let path = self
@@ -48,7 +48,7 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
             .join(self.exp_id.to_string())
             .join(self.sim_id.to_string());
 
-        log::info!("Making new output directory: {:?}", path);
+        tracing::info!("Making new output directory: {:?}", path);
         std::fs::create_dir_all(&path)?;
 
         let json_state_path = path.join("json_state.json");

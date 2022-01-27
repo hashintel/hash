@@ -17,6 +17,7 @@ use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     task::JoinError,
 };
+use tracing::{Instrument, Span};
 
 pub use self::error::{Error, Result};
 use self::mini_v8 as mv8;
@@ -69,11 +70,11 @@ impl<'m> JsPackage<'m> {
         pkg_type: PackageType,
     ) -> Result<Self> {
         let path = get_pkg_path(name, pkg_type);
-        log::debug!("Importing package from path `{}`", &path);
+        tracing::debug!("Importing package from path `{}`", &path);
         let code = match fs::read_to_string(path.clone()) {
             Ok(s) => s,
             Err(_) => {
-                log::debug!("Couldn't read package file. It might intentionally not exist.");
+                tracing::debug!("Couldn't read package file. It might intentionally not exist.");
                 // Packages don't have to use JS.
                 let fns = mv8.create_array();
                 fns.set(0, mv8::Value::Undefined)?;
@@ -507,7 +508,7 @@ impl<'m> RunnerImpl<'m> {
 
             let pkg_name = format!("{}", &pkg_init.name);
             let pkg = JsPackage::import(mv8, &embedded, &pkg_name, pkg_init.r#type)?;
-            log::trace!(
+            tracing::trace!(
                 "pkg experiment init name {:?}, type {}, fns {:?}",
                 &pkg_init.name,
                 &pkg_init.r#type.as_str(),
@@ -892,11 +893,11 @@ impl<'m> RunnerImpl<'m> {
         Option<Vec<RunnerError>>,
         Option<Vec<String>>,
     )> {
-        log::debug!("Starting state interim sync before running task");
+        tracing::debug!("Starting state interim sync before running task");
         // TODO: Move JS part of sync into `run_task` function in JS for better performance.
         self.state_interim_sync(mv8, sim_run_id, &msg.shared_store)?;
 
-        log::debug!("Setting up run_task function call");
+        tracing::debug!("Setting up run_task function call");
         let group_index = match &msg.shared_store.state {
             SharedState::None | SharedState::Write(_) | SharedState::Read(_) => {
                 mv8::Value::Undefined
@@ -936,13 +937,13 @@ impl<'m> RunnerImpl<'m> {
             pkg_id_to_js(mv8, msg.package_id),
             payload_str,
         ]);
-        log::debug!("Calling JS run_task");
+        tracing::debug!("Calling JS run_task");
         let r: mv8::Object<'_> = self
             .embedded
             .run_task
             .call_method(self.this.clone(), args)?;
 
-        log::debug!("Post-processing run_task result");
+        tracing::debug!("Post-processing run_task result");
         if let Some(error) = get_js_error(mv8, &r) {
             // All types of errors are fatal (user, package, runner errors).
             return Err(error);
@@ -952,7 +953,7 @@ impl<'m> RunnerImpl<'m> {
         let (next_target, next_task_payload) = get_next_task(mv8, &r)?;
 
         let next_inner_task_msg: serde_json::Value = serde_json::from_str(&next_task_payload)?;
-        log::trace!(
+        tracing::trace!(
             "Wrapper: {:?}, next_inner: {:?}",
             &wrapper,
             &next_inner_task_msg
@@ -1044,14 +1045,14 @@ impl<'m> RunnerImpl<'m> {
         state.agent_pool = msg.agent_pool;
         state.msg_pool = msg.message_pool;
 
-        log::trace!("Sending state sync completion");
+        tracing::trace!("Sending state sync completion");
         msg.completion_sender.send(Ok(())).map_err(|e| {
             Error::from(format!(
                 "Couldn't send state sync completion to worker: {:?}",
                 e
             ))
         })?;
-        log::trace!("Sent state sync completion");
+        tracing::trace!("Sent state sync completion");
         Ok(())
     }
 
@@ -1109,7 +1110,7 @@ impl<'m> RunnerImpl<'m> {
     ) -> Result<bool> {
         match msg {
             InboundToRunnerMsgPayload::TerminateRunner => {
-                log::debug!("Stopping execution on Javascript runner");
+                tracing::debug!("Stopping execution on Javascript runner");
                 return Ok(false); // Don't continue running.
             }
             InboundToRunnerMsgPayload::NewSimulationRun(new_run) => {
@@ -1144,12 +1145,14 @@ impl<'m> RunnerImpl<'m> {
                 let (next_task_msg, warnings, logs) = self.run_task(mv8, sim_id, msg)?;
                 // TODO: `send` fn to reduce code duplication.
                 outbound_sender.send(OutboundFromRunnerMsg {
+                    span: Span::current(),
                     source: Language::JavaScript,
                     sim_id,
                     payload: OutboundFromRunnerMsgPayload::TaskMsg(next_task_msg),
                 })?;
                 if let Some(warnings) = warnings {
                     outbound_sender.send(OutboundFromRunnerMsg {
+                        span: Span::current(),
                         source: Language::JavaScript,
                         sim_id,
                         payload: OutboundFromRunnerMsgPayload::RunnerWarnings(warnings),
@@ -1157,6 +1160,7 @@ impl<'m> RunnerImpl<'m> {
                 }
                 if let Some(logs) = logs {
                     outbound_sender.send(OutboundFromRunnerMsg {
+                        span: Span::current(),
                         source: Language::JavaScript,
                         sim_id,
                         payload: OutboundFromRunnerMsgPayload::RunnerLogs(logs),
@@ -1174,9 +1178,9 @@ pub struct JavaScriptRunner {
     // V8 Isolate inside RunnerImpl can't be sent between threads.
     init_msg: Arc<ExperimentInitRunnerMsg>,
     // Args to RunnerImpl::new
-    inbound_sender: UnboundedSender<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>,
+    inbound_sender: UnboundedSender<(Span, Option<SimulationShortId>, InboundToRunnerMsgPayload)>,
     inbound_receiver:
-        Option<UnboundedReceiver<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>>,
+        Option<UnboundedReceiver<(Span, Option<SimulationShortId>, InboundToRunnerMsgPayload)>>,
     outbound_sender: Option<UnboundedSender<OutboundFromRunnerMsg>>,
     outbound_receiver: UnboundedReceiver<OutboundFromRunnerMsg>,
     spawn: bool,
@@ -1201,9 +1205,9 @@ impl JavaScriptRunner {
         sim_id: Option<SimulationShortId>,
         msg: InboundToRunnerMsgPayload,
     ) -> WorkerResult<()> {
-        log::trace!("Sending message to JavaScript: {:?}", &msg);
+        tracing::trace!("Sending message to JavaScript: {:?}", &msg);
         self.inbound_sender
-            .send((sim_id, msg))
+            .send((Span::current(), sim_id, msg))
             .map_err(|e| WorkerError::JavaScript(Error::InboundSend(e)))
     }
 
@@ -1213,7 +1217,7 @@ impl JavaScriptRunner {
         msg: InboundToRunnerMsgPayload,
     ) -> WorkerResult<()> {
         if self.spawned() {
-            log::trace!("JavaScript is spawned, sending message: {:?}", &msg);
+            tracing::trace!("JavaScript is spawned, sending message: {:?}", &msg);
             self.send(sim_id, msg).await?;
         }
         Ok(())
@@ -1239,7 +1243,7 @@ impl JavaScriptRunner {
     ) -> WorkerResult<Pin<Box<dyn Future<Output = StdResult<WorkerResult<()>, JoinError>> + Send>>>
     {
         // TODO: Move tokio spawn into worker?
-        log::debug!("Running JavaScript runner");
+        tracing::debug!("Running JavaScript runner");
         if !self.spawn {
             return Ok(Box::pin(async move { Ok(Ok(())) }));
         }
@@ -1255,7 +1259,11 @@ impl JavaScriptRunner {
 
 fn _run(
     init_msg: Arc<ExperimentInitRunnerMsg>,
-    mut inbound_receiver: UnboundedReceiver<(Option<SimulationShortId>, InboundToRunnerMsgPayload)>,
+    mut inbound_receiver: UnboundedReceiver<(
+        Span,
+        Option<SimulationShortId>,
+        InboundToRunnerMsgPayload,
+    )>,
     outbound_sender: UnboundedSender<OutboundFromRunnerMsg>,
 ) -> WorkerResult<()> {
     // Single threaded runtime only
@@ -1270,21 +1278,22 @@ fn _run(
             let mut impl_ = RunnerImpl::new(&mv8, &init_msg)?;
             loop {
                 tokio::select! {
-                    Some((sim_id, msg)) = inbound_receiver.recv() => {
+                    Some((span, sim_id, msg)) = inbound_receiver.recv() => {
+                        let _span = span.entered();
                         // TODO: Send errors instead of immediately stopping?
                         let msg_str = msg.as_str();
-                        log::debug!("JS runner got sim `{:?}` inbound {}", &sim_id, msg_str);
+                        tracing::debug!("JS runner got sim `{:?}` inbound {}", &sim_id, msg_str);
                         let keep_running = impl_.handle_msg(&mv8, sim_id, msg, &outbound_sender)?;
-                        log::debug!("JS runner handled sim `{:?}` inbound {}", sim_id, msg_str);
+                        tracing::debug!("JS runner handled sim `{:?}` inbound {}", sim_id, msg_str);
                         if !keep_running {
-                            log::debug!("JavaScript Runner has finished execution, stopping");
+                            tracing::debug!("JavaScript Runner has finished execution, stopping");
                             break;
                         }
                     }
                 }
             }
             Ok(())
-        };
+        }.in_current_span();
     };
 
     let local = tokio::task::LocalSet::new();

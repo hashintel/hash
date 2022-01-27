@@ -17,6 +17,7 @@ use futures::{
     StreamExt,
 };
 use tokio::time::timeout;
+use tracing::{Instrument, Span};
 
 pub use self::error::{Error, Result};
 use self::{
@@ -84,7 +85,7 @@ impl WorkerController {
         worker_pool_comms: WorkerCommsWithWorkerPool,
         exp_init: ExperimentInitRunnerMsg,
     ) -> Result<WorkerController> {
-        log::debug!("Spawning worker controller");
+        tracing::debug!("Spawning worker controller");
         let WorkerSpawnConfig {
             python,
             javascript,
@@ -108,7 +109,7 @@ impl WorkerController {
     ///
     /// [`await`]: https://doc.rust-lang.org/std/keyword.await.html
     pub async fn run(&mut self) -> Result<()> {
-        log::debug!("Running worker");
+        tracing::debug!("Running worker");
         match self._run().await {
             Ok(()) => self.shutdown(),
             Err(e) => self.shutdown_with_error(e),
@@ -145,13 +146,13 @@ impl WorkerController {
             tokio::select! {
                 Some(_) = pending_syncs.next() => {}
                 Some(msg) = wp_recv.recv() => {
-                    log::debug!("Handle worker pool message: {:?}", &msg);
+                    tracing::debug!("Handle worker pool message: {:?}", &msg);
                     self.handle_worker_pool_msg(msg, &mut pending_syncs).await?;
                 }
                 res = self.recv_from_runners() => {
                     match res {
                         Ok(msg) => {
-                            log::debug!("Handle message from runners: {:?}", &msg);
+                            tracing::debug!("Handle message from runners: {:?}", &msg);
                             self.handle_runner_msg(msg).await?;
                         }
                         Err(recv_err) => {
@@ -184,7 +185,7 @@ impl WorkerController {
                 }
                 terminate_res = &mut terminate_recv => {
                     terminate_res.map_err(|err| Error::from(format!("Couldn't receive terminate: {:?}", err)))?;
-                    log::debug!("Sending terminate msg to all workers");
+                    tracing::debug!("Sending terminate msg to all workers");
                     // Tell runners to terminate
                     self.terminate_runners().await?;
                     // Send confirmation of success
@@ -192,14 +193,14 @@ impl WorkerController {
                     break;
                 }
                 // py_res = &mut py_handle => {
-                //     log::debug!("Python runner finished unexpectedly");
+                //     tracing::debug!("Python runner finished unexpectedly");
                 //     py_res??;
                 //     // TODO: send termination to js_handle
                 //     js_handle.await??;
                 //     return Ok(());
                 // }
                 js_res = &mut js_handle => {
-                    log::debug!("Javascript runner finished unexpectedly: {:?}", js_res);
+                    tracing::debug!("Javascript runner finished unexpectedly: {:?}", js_res);
                     js_res??;
                     // TODO: send termination to py_handle
                     // py_handle.await??;
@@ -236,6 +237,7 @@ impl WorkerController {
         msg: WorkerPoolToWorkerMsg,
         pending_syncs: &mut FuturesUnordered<Pin<Box<dyn Future<Output = ()> + Send>>>,
     ) -> Result<()> {
+        let span = msg.span;
         match msg.payload {
             WorkerPoolToWorkerMsgPayload::Task(task) => {
                 self.spawn_task(
@@ -243,17 +245,21 @@ impl WorkerController {
                         .ok_or_else(|| Error::from("Expected simulation id for spawning a task"))?,
                     task,
                 )
+                .instrument(span)
                 .await?;
             }
             WorkerPoolToWorkerMsgPayload::Sync(sync) => {
-                self.sync_runners(msg.sim_id, sync, pending_syncs).await?;
+                self.sync_runners(msg.sim_id, sync, pending_syncs)
+                    .instrument(span)
+                    .await?;
             }
             WorkerPoolToWorkerMsgPayload::CancelTask(task_id) => {
-                log::trace!("Received cancel task msg from Worker Pool");
-                self.cancel_task(task_id).await?;
+                self.cancel_task(task_id).instrument(span).await?;
             }
             WorkerPoolToWorkerMsgPayload::NewSimulationRun(new_simulation_run) => {
-                self.new_simulation_run(new_simulation_run).await?;
+                self.new_simulation_run(new_simulation_run)
+                    .instrument(span)
+                    .await?;
             }
         }
         Ok(())
@@ -300,6 +306,7 @@ impl WorkerController {
                     MessageTarget::Rust => {
                         self.rs
                             .send(Some(sim_id), InboundToRunnerMsgPayload::TaskMsg(task.msg))
+                            .in_current_span()
                             .await?;
                         if let Some(pending_task) = pending_task {
                             pending_task.active_runner = Language::Rust;
@@ -308,6 +315,7 @@ impl WorkerController {
                     MessageTarget::Python => {
                         self.py
                             .send(Some(sim_id), InboundToRunnerMsgPayload::TaskMsg(task.msg))
+                            .in_current_span()
                             .await?;
                         if let Some(pending_task) = pending_task {
                             pending_task.active_runner = Language::Python;
@@ -316,6 +324,7 @@ impl WorkerController {
                     MessageTarget::JavaScript => {
                         self.js
                             .send(Some(sim_id), InboundToRunnerMsgPayload::TaskMsg(task.msg))
+                            .in_current_span()
                             .await?;
                         if let Some(pending_task) = pending_task {
                             pending_task.active_runner = Language::JavaScript;
@@ -323,10 +332,11 @@ impl WorkerController {
                     }
                     MessageTarget::Dynamic => {
                         self.run_task_handler_on_outbound(sim_id, task.msg, msg.source)
+                            .in_current_span()
                             .await?;
                     }
                     MessageTarget::Main => {
-                        log::trace!("Task message came back to main, finishing task");
+                        tracing::trace!("Task message came back to main, finishing task");
                         self.finish_task(
                             task.msg.task_id,
                             sim_id,
@@ -334,20 +344,38 @@ impl WorkerController {
                             task.msg.payload,
                             task.msg.shared_store,
                         )
+                        .in_current_span()
                         .await?;
                     }
                 }
             }
             TaskCancelled(task_id) => {
                 self.handle_cancel_task_confirmation(task_id, sim_id, msg.source)
+                    .in_current_span()
                     .await?;
             }
-            RunnerError(err) => self.handle_errors(sim_id, vec![err]).await?,
-            RunnerErrors(errs) => self.handle_errors(sim_id, errs).await?,
-            RunnerWarning(warning) => self.handle_warnings(sim_id, vec![warning]).await?,
-            RunnerWarnings(warnings) => self.handle_warnings(sim_id, warnings).await?,
-            RunnerLog(log) => self.handle_logs(sim_id, vec![log]).await?,
-            RunnerLogs(logs) => self.handle_logs(sim_id, logs).await?,
+            RunnerError(err) => {
+                self.handle_errors(sim_id, vec![err])
+                    .in_current_span()
+                    .await?
+            }
+            RunnerErrors(errs) => self.handle_errors(sim_id, errs).in_current_span().await?,
+            RunnerWarning(warning) => {
+                self.handle_warnings(sim_id, vec![warning])
+                    .in_current_span()
+                    .await?
+            }
+            RunnerWarnings(warnings) => {
+                self.handle_warnings(sim_id, warnings)
+                    .in_current_span()
+                    .await?
+            }
+            RunnerLog(log) => {
+                self.handle_logs(sim_id, vec![log])
+                    .in_current_span()
+                    .await?
+            }
+            RunnerLogs(logs) => self.handle_logs(sim_id, logs).in_current_span().await?,
         }
         Ok(())
     }
@@ -382,7 +410,7 @@ impl WorkerController {
             // Important to drop here since we then lose the access to the shared store
             drop(shared_store);
 
-            log::trace!("Cancelling tasks on the other runners");
+            tracing::trace!("Cancelling tasks on the other runners");
             self.cancel_task_except_for_runner(task_id, source).await?;
 
             self.worker_pool_comms.send(
@@ -429,7 +457,7 @@ impl WorkerController {
                         shared_store: msg.shared_store,
                         payload: next.payload,
                     });
-                    log::trace!(
+                    tracing::trace!(
                         "Task resulted in a new message from Runner, sending new one to Rust: {:?}",
                         &inbound
                     );
@@ -443,7 +471,7 @@ impl WorkerController {
                         shared_store: msg.shared_store,
                         payload: next.payload,
                     });
-                    log::trace!(
+                    tracing::trace!(
                         "Task resulted in a new message from Runner, sending new one to Python: \
                          {:?}",
                         &inbound
@@ -458,7 +486,7 @@ impl WorkerController {
                         shared_store: msg.shared_store,
                         payload: next.payload,
                     });
-                    log::trace!(
+                    tracing::trace!(
                         "Task resulted in a new message from Runner, sending new one to \
                          JavaScript: {:?}",
                         &inbound
@@ -468,7 +496,7 @@ impl WorkerController {
                 }
                 MessageTarget::Dynamic => return Err(Error::UnexpectedTarget(next.target)),
                 MessageTarget::Main => {
-                    log::trace!("Task message came back to main, finishing task");
+                    tracing::trace!("Task message came back to main, finishing task");
                     self.finish_task(msg.task_id, sim_id, source, next.payload, msg.shared_store)
                         .await?;
                 }
@@ -501,7 +529,7 @@ impl WorkerController {
                     }
                 }
                 CancelState::None => {
-                    log::warn!("Unexpected task cancelling confirmation");
+                    tracing::warn!("Unexpected task cancelling confirmation");
                     task.cancelling = CancelState::Active(vec![source]);
                 }
             }
@@ -563,17 +591,17 @@ impl WorkerController {
         });
         let active_runner = match init_msg.target {
             MessageTarget::Python => {
-                log::debug!("Sending task message to Python");
+                tracing::debug!("Sending task message to Python");
                 self.py.send(Some(sim_id), runner_msg).await?;
                 Language::Python
             }
             MessageTarget::JavaScript => {
-                log::debug!("Sending task message to JavaScript");
+                tracing::debug!("Sending task message to JavaScript");
                 self.js.send(Some(sim_id), runner_msg).await?;
                 Language::JavaScript
             }
             MessageTarget::Rust => {
-                log::debug!("Sending task message to Rust");
+                tracing::debug!("Sending task message to Rust");
                 self.rs.send(Some(sim_id), runner_msg).await?;
                 Language::Rust
             }
@@ -632,13 +660,15 @@ impl WorkerController {
         let fut = async move {
             let sync = sync; // Capture `sync` in lambda.
             sync.forward_children(runner_receivers).await
-        };
+        }
+        .in_current_span();
         pending_syncs.push(Box::pin(fut) as _);
         Ok(())
     }
 
     /// Sends a message to all spawned runners to cancel the current task.
     async fn cancel_task(&mut self, task_id: TaskId) -> Result<()> {
+        tracing::trace!("Cancelling task");
         if let Some(task) = self.tasks.inner.get_mut(&task_id) {
             // TODO: Or `CancelState::None`?
             task.cancelling = CancelState::Active(vec![task.active_runner]);
@@ -689,19 +719,26 @@ impl WorkerController {
 
     /// Forwards `new_simulation_run` to all spawned workers.
     async fn new_simulation_run(&mut self, new_simulation_run: NewSimulationRun) -> Result<()> {
+        let span = Span::current();
         tokio::try_join!(
-            self.py.send_if_spawned(
-                None,
-                InboundToRunnerMsgPayload::NewSimulationRun(new_simulation_run.clone())
-            ),
-            self.js.send_if_spawned(
-                None,
-                InboundToRunnerMsgPayload::NewSimulationRun(new_simulation_run.clone())
-            ),
-            self.rs.send_if_spawned(
-                None,
-                InboundToRunnerMsgPayload::NewSimulationRun(new_simulation_run)
-            )
+            self.py
+                .send_if_spawned(
+                    Some(new_simulation_run.short_id),
+                    InboundToRunnerMsgPayload::NewSimulationRun(new_simulation_run.clone())
+                )
+                .instrument(span.clone()),
+            self.js
+                .send_if_spawned(
+                    Some(new_simulation_run.short_id),
+                    InboundToRunnerMsgPayload::NewSimulationRun(new_simulation_run.clone())
+                )
+                .instrument(span.clone()),
+            self.rs
+                .send_if_spawned(
+                    Some(new_simulation_run.short_id),
+                    InboundToRunnerMsgPayload::NewSimulationRun(new_simulation_run)
+                )
+                .instrument(span.clone())
         )?;
         Ok(())
     }
