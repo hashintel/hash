@@ -69,6 +69,11 @@
   "blockprotocol": {
     "displayName": "Heading",
     "icon": "public/h1.svg",
-    "image": "public/preview.svg"
+    "image": "public/preview.svg",
+    "examples": [
+      {
+        "text": "Hello World!"
+      }
+    ]
   }
 }
