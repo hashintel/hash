@@ -5,6 +5,8 @@ use std::{
     sync::Arc,
 };
 
+use tracing::Span;
+
 use crate::{
     config::{EngineConfig, Globals},
     datastore::{prelude::ArrowSchema, schema::state::AgentSchema, shared_store::SharedStore},
@@ -156,6 +158,7 @@ pub struct PackageMsgs(pub HashMap<PackageId, PackageInitMsgForWorker>);
 
 #[derive(Debug, Clone)]
 pub struct NewSimulationRun {
+    pub span: Span,
     pub short_id: SimulationShortId,
     pub engine_config: Arc<EngineConfig>,
     pub packages: PackageMsgs,

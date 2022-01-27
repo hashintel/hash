@@ -32,7 +32,7 @@ impl FetchDependencies for SharedDataset {
         // mean losing access to datasets which only exist in production.
         if contents.starts_with("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Error>") {
             // TODO: changes so erroring is explict
-            log::error!(
+            tracing::error!(
                 "Possible error with dataset fetching. Returned message starts with: {}. Dataset \
                  metadata: {:?}",
                 &contents[0..100.min(contents.len())],

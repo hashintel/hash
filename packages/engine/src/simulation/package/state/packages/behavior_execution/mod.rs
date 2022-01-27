@@ -214,7 +214,7 @@ impl BehaviorExecution {
 #[async_trait]
 impl Package for BehaviorExecution {
     async fn run(&mut self, state: &mut ExState, context: &Context) -> Result<()> {
-        log::trace!("Running BehaviorExecution");
+        tracing::trace!("Running BehaviorExecution");
         self.fix_behavior_chains(state)?;
         self.reset_behavior_index_col(state)?;
         state.flush_pending_columns()?;
@@ -222,16 +222,16 @@ impl Package for BehaviorExecution {
         let lang = match self.get_first_lang(state)? {
             Some(lang) => lang,
             None => {
-                log::warn!("No behaviors were found to execute");
+                tracing::warn!("No behaviors were found to execute");
                 return Ok(());
             } // No behaviors to execute
         };
-        log::trace!("Beginning BehaviorExecution task");
+        tracing::trace!("Beginning BehaviorExecution task");
         let active_task = self.begin_execution(state, context, lang).await?;
         let msg = active_task.drive_to_completion().await?;
         // Wait for results
         // TODO: Get latest metaversions from message and reload state if necessary.
-        log::trace!("BehaviorExecution task finished: {:?}", &msg);
+        tracing::trace!("BehaviorExecution task finished: {:?}", &msg);
         Ok(())
     }
 }

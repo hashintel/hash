@@ -1,6 +1,6 @@
 use std::{env::VarError, fmt::Display, time::Duration};
 
-use log::{Event, Subscriber};
+use tracing::{Event, Subscriber};
 use tracing_subscriber::{
     filter::{Directive, LevelFilter},
     fmt::{
@@ -73,7 +73,11 @@ impl Default for OutputFormat {
     }
 }
 
-pub fn init_logger(std_err_output_format: OutputFormat, file_output_name: &str) -> impl Drop {
+pub fn init_logger(
+    std_err_output_format: OutputFormat,
+    log_file_output_name: &str,
+    texray_output_name: &str,
+) -> (impl Drop, impl Drop) {
     let filter = match std::env::var("RUST_LOG") {
         Ok(env) => EnvFilter::new(env),
         #[cfg(debug_assertions)]
@@ -118,14 +122,16 @@ pub fn init_logger(std_err_output_format: OutputFormat, file_output_name: &str) 
         ),
     };
 
-    let file_appender =
-        tracing_appender::rolling::never("./log", format!("{file_output_name}.log"));
-    let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
+    let json_file_appender =
+        tracing_appender::rolling::never("./log", format!("{log_file_output_name}.log"));
+    let (non_blocking, _json_file_guard) = tracing_appender::non_blocking(json_file_appender);
 
     let json_file_layer = fmt::layer()
         .event_format(formatter.json())
         .fmt_fields(JsonFields::new())
         .with_writer(non_blocking);
+
+    let (texray_layer, _texray_guard) = texray::create_texray_layer(texray_output_name);
 
     tracing_subscriber::registry()
         .with(filter)
@@ -133,9 +139,10 @@ pub fn init_logger(std_err_output_format: OutputFormat, file_output_name: &str) 
         .with(json_stderr_layer)
         .with(json_file_layer)
         .with(error_layer)
+        .with(texray_layer)
         .init();
 
-    _guard
+    (_json_file_guard, _texray_guard)
 }
 
 pub fn parse_env_duration(name: &str, default: u64) -> Duration {
@@ -143,13 +150,53 @@ pub fn parse_env_duration(name: &str, default: u64) -> Duration {
         std::env::var(name)
             .and_then(|timeout| {
                 timeout.parse().map_err(|e| {
-                    log::error!("Could not parse `{}` as integral: {}", name, e);
+                    tracing::error!("Could not parse `{}` as integral: {}", name, e);
                     VarError::NotPresent
                 })
             })
             .unwrap_or_else(|_| {
-                log::info!("Setting `{}={}`", name, default);
+                tracing::info!("Setting `{}={}`", name, default);
                 default
             }),
     )
+}
+
+#[cfg(feature = "texray")]
+pub mod texray {
+    pub use tracing_texray::examine;
+    use tracing_texray::TeXRayLayer;
+
+    pub fn create_texray_layer(output_name: &str) -> (Option<TeXRayLayer>, impl Drop) {
+        let texray_file_appender =
+            tracing_appender::rolling::never("./log", format!("{output_name}.txt"));
+        let (non_blocking, _texray_guard) = tracing_appender::non_blocking(texray_file_appender);
+
+        // we clone update_settings to satisfy move rules as writer takes a `Fn` rather than
+        // `FnOnce`
+        let texray_layer =
+            TeXRayLayer::new().update_settings(|settings| settings.writer(non_blocking.clone()));
+        // only print spans longer than a certain duration
+        // .min_duration(Duration::from_millis(100)),;
+
+        (Some(texray_layer), _texray_guard)
+    }
+}
+
+#[cfg(not(feature = "texray"))]
+pub mod texray {
+    use tracing::Span;
+    use tracing_subscriber::fmt::Layer;
+
+    pub fn examine(span: Span) -> Span {
+        span
+    }
+
+    struct EmptyDrop {}
+    impl Drop for EmptyDrop {
+        fn drop(&mut self) {}
+    }
+
+    pub fn create_texray_layer<S>(_output_name: &str) -> (Option<Layer<S>>, impl Drop) {
+        (None, EmptyDrop {})
+    }
 }

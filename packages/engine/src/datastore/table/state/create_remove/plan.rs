@@ -34,7 +34,7 @@ impl<'a> MigrationPlan<'a> {
     }
 
     pub fn execute(self, state: &mut AgentPool, config: &SimRunConfig) -> Result<Vec<String>> {
-        // log::debug!("Updating");
+        // tracing::debug!("Updating");
         let mut_batches = state.mut_batches();
         self.existing_mutations
             .par_iter()
@@ -62,7 +62,7 @@ impl<'a> MigrationPlan<'a> {
             })?;
 
         let mut removed_ids = vec![];
-        // log::debug!("Deleting");
+        // tracing::debug!("Deleting");
         self.existing_mutations
             .iter()
             .enumerate()
@@ -82,7 +82,7 @@ impl<'a> MigrationPlan<'a> {
                 Ok(())
             })?;
 
-        // log::debug!("Creating {} ", self.create_commands.len());
+        // tracing::debug!("Creating {} ", self.create_commands.len());
         let mut created_dynamic_batches = self
             .create_commands
             .into_par_iter()
@@ -100,7 +100,7 @@ impl<'a> MigrationPlan<'a> {
             .collect::<Result<_>>()?;
         mut_batches.append(&mut created_dynamic_batches);
 
-        // log::debug!("Finished");
+        // tracing::debug!("Finished");
         Ok(removed_ids)
     }
 }

@@ -11,7 +11,7 @@ use crate::{
 /// Shared memory cleanup in the process hard crash case.
 /// Not required for pod instances.
 pub fn cleanup_experiment(experiment_id: &ExperimentId) -> Result<()> {
-    log::trace!("Cleaning up experiment: {}", experiment_id);
+    tracing::trace!("Cleaning up experiment: {}", experiment_id);
     // TODO: Mac differences in shared_memory
     let shm_files = glob::glob(&format!("/dev/shm/{}_*", shmem_id_prefix(experiment_id)))
         .map_err(|e| Error::Unique(format!("cleanup glob error: {}", e)))?;
@@ -43,7 +43,7 @@ fn remove_experiment_parts(experiment_id: &ExperimentId) -> Result<()> {
     //  differently, we should update the design to store the paths and use them here when we use
     //  the clean up code again
     base_path.push(experiment_id.to_string());
-    log::trace!("Removing all parts files in: {base_path:?}");
+    tracing::trace!("Removing all parts files in: {base_path:?}");
     std::fs::remove_dir_all(base_path)?;
     Ok(())
 }

@@ -970,6 +970,7 @@ dependencies = [
  "tracing-appender",
  "tracing-error",
  "tracing-subscriber",
+ "tracing-texray",
  "uuid",
 ]
 
@@ -2151,6 +2152,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "term_size"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e4129646ca0ed8f45d09b929036bafad5377103edd06e50bf574b353d2b08d9"
+dependencies = [
+ "libc",
+ "winapi",
+]
+
+[[package]]
 name = "termcolor"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2401,6 +2412,19 @@ dependencies = [
  "tracing-core",
  "tracing-log",
  "tracing-serde",
+]
+
+[[package]]
+name = "tracing-texray"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f0df064f167ff07b179fb6fc2a095c5e04ce2c13c26271fa239d80d14128d60d"
+dependencies = [
+ "lazy_static",
+ "parking_lot",
+ "term_size",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

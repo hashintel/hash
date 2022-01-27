@@ -34,7 +34,7 @@ pub struct Args {
     output: PathBuf,
 
     /// Output format emitted to the terminal.
-    #[clap(long, default_value = "full", arg_enum, env = "HASH_EMIT")]
+    #[clap(long, default_value = "pretty", arg_enum, env = "HASH_EMIT")]
     emit: OutputFormat,
 
     /// Engine start timeout in seconds
@@ -105,7 +105,11 @@ async fn main() -> Result<()> {
         .unwrap()
         .as_millis();
 
-    let _guard = hash_engine::init_logger(args.emit, &format!("cli-{now}"));
+    let _guard = hash_engine::init_logger(
+        args.emit,
+        &format!("cli-{now}"),
+        &format!("cli-{now}-texray"),
+    );
 
     let nng_listen_url = format!("ipc://hash-orchestrator-{now}");
 

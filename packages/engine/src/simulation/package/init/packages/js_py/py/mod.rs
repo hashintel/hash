@@ -7,6 +7,7 @@ use crate::{
             args::GetTaskArgs,
             handler::{WorkerHandler, WorkerPoolHandler},
             msg::TargetedTaskMessage,
+            GetTaskName,
         },
         Result as SimulationResult,
     },
@@ -16,6 +17,12 @@ use crate::{
 #[derive(Clone, Debug)]
 pub struct PyInitTask {
     pub initial_state_source: String,
+}
+
+impl GetTaskName for PyInitTask {
+    fn get_task_name(&self) -> &'static str {
+        "PyInit"
+    }
 }
 
 impl GetTaskArgs for PyInitTask {
