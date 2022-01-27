@@ -3,8 +3,8 @@ use std::sync::Arc;
 use tracing::Instrument;
 
 use super::{
-    command::CreateRemoveCommands, comms::Comms, package::run::Packages,
-    step_output::SimulationStepOutput, step_result::SimulationStepResult, Error, Result,
+    comms::Comms, package::run::Packages, step_output::SimulationStepOutput,
+    step_result::SimulationStepResult, Error, Result,
 };
 use crate::{
     config::SimRunConfig,
@@ -18,7 +18,10 @@ use crate::{
         },
     },
     proto::ExperimentRunTrait,
-    simulation::agent_control::AgentControl,
+    simulation::{
+        agent_control::AgentControl,
+        command::{Commands, StopMessage},
+    },
 };
 
 /// TODO: DOC
@@ -27,6 +30,7 @@ pub struct Engine {
     store: Store,
     comms: Arc<Comms>,
     config: Arc<SimRunConfig>,
+    stop: Option<StopMessage>,
 }
 
 impl Engine {
@@ -54,6 +58,7 @@ impl Engine {
             store,
             comms,
             config,
+            stop: None,
         })
     }
 
@@ -75,13 +80,18 @@ impl Engine {
         self.run_context_packages(current_step).await?;
         self.run_state_packages().await?;
         let output = self.run_output_packages().await?;
+        let agent_control = if let Some(stop_message) = self.stop.take() {
+            AgentControl::Stop(stop_message)
+        } else {
+            AgentControl::Continue
+        };
         let result = SimulationStepResult {
             sim_id: self.config.sim.id,
             output,
             errors: vec![],
             warnings: vec![],
-            agent_control: AgentControl::Continue, // TODO: OS - Need to pick up from messages
-            stop_signal: false,
+            agent_control,
+            stop_signal: self.stop.is_some(),
         };
         Ok(result)
     }
@@ -225,24 +235,24 @@ impl Engine {
     ) -> Result<StateSnapshot> {
         tracing::trace!("Preparing for context packages");
         let message_map = state.message_map()?;
-        self.add_remove_agents(state, &message_map)?;
+        self.handle_messages(state, &message_map)?;
         let message_pool = self.finalize_agent_messages(state, context)?;
         let agent_pool = self.finalize_agent_state(state, context)?;
         Ok(StateSnapshot::new(agent_pool, message_pool, message_map))
     }
 
-    /// Create and Remove agents
+    /// Handles messages from the agents
     ///
-    /// Operates based on the "create_agent" and "remove_agent"
-    /// messages sent to "hash" through agent inboxes. Also creates
-    /// and removes agents that have been requested by State packages.
-    fn add_remove_agents(&mut self, state: &mut ExState, message_map: &MessageMap) -> Result<()> {
+    /// Operates based on the "create_agent", "remove_agent", and "stop" messages sent to "hash"
+    /// through agent inboxes. Also creates and removes agents that have been requested by State
+    /// packages.
+    fn handle_messages(&mut self, state: &mut ExState, message_map: &MessageMap) -> Result<()> {
         let read = state.message_pool().read()?;
-        let mut commands = CreateRemoveCommands::from_hash_messages(message_map, read)?;
-        commands.merge(self.comms.take_create_remove_commands()?);
+        let mut commands = Commands::from_hash_messages(message_map, read)?;
+        commands.merge(self.comms.take_commands()?);
         commands.verify(&self.config.sim.store.agent_schema)?;
-
-        state.create_remove(commands, &self.config)?;
+        self.stop = commands.stop;
+        state.create_remove(commands.create_remove, &self.config)?;
         Ok(())
     }
 
