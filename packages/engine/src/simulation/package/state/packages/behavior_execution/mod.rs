@@ -104,7 +104,7 @@ impl PackageCreator for Creator {
             .index_of(behavior_ids_col.value())?;
 
         let behavior_index_col = accessor
-            .get_agent_scoped_field_spec(BEHAVIOR_INDEX_FIELD_NAME)?
+            .get_local_private_scoped_field_spec(BEHAVIOR_INDEX_FIELD_NAME)?
             .to_key()?;
         let behavior_index_col_index = config
             .sim

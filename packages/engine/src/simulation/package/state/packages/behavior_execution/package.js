@@ -1,4 +1,8 @@
-// The `__i_behavior` column is reset to zero and `__behaviors` is written to
+// TODO: Propagate field specs to runners and use in state and context objects
+const BEHAVIOR_INDEX_FIELD_KEY = "_PRIVATE_14_behavior_index";
+const BEHAVIOR_IDS_FIELD_KEY = "_PRIVATE_14_behavior_ids";
+
+// The `BEHAVIOR_INDEX_FIELD_KEY` column is reset to zero and `__behaviors` is written to
 // in the simulation main loop immediately before running the behavior execution
 // package.
 
@@ -127,7 +131,7 @@ const load_behaviors = (experiment, behavior_descs) => {
 
 // Incorrect because behaviorIndex has historically been a function, not a property:
 // const getters = {
-//     "behaviorIndex": agent_state => agent_state.__i_behavior
+//     "behaviorIndex": agent_state => agent_state[BEHAVIOR_INDEX_FIELD_KEY]
 // }
 
 const start_experiment = (experiment, init_message, experiment_context) => {
@@ -180,9 +184,6 @@ const run_task = (
   let agent_state = null;
   let agent_ctx = null;
 
-  // TODO: Propagate field specs to runners and use in state and context objects
-  const behavior_ids_field_key = "_PRIVATE_14_behavior_ids";
-
   const n_agents_in_group = group_state.n_agents();
   for (var i_agent = 0; i_agent < n_agents_in_group; ++i_agent) {
     // TODO: Reuse `agent_state` objects. When using the old `agent_state`, the indices for behaviors are borked
@@ -190,18 +191,15 @@ const run_task = (
     // TODO: Reuse `agent_ctx` objects. When using the old `agent_ctx`
     agent_ctx = group_context.get_agent(i_agent, null);
 
-    const behavior_ids = agent_state[behavior_ids_field_key];
+    const behavior_ids = agent_state[BEHAVIOR_IDS_FIELD_KEY];
     const n_behaviors = behavior_ids.length;
+    let agent_finished = true;
     for (
-      var i_behavior = agent_state.behavior_index;
+      var i_behavior = agent_state.behaviorIndex();
       i_behavior < n_behaviors;
       ++i_behavior
     ) {
-      // TODO: reevaluate when other runners are implemented: If there are failing tests,
-      //   - either this has to be changed to `agent_state.behavior_index = i_behavior` and `AgentState.behaviorIndex()`
-      //     has to be adjusted to use `behavior_index` instead of `__i_behavior`, or
-      //   - `agent_state.behavior_index = i_behavior;` has to be added.
-      agent_state.__i_behavior = i_behavior;
+      agent_state[BEHAVIOR_INDEX_FIELD_KEY] = i_behavior;
 
       const key = behavior_ids.get(i_behavior);
       // We do this because it's shallow-loaded and the key is an Arrow Vec rather than a clean array
@@ -213,6 +211,7 @@ const run_task = (
         //       wouldn't hurt performance at all in the case where all
         //       behaviors are in JS.
         next_lang = behavior.language; // Multiple assignments are fine.
+        agent_finished = false;
         break;
       }
 
@@ -225,6 +224,9 @@ const run_task = (
         throw Error(JSON.stringify(trace));
       }
       postprocess(agent_state);
+    }
+    if (agent_finished) {
+      agent_state[BEHAVIOR_INDEX_FIELD_KEY] = n_behaviors;
     }
   }
 

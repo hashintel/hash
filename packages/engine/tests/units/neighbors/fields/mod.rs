@@ -12,7 +12,7 @@ mod js {
     run_test!(multiple, JavaScript);
 }
 
-mod python {
+mod py {
     use crate::run_test;
 
     run_test!(bool, Python);
