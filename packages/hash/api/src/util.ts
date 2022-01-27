@@ -315,8 +315,6 @@ export const treeFromParentReferences = <
   reference: Ref,
   recursive: Rec,
 ) => {
-  // eslint-disable-next-line no-console
-  console.log(elements);
   const topologicallySorted = topologicalSort(
     elements
       .filter((element) => element[reference] != null)
@@ -339,6 +337,16 @@ export const treeFromParentReferences = <
       (current[reference] as string | undefined) = undefined;
       continue;
     }
+
+    /**
+     * Topological sorting handles the case of cyclic references.
+     * Otherwise a check like the following could be relevant.
+     * if ((current[key] as string) === existingParent[reference]) {
+     *    throw new Error(
+     *      `Circular references given. Unable to reconstruct tree at ${current[key]}`,
+     *    );
+     *  }
+     * */
 
     if (existingParent[recursive]) {
       existingParent[recursive].push(current);

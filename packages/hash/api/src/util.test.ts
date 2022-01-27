@@ -5,56 +5,58 @@ import {
   treeFromParentReferences,
 } from "./util";
 
-it("can do topological sort", () => {
-  // ┌────── A ─────┐
-  // │              │
-  // ▼              ▼
-  // B       ┌──────C──────┐
-  // │       │      │      │
-  // │       ▼      ▼      ▼
-  // └──────►D      E      F
-  //                       │
-  //                       ▼
-  //                       G
-  const edges: [string, string][] = [
-    ["F", "G"],
-    ["C", "D"],
-    ["B", "D"],
-    ["C", "E"],
-    ["A", "B"],
-    ["C", "F"],
-    ["A", "C"],
-  ];
+describe("topological sort", () => {
+  it("can do topological sort", () => {
+    // ┌────── A ─────┐
+    // │              │
+    // ▼              ▼
+    // B       ┌──────C──────┐
+    // │       │      │      │
+    // │       ▼      ▼      ▼
+    // └──────►D      E      F
+    //                       │
+    //                       ▼
+    //                       G
+    const edges: [string, string][] = [
+      ["F", "G"],
+      ["C", "D"],
+      ["B", "D"],
+      ["C", "E"],
+      ["A", "B"],
+      ["C", "F"],
+      ["A", "C"],
+    ];
 
-  expect(topologicalSort(edges)).toEqual(["A", "C", "F", "G", "E", "B", "D"]);
-});
+    expect(topologicalSort(edges)).toEqual(["A", "C", "F", "G", "E", "B", "D"]);
+  });
 
-it("throws an error on topological sort on a graph with cycles", () => {
-  //         ┌─────────────────────┐
-  //         │                     │
-  //         ▼                     │
-  // ┌────── A ─────┐              │
-  // │              │              │
-  // ▼              ▼              │
-  // B       ┌──────C──────┐       │
-  // │       │      │      │       │
-  // │       ▼      ▼      ▼       │
-  // └──────►D      E      F       │
-  //                       │       │
-  //                       ▼       │
-  //                       G ──────┘
-  const edges: [string, string][] = [
-    ["F", "G"],
-    ["C", "D"],
-    ["B", "D"],
-    ["C", "E"],
-    ["A", "B"],
-    ["C", "F"],
-    ["A", "C"],
-    ["G", "A"],
-  ];
+  it("throws an error on topological sort on a graph with cycles", () => {
+    //         ┌─────────────────────┐
+    //         │                     │
+    //         ▼                     │
+    // ┌────── A ─────┐              │
+    // │              │              │
+    // ▼              ▼              │
+    // B       ┌──────C──────┐       │
+    // │       │      │      │       │
+    // │       ▼      ▼      ▼       │
+    // └──────►D      E      F       │
+    //                       │       │
+    //                       ▼       │
+    //                       G ──────┘
+    const edges: [string, string][] = [
+      ["F", "G"],
+      ["C", "D"],
+      ["B", "D"],
+      ["C", "E"],
+      ["A", "B"],
+      ["C", "F"],
+      ["A", "C"],
+      ["G", "A"],
+    ];
 
-  expect(() => topologicalSort(edges)).toThrow("graph is not acyclic");
+    expect(() => topologicalSort(edges)).toThrow("graph is not acyclic");
+  });
 });
 
 it("can compute intersection of sets", () => {
@@ -68,174 +70,212 @@ it("can compute intersection of sets", () => {
   expect(intersection(setB, setD)).toEqual(new Set([]));
 });
 
-type Entity = {
-  name: string;
-  linkedGraphs?: LinkedEntity[];
-};
-
-type LinkedEntity = {
-  entity: Entity;
-};
-
-it("can flatten a tree structure", () => {
-  // ┌───────E1──────┐
-  // │       │       │
-  // ▼       ▼       ▼
-  // E2      E3      E4
-  // │               │
-  // ▼               ▼
-  // E5              E6
-
-  const graph: Entity = {
-    name: "E1",
-    linkedGraphs: [
-      { entity: { name: "E2", linkedGraphs: [{ entity: { name: "E5" } }] } },
-      { entity: { name: "E3" } },
-      { entity: { name: "E4", linkedGraphs: [{ entity: { name: "E6" } }] } },
-    ],
+describe("tree flattening", () => {
+  type Entity = {
+    name: string;
+    linkedGraphs?: LinkedEntity[];
   };
 
-  const result = linkedTreeFlatten(graph, "linkedGraphs", "entity");
+  type LinkedEntity = {
+    entity: Entity;
+  };
 
-  //   ┌─┬──┬──┐
-  //   │ │  │  │
-  // ┌─▼┌┴─┬┴─┬┴─┬──┬──┐
-  // │E1│E2│E3│E4│E5│E6│
-  // └──┴─▲└──┴─▲┴┬─┴┬─┘
-  //      │     │ │  │
-  //      └─────┼─┘  │
-  //            └────┘
-  expect(result).toEqual([
-    {
-      parentIndex: -1,
+  it("can flatten a tree structure", () => {
+    // ┌───────E1──────┐
+    // │       │       │
+    // ▼       ▼       ▼
+    // E2      E3      E4
+    // │               │
+    // ▼               ▼
+    // E5              E6
+
+    const graph: Entity = {
       name: "E1",
-    },
-    {
-      meta: {},
-      parentIndex: 0,
-      name: "E2",
-    },
-    {
-      meta: {},
-      parentIndex: 0,
-      name: "E3",
-    },
-    {
-      meta: {},
-      parentIndex: 0,
-      name: "E4",
-    },
-    {
-      meta: {},
-      parentIndex: 1,
-      name: "E5",
-    },
-    {
-      meta: {},
-      parentIndex: 3,
-      name: "E6",
-    },
-  ]);
-});
+      linkedGraphs: [
+        { entity: { name: "E2", linkedGraphs: [{ entity: { name: "E5" } }] } },
+        { entity: { name: "E3" } },
+        { entity: { name: "E4", linkedGraphs: [{ entity: { name: "E6" } }] } },
+      ],
+    };
 
-it("can handle non-linked tree structure", () => {
-  // ┌───────E1──────┐
-  // │       │       │
-  // ▼       ▼       ▼
-  // E2      E3      E4
-  // │               │
-  // ▼               ▼
-  // E5              E6
-  const graph: Entity = {
-    name: "E1",
-  };
+    const result = linkedTreeFlatten(graph, "linkedGraphs", "entity");
 
-  const result = linkedTreeFlatten(graph, "linkedGraphs", "entity");
-  expect(result).toEqual([
-    {
-      parentIndex: -1,
+    //   ┌─┬──┬──┐
+    //   │ │  │  │
+    // ┌─▼┌┴─┬┴─┬┴─┬──┬──┐
+    // │E1│E2│E3│E4│E5│E6│
+    // └──┴─▲└──┴─▲┴┬─┴┬─┘
+    //      │     │ │  │
+    //      └─────┼─┘  │
+    //            └────┘
+    expect(result).toEqual([
+      {
+        parentIndex: -1,
+        name: "E1",
+      },
+      {
+        meta: {},
+        parentIndex: 0,
+        name: "E2",
+      },
+      {
+        meta: {},
+        parentIndex: 0,
+        name: "E3",
+      },
+      {
+        meta: {},
+        parentIndex: 0,
+        name: "E4",
+      },
+      {
+        meta: {},
+        parentIndex: 1,
+        name: "E5",
+      },
+      {
+        meta: {},
+        parentIndex: 3,
+        name: "E6",
+      },
+    ]);
+  });
+
+  it("can handle non-linked tree structure", () => {
+    // ┌───────E1──────┐
+    // │       │       │
+    // ▼       ▼       ▼
+    // E2      E3      E4
+    // │               │
+    // ▼               ▼
+    // E5              E6
+    const graph: Entity = {
       name: "E1",
-    },
-  ]);
+    };
+
+    const result = linkedTreeFlatten(graph, "linkedGraphs", "entity");
+    expect(result).toEqual([
+      {
+        parentIndex: -1,
+        name: "E1",
+      },
+    ]);
+  });
+
+  it("can bail out of a circular tree", () => {
+    const graph: Entity = {
+      name: "E1",
+      linkedGraphs: [
+        { entity: { name: "E2" } },
+        { entity: { name: "E3" } },
+        { entity: { name: "E4", linkedGraphs: [{ entity: { name: "E5" } }] } },
+      ],
+    };
+
+    graph.linkedGraphs![0].entity = graph;
+
+    expect(() => {
+      linkedTreeFlatten(graph, "linkedGraphs", "entity");
+    }).toThrowError(/limit reached/);
+  });
 });
 
-it("can bail out of a circular tree", () => {
-  const graph: Entity = {
-    name: "E1",
-    linkedGraphs: [
-      { entity: { name: "E2" } },
-      { entity: { name: "E3" } },
-      { entity: { name: "E4", linkedGraphs: [{ entity: { name: "E5" } }] } },
-    ],
+describe("restructure flat list to tree", () => {
+  type Element = {
+    id: string;
+    ref?: string | undefined;
+    children?: Element[] | undefined;
   };
 
-  graph.linkedGraphs![0].entity = graph;
+  it("can rebuild tree", () => {
+    const test1 = [
+      { id: "1" },
+      { id: "2", ref: "1" },
+      { id: "3", ref: "2" },
+      { id: "4", ref: "1" },
+      { id: "5" },
+    ] as Element[];
 
-  expect(() => {
-    linkedTreeFlatten(graph, "linkedGraphs", "entity");
-  }).toThrowError(/limit reached/);
-});
+    const result = treeFromParentReferences(test1, "id", "ref", "children");
 
-export type FlatElement = {
-  id: string;
-  ref?: string | undefined;
-  children?: FlatElement[] | undefined;
-};
+    expect(result).toEqual([
+      {
+        id: "1",
+        children: [
+          { id: "4", ref: "1" },
+          { id: "2", ref: "1", children: [{ id: "3", ref: "2" }] },
+        ],
+        ref: undefined,
+      },
 
-it("can rebuild tree", () => {
-  const test1 = [
-    { id: "1" },
-    { id: "2", ref: "1" },
-    { id: "3", ref: "2" },
-    { id: "4", ref: "1" },
-    { id: "5" },
-  ] as FlatElement[];
+      { id: "5" },
+    ]);
+  });
 
-  const result = treeFromParentReferences(test1, "id", "ref", "children");
+  it("bails out if a circular tree is supplied", () => {
+    const test1 = [
+      { id: "1", ref: "2" },
+      { id: "2", ref: "1" },
+      { id: "3", ref: "2" },
+      { id: "4", ref: "1" },
+      { id: "5" },
+    ] as Element[];
 
-  // eslint-disable-next-line no-console
-  console.log(result);
-  expect(result).toEqual([
-    {
-      id: "1",
-      children: [
-        { id: "4", ref: "1" },
-        { id: "2", ref: "1", children: [{ id: "3", ref: "2" }] },
-      ],
-      ref: undefined,
-    },
+    expect(() =>
+      treeFromParentReferences(test1, "id", "ref", "children"),
+    ).toThrow("graph is not acyclic");
+  });
 
-    { id: "5" },
-  ]);
-});
+  it("can rebuild tree with invalid refs", () => {
+    const test1 = [
+      { id: "1" },
+      { id: "2", ref: "1" },
+      { id: "3", ref: "2" },
+      { id: "4", ref: "1" },
+      { id: "5" },
+      { id: "6", ref: "x1" },
+      { id: "7", ref: "x2" },
+    ] as Element[];
 
-it("can rebuild tree with invalid refs", () => {
-  const test1 = [
-    { id: "1" },
-    { id: "2", ref: "1" },
-    { id: "3", ref: "2" },
-    { id: "4", ref: "1" },
-    { id: "5" },
-    { id: "6", ref: "x1" },
-    { id: "7", ref: "x2" },
-  ] as FlatElement[];
+    const result = treeFromParentReferences(test1, "id", "ref", "children");
 
-  const result = treeFromParentReferences(test1, "id", "ref", "children");
+    expect(result).toEqual([
+      {
+        id: "1",
+        children: [
+          { id: "4", ref: "1" },
+          { id: "2", ref: "1", children: [{ id: "3", ref: "2" }] },
+        ],
+        ref: undefined,
+      },
 
-  // eslint-disable-next-line no-console
-  console.log(result);
-  expect(result).toEqual([
-    {
-      id: "1",
-      children: [
-        { id: "4", ref: "1" },
-        { id: "2", ref: "1", children: [{ id: "3", ref: "2" }] },
-      ],
-      ref: undefined,
-    },
+      { id: "5" },
+      { id: "6" },
+      { id: "7" },
+    ]);
+  });
 
-    { id: "5" },
-    { id: "6" },
-    { id: "7" },
-  ]);
+  it("ignores lists without references", () => {
+    const test1 = [
+      { id: "1" },
+      { id: "2" },
+      { id: "3" },
+      { id: "4" },
+      { id: "5" },
+      { id: "6" },
+      { id: "7" },
+    ] as Element[];
+
+    const result = treeFromParentReferences(test1, "id", "ref", "children");
+
+    expect(result).toEqual([
+      { id: "1" },
+      { id: "2" },
+      { id: "3" },
+      { id: "4" },
+      { id: "5" },
+      { id: "6" },
+      { id: "7" },
+    ]);
+  });
 });

@@ -15,7 +15,7 @@ export type EntityWithOutgoingEntityIdsPGRow = EntityPGRow & {
   outgoing_entity_ids: string[];
 };
 
-/** maps a postgres row with parent to its corresponding EntityWithParent object */
+/** maps a postgres row with parent to its corresponding EntityWithOutgoingEntityIds object */
 export const mapEntityWithOutgoingEntityIdsPGRowToEntity = (
   row: EntityWithOutgoingEntityIdsPGRow,
 ): EntityWithOutgoingEntityIds =>
