@@ -4,7 +4,7 @@ import {
   Resolver,
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { Entity, UnresolvedGQLEntity } from "../../../model";
+import { Entity, Page, UnresolvedGQLEntity } from "../../../model";
 
 export const accountPages: Resolver<
   Promise<UnresolvedGQLEntity[]>,
@@ -23,7 +23,7 @@ export const accountPages: Resolver<
     ).map((page) => page.toGQLUnknownEntity());
   } else if (structure === PageStructure.Tree) {
     pages = (
-      await Entity.getLinkedEntityBySystemType(dataSources.db, {
+      await Page.getAccountPagesWithParents(dataSources.db, {
         accountId,
         systemTypeName: "Page",
       })

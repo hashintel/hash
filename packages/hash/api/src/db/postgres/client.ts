@@ -8,7 +8,6 @@ import {
   EntityMeta,
   EntityType,
   EntityVersion,
-  EntityWithParentEntityId,
   VerificationCode,
 } from "../adapter";
 import { genId, exactlyOne } from "../../util";
@@ -49,9 +48,12 @@ import {
   updateEntity,
   updateEntityAccountId,
   getAccountEntities,
-  getEntitiesWithParentReferencesByType,
 } from "./entity";
-import { getEntityOutgoingLinks } from "./link/getEntityOutgoingLinks";
+import {
+  getEntitiesByTypeWithOutgoingEntityIds,
+  getEntityOutgoingLinks,
+  getEntityWithOutgoingEntityIds,
+} from "./link/getEntityOutgoingLinks";
 import { getLink, getLinkInAnyDirection } from "./link/getLink";
 import { createLink } from "./link/createLink";
 import { deleteLink } from "./link/deleteLink";
@@ -405,10 +407,9 @@ export class PostgresClient implements DBClient {
       : await getEntitiesByTypeAllVersions(this.conn, queryParams);
   }
 
-  async getLinkedEntityBySystemType(params: {
-    accountId: string;
-    systemTypeName: SystemType;
-  }): Promise<EntityWithParentEntityId[]> {
+  async getEntitiesByTypeWithOutgoingEntityIds(
+    params: Parameters<DBClient["getEntitiesByTypeWithOutgoingEntityIds"]>[0],
+  ): ReturnType<DBClient["getEntitiesByTypeWithOutgoingEntityIds"]> {
     const { entity_type_id: entityTypeId } = await this.conn.one(
       selectSystemEntityTypeIds(params),
     );
@@ -417,7 +418,13 @@ export class PostgresClient implements DBClient {
       accountId: params.accountId,
     };
 
-    return getEntitiesWithParentReferencesByType(this.conn, queryParams);
+    return getEntitiesByTypeWithOutgoingEntityIds(this.conn, queryParams);
+  }
+
+  async getEntityWithOutgoingEntityIds(
+    params: Parameters<DBClient["getEntityWithOutgoingEntityIds"]>[0],
+  ): ReturnType<DBClient["getEntityWithOutgoingEntityIds"]> {
+    return getEntityWithOutgoingEntityIds(this.conn, params);
   }
 
   /** Get all entities of a given type in a given account. */

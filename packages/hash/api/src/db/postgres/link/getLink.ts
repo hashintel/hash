@@ -33,6 +33,8 @@ export const getLinkInAnyDirection = async (
       and 
         ((source_entity_id = ${params.entityIdOne} and destination_entity_id = ${params.entityIdTwo})
       or (destination_entity_id = ${params.entityIdOne} and source_entity_id = ${params.entityIdTwo} ))
+    -- maybeOne throws if more rows are returned.
+    limit 1
   `);
 
   return row ? mapDBLinkRowToDBLink(row) : null;

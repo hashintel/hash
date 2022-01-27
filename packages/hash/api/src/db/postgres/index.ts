@@ -16,7 +16,6 @@ import {
   EntityMeta,
   EntityType,
   EntityVersion,
-  EntityWithParentEntityId,
   VerificationCode,
 } from "../adapter";
 import { SystemType } from "../../types/entityTypes";
@@ -203,11 +202,20 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.getEntitiesBySystemType(params));
   }
 
-  getLinkedEntityBySystemType(params: {
-    accountId: string;
-    systemTypeName: SystemType;
-  }): Promise<EntityWithParentEntityId[]> {
-    return this.query((adapter) => adapter.getLinkedEntityBySystemType(params));
+  getEntitiesByTypeWithOutgoingEntityIds(
+    params: Parameters<DBClient["getEntitiesByTypeWithOutgoingEntityIds"]>[0],
+  ): ReturnType<DBClient["getEntitiesByTypeWithOutgoingEntityIds"]> {
+    return this.query((adapter) =>
+      adapter.getEntitiesByTypeWithOutgoingEntityIds(params),
+    );
+  }
+
+  getEntityWithOutgoingEntityIds(
+    params: Parameters<DBClient["getEntityWithOutgoingEntityIds"]>[0],
+  ): ReturnType<DBClient["getEntityWithOutgoingEntityIds"]> {
+    return this.query((adapter) =>
+      adapter.getEntityWithOutgoingEntityIds(params),
+    );
   }
 
   accountExists(params: { accountId: string }): Promise<boolean> {

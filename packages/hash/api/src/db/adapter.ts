@@ -49,8 +49,8 @@ export type DbEntity = {
   visibility: Visibility;
 };
 
-export type EntityWithParentEntityId = Entity & {
-  parentEntityId?: string;
+export type EntityWithOutgoingEntityIds = DbEntity & {
+  outgoingEntityIds?: string[];
 };
 
 export type DBLink = {
@@ -384,10 +384,15 @@ export interface DBClient {
     systemTypeName: SystemType;
   }): Promise<DbEntity[]>;
 
-  getLinkedEntityBySystemType(params: {
+  getEntitiesByTypeWithOutgoingEntityIds(params: {
     accountId: string;
     systemTypeName: SystemType;
-  }): Promise<EntityWithParentEntityId[]>;
+  }): Promise<EntityWithOutgoingEntityIds[]>;
+
+  getEntityWithOutgoingEntityIds(params: {
+    accountId: string;
+    entityId: string;
+  }): Promise<EntityWithOutgoingEntityIds | null>;
 
   /**
    * Get all account type entities (User or Account).

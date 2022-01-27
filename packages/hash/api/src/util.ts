@@ -347,5 +347,7 @@ export const treeFromParentReferences = <
     }
   }
 
-  return [...mapping.values()].filter((element) => element[reference] == null);
+  return Array.from(mapping.values()).filter(
+    (element) => element[reference] == null,
+  );
 };

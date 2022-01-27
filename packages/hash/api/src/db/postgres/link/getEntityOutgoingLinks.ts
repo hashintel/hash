@@ -1,8 +1,28 @@
 import { sql } from "slonik";
+import { EntityWithOutgoingEntityIds } from "../../adapter";
+import {
+  EntityPGRow,
+  mapPGRowToEntity,
+  selectEntitiesByType,
+  selectEntityAllVersions,
+} from "../entity";
 
 import { Connection } from "../types";
 import { mapColumnNamesToSQL } from "../util";
 import { DBLinkRow, linksColumnNames, mapDBLinkRowToDBLink } from "./util";
+
+export type EntityWithOutgoingEntityIdsPGRow = EntityPGRow & {
+  outgoing_entity_ids: string[];
+};
+
+/** maps a postgres row with parent to its corresponding EntityWithParent object */
+export const mapEntityWithOutgoingEntityIdsPGRowToEntity = (
+  row: EntityWithOutgoingEntityIdsPGRow,
+): EntityWithOutgoingEntityIds =>
+  ({
+    ...mapPGRowToEntity(row),
+    outgoingEntityIds: row.outgoing_entity_ids,
+  } as EntityWithOutgoingEntityIds);
 
 export const getEntityOutgoingLinks = async (
   conn: Connection,
@@ -35,4 +55,60 @@ export const getEntityOutgoingLinks = async (
   `);
 
   return rows.map(mapDBLinkRowToDBLink);
+};
+
+const outgoingLinkAggregationQuery = sql`select array_agg(destination_entity_id) as outgoing_entity_ids from links
+where a.entity_id = source_entity_id
+group by a.entity_id`;
+
+/**
+ * Get the latest version of all entities of a given type and their outgoing link ids with a matching entity type.
+ * @param params.entityTypeId the entity type id to return entities of
+ * @param params.entityTypeVersionId optionally limit to entities of a specific version of a type
+ * @param params.accountId the account to retrieve entities from
+ */
+export const getEntitiesByTypeWithOutgoingEntityIds = async (
+  conn: Connection,
+  params: {
+    entityTypeId: string;
+    entityTypeVersionId?: string;
+    accountId: string;
+  },
+): Promise<EntityWithOutgoingEntityIds[]> => {
+  const rows = await conn.any<EntityWithOutgoingEntityIdsPGRow>(sql`
+    with all_matches as (
+      ${selectEntitiesByType(params)}
+    )
+    , distinct_entitites as (select distinct on (entity_id) * from all_matches order by entity_id, updated_at desc)
+    select * from distinct_entitites as a
+    left join lateral (${outgoingLinkAggregationQuery}) as l on true
+    
+  `);
+  return rows.map(mapEntityWithOutgoingEntityIdsPGRowToEntity);
+};
+
+/**
+ * Get the latest version of a given entity and all outgoing link ids with a matching entity type.
+ * @param params.accountId the account to retrieve entities from
+ * @param params.entityId entityId of source entity.
+ */
+export const getEntityWithOutgoingEntityIds = async (
+  conn: Connection,
+  params: {
+    accountId: string;
+    entityId: string;
+  },
+): Promise<EntityWithOutgoingEntityIds | null> => {
+  const row = await conn.maybeOne<EntityWithOutgoingEntityIdsPGRow>(
+    sql`
+    with all_matches as (
+      ${selectEntityAllVersions(params)}
+    )
+    , distinct_entitites as (select distinct on (entity_id) * from all_matches order by entity_id, updated_at desc)
+    select * from distinct_entitites as a
+    left join lateral (${outgoingLinkAggregationQuery}) as l on true
+    limit 1
+    `,
+  );
+  return row ? mapEntityWithOutgoingEntityIdsPGRowToEntity(row) : null;
 };
