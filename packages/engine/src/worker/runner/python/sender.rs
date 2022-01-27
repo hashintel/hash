@@ -199,7 +199,7 @@ fn inbound_to_nng(
                 fbb,
                 &flatbuffers_gen::sync_context_batch_generated::ContextBatchSyncArgs {
                     context_batch: Some(batch),
-                    current_step: -1, // TODO: Should have current_step in ContextBatchSync
+                    current_step: msg.current_step as i64,
                 },
             );
             (

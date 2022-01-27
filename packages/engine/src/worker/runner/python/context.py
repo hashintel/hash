@@ -23,6 +23,9 @@ class AgentContext:
     def data(self):
         return self.__sim_ctx.data()
 
+    def step(self):
+        return self.__sim_ctx.step()
+
     def __getattr__(self, field_name):
         elem = self.__dict__['__cols'][field_name][self.__dict__['__idx_in_sim']]
         getter = self.__dict__['__getters'].get(field_name)
@@ -55,6 +58,9 @@ class GroupContext:
 
     def data(self):
         return self.__sim_ctx.data()
+
+    def step(self):
+        return self.__sim_ctx.step()
 
 
 class Snapshot:
@@ -109,6 +115,9 @@ class SimContext:
 
     def data(self):
         return self.__experiment_ctx.data()
+
+    def step(self):
+        return self.__step
 
 
 class SimInitContext:
