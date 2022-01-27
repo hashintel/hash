@@ -96,37 +96,29 @@
           },
           "data": [
             {
-              "id": "73d4be68-bf30-4af4-b15d-645dd1dedd9a",
-              "entityId": "a95813d4-6ee9-482c-8f92-b33d2f481f5c",
               "accountId": "1",
-              "name": "Alice Alison",
+              "name": "Alice",
               "email": "alice@example.com",
               "age": 42,
               "country": "England"
             },
             {
-              "id": "85749d28-76e9-4507-9c58-ebf55e88a3e3",
-              "entityId": "f513da0e-36c6-41a1-a88d-6ad199e038c0",
               "accountId": "2",
-              "name": "Bob Bobson",
+              "name": "Bob",
               "email": "bob@example.com",
               "age": 34,
               "country": "France"
             },
             {
-              "id": "85749d28-76e9-4507-9c58-ebf55e88a3e3",
-              "entityId": "f513da0e-36c6-41a1-a88d-6ad199e038c0",
               "accountId": "3",
-              "name": "David Davidson",
+              "name": "David",
               "email": "david@example.com",
               "age": 24,
               "country": "Denmark"
             },
             {
-              "id": "85749d28-76e9-4507-9c58-ebf55e88a3e3",
-              "entityId": "f513da0e-36c6-41a1-a88d-6ad199e038c0",
               "accountId": "4",
-              "name": "Eric Ericson",
+              "name": "Eric",
               "email": "eric@example.com",
               "age": 59,
               "country": "Iceland"
@@ -134,10 +126,6 @@
           ]
         },
         "initialState": {
-          "hiddenColumns": [
-            "id",
-            "entityId"
-          ],
           "columns": [
             {
               "Header": "accountId",
@@ -146,14 +134,6 @@
             {
               "Header": "email",
               "accessor": "email"
-            },
-            {
-              "Header": "entityId",
-              "accessor": "entityId"
-            },
-            {
-              "Header": "id",
-              "accessor": "id"
             },
             {
               "Header": "name",
