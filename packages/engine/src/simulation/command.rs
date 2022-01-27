@@ -245,7 +245,7 @@ fn handle_hash_message(
             handle_remove_data(cmds, data, from)?;
         }
         HashMessageType::Stop => {
-            cmds.stop = vec![serde_json::from_str(data)?];
+            cmds.stop.push(serde_json::from_str(data)?);
         }
     }
     Ok(())
