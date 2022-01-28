@@ -40,7 +40,7 @@ macro_rules! run_test {
                 .canonicalize()
                 .unwrap();
 
-            $crate::units::experiment::run_test_suite(project_path, None, None).await
+            $crate::units::experiment::run_test_suite(project_path, module_path!(), None, None).await
         }
     };
     ($project:ident, $language:ident $(,)? $(#[$attr:meta])* ) => {
@@ -58,7 +58,7 @@ macro_rules! run_test {
                 .canonicalize()
                 .unwrap();
 
-            $crate::units::experiment::run_test_suite(project_path, Some(hash_engine::Language::$language), None).await
+            $crate::units::experiment::run_test_suite(project_path, module_path!(), Some(hash_engine::Language::$language), None).await
         }
     };
     ($project:ident, experiment: $experiment:ident $(,)? $(#[$attr:meta])* ) => {
@@ -72,7 +72,7 @@ macro_rules! run_test {
                 .canonicalize()
                 .unwrap();
 
-            $crate::units::experiment::run_test_suite(project_path, None, Some(stringify!($experiment))).await
+            $crate::units::experiment::run_test_suite(project_path, module_path!(), None, Some(stringify!($experiment))).await
         }
     };
     ($project:ident, $language:ident, experiment: $experiment:ident $(,)? $(#[$attr:meta])* ) => {
@@ -90,7 +90,7 @@ macro_rules! run_test {
                 .canonicalize()
                 .unwrap();
 
-            $crate::units::experiment::run_test_suite(project_path, Some(hash_engine::Language::$language), Some(stringify!($experiment))).await
+            $crate::units::experiment::run_test_suite(project_path, module_path!(), Some(hash_engine::Language::$language), Some(stringify!($experiment))).await
         }
     };
 }

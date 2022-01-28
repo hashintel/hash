@@ -10,6 +10,8 @@ async fn main() -> Result<()> {
     let args = hash_engine::args();
     let _guard = hash_engine::init_logger(
         args.emit,
+        &args.output,
+        &args.log_folder,
         &format!("experiment-{}", args.experiment_id),
         &format!("experiment-{}-texray", args.experiment_id),
     );

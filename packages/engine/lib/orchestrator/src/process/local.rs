@@ -1,9 +1,11 @@
+use std::path::PathBuf;
+
 use async_trait::async_trait;
 use error::{Report, Result, ResultExt};
 use hash_engine::{
     nano,
     proto::{EngineMsg, ExperimentId},
-    utils::OutputFormat,
+    utils::{OutputFormat, OutputLocation},
 };
 
 use crate::process;
@@ -56,6 +58,8 @@ pub struct LocalCommand {
     controller_url: String,
     max_num_workers: usize,
     output_format: OutputFormat,
+    output_location: OutputLocation,
+    log_folder: PathBuf,
 }
 
 impl LocalCommand {
@@ -64,6 +68,8 @@ impl LocalCommand {
         max_num_workers: usize,
         controller_url: &str,
         output_format: OutputFormat,
+        output_location: OutputLocation,
+        log_folder: PathBuf,
     ) -> Result<Self> {
         // The NNG URL that the engine process will listen on
         let engine_url = format!("ipc://run-{experiment_id}");
@@ -74,6 +80,8 @@ impl LocalCommand {
             controller_url: controller_url.to_string(),
             max_num_workers,
             output_format,
+            output_location,
+            log_folder,
         })
     }
 }
@@ -98,6 +106,10 @@ impl process::Command for LocalCommand {
             .arg(self.max_num_workers.to_string())
             .arg("--emit")
             .arg(self.output_format.to_string())
+            .arg("--output")
+            .arg(self.output_location.to_string())
+            .arg("--log-folder")
+            .arg(self.log_folder)
             .stdout(std::process::Stdio::inherit())
             .stderr(std::process::Stdio::inherit());
         debug!("Running `{cmd:?}`");
