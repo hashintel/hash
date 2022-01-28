@@ -234,4 +234,8 @@ impl Package for BehaviorExecution {
         tracing::trace!("BehaviorExecution task finished: {:?}", &msg);
         Ok(())
     }
+
+    fn get_span(&self) -> Span {
+        tracing::debug_span!("behavior_execution")
+    }
 }

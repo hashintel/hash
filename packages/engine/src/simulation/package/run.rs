@@ -241,7 +241,8 @@ impl StepPackages {
         // Traits are tricky anyway for working with iterators
         // Will instead use state.upgrade() and exstate.downgrade() and respectively for context
         for pkg in self.state.iter_mut() {
-            pkg.run(&mut state, context).await?;
+            let span = pkg.get_span();
+            pkg.run(&mut state, context).instrument(span).await?;
         }
 
         Ok(state)

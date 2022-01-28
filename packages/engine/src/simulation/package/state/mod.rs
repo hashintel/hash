@@ -3,6 +3,7 @@ pub mod packages;
 use std::sync::Arc;
 
 pub use packages::{Name, StateTask, StateTaskMessage, PACKAGE_CREATORS};
+use tracing::Span;
 
 use super::{deps::Dependencies, ext_traits::GetWorkerSimStartMsg, prelude::*};
 pub use crate::config::Globals;
@@ -23,6 +24,8 @@ use crate::{
 #[async_trait]
 pub trait Package: GetWorkerSimStartMsg + Send + Sync {
     async fn run(&mut self, state: &mut StateMut, context: &Context) -> Result<()>;
+
+    fn get_span(&self) -> Span;
 }
 
 pub trait PackageCreator: GetWorkerExpStartMsg + Send + Sync {
