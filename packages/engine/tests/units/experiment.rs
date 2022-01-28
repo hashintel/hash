@@ -314,7 +314,7 @@ impl ExpectedOutput {
         analysis: &Analysis,
     ) -> Result<()> {
         let mut json_state = self.json_state.iter().collect::<Vec<_>>();
-        json_state.sort_unstable();
+        json_state.sort_unstable_by(|(lhs, _), (rhs, _)| Ord::cmp(lhs, rhs));
         for (step, expected_states) in json_state {
             let step = step
                 .parse::<usize>()
