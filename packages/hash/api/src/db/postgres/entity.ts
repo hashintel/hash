@@ -279,7 +279,7 @@ export const getEntityLatestVersionId = async (
   const id = await conn.maybeOneFirst(
     sql`
     with all_matches as (
-      export ${selectEntityAllVersions(params)}
+      ${selectEntityAllVersions(params)}
     )
     select distinct on (entity_id) entity_version_id from all_matches
     order by entity_id, updated_at desc`,
