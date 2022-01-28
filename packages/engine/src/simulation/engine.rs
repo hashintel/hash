@@ -48,7 +48,11 @@ impl Engine {
     ) -> Result<Engine> {
         let comms = Arc::new(comms);
 
-        let state = packages.init.run(Arc::clone(&config.clone())).await?;
+        let state = packages
+            .init
+            .run(Arc::clone(&config.clone()))
+            .instrument(tracing::info_span!("init_packages"))
+            .await?;
         let context = packages.step.empty_context(&config, state.num_agents())?;
         uninitialized_store.set(state, context);
         let store = uninitialized_store;
@@ -77,9 +81,16 @@ impl Engine {
     /// can technically be run any number of times.
     pub async fn next(&mut self, current_step: usize) -> Result<SimulationStepResult> {
         tracing::debug!("Running next step");
-        self.run_context_packages(current_step).await?;
-        self.run_state_packages().await?;
-        let output = self.run_output_packages().await?;
+        self.run_context_packages(current_step)
+            .instrument(tracing::info_span!("context_packages"))
+            .await?;
+        self.run_state_packages()
+            .instrument(tracing::info_span!("state_packages"))
+            .await?;
+        let output = self
+            .run_output_packages()
+            .instrument(tracing::info_span!("output_packages"))
+            .await?;
         let agent_control = if !self.stop_messages.is_empty() {
             AgentControl::Stop(mem::take(&mut self.stop_messages))
         } else {
@@ -114,7 +125,11 @@ impl Engine {
         // Need write access to state to prepare for context packages,
         // so can't start state sync (with workers) yet.
         let (mut state, mut context) = self.store.take_upgraded()?;
-        let snapshot = self.prepare_for_context_packages(&mut state, &mut context)?;
+
+        let snapshot = {
+            let _span = tracing::trace_span!("prepare_context_packages").entered();
+            self.prepare_for_context_packages(&mut state, &mut context)?
+        };
 
         // Context packages use the snapshot and state packages use state.
         // Context packages will be ran before state packages, so start
