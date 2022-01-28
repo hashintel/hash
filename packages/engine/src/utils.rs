@@ -261,7 +261,8 @@ pub fn parse_env_duration(name: &str, default: u64) -> Duration {
 #[cfg(feature = "texray")]
 pub mod texray {
     use tracing_appender::non_blocking::WorkerGuard;
-    use tracing_texray::{examine, TeXRayLayer};
+    pub use tracing_texray::examine;
+    use tracing_texray::TeXRayLayer;
 
     pub fn create_texray_layer(output_name: &str) -> (Option<TeXRayLayer>, WorkerGuard) {
         let texray_file_appender =
