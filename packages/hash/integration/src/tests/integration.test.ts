@@ -1273,7 +1273,9 @@ describe("logged in user ", () => {
 
     let subPage: PageFieldsFragment;
     it("can create a subpage", async () => {
-      const title = "subpage 1";
+      // - Super page 1
+      //   - sub page 1
+      const title = "sub page 1";
       subPage = await client.createPage({
         accountId: existingUser.accountId,
         properties: {
@@ -1301,7 +1303,10 @@ describe("logged in user ", () => {
 
     let subSubPage: PageFieldsFragment;
     it("can create a subsubpage", async () => {
-      const title = "subsubpage 1";
+      // - Super page 1
+      //   - sub page 1
+      //     - sub sub page 1
+      const title = "sub sub page 1";
       subSubPage = await client.createPage({
         accountId: existingUser.accountId,
         properties: {
@@ -1325,6 +1330,38 @@ describe("logged in user ", () => {
         properties: { title },
         parentPageId: subPage.entityId,
       });
+    });
+
+    it("prevent multiple parents", async () => {
+      // - Super page 1
+      //   - sub page 1             <- because this page already has a parent
+      //     - sub sub page 1
+      //       - sub page 1 <- should not be allowed
+      await expect(
+        client.setParentPage({
+          accountId: existingUser.accountId,
+          pageId: subPage.entityId,
+          parentPageId: subSubPage.entityId,
+        }),
+      ).rejects.toThrowError(
+        /page with entityId = '.*' already has parent page entityId = '.*'/i,
+      );
+    });
+
+    it("prevent cyclic page trees", async () => {
+      // - Super page 1
+      //   - sub page 1
+      //     - sub sub page 1
+      //       - Super page 1 <- should not be allowed since it would introduce a cycle
+      await expect(
+        client.setParentPage({
+          accountId: existingUser.accountId,
+          pageId: superPage.entityId,
+          parentPageId: subSubPage.entityId,
+        }),
+      ).rejects.toThrowError(
+        /Could not set '.*' as parent to '.*' as this would create a cyclic dependency./i,
+      );
     });
 
     it("can reconstruct a tree based on the resulting pages", async () => {
