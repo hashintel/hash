@@ -5,7 +5,6 @@
 //! to efficiently share large quantities of data between runtimes. It also includes the
 //! functionalities we use to dynamically initialize data from schemas, and logic around data
 //! access and safety.
-//! 
 // TODO: DOC improve wording of above, and signpost the key modules
 pub mod arrow;
 pub mod batch;

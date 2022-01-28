@@ -25,7 +25,8 @@ pub struct Inner {
     /// Pool which contains all batches for the current step's Agent state.
     agent_pool: AgentPool,
 
-    /// Pool which contains all batches for the message pool of the current step, i.e. the 'outbox'.
+    /// Pool which contains all batches for the message pool of the current step, i.e. the
+    /// 'outbox'.
     message_pool: MessagePool,
 
     /// Cumulative number of agents in the first `i` batches of the pools, i.e. index of first

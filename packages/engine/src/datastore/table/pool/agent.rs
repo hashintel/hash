@@ -22,8 +22,8 @@ impl AgentPool {
     pub fn new(batches: Vec<Arc<RwLock<AgentBatch>>>) -> AgentPool {
         AgentPool { batches }
     }
-    
-    // TODO, why do we have these methods, when we have proxies. Clearly they're needed because 
+
+    // TODO, why do we have these methods, when we have proxies. Clearly they're needed because
     //  we're actually seeing the errors, but this should be fixed
     /// Attempts to acquire read-locks on all batches within the pool.
     pub fn try_read_batches(&self) -> Result<Vec<RwLockReadGuard<'_, AgentBatch>>> {
