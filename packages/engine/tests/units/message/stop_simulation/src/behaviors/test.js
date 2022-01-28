@@ -8,7 +8,7 @@ const behavior = (state, context) => {
         to: "hash",
         type: "stop",
         data: {
-          status: "success",
+          status: "error",
           reason: "test",
         },
       },
