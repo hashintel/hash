@@ -433,12 +433,6 @@ export interface DBClient {
     linkId: string;
   }): Promise<DBLink | null>;
 
-  getLinkInAnyDirection(params: {
-    accountId: string;
-    entityIdOne: string;
-    entityIdTwo: string;
-  }): Promise<DBLink | null>;
-
   deleteLink(params: {
     deletedByAccountId: string;
     sourceAccountId: string;

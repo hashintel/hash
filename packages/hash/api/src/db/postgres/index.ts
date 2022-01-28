@@ -257,12 +257,6 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.getLink(params));
   }
 
-  getLinkInAnyDirection(
-    params: Parameters<DBClient["getLinkInAnyDirection"]>[0],
-  ): ReturnType<DBClient["getLinkInAnyDirection"]> {
-    return this.query((adapter) => adapter.getLinkInAnyDirection(params));
-  }
-
   deleteLink(params: {
     deletedByAccountId: string;
     sourceAccountId: string;
