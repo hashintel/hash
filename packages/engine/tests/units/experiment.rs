@@ -74,7 +74,7 @@ pub async fn run_test_suite<P: AsRef<Path>>(
     experiment: Option<&str>,
 ) {
     if std::env::var("RUST_LOG").is_err() {
-        std::env::set_var("RUST_LOG", "trace");
+        std::env::set_var("RUST_LOG", "info");
     }
 
     let project_path = project_path.as_ref();

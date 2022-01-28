@@ -118,10 +118,6 @@ pub enum OutputFileGuard {
     File(WorkerGuard),
 }
 
-impl Drop for OutputFileGuard {
-    fn drop(&mut self) {}
-}
-
 impl<S, N, T> FormatEvent<S, N> for OutputFormatter<T>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
@@ -149,13 +145,27 @@ impl Default for OutputFormat {
     }
 }
 
+/// Guard for file logging, which should not be dropped until every log entry has been written.
+pub struct LogGuard {
+    _output_guard: OutputFileGuard,
+    _json_file_guard: WorkerGuard,
+    #[cfg(feature = "texray")]
+    _texray_guard: WorkerGuard,
+    #[cfg(not(feature = "texray"))]
+    _texray_guard: (),
+}
+
+impl Drop for LogGuard {
+    fn drop(&mut self) {}
+}
+
 pub fn init_logger<P: AsRef<Path>>(
     output_format: OutputFormat,
-    output_location: OutputLocation,
+    output_location: &OutputLocation,
     log_folder: P,
     log_file_output_name: &str,
     texray_output_name: &str,
-) -> (impl Drop, impl Drop, impl Drop) {
+) -> impl Drop {
     let log_folder = log_folder.as_ref();
 
     let filter = match std::env::var("RUST_LOG") {
@@ -178,7 +188,7 @@ pub fn init_logger<P: AsRef<Path>>(
 
     let error_layer = tracing_error::ErrorLayer::default();
 
-    let (output_writer, output_guard) = output_location.writer(log_folder);
+    let (output_writer, _output_guard) = output_location.writer(log_folder);
     // Because of how the Registry and Layer interface is designed, we can't just have one layer,
     // as they have different types. We also can't box them as it requires Sized. However,
     // Option<Layer> implements the Layer trait so we can  just provide None for one and Some
@@ -207,14 +217,14 @@ pub fn init_logger<P: AsRef<Path>>(
 
     let json_file_appender =
         tracing_appender::rolling::never(log_folder, format!("{log_file_output_name}.json"));
-    let (non_blocking, json_file_guard) = tracing_appender::non_blocking(json_file_appender);
+    let (non_blocking, _json_file_guard) = tracing_appender::non_blocking(json_file_appender);
 
     let json_file_layer = fmt::layer()
         .event_format(formatter.json())
         .fmt_fields(JsonFields::new())
         .with_writer(non_blocking);
 
-    let (texray_layer, texray_guard) = texray::create_texray_layer(texray_output_name);
+    let (texray_layer, _texray_guard) = texray::create_texray_layer(texray_output_name);
 
     tracing_subscriber::registry()
         .with(filter)
@@ -225,7 +235,11 @@ pub fn init_logger<P: AsRef<Path>>(
         .with(texray_layer)
         .init();
 
-    (json_file_guard, texray_guard, output_guard)
+    LogGuard {
+        _output_guard,
+        _json_file_guard,
+        _texray_guard,
+    }
 }
 
 pub fn parse_env_duration(name: &str, default: u64) -> Duration {
@@ -246,13 +260,13 @@ pub fn parse_env_duration(name: &str, default: u64) -> Duration {
 
 #[cfg(feature = "texray")]
 pub mod texray {
-    pub use tracing_texray::examine;
-    use tracing_texray::TeXRayLayer;
+    use tracing_appender::non_blocking::WorkerGuard;
+    use tracing_texray::{examine, TeXRayLayer};
 
-    pub fn create_texray_layer(output_name: &str) -> (Option<TeXRayLayer>, impl Drop) {
+    pub fn create_texray_layer(output_name: &str) -> (Option<TeXRayLayer>, WorkerGuard) {
         let texray_file_appender =
             tracing_appender::rolling::never("./log", format!("{output_name}.txt"));
-        let (non_blocking, _texray_guard) = tracing_appender::non_blocking(texray_file_appender);
+        let (non_blocking, texray_guard) = tracing_appender::non_blocking(texray_file_appender);
 
         // we clone update_settings to satisfy move rules as writer takes a `Fn` rather than
         // `FnOnce`
@@ -261,7 +275,7 @@ pub mod texray {
         // only print spans longer than a certain duration
         // .min_duration(Duration::from_millis(100)),;
 
-        (Some(texray_layer), _texray_guard)
+        (Some(texray_layer), texray_guard)
     }
 }
 
@@ -274,12 +288,7 @@ pub mod texray {
         span
     }
 
-    struct EmptyDrop {}
-    impl Drop for EmptyDrop {
-        fn drop(&mut self) {}
-    }
-
-    pub fn create_texray_layer<S>(_output_name: &str) -> (Option<Layer<S>>, impl Drop) {
-        (None, EmptyDrop {})
+    pub fn create_texray_layer<S>(_output_name: &str) -> (Option<Layer<S>>, ()) {
+        (None, ())
     }
 }
