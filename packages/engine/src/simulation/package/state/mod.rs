@@ -12,7 +12,7 @@ use crate::{
         batch::change::ArrayChange,
         error::Result as DatastoreResult,
         schema::{accessor::FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
-        table::state::ExState,
+        table::state::StateMut,
     },
     simulation::{
         comms::package::PackageComms, package::ext_traits::GetWorkerExpStartMsg, Error, Result,
@@ -22,7 +22,7 @@ use crate::{
 
 #[async_trait]
 pub trait Package: GetWorkerSimStartMsg + Send + Sync {
-    async fn run(&mut self, state: &mut ExState, context: &Context) -> Result<()>;
+    async fn run(&mut self, state: &mut StateMut, context: &Context) -> Result<()>;
 }
 
 pub trait PackageCreator: GetWorkerExpStartMsg + Send + Sync {

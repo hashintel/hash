@@ -8,12 +8,12 @@ use crate::{
 };
 
 pub fn gather_behavior_chains(
-    state: &ExState,
+    state: &StateMut,
     behavior_ids: &BehaviorIds,
     data_types: [arrow::datatypes::DataType; 3],
     behavior_ids_col_index: usize,
 ) -> Result<StateColumn> {
-    let batches = state.agent_pool().read_batches()?;
+    let batches = state.agent_pool().try_read_batches()?;
 
     let inner = iterators::agent::behavior_list_bytes_iter(&batches)?
         .map(|v| Chain::from_behaviors(&v, behavior_ids))

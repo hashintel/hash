@@ -300,7 +300,7 @@ fn state_sync_to_fbs<'f>(
     WIPOffset<Vector<'f, ForwardsUOffset<flatbuffers_gen::batch_generated::Batch<'f>>>>,
     WIPOffset<Vector<'f, ForwardsUOffset<flatbuffers_gen::batch_generated::Batch<'f>>>>,
 )> {
-    let agent_pool = agent_pool.read_batches()?;
+    let agent_pool = agent_pool.try_read_batches()?;
     let agent_pool: Vec<_> = agent_pool
         .iter()
         .map(|batch| batch_to_fbs(fbb, batch))
