@@ -116,7 +116,7 @@ export const topologicalSort = <T>(edges: [T, T][]) => {
     const node = stack.pop()!;
     sort.push(node);
     const nodeOutgoing = outgoingEdges.get(node);
-    for (const child of nodeOutgoing.values()) {
+    for (const child of Array.from(nodeOutgoing.values())) {
       const childIncoming = incomingEdges.get(child)!;
       // Remove the (node, child) edge from the graph
       nodeOutgoing.delete(child);
@@ -128,7 +128,7 @@ export const topologicalSort = <T>(edges: [T, T][]) => {
   }
 
   // If there are any edges left, then the graph is not acyclic
-  for (const [_, children] of outgoingEdges.entries()) {
+  for (const [_, children] of Array.from(outgoingEdges.entries())) {
     if (children.size !== 0) {
       throw new Error("graph is not acyclic");
     }
