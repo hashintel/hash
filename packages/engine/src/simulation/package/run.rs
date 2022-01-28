@@ -17,7 +17,7 @@ use crate::{
             context,
             context::ContextColumn,
             init, output,
-            prelude::{Error, ExContext, ExState, Result},
+            prelude::{ContextMut, Error, Result, StateMut},
             state,
         },
         step_output::SimulationStepOutput,
@@ -152,7 +152,7 @@ impl StepPackages {
         state: Arc<State>,
         snapshot: StateSnapshot,
         pre_context: PreContext,
-    ) -> Result<ExContext> {
+    ) -> Result<ContextMut> {
         tracing::debug!("Running context packages");
         // Execute packages in parallel and collect the data
         let mut futs = FuturesOrdered::new();
@@ -234,7 +234,7 @@ impl StepPackages {
         Ok(context)
     }
 
-    pub async fn run_state(&mut self, mut state: ExState, context: &Context) -> Result<ExState> {
+    pub async fn run_state(&mut self, mut state: StateMut, context: &Context) -> Result<StateMut> {
         tracing::debug!("Running state packages");
         // Design-choices:
         // Cannot use trait bounds as dyn Package won't be object-safe
