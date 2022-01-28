@@ -124,7 +124,7 @@ impl Engine {
         // Synchronize snapshot with workers
         self.comms
             .state_snapshot_sync(&snapshot)
-            .instrument(tracing::trace_span!("snapshot_sync"))
+            .instrument(tracing::info_span!("snapshot_sync"))
             .await?;
 
         // After this point, we'll only need read access to state until
@@ -143,7 +143,7 @@ impl Engine {
 
             Result::Ok(())
         }
-        .instrument(tracing::trace_span!("state_sync"))
+        .instrument(tracing::info_span!("state_sync"))
         .await?;
 
         let pre_context = context.into_pre_context();
@@ -151,7 +151,7 @@ impl Engine {
             .packages
             .step
             .run_context(state.clone(), snapshot, pre_context)
-            .instrument(tracing::trace_span!("run_context_packages"))
+            .instrument(tracing::info_span!("run_context_packages"))
             .await?
             .into_shared();
 
@@ -159,7 +159,7 @@ impl Engine {
         // again until the next step.
         self.comms
             .context_batch_sync(&context, current_step, state.group_start_indices())
-            .instrument(tracing::trace_span!("context_sync"))
+            .instrument(tracing::info_span!("context_sync"))
             .await?;
 
         // Note: the comment below is mostly invalid until state sync is fixed
