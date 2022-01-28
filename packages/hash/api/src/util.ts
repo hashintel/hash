@@ -4,7 +4,6 @@ import { CreateEntityArgs } from "./model";
 import { isSystemType } from "./types/entityTypes";
 
 export {
-  DefaultMap,
   topologicalSort,
   treeFromParentReferences,
 } from "@hashintel/hash-shared/util";
