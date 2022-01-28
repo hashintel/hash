@@ -127,7 +127,7 @@ impl Engine {
         let (mut state, mut context) = self.store.take_upgraded()?;
 
         let snapshot = {
-            let _span = tracing::trace_span!("prepare_context_packages").entered();
+            let _span = tracing::debug_span!("prepare_context_packages").entered();
             self.prepare_for_context_packages(&mut state, &mut context)?
         };
 

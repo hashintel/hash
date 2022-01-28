@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 pub use packages::{ContextTask, ContextTaskMessage, Name, PACKAGE_CREATORS};
+use tracing::Span;
 
 use super::{
     deps::Dependencies,
@@ -36,6 +37,8 @@ pub trait Package: MaybeCpuBound + GetWorkerSimStartMsg + Send + Sync {
         num_agents: usize,
         context_schema: &ContextSchema,
     ) -> Result<Vec<(FieldKey, Arc<dyn arrow::array::Array>)>>;
+
+    fn get_span(&self) -> Span;
 }
 
 pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
@@ -96,6 +99,7 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
 pub struct ContextColumn {
     pub(crate) field_key: FieldKey,
     inner: Box<dyn ContextColumnWriter + Send + Sync>,
+    span: Span,
 }
 
 impl ContextColumn {
@@ -104,6 +108,8 @@ impl ContextColumn {
     }
 
     pub fn write(&self, buffer: &mut [u8], meta: &ColumnDynamicMetadata) -> DatastoreResult<()> {
+        let _pkg_span = self.span.enter();
+        let _write_span = tracing::trace_span!("column_write").entered();
         self.inner.write(buffer, meta)
     }
 }

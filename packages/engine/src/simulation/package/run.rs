@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use futures::{executor::block_on, stream::FuturesOrdered, StreamExt};
-use tracing::Instrument;
+use tracing::{Instrument, Span};
 
 use crate::{
     datastore::{
@@ -168,14 +168,21 @@ impl StepPackages {
 
             let cpu_bound = package.cpu_bound();
             futs.push(if cpu_bound {
+                let current_span = Span::current();
                 tokio::task::spawn_blocking(move || {
-                    let res = block_on(package.run(state, snapshot_clone).in_current_span());
+                    let package_span = {
+                        // We want to create the package span within the scope of the current one
+                        let _entered = current_span.entered();
+                        package.get_span()
+                    };
+                    let res = block_on(package.run(state, snapshot_clone).instrument(package_span));
                     (package, res)
                 })
             } else {
+                let span = package.get_span();
                 tokio::task::spawn(
                     async {
-                        let res = package.run(state, snapshot_clone).await;
+                        let res = package.run(state, snapshot_clone).instrument(span).await;
                         (package, res)
                     }
                     .in_current_span(),
