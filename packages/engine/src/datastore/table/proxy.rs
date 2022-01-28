@@ -1,3 +1,22 @@
+//! Provides structs that behave as guards for the read/write locks on batches and pools that
+//! you can send between threads.
+//!
+//! Proxies are basically just self-referential structs, which is why they use pointers/unsafe code
+//! internally. Usually locking a RwLock would give a Guard that has a lifetime depending on the
+//! RwLock, but in our use case, this isn’t necessary, because as long as the Proxy exists, an Arc
+//! containing the RwLock will exist, so there’s no possibility of the Proxy referencing a RwLock
+//! that no longer exists. In other words, the Proxy is like a self-referential struct containing
+//! both a Guard and an Arc with the RwLock that the Guard refers to, so as long as the Proxy
+//! exists, the RwLock will also exist and the Guard will refer to an existing RwLock.
+//!
+//! Also, the Guard is actually just the pointer inside the RwLock, so we don’t need to store it in
+//! a separate field. Also, the RwLock is like a Box in the sense that even if it is moved, its
+//! contents stay in the same place on the heap, so they don’t need to be pinned -- therefore, if
+//! the Proxy is moved, the references returned by the Proxy to its RwLock’s contents (i.e. its
+//! “guard”) will still be valid.
+// TODO: move each proxy into it's own module, for example, batch proxy should go inside the batch
+//  module, state in state, etc. Move the above doc-comment into the batch proxy module as the
+//  self referential unsafe stuff only applies to batches
 use std::{
     fmt::{Debug, Formatter},
     sync::Arc,
@@ -15,6 +34,7 @@ use crate::datastore::{
     table::pool::BatchPool,
 };
 
+/// A thread-sendable guard for reading a batch, see module-level documentation for more reasoning
 pub struct BatchReadProxy<K: Batch> {
     arc: Arc<RwLock<K>>,
 }
@@ -28,15 +48,11 @@ impl<K: Batch> BatchReadProxy<K> {
         }
     }
 
-    /// # Safety
-    ///
-    /// This method uses unsafe code to get a shared reference
-    /// to the underlying data. However since this object
-    /// acts as a guarantee of no write locks
-    /// existing, then data races stemming from the dereferencing
-    /// happening within this method cannot happen
     pub fn inner(&self) -> &K {
         let ptr = self.arc.data_ptr();
+        // Safety: This method uses unsafe code to get a shared reference to the underlying data.
+        // However since this object acts as a guarantee of no write locks existing, then data races
+        // stemming from the dereferencing happening within this method cannot happen
         unsafe { &*ptr }
     }
 }
@@ -60,6 +76,7 @@ impl<K: Batch> Drop for BatchReadProxy<K> {
     }
 }
 
+/// A thread-sendable guard for writing a batch, see module-level documentation for more reasoning.
 pub struct BatchWriteProxy<K: Batch> {
     arc: Arc<RwLock<K>>,
 }
@@ -73,27 +90,20 @@ impl<K: Batch> BatchWriteProxy<K> {
         }
     }
 
-    /// # Safety
-    ///
-    /// This method uses unsafe code to get a mutable reference
-    /// to the underlying data. However since this object
-    /// acts as a guarantee of no other read/write locks
-    /// existing, then data races stemming from the dereferencing
-    /// happening within this method cannot happen
     pub fn inner_mut(&mut self) -> &mut K {
         let ptr = self.arc.data_ptr();
+        // Safety: This method uses unsafe code to get a mutable reference to the underlying data.
+        // However since this object acts as a guarantee of no other read/write locks existing,
+        // then data races stemming from the dereferencing happening within this method cannot
+        // happen
         unsafe { &mut *ptr }
     }
 
-    /// # Safety
-    ///
-    /// This method uses unsafe code to get a mutable reference
-    /// to the underlying data. However since this object
-    /// acts as a guarantee of no other read/write locks
-    /// existing, then data races stemming from the dereferencing
-    /// happening within this method cannot happen
     pub fn inner(&self) -> &K {
         let ptr = self.arc.data_ptr();
+        // Safety: This method uses unsafe code to get a mutable reference to the underlying data.
+        // However since this object acts as a guarantee of no other read/write locks existing, then
+        // data races stemming from the dereferencing happening within this method cannot happen
         unsafe { &*ptr }
     }
 }
