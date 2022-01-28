@@ -77,10 +77,10 @@ impl GetWorkerSimStartMsg for Topology {
 
 #[async_trait]
 impl Package for Topology {
-    async fn run(&mut self, state: &mut ExState, _context: &Context) -> Result<()> {
+    async fn run(&mut self, state: &mut StateMut, _context: &Context) -> Result<()> {
         tracing::trace!("Running Topology package");
         if self.config.move_wrapped_agents {
-            for mut mut_table in state.agent_pool_mut().write_batches()? {
+            for mut mut_table in state.agent_pool_mut().try_write_batches()? {
                 if self.topology_correction(&mut mut_table)? {
                     // TODO: inplace changes and metaversioning should happen at a deeper level.
                     mut_table.metaversion.increment_batch();

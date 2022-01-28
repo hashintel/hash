@@ -152,6 +152,9 @@ impl GrowableBatch<ArrayChange, Arc<array::ArrayData>> for Batch {
 }
 
 impl Batch {
+    /// Clears the message column, resizing as necessary.
+    ///
+    /// Uses the passed in `agents` for the `AgentId`s and the group sizes.
     pub fn reset(&mut self, agents: &AgentBatch) -> Result<()> {
         tracing::trace!("Resetting batch");
         let agent_count = agents.batch.num_rows();
