@@ -271,15 +271,25 @@ impl StepPackages {
 
             let cpu_bound = pkg.cpu_bound();
             futs.push(if cpu_bound {
+                let current_span = Span::current();
                 tokio::task::spawn_blocking(move || {
-                    let res = block_on(pkg.run(state, context));
+                    let package_span = {
+                        // We want to create the package span within the scope of the current one
+                        let _entered = current_span.entered();
+                        pkg.get_span()
+                    };
+                    let res = block_on(pkg.run(state, context).instrument(package_span));
                     (pkg, res)
                 })
             } else {
-                tokio::task::spawn(async {
-                    let res = pkg.run(state, context).await;
-                    (pkg, res)
-                })
+                let span = pkg.get_span();
+                tokio::task::spawn(
+                    async {
+                        let res = pkg.run(state, context).instrument(span).await;
+                        (pkg, res)
+                    }
+                    .in_current_span(),
+                )
             });
         });
 
