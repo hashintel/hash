@@ -953,11 +953,6 @@ impl<'m> RunnerImpl<'m> {
         let (next_target, next_task_payload) = get_next_task(mv8, &r)?;
 
         let next_inner_task_msg: serde_json::Value = serde_json::from_str(&next_task_payload)?;
-        tracing::trace!(
-            "Wrapper: {:?}, next_inner: {:?}",
-            &wrapper,
-            &next_inner_task_msg
-        );
         let next_task_payload =
             TaskMessage::try_from_inner_msg_and_wrapper(next_inner_task_msg, wrapper).map_err(
                 |err| {
