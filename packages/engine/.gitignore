@@ -10,6 +10,6 @@ src/worker/runner/python/wrappers.c*
 *-topy*
 *-frompy*
 *hash-orchestrator-*
-./parts/
-./output/
-./log/
+/parts
+/output
+/log

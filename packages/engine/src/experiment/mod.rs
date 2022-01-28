@@ -7,12 +7,14 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
 use tokio::task::JoinHandle;
+use tracing::Instrument;
 
 pub use self::error::{Error, Result};
 use crate::{
     config::{ExperimentConfig, Globals},
     experiment::controller::comms::{exp_pkg_ctl::ExpPkgCtlSend, exp_pkg_update::ExpPkgUpdateRecv},
     proto,
+    types::SpanId,
 };
 
 pub type SharedDataset = proto::SharedDataset;
@@ -89,7 +91,9 @@ pub enum ExperimentControl {
         sim_id: proto::SimulationShortId,
         changed_properties: serde_json::Value,
         max_num_steps: usize,
+        span_id: SpanId,
     },
+    // TODO: add span_ids
     PauseSim(proto::SimulationShortId),
     ResumeSim(proto::SimulationShortId),
     StopSim(proto::SimulationShortId),
@@ -104,14 +108,18 @@ pub fn init_exp_package(
     let future = match exp_package_config {
         proto::ExperimentPackageConfig::Simple(config) => {
             let pkg = package::simple::SimpleExperiment::new(&experiment_config, config)?;
-            tokio::spawn(async move { pkg.run(pkg_to_exp, exp_pkg_update_recv).await })
+            tokio::spawn(
+                async move { pkg.run(pkg_to_exp, exp_pkg_update_recv).await }.in_current_span(),
+            )
         }
         proto::ExperimentPackageConfig::SingleRun(config) => {
             let pkg = package::single::SingleRunExperiment::new(
                 &Arc::new(experiment_config.as_ref().into()),
                 config,
             )?;
-            tokio::spawn(async move { pkg.run(pkg_to_exp, exp_pkg_update_recv).await })
+            tokio::spawn(
+                async move { pkg.run(pkg_to_exp, exp_pkg_update_recv).await }.in_current_span(),
+            )
         }
     };
     Ok(future)

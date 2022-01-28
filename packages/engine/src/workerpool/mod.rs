@@ -12,6 +12,7 @@ use futures::{
 };
 use rand::prelude::SliceRandom;
 use tokio::{pin, task::JoinHandle};
+use tracing::{Instrument, Span};
 
 pub use self::error::{Error, Result};
 use self::{
@@ -124,7 +125,7 @@ impl WorkerPoolController {
     }
 
     fn run_worker_controllers(&mut self) -> Result<JoinHandle<Result<Vec<()>>>> {
-        log::debug!("Running workers");
+        tracing::debug!("Running workers");
         let worker_controllers = self
             .worker_controllers
             .take()
@@ -132,22 +133,27 @@ impl WorkerPoolController {
 
         let futs = worker_controllers
             .into_iter()
-            .map(|mut c| tokio::spawn(async move { c.run().await.map_err(Error::from) }))
+            .map(|mut c| {
+                tokio::spawn(async move { c.run().await.map_err(Error::from) }.in_current_span())
+            })
             .collect::<Vec<_>>();
 
-        let fut = tokio::spawn(async move {
-            try_join_all(futs)
-                .await
-                .map_err(|_| Error::from("Couldn't join!"))?
-                .into_iter()
-                .collect::<Result<_>>()
-        });
+        let fut = tokio::spawn(
+            async move {
+                try_join_all(futs)
+                    .await
+                    .map_err(|_| Error::from("Couldn't join!"))?
+                    .into_iter()
+                    .collect::<Result<_>>()
+            }
+            .in_current_span(),
+        );
         Ok(fut)
     }
 
     /// TODO: DOC
     pub async fn run(mut self) -> Result<()> {
-        log::debug!("Running Worker Pool Controller");
+        tracing::debug!("Running Worker Pool Controller");
         pin!(let workers = self.run_worker_controllers()?;);
         pin!(let terminate_recv = self.terminate_recv.take_recv()?;);
 
@@ -162,15 +168,15 @@ impl WorkerPoolController {
             tokio::select! {
                 Some(_) = pending_syncs.next() => {}
                 Some(msg) = self.sim_recv.recv() => {
-                    log::debug!("Handle simulation message: {:?}", msg);
+                    tracing::debug!("Handle simulation message: {:?}", msg);
                     self.handle_sim_msg(msg, &mut pending_syncs).await?;
                 }
-                Some(msg) = self.exp_recv.recv() => {
-                    log::debug!("Handle experiment message: {:?}", msg);
-                    self.handle_exp_msg(msg).await?;
+                Some((span, msg)) = self.exp_recv.recv() => {
+                    tracing::debug!("Handle experiment message: {:?}", msg);
+                    self.handle_exp_msg(msg).instrument(span).await?;
                 }
                 Some((worker_index, sim_id, msg)) = self.comms.recv() => {
-                    log::debug!("Handle comms message for worker [{}] and simulation [{}]: {:?}", worker_index, sim_id, msg);
+                    tracing::debug!("Handle comms message for worker [{}] and simulation [{}]: {:?}", worker_index, sim_id, msg);
                     self.handle_worker_msg(worker_index, sim_id, msg).await?;
                 }
                 // TODO: Revisit this
@@ -181,16 +187,16 @@ impl WorkerPoolController {
                 // }
                 terminate_msg = &mut terminate_recv => {
                     terminate_msg.map_err(|err| Error::from(format!("Couldn't receive terminate: {:?}", err)))?;
-                    log::debug!("Sending terminate msg to all workers");
+                    tracing::debug!("Sending terminate msg to all workers");
                     // Propagate terminate msg to all workers
                     self.comms.send_terminate_all().await?;
-                    log::debug!("Confirming termination of workers");
+                    tracing::debug!("Confirming termination of workers");
                     // Send confirmation of success
                     self.terminate_recv.confirm_terminate()?;
                     return Ok(())
                 }
                 work_res = &mut workers => {
-                    log::debug!("Worker result: {:?}", &work_res);
+                    tracing::debug!("Worker result: {:?}", &work_res);
                     work_res??;
                     return Ok(())
                 }
@@ -204,6 +210,7 @@ impl WorkerPoolController {
         msg: EngineToWorkerPoolMsg,
         pending_syncs: &mut FuturesUnordered<Pin<Box<dyn Future<Output = ()> + Send>>>,
     ) -> Result<()> {
+        let _span = msg.span.entered();
         let sim_id = msg.sim_id;
         match msg.payload {
             EngineToWorkerPoolMsgPayload::Task(task_msg) => {
@@ -236,6 +243,7 @@ impl WorkerPoolController {
                     sync.create_children(self.comms.num_workers());
                 for (worker_index, msg) in worker_msgs.into_iter().enumerate() {
                     self.comms.send(worker_index, WorkerPoolToWorkerMsg {
+                        span: Span::current(),
                         sim_id: Some(sim_id),
                         payload: WorkerPoolToWorkerMsgPayload::Sync(SyncPayload::State(msg)),
                     })?;
@@ -243,7 +251,8 @@ impl WorkerPoolController {
                 let fut = async move {
                     let sync = sync; // Capture `sync` in lambda.
                     sync.forward_children(worker_completion_receivers).await
-                };
+                }
+                .in_current_span();
                 pending_syncs.push(Box::pin(fut) as _);
             }
         }
@@ -284,19 +293,19 @@ impl WorkerPoolController {
                 }
             }
             WorkerToWorkerPoolMsg::RunnerErrors(errors) => {
-                log::debug!("Received RunnerErrors Message from Worker");
+                tracing::debug!("Received RunnerErrors Message from Worker");
                 self.top_send
                     .inner
                     .send((sim_id, WorkerPoolToExpCtlMsg::Errors(errors)))?;
             }
             WorkerToWorkerPoolMsg::RunnerWarnings(warnings) => {
-                log::debug!("Received RunnerWarnings Message from Worker");
+                tracing::debug!("Received RunnerWarnings Message from Worker");
                 self.top_send
                     .inner
                     .send((sim_id, WorkerPoolToExpCtlMsg::Warnings(warnings)))?;
             }
             WorkerToWorkerPoolMsg::RunnerLogs(logs) => {
-                log::debug!("Received RunnerLogs Message from Worker");
+                tracing::debug!("Received RunnerLogs Message from Worker");
                 self.top_send
                     .inner
                     .send((sim_id, WorkerPoolToExpCtlMsg::Logs(logs)))?;
@@ -309,7 +318,7 @@ impl WorkerPoolController {
     #[allow(dead_code)]
     async fn handle_cancel_msgs(&mut self, cancel_msgs: Vec<TaskId>) -> Result<()> {
         for id in cancel_msgs {
-            log::trace!("Handling cancel msg for task with id: {}", id);
+            tracing::trace!("Handling cancel msg for task with id: {}", id);
             if let Some(task) = self.pending_tasks.inner.get(&id) {
                 match &task.distribution_controller {
                     DistributionController::Distributed {

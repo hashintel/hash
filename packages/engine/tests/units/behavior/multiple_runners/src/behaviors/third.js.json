@@ -1,0 +1,16 @@
+{
+  "keys": {
+    "a": {
+      "type": "number",
+      "nullable": false
+    },
+    "b": {
+      "type": "number",
+      "nullable": false
+    },
+    "c": {
+      "type": "number",
+      "nullable": false
+    }
+  }
+}

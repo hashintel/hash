@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::Result;
 use crate::{
     hash_types::worker::RunnerError, output::OutputPersistenceResultRepr, proto::SimulationShortId,
+    simulation::command::StopCommand,
 };
 
 // Sent from sim runs to experiment main loop.
@@ -11,7 +12,7 @@ pub struct SimStatus {
     pub sim_id: SimulationShortId,
     pub steps_taken: isize,
     pub early_stop: bool,
-    pub stop_msg: Option<serde_json::Value>,
+    pub stop_msg: Vec<StopCommand>,
     pub stop_signal: bool,
     pub persistence_result: Option<(String, serde_json::Value)>,
     // TODO: OS do we need these within SimStatus or should they be handled elsewhere, such as
@@ -45,7 +46,7 @@ impl SimStatus {
         sim_id: SimulationShortId,
         steps_taken: isize,
         early_stop: bool,
-        stop_msg: Option<serde_json::Value>,
+        stop_msg: Vec<StopCommand>,
         persistence_result: P,
     ) -> Result<SimStatus> {
         let persistence_result = OutputPersistenceResultRepr::into_value(persistence_result)

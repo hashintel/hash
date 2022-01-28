@@ -283,7 +283,7 @@ impl FieldSpecMap {
                     ));
                 } else if let FieldSource::Package(_package_src) = &new_field.source {
                     if existing_field.source == FieldSource::Engine {
-                        log::warn!(
+                        tracing::warn!(
                             "Key clash when a package attempted to insert a new agent-scoped \
                              field with key: {:?}, the existing field was created by the engine, \
                              the new field will be ignored",

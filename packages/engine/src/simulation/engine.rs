@@ -1,8 +1,10 @@
-use std::sync::Arc;
+use std::{mem, sync::Arc};
+
+use tracing::Instrument;
 
 use super::{
-    command::CreateRemoveCommands, comms::Comms, package::run::Packages,
-    step_output::SimulationStepOutput, step_result::SimulationStepResult, Error, Result,
+    comms::Comms, package::run::Packages, step_output::SimulationStepOutput,
+    step_result::SimulationStepResult, Error, Result,
 };
 use crate::{
     config::SimRunConfig,
@@ -16,7 +18,10 @@ use crate::{
         },
     },
     proto::ExperimentRunTrait,
-    simulation::agent_control::AgentControl,
+    simulation::{
+        agent_control::AgentControl,
+        command::{Commands, StopCommand},
+    },
 };
 
 /// TODO: DOC
@@ -25,6 +30,7 @@ pub struct Engine {
     store: Store,
     comms: Arc<Comms>,
     config: Arc<SimRunConfig>,
+    stop_messages: Vec<StopCommand>,
 }
 
 impl Engine {
@@ -52,6 +58,7 @@ impl Engine {
             store,
             comms,
             config,
+            stop_messages: Vec::new(),
         })
     }
 
@@ -69,17 +76,21 @@ impl Engine {
     /// output packages are run only once, context and state packages
     /// can technically be run any number of times.
     pub async fn next(&mut self, current_step: usize) -> Result<SimulationStepResult> {
-        log::debug!("Running next step");
+        tracing::debug!("Running next step");
         self.run_context_packages(current_step).await?;
         self.run_state_packages().await?;
         let output = self.run_output_packages().await?;
+        let agent_control = if !self.stop_messages.is_empty() {
+            AgentControl::Stop(mem::take(&mut self.stop_messages))
+        } else {
+            AgentControl::Continue
+        };
         let result = SimulationStepResult {
             sim_id: self.config.sim.id,
             output,
             errors: vec![],
             warnings: vec![],
-            agent_control: AgentControl::Continue, // TODO: OS - Need to pick up from messages
-            stop_signal: false,
+            agent_control,
         };
         Ok(result)
     }
@@ -99,7 +110,7 @@ impl Engine {
     /// dependent on each other, then all context packages are run in parallel
     /// and their outputs are merged into one Context object.
     async fn run_context_packages(&mut self, current_step: usize) -> Result<()> {
-        log::trace!("Starting run context packages stage");
+        tracing::trace!("Starting run context packages stage");
         // Need write access to state to prepare for context packages,
         // so can't start state sync (with workers) yet.
         let (mut state, mut context) = self.store.take_upgraded()?;
@@ -111,25 +122,36 @@ impl Engine {
         // get the respective syncs done in parallel with packages.
 
         // Synchronize snapshot with workers
-        self.comms.state_snapshot_sync(&snapshot).await?;
+        self.comms
+            .state_snapshot_sync(&snapshot)
+            .instrument(tracing::trace_span!("snapshot_sync"))
+            .await?;
 
         // After this point, we'll only need read access to state until
         // running the first state package. (Context packages don't have
         // write access to state.)
         let state = Arc::new(state.downgrade());
         // Synchronize state with workers
-        let active_sync = self.comms.state_sync(&state).await?;
-        // TODO: fix issues with getting write access to the message batch while state sync runs in
-        //  parallel with context packages
-        log::trace!("Waiting for active state sync");
-        active_sync.await?.map_err(Error::state_sync)?;
-        log::trace!("State sync finished");
+        async {
+            let active_sync = self.comms.state_sync(&state).await?;
+
+            // TODO: fix issues with getting write access to the message batch while state sync runs
+            //  in parallel with context packages
+            tracing::trace!("Waiting for active state sync");
+            active_sync.await?.map_err(Error::state_sync)?;
+            tracing::trace!("State sync finished");
+
+            Result::Ok(())
+        }
+        .instrument(tracing::trace_span!("state_sync"))
+        .await?;
 
         let pre_context = context.into_pre_context();
         let context = self
             .packages
             .step
             .run_context(state.clone(), snapshot, pre_context)
+            .instrument(tracing::trace_span!("run_context_packages"))
             .await?
             .downgrade();
 
@@ -137,6 +159,7 @@ impl Engine {
         // again until the next step.
         self.comms
             .context_batch_sync(&context, current_step, state.group_start_indices())
+            .instrument(tracing::trace_span!("context_sync"))
             .await?;
 
         // Note: the comment below is mostly invalid until state sync is fixed
@@ -209,26 +232,26 @@ impl Engine {
         state: &mut ExState,
         context: &mut ExContext,
     ) -> Result<StateSnapshot> {
-        log::trace!("Preparing for context packages");
+        tracing::trace!("Preparing for context packages");
         let message_map = state.message_map()?;
-        self.add_remove_agents(state, &message_map)?;
+        self.handle_messages(state, &message_map)?;
         let message_pool = self.finalize_agent_messages(state, context)?;
         let agent_pool = self.finalize_agent_state(state, context)?;
         Ok(StateSnapshot::new(agent_pool, message_pool, message_map))
     }
 
-    /// Create and Remove agents
+    /// Handles messages from the agents
     ///
-    /// Operates based on the "create_agent" and "remove_agent"
-    /// messages sent to "hash" through agent inboxes. Also creates
-    /// and removes agents that have been requested by State packages.
-    fn add_remove_agents(&mut self, state: &mut ExState, message_map: &MessageMap) -> Result<()> {
+    /// Operates based on the "create_agent", "remove_agent", and "stop" messages sent to "hash"
+    /// through agent inboxes. Also creates and removes agents that have been requested by State
+    /// packages.
+    fn handle_messages(&mut self, state: &mut ExState, message_map: &MessageMap) -> Result<()> {
         let read = state.message_pool().read()?;
-        let mut commands = CreateRemoveCommands::from_hash_messages(message_map, read)?;
-        commands.merge(self.comms.take_create_remove_commands()?);
+        let mut commands = Commands::from_hash_messages(message_map, read)?;
+        commands.merge(self.comms.take_commands()?);
         commands.verify(&self.config.sim.store.agent_schema)?;
-
-        state.create_remove(commands, &self.config)?;
+        self.stop_messages = commands.stop;
+        state.create_remove(commands.create_remove, &self.config)?;
         Ok(())
     }
 

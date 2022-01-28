@@ -66,7 +66,7 @@ unsafe extern "C" fn get_static_metadata(schema: usize) -> *const StaticMeta {
             Box::into_raw(boxed)
         }
         Err(why) => {
-            log::error!("Error in `get_static_metadata`: {:?}", &why);
+            tracing::error!("Error in `get_static_metadata`: {:?}", &why);
             std::ptr::null()
         }
     }
@@ -105,7 +105,7 @@ unsafe extern "C" fn get_dynamic_metadata(memory_ptr: *const CMemory) -> *const 
             {
                 Ok(ret) => ret,
                 Err(why) => {
-                    log::error!("Error in `get_dynamic_metadata`: {:?}", &why);
+                    tracing::error!("Error in `get_dynamic_metadata`: {:?}", &why);
                     return std::ptr::null();
                 }
             };
@@ -114,7 +114,7 @@ unsafe extern "C" fn get_dynamic_metadata(memory_ptr: *const CMemory) -> *const 
             let dynamic_meta = match batch_message.into_meta(data_buffer_len) {
                 Ok(ret) => ret,
                 Err(why) => {
-                    log::error!("Error in `get_dynamic_metadata`: {:?}", &why);
+                    tracing::error!("Error in `get_dynamic_metadata`: {:?}", &why);
                     return std::ptr::null();
                 }
             };
@@ -122,7 +122,7 @@ unsafe extern "C" fn get_dynamic_metadata(memory_ptr: *const CMemory) -> *const 
             Box::into_raw(boxed)
         }
         Err(why) => {
-            log::error!("Error in `get_dynamic_metadata`: {:?}", &why);
+            tracing::error!("Error in `get_dynamic_metadata`: {:?}", &why);
             std::ptr::null()
         }
     }

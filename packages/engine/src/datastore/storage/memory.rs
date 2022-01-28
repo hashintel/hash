@@ -75,7 +75,7 @@ impl Memory {
     /// reloading
     pub fn resize(&mut self, mut new_size: usize) -> Result<()> {
         new_size = Self::calculate_total_size(new_size, self.include_terminal_padding)?;
-        log::trace!("Trying to resize memory to: {}", new_size);
+        tracing::trace!("Trying to resize memory to: {}", new_size);
         self.data.resize(new_size)?;
         self.size = new_size;
         Ok(())
@@ -321,7 +321,9 @@ impl Memory {
                 size = val.parse().expect(&format!(
                     "OS_MEMORY_ALLOC_OVERRIDE was an invalid value: {val}"
                 ));
-                log::debug!("Memory size was overridden by value set in envvar, set to: {size}");
+                tracing::debug!(
+                    "Memory size was overridden by value set in envvar, set to: {size}"
+                );
             }
         }
 
@@ -360,7 +362,9 @@ impl Memory {
                 size = val.parse().expect(&format!(
                     "OS_MEMORY_ALLOC_OVERRIDE was an invalid value: {val}"
                 ));
-                log::debug!("Memory size was overridden by value set in envvar, set to: {size}");
+                tracing::debug!(
+                    "Memory size was overridden by value set in envvar, set to: {size}"
+                );
             }
         }
 
