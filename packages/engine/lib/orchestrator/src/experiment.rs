@@ -10,7 +10,7 @@ use hash_engine::{
         ExperimentRunBase, SimpleExperimentConfig, SingleRunExperimentConfig,
     },
     simulation::command::StopStatus,
-    utils::OutputFormat,
+    utils::{OutputFormat, OutputLocation},
 };
 use rand::{distributions::Distribution, Rng, RngCore};
 use rand_distr::{Beta, LogNormal, Normal, Poisson};
@@ -25,6 +25,8 @@ pub struct ExperimentConfig {
     pub num_workers: usize,
     pub emit: OutputFormat,
     pub output_folder: PathBuf,
+    pub output_location: OutputLocation,
+    pub log_folder: PathBuf,
     pub engine_start_timeout: Duration,
     pub engine_wait_timeout: Duration,
 }
@@ -68,6 +70,8 @@ impl Experiment {
             self.config.num_workers,
             controller_url,
             self.config.emit,
+            self.config.output_location.clone(),
+            self.config.log_folder.clone(),
         )?))
     }
 

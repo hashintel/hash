@@ -8,7 +8,10 @@ use std::{
 
 use clap::{AppSettings, Parser};
 use error::{report, Result, ResultExt};
-use hash_engine::{proto::ExperimentName, utils::OutputFormat};
+use hash_engine::{
+    proto::ExperimentName,
+    utils::{OutputFormat, OutputLocation},
+};
 use orchestrator::{create_server, Experiment, ExperimentConfig, Manifest};
 
 /// Arguments passed to the CLI
@@ -107,6 +110,8 @@ async fn main() -> Result<()> {
 
     let _guard = hash_engine::init_logger(
         args.emit,
+        OutputLocation::default(),
+        "./log",
         &format!("cli-{now}"),
         &format!("cli-{now}-texray"),
     );
@@ -130,6 +135,8 @@ async fn main() -> Result<()> {
         num_workers: args.num_workers.unwrap_or_else(num_cpus::get),
         emit: args.emit,
         output_folder: args.output,
+        output_location: OutputLocation::default(),
+        log_folder: PathBuf::from("./log"),
         engine_start_timeout: Duration::from_secs(args.start_timeout),
         engine_wait_timeout: Duration::from_secs(args.wait_timeout),
     });
