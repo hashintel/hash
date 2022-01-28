@@ -39,7 +39,7 @@ impl PackageComms {
 
         self.inner
             .new_task(self.package_id, task, shared_store)
-            .instrument(tracing::info_span!("Task", name = task_name))
+            .instrument(tracing::debug_span!("Task", name = task_name))
             .await
     }
 }
