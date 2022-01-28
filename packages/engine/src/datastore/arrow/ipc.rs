@@ -666,8 +666,8 @@ pub(crate) fn record_batch_to_bytes<'fbb>(
 }
 
 // ADD
-/// Walks through the process of serializing the record batch to bytes in the arrow format to 
-/// calculate the necessary size
+/// Walks through the process of serializing the record batch to bytes in the arrow format to
+/// calculate the necessary size.
 #[must_use]
 pub fn simulate_record_batch_to_bytes<'fbb>(
     batch: &RecordBatch,
@@ -757,8 +757,8 @@ fn simulate_write_array_data(
 
 // ADD
 // Assumes buffer is at least the right length
-/// This should be safe because the assumption is that the [`simulate_record_batch_to_bytes`] 
-/// method was called to create the correct buffer length
+/// This should be safe because the assumption is that the [`simulate_record_batch_to_bytes`]
+/// method was called to create the correct buffer length.
 pub fn record_batch_data_to_bytes_owned_unchecked(batch: &RecordBatch, buffer: &mut [u8]) {
     let mut offset = 0;
     for array in batch.columns() {

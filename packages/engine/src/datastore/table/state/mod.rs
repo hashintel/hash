@@ -22,18 +22,18 @@ use crate::{
 };
 
 pub struct Inner {
-    /// Pool which contains all batches for the current step's Agent state
+    /// Pool which contains all batches for the current step's Agent state.
     agent_pool: AgentPool,
 
-    /// Pool which contains all batches for the message pool of the current step, i.e. the 'outbox'
+    /// Pool which contains all batches for the message pool of the current step, i.e. the 'outbox'.
     message_pool: MessagePool,
 
     /// Cumulative number of agents in the first `i` batches of the pools, i.e. index of first
-    /// agent of each group in combined pool
+    /// agent of each group in combined pool.
     group_start_indices: Arc<Vec<usize>>,
 
     // TODO: remove Meta, just move in removed_ids
-    /// The IDs of the batches that were removed between this step and the last
+    /// The IDs of the batches that were removed between this step and the last.
     local_meta: Meta,
 
     num_agents: usize,
@@ -122,7 +122,7 @@ impl State {
         Ok(State { inner, sim_config })
     }
 
-    /// Get mutable access to the State
+    /// Get mutable access to the State.
     pub fn into_mut(self) -> StateMut {
         StateMut {
             inner: self.inner,
@@ -142,14 +142,14 @@ impl ReadState for State {
 }
 
 // TODO can we just wrap the State instead of needing another layer called Inner
-/// Exclusive (write) access to `State`
+/// Exclusive (write) access to `State`.
 pub struct StateMut {
     inner: Inner,
     global_meta: Arc<SimRunConfig>,
 }
 
 impl StateMut {
-    /// Give up mutable access and allow for it to be read in multiple places
+    /// Give up mutable access and allow for it to be read in multiple places.
     pub fn into_shared(self) -> State {
         State {
             inner: self.inner,
@@ -162,11 +162,11 @@ impl StateMut {
     }
 
     // TODO can this be moved into ContextMut
-    /// Copies the current agent state into the Context before running state packages, which
-    /// stores a snapshot of state at the end of the last step
+    /// Copies the current agent state into the `Context` before running state packages, which
+    /// stores a snapshot of state at the end of the last step.
     ///
-    /// This can result in a change in the number of groups and batches within the Context,
-    /// and thus it updates the group start indices registered in self
+    /// This can result in a change in the number of groups and batches within the `Context`,
+    /// and thus it updates the group start indices registered in self.
     pub fn finalize_context_agent_pool(
         &mut self,
         context: &mut ContextMut,
@@ -303,7 +303,7 @@ pub trait WriteState: ReadState {
     /// Uses the Context message pool shared memories as the base for the new message pool for
     /// State.
     ///
-    /// Returns the old messages so they can be used later for reference
+    /// Returns the old messages so they can be used later for reference.
     ///
     /// ### Performance
     /// This creates a new empty messages column for each old column to replace, which

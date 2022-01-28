@@ -25,7 +25,7 @@ impl AgentPool {
     
     // TODO, why do we have these methods, when we have proxies. Clearly they're needed because 
     //  we're actually seeing the errors, but this should be fixed
-    /// Attempts to acquire read-locks on all batches within the pool
+    /// Attempts to acquire read-locks on all batches within the pool.
     pub fn try_read_batches(&self) -> Result<Vec<RwLockReadGuard<'_, AgentBatch>>> {
         self.batches()
             .iter()
@@ -36,7 +36,7 @@ impl AgentPool {
             .collect::<Result<_>>()
     }
 
-    /// Attempts to acquire write-locks on all batches within the pool
+    /// Attempts to acquire write-locks on all batches within the pool.
     pub fn try_write_batches(&mut self) -> Result<Vec<RwLockWriteGuard<'_, AgentBatch>>> {
         self.batches()
             .iter()

@@ -22,17 +22,17 @@ use crate::{
 pub struct Inner {
     batch: Arc<RwLock<ContextBatch>>,
     // TODO: replace these two fields with `StateSnapshot`
-    /// Agent Batches that are a snapshot of state from the previous step
+    /// Agent Batches that are a snapshot of state from the previous step.
     agent_pool: AgentPool,
-    /// Pool that are a snapshot of the message batches from the previous step
+    /// Pool that are a snapshot of the message batches from the previous step.
     message_pool: MessagePool,
     // TODO: remove Meta, just move in removed_ids
-    /// The IDs of the batches that were removed between this step and the last
+    /// The IDs of the batches that were removed between this step and the last.
     local_meta: Meta,
 }
 
-/// A wrapper object around the contents of the Context, to provide type-safe differentiation
-/// from something with write access to the Context see ([`ExContext`])
+/// A wrapper object around the contents of the `Context`, to provide type-safe differentiation
+/// from something with write access to the `Context`. see ([`ExContext`])
 pub struct Context {
     inner: Inner,
 }
@@ -65,7 +65,7 @@ impl Context {
         Ok(Context { inner })
     }
 
-    /// Get mutable access to the Context
+    /// Get mutable access to the Context.
     pub fn into_mut(self) -> ContextMut {
         ContextMut { inner: self.inner }
     }
@@ -84,7 +84,7 @@ pub struct ContextMut {
 }
 
 impl ContextMut {
-    /// Give up mutable access and allow for it to be read in multiple places
+    /// Give up mutable access and allow for it to be read in multiple places.
     pub fn into_shared(self) -> Context {
         Context { inner: self.inner }
     }

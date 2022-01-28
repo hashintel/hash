@@ -34,7 +34,7 @@ use crate::datastore::{
     table::pool::BatchPool,
 };
 
-/// A thread-sendable guard for reading a batch, see module-level documentation for more reasoning
+/// A thread-sendable guard for reading a batch, see module-level documentation for more reasoning.
 pub struct BatchReadProxy<K: Batch> {
     arc: Arc<RwLock<K>>,
 }
