@@ -313,7 +313,9 @@ impl ExpectedOutput {
         globals: &Globals,
         analysis: &Analysis,
     ) -> Result<()> {
-        for (step, expected_states) in &self.json_state {
+        let mut json_state = self.json_state.iter().collect::<Vec<_>>();
+        json_state.sort_unstable_by(|(lhs, _), (rhs, _)| Ord::cmp(lhs, rhs));
+        for (step, expected_states) in json_state {
             let step = step
                 .parse::<usize>()
                 .wrap_err_lazy(|| format!("Could not parse {step:?} as number of a step"))?;
