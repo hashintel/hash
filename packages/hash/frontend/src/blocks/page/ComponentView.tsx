@@ -216,12 +216,17 @@ export class ComponentView implements NodeView<Schema> {
       return false;
     }
 
-    const targetIsInsideContentDOM =
-      this.contentDOM?.contains(event.target) &&
+    const targetIsOutsideContentDOM =
+      !this.contentDOM?.contains(event.target) &&
       event.target !== this.contentDOM;
 
-    const eventIsHandledByReact = !targetIsInsideContentDOM;
+    const targetIsContentDom = event.target === this.contentDOM;
 
-    return eventIsHandledByReact;
+    const handledByReact =
+      event.type === "childList"
+        ? targetIsOutsideContentDOM
+        : targetIsOutsideContentDOM || targetIsContentDom;
+
+    return handledByReact;
   }
 }

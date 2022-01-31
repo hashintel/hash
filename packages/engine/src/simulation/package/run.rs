@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use futures::{executor::block_on, stream::FuturesOrdered, StreamExt};
+use tracing::Instrument;
 
 use crate::{
     datastore::{
@@ -16,7 +17,7 @@ use crate::{
             context,
             context::ContextColumn,
             init, output,
-            prelude::{Error, ExContext, ExState, Result},
+            prelude::{ContextMut, Error, Result, StateMut},
             state,
         },
         step_output::SimulationStepOutput,
@@ -151,8 +152,8 @@ impl StepPackages {
         state: Arc<State>,
         snapshot: StateSnapshot,
         pre_context: PreContext,
-    ) -> Result<ExContext> {
-        log::debug!("Running context packages");
+    ) -> Result<ContextMut> {
+        tracing::debug!("Running context packages");
         // Execute packages in parallel and collect the data
         let mut futs = FuturesOrdered::new();
 
@@ -168,14 +169,17 @@ impl StepPackages {
             let cpu_bound = package.cpu_bound();
             futs.push(if cpu_bound {
                 tokio::task::spawn_blocking(move || {
-                    let res = block_on(package.run(state, snapshot_clone));
+                    let res = block_on(package.run(state, snapshot_clone).in_current_span());
                     (package, res)
                 })
             } else {
-                tokio::task::spawn(async {
-                    let res = package.run(state, snapshot_clone).await;
-                    (package, res)
-                })
+                tokio::task::spawn(
+                    async {
+                        let res = package.run(state, snapshot_clone).await;
+                        (package, res)
+                    }
+                    .in_current_span(),
+                )
             });
         });
 
@@ -230,8 +234,8 @@ impl StepPackages {
         Ok(context)
     }
 
-    pub async fn run_state(&mut self, mut state: ExState, context: &Context) -> Result<ExState> {
-        log::debug!("Running state packages");
+    pub async fn run_state(&mut self, mut state: StateMut, context: &Context) -> Result<StateMut> {
+        tracing::debug!("Running state packages");
         // Design-choices:
         // Cannot use trait bounds as dyn Package won't be object-safe
         // Traits are tricky anyway for working with iterators

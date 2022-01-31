@@ -1,12 +1,22 @@
-use std::{env::VarError, fmt::Display, time::Duration};
+use std::{
+    convert::Infallible,
+    env::VarError,
+    fmt::{Display, Formatter},
+    io,
+    path::{Path, PathBuf},
+    str::FromStr,
+    time::Duration,
+};
 
-use log::{Event, Subscriber};
+use tracing::{Event, Subscriber};
+use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{
     filter::{Directive, LevelFilter},
     fmt::{
         self,
-        format::{Format, Writer},
+        format::{Format, JsonFields, Writer},
         time::FormatTime,
+        writer::BoxMakeWriter,
         FmtContext, FormatEvent, FormatFields,
     },
     prelude::*,
@@ -22,20 +32,18 @@ pub enum OutputFormat {
     Full,
     /// excessively pretty, multi-line logs, optimized for human readability.
     Pretty,
-    // TODO: Add JSON output. Currently it's failing when adding spans, we probably need to add
-    //   it ourself
-    // /// Newline-delimited JSON logs.
-    // Json,
+    /// Newline-delimited JSON logs.
+    Json,
     /// Only includes the fields from the most recently entered span.
     Compact,
 }
 
 impl Display for OutputFormat {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
             OutputFormat::Full => f.write_str("full"),
             OutputFormat::Pretty => f.write_str("pretty"),
-            // OutputFormat::Json => f.write_str("json"),
+            OutputFormat::Json => f.write_str("json"),
             OutputFormat::Compact => f.write_str("compact"),
         }
     }
@@ -44,8 +52,70 @@ impl Display for OutputFormat {
 enum OutputFormatter<T> {
     Full(Format<fmt::format::Full, T>),
     Pretty(Format<fmt::format::Pretty, T>),
-    // Json(Format<fmt::format::Json, T>),
+    Json(Format<fmt::format::Json, T>),
     Compact(Format<fmt::format::Compact, T>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, clap::ArgEnum)]
+pub enum OutputLocation {
+    StdOut,
+    StdErr,
+    File(PathBuf),
+}
+
+impl Display for OutputLocation {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OutputLocation::StdOut => f.write_str("stdout"),
+            OutputLocation::StdErr => f.write_str("stderr"),
+            OutputLocation::File(path) => Display::fmt(&path.to_string_lossy(), f),
+        }
+    }
+}
+
+impl FromStr for OutputLocation {
+    type Err = Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "stdout" => Ok(Self::StdOut),
+            "stderr" => Ok(Self::StdErr),
+            _ => Ok(Self::File(PathBuf::from_str(s)?)),
+        }
+    }
+}
+
+impl Default for OutputLocation {
+    fn default() -> Self {
+        Self::StdErr
+    }
+}
+
+impl OutputLocation {
+    fn writer<P: AsRef<Path>>(&self, log_folder: P) -> (BoxMakeWriter, OutputFileGuard) {
+        match self {
+            Self::StdOut => (BoxMakeWriter::new(io::stdout), OutputFileGuard::None),
+            Self::StdErr => (BoxMakeWriter::new(io::stderr), OutputFileGuard::None),
+            Self::File(file_name) => {
+                let file_appender = tracing_appender::rolling::never(log_folder, file_name);
+                let (file, guard) = tracing_appender::non_blocking(file_appender);
+                (BoxMakeWriter::new(file), OutputFileGuard::File(guard))
+            }
+        }
+    }
+
+    fn ansi(&self) -> bool {
+        match self {
+            // TODO: evaluate if we want disable ansi-output (color) in files
+            Self::File(_) => true,
+            _ => true,
+        }
+    }
+}
+
+pub enum OutputFileGuard {
+    None,
+    File(WorkerGuard),
 }
 
 impl<S, N, T> FormatEvent<S, N> for OutputFormatter<T>
@@ -63,7 +133,7 @@ where
         match self {
             OutputFormatter::Full(fmt) => fmt.format_event(ctx, writer, event),
             OutputFormatter::Pretty(fmt) => fmt.format_event(ctx, writer, event),
-            // OutputFormatter::Json(fmt) => fmt.format_event(ctx, writer, event),
+            OutputFormatter::Json(fmt) => fmt.format_event(ctx, writer, event),
             OutputFormatter::Compact(fmt) => fmt.format_event(ctx, writer, event),
         }
     }
@@ -75,7 +145,29 @@ impl Default for OutputFormat {
     }
 }
 
-pub fn init_logger(output_format: OutputFormat) {
+/// Guard for file logging, which should not be dropped until every log entry has been written.
+pub struct LogGuard {
+    _output_guard: OutputFileGuard,
+    _json_file_guard: WorkerGuard,
+    #[cfg(feature = "texray")]
+    _texray_guard: WorkerGuard,
+    #[cfg(not(feature = "texray"))]
+    _texray_guard: (),
+}
+
+impl Drop for LogGuard {
+    fn drop(&mut self) {}
+}
+
+pub fn init_logger<P: AsRef<Path>>(
+    output_format: OutputFormat,
+    output_location: &OutputLocation,
+    log_folder: P,
+    log_file_output_name: &str,
+    texray_output_name: &str,
+) -> impl Drop {
+    let log_folder = log_folder.as_ref();
+
     let filter = match std::env::var("RUST_LOG") {
         Ok(env) => EnvFilter::new(env),
         #[cfg(debug_assertions)]
@@ -87,22 +179,67 @@ pub fn init_logger(output_format: OutputFormat) {
     let formatter = fmt::format()
         .with_timer(fmt::time::Uptime::default())
         .with_target(true);
-    let formatter = match output_format {
-        OutputFormat::Full => OutputFormatter::Full(formatter),
-        OutputFormat::Pretty => OutputFormatter::Pretty(formatter.pretty()),
-        // OutputFormat::Json => OutputFormatter::Json(formatter.json()),
-        OutputFormat::Compact => OutputFormatter::Compact(formatter.compact()),
+    let output_formatter = match output_format {
+        OutputFormat::Full => OutputFormatter::Full(formatter.clone()),
+        OutputFormat::Pretty => OutputFormatter::Pretty(formatter.clone().pretty()),
+        OutputFormat::Json => OutputFormatter::Json(formatter.clone().json()),
+        OutputFormat::Compact => OutputFormatter::Compact(formatter.clone().compact()),
     };
 
-    let stderr_layer = fmt::layer()
-        .event_format(formatter)
-        .with_writer(std::io::stderr);
-
     let error_layer = tracing_error::ErrorLayer::default();
+
+    let (output_writer, _output_guard) = output_location.writer(log_folder);
+    // Because of how the Registry and Layer interface is designed, we can't just have one layer,
+    // as they have different types. We also can't box them as it requires Sized. However,
+    // Option<Layer> implements the Layer trait so we can  just provide None for one and Some
+    // for the other
+    let (output_layer, json_output_layer) = match output_format {
+        OutputFormat::Json => (
+            None,
+            Some(
+                fmt::layer()
+                    .event_format(output_formatter)
+                    .with_ansi(output_location.ansi())
+                    .fmt_fields(JsonFields::new())
+                    .with_writer(output_writer),
+            ),
+        ),
+        _ => (
+            Some(
+                fmt::layer()
+                    .event_format(output_formatter)
+                    .with_ansi(output_location.ansi())
+                    .with_writer(output_writer),
+            ),
+            None,
+        ),
+    };
+
+    let json_file_appender =
+        tracing_appender::rolling::never(log_folder, format!("{log_file_output_name}.json"));
+    let (non_blocking, _json_file_guard) = tracing_appender::non_blocking(json_file_appender);
+
+    let json_file_layer = fmt::layer()
+        .event_format(formatter.json())
+        .fmt_fields(JsonFields::new())
+        .with_writer(non_blocking);
+
+    let (texray_layer, _texray_guard) = texray::create_texray_layer(texray_output_name);
+
     tracing_subscriber::registry()
-        .with(filter.and_then(stderr_layer))
+        .with(filter)
+        .with(output_layer)
+        .with(json_output_layer)
+        .with(json_file_layer)
         .with(error_layer)
+        .with(texray_layer)
         .init();
+
+    LogGuard {
+        _output_guard,
+        _json_file_guard,
+        _texray_guard,
+    }
 }
 
 pub fn parse_env_duration(name: &str, default: u64) -> Duration {
@@ -110,13 +247,49 @@ pub fn parse_env_duration(name: &str, default: u64) -> Duration {
         std::env::var(name)
             .and_then(|timeout| {
                 timeout.parse().map_err(|e| {
-                    log::error!("Could not parse `{}` as integral: {}", name, e);
+                    tracing::error!("Could not parse `{}` as integral: {}", name, e);
                     VarError::NotPresent
                 })
             })
             .unwrap_or_else(|_| {
-                log::info!("Setting `{}={}`", name, default);
+                tracing::info!("Setting `{}={}`", name, default);
                 default
             }),
     )
+}
+
+#[cfg(feature = "texray")]
+pub mod texray {
+    use tracing_appender::non_blocking::WorkerGuard;
+    pub use tracing_texray::examine;
+    use tracing_texray::TeXRayLayer;
+
+    pub fn create_texray_layer(output_name: &str) -> (Option<TeXRayLayer>, WorkerGuard) {
+        let texray_file_appender =
+            tracing_appender::rolling::never("./log", format!("{output_name}.txt"));
+        let (non_blocking, texray_guard) = tracing_appender::non_blocking(texray_file_appender);
+
+        // we clone update_settings to satisfy move rules as writer takes a `Fn` rather than
+        // `FnOnce`
+        let texray_layer =
+            TeXRayLayer::new().update_settings(|settings| settings.writer(non_blocking.clone()));
+        // only print spans longer than a certain duration
+        // .min_duration(Duration::from_millis(100)),;
+
+        (Some(texray_layer), texray_guard)
+    }
+}
+
+#[cfg(not(feature = "texray"))]
+pub mod texray {
+    use tracing::Span;
+    use tracing_subscriber::fmt::Layer;
+
+    pub fn examine(span: Span) -> Span {
+        span
+    }
+
+    pub fn create_texray_layer<S>(_output_name: &str) -> (Option<Layer<S>>, ()) {
+        (None, ())
+    }
 }
