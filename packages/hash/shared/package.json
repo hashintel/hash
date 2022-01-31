@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/hash-shared",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "private": true,
   "description": "Temporary catchall place for shared code",
   "license": "SSPL-1.0",
@@ -22,7 +22,7 @@
     "lint:tsc": "tsc --noEmit"
   },
   "dependencies": {
-    "@apollo/client": "3.3.19",
+    "@apollo/client": "3.3.21",
     "@sentry/browser": "6.14.1",
     "blockprotocol": "0.0.1",
     "graphql-tag": "2.12.5",
