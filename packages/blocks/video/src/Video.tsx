@@ -103,10 +103,12 @@ export const Video: BlockComponent<AppProps> = (props) => {
     src: string;
     loading: boolean;
     errorString: string | null;
+    userIsEditing: boolean;
   }>({
     src: "",
     loading: false,
     errorString: null,
+    userIsEditing: !url,
   });
 
   const isMounted = useRef(false);
@@ -229,8 +231,8 @@ export const Video: BlockComponent<AppProps> = (props) => {
             ]);
 
             if (isMounted.current) {
-              updateStateObject({ loading: false });
               updateData({ file, src: file.url });
+              updateStateObject({ loading: false, userIsEditing: false });
             }
           })
           .catch((error: Error) =>
@@ -283,6 +285,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
         loading: false,
         errorString: null,
         src: "",
+        userIsEditing: true,
       });
 
       setInputText("");
@@ -290,7 +293,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
     });
   };
 
-  if (stateObject.src?.trim() || url) {
+  if (stateObject.src?.trim() || (url && !stateObject.userIsEditing)) {
     return (
       <div className={tw`flex justify-center text-center w-full`}>
         <div className={tw`max-w-full`}>
