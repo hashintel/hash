@@ -195,7 +195,6 @@ async fn build_api_response_maps(
     snapshot: &StateSnapshot,
     handlers: &[String],
 ) -> Result<Vec<ApiResponseMap>> {
-    tracing::warn!("BUILDIN API RESPONSE");
     let mut futs = FuturesOrdered::new();
     {
         let message_pool = snapshot.message_pool();
