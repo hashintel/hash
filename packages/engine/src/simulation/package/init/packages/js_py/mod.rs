@@ -1,4 +1,7 @@
-use std::convert::TryInto;
+use std::{
+    convert::TryInto,
+    fmt::{Debug, Formatter},
+};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -119,9 +122,23 @@ pub struct StartMessage {
     initial_state_source: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct SuccessMessage {
     agents: Vec<Agent>,
+}
+
+impl Debug for SuccessMessage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SuccessMessage")
+            .field("agents", &{
+                if !self.agents.is_empty() {
+                    format_args!("[...]") // The Agents JSON can result in huge log lines otherwise
+                } else {
+                    format_args!("[]")
+                }
+            })
+            .finish()
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

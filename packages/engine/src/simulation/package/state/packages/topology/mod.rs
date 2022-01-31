@@ -89,4 +89,8 @@ impl Package for Topology {
         }
         Ok(())
     }
+
+    fn span(&self) -> Span {
+        tracing::debug_span!("topology")
+    }
 }
