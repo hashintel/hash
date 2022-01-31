@@ -173,13 +173,13 @@ impl StepPackages {
                     let package_span = {
                         // We want to create the package span within the scope of the current one
                         let _entered = current_span.entered();
-                        package.get_span()
+                        package.span()
                     };
                     let res = block_on(package.run(state, snapshot_clone).instrument(package_span));
                     (package, res)
                 })
             } else {
-                let span = package.get_span();
+                let span = package.span();
                 tokio::task::spawn(
                     async {
                         let res = package.run(state, snapshot_clone).instrument(span).await;
@@ -248,7 +248,7 @@ impl StepPackages {
         // Traits are tricky anyway for working with iterators
         // Will instead use state.upgrade() and exstate.downgrade() and respectively for context
         for pkg in self.state.iter_mut() {
-            let span = pkg.get_span();
+            let span = pkg.span();
             pkg.run(&mut state, context).instrument(span).await?;
         }
 
@@ -276,13 +276,13 @@ impl StepPackages {
                     let package_span = {
                         // We want to create the package span within the scope of the current one
                         let _entered = current_span.entered();
-                        pkg.get_span()
+                        pkg.span()
                     };
                     let res = block_on(pkg.run(state, context).instrument(package_span));
                     (pkg, res)
                 })
             } else {
-                let span = pkg.get_span();
+                let span = pkg.span();
                 tokio::task::spawn(
                     async {
                         let res = pkg.run(state, context).instrument(span).await;

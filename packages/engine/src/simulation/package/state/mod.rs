@@ -25,7 +25,7 @@ use crate::{
 pub trait Package: GetWorkerSimStartMsg + Send + Sync {
     async fn run(&mut self, state: &mut StateMut, context: &Context) -> Result<()>;
 
-    fn get_span(&self) -> Span;
+    fn span(&self) -> Span;
 }
 
 pub trait PackageCreator: GetWorkerExpStartMsg + Send + Sync {

@@ -125,7 +125,7 @@ impl Package for AgentMessages {
         Ok(vec![(field_key, Arc::new(messages_builder.finish()))])
     }
 
-    fn get_span(&self) -> Span {
+    fn span(&self) -> Span {
         tracing::debug_span!("agent_messages")
     }
 }

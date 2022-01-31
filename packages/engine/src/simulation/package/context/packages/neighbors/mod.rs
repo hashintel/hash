@@ -170,7 +170,7 @@ impl Package for Neighbors {
         Ok(vec![(field_key, Arc::new(neighbors_builder.finish()))])
     }
 
-    fn get_span(&self) -> Span {
+    fn span(&self) -> Span {
         tracing::debug_span!("neighbors")
     }
 }

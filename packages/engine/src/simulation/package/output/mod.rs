@@ -62,5 +62,5 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
 pub trait Package: MaybeCpuBound + GetWorkerSimStartMsg + Send + Sync {
     async fn run(&mut self, state: Arc<State>, context: Arc<Context>) -> Result<Output>;
 
-    fn get_span(&self) -> Span;
+    fn span(&self) -> Span;
 }

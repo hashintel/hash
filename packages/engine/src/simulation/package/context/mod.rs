@@ -38,7 +38,7 @@ pub trait Package: MaybeCpuBound + GetWorkerSimStartMsg + Send + Sync {
         context_schema: &ContextSchema,
     ) -> Result<Vec<(FieldKey, Arc<dyn arrow::array::Array>)>>;
 
-    fn get_span(&self) -> Span;
+    fn span(&self) -> Span;
 }
 
 pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {

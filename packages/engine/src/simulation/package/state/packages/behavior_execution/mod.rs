@@ -238,7 +238,7 @@ impl Package for BehaviorExecution {
         Ok(())
     }
 
-    fn get_span(&self) -> Span {
+    fn span(&self) -> Span {
         tracing::debug_span!("behavior_execution")
     }
 }

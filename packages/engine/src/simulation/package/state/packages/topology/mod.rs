@@ -90,7 +90,7 @@ impl Package for Topology {
         Ok(())
     }
 
-    fn get_span(&self) -> Span {
+    fn span(&self) -> Span {
         tracing::debug_span!("topology")
     }
 }

@@ -89,7 +89,7 @@ impl Package for Analysis {
         ))
     }
 
-    fn get_span(&self) -> Span {
+    fn span(&self) -> Span {
         tracing::debug_span!("analysis")
     }
 }

@@ -168,7 +168,7 @@ impl Package for ApiRequests {
         )])
     }
 
-    fn get_span(&self) -> Span {
+    fn span(&self) -> Span {
         tracing::debug_span!("api_requests")
     }
 }
