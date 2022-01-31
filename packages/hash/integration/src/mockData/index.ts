@@ -747,46 +747,46 @@ void (async () => {
           createdByAccountId: user.entityId,
           properties: {
             contents: [
-              // {
-              //   entityId: results.get("b1")!.entityId,
-              //   accountId: results.get("b1")!.accountId,
-              // },
-              // {
-              //   entityId: results.get("b9")!.entityId,
-              //   accountId: results.get("b9")!.accountId,
-              // },
-              // {
-              //   entityId: results.get("b11")!.entityId,
-              //   accountId: results.get("b11")!.accountId,
-              // },
-              // {
-              //   entityId: results.get("b2")!.entityId,
-              //   accountId: results.get("b2")!.accountId,
-              // },
-              // {
-              //   entityId: results.get("b3")!.entityId,
-              //   accountId: results.get("b3")!.accountId,
-              // },
-              // {
-              //   entityId: results.get("b10")!.entityId,
-              //   accountId: results.get("b10")!.accountId,
-              // },
+              {
+                entityId: results.get("b1")!.entityId,
+                accountId: results.get("b1")!.accountId,
+              },
+              {
+                entityId: results.get("b9")!.entityId,
+                accountId: results.get("b9")!.accountId,
+              },
+              {
+                entityId: results.get("b11")!.entityId,
+                accountId: results.get("b11")!.accountId,
+              },
+              {
+                entityId: results.get("b2")!.entityId,
+                accountId: results.get("b2")!.accountId,
+              },
+              {
+                entityId: results.get("b3")!.entityId,
+                accountId: results.get("b3")!.accountId,
+              },
+              {
+                entityId: results.get("b10")!.entityId,
+                accountId: results.get("b10")!.accountId,
+              },
               {
                 entityId: results.get("b4")!.entityId,
                 accountId: results.get("b4")!.accountId,
               },
-              // {
-              //   entityId: results.get("b17")!.entityId,
-              //   accountId: results.get("b17")!.accountId,
-              // },
-              // {
-              //   entityId: results.get("b12")!.entityId,
-              //   accountId: results.get("b12")!.accountId,
-              // },
-              // {
-              //   entityId: results.get("b14")!.entityId,
-              //   accountId: results.get("b14")!.accountId,
-              // },
+              {
+                entityId: results.get("b17")!.entityId,
+                accountId: results.get("b17")!.accountId,
+              },
+              {
+                entityId: results.get("b12")!.entityId,
+                accountId: results.get("b12")!.accountId,
+              },
+              {
+                entityId: results.get("b14")!.entityId,
+                accountId: results.get("b14")!.accountId,
+              },
             ],
             title: "My awesome page",
           },
@@ -835,6 +835,24 @@ void (async () => {
               },
             ],
             title: "HASH's 1st page",
+          },
+          // visibility: Visibility.Public,
+        },
+      ],
+      [
+        "page3",
+        {
+          systemTypeName: SystemTypeName.Page,
+          accountId: user.accountId,
+          createdByAccountId: user.entityId,
+          properties: {
+            contents: [
+              {
+                entityId: results.get("b4")!.entityId,
+                accountId: results.get("b4")!.accountId,
+              },
+            ],
+            title: "Table Testing Page",
           },
           // visibility: Visibility.Public,
         },

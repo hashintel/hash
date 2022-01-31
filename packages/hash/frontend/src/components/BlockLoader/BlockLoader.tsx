@@ -25,7 +25,7 @@ import {
 } from "../../graphql/apiTypes.gen";
 import { useBlockProtocolCreateLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateLinks";
 import { useBlockProtocolDeleteLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolDeleteLinks";
-import { useBlockProtocolUpdateLinkedAggregations } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLinkedAggregations";
+import { useBlockProtocolUpdateLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLinks";
 
 type BlockLoaderProps = {
   accountId: string;
@@ -65,8 +65,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   const { uploadFile } = useFileUpload(accountId);
   const { createLinks } = useBlockProtocolCreateLinks(accountId);
   const { deleteLinks } = useBlockProtocolDeleteLinks(accountId);
-  const { updateLinkedAggregations } =
-    useBlockProtocolUpdateLinkedAggregations(accountId);
+  const { updateLinks } = useBlockProtocolUpdateLinks(accountId);
 
   const flattenedProperties = useMemo(() => {
     let flattenedLinkedEntities: UnknownEntity[] = [];
@@ -105,7 +104,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
     /** @todo pick one of getEmbedBlock or fetchEmbedCode */
     getEmbedBlock: fetchEmbedCode,
     updateEntities,
-    updateLinkedAggregations,
+    updateLinks,
     uploadFile,
   };
 

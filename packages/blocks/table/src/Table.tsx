@@ -9,7 +9,7 @@ import { TableOptions, useSortBy, useTable } from "react-table";
 import {
   BlockProtocolLinkedAggregation,
   BlockProtocolEntityType,
-  BlockProtocolUpdateLinkedAggregationsAction,
+  BlockProtocolUpdateLinksAction,
 } from "blockprotocol";
 import { BlockComponent } from "blockprotocol/react";
 import { tw } from "twind";
@@ -78,7 +78,7 @@ const getLinkedAggregation = (params: {
 };
 
 const cleanUpdateLinkedAggregationAction = (
-  action: BlockProtocolUpdateLinkedAggregationsAction & {
+  action: BlockProtocolUpdateLinksAction & {
     updatedOperation: Partial<BlockProtocolLinkedAggregation>;
   },
 ) => {
@@ -108,7 +108,7 @@ export const Table: BlockComponent<AppProps> = ({
   linkedAggregations,
   schemas,
   updateEntities,
-  updateLinkedAggregations,
+  updateLinks,
 }) => {
   const [tableData, setTableData] = useTableData(defaultData);
 
@@ -235,7 +235,7 @@ export const Table: BlockComponent<AppProps> = ({
     ({ operation, multiFilter, multiSort, itemsPerPage }: AggregateArgs) => {
       if (
         !updateEntities ||
-        !updateLinkedAggregations ||
+        !updateLinks ||
         !matchingLinkedAggregation ||
         !tableData.linkedAggregation
       ) {
@@ -284,7 +284,7 @@ export const Table: BlockComponent<AppProps> = ({
         },
       ]);
 
-      void updateLinkedAggregations([
+      void updateLinks([
         cleanUpdateLinkedAggregationAction({
           sourceAccountId: matchingLinkedAggregation.sourceAccountId,
           sourceEntityId: matchingLinkedAggregation.sourceEntityId,
@@ -296,7 +296,7 @@ export const Table: BlockComponent<AppProps> = ({
     [
       matchingLinkedAggregation,
       updateEntities,
-      updateLinkedAggregations,
+      updateLinks,
       tableData.linkedAggregation,
       entityId,
       initialState,
@@ -307,11 +307,7 @@ export const Table: BlockComponent<AppProps> = ({
     hiddenColumns?: string[];
     columns?: { Header: string; accessor: string }[];
   }) => {
-    if (
-      !updateLinkedAggregations ||
-      !updateEntities ||
-      !matchingLinkedAggregation
-    ) {
+    if (!updateLinks || !updateEntities || !matchingLinkedAggregation) {
       return;
     }
 
@@ -335,7 +331,7 @@ export const Table: BlockComponent<AppProps> = ({
         },
       ]);
 
-      void updateLinkedAggregations([
+      void updateLinks([
         cleanUpdateLinkedAggregationAction({
           sourceAccountId: matchingLinkedAggregation.sourceAccountId,
           sourceEntityId: matchingLinkedAggregation.sourceEntityId,
@@ -434,11 +430,7 @@ export const Table: BlockComponent<AppProps> = ({
 
   const handleEntityTypeChange = useCallback(
     (updatedEntityTypeId: string | undefined) => {
-      if (
-        !updateEntities ||
-        !updateLinkedAggregations ||
-        !matchingLinkedAggregation
-      ) {
+      if (!updateEntities || !updateLinks || !matchingLinkedAggregation) {
         return;
       }
 
@@ -454,7 +446,7 @@ export const Table: BlockComponent<AppProps> = ({
       ]);
 
       if (updatedEntityTypeId) {
-        void updateLinkedAggregations?.([
+        void updateLinks?.([
           cleanUpdateLinkedAggregationAction({
             sourceAccountId: matchingLinkedAggregation.sourceAccountId,
             sourceEntityId: matchingLinkedAggregation.sourceEntityId,
@@ -475,7 +467,7 @@ export const Table: BlockComponent<AppProps> = ({
       tableData.linkedAggregation?.operation?.itemsPerPage,
       matchingLinkedAggregation,
       updateEntities,
-      updateLinkedAggregations,
+      updateLinks,
     ],
   );
 
