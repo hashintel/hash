@@ -224,7 +224,8 @@ pub fn init_logger<P: AsRef<Path>>(
         .fmt_fields(JsonFields::new())
         .with_writer(non_blocking);
 
-    let (texray_layer, _texray_guard) = texray::create_texray_layer(texray_output_name);
+    let (texray_layer, _texray_guard) =
+        texray::create_texray_layer(&log_folder, texray_output_name);
 
     tracing_subscriber::registry()
         .with(filter)
@@ -260,13 +261,18 @@ pub fn parse_env_duration(name: &str, default: u64) -> Duration {
 
 #[cfg(feature = "texray")]
 pub mod texray {
+    use std::path::Path;
+
     use tracing_appender::non_blocking::WorkerGuard;
     pub use tracing_texray::examine;
     use tracing_texray::TeXRayLayer;
 
-    pub fn create_texray_layer(output_name: &str) -> (Option<TeXRayLayer>, WorkerGuard) {
+    pub fn create_texray_layer(
+        log_folder: impl AsRef<Path>,
+        output_name: &str,
+    ) -> (Option<TeXRayLayer>, WorkerGuard) {
         let texray_file_appender =
-            tracing_appender::rolling::never("./log", format!("{output_name}.txt"));
+            tracing_appender::rolling::never(log_folder.as_ref(), format!("{output_name}.txt"));
         let (non_blocking, texray_guard) = tracing_appender::non_blocking(texray_file_appender);
 
         // we clone update_settings to satisfy move rules as writer takes a `Fn` rather than
@@ -282,6 +288,8 @@ pub mod texray {
 
 #[cfg(not(feature = "texray"))]
 pub mod texray {
+    use std::path::Path;
+
     use tracing::Span;
     use tracing_subscriber::fmt::Layer;
 
@@ -289,7 +297,10 @@ pub mod texray {
         span
     }
 
-    pub fn create_texray_layer<S>(_output_name: &str) -> (Option<Layer<S>>, ()) {
+    pub fn create_texray_layer<S>(
+        _log_folder: impl AsRef<Path>,
+        _output_name: &str,
+    ) -> (Option<Layer<S>>, ()) {
         (None, ())
     }
 }
