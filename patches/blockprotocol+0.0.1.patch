@@ -1,5 +1,5 @@
 diff --git a/node_modules/blockprotocol/core.d.ts b/node_modules/blockprotocol/core.d.ts
-index 205630a..8f12b4c 100644
+index 205630a..cf61c16 100644
 --- a/node_modules/blockprotocol/core.d.ts
 +++ b/node_modules/blockprotocol/core.d.ts
 @@ -63,24 +63,17 @@ export type BlockProtocolMultiFilter = {
@@ -130,6 +130,6 @@ index 205630a..8f12b4c 100644
    updateEntityTypes?: BlockProtocolUpdateEntityTypesFunction;
    updateEntityTypesLoading?: boolean;
    updateEntityTypesError?: Error;
-+  updateLinkedAggregations?: BlockProtocolUpdateLinksFunction;
++  updateLinks?: BlockProtocolUpdateLinksFunction;
 +  uploadFile?: BlockProtocolUploadFileFunction;
  };

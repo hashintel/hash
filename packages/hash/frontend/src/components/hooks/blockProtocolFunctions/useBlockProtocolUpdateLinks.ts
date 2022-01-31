@@ -25,32 +25,33 @@ export const useBlockProtocolUpdateLinks = (
   >(updateLinkedAggregationMutation);
 
   // @todo implement updating linkgroups and linkedentities
-  const getUpdatedLinksData = async (
-    action: BlockProtocolUpdateLinksAction,
-  ) => {
-    if (action.updatedOperation) {
-      const { data, errors } = await runUpdateLinkedAggregationMutation({
-        variables: {
-          ...action,
-          sourceAccountId,
-        },
-      });
+  const getUpdatedLinksData = useCallback(
+    async (action: BlockProtocolUpdateLinksAction) => {
+      if (action.updatedOperation) {
+        const { data, errors } = await runUpdateLinkedAggregationMutation({
+          variables: {
+            ...action,
+            sourceAccountId,
+          },
+        });
+
+        return {
+          data,
+          errors,
+        };
+      }
 
       return {
-        data,
-        errors,
+        errors: [
+          {
+            message:
+              "Action has updated operation missing. If you were trying to update linked entity, the implementation for that is currently missing",
+          },
+        ],
       };
-    }
-
-    return {
-      errors: [
-        {
-          message:
-            "Action has updated operation missing. If you were trying to update linked entity, the implementation for that is currently missing",
-        },
-      ],
-    };
-  };
+    },
+    [runUpdateLinkedAggregationMutation, sourceAccountId],
+  );
 
   const updateLinks: BlockProtocolUpdateLinksFunction = useCallback(
     async (actions) => {
@@ -70,7 +71,7 @@ export const useBlockProtocolUpdateLinks = (
       }
       return results;
     },
-    [sourceAccountId, runUpdateLinkedAggregationMutation],
+    [getUpdatedLinksData],
   );
 
   return {
