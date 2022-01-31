@@ -84,7 +84,7 @@ impl Package for AgentMessages {
         snapshot: Arc<StateSnapshot>,
     ) -> Result<Vec<ContextColumn>> {
         let agent_pool = state.agent_pool();
-        let batches = agent_pool.read_batches()?;
+        let batches = agent_pool.try_read_batches()?;
         let id_name_iter = iterators::agent::agent_id_iter(&batches)?
             .zip(iterators::agent::agent_name_iter(&batches)?);
 

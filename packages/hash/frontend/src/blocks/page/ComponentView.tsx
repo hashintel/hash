@@ -130,7 +130,6 @@ export class ComponentView implements NodeView<Schema> {
       // @todo handle entity id not being defined
       const entityId = node.attrs.blockEntityId ?? "";
       const entity = this.store.draft[blockDraftId];
-      const savedEntity = this.store.saved[entityId];
       const mappedUrl = componentIdToUrl(this.componentId);
 
       /** used by collaborative editing feature `FocusTracker` */
@@ -157,7 +156,7 @@ export class ComponentView implements NodeView<Schema> {
             blockEntityId={entityId}
             shouldSandbox={!this.editable}
             editableRef={this.editable ? this.editableRef : undefined}
-            accountId={savedEntity?.accountId ?? this.accountId}
+            accountId={childEntity?.accountId!}
             entityId={childEntity?.entityId!}
             entityProperties={
               childEntity && "properties" in childEntity
@@ -218,12 +217,17 @@ export class ComponentView implements NodeView<Schema> {
       return false;
     }
 
-    const targetIsInsideContentDOM =
-      this.contentDOM?.contains(event.target) &&
+    const targetIsOutsideContentDOM =
+      !this.contentDOM?.contains(event.target) &&
       event.target !== this.contentDOM;
 
-    const eventIsHandledByReact = !targetIsInsideContentDOM;
+    const targetIsContentDom = event.target === this.contentDOM;
 
-    return eventIsHandledByReact;
+    const handledByReact =
+      event.type === "childList"
+        ? targetIsOutsideContentDOM
+        : targetIsOutsideContentDOM || targetIsContentDom;
+
+    return handledByReact;
   }
 }

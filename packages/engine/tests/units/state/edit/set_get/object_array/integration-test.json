@@ -14,11 +14,12 @@
                 "n3": 3.0
               }
             ],
-            "o1_type": "object",
-            "o1_0_type": "object",
-            "o1_0_n1_type": "number",
-            "o1_0_n2_type": "number",
-            "o1_1_n3_type": "number"
+            "o1_is_list": true,
+            "o1_0_is_struct": true,
+            "o1_0_n1_is_number": true,
+            "o1_0_n2_is_number": true,
+            "o1_1_is_struct": true,
+            "o1_1_n3_is_number": true
           }
         ],
         "2": [
@@ -35,11 +36,12 @@
                 "n3": 3.0
               }
             ],
-            "o1_type": "object",
-            "o1_0_type": "object",
-            "o1_0_n1_type": "number",
-            "o1_0_n2_type": "number",
-            "o1_1_n3_type": "number"
+            "o1_is_list": true,
+            "o1_0_is_struct": true,
+            "o1_0_n1_is_number": true,
+            "o1_0_n2_is_number": true,
+            "o1_1_is_struct": true,
+            "o1_1_n3_is_number": true
           }
         ]
       }

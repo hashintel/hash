@@ -52,11 +52,17 @@ pub enum Output {
 }
 
 /// All output package tasks are registered in this enum
-// #[enum_dispatch(WorkerHandler, WorkerPoolHandler, GetTaskArgs)]
+// #[enum_dispatch(GetTaskName, WorkerHandler, WorkerPoolHandler, GetTaskArgs)]
 #[derive(Clone, Debug)]
 pub enum OutputTask {}
 
 // Empty impls to satisfy constraints enum_dispatch while there are no task variants
+impl GetTaskName for OutputTask {
+    fn get_task_name(&self) -> &'static str {
+        unimplemented!()
+    }
+}
+
 impl WorkerHandler for OutputTask {}
 
 impl WorkerPoolHandler for OutputTask {}
@@ -80,7 +86,7 @@ impl PackageCreators {
         &self,
         experiment_config: &Arc<ExperimentConfig>,
     ) -> Result<()> {
-        log::debug!("Initializing Output Package Creators");
+        tracing::debug!("Initializing Output Package Creators");
         use Name::*;
         let mut m = HashMap::new();
         m.insert(Analysis, analysis::Creator::new(experiment_config)?);

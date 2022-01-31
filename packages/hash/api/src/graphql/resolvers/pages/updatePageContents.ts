@@ -1,6 +1,5 @@
 import { ApolloError, UserInputError } from "apollo-server-errors";
 
-import { DbPageProperties, DbBlockProperties } from "../../../types/dbTypes";
 import {
   Resolver,
   MutationUpdatePageContentsArgs,
@@ -13,6 +12,7 @@ import { Entity, UnresolvedGQLEntity, User } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
 import { DBClient } from "../../../db";
 import { exactlyOne } from "../../../util";
+import { DbBlockProperties, DbPageProperties } from "../../../db/adapter";
 
 const validateActionsInput = (actions: UpdatePageAction[]) => {
   for (const [i, action] of actions.entries()) {

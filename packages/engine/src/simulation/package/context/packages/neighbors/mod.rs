@@ -126,7 +126,7 @@ impl Package for Neighbors {
         _snapshot: Arc<StateSnapshot>,
     ) -> Result<Vec<ContextColumn>> {
         let agent_pool = state.agent_pool();
-        let batches = agent_pool.read_batches()?;
+        let batches = agent_pool.try_read_batches()?;
         let states = Self::neighbor_vec(&batches)?;
         let map = NeighborMap::gather(states, &self.topology)?;
 

@@ -70,9 +70,9 @@ impl WaitableStateSync {
     /// // Send `child_msgs` to appropriate message handlers.
     /// self.forward_children(child_receivers).await;
     pub async fn forward_children(self, child_receivers: Vec<SyncCompletionReceiver>) {
-        log::trace!("Getting state sync completions");
+        tracing::trace!("Getting state sync completions");
         let child_results: Vec<_> = join_all(child_receivers).await;
-        log::trace!("Got all state sync completions");
+        tracing::trace!("Got all state sync completions");
         let result = child_results
             .into_iter()
             .map(|recv_result| {
@@ -83,7 +83,7 @@ impl WaitableStateSync {
         self.completion_sender
             .send(result)
             .expect("Couldn't send waitable sync result to engine");
-        log::trace!("Sent main state sync completion");
+        tracing::trace!("Sent main state sync completion");
     }
 }
 

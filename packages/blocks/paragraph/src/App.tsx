@@ -4,8 +4,9 @@ import { BlockComponent } from "blockprotocol/react";
 
 type AppProps = {
   editableRef?: RefCallback<HTMLElement>;
+  text?: string;
 };
 
-export const App: BlockComponent<AppProps> = ({ editableRef }) => (
-  <p ref={editableRef} />
-);
+export const App: BlockComponent<AppProps> = ({ editableRef, text }) => {
+  return editableRef ? <p ref={editableRef} /> : <p>{text}</p>;
+};

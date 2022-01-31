@@ -6,6 +6,7 @@ pub mod sim_control;
 use std::sync::Arc;
 
 use tokio::task::JoinHandle;
+use tracing::Instrument;
 
 pub use self::{
     error::{Error, Result},
@@ -73,7 +74,8 @@ fn new_task_handle<P: SimulationOutputPersistenceRepr>(
         receiver,
         sender,
         persistence_service,
-    ));
+    ))
+    .in_current_span();
 
     Ok(tokio::task::spawn_blocking(move || {
         tokio::runtime::Handle::current().block_on(task)
