@@ -64,7 +64,7 @@ pub struct LocalCommand {
     experiment_id: ExperimentId,
     engine_url: String,
     controller_url: String,
-    max_num_workers: usize,
+    num_workers: usize,
     log_format: LogFormat,
     output_location: OutputLocation,
     log_folder: PathBuf,
@@ -74,7 +74,7 @@ impl LocalCommand {
     /// Creates a new [`LocalProcess`] with the provided parameters.
     pub fn new(
         experiment_id: ExperimentId,
-        max_num_workers: usize,
+        num_workers: usize,
         controller_url: &str,
         log_format: LogFormat,
         output_location: OutputLocation,
@@ -87,7 +87,7 @@ impl LocalCommand {
             experiment_id,
             engine_url,
             controller_url: controller_url.to_string(),
-            max_num_workers,
+            num_workers,
             log_format,
             output_location,
             log_folder,
@@ -117,7 +117,7 @@ impl process::Command for LocalCommand {
             .arg("--listen-url")
             .arg(&self.engine_url)
             .arg("--num-workers")
-            .arg(self.max_num_workers.to_string())
+            .arg(self.num_workers.to_string())
             .arg("--log-format")
             .arg(self.log_format.to_string())
             .arg("--output")
