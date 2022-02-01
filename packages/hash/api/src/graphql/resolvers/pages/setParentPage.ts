@@ -37,12 +37,6 @@ export const setParentPage: Resolver<
       );
     }
 
-    if (pageEntity.parentEntityId) {
-      throw new Error(
-        `Page with entityId = '${pageEntity.entityId}' already has parent page entityId = '${pageEntity.parentEntityId}'`,
-      );
-    }
-
     const pages = await Page.getAccountPagesWithParents(dataSources.db, {
       accountId,
       systemTypeName: "Page",
@@ -63,6 +57,22 @@ export const setParentPage: Resolver<
         `Could not set '${parentPageId}' as parent to '${pageId}' as this would create a cyclic dependency.`,
         "CYCLIC_TREE",
       );
+    }
+
+    if (pageEntity.parentEntityId) {
+      const link = await pageEntity.getOutgoingLinkByEntityId(client, {
+        destinationEntityId: pageEntity.parentEntityId,
+      });
+      if (!link) {
+        throw new Error(
+          `Could not find existing link to parent page = '${pageEntity.parentEntityId}'.`,
+        );
+      }
+
+      await pageEntity.deleteOutgoingLink(client, {
+        linkId: link.linkId,
+        deletedByAccountId: user.accountId,
+      });
     }
 
     // @todo: lock entity to prevent potential race-condition when updating entity's properties

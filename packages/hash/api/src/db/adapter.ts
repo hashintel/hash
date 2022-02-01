@@ -434,6 +434,12 @@ export interface DBClient {
     linkId: string;
   }): Promise<DBLink | null>;
 
+  getLinkByEntityIds(params: {
+    sourceAccountId: string;
+    sourceEntityId: string;
+    destinationEntityId: string;
+  }): Promise<DBLink | null>;
+
   deleteLink(params: {
     deletedByAccountId: string;
     sourceAccountId: string;

@@ -1,10 +1,14 @@
-import { sql } from "slonik";
+import {
+  QueryResultRowType,
+  sql,
+  TaggedTemplateLiteralInvocationType,
+} from "slonik";
 import { EntityWithOutgoingEntityIds } from "../../adapter";
 import {
   EntityPGRow,
   mapPGRowToEntity,
+  selectEntities,
   selectEntitiesByType,
-  selectEntityAllVersions,
 } from "../entity";
 
 import { Connection } from "../types";
@@ -57,9 +61,24 @@ export const getEntityOutgoingLinks = async (
   return rows.map(mapDBLinkRowToDBLink);
 };
 
-const outgoingLinkAggregationQuery = sql`select array_agg(destination_entity_id) as outgoing_entity_ids from links
-where a.entity_id = source_entity_id
-group by a.entity_id`;
+const outgoingLinkAggregationQuery = sql`
+  select array_agg(destination_entity_id) as outgoing_entity_ids from links
+    inner join distinct_entitites as de on destination_entity_id = de.entity_id
+    where a.entity_id = source_entity_id and de.entity_type_version_id = a.entity_type_version_id
+    group by a.entity_id
+    `;
+
+const entitiesOutgoingLinksQuery = (
+  selector: TaggedTemplateLiteralInvocationType<QueryResultRowType>,
+) =>
+  sql`
+    with all_matches as (
+      ${selector}
+    )
+    , distinct_entitites as (select distinct on (entity_id) * from all_matches order by entity_id, updated_at desc)
+    select * from distinct_entitites as a
+    left join lateral (${outgoingLinkAggregationQuery}) as l on true
+  `;
 
 /**
  * Get the latest version of all entities of a given type and their outgoing link ids with a matching entity type.
@@ -75,15 +94,9 @@ export const getEntitiesByTypeWithOutgoingEntityIds = async (
     accountId: string;
   },
 ): Promise<EntityWithOutgoingEntityIds[]> => {
-  const rows = await conn.any<EntityWithOutgoingEntityIdsPGRow>(sql`
-    with all_matches as (
-      ${selectEntitiesByType(params)}
-    )
-    , distinct_entitites as (select distinct on (entity_id) * from all_matches order by entity_id, updated_at desc)
-    select * from distinct_entitites as a
-    left join lateral (${outgoingLinkAggregationQuery}) as l on true
-    
-  `);
+  const rows = await conn.any<EntityWithOutgoingEntityIdsPGRow>(
+    entitiesOutgoingLinksQuery(selectEntitiesByType(params)),
+  );
   return rows.map(mapEntityWithOutgoingEntityIdsPGRowToEntity);
 };
 
@@ -100,15 +113,10 @@ export const getEntityWithOutgoingEntityIds = async (
   },
 ): Promise<EntityWithOutgoingEntityIds | null> => {
   const row = await conn.maybeOne<EntityWithOutgoingEntityIdsPGRow>(
-    sql`
-    with all_matches as (
-      ${selectEntityAllVersions(params)}
-    )
-    , distinct_entitites as (select distinct on (entity_id) * from all_matches order by entity_id, updated_at desc)
-    select * from distinct_entitites as a
-    left join lateral (${outgoingLinkAggregationQuery}) as l on true
-    limit 1
-    `,
+    sql`${entitiesOutgoingLinksQuery(selectEntities)}
+      where account_id = ${params.accountId} 
+        and entity_id = ${params.entityId}
+      limit 1`,
   );
   return row ? mapEntityWithOutgoingEntityIdsPGRowToEntity(row) : null;
 };

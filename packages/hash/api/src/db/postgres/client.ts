@@ -54,7 +54,7 @@ import {
   getEntityOutgoingLinks,
   getEntityWithOutgoingEntityIds,
 } from "./link/getEntityOutgoingLinks";
-import { getLink } from "./link/getLink";
+import { getLink, getLinkByEntityIds } from "./link/getLink";
 import { createLink } from "./link/createLink";
 import { deleteLink } from "./link/deleteLink";
 import { getUserByEmail, getUserByShortname } from "./user";
@@ -433,7 +433,7 @@ export class PostgresClient implements DBClient {
       accountId: params.accountId,
     };
 
-    return getEntitiesByTypeWithOutgoingEntityIds(this.conn, queryParams);
+    return await getEntitiesByTypeWithOutgoingEntityIds(this.conn, queryParams);
   }
 
   async getEntityWithOutgoingEntityIds(
@@ -490,6 +490,12 @@ export class PostgresClient implements DBClient {
     linkId: string;
   }): Promise<DBLink | null> {
     return await getLink(this.conn, params);
+  }
+
+  async getLinkByEntityIds(
+    params: Parameters<DBClient["getLinkByEntityIds"]>[0],
+  ): ReturnType<DBClient["getLinkByEntityIds"]> {
+    return await getLinkByEntityIds(this.conn, params);
   }
 
   async deleteLink(params: {
