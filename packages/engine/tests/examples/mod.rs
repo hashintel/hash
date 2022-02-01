@@ -122,3 +122,10 @@ mod rumor_mill_public_health_practices {
         experiment: good_psa_freq_log_normal
     );
 }
+
+// https://core.hash.ai/@hash/connection-example/1.1.1
+mod connection_example {
+    use crate::run_test;
+
+    run_test!(connection_example, experiment: sweep_values);
+}
