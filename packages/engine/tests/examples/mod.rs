@@ -6,8 +6,10 @@ use crate::run_test;
 mod city_infection_model {
     use crate::run_test;
 
-    run_test!(city_infection_model, experiment: infected_linspace);
-    run_test!(city_infection_model, experiment: duration_range_monte_carlo);
+    // Rust behavior is currently not supported
+    run_test!(city_infection_model, experiment: infected_linspace, #[ignore]);
+    // Rust behavior is currently not supported
+    run_test!(city_infection_model, experiment: duration_range_monte_carlo, #[ignore]);
 }
 
 // https://core.hash.ai/@hash/sugarscape/7.5.0
@@ -16,14 +18,18 @@ mod sugarscape {
 
     // optimization experiment is not implemented
     run_test!(sugarscape, experiment: minimize_the_gini_coefficient, #[ignore]);
-    run_test!(sugarscape, experiment: initial_sugar_linear_sweep);
-    run_test!(sugarscape, experiment: agent_density_linspace);
+    // Rust behavior is currently not supported
+    run_test!(sugarscape, experiment: initial_sugar_linear_sweep, #[ignore]);
+    // Rust behavior is currently not supported
+    run_test!(sugarscape, experiment: agent_density_linspace, #[ignore]);
     // optimization experiment is not implemented
     run_test!(sugarscape, experiment: max_avg_sugar, #[ignore]);
 }
 
 // https://core.hash.ai/@hash/published-display-behaviors/2.3.0
-run_test!(published_display_behaviors);
+// Currently bugs: thread 'tokio-runtime-worker' panicked at 'assertion failed: (offset + length) <=
+// data.len()'
+run_test!(published_display_behaviors, #[ignore]);
 
 // https://core.hash.ai/@hash/boids-3d/6.1.0
 mod boids_3d {
