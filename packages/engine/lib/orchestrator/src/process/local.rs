@@ -118,7 +118,7 @@ impl process::Command for LocalCommand {
             .arg(&self.engine_url)
             .arg("--max-workers")
             .arg(self.max_num_workers.to_string())
-            .arg("--log_format")
+            .arg("--log-format")
             .arg(self.log_format.to_string())
             .arg("--output")
             .arg(self.output_location.to_string())
