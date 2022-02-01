@@ -220,7 +220,7 @@ pub async fn run_test<P: AsRef<Path>>(
 
     let experiment = orchestrator::Experiment::new(ExperimentConfig {
         num_workers: None,
-        emit: LogFormat::Pretty,
+        log_format: LogFormat::Pretty,
         log_folder: output.join("log"),
         output_folder: output,
         output_location: OutputLocation::File("output.log".into()),
