@@ -410,11 +410,26 @@ export class PostgresClient implements DBClient {
   async getEntitiesByTypeWithOutgoingEntityIds(
     params: Parameters<DBClient["getEntitiesByTypeWithOutgoingEntityIds"]>[0],
   ): ReturnType<DBClient["getEntitiesByTypeWithOutgoingEntityIds"]> {
-    const { entity_type_id: entityTypeId } = await this.conn.one(
-      selectSystemEntityTypeIds(params),
-    );
+    let entityTypeId: string = "";
+
+    if (params.entityTypeId) {
+      entityTypeId = params.entityTypeId;
+    } else if (params.systemTypeName) {
+      const { entity_type_id } = await this.conn.one<{
+        entity_type_id: string;
+      }>(selectSystemEntityTypeIds({ systemTypeName: params.systemTypeName }));
+
+      entityTypeId = entity_type_id ?? "";
+    }
+
+    if (!entityTypeId) {
+      throw new Error(
+        `Did not receive valid entityTypeId or systemTypeName for fetching outgoing entity ids for entity by entityTypeId. entityTypeId = '${params.entityTypeId}' systemTypeName = '${params.systemTypeName}'`,
+      );
+    }
+
     const queryParams = {
-      entityTypeId: entityTypeId as string,
+      entityTypeId,
       accountId: params.accountId,
     };
 

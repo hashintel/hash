@@ -386,7 +386,8 @@ export interface DBClient {
 
   getEntitiesByTypeWithOutgoingEntityIds(params: {
     accountId: string;
-    systemTypeName: SystemType;
+    entityTypeId?: string;
+    systemTypeName?: SystemType;
   }): Promise<EntityWithOutgoingEntityIds[]>;
 
   getEntityWithOutgoingEntityIds(params: {

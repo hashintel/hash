@@ -8,6 +8,7 @@ export type PageConstructorArgs = {
 
 class __Page extends Entity {
   parentEntityId?: string;
+
   constructor(args: PageConstructorArgs) {
     super(args);
     this.parentEntityId = args.outgoingEntityIds?.[0] ?? undefined;

@@ -11,23 +11,25 @@ export const setParentPage: Resolver<
   MutationSetParentPageArgs
 > = async (_, { accountId, pageId, parentPageId }, { dataSources, user }) => {
   return await dataSources.db.transaction(async (client) => {
-    const pageEntity = await Page.getAccountPageWithParents(client, {
-      accountId,
-      entityId: pageId,
-    });
+    const [pageEntity, parentPageEntity] = await Promise.all([
+      Page.getAccountPageWithParents(client, {
+        accountId,
+        entityId: pageId,
+      }),
 
-    const parentPageEntity = await Entity.getEntityLatestVersion(client, {
-      accountId,
-      entityId: parentPageId,
-    });
+      Entity.getEntityLatestVersion(client, {
+        accountId,
+        entityId: parentPageId,
+      }),
+    ]);
 
     if (!pageEntity || !parentPageEntity) {
       const notFoundId = pageEntity?.entityId
         ? `'${parentPageId}'`
-        : `'${pageId}' ${
+        : `'${pageId}'${
             parentPageEntity?.entityId
               ? ""
-              : `nor parent page with entityId = '${parentPageId}`
+              : ` nor parent page with entityId = '${parentPageId}'`
           }`;
       throw new ApolloError(
         `Could not find entity with entityId = ${notFoundId}.`,
