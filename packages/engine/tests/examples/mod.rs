@@ -112,3 +112,11 @@ mod rainfall {
     // Rust behavior is currently not supported
     run_test!(rainfall, experiment: sweep_rain_rate, #[ignore]);
 }
+
+// https://core.hash.ai/@hash/rumor-mill-public-health-practices/2.2.3
+mod rumor_mill_public_health_practices {
+    use crate::run_test;
+
+    // Rust behavior is currently not supported
+    run_test!(rumor_mill_public_health_practices, experiment: good_psa_freq_log_normal, #[ignore]);
+}
