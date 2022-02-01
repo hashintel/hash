@@ -4,9 +4,6 @@
 //! neighbors, so in some ways it follows a unit-testing philosophy, but just on user-exposed
 //! functionalities.
 
-/// Helper for parsing an experiment and run it.
-mod experiment;
-
 mod behavior;
 mod context;
 mod data;
