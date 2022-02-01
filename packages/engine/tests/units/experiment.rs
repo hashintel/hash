@@ -13,7 +13,7 @@ use hash_engine::{
     utils::{OutputFormat, OutputLocation},
     Language,
 };
-use orchestrator::{create_server, ExperimentConfig, ExperimentType, Manifest};
+use orchestrator::{ExperimentConfig, ExperimentType, Manifest, Server};
 use serde::{de::DeserializeOwned, Deserialize};
 use serde_json::Value;
 
@@ -201,7 +201,7 @@ pub async fn run_test<P: AsRef<Path>>(
         }
     };
 
-    let (mut experiment_server, handler) = create_server(nng_listen_url)?;
+    let (mut experiment_server, handler) = Server::create(nng_listen_url);
     tokio::spawn(async move { experiment_server.run().await });
 
     let manifest = load_manifest(project_path, language)

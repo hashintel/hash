@@ -1,3 +1,7 @@
+//! Module for creating an [`Experiment`] and running it on a [`Process`].
+//!
+//! [`Process`]: crate::process::Process
+
 use std::{collections::HashMap, path::PathBuf, time::Duration};
 
 use error::{bail, ensure, report, Result, ResultExt};
@@ -20,24 +24,80 @@ use tokio::time::{sleep, timeout};
 
 use crate::{exsrv::Handler, process};
 
+/// Configuration values used for the [`hash_engine`] subprocess used.
+///
+/// See the [`process`] module for more information.
+///
+/// [`Process`]: crate::process::Process
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "clap", derive(clap::Args))]
 pub struct ExperimentConfig {
-    pub num_workers: usize,
+    /// Project output path folder.
+    ///
+    /// The folder will be created if it's missing.
+    #[cfg_attr(
+        feature = "clap",
+        clap(short, long, default_value = "./output", env = "HASH_OUTPUT")
+    )]
+    pub output: PathBuf,
+
+    /// Output format emitted to the terminal.
+    #[cfg_attr(
+        feature = "clap",
+        clap(long, default_value = "pretty", arg_enum, env = "HASH_EMIT")
+    )]
     pub emit: OutputFormat,
-    pub output_folder: PathBuf,
+
+    /// Output location where to emit logs.
+    ///
+    /// Can be `stdout`, `stderr` or any file name. Relative to `--log-folder` if a file is
+    /// specified.
+    #[cfg_attr(feature = "clap", clap(long, default_value = "stderr"))]
     pub output_location: OutputLocation,
+
+    /// Logging output folder.
+    #[cfg_attr(feature = "clap", clap(long, default_value = "./log"))]
     pub log_folder: PathBuf,
-    pub engine_start_timeout: Duration,
-    pub engine_wait_timeout: Duration,
+
+    /// Engine start timeout in seconds.
+    #[cfg_attr(
+        feature = "clap",
+        clap(long, default_value = "2", env = "ENGINE_START_TIMEOUT")
+    )]
+    pub start_timeout: u64,
+
+    /// Engine wait timeout in seconds.
+    #[cfg_attr(
+        feature = "clap",
+        clap(long, default_value = "60", env = "ENGINE_WAIT_TIMEOUT")
+    )]
+    pub wait_timeout: u64,
+
+    /// Max number of parallel workers (must be power of 2).
+    #[cfg_attr(feature = "clap", clap(short = 'w', long, env = "HASH_WORKERS"))]
+    pub num_workers: Option<usize>,
 }
 
+/// Representation for a single experiment.
 #[derive(Debug, Clone)]
 pub enum ExperimentType {
-    SingleRun { num_steps: usize },
-    Simple { name: ExperimentName },
+    /// An anonymous experiment
+    SingleRun {
+        /// Number of steps to run
+        num_steps: usize,
+    },
+    /// A named experiment.
+    Simple {
+        /// Name of the experiment specified in _experiments.json_
+        name: ExperimentName,
+    },
 }
 
 impl ExperimentType {
+    /// Creates an experiment config from `ExperimentType`.
+    ///
+    /// If the experiment is a named experiment [`Simple`](Self::Simple), it uses a `base` to load
+    /// the experiment config for the given `name`.
     pub fn get_package_config(self, base: &ExperimentRunBase) -> Result<ExperimentPackageConfig> {
         match self {
             ExperimentType::SingleRun { num_steps } => Ok(ExperimentPackageConfig::SingleRun(
@@ -51,31 +111,45 @@ impl ExperimentType {
     }
 }
 
+/// A single configured experiment.
 pub struct Experiment {
+    /// Configuration for the experiment.
     pub config: ExperimentConfig,
 }
 
 impl Experiment {
+    /// Creates an experiment from the provided `config`.
     pub fn new(config: ExperimentConfig) -> Self {
         Self { config }
     }
 
-    pub fn create_engine_command(
+    /// Creates a [`Command`] from the experiment's configuration and the given `experiment_id` and
+    /// `controller_url`.
+    ///
+    /// [`Command`]: crate::process::Command
+    fn create_engine_command(
         &self,
         experiment_id: ExperimentId,
         controller_url: &str,
-    ) -> Result<Box<dyn process::Command + Send>> {
-        Ok(Box::new(process::LocalCommand::new(
+    ) -> Box<dyn process::Command + Send> {
+        Box::new(process::LocalCommand::new(
             experiment_id,
-            self.config.num_workers,
+            self.config.num_workers.unwrap_or_else(num_cpus::get),
             controller_url,
             self.config.emit,
             self.config.output_location.clone(),
             self.config.log_folder.clone(),
-        )?))
+        ))
     }
 
-    #[instrument(skip_all, fields(project_name = project_name.as_str(), experiment_id = %experiment_run.base.id))]
+    /// Runs the experiment.
+    ///
+    /// The `experiment_run` is registered at the server with the provided `handler`, and started
+    /// using [`Process`]. After startup it listens to the messages sent from [`hash_engine`] and
+    /// returns once the experiment has finished.
+    ///
+    /// [`Process`]: crate::process::Process
+    #[instrument(skip_all, fields(project_name = project_name.as_str(), experiment_id = % experiment_run.base.id))]
     pub async fn run(
         &self,
         experiment_run: proto::ExperimentRun,
@@ -89,16 +163,17 @@ impl Experiment {
             .wrap_err_lazy(|| format!("Could not register experiment \"{experiment_name}\""))?;
 
         // Create and start the experiment run
-        let cmd = self
-            .create_engine_command(experiment_run.base.id, handler.url())
-            .wrap_err("Could not build engine command")?;
+        let cmd = self.create_engine_command(experiment_run.base.id, handler.url());
         let mut engine_process = cmd.run().await.wrap_err("Could not run experiment")?;
 
         // Wait to receive a message that the experiment has started before sending the init
         // message.
-        let msg = timeout(self.config.engine_start_timeout, engine_handle.recv())
-            .await
-            .wrap_err("engine start timeout");
+        let msg = timeout(
+            Duration::from_secs(self.config.start_timeout),
+            engine_handle.recv(),
+        )
+        .await
+        .wrap_err("engine start timeout");
         match msg {
             Ok(proto::EngineStatus::Started) => {}
             Ok(m) => {
@@ -121,7 +196,7 @@ impl Experiment {
         let map_iter = [(
             OUTPUT_PERSISTENCE_KEY.to_string(),
             json!(OutputPersistenceConfig::Local(LocalPersistenceConfig {
-                output_folder: self.config.output_folder.clone()
+                output_folder: self.config.output.clone()
             })),
         )];
         // Now we can send the init message
@@ -140,11 +215,11 @@ impl Experiment {
         loop {
             let msg: Option<proto::EngineStatus>;
             tokio::select! {
-                _ = sleep(self.config.engine_wait_timeout) => {
+                _ = sleep(Duration::from_secs(self.config.wait_timeout)) => {
                     error!(
                         "Did not receive status from experiment \"{experiment_name}\" for over {:?}. \
                         Exiting now.",
-                        self.config.engine_wait_timeout
+                        self.config.wait_timeout
                     );
                     break;
                 }

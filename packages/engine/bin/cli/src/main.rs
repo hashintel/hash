@@ -3,16 +3,13 @@
 use std::{
     fmt::Debug,
     path::PathBuf,
-    time::{Duration, SystemTime, UNIX_EPOCH},
+    time::{SystemTime, UNIX_EPOCH},
 };
 
 use clap::{AppSettings, Parser};
 use error::{report, Result, ResultExt};
-use hash_engine::{
-    proto::ExperimentName,
-    utils::{OutputFormat, OutputLocation},
-};
-use orchestrator::{create_server, Experiment, ExperimentConfig, Manifest};
+use hash_engine::proto::ExperimentName;
+use orchestrator::{Experiment, ExperimentConfig, Manifest, Server};
 
 /// Arguments passed to the CLI
 #[derive(Debug, Parser)]
@@ -30,42 +27,12 @@ pub struct Args {
     #[clap(short = 'n', long)]
     project_name: Option<String>,
 
-    /// Project output path folder.
-    ///
-    /// The folder will be created if it's missing.
-    #[clap(short, long, default_value = "./output", env = "HASH_OUTPUT")]
-    output: PathBuf,
-
-    /// Output format emitted to the terminal.
-    #[clap(long, default_value = "pretty", arg_enum, env = "HASH_EMIT")]
-    emit: OutputFormat,
-
-    /// Output location where to emit logs.
-    ///
-    /// Can be `stdout`, `stderr` or any file name. Relative to `--log-folder` if a file is
-    /// specified.
-    #[clap(long, default_value = "stderr")]
-    output_location: OutputLocation,
-
-    /// Logging output folder.
-    #[clap(long, default_value = "./log")]
-    log_folder: PathBuf,
-
-    /// Engine start timeout in seconds
-    #[clap(long, default_value = "2", env = "ENGINE_START_TIMEOUT")]
-    start_timeout: u64,
-
-    /// Engine wait timeout in seconds
-    #[clap(long, default_value = "60", env = "ENGINE_WAIT_TIMEOUT")]
-    wait_timeout: u64,
+    #[clap(flatten)]
+    experiment_config: ExperimentConfig,
 
     /// Experiment type to be run.
     #[clap(subcommand)]
     r#type: ExperimentType,
-
-    /// Max number of parallel workers (must be power of 2).
-    #[clap(short = 'w', long, env = "HASH_WORKERS")]
-    num_workers: Option<usize>,
 }
 
 /// Type of experiment to be run.
@@ -120,16 +87,16 @@ async fn main() -> Result<()> {
         .as_millis();
 
     let _guard = hash_engine::init_logger(
-        args.emit,
-        &args.output_location,
-        args.log_folder.clone(),
+        args.experiment_config.emit,
+        &args.experiment_config.output_location,
+        args.experiment_config.log_folder.clone(),
         &format!("cli-{now}"),
         &format!("cli-{now}-texray"),
     );
 
     let nng_listen_url = format!("ipc://hash-orchestrator-{now}");
 
-    let (mut experiment_server, handler) = create_server(nng_listen_url)?;
+    let (mut experiment_server, handler) = Server::create(nng_listen_url);
     tokio::spawn(async move { experiment_server.run().await });
 
     let absolute_project_path = args
@@ -142,15 +109,7 @@ async fn main() -> Result<()> {
         .read(args.r#type.into())
         .wrap_err("Could not read manifest")?;
 
-    let experiment = Experiment::new(ExperimentConfig {
-        num_workers: args.num_workers.unwrap_or_else(num_cpus::get),
-        emit: args.emit,
-        output_folder: args.output,
-        output_location: args.output_location,
-        log_folder: args.log_folder,
-        engine_start_timeout: Duration::from_secs(args.start_timeout),
-        engine_wait_timeout: Duration::from_secs(args.wait_timeout),
-    });
+    let experiment = Experiment::new(args.experiment_config);
 
     let project_name = args.project_name.clone().unwrap_or(
         absolute_project_path
