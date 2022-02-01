@@ -1,3 +1,4 @@
+//! TODO: DOC
 use std::{ops::Deref, sync::Arc};
 
 use super::{
@@ -91,7 +92,7 @@ impl PendingPlan {
         new_agents: Option<&'b RecordBatch>,
         config: &Arc<SimRunConfig>,
     ) -> Result<MigrationPlan<'b>> {
-        let dynamic_pool = state.agent_pool().read_batches()?;
+        let dynamic_pool = state.agent_pool().try_read_batches()?;
         let mut existing_mutations = (0..dynamic_pool.len())
             .map(|_| ExistingGroupBufferActions::Undefined)
             .collect::<Vec<_>>();
@@ -167,7 +168,7 @@ fn buffer_actions_from_pending_batch<'a>(
 
     let range_actions = RangeActions::new(remove, copy, create);
 
-    let batches = state.agent_pool().read_batches()?;
+    let batches = state.agent_pool().try_read_batches()?;
     BufferActions::from(
         &batches,
         batch.old_batch_index(),

@@ -8,7 +8,10 @@ use std::{
 
 use clap::{AppSettings, Parser};
 use error::{report, Result, ResultExt};
-use hash_engine::{proto::ExperimentName, utils::OutputFormat};
+use hash_engine::{
+    proto::ExperimentName,
+    utils::{OutputFormat, OutputLocation},
+};
 use orchestrator::{create_server, Experiment, ExperimentConfig, Manifest};
 
 /// Arguments passed to the CLI
@@ -36,6 +39,17 @@ pub struct Args {
     /// Output format emitted to the terminal.
     #[clap(long, default_value = "pretty", arg_enum, env = "HASH_EMIT")]
     emit: OutputFormat,
+
+    /// Output location where to emit logs.
+    ///
+    /// Can be `stdout`, `stderr` or any file name. Relative to `--log-folder` if a file is
+    /// specified.
+    #[clap(long, default_value = "stderr")]
+    output_location: OutputLocation,
+
+    /// Logging output folder.
+    #[clap(long, default_value = "./log")]
+    log_folder: PathBuf,
 
     /// Engine start timeout in seconds
     #[clap(long, default_value = "2", env = "ENGINE_START_TIMEOUT")]
@@ -107,6 +121,8 @@ async fn main() -> Result<()> {
 
     let _guard = hash_engine::init_logger(
         args.emit,
+        &args.output_location,
+        args.log_folder.clone(),
         &format!("cli-{now}"),
         &format!("cli-{now}-texray"),
     );
@@ -130,6 +146,8 @@ async fn main() -> Result<()> {
         num_workers: args.num_workers.unwrap_or_else(num_cpus::get),
         emit: args.emit,
         output_folder: args.output,
+        output_location: args.output_location,
+        log_folder: args.log_folder,
         engine_start_timeout: Duration::from_secs(args.start_timeout),
         engine_wait_timeout: Duration::from_secs(args.wait_timeout),
     });

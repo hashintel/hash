@@ -14,9 +14,7 @@ mod js {
     run_test!(create_agent, JavaScript);
     run_test!(remove_agent, JavaScript);
     run_test!(remove_self, JavaScript);
-    // TODO: Handle stop messages
-    //   see https://app.asana.com/0/1199550852792314/1201630005867419/f
-    run_test!(stop_simulation, JavaScript, #[ignore]);
+    run_test!(stop_simulation, JavaScript);
 }
 
 mod py {

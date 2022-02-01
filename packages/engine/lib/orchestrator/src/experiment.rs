@@ -9,7 +9,8 @@ use hash_engine::{
         ExecutionEnvironment, ExperimentId, ExperimentName, ExperimentPackageConfig,
         ExperimentRunBase, SimpleExperimentConfig, SingleRunExperimentConfig,
     },
-    utils::OutputFormat,
+    simulation::command::StopStatus,
+    utils::{OutputFormat, OutputLocation},
 };
 use rand::{distributions::Distribution, Rng, RngCore};
 use rand_distr::{Beta, LogNormal, Normal, Poisson};
@@ -24,6 +25,8 @@ pub struct ExperimentConfig {
     pub num_workers: usize,
     pub emit: OutputFormat,
     pub output_folder: PathBuf,
+    pub output_location: OutputLocation,
+    pub log_folder: PathBuf,
     pub engine_start_timeout: Duration,
     pub engine_wait_timeout: Duration,
 }
@@ -67,6 +70,8 @@ impl Experiment {
             self.config.num_workers,
             controller_url,
             self.config.emit,
+            self.config.output_location.clone(),
+            self.config.log_folder.clone(),
         )?))
     }
 
@@ -157,7 +162,33 @@ impl Experiment {
                 }
                 proto::EngineStatus::SimStatus(status) => {
                     debug!("Got simulation run status: {status:?}");
-                    // TODO: OS - handle status fields
+                    for stop_command in status.stop_msg {
+                        let reason = if let Some(reason) = stop_command.message.reason.as_ref() {
+                            format!(": {reason}")
+                        } else {
+                            String::new()
+                        };
+                        let agent = &stop_command.agent;
+                        match stop_command.message.status {
+                            StopStatus::Success => {
+                                tracing::info!(
+                                    "Simulation stopped by agent `{agent}` successfully{reason}"
+                                );
+                            }
+                            StopStatus::Warning => {
+                                tracing::warn!(
+                                    "Simulation stopped by agent `{agent}` with a warning{reason}"
+                                );
+                            }
+                            StopStatus::Error => {
+                                errored = true;
+                                tracing::error!(
+                                    "Simulation stopped by agent `{agent}` with an error{reason}"
+                                );
+                            }
+                        }
+                    }
+                    // TODO: OS - handle more status fields
                 }
                 proto::EngineStatus::SimStop(sim_id) => {
                     debug!("Simulation stopped: {sim_id}");

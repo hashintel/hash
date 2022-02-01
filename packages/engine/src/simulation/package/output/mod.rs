@@ -3,6 +3,7 @@ pub mod packages;
 use std::sync::Arc;
 
 pub use packages::{Name, OutputTask, OutputTaskMessage, PACKAGE_CREATORS};
+use tracing::Span;
 
 use self::packages::Output;
 use super::{
@@ -60,4 +61,6 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
 #[async_trait]
 pub trait Package: MaybeCpuBound + GetWorkerSimStartMsg + Send + Sync {
     async fn run(&mut self, state: Arc<State>, context: Arc<Context>) -> Result<Output>;
+
+    fn span(&self) -> Span;
 }

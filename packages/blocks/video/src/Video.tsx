@@ -20,6 +20,7 @@ type FileType = Awaited<ReturnType<BlockProtocolUploadFileFunction>>;
 
 type AppProps = {
   initialCaption?: string;
+  url?: string;
 };
 
 type BlockProtocolUpdateEntitiesActionData = Pick<
@@ -93,6 +94,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
     linkedEntities,
     uploadFile,
     updateEntities,
+    url,
   } = props;
 
   // TODO: Consider replacing multiple states with useReducer()
@@ -101,10 +103,12 @@ export const Video: BlockComponent<AppProps> = (props) => {
     src: string;
     loading: boolean;
     errorString: string | null;
+    userIsEditing: boolean;
   }>({
     src: "",
     loading: false,
     errorString: null,
+    userIsEditing: !url,
   });
 
   const isMounted = useRef(false);
@@ -149,10 +153,10 @@ export const Video: BlockComponent<AppProps> = (props) => {
         linkedEntities,
       });
 
-      const { url } = matchingLinkedEntities?.[0] ?? {};
+      const { url: matchingUrl } = matchingLinkedEntities?.[0] ?? {};
 
-      if (url && stateObjectRef.current.src !== url) {
-        updateStateObject({ src: url });
+      if (matchingUrl && stateObjectRef.current.src !== matchingUrl) {
+        updateStateObject({ src: matchingUrl });
       }
     }
 
@@ -227,8 +231,8 @@ export const Video: BlockComponent<AppProps> = (props) => {
             ]);
 
             if (isMounted.current) {
-              updateStateObject({ loading: false });
               updateData({ file, src: file.url });
+              updateStateObject({ loading: false, userIsEditing: false });
             }
           })
           .catch((error: Error) =>
@@ -281,6 +285,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
         loading: false,
         errorString: null,
         src: "",
+        userIsEditing: true,
       });
 
       setInputText("");
@@ -288,7 +293,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
     });
   };
 
-  if (stateObject.src?.trim()) {
+  if (stateObject.src?.trim() || (url && !stateObject.userIsEditing)) {
     return (
       <div className={tw`flex justify-center text-center w-full`}>
         <div className={tw`max-w-full`}>
@@ -298,7 +303,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
             style={{
               maxWidth: "100%",
             }}
-            src={stateObject.src}
+            src={stateObject.src ? stateObject.src : url}
           />
 
           <input

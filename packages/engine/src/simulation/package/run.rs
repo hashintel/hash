@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use futures::{executor::block_on, stream::FuturesOrdered, StreamExt};
-use tracing::Instrument;
+use tracing::{Instrument, Span};
 
 use crate::{
     datastore::{
@@ -17,7 +17,7 @@ use crate::{
             context,
             context::ContextColumn,
             init, output,
-            prelude::{Error, ExContext, ExState, Result},
+            prelude::{ContextMut, Error, Result, StateMut},
             state,
         },
         step_output::SimulationStepOutput,
@@ -152,7 +152,7 @@ impl StepPackages {
         state: Arc<State>,
         snapshot: StateSnapshot,
         pre_context: PreContext,
-    ) -> Result<ExContext> {
+    ) -> Result<ContextMut> {
         tracing::debug!("Running context packages");
         // Execute packages in parallel and collect the data
         let mut futs = FuturesOrdered::new();
@@ -168,14 +168,21 @@ impl StepPackages {
 
             let cpu_bound = package.cpu_bound();
             futs.push(if cpu_bound {
+                let current_span = Span::current();
                 tokio::task::spawn_blocking(move || {
-                    let res = block_on(package.run(state, snapshot_clone).in_current_span());
+                    let package_span = {
+                        // We want to create the package span within the scope of the current one
+                        let _entered = current_span.entered();
+                        package.span()
+                    };
+                    let res = block_on(package.run(state, snapshot_clone).instrument(package_span));
                     (package, res)
                 })
             } else {
+                let span = package.span();
                 tokio::task::spawn(
                     async {
-                        let res = package.run(state, snapshot_clone).await;
+                        let res = package.run(state, snapshot_clone).instrument(span).await;
                         (package, res)
                     }
                     .in_current_span(),
@@ -234,14 +241,15 @@ impl StepPackages {
         Ok(context)
     }
 
-    pub async fn run_state(&mut self, mut state: ExState, context: &Context) -> Result<ExState> {
+    pub async fn run_state(&mut self, mut state: StateMut, context: &Context) -> Result<StateMut> {
         tracing::debug!("Running state packages");
         // Design-choices:
         // Cannot use trait bounds as dyn Package won't be object-safe
         // Traits are tricky anyway for working with iterators
         // Will instead use state.upgrade() and exstate.downgrade() and respectively for context
         for pkg in self.state.iter_mut() {
-            pkg.run(&mut state, context).await?;
+            let span = pkg.span();
+            pkg.run(&mut state, context).instrument(span).await?;
         }
 
         Ok(state)
@@ -263,15 +271,25 @@ impl StepPackages {
 
             let cpu_bound = pkg.cpu_bound();
             futs.push(if cpu_bound {
+                let current_span = Span::current();
                 tokio::task::spawn_blocking(move || {
-                    let res = block_on(pkg.run(state, context));
+                    let package_span = {
+                        // We want to create the package span within the scope of the current one
+                        let _entered = current_span.entered();
+                        pkg.span()
+                    };
+                    let res = block_on(pkg.run(state, context).instrument(package_span));
                     (pkg, res)
                 })
             } else {
-                tokio::task::spawn(async {
-                    let res = pkg.run(state, context).await;
-                    (pkg, res)
-                })
+                let span = pkg.span();
+                tokio::task::spawn(
+                    async {
+                        let res = pkg.run(state, context).instrument(span).await;
+                        (pkg, res)
+                    }
+                    .in_current_span(),
+                )
             });
         });
 

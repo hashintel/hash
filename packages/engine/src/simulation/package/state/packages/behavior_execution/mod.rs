@@ -18,10 +18,13 @@ use crate::{
     simulation::{
         package::{
             name::PackageName,
-            state::packages::behavior_execution::{
-                config::BehaviorIds,
-                fields::{BEHAVIOR_IDS_FIELD_NAME, BEHAVIOR_INDEX_FIELD_NAME},
-                tasks::ExecuteBehaviorsTask,
+            state::{
+                packages::behavior_execution::{
+                    config::BehaviorIds,
+                    fields::{BEHAVIOR_IDS_FIELD_NAME, BEHAVIOR_INDEX_FIELD_NAME},
+                    tasks::ExecuteBehaviorsTask,
+                },
+                Package,
             },
         },
         task::{active::ActiveTask, Task},
@@ -147,7 +150,7 @@ impl BehaviorExecution {
     /// Iterates over all "behaviors" fields of agents and writes them into their "behaviors" field.
     /// This fixation guarantees that all behaviors that were there in the beginning of behavior
     /// execution will be executed accordingly
-    fn fix_behavior_chains(&mut self, state: &mut ExState) -> Result<()> {
+    fn fix_behavior_chains(&mut self, state: &mut StateMut) -> Result<()> {
         let behavior_ids = chain::gather_behavior_chains(
             state,
             &self.behavior_ids,
@@ -159,7 +162,7 @@ impl BehaviorExecution {
         Ok(())
     }
 
-    fn reset_behavior_index_col(&mut self, state: &mut ExState) -> Result<()> {
+    fn reset_behavior_index_col(&mut self, state: &mut StateMut) -> Result<()> {
         let behavior_index_col = reset_index_col(self.behavior_index_col_index)?;
         state.set_pending_column(behavior_index_col)?;
 
@@ -167,8 +170,8 @@ impl BehaviorExecution {
     }
 
     /// Iterate over languages of first behaviors to choose first language runner to send task to
-    fn get_first_lang(&self, state: &ExState) -> Result<Option<Language>> {
-        for batch in state.agent_pool().read_batches()? {
+    fn get_first_lang(&self, state: &StateMut) -> Result<Option<Language>> {
+        for batch in state.agent_pool().try_read_batches()? {
             for agent_behaviors in batch.behavior_list_bytes_iter()? {
                 if agent_behaviors.is_empty() {
                     continue;
@@ -193,7 +196,7 @@ impl BehaviorExecution {
     /// Sends out behavior execution commands to workers
     async fn begin_execution(
         &mut self,
-        state: &mut ExState,
+        state: &mut StateMut,
         context: &Context,
         lang: Language,
     ) -> Result<ActiveTask> {
@@ -213,7 +216,7 @@ impl BehaviorExecution {
 
 #[async_trait]
 impl Package for BehaviorExecution {
-    async fn run(&mut self, state: &mut ExState, context: &Context) -> Result<()> {
+    async fn run(&mut self, state: &mut StateMut, context: &Context) -> Result<()> {
         tracing::trace!("Running BehaviorExecution");
         self.fix_behavior_chains(state)?;
         self.reset_behavior_index_col(state)?;
@@ -233,5 +236,9 @@ impl Package for BehaviorExecution {
         // TODO: Get latest metaversions from message and reload state if necessary.
         tracing::trace!("BehaviorExecution task finished: {:?}", &msg);
         Ok(())
+    }
+
+    fn span(&self) -> Span {
+        tracing::debug_span!("behavior_execution")
     }
 }

@@ -72,6 +72,13 @@
   "blockprotocol": {
     "displayName": "Embed",
     "icon": "public/embed.svg",
-    "image": "public/preview.svg"
+    "image": "public/preview.svg",
+    "examples": [
+      {
+        "initialHtml": "<iframe src=\"https://core.hash.ai/embed.html?project=%40hash%2Fcity-infection-model&ref=6.4.2\" width=\"300\" height=\"171\" frameborder=\"0\" scrolling=\"auto\"></iframe>",
+        "initialWidth": 600,
+        "initialHeight": 340
+      }
+    ]
   }
 }

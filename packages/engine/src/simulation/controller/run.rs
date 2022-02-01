@@ -71,7 +71,7 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     let now = std::time::Instant::now();
     let mut steps_taken = 0;
     let mut early_stop = false;
-    let mut stop_msg = None;
+    let mut stop_msg = Vec::new();
     'sim_main: loop {
         // Behaviors expect context.step() to give the current step rather than steps_taken
         let current_step = steps_taken + 1;
@@ -128,7 +128,7 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
             .await?;
         if let AgentControl::Stop(msg) = step_result.agent_control {
             early_stop = true;
-            stop_msg = Some(msg);
+            stop_msg = msg;
             // Break before `send`, because stop messages (like other messages) are handled at the
             // start of a step, before running behaviors, so the stop message was already sent on
             // the previous step.

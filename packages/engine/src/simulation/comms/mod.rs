@@ -30,7 +30,7 @@ use uuid::Uuid;
 
 use self::message::{EngineToWorkerPoolMsg, WrappedTask};
 use super::{
-    command::CreateRemoveCommands,
+    command::Commands,
     package::id::PackageId,
     task::{access::StoreAccessVerify, active::ActiveTask, Task},
 };
@@ -56,7 +56,7 @@ use crate::{
 /// All relevant to communication between the Loop and the Language Runtime(s)
 pub struct Comms {
     sim_id: SimulationShortId,
-    cmds: Arc<RwLock<CreateRemoveCommands>>,
+    cmds: Arc<RwLock<Commands>>,
     worker_pool_sender: MainMsgSend,
 }
 
@@ -64,12 +64,12 @@ impl Comms {
     pub fn new(sim_id: SimulationShortId, worker_pool_sender: MainMsgSend) -> Result<Comms> {
         Ok(Comms {
             sim_id,
-            cmds: Arc::new(RwLock::new(CreateRemoveCommands::default())),
+            cmds: Arc::new(RwLock::new(Commands::default())),
             worker_pool_sender,
         })
     }
 
-    pub fn take_create_remove_commands(&self) -> Result<CreateRemoveCommands> {
+    pub fn take_commands(&self) -> Result<Commands> {
         let mut cmds = self.cmds.try_write()?;
         let taken = std::mem::take(&mut *cmds);
         Ok(taken)
