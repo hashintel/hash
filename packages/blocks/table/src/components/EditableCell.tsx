@@ -39,7 +39,7 @@ export const EditableCell: VoidFunctionComponent<EditableCellProps> = ({
     const inputEl = textAreaRef.current;
 
     inputEl.style.height = "auto";
-    inputEl.style.height = `${inputEl.scrollHeight}px`;
+    inputEl.style.height = `${inputEl.scrollHeight + 2}px`;
   }, [value, textAreaRef]);
 
   if (readOnly) {
@@ -86,7 +86,7 @@ export const EditableCell: VoidFunctionComponent<EditableCellProps> = ({
   return (
     <textarea
       ref={textAreaRef}
-      className={tw`block resize-none w-full bg-transparent rounded border-1 border-transparent hover:border-blue-500 py-1 px-2 -mx-2 `}
+      className={tw`block resize-none w-full bg-transparent rounded border-1 border-transparent hover:border-blue-500 py-1 px-2 -mx-2 w-max`}
       value={value}
       onChange={onChange}
       onBlur={onBlur}
