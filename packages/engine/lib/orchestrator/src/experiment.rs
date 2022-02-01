@@ -76,11 +76,10 @@ pub struct ExperimentConfig {
     )]
     pub wait_timeout: u64,
 
-    /// Max number of parallel workers, defaults to the number of CPUs available.
-    #[cfg_attr(
-        feature = "clap",
-        clap(short = 'w', long, default_value_t = num_cpus::get(), env = "HASH_WORKERS")
-    )]
+    /// Max number of parallel workers.
+    ///
+    /// Defaults to the number of logical CPUs available in order to maximize the performance.
+    #[cfg_attr(feature = "clap", clap(short = 'w', long, default_value_t = num_cpus::get(), env = "HASH_WORKERS"))]
     pub num_workers: usize,
 }
 
