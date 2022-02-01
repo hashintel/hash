@@ -55,3 +55,15 @@ mod model_market {
     // Rust behavior is currently not supported
     run_test!(model_market, experiment: min_cost_arange, #[ignore]);
 }
+
+// https://core.hash.ai/@hash/wildfires-regrowth/9.8.0
+mod wildfire_regrowth {
+    use crate::run_test;
+
+    // optimization experiment is not implemented
+    run_test!(wildfire_regrowth, experiment: optimal_rates_for_forest_growth, #[ignore]);
+    // Rust behavior is currently not supported
+    run_test!(wildfire_regrowth, experiment: test_experiment, #[ignore]);
+    // Rust behavior is currently not supported
+    run_test!(wildfire_regrowth, experiment: lightning_chance_linspace, #[ignore]);
+}
