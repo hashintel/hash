@@ -117,6 +117,8 @@ mod rainfall {
 mod rumor_mill_public_health_practices {
     use crate::run_test;
 
-    // Rust behavior is currently not supported
-    run_test!(rumor_mill_public_health_practices, experiment: good_psa_freq_log_normal, #[ignore]);
+    run_test!(
+        rumor_mill_public_health_practices,
+        experiment: good_psa_freq_log_normal
+    );
 }
