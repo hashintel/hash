@@ -104,3 +104,11 @@ mod warehouse_logistics {
     // optimization experiment is not implemented
     run_test!(warehouse_logistics, experiment: find_optimal_layout, #[ignore]);
 }
+
+// https://core.hash.ai/@hash/rainfall/7.2.2
+mod rainfall {
+    use crate::run_test;
+
+    // Rust behavior is currently not supported
+    run_test!(rainfall, experiment: sweep_rain_rate, #[ignore]);
+}

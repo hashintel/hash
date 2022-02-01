@@ -1,0 +1,13 @@
+{
+  "keys": {
+    "age": {
+      "type": "number",
+      "nullable": true
+    },
+    "true_height": {
+      "nullable": false,
+      "type": "number"
+    }
+  },
+  "built_in_key_use": null
+}
