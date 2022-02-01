@@ -20,8 +20,8 @@ enum Ctrl {
     Register {
         /// Identifier for the experiment to be registered
         id: ExperimentId,
-        /// Sender for the engine to use to send [`EngineStatus`](proto::EngineStatus) messages back
-        /// to the orchestrator
+        /// Sender for the engine to use to send [`EngineStatus`](proto::EngineStatus) messages
+        /// back to the orchestrator
         msg_tx: MsgSender,
     },
     /// Signal to stop the experiment
