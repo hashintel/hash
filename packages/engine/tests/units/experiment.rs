@@ -9,7 +9,7 @@ use std::{
 use error::{bail, ensure, report, Result, ResultExt};
 use hash_engine::{
     proto::ExperimentName,
-    utils::{OutputFormat, OutputLocation},
+    utils::{LogFormat, OutputLocation},
     Language,
 };
 use orchestrator::{ExperimentConfig, ExperimentType, Manifest, Server};
@@ -220,9 +220,9 @@ pub async fn run_test<P: AsRef<Path>>(
 
     let experiment = orchestrator::Experiment::new(ExperimentConfig {
         num_workers: None,
-        emit: OutputFormat::Pretty,
+        emit: LogFormat::Pretty,
         log_folder: output.join("log"),
-        output,
+        output_folder: output,
         output_location: OutputLocation::File("output.log".into()),
         start_timeout: 10,
         wait_timeout: 10 * 60,
@@ -230,7 +230,7 @@ pub async fn run_test<P: AsRef<Path>>(
 
     let output_base_directory = experiment
         .config
-        .output
+        .output_folder
         .join(experiment_run.base.name.as_str())
         .join(experiment_run.base.id.to_string());
 

@@ -87,7 +87,7 @@ async fn main() -> Result<()> {
         .as_millis();
 
     let _guard = hash_engine::init_logger(
-        args.experiment_config.emit,
+        args.experiment_config.log_format,
         &args.experiment_config.output_location,
         args.experiment_config.log_folder.clone(),
         &format!("cli-{now}"),

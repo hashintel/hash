@@ -5,7 +5,7 @@ use error::{Report, Result, ResultExt};
 use hash_engine::{
     nano,
     proto::{EngineMsg, ExperimentId},
-    utils::{OutputFormat, OutputLocation},
+    utils::{LogFormat, OutputLocation},
 };
 
 use crate::process;
@@ -65,7 +65,7 @@ pub struct LocalCommand {
     engine_url: String,
     controller_url: String,
     max_num_workers: usize,
-    output_format: OutputFormat,
+    log_format: LogFormat,
     output_location: OutputLocation,
     log_folder: PathBuf,
 }
@@ -76,7 +76,7 @@ impl LocalCommand {
         experiment_id: ExperimentId,
         max_num_workers: usize,
         controller_url: &str,
-        output_format: OutputFormat,
+        log_format: LogFormat,
         output_location: OutputLocation,
         log_folder: PathBuf,
     ) -> Self {
@@ -88,7 +88,7 @@ impl LocalCommand {
             engine_url,
             controller_url: controller_url.to_string(),
             max_num_workers,
-            output_format,
+            log_format,
             output_location,
             log_folder,
         }
@@ -118,8 +118,8 @@ impl process::Command for LocalCommand {
             .arg(&self.engine_url)
             .arg("--max-workers")
             .arg(self.max_num_workers.to_string())
-            .arg("--emit")
-            .arg(self.output_format.to_string())
+            .arg("--log_format")
+            .arg(self.log_format.to_string())
             .arg("--output")
             .arg(self.output_location.to_string())
             .arg("--log-folder")

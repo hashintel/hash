@@ -18,7 +18,7 @@ type CtrlReceiver = mpsc::Receiver<(Ctrl, ResultSender)>;
 enum Ctrl {
     /// Signal to register a new experiment
     Register {
-        /// UUID of the experiment to be registered
+        /// Identifier for the experiment to be registered
         id: ExperimentId,
         /// Sender for the engine to use to send [`EngineStatus`](proto::EngineStatus) messages back
         /// to the orchestrator

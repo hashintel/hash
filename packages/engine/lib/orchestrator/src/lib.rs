@@ -7,12 +7,12 @@
 extern crate tracing;
 
 mod experiment;
-mod exsrv;
+mod experiment_server;
 mod manifest;
 pub mod process;
 
 pub use self::{
     experiment::{Experiment, ExperimentConfig, ExperimentType},
-    exsrv::{Handler, Server},
+    experiment_server::{Handler, Server},
     manifest::Manifest,
 };

@@ -14,7 +14,7 @@ use hash_engine::{
         ExperimentRunBase, SimpleExperimentConfig, SingleRunExperimentConfig,
     },
     simulation::command::StopStatus,
-    utils::{OutputFormat, OutputLocation},
+    utils::{LogFormat, OutputLocation},
 };
 use rand::{distributions::Distribution, Rng, RngCore};
 use rand_distr::{Beta, LogNormal, Normal, Poisson};
@@ -22,7 +22,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value as SerdeValue};
 use tokio::time::{sleep, timeout};
 
-use crate::{exsrv::Handler, process};
+use crate::{experiment_server::Handler, process};
 
 /// Configuration values used when starting a [`hash_engine`] subprocess.
 ///
@@ -35,16 +35,21 @@ pub struct ExperimentConfig {
     /// The folder will be created if it's missing.
     #[cfg_attr(
         feature = "clap",
-        clap(short, long, default_value = "./output", env = "HASH_OUTPUT")
+        clap(
+            short,
+            long = "output",
+            default_value = "./output",
+            env = "HASH_OUTPUT"
+        )
     )]
-    pub output: PathBuf,
+    pub output_folder: PathBuf,
 
     /// Logging output format to be emitted
     #[cfg_attr(
         feature = "clap",
-        clap(long, default_value = "pretty", arg_enum, env = "HASH_EMIT")
+        clap(long, default_value = "pretty", arg_enum, env = "HASH_LOG_FORMAT")
     )]
-    pub emit: OutputFormat,
+    pub log_format: LogFormat,
 
     /// Output location where logs are emitted to.
     ///
@@ -71,7 +76,7 @@ pub struct ExperimentConfig {
     )]
     pub wait_timeout: u64,
 
-    /// Max number of parallel workers (must be power of 2).
+    /// Max number of parallel workers, defaults to the number of CPUs available.
     #[cfg_attr(feature = "clap", clap(short = 'w', long, env = "HASH_WORKERS"))]
     pub num_workers: Option<usize>,
 }
@@ -134,7 +139,7 @@ impl Experiment {
             experiment_id,
             self.config.num_workers.unwrap_or_else(num_cpus::get),
             controller_url,
-            self.config.emit,
+            self.config.log_format,
             self.config.output_location.clone(),
             self.config.log_folder.clone(),
         ))
@@ -194,7 +199,7 @@ impl Experiment {
         let map_iter = [(
             OUTPUT_PERSISTENCE_KEY.to_string(),
             json!(OutputPersistenceConfig::Local(LocalPersistenceConfig {
-                output_folder: self.config.output.clone()
+                output_folder: self.config.output_folder.clone()
             })),
         )];
         // Now we can send the init message

@@ -4,7 +4,7 @@ use clap::{AppSettings, Parser};
 
 use crate::{
     proto::ExperimentId,
-    utils::{OutputFormat, OutputLocation},
+    utils::{LogFormat, OutputLocation},
 };
 
 /// Arguments passed to hEngine
@@ -28,11 +28,11 @@ pub struct Args {
 
     /// max number of workers per simulation run (optional).
     #[clap(short, long)]
-    pub max_workers: Option<usize>,
+    pub max_workers: usize,
 
     /// Output format emitted to the output location.
-    #[clap(long, default_value = "pretty", arg_enum, env = "HASH_EMIT")]
-    pub emit: OutputFormat,
+    #[clap(long, default_value = "pretty", arg_enum, env = "HASH_LOG_FORMAT")]
+    pub log_format: LogFormat,
 
     /// Output location where to emit logs.
     ///
