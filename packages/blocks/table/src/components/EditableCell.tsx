@@ -86,7 +86,7 @@ export const EditableCell: VoidFunctionComponent<EditableCellProps> = ({
   return (
     <textarea
       ref={textAreaRef}
-      className={tw`block resize-none w-full bg-transparent rounded border-1 border-transparent hover:border-blue-500 py-1 px-2 -mx-2 w-max`}
+      className={tw`block resize-none w-full bg-transparent rounded border-1 border-transparent hover:border-blue-500 py-1 px-2 -mx-2 w-max max-w-[150px] md:max-w-[300px]`}
       value={value}
       onChange={onChange}
       onBlur={onBlur}
