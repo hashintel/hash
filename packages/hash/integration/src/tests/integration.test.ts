@@ -1332,22 +1332,6 @@ describe("logged in user ", () => {
       });
     });
 
-    it("prevent multiple parents", async () => {
-      // - Super page 1
-      //   - sub page 1             <- because this page already has a parent
-      //     - sub sub page 1
-      //       - sub page 1 <- should not be allowed
-      await expect(
-        client.setParentPage({
-          accountId: existingUser.accountId,
-          pageId: subPage.entityId,
-          parentPageId: subSubPage.entityId,
-        }),
-      ).rejects.toThrowError(
-        /page with entityId = '.*' already has parent page entityId = '.*'/i,
-      );
-    });
-
     it("prevent cyclic page trees", async () => {
       // - Super page 1
       //   - sub page 1
@@ -1357,6 +1341,22 @@ describe("logged in user ", () => {
         client.setParentPage({
           accountId: existingUser.accountId,
           pageId: superPage.entityId,
+          parentPageId: subSubPage.entityId,
+        }),
+      ).rejects.toThrowError(
+        /Could not set '.*' as parent to '.*' as this would create a cyclic dependency./i,
+      );
+    });
+
+    it("prevent cyclic page trees when changing parent", async () => {
+      // - Super page 1
+      //   - sub page 1
+      //     - sub sub page 1  <- because this page has 'sub page 1' as a parent. A cyclic dependency would be created
+      //       - sub page 1 <- should not be allowed
+      await expect(
+        client.setParentPage({
+          accountId: existingUser.accountId,
+          pageId: subPage.entityId,
           parentPageId: subSubPage.entityId,
         }),
       ).rejects.toThrowError(
@@ -1406,6 +1406,30 @@ describe("logged in user ", () => {
             ],
           },
         ],
+      });
+    });
+
+    it("Allow changing parent", async () => {
+      // - Super page 1
+      //   - sub page 1
+      //   - sub sub page 1 <- changed to be a sub page.
+      const title = "sub sub page 1";
+
+      const result = await client.setParentPage({
+        accountId: existingUser.accountId,
+        pageId: subSubPage.entityId,
+        parentPageId: superPage.entityId,
+      });
+
+      const pageTree = await client.getAccountPagesTree({
+        accountId: existingUser.accountId,
+      });
+
+      expect(result.entityId).toEqual(subSubPage.entityId);
+      expect(pageTree).toContainEqual({
+        entityId: subSubPage.entityId,
+        properties: { title },
+        parentPageId: superPage.entityId,
       });
     });
   });
