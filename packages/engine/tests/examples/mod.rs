@@ -95,3 +95,12 @@ mod virus_mutation_and_drug_resistance {
     // Rust behavior is currently not supported
     run_test!(virus_mutation_and_drug_resistance, experiment: vaccination_linspace, #[ignore]);
 }
+
+// https://core.hash.ai/@hash/virus-mutation-and-drug-resistance/3.5.0
+mod warehouse_logistics {
+    use crate::run_test;
+
+    run_test!(warehouse_logistics, experiment: alternate_layout);
+    // optimization experiment is not implemented
+    run_test!(warehouse_logistics, experiment: find_optimal_layout, #[ignore]);
+}

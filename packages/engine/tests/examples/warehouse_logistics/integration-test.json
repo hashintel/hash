@@ -1,0 +1,10 @@
+[
+  {
+    "experiment": "alternate_layout",
+    "expected-outputs": [{}, {}]
+  },
+  {
+    "experiment": "find_optimal_layout",
+    "expected-outputs": [{}]
+  }
+]
