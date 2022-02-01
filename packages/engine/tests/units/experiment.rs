@@ -40,12 +40,21 @@ pub struct ExpectedOutput {
 fn load_manifest<P: AsRef<Path>>(project_path: P, language: Option<Language>) -> Result<Manifest> {
     let project_path = project_path.as_ref();
 
-    // We read the manifest without initial state ...
+    // We read the behaviors and datasets like loading a dependency
     let mut manifest = Manifest::from_dependency(project_path)
         .wrap_err_lazy(|| format!("Could not load manifest from {project_path:?}"))?;
 
-    // ... so we provide it ourself
-    // If `language` is specified, use a `-lang` suffix
+    // Now load globals and experiments as specified in the documentation of `Manifest`
+    let globals_path = project_path.join("src").join("globals.json");
+    if globals_path.exists() {
+        manifest.set_globals_from_file(globals_path)?;
+    }
+    let experiments_path = project_path.join("experiments.json");
+    if experiments_path.exists() {
+        manifest.set_experiments_from_file(experiments_path)?;
+    }
+
+    // Load the initial state based on the language. if it is specified, use a `-lang` suffix
     let suffix = match language {
         Some(Language::JavaScript) => "-js",
         Some(Language::Python) => "-py",

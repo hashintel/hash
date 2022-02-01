@@ -382,8 +382,13 @@ impl Manifest {
     /// Reads the manifest from a local project but omitting the items not required for a dependent
     /// project.
     ///
-    /// Behaves like [`from_local()`](Self::from_local) but does not read the initial states.
-    // TODO: Figure out, why `globals` can't be omitted when loading a dependency
+    /// Reads the following data relative to `project_path`:
+    /// - Behaviors as spefified in
+    ///   [`add_behaviors_from_directory("behaviors")`](Self::add_behaviors_from_directory)
+    /// - Datasets as spefified in
+    ///   [`add_datasets_from_directory("data")`](Self::add_datasets_from_directory)
+    /// - Dependencies recursively as provided by
+    ///   [`set_dependencies_from_file("dependencies.json")`](Self::set_dependencies_from_file)
     pub fn from_dependency<P: AsRef<Path>>(project_path: P) -> Result<Self> {
         Self::from_local_impl(project_path, true)
     }
@@ -414,17 +419,17 @@ impl Manifest {
                 .set_initial_state_from_directory(src_folder)
                 .wrap_err("Could not read initial state")?;
         }
-        if globals_json.exists() {
+        if !is_dependency && globals_json.exists() {
             project
                 .set_globals_from_file(globals_json)
                 .wrap_err("Could not read globals")?;
         }
-        if analysis_json.exists() {
+        if !is_dependency && analysis_json.exists() {
             project
                 .set_analysis_from_file(analysis_json)
                 .wrap_err("Could not read analysis view")?;
         }
-        if experiments_json.exists() {
+        if !is_dependency && experiments_json.exists() {
             project
                 .set_experiments_from_file(experiments_json)
                 .wrap_err("Could not read experiments")?;
