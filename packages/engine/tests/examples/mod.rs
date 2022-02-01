@@ -27,8 +27,8 @@ mod sugarscape {
 }
 
 // https://core.hash.ai/@hash/published-display-behaviors/2.3.0
-// Currently bugs: thread 'tokio-runtime-worker' panicked at 'assertion failed: (offset + length) <=
-// data.len()'
+// Currently bugged:
+//   `thread 'tokio-runtime-worker' panicked at 'assertion failed: (offset + length) <= data.len()'`
 run_test!(published_display_behaviors, #[ignore]);
 
 // https://core.hash.ai/@hash/boids-3d/6.1.0
@@ -38,4 +38,20 @@ mod boids_3d {
     run_test!(boids_3d, experiment: cohesion_arange);
     run_test!(boids_3d, experiment: agent_count_value);
     run_test!(boids_3d, experiment: sweep_flocks);
+}
+
+// https://core.hash.ai/@hash/model-market/4.5.2
+mod model_market {
+    use crate::run_test;
+
+    // Rust behavior is currently not supported
+    run_test!(model_market, experiment: startup_rate, #[ignore]);
+    // Rust behavior is currently not supported
+    run_test!(model_market, experiment: max_price_arange, #[ignore]);
+    // Rust behavior is currently not supported
+    run_test!(model_market, experiment: min_price_arange, #[ignore]);
+    // Rust behavior is currently not supported
+    run_test!(model_market, experiment: max_cost_arange, #[ignore]);
+    // Rust behavior is currently not supported
+    run_test!(model_market, experiment: min_cost_arange, #[ignore]);
 }
