@@ -67,3 +67,17 @@ mod wildfire_regrowth {
     // Rust behavior is currently not supported
     run_test!(wildfire_regrowth, experiment: lightning_chance_linspace, #[ignore]);
 }
+
+// https://core.hash.ai/@hash/ant-foraging/7.4.0
+mod ant_foraging {
+    use crate::run_test;
+
+    // optimization experiment is not implemented
+    run_test!(ant_foraging, experiment: fastest_gathering, #[ignore]);
+    // Rust behavior is currently not supported
+    run_test!(ant_foraging, experiment: number_of_ants_arange, #[ignore]);
+    // Rust behavior is currently not supported
+    run_test!(ant_foraging, experiment: decay_rate_arange, #[ignore]);
+    // Rust behavior is currently not supported
+    run_test!(ant_foraging, experiment: diffusion_rate_arange, #[ignore]);
+}
