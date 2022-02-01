@@ -1153,21 +1153,28 @@ describe("logged in user ", () => {
       schema: {
         title: "Test schema",
         properties: {
-          testProperty: {
+          testPropertyString: {
             type: "string",
+          },
+          testPropertyNumber: {
+            type: "number",
           },
         },
       },
       name: "Test schema",
     };
 
+    let testEntityType!: Pick<
+      GQLEntityType,
+      "entityId" | "properties" | "entityTypeName"
+    >;
     it("can create an entity type with a valid schema", async () => {
-      const entityType = await client.createEntityType({
+      testEntityType = await client.createEntityType({
         accountId: existingUser.accountId,
         ...validSchemaInput,
       });
-      expect(entityType.properties.title).toEqual(validSchemaInput.name);
-      expect(entityType.properties.description).toEqual(
+      expect(testEntityType.properties.title).toEqual(validSchemaInput.name);
+      expect(testEntityType.properties.description).toEqual(
         validSchemaInput.description,
       );
     });
@@ -1214,6 +1221,80 @@ describe("logged in user ", () => {
           name: `${schemaName}3`,
         }),
       ).rejects.toThrowError(/unknown keyword/);
+    });
+
+    it("rejects schema that inherits with incompatible property types", async () => {
+      const schemaName = "Schema invalid property inheritance";
+      await expect(
+        client.createEntityType({
+          accountId: existingUser.accountId,
+          schema: {
+            allOf: [
+              {
+                $ref: testEntityType.properties.$id,
+              },
+            ],
+            properties: {
+              testPropertyString: {
+                type: "number",
+              },
+            },
+          },
+          name: `${schemaName}1`,
+        }),
+      ).rejects.toThrowError(
+        /Type mismatch on ".+". Got "string" expected "number"/i,
+      );
+    });
+
+    let superType!: Pick<
+      GQLEntityType,
+      "entityId" | "properties" | "entityTypeName"
+    >;
+    it("allows schema that inherits with compatible property types", async () => {
+      const schemaName = "Schema invalid property inheritance";
+
+      superType = await client.createEntityType({
+        accountId: existingUser.accountId,
+        schema: {
+          allOf: [
+            {
+              $ref: testEntityType.properties.$id,
+            },
+          ],
+          properties: {
+            testPropertyString: {
+              type: "string",
+            },
+          },
+        },
+        name: `${schemaName}1`,
+      });
+      expect(superType).toBeDefined();
+    });
+
+    it("rejects schema that inherits with incompatible property types deeper than top level", async () => {
+      const schemaName = "Schema invalid property inheritance";
+      await expect(
+        client.createEntityType({
+          accountId: existingUser.accountId,
+          schema: {
+            allOf: [
+              {
+                $ref: superType.properties.$id,
+              },
+            ],
+            properties: {
+              testPropertyNumber: {
+                type: "string",
+              },
+            },
+          },
+          name: `${schemaName}1`,
+        }),
+      ).rejects.toThrowError(
+        /Type mismatch on ".+". Got "number" expected "string"/i,
+      );
     });
   });
 

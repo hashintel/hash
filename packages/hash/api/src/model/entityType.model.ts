@@ -34,7 +34,7 @@ export type EntityTypeConstructorArgs = {
   updatedAt: Date;
 };
 
-const schemaIdWithFrontendDomain = ($id?: string) =>
+const schema$idWithFrontendDomain = ($id?: string) =>
   $id ? `${FRONTEND_URL}${url.parse($id).pathname}` : undefined;
 
 // This is a bit repetitive of Entity, but we don't want the methods on Entity available on this
@@ -173,7 +173,7 @@ class __EntityType {
       accountId: this.accountId,
       properties: {
         ...this.properties,
-        $id: schemaIdWithFrontendDomain(
+        $id: schema$idWithFrontendDomain(
           this.properties.$id as string | undefined,
         ),
       },
