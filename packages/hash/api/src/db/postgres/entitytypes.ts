@@ -199,7 +199,7 @@ export const getEntityTypeByComponentId = async (
   return row ? mapPGRowToEntityType(row) : null;
 };
 
-/** Get an entityType by componentId
+/** Get an entityType by schema $id
  */
 export const getEntityTypeBySchema$id = async (
   conn: Connection,
