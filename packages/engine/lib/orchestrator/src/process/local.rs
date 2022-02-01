@@ -97,7 +97,7 @@ impl LocalCommand {
 
 #[async_trait]
 impl process::Command for LocalCommand {
-    /// Spawns an engine process and returns it's handle as [`LocalProcess`].
+    /// Spawns an engine process and returns its handle as a [`LocalProcess`].
     ///
     /// # Errors
     ///

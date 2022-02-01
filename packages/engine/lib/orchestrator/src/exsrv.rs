@@ -1,4 +1,4 @@
-//! Provides infrastructure to receive message from the [`hash_engine`] subprocess.
+//! Provides infrastructure to communicate with the [`hash_engine`] subprocess.
 
 use std::{collections::HashMap, fmt::Display};
 
@@ -14,20 +14,22 @@ type MsgReceiver = mpsc::UnboundedReceiver<proto::EngineStatus>;
 type CtrlSender = mpsc::Sender<(Ctrl, ResultSender)>;
 type CtrlReceiver = mpsc::Receiver<(Ctrl, ResultSender)>;
 
-/// Control signal to be send to the [`hash_engine`]-sub[process](crate::process).
+/// Control signal to be sent to the [`hash_engine`]-sub[process](crate::process).
 enum Ctrl {
     /// Signal to register a new experiment
     Register {
         /// UUID of the experiment to be registered
         id: ExperimentId,
-        /// Sender to be used to send an [`EngineStatus`](proto::EngineStatus)
+        /// Sender for the engine to use to send [`EngineStatus`](proto::EngineStatus) messages back
+        /// to the orchestrator
         msg_tx: MsgSender,
     },
     /// Signal to stop the experiment
     Stop,
 }
 
-/// A connection to receive [`EngineStatus`](proto::EngineStatus)es for an experiment.
+/// A connection to receive [`EngineStatus`](proto::EngineStatus)es from an
+/// [`hash_engine`]-sub[process].
 pub struct Handle {
     id: ExperimentId,
     msg_rx: MsgReceiver,
@@ -130,7 +132,7 @@ pub struct Server {
 impl Server {
     /// Create a new `Server` with an associated [`Handler`].
     ///
-    /// Use [`run()`](Self::run) to start the it, and use the [`Handler`] to register new experiment
+    /// Use [`run()`](Self::run) to start it, and use the [`Handler`] to register a new experiment
     /// executions.
     ///
     /// Note, that the server may return errors when using the same `url` for different servers.
@@ -216,7 +218,7 @@ impl Server {
         }
     }
 
-    /// Runs the server until a stop signal was sent.
+    /// Runs the server until a stop signal is received.
     ///
     /// Handles messages from
     /// - the [`Handler`] returned in [`create()`]

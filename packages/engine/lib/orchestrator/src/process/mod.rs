@@ -1,4 +1,4 @@
-//! Functionality to start and communication to the [`hash_engine`] subprocess.
+//! Functionality to start and communicate with a [`hash_engine`] subprocess.
 
 mod local;
 
@@ -7,7 +7,7 @@ use error::Result;
 use hash_engine::proto::EngineMsg;
 pub use local::{LocalCommand, LocalProcess};
 
-/// The engine-subprocess running at the background.
+/// The engine-subprocess running in the background.
 ///
 /// It's created by a [`Command`] and is used to communicate with the [`hash_engine`] library.
 #[async_trait]
@@ -26,6 +26,6 @@ pub trait Process {
 /// A command for creating an engine-subprocess represented by [`Process`].
 #[async_trait]
 pub trait Command {
-    /// Crates and runs the subprocess.
+    /// Creates and runs the subprocess.
     async fn run(self: Box<Self>) -> Result<Box<dyn Process + Send>>;
 }

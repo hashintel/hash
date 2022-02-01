@@ -24,11 +24,9 @@ use tokio::time::{sleep, timeout};
 
 use crate::{exsrv::Handler, process};
 
-/// Configuration values used for the [`hash_engine`] subprocess used.
+/// Configuration values used when starting a [`hash_engine`] subprocess.
 ///
 /// See the [`process`] module for more information.
-///
-/// [`Process`]: crate::process::Process
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "clap", derive(clap::Args))]
 pub struct ExperimentConfig {
@@ -41,14 +39,14 @@ pub struct ExperimentConfig {
     )]
     pub output: PathBuf,
 
-    /// Output format emitted to the terminal.
+    /// Logging output format to be emitted
     #[cfg_attr(
         feature = "clap",
         clap(long, default_value = "pretty", arg_enum, env = "HASH_EMIT")
     )]
     pub emit: OutputFormat,
 
-    /// Output location where to emit logs.
+    /// Output location where logs are emitted to.
     ///
     /// Can be `stdout`, `stderr` or any file name. Relative to `--log-folder` if a file is
     /// specified.
@@ -59,14 +57,14 @@ pub struct ExperimentConfig {
     #[cfg_attr(feature = "clap", clap(long, default_value = "./log"))]
     pub log_folder: PathBuf,
 
-    /// Engine start timeout in seconds.
+    /// Timeout, in seconds, for how long to wait for a response when the Engine starts
     #[cfg_attr(
         feature = "clap",
         clap(long, default_value = "2", env = "ENGINE_START_TIMEOUT")
     )]
     pub start_timeout: u64,
 
-    /// Engine wait timeout in seconds.
+    /// Timeout, in seconds, for how long to wait for updates when the Engine is executing
     #[cfg_attr(
         feature = "clap",
         clap(long, default_value = "60", env = "ENGINE_WAIT_TIMEOUT")
@@ -78,10 +76,10 @@ pub struct ExperimentConfig {
     pub num_workers: Option<usize>,
 }
 
-/// Representation for a single experiment.
+/// Specific configuration needed for either Experiments or single runs of Simulations
 #[derive(Debug, Clone)]
 pub enum ExperimentType {
-    /// An anonymous experiment
+    /// A single run of a Simulation, wrapped as an Experiment
     SingleRun {
         /// Number of steps to run
         num_steps: usize,
@@ -96,8 +94,8 @@ pub enum ExperimentType {
 impl ExperimentType {
     /// Creates an experiment config from `ExperimentType`.
     ///
-    /// If the experiment is a named experiment [`Simple`](Self::Simple), it uses a `base` to load
-    /// the experiment config for the given `name`.
+    /// If the type is a simple Experiment [`Simple`](Self::Simple), it uses a `base` to load the
+    /// experiment config for the given `name`.
     pub fn get_package_config(self, base: &ExperimentRunBase) -> Result<ExperimentPackageConfig> {
         match self {
             ExperimentType::SingleRun { num_steps } => Ok(ExperimentPackageConfig::SingleRun(
@@ -111,7 +109,7 @@ impl ExperimentType {
     }
 }
 
-/// A single configured experiment.
+/// A fully specified and configured experiment
 pub struct Experiment {
     /// Configuration for the experiment.
     pub config: ExperimentConfig,
@@ -123,7 +121,7 @@ impl Experiment {
         Self { config }
     }
 
-    /// Creates a [`Command`] from the experiment's configuration and the given `experiment_id` and
+    /// Creates a [`Command`] from the experiment's configuration, the given `experiment_id`, and
     /// `controller_url`.
     ///
     /// [`Command`]: crate::process::Command
@@ -142,7 +140,7 @@ impl Experiment {
         ))
     }
 
-    /// Runs the experiment.
+    /// Starts an Engine process and runs the experiment on it.
     ///
     /// The `experiment_run` is registered at the server with the provided `handler`, and started
     /// using [`Process`]. After startup it listens to the messages sent from [`hash_engine`] and

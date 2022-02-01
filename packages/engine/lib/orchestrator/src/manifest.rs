@@ -25,7 +25,7 @@ use crate::ExperimentType;
 const BEHAVIOR_FILE_EXTENSIONS: [&str; 3] = ["js", "py", "rs"];
 const DATASET_FILE_EXTENSIONS: [&str; 2] = ["csv", "json"];
 
-/// Meta data description of a project.
+/// Contains all the necessary information required to run a simulation.
 ///
 /// The `Manifest` is implemented as a builder for an [`ExperimentRun`]. It provides helper methods
 /// to parse the project structure easily.
@@ -37,14 +37,14 @@ pub struct Manifest {
     pub behaviors: Vec<SharedBehavior>,
     /// A list of all datasets in the project.
     pub datasets: Vec<SharedDataset>,
-    /// JSON document describing the [`Globals`](hash_engine::config::Globals).
+    /// JSON string describing the [`Globals`](hash_engine::config::Globals) object.
     pub globals_json: Option<String>,
-    /// JSON document describing the
+    /// JSON string describing the analysis that's calculated by the
     /// [analysis output package](hash_engine::simulation::package::output::packages::analysis).
     pub analysis_json: Option<String>,
-    /// JSON document describing the structure of available experiments for this project.
+    /// JSON string describing the structure of available experiments for this project.
     pub experiments_json: Option<String>,
-    /// A list of all dependencies identified by it's name.
+    /// A list of all dependencies identified by its name.
     pub dependencies: HashMap<String, SerdeValue>,
 }
 
@@ -81,7 +81,7 @@ impl Manifest {
     /// Reads the initial state from the files provided in a directory specified by `src_folder`.
     ///
     /// It attempts to read _init.js_, _init.py_, or _init.json_ and prioritizes that order. For
-    /// example if _init.js_ was found, it does neither try to read _init.py_, nor _init.json_.
+    /// example if _init.js_ was found, it doesn't try to read _init.py_, or _init.json_.
     ///
     /// # Errors
     ///
@@ -120,7 +120,7 @@ impl Manifest {
         }
     }
 
-    /// Reads the JSON content from the file at the provided `path` describing the
+    /// Reads the content from the file at the provided `path` describing the
     /// [`Globals`](hash_engine::config::Globals).
     ///
     /// # Errors
@@ -131,7 +131,8 @@ impl Manifest {
         Ok(())
     }
 
-    /// Reads the JSON content from the file at the provided `path` describing the
+    /// Reads the content from the file at the provided `path` describing the analysis of the
+    /// experiment, calculated by the
     /// [analysis output package](hash_engine::simulation::package::output::packages::analysis).
     ///
     /// # Errors
@@ -142,8 +143,8 @@ impl Manifest {
         Ok(())
     }
 
-    /// Reads the JSON content from the file at the provided `path` describing the structure of
-    /// available experiments for this project.
+    /// Reads the content from the file at the provided `path` describing the structure of available
+    /// experiments for this project.
     ///
     /// # Errors
     ///
@@ -153,8 +154,8 @@ impl Manifest {
         Ok(())
     }
 
-    /// Reads the JSON content from the file at the provided `path` describing the dependencies for
-    /// this project.
+    /// Reads the content from the file at the provided `path` describing the dependencies for this
+    /// project.
     ///
     /// # Errors
     ///
@@ -365,13 +366,13 @@ impl Manifest {
     ///   [`set_initial_state_from_directory("src")`](Self::set_initial_state_from_directory)
     /// - Global state as specified in
     ///   [`set_globals_from_file("src/globals.json")`](Self::set_globals_from_file)
-    /// - Behaviors as spefified in
+    /// - Behaviors as specified in
     ///   [`add_behaviors_from_directory("behaviors")`](Self::add_behaviors_from_directory)
-    /// - Datasets as spefified in
+    /// - Datasets as specified in
     ///   [`add_datasets_from_directory("data")`](Self::add_datasets_from_directory)
-    /// - Experiments JSON as spefified in
+    /// - Experiments JSON as specified in
     ///   [`set_experiments_from_file("experiments.json")`](Self::set_experiments_from_file)
-    /// - Analysis JSON as spefified in
+    /// - Analysis JSON as specified in
     ///   [`set_analysis_from_file("views/analysis.json")`](Self::set_analysis_from_file)
     /// - Dependencies recursively as provided by
     ///   [`set_dependencies_from_file("dependencies.json")`](Self::set_dependencies_from_file)
@@ -379,7 +380,7 @@ impl Manifest {
         Self::from_local_impl(project_path, false)
     }
 
-    /// Reads the manifest from a local project but omitting the items not required for a dependent
+    /// Creates a manifest from a local project but omits the items not required for a dependent
     /// project.
     ///
     /// Reads the following data relative to `project_path`:
@@ -393,7 +394,7 @@ impl Manifest {
         Self::from_local_impl(project_path, true)
     }
 
-    /// Reads the manifest from a local project as specified by [`from_local()`](Self::from_local)
+    /// Creates a manifest from a local project as specified by [`from_local()`](Self::from_local)
     /// or [`from_dependency()`](Self::from_dependency).
     fn from_local_impl<P: AsRef<Path>>(project_path: P, is_dependency: bool) -> Result<Self> {
         let project_path = project_path.as_ref();
@@ -464,8 +465,8 @@ impl Manifest {
         Ok(project)
     }
 
-    /// Combines the `Manifest` with the specified `experiment_type` to an [`ExperimentRun`] to be
-    /// run on as [`Experiment`](crate::Experiment).
+    /// Combines this `Manifest` with the specified `experiment_type` to create an
+    /// [`ExperimentRun`] to be ran as an [`Experiment`](crate::Experiment).
     ///
     /// # Errors
     ///
