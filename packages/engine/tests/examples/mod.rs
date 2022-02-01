@@ -1,3 +1,5 @@
+#![cfg(not(debug_assertions))]
+
 use crate::run_test;
 
 // https://core.hash.ai/@hash/interconnected-call-center/3.2.1
