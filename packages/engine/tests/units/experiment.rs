@@ -4,7 +4,6 @@ use std::{
     io::BufReader,
     iter,
     path::{Path, PathBuf},
-    time::Duration,
 };
 
 use error::{bail, ensure, report, Result, ResultExt};
@@ -182,7 +181,7 @@ pub async fn run_test<P: AsRef<Path>>(
     experiment_type: ExperimentType,
     project_path: P,
     project_name: String,
-    output_folder: PathBuf,
+    output: PathBuf,
     language: Option<Language>,
     num_outputs_expected: usize,
 ) -> Result<Vec<(AgentStates, Globals, Analysis)>> {
@@ -211,18 +210,18 @@ pub async fn run_test<P: AsRef<Path>>(
         .wrap_err("Could not read manifest")?;
 
     let experiment = orchestrator::Experiment::new(ExperimentConfig {
-        num_workers: num_cpus::get(),
+        num_workers: None,
         emit: OutputFormat::Pretty,
-        log_folder: output_folder.join("log"),
-        output_folder,
+        log_folder: output.join("log"),
+        output,
         output_location: OutputLocation::File("output.log".into()),
-        engine_start_timeout: Duration::from_secs(10),
-        engine_wait_timeout: Duration::from_secs(10 * 60),
+        start_timeout: 10,
+        wait_timeout: 10 * 60,
     });
 
     let output_base_directory = experiment
         .config
-        .output_folder
+        .output
         .join(experiment_run.base.name.as_str())
         .join(experiment_run.base.id.to_string());
 
