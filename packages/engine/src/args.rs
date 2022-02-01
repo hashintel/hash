@@ -28,7 +28,7 @@ pub struct Args {
 
     /// max number of workers per simulation run (optional).
     #[clap(short, long)]
-    pub max_workers: usize,
+    pub num_workers: usize,
 
     /// Output format emitted to the output location.
     #[clap(long, default_value = "pretty", arg_enum, env = "HASH_LOG_FORMAT")]

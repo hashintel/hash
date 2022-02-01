@@ -77,8 +77,11 @@ pub struct ExperimentConfig {
     pub wait_timeout: u64,
 
     /// Max number of parallel workers, defaults to the number of CPUs available.
-    #[cfg_attr(feature = "clap", clap(short = 'w', long, env = "HASH_WORKERS"))]
-    pub num_workers: Option<usize>,
+    #[cfg_attr(
+        feature = "clap",
+        clap(short = 'w', long, default_value_t = num_cpus::get(), env = "HASH_WORKERS")
+    )]
+    pub num_workers: usize,
 }
 
 /// Specific configuration needed for either Experiments or single runs of Simulations
@@ -122,7 +125,9 @@ pub struct Experiment {
 
 impl Experiment {
     /// Creates an experiment from the provided `config`.
-    pub fn new(config: ExperimentConfig) -> Self {
+    pub fn new(mut config: ExperimentConfig) -> Self {
+        // TODO: Remove when multiple workers are fixed
+        config.num_workers = 1;
         Self { config }
     }
 
@@ -137,7 +142,7 @@ impl Experiment {
     ) -> Box<dyn process::Command + Send> {
         Box::new(process::LocalCommand::new(
             experiment_id,
-            self.config.num_workers.unwrap_or_else(num_cpus::get),
+            self.config.num_workers,
             controller_url,
             self.config.log_format,
             self.config.output_location.clone(),

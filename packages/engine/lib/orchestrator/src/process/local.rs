@@ -116,7 +116,7 @@ impl process::Command for LocalCommand {
             .arg(&self.controller_url)
             .arg("--listen-url")
             .arg(&self.engine_url)
-            .arg("--max-workers")
+            .arg("--num-workers")
             .arg(self.max_num_workers.to_string())
             .arg("--log-format")
             .arg(self.log_format.to_string())

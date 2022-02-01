@@ -36,7 +36,7 @@ pub struct SimRunConfig {
 }
 
 pub async fn experiment_config(args: &Args, env: &Environment) -> Result<ExperimentConfig> {
-    ExperimentConfig::new(env.experiment.clone(), args.max_workers)
+    ExperimentConfig::new(env.experiment.clone(), args.num_workers)
 }
 
 impl SimRunConfig {

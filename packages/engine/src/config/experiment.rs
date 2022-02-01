@@ -17,7 +17,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub(super) fn new(experiment_run: ExperimentRunRepr, max_num_workers: usize) -> Result<Config> {
+    pub(super) fn new(experiment_run: ExperimentRunRepr, num_workers: usize) -> Result<Config> {
         // For differentiation purposes when multiple experiment runs are active in the same system
         let package_config = package::ConfigBuilder::new()
             .add_init_package(
@@ -42,10 +42,7 @@ impl Config {
                 javascript: true,
             },
         };
-        let worker_pool = Arc::new(worker_pool::Config::new(
-            worker_base_config,
-            max_num_workers,
-        ));
+        let worker_pool = Arc::new(worker_pool::Config::new(worker_base_config, num_workers));
 
         Ok(Config {
             packages: Arc::new(package_config),
