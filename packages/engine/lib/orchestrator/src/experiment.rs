@@ -89,7 +89,7 @@ pub enum ExperimentType {
         /// Number of steps to run
         num_steps: usize,
     },
-    /// A named experiment.
+    /// A configured Experiment
     Simple {
         /// Name of the experiment specified in _experiments.json_
         name: ExperimentName,
