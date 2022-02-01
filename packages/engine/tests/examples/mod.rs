@@ -22,3 +22,12 @@ mod sugarscape {
 
 // https://core.hash.ai/@hash/published-display-behaviors/2.3.0
 run_test!(published_display_behaviors);
+
+// https://core.hash.ai/@hash/boids-3d/6.1.0
+mod boids_3d {
+    use crate::run_test;
+
+    run_test!(boids_3d, experiment: cohesion_arange);
+    run_test!(boids_3d, experiment: agent_count_value);
+    run_test!(boids_3d, experiment: sweep_flocks);
+}
