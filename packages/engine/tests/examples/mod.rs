@@ -1,3 +1,5 @@
+use crate::run_test;
+
 // https://core.hash.ai/@hash/city-infection-model/6.4.2
 mod city_infection_model {
     use crate::run_test;
@@ -17,3 +19,6 @@ mod sugarscape {
     // optimization experiment is not implemented
     run_test!(sugarscape, experiment: max_avg_sugar, #[ignore]);
 }
+
+// https://core.hash.ai/@hash/published-display-behaviors/2.3.0
+run_test!(published_display_behaviors);

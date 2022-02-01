@@ -1,0 +1,32 @@
+{
+  "keys": {
+    "shape_discrete": {
+      "nullable": true,
+      "type": "struct",
+      "fields": {
+        "field": {
+          "nullable": true,
+          "type": "string"
+        },
+        "discrete_shapes": {
+          "nullable": true,
+          "type": "list",
+          "child": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "field_values": {
+          "nullable": true,
+          "type": "list",
+          "child": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      }
+    }
+  },
+  "built_in_key_use": null,
+  "dynamic_access": true
+}
