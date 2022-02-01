@@ -16,6 +16,6 @@
   "sweep_flocks": {
     "steps": 100,
     "type": "group",
-    "runs": ["cohesion arange", "agent_count value"]
+    "runs": ["cohesion_arange", "agent_count_value"]
   }
 }
