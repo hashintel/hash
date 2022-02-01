@@ -47,7 +47,10 @@ export const deleteLink = async (
       return dbEntity;
     });
 
-    if (dbSourceEntity.metadata.versioned) {
+    if (
+      dbSourceEntity.metadata.versioned &&
+      dbLink.destinationEntityVersionId
+    ) {
       /**
        * When the source entity is versioned, we have to create a new version
        * of the entity.
