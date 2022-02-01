@@ -187,6 +187,7 @@ jobs:
         toolchain: ${{ fromJSON(needs.setup.outputs.toolchains) }}
         flags:
           - --all-features
+          - --release --all-features examples
     env:
       V8_PATH: ${{ github.workspace }}/.v8
     steps:
@@ -232,11 +233,11 @@ jobs:
 
       - name: Build test dependencies
         if: matrix.directory == 'packages/engine'
-        run: cargo build -p server --manifest-path ${{ matrix.directory }}/Cargo.toml
+        run: cargo build -p server --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }}
 
       - name: Run tests
         id: test-parallel
-        run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} --no-fail-fast
+        run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }} -- --test-threads=1
 
   merging-enabled:
     name: merging enabled
