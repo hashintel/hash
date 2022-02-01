@@ -81,3 +81,17 @@ mod ant_foraging {
     // Rust behavior is currently not supported
     run_test!(ant_foraging, experiment: diffusion_rate_arange, #[ignore]);
 }
+
+// https://core.hash.ai/@hash/virus-mutation-and-drug-resistance/3.5.0
+mod virus_mutation_and_drug_resistance {
+    use crate::run_test;
+
+    // optimization experiment is not implemented
+    run_test!(virus_mutation_and_drug_resistance, experiment: optimize_vaccine_introduction, #[ignore]);
+    // optimization experiment is not implemented
+    run_test!(virus_mutation_and_drug_resistance, experiment: introduce_vaccine_timestep, #[ignore]);
+    // Rust behavior is currently not supported
+    run_test!(virus_mutation_and_drug_resistance, experiment: mutation_linspace, #[ignore]);
+    // Rust behavior is currently not supported
+    run_test!(virus_mutation_and_drug_resistance, experiment: vaccination_linspace, #[ignore]);
+}
