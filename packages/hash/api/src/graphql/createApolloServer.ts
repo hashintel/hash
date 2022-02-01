@@ -45,7 +45,10 @@ export const createApolloServer = ({
     inheritResolversFromInterfaces: true,
   });
   const getDataSources = () => {
-    const sources: any = { db, cache };
+    const sources: GraphQLContext["dataSources"] = {
+      db,
+      cache,
+    };
     if (search) {
       sources.search = search;
     }
