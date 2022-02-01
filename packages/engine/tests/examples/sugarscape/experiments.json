@@ -1,0 +1,36 @@
+{
+  "Minimize the Gini Coefficient": {
+    "type": "optimization",
+    "maxRuns": 10,
+    "minSteps": 10,
+    "maxSteps": 100,
+    "metricName": "gini_coefficient",
+    "metricObjective": "min",
+    "fields": [{ "name": "initial_sugar.max", "range": "5-50" }]
+  },
+  "Initial Sugar Linear Sweep": {
+    "type": "linspace",
+    "steps": 100,
+    "field": "initial_sugar.max",
+    "start": 5,
+    "stop": 50,
+    "samples": 10
+  },
+  "agent_density_linspace": {
+    "type": "linspace",
+    "steps": 25,
+    "field": "agent_density",
+    "start": 0.1,
+    "stop": 0.9,
+    "samples": 10
+  },
+  "Max Avg Sugar": {
+    "type": "optimization",
+    "maxRuns": 20,
+    "minSteps": 10,
+    "maxSteps": 25,
+    "metricName": "avg_sugar",
+    "metricObjective": "max",
+    "fields": [{ "name": "agent_vision.max", "range": "15 - 35" }]
+  }
+}

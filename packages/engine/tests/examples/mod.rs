@@ -1,7 +1,19 @@
+// https://core.hash.ai/@hash/city-infection-model/6.4.2
 mod city_infection_model {
     use crate::run_test;
 
-    // https://core.hash.ai/@hash/city-infection-model/6.4.2
     run_test!(city_infection_model, experiment: infected_linspace);
     run_test!(city_infection_model, experiment: duration_range_monte_carlo);
+}
+
+// https://core.hash.ai/@hash/sugarscape/7.5.0
+mod sugarscape {
+    use crate::run_test;
+
+    // optimization experiment is not implemented
+    run_test!(sugarscape, experiment: minimize_the_gini_coefficient, #[ignore]);
+    run_test!(sugarscape, experiment: initial_sugar_linear_sweep);
+    run_test!(sugarscape, experiment: agent_density_linspace);
+    // optimization experiment is not implemented
+    run_test!(sugarscape, experiment: max_avg_sugar, #[ignore]);
 }
