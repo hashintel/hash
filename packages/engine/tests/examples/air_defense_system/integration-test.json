@@ -4,7 +4,7 @@
     "expected-outputs": [{}, {}, {}, {}]
   },
   {
-    "experiment": "missle_speed_arange",
+    "experiment": "missile_speed_arange",
     "expected-outputs": [{}, {}, {}, {}, {}]
   },
   {

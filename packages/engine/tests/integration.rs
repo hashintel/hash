@@ -1,11 +1,10 @@
 //! The hEngine integration test suite runs a variety of specially-designed simulations and
 //! experiments of specific functionalities to verify outputs.
 
-/// Helper for parsing an experiment and run it.
+/// Helper for parsing an experiment and running it.
 mod experiment;
 
 mod examples;
-mod popular;
 mod units;
 
 /// Opens `$project` relative to the caller's file as a HASH simulation project and expects

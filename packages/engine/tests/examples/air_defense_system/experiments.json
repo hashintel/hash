@@ -7,7 +7,7 @@
     "stop": 20,
     "increment": 5
   },
-  "missle_speed_arange": {
+  "missile_speed_arange": {
     "steps": 600,
     "type": "arange",
     "field": "missileSpeed",
