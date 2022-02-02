@@ -128,7 +128,7 @@ const findEntities = (contents: EntityStoreType[]) => {
       if (
         isTextContainingEntityProperties(entity.properties.entity.properties)
       ) {
-        entities.push(entity, entity.properties.entity.properties.text.data);
+        entities.push(entity.properties.entity.properties.text.data);
       }
     }
     return entity;
