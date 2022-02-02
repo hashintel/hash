@@ -219,7 +219,7 @@ pub async fn run_test<P: AsRef<Path>>(
         .wrap_err("Could not read manifest")?;
 
     let experiment = orchestrator::Experiment::new(ExperimentConfig {
-        num_workers: Some(num_cpus::get()),
+        num_workers: num_cpus::get(),
         log_format: LogFormat::Pretty,
         log_folder: output.join("log"),
         output_folder: output,

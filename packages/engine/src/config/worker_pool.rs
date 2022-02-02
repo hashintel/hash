@@ -9,9 +9,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(worker_base_config: WorkerConfig, max_num_workers: usize) -> Config {
-        let _num_workers = std::cmp::min(num_cpus::get(), max_num_workers);
-        let num_workers = 1; // TODO: remove this
+    pub fn new(worker_base_config: WorkerConfig, num_workers: usize) -> Config {
         Config {
             worker_base_config,
             num_workers,

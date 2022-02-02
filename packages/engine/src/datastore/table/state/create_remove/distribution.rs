@@ -8,7 +8,6 @@ use super::{super::*, batch::PendingBatch, WorkerIndex};
 #[derive(Debug)]
 pub struct BatchDistribution {
     inner: Vec<Vec<PendingBatch>>,
-    _num_workers: usize, // TODO: unused, delete?
 }
 
 impl BatchDistribution {
@@ -21,7 +20,6 @@ impl BatchDistribution {
 
         BatchDistribution {
             inner,
-            _num_workers: num_workers,
         }
     }
 
