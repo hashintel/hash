@@ -7,7 +7,7 @@ use std::{
 };
 
 use clap::{AppSettings, Parser};
-use error::{report, Result, ResultExt};
+use error::{Result, ResultExt};
 use hash_engine::proto::ExperimentName;
 use orchestrator::{Experiment, ExperimentConfig, Manifest, Server};
 
@@ -20,12 +20,6 @@ pub struct Args {
     /// Path to the project to be run.
     #[clap(short, long, env = "HASH_PROJECT")]
     project: PathBuf,
-
-    /// The Project Name.
-    ///
-    /// If not provided, the name of the project directory will be used.
-    #[clap(short = 'n', long)]
-    project_name: Option<String>,
 
     #[clap(flatten)]
     experiment_config: ExperimentConfig,
@@ -111,13 +105,5 @@ async fn main() -> Result<()> {
 
     let experiment = Experiment::new(args.experiment_config);
 
-    let project_name = args.project_name.clone().unwrap_or(
-        absolute_project_path
-            .file_name()
-            .ok_or_else(|| report!("Project path didn't point to a directory: {absolute_project_path:?}"))? // Shouldn't be able to fail as we canonicalize above
-            .to_string_lossy()
-            .to_string(),
-    );
-
-    experiment.run(experiment_run, project_name, handler).await
+    experiment.run(experiment_run, handler).await
 }
