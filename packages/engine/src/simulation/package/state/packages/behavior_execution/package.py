@@ -1,6 +1,10 @@
 import sys
 import traceback
 
+# TODO: Propagate field specs to runners and use in state and context objects
+BEHAVIOR_INDEX_FIELD_KEY = '_PRIVATE_14_behavior_index'
+BEHAVIOR_IDS_FIELD_KEY = '_PRIVATE_14_behavior_ids'
+
 
 def _hash_behavior_id(lang_index, id_within_lang):
     # TODO: Either keep in sync with behavior id generation on Rust side of
@@ -8,7 +12,7 @@ def _hash_behavior_id(lang_index, id_within_lang):
     #       single numbers (rather than pairs of numbers) in the first place.
 
     # We support fewer than 10 languages.
-    return id_within_lang*10 + lang_index
+    return id_within_lang * 10 + lang_index
 
 
 # `behavior_descs` should be a list of objects that have fields `id`, `name`, `source`, `columns`,
@@ -30,7 +34,7 @@ def _load_behaviors(behavior_descs):
             bytecode = compile(desc['source'], desc['name'], "exec")
             exec(bytecode, behavior_globals)
             behavior_fn = behavior_globals.get("behavior")
-            
+
             if callable(behavior_fn):
                 behaviors[_hash_behavior_id(desc['id'][0], desc['id'][1])] = {
                     "name": desc['name'],
@@ -66,6 +70,15 @@ def start_experiment(experiment, init_message, _experiment_context):
     experiment['behaviors'], warnings = _load_behaviors(init_message)
     return {
         "warnings": warnings
+    }
+
+
+def start_sim(experiment, sim, init_message, init_context):
+    loaders = {
+        BEHAVIOR_INDEX_FIELD_KEY: hash_util.load_full
+    }
+    return {
+        "loaders": loaders,
     }
 
 
@@ -124,22 +137,17 @@ def run_task(experiment, _sim, _task_message, group_state, group_context):
     agent_state = None
     agent_context = None
 
-    # TODO: Propagate field specs to runners and use in state and context objects
-    behavior_ids_field_key = '_PRIVATE_14_behavior_ids'
-
     for i_agent in range(group_state.n_agents()):
         # Reuse `agent_state` and `agent_context` objects.
         agent_state = group_state.get_agent(i_agent, agent_state)
         agent_context = group_context.get_agent(i_agent, agent_context)
 
         # ids of behaviors of this agent
-        behavior_ids = getattr(agent_state, behavior_ids_field_key)
+        behavior_ids = getattr(agent_state, BEHAVIOR_IDS_FIELD_KEY)
 
         # `behavior_index` is the index of the first behavior that
         # hasn't been executed yet (during this step / package call).
-        for i_behavior in range(int(agent_state.behavior_index), len(behavior_ids)):
-            agent_state.behavior_index = i_behavior  # Keep up to date for use in behaviors.
-
+        for i_behavior in range(int(agent_state.behavior_index()), len(behavior_ids)):
             # Behavior ids are shallow-loaded as an optimization, so
             # need to convert to a Python object here.
             # TODO: OPTIM Use `.values` attribute after upgrading Arrow.
@@ -155,18 +163,22 @@ def run_task(experiment, _sim, _task_message, group_state, group_context):
             agent_state.set_dynamic_access(behavior['dyn_access'])
             try:
                 behavior['fn'](agent_state, agent_context)
-                _postprocess(agent_state)
-                
+                _postprocess(agent_state)  # Errors from post-processing are considered user errors.
             except Exception:
                 # Have to catch generic `Exception`, because user's code could throw anything.
-                
                 error = _format_behavior_error(behavior['name'], sys.exc_info())
-                agent_state.behavior_index = i_behavior
                 return {
                     "target": "Main",
                     "errors": [error]
                 }
 
+            # Increment the behavior index to point to the next one to be executed
+            setattr(agent_state, BEHAVIOR_INDEX_FIELD_KEY, i_behavior + 1)
+
     return {
         "target": next_lang if next_lang is not None else "Main"
     }
+
+
+def increment_behavior_index(agent_state, i_behavior):
+    setattr(agent_state, BEHAVIOR_INDEX_FIELD_KEY, i_behavior + 1)

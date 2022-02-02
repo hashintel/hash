@@ -1,4 +1,7 @@
 (hash_util) => {
+  // TODO: Propagate field specs to runners and use in state and context objects
+  const BEHAVIOR_INDEX_FIELD_KEY = "_PRIVATE_14_behavior_index";
+
   const throw_missing_field = (field) => {
     throw new ReferenceError("Missing field (behavior keys?): " + field);
   };
@@ -139,7 +142,7 @@
 
     /// Returns the index of the currently executing behavior in the agent's behavior chain.
     AgentState.prototype.behaviorIndex = function () {
-      return this.__i_behavior;
+      return this[BEHAVIOR_INDEX_FIELD_KEY];
     };
 
     gen_state_accessors(AgentState, agent_schema, getters);

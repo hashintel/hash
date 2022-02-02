@@ -62,7 +62,7 @@ class Runner:
         :return: Whether a package/user error occurred
         """
         init = self.messenger.recv_init()
-        experiment_ctx = init.shared_ctx
+        self.experiment_ctx = init.shared_ctx
         for pkg_id, config in init.pkgs.items():
             self.pkgs[pkg_id] = pkg = Package(
                 name=config.name,
@@ -73,7 +73,7 @@ class Runner:
             if pkg.start_experiment is not None:
                 try:
                     result = pkg.start_experiment(
-                        pkg.experiment, config.payload, experiment_ctx
+                        pkg.experiment, config.payload, self.experiment_ctx
                     )
                     were_user_errors = self._handle_experiment_init_result(pkg, result)
                     if were_user_errors:
@@ -112,10 +112,9 @@ class Runner:
 
         return False
 
-    def _handle_runner_error(self, exc_info):
+    def _handle_runner_error(self, exc_info, sim_id=0):
         """
-        Notifying the Rust process about the runner error and then
-        kill the runner.
+        Notify the Rust process about the runner error and then kill the runner.
 
         User errors definitely need to be sent back to the Rust process, so
         they can be sent further to the user and displayed.
@@ -129,25 +128,31 @@ class Runner:
         that the runner exited.
 
         :param exc_info: See `format_exc_info` in `util.py`.
+        :param sim_id: ID of the simulation run from which the error originated.
+                       If the error isn't specific to any simulation run, we
+                       use 0 as an invalid id.
         """
 
         error = f"Runner error: {format_exc_info(exc_info)}"
         logging.error(error)  # First make sure the error gets logged; then try to send it.
-        self.messenger.send_runner_error(error)
+        self.messenger.send_runner_error(error, sim_id)
         self._kill_after_sent()
 
-    def _handle_pkg_error(self, pkg, origin, exc_info):
+    def _handle_pkg_error(self, pkg, origin, exc_info, sim_id=0):
         """
         :param pkg: The package object, with at least experiment-level data
         :param origin: What part of the package's source code the error
                        occurred in (e.g. sim init, experiment init)
         :param exc_info: See `format_exc_info` in `util.py`.
+        :param sim_id: ID of the simulation run from which the error originated.
+                       If the error isn't specific to any simulation run, we
+                       use 0 as an invalid id.
         """
         error = f"Package `{pkg.name}` {origin}: {format_exc_info(exc_info)}"
         # TODO: Custom log level(s) for non-engine (i.e. package/user) errors/warnings,
         #       e.g. `logging.external_error`?
         logging.error(error)  # First make sure the error gets logged; then try to send it.
-        self.messenger.send_pkg_error(error)
+        self.messenger.send_pkg_error(error, sim_id)
 
     def _kill_after_sent(self):
         """
@@ -194,18 +199,19 @@ class Runner:
 
                 try:
                     result = pkg.start_sim(pkg.experiment, pkg_sim_data, payload, sim_init_ctx)
-                    if self._handle_sim_init_result(sim, pkg, result):
+                    if self._handle_sim_init_result(msg.sim_id, sim, pkg, result):
                         self.sims.pop(msg.sim_id)
                         return
 
                 except Exception:
                     # Have to catch generic exception, because package could throw anything.
-                    self._handle_pkg_error(pkg, "sim init", sys.exc_info())
+                    self._handle_pkg_error(pkg, "sim init", sys.exc_info(), msg.sim_id)
                     self.sims.pop(msg.sim_id)
                     return
 
-    def _handle_sim_init_result(self, sim, pkg, result):
+    def _handle_sim_init_result(self, sim_id, sim, pkg, result):
         """
+        :param sim_id: The new simulation run's id
         :param sim: The new simulation run's data
         :param pkg: The package object, with sim-level data
         :param result: What the package's custom sim init returned
@@ -224,12 +230,12 @@ class Runner:
         warnings = result.get('warnings')
         if warnings is not None:
             warnings = tuple(prefix+w for w in warnings)
-            self.messenger.send_user_warnings(warnings)
+            self.messenger.send_user_warnings(warnings, sim_id)
 
         errors = result.get('errors')
         if errors is not None:
             errors = tuple(prefix+e for e in errors)
-            self.messenger.send_user_errors(errors)
+            self.messenger.send_user_errors(errors, sim_id)
             return True
 
         return False
@@ -274,7 +280,7 @@ class Runner:
             continuation = pkg.run_task(pkg.experiment, pkg.sims[sim_id], task_msg, state, ctx) or {}
         except Exception:
             # Have to catch generic Exception, because package could throw anything.
-            self._handle_pkg_error(pkg, "run_task", sys.exc_info())
+            self._handle_pkg_error(pkg, "run_task", sys.exc_info(), sim_id)
             self.sims.pop(sim_id)
             return
 

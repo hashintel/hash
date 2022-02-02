@@ -4,8 +4,13 @@ from uuid import UUID
 import hash_util
 import json
 
+
 def raise_missing_field(field_name):
     raise RuntimeError("Missing field (behavior keys?): " + field_name)
+
+
+# TODO: Propagate field specs to runners and use in state and context objects
+BEHAVIOR_INDEX_FIELD_KEY = '_PRIVATE_14_behavior_index'
 
 
 class AgentState:
@@ -96,11 +101,9 @@ class AgentState:
             "data": deepcopy(data) if self.__dict__['__msgs_native'][idx] else json.dumps(data)
         })
 
-    # TODO: Method for backwards compatibility and to make it clear that
-    #       the field can't be mutated by behaviors
-    # def behavior_index(self):
-    #     """Return the index of the currently executing behavior in the agent's behavior chain."""
-    #     return self.behavior_index  # Uses `__getattr__` to get index from column.
+    def behavior_index(self):
+        """Return the index of the currently executing behavior in the agent's behavior chain."""
+        return getattr(self, BEHAVIOR_INDEX_FIELD_KEY)  # Uses `__getattr__` to get index from column.
 
 
 class GroupState:
@@ -131,7 +134,8 @@ class GroupState:
 
     def get_agent(self, i_agent_in_group, old_agent_state=None):
         if old_agent_state is not None:
-            old_agent_state.__AgentState_idx = i_agent_in_group
+            # TODO - we should figure out a way to not have to manually unmangle this
+            old_agent_state.__dict__["_AgentState__idx_in_group"] = i_agent_in_group
             return old_agent_state
 
         return AgentState(

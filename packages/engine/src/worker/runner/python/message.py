@@ -273,7 +273,7 @@ class Messenger:
         task_id,
         continuation
     ):
-        # TODO: Combine warnings, errors and other values into single message.
+        # TODO: OPTIM Combine warnings, errors and other values into single message.
         self.send_user_warnings(continuation.get("warnings", []))
         self.send_user_errors(continuation.get("errors", []))
         target = continuation.get("target", "Main")
@@ -281,58 +281,91 @@ class Messenger:
         fbs_bytes = outbound_task_to_fbs_bytes(sim_id, changes, pkg_id, task_id, target, task_msg)
         self.to_rust.send(fbs_bytes)
 
-    def send_runner_error(self, error):
-        fbs_bytes = runner_error_to_fbs_bytes(error)
+    def send_runner_error(self, error, sim_id=0):
+        """
+        :param sim_id: ID of the simulation run from which the error originated.
+        If the error isn't specific to any simulation run, we use 0 as an invalid id.
+        """
+        fbs_bytes = outbound_runner_error_to_fbs_bytes(error, sim_id)
         self.to_rust.send(fbs_bytes)
 
-    def send_pkg_error(self, error):
-        fbs_bytes = pkg_error_to_fbs_bytes(error)
+    def send_pkg_error(self, error, sim_id=0):
+        """
+        :param sim_id: ID of the simulation run from which the error originated.
+        If the error isn't specific to any simulation run, we use 0 as an invalid id.
+        """
+        fbs_bytes = outbound_pkg_error_to_fbs_bytes(error, sim_id)
         self.to_rust.send(fbs_bytes)
 
-    def send_user_errors(self, errors):
+    def send_user_errors(self, errors, sim_id=0):
+        """
+        :param sim_id: ID of the simulation run from which the errors originated.
+        If the errors aren't specific to any simulation run, we use 0 as an invalid id.
+        """
         if len(errors) == 0:
             return
 
         logging.error(f"User errors: {errors}")
 
-        fbs_bytes = user_errors_to_fbs_bytes(errors)
+        fbs_bytes = outbound_user_errors_to_fbs_bytes(errors, sim_id)
         self.to_rust.send(fbs_bytes)
 
-    def send_user_warnings(self, warnings):
+    def send_user_warnings(self, warnings, sim_id=0):
+        """
+        :param sim_id: ID of the simulation run from which the warnings originated.
+        If the warnings aren't specific to any simulation run, we use 0 as an invalid id.
+        """
         if len(warnings) == 0:
             return
 
         logging.warning(f"User warnings: {warnings}")
 
-        fbs_bytes = user_warnings_to_fbs_bytes(warnings)
+        fbs_bytes = outbound_user_warnings_to_fbs_bytes(warnings, sim_id)
         self.to_rust.send(fbs_bytes)
 
 
-def runner_error_to_fbs_bytes(error):
-    # `initialSize` only affects performance (slightly), not correctness.
-    builder = flatbuffers.Builder(initialSize=len(error))
-
+def runner_error_to_fbs(builder, error):
     msg_offset = builder.CreateString(error)
 
     RunnerError.Start(builder)
     RunnerError.AddMsg(builder, msg_offset)
-    runner_error_offset = RunnerError.End(builder)
+    return RunnerError.End(builder)
 
-    builder.Finish(runner_error_offset)
+
+def outbound_runner_error_to_fbs_bytes(error, sim_id):
+    # `initialSize` only affects performance (slightly), not correctness.
+    builder = flatbuffers.Builder(initialSize=len(error))
+    error_offset = runner_error_to_fbs(builder, error)
+
+    RunnerOutboundMsg.Start(builder)
+    RunnerOutboundMsg.AddSimSid(builder, sim_id)
+    RunnerOutboundMsg.AddPayloadType(builder, RunnerOutboundMsgPayload.RunnerError)
+    RunnerOutboundMsg.AddPayload(builder, error_offset)
+    outbound_offset = RunnerOutboundMsg.End(builder)
+
+    builder.Finish(outbound_offset)
     return bytes(builder.Output())
 
 
-def pkg_error_to_fbs_bytes(error):
-    # `initialSize` only affects performance (slightly), not correctness.
-    builder = flatbuffers.Builder(initialSize=len(error))
-
+def pkg_error_to_fbs(builder, error):
     msg_offset = builder.CreateString(error)
 
     PackageError.Start(builder)
     PackageError.AddMsg(builder, msg_offset)
-    pkg_error_offset = PackageError.End(builder)
+    return PackageError.End(builder)
 
-    builder.Finish(pkg_error_offset)
+
+def outbound_pkg_error_to_fbs_bytes(error, sim_id):
+    builder = flatbuffers.Builder(initialSize=len(error))
+    error_offset = pkg_error_to_fbs(builder, error)
+
+    RunnerOutboundMsg.Start(builder)
+    RunnerOutboundMsg.AddSimSid(builder, sim_id)
+    RunnerOutboundMsg.AddPayloadType(builder, RunnerOutboundMsgPayload.PackageError)
+    RunnerOutboundMsg.AddPayload(builder, error_offset)
+    outbound_offset = RunnerOutboundMsg.End(builder)
+
+    builder.Finish(outbound_offset)
     return bytes(builder.Output())
 
 
@@ -344,9 +377,7 @@ def user_error_to_fbs(builder, error):
     return UserError.End(builder)
 
 
-def user_errors_to_fbs_bytes(errors):
-    # `initialSize` only affects performance (slightly), not correctness.
-    builder = flatbuffers.Builder(initialSize=len(errors))
+def user_errors_to_fbs(builder, errors):
     error_offsets = [user_error_to_fbs(builder, e) for e in errors]
 
     UserErrors.StartInnerVector(builder, len(errors))
@@ -356,9 +387,21 @@ def user_errors_to_fbs_bytes(errors):
 
     UserErrors.Start(builder)
     UserErrors.AddInner(builder, vector_offset)
-    user_errors_offset = UserErrors.End(builder)
+    return UserErrors.End(builder)
 
-    builder.Finish(user_errors_offset)
+
+def outbound_user_errors_to_fbs_bytes(sim_id, errors):
+    # `initialSize` only affects performance (slightly), not correctness.
+    builder = flatbuffers.Builder(initialSize=len(errors))
+    errors_offset = user_errors_to_fbs(builder, errors)
+
+    RunnerOutboundMsg.Start(builder)
+    RunnerOutboundMsg.AddSimSid(builder, sim_id)
+    RunnerOutboundMsg.AddPayloadType(builder, RunnerOutboundMsgPayload.UserErrors)
+    RunnerOutboundMsg.AddPayload(builder, errors_offset)
+    outbound_offset = RunnerOutboundMsg.End(builder)
+
+    builder.Finish(outbound_offset)
     return bytes(builder.Output())
 
 
@@ -370,9 +413,7 @@ def user_warning_to_fbs(builder, warning):
     return UserWarning.End(builder)
 
 
-def user_warnings_to_fbs_bytes(warnings):
-    # `initialSize` only affects performance (slightly), not correctness.
-    builder = flatbuffers.Builder(initialSize=len(warnings))
+def user_warnings_to_fbs(builder, warnings):
     warning_offsets = [user_warning_to_fbs(builder, w) for w in warnings]
 
     UserWarnings.StartInnerVector(builder, len(warnings))
@@ -382,9 +423,21 @@ def user_warnings_to_fbs_bytes(warnings):
 
     UserWarnings.Start(builder)
     UserWarnings.AddInner(builder, vector_offset)
-    user_warnings_offset = UserWarnings.End(builder)
+    return UserWarnings.End(builder)
 
-    builder.Finish(user_warnings_offset)
+
+def outbound_user_warnings_to_fbs_bytes(sim_id, warnings):
+    # `initialSize` only affects performance (slightly), not correctness.
+    builder = flatbuffers.Builder(initialSize=len(warnings))
+    warnings_offset = user_warnings_to_fbs(builder, warnings)
+
+    RunnerOutboundMsg.Start(builder)
+    RunnerOutboundMsg.AddSimSid(builder, sim_id)
+    RunnerOutboundMsg.AddPayloadType(builder, RunnerOutboundMsgPayload.UserWarnings)
+    RunnerOutboundMsg.AddPayload(builder, warnings_offset)
+    outbound_offset = RunnerOutboundMsg.End(builder)
+
+    builder.Finish(outbound_offset)
     return bytes(builder.Output())
 
 
