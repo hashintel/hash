@@ -4,16 +4,15 @@ use std::{
     io::BufReader,
     iter,
     path::{Path, PathBuf},
-    time::Duration,
 };
 
 use error::{bail, ensure, report, Result, ResultExt};
 use hash_engine::{
     proto::ExperimentName,
-    utils::{OutputFormat, OutputLocation},
+    utils::{LogFormat, OutputLocation},
     Language,
 };
-use orchestrator::{create_server, ExperimentConfig, ExperimentType, Manifest};
+use orchestrator::{ExperimentConfig, ExperimentType, Manifest, Server};
 use serde::{de::DeserializeOwned, Deserialize};
 use serde_json::Value;
 
@@ -41,12 +40,21 @@ pub struct ExpectedOutput {
 fn load_manifest<P: AsRef<Path>>(project_path: P, language: Option<Language>) -> Result<Manifest> {
     let project_path = project_path.as_ref();
 
-    // We read the manifest without initial state ...
+    // We read the behaviors and datasets like loading a dependency
     let mut manifest = Manifest::from_dependency(project_path)
         .wrap_err_lazy(|| format!("Could not load manifest from {project_path:?}"))?;
 
-    // ... so we provide it ourself
-    // If `language` is specified, use a `-lang` suffix
+    // Now load globals and experiments as specified in the documentation of `Manifest`
+    let globals_path = project_path.join("src").join("globals.json");
+    if globals_path.exists() {
+        manifest.set_globals_from_file(globals_path)?;
+    }
+    let experiments_path = project_path.join("experiments.json");
+    if experiments_path.exists() {
+        manifest.set_experiments_from_file(experiments_path)?;
+    }
+
+    // Load the initial state based on the language. if it is specified, use a `-lang` suffix
     let suffix = match language {
         Some(Language::JavaScript) => "-js",
         Some(Language::Python) => "-py",
@@ -182,7 +190,7 @@ pub async fn run_test<P: AsRef<Path>>(
     experiment_type: ExperimentType,
     project_path: P,
     project_name: String,
-    output_folder: PathBuf,
+    output: PathBuf,
     language: Option<Language>,
     num_outputs_expected: usize,
 ) -> Result<Vec<(AgentStates, Globals, Analysis)>> {
@@ -201,7 +209,7 @@ pub async fn run_test<P: AsRef<Path>>(
         }
     };
 
-    let (mut experiment_server, handler) = create_server(nng_listen_url)?;
+    let (mut experiment_server, handler) = Server::create(nng_listen_url);
     tokio::spawn(async move { experiment_server.run().await });
 
     let manifest = load_manifest(project_path, language)
@@ -212,12 +220,12 @@ pub async fn run_test<P: AsRef<Path>>(
 
     let experiment = orchestrator::Experiment::new(ExperimentConfig {
         num_workers: num_cpus::get(),
-        emit: OutputFormat::Pretty,
-        log_folder: output_folder.join("log"),
-        output_folder,
+        log_format: LogFormat::Pretty,
+        log_folder: output.join("log"),
+        output_folder: output,
         output_location: OutputLocation::File("output.log".into()),
-        engine_start_timeout: Duration::from_secs(10),
-        engine_wait_timeout: Duration::from_secs(10 * 60),
+        start_timeout: 10,
+        wait_timeout: 10 * 60,
     });
 
     let output_base_directory = experiment

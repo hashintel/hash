@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/hash-frontend",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "private": true,
   "description": "HASH frontend",
   "license": "SSPL-1.0",
@@ -16,9 +16,9 @@
     "test": "jest"
   },
   "dependencies": {
-    "@apollo/client": "3.3.19",
-    "@hashintel/hash-shared": "*",
-    "@headlessui/react": "1.3.0",
+    "@apollo/client": "3.3.21",
+    "@hashintel/hash-shared": "0.0.0",
+    "@headlessui/react": "1.4.1",
     "@material-ui/core": "4.12.3",
     "@material-ui/icons": "4.11.2",
     "@mui/icons-material": "5.0.1",
@@ -32,7 +32,7 @@
     "date-fns": "2.22.1",
     "dotenv-flow": "3.2.0",
     "framer-motion": "^4.1.0",
-    "graphql": "15.5.0",
+    "graphql": "15.5.1",
     "html-webpack-plugin": "4.5.1",
     "iframe-resizer": "4.3.2",
     "immer": "9.0.6",
@@ -121,7 +121,7 @@
     "jest": "27.1.1",
     "jest-watch-typeahead": "0.6.4",
     "rimraf": "^3.0.2",
-    "sass": "1.34.1",
+    "sass": "1.35.1",
     "typescript": "4.5.2"
   }
 }
