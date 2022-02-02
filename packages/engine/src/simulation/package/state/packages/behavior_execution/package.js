@@ -2,7 +2,8 @@
 const BEHAVIOR_INDEX_FIELD_KEY = "_PRIVATE_14_behavior_index";
 const BEHAVIOR_IDS_FIELD_KEY = "_PRIVATE_14_behavior_ids";
 
-// The `BEHAVIOR_INDEX_FIELD_KEY` column is reset to zero and `__behaviors` is written to
+// The `BEHAVIOR_INDEX_FIELD_KEY` column is reset to zero and the private `behavior_ids`
+// column is written to
 // in the simulation main loop immediately before running the behavior execution
 // package.
 
