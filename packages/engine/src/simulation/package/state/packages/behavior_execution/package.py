@@ -148,8 +148,6 @@ def run_task(experiment, _sim, _task_message, group_state, group_context):
         # `behavior_index` is the index of the first behavior that
         # hasn't been executed yet (during this step / package call).
         for i_behavior in range(int(agent_state.behavior_index()), len(behavior_ids)):
-            setattr(agent_state, BEHAVIOR_INDEX_FIELD_KEY, i_behavior)  # Keep up to date for use in behaviors.
-
             # Behavior ids are shallow-loaded as an optimization, so
             # need to convert to a Python object here.
             # TODO: OPTIM Use `.values` attribute after upgrading Arrow.
@@ -174,12 +172,13 @@ def run_task(experiment, _sim, _task_message, group_state, group_context):
                     "errors": [error]
                 }
 
-        else:
-            # The `for` loop finished normally, which means that all behaviors of
-            # this agent have been executed, so set this agent's `behavior_index`
-            # field to one past the index of its last behavior.
-            setattr(agent_state, BEHAVIOR_INDEX_FIELD_KEY, len(behavior_ids))  # Keep up to date for use in behaviors.
+            # Increment the behavior index to point to the next one to be executed
+            setattr(agent_state, BEHAVIOR_INDEX_FIELD_KEY, i_behavior + 1)
 
     return {
         "target": next_lang if next_lang is not None else "Main"
     }
+
+
+def increment_behavior_index(agent_state, i_behavior):
+    setattr(agent_state, BEHAVIOR_INDEX_FIELD_KEY, i_behavior + 1)

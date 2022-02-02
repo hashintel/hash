@@ -194,14 +194,11 @@ const run_task = (
 
     const behavior_ids = agent_state[BEHAVIOR_IDS_FIELD_KEY];
     const n_behaviors = behavior_ids.length;
-    let agent_finished = true;
     for (
       var i_behavior = agent_state.behaviorIndex();
       i_behavior < n_behaviors;
       ++i_behavior
     ) {
-      agent_state[BEHAVIOR_INDEX_FIELD_KEY] = i_behavior;
-
       const b_id = behavior_ids.get(i_behavior);
       // We do this because behavior ids are shallow-loaded and
       // `b_id` is an Arrow Vec rather than a clean array
@@ -213,7 +210,6 @@ const run_task = (
         //       wouldn't hurt performance at all in the case where all
         //       behaviors are in JS.
         next_lang = behavior.language; // Multiple assignments are fine.
-        agent_finished = false;
         break;
       }
 
@@ -226,13 +222,9 @@ const run_task = (
         const trace = e.stack;
         throw Error(JSON.stringify(trace));
       }
-    }
 
-    if (agent_finished) {
-      // The `for` loop finished normally, which means that all behaviors of
-      // this agent have been executed, so set this agent's `behavior_index`
-      // field to one past the index of its last behavior.
-      agent_state[BEHAVIOR_INDEX_FIELD_KEY] = n_behaviors;
+      // Increment the behavior index to point to the next one to be executed
+      agent_state[BEHAVIOR_INDEX_FIELD_KEY] = i_behavior + 1;
     }
   }
 
