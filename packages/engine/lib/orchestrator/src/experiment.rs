@@ -81,18 +81,18 @@ pub struct ExperimentConfig {
     /// Defaults to the number of logical CPUs available in order to maximize performance.
     #[cfg_attr(
         feature = "clap",
-        clap(short = 'w', long, default_value_t = num_cpus::get(), validator = at_least_one,
-             env = "HASH_WORKERS")
+        clap(short = 'w', long, default_value_t = num_cpus::get(), validator = at_least_one, env = "HASH_WORKERS")
     )]
     pub num_workers: usize,
 }
 
-fn at_least_one(v: &str) -> core::result::Result<(), &'static str> {
-    let num: usize = v.parse().unwrap();
-    if num > 0 {
-        Ok(())
+#[cfg(feature = "clap")]
+fn at_least_one(v: &str) -> core::result::Result<(), String> {
+    let num = v.parse::<usize>().map_err(|e| e.to_string())?;
+    if num == 0 {
+        Err("must be at least 1".to_string())
     } else {
-        Err("Must be at least 1")
+        Ok(())
     }
 }
 
