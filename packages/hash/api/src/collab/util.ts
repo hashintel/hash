@@ -1,4 +1,8 @@
-import { EntityStoreType, isEntity } from "@hashintel/hash-shared/entityStore";
+import {
+  EntityStoreType,
+  isBlockEntity,
+  isEntity,
+} from "@hashintel/hash-shared/entityStore";
 import { getRequiredEnv } from "../util";
 
 export const COLLAB_QUEUE_NAME = getRequiredEnv("HASH_COLLAB_QUEUE_NAME");
@@ -12,16 +16,32 @@ type Entries<T> = {
  */
 const typeSafeEntries = <T>(obj: T): Entries<T> => Object.entries(obj) as any;
 
+type EntityHandler = <E extends EntityStoreType>(
+  entity: E,
+  blockId: string,
+) => E;
+
 const walkObjectValueForEntity = <T extends {}>(
   value: T,
-  entityHandler: <E extends EntityStoreType>(entity: E) => E,
+  entityHandler: EntityHandler,
+  blockId: string | null,
 ): T => {
+  let blockEntityId = blockId;
+
+  if (isBlockEntity(value)) {
+    blockEntityId = value.entityId;
+  }
+
   let changed = false;
   let result = value;
 
   for (const [key, innerValue] of typeSafeEntries(value)) {
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    const nextValue = walkValueForEntity(innerValue, entityHandler);
+    const nextValue = walkValueForEntity(
+      innerValue,
+      entityHandler,
+      blockEntityId,
+    );
 
     if (nextValue !== innerValue) {
       if (!changed) {
@@ -34,7 +54,11 @@ const walkObjectValueForEntity = <T extends {}>(
   }
 
   if (isEntity(value)) {
-    const nextValue = entityHandler(value);
+    if (!blockEntityId) {
+      throw new Error("Missing block entity id");
+    }
+
+    const nextValue = entityHandler(value, blockEntityId);
 
     if (nextValue !== value) {
       changed = true;
@@ -51,11 +75,12 @@ const walkObjectValueForEntity = <T extends {}>(
  */
 export const walkValueForEntity = <T>(
   value: T,
-  entityHandler: <E extends EntityStoreType>(entity: E) => E,
+  entityHandler: EntityHandler,
+  blockId: string | null = null,
 ): T => {
   if (typeof value !== "object" || value === null) {
     return value;
   }
 
-  return walkObjectValueForEntity(value, entityHandler);
+  return walkObjectValueForEntity(value, entityHandler, blockId);
 };

@@ -14,8 +14,6 @@ import {
   entityStorePluginState,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import {
-  GetEntityQuery,
-  GetEntityQueryVariables,
   GetPageQuery,
   GetPageQueryVariables,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
@@ -25,7 +23,6 @@ import {
   isEntityNode,
 } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
-import { getEntity } from "@hashintel/hash-shared/queries/entity.queries";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import {
   createNecessaryEntities,
@@ -145,62 +142,58 @@ export class Instance {
    * walkValueForEntity cannot handle async operations
    */
   private async processEntityVersion(entityVersion: EntityVersion) {
-    let foundOnPage = false;
-    const entityVersionsToUpdate = new Set<string>();
     const entityVersionTime = new Date(entityVersion.updatedAt).getTime();
 
-    walkValueForEntity(this.savedContents, (entity) => {
-      if (entity.entityId === entityVersion.entityId) {
-        foundOnPage = true;
+    const blockIds = new Set<string>();
 
-        if (entityVersionTime > new Date(entity.updatedAt).getTime()) {
-          entityVersionsToUpdate.add(entity.entityVersionId);
-        }
+    /**
+     * @todo should we store a list of entity ids in the entity store so we
+     *       don't need to do this?
+     */
+    walkValueForEntity(this.savedContents, (entity, blockId) => {
+      if (
+        entity.entityId === entityVersion.entityId &&
+        entityVersionTime > new Date(entity.updatedAt).getTime()
+      ) {
+        blockIds.add(blockId);
       }
 
       return entity;
     });
 
-    if (foundOnPage && entityVersionsToUpdate.size > 0) {
-      const { data } = await this.fallbackClient.query<
-        GetEntityQuery,
-        GetEntityQueryVariables
+    if (blockIds.size) {
+      // @todo replace this with a query to get specific new blocks
+      const page = await this.fallbackClient.query<
+        GetPageQuery,
+        GetPageQueryVariables
       >({
-        query: getEntity,
+        query: getPageQuery,
         variables: {
-          entityId: entityVersion.entityId,
-          accountId: entityVersion.accountId,
+          entityId: this.pageEntityId,
+          accountId: this.accountId,
         },
         fetchPolicy: "network-only",
       });
 
-      const nextSavedContents = walkValueForEntity(
-        this.savedContents,
-        (entity) => {
-          if (entityVersionsToUpdate.has(entity.entityVersionId)) {
-            return {
-              ...entity,
-              accountId: entityVersion.accountId,
-              entityVersionId: entityVersion.entityVersionId,
-              entityTypeVersionId: entityVersion.entityTypeVersionId,
-              /**
-               * This could overwrite any updates applied to entities inside of
-               * this properties field, but not a lot we can do about that, and
-               * unlikely to actually cause an issue as we process entity
-               * updates one at a time.
-               *
-               * @todo remove this comment when we have flat entities
-               */
-              properties: data.entity.properties,
-              createdByAccountId: entityVersion.updatedByAccountId,
-              createdAt: entityVersion.updatedAt.toISOString(),
-              updatedAt: entityVersion.updatedAt.toISOString(),
-            };
+      const nextBlocks = new Map(
+        page.data.page.properties.contents.map(
+          (block) => [block.entityId, block] as const,
+        ),
+      );
+
+      const nextSavedContents = this.savedContents.map((block) => {
+        if (blockIds.has(block.entityId)) {
+          const nextBlock = nextBlocks.get(block.entityId);
+
+          if (!nextBlock) {
+            throw new Error("Cannot find updated block in updated page");
           }
 
-          return entity;
-        },
-      );
+          return nextBlock;
+        }
+
+        return block;
+      });
 
       /**
        * We should know not to notify consumers of changes they've already been
