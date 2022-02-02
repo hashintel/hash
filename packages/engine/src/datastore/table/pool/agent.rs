@@ -58,18 +58,19 @@ impl AgentPool {
     pub fn get_batch_at_index(
         &self,
         index: usize,
-    ) -> Result<Option<RwLockWriteGuard<'_, AgentBatch>>> {
-        let batch = self
-            .batches
-            .get(index)
-            .map(|batch| batch.try_write())
-            .ok_or_else(|| {
-                Error::from(format!(
-                    "failed to get write lock for batch at index: {}",
-                    index
-                ))
-            })?;
-        Ok(batch)
+    ) -> Result<Option<RwLockReadGuard<'_, AgentBatch>>> {
+        let batch = match self.batches.get(index) {
+            Some(batch) => batch,
+            None => return Ok(None),
+        };
+
+        let batch = batch
+            .try_read()
+            .ok_or_else(|| Error::from(format!(
+                "Failed to get read lock for agent batch at index {}",
+                index
+            )))?;
+        Ok(Some(batch))
     }
 
     pub fn set_pending_column(&mut self, column: StateColumn) -> Result<()> {
