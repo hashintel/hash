@@ -1,6 +1,7 @@
 import { JSONObject } from "blockprotocol";
 import { ApolloError } from "apollo-server-errors";
 import { PathComponent } from "jsonpath";
+import fetch from "node-fetch";
 import { merge } from "lodash";
 import {
   Account,
@@ -535,11 +536,17 @@ class __Entity {
           const systemAccountId = await client.getSystemAccountId();
 
           const name = capitalizeComponentName(componentId);
+
+          const blockSchema = await (
+            await fetch(`${componentId}/block-schema.json`)
+          ).json();
+
+          // Creation of an EntityType validates schema.
           entityTypeWithComponentId = await EntityType.create(client, {
             accountId: systemAccountId,
             createdByAccountId: params.user.accountId,
             name,
-            schema: { componentId },
+            schema: { ...blockSchema, componentId },
           });
         }
 

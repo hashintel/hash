@@ -1,3 +1,4 @@
+import fetch from "node-fetch";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { PostgresAdapter } from "@hashintel/hash-api/src/db";
 import {
@@ -85,6 +86,14 @@ void (async () => {
     string
   > = {} as any;
 
+  const componentIdSchema = async (componentId: string) => {
+    const blockSchema = await (
+      await fetch(`${componentId}/block-schema.json`)
+    ).json();
+
+    return { componentId, ...(blockSchema as object) };
+  };
+
   await Promise.all(
     requiredBlockTypes.map(async (name) => {
       const entityType = await EntityType.create(db, {
@@ -92,7 +101,9 @@ void (async () => {
         createdByAccountId: systemOrg.entityId, // TODO
         name,
         schema: {
-          componentId: `https://block.blockprotocol.org/${name.toLowerCase()}`,
+          ...(await componentIdSchema(
+            `https://blockprotocol.org/blocks/@hash/${name.toLowerCase()}`,
+          )),
         },
       });
 

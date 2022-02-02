@@ -25,6 +25,7 @@
     "graphql-request": "3.4.0",
     "graphql-tag": "2.12.5",
     "graphql-type-json": "0.3.2",
+    "node-fetch": "3.2.0",
     "pg": "8.7.1"
   },
   "devDependencies": {
