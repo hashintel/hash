@@ -5,6 +5,7 @@
 mod experiment;
 
 mod examples;
+mod popular;
 mod units;
 
 /// Opens `$project` relative to the caller's file as a HASH simulation project and expects
