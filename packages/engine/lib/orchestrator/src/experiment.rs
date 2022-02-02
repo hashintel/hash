@@ -36,6 +36,7 @@ pub struct ExperimentConfig {
     #[cfg_attr(
         feature = "clap",
         clap(
+            global = true,
             short,
             long = "output",
             default_value = "./output",
@@ -47,7 +48,13 @@ pub struct ExperimentConfig {
     /// Logging output format to be emitted
     #[cfg_attr(
         feature = "clap",
-        clap(long, default_value = "pretty", arg_enum, env = "HASH_LOG_FORMAT")
+        clap(
+            global = true,
+            long,
+            default_value = "pretty",
+            arg_enum,
+            env = "HASH_LOG_FORMAT"
+        )
     )]
     pub log_format: LogFormat,
 
@@ -55,24 +62,24 @@ pub struct ExperimentConfig {
     ///
     /// Can be `stdout`, `stderr` or any file name. Relative to `--log-folder` if a file is
     /// specified.
-    #[cfg_attr(feature = "clap", clap(long, default_value = "stderr"))]
+    #[cfg_attr(feature = "clap", clap(global = true, long, default_value = "stderr"))]
     pub output_location: OutputLocation,
 
     /// Logging output folder.
-    #[cfg_attr(feature = "clap", clap(long, default_value = "./log"))]
+    #[cfg_attr(feature = "clap", clap(global = true, long, default_value = "./log"))]
     pub log_folder: PathBuf,
 
     /// Timeout, in seconds, for how long to wait for a response when the Engine starts
     #[cfg_attr(
         feature = "clap",
-        clap(long, default_value = "2", env = "ENGINE_START_TIMEOUT")
+        clap(global = true, long, default_value = "2", env = "ENGINE_START_TIMEOUT")
     )]
     pub start_timeout: u64,
 
     /// Timeout, in seconds, for how long to wait for updates when the Engine is executing
     #[cfg_attr(
         feature = "clap",
-        clap(long, default_value = "60", env = "ENGINE_WAIT_TIMEOUT")
+        clap(global = true, long, default_value = "60", env = "ENGINE_WAIT_TIMEOUT")
     )]
     pub wait_timeout: u64,
 
@@ -81,18 +88,18 @@ pub struct ExperimentConfig {
     /// Defaults to the number of logical CPUs available in order to maximize performance.
     #[cfg_attr(
         feature = "clap",
-        clap(short = 'w', long, default_value_t = num_cpus::get(), validator = at_least_one,
-             env = "HASH_WORKERS")
+        clap(global = true, short = 'w', long, default_value_t = num_cpus::get(), validator = at_least_one, env = "HASH_WORKERS")
     )]
     pub num_workers: usize,
 }
 
-fn at_least_one(v: &str) -> core::result::Result<(), &'static str> {
-    let num: usize = v.parse().unwrap();
-    if num > 0 {
-        Ok(())
+#[cfg(feature = "clap")]
+fn at_least_one(v: &str) -> core::result::Result<(), String> {
+    let num = v.parse::<usize>().map_err(|e| e.to_string())?;
+    if num == 0 {
+        Err("must be at least 1".to_string())
     } else {
-        Err("Must be at least 1")
+        Ok(())
     }
 }
 
@@ -169,11 +176,10 @@ impl Experiment {
     /// returns once the experiment has finished.
     ///
     /// [`Process`]: crate::process::Process
-    #[instrument(skip_all, fields(project_name = project_name.as_str(), experiment_id = % experiment_run.base.id))]
+    #[instrument(skip_all, fields(experiment_name = %experiment_run.base.name, experiment_id = %experiment_run.base.id))]
     pub async fn run(
         &self,
         experiment_run: proto::ExperimentRun,
-        project_name: String,
         mut handler: Handler,
     ) -> Result<()> {
         let experiment_name = experiment_run.base.name.clone();
