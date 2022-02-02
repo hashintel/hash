@@ -636,8 +636,7 @@ impl WorkerController {
                     .send_if_spawned(sim_id, sync_msg.try_clone()?.into()),
                 self.js
                     .send_if_spawned(sim_id, sync_msg.try_clone()?.into()),
-                self.rs
-                    .send_if_spawned(sim_id, sync_msg.into())
+                self.rs.send_if_spawned(sim_id, sync_msg.into())
             )?;
             return Ok(());
         };
