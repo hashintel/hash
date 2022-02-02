@@ -258,7 +258,6 @@ describe("Link model class ", () => {
       createdByAccountId,
       source: entityA,
       destination: entityC,
-      destinationEntityVersionId: entityC.entityVersionId,
       stringifiedPath: "$.test",
       index: 0,
     });
