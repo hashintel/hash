@@ -165,8 +165,7 @@ def run_task(experiment, _sim, _task_message, group_state, group_context):
             agent_state.set_dynamic_access(behavior['dyn_access'])
             try:
                 behavior['fn'](agent_state, agent_context)
-                _postprocess(agent_state)
-
+                _postprocess(agent_state)  # Errors from post-processing are considered user errors.
             except Exception:
                 # Have to catch generic `Exception`, because user's code could throw anything.
                 error = _format_behavior_error(behavior['name'], sys.exc_info())
@@ -174,7 +173,11 @@ def run_task(experiment, _sim, _task_message, group_state, group_context):
                     "target": "Main",
                     "errors": [error]
                 }
-        else:  # loop finished normally
+
+        else:
+            # The `for` loop finished normally, which means that all behaviors of
+            # this agent have been executed, so set this agent's `behavior_index`
+            # field to one past the index of its last behavior.
             setattr(agent_state, BEHAVIOR_INDEX_FIELD_KEY, len(behavior_ids))  # Keep up to date for use in behaviors.
 
     return {

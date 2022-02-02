@@ -282,14 +282,26 @@ class Messenger:
         self.to_rust.send(fbs_bytes)
 
     def send_runner_error(self, error, sim_id=0):
+        """
+        :param sim_id: ID of the simulation run from which the error originated.
+        If the error isn't specific to any simulation run, we use 0 as an invalid id.
+        """
         fbs_bytes = outbound_runner_error_to_fbs_bytes(error, sim_id)
         self.to_rust.send(fbs_bytes)
 
     def send_pkg_error(self, error, sim_id=0):
+        """
+        :param sim_id: ID of the simulation run from which the error originated.
+        If the error isn't specific to any simulation run, we use 0 as an invalid id.
+        """
         fbs_bytes = outbound_pkg_error_to_fbs_bytes(error, sim_id)
         self.to_rust.send(fbs_bytes)
 
     def send_user_errors(self, errors, sim_id=0):
+        """
+        :param sim_id: ID of the simulation run from which the errors originated.
+        If the errors aren't specific to any simulation run, we use 0 as an invalid id.
+        """
         if len(errors) == 0:
             return
 
@@ -299,6 +311,10 @@ class Messenger:
         self.to_rust.send(fbs_bytes)
 
     def send_user_warnings(self, warnings, sim_id=0):
+        """
+        :param sim_id: ID of the simulation run from which the warnings originated.
+        If the warnings aren't specific to any simulation run, we use 0 as an invalid id.
+        """
         if len(warnings) == 0:
             return
 

@@ -202,9 +202,10 @@ const run_task = (
     ) {
       agent_state[BEHAVIOR_INDEX_FIELD_KEY] = i_behavior;
 
-      const key = behavior_ids.get(i_behavior);
-      // We do this because it's shallow-loaded and the key is an Arrow Vec rather than a clean array
-      const behavior = experiment.behaviors[[key.get(0), key.get(1)]];
+      const b_id = behavior_ids.get(i_behavior);
+      // We do this because behavior ids are shallow-loaded and
+      // `b_id` is an Arrow Vec rather than a clean array
+      const behavior = experiment.behaviors[[b_id.get(0), b_id.get(1)]];
       if (behavior.language !== "JavaScript") {
         // TODO: A simple optimization would be to count the number of
         //       next-up behaviors in each language (other than JS) and
@@ -219,14 +220,18 @@ const run_task = (
       agent_state.set_dynamic_access(behavior.dyn_access);
       try {
         behavior.fn(agent_state, agent_ctx);
+        postprocess(agent_state);
       } catch (e) {
         Error.prepareStackTrace = prepare_user_trace;
         const trace = e.stack;
         throw Error(JSON.stringify(trace));
       }
-      postprocess(agent_state);
     }
+
     if (agent_finished) {
+      // The `for` loop finished normally, which means that all behaviors of
+      // this agent have been executed, so set this agent's `behavior_index`
+      // field to one past the index of its last behavior.
       agent_state[BEHAVIOR_INDEX_FIELD_KEY] = n_behaviors;
     }
   }
