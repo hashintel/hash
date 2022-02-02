@@ -176,11 +176,10 @@ impl Experiment {
     /// returns once the experiment has finished.
     ///
     /// [`Process`]: crate::process::Process
-    #[instrument(skip_all, fields(project_name = project_name.as_str(), experiment_id = % experiment_run.base.id))]
+    #[instrument(skip_all, fields(experiment_name = %experiment_run.base.name, experiment_id = %experiment_run.base.id))]
     pub async fn run(
         &self,
         experiment_run: proto::ExperimentRun,
-        project_name: String,
         mut handler: Handler,
     ) -> Result<()> {
         let experiment_name = experiment_run.base.name.clone();
