@@ -1,3 +1,5 @@
+use crate::run_test;
+
 // https://core.hash.ai/@hash/interconnected-call-center/3.2.1
 mod interconnected_call_center {
     use crate::run_test;
@@ -17,3 +19,7 @@ mod air_defense_system {
     run_test!(air_defense_system, experiment: radar_max_missiles_arange);
     run_test!(air_defense_system, experiment: radar_location_values);
 }
+
+// https://core.hash.ai/@hash/city-infection-model-with-vaccine/main at 2022-02-02
+// Rust behavior is currently not supported
+run_test!(city_infection_model_with_vaccine, #[ignore]);
