@@ -235,7 +235,7 @@ pub async fn run_test<P: AsRef<Path>>(
         .join(experiment_run.base.id.to_string());
 
     experiment
-        .run(experiment_run, project_name, handler)
+        .run(experiment_run, handler)
         .await
         .wrap_err("Could not run experiment")?;
 
