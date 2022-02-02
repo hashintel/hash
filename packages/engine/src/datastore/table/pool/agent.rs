@@ -66,8 +66,7 @@ impl AgentPool {
 
         let batch = batch.try_read().ok_or_else(|| {
             Error::from(format!(
-                "Failed to get read lock for agent batch at index {}",
-                index
+                "Failed to get read lock for agent batch at index {index}"
             ))
         })?;
         Ok(Some(batch))
