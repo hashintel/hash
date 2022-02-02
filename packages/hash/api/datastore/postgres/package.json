@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/hash-postgres",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "description": "Postgres migration script",
   "repository": "github.com/hashintel/dev/packages/hash/api/datastore/postgres",
   "license": "GPL-3.0",
@@ -14,8 +14,8 @@
     "run-schema-migrations": "ts-node scripts/run-schema-migrations.ts"
   },
   "dependencies": {
-    "@hashintel/hash-api": "0.1.0",
-    "@hashintel/hash-backend-utils": "0.1.0",
+    "@hashintel/hash-api": "0.0.0",
+    "@hashintel/hash-backend-utils": "0.0.0",
     "id128": "1.6.6",
     "node-postgres": "0.6.2",
     "pg": "8.7.1",
