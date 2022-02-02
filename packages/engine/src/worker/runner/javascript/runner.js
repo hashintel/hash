@@ -201,7 +201,7 @@
       }
     } catch (e) {
       return {
-        pkg_error: String(e.stack), // `.stack` is V8 built-in; TODO: `e.toString()`?
+        pkg_error: e.toString(),
       };
     }
     return ret;

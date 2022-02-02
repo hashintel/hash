@@ -42,8 +42,8 @@ pub mod prelude {
         datastore::{
             prelude::*,
             table::{
-                context::{Context, ExContext},
-                state::{ExState, State},
+                context::{Context, ContextMut},
+                state::{State, StateMut},
             },
         },
         simulation::{Error, Result},

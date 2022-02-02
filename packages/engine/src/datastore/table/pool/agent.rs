@@ -8,7 +8,7 @@ use crate::{
     simulation::package::state::StateColumn,
 };
 
-/// TODO: DOC
+/// An ordered collection of similar [`AgentBatch`]es for each group within a simulation run.
 #[derive(Clone)]
 pub struct AgentPool {
     batches: Vec<Arc<RwLock<AgentBatch>>>,
@@ -23,22 +23,26 @@ impl AgentPool {
         AgentPool { batches }
     }
 
-    pub fn read_batches(&self) -> Result<Vec<RwLockReadGuard<'_, AgentBatch>>> {
+    // TODO, why do we have these methods, when we have proxies. Clearly they're needed because
+    //  we're actually seeing the errors, but this should be fixed
+    /// Attempts to acquire read-locks on all batches within the pool.
+    pub fn try_read_batches(&self) -> Result<Vec<RwLockReadGuard<'_, AgentBatch>>> {
         self.batches()
             .iter()
             .map(|a| {
                 a.try_read()
-                    .ok_or_else(|| Error::from("failed to read batches"))
+                    .ok_or_else(|| Error::from("failed to acquire read locks on batches in pool"))
             })
             .collect::<Result<_>>()
     }
 
-    pub fn write_batches(&mut self) -> Result<Vec<RwLockWriteGuard<'_, AgentBatch>>> {
+    /// Attempts to acquire write-locks on all batches within the pool.
+    pub fn try_write_batches(&mut self) -> Result<Vec<RwLockWriteGuard<'_, AgentBatch>>> {
         self.batches()
             .iter()
             .map(|a| {
                 a.try_write()
-                    .ok_or_else(|| Error::from("failed to write batches"))
+                    .ok_or_else(|| Error::from("failed to acquire write locks on batches in pool"))
             })
             .collect::<Result<_>>()
     }
@@ -54,22 +58,22 @@ impl AgentPool {
     pub fn get_batch_at_index(
         &self,
         index: usize,
-    ) -> Result<Option<RwLockWriteGuard<'_, AgentBatch>>> {
-        let batch = self
-            .batches
-            .get(index)
-            .map(|batch| batch.try_write())
-            .ok_or_else(|| {
-                Error::from(format!(
-                    "failed to get write lock for batch at index: {}",
-                    index
-                ))
-            })?;
-        Ok(batch)
+    ) -> Result<Option<RwLockReadGuard<'_, AgentBatch>>> {
+        let batch = match self.batches.get(index) {
+            Some(batch) => batch,
+            None => return Ok(None),
+        };
+
+        let batch = batch.try_read().ok_or_else(|| {
+            Error::from(format!(
+                "Failed to get read lock for agent batch at index {index}"
+            ))
+        })?;
+        Ok(Some(batch))
     }
 
     pub fn set_pending_column(&mut self, column: StateColumn) -> Result<()> {
-        let write = self.write_batches()?;
+        let write = self.try_write_batches()?;
         let mut index = 0;
         for mut batch in write {
             let num_agents = batch.num_agents();
@@ -82,7 +86,7 @@ impl AgentPool {
     }
 
     pub fn flush_pending_columns(&mut self) -> Result<()> {
-        let write = self.write_batches()?;
+        let write = self.try_write_batches()?;
         for mut batch in write {
             batch.flush_changes()?;
         }

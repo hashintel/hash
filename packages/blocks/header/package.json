@@ -47,7 +47,7 @@
     "eslint-plugin-no-restricted-imports": "0.0.0",
     "eslint-plugin-react": "^7.25.1",
     "eslint-plugin-react-hooks": "4.2.0",
-    "html-webpack-plugin": "^4.5.0",
+    "html-webpack-plugin": "4.5.1",
     "react": "17.0.2",
     "react-dom": "17.0.2",
     "regenerator-runtime": "^0.13.7",
@@ -69,6 +69,13 @@
   "blockprotocol": {
     "displayName": "Heading",
     "icon": "public/h1.svg",
-    "image": "public/preview.svg"
+    "image": "public/preview.svg",
+    "examples": [
+      {
+        "text": "Hello World!",
+        "level": 2,
+        "color": "black"
+      }
+    ]
   }
 }

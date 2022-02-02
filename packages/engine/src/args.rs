@@ -1,6 +1,11 @@
+use std::path::PathBuf;
+
 use clap::{AppSettings, Parser};
 
-use crate::{proto::ExperimentId, utils::OutputFormat};
+use crate::{
+    proto::ExperimentId,
+    utils::{LogFormat, OutputLocation},
+};
 
 /// Arguments passed to hEngine
 #[derive(Debug, Parser)]
@@ -21,13 +26,26 @@ pub struct Args {
     #[clap(short, long, default_value = "")]
     pub listen_url: String,
 
-    /// max number of workers per simulation run (optional).
-    #[clap(short, long)]
-    pub max_workers: Option<usize>,
+    /// Number of workers to run in parallel.
+    ///
+    /// Defaults to the number of logical CPUs available in order to maximize performance.
+    #[clap(short = 'w', long, default_value_t = num_cpus::get(), env = "HASH_WORKERS")]
+    pub num_workers: usize,
 
-    /// Output format emitted to the terminal.
-    #[clap(long, default_value = "pretty", arg_enum, env = "HASH_EMIT")]
-    pub emit: OutputFormat,
+    /// Output format emitted to the output location.
+    #[clap(long, default_value = "pretty", arg_enum, env = "HASH_LOG_FORMAT")]
+    pub log_format: LogFormat,
+
+    /// Output location where to emit logs.
+    ///
+    /// Can be `stdout`, `stderr` or any file name. Relative to `--log-folder` if a file is
+    /// specified.
+    #[clap(long, default_value = "stderr")]
+    pub output: OutputLocation,
+
+    /// Logging output folder.
+    #[clap(long, default_value = "./log")]
+    pub log_folder: PathBuf,
 }
 
 pub fn args() -> Args {

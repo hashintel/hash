@@ -47,7 +47,7 @@ export const EntityType: VoidFunctionComponent = () => {
 
   const schema = data?.getEntityType.properties;
 
-  const schemaId: string = schema?.$id;
+  const schema$id: string = schema?.$id;
 
   /**
    * This element is for users to interact with to select other schemas. In this case, a <Link>.
@@ -56,8 +56,8 @@ export const EntityType: VoidFunctionComponent = () => {
    */
   const schemaSelectElement = useCallback<SchemaSelectElementType>(
     ({ schemaRef }) => {
-      const baseUrl = schemaId.startsWith("http")
-        ? new URL(schemaId).origin
+      const baseUrl = schema$id.startsWith("http")
+        ? new URL(schema$id).origin
         : undefined;
 
       let schemaLinkPath = "";
@@ -70,7 +70,7 @@ export const EntityType: VoidFunctionComponent = () => {
          * This is a relative link to a sub-schema of this same schema
          * @see https://json-schema.org/understanding-json-schema/structuring.html#json-pointer
          */
-        schemaLinkPath = schemaId + schemaRef;
+        schemaLinkPath = schema$id + schemaRef;
       } else if (schemaRef.startsWith("/")) {
         /**
          * This is a relative link to another schema to be resolved against the base URL of this schema.
@@ -90,7 +90,7 @@ export const EntityType: VoidFunctionComponent = () => {
          * Really these should instead be defined under $defs and referenced as such, but they might exist.
          */
         schemaLinkPath = `${
-          schemaId + (subSchemaReference || "#")
+          schema$id + (subSchemaReference || "#")
         }/properties/${schemaRef}`;
       }
 
@@ -102,7 +102,7 @@ export const EntityType: VoidFunctionComponent = () => {
         </Link>
       );
     },
-    [schemaId, subSchemaReference],
+    [schema$id, subSchemaReference],
   );
 
   return (

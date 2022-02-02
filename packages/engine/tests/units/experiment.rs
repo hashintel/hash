@@ -3,13 +3,16 @@ use std::{
     fs::{self, File},
     io::BufReader,
     iter,
-    path::Path,
-    time::Duration,
+    path::{Path, PathBuf},
 };
 
 use error::{bail, ensure, report, Result, ResultExt};
-use hash_engine::{proto::ExperimentName, utils::OutputFormat, Language};
-use orchestrator::{create_server, ExperimentConfig, ExperimentType, Manifest};
+use hash_engine::{
+    proto::ExperimentName,
+    utils::{LogFormat, OutputLocation},
+    Language,
+};
+use orchestrator::{ExperimentConfig, ExperimentType, Manifest, Server};
 use serde::{de::DeserializeOwned, Deserialize};
 use serde_json::Value;
 
@@ -34,19 +37,29 @@ pub struct ExpectedOutput {
 /// example when [`Python`](Language::Python) is passed, it searches for the files `init-py.js`,
 /// `init-py.py`, and `init-py.json`. If more than one initial state is specified, the function
 /// fails.
-fn load_manifest<P: AsRef<Path>>(project_path: P, language: Language) -> Result<Manifest> {
+fn load_manifest<P: AsRef<Path>>(project_path: P, language: Option<Language>) -> Result<Manifest> {
     let project_path = project_path.as_ref();
 
-    // We read the manifest without initial state ...
+    // We read the behaviors and datasets like loading a dependency
     let mut manifest = Manifest::from_dependency(project_path)
         .wrap_err_lazy(|| format!("Could not load manifest from {project_path:?}"))?;
 
-    // ... so we provide it ourself
-    // If `language` is specified, use a `-lang` suffix
+    // Now load globals and experiments as specified in the documentation of `Manifest`
+    let globals_path = project_path.join("src").join("globals.json");
+    if globals_path.exists() {
+        manifest.set_globals_from_file(globals_path)?;
+    }
+    let experiments_path = project_path.join("experiments.json");
+    if experiments_path.exists() {
+        manifest.set_experiments_from_file(experiments_path)?;
+    }
+
+    // Load the initial state based on the language. if it is specified, use a `-lang` suffix
     let suffix = match language {
-        Language::JavaScript => "-js",
-        Language::Python => "-py",
-        Language::Rust => "-rs",
+        Some(Language::JavaScript) => "-js",
+        Some(Language::Python) => "-py",
+        Some(Language::Rust) => "-rs",
+        None => "",
     };
     let initial_states: Vec<_> = ["js", "py", "json"]
         .into_iter()
@@ -64,12 +77,20 @@ fn load_manifest<P: AsRef<Path>>(project_path: P, language: Language) -> Result<
 
 pub async fn run_test_suite<P: AsRef<Path>>(
     project_path: P,
-    language: Language,
+    project_module: &str,
+    language: Option<Language>,
     experiment: Option<&str>,
 ) {
-    std::env::set_var("RUST_LOG", "info");
+    if std::env::var("RUST_LOG").is_err() {
+        std::env::set_var("RUST_LOG", "info");
+    }
 
     let project_path = project_path.as_ref();
+    let project_name = project_path
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .to_string();
 
     let experiments = read_config(project_path.join("integration-test.json"))
         .expect("Could not read experiments")
@@ -85,29 +106,63 @@ pub async fn run_test_suite<P: AsRef<Path>>(
         // TODO: Remove attempting strategy
         let mut outputs = None;
         let attempts = 10;
+        // Will be initialized in the loop
+        let mut output_folder = PathBuf::new();
+
         for attempt in 1..=attempts {
             if attempt > 1 {
                 std::env::set_var("RUST_LOG", "trace");
             }
-            println!(
-                "\n\n\nRunning test {:?} attempt {attempt}/{attempts}:\n",
-                project_path.file_name().unwrap()
+
+            // Use `OUTPUT_DIRECTORY` as output directory. If it's not set, cargo's `OUT_DIR` is
+            // used. If, for whatever reason, this is not set, default to `./output`.
+            output_folder = PathBuf::from(
+                std::env::var("OUTPUT_DIRECTORY")
+                    .or_else(|_| std::env::var("OUT_DIR"))
+                    .unwrap_or_else(|_| "./output".to_string()),
             );
+            for module in project_module.split("::") {
+                output_folder.push(module);
+            }
+            output_folder.push(&project_name);
+
             let test_result = run_test(
                 experiment_type.clone(),
                 &project_path,
+                project_name.clone(),
+                output_folder.join(format!("attempt-{attempt}")),
                 language,
                 expected_outputs.len(),
             );
-            match test_result.await {
-                Ok(out) => {
-                    outputs.replace(out);
-                    break;
-                }
-                Err(err) => eprintln!("\n\n{err:?}\n\n"),
+            let output = test_result.await;
+            let success = output.is_ok();
+            outputs.replace(output);
+            if success {
+                break;
             }
         }
-        let outputs = outputs.expect(&format!("Could not run experiment"));
+
+        let log_file_path = output_folder
+            .join(format!("attempt-{attempts}"))
+            .join("log")
+            .join("output.log");
+
+        let log_output = fs::read_to_string(&log_file_path);
+        // Remove the output directory if it was not set manually
+        if std::env::var("OUTPUT_DIRECTORY").is_err() {
+            let _ = fs::remove_dir_all(&output_folder);
+        }
+
+        let outputs = match outputs.unwrap() {
+            Ok(outputs) => outputs,
+            Err(err) => {
+                match log_output {
+                    Ok(log) => eprintln!("{log}"),
+                    Err(err) => eprintln!("Could not read {log_file_path:?}: {err}"),
+                }
+                panic!("{:?}", err.wrap("Could not run experiment"));
+            }
+        };
 
         assert_eq!(
             expected_outputs.len(),
@@ -134,15 +189,12 @@ pub async fn run_test_suite<P: AsRef<Path>>(
 pub async fn run_test<P: AsRef<Path>>(
     experiment_type: ExperimentType,
     project_path: P,
-    language: Language,
+    project_name: String,
+    output: PathBuf,
+    language: Option<Language>,
     num_outputs_expected: usize,
 ) -> Result<Vec<(AgentStates, Globals, Analysis)>> {
     let project_path = project_path.as_ref();
-    let project_name = project_path
-        .file_name()
-        .unwrap()
-        .to_string_lossy()
-        .to_string();
 
     let nng_listen_url = {
         use std::time::{SystemTime, UNIX_EPOCH};
@@ -150,10 +202,14 @@ pub async fn run_test<P: AsRef<Path>>(
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_millis();
-        format!("ipc://integration-test-suite-{project_name}-{language}-{now}")
+        if let Some(language) = language {
+            format!("ipc://integration-test-suite-{project_name}-{language}-{now}")
+        } else {
+            format!("ipc://integration-test-suite-{project_name}-{now}")
+        }
     };
 
-    let (mut experiment_server, handler) = create_server(nng_listen_url)?;
+    let (mut experiment_server, handler) = Server::create(nng_listen_url);
     tokio::spawn(async move { experiment_server.run().await });
 
     let manifest = load_manifest(project_path, language)
@@ -164,12 +220,12 @@ pub async fn run_test<P: AsRef<Path>>(
 
     let experiment = orchestrator::Experiment::new(ExperimentConfig {
         num_workers: num_cpus::get(),
-        emit: OutputFormat::Pretty,
-        output_folder: std::env::var("OUT_DIR")
-            .unwrap_or_else(|_| "./output".to_string())
-            .into(),
-        engine_start_timeout: Duration::from_secs(10),
-        engine_wait_timeout: Duration::from_secs(10 * 60),
+        log_format: LogFormat::Pretty,
+        log_folder: output.join("log"),
+        output_folder: output,
+        output_location: OutputLocation::File("output.log".into()),
+        start_timeout: 10,
+        wait_timeout: 10 * 60,
     });
 
     let output_base_directory = experiment
@@ -195,8 +251,6 @@ pub async fn run_test<P: AsRef<Path>>(
                 .wrap_err("Could not read globals")?;
             let analysis_outputs = parse_file(Path::new(&output_dir).join("analysis_outputs.json"))
                 .wrap_err("Could not read analysis outputs`")?;
-
-            let _ = fs::remove_dir_all(&output_dir);
 
             Ok((json_state, globals, analysis_outputs))
         })
@@ -254,7 +308,7 @@ fn assert_subset_value(subset: &Value, superset: &Value, path: String) -> Result
         (Value::Number(a), Value::Number(b)) if a.is_f64() && b.is_f64() => {
             ensure!(
                 (a.as_f64().unwrap() - b.as_f64().unwrap()).abs() < f64::EPSILON,
-                "{path:?}: Expected `{a} == {b}`"
+                "Expected `{path} == {a}` but it was `{b}`"
             );
         }
         (Value::Array(a), Value::Array(b)) => {
@@ -282,7 +336,7 @@ fn assert_subset_value(subset: &Value, superset: &Value, path: String) -> Result
         _ => {
             ensure!(
                 subset == superset,
-                "{path:?}: Expected `{} == {}`",
+                "Expected `{path} == {}` but it was `{}`",
                 serde_json::to_string_pretty(subset).unwrap(),
                 serde_json::to_string_pretty(superset).unwrap()
             );
@@ -308,7 +362,9 @@ impl ExpectedOutput {
         globals: &Globals,
         analysis: &Analysis,
     ) -> Result<()> {
-        for (step, expected_states) in &self.json_state {
+        let mut json_state = self.json_state.iter().collect::<Vec<_>>();
+        json_state.sort_unstable_by(|(lhs, _), (rhs, _)| Ord::cmp(lhs, rhs));
+        for (step, expected_states) in json_state {
             let step = step
                 .parse::<usize>()
                 .wrap_err_lazy(|| format!("Could not parse {step:?} as number of a step"))?;

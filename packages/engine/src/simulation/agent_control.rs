@@ -1,7 +1,8 @@
+use crate::simulation::command::StopCommand;
 #[derive(Debug)]
 pub enum AgentControl {
     Continue,
-    Stop(serde_json::Value),
+    Stop(Vec<StopCommand>),
 }
 
 impl Default for AgentControl {

@@ -1,14 +1,18 @@
+//! Provides structs that behave as guards for the read/write locks on the batches in pools that
+//! you can send between threads.
 use crate::datastore::{
     batch::Batch,
     prelude::{Error, Result},
     table::proxy::{BatchReadProxy, BatchWriteProxy},
 };
 
+/// Collects [`BatchWriteProxy`] for all the batches within the pool.
 #[derive(Default)]
 pub struct PoolWriteProxy<K: Batch> {
     batches: Vec<BatchWriteProxy<K>>,
 }
 
+/// Collects [`BatchReadProxy`] for all the batches within the pool.
 #[derive(Default)]
 pub struct PoolReadProxy<K: Batch> {
     batches: Vec<BatchReadProxy<K>>,
