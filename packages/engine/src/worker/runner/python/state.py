@@ -134,7 +134,7 @@ class GroupState:
 
     def get_agent(self, i_agent_in_group, old_agent_state=None):
         if old_agent_state is not None:
-            # TODO this is gross
+            # TODO - we should figure out a way to not have to manually unmangle this
             old_agent_state.__dict__["_AgentState__idx_in_group"] = i_agent_in_group
             return old_agent_state
 
