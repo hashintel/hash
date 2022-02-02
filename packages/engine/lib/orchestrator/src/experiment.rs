@@ -79,8 +79,21 @@ pub struct ExperimentConfig {
     /// Number of workers to run in parallel.
     ///
     /// Defaults to the number of logical CPUs available in order to maximize performance.
-    #[cfg_attr(feature = "clap", clap(short = 'w', long, default_value_t = num_cpus::get(), env = "HASH_WORKERS"))]
+    #[cfg_attr(
+        feature = "clap",
+        clap(short = 'w', long, default_value_t = num_cpus::get(), validator = at_least_one,
+             env = "HASH_WORKERS")
+    )]
     pub num_workers: usize,
+}
+
+fn at_least_one(v: &str) -> core::result::Result<(), &'static str> {
+    let num: usize = v.parse().unwrap();
+    if num > 0 {
+        Ok(())
+    } else {
+        Err("Must be at least 1")
+    }
 }
 
 /// Specific configuration needed for either Experiments or single runs of Simulations
