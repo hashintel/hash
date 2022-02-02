@@ -1,6 +1,6 @@
 import { Draft, produce } from "immer";
 import { BlockEntity, isTextContainingEntityProperties } from "./entity";
-import { DistributiveOmit, typeSafeEntries } from "./util";
+import { DistributiveOmit } from "./util";
 
 export type EntityStoreType = BlockEntity | BlockEntity["properties"]["entity"];
 
@@ -69,54 +69,6 @@ export const draftEntityForEntityId = (
   draft: EntityStore["draft"],
   entityId: string,
 ) => Object.values(draft).find((entity) => entity.entityId === entityId);
-
-export const walkObjectValueForEntity = <T extends {}>(
-  value: T,
-  entityHandler: <E extends EntityStoreType>(entity: E) => E,
-): T => {
-  let changed = false;
-  let result = value;
-
-  for (const [key, innerValue] of typeSafeEntries(value)) {
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    const nextValue = walkValueForEntity(innerValue, entityHandler);
-
-    if (nextValue !== innerValue) {
-      if (!changed) {
-        result = (Array.isArray(value) ? [...value] : { ...value }) as T;
-      }
-
-      changed = true;
-      result[key] = nextValue;
-    }
-  }
-
-  if (isEntity(value)) {
-    const nextValue = entityHandler(value);
-
-    if (nextValue !== value) {
-      changed = true;
-      result = nextValue;
-    }
-  }
-
-  return changed ? result : value;
-};
-
-/**
- * @deprecated
- * @todo remove this when we have a flat entity store
- */
-export const walkValueForEntity = <T>(
-  value: T,
-  entityHandler: <E extends EntityStoreType>(entity: E) => E,
-): T => {
-  if (typeof value !== "object" || value === null) {
-    return value;
-  }
-
-  return walkObjectValueForEntity(value, entityHandler);
-};
 
 const findEntities = (contents: BlockEntity[]): EntityStoreType[] => {
   const entities: EntityStoreType[] = [];
