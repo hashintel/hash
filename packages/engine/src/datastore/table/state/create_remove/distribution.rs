@@ -18,9 +18,7 @@ impl BatchDistribution {
             inner[batch.old_worker_unchecked()].push(batch);
         }
 
-        BatchDistribution {
-            inner,
-        }
+        BatchDistribution { inner }
     }
 
     // TODO: these are unused
