@@ -1,0 +1,190 @@
+{
+  "outputs": {
+    "unloader_utilized": [
+      {
+        "op": "filter",
+        "field": "type",
+        "comparison": "eq",
+        "value": "unloader"
+      },
+      {
+        "op": "get",
+        "field": "utilization_stats"
+      },
+      {
+        "op": "get",
+        "field": "movement_percentage"
+      },
+      {
+        "op": "mean"
+      }
+    ],
+    "transfer_utilized": [
+      {
+        "op": "filter",
+        "field": "type",
+        "comparison": "eq",
+        "value": "transfer"
+      },
+      {
+        "op": "get",
+        "field": "utilization_stats"
+      },
+      {
+        "op": "get",
+        "field": "movement_percentage"
+      },
+      {
+        "op": "mean"
+      }
+    ],
+    "acceptor_utilized": [
+      {
+        "op": "filter",
+        "field": "type",
+        "comparison": "eq",
+        "value": "acceptor"
+      },
+      {
+        "op": "get",
+        "field": "utilization_stats"
+      },
+      {
+        "op": "get",
+        "field": "movement_percentage"
+      },
+      {
+        "op": "mean"
+      }
+    ],
+    "placement_utilized": [
+      {
+        "op": "filter",
+        "field": "type",
+        "comparison": "eq",
+        "value": "placement"
+      },
+      {
+        "op": "get",
+        "field": "utilization_stats"
+      },
+      {
+        "op": "get",
+        "field": "movement_percentage"
+      },
+      {
+        "op": "mean"
+      }
+    ],
+    "control_utilized": [
+      {
+        "op": "filter",
+        "field": "type",
+        "comparison": "eq",
+        "value": "control"
+      },
+      {
+        "op": "get",
+        "field": "utilization_stats"
+      },
+      {
+        "op": "get",
+        "field": "movement_percentage"
+      },
+      {
+        "op": "mean"
+      }
+    ],
+    "loader_utilized": [
+      {
+        "op": "filter",
+        "field": "type",
+        "comparison": "eq",
+        "value": "loader"
+      },
+      {
+        "op": "get",
+        "field": "utilization_stats"
+      },
+      {
+        "op": "get",
+        "field": "movement_percentage"
+      },
+      {
+        "op": "mean"
+      }
+    ],
+    "incomplete_orders": [
+      {
+        "op": "get",
+        "field": "order_count"
+      },
+      {
+        "op": "sum"
+      }
+    ],
+    "processed_orders": [
+      {
+        "op": "get",
+        "field": "processed_orders"
+      },
+      {
+        "op": "sum"
+      }
+    ],
+    "completed_orders_delivered": [
+      {
+        "op": "get",
+        "field": "orders_complete"
+      },
+      {
+        "op": "sum"
+      }
+    ]
+  },
+  "plots": [
+    {
+      "title": "Forklift Utilization (%)",
+      "layout": {
+        "width": "100%",
+        "height": "50%"
+      },
+      "position": {
+        "x": "0%",
+        "y": "0%"
+      },
+      "timeseries": [
+        "unloader_utilized",
+        "transfer_utilized",
+        "acceptor_utilized",
+        "placement_utilized",
+        "control_utilized",
+        "loader_utilized"
+      ]
+    },
+    {
+      "title": "Orders Status",
+      "layout": {
+        "width": "100%",
+        "height": "50%"
+      },
+      "position": {
+        "x": "0%",
+        "y": "50%"
+      },
+      "timeseries": ["incomplete_orders", "processed_orders"]
+    },
+    {
+      "title": "Total Orders Delivered",
+      "layout": {
+        "width": "100%",
+        "height": "50%"
+      },
+      "position": {
+        "x": "0%",
+        "y": "100%"
+      },
+      "timeseries": ["completed_orders_delivered"]
+    }
+  ]
+}

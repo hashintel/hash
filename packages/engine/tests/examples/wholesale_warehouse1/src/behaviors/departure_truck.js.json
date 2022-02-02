@@ -1,0 +1,10 @@
+{
+  "keys": {
+    "orders_complete": {
+      "nullable": true,
+      "type": "number"
+    }
+  },
+  "built_in_key_use": null,
+  "dynamic_access": false
+}

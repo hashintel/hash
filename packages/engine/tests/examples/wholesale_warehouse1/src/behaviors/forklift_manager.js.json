@@ -1,0 +1,34 @@
+{
+  "keys": {
+    "keys": {
+      "type": "any",
+      "nullable": true
+    },
+    "departure_trucks": {
+      "type": "any",
+      "nullable": true
+    },
+    "forklifts": {
+      "type": "any",
+      "nullable": true
+    },
+    "orders_queue": {
+      "type": "any",
+      "nullable": true
+    },
+    "order_generation": {
+      "type": "any",
+      "nullable": true
+    },
+    "order_count": {
+      "type": "any",
+      "nullable": true
+    },
+    "processed_orders": {
+      "type": "any",
+      "nullable": true
+    }
+  },
+  "built_in_key_use": null,
+  "dynamic_access": false
+}
