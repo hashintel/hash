@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/hash-realtime",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "private": true,
   "description": "Realtime streaming update server from the HASH datstore",
   "repository": {
@@ -17,7 +17,7 @@
     "start": "cross-env NODE_ENV=production ts-node ./src/index.ts"
   },
   "dependencies": {
-    "@hashintel/hash-backend-utils": "*",
+    "@hashintel/hash-backend-utils": "0.0.0",
     "slonik": "24.1.2"
   },
   "devDependencies": {

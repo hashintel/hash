@@ -1,3 +1,5 @@
+//! Module to load a project manifest.
+
 use std::{
     borrow::Borrow,
     collections::HashMap,
@@ -23,22 +25,41 @@ use crate::ExperimentType;
 const BEHAVIOR_FILE_EXTENSIONS: [&str; 3] = ["js", "py", "rs"];
 const DATASET_FILE_EXTENSIONS: [&str; 2] = ["csv", "json"];
 
+/// Contains all the necessary information required to run a simulation.
+///
+/// The `Manifest` is implemented as a builder for an [`ExperimentRun`]. It provides helper methods
+/// to parse the project structure easily.
 #[derive(Debug, Default, Clone)]
 pub struct Manifest {
+    /// The initial state for the simulation.
     pub initial_state: Option<InitialState>,
+    /// A list of all behaviors in the project.
     pub behaviors: Vec<SharedBehavior>,
+    /// A list of all datasets in the project.
     pub datasets: Vec<SharedDataset>,
+    /// JSON string describing the [`Globals`](hash_engine::config::Globals) object.
     pub globals_json: Option<String>,
+    /// JSON string describing the analysis that's calculated by the
+    /// [analysis output package](hash_engine::simulation::package::output::packages::analysis).
     pub analysis_json: Option<String>,
+    /// JSON string describing the structure of available experiments for this project.
     pub experiments_json: Option<String>,
+    /// A list of all dependencies identified by its name.
     pub dependencies: HashMap<String, SerdeValue>,
 }
 
 impl Manifest {
+    /// Creates an empty `Manifest`.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Reads the initial state from the file at the provided `path`.
+    ///
+    /// # Errors
+    ///
+    /// - if the `path` does not refer to a JavaScript, Python, or JSON file
+    /// - if the file could not be read
     pub fn set_initial_state_from_file<P: AsRef<Path>>(
         &mut self,
         path: P,
@@ -57,11 +78,22 @@ impl Manifest {
         }))
     }
 
+    /// Reads the initial state from the files provided in a directory specified by `src_folder`.
+    ///
+    /// It attempts to read _init.js_, _init.py_, or _init.json_ and prioritizes that order. For
+    /// example if _init.js_ was found, it doesn't try to read _init.py_, or _init.json_.
+    ///
+    /// # Errors
+    ///
+    /// - if the provided path is not a directory
+    /// - if the provided directory does not contain any initial state file
+    /// - if the initial state file could not be read
     pub fn set_initial_state_from_directory<P: AsRef<Path>>(
         &mut self,
         src_folder: P,
     ) -> Result<Option<InitialState>> {
         let src_folder = src_folder.as_ref();
+        ensure!(src_folder.is_dir(), "Not a directory: {src_folder:?}");
 
         let js_path = src_folder.join("init.js");
         let py_path = src_folder.join("init.py");
@@ -88,26 +120,52 @@ impl Manifest {
         }
     }
 
+    /// Reads the content from the file at the provided `path` describing the
+    /// [`Globals`](hash_engine::config::Globals).
+    ///
+    /// # Errors
+    ///
+    /// - if the file referred by `path` could not be read
     pub fn set_globals_from_file<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
         self.globals_json.replace(file_contents(path)?);
         Ok(())
     }
 
+    /// Reads the content from the file at the provided `path` describing the analysis of the
+    /// experiment, calculated by the
+    /// [analysis output package](hash_engine::simulation::package::output::packages::analysis).
+    ///
+    /// # Errors
+    ///
+    /// - if the file referred by `path` could not be read
     pub fn set_analysis_from_file<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
         self.analysis_json.replace(file_contents(path)?);
         Ok(())
     }
 
+    /// Reads the content from the file at the provided `path` describing the structure of available
+    /// experiments for this project.
+    ///
+    /// # Errors
+    ///
+    /// - if the file referred by `path` could not be read
     pub fn set_experiments_from_file<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
         self.experiments_json.replace(file_contents(path)?);
         Ok(())
     }
 
+    /// Reads the content from the file at the provided `path` describing the dependencies for this
+    /// project.
+    ///
+    /// # Errors
+    ///
+    /// - if the file referred by `path` could not be read
     pub fn set_dependencies_from_file<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
         self.dependencies = parse_file(path)?;
         Ok(())
     }
 
+    /// Adds the provided `dependency_projects`' behaviors and datasets to the manifest.
     pub fn add_dependency_projects(
         &mut self,
         dependency_projects: HashMap<PathBuf, Self>,
@@ -148,10 +206,18 @@ impl Manifest {
         Ok(())
     }
 
+    /// Adds the provided `behavior` to the list of behaviors.
     pub fn add_behavior(&mut self, behavior: SharedBehavior) {
         self.behaviors.push(behavior);
     }
 
+    /// Reads a behavior from the file at the provided `path`.
+    ///
+    /// # Errors
+    ///
+    /// - if the `path` does not refer to a JavaScript, Python, or Rust file
+    /// - if the file could not be read
+    /// - if the behavior keys at _`path`.json_ could not be read
     pub fn add_behavior_from_file<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
         let path = path.as_ref();
         ensure!(path.is_file(), "Not a behavior file: {path:?}");
@@ -188,14 +254,23 @@ impl Manifest {
         Ok(())
     }
 
-    pub fn add_behaviors_from_directory<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
-        let path = path.as_ref();
-        ensure!(path.is_dir(), "Not a directory: {path:?}");
+    /// Reads all behaviors in a directory specified by `src_folder` as described in
+    /// [`add_behavior_from_file`](Self::add_behavior_from_file).
+    ///
+    /// # Errors
+    ///
+    /// - if the provided path is not a directory
+    /// - if a behavior file could not be read
+    /// - if the provided directory contains files, which could not be parsed as behavior or
+    ///   behavior keys
+    pub fn add_behaviors_from_directory<P: AsRef<Path>>(&mut self, src_folder: P) -> Result<()> {
+        let src_folder = src_folder.as_ref();
+        ensure!(src_folder.is_dir(), "Not a directory: {src_folder:?}");
 
-        debug!("Reading behaviors in {:?}", &path);
-        for entry in path
+        debug!("Reading behaviors in {src_folder:?}");
+        for entry in src_folder
             .read_dir()
-            .wrap_err_lazy(|| format!("Could not read behavior directory: {path:?}"))?
+            .wrap_err_lazy(|| format!("Could not read behavior directory: {src_folder:?}"))?
         {
             match entry {
                 Ok(entry) => {
@@ -214,10 +289,17 @@ impl Manifest {
         Ok(())
     }
 
+    /// Adds the provided `dataset` to the list of datasets.
     pub fn add_dataset(&mut self, dataset: SharedDataset) {
         self.datasets.push(dataset);
     }
 
+    /// Reads a dataset from the file at the provided `path`.
+    ///
+    /// # Errors
+    ///
+    /// - if the `path` does not refer to a *valid* JSON or CSV file
+    /// - if the file could not be read
     pub fn add_dataset_from_file<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
         let path = path.as_ref();
         ensure!(path.is_file(), "Not a dataset file: {path:?}");
@@ -247,14 +329,22 @@ impl Manifest {
         Ok(())
     }
 
-    pub fn add_datasets_from_directory<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
-        let path = path.as_ref();
-        ensure!(path.is_dir(), "Not a directory: {path:?}");
+    /// Reads all datasets in a directory specified by `src_folder` as described in
+    /// [`add_dataset_from_file`](Self::add_dataset_from_file).
+    ///
+    /// # Errors
+    ///
+    /// - if the provided path is not a directory
+    /// - if a dataset file could not be read
+    /// - if the provided directory contains files, which could not be parsed as dataset
+    pub fn add_datasets_from_directory<P: AsRef<Path>>(&mut self, src_folder: P) -> Result<()> {
+        let src_folder = src_folder.as_ref();
+        ensure!(src_folder.is_dir(), "Not a directory: {src_folder:?}");
 
-        debug!("Reading datasets in {:?}", &path);
-        for entry in path
+        debug!("Reading datasets in {src_folder:?}");
+        for entry in src_folder
             .read_dir()
-            .wrap_err_lazy(|| format!("Could not read dataset directory: {path:?}"))?
+            .wrap_err_lazy(|| format!("Could not read dataset directory: {src_folder:?}"))?
         {
             match entry {
                 Ok(entry) => {
@@ -269,15 +359,43 @@ impl Manifest {
         Ok(())
     }
 
+    /// Reads the manifest from a local project.
+    ///
+    /// Reads the following data relative to `project_path`:
+    /// - Initial state as specified in
+    ///   [`set_initial_state_from_directory("src")`](Self::set_initial_state_from_directory)
+    /// - Global state as specified in
+    ///   [`set_globals_from_file("src/globals.json")`](Self::set_globals_from_file)
+    /// - Behaviors as specified in
+    ///   [`add_behaviors_from_directory("behaviors")`](Self::add_behaviors_from_directory)
+    /// - Datasets as specified in
+    ///   [`add_datasets_from_directory("data")`](Self::add_datasets_from_directory)
+    /// - Experiments JSON as specified in
+    ///   [`set_experiments_from_file("experiments.json")`](Self::set_experiments_from_file)
+    /// - Analysis JSON as specified in
+    ///   [`set_analysis_from_file("views/analysis.json")`](Self::set_analysis_from_file)
+    /// - Dependencies recursively as provided by
+    ///   [`set_dependencies_from_file("dependencies.json")`](Self::set_dependencies_from_file)
     pub fn from_local<P: AsRef<Path>>(project_path: P) -> Result<Self> {
         Self::from_local_impl(project_path, false)
     }
 
-    /// Reads the manifest without an initial state.
+    /// Creates a manifest from a local project but omits the items not required for a dependent
+    /// project.
+    ///
+    /// Reads the following data relative to `project_path`:
+    /// - Behaviors as spefified in
+    ///   [`add_behaviors_from_directory("behaviors")`](Self::add_behaviors_from_directory)
+    /// - Datasets as spefified in
+    ///   [`add_datasets_from_directory("data")`](Self::add_datasets_from_directory)
+    /// - Dependencies recursively as provided by
+    ///   [`set_dependencies_from_file("dependencies.json")`](Self::set_dependencies_from_file)
     pub fn from_dependency<P: AsRef<Path>>(project_path: P) -> Result<Self> {
         Self::from_local_impl(project_path, true)
     }
 
+    /// Creates a manifest from a local project as specified by [`from_local()`](Self::from_local)
+    /// or [`from_dependency()`](Self::from_dependency).
     fn from_local_impl<P: AsRef<Path>>(project_path: P, is_dependency: bool) -> Result<Self> {
         let project_path = project_path.as_ref();
         debug!(
@@ -302,17 +420,17 @@ impl Manifest {
                 .set_initial_state_from_directory(src_folder)
                 .wrap_err("Could not read initial state")?;
         }
-        if globals_json.exists() {
+        if !is_dependency && globals_json.exists() {
             project
                 .set_globals_from_file(globals_json)
                 .wrap_err("Could not read globals")?;
         }
-        if analysis_json.exists() {
+        if !is_dependency && analysis_json.exists() {
             project
                 .set_analysis_from_file(analysis_json)
                 .wrap_err("Could not read analysis view")?;
         }
-        if experiments_json.exists() {
+        if !is_dependency && experiments_json.exists() {
             project
                 .set_experiments_from_file(experiments_json)
                 .wrap_err("Could not read experiments")?;
@@ -347,6 +465,12 @@ impl Manifest {
         Ok(project)
     }
 
+    /// Combines this `Manifest` with the specified `experiment_type` to create an
+    /// [`ExperimentRun`] to be ran as an [`Experiment`](crate::Experiment).
+    ///
+    /// # Errors
+    ///
+    /// - if the manifest does not provide an initial state
     pub fn read(self, experiment_type: ExperimentType) -> Result<ExperimentRun> {
         let project_base = ProjectBase {
             initial_state: self
