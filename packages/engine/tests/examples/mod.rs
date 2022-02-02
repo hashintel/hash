@@ -16,14 +16,10 @@ mod city_infection_model {
 mod sugarscape {
     use crate::run_test;
 
-    // optimization experiment is not implemented
-    run_test!(sugarscape, experiment: minimize_the_gini_coefficient, #[ignore]);
     // Rust behavior is currently not supported
     run_test!(sugarscape, experiment: initial_sugar_linear_sweep, #[ignore]);
     // Rust behavior is currently not supported
     run_test!(sugarscape, experiment: agent_density_linspace, #[ignore]);
-    // optimization experiment is not implemented
-    run_test!(sugarscape, experiment: max_avg_sugar, #[ignore]);
 }
 
 // https://core.hash.ai/@hash/published-display-behaviors/2.3.0
@@ -60,8 +56,6 @@ mod model_market {
 mod wildfire_regrowth {
     use crate::run_test;
 
-    // optimization experiment is not implemented
-    run_test!(wildfire_regrowth, experiment: optimal_rates_for_forest_growth, #[ignore]);
     // Rust behavior is currently not supported
     run_test!(wildfire_regrowth, experiment: test_experiment, #[ignore]);
     // Rust behavior is currently not supported
@@ -72,8 +66,6 @@ mod wildfire_regrowth {
 mod ant_foraging {
     use crate::run_test;
 
-    // optimization experiment is not implemented
-    run_test!(ant_foraging, experiment: fastest_gathering, #[ignore]);
     // Rust behavior is currently not supported
     run_test!(ant_foraging, experiment: number_of_ants_arange, #[ignore]);
     // Rust behavior is currently not supported
@@ -86,10 +78,6 @@ mod ant_foraging {
 mod virus_mutation_and_drug_resistance {
     use crate::run_test;
 
-    // optimization experiment is not implemented
-    run_test!(virus_mutation_and_drug_resistance, experiment: optimize_vaccine_introduction, #[ignore]);
-    // optimization experiment is not implemented
-    run_test!(virus_mutation_and_drug_resistance, experiment: introduce_vaccine_timestep, #[ignore]);
     // Rust behavior is currently not supported
     run_test!(virus_mutation_and_drug_resistance, experiment: mutation_linspace, #[ignore]);
     // Rust behavior is currently not supported
@@ -101,8 +89,6 @@ mod warehouse_logistics {
     use crate::run_test;
 
     run_test!(warehouse_logistics, experiment: alternate_layout);
-    // optimization experiment is not implemented
-    run_test!(warehouse_logistics, experiment: find_optimal_layout, #[ignore]);
 }
 
 // https://core.hash.ai/@hash/rainfall/7.2.2
