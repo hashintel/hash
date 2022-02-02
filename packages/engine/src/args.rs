@@ -26,8 +26,10 @@ pub struct Args {
     #[clap(short, long, default_value = "")]
     pub listen_url: String,
 
-    /// max number of workers per simulation run (optional).
-    #[clap(short, long)]
+    /// Number of workers to run in parallel.
+    ///
+    /// Defaults to the number of logical CPUs available in order to maximize performance.
+    #[clap(short = 'w', long, default_value_t = num_cpus::get(), env = "HASH_WORKERS")]
     pub num_workers: usize,
 
     /// Output format emitted to the output location.
