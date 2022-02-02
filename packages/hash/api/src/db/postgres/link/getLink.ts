@@ -18,11 +18,12 @@ export const getLink = async (
   return row ? mapDBLinkRowToDBLink(row) : null;
 };
 
-export const getLinkByEntityIds = async (
+export const getLinkByEntityId = async (
   conn: Connection,
   params: {
     sourceAccountId: string;
     sourceEntityId: string;
+    sourceEntityVersionId: string;
     destinationEntityId: string;
   },
 ): Promise<DBLink | null> => {
@@ -32,6 +33,7 @@ export const getLinkByEntityIds = async (
       source_account_id = ${params.sourceAccountId}
       and source_entity_id = ${params.sourceEntityId}
       and destination_entity_id = ${params.destinationEntityId}
+      and ${params.sourceEntityVersionId} = ANY(source_entity_version_ids)
   `);
 
   return row ? mapDBLinkRowToDBLink(row) : null;

@@ -434,9 +434,10 @@ export interface DBClient {
     linkId: string;
   }): Promise<DBLink | null>;
 
-  getLinkByEntityIds(params: {
+  getLinkByEntityId(params: {
     sourceAccountId: string;
     sourceEntityId: string;
+    sourceEntityVersionId: string;
     destinationEntityId: string;
   }): Promise<DBLink | null>;
 

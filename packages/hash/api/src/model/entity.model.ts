@@ -447,10 +447,11 @@ class __Entity {
       destinationEntityId: string;
     },
   ) {
-    const link = await Link.getByEntityIds(client, {
+    const link = await Link.getByEntityId(client, {
       ...params,
       sourceAccountId: this.accountId,
       sourceEntityId: this.entityId,
+      sourceEntityVersionId: this.entityVersionId,
     });
 
     return link;

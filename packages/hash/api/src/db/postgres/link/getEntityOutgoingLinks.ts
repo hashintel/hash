@@ -64,7 +64,9 @@ export const getEntityOutgoingLinks = async (
 const outgoingLinkAggregationQuery = sql`
   select array_agg(destination_entity_id) as outgoing_entity_ids from links
     inner join distinct_entitites as de on destination_entity_id = de.entity_id
-    where a.entity_id = source_entity_id and de.entity_type_version_id = a.entity_type_version_id
+    where a.entity_version_id = ANY(links.source_entity_version_ids) 
+      and a.entity_id = source_entity_id 
+      and de.entity_type_version_id = a.entity_type_version_id
     group by a.entity_id
     `;
 
