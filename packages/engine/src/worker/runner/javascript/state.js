@@ -91,7 +91,6 @@
       this.__cols = group_state.__agent_batch.cols;
       this.__msgs = group_state.__msg_batch.cols.messages;
       this.__idx_in_group = i_agent_in_group;
-      this.__i_behavior = undefined;
       this.__dyn_access = false;
     };
 
