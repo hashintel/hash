@@ -124,7 +124,7 @@ pub struct Experiment {
 
 impl Experiment {
     /// Creates an experiment from the provided `config`.
-    pub fn new(mut config: ExperimentConfig) -> Self {
+    pub fn new(config: ExperimentConfig) -> Self {
         // TODO: Remove when multiple workers are fixed
         Self { config }
     }
