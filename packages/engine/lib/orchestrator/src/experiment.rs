@@ -1,3 +1,7 @@
+//! Module for creating an [`Experiment`] and running it on a [`Process`].
+//!
+//! [`Process`]: crate::process::Process
+
 use std::{collections::HashMap, path::PathBuf, time::Duration};
 
 use error::{bail, ensure, report, Result, ResultExt};
@@ -10,7 +14,7 @@ use hash_engine::{
         ExperimentRunBase, SimpleExperimentConfig, SingleRunExperimentConfig,
     },
     simulation::command::StopStatus,
-    utils::{OutputFormat, OutputLocation},
+    utils::{LogFormat, OutputLocation},
 };
 use rand::{distributions::Distribution, Rng, RngCore};
 use rand_distr::{Beta, LogNormal, Normal, Poisson};
@@ -18,26 +22,87 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value as SerdeValue};
 use tokio::time::{sleep, timeout};
 
-use crate::{exsrv::Handler, process};
+use crate::{experiment_server::Handler, process};
 
+/// Configuration values used when starting a [`hash_engine`] subprocess.
+///
+/// See the [`process`] module for more information.
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "clap", derive(clap::Args))]
 pub struct ExperimentConfig {
-    pub num_workers: usize,
-    pub emit: OutputFormat,
+    /// Project output path folder.
+    ///
+    /// The folder will be created if it's missing.
+    #[cfg_attr(
+        feature = "clap",
+        clap(
+            short,
+            long = "output",
+            default_value = "./output",
+            env = "HASH_OUTPUT"
+        )
+    )]
     pub output_folder: PathBuf,
+
+    /// Logging output format to be emitted
+    #[cfg_attr(
+        feature = "clap",
+        clap(long, default_value = "pretty", arg_enum, env = "HASH_LOG_FORMAT")
+    )]
+    pub log_format: LogFormat,
+
+    /// Output location where logs are emitted to.
+    ///
+    /// Can be `stdout`, `stderr` or any file name. Relative to `--log-folder` if a file is
+    /// specified.
+    #[cfg_attr(feature = "clap", clap(long, default_value = "stderr"))]
     pub output_location: OutputLocation,
+
+    /// Logging output folder.
+    #[cfg_attr(feature = "clap", clap(long, default_value = "./log"))]
     pub log_folder: PathBuf,
-    pub engine_start_timeout: Duration,
-    pub engine_wait_timeout: Duration,
+
+    /// Timeout, in seconds, for how long to wait for a response when the Engine starts
+    #[cfg_attr(
+        feature = "clap",
+        clap(long, default_value = "2", env = "ENGINE_START_TIMEOUT")
+    )]
+    pub start_timeout: u64,
+
+    /// Timeout, in seconds, for how long to wait for updates when the Engine is executing
+    #[cfg_attr(
+        feature = "clap",
+        clap(long, default_value = "60", env = "ENGINE_WAIT_TIMEOUT")
+    )]
+    pub wait_timeout: u64,
+
+    /// Max number of parallel workers.
+    ///
+    /// Defaults to the number of logical CPUs available in order to maximize the performance.
+    #[cfg_attr(feature = "clap", clap(short = 'w', long, env = "HASH_WORKERS"))]
+    pub num_workers: Option<usize>,
 }
 
+/// Specific configuration needed for either Experiments or single runs of Simulations
 #[derive(Debug, Clone)]
 pub enum ExperimentType {
-    SingleRun { num_steps: usize },
-    Simple { name: ExperimentName },
+    /// A single run of a Simulation, wrapped as an Experiment
+    SingleRun {
+        /// Number of steps to run
+        num_steps: usize,
+    },
+    /// A configured Experiment
+    Simple {
+        /// Name of the experiment specified in _experiments.json_
+        name: ExperimentName,
+    },
 }
 
 impl ExperimentType {
+    /// Creates an experiment config from `ExperimentType`.
+    ///
+    /// If the type is a simple Experiment [`Simple`](Self::Simple), it uses a `base` to load the
+    /// experiment config for the given `name`.
     pub fn get_package_config(self, base: &ExperimentRunBase) -> Result<ExperimentPackageConfig> {
         match self {
             ExperimentType::SingleRun { num_steps } => Ok(ExperimentPackageConfig::SingleRun(
@@ -51,31 +116,46 @@ impl ExperimentType {
     }
 }
 
+/// A fully specified and configured experiment
 pub struct Experiment {
+    /// Configuration for the experiment.
     pub config: ExperimentConfig,
 }
 
 impl Experiment {
+    /// Creates an experiment from the provided `config`.
     pub fn new(config: ExperimentConfig) -> Self {
+        // TODO: Remove when multiple workers are fixed
         Self { config }
     }
 
-    pub fn create_engine_command(
+    /// Creates a [`Command`] from the experiment's configuration, the given `experiment_id`, and
+    /// `controller_url`.
+    ///
+    /// [`Command`]: crate::process::Command
+    fn create_engine_command(
         &self,
         experiment_id: ExperimentId,
         controller_url: &str,
-    ) -> Result<Box<dyn process::Command + Send>> {
-        Ok(Box::new(process::LocalCommand::new(
+    ) -> Box<dyn process::Command + Send> {
+        Box::new(process::LocalCommand::new(
             experiment_id,
-            self.config.num_workers,
+            self.config.num_workers.unwrap_or_else(num_cpus::get),
             controller_url,
-            self.config.emit,
+            self.config.log_format,
             self.config.output_location.clone(),
             self.config.log_folder.clone(),
-        )?))
+        ))
     }
 
-    #[instrument(skip_all, fields(project_name = project_name.as_str(), experiment_id = %experiment_run.base.id))]
+    /// Starts an Engine process and runs the experiment on it.
+    ///
+    /// The `experiment_run` is registered at the server with the provided `handler`, and started
+    /// using [`Process`]. After startup it listens to the messages sent from [`hash_engine`] and
+    /// returns once the experiment has finished.
+    ///
+    /// [`Process`]: crate::process::Process
+    #[instrument(skip_all, fields(project_name = project_name.as_str(), experiment_id = % experiment_run.base.id))]
     pub async fn run(
         &self,
         experiment_run: proto::ExperimentRun,
@@ -89,16 +169,17 @@ impl Experiment {
             .wrap_err_lazy(|| format!("Could not register experiment \"{experiment_name}\""))?;
 
         // Create and start the experiment run
-        let cmd = self
-            .create_engine_command(experiment_run.base.id, handler.url())
-            .wrap_err("Could not build engine command")?;
+        let cmd = self.create_engine_command(experiment_run.base.id, handler.url());
         let mut engine_process = cmd.run().await.wrap_err("Could not run experiment")?;
 
         // Wait to receive a message that the experiment has started before sending the init
         // message.
-        let msg = timeout(self.config.engine_start_timeout, engine_handle.recv())
-            .await
-            .wrap_err("engine start timeout");
+        let msg = timeout(
+            Duration::from_secs(self.config.start_timeout),
+            engine_handle.recv(),
+        )
+        .await
+        .wrap_err("engine start timeout");
         match msg {
             Ok(proto::EngineStatus::Started) => {}
             Ok(m) => {
@@ -140,11 +221,11 @@ impl Experiment {
         loop {
             let msg: Option<proto::EngineStatus>;
             tokio::select! {
-                _ = sleep(self.config.engine_wait_timeout) => {
+                _ = sleep(Duration::from_secs(self.config.wait_timeout)) => {
                     error!(
                         "Did not receive status from experiment \"{experiment_name}\" for over {:?}. \
                         Exiting now.",
-                        self.config.engine_wait_timeout
+                        self.config.wait_timeout
                     );
                     break;
                 }
