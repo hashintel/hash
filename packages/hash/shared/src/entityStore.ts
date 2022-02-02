@@ -118,21 +118,16 @@ export const walkValueForEntity = <T>(
   return walkObjectValueForEntity(value, entityHandler);
 };
 
-const findEntities = (contents: EntityStoreType[]) => {
+const findEntities = (contents: BlockEntity[]): EntityStoreType[] => {
   const entities: EntityStoreType[] = [];
 
-  walkValueForEntity(contents, (entity) => {
-    if (isBlockEntity(entity)) {
-      entities.push(entity, entity.properties.entity);
+  for (const entity of contents) {
+    entities.push(entity, entity.properties.entity);
 
-      if (
-        isTextContainingEntityProperties(entity.properties.entity.properties)
-      ) {
-        entities.push(entity.properties.entity.properties.text.data);
-      }
+    if (isTextContainingEntityProperties(entity.properties.entity.properties)) {
+      entities.push(entity.properties.entity.properties.text.data);
     }
-    return entity;
-  });
+  }
 
   return entities;
 };
@@ -158,7 +153,7 @@ const restoreDraftId = (
  * @todo clean up
  */
 export const createEntityStore = (
-  contents: EntityStoreType[],
+  contents: BlockEntity[],
   draftData: Record<string, DraftEntity>,
 ): EntityStore => {
   const saved: EntityStore["saved"] = {};
