@@ -5,7 +5,6 @@
     "jsx": "preserve",
     "lib": ["dom", "dom.iterable", "esnext"],
     "target": "es5",
-    "typeRoots": ["./src/types", "node_modules/@types"],
     "noEmit": true
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
