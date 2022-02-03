@@ -20,6 +20,10 @@ pub struct TaskSharedStore {
 }
 
 impl TaskSharedStore {
+    pub fn new(state: SharedState, context: SharedContext) -> Self {
+        Self { state, context }
+    }
+
     pub fn context(&self) -> &SharedContext {
         &self.context
     }
@@ -146,6 +150,52 @@ impl PartialSharedState {
             group_indices: indices,
             inner,
         }))
+    }
+
+    pub fn split_into_individual_per_group(self) -> Vec<Self> {
+        match self {
+            Self::Read(partial_read_proxy) => {
+                let (agent_proxies, message_proxies) = partial_read_proxy.inner.deconstruct();
+                partial_read_proxy
+                    .group_indices
+                    .into_iter()
+                    .zip(agent_proxies.into_iter())
+                    .zip(message_proxies.into_iter())
+                    .map(|((group_index, agent_batch_proxy), message_batch_proxy)| {
+                        Self::Read(PartialStateReadProxy {
+                            group_indices: vec![group_index],
+                            inner: StateReadProxy::from((vec![agent_batch_proxy], vec![
+                                message_batch_proxy,
+                            ])),
+                        })
+                    })
+                    .collect()
+            }
+            Self::Write(partial_write_proxy) => {
+                let (agent_proxies, message_proxies) = partial_write_proxy.inner.deconstruct();
+                partial_write_proxy
+                    .group_indices
+                    .into_iter()
+                    .zip(agent_proxies.into_iter())
+                    .zip(message_proxies.into_iter())
+                    .map(|((group_index, agent_batch_proxy), message_batch_proxy)| {
+                        Self::Write(PartialStateWriteProxy {
+                            group_indices: vec![group_index],
+                            inner: StateWriteProxy::from((vec![agent_batch_proxy], vec![
+                                message_batch_proxy,
+                            ])),
+                        })
+                    })
+                    .collect()
+            }
+        }
+    }
+
+    pub fn indices(&self) -> &[usize] {
+        match self {
+            PartialSharedState::Write(proxy) => &proxy.group_indices,
+            PartialSharedState::Read(proxy) => &proxy.group_indices,
+        }
     }
 }
 
