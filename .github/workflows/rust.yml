@@ -336,6 +336,7 @@ jobs:
       - name: check test
         run: |
           [[ ${{ needs.test.result }} =~ success|skipped ]]
-      - name: check bench
-        run: |
-          [[ ${{ needs.bench.result }} =~ success|skipped ]]
+      # TODO: Require bench to pass after https://app.asana.com/0/1201481007343159/1201545519802517/f
+      # - name: check bench
+      #   run: |
+      #     [[ ${{ needs.bench.result }} =~ success|skipped ]]
