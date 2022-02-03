@@ -317,7 +317,7 @@ jobs:
 
   merging-enabled:
     name: merging enabled
-    needs: [rustfmt, clippy, test, bench]
+    needs: [rustfmt, clippy, test]
     if: always()
     runs-on: ubuntu-latest
     steps:
