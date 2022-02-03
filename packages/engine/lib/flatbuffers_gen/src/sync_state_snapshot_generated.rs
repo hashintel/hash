@@ -15,12 +15,11 @@ use std::{cmp::Ordering, mem};
 use super::{batch_generated::*, metaversion_generated::*};
 
 extern crate flatbuffers;
-
 use self::flatbuffers::{EndianScalar, Follow};
 
 pub enum StateSnapshotSyncOffset {}
-
 #[derive(Copy, Clone, PartialEq)]
+
 pub struct StateSnapshotSync<'a> {
     pub _tab: flatbuffers::Table<'a>,
 }
@@ -107,7 +106,6 @@ impl flatbuffers::Verifiable for StateSnapshotSync<'_> {
         Ok(())
     }
 }
-
 pub struct StateSnapshotSyncArgs<'a> {
     pub agent_pool: Option<
         flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<Batch<'a>>>>,
@@ -117,7 +115,6 @@ pub struct StateSnapshotSyncArgs<'a> {
     >,
     pub current_step: i64,
 }
-
 impl<'a> Default for StateSnapshotSyncArgs<'a> {
     #[inline]
     fn default() -> Self {
@@ -128,12 +125,10 @@ impl<'a> Default for StateSnapshotSyncArgs<'a> {
         }
     }
 }
-
 pub struct StateSnapshotSyncBuilder<'a: 'b, 'b> {
     fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
     start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-
 impl<'a: 'b, 'b> StateSnapshotSyncBuilder<'a, 'b> {
     #[inline]
     pub fn add_agent_pool(
@@ -198,7 +193,6 @@ impl std::fmt::Debug for StateSnapshotSync<'_> {
         ds.finish()
     }
 }
-
 #[inline]
 #[deprecated(since = "2.0.0", note = "Deprecated in favor of `root_as...` methods.")]
 pub fn get_root_as_state_snapshot_sync<'a>(buf: &'a [u8]) -> StateSnapshotSync<'a> {
@@ -223,7 +217,6 @@ pub fn root_as_state_snapshot_sync(
 ) -> Result<StateSnapshotSync, flatbuffers::InvalidFlatbuffer> {
     flatbuffers::root::<StateSnapshotSync>(buf)
 }
-
 #[inline]
 /// Verifies that a buffer of bytes contains a size prefixed
 /// `StateSnapshotSync` and returns it.
@@ -236,7 +229,6 @@ pub fn size_prefixed_root_as_state_snapshot_sync(
 ) -> Result<StateSnapshotSync, flatbuffers::InvalidFlatbuffer> {
     flatbuffers::size_prefixed_root::<StateSnapshotSync>(buf)
 }
-
 #[inline]
 /// Verifies, with the given options, that a buffer of bytes
 /// contains a `StateSnapshotSync` and returns it.
@@ -250,7 +242,6 @@ pub fn root_as_state_snapshot_sync_with_opts<'b, 'o>(
 ) -> Result<StateSnapshotSync<'b>, flatbuffers::InvalidFlatbuffer> {
     flatbuffers::root_with_opts::<StateSnapshotSync<'b>>(opts, buf)
 }
-
 #[inline]
 /// Verifies, with the given verifier options, that a buffer of
 /// bytes contains a size prefixed `StateSnapshotSync` and returns
@@ -264,29 +255,20 @@ pub fn size_prefixed_root_as_state_snapshot_sync_with_opts<'b, 'o>(
 ) -> Result<StateSnapshotSync<'b>, flatbuffers::InvalidFlatbuffer> {
     flatbuffers::size_prefixed_root_with_opts::<StateSnapshotSync<'b>>(opts, buf)
 }
-
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a StateSnapshotSync and returns
-/// it.
-///
-/// # Safety
-///
+/// it. # Safety
 /// Callers must trust the given bytes do indeed contain a valid `StateSnapshotSync`.
 pub unsafe fn root_as_state_snapshot_sync_unchecked(buf: &[u8]) -> StateSnapshotSync {
     flatbuffers::root_unchecked::<StateSnapshotSync>(buf)
 }
-
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a size prefixed StateSnapshotSync
-/// and returns it.
-///
-/// # Safety
-///
+/// and returns it. # Safety
 /// Callers must trust the given bytes do indeed contain a valid size prefixed `StateSnapshotSync`.
 pub unsafe fn size_prefixed_root_as_state_snapshot_sync_unchecked(buf: &[u8]) -> StateSnapshotSync {
     flatbuffers::size_prefixed_root_unchecked::<StateSnapshotSync>(buf)
 }
-
 #[inline]
 pub fn finish_state_snapshot_sync_buffer<'a, 'b>(
     fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>,

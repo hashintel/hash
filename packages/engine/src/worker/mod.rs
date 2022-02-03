@@ -35,7 +35,7 @@ use self::{
 };
 use crate::{
     config::{WorkerConfig, WorkerSpawnConfig},
-    datastore::table::sync::SyncPayload,
+    datastore::table::{sync::SyncPayload, task_shared_store::SharedState},
     proto::SimulationShortId,
     simulation::{
         enum_dispatch::TaskSharedStore,
@@ -46,7 +46,7 @@ use crate::{
     },
     types::TaskId,
     worker::{
-        pending::{CancelState, PendingWorkerTask},
+        pending::{PendingGroup, PendingWorkerTask},
         runner::comms::{inbound::InboundToRunnerMsgPayload, MessageTarget},
     },
     workerpool::comms::{
@@ -253,8 +253,9 @@ impl WorkerController {
                     .instrument(span)
                     .await?;
             }
-            WorkerPoolToWorkerMsgPayload::CancelTask(task_id) => {
-                self.cancel_task(task_id).instrument(span).await?;
+            WorkerPoolToWorkerMsgPayload::CancelTask(_task_id) => {
+                // TODO: we want to completely rework task cancelling
+                // self.cancel_task(task_id).instrument(span).await?;
             }
             WorkerPoolToWorkerMsgPayload::NewSimulationRun(new_simulation_run) => {
                 self.new_simulation_run(new_simulation_run)
@@ -300,59 +301,49 @@ impl WorkerController {
         use OutboundFromRunnerMsgPayload::*;
         let sim_id = msg.sim_id;
         match msg.payload {
-            TaskMsg(task) => {
-                let pending_task = self.tasks.inner.get_mut(&task.msg.task_id);
-                match task.target {
-                    MessageTarget::Rust => {
-                        self.rs
-                            .send(Some(sim_id), InboundToRunnerMsgPayload::TaskMsg(task.msg))
-                            .in_current_span()
-                            .await?;
-                        if let Some(pending_task) = pending_task {
-                            pending_task.active_runner = Language::Rust;
-                        }
-                    }
-                    MessageTarget::Python => {
-                        self.py
-                            .send(Some(sim_id), InboundToRunnerMsgPayload::TaskMsg(task.msg))
-                            .in_current_span()
-                            .await?;
-                        if let Some(pending_task) = pending_task {
-                            pending_task.active_runner = Language::Python;
-                        }
-                    }
-                    MessageTarget::JavaScript => {
-                        self.js
-                            .send(Some(sim_id), InboundToRunnerMsgPayload::TaskMsg(task.msg))
-                            .in_current_span()
-                            .await?;
-                        if let Some(pending_task) = pending_task {
-                            pending_task.active_runner = Language::JavaScript;
-                        }
-                    }
-                    MessageTarget::Dynamic => {
-                        self.run_task_handler_on_outbound(sim_id, task.msg, msg.source)
-                            .in_current_span()
-                            .await?;
-                    }
-                    MessageTarget::Main => {
-                        tracing::trace!("Task message came back to main, finishing task");
-                        self.finish_task(
-                            task.msg.task_id,
-                            sim_id,
-                            msg.source,
-                            task.msg.payload,
-                            task.msg.shared_store,
-                        )
+            TaskMsg(task) => match task.target {
+                MessageTarget::Rust => {
+                    self.rs
+                        .send(Some(sim_id), InboundToRunnerMsgPayload::TaskMsg(task.msg))
                         .in_current_span()
                         .await?;
-                    }
                 }
-            }
-            TaskCancelled(task_id) => {
-                self.handle_cancel_task_confirmation(task_id, sim_id, msg.source)
+                MessageTarget::Python => {
+                    self.py
+                        .send(Some(sim_id), InboundToRunnerMsgPayload::TaskMsg(task.msg))
+                        .in_current_span()
+                        .await?;
+                }
+                MessageTarget::JavaScript => {
+                    self.js
+                        .send(Some(sim_id), InboundToRunnerMsgPayload::TaskMsg(task.msg))
+                        .in_current_span()
+                        .await?;
+                }
+                MessageTarget::Dynamic => {
+                    self.run_task_handler_on_outbound(sim_id, task.msg, msg.source)
+                        .in_current_span()
+                        .await?;
+                }
+                MessageTarget::Main => {
+                    tracing::trace!("Task message came back to main, finishing task");
+                    self.handle_end_message(
+                        task.msg.task_id,
+                        sim_id,
+                        task.msg.group_index,
+                        msg.source,
+                        task.msg.payload,
+                        task.msg.shared_store,
+                    )
                     .in_current_span()
                     .await?;
+                }
+            },
+            TaskCancelled(_task_id) => {
+                // TODO: We want to completely rework task cancelling
+                // self.handle_cancel_task_confirmation(task_id, sim_id, msg.source)
+                //     .in_current_span()
+                //     .await?;
             }
             RunnerError(err) => {
                 self.handle_errors(sim_id, vec![err])
@@ -395,31 +386,54 @@ impl WorkerController {
     }
 
     /// Sends a message to runners to cancel the current task and sends `message` to the worker
-    /// pool.
-    async fn finish_task(
+    /// pool. TODO: update
+    async fn handle_end_message(
         &mut self,
         task_id: TaskId,
         sim_id: SimulationShortId,
+        group_index: Option<usize>,
         source: Language,
         message: TaskMessage,
-        shared_store: TaskSharedStore,
+        shared_store: TaskSharedStore, // TODO: DOC The shared store of a sub-task
     ) -> Result<()> {
         // `shared_store` metaversioning should have been kept updated
         // by the runners, so it doesn't need to be updated at this point.
-        if let Some(_task) = self.tasks.inner.remove(&task_id) {
-            // Important to drop here since we then lose the access to the shared store
-            drop(shared_store);
+        // Important to drop here since we then lose the access to the shared store
+        drop(shared_store);
 
-            tracing::trace!("Cancelling tasks on the other runners");
-            self.cancel_task_except_for_runner(task_id, source).await?;
-
-            self.worker_pool_comms.send(
-                sim_id,
-                WorkerToWorkerPoolMsg::TaskResultOrCancelled(WorkerTaskResultOrCancelled {
-                    task_id,
-                    payload: TaskResultOrCancelled::Result(message),
-                }),
-            )?;
+        // TODO rework this structure, it's gross
+        let drop_task = if let Some(task) = self.tasks.inner.get_mut(&task_id) {
+            if let Some(completed_group_index) = task
+                .pending_groups
+                .iter()
+                .position(|group| group.group_index == group_index)
+            {
+                tracing::trace!("Group: {group_index:?} finished, removing");
+                task.pending_groups.remove(completed_group_index);
+                tracing::trace!("Pending groups: {:?}", task.pending_groups);
+            };
+            if task.pending_groups.is_empty() {
+                tracing::trace!(
+                    "No more pending groups on task [{task_id}], cancelling task on the other \
+                     runners"
+                );
+                self.cancel_task_except_for_runner(task_id, source).await?;
+                self.worker_pool_comms.send(
+                    sim_id,
+                    WorkerToWorkerPoolMsg::TaskResultOrCancelled(WorkerTaskResultOrCancelled {
+                        task_id,
+                        payload: TaskResultOrCancelled::Result(message),
+                    }),
+                )?;
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+        if drop_task {
+            let _ = self.tasks.inner.remove(&task_id);
         }
         Ok(())
     }
@@ -452,8 +466,9 @@ impl WorkerController {
             match next.target {
                 MessageTarget::Rust => {
                     let inbound = InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMsg {
-                        task_id: msg.task_id,
                         package_id: msg.package_id,
+                        task_id: msg.task_id,
+                        group_index: msg.group_index,
                         shared_store: msg.shared_store,
                         payload: next.payload,
                     });
@@ -462,12 +477,15 @@ impl WorkerController {
                         &inbound
                     );
                     self.rs.send(Some(sim_id), inbound).await?;
-                    pending.active_runner = Language::Rust;
+                    pending
+                        .get_pending_group_mut(msg.group_index)?
+                        .active_runner = Language::Rust;
                 }
                 MessageTarget::Python => {
                     let inbound = InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMsg {
-                        task_id: msg.task_id,
                         package_id: msg.package_id,
+                        task_id: msg.task_id,
+                        group_index: msg.group_index,
                         shared_store: msg.shared_store,
                         payload: next.payload,
                     });
@@ -477,12 +495,15 @@ impl WorkerController {
                         &inbound
                     );
                     self.py.send(Some(sim_id), inbound).await?;
-                    pending.active_runner = Language::Python;
+                    pending
+                        .get_pending_group_mut(msg.group_index)?
+                        .active_runner = Language::Python;
                 }
                 MessageTarget::JavaScript => {
                     let inbound = InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMsg {
-                        task_id: msg.task_id,
                         package_id: msg.package_id,
+                        task_id: msg.task_id,
+                        group_index: msg.group_index,
                         shared_store: msg.shared_store,
                         payload: next.payload,
                     });
@@ -492,13 +513,22 @@ impl WorkerController {
                         &inbound
                     );
                     self.js.send(Some(sim_id), inbound).await?;
-                    pending.active_runner = Language::JavaScript;
+                    pending
+                        .get_pending_group_mut(msg.group_index)?
+                        .active_runner = Language::JavaScript;
                 }
                 MessageTarget::Dynamic => return Err(Error::UnexpectedTarget(next.target)),
                 MessageTarget::Main => {
                     tracing::trace!("Task message came back to main, finishing task");
-                    self.finish_task(msg.task_id, sim_id, source, next.payload, msg.shared_store)
-                        .await?;
+                    self.handle_end_message(
+                        msg.task_id,
+                        sim_id,
+                        msg.group_index,
+                        source,
+                        next.payload,
+                        msg.shared_store,
+                    )
+                    .await?;
                 }
             }
         }
@@ -515,39 +545,41 @@ impl WorkerController {
     ///
     /// [`TaskCancelled`]: OutboundFromRunnerMsgPayload::TaskCancelled
     /// [`Cancelled`]: TaskResultOrCancelled::Cancelled
+    #[allow(dead_code)]
     async fn handle_cancel_task_confirmation(
         &mut self,
-        task_id: TaskId,
-        sim_id: SimulationShortId,
-        source: Language,
+        _task_id: TaskId,
+        _sim_id: SimulationShortId,
+        _source: Language,
     ) -> Result<()> {
-        if let Some(task) = self.tasks.inner.get_mut(&task_id) {
-            match task.cancelling {
-                CancelState::Active(ref mut langs) => {
-                    if !langs.contains(&source) {
-                        langs.push(source);
-                    }
-                }
-                CancelState::None => {
-                    tracing::warn!("Unexpected task cancelling confirmation");
-                    task.cancelling = CancelState::Active(vec![source]);
-                }
-            }
-            if source == task.active_runner {
-                // Safe unwrap, since we know it must be in `tasks`
-                // We want to drop so we lose the locks on the datastore
-                drop(self.tasks.inner.remove(&task_id).unwrap());
-                self.worker_pool_comms.send(
-                    sim_id,
-                    WorkerToWorkerPoolMsg::TaskResultOrCancelled(WorkerTaskResultOrCancelled {
-                        task_id,
-                        payload: TaskResultOrCancelled::Cancelled,
-                    }),
-                )?;
-            }
-        }
+        todo!(); // TODO: We want to completely rework task cancelling
+        // if let Some(task) = self.tasks.inner.get_mut(&task_id) {
+        //     match task.cancelling {
+        //         CancelState::Active(ref mut langs) => {
+        //             if !langs.contains(&source) {
+        //                 langs.push(source);
+        //             }
+        //         }
+        //         CancelState::None => {
+        //             tracing::warn!("Unexpected task cancelling confirmation");
+        //             task.cancelling = CancelState::Active(vec![source]);
+        //         }
+        //     }
+        //     if source == task.active_runner {
+        //         // Safe unwrap, since we know it must be in `tasks`
+        //         // We want to drop so we lose the locks on the datastore
+        //         drop(self.tasks.inner.remove(&task_id).unwrap());
+        //         self.worker_pool_comms.send(
+        //             sim_id,
+        //             WorkerToWorkerPoolMsg::TaskResultOrCancelled(WorkerTaskResultOrCancelled {
+        //                 task_id,
+        //                 payload: TaskResultOrCancelled::Cancelled,
+        //             }),
+        //         )?;
+        //     }
+        // }
         // else ignore, since it must be that either the active runner cancelled or completed
-        Ok(())
+        // Ok(())
     }
 
     /// Forwards the errors to the worker pool.
@@ -582,38 +614,70 @@ impl WorkerController {
     /// Sends a message containing the `task` to the appropriate language runner.
     async fn spawn_task(&mut self, sim_id: SimulationShortId, task: WorkerTask) -> Result<()> {
         let task_id = task.task_id;
-        let init_msg = WorkerHandler::start_message(&task.inner)?;
-        let runner_msg = InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMsg {
-            task_id,
-            package_id: task.package_id,
-            shared_store: task.shared_store,
-            payload: init_msg.payload,
-        });
-        let active_runner = match init_msg.target {
-            MessageTarget::Python => {
-                tracing::debug!("Sending task message to Python");
-                self.py.send(Some(sim_id), runner_msg).await?;
-                Language::Python
+        let msg = WorkerHandler::start_message(&task.inner)?;
+
+        let context = task.shared_store.context().clone();
+        let shared_stores = match task.shared_store.state {
+            SharedState::None | SharedState::Write(_) | SharedState::Read(_) => {
+                // Run the task on all groups
+                vec![(None, task.shared_store)]
             }
-            MessageTarget::JavaScript => {
-                tracing::debug!("Sending task message to JavaScript");
-                self.js.send(Some(sim_id), runner_msg).await?;
-                Language::JavaScript
-            }
-            MessageTarget::Rust => {
-                tracing::debug!("Sending task message to Rust");
-                self.rs.send(Some(sim_id), runner_msg).await?;
-                Language::Rust
-            }
-            MessageTarget::Main | MessageTarget::Dynamic => {
-                // Expected initial message to be directed to a language runtime
-                return Err(Error::UnexpectedTarget(init_msg.target));
-            }
+            SharedState::Partial(partial_shared_state) => partial_shared_state
+                .split_into_individual_per_group()
+                .into_iter()
+                .map(|shared_state| {
+                    debug_assert_eq!(shared_state.indices().len(), 1);
+                    let group_index = shared_state.indices()[0];
+                    (
+                        Some(group_index),
+                        TaskSharedStore::new(SharedState::Partial(shared_state), context.clone()),
+                    )
+                })
+                .collect(),
         };
+
+        let mut pending_groups = vec![];
+
+        for (group_index, shared_store) in shared_stores {
+            let runner_msg = InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMsg {
+                task_id,
+                package_id: task.package_id,
+                group_index,
+                shared_store,
+                payload: msg.payload.clone(),
+            });
+
+            let active_runner = match msg.target {
+                MessageTarget::Python => {
+                    tracing::debug!("Sending task message to Python");
+                    self.py.send(Some(sim_id), runner_msg).await?;
+                    Language::Python
+                }
+                MessageTarget::JavaScript => {
+                    tracing::debug!("Sending task message to JavaScript");
+                    self.js.send(Some(sim_id), runner_msg).await?;
+                    Language::JavaScript
+                }
+                MessageTarget::Rust => {
+                    tracing::debug!("Sending task message to Rust");
+                    self.rs.send(Some(sim_id), runner_msg).await?;
+                    Language::Rust
+                }
+                MessageTarget::Main | MessageTarget::Dynamic => {
+                    // Expected initial message to be directed to a language runtime
+                    return Err(Error::UnexpectedTarget(msg.target));
+                }
+            };
+            pending_groups.push(PendingGroup {
+                group_index,
+                active_runner,
+            })
+        }
+
         if self
             .tasks
             .inner
-            .insert(task_id, PendingWorkerTask::new(task.inner, active_runner))
+            .insert(task_id, PendingWorkerTask::new(task.inner, pending_groups))
             .is_some()
         {
             return Err(Error::TaskAlreadyExists(task_id));
@@ -666,12 +730,14 @@ impl WorkerController {
         Ok(())
     }
 
+    // TODO: we want to completely rework task cancelling
     /// Sends a message to all spawned runners to cancel the current task.
+    #[allow(dead_code)]
     async fn cancel_task(&mut self, task_id: TaskId) -> Result<()> {
         tracing::trace!("Cancelling task");
-        if let Some(task) = self.tasks.inner.get_mut(&task_id) {
+        if let Some(_task) = self.tasks.inner.get_mut(&task_id) {
             // TODO: Or `CancelState::None`?
-            task.cancelling = CancelState::Active(vec![task.active_runner]);
+            // task.cancelling = CancelState::Active(vec![task.active_runner]);
         }
         tokio::try_join!(
             self.py

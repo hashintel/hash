@@ -525,20 +525,14 @@ pub fn size_prefixed_root_as_new_simulation_run_with_opts<'b, 'o>(
 }
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a NewSimulationRun and returns
-/// it.  
-///
-/// # Safety
-///
+/// it. # Safety
 /// Callers must trust the given bytes do indeed contain a valid `NewSimulationRun`.
 pub unsafe fn root_as_new_simulation_run_unchecked(buf: &[u8]) -> NewSimulationRun {
     flatbuffers::root_unchecked::<NewSimulationRun>(buf)
 }
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a size prefixed NewSimulationRun
-/// and returns it.
-///
-/// # Safety
-///
+/// and returns it. # Safety
 /// Callers must trust the given bytes do indeed contain a valid size prefixed `NewSimulationRun`.
 pub unsafe fn size_prefixed_root_as_new_simulation_run_unchecked(buf: &[u8]) -> NewSimulationRun {
     flatbuffers::size_prefixed_root_unchecked::<NewSimulationRun>(buf)

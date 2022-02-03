@@ -214,20 +214,14 @@ pub fn size_prefixed_root_as_context_batch_sync_with_opts<'b, 'o>(
 }
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a ContextBatchSync and returns
-/// it.
-///
-/// # Safety
-///
+/// it. # Safety
 /// Callers must trust the given bytes do indeed contain a valid `ContextBatchSync`.
 pub unsafe fn root_as_context_batch_sync_unchecked(buf: &[u8]) -> ContextBatchSync {
     flatbuffers::root_unchecked::<ContextBatchSync>(buf)
 }
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a size prefixed ContextBatchSync
-/// and returns it.
-///
-/// # Safety
-///
+/// and returns it. # Safety
 /// Callers must trust the given bytes do indeed contain a valid size prefixed `ContextBatchSync`.
 pub unsafe fn size_prefixed_root_as_context_batch_sync_unchecked(buf: &[u8]) -> ContextBatchSync {
     flatbuffers::size_prefixed_root_unchecked::<ContextBatchSync>(buf)
