@@ -158,10 +158,6 @@ pub async fn run_test_suite(
             .join("output.log");
 
         let log_output = fs::read_to_string(&log_file_path);
-        // Remove the output directory if it was not set manually
-        if std::env::var("OUTPUT_DIRECTORY").is_err() {
-            let _ = fs::remove_dir_all(&output_folder);
-        }
 
         let test_result = match outputs.unwrap() {
             Ok(outputs) => outputs,
@@ -211,6 +207,11 @@ pub async fn run_test_suite(
             serde_json::to_string_pretty(&timings).unwrap(),
         )
         .expect("Could not write test timings");
+
+        // Remove the output directory if it was not set manually
+        if std::env::var("OUTPUT_DIRECTORY").is_err() {
+            let _ = fs::remove_dir_all(&output_folder);
+        }
     }
 }
 
