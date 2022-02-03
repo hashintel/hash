@@ -101,6 +101,7 @@ void (async () => {
         createdByAccountId: systemOrg.entityId, // TODO
         name,
         schema: {
+          // @todo The componentId given here is not present in the blockPaths.json mapping, blockPaths.json is not needed anymore.
           ...(await componentIdSchema(
             `https://blockprotocol.org/blocks/@hash/${name.toLowerCase()}`,
           )),
