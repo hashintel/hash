@@ -172,10 +172,12 @@ export class Instance {
   private async processEntityVersion(entityVersion: EntityVersion) {
     const entityVersionTime = new Date(entityVersion.updatedAt).getTime();
     const blocksToRefresh = new Set<BlockFilter>();
+    const versionFilter = blockFilter(entityVersion);
 
     walkValueForEntity(this.savedContents, (entity, blockEntity) => {
+      const filter = blockFilter(entity);
       if (
-        entity.entityId === entityVersion.entityId &&
+        filter === versionFilter &&
         entityVersionTime > new Date(entity.updatedAt).getTime()
       ) {
         blocksToRefresh.add(blockFilter(blockEntity));
