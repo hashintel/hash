@@ -13,7 +13,7 @@ import {
 } from "./entity";
 import { createLink } from "./link/createLink";
 import { deleteLink } from "./link/deleteLink";
-import { blockFields } from "./block";
+import { blockFields, blocks } from "./block";
 import {
   createPage,
   accountPages,
@@ -78,6 +78,7 @@ export const resolvers = {
         accounts,
       ) /** @todo: make accessible to admins only (or deprecate) */,
     aggregateEntity: loggedInAndSignedUp(aggregateEntity),
+    blocks: loggedInAndSignedUp(blocks),
     getAccountEntityTypes: loggedInAndSignedUp(getAccountEntityTypes),
     entity: loggedInAndSignedUp(entity),
     entities: loggedInAndSignedUp(canAccessAccount(entities)),

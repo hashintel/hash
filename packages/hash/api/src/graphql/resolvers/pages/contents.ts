@@ -1,18 +1,17 @@
 import { ApolloError } from "apollo-server-express";
+import { DBAdapter, DbPageEntity } from "../../../db/adapter";
+import { Entity, UnresolvedGQLEntity } from "../../../model";
 
 import { Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { Entity, UnresolvedGQLEntity } from "../../../model";
-import { DbPageEntity } from "../../../db/adapter";
 
-export const contents: Resolver<
-  Promise<UnresolvedGQLEntity[]>,
-  DbPageEntity["properties"],
-  GraphQLContext
-> = async (properties, _, { dataSources }) => {
+export const getBlocks = async (
+  db: DBAdapter,
+  blocks: { entityId: string; accountId: string }[],
+) => {
   const entities = await Entity.getEntities(
-    dataSources.db,
-    properties.contents.map(({ accountId, entityId }) => ({
+    db,
+    blocks.map(({ accountId, entityId }) => ({
       accountId,
       entityId,
     })),
@@ -20,7 +19,7 @@ export const contents: Resolver<
 
   entities.forEach((entity, i) => {
     if (!entity) {
-      const { accountId, entityId } = properties.contents[i];
+      const { accountId, entityId } = blocks[i];
       throw new ApolloError(
         `entity ${entityId} not found in account ${accountId}`,
         "NOT_FOUND",
@@ -29,4 +28,12 @@ export const contents: Resolver<
   });
 
   return entities.map((entity) => entity.toGQLUnknownEntity());
+};
+
+export const contents: Resolver<
+  Promise<UnresolvedGQLEntity[]>,
+  DbPageEntity["properties"],
+  GraphQLContext
+> = async (properties, _, { dataSources }) => {
+  return await getBlocks(dataSources.db, properties.contents);
 };

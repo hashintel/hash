@@ -87,4 +87,16 @@ export const blockTypedef = gql`
     entity: UnknownEntity!
     componentId: ID!
   }
+
+  input BlockFilter {
+    accountId: ID!
+    entityId: ID!
+  }
+
+  extend type Query {
+    """
+    Get a specified list of blocks by accountId and entityId
+    """
+    blocks(blocks: [BlockFilter!]): [Block!]!
+  }
 `;
