@@ -22,6 +22,7 @@ jobs:
       rustfmt: ${{ steps.crates.outputs.rustfmt }}
       clippy: ${{ steps.crates.outputs.clippy }}
       test: ${{ steps.crates.outputs.test }}
+      bench: ${{ steps.crates.outputs.bench }}
       toolchains: ${{ steps.toolchains.outputs.toolchains }}
     steps:
       - name: Checkout source code
