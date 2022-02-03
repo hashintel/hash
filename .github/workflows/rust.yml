@@ -256,7 +256,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        directory: ${{ fromJSON(needs.setup.outputs.test) }}
+        directory: ${{ fromJSON(needs.setup.outputs.bench) }}
         toolchain: ${{ fromJSON(needs.setup.outputs.toolchains) }}
         tests:
           - integration
