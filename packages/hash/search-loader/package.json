@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/hash-search-loader",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "private": true,
   "description": "Loads changes from the hash/realtime package stream into the search service",
   "repository": {
@@ -17,8 +17,8 @@
     "start": "cross-env NODE_ENV=production ts-node ./src/index.ts"
   },
   "dependencies": {
-    "@hashintel/hash-backend-utils": "*",
-    "@hashintel/hash-shared": "*",
+    "@hashintel/hash-backend-utils": "0.0.0",
+    "@hashintel/hash-shared": "0.0.0",
     "@opensearch-project/opensearch": "1.0.0",
     "hot-shots": "8.5.0",
     "slonik": "24.1.2"

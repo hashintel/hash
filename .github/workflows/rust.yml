@@ -45,15 +45,22 @@ jobs:
             done <<< "$available_crates"
           done <<< "$changed_files"
 
+          # We always run "packages/engine" tests when a nested crate was changed
+          test_crates="$changed_crates"
+          if echo "$test_crates" | grep -qe "^packages/engine"; then
+            test_crates=$(echo -e "${changed_crates}\npackages/engine")
+          fi
+
           changed_crates=$(echo "$changed_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
+          test_crates=$(echo "$test_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
 
           echo "::set-output name=rustfmt::$changed_crates"
           echo "::set-output name=clippy::$changed_crates"
-          echo "::set-output name=test::$changed_crates"
+          echo "::set-output name=test::$test_crates"
 
           echo "run \`cargo fmt\` for: $(echo $changed_crates | jq -r)"
           echo "run \`cargo clippy\` for: $(echo $changed_crates | jq -r)"
-          echo "run \`cargo test\` for: $(echo $changed_crates | jq -r)"
+          echo "run \`cargo test\` for: $(echo $test_crates | jq -r)"
       - name: Find toolchain
         id: toolchains
         run: |

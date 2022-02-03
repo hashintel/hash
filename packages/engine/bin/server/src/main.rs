@@ -9,7 +9,7 @@ use hash_engine::{
 async fn main() -> Result<()> {
     let args = hash_engine::args();
     let _guard = hash_engine::init_logger(
-        args.emit,
+        args.log_format,
         &args.output,
         &args.log_folder,
         &format!("experiment-{}", args.experiment_id),

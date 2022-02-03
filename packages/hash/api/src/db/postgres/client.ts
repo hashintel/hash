@@ -23,9 +23,11 @@ import {
   getAccountEntityTypes,
   getEntityType,
   getEntityTypeByComponentId,
+  getEntityTypeBySchema$id,
+  getJsonSchemaBySchema$id,
   getEntityTypeChildren,
-  getEntityTypeLatestVersion,
   getEntityTypeParents,
+  getEntityTypeLatestVersion,
   getSystemTypeLatestVersion,
   insertEntityType,
   insertEntityTypeVersion,
@@ -63,7 +65,7 @@ import {
   getUserVerificationCodes,
 } from "./verificationCode";
 import { getImpliedEntityHistory } from "./history";
-import { jsonSchema } from "../../lib/schemas/jsonSchema";
+import { JsonSchemaCompiler } from "../../lib/schemas/jsonSchema";
 import { SystemType } from "../../types/entityTypes";
 import { Visibility } from "../../graphql/apiTypes.gen";
 import { getOrgByShortname } from "./org";
@@ -98,8 +100,14 @@ export class PostgresClient implements DBClient {
       // The id to assign this (first) version
       const entityTypeVersionId = genId();
 
+      // Conn is used here to prevent transaction-mismatching.
+      // this.conn is a parent of this transaction conn at this time.
+      const jsonSchemaCompiler = new JsonSchemaCompiler(async (url) => {
+        return getJsonSchemaBySchema$id(conn, url);
+      });
+
       const now = new Date();
-      const properties = await jsonSchema(
+      const properties = await jsonSchemaCompiler.jsonSchema(
         name,
         accountId,
         entityTypeId,
@@ -273,6 +281,12 @@ export class PostgresClient implements DBClient {
     return await getEntityTypeByComponentId(this.conn, params);
   }
 
+  async getEntityTypeBySchema$id(
+    params: Parameters<DBClient["getEntityTypeBySchema$id"]>[0],
+  ): ReturnType<DBClient["getEntityTypeBySchema$id"]> {
+    return await getEntityTypeBySchema$id(this.conn, params);
+  }
+
   async getEntityTypeChildren(
     params: Parameters<DBClient["getEntityTypeChildren"]>[0],
   ): ReturnType<DBClient["getEntityTypeChildren"]> {
@@ -338,7 +352,11 @@ export class PostgresClient implements DBClient {
       throw new Error("Schema requires a name set via a 'title' property");
     }
 
-    const schemaToSet = await jsonSchema(
+    const jsonSchemaCompiler = new JsonSchemaCompiler((url) => {
+      return getJsonSchemaBySchema$id(this.conn, url);
+    });
+
+    const schemaToSet = await jsonSchemaCompiler.jsonSchema(
       nameToSet,
       entity.accountId,
       entityId,
