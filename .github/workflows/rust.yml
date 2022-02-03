@@ -316,7 +316,7 @@ jobs:
           message=$(find ${{ matrix.directory }}/${{ env.OUTPUT_DIRECTORY }} -name timing.json -exec cat {} + | jq '{(.test_path): . | del(.test_path)}' | jq -s add)
           curl -X POST "https://http-intake.logs.datadoghq.com/api/v2/logs" \
             -H "Content-Type: application/json" \
-            -H "DD-API-KEY: ${{ secres.DATADOG_API_KEY }}" \
+            -H "DD-API-KEY: ${{ secrets.DATADOG_API_KEY }}" \
             -d $(jq -n \
                     --argjson message "$message" \ 
                     --arg ddsource "${{ matrix.directory }}" \
