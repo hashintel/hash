@@ -312,7 +312,7 @@ jobs:
 
       - name: Read results
         run: |
-          find ${{ OUTPUT_DIRECTORY }} -name timing.json -exec cat {} + | jq '{(.test_path): . | del(.test_path)}' | jq -s add
+          find ${{ env.OUTPUT_DIRECTORY }} -name timing.json -exec cat {} + | jq '{(.test_path): . | del(.test_path)}' | jq -s add
 
   merging-enabled:
     name: merging enabled
