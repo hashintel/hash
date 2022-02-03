@@ -320,7 +320,7 @@ jobs:
           curl -X POST "https://http-intake.logs.datadoghq.com/api/v2/logs" \
             -H "Content-Type: application/json" \
             -H "DD-API-KEY: ${{ secrets.DATADOG_API_KEY }}" \
-            -d $(jq -n \
+            -d $(jq -cn \
                     --argjson message "$message" \
                     --arg ddtags "$tags" \
                     '{ message: $message, ddsource: "hash-gh-actions", hostname: "github", service: "actions", ddtags: $ddtags }')
