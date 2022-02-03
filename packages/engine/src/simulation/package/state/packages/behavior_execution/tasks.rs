@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::Result;
+use super::{Error, Result};
 use crate::{
     config::{Distribution, TaskDistributionConfig},
     simulation::{
@@ -59,16 +59,13 @@ impl WorkerPoolHandler for ExecuteBehaviorsTask {
     }
 
     fn combine_messages(&self, split_tasks: Vec<TaskMessage>) -> Result<TaskMessage> {
-        for _task in split_tasks {
-            // TODO: How can we match an enum_dispatch nested enum?
-            // match task {
-            //     TaskMessage::StateTaskMessage(
-            //         StateTaskMessage::ExecuteBehaviorsTaskMessage(
-            //             ExecuteBehaviorsTaskMessage
-            //         )
-            //     ) => {},
-            //     _ => return Err(Error::InvalidBehaviorTaskMessage(task))
-            // }
+        for task in split_tasks {
+            if !matches!(
+                task,
+                TaskMessage::StateTaskMessage(StateTaskMessage::ExecuteBehaviorsTaskMessage(_))
+            ) {
+                return Err(Error::InvalidBehaviorTaskMessage(task));
+            }
         }
         let task: StateTaskMessage = ExecuteBehaviorsTaskMessage {}.into();
         let task: TaskMessage = task.into();
