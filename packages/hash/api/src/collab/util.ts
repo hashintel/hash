@@ -1,3 +1,4 @@
+import { BlockEntity } from "@hashintel/hash-shared/entity";
 import {
   EntityStoreType,
   isBlockEntity,
@@ -9,26 +10,26 @@ export const COLLAB_QUEUE_NAME = getRequiredEnv("HASH_COLLAB_QUEUE_NAME");
 
 export const walkValueForEntity = (
   value: unknown,
-  entityHandler: (entity: EntityStoreType, blockId: string) => void,
-  blockId: string | null = null,
+  entityHandler: (entity: EntityStoreType, block: BlockEntity) => void,
+  parentBlock: BlockEntity | null = null,
 ) => {
   if (typeof value === "object" && value !== null) {
-    let blockEntityId = blockId;
+    let blockEntity = parentBlock;
 
     if (isBlockEntity(value)) {
-      blockEntityId = value.entityId;
+      blockEntity = value;
     }
 
     for (const innerValue of Object.values(value)) {
-      walkValueForEntity(innerValue, entityHandler, blockEntityId);
+      walkValueForEntity(innerValue, entityHandler, blockEntity);
     }
 
     if (isEntity(value)) {
-      if (!blockEntityId) {
-        throw new Error("Missing block entity id");
+      if (!blockEntity) {
+        throw new Error("Missing block entity");
       }
 
-      entityHandler(value, blockEntityId);
+      entityHandler(value, blockEntity);
     }
   }
 };

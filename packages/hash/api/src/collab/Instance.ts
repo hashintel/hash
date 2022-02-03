@@ -14,6 +14,7 @@ import {
   entityStorePluginState,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import {
+  BlockFilter,
   GetPageQuery,
   GetPageQueryVariables,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
@@ -67,6 +68,28 @@ type ActionUpdate = {
 };
 
 type Update = StepUpdate | StoreUpdate | ActionUpdate;
+
+/**
+ * Returns a BlockFilter for a specified block, but is guaranteed to return the
+ * same object given the same block account id and entity id – allows using
+ * in Map and Set
+ */
+const blockFilter = (() => {
+  const filters = new Map<string, BlockFilter>();
+
+  return ({
+    accountId,
+    entityId,
+  }: Pick<BlockEntity, "accountId" | "entityId">): BlockFilter => {
+    const key = `${accountId}/${entityId}`;
+
+    if (!filters.has(key)) {
+      filters.set(key, { accountId, entityId });
+    }
+
+    return filters.get(key)!;
+  };
+})();
 
 // A collaborative editing document instance.
 export class Instance {
@@ -143,25 +166,18 @@ export class Instance {
    */
   private async processEntityVersion(entityVersion: EntityVersion) {
     const entityVersionTime = new Date(entityVersion.updatedAt).getTime();
+    const blocksToRefresh = new Set<BlockFilter>();
 
-    const blockIds = new Set<string>();
-
-    /**
-     * @todo should we store a list of entity ids in the entity store so we
-     *       don't need to do this?
-     */
-    walkValueForEntity(this.savedContents, (entity, blockId) => {
+    walkValueForEntity(this.savedContents, (entity, blockEntity) => {
       if (
         entity.entityId === entityVersion.entityId &&
         entityVersionTime > new Date(entity.updatedAt).getTime()
       ) {
-        blockIds.add(blockId);
+        blocksToRefresh.add(blockFilter(blockEntity));
       }
-
-      return entity;
     });
 
-    if (blockIds.size) {
+    if (blocksToRefresh.size) {
       // @todo replace this with a query to get specific new blocks
       const page = await this.fallbackClient.query<
         GetPageQuery,
@@ -175,21 +191,23 @@ export class Instance {
         fetchPolicy: "network-only",
       });
 
-      const nextBlocks = new Map(
+      const refreshedPageBlocks = new Map<BlockFilter, BlockEntity>(
         page.data.page.properties.contents.map(
-          (block) => [block.entityId, block] as const,
-        ),
+          (block) => [blockFilter(block), block] as const,
+        ) ?? [],
       );
 
       const nextSavedContents = this.savedContents.map((block) => {
-        if (blockIds.has(block.entityId)) {
-          const nextBlock = nextBlocks.get(block.entityId);
+        const filterForBlock = blockFilter(block);
 
-          if (!nextBlock) {
+        if (blocksToRefresh.has(filterForBlock)) {
+          const refreshedBlock = refreshedPageBlocks.get(filterForBlock);
+
+          if (!refreshedBlock) {
             throw new Error("Cannot find updated block in updated page");
           }
 
-          return nextBlock;
+          return refreshedBlock;
         }
 
         return block;
