@@ -173,7 +173,7 @@ fn distribute_batches<A, M>(
         .enumerate();
     for (i_group, (agent_batch, msg_batch)) in iter {
         let i_worker = i_group % num_workers;
-        agent_distribution[i_group] += group_sizes[i_worker];
+        agent_distribution[i_worker] += group_sizes[i_group];
 
         let store = &mut stores[i_worker];
         store.1.push(agent_batch);
