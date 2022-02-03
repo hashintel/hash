@@ -4,6 +4,7 @@ use std::{
     io::BufReader,
     iter,
     path::{Path, PathBuf},
+    time::{Duration, Instant},
 };
 
 use error::{bail, ensure, report, Result, ResultExt};
@@ -13,7 +14,7 @@ use hash_engine::{
     Language,
 };
 use orchestrator::{ExperimentConfig, ExperimentType, Manifest, Server};
-use serde::{de::DeserializeOwned, Deserialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Value;
 
 pub type AgentStates = Value;
@@ -75,17 +76,31 @@ fn load_manifest<P: AsRef<Path>>(project_path: P, language: Option<Language>) ->
     Ok(manifest)
 }
 
-pub async fn run_test_suite<P: AsRef<Path>>(
-    project_path: P,
-    project_module: &str,
+pub struct TestOutput {
+    outputs: Vec<(AgentStates, Globals, Analysis)>,
+    duration: Duration,
+}
+
+#[derive(Serialize)]
+pub struct TestTiming {
+    times: u128,
+    project_name: String,
+    project_path: PathBuf,
+    test_path: &'static str,
     language: Option<Language>,
-    experiment: Option<&str>,
+    experiment: Option<&'static str>,
+}
+
+pub async fn run_test_suite(
+    project_path: PathBuf,
+    test_path: &'static str,
+    language: Option<Language>,
+    experiment: Option<&'static str>,
 ) {
     if std::env::var("RUST_LOG").is_err() {
         std::env::set_var("RUST_LOG", "info");
     }
 
-    let project_path = project_path.as_ref();
     let project_name = project_path
         .file_name()
         .unwrap()
@@ -95,9 +110,9 @@ pub async fn run_test_suite<P: AsRef<Path>>(
     let experiments = read_config(project_path.join("integration-test.json"))
         .expect("Could not read experiments")
         .into_iter()
-        .filter(|(ty, _)| match (experiment, ty) {
+        .filter(|(ty, _)| match (&experiment, ty) {
             (None, _) => true,
-            (Some(experiment), ExperimentType::Simple { name }) if experiment == name.as_str() => {
+            (Some(experiment), ExperimentType::Simple { name }) if *experiment == name.as_str() => {
                 true
             }
             _ => false,
@@ -106,25 +121,20 @@ pub async fn run_test_suite<P: AsRef<Path>>(
         // TODO: Remove attempting strategy
         let mut outputs = None;
         let attempts = 10;
-        // Will be initialized in the loop
-        let mut output_folder = PathBuf::new();
+
+        // Use `OUTPUT_DIRECTORY` as output directory. If it's not set, cargo's `OUT_DIR` is
+        // used.
+        let mut output_folder = PathBuf::from(
+            std::env::var("OUTPUT_DIRECTORY").unwrap_or_else(|_| env!("OUT_DIR").to_string()),
+        );
+        for module in test_path.split("::") {
+            output_folder.push(module);
+        }
 
         for attempt in 1..=attempts {
             if attempt > 1 {
                 std::env::set_var("RUST_LOG", "trace");
             }
-
-            // Use `OUTPUT_DIRECTORY` as output directory. If it's not set, cargo's `OUT_DIR` is
-            // used. If, for whatever reason, this is not set, default to `./output`.
-            output_folder = PathBuf::from(
-                std::env::var("OUTPUT_DIRECTORY")
-                    .or_else(|_| std::env::var("OUT_DIR"))
-                    .unwrap_or_else(|_| "./output".to_string()),
-            );
-            for module in project_module.split("::") {
-                output_folder.push(module);
-            }
-            output_folder.push(&project_name);
 
             let test_result = run_test(
                 experiment_type.clone(),
@@ -153,7 +163,7 @@ pub async fn run_test_suite<P: AsRef<Path>>(
             let _ = fs::remove_dir_all(&output_folder);
         }
 
-        let outputs = match outputs.unwrap() {
+        let test_result = match outputs.unwrap() {
             Ok(outputs) => outputs,
             Err(err) => {
                 match log_output {
@@ -166,12 +176,13 @@ pub async fn run_test_suite<P: AsRef<Path>>(
 
         assert_eq!(
             expected_outputs.len(),
-            outputs.len(),
+            test_result.outputs.len(),
             "Number of expected outputs does not match number of returned simulation results for \
              experiment"
         );
 
-        for (output_idx, ((states, globals, analysis), expected)) in outputs
+        for (output_idx, ((states, globals, analysis), expected)) in test_result
+            .outputs
             .into_iter()
             .zip(expected_outputs.into_iter())
             .enumerate()
@@ -183,6 +194,23 @@ pub async fn run_test_suite<P: AsRef<Path>>(
                     output_idx + 1
                 ));
         }
+
+        let timings = TestTiming {
+            experiment,
+            times: test_result.duration.as_nanos(),
+            project_name: project_name.clone(),
+            project_path: project_path
+                .strip_prefix(env!("CARGO_MANIFEST_DIR"))
+                .unwrap()
+                .to_path_buf(),
+            test_path,
+            language,
+        };
+        fs::write(
+            output_folder.join("timing.json"),
+            serde_json::to_string_pretty(&timings).unwrap(),
+        )
+        .expect("Could not write test timings");
     }
 }
 
@@ -193,7 +221,7 @@ pub async fn run_test<P: AsRef<Path>>(
     output: PathBuf,
     language: Option<Language>,
     num_outputs_expected: usize,
-) -> Result<Vec<(AgentStates, Globals, Analysis)>> {
+) -> Result<TestOutput> {
     let project_path = project_path.as_ref();
 
     let nng_listen_url = {
@@ -234,12 +262,14 @@ pub async fn run_test<P: AsRef<Path>>(
         .join(experiment_run.base.name.as_str())
         .join(experiment_run.base.id.to_string());
 
+    let now = Instant::now();
     experiment
         .run(experiment_run, handler)
         .await
         .wrap_err("Could not run experiment")?;
+    let duration = now.elapsed();
 
-    iter::repeat(output_base_directory)
+    let outputs = iter::repeat(output_base_directory)
         .enumerate()
         .take(num_outputs_expected)
         .map(|(sim_id, base_dir)| {
@@ -254,7 +284,8 @@ pub async fn run_test<P: AsRef<Path>>(
 
             Ok((json_state, globals, analysis_outputs))
         })
-        .collect()
+        .collect::<Result<_>>()?;
+    Ok(TestOutput { outputs, duration })
 }
 
 fn parse_file<T: DeserializeOwned, P: AsRef<Path>>(path: P) -> Result<T> {

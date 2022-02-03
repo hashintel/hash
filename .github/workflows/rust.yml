@@ -265,6 +265,7 @@ jobs:
           - --release
     env:
       V8_PATH: ${{ github.workspace }}/.v8
+      OUTPUT_DIRECTORY: test-results
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -307,19 +308,11 @@ jobs:
         run: cargo build -p server --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }}
 
       - name: Run tests
+        run: cargo test --test ${{ matrix.tests }} --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }}
+
+      - name: Read results
         run: |
-          mkdir bench-results
-          cargo test \
-              --test ${{ matrix.tests }} \
-              --manifest-path ${{ matrix.directory }}/Cargo.toml \
-              --no-fail-fast \
-              ${{ matrix.flags }} \
-              -- \
-              -Z unstable-options \
-              --report-time \
-              --format json \
-            | jq 'select(.type == "test" and .event != "started") | del(.type)' \
-            | tee bench-results/${{ matrix.tests }}.json
+          find ${{ OUTPUT_DIRECTORY }} -name timing.json -exec cat {} + | jq '{(.test_path): . | del(.test_path)}' | jq -s add
 
   merging-enabled:
     name: merging enabled
