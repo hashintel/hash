@@ -318,7 +318,7 @@ jobs:
             -H "Content-Type: application/json" \
             -H "DD-API-KEY: ${{ secrets.DATADOG_API_KEY }}" \
             -d $(jq -n \
-                    --argjson message "$message" \ 
+                    --argjson message "$message" \
                     --arg ddsource "${{ matrix.directory }}" \
                     '{ message: $message, ddsource: $ddsource, hostname: "github", service: "actions", user: "runner" }')
 
