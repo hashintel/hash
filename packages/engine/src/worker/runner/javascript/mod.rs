@@ -977,6 +977,7 @@ impl<'m> RunnerImpl<'m> {
     /// - a value from Javascript could not be parsed,
     /// - the task errored, or
     /// - the state could not be flushed to the datastore.
+    #[allow(clippy::too_many_arguments)]
     fn run_task(
         &mut self,
         mv8: &'m MiniV8,
