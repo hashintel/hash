@@ -12,5 +12,5 @@ export const blocks: Resolver<
 > = async (_, args, ctx) => {
   const { dataSources } = ctx;
 
-  return args.blocks ? await getBlocks(dataSources.db, args.blocks) : [];
+  return await getBlocks(dataSources.db, args.blocks);
 };

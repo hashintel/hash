@@ -97,6 +97,6 @@ export const blockTypedef = gql`
     """
     Get a specified list of blocks by accountId and entityId
     """
-    blocks(blocks: [BlockFilter!]): [Block!]!
+    blocks(blocks: [BlockFilter!]!): [Block!]!
   }
 `;
