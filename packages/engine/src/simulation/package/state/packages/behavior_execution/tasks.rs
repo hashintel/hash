@@ -59,16 +59,13 @@ impl WorkerPoolHandler for ExecuteBehaviorsTask {
     }
 
     fn combine_messages(&self, split_tasks: Vec<TaskMessage>) -> Result<TaskMessage> {
-        for _task in split_tasks {
-            // TODO: How can we match an enum_dispatch nested enum?
-            // match task {
-            //     TaskMessage::StateTaskMessage(
-            //         StateTaskMessage::ExecuteBehaviorsTaskMessage(
-            //             ExecuteBehaviorsTaskMessage
-            //         )
-            //     ) => {},
-            //     _ => return Err(Error::InvalidBehaviorTaskMessage(task))
-            // }
+        for task in split_tasks {
+            match task {
+                // TODO: could be cleaner, if not matches
+                TaskMessage::StateTaskMessage(StateTaskMessage::ExecuteBehaviorsTaskMessage(_)) => {
+                }
+                _ => return Err(Error::InvalidBehaviorTaskMessage(task)),
+            }
         }
         let task: StateTaskMessage = ExecuteBehaviorsTaskMessage {}.into();
         let task: TaskMessage = task.into();

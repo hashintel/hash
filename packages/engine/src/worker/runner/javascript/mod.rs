@@ -874,6 +874,97 @@ impl<'m> RunnerImpl<'m> {
         Ok(())
     }
 
+    /// TODO
+    fn handle_task_msg(
+        &mut self,
+        mv8: &'m MiniV8,
+        sim_id: SimulationShortId,
+        msg: RunnerTaskMsg,
+        outbound_sender: &UnboundedSender<OutboundFromRunnerMsg>,
+    ) -> Result<()> {
+        tracing::debug!("Starting state interim sync before running task");
+        // TODO: Move JS part of sync into `run_task` function in JS for better performance.
+        self.state_interim_sync(mv8, sim_id, &msg.shared_store)?;
+
+        tracing::debug!("Setting up run_task function call");
+
+        let (payload, wrapper) = msg
+            .payload
+            .extract_inner_msg_with_wrapper()
+            .map_err(|err| {
+                Error::from(format!("Failed to extract the inner task message: {err}"))
+            })?;
+        let payload_str = mv8::Value::String(mv8.create_string(&serde_json::to_string(&payload)?));
+
+        let context = msg.shared_store.context().clone();
+        let shared_stores = match msg.shared_store.state {
+            SharedState::None | SharedState::Write(_) | SharedState::Read(_) => {
+                // Run the task on all groups
+                vec![(None, msg.shared_store)]
+            }
+            SharedState::Partial(partial_shared_state) => partial_shared_state
+                .split_into_individual_per_group()
+                .into_iter()
+                .map(|shared_state| {
+                    debug_assert_eq!(shared_state.indices().len(), 1);
+                    let group_index = shared_state.indices()[0];
+                    (
+                        Some(group_index),
+                        TaskSharedStore::new(SharedState::Partial(shared_state), context.clone()),
+                    )
+                })
+                .collect(),
+        };
+
+        for (group_index, shared_store) in shared_stores {
+            let group_index = match group_index {
+                None => mv8::Value::Undefined,
+                Some(val) => mv8::Value::Number(val as f64),
+            };
+
+            let args = mv8::Values::from_vec(vec![
+                sim_id_to_js(mv8, sim_id),
+                group_index,
+                pkg_id_to_js(mv8, msg.package_id),
+                payload_str.clone(),
+            ]);
+
+            let (next_task_msg, warnings, logs) = self.run_task(
+                mv8,
+                args,
+                sim_id,
+                msg.package_id,
+                msg.task_id,
+                &wrapper,
+                shared_store,
+            )?;
+            // TODO: `send` fn to reduce code duplication.
+            outbound_sender.send(OutboundFromRunnerMsg {
+                span: Span::current(),
+                source: Language::JavaScript,
+                sim_id,
+                payload: OutboundFromRunnerMsgPayload::TaskMsg(next_task_msg),
+            })?;
+            if let Some(warnings) = warnings {
+                outbound_sender.send(OutboundFromRunnerMsg {
+                    span: Span::current(),
+                    source: Language::JavaScript,
+                    sim_id,
+                    payload: OutboundFromRunnerMsgPayload::RunnerWarnings(warnings),
+                })?;
+            }
+            if let Some(logs) = logs {
+                outbound_sender.send(OutboundFromRunnerMsg {
+                    span: Span::current(),
+                    source: Language::JavaScript,
+                    sim_id,
+                    payload: OutboundFromRunnerMsgPayload::RunnerLogs(logs),
+                })?;
+            }
+        }
+        Ok(())
+    }
+
     /// Runs a task on JavaScript with the provided simulation id.
     ///
     /// Returns the next task ([`TargetedRunnerTaskMsg`]) and, if present, warnings
@@ -889,92 +980,51 @@ impl<'m> RunnerImpl<'m> {
     fn run_task(
         &mut self,
         mv8: &'m MiniV8,
-        sim_run_id: SimulationShortId,
-        mut msg: RunnerTaskMsg,
+        args: Values<'m>,
+        sim_id: SimulationShortId,
+        package_id: PackageId,
+        task_id: TaskId,
+        wrapper: &serde_json::Value,
+        mut shared_store: TaskSharedStore,
     ) -> Result<(
         TargetedRunnerTaskMsg,
         Option<Vec<RunnerError>>,
         Option<Vec<String>>,
     )> {
-        tracing::debug!("Starting state interim sync before running task");
-        // TODO: Move JS part of sync into `run_task` function in JS for better performance.
-        self.state_interim_sync(mv8, sim_run_id, &msg.shared_store)?;
-
-        tracing::debug!("Setting up run_task function call");
-        let group_index = match &msg.shared_store.state {
-            SharedState::None | SharedState::Write(_) | SharedState::Read(_) => {
-                mv8::Value::Undefined
-            }
-            SharedState::Partial(partial) => match partial {
-                // TODO: Code duplication between read and write
-                PartialSharedState::Read(partial) => {
-                    if partial.indices.len() == 1 {
-                        mv8::Value::Number(partial.indices[0] as f64)
-                    } else {
-                        // Iterate over the subset of groups (since there's more than one group)
-                        todo!()
-                    }
-                }
-                PartialSharedState::Write(partial) => {
-                    if partial.indices.len() == 1 {
-                        mv8::Value::Number(partial.indices[0] as f64)
-                    } else {
-                        // Iterate over the subset of groups (since there's more than one group)
-                        todo!()
-                    }
-                }
-            },
-        };
-
-        let (payload, wrapper) = msg
-            .payload
-            .extract_inner_msg_with_wrapper()
-            .map_err(|err| {
-                Error::from(format!("Failed to extract the inner task message: {err}"))
-            })?;
-        let payload_str = mv8::Value::String(mv8.create_string(&serde_json::to_string(&payload)?));
-
-        let args = mv8::Values::from_vec(vec![
-            sim_id_to_js(mv8, sim_run_id),
-            group_index,
-            pkg_id_to_js(mv8, msg.package_id),
-            payload_str,
-        ]);
         tracing::debug!("Calling JS run_task");
-        let r: mv8::Object<'_> = self
+        let return_val: mv8::Object<'_> = self
             .embedded
             .run_task
             .call_method(self.this.clone(), args)?;
 
         tracing::debug!("Post-processing run_task result");
-        if let Some(error) = get_js_error(mv8, &r) {
+        if let Some(error) = get_js_error(mv8, &return_val) {
             // All types of errors are fatal (user, package, runner errors).
             return Err(error);
         }
-        let warnings = get_user_warnings(mv8, &r);
-        let logs = get_print(mv8, &r);
-        let (next_target, next_task_payload) = get_next_task(mv8, &r)?;
+        let warnings = get_user_warnings(mv8, &return_val);
+        let logs = get_print(mv8, &return_val);
+        let (next_target, next_task_payload) = get_next_task(mv8, &return_val)?;
 
         let next_inner_task_msg: serde_json::Value = serde_json::from_str(&next_task_payload)?;
         let next_task_payload =
-            TaskMessage::try_from_inner_msg_and_wrapper(next_inner_task_msg, wrapper).map_err(
-                |err| {
+            TaskMessage::try_from_inner_msg_and_wrapper(next_inner_task_msg, wrapper.clone())
+                .map_err(|err| {
                     Error::from(format!(
                         "Failed to wrap and create a new TaskMessage, perhaps the inner: \
                          {next_task_payload}, was formatted incorrectly. Underlying error: {err}"
                     ))
-                },
-            )?;
+                })?;
 
         // Only flushes if state writable
-        self.flush(mv8, sim_run_id, &mut msg.shared_store, &r)?;
+        self.flush(mv8, sim_id, &mut shared_store, &return_val)?;
 
         let next_task_msg = TargetedRunnerTaskMsg {
             target: next_target,
             msg: RunnerTaskMsg {
-                package_id: msg.package_id,
-                task_id: msg.task_id,
-                shared_store: msg.shared_store,
+                package_id,
+                task_id,
+                shared_store,
                 payload: next_task_payload,
             },
         };
@@ -1140,30 +1190,7 @@ impl<'m> RunnerImpl<'m> {
             }
             InboundToRunnerMsgPayload::TaskMsg(msg) => {
                 let sim_id = sim_id.ok_or(Error::SimulationIdRequired("run task"))?;
-                let (next_task_msg, warnings, logs) = self.run_task(mv8, sim_id, msg)?;
-                // TODO: `send` fn to reduce code duplication.
-                outbound_sender.send(OutboundFromRunnerMsg {
-                    span: Span::current(),
-                    source: Language::JavaScript,
-                    sim_id,
-                    payload: OutboundFromRunnerMsgPayload::TaskMsg(next_task_msg),
-                })?;
-                if let Some(warnings) = warnings {
-                    outbound_sender.send(OutboundFromRunnerMsg {
-                        span: Span::current(),
-                        source: Language::JavaScript,
-                        sim_id,
-                        payload: OutboundFromRunnerMsgPayload::RunnerWarnings(warnings),
-                    })?;
-                }
-                if let Some(logs) = logs {
-                    outbound_sender.send(OutboundFromRunnerMsg {
-                        span: Span::current(),
-                        source: Language::JavaScript,
-                        sim_id,
-                        payload: OutboundFromRunnerMsgPayload::RunnerLogs(logs),
-                    })?;
-                }
+                self.handle_task_msg(mv8, sim_id, msg, outbound_sender)?;
             }
             InboundToRunnerMsgPayload::CancelTask(_) => {}
         }
