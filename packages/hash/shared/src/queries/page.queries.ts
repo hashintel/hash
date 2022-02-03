@@ -13,6 +13,54 @@ const linkFieldsFragment = gql`
   }
 `;
 
+const blockFieldsFragment = gql`
+  fragment BlockFields on Block {
+    __typename
+    id
+    entityVersionId
+    entityId
+    accountId
+    updatedAt
+    createdAt
+    entityVersionCreatedAt
+    createdByAccountId
+    entityTypeId
+    properties {
+      __typename
+      componentId
+      entity {
+        __typename
+        id
+        entityVersionId
+        entityId
+        accountId
+        updatedAt
+        createdAt
+        entityVersionCreatedAt
+        createdByAccountId
+        entityTypeId
+        properties
+        linkGroups {
+          links {
+            ...LinkFields
+          }
+          sourceEntityId
+          sourceEntityVersionId
+          path
+        }
+        linkedEntities {
+          accountId
+          entityId
+          entityTypeId
+          properties
+        }
+      }
+    }
+  }
+
+  ${linkFieldsFragment}
+`;
+
 const pageFieldsFragment = gql`
   fragment PageFields on Page {
     __typename
@@ -30,51 +78,11 @@ const pageFieldsFragment = gql`
       summary
       title
       contents {
-        __typename
-        id
-        entityVersionId
-        entityId
-        accountId
-        updatedAt
-        createdAt
-        entityVersionCreatedAt
-        createdByAccountId
-        entityTypeId
-        properties {
-          __typename
-          componentId
-          entity {
-            __typename
-            id
-            entityVersionId
-            entityId
-            accountId
-            updatedAt
-            createdAt
-            entityVersionCreatedAt
-            createdByAccountId
-            entityTypeId
-            properties
-            linkGroups {
-              links {
-                ...LinkFields
-              }
-              sourceEntityId
-              sourceEntityVersionId
-              path
-            }
-            linkedEntities {
-              accountId
-              entityId
-              entityTypeId
-              properties
-            }
-          }
-        }
+        ...BlockFields
       }
     }
   }
-  ${linkFieldsFragment}
+  ${blockFieldsFragment}
 `;
 
 export const getPageQuery = gql`
@@ -88,6 +96,16 @@ export const getPageQuery = gql`
     }
   }
   ${pageFieldsFragment}
+`;
+
+export const getBlocksQuery = gql`
+  query getBlocks($blocks: [BlockFilter!]!) {
+    blocks(blocks: $blocks) {
+      ...BlockFields
+    }
+  }
+
+  ${blockFieldsFragment}
 `;
 
 export const createPage = gql`

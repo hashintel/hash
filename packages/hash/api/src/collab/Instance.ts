@@ -15,6 +15,8 @@ import {
 } from "@hashintel/hash-shared/entityStorePlugin";
 import {
   BlockFilter,
+  GetBlocksQuery,
+  GetBlocksQueryVariables,
   GetPageQuery,
   GetPageQueryVariables,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
@@ -24,7 +26,10 @@ import {
   isEntityNode,
 } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
-import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
+import {
+  getBlocksQuery,
+  getPageQuery,
+} from "@hashintel/hash-shared/queries/page.queries";
 import {
   createNecessaryEntities,
   updatePageMutation,
@@ -178,21 +183,19 @@ export class Instance {
     });
 
     if (blocksToRefresh.size) {
-      // @todo replace this with a query to get specific new blocks
-      const page = await this.fallbackClient.query<
-        GetPageQuery,
-        GetPageQueryVariables
+      const refreshedBlocksQuery = await this.fallbackClient.query<
+        GetBlocksQuery,
+        GetBlocksQueryVariables
       >({
-        query: getPageQuery,
+        query: getBlocksQuery,
         variables: {
-          entityId: this.pageEntityId,
-          accountId: this.accountId,
+          blocks: Array.from(blocksToRefresh.values()),
         },
         fetchPolicy: "network-only",
       });
 
       const refreshedPageBlocks = new Map<BlockFilter, BlockEntity>(
-        page.data.page.properties.contents.map(
+        refreshedBlocksQuery.data.blocks.map(
           (block) => [blockFilter(block), block] as const,
         ) ?? [],
       );
