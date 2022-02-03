@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::Result;
+use super::{Error, Result};
 use crate::{
     config::{Distribution, TaskDistributionConfig},
     simulation::{

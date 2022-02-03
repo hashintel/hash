@@ -45,7 +45,10 @@ use crate::{
         enum_dispatch::TaskSharedStore,
         package::{id::PackageId, PackageType},
     },
-    worker::{Error as WorkerError, Result as WorkerResult, TaskMessage},
+    types::TaskId,
+    worker::{
+        runner::javascript::mv8::Values, Error as WorkerError, Result as WorkerResult, TaskMessage,
+    },
     Language,
 };
 
@@ -250,8 +253,8 @@ struct RunnerImpl<'m> {
 }
 
 // we pass in _mv8 for the return values lifetime
-fn sim_id_to_js(_mv8: &MiniV8, sim_run_id: SimulationShortId) -> mv8::Value<'_> {
-    mv8::Value::Number(sim_run_id as f64)
+fn sim_id_to_js(_mv8: &MiniV8, sim_id: SimulationShortId) -> mv8::Value<'_> {
+    mv8::Value::Number(sim_id as f64)
 }
 
 // we pass in _mv8 for the return values lifetime
@@ -293,12 +296,12 @@ fn batches_from_shared_store(
                 PartialSharedState::Read(partial) => (
                     partial.inner.agent_pool().batches(),
                     partial.inner.message_pool().batches(),
-                    partial.indices.clone(), // TODO: Avoid cloning?
+                    partial.group_indices.clone(), // TODO: Avoid cloning?
                 ),
                 PartialSharedState::Write(partial) => (
                     partial.inner.agent_pool().batches(),
                     partial.inner.message_pool().batches(),
-                    partial.indices.clone(), // TODO: Avoid cloning?
+                    partial.group_indices.clone(), // TODO: Avoid cloning?
                 ),
             }
         }
@@ -404,8 +407,8 @@ fn array_to_errors(array: mv8::Value<'_>) -> Vec<RunnerError> {
     }]
 }
 
-fn get_js_error(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Error> {
-    if let Ok(errors) = r.get("user_errors") {
+fn get_js_error(_mv8: &MiniV8, return_val: &mv8::Object<'_>) -> Option<Error> {
+    if let Ok(errors) = return_val.get("user_errors") {
         if !matches!(errors, mv8::Value::Undefined) && !matches!(errors, mv8::Value::Null) {
             let errors = array_to_errors(errors);
             if !errors.is_empty() {
@@ -414,13 +417,13 @@ fn get_js_error(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Error> {
         }
     }
 
-    if let Ok(mv8::Value::String(e)) = r.get("pkg_error") {
+    if let Ok(mv8::Value::String(e)) = return_val.get("pkg_error") {
         // TODO: Don't silently ignore non-string, non-null-or-undefined errors
         //       (try to convert error value to JSON string and return as error?).
         return Some(Error::Package(e.to_string()));
     }
 
-    if let Ok(mv8::Value::String(e)) = r.get("runner_error") {
+    if let Ok(mv8::Value::String(e)) = return_val.get("runner_error") {
         // TODO: Don't ignore non-string, non-null-or-undefined errors
         return Some(Error::Embedded(e.to_string()));
     }
@@ -428,8 +431,8 @@ fn get_js_error(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Error> {
     None
 }
 
-fn get_user_warnings(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Vec<RunnerError>> {
-    if let Ok(warnings) = r.get::<&str, mv8::Value<'_>>("user_warnings") {
+fn get_user_warnings(_mv8: &MiniV8, return_val: &mv8::Object<'_>) -> Option<Vec<RunnerError>> {
+    if let Ok(warnings) = return_val.get::<&str, mv8::Value<'_>>("user_warnings") {
         if !(warnings.is_undefined() || warnings.is_null()) {
             let warnings = array_to_errors(warnings);
             if !warnings.is_empty() {
@@ -440,8 +443,8 @@ fn get_user_warnings(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Vec<RunnerErr
     None
 }
 
-fn get_print(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Vec<String>> {
-    if let Ok(mv8::Value::String(printed_val)) = r.get("print") {
+fn get_print(_mv8: &MiniV8, return_val: &mv8::Object<'_>) -> Option<Vec<String>> {
+    if let Ok(mv8::Value::String(printed_val)) = return_val.get("print") {
         let printed_val = printed_val.to_string();
         if !printed_val.is_empty() {
             Some(printed_val.split('\n').map(|s| s.to_string()).collect())
@@ -453,8 +456,8 @@ fn get_print(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Vec<String>> {
     }
 }
 
-fn get_next_task(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Result<(MessageTarget, String)> {
-    let target = if let Ok(mv8::Value::String(target)) = r.get("target") {
+fn get_next_task(_mv8: &MiniV8, return_val: &mv8::Object<'_>) -> Result<(MessageTarget, String)> {
+    let target = if let Ok(mv8::Value::String(target)) = return_val.get("target") {
         let target = target.to_string();
         match target.as_str() {
             "JavaScript" => MessageTarget::JavaScript,
@@ -469,7 +472,7 @@ fn get_next_task(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Result<(MessageTarget, S
         MessageTarget::Main
     };
 
-    let next_task_payload = if let Ok(mv8::Value::String(s)) = r.get("task") {
+    let next_task_payload = if let Ok(mv8::Value::String(s)) = return_val.get("task") {
         s.to_string()
     } else {
         // TODO: Don't silently ignore non-string, non-null-or-undefined payloads
@@ -759,7 +762,7 @@ impl<'m> RunnerImpl<'m> {
         mv8: &'m MiniV8,
         sim_run_id: SimulationShortId,
         shared_store: &mut TaskSharedStore,
-        r: &mv8::Object<'m>,
+        return_val: &mv8::Object<'m>,
     ) -> Result<()> {
         let (proxy, group_indices) = match &mut shared_store.state {
             SharedState::None | SharedState::Read(_) => return Ok(()),
@@ -770,7 +773,7 @@ impl<'m> RunnerImpl<'m> {
             SharedState::Partial(partial) => match partial {
                 PartialSharedState::Read(_) => return Ok(()),
                 PartialSharedState::Write(state) => {
-                    let indices = state.indices.clone();
+                    let indices = state.group_indices.clone();
                     (&mut state.inner, indices)
                 }
             },
@@ -785,7 +788,7 @@ impl<'m> RunnerImpl<'m> {
         let agent_schema = state.agent_schema.clone();
         let msg_schema = state.msg_schema.clone();
 
-        let changes: mv8::Value<'_> = r.get("changes")?;
+        let changes: mv8::Value<'_> = return_val.get("changes")?;
         if group_indices.len() == 1 {
             self.flush_group(mv8, &agent_schema, &msg_schema, proxy, 0, changes)?;
         } else {
@@ -1054,14 +1057,14 @@ impl<'m> RunnerImpl<'m> {
     fn state_interim_sync(
         &mut self,
         mv8: &'m MiniV8,
-        sim_run_id: SimulationShortId,
+        sim_id: SimulationShortId,
         shared_store: &TaskSharedStore,
     ) -> Result<()> {
         // Sync JS.
         let (agent_batches, msg_batches, group_indices) = batches_from_shared_store(shared_store)?;
         let (agent_batches, msg_batches) = state_to_js(mv8, &agent_batches, &msg_batches)?;
         let args = mv8::Values::from_vec(vec![
-            sim_id_to_js(mv8, sim_run_id),
+            sim_id_to_js(mv8, sim_id),
             idxs_to_js(mv8, &group_indices)?,
             agent_batches,
             msg_batches,

@@ -28,14 +28,14 @@ impl TaskSharedStore {
 /// TODO: DOC
 #[derive(Debug)]
 pub struct PartialStateWriteProxy {
-    pub indices: Vec<usize>,
+    pub group_indices: Vec<usize>,
     pub inner: StateWriteProxy,
 }
 
 /// TODO: DOC
 #[derive(Debug, Clone)]
 pub struct PartialStateReadProxy {
-    pub indices: Vec<usize>,
+    pub group_indices: Vec<usize>,
     pub inner: StateReadProxy,
 }
 
@@ -135,7 +135,7 @@ impl PartialSharedState {
     fn new_write<K: WriteState>(state: &K, indices: Vec<usize>) -> Result<PartialSharedState> {
         let inner = StateWriteProxy::new_partial(state, &indices)?;
         Ok(PartialSharedState::Write(PartialStateWriteProxy {
-            indices,
+            group_indices: indices,
             inner,
         }))
     }
@@ -143,7 +143,7 @@ impl PartialSharedState {
     fn new_read<K: ReadState>(state: &K, indices: Vec<usize>) -> Result<PartialSharedState> {
         let inner = StateReadProxy::new_partial(state, &indices)?;
         Ok(PartialSharedState::Read(PartialStateReadProxy {
-            indices,
+            group_indices: indices,
             inner,
         }))
     }
@@ -241,7 +241,7 @@ impl TaskSharedStore {
                     (state.deconstruct(), indices)
                 }
                 SharedState::Partial(PartialSharedState::Write(partial)) => {
-                    let (state, indices) = (partial.inner, partial.indices);
+                    let (state, indices) = (partial.inner, partial.group_indices);
                     (state.deconstruct(), indices)
                 }
                 _ => unreachable!(),
@@ -263,7 +263,7 @@ impl TaskSharedStore {
                     let store = Self {
                         state: SharedState::Partial(PartialSharedState::Write(
                             PartialStateWriteProxy {
-                                indices,
+                                group_indices: indices,
                                 inner: StateWriteProxy::from((agent_batches, msg_batches)),
                             },
                         )),
@@ -284,7 +284,7 @@ impl TaskSharedStore {
                     (state.deconstruct(), indices)
                 }
                 SharedState::Partial(PartialSharedState::Read(partial)) => {
-                    let (state, indices) = (partial.inner, partial.indices);
+                    let (state, indices) = (partial.inner, partial.group_indices);
                     (state.deconstruct(), indices)
                 }
                 _ => unreachable!(),
@@ -306,7 +306,7 @@ impl TaskSharedStore {
                     let store = Self {
                         state: SharedState::Partial(PartialSharedState::Read(
                             PartialStateReadProxy {
-                                indices,
+                                group_indices: indices,
                                 inner: StateReadProxy::from((agent_batches, msg_batches)),
                             },
                         )),
