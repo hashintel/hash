@@ -537,9 +537,15 @@ class __Entity {
 
           const name = capitalizeComponentName(componentId);
 
-          const blockSchema = await (
-            await fetch(`${componentId}/block-schema.json`)
-          ).json();
+          // ensure a trailing a trailing slash on componentId
+          const componentIdUrl = new URL(
+            "./block-schema.json",
+            `${componentId.replace(/\/+$/, "")}/`,
+          );
+
+          const blockSchema = await (await fetch(componentIdUrl.href))
+            .json()
+            .catch((_) => ({}));
 
           // Creation of an EntityType validates schema.
           entityTypeWithComponentId = await EntityType.create(client, {
