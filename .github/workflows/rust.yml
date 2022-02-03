@@ -47,6 +47,7 @@ jobs:
 
           # We always run "packages/engine" tests when a nested crate was changed
           test_crates="$changed_crates"
+          bench_crates=""
           if echo "$test_crates" | grep -qe "^packages/engine"; then
             test_crates=$(echo -e "${changed_crates}\npackages/engine")
           fi
@@ -194,6 +195,7 @@ jobs:
         toolchain: ${{ fromJSON(needs.setup.outputs.toolchains) }}
         flags:
           - --all-features
+          - ""
     env:
       V8_PATH: ${{ github.workspace }}/.v8
     steps:
@@ -239,15 +241,86 @@ jobs:
 
       - name: Build test dependencies
         if: matrix.directory == 'packages/engine'
-        run: cargo build -p server --manifest-path ${{ matrix.directory }}/Cargo.toml
+        run: cargo build -p server --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }}
 
       - name: Run tests
-        id: test-parallel
-        run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} --no-fail-fast
+        run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }}
+
+  bench:
+    name: bench
+    needs: setup
+    if: needs.setup.outputs.bench != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        directory: ${{ fromJSON(needs.setup.outputs.test) }}
+        toolchain: ${{ fromJSON(needs.setup.outputs.toolchains) }}
+        tests:
+          - integration
+        flags:
+          - --release
+    env:
+      V8_PATH: ${{ github.workspace }}/.v8
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Install Rust
+        id: toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.toolchain }}
+          override: true
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/.crates.toml
+            ~/.cargo/.crates2.json
+            ~/.cargo/bin
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            **/target/
+          key: ${{ runner.os }}-bench-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bench-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
+            ${{ runner.os }}-bench-${{ matrix.directory }}-${{ matrix.toolchain }}
+
+      - name: Install v8
+        run: |
+          mkdir -p ${V8_PATH}/tmp
+          cd ${V8_PATH}/tmp
+          curl -L -o libv8.tar.gz https://github.com/rubyjs/libv8/releases/download/v8.4.255.0/libv8-8.4.255.0-x86_64-linux.gem
+          tar xf libv8.tar.gz # Extract the gem
+          tar xf data.tar.gz # Extract the data folder
+          mv -v vendor/v8/* .. # Move out the wanted files
+          cd ..
+          rm -rf tmp # Delete the tmp folder
+
+      - name: Build test dependencies
+        run: cargo build -p server --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }}
+
+      - name: Run tests
+        run: |
+          mkdir bench-results
+          cargo test \
+              --test ${{ matrix.tests }} \
+              --manifest-path ${{ matrix.directory }}/Cargo.toml \
+              --no-fail-fast \
+              ${{ matrix.flags }} \
+              -- \
+              -Z unstable-options \
+              --report-time \
+              --format json \
+            | jq 'select(.type == "test" and .event != "started") | del(.type)' \
+            | tee bench-results/${{ matrix.tests }}.json
 
   merging-enabled:
     name: merging enabled
-    needs: [rustfmt, clippy, test]
+    needs: [rustfmt, clippy, test, bench]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -260,3 +333,6 @@ jobs:
       - name: check test
         run: |
           [[ ${{ needs.test.result }} =~ success|skipped ]]
+      - name: check bench
+        run: |
+          [[ ${{ needs.bench.result }} =~ success|skipped ]]
