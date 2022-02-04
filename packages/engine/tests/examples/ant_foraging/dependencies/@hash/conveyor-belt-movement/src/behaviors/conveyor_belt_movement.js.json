@@ -1,0 +1,9 @@
+{
+  "keys": {
+    "avoid_type": {
+      "nullable": false,
+      "type": "string"
+    }
+  },
+  "built_in_key_use": null
+}

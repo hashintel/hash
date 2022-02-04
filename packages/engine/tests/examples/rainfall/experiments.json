@@ -1,0 +1,8 @@
+{
+  "sweep_rain_rate": {
+    "type": "values",
+    "field": "rain_rate",
+    "values": [2, 3, 4, 5],
+    "steps": 50
+  }
+}

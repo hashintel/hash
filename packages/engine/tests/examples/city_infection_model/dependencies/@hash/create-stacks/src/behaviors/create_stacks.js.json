@@ -1,0 +1,13 @@
+{
+  "keys": {
+    "agents": {
+      "type": "any",
+      "nullable": true
+    },
+    "stack_templates": {
+      "type": "any",
+      "nullable": false
+    }
+  },
+  "built_in_key_use": null
+}

@@ -1,0 +1,61 @@
+{
+  "keys": {
+    "health_status": {
+      "nullable": false,
+      "type": "string"
+    },
+    "deceased": {
+      "nullable": false,
+      "type": "boolean"
+    },
+    "was_sick": {
+      "nullable": true,
+      "type": "boolean"
+    },
+    "infection_duration": {
+      "nullable": true,
+      "type": "number"
+    },
+    "infection_counter": {
+      "nullable": false,
+      "type": "number"
+    },
+    "severity": {
+      "nullable": false,
+      "type": "string"
+    },
+    "out": {
+      "nullable": false,
+      "type": "boolean"
+    },
+    "icu": {
+      "nullable": false,
+      "type": "boolean"
+    },
+    "destination": {
+      "nullable": true,
+      "type": "list",
+      "child": {
+        "type": "number",
+        "nullable": true
+      }
+    },
+    "exposer": {
+      "nullable": false,
+      "type": "string"
+    },
+    "home": {
+      "nullable": false,
+      "type": "list",
+      "child": {
+        "type": "number",
+        "nullable": true
+      }
+    },
+    "num_infected": {
+      "nullable": false,
+      "type": "number"
+    }
+  },
+  "built_in_key_use": null
+}

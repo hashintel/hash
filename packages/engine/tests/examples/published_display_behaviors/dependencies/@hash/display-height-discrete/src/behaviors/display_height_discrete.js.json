@@ -1,0 +1,32 @@
+{
+  "keys": {
+    "height_discrete": {
+      "nullable": true,
+      "type": "struct",
+      "fields": {
+        "field": {
+          "nullable": true,
+          "type": "string"
+        },
+        "discrete_heights": {
+          "nullable": true,
+          "type": "list",
+          "child": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "field_values": {
+          "nullable": true,
+          "type": "list",
+          "child": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      }
+    }
+  },
+  "built_in_key_use": null,
+  "dynamic_access": true
+}

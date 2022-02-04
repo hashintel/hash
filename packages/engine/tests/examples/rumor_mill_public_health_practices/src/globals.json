@@ -1,0 +1,12 @@
+{
+  "width": 30,
+  "height": 30,
+  "single_source": true,
+  "show_height": true,
+  "source_percentage": 0.1,
+  "topology": {
+    "search_radius": 1
+  },
+  "good_psa_freq": 0.03,
+  "bad_psa_freq": 0.01
+}

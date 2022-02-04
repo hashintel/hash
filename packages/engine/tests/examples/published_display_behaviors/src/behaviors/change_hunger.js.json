@@ -1,0 +1,14 @@
+{
+  "keys": {
+    "hunger": {
+      "nullable": true,
+      "type": "number"
+    },
+    "grow": {
+      "nullable": true,
+      "type": "boolean"
+    }
+  },
+  "built_in_key_use": null,
+  "dynamic_access": false
+}

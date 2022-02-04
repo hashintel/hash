@@ -1,0 +1,8 @@
+{
+  "@hash/age/age.rs": "1.0.0",
+  "@hash/conveyor-belt-movement/conveyor_belt_movement.js": "1.2.0",
+  "@hash/create-agents/create_agents.js": "2.2.0",
+  "@hash/create-grids/create_grids.js": "2.2.0",
+  "@hash/move-in-direction/move_in_direction.rs": "1.0.0",
+  "@hash/remove-self/remove_self.js": "2.1.0"
+}

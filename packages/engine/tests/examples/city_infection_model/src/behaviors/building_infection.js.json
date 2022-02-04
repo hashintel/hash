@@ -1,0 +1,13 @@
+{
+  "keys": {
+    "occupancy": {
+      "nullable": true,
+      "type": "number"
+    },
+    "template_name": {
+      "nullable": false,
+      "type": "string"
+    }
+  },
+  "built_in_key_use": null
+}

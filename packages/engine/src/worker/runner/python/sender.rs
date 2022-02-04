@@ -371,7 +371,7 @@ fn shared_store_to_fbs<'f>(
                     .iter()
                     .map(|b| batch_to_fbs(fbb, b))
                     .collect();
-                (a, m, partial.indices.clone())
+                (a, m, partial.group_indices.clone())
             }
             PartialSharedState::Write(partial) => {
                 let state = &partial.inner;
@@ -387,7 +387,7 @@ fn shared_store_to_fbs<'f>(
                     .iter()
                     .map(|b| batch_to_fbs(fbb, b))
                     .collect();
-                (a, m, partial.indices.clone())
+                (a, m, partial.group_indices.clone())
             }
         },
     };
