@@ -134,7 +134,9 @@ pub async fn run_test_suite(
 
     for (experiment_type, expected_outputs) in experiments {
         // TODO: Remove attempting strategy
-        let attempts = 10;
+        let attempts = std::env::var("NUM_ATTEMPTS")
+            .map(|n| n.parse::<usize>().unwrap())
+            .unwrap_or(1);
 
         // Use `OUTPUT_DIRECTORY` as output directory. If it's not set, cargo's `OUT_DIR` is
         // used.
