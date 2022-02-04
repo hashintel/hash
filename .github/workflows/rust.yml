@@ -318,8 +318,7 @@ jobs:
         run: |
           message=$(find ${{ matrix.directory }}/${{ env.OUTPUT_DIRECTORY }} -name timing.json -exec cat {} + | jq '{(.test_path): . | del(.test_path)}' | jq -s add)
           directory="${{ matrix.directory }}"
-          package="${directory##*/}"
-          tags="package:$package"
+          tags="crate:${directory##*/},event:${{ github.event_name }},test:${{ matrix.test }},stage:dev"
           curl -X POST "https://http-intake.logs.datadoghq.com/api/v2/logs" \
             -H "Content-Type: application/json" \
             -H "DD-API-KEY: ${{ secrets.DATADOG_API_KEY }}" \
