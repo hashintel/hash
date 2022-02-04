@@ -11,10 +11,10 @@ use crate::{
     datastore::{
         prelude::Store,
         table::{
-            context::ExContext,
+            context::ContextMut,
             pool::{agent::AgentPool, message::MessagePool},
             references::MessageMap,
-            state::{view::StateSnapshot, ExState, ReadState, WriteState},
+            state::{view::StateSnapshot, ReadState, StateMut, WriteState},
         },
     },
     proto::ExperimentRunTrait,
@@ -48,7 +48,11 @@ impl Engine {
     ) -> Result<Engine> {
         let comms = Arc::new(comms);
 
-        let state = packages.init.run(Arc::clone(&config.clone())).await?;
+        let state = packages
+            .init
+            .run(Arc::clone(&config.clone()))
+            .instrument(tracing::info_span!("init_packages"))
+            .await?;
         let context = packages.step.empty_context(&config, state.num_agents())?;
         uninitialized_store.set(state, context);
         let store = uninitialized_store;
@@ -77,9 +81,16 @@ impl Engine {
     /// can technically be run any number of times.
     pub async fn next(&mut self, current_step: usize) -> Result<SimulationStepResult> {
         tracing::debug!("Running next step");
-        self.run_context_packages(current_step).await?;
-        self.run_state_packages().await?;
-        let output = self.run_output_packages().await?;
+        self.run_context_packages(current_step)
+            .instrument(tracing::info_span!("context_packages"))
+            .await?;
+        self.run_state_packages()
+            .instrument(tracing::info_span!("state_packages"))
+            .await?;
+        let output = self
+            .run_output_packages()
+            .instrument(tracing::info_span!("output_packages"))
+            .await?;
         let agent_control = if !self.stop_messages.is_empty() {
             AgentControl::Stop(mem::take(&mut self.stop_messages))
         } else {
@@ -114,7 +125,11 @@ impl Engine {
         // Need write access to state to prepare for context packages,
         // so can't start state sync (with workers) yet.
         let (mut state, mut context) = self.store.take_upgraded()?;
-        let snapshot = self.prepare_for_context_packages(&mut state, &mut context)?;
+
+        let snapshot = {
+            let _span = tracing::debug_span!("prepare_context_packages").entered();
+            self.prepare_for_context_packages(&mut state, &mut context)?
+        };
 
         // Context packages use the snapshot and state packages use state.
         // Context packages will be ran before state packages, so start
@@ -124,13 +139,13 @@ impl Engine {
         // Synchronize snapshot with workers
         self.comms
             .state_snapshot_sync(&snapshot)
-            .instrument(tracing::trace_span!("snapshot_sync"))
+            .instrument(tracing::info_span!("snapshot_sync"))
             .await?;
 
         // After this point, we'll only need read access to state until
         // running the first state package. (Context packages don't have
         // write access to state.)
-        let state = Arc::new(state.downgrade());
+        let state = Arc::new(state.into_shared());
         // Synchronize state with workers
         async {
             let active_sync = self.comms.state_sync(&state).await?;
@@ -143,7 +158,7 @@ impl Engine {
 
             Result::Ok(())
         }
-        .instrument(tracing::trace_span!("state_sync"))
+        .instrument(tracing::info_span!("state_sync"))
         .await?;
 
         let pre_context = context.into_pre_context();
@@ -151,15 +166,15 @@ impl Engine {
             .packages
             .step
             .run_context(state.clone(), snapshot, pre_context)
-            .instrument(tracing::trace_span!("run_context_packages"))
+            .instrument(tracing::info_span!("run_context_packages"))
             .await?
-            .downgrade();
+            .into_shared();
 
         // Synchronize context with workers. `context` won't change
         // again until the next step.
         self.comms
             .context_batch_sync(&context, current_step, state.group_start_indices())
-            .instrument(tracing::trace_span!("context_sync"))
+            .instrument(tracing::info_span!("context_sync"))
             .await?;
 
         // Note: the comment below is mostly invalid until state sync is fixed
@@ -187,9 +202,9 @@ impl Engine {
         let state = self
             .packages
             .step
-            .run_state(state.upgrade(), &context)
+            .run_state(state.into_mut(), &context)
             .await?;
-        self.store.set(state.downgrade(), context);
+        self.store.set(state.into_shared(), context);
         Ok(())
     }
 
@@ -229,8 +244,8 @@ impl Engine {
     /// One example of this happening is the Neighbors Context Package.
     fn prepare_for_context_packages(
         &mut self,
-        state: &mut ExState,
-        context: &mut ExContext,
+        state: &mut StateMut,
+        context: &mut ContextMut,
     ) -> Result<StateSnapshot> {
         tracing::trace!("Preparing for context packages");
         let message_map = state.message_map()?;
@@ -245,7 +260,7 @@ impl Engine {
     /// Operates based on the "create_agent", "remove_agent", and "stop" messages sent to "hash"
     /// through agent inboxes. Also creates and removes agents that have been requested by State
     /// packages.
-    fn handle_messages(&mut self, state: &mut ExState, message_map: &MessageMap) -> Result<()> {
+    fn handle_messages(&mut self, state: &mut StateMut, message_map: &MessageMap) -> Result<()> {
         let read = state.message_pool().read()?;
         let mut commands = Commands::from_hash_messages(message_map, read)?;
         commands.merge(self.comms.take_commands()?);
@@ -259,8 +274,8 @@ impl Engine {
     /// the old inbox dataframe and use it as the new outbox dataframe.
     fn finalize_agent_messages(
         &mut self,
-        state: &mut ExState,
-        context: &mut ExContext,
+        state: &mut StateMut,
+        context: &mut ContextMut,
     ) -> Result<MessagePool> {
         let message_pool = context.take_message_pool();
         let finalized_message_pool = state.reset_messages(message_pool, &self.config)?;
@@ -271,10 +286,10 @@ impl Engine {
     /// dataframe.
     fn finalize_agent_state(
         &mut self,
-        state: &mut ExState,
-        context: &mut ExContext,
+        state: &mut StateMut,
+        context: &mut ContextMut,
     ) -> Result<AgentPool> {
-        state.finalize_agent_pool(
+        state.finalize_context_agent_pool(
             context,
             &self.config.sim.store.agent_schema,
             &self.config.exp.run.base().id,

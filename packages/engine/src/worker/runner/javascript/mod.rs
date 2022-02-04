@@ -45,7 +45,10 @@ use crate::{
         enum_dispatch::TaskSharedStore,
         package::{id::PackageId, PackageType},
     },
-    worker::{Error as WorkerError, Result as WorkerResult, TaskMessage},
+    types::TaskId,
+    worker::{
+        runner::javascript::mv8::Values, Error as WorkerError, Result as WorkerResult, TaskMessage,
+    },
     Language,
 };
 
@@ -250,8 +253,8 @@ struct RunnerImpl<'m> {
 }
 
 // we pass in _mv8 for the return values lifetime
-fn sim_id_to_js(_mv8: &MiniV8, sim_run_id: SimulationShortId) -> mv8::Value<'_> {
-    mv8::Value::Number(sim_run_id as f64)
+fn sim_id_to_js(_mv8: &MiniV8, sim_id: SimulationShortId) -> mv8::Value<'_> {
+    mv8::Value::Number(sim_id as f64)
 }
 
 // we pass in _mv8 for the return values lifetime
@@ -293,12 +296,12 @@ fn batches_from_shared_store(
                 PartialSharedState::Read(partial) => (
                     partial.inner.agent_pool().batches(),
                     partial.inner.message_pool().batches(),
-                    partial.indices.clone(), // TODO: Avoid cloning?
+                    partial.group_indices.clone(), // TODO: Avoid cloning?
                 ),
                 PartialSharedState::Write(partial) => (
                     partial.inner.agent_pool().batches(),
                     partial.inner.message_pool().batches(),
-                    partial.indices.clone(), // TODO: Avoid cloning?
+                    partial.group_indices.clone(), // TODO: Avoid cloning?
                 ),
             }
         }
@@ -404,8 +407,8 @@ fn array_to_errors(array: mv8::Value<'_>) -> Vec<RunnerError> {
     }]
 }
 
-fn get_js_error(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Error> {
-    if let Ok(errors) = r.get("user_errors") {
+fn get_js_error(_mv8: &MiniV8, return_val: &mv8::Object<'_>) -> Option<Error> {
+    if let Ok(errors) = return_val.get("user_errors") {
         if !matches!(errors, mv8::Value::Undefined) && !matches!(errors, mv8::Value::Null) {
             let errors = array_to_errors(errors);
             if !errors.is_empty() {
@@ -414,13 +417,13 @@ fn get_js_error(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Error> {
         }
     }
 
-    if let Ok(mv8::Value::String(e)) = r.get("pkg_error") {
+    if let Ok(mv8::Value::String(e)) = return_val.get("pkg_error") {
         // TODO: Don't silently ignore non-string, non-null-or-undefined errors
         //       (try to convert error value to JSON string and return as error?).
         return Some(Error::Package(e.to_string()));
     }
 
-    if let Ok(mv8::Value::String(e)) = r.get("runner_error") {
+    if let Ok(mv8::Value::String(e)) = return_val.get("runner_error") {
         // TODO: Don't ignore non-string, non-null-or-undefined errors
         return Some(Error::Embedded(e.to_string()));
     }
@@ -428,8 +431,8 @@ fn get_js_error(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Error> {
     None
 }
 
-fn get_user_warnings(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Vec<RunnerError>> {
-    if let Ok(warnings) = r.get::<&str, mv8::Value<'_>>("user_warnings") {
+fn get_user_warnings(_mv8: &MiniV8, return_val: &mv8::Object<'_>) -> Option<Vec<RunnerError>> {
+    if let Ok(warnings) = return_val.get::<&str, mv8::Value<'_>>("user_warnings") {
         if !(warnings.is_undefined() || warnings.is_null()) {
             let warnings = array_to_errors(warnings);
             if !warnings.is_empty() {
@@ -440,8 +443,8 @@ fn get_user_warnings(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Vec<RunnerErr
     None
 }
 
-fn get_print(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Vec<String>> {
-    if let Ok(mv8::Value::String(printed_val)) = r.get("print") {
+fn get_print(_mv8: &MiniV8, return_val: &mv8::Object<'_>) -> Option<Vec<String>> {
+    if let Ok(mv8::Value::String(printed_val)) = return_val.get("print") {
         let printed_val = printed_val.to_string();
         if !printed_val.is_empty() {
             Some(printed_val.split('\n').map(|s| s.to_string()).collect())
@@ -453,8 +456,8 @@ fn get_print(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Vec<String>> {
     }
 }
 
-fn get_next_task(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Result<(MessageTarget, String)> {
-    let target = if let Ok(mv8::Value::String(target)) = r.get("target") {
+fn get_next_task(_mv8: &MiniV8, return_val: &mv8::Object<'_>) -> Result<(MessageTarget, String)> {
+    let target = if let Ok(mv8::Value::String(target)) = return_val.get("target") {
         let target = target.to_string();
         match target.as_str() {
             "JavaScript" => MessageTarget::JavaScript,
@@ -469,7 +472,7 @@ fn get_next_task(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Result<(MessageTarget, S
         MessageTarget::Main
     };
 
-    let next_task_payload = if let Ok(mv8::Value::String(s)) = r.get("task") {
+    let next_task_payload = if let Ok(mv8::Value::String(s)) = return_val.get("task") {
         s.to_string()
     } else {
         // TODO: Don't silently ignore non-string, non-null-or-undefined payloads
@@ -759,7 +762,7 @@ impl<'m> RunnerImpl<'m> {
         mv8: &'m MiniV8,
         sim_run_id: SimulationShortId,
         shared_store: &mut TaskSharedStore,
-        r: &mv8::Object<'m>,
+        return_val: &mv8::Object<'m>,
     ) -> Result<()> {
         let (proxy, group_indices) = match &mut shared_store.state {
             SharedState::None | SharedState::Read(_) => return Ok(()),
@@ -770,7 +773,7 @@ impl<'m> RunnerImpl<'m> {
             SharedState::Partial(partial) => match partial {
                 PartialSharedState::Read(_) => return Ok(()),
                 PartialSharedState::Write(state) => {
-                    let indices = state.indices.clone();
+                    let indices = state.group_indices.clone();
                     (&mut state.inner, indices)
                 }
             },
@@ -785,7 +788,7 @@ impl<'m> RunnerImpl<'m> {
         let agent_schema = state.agent_schema.clone();
         let msg_schema = state.msg_schema.clone();
 
-        let changes: mv8::Value<'_> = r.get("changes")?;
+        let changes: mv8::Value<'_> = return_val.get("changes")?;
         if group_indices.len() == 1 {
             self.flush_group(mv8, &agent_schema, &msg_schema, proxy, 0, changes)?;
         } else {
@@ -871,6 +874,97 @@ impl<'m> RunnerImpl<'m> {
         Ok(())
     }
 
+    /// TODO
+    fn handle_task_msg(
+        &mut self,
+        mv8: &'m MiniV8,
+        sim_id: SimulationShortId,
+        msg: RunnerTaskMsg,
+        outbound_sender: &UnboundedSender<OutboundFromRunnerMsg>,
+    ) -> Result<()> {
+        tracing::debug!("Starting state interim sync before running task");
+        // TODO: Move JS part of sync into `run_task` function in JS for better performance.
+        self.state_interim_sync(mv8, sim_id, &msg.shared_store)?;
+
+        tracing::debug!("Setting up run_task function call");
+
+        let (payload, wrapper) = msg
+            .payload
+            .extract_inner_msg_with_wrapper()
+            .map_err(|err| {
+                Error::from(format!("Failed to extract the inner task message: {err}"))
+            })?;
+        let payload_str = mv8::Value::String(mv8.create_string(&serde_json::to_string(&payload)?));
+
+        let context = msg.shared_store.context().clone();
+        let shared_stores = match msg.shared_store.state {
+            SharedState::None | SharedState::Write(_) | SharedState::Read(_) => {
+                // Run the task on all groups
+                vec![(None, msg.shared_store)]
+            }
+            SharedState::Partial(partial_shared_state) => partial_shared_state
+                .split_into_individual_per_group()
+                .into_iter()
+                .map(|shared_state| {
+                    debug_assert_eq!(shared_state.indices().len(), 1);
+                    let group_index = shared_state.indices()[0];
+                    (
+                        Some(group_index),
+                        TaskSharedStore::new(SharedState::Partial(shared_state), context.clone()),
+                    )
+                })
+                .collect(),
+        };
+
+        for (group_index, shared_store) in shared_stores {
+            let group_index = match group_index {
+                None => mv8::Value::Undefined,
+                Some(val) => mv8::Value::Number(val as f64),
+            };
+
+            let args = mv8::Values::from_vec(vec![
+                sim_id_to_js(mv8, sim_id),
+                group_index,
+                pkg_id_to_js(mv8, msg.package_id),
+                payload_str.clone(),
+            ]);
+
+            let (next_task_msg, warnings, logs) = self.run_task(
+                mv8,
+                args,
+                sim_id,
+                msg.package_id,
+                msg.task_id,
+                &wrapper,
+                shared_store,
+            )?;
+            // TODO: `send` fn to reduce code duplication.
+            outbound_sender.send(OutboundFromRunnerMsg {
+                span: Span::current(),
+                source: Language::JavaScript,
+                sim_id,
+                payload: OutboundFromRunnerMsgPayload::TaskMsg(next_task_msg),
+            })?;
+            if let Some(warnings) = warnings {
+                outbound_sender.send(OutboundFromRunnerMsg {
+                    span: Span::current(),
+                    source: Language::JavaScript,
+                    sim_id,
+                    payload: OutboundFromRunnerMsgPayload::RunnerWarnings(warnings),
+                })?;
+            }
+            if let Some(logs) = logs {
+                outbound_sender.send(OutboundFromRunnerMsg {
+                    span: Span::current(),
+                    source: Language::JavaScript,
+                    sim_id,
+                    payload: OutboundFromRunnerMsgPayload::RunnerLogs(logs),
+                })?;
+            }
+        }
+        Ok(())
+    }
+
     /// Runs a task on JavaScript with the provided simulation id.
     ///
     /// Returns the next task ([`TargetedRunnerTaskMsg`]) and, if present, warnings
@@ -883,100 +977,55 @@ impl<'m> RunnerImpl<'m> {
     /// - a value from Javascript could not be parsed,
     /// - the task errored, or
     /// - the state could not be flushed to the datastore.
+    #[allow(clippy::too_many_arguments)]
     fn run_task(
         &mut self,
         mv8: &'m MiniV8,
-        sim_run_id: SimulationShortId,
-        mut msg: RunnerTaskMsg,
+        args: Values<'m>,
+        sim_id: SimulationShortId,
+        package_id: PackageId,
+        task_id: TaskId,
+        wrapper: &serde_json::Value,
+        mut shared_store: TaskSharedStore,
     ) -> Result<(
         TargetedRunnerTaskMsg,
         Option<Vec<RunnerError>>,
         Option<Vec<String>>,
     )> {
-        tracing::debug!("Starting state interim sync before running task");
-        // TODO: Move JS part of sync into `run_task` function in JS for better performance.
-        self.state_interim_sync(mv8, sim_run_id, &msg.shared_store)?;
-
-        tracing::debug!("Setting up run_task function call");
-        let group_index = match &msg.shared_store.state {
-            SharedState::None | SharedState::Write(_) | SharedState::Read(_) => {
-                mv8::Value::Undefined
-            }
-            SharedState::Partial(partial) => match partial {
-                // TODO: Code duplication between read and write
-                PartialSharedState::Read(partial) => {
-                    if partial.indices.len() == 1 {
-                        mv8::Value::Number(partial.indices[0] as f64)
-                    } else {
-                        // Iterate over the subset of groups (since there's more than one group)
-                        todo!()
-                    }
-                }
-                PartialSharedState::Write(partial) => {
-                    if partial.indices.len() == 1 {
-                        mv8::Value::Number(partial.indices[0] as f64)
-                    } else {
-                        // Iterate over the subset of groups (since there's more than one group)
-                        todo!()
-                    }
-                }
-            },
-        };
-
-        let (payload, wrapper) = msg
-            .payload
-            .extract_inner_msg_with_wrapper()
-            .map_err(|err| {
-                Error::from(format!("Failed to extract the inner task message: {err}"))
-            })?;
-        let payload_str = mv8::Value::String(mv8.create_string(&serde_json::to_string(&payload)?));
-
-        let args = mv8::Values::from_vec(vec![
-            sim_id_to_js(mv8, sim_run_id),
-            group_index,
-            pkg_id_to_js(mv8, msg.package_id),
-            payload_str,
-        ]);
         tracing::debug!("Calling JS run_task");
-        let r: mv8::Object<'_> = self
+        let return_val: mv8::Object<'_> = self
             .embedded
             .run_task
             .call_method(self.this.clone(), args)?;
 
         tracing::debug!("Post-processing run_task result");
-        if let Some(error) = get_js_error(mv8, &r) {
+        if let Some(error) = get_js_error(mv8, &return_val) {
             // All types of errors are fatal (user, package, runner errors).
             return Err(error);
         }
-        let warnings = get_user_warnings(mv8, &r);
-        let logs = get_print(mv8, &r);
-        let (next_target, next_task_payload) = get_next_task(mv8, &r)?;
+        let warnings = get_user_warnings(mv8, &return_val);
+        let logs = get_print(mv8, &return_val);
+        let (next_target, next_task_payload) = get_next_task(mv8, &return_val)?;
 
         let next_inner_task_msg: serde_json::Value = serde_json::from_str(&next_task_payload)?;
-        tracing::trace!(
-            "Wrapper: {:?}, next_inner: {:?}",
-            &wrapper,
-            &next_inner_task_msg
-        );
         let next_task_payload =
-            TaskMessage::try_from_inner_msg_and_wrapper(next_inner_task_msg, wrapper).map_err(
-                |err| {
+            TaskMessage::try_from_inner_msg_and_wrapper(next_inner_task_msg, wrapper.clone())
+                .map_err(|err| {
                     Error::from(format!(
                         "Failed to wrap and create a new TaskMessage, perhaps the inner: \
                          {next_task_payload}, was formatted incorrectly. Underlying error: {err}"
                     ))
-                },
-            )?;
+                })?;
 
         // Only flushes if state writable
-        self.flush(mv8, sim_run_id, &mut msg.shared_store, &r)?;
+        self.flush(mv8, sim_id, &mut shared_store, &return_val)?;
 
         let next_task_msg = TargetedRunnerTaskMsg {
             target: next_target,
             msg: RunnerTaskMsg {
-                package_id: msg.package_id,
-                task_id: msg.task_id,
-                shared_store: msg.shared_store,
+                package_id,
+                task_id,
+                shared_store,
                 payload: next_task_payload,
             },
         };
@@ -1059,14 +1108,14 @@ impl<'m> RunnerImpl<'m> {
     fn state_interim_sync(
         &mut self,
         mv8: &'m MiniV8,
-        sim_run_id: SimulationShortId,
+        sim_id: SimulationShortId,
         shared_store: &TaskSharedStore,
     ) -> Result<()> {
         // Sync JS.
         let (agent_batches, msg_batches, group_indices) = batches_from_shared_store(shared_store)?;
         let (agent_batches, msg_batches) = state_to_js(mv8, &agent_batches, &msg_batches)?;
         let args = mv8::Values::from_vec(vec![
-            sim_id_to_js(mv8, sim_run_id),
+            sim_id_to_js(mv8, sim_id),
             idxs_to_js(mv8, &group_indices)?,
             agent_batches,
             msg_batches,
@@ -1142,30 +1191,7 @@ impl<'m> RunnerImpl<'m> {
             }
             InboundToRunnerMsgPayload::TaskMsg(msg) => {
                 let sim_id = sim_id.ok_or(Error::SimulationIdRequired("run task"))?;
-                let (next_task_msg, warnings, logs) = self.run_task(mv8, sim_id, msg)?;
-                // TODO: `send` fn to reduce code duplication.
-                outbound_sender.send(OutboundFromRunnerMsg {
-                    span: Span::current(),
-                    source: Language::JavaScript,
-                    sim_id,
-                    payload: OutboundFromRunnerMsgPayload::TaskMsg(next_task_msg),
-                })?;
-                if let Some(warnings) = warnings {
-                    outbound_sender.send(OutboundFromRunnerMsg {
-                        span: Span::current(),
-                        source: Language::JavaScript,
-                        sim_id,
-                        payload: OutboundFromRunnerMsgPayload::RunnerWarnings(warnings),
-                    })?;
-                }
-                if let Some(logs) = logs {
-                    outbound_sender.send(OutboundFromRunnerMsg {
-                        span: Span::current(),
-                        source: Language::JavaScript,
-                        sim_id,
-                        payload: OutboundFromRunnerMsgPayload::RunnerLogs(logs),
-                    })?;
-                }
+                self.handle_task_msg(mv8, sim_id, msg, outbound_sender)?;
             }
             InboundToRunnerMsgPayload::CancelTask(_) => {}
         }

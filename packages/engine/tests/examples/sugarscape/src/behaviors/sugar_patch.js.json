@@ -1,0 +1,13 @@
+{
+  "keys": {
+    "sugar": {
+      "nullable": false,
+      "type": "number"
+    },
+    "max_sugar": {
+      "nullable": false,
+      "type": "number"
+    }
+  },
+  "built_in_key_use": null
+}

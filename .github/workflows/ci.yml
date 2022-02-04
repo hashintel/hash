@@ -10,6 +10,18 @@ jobs:
 
       - uses: ./.github/actions/warm-up-repo
 
+      - name: Run yarn lint:dependency-version-consistency
+        if: ${{ success() || failure() }}
+        run: |
+          if ! yarn lint:dependency-version-consistency; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Try running `yarn fix:dependency-version-consistency` locally to apply autofixes.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
       - name: Run yarn lint:eslint
         if: ${{ success() || failure() }}
         run: |

@@ -1,0 +1,22 @@
+{
+  "show_zones": true,
+  "routes_map": "@hash/wholesale-warehouse/wholesale-warehouse-routes.csv",
+  "delivery_positions_layout": "@hash/wholesale-warehouse/wholesale-warehouse-delivery-positions.csv",
+  "interarrival_time": {
+    "min": 85,
+    "max": 95
+  },
+  "order_interarrival_time": {
+    "min": 45,
+    "max": 35
+  },
+  "forklifts_used": {
+    "unloader": 3,
+    "transfer": 7,
+    "acceptor": 3,
+    "placement": 8,
+    "control": 3,
+    "loader": 3
+  },
+  "max_order_queue": 20
+}

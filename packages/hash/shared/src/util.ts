@@ -44,16 +44,6 @@ export const collect = <P extends Array<any>>(
   };
 };
 
-type Entries<T> = {
-  [K in keyof T]: [K, T[K]];
-}[keyof T][];
-
-/**
- * @see https://stackoverflow.com/a/60142095
- */
-export const typeSafeEntries = <T>(obj: T): Entries<T> =>
-  Object.entries(obj) as any;
-
 export const isFileProperties = (props: {}): props is FileProperties => {
   return (
     "key" in props &&

@@ -12,26 +12,38 @@ use crate::{
     simulation::package::context::ContextColumn,
 };
 
-/// TODO: DOC, also field descriptions aren't particularly useful/correct
+/// The context is global, consistent data about the simulation at a single point in time, which is
+/// shared between all agents.
+///
+/// It contains information about the general simulation, rather than data belonging to specific
+/// agents. This is effectively what the agent 'can see', e.g. neighboring agents, incoming messages
+/// and globals. Due to it being a description of the current environment surrounding the agent,
+/// it's immutable (unlike an agent's specific state).
 pub struct Inner {
     batch: Arc<RwLock<ContextBatch>>,
-    /// Pool which contains all Static Agent Batches
+    // TODO: replace these two fields with `StateSnapshot`
+    /// Agent Batches that are a snapshot of state from the previous step.
     agent_pool: AgentPool,
-    /// Pool which contains all Inbox Batches
+    /// Pool that are a snapshot of the message batches from the previous step.
     message_pool: MessagePool,
-    /// Local metadata
+    // TODO: remove Meta, just move in removed_ids
+    /// The IDs of the batches that were removed between this step and the last.
     local_meta: Meta,
 }
 
+/// A wrapper object around the contents of the `Context`, to provide type-safe differentiation
+/// from something with write access to the `Context`. see ([`ExContext`])
 pub struct Context {
     inner: Inner,
 }
 
 impl Context {
+    // TODO: return ref and they can clone
     pub fn batch(&self) -> Arc<RwLock<ContextBatch>> {
         self.inner.batch.clone()
     }
 
+    /// TODO: DOC
     pub fn new_from_columns(
         cols: Vec<Arc<dyn arrow::array::Array>>,
         config: Arc<StoreConfig>,
@@ -53,8 +65,9 @@ impl Context {
         Ok(Context { inner })
     }
 
-    pub fn upgrade(self) -> ExContext {
-        ExContext { inner: self.inner }
+    /// Get mutable access to the Context.
+    pub fn into_mut(self) -> ContextMut {
+        ContextMut { inner: self.inner }
     }
 }
 
@@ -64,13 +77,15 @@ impl ReadContext for Context {
     }
 }
 
+// TODO can we just wrap the Context instead of needing another layer called Inner
 /// Exclusive (write) access to `Context`
-pub struct ExContext {
+pub struct ContextMut {
     inner: Inner,
 }
 
-impl ExContext {
-    pub fn downgrade(self) -> Context {
+impl ContextMut {
+    /// Give up mutable access and allow for it to be read in multiple places.
+    pub fn into_shared(self) -> Context {
         Context { inner: self.inner }
     }
 
@@ -110,6 +125,8 @@ impl ExContext {
     }
 }
 
+/// A subset of the Context that's used while running context packages, as the MessagePool and
+/// AgentPool are possibly invalid and unneeded while building/updating the context.
 pub struct PreContext {
     batch: Arc<RwLock<ContextBatch>>,
     /// Local metadata
@@ -117,12 +134,13 @@ pub struct PreContext {
 }
 
 impl PreContext {
+    /// TODO: DOC
     pub fn finalize(
         self,
         snapshot: StateSnapshot,
         column_writers: &[&ContextColumn],
         num_elements: usize,
-    ) -> Result<ExContext> {
+    ) -> Result<ContextMut> {
         let (agent_pool, message_pool) = snapshot.deconstruct();
         let inner = Inner {
             batch: self.batch,
@@ -130,19 +148,19 @@ impl PreContext {
             message_pool,
             local_meta: self.local_meta,
         };
-        let mut context = ExContext { inner };
+        let mut context = ContextMut { inner };
         context.write_batch(column_writers, num_elements)?;
         Ok(context)
     }
 }
 
-impl ReadContext for ExContext {
+impl ReadContext for ContextMut {
     fn inner(&self) -> &Inner {
         &self.inner
     }
 }
 
-impl WriteContext for ExContext {
+impl WriteContext for ContextMut {
     fn inner_mut(&mut self) -> &mut Inner {
         &mut self.inner
     }

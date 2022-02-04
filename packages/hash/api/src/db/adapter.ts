@@ -274,6 +274,14 @@ export interface DBClient {
   }): Promise<EntityType | null>;
 
   /**
+   * Get an `EntityType` by its Schema ID, i.e. the value for `$id` on the schema.
+   * @param params.schema$id the schema ID that exists on an `EntityType`.
+   */
+  getEntityTypeBySchema$id(params: {
+    schema$id: string;
+  }): Promise<EntityType | null>;
+
+  /**
    * Get all types that inherit from a specific type.
    */
   getEntityTypeChildren(params: { schemaRef: string }): Promise<EntityType[]>;

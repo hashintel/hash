@@ -300,7 +300,7 @@ fn state_sync_to_fbs<'f>(
     WIPOffset<Vector<'f, ForwardsUOffset<flatbuffers_gen::batch_generated::Batch<'f>>>>,
     WIPOffset<Vector<'f, ForwardsUOffset<flatbuffers_gen::batch_generated::Batch<'f>>>>,
 )> {
-    let agent_pool = agent_pool.read_batches()?;
+    let agent_pool = agent_pool.try_read_batches()?;
     let agent_pool: Vec<_> = agent_pool
         .iter()
         .map(|batch| batch_to_fbs(fbb, batch))
@@ -371,7 +371,7 @@ fn shared_store_to_fbs<'f>(
                     .iter()
                     .map(|b| batch_to_fbs(fbb, b))
                     .collect();
-                (a, m, partial.indices.clone())
+                (a, m, partial.group_indices.clone())
             }
             PartialSharedState::Write(partial) => {
                 let state = &partial.inner;
@@ -387,7 +387,7 @@ fn shared_store_to_fbs<'f>(
                     .iter()
                     .map(|b| batch_to_fbs(fbb, b))
                     .collect();
-                (a, m, partial.indices.clone())
+                (a, m, partial.group_indices.clone())
             }
         },
     };

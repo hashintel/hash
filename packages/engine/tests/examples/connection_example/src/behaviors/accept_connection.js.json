@@ -1,0 +1,9 @@
+{
+  "keys": {
+    "connected": {
+      "nullable": true,
+      "type": "string"
+    }
+  },
+  "built_in_key_use": null
+}

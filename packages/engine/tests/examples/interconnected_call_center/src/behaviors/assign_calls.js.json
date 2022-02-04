@@ -1,0 +1,29 @@
+{
+  "keys": {
+    "counter": {
+      "nullable": false,
+      "type": "number"
+    },
+    "operators": {
+      "type": "any",
+      "nullable": true
+    },
+    "links": {
+      "nullable": false,
+      "type": "list",
+      "child": {
+        "nullable": true,
+        "type": "string"
+      }
+    },
+    "call_queue": {
+      "type": "any",
+      "nullable": false
+    },
+    "current_calls": {
+      "type": "any",
+      "nullable": false
+    }
+  },
+  "built_in_key_use": null
+}

@@ -1,6 +1,6 @@
 import { Draft, produce } from "immer";
 import { BlockEntity, isTextContainingEntityProperties } from "./entity";
-import { DistributiveOmit, typeSafeEntries } from "./util";
+import { DistributiveOmit } from "./util";
 
 export type EntityStoreType = BlockEntity | BlockEntity["properties"]["entity"];
 
@@ -13,6 +13,7 @@ type PropertiesType<Properties extends {}> = Properties extends {
   : Properties;
 
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
+  accountId?: string | null;
   entityId: Type["entityId"] | null;
 
   // @todo thinking about removing this – as they're keyed by this anyway
@@ -69,69 +70,16 @@ export const draftEntityForEntityId = (
   entityId: string,
 ) => Object.values(draft).find((entity) => entity.entityId === entityId);
 
-export const walkObjectValueForEntity = <T extends {}>(
-  value: T,
-  entityHandler: <E extends EntityStoreType>(entity: E) => E,
-): T => {
-  let changed = false;
-  let result = value;
-
-  for (const [key, innerValue] of typeSafeEntries(value)) {
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    const nextValue = walkValueForEntity(innerValue, entityHandler);
-
-    if (nextValue !== innerValue) {
-      if (!changed) {
-        result = (Array.isArray(value) ? [...value] : { ...value }) as T;
-      }
-
-      changed = true;
-      result[key] = nextValue;
-    }
-  }
-
-  if (isEntity(value)) {
-    const nextValue = entityHandler(value);
-
-    if (nextValue !== value) {
-      changed = true;
-      result = nextValue;
-    }
-  }
-
-  return changed ? result : value;
-};
-
-/**
- * @deprecated
- * @todo remove this when we have a flat entity store
- */
-export const walkValueForEntity = <T>(
-  value: T,
-  entityHandler: <E extends EntityStoreType>(entity: E) => E,
-): T => {
-  if (typeof value !== "object" || value === null) {
-    return value;
-  }
-
-  return walkObjectValueForEntity(value, entityHandler);
-};
-
-const findEntities = (contents: EntityStoreType[]) => {
+const findEntities = (contents: BlockEntity[]): EntityStoreType[] => {
   const entities: EntityStoreType[] = [];
 
-  walkValueForEntity(contents, (entity) => {
-    if (isBlockEntity(entity)) {
-      entities.push(entity, entity.properties.entity);
+  for (const entity of contents) {
+    entities.push(entity, entity.properties.entity);
 
-      if (
-        isTextContainingEntityProperties(entity.properties.entity.properties)
-      ) {
-        entities.push(entity, entity.properties.entity.properties.text.data);
-      }
+    if (isTextContainingEntityProperties(entity.properties.entity.properties)) {
+      entities.push(entity.properties.entity.properties.text.data);
     }
-    return entity;
-  });
+  }
 
   return entities;
 };
@@ -157,7 +105,7 @@ const restoreDraftId = (
  * @todo clean up
  */
 export const createEntityStore = (
-  contents: EntityStoreType[],
+  contents: BlockEntity[],
   draftData: Record<string, DraftEntity>,
 ): EntityStore => {
   const saved: EntityStore["saved"] = {};

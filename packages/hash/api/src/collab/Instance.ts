@@ -6,10 +6,7 @@ import {
   BlockEntity,
   isTextContainingEntityProperties,
 } from "@hashintel/hash-shared/entity";
-import {
-  EntityStore,
-  walkValueForEntity,
-} from "@hashintel/hash-shared/entityStore";
+import { EntityStore } from "@hashintel/hash-shared/entityStore";
 import {
   addEntityStoreAction,
   disableEntityStoreTransactionInterpretation,
@@ -43,6 +40,7 @@ import { logger } from "../logger";
 import { EntityWatcher } from "./EntityWatcher";
 import { InvalidVersionError } from "./errors";
 import { CollabPositionPoller, TimedCollabPosition } from "./types";
+import { walkValueForEntity } from "./util";
 import { Waiting } from "./Waiting";
 
 const MAX_STEP_HISTORY = 10000;

@@ -1,0 +1,9 @@
+{
+  "keys": {
+    "agents": {
+      "type": "any",
+      "nullable": true
+    }
+  },
+  "built_in_key_use": null
+}

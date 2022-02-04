@@ -1,0 +1,41 @@
+[
+  {
+    "experiment": "startup_rate",
+    "expected-outputs": [
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {},
+      {}
+    ]
+  },
+  {
+    "experiment": "max_price_arange",
+    "expected-outputs": [{}, {}, {}, {}, {}, {}, {}, {}]
+  },
+  {
+    "experiment": "min_price_arange",
+    "expected-outputs": [{}, {}, {}, {}, {}]
+  },
+  {
+    "experiment": "max_cost_arange",
+    "expected-outputs": [{}, {}, {}, {}, {}, {}]
+  },
+  {
+    "experiment": "min_cost_arange",
+    "expected-outputs": [{}, {}, {}, {}, {}, {}]
+  }
+]

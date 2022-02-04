@@ -1,0 +1,14 @@
+{
+  "keys": {
+    "utilization_stats": {
+      "type": "any",
+      "nullable": true
+    },
+    "timestep": {
+      "nullable": true,
+      "type": "number"
+    }
+  },
+  "built_in_key_use": null,
+  "dynamic_access": false
+}

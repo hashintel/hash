@@ -1,0 +1,61 @@
+{
+  "outputs": {
+    "infected": [
+      { "op": "filter", "field": "color", "comparison": "eq", "value": "red" },
+      { "op": "count" }
+    ],
+    "strain_00": [
+      { "op": "filter", "field": "strain", "comparison": "eq", "value": "00" },
+      { "op": "count" }
+    ],
+    "strain_01": [
+      { "op": "filter", "field": "strain", "comparison": "eq", "value": "01" },
+      { "op": "count" }
+    ],
+    "strain_10": [
+      { "op": "filter", "field": "strain", "comparison": "eq", "value": "10" },
+      { "op": "count" }
+    ],
+    "strain_11": [
+      { "op": "filter", "field": "strain", "comparison": "eq", "value": "11" },
+      { "op": "count" }
+    ],
+    "cumulative_infected": [
+      {
+        "op": "filter",
+        "field": "was_sick",
+        "comparison": "eq",
+        "value": true
+      },
+      { "op": "count" }
+    ],
+    "dead_agents": [
+      { "op": "filter", "field": "dead", "comparison": "eq", "value": true },
+      { "op": "count" }
+    ]
+  },
+  "plots": [
+    {
+      "title": "Infected agents",
+      "type": "timeseries",
+      "data": [
+        { "y": "infected", "name": "infected" },
+        { "y": "cumulative_infected", "name": "cumulative_infected" },
+        { "y": "dead_agents", "name": "dead_agents" }
+      ],
+      "layout": {
+        "height": "50%",
+        "width": "100%",
+        "hideLegend": false,
+        "hideCollatedLegend": false
+      },
+      "position": { "x": "0%", "y": "0%" }
+    },
+    {
+      "title": "Strains",
+      "timeseries": ["strain_00", "strain_01", "strain_10", "strain_11"],
+      "layout": { "width": "100%", "height": "50%" },
+      "position": { "x": "0%", "y": "50%" }
+    }
+  ]
+}

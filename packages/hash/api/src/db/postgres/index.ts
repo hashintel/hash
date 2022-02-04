@@ -134,6 +134,12 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.getEntityTypeByComponentId(params));
   }
 
+  getEntityTypeBySchema$id(
+    params: Parameters<DBClient["getEntityTypeBySchema$id"]>[0],
+  ): ReturnType<DBClient["getEntityTypeBySchema$id"]> {
+    return this.query((adapter) => adapter.getEntityTypeBySchema$id(params));
+  }
+
   getEntityTypeChildren(
     params: Parameters<DBClient["getEntityTypeChildren"]>[0],
   ): ReturnType<DBClient["getEntityTypeChildren"]> {

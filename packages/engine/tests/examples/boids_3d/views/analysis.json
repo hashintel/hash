@@ -1,0 +1,13 @@
+{
+  "outputs": {
+    "count": [{ "op": "count" }]
+  },
+  "plots": [
+    {
+      "title": "Agent count",
+      "timeseries": ["count"],
+      "layout": { "width": "100%", "height": "80%" },
+      "position": { "x": "0%", "y": "0%" }
+    }
+  ]
+}

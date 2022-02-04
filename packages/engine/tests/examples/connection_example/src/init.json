@@ -1,0 +1,28 @@
+[
+  {
+    "behaviors": ["accept_connection.js"],
+    "position": [0, 0],
+    "connected": "",
+    "height": 2
+  },
+  {
+    "behaviors": ["connect.js"],
+    "position": [2, 2],
+    "connected": ""
+  },
+  {
+    "behaviors": ["connect.js"],
+    "position": [-2, 2],
+    "connected": ""
+  },
+  {
+    "behaviors": ["connect.js"],
+    "position": [-2, -2],
+    "connected": ""
+  },
+  {
+    "behaviors": ["connect.js"],
+    "position": [2, -2],
+    "connected": ""
+  }
+]
