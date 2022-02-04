@@ -2,6 +2,9 @@ name: Rust
 
 on:
   pull_request:
+  push:
+    branches:
+      - main
 
 defaults:
   run:
@@ -23,6 +26,7 @@ jobs:
       clippy: ${{ steps.crates.outputs.clippy }}
       test: ${{ steps.crates.outputs.test }}
       bench: ${{ steps.crates.outputs.bench }}
+      samples: ${{ steps.samples.outputs.samples }}
       toolchains: ${{ steps.toolchains.outputs.toolchains }}
     steps:
       - name: Checkout source code
@@ -72,10 +76,18 @@ jobs:
           echo "::set-output name=toolchains::$toolchains"
           echo "use toolchains: $(echo $toolchains | jq -r)"
 
+      - name: Determine samples
+        id: samples
+        run: |
+          if [[ ${{ github.event_name }} = pull_request ]]; then
+            echo "::set-output name=samples::1"
+          else
+            echo "::set-output name=samples::10"
+          fi
   rustfmt:
     name: rustfmt
     needs: setup
-    if: needs.setup.outputs.rustfmt != '[]'
+    if: needs.setup.outputs.rustfmt != '[]' && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -120,7 +132,7 @@ jobs:
   clippy:
     name: clippy
     needs: setup
-    if: needs.setup.outputs.clippy != '[]'
+    if: needs.setup.outputs.clippy != '[]' && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -189,7 +201,7 @@ jobs:
   test:
     name: test
     needs: setup
-    if: needs.setup.outputs.test != '[]'
+    if: needs.setup.outputs.test != '[]' && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -308,17 +320,33 @@ jobs:
         run: cargo build -p server --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }}
 
       - name: Run tests
+        env:
+          SAMPLES: ${{ needs.setup.outputs.samples }}
         run: cargo test --test ${{ matrix.tests }} --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }}
 
-      - name: Read results
+      - name: Upload to DataDog
         if: always()
         run: |
-          find ${{ matrix.directory }}/${{ env.OUTPUT_DIRECTORY }} -name timing.json -exec cat {} + | jq '{(.test_path): . | del(.test_path)}' | jq -s add
+          message=$(find ${{ matrix.directory }}/${{ env.OUTPUT_DIRECTORY }} -name timing.json -exec cat {} + \
+                    | sed 's|::|-|g' \
+                    | jq '{(.test_path): . | del(.test_path)}' | jq -s add)
+          directory="${{ matrix.directory }}"
+          tags="crate:${directory##*/},event:${{ github.event_name }},test:${{ matrix.tests }},stage:dev,toolchain:${{ matrix.toolchain }},user:${{ github.actor }}"
+          if [[ ${{ github.ref_type }} = branch ]]; then
+            tags="$tags,branch:${{ github.ref_name }}"
+          fi
+          curl -X POST "https://http-intake.logs.datadoghq.com/api/v2/logs" \
+            -H "Content-Type: application/json" \
+            -H "DD-API-KEY: ${{ secrets.DATADOG_API_KEY }}" \
+            -d $(jq -cn \
+                    --argjson message "$message" \
+                    --arg ddtags "$tags" \
+                    '{ message: $message, ddsource: "hash-gh-actions", hostname: "github", service: "actions", ddtags: $ddtags }')
 
   merging-enabled:
     name: merging enabled
     needs: [rustfmt, clippy, test]
-    if: always()
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: check rustfmt
