@@ -316,7 +316,9 @@ jobs:
       - name: Upload to DataDog
         if: always()
         run: |
-          message=$(find ${{ matrix.directory }}/${{ env.OUTPUT_DIRECTORY }} -name timing.json -exec cat {} + | jq '{(.test_path): . | del(.test_path)}' | jq -s add)
+          message=$(find ${{ matrix.directory }}/${{ env.OUTPUT_DIRECTORY }} -name timing.json -exec cat {} + \
+                    | sed 's|::|-|g' \
+                    | jq '{(.test_path): . | del(.test_path)}' | jq -s add)
           directory="${{ matrix.directory }}"
           tags="crate:${directory##*/},event:${{ github.event_name }},test:${{ matrix.tests }},stage:dev,toolchain:${{ matrix.toolchain }},user:${{ github.actor }}"
           if [[ ${{ github.ref_type }} = branch ]]; then
