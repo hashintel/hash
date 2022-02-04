@@ -35,7 +35,7 @@ import {
   updatePageMutation,
 } from "@hashintel/hash-shared/save";
 import { Response } from "express";
-import { isEqual } from "lodash";
+import { isEqual, memoize } from "lodash";
 import { Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import { Mapping, Step, Transform } from "prosemirror-transform";
@@ -79,22 +79,16 @@ type Update = StepUpdate | StoreUpdate | ActionUpdate;
  * same object given the same block account id and entity id – allows using
  * in Map and Set
  */
-const blockFilter = (() => {
-  const filters = new Map<string, BlockFilter>();
-
-  return ({
+const blockFilter = memoize(
+  ({
     accountId,
     entityId,
-  }: Pick<BlockEntity, "accountId" | "entityId">): BlockFilter => {
-    const key = `${accountId}/${entityId}`;
-
-    if (!filters.has(key)) {
-      filters.set(key, { accountId, entityId });
-    }
-
-    return filters.get(key)!;
-  };
-})();
+  }: Pick<BlockEntity, "accountId" | "entityId">): BlockFilter => ({
+    accountId,
+    entityId,
+  }),
+  ({ accountId, entityId }) => `${accountId}/${entityId}`,
+);
 
 // A collaborative editing document instance.
 export class Instance {
