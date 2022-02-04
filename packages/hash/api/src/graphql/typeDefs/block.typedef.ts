@@ -88,7 +88,8 @@ export const blockTypedef = gql`
     componentId: ID!
   }
 
-  input BlockFilter {
+  # Similar to EntityRef, except not linked to a specific version of the Entity
+  input LatestEntityRef {
     accountId: ID!
     entityId: ID!
   }
@@ -97,6 +98,6 @@ export const blockTypedef = gql`
     """
     Get a specified list of blocks by accountId and entityId
     """
-    blocks(blocks: [BlockFilter!]!): [Block!]!
+    blocks(blocks: [LatestEntityRef!]!): [Block!]!
   }
 `;

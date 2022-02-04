@@ -99,7 +99,7 @@ export const getPageQuery = gql`
 `;
 
 export const getBlocksQuery = gql`
-  query getBlocks($blocks: [BlockFilter!]!) {
+  query getBlocks($blocks: [LatestEntityRef!]!) {
     blocks(blocks: $blocks) {
       ...BlockFields
     }

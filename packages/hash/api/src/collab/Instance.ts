@@ -14,7 +14,7 @@ import {
   entityStorePluginState,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import {
-  BlockFilter,
+  LatestEntityRef,
   GetBlocksQuery,
   GetBlocksQueryVariables,
   GetPageQuery,
@@ -35,7 +35,7 @@ import {
   updatePageMutation,
 } from "@hashintel/hash-shared/save";
 import { Response } from "express";
-import { isEqual, memoize } from "lodash";
+import { isEqual, memoize, pick } from "lodash";
 import { Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import { Mapping, Step, Transform } from "prosemirror-transform";
@@ -73,22 +73,6 @@ type ActionUpdate = {
 };
 
 type Update = StepUpdate | StoreUpdate | ActionUpdate;
-
-/**
- * Returns a BlockFilter for a specified block, but is guaranteed to return the
- * same object given the same block account id and entity id – allows using
- * in Map and Set
- */
-const blockFilter = memoize(
-  ({
-    accountId,
-    entityId,
-  }: Pick<BlockEntity, "accountId" | "entityId">): BlockFilter => ({
-    accountId,
-    entityId,
-  }),
-  ({ accountId, entityId }) => `${accountId}/${entityId}`,
-);
 
 // A collaborative editing document instance.
 export class Instance {
@@ -164,17 +148,44 @@ export class Instance {
    * walkValueForEntity cannot handle async operations
    */
   private async processEntityVersion(entityVersion: EntityVersion) {
+    /**
+     * This removes any extra properties from a passed object containing an
+     * accountId and entityId, which may be an Entity or a LatestEntityRef, or
+     * similar, in order to generate a LatestEntityRef with only the
+     * specific properties. This allows us to create objects which identify
+     * specific entities for use in GraphQL requests or comparisons. Because
+     * TypeScript's "substitutability", this function can be called with objects
+     * with extra properties than those specified.
+     *
+     * This function is memoized so that the resulting value can be used inside
+     * Map or Set, or for direct comparison, in absence of support for the
+     * Record proposal. The second argument to memoize allows calling this
+     * function with an object.
+     *
+     * This is defined locally as we only need calls to be referentially equal
+     * within the scope of `processEntityVersion`.
+     *
+     * @todo replace this with a Record once the proposal is usable
+     * @see https://github.com/tc39/proposal-record-tuple
+     * @see https://github.com/Microsoft/TypeScript/wiki/FAQ#substitutability
+     */
+    const getEntityRef = memoize(
+      (ref: { accountId: string; entityId: string }): LatestEntityRef =>
+        pick(ref, "accountId", "entityId"),
+      ({ accountId, entityId }) => `${accountId}/${entityId}`,
+    );
+
     const entityVersionTime = new Date(entityVersion.updatedAt).getTime();
-    const blocksToRefresh = new Set<BlockFilter>();
-    const versionFilter = blockFilter(entityVersion);
+    const blocksToRefresh = new Set<LatestEntityRef>();
+    const entityVersionRef = getEntityRef(entityVersion);
 
     walkValueForEntity(this.savedContents, (entity, blockEntity) => {
-      const filter = blockFilter(entity);
+      const entityRef = getEntityRef(entity);
       if (
-        filter === versionFilter &&
+        entityRef === entityVersionRef &&
         entityVersionTime > new Date(entity.updatedAt).getTime()
       ) {
-        blocksToRefresh.add(blockFilter(blockEntity));
+        blocksToRefresh.add(getEntityRef(blockEntity));
       }
     });
 
@@ -190,17 +201,17 @@ export class Instance {
         fetchPolicy: "network-only",
       });
 
-      const refreshedPageBlocks = new Map<BlockFilter, BlockEntity>(
+      const refreshedPageBlocks = new Map<LatestEntityRef, BlockEntity>(
         refreshedBlocksQuery.data.blocks.map(
-          (block) => [blockFilter(block), block] as const,
+          (block) => [getEntityRef(block), block] as const,
         ) ?? [],
       );
 
       const nextSavedContents = this.savedContents.map((block) => {
-        const filterForBlock = blockFilter(block);
+        const blockRef = getEntityRef(block);
 
-        if (blocksToRefresh.has(filterForBlock)) {
-          const refreshedBlock = refreshedPageBlocks.get(filterForBlock);
+        if (blocksToRefresh.has(blockRef)) {
+          const refreshedBlock = refreshedPageBlocks.get(blockRef);
 
           if (!refreshedBlock) {
             throw new Error("Cannot find updated block in updated page");
