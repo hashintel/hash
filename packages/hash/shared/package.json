@@ -19,7 +19,8 @@
     "fix:eslint": "eslint --ext .js,.ts,.tsx --fix ./src/",
     "postinstall": "yarn codegen",
     "lint:eslint": "eslint --ext .js,.ts,.tsx ./src/",
-    "lint:tsc": "tsc --noEmit"
+    "lint:tsc": "tsc --noEmit",
+    "test": "jest"
   },
   "dependencies": {
     "@apollo/client": "3.3.21",

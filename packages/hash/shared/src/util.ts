@@ -193,3 +193,31 @@ export const treeFromParentReferences = <
     (element) => element[reference] == null,
   );
 };
+
+/**
+ * Try to traverse a Graph and flatMap each node.
+ * @param graph any object which may contain object values
+ * @param fn mapping function for each node
+ * @returns List of mapped nodes
+ */
+export const flatMapTree = <T>(graph: object, fn: (a: unknown) => T[]) => {
+  const queue = [graph];
+  const result: T[] = [];
+
+  // BFS traversal using FIFO queue
+  while (queue.length !== 0) {
+    const currentNode = queue.shift();
+
+    // Add current nodes to result array
+    result.push(...fn(currentNode));
+
+    // Traverse direct descendants of all nodes in the current depth
+    if (typeof currentNode === "object" && currentNode !== null) {
+      for (const current of Object.values(currentNode)) {
+        queue.push(current);
+      }
+    }
+  }
+
+  return result;
+};
