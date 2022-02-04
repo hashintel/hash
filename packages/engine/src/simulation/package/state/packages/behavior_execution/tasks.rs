@@ -72,7 +72,7 @@ impl WorkerPoolHandler for ExecuteBehaviorsTask {
     }
 }
 
-fn combine_task_messages(mut split_messages: Vec<TaskMessage>) -> Result<TaskMessage> {
+fn combine_task_messages(split_messages: Vec<TaskMessage>) -> Result<TaskMessage> {
     if split_messages.is_empty() {
         Err(Error::Unique(
             "Expected there to be at least one TaskMessage returned by the BehaviorExecutionTask"
