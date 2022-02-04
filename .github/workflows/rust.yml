@@ -321,8 +321,6 @@ jobs:
           tags="crate:${directory##*/},event:${{ github.event_name }},test:${{ matrix.tests }},stage:dev,toolchain:${{ matrix.toolchain }},user:${{ github.actor }}"
           if [[ ${{ github.ref_type }} = branch ]]; then
             tags="$tags,branch:${{ github.ref_name }}"
-          else
-            tags="$tags,tag:${{ github.ref_name }}"
           fi
           curl -X POST "https://http-intake.logs.datadoghq.com/api/v2/logs" \
             -H "Content-Type: application/json" \
