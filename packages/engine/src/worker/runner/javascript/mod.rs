@@ -895,72 +895,49 @@ impl<'m> RunnerImpl<'m> {
                 Error::from(format!("Failed to extract the inner task message: {err}"))
             })?;
         let payload_str = mv8::Value::String(mv8.create_string(&serde_json::to_string(&payload)?));
-
-        let context = msg.shared_store.context().clone();
-        let shared_stores = match msg.shared_store.state {
-            SharedState::None | SharedState::Write(_) | SharedState::Read(_) => {
-                // Run the task on all groups
-                vec![(None, msg.shared_store)]
-            }
-            SharedState::Partial(partial_shared_state) => partial_shared_state
-                .split_into_individual_per_group()
-                .into_iter()
-                .map(|shared_state| {
-                    debug_assert_eq!(shared_state.indices().len(), 1);
-                    let group_index = shared_state.indices()[0];
-                    (
-                        Some(group_index),
-                        TaskSharedStore::new(SharedState::Partial(shared_state), context.clone()),
-                    )
-                })
-                .collect(),
+        let group_index = match msg.group_index {
+            None => mv8::Value::Undefined,
+            Some(val) => mv8::Value::Number(val as f64),
         };
+        let args = mv8::Values::from_vec(vec![
+            sim_id_to_js(mv8, sim_id),
+            group_index,
+            pkg_id_to_js(mv8, msg.package_id),
+            payload_str.clone(),
+        ]);
 
-        for (group_index, shared_store) in shared_stores {
-            let group_index = match group_index {
-                None => mv8::Value::Undefined,
-                Some(val) => mv8::Value::Number(val as f64),
-            };
-
-            let args = mv8::Values::from_vec(vec![
-                sim_id_to_js(mv8, sim_id),
-                group_index,
-                pkg_id_to_js(mv8, msg.package_id),
-                payload_str.clone(),
-            ]);
-
-            let (next_task_msg, warnings, logs) = self.run_task(
-                mv8,
-                args,
-                sim_id,
-                msg.package_id,
-                msg.task_id,
-                &wrapper,
-                shared_store,
-            )?;
-            // TODO: `send` fn to reduce code duplication.
+        let (next_task_msg, warnings, logs) = self.run_task(
+            mv8,
+            args,
+            sim_id,
+            msg.group_index,
+            msg.package_id,
+            msg.task_id,
+            &wrapper,
+            msg.shared_store,
+        )?;
+        // TODO: `send` fn to reduce code duplication.
+        outbound_sender.send(OutboundFromRunnerMsg {
+            span: Span::current(),
+            source: Language::JavaScript,
+            sim_id,
+            payload: OutboundFromRunnerMsgPayload::TaskMsg(next_task_msg),
+        })?;
+        if let Some(warnings) = warnings {
             outbound_sender.send(OutboundFromRunnerMsg {
                 span: Span::current(),
                 source: Language::JavaScript,
                 sim_id,
-                payload: OutboundFromRunnerMsgPayload::TaskMsg(next_task_msg),
+                payload: OutboundFromRunnerMsgPayload::RunnerWarnings(warnings),
             })?;
-            if let Some(warnings) = warnings {
-                outbound_sender.send(OutboundFromRunnerMsg {
-                    span: Span::current(),
-                    source: Language::JavaScript,
-                    sim_id,
-                    payload: OutboundFromRunnerMsgPayload::RunnerWarnings(warnings),
-                })?;
-            }
-            if let Some(logs) = logs {
-                outbound_sender.send(OutboundFromRunnerMsg {
-                    span: Span::current(),
-                    source: Language::JavaScript,
-                    sim_id,
-                    payload: OutboundFromRunnerMsgPayload::RunnerLogs(logs),
-                })?;
-            }
+        }
+        if let Some(logs) = logs {
+            outbound_sender.send(OutboundFromRunnerMsg {
+                span: Span::current(),
+                source: Language::JavaScript,
+                sim_id,
+                payload: OutboundFromRunnerMsgPayload::RunnerLogs(logs),
+            })?;
         }
         Ok(())
     }
@@ -983,6 +960,7 @@ impl<'m> RunnerImpl<'m> {
         mv8: &'m MiniV8,
         args: Values<'m>,
         sim_id: SimulationShortId,
+        group_index: Option<usize>,
         package_id: PackageId,
         task_id: TaskId,
         wrapper: &serde_json::Value,
@@ -1025,6 +1003,7 @@ impl<'m> RunnerImpl<'m> {
             msg: RunnerTaskMsg {
                 package_id,
                 task_id,
+                group_index,
                 shared_store,
                 payload: next_task_payload,
             },

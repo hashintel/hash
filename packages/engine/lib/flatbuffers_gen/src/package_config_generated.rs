@@ -467,19 +467,14 @@ pub fn size_prefixed_root_as_package_config_with_opts<'b, 'o>(
 }
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a PackageConfig and returns it.
-///
 /// # Safety
-///
 /// Callers must trust the given bytes do indeed contain a valid `PackageConfig`.
 pub unsafe fn root_as_package_config_unchecked(buf: &[u8]) -> PackageConfig {
     flatbuffers::root_unchecked::<PackageConfig>(buf)
 }
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a size prefixed PackageConfig and
-/// returns it.
-///
-/// # Safety
-///
+/// returns it. # Safety
 /// Callers must trust the given bytes do indeed contain a valid size prefixed `PackageConfig`.
 pub unsafe fn size_prefixed_root_as_package_config_unchecked(buf: &[u8]) -> PackageConfig {
     flatbuffers::size_prefixed_root_unchecked::<PackageConfig>(buf)

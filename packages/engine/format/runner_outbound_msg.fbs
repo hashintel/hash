@@ -26,13 +26,15 @@ struct TaskId {
 // fields:
 //    `package_sid`    : the short id for the package
 //    `task_id`        : the uuid for the task
-//    `metaversioning` : included when any batches have changed
-//                       (possibly since the last `StateSync`)
+//    `metaversioning` : included when any batches have changed (possibly since the last `StateSync`)
+//    `group_index`    : If present, it's the index of the group of agents to execute on. If absent, it indicates that
+//                       the task is to be executed on all groups
 //    `payload`        : payload for the task message (json)
 table TaskMsg {
   package_sid:uint64;
   task_id:TaskId;
   target:Target;
+  group_index:uint64;
   metaversioning:StateInterimSync;
   payload:Serialized (required);
 }

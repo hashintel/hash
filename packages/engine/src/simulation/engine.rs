@@ -53,6 +53,7 @@ impl Engine {
             .run(Arc::clone(&config.clone()))
             .instrument(tracing::info_span!("init_packages"))
             .await?;
+        tracing::trace!("Init packages completed, building empty context");
         let context = packages.step.empty_context(&config, state.num_agents())?;
         uninitialized_store.set(state, context);
         let store = uninitialized_store;
