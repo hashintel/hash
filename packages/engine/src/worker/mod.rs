@@ -10,7 +10,7 @@ mod pending;
 pub mod runner;
 pub mod task;
 
-use std::{future::Future, pin::Pin, time::Duration};
+use std::{collections::hash_map::Entry, future::Future, pin::Pin, time::Duration};
 
 use futures::{
     stream::{FuturesOrdered, FuturesUnordered},
@@ -385,8 +385,13 @@ impl WorkerController {
         Ok(())
     }
 
-    /// Sends a message to runners to cancel the current task and sends `message` to the worker
-    /// pool. TODO: update
+    /// Handles the terminating message of a sub-Task associated with a group (i.e. the last one in
+    /// its execution chain, which will be sent to "Main")
+    ///
+    /// - Drops the `TaskSharedStore` associated with the sub-Task.
+    /// - Removes the `PendingGroup` from the `PendingWorkerTask`, and if there are no more
+    /// `PendingGroup`s then the Task has finished and sends a message to runners to cancel any
+    /// work they're doing on the Task and sends `message` to the worker pool.
     async fn handle_end_message(
         &mut self,
         task_id: TaskId,
@@ -394,25 +399,27 @@ impl WorkerController {
         group_index: Option<usize>,
         source: Language,
         message: TaskMessage,
-        shared_store: TaskSharedStore, // TODO: DOC The shared store of a sub-task
+        shared_store: TaskSharedStore,
     ) -> Result<()> {
         // `shared_store` metaversioning should have been kept updated
         // by the runners, so it doesn't need to be updated at this point.
         // Important to drop here since we then lose the access to the shared store
         drop(shared_store);
 
-        // TODO rework this structure, it's gross
-        let drop_task = if let Some(task) = self.tasks.inner.get_mut(&task_id) {
+        if let Entry::Occupied(mut entry) = self.tasks.inner.entry(task_id) {
+            let task = entry.get_mut();
+
             if let Some(completed_group_index) = task
                 .pending_groups
                 .iter()
                 .position(|group| group.group_index == group_index)
             {
-                tracing::trace!("Group: {group_index:?} finished, removing");
                 task.pending_groups.remove(completed_group_index);
-                tracing::trace!("Pending groups: {:?}", task.pending_groups);
             };
+
             if task.pending_groups.is_empty() {
+                entry.remove();
+
                 tracing::trace!(
                     "No more pending groups on task [{task_id}], cancelling task on the other \
                      runners"
@@ -425,15 +432,7 @@ impl WorkerController {
                         payload: TaskResultOrCancelled::Result(message),
                     }),
                 )?;
-                true
-            } else {
-                false
             }
-        } else {
-            false
-        };
-        if drop_task {
-            let _ = self.tasks.inner.remove(&task_id);
         }
         Ok(())
     }
