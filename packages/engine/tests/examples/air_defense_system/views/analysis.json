@@ -1,0 +1,51 @@
+{
+  "outputs": {
+    "Normal Assets": [
+      {
+        "op": "filter",
+        "field": "status",
+        "comparison": "eq",
+        "value": "normal"
+      },
+      {
+        "op": "count"
+      }
+    ],
+    "Burning Assets": [
+      {
+        "op": "filter",
+        "field": "status",
+        "comparison": "eq",
+        "value": "burning"
+      },
+      {
+        "op": "count"
+      }
+    ],
+    "Destroyed Assets": [
+      {
+        "op": "filter",
+        "field": "status",
+        "comparison": "eq",
+        "value": "destroyed"
+      },
+      {
+        "op": "count"
+      }
+    ]
+  },
+  "plots": [
+    {
+      "title": "Asset Status",
+      "layout": {
+        "width": "100%",
+        "height": "50%"
+      },
+      "position": {
+        "x": "0%",
+        "y": "0%"
+      },
+      "timeseries": ["Normal Assets", "Burning Assets", "Destroyed Assets"]
+    }
+  ]
+}

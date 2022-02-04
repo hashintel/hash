@@ -1,0 +1,21 @@
+{
+  "keys": {
+    "agents": {
+      "type": "any",
+      "nullable": true
+    },
+    "assets_template": {
+      "type": "any",
+      "nullable": true
+    },
+    "radar_template": {
+      "type": "any",
+      "nullable": true
+    },
+    "type": {
+      "nullable": true,
+      "type": "string"
+    }
+  },
+  "built_in_key_use": null
+}
