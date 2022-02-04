@@ -256,8 +256,8 @@ impl WorkerController {
             WorkerPoolToWorkerMsgPayload::CancelTask(_task_id) => {
                 // TODO: We don't currently use Task cancelling, and to be able use it we would need
                 //  to change how and when cancel messages are sent
-                // completely rework task cancelling self.cancel_task(task_id).
-                // instrument(span).await?;
+                // self.cancel_task(task_id).
+                //   instrument(span).await?;
             }
             WorkerPoolToWorkerMsgPayload::NewSimulationRun(new_simulation_run) => {
                 self.new_simulation_run(new_simulation_run)
