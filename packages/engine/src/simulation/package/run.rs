@@ -73,6 +73,7 @@ impl InitPackages {
             agents.append(&mut new_agents?);
         }
 
+        tracing::trace!("Init packages finished, building state");
         let state = State::from_agent_states(agents, sim_config)?;
         Ok(state)
     }

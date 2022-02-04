@@ -178,19 +178,14 @@ pub fn size_prefixed_root_as_runner_error_with_opts<'b, 'o>(
 }
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a RunnerError and returns it.
-///
 /// # Safety
-///
 /// Callers must trust the given bytes do indeed contain a valid `RunnerError`.
 pub unsafe fn root_as_runner_error_unchecked(buf: &[u8]) -> RunnerError {
     flatbuffers::root_unchecked::<RunnerError>(buf)
 }
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a size prefixed RunnerError and
-/// returns it.
-///
-/// # Safety
-///
+/// returns it. # Safety
 /// Callers must trust the given bytes do indeed contain a valid size prefixed `RunnerError`.
 pub unsafe fn size_prefixed_root_as_runner_error_unchecked(buf: &[u8]) -> RunnerError {
     flatbuffers::size_prefixed_root_unchecked::<RunnerError>(buf)
