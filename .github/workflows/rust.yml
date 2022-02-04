@@ -2,6 +2,9 @@ name: Rust
 
 on:
   pull_request:
+  push:
+    branches:
+      - main
 
 defaults:
   run:
@@ -75,7 +78,7 @@ jobs:
   rustfmt:
     name: rustfmt
     needs: setup
-    if: needs.setup.outputs.rustfmt != '[]'
+    if: needs.setup.outputs.rustfmt != '[]' && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -120,7 +123,7 @@ jobs:
   clippy:
     name: clippy
     needs: setup
-    if: needs.setup.outputs.clippy != '[]'
+    if: needs.setup.outputs.clippy != '[]' && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -189,7 +192,7 @@ jobs:
   test:
     name: test
     needs: setup
-    if: needs.setup.outputs.test != '[]'
+    if: needs.setup.outputs.test != '[]' && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -328,7 +331,7 @@ jobs:
   merging-enabled:
     name: merging enabled
     needs: [rustfmt, clippy, test]
-    if: always()
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: check rustfmt
