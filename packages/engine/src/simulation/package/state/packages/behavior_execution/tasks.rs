@@ -49,7 +49,7 @@ impl WorkerHandler for ExecuteBehaviorsTask {
         })
     }
 
-    fn combine_task_messages(&self, mut task_messages: Vec<TaskMessage>) -> Result<TaskMessage> {
+    fn combine_task_messages(&self, task_messages: Vec<TaskMessage>) -> Result<TaskMessage> {
         combine_task_messages(task_messages)
     }
 }
