@@ -3,6 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "description": "Insert an image",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git",
+    "directory": "packages/blocks/image"
+  },
   "license": "MIT",
   "author": "HASH",
   "main": "src/index.ts",
