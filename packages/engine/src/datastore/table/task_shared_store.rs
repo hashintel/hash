@@ -155,7 +155,7 @@ impl PartialSharedState {
         }))
     }
 
-    /// Partitions this PartialSharedState into many PartialSharedStates, one for each group index
+    /// Partitions this `PartialSharedState` into many `PartialSharedState`s, one for each group index
     pub fn split_into_individual_per_group(self) -> Vec<Self> {
         match self {
             Self::Read(partial_read_proxy) => {
