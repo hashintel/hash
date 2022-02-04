@@ -3,6 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "description": "Just start writing",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git",
+    "directory": "packages/blocks/paragraph"
+  },
   "license": "MIT",
   "author": "HASH",
   "main": "src/index.ts",

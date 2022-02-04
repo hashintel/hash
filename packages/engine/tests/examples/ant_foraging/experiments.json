@@ -1,0 +1,44 @@
+{
+  "fastest_gathering": {
+    "type": "optimization",
+    "maxRuns": 50,
+    "minSteps": 119,
+    "maxSteps": 120,
+    "metricName": "food_left",
+    "metricObjective": "min",
+    "fields": [
+      {
+        "name": "decay_rate",
+        "range": "0-1"
+      },
+      {
+        "name": "diffusion_rate",
+        "range": "0-1"
+      }
+    ]
+  },
+  "number_of_ants_arange": {
+    "steps": 100,
+    "type": "arange",
+    "field": "num_ants",
+    "start": 50,
+    "stop": 125,
+    "increment": 75
+  },
+  "decay_rate_arange": {
+    "steps": 1000,
+    "type": "arange",
+    "field": "decay_rate",
+    "start": 0,
+    "stop": 0.3,
+    "increment": 0.05
+  },
+  "diffusion_rate_arange": {
+    "steps": 200,
+    "type": "arange",
+    "field": "diffusion_rate",
+    "start": 0.1,
+    "stop": 1,
+    "increment": 0.1
+  }
+}

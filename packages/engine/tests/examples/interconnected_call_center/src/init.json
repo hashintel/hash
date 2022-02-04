@@ -1,0 +1,43 @@
+[
+  {
+    "behaviors": [
+      "create_call_centers.js",
+      "create_links.js",
+      "@hash/create-agents/create_agents.js",
+      "@hash/remove-self/remove_self.js"
+    ],
+    "agents": {},
+    "call_center_template": {
+      "behaviors": [
+        "generate_calls.js",
+        "assign_calls.js",
+        "handle_external_calls.js",
+        "answer_calls.js",
+        "cleanup.js"
+      ],
+      "height": 0,
+      "rgb": [255, 255, 255],
+      "nLocalAnswered": 0,
+      "nExternalAnswered": 0,
+      "nProcessed": 0,
+      "nBalked": 0,
+      "call_queue": [],
+      "current_calls": [],
+      "links": [],
+      "counter": 0,
+      "utilization_stats": {
+        "operators_percentage": 0,
+        "total_wait_time": 0,
+        "avg_wait_time": 0,
+        "timestep": 1
+      }
+    }
+  },
+  {
+    "behaviors": ["calculate_metric.js"],
+    "metric": 0,
+    "position": [0, 0, -1.5],
+    "search_radius": 100,
+    "hidden": true
+  }
+]

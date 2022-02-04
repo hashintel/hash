@@ -1,0 +1,16 @@
+{
+  "agent_count": 1000,
+  "cohesion": 10,
+  "inertia": 60,
+  "alignment": 30,
+  "separation": 70,
+  "separation_distance": 2,
+  "dimension": 3,
+  "topology": {
+    "search_radius": 5,
+    "x_bounds": [-30, 30],
+    "y_bounds": [-30, 30],
+    "z_bounds": [0, 30],
+    "wrapping_preset": "reflection"
+  }
+}

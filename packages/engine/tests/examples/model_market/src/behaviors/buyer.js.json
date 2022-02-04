@@ -1,0 +1,21 @@
+{
+  "keys": {
+    "purchased": {
+      "nullable": true,
+      "type": "boolean"
+    },
+    "can_buy": {
+      "nullable": false,
+      "type": "boolean"
+    },
+    "lowest_price": {
+      "nullable": true,
+      "type": "number"
+    },
+    "window_shopping_counter": {
+      "nullable": false,
+      "type": "number"
+    }
+  },
+  "built_in_key_use": null
+}

@@ -1,0 +1,43 @@
+{
+  "keys": {
+    "scale_scaling": {
+      "nullable": true,
+      "type": "struct",
+      "fields": {
+        "field": {
+          "nullable": true,
+          "type": "string"
+        },
+        "scale": {
+          "nullable": true,
+          "type": "string"
+        },
+        "field_bounds": {
+          "nullable": true,
+          "type": "fixed_size_list",
+          "length": 2,
+          "child": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "bounds": {
+          "nullable": true,
+          "type": "fixed_size_list",
+          "length": 2,
+          "child": {
+            "nullable": true,
+            "type": "fixed_size_list",
+            "length": 3,
+            "child": {
+              "type": "number",
+              "nullable": true
+            }
+          }
+        }
+      }
+    }
+  },
+  "built_in_key_use": null,
+  "dynamic_access": false
+}

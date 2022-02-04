@@ -49,6 +49,10 @@ export type DbEntity = {
   visibility: Visibility;
 };
 
+export type EntityWithOutgoingEntityIds = DbEntity & {
+  outgoingEntityIds?: string[];
+};
+
 export type DBLink = {
   linkId: string;
   path: string;
@@ -388,6 +392,17 @@ export interface DBClient {
     systemTypeName: SystemType;
   }): Promise<DbEntity[]>;
 
+  getEntitiesByTypeWithOutgoingEntityIds(params: {
+    accountId: string;
+    entityTypeId?: string;
+    systemTypeName?: SystemType;
+  }): Promise<EntityWithOutgoingEntityIds[]>;
+
+  getEntityWithOutgoingEntityIds(params: {
+    accountId: string;
+    entityId: string;
+  }): Promise<EntityWithOutgoingEntityIds | null>;
+
   /**
    * Get all account type entities (User or Account).
    */
@@ -425,6 +440,13 @@ export interface DBClient {
   getLink(params: {
     sourceAccountId: string;
     linkId: string;
+  }): Promise<DBLink | null>;
+
+  getLinkByEntityId(params: {
+    sourceAccountId: string;
+    sourceEntityId: string;
+    sourceEntityVersionId: string;
+    destinationEntityId: string;
   }): Promise<DBLink | null>;
 
   deleteLink(params: {

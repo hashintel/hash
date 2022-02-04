@@ -1,0 +1,64 @@
+[
+  {
+    "behaviors": [
+      "gis_data_upload.js",
+      "@hash/create-stacks/create_stacks.js",
+      "create_people.js",
+      "create_agents.js",
+      "@hash/remove-self/remove_self.js"
+    ],
+    "scatter_templates": [
+      {
+        "template_name": "homes",
+        "template_count": 200,
+        "height": 2,
+        "color": "yellow",
+        "shape": "house",
+        "scale": [2, 2, 2],
+        "behaviors": ["building_infection.js"],
+        "search_radius": 0,
+        "occupancy": 0
+      },
+      {
+        "template_name": "groceries",
+        "template_count": 20,
+        "height": 5,
+        "shape": "store",
+        "scale": [3, 3, 1],
+        "color": "purple",
+        "behaviors": ["building_infection.js"],
+        "search_radius": 0,
+        "occupancy": 0
+      },
+      {
+        "template_name": "offices",
+        "template_count": 30,
+        "height": 20,
+        "color": "grey",
+        "shape": "skyscraper",
+        "scale": [15, 15, 1],
+        "behaviors": ["building_infection.js"],
+        "search_radius": 0,
+        "occupancy": 0
+      }
+    ],
+    "stack_templates": [
+      {
+        "template_name": "hospitals",
+        "template_count": 1,
+        "template_position": "center",
+        "behaviors": ["test_for_virus.js"],
+        "height": 4,
+        "color": "blue",
+        "shape": "hospital",
+        "agent_name": "Hospital",
+        "icu_beds": 10
+      }
+    ]
+  },
+  {
+    "behaviors": ["social_distance.js"],
+    "search_radius": 70,
+    "timestep": 0
+  }
+]

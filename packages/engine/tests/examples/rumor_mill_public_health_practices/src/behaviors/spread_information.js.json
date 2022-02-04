@@ -1,0 +1,13 @@
+{
+  "keys": {
+    "hygiene": {
+      "nullable": false,
+      "type": "number"
+    },
+    "gov_trust": {
+      "nullable": false,
+      "type": "number"
+    }
+  },
+  "built_in_key_use": null
+}
