@@ -1,0 +1,5 @@
+[
+  {
+    "behaviors": ["create_warehouse.js", "@hash/remove-self/remove_self.js"]
+  }
+]

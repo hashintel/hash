@@ -1,0 +1,45 @@
+{
+  "keys": {
+    "hospital": {
+      "nullable": false,
+      "type": "list",
+      "child": {
+        "type": "number",
+        "nullable": true
+      }
+    },
+    "home": {
+      "nullable": false,
+      "type": "list",
+      "child": {
+        "type": "number",
+        "nullable": true
+      }
+    },
+    "health_status": {
+      "nullable": false,
+      "type": "string"
+    },
+    "icu": {
+      "nullable": false,
+      "type": "boolean"
+    },
+    "destination": {
+      "nullable": true,
+      "type": "list",
+      "child": {
+        "type": "number",
+        "nullable": true
+      }
+    },
+    "at_risk": {
+      "nullable": false,
+      "type": "boolean"
+    },
+    "infection_counter": {
+      "nullable": false,
+      "type": "number"
+    }
+  },
+  "built_in_key_use": null
+}

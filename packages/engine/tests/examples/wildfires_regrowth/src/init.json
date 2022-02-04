@@ -1,0 +1,18 @@
+[
+  {
+    "behaviors": [
+      "@hash/create-grids/create_grids.js",
+      "@hash/create-agents/create_agents.js",
+      "@hash/remove-self/remove_self.js"
+    ],
+    "grid_templates": [
+      {
+        "template_name": "forest",
+        "behaviors": ["forest.js", "@hash/age/age.rs"],
+        "color": "green",
+        "shape": "xmas-tree",
+        "scale": [2, 2]
+      }
+    ]
+  }
+]
