@@ -213,6 +213,7 @@ jobs:
           - ""
     env:
       V8_PATH: ${{ github.workspace }}/.v8
+      NUM_ATTEMPTS: 50
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -278,6 +279,8 @@ jobs:
     env:
       V8_PATH: ${{ github.workspace }}/.v8
       OUTPUT_DIRECTORY: test-results
+      NUM_ATTEMPTS: 50
+      SAMPLES: ${{ needs.setup.outputs.samples }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -320,8 +323,6 @@ jobs:
         run: cargo build -p server --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }}
 
       - name: Run tests
-        env:
-          SAMPLES: ${{ needs.setup.outputs.samples }}
         run: cargo test --test ${{ matrix.tests }} --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }} -- --test-threads=1
 
       - name: Upload to DataDog

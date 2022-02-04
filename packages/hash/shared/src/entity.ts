@@ -8,7 +8,12 @@ import {
   isEntity,
 } from "./entityStore";
 import { PageFieldsFragment, Text } from "./graphql/apiTypes.gen";
-import { DistributiveOmit, DistributivePick, isUnknownObject } from "./util";
+import {
+  DistributiveOmit,
+  DistributivePick,
+  flatMapTree,
+  isUnknownObject,
+} from "./util";
 
 type ContentsEntity = PageFieldsFragment["properties"]["contents"][number];
 
@@ -156,4 +161,31 @@ export const blockEntityIdExists = (entities: BlockEntity[]) => {
 
   return (blockEntityId: string | null): blockEntityId is string =>
     !!blockEntityId && ids.has(blockEntityId);
+};
+
+/**
+ * Flatmap a list of BlockEntities
+ * @param blockEntities blocks to traverse
+ * @param mapFn function to match each entity
+ * @returns a list of mapped values
+ */
+export const flatMapBlocks = <T>(
+  blockEntities: BlockEntity[],
+  mapFn: (entity: EntityStoreType, block: BlockEntity) => T[],
+) => {
+  const result = [];
+
+  for (const block of blockEntities) {
+    result.push(
+      ...flatMapTree(block, (node) => {
+        if (isEntity(node)) {
+          return mapFn(node, block);
+        }
+
+        return [];
+      }),
+    );
+  }
+
+  return result;
 };
