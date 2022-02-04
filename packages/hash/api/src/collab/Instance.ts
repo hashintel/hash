@@ -4,6 +4,7 @@ import { CollabPosition } from "@hashintel/hash-shared/collab";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import {
   BlockEntity,
+  flatMapBlocks,
   isTextContainingEntityProperties,
 } from "@hashintel/hash-shared/entity";
 import { EntityStore } from "@hashintel/hash-shared/entityStore";
@@ -43,7 +44,6 @@ import { logger } from "../logger";
 import { EntityWatcher } from "./EntityWatcher";
 import { InvalidVersionError } from "./errors";
 import { CollabPositionPoller, TimedCollabPosition } from "./types";
-import { walkValueForEntity } from "./util";
 import { Waiting } from "./Waiting";
 
 const MAX_STEP_HISTORY = 10000;
@@ -176,18 +176,22 @@ export class Instance {
     );
 
     const entityVersionTime = new Date(entityVersion.updatedAt).getTime();
-    const blocksToRefresh = new Set<LatestEntityRef>();
     const entityVersionRef = getEntityRef(entityVersion);
 
-    walkValueForEntity(this.savedContents, (entity, blockEntity) => {
-      const entityRef = getEntityRef(entity);
-      if (
-        entityRef === entityVersionRef &&
-        entityVersionTime > new Date(entity.updatedAt).getTime()
-      ) {
-        blocksToRefresh.add(getEntityRef(blockEntity));
-      }
-    });
+    const blocksToRefresh = new Set(
+      flatMapBlocks(this.savedContents, (entity, blockEntity) => {
+        const entityRef = getEntityRef(entity);
+
+        if (
+          entityRef === entityVersionRef &&
+          entityVersionTime > new Date(entity.updatedAt).getTime()
+        ) {
+          return [getEntityRef(blockEntity)];
+        }
+
+        return [];
+      }),
+    );
 
     if (blocksToRefresh.size) {
       const refreshedBlocksQuery = await this.fallbackClient.query<
