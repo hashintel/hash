@@ -1,0 +1,25 @@
+{
+  "keys": {
+    "sent": {
+      "nullable": false,
+      "type": "number"
+    },
+    "capacity": {
+      "nullable": false,
+      "type": "number"
+    },
+    "center_1": {
+      "nullable": true,
+      "type": "string"
+    },
+    "center_2": {
+      "nullable": true,
+      "type": "string"
+    },
+    "available": {
+      "nullable": false,
+      "type": "boolean"
+    }
+  },
+  "built_in_key_use": null
+}

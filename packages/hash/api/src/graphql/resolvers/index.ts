@@ -22,6 +22,7 @@ import {
   updatePage,
   updatePageContents,
   searchPages,
+  setParentPage,
 } from "./pages";
 import { accounts } from "./account/accounts";
 import { createUser } from "./user/createUser";
@@ -116,6 +117,7 @@ export const resolvers = {
     updatePageContents: loggedInAndSignedUp(updatePageContents),
     joinOrg: loggedInAndSignedUp(joinOrg),
     requestFileUpload: loggedInAndSignedUp(requestFileUpload),
+    setParentPage: loggedInAndSignedUp(setParentPage),
     // Logged in users only
     updateUser: loggedIn(updateUser),
     logout: loggedIn(logout),

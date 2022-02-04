@@ -1,0 +1,11 @@
+{
+  "n_call_centers": 16,
+  "call_distribution": { "min": 16, "mean": 30, "max": 80 },
+  "skill_level": { "min": 1, "max": 5 },
+  "operators": { "min": 5, "max": 25 },
+  "links_capacity": { "min": 0, "max": 8 },
+  "mean_call_duration": 5,
+  "optimizing": false,
+  "max_queue_size": 20,
+  "call_center_cost_factor": 100
+}
