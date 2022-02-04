@@ -43,6 +43,19 @@ impl WorkerHandler for ExecuteBehaviorsTask {
             payload: task_msg.into(),
         })
     }
+
+    fn combine_task_messages(&self, mut task_messages: Vec<TaskMessage>) -> Result<TaskMessage> {
+        if task_messages.is_empty() {
+            Err(Error::Unique(
+                "Expected there to be at least one TaskMessage returned by the \
+                 BehaviorExecutionTask"
+                    .to_string(),
+            ))
+        } else {
+            // The `ExecuteBehaviorsTaskMessage` is empty so there's no special combining logic
+            Ok(task_messages.remove(0))
+        }
+    }
 }
 
 impl WorkerPoolHandler for ExecuteBehaviorsTask {

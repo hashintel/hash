@@ -385,12 +385,12 @@ impl WorkerController {
         Ok(())
     }
 
-    /// Handles the terminating message of a sub-Task associated with a group (i.e. the last one in
+    /// Handles the terminating message of a sub-task associated with a group (i.e. the last one in
     /// its execution chain, which will be sent to "Main")
     ///
-    /// - Drops the `TaskSharedStore` associated with the sub-Task.
-    /// - Removes the `PendingGroup` from the `PendingWorkerTask`, and if there are no more
-    /// `PendingGroup`s then the Task has finished and sends a message to runners to cancel any
+    /// - Drops the [`TaskSharedStore`] associated with the sub-task.
+    /// - Removes the [`PendingGroup`] from the [`PendingWorkerTask`], and if there are no more
+    /// [`PendingGroup`]s then the Task has finished and sends a message to runners to cancel any
     /// work they're doing on the Task and sends `message` to the worker pool.
     async fn handle_end_message(
         &mut self,
@@ -405,11 +405,12 @@ impl WorkerController {
         // by the runners, so it doesn't need to be updated at this point.
         // It's important to drop here since we then lose the access to the shared store,
         // so the main loop can get access to state and context immediately after it
-        // receives the task completion message. 
+        // receives the task completion message.
         drop(shared_store);
 
         if let Entry::Occupied(mut entry) = self.tasks.inner.entry(task_id) {
             let task = entry.get_mut();
+            task.final_task_messages.push(message);
 
             if let Some(completed_group_index) = task
                 .pending_groups
@@ -420,7 +421,12 @@ impl WorkerController {
             };
 
             if task.pending_groups.is_empty() {
-                entry.remove();
+                let mut task = entry.remove();
+                let final_task_message = if task.final_task_messages.len() > 1 {
+                    task.inner.combine_task_messages(task.final_task_messages)?
+                } else {
+                    task.final_task_messages.remove(0)
+                };
 
                 tracing::trace!(
                     "No more pending groups on task [{task_id}], cancelling task on the other \
@@ -431,7 +437,7 @@ impl WorkerController {
                     sim_id,
                     WorkerToWorkerPoolMsg::TaskResultOrCancelled(WorkerTaskResultOrCancelled {
                         task_id,
-                        payload: TaskResultOrCancelled::Result(message),
+                        payload: TaskResultOrCancelled::Result(final_task_message),
                     }),
                 )?;
             }

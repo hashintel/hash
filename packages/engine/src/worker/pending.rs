@@ -1,7 +1,11 @@
 use std::collections::HashMap;
 
 use super::{Error, Result};
-use crate::{simulation::task::Task, types::TaskId, Language};
+use crate::{
+    simulation::{enum_dispatch::TaskMessage, task::Task},
+    types::TaskId,
+    Language,
+};
 
 #[allow(dead_code)]
 pub enum CancelState {
@@ -19,7 +23,12 @@ impl Default for CancelState {
 #[derive(derive_new::new)]
 pub struct PendingWorkerTask {
     pub inner: Task,
+    /// Groups that resulted in sub-tasks being created, that haven't yet returned a final
+    /// [`TaskMessage`]
     pub pending_groups: Vec<PendingGroup>,
+    /// A list of [`TaskMessage`]s sent by sub-tasks that have finished executing
+    #[new(default)]
+    pub final_task_messages: Vec<TaskMessage>,
     #[new(default)]
     pub cancelling: CancelState,
 }
