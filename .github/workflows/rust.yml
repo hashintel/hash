@@ -318,7 +318,12 @@ jobs:
         run: |
           message=$(find ${{ matrix.directory }}/${{ env.OUTPUT_DIRECTORY }} -name timing.json -exec cat {} + | jq '{(.test_path): . | del(.test_path)}' | jq -s add)
           directory="${{ matrix.directory }}"
-          tags="crate:${directory##*/},event:${{ github.event_name }},test:${{ matrix.test }},stage:dev"
+          tags="crate:${directory##*/},event:${{ github.event_name }},test:${{ matrix.tests }},stage:dev,toolchain=${{ matrix.toolchain }},user=${{ github.actor }}"
+          if [[ ${{ github.ref_type }} = branch ]]; then
+            tags="$tags,branch=${{ github.ref_name }}"
+          else
+            tags="$tags,tag=${{ github.ref_name }}"
+          fi
           curl -X POST "https://http-intake.logs.datadoghq.com/api/v2/logs" \
             -H "Content-Type: application/json" \
             -H "DD-API-KEY: ${{ secrets.DATADOG_API_KEY }}" \
