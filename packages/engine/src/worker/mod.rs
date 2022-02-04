@@ -254,8 +254,10 @@ impl WorkerController {
                     .await?;
             }
             WorkerPoolToWorkerMsgPayload::CancelTask(_task_id) => {
-                // TODO: we want to completely rework task cancelling
-                // self.cancel_task(task_id).instrument(span).await?;
+                // TODO: We don't currently use Task cancelling, and to be able use it we would need
+                //  to change how and when cancel messages are sent
+                // completely rework task cancelling self.cancel_task(task_id).
+                // instrument(span).await?;
             }
             WorkerPoolToWorkerMsgPayload::NewSimulationRun(new_simulation_run) => {
                 self.new_simulation_run(new_simulation_run)
@@ -340,7 +342,8 @@ impl WorkerController {
                 }
             },
             TaskCancelled(_task_id) => {
-                // TODO: We want to completely rework task cancelling
+                // TODO: We don't currently use Task cancelling, and to be able use it we would need
+                //  to change how and when cancel messages are sent
                 // self.handle_cancel_task_confirmation(task_id, sim_id, msg.source)
                 //     .in_current_span()
                 //     .await?;
@@ -559,7 +562,9 @@ impl WorkerController {
         _sim_id: SimulationShortId,
         _source: Language,
     ) -> Result<()> {
-        todo!(); // TODO: We want to completely rework task cancelling
+        // TODO: We don't currently use Task cancelling, and to be able use it we would need
+        //  to change how and when cancel messages are sent
+        todo!();
         // if let Some(task) = self.tasks.inner.get_mut(&task_id) {
         //     match task.cancelling {
         //         CancelState::Active(ref mut langs) => {
@@ -737,7 +742,8 @@ impl WorkerController {
         Ok(())
     }
 
-    // TODO: we want to completely rework task cancelling
+    // TODO: We don't currently use Task cancelling, and to be able use it we would need
+    //  to change how and when cancel messages are sent
     /// Sends a message to all spawned runners to cancel the current task.
     #[allow(dead_code)]
     async fn cancel_task(&mut self, task_id: TaskId) -> Result<()> {
