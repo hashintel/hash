@@ -1,12 +1,14 @@
 use std::{fmt, sync::Arc};
 
 use futures::future::join_all;
-use parking_lot::RwLock;
 
 use crate::{
     datastore::{
         prelude::ContextBatch,
-        table::pool::{agent::AgentPool, message::MessagePool},
+        table::{
+            pool::{agent::AgentPool, message::MessagePool},
+            proxy::BatchReadProxy,
+        },
     },
     simulation::comms::message::{SyncCompletionReceiver, SyncCompletionSender},
     worker::{
@@ -101,7 +103,7 @@ impl fmt::Debug for StateSync {
 
 #[derive(derive_new::new, Clone)]
 pub struct ContextBatchSync {
-    pub context_batch: Arc<RwLock<ContextBatch>>,
+    pub context_batch: BatchReadProxy<ContextBatch>,
     pub current_step: usize,
     pub state_group_start_indices: Arc<Vec<usize>>,
 }

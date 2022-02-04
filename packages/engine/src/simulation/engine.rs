@@ -11,7 +11,7 @@ use crate::{
     datastore::{
         prelude::Store,
         table::{
-            context::ContextMut,
+            context::Context,
             pool::{agent::AgentPool, message::MessagePool},
             references::MessageMap,
             state::{view::StateSnapshot, ReadState, StateMut, WriteState},
@@ -168,8 +168,7 @@ impl Engine {
             .step
             .run_context(state.clone(), snapshot, pre_context)
             .instrument(tracing::info_span!("run_context_packages"))
-            .await?
-            .into_shared();
+            .await?;
 
         // Synchronize context with workers. `context` won't change
         // again until the next step.
@@ -246,7 +245,7 @@ impl Engine {
     fn prepare_for_context_packages(
         &mut self,
         state: &mut StateMut,
-        context: &mut ContextMut,
+        context: &mut Context,
     ) -> Result<StateSnapshot> {
         tracing::trace!("Preparing for context packages");
         let message_map = state.message_map()?;
@@ -276,7 +275,7 @@ impl Engine {
     fn finalize_agent_messages(
         &mut self,
         state: &mut StateMut,
-        context: &mut ContextMut,
+        context: &mut Context,
     ) -> Result<MessagePool> {
         let message_pool = context.take_message_pool();
         let finalized_message_pool = state.reset_messages(message_pool, &self.config)?;
@@ -288,7 +287,7 @@ impl Engine {
     fn finalize_agent_state(
         &mut self,
         state: &mut StateMut,
-        context: &mut ContextMut,
+        context: &mut Context,
     ) -> Result<AgentPool> {
         state.finalize_context_agent_pool(
             context,

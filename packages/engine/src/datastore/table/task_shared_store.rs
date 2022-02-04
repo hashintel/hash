@@ -2,13 +2,12 @@
 use std::fmt::Debug;
 
 use super::{
-    context::ReadContext,
     proxy::{StateReadProxy, StateWriteProxy},
     state::{ReadState, WriteState},
 };
 use crate::{
     config::{Distribution, Worker, WorkerAllocation},
-    datastore::{prelude::Result, Error},
+    datastore::{prelude::Result, table::context::Context, Error},
     simulation::task::handler::worker_pool::SplitConfig,
 };
 
@@ -118,7 +117,7 @@ impl TaskSharedStoreBuilder {
     }
 
     /// Allow the task runners to have read access to the context object
-    pub fn read_context<K: ReadContext>(mut self, _context: &K) -> Result<Self> {
+    pub fn read_context(mut self, _context: &Context) -> Result<Self> {
         self.inner.context = SharedContext::Read;
         Ok(self)
     }
@@ -303,7 +302,7 @@ impl TaskSharedStore {
             };
             let group_sizes = agent_batches
                 .iter()
-                .map(|batch| batch.inner().num_agents())
+                .map(|batch| batch.batch().num_agents())
                 .collect();
             let (stores, split_config) = distribute_batches(
                 worker_list,
@@ -346,7 +345,7 @@ impl TaskSharedStore {
             };
             let group_sizes = agent_batches
                 .iter()
-                .map(|batch| batch.inner().num_agents())
+                .map(|batch_reader| batch_reader.batch().num_agents())
                 .collect();
             let (stores, split_config) = distribute_batches(
                 worker_list,

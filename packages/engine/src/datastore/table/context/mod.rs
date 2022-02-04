@@ -8,7 +8,12 @@ use super::{
     state::view::StateSnapshot,
 };
 use crate::{
-    config::StoreConfig, datastore::prelude::*, proto::ExperimentId,
+    config::StoreConfig,
+    datastore::{
+        prelude::*,
+        table::proxy::{BatchReadProxy, BatchWriteProxy},
+    },
+    proto::ExperimentId,
     simulation::package::context::ContextColumn,
 };
 
@@ -32,13 +37,8 @@ pub struct Context {
 }
 
 impl Context {
-    // TODO: return ref and they can clone
-    pub fn batch(&self) -> Arc<RwLock<ContextBatch>> {
-        self.batch.clone()
-    }
-
     /// TODO: DOC
-    pub fn new_from_columns(
+    pub fn from_columns(
         cols: Vec<Arc<dyn arrow::array::Array>>,
         config: Arc<StoreConfig>,
         experiment_id: &ExperimentId,
@@ -58,66 +58,38 @@ impl Context {
         })
     }
 
-    /// Get mutable access to the Context.
-    pub fn into_mut(self) -> ContextMut {
-        ContextMut { context: self }
+    pub fn agent_pool(&self) -> &AgentPool {
+        &self.agent_pool
     }
 
     pub fn agent_pool_mut(&mut self) -> &mut AgentPool {
         &mut self.agent_pool
     }
 
-    pub fn agent_pool(&self) -> &AgentPool {
-        &self.agent_pool
-    }
-}
-
-impl ReadContext for Context {
-    #[inline(always)]
-    fn context(&self) -> &Context {
-        self
-    }
-}
-
-/// Exclusive (write) access to `Context`
-pub struct ContextMut {
-    context: Context,
-}
-
-impl ContextMut {
-    /// Give up mutable access and allow for it to be read in multiple places.
-    pub fn into_shared(self) -> Context {
-        self.context
-    }
-
     pub fn take_agent_pool(&mut self) -> AgentPool {
-        std::mem::replace(&mut self.context.agent_pool, AgentPool::empty())
+        std::mem::replace(&mut self.agent_pool, AgentPool::empty())
     }
 
     pub fn take_message_pool(&mut self) -> MessagePool {
-        std::mem::replace(&mut self.context.message_pool, MessagePool::empty())
+        std::mem::replace(&mut self.message_pool, MessagePool::empty())
     }
 
     pub fn local_meta(&mut self) -> &mut Meta {
-        &mut self.context.local_meta
+        &mut self.local_meta
     }
 
-    pub fn write_batch(
-        &mut self,
-        column_writers: &[&ContextColumn],
-        num_elements: usize,
-    ) -> Result<()> {
-        self.context
-            .batch
-            .try_write()
-            .ok_or_else(|| Error::from("Expected to be able to write"))?
-            .write_from_context_datas(column_writers, num_elements)
+    pub fn read_proxy(&self) -> Result<BatchReadProxy<ContextBatch>> {
+        BatchReadProxy::new(&self.batch)
+    }
+
+    pub fn write_proxy(&mut self) -> Result<BatchWriteProxy<ContextBatch>> {
+        BatchWriteProxy::new(&self.batch)
     }
 
     pub fn into_pre_context(self) -> PreContext {
         PreContext {
-            batch: self.context.batch,
-            local_meta: self.context.local_meta,
+            batch: self.batch,
+            local_meta: self.local_meta,
         }
     }
 }
@@ -137,35 +109,18 @@ impl PreContext {
         snapshot: StateSnapshot,
         column_writers: &[&ContextColumn],
         num_elements: usize,
-    ) -> Result<ContextMut> {
+    ) -> Result<Context> {
         let (agent_pool, message_pool) = snapshot.deconstruct();
-        let context = Context {
+        let mut context = Context {
             batch: self.batch,
             agent_pool,
             message_pool,
             local_meta: self.local_meta,
         };
-        let mut context = ContextMut { context };
-        context.write_batch(column_writers, num_elements)?;
+        context
+            .write_proxy()?
+            .batch_mut()
+            .write_from_context_datas(column_writers, num_elements)?;
         Ok(context)
     }
-}
-
-impl ReadContext for ContextMut {
-    fn context(&self) -> &Context {
-        &self.context
-    }
-}
-
-impl WriteContext for ContextMut {
-    fn context_mut(&mut self) -> &mut Context {
-        &mut self.context
-    }
-}
-
-pub trait ReadContext {
-    fn context(&self) -> &Context;
-}
-pub trait WriteContext: ReadContext {
-    fn context_mut(&mut self) -> &mut Context;
 }

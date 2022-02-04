@@ -41,14 +41,15 @@ pub struct BatchReadProxy<K: Batch> {
 
 impl<K: Batch> BatchReadProxy<K> {
     pub fn new(arc: &Arc<RwLock<K>>) -> Result<BatchReadProxy<K>> {
-        if unsafe { arc.raw() }.try_lock_shared() {
+        // Safety: `try_lock_exclusive` locks the `RawRwLock` and returns `bool` instead of a guard.
+        if unsafe { RwLock::raw(arc).try_lock_shared() } {
             Ok(BatchReadProxy { arc: arc.clone() })
         } else {
             Err(Error::from("Couldn't acquire shared lock on object"))
         }
     }
 
-    pub fn inner(&self) -> &K {
+    pub fn batch(&self) -> &K {
         let ptr = self.arc.data_ptr();
         // Safety: This method uses unsafe code to get a shared reference to the underlying data.
         // However since this object acts as a guarantee of no write locks existing, then data races
@@ -62,7 +63,7 @@ impl<K: Batch> Clone for BatchReadProxy<K> {
         // SAFETY: Since a BatchReadProxy already exists, the existing BatchReadProxy
         //         must already have the shared lock, so no writer can currently have
         //         the lock, so it must be possible to take the shared lock again.
-        let locked = unsafe { self.arc.raw() }.try_lock_shared();
+        let locked = unsafe { RwLock::raw(&self.arc).try_lock_shared() };
         assert!(locked, "Clone BatchReadProxy");
         Self {
             arc: self.arc.clone(),
@@ -72,7 +73,8 @@ impl<K: Batch> Clone for BatchReadProxy<K> {
 
 impl<K: Batch> Drop for BatchReadProxy<K> {
     fn drop(&mut self) {
-        unsafe { self.arc.raw().unlock_shared() }
+        // SAFETY: We are holding a shared lock, so we can unlock it
+        unsafe { RwLock::raw(&self.arc).unlock_shared() }
     }
 }
 
@@ -83,14 +85,23 @@ pub struct BatchWriteProxy<K: Batch> {
 
 impl<K: Batch> BatchWriteProxy<K> {
     pub fn new(arc: &Arc<RwLock<K>>) -> Result<BatchWriteProxy<K>> {
-        if unsafe { arc.raw() }.try_lock_exclusive() {
+        // Safety: `try_lock_exclusive` locks the `RawRwLock` and returns `bool` instead of a guard.
+        if unsafe { RwLock::raw(arc).try_lock_exclusive() } {
             Ok(BatchWriteProxy { arc: arc.clone() })
         } else {
             Err(Error::from("Couldn't acquire exclusive lock on object"))
         }
     }
 
-    pub fn inner_mut(&mut self) -> &mut K {
+    pub fn batch(&self) -> &K {
+        let ptr = self.arc.data_ptr();
+        // Safety: This method uses unsafe code to get a mutable reference to the underlying data.
+        // However since this object acts as a guarantee of no other read/write locks existing, then
+        // data races stemming from the dereferencing happening within this method cannot happen
+        unsafe { &*ptr }
+    }
+
+    pub fn batch_mut(&mut self) -> &mut K {
         let ptr = self.arc.data_ptr();
         // Safety: This method uses unsafe code to get a mutable reference to the underlying data.
         // However since this object acts as a guarantee of no other read/write locks existing,
@@ -98,19 +109,12 @@ impl<K: Batch> BatchWriteProxy<K> {
         // happen
         unsafe { &mut *ptr }
     }
-
-    pub fn inner(&self) -> &K {
-        let ptr = self.arc.data_ptr();
-        // Safety: This method uses unsafe code to get a mutable reference to the underlying data.
-        // However since this object acts as a guarantee of no other read/write locks existing, then
-        // data races stemming from the dereferencing happening within this method cannot happen
-        unsafe { &*ptr }
-    }
 }
 
 impl<K: Batch> Drop for BatchWriteProxy<K> {
+    // SAFETY: We are holding a shared lock, so we can unlock it
     fn drop(&mut self) {
-        unsafe { self.arc.raw().unlock_exclusive() }
+        unsafe { RwLock::raw(&self.arc).unlock_exclusive() }
     }
 }
 

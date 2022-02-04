@@ -5,9 +5,9 @@ use tracing::{Instrument, Span};
 
 use crate::{
     datastore::{
-        prelude::{Context, State},
+        prelude::State,
         table::{
-            context::PreContext,
+            context::{Context, PreContext},
             state::{view::StateSnapshot, ReadState},
         },
     },
@@ -17,7 +17,7 @@ use crate::{
             context,
             context::ContextColumn,
             init, output,
-            prelude::{ContextMut, Error, Result, StateMut},
+            prelude::{Error, Result, StateMut},
             state,
         },
         step_output::SimulationStepOutput,
@@ -140,7 +140,7 @@ impl StepPackages {
             })
             .collect::<Result<Vec<_>>>()?;
 
-        let context = Context::new_from_columns(
+        let context = Context::from_columns(
             columns,
             sim_run_config.sim.store.clone(),
             &sim_run_config.exp.run.base().id,
@@ -153,7 +153,7 @@ impl StepPackages {
         state: Arc<State>,
         snapshot: StateSnapshot,
         pre_context: PreContext,
-    ) -> Result<ContextMut> {
+    ) -> Result<Context> {
         tracing::debug!("Running context packages");
         // Execute packages in parallel and collect the data
         let mut futs = FuturesOrdered::new();
