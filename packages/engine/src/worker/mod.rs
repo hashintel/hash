@@ -403,7 +403,9 @@ impl WorkerController {
     ) -> Result<()> {
         // `shared_store` metaversioning should have been kept updated
         // by the runners, so it doesn't need to be updated at this point.
-        // Important to drop here since we then lose the access to the shared store
+        // It's important to drop here since we then lose the access to the shared store,
+        // so the main loop can get access to state and context immediately after it
+        // receives the task completion message. 
         drop(shared_store);
 
         if let Entry::Occupied(mut entry) = self.tasks.inner.entry(task_id) {
