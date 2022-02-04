@@ -322,7 +322,7 @@ jobs:
       - name: Run tests
         env:
           SAMPLES: ${{ needs.setup.outputs.samples }}
-        run: cargo test --test ${{ matrix.tests }} --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }}
+        run: cargo test --test ${{ matrix.tests }} --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }} -- --test-threads=1
 
       - name: Upload to DataDog
         if: always()
