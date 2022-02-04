@@ -82,8 +82,17 @@ pub struct TestOutput {
 }
 
 #[derive(Serialize)]
+pub struct Timings {
+    lower_bound: u128,
+    upper_bound: u128,
+    estimate: u128,
+    median: u128,
+    samples: usize,
+}
+
+#[derive(Serialize)]
 pub struct TestTiming {
-    times: u128,
+    timings: Timings,
     project_name: String,
     project_path: PathBuf,
     test_path: &'static str,
@@ -117,9 +126,14 @@ pub async fn run_test_suite(
             }
             _ => false,
         });
+
+    let samples = std::env::var("SAMPLES")
+        .map(|n| n.parse::<usize>().unwrap())
+        .unwrap_or(1);
+    assert_ne!(samples, 0, "SAMPLES must be at least 1");
+
     for (experiment_type, expected_outputs) in experiments {
         // TODO: Remove attempting strategy
-        let mut outputs = None;
         let attempts = 10;
 
         // Use `OUTPUT_DIRECTORY` as output directory. If it's not set, cargo's `OUT_DIR` is
@@ -131,69 +145,84 @@ pub async fn run_test_suite(
             output_folder.push(module);
         }
 
-        for attempt in 1..=attempts {
-            if attempt > 1 {
-                std::env::set_var("RUST_LOG", "trace");
-            }
+        let mut timings = Vec::with_capacity(samples);
+        for run in 1..=samples {
+            let mut outputs = None;
 
-            let test_result = run_test(
-                experiment_type.clone(),
-                &project_path,
-                project_name.clone(),
-                output_folder.join(format!("attempt-{attempt}")),
-                language,
-                expected_outputs.len(),
-            );
-            let output = test_result.await;
-            let success = output.is_ok();
-            outputs.replace(output);
-            if success {
-                break;
-            }
-        }
+            let output_folder = output_folder.join(format!("run-{run}"));
 
-        let log_file_path = output_folder
-            .join(format!("attempt-{attempts}"))
-            .join("log")
-            .join("output.log");
-
-        let log_output = fs::read_to_string(&log_file_path);
-
-        let test_result = match outputs.unwrap() {
-            Ok(outputs) => outputs,
-            Err(err) => {
-                match log_output {
-                    Ok(log) => eprintln!("{log}"),
-                    Err(err) => eprintln!("Could not read {log_file_path:?}: {err}"),
+            for attempt in 1..=attempts {
+                if attempt > 1 {
+                    std::env::set_var("RUST_LOG", "trace");
                 }
-                panic!("{:?}", err.wrap("Could not run experiment"));
+
+                let test_result = run_test(
+                    experiment_type.clone(),
+                    &project_path,
+                    project_name.clone(),
+                    output_folder.join(format!("attempt-{attempt}")),
+                    language,
+                    expected_outputs.len(),
+                );
+                let output = test_result.await;
+                let success = output.is_ok();
+                outputs.replace(output);
+                if success {
+                    break;
+                }
             }
-        };
 
-        assert_eq!(
-            expected_outputs.len(),
-            test_result.outputs.len(),
-            "Number of expected outputs does not match number of returned simulation results for \
-             experiment"
-        );
+            let log_file_path = output_folder
+                .join(format!("attempt-{attempts}"))
+                .join("log")
+                .join("output.log");
 
-        for (output_idx, ((states, globals, analysis), expected)) in test_result
-            .outputs
-            .into_iter()
-            .zip(expected_outputs.into_iter())
-            .enumerate()
-        {
-            expected
-                .assert_subset_of(&states, &globals, &analysis)
-                .expect(&format!(
-                    "Output of simulation {} does not match expected output in experiment",
-                    output_idx + 1
-                ));
+            let log_output = fs::read_to_string(&log_file_path);
+
+            let test_result = match outputs.unwrap() {
+                Ok(outputs) => outputs,
+                Err(err) => {
+                    match log_output {
+                        Ok(log) => eprintln!("{log}"),
+                        Err(err) => eprintln!("Could not read {log_file_path:?}: {err}"),
+                    }
+                    panic!("{:?}", err.wrap("Could not run experiment"));
+                }
+            };
+
+            assert_eq!(
+                expected_outputs.len(),
+                test_result.outputs.len(),
+                "Number of expected outputs does not match number of returned simulation results \
+                 for experiment"
+            );
+
+            for (output_idx, ((states, globals, analysis), expected)) in test_result
+                .outputs
+                .into_iter()
+                .zip(expected_outputs.iter())
+                .enumerate()
+            {
+                expected
+                    .assert_subset_of(&states, &globals, &analysis)
+                    .expect(&format!(
+                        "Output of simulation {} does not match expected output in experiment",
+                        output_idx + 1
+                    ));
+            }
+            timings.push(test_result.duration.as_nanos());
         }
+        timings.sort_unstable();
 
         let timings = TestTiming {
             experiment,
-            times: test_result.duration.as_nanos(),
+            timings: Timings {
+                lower_bound: timings.iter().cloned().min().unwrap(),
+                upper_bound: timings.iter().cloned().max().unwrap(),
+                estimate: timings.iter().sum::<u128>() / samples as u128,
+                median: timings[timings.len() / 2],
+                samples,
+            },
             project_name: project_name.clone(),
             project_path: project_path
                 .strip_prefix(env!("CARGO_MANIFEST_DIR"))

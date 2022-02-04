@@ -26,6 +26,7 @@ jobs:
       clippy: ${{ steps.crates.outputs.clippy }}
       test: ${{ steps.crates.outputs.test }}
       bench: ${{ steps.crates.outputs.bench }}
+      samples: ${{ steps.samples.outputs.samples }}
       toolchains: ${{ steps.toolchains.outputs.toolchains }}
     steps:
       - name: Checkout source code
@@ -75,6 +76,14 @@ jobs:
           echo "::set-output name=toolchains::$toolchains"
           echo "use toolchains: $(echo $toolchains | jq -r)"
 
+      - name: Determine samples
+        id: samples
+        run: |
+          if [[ ${{ github.event_name }} = pull_request ]]; then
+            echo "::set-output name=samples::1"
+          else
+            echo "::set-output name=samples::10"
+          fi
   rustfmt:
     name: rustfmt
     needs: setup
@@ -311,6 +320,8 @@ jobs:
         run: cargo build -p server --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }}
 
       - name: Run tests
+        env:
+          SAMPLES: needs.setup.outputs.samples
         run: cargo test --test ${{ matrix.tests }} --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }}
 
       - name: Upload to DataDog
