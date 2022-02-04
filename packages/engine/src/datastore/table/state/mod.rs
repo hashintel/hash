@@ -174,7 +174,7 @@ impl StateMut {
         agent_schema: &AgentSchema,
         experiment_id: &ExperimentId,
     ) -> Result<()> {
-        let mut static_pool = context.inner_mut().agent_pool_mut().try_write_batches()?;
+        let mut static_pool = context.context_mut().agent_pool_mut().try_write_batches()?;
         let dynamic_pool = self.agent_pool().try_read_batches()?;
 
         (0..dynamic_pool.len().min(static_pool.len())).try_for_each::<_, Result<()>>(
@@ -189,7 +189,7 @@ impl StateMut {
         // TODO search everywhere and replace static_pool and dynamic_pool to more descriptively
         //  refer to context/state (respectively)
         drop(static_pool); // Release RwLock write access.
-        let static_pool = context.inner_mut().agent_pool_mut().mut_batches();
+        let static_pool = context.context_mut().agent_pool_mut().mut_batches();
 
         #[allow(clippy::comparison_chain)]
         if dynamic_pool.len() > static_pool.len() {
