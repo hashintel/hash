@@ -204,7 +204,7 @@ export class Instance {
       const refreshedPageBlocks = new Map<LatestEntityRef, BlockEntity>(
         refreshedBlocksQuery.data.blocks.map(
           (block) => [getEntityRef(block), block] as const,
-        ) ?? [],
+        ),
       );
 
       const nextSavedContents = this.savedContents.map((block) => {
