@@ -51,8 +51,12 @@ import {
   updateEntityAccountId,
   getAccountEntities,
 } from "./entity";
-import { getEntityOutgoingLinks } from "./link/getEntityOutgoingLinks";
-import { getLink } from "./link/getLink";
+import {
+  getEntitiesByTypeWithOutgoingEntityIds,
+  getEntityOutgoingLinks,
+  getEntityWithOutgoingEntityIds,
+} from "./link/getEntityOutgoingLinks";
+import { getLink, getLinkByEntityId } from "./link/getLink";
 import { createLink } from "./link/createLink";
 import { deleteLink } from "./link/deleteLink";
 import { getUserByEmail, getUserByShortname } from "./user";
@@ -421,6 +425,41 @@ export class PostgresClient implements DBClient {
       : await getEntitiesByTypeAllVersions(this.conn, queryParams);
   }
 
+  async getEntitiesByTypeWithOutgoingEntityIds(
+    params: Parameters<DBClient["getEntitiesByTypeWithOutgoingEntityIds"]>[0],
+  ): ReturnType<DBClient["getEntitiesByTypeWithOutgoingEntityIds"]> {
+    let entityTypeId: string = "";
+
+    if (params.entityTypeId) {
+      entityTypeId = params.entityTypeId;
+    } else if (params.systemTypeName) {
+      const { entity_type_id } = await this.conn.one<{
+        entity_type_id: string;
+      }>(selectSystemEntityTypeIds({ systemTypeName: params.systemTypeName }));
+
+      entityTypeId = entity_type_id ?? "";
+    }
+
+    if (!entityTypeId) {
+      throw new Error(
+        `Did not receive valid entityTypeId or systemTypeName for fetching outgoing entity ids for entity by entityTypeId. entityTypeId = '${params.entityTypeId}' systemTypeName = '${params.systemTypeName}'`,
+      );
+    }
+
+    const queryParams = {
+      entityTypeId,
+      accountId: params.accountId,
+    };
+
+    return await getEntitiesByTypeWithOutgoingEntityIds(this.conn, queryParams);
+  }
+
+  async getEntityWithOutgoingEntityIds(
+    params: Parameters<DBClient["getEntityWithOutgoingEntityIds"]>[0],
+  ): ReturnType<DBClient["getEntityWithOutgoingEntityIds"]> {
+    return getEntityWithOutgoingEntityIds(this.conn, params);
+  }
+
   /** Get all entities of a given type in a given account. */
   async getEntitiesByType(params: {
     accountId: string;
@@ -469,6 +508,12 @@ export class PostgresClient implements DBClient {
     linkId: string;
   }): Promise<DBLink | null> {
     return await getLink(this.conn, params);
+  }
+
+  async getLinkByEntityId(
+    params: Parameters<DBClient["getLinkByEntityId"]>[0],
+  ): ReturnType<DBClient["getLinkByEntityId"]> {
+    return await getLinkByEntityId(this.conn, params);
   }
 
   async deleteLink(params: {
