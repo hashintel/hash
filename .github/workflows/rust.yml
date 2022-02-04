@@ -313,7 +313,7 @@ jobs:
       - name: Run tests
         run: cargo test --test ${{ matrix.tests }} --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }}
 
-      - name: Read results
+      - name: Upload to DataDog
         if: always()
         run: |
           message=$(find ${{ matrix.directory }}/${{ env.OUTPUT_DIRECTORY }} -name timing.json -exec cat {} + | jq '{(.test_path): . | del(.test_path)}' | jq -s add)
