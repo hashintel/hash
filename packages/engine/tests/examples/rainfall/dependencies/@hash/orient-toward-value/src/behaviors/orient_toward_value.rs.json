@@ -1,0 +1,19 @@
+{
+  "keys": {
+    "orient_toward_value": {
+      "type": "string",
+      "nullable": true
+    },
+    "orient_toward_value_uphill": {
+      "type": "boolean",
+      "nullable": true
+    },
+    "orient_toward_value_cumulative": {
+      "type": "boolean",
+      "nullable": true
+    }
+  },
+  "built_in_key_use": {
+    "selected": []
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "initial_shop_percentage": 0.1,
+  "buyer_count": 60,
+  "startup_rate": 0.25,
+  "closing_chance": 0.25,
+  "window_shopping_steps": 6,
+  "max_price": 30,
+  "min_price": 5,
+  "max_cost": 15,
+  "min_cost": 5,
+  "topology": {
+    "x_bounds": [0, 20],
+    "y_bounds": [0, 20],
+    "search_radius": 1
+  }
+}

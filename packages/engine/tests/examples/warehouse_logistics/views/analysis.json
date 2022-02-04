@@ -1,0 +1,26 @@
+{
+  "outputs": {
+    "loaded_stock": [
+      {
+        "op": "filter",
+        "field": "color",
+        "comparison": "eq",
+        "value": "purple"
+      },
+      {
+        "op": "get",
+        "field": "stock_amount"
+      },
+      {
+        "op": "sum"
+      }
+    ]
+  },
+  "plots": [
+    {
+      "timeseries": ["loaded_stock"],
+      "title": "Stock Loaded",
+      "layout": { "width": "100%", "height": "50%" }
+    }
+  ]
+}
