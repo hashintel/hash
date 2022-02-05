@@ -64,7 +64,10 @@ impl<K: Batch> Clone for BatchReadProxy<K> {
         //         must already have the shared lock, so no writer can currently have
         //         the lock, so it must be possible to take the shared lock again.
         let locked = unsafe { RwLock::raw(&self.arc).try_lock_shared() };
-        assert!(locked, "Clone BatchReadProxy");
+        assert!(
+            locked,
+            "Couldn't clone BatchReadProxy because batch can't get read lock"
+        );
         Self {
             arc: self.arc.clone(),
         }
@@ -73,7 +76,7 @@ impl<K: Batch> Clone for BatchReadProxy<K> {
 
 impl<K: Batch> Drop for BatchReadProxy<K> {
     fn drop(&mut self) {
-        // SAFETY: We are holding a shared lock, so we can unlock it
+        // SAFETY: `BatchReadProxy` is guaranteed to have a shared lock, so unlocking is safe.
         unsafe { RwLock::raw(&self.arc).unlock_shared() }
     }
 }
@@ -112,7 +115,7 @@ impl<K: Batch> BatchWriteProxy<K> {
 }
 
 impl<K: Batch> Drop for BatchWriteProxy<K> {
-    // SAFETY: We are holding a shared lock, so we can unlock it
+    // SAFETY: `BatchReadProxy` is guaranteed to have a unique lock, so unlocking is safe.
     fn drop(&mut self) {
         unsafe { RwLock::raw(&self.arc).unlock_exclusive() }
     }
