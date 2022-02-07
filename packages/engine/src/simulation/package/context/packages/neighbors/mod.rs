@@ -15,7 +15,7 @@ use crate::{
             context::ContextSchema,
             FieldKey, RootFieldSpec, RootFieldSpecCreator,
         },
-        table::state::{view::StateSnapshot, ReadState, State},
+        table::state::{view::StateSnapshot, State},
     },
     simulation::{
         comms::package::PackageComms,

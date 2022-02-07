@@ -13,7 +13,6 @@ use crate::{
     datastore::{
         batch::iterators,
         schema::{accessor::GetFieldSpec, RootFieldSpec},
-        table::state::ReadState,
     },
     simulation::{
         comms::package::PackageComms,

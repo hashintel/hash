@@ -41,10 +41,7 @@ pub mod prelude {
         config::{ExperimentConfig, SimulationConfig},
         datastore::{
             prelude::*,
-            table::{
-                context::Context,
-                state::{State, StateMut},
-            },
+            table::{context::Context, state::State},
         },
         simulation::{Error, Result},
     };

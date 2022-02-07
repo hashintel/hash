@@ -36,14 +36,11 @@ use super::{
 };
 pub use super::{Error, Result};
 use crate::{
-    datastore::{
-        prelude::State,
-        table::{
-            context::Context,
-            state::{view::StateSnapshot, ReadState},
-            sync::{ContextBatchSync, StateSync, SyncPayload, WaitableStateSync},
-            task_shared_store::TaskSharedStore,
-        },
+    datastore::table::{
+        context::Context,
+        state::{view::StateSnapshot, State},
+        sync::{ContextBatchSync, StateSync, SyncPayload, WaitableStateSync},
+        task_shared_store::TaskSharedStore,
     },
     hash_types::Agent,
     proto::SimulationShortId,

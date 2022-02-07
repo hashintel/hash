@@ -24,14 +24,11 @@ use std::{
 
 use parking_lot::{lock_api::RawRwLock, RwLock};
 
-use super::{
-    pool::proxy::{PoolReadProxy, PoolWriteProxy},
-    state::{ReadState, WriteState},
-};
+use super::pool::proxy::{PoolReadProxy, PoolWriteProxy};
 use crate::datastore::{
     batch::Batch,
     prelude::{AgentBatch, Error, MessageBatch, Result},
-    table::pool::BatchPool,
+    table::{pool::BatchPool, state::State},
 };
 
 /// A thread-sendable guard for reading a batch, see module-level documentation for more reasoning.
@@ -163,14 +160,14 @@ impl Debug for StateReadProxy {
 }
 
 impl StateReadProxy {
-    pub fn new<K: ReadState>(state: &K) -> Result<Self> {
+    pub fn new(state: &State) -> Result<Self> {
         Ok(StateReadProxy {
             agent_pool_proxy: state.agent_pool().read_proxy()?,
             message_pool_proxy: state.message_pool().read_proxy()?,
         })
     }
 
-    pub fn new_partial<K: ReadState>(state: &K, indices: &[usize]) -> Result<Self> {
+    pub fn new_partial(state: &State, indices: &[usize]) -> Result<Self> {
         Ok(StateReadProxy {
             agent_pool_proxy: state.agent_pool().partial_read_proxy(indices)?,
             message_pool_proxy: state.message_pool().partial_read_proxy(indices)?,
@@ -237,17 +234,17 @@ impl
 }
 
 impl StateWriteProxy {
-    pub fn new<K: WriteState>(state: &mut K) -> Result<Self> {
+    pub fn new(state: &mut State) -> Result<Self> {
         Ok(StateWriteProxy {
             agent_pool_proxy: state.agent_pool_mut().write_proxy()?,
             message_pool_proxy: state.message_pool_mut().write_proxy()?,
         })
     }
 
-    pub fn new_partial<K: WriteState>(state: &K, indices: &[usize]) -> Result<Self> {
+    pub fn new_partial(state: &mut State, indices: &[usize]) -> Result<Self> {
         Ok(StateWriteProxy {
-            agent_pool_proxy: state.agent_pool().partial_write_proxy(indices)?,
-            message_pool_proxy: state.message_pool().partial_write_proxy(indices)?,
+            agent_pool_proxy: state.agent_pool_mut().partial_write_proxy(indices)?,
+            message_pool_proxy: state.message_pool_mut().partial_write_proxy(indices)?,
         })
     }
 

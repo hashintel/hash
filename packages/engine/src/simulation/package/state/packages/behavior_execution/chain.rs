@@ -8,7 +8,7 @@ use crate::{
 };
 
 pub fn gather_behavior_chains(
-    state: &StateMut,
+    state: &State,
     behavior_ids: &BehaviorIds,
     data_types: [arrow::datatypes::DataType; 3],
     behavior_ids_col_index: usize,
