@@ -16,7 +16,6 @@ use crate::{
     datastore::{
         batch::iterators,
         schema::{accessor::GetFieldSpec, FieldKey},
-        table::state::ReadState,
     },
     simulation::{
         comms::package::PackageComms,

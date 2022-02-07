@@ -12,8 +12,9 @@ use crate::{
 
 #[derive(derive_new::new)]
 pub struct LocalOutputPersistence {
-    exp_name: ExperimentName,
-    exp_id: ExperimentId,
+    project_name: String,
+    experiment_name: ExperimentName,
+    experiment_id: ExperimentId,
     config: LocalPersistenceConfig,
 }
 
@@ -25,10 +26,15 @@ impl OutputPersistenceCreatorRepr for LocalOutputPersistence {
         sim_id: SimulationShortId,
         persistence_config: &PersistenceConfig,
     ) -> Result<Self::SimulationOutputPersistence> {
-        let buffers = Buffers::new(&self.exp_id, sim_id, &persistence_config.output_config)?;
+        let buffers = Buffers::new(
+            &self.experiment_id,
+            sim_id,
+            &persistence_config.output_config,
+        )?;
         Ok(LocalSimulationOutputPersistence::new(
-            self.exp_name.clone(),
-            self.exp_id,
+            self.project_name.clone(),
+            self.experiment_name.clone(),
+            self.experiment_id,
             sim_id,
             buffers,
             self.config.clone(),

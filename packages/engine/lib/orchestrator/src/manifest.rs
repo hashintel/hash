@@ -31,6 +31,8 @@ const DATASET_FILE_EXTENSIONS: [&str; 2] = ["csv", "json"];
 /// to parse the project structure easily.
 #[derive(Debug, Default, Clone)]
 pub struct Manifest {
+    /// The name of the project
+    pub project_name: String,
     /// The initial state for the simulation.
     pub initial_state: Option<InitialState>,
     /// A list of all behaviors in the project.
@@ -403,6 +405,11 @@ impl Manifest {
             project_path.to_string_lossy()
         );
 
+        let project_name = project_path.file_name()
+            // Shouldn't be able to fail as it should have been validated by now
+            .ok_or_else(|| report!("Project path didn't point to a directory: {project_path:?}"))? 
+            .to_string_lossy()
+            .to_string();
         let experiments_json = project_path.join("experiments.json");
         let dependencies_json = project_path.join("dependencies.json");
         let src_folder = project_path.join("src");
@@ -416,24 +423,28 @@ impl Manifest {
         let mut project = Manifest::new();
 
         if !is_dependency {
+            project.project_name = project_name;
+
             project
                 .set_initial_state_from_directory(src_folder)
                 .wrap_err("Could not read initial state")?;
-        }
-        if !is_dependency && globals_json.exists() {
-            project
-                .set_globals_from_file(globals_json)
-                .wrap_err("Could not read globals")?;
-        }
-        if !is_dependency && analysis_json.exists() {
-            project
-                .set_analysis_from_file(analysis_json)
-                .wrap_err("Could not read analysis view")?;
-        }
-        if !is_dependency && experiments_json.exists() {
-            project
-                .set_experiments_from_file(experiments_json)
-                .wrap_err("Could not read experiments")?;
+
+            if globals_json.exists() {
+                project
+                    .set_globals_from_file(globals_json)
+                    .wrap_err("Could not read globals")?;
+            }
+            if analysis_json.exists() {
+                project
+                    .set_analysis_from_file(analysis_json)
+                    .wrap_err("Could not read analysis view")?;
+            }
+
+            if experiments_json.exists() {
+                project
+                    .set_experiments_from_file(experiments_json)
+                    .wrap_err("Could not read experiments")?;
+            }
         }
         if dependencies_json.exists() {
             project
@@ -473,6 +484,7 @@ impl Manifest {
     /// - if the manifest does not provide an initial state
     pub fn read(self, experiment_type: ExperimentType) -> Result<ExperimentRun> {
         let project_base = ProjectBase {
+            name: self.project_name,
             initial_state: self
                 .initial_state
                 .ok_or_else(|| report!("Project must specify an initial state file."))?,

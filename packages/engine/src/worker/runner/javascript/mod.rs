@@ -1023,9 +1023,7 @@ impl<'m> RunnerImpl<'m> {
             state_group_start_indices,
         } = ctx_batch_sync;
 
-        let ctx_batch = context_batch
-            .try_read()
-            .ok_or_else(|| Error::from("Couldn't read context batch"))?;
+        let ctx_batch = context_batch.batch();
         let args = mv8::Values::from_vec(vec![
             sim_id_to_js(mv8, sim_run_id),
             batch_to_js(mv8, ctx_batch.memory(), ctx_batch.metaversion())?,

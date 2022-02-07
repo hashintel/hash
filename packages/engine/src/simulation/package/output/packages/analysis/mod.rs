@@ -7,8 +7,7 @@ use serde_json::Value;
 pub use self::config::AnalysisOutputConfig;
 pub use super::super::*;
 use crate::{
-    datastore::table::state::ReadState, experiment::SimPackageArgs, proto::ExperimentRunTrait,
-    simulation::package::output::Package,
+    experiment::SimPackageArgs, proto::ExperimentRunTrait, simulation::package::output::Package,
 };
 
 #[macro_use]

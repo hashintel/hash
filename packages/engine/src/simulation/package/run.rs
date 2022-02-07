@@ -4,12 +4,9 @@ use futures::{executor::block_on, stream::FuturesOrdered, StreamExt};
 use tracing::{Instrument, Span};
 
 use crate::{
-    datastore::{
-        prelude::{Context, State},
-        table::{
-            context::PreContext,
-            state::{view::StateSnapshot, ReadState},
-        },
+    datastore::table::{
+        context::{Context, PreContext},
+        state::{view::StateSnapshot, State},
     },
     proto::ExperimentRunTrait,
     simulation::{
@@ -17,7 +14,7 @@ use crate::{
             context,
             context::ContextColumn,
             init, output,
-            prelude::{ContextMut, Error, Result, StateMut},
+            prelude::{Error, Result},
             state,
         },
         step_output::SimulationStepOutput,
@@ -74,7 +71,7 @@ impl InitPackages {
         }
 
         tracing::trace!("Init packages finished, building state");
-        let state = State::from_agent_states(agents, sim_config)?;
+        let state = State::from_agent_states(&agents, sim_config)?;
         Ok(state)
     }
 }
@@ -140,7 +137,7 @@ impl StepPackages {
             })
             .collect::<Result<Vec<_>>>()?;
 
-        let context = Context::new_from_columns(
+        let context = Context::from_columns(
             columns,
             sim_run_config.sim.store.clone(),
             &sim_run_config.exp.run.base().id,
@@ -153,7 +150,7 @@ impl StepPackages {
         state: Arc<State>,
         snapshot: StateSnapshot,
         pre_context: PreContext,
-    ) -> Result<ContextMut> {
+    ) -> Result<Context> {
         tracing::debug!("Running context packages");
         // Execute packages in parallel and collect the data
         let mut futs = FuturesOrdered::new();
@@ -242,7 +239,7 @@ impl StepPackages {
         Ok(context)
     }
 
-    pub async fn run_state(&mut self, mut state: StateMut, context: &Context) -> Result<StateMut> {
+    pub async fn run_state(&mut self, mut state: State, context: &Context) -> Result<State> {
         tracing::debug!("Running state packages");
         // Design-choices:
         // Cannot use trait bounds as dyn Package won't be object-safe

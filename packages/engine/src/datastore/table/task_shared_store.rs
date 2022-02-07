@@ -1,14 +1,14 @@
 //! TODO: DOC
 use std::fmt::Debug;
 
-use super::{
-    context::ReadContext,
-    proxy::{StateReadProxy, StateWriteProxy},
-    state::{ReadState, WriteState},
-};
+use super::proxy::{StateReadProxy, StateWriteProxy};
 use crate::{
     config::{Distribution, Worker, WorkerAllocation},
-    datastore::{prelude::Result, Error},
+    datastore::{
+        prelude::Result,
+        table::{context::Context, state::State},
+        Error,
+    },
     simulation::task::handler::worker_pool::SplitConfig,
 };
 
@@ -84,9 +84,9 @@ impl TaskSharedStoreBuilder {
         self.inner
     }
 
-    pub fn partial_write_state<K: WriteState>(
+    pub fn partial_write_state(
         mut self,
-        state: &K,
+        state: &mut State,
         batch_indices: Vec<usize>,
     ) -> Result<Self> {
         self.inner.state =
@@ -95,30 +95,26 @@ impl TaskSharedStoreBuilder {
         Ok(self)
     }
 
-    pub fn partial_read_state<K: ReadState>(
-        mut self,
-        state: &K,
-        batch_indices: Vec<usize>,
-    ) -> Result<Self> {
+    pub fn partial_read_state(mut self, state: &State, batch_indices: Vec<usize>) -> Result<Self> {
         self.inner.state =
             SharedState::Partial(PartialSharedState::new_read(state, batch_indices)?);
         Ok(self)
     }
 
-    /// Allow the task runners to have write access to all of agent state
-    pub fn write_state<K: WriteState>(mut self, state: &mut K) -> Result<Self> {
-        self.inner.state = SharedState::Write(StateWriteProxy::new(state)?);
-        Ok(self)
-    }
-
     /// Allow the task runners to have read access to all of agent state
-    pub fn read_state<K: ReadState>(mut self, state: &K) -> Result<Self> {
+    pub fn read_state(mut self, state: &State) -> Result<Self> {
         self.inner.state = SharedState::Read(StateReadProxy::new(state)?);
         Ok(self)
     }
 
+    /// Allow the task runners to have write access to all of agent state
+    pub fn write_state(mut self, state: &mut State) -> Result<Self> {
+        self.inner.state = SharedState::Write(StateWriteProxy::new(state)?);
+        Ok(self)
+    }
+
     /// Allow the task runners to have read access to the context object
-    pub fn read_context<K: ReadContext>(mut self, _context: &K) -> Result<Self> {
+    pub fn read_context(mut self, _context: &Context) -> Result<Self> {
         self.inner.context = SharedContext::Read;
         Ok(self)
     }
@@ -136,20 +132,17 @@ pub enum PartialSharedState {
 }
 
 impl PartialSharedState {
-    fn new_write<K: WriteState>(
-        state: &K,
-        group_indices: Vec<usize>,
-    ) -> Result<PartialSharedState> {
-        let inner = StateWriteProxy::new_partial(state, &group_indices)?;
-        Ok(PartialSharedState::Write(PartialStateWriteProxy {
+    fn new_read(state: &State, group_indices: Vec<usize>) -> Result<PartialSharedState> {
+        let inner = StateReadProxy::new_partial(state, &group_indices)?;
+        Ok(PartialSharedState::Read(PartialStateReadProxy {
             group_indices,
             inner,
         }))
     }
 
-    fn new_read<K: ReadState>(state: &K, group_indices: Vec<usize>) -> Result<PartialSharedState> {
-        let inner = StateReadProxy::new_partial(state, &group_indices)?;
-        Ok(PartialSharedState::Read(PartialStateReadProxy {
+    fn new_write(state: &mut State, group_indices: Vec<usize>) -> Result<PartialSharedState> {
+        let inner = StateWriteProxy::new_partial(state, &group_indices)?;
+        Ok(PartialSharedState::Write(PartialStateWriteProxy {
             group_indices,
             inner,
         }))
@@ -303,7 +296,7 @@ impl TaskSharedStore {
             };
             let group_sizes = agent_batches
                 .iter()
-                .map(|batch| batch.inner().num_agents())
+                .map(|proxy| proxy.batch().num_agents())
                 .collect();
             let (stores, split_config) = distribute_batches(
                 worker_list,
@@ -346,7 +339,7 @@ impl TaskSharedStore {
             };
             let group_sizes = agent_batches
                 .iter()
-                .map(|batch| batch.inner().num_agents())
+                .map(|proxy| proxy.batch().num_agents())
                 .collect();
             let (stores, split_config) = distribute_batches(
                 worker_list,

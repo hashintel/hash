@@ -24,14 +24,11 @@ use std::{
 
 use parking_lot::{lock_api::RawRwLock, RwLock};
 
-use super::{
-    pool::proxy::{PoolReadProxy, PoolWriteProxy},
-    state::{ReadState, WriteState},
-};
+use super::pool::proxy::{PoolReadProxy, PoolWriteProxy};
 use crate::datastore::{
     batch::Batch,
     prelude::{AgentBatch, Error, MessageBatch, Result},
-    table::pool::BatchPool,
+    table::{pool::BatchPool, state::State},
 };
 
 /// A thread-sendable guard for reading a batch, see module-level documentation for more reasoning.
@@ -41,29 +38,35 @@ pub struct BatchReadProxy<K: Batch> {
 
 impl<K: Batch> BatchReadProxy<K> {
     pub fn new(arc: &Arc<RwLock<K>>) -> Result<BatchReadProxy<K>> {
-        if unsafe { arc.raw() }.try_lock_shared() {
+        // Safety: `try_lock_shared` locks the `RawRwLock` and returns if the lock could be
+        // acquired. The lock is not used if it couldn't be acquired.
+        if unsafe { RwLock::raw(arc).try_lock_shared() } {
             Ok(BatchReadProxy { arc: arc.clone() })
         } else {
             Err(Error::from("Couldn't acquire shared lock on object"))
         }
     }
 
-    pub fn inner(&self) -> &K {
+    pub fn batch(&self) -> &K {
         let ptr = self.arc.data_ptr();
-        // Safety: This method uses unsafe code to get a shared reference to the underlying data.
-        // However since this object acts as a guarantee of no write locks existing, then data races
-        // stemming from the dereferencing happening within this method cannot happen
+        // SAFETY: `BatchReadProxy` is guaranteed to contain a shared lock acquired in `new()`, thus
+        // it's safe to dereference the shared underlying `data_ptr`.
         unsafe { &*ptr }
     }
 }
 
 impl<K: Batch> Clone for BatchReadProxy<K> {
     fn clone(&self) -> Self {
-        // SAFETY: Since a BatchReadProxy already exists, the existing BatchReadProxy
-        //         must already have the shared lock, so no writer can currently have
-        //         the lock, so it must be possible to take the shared lock again.
-        let locked = unsafe { self.arc.raw() }.try_lock_shared();
-        assert!(locked, "Clone BatchReadProxy");
+        // Acquire another shared lock for the new proxy
+        // SAFETY: `BatchReadProxy` is guaranteed to contain a shared lock acquired in `new()`, thus
+        // it's safe (and required) to acquire another shared lock. Note, that this does not hold
+        // for `BatchWriteProxy`!
+        let locked = unsafe { RwLock::raw(&self.arc).try_lock_shared() };
+        assert!(
+            locked,
+            "Couldn't clone BatchReadProxy because batch couldn't acquire a shared lock. This is \
+             a bug in the `BatchReadProxy` implementation!"
+        );
         Self {
             arc: self.arc.clone(),
         }
@@ -72,7 +75,9 @@ impl<K: Batch> Clone for BatchReadProxy<K> {
 
 impl<K: Batch> Drop for BatchReadProxy<K> {
     fn drop(&mut self) {
-        unsafe { self.arc.raw().unlock_shared() }
+        // SAFETY: `BatchReadProxy` is guaranteed to contain a shared lock acquired in `new()`, thus
+        // it's safe (and required) to unlock it, when the proxy goes out of scope.
+        unsafe { RwLock::raw(&self.arc).unlock_shared() }
     }
 }
 
@@ -83,34 +88,35 @@ pub struct BatchWriteProxy<K: Batch> {
 
 impl<K: Batch> BatchWriteProxy<K> {
     pub fn new(arc: &Arc<RwLock<K>>) -> Result<BatchWriteProxy<K>> {
-        if unsafe { arc.raw() }.try_lock_exclusive() {
+        // Safety: `try_lock_exclusive` locks the `RawRwLock` and returns if the lock could be
+        // acquired. The lock is not used if it couldn't be acquired.
+        if unsafe { RwLock::raw(arc).try_lock_exclusive() } {
             Ok(BatchWriteProxy { arc: arc.clone() })
         } else {
             Err(Error::from("Couldn't acquire exclusive lock on object"))
         }
     }
 
-    pub fn inner_mut(&mut self) -> &mut K {
+    pub fn batch(&self) -> &K {
         let ptr = self.arc.data_ptr();
-        // Safety: This method uses unsafe code to get a mutable reference to the underlying data.
-        // However since this object acts as a guarantee of no other read/write locks existing,
-        // then data races stemming from the dereferencing happening within this method cannot
-        // happen
-        unsafe { &mut *ptr }
+        // SAFETY: `BatchWriteProxy` is guaranteed to contain a unique lock acquired in `new()`,
+        // thus it's safe to dereference the shared underlying `data_ptr`.
+        unsafe { &*ptr }
     }
 
-    pub fn inner(&self) -> &K {
+    pub fn batch_mut(&mut self) -> &mut K {
         let ptr = self.arc.data_ptr();
-        // Safety: This method uses unsafe code to get a mutable reference to the underlying data.
-        // However since this object acts as a guarantee of no other read/write locks existing, then
-        // data races stemming from the dereferencing happening within this method cannot happen
-        unsafe { &*ptr }
+        // SAFETY: `BatchWriteProxy` is guaranteed to contain a unique lock acquired in `new()`,
+        // thus it's safe to dereference the unique underlying `data_ptr`.
+        unsafe { &mut *ptr }
     }
 }
 
 impl<K: Batch> Drop for BatchWriteProxy<K> {
     fn drop(&mut self) {
-        unsafe { self.arc.raw().unlock_exclusive() }
+        // SAFETY: `BatchWriteProxy` is guaranteed to contain a unique lock acquired in `new()`,
+        // thus it's safe (and required) to unlock it, when the proxy goes out of scope.
+        unsafe { RwLock::raw(&self.arc).unlock_exclusive() }
     }
 }
 
@@ -154,14 +160,14 @@ impl Debug for StateReadProxy {
 }
 
 impl StateReadProxy {
-    pub fn new<K: ReadState>(state: &K) -> Result<Self> {
+    pub fn new(state: &State) -> Result<Self> {
         Ok(StateReadProxy {
             agent_pool_proxy: state.agent_pool().read_proxy()?,
             message_pool_proxy: state.message_pool().read_proxy()?,
         })
     }
 
-    pub fn new_partial<K: ReadState>(state: &K, indices: &[usize]) -> Result<Self> {
+    pub fn new_partial(state: &State, indices: &[usize]) -> Result<Self> {
         Ok(StateReadProxy {
             agent_pool_proxy: state.agent_pool().partial_read_proxy(indices)?,
             message_pool_proxy: state.message_pool().partial_read_proxy(indices)?,
@@ -228,17 +234,17 @@ impl
 }
 
 impl StateWriteProxy {
-    pub fn new<K: WriteState>(state: &mut K) -> Result<Self> {
+    pub fn new(state: &mut State) -> Result<Self> {
         Ok(StateWriteProxy {
             agent_pool_proxy: state.agent_pool_mut().write_proxy()?,
             message_pool_proxy: state.message_pool_mut().write_proxy()?,
         })
     }
 
-    pub fn new_partial<K: WriteState>(state: &K, indices: &[usize]) -> Result<Self> {
+    pub fn new_partial(state: &mut State, indices: &[usize]) -> Result<Self> {
         Ok(StateWriteProxy {
-            agent_pool_proxy: state.agent_pool().partial_write_proxy(indices)?,
-            message_pool_proxy: state.message_pool().partial_write_proxy(indices)?,
+            agent_pool_proxy: state.agent_pool_mut().partial_write_proxy(indices)?,
+            message_pool_proxy: state.message_pool_mut().partial_write_proxy(indices)?,
         })
     }
 

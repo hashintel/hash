@@ -14,10 +14,7 @@ use crate::{
         batch::migration::{BufferActions, IndexRange, RangeActions},
         error::Result,
         prelude::*,
-        table::{
-            pool::{agent::AgentPool, BatchPool},
-            state::ReadState,
-        },
+        table::pool::{agent::AgentPool, BatchPool},
     },
     simulation::command::CreateRemoveCommands,
     SimRunConfig,
@@ -39,7 +36,7 @@ impl CreateRemovePlanner {
         })
     }
 
-    pub fn run(&mut self, state: &impl ReadState) -> Result<MigrationPlan<'_>> {
+    pub fn run(&mut self, state: &State) -> Result<MigrationPlan<'_>> {
         let mut pending = self.pending_plan(state.agent_pool())?;
 
         let number_inbound = self.commands.get_number_inbound();
@@ -88,7 +85,7 @@ impl PendingPlan {
 
     fn complete<'b>(
         &mut self,
-        state: &impl ReadState,
+        state: &State,
         new_agents: Option<&'b RecordBatch>,
         config: &Arc<SimRunConfig>,
     ) -> Result<MigrationPlan<'b>> {
@@ -148,7 +145,7 @@ impl PendingPlan {
 }
 
 fn buffer_actions_from_pending_batch<'a>(
-    state: &impl ReadState,
+    state: &State,
     batch: &PendingBatch,
     inbound_agents: &Option<&'a RecordBatch>,
     schema: &Arc<AgentSchema>,

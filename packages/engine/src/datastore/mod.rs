@@ -60,7 +60,7 @@ pub mod prelude {
         shared_store::SharedStore,
         storage::memory::Memory,
         store::Store,
-        table::{context::Context, state::State},
+        table::state::State,
     };
     pub use crate::hash_types::{message::Outbound as OutboundMessage, Agent as AgentState};
 }

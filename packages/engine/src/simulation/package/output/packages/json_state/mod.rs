@@ -6,7 +6,6 @@ use crate::{
     datastore::{
         batch::ArrowBatch,
         schema::{HIDDEN_PREFIX, PRIVATE_PREFIX},
-        table::state::ReadState,
     },
     hash_types::Agent,
     simulation::package::{name::PackageName, output, output::Package},

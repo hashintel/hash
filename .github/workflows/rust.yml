@@ -347,7 +347,7 @@ jobs:
   merging-enabled:
     name: merging enabled
     needs: [rustfmt, clippy, test]
-    if: github.event_name == 'pull_request'
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: check rustfmt

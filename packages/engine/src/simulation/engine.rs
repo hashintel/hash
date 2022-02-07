@@ -11,10 +11,10 @@ use crate::{
     datastore::{
         prelude::Store,
         table::{
-            context::ContextMut,
+            context::Context,
             pool::{agent::AgentPool, message::MessagePool},
             references::MessageMap,
-            state::{view::StateSnapshot, ReadState, StateMut, WriteState},
+            state::{view::StateSnapshot, State},
         },
     },
     proto::ExperimentRunTrait,
@@ -125,7 +125,7 @@ impl Engine {
         tracing::trace!("Starting run context packages stage");
         // Need write access to state to prepare for context packages,
         // so can't start state sync (with workers) yet.
-        let (mut state, mut context) = self.store.take_upgraded()?;
+        let (mut state, mut context) = self.store.take()?;
 
         let snapshot = {
             let _span = tracing::debug_span!("prepare_context_packages").entered();
@@ -146,7 +146,8 @@ impl Engine {
         // After this point, we'll only need read access to state until
         // running the first state package. (Context packages don't have
         // write access to state.)
-        let state = Arc::new(state.into_shared());
+        // TODO: Not needed anymore. Change `State` to use proxies instead
+        let state = Arc::new(state);
         // Synchronize state with workers
         async {
             let active_sync = self.comms.state_sync(&state).await?;
@@ -168,8 +169,7 @@ impl Engine {
             .step
             .run_context(state.clone(), snapshot, pre_context)
             .instrument(tracing::info_span!("run_context_packages"))
-            .await?
-            .into_shared();
+            .await?;
 
         // Synchronize context with workers. `context` won't change
         // again until the next step.
@@ -200,12 +200,8 @@ impl Engine {
 
     async fn run_state_packages(&mut self) -> Result<()> {
         let (state, context) = self.store.take()?;
-        let state = self
-            .packages
-            .step
-            .run_state(state.into_mut(), &context)
-            .await?;
-        self.store.set(state.into_shared(), context);
+        let state = self.packages.step.run_state(state, &context).await?;
+        self.store.set(state, context);
         Ok(())
     }
 
@@ -245,8 +241,8 @@ impl Engine {
     /// One example of this happening is the Neighbors Context Package.
     fn prepare_for_context_packages(
         &mut self,
-        state: &mut StateMut,
-        context: &mut ContextMut,
+        state: &mut State,
+        context: &mut Context,
     ) -> Result<StateSnapshot> {
         tracing::trace!("Preparing for context packages");
         let message_map = state.message_map()?;
@@ -261,7 +257,7 @@ impl Engine {
     /// Operates based on the "create_agent", "remove_agent", and "stop" messages sent to "hash"
     /// through agent inboxes. Also creates and removes agents that have been requested by State
     /// packages.
-    fn handle_messages(&mut self, state: &mut StateMut, message_map: &MessageMap) -> Result<()> {
+    fn handle_messages(&mut self, state: &mut State, message_map: &MessageMap) -> Result<()> {
         let read = state.message_pool().read()?;
         let mut commands = Commands::from_hash_messages(message_map, read)?;
         commands.merge(self.comms.take_commands()?);
@@ -275,8 +271,8 @@ impl Engine {
     /// the old inbox dataframe and use it as the new outbox dataframe.
     fn finalize_agent_messages(
         &mut self,
-        state: &mut StateMut,
-        context: &mut ContextMut,
+        state: &mut State,
+        context: &mut Context,
     ) -> Result<MessagePool> {
         let message_pool = context.take_message_pool();
         let finalized_message_pool = state.reset_messages(message_pool, &self.config)?;
@@ -287,8 +283,8 @@ impl Engine {
     /// dataframe.
     fn finalize_agent_state(
         &mut self,
-        state: &mut StateMut,
-        context: &mut ContextMut,
+        state: &mut State,
+        context: &mut Context,
     ) -> Result<AgentPool> {
         state.finalize_context_agent_pool(
             context,

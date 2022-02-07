@@ -14,7 +14,7 @@ will execute behaviors on agents, depending on the behavior lists of the agents.
 
 A default collection of packages are usually used for the engine (
 see [`PackageConfig`](crate::simulation::config::PackageConfig)).
-*/
+ */
 
 pub mod context;
 pub mod init;
@@ -41,10 +41,7 @@ pub mod prelude {
         config::{ExperimentConfig, SimulationConfig},
         datastore::{
             prelude::*,
-            table::{
-                context::{Context, ContextMut},
-                state::{State, StateMut},
-            },
+            table::{context::Context, state::State},
         },
         simulation::{Error, Result},
     };
