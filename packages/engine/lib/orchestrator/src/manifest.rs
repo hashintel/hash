@@ -32,7 +32,7 @@ const DATASET_FILE_EXTENSIONS: [&str; 2] = ["csv", "json"];
 #[derive(Debug, Default, Clone)]
 pub struct Manifest {
     /// The name of the project
-    pub name: String,
+    pub project_name: String,
     /// The initial state for the simulation.
     pub initial_state: Option<InitialState>,
     /// A list of all behaviors in the project.
@@ -423,7 +423,7 @@ impl Manifest {
         let mut project = Manifest::new();
 
         if !is_dependency {
-            project.name = project_name;
+            project.project_name = project_name;
 
             project
                 .set_initial_state_from_directory(src_folder)
@@ -484,7 +484,7 @@ impl Manifest {
     /// - if the manifest does not provide an initial state
     pub fn read(self, experiment_type: ExperimentType) -> Result<ExperimentRun> {
         let project_base = ProjectBase {
-            name: self.name,
+            name: self.project_name,
             initial_state: self
                 .initial_state
                 .ok_or_else(|| report!("Project must specify an initial state file."))?,

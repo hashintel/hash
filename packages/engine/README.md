@@ -339,7 +339,10 @@ If you haven't created and exported a project from [hCore], it's also possible t
 
 At the end of each simulation run, various outputs appear within the `./<OUTPUT FOLDER>/<PROJECT NAME>/<EXPERIMENT NAME>/<EXPERIMENT ID>/<SIMULATION ID>` directories.
 
-Where `<PROJECT NAME>` is the name of the folder containing your experiments, and, `<EXPERIMENT ID>` and `<SIMULATION ID>` are unique identifiers created for each run of an experiment or simulation.
+Where:
+
+- `<PROJECT NAME>` is the name of the folder containing your experiments
+- `<EXPERIMENT ID>` and `<SIMULATION ID>` are unique identifiers created for each run of an experiment or simulation.
 
 There is an override ([CLI Arguments and Options](#cli-arguments-and-options)) for the default of the output folder.
 
