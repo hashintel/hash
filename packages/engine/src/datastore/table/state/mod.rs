@@ -47,10 +47,10 @@ impl State {
     ///
     /// Uses the schemas in the provided `sim_config` to validate the provided state, and to create
     /// the agent and message batches. The agent batches use the data provided in
-    /// `agent_state_batches`, where each element is a group, and the total elements (i.e.
+    /// `agent_state_groups`, where each element is a group, and the total elements (i.e.
     /// [`AgentState`]s) within those groups is `num_agents`.
     ///
-    /// Effectively converts the `agent_state_batches` from Array-of-Structs into a
+    /// Effectively converts the `agent_state_groups` from Array-of-Structs into a
     /// Struct-of-Arrays.
     pub fn from_agent_groups(
         agent_state_groups: &[&[AgentState]],
@@ -67,7 +67,7 @@ impl State {
         let mut group_start_indices = Vec::new();
         let mut start = 0;
 
-        // converts the `agent_state_batches` from Array-of-Structs into a Struct-of-Arrays.
+        // converts the `agent_state_groups` from Array-of-Structs into a Struct-of-Arrays.
         for agent_state_group in agent_state_groups {
             group_start_indices.push(start);
             start += agent_state_group.len();
