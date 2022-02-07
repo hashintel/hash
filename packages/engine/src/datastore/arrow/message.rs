@@ -322,7 +322,7 @@ pub fn get_column_from_list_array(array: &array::ListArray) -> Result<Vec<Vec<Ou
 }
 
 pub fn column_into_state(
-    states: &mut Vec<AgentState>,
+    states: &mut [AgentState],
     batch: &RecordBatch,
     index: usize,
 ) -> Result<()> {
