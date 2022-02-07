@@ -18,7 +18,7 @@ setup(
         Extension(prefix + "wrappers",
                   [script_path + "/wrappers.pyx"],
                   include_dirs=[numpy.get_include()],
-                  libraries=["hash_engine"],
+                  libraries=["hash_engine_lib"],
                   library_dirs=[  # Process directory should be packages/engine.
                       # TODO, should we just add all possibilities for targets here, we might need to do a
                       #  programmatic directory search
