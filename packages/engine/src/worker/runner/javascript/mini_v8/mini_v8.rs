@@ -202,7 +202,7 @@ impl MiniV8 {
     {
         let func = RefCell::new(func);
         self.create_function(move |invocation| {
-            (&mut *func
+            (*func
                 .try_borrow_mut()
                 .map_err(|_| Error::recursive_mut_callback())?)(invocation)
         })
