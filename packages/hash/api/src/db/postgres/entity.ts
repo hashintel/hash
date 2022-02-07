@@ -4,7 +4,7 @@ import { uniq } from "lodash";
 import {
   DBAggregation,
   DBLink,
-  Entity,
+  DbEntity,
   EntityType,
   EntityVersion,
 } from "../adapter";
@@ -25,8 +25,8 @@ import { SystemType } from "../../types/entityTypes";
 const entityTypeFieldPrefix = "type.";
 
 /** maps a postgres row to its corresponding Entity object */
-export const mapPGRowToEntity = (row: EntityPGRow): Entity => {
-  const entity: Omit<Entity, "entityType"> & { entityType?: EntityType } = {
+export const mapPGRowToEntity = (row: EntityPGRow): DbEntity => {
+  const entity: Omit<DbEntity, "entityType"> & { entityType?: EntityType } = {
     accountId: row.account_id,
     entityId: row.entity_id,
     entityVersionId: row.entity_version_id,
@@ -57,7 +57,7 @@ export const mapPGRowToEntity = (row: EntityPGRow): Entity => {
   }
   entity.entityType = mapPGRowToEntityType(dbEntityType as EntityTypePGRow);
 
-  return entity as Entity;
+  return entity as DbEntity;
 };
 
 export type EntityPGRow = {
@@ -84,6 +84,7 @@ export type EntityPGRow = {
   ["type.updated_by"]: string;
   ["type.updated_at"]: number;
 };
+
 /**
  * @todo since many entities will be of the same small number of system types (e.g. block),
  *    for non-nested queries it will probably end up faster to request and cache types separately.
@@ -136,7 +137,7 @@ const selectEntityVersion = (params: {
 `;
 
 /** Query for retrieving all versions of an entity */
-const selectEntityAllVersions = (params: {
+export const selectEntityAllVersions = (params: {
   accountId: string;
   entityId: string;
 }) => sql`
@@ -163,7 +164,7 @@ const selectEntitiesAllVersions = (params: {
  * @param params.entityTypeVersionId optionally limit to entities of a specific version of a type
  * @param params.accountId the account to retrieve entities from
  * */
-const selectEntitiesByType = (params: {
+export const selectEntitiesByType = (params: {
   entityTypeId: string;
   entityTypeVersionId?: string;
   accountId: string;
@@ -191,7 +192,7 @@ export const getEntity = async (
   conn: Connection,
   params: { accountId: string; entityVersionId: string },
   lock: boolean = false,
-): Promise<Entity | undefined> => {
+): Promise<DbEntity | undefined> => {
   const query = lock
     ? sql`${selectEntityVersion(params)} for update`
     : selectEntityVersion(params);
@@ -209,7 +210,7 @@ export const getEntityLatestVersion = async (
     accountId: string;
     entityId: string;
   },
-): Promise<Entity | undefined> => {
+): Promise<DbEntity | undefined> => {
   const row = await conn.maybeOne<EntityPGRow>(
     sql`
     with all_matches as (
@@ -230,7 +231,7 @@ const getEntitiesLatestVersion = async (
     accountId: string;
     entityIds: string[];
   },
-): Promise<Entity[]> => {
+): Promise<DbEntity[]> => {
   const rows = await conn.any<EntityPGRow>(sql`
     select * from (
       select
@@ -252,7 +253,7 @@ const getEntityVersions = async (
     accountId: string;
     entityVersionIds: string[];
   },
-): Promise<Entity[]> => {
+): Promise<DbEntity[]> => {
   const rows = await conn.any<EntityPGRow>(sql`
     with all_matches as (
       ${selectEntities}
@@ -299,7 +300,7 @@ export const getEntitiesByTypeLatestVersion = async (
     entityTypeVersionId?: string;
     accountId: string;
   },
-): Promise<Entity[]> => {
+): Promise<DbEntity[]> => {
   const rows = await conn.any<EntityPGRow>(sql`
     with all_matches as (
       ${selectEntitiesByType(params)}
@@ -555,7 +556,7 @@ export const getAccountEntities = async (
       systemTypeName?: SystemType;
     };
   },
-): Promise<Entity[]> => {
+): Promise<DbEntity[]> => {
   const query = sql`
   with uniq as (
     with all_entities as (${selectEntities})
@@ -610,7 +611,7 @@ const getEntitiesInAccount = async (
 export const getEntities = async (
   conn: Connection,
   ids: { accountId: string; entityId: string; entityVersionId?: string }[],
-): Promise<Entity[]> => {
+): Promise<DbEntity[]> => {
   // Need to group by account ID to use the index
   const idsByAccount = new Map<
     string,
@@ -633,8 +634,8 @@ export const getEntities = async (
   ).flat();
 
   // Sort the result from the DB to be in the same order as `ids`
-  const versionLookup = new Map<string, Entity>();
-  const latestLookup = new Map<string, Entity>();
+  const versionLookup = new Map<string, DbEntity>();
+  const latestLookup = new Map<string, DbEntity>();
   for (const entity of entities) {
     versionLookup.set(entity.entityVersionId, entity);
     const latest = latestLookup.get(entity.entityId);
@@ -650,7 +651,7 @@ export const getEntities = async (
         ? versionLookup.get(id.entityVersionId)
         : latestLookup.get(id.entityId),
     )
-    .filter((entity): entity is Entity => !!entity);
+    .filter((entity): entity is DbEntity => !!entity);
 };
 
 // Convert a string to a numeric hash code.
@@ -686,7 +687,7 @@ export const acquireEntityLock = async (
 const addSourceEntityVersionIdToAggregations = async (
   conn: Connection,
   params: {
-    entity: Entity;
+    entity: DbEntity;
     omittedAggregations?: {
       sourceAccountId: string;
       sourceEntityId: string;
@@ -727,7 +728,7 @@ const addSourceEntityVersionIdToAggregations = async (
 const addSourceEntityVersionIdToOutgoingLinks = async (
   conn: Connection,
   params: {
-    entity: Entity;
+    entity: DbEntity;
     omittedOutgoingLinks?: { sourceAccountId: string; linkId: string }[];
     newSourceEntityVersionId: string;
   },
@@ -768,7 +769,7 @@ const addSourceEntityVersionIdToOutgoingLinks = async (
 export const updateVersionedEntity = async (
   conn: Connection,
   params: {
-    entity: Entity;
+    entity: DbEntity;
     properties: any;
     updatedByAccountId: string;
     omittedOutgoingLinks?: { sourceAccountId: string; linkId: string }[];
@@ -785,7 +786,7 @@ export const updateVersionedEntity = async (
   }
 
   const now = new Date();
-  const newEntityVersion: Entity = {
+  const newEntityVersion: DbEntity = {
     ...params.entity,
     entityVersionId: genId(),
     properties,
@@ -835,16 +836,16 @@ export const updateVersionedEntity = async (
 const updateNonVersionedEntity = async (
   conn: Connection,
   params: {
-    entity: Entity;
+    entity: DbEntity;
     properties: any;
     updatedByAccountId: string;
   },
-): Promise<Entity> => {
+): Promise<DbEntity> => {
   if (params.entity.metadata.versioned) {
     throw new Error("cannot mutate a versioned entity");
   }
 
-  const updatedEntity: Entity = {
+  const updatedEntity: DbEntity = {
     ...params.entity,
     updatedAt: new Date(),
     updatedByAccountId: params.updatedByAccountId,
@@ -877,7 +878,7 @@ export const updateEntity = async (
     properties: any;
     updatedByAccountId: string;
   },
-): Promise<Entity> => {
+): Promise<DbEntity> => {
   const { accountId, entityId, properties } = params;
   const entity = await getEntityLatestVersion(conn, params);
   if (!entity) {
@@ -898,7 +899,7 @@ export const updateEntity = async (
 export const getDestinationEntityOfLink = async (
   conn: Connection,
   link: DBLink,
-): Promise<Entity> => {
+): Promise<DbEntity> => {
   const destinationEntity = link.destinationEntityVersionId
     ? await getEntity(conn, {
         accountId: link.destinationAccountId,
@@ -958,7 +959,7 @@ export const getChildren = async (
     entityId: string;
     entityVersionId: string;
   },
-): Promise<Entity[]> => {
+): Promise<DbEntity[]> => {
   if (!(await getEntity(conn, params))) {
     throw new DbEntityNotFoundError(params);
   }

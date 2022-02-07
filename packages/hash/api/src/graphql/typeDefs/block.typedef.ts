@@ -87,4 +87,17 @@ export const blockTypedef = gql`
     entity: UnknownEntity!
     componentId: ID!
   }
+
+  # Similar to EntityRef, except not linked to a specific version of the Entity
+  input LatestEntityRef {
+    accountId: ID!
+    entityId: ID!
+  }
+
+  extend type Query {
+    """
+    Get a specified list of blocks by accountId and entityId
+    """
+    blocks(blocks: [LatestEntityRef!]!): [Block!]!
+  }
 `;

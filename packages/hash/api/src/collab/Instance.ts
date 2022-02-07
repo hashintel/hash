@@ -2,32 +2,41 @@ import { ApolloClient } from "@apollo/client";
 import { EntityVersion } from "@hashintel/hash-backend-utils/pgTables";
 import { CollabPosition } from "@hashintel/hash-shared/collab";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
-import { BlockEntity } from "@hashintel/hash-shared/entity";
 import {
-  createEntityStore,
-  EntityStore,
-  walkValueForEntity,
-} from "@hashintel/hash-shared/entityStore";
+  BlockEntity,
+  flatMapBlocks,
+  isTextContainingEntityProperties,
+} from "@hashintel/hash-shared/entity";
+import { EntityStore } from "@hashintel/hash-shared/entityStore";
 import {
   addEntityStoreAction,
+  disableEntityStoreTransactionInterpretation,
+  EntityStorePluginAction,
   entityStorePluginState,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import {
-  GetEntityQuery,
-  GetEntityQueryVariables,
+  LatestEntityRef,
+  GetBlocksQuery,
+  GetBlocksQueryVariables,
   GetPageQuery,
   GetPageQueryVariables,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 import {
   getComponentNodeAttrs,
   isComponentNode,
+  isEntityNode,
 } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
-import { getEntity } from "@hashintel/hash-shared/queries/entity.queries";
-import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
-import { updatePageMutation } from "@hashintel/hash-shared/save";
+import {
+  getBlocksQuery,
+  getPageQuery,
+} from "@hashintel/hash-shared/queries/page.queries";
+import {
+  createNecessaryEntities,
+  updatePageMutation,
+} from "@hashintel/hash-shared/save";
 import { Response } from "express";
-import { isEqual } from "lodash";
+import { isEqual, memoize, pick } from "lodash";
 import { Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import { Mapping, Step, Transform } from "prosemirror-transform";
@@ -57,7 +66,13 @@ type StoreUpdate = {
   type: "store";
   payload: EntityStore;
 };
-type Update = StepUpdate | StoreUpdate;
+
+type ActionUpdate = {
+  type: "action";
+  payload: EntityStorePluginAction;
+};
+
+type Update = StepUpdate | StoreUpdate | ActionUpdate;
 
 // A collaborative editing document instance.
 export class Instance {
@@ -133,62 +148,84 @@ export class Instance {
    * walkValueForEntity cannot handle async operations
    */
   private async processEntityVersion(entityVersion: EntityVersion) {
-    let foundOnPage = false;
-    const entityVersionsToUpdate = new Set<string>();
+    /**
+     * This removes any extra properties from a passed object containing an
+     * accountId and entityId, which may be an Entity or a LatestEntityRef, or
+     * similar, in order to generate a LatestEntityRef with only the
+     * specific properties. This allows us to create objects which identify
+     * specific entities for use in GraphQL requests or comparisons. Because
+     * TypeScript's "substitutability", this function can be called with objects
+     * with extra properties than those specified.
+     *
+     * This function is memoized so that the resulting value can be used inside
+     * Map or Set, or for direct comparison, in absence of support for the
+     * Record proposal. The second argument to memoize allows calling this
+     * function with an object.
+     *
+     * This is defined locally as we only need calls to be referentially equal
+     * within the scope of `processEntityVersion`.
+     *
+     * @todo replace this with a Record once the proposal is usable
+     * @see https://github.com/tc39/proposal-record-tuple
+     * @see https://github.com/Microsoft/TypeScript/wiki/FAQ#substitutability
+     */
+    const getEntityRef = memoize(
+      (ref: { accountId: string; entityId: string }): LatestEntityRef =>
+        pick(ref, "accountId", "entityId"),
+      ({ accountId, entityId }) => `${accountId}/${entityId}`,
+    );
+
     const entityVersionTime = new Date(entityVersion.updatedAt).getTime();
+    const entityVersionRef = getEntityRef(entityVersion);
 
-    walkValueForEntity(this.savedContents, (entity) => {
-      if (entity.entityId === entityVersion.entityId) {
-        foundOnPage = true;
+    const blocksToRefresh = new Set(
+      flatMapBlocks(this.savedContents, (entity, blockEntity) => {
+        const entityRef = getEntityRef(entity);
 
-        if (entityVersionTime > new Date(entity.updatedAt).getTime()) {
-          entityVersionsToUpdate.add(entity.entityVersionId);
+        if (
+          entityRef === entityVersionRef &&
+          entityVersionTime > new Date(entity.updatedAt).getTime()
+        ) {
+          return [getEntityRef(blockEntity)];
         }
-      }
 
-      return entity;
-    });
+        return [];
+      }),
+    );
 
-    if (foundOnPage && entityVersionsToUpdate.size > 0) {
-      const { data } = await this.fallbackClient.query<
-        GetEntityQuery,
-        GetEntityQueryVariables
+    if (blocksToRefresh.size) {
+      const refreshedBlocksQuery = await this.fallbackClient.query<
+        GetBlocksQuery,
+        GetBlocksQueryVariables
       >({
-        query: getEntity,
+        query: getBlocksQuery,
         variables: {
-          entityId: entityVersion.entityId,
-          accountId: entityVersion.accountId,
+          blocks: Array.from(blocksToRefresh.values()),
         },
         fetchPolicy: "network-only",
       });
 
-      const nextSavedContents = walkValueForEntity(
-        this.savedContents,
-        (entity) => {
-          if (entityVersionsToUpdate.has(entity.entityVersionId)) {
-            return {
-              ...entity,
-              accountId: entityVersion.accountId,
-              entityVersionId: entityVersion.entityVersionId,
-              entityTypeVersionId: entityVersion.entityTypeVersionId,
-              /**
-               * This could overwrite any updates applied to entities inside of
-               * this properties field, but not a lot we can do about that, and
-               * unlikely to actually cause an issue as we process entity
-               * updates one at a time.
-               *
-               * @todo remove this comment when we have flat entities
-               */
-              properties: data.entity.properties,
-              createdByAccountId: entityVersion.updatedByAccountId,
-              createdAt: entityVersion.updatedAt.toISOString(),
-              updatedAt: entityVersion.updatedAt.toISOString(),
-            };
+      const refreshedPageBlocks = new Map<LatestEntityRef, BlockEntity>(
+        refreshedBlocksQuery.data.blocks.map(
+          (block) => [getEntityRef(block), block] as const,
+        ),
+      );
+
+      const nextSavedContents = this.savedContents.map((block) => {
+        const blockRef = getEntityRef(block);
+
+        if (blocksToRefresh.has(blockRef)) {
+          const refreshedBlock = refreshedPageBlocks.get(blockRef);
+
+          if (!refreshedBlock) {
+            throw new Error("Cannot find updated block in updated page");
           }
 
-          return entity;
-        },
-      );
+          return refreshedBlock;
+        }
+
+        return block;
+      });
 
       /**
        * We should know not to notify consumers of changes they've already been
@@ -210,7 +247,10 @@ export class Instance {
 
   private updateSavedContents(nextSavedContents: BlockEntity[]) {
     const { tr } = this.state;
-    addEntityStoreAction(tr, { type: "contents", payload: nextSavedContents });
+    addEntityStoreAction(this.state, tr, {
+      type: "mergeNewPageContents",
+      payload: nextSavedContents,
+    });
     this.state = this.state.apply(tr);
     this.savedContents = nextSavedContents;
     this.recordStoreUpdate();
@@ -232,10 +272,20 @@ export class Instance {
 
   addEvents =
     (apolloClient?: ApolloClient<unknown>) =>
-    (version: number, steps: Step[], clientID: string) => {
+    (
+      version: number,
+      steps: Step[],
+      clientID: string,
+      actions: EntityStorePluginAction[] = [],
+      fromClient = true,
+    ) => {
       this.checkVersion(version);
       if (this.version !== version) return false;
       const tr = this.state.tr;
+
+      if (fromClient) {
+        disableEntityStoreTransactionInterpretation(tr);
+      }
 
       for (let i = 0; i < steps.length; i++) {
         this.clientIds.set(steps[i], clientID);
@@ -246,10 +296,20 @@ export class Instance {
           this.saveMapping.appendMap(steps[i].getMap());
         }
       }
+
+      for (const action of actions) {
+        addEntityStoreAction(this.state, tr, { ...action, received: true });
+      }
+
       this.state = this.state.apply(tr);
 
       // this.doc = doc;
       this.addUpdates(steps.map((step) => ({ type: "step", payload: step })));
+
+      for (const action of actions) {
+        this.addUpdates([{ type: "action", payload: action }]);
+      }
+
       this.sendUpdates();
 
       if (apolloClient) {
@@ -265,18 +325,37 @@ export class Instance {
 
     this.saveChain = this.saveChain
       .catch()
-      .then(() => {
+      .then(async () => {
+        const { actions, createdEntities } = await createNecessaryEntities(
+          this.state,
+          this.accountId,
+          apolloClient,
+        );
+
+        if (actions.length) {
+          this.addEvents(apolloClient)(
+            this.version,
+            [],
+            `${clientID}-server`,
+            actions,
+          );
+        }
+
+        return createdEntities;
+      })
+      .then((createdEntities) => {
         this.saveMapping = mapping;
         const { doc } = this.state;
+        const store = entityStorePluginState(this.state);
 
         return updatePageMutation(
           this.accountId,
           this.pageEntityId,
           doc,
           this.savedContents,
-          // @todo get this from this.state
-          createEntityStore(this.savedContents, {}),
+          entityStorePluginState(this.state).store,
           apolloClient,
+          createdEntities,
         ).then((newPage) => {
           /**
            * This is purposefully based on the current doc, not the doc at
@@ -285,6 +364,7 @@ export class Instance {
            * insert entity ids for new blocks)
            */
           const transform = new Transform<Schema>(this.state.doc);
+          const actions: EntityStorePluginAction[] = [];
 
           /**
            * We need to look through our doc for any nodes that were missing
@@ -302,7 +382,55 @@ export class Instance {
               throw new Error("Cannot find block node in save result");
             }
 
-            if (isComponentNode(node) && !node.attrs.blockEntityId) {
+            if (isEntityNode(node)) {
+              let targetEntityId: string;
+
+              if (!node.attrs.draftId) {
+                throw new Error(
+                  "Cannot process save when node missing a draft id",
+                );
+              }
+
+              /**
+               * @todo doesn't update entity id for text containing entities
+               *       when created
+               */
+              switch (resolved.depth) {
+                case 1:
+                  targetEntityId = blockEntity.entityId;
+                  break;
+
+                case 2:
+                  targetEntityId = isTextContainingEntityProperties(
+                    blockEntity.properties.entity.properties,
+                  )
+                    ? blockEntity.properties.entity.properties.text.data
+                        .entityId
+                    : blockEntity.properties.entity.entityId;
+                  break;
+
+                default:
+                  throw new Error("unexpected structure");
+              }
+
+              const entity = store.store.draft[node.attrs.draftId];
+
+              if (!entity) {
+                throw new Error(
+                  `Cannot find corresponding draft entity for node post-save`,
+                );
+              }
+
+              if (targetEntityId !== entity.entityId) {
+                actions.push({
+                  type: "updateEntityId",
+                  payload: {
+                    draftId: entity.draftId,
+                    entityId: targetEntityId,
+                  },
+                });
+              }
+            } else if (isComponentNode(node) && !node.attrs.blockEntityId) {
               transform.setNodeMarkup(
                 mapping.map(pos),
                 undefined,
@@ -311,11 +439,31 @@ export class Instance {
             }
           });
 
+          /**
+           * We're posting actions and steps from the post-save
+           * transformation process for maximum safety – as we need to
+           * ensure the actions are processed before the steps, and that's
+           * not easy to do in one message right now
+           *
+           * @todo combine the two calls to addEvents
+           */
+          if (actions.length) {
+            this.addEvents(apolloClient)(
+              this.version,
+              [],
+              `${clientID}-server`,
+              actions,
+              false,
+            );
+          }
+
           if (transform.docChanged) {
             this.addEvents(apolloClient)(
               this.version,
               transform.steps,
               `${clientID}-server`,
+              [],
+              false,
             );
           }
 
@@ -340,6 +488,7 @@ export class Instance {
       jsonSteps: any[],
       clientId: string,
       blockIds: string[],
+      actions: EntityStorePluginAction[] = [],
     ) => {
       /**
        * This isn't strictly necessary, and will result in more laggy collab
@@ -366,7 +515,12 @@ export class Instance {
         Step.fromJSON(this.state.doc.type.schema, step),
       );
 
-      const res = this.addEvents(apolloClient)(version, steps, clientId);
+      const res = this.addEvents(apolloClient)(
+        version,
+        steps,
+        clientId,
+        actions,
+      );
 
       /**
        * This isn't strictly necessary, and will result in more laggy collab
@@ -417,11 +571,16 @@ export class Instance {
         .find((update): update is StoreUpdate => update.type === "store")
         ?.payload ?? null;
 
+    const actions = updates
+      .filter((update): update is ActionUpdate => update.type === "action")
+      .map((update) => update.payload);
+
     return {
       steps,
       users: this.userCount,
       clientIDs: steps.map((step) => this.clientIds.get(step)),
       store,
+      actions,
       shouldRespondImmediately: updates.length > 0,
     };
   }

@@ -1,0 +1,84 @@
+{
+  "outputs": {
+    "trees": [
+      {
+        "op": "filter",
+        "field": "color",
+        "comparison": "eq",
+        "value": "green"
+      },
+      { "op": "count" }
+    ],
+    "fires": [
+      { "op": "filter", "field": "color", "comparison": "eq", "value": "red" },
+      { "op": "count" }
+    ],
+    "embers": [
+      {
+        "op": "filter",
+        "field": "color",
+        "comparison": "eq",
+        "value": "yellow"
+      },
+      { "op": "count" }
+    ],
+    "forest_fire": [
+      { "op": "filter", "field": "color", "comparison": "eq", "value": "red" },
+      { "op": "count" }
+    ],
+    "age": [
+      {
+        "op": "filter",
+        "field": "color",
+        "comparison": "eq",
+        "value": "green"
+      },
+      { "op": "get", "field": "age" },
+      { "op": "mean" }
+    ],
+    "sum_age": [
+      {
+        "op": "filter",
+        "field": "color",
+        "comparison": "eq",
+        "value": "green"
+      },
+      { "op": "get", "field": "age" },
+      { "op": "sum" }
+    ]
+  },
+  "plots": [
+    {
+      "title": "Agents by behaviors",
+      "timeseries": ["trees", "fires", "embers"],
+      "layout": { "width": "100%", "height": "60%" },
+      "position": { "x": "0%", "y": "0%" }
+    },
+    {
+      "title": "Average age",
+      "timeseries": ["age"],
+      "layout": { "width": "100%", "height": "60%" },
+      "position": { "x": "0%", "y": "60%" }
+    },
+    {
+      "title": "Wildfire Occurrences",
+      "timeseries": ["forest_fire"],
+      "layout": { "width": "100%", "height": "60%" },
+      "position": { "x": "0%", "y": "120%" }
+    },
+    {
+      "title": "Age Distribution",
+      "type": "box",
+      "data": [{ "y": "Age", "name": "Age" }],
+      "layout": { "width": "100%", "height": "50%" },
+      "position": { "x": "0%", "y": "180%" }
+    },
+    {
+      "title": "Correlation Between Trees and Fires",
+      "type": "scatter",
+      "data": [{ "y": "fires", "x": "trees" }],
+      "layout": { "width": "100%", "height": "50%" },
+      "position": { "x": "0%", "y": "230%" }
+    }
+  ]
+}

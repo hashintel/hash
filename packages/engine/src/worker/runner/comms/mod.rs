@@ -5,6 +5,8 @@ use std::{
     sync::Arc,
 };
 
+use tracing::Span;
+
 use crate::{
     config::{EngineConfig, Globals},
     datastore::{prelude::ArrowSchema, schema::state::AgentSchema, shared_store::SharedStore},
@@ -72,6 +74,7 @@ impl From<flatbuffers_gen::target_generated::Target> for MessageTarget {
 pub struct RunnerTaskMsg {
     pub package_id: PackageId,
     pub task_id: TaskId,
+    pub group_index: Option<usize>,
     pub payload: TaskMessage,
     pub shared_store: TaskSharedStore,
 }
@@ -83,6 +86,7 @@ pub struct TargetedRunnerTaskMsg {
 }
 
 impl TargetedRunnerTaskMsg {
+    #[allow(unreachable_code, unused_variables)]
     pub fn try_from_fbs(
         task_msg: flatbuffers_gen::runner_outbound_msg_generated::TaskMsg<'_>,
         sent_tasks: &mut HashMap<TaskId, SentTask>,
@@ -98,6 +102,8 @@ impl TargetedRunnerTaskMsg {
 
         let target = task_msg.target().into();
         let package_id = (task_msg.package_sid() as usize).into();
+        // TODO: our version of flatbuffers doesn't let us have optional Scalars
+        // let group_index = task_msg.group_index().map(|val| val as usize);
 
         let inner_msg: serde_json::Value = serde_json::from_slice(task_msg.payload().inner())?;
         let payload = TaskMessage::try_from_inner_msg_and_wrapper(inner_msg, sent.task_wrapper);
@@ -116,6 +122,7 @@ impl TargetedRunnerTaskMsg {
             msg: RunnerTaskMsg {
                 package_id,
                 task_id,
+                group_index: todo!(),
                 payload,
                 shared_store: sent.shared_store,
             },
@@ -140,6 +147,7 @@ pub struct PackageMsgs(pub HashMap<PackageId, PackageInitMsgForWorker>);
 
 #[derive(Debug, Clone)]
 pub struct NewSimulationRun {
+    pub span: Span,
     pub short_id: SimulationShortId,
     pub engine_config: Arc<EngineConfig>,
     pub packages: PackageMsgs,

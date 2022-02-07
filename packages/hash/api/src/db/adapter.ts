@@ -25,7 +25,7 @@ export type EntityTypeTypeFields =
   | "entityTypeName"
   | "entityTypeVersionId";
 
-export type Entity = {
+export type DbEntity = {
   accountId: string;
   entityId: string;
   entityVersionId: string;
@@ -47,6 +47,10 @@ export type Entity = {
   updatedByAccountId: string;
 
   visibility: Visibility;
+};
+
+export type EntityWithOutgoingEntityIds = DbEntity & {
+  outgoingEntityIds?: string[];
 };
 
 export type DBLink = {
@@ -72,7 +76,7 @@ export type DBAggregation = {
   createdAt: Date;
 };
 
-export type EntityType = Omit<Entity, EntityTypeTypeFields> & {
+export type EntityType = Omit<DbEntity, EntityTypeTypeFields> & {
   /**
    *  @todo make these non-optional if we figure a way of getting the EntityType entityType
    *    attached without recursion headaches. see https://github.com/hashintel/dev/pull/200
@@ -157,6 +161,28 @@ export type Graph = {
   }[];
 };
 
+export type DbBlockProperties = {
+  entityId: string;
+  accountId: string;
+  componentId: string;
+};
+
+export type DbPageProperties = {
+  archived?: boolean | null;
+  contents: {
+    entityId: string;
+    accountId: string;
+  }[];
+  summary?: string | null;
+  title: string;
+};
+
+export type DbPageEntity = Omit<DbEntity, "properties"> & {
+  properties: DbPageProperties;
+};
+
+export type DbUnknownEntity = DbEntity;
+
 export interface DBAdapter extends DataSource, DBClient {
   /** Initiate a new database transaction. All `DBAdapter` methods called within
    * the provided callback `fn` are executed within the same transaction.
@@ -199,7 +225,7 @@ export interface DBClient {
     systemTypeName?: SystemType | null | undefined;
     versioned: boolean;
     properties: any;
-  }): Promise<Entity>;
+  }): Promise<DbEntity>;
 
   /**
    * Get an entity's accountId using its entityVersionId
@@ -218,7 +244,7 @@ export interface DBClient {
       entityVersionId: string;
     },
     lock?: boolean,
-  ): Promise<Entity | undefined>;
+  ): Promise<DbEntity | undefined>;
 
   /**
    * Get the latest version of an entity.
@@ -228,7 +254,7 @@ export interface DBClient {
   getEntityLatestVersion(params: {
     accountId: string;
     entityId: string;
-  }): Promise<Entity | undefined>;
+  }): Promise<DbEntity | undefined>;
 
   /**
    * Get an entityType by its fixed id.
@@ -246,6 +272,24 @@ export interface DBClient {
   getEntityTypeByComponentId(params: {
     componentId: string;
   }): Promise<EntityType | null>;
+
+  /**
+   * Get an `EntityType` by its Schema ID, i.e. the value for `$id` on the schema.
+   * @param params.schema$id the schema ID that exists on an `EntityType`.
+   */
+  getEntityTypeBySchema$id(params: {
+    schema$id: string;
+  }): Promise<EntityType | null>;
+
+  /**
+   * Get all types that inherit from a specific type.
+   */
+  getEntityTypeChildren(params: { schemaRef: string }): Promise<EntityType[]>;
+
+  /**
+   * Get all types that a specific type inherits from.
+   */
+  getEntityTypeParents(params: { entityTypeId: string }): Promise<EntityType[]>;
 
   /**
    * Get the latest version of a system entity type.
@@ -289,7 +333,7 @@ export interface DBClient {
     entityId: string;
     properties: any;
     updatedByAccountId: string;
-  }): Promise<Entity>;
+  }): Promise<DbEntity>;
 
   /**
    * Update an entity's account id, on all versions
@@ -313,13 +357,13 @@ export interface DBClient {
     email: string;
     verified?: boolean;
     primary?: boolean;
-  }): Promise<Entity | null>;
+  }): Promise<DbEntity | null>;
 
   /** Get the user by their shortname. */
-  getUserByShortname(params: { shortname: string }): Promise<Entity | null>;
+  getUserByShortname(params: { shortname: string }): Promise<DbEntity | null>;
 
   /** Get the org by its shortname. */
-  getOrgByShortname(params: { shortname: string }): Promise<Entity | null>;
+  getOrgByShortname(params: { shortname: string }): Promise<DbEntity | null>;
 
   /**
    * Get all entities of a given type
@@ -333,7 +377,7 @@ export interface DBClient {
     entityTypeId: string;
     entityTypeVersionId?: string;
     latestOnly: boolean;
-  }): Promise<Entity[]>;
+  }): Promise<DbEntity[]>;
 
   /**
    * Get all entities of a given system type, in an account.
@@ -346,12 +390,23 @@ export interface DBClient {
     accountId: string;
     latestOnly?: boolean;
     systemTypeName: SystemType;
-  }): Promise<Entity[]>;
+  }): Promise<DbEntity[]>;
+
+  getEntitiesByTypeWithOutgoingEntityIds(params: {
+    accountId: string;
+    entityTypeId?: string;
+    systemTypeName?: SystemType;
+  }): Promise<EntityWithOutgoingEntityIds[]>;
+
+  getEntityWithOutgoingEntityIds(params: {
+    accountId: string;
+    entityId: string;
+  }): Promise<EntityWithOutgoingEntityIds | null>;
 
   /**
    * Get all account type entities (User or Account).
    */
-  getAllAccounts(): Promise<Entity[]>;
+  getAllAccounts(): Promise<DbEntity[]>;
 
   /** Checks whether an account exists on the account table.
    * @param params.accountId the account id to check
@@ -385,6 +440,13 @@ export interface DBClient {
   getLink(params: {
     sourceAccountId: string;
     linkId: string;
+  }): Promise<DBLink | null>;
+
+  getLinkByEntityId(params: {
+    sourceAccountId: string;
+    sourceEntityId: string;
+    sourceEntityVersionId: string;
+    destinationEntityId: string;
   }): Promise<DBLink | null>;
 
   deleteLink(params: {
@@ -487,7 +549,7 @@ export interface DBClient {
       entityId: string;
       entityVersionId?: string;
     }[],
-  ): Promise<Entity[]>;
+  ): Promise<DbEntity[]>;
 
   /** Get all entities associated with the given account ID. */
   getAccountEntities(params: {
@@ -498,7 +560,7 @@ export interface DBClient {
       entityTypeVersionId?: string;
       systemTypeName?: SystemType;
     };
-  }): Promise<Entity[]>;
+  }): Promise<DbEntity[]>;
 
   /**
    * Get entity types associated with a given accountId.
@@ -543,5 +605,5 @@ export interface DBClient {
     accountId: string;
     entityId: string;
     entityVersionId: string;
-  }): Promise<Entity[]>;
+  }): Promise<DbEntity[]>;
 }

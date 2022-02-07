@@ -74,7 +74,7 @@ impl Analyzer {
                     ))
                 })?;
                 outputs.push(output);
-                // log::debug!("Ran analysis. Output ({}): {:?}", _output_name, v);
+                // tracing::debug!("Ran analysis. Output ({}): {:?}", _output_name, v);
                 Ok(())
             })
     }

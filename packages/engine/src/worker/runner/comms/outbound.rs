@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use flatbuffers_gen::runner_outbound_msg_generated::root_as_runner_outbound_msg;
+use tracing::Span;
 
 use super::TargetedRunnerTaskMsg;
 use crate::{
@@ -190,6 +191,7 @@ impl OutboundFromRunnerMsgPayload {
 
 #[derive(Debug)]
 pub struct OutboundFromRunnerMsg {
+    pub span: Span,
     pub source: Language,
     pub sim_id: SimulationShortId,
     pub payload: OutboundFromRunnerMsgPayload,
@@ -211,6 +213,7 @@ impl OutboundFromRunnerMsg {
         })?;
         let payload = OutboundFromRunnerMsgPayload::try_from_fbs(msg, sent_tasks)?;
         Ok(Self {
+            span: Span::current(),
             source,
             sim_id: msg.sim_sid(),
             payload,

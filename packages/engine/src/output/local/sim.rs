@@ -3,14 +3,15 @@ use std::io::{BufReader, BufWriter};
 use super::{config::LocalPersistenceConfig, result::LocalPersistenceResult};
 use crate::{
     output::{buffer::Buffers, error::Result, SimulationOutputPersistenceRepr},
-    proto::{ExperimentRegisteredId, SimulationShortId},
+    proto::{ExperimentId, ExperimentName, SimulationShortId},
     simulation::{package::output::packages::Output, step_output::SimulationStepOutput},
     SimRunConfig,
 };
 
 #[derive(derive_new::new)]
 pub struct LocalSimulationOutputPersistence {
-    exp_id: ExperimentRegisteredId,
+    exp_name: ExperimentName,
+    exp_id: ExperimentId,
     sim_id: SimulationShortId,
     // TODO: Should this be unused? If so remove
     buffers: Buffers,
@@ -37,16 +38,17 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
     }
 
     async fn finalize(mut self, config: &SimRunConfig) -> Result<Self::OutputPersistenceResult> {
-        log::trace!("Finalizing output");
+        tracing::trace!("Finalizing output");
         // JSON state
         let (_, parts) = self.buffers.json_state.finalize()?;
         let path = self
             .config
             .output_folder
-            .join(&self.exp_id)
+            .join(self.exp_name.as_str())
+            .join(self.exp_id.to_string())
             .join(self.sim_id.to_string());
 
-        log::info!("Making new output directory: {:?}", path);
+        tracing::info!("Making new output directory: {:?}", path);
         std::fs::create_dir_all(&path)?;
 
         let json_state_path = path.join("json_state.json");

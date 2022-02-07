@@ -9,9 +9,19 @@ use super::{
     visitor::{Visit, Visitor, VisitorMut},
     BufferChange,
 };
-use crate::datastore::prelude::*;
+use crate::{datastore::prelude::*, proto::ExperimentId};
 
 pub type Buffers<'a> = (&'a [u8], &'a [u8], &'a [u8], &'a [u8]);
+
+pub fn shmem_id_prefix(experiment_id: &ExperimentId) -> String {
+    if cfg!(target_os = "macos") {
+        // MacOS shmem seems to be limited to 31 chars, probably remnants of HFS
+        // And we need to_string otherwise it's not truncated when formatting
+        format!("shm_{:.20}", experiment_id.to_simple().to_string())
+    } else {
+        format!("shm_{}", experiment_id.to_simple())
+    }
+}
 
 /// A memory-mapped shared memory segment wrapper.
 ///
@@ -65,7 +75,7 @@ impl Memory {
     /// reloading
     pub fn resize(&mut self, mut new_size: usize) -> Result<()> {
         new_size = Self::calculate_total_size(new_size, self.include_terminal_padding)?;
-        log::trace!("Trying to resize memory to: {}", new_size);
+        tracing::trace!("Trying to resize memory to: {}", new_size);
         self.data.resize(new_size)?;
         self.size = new_size;
         Ok(())
@@ -102,14 +112,14 @@ impl Memory {
     }
 
     pub fn shared_memory(
-        experiment_run_id: &str,
+        experiment_id: &ExperimentId,
         size: usize,
         droppable: bool,
         include_terminal_padding: bool,
     ) -> Result<Memory> {
         Self::validate_size(size)?;
         let data = ShmemConf::new(droppable)
-            .os_id(Self::generate_shmem_id(experiment_run_id))
+            .os_id(Self::generate_shmem_id(experiment_id))
             .size(size)
             .create()?;
         Ok(Memory {
@@ -124,7 +134,7 @@ impl Memory {
         droppable: bool,
         include_terminal_padding: bool,
     ) -> Result<Memory> {
-        if message.contains("/shm_") {
+        if message.contains("shm_") {
             let id = &message;
             let data = ShmemConf::new(droppable).os_id(id).open()?;
             let size = data.len();
@@ -135,9 +145,7 @@ impl Memory {
                 include_terminal_padding,
             })
         } else {
-            Err(Error::Memory(
-                "Expected message to contain \"/shm_\"".into(),
-            ))
+            Err(Error::Memory("Expected message to contain \"shm_\"".into()))
         }
     }
 
@@ -149,10 +157,10 @@ impl Memory {
         VisitorMut::new(MemoryPtr::from_memory(self), self)
     }
 
-    pub fn duplicate_from(memory: &Memory, experiment_run_id: &str) -> Result<Memory> {
+    pub fn duplicate_from(memory: &Memory, experiment_id: &ExperimentId) -> Result<Memory> {
         let shmem = &memory.data;
         let data = ShmemConf::new(true)
-            .os_id(Self::generate_shmem_id(experiment_run_id))
+            .os_id(Self::generate_shmem_id(experiment_id))
             .size(memory.size)
             .create()?;
         unsafe { std::ptr::copy_nonoverlapping(shmem.as_ptr(), data.as_ptr(), memory.size) };
@@ -163,15 +171,17 @@ impl Memory {
         })
     }
 
-    fn generate_shmem_id(experiment_run_id: &str) -> String {
+    fn generate_shmem_id(experiment_id: &ExperimentId) -> String {
+        let id_prefix = shmem_id_prefix(experiment_id);
         loop {
-            // MacOS shmem seems to be limited to 31 chars, probably remnants of HFS
-            let cur_id = format!(
-                "/shm_{:.20}_{:.6}",
-                experiment_run_id,
-                rand::random::<u16>()
-            );
-            if !Path::new(&format!("/dev/shm{}", cur_id)).exists() {
+            let cur_id = if cfg!(target_os = "macos") {
+                // MacOS shmem seems to be limited to 31 chars, probably remnants of HFS
+                format!("{}_{:.7}", id_prefix, rand::random::<u16>())
+            } else {
+                format!("{}_{}", id_prefix, rand::random::<u16>())
+            };
+
+            if !Path::new(&format!("/dev/shm/{}", cur_id)).exists() {
                 return cur_id;
             }
         }
@@ -293,7 +303,7 @@ impl Memory {
     }
 
     pub fn from_sizes(
-        experiment_run_id: &str,
+        experiment_id: &ExperimentId,
         schema_size: usize,
         header_size: usize,
         meta_size: usize,
@@ -311,12 +321,14 @@ impl Memory {
                 size = val.parse().expect(&format!(
                     "OS_MEMORY_ALLOC_OVERRIDE was an invalid value: {val}"
                 ));
-                log::debug!("Memory size was overridden by value set in envvar, set to: {size}");
+                tracing::debug!(
+                    "Memory size was overridden by value set in envvar, set to: {size}"
+                );
             }
         }
 
         let mut memory =
-            Memory::shared_memory(experiment_run_id, size, true, include_terminal_padding)?;
+            Memory::shared_memory(experiment_id, size, true, include_terminal_padding)?;
 
         let mut visitor = memory.visitor_mut();
         let markers_mut = visitor.markers_mut();
@@ -330,7 +342,7 @@ impl Memory {
     }
 
     pub fn from_batch_buffers(
-        experiment_run_id: &str,
+        experiment_id: &ExperimentId,
         schema: &[u8],
         header: &[u8],
         meta: &[u8],
@@ -350,12 +362,14 @@ impl Memory {
                 size = val.parse().expect(&format!(
                     "OS_MEMORY_ALLOC_OVERRIDE was an invalid value: {val}"
                 ));
-                log::debug!("Memory size was overridden by value set in envvar, set to: {size}");
+                tracing::debug!(
+                    "Memory size was overridden by value set in envvar, set to: {size}"
+                );
             }
         }
 
         let mut memory =
-            Memory::shared_memory(experiment_run_id, size, true, include_terminal_padding)?;
+            Memory::shared_memory(experiment_id, size, true, include_terminal_padding)?;
 
         let mut visitor = memory.visitor_mut();
         let markers_mut = visitor.markers_mut();
@@ -387,17 +401,27 @@ impl Memory {
 
 #[cfg(test)]
 pub mod tests {
+    use uuid::Uuid;
+
     use super::*;
     use crate::error::Result;
 
     #[test]
     pub fn test_identical_buffers() -> Result<()> {
+        let experiment_id = Uuid::new_v4();
         let buffer1: Vec<u8> = vec![1; 1482];
         let buffer2: Vec<u8> = vec![2; 645];
         let buffer3: Vec<u8> = vec![3; 254];
         let buffer4: Vec<u8> = vec![4; 173];
 
-        let memory = Memory::from_batch_buffers("", &buffer1, &buffer2, &buffer3, &buffer4, true)?;
+        let memory = Memory::from_batch_buffers(
+            &experiment_id,
+            &buffer1,
+            &buffer2,
+            &buffer3,
+            &buffer4,
+            true,
+        )?;
 
         let (new_buffer1, new_buffer2, new_buffer3, new_buffer4) = memory.get_batch_buffers()?;
 
@@ -410,12 +434,20 @@ pub mod tests {
 
     #[test]
     pub fn test_message() -> Result<()> {
+        let experiment_id = Uuid::new_v4();
         let buffer1: Vec<u8> = vec![1; 1482];
         let buffer2: Vec<u8> = vec![2; 645];
         let buffer3: Vec<u8> = vec![3; 254];
         let buffer4: Vec<u8> = vec![4; 173];
 
-        let memory = Memory::from_batch_buffers("", &buffer1, &buffer2, &buffer3, &buffer4, true)?;
+        let memory = Memory::from_batch_buffers(
+            &experiment_id,
+            &buffer1,
+            &buffer2,
+            &buffer3,
+            &buffer4,
+            true,
+        )?;
 
         let message = memory.get_id();
 

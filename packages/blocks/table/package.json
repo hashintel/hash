@@ -3,6 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "description": "Create a table for storing information in rows and columns",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git",
+    "directory": "packages/blocks/table"
+  },
   "license": "MIT",
   "author": "HASH",
   "main": "src/index.ts",
@@ -55,7 +60,7 @@
     "eslint-plugin-no-restricted-imports": "0.0.0",
     "eslint-plugin-react": "^7.25.1",
     "eslint-plugin-react-hooks": "4.2.0",
-    "html-webpack-plugin": "^4.5.0",
+    "html-webpack-plugin": "4.5.1",
     "react": "17.0.2",
     "react-dom": "17.0.2",
     "regenerator-runtime": "^0.13.7",
@@ -81,6 +86,75 @@
   "blockprotocol": {
     "displayName": "Table",
     "icon": "public/table.svg",
-    "image": "public/preview.svg"
+    "image": "public/preview.svg",
+    "examples": [
+      {
+        "data": {
+          "__linkedData": {
+            "aggregate": {
+              "itemsPerPage": 5,
+              "entityTypeId": "d399c523-e152-49ed-81a4-56d9e17196bb",
+              "pageNumber": 1,
+              "pageCount": 1
+            },
+            "entityTypeId": "d399c523-e152-49ed-81a4-56d9e17196bb"
+          },
+          "data": [
+            {
+              "entityId": "1",
+              "name": "Alice",
+              "email": "alice@example.com",
+              "age": 42,
+              "country": "England"
+            },
+            {
+              "entityId": "2",
+              "name": "Bob",
+              "email": "bob@example.com",
+              "age": 34,
+              "country": "France"
+            },
+            {
+              "entityId": "3",
+              "name": "David",
+              "email": "david@example.com",
+              "age": 24,
+              "country": "Denmark"
+            },
+            {
+              "entityId": "4",
+              "name": "Eric",
+              "email": "eric@example.com",
+              "age": 59,
+              "country": "Iceland"
+            }
+          ]
+        },
+        "initialState": {
+          "columns": [
+            {
+              "Header": "entityId",
+              "accessor": "entityId"
+            },
+            {
+              "Header": "email",
+              "accessor": "email"
+            },
+            {
+              "Header": "name",
+              "accessor": "name"
+            },
+            {
+              "Header": "age",
+              "accessor": "age"
+            },
+            {
+              "Header": "country",
+              "accessor": "country"
+            }
+          ]
+        }
+      }
+    ]
   }
 }

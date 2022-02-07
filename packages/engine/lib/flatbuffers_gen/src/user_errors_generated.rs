@@ -15,12 +15,11 @@ use std::{cmp::Ordering, mem};
 use super::user_error_generated::*;
 
 extern crate flatbuffers;
-
 use self::flatbuffers::{EndianScalar, Follow};
 
 pub enum UserErrorsOffset {}
-
 #[derive(Copy, Clone, PartialEq)]
+
 pub struct UserErrors<'a> {
     pub _tab: flatbuffers::Table<'a>,
 }
@@ -81,7 +80,6 @@ impl flatbuffers::Verifiable for UserErrors<'_> {
         Ok(())
     }
 }
-
 pub struct UserErrorsArgs<'a> {
     pub inner: Option<
         flatbuffers::WIPOffset<
@@ -89,7 +87,6 @@ pub struct UserErrorsArgs<'a> {
         >,
     >,
 }
-
 impl<'a> Default for UserErrorsArgs<'a> {
     #[inline]
     fn default() -> Self {
@@ -98,12 +95,10 @@ impl<'a> Default for UserErrorsArgs<'a> {
         }
     }
 }
-
 pub struct UserErrorsBuilder<'a: 'b, 'b> {
     fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
     start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-
 impl<'a: 'b, 'b> UserErrorsBuilder<'a, 'b> {
     #[inline]
     pub fn add_inner(
@@ -140,7 +135,6 @@ impl std::fmt::Debug for UserErrors<'_> {
         ds.finish()
     }
 }
-
 #[inline]
 #[deprecated(since = "2.0.0", note = "Deprecated in favor of `root_as...` methods.")]
 pub fn get_root_as_user_errors<'a>(buf: &'a [u8]) -> UserErrors<'a> {
@@ -163,7 +157,6 @@ pub fn get_size_prefixed_root_as_user_errors<'a>(buf: &'a [u8]) -> UserErrors<'a
 pub fn root_as_user_errors(buf: &[u8]) -> Result<UserErrors, flatbuffers::InvalidFlatbuffer> {
     flatbuffers::root::<UserErrors>(buf)
 }
-
 #[inline]
 /// Verifies that a buffer of bytes contains a size prefixed
 /// `UserErrors` and returns it.
@@ -176,7 +169,6 @@ pub fn size_prefixed_root_as_user_errors(
 ) -> Result<UserErrors, flatbuffers::InvalidFlatbuffer> {
     flatbuffers::size_prefixed_root::<UserErrors>(buf)
 }
-
 #[inline]
 /// Verifies, with the given options, that a buffer of bytes
 /// contains a `UserErrors` and returns it.
@@ -190,7 +182,6 @@ pub fn root_as_user_errors_with_opts<'b, 'o>(
 ) -> Result<UserErrors<'b>, flatbuffers::InvalidFlatbuffer> {
     flatbuffers::root_with_opts::<UserErrors<'b>>(opts, buf)
 }
-
 #[inline]
 /// Verifies, with the given verifier options, that a buffer of
 /// bytes contains a size prefixed `UserErrors` and returns
@@ -204,28 +195,20 @@ pub fn size_prefixed_root_as_user_errors_with_opts<'b, 'o>(
 ) -> Result<UserErrors<'b>, flatbuffers::InvalidFlatbuffer> {
     flatbuffers::size_prefixed_root_with_opts::<UserErrors<'b>>(opts, buf)
 }
-
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a UserErrors and returns it.
-///
 /// # Safety
-///
 /// Callers must trust the given bytes do indeed contain a valid `UserErrors`.
 pub unsafe fn root_as_user_errors_unchecked(buf: &[u8]) -> UserErrors {
     flatbuffers::root_unchecked::<UserErrors>(buf)
 }
-
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a size prefixed UserErrors and
-/// returns it.
-///
-/// # Safety
-///
+/// returns it. # Safety
 /// Callers must trust the given bytes do indeed contain a valid size prefixed `UserErrors`.
 pub unsafe fn size_prefixed_root_as_user_errors_unchecked(buf: &[u8]) -> UserErrors {
     flatbuffers::size_prefixed_root_unchecked::<UserErrors>(buf)
 }
-
 #[inline]
 pub fn finish_user_errors_buffer<'a, 'b>(
     fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>,

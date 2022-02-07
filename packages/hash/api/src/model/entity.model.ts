@@ -35,6 +35,8 @@ export type EntityExternalResolvers =
   | "linkGroups" // resolved in resolvers/linkGroups
   | "linkedEntities" // resolved in resolvers/linkedEntities
   | "linkedAggregations" // resovled in resolvers/linkedAggregations
+  | "children" // resolved in resolvers/entityType/entityTypeInheritance
+  | "parents" // resolved in resolvers/entityType/entityTypeInheritance
   | "__typename";
 
 export type UnresolvedGQLEntity = Omit<GQLEntity, EntityExternalResolvers> & {
@@ -434,6 +436,22 @@ class __Entity {
     const link = await Link.get(client, {
       ...params,
       sourceAccountId: this.accountId,
+    });
+
+    return link;
+  }
+
+  async getOutgoingLinkByEntityId(
+    client: DBClient,
+    params: {
+      destinationEntityId: string;
+    },
+  ) {
+    const link = await Link.getByEntityId(client, {
+      ...params,
+      sourceAccountId: this.accountId,
+      sourceEntityId: this.entityId,
+      sourceEntityVersionId: this.entityVersionId,
     });
 
     return link;

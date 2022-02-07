@@ -13,7 +13,6 @@
 use std::{cmp::Ordering, mem};
 
 extern crate flatbuffers;
-
 use self::flatbuffers::{EndianScalar, Follow};
 
 #[deprecated(
@@ -42,7 +41,6 @@ pub const ENUM_VALUES_TARGET: [Target; 5] = [
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 #[repr(transparent)]
 pub struct Target(pub i8);
-
 #[allow(non_upper_case_globals)]
 impl Target {
     pub const Dynamic: Self = Self(4);
@@ -72,7 +70,6 @@ impl Target {
         }
     }
 }
-
 impl std::fmt::Debug for Target {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         if let Some(name) = self.variant_name() {
@@ -82,7 +79,6 @@ impl std::fmt::Debug for Target {
         }
     }
 }
-
 impl<'a> flatbuffers::Follow<'a> for Target {
     type Inner = Self;
 

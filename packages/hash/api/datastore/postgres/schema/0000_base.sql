@@ -49,9 +49,21 @@ create table if not exists entity_type_versions (
 );
 create index if not exists entity_type_versions_entity_type_id on entity_type_versions (entity_type_id);
 
-/** @todo: Does this play well with citus? */
+-- @todo: Does this play well with citus? 
 -- JSONB index for componentIds, this will speed up checking for an entity with a specific componentId property.
 create index if not exists entity_type_version_component_id ON entity_type_versions ((properties ->> 'componentId'::text));
+
+-- @todo: Does this play well with citus? 
+-- JSOB GIN index on allOf field of JSON schema. jsonb_path_ops option on the GIN index optimizes for @> operations.
+-- https://www.postgresql.org/docs/9.5/gin-builtin-opclasses.html
+-- Used for accessing children of (types that inherit from) an EntityType.
+create index if not exists entity_type_versions_prop_allOf on entity_type_versions using gin ((properties -> 'allOf') jsonb_path_ops);
+
+-- @todo: Does this play well with citus? 
+-- The $id field of the JSON schema is used to find schemas referred to in other schemas by $ref
+-- For example, this is used to find all parent EntityTypes (types this EntityType inherits).
+-- The contents of allOf is traversed and matched on the property field '$id'
+create index if not exists entity_type_version_prop_id ON entity_type_versions ((properties ->> '$id'::text));
 
 /**
 The entities table stores metadata which is shared across all versions of an entity.

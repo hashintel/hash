@@ -8,10 +8,10 @@
     "lint:tsc": "tsc --noEmit"
   },
   "dependencies": {
-    "@hashintel/hash-backend-utils": "0.1.0",
-    "@hashintel/hash-shared": "0.1.0",
-    "@playwright/test": "1.17.1",
+    "@hashintel/hash-backend-utils": "0.0.0",
+    "@hashintel/hash-shared": "0.0.0",
+    "@playwright/test": "1.18.0",
     "js-yaml": "4.1.0",
-    "playwright": "1.17.1"
+    "playwright": "1.18.0"
   }
 }

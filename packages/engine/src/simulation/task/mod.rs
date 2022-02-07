@@ -12,13 +12,24 @@ use crate::simulation::enum_dispatch::*;
 // From<init::Task>, ..., From<output::Task> for this enum.
 // Additionally we have TryInto<init::Task>, (and others)
 // implemented for this enum.
-#[enum_dispatch(WorkerHandler, WorkerPoolHandler, GetTaskArgs, StoreAccessVerify)]
+#[enum_dispatch(
+    GetTaskName,
+    WorkerHandler,
+    WorkerPoolHandler,
+    GetTaskArgs,
+    StoreAccessVerify
+)]
 #[derive(Clone, Debug)]
 pub enum Task {
     InitTask,
     ContextTask,
     StateTask,
     OutputTask,
+}
+
+#[enum_dispatch]
+pub trait GetTaskName {
+    fn get_task_name(&self) -> &'static str;
 }
 
 // TODO: Is there an important differentiation between Task and TaskMessage

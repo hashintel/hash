@@ -1,3 +1,7 @@
+//! Module for creating an [`Experiment`] and running it on a [`Process`].
+//!
+//! [`Process`]: crate::process::Process
+
 use std::{collections::HashMap, path::PathBuf, time::Duration};
 
 use error::{bail, ensure, report, Result, ResultExt};
@@ -6,10 +10,11 @@ use hash_engine::{
     output::local::config::LocalPersistenceConfig,
     proto,
     proto::{
-        ExecutionEnvironment, ExperimentPackageConfig, ExperimentRunBase, SimpleExperimentConfig,
-        SingleRunExperimentConfig,
+        ExecutionEnvironment, ExperimentId, ExperimentName, ExperimentPackageConfig,
+        ExperimentRunBase, SimpleExperimentConfig, SingleRunExperimentConfig,
     },
-    utils::OutputFormat,
+    simulation::command::StopStatus,
+    utils::{LogFormat, OutputLocation},
 };
 use rand::{distributions::Distribution, Rng, RngCore};
 use rand_distr::{Beta, LogNormal, Normal, Poisson};
@@ -17,36 +22,107 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value as SerdeValue};
 use tokio::time::{sleep, timeout};
 
-use crate::{exsrv::Handler, process};
+use crate::{experiment_server::Handler, process};
 
+/// Configuration values used when starting a [`hash_engine`] subprocess.
+///
+/// See the [`process`] module for more information.
 #[derive(Debug, Clone, Default)]
+#[cfg_attr(feature = "clap", derive(clap::Args))]
 pub struct ExperimentConfig {
-    pub num_workers: usize,
-    pub emit: OutputFormat,
+    /// Project output path folder.
+    ///
+    /// The folder will be created if it's missing.
+    #[cfg_attr(
+        feature = "clap",
+        clap(
+            global = true,
+            short,
+            long = "output",
+            default_value = "./output",
+            env = "HASH_OUTPUT"
+        )
+    )]
     pub output_folder: PathBuf,
-    pub engine_start_timeout: Duration,
-    pub engine_wait_timeout: Duration,
+
+    /// Logging output format to be emitted
+    #[cfg_attr(
+        feature = "clap",
+        clap(
+            global = true,
+            long,
+            default_value = "pretty",
+            arg_enum,
+            env = "HASH_LOG_FORMAT"
+        )
+    )]
+    pub log_format: LogFormat,
+
+    /// Output location where logs are emitted to.
+    ///
+    /// Can be `stdout`, `stderr` or any file name. Relative to `--log-folder` if a file is
+    /// specified.
+    #[cfg_attr(feature = "clap", clap(global = true, long, default_value = "stderr"))]
+    pub output_location: OutputLocation,
+
+    /// Logging output folder.
+    #[cfg_attr(feature = "clap", clap(global = true, long, default_value = "./log"))]
+    pub log_folder: PathBuf,
+
+    /// Timeout, in seconds, for how long to wait for a response when the Engine starts
+    #[cfg_attr(
+        feature = "clap",
+        clap(global = true, long, default_value = "2", env = "ENGINE_START_TIMEOUT")
+    )]
+    pub start_timeout: u64,
+
+    /// Timeout, in seconds, for how long to wait for updates when the Engine is executing
+    #[cfg_attr(
+        feature = "clap",
+        clap(global = true, long, default_value = "60", env = "ENGINE_WAIT_TIMEOUT")
+    )]
+    pub wait_timeout: u64,
+
+    /// Number of workers to run in parallel.
+    ///
+    /// Defaults to the number of logical CPUs available in order to maximize performance.
+    #[cfg_attr(
+        feature = "clap",
+        clap(global = true, short = 'w', long, default_value_t = num_cpus::get(), validator = at_least_one, env = "HASH_WORKERS")
+    )]
+    pub num_workers: usize,
 }
 
+#[cfg(feature = "clap")]
+fn at_least_one(v: &str) -> core::result::Result<(), String> {
+    let num = v.parse::<usize>().map_err(|e| e.to_string())?;
+    if num == 0 {
+        Err("must be at least 1".to_string())
+    } else {
+        Ok(())
+    }
+}
+
+/// Specific configuration needed for either Experiments or single runs of Simulations
 #[derive(Debug, Clone)]
 pub enum ExperimentType {
-    SingleRun { num_steps: usize },
-    Simple { name: String },
+    /// A single run of a Simulation, wrapped as an Experiment
+    SingleRun {
+        /// Number of steps to run
+        num_steps: usize,
+    },
+    /// A configured Experiment
+    Simple {
+        /// Name of the experiment specified in _experiments.json_
+        name: ExperimentName,
+    },
 }
 
 impl ExperimentType {
-    pub fn create_run_id(&self) -> String {
-        // Generates a 6-digit hexadecimal and concats with the experiment name by
-        // {experiment_name}-{6-digit hex}
-        let mut rng = rand::thread_rng();
-        let num = rng.gen_range(0_usize..=0x_FF_FF_FF);
-        let name = match self {
-            Self::SingleRun { .. } => "single_run",
-            Self::Simple { name } => name,
-        };
-        return format!("{name}-{num:06x}");
-    }
-
+    /// Creates an experiment config from `ExperimentType`.
+    ///
+    /// If the type is a simple Experiment [`Simple`](Self::Simple), it uses a `base` to load the
+    /// experiment config for the given `name`.
     pub fn get_package_config(self, base: &ExperimentRunBase) -> Result<ExperimentPackageConfig> {
         match self {
             ExperimentType::SingleRun { num_steps } => Ok(ExperimentPackageConfig::SingleRun(
@@ -60,52 +136,70 @@ impl ExperimentType {
     }
 }
 
+/// A fully specified and configured experiment
 pub struct Experiment {
-    config: ExperimentConfig,
+    /// Configuration for the experiment.
+    pub config: ExperimentConfig,
 }
 
 impl Experiment {
-    pub fn new(config: ExperimentConfig) -> Self {
+    /// Creates an experiment from the provided `config`.
+    pub fn new(mut config: ExperimentConfig) -> Self {
+        // TODO: Remove when multiple workers are fixed
+        config.num_workers = 1;
         Self { config }
     }
 
-    pub fn create_engine_command(
+    /// Creates a [`Command`] from the experiment's configuration, the given `experiment_id`, and
+    /// `controller_url`.
+    ///
+    /// [`Command`]: crate::process::Command
+    fn create_engine_command(
         &self,
-        experiment_id: &str,
+        experiment_id: ExperimentId,
         controller_url: &str,
-    ) -> Result<Box<dyn process::Command + Send>> {
-        Ok(Box::new(process::LocalCommand::new(
+    ) -> Box<dyn process::Command + Send> {
+        Box::new(process::LocalCommand::new(
             experiment_id,
             self.config.num_workers,
             controller_url,
-            self.config.emit,
-        )?))
+            self.config.log_format,
+            self.config.output_location.clone(),
+            self.config.log_folder.clone(),
+        ))
     }
 
-    #[instrument(skip_all, fields(project_name = project_name.as_str(), experiment_id = experiment_run.base.id.as_str()))]
+    /// Starts an Engine process and runs the experiment on it.
+    ///
+    /// The `experiment_run` is registered at the server with the provided `handler`, and started
+    /// using [`Process`]. After startup it listens to the messages sent from [`hash_engine`] and
+    /// returns once the experiment has finished.
+    ///
+    /// [`Process`]: crate::process::Process
+    #[instrument(skip_all, fields(experiment_name = %experiment_run.base.name, experiment_id = %experiment_run.base.id))]
     pub async fn run(
         &self,
         experiment_run: proto::ExperimentRun,
-        project_name: String,
         mut handler: Handler,
     ) -> Result<()> {
-        let experiment_id = experiment_run.base.id.clone();
+        let experiment_name = experiment_run.base.name.clone();
         let mut engine_handle = handler
-            .register_experiment(&experiment_id)
+            .register_experiment(experiment_run.base.id)
             .await
-            .wrap_err_lazy(|| format!("Could not register experiment: {experiment_id}"))?;
+            .wrap_err_lazy(|| format!("Could not register experiment \"{experiment_name}\""))?;
 
         // Create and start the experiment run
-        let cmd = self
-            .create_engine_command(&experiment_id, handler.url())
-            .wrap_err("Could not build engine command")?;
+        let cmd = self.create_engine_command(experiment_run.base.id, handler.url());
         let mut engine_process = cmd.run().await.wrap_err("Could not run experiment")?;
 
         // Wait to receive a message that the experiment has started before sending the init
         // message.
-        let msg = timeout(self.config.engine_start_timeout, engine_handle.recv())
-            .await
-            .wrap_err("engine start timeout");
+        let msg = timeout(
+            Duration::from_secs(self.config.start_timeout),
+            engine_handle.recv(),
+        )
+        .await
+        .wrap_err("engine start timeout");
         match msg {
             Ok(proto::EngineStatus::Started) => {}
             Ok(m) => {
@@ -115,7 +209,7 @@ impl Experiment {
                 );
             }
             Err(e) => {
-                error!("Engine start timeout for experiment {experiment_id}");
+                error!("Engine start timeout for experiment \"{experiment_name}\"");
                 engine_process
                     .exit_and_cleanup()
                     .await
@@ -123,7 +217,7 @@ impl Experiment {
                 bail!(e);
             }
         };
-        debug!("Received start message from {experiment_id}");
+        debug!("Received start message from \"{experiment_name}\"");
 
         let map_iter = [(
             OUTPUT_PERSISTENCE_KEY.to_string(),
@@ -141,17 +235,17 @@ impl Experiment {
             .send(&proto::EngineMsg::Init(init_message))
             .await
             .wrap_err("Could not send `Init` message")?;
-        debug!("Sent init message to {experiment_id}");
+        debug!("Sent init message to \"{experiment_name}\"");
 
         let mut errored = false;
         loop {
             let msg: Option<proto::EngineStatus>;
             tokio::select! {
-                _ = sleep(self.config.engine_wait_timeout) => {
+                _ = sleep(Duration::from_secs(self.config.wait_timeout)) => {
                     error!(
-                        "Did not receive status from experiment {experiment_id} for over {:?}. \
+                        "Did not receive status from experiment \"{experiment_name}\" for over {:?}. \
                         Exiting now.",
-                        self.config.engine_wait_timeout
+                        self.config.wait_timeout
                     );
                     break;
                 }
@@ -162,14 +256,40 @@ impl Experiment {
 
             match msg {
                 proto::EngineStatus::Stopping => {
-                    debug!("Stopping experiment {experiment_id}");
+                    debug!("Stopping experiment \"{experiment_name}\"");
                 }
                 proto::EngineStatus::SimStart { sim_id, globals: _ } => {
                     debug!("Started simulation: {sim_id}");
                 }
                 proto::EngineStatus::SimStatus(status) => {
                     debug!("Got simulation run status: {status:?}");
-                    // TODO: OS - handle status fields
+                    for stop_command in status.stop_msg {
+                        let reason = if let Some(reason) = stop_command.message.reason.as_ref() {
+                            format!(": {reason}")
+                        } else {
+                            String::new()
+                        };
+                        let agent = &stop_command.agent;
+                        match stop_command.message.status {
+                            StopStatus::Success => {
+                                tracing::info!(
+                                    "Simulation stopped by agent `{agent}` successfully{reason}"
+                                );
+                            }
+                            StopStatus::Warning => {
+                                tracing::warn!(
+                                    "Simulation stopped by agent `{agent}` with a warning{reason}"
+                                );
+                            }
+                            StopStatus::Error => {
+                                errored = true;
+                                tracing::error!(
+                                    "Simulation stopped by agent `{agent}` with an error{reason}"
+                                );
+                            }
+                        }
+                    }
+                    // TODO: OS - handle more status fields
                 }
                 proto::EngineStatus::SimStop(sim_id) => {
                     debug!("Simulation stopped: {sim_id}");
@@ -184,14 +304,12 @@ impl Experiment {
                 proto::EngineStatus::Logs(sim_id, logs) => {
                     for log in logs {
                         if !log.is_empty() {
-                            info!(target: "behaviors", "[{experiment_id}][{sim_id}]: {log}");
+                            info!(target: "behaviors", "[{experiment_name}][{sim_id}]: {log}");
                         }
                     }
                 }
                 proto::EngineStatus::Exit => {
-                    debug!(
-                        "Process exited successfully for experiment run with id {experiment_id}",
-                    );
+                    debug!("Process exited successfully for experiment run \"{experiment_name}\"",);
                     break;
                 }
                 proto::EngineStatus::ProcessError(error) => {
@@ -225,7 +343,7 @@ impl Experiment {
 
 fn get_simple_experiment_config(
     base: &ExperimentRunBase,
-    experiment_name: String,
+    experiment_name: ExperimentName,
 ) -> Result<SimpleExperimentConfig> {
     let experiments_manifest = base
         .project_base
@@ -265,9 +383,9 @@ fn get_simple_experiment_config(
 
 fn create_experiment_plan(
     experiments: &HashMap<String, SerdeValue>,
-    experiment_name: &str,
+    experiment_name: &ExperimentName,
 ) -> Result<SimpleExperimentPlan> {
-    let selected_experiment = experiments.get(experiment_name).ok_or_else(|| {
+    let selected_experiment = experiments.get(experiment_name.as_str()).ok_or_else(|| {
         report!(
             "Expected experiments.json to contain the specified experiment definition for \
              experiment with name: {experiment_name}"
@@ -350,7 +468,7 @@ fn create_group_variant(
         #[serde(rename = "type")]
         _type: String,
         steps: f64,
-        runs: Vec<String>,
+        runs: Vec<ExperimentName>,
     }
     let var: GroupVariant = serde_json::from_value(selected_experiment.clone())?;
     var.runs.iter().try_fold(

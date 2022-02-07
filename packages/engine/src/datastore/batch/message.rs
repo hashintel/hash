@@ -25,6 +25,7 @@ use crate::{
         UUID_V4_LEN,
     },
     hash_types::state::AgentStateField,
+    proto::ExperimentId,
 };
 
 // 1000 bytes per agent i.e. 10 MB for 10000 agents
@@ -151,8 +152,11 @@ impl GrowableBatch<ArrayChange, Arc<array::ArrayData>> for Batch {
 }
 
 impl Batch {
+    /// Clears the message column, resizing as necessary.
+    ///
+    /// Uses the passed in `agents` for the `AgentId`s and the group sizes.
     pub fn reset(&mut self, agents: &AgentBatch) -> Result<()> {
-        log::trace!("Resetting batch");
+        tracing::trace!("Resetting batch");
         let agent_count = agents.batch.num_rows();
         let column_name = AgentStateField::AgentId.name();
         let id_column = agents.get_arrow_column(column_name)?;
@@ -190,7 +194,7 @@ impl Batch {
         if cur_len < data_len && self.memory.set_data_length(data_len)?.resized() {
             // This shouldn't happen very often unless the bounds above are very inaccurate
             self.metaversion.increment();
-            log::info!(
+            tracing::info!(
                 "Unexpected message batch memory resize. Was {}, should have been at least {}",
                 cur_len,
                 data_len
@@ -212,7 +216,7 @@ impl Batch {
         agents: &AgentBatch,
         schema: &Arc<ArrowSchema>,
         meta: Arc<StaticMeta>,
-        experiment_run_id: &str,
+        experiment_id: &ExperimentId,
     ) -> Result<Batch> {
         let agent_count = agents.batch.num_rows();
         let column_name = AgentStateField::AgentId.name();
@@ -227,7 +231,7 @@ impl Batch {
 
         let (meta_buffer, data_len) = simulate_record_batch_to_bytes(&batch);
         let mut memory =
-            Memory::from_sizes(experiment_run_id, 0, 0, meta_buffer.len(), data_len, true)?;
+            Memory::from_sizes(experiment_id, 0, 0, meta_buffer.len(), data_len, true)?;
         memory.set_metadata(&meta_buffer)?;
 
         let data_buffer = memory.get_mut_data_buffer()?;
@@ -239,23 +243,23 @@ impl Batch {
         agents: &[&AgentState],
         schema: &Arc<ArrowSchema>,
         meta: Arc<StaticMeta>,
-        experiment_run_id: &str,
+        experiment_id: &ExperimentId,
     ) -> Result<Batch> {
         let arrow_batch = agents.into_empty_message_batch(schema)?;
-        Self::from_record_batch(&arrow_batch, schema.clone(), meta, experiment_run_id)
+        Self::from_record_batch(&arrow_batch, schema.clone(), meta, experiment_id)
     }
 
     pub fn from_agent_states<K: IntoRecordBatch>(
         agents: K,
         schema: &Arc<MessageSchema>,
-        experiment_run_id: &str,
+        experiment_id: &ExperimentId,
     ) -> Result<Batch> {
         let arrow_batch = agents.into_message_batch(&schema.arrow)?;
         Self::from_record_batch(
             &arrow_batch,
             schema.arrow.clone(),
             schema.static_meta.clone(),
-            experiment_run_id,
+            experiment_id,
         )
     }
 
@@ -263,12 +267,12 @@ impl Batch {
         record_batch: &RecordBatch,
         schema: Arc<ArrowSchema>,
         meta: Arc<StaticMeta>,
-        experiment_run_id: &str,
+        experiment_id: &ExperimentId,
     ) -> Result<Batch> {
         let (meta_buffer, data_buffer) = record_batch_to_bytes(record_batch);
 
         let memory = Memory::from_batch_buffers(
-            experiment_run_id,
+            experiment_id,
             &[],
             &[],
             meta_buffer.as_ref(),

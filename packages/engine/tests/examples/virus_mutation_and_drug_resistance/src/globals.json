@@ -1,0 +1,19 @@
+{
+  "topology": {
+    "x_bounds": [0, 70],
+    "y_bounds": [0, 70],
+    "wrapping_preset": "torus",
+    "search_radius": 1
+  },
+  "infectedCount": 2,
+  "infectiousness": 0.65,
+  "recoverChance": 0.75,
+  "sicknessDuration": 30,
+  "immunityDuration": 52,
+  "lifespan": 2600,
+  "carryingCapacity": 300,
+  "managerIndex": 0,
+  "mutation_chance": 0.002,
+  "introduce_vaccine_step": 50,
+  "vaccination_rate": 0.6
+}

@@ -8,6 +8,7 @@ use rayon::iter::{
 use super::{agent::AgentPool, BatchPool};
 use crate::{
     datastore::{batch, prelude::*, table::references::AgentMessageReference, UUID_V4_LEN},
+    proto::ExperimentRunTrait,
     SimRunConfig,
 };
 
@@ -22,6 +23,7 @@ impl MessagePool {
         MessagePool { batches }
     }
 
+    // TODO use the BatchPool trait properly and get rid of duplication
     fn batches(&self) -> &Vec<Arc<RwLock<MessageBatch>>> {
         &self.batches
     }
@@ -69,11 +71,16 @@ impl MessagePool {
         self.len() == 0
     }
 
+    /// Clears all message columns in the pool and resizes them as necessary to accommodate new
+    /// messages according to the provided [`agent_pool`].
+    ///
+    /// This can result in the number of batches being changed if more/less are now needed.
     pub fn reset(&mut self, agent_pool: &AgentPool, sim_config: &SimRunConfig) -> Result<()> {
         let message_schema = &sim_config.sim.store.message_schema;
-        let experiment_run_id = &sim_config.exp.run_id;
+        let experiment_id = &sim_config.exp.run.base().id;
         let mut removed = vec![];
         (0..self.batches.len())
+            // TODO: remove or document reasoning (possibly faster due to batch resizing causing shifting)
             .rev()
             .try_for_each::<_, Result<()>>(|batch_index| {
                 if let Some(dynamic_batch) = agent_pool.get_batch_at_index(batch_index)? {
@@ -101,7 +108,7 @@ impl MessagePool {
                             .deref(),
                         &message_schema.arrow,
                         message_schema.static_meta.clone(),
-                        experiment_run_id,
+                        experiment_id,
                     )?;
                     self.batches_mut().push(Arc::new(RwLock::new(inbox)));
                     Ok(())

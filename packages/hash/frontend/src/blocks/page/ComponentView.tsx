@@ -5,22 +5,21 @@ import {
 } from "@hashintel/hash-shared/blockMeta";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import {
+  DraftEntity,
   EntityStore,
-  EntityStoreType,
-  isBlockEntity,
+  isDraftBlockEntity,
 } from "@hashintel/hash-shared/entityStore";
 import {
   entityStorePluginState,
   subscribeToEntityStore,
 } from "@hashintel/hash-shared/entityStorePlugin";
-import { ProsemirrorNode } from "@hashintel/hash-shared/node";
 import {
   componentNodeToId,
   isComponentNode,
 } from "@hashintel/hash-shared/prosemirror";
 import type { Scope } from "@sentry/browser";
 import * as Sentry from "@sentry/nextjs";
-import { Schema } from "prosemirror-model";
+import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
 import { BlockLoader } from "../../components/BlockLoader/BlockLoader";
 import { ErrorBlock } from "../../components/ErrorBlock/ErrorBlock";
@@ -33,10 +32,10 @@ import { RenderPortal } from "./usePortals";
 const BLANK_PROPERTIES = {};
 
 const getChildEntity = (
-  entity: EntityStoreType | null | undefined,
-): BlockEntity["properties"]["entity"] | null => {
+  entity: DraftEntity | null | undefined,
+): DraftEntity<BlockEntity["properties"]["entity"]> | null => {
   if (entity) {
-    if (!isBlockEntity(entity)) {
+    if (!isDraftBlockEntity(entity)) {
       throw new Error("Cannot prepare non-block entity for prosemirrior");
     }
 
@@ -124,9 +123,13 @@ export class ComponentView implements NodeView<Schema> {
     this.node = node;
 
     if (isComponentNode(node) && componentNodeToId(node) === this.componentId) {
+      const blockDraftId: string = this.view.state.doc
+        .resolve(this.getPos())
+        .node(2).attrs.draftId;
+
       // @todo handle entity id not being defined
       const entityId = node.attrs.blockEntityId ?? "";
-      const entity = this.store.saved[entityId];
+      const entity = this.store.draft[blockDraftId];
       const mappedUrl = componentIdToUrl(this.componentId);
 
       /** used by collaborative editing feature `FocusTracker` */
@@ -153,8 +156,8 @@ export class ComponentView implements NodeView<Schema> {
             blockEntityId={entityId}
             shouldSandbox={!this.editable}
             editableRef={this.editable ? this.editableRef : undefined}
-            accountId={childEntity?.accountId ?? this.accountId}
-            entityId={childEntity?.entityId}
+            accountId={childEntity?.accountId!}
+            entityId={childEntity?.entityId!}
             entityProperties={
               childEntity && "properties" in childEntity
                 ? childEntity.properties
@@ -213,12 +216,17 @@ export class ComponentView implements NodeView<Schema> {
       return false;
     }
 
-    const targetIsInsideContentDOM =
-      this.contentDOM?.contains(event.target) &&
+    const targetIsOutsideContentDOM =
+      !this.contentDOM?.contains(event.target) &&
       event.target !== this.contentDOM;
 
-    const eventIsHandledByReact = !targetIsInsideContentDOM;
+    const targetIsContentDom = event.target === this.contentDOM;
 
-    return eventIsHandledByReact;
+    const handledByReact =
+      event.type === "childList"
+        ? targetIsOutsideContentDOM
+        : targetIsOutsideContentDOM || targetIsContentDom;
+
+    return handledByReact;
   }
 }

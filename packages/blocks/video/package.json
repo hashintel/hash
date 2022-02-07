@@ -3,6 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "description": "video block component",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git",
+    "directory": "packages/blocks/video"
+  },
   "license": "MIT",
   "author": "HASH",
   "main": "src/index.ts",
@@ -38,11 +43,11 @@
     "copy-webpack-plugin": "^4.6.0",
     "core-js": "^2.6.12",
     "cross-env": "^7.0.3",
-    "eslint": "7.32.0",
+    "eslint": "^7.32.0",
     "eslint-config-prettier": "8.3.0",
-    "eslint-plugin-react": "7.24.0",
+    "eslint-plugin-react": "^7.25.1",
     "eslint-plugin-react-hooks": "4.2.0",
-    "html-webpack-plugin": "^4.5.0",
+    "html-webpack-plugin": "4.5.1",
     "react": "17.0.2",
     "react-dom": "17.0.2",
     "regenerator-runtime": "^0.13.7",
@@ -64,6 +69,12 @@
   "blockprotocol": {
     "displayName": "Video",
     "icon": "public/play-box-outline.svg",
-    "image": "public/preview.svg"
+    "image": "public/preview.svg",
+    "examples": [
+      {
+        "initialCaption": "A blooming flower",
+        "url": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm"
+      }
+    ]
   }
 }

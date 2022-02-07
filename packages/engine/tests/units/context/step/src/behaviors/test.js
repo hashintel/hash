@@ -1,5 +1,5 @@
 /**
- * Sets `state.valid = false` if `step()` returns wrong value
+ * Sets `state.valid = false` if `context.step()` returns wrong value
  */
 const behavior = (state, context) => {
   state.step += 1;

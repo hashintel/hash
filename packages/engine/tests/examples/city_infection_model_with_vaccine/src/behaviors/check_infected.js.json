@@ -1,0 +1,34 @@
+{
+  "keys": {
+    "hospital": {
+      "type": "any",
+      "nullable": true
+    },
+    "home": {
+      "type": "any",
+      "nullable": true
+    },
+    "health_status": {
+      "type": "any",
+      "nullable": true
+    },
+    "icu": {
+      "type": "any",
+      "nullable": true
+    },
+    "destination": {
+      "type": "any",
+      "nullable": true
+    },
+    "infection_counter": {
+      "type": "any",
+      "nullable": true
+    },
+    "at_risk": {
+      "type": "any",
+      "nullable": true
+    }
+  },
+  "built_in_key_use": null,
+  "dynamic_access": false
+}

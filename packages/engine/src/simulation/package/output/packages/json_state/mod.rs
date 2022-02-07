@@ -9,7 +9,7 @@ use crate::{
         table::state::ReadState,
     },
     hash_types::Agent,
-    simulation::package::{name::PackageName, output},
+    simulation::package::{name::PackageName, output, output::Package},
 };
 
 mod config;
@@ -77,7 +77,7 @@ impl Package for JsonState {
     async fn run(&mut self, state: Arc<State>, _context: Arc<Context>) -> Result<Output> {
         let agent_states: std::result::Result<Vec<_>, crate::datastore::error::Error> = state
             .agent_pool()
-            .read_batches()?
+            .try_read_batches()?
             .into_iter()
             .zip(state.message_pool().read_batches()?.into_iter())
             .map(|(agent_batch, message_batch)| {
@@ -106,6 +106,10 @@ impl Package for JsonState {
         Ok(Output::JsonStateOutput(JsonStateOutput {
             inner: agent_states,
         }))
+    }
+
+    fn span(&self) -> Span {
+        tracing::debug_span!("json_state")
     }
 }
 

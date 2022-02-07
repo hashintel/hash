@@ -1,3 +1,9 @@
-use crate::run_test;
+crate::run_test!(multiple_runners, #[ignore]);
 
-run_test!(composability);
+mod js {
+    crate::run_test!(composability, JavaScript);
+}
+
+mod py {
+    crate::run_test!(composability, Python, #[ignore]);
+}

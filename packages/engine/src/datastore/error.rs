@@ -42,9 +42,6 @@ pub enum Error {
     #[error("Special field missing in schema: {0}")]
     SpecialKeyMissing(String),
 
-    #[error("Table with simulation id {0} not found")]
-    TableNotFound(String),
-
     #[error("Arrow Error: {0}")]
     Arrow(#[from] ArrowError),
 
@@ -198,9 +195,6 @@ pub enum Error {
 
     #[error("{0}")]
     RwLock(String),
-
-    #[error("Table does not contain context")]
-    TableWithoutContext,
 
     #[error("Invalid utf-8: {0}")]
     FromUtf8Error(#[from] std::string::FromUtf8Error),

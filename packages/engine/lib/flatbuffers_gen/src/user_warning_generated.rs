@@ -13,12 +13,11 @@
 use std::{cmp::Ordering, mem};
 
 extern crate flatbuffers;
-
 use self::flatbuffers::{EndianScalar, Follow};
 
 pub enum UserWarningOffset {}
-
 #[derive(Copy, Clone, PartialEq)]
+
 pub struct UserWarning<'a> {
     pub _tab: flatbuffers::Table<'a>,
 }
@@ -86,12 +85,10 @@ impl flatbuffers::Verifiable for UserWarning<'_> {
         Ok(())
     }
 }
-
 pub struct UserWarningArgs<'a> {
     pub msg: Option<flatbuffers::WIPOffset<&'a str>>,
     pub details: Option<flatbuffers::WIPOffset<&'a str>>,
 }
-
 impl<'a> Default for UserWarningArgs<'a> {
     #[inline]
     fn default() -> Self {
@@ -101,12 +98,10 @@ impl<'a> Default for UserWarningArgs<'a> {
         }
     }
 }
-
 pub struct UserWarningBuilder<'a: 'b, 'b> {
     fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
     start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-
 impl<'a: 'b, 'b> UserWarningBuilder<'a, 'b> {
     #[inline]
     pub fn add_msg(&mut self, msg: flatbuffers::WIPOffset<&'b str>) {
@@ -145,7 +140,6 @@ impl std::fmt::Debug for UserWarning<'_> {
         ds.finish()
     }
 }
-
 #[inline]
 #[deprecated(since = "2.0.0", note = "Deprecated in favor of `root_as...` methods.")]
 pub fn get_root_as_user_warning<'a>(buf: &'a [u8]) -> UserWarning<'a> {
@@ -168,7 +162,6 @@ pub fn get_size_prefixed_root_as_user_warning<'a>(buf: &'a [u8]) -> UserWarning<
 pub fn root_as_user_warning(buf: &[u8]) -> Result<UserWarning, flatbuffers::InvalidFlatbuffer> {
     flatbuffers::root::<UserWarning>(buf)
 }
-
 #[inline]
 /// Verifies that a buffer of bytes contains a size prefixed
 /// `UserWarning` and returns it.
@@ -181,7 +174,6 @@ pub fn size_prefixed_root_as_user_warning(
 ) -> Result<UserWarning, flatbuffers::InvalidFlatbuffer> {
     flatbuffers::size_prefixed_root::<UserWarning>(buf)
 }
-
 #[inline]
 /// Verifies, with the given options, that a buffer of bytes
 /// contains a `UserWarning` and returns it.
@@ -195,7 +187,6 @@ pub fn root_as_user_warning_with_opts<'b, 'o>(
 ) -> Result<UserWarning<'b>, flatbuffers::InvalidFlatbuffer> {
     flatbuffers::root_with_opts::<UserWarning<'b>>(opts, buf)
 }
-
 #[inline]
 /// Verifies, with the given verifier options, that a buffer of
 /// bytes contains a size prefixed `UserWarning` and returns
@@ -209,28 +200,20 @@ pub fn size_prefixed_root_as_user_warning_with_opts<'b, 'o>(
 ) -> Result<UserWarning<'b>, flatbuffers::InvalidFlatbuffer> {
     flatbuffers::size_prefixed_root_with_opts::<UserWarning<'b>>(opts, buf)
 }
-
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a UserWarning and returns it.
-///
 /// # Safety
-///
 /// Callers must trust the given bytes do indeed contain a valid `UserWarning`.
 pub unsafe fn root_as_user_warning_unchecked(buf: &[u8]) -> UserWarning {
     flatbuffers::root_unchecked::<UserWarning>(buf)
 }
-
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a size prefixed UserWarning and
-/// returns it.
-///
-/// # Safety
-///
+/// returns it. # Safety
 /// Callers must trust the given bytes do indeed contain a valid size prefixed `UserWarning`.
 pub unsafe fn size_prefixed_root_as_user_warning_unchecked(buf: &[u8]) -> UserWarning {
     flatbuffers::size_prefixed_root_unchecked::<UserWarning>(buf)
 }
-
 #[inline]
 pub fn finish_user_warning_buffer<'a, 'b>(
     fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>,

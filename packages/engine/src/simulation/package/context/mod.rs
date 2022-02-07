@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 pub use packages::{ContextTask, ContextTaskMessage, Name, PACKAGE_CREATORS};
+use tracing::Span;
 
 use super::{
     deps::Dependencies,
@@ -36,6 +37,8 @@ pub trait Package: MaybeCpuBound + GetWorkerSimStartMsg + Send + Sync {
         num_agents: usize,
         context_schema: &ContextSchema,
     ) -> Result<Vec<(FieldKey, Arc<dyn arrow::array::Array>)>>;
+
+    fn span(&self) -> Span;
 }
 
 pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
@@ -87,10 +90,16 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
     }
 }
 
-/// TODO: DOC - also probably rename and make it clearer
+/// Encapsulates the functionality of writing a specific column within the context batch.
+///
+/// Wrapping the logic within this struct allows the caller (i.e. the root context package) to
+/// split up memory into relevant buffers and then independently write to them in any order, even
+/// if a context package's columns aren't next to one another in memory. (It's necessary to reorder
+/// by the FieldKey to match the schema for the batch)
 pub struct ContextColumn {
     pub(crate) field_key: FieldKey,
     inner: Box<dyn ContextColumnWriter + Send + Sync>,
+    span: Span,
 }
 
 impl ContextColumn {
@@ -99,11 +108,25 @@ impl ContextColumn {
     }
 
     pub fn write(&self, buffer: &mut [u8], meta: &ColumnDynamicMetadata) -> DatastoreResult<()> {
+        let _pkg_span = self.span.enter();
+        let _write_span = tracing::trace_span!("column_write").entered();
         self.inner.write(buffer, meta)
     }
 }
 
+/// Provides the functionalities of writing a column into the context batch.
+///
+/// Implementing this trait allows the creation of trait-objects so that the root context package
+/// can call the writing functionality in whatever order it needs, and therefore the other context
+/// packages do not need to be aware of one another.
 pub trait ContextColumnWriter {
+    /// Gives the associated metadata for the column, describing the necessary memory layout and
+    /// size.
     fn get_dynamic_metadata(&self) -> DatastoreResult<ColumnDynamicMetadata>;
+    /// Takes a mutable slice of memory to write into, a description of the expectations about
+    /// that memory and writes the data for the context column.
+    ///
+    /// The expectations (i.e. the metadata) of the memory has to match
+    /// [`self.get_dynamic_metadata()`].
     fn write(&self, buffer: &mut [u8], meta: &ColumnDynamicMetadata) -> DatastoreResult<()>;
 }

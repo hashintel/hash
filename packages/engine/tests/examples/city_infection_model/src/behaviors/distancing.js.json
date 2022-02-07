@@ -1,0 +1,9 @@
+{
+  "keys": {
+    "social_distancing": {
+      "nullable": false,
+      "type": "boolean"
+    }
+  },
+  "built_in_key_use": null
+}

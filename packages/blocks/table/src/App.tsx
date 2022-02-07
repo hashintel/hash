@@ -368,7 +368,7 @@ export const App: BlockComponent<AppProps> = ({
 
   /** @todo Fix keys in iterators below to not use the index */
   return (
-    <div>
+    <div className={tw`overflow-x-auto`}>
       <Header
         columns={allColumns}
         toggleHideColumn={handleToggleColumn}

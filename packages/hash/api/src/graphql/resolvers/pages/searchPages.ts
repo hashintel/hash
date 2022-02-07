@@ -10,7 +10,7 @@ import {
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { DBAdapter } from "../../../db";
-import { Entity } from "../../../db/adapter";
+import { DbEntity } from "../../../db/adapter";
 import { intersection } from "../../../util";
 
 // The name of the search index containing entities and the document field to perform
@@ -67,7 +67,7 @@ const getPagesLinkingToTextEntities = async (
         grandparents.map((ref) => db.getEntityLatestVersion(ref)),
       );
       return gps.filter(
-        (gp): gp is Entity =>
+        (gp): gp is DbEntity =>
           gp !== undefined && gp.entityTypeId === pageType.entityId,
       );
     }),

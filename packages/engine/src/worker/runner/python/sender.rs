@@ -50,14 +50,14 @@ impl NngSender {
                     aio_result_sender.send(Ok(())).unwrap();
                 }
                 Err((msg, err)) => {
-                    log::warn!(
+                    tracing::warn!(
                         "External worker receiving socket tried to send but failed w/ error: {}",
                         err
                     );
                     match aio_result_sender.send(Err(Error::NngSend(msg, err))) {
                         Ok(_) => {}
                         Err(err) => {
-                            log::warn!(
+                            tracing::warn!(
                                 "Failed to pass send error back to message handler thread {}",
                                 err
                             );
@@ -67,7 +67,7 @@ impl NngSender {
             },
             nng::AioResult::Sleep(res) => {
                 if let Err(err) = res {
-                    log::error!("AIO sleep error: {}", err);
+                    tracing::error!("AIO sleep error: {}", err);
                     aio_result_sender.send(Err(Error::Nng(err))).unwrap();
                 }
             }
@@ -102,7 +102,7 @@ impl NngSender {
         self.to_py
             .send_async(&self.aio, msg)
             .map_err(|(msg, err)| {
-                log::warn!("Send failed: {:?}", (&msg, &err));
+                tracing::warn!("Send failed: {:?}", (&msg, &err));
                 Error::NngSend(msg, err)
             })?;
         Ok(())
@@ -300,7 +300,7 @@ fn state_sync_to_fbs<'f>(
     WIPOffset<Vector<'f, ForwardsUOffset<flatbuffers_gen::batch_generated::Batch<'f>>>>,
     WIPOffset<Vector<'f, ForwardsUOffset<flatbuffers_gen::batch_generated::Batch<'f>>>>,
 )> {
-    let agent_pool = agent_pool.read_batches()?;
+    let agent_pool = agent_pool.try_read_batches()?;
     let agent_pool: Vec<_> = agent_pool
         .iter()
         .map(|batch| batch_to_fbs(fbb, batch))
@@ -371,7 +371,7 @@ fn shared_store_to_fbs<'f>(
                     .iter()
                     .map(|b| batch_to_fbs(fbb, b))
                     .collect();
-                (a, m, partial.indices.clone())
+                (a, m, partial.group_indices.clone())
             }
             PartialSharedState::Write(partial) => {
                 let state = &partial.inner;
@@ -387,7 +387,7 @@ fn shared_store_to_fbs<'f>(
                     .iter()
                     .map(|b| batch_to_fbs(fbb, b))
                     .collect();
-                (a, m, partial.indices.clone())
+                (a, m, partial.group_indices.clone())
             }
         },
     };

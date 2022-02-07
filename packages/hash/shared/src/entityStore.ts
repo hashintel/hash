@@ -1,6 +1,6 @@
 import { Draft, produce } from "immer";
-import { BlockEntity } from "./entity";
-import { DistributiveOmit, typeSafeEntries } from "./util";
+import { BlockEntity, isTextContainingEntityProperties } from "./entity";
+import { DistributiveOmit } from "./util";
 
 export type EntityStoreType = BlockEntity | BlockEntity["properties"]["entity"];
 
@@ -13,8 +13,22 @@ type PropertiesType<Properties extends {}> = Properties extends {
   : Properties;
 
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
+  accountId?: string | null;
   entityId: Type["entityId"] | null;
+
+  // @todo thinking about removing this – as they're keyed by this anyway
+  //  and it makes it complicated to deal with types – should probably just
+  //  keep a dict of entity ids to draft ids, and vice versa
   draftId: string;
+
+  entityVersionCreatedAt: string;
+
+  linkGroups?: Type extends { linkGroups: any }
+    ? Type["linkGroups"]
+    : undefined;
+  linkedEntities?: Type extends { linkedEntities: any }
+    ? Type["linkedEntities"]
+    : undefined;
 } & (Type extends { properties: any }
   ? { properties: PropertiesType<Type["properties"]> }
   : {});
@@ -38,10 +52,15 @@ export const isBlockEntity = (entity: unknown): entity is BlockEntity =>
   "entity" in entity.properties &&
   isEntity(entity.properties.entity);
 
+// @todo does this need to be more robust?
+export const isDraftEntity = <T extends EntityStoreType>(
+  entity: T | DraftEntity<T>,
+): entity is DraftEntity<T> => "draftId" in entity;
+
 export const isDraftBlockEntity = (
   entity: unknown,
 ): entity is DraftEntity<BlockEntity> =>
-  isBlockEntity(entity) && "draftId" in entity;
+  isBlockEntity(entity) && isDraftEntity(entity);
 
 /**
  * @todo we could store a map of entity id <-> draft id to make this easier
@@ -51,73 +70,42 @@ export const draftEntityForEntityId = (
   entityId: string,
 ) => Object.values(draft).find((entity) => entity.entityId === entityId);
 
-export const walkObjectValueForEntity = <T extends {}>(
-  value: T,
-  entityHandler: <E extends EntityStoreType>(entity: E) => E,
-): T => {
-  let changed = false;
-  let result = value;
-
-  for (const [key, innerValue] of typeSafeEntries(value)) {
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    const nextValue = walkValueForEntity(innerValue, entityHandler);
-
-    if (nextValue !== innerValue) {
-      if (!changed) {
-        result = (Array.isArray(value) ? [...value] : { ...value }) as T;
-      }
-
-      changed = true;
-      result[key] = nextValue;
-    }
-  }
-
-  if (isEntity(value)) {
-    const nextValue = entityHandler(value);
-
-    if (nextValue !== value) {
-      changed = true;
-      result = nextValue;
-    }
-  }
-
-  return changed ? result : value;
-};
-
-/**
- * @deprecated
- * @todo remove this when we have a flat entity store
- */
-export const walkValueForEntity = <T>(
-  value: T,
-  entityHandler: <E extends EntityStoreType>(entity: E) => E,
-): T => {
-  if (typeof value !== "object" || value === null) {
-    return value;
-  }
-
-  return walkObjectValueForEntity(value, entityHandler);
-};
-
-const findEntities = (contents: EntityStoreType[]) => {
+const findEntities = (contents: BlockEntity[]): EntityStoreType[] => {
   const entities: EntityStoreType[] = [];
 
-  walkValueForEntity(contents, (entity) => {
-    if (isBlockEntity(entity)) {
-      entities.push(entity, entity.properties.entity);
+  for (const entity of contents) {
+    entities.push(entity, entity.properties.entity);
+
+    if (isTextContainingEntityProperties(entity.properties.entity.properties)) {
+      entities.push(entity.properties.entity.properties.text.data);
     }
-    return entity;
-  });
+  }
 
   return entities;
 };
 
 /**
- * @todo restore dealing with links
+ * @todo remove need to cast in this function
+ */
+const restoreDraftId = (
+  entity: { entityId: string | null; draftId?: string },
+  entityToDraft: Record<string, string>,
+) => {
+  const textEntityId = entity.entityId;
+
+  if (!textEntityId) {
+    throw new Error("entity id does not exist when expected to");
+  }
+
+  // eslint-disable-next-line no-param-reassign
+  (entity as unknown as DraftEntity).draftId = entityToDraft[textEntityId];
+};
+/**
  * @todo this should be flat – so that we don't have to traverse links
+ * @todo clean up
  */
 export const createEntityStore = (
-  contents: EntityStoreType[],
+  contents: BlockEntity[],
   draftData: Record<string, DraftEntity>,
 ): EntityStore => {
   const saved: EntityStore["saved"] = {};
@@ -155,7 +143,12 @@ export const createEntityStore = (
       { ...entity, draftId },
       (draftEntity: Draft<DraftEntity>) => {
         if (draftData[draftId]) {
-          Object.assign(draftEntity, draftData[draftId]);
+          if (
+            new Date(draftData[draftId].entityVersionCreatedAt).getTime() >
+            new Date(draftEntity.entityVersionCreatedAt).getTime()
+          ) {
+            Object.assign(draftEntity, draftData[draftId]);
+          }
         }
       },
     );
@@ -163,13 +156,22 @@ export const createEntityStore = (
     draft[draftId] = produce<DraftEntity>(
       draft[draftId],
       (draftEntity: Draft<DraftEntity>) => {
+        if (isTextContainingEntityProperties(draftEntity.properties)) {
+          restoreDraftId(draftEntity.properties.text.data, entityToDraft);
+        }
+
         if (isDraftBlockEntity(draftEntity)) {
-          const innerEntityId = draftEntity.properties.entity.entityId;
-          if (innerEntityId) {
-            draftEntity.properties.entity.draftId =
-              entityToDraft[innerEntityId];
-          } else {
-            throw new Error("entity id does not exist when expected to");
+          restoreDraftId(draftEntity.properties.entity, entityToDraft);
+
+          if (
+            isTextContainingEntityProperties(
+              draftEntity.properties.entity.properties,
+            )
+          ) {
+            restoreDraftId(
+              draftEntity.properties.entity.properties.text.data,
+              entityToDraft,
+            );
           }
         }
       },

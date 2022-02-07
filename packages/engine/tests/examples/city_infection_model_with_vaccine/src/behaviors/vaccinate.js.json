@@ -1,0 +1,10 @@
+{
+  "keys": {
+    "counter": {
+      "type": "number",
+      "nullable": true
+    }
+  },
+  "built_in_key_use": null,
+  "dynamic_access": false
+}

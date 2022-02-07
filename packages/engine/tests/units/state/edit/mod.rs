@@ -1,6 +1,11 @@
 mod dot;
+mod index;
 mod set_get;
 
-use crate::run_test;
+mod js {
+    crate::run_test!(non_existing_field, JavaScript);
+}
 
-run_test!(non_existing_field);
+mod py {
+    crate::run_test!(non_existing_field, Python, #[ignore]);
+}

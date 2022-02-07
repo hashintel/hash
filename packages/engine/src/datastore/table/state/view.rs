@@ -3,6 +3,8 @@ use crate::datastore::table::{
     references::MessageMap,
 };
 
+// TODO - Move out the MessageMap, so that the Snapshot can be used within the Context object, and
+//  pass the snapshot through the functions as needed
 pub struct StateSnapshot {
     agent_pool: AgentPool,
     message_pool: MessagePool,
