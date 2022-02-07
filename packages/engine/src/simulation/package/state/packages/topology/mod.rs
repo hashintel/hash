@@ -1,10 +1,7 @@
 use serde_json::Value;
 
 use super::super::*;
-use crate::{
-    config::{ExperimentConfig, TopologyConfig},
-    datastore::table::state::WriteState,
-};
+use crate::config::{ExperimentConfig, TopologyConfig};
 
 mod adjacency;
 mod fields;
@@ -77,7 +74,7 @@ impl GetWorkerSimStartMsg for Topology {
 
 #[async_trait]
 impl Package for Topology {
-    async fn run(&mut self, state: &mut StateMut, _context: &Context) -> Result<()> {
+    async fn run(&mut self, state: &mut State, _context: &Context) -> Result<()> {
         tracing::trace!("Running Topology package");
         if self.config.move_wrapped_agents {
             for mut mut_table in state.agent_pool_mut().try_write_batches()? {
