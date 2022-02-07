@@ -314,6 +314,7 @@ impl<'a> From<&'a str> for Script {
     }
 }
 
+#[allow(dead_code)]
 fn execute_with_timeout<T>(
     timeout: Duration,
     execute_fn: impl FnOnce() -> T,
