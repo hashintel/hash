@@ -17,7 +17,7 @@ Distributed calls can yield significant performance benefits. For distributed ca
 packages have to define a `DistributedMessageHandler` which must be able to handle
 inbound completion messages from multiple workers and combine them into one such that the
 main package definition can be agnostic of how work was distributed.
-*/
+ */
 
 pub mod active;
 
@@ -37,8 +37,9 @@ use super::{
 pub use super::{Error, Result};
 use crate::{
     datastore::{
-        prelude::{Context, State},
+        prelude::State,
         table::{
+            context::Context,
             state::{view::StateSnapshot, ReadState},
             sync::{ContextBatchSync, StateSync, SyncPayload, WaitableStateSync},
             task_shared_store::TaskSharedStore,
@@ -146,9 +147,9 @@ impl Comms {
     ) -> Result<()> {
         tracing::trace!("Synchronizing context batch");
         // Synchronize the context batch
-        let batch = context.batch();
+        let context_batch_reader = context.read_proxy()?;
         let indices = Arc::clone(state_group_start_indices);
-        let sync_msg = ContextBatchSync::new(batch, current_step, indices);
+        let sync_msg = ContextBatchSync::new(context_batch_reader, current_step, indices);
         self.worker_pool_sender
             .send(EngineToWorkerPoolMsg::sync(
                 self.sim_id,

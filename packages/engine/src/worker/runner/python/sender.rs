@@ -190,8 +190,7 @@ fn inbound_to_nng(
             )
         }
         InboundToRunnerMsgPayload::ContextBatchSync(msg) => {
-            let batch = msg.context_batch.read();
-            let batch = batch_to_fbs(fbb, &batch);
+            let batch = batch_to_fbs(fbb, &msg.context_batch.batch());
             let msg = flatbuffers_gen::sync_context_batch_generated::ContextBatchSync::create(
                 fbb,
                 &flatbuffers_gen::sync_context_batch_generated::ContextBatchSyncArgs {

@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use self::create_remove::CreateRemovePlanner;
 use super::{
-    context::{ContextMut, WriteContext},
+    context::Context,
     meta::Meta,
     pool::{agent::AgentPool, message::MessagePool},
     references::MessageMap,
@@ -162,7 +162,7 @@ impl StateMut {
         &mut self.inner.local_meta
     }
 
-    // TODO can this be moved into ContextMut
+    // TODO can this be moved into Context
     /// Copies the current agent state into the `Context` before running state packages, which
     /// stores a snapshot of state at the end of the last step.
     ///
@@ -170,11 +170,11 @@ impl StateMut {
     /// and thus it updates the group start indices registered in self.
     pub fn finalize_context_agent_pool(
         &mut self,
-        context: &mut ContextMut,
+        context: &mut Context,
         agent_schema: &AgentSchema,
         experiment_id: &ExperimentId,
     ) -> Result<()> {
-        let mut static_pool = context.inner_mut().agent_pool_mut().try_write_batches()?;
+        let mut static_pool = context.agent_pool_mut().try_write_batches()?;
         let dynamic_pool = self.agent_pool().try_read_batches()?;
 
         (0..dynamic_pool.len().min(static_pool.len())).try_for_each::<_, Result<()>>(
@@ -189,7 +189,7 @@ impl StateMut {
         // TODO search everywhere and replace static_pool and dynamic_pool to more descriptively
         //  refer to context/state (respectively)
         drop(static_pool); // Release RwLock write access.
-        let static_pool = context.inner_mut().agent_pool_mut().mut_batches();
+        let static_pool = context.agent_pool_mut().mut_batches();
 
         #[allow(clippy::comparison_chain)]
         if dynamic_pool.len() > static_pool.len() {
