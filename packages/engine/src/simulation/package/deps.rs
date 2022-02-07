@@ -138,11 +138,12 @@ pub mod tests {
                     name: String::new().into(),
                     id: Uuid::new_v4(),
                     project_base: ProjectBase {
+                        name: String::new(),
                         initial_state: InitialState {
                             name: InitialStateName::InitJson,
-                            src: "".to_string(),
+                            src: String::new(),
                         },
-                        globals_src: "".to_string(),
+                        globals_src: String::new(),
                         experiments_src: None,
                         behaviors: vec![],
                         datasets: vec![],

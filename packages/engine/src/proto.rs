@@ -219,6 +219,7 @@ pub struct InitialState {
 /// dependencies source and the source for all running behaviors
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct ProjectBase {
+    pub name: String,
     pub initial_state: InitialState,
     pub globals_src: String,
     pub experiments_src: Option<String>,
