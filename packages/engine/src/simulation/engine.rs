@@ -14,7 +14,10 @@ use crate::{
             context::Context,
             pool::{agent::AgentPool, message::MessagePool},
             references::MessageMap,
-            state::{view::StateSnapshot, State},
+            state::{
+                view::{StateSnapshot, StateView},
+                State,
+            },
         },
     },
     proto::ExperimentRunTrait,
@@ -249,7 +252,14 @@ impl Engine {
         self.handle_messages(state, &message_map)?;
         let message_pool = self.finalize_agent_messages(state, context)?;
         let agent_pool = self.finalize_agent_state(state, context)?;
-        Ok(StateSnapshot::new(agent_pool, message_pool, message_map))
+        let state_view = StateView {
+            agent_pool,
+            message_pool,
+        };
+        Ok(StateSnapshot {
+            state: state_view,
+            message_map,
+        })
     }
 
     /// Handles messages from the agents

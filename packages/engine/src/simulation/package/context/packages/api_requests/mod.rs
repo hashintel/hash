@@ -196,14 +196,14 @@ async fn build_api_response_maps(
 ) -> Result<Vec<ApiResponseMap>> {
     let mut futs = FuturesOrdered::new();
     {
-        let message_pool = snapshot.message_pool();
+        let message_pool = &snapshot.state.message_pool;
         let message_pool_read = message_pool
             .read()
             .map_err(|e| Error::from(e.to_string()))?;
         let reader = message_pool_read.get_reader();
 
         handlers.iter().try_for_each::<_, Result<()>>(|handler| {
-            let messages = snapshot.message_map().get_msg_refs(handler);
+            let messages = snapshot.message_map.get_msg_refs(handler);
             if !messages.is_empty() {
                 let messages = handlers::gather_requests(&reader, messages)?;
                 futs.push(handlers::run_custom_message_handler(handler, messages))

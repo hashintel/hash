@@ -175,7 +175,7 @@ fn inbound_to_nng(
         }
         InboundToRunnerMsgPayload::StateSnapshotSync(msg) => {
             let (agent_pool, message_pool) =
-                state_sync_to_fbs(fbb, &msg.agent_pool, &msg.message_pool)?;
+                state_sync_to_fbs(fbb, &msg.state.agent_pool, &msg.state.message_pool)?;
             let msg = flatbuffers_gen::sync_state_snapshot_generated::StateSnapshotSync::create(
                 fbb,
                 &flatbuffers_gen::sync_state_snapshot_generated::StateSnapshotSyncArgs {

@@ -120,12 +120,10 @@ impl Comms {
     }
 
     /// TODO: DOC
-    pub async fn state_snapshot_sync(&self, state: &StateSnapshot) -> Result<()> {
+    pub async fn state_snapshot_sync(&self, snapshot: &StateSnapshot) -> Result<()> {
         tracing::trace!("Synchronizing state snapshot");
         // Synchronize the state snapshot batches
-        let agents = state.agent_pool().clone();
-        let agent_messages = state.message_pool().clone();
-        let sync_msg = StateSync::new(agents, agent_messages);
+        let sync_msg = StateSync::new(snapshot.state.clone());
         self.worker_pool_sender
             .send(EngineToWorkerPoolMsg::sync(
                 self.sim_id,

@@ -235,7 +235,7 @@ impl StepPackages {
         let snapshot =
             Arc::try_unwrap(snapshot_arc).map_err(|_| Error::from("Failed to unwrap snapshot"))?;
 
-        let context = pre_context.finalize(snapshot, &column_writers, state.num_agents())?;
+        let context = pre_context.finalize(snapshot.state, &column_writers, state.num_agents())?;
         Ok(context)
     }
 

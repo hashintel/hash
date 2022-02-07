@@ -8,6 +8,7 @@ use crate::{
         table::{
             pool::{agent::AgentPool, message::MessagePool},
             proxy::BatchReadProxy,
+            state::view::StateView,
         },
     },
     simulation::comms::message::{SyncCompletionReceiver, SyncCompletionSender},
@@ -91,8 +92,7 @@ impl WaitableStateSync {
 
 #[derive(derive_new::new, Clone)]
 pub struct StateSync {
-    pub agent_pool: AgentPool,
-    pub message_pool: MessagePool,
+    pub state: StateView,
 }
 
 impl fmt::Debug for StateSync {

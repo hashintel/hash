@@ -4,13 +4,15 @@ use parking_lot::RwLock;
 
 use super::{
     pool::{agent::AgentPool, message::MessagePool},
-    state::view::StateSnapshot,
 };
 use crate::{
     config::StoreConfig,
     datastore::{
         prelude::*,
-        table::proxy::{BatchReadProxy, BatchWriteProxy},
+        table::{
+            proxy::{BatchReadProxy, BatchWriteProxy},
+            state::view::StateView,
+        },
     },
     proto::ExperimentId,
     simulation::package::context::ContextColumn,
@@ -25,11 +27,8 @@ use crate::{
 /// it's immutable (unlike an agent's specific state).
 pub struct Context {
     batch: Arc<RwLock<ContextBatch>>,
-    // TODO: replace these two fields with `StateSnapshot`
-    /// Agent Batches that are a snapshot of state from the previous step.
-    agent_pool: AgentPool,
-    /// Pool that are a snapshot of the message batches from the previous step.
-    message_pool: MessagePool,
+    /// View of the state from the previous step.
+    previous_state: StateView,
 
     /// The IDs of the batches that were removed between this step and the last.
     removed_batches: Vec<String>,
@@ -51,26 +50,28 @@ impl Context {
         )?;
         Ok(Self {
             batch: Arc::new(RwLock::new(context_batch)),
-            agent_pool: AgentPool::empty(),
-            message_pool: MessagePool::empty(),
+            previous_state: StateView {
+                agent_pool: AgentPool::empty(),
+                message_pool: MessagePool::empty(),
+            },
             removed_batches: Vec::new(),
         })
     }
 
     pub fn agent_pool(&self) -> &AgentPool {
-        &self.agent_pool
+        &self.previous_state.agent_pool
     }
 
     pub fn agent_pool_mut(&mut self) -> &mut AgentPool {
-        &mut self.agent_pool
+        &mut self.previous_state.agent_pool
     }
 
     pub fn take_agent_pool(&mut self) -> AgentPool {
-        std::mem::replace(&mut self.agent_pool, AgentPool::empty())
+        std::mem::replace(&mut self.previous_state.agent_pool, AgentPool::empty())
     }
 
     pub fn take_message_pool(&mut self) -> MessagePool {
-        std::mem::replace(&mut self.message_pool, MessagePool::empty())
+        std::mem::replace(&mut self.previous_state.message_pool, MessagePool::empty())
     }
 
     pub fn removed_batches(&mut self) -> &mut Vec<String> {
@@ -105,15 +106,13 @@ impl PreContext {
     /// TODO: DOC
     pub fn finalize(
         self,
-        snapshot: StateSnapshot,
+        state: StateView,
         column_writers: &[&ContextColumn],
         num_elements: usize,
     ) -> Result<Context> {
-        let (agent_pool, message_pool) = snapshot.deconstruct();
         let mut context = Context {
             batch: self.batch,
-            agent_pool,
-            message_pool,
+            previous_state: state,
             removed_batches: self.removed_batches,
         };
         context

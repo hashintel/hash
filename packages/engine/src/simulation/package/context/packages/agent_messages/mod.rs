@@ -92,7 +92,7 @@ impl Package for AgentMessages {
         let id_name_iter = iterators::agent::agent_id_iter(&batches)?
             .zip(iterators::agent::agent_name_iter(&batches)?);
 
-        let messages = Messages::gather(snapshot.message_map(), id_name_iter)?;
+        let messages = Messages::gather(&snapshot.message_map, id_name_iter)?;
         let field_key = self
             .context_field_spec_accessor
             .get_agent_scoped_field_spec(MESSAGES_FIELD_NAME)?

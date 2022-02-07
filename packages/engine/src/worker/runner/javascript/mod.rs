@@ -1111,8 +1111,8 @@ impl<'m> RunnerImpl<'m> {
         msg: StateSync,
     ) -> Result<()> {
         // TODO: Duplication with `state_sync`
-        let agent_pool = msg.agent_pool.read_proxy()?;
-        let msg_pool = msg.message_pool.read_proxy()?;
+        let agent_pool = msg.state.agent_pool.read_proxy()?;
+        let msg_pool = msg.state.message_pool.read_proxy()?;
         let (agent_pool, msg_pool) = (agent_pool.batches(), msg_pool.batches());
         let (agent_pool, msg_pool) = state_to_js(mv8, &agent_pool, &msg_pool)?;
         let sim_run_id = sim_id_to_js(mv8, sim_run_id);
