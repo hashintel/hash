@@ -115,7 +115,7 @@ impl<K: Batch> BatchWriteProxy<K> {
 }
 
 impl<K: Batch> Drop for BatchWriteProxy<K> {
-    // SAFETY: `BatchReadProxy` is guaranteed to have a unique lock, so unlocking is safe.
+    // SAFETY: `BatchWriteProxy` is guaranteed to have a unique lock, so unlocking is safe.
     fn drop(&mut self) {
         unsafe { RwLock::raw(&self.arc).unlock_exclusive() }
     }
