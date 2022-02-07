@@ -3,7 +3,6 @@ use std::sync::Arc;
 use parking_lot::RwLock;
 
 use super::{
-    meta::Meta,
     pool::{agent::AgentPool, message::MessagePool},
     state::view::StateSnapshot,
 };
@@ -31,9 +30,9 @@ pub struct Context {
     agent_pool: AgentPool,
     /// Pool that are a snapshot of the message batches from the previous step.
     message_pool: MessagePool,
-    // TODO: remove Meta, just move in removed_ids
+
     /// The IDs of the batches that were removed between this step and the last.
-    local_meta: Meta,
+    removed_batches: Vec<String>,
 }
 
 impl Context {
@@ -54,7 +53,7 @@ impl Context {
             batch: Arc::new(RwLock::new(context_batch)),
             agent_pool: AgentPool::empty(),
             message_pool: MessagePool::empty(),
-            local_meta: Meta::default(),
+            removed_batches: Vec::new(),
         })
     }
 
@@ -74,8 +73,8 @@ impl Context {
         std::mem::replace(&mut self.message_pool, MessagePool::empty())
     }
 
-    pub fn local_meta(&mut self) -> &mut Meta {
-        &mut self.local_meta
+    pub fn removed_batches(&mut self) -> &mut Vec<String> {
+        &mut self.removed_batches
     }
 
     pub fn read_proxy(&self) -> Result<BatchReadProxy<ContextBatch>> {
@@ -89,7 +88,7 @@ impl Context {
     pub fn into_pre_context(self) -> PreContext {
         PreContext {
             batch: self.batch,
-            local_meta: self.local_meta,
+            removed_batches: self.removed_batches,
         }
     }
 }
@@ -99,7 +98,7 @@ impl Context {
 pub struct PreContext {
     batch: Arc<RwLock<ContextBatch>>,
     /// Local metadata
-    local_meta: Meta,
+    removed_batches: Vec<String>,
 }
 
 impl PreContext {
@@ -115,7 +114,7 @@ impl PreContext {
             batch: self.batch,
             agent_pool,
             message_pool,
-            local_meta: self.local_meta,
+            removed_batches: self.removed_batches,
         };
         context
             .write_proxy()?

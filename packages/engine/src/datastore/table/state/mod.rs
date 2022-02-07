@@ -8,7 +8,6 @@ use std::sync::Arc;
 use self::create_remove::CreateRemovePlanner;
 use super::{
     context::Context,
-    meta::Meta,
     pool::{agent::AgentPool, message::MessagePool},
     references::MessageMap,
 };
@@ -33,9 +32,8 @@ pub struct State {
     /// agent of each group in combined pool.
     group_start_indices: Arc<Vec<usize>>,
 
-    // TODO: remove Meta, just move in removed_ids
     /// The IDs of the batches that were removed between this step and the last.
-    local_meta: Meta,
+    removed_batches: Vec<String>,
 
     num_agents: usize,
 
@@ -85,7 +83,7 @@ impl State {
         Ok(Self {
             agent_pool,
             message_pool,
-            local_meta: Meta::default(),
+            removed_batches: Vec::new(),
             num_agents,
             group_start_indices: Arc::new(group_start_indices),
             sim_config,
@@ -119,8 +117,8 @@ impl State {
         Self::from_agent_groups(&agent_state_groups, num_agents, sim_config)
     }
 
-    pub fn local_meta(&mut self) -> &mut Meta {
-        &mut self.local_meta
+    pub fn removed_batches(&mut self) -> &mut Vec<String> {
+        &mut self.removed_batches
     }
 
     // TODO can this be moved into Context
@@ -185,7 +183,7 @@ impl State {
                 })?;
             removed_ids
                 .into_iter()
-                .for_each(|id| context.local_meta().removed_batch(id));
+                .for_each(|id| context.removed_batches().push(id));
         }
 
         // State group start indices need to be updated, because we
@@ -219,7 +217,7 @@ impl State {
         // Register all batches that were removed
         removed_ids
             .into_iter()
-            .for_each(|id| self.local_meta().removed_batch(id));
+            .for_each(|id| self.removed_batches().push(id));
         Ok(())
     }
 
