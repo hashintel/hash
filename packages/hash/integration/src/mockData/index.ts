@@ -26,7 +26,7 @@ export {};
 const logger = new Logger({
   mode: "dev",
   level: "debug",
-  serviceName: "integration-tests",
+  serviceName: "mockData",
 });
 
 void (async () => {
@@ -70,41 +70,44 @@ void (async () => {
   const results = new Map<string, Entity>();
 
   const requiredBlockTypes = [
-    "Divider",
-    "Embed",
-    "Image",
-    "Table",
-    "Code",
-    "Video",
-    "Header",
+    ["Divider", "https://blockprotocol.org/blocks/@hash/divider"],
+    ["Embed", "https://blockprotocol.org/blocks/@hash/embed"],
+    ["Image", "https://blockprotocol.org/blocks/@hash/image"],
+    ["Table", "https://blockprotocol.org/blocks/@hash/table"],
+    ["Code", "https://blockprotocol.org/blocks/@hash/code"],
+    ["Video", "https://blockprotocol.org/blocks/@hash/video"],
+    ["Header", "https://blockprotocol.org/blocks/@hash/header"],
   ] as const;
 
   const requiredOtherTypes = ["Company", "Location", "Person"] as const;
   // create the types we'll need below so we can assign their ids to entities
   const newTypeIds: Record<
-    typeof requiredBlockTypes[number] | typeof requiredOtherTypes[number],
+    typeof requiredBlockTypes[number][0] | typeof requiredOtherTypes[number],
     string
   > = {} as any;
 
   const componentIdSchema = async (componentId: string) => {
-    const blockSchema = await (
-      await fetch(`${componentId}/block-schema.json`)
-    ).json();
+    const blockSchema = await (await fetch(`${componentId}/block-schema.json`))
+      .json()
+      .catch(() => {
+        logger.error(
+          `Could not fetch componentId ${componentId}. Defaulting to empty schema.`,
+        );
+        return {};
+      });
 
     return { componentId, ...(blockSchema as object) };
   };
 
   await Promise.all(
-    requiredBlockTypes.map(async (name) => {
+    requiredBlockTypes.map(async ([name, componentId]) => {
       const entityType = await EntityType.create(db, {
         accountId: systemOrg.accountId,
         createdByAccountId: systemOrg.entityId, // TODO
         name,
         schema: {
           // @todo The componentId given here is not present in the blockPaths.json mapping, blockPaths.json is not needed anymore.
-          ...(await componentIdSchema(
-            `https://blockprotocol.org/blocks/@hash/${name.toLowerCase()}`,
-          )),
+          ...(await componentIdSchema(componentId)),
         },
       });
 
