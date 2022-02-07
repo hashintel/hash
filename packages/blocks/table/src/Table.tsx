@@ -135,7 +135,7 @@ export const Table: BlockComponent<AppProps> = ({
 
   const columns = useMemo(
     () => makeColumns(tableData.data?.[0] || {}),
-    [tableData.data, initialState],
+    [tableData.data],
   );
 
   const [pageOptions, aggregateOptions] = useMemo(() => {
