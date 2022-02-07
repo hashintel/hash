@@ -43,32 +43,22 @@ pub struct State {
 }
 
 impl State {
-    /// Creates a new State object from a provided array of `AgentState`.
+    /// Creates a new State object from an array of groups of [`AgentState`]s.
     ///
     /// Uses the schemas in the provided `sim_config` to validate the provided state, and to create
-    /// the agent and message batches. The agent batches are created by splitting up the
-    /// `agent_states` into groups based on the number of workers specified in `sim_config`.
-    pub fn from_agent_states(
-        agent_states: &[AgentState],
+    /// the agent and message batches. The agent batches use the data provided in
+    /// `agent_state_batches`, where each element is a group, and the total elements (i.e.
+    /// [`AgentState`]s) within those groups is `num_agents`.
+    ///
+    /// Effectively converts the `agent_state_batches` from Array-of-Structs into a
+    /// Struct-of-Arrays.
+    pub fn from_agent_groups(
+        agent_state_groups: &[&[AgentState]],
+        num_agents: usize,
         sim_config: Arc<SimRunConfig>,
-    ) -> Result<State> {
-        let num_workers = sim_config.sim.engine.num_workers;
-        let num_agents = agent_states.len();
-
-        // Distribute agents across workers
-        const MIN_PER_WORKER: usize = 10;
-        let num_agents_per_worker =
-            ((num_agents as f64 / num_workers as f64).ceil() as usize).max(MIN_PER_WORKER);
-        let mut agent_state_batches = vec![];
-        let mut next_index = 0;
-        while next_index != num_agents {
-            let this_index = next_index;
-            next_index = (next_index + num_agents_per_worker).min(num_agents);
-            agent_state_batches.push(&agent_states[this_index..next_index]);
-        }
-
-        let mut agent_batches = Vec::with_capacity(agent_state_batches.len());
-        let mut message_batches = Vec::with_capacity(agent_state_batches.len());
+    ) -> Result<Self> {
+        let mut agent_batches = Vec::with_capacity(agent_state_groups.len());
+        let mut message_batches = Vec::with_capacity(agent_state_groups.len());
 
         let agent_schema = &sim_config.sim.store.agent_schema;
         let message_schema = &sim_config.sim.store.message_schema;
@@ -78,15 +68,15 @@ impl State {
         let mut start = 0;
 
         // converts the `agent_state_batches` from Array-of-Structs into a Struct-of-Arrays.
-        for agent_state_batch in agent_state_batches {
+        for agent_state_group in agent_state_groups {
             group_start_indices.push(start);
-            start += agent_state_batch.len();
+            start += agent_state_group.len();
 
             agent_batches.push(Arc::new(parking_lot::RwLock::new(
-                AgentBatch::from_agent_states(agent_state_batch, agent_schema, experiment_id)?,
+                AgentBatch::from_agent_states(*agent_state_group, agent_schema, experiment_id)?,
             )));
             message_batches.push(Arc::new(parking_lot::RwLock::new(
-                MessageBatch::from_agent_states(agent_state_batch, message_schema, experiment_id)?,
+                MessageBatch::from_agent_states(*agent_state_group, message_schema, experiment_id)?,
             )));
         }
         let agent_pool = AgentPool::new(agent_batches);
@@ -100,6 +90,33 @@ impl State {
             group_start_indices: Arc::new(group_start_indices),
             sim_config,
         })
+    }
+
+    /// Creates a new State object from a provided array of [`AgentState`]s.
+    ///
+    /// Uses the schemas in the provided `sim_config` to validate the provided state, and to create
+    /// the agent and message batches. The agent batches are created by splitting up the
+    /// `agent_states` into groups based on the number of workers specified in `sim_config`.
+    pub fn from_agent_states(
+        agent_states: &[AgentState],
+        sim_config: Arc<SimRunConfig>,
+    ) -> Result<State> {
+        let num_workers = sim_config.sim.engine.num_workers;
+        let num_agents = agent_states.len();
+
+        // Split agents into groups that can be distributed across workers
+        const MIN_PER_WORKER: usize = 10;
+        let num_agents_per_worker =
+            ((num_agents as f64 / num_workers as f64).ceil() as usize).max(MIN_PER_WORKER);
+        let mut agent_state_groups = vec![];
+        let mut next_index = 0;
+        while next_index != num_agents {
+            let this_index = next_index;
+            next_index = (next_index + num_agents_per_worker).min(num_agents);
+            agent_state_groups.push(&agent_states[this_index..next_index]);
+        }
+
+        Self::from_agent_groups(&agent_state_groups, num_agents, sim_config)
     }
 
     pub fn local_meta(&mut self) -> &mut Meta {
