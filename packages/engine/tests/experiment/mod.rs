@@ -207,10 +207,8 @@ pub async fn run_test_suite(
             {
                 expected
                     .assert_subset_of(&states, &globals, &analysis)
-                    .expect(&format!(
-                        "Output of simulation {} does not match expected output in experiment",
-                        output_idx + 1
-                    ));
+                    .unwrap_or_else(|_| panic!("Output of simulation {} does not match expected output in experiment",
+                        output_idx + 1));
             }
             timings.push(test_result.duration.as_nanos());
         }

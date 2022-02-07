@@ -121,7 +121,7 @@ impl VTable {
             let unerased = (frame as *const FrameRepr).cast::<FrameRepr<C>>();
             // inside of vtable it's allowed to access `_context`
             #[allow(clippy::used_underscore_binding)]
-            let addr = &(*(unerased))._context as *const C as *mut ();
+            let addr = std::ptr::addr_of!((*(unerased))._context) as *mut ();
             Some(NonNull::new_unchecked(addr))
         } else {
             None
