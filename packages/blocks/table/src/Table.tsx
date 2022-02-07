@@ -128,7 +128,7 @@ export const Table: BlockComponent<AppProps> = ({
   }, [matchingLinkedAggregation, setTableData]);
 
   const columns = useMemo(
-    () => initialState?.columns ?? makeColumns(tableData.data?.[0] || {}),
+    () => makeColumns(tableData.data?.[0] || {}),
     [tableData.data, initialState],
   );
 
