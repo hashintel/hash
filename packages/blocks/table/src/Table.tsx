@@ -10,6 +10,7 @@ import {
   BlockProtocolLinkedAggregation,
   BlockProtocolEntityType,
   BlockProtocolUpdateLinksAction,
+  BlockProtocolLinkedDataDefinition,
 } from "blockprotocol";
 import { BlockComponent } from "blockprotocol/react";
 import { tw } from "twind";
@@ -30,6 +31,11 @@ type TableData = {
 };
 
 type AppProps = {
+  // @todo remove this once devRenderer is integrated with mock-block-dock
+  data: {
+    data?: Record<string, any>[];
+    __linkedData?: BlockProtocolLinkedDataDefinition;
+  };
   initialState?: TableOptions<{}>["initialState"] & {
     columns?: { Header: string; accessor: string }[];
   };
