@@ -10,6 +10,7 @@ import {
 import { PostgresAdapter } from "@hashintel/hash-api/src/db";
 import { DummyEmailTransporter } from "@hashintel/hash-api/src/email/transporters";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { treeFromParentReferences } from "@hashintel/hash-api/src/util";
 
 import { ClientError } from "graphql-request";
 import { ApiClient } from "./util";
@@ -809,7 +810,8 @@ describe("logged in user ", () => {
         .then((entyp) => entyp.parents);
 
       expect(subTypeParent).toHaveLength(1);
-      expect(subTypeParent![0].entityId).toEqual(superType.entityId);
+      if (!subTypeParent?.length) throw new Error("");
+      expect(subTypeParent[0].entityId).toEqual(superType.entityId);
     });
 
     it("can get all children of supertype", async () => {
@@ -827,8 +829,9 @@ describe("logged in user ", () => {
         .then((entyp) => entyp.children);
 
       expect(superTypeChldren).toHaveLength(2);
+      if (!superTypeChldren?.length) throw new Error("");
 
-      expect(superTypeChldren!.map((child) => child.entityId).sort()).toEqual(
+      expect(superTypeChldren.map((child) => child.entityId).sort()).toEqual(
         [subType1.entityId, subType2.entityId].sort(),
       );
     });
@@ -1153,21 +1156,28 @@ describe("logged in user ", () => {
       schema: {
         title: "Test schema",
         properties: {
-          testProperty: {
+          testPropertyString: {
             type: "string",
+          },
+          testPropertyNumber: {
+            type: "number",
           },
         },
       },
       name: "Test schema",
     };
 
+    let testEntityType!: Pick<
+      GQLEntityType,
+      "entityId" | "properties" | "entityTypeName"
+    >;
     it("can create an entity type with a valid schema", async () => {
-      const entityType = await client.createEntityType({
+      testEntityType = await client.createEntityType({
         accountId: existingUser.accountId,
         ...validSchemaInput,
       });
-      expect(entityType.properties.title).toEqual(validSchemaInput.name);
-      expect(entityType.properties.description).toEqual(
+      expect(testEntityType.properties.title).toEqual(validSchemaInput.name);
+      expect(testEntityType.properties.description).toEqual(
         validSchemaInput.description,
       );
     });
@@ -1215,6 +1225,80 @@ describe("logged in user ", () => {
         }),
       ).rejects.toThrowError(/unknown keyword/);
     });
+
+    it("rejects schema that inherits with incompatible property types", async () => {
+      const schemaName = "Schema invalid property inheritance";
+      await expect(
+        client.createEntityType({
+          accountId: existingUser.accountId,
+          schema: {
+            allOf: [
+              {
+                $ref: testEntityType.properties.$id,
+              },
+            ],
+            properties: {
+              testPropertyString: {
+                type: "number",
+              },
+            },
+          },
+          name: `${schemaName}1`,
+        }),
+      ).rejects.toThrowError(
+        /Type mismatch on ".+". Got "string" expected "number"/i,
+      );
+    });
+
+    let superType!: Pick<
+      GQLEntityType,
+      "entityId" | "properties" | "entityTypeName"
+    >;
+    it("allows schema that inherits with compatible property types", async () => {
+      const schemaName = "Schema invalid property inheritance";
+
+      superType = await client.createEntityType({
+        accountId: existingUser.accountId,
+        schema: {
+          allOf: [
+            {
+              $ref: testEntityType.properties.$id,
+            },
+          ],
+          properties: {
+            testPropertyString: {
+              type: "string",
+            },
+          },
+        },
+        name: `${schemaName}1`,
+      });
+      expect(superType).toBeDefined();
+    });
+
+    it("rejects schema that inherits with incompatible property types deeper than top level", async () => {
+      const schemaName = "Schema invalid property inheritance";
+      await expect(
+        client.createEntityType({
+          accountId: existingUser.accountId,
+          schema: {
+            allOf: [
+              {
+                $ref: superType.properties.$id,
+              },
+            ],
+            properties: {
+              testPropertyNumber: {
+                type: "string",
+              },
+            },
+          },
+          name: `${schemaName}1`,
+        }),
+      ).rejects.toThrowError(
+        /Type mismatch on ".+". Got "number" expected "string"/i,
+      );
+    });
   });
 
   describe("can update entity types", () => {
@@ -1253,6 +1337,181 @@ describe("logged in user ", () => {
 
       expect(updatedEntityType.properties.title).toEqual(validSchemaInput.name);
       expect(updatedEntityType.properties.description).toEqual(newDescription);
+    });
+  });
+
+  describe("can create page trees", () => {
+    let superPage: PageFieldsFragment;
+    const superTitle = "Super page 1";
+    beforeAll(async () => {
+      superPage = await client.createPage({
+        accountId: existingUser.accountId,
+        properties: {
+          title: superTitle,
+        },
+      });
+    });
+
+    let subPage: PageFieldsFragment;
+    it("can create a subpage", async () => {
+      // - Super page 1
+      //   - sub page 1
+      const title = "sub page 1";
+      subPage = await client.createPage({
+        accountId: existingUser.accountId,
+        properties: {
+          title,
+        },
+      });
+
+      const result = await client.setParentPage({
+        accountId: existingUser.accountId,
+        pageId: subPage.entityId,
+        parentPageId: superPage.entityId,
+      });
+
+      const pageTree = await client.getAccountPagesTree({
+        accountId: existingUser.accountId,
+      });
+
+      expect(result.entityId).toEqual(subPage.entityId);
+      expect(pageTree).toContainEqual({
+        entityId: subPage.entityId,
+        properties: { title },
+        parentPageId: superPage.entityId,
+      });
+    });
+
+    let subSubPage: PageFieldsFragment;
+    it("can create a subsubpage", async () => {
+      // - Super page 1
+      //   - sub page 1
+      //     - sub sub page 1
+      const title = "sub sub page 1";
+      subSubPage = await client.createPage({
+        accountId: existingUser.accountId,
+        properties: {
+          title,
+        },
+      });
+
+      const result = await client.setParentPage({
+        accountId: existingUser.accountId,
+        pageId: subSubPage.entityId,
+        parentPageId: subPage.entityId,
+      });
+
+      const pageTree = await client.getAccountPagesTree({
+        accountId: existingUser.accountId,
+      });
+
+      expect(result.entityId).toEqual(subSubPage.entityId);
+      expect(pageTree).toContainEqual({
+        entityId: subSubPage.entityId,
+        properties: { title },
+        parentPageId: subPage.entityId,
+      });
+    });
+
+    it("prevent cyclic page trees", async () => {
+      // - Super page 1
+      //   - sub page 1
+      //     - sub sub page 1
+      //       - Super page 1 <- should not be allowed since it would introduce a cycle
+      await expect(
+        client.setParentPage({
+          accountId: existingUser.accountId,
+          pageId: superPage.entityId,
+          parentPageId: subSubPage.entityId,
+        }),
+      ).rejects.toThrowError(
+        /Could not set '.*' as parent to '.*' as this would create a cyclic dependency./i,
+      );
+    });
+
+    it("prevent cyclic page trees when changing parent", async () => {
+      // - Super page 1
+      //   - sub page 1
+      //     - sub sub page 1  <- because this page has 'sub page 1' as a parent. A cyclic dependency would be created
+      //       - sub page 1 <- should not be allowed
+      await expect(
+        client.setParentPage({
+          accountId: existingUser.accountId,
+          pageId: subPage.entityId,
+          parentPageId: subSubPage.entityId,
+        }),
+      ).rejects.toThrowError(
+        /Could not set '.*' as parent to '.*' as this would create a cyclic dependency./i,
+      );
+    });
+
+    it("can reconstruct a tree based on the resulting pages", async () => {
+      type TreeElement = {
+        entityId: string;
+        parentPageId: string;
+        properties: {
+          title: string;
+        };
+        children?: TreeElement[];
+      };
+
+      const pages = (
+        await client.getAccountPagesTree({
+          accountId: existingUser.accountId,
+        })
+      ).map((page) => ({ children: undefined, ...page } as TreeElement));
+
+      const treePages = treeFromParentReferences(
+        pages,
+        "entityId",
+        "parentPageId",
+        "children",
+      );
+
+      expect(treePages).toContainEqual({
+        parentPageId: undefined,
+        entityId: superPage.entityId,
+        properties: { title: superTitle },
+        children: [
+          {
+            parentPageId: superPage.entityId,
+            entityId: subPage.entityId,
+            properties: { title: subPage.properties.title },
+            children: [
+              {
+                parentPageId: subPage.entityId,
+                entityId: subSubPage.entityId,
+                properties: { title: subSubPage.properties.title },
+                children: undefined,
+              },
+            ],
+          },
+        ],
+      });
+    });
+
+    it("Allow changing parent", async () => {
+      // - Super page 1
+      //   - sub page 1
+      //   - sub sub page 1 <- changed to be a sub page.
+      const title = "sub sub page 1";
+
+      const result = await client.setParentPage({
+        accountId: existingUser.accountId,
+        pageId: subSubPage.entityId,
+        parentPageId: superPage.entityId,
+      });
+
+      const pageTree = await client.getAccountPagesTree({
+        accountId: existingUser.accountId,
+      });
+
+      expect(result.entityId).toEqual(subSubPage.entityId);
+      expect(pageTree).toContainEqual({
+        entityId: subSubPage.entityId,
+        properties: { title },
+        parentPageId: superPage.entityId,
+      });
     });
   });
 

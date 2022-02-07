@@ -1,6 +1,3 @@
-import { TableOptions } from "react-table";
-import { BlockProtocolLinkedDataDefinition } from "blockprotocol";
-
 export interface Person {
   email: string;
   entityId: string;
@@ -116,35 +113,71 @@ const people: Person[] = [
 ];
 
 export const initialTableData = {
-  initialState: {
-    hiddenColumns: [
-      "entityId",
-      "employerId",
-      "employer.locationId",
-      "employer.entityId",
-      "employer.type",
-      "employer.location.entityId",
-      "employer.location.type",
-    ],
-  } as TableOptions<{}>["initialState"] & {
-    columns?: { Header: string; accessor: string }[];
-  },
   data: {
     __linkedData: {
-      entityTypeId: "Person",
       aggregate: {
-        itemsPerPage: 3,
-        multiSort: [
-          {
-            field: "name",
-          },
-        ],
-        entityTypeId: "asdasd",
+        itemsPerPage: 5,
+        entityTypeId: "d399c523-e152-49ed-81a4-56d9e17196bb",
+        pageNumber: 1,
+        pageCount: 1,
       },
-    } as BlockProtocolLinkedDataDefinition,
-    data: [] as Person[],
+      entityTypeId: "d399c523-e152-49ed-81a4-56d9e17196bb",
+    },
+    data: [
+      {
+        entityId: "1",
+        name: "Alice",
+        email: "alice@example.com",
+        age: 42,
+        country: "England",
+      },
+      {
+        entityId: "2",
+        name: "Bob",
+        email: "bob@example.com",
+        age: 34,
+        country: "France",
+      },
+      {
+        entityId: "3",
+        name: "David",
+        email: "david@example.com",
+        age: 24,
+        country: "Denmark",
+      },
+      {
+        entityId: "4",
+        name: "Eric",
+        email: "eric@example.com",
+        age: 59,
+        country: "Iceland",
+      },
+    ],
   },
-  entityId: "table1",
+  initialState: {
+    columns: [
+      {
+        Header: "entityId",
+        accessor: "entityId",
+      },
+      {
+        Header: "email",
+        accessor: "email",
+      },
+      {
+        Header: "name",
+        accessor: "name",
+      },
+      {
+        Header: "age",
+        accessor: "age",
+      },
+      {
+        Header: "country",
+        accessor: "country",
+      },
+    ],
+  },
 };
 
 export const entities = [...people, company1, company2, london, newYork];

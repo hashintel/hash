@@ -1,0 +1,9 @@
+{
+  "keys": {
+    "icu_beds": {
+      "nullable": false,
+      "type": "number"
+    }
+  },
+  "built_in_key_use": null
+}

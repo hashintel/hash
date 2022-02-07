@@ -1,0 +1,41 @@
+{
+  "keys": {
+    "vaccine_bit": {
+      "nullable": true,
+      "type": "string"
+    },
+    "vaccine_bit_location": {
+      "nullable": true,
+      "type": "number"
+    },
+    "sick": {
+      "nullable": false,
+      "type": "boolean"
+    },
+    "sick_time": {
+      "nullable": false,
+      "type": "number"
+    },
+    "remaining_immunity": {
+      "nullable": false,
+      "type": "number"
+    },
+    "strain": {
+      "nullable": false,
+      "type": "string"
+    },
+    "fip": {
+      "nullable": true,
+      "type": "number"
+    },
+    "dead": {
+      "nullable": true,
+      "type": "boolean"
+    },
+    "was_sick": {
+      "nullable": true,
+      "type": "boolean"
+    }
+  },
+  "built_in_key_use": null
+}

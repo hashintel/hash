@@ -134,6 +134,12 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.getEntityTypeByComponentId(params));
   }
 
+  getEntityTypeBySchema$id(
+    params: Parameters<DBClient["getEntityTypeBySchema$id"]>[0],
+  ): ReturnType<DBClient["getEntityTypeBySchema$id"]> {
+    return this.query((adapter) => adapter.getEntityTypeBySchema$id(params));
+  }
+
   getEntityTypeChildren(
     params: Parameters<DBClient["getEntityTypeChildren"]>[0],
   ): ReturnType<DBClient["getEntityTypeChildren"]> {
@@ -202,6 +208,22 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.getEntitiesBySystemType(params));
   }
 
+  getEntitiesByTypeWithOutgoingEntityIds(
+    params: Parameters<DBClient["getEntitiesByTypeWithOutgoingEntityIds"]>[0],
+  ): ReturnType<DBClient["getEntitiesByTypeWithOutgoingEntityIds"]> {
+    return this.query((adapter) =>
+      adapter.getEntitiesByTypeWithOutgoingEntityIds(params),
+    );
+  }
+
+  getEntityWithOutgoingEntityIds(
+    params: Parameters<DBClient["getEntityWithOutgoingEntityIds"]>[0],
+  ): ReturnType<DBClient["getEntityWithOutgoingEntityIds"]> {
+    return this.query((adapter) =>
+      adapter.getEntityWithOutgoingEntityIds(params),
+    );
+  }
+
   accountExists(params: { accountId: string }): Promise<boolean> {
     return this.query((adapter) => adapter.accountExists(params));
   }
@@ -239,6 +261,12 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     linkId: string;
   }): Promise<DBLink | null> {
     return this.query((adapter) => adapter.getLink(params));
+  }
+
+  getLinkByEntityId(
+    params: Parameters<DBClient["getLinkByEntityId"]>[0],
+  ): ReturnType<DBClient["getLinkByEntityId"]> {
+    return this.query((adapter) => adapter.getLinkByEntityId(params));
   }
 
   deleteLink(params: {

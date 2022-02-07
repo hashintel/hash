@@ -1,0 +1,17 @@
+{
+  "infected_linspace": {
+    "steps": 500,
+    "type": "values",
+    "field": "infectedCount",
+    "values": [3, 5, 10, 15]
+  },
+  "duration_range_monte_carlo": {
+    "steps": 250,
+    "type": "monte-carlo",
+    "field": "duration_range",
+    "distribution": "normal",
+    "mean": 100,
+    "std": 30,
+    "samples": 2
+  }
+}

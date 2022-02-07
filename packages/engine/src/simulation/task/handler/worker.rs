@@ -18,4 +18,14 @@ pub trait WorkerHandler {
     fn handle_worker_message(&mut self, _msg: TaskMessage) -> Result<TargetedTaskMessage> {
         Err(Error::WorkerNodeHandlerNotImplemented)
     }
+
+    /// Combines [`TaskMessage`]s from sub-tasks within a worker, into one resultant [`TaskMessage`]
+    /// to summarise the execution of the [`Task`].
+    ///
+    /// [`Task`]s may be split up _within_ a [`Worker`] into sub-tasks according to the groups of
+    /// agents they're operating on (in a similar way to a [`Task`] being distributed _across_
+    /// multiple workers).
+    fn combine_task_messages(&self, _task_messages: Vec<TaskMessage>) -> Result<TaskMessage> {
+        Err(Error::WorkerNodeHandlerNotImplemented)
+    }
 }

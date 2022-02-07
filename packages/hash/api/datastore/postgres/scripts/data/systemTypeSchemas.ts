@@ -11,7 +11,7 @@ const systemAccount = generatedIds.orgs.__system__;
  * Generate the URI for a schema.
  * Use relative for $refs to other schemas in the same system.
  */
-const schemaId = (name: SystemType, relative: boolean = false) =>
+const schema$id = (name: SystemType, relative: boolean = false) =>
   generateSchema$id(
     systemAccount.fixedId,
     generatedIds.types[name].fixedId,
@@ -59,7 +59,7 @@ const systemTypeSchemas: {
         description: "The membership(s) of the organization.",
         type: "array",
         items: {
-          $ref: schemaId("OrgMembership", true),
+          $ref: schema$id("OrgMembership", true),
         },
       },
     },
@@ -79,7 +79,7 @@ const systemTypeSchemas: {
         description: "The organization membership(s) of the user.",
         type: "array",
         items: {
-          $ref: schemaId("OrgMembership", true),
+          $ref: schema$id("OrgMembership", true),
         },
       },
       shortname: {
@@ -124,12 +124,12 @@ const systemTypeSchemas: {
     properties: {
       user: {
         description: "A reference to the user associated with the membership.",
-        $ref: schemaId("User", true),
+        $ref: schema$id("User", true),
       },
       org: {
         description:
           "A reference to the organization associated with the membership.",
-        $ref: schemaId("Org", true),
+        $ref: schema$id("Org", true),
       },
       responsibility: {
         description: "The responsibility of the user in the organization",
@@ -152,7 +152,7 @@ const systemTypeSchemas: {
         description:
           "An ordered list of the blocks making up the contents of this page",
         items: {
-          $ref: schemaId("Block", true),
+          $ref: schema$id("Block", true),
         },
       },
       summary: {
@@ -189,7 +189,7 @@ const systemTypeSchemas: {
 export const entityTypeJson = (name: SystemType) =>
   JSON.stringify({
     $schema: jsonSchemaVersion,
-    $id: schemaId(name),
+    $id: schema$id(name),
     title: name,
     type: "object",
     ...systemTypeSchemas[name],

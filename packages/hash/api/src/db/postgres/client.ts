@@ -23,9 +23,11 @@ import {
   getAccountEntityTypes,
   getEntityType,
   getEntityTypeByComponentId,
+  getEntityTypeBySchema$id,
+  getJsonSchemaBySchema$id,
   getEntityTypeChildren,
-  getEntityTypeLatestVersion,
   getEntityTypeParents,
+  getEntityTypeLatestVersion,
   getSystemTypeLatestVersion,
   insertEntityType,
   insertEntityTypeVersion,
@@ -49,8 +51,12 @@ import {
   updateEntityAccountId,
   getAccountEntities,
 } from "./entity";
-import { getEntityOutgoingLinks } from "./link/getEntityOutgoingLinks";
-import { getLink } from "./link/getLink";
+import {
+  getEntitiesByTypeWithOutgoingEntityIds,
+  getEntityOutgoingLinks,
+  getEntityWithOutgoingEntityIds,
+} from "./link/getEntityOutgoingLinks";
+import { getLink, getLinkByEntityId } from "./link/getLink";
 import { createLink } from "./link/createLink";
 import { deleteLink } from "./link/deleteLink";
 import { getUserByEmail, getUserByShortname } from "./user";
@@ -63,7 +69,7 @@ import {
   getUserVerificationCodes,
 } from "./verificationCode";
 import { getImpliedEntityHistory } from "./history";
-import { jsonSchema } from "../../lib/schemas/jsonSchema";
+import { JsonSchemaCompiler } from "../../lib/schemas/jsonSchema";
 import { SystemType } from "../../types/entityTypes";
 import { Visibility } from "../../graphql/apiTypes.gen";
 import { getOrgByShortname } from "./org";
@@ -98,8 +104,14 @@ export class PostgresClient implements DBClient {
       // The id to assign this (first) version
       const entityTypeVersionId = genId();
 
+      // Conn is used here to prevent transaction-mismatching.
+      // this.conn is a parent of this transaction conn at this time.
+      const jsonSchemaCompiler = new JsonSchemaCompiler(async (url) => {
+        return getJsonSchemaBySchema$id(conn, url);
+      });
+
       const now = new Date();
-      const properties = await jsonSchema(
+      const properties = await jsonSchemaCompiler.jsonSchema(
         name,
         accountId,
         entityTypeId,
@@ -273,6 +285,12 @@ export class PostgresClient implements DBClient {
     return await getEntityTypeByComponentId(this.conn, params);
   }
 
+  async getEntityTypeBySchema$id(
+    params: Parameters<DBClient["getEntityTypeBySchema$id"]>[0],
+  ): ReturnType<DBClient["getEntityTypeBySchema$id"]> {
+    return await getEntityTypeBySchema$id(this.conn, params);
+  }
+
   async getEntityTypeChildren(
     params: Parameters<DBClient["getEntityTypeChildren"]>[0],
   ): ReturnType<DBClient["getEntityTypeChildren"]> {
@@ -338,7 +356,11 @@ export class PostgresClient implements DBClient {
       throw new Error("Schema requires a name set via a 'title' property");
     }
 
-    const schemaToSet = await jsonSchema(
+    const jsonSchemaCompiler = new JsonSchemaCompiler((url) => {
+      return getJsonSchemaBySchema$id(this.conn, url);
+    });
+
+    const schemaToSet = await jsonSchemaCompiler.jsonSchema(
       nameToSet,
       entity.accountId,
       entityId,
@@ -403,6 +425,41 @@ export class PostgresClient implements DBClient {
       : await getEntitiesByTypeAllVersions(this.conn, queryParams);
   }
 
+  async getEntitiesByTypeWithOutgoingEntityIds(
+    params: Parameters<DBClient["getEntitiesByTypeWithOutgoingEntityIds"]>[0],
+  ): ReturnType<DBClient["getEntitiesByTypeWithOutgoingEntityIds"]> {
+    let entityTypeId: string = "";
+
+    if (params.entityTypeId) {
+      entityTypeId = params.entityTypeId;
+    } else if (params.systemTypeName) {
+      const { entity_type_id } = await this.conn.one<{
+        entity_type_id: string;
+      }>(selectSystemEntityTypeIds({ systemTypeName: params.systemTypeName }));
+
+      entityTypeId = entity_type_id ?? "";
+    }
+
+    if (!entityTypeId) {
+      throw new Error(
+        `Did not receive valid entityTypeId or systemTypeName for fetching outgoing entity ids for entity by entityTypeId. entityTypeId = '${params.entityTypeId}' systemTypeName = '${params.systemTypeName}'`,
+      );
+    }
+
+    const queryParams = {
+      entityTypeId,
+      accountId: params.accountId,
+    };
+
+    return await getEntitiesByTypeWithOutgoingEntityIds(this.conn, queryParams);
+  }
+
+  async getEntityWithOutgoingEntityIds(
+    params: Parameters<DBClient["getEntityWithOutgoingEntityIds"]>[0],
+  ): ReturnType<DBClient["getEntityWithOutgoingEntityIds"]> {
+    return getEntityWithOutgoingEntityIds(this.conn, params);
+  }
+
   /** Get all entities of a given type in a given account. */
   async getEntitiesByType(params: {
     accountId: string;
@@ -451,6 +508,12 @@ export class PostgresClient implements DBClient {
     linkId: string;
   }): Promise<DBLink | null> {
     return await getLink(this.conn, params);
+  }
+
+  async getLinkByEntityId(
+    params: Parameters<DBClient["getLinkByEntityId"]>[0],
+  ): ReturnType<DBClient["getLinkByEntityId"]> {
+    return await getLinkByEntityId(this.conn, params);
   }
 
   async deleteLink(params: {

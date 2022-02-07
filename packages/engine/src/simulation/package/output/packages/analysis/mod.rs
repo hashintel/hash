@@ -8,6 +8,7 @@ pub use self::config::AnalysisOutputConfig;
 pub use super::super::*;
 use crate::{
     datastore::table::state::ReadState, experiment::SimPackageArgs, proto::ExperimentRunTrait,
+    simulation::package::output::Package,
 };
 
 #[macro_use]
@@ -86,6 +87,10 @@ impl Package for Analysis {
         Ok(Output::AnalysisOutput(
             self.analyzer.get_latest_output_set(),
         ))
+    }
+
+    fn span(&self) -> Span {
+        tracing::debug_span!("analysis")
     }
 }
 

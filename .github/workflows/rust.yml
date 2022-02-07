@@ -2,13 +2,16 @@ name: Rust
 
 on:
   pull_request:
+  push:
+    branches:
+      - main
 
 defaults:
   run:
     shell: bash
 
 concurrency:
-  group: ${{ github.head_ref }}
+  group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 env:
@@ -22,6 +25,8 @@ jobs:
       rustfmt: ${{ steps.crates.outputs.rustfmt }}
       clippy: ${{ steps.crates.outputs.clippy }}
       test: ${{ steps.crates.outputs.test }}
+      bench: ${{ steps.crates.outputs.bench }}
+      samples: ${{ steps.samples.outputs.samples }}
       toolchains: ${{ steps.toolchains.outputs.toolchains }}
     steps:
       - name: Checkout source code
@@ -45,15 +50,25 @@ jobs:
             done <<< "$available_crates"
           done <<< "$changed_files"
 
+          # We always run "packages/engine" tests when a nested crate was changed
+          test_crates="$changed_crates"
+          if echo "$test_crates" | grep -qe "^packages/engine"; then
+            test_crates=$(echo -e "${changed_crates}\npackages/engine")
+          fi
+
           changed_crates=$(echo "$changed_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
+          bench_crates=$(echo "$test_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(. == "packages/engine") ]')
+          test_crates=$(echo "$test_crates" | sort | uniq | jq -R | jq -sc '[ .[] | select(length > 0) ]')
 
           echo "::set-output name=rustfmt::$changed_crates"
           echo "::set-output name=clippy::$changed_crates"
-          echo "::set-output name=test::$changed_crates"
+          echo "::set-output name=test::$test_crates"
+          echo "::set-output name=bench::$bench_crates"
 
-          echo "run \`cargo fmt\` for: $(echo $changed_crates | jq -r)"
-          echo "run \`cargo clippy\` for: $(echo $changed_crates | jq -r)"
-          echo "run \`cargo test\` for: $(echo $changed_crates | jq -r)"
+          echo "run \`cargo fmt\` for: $(echo "$changed_crates" | jq -r)"
+          echo "run \`cargo clippy\` for: $(echo "$changed_crates" | jq -r)"
+          echo "run \`cargo test\` for: $(echo "$test_crates" | jq -r)"
+          echo "run \`cargo test --release\` for: $(echo "$bench_crates" | jq -r)"
       - name: Find toolchain
         id: toolchains
         run: |
@@ -61,10 +76,18 @@ jobs:
           echo "::set-output name=toolchains::$toolchains"
           echo "use toolchains: $(echo $toolchains | jq -r)"
 
+      - name: Determine samples
+        id: samples
+        run: |
+          if [[ ${{ github.event_name }} = pull_request ]]; then
+            echo "::set-output name=samples::1"
+          else
+            echo "::set-output name=samples::10"
+          fi
   rustfmt:
     name: rustfmt
     needs: setup
-    if: needs.setup.outputs.rustfmt != '[]'
+    if: needs.setup.outputs.rustfmt != '[]' && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -109,7 +132,7 @@ jobs:
   clippy:
     name: clippy
     needs: setup
-    if: needs.setup.outputs.clippy != '[]'
+    if: needs.setup.outputs.clippy != '[]' && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -178,7 +201,7 @@ jobs:
   test:
     name: test
     needs: setup
-    if: needs.setup.outputs.test != '[]'
+    if: needs.setup.outputs.test != '[]' && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -187,8 +210,10 @@ jobs:
         toolchain: ${{ fromJSON(needs.setup.outputs.toolchains) }}
         flags:
           - --all-features
+          - ""
     env:
       V8_PATH: ${{ github.workspace }}/.v8
+      NUM_ATTEMPTS: 50
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -232,16 +257,97 @@ jobs:
 
       - name: Build test dependencies
         if: matrix.directory == 'packages/engine'
-        run: cargo build -p server --manifest-path ${{ matrix.directory }}/Cargo.toml
+        run: cargo build -p server --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }}
 
       - name: Run tests
-        id: test-parallel
-        run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} --no-fail-fast
+        run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }}
+
+  bench:
+    name: bench
+    needs: setup
+    if: needs.setup.outputs.bench != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        directory: ${{ fromJSON(needs.setup.outputs.bench) }}
+        toolchain: ${{ fromJSON(needs.setup.outputs.toolchains) }}
+        tests:
+          - integration
+        flags:
+          - --release
+    env:
+      V8_PATH: ${{ github.workspace }}/.v8
+      OUTPUT_DIRECTORY: test-results
+      NUM_ATTEMPTS: 50
+      SAMPLES: ${{ needs.setup.outputs.samples }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Install Rust
+        id: toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.toolchain }}
+          override: true
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/.crates.toml
+            ~/.cargo/.crates2.json
+            ~/.cargo/bin
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            **/target/
+          key: ${{ runner.os }}-bench-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bench-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
+            ${{ runner.os }}-bench-${{ matrix.directory }}-${{ matrix.toolchain }}
+
+      - name: Install v8
+        run: |
+          mkdir -p ${V8_PATH}/tmp
+          cd ${V8_PATH}/tmp
+          curl -L -o libv8.tar.gz https://github.com/rubyjs/libv8/releases/download/v8.4.255.0/libv8-8.4.255.0-x86_64-linux.gem
+          tar xf libv8.tar.gz # Extract the gem
+          tar xf data.tar.gz # Extract the data folder
+          mv -v vendor/v8/* .. # Move out the wanted files
+          cd ..
+          rm -rf tmp # Delete the tmp folder
+
+      - name: Build test dependencies
+        run: cargo build -p server --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }}
+
+      - name: Run tests
+        run: cargo test --test ${{ matrix.tests }} --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }} -- --test-threads=1
+
+      - name: Upload to DataDog
+        if: always()
+        run: |
+          message=$(find ${{ matrix.directory }}/${{ env.OUTPUT_DIRECTORY }} -name timing.json -exec cat {} + \
+                    | sed 's|::|-|g' \
+                    | jq '{(.test_path): . | del(.test_path)}' | jq -s add)
+          directory="${{ matrix.directory }}"
+          tags="crate:${directory##*/},event:${{ github.event_name }},test:${{ matrix.tests }},stage:dev,toolchain:${{ matrix.toolchain }},user:${{ github.actor }}"
+          if [[ ${{ github.ref_type }} = branch ]]; then
+            tags="$tags,branch:${{ github.ref_name }}"
+          fi
+          curl -X POST "https://http-intake.logs.datadoghq.com/api/v2/logs" \
+            -H "Content-Type: application/json" \
+            -H "DD-API-KEY: ${{ secrets.DATADOG_API_KEY }}" \
+            -d $(jq -cn \
+                    --argjson message "$message" \
+                    --arg ddtags "$tags" \
+                    '{ message: $message, ddsource: "hash-gh-actions", hostname: "github", service: "actions", ddtags: $ddtags }')
 
   merging-enabled:
     name: merging enabled
     needs: [rustfmt, clippy, test]
-    if: always()
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: check rustfmt
@@ -253,3 +359,7 @@ jobs:
       - name: check test
         run: |
           [[ ${{ needs.test.result }} =~ success|skipped ]]
+      # TODO: Require bench to pass after https://app.asana.com/0/1201481007343159/1201545519802517/f
+      # - name: check bench
+      #   run: |
+      #     [[ ${{ needs.bench.result }} =~ success|skipped ]]

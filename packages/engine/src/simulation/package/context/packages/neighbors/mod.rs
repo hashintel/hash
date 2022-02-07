@@ -3,6 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use parking_lot::RwLockReadGuard;
 use serde_json::Value;
+use tracing::Span;
 
 use self::map::{NeighborMap, NeighborRef};
 use crate::{
@@ -125,6 +126,11 @@ impl Package for Neighbors {
         state: Arc<State>,
         _snapshot: Arc<StateSnapshot>,
     ) -> Result<Vec<ContextColumn>> {
+        // We want to pass the span for the package to the writer, so that the write() call isn't
+        // nested under the run span
+        let pkg_span = Span::current();
+        let _run_entered = tracing::trace_span!("run").entered();
+
         let agent_pool = state.agent_pool();
         let batches = agent_pool.try_read_batches()?;
         let states = Self::neighbor_vec(&batches)?;
@@ -138,6 +144,7 @@ impl Package for Neighbors {
         Ok(vec![ContextColumn {
             field_key,
             inner: Box::new(map),
+            span: pkg_span,
         }])
     }
 
@@ -161,5 +168,9 @@ impl Package for Neighbors {
             .to_key()?;
 
         Ok(vec![(field_key, Arc::new(neighbors_builder.finish()))])
+    }
+
+    fn span(&self) -> Span {
+        tracing::debug_span!("neighbors")
     }
 }

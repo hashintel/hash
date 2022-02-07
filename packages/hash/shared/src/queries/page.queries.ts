@@ -13,6 +13,54 @@ const linkFieldsFragment = gql`
   }
 `;
 
+const blockFieldsFragment = gql`
+  fragment BlockFields on Block {
+    __typename
+    id
+    entityVersionId
+    entityId
+    accountId
+    updatedAt
+    createdAt
+    entityVersionCreatedAt
+    createdByAccountId
+    entityTypeId
+    properties {
+      __typename
+      componentId
+      entity {
+        __typename
+        id
+        entityVersionId
+        entityId
+        accountId
+        updatedAt
+        createdAt
+        entityVersionCreatedAt
+        createdByAccountId
+        entityTypeId
+        properties
+        linkGroups {
+          links {
+            ...LinkFields
+          }
+          sourceEntityId
+          sourceEntityVersionId
+          path
+        }
+        linkedEntities {
+          accountId
+          entityId
+          entityTypeId
+          properties
+        }
+      }
+    }
+  }
+
+  ${linkFieldsFragment}
+`;
+
 const pageFieldsFragment = gql`
   fragment PageFields on Page {
     __typename
@@ -30,86 +78,11 @@ const pageFieldsFragment = gql`
       summary
       title
       contents {
-        __typename
-        id
-        entityVersionId
-        entityId
-        accountId
-        updatedAt
-        createdAt
-        entityVersionCreatedAt
-        createdByAccountId
-        entityTypeId
-        properties {
-          __typename
-          componentId
-          entity {
-            __typename
-            id
-            entityVersionId
-            entityId
-            accountId
-            updatedAt
-            createdAt
-            entityVersionCreatedAt
-            createdByAccountId
-            entityTypeId
-            properties
-            linkGroups {
-              links {
-                ...LinkFields
-              }
-              sourceEntityId
-              sourceEntityVersionId
-              path
-            }
-            linkedEntities {
-              accountId
-              entityId
-              entityTypeId
-              properties
-            }
-            linkedAggregations {
-              sourceAccountId
-              sourceEntityId
-              path
-              operation {
-                entityTypeId
-                entityTypeVersionId
-                multiFilter {
-                  filters {
-                    field
-                    value
-                    operator
-                  }
-                  operator
-                }
-                multiSort {
-                  field
-                  desc
-                }
-                itemsPerPage
-                pageNumber
-                pageCount
-              }
-              results {
-                id
-                entityVersionId
-                entityId
-                accountId
-                updatedAt
-                createdAt
-                entityVersionCreatedAt
-                createdByAccountId
-                properties
-              }
-            }
-          }
-        }
+        ...BlockFields
       }
     }
   }
-  ${linkFieldsFragment}
+  ${blockFieldsFragment}
 `;
 
 export const getPageQuery = gql`
@@ -123,6 +96,16 @@ export const getPageQuery = gql`
     }
   }
   ${pageFieldsFragment}
+`;
+
+export const getBlocksQuery = gql`
+  query getBlocks($blocks: [LatestEntityRef!]!) {
+    blocks(blocks: $blocks) {
+      ...BlockFields
+    }
+  }
+
+  ${blockFieldsFragment}
 `;
 
 export const createPage = gql`

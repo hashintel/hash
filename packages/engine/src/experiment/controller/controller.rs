@@ -79,9 +79,8 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
                 changed_properties,
                 max_num_steps,
             } => {
-                let sim_span = utils::texray::examine(tracing::span!(
+                let sim_span = utils::texray::examine(tracing::info_span!(
                     parent: span_id,
-                    tracing::Level::INFO,
                     "sim",
                     id = &sim_id
                 ));

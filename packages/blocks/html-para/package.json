@@ -1,6 +1,11 @@
 {
   "name": "@hashintel/block-html-para",
   "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git",
+    "directory": "packages/blocks/html-para"
+  },
   "license": "MIT",
   "author": "HASH",
   "scripts": {

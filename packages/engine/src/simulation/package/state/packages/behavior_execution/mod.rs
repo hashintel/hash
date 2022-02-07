@@ -18,10 +18,13 @@ use crate::{
     simulation::{
         package::{
             name::PackageName,
-            state::packages::behavior_execution::{
-                config::BehaviorIds,
-                fields::{BEHAVIOR_IDS_FIELD_NAME, BEHAVIOR_INDEX_FIELD_NAME},
-                tasks::ExecuteBehaviorsTask,
+            state::{
+                packages::behavior_execution::{
+                    config::BehaviorIds,
+                    fields::{BEHAVIOR_IDS_FIELD_NAME, BEHAVIOR_INDEX_FIELD_NAME},
+                    tasks::ExecuteBehaviorsTask,
+                },
+                Package,
             },
         },
         task::{active::ActiveTask, Task},
@@ -233,5 +236,9 @@ impl Package for BehaviorExecution {
         // TODO: Get latest metaversions from message and reload state if necessary.
         tracing::trace!("BehaviorExecution task finished: {:?}", &msg);
         Ok(())
+    }
+
+    fn span(&self) -> Span {
+        tracing::debug_span!("behavior_execution")
     }
 }

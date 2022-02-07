@@ -1,0 +1,18 @@
+[
+  {
+    "experiment": "fastest_gathering",
+    "expected-outputs": [{}, {}]
+  },
+  {
+    "experiment": "number_of_ants_arange",
+    "expected-outputs": [{}, {}]
+  },
+  {
+    "experiment": "decay_rate_arange",
+    "expected-outputs": [{}, {}, {}, {}, {}, {}, {}]
+  },
+  {
+    "experiment": "diffusion_rate_arange",
+    "expected-outputs": [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}]
+  }
+]

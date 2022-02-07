@@ -5,7 +5,7 @@ use error::{Report, Result, ResultExt};
 use hash_engine::{
     nano,
     proto::{EngineMsg, ExperimentId},
-    utils::{OutputFormat, OutputLocation},
+    utils::{LogFormat, OutputLocation},
 };
 
 use crate::process;
@@ -16,6 +16,7 @@ const PROCESS_PATH_DEFAULT: &str = "./target/debug/hash_engine";
 #[cfg(not(debug_assertions))]
 const PROCESS_PATH_DEFAULT: &str = "./target/release/hash_engine";
 
+/// A local [`hash_engine`] subprocess using the [`std::process`] library.  
 pub struct LocalProcess {
     child: std::process::Child,
     client: Option<nano::Client>,
@@ -37,6 +38,12 @@ impl process::Process for LocalProcess {
         Ok(())
     }
 
+    /// Creates or reuses a [`nano::Client`] to send a message to the [`hash_engine`] subprocess.
+    ///
+    /// # Errors
+    ///
+    /// - if the [`nano::Client`] could not be created
+    /// - if the message could not be sent
     async fn send(&mut self, msg: &EngineMsg) -> Result<()> {
         // We create the client on the first call here, rather than when the LocalCommand is run,
         // because the engine process needs some time before it's ready to accept NNG connections.
@@ -52,42 +59,49 @@ impl process::Process for LocalProcess {
     }
 }
 
+/// Stores information to create a [`LocalProcess`] for creating an engine-subprocess.
 pub struct LocalCommand {
     experiment_id: ExperimentId,
     engine_url: String,
     controller_url: String,
-    max_num_workers: usize,
-    output_format: OutputFormat,
+    num_workers: usize,
+    log_format: LogFormat,
     output_location: OutputLocation,
     log_folder: PathBuf,
 }
 
 impl LocalCommand {
+    /// Creates a new [`LocalProcess`] with the provided parameters.
     pub fn new(
         experiment_id: ExperimentId,
-        max_num_workers: usize,
+        num_workers: usize,
         controller_url: &str,
-        output_format: OutputFormat,
+        log_format: LogFormat,
         output_location: OutputLocation,
         log_folder: PathBuf,
-    ) -> Result<Self> {
+    ) -> Self {
         // The NNG URL that the engine process will listen on
         let engine_url = format!("ipc://run-{experiment_id}");
 
-        Ok(LocalCommand {
+        Self {
             experiment_id,
             engine_url,
             controller_url: controller_url.to_string(),
-            max_num_workers,
-            output_format,
+            num_workers,
+            log_format,
             output_location,
             log_folder,
-        })
+        }
     }
 }
 
 #[async_trait]
 impl process::Command for LocalCommand {
+    /// Spawns an engine process and returns its handle as a [`LocalProcess`].
+    ///
+    /// # Errors
+    ///
+    /// - if the process could not be spawned
     async fn run(self: Box<Self>) -> Result<Box<dyn process::Process + Send>> {
         let engine_path = std::env::var("ENGINE_PATH");
         let process_path = engine_path
@@ -102,10 +116,10 @@ impl process::Command for LocalCommand {
             .arg(&self.controller_url)
             .arg("--listen-url")
             .arg(&self.engine_url)
-            .arg("--max-workers")
-            .arg(self.max_num_workers.to_string())
-            .arg("--emit")
-            .arg(self.output_format.to_string())
+            .arg("--num-workers")
+            .arg(self.num_workers.to_string())
+            .arg("--log-format")
+            .arg(self.log_format.to_string())
             .arg("--output")
             .arg(self.output_location.to_string())
             .arg("--log-folder")

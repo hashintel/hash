@@ -1,0 +1,17 @@
+{
+  "keys": {
+    "status": {
+      "nullable": false,
+      "type": "string"
+    },
+    "alive": {
+      "nullable": false,
+      "type": "boolean"
+    },
+    "burnTimeout": {
+      "nullable": true,
+      "type": "number"
+    }
+  },
+  "built_in_key_use": null
+}

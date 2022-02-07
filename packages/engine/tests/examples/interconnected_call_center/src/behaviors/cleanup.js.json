@@ -1,0 +1,43 @@
+{
+  "keys": {
+    "current_calls": {
+      "type": "any",
+      "nullable": false
+    },
+    "counter": {
+      "nullable": false,
+      "type": "number"
+    },
+    "answer_calls": {
+      "nullable": false,
+      "type": "boolean"
+    },
+    "utilization_stats": {
+      "nullable": false,
+      "type": "struct",
+      "fields": {
+        "avg_wait_time": {
+          "type": "number",
+          "nullable": false
+        },
+        "operators_percentage": {
+          "type": "number",
+          "nullable": false
+        },
+        "timestep": {
+          "type": "number",
+          "nullable": false
+        },
+        "total_wait_time": {
+          "type": "number",
+          "nullable": false
+        }
+      }
+    },
+    "operators": {
+      "type": "any",
+      "nullable": true
+    }
+  },
+  "built_in_key_use": null
+}

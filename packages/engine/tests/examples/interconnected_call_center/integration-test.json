@@ -1,0 +1,18 @@
+[
+  {
+    "experiment": "optimize_number_of_centers",
+    "expected-outputs": [{}]
+  },
+  {
+    "experiment": "optimize_transfer_capacity",
+    "expected-outputs": [{}]
+  },
+  {
+    "experiment": "call_time_linspace",
+    "expected-outputs": [{}, {}, {}, {}, {}, {}]
+  },
+  {
+    "experiment": "call_time_arange",
+    "expected-outputs": [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}]
+  }
+]

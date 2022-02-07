@@ -134,6 +134,18 @@ export const getPage = gql`
   ${pageFieldsFragment}
 `;
 
+export const getAccountPagesTree = gql`
+  query getAccountPagesTree($accountId: ID!) {
+    accountPages(accountId: $accountId, structure: Tree) {
+      entityId
+      properties {
+        title
+      }
+      parentPageId
+    }
+  }
+`;
+
 export const updatePageContents = gql`
   mutation updatePageContents(
     $accountId: ID!
@@ -149,4 +161,22 @@ export const updatePageContents = gql`
     }
   }
   ${pageFieldsFragment}
+`;
+
+export const setPageParent = gql`
+  mutation setParentPage($accountId: ID!, $pageId: ID!, $parentPageId: ID!) {
+    setParentPage(
+      accountId: $accountId
+      pageId: $pageId
+      parentPageId: $parentPageId
+    ) {
+      entityId
+      properties {
+        title
+        summary
+        __typename
+      }
+      __typename
+    }
+  }
 `;
