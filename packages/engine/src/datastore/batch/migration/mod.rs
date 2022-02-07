@@ -1332,15 +1332,15 @@ fn offsets_start_at_zero(
 
 #[cfg(test)]
 pub(super) mod test {
-    // use super::super::schema::{FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant};
-    // use crate::hash_types::state::AgentStateField;
     use rand::Rng;
     use serde::{Deserialize, Serialize};
+    use uuid::Uuid;
 
     use super::*;
-
-    // use crate::datastore::schema::PREVIOUS_INDEX_COLUMN_NAME;
-    // use std::sync::Arc;
+    use crate::{
+        datastore::{schema::state::MessageSchema, test_utils::gen_schema_and_test_agents},
+        simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY,
+    };
 
     lazy_static::lazy_static! {
         pub static ref JSON_KEYS: serde_json::Value = serde_json::json!({
@@ -1418,381 +1418,350 @@ pub(super) mod test {
         }
     }
 
-    #[cfg(test)]
-    pub(super) mod test {
-        use uuid::Uuid;
+    #[test]
+    fn test_migration_remove() -> Result<()> {
+        let experiment_id = Uuid::new_v4();
+        let msg_schema = Arc::new(MessageSchema::new());
+        let remove_indices = [3, 5, 7, 8, 9, 12, 45, 46, 55];
+        let num_agents = 100;
 
-        use super::*;
-        use crate::{
-            datastore::{schema::state::MessageSchema, test_utils::gen_schema_and_test_agents},
-            simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY,
+        let (agent_schema, json_agents) = gen_schema_and_test_agents(num_agents, 0)?;
+
+        let agents =
+            AgentBatch::from_agent_states(json_agents.as_slice(), &agent_schema, &experiment_id)?;
+        let agents_clone = AgentBatch::duplicate_from(&agents, &agent_schema, &experiment_id)?;
+
+        let mut pool = vec![agents];
+        let batch_index = Some(0);
+
+        let row_actions = RowActions {
+            remove: remove_indices
+                .iter()
+                .map(|i| RemoveAction { val: *i })
+                .collect(),
+            copy: vec![],
+            create: vec![],
         };
+        let now = std::time::Instant::now();
 
-        #[test]
-        #[ignore] // TODO: reenable test
-        fn test_migration_remove() -> Result<()> {
-            let experiment_id = Uuid::new_v4();
-            let msg_schema = Arc::new(MessageSchema::new());
-            let remove_indices = [3, 5, 7, 8, 9, 12, 45, 46, 55];
-            let num_agents = 100;
-
-            let (agent_schema, json_agents) = gen_schema_and_test_agents(num_agents, 0)?;
-
-            let agents = AgentBatch::from_agent_states(
-                json_agents.as_slice(),
-                &agent_schema,
-                &experiment_id,
-            )?;
-            let agents_clone = AgentBatch::duplicate_from(&agents, &agent_schema, &experiment_id)?;
-
-            let mut pool = vec![agents];
-            let batch_index = Some(0);
-
-            let row_actions = RowActions {
-                remove: remove_indices
-                    .iter()
-                    .map(|i| RemoveAction { val: *i })
-                    .collect(),
-                copy: vec![],
-                create: vec![],
-            };
-            let now = std::time::Instant::now();
-
-            // Remove indices should be less than the length
-            debug_assert!(batch_index.map_or(true, |index| {
-                row_actions
-                    .remove
-                    .iter()
-                    .all(|v| v.val < pool[index].num_agents())
-            }));
-
-            // Go through migrations
-            let buffer_actions = super::BufferActions::from(
-                &pool.iter().collect::<Vec<_>>(),
-                batch_index,
-                (&row_actions).into(),
-                &agent_schema.static_meta,
-                None,
-            )?;
-            buffer_actions.flush(&mut pool[0])?;
-            println!("Migration took: {} us", now.elapsed().as_micros());
-
-            let empty_message_batch = MessageBatch::empty_from_agent_batch(
-                &pool[0],
-                &msg_schema.arrow,
-                msg_schema.static_meta.clone(),
-                &experiment_id,
-            )?;
-
-            let new_json_agents = (&pool[0], &empty_message_batch).into_agent_states(None)?;
-
-            let new_empty_message_batch = MessageBatch::empty_from_agent_batch(
-                &agents_clone,
-                &msg_schema.arrow,
-                msg_schema.static_meta.clone(),
-                &experiment_id,
-            )?;
-            let now = std::time::Instant::now();
-            // Do on JSON
-            let mut json_agents =
-                (&agents_clone, &new_empty_message_batch).into_agent_states(None)?;
-            remove_indices.iter().rev().for_each(|i| {
-                json_agents.remove(*i);
-            });
-            let agents = AgentBatch::from_agent_states(
-                json_agents.as_slice(),
-                &agent_schema,
-                &experiment_id,
-            )?;
-            println!("Thru JSON took: {} us", now.elapsed().as_micros());
-            assert!(agents.num_agents() > 1);
-            assert_eq!(new_json_agents, json_agents);
-            Ok(())
-        }
-
-        #[test]
-        #[ignore] // TODO: reenable test
-        fn test_migration_create() -> Result<()> {
-            let experiment_id = Uuid::new_v4();
-            let msg_schema = Arc::new(MessageSchema::new());
-
-            let num_agents = 150;
-            let num_create_agents = 150;
-
-            let (schema, json_agents) = gen_schema_and_test_agents(num_agents, 0)?;
-            let (_, mut json_create_agents) =
-                gen_schema_and_test_agents(num_create_agents, num_agents as u64)?;
-
-            let agents =
-                AgentBatch::from_agent_states(json_agents.as_slice(), &schema, &experiment_id)?;
-            let agents_clone = AgentBatch::duplicate_from(&agents, &schema, &experiment_id)?;
-            let create_agents = AgentBatch::from_agent_states(
-                json_create_agents.as_slice(),
-                &schema,
-                &experiment_id,
-            )?;
-
-            let mut pool = vec![agents];
-            let batch_index = Some(0);
-
-            let row_actions = RowActions {
-                remove: vec![],
-                copy: vec![],
-                create: (0..num_create_agents)
-                    .map(|i| CreateAction { val: i })
-                    .collect(),
-            };
-            let now = std::time::Instant::now();
-            // Remove indices should be less than the length
-            debug_assert!(batch_index.map_or(true, |index| {
-                row_actions
-                    .remove
-                    .iter()
-                    .all(|v| v.val < pool[index].num_agents())
-            }));
-
-            // Go through migrations
-            let buffer_actions = super::BufferActions::from(
-                &pool.iter().collect::<Vec<_>>(),
-                batch_index,
-                (&row_actions).into(),
-                &schema.static_meta,
-                Some(&create_agents.batch),
-            )?;
-            buffer_actions.flush(&mut pool[0])?;
-            println!("Migration took: {} us", now.elapsed().as_micros());
-
-            let empty_message_batch = MessageBatch::empty_from_agent_batch(
-                &pool[0],
-                &msg_schema.arrow,
-                msg_schema.static_meta.clone(),
-                &experiment_id,
-            )?;
-
-            let mut new_json_agents = (&pool[0], &empty_message_batch).into_agent_states(None)?;
-
-            let new_empty_message_batch = MessageBatch::empty_from_agent_batch(
-                &agents_clone,
-                &msg_schema.arrow,
-                msg_schema.static_meta.clone(),
-                &experiment_id,
-            )?;
-            let now = std::time::Instant::now();
-            // Do on JSON
-            let mut json_agents =
-                (&agents_clone, &new_empty_message_batch).into_agent_states(None)?;
-            json_agents.append(&mut json_create_agents);
-            let agents =
-                AgentBatch::from_agent_states(json_agents.as_slice(), &schema, &experiment_id)?;
-            println!("Thru JSON took: {} us", now.elapsed().as_micros());
-            assert!(agents.num_agents() > 1);
-            json_agents.iter_mut().for_each(|v| {
-                v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
-            });
-            new_json_agents.iter_mut().for_each(|v| {
-                v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
-            });
-            assert_eq!(json_agents, new_json_agents);
-            Ok(())
-        }
-
-        #[test]
-        #[ignore] // TODO: reenable test
-        fn test_migration_move() -> Result<()> {
-            let experiment_id = Uuid::new_v4();
-            let msg_schema = Arc::new(MessageSchema::new());
-
-            let num_agents = 150;
-            let num_agents_2 = 150;
-            let select_indices = [0, 2, 4, 5, 6, 7, 10, 56, 57, 58, 60, 62, 64, 78, 88];
-
-            let (schema, json_agents) = gen_schema_and_test_agents(num_agents, 0)?;
-            let (_, json_agents_2) = gen_schema_and_test_agents(num_agents_2, num_agents as u64)?;
-
-            let agents =
-                AgentBatch::from_agent_states(json_agents.as_slice(), &schema, &experiment_id)?;
-            let agents_clone = AgentBatch::duplicate_from(&agents, &schema, &experiment_id)?;
-            let agents_2 =
-                AgentBatch::from_agent_states(json_agents_2.as_slice(), &schema, &experiment_id)?;
-
-            let mut pool = vec![agents, agents_2];
-            let batch_index = Some(0);
-
-            let row_actions = RowActions {
-                remove: vec![],
-                copy: vec![(
-                    1,
-                    select_indices
-                        .iter()
-                        .map(|i| CopyAction { val: *i })
-                        .collect(),
-                )],
-                create: vec![],
-            };
-            let now = std::time::Instant::now();
-            // Remove indices should be less than the length
-            debug_assert!(batch_index.map_or(true, |index| {
-                row_actions
-                    .remove
-                    .iter()
-                    .all(|v| v.val < pool[index].num_agents())
-            }));
-
-            // Go through migrations
-            let buffer_actions = super::BufferActions::from(
-                &pool.iter().collect::<Vec<_>>(),
-                batch_index,
-                (&row_actions).into(),
-                &schema.static_meta,
-                None,
-            )?;
-            buffer_actions.flush(&mut pool[0])?;
-            println!("Migration took: {} us", now.elapsed().as_micros());
-
-            let empty_message_batch = MessageBatch::empty_from_agent_batch(
-                &pool[0],
-                &msg_schema.arrow,
-                msg_schema.static_meta.clone(),
-                &experiment_id,
-            )?;
-
-            let mut new_json_agents = (&pool[0], &empty_message_batch).into_agent_states(None)?;
-
-            let new_empty_message_batch = MessageBatch::empty_from_agent_batch(
-                &agents_clone,
-                &msg_schema.arrow,
-                msg_schema.static_meta.clone(),
-                &experiment_id,
-            )?;
-            let now = std::time::Instant::now();
-            // Do on JSON
-            let mut json_agents =
-                (&agents_clone, &new_empty_message_batch).into_agent_states(None)?;
-            select_indices
+        // Remove indices should be less than the length
+        debug_assert!(batch_index.map_or(true, |index| {
+            row_actions
+                .remove
                 .iter()
-                .for_each(|i| json_agents.push(json_agents_2[*i].clone()));
-            let agents =
-                AgentBatch::from_agent_states(json_agents.as_slice(), &schema, &experiment_id)?;
-            println!("Thru JSON took: {} us", now.elapsed().as_micros());
-            assert!(agents.num_agents() > 1);
+                .all(|v| v.val < pool[index].num_agents())
+        }));
 
-            json_agents.iter_mut().for_each(|v| {
-                v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
-            });
-            new_json_agents.iter_mut().for_each(|v| {
-                v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
-            });
-            assert_eq!(json_agents, new_json_agents);
-            Ok(())
-        }
+        // Go through migrations
+        let buffer_actions = super::BufferActions::from(
+            &pool.iter().collect::<Vec<_>>(),
+            batch_index,
+            (&row_actions).into(),
+            &agent_schema.static_meta,
+            None,
+        )?;
+        buffer_actions.flush(&mut pool[0])?;
+        println!("Migration took: {} us", now.elapsed().as_micros());
 
-        #[test]
-        #[ignore] // TODO: reenable test
-        fn test_migration_all() -> Result<()> {
-            let experiment_id = Uuid::new_v4();
-            let msg_schema = Arc::new(MessageSchema::new());
+        let empty_message_batch = MessageBatch::empty_from_agent_batch(
+            &pool[0],
+            &msg_schema.arrow,
+            msg_schema.static_meta.clone(),
+            &experiment_id,
+        )?;
 
-            let num_agents = 150;
-            let num_create_agents = 150;
-            let num_agents_2 = 150;
-            let select_indices = [2, 4, 5, 6, 7, 10, 56, 57, 58, 60, 62, 64, 78, 88, 149];
-            let remove_indices = [0, 3, 5, 7, 8, 9, 12, 45, 46, 55, 148];
+        let new_json_agents = (&pool[0], &empty_message_batch).into_agent_states(None)?;
 
-            let (schema, json_agents) = gen_schema_and_test_agents(num_agents, 0)?;
-            let (_, mut json_create_agents) =
-                gen_schema_and_test_agents(num_create_agents, num_agents as u64)?;
-            let (_, json_agents_2) =
-                gen_schema_and_test_agents(num_agents_2, (num_agents + num_create_agents) as u64)?;
+        let new_empty_message_batch = MessageBatch::empty_from_agent_batch(
+            &agents_clone,
+            &msg_schema.arrow,
+            msg_schema.static_meta.clone(),
+            &experiment_id,
+        )?;
+        let now = std::time::Instant::now();
+        // Do on JSON
+        let mut json_agents = (&agents_clone, &new_empty_message_batch).into_agent_states(None)?;
+        remove_indices.iter().rev().for_each(|i| {
+            json_agents.remove(*i);
+        });
+        let agents =
+            AgentBatch::from_agent_states(json_agents.as_slice(), &agent_schema, &experiment_id)?;
+        println!("Thru JSON took: {} us", now.elapsed().as_micros());
+        assert!(agents.num_agents() > 1);
+        assert_eq!(new_json_agents, json_agents);
+        Ok(())
+    }
 
-            let agents =
-                AgentBatch::from_agent_states(json_agents.as_slice(), &schema, &experiment_id)?;
-            let agents_clone = AgentBatch::duplicate_from(&agents, &schema, &experiment_id)?;
-            let agents_2 =
-                AgentBatch::from_agent_states(json_agents_2.as_slice(), &schema, &experiment_id)?;
-            let create_agents = AgentBatch::from_agent_states(
-                json_create_agents.as_slice(),
-                &schema,
-                &experiment_id,
-            )?;
+    #[test]
+    fn test_migration_create() -> Result<()> {
+        let experiment_id = Uuid::new_v4();
+        let msg_schema = Arc::new(MessageSchema::new());
 
-            let mut pool = vec![agents, agents_2];
-            let batch_index = Some(0);
+        let num_agents = 150;
+        let num_create_agents = 150;
 
-            let row_actions = RowActions {
-                remove: remove_indices
-                    .iter()
-                    .map(|i| RemoveAction { val: *i })
-                    .collect(),
-                copy: vec![(
-                    1,
-                    select_indices
-                        .iter()
-                        .map(|i| CopyAction { val: *i })
-                        .collect(),
-                )],
-                create: (0..num_create_agents)
-                    .map(|i| CreateAction { val: i })
-                    .collect(),
-            };
-            let now = std::time::Instant::now();
-            // Remove indices should be less than the length
-            debug_assert!(batch_index.map_or(true, |index| {
-                row_actions
-                    .remove
-                    .iter()
-                    .all(|v| v.val < pool[index].num_agents())
-            }));
+        let (schema, json_agents) = gen_schema_and_test_agents(num_agents, 0)?;
+        let (_, mut json_create_agents) =
+            gen_schema_and_test_agents(num_create_agents, num_agents as u64)?;
 
-            // Go through migrations
-            let buffer_actions = super::BufferActions::from(
-                &pool.iter().collect::<Vec<_>>(),
-                batch_index,
-                (&row_actions).into(),
-                &schema.static_meta,
-                Some(&create_agents.batch),
-            )?;
-            buffer_actions.flush(&mut pool[0])?;
-            println!("Migration took: {} us", now.elapsed().as_micros());
+        let agents =
+            AgentBatch::from_agent_states(json_agents.as_slice(), &schema, &experiment_id)?;
+        let agents_clone = AgentBatch::duplicate_from(&agents, &schema, &experiment_id)?;
+        let create_agents =
+            AgentBatch::from_agent_states(json_create_agents.as_slice(), &schema, &experiment_id)?;
 
-            let empty_message_batch = MessageBatch::empty_from_agent_batch(
-                &pool[0],
-                &msg_schema.arrow,
-                msg_schema.static_meta.clone(),
-                &experiment_id,
-            )?;
+        let mut pool = vec![agents];
+        let batch_index = Some(0);
 
-            let mut new_json_agents = (&pool[0], &empty_message_batch).into_agent_states(None)?;
-
-            let new_empty_message_batch = MessageBatch::empty_from_agent_batch(
-                &agents_clone,
-                &msg_schema.arrow,
-                msg_schema.static_meta.clone(),
-                &experiment_id,
-            )?;
-            let now = std::time::Instant::now();
-            // Do on JSON
-            let mut json_agents =
-                (&agents_clone, &new_empty_message_batch).into_agent_states(None)?;
-            remove_indices.iter().rev().for_each(|i| {
-                json_agents.remove(*i);
-            });
-            select_indices
+        let row_actions = RowActions {
+            remove: vec![],
+            copy: vec![],
+            create: (0..num_create_agents)
+                .map(|i| CreateAction { val: i })
+                .collect(),
+        };
+        let now = std::time::Instant::now();
+        // Remove indices should be less than the length
+        debug_assert!(batch_index.map_or(true, |index| {
+            row_actions
+                .remove
                 .iter()
-                .for_each(|i| json_agents.push(json_agents_2[*i].clone()));
-            json_agents.append(&mut json_create_agents);
-            let agents =
-                AgentBatch::from_agent_states(json_agents.as_slice(), &schema, &experiment_id)?;
-            println!("Thru JSON took: {} us", now.elapsed().as_micros());
-            assert!(agents.num_agents() > 1);
+                .all(|v| v.val < pool[index].num_agents())
+        }));
 
-            new_json_agents.iter_mut().for_each(|v| {
-                v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
-            });
-            json_agents.iter_mut().for_each(|v| {
-                v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
-            });
-            assert_eq!(json_agents, new_json_agents);
-            Ok(())
-        }
+        // Go through migrations
+        let buffer_actions = super::BufferActions::from(
+            &pool.iter().collect::<Vec<_>>(),
+            batch_index,
+            (&row_actions).into(),
+            &schema.static_meta,
+            Some(&create_agents.batch),
+        )?;
+        buffer_actions.flush(&mut pool[0])?;
+        println!("Migration took: {} us", now.elapsed().as_micros());
+
+        let empty_message_batch = MessageBatch::empty_from_agent_batch(
+            &pool[0],
+            &msg_schema.arrow,
+            msg_schema.static_meta.clone(),
+            &experiment_id,
+        )?;
+
+        let mut new_json_agents = (&pool[0], &empty_message_batch).into_agent_states(None)?;
+
+        let new_empty_message_batch = MessageBatch::empty_from_agent_batch(
+            &agents_clone,
+            &msg_schema.arrow,
+            msg_schema.static_meta.clone(),
+            &experiment_id,
+        )?;
+        let now = std::time::Instant::now();
+        // Do on JSON
+        let mut json_agents = (&agents_clone, &new_empty_message_batch).into_agent_states(None)?;
+        json_agents.append(&mut json_create_agents);
+        let agents =
+            AgentBatch::from_agent_states(json_agents.as_slice(), &schema, &experiment_id)?;
+        println!("Thru JSON took: {} us", now.elapsed().as_micros());
+        assert!(agents.num_agents() > 1);
+        json_agents.iter_mut().for_each(|v| {
+            v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
+        });
+        new_json_agents.iter_mut().for_each(|v| {
+            v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
+        });
+        assert_eq!(json_agents, new_json_agents);
+        Ok(())
+    }
+
+    #[test]
+    fn test_migration_move() -> Result<()> {
+        let experiment_id = Uuid::new_v4();
+        let msg_schema = Arc::new(MessageSchema::new());
+
+        let num_agents = 150;
+        let num_agents_2 = 150;
+        let select_indices = [0, 2, 4, 5, 6, 7, 10, 56, 57, 58, 60, 62, 64, 78, 88];
+
+        let (schema, json_agents) = gen_schema_and_test_agents(num_agents, 0)?;
+        let (_, json_agents_2) = gen_schema_and_test_agents(num_agents_2, num_agents as u64)?;
+
+        let agents =
+            AgentBatch::from_agent_states(json_agents.as_slice(), &schema, &experiment_id)?;
+        let agents_clone = AgentBatch::duplicate_from(&agents, &schema, &experiment_id)?;
+        let agents_2 =
+            AgentBatch::from_agent_states(json_agents_2.as_slice(), &schema, &experiment_id)?;
+
+        let mut pool = vec![agents, agents_2];
+        let batch_index = Some(0);
+
+        let row_actions = RowActions {
+            remove: vec![],
+            copy: vec![(
+                1,
+                select_indices
+                    .iter()
+                    .map(|i| CopyAction { val: *i })
+                    .collect(),
+            )],
+            create: vec![],
+        };
+        let now = std::time::Instant::now();
+        // Remove indices should be less than the length
+        debug_assert!(batch_index.map_or(true, |index| {
+            row_actions
+                .remove
+                .iter()
+                .all(|v| v.val < pool[index].num_agents())
+        }));
+
+        // Go through migrations
+        let buffer_actions = super::BufferActions::from(
+            &pool.iter().collect::<Vec<_>>(),
+            batch_index,
+            (&row_actions).into(),
+            &schema.static_meta,
+            None,
+        )?;
+        buffer_actions.flush(&mut pool[0])?;
+        println!("Migration took: {} us", now.elapsed().as_micros());
+
+        let empty_message_batch = MessageBatch::empty_from_agent_batch(
+            &pool[0],
+            &msg_schema.arrow,
+            msg_schema.static_meta.clone(),
+            &experiment_id,
+        )?;
+
+        let mut new_json_agents = (&pool[0], &empty_message_batch).into_agent_states(None)?;
+
+        let new_empty_message_batch = MessageBatch::empty_from_agent_batch(
+            &agents_clone,
+            &msg_schema.arrow,
+            msg_schema.static_meta.clone(),
+            &experiment_id,
+        )?;
+        let now = std::time::Instant::now();
+        // Do on JSON
+        let mut json_agents = (&agents_clone, &new_empty_message_batch).into_agent_states(None)?;
+        select_indices
+            .iter()
+            .for_each(|i| json_agents.push(json_agents_2[*i].clone()));
+        let agents =
+            AgentBatch::from_agent_states(json_agents.as_slice(), &schema, &experiment_id)?;
+        println!("Thru JSON took: {} us", now.elapsed().as_micros());
+        assert!(agents.num_agents() > 1);
+
+        json_agents.iter_mut().for_each(|v| {
+            v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
+        });
+        new_json_agents.iter_mut().for_each(|v| {
+            v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
+        });
+        assert_eq!(json_agents, new_json_agents);
+        Ok(())
+    }
+
+    #[test]
+    fn test_migration_all() -> Result<()> {
+        let experiment_id = Uuid::new_v4();
+        let msg_schema = Arc::new(MessageSchema::new());
+
+        let num_agents = 150;
+        let num_create_agents = 150;
+        let num_agents_2 = 150;
+        let select_indices = [2, 4, 5, 6, 7, 10, 56, 57, 58, 60, 62, 64, 78, 88, 149];
+        let remove_indices = [0, 3, 5, 7, 8, 9, 12, 45, 46, 55, 148];
+
+        let (schema, json_agents) = gen_schema_and_test_agents(num_agents, 0)?;
+        let (_, mut json_create_agents) =
+            gen_schema_and_test_agents(num_create_agents, num_agents as u64)?;
+        let (_, json_agents_2) =
+            gen_schema_and_test_agents(num_agents_2, (num_agents + num_create_agents) as u64)?;
+
+        let agents =
+            AgentBatch::from_agent_states(json_agents.as_slice(), &schema, &experiment_id)?;
+        let agents_clone = AgentBatch::duplicate_from(&agents, &schema, &experiment_id)?;
+        let agents_2 =
+            AgentBatch::from_agent_states(json_agents_2.as_slice(), &schema, &experiment_id)?;
+        let create_agents =
+            AgentBatch::from_agent_states(json_create_agents.as_slice(), &schema, &experiment_id)?;
+
+        let mut pool = vec![agents, agents_2];
+        let batch_index = Some(0);
+
+        let row_actions = RowActions {
+            remove: remove_indices
+                .iter()
+                .map(|i| RemoveAction { val: *i })
+                .collect(),
+            copy: vec![(
+                1,
+                select_indices
+                    .iter()
+                    .map(|i| CopyAction { val: *i })
+                    .collect(),
+            )],
+            create: (0..num_create_agents)
+                .map(|i| CreateAction { val: i })
+                .collect(),
+        };
+        let now = std::time::Instant::now();
+        // Remove indices should be less than the length
+        debug_assert!(batch_index.map_or(true, |index| {
+            row_actions
+                .remove
+                .iter()
+                .all(|v| v.val < pool[index].num_agents())
+        }));
+
+        // Go through migrations
+        let buffer_actions = super::BufferActions::from(
+            &pool.iter().collect::<Vec<_>>(),
+            batch_index,
+            (&row_actions).into(),
+            &schema.static_meta,
+            Some(&create_agents.batch),
+        )?;
+        buffer_actions.flush(&mut pool[0])?;
+        println!("Migration took: {} us", now.elapsed().as_micros());
+
+        let empty_message_batch = MessageBatch::empty_from_agent_batch(
+            &pool[0],
+            &msg_schema.arrow,
+            msg_schema.static_meta.clone(),
+            &experiment_id,
+        )?;
+
+        let mut new_json_agents = (&pool[0], &empty_message_batch).into_agent_states(None)?;
+
+        let new_empty_message_batch = MessageBatch::empty_from_agent_batch(
+            &agents_clone,
+            &msg_schema.arrow,
+            msg_schema.static_meta.clone(),
+            &experiment_id,
+        )?;
+        let now = std::time::Instant::now();
+        // Do on JSON
+        let mut json_agents = (&agents_clone, &new_empty_message_batch).into_agent_states(None)?;
+        remove_indices.iter().rev().for_each(|i| {
+            json_agents.remove(*i);
+        });
+        select_indices
+            .iter()
+            .for_each(|i| json_agents.push(json_agents_2[*i].clone()));
+        json_agents.append(&mut json_create_agents);
+        let agents =
+            AgentBatch::from_agent_states(json_agents.as_slice(), &schema, &experiment_id)?;
+        println!("Thru JSON took: {} us", now.elapsed().as_micros());
+        assert!(agents.num_agents() > 1);
+
+        new_json_agents.iter_mut().for_each(|v| {
+            v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
+        });
+        json_agents.iter_mut().for_each(|v| {
+            v.delete_custom(PREVIOUS_INDEX_FIELD_KEY);
+        });
+        assert_eq!(json_agents, new_json_agents);
+        Ok(())
     }
 }

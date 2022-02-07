@@ -1122,8 +1122,8 @@ impl IntoAgentStates for RecordBatch {
             .unwrap_or_else(|| {
                 self.schema()
                     .metadata()
-                    .get("serialized")
-                    .expect("Should always contain `serialized` in metadata")
+                    .get("any_type_fields")
+                    .expect("Should always contain `any_type_fields` in metadata")
                     .split(',')
                     .map(|v| v.to_string())
                     .collect()
