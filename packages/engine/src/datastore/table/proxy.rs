@@ -99,8 +99,9 @@ impl<K: Batch> BatchWriteProxy<K> {
     pub fn batch(&self) -> &K {
         let ptr = self.arc.data_ptr();
         // Safety: This method uses unsafe code to get a mutable reference to the underlying data.
-        // However, since this object acts as a guarantee of no other read/write locks existing, then
-        // data races stemming from the dereferencing happening within this method cannot happen
+        // However, since this object acts as a guarantee of no other read/write locks existing,
+        // then data races stemming from the dereferencing happening within this method
+        // cannot happen
         unsafe { &*ptr }
     }
 
