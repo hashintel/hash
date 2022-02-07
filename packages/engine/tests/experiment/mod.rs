@@ -8,7 +8,7 @@ use std::{
 };
 
 use error::{bail, ensure, report, Result, ResultExt};
-use hash_engine::{
+use hash_engine_lib::{
     proto::ExperimentName,
     utils::{LogFormat, OutputLocation},
     Language,

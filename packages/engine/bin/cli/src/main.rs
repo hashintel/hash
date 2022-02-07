@@ -8,7 +8,7 @@ use std::{
 
 use clap::{AppSettings, Parser};
 use error::{Result, ResultExt};
-use hash_engine::proto::ExperimentName;
+use hash_engine_lib::proto::ExperimentName;
 use orchestrator::{Experiment, ExperimentConfig, Manifest, Server};
 
 /// Arguments passed to the CLI
@@ -80,7 +80,7 @@ async fn main() -> Result<()> {
         .unwrap()
         .as_millis();
 
-    let _guard = hash_engine::init_logger(
+    let _guard = hash_engine_lib::init_logger(
         args.experiment_config.log_format,
         &args.experiment_config.output_location,
         args.experiment_config.log_folder.clone(),
