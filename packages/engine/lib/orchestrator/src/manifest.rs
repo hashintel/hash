@@ -9,7 +9,7 @@ use std::{
 };
 
 use error::{bail, ensure, report, Result, ResultExt};
-use hash_engine::{
+use hash_engine_lib::{
     fetch::parse_raw_csv_into_json,
     proto::{
         ExperimentRun, ExperimentRunBase, InitialState, InitialStateName, ProjectBase,
@@ -39,10 +39,11 @@ pub struct Manifest {
     pub behaviors: Vec<SharedBehavior>,
     /// A list of all datasets in the project.
     pub datasets: Vec<SharedDataset>,
-    /// JSON string describing the [`Globals`](hash_engine::config::Globals) object.
+    /// JSON string describing the [`Globals`](hash_engine_lib::config::Globals) object.
     pub globals_json: Option<String>,
     /// JSON string describing the analysis that's calculated by the
-    /// [analysis output package](hash_engine::simulation::package::output::packages::analysis).
+    /// [analysis output
+    /// package](hash_engine_lib::simulation::package::output::packages::analysis).
     pub analysis_json: Option<String>,
     /// JSON string describing the structure of available experiments for this project.
     pub experiments_json: Option<String>,
@@ -123,7 +124,7 @@ impl Manifest {
     }
 
     /// Reads the content from the file at the provided `path` describing the
-    /// [`Globals`](hash_engine::config::Globals).
+    /// [`Globals`](hash_engine_lib::config::Globals).
     ///
     /// # Errors
     ///
@@ -135,7 +136,7 @@ impl Manifest {
 
     /// Reads the content from the file at the provided `path` describing the analysis of the
     /// experiment, calculated by the
-    /// [analysis output package](hash_engine::simulation::package::output::packages::analysis).
+    /// [analysis output package](hash_engine_lib::simulation::package::output::packages::analysis).
     ///
     /// # Errors
     ///

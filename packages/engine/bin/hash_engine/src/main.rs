@@ -1,5 +1,5 @@
 use error::{Result, ResultExt};
-use hash_engine::{
+use hash_engine_lib::{
     experiment::controller::run::run_experiment,
     fetch::FetchDependencies,
     proto::{ExperimentRun, ExperimentRunTrait},
@@ -7,8 +7,8 @@ use hash_engine::{
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let args = hash_engine::args();
-    let _guard = hash_engine::init_logger(
+    let args = hash_engine_lib::args();
+    let _guard = hash_engine_lib::init_logger(
         args.log_format,
         &args.output,
         &args.log_folder,
@@ -16,7 +16,7 @@ async fn main() -> Result<()> {
         &format!("experiment-{}-texray", args.experiment_id),
     );
 
-    let mut env = hash_engine::env::<ExperimentRun>(&args)
+    let mut env = hash_engine_lib::env::<ExperimentRun>(&args)
         .await
         .wrap_err("Could not create environment for experiment")?;
     // Fetch all dependencies of the experiment run such as datasets
@@ -25,7 +25,7 @@ async fn main() -> Result<()> {
         .await
         .wrap_err("Could not fetch dependencies for experiment")?;
     // Generate the configuration for packages from the environment
-    let config = hash_engine::experiment_config(&args, &env).await?;
+    let config = hash_engine_lib::experiment_config(&args, &env).await?;
 
     tracing::info!(
         "HASH Engine process started for experiment {}",

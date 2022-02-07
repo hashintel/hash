@@ -134,7 +134,7 @@ Due to ARM-Based Macs, the `macos` `target_os` has some added complications for 
 
 Due to limitations in Cargo at the moment we can't properly check if it's being built _on_ an ARM Mac (rather than _for_ an ARM Mac). Due to this it's necessary to:
 
-- _Disable_ the `hash_engine/build-nng` feature by passing `--no-default-features` to any cargo commands such as `cargo build`
+- _Disable_ the `hash_engine_lib/build-nng` feature by passing `--no-default-features` to any cargo commands such as `cargo build`
 
   At the moment the project only seems to be compiling if you use the `x86_64-apple-darwin` target. This has some added complexity, especially due to the fact that rustc fails to link 'fat-binaries' in certain scenarios.
 

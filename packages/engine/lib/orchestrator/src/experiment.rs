@@ -5,7 +5,7 @@
 use std::{collections::HashMap, path::PathBuf, time::Duration};
 
 use error::{bail, ensure, report, Result, ResultExt};
-use hash_engine::{
+use hash_engine_lib::{
     experiment::controller::config::{OutputPersistenceConfig, OUTPUT_PERSISTENCE_KEY},
     output::local::config::LocalPersistenceConfig,
     proto,
