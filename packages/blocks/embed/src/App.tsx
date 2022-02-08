@@ -73,6 +73,7 @@ const reducer = (state: AppState, action: Actions): AppState => {
     case "RESET_STATE":
       return {
         ...getInitialState(),
+        embedType: state.embedType,
         embedUrl: state.embedUrl,
       };
 
