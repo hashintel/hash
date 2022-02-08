@@ -1,7 +1,6 @@
 import { JSONObject } from "blockprotocol";
 import { ApolloError } from "apollo-server-errors";
 import { PathComponent } from "jsonpath";
-import fetch from "node-fetch";
 import { merge } from "lodash";
 import {
   Account,
@@ -538,21 +537,16 @@ class __Entity {
           const name = capitalizeComponentName(componentId);
 
           // ensure a trailing a trailing slash on componentId
-          const componentIdUrl = new URL(
-            "./block-schema.json",
-            `${componentId.replace(/\/+$/, "")}/`,
+          const schema = await EntityType.fetchComponentIdBlockSchema(
+            componentId,
           );
-
-          const blockSchema = await (await fetch(componentIdUrl.href))
-            .json()
-            .catch((_) => ({}));
 
           // Creation of an EntityType validates schema.
           entityTypeWithComponentId = await EntityType.create(client, {
             accountId: systemAccountId,
             createdByAccountId: params.user.accountId,
             name,
-            schema: { ...blockSchema, componentId },
+            schema,
           });
         }
 

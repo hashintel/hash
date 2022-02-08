@@ -1,4 +1,3 @@
-import fetch from "node-fetch";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
 import { PostgresAdapter } from "@hashintel/hash-api/src/db";
 import {
@@ -86,19 +85,6 @@ void (async () => {
     string
   > = {} as any;
 
-  const componentIdSchema = async (componentId: string) => {
-    const blockSchema = await (await fetch(`${componentId}/block-schema.json`))
-      .json()
-      .catch(() => {
-        logger.error(
-          `Could not fetch block-schema.json for componentId ${componentId}. Defaulting to empty schema.`,
-        );
-        return {};
-      });
-
-    return { componentId, ...(blockSchema as object) };
-  };
-
   await Promise.all(
     requiredBlockTypes.map(async ([name, componentId]) => {
       const entityType = await EntityType.create(db, {
@@ -106,7 +92,7 @@ void (async () => {
         createdByAccountId: systemOrg.entityId, // TODO
         name,
         schema: {
-          ...(await componentIdSchema(componentId)),
+          ...(await EntityType.fetchComponentIdBlockSchema(componentId)),
         },
       });
 
