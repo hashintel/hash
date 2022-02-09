@@ -38,11 +38,9 @@ import {
   UpdatePageContentsMutationVariables,
 } from "./graphql/apiTypes.gen";
 import {
-  ComponentNode,
   componentNodeToId,
   EntityNode,
   findComponentNode,
-  findDocComponentNodes,
   isComponentNode,
   isEntityNode,
   textBlockNodeToEntityProperties,
@@ -146,6 +144,7 @@ const moveBlocks = defineOperation(
 
 type CreatedEntities = Map<number, CreateEntityMutation["createEntity"]>;
 
+type BlockEntityNodeDescriptor = [EntityNode, number, string | null];
 /**
  * @warning this does not apply its actions to the entities it returns as it is
  *          not necessary for the pipeline of calculations. Be wary of this.
@@ -153,7 +152,7 @@ type CreatedEntities = Map<number, CreateEntityMutation["createEntity"]>;
 const insertBlocks = defineOperation(
   (
     entities: BlockEntity[],
-    blockEntityNodes: [EntityNode, number, string | null][],
+    blockEntityNodes: BlockEntityNodeDescriptor[],
     accountId: string,
     createdEntities: CreatedEntities,
   ) => {
@@ -227,7 +226,7 @@ const insertBlocks = defineOperation(
 const updateBlocks = defineOperation(
   (
     entities: BlockEntity[],
-    nodes: [ComponentNode, number][],
+    nodes: BlockEntityNodeDescriptor[],
     entityStore: EntityStore,
   ) => {
     const exists = blockEntityIdExists(entities);
@@ -249,10 +248,15 @@ const updateBlocks = defineOperation(
          * create a list of entities that we need to post updates to via
          * GraphQL
          */
-        .flatMap(([node]) => {
-          const { blockEntityId } = node.attrs;
+        .flatMap(([blockNode, blockNodePos, blockEntityId]) => {
           if (!exists(blockEntityId)) {
             return [];
+          }
+
+          const node = findComponentNode(blockNode, blockNodePos)?.[0];
+
+          if (!node) {
+            throw new Error("Unexpected prosemirror structure");
           }
 
           const savedEntity = entityStore.saved[blockEntityId];
@@ -345,11 +349,10 @@ const calculateSaveActions = (
   entityStore: EntityStore,
   createdEntities: CreatedEntities,
 ) => {
-  const componentNodes = findDocComponentNodes(doc);
   let actions: UpdatePageAction[] = [];
 
   const draftBlockEntityIds: DraftEntity["entityId"][] = [];
-  const draftBlockEntityNodes: [EntityNode, number, string | null][] = [];
+  const draftBlockEntityNodes: BlockEntityNodeDescriptor[] = [];
 
   doc.descendants((node, pos) => {
     if (isEntityNode(node)) {
@@ -382,7 +385,7 @@ const calculateSaveActions = (
     accountId,
     createdEntities,
   );
-  [actions] = updateBlocks(actions, blocks, componentNodes, entityStore);
+  [actions] = updateBlocks(actions, blocks, draftBlockEntityNodes, entityStore);
   return actions;
 };
 

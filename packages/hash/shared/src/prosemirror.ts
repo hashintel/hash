@@ -147,25 +147,6 @@ export const findComponentNode = (
   return result;
 };
 
-/**
- * @deprecated
- * @todo remove this
- * @warning this can only be used on a doc
- */
-export const findDocComponentNodes = (doc: ProsemirrorNode<Schema>) => {
-  const componentNodes: [ComponentNode, number][] = [];
-
-  doc.descendants((node, pos) => {
-    if (isComponentNode(node)) {
-      componentNodes.push([node, pos]);
-    }
-
-    return true;
-  });
-
-  return componentNodes;
-};
-
 export const getComponentNodeAttrs = (
   entity?: { entityId?: string | null } | null,
 ): ComponentNodeAttrs => ({
