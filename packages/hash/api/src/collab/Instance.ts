@@ -15,17 +15,13 @@ import {
   entityStorePluginState,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import {
-  LatestEntityRef,
   GetBlocksQuery,
   GetBlocksQueryVariables,
   GetPageQuery,
   GetPageQueryVariables,
+  LatestEntityRef,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
-import {
-  getComponentNodeAttrs,
-  isComponentNode,
-  isEntityNode,
-} from "@hashintel/hash-shared/prosemirror";
+import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import {
   getBlocksQuery,
@@ -429,12 +425,6 @@ export class Instance {
                     entityId: targetEntityId,
                   },
                 });
-              }
-            } else if (isComponentNode(node)) {
-              const nodeAttrs = getComponentNodeAttrs(blockEntity);
-
-              if (!isEqual(node.attrs, nodeAttrs)) {
-                transform.setNodeMarkup(mapping.map(pos), undefined, nodeAttrs);
               }
             }
           });

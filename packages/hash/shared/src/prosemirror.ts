@@ -1,4 +1,4 @@
-import { ProsemirrorNode, Schema } from "prosemirror-model";
+import { NodeType, ProsemirrorNode, Schema } from "prosemirror-model";
 import { Text } from "./graphql/apiTypes.gen";
 import { TextToken } from "./graphql/types";
 
@@ -91,9 +91,7 @@ type NodeWithAttrs<Attrs extends {}> = Omit<
   "attrs"
 > & { attrs: Attrs };
 
-type ComponentNodeAttrs = {
-  blockEntityId: string | null;
-};
+type ComponentNodeAttrs = {};
 export type ComponentNode = NodeWithAttrs<ComponentNodeAttrs>;
 
 export type EntityNode = NodeWithAttrs<{
@@ -104,13 +102,14 @@ export const isEntityNode = (
   node: ProsemirrorNode<Schema> | null,
 ): node is EntityNode => !!node && node.type === node.type.schema.nodes.entity;
 
-/**
- * @todo use group name for this
- */
+export const componentNodeGroupName = "componentNode";
+
+export const isComponentNodeType = (nodeType: NodeType<Schema>) =>
+  nodeType.groups?.includes(componentNodeGroupName) ?? false;
+
 export const isComponentNode = (
   node: ProsemirrorNode<Schema>,
-): node is ComponentNode =>
-  !!node.type.spec.attrs && "blockEntityId" in node.type.spec.attrs;
+): node is ComponentNode => isComponentNodeType(node.type);
 
 export const findComponentNodes = (
   containingNode: ProsemirrorNode<Schema>,
@@ -146,11 +145,5 @@ export const findComponentNode = (
 
   return result;
 };
-
-export const getComponentNodeAttrs = (
-  entity?: { entityId?: string | null } | null,
-): ComponentNodeAttrs => ({
-  blockEntityId: entity?.entityId ?? "",
-});
 
 export const componentNodeToId = (node: ComponentNode) => node.type.name;

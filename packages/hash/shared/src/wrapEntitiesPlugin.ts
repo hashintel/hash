@@ -60,16 +60,6 @@ const ensureEntitiesAreWrapped = (
       }
 
       /**
-       * @todo we won't need this once we remove blockEntityId from the
-       *       component node
-       */
-      if (wrappers && !wrapperNodes) {
-        tr.setNodeMarkup(tr.mapping.map(position), undefined, {
-          blockEntityId: null,
-        });
-      }
-
-      /**
        * In the event that a block is not fully wrapped (i.e. is _not_ a block node), we provide a fallback
        *    in case wrapperNodes were not provided.
        * We need to ensure that the layers match those provided in ProsemirrorSchemaManager
