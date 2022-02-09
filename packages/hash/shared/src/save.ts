@@ -66,10 +66,29 @@ const defineOperation =
   };
 
 const removeBlocks = defineOperation(
-  (entities: BlockEntity[], nodes: [ComponentNode, number][]) => {
-    const draftBlockEntityIds = new Set(
-      nodes.map(([node]) => node.attrs.blockEntityId),
-    );
+  (
+    entities: BlockEntity[],
+    doc: ProsemirrorNode<Schema>,
+    entityStore: EntityStore,
+  ) => {
+    const draftBlockEntityIds = new Set<string | null>();
+
+    doc.descendants((node) => {
+      if (isEntityNode(node)) {
+        if (node.attrs.draftId) {
+          const draftEntity = entityStore.draft[node.attrs.draftId];
+
+          if (!draftEntity || !isDraftBlockEntity(draftEntity)) {
+            throw new Error("Unexpected prosemirror structure");
+          }
+
+          // @todo handle entityId not being set
+          draftBlockEntityIds.add(draftEntity.entityId);
+        }
+
+        return false;
+      }
+    });
 
     const removedBlockEntities = entities
       .map((block, position) => [block, position] as const)
@@ -330,7 +349,7 @@ const calculateSaveActions = (
   let actions: UpdatePageAction[] = [];
 
   blocks = [...blocks];
-  [actions, blocks] = removeBlocks(actions, blocks, componentNodes);
+  [actions, blocks] = removeBlocks(actions, blocks, doc, entityStore);
   [actions, blocks] = moveBlocks(actions, blocks, componentNodes);
   [actions, blocks] = insertBlocks(
     actions,
