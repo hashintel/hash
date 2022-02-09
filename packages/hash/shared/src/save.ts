@@ -19,7 +19,12 @@ import {
   getTextEntityFromSavedBlock,
   isDraftTextContainingEntityProperties,
 } from "./entity";
-import { EntityStore, isBlockEntity, isDraftBlockEntity } from "./entityStore";
+import {
+  DraftEntity,
+  EntityStore,
+  isBlockEntity,
+  isDraftBlockEntity,
+} from "./entityStore";
 import {
   CreateEntityMutation,
   CreateEntityMutationVariables,
@@ -66,33 +71,12 @@ const defineOperation =
   };
 
 const removeBlocks = defineOperation(
-  (
-    entities: BlockEntity[],
-    doc: ProsemirrorNode<Schema>,
-    entityStore: EntityStore,
-  ) => {
-    const draftBlockEntityIds = new Set<string | null>();
-
-    doc.descendants((node) => {
-      if (isEntityNode(node)) {
-        if (node.attrs.draftId) {
-          const draftEntity = entityStore.draft[node.attrs.draftId];
-
-          if (!draftEntity || !isDraftBlockEntity(draftEntity)) {
-            throw new Error("Unexpected prosemirror structure");
-          }
-
-          // @todo handle entityId not being set
-          draftBlockEntityIds.add(draftEntity.entityId);
-        }
-
-        return false;
-      }
-    });
+  (entities: BlockEntity[], draftBlockEntityIds: DraftEntity["entityId"][]) => {
+    const draftBlockEntityIdsSet = new Set(draftBlockEntityIds);
 
     const removedBlockEntities = entities
       .map((block, position) => [block, position] as const)
-      .filter(([block]) => !draftBlockEntityIds.has(block.entityId));
+      .filter(([block]) => !draftBlockEntityIdsSet.has(block.entityId));
 
     const updatedEntities = entities.filter(
       (_, position) =>
@@ -117,9 +101,9 @@ const removeBlocks = defineOperation(
 );
 
 const moveBlocks = defineOperation(
-  (entities: BlockEntity[], nodes: [ComponentNode, number][]) => {
-    const entitiesWithoutNewBlocks = nodes.filter(
-      ([node]) => !!node.attrs.blockEntityId,
+  (entities: BlockEntity[], draftBlockEntityIds: DraftEntity["entityId"][]) => {
+    const otherExistingBlockEntityIds = draftBlockEntityIds.filter(
+      (blockEntityId) => !!blockEntityId,
     );
 
     const actions: UpdatePageAction[] = [];
@@ -127,8 +111,8 @@ const moveBlocks = defineOperation(
 
     for (let position = 0; position < entities.length; position++) {
       const block = entities[position];
-      const positionInDoc = entitiesWithoutNewBlocks.findIndex(
-        ([node]) => node.attrs.blockEntityId === block.entityId,
+      const positionInDoc = otherExistingBlockEntityIds.findIndex(
+        (blockEntityId) => blockEntityId === block.entityId,
       );
 
       if (positionInDoc < 0) {
@@ -348,9 +332,28 @@ const calculateSaveActions = (
   const componentNodes = findComponentNodes(doc);
   let actions: UpdatePageAction[] = [];
 
+  const draftBlockEntityIds: DraftEntity["entityId"][] = [];
+
+  doc.descendants((node) => {
+    if (isEntityNode(node)) {
+      if (node.attrs.draftId) {
+        const draftEntity = entityStore.draft[node.attrs.draftId];
+
+        if (!draftEntity || !isDraftBlockEntity(draftEntity)) {
+          throw new Error("Unexpected prosemirror structure");
+        }
+
+        // @todo handle entityId not being set
+        draftBlockEntityIds.push(draftEntity.entityId);
+      }
+
+      return false;
+    }
+  });
+
   blocks = [...blocks];
-  [actions, blocks] = removeBlocks(actions, blocks, doc, entityStore);
-  [actions, blocks] = moveBlocks(actions, blocks, componentNodes);
+  [actions, blocks] = removeBlocks(actions, blocks, draftBlockEntityIds);
+  [actions, blocks] = moveBlocks(actions, blocks, draftBlockEntityIds);
   [actions, blocks] = insertBlocks(
     actions,
     blocks,
