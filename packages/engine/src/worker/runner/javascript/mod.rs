@@ -1054,9 +1054,6 @@ impl<'m> RunnerImpl<'m> {
         // Sync JS.
         let agent_pool = msg.state.agent_pool.batches_iter();
         let msg_pool = msg.state.message_pool.batches_iter();
-
-        // Pass proxies by reference, because they shouldn't be
-        // dropped until entire sync is complete.
         let (agent_pool, msg_pool) = state_to_js(mv8, agent_pool, msg_pool)?;
         let args = mv8::Values::from_vec(vec![sim_id_to_js(mv8, sim_run_id), agent_pool, msg_pool]);
         let _: mv8::Value<'_> = self
