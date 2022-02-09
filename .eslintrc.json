@@ -86,11 +86,14 @@
       }
     ],
     "camelcase": "off",
+    "default-param-last": "off", // using @typescript-eslint/default-param-last instead
+    "@typescript-eslint/default-param-last": "error",
     "import/no-cycle": "error",
     "import/prefer-default-export": "off",
     "no-await-in-loop": "off",
     "no-console": "error",
     "no-dupe-class-members": "off",
+    "no-promise-executor-return": "off",
     "import/no-unresolved": [
       2,
       {
@@ -143,6 +146,7 @@
         "additionalHooks": "^(useModal|useUserGatedEffect)$"
       }
     ],
+    "react/function-component-definition": "off",
     "react/jsx-key": "error",
     "react/jsx-no-useless-fragment": "error",
     "react/self-closing-comp": "error",
