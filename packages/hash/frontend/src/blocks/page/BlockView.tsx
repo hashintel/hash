@@ -1,25 +1,25 @@
-import { BlockVariant } from "blockprotocol";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { EntityStore } from "@hashintel/hash-shared/entityStore";
+import {
+  entityStorePluginState,
+  subscribeToEntityStore,
+} from "@hashintel/hash-shared/entityStorePlugin";
+import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
-import { findComponentNodes } from "@hashintel/hash-shared/prosemirror";
+import { BlockVariant } from "blockprotocol";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
 import { createRef, forwardRef, RefObject, useMemo, useState } from "react";
 import { useOutsideClick } from "rooks";
 import { tw } from "twind";
-import { EntityStore } from "@hashintel/hash-shared/entityStore";
-import {
-  entityStorePluginState,
-  subscribeToEntityStore,
-} from "@hashintel/hash-shared/entityStorePlugin";
 import { BlockContextMenu } from "../../components/BlockContextMenu/BlockContextMenu";
-import { BlockSuggesterProps } from "./createSuggester/BlockSuggester";
 import { DragVerticalIcon } from "../../components/icons";
+import { BlockViewContext } from "./BlockViewContext";
+import { CollabPositionIndicators } from "./CollabPositionIndicators";
+import { BlockSuggesterProps } from "./createSuggester/BlockSuggester";
 import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
-import { CollabPositionIndicators } from "./CollabPositionIndicators";
-import { BlockViewContext } from "./BlockViewContext";
 
 type BlockHandleProps = {
   entityId: string | null;
@@ -85,14 +85,19 @@ export class BlockView implements NodeView<Schema> {
   private unsubscribe: Function;
 
   getBlockEntityIdFromNode = (node: ProsemirrorNode<Schema>) => {
-    const componentNodes = findComponentNodes(node);
-    if (componentNodes.length !== 1) {
+    const blockEntityNode = node.firstChild;
+
+    if (!blockEntityNode || !isEntityNode(blockEntityNode)) {
+      throw new Error("Unexpected prosemirror structure");
+    }
+
+    if (!blockEntityNode.attrs.draftId) {
       return null;
     }
-    const { blockEntityId } = componentNodes[0][0].attrs;
 
-    // The current default for this is an empty string, not null.
-    return blockEntityId === "" ? null : blockEntityId;
+    const draftEntity = this.store.draft[blockEntityNode.attrs.draftId];
+
+    return draftEntity?.entityId ?? null;
   };
 
   constructor(
