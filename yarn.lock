@@ -6942,7 +6942,7 @@ chardet@^0.7.0:
   resolved "https://registry.yarnpkg.com/chardet/-/chardet-0.7.0.tgz#90094849f0937f2eedc2425d0d28a9e5f0cbad9e"
   integrity sha512-mT8iDcrh03qDGRRmoA2hmBJnxpllMR+0/0qlzjqZES6NdiWDcZkCNAk4rPFZ9Q85r27unkiNNg8ZOiwZXBHwcA==
 
-check-dependency-version-consistency@^1.6.0:
+check-dependency-version-consistency@1.6.0:
   version "1.6.0"
   resolved "https://registry.yarnpkg.com/check-dependency-version-consistency/-/check-dependency-version-consistency-1.6.0.tgz#213a3c53d5976c46b63383c725b1fa0cb0b471fc"
   integrity sha512-7SlDVyoSnIf5BnPzIYxxLLTqK3nfXETBdXSHu72RK3utxYvFanKGa3YRmiHeh9h3l32JrYrzpcLcLHs7WJ29hA==
@@ -7604,7 +7604,7 @@ cron@1.8.2:
   dependencies:
     moment-timezone "^0.5.x"
 
-cross-env@^7.0.3:
+cross-env@7.0.3:
   version "7.0.3"
   resolved "https://registry.yarnpkg.com/cross-env/-/cross-env-7.0.3.tgz#865264b29677dc015ba8418918965dd232fc54cf"
   integrity sha512-+/HKd6EgcQCJGh2PSjZuUitQBQynKor4wrFbRg4DtAgS1aWO+gU52xpH7M9ScGgXSYmAVS9bIJ8EzuaGw0oNAw==

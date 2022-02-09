@@ -56,9 +56,9 @@
     "node-fetch": "^2.6.7"
   },
   "devDependencies": {
-    "check-dependency-version-consistency": "^1.6.0",
+    "check-dependency-version-consistency": "1.6.0",
     "concurrently": "7.0.0",
-    "cross-env": "^7.0.3",
+    "cross-env": "7.0.3",
     "husky": "7.0.4",
     "lint-staged": "12.3.3",
     "markdownlint-cli": "0.31.1",
