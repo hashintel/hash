@@ -47,7 +47,7 @@ async function getEmbedBlock(
     }));
 }
 
-function AppComponent() {
+const AppComponent: React.VoidFunctionComponent = () => {
   const [state, setState] = useState<EmbedDataType>(initialEmbedData);
 
   const updateState = (newState: Partial<EmbedDataType>) => {
@@ -80,7 +80,7 @@ function AppComponent() {
       />
     </div>
   );
-}
+};
 
 const App = () => {
   return <AppComponent />;

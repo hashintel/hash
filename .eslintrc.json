@@ -145,7 +145,13 @@
         "additionalHooks": "^(useModal|useUserGatedEffect)$"
       }
     ],
-    "react/function-component-definition": "off",
+    "react/function-component-definition": [
+      "error",
+      {
+        "namedComponents": "arrow-function",
+        "unnamedComponents": "arrow-function"
+      }
+    ],
     "react/jsx-key": "error",
     "react/jsx-no-useless-fragment": "error",
     "react/self-closing-comp": "error",
