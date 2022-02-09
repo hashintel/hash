@@ -93,7 +93,6 @@
     "no-await-in-loop": "off",
     "no-console": "error",
     "no-dupe-class-members": "off",
-    "no-promise-executor-return": "off",
     "import/no-unresolved": [
       2,
       {
