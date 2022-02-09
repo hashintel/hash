@@ -87,7 +87,6 @@
     ],
     "camelcase": "off",
     "default-param-last": "off", // using @typescript-eslint/default-param-last instead
-    "@typescript-eslint/default-param-last": "error",
     "import/no-cycle": "error",
     "import/prefer-default-export": "off",
     "no-await-in-loop": "off",
@@ -174,6 +173,7 @@
     ],
     "react/require-default-props": "off",
     "no-shadow": "off",
+    "@typescript-eslint/default-param-last": "error",
     // see https://github.com/typescript-eslint/typescript-eslint/issues/2483
     "@typescript-eslint/no-shadow": "error",
     "@typescript-eslint/no-meaningless-void-operator": "error",
