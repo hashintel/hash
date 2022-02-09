@@ -1,10 +1,17 @@
 use std::sync::Arc;
 
-use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use parking_lot::RwLock;
 
 use super::BatchPool;
 use crate::{
-    datastore::{batch::DynamicBatch, prelude::*},
+    datastore::{
+        batch::DynamicBatch,
+        prelude::*,
+        table::{
+            pool::proxy::{PoolReadProxy, PoolWriteProxy},
+            proxy::{BatchReadProxy, BatchWriteProxy},
+        },
+    },
     simulation::package::state::StateColumn,
 };
 
@@ -23,59 +30,66 @@ impl AgentPool {
         AgentPool { batches }
     }
 
-    // TODO, why do we have these methods, when we have proxies. Clearly they're needed because
-    //  we're actually seeing the errors, but this should be fixed
-    /// Attempts to acquire read-locks on all batches within the pool.
-    pub fn try_read_batches(&self) -> Result<Vec<RwLockReadGuard<'_, AgentBatch>>> {
-        self.batches()
-            .iter()
-            .map(|a| {
-                a.try_read()
-                    .ok_or_else(|| Error::from("failed to acquire read locks on batches in pool"))
-            })
-            .collect::<Result<_>>()
-    }
-
-    /// Attempts to acquire write-locks on all batches within the pool.
-    pub fn try_write_batches(&mut self) -> Result<Vec<RwLockWriteGuard<'_, AgentBatch>>> {
-        self.batches()
-            .iter()
-            .map(|a| {
-                a.try_write()
-                    .ok_or_else(|| Error::from("failed to acquire write locks on batches in pool"))
-            })
-            .collect::<Result<_>>()
-    }
-
     pub fn len(&self) -> usize {
-        self.batches().len()
+        self.batches.len()
     }
 
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
-    pub fn get_batch_at_index(
-        &self,
-        index: usize,
-    ) -> Result<Option<RwLockReadGuard<'_, AgentBatch>>> {
-        let batch = match self.batches.get(index) {
-            Some(batch) => batch,
-            None => return Ok(None),
-        };
-
-        let batch = batch.try_read().ok_or_else(|| {
-            Error::from(format!(
-                "Failed to get read lock for agent batch at index {index}"
-            ))
-        })?;
-        Ok(Some(batch))
+    pub fn push(&mut self, batch: AgentBatch) {
+        self.batches.push(Arc::new(RwLock::new(batch)))
     }
 
+    pub fn remove(&mut self, index: usize) -> Result<BatchReadProxy<AgentBatch>> {
+        BatchReadProxy::new(&self.batches.remove(index))
+    }
+
+    pub fn swap_remove(&mut self, index: usize) -> Result<BatchReadProxy<AgentBatch>> {
+        BatchReadProxy::new(&self.batches.swap_remove(index))
+    }
+}
+
+impl Extend<AgentBatch> for AgentPool {
+    fn extend<T: IntoIterator<Item = AgentBatch>>(&mut self, iter: T) {
+        self.batches
+            .extend(iter.into_iter().map(|batch| Arc::new(RwLock::new(batch))))
+    }
+}
+
+impl BatchPool<AgentBatch> for AgentPool {
+    fn read_proxy(&self) -> Result<PoolReadProxy<AgentBatch>> {
+        self.batches.iter().map(BatchReadProxy::new).collect()
+    }
+
+    fn partial_read_proxy(&self, indices: &[usize]) -> Result<PoolReadProxy<AgentBatch>> {
+        self.batches
+            .iter()
+            .enumerate()
+            .filter(|(index, _)| indices.contains(index))
+            .map(|(_, b)| BatchReadProxy::new(b))
+            .collect()
+    }
+
+    fn write_proxy(&mut self) -> Result<PoolWriteProxy<AgentBatch>> {
+        self.batches.iter().map(BatchWriteProxy::new).collect()
+    }
+
+    fn partial_write_proxy(&self, indices: &[usize]) -> Result<PoolWriteProxy<AgentBatch>> {
+        self.batches
+            .iter()
+            .enumerate()
+            .filter(|(index, _)| indices.contains(index))
+            .map(|(_, b)| BatchWriteProxy::new(b))
+            .collect()
+    }
+}
+
+impl PoolWriteProxy<AgentBatch> {
     pub fn set_pending_column(&mut self, column: StateColumn) -> Result<()> {
-        let write = self.try_write_batches()?;
         let mut index = 0;
-        for mut batch in write {
+        for batch in self.batches_iter_mut() {
             let num_agents = batch.num_agents();
             let next_index = index + num_agents;
             let change = column.get_arrow_change(index..next_index)?;
@@ -86,20 +100,9 @@ impl AgentPool {
     }
 
     pub fn flush_pending_columns(&mut self) -> Result<()> {
-        let write = self.try_write_batches()?;
-        for mut batch in write {
+        for batch in self.batches_iter_mut() {
             batch.flush_changes()?;
         }
         Ok(())
-    }
-}
-
-impl BatchPool<AgentBatch> for AgentPool {
-    fn batches(&self) -> &[Arc<RwLock<AgentBatch>>] {
-        &self.batches
-    }
-
-    fn mut_batches(&mut self) -> &mut Vec<Arc<RwLock<AgentBatch>>> {
-        &mut self.batches
     }
 }

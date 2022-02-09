@@ -38,7 +38,7 @@ pub use super::{Error, Result};
 use crate::{
     datastore::table::{
         context::Context,
-        state::{view::StateSnapshot, State},
+        proxy::StateReadProxy,
         sync::{ContextBatchSync, StateSync, SyncPayload, WaitableStateSync},
         task_shared_store::TaskSharedStore,
     },
@@ -102,14 +102,13 @@ impl Comms {
     ///
     /// Errors: tokio failed to send the message to the worker pool for some reason;
     ///         e.g. the worker pool already stopped due to some other error.
-    pub async fn state_sync(&self, state: &State) -> Result<SyncCompletionReceiver> {
+    pub async fn state_sync(&self, state: StateReadProxy) -> Result<SyncCompletionReceiver> {
         tracing::trace!("Synchronizing state");
         let (completion_sender, completion_receiver) = tokio::sync::oneshot::channel();
 
         // Synchronize the state batches
-        let agents = state.agent_pool().clone();
-        let agent_messages = state.message_pool().clone();
-        let sync_msg = WaitableStateSync::new(completion_sender, agents, agent_messages);
+        let sync_msg =
+            WaitableStateSync::new(completion_sender, state.agent_pool, state.message_pool);
         self.worker_pool_sender
             .send(EngineToWorkerPoolMsg::sync(
                 self.sim_id,
@@ -120,14 +119,13 @@ impl Comms {
     }
 
     /// TODO: DOC
-    pub async fn state_snapshot_sync(&self, snapshot: &StateSnapshot) -> Result<()> {
+    pub async fn state_snapshot_sync(&self, state: StateReadProxy) -> Result<()> {
         tracing::trace!("Synchronizing state snapshot");
         // Synchronize the state snapshot batches
-        let sync_msg = StateSync::new(snapshot.state.clone());
         self.worker_pool_sender
             .send(EngineToWorkerPoolMsg::sync(
                 self.sim_id,
-                SyncPayload::StateSnapshot(sync_msg),
+                SyncPayload::StateSnapshot(StateSync { state }),
             ))
             .map_err(|e| Error::from(format!("Worker pool error: {:?}", e)))?;
         Ok(())

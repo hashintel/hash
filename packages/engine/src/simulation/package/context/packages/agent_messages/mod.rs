@@ -80,7 +80,7 @@ impl GetWorkerSimStartMsg for AgentMessages {
 impl Package for AgentMessages {
     async fn run<'s>(
         &mut self,
-        state: Arc<State>,
+        state: StateReadProxy,
         snapshot: Arc<StateSnapshot>,
     ) -> Result<Vec<ContextColumn>> {
         // We want to pass the span for the package to the writer, so that the write() call isn't
@@ -88,7 +88,7 @@ impl Package for AgentMessages {
         let pkg_span = Span::current();
         let _run_entered = tracing::trace_span!("run").entered();
         let agent_pool = state.agent_pool();
-        let batches = agent_pool.try_read_batches()?;
+        let batches = agent_pool.batches();
         let id_name_iter = iterators::agent::agent_id_iter(&batches)?
             .zip(iterators::agent::agent_name_iter(&batches)?);
 

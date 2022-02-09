@@ -1,13 +1,22 @@
-use std::{ops::Deref, sync::Arc};
+use std::sync::Arc;
 
 use parking_lot::{RwLock, RwLockReadGuard};
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
 };
 
-use super::{agent::AgentPool, BatchPool};
+use super::BatchPool;
 use crate::{
-    datastore::{batch, prelude::*, table::references::AgentMessageReference, UUID_V4_LEN},
+    datastore::{
+        batch,
+        prelude::*,
+        table::{
+            pool::proxy::{PoolReadProxy, PoolWriteProxy},
+            proxy::{BatchReadProxy, BatchWriteProxy},
+            references::AgentMessageReference,
+        },
+        UUID_V4_LEN,
+    },
     proto::ExperimentRunTrait,
     SimRunConfig,
 };
@@ -26,20 +35,6 @@ impl MessagePool {
     // TODO use the BatchPool trait properly and get rid of duplication
     fn batches(&self) -> &Vec<Arc<RwLock<MessageBatch>>> {
         &self.batches
-    }
-
-    fn batches_mut(&mut self) -> &mut Vec<Arc<RwLock<MessageBatch>>> {
-        &mut self.batches
-    }
-
-    pub fn read_batches(&self) -> Result<Vec<RwLockReadGuard<'_, MessageBatch>>> {
-        self.batches()
-            .iter()
-            .map(|a| {
-                a.try_read()
-                    .ok_or_else(|| Error::from("failed to read batches"))
-            })
-            .collect::<Result<_>>()
     }
 
     pub fn read(&self) -> Result<MessagePoolRead<'_>> {
@@ -71,50 +66,12 @@ impl MessagePool {
         self.len() == 0
     }
 
-    /// Clears all message columns in the pool and resizes them as necessary to accommodate new
-    /// messages according to the provided [`agent_pool`].
-    ///
-    /// This can result in the number of batches being changed if more/less are now needed.
-    pub fn reset(&mut self, agent_pool: &AgentPool, sim_config: &SimRunConfig) -> Result<()> {
-        let message_schema = &sim_config.sim.store.message_schema;
-        let experiment_id = &sim_config.exp.run.base().id;
-        let mut removed = vec![];
-        (0..self.batches.len())
-            // TODO: remove or document reasoning (possibly faster due to batch resizing causing shifting)
-            .rev()
-            .try_for_each::<_, Result<()>>(|batch_index| {
-                if let Some(dynamic_batch) = agent_pool.get_batch_at_index(batch_index)? {
-                    let inbox_batch = &mut self.batches[batch_index]
-                        .try_write()
-                        .ok_or_else(|| Error::from("Failed to acquire write lock"))?;
-                    inbox_batch.reset(&dynamic_batch)?
-                } else {
-                    let batch_arc = self.batches.remove(batch_index);
-                    let batch = batch_arc
-                        .try_read()
-                        .ok_or_else(|| Error::from("Failed to acquire read lock"))?;
-                    removed.push(batch.get_batch_id().to_string());
-                }
-                Ok(())
-            })?;
-        if agent_pool.len() > self.len() {
-            agent_pool.batches()[self.len()..]
-                .iter()
-                .try_for_each::<_, Result<()>>(|batch| {
-                    let inbox = MessageBatch::empty_from_agent_batch(
-                        batch
-                            .try_read()
-                            .ok_or_else(|| Error::from("Failed to acquire read lock"))?
-                            .deref(),
-                        &message_schema.arrow,
-                        message_schema.static_meta.clone(),
-                        experiment_id,
-                    )?;
-                    self.batches_mut().push(Arc::new(RwLock::new(inbox)));
-                    Ok(())
-                })?;
-        }
-        Ok(())
+    pub fn push(&mut self, batch: MessageBatch) {
+        self.batches.push(Arc::new(RwLock::new(batch)))
+    }
+
+    pub fn remove(&mut self, index: usize) -> Result<BatchReadProxy<MessageBatch>> {
+        BatchReadProxy::new(&self.batches.remove(index))
     }
 }
 
@@ -202,12 +159,68 @@ impl MessageReader<'_> {
     }
 }
 
+impl PoolWriteProxy<MessageBatch> {
+    /// Clears all message columns in the pool and resizes them as necessary to accommodate new
+    /// messages according to the provided [`agent_pool`].
+    ///
+    /// This can result in the number of batches being changed if more/less are now needed.
+    pub fn reset(
+        &mut self,
+        message_pool: &mut MessagePool,
+        agent_pool: &PoolReadProxy<AgentBatch>,
+        sim_config: &SimRunConfig,
+    ) -> Result<()> {
+        let message_schema = &sim_config.sim.store.message_schema;
+        let experiment_id = &sim_config.exp.run.base().id;
+        let mut removed = vec![];
+        // Reversing sequence to remove from the back
+        for batch_index in (0..self.len()).rev() {
+            if let Some(dynamic_batch) = agent_pool.batch(batch_index) {
+                self[batch_index].reset(&dynamic_batch)?;
+            } else {
+                let batch = message_pool.remove(batch_index)?;
+                removed.push(batch.get_batch_id().to_string());
+            }
+        }
+        if agent_pool.len() > self.len() {
+            for batch in &agent_pool[self.len()..] {
+                let inbox = MessageBatch::empty_from_agent_batch(
+                    batch,
+                    &message_schema.arrow,
+                    message_schema.static_meta.clone(),
+                    experiment_id,
+                )?;
+                message_pool.push(inbox);
+            }
+        }
+        Ok(())
+    }
+}
+
 impl BatchPool<MessageBatch> for MessagePool {
-    fn batches(&self) -> &[Arc<RwLock<MessageBatch>>] {
-        &self.batches
+    fn read_proxy(&self) -> Result<PoolReadProxy<MessageBatch>> {
+        self.batches.iter().map(BatchReadProxy::new).collect()
     }
 
-    fn mut_batches(&mut self) -> &mut Vec<Arc<RwLock<MessageBatch>>> {
-        &mut self.batches
+    fn partial_read_proxy(&self, indices: &[usize]) -> Result<PoolReadProxy<MessageBatch>> {
+        self.batches
+            .iter()
+            .enumerate()
+            .filter(|(index, _)| indices.contains(index))
+            .map(|(_, b)| BatchReadProxy::new(b))
+            .collect()
+    }
+
+    fn write_proxy(&mut self) -> Result<PoolWriteProxy<MessageBatch>> {
+        self.batches.iter().map(BatchWriteProxy::new).collect()
+    }
+
+    fn partial_write_proxy(&self, indices: &[usize]) -> Result<PoolWriteProxy<MessageBatch>> {
+        self.batches
+            .iter()
+            .enumerate()
+            .filter(|(index, _)| indices.contains(index))
+            .map(|(_, b)| BatchWriteProxy::new(b))
+            .collect()
     }
 }

@@ -85,7 +85,7 @@ impl GetWorkerSimStartMsg for ApiRequests {
 impl Package for ApiRequests {
     async fn run<'s>(
         &mut self,
-        state: Arc<State>,
+        state: StateReadProxy,
         snapshot: Arc<StateSnapshot>,
     ) -> Result<Vec<ContextColumn>> {
         // We want to pass the span for the package to the writer, so that the write() call isn't
@@ -104,7 +104,7 @@ impl Package for ApiRequests {
         let _entered = run_span.entered(); // The rest of this is sync so this is fine
 
         let agent_pool = state.agent_pool();
-        let batches = agent_pool.try_read_batches()?;
+        let batches = agent_pool.batches();
         let responses_per_agent = iterators::agent::agent_id_iter(&batches)?
             .map(move |agent_id| {
                 let mut ext_responses = vec![];

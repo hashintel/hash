@@ -154,7 +154,7 @@ pub async fn run_test_suite(
             let output_folder = output_folder.join(format!("run-{run}"));
 
             for attempt in 1..=attempts {
-                if attempt > 1 {
+                if attempt > 1 && std::env::var("RUST_LOG").is_err() {
                     std::env::set_var("RUST_LOG", "trace");
                 }
 

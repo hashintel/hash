@@ -34,7 +34,7 @@ use crate::{
         prelude::{AgentBatch, MessageBatch, SharedStore},
         storage::memory::Memory,
         table::{
-            pool::{agent::AgentPool, message::MessagePool, BatchPool},
+            pool::proxy::PoolReadProxy,
             proxy::StateWriteProxy,
             sync::{ContextBatchSync, StateSync, WaitableStateSync},
             task_shared_store::{PartialSharedState, SharedState},
@@ -242,8 +242,8 @@ impl<'m> Embedded<'m> {
 struct SimState {
     agent_schema: Arc<Schema>,
     msg_schema: Arc<Schema>,
-    agent_pool: AgentPool,
-    msg_pool: MessagePool,
+    agent_pool: PoolReadProxy<AgentBatch>,
+    msg_pool: PoolReadProxy<MessageBatch>,
 }
 
 struct RunnerImpl<'m> {
@@ -284,12 +284,12 @@ fn batches_from_shared_store(
         SharedState::Write(state) => (
             state.agent_pool().batches(),
             state.message_pool().batches(),
-            (0..state.agent_pool().n_batches()).collect(),
+            (0..state.agent_pool().len()).collect(),
         ),
         SharedState::Read(state) => (
             state.agent_pool().batches(),
             state.message_pool().batches(),
-            (0..state.agent_pool().n_batches()).collect(),
+            (0..state.agent_pool().len()).collect(),
         ),
         SharedState::Partial(partial) => {
             match partial {
@@ -345,26 +345,28 @@ fn _mut_batch_to_js<'m>(
     mem_batch_to_js(mv8, batch_id, arraybuffer, metaversion)
 }
 
-fn state_to_js<'m>(
+fn state_to_js<'m, 'a, 'b>(
     mv8: &'m MiniV8,
-    agent_batches: &[&AgentBatch],
-    msg_batches: &[&MessageBatch],
+    agent_batches: impl Iterator<Item = &'a AgentBatch>,
+    msg_batches: impl Iterator<Item = &'b MessageBatch>,
 ) -> Result<(mv8::Value<'m>, mv8::Value<'m>)> {
     let js_agent_batches = mv8.create_array();
-    let js_msg_batches = mv8.create_array();
+    let js_message_batches = mv8.create_array();
 
-    for x in agent_batches.iter().zip(msg_batches.iter()).enumerate() {
-        let (i_batch, (agent_batch, msg_batch)) = x;
-
+    for (i_batch, (agent_batch, message_batch)) in agent_batches
+        .into_iter()
+        .zip(msg_batches.into_iter())
+        .enumerate()
+    {
         let agent_batch = batch_to_js(mv8, agent_batch.memory(), agent_batch.metaversion())?;
         js_agent_batches.set(i_batch as u32, agent_batch)?;
 
-        let msg_batch = batch_to_js(mv8, msg_batch.memory(), msg_batch.metaversion())?;
-        js_msg_batches.set(i_batch as u32, msg_batch)?;
+        let message_batch = batch_to_js(mv8, message_batch.memory(), message_batch.metaversion())?;
+        js_message_batches.set(i_batch as u32, message_batch)?;
     }
     Ok((
         mv8::Value::Array(js_agent_batches),
-        mv8::Value::Array(js_msg_batches),
+        mv8::Value::Array(js_message_batches),
     ))
 }
 
@@ -742,7 +744,10 @@ impl<'m> RunnerImpl<'m> {
         self.flush_batch(
             mv8,
             agent_changes,
-            proxy.agent_pool_mut().batch_mut(i_proxy)?,
+            proxy
+                .agent_pool_mut()
+                .batch_mut(i_proxy)
+                .ok_or_else(|| format!("Could not access batch at index {i_proxy}"))?,
             agent_schema,
         )?;
 
@@ -750,7 +755,10 @@ impl<'m> RunnerImpl<'m> {
         self.flush_batch(
             mv8,
             msg_changes,
-            proxy.message_pool_mut().batch_mut(0)?,
+            proxy
+                .message_pool_mut()
+                .batch_mut(i_proxy)
+                .ok_or_else(|| Error::from("Could not access batch at index 0"))?,
             msg_schema,
         )?;
 
@@ -767,7 +775,7 @@ impl<'m> RunnerImpl<'m> {
         let (proxy, group_indices) = match &mut shared_store.state {
             SharedState::None | SharedState::Read(_) => return Ok(()),
             SharedState::Write(state) => {
-                let indices = (0..state.agent_pool().n_batches()).collect();
+                let indices = (0..state.agent_pool().len()).collect();
                 (state, indices)
             }
             SharedState::Partial(partial) => match partial {
@@ -865,8 +873,8 @@ impl<'m> RunnerImpl<'m> {
         let state = SimState {
             agent_schema: Arc::clone(&run.datastore.agent_batch_schema.arrow),
             msg_schema: Arc::clone(&run.datastore.message_batch_schema),
-            agent_pool: AgentPool::empty(),
-            msg_pool: MessagePool::empty(),
+            agent_pool: PoolReadProxy::from(Vec::new()),
+            msg_pool: PoolReadProxy::from(Vec::new()),
         };
         self.sims_state
             .try_insert(run.short_id, state)
@@ -1023,10 +1031,9 @@ impl<'m> RunnerImpl<'m> {
             state_group_start_indices,
         } = ctx_batch_sync;
 
-        let ctx_batch = context_batch.batch();
         let args = mv8::Values::from_vec(vec![
             sim_id_to_js(mv8, sim_run_id),
-            batch_to_js(mv8, ctx_batch.memory(), ctx_batch.metaversion())?,
+            batch_to_js(mv8, context_batch.memory(), context_batch.metaversion())?,
             idxs_to_js(mv8, &state_group_start_indices)?,
             current_step_to_js(mv8, current_step),
         ]);
@@ -1050,13 +1057,12 @@ impl<'m> RunnerImpl<'m> {
         //       state in parallel with the mutation through those pointers).
 
         // Sync JS.
-        let agent_pool = msg.agent_pool.read_proxy()?;
-        let msg_pool = msg.message_pool.read_proxy()?;
-        let (agent_pool, msg_pool) = (agent_pool.batches(), msg_pool.batches());
+        let agent_pool = msg.agent_pool.batches_iter();
+        let msg_pool = msg.message_pool.batches_iter();
 
         // Pass proxies by reference, because they shouldn't be
         // dropped until entire sync is complete.
-        let (agent_pool, msg_pool) = state_to_js(mv8, &agent_pool, &msg_pool)?;
+        let (agent_pool, msg_pool) = state_to_js(mv8, agent_pool, msg_pool)?;
         let args = mv8::Values::from_vec(vec![sim_id_to_js(mv8, sim_run_id), agent_pool, msg_pool]);
         let _: mv8::Value<'_> = self
             .embedded
@@ -1090,7 +1096,8 @@ impl<'m> RunnerImpl<'m> {
     ) -> Result<()> {
         // Sync JS.
         let (agent_batches, msg_batches, group_indices) = batches_from_shared_store(shared_store)?;
-        let (agent_batches, msg_batches) = state_to_js(mv8, &agent_batches, &msg_batches)?;
+        let (agent_batches, msg_batches) =
+            state_to_js(mv8, agent_batches.into_iter(), msg_batches.into_iter())?;
         let args = mv8::Values::from_vec(vec![
             sim_id_to_js(mv8, sim_id),
             idxs_to_js(mv8, &group_indices)?,
@@ -1111,10 +1118,9 @@ impl<'m> RunnerImpl<'m> {
         msg: StateSync,
     ) -> Result<()> {
         // TODO: Duplication with `state_sync`
-        let agent_pool = msg.state.agent_pool.read_proxy()?;
-        let msg_pool = msg.state.message_pool.read_proxy()?;
-        let (agent_pool, msg_pool) = (agent_pool.batches(), msg_pool.batches());
-        let (agent_pool, msg_pool) = state_to_js(mv8, &agent_pool, &msg_pool)?;
+        let agent_pool = msg.state.agent_pool().batches_iter();
+        let msg_pool = msg.state.message_pool().batches_iter();
+        let (agent_pool, msg_pool) = state_to_js(mv8, agent_pool, msg_pool)?;
         let sim_run_id = sim_id_to_js(mv8, sim_run_id);
         let args = mv8::Values::from_vec(vec![sim_run_id, agent_pool, msg_pool]);
         let _: mv8::Value<'_> = self

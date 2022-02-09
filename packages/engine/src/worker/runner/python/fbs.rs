@@ -1,10 +1,11 @@
-use std::ops::Deref;
-
 use flatbuffers::{FlatBufferBuilder, WIPOffset};
 
 use super::error::Result;
 use crate::{
-    datastore::{batch::Batch, prelude::SharedStore},
+    datastore::{
+        batch::{Batch, Dataset},
+        prelude::SharedStore,
+    },
     worker::runner::comms::PackageMsgs,
 };
 
@@ -56,7 +57,7 @@ pub fn shared_ctx_to_fbs<'f>(
 ) -> WIPOffset<flatbuffers_gen::shared_context_generated::SharedContext<'f>> {
     let mut batch_offsets = Vec::new();
     for (_, dataset) in shared_ctx.datasets.iter() {
-        batch_offsets.push(batch_to_fbs(fbb, dataset));
+        batch_offsets.push(batch_to_fbs::<Dataset>(fbb, dataset));
     }
     // let batch_offsets: Vec<_> = shared_ctx.datasets
     //     .iter()
@@ -73,9 +74,9 @@ pub fn shared_ctx_to_fbs<'f>(
     )
 }
 
-pub fn batch_to_fbs<'f, B: Batch, T: Deref<Target = B>>(
+pub fn batch_to_fbs<'f, B: Batch>(
     fbb: &mut FlatBufferBuilder<'f>,
-    batch: &T,
+    batch: &B,
 ) -> WIPOffset<flatbuffers_gen::batch_generated::Batch<'f>> {
     let batch_id_offset = fbb.create_string(batch.get_batch_id());
     let metaversion_offset = metaversion_to_fbs(fbb, batch.metaversion());

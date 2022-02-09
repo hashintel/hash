@@ -4,11 +4,11 @@ use futures::future::join_all;
 
 use crate::{
     datastore::{
+        batch::{AgentBatch, MessageBatch},
         prelude::ContextBatch,
         table::{
-            pool::{agent::AgentPool, message::MessagePool},
-            proxy::BatchReadProxy,
-            state::view::StateView,
+            pool::proxy::PoolReadProxy,
+            proxy::{BatchReadProxy, StateReadProxy},
         },
     },
     simulation::comms::message::{SyncCompletionReceiver, SyncCompletionSender},
@@ -34,8 +34,8 @@ use crate::{
 #[derive(derive_new::new)]
 pub struct WaitableStateSync {
     pub completion_sender: SyncCompletionSender,
-    pub agent_pool: AgentPool,
-    pub message_pool: MessagePool,
+    pub agent_pool: PoolReadProxy<AgentBatch>,
+    pub message_pool: PoolReadProxy<MessageBatch>,
 }
 
 impl fmt::Debug for WaitableStateSync {
@@ -92,7 +92,7 @@ impl WaitableStateSync {
 
 #[derive(derive_new::new, Clone)]
 pub struct StateSync {
-    pub state: StateView,
+    pub state: StateReadProxy,
 }
 
 impl fmt::Debug for StateSync {
