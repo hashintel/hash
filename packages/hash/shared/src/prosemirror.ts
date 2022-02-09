@@ -112,7 +112,47 @@ export const isComponentNode = (
 ): node is ComponentNode =>
   !!node.type.spec.attrs && "blockEntityId" in node.type.spec.attrs;
 
-export const findComponentNodes = (doc: ProsemirrorNode<Schema>) => {
+export const findComponentNodes = (
+  containingNode: ProsemirrorNode<Schema>,
+): ComponentNode[] => {
+  const componentNodes: ComponentNode[] = [];
+
+  containingNode.descendants((node) => {
+    if (isComponentNode(node)) {
+      componentNodes.push(node);
+    }
+
+    return true;
+  });
+
+  return componentNodes;
+};
+
+export const findComponentNode = (
+  containingNode: ProsemirrorNode<Schema>,
+  containingNodePosition: number,
+): [ComponentNode, number] | null => {
+  let result: [ComponentNode, number] | null = null;
+
+  containingNode.descendants((node, pos) => {
+    if (isComponentNode(node)) {
+      result = [node, containingNodePosition + 1 + pos];
+
+      return false;
+    }
+
+    return true;
+  });
+
+  return result;
+};
+
+/**
+ * @deprecated
+ * @todo remove this
+ * @warning this can only be used on a doc
+ */
+export const findDocComponentNodes = (doc: ProsemirrorNode<Schema>) => {
   const componentNodes: [ComponentNode, number][] = [];
 
   doc.descendants((node, pos) => {
