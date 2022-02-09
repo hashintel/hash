@@ -91,9 +91,10 @@ type NodeWithAttrs<Attrs extends {}> = Omit<
   "attrs"
 > & { attrs: Attrs };
 
-export type ComponentNode = NodeWithAttrs<{
+type ComponentNodeAttrs = {
   blockEntityId: string | null;
-}>;
+};
+export type ComponentNode = NodeWithAttrs<ComponentNodeAttrs>;
 
 export type EntityNode = NodeWithAttrs<{
   draftId: string | null;
@@ -127,7 +128,7 @@ export const findComponentNodes = (doc: ProsemirrorNode<Schema>) => {
 
 export const getComponentNodeAttrs = (
   entity?: { entityId?: string | null } | null,
-) => ({
+): ComponentNodeAttrs => ({
   blockEntityId: entity?.entityId ?? "",
 });
 
