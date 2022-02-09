@@ -430,12 +430,12 @@ export class Instance {
                   },
                 });
               }
-            } else if (isComponentNode(node) && !node.attrs.blockEntityId) {
-              transform.setNodeMarkup(
-                mapping.map(pos),
-                undefined,
-                getComponentNodeAttrs(blockEntity),
-              );
+            } else if (isComponentNode(node)) {
+              const nodeAttrs = getComponentNodeAttrs(blockEntity);
+
+              if (!isEqual(node.attrs, nodeAttrs)) {
+                transform.setNodeMarkup(mapping.map(pos), undefined, nodeAttrs);
+              }
             }
           });
 
