@@ -34,7 +34,6 @@ use crate::{
         prelude::{AgentBatch, MessageBatch, SharedStore},
         storage::memory::Memory,
         table::{
-            pool::proxy::PoolReadProxy,
             proxy::StateWriteProxy,
             sync::{ContextBatchSync, StateSync, WaitableStateSync},
             task_shared_store::{PartialSharedState, SharedState},
@@ -242,8 +241,6 @@ impl<'m> Embedded<'m> {
 struct SimState {
     agent_schema: Arc<Schema>,
     msg_schema: Arc<Schema>,
-    agent_pool: PoolReadProxy<AgentBatch>,
-    msg_pool: PoolReadProxy<MessageBatch>,
 }
 
 struct RunnerImpl<'m> {
@@ -758,7 +755,7 @@ impl<'m> RunnerImpl<'m> {
             proxy
                 .message_pool_mut()
                 .batch_mut(i_proxy)
-                .ok_or_else(|| Error::from("Could not access batch at index 0"))?,
+                .ok_or_else(|| format!("Could not access batch at index {i_proxy}"))?,
             msg_schema,
         )?;
 
@@ -873,8 +870,6 @@ impl<'m> RunnerImpl<'m> {
         let state = SimState {
             agent_schema: Arc::clone(&run.datastore.agent_batch_schema.arrow),
             msg_schema: Arc::clone(&run.datastore.message_batch_schema),
-            agent_pool: PoolReadProxy::from(Vec::new()),
-            msg_pool: PoolReadProxy::from(Vec::new()),
         };
         self.sims_state
             .try_insert(run.short_id, state)
@@ -1057,8 +1052,8 @@ impl<'m> RunnerImpl<'m> {
         //       state in parallel with the mutation through those pointers).
 
         // Sync JS.
-        let agent_pool = msg.agent_pool.batches_iter();
-        let msg_pool = msg.message_pool.batches_iter();
+        let agent_pool = msg.state.agent_pool.batches_iter();
+        let msg_pool = msg.state.message_pool.batches_iter();
 
         // Pass proxies by reference, because they shouldn't be
         // dropped until entire sync is complete.
@@ -1068,14 +1063,6 @@ impl<'m> RunnerImpl<'m> {
             .embedded
             .state_sync
             .call_method(self.this.clone(), args)?;
-
-        // Sync Rust.
-        let state = self
-            .sims_state
-            .get_mut(&sim_run_id)
-            .ok_or(Error::MissingSimulationRun(sim_run_id))?;
-        state.agent_pool = msg.agent_pool;
-        state.msg_pool = msg.message_pool;
 
         tracing::trace!("Sending state sync completion");
         msg.completion_sender.send(Ok(())).map_err(|e| {

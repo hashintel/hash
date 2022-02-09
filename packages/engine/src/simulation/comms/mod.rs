@@ -107,8 +107,10 @@ impl Comms {
         let (completion_sender, completion_receiver) = tokio::sync::oneshot::channel();
 
         // Synchronize the state batches
-        let sync_msg =
-            WaitableStateSync::new(completion_sender, state.agent_pool, state.message_pool);
+        let sync_msg = WaitableStateSync {
+            completion_sender,
+            state,
+        };
         self.worker_pool_sender
             .send(EngineToWorkerPoolMsg::sync(
                 self.sim_id,

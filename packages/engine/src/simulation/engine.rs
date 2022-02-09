@@ -12,7 +12,7 @@ use crate::{
         prelude::Store,
         table::{
             context::Context,
-            pool::{agent::AgentPool, message::MessagePool},
+            pool::{agent::AgentPool, message::MessagePool, BatchPool},
             references::MessageMap,
             state::{
                 view::{StatePools, StateSnapshot},
@@ -265,7 +265,7 @@ impl Engine {
     /// through agent inboxes. Also creates and removes agents that have been requested by State
     /// packages.
     fn handle_messages(&mut self, state: &mut State, message_map: &MessageMap) -> Result<()> {
-        let read = state.message_pool().read()?;
+        let read = state.message_pool().read_proxy()?;
         let mut commands = Commands::from_hash_messages(message_map, read)?;
         commands.merge(self.comms.take_commands()?);
         commands.verify(&self.config.sim.store.agent_schema)?;

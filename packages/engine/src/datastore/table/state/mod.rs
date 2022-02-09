@@ -144,8 +144,7 @@ impl State {
     }
 
     pub fn message_map(&self) -> Result<MessageMap> {
-        let read = self.message_pool().read()?;
-        MessageMap::new(&read)
+        MessageMap::new(&self.message_pool().read_proxy()?)
     }
 
     pub fn agent_pool(&self) -> &AgentPool {

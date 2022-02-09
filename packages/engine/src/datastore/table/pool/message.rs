@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use parking_lot::{RwLock, RwLockReadGuard};
+use parking_lot::RwLock;
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
 };
@@ -32,26 +32,6 @@ impl MessagePool {
         MessagePool { batches }
     }
 
-    // TODO use the BatchPool trait properly and get rid of duplication
-    fn batches(&self) -> &Vec<Arc<RwLock<MessageBatch>>> {
-        &self.batches
-    }
-
-    pub fn read(&self) -> Result<MessagePoolRead<'_>> {
-        let read_batches = self
-            .batches()
-            .iter()
-            .map(|batch| {
-                batch
-                    .try_read()
-                    .ok_or_else(|| Error::from("Failed to acquire read lock"))
-            })
-            .collect::<Result<_>>()?;
-        Ok(MessagePoolRead {
-            batches: read_batches,
-        })
-    }
-
     pub fn empty() -> MessagePool {
         MessagePool {
             batches: Default::default(),
@@ -75,19 +55,42 @@ impl MessagePool {
     }
 }
 
-// TODO: (clarity) Replace with MessageReader<'a> or rename ?
-pub struct MessagePoolRead<'a> {
-    batches: Vec<RwLockReadGuard<'a, MessageBatch>>,
+impl BatchPool<MessageBatch> for MessagePool {
+    fn read_proxy(&self) -> Result<PoolReadProxy<MessageBatch>> {
+        self.batches.iter().map(BatchReadProxy::new).collect()
+    }
+
+    fn partial_read_proxy(&self, indices: &[usize]) -> Result<PoolReadProxy<MessageBatch>> {
+        self.batches
+            .iter()
+            .enumerate()
+            .filter(|(index, _)| indices.contains(index))
+            .map(|(_, b)| BatchReadProxy::new(b))
+            .collect()
+    }
+
+    fn write_proxy(&mut self) -> Result<PoolWriteProxy<MessageBatch>> {
+        self.batches.iter().map(BatchWriteProxy::new).collect()
+    }
+
+    fn partial_write_proxy(&self, indices: &[usize]) -> Result<PoolWriteProxy<MessageBatch>> {
+        self.batches
+            .iter()
+            .enumerate()
+            .filter(|(index, _)| indices.contains(index))
+            .map(|(_, b)| BatchWriteProxy::new(b))
+            .collect()
+    }
 }
 
-impl<'a> MessagePoolRead<'a> {
-    pub fn get_reader(&'a self) -> MessageReader<'a> {
-        let mut loaders = Vec::with_capacity(self.batches.len());
-        for batch in &self.batches {
-            loaders.push(batch.message_loader());
+impl PoolReadProxy<MessageBatch> {
+    pub fn get_reader(&self) -> MessageReader<'_> {
+        MessageReader {
+            loaders: self
+                .batches_iter()
+                .map(MessageBatch::message_loader)
+                .collect(),
         }
-
-        MessageReader { loaders }
     }
 
     pub fn recipient_iter_all<'b: 'r, 'r>(
@@ -176,7 +179,7 @@ impl PoolWriteProxy<MessageBatch> {
         // Reversing sequence to remove from the back
         for batch_index in (0..self.len()).rev() {
             if let Some(dynamic_batch) = agent_pool.batch(batch_index) {
-                self[batch_index].reset(&dynamic_batch)?;
+                self[batch_index].reset(dynamic_batch)?;
             } else {
                 let batch = message_pool.remove(batch_index)?;
                 removed.push(batch.get_batch_id().to_string());
@@ -194,33 +197,5 @@ impl PoolWriteProxy<MessageBatch> {
             }
         }
         Ok(())
-    }
-}
-
-impl BatchPool<MessageBatch> for MessagePool {
-    fn read_proxy(&self) -> Result<PoolReadProxy<MessageBatch>> {
-        self.batches.iter().map(BatchReadProxy::new).collect()
-    }
-
-    fn partial_read_proxy(&self, indices: &[usize]) -> Result<PoolReadProxy<MessageBatch>> {
-        self.batches
-            .iter()
-            .enumerate()
-            .filter(|(index, _)| indices.contains(index))
-            .map(|(_, b)| BatchReadProxy::new(b))
-            .collect()
-    }
-
-    fn write_proxy(&mut self) -> Result<PoolWriteProxy<MessageBatch>> {
-        self.batches.iter().map(BatchWriteProxy::new).collect()
-    }
-
-    fn partial_write_proxy(&self, indices: &[usize]) -> Result<PoolWriteProxy<MessageBatch>> {
-        self.batches
-            .iter()
-            .enumerate()
-            .filter(|(index, _)| indices.contains(index))
-            .map(|(_, b)| BatchWriteProxy::new(b))
-            .collect()
     }
 }

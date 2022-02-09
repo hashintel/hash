@@ -13,7 +13,8 @@ use crate::datastore::{
 /// Collects [`BatchReadProxy`] for all the batches within the pool.
 #[derive(Default)]
 pub struct PoolReadProxy<K: Batch> {
-    batches: Vec<BatchReadProxy<K>>,
+    // TODO: Remove `pub(super)` by providing parallel iterator
+    pub(super) batches: Vec<BatchReadProxy<K>>,
 }
 
 impl<K: Batch> PoolReadProxy<K> {
@@ -25,8 +26,16 @@ impl<K: Batch> PoolReadProxy<K> {
         self.batches.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn batch(&self, index: usize) -> Option<&K> {
         self.batches.get(index).map(Deref::deref)
+    }
+
+    pub fn batch_proxies(&self) -> impl Iterator<Item = &BatchReadProxy<K>> {
+        self.batches.iter()
     }
 
     // TODO: Use a concrete type, e.g.
@@ -89,6 +98,10 @@ impl<K: Batch> PoolWriteProxy<K> {
 
     pub fn len(&self) -> usize {
         self.batches.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     pub fn batch(&self, index: usize) -> Option<&K> {
