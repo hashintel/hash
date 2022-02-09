@@ -1,5 +1,5 @@
 diff --git a/node_modules/@types/prosemirror-model/index.d.ts b/node_modules/@types/prosemirror-model/index.d.ts
-index 3e5aa92..4040b63 100755
+index 3e5aa92..243b5d6 100755
 --- a/node_modules/@types/prosemirror-model/index.d.ts
 +++ b/node_modules/@types/prosemirror-model/index.d.ts
 @@ -103,8 +103,14 @@ export class Fragment<S extends Schema = any> {
@@ -33,3 +33,14 @@ index 3e5aa92..4040b63 100755
  /**
   * Error type raised by [`Node.replace`](#model.Node.replace) when
   * given an invalid replacement.
+@@ -984,6 +998,10 @@ export class NodeType<S extends Schema = any> {
+      * A link back to the `Schema` the node type belongs to.
+      */
+     schema: S;
++    /**
++     * Parsed set of groups from spec.group
++     */
++    groups?: string[];
+     /**
+      * The spec that this type is based on
+      */
