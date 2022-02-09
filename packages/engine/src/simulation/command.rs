@@ -14,9 +14,10 @@ use super::{Error, Result};
 use crate::{
     datastore::{
         arrow::batch_conversion::IntoRecordBatch,
+        batch::MessageBatch,
         schema::{state::AgentSchema, FieldKey},
         table::{
-            pool::message::MessagePoolRead, references::MessageMap,
+            pool::proxy::PoolReadProxy, references::MessageMap,
             state::create_remove::ProcessedCommands,
         },
         UUID_V4_LEN,
@@ -148,7 +149,7 @@ impl Commands {
     /// commands.
     pub fn from_hash_messages(
         message_map: &MessageMap,
-        message_pool: MessagePoolRead<'_>,
+        message_pool: PoolReadProxy<MessageBatch>,
     ) -> Result<Commands> {
         let message_reader = message_pool.get_reader();
 

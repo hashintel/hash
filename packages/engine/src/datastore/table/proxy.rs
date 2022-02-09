@@ -37,13 +37,6 @@ use crate::datastore::{
     table::{pool::BatchPool, state::view::StatePools},
 };
 
-fn type_name<T>() -> &'static str {
-    use core::any::type_name;
-    type_name::<T>()
-        .strip_prefix("hash_engine_lib::datastore::batch::")
-        .unwrap_or(type_name::<T>())
-}
-
 /// A thread-sendable guard for reading a batch, see module-level documentation for more reasoning.
 pub struct BatchReadProxy<K: Batch> {
     arc: Arc<RwLock<K>>,
@@ -54,15 +47,8 @@ impl<K: Batch> BatchReadProxy<K> {
         // Safety: `try_lock_shared` locks the `RawRwLock` and returns if the lock could be
         // acquired. The lock is not used if it couldn't be acquired.
         if unsafe { RwLock::raw(arc).try_lock_shared() } {
-            let proxy = BatchReadProxy { arc: arc.clone() };
-            tracing::trace!(
-                "Acquiring shared lock {}({})",
-                type_name::<K>(),
-                proxy.get_batch_id(),
-            );
-            Ok(proxy)
+            Ok(BatchReadProxy { arc: arc.clone() })
         } else {
-            tracing::trace!("Failed acquiring shared lock on {}", type_name::<K>());
             Err(Error::ProxySharedLock)
         }
     }
@@ -82,11 +68,6 @@ impl<K: Batch> Deref for BatchReadProxy<K> {
 impl<K: Batch> Clone for BatchReadProxy<K> {
     fn clone(&self) -> Self {
         // Acquire another shared lock for the new proxy
-        tracing::trace!(
-            "Cloning shared lock {}({})",
-            type_name::<K>(),
-            self.get_batch_id(),
-        );
         // SAFETY: `BatchReadProxy` is guaranteed to contain a shared lock acquired in `new()`, thus
         // it's safe (and required) to acquire another shared lock. Note, that this does not hold
         // for `BatchWriteProxy`!
@@ -104,11 +85,6 @@ impl<K: Batch> Clone for BatchReadProxy<K> {
 
 impl<K: Batch> Drop for BatchReadProxy<K> {
     fn drop(&mut self) {
-        tracing::trace!(
-            "Releasing shared lock {}({})",
-            type_name::<K>(),
-            self.get_batch_id(),
-        );
         // SAFETY: `BatchReadProxy` is guaranteed to contain a shared lock acquired in `new()`, thus
         // it's safe (and required) to unlock it, when the proxy goes out of scope.
         unsafe { RwLock::raw(&self.arc).unlock_shared() }
@@ -125,34 +101,13 @@ impl<K: Batch> BatchWriteProxy<K> {
         // Safety: `try_lock_exclusive` locks the `RawRwLock` and returns if the lock could be
         // acquired. The lock is not used if it couldn't be acquired.
         if unsafe { RwLock::raw(arc).try_lock_exclusive() } {
-            let proxy = BatchWriteProxy { arc: arc.clone() };
-            tracing::trace!(
-                "Acquiring exclusive lock {}({})",
-                type_name::<K>(),
-                proxy.get_batch_id(),
-            );
-            Ok(proxy)
+            Ok(BatchWriteProxy { arc: arc.clone() })
         } else {
-            if let Some(read_lock) = arc.try_read() {
-                tracing::trace!(
-                    "Failed acquiring exclusive lock on {}({})",
-                    type_name::<K>(),
-                    read_lock.get_batch_id(),
-                );
-            } else {
-                tracing::trace!("Failed acquiring exclusive lock on {}", type_name::<K>());
-            }
             Err(Error::ProxyExclusiveLock)
         }
     }
 
     pub fn downgrade(self) -> BatchReadProxy<K> {
-        tracing::trace!(
-            "Downgrading exclusive lock {}({})",
-            type_name::<K>(),
-            self.get_batch_id(),
-        );
-
         // Don't drop this, otherwise it would call `raw.unlock_exclusive()`
         // We can't destruccture this because `Drop` is implemented
         let this = mem::ManuallyDrop::new(self);
@@ -191,11 +146,6 @@ impl<K: Batch> DerefMut for BatchWriteProxy<K> {
 
 impl<K: Batch> Drop for BatchWriteProxy<K> {
     fn drop(&mut self) {
-        tracing::trace!(
-            "Releasing exclusive lock {}({})",
-            type_name::<K>(),
-            self.get_batch_id(),
-        );
         // SAFETY: `BatchWriteProxy` is guaranteed to contain a unique lock acquired in `new()`,
         // thus it's safe (and required) to unlock it, when the proxy goes out of scope.
         unsafe { RwLock::raw(&self.arc).unlock_exclusive() }

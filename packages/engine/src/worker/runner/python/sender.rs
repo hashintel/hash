@@ -14,7 +14,7 @@ use crate::{
         batch::{ContextBatch, MessageBatch},
         prelude::AgentBatch,
         table::{
-            pool::proxy::PoolReadProxy,
+            proxy::StateReadProxy,
             task_shared_store::{PartialSharedState, SharedState},
         },
     },
@@ -160,8 +160,7 @@ fn inbound_to_nng(
         }
         InboundToRunnerMsgPayload::CancelTask(_) => todo!(), // Unused for now
         InboundToRunnerMsgPayload::StateSync(msg) => {
-            let (agent_pool, message_pool) =
-                state_sync_to_fbs(fbb, &msg.agent_pool, &msg.message_pool)?;
+            let (agent_pool, message_pool) = state_sync_to_fbs(fbb, &msg.state)?;
             let msg = flatbuffers_gen::sync_state_generated::StateSync::create(
                 fbb,
                 &flatbuffers_gen::sync_state_generated::StateSyncArgs {
@@ -176,8 +175,7 @@ fn inbound_to_nng(
             )
         }
         InboundToRunnerMsgPayload::StateSnapshotSync(msg) => {
-            let (agent_pool, message_pool) =
-                state_sync_to_fbs(fbb, &msg.state.agent_pool, &msg.state.message_pool)?;
+            let (agent_pool, message_pool) = state_sync_to_fbs(fbb, &msg.state)?;
             let msg = flatbuffers_gen::sync_state_snapshot_generated::StateSnapshotSync::create(
                 fbb,
                 &flatbuffers_gen::sync_state_snapshot_generated::StateSnapshotSyncArgs {
@@ -295,25 +293,26 @@ fn inbound_to_nng(
 
 fn state_sync_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
-    agent_pool: &PoolReadProxy<AgentBatch>,
-    msg_pool: &PoolReadProxy<MessageBatch>,
+    state: &StateReadProxy,
 ) -> Result<(
     WIPOffset<Vector<'f, ForwardsUOffset<flatbuffers_gen::batch_generated::Batch<'f>>>>,
     WIPOffset<Vector<'f, ForwardsUOffset<flatbuffers_gen::batch_generated::Batch<'f>>>>,
 )> {
-    let agent_pool: Vec<_> = agent_pool
+    let agent_pool: Vec<_> = state
+        .agent_pool
         .batches_iter()
         .map(|batch| batch_to_fbs(fbb, batch))
         .collect();
     let agent_pool = fbb.create_vector(&agent_pool);
 
-    let msg_pool: Vec<_> = msg_pool
+    let message_pool: Vec<_> = state
+        .message_pool
         .batches_iter()
         .map(|batch| batch_to_fbs(fbb, batch))
         .collect();
-    let msg_pool = fbb.create_vector(&msg_pool);
+    let message_pool = fbb.create_vector(&message_pool);
 
-    Ok((agent_pool, msg_pool))
+    Ok((agent_pool, message_pool))
 }
 
 // TODO: Reduce code duplication between enum variants.

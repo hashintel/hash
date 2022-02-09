@@ -16,6 +16,7 @@ use crate::{
     datastore::{
         batch::iterators,
         schema::{accessor::GetFieldSpec, FieldKey},
+        table::pool::BatchPool,
     },
     simulation::{
         comms::package::PackageComms,
@@ -196,11 +197,8 @@ async fn build_api_response_maps(
 ) -> Result<Vec<ApiResponseMap>> {
     let mut futs = FuturesOrdered::new();
     {
-        let message_pool = &snapshot.state.message_pool;
-        let message_pool_read = message_pool
-            .read()
-            .map_err(|e| Error::from(e.to_string()))?;
-        let reader = message_pool_read.get_reader();
+        let message_pool = &snapshot.state.message_pool.read_proxy()?;
+        let reader = message_pool.get_reader();
 
         handlers.iter().try_for_each::<_, Result<()>>(|handler| {
             let messages = snapshot.message_map.get_msg_refs(handler);
