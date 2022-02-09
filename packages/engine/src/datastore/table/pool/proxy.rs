@@ -34,10 +34,6 @@ impl<K: Batch> PoolReadProxy<K> {
         self.batches.get(index).map(Deref::deref)
     }
 
-    pub fn batch_proxies(&self) -> impl Iterator<Item = &BatchReadProxy<K>> {
-        self.batches.iter()
-    }
-
     // TODO: Use a concrete type, e.g.
     //   struct BatchIter<'b, B: Batch + 'b> {
     //       iter: std::slice::Iter<'b, BatchReadProxy<B>>,
