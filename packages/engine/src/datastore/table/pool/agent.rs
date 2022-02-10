@@ -2,15 +2,11 @@ use std::sync::Arc;
 
 use parking_lot::RwLock;
 
-use super::BatchPool;
 use crate::{
     datastore::{
-        batch::DynamicBatch,
-        prelude::*,
-        table::{
-            pool::proxy::{PoolReadProxy, PoolWriteProxy},
-            proxy::{BatchReadProxy, BatchWriteProxy},
-        },
+        batch::{AgentBatch, DynamicBatch},
+        table::pool::proxy::PoolWriteProxy,
+        Result,
     },
     simulation::package::state::StateColumn,
 };
@@ -21,33 +17,17 @@ pub struct AgentPool {
     batches: Vec<Arc<RwLock<AgentBatch>>>,
 }
 
-impl AgentPool {
-    pub fn empty() -> AgentPool {
-        AgentPool { batches: vec![] }
+impl super::Pool<AgentBatch> for AgentPool {
+    fn new(batches: Vec<Arc<RwLock<AgentBatch>>>) -> Self {
+        Self { batches }
     }
 
-    pub fn new(batches: Vec<Arc<RwLock<AgentBatch>>>) -> AgentPool {
-        AgentPool { batches }
+    fn get_batches(&self) -> &[Arc<RwLock<AgentBatch>>] {
+        &self.batches
     }
 
-    pub fn len(&self) -> usize {
-        self.batches.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
-    pub fn push(&mut self, batch: AgentBatch) {
-        self.batches.push(Arc::new(RwLock::new(batch)))
-    }
-
-    pub fn remove(&mut self, index: usize) -> Result<BatchReadProxy<AgentBatch>> {
-        BatchReadProxy::new(&self.batches.remove(index))
-    }
-
-    pub fn swap_remove(&mut self, index: usize) -> Result<BatchReadProxy<AgentBatch>> {
-        BatchReadProxy::new(&self.batches.swap_remove(index))
+    fn get_batches_mut(&mut self) -> &mut Vec<Arc<RwLock<AgentBatch>>> {
+        &mut self.batches
     }
 }
 
@@ -55,34 +35,6 @@ impl Extend<AgentBatch> for AgentPool {
     fn extend<T: IntoIterator<Item = AgentBatch>>(&mut self, iter: T) {
         self.batches
             .extend(iter.into_iter().map(|batch| Arc::new(RwLock::new(batch))))
-    }
-}
-
-impl BatchPool<AgentBatch> for AgentPool {
-    fn read_proxy(&self) -> Result<PoolReadProxy<AgentBatch>> {
-        self.batches.iter().map(BatchReadProxy::new).collect()
-    }
-
-    fn partial_read_proxy(&self, indices: &[usize]) -> Result<PoolReadProxy<AgentBatch>> {
-        self.batches
-            .iter()
-            .enumerate()
-            .filter(|(index, _)| indices.contains(index))
-            .map(|(_, b)| BatchReadProxy::new(b))
-            .collect()
-    }
-
-    fn write_proxy(&mut self) -> Result<PoolWriteProxy<AgentBatch>> {
-        self.batches.iter().map(BatchWriteProxy::new).collect()
-    }
-
-    fn partial_write_proxy(&self, indices: &[usize]) -> Result<PoolWriteProxy<AgentBatch>> {
-        self.batches
-            .iter()
-            .enumerate()
-            .filter(|(index, _)| indices.contains(index))
-            .map(|(_, b)| BatchWriteProxy::new(b))
-            .collect()
     }
 }
 

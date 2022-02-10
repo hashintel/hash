@@ -1,6 +1,6 @@
 use crate::datastore::{
     table::{
-        pool::{agent::AgentPool, message::MessagePool},
+        pool::{agent::AgentPool, message::MessagePool, BatchPool},
         proxy::{StateReadProxy, StateWriteProxy},
         references::MessageMap,
     },

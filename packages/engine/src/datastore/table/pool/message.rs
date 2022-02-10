@@ -8,14 +8,12 @@ use rayon::iter::{
 use super::BatchPool;
 use crate::{
     datastore::{
-        batch,
-        prelude::*,
+        batch::{self, AgentBatch, Batch, MessageBatch},
         table::{
             pool::proxy::{PoolReadProxy, PoolWriteProxy},
-            proxy::{BatchReadProxy, BatchWriteProxy},
             references::AgentMessageReference,
         },
-        UUID_V4_LEN,
+        Error, Result, UUID_V4_LEN,
     },
     proto::ExperimentRunTrait,
     SimRunConfig,
@@ -27,59 +25,17 @@ pub struct MessagePool {
     batches: Vec<Arc<RwLock<MessageBatch>>>,
 }
 
-impl MessagePool {
-    pub fn new(batches: Vec<Arc<RwLock<MessageBatch>>>) -> MessagePool {
-        MessagePool { batches }
+impl super::Pool<MessageBatch> for MessagePool {
+    fn new(batches: Vec<Arc<RwLock<MessageBatch>>>) -> Self {
+        Self { batches }
     }
 
-    pub fn empty() -> MessagePool {
-        MessagePool {
-            batches: Default::default(),
-        }
+    fn get_batches(&self) -> &[Arc<RwLock<MessageBatch>>] {
+        &self.batches
     }
 
-    pub fn len(&self) -> usize {
-        self.batches.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
-    pub fn push(&mut self, batch: MessageBatch) {
-        self.batches.push(Arc::new(RwLock::new(batch)))
-    }
-
-    pub fn remove(&mut self, index: usize) -> Result<BatchReadProxy<MessageBatch>> {
-        BatchReadProxy::new(&self.batches.remove(index))
-    }
-}
-
-impl BatchPool<MessageBatch> for MessagePool {
-    fn read_proxy(&self) -> Result<PoolReadProxy<MessageBatch>> {
-        self.batches.iter().map(BatchReadProxy::new).collect()
-    }
-
-    fn partial_read_proxy(&self, indices: &[usize]) -> Result<PoolReadProxy<MessageBatch>> {
-        self.batches
-            .iter()
-            .enumerate()
-            .filter(|(index, _)| indices.contains(index))
-            .map(|(_, b)| BatchReadProxy::new(b))
-            .collect()
-    }
-
-    fn write_proxy(&mut self) -> Result<PoolWriteProxy<MessageBatch>> {
-        self.batches.iter().map(BatchWriteProxy::new).collect()
-    }
-
-    fn partial_write_proxy(&self, indices: &[usize]) -> Result<PoolWriteProxy<MessageBatch>> {
-        self.batches
-            .iter()
-            .enumerate()
-            .filter(|(index, _)| indices.contains(index))
-            .map(|(_, b)| BatchWriteProxy::new(b))
-            .collect()
+    fn get_batches_mut(&mut self) -> &mut Vec<Arc<RwLock<MessageBatch>>> {
+        &mut self.batches
     }
 }
 
