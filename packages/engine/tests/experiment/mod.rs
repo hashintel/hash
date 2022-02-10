@@ -158,7 +158,7 @@ pub async fn run_test_suite(
             let output_folder = output_folder.join(format!("run-{run}"));
             let log_file_path = output_folder.join("log").join("output.log");
             // Remove log file in case it's already existing
-            let _ = fs::remove_file(log_file_path);
+            let _ = fs::remove_file(&log_file_path);
 
             let test_result = run_test(
                 experiment_type.clone(),
