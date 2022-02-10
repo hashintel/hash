@@ -5,7 +5,7 @@
   "description": "Visually break up content on a page with dividing lines",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hashintel/hash.git",
+    "url": "https://github.com/hashintel/hash.git#main",
     "directory": "packages/blocks/divider"
   },
   "license": "MIT",
