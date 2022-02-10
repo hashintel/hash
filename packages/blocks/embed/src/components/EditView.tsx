@@ -36,6 +36,7 @@ export const EditView: React.VFC<EditViewProps> = ({
       {errorString && (
         <div
           className={tw`w-96 mx-auto mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative`}
+          style={{ overflowWrap: "anywhere" }}
           role="alert"
         >
           <div className={tw`mr-5`}>

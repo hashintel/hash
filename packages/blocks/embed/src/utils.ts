@@ -1,7 +1,7 @@
 import { kebabCase } from "lodash";
-import { ProviderNames } from "./types";
+import { ProviderName } from "./types";
 
-export function getFormCopy(entityType?: ProviderNames): {
+export function getFormCopy(entityType?: ProviderName): {
   placeholderText: string;
   buttonText: string;
   bottomText: string;
