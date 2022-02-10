@@ -48,8 +48,20 @@ async function getEmbedBlock(
     }));
 }
 
+// @todo replace typeof variants[number] with type BlockVariant when available
+const getVariantProperties = (variant: typeof variants[number]) => {
+  return {
+    ...variant.properties,
+    embedType: variant.properties?.embedType as ProviderName,
+    ...variant.examples?.[0],
+  };
+};
+
 function AppComponent() {
-  const [state, setState] = useState<EmbedDataType>(initialEmbedData);
+  const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
+  const [state, setState] = useState<EmbedDataType>(
+    getVariantProperties(variants[selectedVariantIndex]),
+  );
 
   const updateState = (newState: Partial<EmbedDataType>) => {
     setState((prevState) => ({
@@ -67,8 +79,6 @@ function AppComponent() {
     return actions[0].data;
   };
 
-  const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
-
   return (
     <div className={tw`mt-4 w-1/2 mx-auto`}>
       <select
@@ -84,6 +94,7 @@ function AppComponent() {
         ))}
       </select>
       <br />
+      <br />
       <Component
         accountId="uuid-1234-account"
         type="uuid-1234-type"
@@ -93,12 +104,7 @@ function AppComponent() {
         getEmbedBlock={getEmbedBlock}
         updateEntities={updateBlockData}
         {...state}
-        {...{
-          ...variants[selectedVariantIndex].properties,
-          embedType: variants[selectedVariantIndex].properties
-            ?.embedType as ProviderName,
-        }}
-        {...variants[selectedVariantIndex].examples?.[0]}
+        {...getVariantProperties(variants[selectedVariantIndex])}
       />
     </div>
   );
