@@ -1,6 +1,7 @@
-use std::sync::Arc;
-
-use parking_lot::RwLock;
+use std::{
+    ops::{Deref, DerefMut},
+    sync::Arc,
+};
 
 use crate::{
     config::StoreConfig,
@@ -10,7 +11,6 @@ use crate::{
         schema::state::AgentSchema,
         table::{
             pool::{agent::AgentPool, message::MessagePool, BatchPool},
-            proxy::{BatchReadProxy, BatchWriteProxy},
             state::view::StatePools,
         },
     },
@@ -26,7 +26,7 @@ use crate::{
 /// and globals. Due to it being a description of the current environment surrounding the agent,
 /// it's immutable (unlike an agent's specific state).
 pub struct Context {
-    batch: Arc<RwLock<ContextBatch>>,
+    batch: Arc<ContextBatch>,
     /// View of the state from the previous step.
     previous_state: StatePools,
 
@@ -49,7 +49,7 @@ impl Context {
             experiment_id,
         )?;
         Ok(Self {
-            batch: Arc::new(RwLock::new(context_batch)),
+            batch: Arc::new(context_batch),
             previous_state: StatePools::empty(),
             removed_batches: Vec::new(),
         })
@@ -75,12 +75,8 @@ impl Context {
         &mut self.removed_batches
     }
 
-    pub fn read_proxy(&self) -> Result<BatchReadProxy<ContextBatch>> {
-        BatchReadProxy::new(&self.batch)
-    }
-
-    pub fn write_proxy(&mut self) -> Result<BatchWriteProxy<ContextBatch>> {
-        BatchWriteProxy::new(&self.batch)
+    pub fn batch(&self) -> Arc<ContextBatch> {
+        Arc::clone(&self.batch)
     }
 
     pub fn into_pre_context(self) -> PreContext {
@@ -161,10 +157,24 @@ impl Context {
     }
 }
 
+impl Deref for Context {
+    type Target = ContextBatch;
+
+    fn deref(&self) -> &Self::Target {
+        &self.batch
+    }
+}
+
+impl DerefMut for Context {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        Arc::get_mut(&mut self.batch).expect("Could not acquire write access to `Context`")
+    }
+}
+
 /// A subset of the Context that's used while running context packages, as the MessagePool and
 /// AgentPool are possibly invalid and unneeded while building/updating the context.
 pub struct PreContext {
-    batch: Arc<RwLock<ContextBatch>>,
+    batch: Arc<ContextBatch>,
     /// Local metadata
     removed_batches: Vec<String>,
 }
@@ -182,9 +192,7 @@ impl PreContext {
             previous_state: state_snapshot,
             removed_batches: self.removed_batches,
         };
-        context
-            .write_proxy()?
-            .write_from_context_datas(column_writers, num_elements)?;
+        context.write_from_context_datas(column_writers, num_elements)?;
         Ok(context)
     }
 }

@@ -3,10 +3,7 @@ use std::{fmt, sync::Arc};
 use futures::future::join_all;
 
 use crate::{
-    datastore::{
-        prelude::ContextBatch,
-        table::proxy::{BatchReadProxy, StateReadProxy},
-    },
+    datastore::{prelude::ContextBatch, table::proxy::StateReadProxy},
     simulation::comms::message::{SyncCompletionReceiver, SyncCompletionSender},
     worker::{
         error::{Error as WorkerError, Result as WorkerResult},
@@ -97,7 +94,7 @@ impl fmt::Debug for StateSync {
 
 #[derive(derive_new::new, Clone)]
 pub struct ContextBatchSync {
-    pub context_batch: BatchReadProxy<ContextBatch>,
+    pub context_batch: Arc<ContextBatch>,
     pub current_step: usize,
     pub state_group_start_indices: Arc<Vec<usize>>,
 }
