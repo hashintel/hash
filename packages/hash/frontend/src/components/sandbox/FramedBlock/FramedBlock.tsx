@@ -118,6 +118,7 @@ export const FramedBlock: VoidFunctionComponent = () => {
   return (
     <Sentry.ErrorBoundary
       beforeCapture={beforeCapture}
+      // eslint-disable-next-line react/no-unstable-nested-components -- @todo consider refactoring
       fallback={(errorData) => (
         <ErrorBlock {...errorData} onRetry={() => window.location.reload()} />
       )}

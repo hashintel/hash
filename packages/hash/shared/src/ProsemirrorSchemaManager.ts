@@ -79,6 +79,17 @@ export class ProsemirrorSchemaManager {
         return existingSchema.nodes;
       }
 
+      set nodes(newNodes) {
+        for (const [key, value] of Object.entries(newNodes)) {
+          if (!this.nodes[key]) {
+            value.schema = existingSchema;
+            this.nodes[key] = value;
+          } else {
+            this.nodes[key].contentMatch = value.contentMatch;
+          }
+        }
+      }
+
       // @ts-expect-error: This is one of the hacks in our code to allow defining new node types at run time which isn't officially supported in ProseMirror
       get marks() {
         return existingSchema.marks;
@@ -89,17 +100,6 @@ export class ProsemirrorSchemaManager {
           if (!this.marks[key]) {
             value.schema = existingSchema;
             this.marks[key] = value;
-          }
-        }
-      }
-
-      set nodes(newNodes) {
-        for (const [key, value] of Object.entries(newNodes)) {
-          if (!this.nodes[key]) {
-            value.schema = existingSchema;
-            this.nodes[key] = value;
-          } else {
-            this.nodes[key].contentMatch = value.contentMatch;
           }
         }
       }
