@@ -1,11 +1,11 @@
 [
   {
     "behaviors": [
-      "@hash/create_layout.js",
+      "@hash/create-layout/create_layout.js",
       "create_delivery_positions.js",
       "update_agents.js",
-      "@hash/create_agents.js",
-      "@hash/remove_self.js"
+      "create_agents.js",
+      "remove_self.js"
     ],
     "agents": {
       "forklift_manager": [
