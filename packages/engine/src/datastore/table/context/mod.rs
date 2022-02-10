@@ -97,7 +97,7 @@ impl Context {
     /// This can result in a change in the number of groups and batches within the `Context`,
     /// and thus it requires mutable access to the state to update the group start indices which
     /// refer to the `Context`.
-    pub fn synchronize_agent_pool(
+    pub fn update_agent_snapshot(
         &mut self,
         state: &mut State,
         agent_schema: &AgentSchema,
@@ -117,7 +117,7 @@ impl Context {
         //  refer to context/state (respectively)
         // Release write access to the agent pool, so
         // we can remove batches from it.
-        drop(static_pool); 
+        drop(static_pool);
         let static_pool = self.agent_pool_mut();
 
         #[allow(clippy::comparison_chain)]

@@ -293,7 +293,7 @@ impl Engine {
         state: &mut State,
         context: &mut Context,
     ) -> Result<AgentPool> {
-        context.synchronize_agent_pool(
+        context.update_agent_snapshot(
             state,
             &self.config.sim.store.agent_schema,
             &self.config.exp.run.base().id,
