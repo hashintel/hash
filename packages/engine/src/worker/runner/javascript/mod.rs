@@ -1081,6 +1081,7 @@ impl<'m> RunnerImpl<'m> {
     ) -> Result<()> {
         // Sync JS.
         let (agent_batches, msg_batches, group_indices) = batches_from_shared_store(shared_store)?;
+        // TODO: Pass `agent_pool` and `msg_pool` by reference
         let (agent_batches, msg_batches) =
             state_to_js(mv8, agent_batches.into_iter(), msg_batches.into_iter())?;
         let args = mv8::Values::from_vec(vec![
