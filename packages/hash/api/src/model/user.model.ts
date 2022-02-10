@@ -376,15 +376,15 @@ class __User extends Account {
     }).then(() => verificationCode);
   }
 
-  async canCreateVerificationCode(client: DBClient) {
-    const createdAfter = getEmailRateLimitQueryTime();
-    const verificationCodes = await client.getUserVerificationCodes({
-      userEntityId: this.entityId,
-      createdAfter,
-    });
-    if (verificationCodes.length >= EMAIL_RATE_LIMITING_MAX_ATTEMPTS) {
-      return false;
-    }
+  async canCreateVerificationCode(_client: DBClient) {
+    // const createdAfter = getEmailRateLimitQueryTime();
+    // const verificationCodes = await client.getUserVerificationCodes({
+    //   userEntityId: this.entityId,
+    //   createdAfter,
+    // });
+    // if (verificationCodes.length >= EMAIL_RATE_LIMITING_MAX_ATTEMPTS) {
+    //   return false;
+    // }
     return true;
   }
 

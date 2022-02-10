@@ -4197,6 +4197,25 @@
   resolved "https://registry.yarnpkg.com/@protobufjs/utf8/-/utf8-1.1.0.tgz#a777360b5b39a1a2e5106f8e858f2fd2d060c570"
   integrity sha1-p3c2C1s5oaLlEG+OhY8v0tBgxXA=
 
+"@recordreplay/playwright@1.10.7":
+  version "1.10.7"
+  resolved "https://registry.yarnpkg.com/@recordreplay/playwright/-/playwright-1.10.7.tgz#3f044c0e0b4ad2d5215ec9755d8183b66007e06c"
+  integrity sha512-1pIFEsGHccy1Sl303haO2xtsF8mQPIpIW8yM1ajSNkBUKK23Bvra26ydnUjMWgJP8cl5MwWKojoVqCV0TRjwKg==
+  dependencies:
+    commander "^6.1.0"
+    debug "^4.1.1"
+    extract-zip "^2.0.1"
+    https-proxy-agent "^5.0.0"
+    jpeg-js "^0.4.2"
+    mime "^2.4.6"
+    pngjs "^5.0.0"
+    progress "^2.0.3"
+    proper-lockfile "^4.1.1"
+    proxy-from-env "^1.1.0"
+    rimraf "^3.0.2"
+    stack-utils "^2.0.3"
+    ws "^7.3.1"
+
 "@rjsf/core@3.2.0":
   version "3.2.0"
   resolved "https://registry.yarnpkg.com/@rjsf/core/-/core-3.2.0.tgz#189ff7fb132cb223463792d75fb1e04e9dd5d9f9"
