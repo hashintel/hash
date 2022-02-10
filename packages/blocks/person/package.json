@@ -5,7 +5,7 @@
   "description": "person block component",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hashintel/hash.git",
+    "url": "https://github.com/hashintel/hash.git#main",
     "directory": "packages/blocks/person"
   },
   "license": "MIT",
