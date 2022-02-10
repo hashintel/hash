@@ -30,11 +30,20 @@ impl<'a> MigrationPlan<'a> {
         }
     }
 
-    pub fn execute(self, state_agent_pool: &mut AgentPool, config: &SimRunConfig) -> Result<Vec<String>> {
+    pub fn execute(
+        self,
+        state_agent_pool: &mut AgentPool,
+        config: &SimRunConfig,
+    ) -> Result<Vec<String>> {
         // tracing::debug!("Updating");
         self.existing_mutations
             .par_iter()
-            .zip_eq(state_agent_pool.write_proxies()?.batches_mut().par_iter_mut())
+            .zip_eq(
+                state_agent_pool
+                    .write_proxies()?
+                    .batches_mut()
+                    .par_iter_mut(),
+            )
             .try_for_each::<_, Result<()>>(|(action, batch)| {
                 match action {
                     ExistingGroupBufferActions::Persist { affinity } => {
