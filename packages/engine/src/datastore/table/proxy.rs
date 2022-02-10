@@ -109,7 +109,7 @@ impl<K: Batch> BatchWriteProxy<K> {
 
     pub fn downgrade(self) -> BatchReadProxy<K> {
         // Don't drop this, otherwise it would call `raw.unlock_exclusive()`
-        // We can't destruccture this because `Drop` is implemented
+        // We can't destructure this because `Drop` is implemented
         let this = mem::ManuallyDrop::new(self);
 
         // Read the value from `self`
