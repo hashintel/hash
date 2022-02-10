@@ -20,7 +20,7 @@ trait Pool<B> {
     fn get_batches_mut(&mut self) -> &mut Vec<Arc<RwLock<B>>>;
 }
 
-/// A pool is an ordered collection of batches, where each group of agents within a simulation run 
+/// A pool is an ordered collection of batches, where each group of agents within a simulation run
 /// is associated to a batch in the pool.
 pub trait BatchPool<B: Batch>: Send + Sync {
     fn new(batches: Vec<Arc<RwLock<B>>>) -> Self;
