@@ -133,9 +133,7 @@ impl State {
         let removed_ids = plan.execute(self.agent_pool_mut(), config)?;
 
         // Register all batches that were removed
-        for id in removed_ids {
-            self.removed_batches().push(id);
-        }
+        self.removed_batches().extend(removed_ids.into_iter());
         Ok(())
     }
 
