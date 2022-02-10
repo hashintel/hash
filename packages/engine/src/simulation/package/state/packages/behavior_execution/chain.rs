@@ -10,12 +10,12 @@ use crate::{
 };
 
 pub fn gather_behavior_chains<B: Deref<Target = AgentBatch>>(
-    agents: &[B],
+    agent_batches: &[B],
     behavior_ids: &BehaviorIds,
     data_types: [arrow::datatypes::DataType; 3],
     behavior_ids_col_index: usize,
 ) -> Result<StateColumn> {
-    let inner = iterators::agent::behavior_list_bytes_iter(agents)?
+    let inner = iterators::agent::behavior_list_bytes_iter(agent_batches)?
         .map(|v| Chain::from_behaviors(&v, behavior_ids))
         .collect::<Result<Vec<_>>>()?;
     Ok(StateColumn::new(Box::new(ChainList {
