@@ -80,19 +80,19 @@ impl GetWorkerSimStartMsg for AgentMessages {
 impl Package for AgentMessages {
     async fn run<'s>(
         &mut self,
-        state: Arc<State>,
+        state_proxy: StateReadProxy,
         snapshot: Arc<StateSnapshot>,
     ) -> Result<Vec<ContextColumn>> {
         // We want to pass the span for the package to the writer, so that the write() call isn't
         // nested under the run span
         let pkg_span = Span::current();
         let _run_entered = tracing::trace_span!("run").entered();
-        let agent_pool = state.agent_pool();
-        let batches = agent_pool.try_read_batches()?;
+        let agent_pool = state_proxy.agent_pool();
+        let batches = agent_pool.batches();
         let id_name_iter = iterators::agent::agent_id_iter(&batches)?
             .zip(iterators::agent::agent_name_iter(&batches)?);
 
-        let messages = Messages::gather(snapshot.message_map(), id_name_iter)?;
+        let messages = Messages::gather(&snapshot.message_map, id_name_iter)?;
         let field_key = self
             .context_field_spec_accessor
             .get_agent_scoped_field_spec(MESSAGES_FIELD_NAME)?

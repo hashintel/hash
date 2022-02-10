@@ -16,6 +16,7 @@ use crate::{
     datastore::{
         batch::iterators,
         schema::{accessor::GetFieldSpec, FieldKey},
+        table::pool::BatchPool,
     },
     simulation::{
         comms::package::PackageComms,
@@ -85,7 +86,7 @@ impl GetWorkerSimStartMsg for ApiRequests {
 impl Package for ApiRequests {
     async fn run<'s>(
         &mut self,
-        state: Arc<State>,
+        state_proxy: StateReadProxy,
         snapshot: Arc<StateSnapshot>,
     ) -> Result<Vec<ContextColumn>> {
         // We want to pass the span for the package to the writer, so that the write() call isn't
@@ -103,8 +104,8 @@ impl Package for ApiRequests {
 
         let _entered = run_span.entered(); // The rest of this is sync so this is fine
 
-        let agent_pool = state.agent_pool();
-        let batches = agent_pool.try_read_batches()?;
+        let agent_pool = state_proxy.agent_pool();
+        let batches = agent_pool.batches();
         let responses_per_agent = iterators::agent::agent_id_iter(&batches)?
             .map(move |agent_id| {
                 let mut ext_responses = vec![];
@@ -196,14 +197,11 @@ async fn build_api_response_maps(
 ) -> Result<Vec<ApiResponseMap>> {
     let mut futs = FuturesOrdered::new();
     {
-        let message_pool = snapshot.message_pool();
-        let message_pool_read = message_pool
-            .read()
-            .map_err(|e| Error::from(e.to_string()))?;
-        let reader = message_pool_read.get_reader();
+        let message_proxies = &snapshot.state.message_pool.read_proxies()?;
+        let reader = message_proxies.get_reader();
 
         handlers.iter().try_for_each::<_, Result<()>>(|handler| {
-            let messages = snapshot.message_map().get_msg_refs(handler);
+            let messages = snapshot.message_map.get_msg_refs(handler);
             if !messages.is_empty() {
                 let messages = handlers::gather_requests(&reader, messages)?;
                 futs.push(handlers::run_custom_message_handler(handler, messages))

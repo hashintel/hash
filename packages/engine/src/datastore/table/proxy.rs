@@ -19,16 +19,22 @@
 //  self referential unsafe stuff only applies to batches
 use std::{
     fmt::{Debug, Formatter},
+    mem,
+    ops::{Deref, DerefMut},
+    ptr,
     sync::Arc,
 };
 
-use parking_lot::{lock_api::RawRwLock, RwLock};
+use parking_lot::{
+    lock_api::{RawRwLock, RawRwLockDowngrade},
+    RwLock,
+};
 
 use super::pool::proxy::{PoolReadProxy, PoolWriteProxy};
 use crate::datastore::{
     batch::Batch,
     prelude::{AgentBatch, Error, MessageBatch, Result},
-    table::{pool::BatchPool, state::State},
+    table::{pool::BatchPool, state::view::StatePools},
 };
 
 /// A thread-sendable guard for reading a batch, see module-level documentation for more reasoning.
@@ -43,11 +49,15 @@ impl<K: Batch> BatchReadProxy<K> {
         if unsafe { RwLock::raw(arc).try_lock_shared() } {
             Ok(BatchReadProxy { arc: arc.clone() })
         } else {
-            Err(Error::from("Couldn't acquire shared lock on object"))
+            Err(Error::ProxySharedLock)
         }
     }
+}
 
-    pub fn batch(&self) -> &K {
+impl<K: Batch> Deref for BatchReadProxy<K> {
+    type Target = K;
+
+    fn deref(&self) -> &Self::Target {
         let ptr = self.arc.data_ptr();
         // SAFETY: `BatchReadProxy` is guaranteed to contain a shared lock acquired in `new()`, thus
         // it's safe to dereference the shared underlying `data_ptr`.
@@ -93,18 +103,40 @@ impl<K: Batch> BatchWriteProxy<K> {
         if unsafe { RwLock::raw(arc).try_lock_exclusive() } {
             Ok(BatchWriteProxy { arc: arc.clone() })
         } else {
-            Err(Error::from("Couldn't acquire exclusive lock on object"))
+            Err(Error::ProxyExclusiveLock)
         }
     }
 
-    pub fn batch(&self) -> &K {
+    pub fn downgrade(self) -> BatchReadProxy<K> {
+        // Don't drop this, otherwise it would call `raw.unlock_exclusive()`
+        // We can't destructure this because `Drop` is implemented
+        let this = mem::ManuallyDrop::new(self);
+
+        // Read the value from `self`
+        // SAFETY: `arc` is a "valid" value and isn't dropped by `BatchWriteProxy`.
+        let arc = unsafe { ptr::read(&this.arc) };
+
+        // SAFETY: `BatchWriteProxy` is guaranteed to contain a unique lock acquired in `new()`,
+        //   thus it's safe to downgrade the unique lock to a shared lock.
+        unsafe { RwLock::raw(&arc).downgrade() }
+
+        BatchReadProxy { arc }
+    }
+}
+
+impl<K: Batch> Deref for BatchWriteProxy<K> {
+    type Target = K;
+
+    fn deref(&self) -> &Self::Target {
         let ptr = self.arc.data_ptr();
         // SAFETY: `BatchWriteProxy` is guaranteed to contain a unique lock acquired in `new()`,
         // thus it's safe to dereference the shared underlying `data_ptr`.
         unsafe { &*ptr }
     }
+}
 
-    pub fn batch_mut(&mut self) -> &mut K {
+impl<K: Batch> DerefMut for BatchWriteProxy<K> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
         let ptr = self.arc.data_ptr();
         // SAFETY: `BatchWriteProxy` is guaranteed to contain a unique lock acquired in `new()`,
         // thus it's safe to dereference the unique underlying `data_ptr`.
@@ -121,15 +153,15 @@ impl<K: Batch> Drop for BatchWriteProxy<K> {
 }
 
 pub struct StateReadProxy {
-    agent_pool_proxy: PoolReadProxy<AgentBatch>,
-    message_pool_proxy: PoolReadProxy<MessageBatch>,
+    pub agent_proxies: PoolReadProxy<AgentBatch>,
+    pub message_proxies: PoolReadProxy<MessageBatch>,
 }
 
 impl Clone for StateReadProxy {
     fn clone(&self) -> Self {
         Self {
-            agent_pool_proxy: self.agent_pool_proxy.clone(),
-            message_pool_proxy: self.message_pool_proxy.clone(),
+            agent_proxies: self.agent_proxies.clone(),
+            message_proxies: self.message_proxies.clone(),
         }
     }
 }
@@ -147,8 +179,8 @@ impl
         ),
     ) -> Self {
         Self {
-            agent_pool_proxy: PoolReadProxy::from(batches.0),
-            message_pool_proxy: PoolReadProxy::from(batches.1),
+            agent_proxies: PoolReadProxy::from(batches.0),
+            message_proxies: PoolReadProxy::from(batches.1),
         }
     }
 }
@@ -160,17 +192,17 @@ impl Debug for StateReadProxy {
 }
 
 impl StateReadProxy {
-    pub fn new(state: &State) -> Result<Self> {
+    pub fn new(state: &StatePools) -> Result<Self> {
         Ok(StateReadProxy {
-            agent_pool_proxy: state.agent_pool().read_proxy()?,
-            message_pool_proxy: state.message_pool().read_proxy()?,
+            agent_proxies: state.agent_pool.read_proxies()?,
+            message_proxies: state.message_pool.read_proxies()?,
         })
     }
 
-    pub fn new_partial(state: &State, indices: &[usize]) -> Result<Self> {
+    pub fn new_partial(state: &StatePools, group_indices: &[usize]) -> Result<Self> {
         Ok(StateReadProxy {
-            agent_pool_proxy: state.agent_pool().partial_read_proxy(indices)?,
-            message_pool_proxy: state.message_pool().partial_read_proxy(indices)?,
+            agent_proxies: state.agent_pool.partial_read_proxies(group_indices)?,
+            message_proxies: state.message_pool.partial_read_proxies(group_indices)?,
         })
     }
 
@@ -181,21 +213,29 @@ impl StateReadProxy {
         Vec<BatchReadProxy<MessageBatch>>,
     ) {
         (
-            self.agent_pool_proxy.deconstruct(),
-            self.message_pool_proxy.deconstruct(),
+            self.agent_proxies.deconstruct(),
+            self.message_proxies.deconstruct(),
         )
     }
 
     pub fn agent_pool(&self) -> &PoolReadProxy<AgentBatch> {
-        &self.agent_pool_proxy
+        &self.agent_proxies
+    }
+
+    pub fn agent_pool_mut(&mut self) -> &mut PoolReadProxy<AgentBatch> {
+        &mut self.agent_proxies
     }
 
     pub fn message_pool(&self) -> &PoolReadProxy<MessageBatch> {
-        &self.message_pool_proxy
+        &self.message_proxies
+    }
+
+    pub fn message_pool_mut(&mut self) -> &mut PoolReadProxy<MessageBatch> {
+        &mut self.message_proxies
     }
 
     pub fn n_accessible_agents(&self) -> usize {
-        self.agent_pool_proxy
+        self.agent_proxies
             .batches()
             .into_iter()
             .map(|batch| batch.num_agents())
@@ -204,8 +244,8 @@ impl StateReadProxy {
 }
 
 pub struct StateWriteProxy {
-    agent_pool_proxy: PoolWriteProxy<AgentBatch>,
-    message_pool_proxy: PoolWriteProxy<MessageBatch>,
+    agent_proxies: PoolWriteProxy<AgentBatch>,
+    message_proxies: PoolWriteProxy<MessageBatch>,
 }
 
 impl Debug for StateWriteProxy {
@@ -227,24 +267,24 @@ impl
         ),
     ) -> Self {
         Self {
-            agent_pool_proxy: PoolWriteProxy::from(batches.0),
-            message_pool_proxy: PoolWriteProxy::from(batches.1),
+            agent_proxies: PoolWriteProxy::from(batches.0),
+            message_proxies: PoolWriteProxy::from(batches.1),
         }
     }
 }
 
 impl StateWriteProxy {
-    pub fn new(state: &mut State) -> Result<Self> {
+    pub fn new(state: &mut StatePools) -> Result<Self> {
         Ok(StateWriteProxy {
-            agent_pool_proxy: state.agent_pool_mut().write_proxy()?,
-            message_pool_proxy: state.message_pool_mut().write_proxy()?,
+            agent_proxies: state.agent_pool.write_proxies()?,
+            message_proxies: state.message_pool.write_proxies()?,
         })
     }
 
-    pub fn new_partial(state: &mut State, indices: &[usize]) -> Result<Self> {
+    pub fn new_partial(state: &mut StatePools, group_indices: &[usize]) -> Result<Self> {
         Ok(StateWriteProxy {
-            agent_pool_proxy: state.agent_pool_mut().partial_write_proxy(indices)?,
-            message_pool_proxy: state.message_pool_mut().partial_write_proxy(indices)?,
+            agent_proxies: state.agent_pool.partial_write_proxies(group_indices)?,
+            message_proxies: state.message_pool.partial_write_proxies(group_indices)?,
         })
     }
 
@@ -255,32 +295,31 @@ impl StateWriteProxy {
         Vec<BatchWriteProxy<MessageBatch>>,
     ) {
         (
-            self.agent_pool_proxy.deconstruct(),
-            self.message_pool_proxy.deconstruct(),
+            self.agent_proxies.deconstruct(),
+            self.message_proxies.deconstruct(),
         )
     }
 
     pub fn agent_pool(&self) -> &PoolWriteProxy<AgentBatch> {
-        &self.agent_pool_proxy
+        &self.agent_proxies
     }
 
     pub fn agent_pool_mut(&mut self) -> &mut PoolWriteProxy<AgentBatch> {
-        &mut self.agent_pool_proxy
+        &mut self.agent_proxies
     }
 
     pub fn message_pool(&self) -> &PoolWriteProxy<MessageBatch> {
-        &self.message_pool_proxy
+        &self.message_proxies
     }
 
     pub fn message_pool_mut(&mut self) -> &mut PoolWriteProxy<MessageBatch> {
-        &mut self.message_pool_proxy
+        &mut self.message_proxies
     }
 
     pub fn n_accessible_agents(&self) -> usize {
-        self.agent_pool_proxy
-            .batches()
-            .into_iter()
-            .map(|batch| batch.num_agents())
+        self.agent_proxies
+            .batches_iter()
+            .map(AgentBatch::num_agents)
             .sum()
     }
 }

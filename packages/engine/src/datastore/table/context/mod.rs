@@ -2,16 +2,17 @@ use std::sync::Arc;
 
 use parking_lot::RwLock;
 
-use super::{
-    meta::Meta,
-    pool::{agent::AgentPool, message::MessagePool},
-    state::view::StateSnapshot,
-};
 use crate::{
     config::StoreConfig,
     datastore::{
+        batch::DynamicBatch,
         prelude::*,
-        table::proxy::{BatchReadProxy, BatchWriteProxy},
+        schema::state::AgentSchema,
+        table::{
+            pool::{agent::AgentPool, message::MessagePool, BatchPool},
+            proxy::{BatchReadProxy, BatchWriteProxy},
+            state::view::StatePools,
+        },
     },
     proto::ExperimentId,
     simulation::package::context::ContextColumn,
@@ -26,14 +27,11 @@ use crate::{
 /// it's immutable (unlike an agent's specific state).
 pub struct Context {
     batch: Arc<RwLock<ContextBatch>>,
-    // TODO: replace these two fields with `StateSnapshot`
-    /// Agent Batches that are a snapshot of state from the previous step.
-    agent_pool: AgentPool,
-    /// Pool that are a snapshot of the message batches from the previous step.
-    message_pool: MessagePool,
-    // TODO: remove Meta, just move in removed_ids
+    /// View of the state from the previous step.
+    previous_state: StatePools,
+
     /// The IDs of the batches that were removed between this step and the last.
-    local_meta: Meta,
+    removed_batches: Vec<String>,
 }
 
 impl Context {
@@ -52,30 +50,29 @@ impl Context {
         )?;
         Ok(Self {
             batch: Arc::new(RwLock::new(context_batch)),
-            agent_pool: AgentPool::empty(),
-            message_pool: MessagePool::empty(),
-            local_meta: Meta::default(),
+            previous_state: StatePools::empty(),
+            removed_batches: Vec::new(),
         })
     }
 
     pub fn agent_pool(&self) -> &AgentPool {
-        &self.agent_pool
+        &self.previous_state.agent_pool
     }
 
     pub fn agent_pool_mut(&mut self) -> &mut AgentPool {
-        &mut self.agent_pool
+        &mut self.previous_state.agent_pool
     }
 
     pub fn take_agent_pool(&mut self) -> AgentPool {
-        std::mem::replace(&mut self.agent_pool, AgentPool::empty())
+        std::mem::replace(&mut self.previous_state.agent_pool, AgentPool::empty())
     }
 
     pub fn take_message_pool(&mut self) -> MessagePool {
-        std::mem::replace(&mut self.message_pool, MessagePool::empty())
+        std::mem::replace(&mut self.previous_state.message_pool, MessagePool::empty())
     }
 
-    pub fn local_meta(&mut self) -> &mut Meta {
-        &mut self.local_meta
+    pub fn removed_batches(&mut self) -> &mut Vec<String> {
+        &mut self.removed_batches
     }
 
     pub fn read_proxy(&self) -> Result<BatchReadProxy<ContextBatch>> {
@@ -89,8 +86,78 @@ impl Context {
     pub fn into_pre_context(self) -> PreContext {
         PreContext {
             batch: self.batch,
-            local_meta: self.local_meta,
+            removed_batches: self.removed_batches,
         }
+    }
+
+    /// Copies the current agent `State` into the `Context`.
+    ///
+    /// This should happen before running state packages, which will store a snapshot of the state.
+    ///
+    /// This can result in a change in the number of groups and batches within the `Context`,
+    /// and thus it requires mutable access to the state to update the group start indices which
+    /// refer to the `Context`.
+    pub fn update_agent_snapshot(
+        &mut self,
+        state: &mut State,
+        agent_schema: &AgentSchema,
+        experiment_id: &ExperimentId,
+    ) -> Result<()> {
+        let mut static_pool = self.agent_pool_mut().write_proxies()?;
+        let dynamic_pool = state.agent_pool().read_proxies()?;
+
+        for (static_batch, dynamic_batch) in static_pool
+            .batches_iter_mut()
+            .zip(dynamic_pool.batches_iter())
+        {
+            static_batch.sync(dynamic_batch)?;
+        }
+
+        // TODO search everywhere and replace static_pool and dynamic_pool to more descriptively
+        //  refer to context/state (respectively)
+        // Release write access to the agent pool, so
+        // we can remove batches from it.
+        drop(static_pool);
+        let static_pool = self.agent_pool_mut();
+
+        #[allow(clippy::comparison_chain)]
+        if dynamic_pool.len() > static_pool.len() {
+            // Add more static batches
+            for batch in &dynamic_pool[static_pool.len()..dynamic_pool.len()] {
+                static_pool.push(AgentBatch::duplicate_from(
+                    batch,
+                    agent_schema,
+                    experiment_id,
+                )?);
+            }
+        } else if dynamic_pool.len() < static_pool.len() {
+            // Remove unneeded static batches
+            let mut removed_ids = Vec::with_capacity(static_pool.len() - dynamic_pool.len());
+            for remove_index in (dynamic_pool.len()..static_pool.len()).rev() {
+                let removed_agent_proxy = static_pool.remove(remove_index)?;
+                removed_ids.push(removed_agent_proxy.get_batch_id().to_string());
+            }
+            removed_ids
+                .into_iter()
+                .for_each(|id| self.removed_batches.push(id));
+        }
+
+        // State group start indices need to be updated, because we
+        // might have added/removed agents to/from groups.
+        let mut cumulative_num_agents = 0;
+        let group_start_indices = Arc::new(
+            dynamic_pool
+                .batches_iter()
+                .map(|batch| {
+                    let n = cumulative_num_agents;
+                    cumulative_num_agents += batch.num_agents();
+                    n
+                })
+                .collect(),
+        );
+        drop(dynamic_pool);
+        state.set_group_start_indices(group_start_indices);
+        Ok(())
     }
 }
 
@@ -99,27 +166,24 @@ impl Context {
 pub struct PreContext {
     batch: Arc<RwLock<ContextBatch>>,
     /// Local metadata
-    local_meta: Meta,
+    removed_batches: Vec<String>,
 }
 
 impl PreContext {
     /// TODO: DOC
     pub fn finalize(
         self,
-        snapshot: StateSnapshot,
+        state_snapshot: StatePools,
         column_writers: &[&ContextColumn],
         num_elements: usize,
     ) -> Result<Context> {
-        let (agent_pool, message_pool) = snapshot.deconstruct();
         let mut context = Context {
             batch: self.batch,
-            agent_pool,
-            message_pool,
-            local_meta: self.local_meta,
+            previous_state: state_snapshot,
+            removed_batches: self.removed_batches,
         };
         context
             .write_proxy()?
-            .batch_mut()
             .write_from_context_datas(column_writers, num_elements)?;
         Ok(context)
     }

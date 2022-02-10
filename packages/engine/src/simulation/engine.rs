@@ -12,9 +12,12 @@ use crate::{
         prelude::Store,
         table::{
             context::Context,
-            pool::{agent::AgentPool, message::MessagePool},
+            pool::{agent::AgentPool, message::MessagePool, BatchPool},
             references::MessageMap,
-            state::{view::StateSnapshot, State},
+            state::{
+                view::{StatePools, StateSnapshot},
+                State,
+            },
         },
     },
     proto::ExperimentRunTrait,
@@ -132,6 +135,8 @@ impl Engine {
             self.prepare_for_context_packages(&mut state, &mut context)?
         };
 
+        let state_proxy = snapshot.state.read()?;
+
         // Context packages use the snapshot and state packages use state.
         // Context packages will be ran before state packages, so start
         // snapshot sync before state sync, so workers have more time to
@@ -139,18 +144,13 @@ impl Engine {
 
         // Synchronize snapshot with workers
         self.comms
-            .state_snapshot_sync(&snapshot)
+            .state_snapshot_sync(state_proxy.clone())
             .instrument(tracing::info_span!("snapshot_sync"))
             .await?;
 
-        // After this point, we'll only need read access to state until
-        // running the first state package. (Context packages don't have
-        // write access to state.)
-        // TODO: Not needed anymore. Change `State` to use proxies instead
-        let state = Arc::new(state);
         // Synchronize state with workers
         async {
-            let active_sync = self.comms.state_sync(&state).await?;
+            let active_sync = self.comms.state_sync(state_proxy.clone()).await?;
 
             // TODO: fix issues with getting write access to the message batch while state sync runs
             //  in parallel with context packages
@@ -167,7 +167,13 @@ impl Engine {
         let context = self
             .packages
             .step
-            .run_context(state.clone(), snapshot, pre_context)
+            .run_context(
+                &state_proxy,
+                snapshot,
+                pre_context,
+                state.num_agents(),
+                state.sim_config(),
+            )
             .instrument(tracing::info_span!("run_context_packages"))
             .await?;
 
@@ -192,15 +198,13 @@ impl Engine {
 
         // State sync finished, so the workers should have dropped
         // their `Arc`s with state by this point.
-        let state = Arc::try_unwrap(state)
-            .map_err(|_| Error::from("Unable to unwrap state after context package execution"))?;
         self.store.set(state, context);
         Ok(())
     }
 
     async fn run_state_packages(&mut self) -> Result<()> {
-        let (state, context) = self.store.take()?;
-        let state = self.packages.step.run_state(state, &context).await?;
+        let (mut state, context) = self.store.take()?;
+        self.packages.step.run_state(&mut state, &context).await?;
         self.store.set(state, context);
         Ok(())
     }
@@ -210,11 +214,7 @@ impl Engine {
         let state = Arc::new(state);
         let context = Arc::new(context);
 
-        let output = self
-            .packages
-            .step
-            .run_output(state.clone(), context.clone())
-            .await?;
+        let output = self.packages.step.run_output(&state, &context).await?;
         let state = Arc::try_unwrap(state)
             .map_err(|_| Error::from("Unable to unwrap state after output package execution"))?;
         let context = Arc::try_unwrap(context)
@@ -249,7 +249,14 @@ impl Engine {
         self.handle_messages(state, &message_map)?;
         let message_pool = self.finalize_agent_messages(state, context)?;
         let agent_pool = self.finalize_agent_state(state, context)?;
-        Ok(StateSnapshot::new(agent_pool, message_pool, message_map))
+        let state_view = StatePools {
+            agent_pool,
+            message_pool,
+        };
+        Ok(StateSnapshot {
+            state: state_view,
+            message_map,
+        })
     }
 
     /// Handles messages from the agents
@@ -258,8 +265,8 @@ impl Engine {
     /// through agent inboxes. Also creates and removes agents that have been requested by State
     /// packages.
     fn handle_messages(&mut self, state: &mut State, message_map: &MessageMap) -> Result<()> {
-        let read = state.message_pool().read()?;
-        let mut commands = Commands::from_hash_messages(message_map, read)?;
+        let message_proxies = state.message_pool().read_proxies()?;
+        let mut commands = Commands::from_hash_messages(message_map, message_proxies)?;
         commands.merge(self.comms.take_commands()?);
         commands.verify(&self.config.sim.store.agent_schema)?;
         self.stop_messages = commands.stop;
@@ -286,8 +293,8 @@ impl Engine {
         state: &mut State,
         context: &mut Context,
     ) -> Result<AgentPool> {
-        state.finalize_context_agent_pool(
-            context,
+        context.update_agent_snapshot(
+            state,
             &self.config.sim.store.agent_schema,
             &self.config.exp.run.base().id,
         )?;
