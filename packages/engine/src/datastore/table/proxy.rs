@@ -138,8 +138,8 @@ impl<K: Batch> Deref for BatchWriteProxy<K> {
 impl<K: Batch> DerefMut for BatchWriteProxy<K> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         let ptr = self.arc.data_ptr();
-        // SAFETY: `BatchWriteProxy` is guaranteed to contain a shared lock acquired in `new()`,
-        // thus it's safe to dereference the shared underlying `data_ptr`.
+        // SAFETY: `BatchWriteProxy` is guaranteed to contain a unique lock acquired in `new()`,
+        // thus it's safe to dereference the unique underlying `data_ptr`.
         unsafe { &mut *ptr }
     }
 }
