@@ -16,6 +16,19 @@ export type SearchResult = {
   hits: SearchHit[];
 };
 
+export type SearchCursor = string;
+
+export type SearchResultPaginated = SearchResult & {
+  cursor?: SearchCursor;
+  total: number;
+};
+
+export type SearchParameters = {
+  index: string;
+  field: string;
+  query: string | number | boolean | Date;
+};
+
 /** `SearchAdapter` specifies a generic interface to a search index. */
 export interface SearchAdapter extends DataSource {
   /**
@@ -37,9 +50,24 @@ export interface SearchAdapter extends DataSource {
    * @param params.field the document field to search.
    * @param params.query the value to search for in the provided `field`.
    * */
-  search(params: {
-    index: string;
-    field: string;
-    query: string | number | boolean | Date;
-  }): Promise<SearchResult>;
+  search(params: SearchParameters): Promise<SearchResult>;
+
+  /**
+   * Perform a full-text, paginated search on the given index.
+   * @param params.pageSize maximum amount of hits to return per page
+   * @param params.index the name of the search index.
+   * @param params.field the document field to search.
+   * @param params.query the value to search for in the provided `field`.
+   * */
+  startPaginatedSearch(
+    params: SearchParameters & { pageSize: number },
+  ): Promise<SearchResultPaginated>;
+
+  /**
+   * Continue paginating given a cursor
+   * @param params.cursor the search cursor to fetch hits form
+   * */
+  continuePaginatedSearch(params: {
+    cursor: SearchCursor;
+  }): Promise<SearchResultPaginated>;
 }
