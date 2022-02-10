@@ -90,12 +90,14 @@ impl Context {
         }
     }
 
-    /// Copies the current agent `State` into the `Context` before running state packages, which
-    /// stores a snapshot of state at the end of the last step.
+    /// Copies the current agent `State` into the `Context`.
+    ///
+    /// This should happen before running state packages, which will store a snapshot of the state.
     ///
     /// This can result in a change in the number of groups and batches within the `Context`,
-    /// and thus it updates the group start indices registered in `state`.
-    pub fn finalize_agent_pool(
+    /// and thus it requires mutable access to the state to update the group start indices which
+    /// refer to the `Context`.
+    pub fn synchronize_agent_pool(
         &mut self,
         state: &mut State,
         agent_schema: &AgentSchema,
