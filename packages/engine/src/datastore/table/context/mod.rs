@@ -169,13 +169,13 @@ impl PreContext {
     /// TODO: DOC
     pub fn finalize(
         self,
-        state: StatePools,
+        state_snapshot: StatePools,
         column_writers: &[&ContextColumn],
         num_elements: usize,
     ) -> Result<Context> {
         let mut context = Context {
             batch: self.batch,
-            previous_state: state,
+            previous_state: state_snapshot,
             removed_batches: self.removed_batches,
         };
         context
