@@ -19,7 +19,10 @@ import { useUser } from "../components/hooks/useUser";
 
 export const apolloClient = createApolloClient();
 
-function MyApp({ Component, pageProps }: AppProps) {
+const MyApp: React.VoidFunctionComponent<AppProps> = ({
+  Component,
+  pageProps,
+}) => {
   const router = useRouter();
 
   const { user } = useUser({ client: apolloClient });
@@ -52,6 +55,6 @@ function MyApp({ Component, pageProps }: AppProps) {
       </ModalProvider>
     </ApolloProvider>
   );
-}
+};
 
 export default withTwindApp(twindConfig, MyApp);
