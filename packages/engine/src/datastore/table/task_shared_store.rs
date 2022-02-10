@@ -118,7 +118,7 @@ impl TaskSharedStoreBuilder {
     }
 
     /// Allow the task runners to have read access to the context object
-    pub fn read_context(mut self, _context_proxy: &Context) -> Result<Self> {
+    pub fn read_context(mut self, _context: &Context) -> Result<Self> {
         self.inner.context = SharedContext::Read;
         Ok(self)
     }
