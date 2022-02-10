@@ -136,7 +136,7 @@ mod air_defense_system {
     run_test!(air_defense_system, experiment: radar_location_values);
 }
 
-// https://core.hash.ai/@hash/city-infection-model-with-vaccine/main at 2022-02-02
+// https://core.hash.ai/@hash/city-infection-model-with-vaccine/1.0.3
 // Rust behavior is currently not supported
 run_test!(city_infection_model_with_vaccine, #[ignore]);
 
