@@ -12,7 +12,7 @@ import {
 
 import Component from "./index";
 import { ProviderName } from "./types";
-import { EmbedDataType, initialEmbedData } from "./mockData/mockData";
+import { EmbedDataType } from "./mockData/mockData";
 import variants from "../variants.json";
 
 const node = document.getElementById("app");
@@ -84,7 +84,7 @@ function AppComponent() {
       <select
         value={selectedVariantIndex}
         onChange={(event) =>
-          setSelectedVariantIndex(parseInt(event.target.value))
+          setSelectedVariantIndex(parseInt(event.target.value, 10))
         }
       >
         {variants.map((variant, variantIndex) => (

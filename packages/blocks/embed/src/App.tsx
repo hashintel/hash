@@ -118,49 +118,51 @@ export const App: BlockComponent<AppProps> = ({
   // The default width the block takes up. Ideally it should be provided by the EA
   const blockWidthRef = useRef<number | null>(null);
 
-  const getBlockDefaultSize = ({
-    embedType: providerName,
-    embedWidth,
-    embedHeight,
-  }: {
-    embedType: ProviderName | undefined;
-    embedWidth: number | undefined;
-    embedHeight: number | undefined;
-  }) => {
-    const blockShouldNotBeResized =
-      providerName &&
-      PROVIDER_NAMES_THAT_CANT_BE_RESIZED.has(providerName as ProviderName);
+  const getBlockDefaultSize = useCallback(
+    ({
+      embedType: providerName,
+      embedWidth,
+      embedHeight,
+    }: {
+      embedType: ProviderName | undefined;
+      embedWidth: number | undefined;
+      embedHeight: number | undefined;
+    }) => {
+      const blockShouldNotBeResized =
+        providerName && PROVIDER_NAMES_THAT_CANT_BE_RESIZED.has(providerName);
 
-    const blockShouldRespectAspectRatio =
-      providerName &&
-      PROVIDER_NAMES_TO_RESPECT_ASPECT_RATIO.has(providerName as ProviderName);
+      const blockShouldRespectAspectRatio =
+        providerName &&
+        PROVIDER_NAMES_TO_RESPECT_ASPECT_RATIO.has(providerName);
 
-    let defaultWidth: number = BASE_WIDTH;
-    let defaultHeight: number = BASE_HEIGHT;
+      let defaultWidth: number = BASE_WIDTH;
+      let defaultHeight: number = BASE_HEIGHT;
 
-    if (blockShouldNotBeResized) {
-      defaultWidth = embedWidth as number;
-      defaultHeight = embedHeight as number;
-    } else {
-      defaultWidth = Math.min(
-        Math.max(blockWidthRef.current ?? 0, defaultWidth),
-        maxWidth,
-      );
+      if (blockShouldNotBeResized) {
+        defaultWidth = embedWidth as number;
+        defaultHeight = embedHeight as number;
+      } else {
+        defaultWidth = Math.min(
+          Math.max(blockWidthRef.current ?? 0, defaultWidth),
+          maxWidth,
+        );
 
-      if (blockShouldRespectAspectRatio && embedHeight && embedWidth) {
-        const embedAspectRatio =
-          Math.round((embedWidth / embedHeight) * 100) / 100;
-        if (embedAspectRatio) {
-          defaultHeight = Math.ceil(defaultWidth / embedAspectRatio);
+        if (blockShouldRespectAspectRatio && embedHeight && embedWidth) {
+          const embedAspectRatio =
+            Math.round((embedWidth / embedHeight) * 100) / 100;
+          if (embedAspectRatio) {
+            defaultHeight = Math.ceil(defaultWidth / embedAspectRatio);
+          }
         }
       }
-    }
 
-    return {
-      defaultWidth,
-      defaultHeight,
-    };
-  };
+      return {
+        defaultWidth,
+        defaultHeight,
+      };
+    },
+    [maxWidth],
+  );
 
   useEffect(() => {
     const { defaultHeight, defaultWidth } = getBlockDefaultSize({
@@ -178,7 +180,13 @@ export const App: BlockComponent<AppProps> = ({
         embedType: initialEmbedType,
       },
     });
-  }, [initialHtml, initialHeight, initialWidth, initialEmbedType]);
+  }, [
+    getBlockDefaultSize,
+    initialHtml,
+    initialHeight,
+    initialWidth,
+    initialEmbedType,
+  ]);
 
   const setErrorString = (error: string) =>
     dispatch({ type: "UPDATE_STATE", payload: { errorString: error } });

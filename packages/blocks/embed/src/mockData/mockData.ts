@@ -6,5 +6,3 @@ export type EmbedDataType = {
   initialHeight?: number;
   embedType?: ProviderName;
 };
-
-export const initialEmbedData: EmbedDataType = {};
