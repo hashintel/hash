@@ -120,7 +120,7 @@ impl GetWorkerSimStartMsg for Neighbors {
 impl Package for Neighbors {
     async fn run<'s>(
         &mut self,
-        state: StateReadProxy,
+        state_proxy: StateReadProxy,
         _snapshot: Arc<StateSnapshot>,
     ) -> Result<Vec<ContextColumn>> {
         // We want to pass the span for the package to the writer, so that the write() call isn't
@@ -128,7 +128,7 @@ impl Package for Neighbors {
         let pkg_span = Span::current();
         let _run_entered = tracing::trace_span!("run").entered();
 
-        let agent_pool = state.agent_pool();
+        let agent_pool = state_proxy.agent_pool();
         let batches = agent_pool.batches();
         let states = Self::neighbor_vec(&batches)?;
         let map = NeighborMap::gather(states, &self.topology)?;

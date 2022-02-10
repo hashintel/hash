@@ -265,8 +265,8 @@ impl Engine {
     /// through agent inboxes. Also creates and removes agents that have been requested by State
     /// packages.
     fn handle_messages(&mut self, state: &mut State, message_map: &MessageMap) -> Result<()> {
-        let read = state.message_pool().read_proxy()?;
-        let mut commands = Commands::from_hash_messages(message_map, read)?;
+        let read_proxies = state.message_pool().read_proxies()?;
+        let mut commands = Commands::from_hash_messages(message_map, read_proxies)?;
         commands.merge(self.comms.take_commands()?);
         commands.verify(&self.config.sim.store.agent_schema)?;
         self.stop_messages = commands.stop;

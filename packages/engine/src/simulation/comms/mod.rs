@@ -102,14 +102,14 @@ impl Comms {
     ///
     /// Errors: tokio failed to send the message to the worker pool for some reason;
     ///         e.g. the worker pool already stopped due to some other error.
-    pub async fn state_sync(&self, state: StateReadProxy) -> Result<SyncCompletionReceiver> {
+    pub async fn state_sync(&self, state_proxy: StateReadProxy) -> Result<SyncCompletionReceiver> {
         tracing::trace!("Synchronizing state");
         let (completion_sender, completion_receiver) = tokio::sync::oneshot::channel();
 
         // Synchronize the state batches
         let sync_msg = WaitableStateSync {
             completion_sender,
-            state,
+            state_proxy,
         };
         self.worker_pool_sender
             .send(EngineToWorkerPoolMsg::sync(
@@ -121,13 +121,13 @@ impl Comms {
     }
 
     /// TODO: DOC
-    pub async fn state_snapshot_sync(&self, state: StateReadProxy) -> Result<()> {
+    pub async fn state_snapshot_sync(&self, state_proxy: StateReadProxy) -> Result<()> {
         tracing::trace!("Synchronizing state snapshot");
         // Synchronize the state snapshot batches
         self.worker_pool_sender
             .send(EngineToWorkerPoolMsg::sync(
                 self.sim_id,
-                SyncPayload::StateSnapshot(StateSync { state }),
+                SyncPayload::StateSnapshot(StateSync { state_proxy }),
             ))
             .map_err(|e| Error::from(format!("Worker pool error: {:?}", e)))?;
         Ok(())

@@ -101,8 +101,8 @@ impl Context {
         agent_schema: &AgentSchema,
         experiment_id: &ExperimentId,
     ) -> Result<()> {
-        let mut static_pool = self.agent_pool_mut().write_proxy()?;
-        let dynamic_pool = state.agent_pool().read_proxy()?;
+        let mut static_pool = self.agent_pool_mut().write_proxies()?;
+        let dynamic_pool = state.agent_pool().read_proxies()?;
 
         for (static_batch, dynamic_batch) in static_pool
             .batches_iter_mut()
@@ -130,8 +130,8 @@ impl Context {
             // Remove unneeded static batches
             let mut removed_ids = Vec::with_capacity(static_pool.len() - dynamic_pool.len());
             for remove_index in (dynamic_pool.len()..static_pool.len()).rev() {
-                let removed = static_pool.remove(remove_index)?;
-                removed_ids.push(removed.get_batch_id().to_string());
+                let removed_agent_proxy = static_pool.remove(remove_index)?;
+                removed_ids.push(removed_agent_proxy.get_batch_id().to_string());
             }
             removed_ids
                 .into_iter()

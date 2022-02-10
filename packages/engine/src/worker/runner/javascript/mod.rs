@@ -291,13 +291,13 @@ fn batches_from_shared_store(
         SharedState::Partial(partial) => {
             match partial {
                 PartialSharedState::Read(partial) => (
-                    partial.inner.agent_pool().batches(),
-                    partial.inner.message_pool().batches(),
+                    partial.state_proxy.agent_pool().batches(),
+                    partial.state_proxy.message_pool().batches(),
                     partial.group_indices.clone(), // TODO: Avoid cloning?
                 ),
                 PartialSharedState::Write(partial) => (
-                    partial.inner.agent_pool().batches(),
-                    partial.inner.message_pool().batches(),
+                    partial.state_proxy.agent_pool().batches(),
+                    partial.state_proxy.message_pool().batches(),
                     partial.group_indices.clone(), // TODO: Avoid cloning?
                 ),
             }
@@ -731,7 +731,7 @@ impl<'m> RunnerImpl<'m> {
         mv8: &'m MiniV8,
         agent_schema: &Arc<Schema>,
         msg_schema: &Arc<Schema>,
-        proxy: &mut StateWriteProxy,
+        state_proxy: &mut StateWriteProxy,
         i_proxy: usize,
         changes: mv8::Value<'m>,
     ) -> Result<()> {
@@ -741,7 +741,7 @@ impl<'m> RunnerImpl<'m> {
         self.flush_batch(
             mv8,
             agent_changes,
-            proxy
+            state_proxy
                 .agent_pool_mut()
                 .batch_mut(i_proxy)
                 .ok_or_else(|| format!("Could not access batch at index {i_proxy}"))?,
@@ -752,7 +752,7 @@ impl<'m> RunnerImpl<'m> {
         self.flush_batch(
             mv8,
             msg_changes,
-            proxy
+            state_proxy
                 .message_pool_mut()
                 .batch_mut(i_proxy)
                 .ok_or_else(|| format!("Could not access batch at index {i_proxy}"))?,
@@ -779,7 +779,7 @@ impl<'m> RunnerImpl<'m> {
                 PartialSharedState::Read(_) => return Ok(()),
                 PartialSharedState::Write(state) => {
                     let indices = state.group_indices.clone();
-                    (&mut state.inner, indices)
+                    (&mut state.state_proxy, indices)
                 }
             },
         };
@@ -1052,8 +1052,8 @@ impl<'m> RunnerImpl<'m> {
         //       state in parallel with the mutation through those pointers).
 
         // Sync JS.
-        let agent_pool = msg.state.agent_pool.batches_iter();
-        let msg_pool = msg.state.message_pool.batches_iter();
+        let agent_pool = msg.state_proxy.agent_proxies.batches_iter();
+        let msg_pool = msg.state_proxy.message_proxies.batches_iter();
         let (agent_pool, msg_pool) = state_to_js(mv8, agent_pool, msg_pool)?;
         let args = mv8::Values::from_vec(vec![sim_id_to_js(mv8, sim_run_id), agent_pool, msg_pool]);
         let _: mv8::Value<'_> = self
@@ -1102,8 +1102,8 @@ impl<'m> RunnerImpl<'m> {
         msg: StateSync,
     ) -> Result<()> {
         // TODO: Duplication with `state_sync`
-        let agent_pool = msg.state.agent_pool().batches_iter();
-        let msg_pool = msg.state.message_pool().batches_iter();
+        let agent_pool = msg.state_proxy.agent_pool().batches_iter();
+        let msg_pool = msg.state_proxy.message_pool().batches_iter();
         let (agent_pool, msg_pool) = state_to_js(mv8, agent_pool, msg_pool)?;
         let sim_run_id = sim_id_to_js(mv8, sim_run_id);
         let args = mv8::Values::from_vec(vec![sim_run_id, agent_pool, msg_pool]);

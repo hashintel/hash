@@ -30,7 +30,7 @@ use crate::{
 #[derive(derive_new::new)]
 pub struct WaitableStateSync {
     pub completion_sender: SyncCompletionSender,
-    pub state: StateReadProxy,
+    pub state_proxy: StateReadProxy,
 }
 
 impl fmt::Debug for WaitableStateSync {
@@ -50,7 +50,7 @@ impl WaitableStateSync {
             child_receivers.push(receiver);
             child_msgs.push(Self {
                 completion_sender: sender,
-                state: self.state.clone(),
+                state_proxy: self.state_proxy.clone(),
             });
         }
         (child_msgs, child_receivers)
@@ -86,7 +86,7 @@ impl WaitableStateSync {
 
 #[derive(derive_new::new, Clone)]
 pub struct StateSync {
-    pub state: StateReadProxy,
+    pub state_proxy: StateReadProxy,
 }
 
 impl fmt::Debug for StateSync {

@@ -77,9 +77,9 @@ impl GetWorkerSimStartMsg for Analysis {
 impl Package for Analysis {
     async fn run(&mut self, state: Arc<State>, _context: Arc<Context>) -> Result<Output> {
         // TODO: use filtering to avoid exposing hidden values to users
-        let agent_pool_proxy = state.agent_pool().read_proxy()?;
+        let agent_proxies = state.agent_pool().read_proxies()?;
         // TODO: propagate Deref trait bound through run
-        let dynamic_pool = agent_pool_proxy.batches_iter().collect::<Vec<_>>();
+        let dynamic_pool = agent_proxies.batches_iter().collect::<Vec<_>>();
         self.analyzer.run(&dynamic_pool, state.num_agents())?;
 
         Ok(Output::AnalysisOutput(

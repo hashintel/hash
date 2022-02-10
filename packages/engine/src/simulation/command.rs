@@ -149,9 +149,9 @@ impl Commands {
     /// commands.
     pub fn from_hash_messages(
         message_map: &MessageMap,
-        message_pool: PoolReadProxy<MessageBatch>,
+        message_proxies: PoolReadProxy<MessageBatch>,
     ) -> Result<Commands> {
-        let message_reader = message_pool.get_reader();
+        let message_reader = message_proxies.get_reader();
 
         let mut refs = Vec::with_capacity(HASH.len());
         for hash_recipient in &HASH {

@@ -148,7 +148,7 @@ impl StepPackages {
 
     pub async fn run_context(
         &mut self,
-        state: &StateReadProxy,
+        state_proxy: &StateReadProxy,
         snapshot: StateSnapshot,
         pre_context: PreContext,
         num_agents: usize,
@@ -164,7 +164,7 @@ impl StepPackages {
         let snapshot_arc = Arc::new(snapshot);
 
         pkgs.into_iter().for_each(|mut package| {
-            let state = state.clone();
+            let state = state_proxy.clone();
             let snapshot_clone = snapshot_arc.clone();
 
             let cpu_bound = package.cpu_bound();

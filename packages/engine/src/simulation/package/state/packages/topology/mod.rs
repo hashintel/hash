@@ -80,10 +80,10 @@ impl Package for Topology {
     async fn run(&mut self, state: &mut State, _context: &Context) -> Result<()> {
         tracing::trace!("Running Topology package");
         if self.config.move_wrapped_agents {
-            for batch in state.agent_pool_mut().write_proxy()?.batches_iter_mut() {
-                if self.topology_correction(batch)? {
+            for agent_batch in state.agent_pool_mut().write_proxies()?.batches_iter_mut() {
+                if self.topology_correction(agent_batch)? {
                     // TODO: inplace changes and metaversioning should happen at a deeper level.
-                    batch.metaversion.increment_batch();
+                    agent_batch.metaversion.increment_batch();
                 }
             }
         }

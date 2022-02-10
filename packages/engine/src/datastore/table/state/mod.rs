@@ -142,7 +142,7 @@ impl State {
     }
 
     pub fn message_map(&self) -> Result<MessageMap> {
-        MessageMap::new(&self.message_pool().read_proxy()?)
+        MessageMap::new(&self.message_pool().read_proxies()?)
     }
 
     pub fn agent_pool(&self) -> &AgentPool {
@@ -199,9 +199,9 @@ impl State {
         mut old_context_message_pool: MessagePool,
         sim_config: &SimRunConfig,
     ) -> Result<MessagePool> {
-        let mut message_pool_proxy = old_context_message_pool.write_proxy()?;
-        let agent_pool_proxy = self.agent_pool().read_proxy()?;
-        message_pool_proxy.reset(&mut old_context_message_pool, &agent_pool_proxy, sim_config)?;
+        let mut message_proxies = old_context_message_pool.write_proxies()?;
+        let agent_proxies = self.agent_pool().read_proxies()?;
+        message_proxies.reset(&mut old_context_message_pool, &agent_proxies, sim_config)?;
         Ok(std::mem::replace(
             &mut self.state.message_pool,
             old_context_message_pool,

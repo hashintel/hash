@@ -126,7 +126,7 @@ impl PoolWriteProxy<MessageBatch> {
     pub fn reset(
         &mut self,
         message_pool: &mut MessagePool,
-        agent_pool: &PoolReadProxy<AgentBatch>,
+        agent_proxies: &PoolReadProxy<AgentBatch>,
         sim_config: &SimRunConfig,
     ) -> Result<()> {
         let message_schema = &sim_config.sim.store.message_schema;
@@ -134,17 +134,17 @@ impl PoolWriteProxy<MessageBatch> {
         let mut removed = vec![];
         // Reversing sequence to remove from the back
         for batch_index in (0..self.len()).rev() {
-            if let Some(dynamic_batch) = agent_pool.batch(batch_index) {
+            if let Some(dynamic_batch) = agent_proxies.batch(batch_index) {
                 self[batch_index].reset(dynamic_batch)?;
             } else {
-                let batch = message_pool.remove(batch_index)?;
-                removed.push(batch.get_batch_id().to_string());
+                let message_proxy = message_pool.remove(batch_index)?;
+                removed.push(message_proxy.get_batch_id().to_string());
             }
         }
-        if agent_pool.len() > self.len() {
-            for batch in &agent_pool[self.len()..] {
+        if agent_proxies.len() > self.len() {
+            for agent_proxy in &agent_proxies[self.len()..] {
                 let inbox = MessageBatch::empty_from_agent_batch(
-                    batch,
+                    agent_proxy,
                     &message_schema.arrow,
                     message_schema.static_meta.clone(),
                     experiment_id,

@@ -155,29 +155,35 @@ impl BehaviorExecution {
     /// execution will be executed accordingly
     fn fix_behavior_chains(
         &mut self,
-        agent_batches: &mut PoolWriteProxy<AgentBatch>,
+        agent_proxies: &mut PoolWriteProxy<AgentBatch>,
     ) -> Result<()> {
         let behavior_ids = chain::gather_behavior_chains(
-            &agent_batches.batches(),
+            &agent_proxies.batches(),
             &self.behavior_ids,
             self.behavior_ids_col_data_types.clone(),
             self.behavior_ids_col_index,
         )?;
 
-        agent_batches.set_pending_column(behavior_ids)?;
+        agent_proxies.set_pending_column(behavior_ids)?;
         Ok(())
     }
 
-    fn reset_behavior_index_col(&mut self, state: &mut PoolWriteProxy<AgentBatch>) -> Result<()> {
+    fn reset_behavior_index_col(
+        &mut self,
+        agent_proxies: &mut PoolWriteProxy<AgentBatch>,
+    ) -> Result<()> {
         let behavior_index_col = reset_index_col(self.behavior_index_col_index)?;
-        state.set_pending_column(behavior_index_col)?;
+        agent_proxies.set_pending_column(behavior_index_col)?;
 
         Ok(())
     }
 
     /// Iterate over languages of first behaviors to choose first language runner to send task to
-    fn get_first_lang<B: AsRef<AgentBatch>>(&self, agents: &[B]) -> Result<Option<Language>> {
-        for batch in agents.iter() {
+    fn get_first_lang<B: AsRef<AgentBatch>>(
+        &self,
+        agent_batches: &[B],
+    ) -> Result<Option<Language>> {
+        for batch in agent_batches.iter() {
             for agent_behaviors in batch.as_ref().behavior_list_bytes_iter()? {
                 if agent_behaviors.is_empty() {
                     continue;
@@ -202,12 +208,12 @@ impl BehaviorExecution {
     /// Sends out behavior execution commands to workers
     async fn begin_execution(
         &mut self,
-        state: StateWriteProxy,
+        state_proxy: StateWriteProxy,
         context: &Context,
         lang: Language,
     ) -> Result<ActiveTask> {
         let shared_store = TaskSharedStoreBuilder::new()
-            .write_state(state)?
+            .write_state(state_proxy)?
             .read_context(context)?
             .build();
         let state_task: StateTask = ExecuteBehaviorsTask {

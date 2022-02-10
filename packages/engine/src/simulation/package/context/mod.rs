@@ -29,7 +29,7 @@ pub mod packages;
 pub trait Package: MaybeCpuBound + GetWorkerSimStartMsg + Send + Sync {
     async fn run<'s>(
         &mut self,
-        state: StateReadProxy,
+        state_proxy: StateReadProxy,
         snapshot: Arc<StateSnapshot>,
     ) -> Result<Vec<ContextColumn>>;
     fn get_empty_arrow_columns(
