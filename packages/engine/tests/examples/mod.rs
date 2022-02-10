@@ -1,5 +1,3 @@
-#![cfg(not(debug_assertions))]
-
 use crate::run_test;
 
 // https://core.hash.ai/@hash/city-infection-model/6.4.2
