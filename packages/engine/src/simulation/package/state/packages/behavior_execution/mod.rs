@@ -153,15 +153,18 @@ impl BehaviorExecution {
     /// Iterates over all "behaviors" fields of agents and writes them into their "behaviors" field.
     /// This fixation guarantees that all behaviors that were there in the beginning of behavior
     /// execution will be executed accordingly
-    fn fix_behavior_chains(&mut self, agents: &mut PoolWriteProxy<AgentBatch>) -> Result<()> {
+    fn fix_behavior_chains(
+        &mut self,
+        agent_batches: &mut PoolWriteProxy<AgentBatch>,
+    ) -> Result<()> {
         let behavior_ids = chain::gather_behavior_chains(
-            &agents.batches(),
+            &agent_batches.batches(),
             &self.behavior_ids,
             self.behavior_ids_col_data_types.clone(),
             self.behavior_ids_col_index,
         )?;
 
-        agents.set_pending_column(behavior_ids)?;
+        agent_batches.set_pending_column(behavior_ids)?;
         Ok(())
     }
 
