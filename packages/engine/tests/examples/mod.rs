@@ -140,6 +140,5 @@ mod air_defense_system {
 // Rust behavior is currently not supported
 run_test!(city_infection_model_with_vaccine, #[ignore]);
 
-// https://core.hash.ai/@hash/wholesale-warehouse1/main at 2022-02-02
-// Currently not working on hCloud
-run_test!(wholesale_warehouse1, #[ignore]);
+// https://core.hash.ai/@hash/wholesale-warehouse1/1.1.1
+run_test!(wholesale_warehouse1);

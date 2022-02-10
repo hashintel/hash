@@ -1,6 +1,5 @@
 {
-  "@hash/create_agents.js": "2.2.0",
-  "@hash/remove_self.js": "2.1.0",
+  "@hash/create-layout/create_layout.js": "1.0.0",
   "@hash/wholesale-warehouse/wholesale-warehouse-delivery-positions.csv": "1.0.0",
   "@hash/wholesale-warehouse/wholesale-warehouse-layout-2.csv": "1.0.0",
   "@hash/wholesale-warehouse/wholesale-warehouse-layout.csv": "1.0.0",
