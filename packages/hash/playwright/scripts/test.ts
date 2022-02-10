@@ -1,5 +1,5 @@
 import { sleep } from "@hashintel/hash-shared/sleep";
-import { firefox } from "playwright";
+import { firefox } from "@recordreplay/playwright";
 import { getDerivedPayloadFromMostRecentEmail } from "../tests/utils/getDerivedPayloadFromMostRecentEmail";
 
 const extracted = async function (page: any, modifierKey: string) {
@@ -98,15 +98,12 @@ const extracted = async function (page: any, modifierKey: string) {
 
   // Press Enter
   await Promise.all([
-    page.waitForNavigation(/* { url: 'http://localhost:3000/2e133a1c-969a-413c-aabb-41cf2d36178f/0178d1ca-ad56-4069-8eaa-442f14ca63c0' } */),
+    page.waitForNavigation({ waitUntil: "networkidle" }),
     page.press('[placeholder="What\\ is\\ this\\ document\\?"]', "Enter"),
   ]);
 
   const modifierKey = process.platform === "darwin" ? "Meta" : "Control";
-
-  const blockRegionLocator = page.locator("#root");
-
-  await blockRegionLocator.locator('[data-testid="block-handle"]').waitFor();
+  await page.waitForSelector('#root [data-testid="block-handle"]');
 
   //
   // // Wait for ProseMirror to load
@@ -117,7 +114,9 @@ const extracted = async function (page: any, modifierKey: string) {
   // await expect(listOfPagesLocator).toContainText(pageName);
 
   // Type in a paragraph block
-  await blockRegionLocator.locator("p div").click();
+  await (
+    await page.waitForSelector('#root [data-testid="block-handle"] p div')
+  ).click();
 
   for (let i = 0; i < 10; i++) {
     await extracted(page, modifierKey);
