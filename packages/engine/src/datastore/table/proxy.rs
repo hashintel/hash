@@ -117,7 +117,7 @@ impl<K: Batch> BatchWriteProxy<K> {
         let arc = unsafe { ptr::read(&this.arc) };
 
         // SAFETY: `BatchWriteProxy` is guaranteed to contain a unique lock acquired in `new()`,
-        //   thus it's safe to dereference the shared underlying `data_ptr`.
+        //   thus it's safe to downgrade the unique lock to a shared lock.
         unsafe { RwLock::raw(&arc).downgrade() }
 
         BatchReadProxy { arc }
@@ -199,10 +199,10 @@ impl StateReadProxy {
         })
     }
 
-    pub fn new_partial(state: &StatePools, indices: &[usize]) -> Result<Self> {
+    pub fn new_partial(state: &StatePools, group_indices: &[usize]) -> Result<Self> {
         Ok(StateReadProxy {
-            agent_proxies: state.agent_pool.partial_read_proxies(indices)?,
-            message_proxies: state.message_pool.partial_read_proxies(indices)?,
+            agent_proxies: state.agent_pool.partial_read_proxies(group_indices)?,
+            message_proxies: state.message_pool.partial_read_proxies(group_indices)?,
         })
     }
 
@@ -281,10 +281,10 @@ impl StateWriteProxy {
         })
     }
 
-    pub fn new_partial(state: &mut StatePools, indices: &[usize]) -> Result<Self> {
+    pub fn new_partial(state: &mut StatePools, group_indices: &[usize]) -> Result<Self> {
         Ok(StateWriteProxy {
-            agent_proxies: state.agent_pool.partial_write_proxies(indices)?,
-            message_proxies: state.message_pool.partial_write_proxies(indices)?,
+            agent_proxies: state.agent_pool.partial_write_proxies(group_indices)?,
+            message_proxies: state.message_pool.partial_write_proxies(group_indices)?,
         })
     }
 

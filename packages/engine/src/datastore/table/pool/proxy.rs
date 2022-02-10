@@ -126,6 +126,7 @@ impl<K: Batch> PoolWriteProxy<K> {
         self.batches_iter_mut().collect()
     }
 
+    /// For each batch, downgrade write access to read access.
     pub fn downgrade(self) -> PoolReadProxy<K> {
         PoolReadProxy {
             batches: self

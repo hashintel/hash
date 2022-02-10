@@ -115,8 +115,10 @@ impl Context {
 
         // TODO search everywhere and replace static_pool and dynamic_pool to more descriptively
         //  refer to context/state (respectively)
-        drop(static_pool); // Release write access to agent pool.
-        let static_pool = &mut self.previous_state.agent_pool;
+        // Release write access to the agent pool, so
+        // we can remove batches from it.
+        drop(static_pool); 
+        let static_pool = self.agent_pool_mut();
 
         #[allow(clippy::comparison_chain)]
         if dynamic_pool.len() > static_pool.len() {

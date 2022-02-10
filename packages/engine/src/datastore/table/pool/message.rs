@@ -132,7 +132,8 @@ impl PoolWriteProxy<MessageBatch> {
         let message_schema = &sim_config.sim.store.message_schema;
         let experiment_id = &sim_config.exp.run.base().id;
         let mut removed = vec![];
-        // Reversing sequence to remove from the back
+        // Reversing sequence to remove from the back if there are
+        // fewer agent batches than message batches
         for batch_index in (0..self.len()).rev() {
             if let Some(dynamic_batch) = agent_proxies.batch(batch_index) {
                 self[batch_index].reset(dynamic_batch)?;
@@ -142,6 +143,7 @@ impl PoolWriteProxy<MessageBatch> {
             }
         }
         if agent_proxies.len() > self.len() {
+            // Add message batches if there are more agent batches than message batches
             for agent_proxy in &agent_proxies[self.len()..] {
                 let inbox = MessageBatch::empty_from_agent_batch(
                     agent_proxy,

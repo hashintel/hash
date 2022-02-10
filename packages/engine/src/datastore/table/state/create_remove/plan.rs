@@ -30,11 +30,11 @@ impl<'a> MigrationPlan<'a> {
         }
     }
 
-    pub fn execute(self, agent_pool: &mut AgentPool, config: &SimRunConfig) -> Result<Vec<String>> {
+    pub fn execute(self, state_agent_pool: &mut AgentPool, config: &SimRunConfig) -> Result<Vec<String>> {
         // tracing::debug!("Updating");
         self.existing_mutations
             .par_iter()
-            .zip_eq(agent_pool.write_proxies()?.batches_mut().par_iter_mut())
+            .zip_eq(state_agent_pool.write_proxies()?.batches_mut().par_iter_mut())
             .try_for_each::<_, Result<()>>(|(action, batch)| {
                 match action {
                     ExistingGroupBufferActions::Persist { affinity } => {
@@ -60,7 +60,7 @@ impl<'a> MigrationPlan<'a> {
             if let ExistingGroupBufferActions::Remove = action {
                 // Removing in tandem to keep similarly sized batches together
                 removed_ids.push(
-                    agent_pool
+                    state_agent_pool
                         .swap_remove(batch_index)?
                         .get_batch_id()
                         .to_string(),
@@ -84,7 +84,7 @@ impl<'a> MigrationPlan<'a> {
                 Ok(new_batch)
             })
             .collect::<Result<Vec<_>>>()?;
-        agent_pool.extend(created_dynamic_batches);
+        state_agent_pool.extend(created_dynamic_batches);
 
         // tracing::debug!("Finished");
         Ok(removed_ids)
