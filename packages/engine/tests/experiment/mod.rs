@@ -100,6 +100,16 @@ pub struct TestTiming {
     experiment: Option<&'static str>,
 }
 
+/// Removes the output directory if not specified by `OUTPUT_DIRECTORY`.
+struct OutputDirectoryDropper<'p>(&'p Path);
+impl Drop for OutputDirectoryDropper<'_> {
+    fn drop(&mut self) {
+        if std::env::var("OUTPUT_DIRECTORY").is_err() {
+            let _ = fs::remove_dir_all(self.0);
+        }
+    }
+}
+
 pub async fn run_test_suite(
     project_path: PathBuf,
     test_path: &'static str,
@@ -133,11 +143,6 @@ pub async fn run_test_suite(
     assert_ne!(samples, 0, "SAMPLES must be at least 1");
 
     for (experiment_type, expected_outputs) in experiments {
-        // TODO: Remove attempting strategy
-        let attempts = std::env::var("NUM_ATTEMPTS")
-            .map(|n| n.parse::<usize>().unwrap())
-            .unwrap_or(1);
-
         // Use `OUTPUT_DIRECTORY` as output directory. If it's not set, cargo's `OUT_DIR` is
         // used.
         let mut output_folder = PathBuf::from(
@@ -146,45 +151,29 @@ pub async fn run_test_suite(
         for module in test_path.split("::") {
             output_folder.push(module);
         }
+        let _output_folder_guard = OutputDirectoryDropper(&output_folder);
 
         let mut timings = Vec::with_capacity(samples);
         for run in 1..=samples {
-            let mut outputs = None;
-
             let output_folder = output_folder.join(format!("run-{run}"));
+            let log_file_path = output_folder.join("log").join("output.log");
+            // Remove log file in case it's already existing
+            let _ = fs::remove_file(&log_file_path);
 
-            for attempt in 1..=attempts {
-                if attempt > 1 {
-                    std::env::set_var("RUST_LOG", "trace");
-                }
+            let test_result = run_test(
+                experiment_type.clone(),
+                &project_path,
+                project_name.clone(),
+                output_folder,
+                language,
+                expected_outputs.len(),
+            )
+            .await;
 
-                let test_result = run_test(
-                    experiment_type.clone(),
-                    &project_path,
-                    project_name.clone(),
-                    output_folder.join(format!("attempt-{attempt}")),
-                    language,
-                    expected_outputs.len(),
-                );
-                let output = test_result.await;
-                let success = output.is_ok();
-                outputs.replace(output);
-                if success {
-                    break;
-                }
-            }
-
-            let log_file_path = output_folder
-                .join(format!("attempt-{attempts}"))
-                .join("log")
-                .join("output.log");
-
-            let log_output = fs::read_to_string(&log_file_path);
-
-            let test_result = match outputs.unwrap() {
+            let test_result = match test_result {
                 Ok(outputs) => outputs,
                 Err(err) => {
-                    match log_output {
+                    match fs::read_to_string(&log_file_path) {
                         Ok(log) => eprintln!("{log}"),
                         Err(err) => eprintln!("Could not read {log_file_path:?}: {err}"),
                     }
@@ -240,11 +229,6 @@ pub async fn run_test_suite(
             serde_json::to_string_pretty(&timings).unwrap(),
         )
         .expect("Could not write test timings");
-
-        // Remove the output directory if it was not set manually
-        if std::env::var("OUTPUT_DIRECTORY").is_err() {
-            let _ = fs::remove_dir_all(&output_folder);
-        }
     }
 }
 
