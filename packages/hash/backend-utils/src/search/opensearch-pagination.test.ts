@@ -3,7 +3,6 @@ import { Logger } from "../logger";
 import { OpenSearch } from "./opensearch";
 
 const ENTITIES_SEARCH_INDEX = "entities";
-// const ENTITIES_SEARCH_FIELD = "fullTextSearch";
 
 const stub = {
   clear_scroll: jest.fn(),
@@ -55,7 +54,7 @@ describe("OpenSearch pagination", () => {
     const totalHits = 20;
     const pageSize = 20;
 
-    const gen = generateHitPage(totalHits, pageSize, "entities");
+    const gen = generateHitPage(totalHits, pageSize, ENTITIES_SEARCH_INDEX);
     stub.search.mockReset().mockImplementation(() => gen.next().value);
     stub.scroll.mockReset().mockImplementation(() => gen.next().value);
 
@@ -74,7 +73,7 @@ describe("OpenSearch pagination", () => {
     const totalHits = 15;
     const pageSize = 10;
 
-    const gen = generateHitPage(totalHits, pageSize, "entities");
+    const gen = generateHitPage(totalHits, pageSize, ENTITIES_SEARCH_INDEX);
     stub.search.mockReset().mockImplementation(() => gen.next().value);
     stub.scroll.mockReset().mockImplementation(() => gen.next().value);
 
@@ -103,7 +102,7 @@ describe("OpenSearch pagination", () => {
     const totalHits = 200;
     const pageSize = 20;
 
-    const gen = generateHitPage(totalHits, pageSize, "entities");
+    const gen = generateHitPage(totalHits, pageSize, ENTITIES_SEARCH_INDEX);
     stub.search.mockReset().mockImplementation(() => gen.next().value);
     stub.scroll.mockReset().mockImplementation(() => gen.next().value);
 
