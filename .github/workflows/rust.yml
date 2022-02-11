@@ -262,9 +262,7 @@ jobs:
       - name: Build test dependencies
         if: matrix.directory == 'packages/engine'
         working-directory: ${{ matrix.directory }}
-        run: |
-          cargo build -p hash_engine ${{ matrix.flags }}
-          cargo build -p server ${{ matrix.flags }}
+        run: cargo build -p hash_engine ${{ matrix.flags }}
 
       - name: Setup Python environment
         if: matrix.directory == 'packages/engine'
