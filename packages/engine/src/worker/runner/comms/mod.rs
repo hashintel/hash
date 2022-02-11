@@ -81,7 +81,6 @@ impl From<MessageTarget> for flatbuffers_gen::target_generated::Target {
     }
 }
 
-// TODO: Group indices have type u32 in RunnerTaskMsg, but usize in StateInterimSync.
 #[derive(Debug)]
 pub struct RunnerTaskMsg {
     pub package_id: PackageId,
