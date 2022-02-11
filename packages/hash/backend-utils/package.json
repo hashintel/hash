@@ -17,7 +17,8 @@
   "scripts": {
     "fix:eslint": "eslint --ext .ts --fix ./src/",
     "lint:eslint": "eslint --ext .ts ./src/",
-    "lint:tsc": "tsc --noEmit"
+    "lint:tsc": "tsc --noEmit",
+    "test": "jest"
   },
   "dependencies": {
     "@opensearch-project/opensearch": "1.0.0",
