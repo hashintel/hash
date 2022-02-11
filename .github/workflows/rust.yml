@@ -214,7 +214,6 @@ jobs:
     env:
       V8_PATH: ${{ github.workspace }}/.v8
       OUTPUT_DIRECTORY: test-results
-      NUM_ATTEMPTS: 50
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -280,7 +279,6 @@ jobs:
     env:
       V8_PATH: ${{ github.workspace }}/.v8
       OUTPUT_DIRECTORY: test-results
-      NUM_ATTEMPTS: 50
       SAMPLES: ${{ needs.setup.outputs.samples }}
     steps:
       - name: Checkout source code
@@ -347,7 +345,7 @@ jobs:
 
   merging-enabled:
     name: merging enabled
-    needs: [rustfmt, clippy, test]
+    needs: [rustfmt, clippy, test, bench]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -360,7 +358,6 @@ jobs:
       - name: check test
         run: |
           [[ ${{ needs.test.result }} =~ success|skipped ]]
-      # TODO: Require bench to pass after https://app.asana.com/0/1201481007343159/1201545519802517/f
-      # - name: check bench
-      #   run: |
-      #     [[ ${{ needs.bench.result }} =~ success|skipped ]]
+      - name: check bench
+        run: |
+          [[ ${{ needs.bench.result }} =~ success|skipped ]]
