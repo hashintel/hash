@@ -652,7 +652,9 @@ export class PostgresClient implements DBClient {
     return getImpliedEntityHistory(this.conn, params);
   }
 
-  async getAncestorReferences(params: { accountId: string; entityId: string }) {
+  async getAncestorReferences(
+    params: Parameters<DBClient["getAncestorReferences"]>[0],
+  ): ReturnType<DBClient["getAncestorReferences"]> {
     return getAncestorReferences(this.conn, params);
   }
 

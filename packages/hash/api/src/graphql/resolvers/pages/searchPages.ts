@@ -34,7 +34,7 @@ const getEntityRef = (entity: {
   };
 };
 
-const getPagesLinkingToTextEntities = async (
+export const getPagesLinkingToTextEntities = async (
   textSearchHits: TextSearchHit[],
   db: DBAdapter,
 ) => {
