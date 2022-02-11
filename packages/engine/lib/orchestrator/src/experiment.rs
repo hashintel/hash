@@ -14,7 +14,7 @@ use hash_engine_lib::{
         ExperimentRunBase, SimpleExperimentConfig, SingleRunExperimentConfig,
     },
     simulation::command::StopStatus,
-    utils::{LogFormat, OutputLocation},
+    utils::{LogFormat, LogLevel, OutputLocation},
 };
 use rand::{distributions::Distribution, Rng, RngCore};
 use rand_distr::{Beta, LogNormal, Normal, Poisson};
@@ -58,6 +58,10 @@ pub struct ExperimentConfig {
     )]
     pub log_format: LogFormat,
 
+    /// Logging verbosity to use. If not set `RUST_LOG` will be used
+    #[clap(long, arg_enum)]
+    pub log_level: Option<LogLevel>,
+
     /// Output location where logs are emitted to.
     ///
     /// Can be `stdout`, `stderr` or any file name. Relative to `--log-folder` if a file is
@@ -87,8 +91,8 @@ pub struct ExperimentConfig {
     ///
     /// Defaults to the number of logical CPUs available in order to maximize performance.
     #[cfg_attr(
-        feature = "clap",
-        clap(global = true, short = 'w', long, default_value_t = num_cpus::get(), validator = at_least_one, env = "HASH_WORKERS")
+    feature = "clap",
+    clap(global = true, short = 'w', long, default_value_t = num_cpus::get(), validator = at_least_one, env = "HASH_WORKERS")
     )]
     pub num_workers: usize,
 }
@@ -164,6 +168,7 @@ impl Experiment {
             self.config.num_workers,
             controller_url,
             self.config.log_format,
+            self.config.log_level,
             self.config.output_location.clone(),
             self.config.log_folder.clone(),
         ))
@@ -176,7 +181,7 @@ impl Experiment {
     /// returns once the experiment has finished.
     ///
     /// [`Process`]: crate::process::Process
-    #[instrument(skip_all, fields(experiment_name = %experiment_run.base.name, experiment_id = %experiment_run.base.id))]
+    #[instrument(skip_all, fields(experiment_name = % experiment_run.base.name, experiment_id = % experiment_run.base.id))]
     pub async fn run(
         &self,
         experiment_run: proto::ExperimentRun,

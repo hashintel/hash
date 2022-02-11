@@ -91,6 +91,40 @@ impl Default for OutputLocation {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, clap::ArgEnum)]
+pub enum LogLevel {
+    Trace,
+    Debug,
+    Info,
+    Warning,
+    Error,
+}
+
+impl Display for LogLevel {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Trace => fmt.write_str("trace"),
+            Self::Debug => fmt.write_str("debug"),
+            Self::Info => fmt.write_str("info"),
+            Self::Warning => fmt.write_str("warning"),
+            Self::Error => fmt.write_str("error"),
+        }
+    }
+}
+
+impl From<LogLevel> for Directive {
+    fn from(level: LogLevel) -> Self {
+        use tracing::Level;
+        match level {
+            LogLevel::Trace => Directive::from(Level::TRACE),
+            LogLevel::Debug => Directive::from(Level::DEBUG),
+            LogLevel::Info => Directive::from(Level::INFO),
+            LogLevel::Warning => Directive::from(Level::WARN),
+            LogLevel::Error => Directive::from(Level::ERROR),
+        }
+    }
+}
+
 impl OutputLocation {
     fn writer<P: AsRef<Path>>(&self, log_folder: P) -> (BoxMakeWriter, OutputFileGuard) {
         match self {
@@ -163,17 +197,22 @@ pub fn init_logger<P: AsRef<Path>>(
     log_format: LogFormat,
     output_location: &OutputLocation,
     log_folder: P,
+    log_level: Option<LogLevel>,
     log_file_output_name: &str,
     texray_output_name: &str,
 ) -> impl Drop {
     let log_folder = log_folder.as_ref();
 
-    let filter = match std::env::var("RUST_LOG") {
-        Ok(env) => EnvFilter::new(env),
-        #[cfg(debug_assertions)]
-        _ => EnvFilter::default().add_directive(Directive::from(LevelFilter::DEBUG)),
-        #[cfg(not(debug_assertions))]
-        _ => EnvFilter::default().add_directive(Directive::from(LevelFilter::WARN)),
+    let filter = if let Some(log_level) = log_level {
+        EnvFilter::default().add_directive(Directive::from(log_level))
+    } else {
+        match std::env::var("RUST_LOG") {
+            Ok(env) => EnvFilter::new(env),
+            #[cfg(debug_assertions)]
+            _ => EnvFilter::default().add_directive(Directive::from(LevelFilter::DEBUG)),
+            #[cfg(not(debug_assertions))]
+            _ => EnvFilter::default().add_directive(Directive::from(LevelFilter::WARN)),
+        }
     };
 
     let formatter = fmt::format()

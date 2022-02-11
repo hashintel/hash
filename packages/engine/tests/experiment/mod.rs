@@ -10,7 +10,7 @@ use std::{
 use error::{bail, ensure, report, Result, ResultExt};
 use hash_engine_lib::{
     proto::ExperimentName,
-    utils::{LogFormat, OutputLocation},
+    utils::{LogFormat, LogLevel, OutputLocation},
     Language,
 };
 use orchestrator::{ExperimentConfig, ExperimentType, Manifest, Server};
@@ -117,10 +117,10 @@ pub async fn run_test_suite(
     experiment: Option<&'static str>,
 ) {
     // If `RUST_LOG` is set, only run it once, otherwise run with `warn` and `trace` on failure
-    let rust_log_envs = if let Ok(rust_log) = std::env::var("RUST_LOG") {
-        vec![rust_log]
+    let log_levels = if std::env::var("RUST_LOG").is_ok() {
+        vec![None]
     } else {
-        vec!["warn".to_string(), "trace".to_string()]
+        vec![Some(LogLevel::Warning), Some(LogLevel::Trace)]
     };
 
     let project_name = project_path
@@ -164,27 +164,21 @@ pub async fn run_test_suite(
             let _ = fs::remove_file(&log_file_path);
 
             let mut test_output = None;
-            for rust_log_env in &rust_log_envs {
-                let environment = std::env::vars();
-                std::env::set_var("RUST_LOG", &rust_log_env);
-                eprint!("Running test with RUST_LOG={rust_log_env}... ");
+            for log_level in &log_levels {
+                if let Some(log_level) = log_level {
+                    eprint!("Running test with log level `{log_level}`... ");
+                }
 
                 let test_result = run_test(
                     experiment_type.clone(),
                     &project_path,
                     project_name.clone(),
                     output_folder.clone(),
+                    *log_level,
                     language,
                     expected_outputs.len(),
                 )
                 .await;
-
-                std::env::remove_var("RUST_LOG");
-                for (key, var) in environment {
-                    if key == "RUST_LOG" {
-                        std::env::set_var(key, var);
-                    }
-                }
 
                 match test_result {
                     Ok(outputs) => {
@@ -260,6 +254,7 @@ pub async fn run_test<P: AsRef<Path>>(
     project_path: P,
     project_name: String,
     output: PathBuf,
+    log_level: Option<LogLevel>,
     language: Option<Language>,
     num_outputs_expected: usize,
 ) -> Result<TestOutput> {
@@ -291,6 +286,7 @@ pub async fn run_test<P: AsRef<Path>>(
         num_workers: num_cpus::get(),
         log_format: LogFormat::Pretty,
         log_folder: output.join("log"),
+        log_level,
         output_folder: output,
         output_location: OutputLocation::File("output.log".into()),
         start_timeout: 10,

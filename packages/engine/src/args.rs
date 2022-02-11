@@ -4,7 +4,7 @@ use clap::{AppSettings, Parser};
 
 use crate::{
     proto::ExperimentId,
-    utils::{LogFormat, OutputLocation},
+    utils::{LogFormat, LogLevel, OutputLocation},
 };
 
 /// Arguments passed to hEngine
@@ -35,6 +35,10 @@ pub struct Args {
     /// Output format emitted to the output location.
     #[clap(long, default_value = "pretty", arg_enum, env = "HASH_LOG_FORMAT")]
     pub log_format: LogFormat,
+
+    /// Logging verbosity to use. If not set `RUST_LOG` will be used
+    #[clap(long, arg_enum)]
+    pub log_level: Option<LogLevel>,
 
     /// Output location where to emit logs.
     ///
