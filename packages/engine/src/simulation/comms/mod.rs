@@ -142,9 +142,9 @@ impl Comms {
     ) -> Result<()> {
         tracing::trace!("Synchronizing context batch");
         // Synchronize the context batch
-        let context_batch_reader = context.read_proxy()?;
         let indices = Arc::clone(state_group_start_indices);
-        let sync_msg = ContextBatchSync::new(context_batch_reader, current_step, indices);
+        let sync_msg =
+            ContextBatchSync::new(Arc::clone(context.global_batch()), current_step, indices);
         self.worker_pool_sender
             .send(EngineToWorkerPoolMsg::sync(
                 self.sim_id,
