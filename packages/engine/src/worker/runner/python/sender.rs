@@ -154,6 +154,8 @@ fn inbound_to_nng(
                     target: MessageTarget::Python.into(),
                     payload: Some(payload),
                     metaversioning: Some(shared_store),
+                    // TODO: after moving to arrow >= 7 this should be `None`
+                    group_index: msg.group_index.unwrap_or_else(|| 0) as u64,
                 },
             );
             (
@@ -378,8 +380,8 @@ fn shared_store_to_fbs<'f>(
                 let state = &partial.state_proxy;
                 tracing::trace!(
                     "Partial write: {} groups, {} batches",
-                    partial.indices.len(),
-                    partial.inner.agent_pool().n_batches(),
+                    partial.group_indices.len(),
+                    state.agent_pool().len(),
                 );
                 let a: Vec<_> = state
                     .agent_pool()
