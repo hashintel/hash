@@ -89,6 +89,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
     deleteLinks,
     entityId,
     entityTypeId,
+    entityTypeVersionId,
     initialCaption,
     linkGroups,
     linkedEntities,
@@ -172,13 +173,16 @@ export const Video: BlockComponent<AppProps> = (props) => {
   const updateData = useCallback(
     ({ file, src }: { src: string | undefined; file?: FileType }) => {
       if (src?.trim()) {
-        if (updateEntities && entityId) {
+        if (updateEntities && accountId && entityId) {
           const updateAction: BlockProtocolUpdateEntitiesAction<BlockProtocolUpdateEntitiesActionData> =
             {
+              accountId,
               data: {
                 initialCaption: captionText,
               },
               entityId,
+              entityTypeId,
+              entityTypeVersionId,
             };
 
           if (file) {
@@ -202,8 +206,15 @@ export const Video: BlockComponent<AppProps> = (props) => {
     (videoProp: { url: string } | { file: FileList[number] }) => {
       updateStateObject({ loading: true });
 
-      if (entityId && createLinks && deleteLinks && uploadFile) {
-        uploadFile({ ...videoProp, mediaType: "video" })
+      if (accountId && entityId && createLinks && deleteLinks && uploadFile) {
+        uploadFile({
+          accountId,
+          entityId,
+          entityTypeId,
+          entityTypeVersionId,
+          ...videoProp,
+          mediaType: "video",
+        })
           .then(async (file) => {
             const existingLinkGroup = getLinkGroup({
               sourceEntityId: entityId,

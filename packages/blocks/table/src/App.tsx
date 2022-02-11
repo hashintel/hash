@@ -31,7 +31,6 @@ type AppProps = {
   initialState?: TableOptions<{}>["initialState"] & {
     columns?: { Header: string; accessor: string }[];
   };
-  entityId: string;
 };
 
 const defaultData: AppProps["data"] = { data: [] };
@@ -62,11 +61,14 @@ const useTableData = (data: AppProps["data"]) => {
 };
 
 export const App: BlockComponent<AppProps> = ({
+  accountId,
+  entityId,
+  entityTypeId,
+  entityTypeVersionId,
   data = defaultData,
   initialState,
   schemas,
   updateEntities,
-  entityId,
   aggregateEntities,
   aggregateEntityTypes,
 }) => {
@@ -133,7 +135,8 @@ export const App: BlockComponent<AppProps> = ({
       if (
         !aggregateEntities ||
         !linkedData?.aggregate ||
-        !linkedData.aggregate.entityTypeId
+        !linkedData.aggregate.entityTypeId ||
+        !accountId
       ) {
         return;
       }
@@ -149,6 +152,10 @@ export const App: BlockComponent<AppProps> = ({
       }
 
       aggregateEntities({
+        accountId,
+        entityId,
+        entityTypeId,
+        entityTypeVersionId,
         operation: linkedData.aggregate,
       })
         .then(({ operation, results }) => {
@@ -164,12 +171,27 @@ export const App: BlockComponent<AppProps> = ({
           // @todo properly handle error
         });
     },
-    [aggregateEntities, setTableData, tableData.__linkedData],
+    [
+      aggregateEntities,
+      setTableData,
+      tableData.__linkedData,
+      accountId,
+      entityId,
+      entityTypeId,
+      entityTypeVersionId,
+    ],
   );
 
   const handleUpdate = useCallback(
     ({ operation, multiFilter, multiSort, itemsPerPage }: AggregateArgs) => {
-      if (!updateEntities || !tableData.__linkedData) return;
+      if (
+        !updateEntities ||
+        !tableData.__linkedData ||
+        !entityId ||
+        !accountId
+      ) {
+        return;
+      }
 
       const newLinkedData = omitTypenameDeep(tableData.__linkedData);
       const newState = {
@@ -207,22 +229,33 @@ export const App: BlockComponent<AppProps> = ({
         initialState?: Record<string, any>;
       }>([
         {
+          accountId,
           data: {
             data: { __linkedData: newLinkedData },
             initialState: newState,
           },
           entityId,
+          entityTypeId,
+          entityTypeVersionId,
         },
       ]);
     },
-    [updateEntities, tableData.__linkedData, entityId, initialState],
+    [
+      updateEntities,
+      tableData.__linkedData,
+      entityId,
+      initialState,
+      accountId,
+      entityTypeId,
+      entityTypeVersionId,
+    ],
   );
 
   const updateRemoteColumns = (properties: {
     hiddenColumns?: string[];
     columns?: { Header: string; accessor: string }[];
   }) => {
-    if (!updateEntities) return;
+    if (!updateEntities || !accountId || !entityId) return;
 
     const newState = {
       ...initialState,
@@ -236,11 +269,14 @@ export const App: BlockComponent<AppProps> = ({
       initialState?: Record<string, any>;
     }>([
       {
+        accountId,
         data: {
           data: { __linkedData: { ...tableData.__linkedData } },
           initialState: newState,
         },
         entityId,
+        entityTypeId,
+        entityTypeVersionId,
       },
     ]);
   };
@@ -314,22 +350,37 @@ export const App: BlockComponent<AppProps> = ({
   const [entityTypes, setEntityTypes] = useState<BlockProtocolEntityType[]>();
 
   useEffect(() => {
-    void aggregateEntityTypes?.({
-      includeOtherTypesInUse: true,
-    }).then(({ results }) => {
-      setEntityTypes(orderBy(results, (entityType) => entityType.title));
-    });
-  }, [aggregateEntityTypes]);
+    if (accountId) {
+      void aggregateEntityTypes?.({
+        accountId,
+        entityId,
+        entityTypeId,
+        entityTypeVersionId,
+        includeOtherTypesInUse: true,
+      }).then(({ results }) => {
+        setEntityTypes(orderBy(results, (entityType) => entityType.title));
+      });
+    }
+  }, [
+    aggregateEntityTypes,
+    accountId,
+    entityId,
+    entityTypeId,
+    entityTypeVersionId,
+  ]);
 
   const handleEntityTypeChange = useCallback(
-    (entityTypeId: string | undefined) => {
+    (newEntityTypeId: string | undefined) => {
+      if (!accountId || !entityId) return;
+
       void updateEntities?.([
         {
+          accountId,
           data: {
             data: {
-              __linkedData: entityTypeId
+              __linkedData: newEntityTypeId
                 ? {
-                    entityTypeId,
+                    entityTypeId: newEntityTypeId,
                     aggregate: {
                       // There is scope to include other options if entity properties overlap
                       itemsPerPage: data.__linkedData?.aggregate?.itemsPerPage,
@@ -339,10 +390,19 @@ export const App: BlockComponent<AppProps> = ({
             },
           },
           entityId,
+          entityTypeId,
+          entityTypeVersionId,
         },
       ]);
     },
-    [updateEntities, data.__linkedData?.aggregate?.itemsPerPage, entityId],
+    [
+      updateEntities,
+      data.__linkedData?.aggregate?.itemsPerPage,
+      entityId,
+      entityTypeId,
+      entityTypeVersionId,
+      accountId,
+    ],
   );
 
   const entityTypeDropdown = entityTypes ? (
