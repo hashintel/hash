@@ -69,24 +69,46 @@ void (async () => {
   const results = new Map<string, Entity>();
 
   const requiredBlockTypes = [
-    ["Divider", "https://blockprotocol.org/blocks/@hash/divider"],
-    ["Embed", "https://blockprotocol.org/blocks/@hash/embed"],
-    ["Image", "https://blockprotocol.org/blocks/@hash/image"],
-    ["Table", "https://blockprotocol.org/blocks/@hash/table"],
-    ["Code", "https://blockprotocol.org/blocks/@hash/code"],
-    ["Video", "https://blockprotocol.org/blocks/@hash/video"],
-    ["Header", "https://blockprotocol.org/blocks/@hash/header"],
+    {
+      name: "Divider",
+      componentId: "https://blockprotocol.org/blocks/@hash/divider",
+    },
+    {
+      name: "Embed",
+      componentId: "https://blockprotocol.org/blocks/@hash/embed",
+    },
+    {
+      name: "Image",
+      componentId: "https://blockprotocol.org/blocks/@hash/image",
+    },
+    {
+      name: "Table",
+      componentId: "https://blockprotocol.org/blocks/@hash/table",
+    },
+    {
+      name: "Code",
+      componentId: "https://blockprotocol.org/blocks/@hash/code",
+    },
+    {
+      name: "Video",
+      componentId: "https://blockprotocol.org/blocks/@hash/video",
+    },
+    {
+      name: "Header",
+      componentId: "https://blockprotocol.org/blocks/@hash/header",
+    },
   ] as const;
 
   const requiredOtherTypes = ["Company", "Location", "Person"] as const;
   // create the types we'll need below so we can assign their ids to entities
   const newTypeIds: Record<
-    typeof requiredBlockTypes[number][0] | typeof requiredOtherTypes[number],
+    | typeof requiredBlockTypes[number]["name"]
+    | typeof requiredOtherTypes[number],
     string
   > = {} as any;
 
   await Promise.all(
-    requiredBlockTypes.map(async ([name, componentId]) => {
+    requiredBlockTypes.map(async ({ name, componentId }) => {
       const entityType = await EntityType.create(db, {
         accountId: systemOrg.accountId,
         createdByAccountId: systemOrg.entityId, // TODO
