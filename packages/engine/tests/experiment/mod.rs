@@ -165,6 +165,7 @@ pub async fn run_test_suite(
 
             let mut test_output = None;
             for rust_log_env in &rust_log_envs {
+                let environment = std::env::vars();
                 std::env::set_var("RUST_LOG", &rust_log_env);
                 eprint!("Running test with RUST_LOG={rust_log_env}... ");
 
@@ -177,6 +178,13 @@ pub async fn run_test_suite(
                     expected_outputs.len(),
                 )
                 .await;
+
+                std::env::remove_var("RUST_LOG");
+                for (key, var) in environment {
+                    if key == "RUST_LOG" {
+                        std::env::set_var(key, var);
+                    }
+                }
 
                 match test_result {
                     Ok(outputs) => {
