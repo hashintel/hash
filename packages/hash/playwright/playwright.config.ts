@@ -5,7 +5,7 @@ const ci = process.env.CI === "true";
 const config: PlaywrightTestConfig = {
   forbidOnly: ci,
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    // { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "firefox", use: { ...devices["Desktop Firefox"] } },
 
     // TODO: investigate issue with cookie persistence in CI (Ubuntu).

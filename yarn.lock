@@ -4197,12 +4197,12 @@
   resolved "https://registry.yarnpkg.com/@protobufjs/utf8/-/utf8-1.1.0.tgz#a777360b5b39a1a2e5106f8e858f2fd2d060c570"
   integrity sha1-p3c2C1s5oaLlEG+OhY8v0tBgxXA=
 
-"@recordreplay/playwright@1.10.7":
-  version "1.10.7"
-  resolved "https://registry.yarnpkg.com/@recordreplay/playwright/-/playwright-1.10.7.tgz#3f044c0e0b4ad2d5215ec9755d8183b66007e06c"
-  integrity sha512-1pIFEsGHccy1Sl303haO2xtsF8mQPIpIW8yM1ajSNkBUKK23Bvra26ydnUjMWgJP8cl5MwWKojoVqCV0TRjwKg==
+"@recordreplay/playwright@1.18.1":
+  version "1.18.1"
+  resolved "https://registry.yarnpkg.com/@recordreplay/playwright/-/playwright-1.18.1.tgz#a84a4b8389b857f11b369833e6339eb52c4a51e6"
+  integrity sha512-ovz0ESYoK6IYr14CDIbg07ZcF19BAvHTQTn9jsoL6qmu70XYfnkSTTI1VOzq2VMFVzGAVdhvM5x1KLAjHS/S6A==
   dependencies:
-    commander "^6.1.0"
+    commander "^8.2.0"
     debug "^4.1.1"
     extract-zip "^2.0.1"
     https-proxy-agent "^5.0.0"
@@ -4213,8 +4213,11 @@
     proper-lockfile "^4.1.1"
     proxy-from-env "^1.1.0"
     rimraf "^3.0.2"
+    socks-proxy-agent "^6.1.0"
     stack-utils "^2.0.3"
-    ws "^7.3.1"
+    ws "^7.4.6"
+    yauzl "^2.10.0"
+    yazl "^2.5.1"
 
 "@rjsf/core@3.2.0":
   version "3.2.0"
@@ -7059,6 +7062,11 @@ class-utils@^0.3.5:
   version "0.3.6"
   resolved "https://registry.yarnpkg.com/class-utils/-/class-utils-0.3.6.tgz#f93369ae8b9a7ce02fd41faad0ca83033190c463"
   integrity sha512-qOhPa/Fj7s6TY8H8esGu5QNpMMQxz79h+urzrNYN6mn+9BnxlDGf5QZ+XeCDsxSjPqsSR56XOZOJmpeurnLMeg==
+  dependencies:
+    arr-union "^3.1.0"
+    define-property "^0.2.5"
+    isobject "^3.0.0"
+    static-extend "^0.1.1"
 
 classnames@2.2.6:
   version "2.2.6"
@@ -10557,6 +10565,8 @@ is-data-descriptor@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/is-data-descriptor/-/is-data-descriptor-1.0.0.tgz#d84876321d0e7add03990406abbbbd36ba9268c7"
   integrity sha512-jbRXy1FmtAoCjQkVmIVYwuuqDFUbaOeDjmed1tOGPrsMhtJA4rD9tkgA0F1qJ3gRFRXcHYVkdeaP50Q5rE/jLQ==
+  dependencies:
+    kind-of "^6.0.0"
 
 is-date-object@^1.0.1:
   version "1.0.5"
@@ -10578,6 +10588,10 @@ is-descriptor@^1.0.0, is-descriptor@^1.0.2:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/is-descriptor/-/is-descriptor-1.0.2.tgz#3b159746a66604b04f8c81524ba365c5f14d86ec"
   integrity sha512-2eis5WqQGV7peooDyLmNEPUrps9+SXX5c9pL3xEB+4e9HnGuDa7mB7kHxHw4CbqS9k1T2hOH3miL8n8WtiYVtg==
+  dependencies:
+    is-accessor-descriptor "^1.0.0"
+    is-data-descriptor "^1.0.0"
+    kind-of "^6.0.2"
 
 is-docker@^2.0.0, is-docker@^2.1.1:
   version "2.2.1"
@@ -12386,6 +12400,20 @@ micromatch@^3.0.4, micromatch@^3.1.10, micromatch@^3.1.4:
   version "3.1.10"
   resolved "https://registry.yarnpkg.com/micromatch/-/micromatch-3.1.10.tgz#70859bc95c9840952f359a068a3fc49f9ecfac23"
   integrity sha512-MWikgl9n9M3w+bpsY3He8L+w9eF9338xRl8IAO5viDizwSzziFEyUzo2xrrloB64ADbTf8uA8vRqqttDTOmccg==
+  dependencies:
+    arr-diff "^4.0.0"
+    array-unique "^0.3.2"
+    braces "^2.3.1"
+    define-property "^2.0.2"
+    extend-shallow "^3.0.2"
+    extglob "^2.0.4"
+    fragment-cache "^0.2.1"
+    kind-of "^6.0.2"
+    nanomatch "^1.2.9"
+    object.pick "^1.3.0"
+    regex-not "^1.0.0"
+    snapdragon "^0.8.1"
+    to-regex "^3.0.2"
 
 micromatch@^4.0.2, micromatch@^4.0.4:
   version "4.0.4"
@@ -14618,6 +14646,9 @@ regex-not@^1.0.0, regex-not@^1.0.2:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/regex-not/-/regex-not-1.0.2.tgz#1f4ece27e00b0b65e0247a6810e6a85d83a5752c"
   integrity sha512-J6SDjUgDxQj5NusnOtdFxDwN/+HWykR8GELwctJ7mdqhcyy1xEc4SRFHUXvxTp661YaVKAjfRLZ9cCqS6tn32A==
+  dependencies:
+    extend-shallow "^3.0.2"
+    safe-regex "^1.1.0"
 
 regexp.prototype.flags@^1.2.0, regexp.prototype.flags@^1.3.1:
   version "1.3.1"
@@ -15231,6 +15262,11 @@ set-value@^2.0.0, set-value@^2.0.1:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/set-value/-/set-value-2.0.1.tgz#a18d40530e6f07de4228c7defe4227af8cad005b"
   integrity sha512-JxHc1weCN68wRY0fhCoXpyK55m/XPHafOmK4UWD7m2CI14GMcFypt4w/0+NV5f/ZMby2F6S2wwA7fgynh9gWSw==
+  dependencies:
+    extend-shallow "^2.0.1"
+    is-extendable "^0.1.1"
+    is-plain-object "^2.0.3"
+    split-string "^3.0.1"
 
 set-value@^4.1.0:
   version "4.1.0"
@@ -15424,6 +15460,10 @@ snapdragon-node@^2.0.1:
   version "2.1.1"
   resolved "https://registry.yarnpkg.com/snapdragon-node/-/snapdragon-node-2.1.1.tgz#6c175f86ff14bdb0724563e8f3c1b021a286853b"
   integrity sha512-O27l4xaMYt/RSQ5TR3vpWCAB5Kb/czIcqUFOM/C4fYcLnbZUc1PkjTAMjof2pBWaSTwOUd6qUHcFGVGj7aIwnw==
+  dependencies:
+    define-property "^1.0.0"
+    isobject "^3.0.0"
+    snapdragon-util "^3.0.1"
 
 snapdragon-util@^3.0.1:
   version "3.0.1"
