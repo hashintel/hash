@@ -21,7 +21,10 @@ export const useBlockProtocolAggregateEntityTypes = (): {
           GetAccountEntityTypesQueryVariables
         >({
           query: getAccountEntityTypes,
-          variables: payload,
+          variables: {
+            accountId: payload.accountId,
+            includeOtherTypesInUse: payload.includeOtherTypesInUse,
+          },
         });
 
         // TODO: Consider using aggregate query to avoid result conversion on the client

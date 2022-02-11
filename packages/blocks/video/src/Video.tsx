@@ -225,8 +225,11 @@ export const Video: BlockComponent<AppProps> = (props) => {
             if (existingLinkGroup) {
               await deleteLinks(
                 existingLinkGroup.links.map((link) => ({
+                  sourceAccountId: accountId,
+                  sourceEntityId: link.sourceEntityId,
+                  sourceEntityTypeId: entityTypeId,
+                  sourceEntityTypeVersionId: entityTypeVersionId,
                   linkId: link.linkId,
-                  sourceEntityId: entityId,
                 })),
               );
             }
@@ -235,6 +238,8 @@ export const Video: BlockComponent<AppProps> = (props) => {
               {
                 sourceAccountId: accountId,
                 sourceEntityId: entityId,
+                sourceEntityTypeId: entityTypeId,
+                sourceEntityTypeVersionId: entityTypeVersionId,
                 destinationEntityId: file.entityId,
                 destinationAccountId: file.accountId,
                 path: "$.file",

@@ -27,7 +27,9 @@ export const useBlockProtocolDeleteLinks = (): {
       for (const action of actions) {
         const { data } = await runDeleteLinkMutation({
           variables: {
-            ...action,
+            linkId: action.linkId,
+            sourceAccountId: action.sourceAccountId,
+            sourceEntityId: action.sourceEntityId,
           },
         });
         results.push(!!data?.deleteLink);

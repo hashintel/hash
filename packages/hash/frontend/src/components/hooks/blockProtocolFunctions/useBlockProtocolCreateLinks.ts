@@ -31,11 +31,13 @@ export const useBlockProtocolCreateLinks = (): {
         const { data, errors } = await runCreateLinksMutation({
           variables: {
             link: {
-              ...action,
-              sourceAccountId: action.sourceAccountId,
+              destinationEntityId: action.destinationEntityId,
               destinationAccountId: action.destinationAccountId
                 ? action.destinationAccountId
                 : action.sourceAccountId,
+              path: action.path,
+              sourceEntityId: action.sourceEntityId,
+              sourceAccountId: action.sourceAccountId,
             },
           },
         });

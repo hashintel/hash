@@ -229,7 +229,15 @@ export const Image: BlockComponent<AppProps> = (props) => {
         updateStateObject(width ? { src, width } : { src });
       }
     },
-    [captionText, entityId, entityTypeId, updateStateObject, updateEntities],
+    [
+      accountId,
+      captionText,
+      entityId,
+      entityTypeId,
+      entityTypeVersionId,
+      updateStateObject,
+      updateEntities,
+    ],
   );
 
   const updateWidth = useCallback(
@@ -305,6 +313,8 @@ export const Image: BlockComponent<AppProps> = (props) => {
       createLinks,
       deleteLinks,
       entityId,
+      entityTypeId,
+      entityTypeVersionId,
       linkGroups,
       updateData,
       updateStateObject,
