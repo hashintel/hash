@@ -59,7 +59,7 @@ pub struct ExperimentConfig {
     pub log_format: LogFormat,
 
     /// Logging verbosity to use. If not set `RUST_LOG` will be used
-    #[clap(global = true, long, arg_enum)]
+    #[cfg_attr(feature = "clap", clap(global = true, long, arg_enum))]
     pub log_level: Option<LogLevel>,
 
     /// Output location where logs are emitted to.
