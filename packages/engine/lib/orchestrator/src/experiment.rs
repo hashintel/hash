@@ -242,7 +242,7 @@ impl Experiment {
             .wrap_err("Could not send `Init` message")?;
         debug!("Sent init message to \"{experiment_name}\"");
 
-        let mut errored = false;
+        let mut graceful_finish = true;
         loop {
             let msg: Option<proto::EngineStatus>;
             tokio::select! {
@@ -252,6 +252,7 @@ impl Experiment {
                         Exiting now.",
                         self.config.wait_timeout
                     );
+                    graceful_finish = false;
                     break;
                 }
                 m = engine_handle.recv() => { msg = Some(m) },
@@ -287,7 +288,7 @@ impl Experiment {
                                 );
                             }
                             StopStatus::Error => {
-                                errored = true;
+                                graceful_finish = true;
                                 tracing::error!(
                                     "Simulation stopped by agent `{agent}` with an error{reason}"
                                 );
@@ -301,7 +302,7 @@ impl Experiment {
                 }
                 proto::EngineStatus::Errors(sim_id, errs) => {
                     error!("There were errors when running simulation [{sim_id}]: {errs:?}");
-                    errored = true;
+                    graceful_finish = false;
                 }
                 proto::EngineStatus::Warnings(sim_id, warnings) => {
                     warn!("There were warnings when running simulation [{sim_id}]: {warnings:?}");
@@ -319,7 +320,7 @@ impl Experiment {
                 }
                 proto::EngineStatus::ProcessError(error) => {
                     error!("Got error: {error:?}");
-                    errored = true;
+                    graceful_finish = false;
                     break;
                 }
                 proto::EngineStatus::Started => {
@@ -338,7 +339,7 @@ impl Experiment {
             .await
             .wrap_err("Could not cleanup after finish")?;
 
-        ensure!(!errored, "experiment had errors");
+        ensure!(graceful_finish, "Engine didn't exit gracefully.");
 
         Ok(())
     }
