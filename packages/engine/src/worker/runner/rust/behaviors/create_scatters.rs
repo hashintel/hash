@@ -3,8 +3,8 @@ use rand::Rng;
 use serde_json::json;
 
 pub fn behavior(state: &mut State, context: &Context) -> Result<()> {
-    let properties = &context.globals();
-    let topology = properties
+    let globals = &context.globals();
+    let topology = globals
         .get("topology")
         .ok_or_else(|| "Topology is missing yet it was required")?;
 
@@ -82,13 +82,13 @@ use rand::Rng;
 
 /// # Errors
 /// This function will fail if
-/// 1. `topology` is not available in `properties`
+/// 1. `topology` is not available in `globals`
 /// 2. `x_bounds` or `y_bounds` is missing from `topology` or they do not start with numbers
 /// 3. `template_name` is not a string
 /// 4. `template_count` is not a number
 pub fn create_scatters(state: &mut AgentState, context: &Context) -> SimulationResult<()> {
-    let properties = context.properties;
-    let topology = properties
+    let globals = context.globals;
+    let topology = globals
         .get("topology")
         .ok_or_else(|| "Topology is missing yet it was required")?;
 

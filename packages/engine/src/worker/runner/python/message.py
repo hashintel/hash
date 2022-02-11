@@ -135,7 +135,7 @@ class PySimRun:
     def __init__(self, fb):
         self.sim_id = fb.Sid()
         self.pkgs = pkgs_from_config(fb.PackageConfig())
-        self.globals = json.loads(fb.Properties().decode('utf-8'))
+        self.globals = json.loads(fb.Globals().decode('utf-8'))
         self.schema = PySchema(fb.DatastoreInit())
         # TODO: DatastoreInit datasets per sim run?
 

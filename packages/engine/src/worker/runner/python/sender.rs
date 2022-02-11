@@ -263,7 +263,7 @@ fn inbound_to_nng(
                 &flatbuffers_gen::new_simulation_run_generated::NewSimulationRunArgs {
                     sim_id: Some(_sim_id),
                     sid: msg.short_id,
-                    properties: Some(globals),
+                    globals: Some(globals),
                     package_config: Some(package_config),
                     datastore_init: Some(datastore_init),
                 },
