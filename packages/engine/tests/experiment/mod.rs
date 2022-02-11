@@ -9,6 +9,7 @@ use std::{
 
 use error::{bail, ensure, report, Result, ResultExt};
 use hash_engine_lib::{
+    init_logger,
     proto::ExperimentName,
     utils::{LogFormat, LogLevel, OutputLocation},
     Language,
@@ -116,6 +117,18 @@ pub async fn run_test_suite(
     language: Option<Language>,
     experiment: Option<&'static str>,
 ) {
+    // If this is an Err then the logger has already been initialised in another thread which is
+    // okay
+    let _guard = init_logger(
+        LogFormat::Pretty,
+        &OutputLocation::StdErr,
+        std::env::temp_dir(),
+        // These are logs only from the Orchestrator library, *not* for the engine that we're
+        // starting, the configuration for the engine is setup below
+        Some(LogLevel::Info),
+        "tests",
+        "tests-texray",
+    );
     // If `RUST_LOG` is set, only run it once, otherwise run with `warn` and `trace` on failure
     let log_levels = if std::env::var("RUST_LOG").is_ok() {
         vec![None]
@@ -166,7 +179,7 @@ pub async fn run_test_suite(
             let mut test_output = None;
             for log_level in &log_levels {
                 if let Some(log_level) = log_level {
-                    eprint!("Running test with log level `{log_level}`... ");
+                    tracing::info!("Running test with log level `{log_level}`... ");
                 }
 
                 let test_result = run_test(
@@ -182,14 +195,14 @@ pub async fn run_test_suite(
 
                 match test_result {
                     Ok(outputs) => {
-                        eprintln!("success");
                         test_output = Some(outputs);
                         break;
                     }
                     Err(err) => {
-                        eprintln!("failed");
-                        eprintln!("{err:?}");
+                        tracing::error!("Test failed");
+                        tracing::error!("Err:\n{err:?}");
                         if let Ok(log) = fs::read_to_string(&log_file_path) {
+                            tracing::error!("Logs:");
                             eprintln!("{log}");
                         }
                     }
