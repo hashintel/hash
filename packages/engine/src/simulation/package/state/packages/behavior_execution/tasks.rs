@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{Error, Result};
 use crate::{
-    config::{Distribution, TaskDistributionConfig},
+    config::{StateBatchDistribution, TaskDistributionConfig},
     simulation::{
         enum_dispatch::{StateTask, StateTaskMessage, WorkerHandler},
         task::{
@@ -34,7 +34,7 @@ impl GetTaskName for ExecuteBehaviorsTask {
 
 impl GetTaskArgs for ExecuteBehaviorsTask {
     fn distribution(&self) -> TaskDistributionConfig {
-        TaskDistributionConfig::Distributed(Distribution {
+        TaskDistributionConfig::Distributed(StateBatchDistribution {
             single_read_access: true,
         })
     }

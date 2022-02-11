@@ -624,6 +624,10 @@ impl WorkerController {
     }
 
     /// Sends a message containing the `task` to the appropriate language runner.
+    ///
+    /// Splits the [`WorkerTask`] into multiple executions if the [`TaskSharedStore`] is
+    /// [`SharedState::Partial`] by using the [`TaskSharedStore::split_into_individual_per_group`]
+    /// method.
     async fn spawn_task(&mut self, sim_id: SimulationShortId, task: WorkerTask) -> Result<()> {
         let task_id = task.task_id;
         let msg = WorkerHandler::start_message(&task.inner)?;

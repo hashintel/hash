@@ -8,5 +8,6 @@ use crate::{
 
 #[enum_dispatch]
 pub trait GetTaskArgs {
+    /// Defines if a [`Task`] has a distributed (split across [`Worker`]s) execution
     fn distribution(&self) -> TaskDistributionConfig;
 }

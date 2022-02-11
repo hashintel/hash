@@ -9,16 +9,28 @@ use crate::simulation::{
     Error, Result,
 };
 
+/// A sibling struct to a [`Task`] that is currently being executed to allow management of
+/// communication with, and tracking of, a [`Task`]'s status.
 #[derive(derive_new::new)]
 pub struct ActiveTask {
+    /// Used by the owning Package to wait for results from the associated [`Task`]
     comms: ActiveTaskOwnerComms,
+    /// Marks whether or not the [`Task`] is still running
     #[new(value = "true")]
     running: bool,
+    /// Marks whether or not the [`Task`] has been signalled to cancel
     #[new(default)]
     cancel_sent: bool,
 }
 
 impl ActiveTask {
+    /// Waits for a [`TaskResultOrCancelled`] from the associated [`Task`] and returns the
+    /// [`TaskMessage`].
+    ///
+    /// # Errors
+    /// - If the execution of [`Task`] failed and it wasn't able to receive a
+    /// [`TaskResultOrCancelled`]
+    /// - If the [`Task`] was cancelled during execution
     pub async fn drive_to_completion(mut self) -> Result<TaskMessage> {
         if self.running {
             let recv = self

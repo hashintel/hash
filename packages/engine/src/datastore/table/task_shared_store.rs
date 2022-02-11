@@ -3,7 +3,7 @@ use std::fmt::Debug;
 
 use super::proxy::{StateReadProxy, StateWriteProxy};
 use crate::{
-    config::{Distribution, Worker, WorkerAllocation},
+    config::{StateBatchDistribution, Worker, WorkerAllocation},
     datastore::{
         prelude::Result,
         table::{context::Context, state::view::StatePools},
@@ -275,7 +275,7 @@ impl TaskSharedStore {
     /// TODO: DOC
     pub fn distribute(
         self,
-        distribution: &Distribution,
+        distribution: &StateBatchDistribution,
         worker_list: &WorkerAllocation,
     ) -> Result<(Vec<(Worker, Self)>, SplitConfig)> {
         let reads_state = self.reads_state();
