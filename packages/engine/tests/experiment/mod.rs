@@ -10,7 +10,7 @@ use std::{
 use error::{bail, ensure, report, Result, ResultExt};
 use hash_engine_lib::{
     proto::ExperimentName,
-    utils::{LogFormat, OutputLocation},
+    utils::{LogFormat, LogLevel, OutputLocation},
     Language,
 };
 use orchestrator::{ExperimentConfig, ExperimentType, Manifest, Server};
@@ -116,9 +116,12 @@ pub async fn run_test_suite(
     language: Option<Language>,
     experiment: Option<&'static str>,
 ) {
-    if std::env::var("RUST_LOG").is_err() {
-        std::env::set_var("RUST_LOG", "info");
-    }
+    // If `RUST_LOG` is set, only run it once, otherwise run with `warn` and `trace` on failure
+    let log_levels = if std::env::var("RUST_LOG").is_ok() {
+        vec![None]
+    } else {
+        vec![Some(LogLevel::Warning), Some(LogLevel::Trace)]
+    };
 
     let project_name = project_path
         .file_name()
@@ -160,35 +163,49 @@ pub async fn run_test_suite(
             // Remove log file in case it's already existing
             let _ = fs::remove_file(&log_file_path);
 
-            let test_result = run_test(
-                experiment_type.clone(),
-                &project_path,
-                project_name.clone(),
-                output_folder,
-                language,
-                expected_outputs.len(),
-            )
-            .await;
-
-            let test_result = match test_result {
-                Ok(outputs) => outputs,
-                Err(err) => {
-                    match fs::read_to_string(&log_file_path) {
-                        Ok(log) => eprintln!("{log}"),
-                        Err(err) => eprintln!("Could not read {log_file_path:?}: {err}"),
-                    }
-                    panic!("{:?}", err.wrap("Could not run experiment"));
+            let mut test_output = None;
+            for log_level in &log_levels {
+                if let Some(log_level) = log_level {
+                    eprint!("Running test with log level `{log_level}`... ");
                 }
-            };
+
+                let test_result = run_test(
+                    experiment_type.clone(),
+                    &project_path,
+                    project_name.clone(),
+                    output_folder.clone(),
+                    *log_level,
+                    language,
+                    expected_outputs.len(),
+                )
+                .await;
+
+                match test_result {
+                    Ok(outputs) => {
+                        eprintln!("success");
+                        test_output = Some(outputs);
+                        break;
+                    }
+                    Err(err) => {
+                        eprintln!("failed");
+                        eprintln!("{err:?}");
+                        if let Ok(log) = fs::read_to_string(&log_file_path) {
+                            eprintln!("{log}");
+                        }
+                    }
+                }
+            }
+
+            let test_output = test_output.expect("Could not run experiment");
 
             assert_eq!(
                 expected_outputs.len(),
-                test_result.outputs.len(),
+                test_output.outputs.len(),
                 "Number of expected outputs does not match number of returned simulation results \
                  for experiment"
             );
 
-            for (output_idx, ((states, globals, analysis), expected)) in test_result
+            for (output_idx, ((states, globals, analysis), expected)) in test_output
                 .outputs
                 .into_iter()
                 .zip(expected_outputs.iter())
@@ -203,7 +220,7 @@ pub async fn run_test_suite(
                         )
                     });
             }
-            timings.push(test_result.duration.as_nanos());
+            timings.push(test_output.duration.as_nanos());
         }
         timings.sort_unstable();
 
@@ -237,6 +254,7 @@ pub async fn run_test<P: AsRef<Path>>(
     project_path: P,
     project_name: String,
     output: PathBuf,
+    log_level: Option<LogLevel>,
     language: Option<Language>,
     num_outputs_expected: usize,
 ) -> Result<TestOutput> {
@@ -264,6 +282,7 @@ pub async fn run_test<P: AsRef<Path>>(
         num_workers: num_cpus::get(),
         log_format: LogFormat::Pretty,
         log_folder: output.join("log"),
+        log_level,
         output_folder: output,
         output_location: OutputLocation::File("output.log".into()),
         start_timeout: 10,
