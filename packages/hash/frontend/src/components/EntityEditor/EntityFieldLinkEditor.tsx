@@ -24,6 +24,7 @@ import { entityName } from "../../lib/entities";
 type MinimalEntity = { accountId: string; entityId: string; name: string };
 
 type EntitySelectProps = {
+  accountId: string;
   aggregateEntities: BlockProtocolAggregateEntitiesFunction;
   allowsMultipleSelections: boolean;
   createLinkFromEntity: CreateLinkFnWithFixedSource;
@@ -64,6 +65,7 @@ const SelectInput: VoidFunctionComponent<
 export const EntityFieldLinkEditor: VoidFunctionComponent<
   EntitySelectProps
 > = ({
+  accountId,
   aggregateEntities,
   allowsMultipleSelections,
   createLinkFromEntity,
@@ -76,6 +78,7 @@ export const EntityFieldLinkEditor: VoidFunctionComponent<
 
   useEffect(() => {
     aggregateEntities({
+      accountId,
       operation: {
         entityTypeId,
         itemsPerPage: 100, // @todo paginate
@@ -89,8 +92,8 @@ export const EntityFieldLinkEditor: VoidFunctionComponent<
          */
         setEntityOptions(
           (results as BlockProtocolEntity[]).map(
-            ({ accountId, entityId, ...properties }) => ({
-              accountId,
+            ({ accountId: resultAccountId, entityId, ...properties }) => ({
+              accountId: resultAccountId,
               entityId,
               name: entityName({ entityId, ...properties }),
             }),
@@ -103,7 +106,7 @@ export const EntityFieldLinkEditor: VoidFunctionComponent<
           `Error fetching entities to populate select options: ${err.message}`,
         ),
       );
-  }, [aggregateEntities, entityTypeId]);
+  }, [accountId, aggregateEntities, entityTypeId]);
 
   const onSelectNew = useCallback(
     (evt: ChangeEvent<HTMLSelectElement>) => {
