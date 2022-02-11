@@ -199,7 +199,15 @@ export const Video: BlockComponent<AppProps> = (props) => {
         updateStateObject({ src });
       }
     },
-    [captionText, entityId, entityTypeId, updateStateObject, updateEntities],
+    [
+      accountId,
+      captionText,
+      entityId,
+      entityTypeId,
+      entityTypeVersionId,
+      updateStateObject,
+      updateEntities,
+    ],
   );
 
   const handleVideoUpload = useCallback(
@@ -264,6 +272,8 @@ export const Video: BlockComponent<AppProps> = (props) => {
       createLinks,
       deleteLinks,
       entityId,
+      entityTypeId,
+      entityTypeVersionId,
       linkGroups,
       updateData,
       updateStateObject,

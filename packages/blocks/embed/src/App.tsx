@@ -179,7 +179,7 @@ export const App: BlockComponent<AppProps> = ({
         void updateEntities<any>([updateAction]);
       }
     },
-    [entityId, entityTypeId, updateEntities],
+    [accountId, entityId, entityTypeId, entityTypeVersionId, updateEntities],
   );
 
   const handleGetEmbed = async () => {
