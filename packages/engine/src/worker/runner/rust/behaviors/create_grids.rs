@@ -2,8 +2,8 @@ use super::{Context, Result, SharedBehavior, State};
 use serde_json::json;
 
 pub fn behavior(state: &mut State<'_>, context: &Context<'_>) -> Result<()> {
-    let properties = context.globals();
-    let topology = properties
+    let globals = context.globals();
+    let topology = globals
         .get("topology")
         .ok_or_else(|| "Topology is missing yet it was required")?;
 
@@ -77,8 +77,8 @@ use crate::prelude::{AgentState, Context, SimulationResult};
 /// 2. `x_bounds`, `y_bounds` or `z_bounds` first value is not a number.
 /// 3. `template_name` in `grid_template` is not a string
 pub fn create_grids(state: &mut AgentState, context: &Context) -> SimulationResult<()> {
-    let properties = context.properties;
-    let topology = properties
+    let globals = context.globals;
+    let topology = globals
         .get("topology")
         .ok_or_else(|| "Topology is missing yet it was required")?;
 

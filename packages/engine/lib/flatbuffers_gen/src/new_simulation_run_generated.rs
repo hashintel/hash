@@ -255,8 +255,8 @@ impl<'a> flatbuffers::Follow<'a> for NewSimulationRun<'a> {
 
 impl<'a> NewSimulationRun<'a> {
     pub const VT_DATASTORE_INIT: flatbuffers::VOffsetT = 12;
+    pub const VT_GLOBALS: flatbuffers::VOffsetT = 8;
     pub const VT_PACKAGE_CONFIG: flatbuffers::VOffsetT = 10;
-    pub const VT_PROPERTIES: flatbuffers::VOffsetT = 8;
     pub const VT_SID: flatbuffers::VOffsetT = 6;
     pub const VT_SIM_ID: flatbuffers::VOffsetT = 4;
 
@@ -277,8 +277,8 @@ impl<'a> NewSimulationRun<'a> {
         if let Some(x) = args.package_config {
             builder.add_package_config(x);
         }
-        if let Some(x) = args.properties {
-            builder.add_properties(x);
+        if let Some(x) = args.globals {
+            builder.add_globals(x);
         }
         builder.add_sid(args.sid);
         if let Some(x) = args.sim_id {
@@ -302,9 +302,9 @@ impl<'a> NewSimulationRun<'a> {
     }
 
     #[inline]
-    pub fn properties(&self) -> &'a str {
+    pub fn globals(&self) -> &'a str {
         self._tab
-            .get::<flatbuffers::ForwardsUOffset<&str>>(NewSimulationRun::VT_PROPERTIES, None)
+            .get::<flatbuffers::ForwardsUOffset<&str>>(NewSimulationRun::VT_GLOBALS, None)
             .unwrap()
     }
 
@@ -339,11 +339,7 @@ impl flatbuffers::Verifiable for NewSimulationRun<'_> {
         v.visit_table(pos)?
             .visit_field::<flatbuffers::ForwardsUOffset<&str>>(&"sim_id", Self::VT_SIM_ID, true)?
             .visit_field::<u32>(&"sid", Self::VT_SID, false)?
-            .visit_field::<flatbuffers::ForwardsUOffset<&str>>(
-                &"properties",
-                Self::VT_PROPERTIES,
-                true,
-            )?
+            .visit_field::<flatbuffers::ForwardsUOffset<&str>>(&"globals", Self::VT_GLOBALS, true)?
             .visit_field::<flatbuffers::ForwardsUOffset<PackageConfig>>(
                 &"package_config",
                 Self::VT_PACKAGE_CONFIG,
@@ -361,7 +357,7 @@ impl flatbuffers::Verifiable for NewSimulationRun<'_> {
 pub struct NewSimulationRunArgs<'a> {
     pub sim_id: Option<flatbuffers::WIPOffset<&'a str>>,
     pub sid: u32,
-    pub properties: Option<flatbuffers::WIPOffset<&'a str>>,
+    pub globals: Option<flatbuffers::WIPOffset<&'a str>>,
     pub package_config: Option<flatbuffers::WIPOffset<PackageConfig<'a>>>,
     pub datastore_init: Option<flatbuffers::WIPOffset<DatastoreInit<'a>>>,
 }
@@ -371,7 +367,7 @@ impl<'a> Default for NewSimulationRunArgs<'a> {
         NewSimulationRunArgs {
             sim_id: None, // required field
             sid: 0,
-            properties: None,     // required field
+            globals: None,        // required field
             package_config: None, // required field
             datastore_init: None, // required field
         }
@@ -394,11 +390,9 @@ impl<'a: 'b, 'b> NewSimulationRunBuilder<'a, 'b> {
     }
 
     #[inline]
-    pub fn add_properties(&mut self, properties: flatbuffers::WIPOffset<&'b str>) {
-        self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(
-            NewSimulationRun::VT_PROPERTIES,
-            properties,
-        );
+    pub fn add_globals(&mut self, globals: flatbuffers::WIPOffset<&'b str>) {
+        self.fbb_
+            .push_slot_always::<flatbuffers::WIPOffset<_>>(NewSimulationRun::VT_GLOBALS, globals);
     }
 
     #[inline]
@@ -441,7 +435,7 @@ impl<'a: 'b, 'b> NewSimulationRunBuilder<'a, 'b> {
         let o = self.fbb_.end_table(self.start_);
         self.fbb_.required(o, NewSimulationRun::VT_SIM_ID, "sim_id");
         self.fbb_
-            .required(o, NewSimulationRun::VT_PROPERTIES, "properties");
+            .required(o, NewSimulationRun::VT_GLOBALS, "globals");
         self.fbb_
             .required(o, NewSimulationRun::VT_PACKAGE_CONFIG, "package_config");
         self.fbb_
@@ -455,7 +449,7 @@ impl std::fmt::Debug for NewSimulationRun<'_> {
         let mut ds = f.debug_struct("NewSimulationRun");
         ds.field("sim_id", &self.sim_id());
         ds.field("sid", &self.sid());
-        ds.field("properties", &self.properties());
+        ds.field("globals", &self.globals());
         ds.field("package_config", &self.package_config());
         ds.field("datastore_init", &self.datastore_init());
         ds.finish()

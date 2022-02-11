@@ -55,7 +55,7 @@ pub const BUILTIN_FIELDS: [&str; 12] = [
 /// the state of the simulation or any other agent.
 #[derive(Serialize, Debug)]
 pub struct Context<'a> {
-    pub properties: &'a Globals,
+    pub globals: &'a Globals,
     pub neighbors: Vec<&'a Agent>,
     pub messages: Vec<&'a message::Incoming>,
     pub datasets: &'a DatasetMap,

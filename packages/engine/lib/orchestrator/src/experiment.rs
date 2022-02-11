@@ -371,7 +371,7 @@ fn get_simple_experiment_config(
 
     let config = SimpleExperimentConfig {
         experiment_name,
-        changed_properties: plan
+        changed_globals: plan
             .inner
             .into_iter()
             .flat_map(|v| {
