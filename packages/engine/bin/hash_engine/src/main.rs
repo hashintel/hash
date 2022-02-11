@@ -12,6 +12,7 @@ async fn main() -> Result<()> {
         args.log_format,
         &args.output,
         &args.log_folder,
+        args.log_level,
         &format!("experiment-{}", args.experiment_id),
         &format!("experiment-{}-texray", args.experiment_id),
     );
