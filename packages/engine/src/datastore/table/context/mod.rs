@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use parking_lot::RwLock;
-
 use crate::{
     config::StoreConfig,
     datastore::{
@@ -10,7 +8,6 @@ use crate::{
         schema::state::AgentSchema,
         table::{
             pool::{agent::AgentPool, message::MessagePool, BatchPool},
-            proxy::{BatchReadProxy, BatchWriteProxy},
             state::view::StatePools,
         },
     },
@@ -26,7 +23,7 @@ use crate::{
 /// and globals. Due to it being a description of the current environment surrounding the agent,
 /// it's immutable (unlike an agent's specific state).
 pub struct Context {
-    batch: Arc<RwLock<ContextBatch>>,
+    batch: Arc<ContextBatch>,
     /// View of the state from the previous step.
     previous_state: StatePools,
 
@@ -49,7 +46,7 @@ impl Context {
             experiment_id,
         )?;
         Ok(Self {
-            batch: Arc::new(RwLock::new(context_batch)),
+            batch: Arc::new(context_batch),
             previous_state: StatePools::empty(),
             removed_batches: Vec::new(),
         })
@@ -75,12 +72,32 @@ impl Context {
         &mut self.removed_batches
     }
 
-    pub fn read_proxy(&self) -> Result<BatchReadProxy<ContextBatch>> {
-        BatchReadProxy::new(&self.batch)
+    /// Returns the [`ContextBatch`] for this context.
+    ///
+    /// The context batch is the part of the context that’s
+    /// - about the whole simulation run (length of columns = number of agents in whole simulation),
+    ///   not about single groups like agent/message batches,
+    /// - computed by context packages, and
+    /// - particular/unique to the context, whereas previous state is a kind of state.
+    pub fn global_batch(&self) -> &Arc<ContextBatch> {
+        &self.batch
     }
 
-    pub fn write_proxy(&mut self) -> Result<BatchWriteProxy<ContextBatch>> {
-        BatchWriteProxy::new(&self.batch)
+    /// Returns a unique reference to the [`ContextBatch`] for this context.
+    ///
+    /// The context batch is the part of the context that’s
+    /// - about the whole simulation run (length of columns = number of agents in whole simulation),
+    ///   not about single groups like agent/message batches,
+    /// - computed by context packages, and
+    /// - particular/unique to the context, whereas previous state is a kind of state.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error, if the context batch is currently in used, e.g. by cloning the [`Arc`]
+    /// returned from [`global_batch()`](Self::global_batch).
+    pub fn global_batch_mut(&mut self) -> Result<&mut ContextBatch> {
+        Arc::get_mut(&mut self.batch)
+            .ok_or_else(|| Error::from("Could not acquire write access to the `ContextBatch`"))
     }
 
     pub fn into_pre_context(self) -> PreContext {
@@ -164,7 +181,7 @@ impl Context {
 /// A subset of the Context that's used while running context packages, as the MessagePool and
 /// AgentPool are possibly invalid and unneeded while building/updating the context.
 pub struct PreContext {
-    batch: Arc<RwLock<ContextBatch>>,
+    batch: Arc<ContextBatch>,
     /// Local metadata
     removed_batches: Vec<String>,
 }
@@ -183,7 +200,7 @@ impl PreContext {
             removed_batches: self.removed_batches,
         };
         context
-            .write_proxy()?
+            .global_batch_mut()?
             .write_from_context_datas(column_writers, num_elements)?;
         Ok(context)
     }
