@@ -5,7 +5,7 @@ use error::{Report, Result, ResultExt};
 use hash_engine_lib::{
     nano,
     proto::{EngineMsg, ExperimentId},
-    utils::{LogFormat, OutputLocation},
+    utils::{LogFormat, LogLevel, OutputLocation},
 };
 
 use crate::process;
@@ -66,6 +66,7 @@ pub struct LocalCommand {
     controller_url: String,
     num_workers: usize,
     log_format: LogFormat,
+    log_level: Option<LogLevel>,
     output_location: OutputLocation,
     log_folder: PathBuf,
 }
@@ -77,6 +78,7 @@ impl LocalCommand {
         num_workers: usize,
         controller_url: &str,
         log_format: LogFormat,
+        log_level: Option<LogLevel>,
         output_location: OutputLocation,
         log_folder: PathBuf,
     ) -> Self {
@@ -89,6 +91,7 @@ impl LocalCommand {
             controller_url: controller_url.to_string(),
             num_workers,
             log_format,
+            log_level,
             output_location,
             log_folder,
         }
@@ -126,6 +129,9 @@ impl process::Command for LocalCommand {
             .arg(self.log_folder)
             .stdout(std::process::Stdio::inherit())
             .stderr(std::process::Stdio::inherit());
+        if let Some(log_level) = self.log_level {
+            cmd.arg("--log-level").arg(log_level.to_string());
+        }
         debug!("Running `{cmd:?}`");
 
         let child = cmd
