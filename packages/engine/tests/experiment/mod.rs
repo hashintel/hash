@@ -261,15 +261,11 @@ pub async fn run_test<P: AsRef<Path>>(
     let project_path = project_path.as_ref();
 
     let nng_listen_url = {
-        use std::time::{SystemTime, UNIX_EPOCH};
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_millis();
+        let uuid = uuid::Uuid::new_v4();
         if let Some(language) = language {
-            format!("ipc://integration-test-suite-{project_name}-{language}-{now}")
+            format!("ipc://integration-test-suite-{project_name}-{language}-{uuid}")
         } else {
-            format!("ipc://integration-test-suite-{project_name}-{now}")
+            format!("ipc://integration-test-suite-{project_name}-{uuid}")
         }
     };
 
