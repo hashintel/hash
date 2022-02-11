@@ -10,6 +10,12 @@ struct TaskId {
   inner:[byte:16];
 }
 
+// A wrapper around the uint64 type to allow it to be option, Optional scalars aren't implemented in Python in
+// Flatbuffers 2.0.0
+struct GroupIndex {
+  inner:uint64;
+}
+
 // A task message for a Task (run by a package)
 // which is outbound from a worker.
 //
@@ -22,9 +28,9 @@ struct TaskId {
 //    `payload`        : payload for the task message (json)
 table TaskMsg {
   package_sid:uint64;
-  task_id:TaskId;
+  task_id:TaskId (required);
   target:Target;
-  group_index:uint64;
+  group_index:GroupIndex;
   metaversioning:StateInterimSync;
   payload:Serialized (required);
 }

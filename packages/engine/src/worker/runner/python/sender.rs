@@ -145,17 +145,18 @@ fn inbound_to_nng(
             let payload = str_to_serialized(fbb, &payload);
 
             let task_id = flatbuffers_gen::task_msg_generated::TaskId(msg.task_id.to_le_bytes());
-
+            let group_index = msg.group_index.map(|inner| {
+                flatbuffers_gen::task_msg_generated::GroupIndex((inner as u64).to_le_bytes())
+            });
             let msg = flatbuffers_gen::task_msg_generated::TaskMsg::create(
                 fbb,
                 &flatbuffers_gen::task_msg_generated::TaskMsgArgs {
                     package_sid: msg.package_id.as_usize() as u64,
                     task_id: Some(&task_id),
                     target: MessageTarget::Python.into(),
-                    payload: Some(payload),
+                    group_index: group_index.as_ref(),
                     metaversioning: Some(shared_store),
-                    // TODO: after moving to arrow >= 7 this should be `None`
-                    group_index: msg.group_index.unwrap_or_else(|| 0) as u64,
+                    payload: Some(payload),
                 },
             );
             (
