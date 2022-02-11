@@ -1,7 +1,4 @@
-use std::{
-    ops::{Deref, DerefMut},
-    sync::Arc,
-};
+use std::sync::Arc;
 
 use crate::{
     config::StoreConfig,
@@ -75,8 +72,32 @@ impl Context {
         &mut self.removed_batches
     }
 
-    pub fn batch(&self) -> Arc<ContextBatch> {
-        Arc::clone(&self.batch)
+    /// Returns the [`ContextBatch`] for this context.
+    ///
+    /// The context batch is the part of the context that’s
+    /// - about the whole simulation run (length of columns = number of agents in whole simulation),
+    ///   not about single groups like agent/message batches,
+    /// - computed by context packages, and
+    /// - particular/unique to the context, whereas previous state is a kind of state.
+    pub fn global_batch(&self) -> &Arc<ContextBatch> {
+        &self.batch
+    }
+
+    /// Returns a unique reference to the [`ContextBatch`] for this context.
+    ///
+    /// The context batch is the part of the context that’s
+    /// - about the whole simulation run (length of columns = number of agents in whole simulation),
+    ///   not about single groups like agent/message batches,
+    /// - computed by context packages, and
+    /// - particular/unique to the context, whereas previous state is a kind of state.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error, if the context batch is currently in used, e.g. by cloning the [`Arc`]
+    /// returned from [`global_batch()`](Self::global_batch).
+    pub fn global_batch_mut(&mut self) -> Result<&mut ContextBatch> {
+        Arc::get_mut(&mut self.batch)
+            .ok_or_else(|| Error::from("Could not acquire write access to the `ContextBatch`"))
     }
 
     pub fn into_pre_context(self) -> PreContext {
@@ -157,20 +178,6 @@ impl Context {
     }
 }
 
-impl Deref for Context {
-    type Target = ContextBatch;
-
-    fn deref(&self) -> &Self::Target {
-        &self.batch
-    }
-}
-
-impl DerefMut for Context {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        Arc::get_mut(&mut self.batch).expect("Could not acquire write access to `Context`")
-    }
-}
-
 /// A subset of the Context that's used while running context packages, as the MessagePool and
 /// AgentPool are possibly invalid and unneeded while building/updating the context.
 pub struct PreContext {
@@ -192,7 +199,9 @@ impl PreContext {
             previous_state: state_snapshot,
             removed_batches: self.removed_batches,
         };
-        context.write_from_context_datas(column_writers, num_elements)?;
+        context
+            .global_batch_mut()?
+            .write_from_context_datas(column_writers, num_elements)?;
         Ok(context)
     }
 }
