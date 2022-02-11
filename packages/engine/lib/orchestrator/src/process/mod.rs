@@ -4,7 +4,7 @@ mod local;
 
 use async_trait::async_trait;
 use error::Result;
-use hash_engine::proto::EngineMsg;
+use hash_engine_lib::proto::EngineMsg;
 pub use local::{LocalCommand, LocalProcess};
 
 /// The engine-subprocess running in the background.

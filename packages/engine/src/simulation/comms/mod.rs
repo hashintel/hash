@@ -17,7 +17,7 @@ Distributed calls can yield significant performance benefits. For distributed ca
 packages have to define a `DistributedMessageHandler` which must be able to handle
 inbound completion messages from multiple workers and combine them into one such that the
 main package definition can be agnostic of how work was distributed.
-*/
+ */
 
 pub mod active;
 
@@ -36,13 +36,11 @@ use super::{
 };
 pub use super::{Error, Result};
 use crate::{
-    datastore::{
-        prelude::{Context, State},
-        table::{
-            state::{view::StateSnapshot, ReadState},
-            sync::{ContextBatchSync, StateSync, SyncPayload, WaitableStateSync},
-            task_shared_store::TaskSharedStore,
-        },
+    datastore::table::{
+        context::Context,
+        proxy::StateReadProxy,
+        sync::{ContextBatchSync, StateSync, SyncPayload, WaitableStateSync},
+        task_shared_store::TaskSharedStore,
     },
     hash_types::Agent,
     proto::SimulationShortId,
@@ -104,14 +102,15 @@ impl Comms {
     ///
     /// Errors: tokio failed to send the message to the worker pool for some reason;
     ///         e.g. the worker pool already stopped due to some other error.
-    pub async fn state_sync(&self, state: &State) -> Result<SyncCompletionReceiver> {
+    pub async fn state_sync(&self, state_proxy: StateReadProxy) -> Result<SyncCompletionReceiver> {
         tracing::trace!("Synchronizing state");
         let (completion_sender, completion_receiver) = tokio::sync::oneshot::channel();
 
         // Synchronize the state batches
-        let agents = state.agent_pool().clone();
-        let agent_messages = state.message_pool().clone();
-        let sync_msg = WaitableStateSync::new(completion_sender, agents, agent_messages);
+        let sync_msg = WaitableStateSync {
+            completion_sender,
+            state_proxy,
+        };
         self.worker_pool_sender
             .send(EngineToWorkerPoolMsg::sync(
                 self.sim_id,
@@ -122,16 +121,13 @@ impl Comms {
     }
 
     /// TODO: DOC
-    pub async fn state_snapshot_sync(&self, state: &StateSnapshot) -> Result<()> {
+    pub async fn state_snapshot_sync(&self, state_proxy: StateReadProxy) -> Result<()> {
         tracing::trace!("Synchronizing state snapshot");
         // Synchronize the state snapshot batches
-        let agents = state.agent_pool().clone();
-        let agent_messages = state.message_pool().clone();
-        let sync_msg = StateSync::new(agents, agent_messages);
         self.worker_pool_sender
             .send(EngineToWorkerPoolMsg::sync(
                 self.sim_id,
-                SyncPayload::StateSnapshot(sync_msg),
+                SyncPayload::StateSnapshot(StateSync { state_proxy }),
             ))
             .map_err(|e| Error::from(format!("Worker pool error: {:?}", e)))?;
         Ok(())
@@ -146,9 +142,9 @@ impl Comms {
     ) -> Result<()> {
         tracing::trace!("Synchronizing context batch");
         // Synchronize the context batch
-        let batch = context.batch();
+        let context_batch_reader = context.read_proxy()?;
         let indices = Arc::clone(state_group_start_indices);
-        let sync_msg = ContextBatchSync::new(batch, current_step, indices);
+        let sync_msg = ContextBatchSync::new(context_batch_reader, current_step, indices);
         self.worker_pool_sender
             .send(EngineToWorkerPoolMsg::sync(
                 self.sim_id,

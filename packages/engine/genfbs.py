@@ -18,7 +18,7 @@ from pathlib import Path
 
 DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 FORMAT_DIR = DIR.joinpath(".", "format")
-RUST_TARGET_DIR = DIR.joinpath(".", "src", "gen")
+RUST_TARGET_DIR = DIR.joinpath(".", "lib", "flatbuffers_gen", "src")
 PYTHON_TARGET_DIR = DIR.joinpath(".", "src", "worker", "runner", "python", "fbs")
 
 RUST_HEADER = """#![allow(

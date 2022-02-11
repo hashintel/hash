@@ -43,11 +43,11 @@
 
 ## Issue Tracking
 
-We use [GitHub Issues](https://github.com/hashintel/hash/issues) to help prioritize and track bugs and feature requests for HASH. This includes hEngine, as well as our **hCore** IDE, and the [**HASH.ai site**](https://hash.ai/platform/index?utm_medium=organic&utm_source=github_readme_engine). You can also report issues and get support on our public [Discord server](https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_engine). Please submit any issues you encounter.
+We use [GitHub Issues](https://github.com/hashintel/hash/issues) to help prioritize and track bugs and feature requests. This includes hEngine and our **hCore** IDE, as well as the [**HASH**](https://hash.ai/platform/hash?utm_medium=organic&utm_source=github_readme_engine) all-in-one workspace. You can also report issues and get support on our public [Discord server](https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_engine). Please submit any issues you encounter.
 
 ## Additional Documentation
 
-Our [simulation docs](https://hash.ai/docs/simulation?utm_medium=organic&utm_source=github_readme_engine) contain beginner guides and in-depth tutorials for **hCore** today.
+Our [user guide for simulation](https://hash.ai/docs/simulation?utm_medium=organic&utm_source=github_readme_engine) contains a beginner's introduction as well as in-depth tutorials for **hCore** today.
 
 The [HASH glossary](https://hash.ai/glossary?utm_medium=organic&utm_source=github_readme_engine) contains helpful explainers around key modeling, simulation and AI-related terms and concepts.
 
@@ -134,7 +134,7 @@ Due to ARM-Based Macs, the `macos` `target_os` has some added complications for 
 
 Due to limitations in Cargo at the moment we can't properly check if it's being built _on_ an ARM Mac (rather than _for_ an ARM Mac). Due to this it's necessary to:
 
-- _Disable_ the `hash_engine/build-nng` feature by passing `--no-default-features` to any cargo commands such as `cargo build`
+- _Disable_ the `hash_engine_lib/build-nng` feature by passing `--no-default-features` to any cargo commands such as `cargo build`
 
   At the moment the project only seems to be compiling if you use the `x86_64-apple-darwin` target. This has some added complexity, especially due to the fact that rustc fails to link 'fat-binaries' in certain scenarios.
 
@@ -339,9 +339,12 @@ If you haven't created and exported a project from [hCore], it's also possible t
 
 At the end of each simulation run, various outputs appear within the `./<OUTPUT FOLDER>/<PROJECT NAME>/<EXPERIMENT NAME>/<EXPERIMENT ID>/<SIMULATION ID>` directories.
 
-Where `<EXPERIMENT ID>` and `<SIMULATION ID>` are unique identifiers created for each run of an experiment or simulation.
+Where:
 
-There are overrides ([CLI Arguments and Options](#cli-arguments-and-options)) for the defaults of the output folder and project name.
+- `<PROJECT NAME>` is the name of the folder containing your experiments
+- `<EXPERIMENT ID>` and `<SIMULATION ID>` are unique identifiers created for each run of an experiment or simulation.
+
+There is an override ([CLI Arguments and Options](#cli-arguments-and-options)) for the default of the output folder.
 
 #### JSON-State [`json_state.json`]
 

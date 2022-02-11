@@ -86,6 +86,7 @@ impl From<MessageTarget> for flatbuffers_gen::target_generated::Target {
 pub struct RunnerTaskMsg {
     pub package_id: PackageId,
     pub task_id: TaskId,
+    pub group_index: Option<usize>,
     pub payload: TaskMessage,
     pub shared_store: TaskSharedStore,
 }
@@ -97,6 +98,7 @@ pub struct TargetedRunnerTaskMsg {
 }
 
 impl TargetedRunnerTaskMsg {
+    #[allow(unreachable_code, unused_variables)]
     pub fn try_from_fbs(
         task_msg: flatbuffers_gen::task_msg_generated::TaskMsg<'_>,
         sent_tasks: &mut HashMap<TaskId, SentTask>,
@@ -112,6 +114,8 @@ impl TargetedRunnerTaskMsg {
 
         let target = task_msg.target().into();
         let package_id = (task_msg.package_sid() as usize).into();
+        // TODO: our version of flatbuffers doesn't let us have optional Scalars
+        // let group_index = task_msg.group_index().map(|val| val as usize);
 
         tracing::trace!(
             "Outbound task payload string: {:?}",
@@ -134,6 +138,7 @@ impl TargetedRunnerTaskMsg {
             msg: RunnerTaskMsg {
                 package_id,
                 task_id,
+                group_index: todo!(),
                 payload,
                 shared_store: sent.shared_store,
             },

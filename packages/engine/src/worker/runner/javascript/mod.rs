@@ -34,7 +34,6 @@ use crate::{
         prelude::{AgentBatch, MessageBatch, SharedStore},
         storage::memory::Memory,
         table::{
-            pool::{agent::AgentPool, message::MessagePool, BatchPool},
             proxy::StateWriteProxy,
             sync::{ContextBatchSync, StateSync, WaitableStateSync},
             task_shared_store::{PartialSharedState, SharedState},
@@ -45,7 +44,10 @@ use crate::{
         enum_dispatch::TaskSharedStore,
         package::{id::PackageId, PackageType},
     },
-    worker::{Error as WorkerError, Result as WorkerResult, TaskMessage},
+    types::TaskId,
+    worker::{
+        runner::javascript::mv8::Values, Error as WorkerError, Result as WorkerResult, TaskMessage,
+    },
     Language,
 };
 
@@ -239,8 +241,6 @@ impl<'m> Embedded<'m> {
 struct SimState {
     agent_schema: Arc<Schema>,
     msg_schema: Arc<Schema>,
-    agent_pool: AgentPool,
-    msg_pool: MessagePool,
 }
 
 struct RunnerImpl<'m> {
@@ -250,8 +250,8 @@ struct RunnerImpl<'m> {
 }
 
 // we pass in _mv8 for the return values lifetime
-fn sim_id_to_js(_mv8: &MiniV8, sim_run_id: SimulationShortId) -> mv8::Value<'_> {
-    mv8::Value::Number(sim_run_id as f64)
+fn sim_id_to_js(_mv8: &MiniV8, sim_id: SimulationShortId) -> mv8::Value<'_> {
+    mv8::Value::Number(sim_id as f64)
 }
 
 // we pass in _mv8 for the return values lifetime
@@ -281,24 +281,24 @@ fn batches_from_shared_store(
         SharedState::Write(state) => (
             state.agent_pool().batches(),
             state.message_pool().batches(),
-            (0..state.agent_pool().n_batches()).collect(),
+            (0..state.agent_pool().len()).collect(),
         ),
         SharedState::Read(state) => (
             state.agent_pool().batches(),
             state.message_pool().batches(),
-            (0..state.agent_pool().n_batches()).collect(),
+            (0..state.agent_pool().len()).collect(),
         ),
         SharedState::Partial(partial) => {
             match partial {
                 PartialSharedState::Read(partial) => (
-                    partial.inner.agent_pool().batches(),
-                    partial.inner.message_pool().batches(),
-                    partial.indices.clone(), // TODO: Avoid cloning?
+                    partial.state_proxy.agent_pool().batches(),
+                    partial.state_proxy.message_pool().batches(),
+                    partial.group_indices.clone(), // TODO: Avoid cloning?
                 ),
                 PartialSharedState::Write(partial) => (
-                    partial.inner.agent_pool().batches(),
-                    partial.inner.message_pool().batches(),
-                    partial.indices.clone(), // TODO: Avoid cloning?
+                    partial.state_proxy.agent_pool().batches(),
+                    partial.state_proxy.message_pool().batches(),
+                    partial.group_indices.clone(), // TODO: Avoid cloning?
                 ),
             }
         }
@@ -342,26 +342,28 @@ fn _mut_batch_to_js<'m>(
     mem_batch_to_js(mv8, batch_id, arraybuffer, metaversion)
 }
 
-fn state_to_js<'m>(
+fn state_to_js<'m, 'a, 'b>(
     mv8: &'m MiniV8,
-    agent_batches: &[&AgentBatch],
-    msg_batches: &[&MessageBatch],
+    agent_batches: impl Iterator<Item = &'a AgentBatch>,
+    msg_batches: impl Iterator<Item = &'b MessageBatch>,
 ) -> Result<(mv8::Value<'m>, mv8::Value<'m>)> {
     let js_agent_batches = mv8.create_array();
-    let js_msg_batches = mv8.create_array();
+    let js_message_batches = mv8.create_array();
 
-    for x in agent_batches.iter().zip(msg_batches.iter()).enumerate() {
-        let (i_batch, (agent_batch, msg_batch)) = x;
-
+    for (i_batch, (agent_batch, message_batch)) in agent_batches
+        .into_iter()
+        .zip(msg_batches.into_iter())
+        .enumerate()
+    {
         let agent_batch = batch_to_js(mv8, agent_batch.memory(), agent_batch.metaversion())?;
         js_agent_batches.set(i_batch as u32, agent_batch)?;
 
-        let msg_batch = batch_to_js(mv8, msg_batch.memory(), msg_batch.metaversion())?;
-        js_msg_batches.set(i_batch as u32, msg_batch)?;
+        let message_batch = batch_to_js(mv8, message_batch.memory(), message_batch.metaversion())?;
+        js_message_batches.set(i_batch as u32, message_batch)?;
     }
     Ok((
         mv8::Value::Array(js_agent_batches),
-        mv8::Value::Array(js_msg_batches),
+        mv8::Value::Array(js_message_batches),
     ))
 }
 
@@ -404,8 +406,8 @@ fn array_to_errors(array: mv8::Value<'_>) -> Vec<RunnerError> {
     }]
 }
 
-fn get_js_error(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Error> {
-    if let Ok(errors) = r.get("user_errors") {
+fn get_js_error(_mv8: &MiniV8, return_val: &mv8::Object<'_>) -> Option<Error> {
+    if let Ok(errors) = return_val.get("user_errors") {
         if !matches!(errors, mv8::Value::Undefined) && !matches!(errors, mv8::Value::Null) {
             let errors = array_to_errors(errors);
             if !errors.is_empty() {
@@ -414,13 +416,13 @@ fn get_js_error(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Error> {
         }
     }
 
-    if let Ok(mv8::Value::String(e)) = r.get("pkg_error") {
+    if let Ok(mv8::Value::String(e)) = return_val.get("pkg_error") {
         // TODO: Don't silently ignore non-string, non-null-or-undefined errors
         //       (try to convert error value to JSON string and return as error?).
         return Some(Error::Package(e.to_string()));
     }
 
-    if let Ok(mv8::Value::String(e)) = r.get("runner_error") {
+    if let Ok(mv8::Value::String(e)) = return_val.get("runner_error") {
         // TODO: Don't ignore non-string, non-null-or-undefined errors
         return Some(Error::Embedded(e.to_string()));
     }
@@ -428,8 +430,8 @@ fn get_js_error(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Error> {
     None
 }
 
-fn get_user_warnings(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Vec<RunnerError>> {
-    if let Ok(warnings) = r.get::<&str, mv8::Value<'_>>("user_warnings") {
+fn get_user_warnings(_mv8: &MiniV8, return_val: &mv8::Object<'_>) -> Option<Vec<RunnerError>> {
+    if let Ok(warnings) = return_val.get::<&str, mv8::Value<'_>>("user_warnings") {
         if !(warnings.is_undefined() || warnings.is_null()) {
             let warnings = array_to_errors(warnings);
             if !warnings.is_empty() {
@@ -440,8 +442,8 @@ fn get_user_warnings(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Vec<RunnerErr
     None
 }
 
-fn get_print(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Vec<String>> {
-    if let Ok(mv8::Value::String(printed_val)) = r.get("print") {
+fn get_print(_mv8: &MiniV8, return_val: &mv8::Object<'_>) -> Option<Vec<String>> {
+    if let Ok(mv8::Value::String(printed_val)) = return_val.get("print") {
         let printed_val = printed_val.to_string();
         if !printed_val.is_empty() {
             Some(printed_val.split('\n').map(|s| s.to_string()).collect())
@@ -453,8 +455,8 @@ fn get_print(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Option<Vec<String>> {
     }
 }
 
-fn get_next_task(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Result<(MessageTarget, String)> {
-    let target = if let Ok(mv8::Value::String(target)) = r.get("target") {
+fn get_next_task(_mv8: &MiniV8, return_val: &mv8::Object<'_>) -> Result<(MessageTarget, String)> {
+    let target = if let Ok(mv8::Value::String(target)) = return_val.get("target") {
         let target = target.to_string();
         match target.as_str() {
             "JavaScript" => MessageTarget::JavaScript,
@@ -469,7 +471,7 @@ fn get_next_task(_mv8: &MiniV8, r: &mv8::Object<'_>) -> Result<(MessageTarget, S
         MessageTarget::Main
     };
 
-    let next_task_payload = if let Ok(mv8::Value::String(s)) = r.get("task") {
+    let next_task_payload = if let Ok(mv8::Value::String(s)) = return_val.get("task") {
         s.to_string()
     } else {
         // TODO: Don't silently ignore non-string, non-null-or-undefined payloads
@@ -729,7 +731,7 @@ impl<'m> RunnerImpl<'m> {
         mv8: &'m MiniV8,
         agent_schema: &Arc<Schema>,
         msg_schema: &Arc<Schema>,
-        proxy: &mut StateWriteProxy,
+        state_proxy: &mut StateWriteProxy,
         i_proxy: usize,
         changes: mv8::Value<'m>,
     ) -> Result<()> {
@@ -739,7 +741,10 @@ impl<'m> RunnerImpl<'m> {
         self.flush_batch(
             mv8,
             agent_changes,
-            proxy.agent_pool_mut().batch_mut(i_proxy)?,
+            state_proxy
+                .agent_pool_mut()
+                .batch_mut(i_proxy)
+                .ok_or_else(|| format!("Could not access batch at index {i_proxy}"))?,
             agent_schema,
         )?;
 
@@ -747,7 +752,10 @@ impl<'m> RunnerImpl<'m> {
         self.flush_batch(
             mv8,
             msg_changes,
-            proxy.message_pool_mut().batch_mut(0)?,
+            state_proxy
+                .message_pool_mut()
+                .batch_mut(i_proxy)
+                .ok_or_else(|| format!("Could not access batch at index {i_proxy}"))?,
             msg_schema,
         )?;
 
@@ -759,19 +767,19 @@ impl<'m> RunnerImpl<'m> {
         mv8: &'m MiniV8,
         sim_run_id: SimulationShortId,
         shared_store: &mut TaskSharedStore,
-        r: &mv8::Object<'m>,
+        return_val: &mv8::Object<'m>,
     ) -> Result<()> {
         let (proxy, group_indices) = match &mut shared_store.state {
             SharedState::None | SharedState::Read(_) => return Ok(()),
             SharedState::Write(state) => {
-                let indices = (0..state.agent_pool().n_batches()).collect();
+                let indices = (0..state.agent_pool().len()).collect();
                 (state, indices)
             }
             SharedState::Partial(partial) => match partial {
                 PartialSharedState::Read(_) => return Ok(()),
                 PartialSharedState::Write(state) => {
-                    let indices = state.indices.clone();
-                    (&mut state.inner, indices)
+                    let indices = state.group_indices.clone();
+                    (&mut state.state_proxy, indices)
                 }
             },
         };
@@ -785,7 +793,7 @@ impl<'m> RunnerImpl<'m> {
         let agent_schema = state.agent_schema.clone();
         let msg_schema = state.msg_schema.clone();
 
-        let changes: mv8::Value<'_> = r.get("changes")?;
+        let changes: mv8::Value<'_> = return_val.get("changes")?;
         if group_indices.len() == 1 {
             self.flush_group(mv8, &agent_schema, &msg_schema, proxy, 0, changes)?;
         } else {
@@ -862,12 +870,78 @@ impl<'m> RunnerImpl<'m> {
         let state = SimState {
             agent_schema: Arc::clone(&run.datastore.agent_batch_schema.arrow),
             msg_schema: Arc::clone(&run.datastore.message_batch_schema),
-            agent_pool: AgentPool::empty(),
-            msg_pool: MessagePool::empty(),
         };
         self.sims_state
             .try_insert(run.short_id, state)
             .map_err(|_| Error::DuplicateSimulationRun(run.short_id))?;
+        Ok(())
+    }
+
+    /// TODO
+    fn handle_task_msg(
+        &mut self,
+        mv8: &'m MiniV8,
+        sim_id: SimulationShortId,
+        msg: RunnerTaskMsg,
+        outbound_sender: &UnboundedSender<OutboundFromRunnerMsg>,
+    ) -> Result<()> {
+        tracing::debug!("Starting state interim sync before running task");
+        // TODO: Move JS part of sync into `run_task` function in JS for better performance.
+        self.state_interim_sync(mv8, sim_id, &msg.shared_store)?;
+
+        tracing::debug!("Setting up run_task function call");
+
+        let (payload, wrapper) = msg
+            .payload
+            .extract_inner_msg_with_wrapper()
+            .map_err(|err| {
+                Error::from(format!("Failed to extract the inner task message: {err}"))
+            })?;
+        let payload_str = mv8::Value::String(mv8.create_string(&serde_json::to_string(&payload)?));
+        let group_index = match msg.group_index {
+            None => mv8::Value::Undefined,
+            Some(val) => mv8::Value::Number(val as f64),
+        };
+        let args = mv8::Values::from_vec(vec![
+            sim_id_to_js(mv8, sim_id),
+            group_index,
+            pkg_id_to_js(mv8, msg.package_id),
+            payload_str.clone(),
+        ]);
+
+        let (next_task_msg, warnings, logs) = self.run_task(
+            mv8,
+            args,
+            sim_id,
+            msg.group_index,
+            msg.package_id,
+            msg.task_id,
+            &wrapper,
+            msg.shared_store,
+        )?;
+        // TODO: `send` fn to reduce code duplication.
+        outbound_sender.send(OutboundFromRunnerMsg {
+            span: Span::current(),
+            source: Language::JavaScript,
+            sim_id,
+            payload: OutboundFromRunnerMsgPayload::TaskMsg(next_task_msg),
+        })?;
+        if let Some(warnings) = warnings {
+            outbound_sender.send(OutboundFromRunnerMsg {
+                span: Span::current(),
+                source: Language::JavaScript,
+                sim_id,
+                payload: OutboundFromRunnerMsgPayload::RunnerWarnings(warnings),
+            })?;
+        }
+        if let Some(logs) = logs {
+            outbound_sender.send(OutboundFromRunnerMsg {
+                span: Span::current(),
+                source: Language::JavaScript,
+                sim_id,
+                payload: OutboundFromRunnerMsgPayload::RunnerLogs(logs),
+            })?;
+        }
         Ok(())
     }
 
@@ -883,95 +957,57 @@ impl<'m> RunnerImpl<'m> {
     /// - a value from Javascript could not be parsed,
     /// - the task errored, or
     /// - the state could not be flushed to the datastore.
+    #[allow(clippy::too_many_arguments)]
     fn run_task(
         &mut self,
         mv8: &'m MiniV8,
-        sim_run_id: SimulationShortId,
-        mut msg: RunnerTaskMsg,
+        args: Values<'m>,
+        sim_id: SimulationShortId,
+        group_index: Option<usize>,
+        package_id: PackageId,
+        task_id: TaskId,
+        wrapper: &serde_json::Value,
+        mut shared_store: TaskSharedStore,
     ) -> Result<(
         TargetedRunnerTaskMsg,
         Option<Vec<RunnerError>>,
         Option<Vec<String>>,
     )> {
-        tracing::debug!("Starting state interim sync before running task");
-        // TODO: Move JS part of sync into `run_task` function in JS for better performance.
-        self.state_interim_sync(mv8, sim_run_id, &msg.shared_store)?;
-
-        tracing::debug!("Setting up run_task function call");
-        let group_index = match &msg.shared_store.state {
-            SharedState::None | SharedState::Write(_) | SharedState::Read(_) => {
-                mv8::Value::Undefined
-            }
-            SharedState::Partial(partial) => match partial {
-                // TODO: Code duplication between read and write
-                PartialSharedState::Read(partial) => {
-                    if partial.indices.len() == 1 {
-                        mv8::Value::Number(partial.indices[0] as f64)
-                    } else {
-                        // Iterate over the subset of groups (since there's more than one group)
-                        todo!()
-                    }
-                }
-                PartialSharedState::Write(partial) => {
-                    if partial.indices.len() == 1 {
-                        mv8::Value::Number(partial.indices[0] as f64)
-                    } else {
-                        // Iterate over the subset of groups (since there's more than one group)
-                        todo!()
-                    }
-                }
-            },
-        };
-
-        let (payload, wrapper) = msg
-            .payload
-            .extract_inner_msg_with_wrapper()
-            .map_err(|err| {
-                Error::from(format!("Failed to extract the inner task message: {err}"))
-            })?;
-        let payload_str = mv8::Value::String(mv8.create_string(&serde_json::to_string(&payload)?));
-
-        let args = mv8::Values::from_vec(vec![
-            sim_id_to_js(mv8, sim_run_id),
-            group_index,
-            pkg_id_to_js(mv8, msg.package_id),
-            payload_str,
-        ]);
         tracing::debug!("Calling JS run_task");
-        let r: mv8::Object<'_> = self
+        let return_val: mv8::Object<'_> = self
             .embedded
             .run_task
             .call_method(self.this.clone(), args)?;
 
         tracing::debug!("Post-processing run_task result");
-        if let Some(error) = get_js_error(mv8, &r) {
+        if let Some(error) = get_js_error(mv8, &return_val) {
             // All types of errors are fatal (user, package, runner errors).
             return Err(error);
         }
-        let warnings = get_user_warnings(mv8, &r);
-        let logs = get_print(mv8, &r);
-        let (next_target, next_task_payload) = get_next_task(mv8, &r)?;
+        let warnings = get_user_warnings(mv8, &return_val);
+        let logs = get_print(mv8, &return_val);
+        let (next_target, next_task_payload) = get_next_task(mv8, &return_val)?;
 
         let next_inner_task_msg: serde_json::Value = serde_json::from_str(&next_task_payload)?;
         let next_task_payload =
-            TaskMessage::try_from_inner_msg_and_wrapper(next_inner_task_msg, wrapper).map_err(
-                |err| {
+            TaskMessage::try_from_inner_msg_and_wrapper(next_inner_task_msg, wrapper.clone())
+                .map_err(|err| {
                     Error::from(format!(
                         "Failed to wrap and create a new TaskMessage, perhaps the inner: \
                          {next_task_payload}, was formatted incorrectly. Underlying error: {err}"
                     ))
-                },
-            )?;
+                })?;
 
         // Only flushes if state writable
-        self.flush(mv8, sim_run_id, &mut msg.shared_store, &r)?;
+        self.flush(mv8, sim_id, &mut shared_store, &return_val)?;
 
         let next_task_msg = TargetedRunnerTaskMsg {
             target: next_target,
             msg: RunnerTaskMsg {
-                package_id: msg.package_id,
-                task_id: msg.task_id,
-                shared_store: msg.shared_store,
+                package_id,
+                task_id,
+                group_index,
+                shared_store,
                 payload: next_task_payload,
             },
         };
@@ -990,12 +1026,9 @@ impl<'m> RunnerImpl<'m> {
             state_group_start_indices,
         } = ctx_batch_sync;
 
-        let ctx_batch = context_batch
-            .try_read()
-            .ok_or_else(|| Error::from("Couldn't read context batch"))?;
         let args = mv8::Values::from_vec(vec![
             sim_id_to_js(mv8, sim_run_id),
-            batch_to_js(mv8, ctx_batch.memory(), ctx_batch.metaversion())?,
+            batch_to_js(mv8, context_batch.memory(), context_batch.metaversion())?,
             idxs_to_js(mv8, &state_group_start_indices)?,
             current_step_to_js(mv8, current_step),
         ]);
@@ -1019,26 +1052,15 @@ impl<'m> RunnerImpl<'m> {
         //       state in parallel with the mutation through those pointers).
 
         // Sync JS.
-        let agent_pool = msg.agent_pool.read_proxy()?;
-        let msg_pool = msg.message_pool.read_proxy()?;
-        let (agent_pool, msg_pool) = (agent_pool.batches(), msg_pool.batches());
-
-        // Pass proxies by reference, because they shouldn't be
-        // dropped until entire sync is complete.
-        let (agent_pool, msg_pool) = state_to_js(mv8, &agent_pool, &msg_pool)?;
+        let agent_pool = msg.state_proxy.agent_proxies.batches_iter();
+        let msg_pool = msg.state_proxy.message_proxies.batches_iter();
+        // TODO: Pass `agent_pool` and `msg_pool` by reference
+        let (agent_pool, msg_pool) = state_to_js(mv8, agent_pool, msg_pool)?;
         let args = mv8::Values::from_vec(vec![sim_id_to_js(mv8, sim_run_id), agent_pool, msg_pool]);
         let _: mv8::Value<'_> = self
             .embedded
             .state_sync
             .call_method(self.this.clone(), args)?;
-
-        // Sync Rust.
-        let state = self
-            .sims_state
-            .get_mut(&sim_run_id)
-            .ok_or(Error::MissingSimulationRun(sim_run_id))?;
-        state.agent_pool = msg.agent_pool;
-        state.msg_pool = msg.message_pool;
 
         tracing::trace!("Sending state sync completion");
         msg.completion_sender.send(Ok(())).map_err(|e| {
@@ -1054,14 +1076,16 @@ impl<'m> RunnerImpl<'m> {
     fn state_interim_sync(
         &mut self,
         mv8: &'m MiniV8,
-        sim_run_id: SimulationShortId,
+        sim_id: SimulationShortId,
         shared_store: &TaskSharedStore,
     ) -> Result<()> {
         // Sync JS.
         let (agent_batches, msg_batches, group_indices) = batches_from_shared_store(shared_store)?;
-        let (agent_batches, msg_batches) = state_to_js(mv8, &agent_batches, &msg_batches)?;
+        // TODO: Pass `agent_pool` and `msg_pool` by reference
+        let (agent_batches, msg_batches) =
+            state_to_js(mv8, agent_batches.into_iter(), msg_batches.into_iter())?;
         let args = mv8::Values::from_vec(vec![
-            sim_id_to_js(mv8, sim_run_id),
+            sim_id_to_js(mv8, sim_id),
             idxs_to_js(mv8, &group_indices)?,
             agent_batches,
             msg_batches,
@@ -1080,10 +1104,9 @@ impl<'m> RunnerImpl<'m> {
         msg: StateSync,
     ) -> Result<()> {
         // TODO: Duplication with `state_sync`
-        let agent_pool = msg.agent_pool.read_proxy()?;
-        let msg_pool = msg.message_pool.read_proxy()?;
-        let (agent_pool, msg_pool) = (agent_pool.batches(), msg_pool.batches());
-        let (agent_pool, msg_pool) = state_to_js(mv8, &agent_pool, &msg_pool)?;
+        let agent_pool = msg.state_proxy.agent_pool().batches_iter();
+        let msg_pool = msg.state_proxy.message_pool().batches_iter();
+        let (agent_pool, msg_pool) = state_to_js(mv8, agent_pool, msg_pool)?;
         let sim_run_id = sim_id_to_js(mv8, sim_run_id);
         let args = mv8::Values::from_vec(vec![sim_run_id, agent_pool, msg_pool]);
         let _: mv8::Value<'_> = self
@@ -1137,30 +1160,7 @@ impl<'m> RunnerImpl<'m> {
             }
             InboundToRunnerMsgPayload::TaskMsg(msg) => {
                 let sim_id = sim_id.ok_or(Error::SimulationIdRequired("run task"))?;
-                let (next_task_msg, warnings, logs) = self.run_task(mv8, sim_id, msg)?;
-                // TODO: `send` fn to reduce code duplication.
-                outbound_sender.send(OutboundFromRunnerMsg {
-                    span: Span::current(),
-                    source: Language::JavaScript,
-                    sim_id,
-                    payload: OutboundFromRunnerMsgPayload::TaskMsg(next_task_msg),
-                })?;
-                if let Some(warnings) = warnings {
-                    outbound_sender.send(OutboundFromRunnerMsg {
-                        span: Span::current(),
-                        source: Language::JavaScript,
-                        sim_id,
-                        payload: OutboundFromRunnerMsgPayload::RunnerWarnings(warnings),
-                    })?;
-                }
-                if let Some(logs) = logs {
-                    outbound_sender.send(OutboundFromRunnerMsg {
-                        span: Span::current(),
-                        source: Language::JavaScript,
-                        sim_id,
-                        payload: OutboundFromRunnerMsgPayload::RunnerLogs(logs),
-                    })?;
-                }
+                self.handle_task_msg(mv8, sim_id, msg, outbound_sender)?;
             }
             InboundToRunnerMsgPayload::CancelTask(_) => {} // TODO
         }

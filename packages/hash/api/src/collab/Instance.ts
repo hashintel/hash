@@ -4,12 +4,10 @@ import { CollabPosition } from "@hashintel/hash-shared/collab";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import {
   BlockEntity,
+  flatMapBlocks,
   isTextContainingEntityProperties,
 } from "@hashintel/hash-shared/entity";
-import {
-  EntityStore,
-  walkValueForEntity,
-} from "@hashintel/hash-shared/entityStore";
+import { EntityStore } from "@hashintel/hash-shared/entityStore";
 import {
   addEntityStoreAction,
   disableEntityStoreTransactionInterpretation,
@@ -17,8 +15,9 @@ import {
   entityStorePluginState,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import {
-  GetEntityQuery,
-  GetEntityQueryVariables,
+  LatestEntityRef,
+  GetBlocksQuery,
+  GetBlocksQueryVariables,
   GetPageQuery,
   GetPageQueryVariables,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
@@ -28,14 +27,16 @@ import {
   isEntityNode,
 } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
-import { getEntity } from "@hashintel/hash-shared/queries/entity.queries";
-import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
+import {
+  getBlocksQuery,
+  getPageQuery,
+} from "@hashintel/hash-shared/queries/page.queries";
 import {
   createNecessaryEntities,
   updatePageMutation,
 } from "@hashintel/hash-shared/save";
 import { Response } from "express";
-import { isEqual } from "lodash";
+import { isEqual, memoize, pick } from "lodash";
 import { Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 import { Mapping, Step, Transform } from "prosemirror-transform";
@@ -147,62 +148,84 @@ export class Instance {
    * walkValueForEntity cannot handle async operations
    */
   private async processEntityVersion(entityVersion: EntityVersion) {
-    let foundOnPage = false;
-    const entityVersionsToUpdate = new Set<string>();
+    /**
+     * This removes any extra properties from a passed object containing an
+     * accountId and entityId, which may be an Entity or a LatestEntityRef, or
+     * similar, in order to generate a LatestEntityRef with only the
+     * specific properties. This allows us to create objects which identify
+     * specific entities for use in GraphQL requests or comparisons. Because
+     * TypeScript's "substitutability", this function can be called with objects
+     * with extra properties than those specified.
+     *
+     * This function is memoized so that the resulting value can be used inside
+     * Map or Set, or for direct comparison, in absence of support for the
+     * Record proposal. The second argument to memoize allows calling this
+     * function with an object.
+     *
+     * This is defined locally as we only need calls to be referentially equal
+     * within the scope of `processEntityVersion`.
+     *
+     * @todo replace this with a Record once the proposal is usable
+     * @see https://github.com/tc39/proposal-record-tuple
+     * @see https://github.com/Microsoft/TypeScript/wiki/FAQ#substitutability
+     */
+    const getEntityRef = memoize(
+      (ref: { accountId: string; entityId: string }): LatestEntityRef =>
+        pick(ref, "accountId", "entityId"),
+      ({ accountId, entityId }) => `${accountId}/${entityId}`,
+    );
+
     const entityVersionTime = new Date(entityVersion.updatedAt).getTime();
+    const entityVersionRef = getEntityRef(entityVersion);
 
-    walkValueForEntity(this.savedContents, (entity) => {
-      if (entity.entityId === entityVersion.entityId) {
-        foundOnPage = true;
+    const blocksToRefresh = new Set(
+      flatMapBlocks(this.savedContents, (entity, blockEntity) => {
+        const entityRef = getEntityRef(entity);
 
-        if (entityVersionTime > new Date(entity.updatedAt).getTime()) {
-          entityVersionsToUpdate.add(entity.entityVersionId);
+        if (
+          entityRef === entityVersionRef &&
+          entityVersionTime > new Date(entity.updatedAt).getTime()
+        ) {
+          return [getEntityRef(blockEntity)];
         }
-      }
 
-      return entity;
-    });
+        return [];
+      }),
+    );
 
-    if (foundOnPage && entityVersionsToUpdate.size > 0) {
-      const { data } = await this.fallbackClient.query<
-        GetEntityQuery,
-        GetEntityQueryVariables
+    if (blocksToRefresh.size) {
+      const refreshedBlocksQuery = await this.fallbackClient.query<
+        GetBlocksQuery,
+        GetBlocksQueryVariables
       >({
-        query: getEntity,
+        query: getBlocksQuery,
         variables: {
-          entityId: entityVersion.entityId,
-          accountId: entityVersion.accountId,
+          blocks: Array.from(blocksToRefresh.values()),
         },
         fetchPolicy: "network-only",
       });
 
-      const nextSavedContents = walkValueForEntity(
-        this.savedContents,
-        (entity) => {
-          if (entityVersionsToUpdate.has(entity.entityVersionId)) {
-            return {
-              ...entity,
-              accountId: entityVersion.accountId,
-              entityVersionId: entityVersion.entityVersionId,
-              entityTypeVersionId: entityVersion.entityTypeVersionId,
-              /**
-               * This could overwrite any updates applied to entities inside of
-               * this properties field, but not a lot we can do about that, and
-               * unlikely to actually cause an issue as we process entity
-               * updates one at a time.
-               *
-               * @todo remove this comment when we have flat entities
-               */
-              properties: data.entity.properties,
-              createdByAccountId: entityVersion.updatedByAccountId,
-              createdAt: entityVersion.updatedAt.toISOString(),
-              updatedAt: entityVersion.updatedAt.toISOString(),
-            };
+      const refreshedPageBlocks = new Map<LatestEntityRef, BlockEntity>(
+        refreshedBlocksQuery.data.blocks.map(
+          (block) => [getEntityRef(block), block] as const,
+        ),
+      );
+
+      const nextSavedContents = this.savedContents.map((block) => {
+        const blockRef = getEntityRef(block);
+
+        if (blocksToRefresh.has(blockRef)) {
+          const refreshedBlock = refreshedPageBlocks.get(blockRef);
+
+          if (!refreshedBlock) {
+            throw new Error("Cannot find updated block in updated page");
           }
 
-          return entity;
-        },
-      );
+          return refreshedBlock;
+        }
+
+        return block;
+      });
 
       /**
        * We should know not to notify consumers of changes they've already been

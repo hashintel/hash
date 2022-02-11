@@ -17,7 +17,7 @@ use crate::{
             accessor::FieldSpecMapAccessor, context::ContextSchema, FieldKey, FieldSpec,
             RootFieldSpec, RootFieldSpecCreator,
         },
-        table::state::view::StateSnapshot,
+        table::{proxy::StateReadProxy, state::view::StateSnapshot},
     },
     simulation::{comms::package::PackageComms, package::ext_traits::GetWorkerExpStartMsg, Result},
     SimRunConfig,
@@ -29,7 +29,7 @@ pub mod packages;
 pub trait Package: MaybeCpuBound + GetWorkerSimStartMsg + Send + Sync {
     async fn run<'s>(
         &mut self,
-        state: Arc<State>,
+        state_proxy: StateReadProxy,
         snapshot: Arc<StateSnapshot>,
     ) -> Result<Vec<ContextColumn>>;
     fn get_empty_arrow_columns(

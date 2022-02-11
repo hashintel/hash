@@ -53,6 +53,10 @@ import {
   GetEntitiesQueryVariables,
   GetEntityAndLinksQueryVariables,
   GetEntityAndLinksQuery,
+  SetParentPageMutationVariables,
+  SetParentPageMutation,
+  GetAccountPagesTreeQueryVariables,
+  GetAccountPagesTreeQuery,
 } from "../graphql/apiTypes.gen";
 import {
   createEntity,
@@ -79,7 +83,9 @@ import {
 } from "../graphql/queries/user.queries";
 import {
   createPage,
+  getAccountPagesTree,
   getPage,
+  setPageParent,
   updatePageContents,
 } from "../graphql/queries/page.queries";
 
@@ -241,6 +247,15 @@ export class ApiClient {
     ).createPage;
   }
 
+  async setParentPage(vars: SetParentPageMutationVariables) {
+    return (
+      await this.client.request<
+        SetParentPageMutation,
+        SetParentPageMutationVariables
+      >(setPageParent, vars)
+    ).setParentPage;
+  }
+
   async getEntityType(vars: QueryGetEntityTypeArgs) {
     return (
       await this.client.request<
@@ -272,6 +287,14 @@ export class ApiClient {
     this.client
       .request<GetPageQuery, GetPageQueryVariables>(getPage, vars)
       .then((res) => res.page);
+
+  getAccountPagesTree = async (vars: GetAccountPagesTreeQueryVariables) =>
+    this.client
+      .request<GetAccountPagesTreeQuery, GetAccountPagesTreeQueryVariables>(
+        getAccountPagesTree,
+        vars,
+      )
+      .then((res) => res.accountPages);
 
   updatePageContents = async (vars: UpdatePageContentsMutationVariables) =>
     this.client

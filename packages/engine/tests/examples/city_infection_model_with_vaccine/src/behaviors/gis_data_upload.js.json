@@ -1,0 +1,18 @@
+{
+  "keys": {
+    "agents": {
+      "type": "any",
+      "nullable": true
+    },
+    "scatter_templates": {
+      "type": "any",
+      "nullable": true
+    },
+    "lng_lat": {
+      "type": "any",
+      "nullable": true
+    }
+  },
+  "built_in_key_use": null,
+  "dynamic_access": false
+}

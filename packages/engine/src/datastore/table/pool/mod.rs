@@ -7,69 +7,107 @@ use std::sync::Arc;
 use parking_lot::RwLock;
 
 use self::proxy::{PoolReadProxy, PoolWriteProxy};
-use super::proxy::{BatchReadProxy, BatchWriteProxy};
-use crate::datastore::{batch::Batch, prelude::Result};
+use crate::datastore::{
+    batch::Batch,
+    prelude::Result,
+    table::proxy::{BatchReadProxy, BatchWriteProxy},
+};
 
-/// A pool is an ordered collection of similar batches for each group within a simulation run.
-pub trait BatchPool<K: Batch>: Send + Sync {
-    fn batches(&self) -> &[Arc<RwLock<K>>];
-    fn mut_batches(&mut self) -> &mut Vec<Arc<RwLock<K>>>;
+/// Internal trait to implement `BatchPool` without leaking `Arc<RwLock<B>>`
+trait Pool<B> {
+    fn new(batches: Vec<Arc<RwLock<B>>>) -> Self;
+    fn get_batches(&self) -> &[Arc<RwLock<B>>];
+    fn get_batches_mut(&mut self) -> &mut Vec<Arc<RwLock<B>>>;
+}
 
-    /// Replaces inner batches within self with the new ones provided by `other` at the specified
-    /// `indices`.
-    fn update<T: BatchPool<K>>(&mut self, other: &T, indices: &[usize]) {
-        let own = self.mut_batches();
-        let other = other.batches();
-        for index in indices.iter() {
-            own[*index] = other[*index].clone();
-        }
+/// A pool is an ordered collection of batches, where each group of agents within a simulation run
+/// is associated to a batch in the pool.
+pub trait BatchPool<B: Batch>: Send + Sync {
+    fn new(batches: Vec<Arc<RwLock<B>>>) -> Self;
+
+    fn empty() -> Self
+    where
+        Self: Sized,
+    {
+        Self::new(Vec::new())
     }
+
+    fn len(&self) -> usize;
+
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    fn push(&mut self, batch: B);
+
+    fn remove(&mut self, index: usize) -> Result<BatchReadProxy<B>>;
+
+    fn swap_remove(&mut self, index: usize) -> Result<BatchReadProxy<B>>;
 
     /// Creates a [`PoolReadProxy`] for _all_ batches within the pool.
-    fn read_proxy(&self) -> Result<PoolReadProxy<K>> {
-        Ok(PoolReadProxy::from(
-            self.batches()
-                .iter()
-                .map(|a| BatchReadProxy::new(a))
-                .collect::<Result<Vec<_>>>()?,
-        ))
-    }
+    fn read_proxies(&self) -> Result<PoolReadProxy<B>>;
 
     /// Creates a [`PoolReadProxy`] for a _selection_ of the batches within the pool, selected by
     /// the given `indices`.
-    fn partial_read_proxy(&self, indices: &[usize]) -> Result<PoolReadProxy<K>> {
-        Ok(PoolReadProxy::from(
-            self.batches()
-                .iter()
-                .enumerate()
-                .filter(|(index, _)| indices.contains(index))
-                .map(|(_, a)| BatchReadProxy::new(a))
-                .collect::<Result<Vec<_>>>()?,
-        ))
-    }
+    fn partial_read_proxies(&self, indices: &[usize]) -> Result<PoolReadProxy<B>>;
 
     /// Creates a [`PoolWriteProxy`] for _all_ batches within the pool.
-    fn write_proxy(&mut self) -> Result<PoolWriteProxy<K>> {
-        Ok(PoolWriteProxy::from(
-            self.batches()
-                .iter()
-                .map(|a| BatchWriteProxy::new(a))
-                .collect::<Result<Vec<_>>>()?,
-        ))
-    }
+    fn write_proxies(&mut self) -> Result<PoolWriteProxy<B>>;
 
     /// Creates a [`PoolWriteProxy`] for a _selection_ of the batches within the pool, selected by
     /// the given `indices`.
     ///
     /// This can be used to create multiple mutable disjoint partitions of the pool.
-    fn partial_write_proxy(&self, indices: &[usize]) -> Result<PoolWriteProxy<K>> {
-        Ok(PoolWriteProxy::from(
-            self.batches()
-                .iter()
-                .enumerate()
-                .filter(|(index, _)| indices.contains(index))
-                .map(|(_, a)| BatchWriteProxy::new(a))
-                .collect::<Result<Vec<_>>>()?,
-        ))
+    fn partial_write_proxies(&mut self, indices: &[usize]) -> Result<PoolWriteProxy<B>>;
+}
+
+impl<P: Pool<B> + Send + Sync, B: Batch> BatchPool<B> for P {
+    fn new(batches: Vec<Arc<RwLock<B>>>) -> Self {
+        Pool::new(batches)
+    }
+
+    fn len(&self) -> usize {
+        self.get_batches().len()
+    }
+
+    fn push(&mut self, batch: B) {
+        self.get_batches_mut().push(Arc::new(RwLock::new(batch)))
+    }
+
+    fn remove(&mut self, index: usize) -> Result<BatchReadProxy<B>> {
+        BatchReadProxy::new(&self.get_batches_mut().remove(index))
+    }
+
+    fn swap_remove(&mut self, index: usize) -> Result<BatchReadProxy<B>> {
+        BatchReadProxy::new(&self.get_batches_mut().swap_remove(index))
+    }
+
+    fn read_proxies(&self) -> Result<PoolReadProxy<B>> {
+        self.get_batches().iter().map(BatchReadProxy::new).collect()
+    }
+
+    fn partial_read_proxies(&self, indices: &[usize]) -> Result<PoolReadProxy<B>> {
+        self.get_batches()
+            .iter()
+            .enumerate()
+            .filter(|(index, _)| indices.contains(index))
+            .map(|(_, b)| BatchReadProxy::new(b))
+            .collect()
+    }
+
+    fn write_proxies(&mut self) -> Result<PoolWriteProxy<B>> {
+        self.get_batches()
+            .iter()
+            .map(BatchWriteProxy::new)
+            .collect()
+    }
+
+    fn partial_write_proxies(&mut self, indices: &[usize]) -> Result<PoolWriteProxy<B>> {
+        self.get_batches()
+            .iter()
+            .enumerate()
+            .filter(|(index, _)| indices.contains(index))
+            .map(|(_, b)| BatchWriteProxy::new(b))
+            .collect()
     }
 }

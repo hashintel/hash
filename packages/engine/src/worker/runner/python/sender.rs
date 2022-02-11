@@ -13,8 +13,10 @@ use super::{
 use crate::{
     datastore::{
         arrow::util::arrow_continuation,
+        batch::{ContextBatch, MessageBatch},
+        prelude::AgentBatch,
         table::{
-            pool::{agent::AgentPool, message::MessagePool},
+            proxy::StateReadProxy,
             task_shared_store::{PartialSharedState, SharedState},
         },
     },
@@ -161,8 +163,7 @@ fn inbound_to_nng(
         }
         InboundToRunnerMsgPayload::CancelTask(_) => todo!(), // Unused for now
         InboundToRunnerMsgPayload::StateSync(msg) => {
-            let (agent_pool, message_pool) =
-                state_sync_to_fbs(fbb, &msg.agent_pool, &msg.message_pool)?;
+            let (agent_pool, message_pool) = state_sync_to_fbs(fbb, &msg.state_proxy)?;
             let msg = flatbuffers_gen::sync_state_generated::StateSync::create(
                 fbb,
                 &flatbuffers_gen::sync_state_generated::StateSyncArgs {
@@ -177,8 +178,7 @@ fn inbound_to_nng(
             )
         }
         InboundToRunnerMsgPayload::StateSnapshotSync(msg) => {
-            let (agent_pool, message_pool) =
-                state_sync_to_fbs(fbb, &msg.agent_pool, &msg.message_pool)?;
+            let (agent_pool, message_pool) = state_sync_to_fbs(fbb, &msg.state_proxy)?;
             let msg = flatbuffers_gen::sync_state_snapshot_generated::StateSnapshotSync::create(
                 fbb,
                 &flatbuffers_gen::sync_state_snapshot_generated::StateSnapshotSyncArgs {
@@ -193,8 +193,7 @@ fn inbound_to_nng(
             )
         }
         InboundToRunnerMsgPayload::ContextBatchSync(msg) => {
-            let batch = msg.context_batch.read();
-            let batch = batch_to_fbs(fbb, &batch);
+            let batch = batch_to_fbs::<ContextBatch>(fbb, &msg.context_batch);
             let msg = flatbuffers_gen::sync_context_batch_generated::ContextBatchSync::create(
                 fbb,
                 &flatbuffers_gen::sync_context_batch_generated::ContextBatchSyncArgs {
@@ -297,27 +296,26 @@ fn inbound_to_nng(
 
 fn state_sync_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
-    agent_pool: &AgentPool,
-    msg_pool: &MessagePool,
+    state_proxy: &StateReadProxy,
 ) -> Result<(
     WIPOffset<Vector<'f, ForwardsUOffset<flatbuffers_gen::batch_generated::Batch<'f>>>>,
     WIPOffset<Vector<'f, ForwardsUOffset<flatbuffers_gen::batch_generated::Batch<'f>>>>,
 )> {
-    let agent_pool = agent_pool.try_read_batches()?;
-    let agent_pool: Vec<_> = agent_pool
-        .iter()
+    let agent_pool_offset: Vec<_> = state_proxy
+        .agent_proxies
+        .batches_iter()
         .map(|batch| batch_to_fbs(fbb, batch))
         .collect();
-    let agent_pool = fbb.create_vector(&agent_pool);
+    let agent_pool_forward_offset = fbb.create_vector(&agent_pool_offset);
 
-    let msg_pool = msg_pool.read_batches()?;
-    let msg_pool: Vec<_> = msg_pool
-        .iter()
+    let message_pool_offset: Vec<_> = state_proxy
+        .message_proxies
+        .batches_iter()
         .map(|batch| batch_to_fbs(fbb, batch))
         .collect();
-    let msg_pool = fbb.create_vector(&msg_pool);
+    let message_pool_forward_offset = fbb.create_vector(&message_pool_offset);
 
-    Ok((agent_pool, msg_pool))
+    Ok((agent_pool_forward_offset, message_pool_forward_offset))
 }
 
 // TODO: Reduce code duplication between enum variants.
@@ -332,13 +330,13 @@ fn shared_store_to_fbs<'f>(
                 .agent_pool()
                 .batches()
                 .iter()
-                .map(|b| batch_to_fbs(fbb, b))
+                .map(|b| batch_to_fbs::<AgentBatch>(fbb, b))
                 .collect();
             let m: Vec<_> = state
                 .message_pool()
                 .batches()
                 .iter()
-                .map(|b| batch_to_fbs(fbb, b))
+                .map(|b| batch_to_fbs::<MessageBatch>(fbb, b))
                 .collect();
             let indices = (0..a.len()).collect();
             (a, m, indices)
@@ -348,54 +346,54 @@ fn shared_store_to_fbs<'f>(
                 .agent_pool()
                 .batches()
                 .iter()
-                .map(|b| batch_to_fbs(fbb, b))
+                .map(|b| batch_to_fbs::<AgentBatch>(fbb, b))
                 .collect();
             let m: Vec<_> = state
                 .message_pool()
                 .batches()
                 .iter()
-                .map(|b| batch_to_fbs(fbb, b))
+                .map(|b| batch_to_fbs::<MessageBatch>(fbb, b))
                 .collect();
             let indices = (0..a.len()).collect();
             (a, m, indices)
         }
         SharedState::Partial(partial) => match partial {
             PartialSharedState::Read(partial) => {
-                let state = &partial.inner;
+                let state = &partial.state_proxy;
                 let a: Vec<_> = state
                     .agent_pool()
                     .batches()
                     .iter()
-                    .map(|b| batch_to_fbs(fbb, b))
+                    .map(|b| batch_to_fbs::<AgentBatch>(fbb, b))
                     .collect();
                 let m: Vec<_> = state
                     .message_pool()
                     .batches()
                     .iter()
-                    .map(|b| batch_to_fbs(fbb, b))
+                    .map(|b| batch_to_fbs::<MessageBatch>(fbb, b))
                     .collect();
-                (a, m, partial.indices.clone())
+                (a, m, partial.group_indices.clone())
             }
             PartialSharedState::Write(partial) => {
+                let state = &partial.state_proxy;
                 tracing::trace!(
                     "Partial write: {} groups, {} batches",
                     partial.indices.len(),
                     partial.inner.agent_pool().n_batches(),
                 );
-                let state = &partial.inner;
                 let a: Vec<_> = state
                     .agent_pool()
                     .batches()
                     .iter()
-                    .map(|b| batch_to_fbs(fbb, b))
+                    .map(|b| batch_to_fbs::<AgentBatch>(fbb, b))
                     .collect();
                 let m: Vec<_> = state
                     .message_pool()
                     .batches()
                     .iter()
-                    .map(|b| batch_to_fbs(fbb, b))
+                    .map(|b| batch_to_fbs::<MessageBatch>(fbb, b))
                     .collect();
-                (a, m, partial.indices.clone())
+                (a, m, partial.group_indices.clone())
             }
         },
     };

@@ -1,6 +1,10 @@
 //! The hEngine integration test suite runs a variety of specially-designed simulations and
 //! experiments of specific functionalities to verify outputs.
 
+/// Helper for parsing an experiment and run it.
+mod experiment;
+
+mod examples;
 mod units;
 
 /// Opens `$project` relative to the caller's file as a HASH simulation project and expects
@@ -40,13 +44,13 @@ macro_rules! run_test {
                 .canonicalize()
                 .unwrap();
 
-            $crate::units::experiment::run_test_suite(project_path, module_path!(), None, None).await
+            $crate::experiment::run_test_suite(project_path, concat!(module_path!(), "::", stringify!($project)), None, None).await
         }
     };
     ($project:ident, $language:ident $(,)? $(#[$attr:meta])* ) => {
         // Enable syntax highlighting and code completion
         #[allow(unused)]
-        use hash_engine::Language::$language as _;
+        use hash_engine_lib::Language::$language as _;
 
         $(#[$attr])*
         #[tokio::test]
@@ -58,7 +62,7 @@ macro_rules! run_test {
                 .canonicalize()
                 .unwrap();
 
-            $crate::units::experiment::run_test_suite(project_path, module_path!(), Some(hash_engine::Language::$language), None).await
+            $crate::experiment::run_test_suite(project_path, concat!(module_path!(), "::", stringify!($project)), Some(hash_engine_lib::Language::$language), None).await
         }
     };
     ($project:ident, experiment: $experiment:ident $(,)? $(#[$attr:meta])* ) => {
@@ -72,13 +76,13 @@ macro_rules! run_test {
                 .canonicalize()
                 .unwrap();
 
-            $crate::units::experiment::run_test_suite(project_path, module_path!(), None, Some(stringify!($experiment))).await
+            $crate::experiment::run_test_suite(project_path, concat!(module_path!(), "::", stringify!($experiment)), None, Some(stringify!($experiment))).await
         }
     };
     ($project:ident, $language:ident, experiment: $experiment:ident $(,)? $(#[$attr:meta])* ) => {
         // Enable syntax highlighting and code completion
         #[allow(unused)]
-        use hash_engine::Language::$language as _;
+        use hash_engine_lib::Language::$language as _;
 
         $(#[$attr])*
         #[tokio::test]
@@ -90,7 +94,7 @@ macro_rules! run_test {
                 .canonicalize()
                 .unwrap();
 
-            $crate::units::experiment::run_test_suite(project_path, module_path!(), Some(hash_engine::Language::$language), Some(stringify!($experiment))).await
+            $crate::experiment::run_test_suite(project_path, concat!(module_path!(), "::", stringify!($experiment)), Some(hash_engine_lib::Language::$language), Some(stringify!($experiment))).await
         }
     };
 }

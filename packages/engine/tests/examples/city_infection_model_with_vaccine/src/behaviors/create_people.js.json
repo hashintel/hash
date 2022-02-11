@@ -1,0 +1,18 @@
+{
+  "keys": {
+    "agents": {
+      "type": "any",
+      "nullable": true
+    },
+    "grocery": {
+      "type": "any",
+      "nullable": true
+    },
+    "office": {
+      "type": "any",
+      "nullable": true
+    }
+  },
+  "built_in_key_use": null,
+  "dynamic_access": false
+}

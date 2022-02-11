@@ -9,6 +9,7 @@ import OrgInvitationLink from "./orgInvitationLink.model";
 import OrgEmailInvitation from "./orgEmailInvitation.model";
 import File from "./file.model";
 import OrgMembership from "./orgMembership.model";
+import Page from "./page.model";
 import Link from "./link.model";
 import Aggregation from "./aggregation.model";
 
@@ -51,3 +52,6 @@ export { File };
 
 export * from "./orgMembership.model";
 export { OrgMembership };
+
+export * from "./page.model";
+export { Page };

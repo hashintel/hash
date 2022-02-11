@@ -213,14 +213,14 @@ impl Batch {
     }
 
     pub fn empty_from_agent_batch(
-        agents: &AgentBatch,
+        agent_batch: &AgentBatch,
         schema: &Arc<ArrowSchema>,
         meta: Arc<StaticMeta>,
         experiment_id: &ExperimentId,
     ) -> Result<Batch> {
-        let agent_count = agents.batch.num_rows();
+        let agent_count = agent_batch.batch.num_rows();
         let column_name = AgentStateField::AgentId.name();
-        let id_column = agents.get_arrow_column(column_name)?;
+        let id_column = agent_batch.get_arrow_column(column_name)?;
         let empty_message_column: Arc<dyn ArrowArray> =
             message::empty_messages_column(agent_count).map(Arc::new)?;
 

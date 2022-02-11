@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use super::*;
 use crate::{
     datastore::{
@@ -7,15 +9,13 @@ use crate::{
     simulation::package::state::packages::behavior_execution::config::BehaviorId,
 };
 
-pub fn gather_behavior_chains(
-    state: &StateMut,
+pub fn gather_behavior_chains<B: Deref<Target = AgentBatch>>(
+    agent_batches: &[B],
     behavior_ids: &BehaviorIds,
     data_types: [arrow::datatypes::DataType; 3],
     behavior_ids_col_index: usize,
 ) -> Result<StateColumn> {
-    let batches = state.agent_pool().try_read_batches()?;
-
-    let inner = iterators::agent::behavior_list_bytes_iter(&batches)?
+    let inner = iterators::agent::behavior_list_bytes_iter(agent_batches)?
         .map(|v| Chain::from_behaviors(&v, behavior_ids))
         .collect::<Result<Vec<_>>>()?;
     Ok(StateColumn::new(Box::new(ChainList {

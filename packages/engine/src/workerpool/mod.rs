@@ -204,7 +204,7 @@ impl WorkerPoolController {
         }
     }
 
-    /// TODO DOC
+    /// TODO: DOC
     async fn handle_sim_msg(
         &mut self,
         msg: EngineToWorkerPoolMsg,
@@ -216,7 +216,7 @@ impl WorkerPoolController {
             EngineToWorkerPoolMsgPayload::Task(task_msg) => {
                 let task_id = task_msg.task_id;
                 let channels = task_msg.comms;
-                let (tasks, distribution_controller) = self.new_worker_tasks(
+                let (tasks, distribution_controller) = self.new_worker_subtasks(
                     sim_id,
                     task_id,
                     task_msg.package_id,
@@ -355,7 +355,7 @@ impl WorkerPoolController {
     }
 
     /// TODO: DOC
-    fn new_worker_tasks(
+    fn new_worker_subtasks(
         &self,
         sim_id: SimulationShortId,
         task_id: TaskId,

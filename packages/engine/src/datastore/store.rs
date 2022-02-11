@@ -1,11 +1,9 @@
 use std::sync::Arc;
 
-use super::{
-    prelude::*,
-    table::{context::ContextMut, state::StateMut},
-};
+use super::prelude::*;
 use crate::{
     config::{ExperimentConfig, SimulationConfig},
+    datastore::table::{context::Context, state::State},
     SimRunConfig,
 };
 
@@ -39,11 +37,6 @@ impl Store {
                 .take()
                 .ok_or_else(|| Error::from("Expected context"))?,
         ))
-    }
-
-    pub fn take_upgraded(&mut self) -> Result<(StateMut, ContextMut)> {
-        let (state, context) = self.take()?;
-        Ok((state.into_mut(), context.into_mut()))
     }
 
     pub fn set(&mut self, state: State, context: Context) {

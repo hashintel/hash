@@ -1,0 +1,10 @@
+[
+  {
+    "experiment": "infected_linspace",
+    "expected-outputs": [{}, {}, {}, {}]
+  },
+  {
+    "experiment": "duration_range_monte_carlo",
+    "expected-outputs": [{}, {}]
+  }
+]

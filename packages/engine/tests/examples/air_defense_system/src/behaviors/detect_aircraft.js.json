@@ -1,0 +1,25 @@
+{
+  "keys": {
+    "missilesSent": {
+      "nullable": false,
+      "type": "number"
+    },
+    "maxMissiles": {
+      "nullable": false,
+      "type": "number"
+    },
+    "missileSpeed": {
+      "nullable": false,
+      "type": "number"
+    },
+    "targetedAircrafts": {
+      "nullable": false,
+      "type": "list",
+      "child": {
+        "nullable": true,
+        "type": "string"
+      }
+    }
+  },
+  "built_in_key_use": null
+}
