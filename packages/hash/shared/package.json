@@ -29,7 +29,7 @@
     "immer": "9.0.6",
     "jsonschema": "1.4.0",
     "lodash": "4.17.21",
-    "node-fetch": "3.2.0",
+    "node-fetch": "^2.6.7",
     "prosemirror-commands": "1.2.1",
     "prosemirror-dev-tools": "3.1.0",
     "prosemirror-dropcursor": "1.4.0",
