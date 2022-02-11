@@ -11,10 +11,7 @@ import {
   CreateLinkMutationVariables,
 } from "../../../graphql/apiTypes.gen";
 
-export const useBlockProtocolCreateLinks = (
-  /** Providing accountId here saves blocks from having to know it */
-  sourceAccountId: string,
-): {
+export const useBlockProtocolCreateLinks = (): {
   createLinks: BlockProtocolCreateLinksFunction;
   createLinksLoading: boolean;
   createLinksError: any;
@@ -35,10 +32,10 @@ export const useBlockProtocolCreateLinks = (
           variables: {
             link: {
               ...action,
-              sourceAccountId,
+              sourceAccountId: action.sourceAccountId,
               destinationAccountId: action.destinationAccountId
                 ? action.destinationAccountId
-                : sourceAccountId,
+                : action.sourceAccountId,
             },
           },
         });
@@ -50,7 +47,7 @@ export const useBlockProtocolCreateLinks = (
       }
       return results;
     },
-    [sourceAccountId, runCreateLinksMutation],
+    [runCreateLinksMutation],
   );
 
   return {

@@ -8,10 +8,7 @@ import {
 } from "../../../graphql/apiTypes.gen";
 import { getAccountEntityTypes } from "../../../graphql/queries/account.queries";
 
-export const useBlockProtocolAggregateEntityTypes = (
-  /** Providing accountId here saves blocks from having to know it */
-  accountId: string,
-): {
+export const useBlockProtocolAggregateEntityTypes = (): {
   aggregateEntityTypes: BlockProtocolAggregateEntityTypesFunction;
 } => {
   const apolloClient = useApolloClient();
@@ -24,7 +21,7 @@ export const useBlockProtocolAggregateEntityTypes = (
           GetAccountEntityTypesQueryVariables
         >({
           query: getAccountEntityTypes,
-          variables: { accountId, ...payload },
+          variables: payload,
         });
 
         // TODO: Consider using aggregate query to avoid result conversion on the client
@@ -43,7 +40,7 @@ export const useBlockProtocolAggregateEntityTypes = (
           },
         };
       },
-      [accountId, apolloClient],
+      [apolloClient],
     );
 
   return { aggregateEntityTypes };
