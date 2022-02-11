@@ -29,6 +29,8 @@ impl process::Process for LocalProcess {
         self.child
             .kill()
             .or_else(|e| match e.kind() {
+                // From `Child::kill` docs: Forces the child process to exit. If the child has
+                // already exited, an InvalidInput error is returned
                 std::io::ErrorKind::InvalidInput => Ok(()),
                 _ => Err(Report::new(e)),
             })
