@@ -288,7 +288,7 @@ impl Experiment {
                                 );
                             }
                             StopStatus::Error => {
-                                graceful_finish = true;
+                                graceful_finish = false;
                                 tracing::error!(
                                     "Simulation stopped by agent `{agent}` with an error{reason}"
                                 );
