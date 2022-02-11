@@ -212,6 +212,7 @@ jobs:
           - ""
     env:
       V8_PATH: ${{ github.workspace }}/.v8
+      OUTPUT_DIRECTORY: test-results
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
