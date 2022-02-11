@@ -68,9 +68,7 @@ pub fn apply_globals_changes(base: Globals, changes: &SerdeValue) -> Result<Glob
         .as_object()
         .ok_or(Error::BaseGlobalsNotProject)?
         .clone();
-    let changes = changes
-        .as_object()
-        .ok_or(Error::ChangedGlobalsNotObject)?;
+    let changes = changes.as_object().ok_or(Error::ChangedGlobalsNotObject)?;
     for (property_path, changed_value) in changes.iter() {
         let property_path = property_path.split('.').collect();
         set_nested_global_property(&mut map, property_path, changed_value.clone(), 0)?;

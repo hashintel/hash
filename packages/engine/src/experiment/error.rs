@@ -70,7 +70,7 @@ pub enum Error {
 
     #[error("Received Python message 'client_id' field is not a string: {0:?}")]
     PythonIdNotString(SerdeMap),
-    
+
     #[error("Simulation run's changed Global values are not in a JSON object")]
     ChangedGlobalsNotObject,
 
