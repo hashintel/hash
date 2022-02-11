@@ -43,9 +43,8 @@ jobs:
 
           while read -r file; do
             while read -r crate; do
-              if [[ $file =~ $crate ]]; then
+              if [[ $file =~ $crate ]] || [[ $file =~ .github ]]; then
                 changed_crates=$(echo -e "${crate}\n$changed_crates")
-                break
               fi
             done <<< "$available_crates"
           done <<< "$changed_files"
