@@ -1,0 +1,33 @@
+[
+  {
+    "steps": 3,
+    "expected-output": {
+      "json-state": {
+        "1": [
+          {
+            "s1": ["fooboo", "barfar"],
+            "s2": ["foobar", "barfoo"],
+            "s1_is_list": true,
+            "s1_0_is_string": true,
+            "s1_1_is_string": true,
+            "s2_is_list": true,
+            "s2_0_is_string": true,
+            "s2_1_is_string": true
+          }
+        ],
+        "2": [
+          {
+            "s1": ["foobooboo", "barfarfar"],
+            "s2": ["fooboobar", "barfarfoo"],
+            "s1_is_list": true,
+            "s1_0_is_string": true,
+            "s1_1_is_string": true,
+            "s2_is_list": true,
+            "s2_0_is_string": true,
+            "s2_1_is_string": true
+          }
+        ]
+      }
+    }
+  }
+]
