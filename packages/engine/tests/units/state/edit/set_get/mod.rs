@@ -13,6 +13,10 @@ mod js {
     run_test!(object, JavaScript);
     run_test!(object_array, JavaScript);
     run_test!(object_array_fixed, JavaScript);
+
+    // TODO: Nested complex fields currently fails
+    //   see https://app.asana.com/0/1199548034582004/1201806866503979/f
+    run_test!(nested, JavaScript, #[ignore]);
 }
 
 mod py {
@@ -30,4 +34,6 @@ mod py {
     run_test!(object, Python, #[ignore]);
     run_test!(object_array, Python, #[ignore]);
     run_test!(object_array_fixed, Python, #[ignore]);
+
+    run_test!(nested, Python, #[ignore]);
 }
