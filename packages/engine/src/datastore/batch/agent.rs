@@ -334,8 +334,8 @@ impl Batch {
 }
 
 impl Batch {
-    pub fn from_message(message: &str) -> Result<Box<Self>> {
-        let memory = Memory::from_message(message, true, true)?;
+    pub fn from_shmem_os_id(os_id: &str) -> Result<Box<Self>> {
+        let memory = Memory::shmem_os_id(os_id, true, true)?;
         Ok(Box::new(Batch::from_memory(memory, None, None)?))
     }
 

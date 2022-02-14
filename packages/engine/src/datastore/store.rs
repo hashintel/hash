@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use super::prelude::*;
 use crate::{
     config::{ExperimentConfig, SimulationConfig},
