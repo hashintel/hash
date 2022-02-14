@@ -105,6 +105,72 @@ export class TypeMismatch extends Error {
   }
 }
 
+type Prop = [_: string, __: any];
+type Schema = {
+  id: string;
+  parents: string[];
+  properties: Prop[];
+};
+
+type SchemaExt = {
+  id: string;
+  parentSchemas: Schema[];
+  properties: Prop[];
+};
+
+export const deconstructSchemaParentsFlat = (
+  schema: JSONSchema,
+  seen: Set<string>,
+): Schema[] => {
+  if (seen.has(schema.$id)) {
+    throw new Error(`Detected cyclic reference for parent ${schema.$id}`);
+  }
+
+  seen.add(schema.$id);
+
+  const currentProps: Prop[] = Object.entries(schema?.properties ?? {});
+
+  const parents =
+    schema?.allOf?.flatMap((prop: any) => {
+      if (typeof prop !== "boolean") {
+        return deconstructSchemaParentsFlat(prop, seen);
+      } else {
+        return [];
+      }
+    }) ?? [];
+
+  return [
+    <Schema>{
+      id: schema.$id,
+
+      parents: parents.map((parent) => parent.id),
+      properties: currentProps,
+    },
+    ...parents,
+  ];
+};
+
+export const deconstructSchemaParents = (schema: JSONSchema): SchemaExt => {
+  const currentProps: Prop[] = Object.entries(schema?.properties ?? {});
+
+  const seen = new Set([schema.$id]);
+
+  const parentSchemas =
+    schema?.allOf?.flatMap((prop: any) => {
+      if (typeof prop !== "boolean") {
+        return deconstructSchemaParentsFlat(prop, seen);
+      } else {
+        return [];
+      }
+    }) ?? [];
+
+  return <SchemaExt>{
+    id: schema.title ?? schema.$id,
+    parentSchemas,
+    properties: currentProps,
+  };
+};
+
 /**
  * Class that encapsulates JsonSchema validation.
  */
@@ -138,7 +204,7 @@ export class JsonSchemaCompiler {
    * @param schema schema object
    * @throws if any types of duplicate properties mismatch
    */
-  async prevalidateProperties(schema: any) {
+  async prevalidateProperties(schema: any): Promise<JSONSchema> {
     const self = this;
     const bundled = await $RefParser.bundle(schema, {
       resolve: {
@@ -163,6 +229,8 @@ export class JsonSchemaCompiler {
         }
       }
     }
+
+    return bundled;
   }
 
   /**
@@ -224,5 +292,18 @@ export class JsonSchemaCompiler {
     }
 
     return schema;
+  }
+
+  async deconstructedJsonSchema(
+    maybeStringifiedSchema: string | JSONObject = {},
+  ) {
+    const schema: JSONObject =
+      typeof maybeStringifiedSchema === "string"
+        ? JSON.parse(maybeStringifiedSchema)
+        : maybeStringifiedSchema;
+
+    const bundledSchema = this.prevalidateProperties(schema);
+
+    return deconstructSchemaParents(bundledSchema);
   }
 }
