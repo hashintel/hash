@@ -19,7 +19,11 @@ use crate::{
     SimRunConfig,
 };
 
-/// TODO: DOC
+/// A collection of [`Batch`]es which contain the current (outbound) messages of agents.
+///
+/// This is kept separate to the [`AgentPool`], because while agents can be removed between steps,
+/// messages are still sent out in the next step (including the ones by deleted agents) — this
+/// removes the need for making copies of the pool.
 #[derive(Clone)]
 pub struct MessagePool {
     batches: Vec<Arc<RwLock<MessageBatch>>>,
