@@ -2,7 +2,7 @@
  * Gets and sets a struct array using dot notation
  */
 const behavior = (state, context) => {
-  state.o1_is_list = typeof state.o1 === "object";
+  state.o1_is_list = Array.isArray(state.o1);
   state.o1_0_is_struct = typeof state.o1[0] === "object";
   state.o1_0_n1_is_number = typeof state.o1[0].n1 === "number";
 
