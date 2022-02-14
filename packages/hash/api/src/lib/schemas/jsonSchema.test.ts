@@ -71,7 +71,7 @@ describe("compatibility validation", () => {
     };
     await expect(
       jsonSchemaCompiler.prevalidateProperties(schema),
-    ).resolves.toBeUndefined();
+    ).resolves.toBeDefined();
   });
 
   it("disallows overwriting incompatible, inheriting fields from other parent types", async () => {
@@ -131,7 +131,7 @@ describe("compatibility validation", () => {
     };
     await expect(
       jsonSchemaCompiler.prevalidateProperties(schema),
-    ).resolves.toBeUndefined();
+    ).resolves.toBeDefined();
   });
 
   it("disallows overwriting incompatible, inheriting fields from nested parent types", async () => {
@@ -197,6 +197,150 @@ describe("compatibility validation", () => {
     };
     await expect(
       jsonSchemaCompiler.prevalidateProperties(schema),
-    ).resolves.toBeUndefined();
+    ).resolves.toBeDefined();
+  });
+});
+
+describe("destructing json schemas", () => {
+  it("can handle json schemas without inheritance", async () => {
+    const schema = {
+      $id: "$person",
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        age: { type: "string" },
+      },
+    };
+
+    const result = await jsonSchemaCompiler.deconstructedJsonSchema(schema);
+
+    expect(result.id).toEqual("$person");
+    expect(result.properties).toEqual([
+      ["name", { type: "string" }],
+      ["age", { type: "string" }],
+    ]);
+    expect(result.parentSchemas).toHaveLength(0);
+  });
+
+  it("can handle json schemas with one level of inheritance", async () => {
+    const schema = {
+      $id: "$doctor",
+      type: "object",
+      allOf: [
+        {
+          $id: "$medicalProfessional",
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            age: { type: "string" },
+            field: { type: "string" },
+          },
+        },
+      ],
+      properties: {
+        licenseId: { type: "string" },
+        age: { type: "string" },
+      },
+    };
+
+    const result = await jsonSchemaCompiler.deconstructedJsonSchema(schema);
+
+    expect(result.id).toEqual("$doctor");
+    expect(result.properties).toEqual([
+      ["licenseId", { type: "string" }],
+      ["age", { type: "string" }],
+    ]);
+
+    expect(result.parentSchemas).toHaveLength(1);
+
+    expect(result.parentSchemas).toContainEqual({
+      id: "$medicalProfessional",
+      properties: [
+        ["name", { type: "string" }],
+        ["age", { type: "string" }],
+        ["field", { type: "string" }],
+      ],
+      parents: [],
+    });
+  });
+
+  it("can handle json schemas with more levels of inheritance", async () => {
+    const schema = {
+      $id: "$doctor",
+      type: "object",
+      allOf: [
+        {
+          $id: "$medicalProfessional",
+          type: "object",
+          allOf: [
+            {
+              $id: "$person",
+              type: "object",
+              properties: {
+                name: { type: "string" },
+                age: { type: "string" },
+              },
+            },
+          ],
+          properties: {
+            field: { type: "string" },
+          },
+        },
+      ],
+      properties: {
+        licenseId: { type: "string" },
+        age: { type: "string" },
+      },
+    };
+
+    const result = await jsonSchemaCompiler.deconstructedJsonSchema(schema);
+
+    expect(result.id).toEqual("$doctor");
+    expect(result.properties).toEqual([
+      ["licenseId", { type: "string" }],
+      ["age", { type: "string" }],
+    ]);
+
+    expect(result.parentSchemas).toHaveLength(2);
+    expect(result.parentSchemas).toContainEqual({
+      id: "$medicalProfessional",
+      properties: [["field", { type: "string" }]],
+      parents: ["$person"],
+    });
+
+    expect(result.parentSchemas).toContainEqual({
+      id: "$person",
+      properties: [
+        ["name", { type: "string" }],
+        ["age", { type: "string" }],
+      ],
+      parents: [],
+    });
+  });
+
+  it("disallows recursive deconstruction/duplicate names", async () => {
+    const schema = {
+      $id: "$doctor",
+      type: "object",
+      allOf: [
+        {
+          $id: "$medicalProfessional",
+          type: "object",
+          allOf: [
+            {
+              $id: "$doctor",
+              type: "object",
+              properties: {},
+            },
+          ],
+          properties: {},
+        },
+      ],
+      properties: {},
+    };
+
+    await expect(
+      jsonSchemaCompiler.deconstructedJsonSchema(schema),
+    ).rejects.toThrowError(/Detected cyclic reference for parent "\$doctor"/i);
   });
 });

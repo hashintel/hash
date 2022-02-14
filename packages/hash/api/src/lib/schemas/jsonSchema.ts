@@ -105,14 +105,14 @@ export class TypeMismatch extends Error {
   }
 }
 
-type Prop = [_: string, __: any];
-type Schema = {
+export type Prop = [_: string, __: any];
+export type Schema = {
   id: string;
   parents: string[];
   properties: Prop[];
 };
 
-type SchemaExt = {
+export type SchemaExt = {
   id: string;
   parentSchemas: Schema[];
   properties: Prop[];
@@ -123,7 +123,7 @@ export const deconstructSchemaParentsFlat = (
   seen: Set<string>,
 ): Schema[] => {
   if (seen.has(schema.$id)) {
-    throw new Error(`Detected cyclic reference for parent ${schema.$id}`);
+    throw new Error(`Detected cyclic reference for parent "${schema.$id}"`);
   }
 
   seen.add(schema.$id);
@@ -302,7 +302,7 @@ export class JsonSchemaCompiler {
         ? JSON.parse(maybeStringifiedSchema)
         : maybeStringifiedSchema;
 
-    const bundledSchema = this.prevalidateProperties(schema);
+    const bundledSchema = await this.prevalidateProperties(schema);
 
     return deconstructSchemaParents(bundledSchema);
   }
