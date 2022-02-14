@@ -38,23 +38,23 @@ const behavior = (state, context) => {
   state.o1_o1_n2_is_number = typeof state.o1.o1.n2 === "number";
 
   // list
-  state.o1_l1_is_list = typeof state.o1.l1 === "object";
+  state.o1_l1_is_list = Array.isArray(state.o1.l1);
   state.o1_l1_0_is_number = typeof state.o1.l1[0] === "number";
 
   state.o1.l2 = state.o1.l1.concat(4);
   state.o1.l1.unshift(0);
 
-  state.o1_l2_is_list = typeof state.o1.l2 === "object";
+  state.o1_l2_is_list = Array.isArray(state.o1.l2);
   state.o1_l2_0_is_number = typeof state.o1.l2[0] === "number";
 
   // fixed size list
-  state.o1_f1_is_list = typeof state.o1.f1 === "object";
+  state.o1_f1_is_list = Array.isArray(state.o1.f1);
   state.o1_f1_0_is_number = typeof state.o1.f1[0] === "number";
 
   state.o1.f2 = [state.o1.f1[0] * 5, state.o1.f1[1] * 10];
   state.o1.f1[0] *= 10;
   state.o1.f1[1] *= 20;
 
-  state.o1_f2_is_list = typeof state.o1.f2 === "object";
+  state.o1_f2_is_list = Array.isArray(state.o1.f2);
   state.o1_f2_0_is_number = typeof state.o1.f2[0] === "number";
 };
