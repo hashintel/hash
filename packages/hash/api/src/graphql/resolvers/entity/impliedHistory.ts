@@ -16,8 +16,8 @@ import { DBAdapter } from "../../../db";
 import {
   Graph,
   DbEntity,
-  DbPageProperties,
-  DbBlockProperties,
+  // DbPageProperties,
+  // DbBlockProperties,
 } from "../../../db/adapter";
 import { dbAggregateEntity } from "./aggregateEntity";
 
@@ -169,44 +169,44 @@ const hydrateEntity = async (
   }
 };
 
-// Pages are a special case which do not use __linkedData. The links to the blocks are
-// contained in its "contents" array property.
-// @todo: can use `hydrateEntity` when Page links are made consistent with other entity
-// types
-const hydratePageEntity = (
-  page: DbEntity,
-  graph: Graph,
-  versionIdEntityMap: Map<string, DbEntity>,
-) => {
-  const pageProps = page.properties as DbPageProperties;
-  // Hydrate each block in the page's "contents" property
-  const blocks: DbEntity[] = pageProps.contents.map((content) => {
-    const blkLink = findLink({
-      graph,
-      sourceEntityVersionId: page.entityVersionId,
-      destinationEntityId: content.entityId,
-      fixed: false,
-    })!;
-    const block = versionIdEntityMap.get(blkLink.dst.entityVersionId)!;
+// // Pages are a special case which do not use __linkedData. The links to the blocks are
+// // contained in its "contents" array property.
+// // @todo: can use `hydrateEntity` when Page links are made consistent with other entity
+// // types
+// const hydratePageEntity = (
+//   page: DbEntity,
+//   graph: Graph,
+//   versionIdEntityMap: Map<string, DbEntity>,
+// ) => {
+//   const pageProps = page.properties as DbPageProperties;
+//   // Hydrate each block in the page's "contents" property
+//   const blocks: DbEntity[] = pageProps.contents.map((content) => {
+//     const blkLink = findLink({
+//       graph,
+//       sourceEntityVersionId: page.entityVersionId,
+//       destinationEntityId: content.entityId,
+//       fixed: false,
+//     })!;
+//     const block = versionIdEntityMap.get(blkLink.dst.entityVersionId)!;
 
-    // Hydrate the link that the block makes through its "entityId" property
-    const blkProps = block.properties as DbBlockProperties;
-    const entityLink = findLink({
-      graph,
-      sourceEntityVersionId: block.entityVersionId,
-      destinationEntityId: blkProps.entityId,
-      fixed: false,
-    })!;
-    const entity = versionIdEntityMap.get(entityLink.dst.entityVersionId);
-    block.properties.entity = entity;
+//     // Hydrate the link that the block makes through its "entityId" property
+//     const blkProps = block.properties as DbBlockProperties;
+//     const entityLink = findLink({
+//       graph,
+//       sourceEntityVersionId: block.entityVersionId,
+//       destinationEntityId: blkProps.entityId,
+//       fixed: false,
+//     })!;
+//     const entity = versionIdEntityMap.get(entityLink.dst.entityVersionId);
+//     block.properties.entity = entity;
 
-    return block;
-  });
+//     return block;
+//   });
 
-  // Update the page's "contents" property with the hydrated blocks.
-  // eslint-disable-next-line no-param-reassign
-  page.properties.contents = blocks;
-};
+//   // Update the page's "contents" property with the hydrated blocks.
+//   // eslint-disable-next-line no-param-reassign
+//   page.properties.contents = blocks;
+// };
 
 /**
  * @todo: function assumes that the sub-graph rooted at `rootEntityVersionId` is acyclic.
@@ -237,7 +237,7 @@ const hydrateRootSubgraph = async (
   for (const entityVersionId of sortedEntityVersionIds) {
     const entity = entityVersionIdEntityMap.get(entityVersionId)!;
     if (entity.entityTypeName === "Page") {
-      hydratePageEntity(entity, graph, entityVersionIdEntityMap);
+      // hydratePageEntity(entity, graph, entityVersionIdEntityMap);
     } else {
       await hydrateEntity(db, entity, graph, entityVersionIdEntityMap);
     }
