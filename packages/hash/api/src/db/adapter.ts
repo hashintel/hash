@@ -161,18 +161,17 @@ export type Graph = {
   }[];
 };
 
+export type DbTextProperties = {
+  /** @todo: find better type for this */
+  tokens: JSONObject[];
+};
+
 export type DbBlockProperties = {
-  entityId: string;
-  accountId: string;
   componentId: string;
 };
 
 export type DbPageProperties = {
   archived?: boolean | null;
-  contents: {
-    entityId: string;
-    accountId: string;
-  }[];
   summary?: string | null;
   title: string;
 };
