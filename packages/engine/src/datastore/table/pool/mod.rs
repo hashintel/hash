@@ -166,7 +166,7 @@ impl<P: Pool<B> + Send + Sync, B: Batch> BatchPool<B> for P {
     fn partial_read_proxies(&self, indices: &[usize]) -> Result<PoolReadProxy<B>> {
         let batches = self.get_batches();
         indices
-            .into_iter()
+            .iter()
             .map(|i| BatchReadProxy::new(&batches[*i]))
             .collect()
     }
@@ -181,7 +181,7 @@ impl<P: Pool<B> + Send + Sync, B: Batch> BatchPool<B> for P {
     fn partial_write_proxies(&mut self, indices: &[usize]) -> Result<PoolWriteProxy<B>> {
         let batches = self.get_batches_mut();
         indices
-            .into_iter()
+            .iter()
             .map(|i| BatchWriteProxy::new(&batches[*i]))
             .collect()
     }
