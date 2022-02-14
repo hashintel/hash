@@ -72,14 +72,8 @@ pub mod tests {
     use rand::Rng;
 
     use super::{prelude::*, test_utils::gen_schema_and_test_agents};
-    use crate::{
-        datastore::{
-            batch::DynamicBatch,
-            schema::{FieldSpec, FieldSpecMap, FieldTypeVariant},
-            table::state::State,
-            test_utils::dummy_sim_run_config,
-        },
-        hash_types::state::AgentStateField,
+    use crate::datastore::{
+        batch::DynamicBatch, table::state::State, test_utils::dummy_sim_run_config,
     };
 
     #[test]
@@ -195,31 +189,5 @@ pub mod tests {
         dbg!(&array.value(3).data_ref());
         // 0100 1001 | 1001 0010 | 0010 0100 | 0000 1001
         Ok(())
-    }
-
-    #[test]
-    #[ignore] // TODO: reenable test
-    pub fn test_struct_types_enabled() -> Result<()> {
-        todo!()
-        // let mut keys = FieldSpecMap::default()?;
-        // keys.add(FieldSpec::new_mergeable(
-        //     "struct",
-        //     FieldType::new(
-        //         FieldTypeVariant::Struct(vec![
-        //             FieldSpec::new_mergeable(
-        //                 "first_column",
-        //                 FieldType::new(FieldTypeVariant::Number, false),
-        //             ),
-        //             FieldSpec::new_mergeable(
-        //                 "second_column",
-        //                 FieldType::new(FieldTypeVariant::Boolean, true),
-        //             ),
-        //         ]),
-        //         true,
-        //     ),
-        // ))?;
-        //
-        // keys.get_arrow_schema()?;
-        // Ok(())
     }
 }
