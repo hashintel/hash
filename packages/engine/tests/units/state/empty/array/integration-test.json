@@ -5,7 +5,8 @@
       "json-state": {
         "1": [
           {
-            "l1_is_list": true
+            "l1_is_list": true,
+            "l1_is_empty": true
           }
         ]
       }

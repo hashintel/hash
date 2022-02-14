@@ -11,6 +11,10 @@
     "l1_is_list": {
       "type": "boolean",
       "nullable": false
+    },
+    "l1_is_empty": {
+      "type": "boolean",
+      "nullable": false
     }
   }
 }
