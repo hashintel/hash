@@ -72,8 +72,14 @@ pub mod tests {
     use rand::Rng;
 
     use super::{prelude::*, test_utils::gen_schema_and_test_agents};
-    use crate::datastore::{
-        batch::DynamicBatch, table::state::State, test_utils::dummy_sim_run_config,
+    use crate::{
+        datastore::{
+            batch::DynamicBatch,
+            schema::{FieldSpec, FieldSpecMap, FieldTypeVariant},
+            table::state::State,
+            test_utils::dummy_sim_run_config,
+        },
+        hash_types::state::AgentStateField,
     };
 
     #[test]
@@ -162,52 +168,6 @@ pub mod tests {
         });
 
         Ok(())
-    }
-
-    #[test]
-    #[ignore] // TODO: reenable test
-    pub fn test_behavior_metadata() -> Result<()> {
-        todo!()
-        // let mut keys = FieldSpecMap::default()?;
-        // keys.add(FieldSpec::new_mergeable(
-        //     "age",
-        //     FieldType::new(FieldTypeVariant::Number, false),
-        // ))?;
-        // keys.add_built_in(&AgentStateField::Behaviors)?;
-        // let store = Store::new(Arc::new("".into()), keys)?;
-        //
-        // let num_agents = 5;
-        //
-        // let mut agents = Vec::with_capacity(num_agents);
-        //
-        // let target = vec!["age.rs", "collision.rs", "diffusion.rs", "self_destroy.rs"];
-        //
-        // for i in 0..num_agents {
-        //     let mut agent = AgentState::empty();
-        //     agent.set("age", i)?;
-        //     agent.set("behaviors", &target)?;
-        //     agents.push(agent);
-        // }
-        //
-        // let table_ref = store.new_table(&agents)?;
-        //
-        // let table = table_ref.try_write().unwrap();
-        //
-        // let message = table.dynamic_pool[0]
-        //     .try_read()
-        //     .expect("Should be able to read dynamic batch")
-        //     .get_batch_message()?;
-        //
-        // let reloaded = AgentBatch::from_message(&message.msg)?;
-        // reloaded
-        //     .get_behaviors()?
-        //     .iter()
-        //     .enumerate()
-        //     .for_each(|(i, v)| {
-        //         assert_eq!(v, &target[i]);
-        //     });
-        //
-        // Ok(())
     }
 
     #[test]
