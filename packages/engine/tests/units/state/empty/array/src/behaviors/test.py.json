@@ -1,0 +1,16 @@
+{
+  "keys": {
+    "l1": {
+      "type": "list",
+      "nullable": false,
+      "child": {
+        "type": "number",
+        "nullable": false
+      }
+    },
+    "l1_is_list": {
+      "type": "boolean",
+      "nullable": false
+    }
+  }
+}

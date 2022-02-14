@@ -1,0 +1,14 @@
+[
+  {
+    "steps": 2,
+    "expected-output": {
+      "json-state": {
+        "1": [
+          {
+            "l1_is_list": true
+          }
+        ]
+      }
+    }
+  }
+]
