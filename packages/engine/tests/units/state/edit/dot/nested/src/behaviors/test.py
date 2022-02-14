@@ -49,7 +49,7 @@ def behavior(state, context):
     state.o1_f1_is_list = type(state.o1["f1"]) is list
     state.o1_f1_0_is_number = type(state.o1["f1"][0]) is float
 
-    state.o1["f2"] = [state.o1["f1"][0] * 5, state.o1["f1"][1] * 10];
+    state.o1["f2"] = [state.o1["f1"][0] * 5, state.o1["f1"][1] * 10]
     state.o1["f1"][0] *= 10
     state.o1["f1"][1] *= 20
 
