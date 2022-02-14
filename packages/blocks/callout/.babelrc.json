@@ -1,0 +1,30 @@
+{
+  "presets": [
+    [
+      "@babel/preset-env",
+      {
+        "corejs": { "version": 3 },
+        "useBuiltIns": "usage",
+        "debug": false
+      }
+    ],
+    "@babel/preset-react",
+    "@babel/preset-typescript"
+  ],
+  "plugins": [
+    ["@babel/plugin-transform-runtime", { "regenerator": true }],
+    ["@babel/plugin-proposal-class-properties", { "loose": true }],
+    ["@babel/plugin-proposal-private-methods", { "loose": true }],
+    ["@babel/plugin-proposal-private-property-in-object", { "loose": true }]
+  ],
+  "env": {
+    "development": {
+      "sourceMaps": true,
+      "retainLines": true
+    },
+    "test": {
+      "sourceMaps": true,
+      "retainLines": true
+    }
+  }
+}
