@@ -326,7 +326,7 @@ impl TaskSharedStore {
                 })
                 .collect();
             (stores, split_config)
-        } else if reads_state && distribution.single_read_access {
+        } else if reads_state && distribution.partitioned_batches {
             // We take read access to state so we need to distribute
             // each batch to a single worker.
             // Note: This doesn't mean that each worker gets a single batch.

@@ -1,10 +1,17 @@
 /// Describes how a distributed [`Task`] has access to Agent [`State`].
 #[derive(Default, Debug)]
 pub struct StateBatchDistribution {
-    /// `true` - The task will only take a single read lock on each batch, in which case each
-    /// batch will be available to only a single worker.
-    /// `false` - all workers will have read access to all of agent state.
-    pub single_read_access: bool, // TODO: rename this, it seems misleading
+    /// - `true` - The [`Task`] is executed across multiple [`Worker`]s, and Agent [`State`] is
+    /// partitioned across them. As such each `Group` is only available to a single
+    /// [`Worker`]. That is, there's an surjection of `Group`s to [`Worker`]s.
+    ///
+    ///   Because of this, the [`Task`] is able to take write-access to the
+    /// `Group`s
+    ///
+    /// - `false` - [Worker]s have access to all of Agent [`State`] and thus all `Group`s.
+    ///
+    ///   Because of this, there can only be read-access to the `Group`s
+    pub partitioned_batches: bool,
 }
 
 /// Defines if and how a [`Task`] is executed across multiple [`Worker`]s).

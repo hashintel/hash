@@ -35,7 +35,7 @@ impl GetTaskName for ExecuteBehaviorsTask {
 impl GetTaskArgs for ExecuteBehaviorsTask {
     fn distribution(&self) -> TaskDistributionConfig {
         TaskDistributionConfig::Distributed(StateBatchDistribution {
-            single_read_access: true,
+            partitioned_batches: true,
         })
     }
 }
