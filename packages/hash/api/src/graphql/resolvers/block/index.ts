@@ -1,7 +1,3 @@
-import { blockEntity } from "./blockEntity";
-
+export { blockProperties } from "./blockProperties";
+export { blockLinkedEntities } from "./linkedEntities";
 export { blocks } from "./blocks";
-
-export const blockFields = {
-  entity: blockEntity,
-};

@@ -1,16 +1,22 @@
-import { UnresolvedGQLEntity } from "../../../model";
+import { Entity, UnresolvedGQLEntity } from "../../../model";
 
 import { QueryBlocksArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { getBlocks } from "../pages/contents";
 
 export const blocks: Resolver<
   Promise<UnresolvedGQLEntity[]>,
   {},
   GraphQLContext,
   QueryBlocksArgs
-> = async (_, args, ctx) => {
-  const { dataSources } = ctx;
+> = async (_, args, { dataSources }) => {
+  const { db } = dataSources;
+  const entities = await Entity.getEntities(
+    db,
+    args.blocks.map(({ accountId, entityId }) => ({
+      accountId,
+      entityId,
+    })),
+  );
 
-  return await getBlocks(dataSources.db, args.blocks);
+  return entities.map((entity) => entity.toGQLUnknownEntity());
 };
