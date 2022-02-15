@@ -9,7 +9,6 @@ use std::{
 
 use error::{bail, ensure, report, Result, ResultExt};
 use hash_engine_lib::{
-    init_logger,
     proto::ExperimentName,
     utils::{LogFormat, LogLevel, OutputLocation},
     Language,
@@ -17,6 +16,7 @@ use hash_engine_lib::{
 use orchestrator::{ExperimentConfig, ExperimentType, Manifest, Server};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Value;
+use tracing_subscriber::fmt::time::Uptime;
 
 pub type AgentStates = Value;
 pub type Globals = Value;
@@ -119,16 +119,12 @@ pub async fn run_test_suite(
 ) {
     // If this is an Err then the logger has already been initialised in another thread which is
     // okay
-    let _guard = init_logger(
-        LogFormat::Pretty,
-        &OutputLocation::StdErr,
-        std::env::temp_dir(),
-        // These are logs only from the Orchestrator library, *not* for the engine that we're
-        // starting, the configuration for the engine is setup below
-        Some(LogLevel::Info),
-        "tests",
-        "tests-texray",
-    );
+    let _ = tracing_subscriber::fmt()
+        .with_timer(Uptime::default())
+        .with_target(true)
+        .with_test_writer()
+        .try_init();
+
     // If `RUST_LOG` is set, only run it once, otherwise run with `warn` and `trace` on failure
     let log_levels = if std::env::var("RUST_LOG").is_ok() {
         vec![None]
@@ -226,7 +222,11 @@ pub async fn run_test_suite(
             {
                 expected
                     .assert_subset_of(&states, &globals, &analysis)
-                    .unwrap_or_else(|_| {
+                    .unwrap_or_else(|err| {
+                        if let Ok(log) = fs::read_to_string(&log_file_path) {
+                            eprintln!("{log}");
+                        }
+                        tracing::error!("{err:?}");
                         panic!(
                             "Output of simulation {} does not match expected output in experiment",
                             output_idx + 1
