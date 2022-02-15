@@ -232,7 +232,6 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
             sim_config,
             task_comms,
             packages,
-            self.shared_store.clone(),
             persistence_service,
             self.sim_status_send.clone(),
         )
