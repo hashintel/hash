@@ -31,9 +31,8 @@ use crate::{
     simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY,
 };
 
-/// A Shared Batch. Contains a shared memory
-/// segment and the Arrow `RecordBatch` view
-/// into that data.
+/// A Shared Batch containing a shared memory segment and the Arrow [`RecordBatch`] view into that
+/// data.
 #[allow(clippy::module_name_repetitions)]
 pub struct AgentBatch {
     pub memory: Memory,

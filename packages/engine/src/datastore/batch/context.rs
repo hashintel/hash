@@ -26,6 +26,12 @@ const UPPER_BOUND_DATA_SIZE_MULTIPLIER: usize = 3;
 pub type AgentIndex = (u32, u32);
 pub type MessageIndex = (u32, u32, u32);
 
+/// Contains the information required to build the `context` object accessible in the language
+/// runners.
+///
+/// Data within the `ContextBatch` can rely on the contents of the **Agent** and **Message
+/// Pools** within the **Context** object. For example, the list of neighbors in the `ContextBatch`
+/// is a collection of indices pointing to different agents within the **Agent Pool**.
 pub struct ContextBatch {
     pub(crate) memory: Memory,
     pub(crate) metaversion: Metaversion,
