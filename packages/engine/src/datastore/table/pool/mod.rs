@@ -60,8 +60,7 @@ pub trait BatchPool<B: Batch>: Send + Sync {
     /// inside of [`Arc`]`<RwLock<B>>`.
     fn push(&mut self, batch: B);
 
-    /// Removes at position `index` within the pool, shifting all elements after it to the left and
-    /// returns it as a [`BatchReadProxy`].
+    /// Removes at position `index` within the pool, shifting all elements after it to the left.
     ///
     /// Returns the batch id of the removed [`Batch`]
     ///
