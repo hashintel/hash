@@ -1,0 +1,103 @@
+{
+  "keys": {
+    "struct": {
+      "type": "struct",
+      "nullable": true,
+      "fields": {
+        "number": {
+          "type": "number",
+          "nullable": true
+        },
+        "string": {
+          "type": "string",
+          "nullable": true
+        },
+        "bool": {
+          "type": "boolean",
+          "nullable": true
+        },
+        "struct": {
+          "type": "struct",
+          "nullable": true,
+          "fields": {
+            "a": {
+              "type": "number",
+              "nullable": true
+            }
+          }
+        },
+        "number_array": {
+          "type": "list",
+          "nullable": true,
+          "child": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "bool_array": {
+          "type": "list",
+          "nullable": true,
+          "child": {
+            "type": "boolean",
+            "nullable": true
+          }
+        },
+        "struct_array": {
+          "type": "list",
+          "nullable": true,
+          "child": {
+            "type": "struct",
+            "nullable": true,
+            "fields": {
+              "b": {
+                "type": "number",
+                "nullable": true
+              },
+              "c": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          }
+        },
+        "fixed_number_array": {
+          "type": "fixed_size_list",
+          "nullable": true,
+          "length": 3,
+          "child": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "fixed_bool_array": {
+          "type": "fixed_size_list",
+          "nullable": true,
+          "length": 3,
+          "child": {
+            "type": "boolean",
+            "nullable": true
+          }
+        },
+        "fixed_struct_array": {
+          "type": "fixed_size_list",
+          "nullable": true,
+          "length": 2,
+          "child": {
+            "type": "struct",
+            "nullable": true,
+            "fields": {
+              "b": {
+                "type": "number",
+                "nullable": true
+              },
+              "c": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
