@@ -34,7 +34,7 @@ trait Pool<B> {
 pub trait BatchPool<B: Batch>: Send + Sync {
     /// Creates a new pool from [`Batches`].
     ///
-    /// Because of the way, `BatchPools` are organized, it's required, that the [`Batch`]es are
+    /// Because of the way `BatchPools` are organized it's required that the [`Batch`]es are
     /// stored inside an [`RwLock`] behind an [`Arc`]. This is subject to change.
     fn new(batches: Vec<Arc<RwLock<B>>>) -> Self;
 
@@ -49,23 +49,23 @@ pub trait BatchPool<B: Batch>: Send + Sync {
     /// Returns the number of [`Batch`]es inside this pool.
     fn len(&self) -> usize;
 
-    /// Returns if there are no [`Batch`]es in this pool.
+    /// Returns true if there are no [`Batch`]es in this pool.
     fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
     /// Adds a [`Batch`] at the end of this pool.
     ///
-    /// Note, that unless in [`new()`](Self::new) this does not require the [`Batch`] to be wrapped
+    /// Note, that unlike in [`new()`](Self::new) this does not require the [`Batch`] to be wrapped
     /// inside of [`Arc`]`<RwLock<B>>`.
     fn push(&mut self, batch: B);
 
     /// Removes and returns the `element` at position `index` within the pool, shifting all
-    /// elements after it to the left and returns it as [`BatchReadProxy`].
+    /// elements after it to the left and returns it as a [`BatchReadProxy`].
     ///
     /// # Panics
     ///
-    /// Panics if index is out of bounds.
+    /// Panics if `index` is out of bounds.
     ///
     /// # Errors
     ///
@@ -75,7 +75,7 @@ pub trait BatchPool<B: Batch>: Send + Sync {
     /// [`ProxySharedLock`]: crate::datastore::error::Error::ProxySharedLock
     fn remove(&mut self, index: usize) -> Result<BatchReadProxy<B>>;
 
-    /// Removes a [`Batch`] from the pool and returns it as [`BatchReadProxy`].
+    /// Removes a [`Batch`] from the pool and returns it as a [`BatchReadProxy`].
     ///
     /// The removed [`Batch`] is replaced by the last [`Batch`] of the pool. This does not preserve
     /// ordering, but is `O(1)`. If you need to preserve the element order, use
@@ -83,11 +83,11 @@ pub trait BatchPool<B: Batch>: Send + Sync {
     ///
     /// # Panics
     ///
-    /// Panics if index is out of bounds.
+    /// Panics if `index` is out of bounds.
     ///
     /// # Errors
     ///
-    /// Returns [`ProxySharedLock`] if the [`Batch`] is currently borrowed as
+    /// Returns a [`ProxySharedLock`] if the [`Batch`] is currently borrowed in a
     /// [`BatchWriteProxy`].
     ///
     /// [`ProxySharedLock`]: crate::datastore::error::Error::ProxySharedLock
@@ -97,7 +97,7 @@ pub trait BatchPool<B: Batch>: Send + Sync {
     ///
     /// # Errors
     ///
-    /// Returns [`ProxySharedLock`] if any of the [`Batch`]es is currently borrowed as
+    /// Returns a [`ProxySharedLock`] if any of the [`Batch`]es is currently borrowed in a
     /// [`BatchWriteProxy`].
     ///
     /// [`ProxySharedLock`]: crate::datastore::error::Error::ProxySharedLock
@@ -108,8 +108,8 @@ pub trait BatchPool<B: Batch>: Send + Sync {
     ///
     /// # Errors
     ///
-    /// Returns [`ProxySharedLock`] if any of the [`Batch`]es at one of the specified
-    /// `indices` is currently borrowed as [`BatchWriteProxy`].
+    /// Returns a [`ProxySharedLock`] if any of the [`Batch`]es at one of the specified
+    /// `indices` is currently borrowed in a [`BatchWriteProxy`].
     ///
     /// [`ProxySharedLock`]: crate::datastore::error::Error::ProxySharedLock
     fn partial_read_proxies(&self, indices: &[usize]) -> Result<PoolReadProxy<B>>;

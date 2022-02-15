@@ -54,7 +54,7 @@ impl PoolWriteProxy<AgentBatch> {
         Ok(())
     }
 
-    /// Calls [`Batch::flush_changes()`] all all batches in this proxy.
+    /// Calls [`Batch::flush_changes()`] on all batches in this proxy.
     pub fn flush_pending_columns(&mut self) -> Result<()> {
         for batch in self.batches_iter_mut() {
             batch.flush_changes()?;
