@@ -3,7 +3,7 @@
     [
       "@babel/preset-env",
       {
-        "corejs": { "version": 3 },
+        "corejs": "2.x",
         "useBuiltIns": "usage",
         "debug": false
       }
@@ -12,10 +12,24 @@
     "@babel/preset-typescript"
   ],
   "plugins": [
-    ["@babel/plugin-transform-runtime", { "regenerator": true }],
-    ["@babel/plugin-proposal-class-properties", { "loose": true }],
-    ["@babel/plugin-proposal-private-methods", { "loose": true }],
-    ["@babel/plugin-proposal-private-property-in-object", { "loose": true }]
+    [
+      "@babel/plugin-transform-runtime",
+      {
+        "regenerator": true
+      }
+    ],
+    [
+      "@babel/plugin-proposal-class-properties",
+      {
+        "loose": true
+      }
+    ],
+    [
+      "@babel/plugin-proposal-private-methods",
+      {
+        "loose": true
+      }
+    ]
   ],
   "env": {
     "development": {

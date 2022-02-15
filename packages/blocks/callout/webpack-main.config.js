@@ -7,8 +7,8 @@
 const webpack = require("webpack");
 const WebpackAssetsManifest = require("webpack-assets-manifest");
 const { BundleAnalyzerPlugin } = require("webpack-bundle-analyzer");
-const CopyPlugin = require("copy-webpack-plugin");
-const { StatsPlugin } = require("./webpack-block-metadata-plugin");
+const CopyWebpackPlugin = require("copy-webpack-plugin");
+const { StatsPlugin } = require("./webpack-block-meta-plugin");
 
 module.exports = {
   plugins: [
@@ -20,11 +20,9 @@ module.exports = {
       openAnalyzer: false,
       reportFilename: "webpack-bundle-analyzer-report.html",
     }),
-    new WebpackAssetsManifest({
-      output: "manifest.json",
-    }),
+    new WebpackAssetsManifest(),
     new StatsPlugin(),
-    new CopyPlugin({ patterns: [{ from: "./public/", to: "./public/" }] }),
+    new CopyWebpackPlugin([{ from: "./public/", to: "./public/" }]),
   ],
 
   entry: {

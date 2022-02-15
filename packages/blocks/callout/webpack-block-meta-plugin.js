@@ -1,6 +1,5 @@
 const fs = require("fs");
 const { promisify } = require("util");
-
 const writeFile = promisify(fs.writeFile);
 const beautify = (obj) => JSON.stringify(obj, null, 2);
 
@@ -11,6 +10,7 @@ const {
   author,
   license,
   blockprotocol,
+  repository,
 } = require("./package.json");
 
 const { externals } = require("./webpack-main.config");
@@ -36,6 +36,7 @@ class StatsPlugin {
         schema: "block-schema.json",
         source: main,
         variants,
+        repository,
         ...blockprotocol,
       };
 

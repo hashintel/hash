@@ -1,67 +1,84 @@
 {
-  "name": "callout",
-  "version": "0.0.0",
-  "description": "callout block",
-  "keywords": [
-    "blockprotocol",
-    "blocks"
-  ],
+  "name": "@hashintel/block-callout",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Section headings of varying size",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git#main",
+    "directory": "packages/blocks/header"
+  },
   "license": "MIT",
-  "author": "Alexander Kachkaev",
+  "author": "HASH",
   "main": "src/index.ts",
   "browser": "dist/main.js",
   "scripts": {
     "build": "yarn clean; cross-env NODE_ENV=production webpack --mode production && yarn schema",
     "build:dev": "yarn clean; cross-env NODE_ENV=development webpack --mode development",
     "clean": "rimraf ./dist/",
-    "dev": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev --watch\" \"yarn run-dev-server\"",
+    "dev": "cross-env NODE_ENV=development webpack-dev-server -d --port 9090 --config webpack-dev-server.config.js --open",
+    "fix:eslint": "eslint --ext .ts,.tsx --fix ./src/",
+    "lint:eslint": "eslint --ext .ts,.tsx ./src/",
     "lint:tsc": "tsc --noEmit",
-    "run-dev-server": "cross-env NODE_ENV=development webpack-dev-server --config webpack-dev-server.config.js",
-    "schema": "typescript-json-schema tsconfig.json AppProps --required true --out dist/block-schema.json"
+    "schema": "typescript-json-schema tsconfig.json AppProps --required true --out dist/block-schema.json",
+    "serve": "serve -C -l 63212 ./dist/",
+    "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev -- --watch --verbose\" \"yarn dev\""
   },
   "dependencies": {
-    "blockprotocol": "0.0.6"
+    "blockprotocol": "0.0.1"
   },
   "devDependencies": {
-    "@babel/cli": "^7.17.0",
-    "@babel/core": "^7.17.2",
-    "@babel/plugin-proposal-class-properties": "^7.16.7",
-    "@babel/plugin-transform-runtime": "^7.17.0",
-    "@babel/preset-env": "^7.16.11",
-    "@babel/preset-react": "^7.16.7",
-    "@babel/preset-typescript": "7.16.7",
-    "@babel/runtime": "^7.17.2",
-    "babel-loader": "^8.2.3",
-    "concurrently": "^7.0.0",
-    "copy-webpack-plugin": "^10.2.4",
-    "core-js": "^3.21.0",
-    "cross-env": "^7.0.3",
-    "html-webpack-plugin": "^5.5.0",
-    "mock-block-dock": "0.0.5",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
-    "regenerator-runtime": "^0.13.9",
+    "@babel/cli": "^7.12.10",
+    "@babel/core": "^7.12.10",
+    "@babel/plugin-proposal-class-properties": "^7.12.1",
+    "@babel/plugin-transform-runtime": "^7.12.10",
+    "@babel/preset-env": "^7.12.10",
+    "@babel/preset-react": "^7.12.10",
+    "@babel/preset-typescript": "7.13.0",
+    "@babel/runtime": "^7.12.5",
+    "@typescript-eslint/eslint-plugin": "5.11.0",
+    "@typescript-eslint/parser": "5.11.0",
+    "babel-loader": "^8.2.2",
+    "concurrently": "7.0.0",
+    "copy-webpack-plugin": "^4.6.0",
+    "core-js": "^2.6.12",
+    "cross-env": "7.0.3",
+    "eslint": "8.8.0",
+    "eslint-config-airbnb": "19.0.4",
+    "eslint-config-prettier": "8.3.0",
+    "eslint-plugin-import": "2.25.4",
+    "eslint-plugin-jest": "26.1.0",
+    "eslint-plugin-jsx-a11y": "6.5.1",
+    "eslint-plugin-react": "7.28.0",
+    "eslint-plugin-react-hooks": "4.3.0",
+    "html-webpack-plugin": "4.5.1",
+    "react": "17.0.2",
+    "react-dom": "17.0.2",
+    "regenerator-runtime": "^0.13.7",
     "rimraf": "^3.0.2",
-    "twind": "^0.16.16",
-    "typescript": "^4.5.5",
-    "typescript-json-schema": "^0.53.0",
-    "webpack": "^5.68.0",
-    "webpack-assets-manifest": "^5.1.0",
-    "webpack-bundle-analyzer": "^4.5.0",
-    "webpack-cli": "^4.9.2",
-    "webpack-dev-server": "^4.7.4"
+    "serve": "13.0.2",
+    "twind": "0.16.16",
+    "typescript": "4.5.5",
+    "typescript-json-schema": "0.50.1",
+    "webpack": "^4.44.2",
+    "webpack-assets-manifest": "^3.1.1",
+    "webpack-bundle-analyzer": "^3.9.0",
+    "webpack-cli": "^3.3.12",
+    "webpack-dev-server": "^3.11.0"
   },
   "peerDependencies": {
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
-    "twind": "^0.16.16"
+    "react": "17.0.2",
+    "twind": "0.16.16"
   },
   "blockprotocol": {
-    "displayName": "Template",
+    "displayName": "Callout",
+    "icon": "public/comment-outline.svg",
+    "image": "public/preview.svg",
     "examples": [
-      {}
-    ],
-    "icon": "public/omega.svg",
-    "image": "public/block-preview.svg"
+      {
+        "icon": "💡",
+        "text": "Hello World!"
+      }
+    ]
   }
 }

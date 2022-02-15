@@ -1,4 +1,5 @@
 {
+  "https://block.blockprotocol.org/callout": "http://localhost:63212",
   "https://block.blockprotocol.org/paragraph": "https://blockprotocol-git-main-hashintel.vercel.app/blocks/@hash/paragraph",
   "https://block.blockprotocol.org/header": "https://blockprotocol-git-main-hashintel.vercel.app/blocks/@hash/header",
   "https://block.blockprotocol.org/person": "https://blockprotocol-git-main-hashintel.vercel.app/blocks/@hash/person",

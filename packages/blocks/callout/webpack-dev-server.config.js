@@ -2,9 +2,7 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const webpack = require("webpack");
 const config = require("./webpack.config");
 
-/** @type import("webpack").Configuration */
 module.exports = {
-  devtool: "eval-cheap-module-source-map",
   entry: "./src/webpack-dev-server.js",
   plugins: [
     ...config[0].plugins,
@@ -15,30 +13,23 @@ module.exports = {
     new webpack.EnvironmentPlugin({
       "process.env.NODE_ENV": process.env.NODE_ENV,
     }),
+    new webpack.NamedModulesPlugin(),
     new webpack.HotModuleReplacementPlugin(),
   ],
   module: config[0].module,
   devServer: {
+    hot: true,
+    contentBase: __dirname,
     headers: {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
       "Access-Control-Allow-Headers": [
-        "X-Requested-With, content-type, Authorization",
         "X-Requested-With",
         "content-type",
         "Authorization",
         "sentry-trace",
       ],
     },
-    hot: true,
-    open: process.env.BROWSER !== "none",
-    port: 9090,
-    static: {
-      directory: __dirname,
-    },
-  },
-  optimization: {
-    moduleIds: "named",
   },
   resolve: {
     extensions: [
