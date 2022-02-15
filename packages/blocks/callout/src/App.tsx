@@ -25,7 +25,7 @@ const textStyle: CSSProperties = {
 
 export const App: BlockComponent<AppProps> = ({
   editableRef,
-  icon = "💡",
+  icon,
   text,
   entityId,
   updateEntities,
