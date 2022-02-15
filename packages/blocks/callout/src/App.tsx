@@ -11,6 +11,7 @@ type AppProps = {
 
 const wrapperStyle: CSSProperties = {
   borderRadius: "0.25em",
+  width: "100%",
   position: "relative",
   padding: "0.5em",
   background: "#f9fafc",
