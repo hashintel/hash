@@ -9,10 +9,10 @@ pub mod message;
 pub mod metaversion;
 pub mod migration;
 
-pub use agent::Batch as AgentBatch;
-pub use context::{AgentIndex, Batch as ContextBatch, MessageIndex};
-pub use dataset::Batch as Dataset;
-pub use message::Batch as MessageBatch;
+pub use agent::AgentBatch;
+pub use context::{AgentIndex, ContextBatch, MessageIndex};
+pub use dataset::Dataset;
+pub use message::MessageBatch;
 pub use metaversion::Metaversion;
 
 use super::{

@@ -5,6 +5,12 @@ use serde::{Deserialize, Serialize};
 use crate::{simulation::enum_dispatch::*, worker::runner::comms::MessageTarget};
 
 // TODO: Possibly come up with a better interface for distinguishing between types of TaskMessages
+/// The possible variants of messages passed as part of a [`Task`]'s execution.
+///
+/// Refer to the [`Task`] docs for more information on how this is implemented, and how these
+/// variants are defined.
+///
+/// [`Task`]: crate::simulation::task::Task
 #[enum_dispatch(RegisterWithoutTrait)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum TaskMessage {
@@ -120,12 +126,19 @@ fn _swap_doubly_nested_val(
     (object_map, value_to_swap)
 }
 
+/// A [`TaskMessage`] to be forwarded to the given [`MessageTarget`] as part of the execution of a
+/// [`Task`].
+///
+/// [`Task`]: crate::simulation::task::Task
 pub struct TargetedTaskMessage {
     pub target: MessageTarget,
     pub payload: TaskMessage,
 }
 
-/// Marks either the final TaskMessage of a task's execution chain, or indicates a cancellation
+/// Marks either the final [`TaskMessage`] of a [`Task`]'s execution chain, or indicates a
+/// cancellation.
+///
+/// [`Task`]: crate::simulation::task::Task
 #[derive(Debug, Clone)]
 pub enum TaskResultOrCancelled {
     Result(TaskMessage),
