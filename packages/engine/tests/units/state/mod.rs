@@ -1,4 +1,5 @@
 mod edit;
+mod empty;
 
 mod js {
     crate::run_test!(behavior_index, JavaScript);
