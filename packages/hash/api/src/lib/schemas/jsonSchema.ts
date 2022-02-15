@@ -8,9 +8,9 @@ import $RefParser, {
 import { cloneDeep } from "lodash";
 import { FRONTEND_URL } from "../config";
 import {
-  JsonSchemaMeta,
-  JsonSchemaMetaParent,
-  JsonSchemaMetaProperty,
+  DestructuredSchema,
+  DestructuredSchemaParent,
+  DestructuredSchemaProperty,
 } from "../../graphql/apiTypes.gen";
 
 /**
@@ -125,10 +125,10 @@ const parentSchemaIds = (allOf: any[] | undefined): string[] => {
 
 // @todo: Currently this function uses a _lot_ of recursion.
 // Ideally this would be replaced with iterative tree traversal to prevent stack overflow.
-const deconstructSchemaParents = (
+const destructureSchemaParents = (
   schema: JSONSchema,
   seen: Set<string>,
-): JsonSchemaMetaParent[] => {
+): DestructuredSchemaParent[] => {
   const { $id, allOf, properties } = schema;
 
   // if the schema doesn't have an $id, we're not interested in extracting props.
@@ -136,7 +136,7 @@ const deconstructSchemaParents = (
     return [];
   }
 
-  const currentProps: JsonSchemaMetaProperty[] =
+  const currentProps: DestructuredSchemaProperty[] =
     Object.entries(properties ?? {}).map(([name, content]) => ({
       name,
       content,
@@ -147,7 +147,7 @@ const deconstructSchemaParents = (
   const parents =
     allOf?.flatMap((prop: any) => {
       if (typeof prop !== "boolean") {
-        return deconstructSchemaParents(prop, seen);
+        return destructureSchemaParents(prop, seen);
       } else {
         return [];
       }
@@ -156,7 +156,7 @@ const deconstructSchemaParents = (
   if (!seen.has($id)) {
     seen.add($id);
     return [
-      <JsonSchemaMetaParent>{
+      <DestructuredSchemaParent>{
         id: $id,
         // Second time parents are traversed are for getting all `$id`s of parents.
         parents: parentSchemaIds(schema.allOf),
@@ -169,8 +169,8 @@ const deconstructSchemaParents = (
   }
 };
 
-const deconstructSchema = (schema: JSONSchema): JsonSchemaMeta => {
-  const currentProps: JsonSchemaMetaProperty[] = Object.entries(
+const destructureSchema = (schema: JSONSchema): DestructuredSchema => {
+  const currentProps: DestructuredSchemaProperty[] = Object.entries(
     schema?.properties ?? {},
   ).map(([name, content]) => ({ name, content }));
 
@@ -179,13 +179,13 @@ const deconstructSchema = (schema: JSONSchema): JsonSchemaMeta => {
   const parentSchemas =
     schema?.allOf?.flatMap((prop: any) => {
       if (typeof prop !== "boolean") {
-        return deconstructSchemaParents(prop, seen);
+        return destructureSchemaParents(prop, seen);
       } else {
         return [];
       }
     }) ?? [];
 
-  return <JsonSchemaMeta>{
+  return <DestructuredSchema>{
     id: schema.title ?? schema.$id,
     parentSchemas,
     properties: currentProps ?? [],
@@ -328,6 +328,6 @@ export class JsonSchemaCompiler {
 
     const bundledSchema = await this.prevalidateProperties(schema);
 
-    return deconstructSchema(bundledSchema);
+    return destructureSchema(bundledSchema);
   }
 }

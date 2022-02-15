@@ -67,21 +67,21 @@ export const entityTypeTypedef = gql`
     OrgEmailInvitation
   }
 
-  type JsonSchemaMetaProperty {
+  type DestructuredSchemaProperty {
     name: String!
     content: JSONObject!
   }
 
-  type JsonSchemaMetaParent {
+  type DestructuredSchemaParent {
     id: String!
     parents: [String!]!
-    properties: [JsonSchemaMetaProperty!]!
+    properties: [DestructuredSchemaProperty!]!
   }
 
-  type JsonSchemaMeta {
+  type DestructuredSchema {
     id: String!
-    parentSchemas: [JsonSchemaMetaParent!]!
-    properties: [JsonSchemaMetaProperty!]!
+    parentSchemas: [DestructuredSchemaParent!]!
+    properties: [DestructuredSchemaProperty!]!
   }
 
   """
@@ -171,6 +171,6 @@ export const entityTypeTypedef = gql`
     # ENTITY INTERFACE FIELDS END #
     children: [EntityType!]
     parents: [EntityType!]
-    destructuredSchema: JsonSchemaMeta
+    destructuredSchema: DestructuredSchema
   }
 `;

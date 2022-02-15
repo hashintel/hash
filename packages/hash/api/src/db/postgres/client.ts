@@ -273,9 +273,9 @@ export class PostgresClient implements DBClient {
     return (await getEntityLatestVersion(this.conn, params)) || undefined;
   }
 
-  async getEntityTypeJsonSchemaMeta(
-    params: Parameters<DBClient["getEntityTypeJsonSchemaMeta"]>[0],
-  ): ReturnType<DBClient["getEntityTypeJsonSchemaMeta"]> {
+  async getEntityTypeDestructuredSchema(
+    params: Parameters<DBClient["getEntityTypeDestructuredSchema"]>[0],
+  ): ReturnType<DBClient["getEntityTypeDestructuredSchema"]> {
     const jsonSchemaCompiler = this.jsonSchemaCompiler(this.conn);
     const entityType = await this.getEntityTypeLatestVersion(params);
     if (!entityType) {

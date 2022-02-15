@@ -116,10 +116,12 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.getEntityLatestVersion(params));
   }
 
-  getEntityTypeJsonSchemaMeta(
-    params: Parameters<DBClient["getEntityTypeJsonSchemaMeta"]>[0],
-  ): ReturnType<DBClient["getEntityTypeJsonSchemaMeta"]> {
-    return this.query((adapter) => adapter.getEntityTypeJsonSchemaMeta(params));
+  getEntityTypeDestructuredSchema(
+    params: Parameters<DBClient["getEntityTypeDestructuredSchema"]>[0],
+  ): ReturnType<DBClient["getEntityTypeDestructuredSchema"]> {
+    return this.query((adapter) =>
+      adapter.getEntityTypeDestructuredSchema(params),
+    );
   }
 
   getEntityTypeLatestVersion(params: {
