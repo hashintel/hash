@@ -1,3 +1,3 @@
-# Header block
+# Callout block
 
-https://blockprotocol.org/@hash/header
+https://blockprotocol.org/@hash/callout

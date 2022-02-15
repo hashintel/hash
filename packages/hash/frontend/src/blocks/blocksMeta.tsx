@@ -5,6 +5,7 @@ import {
   SetStateAction,
   useContext,
   useMemo,
+  useState,
 } from "react";
 import { useLocalstorageState } from "rooks";
 
@@ -22,7 +23,8 @@ export const BlocksMetaProvider: React.FC<{ value: BlocksMetaMap }> = ({
   value: initialValue,
   children,
 }) => {
-  const [value, setValue] = useLocalstorageState("blocks-meta", initialValue);
+  const [value, setValue] = useState(initialValue);
+  console.log({ initialValue, value });
 
   const state = useMemo(() => ({ value, setValue }), [value, setValue]);
 

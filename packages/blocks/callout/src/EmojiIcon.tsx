@@ -9,7 +9,7 @@ export interface EmojiIconProps {
   onChange: (value: string | undefined) => void;
 }
 
-const icons = ["💡", "🤔", "👉", "📌", "🚧"];
+const variants = ["📢", "💡", "🤔", "👉", "📣", "📌", "🚧"];
 
 const wrapperStyle: CSSProperties = {
   width: 20,
@@ -18,6 +18,7 @@ const wrapperStyle: CSSProperties = {
   position: "absolute",
   userSelect: "none",
   textDecoration: "none",
+  overflow: "hidden",
 };
 
 export const EmojiIcon: VoidFunctionComponent<EmojiIconProps> = ({
@@ -26,7 +27,7 @@ export const EmojiIcon: VoidFunctionComponent<EmojiIconProps> = ({
 }) => {
   const handleDivClick: MouseEventHandler = (event) => {
     event.stopPropagation();
-    onChange(icons[(icons.indexOf(value ?? "") + 1) % icons.length]);
+    onChange(variants[(variants.indexOf(value ?? "") + 1) % variants.length]);
   };
 
   return (

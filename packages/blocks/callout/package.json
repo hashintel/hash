@@ -2,7 +2,7 @@
   "name": "@hashintel/block-callout",
   "version": "0.1.0",
   "private": true,
-  "description": "Section headings of varying size",
+  "description": "Framed text with customizable icon",
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git#main",
@@ -73,11 +73,11 @@
   },
   "blockprotocol": {
     "displayName": "Callout",
-    "icon": "public/comment-outline.svg",
+    "icon": "public/bullhorn-variant-outline.svg",
     "image": "public/preview.svg",
     "examples": [
       {
-        "icon": "💡",
+        "icon": "📢",
         "text": "Hello World!"
       }
     ]

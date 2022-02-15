@@ -5,7 +5,6 @@
 import React from "react";
 import ReactDOM from "react-dom";
 
-// eslint-disable-next-line import/no-unresolved -- This file is dev-only
 import { MockBlockDock } from "mock-block-dock";
 
 import Component from "./index";

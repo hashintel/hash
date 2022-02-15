@@ -29,15 +29,15 @@ export const App: BlockComponent<AppProps> = ({
   updateEntities,
 }) => {
   const handleIconChange = useCallback(
-    (icon) => {
+    (newIcon: string | undefined): void => {
       if (!entityId) {
         return;
       }
 
-      updateEntities?.([
+      void updateEntities?.([
         {
           entityId,
-          data: { icon },
+          data: { icon: newIcon ?? null },
         },
       ]);
     },
