@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use self::behavior_execution::tasks::{ExecuteBehaviorsTask, ExecuteBehaviorsTaskMessage};
 use super::PackageCreator;
 use crate::{
+    datastore::table::task_shared_store::{SharedContext, SharedState},
     simulation::{
         enum_dispatch::*,
         package::{id::PackageIdGenerator, PackageMetadata, PackageType},
@@ -44,6 +45,23 @@ impl std::fmt::Display for Name {
 #[derive(Clone, Debug)]
 pub enum StateTask {
     ExecuteBehaviorsTask,
+}
+
+impl StoreAccessVerify for StateTask {
+    fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
+        let state = &access.state;
+        let context = access.context();
+        // All combinations (as of now) are allowed (but still being explicit)
+        if (matches!(state, SharedState::Write(_))
+            || matches!(state, SharedState::Read(_))
+            || matches!(state, SharedState::None))
+            && (matches!(context, SharedContext::Read) || matches!(context, SharedContext::None))
+        {
+            Ok(())
+        } else {
+            Err(Error::access_not_allowed(state, context, "State".into()))
+        }
+    }
 }
 
 /// All state package task messages are registered in this enum
