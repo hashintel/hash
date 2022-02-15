@@ -4,10 +4,10 @@
  */
 import React from "react";
 import ReactDOM from "react-dom";
-import Component from "./index.ts";
+import Component from "./index";
 
 const node = document.getElementById("app");
 
-const App = () => <Component />;
+const App = () => <Component color="red" height="2px" />;
 
 ReactDOM.render(<App />, node);
