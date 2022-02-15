@@ -16,7 +16,10 @@ const wrapperStyle: CSSProperties = {
   border: "1px solid #ccc",
 };
 
-const textStyle: CSSProperties = {};
+const textStyle: CSSProperties = {
+  minHeight: "1.5em",
+  paddingLeft: "1.5em",
+};
 
 export const App: BlockComponent<AppProps> = ({
   editableRef,
@@ -25,9 +28,21 @@ export const App: BlockComponent<AppProps> = ({
   entityId,
   updateEntities,
 }) => {
-  const handleIconChange = useCallback(() => {
-    console.log(entityId);
-  }, [entityId, updateEntities]);
+  const handleIconChange = useCallback(
+    (icon) => {
+      if (!entityId) {
+        return;
+      }
+
+      updateEntities?.([
+        {
+          entityId,
+          data: { icon },
+        },
+      ]);
+    },
+    [entityId, updateEntities],
+  );
 
   return (
     <div style={wrapperStyle}>

@@ -5,7 +5,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 
-// eslint-disable-next-line import/no-extraneous-dependencies -- TODO update config properly
+// eslint-disable-next-line import/no-unresolved -- This file is dev-only
 import { MockBlockDock } from "mock-block-dock";
 
 import Component from "./index";
@@ -14,7 +14,7 @@ const node = document.getElementById("app");
 
 const App = () => (
   <MockBlockDock>
-    <Component entityId="test-block-1" name="World" />
+    <Component entityId="test-block-1" text="Hello World" />
   </MockBlockDock>
 );
 
