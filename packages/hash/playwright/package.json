@@ -10,9 +10,8 @@
   "dependencies": {
     "@hashintel/hash-backend-utils": "0.0.0",
     "@hashintel/hash-shared": "0.0.0",
-    "@playwright/test": "1.18.0",
+    "@playwright/test": "1.18.1",
     "@recordreplay/playwright": "1.18.1",
-    "js-yaml": "4.1.0",
-    "playwright": "1.18.0"
+    "js-yaml": "4.1.0"
   }
 }

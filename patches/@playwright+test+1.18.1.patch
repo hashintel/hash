@@ -1,0 +1,284 @@
+diff --git a/node_modules/@playwright/test/cli.js b/node_modules/@playwright/test/cli.js
+index 17ed363..69919c6 100755
+--- a/node_modules/@playwright/test/cli.js
++++ b/node_modules/@playwright/test/cli.js
+@@ -14,4 +14,4 @@
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  */
+-module.exports = require('playwright-core/cli');
++module.exports = require('@recordreplay/playwright/cli');
+diff --git a/node_modules/@playwright/test/index.d.ts b/node_modules/@playwright/test/index.d.ts
+index cd6ece8..b161183 100644
+--- a/node_modules/@playwright/test/index.d.ts
++++ b/node_modules/@playwright/test/index.d.ts
+@@ -14,7 +14,7 @@
+  * limitations under the License.
+  */
+
+-export * from 'playwright-core';
++export * from '@recordreplay/playwright';
+ export * from './types/test';
+ export { default } from './types/test';
+
+\ No newline at end of file
+diff --git a/node_modules/@playwright/test/index.js b/node_modules/@playwright/test/index.js
+index 38acb32..adb494a 100644
+--- a/node_modules/@playwright/test/index.js
++++ b/node_modules/@playwright/test/index.js
+@@ -15,7 +15,7 @@
+  */
+
+ const pwt = require('./lib/index');
+-const playwright = require('playwright-core');
++const playwright = require('@recordreplay/playwright');
+ const combinedExports = {
+   ...playwright,
+   ...pwt,
+diff --git a/node_modules/@playwright/test/lib/cli.js b/node_modules/@playwright/test/lib/cli.js
+index 0afea6a..dc25d83 100755
+--- a/node_modules/@playwright/test/lib/cli.js
++++ b/node_modules/@playwright/test/lib/cli.js
+@@ -16,11 +16,11 @@ var _profiler = require("./profiler");
+
+ var _html = require("./reporters/html");
+
+-var _gridServer = require("playwright-core/lib/grid/gridServer");
++var _gridServer = require("@recordreplay/playwright/lib/grid/gridServer");
+
+-var _dockerGridFactory = _interopRequireDefault(require("playwright-core/lib/grid/dockerGridFactory"));
++var _dockerGridFactory = _interopRequireDefault(require("@recordreplay/playwright/lib/grid/dockerGridFactory"));
+
+-var _utils = require("playwright-core/lib/utils/utils");
++var _utils = require("@recordreplay/playwright/lib/utils/utils");
+
+ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+diff --git a/node_modules/@playwright/test/lib/dispatcher.js b/node_modules/@playwright/test/lib/dispatcher.js
+index 6390a3f..40a6c17 100644
+--- a/node_modules/@playwright/test/lib/dispatcher.js
++++ b/node_modules/@playwright/test/lib/dispatcher.js
+@@ -11,7 +11,7 @@ var _path = _interopRequireDefault(require("path"));
+
+ var _events = require("events");
+
+-var _async = require("playwright-core/lib/utils/async");
++var _async = require("@recordreplay/playwright/lib/utils/async");
+
+ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+diff --git a/node_modules/@playwright/test/lib/fixtures.js b/node_modules/@playwright/test/lib/fixtures.js
+index b8f1d35..362c53c 100644
+--- a/node_modules/@playwright/test/lib/fixtures.js
++++ b/node_modules/@playwright/test/lib/fixtures.js
+@@ -10,7 +10,7 @@ var _util = require("./util");
+
+ var crypto = _interopRequireWildcard(require("crypto"));
+
+-var _async = require("playwright-core/lib/utils/async");
++var _async = require("@recordreplay/playwright/lib/utils/async");
+
+ function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function (nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
+
+diff --git a/node_modules/@playwright/test/lib/index.js b/node_modules/@playwright/test/lib/index.js
+index 7341571..4a65e94 100644
+--- a/node_modules/@playwright/test/lib/index.js
++++ b/node_modules/@playwright/test/lib/index.js
+@@ -20,9 +20,9 @@ var path = _interopRequireWildcard(require("path"));
+
+ var _testType = require("./testType");
+
+-var _utils = require("playwright-core/lib/utils/utils");
++var _utils = require("@recordreplay/playwright/lib/utils/utils");
+
+-var _gridClient = require("playwright-core/lib/grid/gridClient");
++var _gridClient = require("@recordreplay/playwright/lib/grid/gridClient");
+
+ var _util = require("./util");
+
+@@ -80,7 +80,7 @@ const test = _baseTest.extend({
+       await use(gridClient.playwright());
+       await gridClient.close();
+     } else {
+-      await use(require('playwright-core'));
++      await use(require('@recordreplay/playwright'));
+     }
+   }, {
+     scope: 'worker'
+diff --git a/node_modules/@playwright/test/lib/loader.js b/node_modules/@playwright/test/lib/loader.js
+index f5c88ff..7785198 100644
+--- a/node_modules/@playwright/test/lib/loader.js
++++ b/node_modules/@playwright/test/lib/loader.js
+@@ -23,7 +23,7 @@ var _project = require("./project");
+
+ var _runner = require("./runner");
+
+-var _utils = require("playwright-core/lib/utils/utils");
++var _utils = require("@recordreplay/playwright/lib/utils/utils");
+
+ function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function (nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
+
+diff --git a/node_modules/@playwright/test/lib/matchers/matchers.js b/node_modules/@playwright/test/lib/matchers/matchers.js
+index 08297ee..d6702f3 100644
+--- a/node_modules/@playwright/test/lib/matchers/matchers.js
++++ b/node_modules/@playwright/test/lib/matchers/matchers.js
+@@ -24,7 +24,7 @@ exports.toHaveTitle = toHaveTitle;
+ exports.toHaveURL = toHaveURL;
+ exports.toBeOK = toBeOK;
+
+-var _utils = require("playwright-core/lib/utils/utils");
++var _utils = require("@recordreplay/playwright/lib/utils/utils");
+
+ var _util = require("../util");
+
+diff --git a/node_modules/@playwright/test/lib/matchers/toMatchText.js b/node_modules/@playwright/test/lib/matchers/toMatchText.js
+index b587abc..dcc0a5b 100644
+--- a/node_modules/@playwright/test/lib/matchers/toMatchText.js
++++ b/node_modules/@playwright/test/lib/matchers/toMatchText.js
+@@ -10,7 +10,7 @@ exports.currentExpectTimeout = currentExpectTimeout;
+
+ var _safe = _interopRequireDefault(require("colors/safe"));
+
+-var _utils = require("playwright-core/lib/utils/utils");
++var _utils = require("@recordreplay/playwright/lib/utils/utils");
+
+ var _globals = require("../globals");
+
+diff --git a/node_modules/@playwright/test/lib/reporters/html.js b/node_modules/@playwright/test/lib/reporters/html.js
+index 2724a6d..ac69770 100644
+--- a/node_modules/@playwright/test/lib/reporters/html.js
++++ b/node_modules/@playwright/test/lib/reporters/html.js
+@@ -18,9 +18,9 @@ var _path = _interopRequireDefault(require("path"));
+
+ var _stream = require("stream");
+
+-var _httpServer = require("playwright-core/lib/utils/httpServer");
++var _httpServer = require("@recordreplay/playwright/lib/utils/httpServer");
+
+-var _utils = require("playwright-core/lib/utils/utils");
++var _utils = require("@recordreplay/playwright/lib/utils/utils");
+
+ var _raw = _interopRequireDefault(require("./raw"));
+
+@@ -266,13 +266,13 @@ class HtmlBuilder {
+     this._addDataFile('report.json', htmlReport); // Copy app.
+
+
+-    const appFolder = _path.default.join(require.resolve('playwright-core'), '..', 'lib', 'webpack', 'htmlReport');
++    const appFolder = _path.default.join(require.resolve('@recordreplay/playwright'), '..', 'lib', 'webpack', 'htmlReport');
+
+     _fs.default.copyFileSync(_path.default.join(appFolder, 'index.html'), _path.default.join(this._reportFolder, 'index.html')); // Copy trace viewer.
+
+
+     if (this._hasTraces) {
+-      const traceViewerFolder = _path.default.join(require.resolve('playwright-core'), '..', 'lib', 'webpack', 'traceViewer');
++      const traceViewerFolder = _path.default.join(require.resolve('@recordreplay/playwright'), '..', 'lib', 'webpack', 'traceViewer');
+
+       const traceViewerTargetFolder = _path.default.join(this._reportFolder, 'trace');
+
+diff --git a/node_modules/@playwright/test/lib/reporters/raw.js b/node_modules/@playwright/test/lib/reporters/raw.js
+index 06c68a5..e619b45 100644
+--- a/node_modules/@playwright/test/lib/reporters/raw.js
++++ b/node_modules/@playwright/test/lib/reporters/raw.js
+@@ -9,7 +9,7 @@ var _fs = _interopRequireDefault(require("fs"));
+
+ var _path = _interopRequireDefault(require("path"));
+
+-var _utils = require("playwright-core/lib/utils/utils");
++var _utils = require("@recordreplay/playwright/lib/utils/utils");
+
+ var _util = require("../util");
+
+@@ -17,7 +17,7 @@ var _base = require("./base");
+
+ var _json = require("./json");
+
+-var _multimap = require("playwright-core/lib/utils/multimap");
++var _multimap = require("@recordreplay/playwright/lib/utils/multimap");
+
+ var _codeFrame = require("@babel/code-frame");
+
+diff --git a/node_modules/@playwright/test/lib/runner.js b/node_modules/@playwright/test/lib/runner.js
+index 33ab8de..41d8575 100644
+--- a/node_modules/@playwright/test/lib/runner.js
++++ b/node_modules/@playwright/test/lib/runner.js
+@@ -43,7 +43,7 @@ var _minimatch = require("minimatch");
+
+ var _webServer = require("./webServer");
+
+-var _async = require("playwright-core/lib/utils/async");
++var _async = require("@recordreplay/playwright/lib/utils/async");
+
+ function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function (nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
+
+diff --git a/node_modules/@playwright/test/lib/util.js b/node_modules/@playwright/test/lib/util.js
+index 6240099..ccf1e44 100644
+--- a/node_modules/@playwright/test/lib/util.js
++++ b/node_modules/@playwright/test/lib/util.js
+@@ -32,7 +32,7 @@ var _minimatch = _interopRequireDefault(require("minimatch"));
+
+ var _debug = _interopRequireDefault(require("debug"));
+
+-var _utils = require("playwright-core/lib/utils/utils");
++var _utils = require("@recordreplay/playwright/lib/utils/utils");
+
+ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+diff --git a/node_modules/@playwright/test/lib/webServer.js b/node_modules/@playwright/test/lib/webServer.js
+index 57b9c80..b049a0e 100644
+--- a/node_modules/@playwright/test/lib/webServer.js
++++ b/node_modules/@playwright/test/lib/webServer.js
+@@ -15,9 +15,9 @@ var _debug = _interopRequireDefault(require("debug"));
+
+ var _util = require("./util");
+
+-var _async = require("playwright-core/lib/utils/async");
++var _async = require("@recordreplay/playwright/lib/utils/async");
+
+-var _processLauncher = require("playwright-core/lib/utils/processLauncher");
++var _processLauncher = require("@recordreplay/playwright/lib/utils/processLauncher");
+
+ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+diff --git a/node_modules/@playwright/test/lib/workerRunner.js b/node_modules/@playwright/test/lib/workerRunner.js
+index 9f748b7..819332d 100644
+--- a/node_modules/@playwright/test/lib/workerRunner.js
++++ b/node_modules/@playwright/test/lib/workerRunner.js
+@@ -29,9 +29,9 @@ var _test = require("./test");
+
+ var _fixtures = require("./fixtures");
+
+-var _async = require("playwright-core/lib/utils/async");
++var _async = require("@recordreplay/playwright/lib/utils/async");
+
+-var _utils = require("playwright-core/lib/utils/utils");
++var _utils = require("@recordreplay/playwright/lib/utils/utils");
+
+ function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function (nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
+
+diff --git a/node_modules/@playwright/test/types/test.d.ts b/node_modules/@playwright/test/types/test.d.ts
+index 2412b8a..c0cf585 100644
+--- a/node_modules/@playwright/test/types/test.d.ts
++++ b/node_modules/@playwright/test/types/test.d.ts
+@@ -15,7 +15,7 @@
+  * limitations under the License.
+  */
+
+-import type { APIRequestContext, Browser, BrowserContext, BrowserContextOptions, Page, LaunchOptions, ViewportSize, Geolocation, HTTPCredentials } from 'playwright-core';
++import type { APIRequestContext, Browser, BrowserContext, BrowserContextOptions, Page, LaunchOptions, ViewportSize, Geolocation, HTTPCredentials } from '@recordreplay/playwright';
+ import type { Expect } from './testExpect';
+
+ export type { Expect } from './testExpect';
+diff --git a/node_modules/@playwright/test/types/testExpect.d.ts b/node_modules/@playwright/test/types/testExpect.d.ts
+index 03ddc17..84fe6bb 100644
+--- a/node_modules/@playwright/test/types/testExpect.d.ts
++++ b/node_modules/@playwright/test/types/testExpect.d.ts
+@@ -15,7 +15,7 @@
+  */
+
+ import type * as expect from 'expect';
+-import type { Page, Locator, APIResponse } from 'playwright-core';
++import type { Page, Locator, APIResponse } from '@recordreplay/playwright';
+
+ export declare type AsymmetricMatcher = Record<string, any>;
+
