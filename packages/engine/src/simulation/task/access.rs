@@ -9,15 +9,16 @@ pub trait StoreAccessVerify {
     /// [`SharedContext`] objects that make up the [`TaskSharedStore`].
     ///
     /// The intended implementation, is that this trait is implemented for each package-group, e.g.
-    /// rather than being implemented on [`JsPyInitTask`], it's implemented on the [`InitTask`]
+    /// rather than being implemented on `JsPyInitTask`, it's implemented on the [`InitTask`]
     /// variant, as all Initialization packages should have the same access expectations.
     ///
     /// # Errors
-    /// The implementation should error with
-    /// [`AccessNotAllowed`](crate::simulation::error::Error::AccessNotAllowed) if the permissions
-    /// don't match up.
     ///
-    /// [SharedState]: crate::datastore::table::task_shared_store::SharedState
-    /// [SharedContext]: crate::datastore::table::task_shared_store::SharedContext
+    /// The implementation should error with [`AccessNotAllowed`] if the permissions don't match up.
+    ///
+    /// [`Task`]: crate::simulation::task::Task
+    /// [`SharedState`]: crate::datastore::table::task_shared_store::SharedState
+    /// [`SharedContext`]: crate::datastore::table::task_shared_store::SharedContext
+    /// [`AccessNotAllowed`]: crate::simulation::error::Error::AccessNotAllowed
     fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()>;
 }

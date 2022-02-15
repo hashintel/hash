@@ -157,7 +157,7 @@ impl PendingWorkerPoolTask {
     }
 }
 
-/// Maintains a map of [`TaskId`]s to their respective [`PendingWorkerPoolTask`]
+/// Maintains a map of [`TaskId`]s to their respective [`PendingWorkerPoolTask`].
 #[derive(Default)]
 pub struct PendingWorkerPoolTasks {
     pub inner: HashMap<TaskId, PendingWorkerPoolTask>,

@@ -7,13 +7,16 @@ use crate::simulation::{
 #[enum_dispatch]
 pub trait WorkerHandler {
     /// Given an initial message from the package in the main loop of the simulation, convert it to
-    /// one that can be sent to a language runner
+    /// one that can be sent to a language runner.
     fn start_message(&self) -> Result<TargetedTaskMessage> {
         Err(Error::WorkerNodeHandlerNotImplemented)
     }
 
     /// Given an inbound [`TaskMessage`] with [`MessageTarget::Dynamic`], create a new outbound
-    /// message (which may be a terminating message, i.e. [`MessageTarget::Main`])
+    /// message (which may be a terminating message, i.e. [`MessageTarget::Main`]).
+    ///
+    /// [`MessageTarget::Dynamic`]: crate::worker::runner::comms::MessageTarget::Dynamic
+    /// [`MessageTarget::Main`]: crate::worker::runner::comms::MessageTarget::Main
     fn handle_worker_message(&mut self, _msg: TaskMessage) -> Result<TargetedTaskMessage> {
         Err(Error::WorkerNodeHandlerNotImplemented)
     }

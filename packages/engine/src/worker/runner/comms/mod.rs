@@ -42,22 +42,29 @@ pub struct SentTask {
 /// The execution chain of a `Task` is described within the docs for the
 /// [`Task`](crate::simulation::task) module. This enum marks all possible targets that a [`Task`]
 /// can be sent to.
+///
+/// [`TargetedTaskMessage`]: crate::simulation::task::msg::TargetedTaskMessage
 #[derive(Debug, Clone, Copy)]
 pub enum MessageTarget {
-    /// The message should be forwarded to `package.rs` implementation, and executed on the Rust
-    /// Language Runner
+    /// The message should be forwarded to _package.rs_ implementation and executed on the Rust
+    /// Language Runner.
     Rust,
-    /// The message should be forwarded to `package.py` implementation, and executed on the
-    /// Python Language Runner
+    /// The message should be forwarded to _package.py_ implementation and executed on the
+    /// Python Language Runner.
     Python,
-    /// The message should be forwarded to `package.js` implementation, and executed on the
-    /// JavaScript Language Runner
+    /// The message should be forwarded to _package.js_ implementation and executed on the
+    /// JavaScript Language Runner.
     JavaScript,
     /// The Package implementation is responsible for deciding the routing of the message. This is
-    /// decided by passing it to the [`WorkerHandler::handle_worker_message`] implementation of the
-    /// [`Task`]
+    /// decided by passing it to the [`WorkerHandler::handle_worker_message()`] implementation of the
+    /// [`Task`].
+    ///
+    /// [`Task`]: crate::simulation::task::Task
+    /// [`WorkerHandler::handle_worker_message()`]: crate::simulation::task::handler::worker::WorkerHandler::handle_worker_message
     Dynamic,
-    /// The [`Task`] execution has finished, and the message is the terminating (result) message
+    /// The [`Task`] execution has finished, and the message is the terminating (result) message.
+    ///
+    /// [`Task`]: crate::simulation::task::Task
     Main,
 }
 
