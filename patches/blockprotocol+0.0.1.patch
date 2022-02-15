@@ -1,8 +1,8 @@
 diff --git a/node_modules/blockprotocol/core.d.ts b/node_modules/blockprotocol/core.d.ts
-index 205630a..085d764 100644
+index 205630a..0027afc 100644
 --- a/node_modules/blockprotocol/core.d.ts
 +++ b/node_modules/blockprotocol/core.d.ts
-@@ -25,11 +25,11 @@ export type BlockMetadata = {
+@@ -25,18 +25,18 @@ export type BlockMetadata = {
  };
  
  export type BlockProtocolUpdateEntitiesAction<T> = {
@@ -17,6 +17,15 @@ index 205630a..085d764 100644
  };
  
  export type BlockProtocolCreateEntitiesAction<T> = {
++  accountId: string;
++  data: T;
+   entityTypeId: string;
+   entityTypeVersionId?: string | null;
+-  data: T;
+-  accountId?: string;
+ };
+ 
+ export type BlockProtocolFilterOperatorType =
 @@ -63,26 +63,22 @@ export type BlockProtocolMultiFilter = {
  export type BlockProtocolMultiSort = {
    field: string;
@@ -158,7 +167,15 @@ index 205630a..085d764 100644
  };
  
  export type BlockProtocolDeleteLinksFunction = {
-@@ -219,6 +273,7 @@ export interface JSONArray extends Array<JSONValue> {}
+@@ -185,6 +239,7 @@ export type BlockProtocolAggregateEntityTypesFunction = {
+ };
+ 
+ type BlockProtocolUpdateEntityTypesAction = {
++  accountId: string;
+   entityId: string;
+   schema: JSONObject;
+ };
+@@ -219,6 +274,7 @@ export interface JSONArray extends Array<JSONValue> {}
   * which the embedding application should provide.
   */
  export type BlockProtocolProps = {
@@ -166,7 +183,7 @@ index 205630a..085d764 100644
    aggregateEntities?: BlockProtocolAggregateEntitiesFunction;
    aggregateEntitiesLoading?: boolean;
    aggregateEntitiesError?: Error;
-@@ -234,8 +289,10 @@ export type BlockProtocolProps = {
+@@ -234,8 +290,10 @@ export type BlockProtocolProps = {
    deleteLinksError?: Error;
    entityId?: string;
    entityTypeId?: string;
@@ -177,7 +194,7 @@ index 205630a..085d764 100644
    id?: string;
    schemas?: Record<string, JSONObject>;
    type?: string;
-@@ -245,4 +302,6 @@ export type BlockProtocolProps = {
+@@ -245,4 +303,6 @@ export type BlockProtocolProps = {
    updateEntityTypes?: BlockProtocolUpdateEntityTypesFunction;
    updateEntityTypesLoading?: boolean;
    updateEntityTypesError?: Error;
