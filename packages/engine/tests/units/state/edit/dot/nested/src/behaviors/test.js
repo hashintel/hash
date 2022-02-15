@@ -2,7 +2,7 @@
  * Gets and sets nested values on an object using dot notation
  */
 const behavior = (state, context) => {
-  state.o1_is_struct = typeof state.o1 === "object";
+  state.o1_is_struct = typeof state.o1 === "object" && !Array.isArray(state.o1);
 
   // Boolean
   state.o1_b1_is_boolean = typeof state.o1.b1 === "boolean";
@@ -29,7 +29,8 @@ const behavior = (state, context) => {
   state.o1_s2_is_string = typeof state.o1.s2 === "string";
 
   // object
-  state.o1_o1_is_struct = typeof state.o1.o1 === "object";
+  state.o1_o1_is_struct =
+    typeof state.o1.o1 === "object" && !Array.isArray(state.o1.o1);
   state.o1_o1_n1_is_number = typeof state.o1.o1.n1 === "number";
 
   state.o1.o1.n2 = state.o1.o1.n1 + 1;
