@@ -1,4 +1,5 @@
 import { ApolloError } from "apollo-server-express";
+import { FieldNode } from "graphql";
 import {
   Page,
   UnresolvedGQLPage,
@@ -18,12 +19,12 @@ import { GraphQLContext } from "../../context";
 export const pageProperties: Resolver<
   Promise<
     Omit<GQLPageProperties, "contents"> & {
-      contents: UnresolvedGQLUnknownEntity[];
+      contents: UnresolvedGQLUnknownEntity[] | null;
     }
   >,
   UnresolvedGQLPage,
   GraphQLContext
-> = async ({ accountId, entityId }, _, { dataSources }) => {
+> = async ({ accountId, entityId }, _, { dataSources }, info) => {
   const { db } = dataSources;
   const page = await Page.getPageById(db, { accountId, entityId });
 
@@ -34,11 +35,27 @@ export const pageProperties: Resolver<
     );
   }
 
-  const blocks = await page.getBlocks(dataSources.db);
+  const { fieldNodes } = info;
+
+  const propertiesFieldNode = fieldNodes.find(
+    ({ name }) => name.value === "properties",
+  );
+
+  /** Only fetch contents of page if it is a requested field in the query */
+  const shouldFetchContents =
+    propertiesFieldNode?.selectionSet?.selections
+      ?.filter(
+        (selection): selection is FieldNode => selection.kind === "Field",
+      )
+      .find(({ name }) => name.value === "contents") !== undefined;
 
   return {
     ...page.properties,
     // Legacy field of `block.properties`
-    contents: blocks.map((block) => block.toGQLUnknownEntity()),
+    contents: shouldFetchContents
+      ? (await page.getBlocks(dataSources.db)).map((block) =>
+          block.toGQLUnknownEntity(),
+        )
+      : null,
   };
 };
