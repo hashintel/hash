@@ -31,11 +31,10 @@ use crate::{
     simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY,
 };
 
-/// A Shared Batch. Contains a shared memory
-/// segment and the Arrow `RecordBatch` view
-/// into that data.
+/// A Shared Batch containing a shared memory segment and the Arrow [`RecordBatch`] view into that
+/// data.
 #[allow(clippy::module_name_repetitions)]
-pub struct Batch {
+pub struct AgentBatch {
     pub memory: Memory,
     /// Arrow `RecordBatch` with references to `self.memory`
     pub batch: RecordBatch,
@@ -56,7 +55,7 @@ pub struct Batch {
     pub affinity: usize,
 }
 
-impl BatchRepr for Batch {
+impl BatchRepr for AgentBatch {
     fn memory(&self) -> &Memory {
         &self.memory
     }
@@ -91,7 +90,7 @@ impl BatchRepr for Batch {
     }
 }
 
-impl ArrowBatch for Batch {
+impl ArrowBatch for AgentBatch {
     fn record_batch(&self) -> &RecordBatch {
         &self.batch
     }
@@ -101,7 +100,7 @@ impl ArrowBatch for Batch {
     }
 }
 
-impl DynamicBatch for Batch {
+impl DynamicBatch for AgentBatch {
     fn dynamic_meta(&self) -> &DynamicMeta {
         &self.dynamic_meta
     }
@@ -135,7 +134,7 @@ impl DynamicBatch for Batch {
 }
 
 /// Constructors for `Batch`
-impl Batch {
+impl AgentBatch {
     /// Get a shared batch from the `AgentState` format.
     /// Need to specify which behaviors the shared batch
     /// should be run on.
@@ -143,9 +142,9 @@ impl Batch {
         agents: K,
         schema: &Arc<AgentSchema>,
         experiment_id: &ExperimentId,
-    ) -> Result<Batch> {
+    ) -> Result<Self> {
         let rb = agents.into_agent_batch(schema)?;
-        Batch::from_record_batch(&rb, schema, experiment_id)
+        Self::from_record_batch(&rb, schema, experiment_id)
     }
 
     pub fn set_dynamic_meta(&mut self, dynamic_meta: &DynamicMeta) -> Result<()> {
@@ -157,10 +156,10 @@ impl Batch {
     }
 
     pub fn duplicate_from(
-        batch: &Batch,
+        batch: &Self,
         schema: &AgentSchema,
         experiment_id: &ExperimentId,
-    ) -> Result<Batch> {
+    ) -> Result<Self> {
         let memory = Memory::duplicate_from(&batch.memory, experiment_id)?;
         Self::from_memory(memory, Some(schema), Some(batch.affinity))
     }
@@ -170,7 +169,7 @@ impl Batch {
         record_batch: &RecordBatch,
         schema: &AgentSchema,
         experiment_id: &ExperimentId,
-    ) -> Result<Batch> {
+    ) -> Result<Self> {
         let schema_buffer = schema_to_bytes(&schema.arrow);
 
         let header_buffer = vec![]; // Nothing here
@@ -201,7 +200,7 @@ impl Batch {
         memory: Memory,
         schema: Option<&AgentSchema>,
         affinity: Option<usize>,
-    ) -> Result<Batch> {
+    ) -> Result<Self> {
         let (schema_buffer, _header_buffer, meta_buffer, data_buffer) =
             memory.get_batch_buffers()?;
         let (schema, static_meta) = if let Some(s) = schema {
@@ -228,7 +227,7 @@ impl Batch {
             Err(e) => return Err(Error::from(e)),
         };
 
-        Ok(Batch {
+        Ok(Self {
             memory,
             batch,
             dynamic_meta,
@@ -277,7 +276,7 @@ impl Batch {
     }
 }
 
-impl GrowableBatch<ArrayChange, Arc<array::ArrayData>> for Batch {
+impl GrowableBatch<ArrayChange, Arc<array::ArrayData>> for AgentBatch {
     fn take_changes(&mut self) -> Vec<ArrayChange> {
         std::mem::take(&mut self.changes)
     }
@@ -303,7 +302,7 @@ impl GrowableBatch<ArrayChange, Arc<array::ArrayData>> for Batch {
     }
 }
 
-impl Batch {
+impl AgentBatch {
     /// This agent index column contains the indices of the agents *before* agent migration
     /// was performed. This is important so an agent can access its neighbor's outbox
     pub fn write_agent_indices(&mut self, batch_index: usize) -> Result<()> {
@@ -333,10 +332,10 @@ impl Batch {
     }
 }
 
-impl Batch {
-    pub fn from_message(message: &str) -> Result<Box<Self>> {
-        let memory = Memory::from_message(message, true, true)?;
-        Ok(Box::new(Batch::from_memory(memory, None, None)?))
+impl AgentBatch {
+    pub fn from_shmem_os_id(os_id: &str) -> Result<Box<Self>> {
+        let memory = Memory::shmem_os_id(os_id, true, true)?;
+        Ok(Box::new(Self::from_memory(memory, None, None)?))
     }
 
     pub fn set_affinity(&mut self, affinity: usize) {
@@ -358,7 +357,7 @@ impl Batch {
 }
 
 // Special-case columns getter and setters
-impl Batch {
+impl AgentBatch {
     pub fn get_arrow_column_ref(&self, key: &FieldKey) -> Result<&ArrayRef> {
         self.get_arrow_column(key.value())
     }
@@ -724,14 +723,14 @@ impl AgentList for RecordBatch {
     }
 }
 
-impl AgentList for Batch {
+impl AgentList for AgentBatch {
     fn record_batch(&self) -> &RecordBatch {
         &self.batch
     }
 }
 
-impl AsRef<Batch> for Batch {
-    fn as_ref(&self) -> &Batch {
+impl AsRef<AgentBatch> for AgentBatch {
+    fn as_ref(&self) -> &Self {
         self
     }
 }

@@ -31,6 +31,7 @@ pub enum DistributionController {
     },
 }
 
+/// TODO: DOC
 #[derive(derive_new::new)]
 pub struct PendingWorkerPoolTask {
     pub task_id: TaskId,
@@ -41,6 +42,7 @@ pub struct PendingWorkerPoolTask {
 }
 
 impl PendingWorkerPoolTask {
+    /// TODO: DOC
     fn handle_result_state(
         &mut self,
         worker: Worker,
@@ -82,6 +84,7 @@ impl PendingWorkerPoolTask {
         }
     }
 
+    /// TODO: DOC
     fn handle_cancel_state(&mut self, worker: Worker, _task_id: TaskId) -> Result<HasTerminated> {
         if let DistributionController::Distributed {
             active_workers: active_workers_comms,
@@ -113,6 +116,7 @@ impl PendingWorkerPoolTask {
         }
     }
 
+    /// TODO: DOC
     pub fn handle_result_or_cancel(
         &mut self,
         worker: Worker,
@@ -153,6 +157,7 @@ impl PendingWorkerPoolTask {
     }
 }
 
+/// Maintains a map of [`TaskId`]s to their respective [`PendingWorkerPoolTask`].
 #[derive(Default)]
 pub struct PendingWorkerPoolTasks {
     pub inner: HashMap<TaskId, PendingWorkerPoolTask>,

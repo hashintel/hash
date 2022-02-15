@@ -1,0 +1,51 @@
+{
+  "keys": {
+    "o1": {
+      "type": "fixed_size_list",
+      "nullable": false,
+      "length": 2,
+      "child": {
+        "type": "struct",
+        "nullable": false,
+        "fields": {
+          "n1": {
+            "type": "number",
+            "nullable": true
+          },
+          "n2": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      }
+    },
+    "o1_is_list": {
+      "type": "boolean",
+      "nullable": false
+    },
+    "o1_0_is_struct": {
+      "type": "boolean",
+      "nullable": false
+    },
+    "o1_0_n1_is_number": {
+      "type": "boolean",
+      "nullable": false
+    },
+    "o1_0_n2_is_number": {
+      "type": "boolean",
+      "nullable": false
+    },
+    "o1_1_is_struct": {
+      "type": "boolean",
+      "nullable": false
+    },
+    "o1_1_n1_is_number": {
+      "type": "boolean",
+      "nullable": false
+    },
+    "o1_1_n2_is_number": {
+      "type": "boolean",
+      "nullable": false
+    }
+  }
+}
