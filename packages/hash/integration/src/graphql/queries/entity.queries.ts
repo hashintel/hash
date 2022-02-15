@@ -51,6 +51,21 @@ export const getEntityType = gql`
         entityId
         properties
       }
+
+      destructuredSchema {
+        parentSchemas {
+          id
+          parents
+          properties {
+            name
+            content
+          }
+        }
+        properties {
+          name
+          content
+        }
+      }
       __typename
     }
   }

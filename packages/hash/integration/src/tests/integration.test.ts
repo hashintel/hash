@@ -780,27 +780,35 @@ describe("logged in user ", () => {
   });
 
   describe("can create EntityType inheritance relations", () => {
-    let superType: Pick<
+    type EntType = Pick<
       GQLEntityType,
       "entityId" | "properties" | "entityTypeName"
     >;
+    let superType: EntType;
     beforeAll(async () => {
       superType = await client.createEntityType({
         accountId: existingUser.accountId,
-        name: "Supertype",
-        schema: {},
+        name: "Person",
+        schema: {
+          properties: {
+            name: { type: "string" },
+            age: { type: "string" },
+          },
+        },
       })!;
     });
 
-    let subType1: Pick<
-      GQLEntityType,
-      "entityId" | "properties" | "entityTypeName"
-    >;
+    let subType1: EntType;
     it("can inherit from SuperType", async () => {
       subType1 = await client.createEntityType({
         accountId: existingUser.accountId,
-        name: "Subtype1",
-        schema: { allOf: [{ $ref: superType.properties.$id }] },
+        name: "MedicalProfessional",
+        schema: {
+          allOf: [{ $ref: superType.properties.$id }],
+          properties: {
+            field: { type: "string" },
+          },
+        },
       });
 
       const subTypeParent = await client
@@ -814,12 +822,13 @@ describe("logged in user ", () => {
       expect(subTypeParent[0].entityId).toEqual(superType.entityId);
     });
 
+    let subType2: EntType;
     it("can get all children of supertype", async () => {
       // new subType
-      const subType2 = await client.createEntityType({
+      subType2 = await client.createEntityType({
         accountId: existingUser.accountId,
-        name: "Subtype2",
-        schema: { allOf: [{ $ref: superType.properties.$id }] },
+        name: "Contact",
+        schema: { allOf: [{ $ref: superType.properties.$id }], properties: {} },
       });
 
       const superTypeChldren = await client
@@ -834,6 +843,88 @@ describe("logged in user ", () => {
       expect(superTypeChldren.map((child) => child.entityId).sort()).toEqual(
         [subType1.entityId, subType2.entityId].sort(),
       );
+    });
+
+    it("can destructure EntityType with deeply nested inheritance relations", async () => {
+      // add level of nesting
+      const subSubType1 = await client.createEntityType({
+        accountId: existingUser.accountId,
+        name: "Doctor",
+        schema: {
+          allOf: [
+            { $ref: subType1.properties.$id },
+            { $ref: subType2.properties.$id },
+          ],
+          properties: {
+            licenseId: { type: "string" },
+            age: { type: "string" },
+          },
+        },
+      });
+
+      const subSubType = await client.getEntityType({
+        entityTypeId: subSubType1.entityId,
+      });
+      const subSubTypeParents = subSubType.parents;
+
+      expect(subSubTypeParents).toHaveLength(2);
+      expect(subSubTypeParents!.map((child) => child.entityId).sort()).toEqual(
+        [subType1.entityId, subType2.entityId].sort(),
+      );
+
+      expect(subSubType.destructuredSchema).toEqual({
+        parentSchemas: [
+          {
+            id: subType1.properties.$id,
+            parents: [superType.properties.$id],
+            properties: [
+              {
+                content: {
+                  type: "string",
+                },
+                name: "field",
+              },
+            ],
+          },
+          {
+            id: superType.properties.$id,
+            parents: [],
+            properties: [
+              {
+                content: {
+                  type: "string",
+                },
+                name: "age",
+              },
+              {
+                content: {
+                  type: "string",
+                },
+                name: "name",
+              },
+            ],
+          },
+          {
+            id: subType2.properties.$id,
+            parents: [superType.properties.$id],
+            properties: [],
+          },
+        ],
+        properties: [
+          {
+            content: {
+              type: "string",
+            },
+            name: "age",
+          },
+          {
+            content: {
+              type: "string",
+            },
+            name: "licenseId",
+          },
+        ],
+      });
     });
   });
 

@@ -110,43 +110,66 @@ export class TypeMismatch extends Error {
   }
 }
 
-export const deconstructSchemaParentsFlat = (
+const parentSchemaIds = (allOf: any[] | undefined): string[] => {
+  return allOf
+    ? allOf?.flatMap((schema: JSONSchema) => {
+        if (typeof schema === "object") {
+          // This flattening operation is not that efficient.
+          return [schema.$id, ...parentSchemaIds(schema.allOf ?? ([] as any))];
+        } else {
+          return [];
+        }
+      }) ?? []
+    : [];
+};
+
+// @todo: Currently this function uses a _lot_ of recursion.
+// Ideally this would be replaced with iterative tree traversal to prevent stack overflow.
+const deconstructSchemaParents = (
   schema: JSONSchema,
   seen: Set<string>,
 ): JsonSchemaMetaParent[] => {
-  if (seen.has(schema.$id)) {
-    throw new Error(`Detected cyclic reference for parent "${schema.$id}"`);
+  const { $id, allOf, properties } = schema;
+
+  // if the schema doesn't have an $id, we're not interested in extracting props.
+  if (!$id) {
+    return [];
   }
 
-  seen.add(schema.$id);
+  const currentProps: JsonSchemaMetaProperty[] =
+    Object.entries(properties ?? {}).map(([name, content]) => ({
+      name,
+      content,
+    })) ?? [];
 
-  const currentProps: JsonSchemaMetaProperty[] = Object.entries(
-    schema?.properties ?? {},
-  ).map(([name, content]) => ({ name, content }));
-
+  // Note that we are traversing the parents twice.
+  // this is the first time to add it to the list of parents if it hasn't been seen already
   const parents =
-    schema?.allOf?.flatMap((prop: any) => {
+    allOf?.flatMap((prop: any) => {
       if (typeof prop !== "boolean") {
-        return deconstructSchemaParentsFlat(prop, seen);
+        return deconstructSchemaParents(prop, seen);
       } else {
         return [];
       }
     }) ?? [];
 
-  return [
-    <JsonSchemaMetaParent>{
-      id: schema.$id,
-
-      parents: parents.map((parent) => parent.id),
-      properties: currentProps,
-    },
-    ...parents,
-  ];
+  if (!seen.has($id)) {
+    seen.add($id);
+    return [
+      <JsonSchemaMetaParent>{
+        id: $id,
+        // Second time parents are traversed are for getting all `$id`s of parents.
+        parents: parentSchemaIds(schema.allOf),
+        properties: currentProps,
+      },
+      ...parents,
+    ];
+  } else {
+    return [];
+  }
 };
 
-export const deconstructSchemaParents = (
-  schema: JSONSchema,
-): JsonSchemaMeta => {
+const deconstructSchema = (schema: JSONSchema): JsonSchemaMeta => {
   const currentProps: JsonSchemaMetaProperty[] = Object.entries(
     schema?.properties ?? {},
   ).map(([name, content]) => ({ name, content }));
@@ -156,7 +179,7 @@ export const deconstructSchemaParents = (
   const parentSchemas =
     schema?.allOf?.flatMap((prop: any) => {
       if (typeof prop !== "boolean") {
-        return deconstructSchemaParentsFlat(prop, seen);
+        return deconstructSchemaParents(prop, seen);
       } else {
         return [];
       }
@@ -165,7 +188,7 @@ export const deconstructSchemaParents = (
   return <JsonSchemaMeta>{
     id: schema.title ?? schema.$id,
     parentSchemas,
-    properties: currentProps,
+    properties: currentProps ?? [],
   };
 };
 
@@ -204,7 +227,10 @@ export class JsonSchemaCompiler {
    */
   async prevalidateProperties(schema: any): Promise<JSONSchema> {
     const self = this;
-    const bundled = await $RefParser.bundle(schema, {
+    const dereferences = await $RefParser.dereference(schema, {
+      dereference: {
+        circular: false,
+      },
       resolve: {
         // Look up http references through class-supplied resolver.
         http: {
@@ -215,9 +241,9 @@ export class JsonSchemaCompiler {
         },
       },
     });
-    if (bundled.properties && bundled.allOf) {
+    if (dereferences.properties && dereferences.allOf) {
       // flattenNestedProps is recursivly defined
-      const res = flattenNestedProps(bundled);
+      const res = flattenNestedProps(dereferences);
       if (res.length > 0) {
         // Check for type incompatibilities.
         // @todo: does not handle format or other type-related properties. Only checks for type.
@@ -228,7 +254,7 @@ export class JsonSchemaCompiler {
       }
     }
 
-    return bundled;
+    return dereferences;
   }
 
   /**
@@ -302,6 +328,6 @@ export class JsonSchemaCompiler {
 
     const bundledSchema = await this.prevalidateProperties(schema);
 
-    return deconstructSchemaParents(bundledSchema);
+    return deconstructSchema(bundledSchema);
   }
 }
