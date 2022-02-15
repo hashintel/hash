@@ -60,22 +60,18 @@ pub trait BatchPool<B: Batch>: Send + Sync {
     /// inside of [`Arc`]`<RwLock<B>>`.
     fn push(&mut self, batch: B);
 
-    /// Removes and returns the `element` at position `index` within the pool, shifting all
-    /// elements after it to the left and returns it as a [`BatchReadProxy`].
+    /// Removes at position `index` within the pool, shifting all elements after it to the left and
+    /// returns it as a [`BatchReadProxy`].
+    ///
+    /// Returns the batch id of the removed [`Batch`]
     ///
     /// # Panics
     ///
-    /// Panics if `index` is out of bounds.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`ProxySharedLock`] if the [`Batch`] is currently borrowed as
-    /// [`BatchWriteProxy`].
-    ///
-    /// [`ProxySharedLock`]: crate::datastore::error::Error::ProxySharedLock
-    fn remove(&mut self, index: usize) -> Result<BatchReadProxy<B>>;
+    /// - If `index` is out of bounds, or
+    /// - if the `Batch` is currently borrowed as a [`BatchReadProxy`] or [`BatchWriteProxy`].
+    fn remove(&mut self, index: usize) -> String;
 
-    /// Removes a [`Batch`] from the pool and returns it as a [`BatchReadProxy`].
+    /// Removes a [`Batch`] from the pool and returns its id.
     ///
     /// The removed [`Batch`] is replaced by the last [`Batch`] of the pool. This does not preserve
     /// ordering, but is `O(1)`. If you need to preserve the element order, use
@@ -83,15 +79,9 @@ pub trait BatchPool<B: Batch>: Send + Sync {
     ///
     /// # Panics
     ///
-    /// Panics if `index` is out of bounds.
-    ///
-    /// # Errors
-    ///
-    /// Returns a [`ProxySharedLock`] if the [`Batch`] is currently borrowed in a
-    /// [`BatchWriteProxy`].
-    ///
-    /// [`ProxySharedLock`]: crate::datastore::error::Error::ProxySharedLock
-    fn swap_remove(&mut self, index: usize) -> Result<BatchReadProxy<B>>;
+    /// - If `index` is out of bounds, or
+    /// - if the `Batch` is currently borrowed as a [`BatchReadProxy`] or [`BatchWriteProxy`].
+    fn swap_remove(&mut self, index: usize) -> String;
 
     /// Creates a [`PoolReadProxy`] for _all_ batches within the pool.
     ///
@@ -151,12 +141,24 @@ impl<P: Pool<B> + Send + Sync, B: Batch> BatchPool<B> for P {
         self.get_batches_mut().push(Arc::new(RwLock::new(batch)))
     }
 
-    fn remove(&mut self, index: usize) -> Result<BatchReadProxy<B>> {
-        BatchReadProxy::new(&self.get_batches_mut().remove(index))
+    fn remove(&mut self, index: usize) -> String {
+        let mut batch_arc = self.get_batches_mut().remove(index);
+        if let Some(rw_lock) = Arc::get_mut(&mut batch_arc) {
+            // This can't deadlock as we just checked that the Arc owning this RwLock is unique
+            rw_lock.write().get_batch_id().to_string()
+        } else {
+            panic!("Failed to remove Batch at index {index}, other Arcs to the Batch existed")
+        }
     }
 
-    fn swap_remove(&mut self, index: usize) -> Result<BatchReadProxy<B>> {
-        BatchReadProxy::new(&self.get_batches_mut().swap_remove(index))
+    fn swap_remove(&mut self, index: usize) -> String {
+        let mut batch_arc = self.get_batches_mut().swap_remove(index);
+        if let Some(rw_lock) = Arc::get_mut(&mut batch_arc) {
+            // This can't deadlock as we just checked that the Arc owning this RwLock is unique
+            rw_lock.write().get_batch_id().to_string()
+        } else {
+            panic!("Failed to swap remove Batch at index {index}, other Arcs to the Batch existed")
+        }
     }
 
     fn read_proxies(&self) -> Result<PoolReadProxy<B>> {
