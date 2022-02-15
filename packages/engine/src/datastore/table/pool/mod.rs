@@ -40,9 +40,9 @@ pub trait BatchPool<B: Batch>: Send + Sync {
 
     fn push(&mut self, batch: B);
 
-    fn remove(&mut self, index: usize) -> Result<String>;
+    fn remove(&mut self, index: usize) -> String;
 
-    fn swap_remove(&mut self, index: usize) -> Result<String>;
+    fn swap_remove(&mut self, index: usize) -> String;
 
     /// Creates a [`PoolReadProxy`] for _all_ batches within the pool.
     fn read_proxies(&self) -> Result<PoolReadProxy<B>>;
@@ -74,31 +74,25 @@ impl<P: Pool<B> + Send + Sync, B: Batch> BatchPool<B> for P {
         self.get_batches_mut().push(Arc::new(RwLock::new(batch)))
     }
 
-    fn remove(&mut self, index: usize) -> Result<String> {
+    fn remove(&mut self, index: usize) -> String {
         let mut batch_arc = self.get_batches_mut().remove(index);
         if let Some(rw_lock) = Arc::get_mut(&mut batch_arc) {
             // This can't deadlock as we just checked that the Arc owning this RwLock is unique
             let batch = rw_lock.write();
-            Ok(batch.get_batch_id().to_string())
+            batch.get_batch_id().to_string()
         } else {
-            Err(
-                format!("Failed to remove Batch at index {index}, other Arcs to the Batch existed")
-                    .into(),
-            )
+            panic!("Failed to remove Batch at index {index}, other Arcs to the Batch existed")
         }
     }
 
-    fn swap_remove(&mut self, index: usize) -> Result<String> {
+    fn swap_remove(&mut self, index: usize) -> String {
         let mut batch_arc = self.get_batches_mut().swap_remove(index);
         if let Some(rw_lock) = Arc::get_mut(&mut batch_arc) {
             // This can't deadlock as we just checked that the Arc owning this RwLock is unique
             let batch = rw_lock.write();
-            Ok(batch.get_batch_id().to_string())
+            batch.get_batch_id().to_string()
         } else {
-            Err(format!(
-                "Failed to swap remove Batch at index {index}, other Arcs to the Batch existed"
-            )
-            .into())
+            panic!("Failed to swap remove Batch at index {index}, other Arcs to the Batch existed")
         }
     }
 

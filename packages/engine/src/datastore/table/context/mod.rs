@@ -152,7 +152,7 @@ impl Context {
             let removed_ids = (dynamic_pool.len()..static_pool.len())
                 .rev()
                 .map(|remove_index| static_pool.remove(remove_index))
-                .collect::<Result<Vec<_>>>()?;
+                .collect::<Vec<_>>();
             self.removed_batches.extend(removed_ids);
         }
 
