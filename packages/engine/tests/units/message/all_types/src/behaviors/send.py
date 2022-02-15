@@ -14,5 +14,11 @@ def behavior(state, context):
                 {"b": 3},
                 {"c": "test"}
             ],
+            "fixed_number_array": [4, 5, 6],
+            "fixed_bool_array": [False, True, False],
+            "fixed_struct_array": [
+                {"b": 1},
+                {"c": "tested"}
+            ],
         },
     }]
