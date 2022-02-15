@@ -21,7 +21,7 @@ pub struct StateBatchDistribution {
 }
 
 /// Defines if and how a [`Task`] is executed across multiple [`worker`]s).
-/// 
+///
 /// [`Task`]: crate::simulation::task::Task
 /// [`worker`]: crate::worker
 pub enum Config {

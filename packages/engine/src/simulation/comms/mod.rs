@@ -49,9 +49,9 @@ use crate::{
     workerpool::comms::MainMsgSend,
 };
 
-#[derive(Clone)]
 /// A simulation-specific object containing a sender to communicate with the worker-pool, and a
 /// shared collection of commands.
+#[derive(Clone)]
 pub struct Comms {
     /// The ID of the simulation that information pertains to.
     sim_id: SimulationShortId,
@@ -90,7 +90,7 @@ impl Comms {
     /// Adds a [`CreateCommand`] for a given [`Agent`] to the [`Commands`] stored in self.
     ///
     /// # Errors
-    /// 
+    ///
     /// This function can fail if it's unable to acquire a write lock on the [`Commands`] object.
     ///
     /// [`CreateCommand`]: crate::simulation::command::CreateCommand

@@ -56,8 +56,8 @@ pub enum MessageTarget {
     /// JavaScript Language Runner.
     JavaScript,
     /// The Package implementation is responsible for deciding the routing of the message. This is
-    /// decided by passing it to the [`WorkerHandler::handle_worker_message()`] implementation of the
-    /// [`Task`].
+    /// decided by passing it to the [`WorkerHandler::handle_worker_message()`] implementation of
+    /// the [`Task`].
     ///
     /// [`Task`]: crate::simulation::task::Task
     /// [`WorkerHandler::handle_worker_message()`]: crate::simulation::task::handler::worker::WorkerHandler::handle_worker_message
