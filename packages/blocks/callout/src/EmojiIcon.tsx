@@ -5,9 +5,15 @@ export interface EmojiIconProps {
   onChange: (value: string | undefined) => void;
 }
 
+const icons = ["💡", "🤔", "⚠️", "📌", "🚧"];
+
 export const EmojiIcon: VoidFunctionComponent<EmojiIconProps> = ({
   value,
   onChange,
 }) => {
-  return <div>{value}</div>;
+  const handleDivClick = () => {
+    onChange(icons[(icons.indexOf(value ?? "") + 1) % icons.length]);
+  };
+
+  return <div onClick={handleDivClick}>{value}</div>;
 };
