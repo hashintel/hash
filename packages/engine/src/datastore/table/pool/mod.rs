@@ -78,8 +78,7 @@ impl<P: Pool<B> + Send + Sync, B: Batch> BatchPool<B> for P {
         let mut batch_arc = self.get_batches_mut().remove(index);
         if let Some(rw_lock) = Arc::get_mut(&mut batch_arc) {
             // This can't deadlock as we just checked that the Arc owning this RwLock is unique
-            let batch = rw_lock.write();
-            batch.get_batch_id().to_string()
+            rw_lock.write().get_batch_id().to_string()
         } else {
             panic!("Failed to remove Batch at index {index}, other Arcs to the Batch existed")
         }
@@ -89,8 +88,7 @@ impl<P: Pool<B> + Send + Sync, B: Batch> BatchPool<B> for P {
         let mut batch_arc = self.get_batches_mut().swap_remove(index);
         if let Some(rw_lock) = Arc::get_mut(&mut batch_arc) {
             // This can't deadlock as we just checked that the Arc owning this RwLock is unique
-            let batch = rw_lock.write();
-            batch.get_batch_id().to_string()
+            rw_lock.write().get_batch_id().to_string()
         } else {
             panic!("Failed to swap remove Batch at index {index}, other Arcs to the Batch existed")
         }
