@@ -3,6 +3,7 @@
   "description": "HASH monorepo",
   "workspaces": [
     "packages/blocks/*",
+    "packages/engine/apache-arrow-js-bundle",
     "packages/hash/api",
     "packages/hash/api/datastore/postgres",
     "packages/hash/backend-utils",
