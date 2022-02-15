@@ -12,12 +12,17 @@ export interface EmojiIconProps {
 const variants = ["📢", "💡", "🤔", "👉", "📣", "📌", "🚧"];
 
 const wrapperStyle: CSSProperties = {
-  width: 20,
-  height: 20,
+  display: "inline-block",
+  width: "1.5em",
+  left: "0.25em",
+  height: "1.5em",
   cursor: "pointer",
+  textAlign: "center",
+  padding: 0,
   position: "absolute",
   userSelect: "none",
-  textDecoration: "none",
+  border: "none",
+  background: "none",
   overflow: "hidden",
 };
 
@@ -31,13 +36,13 @@ export const EmojiIcon: VoidFunctionComponent<EmojiIconProps> = ({
   };
 
   return (
-    <a
-      href="#"
+    <button
+      type="button"
       contentEditable="false"
       style={wrapperStyle}
       onClick={handleDivClick}
     >
       {value}
-    </a>
+    </button>
   );
 };

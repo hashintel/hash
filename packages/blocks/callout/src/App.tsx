@@ -10,10 +10,11 @@ type AppProps = {
 };
 
 const wrapperStyle: CSSProperties = {
-  borderRadius: 5,
-  padding: 10,
-  background: "#eee",
-  border: "1px solid #ccc",
+  borderRadius: "0.25em",
+  position: "relative",
+  padding: "0.5em",
+  background: "#f9fafc",
+  border: "1px solid #dee7f3",
 };
 
 const textStyle: CSSProperties = {
