@@ -133,9 +133,9 @@ pub fn dummy_sim_run_config() -> SimRunConfig {
         },
         globals_src: "{}".to_string(),
         experiments_src: None,
-        behaviors: vec![],
-        datasets: vec![],
-        packages: vec![],
+        behaviors: Vec::new(),
+        datasets: Vec::new(),
+        packages: Vec::new(),
     };
     let base = ExperimentRunBase {
         name: "experiment_name".to_string().into(),
@@ -146,10 +146,10 @@ pub fn dummy_sim_run_config() -> SimRunConfig {
 
     let exp_config = Arc::new(ExperimentConfig {
         packages: Arc::new(PackageConfig {
-            init: vec![],
-            context: vec![],
-            state: vec![],
-            output: vec![],
+            init: Vec::new(),
+            context: Vec::new(),
+            state: Vec::new(),
+            output: Vec::new(),
         }),
         run: Arc::new(base.into()),
         worker_pool: Arc::new(WorkerPoolConfig {
@@ -159,6 +159,8 @@ pub fn dummy_sim_run_config() -> SimRunConfig {
         base_globals: globals.clone(),
     });
 
+    // We can't use `PackageCreators::from_config` as it will initialise the global static
+    // `SyncOnceCell`s multiple times (thus erroring) if we run multiple tests at once
     let package_creators = PackageCreators::new(Vec::new(), Vec::new(), Vec::new(), Vec::new());
 
     SimRunConfig {
@@ -170,7 +172,7 @@ pub fn dummy_sim_run_config() -> SimRunConfig {
                 StoreConfig::new_sim(&exp_config, &globals, &package_creators).unwrap(),
             ),
             engine: Arc::new(EngineConfig {
-                worker_allocation: vec![],
+                worker_allocation: Vec::new(),
                 num_workers: 0,
             }),
             max_num_steps: 0,
