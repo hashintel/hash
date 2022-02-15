@@ -2,7 +2,10 @@
  * Gets and sets an object value using set/get notation
  */
 const behavior = (state, context) => {
-  state.set("o1_is_struct", typeof state.get("o1") === "object");
+  state.set(
+    "o1_is_struct",
+    typeof state.get("o1") === "object" && !Array.isArray(state.get("o1")),
+  );
   state.set("o1_n1_is_number", typeof state.get("o1").n1 === "number");
 
   const o1 = state.get("o1");
