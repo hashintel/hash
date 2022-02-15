@@ -165,7 +165,7 @@ pub fn dummy_sim_run_config() -> SimRunConfig {
         exp: exp_config.clone(),
         sim: Arc::new(SimulationConfig {
             id: 0,
-            globals: Arc::new(Default::default()),
+            globals: Arc::default(),
             store: Arc::new(
                 StoreConfig::new_sim(&exp_config, &globals, &package_creators).unwrap(),
             ),
