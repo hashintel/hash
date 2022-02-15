@@ -62,7 +62,7 @@ pub trait BatchPool<B: Batch>: Send + Sync {
 
     /// Removes at position `index` within the pool, shifting all elements after it to the left.
     ///
-    /// Returns the batch id of the removed [`Batch`]
+    /// Returns the batch id of the removed [`Batch`].
     ///
     /// # Panics
     ///
