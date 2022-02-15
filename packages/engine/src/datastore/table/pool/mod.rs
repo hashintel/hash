@@ -60,7 +60,8 @@ pub trait BatchPool<B: Batch>: Send + Sync {
     /// inside of [`Arc`]`<RwLock<B>>`.
     fn push(&mut self, batch: B);
 
-    /// Removes at position `index` within the pool, shifting all elements after it to the left.
+    /// Removes the [`Batch`] at position `index` within the pool, shifting all elements after it to
+    /// the left.
     ///
     /// Returns the batch id of the removed [`Batch`].
     ///
@@ -70,7 +71,7 @@ pub trait BatchPool<B: Batch>: Send + Sync {
     /// - if the `Batch` is currently borrowed as a [`BatchReadProxy`] or [`BatchWriteProxy`].
     fn remove(&mut self, index: usize) -> String;
 
-    /// Removes a [`Batch`] from the pool and returns its id.
+    /// Removes the [`Batch`] at position `index` within the pool and returns its id.
     ///
     /// The removed [`Batch`] is replaced by the last [`Batch`] of the pool. This does not preserve
     /// ordering, but is `O(1)`. If you need to preserve the element order, use
