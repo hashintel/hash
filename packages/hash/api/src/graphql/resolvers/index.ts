@@ -203,6 +203,7 @@ export const resolvers = {
     entityTypeVersionId: entityTypeTypeFields.entityTypeVersionId,
     children: entityTypeInheritance.entityTypeChildren,
     parents: entityTypeInheritance.entityTypeParents,
+    destructuredSchema: entityTypeInheritance.entityTypeDestructuredSchema,
   },
 
   Account: {

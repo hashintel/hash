@@ -67,6 +67,23 @@ export const entityTypeTypedef = gql`
     OrgEmailInvitation
   }
 
+  type JsonSchemaMetaProperty {
+    name: String!
+    content: JSONObject!
+  }
+
+  type JsonSchemaMetaParent {
+    id: String!
+    parents: [String!]!
+    properties: [JsonSchemaMetaProperty!]!
+  }
+
+  type JsonSchemaMeta {
+    id: String!
+    parentSchemas: [JsonSchemaMetaParent!]!
+    properties: [JsonSchemaMetaProperty!]!
+  }
+
   """
   A schema describing and validating a specific type of entity
   """
@@ -154,5 +171,6 @@ export const entityTypeTypedef = gql`
     # ENTITY INTERFACE FIELDS END #
     children: [EntityType!]
     parents: [EntityType!]
+    destructuredSchema: JsonSchemaMeta
   }
 `;

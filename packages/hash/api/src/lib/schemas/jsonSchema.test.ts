@@ -216,8 +216,8 @@ describe("destructing json schemas", () => {
 
     expect(result.id).toEqual("$person");
     expect(result.properties).toEqual([
-      ["name", { type: "string" }],
-      ["age", { type: "string" }],
+      { name: "name", content: { type: "string" } },
+      { name: "age", content: { type: "string" } },
     ]);
     expect(result.parentSchemas).toHaveLength(0);
   });
@@ -247,8 +247,8 @@ describe("destructing json schemas", () => {
 
     expect(result.id).toEqual("$doctor");
     expect(result.properties).toEqual([
-      ["licenseId", { type: "string" }],
-      ["age", { type: "string" }],
+      { name: "licenseId", content: { type: "string" } },
+      { name: "age", content: { type: "string" } },
     ]);
 
     expect(result.parentSchemas).toHaveLength(1);
@@ -256,9 +256,9 @@ describe("destructing json schemas", () => {
     expect(result.parentSchemas).toContainEqual({
       id: "$medicalProfessional",
       properties: [
-        ["name", { type: "string" }],
-        ["age", { type: "string" }],
-        ["field", { type: "string" }],
+        { name: "name", content: { type: "string" } },
+        { name: "age", content: { type: "string" } },
+        { name: "field", content: { type: "string" } },
       ],
       parents: [],
     });
@@ -297,22 +297,22 @@ describe("destructing json schemas", () => {
 
     expect(result.id).toEqual("$doctor");
     expect(result.properties).toEqual([
-      ["licenseId", { type: "string" }],
-      ["age", { type: "string" }],
+      { name: "licenseId", content: { type: "string" } },
+      { name: "age", content: { type: "string" } },
     ]);
 
     expect(result.parentSchemas).toHaveLength(2);
     expect(result.parentSchemas).toContainEqual({
       id: "$medicalProfessional",
-      properties: [["field", { type: "string" }]],
+      properties: [{ name: "field", content: { type: "string" } }],
       parents: ["$person"],
     });
 
     expect(result.parentSchemas).toContainEqual({
       id: "$person",
       properties: [
-        ["name", { type: "string" }],
-        ["age", { type: "string" }],
+        { name: "name", content: { type: "string" } },
+        { name: "age", content: { type: "string" } },
       ],
       parents: [],
     });

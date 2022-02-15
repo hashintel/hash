@@ -7,6 +7,11 @@ import $RefParser, {
 } from "@apidevtools/json-schema-ref-parser";
 import { cloneDeep } from "lodash";
 import { FRONTEND_URL } from "../config";
+import {
+  JsonSchemaMeta,
+  JsonSchemaMetaParent,
+  JsonSchemaMetaProperty,
+} from "../../graphql/apiTypes.gen";
 
 /**
  * Given a list of all properties, check if any duplicates are present by the property name.
@@ -105,30 +110,19 @@ export class TypeMismatch extends Error {
   }
 }
 
-export type Prop = [_: string, __: any];
-export type Schema = {
-  id: string;
-  parents: string[];
-  properties: Prop[];
-};
-
-export type SchemaExt = {
-  id: string;
-  parentSchemas: Schema[];
-  properties: Prop[];
-};
-
 export const deconstructSchemaParentsFlat = (
   schema: JSONSchema,
   seen: Set<string>,
-): Schema[] => {
+): JsonSchemaMetaParent[] => {
   if (seen.has(schema.$id)) {
     throw new Error(`Detected cyclic reference for parent "${schema.$id}"`);
   }
 
   seen.add(schema.$id);
 
-  const currentProps: Prop[] = Object.entries(schema?.properties ?? {});
+  const currentProps: JsonSchemaMetaProperty[] = Object.entries(
+    schema?.properties ?? {},
+  ).map(([name, content]) => ({ name, content }));
 
   const parents =
     schema?.allOf?.flatMap((prop: any) => {
@@ -140,7 +134,7 @@ export const deconstructSchemaParentsFlat = (
     }) ?? [];
 
   return [
-    <Schema>{
+    <JsonSchemaMetaParent>{
       id: schema.$id,
 
       parents: parents.map((parent) => parent.id),
@@ -150,8 +144,12 @@ export const deconstructSchemaParentsFlat = (
   ];
 };
 
-export const deconstructSchemaParents = (schema: JSONSchema): SchemaExt => {
-  const currentProps: Prop[] = Object.entries(schema?.properties ?? {});
+export const deconstructSchemaParents = (
+  schema: JSONSchema,
+): JsonSchemaMeta => {
+  const currentProps: JsonSchemaMetaProperty[] = Object.entries(
+    schema?.properties ?? {},
+  ).map(([name, content]) => ({ name, content }));
 
   const seen = new Set([schema.$id]);
 
@@ -164,7 +162,7 @@ export const deconstructSchemaParents = (schema: JSONSchema): SchemaExt => {
       }
     }) ?? [];
 
-  return <SchemaExt>{
+  return <JsonSchemaMeta>{
     id: schema.title ?? schema.$id,
     parentSchemas,
     properties: currentProps,

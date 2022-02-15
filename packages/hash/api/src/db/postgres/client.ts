@@ -87,6 +87,12 @@ export class PostgresClient implements DBClient {
     this.conn = conn;
   }
 
+  jsonSchemaCompiler(conn: Connection) {
+    return new JsonSchemaCompiler(async (url) => {
+      return getJsonSchemaBySchema$id(conn, url);
+    });
+  }
+
   /** Create an entity type definition and return its uuid. */
   async createEntityType(params: {
     name: string;
@@ -106,9 +112,7 @@ export class PostgresClient implements DBClient {
 
       // Conn is used here to prevent transaction-mismatching.
       // this.conn is a parent of this transaction conn at this time.
-      const jsonSchemaCompiler = new JsonSchemaCompiler(async (url) => {
-        return getJsonSchemaBySchema$id(conn, url);
-      });
+      const jsonSchemaCompiler = this.jsonSchemaCompiler(conn);
 
       const now = new Date();
       const properties = await jsonSchemaCompiler.jsonSchema(
@@ -269,6 +273,18 @@ export class PostgresClient implements DBClient {
     return (await getEntityLatestVersion(this.conn, params)) || undefined;
   }
 
+  async getEntityTypeJsonSchemaMeta(
+    params: Parameters<DBClient["getEntityTypeJsonSchemaMeta"]>[0],
+  ): ReturnType<DBClient["getEntityTypeJsonSchemaMeta"]> {
+    const jsonSchemaCompiler = this.jsonSchemaCompiler(this.conn);
+    const entityType = await this.getEntityTypeLatestVersion(params);
+    if (!entityType) {
+      throw new DbEntityTypeNotFoundError(params);
+    }
+
+    return jsonSchemaCompiler.deconstructedJsonSchema(entityType.properties);
+  }
+
   async getEntityTypeLatestVersion(params: {
     entityTypeId: string;
   }): Promise<EntityType | null> {
@@ -342,7 +358,7 @@ export class PostgresClient implements DBClient {
       : await getEntityTypeLatestVersion(this.conn, params);
 
     if (!entity) {
-      throw new Error(`Could not find entityType with id ${entityId}`);
+      throw new DbEntityTypeNotFoundError(params);
     }
     if (entityVersionId && entityVersionId !== entity.entityVersionId) {
       throw new Error(
@@ -356,9 +372,7 @@ export class PostgresClient implements DBClient {
       throw new Error("Schema requires a name set via a 'title' property");
     }
 
-    const jsonSchemaCompiler = new JsonSchemaCompiler((url) => {
-      return getJsonSchemaBySchema$id(this.conn, url);
-    });
+    const jsonSchemaCompiler = this.jsonSchemaCompiler(this.conn);
 
     const schemaToSet = await jsonSchemaCompiler.jsonSchema(
       nameToSet,

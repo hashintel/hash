@@ -1,4 +1,8 @@
-import { Resolver, EntityType as GQLEntityType } from "../../apiTypes.gen";
+import {
+  Resolver,
+  EntityType as GQLEntityType,
+  JsonSchemaMeta,
+} from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { EntityType, UnresolvedGQLEntityType } from "../../../model";
 import {
@@ -34,7 +38,20 @@ const entityTypeParentsResolver: Resolver<
   return entityTypes.map((ent) => ent.toGQLEntityType());
 };
 
+const entityTypeDestructuredSchemaResolver: Resolver<
+  Promise<JsonSchemaMeta>,
+  GQLEntityType,
+  GraphQLContext
+> = async (params, _, { dataSources: { db } }) => {
+  const { entityId: entityTypeId } = params;
+
+  const jsonSchemaMeta = await db.getEntityTypeJsonSchemaMeta({ entityTypeId });
+
+  return jsonSchemaMeta;
+};
+
 export const entityTypeInheritance = {
   entityTypeChildren: entityTypeChildrenResolver,
   entityTypeParents: entityTypeParentsResolver,
+  entityTypeDestructuredSchema: entityTypeDestructuredSchemaResolver,
 };

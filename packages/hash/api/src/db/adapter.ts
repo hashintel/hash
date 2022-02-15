@@ -12,6 +12,7 @@ import {
   OrgSize,
   Visibility,
   WayToUseHash,
+  JsonSchemaMeta,
 } from "../graphql/apiTypes.gen";
 
 /**
@@ -255,6 +256,14 @@ export interface DBClient {
     accountId: string;
     entityId: string;
   }): Promise<DbEntity | undefined>;
+
+  /**
+   * Get deconstructed JSONSchema inheritance tree for a given Entity Type
+   * @param params.entityTypeId the fixed entityTypeId
+   */
+  getEntityTypeJsonSchemaMeta(params: {
+    entityTypeId: string;
+  }): Promise<JsonSchemaMeta>;
 
   /**
    * Get an entityType by its fixed id.
