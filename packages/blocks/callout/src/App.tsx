@@ -1,17 +1,42 @@
-import * as React from "react";
-
 import { BlockComponent } from "blockprotocol/react";
+import React, { CSSProperties, RefCallback, useCallback } from "react";
+
+import { EmojiIcon } from "./EmojiIcon";
 
 type AppProps = {
-  name: string;
+  editableRef?: RefCallback<HTMLElement>;
+  icon?: string;
+  text?: string;
 };
 
-export const App: BlockComponent<AppProps> = ({ entityId, name }) => (
-  <>
-    <h1>Hello, {name}!</h1>
-    <p>
-      The entityId of this block is {entityId}. Use it to update its data when
-      calling updateEntities.
-    </p>
-  </>
-);
+const wrapperStyle: CSSProperties = {
+  borderRadius: 5,
+  padding: 10,
+  background: "#eee",
+  border: "1px solid #ccc",
+};
+
+const textStyle: CSSProperties = {};
+
+export const App: BlockComponent<AppProps> = ({
+  editableRef,
+  icon = "💡",
+  text,
+  entityId,
+  updateEntities,
+}) => {
+  const handleIconChange = useCallback(() => {
+    console.log(entityId);
+  }, [entityId, updateEntities]);
+
+  return (
+    <div style={wrapperStyle}>
+      <EmojiIcon value={icon} onChange={handleIconChange} />
+      {editableRef ? (
+        <div style={textStyle} ref={editableRef} />
+      ) : (
+        <div style={textStyle}>{text}</div>
+      )}
+    </div>
+  );
+};
