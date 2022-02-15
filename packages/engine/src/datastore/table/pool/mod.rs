@@ -86,10 +86,10 @@ pub trait BatchPool<B: Batch>: Send + Sync {
     ///
     /// # Errors
     ///
-    /// Returns a [`ProxySharedLock`] if any of the [`Batch`]es is currently borrowed in a
+    /// Returns [`Error::ProxySharedLock`] if any of the [`Batch`]es is currently borrowed in a
     /// [`BatchWriteProxy`].
     ///
-    /// [`ProxySharedLock`]: crate::datastore::error::Error::ProxySharedLock
+    /// [`Error::ProxySharedLock`]: crate::datastore::error::Error::ProxySharedLock
     fn read_proxies(&self) -> Result<PoolReadProxy<B>>;
 
     /// Creates a [`PoolReadProxy`] for a _selection_ of the batches within the pool, selected by
@@ -97,20 +97,20 @@ pub trait BatchPool<B: Batch>: Send + Sync {
     ///
     /// # Errors
     ///
-    /// Returns a [`ProxySharedLock`] if any of the [`Batch`]es at one of the specified
+    /// Returns [`Error::ProxySharedLock`] if any of the [`Batch`]es at one of the specified
     /// `indices` is currently borrowed in a [`BatchWriteProxy`].
     ///
-    /// [`ProxySharedLock`]: crate::datastore::error::Error::ProxySharedLock
+    /// [`Error::ProxySharedLock`]: crate::datastore::error::Error::ProxySharedLock
     fn partial_read_proxies(&self, indices: &[usize]) -> Result<PoolReadProxy<B>>;
 
     /// Creates a [`PoolWriteProxy`] for _all_ batches within the pool.
     ///
     /// # Errors
     ///
-    /// Returns [`ProxyExclusiveLock`] if any of the [`Batch`]es at one of the specified
+    /// Returns [`Error::ProxyExclusiveLock`] if any of the [`Batch`]es at one of the specified
     /// `indices` is currently borrowed either as [`BatchReadProxy`] or as [`BatchWriteProxy`].
     ///
-    /// [`ProxyExclusiveLock`]: crate::datastore::error::Error::ProxyExclusiveLock
+    /// [`Error::ProxyExclusiveLock`]: crate::datastore::error::Error::ProxyExclusiveLock
     fn write_proxies(&mut self) -> Result<PoolWriteProxy<B>>;
 
     /// Creates a [`PoolWriteProxy`] for a _selection_ of the batches within the pool, selected by
@@ -120,10 +120,10 @@ pub trait BatchPool<B: Batch>: Send + Sync {
     ///
     /// # Errors
     ///
-    /// Returns [`ProxyExclusiveLock`] if any of the [`Batch`]es at one of the specified
+    /// Returns [`Error::ProxyExclusiveLock`] if any of the [`Batch`]es at one of the specified
     /// `indices` is currently borrowed either as [`BatchReadProxy`] or as [`BatchWriteProxy`].
     ///
-    /// [`ProxyExclusiveLock`]: crate::datastore::error::Error::ProxyExclusiveLock
+    /// [`Error::ProxyExclusiveLock`]: crate::datastore::error::Error::ProxyExclusiveLock
     fn partial_write_proxies(&mut self, indices: &[usize]) -> Result<PoolWriteProxy<B>>;
 }
 
