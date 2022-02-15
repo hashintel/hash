@@ -159,7 +159,7 @@ pub fn dummy_sim_run_config() -> SimRunConfig {
         base_globals: globals.clone(),
     });
 
-    let package_creators = PackageCreators::from_config(&exp_config.packages, &exp_config).unwrap();
+    let package_creators = PackageCreators::new(Vec::new(), Vec::new(), Vec::new(), Vec::new());
 
     SimRunConfig {
         exp: exp_config.clone(),
