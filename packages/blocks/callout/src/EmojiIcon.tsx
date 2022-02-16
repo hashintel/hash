@@ -38,7 +38,8 @@ export const EmojiIcon: VoidFunctionComponent<EmojiIconProps> = ({
   return (
     <button
       type="button"
-      contentEditable="false"
+      contentEditable={false}
+      suppressContentEditableWarning
       style={wrapperStyle}
       onClick={handleDivClick}
     >
