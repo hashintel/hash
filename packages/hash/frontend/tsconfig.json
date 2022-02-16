@@ -8,6 +8,6 @@
     "target": "es2020",
     "noEmit": true
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "next-env-extras.d.ts"],
+  "include": ["assets.d.ts", "next-env.d.ts", "**/*.ts", "**/*.tsx"],
   "exclude": ["node_modules", ".next"]
 }
