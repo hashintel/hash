@@ -9,7 +9,7 @@ use arrow::{
     array::{ArrayData, ArrayDataRef},
     buffer::{Buffer, MutableBuffer},
     datatypes::{DataType, Schema},
-    ipc::writer::schema_to_bytes,
+    ipc::writer::{schema_to_bytes, IpcWriteOptions},
 };
 use futures::FutureExt;
 use mv8::MiniV8;
@@ -372,9 +372,9 @@ fn bytes_to_js<'m>(mv8: &'m MiniV8, bytes: &mut [u8]) -> mv8::Value<'m> {
 }
 
 fn schema_to_stream_bytes(schema: &Schema) -> Vec<u8> {
-    let content = schema_to_bytes(schema);
-    let mut stream_bytes = arrow_continuation(content.len());
-    stream_bytes.extend_from_slice(&content);
+    let content = schema_to_bytes(schema, &IpcWriteOptions::default());
+    let mut stream_bytes = arrow_continuation(content.ipc_message.len());
+    stream_bytes.extend_from_slice(&content.ipc_message);
     stream_bytes
 }
 

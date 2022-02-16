@@ -6,7 +6,11 @@
 
 use std::{borrow::Cow, sync::Arc};
 
-use arrow::{array, array::ArrayRef, datatypes::DataType};
+use arrow::{
+    array,
+    array::{ArrayRef, PrimitiveArrayOps},
+    datatypes::DataType,
+};
 
 use super::{
     boolean::Column as BooleanColumn, change::ArrayChange, flush::GrowableBatch, ArrowBatch,
