@@ -45,16 +45,6 @@ module.exports = withSentryConfig(
           use: [require.resolve("@svgr/webpack")],
         });
 
-        // help out nextjs plugin next-transpile-modules to correctly resolve monorepo dependencies
-        webpackConfig.resolve.alias = {
-          ...webpackConfig.resolve.alias,
-          "@hashintel/hash-shared": path.join(
-            __dirname,
-            "../../..",
-            "node_modules/@hashintel/hash-shared/src",
-          ),
-        };
-
         //  Build the sandbox HTML, which will have the sandbox script injected
         const framedBlockFolder = "/src/components/sandbox/FramedBlock";
         webpackConfig.plugins.push(
