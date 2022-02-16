@@ -320,27 +320,35 @@ describe("destructing json schemas", () => {
 
   it("disallows recursive deconstruction/duplicate names", async () => {
     const schema = {
-      $id: "$doctor",
-      type: "object",
-      allOf: [
-        {
-          $id: "$medicalProfessional",
+      $id: "schema",
+      definitions: {
+        person: {
           type: "object",
-          allOf: [
-            {
-              $id: "$doctor",
-              type: "object",
-              properties: {},
-            },
-          ],
           properties: {},
         },
-      ],
+        medicalProfessional: {
+          type: "object",
+          allOf: [{ $ref: "#/definitions/person" }],
+          properties: {},
+        },
+        doctor: {
+          type: "object",
+          allOf: [
+            { $ref: "#/definitions/medicalProfessional" },
+            { $ref: "#/definitions/doctor" },
+          ],
+
+          properties: {},
+        },
+      },
+
+      type: "object",
+      allOf: [{ $ref: "#/definitions/doctor" }],
       properties: {},
     };
 
     await expect(
       jsonSchemaCompiler.deconstructedJsonSchema(schema),
-    ).rejects.toThrowError(/Detected cyclic reference for parent "\$doctor"/i);
+    ).rejects.toThrowError(/circular \$ref pointer found/i);
   });
 });

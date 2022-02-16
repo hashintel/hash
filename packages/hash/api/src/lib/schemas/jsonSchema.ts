@@ -239,6 +239,7 @@ export class JsonSchemaCompiler {
             return self.resolver(file.url);
           },
         },
+        file: false,
       },
     });
     if (dereferences.properties && dereferences.allOf) {
