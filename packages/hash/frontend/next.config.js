@@ -41,10 +41,10 @@ module.exports = withSentryConfig(
         eslint: { ignoreDuringBuilds: true },
         typescript: { ignoreBuildErrors: true },
 
-        webpack: (config) => {
+        webpack: (webpackConfig) => {
           // help out nextjs plugin next-transpile-modules to correctly resolve monorepo dependencies
-          config.resolve.alias = {
-            ...config.resolve.alias,
+          webpackConfig.resolve.alias = {
+            ...webpackConfig.resolve.alias,
             "@hashintel/hash-shared": path.join(
               __dirname,
               "../../..",
@@ -54,7 +54,7 @@ module.exports = withSentryConfig(
 
           //  Build the sandbox HTML, which will have the sandbox script injected
           const framedBlockFolder = "/src/components/sandbox/FramedBlock";
-          config.plugins.push(
+          webpackConfig.plugins.push(
             new HtmlWebpackPlugin({
               filename: "static/sandbox.html",
               template: path.join(__dirname, framedBlockFolder, "index.html"),
@@ -62,9 +62,9 @@ module.exports = withSentryConfig(
             }),
           );
           return {
-            ...config,
+            ...webpackConfig,
             entry: () =>
-              config.entry().then((entry) => ({
+              webpackConfig.entry().then((entry) => ({
                 ...entry,
                 sandbox: path.join(__dirname, framedBlockFolder, "index.tsx"),
               })),
