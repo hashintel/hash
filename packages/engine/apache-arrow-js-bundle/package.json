@@ -1,5 +1,5 @@
 {
-  "name": "apache-arrow-js-bundle",
+  "name": "@hashengine/apache-arrow-js-bundle",
   "version": "0.0.0",
   "private": "true",
   "type": "module",
