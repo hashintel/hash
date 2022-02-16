@@ -2,7 +2,13 @@
 
 use std::sync::Arc;
 
-use arrow::array;
+use arrow::{
+    array,
+    ipc::{
+        reader::read_record_batch,
+        writer::{record_batch_to_bytes, IpcWriteOptions},
+    },
+};
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 
 use super::{
@@ -11,10 +17,7 @@ use super::{
 use crate::{
     datastore::{
         arrow::{
-            ipc::{
-                read_record_batch, record_batch_data_to_bytes_owned_unchecked,
-                record_batch_to_bytes, simulate_record_batch_to_bytes,
-            },
+            ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
             message::{
                 self, get_column_from_list_array, MESSAGE_COLUMN_INDEX, MESSAGE_COLUMN_NAME,
             },
@@ -269,14 +272,14 @@ impl MessageBatch {
         meta: Arc<StaticMeta>,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
-        let (meta_buffer, data_buffer) = record_batch_to_bytes(record_batch);
+        let encoded_data = record_batch_to_bytes(record_batch, &IpcWriteOptions::default());
 
         let memory = Memory::from_batch_buffers(
             experiment_id,
             &[],
             &[],
-            meta_buffer.as_ref(),
-            &data_buffer,
+            &encoded_data.ipc_message,
+            &encoded_data.arrow_data,
             true,
         )?;
         Self::from_memory(memory, schema, meta)
@@ -296,10 +299,7 @@ impl MessageBatch {
         let memory_len = data_buffer.len();
         let dynamic_meta = batch_message.into_meta(memory_len)?;
 
-        let batch = match read_record_batch(data_buffer, &batch_message, schema.clone(), &[]) {
-            Ok(rb) => rb.unwrap(),
-            Err(e) => return Err(Error::from(e)),
-        };
+        let batch = read_record_batch(data_buffer, batch_message, schema.clone(), &[])?;
 
         Ok(Self {
             memory,

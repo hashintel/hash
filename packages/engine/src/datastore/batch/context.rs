@@ -2,19 +2,17 @@
 
 use std::sync::Arc;
 
+use arrow::ipc::{
+    reader::read_record_batch,
+    writer::{record_batch_to_bytes, IpcWriteOptions},
+};
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
 };
 
 use super::Batch as BatchRepr;
 use crate::{
-    datastore::{
-        arrow::{
-            ipc::{read_record_batch, static_record_batch_to_bytes},
-            meta_conversion::get_dynamic_meta_flatbuffers,
-        },
-        prelude::*,
-    },
+    datastore::{arrow::meta_conversion::get_dynamic_meta_flatbuffers, prelude::*},
     proto::ExperimentId,
     simulation::package::context::ContextColumn,
 };
@@ -70,14 +68,14 @@ impl ContextBatch {
         schema: Option<&Arc<ArrowSchema>>,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
-        let (meta_buffer, data_buffer) = static_record_batch_to_bytes(record_batch);
+        let encoded_data = record_batch_to_bytes(record_batch, &IpcWriteOptions::default());
 
         let memory = Memory::from_batch_buffers(
             experiment_id,
             &[],
             &[],
-            meta_buffer.as_ref(),
-            &data_buffer,
+            &encoded_data.ipc_message,
+            &encoded_data.arrow_data,
             false,
         )?;
         Self::from_memory(memory, schema)
@@ -98,10 +96,7 @@ impl ContextBatch {
         let rb_msg = arrow_ipc::get_root_as_message(meta_buffer)
             .header_as_record_batch()
             .ok_or(Error::InvalidRecordBatchIpcMessage)?;
-        let batch = match read_record_batch(data_buffer, &rb_msg, schema, &[]) {
-            Ok(rb) => rb.unwrap(),
-            Err(e) => return Err(Error::from(e)),
-        };
+        let batch = read_record_batch(data_buffer, rb_msg, schema, &[])?;
 
         Ok(Self {
             memory,
@@ -173,10 +168,7 @@ impl ContextBatch {
         let rb_msg = &arrow_ipc::get_root_as_message(meta_buffer)
             .header_as_record_batch()
             .ok_or(Error::InvalidRecordBatchIpcMessage)?;
-        self.batch = match read_record_batch(data_buffer, rb_msg, self.batch.schema(), &[]) {
-            Ok(rb) => rb.unwrap(),
-            Err(e) => return Err(Error::from(e)),
-        };
+        self.batch = read_record_batch(data_buffer, *rb_msg, self.batch.schema(), &[])?;
 
         Ok(())
     }

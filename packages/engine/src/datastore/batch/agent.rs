@@ -10,6 +10,10 @@ use arrow::{
     array,
     array::{ArrayRef, PrimitiveArrayOps},
     datatypes::DataType,
+    ipc::{
+        reader::read_record_batch,
+        writer::{schema_to_bytes, IpcWriteOptions},
+    },
 };
 
 use super::{
@@ -21,8 +25,8 @@ use crate::{
         arrow::{
             batch_conversion::{col_to_json_vals, IntoRecordBatch},
             ipc::{
-                make_array, read_record_batch, record_batch_data_to_bytes_owned_unchecked,
-                schema_to_bytes, simulate_record_batch_to_bytes,
+                make_array, record_batch_data_to_bytes_owned_unchecked,
+                simulate_record_batch_to_bytes,
             },
             meta_conversion::{get_dynamic_meta_flatbuffers, HashDynamicMeta, HashStaticMeta},
         },
@@ -174,7 +178,7 @@ impl AgentBatch {
         schema: &AgentSchema,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
-        let schema_buffer = schema_to_bytes(&schema.arrow);
+        let schema_buffer = schema_to_bytes(&schema.arrow, &IpcWriteOptions::default());
 
         let header_buffer = vec![]; // Nothing here
 
@@ -182,14 +186,14 @@ impl AgentBatch {
 
         let mut memory = Memory::from_sizes(
             experiment_id,
-            schema_buffer.len(),
+            schema_buffer.ipc_message.len(),
             header_buffer.len(),
             meta_buffer.len(),
             data_len,
             true,
         )?;
 
-        memory.set_schema(&schema_buffer)?;
+        memory.set_schema(&schema_buffer.ipc_message)?;
         memory.set_header(&header_buffer)?;
         memory.set_metadata(&meta_buffer)?;
 
@@ -226,10 +230,7 @@ impl AgentBatch {
 
         let dynamic_meta = batch_message.into_meta(data_buffer.len())?;
 
-        let batch = match read_record_batch(data_buffer, &batch_message, schema, &[]) {
-            Ok(rb) => rb.unwrap(),
-            Err(e) => return Err(Error::from(e)),
-        };
+        let batch = read_record_batch(data_buffer, batch_message, schema, &[])?;
 
         Ok(Self {
             memory,
@@ -247,13 +248,13 @@ impl AgentBatch {
         dynamic_meta: &DynamicMeta,
         experiment_id: &ExperimentId,
     ) -> Result<Memory> {
-        let schema_buffer = schema_to_bytes(&schema.arrow);
+        let schema_buffer = schema_to_bytes(&schema.arrow, &IpcWriteOptions::default());
         let header_buffer = vec![];
         let meta_buffer = get_dynamic_meta_flatbuffers(dynamic_meta)?;
 
         let mut memory = Memory::from_sizes(
             experiment_id,
-            schema_buffer.len(),
+            schema_buffer.ipc_message.len(),
             header_buffer.len(),
             meta_buffer.len(),
             dynamic_meta.data_length,

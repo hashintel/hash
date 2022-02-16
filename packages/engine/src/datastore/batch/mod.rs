@@ -16,10 +16,7 @@ pub use message::MessageBatch;
 pub use metaversion::Metaversion;
 
 use super::{
-    arrow::ipc::{
-        read_record_batch, record_batch_data_to_bytes_owned_unchecked,
-        simulate_record_batch_to_bytes,
-    },
+    arrow::ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
     prelude::*,
 };
 use crate::datastore::batch::change::ArrayChange;
@@ -42,7 +39,7 @@ pub trait ArrowBatch: Batch {
     fn reload_record_batch(&mut self) -> Result<()> {
         debug_assert!(self.memory().validate_markers());
         let rb_msg = load::record_batch_message(self)?;
-        *self.record_batch_mut() = load::record_batch(self, &rb_msg, self.record_batch().schema())?;
+        *self.record_batch_mut() = load::record_batch(self, rb_msg, self.record_batch().schema())?;
         Ok(())
     }
 
@@ -57,7 +54,7 @@ pub trait DynamicBatch: ArrowBatch {
     fn reload_record_batch_and_dynamic_meta(&mut self) -> Result<()> {
         let rb_msg = load::record_batch_message(self)?;
         let dynamic_meta = rb_msg.into_meta(self.memory().get_data_buffer()?.len())?;
-        *self.record_batch_mut() = load::record_batch(self, &rb_msg, self.record_batch().schema())?;
+        *self.record_batch_mut() = load::record_batch(self, rb_msg, self.record_batch().schema())?;
         *self.dynamic_meta_mut() = dynamic_meta;
         Ok(())
     }
@@ -116,6 +113,8 @@ pub trait DynamicBatch: ArrowBatch {
 mod load {
     use std::sync::Arc;
 
+    use arrow::ipc::reader::read_record_batch;
+
     use super::*;
 
     /// Read the Arrow RecordBatch metadata from memory
@@ -128,13 +127,10 @@ mod load {
 
     pub fn record_batch<'a, K: Batch>(
         batch: &'a K,
-        rb_msg: &RecordBatchMessage<'a>,
+        rb_msg: RecordBatchMessage<'a>,
         schema: Arc<ArrowSchema>,
     ) -> Result<RecordBatch> {
         let (_, _, _, data_buffer) = batch.memory().get_batch_buffers()?;
-        match read_record_batch(data_buffer, rb_msg, schema, &[]) {
-            Ok(rb) => Ok(rb.unwrap()),
-            Err(e) => Err(Error::from(e)),
-        }
+        Ok(read_record_batch(data_buffer, rb_msg, schema, &[])?)
     }
 }
