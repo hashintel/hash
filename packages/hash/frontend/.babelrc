@@ -13,9 +13,6 @@
   ],
   "plugins": [
     "inline-react-svg",
-    // Context: https://github.com/vercel/next.js/issues/20920
-    // @todo consider removing after upgrading to Next.js 12
-    "@babel/plugin-proposal-logical-assignment-operators",
     [
       "prismjs",
       {

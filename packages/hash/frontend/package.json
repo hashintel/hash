@@ -68,7 +68,6 @@
     "uuid": "8.3.2"
   },
   "devDependencies": {
-    "@babel/plugin-proposal-logical-assignment-operators": "7.16.0",
     "@graphql-codegen/cli": "1.21.5",
     "@graphql-codegen/fragment-matcher": "2.0.1",
     "@graphql-codegen/typescript": "1.22.1",

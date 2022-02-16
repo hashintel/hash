@@ -34,7 +34,6 @@ module.exports = withSentryConfig(
     withImages(
       withTM({
         pageExtensions: ["page.tsx", "page.ts", "page.jsx", "page.jsx"],
-        webpack5: false,
 
         // We call linters in GitHub Actions for all pull requests. By not linting
         // again during `next build`, we save CI minutes and unlock more feedback.
