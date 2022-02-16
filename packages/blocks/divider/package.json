@@ -73,6 +73,12 @@
   "blockprotocol": {
     "displayName": "Divider",
     "icon": "public/divider.svg",
-    "image": "public/preview.svg"
+    "image": "public/preview.svg",
+    "examples": [
+      {
+        "color": "black",
+        "height": "2px"
+      }
+    ]
   }
 }
