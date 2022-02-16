@@ -237,7 +237,6 @@ class __Page extends Entity {
       path: ["contents"],
     });
 
-    // Check whether current
     if (currentPosition < 0 || currentPosition >= contentLinks.length) {
       throw new UserInputError(
         `invalid currentPosition: ${params.currentPosition}`,
