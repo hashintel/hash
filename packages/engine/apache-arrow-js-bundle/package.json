@@ -4,7 +4,8 @@
   "private": "true",
   "type": "module",
   "scripts": {
-    "bundle": "webpack"
+    "bundle": "webpack",
+    "lint:eslint": "echo noop"
   },
   "dependencies": {
     "@zxing/text-encoding": "^0.9.0",
