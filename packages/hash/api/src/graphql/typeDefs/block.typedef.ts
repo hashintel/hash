@@ -2,7 +2,7 @@ import { gql } from "apollo-server-express";
 
 export const blockTypedef = gql`
   type Block implements Entity {
-    entity: UnknownEntity!
+    data: UnknownEntity!
 
     properties: BlockProperties!
 
@@ -86,15 +86,21 @@ export const blockTypedef = gql`
   type BlockProperties {
     entityId: ID!
       @deprecated(
-        reason: "The block entity's entityId is no longer stored in the properties of a block. Use the entity or linkGroups field resolvers instead."
+        reason: """
+        The block entity's "entityId" is no longer stored in the properties of a block. Use the "data" or "linkGroups" field resolvers instead.
+        """
       )
     accountId: ID!
       @deprecated(
-        reason: "The block entity's accountId is no longer stored in the properties of a block. Use the entity or linkGroups field resolvers instead."
+        reason: """
+        The block entity's "accountId" is no longer stored in the properties of a block. Use the block's "data" or "linkGroups" field resolvers instead.
+        """
       )
     entity: UnknownEntity!
       @deprecated(
-        reason: "The block entity is no longer stored in the properties of a block. Use the entity or linkGroups field resolvers instead."
+        reason: """
+        The block "entity" is no longer stored in the properties of a block. Use the block's "data" or "linkGroups" field resolvers instead.
+        """
       )
     componentId: ID!
   }

@@ -10,7 +10,7 @@ import { DBClient } from "../db";
 import { DbBlockProperties, EntityType } from "../db/adapter";
 import { SystemTypeName, Block as GQLBlock } from "../graphql/apiTypes.gen";
 
-export type BlockExternalResolvers = EntityExternalResolvers | "entity"; // entity resolved in `src/graphql/resolvers/block/linkedEntities.ts`
+export type BlockExternalResolvers = EntityExternalResolvers | "data"; // entity resolved in `src/graphql/resolvers/block/linkedEntities.ts`
 
 export type UnresolvedGQLBlock = Omit<GQLBlock, BlockExternalResolvers> & {
   entityType: UnresolvedGQLEntityType;
@@ -45,10 +45,10 @@ class __Block extends Entity {
       accountId?: string;
       properties: DbBlockProperties;
       createdBy: User;
-      blockEntity: Entity;
+      blockData: Entity;
     },
   ): Promise<Block> {
-    const { blockEntity, properties, createdBy, accountId } = params;
+    const { blockData, properties, createdBy, accountId } = params;
 
     const entity = await Entity.createEntityWithLinks(client, {
       user: createdBy,
@@ -60,10 +60,10 @@ class __Block extends Entity {
         },
         linkedEntities: [
           {
-            path: "$.entity",
-            destinationAccountId: blockEntity.accountId,
+            path: "$.data",
+            destinationAccountId: blockData.accountId,
             entity: {
-              existingEntity: blockEntity,
+              existingEntity: blockData,
             },
           },
         ],
@@ -103,23 +103,23 @@ class __Block extends Entity {
     return dbBlock ? new Block(dbBlock) : null;
   }
 
-  async getBlockEntity(client: DBClient): Promise<Entity> {
-    const blockEntityLinks = await this.getOutgoingLinks(client, {
-      path: ["entity"],
+  async getBlockData(client: DBClient): Promise<Entity> {
+    const blockDataLinks = await this.getOutgoingLinks(client, {
+      path: ["data"],
     });
 
-    if (blockEntityLinks.length === 0) {
+    if (blockDataLinks.length === 0) {
       throw new Error(
-        `Critical: block with entityId ${this.entityId} in account with accountId ${this.accountId} has no linked block entity`,
+        `Critical: block with entityId ${this.entityId} in account with accountId ${this.accountId} has no linked block data entity`,
       );
     }
-    if (blockEntityLinks.length > 1) {
+    if (blockDataLinks.length > 1) {
       throw new Error(
-        `Critical: block with entityId ${this.entityId} in account with accountId ${this.accountId} has more than one linked block entity`,
+        `Critical: block with entityId ${this.entityId} in account with accountId ${this.accountId} has more than one linked block data entity`,
       );
     }
 
-    return blockEntityLinks[0].getDestination(client);
+    return blockDataLinks[0].getDestination(client);
   }
 }
 

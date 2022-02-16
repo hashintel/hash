@@ -3,7 +3,7 @@ import { Block, UnresolvedGQLBlock, UnresolvedGQLEntity } from "../../../model";
 import { Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 
-export const entity: Resolver<
+export const data: Resolver<
   Promise<UnresolvedGQLEntity>,
   UnresolvedGQLBlock,
   GraphQLContext
@@ -22,9 +22,11 @@ export const entity: Resolver<
     );
   }
 
-  return (await block.getBlockEntity(dataSources.db)).toGQLUnknownEntity();
+  const blockData = await block.getBlockData(dataSources.db);
+
+  return blockData.toGQLUnknownEntity();
 };
 
 export const blockLinkedEntities = {
-  entity,
+  data,
 };

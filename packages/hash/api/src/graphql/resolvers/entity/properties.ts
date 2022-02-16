@@ -172,11 +172,11 @@ export const properties: Resolver<
      */
 
     const block = await Block.getBlockById(db, entity);
-    const blockEntity = await block!.getBlockEntity(db);
+    const blockData = await block!.getBlockData(db);
 
-    entityProperties.accountId = blockEntity.accountId;
-    entityProperties.entityId = blockEntity.entityId;
-    entityProperties.entity = blockEntity.toGQLUnknownEntity();
+    entityProperties.accountId = blockData.accountId;
+    entityProperties.entityId = blockData.entityId;
+    entityProperties.entity = blockData.toGQLUnknownEntity();
   }
   return entityProperties;
 };

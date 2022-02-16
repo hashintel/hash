@@ -56,13 +56,13 @@ describe("Page model class ", () => {
       properties: {
         componentId: "https://block.blockprotocol.org/paragraph",
       },
-      blockEntity: textEntity,
+      blockData: textEntity,
       createdBy: existingUser,
     });
 
-    const blockEntity = await paragraphBlock.getBlockEntity(db);
+    const blockData = await paragraphBlock.getBlockData(db);
 
-    expect(blockEntity).toEqual(textEntity);
+    expect(blockData).toEqual(textEntity);
   });
 });
 

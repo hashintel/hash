@@ -71,14 +71,14 @@ describe("Page model class ", () => {
 
     const [block] = pageBlocks;
 
-    const blockEntity = await block.getBlockEntity(db);
+    const blockData = await block.getBlockData(db);
 
     // Expect the block's entity's entity type to be the Text entity type
-    expect(blockEntity.entityType.entityId).toBe(textSystemType.entityId);
+    expect(blockData.entityType.entityId).toBe(textSystemType.entityId);
   });
 
   it("insertBlock method can create and insert a new block", async () => {
-    const blockEntity = await Entity.create(db, {
+    const blockData = await Entity.create(db, {
       accountId: existingUser.accountId,
       versioned: false,
       systemTypeName: "Text",
@@ -90,7 +90,7 @@ describe("Page model class ", () => {
       properties: {
         componentId: "https://block.blockprotocol.org/paragraph",
       },
-      blockEntity,
+      blockData,
       accountId: existingUser.accountId,
       createdBy: existingUser,
     });

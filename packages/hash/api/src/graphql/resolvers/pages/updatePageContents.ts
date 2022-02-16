@@ -46,17 +46,17 @@ export const updatePageContents: Resolver<
           const {
             accountId: blockAccountId,
             componentId: blockComponentId,
-            entity: blockEntityDefinition,
+            entity: blockDataDefinition,
           } = action.insertNewBlock;
 
-          const blockEntity = await Entity.createEntityWithLinks(client, {
+          const blockData = await Entity.createEntityWithLinks(client, {
             accountId: blockAccountId, // assume that the "block entity" is in the same account as the block itself
             user,
-            entityDefinition: blockEntityDefinition,
+            entityDefinition: blockDataDefinition,
           });
 
           const block = await Block.createBlock(client, {
-            blockEntity,
+            blockData,
             createdBy: user,
             accountId: user.accountId,
             properties: {

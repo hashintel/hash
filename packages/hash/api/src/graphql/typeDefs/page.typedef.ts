@@ -92,7 +92,9 @@ export const pageTypedef = gql`
     archived: Boolean
     contents: [Block!]!
       @deprecated(
-        reason: "The page contents are no longer stored in the properties of a page. Use the contents or linkGroups field resolvers instead."
+        reason: """
+        The page "contents" are no longer stored in the properties of a page. Use the page's "contents" or "linkGroups" field resolvers instead.
+        """
       )
     summary: String
     title: String!

@@ -107,7 +107,7 @@ class __Page extends Entity {
                 },
                 linkedEntities: [
                   {
-                    path: "$.entity",
+                    path: "$.data",
                     destinationAccountId: accountId,
                     entity: {
                       entityType: {

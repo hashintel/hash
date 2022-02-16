@@ -37,13 +37,13 @@ export const blockProperties: Resolver<
     );
   }
 
-  const blockEntity = await block.getBlockEntity(db);
+  const blockData = await block.getBlockData(db);
 
   return {
     ...block.properties,
     // Legacy fields of `block.properties`
-    entityId: blockEntity.entityId,
-    accountId: blockEntity.accountId,
-    entity: blockEntity.toGQLUnknownEntity(),
+    entityId: blockData.entityId,
+    accountId: blockData.accountId,
+    entity: blockData.toGQLUnknownEntity(),
   };
 };
