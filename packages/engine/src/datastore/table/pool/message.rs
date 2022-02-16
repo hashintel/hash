@@ -8,7 +8,7 @@ use rayon::iter::{
 use super::BatchPool;
 use crate::{
     datastore::{
-        batch::{self, AgentBatch, Batch, MessageBatch},
+        batch::{self, AgentBatch, MessageBatch},
         table::{
             pool::proxy::{PoolReadProxy, PoolWriteProxy},
             references::AgentMessageReference,
@@ -19,7 +19,11 @@ use crate::{
     SimRunConfig,
 };
 
-/// TODO: DOC
+/// A collection of [`Batch`]es which contain the current (outbound) messages of agents.
+///
+/// This is kept separate to the [`AgentPool`], because while agents can be removed between steps,
+/// messages are still sent out in the next step (including the ones by deleted agents) — this
+/// removes the need for making copies of the pool.
 #[derive(Clone)]
 pub struct MessagePool {
     batches: Vec<Arc<RwLock<MessageBatch>>>,
@@ -138,8 +142,7 @@ impl PoolWriteProxy<MessageBatch> {
             if let Some(dynamic_batch) = agent_proxies.batch(batch_index) {
                 self[batch_index].reset(dynamic_batch)?;
             } else {
-                let message_proxy = message_pool.remove(batch_index)?;
-                removed.push(message_proxy.get_batch_id().to_string());
+                removed.push(message_pool.remove(batch_index));
             }
         }
         if agent_proxies.len() > self.len() {

@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use super::PackageCreator;
 use crate::{
+    datastore::table::task_shared_store::{SharedContext, SharedState},
     simulation::{
         enum_dispatch::*,
         package::{id::PackageIdGenerator, PackageMetadata, PackageType},
@@ -17,7 +18,6 @@ use crate::{
     },
     ExperimentConfig,
 };
-
 pub mod js_py;
 pub mod json;
 
@@ -45,6 +45,18 @@ impl std::fmt::Display for Name {
 pub enum InitTask {
     JsInitTask,
     PyInitTask,
+}
+
+impl StoreAccessVerify for InitTask {
+    fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
+        let state = &access.state;
+        let context = access.context();
+        if matches!(state, SharedState::None) && matches!(context, SharedContext::None) {
+            Ok(())
+        } else {
+            Err(Error::access_not_allowed(state, context, "Init".into()))
+        }
+    }
 }
 
 /// All init package task messages are registered in this enum
