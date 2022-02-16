@@ -414,15 +414,15 @@ class __Entity {
       path?: PathComponent[];
     },
   ) {
+    const { stringifiedPath, path } = params || {};
+
     const outgoingDBLinks = await client.getEntityOutgoingLinks({
       accountId: this.accountId,
       entityId: this.entityId,
       entityVersionId: this.metadata.versioned
         ? this.entityVersionId
         : undefined,
-      path:
-        params?.stringifiedPath ??
-        (params?.path ? Link.stringifyPath(params.path) : undefined),
+      path: stringifiedPath ?? (path ? Link.stringifyPath(path) : undefined),
     });
     return outgoingDBLinks.map((dbLink) => new Link(dbLink));
   }

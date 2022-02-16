@@ -140,8 +140,13 @@ class __Link {
   }
 
   static async create(client: DBClient, params: CreateLinkArgs): Promise<Link> {
-    const { stringifiedPath, source, destination, destinationEntityVersionId } =
-      params;
+    const {
+      stringifiedPath,
+      source,
+      destination,
+      destinationEntityVersionId,
+      index,
+    } = params;
 
     Link.validatePath(stringifiedPath);
 
@@ -164,6 +169,7 @@ class __Link {
       destinationAccountId,
       destinationEntityId,
       destinationEntityVersionId,
+      index,
     });
 
     const link = new Link(dbLink);
