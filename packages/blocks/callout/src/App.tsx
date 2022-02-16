@@ -30,30 +30,23 @@ export const App: BlockComponent<AppProps> = ({
   entityId,
   updateEntities,
 }) => {
-  const handleIconChange = useCallback(
-    (newIcon: string | undefined): void => {
-      if (!entityId) {
-        return;
-      }
+  const handleIconChange = (newIcon: string | undefined): void => {
+    if (!entityId) {
+      return;
+    }
 
-      void updateEntities?.([
-        {
-          entityId,
-          data: { icon: newIcon ?? null },
-        },
-      ]);
-    },
-    [entityId, updateEntities],
-  );
+    void updateEntities?.([
+      {
+        entityId,
+        data: { icon: newIcon ?? null },
+      },
+    ]);
+  };
 
   return (
     <div style={wrapperStyle}>
       <EmojiIcon value={icon} onChange={handleIconChange} />
-      {editableRef ? (
-        <div style={textStyle} ref={editableRef} />
-      ) : (
-        <div style={textStyle}>{text}</div>
-      )}
+      <div style={textStyle} ref={editableRef} />
     </div>
   );
 };
