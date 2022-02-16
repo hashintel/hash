@@ -1,15 +1,20 @@
 import webpack from "webpack";
+
 export default {
-  entry: "./src/index.js",
+  entry: "./src/index.mjs",
   output: {
     filename: "apache-arrow-bundle.js",
+    library: {
+      name: "arrow",
+      type: "var",
+    },
   },
   mode: "production",
   node: {
     global: true,
   },
   optimization: {
-    // We don't want deadcode elimination to remove arrow
+    // We don't want dead-code elimination to remove arrow
     usedExports: false,
     // Minimizing makes runner errors really hard to read
     minimize: false,
