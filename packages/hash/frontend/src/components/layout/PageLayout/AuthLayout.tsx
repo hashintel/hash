@@ -1,6 +1,7 @@
 import React, { ReactNode, VoidFunctionComponent } from "react";
 import { tw } from "twind";
 
+import bgPattern from "../../../assets/images/auth-bg-pattern.png";
 import Logo from "../../../assets/svg/logo.svg";
 import { HashIcon } from "../../icons";
 
@@ -42,7 +43,7 @@ export const AuthLayout: VoidFunctionComponent<AuthLayoutProps> = ({
       </div>
 
       <div className={tw`absolute right-0 top-0 bottom-0`}>
-        <img alt="" src="/auth-bg-pattern.png" className={tw`h-screen`} />
+        <img alt="" src={bgPattern.src} className={tw`h-screen`} />
       </div>
       {onClose && (
         <button

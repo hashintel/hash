@@ -252,7 +252,7 @@ export class ProsemirrorSchemaManager {
     /**
      * @todo we should have some concurrency here
      */
-    for (const componentId of Array.from(componentIds.values())) {
+    for (const componentId of componentIds) {
       await this.defineRemoteBlock(componentId);
     }
   }

@@ -10131,7 +10131,7 @@ html-to-text@8.0.0:
     minimist "^1.2.5"
     selderee "^0.6.0"
 
-html-webpack-plugin@4.5.1:
+"html-webpack-plugin-v4@npm:html-webpack-plugin@4.5.1":
   version "4.5.1"
   resolved "https://registry.yarnpkg.com/html-webpack-plugin/-/html-webpack-plugin-4.5.1.tgz#40aaf1b5cb78f2f23a83333999625c20929cda65"
   integrity sha512-yzK7RQZwv9xB+pcdHNTjcqbaaDZ+5L0zJHXfi89iWIZmb/FtzxhLk0635rmJihcQbs3ZUF27Xp4oWGx6EK56zg==
