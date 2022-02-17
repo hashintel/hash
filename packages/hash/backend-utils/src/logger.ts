@@ -9,10 +9,25 @@ export type LogLevel = typeof LOG_LEVELS[number];
 
 export type LoggerConfig = {
   mode: "dev" | "prod";
-  level: LogLevel;
+  level?: LogLevel;
   serviceName: string;
   metadata?: Record<string, string>;
 };
+
+const tbdIsLogLevel = (level: string): level is LogLevel =>
+  LOG_LEVELS.includes(level as LogLevel);
+
+const getDefaultLoggerLevel = () => {
+  const envLogLevel = process.env.LOG_LEVEL;
+  return envLogLevel && tbdIsLogLevel(envLogLevel) ? envLogLevel : "info";
+};
+
+const isLogApolloError = ({
+  level,
+  service,
+  message,
+}: winston.Logform.TransformableInfo) =>
+  level === "error" && service === "api" && message === "graphql";
 
 export class Logger {
   debug: (...msg: any) => void;
@@ -22,9 +37,23 @@ export class Logger {
 
   constructor(private cfg: LoggerConfig) {
     this.cfg = cfg;
+
     const logger = winston.createLogger({
-      level: cfg.level,
-      format: winston.format.combine(winston.format.errors({ stack: true })),
+      level: cfg.level ?? getDefaultLoggerLevel(),
+      format: winston.format.combine(
+        winston.format((log) => {
+          const formattedLog = { ...log };
+          if (isLogApolloError(formattedLog)) {
+            // Manually remove stacks from logs which are apollo Forbidden errors
+            formattedLog.stack = formattedLog.stack.filter(
+              (stackItem: string) => !stackItem.startsWith("ForbiddenError"),
+            );
+          }
+          return formattedLog;
+        })(),
+        winston.format.errors({ stack: true }),
+        winston.format.json(),
+      ),
       defaultMeta: { service: cfg.serviceName, ...(cfg.metadata || {}) },
     });
     if (cfg.mode === "dev") {
