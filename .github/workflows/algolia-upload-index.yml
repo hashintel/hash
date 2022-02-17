@@ -2,7 +2,7 @@ name: Algolia Upload Index
 
 env:
   ALGOLIA_PROJECT: ${{ secrets.ALGOLIA_PROJECT }}
-  AGOLIA_WRITE_KEY: ${{ secrets.AGOLIA_WRITE_KEY }}
+  ALGOLIA_WRITE_KEY: ${{ secrets.ALGOLIA_WRITE_KEY }}
 
 on:
   push:
@@ -16,8 +16,15 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: "12"
+          node-version: 16
+          cache: yarn
 
-      # Runs a single command using the runners shell
-      - name: Upload to algolia
-        run: cd .github/workflows/algolia && sh algolia_upload_script.sh
+      - name: Reduce the number of dependencies to install by hiding workspaces
+        run: |
+          npx replace '"workspaces":' '"ignored-workspaces":' package.json
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Sync Algolia Index
+        run: yarn exe scripts/sync-algolia-index.ts
