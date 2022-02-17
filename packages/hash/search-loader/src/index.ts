@@ -291,19 +291,19 @@ const main = async () => {
   // Acquire read ownership on the queue
   // Note: must `.release()` ownership before closing the Redis connection.
   const queue = new RedisQueueExclusiveConsumer(redis);
-  logger.info(`Acquiring read ownership on queue "${SEARCH_QUEUE_NAME}" ...`);
+  logger.debug(`Acquiring read ownership on queue "${SEARCH_QUEUE_NAME}" ...`);
 
   while (!(await queue.acquire(SEARCH_QUEUE_NAME, 5_000))) {
     if (shutdown.isTriggered()) {
       break;
     }
-    logger.info(
+    logger.debug(
       "Queue is owned by another consumer. Attempting to acquire ownership again ...",
     );
   }
 
   queueAcquired = true;
-  logger.info("Queue acquired");
+  logger.debug("Queue acquired");
   shutdown.addCleanup("queue ownership", async () => queue.release());
 
   // Periodically report queue size if StatsD is enabled

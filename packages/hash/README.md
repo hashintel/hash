@@ -376,3 +376,4 @@ If the service should report metrics to a StatsD server, the following variables
 - `HASH_SEARCH_QUEUE_NAME`: The name of the queue to push changes for the search loader service (default: `search`)
 - `NEXT_PUBLIC_API_ORIGIN`: The origin that the API service can be reached on (default: `http://localhost:5001`)
 - `SESSION_SECRET`: The secret used to sign login sessions (default: `secret`)
+- `LOG_LEVEL`: the level of runtime logs that should be omitted, either set to `debug`, `info`, `warn`, `error` (default: `info`)

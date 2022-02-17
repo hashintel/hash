@@ -76,10 +76,10 @@ interface SessionSupport {
 }
 
 export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
-  logger.info(`Acquiring read ownership on queue "${COLLAB_QUEUE_NAME}" ...`);
+  logger.debug(`Acquiring read ownership on queue "${COLLAB_QUEUE_NAME}" ...`);
 
   while (!(await queue.acquire(COLLAB_QUEUE_NAME, 5_000))) {
-    logger.info(
+    logger.debug(
       "Queue is owned by another consumer. Attempting to acquire ownership again ...",
     );
   }
