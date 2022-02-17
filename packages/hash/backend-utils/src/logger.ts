@@ -22,13 +22,6 @@ const getDefaultLoggerLevel = () => {
   return envLogLevel && tbdIsLogLevel(envLogLevel) ? envLogLevel : "info";
 };
 
-const isLogApolloError = ({
-  level,
-  service,
-  message,
-}: winston.Logform.TransformableInfo) =>
-  level === "error" && service === "api" && message === "graphql";
-
 export class Logger {
   debug: (...msg: any) => void;
   info: (...msg: any) => void;
@@ -41,16 +34,6 @@ export class Logger {
     const logger = winston.createLogger({
       level: cfg.level ?? getDefaultLoggerLevel(),
       format: winston.format.combine(
-        winston.format((log) => {
-          const formattedLog = { ...log };
-          if (isLogApolloError(formattedLog)) {
-            // Manually remove stacks from logs which are apollo Forbidden errors
-            formattedLog.stack = formattedLog.stack.filter(
-              (stackItem: string) => !stackItem.startsWith("ForbiddenError"),
-            );
-          }
-          return formattedLog;
-        })(),
         winston.format.errors({ stack: true }),
         winston.format.json(),
       ),

@@ -93,13 +93,14 @@ export const createApolloServer = ({
                 operation: willSendResponseCtx.operationName,
               };
               if (willSendResponseCtx.errors) {
-                const stack = willSendResponseCtx.errors.map(
-                  (err) => err.stack,
-                );
                 willSendResponseCtx.logger.error({
                   ...msg,
                   errors: willSendResponseCtx.errors,
-                  stack,
+                  stack: willSendResponseCtx.errors
+                    .map((err) => err.stack)
+                    .filter(
+                      (stack) => stack && !stack.startsWith("ForbiddenError"),
+                    ),
                 });
               } else {
                 willSendResponseCtx.logger.info(msg);
