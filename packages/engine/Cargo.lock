@@ -103,13 +103,14 @@ dependencies = [
 
 [[package]]
 name = "arrow"
-version = "6.5.0"
+version = "7.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "216c6846a292bdd93c2b93c1baab58c32ff50e2ab5e8d50db333ab518535dd8b"
+checksum = "66ec0a5964feebf378e2fc6db9530e712657b8edf72aa17b1b277b0f52a48e2d"
 dependencies = [
  "bitflags",
  "chrono",
  "flatbuffers",
+ "half",
  "hex",
  "indexmap",
  "lazy_static",
@@ -918,6 +919,12 @@ dependencies = [
  "wasm-bindgen",
  "web-sys",
 ]
+
+[[package]]
+name = "half"
+version = "1.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eabb4a44450da02c90444cf74558da904edde8fb4e9035a9a6a4e15445af0bd7"
 
 [[package]]
 name = "hash_engine"

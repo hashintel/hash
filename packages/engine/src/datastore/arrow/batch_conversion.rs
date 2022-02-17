@@ -224,7 +224,7 @@ fn json_vals_to_list(
     let mut_null_bits = null_bits.as_slice_mut();
 
     let mut offsets = new_offsets_buffer(n_elem);
-    let mut_offsets = offsets.typed_data_mut::<i32>();
+    let mut_offsets = unsafe { offsets.typed_data_mut::<i32>() };
     debug_assert!(mut_offsets.iter().all(|v| *v == 0));
 
     let mut combined_vals = vec![];

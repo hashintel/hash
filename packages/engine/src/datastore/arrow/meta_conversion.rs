@@ -395,6 +395,9 @@ pub fn data_type_to_metadata(
         D::Interval(arrow::datatypes::IntervalUnit::DayTime) => {
             data_type_metadata(is_parent_growable, multiplier, 8)
         }
+        D::Interval(arrow::datatypes::IntervalUnit::MonthDayNano) => {
+            data_type_metadata(is_parent_growable, multiplier, 16)
+        }
 
         D::Duration(_) => data_type_metadata(is_parent_growable, multiplier, 8),
 
