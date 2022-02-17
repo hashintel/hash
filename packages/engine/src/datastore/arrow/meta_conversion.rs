@@ -13,6 +13,7 @@ use arrow::ipc::{
     Buffer as BufferMessage, FieldNode as NodeMessage, MessageBuilder, MessageHeader,
     MetadataVersion, RecordBatch, RecordBatchBuilder,
 };
+use flatbuffers::FlatBufferBuilder;
 
 use crate::datastore::{
     error::Error,
@@ -177,7 +178,7 @@ pub fn get_dynamic_meta_flatbuffers(meta: &DynamicMeta) -> Result<Vec<u8>> {
         .map(|n| NodeMessage::new(n.length as i64, n.null_count as i64))
         .collect();
 
-    let mut fbb = flatbuffers_arrow::FlatBufferBuilder::new();
+    let mut fbb = FlatBufferBuilder::new();
 
     // Copied from `ipc.rs` from function `record_batch_to_bytes`
     // with some modifications:

@@ -33,7 +33,7 @@ use arrow::{
     record_batch::RecordBatch,
     util::bit_util,
 };
-use flatbuffers_arrow::FlatBufferBuilder;
+use flatbuffers::FlatBufferBuilder;
 
 use super::padding;
 

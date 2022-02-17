@@ -109,21 +109,20 @@ checksum = "23b62fc65de8e4e7f52534fb52b0f3ed04746ae267519eef2a83941e8085068b"
 
 [[package]]
 name = "arrow"
-version = "4.4.0"
+version = "5.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6f3334cea4f209440350d00ae1dab237ced49d80b664cc4b0e984893d583890"
+checksum = "2678e86fcfd8084e23310a1ded1d4b355663d78b5e79561b014c3a66cc211231"
 dependencies = [
- "cfg_aliases",
+ "bitflags",
  "chrono",
- "csv",
- "flatbuffers 0.8.4",
+ "flatbuffers",
  "hex",
  "indexmap",
  "lazy_static",
  "lexical-core",
  "multiversion",
  "num",
- "rand 0.7.3",
+ "rand 0.8.4",
  "regex",
  "serde",
  "serde_derive",
@@ -363,12 +362,6 @@ name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
-
-[[package]]
-name = "cfg_aliases"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd16c4719339c4530435d38e511904438d07cce7950afa3718a84ac36c10e89e"
 
 [[package]]
 name = "chrono"
@@ -711,17 +704,6 @@ dependencies = [
 
 [[package]]
 name = "flatbuffers"
-version = "0.8.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3c502342b7d6d73beb1b8bab39dc01deba0c8ef66f4e6f1eba7c69ee6b38069"
-dependencies = [
- "bitflags",
- "smallvec",
- "thiserror",
-]
-
-[[package]]
-name = "flatbuffers"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ef4c5738bcd7fad10315029c50026f83c9da5e4a21f8ed66826f43e0e2bde5f6"
@@ -735,7 +717,7 @@ dependencies = [
 name = "flatbuffers_gen"
 version = "0.0.0"
 dependencies = [
- "flatbuffers 2.0.0",
+ "flatbuffers",
 ]
 
 [[package]]
@@ -967,8 +949,7 @@ dependencies = [
  "derive-new",
  "enum_dispatch",
  "error",
- "flatbuffers 0.8.4",
- "flatbuffers 2.0.0",
+ "flatbuffers",
  "flatbuffers_gen",
  "float-cmp",
  "futures",
