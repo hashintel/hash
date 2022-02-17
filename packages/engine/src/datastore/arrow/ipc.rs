@@ -26,24 +26,9 @@
 // Every additional comment is marked by "COM"
 
 // ADD: use central source of information
-use std::sync::Arc;
-
 use arrow::{
-    array::{
-        ArrayData, ArrayRef, BinaryArray, BooleanArray, Date32Array, Date64Array, DictionaryArray,
-        DurationMicrosecondArray, DurationMillisecondArray, DurationNanosecondArray,
-        DurationSecondArray, FixedSizeBinaryArray, FixedSizeListArray, Float32Array, Float64Array,
-        Int16Array, Int32Array, Int64Array, Int8Array, IntervalDayTimeArray,
-        IntervalYearMonthArray, ListArray, NullArray, StringArray, StructArray,
-        Time32MillisecondArray, Time32SecondArray, Time64MicrosecondArray, Time64NanosecondArray,
-        TimestampMicrosecondArray, TimestampMillisecondArray, TimestampNanosecondArray,
-        TimestampSecondArray, UInt16Array, UInt32Array, UInt64Array, UInt8Array, UnionArray,
-    },
+    array::ArrayData,
     buffer::{Buffer, MutableBuffer},
-    datatypes::{
-        DataType, Int16Type, Int32Type, Int64Type, Int8Type, IntervalUnit, TimeUnit, UInt16Type,
-        UInt32Type, UInt64Type, UInt8Type,
-    },
     ipc,
     record_batch::RecordBatch,
     util::bit_util,
@@ -51,69 +36,6 @@ use arrow::{
 use flatbuffers_arrow::FlatBufferBuilder;
 
 use super::padding;
-
-// COPY: ::array::array.rs
-/// Constructs an array using the input `data`.
-/// Returns a reference-counted `Array` instance.
-#[must_use]
-pub fn make_array(data: ArrayData) -> ArrayRef {
-    match data.data_type() {
-        DataType::Boolean => Arc::new(BooleanArray::from(data)),
-        DataType::Int8 => Arc::new(Int8Array::from(data)),
-        DataType::Int16 => Arc::new(Int16Array::from(data)),
-        DataType::Int32 => Arc::new(Int32Array::from(data)),
-        DataType::Int64 => Arc::new(Int64Array::from(data)),
-        DataType::UInt8 => Arc::new(UInt8Array::from(data)),
-        DataType::UInt16 => Arc::new(UInt16Array::from(data)),
-        DataType::UInt32 => Arc::new(UInt32Array::from(data)),
-        DataType::UInt64 => Arc::new(UInt64Array::from(data)),
-        DataType::Float16 => panic!("Float16 datatype not supported"),
-        DataType::Float32 => Arc::new(Float32Array::from(data)),
-        DataType::Float64 => Arc::new(Float64Array::from(data)),
-        DataType::Date32 => Arc::new(Date32Array::from(data)),
-        DataType::Date64 => Arc::new(Date64Array::from(data)),
-        DataType::Time32(TimeUnit::Second) => Arc::new(Time32SecondArray::from(data)),
-        DataType::Time32(TimeUnit::Millisecond) => Arc::new(Time32MillisecondArray::from(data)),
-        DataType::Time64(TimeUnit::Microsecond) => Arc::new(Time64MicrosecondArray::from(data)),
-        DataType::Time64(TimeUnit::Nanosecond) => Arc::new(Time64NanosecondArray::from(data)),
-        DataType::Timestamp(TimeUnit::Second, _) => Arc::new(TimestampSecondArray::from(data)),
-        DataType::Timestamp(TimeUnit::Millisecond, _) => {
-            Arc::new(TimestampMillisecondArray::from(data))
-        }
-        DataType::Timestamp(TimeUnit::Microsecond, _) => {
-            Arc::new(TimestampMicrosecondArray::from(data))
-        }
-        DataType::Timestamp(TimeUnit::Nanosecond, _) => {
-            Arc::new(TimestampNanosecondArray::from(data))
-        }
-        DataType::Interval(IntervalUnit::YearMonth) => Arc::new(IntervalYearMonthArray::from(data)),
-        DataType::Interval(IntervalUnit::DayTime) => Arc::new(IntervalDayTimeArray::from(data)),
-        DataType::Duration(TimeUnit::Second) => Arc::new(DurationSecondArray::from(data)),
-        DataType::Duration(TimeUnit::Millisecond) => Arc::new(DurationMillisecondArray::from(data)),
-        DataType::Duration(TimeUnit::Microsecond) => Arc::new(DurationMicrosecondArray::from(data)),
-        DataType::Duration(TimeUnit::Nanosecond) => Arc::new(DurationNanosecondArray::from(data)),
-        DataType::Binary => Arc::new(BinaryArray::from(data)),
-        DataType::FixedSizeBinary(_) => Arc::new(FixedSizeBinaryArray::from(data)),
-        DataType::Utf8 => Arc::new(StringArray::from(data)),
-        DataType::List(_) => Arc::new(ListArray::from(data)),
-        DataType::Struct(_) => Arc::new(StructArray::from(data)),
-        DataType::Union(_) => Arc::new(UnionArray::from(data)),
-        DataType::FixedSizeList(..) => Arc::new(FixedSizeListArray::from(data)),
-        DataType::Dictionary(ref key_type, _) => match key_type.as_ref() {
-            DataType::Int8 => Arc::new(DictionaryArray::<Int8Type>::from(data)),
-            DataType::Int16 => Arc::new(DictionaryArray::<Int16Type>::from(data)),
-            DataType::Int32 => Arc::new(DictionaryArray::<Int32Type>::from(data)),
-            DataType::Int64 => Arc::new(DictionaryArray::<Int64Type>::from(data)),
-            DataType::UInt8 => Arc::new(DictionaryArray::<UInt8Type>::from(data)),
-            DataType::UInt16 => Arc::new(DictionaryArray::<UInt16Type>::from(data)),
-            DataType::UInt32 => Arc::new(DictionaryArray::<UInt32Type>::from(data)),
-            DataType::UInt64 => Arc::new(DictionaryArray::<UInt64Type>::from(data)),
-            dt => panic!("Unexpected dictionary key type {:?}", dt),
-        },
-        DataType::Null => Arc::new(NullArray::from(data)),
-        dt => panic!("Unexpected data type {:?}", dt),
-    }
-}
 
 // ADD
 /// Walks through the process of serializing the record batch to bytes in the arrow format to

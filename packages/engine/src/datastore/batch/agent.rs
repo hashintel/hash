@@ -7,7 +7,7 @@
 use std::{borrow::Cow, sync::Arc};
 
 use arrow::{
-    array::{self, ArrayData, ArrayRef},
+    array::{self, make_array, ArrayData, ArrayRef},
     datatypes::DataType,
     ipc::{
         reader::read_record_batch,
@@ -23,10 +23,7 @@ use crate::{
     datastore::{
         arrow::{
             batch_conversion::{col_to_json_vals, IntoRecordBatch},
-            ipc::{
-                make_array, record_batch_data_to_bytes_owned_unchecked,
-                simulate_record_batch_to_bytes,
-            },
+            ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
             meta_conversion::{get_dynamic_meta_flatbuffers, HashDynamicMeta, HashStaticMeta},
         },
         prelude::*,
