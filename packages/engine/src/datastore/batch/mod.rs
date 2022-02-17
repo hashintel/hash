@@ -77,7 +77,7 @@ pub trait DynamicBatch: ArrowBatch {
         self.metaversion_mut().increment_batch();
 
         // Reload dynamic meta
-        let batch_message = arrow_ipc::get_root_as_message(meta_buffer.as_ref())
+        let batch_message = arrow_ipc::root_as_message(meta_buffer.as_ref())?
             .header_as_record_batch()
             .ok_or_else(|| Error::ArrowBatch("Couldn't read message".into()))?;
 
@@ -120,7 +120,7 @@ mod load {
     /// Read the Arrow RecordBatch metadata from memory
     pub fn record_batch_message<K: Batch>(batch: &K) -> Result<RecordBatchMessage<'_>> {
         let (_, _, meta_buffer, _) = batch.memory().get_batch_buffers()?;
-        arrow_ipc::get_root_as_message(meta_buffer)
+        arrow_ipc::root_as_message(meta_buffer)?
             .header_as_record_batch()
             .ok_or(Error::InvalidRecordBatchIpcMessage)
     }

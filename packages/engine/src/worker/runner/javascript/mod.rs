@@ -9,7 +9,7 @@ use arrow::{
     array::{ArrayData, ArrayDataRef},
     buffer::{Buffer, MutableBuffer},
     datatypes::{DataType, Schema},
-    ipc::writer::{schema_to_bytes, IpcWriteOptions},
+    ipc::writer::{IpcDataGenerator, IpcWriteOptions},
 };
 use futures::FutureExt;
 use mv8::MiniV8;
@@ -372,7 +372,8 @@ fn bytes_to_js<'m>(mv8: &'m MiniV8, bytes: &mut [u8]) -> mv8::Value<'m> {
 }
 
 fn schema_to_stream_bytes(schema: &Schema) -> Vec<u8> {
-    let content = schema_to_bytes(schema, &IpcWriteOptions::default());
+    let ipc_data_generator = IpcDataGenerator::default();
+    let content = ipc_data_generator.schema_to_bytes(schema, &IpcWriteOptions::default());
     let mut stream_bytes = arrow_continuation(content.ipc_message.len());
     stream_bytes.extend_from_slice(&content.ipc_message);
     stream_bytes
@@ -562,18 +563,21 @@ impl<'m> RunnerImpl<'m> {
 
         let n_children = child_data.len();
         let child_data: Vec<ArrayDataRef> = match dt.clone() {
-            DataType::List(t) => {
-                let child: mv8::Value<'_> = child_data.get(0)?;
-                Ok(vec![Arc::new(
-                    self.array_data_from_js(mv8, &child, &t, None)?,
-                )])
-            }
-            DataType::FixedSizeList(t, multiplier) => {
+            DataType::List(field) => {
                 let child: mv8::Value<'_> = child_data.get(0)?;
                 Ok(vec![Arc::new(self.array_data_from_js(
                     mv8,
                     &child,
-                    &t,
+                    field.data_type(),
+                    None,
+                )?)])
+            }
+            DataType::FixedSizeList(field, multiplier) => {
+                let child: mv8::Value<'_> = child_data.get(0)?;
+                Ok(vec![Arc::new(self.array_data_from_js(
+                    mv8,
+                    &child,
+                    field.data_type(),
                     Some(data.len * multiplier as usize),
                 )?)])
             }
@@ -676,8 +680,8 @@ impl<'m> RunnerImpl<'m> {
             } else {
                 // This happens when we have fixed size buffers, but the inner nodes are null
                 let mut mut_buffer = MutableBuffer::new(len);
-                mut_buffer.resize(len)?;
-                mut_buffer.freeze()
+                mut_buffer.resize(len);
+                mut_buffer.into()
             };
             // let buffer = unsafe { Buffer::from_unowned(ptr, len, capacity) };
             buffers.push(buffer);

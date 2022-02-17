@@ -87,17 +87,12 @@ impl IntoArrowChange for ChainList {
 
         // Indices
         let builder = arrow::array::ArrayDataBuilder::new(self.data_types[2].clone());
-        let child_data = builder
-            .len(num_indices)
-            .null_count(0)
-            .buffers(vec![data.freeze()])
-            .build();
+        let child_data = builder.len(num_indices).buffers(vec![data.into()]).build();
 
         // Fixed-length lists
         let builder = arrow::array::ArrayDataBuilder::new(self.data_types[1].clone());
         let child_data = builder
             .len(num_behavior_ids)
-            .null_count(0)
             .child_data(vec![child_data])
             .build();
 
@@ -105,8 +100,7 @@ impl IntoArrowChange for ChainList {
         let builder = arrow::array::ArrayDataBuilder::new(self.data_types[0].clone());
         let data = builder
             .len(num_agents)
-            .null_count(0)
-            .buffers(vec![offsets.freeze()])
+            .buffers(vec![offsets.into()])
             .add_child_data(child_data)
             .build();
 

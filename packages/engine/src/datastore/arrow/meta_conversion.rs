@@ -14,7 +14,6 @@ use arrow::ipc::{
     MetadataVersion, RecordBatch, RecordBatchBuilder,
 };
 
-use super::util::FlatBufferWrapper;
 use crate::datastore::{
     error::Error,
     meta::{Buffer, BufferType, Column as ColumnMeta, NodeMapping},
@@ -42,7 +41,7 @@ pub enum SupportedArrowDataTypes {
 
     Time32(ArrowTimeUnit),
     Time64(ArrowTimeUnit),
-    Timestamp(ArrowTimeUnit, Option<Arc<String>>),
+    Timestamp(ArrowTimeUnit, Option<String>),
 
     Date32(ArrowDateUnit),
     Date64(ArrowDateUnit),
@@ -88,36 +87,15 @@ impl TryFrom<ArrowDataType> for SupportedArrowDataTypes {
             ArrowDataType::Interval(interval) => Ok(Self::Interval(interval)),
             ArrowDataType::Duration(elapsed) => Ok(Self::Duration(elapsed)),
 
-            ArrowDataType::List(d_type) => Ok(Self::List(Box::new(Self::try_from(*d_type)?))),
-            ArrowDataType::FixedSizeList(d_type, size) => Ok(Self::FixedSizeList(
-                Box::new(Self::try_from(*d_type)?),
+            ArrowDataType::List(field) => Ok(Self::List(Box::new(Self::try_from(
+                field.data_type().clone(),
+            )?))),
+            ArrowDataType::FixedSizeList(field, size) => Ok(Self::FixedSizeList(
+                Box::new(Self::try_from(field.data_type().clone())?),
                 size,
             )),
             ArrowDataType::Struct(fields) => Ok(Self::Struct(fields)),
-
-            ArrowDataType::Null => Err(Error::UnsupportedArrowDataType {
-                d_type: ArrowDataType::Null,
-            }),
-            ArrowDataType::Float16 => Err(Error::UnsupportedArrowDataType {
-                d_type: ArrowDataType::Float16,
-            }),
-            ArrowDataType::LargeUtf8 => Err(Error::UnsupportedArrowDataType {
-                d_type: ArrowDataType::LargeUtf8,
-            }),
-            ArrowDataType::LargeBinary => Err(Error::UnsupportedArrowDataType {
-                d_type: ArrowDataType::LargeBinary,
-            }),
-            ArrowDataType::LargeList(d_type) => Err(Error::UnsupportedArrowDataType {
-                d_type: ArrowDataType::LargeList(d_type),
-            }),
-            ArrowDataType::Union(fields) => Err(Error::UnsupportedArrowDataType {
-                d_type: ArrowDataType::Union(fields),
-            }),
-            ArrowDataType::Dictionary(key_type, value_type) => {
-                Err(Error::UnsupportedArrowDataType {
-                    d_type: ArrowDataType::Dictionary(key_type, value_type),
-                })
-            }
+            d_type => Err(Error::UnsupportedArrowDataType { d_type }),
         }
     }
 }
@@ -182,7 +160,7 @@ impl HashDynamicMeta for RecordBatch<'_> {
 
 /// Computes the flat_buffers builder from the metadata, using this builder
 /// the metadata of a shared batch can be modified
-pub fn get_dynamic_meta_flatbuffers<'a>(meta: &DynamicMeta) -> Result<FlatBufferWrapper<'a>> {
+pub fn get_dynamic_meta_flatbuffers(meta: &DynamicMeta) -> Result<Vec<u8>> {
     // The reason why we're returning `FlatBufferBuilder` is that we don't want to
     // clone the buffer it owns and cannot return a reference, because otherwise
     // it would get dropped here
@@ -224,7 +202,9 @@ pub fn get_dynamic_meta_flatbuffers<'a>(meta: &DynamicMeta) -> Result<FlatBuffer
     message.add_header(root);
     let root = message.finish();
     fbb.finish(root, None);
-    Ok(fbb.into())
+    let finished_data = fbb.finished_data();
+
+    Ok(finished_data.to_vec())
 }
 
 /// Column hierarchy is the mapping from column index to buffer and node indices.
@@ -1089,8 +1069,8 @@ pub mod tests {
             TimeUnit::Second,
         ] {
             for time_zone in [
-                Some(Arc::new("UTC".to_string())),
-                Some(Arc::new("Africa/Johannesburg".to_string())),
+                Some("UTC".to_string()),
+                Some("Africa/Johannesburg".to_string()),
                 None,
             ] {
                 fields.push(ArrowField::new(
@@ -1347,8 +1327,16 @@ pub mod tests {
     #[test]
     fn list_dtype_schema_to_col_hierarchy() {
         let fields = vec![
-            ArrowField::new("c0", D::List(Box::new(D::Boolean)), false),
-            ArrowField::new("c1", D::List(Box::new(D::UInt32)), false),
+            ArrowField::new(
+                "c0",
+                D::List(Box::new(ArrowField::new("item", D::Boolean, true))),
+                false,
+            ),
+            ArrowField::new(
+                "c1",
+                D::List(Box::new(ArrowField::new("item", D::UInt32, true))),
+                false,
+            ),
         ];
 
         let schema = ArrowSchema::new_with_metadata(fields.clone(), get_dummy_metadata());

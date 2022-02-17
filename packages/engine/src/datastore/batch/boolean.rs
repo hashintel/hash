@@ -12,7 +12,7 @@ impl Column {
         let data = array.data_ref();
         let bool_buffer = &data.buffers()[0];
         Column {
-            data: bool_buffer.raw_data() as *mut _,
+            data: bool_buffer.as_ptr() as *mut _,
         }
     }
 

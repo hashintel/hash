@@ -38,11 +38,11 @@ impl GrowableArrayData for Arc<array::ArrayData> {
     }
 
     fn _null_buffer(&self) -> Option<&[u8]> {
-        self.null_buffer().map(ArrowBuffer::data)
+        self.null_buffer().map(ArrowBuffer::as_slice)
     }
 
     fn _get_buffer(&self, index: usize) -> &[u8] {
-        self.buffers()[index].data()
+        self.buffers()[index].as_slice()
     }
 
     fn _child_data(&self) -> &[Self] {

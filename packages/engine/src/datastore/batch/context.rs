@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use arrow::ipc::{
     reader::read_record_batch,
-    writer::{record_batch_to_bytes, IpcWriteOptions},
+    writer::{DictionaryTracker, IpcDataGenerator, IpcWriteOptions},
 };
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
@@ -68,7 +68,13 @@ impl ContextBatch {
         schema: Option<&Arc<ArrowSchema>>,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
-        let encoded_data = record_batch_to_bytes(record_batch, &IpcWriteOptions::default());
+        let ipc_data_generator = IpcDataGenerator::default();
+        let mut dictionary_tracker = DictionaryTracker::new(true);
+        let (_, encoded_data) = ipc_data_generator.encoded_batch(
+            record_batch,
+            &mut dictionary_tracker,
+            &IpcWriteOptions::default(),
+        )?;
 
         let memory = Memory::from_batch_buffers(
             experiment_id,
@@ -86,14 +92,14 @@ impl ContextBatch {
         let schema = if let Some(s) = schema {
             s.clone()
         } else {
-            let message = arrow_ipc::get_root_as_message(schema_buffer);
+            let message = arrow_ipc::root_as_message(schema_buffer)?;
             let ipc_schema = match message.header_as_schema() {
                 Some(s) => s,
                 None => return Err(Error::ArrowSchemaRead),
             };
             Arc::new(arrow_ipc::convert::fb_to_schema(ipc_schema))
         };
-        let rb_msg = arrow_ipc::get_root_as_message(meta_buffer)
+        let rb_msg = arrow_ipc::root_as_message(meta_buffer)?
             .header_as_record_batch()
             .ok_or(Error::InvalidRecordBatchIpcMessage)?;
         let batch = read_record_batch(data_buffer, rb_msg, schema, &[])?;
@@ -165,7 +171,7 @@ impl ContextBatch {
 
         // Reload batch
         let (_, _, meta_buffer, data_buffer) = self.memory.get_batch_buffers()?;
-        let rb_msg = &arrow_ipc::get_root_as_message(meta_buffer)
+        let rb_msg = &arrow_ipc::root_as_message(meta_buffer)?
             .header_as_record_batch()
             .ok_or(Error::InvalidRecordBatchIpcMessage)?;
         self.batch = read_record_batch(data_buffer, *rb_msg, self.batch.schema(), &[])?;

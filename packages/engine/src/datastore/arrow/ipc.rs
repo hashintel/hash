@@ -51,7 +51,7 @@ use arrow::{
 };
 use flatbuffers_arrow::FlatBufferBuilder;
 
-use super::{padding, util::FlatBufferWrapper};
+use super::padding;
 
 // COPY: ::array::array.rs
 /// Constructs an array using the input `data`.
@@ -120,9 +120,7 @@ pub fn make_array(data: ArrayDataRef) -> ArrayRef {
 /// Walks through the process of serializing the record batch to bytes in the arrow format to
 /// calculate the necessary size.
 #[must_use]
-pub fn simulate_record_batch_to_bytes<'fbb>(
-    batch: &RecordBatch,
-) -> (FlatBufferWrapper<'fbb>, usize) {
+pub fn simulate_record_batch_to_bytes(batch: &RecordBatch) -> (Vec<u8>, usize) {
     let mut fbb = FlatBufferBuilder::new();
 
     let mut nodes: Vec<ipc::FieldNode> = vec![];
@@ -161,8 +159,9 @@ pub fn simulate_record_batch_to_bytes<'fbb>(
     message.add_header(root);
     let root = message.finish();
     fbb.finish(root, None);
+    let finished_data = fbb.finished_data();
 
-    (fbb.into(), offset as usize)
+    (finished_data.to_vec(), offset as usize)
 }
 
 // ADD
@@ -235,7 +234,7 @@ fn write_array_data_owned(
             let num_bytes = bit_util::ceil(num_rows, 8);
             let buffer = MutableBuffer::new(num_bytes);
             let buffer = buffer.with_bitset(num_bytes, true);
-            buffer.freeze()
+            buffer.into()
         }
         Some(buffer) => buffer.clone(),
     };
@@ -270,6 +269,6 @@ fn write_buffer_owned(buffer: &Buffer, arrow_data: &mut [u8], offset: i64) -> i6
     let len = buffer.len();
     let total_len = padding::get_dynamic_buffer_length(len) as i64;
     let offset_usize = offset as usize;
-    arrow_data[offset_usize..offset_usize + len].copy_from_slice(buffer.data());
+    arrow_data[offset_usize..offset_usize + len].copy_from_slice(buffer.as_slice());
     offset + total_len
 }

@@ -7,12 +7,11 @@
 use std::{borrow::Cow, sync::Arc};
 
 use arrow::{
-    array,
-    array::{ArrayRef, PrimitiveArrayOps},
+    array::{self, ArrayRef},
     datatypes::DataType,
     ipc::{
         reader::read_record_batch,
-        writer::{schema_to_bytes, IpcWriteOptions},
+        writer::{IpcDataGenerator, IpcWriteOptions},
     },
 };
 
@@ -178,24 +177,26 @@ impl AgentBatch {
         schema: &AgentSchema,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
-        let schema_buffer = schema_to_bytes(&schema.arrow, &IpcWriteOptions::default());
+        let ipc_data_generator = IpcDataGenerator::default();
+        let schema_buffer =
+            ipc_data_generator.schema_to_bytes(&schema.arrow, &IpcWriteOptions::default());
 
         let header_buffer = vec![]; // Nothing here
 
-        let (meta_buffer, data_len) = simulate_record_batch_to_bytes(record_batch);
+        let (ipc_message, data_len) = simulate_record_batch_to_bytes(record_batch);
 
         let mut memory = Memory::from_sizes(
             experiment_id,
             schema_buffer.ipc_message.len(),
             header_buffer.len(),
-            meta_buffer.len(),
+            ipc_message.len(),
             data_len,
             true,
         )?;
 
         memory.set_schema(&schema_buffer.ipc_message)?;
         memory.set_header(&header_buffer)?;
-        memory.set_metadata(&meta_buffer)?;
+        memory.set_metadata(&ipc_message)?;
 
         let data_buffer = memory.get_mut_data_buffer()?;
         // Write new data
@@ -214,7 +215,7 @@ impl AgentBatch {
         let (schema, static_meta) = if let Some(s) = schema {
             (s.arrow.clone(), s.static_meta.clone())
         } else {
-            let message = arrow_ipc::get_root_as_message(schema_buffer);
+            let message = arrow_ipc::root_as_message(schema_buffer)?;
             let ipc_schema = match message.header_as_schema() {
                 Some(s) => s,
                 None => return Err(Error::ArrowSchemaRead),
@@ -224,7 +225,7 @@ impl AgentBatch {
             (schema, static_meta)
         };
 
-        let batch_message = arrow_ipc::get_root_as_message(meta_buffer)
+        let batch_message = arrow_ipc::root_as_message(meta_buffer)?
             .header_as_record_batch()
             .ok_or_else(|| Error::ArrowBatch("Couldn't read message".into()))?;
 
@@ -248,7 +249,9 @@ impl AgentBatch {
         dynamic_meta: &DynamicMeta,
         experiment_id: &ExperimentId,
     ) -> Result<Memory> {
-        let schema_buffer = schema_to_bytes(&schema.arrow, &IpcWriteOptions::default());
+        let ipc_data_generator = IpcDataGenerator::default();
+        let schema_buffer =
+            ipc_data_generator.schema_to_bytes(&schema.arrow, &IpcWriteOptions::default());
         let header_buffer = vec![];
         let meta_buffer = get_dynamic_meta_flatbuffers(dynamic_meta)?;
 
@@ -385,7 +388,7 @@ impl AgentBatch {
                 as *const [u32; IND_N])
         };
         if let Some(nulls) = nulls {
-            let nulls = nulls.data();
+            let nulls = nulls.as_slice();
             if arrow_bit_util::get_bit(nulls, row_index) {
                 Ok(Some(res))
             } else {
@@ -403,7 +406,7 @@ impl AgentBatch {
         // FixedSizeBinary has a single buffer (no offsets)
         let data = column.data_ref();
         let buffer = &data.buffers()[0];
-        let mut ptr = buffer.raw_data();
+        let mut ptr = buffer.as_ptr();
         let offset = UUID_V4_LEN;
         Ok((0..column.len()).map(move |_| unsafe {
             let slice = &*(ptr as *const [u8; UUID_V4_LEN]);
@@ -756,7 +759,7 @@ pub fn behavior_list_bytes_iter<K: AgentList>(
 
     let list_indices = unsafe { col_data.buffers()[0].typed_data::<i32>() };
     let string_indices = unsafe { col_data.child_data()[0].buffers()[0].typed_data::<i32>() };
-    let utf_8 = col_data.child_data()[0].buffers()[1].data();
+    let utf_8 = col_data.child_data()[0].buffers()[1].as_slice();
 
     Ok((0..row_count).map(move |i| {
         let list_from = list_indices[i] as usize;

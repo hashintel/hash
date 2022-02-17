@@ -6,7 +6,7 @@ use arrow::{
     array,
     ipc::{
         reader::read_record_batch,
-        writer::{record_batch_to_bytes, IpcWriteOptions},
+        writer::{DictionaryTracker, IpcDataGenerator, IpcWriteOptions},
     },
 };
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
@@ -272,7 +272,13 @@ impl MessageBatch {
         meta: Arc<StaticMeta>,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
-        let encoded_data = record_batch_to_bytes(record_batch, &IpcWriteOptions::default());
+        let ipc_data_generator = IpcDataGenerator::default();
+        let mut dictionary_tracker = DictionaryTracker::new(true);
+        let (_, encoded_data) = ipc_data_generator.encoded_batch(
+            record_batch,
+            &mut dictionary_tracker,
+            &IpcWriteOptions::default(),
+        )?;
 
         let memory = Memory::from_batch_buffers(
             experiment_id,
@@ -292,7 +298,7 @@ impl MessageBatch {
     ) -> Result<Self> {
         let (_, _, meta_buffer, data_buffer) = memory.get_batch_buffers()?;
 
-        let batch_message = arrow_ipc::get_root_as_message(meta_buffer)
+        let batch_message = arrow_ipc::root_as_message(meta_buffer)?
             .header_as_record_batch()
             .expect("Unable to read IPC message as record batch");
 
@@ -369,7 +375,7 @@ impl MessageBatch {
         // Markers are stored in i32 in the Arrow format
         // There are n + 1 offsets always in Offset buffers in the Arrow format
         let i32_offsets =
-            unsafe { std::slice::from_raw_parts(offsets.raw_data() as *const i32, num_agents + 1) };
+            unsafe { std::slice::from_raw_parts(offsets.as_ptr() as *const i32, num_agents + 1) };
         (0..num_agents).flat_map(move |j| {
             let num_messages = i32_offsets[j + 1] - i32_offsets[j];
             let agent_index = j as u32;
@@ -391,7 +397,7 @@ impl MessageBatch {
         // Markers are stored in i32 in the Arrow format
         // There are n + 1 offsets always in Offset buffers in the Arrow format
         let i32_offsets =
-            unsafe { std::slice::from_raw_parts(offsets.raw_data() as *const i32, num_agents + 1) };
+            unsafe { std::slice::from_raw_parts(offsets.as_ptr() as *const i32, num_agents + 1) };
         (0..num_agents).into_par_iter().map(move |j| {
             let num_messages = i32_offsets[j + 1] - i32_offsets[j];
             (0..num_messages)
@@ -482,7 +488,7 @@ impl MessageBatch {
         // Markers are stored in i32 in the Arrow format
         // There are n + 1 offsets always in Offset buffers in the Arrow format
         let i32_offsets =
-            unsafe { std::slice::from_raw_parts(offsets.raw_data() as *const i32, num_agents + 1) };
+            unsafe { std::slice::from_raw_parts(offsets.as_ptr() as *const i32, num_agents + 1) };
         buffers.push(i32_offsets);
 
         let struct_level = &data.child_data()[0];
@@ -499,7 +505,7 @@ impl MessageBatch {
 
             let field_list_i32_offsets = unsafe {
                 std::slice::from_raw_parts(
-                    field_list_offsets.raw_data() as *const i32,
+                    field_list_offsets.as_ptr() as *const i32,
                     field_list_offsets_byte_len / i32_byte_len + 1,
                 )
             };
@@ -517,7 +523,7 @@ impl MessageBatch {
 
         let field_i32_offsets = unsafe {
             std::slice::from_raw_parts(
-                field_offsets.raw_data() as *const i32,
+                field_offsets.as_ptr() as *const i32,
                 field_offsets_byte_len / i32_byte_len,
             )
         };
@@ -527,7 +533,7 @@ impl MessageBatch {
 
         // This panics when we have messed up with indices.
         // Arrow string arrays hold utf-8 strings
-        let field = std::str::from_utf8(field_data.data()).unwrap();
+        let field = std::str::from_utf8(field_data.as_slice()).unwrap();
         (buffers, field)
     }
 }
