@@ -687,16 +687,16 @@ impl<'m> RunnerImpl<'m> {
             buffers.push(buffer);
         }
 
-        let data = ArrayData::new(
-            dt.clone(),
-            len.unwrap_or(data.len),
-            Some(data.null_count),
-            null_bit_buffer,
-            0,
-            buffers,
-            child_data,
-        );
-        Ok(data)
+        let mut builder = ArrayData::builder(dt.clone())
+            .len(len.unwrap_or(data.len))
+            .null_count(data.null_count)
+            .buffers(buffers)
+            .child_data(child_data);
+        if let Some(null_bit_buffer) = null_bit_buffer {
+            builder = builder.null_bit_buffer(null_bit_buffer);
+        }
+
+        Ok(builder.build()?)
     }
 
     fn flush_batch<B: DynamicBatch>(

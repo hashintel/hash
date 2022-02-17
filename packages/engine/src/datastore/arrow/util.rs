@@ -48,54 +48,6 @@ impl AsRef<[u8]> for FlatBufferWrapper<'_> {
     }
 }
 
-pub fn bool_to_arrow(data: &[bool]) -> array::ArrayData {
-    let num_byte = arrow_bit_util::ceil(data.len(), 8);
-    let mut mut_buf = ArrowMutableBuffer::new(num_byte).with_bitset(num_byte, false);
-    {
-        let mut_slice = mut_buf.as_slice_mut();
-        for (i, b) in data.iter().enumerate() {
-            if *b {
-                arrow_bit_util::set_bit(mut_slice, i);
-            }
-        }
-    }
-    array::ArrayData::builder(ArrowDataType::Boolean)
-        .len(data.len())
-        .add_buffer(mut_buf.into())
-        .build()
-}
-
-pub fn opt_bool_to_arrow(data: &[Option<bool>]) -> array::ArrayData {
-    let num_byte = arrow_bit_util::ceil(data.len(), 8);
-    let mut nulls = ArrowMutableBuffer::new(num_byte).with_bitset(num_byte, false);
-    let mut mut_buf = ArrowMutableBuffer::new(num_byte).with_bitset(num_byte, false);
-    let mut null_count = 0;
-    {
-        let mut_slice = mut_buf.as_slice_mut();
-        let mut_nulls = nulls.as_slice_mut();
-        for (i, b) in data.iter().enumerate() {
-            if let Some(b) = b {
-                arrow_bit_util::set_bit(mut_nulls, i);
-                if *b {
-                    arrow_bit_util::set_bit(mut_slice, i);
-                }
-            } else {
-                null_count += 1;
-            }
-        }
-    }
-    // TODO: Use ArroyDataBuilder
-    array::ArrayData::new(
-        ArrowDataType::Boolean,
-        data.len(),
-        Some(null_count),
-        Some(nulls.into()),
-        0,
-        vec![mut_buf.into()],
-        vec![],
-    )
-}
-
 pub fn get_bit(buffer: &[u8], i: usize) -> bool {
     arrow_bit_util::get_bit(buffer, i)
 }

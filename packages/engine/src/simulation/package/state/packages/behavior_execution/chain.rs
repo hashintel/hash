@@ -1,5 +1,7 @@
 use std::ops::Deref;
 
+use arrow::array::ArrayData;
+
 use super::*;
 use crate::{
     datastore::{
@@ -86,23 +88,23 @@ impl IntoArrowChange for ChainList {
         }
 
         // Indices
-        let builder = arrow::array::ArrayDataBuilder::new(self.data_types[2].clone());
-        let child_data = builder.len(num_indices).buffers(vec![data.into()]).build();
+        let child_data = ArrayData::builder(self.data_types[2].clone())
+            .len(num_indices)
+            .add_buffer(data.into())
+            .build()?;
 
         // Fixed-length lists
-        let builder = arrow::array::ArrayDataBuilder::new(self.data_types[1].clone());
-        let child_data = builder
+        let child_data = ArrayData::builder(self.data_types[1].clone())
             .len(num_behavior_ids)
-            .child_data(vec![child_data])
-            .build();
+            .add_child_data(child_data)
+            .build()?;
 
         // Variable-length lists
-        let builder = arrow::array::ArrayDataBuilder::new(self.data_types[0].clone());
-        let data = builder
+        let data = ArrayData::builder(self.data_types[0].clone())
             .len(num_agents)
-            .buffers(vec![offsets.into()])
+            .add_buffer(offsets.into())
             .add_child_data(child_data)
-            .build();
+            .build()?;
 
         Ok(ArrayChange::new(data, self.behavior_ids_col_index))
     }

@@ -145,18 +145,14 @@ macro_rules! agents_to_vec_col_gen {
                 Box::new(ArrowField::new("item", ArrowDataType::Float64, true)),
                 3,
             );
-            // TODO: Use ArrayDataBuilder
-            let list_data = ArrayData::new(
-                dt,
-                agents.len(),
-                Some(null_count),
-                Some(null_bits.into()),
-                0,
-                vec![],
-                vec![child_array.data().clone()],
-            );
 
-            Ok(list_data.into())
+            Ok(ArrayData::builder(dt)
+                .len(agents.len())
+                .null_count(null_count)
+                .null_bit_buffer(null_bits.into())
+                .add_child_data(child_array.data().clone())
+                .build()?
+                .into())
         }
     };
 }
@@ -251,18 +247,14 @@ fn json_vals_to_list(
     // Nested values are always nullable.
     let child_data = json_vals_to_col(combined_vals, &inner_field, true)?;
 
-    // TODO: Use `ArrowDataBuilder`
-    let list_data = ArrayData::new(
-        ArrowDataType::List(inner_field),
-        n_elem,
-        Some(null_count),
-        Some(null_bits.into()),
-        0,
-        vec![offsets.into()],
-        vec![child_data.data().clone()],
-    );
-
-    Ok(list_data.into())
+    Ok(ArrayData::builder(ArrowDataType::List(inner_field))
+        .len(n_elem)
+        .null_count(null_count)
+        .null_bit_buffer(null_bits.into())
+        .add_buffer(offsets.into())
+        .add_child_data(child_data.data().clone())
+        .build()?
+        .into())
 }
 
 fn json_vals_to_fixed_size_list(
@@ -301,18 +293,15 @@ fn json_vals_to_fixed_size_list(
     // Nested values are always nullable.
     let child_data = json_vals_to_col(combined_vals, &inner_field, true)?;
 
-    // TODO: Use `ArrowDataBuilder`
-    let list_data = ArrayData::new(
-        ArrowDataType::FixedSizeList(inner_field, size),
-        n_elem,
-        Some(null_count),
-        Some(null_bits.into()),
-        0,
-        vec![],
-        vec![child_data.data().clone()],
-    );
-
-    Ok(list_data.into())
+    Ok(
+        ArrayData::builder(ArrowDataType::FixedSizeList(inner_field, size))
+            .len(n_elem)
+            .null_count(null_count)
+            .null_bit_buffer(null_bits.into())
+            .add_child_data(child_data.data().clone())
+            .build()?
+            .into(),
+    )
 }
 
 fn json_vals_to_struct(
@@ -452,17 +441,17 @@ fn previous_index_to_empty_col(num_agents: usize, dt: ArrowDataType) -> Result<A
         let mut buffer = MutableBuffer::new(data_byte_size);
         buffer.resize(data_byte_size, 0);
 
-        let builder = ArrayDataBuilder::new(dt)
+        let data = ArrayDataBuilder::new(dt)
             .len(num_agents)
             .add_child_data(
-                ArrayDataBuilder::new(inner_field.data_type().clone())
+                ArrayData::builder(inner_field.data_type().clone())
                     .len(num_agents * inner_len as usize)
                     .add_buffer(buffer.into())
-                    .build(),
+                    .build()?,
             )
-            .build();
-        let array = arrow::array::FixedSizeListArray::from(builder);
-        Ok(Arc::new(array))
+            .build()?;
+
+        Ok(Arc::new(arrow::array::FixedSizeListArray::from(data)))
     } else {
         Err(Error::from(format!(
             "previous_index_to_empty_col was called on the wrong datatype: {:?}",
