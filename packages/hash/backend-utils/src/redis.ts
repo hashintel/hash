@@ -79,13 +79,13 @@ export class AsyncRedisClient extends DataSource {
     });
     // These are all the Redis events we can listen to, using them for logging.
     client.on("connect", () => {
-      this.logger.info("Redis client is connecting");
+      this.logger.debug("Redis client is connecting");
     });
     client.on("ready", () => {
-      this.logger.info("Redis client is connected and ready.");
+      this.logger.debug("Redis client is connected and ready.");
     });
     client.on("end", () => {
-      this.logger.info("Redis connection has been disconnected by client.");
+      this.logger.debug("Redis connection has been disconnected by client.");
     });
     client.on("error", (error) => {
       this.logger.error({
