@@ -1376,8 +1376,9 @@ var arrow;
           // (initially ASCII), iso-2022-jp lead (initially 0x00), and
           // iso-2022-jp output flag (initially unset).
           /** @type {number} */ (this.iso2022jp_decoder_state = states.ASCII),
-            /** @type {number} */ (this.iso2022jp_decoder_output_state =
-              states.ASCII),
+            /** @type {number} */ (
+              this.iso2022jp_decoder_output_state = states.ASCII
+            ),
             /** @type {number} */ (this.iso2022jp_lead = 0x00),
             /** @type {boolean} */ (this.iso2022jp_output_flag = false);
         }
@@ -15193,21 +15194,32 @@ PERFORMANCE OF THIS SOFTWARE.
 
     /** @ignore */
     class StructBuilder extends Builder {
+      set(index, value) {
+        this.setValid(index, this.isValid(value));
+        this.setValue(index, value);
+        return this;
+      }
       setValue(index, value) {
         const children = this.children;
-        switch (Array.isArray(value) || value.constructor) {
-          case true:
-            return this.type.children.forEach((_, i) =>
-              children[i].set(index, value[i]),
-            );
-          case Map:
-            return this.type.children.forEach((f, i) =>
-              children[i].set(index, value.get(f.name)),
-            );
-          default:
-            return this.type.children.forEach((f, i) =>
-              children[i].set(index, value[f.name]),
-            );
+        if (value === null) {
+          return this.type.children.forEach((_, i) =>
+            children[i].set(index, null),
+          );
+        } else {
+          switch (Array.isArray(value) || value.constructor) {
+            case true:
+              return this.type.children.forEach((_, i) =>
+                children[i].set(index, value[i]),
+              );
+            case Map:
+              return this.type.children.forEach((f, i) =>
+                children[i].set(index, value.get(f.name)),
+              );
+            default:
+              return this.type.children.forEach((f, i) =>
+                children[i].set(index, value[f.name]),
+              );
+          }
         }
       }
       addChild(child, name = `${this.numChildren}`) {
@@ -19412,6 +19424,7 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
       constructor(source) {
         this.source =
           source instanceof ByteStream ? source : new ByteStream(source);
+        this.VectorLoader = VectorLoader;
       }
       [Symbol.iterator]() {
         return this;
@@ -22046,5 +22059,6 @@ or supply a \`valueToChildTypeId\` function as part of the UnionBuilder construc
   })();
 
   arrow = __webpack_exports__;
+  return arrow;
   /******/
 })();
