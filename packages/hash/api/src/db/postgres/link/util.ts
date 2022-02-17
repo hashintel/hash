@@ -4,33 +4,6 @@ import { Connection } from "../types";
 import { DBLink } from "../../adapter";
 import { mapColumnNamesToSQL } from "../util";
 
-const outgoingLinksColumnNames = [
-  "source_account_id",
-  "source_entity_id",
-  "link_id",
-];
-
-const outgoingLinksColumnNamesSQL = mapColumnNamesToSQL(
-  outgoingLinksColumnNames,
-);
-
-export const insertOutgoingLink = async (
-  conn: Connection,
-  params: {
-    sourceAccountId: string;
-    sourceEntityId: string;
-    linkId: string;
-  },
-): Promise<void> => {
-  await conn.query(sql`
-    insert into outgoing_links (${outgoingLinksColumnNamesSQL})
-    values (${sql.join(
-      [params.sourceAccountId, params.sourceEntityId, params.linkId],
-      sql`, `,
-    )})
-  `);
-};
-
 const incomingLinksColumnNames = [
   "destination_account_id",
   "destination_entity_id",
@@ -145,9 +118,6 @@ export const insertLink = async (
         sql`, `,
       )})
     `),
-    insertOutgoingLink(conn, {
-      ...params,
-    }),
     insertIncomingLink(conn, {
       ...params,
     }),

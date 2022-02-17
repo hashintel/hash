@@ -7,29 +7,6 @@ select create_fk_if_not_exists(
   '(account_id, entity_id)'                    --to_columns
 );
 
--- FK from outgoing_links --> entity_versions
-select create_fk_if_not_exists(
-  'outgoing_links_source_account_id_source_entity_id_fk',   --constraint_name
-  'outgoing_links',                                         --from_table
-  '(source_account_id, source_entity_id)',                  --from_columns
-  'entities',                                               --to_table
-  '(account_id, entity_id)'                                 --to_columns
-);
-
--- FK from outgoing_links --> links on the parent entity. We cannot create this
--- if Citus is enabled because child_account_id is not a distribution column.
-do $$ begin
-  if not is_citus_enabled() then
-    perform create_fk_if_not_exists(
-      'outgoing_links_source_account_id_link_id_fk',    --constraint_name
-      'outgoing_links',                                 --from_table
-      '(source_account_id, link_id)',                   --from_columns
-      'links',                                          --to_table
-      '(source_account_id, link_id)'                    --to_columns
-    );
-  end if;
-end; $$;
-
 -- FK from incoming_links --> entity_versions
 select create_fk_if_not_exists(
   'incoming_links_destination_account_id_destination_entity_id_fk',   --constraint_name
