@@ -103,9 +103,9 @@ dependencies = [
 
 [[package]]
 name = "arrow"
-version = "8.0.0"
+version = "9.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce240772a007c63658c1d335bb424fd1019b87895dee899b7bf70e85b2d24e5f"
+checksum = "374ec8e5f39015ab754cfc63398a897423c877b66aecbfd036903b2c9c07f244"
 dependencies = [
  "bitflags",
  "chrono",
