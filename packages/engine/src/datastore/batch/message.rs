@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use arrow::{
     array,
+    array::ArrayData,
     ipc::{
         reader::read_record_batch,
         writer::{DictionaryTracker, IpcDataGenerator, IpcWriteOptions},
@@ -128,7 +129,7 @@ impl DynamicBatch for MessageBatch {
     }
 }
 
-impl GrowableBatch<ArrayChange, Arc<array::ArrayData>> for MessageBatch {
+impl GrowableBatch<ArrayChange, ArrayData> for MessageBatch {
     fn take_changes(&mut self) -> Vec<ArrayChange> {
         std::mem::replace(&mut self.changes, Vec::with_capacity(3))
     }

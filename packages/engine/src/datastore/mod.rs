@@ -30,8 +30,8 @@ pub mod prelude {
         array::Array as ArrowArray,
         buffer::{Buffer as ArrowBuffer, MutableBuffer as ArrowMutableBuffer},
         datatypes::{
-            DataType as ArrowDataType, DateUnit as ArrowDateUnit, Field as ArrowField,
-            IntervalUnit as ArrowIntervalUnit, Schema as ArrowSchema, TimeUnit as ArrowTimeUnit,
+            DataType as ArrowDataType, Field as ArrowField, IntervalUnit as ArrowIntervalUnit,
+            Schema as ArrowSchema, TimeUnit as ArrowTimeUnit,
         },
         error::ArrowError,
         ipc as arrow_ipc,

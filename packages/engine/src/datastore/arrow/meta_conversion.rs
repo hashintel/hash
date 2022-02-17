@@ -43,8 +43,8 @@ pub enum SupportedArrowDataTypes {
     Time64(ArrowTimeUnit),
     Timestamp(ArrowTimeUnit, Option<String>),
 
-    Date32(ArrowDateUnit),
-    Date64(ArrowDateUnit),
+    Date32,
+    Date64,
 
     Interval(ArrowIntervalUnit),
     Duration(ArrowTimeUnit),
@@ -81,8 +81,8 @@ impl TryFrom<ArrowDataType> for SupportedArrowDataTypes {
             ArrowDataType::Time64(elapsed) => Ok(Self::Time64(elapsed)),
             ArrowDataType::Timestamp(elapsed, time_zone) => Ok(Self::Timestamp(elapsed, time_zone)),
 
-            ArrowDataType::Date32(elapsed) => Ok(Self::Date32(elapsed)),
-            ArrowDataType::Date64(elapsed) => Ok(Self::Date64(elapsed)),
+            ArrowDataType::Date32 => Ok(Self::Date32),
+            ArrowDataType::Date64 => Ok(Self::Date64),
 
             ArrowDataType::Interval(interval) => Ok(Self::Interval(interval)),
             ArrowDataType::Duration(elapsed) => Ok(Self::Duration(elapsed)),
@@ -385,8 +385,8 @@ pub fn data_type_to_metadata(
         D::Time64(_) => data_type_metadata(is_parent_growable, multiplier, 8),
         D::Timestamp(..) => data_type_metadata(is_parent_growable, multiplier, 8),
 
-        D::Date32(_) => data_type_metadata(is_parent_growable, multiplier, 4),
-        D::Date64(_) => data_type_metadata(is_parent_growable, multiplier, 8),
+        D::Date32 => data_type_metadata(is_parent_growable, multiplier, 4),
+        D::Date64 => data_type_metadata(is_parent_growable, multiplier, 8),
 
         D::Interval(arrow::datatypes::IntervalUnit::YearMonth) => {
             data_type_metadata(is_parent_growable, multiplier, 4)
@@ -465,7 +465,7 @@ pub mod tests {
 
     use arrow::{
         array::ArrayRef,
-        datatypes::{DateUnit, IntervalUnit, TimeUnit},
+        datatypes::{IntervalUnit, TimeUnit},
     };
 
     type D = ArrowDataType;
@@ -480,14 +480,14 @@ pub mod tests {
             .collect()
     }
 
-    fn get_num_nodes_from_array_data(data: &Arc<ArrowArrayData>) -> usize {
+    fn get_num_nodes_from_array_data(data: &ArrowArrayData) -> usize {
         data.child_data().iter().fold(0, |total_children, child| {
             total_children + get_num_nodes_from_array_data(child)
         }) + 1
     }
 
     fn get_buffer_counts_from_array_data<'a>(
-        node_data: &Arc<ArrowArrayData>,
+        node_data: &ArrowArrayData,
         node_meta: &'a [NodeStaticMeta],
     ) -> (Vec<usize>, &'a [NodeStaticMeta]) {
         // check current node's bitmap, node_meta is created by pre-order traversal so ordering
@@ -522,7 +522,7 @@ pub mod tests {
         (buffers, node_meta)
     }
 
-    fn get_node_mapping_from_array_data(data: &Arc<ArrowArrayData>) -> NodeMapping {
+    fn get_node_mapping_from_array_data(data: &ArrowArrayData) -> NodeMapping {
         if data.child_data().is_empty() {
             NodeMapping::empty()
         } else {
@@ -800,22 +800,18 @@ pub mod tests {
         let mut unit_byte_sizes = vec![];
 
         for date_dtype in [D::Date32, D::Date64] {
-            for date_unit in [DateUnit::Millisecond, DateUnit::Day] {
-                let full_date_type = date_dtype(date_unit);
-
-                match full_date_type {
-                    // data buffer size is independent of DateUnit
-                    D::Date32(_) => unit_byte_sizes.push(4),
-                    D::Date64(_) => unit_byte_sizes.push(8),
-                    _ => unimplemented!(),
-                }
-
-                fields.push(ArrowField::new(
-                    &format!("c{}", fields.len()),
-                    full_date_type,
-                    false,
-                ));
+            match date_dtype {
+                // data buffer size is independent of DateUnit
+                D::Date32 => unit_byte_sizes.push(4),
+                D::Date64 => unit_byte_sizes.push(8),
+                _ => unimplemented!(),
             }
+
+            fields.push(ArrowField::new(
+                &format!("c{}", fields.len()),
+                date_dtype,
+                false,
+            ));
         }
 
         let schema = ArrowSchema::new_with_metadata(fields.clone(), get_dummy_metadata());

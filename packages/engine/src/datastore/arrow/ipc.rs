@@ -30,20 +30,19 @@ use std::sync::Arc;
 
 use arrow::{
     array::{
-        ArrayDataRef, ArrayRef, BinaryArray, BooleanArray, Date32Array, Date64Array,
-        DictionaryArray, DurationMicrosecondArray, DurationMillisecondArray,
-        DurationNanosecondArray, DurationSecondArray, FixedSizeBinaryArray, FixedSizeListArray,
-        Float32Array, Float64Array, Int16Array, Int32Array, Int64Array, Int8Array,
-        IntervalDayTimeArray, IntervalYearMonthArray, ListArray, NullArray, StringArray,
-        StructArray, Time32MillisecondArray, Time32SecondArray, Time64MicrosecondArray,
-        Time64NanosecondArray, TimestampMicrosecondArray, TimestampMillisecondArray,
-        TimestampNanosecondArray, TimestampSecondArray, UInt16Array, UInt32Array, UInt64Array,
-        UInt8Array, UnionArray,
+        ArrayData, ArrayRef, BinaryArray, BooleanArray, Date32Array, Date64Array, DictionaryArray,
+        DurationMicrosecondArray, DurationMillisecondArray, DurationNanosecondArray,
+        DurationSecondArray, FixedSizeBinaryArray, FixedSizeListArray, Float32Array, Float64Array,
+        Int16Array, Int32Array, Int64Array, Int8Array, IntervalDayTimeArray,
+        IntervalYearMonthArray, ListArray, NullArray, StringArray, StructArray,
+        Time32MillisecondArray, Time32SecondArray, Time64MicrosecondArray, Time64NanosecondArray,
+        TimestampMicrosecondArray, TimestampMillisecondArray, TimestampNanosecondArray,
+        TimestampSecondArray, UInt16Array, UInt32Array, UInt64Array, UInt8Array, UnionArray,
     },
     buffer::{Buffer, MutableBuffer},
     datatypes::{
-        DataType, DateUnit, Int16Type, Int32Type, Int64Type, Int8Type, IntervalUnit, TimeUnit,
-        UInt16Type, UInt32Type, UInt64Type, UInt8Type,
+        DataType, Int16Type, Int32Type, Int64Type, Int8Type, IntervalUnit, TimeUnit, UInt16Type,
+        UInt32Type, UInt64Type, UInt8Type,
     },
     ipc,
     record_batch::RecordBatch,
@@ -57,7 +56,7 @@ use super::padding;
 /// Constructs an array using the input `data`.
 /// Returns a reference-counted `Array` instance.
 #[must_use]
-pub fn make_array(data: ArrayDataRef) -> ArrayRef {
+pub fn make_array(data: ArrayData) -> ArrayRef {
     match data.data_type() {
         DataType::Boolean => Arc::new(BooleanArray::from(data)),
         DataType::Int8 => Arc::new(Int8Array::from(data)),
@@ -71,8 +70,8 @@ pub fn make_array(data: ArrayDataRef) -> ArrayRef {
         DataType::Float16 => panic!("Float16 datatype not supported"),
         DataType::Float32 => Arc::new(Float32Array::from(data)),
         DataType::Float64 => Arc::new(Float64Array::from(data)),
-        DataType::Date32(DateUnit::Day) => Arc::new(Date32Array::from(data)),
-        DataType::Date64(DateUnit::Millisecond) => Arc::new(Date64Array::from(data)),
+        DataType::Date32 => Arc::new(Date32Array::from(data)),
+        DataType::Date64 => Arc::new(Date64Array::from(data)),
         DataType::Time32(TimeUnit::Second) => Arc::new(Time32SecondArray::from(data)),
         DataType::Time32(TimeUnit::Millisecond) => Arc::new(Time32MillisecondArray::from(data)),
         DataType::Time64(TimeUnit::Microsecond) => Arc::new(Time64MicrosecondArray::from(data)),
@@ -166,7 +165,7 @@ pub fn simulate_record_batch_to_bytes(batch: &RecordBatch) -> (Vec<u8>, usize) {
 
 // ADD
 fn simulate_write_array_data(
-    array_data: &ArrayDataRef,
+    array_data: &ArrayData,
     buffers: &mut Vec<ipc::Buffer>,
     nodes: &mut Vec<ipc::FieldNode>,
     offset: i64,
@@ -219,7 +218,7 @@ pub fn record_batch_data_to_bytes_owned_unchecked(batch: &RecordBatch, buffer: &
 
 // ADD
 fn write_array_data_owned(
-    array_data: &ArrayDataRef,
+    array_data: &ArrayData,
     arrow_data: &mut [u8],
     mut offset: i64,
     mut buffer_count: usize,

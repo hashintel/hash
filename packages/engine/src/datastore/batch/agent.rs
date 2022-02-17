@@ -7,7 +7,7 @@
 use std::{borrow::Cow, sync::Arc};
 
 use arrow::{
-    array::{self, ArrayRef},
+    array::{self, ArrayData, ArrayRef},
     datatypes::DataType,
     ipc::{
         reader::read_record_batch,
@@ -284,7 +284,7 @@ impl AgentBatch {
     }
 }
 
-impl GrowableBatch<ArrayChange, Arc<array::ArrayData>> for AgentBatch {
+impl GrowableBatch<ArrayChange, ArrayData> for AgentBatch {
     fn take_changes(&mut self) -> Vec<ArrayChange> {
         std::mem::take(&mut self.changes)
     }
@@ -461,7 +461,7 @@ impl AgentBatch {
             .ok_or_else(|| Error::ColumnNotFound(column_name.into()))?;
 
         Ok(ArrayChange {
-            array: make_array(builder.finish().data()).data(),
+            array: make_array(builder.finish().data().clone()).data().clone(),
             index,
         })
     }

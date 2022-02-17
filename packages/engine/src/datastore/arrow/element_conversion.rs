@@ -6,7 +6,7 @@
 
 use arrow::{
     array::{self, Array, ArrayRef},
-    datatypes::{self, ArrowNativeType, ArrowNumericType, ArrowPrimitiveType, DataType},
+    datatypes::{self, ArrowNumericType, ArrowPrimitiveType, DataType, JsonSerializable},
 };
 use serde_json::value::Value;
 

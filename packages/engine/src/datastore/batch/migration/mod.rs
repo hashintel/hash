@@ -454,7 +454,7 @@ impl<'a> BufferActions<'a> {
         parent_range_actions: &RangeActions,
         batch: Option<&B>,
         batches: &[B],
-        new_agents: Option<&'b Arc<arrow::array::ArrayData>>,
+        new_agents: Option<&'b arrow::array::ArrayData>,
         actions: &mut Vec<BufferAction<'b>>,
         buffer_metas: &mut Vec<Buffer>,
         node_metas: &mut Vec<Node>,

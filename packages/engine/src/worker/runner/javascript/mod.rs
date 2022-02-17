@@ -6,7 +6,7 @@ use std::{
 };
 
 use arrow::{
-    array::{ArrayData, ArrayDataRef},
+    array::ArrayData,
     buffer::{Buffer, MutableBuffer},
     datatypes::{DataType, Schema},
     ipc::writer::{IpcDataGenerator, IpcWriteOptions},
@@ -562,35 +562,35 @@ impl<'m> RunnerImpl<'m> {
         let data: mv8::DataFfi = mv8.data_node_from_js(data);
 
         let n_children = child_data.len();
-        let child_data: Vec<ArrayDataRef> = match dt.clone() {
+        let child_data: Vec<ArrayData> = match dt.clone() {
             DataType::List(field) => {
                 let child: mv8::Value<'_> = child_data.get(0)?;
-                Ok(vec![Arc::new(self.array_data_from_js(
+                Ok(vec![self.array_data_from_js(
                     mv8,
                     &child,
                     field.data_type(),
                     None,
-                )?)])
+                )?])
             }
             DataType::FixedSizeList(field, multiplier) => {
                 let child: mv8::Value<'_> = child_data.get(0)?;
-                Ok(vec![Arc::new(self.array_data_from_js(
+                Ok(vec![self.array_data_from_js(
                     mv8,
                     &child,
                     field.data_type(),
                     Some(data.len * multiplier as usize),
-                )?)])
+                )?])
             }
             DataType::Struct(fields) => {
                 let mut v = Vec::new();
                 for (i, field) in fields.iter().enumerate() {
                     let child = child_data.get(i as u32)?;
-                    v.push(Arc::new(self.array_data_from_js(
+                    v.push(self.array_data_from_js(
                         mv8,
                         &child,
                         field.data_type(),
                         Some(data.len),
-                    )?));
+                    )?);
                 }
                 Ok(v)
             }
@@ -680,7 +680,7 @@ impl<'m> RunnerImpl<'m> {
             } else {
                 // This happens when we have fixed size buffers, but the inner nodes are null
                 let mut mut_buffer = MutableBuffer::new(len);
-                mut_buffer.resize(len);
+                mut_buffer.resize(len, 0);
                 mut_buffer.into()
             };
             // let buffer = unsafe { Buffer::from_unowned(ptr, len, capacity) };
@@ -716,7 +716,7 @@ impl<'m> RunnerImpl<'m> {
             let data: mv8::Value<'_> = change.get("data")?;
             let data = self.array_data_from_js(mv8, &data, field.data_type(), None)?;
             batch.push_change(ArrayChange {
-                array: Arc::new(data),
+                array: data,
                 index: i_field,
             })?;
         }

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use flatbuffers::FlatBufferBuilder;
 
 use super::prelude::*;
@@ -50,7 +48,7 @@ impl AsRef<[u8]> for FlatBufferWrapper<'_> {
     }
 }
 
-pub fn bool_to_arrow(data: &[bool]) -> Arc<array::ArrayData> {
+pub fn bool_to_arrow(data: &[bool]) -> array::ArrayData {
     let num_byte = arrow_bit_util::ceil(data.len(), 8);
     let mut mut_buf = ArrowMutableBuffer::new(num_byte).with_bitset(num_byte, false);
     {
@@ -67,7 +65,7 @@ pub fn bool_to_arrow(data: &[bool]) -> Arc<array::ArrayData> {
         .build()
 }
 
-pub fn opt_bool_to_arrow(data: &[Option<bool>]) -> Arc<array::ArrayData> {
+pub fn opt_bool_to_arrow(data: &[Option<bool>]) -> array::ArrayData {
     let num_byte = arrow_bit_util::ceil(data.len(), 8);
     let mut nulls = ArrowMutableBuffer::new(num_byte).with_bitset(num_byte, false);
     let mut mut_buf = ArrowMutableBuffer::new(num_byte).with_bitset(num_byte, false);
@@ -87,7 +85,7 @@ pub fn opt_bool_to_arrow(data: &[Option<bool>]) -> Arc<array::ArrayData> {
         }
     }
     // TODO: Use ArroyDataBuilder
-    Arc::new(array::ArrayData::new(
+    array::ArrayData::new(
         ArrowDataType::Boolean,
         data.len(),
         Some(null_count),
@@ -95,7 +93,7 @@ pub fn opt_bool_to_arrow(data: &[Option<bool>]) -> Arc<array::ArrayData> {
         0,
         vec![mut_buf.into()],
         vec![],
-    ))
+    )
 }
 
 pub fn get_bit(buffer: &[u8], i: usize) -> bool {

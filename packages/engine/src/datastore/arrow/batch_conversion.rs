@@ -7,9 +7,12 @@
 use std::{collections::HashSet, sync::Arc};
 
 use arrow::{
-    array::{self, Array, ArrayData, ArrayDataBuilder, ArrayRef, PrimitiveBuilder},
+    array::{
+        self, Array, ArrayData, ArrayDataBuilder, ArrayRef, FixedSizeListArray, ListArray,
+        PrimitiveArray, StringArray, StructArray,
+    },
     buffer::MutableBuffer,
-    datatypes::{self, ArrowNativeType, ArrowNumericType, ArrowPrimitiveType, DataType, Field},
+    datatypes::{self, ArrowNumericType, ArrowPrimitiveType, DataType, Field, JsonSerializable},
 };
 use serde::de::DeserializeOwned;
 use serde_json::value::Value;
@@ -17,6 +20,7 @@ use serde_json::value::Value;
 use super::prelude::*;
 use crate::{
     datastore::{
+        arrow::message::messages_column_from_serde_values,
         prelude::*,
         schema::{state::AgentSchema, FieldKey, FieldScope, FieldTypeVariant, IsRequired},
         UUID_V4_LEN,
@@ -42,7 +46,7 @@ pub fn new_zero_bits(n_bits: usize) -> MutableBuffer {
     // MutableBuffer makes a call to std::alloc::alloc_zeroed
     // It also rounds up the capacity to a multiple of 64
     let mut buffer = MutableBuffer::new(n_bytes);
-    buffer.resize(n_bytes);
+    buffer.resize(n_bytes, 0);
     debug_assert!(buffer.as_slice().iter().all(|v| *v == 0));
     buffer
 }
@@ -66,7 +70,7 @@ pub fn new_offsets_buffer(n_elem: usize) -> MutableBuffer {
     // Buffer actually contains `n_elem` + 1 bytes
     let mut buffer = MutableBuffer::new(byte_length);
     // Resize so buffer.len() is the correct size
-    buffer.resize(byte_length);
+    buffer.resize(byte_length, 0);
     buffer
 }
 
@@ -75,7 +79,7 @@ pub fn new_buffer<T>(n_elem: usize) -> MutableBuffer {
     let byte_length = n_elem * offset_size;
     let mut buffer = MutableBuffer::new(byte_length);
     // Resize so buffer.len() is the correct size
-    buffer.resize(byte_length);
+    buffer.resize(byte_length, 0);
     buffer
 }
 
@@ -116,7 +120,7 @@ fn agents_to_id_col(agents: &[&AgentState]) -> Result<ArrayRef> {
 
 macro_rules! agents_to_vec_col_gen {
     ($field_name:ident, $function_name:ident) => {
-        fn $function_name(agents: &[&AgentState]) -> Result<ArrayRef> {
+        fn $function_name(agents: &[&AgentState]) -> Result<FixedSizeListArray> {
             let mut flat: Vec<f64> = Vec::with_capacity(agents.len() * 3);
             let mut null_bits = new_zero_bits(agents.len());
             let mut_null_bits = null_bits.as_slice_mut();
@@ -142,18 +146,17 @@ macro_rules! agents_to_vec_col_gen {
                 3,
             );
             // TODO: Use ArrayDataBuilder
-            let list_data = Arc::new(ArrayData::new(
+            let list_data = ArrayData::new(
                 dt,
                 agents.len(),
                 Some(null_count),
                 Some(null_bits.into()),
                 0,
                 vec![],
-                vec![child_array.data()],
-            ));
+                vec![child_array.data().clone()],
+            );
 
-            let list: array::FixedSizeListArray = list_data.into();
-            Ok(Arc::new(list))
+            Ok(list_data.into())
         }
     };
 }
@@ -163,7 +166,7 @@ agents_to_vec_col_gen!(position, agents_to_position_col);
 agents_to_vec_col_gen!(scale, agents_to_scale_col);
 agents_to_vec_col_gen!(rgb, agents_to_rgb_col);
 
-fn json_vals_to_bool(vals: Vec<Value>) -> Result<ArrayRef> {
+fn json_vals_to_bool(vals: Vec<Value>) -> Result<array::BooleanArray> {
     let bools: Vec<bool> = vals
         .iter()
         .map(|v| match v {
@@ -173,18 +176,17 @@ fn json_vals_to_bool(vals: Vec<Value>) -> Result<ArrayRef> {
         })
         .collect::<Result<_>>()?;
 
-    let list: array::BooleanArray = bools.into();
-    Ok(Arc::new(list))
+    Ok(bools.into())
 }
 
 fn json_vals_to_primitive<T: ArrowPrimitiveType>(
     vals: Vec<Value>,
     nullable: bool,
-) -> Result<ArrayRef>
+) -> Result<PrimitiveArray<T>>
 where
     T::Native: DeserializeOwned,
 {
-    let mut builder = PrimitiveBuilder::<T>::new(vals.len());
+    let mut builder = PrimitiveArray::<T>::builder(vals.len());
     for val in vals {
         if nullable {
             builder.append_option(serde_json::from_value(val)?)?;
@@ -192,10 +194,10 @@ where
             builder.append_value(serde_json::from_value(val)?)?;
         }
     }
-    Ok(Arc::new(builder.finish()))
+    Ok(builder.finish())
 }
 
-fn json_vals_to_utf8(vals: Vec<Value>, nullable: bool) -> Result<ArrayRef> {
+fn json_vals_to_utf8(vals: Vec<Value>, nullable: bool) -> Result<StringArray> {
     // TODO: some better heuristics for capacity estimation?
     let mut builder = array::StringBuilder::new(vals.len() * 64);
     for val in vals {
@@ -211,14 +213,15 @@ fn json_vals_to_utf8(vals: Vec<Value>, nullable: bool) -> Result<ArrayRef> {
             builder.append_value(&native)?;
         }
     }
-    Ok(Arc::new(builder.finish()))
+
+    Ok(builder.finish())
 }
 
 fn json_vals_to_list(
     vals: Vec<Value>,
     _nullable: bool,
     inner_field: Box<Field>,
-) -> Result<ArrayRef> {
+) -> Result<ListArray> {
     let mut null_count = 0;
     let n_elem = vals.len();
     let mut null_bits = new_zero_bits(n_elem);
@@ -246,20 +249,20 @@ fn json_vals_to_list(
         }
     }
     // Nested values are always nullable.
-    let child_data = json_vals_to_col(combined_vals, &inner_field, true)?.data();
+    let child_data = json_vals_to_col(combined_vals, &inner_field, true)?;
 
     // TODO: Use `ArrowDataBuilder`
-    let list_data = Arc::new(ArrayData::new(
+    let list_data = ArrayData::new(
         ArrowDataType::List(inner_field),
         n_elem,
         Some(null_count),
         Some(null_bits.into()),
         0,
         vec![offsets.into()],
-        vec![child_data],
-    ));
-    let list: array::ListArray = list_data.into();
-    Ok(Arc::new(list))
+        vec![child_data.data().clone()],
+    );
+
+    Ok(list_data.into())
 }
 
 fn json_vals_to_fixed_size_list(
@@ -267,7 +270,7 @@ fn json_vals_to_fixed_size_list(
     _nullable: bool,
     inner_field: Box<Field>,
     size: i32,
-) -> Result<ArrayRef> {
+) -> Result<FixedSizeListArray> {
     let mut null_count = 0;
     let n_elem = vals.len();
     let mut null_bits = new_zero_bits(n_elem);
@@ -296,27 +299,27 @@ fn json_vals_to_fixed_size_list(
         }
     }
     // Nested values are always nullable.
-    let child_data = json_vals_to_col(combined_vals, &inner_field, true)?.data();
+    let child_data = json_vals_to_col(combined_vals, &inner_field, true)?;
 
     // TODO: Use `ArrowDataBuilder`
-    let list_data = Arc::new(ArrayData::new(
+    let list_data = ArrayData::new(
         ArrowDataType::FixedSizeList(inner_field, size),
         n_elem,
         Some(null_count),
         Some(null_bits.into()),
         0,
         vec![],
-        vec![child_data],
-    ));
-    let list: array::FixedSizeListArray = list_data.into();
-    Ok(Arc::new(list))
+        vec![child_data.data().clone()],
+    );
+
+    Ok(list_data.into())
 }
 
 fn json_vals_to_struct(
     vals: Vec<Value>,
     _nullable: bool,
     fields: Vec<ArrowField>,
-) -> Result<ArrayRef> {
+) -> Result<StructArray> {
     let mut null_count = 0;
     let n_elem = vals.len();
     let mut null_bits = new_zero_bits(n_elem);
@@ -359,26 +362,18 @@ fn json_vals_to_struct(
         }
     }
 
-    let child_data: Vec<_> = fields
+    let struct_data: Vec<_> = fields
         .iter()
         .zip(flattened_vals.into_iter())
         .map(|(inner_field, inner_values)| {
-            Ok(json_vals_to_col(inner_values, inner_field, inner_field.is_nullable())?.data())
+            Ok((
+                inner_field.clone(),
+                json_vals_to_col(inner_values, inner_field, inner_field.is_nullable())?,
+            ))
         })
         .collect::<Result<_>>()?;
 
-    // TODO: Use `ArrowDataBuilder`
-    let struct_data = Arc::new(ArrayData::new(
-        ArrowDataType::Struct(fields),
-        n_elem,
-        Some(null_count),
-        Some(null_bits.into()),
-        0,
-        vec![],
-        child_data,
-    ));
-    let struct_array: array::StructArray = struct_data.into();
-    Ok(Arc::new(struct_array))
+    Ok(struct_data.into())
 }
 
 // TODO: As an optimization, we could look at both whether a column is *nullable* (i.e.
@@ -388,23 +383,51 @@ fn json_vals_to_col(vals: Vec<Value>, field: &ArrowField, nullable: bool) -> Res
     // Inner columns (i.e. columns that are elements of list or struct arrays) are
     // always nullable; fields might not be.
     match field.data_type() {
-        ArrowDataType::Float64 => json_vals_to_primitive::<datatypes::Float64Type>(vals, nullable),
-        ArrowDataType::Float32 => json_vals_to_primitive::<datatypes::Float32Type>(vals, nullable),
-        ArrowDataType::Int64 => json_vals_to_primitive::<datatypes::Int64Type>(vals, nullable),
-        ArrowDataType::Int32 => json_vals_to_primitive::<datatypes::Int32Type>(vals, nullable),
-        ArrowDataType::Int16 => json_vals_to_primitive::<datatypes::Int16Type>(vals, nullable),
-        ArrowDataType::Int8 => json_vals_to_primitive::<datatypes::Int8Type>(vals, nullable),
-        ArrowDataType::UInt64 => json_vals_to_primitive::<datatypes::UInt64Type>(vals, nullable),
-        ArrowDataType::UInt32 => json_vals_to_primitive::<datatypes::UInt32Type>(vals, nullable),
-        ArrowDataType::UInt16 => json_vals_to_primitive::<datatypes::UInt16Type>(vals, nullable),
-        ArrowDataType::UInt8 => json_vals_to_primitive::<datatypes::UInt8Type>(vals, nullable),
-        ArrowDataType::Boolean => json_vals_to_bool(vals),
-        ArrowDataType::Utf8 => json_vals_to_utf8(vals, nullable),
-        ArrowDataType::List(inner_field) => json_vals_to_list(vals, nullable, inner_field.clone()),
-        ArrowDataType::FixedSizeList(inner_field, size) => {
-            json_vals_to_fixed_size_list(vals, nullable, inner_field.clone(), *size)
-        }
-        ArrowDataType::Struct(fields) => json_vals_to_struct(vals, nullable, fields.clone()),
+        ArrowDataType::Float64 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Float64Type>(
+            vals, nullable,
+        )?)),
+        ArrowDataType::Float32 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Float32Type>(
+            vals, nullable,
+        )?)),
+        ArrowDataType::Int64 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Int64Type>(
+            vals, nullable,
+        )?)),
+        ArrowDataType::Int32 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Int32Type>(
+            vals, nullable,
+        )?)),
+        ArrowDataType::Int16 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Int16Type>(
+            vals, nullable,
+        )?)),
+        ArrowDataType::Int8 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Int8Type>(
+            vals, nullable,
+        )?)),
+        ArrowDataType::UInt64 => Ok(Arc::new(json_vals_to_primitive::<datatypes::UInt64Type>(
+            vals, nullable,
+        )?)),
+        ArrowDataType::UInt32 => Ok(Arc::new(json_vals_to_primitive::<datatypes::UInt32Type>(
+            vals, nullable,
+        )?)),
+        ArrowDataType::UInt16 => Ok(Arc::new(json_vals_to_primitive::<datatypes::UInt16Type>(
+            vals, nullable,
+        )?)),
+        ArrowDataType::UInt8 => Ok(Arc::new(json_vals_to_primitive::<datatypes::UInt8Type>(
+            vals, nullable,
+        )?)),
+        ArrowDataType::Boolean => Ok(Arc::new(json_vals_to_bool(vals)?)),
+        ArrowDataType::Utf8 => Ok(Arc::new(json_vals_to_utf8(vals, nullable)?)),
+        ArrowDataType::List(inner_field) => Ok(Arc::new(json_vals_to_list(
+            vals,
+            nullable,
+            inner_field.clone(),
+        )?)),
+        ArrowDataType::FixedSizeList(inner_field, size) => Ok(Arc::new(
+            json_vals_to_fixed_size_list(vals, nullable, inner_field.clone(), *size)?,
+        )),
+        ArrowDataType::Struct(fields) => Ok(Arc::new(json_vals_to_struct(
+            vals,
+            nullable,
+            fields.clone(),
+        )?)),
         _ => Err(Error::NotImplemented(SupportedType::ArrowDataType(
             field.data_type().clone(),
         ))),
@@ -427,7 +450,7 @@ fn previous_index_to_empty_col(num_agents: usize, dt: ArrowDataType) -> Result<A
         debug_assert!(matches!(inner_field.data_type(), DataType::UInt32));
         let data_byte_size = inner_len as usize * num_agents * std::mem::size_of::<u32>();
         let mut buffer = MutableBuffer::new(data_byte_size);
-        buffer.resize(data_byte_size);
+        buffer.resize(data_byte_size, 0);
 
         let builder = ArrayDataBuilder::new(dt)
             .len(num_agents)
@@ -508,33 +531,34 @@ impl IntoRecordBatch for &[&AgentState] {
             // If use `match` instead of `if`, Rust infers that
             // `name` must have static lifetime, like `match` arms.
             // TODO: built-ins should take nullability from the schema
-            let col = (if name.eq(AgentStateField::AgentId.name()) {
-                agents_to_id_col(*self)
+            let col = if name.eq(AgentStateField::AgentId.name()) {
+                agents_to_id_col(*self)?
             } else if name == AgentStateField::AgentName.name() {
-                json_vals_to_utf8(vals, true)
+                Arc::new(json_vals_to_utf8(vals, true)?)
             } else if name == AgentStateField::Messages.name() {
-                message::messages_column_from_serde_values(vals)
-                    .map(|arr| Arc::new(arr) as ArrayRef)
+                Arc::new(messages_column_from_serde_values(vals)?)
             } else if name == AgentStateField::Position.name() {
-                agents_to_position_col(*self)
+                Arc::new(agents_to_position_col(*self)?)
             } else if name == AgentStateField::Direction.name()
                 || name == AgentStateField::Velocity.name()
             {
-                agents_to_direction_col(*self)
+                Arc::new(agents_to_direction_col(*self)?)
             } else if name == AgentStateField::Shape.name() {
-                json_vals_to_utf8(vals, true)
+                Arc::new(json_vals_to_utf8(vals, true)?)
             } else if name == AgentStateField::Height.name() {
-                json_vals_to_primitive::<datatypes::Float64Type>(vals, true)
+                Arc::new(json_vals_to_primitive::<datatypes::Float64Type>(
+                    vals, true,
+                )?)
             } else if name == AgentStateField::Scale.name() {
-                agents_to_scale_col(*self)
+                Arc::new(agents_to_scale_col(*self)?)
             } else if name == AgentStateField::Color.name() {
-                json_vals_to_utf8(vals, true)
+                Arc::new(json_vals_to_utf8(vals, true)?)
             } else if name == AgentStateField::RGB.name() {
-                agents_to_rgb_col(*self)
+                Arc::new(agents_to_rgb_col(*self)?)
             } else if name == AgentStateField::Hidden.name() {
-                json_vals_to_bool(vals)
+                Arc::new(json_vals_to_bool(vals)?)
             } else if name == PREVIOUS_INDEX_FIELD_KEY {
-                previous_index_to_empty_col(self.len(), field.data_type().clone())
+                previous_index_to_empty_col(self.len(), field.data_type().clone())?
             } else if matches!(
                 schema
                     .field_spec_map
@@ -545,10 +569,10 @@ impl IntoRecordBatch for &[&AgentState] {
                 FieldTypeVariant::AnyType
             ) {
                 // Any-type (JSON string) column
-                json_vals_to_any_type_col(vals, field.data_type())
+                json_vals_to_any_type_col(vals, field.data_type())?
             } else {
-                json_vals_to_col(vals, field, field.is_nullable())
-            })?;
+                json_vals_to_col(vals, field, field.is_nullable())?
+            };
             cols.push(col);
         }
         RecordBatch::try_new(schema.arrow.clone(), cols).map_err(Error::from)
@@ -618,7 +642,7 @@ fn set_states_agent_name(states: &mut [AgentState], rb: &RecordBatch) -> Result<
         let array = rb
             .column(i_col)
             .as_any()
-            .downcast_ref::<arrow::array::StringArray>()
+            .downcast_ref::<StringArray>()
             .ok_or(Error::InvalidArrowDowncast {
                 name: field.name().into(),
             })?;
@@ -640,7 +664,7 @@ fn set_states_shape(states: &mut [AgentState], rb: &RecordBatch) -> Result<()> {
         let array = rb
             .column(i_col)
             .as_any()
-            .downcast_ref::<arrow::array::StringArray>()
+            .downcast_ref::<StringArray>()
             .ok_or(Error::InvalidArrowDowncast {
                 name: field.name().into(),
             })?;
@@ -662,7 +686,7 @@ fn set_states_color(states: &mut [AgentState], rb: &RecordBatch) -> Result<()> {
         let array = rb
             .column(i_col)
             .as_any()
-            .downcast_ref::<arrow::array::StringArray>()
+            .downcast_ref::<StringArray>()
             .ok_or(Error::InvalidArrowDowncast {
                 name: field.name().into(),
             })?;
@@ -691,7 +715,7 @@ macro_rules! set_states_opt_vec3_gen {
                 let vec3_array = rb
                     .column(i_col)
                     .as_any()
-                    .downcast_ref::<arrow::array::FixedSizeListArray>()
+                    .downcast_ref::<FixedSizeListArray>()
                     .ok_or(Error::InvalidArrowDowncast {
                         name: $field.name().into(), // TODO: Better to replace with
                     })?; //       `stringify!($field_name)`?
@@ -780,7 +804,7 @@ fn set_states_previous_index(states: &mut [AgentState], rb: &RecordBatch) -> Res
         let vec2_array = rb
             .column(i_col)
             .as_any()
-            .downcast_ref::<arrow::array::FixedSizeListArray>()
+            .downcast_ref::<FixedSizeListArray>()
             .ok_or(Error::InvalidArrowDowncast {
                 name: PREVIOUS_INDEX_FIELD_KEY.into(),
             })?;
@@ -912,31 +936,9 @@ fn json_utf8_json_vals(col: &ArrayRef) -> Result<Vec<Value>> {
 }
 
 fn list_to_json_vals(col: &ArrayRef, inner_dt: &DataType) -> Result<Vec<Value>> {
-    let array =
-        col.as_any()
-            .downcast_ref::<array::ListArray>()
-            .ok_or(Error::InvalidArrowDowncast {
-                name: "[custom list]".into(),
-            })?;
-
-    let mut json_vals: Vec<Value> = Vec::with_capacity(array.len());
-    for i_val in 0..array.len() {
-        if array.null_count() > 0 && !array.is_valid(i_val) {
-            json_vals.push(Value::Null);
-            continue;
-        }
-
-        let inner_col = array.value(i_val);
-        let inner_vals = col_to_json_vals(&inner_col, inner_dt)?;
-        json_vals.push(Value::Array(inner_vals));
-    }
-    Ok(json_vals)
-}
-
-fn fixed_size_list_to_json_vals(col: &ArrayRef, inner_dt: &DataType) -> Result<Vec<Value>> {
     let array = col
         .as_any()
-        .downcast_ref::<array::FixedSizeListArray>()
+        .downcast_ref::<ListArray>()
         .ok_or(Error::InvalidArrowDowncast {
             name: "[custom list]".into(),
         })?;
@@ -955,13 +957,35 @@ fn fixed_size_list_to_json_vals(col: &ArrayRef, inner_dt: &DataType) -> Result<V
     Ok(json_vals)
 }
 
-fn struct_to_json_vals(col: &ArrayRef, fields: &[ArrowField]) -> Result<Vec<Value>> {
+fn fixed_size_list_to_json_vals(col: &ArrayRef, inner_dt: &DataType) -> Result<Vec<Value>> {
     let array =
         col.as_any()
-            .downcast_ref::<array::StructArray>()
+            .downcast_ref::<FixedSizeListArray>()
             .ok_or(Error::InvalidArrowDowncast {
                 name: "[custom list]".into(),
             })?;
+
+    let mut json_vals: Vec<Value> = Vec::with_capacity(array.len());
+    for i_val in 0..array.len() {
+        if array.null_count() > 0 && !array.is_valid(i_val) {
+            json_vals.push(Value::Null);
+            continue;
+        }
+
+        let inner_col = array.value(i_val);
+        let inner_vals = col_to_json_vals(&inner_col, inner_dt)?;
+        json_vals.push(Value::Array(inner_vals));
+    }
+    Ok(json_vals)
+}
+
+fn struct_to_json_vals(col: &ArrayRef, fields: &[ArrowField]) -> Result<Vec<Value>> {
+    let array = col
+        .as_any()
+        .downcast_ref::<StructArray>()
+        .ok_or(Error::InvalidArrowDowncast {
+            name: "[custom list]".into(),
+        })?;
 
     let mut json_vals: Vec<Value> = Vec::with_capacity(array.len());
     let columns = array.columns_ref();
