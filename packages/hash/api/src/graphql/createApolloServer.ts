@@ -98,6 +98,8 @@ export const createApolloServer = ({
                   errors: willSendResponseCtx.errors,
                   stack: willSendResponseCtx.errors
                     .map((err) => err.stack)
+                    // Filter stacks caused by an apollo Forbidden error to prevent cluttering logs
+                    // with errors caused by a user being logged out.
                     .filter(
                       (stack) => stack && !stack.startsWith("ForbiddenError"),
                     ),
