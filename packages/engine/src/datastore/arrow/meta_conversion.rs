@@ -978,7 +978,11 @@ pub mod tests {
         let mut fields = vec![];
         let mut unit_byte_sizes = vec![];
 
-        for interval_unit in [IntervalUnit::DayTime, IntervalUnit::YearMonth] {
+        for interval_unit in [
+            IntervalUnit::DayTime,
+            IntervalUnit::YearMonth,
+            IntervalUnit::MonthDayNano,
+        ] {
             let interval_type = D::Interval(interval_unit.clone());
             fields.push(ArrowField::new(
                 &format!("c{}", fields.len()),
@@ -990,6 +994,7 @@ pub mod tests {
             unit_byte_sizes.push(match interval_unit {
                 IntervalUnit::YearMonth => 4,
                 IntervalUnit::DayTime => 8,
+                IntervalUnit::MonthDayNano => 16,
             })
         }
 
@@ -1560,8 +1565,9 @@ pub mod tests {
             ),
         ]);
 
-        let struct_c1 =
-            arrow::array::StructArray::from(ArrowArrayData::builder(D::Struct(vec![])).build());
+        let struct_c1 = arrow::array::StructArray::from(
+            ArrowArrayData::builder(D::Struct(vec![])).build().unwrap(),
+        );
 
         let dummy_data_arrays: Vec<&dyn ArrowArray> = vec![&struct_c0, &struct_c1];
 

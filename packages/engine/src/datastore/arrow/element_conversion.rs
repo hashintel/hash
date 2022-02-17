@@ -358,8 +358,11 @@ pub mod tests {
         }
 
         // check it works with an empty struct too
-        let struct_c1 =
-            arrow::array::StructArray::from(ArrayData::builder(DataType::Struct(vec![])).build());
+        let struct_c1 = arrow::array::StructArray::from(
+            ArrayData::builder(DataType::Struct(vec![]))
+                .build()
+                .unwrap(),
+        );
 
         assert_eq!(
             col_element_to_json_val(
