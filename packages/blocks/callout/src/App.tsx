@@ -1,5 +1,5 @@
 import { BlockComponent } from "blockprotocol/react";
-import React, { CSSProperties, RefCallback, useCallback } from "react";
+import React, { CSSProperties, RefCallback } from "react";
 
 import { EmojiIcon } from "./EmojiIcon";
 
