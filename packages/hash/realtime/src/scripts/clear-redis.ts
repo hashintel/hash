@@ -6,7 +6,6 @@ import {
 } from "@hashintel/hash-backend-utils/environment";
 
 const logger = new Logger({
-  level: "debug",
   serviceName: "clear-redis-queues",
   mode: "dev",
 });
