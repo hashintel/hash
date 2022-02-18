@@ -1,8 +1,4 @@
-import React, {
-  CSSProperties,
-  MouseEventHandler,
-  VoidFunctionComponent,
-} from "react";
+import React, { MouseEventHandler, VoidFunctionComponent } from "react";
 
 export interface EmojiIconProps {
   disabled?: boolean;
@@ -11,21 +7,6 @@ export interface EmojiIconProps {
 }
 
 const variants = ["📢", "💡", "🤔", "👉", "📣", "📌", "🚧"];
-
-const wrapperStyle: CSSProperties = {
-  display: "inline-block",
-  width: "1.5em",
-  left: "0.25em",
-  height: "1.5em",
-  cursor: "pointer",
-  textAlign: "center",
-  padding: 0,
-  position: "absolute",
-  userSelect: "none",
-  border: "none",
-  background: "none",
-  overflow: "hidden",
-};
 
 export const EmojiIcon: VoidFunctionComponent<EmojiIconProps> = ({
   disabled,
@@ -43,7 +24,20 @@ export const EmojiIcon: VoidFunctionComponent<EmojiIconProps> = ({
       type="button"
       contentEditable={false}
       suppressContentEditableWarning
-      style={wrapperStyle}
+      style={{
+        display: "inline-block",
+        width: "1.5em",
+        left: "0.25em",
+        height: "1.5em",
+        cursor: disabled ? "default" : "pointer",
+        textAlign: "center",
+        padding: 0,
+        position: "absolute",
+        userSelect: "none",
+        border: "none",
+        background: "none",
+        overflow: "hidden",
+      }}
       onClick={handleDivClick}
     >
       {value}
