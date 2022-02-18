@@ -25,7 +25,7 @@ export {};
 const logger = new Logger({
   mode: "dev",
   level: "debug",
-  serviceName: "integration-tests",
+  serviceName: "mockData",
 });
 
 void (async () => {
@@ -69,30 +69,52 @@ void (async () => {
   const results = new Map<string, Entity>();
 
   const requiredBlockTypes = [
-    "Divider",
-    "Embed",
-    "Image",
-    "Table",
-    "Code",
-    "Video",
-    "Header",
+    {
+      name: "Divider",
+      componentId: "https://blockprotocol.org/blocks/@hash/divider",
+    },
+    {
+      name: "Embed",
+      componentId: "https://blockprotocol.org/blocks/@hash/embed",
+    },
+    {
+      name: "Image",
+      componentId: "https://blockprotocol.org/blocks/@hash/image",
+    },
+    {
+      name: "Table",
+      componentId: "https://blockprotocol.org/blocks/@hash/table",
+    },
+    {
+      name: "Code",
+      componentId: "https://blockprotocol.org/blocks/@hash/code",
+    },
+    {
+      name: "Video",
+      componentId: "https://blockprotocol.org/blocks/@hash/video",
+    },
+    {
+      name: "Header",
+      componentId: "https://blockprotocol.org/blocks/@hash/header",
+    },
   ] as const;
 
   const requiredOtherTypes = ["Company", "Location", "Person"] as const;
   // create the types we'll need below so we can assign their ids to entities
   const newTypeIds: Record<
-    typeof requiredBlockTypes[number] | typeof requiredOtherTypes[number],
+    | typeof requiredBlockTypes[number]["name"]
+    | typeof requiredOtherTypes[number],
     string
   > = {} as any;
 
   await Promise.all(
-    requiredBlockTypes.map(async (name) => {
+    requiredBlockTypes.map(async ({ name, componentId }) => {
       const entityType = await EntityType.create(db, {
         accountId: systemOrg.accountId,
         createdByAccountId: systemOrg.entityId, // TODO
         name,
         schema: {
-          componentId: `https://block.blockprotocol.org/${name.toLowerCase()}`,
+          ...(await EntityType.fetchComponentIdBlockSchema(componentId)),
         },
       });
 
@@ -475,7 +497,7 @@ void (async () => {
         {
           systemTypeName: SystemTypeName.Block,
           properties: {
-            componentId: "https://block.blockprotocol.org/header",
+            componentId: "https://blockprotocol.org/blocks/@hash/header",
             entityId: results.get("text1")!.entityId,
             accountId: results.get("text1")!.accountId,
           },
@@ -487,7 +509,7 @@ void (async () => {
         "b2",
         {
           properties: {
-            componentId: "https://block.blockprotocol.org/paragraph",
+            componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
             entityId: results.get("text2")!.entityId,
             accountId: results.get("text2")!.accountId,
           },
@@ -500,7 +522,7 @@ void (async () => {
         "b3",
         {
           properties: {
-            componentId: "https://block.blockprotocol.org/paragraph",
+            componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
             entityId: results.get("text3")!.entityId,
             accountId: results.get("text3")!.accountId,
           },
@@ -513,7 +535,7 @@ void (async () => {
         "b4",
         {
           properties: {
-            componentId: "https://block.blockprotocol.org/table",
+            componentId: "https://blockprotocol.org/blocks/@hash/table",
             entityId: results.get("t1")!.entityId,
             accountId: results.get("t1")!.accountId,
           },
@@ -526,7 +548,7 @@ void (async () => {
         "b5",
         {
           properties: {
-            componentId: "https://block.blockprotocol.org/header",
+            componentId: "https://blockprotocol.org/blocks/@hash/header",
             entityId: results.get("text5")!.entityId,
             accountId: results.get("text5")!.accountId,
           },
@@ -539,7 +561,7 @@ void (async () => {
         "b6",
         {
           properties: {
-            componentId: "https://block.blockprotocol.org/paragraph",
+            componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
             entityId: results.get("text2")!.entityId,
             accountId: results.get("text2")!.accountId,
           },
@@ -552,7 +574,7 @@ void (async () => {
         "b7",
         {
           properties: {
-            componentId: "https://block.blockprotocol.org/paragraph",
+            componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
             entityId: results.get("text3")!.entityId,
             accountId: results.get("text3")!.accountId,
           },
@@ -565,7 +587,7 @@ void (async () => {
         "b8",
         {
           properties: {
-            componentId: "https://block.blockprotocol.org/paragraph",
+            componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
             entityId: results.get("text4")!.entityId,
             accountId: results.get("text4")!.accountId,
           },
@@ -578,7 +600,7 @@ void (async () => {
         "b9",
         {
           properties: {
-            componentId: "https://block.blockprotocol.org/person",
+            componentId: "https://blockprotocol.org/blocks/@hash/person",
             entityId: results.get("p2")!.entityId,
             accountId: results.get("p2")!.accountId,
           },
@@ -591,7 +613,7 @@ void (async () => {
         "b10",
         {
           properties: {
-            componentId: "https://block.blockprotocol.org/header",
+            componentId: "https://blockprotocol.org/blocks/@hash/header",
             entityId: results.get("header1text")!.entityId,
             accountId: results.get("header1text")!.accountId,
           },
@@ -604,7 +626,7 @@ void (async () => {
         "b11",
         {
           properties: {
-            componentId: "https://block.blockprotocol.org/divider",
+            componentId: "https://blockprotocol.org/blocks/@hash/divider",
             entityId: results.get("divider1")!.entityId,
             accountId: results.get("divider1")!.accountId,
           },
@@ -617,7 +639,7 @@ void (async () => {
         "b12",
         {
           properties: {
-            componentId: "https://block.blockprotocol.org/embed",
+            componentId: "https://blockprotocol.org/blocks/@hash/embed",
             entityId: results.get("embed1")!.entityId,
             accountId: results.get("embed1")!.accountId,
           },
@@ -630,7 +652,7 @@ void (async () => {
         "b13",
         {
           properties: {
-            componentId: "https://block.blockprotocol.org/embed",
+            componentId: "https://blockprotocol.org/blocks/@hash/embed",
             entityId: results.get("embed2")!.entityId,
             accountId: results.get("embed2")!.accountId,
           },
@@ -643,7 +665,7 @@ void (async () => {
         "b14",
         {
           properties: {
-            componentId: "https://block.blockprotocol.org/image",
+            componentId: "https://blockprotocol.org/blocks/@hash/image",
             entityId: results.get("img1")!.entityId,
             accountId: results.get("img1")!.accountId,
           },
@@ -656,7 +678,7 @@ void (async () => {
         "b15",
         {
           properties: {
-            componentId: "https://block.blockprotocol.org/image",
+            componentId: "https://blockprotocol.org/blocks/@hash/image",
             entityId: results.get("img2")!.entityId,
             accountId: results.get("img2")!.accountId,
           },
@@ -669,7 +691,7 @@ void (async () => {
         "b16",
         {
           properties: {
-            componentId: "https://block.blockprotocol.org/video",
+            componentId: "https://blockprotocol.org/blocks/@hash/video",
             entityId: results.get("video1")!.entityId,
             accountId: results.get("video1")!.accountId,
           },
@@ -682,7 +704,7 @@ void (async () => {
         "b17",
         {
           properties: {
-            componentId: "https://block.blockprotocol.org/header",
+            componentId: "https://blockprotocol.org/blocks/@hash/header",
             entityId: results.get("header2text")!.entityId,
             accountId: results.get("header2text")!.accountId,
           },
@@ -695,7 +717,7 @@ void (async () => {
         "b18",
         {
           properties: {
-            componentId: "https://block.blockprotocol.org/table",
+            componentId: "https://blockprotocol.org/blocks/@hash/table",
             entityId: results.get("t2")!.entityId,
             accountId: results.get("t2")!.accountId,
           },
@@ -708,7 +730,7 @@ void (async () => {
         "b19",
         {
           properties: {
-            componentId: "https://block.blockprotocol.org/table",
+            componentId: "https://blockprotocol.org/blocks/@hash/table",
             entityId: results.get("t2")!.entityId,
             accountId: results.get("t2")!.accountId,
           },
