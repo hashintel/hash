@@ -50,7 +50,11 @@ export const ResizingIFrame = forwardRef<
      *  @todo check origin for only the sandbox origin, once we have a way of setting it
      * */
     iFrameResizer(
-      { checkOrigin: false, warningTimeout: 20_000 } as FixMeLater,
+      {
+        checkOrigin: false,
+        // @ts-expect-error -- warningTimeout needs to be added to the list of know attributes
+        warningTimeout: 20_000,
+      },
       iframe,
     );
 
