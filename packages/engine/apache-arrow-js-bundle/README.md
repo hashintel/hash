@@ -37,7 +37,7 @@ The bundle should appear as `./dist/apache-arrow-bundle.js`
     }
     setValue(index, value) {
       const children = this.children;
-      if (value === null) {
+      if (value === null || value === undefined) {
         return this.type.children.forEach((_, i) =>
           children[i].set(index, null),
         );
