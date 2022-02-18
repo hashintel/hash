@@ -180,9 +180,6 @@ export const deleteLinkRow = async (
 
   await Promise.all([
     conn.query(sql`
-    delete from outgoing_links where source_account_id = ${params.sourceAccountId} and link_id = ${params.linkId};
-  `),
-    conn.query(sql`
     delete from incoming_links where source_account_id = ${params.sourceAccountId} and link_id = ${params.linkId};
   `),
     conn.query(sql`
