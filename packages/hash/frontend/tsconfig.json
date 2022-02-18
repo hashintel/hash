@@ -5,6 +5,7 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "lib": ["dom", "dom.iterable", "esnext"],
+    "target": "es5",
     "noEmit": true
   },
   "include": ["assets.d.ts", "next-env.d.ts", "**/*.ts", "**/*.tsx"],
