@@ -907,9 +907,11 @@ struct DataFFI {
     size_t len;
     size_t null_count;
     size_t n_buffers;
-    const unsigned char *buffer_ptrs[2]; // Up to two valid pointers to buffers
+    // The number of valid pointers in buffer_ptrs and valid capacities in buffer_capacities is equal to n_buffers,
+    // which is at most 2.
+    const unsigned char *buffer_ptrs[2];
     size_t buffer_capacities[2];
-    const unsigned char *null_bits_ptr;
+    const unsigned char *null_bits_ptr; // This pointer can be null if the Arrow array doesn't have a null bitmap
     size_t null_bits_capacity;
 };
 

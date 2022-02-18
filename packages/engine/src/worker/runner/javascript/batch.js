@@ -190,10 +190,10 @@
 
   // TODO: Can JS Arrow silently coerce some flushed values to different types if
   //       their type differs from what it's supposed to be according to the schema?
-  const ffi_data_data_from_array_data = (array_data) => {
+  const ffi_data_from_array_data = (array_data) => {
     const child_data = [];
     for (var i = 0; i < array_data.children.length; ++i) {
-      child_data[i] = ffi_data_data_from_array_data(array_data.children[i]);
+      child_data[i] = ffi_data_from_array_data(array_data.children[i]);
     }
 
     const buffers = [];
@@ -233,7 +233,7 @@
         }
       }
       const array_data = array_data_from_col(col, field.type);
-      const data = ffi_data_data_from_array_data(array_data);
+      const data = ffi_data_from_array_data(array_data);
       changes.push({
         // Some fields might be skipped, so a field's index in `changes` might not be equal to `i_field`.
         i_field: i_field, //

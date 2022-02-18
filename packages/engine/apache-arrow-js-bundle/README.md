@@ -69,8 +69,7 @@ The bundle should appear as `./dist/apache-arrow-bundle.js`
 >
 > If anyone has ideas on how to resolve this, suggestions are welcome.
 >
-> [2] The JavaScript language runner was implemented in an older version of Arrow.
-> To be able to load Vectors individually from memory without needing to duplicate the Schema and storing it alongside the batch, we currently have decided to use some internal functions.
+> [2] To be able to load Vectors individually from memory without needing to duplicate the Schema and storing it alongside the batch, we currently have decided to use some internal functions.
 > We've opened a [StackOverflow question](https://stackoverflow.com/questions/71145338/is-there-a-way-to-read-a-recordbatch-from-bytes-and-pass-in-the-schema-directly) (and are open to opening a JIRA ticket, and or PR to the main repo), in the hopes that we can remove the need to do this.
 >
 > [3] There's a bug in Arrow to do with appending nulls to Structs, we've opened a [JIRA ticket](https://issues.apache.org/jira/browse/ARROW-15705) and associated [PR to fix it](https://github.com/apache/arrow/pull/12451)
