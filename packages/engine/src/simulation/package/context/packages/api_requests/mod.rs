@@ -145,11 +145,13 @@ impl Package for ApiRequests {
         let arrow_fields = context_schema
             .arrow
             .field_with_name(field_key.value())
-            .map(|field| match field.data_type() {
-                DataType::List(box DataType::Struct(sub_fields)) => sub_fields,
-                _ => {
-                    unreachable!()
+            .map(|field| {
+                if let DataType::List(inner_field) = field.data_type() {
+                    if let DataType::Struct(sub_fields) = inner_field.data_type() {
+                        return sub_fields;
+                    }
                 }
+                unreachable!()
             })?
             .clone();
 

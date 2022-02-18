@@ -57,12 +57,15 @@ impl FieldType {
             FieldTypeVariant::Boolean => Ok(ArrowDataType::Boolean),
             FieldTypeVariant::String => Ok(ArrowDataType::Utf8),
             FieldTypeVariant::AnyType => Ok(ArrowDataType::Utf8),
-            FieldTypeVariant::FixedLengthArray { kind: inner, len } => Ok(
-                ArrowDataType::FixedSizeList(Box::new(inner.get_arrow_data_type()?), *len as i32),
-            ),
-            FieldTypeVariant::VariableLengthArray(inner) => {
-                Ok(ArrowDataType::List(Box::new(inner.get_arrow_data_type()?)))
+            FieldTypeVariant::FixedLengthArray { kind: inner, len } => {
+                Ok(ArrowDataType::FixedSizeList(
+                    Box::new(ArrowField::new("item", inner.get_arrow_data_type()?, true)),
+                    *len as i32,
+                ))
             }
+            FieldTypeVariant::VariableLengthArray(inner) => Ok(ArrowDataType::List(Box::new(
+                ArrowField::new("item", inner.get_arrow_data_type()?, true),
+            ))),
             FieldTypeVariant::Struct(inner) => Ok(ArrowDataType::Struct(
                 inner
                     .iter()
@@ -179,7 +182,7 @@ impl IsFixedSize for ArrowDataType {
             ArrowDataType::Float64 => Ok(true),
             ArrowDataType::FixedSizeBinary(_) => Ok(true),
             ArrowDataType::Utf8 => Ok(false),
-            ArrowDataType::FixedSizeList(val, _) => val.is_fixed_size(),
+            ArrowDataType::FixedSizeList(val, _) => val.data_type().is_fixed_size(),
             ArrowDataType::List(_) => Ok(false),
             _ => Err(Error::NotImplemented(SupportedType::ArrowDataType(
                 self.clone(),
@@ -241,7 +244,10 @@ pub mod tests {
                 ArrowField::new("_PRIVATE_0_test1", ArrowDataType::Boolean, true),
                 ArrowField::new(
                     "_PRIVATE_0_test3",
-                    ArrowDataType::FixedSizeList(Box::new(ArrowDataType::Float64), 3),
+                    ArrowDataType::FixedSizeList(
+                        Box::new(ArrowField::new("item", ArrowDataType::Float64, true)),
+                        3,
+                    ),
                     true,
                 ),
                 ArrowField::new(
@@ -251,7 +257,11 @@ pub mod tests {
                 ),
                 ArrowField::new(
                     "_PRIVATE_0_test2",
-                    ArrowDataType::List(Box::new(ArrowDataType::Float64)),
+                    ArrowDataType::List(Box::new(ArrowField::new(
+                        "item",
+                        ArrowDataType::Float64,
+                        true,
+                    ))),
                     true,
                 ),
             ],

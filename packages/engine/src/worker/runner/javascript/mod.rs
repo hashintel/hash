@@ -6,10 +6,10 @@ use std::{
 };
 
 use arrow::{
-    array::{ArrayData, ArrayDataRef},
+    array::ArrayData,
     buffer::{Buffer, MutableBuffer},
     datatypes::{DataType, Schema},
-    ipc::writer::schema_to_bytes,
+    ipc::writer::{IpcDataGenerator, IpcWriteOptions},
 };
 use futures::FutureExt;
 use mv8::MiniV8;
@@ -372,9 +372,10 @@ fn bytes_to_js<'m>(mv8: &'m MiniV8, bytes: &mut [u8]) -> mv8::Value<'m> {
 }
 
 fn schema_to_stream_bytes(schema: &Schema) -> Vec<u8> {
-    let content = schema_to_bytes(schema);
-    let mut stream_bytes = arrow_continuation(content.len());
-    stream_bytes.extend_from_slice(&content);
+    let ipc_data_generator = IpcDataGenerator::default();
+    let content = ipc_data_generator.schema_to_bytes(schema, &IpcWriteOptions::default());
+    let mut stream_bytes = arrow_continuation(content.ipc_message.len());
+    stream_bytes.extend_from_slice(&content.ipc_message);
     stream_bytes
 }
 
@@ -561,32 +562,35 @@ impl<'m> RunnerImpl<'m> {
         let data: mv8::DataFfi = mv8.data_node_from_js(data);
 
         let n_children = child_data.len();
-        let child_data: Vec<ArrayDataRef> = match dt.clone() {
-            DataType::List(t) => {
+        let child_data: Vec<ArrayData> = match dt.clone() {
+            DataType::List(field) => {
                 let child: mv8::Value<'_> = child_data.get(0)?;
-                Ok(vec![Arc::new(
-                    self.array_data_from_js(mv8, &child, &t, None)?,
-                )])
-            }
-            DataType::FixedSizeList(t, multiplier) => {
-                let child: mv8::Value<'_> = child_data.get(0)?;
-                Ok(vec![Arc::new(self.array_data_from_js(
+                Ok(vec![self.array_data_from_js(
                     mv8,
                     &child,
-                    &t,
+                    field.data_type(),
+                    None,
+                )?])
+            }
+            DataType::FixedSizeList(field, multiplier) => {
+                let child: mv8::Value<'_> = child_data.get(0)?;
+                Ok(vec![self.array_data_from_js(
+                    mv8,
+                    &child,
+                    field.data_type(),
                     Some(data.len * multiplier as usize),
-                )?)])
+                )?])
             }
             DataType::Struct(fields) => {
                 let mut v = Vec::new();
                 for (i, field) in fields.iter().enumerate() {
                     let child = child_data.get(i as u32)?;
-                    v.push(Arc::new(self.array_data_from_js(
+                    v.push(self.array_data_from_js(
                         mv8,
                         &child,
                         field.data_type(),
                         Some(data.len),
-                    )?));
+                    )?);
                 }
                 Ok(v)
             }
@@ -676,23 +680,23 @@ impl<'m> RunnerImpl<'m> {
             } else {
                 // This happens when we have fixed size buffers, but the inner nodes are null
                 let mut mut_buffer = MutableBuffer::new(len);
-                mut_buffer.resize(len)?;
-                mut_buffer.freeze()
+                mut_buffer.resize(len, 0);
+                mut_buffer.into()
             };
             // let buffer = unsafe { Buffer::from_unowned(ptr, len, capacity) };
             buffers.push(buffer);
         }
 
-        let data = ArrayData::new(
-            dt.clone(),
-            len.unwrap_or(data.len),
-            Some(data.null_count),
-            null_bit_buffer,
-            0,
-            buffers,
-            child_data,
-        );
-        Ok(data)
+        let mut builder = ArrayData::builder(dt.clone())
+            .len(len.unwrap_or(data.len))
+            .null_count(data.null_count)
+            .buffers(buffers)
+            .child_data(child_data);
+        if let Some(null_bit_buffer) = null_bit_buffer {
+            builder = builder.null_bit_buffer(null_bit_buffer);
+        }
+
+        Ok(builder.build()?)
     }
 
     fn flush_batch<B: DynamicBatch>(
@@ -712,7 +716,7 @@ impl<'m> RunnerImpl<'m> {
             let data: mv8::Value<'_> = change.get("data")?;
             let data = self.array_data_from_js(mv8, &data, field.data_type(), None)?;
             batch.push_change(ArrayChange {
-                array: Arc::new(data),
+                array: data,
                 index: i_field,
             })?;
         }
