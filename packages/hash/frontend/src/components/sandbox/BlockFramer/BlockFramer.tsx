@@ -109,10 +109,8 @@ export const BlockFramer: VoidFunctionComponent<CrossFrameProxyProps> = ({
         return;
       }
 
-      /**
-       * @todo args is a tuple but the compiler doesn't know. why?
-       */
-      fn(...(args as [FixMeLater]))
+      // @ts-expect-error -- Args is a tuple but the compiler doesn't know. why?
+      fn(...args)
         .then((response) => {
           sendMessage({ ...responseMsg, payload: { data: response ?? "ok" } });
         })

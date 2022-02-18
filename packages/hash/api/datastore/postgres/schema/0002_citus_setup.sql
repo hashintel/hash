@@ -30,10 +30,6 @@ begin
       perform create_distributed_table('links', 'source_account_id');
     end if;
 
-    if not is_citus_distributed_table('outgoing_links') then
-      perform create_distributed_table('outgoing_links', 'source_account_id');
-    end if;
-
     if not is_citus_distributed_table('incoming_links') then
       perform create_distributed_table('incoming_links', 'destination_account_id');
     end if;
