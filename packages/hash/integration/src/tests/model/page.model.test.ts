@@ -88,7 +88,7 @@ describe("Page model class ", () => {
 
     const blockToInsert = await Block.createBlock(db, {
       properties: {
-        componentId: "https://block.blockprotocol.org/paragraph",
+        componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
       },
       blockData,
       accountId: existingUser.accountId,

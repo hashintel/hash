@@ -54,7 +54,7 @@ describe("Page model class ", () => {
     const paragraphBlock = await Block.createBlock(db, {
       accountId: existingUser.accountId,
       properties: {
-        componentId: "https://block.blockprotocol.org/paragraph",
+        componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
       },
       blockData: textEntity,
       createdBy: existingUser,

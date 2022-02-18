@@ -28,7 +28,7 @@ export {};
 const logger = new Logger({
   mode: "dev",
   level: "debug",
-  serviceName: "integration-tests",
+  serviceName: "mockData",
 });
 
 void (async () => {
@@ -72,30 +72,52 @@ void (async () => {
   const results = new Map<string, Entity>();
 
   const requiredBlockTypes = [
-    "Divider",
-    "Embed",
-    "Image",
-    "Table",
-    "Code",
-    "Video",
-    "Header",
+    {
+      name: "Divider",
+      componentId: "https://blockprotocol.org/blocks/@hash/divider",
+    },
+    {
+      name: "Embed",
+      componentId: "https://blockprotocol.org/blocks/@hash/embed",
+    },
+    {
+      name: "Image",
+      componentId: "https://blockprotocol.org/blocks/@hash/image",
+    },
+    {
+      name: "Table",
+      componentId: "https://blockprotocol.org/blocks/@hash/table",
+    },
+    {
+      name: "Code",
+      componentId: "https://blockprotocol.org/blocks/@hash/code",
+    },
+    {
+      name: "Video",
+      componentId: "https://blockprotocol.org/blocks/@hash/video",
+    },
+    {
+      name: "Header",
+      componentId: "https://blockprotocol.org/blocks/@hash/header",
+    },
   ] as const;
 
   const requiredOtherTypes = ["Company", "Location", "Person"] as const;
   // create the types we'll need below so we can assign their ids to entities
   const newTypeIds: Record<
-    typeof requiredBlockTypes[number] | typeof requiredOtherTypes[number],
+    | typeof requiredBlockTypes[number]["name"]
+    | typeof requiredOtherTypes[number],
     string
   > = {} as any;
 
   await Promise.all(
-    requiredBlockTypes.map(async (name) => {
+    requiredBlockTypes.map(async ({ name, componentId }) => {
       const entityType = await EntityType.create(db, {
         accountId: systemOrg.accountId,
         createdByAccountId: systemOrg.entityId, // TODO
         name,
         schema: {
-          componentId: `https://block.blockprotocol.org/${name.toLowerCase()}`,
+          ...(await EntityType.fetchComponentIdBlockSchema(componentId)),
         },
       });
 
@@ -482,128 +504,128 @@ void (async () => {
   const blocks: CreateBlockArgs[] = [
     {
       resultsKey: "b1",
-      componentId: "https://block.blockprotocol.org/header",
+      componentId: "https://blockprotocol.org/blocks/@hash/header",
       blockData: results.get("text1")!,
       createdBy: user,
     },
     {
       resultsKey: "b2",
-      componentId: "https://block.blockprotocol.org/paragraph",
+      componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
       blockData: results.get("text2")!,
       createdBy: user,
     },
     {
       resultsKey: "b3",
-      componentId: "https://block.blockprotocol.org/paragraph",
+      componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
       blockData: results.get("text3")!,
       createdBy: user,
     },
     {
       resultsKey: "b4",
-      componentId: "https://block.blockprotocol.org/table",
+      componentId: "https://blockprotocol.org/blocks/@hash/table",
       blockData: results.get("t1")!,
       createdBy: user,
     },
     {
       resultsKey: "b5",
-      componentId: "https://block.blockprotocol.org/header",
+      componentId: "https://blockprotocol.org/blocks/@hash/header",
       blockData: results.get("text5")!,
       createdBy: user,
       accountId: systemOrg.accountId,
     },
     {
       resultsKey: "b6",
-      componentId: "https://block.blockprotocol.org/paragraph",
+      componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
       blockData: results.get("text2")!,
       createdBy: user,
       accountId: systemOrg.accountId,
     },
     {
       resultsKey: "b7",
-      componentId: "https://block.blockprotocol.org/paragraph",
+      componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
       blockData: results.get("text3")!,
       createdBy: user,
       accountId: systemOrg.accountId,
     },
     {
       resultsKey: "b8",
-      componentId: "https://block.blockprotocol.org/paragraph",
+      componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
       blockData: results.get("text4")!,
       createdBy: user,
       accountId: systemOrg.accountId,
     },
     {
       resultsKey: "b9",
-      componentId: "https://block.blockprotocol.org/person",
+      componentId: "https://blockprotocol.org/blocks/@hash/person",
       blockData: results.get("p2")!,
       createdBy: user,
       accountId: systemOrg.accountId,
     },
     {
       resultsKey: "b10",
-      componentId: "https://block.blockprotocol.org/header",
+      componentId: "https://blockprotocol.org/blocks/@hash/header",
       blockData: results.get("header1text")!,
       createdBy: user,
       accountId: systemOrg.accountId,
     },
     {
       resultsKey: "b11",
-      componentId: "https://block.blockprotocol.org/divider",
+      componentId: "https://blockprotocol.org/blocks/@hash/divider",
       blockData: results.get("divider1")!,
       createdBy: user,
       accountId: systemOrg.accountId,
     },
     {
       resultsKey: "b12",
-      componentId: "https://block.blockprotocol.org/embed",
+      componentId: "https://blockprotocol.org/blocks/@hash/embed",
       blockData: results.get("embed1")!,
       createdBy: user,
       accountId: systemOrg.accountId,
     },
     {
       resultsKey: "b13",
-      componentId: "https://block.blockprotocol.org/embed",
+      componentId: "https://blockprotocol.org/blocks/@hash/embed",
       blockData: results.get("embed2")!,
       createdBy: user,
       accountId: systemOrg.accountId,
     },
     {
       resultsKey: "b14",
-      componentId: "https://block.blockprotocol.org/image",
+      componentId: "https://blockprotocol.org/blocks/@hash/image",
       blockData: results.get("img1")!,
       createdBy: user,
       accountId: systemOrg.accountId,
     },
     {
       resultsKey: "b15",
-      componentId: "https://block.blockprotocol.org/image",
+      componentId: "https://blockprotocol.org/blocks/@hash/image",
       blockData: results.get("img2")!,
       createdBy: user,
       accountId: systemOrg.accountId,
     },
     {
       resultsKey: "b16",
-      componentId: "https://block.blockprotocol.org/video",
+      componentId: "https://blockprotocol.org/blocks/@hash/video",
       blockData: results.get("video1")!,
       createdBy: user,
       accountId: systemOrg.accountId,
     },
     {
       resultsKey: "b17",
-      componentId: "https://block.blockprotocol.org/header",
+      componentId: "https://blockprotocol.org/blocks/@hash/header",
       blockData: results.get("header2text")!,
       createdBy: user,
       accountId: systemOrg.accountId,
     },
     {
       resultsKey: "b18",
-      componentId: "https://block.blockprotocol.org/table",
+      componentId: "https://blockprotocol.org/blocks/@hash/table",
       blockData: results.get("t2")!,
       createdBy: user,
     },
     {
       resultsKey: "b19",
-      componentId: "https://block.blockprotocol.org/table",
+      componentId: "https://blockprotocol.org/blocks/@hash/table",
       blockData: results.get("t2")!,
       createdBy: user,
     },

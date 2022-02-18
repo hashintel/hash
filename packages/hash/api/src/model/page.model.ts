@@ -76,7 +76,7 @@ class __Page extends Entity {
     } = params;
 
     const blockProperties: DbBlockProperties = {
-      componentId: "https://block.blockprotocol.org/paragraph",
+      componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
     };
 
     const textProperties: DbTextProperties = {

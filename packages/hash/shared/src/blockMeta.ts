@@ -50,6 +50,7 @@ const toDisplayName = (name = "Unnamed") =>
     ? name.substring("@hashintel/block-".length)
     : name.split("/").pop()!;
 
+/** @todo the blockPaths mappings are not useful anymore they should be removed and changed to an array of 'default blocks' instead */
 export const componentIdToUrl = (componentId: string) =>
   ((blockPaths as any)[componentId] as string | undefined) ?? componentId;
 
