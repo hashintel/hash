@@ -5,8 +5,9 @@ import React, {
 } from "react";
 
 export interface EmojiIconProps {
-  value: string | undefined;
+  disabled?: boolean;
   onChange: (value: string | undefined) => void;
+  value: string | undefined;
 }
 
 const variants = ["📢", "💡", "🤔", "👉", "📣", "📌", "🚧"];
@@ -27,8 +28,9 @@ const wrapperStyle: CSSProperties = {
 };
 
 export const EmojiIcon: VoidFunctionComponent<EmojiIconProps> = ({
-  value,
+  disabled,
   onChange,
+  value,
 }) => {
   const handleDivClick: MouseEventHandler = (event) => {
     event.stopPropagation();
@@ -37,6 +39,7 @@ export const EmojiIcon: VoidFunctionComponent<EmojiIconProps> = ({
 
   return (
     <button
+      disabled={disabled}
       type="button"
       contentEditable={false}
       suppressContentEditableWarning

@@ -45,7 +45,11 @@ export const App: BlockComponent<AppProps> = ({
 
   return (
     <div style={wrapperStyle}>
-      <EmojiIcon value={icon} onChange={handleIconChange} />
+      <EmojiIcon
+        disabled={typeof entityId === "string"}
+        onChange={handleIconChange}
+        value={icon}
+      />
       <div style={textStyle} ref={editableRef}>
         {editableRef ? undefined : text}
       </div>
