@@ -22,6 +22,13 @@ import {
 import { dbAggregateEntity } from "./aggregateEntity";
 
 /**
+ * IMPORTANT NOTE: the implementation of the implied history resolver
+ * is currently broken due to changes that were made in the way we store
+ * links between entities in the datastore. This will be rectified in an
+ * upcoming task.
+ */
+
+/**
  * An identifier used as a key in the cache for identifying an implied version
  * of an entity.
  * */
@@ -169,44 +176,49 @@ const hydrateEntity = async (
   }
 };
 
-// // Pages are a special case which do not use __linkedData. The links to the blocks are
-// // contained in its "contents" array property.
-// // @todo: can use `hydrateEntity` when Page links are made consistent with other entity
-// // types
-// const hydratePageEntity = (
-//   page: DbEntity,
-//   graph: Graph,
-//   versionIdEntityMap: Map<string, DbEntity>,
-// ) => {
-//   const pageProps = page.properties as DbPageProperties;
-//   // Hydrate each block in the page's "contents" property
-//   const blocks: DbEntity[] = pageProps.contents.map((content) => {
-//     const blkLink = findLink({
-//       graph,
-//       sourceEntityVersionId: page.entityVersionId,
-//       destinationEntityId: content.entityId,
-//       fixed: false,
-//     })!;
-//     const block = versionIdEntityMap.get(blkLink.dst.entityVersionId)!;
+/** Temporarily commenting out broken code
 
-//     // Hydrate the link that the block makes through its "entityId" property
-//     const blkProps = block.properties as DbBlockProperties;
-//     const entityLink = findLink({
-//       graph,
-//       sourceEntityVersionId: block.entityVersionId,
-//       destinationEntityId: blkProps.entityId,
-//       fixed: false,
-//     })!;
-//     const entity = versionIdEntityMap.get(entityLink.dst.entityVersionId);
-//     block.properties.entity = entity;
+// Pages are a special case which do not use __linkedData. The links to the blocks are
+// contained in its "contents" array property.
+// @todo: can use `hydrateEntity` when Page links are made consistent with other entity
+// types
+const hydratePageEntity = (
+  page: DbEntity,
+  graph: Graph,
+  versionIdEntityMap: Map<string, DbEntity>,
+) => {
+  const pageProps = page.properties as DbPageProperties;
+  // Hydrate each block in the page's "contents" property
+  const blocks: DbEntity[] = pageProps.contents.map((content) => {
+    const blkLink = findLink({
+      graph,
+      sourceEntityVersionId: page.entityVersionId,
+      destinationEntityId: content.entityId,
+      fixed: false,
+    })!;
+    const block = versionIdEntityMap.get(blkLink.dst.entityVersionId)!;
 
-//     return block;
-//   });
+    // Hydrate the link that the block makes through its "entityId" property
+    const blkProps = block.properties as DbBlockProperties;
+    const entityLink = findLink({
+      graph,
+      sourceEntityVersionId: block.entityVersionId,
+      destinationEntityId: blkProps.entityId,
+      fixed: false,
+    })!;
+    const entity = versionIdEntityMap.get(entityLink.dst.entityVersionId);
+    block.properties.entity = entity;
 
-//   // Update the page's "contents" property with the hydrated blocks.
-//   // eslint-disable-next-line no-param-reassign
-//   page.properties.contents = blocks;
-// };
+    return block;
+  });
+
+  // Update the page's "contents" property with the hydrated blocks.
+  // eslint-disable-next-line no-param-reassign
+  page.properties.contents = blocks;
+};
+
+
+ */
 
 /**
  * @todo: function assumes that the sub-graph rooted at `rootEntityVersionId` is acyclic.
