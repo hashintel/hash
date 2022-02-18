@@ -3,6 +3,8 @@ name: Rust
 on:
   pull_request:
   push:
+    branches:
+      - main
 
 defaults:
   run:
@@ -262,7 +264,7 @@ jobs:
   bench:
     name: bench
     needs: setup
-    if: needs.setup.outputs.bench != '[]' && (github.event_name == 'pull_request' || github.ref_name == 'main')
+    if: needs.setup.outputs.bench != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
