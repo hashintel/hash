@@ -551,11 +551,18 @@ class __Entity {
           const systemAccountId = await client.getSystemAccountId();
 
           const name = capitalizeComponentName(componentId);
+
+          // ensure a trailing a trailing slash on componentId
+          const schema = await EntityType.fetchComponentIdBlockSchema(
+            componentId,
+          );
+
+          // Creation of an EntityType validates schema.
           entityTypeWithComponentId = await EntityType.create(client, {
             accountId: systemAccountId,
             createdByAccountId: params.user.accountId,
             name,
-            schema: { componentId },
+            schema,
           });
         }
 
