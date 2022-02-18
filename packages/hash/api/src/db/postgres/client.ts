@@ -218,8 +218,6 @@ export class PostgresClient implements DBClient {
         set constraints
           entity_versions_account_id_entity_id_fk,
           entity_account_account_id_entity_version_id_fk,
-          outgoing_links_source_account_id_source_entity_id_fk,
-          outgoing_links_source_account_id_link_id_fk,
           incoming_links_destination_account_id_destination_entity_id_fk,
           incoming_links_source_account_id_link_id_fk
         deferred

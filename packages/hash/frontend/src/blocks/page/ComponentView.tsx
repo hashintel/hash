@@ -17,7 +17,6 @@ import {
   componentNodeToId,
   isComponentNode,
 } from "@hashintel/hash-shared/prosemirror";
-import type { Scope } from "@sentry/browser";
 import * as Sentry from "@sentry/nextjs";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
@@ -137,7 +136,7 @@ export class ComponentView implements NodeView<Schema> {
 
       const childEntity = getChildEntity(entity);
 
-      const beforeCapture = (scope: Scope) => {
+      const beforeCapture = (scope: Sentry.Scope) => {
         scope.setTag("block", this.componentId);
       };
 
