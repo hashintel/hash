@@ -406,7 +406,7 @@ fn assert_subset_value(subset: &Value, superset: &Value, path: String) -> Result
                 if let Some(super_value) = b.get(key) {
                     assert_subset_value(sub_value, super_value, format!("{path}.{key}"))?;
                 } else {
-                    bail!("{path:?}: {key:?} is not present output")
+                    bail!("{path:?}: {key:?} is not present in the output")
                 }
             }
         }

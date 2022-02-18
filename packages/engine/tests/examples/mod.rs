@@ -20,10 +20,7 @@ mod sugarscape {
     run_test!(sugarscape, experiment: agent_density_linspace, #[ignore]);
 }
 
-// https://core.hash.ai/@hash/published-display-behaviors/2.3.0
-// Currently bugged:
-//   `thread 'tokio-runtime-worker' panicked at 'assertion failed: (offset + length) <= data.len()'`
-run_test!(published_display_behaviors, #[ignore]);
+run_test!(published_display_behaviors);
 
 // https://core.hash.ai/@hash/boids-3d/6.1.0
 mod boids_3d {
