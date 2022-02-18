@@ -15,6 +15,8 @@ import { GraphQLContext } from "../../context";
  * once API consumers have been refactored to stop accessing `properties.entity`,
  * `properties.entityId` and `properties.accountId` of a Block, and access these
  * using the `linkGroups` or `entity` fields instead.
+ *
+ * @deprecated
  */
 export const blockProperties: Resolver<
   Promise<

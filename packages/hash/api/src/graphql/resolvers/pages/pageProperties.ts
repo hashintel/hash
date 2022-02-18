@@ -15,6 +15,8 @@ import { GraphQLContext } from "../../context";
  * IMPORTANT NOTE: this is a temporary field resolver and will be deprecated
  * once API consumers have been refactored to stop accessing `properties.contents`
  * of a Page, and access these using the `linkGroups` or `contents` fields instead
+ *
+ * @deprecated
  */
 export const pageProperties: Resolver<
   Promise<
