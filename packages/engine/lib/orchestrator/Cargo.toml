@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 error = { path = "../../lib/error", features = ["spantrace"] }
-hash_engine = { path = "../..", default-features = false }
+hash_engine_lib = { path = "../..", default-features = false }
 
 async-trait = "0.1.48"
 clap = { version = "3.0.13", optional = true }
@@ -20,4 +20,4 @@ uuid = { version = "0.8.1", features = ["v4", "serde"] }
 
 [features]
 default = ["build-nng"]
-build-nng = ["hash_engine/build-nng"]
+build-nng = ["hash_engine_lib/build-nng"]

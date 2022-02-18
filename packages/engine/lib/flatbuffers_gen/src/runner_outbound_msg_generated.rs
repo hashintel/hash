@@ -261,9 +261,10 @@ impl<'a> flatbuffers::Follow<'a> for TaskMsg<'a> {
 }
 
 impl<'a> TaskMsg<'a> {
-    pub const VT_METAVERSIONING: flatbuffers::VOffsetT = 10;
+    pub const VT_GROUP_INDEX: flatbuffers::VOffsetT = 10;
+    pub const VT_METAVERSIONING: flatbuffers::VOffsetT = 12;
     pub const VT_PACKAGE_SID: flatbuffers::VOffsetT = 4;
-    pub const VT_PAYLOAD: flatbuffers::VOffsetT = 12;
+    pub const VT_PAYLOAD: flatbuffers::VOffsetT = 14;
     pub const VT_TARGET: flatbuffers::VOffsetT = 8;
     pub const VT_TASK_ID: flatbuffers::VOffsetT = 6;
 
@@ -278,6 +279,7 @@ impl<'a> TaskMsg<'a> {
         args: &'args TaskMsgArgs<'args>,
     ) -> flatbuffers::WIPOffset<TaskMsg<'bldr>> {
         let mut builder = TaskMsgBuilder::new(_fbb);
+        builder.add_group_index(args.group_index);
         builder.add_package_sid(args.package_sid);
         if let Some(x) = args.payload {
             builder.add_payload(x);
@@ -312,6 +314,13 @@ impl<'a> TaskMsg<'a> {
     }
 
     #[inline]
+    pub fn group_index(&self) -> u64 {
+        self._tab
+            .get::<u64>(TaskMsg::VT_GROUP_INDEX, Some(0))
+            .unwrap()
+    }
+
+    #[inline]
     pub fn metaversioning(&self) -> Option<StateInterimSync<'a>> {
         self._tab
             .get::<flatbuffers::ForwardsUOffset<StateInterimSync>>(TaskMsg::VT_METAVERSIONING, None)
@@ -336,6 +345,7 @@ impl flatbuffers::Verifiable for TaskMsg<'_> {
             .visit_field::<u64>(&"package_sid", Self::VT_PACKAGE_SID, false)?
             .visit_field::<TaskId>(&"task_id", Self::VT_TASK_ID, false)?
             .visit_field::<Target>(&"target", Self::VT_TARGET, false)?
+            .visit_field::<u64>(&"group_index", Self::VT_GROUP_INDEX, false)?
             .visit_field::<flatbuffers::ForwardsUOffset<StateInterimSync>>(
                 &"metaversioning",
                 Self::VT_METAVERSIONING,
@@ -354,6 +364,7 @@ pub struct TaskMsgArgs<'a> {
     pub package_sid: u64,
     pub task_id: Option<&'a TaskId>,
     pub target: Target,
+    pub group_index: u64,
     pub metaversioning: Option<flatbuffers::WIPOffset<StateInterimSync<'a>>>,
     pub payload: Option<flatbuffers::WIPOffset<Serialized<'a>>>,
 }
@@ -364,6 +375,7 @@ impl<'a> Default for TaskMsgArgs<'a> {
             package_sid: 0,
             task_id: None,
             target: Target::Python,
+            group_index: 0,
             metaversioning: None,
             payload: None, // required field
         }
@@ -390,6 +402,12 @@ impl<'a: 'b, 'b> TaskMsgBuilder<'a, 'b> {
     pub fn add_target(&mut self, target: Target) {
         self.fbb_
             .push_slot::<Target>(TaskMsg::VT_TARGET, target, Target::Python);
+    }
+
+    #[inline]
+    pub fn add_group_index(&mut self, group_index: u64) {
+        self.fbb_
+            .push_slot::<u64>(TaskMsg::VT_GROUP_INDEX, group_index, 0);
     }
 
     #[inline]
@@ -433,6 +451,7 @@ impl std::fmt::Debug for TaskMsg<'_> {
         ds.field("package_sid", &self.package_sid());
         ds.field("task_id", &self.task_id());
         ds.field("target", &self.target());
+        ds.field("group_index", &self.group_index());
         ds.field("metaversioning", &self.metaversioning());
         ds.field("payload", &self.payload());
         ds.finish()
@@ -1004,20 +1023,14 @@ pub fn size_prefixed_root_as_runner_outbound_msg_with_opts<'b, 'o>(
 }
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a RunnerOutboundMsg and returns
-/// it.
-///
-/// # Safety
-///
+/// it. # Safety
 /// Callers must trust the given bytes do indeed contain a valid `RunnerOutboundMsg`.
 pub unsafe fn root_as_runner_outbound_msg_unchecked(buf: &[u8]) -> RunnerOutboundMsg {
     flatbuffers::root_unchecked::<RunnerOutboundMsg>(buf)
 }
 #[inline]
 /// Assumes, without verification, that a buffer of bytes contains a size prefixed RunnerOutboundMsg
-/// and returns it.
-///
-/// # Safety
-///
+/// and returns it. # Safety
 /// Callers must trust the given bytes do indeed contain a valid size prefixed `RunnerOutboundMsg`.
 pub unsafe fn size_prefixed_root_as_runner_outbound_msg_unchecked(buf: &[u8]) -> RunnerOutboundMsg {
     flatbuffers::size_prefixed_root_unchecked::<RunnerOutboundMsg>(buf)

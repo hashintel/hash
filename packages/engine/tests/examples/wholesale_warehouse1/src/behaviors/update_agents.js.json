@@ -1,0 +1,22 @@
+{
+  "keys": {
+    "truck_delivery_positions": {
+      "type": "any",
+      "nullable": true
+    },
+    "forklift_delivery_positions": {
+      "type": "any",
+      "nullable": true
+    },
+    "agents": {
+      "type": "any",
+      "nullable": true
+    },
+    "storage_info": {
+      "type": "any",
+      "nullable": true
+    }
+  },
+  "built_in_key_use": null,
+  "dynamic_access": false
+}

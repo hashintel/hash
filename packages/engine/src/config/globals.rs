@@ -2,10 +2,8 @@ use serde::{Deserialize, Serialize};
 
 use super::Result;
 
-// TODO: OS - Go through code-base and verify that out-dated references to "properties" are now
-// "globals". We also have some consts that come in along with our initial world state.
-// These, we call 'Globals', and store them in context.
-// For now, they're... you guessed it, JSON.
+/// Global constant values that are available within a simulation and are provided along with
+/// initial world state
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Globals(pub serde_json::Value);
 

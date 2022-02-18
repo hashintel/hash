@@ -1,8 +1,8 @@
+use rand::Rng;
+
 use super::{
     accessors::field_or_property, error::SimulationError, Context, Result, SharedBehavior, State,
 };
-
-use rand::Rng;
 
 pub fn behavior(state: &mut State<'_>, context: &Context<'_>) -> Result<()> {
     fn get_satisfaction(neighbor_count: i64, min_neighbors: i64, max_neighbors: i64) -> bool {
@@ -42,21 +42,19 @@ pub fn behavior(state: &mut State<'_>, context: &Context<'_>) -> Result<()> {
         }
     }
 
-    let properties = &context.properties;
+    let globals = &context.globals;
 
-    let random_movement_seek_min_neighbors_property = properties
-        .get("random_movement_seek_min_neighbors")
-        .cloned();
-    let random_movement_seek_max_neighbors_property = properties
-        .get("random_movement_seek_max_neighbors")
-        .cloned();
-    let random_movement_step_size_property = properties.get("random_movement_step_size").cloned();
+    let random_movement_seek_min_neighbors_property =
+        globals.get("random_movement_seek_min_neighbors").cloned();
+    let random_movement_seek_max_neighbors_property =
+        globals.get("random_movement_seek_max_neighbors").cloned();
+    let random_movement_step_size_property = globals.get("random_movement_step_size").cloned();
 
     let mut position = state.take_position()?;
 
     for i in 0..state.num_agents() {
-        // If min and/or max neighbors are defined, move until our neighbor count is within those bounds.
-        // if one or the other is undefined, it's open-ended.
+        // If min and/or max neighbors are defined, move until our neighbor count is within those
+        // bounds. if one or the other is undefined, it's open-ended.
         let neighbor_count = context.neighbors(i)?.len() as i64;
         let min_neighbors: i64 = field_or_property(
             &state.random_movement_seek_min_neighbors()?[i],

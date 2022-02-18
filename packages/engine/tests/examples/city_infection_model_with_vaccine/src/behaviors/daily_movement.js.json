@@ -1,0 +1,42 @@
+{
+  "keys": {
+    "social_distancing": {
+      "type": "any",
+      "nullable": true
+    },
+    "icu": {
+      "type": "any",
+      "nullable": true
+    },
+    "out": {
+      "type": "any",
+      "nullable": true
+    },
+    "destination": {
+      "type": "any",
+      "nullable": true
+    },
+    "hospital": {
+      "type": "any",
+      "nullable": true
+    },
+    "home": {
+      "type": "any",
+      "nullable": true
+    },
+    "deceased": {
+      "type": "any",
+      "nullable": true
+    },
+    "grocery": {
+      "type": "any",
+      "nullable": true
+    },
+    "office": {
+      "type": "any",
+      "nullable": true
+    }
+  },
+  "built_in_key_use": null,
+  "dynamic_access": false
+}

@@ -27,7 +27,7 @@ pub mod outbound;
 /// Contains some data about an inbound task that was sent to a runner's external process,
 /// but for which the runner hasn't yet gotten back the corresponding outbound task.
 /// This data is useful for reconstructing the outbound message struct later (i.e.
-/// converting the outbound flatbuffers message into a Rust struct).
+/// converting the outbound FlatBuffers message into a Rust struct).
 ///
 /// Fields:
 /// `shared_store`: Task shared store from inbound task message
@@ -37,12 +37,34 @@ pub struct SentTask {
     pub task_wrapper: serde_json::Value,
 }
 
+/// Possible targets for a [`TargetedTaskMessage`] to be forwarded to by the `Worker`.
+///
+/// The execution chain of a `Task` is described within the docs for the
+/// [`Task`](crate::simulation::task) module. This enum marks all possible targets that a [`Task`]
+/// can be sent to.
+///
+/// [`TargetedTaskMessage`]: crate::simulation::task::msg::TargetedTaskMessage
 #[derive(Debug, Clone, Copy)]
 pub enum MessageTarget {
+    /// The message should be forwarded to _package.rs_ implementation and executed on the Rust
+    /// Language Runner.
     Rust,
+    /// The message should be forwarded to _package.py_ implementation and executed on the
+    /// Python Language Runner.
     Python,
+    /// The message should be forwarded to _package.js_ implementation and executed on the
+    /// JavaScript Language Runner.
     JavaScript,
+    /// The Package implementation is responsible for deciding the routing of the message. This is
+    /// decided by passing it to the [`WorkerHandler::handle_worker_message()`] implementation of
+    /// the [`Task`].
+    ///
+    /// [`Task`]: crate::simulation::task::Task
+    /// [`WorkerHandler::handle_worker_message()`]: crate::simulation::task::handler::worker::WorkerHandler::handle_worker_message
     Dynamic,
+    /// The [`Task`] execution has finished, and the message is the terminating (result) message.
+    ///
+    /// [`Task`]: crate::simulation::task::Task
     Main,
 }
 
@@ -74,6 +96,7 @@ impl From<flatbuffers_gen::target_generated::Target> for MessageTarget {
 pub struct RunnerTaskMsg {
     pub package_id: PackageId,
     pub task_id: TaskId,
+    pub group_index: Option<usize>,
     pub payload: TaskMessage,
     pub shared_store: TaskSharedStore,
 }
@@ -85,6 +108,7 @@ pub struct TargetedRunnerTaskMsg {
 }
 
 impl TargetedRunnerTaskMsg {
+    #[allow(unreachable_code, unused_variables)]
     pub fn try_from_fbs(
         task_msg: flatbuffers_gen::runner_outbound_msg_generated::TaskMsg<'_>,
         sent_tasks: &mut HashMap<TaskId, SentTask>,
@@ -100,6 +124,8 @@ impl TargetedRunnerTaskMsg {
 
         let target = task_msg.target().into();
         let package_id = (task_msg.package_sid() as usize).into();
+        // TODO: our version of flatbuffers doesn't let us have optional Scalars
+        // let group_index = task_msg.group_index().map(|val| val as usize);
 
         let inner_msg: serde_json::Value = serde_json::from_slice(task_msg.payload().inner())?;
         let payload = TaskMessage::try_from_inner_msg_and_wrapper(inner_msg, sent.task_wrapper);
@@ -118,6 +144,7 @@ impl TargetedRunnerTaskMsg {
             msg: RunnerTaskMsg {
                 package_id,
                 task_id,
+                group_index: todo!(),
                 payload,
                 shared_store: sent.shared_store,
             },

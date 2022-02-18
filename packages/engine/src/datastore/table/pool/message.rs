@@ -1,136 +1,56 @@
-use std::{ops::Deref, sync::Arc};
+use std::sync::Arc;
 
-use parking_lot::{RwLock, RwLockReadGuard};
+use parking_lot::RwLock;
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
 };
 
-use super::{agent::AgentPool, BatchPool};
+use super::BatchPool;
 use crate::{
-    datastore::{batch, prelude::*, table::references::AgentMessageReference, UUID_V4_LEN},
+    datastore::{
+        batch::{self, AgentBatch, MessageBatch},
+        table::{
+            pool::proxy::{PoolReadProxy, PoolWriteProxy},
+            references::AgentMessageReference,
+        },
+        Error, Result, UUID_V4_LEN,
+    },
     proto::ExperimentRunTrait,
     SimRunConfig,
 };
 
-/// TODO: DOC
+/// A collection of [`Batch`]es which contain the current (outbound) messages of agents.
+///
+/// This is kept separate to the [`AgentPool`], because while agents can be removed between steps,
+/// messages are still sent out in the next step (including the ones by deleted agents) — this
+/// removes the need for making copies of the pool.
 #[derive(Clone)]
 pub struct MessagePool {
     batches: Vec<Arc<RwLock<MessageBatch>>>,
 }
 
-impl MessagePool {
-    pub fn new(batches: Vec<Arc<RwLock<MessageBatch>>>) -> MessagePool {
-        MessagePool { batches }
+impl super::Pool<MessageBatch> for MessagePool {
+    fn new(batches: Vec<Arc<RwLock<MessageBatch>>>) -> Self {
+        Self { batches }
     }
 
-    // TODO use the BatchPool trait properly and get rid of duplication
-    fn batches(&self) -> &Vec<Arc<RwLock<MessageBatch>>> {
+    fn get_batches(&self) -> &[Arc<RwLock<MessageBatch>>] {
         &self.batches
     }
 
-    fn batches_mut(&mut self) -> &mut Vec<Arc<RwLock<MessageBatch>>> {
+    fn get_batches_mut(&mut self) -> &mut Vec<Arc<RwLock<MessageBatch>>> {
         &mut self.batches
     }
-
-    pub fn read_batches(&self) -> Result<Vec<RwLockReadGuard<'_, MessageBatch>>> {
-        self.batches()
-            .iter()
-            .map(|a| {
-                a.try_read()
-                    .ok_or_else(|| Error::from("failed to read batches"))
-            })
-            .collect::<Result<_>>()
-    }
-
-    pub fn read(&self) -> Result<MessagePoolRead<'_>> {
-        let read_batches = self
-            .batches()
-            .iter()
-            .map(|batch| {
-                batch
-                    .try_read()
-                    .ok_or_else(|| Error::from("Failed to acquire read lock"))
-            })
-            .collect::<Result<_>>()?;
-        Ok(MessagePoolRead {
-            batches: read_batches,
-        })
-    }
-
-    pub fn empty() -> MessagePool {
-        MessagePool {
-            batches: Default::default(),
-        }
-    }
-
-    pub fn len(&self) -> usize {
-        self.batches.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
-    /// Clears all message columns in the pool and resizes them as necessary to accommodate new
-    /// messages according to the provided [`agent_pool`].
-    ///
-    /// This can result in the number of batches being changed if more/less are now needed.
-    pub fn reset(&mut self, agent_pool: &AgentPool, sim_config: &SimRunConfig) -> Result<()> {
-        let message_schema = &sim_config.sim.store.message_schema;
-        let experiment_id = &sim_config.exp.run.base().id;
-        let mut removed = vec![];
-        (0..self.batches.len())
-            // TODO: remove or document reasoning (possibly faster due to batch resizing causing shifting)
-            .rev()
-            .try_for_each::<_, Result<()>>(|batch_index| {
-                if let Some(dynamic_batch) = agent_pool.get_batch_at_index(batch_index)? {
-                    let inbox_batch = &mut self.batches[batch_index]
-                        .try_write()
-                        .ok_or_else(|| Error::from("Failed to acquire write lock"))?;
-                    inbox_batch.reset(&dynamic_batch)?
-                } else {
-                    let batch_arc = self.batches.remove(batch_index);
-                    let batch = batch_arc
-                        .try_read()
-                        .ok_or_else(|| Error::from("Failed to acquire read lock"))?;
-                    removed.push(batch.get_batch_id().to_string());
-                }
-                Ok(())
-            })?;
-        if agent_pool.len() > self.len() {
-            agent_pool.batches()[self.len()..]
-                .iter()
-                .try_for_each::<_, Result<()>>(|batch| {
-                    let inbox = MessageBatch::empty_from_agent_batch(
-                        batch
-                            .try_read()
-                            .ok_or_else(|| Error::from("Failed to acquire read lock"))?
-                            .deref(),
-                        &message_schema.arrow,
-                        message_schema.static_meta.clone(),
-                        experiment_id,
-                    )?;
-                    self.batches_mut().push(Arc::new(RwLock::new(inbox)));
-                    Ok(())
-                })?;
-        }
-        Ok(())
-    }
 }
 
-// TODO: (clarity) Replace with MessageReader<'a> or rename ?
-pub struct MessagePoolRead<'a> {
-    batches: Vec<RwLockReadGuard<'a, MessageBatch>>,
-}
-
-impl<'a> MessagePoolRead<'a> {
-    pub fn get_reader(&'a self) -> MessageReader<'a> {
-        let mut loaders = Vec::with_capacity(self.batches.len());
-        for batch in &self.batches {
-            loaders.push(batch.message_loader());
+impl PoolReadProxy<MessageBatch> {
+    pub fn get_reader(&self) -> MessageReader<'_> {
+        MessageReader {
+            loaders: self
+                .batches_iter()
+                .map(MessageBatch::message_loader)
+                .collect(),
         }
-
-        MessageReader { loaders }
     }
 
     pub fn recipient_iter_all<'b: 'r, 'r>(
@@ -202,12 +122,41 @@ impl MessageReader<'_> {
     }
 }
 
-impl BatchPool<MessageBatch> for MessagePool {
-    fn batches(&self) -> &[Arc<RwLock<MessageBatch>>] {
-        &self.batches
-    }
-
-    fn mut_batches(&mut self) -> &mut Vec<Arc<RwLock<MessageBatch>>> {
-        &mut self.batches
+impl PoolWriteProxy<MessageBatch> {
+    /// Clears all message columns in the pool and resizes them as necessary to accommodate new
+    /// messages according to the provided [`agent_pool`].
+    ///
+    /// This can result in the number of batches being changed if more/less are now needed.
+    pub fn reset(
+        &mut self,
+        message_pool: &mut MessagePool,
+        agent_proxies: &PoolReadProxy<AgentBatch>,
+        sim_config: &SimRunConfig,
+    ) -> Result<()> {
+        let message_schema = &sim_config.sim.store.message_schema;
+        let experiment_id = &sim_config.exp.run.base().id;
+        let mut removed = vec![];
+        // Reversing sequence to remove from the back if there are
+        // fewer agent batches than message batches
+        for batch_index in (0..self.len()).rev() {
+            if let Some(dynamic_batch) = agent_proxies.batch(batch_index) {
+                self[batch_index].reset(dynamic_batch)?;
+            } else {
+                removed.push(message_pool.remove(batch_index));
+            }
+        }
+        if agent_proxies.len() > self.len() {
+            // Add message batches if there are more agent batches than message batches
+            for agent_proxy in &agent_proxies[self.len()..] {
+                let inbox = MessageBatch::empty_from_agent_batch(
+                    agent_proxy,
+                    &message_schema.arrow,
+                    message_schema.static_meta.clone(),
+                    experiment_id,
+                )?;
+                message_pool.push(inbox);
+            }
+        }
+        Ok(())
     }
 }

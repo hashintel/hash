@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use super::Result;
+use super::{Error, Result};
 use crate::{
-    config::{Distribution, TaskDistributionConfig},
+    config::{StateBatchDistribution, TaskDistributionConfig},
     simulation::{
         enum_dispatch::{StateTask, StateTaskMessage, WorkerHandler},
         task::{
@@ -15,6 +15,11 @@ use crate::{
     },
     worker::runner::comms::MessageTarget,
 };
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+// This is an empty struct, as the runners have access to all the information through Arrow
+// and the task finishes by returning to the "main" target.
+pub struct ExecuteBehaviorsTaskMessage {}
 
 #[derive(Clone, Debug)]
 pub struct ExecuteBehaviorsTask {
@@ -29,8 +34,8 @@ impl GetTaskName for ExecuteBehaviorsTask {
 
 impl GetTaskArgs for ExecuteBehaviorsTask {
     fn distribution(&self) -> TaskDistributionConfig {
-        TaskDistributionConfig::Distributed(Distribution {
-            single_read_access: true,
+        TaskDistributionConfig::Distributed(StateBatchDistribution {
+            partitioned_batches: true,
         })
     }
 }
@@ -42,6 +47,10 @@ impl WorkerHandler for ExecuteBehaviorsTask {
             target: self.target,
             payload: task_msg.into(),
         })
+    }
+
+    fn combine_task_messages(&self, task_messages: Vec<TaskMessage>) -> Result<TaskMessage> {
+        combine_task_messages(task_messages)
     }
 }
 
@@ -58,25 +67,30 @@ impl WorkerPoolHandler for ExecuteBehaviorsTask {
             .collect())
     }
 
-    fn combine_messages(&self, split_tasks: Vec<TaskMessage>) -> Result<TaskMessage> {
-        for _task in split_tasks {
-            // TODO: How can we match an enum_dispatch nested enum?
-            // match task {
-            //     TaskMessage::StateTaskMessage(
-            //         StateTaskMessage::ExecuteBehaviorsTaskMessage(
-            //             ExecuteBehaviorsTaskMessage
-            //         )
-            //     ) => {},
-            //     _ => return Err(Error::InvalidBehaviorTaskMessage(task))
-            // }
-        }
-        let task: StateTaskMessage = ExecuteBehaviorsTaskMessage {}.into();
-        let task: TaskMessage = task.into();
-        Ok(task)
+    fn combine_messages(&self, split_messages: Vec<TaskMessage>) -> Result<TaskMessage> {
+        combine_task_messages(split_messages)
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-// This is an empty struct, as the runners have access to all the information through Arrow
-// and the task finishes by returning to the "main" target.
-pub struct ExecuteBehaviorsTaskMessage {}
+fn combine_task_messages(split_messages: Vec<TaskMessage>) -> Result<TaskMessage> {
+    if split_messages.is_empty() {
+        Err(Error::Unique(
+            "Expected there to be at least one TaskMessage returned by the BehaviorExecutionTask"
+                .to_string(),
+        ))
+    } else {
+        // The `ExecuteBehaviorsTaskMessage` is empty so there's no special combining logic, we
+        // just need to verify each message is valid
+        for task_message in split_messages {
+            if !matches!(
+                task_message,
+                TaskMessage::StateTaskMessage(StateTaskMessage::ExecuteBehaviorsTaskMessage(_))
+            ) {
+                return Err(Error::InvalidBehaviorTaskMessage(task_message));
+            }
+        }
+        let task_message: StateTaskMessage = ExecuteBehaviorsTaskMessage {}.into();
+        let task_message: TaskMessage = task_message.into();
+        Ok(task_message)
+    }
+}

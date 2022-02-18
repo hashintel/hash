@@ -1,0 +1,26 @@
+{
+  "keys": {
+    "counter": {
+      "nullable": false,
+      "type": "number"
+    },
+    "call_queue": {
+      "type": "any",
+      "nullable": false
+    },
+    "skill_level": {
+      "nullable": false,
+      "type": "number"
+    },
+    "call_generation": {
+      "nullable": false,
+      "type": "fixed_size_list",
+      "length": 3,
+      "child": {
+        "nullable": true,
+        "type": "number"
+      }
+    }
+  },
+  "built_in_key_use": null
+}

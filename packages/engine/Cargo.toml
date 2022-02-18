@@ -1,5 +1,5 @@
 [package]
-name = "hash_engine"
+name = "hash_engine_lib"
 version = "0.0.0"
 edition = "2021"
 
@@ -59,6 +59,7 @@ build-nng = ["nng/build-nng"]
 texray = ["tracing-texray"]
 
 [lib]
+name = "hash_engine_lib"
 crate-type = ["lib", "cdylib"]
 
 [build-dependencies.cc]

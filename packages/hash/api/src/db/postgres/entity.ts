@@ -84,6 +84,7 @@ export type EntityPGRow = {
   ["type.updated_by"]: string;
   ["type.updated_at"]: number;
 };
+
 /**
  * @todo since many entities will be of the same small number of system types (e.g. block),
  *    for non-nested queries it will probably end up faster to request and cache types separately.
@@ -136,7 +137,7 @@ const selectEntityVersion = (params: {
 `;
 
 /** Query for retrieving all versions of an entity */
-const selectEntityAllVersions = (params: {
+export const selectEntityAllVersions = (params: {
   accountId: string;
   entityId: string;
 }) => sql`
@@ -163,7 +164,7 @@ const selectEntitiesAllVersions = (params: {
  * @param params.entityTypeVersionId optionally limit to entities of a specific version of a type
  * @param params.accountId the account to retrieve entities from
  * */
-const selectEntitiesByType = (params: {
+export const selectEntitiesByType = (params: {
   entityTypeId: string;
   entityTypeVersionId?: string;
   accountId: string;

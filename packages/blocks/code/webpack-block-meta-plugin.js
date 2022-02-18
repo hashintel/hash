@@ -11,6 +11,7 @@ const {
   author,
   license,
   blockprotocol,
+  repository,
 } = require("./package.json");
 
 const { externals } = require("./webpack-main.config");
@@ -36,6 +37,7 @@ class StatsPlugin {
         schema: "block-schema.json",
         source: main,
         variants,
+        repository,
         ...blockprotocol,
       };
 

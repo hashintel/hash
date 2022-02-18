@@ -1,0 +1,13 @@
+{
+  "keys": {
+    "true_height": {
+      "nullable": false,
+      "type": "number"
+    },
+    "pooled": {
+      "nullable": false,
+      "type": "boolean"
+    }
+  },
+  "built_in_key_use": null
+}

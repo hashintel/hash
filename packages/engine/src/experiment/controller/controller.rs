@@ -15,7 +15,7 @@ use crate::{
     datastore::prelude::SharedStore,
     env::OrchClient,
     experiment::{
-        apply_property_changes,
+        apply_globals_changes,
         package::{ExperimentPackageComms, StepUpdate},
         ExperimentControl,
     },
@@ -76,7 +76,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
             ExperimentControl::StartSim {
                 span_id,
                 sim_id,
-                changed_properties,
+                changed_globals,
                 max_num_steps,
             } => {
                 let sim_span = utils::texray::examine(tracing::info_span!(
@@ -84,7 +84,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
                     "sim",
                     id = &sim_id
                 ));
-                self.start_new_sim_run(sim_id, changed_properties, max_num_steps)
+                self.start_new_sim_run(sim_id, changed_globals, max_num_steps)
                     .instrument(sim_span)
                     .await?;
             }
@@ -168,7 +168,7 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
     async fn start_new_sim_run(
         &mut self,
         sim_short_id: SimulationShortId,
-        changed_properties: serde_json::Value,
+        changed_globals: serde_json::Value,
         max_num_steps: usize,
     ) -> Result<()> {
         tracing::info!("Starting a new run");
@@ -176,11 +176,8 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
 
         // Create the `globals.json` for the simulation
         let globals = Arc::new(
-            apply_property_changes(
-                self.exp_base_config.base_globals.clone(),
-                &changed_properties,
-            )
-            .map_err(|experiment_err| Error::from(experiment_err.to_string()))?,
+            apply_globals_changes(self.exp_base_config.base_globals.clone(), &changed_globals)
+                .map_err(|experiment_err| Error::from(experiment_err.to_string()))?,
         );
 
         // Create the datastore configuration (requires schemas)
@@ -235,7 +232,6 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
             sim_config,
             task_comms,
             packages,
-            self.shared_store.clone(),
             persistence_service,
             self.sim_status_send.clone(),
         )

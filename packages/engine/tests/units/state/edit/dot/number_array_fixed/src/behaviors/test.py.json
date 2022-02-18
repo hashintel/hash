@@ -1,0 +1,37 @@
+{
+  "keys": {
+    "n1": {
+      "type": "list",
+      "nullable": false,
+      "child": {
+        "type": "number",
+        "nullable": false
+      }
+    },
+    "n1_is_list": {
+      "type": "boolean",
+      "nullable": false
+    },
+    "n1_0_is_number": {
+      "type": "boolean",
+      "nullable": false
+    },
+    "n2": {
+      "type": "fixed_size_list",
+      "nullable": true,
+      "length": 2,
+      "child": {
+        "type": "number",
+        "nullable": false
+      }
+    },
+    "n2_is_list": {
+      "type": "boolean",
+      "nullable": false
+    },
+    "n2_0_is_number": {
+      "type": "boolean",
+      "nullable": false
+    }
+  }
+}

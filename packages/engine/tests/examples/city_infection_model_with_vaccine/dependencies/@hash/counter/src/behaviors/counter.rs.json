@@ -1,0 +1,23 @@
+{
+  "keys": {
+    "counter": {
+      "type": "number",
+      "nullable": true
+    },
+    "counter_increment": {
+      "type": "number",
+      "nullable": true
+    },
+    "counter_reset_at": {
+      "type": "number",
+      "nullable": true
+    },
+    "counter_reset_to": {
+      "type": "number",
+      "nullable": true
+    }
+  },
+  "built_in_key_use": {
+    "selected": []
+  }
+}

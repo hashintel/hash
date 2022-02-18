@@ -1,0 +1,22 @@
+{
+  "keys": {
+    "agents": {
+      "type": "any",
+      "nullable": true
+    },
+    "scatter_templates": {
+      "nullable": true,
+      "type": "any"
+    },
+    "lng_lat": {
+      "nullable": true,
+      "type": "fixed_size_list",
+      "length": 2,
+      "child": {
+        "type": "number",
+        "nullable": true
+      }
+    }
+  },
+  "built_in_key_use": null
+}

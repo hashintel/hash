@@ -233,13 +233,13 @@ const main = async () => {
   app.use("/collab-backend", collabApp.router);
 
   // Start the HTTP server
-  await new Promise<void>((resolve) =>
+  await new Promise<void>((resolve) => {
     httpServer.listen({ port }, () => {
       logger.info(`Listening on port ${port}`);
       logger.info(`GraphQL path: ${apolloServer.graphqlPath}`);
       resolve();
-    }),
-  );
+    });
+  });
 };
 
 void main().catch(async (err) => {

@@ -1,0 +1,14 @@
+{
+  "keys": {
+    "task": {
+      "type": "any",
+      "nullable": true
+    },
+    "utilization_stats": {
+      "type": "any",
+      "nullable": true
+    }
+  },
+  "built_in_key_use": null,
+  "dynamic_access": false
+}

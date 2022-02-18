@@ -1,0 +1,59 @@
+{
+  "keys": {
+    "counter": {
+      "nullable": false,
+      "type": "number"
+    },
+    "utilization_stats": {
+      "nullable": false,
+      "type": "struct",
+      "fields": {
+        "avg_wait_time": {
+          "type": "number",
+          "nullable": false
+        },
+        "operators_percentage": {
+          "type": "number",
+          "nullable": false
+        },
+        "timestep": {
+          "type": "number",
+          "nullable": false
+        },
+        "total_wait_time": {
+          "type": "number",
+          "nullable": false
+        }
+      }
+    },
+    "current_calls": {
+      "type": "any",
+      "nullable": false
+    },
+    "nLocalAnswered": {
+      "nullable": false,
+      "type": "number"
+    },
+    "nProcessed": {
+      "nullable": false,
+      "type": "number"
+    },
+    "nExternalProcessed": {
+      "nullable": false,
+      "type": "number"
+    },
+    "call_queue": {
+      "type": "any",
+      "nullable": false
+    },
+    "nExternalAnswered": {
+      "nullable": true,
+      "type": "number"
+    },
+    "operators": {
+      "type": "any",
+      "nullable": true
+    }
+  },
+  "built_in_key_use": null
+}

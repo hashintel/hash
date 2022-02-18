@@ -197,7 +197,6 @@ pub mod tests {
     };
 
     #[test]
-    #[ignore] // TODO: reenable test
     fn get_schema() -> Result<()> {
         let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
         let mut field_spec_map = FieldSpecMap::empty();
@@ -235,7 +234,7 @@ pub mod tests {
         field_spec_map.add(AgentStateField::AgentId.try_into()?)?;
 
         let mut meta = HashMap::new();
-        meta.insert("serialized".into(), "".into());
+        meta.insert("any_type_fields".into(), "".into());
         meta.insert("nullable".into(), "1,1,0,1".into());
         let target = ArrowSchema::new_with_metadata(
             vec![

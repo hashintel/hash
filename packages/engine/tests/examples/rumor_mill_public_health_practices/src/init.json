@@ -1,0 +1,11 @@
+[
+  {
+    "behaviors": ["create_agents.js", "@hash/remove-self/remove_self.js"]
+  },
+  {
+    "behaviors": ["government_psa.js"],
+    "position": [0, 0],
+    "search_radius": 50,
+    "height": 0
+  }
+]

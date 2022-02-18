@@ -9,7 +9,7 @@ use std::{
 };
 
 use error::{bail, ensure, report, Result, ResultExt};
-use hash_engine::{
+use hash_engine_lib::{
     fetch::parse_raw_csv_into_json,
     proto::{
         ExperimentRun, ExperimentRunBase, InitialState, InitialStateName, ProjectBase,
@@ -31,16 +31,19 @@ const DATASET_FILE_EXTENSIONS: [&str; 2] = ["csv", "json"];
 /// to parse the project structure easily.
 #[derive(Debug, Default, Clone)]
 pub struct Manifest {
+    /// The name of the project
+    pub project_name: String,
     /// The initial state for the simulation.
     pub initial_state: Option<InitialState>,
     /// A list of all behaviors in the project.
     pub behaviors: Vec<SharedBehavior>,
     /// A list of all datasets in the project.
     pub datasets: Vec<SharedDataset>,
-    /// JSON string describing the [`Globals`](hash_engine::config::Globals) object.
+    /// JSON string describing the [`Globals`](hash_engine_lib::config::Globals) object.
     pub globals_json: Option<String>,
     /// JSON string describing the analysis that's calculated by the
-    /// [analysis output package](hash_engine::simulation::package::output::packages::analysis).
+    /// [analysis output
+    /// package](hash_engine_lib::simulation::package::output::packages::analysis).
     pub analysis_json: Option<String>,
     /// JSON string describing the structure of available experiments for this project.
     pub experiments_json: Option<String>,
@@ -121,7 +124,7 @@ impl Manifest {
     }
 
     /// Reads the content from the file at the provided `path` describing the
-    /// [`Globals`](hash_engine::config::Globals).
+    /// [`Globals`](hash_engine_lib::config::Globals).
     ///
     /// # Errors
     ///
@@ -133,7 +136,7 @@ impl Manifest {
 
     /// Reads the content from the file at the provided `path` describing the analysis of the
     /// experiment, calculated by the
-    /// [analysis output package](hash_engine::simulation::package::output::packages::analysis).
+    /// [analysis output package](hash_engine_lib::simulation::package::output::packages::analysis).
     ///
     /// # Errors
     ///
@@ -403,6 +406,11 @@ impl Manifest {
             project_path.to_string_lossy()
         );
 
+        let project_name = project_path.file_name()
+            // Shouldn't be able to fail as it should have been validated by now
+            .ok_or_else(|| report!("Project path didn't point to a directory: {project_path:?}"))? 
+            .to_string_lossy()
+            .to_string();
         let experiments_json = project_path.join("experiments.json");
         let dependencies_json = project_path.join("dependencies.json");
         let src_folder = project_path.join("src");
@@ -416,24 +424,28 @@ impl Manifest {
         let mut project = Manifest::new();
 
         if !is_dependency {
+            project.project_name = project_name;
+
             project
                 .set_initial_state_from_directory(src_folder)
                 .wrap_err("Could not read initial state")?;
-        }
-        if !is_dependency && globals_json.exists() {
-            project
-                .set_globals_from_file(globals_json)
-                .wrap_err("Could not read globals")?;
-        }
-        if !is_dependency && analysis_json.exists() {
-            project
-                .set_analysis_from_file(analysis_json)
-                .wrap_err("Could not read analysis view")?;
-        }
-        if !is_dependency && experiments_json.exists() {
-            project
-                .set_experiments_from_file(experiments_json)
-                .wrap_err("Could not read experiments")?;
+
+            if globals_json.exists() {
+                project
+                    .set_globals_from_file(globals_json)
+                    .wrap_err("Could not read globals")?;
+            }
+            if analysis_json.exists() {
+                project
+                    .set_analysis_from_file(analysis_json)
+                    .wrap_err("Could not read analysis view")?;
+            }
+
+            if experiments_json.exists() {
+                project
+                    .set_experiments_from_file(experiments_json)
+                    .wrap_err("Could not read experiments")?;
+            }
         }
         if dependencies_json.exists() {
             project
@@ -473,6 +485,7 @@ impl Manifest {
     /// - if the manifest does not provide an initial state
     pub fn read(self, experiment_type: ExperimentType) -> Result<ExperimentRun> {
         let project_base = ProjectBase {
+            name: self.project_name,
             initial_state: self
                 .initial_state
                 .ok_or_else(|| report!("Project must specify an initial state file."))?,

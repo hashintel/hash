@@ -79,6 +79,11 @@ export const pageTypedef = gql`
     """
     linkedAggregations: [LinkedAggregation!]!
     # ENTITY INTERFACE FIELDS END #
+
+    """
+    The id of the page's parent. Used for nesting pages in a tree structure.
+    """
+    parentPageId: ID
   }
 
   type PageProperties {
@@ -119,6 +124,11 @@ export const pageTypedef = gql`
     content: String!
   }
 
+  enum PageStructure {
+    Flat
+    Tree
+  }
+
   extend type Query {
     """
     Return a page by its id
@@ -128,7 +138,7 @@ export const pageTypedef = gql`
     """
     Return a list of pages belonging to an account
     """
-    accountPages(accountId: ID!): [Page!]!
+    accountPages(accountId: ID!, structure: PageStructure = Flat): [Page!]!
 
     """
     Search for pages matching a query string.
@@ -240,6 +250,8 @@ export const pageTypedef = gql`
       entityId: ID!
       properties: PageUpdateData!
     ): Page!
+
+    setParentPage(accountId: ID!, pageId: ID!, parentPageId: ID!): Page!
 
     """
     Atomically update the contents of a page.

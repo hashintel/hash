@@ -1,0 +1,18 @@
+[
+  {
+    "experiment": "radar_zone_arange",
+    "expected-outputs": [{}, {}, {}, {}]
+  },
+  {
+    "experiment": "missile_speed_arange",
+    "expected-outputs": [{}, {}, {}, {}, {}]
+  },
+  {
+    "experiment": "radar_max_missiles_arange",
+    "expected-outputs": [{}, {}, {}]
+  },
+  {
+    "experiment": "radar_location_values",
+    "expected-outputs": [{}, {}, {}, {}, {}]
+  }
+]

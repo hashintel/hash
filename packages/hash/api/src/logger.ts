@@ -4,6 +4,5 @@ import { isDevEnv, isTestEnv } from "./lib/env-config";
 
 export const logger = new Logger({
   mode: isDevEnv || isTestEnv ? "dev" : "prod",
-  level: isDevEnv || isTestEnv ? "debug" : "info",
   serviceName: "api",
 });

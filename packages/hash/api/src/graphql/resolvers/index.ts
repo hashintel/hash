@@ -13,7 +13,7 @@ import {
 } from "./entity";
 import { createLink } from "./link/createLink";
 import { deleteLink } from "./link/deleteLink";
-import { blockFields } from "./block";
+import { blockFields, blocks } from "./block";
 import {
   createPage,
   accountPages,
@@ -22,6 +22,7 @@ import {
   updatePage,
   updatePageContents,
   searchPages,
+  setParentPage,
 } from "./pages";
 import { accounts } from "./account/accounts";
 import { createUser } from "./user/createUser";
@@ -77,6 +78,7 @@ export const resolvers = {
         accounts,
       ) /** @todo: make accessible to admins only (or deprecate) */,
     aggregateEntity: loggedInAndSignedUp(aggregateEntity),
+    blocks: loggedInAndSignedUp(blocks),
     getAccountEntityTypes: loggedInAndSignedUp(getAccountEntityTypes),
     entity: loggedInAndSignedUp(entity),
     entities: loggedInAndSignedUp(canAccessAccount(entities)),
@@ -116,6 +118,7 @@ export const resolvers = {
     updatePageContents: loggedInAndSignedUp(updatePageContents),
     joinOrg: loggedInAndSignedUp(joinOrg),
     requestFileUpload: loggedInAndSignedUp(requestFileUpload),
+    setParentPage: loggedInAndSignedUp(setParentPage),
     // Logged in users only
     updateUser: loggedIn(updateUser),
     logout: loggedIn(logout),

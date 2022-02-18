@@ -1,13 +1,9 @@
-use std::sync::Arc;
-
-use parking_lot::RwLock;
 use rayon::prelude::*;
 
 use super::action::{CreateActions, ExistingGroupBufferActions};
 use crate::{
     datastore::{
         error::{Error, Result},
-        prelude::*,
         table::pool::{agent::AgentPool, BatchPool},
     },
     proto::ExperimentRunTrait,
@@ -33,26 +29,31 @@ impl<'a> MigrationPlan<'a> {
         }
     }
 
-    pub fn execute(self, state: &mut AgentPool, config: &SimRunConfig) -> Result<Vec<String>> {
+    pub fn execute(
+        self,
+        state_agent_pool: &mut AgentPool,
+        config: &SimRunConfig,
+    ) -> Result<Vec<String>> {
         // tracing::debug!("Updating");
-        let mut_batches = state.mut_batches();
         self.existing_mutations
             .par_iter()
-            .zip_eq(mut_batches.par_iter_mut())
+            .zip_eq(
+                state_agent_pool
+                    .write_proxies()?
+                    .batches_mut()
+                    .par_iter_mut(),
+            )
             .try_for_each::<_, Result<()>>(|(action, batch)| {
-                let mut write_batch = batch
-                    .try_write()
-                    .ok_or_else(|| Error::from("Failed to acquire write lock"))?;
                 match action {
                     ExistingGroupBufferActions::Persist { affinity } => {
-                        write_batch.set_affinity(*affinity);
+                        batch.set_affinity(*affinity);
                     }
                     ExistingGroupBufferActions::Remove => {
                         // Do nothing yet
                     }
                     ExistingGroupBufferActions::Update { actions, affinity } => {
-                        actions.flush(&mut write_batch)?;
-                        write_batch.set_affinity(*affinity);
+                        actions.flush(batch)?;
+                        batch.set_affinity(*affinity);
                     }
                     ExistingGroupBufferActions::Undefined => {
                         return Err(Error::UnexpectedUndefinedCommand);
@@ -63,27 +64,15 @@ impl<'a> MigrationPlan<'a> {
 
         let mut removed_ids = vec![];
         // tracing::debug!("Deleting");
-        self.existing_mutations
-            .iter()
-            .enumerate()
-            .rev()
-            .try_for_each::<_, Result<()>>(|(batch_index, action)| {
-                if let ExistingGroupBufferActions::Remove = action {
-                    // Removing in tandem to keep similarly sized batches together
-                    removed_ids.push(
-                        mut_batches
-                            .swap_remove(batch_index)
-                            .try_read()
-                            .ok_or_else(|| Error::from("failed to get read lock for batch"))?
-                            .get_batch_id()
-                            .to_string(),
-                    );
-                }
-                Ok(())
-            })?;
+        for (batch_index, action) in self.existing_mutations.iter().enumerate().rev() {
+            if let ExistingGroupBufferActions::Remove = action {
+                // Removing in tandem to keep similarly sized batches together
+                removed_ids.push(state_agent_pool.swap_remove(batch_index));
+            }
+        }
 
         // tracing::debug!("Creating {} ", self.create_commands.len());
-        let mut created_dynamic_batches = self
+        let created_dynamic_batches = self
             .create_commands
             .into_par_iter()
             .map(|action| {
@@ -95,10 +84,10 @@ impl<'a> MigrationPlan<'a> {
                         action.affinity,
                     )
                     .map_err(Error::from)?;
-                Ok(Arc::new(RwLock::new(new_batch)))
+                Ok(new_batch)
             })
-            .collect::<Result<_>>()?;
-        mut_batches.append(&mut created_dynamic_batches);
+            .collect::<Result<Vec<_>>>()?;
+        state_agent_pool.extend(created_dynamic_batches);
 
         // tracing::debug!("Finished");
         Ok(removed_ids)
