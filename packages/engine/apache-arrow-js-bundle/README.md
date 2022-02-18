@@ -16,7 +16,7 @@ The bundle should appear as `./dist/apache-arrow-bundle.js`
 - Manually modify the bundle, adding `return arrow` underneath `arrow = __webpack_exports__;` at the very bottom of the file [1]
 - Manually modify `class MessageReader` to re-export the `VectorLoader` as follows [2]:
 
-  ```js
+  ```javascript
   class MessageReader {
       constructor(source) {
         this.source =
@@ -24,6 +24,40 @@ The bundle should appear as `./dist/apache-arrow-bundle.js`
         this.VectorLoader = VectorLoader;
       }
       ...
+  ```
+
+- Manually modify `class StructBuilder` to have a new `set` method, and an updated `setValue` method as follows [3]:
+
+  ```javascript
+  class StructBuilder extends Builder {
+    set(index, value) {
+      this.setValid(index, this.isValid(value));
+      this.setValue(index, value);
+      return this;
+    }
+    setValue(index, value) {
+      const children = this.children;
+      if (value === null || value === undefined) {
+        return this.type.children.forEach((_, i) =>
+          children[i].set(index, null),
+        );
+      } else {
+        switch (Array.isArray(value) || value.constructor) {
+          case true:
+            return this.type.children.forEach((_, i) =>
+              children[i].set(index, value[i]),
+            );
+          case Map:
+            return this.type.children.forEach((f, i) =>
+              children[i].set(index, value.get(f.name)),
+            );
+          default:
+            return this.type.children.forEach((f, i) =>
+              children[i].set(index, value[f.name]),
+            );
+        }
+      }
+  ...
   ```
 
 - From the `./packages/engine` folder run:
@@ -35,6 +69,7 @@ The bundle should appear as `./dist/apache-arrow-bundle.js`
 >
 > If anyone has ideas on how to resolve this, suggestions are welcome.
 >
-> [2] The JavaScript language runner was implemented in an older version of Arrow.
-> To be able to load Vectors individually from memory without needing to duplicate the Schema and storing it alongside the batch, we currently have decided to use some internal functions.
+> [2] To be able to load Vectors individually from memory without needing to duplicate the Schema and storing it alongside the batch, we currently have decided to use some internal functions.
 > We've opened a [StackOverflow question](https://stackoverflow.com/questions/71145338/is-there-a-way-to-read-a-recordbatch-from-bytes-and-pass-in-the-schema-directly) (and are open to opening a JIRA ticket, and or PR to the main repo), in the hopes that we can remove the need to do this.
+>
+> [3] There's a bug in Arrow to do with appending nulls to Structs, we've opened a [JIRA ticket](https://issues.apache.org/jira/browse/ARROW-15705) and associated [PR to fix it](https://github.com/apache/arrow/pull/12451)
