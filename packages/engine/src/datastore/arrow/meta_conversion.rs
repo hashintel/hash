@@ -162,10 +162,8 @@ impl HashDynamicMeta for RecordBatch<'_> {
 /// Computes the flat_buffers builder from the metadata, using this builder
 /// the metadata of a shared batch can be modified
 pub fn get_dynamic_meta_flatbuffers(meta: &DynamicMeta) -> Result<Vec<u8>> {
-    // The reason why we're returning `FlatBufferBuilder` is that we don't want to
-    // clone the buffer it owns and cannot return a reference, because otherwise
-    // it would get dropped here
-
+    // TODO: OPTIM: Evaluate, if we want to return the flatbuffer instead to remove the slice-to-vec
+    //   conversion.
     // Build Arrow Buffer and FieldNode messages
     let buffers: Vec<BufferMessage> = meta
         .buffers

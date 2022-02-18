@@ -224,6 +224,7 @@ fn json_vals_to_list(
     let mut_null_bits = null_bits.as_slice_mut();
 
     let mut offsets = new_offsets_buffer(n_elem);
+    // SAFETY: `new_offsets_buffer` is returning a buffer of `i32`
     let mut_offsets = unsafe { offsets.typed_data_mut::<i32>() };
     debug_assert!(mut_offsets.iter().all(|v| *v == 0));
 
@@ -365,7 +366,7 @@ fn json_vals_to_struct(
     Ok(struct_data.into())
 }
 
-// TODO: As an optimization, we could look at both whether a column is *nullable* (i.e.
+// TODO: OPTIM: As an optimization, we could look at both whether a column is *nullable* (i.e.
 //       can have nulls) and whether it has a *non-zero null count* (i.e. currently
 //       has nulls). Right now it only matters whether the column is nullable.
 fn json_vals_to_col(vals: Vec<Value>, field: &ArrowField, nullable: bool) -> Result<ArrayRef> {
@@ -1019,8 +1020,6 @@ pub(in crate::datastore) fn col_to_json_vals(col: &ArrayRef, dt: &DataType) -> R
         ArrowDataType::UInt64 => numeric_to_json_vals::<datatypes::UInt64Type>(col),
         ArrowDataType::Boolean => bool_to_json_vals(col),
         ArrowDataType::Utf8 => utf8_to_json_vals(col),
-
-        // `Box<T>` isn't coerced to `&T`, so need explicit `&*`.
         ArrowDataType::List(inner_field) => list_to_json_vals(col, inner_field.data_type()),
         ArrowDataType::FixedSizeList(inner_field, _) => {
             fixed_size_list_to_json_vals(col, inner_field.data_type())

@@ -67,6 +67,7 @@ impl IntoArrowChange for ChainList {
         let num_agents = range.end - range.start;
         let chains = &self.inner[range.start..range.end];
         let mut offsets = new_offsets_buffer(num_agents);
+        // SAFETY: `new_offsets_buffer` is returning a buffer of `i32`
         let mut_offsets = unsafe { offsets.typed_data_mut::<i32>() };
         for i in 0..num_agents {
             let len = chains[i].inner.len() as i32;
@@ -77,6 +78,7 @@ impl IntoArrowChange for ChainList {
         let num_indices = num_behavior_ids * BEHAVIOR_INDEX_INNER_COUNT;
 
         let mut data = new_buffer::<BehaviorIdInnerDataType>(num_indices);
+        // SAFETY: `new_buffer` is returning a buffer of `BehaviorIdInnerDataType`
         let mut_data = unsafe { data.typed_data_mut::<BehaviorIdInnerDataType>() };
         let mut next_index = 0;
         for chain in chains.iter().take(num_agents) {

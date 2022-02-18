@@ -130,8 +130,6 @@ pub fn col_element_to_json_val(col: &ArrayRef, index: usize, dt: &DataType) -> R
         ArrowDataType::UInt64 => numeric_element_to_json_val::<datatypes::UInt64Type>(col, index),
         ArrowDataType::Boolean => bool_element_to_json_val(col, index),
         ArrowDataType::Utf8 => utf8_element_to_json_val(col, index),
-
-        // `Box<T>` isn't coerced to `&T`, so need explicit `&*`.
         ArrowDataType::List(inner_field) => {
             list_element_to_json_val(col, index, inner_field.data_type())
         }
