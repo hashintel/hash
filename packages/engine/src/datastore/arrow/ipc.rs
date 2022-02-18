@@ -51,7 +51,7 @@ pub fn simulate_record_batch_to_bytes(batch: &RecordBatch) -> (Vec<u8>, usize) {
     for array in batch.columns() {
         let array_data = array.data();
         offset = simulate_write_array_data(
-            &array_data,
+            array_data,
             &mut buffers,
             &mut nodes,
             offset,
@@ -134,7 +134,7 @@ pub fn record_batch_data_to_bytes_owned_unchecked(batch: &RecordBatch, buffer: &
     let mut offset = 0;
     for array in batch.columns() {
         let array_data = array.data();
-        offset = write_array_data_owned(&array_data, buffer, offset, 0, array.len());
+        offset = write_array_data_owned(array_data, buffer, offset, 0, array.len());
     }
 }
 

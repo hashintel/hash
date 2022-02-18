@@ -310,17 +310,11 @@ fn json_vals_to_struct(
     _nullable: bool,
     fields: Vec<ArrowField>,
 ) -> Result<StructArray> {
-    let mut null_count = 0;
-    let n_elem = vals.len();
-    let mut null_bits = new_zero_bits(n_elem);
-    let mut_null_bits = null_bits.as_slice_mut();
+    let mut flattened_vals = vec![Vec::with_capacity(vals.len()); fields.len()];
 
-    let mut flattened_vals = vec![Vec::with_capacity(n_elem); fields.len()];
-
-    for (i_val, val) in vals.into_iter().enumerate() {
+    for val in vals.into_iter() {
         match val {
             Value::Object(mut values) => {
-                arrow_bit_util::set_bit(mut_null_bits, i_val);
                 fields
                     .iter()
                     .enumerate()
@@ -340,7 +334,6 @@ fn json_vals_to_struct(
                     })?;
             }
             Value::Null => {
-                null_count += 1;
                 // Arrow expects struct child arrays to have length (at least) as long as
                 // struct array itself, even if struct elements are all nulls and it
                 // shouldn't be necessary.
