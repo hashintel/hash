@@ -82,7 +82,6 @@ export class Instance {
   waiting: Waiting[] = [];
   saveChain = Promise.resolve();
   saveMapping: Mapping | null = null;
-  collecting: ReturnType<typeof setTimeout> | null = null;
   clientIds = new WeakMap<Step, string>();
 
   positionPollers: CollabPositionPoller[] = [];
@@ -125,7 +124,6 @@ export class Instance {
 
   stop() {
     this.sendUpdates();
-    if (this.collecting != null) clearTimeout(this.collecting);
 
     clearInterval(this.positionCleanupInterval);
 
