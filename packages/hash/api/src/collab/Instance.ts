@@ -79,7 +79,6 @@ export class Instance {
   userCount = 0;
   waiting: Waiting[] = [];
   saveChain = Promise.resolve();
-  saveMapping: Mapping | null = null;
   collecting: ReturnType<typeof setTimeout> | null = null;
   clientIds = new WeakMap<Step, string>();
 
@@ -288,9 +287,6 @@ export class Instance {
 
         const result = tr.maybeStep(steps[i]);
         if (!result.doc) return false;
-        if (this.saveMapping) {
-          this.saveMapping.appendMap(steps[i].getMap());
-        }
       }
 
       for (const action of actions) {
@@ -317,8 +313,6 @@ export class Instance {
     };
 
   save = (apolloClient: ApolloClient<unknown>) => (clientID: string) => {
-    const mapping = new Mapping();
-
     this.saveChain = this.saveChain
       .catch()
       .then(async () => {
@@ -340,7 +334,6 @@ export class Instance {
         return createdEntities;
       })
       .then((createdEntities) => {
-        this.saveMapping = mapping;
         const { doc } = this.state;
         const store = entityStorePluginState(this.state);
 
@@ -462,12 +455,6 @@ export class Instance {
       })
       .catch((err) => {
         logger.error("could not save", err);
-      })
-
-      .finally(() => {
-        if (this.saveMapping === mapping) {
-          this.saveMapping = null;
-        }
       });
   };
 
