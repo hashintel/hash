@@ -131,15 +131,16 @@ pub async fn run_test_suite(
     } else {
         vec![Some(LogLevel::Warning), Some(LogLevel::Trace)]
     };
-    let start_timeout = std::env::var("ENGINE_START_TIMEOUT").map_or_else(
-        |_| 10,
+
+    let start_timeout = std::env::var("ENGINE_START_TIMEOUT").map_or(
+        10,
         |val| {
             val.parse::<u64>()
                 .expect("ENGINE_START_TIMEOUT couldn't be parsed as a u64")
         },
     );
-    let wait_timeout = std::env::var("ENGINE_WAIT_TIMEOUT").map_or_else(
-        |_| 60,
+    let wait_timeout = std::env::var("ENGINE_WAIT_TIMEOUT").map_or(
+        60,
         |val| {
             val.parse::<u64>()
                 .expect("ENGINE_WAIT_TIMEOUT couldn't be parsed as a u64")
