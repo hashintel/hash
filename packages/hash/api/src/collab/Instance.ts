@@ -77,8 +77,6 @@ export class Instance {
   lastActive = Date.now();
   waiting: Waiting[] = [];
   saveChain = Promise.resolve();
-  collecting: ReturnType<typeof setTimeout> | null = null;
-  saveMapping: Mapping | null = null;
   clientIds = new WeakMap<Step, string>();
 
   positionPollers: CollabPositionPoller[] = [];
