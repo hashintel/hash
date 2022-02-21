@@ -35,7 +35,7 @@ import { Response } from "express";
 import { isEqual, memoize, pick } from "lodash";
 import { Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
-import { Mapping, Step, Transform } from "prosemirror-transform";
+import { Step } from "prosemirror-transform";
 import { logger } from "../logger";
 import { EntityWatcher } from "./EntityWatcher";
 import { InvalidVersionError } from "./errors";
@@ -346,13 +346,6 @@ export class Instance {
           apolloClient,
           createdEntities,
         ).then((newPage) => {
-          /**
-           * This is purposefully based on the current doc, not the doc at
-           * the time of save, because we need to apply transforms to the
-           * current doc based on the result of the save query (in order to
-           * insert entity ids for new blocks)
-           */
-          const transform = new Transform<Schema>(this.state.doc);
           const actions: EntityStorePluginAction[] = [];
 
           /**
@@ -422,30 +415,12 @@ export class Instance {
             }
           });
 
-          /**
-           * We're posting actions and steps from the post-save
-           * transformation process for maximum safety – as we need to
-           * ensure the actions are processed before the steps, and that's
-           * not easy to do in one message right now
-           *
-           * @todo combine the two calls to addEvents
-           */
           if (actions.length) {
             this.addEvents(apolloClient)(
               this.version,
               [],
               `${clientID}-server`,
               actions,
-              false,
-            );
-          }
-
-          if (transform.docChanged) {
-            this.addEvents(apolloClient)(
-              this.version,
-              transform.steps,
-              `${clientID}-server`,
-              [],
               false,
             );
           }
