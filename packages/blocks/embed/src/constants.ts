@@ -1,7 +1,7 @@
 // These are arbitary values. Ideally the Embedding Application should provide
 // some of them to the block
 
-import { ProviderNames } from "./types";
+import { ProviderName } from "./types";
 
 /**
  * This helps ensure there's space for the edit button
@@ -38,7 +38,7 @@ export const MIN_HEIGHT = 200;
  * List of provider names where the aspect ratio should be respected
  * when resizing
  */
-export const PROVIDER_NAMES_TO_RESPECT_ASPECT_RATIO = new Set<ProviderNames>([
+export const PROVIDER_NAMES_TO_RESPECT_ASPECT_RATIO = new Set<ProviderName>([
   "YouTube",
   "GIPHY",
 ]);
@@ -47,6 +47,6 @@ export const PROVIDER_NAMES_TO_RESPECT_ASPECT_RATIO = new Set<ProviderNames>([
  * List of provider names that should not be resized
  * The height and width used are gotten from the fetchEmbed api call
  */
-export const PROVIDER_NAMES_THAT_CANT_BE_RESIZED = new Set<ProviderNames>([
+export const PROVIDER_NAMES_THAT_CANT_BE_RESIZED = new Set<ProviderName>([
   "Twitter",
 ]);
