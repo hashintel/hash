@@ -1,5 +1,6 @@
 import { DataSource } from "apollo-datasource";
 import { JSONObject } from "blockprotocol";
+import { TextToken } from "@hashintel/hash-shared/graphql/types";
 
 import { SystemType } from "../types/entityTypes";
 
@@ -162,8 +163,7 @@ export type Graph = {
 };
 
 export type DbTextProperties = {
-  /** @todo: find better type for this */
-  tokens: JSONObject[];
+  tokens: TextToken[];
 };
 
 export type DbBlockProperties = {
