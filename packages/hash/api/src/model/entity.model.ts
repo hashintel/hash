@@ -414,15 +414,15 @@ class __Entity {
       path?: PathComponent[];
     },
   ) {
+    const { stringifiedPath, path } = params || {};
+
     const outgoingDBLinks = await client.getEntityOutgoingLinks({
       accountId: this.accountId,
       entityId: this.entityId,
       entityVersionId: this.metadata.versioned
         ? this.entityVersionId
         : undefined,
-      path:
-        params?.stringifiedPath ??
-        (params?.path ? Link.stringifyPath(params.path) : undefined),
+      path: stringifiedPath ?? (path ? Link.stringifyPath(path) : undefined),
     });
     return outgoingDBLinks.map((dbLink) => new Link(dbLink));
   }
@@ -640,26 +640,22 @@ class __Entity {
         });
       }
 
-      // insert links between entities in tree
-      // No transactions, so can run concurrently
-      await Promise.all(
-        entities.map(async ({ link, entity }) => {
-          if (link) {
-            const parentEntity = entities[link.parentIndex];
-            if (!parentEntity) {
-              throw new ApolloError("Could not find parent entity");
-            }
-            // links are created as an outgoing link from the parent entity to the children.
-            return await parentEntity.entity.createOutgoingLink(client, {
-              createdByAccountId: user.accountId,
-              destination: entity,
-              stringifiedPath: link.meta.path,
-              index: link.meta.index ?? undefined,
-            });
+      /** @todo: implement and use method for creating these links concurrently */
+      for (const { link, entity } of entities) {
+        if (link) {
+          const parentEntity = entities[link.parentIndex];
+          if (!parentEntity) {
+            throw new ApolloError("Could not find parent entity");
           }
-          return null;
-        }),
-      );
+          // links are created as an outgoing link from the parent entity to the children.
+          await parentEntity.entity.createOutgoingLink(client, {
+            createdByAccountId: user.accountId,
+            destination: entity,
+            stringifiedPath: link.meta.path,
+            index: link.meta.index ?? undefined,
+          });
+        }
+      }
 
       // the root entity is the first result, same of which the user supplied as the top level entity.
       if (entities.length > 0) {

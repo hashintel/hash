@@ -13,16 +13,17 @@ import {
 } from "./entity";
 import { createLink } from "./link/createLink";
 import { deleteLink } from "./link/deleteLink";
-import { blockFields, blocks } from "./block";
+import { blocks, blockProperties, blockLinkedEntities } from "./block";
 import {
   createPage,
   accountPages,
   page,
-  pageFields,
+  pageProperties,
   updatePage,
   updatePageContents,
   searchPages,
   setParentPage,
+  pageLinkedEntities,
 } from "./pages";
 import { accounts } from "./account/accounts";
 import { createUser } from "./user/createUser";
@@ -133,12 +134,16 @@ export const resolvers = {
   JSONObject: GraphQLJSON,
   TextToken: GraphQLJSON,
 
-  BlockProperties: {
-    entity: blockFields.entity,
+  Block: {
+    properties:
+      blockProperties /** @todo: remove this resolver as it is deprecated */,
+    ...blockLinkedEntities,
   },
 
-  PageProperties: {
-    contents: pageFields.contents,
+  Page: {
+    properties:
+      pageProperties /** @todo: remove this resolver as it is deprecated */,
+    ...pageLinkedEntities,
   },
 
   User: {

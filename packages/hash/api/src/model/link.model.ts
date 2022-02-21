@@ -1,5 +1,6 @@
 import jp from "jsonpath";
 import { UserInputError } from "apollo-server-errors";
+import { merge } from "lodash";
 import { DBClient } from "../db";
 import { Entity, Link } from ".";
 import { Link as GQLLink } from "../graphql/apiTypes.gen";
@@ -139,8 +140,13 @@ class __Link {
   }
 
   static async create(client: DBClient, params: CreateLinkArgs): Promise<Link> {
-    const { stringifiedPath, source, destination, destinationEntityVersionId } =
-      params;
+    const {
+      stringifiedPath,
+      source,
+      destination,
+      destinationEntityVersionId,
+      index,
+    } = params;
 
     Link.validatePath(stringifiedPath);
 
@@ -163,6 +169,7 @@ class __Link {
       destinationAccountId,
       destinationEntityId,
       destinationEntityVersionId,
+      index,
     });
 
     const link = new Link(dbLink);
@@ -239,6 +246,33 @@ class __Link {
 
   async getDestination(client: DBClient) {
     return await this.fetchDestination(client);
+  }
+
+  async update(
+    client: DBClient,
+    params: { updatedIndex: number; updatedByAccountId: string },
+  ) {
+    const { updatedIndex, updatedByAccountId } = params;
+
+    /** @todo: implement way of updating a link's index without deleting the current one and creating a new one */
+
+    const [source, destination] = await Promise.all([
+      this.getSource(client),
+      this.getDestination(client),
+      this.delete(client, { deletedByAccountId: updatedByAccountId }),
+    ]);
+
+    const newLink = await Link.create(client, {
+      source,
+      destination,
+      index: updatedIndex,
+      stringifiedPath: this.stringifiedPath,
+      createdByAccountId: updatedByAccountId,
+    });
+
+    merge(this, newLink);
+
+    return this;
   }
 
   toUnresolvedGQLLink(): UnresolvedGQLLink {
