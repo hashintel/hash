@@ -14,6 +14,7 @@ import {
   insertLink,
   updateLinkIndices,
 } from "./util";
+import { transaction } from "../util";
 
 export const createLink = async (
   existingConnection: Connection,
@@ -28,7 +29,7 @@ export const createLink = async (
     destinationEntityVersionId?: string;
   },
 ): Promise<DBLink> =>
-  existingConnection.transaction(async (conn) => {
+  transaction(existingConnection)(async (conn) => {
     const promises: Promise<void>[] = [];
 
     const now = new Date();
