@@ -743,12 +743,7 @@ const newInstance =
 
 export const getInstance =
   (apolloClient: ApolloClient<unknown>, entityWatcher: EntityWatcher) =>
-  async (
-    accountId: string,
-    pageEntityId: string,
-    userId: string | null,
-    forceNewInstance = false,
-  ) => {
+  async (accountId: string, pageEntityId: string, forceNewInstance = false) => {
     if (forceNewInstance) {
       instances[pageEntityId]?.stop();
       delete instances[pageEntityId];
