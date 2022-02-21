@@ -74,11 +74,11 @@ impl GetWorkerSimStartMsg for JsonState {
 #[async_trait]
 impl Package for JsonState {
     async fn run(&mut self, state: Arc<State>, _context: Arc<Context>) -> Result<Output> {
+        let state = state.read()?;
         let agent_states: std::result::Result<Vec<_>, crate::datastore::error::Error> = state
             .agent_pool()
-            .try_read_batches()?
-            .into_iter()
-            .zip(state.message_pool().read_batches()?.into_iter())
+            .batches_iter()
+            .zip(state.message_pool().batches_iter())
             .map(|(agent_batch, message_batch)| {
                 (agent_batch.record_batch(), message_batch.record_batch())
                     .into_agent_states(Some(&self.sim_run_config.sim.store.agent_schema))

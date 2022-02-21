@@ -57,7 +57,7 @@ const getVariantProperties = (variant: typeof variants[number]) => {
   };
 };
 
-function AppComponent() {
+const AppComponent: React.VoidFunctionComponent = () => {
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
   const [state, setState] = useState<EmbedDataType>(
     getVariantProperties(variants[selectedVariantIndex]),
@@ -108,7 +108,7 @@ function AppComponent() {
       />
     </div>
   );
-}
+};
 
 const App = () => {
   return <AppComponent />;

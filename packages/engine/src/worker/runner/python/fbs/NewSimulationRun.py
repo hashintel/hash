@@ -39,7 +39,7 @@ class NewSimulationRun(object):
         return 0
 
     # NewSimulationRun
-    def Properties(self):
+    def Globals(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(8))
         if o != 0:
             return self._tab.String(o + self._tab.Pos)
@@ -79,10 +79,10 @@ def AddSid(builder, sid): builder.PrependUint32Slot(1, sid, 0)
 def NewSimulationRunAddSid(builder, sid):
     """This method is deprecated. Please switch to AddSid."""
     return AddSid(builder, sid)
-def AddProperties(builder, properties): builder.PrependUOffsetTRelativeSlot(2, flatbuffers.number_types.UOffsetTFlags.py_type(properties), 0)
-def NewSimulationRunAddProperties(builder, properties):
-    """This method is deprecated. Please switch to AddProperties."""
-    return AddProperties(builder, properties)
+def AddGlobals(builder, globals): builder.PrependUOffsetTRelativeSlot(2, flatbuffers.number_types.UOffsetTFlags.py_type(globals), 0)
+def NewSimulationRunAddGlobals(builder, globals):
+    """This method is deprecated. Please switch to AddGlobals."""
+    return AddGlobals(builder, globals)
 def AddPackageConfig(builder, packageConfig): builder.PrependUOffsetTRelativeSlot(3, flatbuffers.number_types.UOffsetTFlags.py_type(packageConfig), 0)
 def NewSimulationRunAddPackageConfig(builder, packageConfig):
     """This method is deprecated. Please switch to AddPackageConfig."""

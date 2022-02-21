@@ -129,7 +129,7 @@ impl Memory {
         })
     }
 
-    pub fn from_message(
+    pub fn shmem_os_id(
         message: &str,
         droppable: bool,
         include_terminal_padding: bool,
@@ -451,7 +451,7 @@ pub mod tests {
 
         let message = memory.get_id();
 
-        let new_memory = Memory::from_message(&message, true, false)?;
+        let new_memory = Memory::shmem_os_id(&message, true, false)?;
 
         let slice = unsafe {
             let shmem = &memory.data;

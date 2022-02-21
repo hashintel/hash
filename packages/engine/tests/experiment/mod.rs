@@ -10,12 +10,13 @@ use std::{
 use error::{bail, ensure, report, Result, ResultExt};
 use hash_engine_lib::{
     proto::ExperimentName,
-    utils::{LogFormat, OutputLocation},
+    utils::{LogFormat, LogLevel, OutputLocation},
     Language,
 };
 use orchestrator::{ExperimentConfig, ExperimentType, Manifest, Server};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Value;
+use tracing_subscriber::fmt::time::Uptime;
 
 pub type AgentStates = Value;
 pub type Globals = Value;
@@ -100,15 +101,36 @@ pub struct TestTiming {
     experiment: Option<&'static str>,
 }
 
+/// Removes the output directory if not specified by `OUTPUT_DIRECTORY`.
+struct OutputDirectoryDropper<'p>(&'p Path);
+impl Drop for OutputDirectoryDropper<'_> {
+    fn drop(&mut self) {
+        if std::env::var("OUTPUT_DIRECTORY").is_err() {
+            let _ = fs::remove_dir_all(self.0);
+        }
+    }
+}
+
 pub async fn run_test_suite(
     project_path: PathBuf,
     test_path: &'static str,
     language: Option<Language>,
     experiment: Option<&'static str>,
 ) {
-    if std::env::var("RUST_LOG").is_err() {
-        std::env::set_var("RUST_LOG", "info");
-    }
+    // If this is an Err then the logger has already been initialised in another thread which is
+    // okay
+    let _ = tracing_subscriber::fmt()
+        .with_timer(Uptime::default())
+        .with_target(true)
+        .with_test_writer()
+        .try_init();
+
+    // If `RUST_LOG` is set, only run it once, otherwise run with `warn` and `trace` on failure
+    let log_levels = if std::env::var("RUST_LOG").is_ok() {
+        vec![None]
+    } else {
+        vec![Some(LogLevel::Warning), Some(LogLevel::Trace)]
+    };
 
     let project_name = project_path
         .file_name()
@@ -133,11 +155,6 @@ pub async fn run_test_suite(
     assert_ne!(samples, 0, "SAMPLES must be at least 1");
 
     for (experiment_type, expected_outputs) in experiments {
-        // TODO: Remove attempting strategy
-        let attempts = std::env::var("NUM_ATTEMPTS")
-            .map(|n| n.parse::<usize>().unwrap())
-            .unwrap_or(1);
-
         // Use `OUTPUT_DIRECTORY` as output directory. If it's not set, cargo's `OUT_DIR` is
         // used.
         let mut output_folder = PathBuf::from(
@@ -146,60 +163,58 @@ pub async fn run_test_suite(
         for module in test_path.split("::") {
             output_folder.push(module);
         }
+        let _output_folder_guard = OutputDirectoryDropper(&output_folder);
 
         let mut timings = Vec::with_capacity(samples);
         for run in 1..=samples {
-            let mut outputs = None;
-
             let output_folder = output_folder.join(format!("run-{run}"));
+            let log_file_path = output_folder.join("log").join("output.log");
+            // Remove log file in case it's already existing
+            let _ = fs::remove_file(&log_file_path);
 
-            for attempt in 1..=attempts {
-                if attempt > 1 {
-                    std::env::set_var("RUST_LOG", "trace");
+            let mut test_output = None;
+            for log_level in &log_levels {
+                if let Some(log_level) = log_level {
+                    tracing::info!("Running test with log level `{log_level}`... ");
                 }
 
                 let test_result = run_test(
                     experiment_type.clone(),
                     &project_path,
                     project_name.clone(),
-                    output_folder.join(format!("attempt-{attempt}")),
+                    output_folder.clone(),
+                    *log_level,
                     language,
                     expected_outputs.len(),
-                );
-                let output = test_result.await;
-                let success = output.is_ok();
-                outputs.replace(output);
-                if success {
-                    break;
+                )
+                .await;
+
+                match test_result {
+                    Ok(outputs) => {
+                        test_output = Some(outputs);
+                        break;
+                    }
+                    Err(err) => {
+                        tracing::error!("Test failed");
+                        tracing::error!("Err:\n{err:?}");
+                        if let Ok(log) = fs::read_to_string(&log_file_path) {
+                            tracing::error!("Logs:");
+                            eprintln!("{log}");
+                        }
+                    }
                 }
             }
 
-            let log_file_path = output_folder
-                .join(format!("attempt-{attempts}"))
-                .join("log")
-                .join("output.log");
-
-            let log_output = fs::read_to_string(&log_file_path);
-
-            let test_result = match outputs.unwrap() {
-                Ok(outputs) => outputs,
-                Err(err) => {
-                    match log_output {
-                        Ok(log) => eprintln!("{log}"),
-                        Err(err) => eprintln!("Could not read {log_file_path:?}: {err}"),
-                    }
-                    panic!("{:?}", err.wrap("Could not run experiment"));
-                }
-            };
+            let test_output = test_output.expect("Could not run experiment");
 
             assert_eq!(
                 expected_outputs.len(),
-                test_result.outputs.len(),
+                test_output.outputs.len(),
                 "Number of expected outputs does not match number of returned simulation results \
                  for experiment"
             );
 
-            for (output_idx, ((states, globals, analysis), expected)) in test_result
+            for (output_idx, ((states, globals, analysis), expected)) in test_output
                 .outputs
                 .into_iter()
                 .zip(expected_outputs.iter())
@@ -207,14 +222,18 @@ pub async fn run_test_suite(
             {
                 expected
                     .assert_subset_of(&states, &globals, &analysis)
-                    .unwrap_or_else(|_| {
+                    .unwrap_or_else(|err| {
+                        if let Ok(log) = fs::read_to_string(&log_file_path) {
+                            eprintln!("{log}");
+                        }
+                        tracing::error!("{err:?}");
                         panic!(
                             "Output of simulation {} does not match expected output in experiment",
                             output_idx + 1
                         )
                     });
             }
-            timings.push(test_result.duration.as_nanos());
+            timings.push(test_output.duration.as_nanos());
         }
         timings.sort_unstable();
 
@@ -240,11 +259,6 @@ pub async fn run_test_suite(
             serde_json::to_string_pretty(&timings).unwrap(),
         )
         .expect("Could not write test timings");
-
-        // Remove the output directory if it was not set manually
-        if std::env::var("OUTPUT_DIRECTORY").is_err() {
-            let _ = fs::remove_dir_all(&output_folder);
-        }
     }
 }
 
@@ -253,21 +267,18 @@ pub async fn run_test<P: AsRef<Path>>(
     project_path: P,
     project_name: String,
     output: PathBuf,
+    log_level: Option<LogLevel>,
     language: Option<Language>,
     num_outputs_expected: usize,
 ) -> Result<TestOutput> {
     let project_path = project_path.as_ref();
 
     let nng_listen_url = {
-        use std::time::{SystemTime, UNIX_EPOCH};
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_millis();
+        let uuid = uuid::Uuid::new_v4();
         if let Some(language) = language {
-            format!("ipc://integration-test-suite-{project_name}-{language}-{now}")
+            format!("ipc://integration-test-suite-{project_name}-{language}-{uuid}")
         } else {
-            format!("ipc://integration-test-suite-{project_name}-{now}")
+            format!("ipc://integration-test-suite-{project_name}-{uuid}")
         }
     };
 
@@ -284,6 +295,7 @@ pub async fn run_test<P: AsRef<Path>>(
         num_workers: num_cpus::get(),
         log_format: LogFormat::Pretty,
         log_folder: output.join("log"),
+        log_level,
         output_folder: output,
         output_location: OutputLocation::File("output.log".into()),
         start_timeout: 10,
@@ -394,7 +406,7 @@ fn assert_subset_value(subset: &Value, superset: &Value, path: String) -> Result
                 if let Some(super_value) = b.get(key) {
                     assert_subset_value(sub_value, super_value, format!("{path}.{key}"))?;
                 } else {
-                    bail!("{path:?}: {key:?} is not present output")
+                    bail!("{path:?}: {key:?} is not present in the output")
                 }
             }
         }

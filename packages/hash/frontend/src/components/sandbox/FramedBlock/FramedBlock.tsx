@@ -1,4 +1,3 @@
-import type { Scope } from "@sentry/browser";
 import * as Sentry from "@sentry/nextjs";
 import {
   BlockProtocolAggregateEntitiesFunction,
@@ -32,7 +31,7 @@ export const FramedBlock: VoidFunctionComponent = () => {
   >(initialData);
 
   const beforeCapture = useCallback(
-    (scope: Scope) => {
+    (scope: Sentry.Scope) => {
       scope.setTag("block", blockProperties?.id as string);
     },
     [blockProperties],
@@ -118,6 +117,7 @@ export const FramedBlock: VoidFunctionComponent = () => {
   return (
     <Sentry.ErrorBoundary
       beforeCapture={beforeCapture}
+      // eslint-disable-next-line react/no-unstable-nested-components -- @todo consider refactoring
       fallback={(errorData) => (
         <ErrorBlock {...errorData} onRetry={() => window.location.reload()} />
       )}

@@ -34,7 +34,7 @@ export const createPage: Resolver<
   const newParaEntity = await createEntity("Text", { tokens: [] });
 
   const newParaBlock = await createEntity("Block", {
-    componentId: "https://block.blockprotocol.org/paragraph",
+    componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
     entityId: newParaEntity.entityId,
     accountId,
   });

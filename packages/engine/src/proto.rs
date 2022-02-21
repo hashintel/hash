@@ -215,7 +215,7 @@ pub struct InitialState {
 
 /// Analogous to `SimulationSrc` in the web editor
 /// This contains all of the source code for a specific simulation, including
-/// initial state source, analysis source, experiment source, properties source (globals.json),
+/// initial state source, analysis source, experiment source, globals source (globals.json),
 /// dependencies source and the source for all running behaviors
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct ProjectBase {
@@ -272,9 +272,9 @@ impl<'de> Deserialize<'de> for MetricObjective {
 pub struct SimpleExperimentConfig {
     /// The experiment name
     pub experiment_name: ExperimentName,
-    /// The properties changed for each simulation run
+    /// The global properties changed for each simulation run
     #[serde(rename = "changedProperties")]
-    pub changed_properties: Vec<SerdeValue>,
+    pub changed_globals: Vec<SerdeValue>,
     /// Number of steps each run should go for
     #[serde(rename = "numSteps")]
     pub num_steps: usize,

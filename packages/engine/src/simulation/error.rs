@@ -144,8 +144,8 @@ pub enum Error {
     #[error("Tokio Join Error: {0}")]
     TokioJoin(#[from] tokio::task::JoinError),
 
-    #[error("Properties parse error. Invalid format for field: {0}")]
-    PropertiesParseError(String),
+    #[error("Globals parse error. Invalid format for field: {0}")]
+    GlobalsParseError(String),
 
     #[error("Arrow Error: {0}")]
     Arrow(#[from] arrow::error::ArrowError),

@@ -13,7 +13,7 @@ export const PageLayout: FC = ({ children }) => {
     <>
       <Head>
         <title>HASH Workspace</title>
-        <link rel="shortcut icon" type="image/png" href="/favicon.png" />
+        <link rel="icon" type="image/png" href="/favicon.png" />
         {!isProd ? <meta name="robots" content="noindex" /> : null}
       </Head>
       {!AUTH_ROUTES.includes(router.pathname) ? <PageHeader /> : null}

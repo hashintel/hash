@@ -1,5 +1,5 @@
 //! TODO: DOC
-use std::{ops::Deref, sync::Arc};
+use std::sync::Arc;
 
 use super::{
     super::*,
@@ -14,7 +14,7 @@ use crate::{
         batch::migration::{BufferActions, IndexRange, RangeActions},
         error::Result,
         prelude::*,
-        table::pool::{agent::AgentPool, BatchPool},
+        table::{pool::proxy::PoolReadProxy, proxy::StateReadProxy},
     },
     simulation::command::CreateRemoveCommands,
     SimRunConfig,
@@ -36,28 +36,20 @@ impl CreateRemovePlanner {
         })
     }
 
-    pub fn run(&mut self, state: &State) -> Result<MigrationPlan<'_>> {
-        let mut pending = self.pending_plan(state.agent_pool())?;
+    pub fn run(&mut self, state_proxy: &StateReadProxy) -> Result<MigrationPlan<'_>> {
+        let mut pending = self.pending_plan(state_proxy.agent_pool())?;
 
         let number_inbound = self.commands.get_number_inbound();
         pending.distribute_inbound(number_inbound)?;
-        pending.complete(state, self.commands.new_agents.as_ref(), &self.config)
+        pending.complete(state_proxy, self.commands.new_agents.as_ref(), &self.config)
     }
 
-    fn pending_plan(&mut self, agent_pool: &AgentPool) -> Result<PendingPlan> {
+    fn pending_plan(&mut self, agent_pool: &PoolReadProxy<AgentBatch>) -> Result<PendingPlan> {
         let pending_batches: Vec<PendingBatch> = agent_pool
-            .batches()
-            .iter()
+            .batches_iter()
             .enumerate()
             .map(|(batch_index, batch)| {
-                PendingBatch::from_batch(
-                    batch_index,
-                    batch
-                        .try_read()
-                        .ok_or_else(|| Error::from("Failed to acquire read lock"))?
-                        .deref(),
-                    &mut self.commands.remove_ids,
-                )
+                PendingBatch::from_batch(batch_index, batch, &mut self.commands.remove_ids)
             })
             .collect::<Result<_>>()?;
 
@@ -85,56 +77,53 @@ impl PendingPlan {
 
     fn complete<'b>(
         &mut self,
-        state: &State,
+        state_proxy: &StateReadProxy,
         new_agents: Option<&'b RecordBatch>,
         config: &Arc<SimRunConfig>,
     ) -> Result<MigrationPlan<'b>> {
-        let dynamic_pool = state.agent_pool().try_read_batches()?;
+        let dynamic_pool = state_proxy.agent_pool();
         let mut existing_mutations = (0..dynamic_pool.len())
             .map(|_| ExistingGroupBufferActions::Undefined)
             .collect::<Vec<_>>();
         let mut create_commands = Vec::new();
         let mut num_inbound_agents_allocated = 0;
         let mut num_agents_after_execution = 0;
-        self.distribution
-            .iter()
-            .try_for_each::<_, Result<()>>(|(worker_index, batch)| {
-                let affinity = worker_index;
-                let planned_num_agents = batch.num_agents();
-                num_agents_after_execution += planned_num_agents;
-                if batch.wraps_batch() {
-                    // This is an existing batch, modify `existing_mutations`
-                    let batch_index = batch.old_batch_index_unchecked();
+        for (worker_index, batch) in self.distribution.iter() {
+            let affinity = worker_index;
+            let planned_num_agents = batch.num_agents();
+            num_agents_after_execution += planned_num_agents;
+            if batch.wraps_batch() {
+                // This is an existing batch, modify `existing_mutations`
+                let batch_index = batch.old_batch_index_unchecked();
 
-                    existing_mutations[batch_index] = if planned_num_agents == 0 {
-                        ExistingGroupBufferActions::Remove
-                    } else if batch.num_delete_unchecked() == 0 && batch.num_inbound() == 0 {
-                        // No outbound nor inbound agents
-                        ExistingGroupBufferActions::Persist { affinity }
-                    } else {
-                        let actions = buffer_actions_from_pending_batch(
-                            state,
-                            batch,
-                            &new_agents,
-                            &config.sim.store.agent_schema,
-                            &mut num_inbound_agents_allocated,
-                        )?;
-                        ExistingGroupBufferActions::Update { actions, affinity }
-                    }
+                existing_mutations[batch_index] = if planned_num_agents == 0 {
+                    ExistingGroupBufferActions::Remove
+                } else if batch.num_delete_unchecked() == 0 && batch.num_inbound() == 0 {
+                    // No outbound nor inbound agents
+                    ExistingGroupBufferActions::Persist { affinity }
                 } else {
                     let actions = buffer_actions_from_pending_batch(
-                        state,
+                        state_proxy,
                         batch,
                         &new_agents,
                         &config.sim.store.agent_schema,
                         &mut num_inbound_agents_allocated,
                     )?;
-                    let create_command = CreateActions { actions, affinity };
-
-                    create_commands.push(create_command)
+                    ExistingGroupBufferActions::Update { actions, affinity }
                 }
-                Ok(())
-            })?;
+            } else {
+                let actions = buffer_actions_from_pending_batch(
+                    state_proxy,
+                    batch,
+                    &new_agents,
+                    &config.sim.store.agent_schema,
+                    &mut num_inbound_agents_allocated,
+                )?;
+                let create_command = CreateActions { actions, affinity };
+
+                create_commands.push(create_command)
+            }
+        }
 
         Ok(MigrationPlan {
             existing_mutations,
@@ -145,19 +134,19 @@ impl PendingPlan {
 }
 
 fn buffer_actions_from_pending_batch<'a>(
-    state: &State,
-    batch: &PendingBatch,
+    state_proxy: &StateReadProxy,
+    pending_batch: &PendingBatch,
     inbound_agents: &Option<&'a RecordBatch>,
     schema: &Arc<AgentSchema>,
     inbound_taken_count: &mut usize,
 ) -> Result<BufferActions<'a>> {
-    let remove = RangeActions::collect_indices(batch.get_remove_actions());
+    let remove = RangeActions::collect_indices(pending_batch.get_remove_actions());
     // We don't copy agents between batches anymore
     let copy = (0, vec![]);
     let create = {
-        (batch.num_inbound(), vec![IndexRange::new(
+        (pending_batch.num_inbound(), vec![IndexRange::new(
             *inbound_taken_count,
-            batch.num_inbound(),
+            pending_batch.num_inbound(),
         )])
     };
 
@@ -165,10 +154,10 @@ fn buffer_actions_from_pending_batch<'a>(
 
     let range_actions = RangeActions::new(remove, copy, create);
 
-    let batches = state.agent_pool().try_read_batches()?;
+    let agent_batches = state_proxy.agent_pool().batches();
     BufferActions::from(
-        &batches,
-        batch.old_batch_index(),
+        &agent_batches,
+        pending_batch.old_batch_index(),
         range_actions,
         &schema.static_meta,
         *inbound_agents,

@@ -1,70 +1,24 @@
 use crate::{
-    datastore::table::task_shared_store::{SharedContext, SharedState, TaskSharedStore},
-    simulation::{
-        enum_dispatch::*,
-        package::{context::ContextTask, init::InitTask, output::OutputTask, state::StateTask},
-        Error, Result,
-    },
+    datastore::table::task_shared_store::TaskSharedStore,
+    simulation::{enum_dispatch::*, Result},
 };
 
 #[enum_dispatch]
 pub trait StoreAccessVerify {
+    /// Ensures that the [`Task`] variant has the correct permissions on the [`SharedState`] and
+    /// [`SharedContext`] objects that make up the [`TaskSharedStore`].
+    ///
+    /// The intended implementation, is that this trait is implemented for each package-group, e.g.
+    /// rather than being implemented on `JsPyInitTask`, it's implemented on the [`InitTask`]
+    /// variant, as all Initialization packages should have the same access expectations.
+    ///
+    /// # Errors
+    ///
+    /// The implementation should error with [`AccessNotAllowed`] if the permissions don't match up.
+    ///
+    /// [`Task`]: crate::simulation::task::Task
+    /// [`SharedState`]: crate::datastore::table::task_shared_store::SharedState
+    /// [`SharedContext`]: crate::datastore::table::task_shared_store::SharedContext
+    /// [`AccessNotAllowed`]: crate::simulation::error::Error::AccessNotAllowed
     fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()>;
-}
-
-impl StoreAccessVerify for ContextTask {
-    fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
-        let state = &access.state;
-        let context = access.context();
-        if (matches!(state, SharedState::Read(_)) || matches!(state, SharedState::None))
-            && matches!(context, SharedContext::None)
-        {
-            Ok(())
-        } else {
-            Err(Error::access_not_allowed(state, context, "Context".into()))
-        }
-    }
-}
-
-impl StoreAccessVerify for InitTask {
-    fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
-        let state = &access.state;
-        let context = access.context();
-        if matches!(state, SharedState::None) && matches!(context, SharedContext::None) {
-            Ok(())
-        } else {
-            Err(Error::access_not_allowed(state, context, "Init".into()))
-        }
-    }
-}
-
-impl StoreAccessVerify for StateTask {
-    fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
-        let state = &access.state;
-        let context = access.context();
-        // All combinations (as of now) are allowed (but still being explicit)
-        if (matches!(state, SharedState::Write(_))
-            || matches!(state, SharedState::Read(_))
-            || matches!(state, SharedState::None))
-            && (matches!(context, SharedContext::Read) || matches!(context, SharedContext::None))
-        {
-            Ok(())
-        } else {
-            Err(Error::access_not_allowed(state, context, "State".into()))
-        }
-    }
-}
-
-impl StoreAccessVerify for OutputTask {
-    fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
-        let state = &access.state;
-        let context = access.context();
-        if (matches!(state, SharedState::Read(_)) || matches!(state, SharedState::None))
-            && (matches!(context, SharedContext::Read) || matches!(context, SharedContext::None))
-        {
-            Ok(())
-        } else {
-            Err(Error::access_not_allowed(state, context, "Output".into()))
-        }
-    }
 }

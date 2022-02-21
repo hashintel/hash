@@ -1,1 +1,1 @@
-{ "test": { "type": "values", "steps": 100, "field": "a", "values": [1] } }
+{ "test": { "type": "values", "steps": 500, "field": "a", "values": [1] } }

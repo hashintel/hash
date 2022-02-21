@@ -73,6 +73,7 @@ export const buildPassportGraphQLMethods = (
           else resolve(user);
         };
 
+        // eslint-disable-next-line no-promise-executor-return
         return passport.authenticate(name, options, done)(req, res);
       }),
   };

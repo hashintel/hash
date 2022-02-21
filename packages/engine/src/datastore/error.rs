@@ -39,6 +39,12 @@ pub enum Error {
     #[error("{0}")]
     Unique(String),
 
+    #[error("Couldn't acquire shared lock on object")]
+    ProxySharedLock,
+
+    #[error("Couldn't acquire exclusive lock on object")]
+    ProxyExclusiveLock,
+
     #[error("Special field missing in schema: {0}")]
     SpecialKeyMissing(String),
 

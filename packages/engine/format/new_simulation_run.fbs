@@ -20,13 +20,13 @@ table DatastoreInit {
 // fields:
 //    `sim_id`         : id of the simulation run
 //    `sid`            : short id of the simulaton run
-//    `properties`     : properties (globals.json) of the simulation run
+//    `globals`        : globals (globals.json) of the simulation run
 //    `package_config` : configuration about which packages are used in this
 //                       simulation run
 table NewSimulationRun {
   sim_id:string (required);
   sid:uint;
-  properties:string (required);
+  globals:string (required);
   package_config:PackageConfig (required);
   datastore_init:DatastoreInit (required);
 }

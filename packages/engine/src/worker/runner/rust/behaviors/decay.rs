@@ -1,8 +1,9 @@
-use super::super::OutboundMessage;
-use super::{accessors::field_or_property, Context, Result, SharedBehavior, State};
-
 use rand::Rng;
 use serde::{Deserialize, Serialize};
+
+use super::{
+    super::OutboundMessage, accessors::field_or_property, Context, Result, SharedBehavior, State,
+};
 
 #[derive(Serialize, Deserialize, Clone)]
 enum DecayEffect {
@@ -12,11 +13,11 @@ enum DecayEffect {
 }
 
 pub fn behavior(state: &mut State, context: &Context) -> Result<()> {
-    let properties = &context.properties;
+    let globals = &context.globals;
 
-    let decay_chance_property = properties.get("decay_chance").cloned();
+    let decay_chance_property = globals.get("decay_chance").cloned();
 
-    let decay_effect_property = properties.get("decay_effect").cloned();
+    let decay_effect_property = globals.get("decay_effect").cloned();
 
     let decay_effects: Vec<DecayEffect> = state
         .decay_effect()?
