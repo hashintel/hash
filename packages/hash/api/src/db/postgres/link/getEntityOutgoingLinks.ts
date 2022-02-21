@@ -22,11 +22,10 @@ export type EntityWithOutgoingEntityIdsPGRow = EntityPGRow & {
 /** maps a postgres row with parent to its corresponding EntityWithOutgoingEntityIds object */
 export const mapEntityWithOutgoingEntityIdsPGRowToEntity = (
   row: EntityWithOutgoingEntityIdsPGRow,
-): EntityWithOutgoingEntityIds =>
-  ({
-    ...mapPGRowToEntity(row),
-    outgoingEntityIds: row.outgoing_entity_ids,
-  } as EntityWithOutgoingEntityIds);
+): EntityWithOutgoingEntityIds => ({
+  ...mapPGRowToEntity(row),
+  outgoingEntityIds: row.outgoing_entity_ids,
+});
 
 export const getEntityOutgoingLinks = async (
   conn: Connection,
@@ -38,18 +37,15 @@ export const getEntityOutgoingLinks = async (
   },
 ) => {
   const rows = await conn.any(sql<DBLinkRow>`
-    select ${mapColumnNamesToSQL(linksColumnNames, "links")}
-    from links inner join outgoing_links on (
-      links.source_account_id = outgoing_links.source_account_id
-      and links.link_id = outgoing_links.link_id
-    )
+    select ${mapColumnNamesToSQL(linksColumnNames)}
+    from links
     where
     ${sql.join(
       [
-        sql`outgoing_links.source_account_id = ${params.accountId}`,
-        sql`outgoing_links.source_entity_id = ${params.entityId}`,
+        sql`source_account_id = ${params.accountId}`,
+        sql`source_entity_id = ${params.entityId}`,
         params.entityVersionId !== undefined
-          ? sql`${params.entityVersionId} = ANY(links.source_entity_version_ids)`
+          ? sql`${params.entityVersionId} = ANY(source_entity_version_ids)`
           : [],
         params.path !== undefined ? sql`path = ${params.path}` : [],
       ].flat(),
