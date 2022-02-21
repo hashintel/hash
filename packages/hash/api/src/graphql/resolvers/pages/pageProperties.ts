@@ -12,7 +12,7 @@ import {
 import { GraphQLContext } from "../../context";
 
 /**
- * IMPORTANT NOTE: this is a temporary field resolver and will be deprecated
+ * IMPORTANT NOTE: this is a temporary field resolver and will be removed
  * once API consumers have been refactored to stop accessing `properties.contents`
  * of a Page, and access these using the `linkGroups` or `contents` fields instead
  *

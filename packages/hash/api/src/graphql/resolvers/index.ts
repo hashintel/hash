@@ -135,12 +135,14 @@ export const resolvers = {
   TextToken: GraphQLJSON,
 
   Block: {
-    properties: blockProperties /** @todo: deprecate this resolver */,
+    properties:
+      blockProperties /** @todo: remove this resolver as it is deprecated */,
     ...blockLinkedEntities,
   },
 
   Page: {
-    properties: pageProperties /** @todo: deprecate this resolver */,
+    properties:
+      pageProperties /** @todo: remove this resolver as it is deprecated */,
     ...pageLinkedEntities,
   },
 

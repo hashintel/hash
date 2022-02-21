@@ -11,7 +11,7 @@ import {
 import { GraphQLContext } from "../../context";
 
 /**
- * IMPORTANT NOTE: this is a temporary field resolver and will be deprecated
+ * IMPORTANT NOTE: this is a temporary field resolver and will be removed
  * once API consumers have been refactored to stop accessing `properties.entity`,
  * `properties.entityId` and `properties.accountId` of a Block, and access these
  * using the `linkGroups` or `entity` fields instead.
