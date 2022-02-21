@@ -11,6 +11,7 @@ import {
   BlockProtocolEntityType,
   BlockProtocolUpdateLinksAction,
   BlockProtocolLinkedDataDefinition,
+  BlockProtocolMultiSort,
 } from "blockprotocol";
 import { BlockComponent } from "blockprotocol/react";
 import { tw } from "twind";
@@ -31,7 +32,6 @@ type TableData = {
 };
 
 type AppProps = {
-  // @todo remove this once devRenderer is integrated with mock-block-dock
   data: {
     data?: Record<string, any>[];
     __linkedData?: BlockProtocolLinkedDataDefinition;
@@ -42,15 +42,20 @@ type AppProps = {
   entityId: string;
 };
 
-const defaultData: TableData = { data: [] };
-
-const useTableData = (data: TableData) => {
-  const defaultAggregateData = {
-    tableData: data,
-    prevTableData: data,
+const useTableData = (
+  linkedAggregation: BlockProtocolLinkedAggregation | undefined,
+) => {
+  const defaultTableData: TableData = {
+    linkedAggregation,
+    data: linkedAggregation?.results,
   };
 
-  const [{ prevTableData, tableData }, setAggregateTableData] =
+  const defaultAggregateData = {
+    tableData: defaultTableData,
+    prevLinkedAggregation: linkedAggregation,
+  };
+
+  const [{ prevLinkedAggregation, tableData }, setAggregateTableData] =
     useState(defaultAggregateData);
 
   const setTableData = useCallback(
@@ -62,7 +67,7 @@ const useTableData = (data: TableData) => {
     [],
   );
 
-  if (data !== prevTableData) {
+  if (linkedAggregation !== prevLinkedAggregation) {
     setAggregateTableData(defaultAggregateData);
   }
 
@@ -85,21 +90,25 @@ const getLinkedAggregation = (params: {
 
 const cleanUpdateLinkedAggregationAction = (
   action: BlockProtocolUpdateLinksAction & {
-    updatedOperation: Partial<BlockProtocolLinkedAggregation>;
+    updatedOperation: Partial<BlockProtocolLinkedAggregation> & {
+      __typename?: string;
+    };
   },
 ) => {
-  const nextAction = { ...action };
+  const nextAction = action;
 
   nextAction.updatedOperation.multiSort =
     action.updatedOperation.multiSort?.map((sort) => {
-      const newSort = { ...sort };
-      newSort.__typename = undefined;
+      const newSort = sort as BlockProtocolMultiSort[number] & {
+        __typename?: string;
+      };
+      delete newSort.__typename;
       return newSort;
     });
 
-  nextAction.updatedOperation.pageCount = undefined;
+  delete nextAction.updatedOperation.pageCount;
 
-  nextAction.updatedOperation.__typename = undefined;
+  delete nextAction.updatedOperation.__typename;
 
   return nextAction;
 };
@@ -116,8 +125,6 @@ export const Table: BlockComponent<AppProps> = ({
   updateEntities,
   updateLinks,
 }) => {
-  const [tableData, setTableData] = useTableData(defaultData);
-
   const matchingLinkedAggregation = useMemo(() => {
     return getLinkedAggregation({
       linkedAggregations: linkedAggregations ?? [],
@@ -126,12 +133,7 @@ export const Table: BlockComponent<AppProps> = ({
     });
   }, [entityId, linkedAggregations]);
 
-  useEffect(() => {
-    setTableData({
-      linkedAggregation: matchingLinkedAggregation,
-      data: matchingLinkedAggregation?.results,
-    });
-  }, [matchingLinkedAggregation, setTableData]);
+  const [tableData, setTableData] = useTableData(matchingLinkedAggregation);
 
   const columns = useMemo(
     () => makeColumns(tableData.data?.[0] || {}),
