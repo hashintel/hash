@@ -37,42 +37,42 @@ export const updatePageContents: Resolver<
 
   return await dataSources.db.transaction(async (client) => {
     // Create any _new_ blocks
-    const newBlocks: Block[] = [];
-
-    /** @todo: find way to concurrently create blocks with outgoing links */
-    for (const [i, action] of actions.entries()) {
-      if (action.insertNewBlock) {
-        try {
-          const {
-            accountId: blockAccountId,
-            componentId: blockComponentId,
-            entity: blockDataDefinition,
-          } = action.insertNewBlock;
-
-          const blockData = await Entity.createEntityWithLinks(client, {
-            accountId: blockAccountId, // assume that the "block entity" is in the same account as the block itself
-            user,
-            entityDefinition: blockDataDefinition,
-          });
-
-          const block = await Block.createBlock(client, {
-            blockData,
-            createdBy: user,
-            accountId: user.accountId,
-            properties: {
+    const newBlocks = await Promise.all(
+      actions
+        .map((action, i) => ({ action, i }))
+        .filter(({ action }) => action.insertNewBlock)
+        .map(async ({ action, i }) => {
+          try {
+            const {
+              accountId: blockAccountId,
               componentId: blockComponentId,
-            },
-          });
+              entity: blockDataDefinition,
+            } = action.insertNewBlock!;
 
-          newBlocks.push(block);
-        } catch (error) {
-          if (error instanceof UserInputError) {
-            throw new UserInputError(`action ${i}: ${error}`);
+            const blockData = await Entity.createEntityWithLinks(client, {
+              accountId: blockAccountId, // assume that the "block entity" is in the same account as the block itself
+              user,
+              entityDefinition: blockDataDefinition,
+            });
+
+            const block = await Block.createBlock(client, {
+              blockData,
+              createdBy: user,
+              accountId: user.accountId,
+              properties: {
+                componentId: blockComponentId,
+              },
+            });
+
+            return block;
+          } catch (error) {
+            if (error instanceof UserInputError) {
+              throw new UserInputError(`action ${i}: ${error}`);
+            }
+            throw error;
           }
-          throw error;
-        }
-      }
-    }
+        }),
+    );
 
     // Perform any entity updates.
     await Promise.all(
