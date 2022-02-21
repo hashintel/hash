@@ -43,9 +43,8 @@ jobs:
 
           while read -r file; do
             while read -r crate; do
-              if [[ $file =~ $crate ]]; then
+              if [[ $file =~ $crate ]] || [[ $file =~ .github ]]; then
                 changed_crates=$(echo -e "${crate}\n$changed_crates")
-                break
               fi
             done <<< "$available_crates"
           done <<< "$changed_files"
@@ -87,7 +86,7 @@ jobs:
   rustfmt:
     name: rustfmt
     needs: setup
-    if: needs.setup.outputs.rustfmt != '[]' && github.event_name == 'pull_request'
+    if: needs.setup.outputs.rustfmt != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -132,7 +131,7 @@ jobs:
   clippy:
     name: clippy
     needs: setup
-    if: needs.setup.outputs.clippy != '[]' && github.event_name == 'pull_request'
+    if: needs.setup.outputs.clippy != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -201,7 +200,7 @@ jobs:
   test:
     name: test
     needs: setup
-    if: needs.setup.outputs.test != '[]' && github.event_name == 'pull_request'
+    if: needs.setup.outputs.test != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -213,7 +212,7 @@ jobs:
           - ""
     env:
       V8_PATH: ${{ github.workspace }}/.v8
-      NUM_ATTEMPTS: 50
+      OUTPUT_DIRECTORY: test-results
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -257,7 +256,7 @@ jobs:
 
       - name: Build test dependencies
         if: matrix.directory == 'packages/engine'
-        run: cargo build -p server --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }}
+        run: cargo build -p hash_engine --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }}
 
       - name: Run tests
         run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }}
@@ -279,7 +278,6 @@ jobs:
     env:
       V8_PATH: ${{ github.workspace }}/.v8
       OUTPUT_DIRECTORY: test-results
-      NUM_ATTEMPTS: 50
       SAMPLES: ${{ needs.setup.outputs.samples }}
     steps:
       - name: Checkout source code
@@ -320,7 +318,7 @@ jobs:
           rm -rf tmp # Delete the tmp folder
 
       - name: Build test dependencies
-        run: cargo build -p server --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }}
+        run: cargo build -p hash_engine --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }}
 
       - name: Run tests
         run: cargo test --test ${{ matrix.tests }} --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }} -- --test-threads=1
@@ -346,8 +344,8 @@ jobs:
 
   merging-enabled:
     name: merging enabled
-    needs: [rustfmt, clippy, test]
-    if: github.event_name == 'pull_request'
+    needs: [rustfmt, clippy, test, bench]
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: check rustfmt
@@ -359,7 +357,6 @@ jobs:
       - name: check test
         run: |
           [[ ${{ needs.test.result }} =~ success|skipped ]]
-      # TODO: Require bench to pass after https://app.asana.com/0/1201481007343159/1201545519802517/f
-      # - name: check bench
-      #   run: |
-      #     [[ ${{ needs.bench.result }} =~ success|skipped ]]
+      - name: check bench
+        run: |
+          [[ ${{ needs.bench.result }} =~ success|skipped ]]

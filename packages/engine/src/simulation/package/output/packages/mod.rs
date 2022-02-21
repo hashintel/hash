@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use self::{analysis::AnalysisOutput, json_state::JsonStateOutput};
 use super::PackageCreator;
 use crate::{
+    datastore::table::task_shared_store::{SharedContext, SharedState},
     simulation::{
         enum_dispatch::*,
         package::{id::PackageIdGenerator, name::PackageName, PackageMetadata, PackageType},
@@ -20,7 +21,6 @@ use crate::{
     },
     ExperimentConfig,
 };
-
 /// All output package names are registered in this enum
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -55,6 +55,20 @@ pub enum Output {
 // #[enum_dispatch(GetTaskName, WorkerHandler, WorkerPoolHandler, GetTaskArgs)]
 #[derive(Clone, Debug)]
 pub enum OutputTask {}
+
+impl StoreAccessVerify for OutputTask {
+    fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
+        let state = &access.state;
+        let context = access.context();
+        if (matches!(state, SharedState::Read(_)) || matches!(state, SharedState::None))
+            && (matches!(context, SharedContext::Read) || matches!(context, SharedContext::None))
+        {
+            Ok(())
+        } else {
+            Err(Error::access_not_allowed(state, context, "Output".into()))
+        }
+    }
+}
 
 // Empty impls to satisfy constraints enum_dispatch while there are no task variants
 impl GetTaskName for OutputTask {

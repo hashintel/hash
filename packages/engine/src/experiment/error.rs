@@ -71,13 +71,8 @@ pub enum Error {
     #[error("Received Python message 'client_id' field is not a string: {0:?}")]
     PythonIdNotString(SerdeMap),
 
-    #[error("Received Python start message doesn't have 'properties' field: {0:?}")]
-    PythonNoProperties(SerdeMap),
-
-    // #[error("Received Python start message 'properties' field is not a JSON object")]
-    // PythonPropertiesNotObject,
-    #[error("Simulation run's changed property values are not in a JSON object")]
-    ChangedPropertiesNotObject,
+    #[error("Simulation run's changed Global values are not in a JSON object")]
+    ChangedGlobalsNotObject,
 
     #[error("globals.json doesn't contain a JSON object")]
     BaseGlobalsNotProject,

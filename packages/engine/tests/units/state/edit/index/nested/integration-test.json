@@ -1,0 +1,85 @@
+[
+  {
+    "steps": 3,
+    "expected-output": {
+      "json-state": {
+        "1": [
+          {
+            "o1": {
+              "b1": false,
+              "b2": true,
+              "n1": 2,
+              "n2": 3,
+              "s1": "beret",
+              "s2": "top hat",
+              "o1": {
+                "n1": 3,
+                "n2": 2
+              },
+              "l1": [0, 1, 2, 3],
+              "l2": [1, 2, 3, 4],
+              "f1": [10, 40],
+              "f2": [5, 20]
+            },
+            "o1_is_struct": true,
+            "o1_b1_is_boolean": true,
+            "o1_b2_is_boolean": true,
+            "o1_n1_is_number": true,
+            "o1_n2_is_number": true,
+            "o1_s1_is_string": true,
+            "o1_s2_is_string": true,
+            "o1_o1_is_struct": true,
+            "o1_o1_n1_is_number": true,
+            "o1_o1_n2_is_number": true,
+            "o1_l1_is_list": true,
+            "o1_l1_0_is_number": true,
+            "o1_l2_is_list": true,
+            "o1_l2_0_is_number": true,
+            "o1_f1_is_list": true,
+            "o1_f1_0_is_number": true,
+            "o1_f2_is_list": true,
+            "o1_f2_0_is_number": true
+          }
+        ],
+        "2": [
+          {
+            "o1": {
+              "b1": false,
+              "b2": false,
+              "n1": 2,
+              "n2": 4,
+              "s1": "beret",
+              "s2": "beret hat",
+              "o1": {
+                "n1": 3,
+                "n2": 4
+              },
+              "l1": [0, 0, 1, 2, 3],
+              "l2": [0, 1, 2, 3, 4],
+              "f1": [100, 800],
+              "f2": [50, 400]
+            },
+            "o1_is_struct": true,
+            "o1_b1_is_boolean": true,
+            "o1_b2_is_boolean": true,
+            "o1_n1_is_number": true,
+            "o1_n2_is_number": true,
+            "o1_s1_is_string": true,
+            "o1_s2_is_string": true,
+            "o1_o1_is_struct": true,
+            "o1_o1_n1_is_number": true,
+            "o1_o1_n2_is_number": true,
+            "o1_l1_is_list": true,
+            "o1_l1_0_is_number": true,
+            "o1_l2_is_list": true,
+            "o1_l2_0_is_number": true,
+            "o1_f1_is_list": true,
+            "o1_f1_0_is_number": true,
+            "o1_f2_is_list": true,
+            "o1_f2_0_is_number": true
+          }
+        ]
+      }
+    }
+  }
+]

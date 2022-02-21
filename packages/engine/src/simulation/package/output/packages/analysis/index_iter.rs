@@ -901,7 +901,7 @@ pub(super) fn index_iterator_mapper_creator(
                     for index in iterator {
                         for _ in current_index..index {
                             // Skip some values
-                            (&mut value_iter).next();
+                            value_iter.next();
                         }
                         current_index = index + 1;
                         let value = value_iter.next().unwrap_or(serde_json::Value::Null);

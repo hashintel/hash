@@ -1,11 +1,12 @@
 import { useEffect } from "react";
 import { useRouter } from "next/router";
 import { tw } from "twind";
+import { NextPage } from "next";
 
 import styles from "./index.module.scss";
 import { useUser } from "../components/hooks/useUser";
 
-export default function Home() {
+const Home: NextPage = () => {
   const router = useRouter();
   const { user, loading } = useUser();
 
@@ -32,4 +33,6 @@ export default function Home() {
       </section>
     </main>
   );
-}
+};
+
+export default Home;

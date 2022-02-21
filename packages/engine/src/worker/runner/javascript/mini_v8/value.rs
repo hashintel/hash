@@ -294,7 +294,7 @@ impl<'a, 'mv8> IntoIterator for &'a Values<'mv8> {
     type Item = &'a Value<'mv8>;
 
     fn into_iter(self) -> Self::IntoIter {
-        (&self.0).iter()
+        self.0.iter()
     }
 }
 

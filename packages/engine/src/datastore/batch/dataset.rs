@@ -3,12 +3,12 @@ use crate::{
     proto::{ExperimentId, SharedDataset},
 };
 
-pub struct Batch {
+pub struct Dataset {
     pub(crate) memory: Memory,
     pub(crate) reload_state: Metaversion,
 }
 
-impl super::Batch for Batch {
+impl Batch for Dataset {
     fn memory(&self) -> &Memory {
         &self.memory
     }
@@ -40,11 +40,8 @@ impl super::Batch for Batch {
     }
 }
 
-impl Batch {
-    pub fn new_from_dataset(
-        dataset: &SharedDataset,
-        experiment_id: &ExperimentId,
-    ) -> Result<Batch> {
+impl Dataset {
+    pub fn new_from_dataset(dataset: &SharedDataset, experiment_id: &ExperimentId) -> Result<Self> {
         let dataset_name = dataset.shortname.clone();
         let dataset_size = dataset
             .data
@@ -63,7 +60,7 @@ impl Batch {
                 .map(|data| data.as_bytes())
                 .unwrap_or_default(),
         );
-        Ok(Batch {
+        Ok(Self {
             memory,
             reload_state,
         })

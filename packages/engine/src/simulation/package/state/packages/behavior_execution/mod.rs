@@ -13,7 +13,10 @@ use super::super::*;
 use crate::{
     datastore::{
         schema::{accessor::GetFieldSpec, FieldSource},
-        table::{state::ReadState, task_shared_store::TaskSharedStoreBuilder},
+        table::{
+            pool::proxy::PoolWriteProxy, proxy::StateWriteProxy,
+            task_shared_store::TaskSharedStoreBuilder,
+        },
     },
     simulation::{
         package::{
@@ -150,29 +153,38 @@ impl BehaviorExecution {
     /// Iterates over all "behaviors" fields of agents and writes them into their "behaviors" field.
     /// This fixation guarantees that all behaviors that were there in the beginning of behavior
     /// execution will be executed accordingly
-    fn fix_behavior_chains(&mut self, state: &mut StateMut) -> Result<()> {
+    fn fix_behavior_chains(
+        &mut self,
+        agent_proxies: &mut PoolWriteProxy<AgentBatch>,
+    ) -> Result<()> {
         let behavior_ids = chain::gather_behavior_chains(
-            state,
+            &agent_proxies.batches(),
             &self.behavior_ids,
             self.behavior_ids_col_data_types.clone(),
             self.behavior_ids_col_index,
         )?;
 
-        state.set_pending_column(behavior_ids)?;
+        agent_proxies.set_pending_column(behavior_ids)?;
         Ok(())
     }
 
-    fn reset_behavior_index_col(&mut self, state: &mut StateMut) -> Result<()> {
+    fn reset_behavior_index_col(
+        &mut self,
+        agent_proxies: &mut PoolWriteProxy<AgentBatch>,
+    ) -> Result<()> {
         let behavior_index_col = reset_index_col(self.behavior_index_col_index)?;
-        state.set_pending_column(behavior_index_col)?;
+        agent_proxies.set_pending_column(behavior_index_col)?;
 
         Ok(())
     }
 
     /// Iterate over languages of first behaviors to choose first language runner to send task to
-    fn get_first_lang(&self, state: &StateMut) -> Result<Option<Language>> {
-        for batch in state.agent_pool().try_read_batches()? {
-            for agent_behaviors in batch.behavior_list_bytes_iter()? {
+    fn get_first_lang<B: AsRef<AgentBatch>>(
+        &self,
+        agent_batches: &[B],
+    ) -> Result<Option<Language>> {
+        for batch in agent_batches.iter() {
+            for agent_behaviors in batch.as_ref().behavior_list_bytes_iter()? {
                 if agent_behaviors.is_empty() {
                     continue;
                 }
@@ -196,12 +208,12 @@ impl BehaviorExecution {
     /// Sends out behavior execution commands to workers
     async fn begin_execution(
         &mut self,
-        state: &mut StateMut,
+        state_proxy: StateWriteProxy,
         context: &Context,
         lang: Language,
     ) -> Result<ActiveTask> {
         let shared_store = TaskSharedStoreBuilder::new()
-            .write_state(state)?
+            .write_state(state_proxy)?
             .read_context(context)?
             .build();
         let state_task: StateTask = ExecuteBehaviorsTask {
@@ -216,21 +228,25 @@ impl BehaviorExecution {
 
 #[async_trait]
 impl Package for BehaviorExecution {
-    async fn run(&mut self, state: &mut StateMut, context: &Context) -> Result<()> {
+    async fn run(&mut self, state: &mut State, context: &Context) -> Result<()> {
         tracing::trace!("Running BehaviorExecution");
-        self.fix_behavior_chains(state)?;
-        self.reset_behavior_index_col(state)?;
-        state.flush_pending_columns()?;
+        let mut state_proxy = state.write()?;
+        let agent_pool = state_proxy.agent_pool_mut();
 
-        let lang = match self.get_first_lang(state)? {
+        self.fix_behavior_chains(agent_pool)?;
+        self.reset_behavior_index_col(agent_pool)?;
+        agent_pool.flush_pending_columns()?;
+
+        let lang = match self.get_first_lang(&agent_pool.batches())? {
             Some(lang) => lang,
             None => {
                 tracing::warn!("No behaviors were found to execute");
                 return Ok(());
             } // No behaviors to execute
         };
+
         tracing::trace!("Beginning BehaviorExecution task");
-        let active_task = self.begin_execution(state, context, lang).await?;
+        let active_task = self.begin_execution(state_proxy, context, lang).await?;
         let msg = active_task.drive_to_completion().await?;
         // Wait for results
         // TODO: Get latest metaversions from message and reload state if necessary.

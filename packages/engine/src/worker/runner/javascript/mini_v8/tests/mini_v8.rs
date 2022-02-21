@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc, string::String as StdString, time::Duration};
+use std::{cell::RefCell, rc::Rc, string::String as StdString};
 
 use super::super::*;
 
@@ -13,7 +13,6 @@ fn eval_origin() {
                 line_offset: 123,
                 column_offset: 456,
             }),
-            ..Default::default()
         })
         .unwrap();
     let result = result.split_whitespace().collect::<Vec<_>>().join(" ");
@@ -21,28 +20,6 @@ fn eval_origin() {
         "ReferenceError: MISSING_VAR is not defined at eval_origin:124:463",
         result
     );
-}
-
-#[test]
-#[ignore] // TODO: reenable test
-fn eval_timeout() {
-    let mv8 = MiniV8::new();
-    let result = mv8.eval::<_, Value<'_>>(Script {
-        source: "a = 0; while (true) { a++; }".to_owned(),
-        timeout: Some(Duration::from_millis(50)),
-        ..Default::default()
-    });
-
-    let expected = "execution timed out";
-    match result {
-        Err(Error::Value(Value::Object(o)))
-            if o.get::<_, StdString>("message").unwrap() == expected => {}
-        _ => panic!("unexpected result: {:?}", result),
-    }
-
-    // Make sure we can still evaluate again:
-    let a: f64 = mv8.eval("a").unwrap();
-    assert!(a > 0.0);
 }
 
 #[test]

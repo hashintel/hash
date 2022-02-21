@@ -21,6 +21,7 @@ extern "C" {
         line_offset: i32,
         column_offset: i32,
     ) -> TryCatchDesc;
+    #[allow(dead_code)]
     pub(super) fn mv8_interface_terminate_execution(_: Interface);
     pub(super) fn mv8_interface_global(_: Interface) -> ValuePtr;
     pub(super) fn mv8_interface_set_data(_: Interface, slot: u32, data: *mut c_void);

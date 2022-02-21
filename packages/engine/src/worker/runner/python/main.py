@@ -28,7 +28,7 @@ def logging_setup():
             pair = kv.replace(" ", "").split("=")
             if len(pair) != 2:
                 continue
-            if pair[0] == "hash_engine":
+            if pair[0] in ["hash_engine", "hash_engine_lib"]:
                 possible_level = get_logging_level(pair[1])
                 if possible_level is not None:
                     level = possible_level

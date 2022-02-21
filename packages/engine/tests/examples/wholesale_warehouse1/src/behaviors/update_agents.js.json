@@ -11,6 +11,10 @@
     "agents": {
       "type": "any",
       "nullable": true
+    },
+    "storage_info": {
+      "type": "any",
+      "nullable": true
     }
   },
   "built_in_key_use": null,

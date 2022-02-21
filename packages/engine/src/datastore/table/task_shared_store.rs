@@ -1,14 +1,14 @@
 //! TODO: DOC
 use std::fmt::Debug;
 
-use super::{
-    context::ReadContext,
-    proxy::{StateReadProxy, StateWriteProxy},
-    state::{ReadState, WriteState},
-};
+use super::proxy::{StateReadProxy, StateWriteProxy};
 use crate::{
-    config::{Distribution, Worker, WorkerAllocation},
-    datastore::{prelude::Result, Error},
+    config::{StateBatchDistribution, Worker, WorkerAllocation},
+    datastore::{
+        prelude::Result,
+        table::{context::Context, state::view::StatePools},
+        Error,
+    },
     simulation::task::handler::worker_pool::SplitConfig,
 };
 
@@ -33,14 +33,14 @@ impl TaskSharedStore {
 #[derive(Debug)]
 pub struct PartialStateWriteProxy {
     pub group_indices: Vec<usize>,
-    pub inner: StateWriteProxy,
+    pub state_proxy: StateWriteProxy,
 }
 
 /// TODO: DOC
 #[derive(Debug, Clone)]
 pub struct PartialStateReadProxy {
     pub group_indices: Vec<usize>,
-    pub inner: StateReadProxy,
+    pub state_proxy: StateReadProxy,
 }
 
 /// TODO: DOC
@@ -84,41 +84,41 @@ impl TaskSharedStoreBuilder {
         self.inner
     }
 
-    pub fn partial_write_state<K: WriteState>(
+    pub fn partial_write_state(
         mut self,
-        state: &K,
+        state_pools: &mut StatePools,
         batch_indices: Vec<usize>,
     ) -> Result<Self> {
         self.inner.state =
-            SharedState::Partial(PartialSharedState::new_write(state, batch_indices)?);
+            SharedState::Partial(PartialSharedState::new_write(state_pools, batch_indices)?);
 
         Ok(self)
     }
 
-    pub fn partial_read_state<K: ReadState>(
+    pub fn partial_read_state(
         mut self,
-        state: &K,
+        state_pools: &StatePools,
         batch_indices: Vec<usize>,
     ) -> Result<Self> {
         self.inner.state =
-            SharedState::Partial(PartialSharedState::new_read(state, batch_indices)?);
-        Ok(self)
-    }
-
-    /// Allow the task runners to have write access to all of agent state
-    pub fn write_state<K: WriteState>(mut self, state: &mut K) -> Result<Self> {
-        self.inner.state = SharedState::Write(StateWriteProxy::new(state)?);
+            SharedState::Partial(PartialSharedState::new_read(state_pools, batch_indices)?);
         Ok(self)
     }
 
     /// Allow the task runners to have read access to all of agent state
-    pub fn read_state<K: ReadState>(mut self, state: &K) -> Result<Self> {
-        self.inner.state = SharedState::Read(StateReadProxy::new(state)?);
+    pub fn read_state(mut self, state_proxy: StateReadProxy) -> Result<Self> {
+        self.inner.state = SharedState::Read(state_proxy);
+        Ok(self)
+    }
+
+    /// Allow the task runners to have write access to all of agent state
+    pub fn write_state(mut self, state_proxy: StateWriteProxy) -> Result<Self> {
+        self.inner.state = SharedState::Write(state_proxy);
         Ok(self)
     }
 
     /// Allow the task runners to have read access to the context object
-    pub fn read_context<K: ReadContext>(mut self, _context: &K) -> Result<Self> {
+    pub fn read_context(mut self, _context: &Context) -> Result<Self> {
         self.inner.context = SharedContext::Read;
         Ok(self)
     }
@@ -136,22 +136,19 @@ pub enum PartialSharedState {
 }
 
 impl PartialSharedState {
-    fn new_write<K: WriteState>(
-        state: &K,
-        group_indices: Vec<usize>,
-    ) -> Result<PartialSharedState> {
-        let inner = StateWriteProxy::new_partial(state, &group_indices)?;
-        Ok(PartialSharedState::Write(PartialStateWriteProxy {
+    fn new_read(state: &StatePools, group_indices: Vec<usize>) -> Result<PartialSharedState> {
+        let state_proxy = StateReadProxy::new_partial(state, &group_indices)?;
+        Ok(PartialSharedState::Read(PartialStateReadProxy {
             group_indices,
-            inner,
+            state_proxy,
         }))
     }
 
-    fn new_read<K: ReadState>(state: &K, group_indices: Vec<usize>) -> Result<PartialSharedState> {
-        let inner = StateReadProxy::new_partial(state, &group_indices)?;
-        Ok(PartialSharedState::Read(PartialStateReadProxy {
+    fn new_write(state: &mut StatePools, group_indices: Vec<usize>) -> Result<PartialSharedState> {
+        let state_proxy = StateWriteProxy::new_partial(state, &group_indices)?;
+        Ok(PartialSharedState::Write(PartialStateWriteProxy {
             group_indices,
-            inner,
+            state_proxy,
         }))
     }
 
@@ -160,7 +157,7 @@ impl PartialSharedState {
     pub fn split_into_individual_per_group(self) -> Vec<Self> {
         match self {
             Self::Read(partial_read_proxy) => {
-                let (agent_proxies, message_proxies) = partial_read_proxy.inner.deconstruct();
+                let (agent_proxies, message_proxies) = partial_read_proxy.state_proxy.deconstruct();
                 partial_read_proxy
                     .group_indices
                     .into_iter()
@@ -169,7 +166,7 @@ impl PartialSharedState {
                     .map(|((group_index, agent_batch_proxy), message_batch_proxy)| {
                         Self::Read(PartialStateReadProxy {
                             group_indices: vec![group_index],
-                            inner: StateReadProxy::from((vec![agent_batch_proxy], vec![
+                            state_proxy: StateReadProxy::from((vec![agent_batch_proxy], vec![
                                 message_batch_proxy,
                             ])),
                         })
@@ -177,7 +174,8 @@ impl PartialSharedState {
                     .collect()
             }
             Self::Write(partial_write_proxy) => {
-                let (agent_proxies, message_proxies) = partial_write_proxy.inner.deconstruct();
+                let (agent_proxies, message_proxies) =
+                    partial_write_proxy.state_proxy.deconstruct();
                 partial_write_proxy
                     .group_indices
                     .into_iter()
@@ -186,7 +184,7 @@ impl PartialSharedState {
                     .map(|((group_index, agent_batch_proxy), message_batch_proxy)| {
                         Self::Write(PartialStateWriteProxy {
                             group_indices: vec![group_index],
-                            inner: StateWriteProxy::from((vec![agent_batch_proxy], vec![
+                            state_proxy: StateWriteProxy::from((vec![agent_batch_proxy], vec![
                                 message_batch_proxy,
                             ])),
                         })
@@ -252,8 +250,8 @@ impl TaskSharedStore {
             SharedState::Write(state) => state.n_accessible_agents(),
             SharedState::Read(state) => state.n_accessible_agents(),
             SharedState::Partial(partial) => match partial {
-                PartialSharedState::Read(partial) => partial.inner.n_accessible_agents(),
-                PartialSharedState::Write(partial) => partial.inner.n_accessible_agents(),
+                PartialSharedState::Read(partial) => partial.state_proxy.n_accessible_agents(),
+                PartialSharedState::Write(partial) => partial.state_proxy.n_accessible_agents(),
             },
         }
     }
@@ -277,7 +275,7 @@ impl TaskSharedStore {
     /// TODO: DOC
     pub fn distribute(
         self,
-        distribution: &Distribution,
+        distribution: &StateBatchDistribution,
         worker_list: &WorkerAllocation,
     ) -> Result<(Vec<(Worker, Self)>, SplitConfig)> {
         let reads_state = self.reads_state();
@@ -292,18 +290,18 @@ impl TaskSharedStore {
             //       A worker can also get multiple batches or zero batches.
             let ((agent_batches, msg_batches), group_indices) = match self.state {
                 SharedState::Write(state) => {
-                    let group_indices = (0..state.agent_pool().n_batches()).collect();
+                    let group_indices = (0..state.agent_pool().len()).collect();
                     (state.deconstruct(), group_indices)
                 }
                 SharedState::Partial(PartialSharedState::Write(partial)) => {
-                    let (state, group_indices) = (partial.inner, partial.group_indices);
+                    let (state, group_indices) = (partial.state_proxy, partial.group_indices);
                     (state.deconstruct(), group_indices)
                 }
                 _ => unreachable!(),
             };
             let group_sizes = agent_batches
                 .iter()
-                .map(|batch| batch.inner().num_agents())
+                .map(|proxy| proxy.num_agents())
                 .collect();
             let (stores, split_config) = distribute_batches(
                 worker_list,
@@ -319,7 +317,7 @@ impl TaskSharedStore {
                         state: SharedState::Partial(PartialSharedState::Write(
                             PartialStateWriteProxy {
                                 group_indices,
-                                inner: StateWriteProxy::from((agent_batches, msg_batches)),
+                                state_proxy: StateWriteProxy::from((agent_batches, msg_batches)),
                             },
                         )),
                         context: context.clone(),
@@ -328,25 +326,25 @@ impl TaskSharedStore {
                 })
                 .collect();
             (stores, split_config)
-        } else if reads_state && distribution.single_read_access {
+        } else if reads_state && distribution.partitioned_batches {
             // We take read access to state so we need to distribute
             // each batch to a single worker.
             // Note: This doesn't mean that each worker gets a single batch.
             //       A worker can also get multiple batches or zero batches.
             let ((agent_batches, msg_batches), group_indices) = match self.state {
                 SharedState::Read(state) => {
-                    let group_indices = (0..state.agent_pool().n_batches()).collect();
+                    let group_indices = (0..state.agent_pool().len()).collect();
                     (state.deconstruct(), group_indices)
                 }
                 SharedState::Partial(PartialSharedState::Read(partial)) => {
-                    let (state, group_indices) = (partial.inner, partial.group_indices);
+                    let (state, group_indices) = (partial.state_proxy, partial.group_indices);
                     (state.deconstruct(), group_indices)
                 }
                 _ => unreachable!(),
             };
             let group_sizes = agent_batches
                 .iter()
-                .map(|batch| batch.inner().num_agents())
+                .map(|batch| batch.num_agents())
                 .collect();
             let (stores, split_config) = distribute_batches(
                 worker_list,
@@ -362,7 +360,7 @@ impl TaskSharedStore {
                         state: SharedState::Partial(PartialSharedState::Read(
                             PartialStateReadProxy {
                                 group_indices,
-                                inner: StateReadProxy::from((agent_batches, msg_batches)),
+                                state_proxy: StateReadProxy::from((agent_batches, msg_batches)),
                             },
                         )),
                         context: context.clone(),

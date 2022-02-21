@@ -10,8 +10,9 @@ use crate::{
 
 #[derive(derive_new::new)]
 pub struct LocalSimulationOutputPersistence {
-    exp_name: ExperimentName,
-    exp_id: ExperimentId,
+    project_name: String,
+    experiment_name: ExperimentName,
+    experiment_id: ExperimentId,
     sim_id: SimulationShortId,
     // TODO: Should this be unused? If so remove
     buffers: Buffers,
@@ -44,8 +45,9 @@ impl SimulationOutputPersistenceRepr for LocalSimulationOutputPersistence {
         let path = self
             .config
             .output_folder
-            .join(self.exp_name.as_str())
-            .join(self.exp_id.to_string())
+            .join(&self.project_name)
+            .join(self.experiment_name.as_str())
+            .join(self.experiment_id.to_string())
             .join(self.sim_id.to_string());
 
         tracing::info!("Making new output directory: {:?}", path);

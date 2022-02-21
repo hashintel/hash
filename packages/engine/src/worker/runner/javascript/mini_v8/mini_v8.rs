@@ -22,6 +22,7 @@ pub struct MiniV8 {
 
 /// C representation of Arrow array data nodes
 #[repr(C)]
+#[derive(Debug)]
 pub struct DataFfi {
     pub len: usize,
     pub null_count: usize,
@@ -67,21 +68,8 @@ impl MiniV8 {
         R: FromValue<'mv8>,
     {
         let script = script.into();
-        match (self.is_top, script.timeout) {
-            (true, Some(timeout)) => {
-                let interface = self.interface;
-                execute_with_timeout(
-                    timeout,
-                    || self.eval_inner(script),
-                    move || unsafe {
-                        mv8_interface_terminate_execution(interface);
-                    },
-                )?
-                .into(self)
-            }
-            (false, Some(_)) => Err(Error::invalid_timeout()),
-            (_, None) => self.eval_inner(script)?.into(self),
-        }
+        // Change: we've removed logic based on timeouts as it wasn't working and we don't need it
+        self.eval_inner(script)?.into(self)
     }
 
     fn eval_inner(&self, script: Script) -> Result<'_, Value<'_>> {
@@ -202,7 +190,7 @@ impl MiniV8 {
     {
         let func = RefCell::new(func);
         self.create_function(move |invocation| {
-            (&mut *func
+            (*func
                 .try_borrow_mut()
                 .map_err(|_| Error::recursive_mut_callback())?)(invocation)
         })
@@ -295,7 +283,8 @@ pub struct Script {
     /// V8 can only cancel script evaluation while running actual JavaScript code. If Rust code is
     /// being executed when the timeout is triggered, the execution will continue until the
     /// evaluation has returned to running JavaScript code.
-    pub timeout: Option<Duration>,
+    // Change: this seems broken so we've made it private, as we don't need to use it anyway
+    // _timeout: Option<Duration>,
     /// The script's origin.
     pub origin: Option<ScriptOrigin>,
 }
@@ -326,6 +315,7 @@ impl<'a> From<&'a str> for Script {
     }
 }
 
+#[allow(dead_code)]
 fn execute_with_timeout<T>(
     timeout: Duration,
     execute_fn: impl FnOnce() -> T,

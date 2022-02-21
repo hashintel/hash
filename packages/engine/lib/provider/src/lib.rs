@@ -175,7 +175,7 @@ pub(crate) mod tests {
         type Type = usize;
     }
 
-    pub(crate) struct MyError {
+    pub struct MyError {
         value: usize,
         reference: usize,
         custom_tag_a: usize,
@@ -197,7 +197,7 @@ pub(crate) mod tests {
         }
     }
 
-    pub(crate) const ERR: MyError = MyError {
+    pub const ERR: MyError = MyError {
         value: 1,
         reference: 2,
         custom_tag_a: 3,

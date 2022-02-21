@@ -21,6 +21,7 @@ use tracing_subscriber::{
     },
     prelude::*,
     registry::LookupSpan,
+    util::TryInitError,
     EnvFilter,
 };
 
@@ -88,6 +89,40 @@ impl FromStr for OutputLocation {
 impl Default for OutputLocation {
     fn default() -> Self {
         Self::StdErr
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, clap::ArgEnum)]
+pub enum LogLevel {
+    Trace,
+    Debug,
+    Info,
+    Warning,
+    Error,
+}
+
+impl Display for LogLevel {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Trace => fmt.write_str("trace"),
+            Self::Debug => fmt.write_str("debug"),
+            Self::Info => fmt.write_str("info"),
+            Self::Warning => fmt.write_str("warning"),
+            Self::Error => fmt.write_str("error"),
+        }
+    }
+}
+
+impl From<LogLevel> for Directive {
+    fn from(level: LogLevel) -> Self {
+        use tracing::Level;
+        match level {
+            LogLevel::Trace => Directive::from(Level::TRACE),
+            LogLevel::Debug => Directive::from(Level::DEBUG),
+            LogLevel::Info => Directive::from(Level::INFO),
+            LogLevel::Warning => Directive::from(Level::WARN),
+            LogLevel::Error => Directive::from(Level::ERROR),
+        }
     }
 }
 
@@ -163,17 +198,22 @@ pub fn init_logger<P: AsRef<Path>>(
     log_format: LogFormat,
     output_location: &OutputLocation,
     log_folder: P,
-    log_file_output_name: &str,
-    texray_output_name: &str,
-) -> impl Drop {
+    log_level: Option<LogLevel>,
+    log_file_name: &str,
+    texray_log_file_name: &str,
+) -> Result<impl Drop, TryInitError> {
     let log_folder = log_folder.as_ref();
 
-    let filter = match std::env::var("RUST_LOG") {
-        Ok(env) => EnvFilter::new(env),
-        #[cfg(debug_assertions)]
-        _ => EnvFilter::default().add_directive(Directive::from(LevelFilter::DEBUG)),
-        #[cfg(not(debug_assertions))]
-        _ => EnvFilter::default().add_directive(Directive::from(LevelFilter::WARN)),
+    let filter = if let Some(log_level) = log_level {
+        EnvFilter::default().add_directive(Directive::from(log_level))
+    } else {
+        match std::env::var("RUST_LOG") {
+            Ok(env) => EnvFilter::new(env),
+            #[cfg(debug_assertions)]
+            _ => EnvFilter::default().add_directive(Directive::from(LevelFilter::DEBUG)),
+            #[cfg(not(debug_assertions))]
+            _ => EnvFilter::default().add_directive(Directive::from(LevelFilter::WARN)),
+        }
     };
 
     let formatter = fmt::format()
@@ -216,7 +256,7 @@ pub fn init_logger<P: AsRef<Path>>(
     };
 
     let json_file_appender =
-        tracing_appender::rolling::never(log_folder, format!("{log_file_output_name}.json"));
+        tracing_appender::rolling::never(log_folder, format!("{log_file_name}.json"));
     let (non_blocking, _json_file_guard) = tracing_appender::non_blocking(json_file_appender);
 
     let json_file_layer = fmt::layer()
@@ -225,7 +265,7 @@ pub fn init_logger<P: AsRef<Path>>(
         .with_writer(non_blocking);
 
     let (texray_layer, _texray_guard) =
-        texray::create_texray_layer(&log_folder, texray_output_name);
+        texray::create_texray_layer(&log_folder, texray_log_file_name);
 
     tracing_subscriber::registry()
         .with(filter)
@@ -234,13 +274,13 @@ pub fn init_logger<P: AsRef<Path>>(
         .with(json_file_layer)
         .with(error_layer)
         .with(texray_layer)
-        .init();
+        .try_init()?;
 
-    LogGuard {
+    Ok(LogGuard {
         _output_guard,
         _json_file_guard,
         _texray_guard,
-    }
+    })
 }
 
 pub fn parse_env_duration(name: &str, default: u64) -> Duration {

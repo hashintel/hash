@@ -11,7 +11,7 @@ use crate::datastore::schema::field_spec::{
 /// # Example
 ///
 /// ```
-/// use hash_engine::{
+/// use hash_engine_lib::{
 ///     datastore::schema::{FieldSource, RootFieldSpecCreator},
 ///     simulation::package::{name::PackageName, output::Name as OutputName},
 /// };
@@ -32,7 +32,7 @@ impl RootFieldSpecCreator {
     /// # Example
     ///
     /// ```
-    /// use hash_engine::datastore::schema::{FieldSource, RootFieldSpecCreator};
+    /// use hash_engine_lib::datastore::schema::{FieldSource, RootFieldSpecCreator};
     ///
     /// # #[allow(unused_variables)]
     /// let rfs_creator = RootFieldSpecCreator::new(FieldSource::Engine);
@@ -47,7 +47,7 @@ impl RootFieldSpecCreator {
     /// # Example
     ///
     /// ```
-    /// use hash_engine::datastore::schema::{
+    /// use hash_engine_lib::datastore::schema::{
     ///     FieldScope, FieldSource, FieldType, FieldTypeVariant, RootFieldSpecCreator,
     /// };
     ///

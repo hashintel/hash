@@ -5,7 +5,7 @@
 use std::{collections::HashMap, path::PathBuf, time::Duration};
 
 use error::{bail, ensure, report, Result, ResultExt};
-use hash_engine::{
+use hash_engine_lib::{
     experiment::controller::config::{OutputPersistenceConfig, OUTPUT_PERSISTENCE_KEY},
     output::local::config::LocalPersistenceConfig,
     proto,
@@ -14,7 +14,7 @@ use hash_engine::{
         ExperimentRunBase, SimpleExperimentConfig, SingleRunExperimentConfig,
     },
     simulation::command::StopStatus,
-    utils::{LogFormat, OutputLocation},
+    utils::{LogFormat, LogLevel, OutputLocation},
 };
 use rand::{distributions::Distribution, Rng, RngCore};
 use rand_distr::{Beta, LogNormal, Normal, Poisson};
@@ -58,6 +58,10 @@ pub struct ExperimentConfig {
     )]
     pub log_format: LogFormat,
 
+    /// Logging verbosity to use. If not set `RUST_LOG` will be used
+    #[cfg_attr(feature = "clap", clap(global = true, long, arg_enum))]
+    pub log_level: Option<LogLevel>,
+
     /// Output location where logs are emitted to.
     ///
     /// Can be `stdout`, `stderr` or any file name. Relative to `--log-folder` if a file is
@@ -87,8 +91,8 @@ pub struct ExperimentConfig {
     ///
     /// Defaults to the number of logical CPUs available in order to maximize performance.
     #[cfg_attr(
-        feature = "clap",
-        clap(global = true, short = 'w', long, default_value_t = num_cpus::get(), validator = at_least_one, env = "HASH_WORKERS")
+    feature = "clap",
+    clap(global = true, short = 'w', long, default_value_t = num_cpus::get(), validator = at_least_one, env = "HASH_WORKERS")
     )]
     pub num_workers: usize,
 }
@@ -164,6 +168,7 @@ impl Experiment {
             self.config.num_workers,
             controller_url,
             self.config.log_format,
+            self.config.log_level,
             self.config.output_location.clone(),
             self.config.log_folder.clone(),
         ))
@@ -237,7 +242,7 @@ impl Experiment {
             .wrap_err("Could not send `Init` message")?;
         debug!("Sent init message to \"{experiment_name}\"");
 
-        let mut errored = false;
+        let mut graceful_finish = true;
         loop {
             let msg: Option<proto::EngineStatus>;
             tokio::select! {
@@ -247,6 +252,7 @@ impl Experiment {
                         Exiting now.",
                         self.config.wait_timeout
                     );
+                    graceful_finish = false;
                     break;
                 }
                 m = engine_handle.recv() => { msg = Some(m) },
@@ -282,7 +288,7 @@ impl Experiment {
                                 );
                             }
                             StopStatus::Error => {
-                                errored = true;
+                                graceful_finish = false;
                                 tracing::error!(
                                     "Simulation stopped by agent `{agent}` with an error{reason}"
                                 );
@@ -296,7 +302,7 @@ impl Experiment {
                 }
                 proto::EngineStatus::Errors(sim_id, errs) => {
                     error!("There were errors when running simulation [{sim_id}]: {errs:?}");
-                    errored = true;
+                    graceful_finish = false;
                 }
                 proto::EngineStatus::Warnings(sim_id, warnings) => {
                     warn!("There were warnings when running simulation [{sim_id}]: {warnings:?}");
@@ -314,7 +320,7 @@ impl Experiment {
                 }
                 proto::EngineStatus::ProcessError(error) => {
                     error!("Got error: {error:?}");
-                    errored = true;
+                    graceful_finish = false;
                     break;
                 }
                 proto::EngineStatus::Started => {
@@ -333,7 +339,7 @@ impl Experiment {
             .await
             .wrap_err("Could not cleanup after finish")?;
 
-        ensure!(!errored, "experiment had errors");
+        ensure!(graceful_finish, "Engine didn't exit gracefully.");
 
         Ok(())
     }
@@ -366,7 +372,7 @@ fn get_simple_experiment_config(
 
     let config = SimpleExperimentConfig {
         experiment_name,
-        changed_properties: plan
+        changed_globals: plan
             .inner
             .into_iter()
             .flat_map(|v| {

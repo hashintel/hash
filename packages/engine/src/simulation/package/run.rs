@@ -4,12 +4,10 @@ use futures::{executor::block_on, stream::FuturesOrdered, StreamExt};
 use tracing::{Instrument, Span};
 
 use crate::{
-    datastore::{
-        prelude::{Context, State},
-        table::{
-            context::PreContext,
-            state::{view::StateSnapshot, ReadState},
-        },
+    datastore::table::{
+        context::{Context, PreContext},
+        proxy::StateReadProxy,
+        state::{view::StateSnapshot, State},
     },
     proto::ExperimentRunTrait,
     simulation::{
@@ -17,7 +15,7 @@ use crate::{
             context,
             context::ContextColumn,
             init, output,
-            prelude::{ContextMut, Error, Result, StateMut},
+            prelude::{Error, Result},
             state,
         },
         step_output::SimulationStepOutput,
@@ -74,7 +72,7 @@ impl InitPackages {
         }
 
         tracing::trace!("Init packages finished, building state");
-        let state = State::from_agent_states(agents, sim_config)?;
+        let state = State::from_agent_states(&agents, sim_config)?;
         Ok(state)
     }
 }
@@ -140,7 +138,7 @@ impl StepPackages {
             })
             .collect::<Result<Vec<_>>>()?;
 
-        let context = Context::new_from_columns(
+        let context = Context::from_columns(
             columns,
             sim_run_config.sim.store.clone(),
             &sim_run_config.exp.run.base().id,
@@ -150,10 +148,12 @@ impl StepPackages {
 
     pub async fn run_context(
         &mut self,
-        state: Arc<State>,
+        state_proxy: &StateReadProxy,
         snapshot: StateSnapshot,
         pre_context: PreContext,
-    ) -> Result<ContextMut> {
+        num_agents: usize,
+        sim_config: &SimRunConfig,
+    ) -> Result<Context> {
         tracing::debug!("Running context packages");
         // Execute packages in parallel and collect the data
         let mut futs = FuturesOrdered::new();
@@ -164,7 +164,7 @@ impl StepPackages {
         let snapshot_arc = Arc::new(snapshot);
 
         pkgs.into_iter().for_each(|mut package| {
-            let state = state.clone();
+            let state = state_proxy.clone();
             let snapshot_clone = snapshot_arc.clone();
 
             let cpu_bound = package.cpu_bound();
@@ -218,7 +218,7 @@ impl StepPackages {
         // the moment but a proper fix needs a bit of a redesign. Thus:
         // TODO, figure out a better design for how we interface with columns from context packages,
         //   and how we ensure the necessary order (preferably enforced in actual logic)
-        let schema = &state.sim_config().sim.store.context_schema;
+        let schema = &sim_config.sim.store.context_schema;
         let column_writers = schema
             .arrow
             .fields()
@@ -238,11 +238,11 @@ impl StepPackages {
         let snapshot =
             Arc::try_unwrap(snapshot_arc).map_err(|_| Error::from("Failed to unwrap snapshot"))?;
 
-        let context = pre_context.finalize(snapshot, &column_writers, state.num_agents())?;
+        let context = pre_context.finalize(snapshot.state, &column_writers, num_agents)?;
         Ok(context)
     }
 
-    pub async fn run_state(&mut self, mut state: StateMut, context: &Context) -> Result<StateMut> {
+    pub async fn run_state(&mut self, state: &mut State, context: &Context) -> Result<()> {
         tracing::debug!("Running state packages");
         // Design-choices:
         // Cannot use trait bounds as dyn Package won't be object-safe
@@ -250,16 +250,15 @@ impl StepPackages {
         // Will instead use state.upgrade() and exstate.downgrade() and respectively for context
         for pkg in self.state.iter_mut() {
             let span = pkg.span();
-            pkg.run(&mut state, context).instrument(span).await?;
+            pkg.run(state, context).instrument(span).await?;
         }
-
-        Ok(state)
+        Ok(())
     }
 
     pub async fn run_output(
         &mut self,
-        state: Arc<State>,
-        context: Arc<Context>,
+        state: &Arc<State>,
+        context: &Arc<Context>,
     ) -> Result<SimulationStepOutput> {
         // Execute packages in parallel and collect the data
         let mut futs = FuturesOrdered::new();

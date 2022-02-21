@@ -137,7 +137,7 @@ impl OutputCreator {
     }
 
     fn run(&self, dynamic_pool: &[&AgentBatch], num_agents: usize) -> Result<AnalysisSingleOutput> {
-        ((&self.creator)(dynamic_pool)?)(Box::new(0..num_agents))
+        ((self.creator)(dynamic_pool)?)(Box::new(0..num_agents))
     }
 
     pub(super) fn index_creator(

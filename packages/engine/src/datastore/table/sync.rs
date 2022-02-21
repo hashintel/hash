@@ -1,13 +1,9 @@
 use std::{fmt, sync::Arc};
 
 use futures::future::join_all;
-use parking_lot::RwLock;
 
 use crate::{
-    datastore::{
-        prelude::ContextBatch,
-        table::pool::{agent::AgentPool, message::MessagePool},
-    },
+    datastore::{prelude::ContextBatch, table::proxy::StateReadProxy},
     simulation::comms::message::{SyncCompletionReceiver, SyncCompletionSender},
     worker::{
         error::{Error as WorkerError, Result as WorkerResult},
@@ -31,8 +27,7 @@ use crate::{
 #[derive(derive_new::new)]
 pub struct WaitableStateSync {
     pub completion_sender: SyncCompletionSender,
-    pub agent_pool: AgentPool,
-    pub message_pool: MessagePool,
+    pub state_proxy: StateReadProxy,
 }
 
 impl fmt::Debug for WaitableStateSync {
@@ -52,8 +47,7 @@ impl WaitableStateSync {
             child_receivers.push(receiver);
             child_msgs.push(Self {
                 completion_sender: sender,
-                agent_pool: self.agent_pool.clone(),
-                message_pool: self.message_pool.clone(),
+                state_proxy: self.state_proxy.clone(),
             });
         }
         (child_msgs, child_receivers)
@@ -89,8 +83,7 @@ impl WaitableStateSync {
 
 #[derive(derive_new::new, Clone)]
 pub struct StateSync {
-    pub agent_pool: AgentPool,
-    pub message_pool: MessagePool,
+    pub state_proxy: StateReadProxy,
 }
 
 impl fmt::Debug for StateSync {
@@ -101,7 +94,7 @@ impl fmt::Debug for StateSync {
 
 #[derive(derive_new::new, Clone)]
 pub struct ContextBatchSync {
-    pub context_batch: Arc<RwLock<ContextBatch>>,
+    pub context_batch: Arc<ContextBatch>,
     pub current_step: usize,
     pub state_group_start_indices: Arc<Vec<usize>>,
 }

@@ -579,7 +579,7 @@ fn get_i_col(field: AgentStateField, rb: &RecordBatch) -> Result<Option<usize>> 
     }
 }
 
-fn set_states_agent_id(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Result<()> {
+fn set_states_agent_id(states: &mut [AgentState], rb: &RecordBatch) -> Result<()> {
     let field = AgentStateField::AgentId;
     if let Some(i_col) = get_i_col(field, rb)? {
         let array = rb
@@ -601,7 +601,7 @@ fn set_states_agent_id(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Result
     Ok(())
 }
 
-fn set_states_agent_name(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Result<()> {
+fn set_states_agent_name(states: &mut [AgentState], rb: &RecordBatch) -> Result<()> {
     let field = AgentStateField::AgentName;
     if let Some(i_col) = get_i_col(field.clone(), rb)? {
         let array = rb
@@ -623,7 +623,7 @@ fn set_states_agent_name(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Resu
     Ok(())
 }
 
-fn set_states_shape(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Result<()> {
+fn set_states_shape(states: &mut [AgentState], rb: &RecordBatch) -> Result<()> {
     let field = AgentStateField::Shape;
     if let Some(i_col) = get_i_col(field.clone(), rb)? {
         let array = rb
@@ -645,7 +645,7 @@ fn set_states_shape(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Result<()
     Ok(())
 }
 
-fn set_states_color(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Result<()> {
+fn set_states_color(states: &mut [AgentState], rb: &RecordBatch) -> Result<()> {
     let field = AgentStateField::Color;
     if let Some(i_col) = get_i_col(field.clone(), rb)? {
         let array = rb
@@ -675,7 +675,7 @@ macro_rules! set_states_opt_vec3_gen {
         // At least for now, need `field` parameter in addition to `field_name` parameter,
         // because other functions use `field` enum, not just the field name.
 
-        fn $function_name(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Result<()> {
+        fn $function_name(states: &mut [AgentState], rb: &RecordBatch) -> Result<()> {
             if let Some(i_col) = get_i_col($field, rb)? {
                 let vec3_array = rb
                     .column(i_col)
@@ -717,7 +717,7 @@ set_states_opt_vec3_gen!(velocity, set_states_velocity, AgentStateField::Velocit
 
 macro_rules! set_states_opt_f64_gen {
     ($field_name:ident, $function_name:ident, $field:expr) => {
-        fn $function_name(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Result<()> {
+        fn $function_name(states: &mut [AgentState], rb: &RecordBatch) -> Result<()> {
             if let Some(i_col) = get_i_col($field, rb)? {
                 let array = rb
                     .column(i_col)
@@ -742,7 +742,7 @@ macro_rules! set_states_opt_f64_gen {
 
 set_states_opt_f64_gen!(height, set_states_height, AgentStateField::Height);
 
-fn set_states_hidden(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Result<()> {
+fn set_states_hidden(states: &mut [AgentState], rb: &RecordBatch) -> Result<()> {
     let field = AgentStateField::Hidden;
     if let Some(i_col) = get_i_col(field.clone(), rb)? {
         let array = rb
@@ -760,7 +760,7 @@ fn set_states_hidden(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Result<(
     Ok(())
 }
 
-fn set_states_previous_index(states: &mut Vec<AgentState>, rb: &RecordBatch) -> Result<()> {
+fn set_states_previous_index(states: &mut [AgentState], rb: &RecordBatch) -> Result<()> {
     let index = rb
         .schema()
         .column_with_name(PREVIOUS_INDEX_FIELD_KEY)
@@ -797,7 +797,7 @@ fn set_states_previous_index(states: &mut Vec<AgentState>, rb: &RecordBatch) -> 
     Ok(())
 }
 
-fn set_states_messages(states: &mut Vec<AgentState>, messages: &RecordBatch) -> Result<()> {
+fn set_states_messages(states: &mut [AgentState], messages: &RecordBatch) -> Result<()> {
     debug_assert_eq!(
         messages.schema(),
         std::sync::Arc::new(super::message::MESSAGE_BATCH_SCHEMA.clone())
@@ -805,7 +805,7 @@ fn set_states_messages(states: &mut Vec<AgentState>, messages: &RecordBatch) -> 
     super::message::column_into_state(states, messages, super::message::MESSAGE_COLUMN_INDEX)
 }
 
-fn set_states_builtins(states: &mut Vec<AgentState>, agents: &RecordBatch) -> Result<()> {
+fn set_states_builtins(states: &mut [AgentState], agents: &RecordBatch) -> Result<()> {
     set_states_agent_id(states, agents)?;
     set_states_agent_name(states, agents)?;
 
@@ -1007,7 +1007,7 @@ pub(in crate::datastore) fn col_to_json_vals(col: &ArrayRef, dt: &DataType) -> R
 }
 
 fn set_states_custom(
-    states: &mut Vec<AgentState>,
+    states: &mut [AgentState],
     rb: &RecordBatch,
     i_field: usize,
     field: &Field,
@@ -1025,7 +1025,7 @@ fn set_states_custom(
 }
 
 fn set_states_serialized(
-    states: &mut Vec<AgentState>,
+    states: &mut [AgentState],
     rb: &RecordBatch,
     i_field: usize,
     field: &Field,
@@ -1122,8 +1122,8 @@ impl IntoAgentStates for RecordBatch {
             .unwrap_or_else(|| {
                 self.schema()
                     .metadata()
-                    .get("serialized")
-                    .expect("Should always contain `serialized` in metadata")
+                    .get("any_type_fields")
+                    .expect("Should always contain `any_type_fields` in metadata")
                     .split(',')
                     .map(|v| v.to_string())
                     .collect()

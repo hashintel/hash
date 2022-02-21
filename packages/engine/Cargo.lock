@@ -413,7 +413,7 @@ version = "0.0.0"
 dependencies = [
  "clap",
  "error",
- "hash_engine",
+ "hash_engine_lib",
  "orchestrator",
  "serde",
  "tokio",
@@ -929,6 +929,16 @@ dependencies = [
 
 [[package]]
 name = "hash_engine"
+version = "0.0.0"
+dependencies = [
+ "error",
+ "hash_engine_lib",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "hash_engine_lib"
 version = "0.0.0"
 dependencies = [
  "arr_macro",
@@ -1472,7 +1482,7 @@ dependencies = [
  "async-trait",
  "clap",
  "error",
- "hash_engine",
+ "hash_engine_lib",
  "num_cpus",
  "rand 0.8.4",
  "rand_distr",
@@ -1917,16 +1927,6 @@ dependencies = [
  "itoa 0.4.8",
  "ryu",
  "serde",
-]
-
-[[package]]
-name = "server"
-version = "0.0.0"
-dependencies = [
- "error",
- "hash_engine",
- "tokio",
- "tracing",
 ]
 
 [[package]]

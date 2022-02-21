@@ -11,10 +11,13 @@ use crate::{
     datastore::{
         prelude::Store,
         table::{
-            context::ContextMut,
-            pool::{agent::AgentPool, message::MessagePool},
+            context::Context,
+            pool::{agent::AgentPool, message::MessagePool, BatchPool},
             references::MessageMap,
-            state::{view::StateSnapshot, ReadState, StateMut, WriteState},
+            state::{
+                view::{StatePools, StateSnapshot},
+                State,
+            },
         },
     },
     proto::ExperimentRunTrait,
@@ -125,12 +128,14 @@ impl Engine {
         tracing::trace!("Starting run context packages stage");
         // Need write access to state to prepare for context packages,
         // so can't start state sync (with workers) yet.
-        let (mut state, mut context) = self.store.take_upgraded()?;
+        let (mut state, mut context) = self.store.take()?;
 
         let snapshot = {
             let _span = tracing::debug_span!("prepare_context_packages").entered();
             self.prepare_for_context_packages(&mut state, &mut context)?
         };
+
+        let state_proxy = snapshot.state.read()?;
 
         // Context packages use the snapshot and state packages use state.
         // Context packages will be ran before state packages, so start
@@ -139,17 +144,13 @@ impl Engine {
 
         // Synchronize snapshot with workers
         self.comms
-            .state_snapshot_sync(&snapshot)
+            .state_snapshot_sync(state_proxy.clone())
             .instrument(tracing::info_span!("snapshot_sync"))
             .await?;
 
-        // After this point, we'll only need read access to state until
-        // running the first state package. (Context packages don't have
-        // write access to state.)
-        let state = Arc::new(state.into_shared());
         // Synchronize state with workers
         async {
-            let active_sync = self.comms.state_sync(&state).await?;
+            let active_sync = self.comms.state_sync(state_proxy.clone()).await?;
 
             // TODO: fix issues with getting write access to the message batch while state sync runs
             //  in parallel with context packages
@@ -166,10 +167,15 @@ impl Engine {
         let context = self
             .packages
             .step
-            .run_context(state.clone(), snapshot, pre_context)
+            .run_context(
+                &state_proxy,
+                snapshot,
+                pre_context,
+                state.num_agents(),
+                state.sim_config(),
+            )
             .instrument(tracing::info_span!("run_context_packages"))
-            .await?
-            .into_shared();
+            .await?;
 
         // Synchronize context with workers. `context` won't change
         // again until the next step.
@@ -192,20 +198,14 @@ impl Engine {
 
         // State sync finished, so the workers should have dropped
         // their `Arc`s with state by this point.
-        let state = Arc::try_unwrap(state)
-            .map_err(|_| Error::from("Unable to unwrap state after context package execution"))?;
         self.store.set(state, context);
         Ok(())
     }
 
     async fn run_state_packages(&mut self) -> Result<()> {
-        let (state, context) = self.store.take()?;
-        let state = self
-            .packages
-            .step
-            .run_state(state.into_mut(), &context)
-            .await?;
-        self.store.set(state.into_shared(), context);
+        let (mut state, context) = self.store.take()?;
+        self.packages.step.run_state(&mut state, &context).await?;
+        self.store.set(state, context);
         Ok(())
     }
 
@@ -214,11 +214,7 @@ impl Engine {
         let state = Arc::new(state);
         let context = Arc::new(context);
 
-        let output = self
-            .packages
-            .step
-            .run_output(state.clone(), context.clone())
-            .await?;
+        let output = self.packages.step.run_output(&state, &context).await?;
         let state = Arc::try_unwrap(state)
             .map_err(|_| Error::from("Unable to unwrap state after output package execution"))?;
         let context = Arc::try_unwrap(context)
@@ -245,15 +241,22 @@ impl Engine {
     /// One example of this happening is the Neighbors Context Package.
     fn prepare_for_context_packages(
         &mut self,
-        state: &mut StateMut,
-        context: &mut ContextMut,
+        state: &mut State,
+        context: &mut Context,
     ) -> Result<StateSnapshot> {
         tracing::trace!("Preparing for context packages");
         let message_map = state.message_map()?;
         self.handle_messages(state, &message_map)?;
         let message_pool = self.finalize_agent_messages(state, context)?;
         let agent_pool = self.finalize_agent_state(state, context)?;
-        Ok(StateSnapshot::new(agent_pool, message_pool, message_map))
+        let state_view = StatePools {
+            agent_pool,
+            message_pool,
+        };
+        Ok(StateSnapshot {
+            state: state_view,
+            message_map,
+        })
     }
 
     /// Handles messages from the agents
@@ -261,9 +264,9 @@ impl Engine {
     /// Operates based on the "create_agent", "remove_agent", and "stop" messages sent to "hash"
     /// through agent inboxes. Also creates and removes agents that have been requested by State
     /// packages.
-    fn handle_messages(&mut self, state: &mut StateMut, message_map: &MessageMap) -> Result<()> {
-        let read = state.message_pool().read()?;
-        let mut commands = Commands::from_hash_messages(message_map, read)?;
+    fn handle_messages(&mut self, state: &mut State, message_map: &MessageMap) -> Result<()> {
+        let message_proxies = state.message_pool().read_proxies()?;
+        let mut commands = Commands::from_hash_messages(message_map, message_proxies)?;
         commands.merge(self.comms.take_commands()?);
         commands.verify(&self.config.sim.store.agent_schema)?;
         self.stop_messages = commands.stop;
@@ -275,8 +278,8 @@ impl Engine {
     /// the old inbox dataframe and use it as the new outbox dataframe.
     fn finalize_agent_messages(
         &mut self,
-        state: &mut StateMut,
-        context: &mut ContextMut,
+        state: &mut State,
+        context: &mut Context,
     ) -> Result<MessagePool> {
         let message_pool = context.take_message_pool();
         let finalized_message_pool = state.reset_messages(message_pool, &self.config)?;
@@ -287,11 +290,11 @@ impl Engine {
     /// dataframe.
     fn finalize_agent_state(
         &mut self,
-        state: &mut StateMut,
-        context: &mut ContextMut,
+        state: &mut State,
+        context: &mut Context,
     ) -> Result<AgentPool> {
-        state.finalize_context_agent_pool(
-            context,
+        context.update_agent_snapshot(
+            state,
             &self.config.sim.store.agent_schema,
             &self.config.exp.run.base().id,
         )?;

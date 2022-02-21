@@ -23,6 +23,5 @@ if (!["development", "production", "test"].includes(NODE_ENV)) {
 export const logger = new Logger({
   serviceName: "search-loader",
   mode: NODE_ENV === "development" ? "dev" : "prod",
-  level: LOG_LEVEL || NODE_ENV === "development" ? "debug" : "info",
   metadata: { instanceId: INSTANCE_ID },
 });

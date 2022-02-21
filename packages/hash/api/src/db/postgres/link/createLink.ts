@@ -36,7 +36,6 @@ export const createLink = async (
     // Defer FKs until end of transaction so we can insert concurrently
     await conn.query(sql`
       set constraints
-        outgoing_links_source_account_id_link_id_fk,
         incoming_links_source_account_id_link_id_fk
       deferred
     `);

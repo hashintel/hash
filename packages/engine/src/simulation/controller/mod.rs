@@ -14,7 +14,6 @@ pub use self::{
 };
 use super::comms::Comms;
 use crate::{
-    datastore::prelude::SharedStore,
     experiment::controller::comms::{
         sim_status::SimStatusSend,
         simulation::{new_pair, SimCtlRecv, SimCtlSend},
@@ -35,7 +34,6 @@ impl SimulationController {
         config: Arc<SimRunConfig>,
         comms: Comms,
         packages: Packages,
-        shared_store: Arc<SharedStore>,
         persistence_service: P,
         status_sender: SimStatusSend,
     ) -> Result<SimulationController> {
@@ -47,7 +45,6 @@ impl SimulationController {
             status_sender,
             comms,
             packages,
-            shared_store,
             persistence_service,
         )?;
         Ok(SimulationController {
@@ -63,12 +60,10 @@ fn new_task_handle<P: SimulationOutputPersistenceRepr>(
     sender: SimStatusSend,
     comms: Comms,
     packages: Packages,
-    shared_store: Arc<SharedStore>,
     persistence_service: P,
 ) -> Result<JoinHandle<Result<SimulationShortId>>> {
     let task = Box::pin(run::sim_run(
         config,
-        shared_store,
         comms,
         packages,
         receiver,

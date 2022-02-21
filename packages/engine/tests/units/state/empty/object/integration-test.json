@@ -1,0 +1,14 @@
+[
+  {
+    "steps": 2,
+    "expected-output": {
+      "json-state": {
+        "1": [
+          {
+            "o1_is_struct": true
+          }
+        ]
+      }
+    }
+  }
+]

@@ -7,6 +7,9 @@ import {
   CreateEntityWithEntityTypeIdArgs,
   CreateEntityWithEntityTypeVersionIdArgs,
   CreateEntityWithSystemTypeArgs,
+  Page,
+  User,
+  Block,
 } from "@hashintel/hash-api/src/model";
 import { createLinkedAggregationRaw } from "@hashintel/hash-api/src/graphql/resolvers/linkedAggregation/createLinkedAggregation";
 
@@ -26,7 +29,7 @@ export {};
 const logger = new Logger({
   mode: "dev",
   level: "debug",
-  serviceName: "integration-tests",
+  serviceName: "mockData",
 });
 
 void (async () => {
@@ -70,30 +73,52 @@ void (async () => {
   const results = new Map<string, Entity>();
 
   const requiredBlockTypes = [
-    "Divider",
-    "Embed",
-    "Image",
-    "Table",
-    "Code",
-    "Video",
-    "Header",
+    {
+      name: "Divider",
+      componentId: "https://blockprotocol.org/blocks/@hash/divider",
+    },
+    {
+      name: "Embed",
+      componentId: "https://blockprotocol.org/blocks/@hash/embed",
+    },
+    {
+      name: "Image",
+      componentId: "https://blockprotocol.org/blocks/@hash/image",
+    },
+    {
+      name: "Table",
+      componentId: "https://blockprotocol.org/blocks/@hash/table",
+    },
+    {
+      name: "Code",
+      componentId: "https://blockprotocol.org/blocks/@hash/code",
+    },
+    {
+      name: "Video",
+      componentId: "https://blockprotocol.org/blocks/@hash/video",
+    },
+    {
+      name: "Header",
+      componentId: "https://blockprotocol.org/blocks/@hash/header",
+    },
   ] as const;
 
   const requiredOtherTypes = ["Company", "Location", "Person"] as const;
   // create the types we'll need below so we can assign their ids to entities
   const newTypeIds: Record<
-    typeof requiredBlockTypes[number] | typeof requiredOtherTypes[number],
+    | typeof requiredBlockTypes[number]["name"]
+    | typeof requiredOtherTypes[number],
     string
   > = {} as any;
 
   await Promise.all(
-    requiredBlockTypes.map(async (name) => {
+    requiredBlockTypes.map(async ({ name, componentId }) => {
       const entityType = await EntityType.create(db, {
         accountId: systemOrg.accountId,
         createdByAccountId: systemOrg.entityId, // TODO
         name,
         schema: {
-          componentId: `https://block.blockprotocol.org/${name.toLowerCase()}`,
+          ...(await EntityType.fetchComponentIdBlockSchema(componentId)),
         },
       });
 
@@ -483,381 +508,288 @@ void (async () => {
     );
   }
 
-  // Block Entities
-  await createEntities(
-    new Map<string, CreateEntityMapValue>([
-      [
-        "b1",
-        {
-          systemTypeName: SystemTypeName.Block,
-          properties: {
-            componentId: "https://block.blockprotocol.org/header",
-            entityId: results.get("text1")!.entityId,
-            accountId: results.get("text1")!.accountId,
-          },
-          createdByAccountId: user.entityId,
-          accountId: user.accountId,
+  // Create Blocks
+  type CreateBlockArgs = {
+    resultsKey: string;
+    componentId: string;
+    blockData: Entity;
+    createdBy: User;
+    accountId?: string;
+  };
+
+  const blocks: CreateBlockArgs[] = [
+    {
+      resultsKey: "b1",
+      componentId: "https://blockprotocol.org/blocks/@hash/header",
+      blockData: results.get("text1")!,
+      createdBy: user,
+    },
+    {
+      resultsKey: "b2",
+      componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
+      blockData: results.get("text2")!,
+      createdBy: user,
+    },
+    {
+      resultsKey: "b3",
+      componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
+      blockData: results.get("text3")!,
+      createdBy: user,
+    },
+    {
+      resultsKey: "b4",
+      componentId: "https://blockprotocol.org/blocks/@hash/table",
+      blockData: results.get("t1")!,
+      createdBy: user,
+    },
+    {
+      resultsKey: "b5",
+      componentId: "https://blockprotocol.org/blocks/@hash/header",
+      blockData: results.get("text5")!,
+      createdBy: user,
+      accountId: systemOrg.accountId,
+    },
+    {
+      resultsKey: "b6",
+      componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
+      blockData: results.get("text2")!,
+      createdBy: user,
+      accountId: systemOrg.accountId,
+    },
+    {
+      resultsKey: "b7",
+      componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
+      blockData: results.get("text3")!,
+      createdBy: user,
+      accountId: systemOrg.accountId,
+    },
+    {
+      resultsKey: "b8",
+      componentId: "https://blockprotocol.org/blocks/@hash/paragraph",
+      blockData: results.get("text4")!,
+      createdBy: user,
+      accountId: systemOrg.accountId,
+    },
+    {
+      resultsKey: "b9",
+      componentId: "https://blockprotocol.org/blocks/@hash/person",
+      blockData: results.get("p2")!,
+      createdBy: user,
+      accountId: systemOrg.accountId,
+    },
+    {
+      resultsKey: "b10",
+      componentId: "https://blockprotocol.org/blocks/@hash/header",
+      blockData: results.get("header1text")!,
+      createdBy: user,
+      accountId: systemOrg.accountId,
+    },
+    {
+      resultsKey: "b11",
+      componentId: "https://blockprotocol.org/blocks/@hash/divider",
+      blockData: results.get("divider1")!,
+      createdBy: user,
+      accountId: systemOrg.accountId,
+    },
+    {
+      resultsKey: "b12",
+      componentId: "https://blockprotocol.org/blocks/@hash/embed",
+      blockData: results.get("embed1")!,
+      createdBy: user,
+      accountId: systemOrg.accountId,
+    },
+    {
+      resultsKey: "b13",
+      componentId: "https://blockprotocol.org/blocks/@hash/embed",
+      blockData: results.get("embed2")!,
+      createdBy: user,
+      accountId: systemOrg.accountId,
+    },
+    {
+      resultsKey: "b14",
+      componentId: "https://blockprotocol.org/blocks/@hash/image",
+      blockData: results.get("img1")!,
+      createdBy: user,
+      accountId: systemOrg.accountId,
+    },
+    {
+      resultsKey: "b15",
+      componentId: "https://blockprotocol.org/blocks/@hash/image",
+      blockData: results.get("img2")!,
+      createdBy: user,
+      accountId: systemOrg.accountId,
+    },
+    {
+      resultsKey: "b16",
+      componentId: "https://blockprotocol.org/blocks/@hash/video",
+      blockData: results.get("video1")!,
+      createdBy: user,
+      accountId: systemOrg.accountId,
+    },
+    {
+      resultsKey: "b17",
+      componentId: "https://blockprotocol.org/blocks/@hash/header",
+      blockData: results.get("header2text")!,
+      createdBy: user,
+      accountId: systemOrg.accountId,
+    },
+    {
+      resultsKey: "b18",
+      componentId: "https://blockprotocol.org/blocks/@hash/table",
+      blockData: results.get("t2")!,
+      createdBy: user,
+    },
+    {
+      resultsKey: "b19",
+      componentId: "https://blockprotocol.org/blocks/@hash/table",
+      blockData: results.get("t2")!,
+      createdBy: user,
+    },
+  ];
+
+  await Promise.all(
+    blocks.map(async ({ resultsKey, componentId, ...args }) => {
+      const block = await Block.createBlock(db, {
+        ...args,
+        properties: {
+          componentId,
         },
-      ],
-      [
-        "b2",
-        {
-          properties: {
-            componentId: "https://block.blockprotocol.org/paragraph",
-            entityId: results.get("text2")!.entityId,
-            accountId: results.get("text2")!.accountId,
-          },
-          createdByAccountId: user.entityId,
-          accountId: user.accountId,
-          systemTypeName: SystemTypeName.Block,
-        },
-      ],
-      [
-        "b3",
-        {
-          properties: {
-            componentId: "https://block.blockprotocol.org/paragraph",
-            entityId: results.get("text3")!.entityId,
-            accountId: results.get("text3")!.accountId,
-          },
-          createdByAccountId: user.entityId,
-          accountId: user.accountId,
-          systemTypeName: SystemTypeName.Block,
-        },
-      ],
-      [
-        "b4",
-        {
-          properties: {
-            componentId: "https://block.blockprotocol.org/table",
-            entityId: results.get("t1")!.entityId,
-            accountId: results.get("t1")!.accountId,
-          },
-          createdByAccountId: user.entityId,
-          accountId: user.accountId,
-          systemTypeName: SystemTypeName.Block,
-        },
-      ],
-      [
-        "b5",
-        {
-          properties: {
-            componentId: "https://block.blockprotocol.org/header",
-            entityId: results.get("text5")!.entityId,
-            accountId: results.get("text5")!.accountId,
-          },
-          createdByAccountId: user.entityId,
-          accountId: systemOrg.accountId,
-          systemTypeName: SystemTypeName.Block,
-        },
-      ],
-      [
-        "b6",
-        {
-          properties: {
-            componentId: "https://block.blockprotocol.org/paragraph",
-            entityId: results.get("text2")!.entityId,
-            accountId: results.get("text2")!.accountId,
-          },
-          createdByAccountId: user.entityId,
-          accountId: systemOrg.accountId,
-          systemTypeName: SystemTypeName.Block,
-        },
-      ],
-      [
-        "b7",
-        {
-          properties: {
-            componentId: "https://block.blockprotocol.org/paragraph",
-            entityId: results.get("text3")!.entityId,
-            accountId: results.get("text3")!.accountId,
-          },
-          createdByAccountId: user.entityId,
-          accountId: systemOrg.accountId,
-          systemTypeName: SystemTypeName.Block,
-        },
-      ],
-      [
-        "b8",
-        {
-          properties: {
-            componentId: "https://block.blockprotocol.org/paragraph",
-            entityId: results.get("text4")!.entityId,
-            accountId: results.get("text4")!.accountId,
-          },
-          createdByAccountId: user.entityId,
-          accountId: systemOrg.accountId,
-          systemTypeName: SystemTypeName.Block,
-        },
-      ],
-      [
-        "b9",
-        {
-          properties: {
-            componentId: "https://block.blockprotocol.org/person",
-            entityId: results.get("p2")!.entityId,
-            accountId: results.get("p2")!.accountId,
-          },
-          createdByAccountId: user.entityId,
-          accountId: systemOrg.accountId,
-          systemTypeName: SystemTypeName.Block,
-        },
-      ],
-      [
-        "b10",
-        {
-          properties: {
-            componentId: "https://block.blockprotocol.org/header",
-            entityId: results.get("header1text")!.entityId,
-            accountId: results.get("header1text")!.accountId,
-          },
-          createdByAccountId: user.entityId,
-          accountId: systemOrg.accountId,
-          systemTypeName: SystemTypeName.Block,
-        },
-      ],
-      [
-        "b11",
-        {
-          properties: {
-            componentId: "https://block.blockprotocol.org/divider",
-            entityId: results.get("divider1")!.entityId,
-            accountId: results.get("divider1")!.accountId,
-          },
-          createdByAccountId: user.entityId,
-          accountId: systemOrg.accountId,
-          systemTypeName: SystemTypeName.Block,
-        },
-      ],
-      [
-        "b12",
-        {
-          properties: {
-            componentId: "https://block.blockprotocol.org/embed",
-            entityId: results.get("embed1")!.entityId,
-            accountId: results.get("embed1")!.accountId,
-          },
-          createdByAccountId: user.entityId,
-          accountId: systemOrg.accountId,
-          systemTypeName: SystemTypeName.Block,
-        },
-      ],
-      [
-        "b13",
-        {
-          properties: {
-            componentId: "https://block.blockprotocol.org/embed",
-            entityId: results.get("embed2")!.entityId,
-            accountId: results.get("embed2")!.accountId,
-          },
-          createdByAccountId: user.entityId,
-          accountId: systemOrg.accountId,
-          systemTypeName: SystemTypeName.Block,
-        },
-      ],
-      [
-        "b14",
-        {
-          properties: {
-            componentId: "https://block.blockprotocol.org/image",
-            entityId: results.get("img1")!.entityId,
-            accountId: results.get("img1")!.accountId,
-          },
-          createdByAccountId: user.entityId,
-          accountId: systemOrg.accountId,
-          systemTypeName: SystemTypeName.Block,
-        },
-      ],
-      [
-        "b15",
-        {
-          properties: {
-            componentId: "https://block.blockprotocol.org/image",
-            entityId: results.get("img2")!.entityId,
-            accountId: results.get("img2")!.accountId,
-          },
-          createdByAccountId: user.entityId,
-          accountId: systemOrg.accountId,
-          systemTypeName: SystemTypeName.Block,
-        },
-      ],
-      [
-        "b16",
-        {
-          properties: {
-            componentId: "https://block.blockprotocol.org/video",
-            entityId: results.get("video1")!.entityId,
-            accountId: results.get("video1")!.accountId,
-          },
-          createdByAccountId: user.entityId,
-          accountId: systemOrg.accountId,
-          systemTypeName: SystemTypeName.Block,
-        },
-      ],
-      [
-        "b17",
-        {
-          properties: {
-            componentId: "https://block.blockprotocol.org/header",
-            entityId: results.get("header2text")!.entityId,
-            accountId: results.get("header2text")!.accountId,
-          },
-          createdByAccountId: user.entityId,
-          accountId: systemOrg.accountId,
-          systemTypeName: SystemTypeName.Block,
-        },
-      ],
-      [
-        "b18",
-        {
-          properties: {
-            componentId: "https://block.blockprotocol.org/table",
-            entityId: results.get("t2")!.entityId,
-            accountId: results.get("t2")!.accountId,
-          },
-          createdByAccountId: user.entityId,
-          accountId: user.accountId,
-          systemTypeName: SystemTypeName.Block,
-        },
-      ],
-      [
-        "b19",
-        {
-          properties: {
-            componentId: "https://block.blockprotocol.org/table",
-            entityId: results.get("t2")!.entityId,
-            accountId: results.get("t2")!.accountId,
-          },
-          createdByAccountId: user.entityId,
-          accountId: user.accountId,
-          systemTypeName: SystemTypeName.Block,
-        },
-      ],
-    ]),
+      });
+
+      results.set(resultsKey, block);
+    }),
   );
 
-  // Page Entities
-  await createEntities(
-    new Map<string, CreateEntityMapValue>([
-      [
-        "page1",
+  // Create Pages
+  type CreateInitialPageArgs = {
+    title: string;
+    accountId: string;
+    createdBy: User;
+    initialLinkedContents: {
+      accountId: string;
+      entityId: string;
+    }[];
+  };
+
+  const pages: CreateInitialPageArgs[] = [
+    {
+      title: "My awesome page",
+      accountId: user.accountId,
+      createdBy: user,
+      initialLinkedContents: [
         {
-          systemTypeName: SystemTypeName.Page,
-          accountId: user.accountId,
-          createdByAccountId: user.entityId,
-          properties: {
-            contents: [
-              {
-                entityId: results.get("b1")!.entityId,
-                accountId: results.get("b1")!.accountId,
-              },
-              {
-                entityId: results.get("b9")!.entityId,
-                accountId: results.get("b9")!.accountId,
-              },
-              {
-                entityId: results.get("b11")!.entityId,
-                accountId: results.get("b11")!.accountId,
-              },
-              {
-                entityId: results.get("b2")!.entityId,
-                accountId: results.get("b2")!.accountId,
-              },
-              {
-                entityId: results.get("b3")!.entityId,
-                accountId: results.get("b3")!.accountId,
-              },
-              {
-                entityId: results.get("b10")!.entityId,
-                accountId: results.get("b10")!.accountId,
-              },
-              {
-                entityId: results.get("b4")!.entityId,
-                accountId: results.get("b4")!.accountId,
-              },
-              {
-                entityId: results.get("b17")!.entityId,
-                accountId: results.get("b17")!.accountId,
-              },
-              {
-                entityId: results.get("b12")!.entityId,
-                accountId: results.get("b12")!.accountId,
-              },
-              {
-                entityId: results.get("b14")!.entityId,
-                accountId: results.get("b14")!.accountId,
-              },
-            ],
-            title: "My awesome page",
-          },
-          // visibility: Visibility.Public,
+          entityId: results.get("b1")!.entityId,
+          accountId: results.get("b1")!.accountId,
+        },
+        {
+          entityId: results.get("b9")!.entityId,
+          accountId: results.get("b9")!.accountId,
+        },
+        {
+          entityId: results.get("b11")!.entityId,
+          accountId: results.get("b11")!.accountId,
+        },
+        {
+          entityId: results.get("b2")!.entityId,
+          accountId: results.get("b2")!.accountId,
+        },
+        {
+          entityId: results.get("b3")!.entityId,
+          accountId: results.get("b3")!.accountId,
+        },
+        {
+          entityId: results.get("b10")!.entityId,
+          accountId: results.get("b10")!.accountId,
+        },
+        {
+          entityId: results.get("b4")!.entityId,
+          accountId: results.get("b4")!.accountId,
+        },
+        {
+          entityId: results.get("b17")!.entityId,
+          accountId: results.get("b17")!.accountId,
+        },
+        {
+          entityId: results.get("b18")!.entityId,
+          accountId: results.get("b18")!.accountId,
+        },
+        {
+          entityId: results.get("b19")!.entityId,
+          accountId: results.get("b19")!.accountId,
+        },
+        {
+          entityId: results.get("b12")!.entityId,
+          accountId: results.get("b12")!.accountId,
+        },
+        {
+          entityId: results.get("b14")!.entityId,
+          accountId: results.get("b14")!.accountId,
         },
       ],
-      [
-        "page2",
+    },
+    {
+      title: "HASH's 1st page",
+      accountId: systemOrg.accountId,
+      createdBy: user,
+      initialLinkedContents: [
         {
-          systemTypeName: SystemTypeName.Page,
-          accountId: systemOrg.accountId,
-          createdByAccountId: user.entityId,
-          properties: {
-            contents: [
-              {
-                entityId: results.get("b5")!.entityId,
-                accountId: results.get("b5")!.accountId,
-              },
-              {
-                entityId: results.get("b4")!.entityId,
-                accountId: results.get("b4")!.accountId,
-              },
-              {
-                entityId: results.get("b6")!.entityId,
-                accountId: results.get("b6")!.accountId,
-              },
-              {
-                entityId: results.get("b7")!.entityId,
-                accountId: results.get("b7")!.accountId,
-              },
-              {
-                entityId: results.get("b8")!.entityId,
-                accountId: results.get("b8")!.accountId,
-              },
-              {
-                entityId: results.get("b13")!.entityId,
-                accountId: results.get("b13")!.accountId,
-              },
-              {
-                entityId: results.get("b15")!.entityId,
-                accountId: results.get("b15")!.accountId,
-              },
-              {
-                entityId: results.get("b16")!.entityId,
-                accountId: results.get("b16")!.accountId,
-              },
-            ],
-            title: "HASH's 1st page",
-          },
-          // visibility: Visibility.Public,
+          entityId: results.get("b5")!.entityId,
+          accountId: results.get("b5")!.accountId,
+        },
+        {
+          entityId: results.get("b4")!.entityId,
+          accountId: results.get("b4")!.accountId,
+        },
+        {
+          entityId: results.get("b6")!.entityId,
+          accountId: results.get("b6")!.accountId,
+        },
+        {
+          entityId: results.get("b7")!.entityId,
+          accountId: results.get("b7")!.accountId,
+        },
+        {
+          entityId: results.get("b8")!.entityId,
+          accountId: results.get("b8")!.accountId,
+        },
+        {
+          entityId: results.get("b13")!.entityId,
+          accountId: results.get("b13")!.accountId,
+        },
+        {
+          entityId: results.get("b15")!.entityId,
+          accountId: results.get("b15")!.accountId,
+        },
+        {
+          entityId: results.get("b16")!.entityId,
+          accountId: results.get("b16")!.accountId,
         },
       ],
-      [
-        "page3",
+    },
+    {
+      title: "Table Testing Page",
+
+      accountId: user.accountId,
+      createdBy: user,
+
+      initialLinkedContents: [
         {
-          systemTypeName: SystemTypeName.Page,
-          accountId: user.accountId,
-          createdByAccountId: user.entityId,
-          properties: {
-            contents: [
-              {
-                entityId: results.get("b4")!.entityId,
-                accountId: results.get("b4")!.accountId,
-              },
-            ],
-            title: "Table Testing Page",
-          },
-          // visibility: Visibility.Public,
+          entityId: results.get("b4")!.entityId,
+          accountId: results.get("b4")!.accountId,
         },
       ],
-    ]),
+    },
+  ];
+
+  await Promise.all(
+    pages.map(async ({ title, ...args }) =>
+      Page.createPage(db, {
+        ...args,
+        properties: {
+          title,
+        },
+      }),
+    ),
   );
 
   // eslint-disable-next-line no-console -- TODO: consider moving this file to /scripts/ so that no-console rule is autodisabled

@@ -25,7 +25,7 @@
 
 - ...
 
-### Does this require a change to the docs?
+### 📜 Does this require a change to the docs?
 
 <!-- If this adds a user facing feature or modifies how an existing feature is used, it likely needs a docs change. -->
 
