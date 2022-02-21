@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 
 use super::PackageCreator;
 use crate::{
+    datastore::table::task_shared_store::{SharedContext, SharedState},
     simulation::{
         enum_dispatch::*,
         package::{id::PackageIdGenerator, PackageMetadata, PackageType},
@@ -20,7 +21,6 @@ use crate::{
     },
     ExperimentConfig,
 };
-
 /// All context package names are registered in this enum
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -45,6 +45,20 @@ impl std::fmt::Display for Name {
 // #[enum_dispatch(GetTaskName, WorkerHandler, WorkerPoolHandler, GetTaskArgs)]
 #[derive(Clone, Debug)]
 pub struct ContextTask {}
+
+impl StoreAccessVerify for ContextTask {
+    fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
+        let state = &access.state;
+        let context = access.context();
+        if (matches!(state, SharedState::Read(_)) || matches!(state, SharedState::None))
+            && matches!(context, SharedContext::None)
+        {
+            Ok(())
+        } else {
+            Err(Error::access_not_allowed(state, context, "Context".into()))
+        }
+    }
+}
 
 // Empty impls to satisfy constraints from enum_dispatch while there are no task variants
 impl GetTaskName for ContextTask {

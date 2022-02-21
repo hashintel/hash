@@ -149,14 +149,11 @@ impl Context {
             }
         } else if dynamic_pool.len() < static_pool.len() {
             // Remove unneeded static batches
-            let mut removed_ids = Vec::with_capacity(static_pool.len() - dynamic_pool.len());
-            for remove_index in (dynamic_pool.len()..static_pool.len()).rev() {
-                let removed_agent_proxy = static_pool.remove(remove_index)?;
-                removed_ids.push(removed_agent_proxy.get_batch_id().to_string());
-            }
-            removed_ids
-                .into_iter()
-                .for_each(|id| self.removed_batches.push(id));
+            let removed_ids = (dynamic_pool.len()..static_pool.len())
+                .rev()
+                .map(|remove_index| static_pool.remove(remove_index))
+                .collect::<Vec<_>>();
+            self.removed_batches.extend(removed_ids);
         }
 
         // State group start indices need to be updated, because we

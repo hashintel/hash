@@ -37,7 +37,7 @@ const UPPER_MULTIPLIER: usize = 1000;
 /// Size of shared memory above which the soft upper bound is checked
 const LOWER_BOUND: usize = 10000;
 
-pub struct Batch {
+pub struct MessageBatch {
     pub(crate) memory: Memory,
     pub(crate) batch: RecordBatch,
     arrow_schema: Arc<ArrowSchema>,
@@ -47,7 +47,7 @@ pub struct Batch {
     metaversion: Metaversion,
 }
 
-impl BatchRepr for Batch {
+impl BatchRepr for MessageBatch {
     fn memory(&self) -> &Memory {
         &self.memory
     }
@@ -82,7 +82,7 @@ impl BatchRepr for Batch {
     }
 }
 
-impl ArrowBatch for Batch {
+impl ArrowBatch for MessageBatch {
     fn record_batch(&self) -> &RecordBatch {
         &self.batch
     }
@@ -92,7 +92,7 @@ impl ArrowBatch for Batch {
     }
 }
 
-impl DynamicBatch for Batch {
+impl DynamicBatch for MessageBatch {
     fn dynamic_meta(&self) -> &DynamicMeta {
         &self.dynamic_meta
     }
@@ -125,7 +125,7 @@ impl DynamicBatch for Batch {
     }
 }
 
-impl GrowableBatch<ArrayChange, Arc<array::ArrayData>> for Batch {
+impl GrowableBatch<ArrayChange, Arc<array::ArrayData>> for MessageBatch {
     fn take_changes(&mut self) -> Vec<ArrayChange> {
         std::mem::replace(&mut self.changes, Vec::with_capacity(3))
     }
@@ -151,7 +151,7 @@ impl GrowableBatch<ArrayChange, Arc<array::ArrayData>> for Batch {
     }
 }
 
-impl Batch {
+impl MessageBatch {
     /// Clears the message column, resizing as necessary.
     ///
     /// Uses the passed in `agents` for the `AgentId`s and the group sizes.
@@ -217,7 +217,7 @@ impl Batch {
         schema: &Arc<ArrowSchema>,
         meta: Arc<StaticMeta>,
         experiment_id: &ExperimentId,
-    ) -> Result<Batch> {
+    ) -> Result<Self> {
         let agent_count = agent_batch.batch.num_rows();
         let column_name = AgentStateField::AgentId.name();
         let id_column = agent_batch.get_arrow_column(column_name)?;
@@ -244,7 +244,7 @@ impl Batch {
         schema: &Arc<ArrowSchema>,
         meta: Arc<StaticMeta>,
         experiment_id: &ExperimentId,
-    ) -> Result<Batch> {
+    ) -> Result<Self> {
         let arrow_batch = agents.into_empty_message_batch(schema)?;
         Self::from_record_batch(&arrow_batch, schema.clone(), meta, experiment_id)
     }
@@ -253,7 +253,7 @@ impl Batch {
         agents: K,
         schema: &Arc<MessageSchema>,
         experiment_id: &ExperimentId,
-    ) -> Result<Batch> {
+    ) -> Result<Self> {
         let arrow_batch = agents.into_message_batch(&schema.arrow)?;
         Self::from_record_batch(
             &arrow_batch,
@@ -268,7 +268,7 @@ impl Batch {
         schema: Arc<ArrowSchema>,
         meta: Arc<StaticMeta>,
         experiment_id: &ExperimentId,
-    ) -> Result<Batch> {
+    ) -> Result<Self> {
         let (meta_buffer, data_buffer) = record_batch_to_bytes(record_batch);
 
         let memory = Memory::from_batch_buffers(
@@ -286,7 +286,7 @@ impl Batch {
         memory: Memory,
         schema: Arc<ArrowSchema>,
         static_meta: Arc<StaticMeta>,
-    ) -> Result<Batch> {
+    ) -> Result<Self> {
         let (_, _, meta_buffer, data_buffer) = memory.get_batch_buffers()?;
 
         let batch_message = arrow_ipc::get_root_as_message(meta_buffer)
@@ -301,7 +301,7 @@ impl Batch {
             Err(e) => return Err(Error::from(e)),
         };
 
-        Ok(Batch {
+        Ok(Self {
             memory,
             batch,
             metaversion: Metaversion::default(),
@@ -322,7 +322,7 @@ pub struct Raw<'a> {
 }
 
 // Iterators and getters
-impl Batch {
+impl MessageBatch {
     pub fn get_native_messages(&self) -> Result<Vec<Vec<OutboundMessage>>> {
         let reference = self
             .batch

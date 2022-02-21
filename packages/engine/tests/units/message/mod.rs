@@ -7,6 +7,7 @@ mod js {
     run_test!(multiple_recipients, JavaScript);
 
     run_test!(all_types, JavaScript);
+    run_test!(nested_types, JavaScript);
     // TODO: Make mapbox work
     //   see https://app.asana.com/0/1199548034582004/1200329934588478/f
     run_test!(mapbox, JavaScript, #[ignore]);
@@ -25,6 +26,7 @@ mod py {
     run_test!(one_recipient, Python, #[ignore]);
     run_test!(multiple_recipients, Python, #[ignore]);
 
+    run_test!(nested_types, Python, #[ignore]);
     run_test!(all_types, Python, #[ignore]);
     run_test!(mapbox, Python, #[ignore]);
 

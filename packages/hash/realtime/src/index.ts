@@ -91,7 +91,7 @@ const updateSlotOwnership = async (pool: PgPool) => {
       } * interval '1 second'
     where slot_name = ${SLOT_NAME} and slot_owner = ${INSTANCE_ID}
   `);
-  logger.info(`Updated ownership of slot "${SLOT_NAME}"`);
+  logger.debug(`Updated ownership of slot "${SLOT_NAME}"`);
 };
 
 /** Release ownership of the slot. Does nothing if this instance is not the current
@@ -102,7 +102,7 @@ const releaseSlotOwnership = async (pool: PgPool) => {
     where slot_name = ${SLOT_NAME} and slot_owner = ${INSTANCE_ID}
   `);
   if (res.rowCount > 0) {
-    logger.info(`Released ownership of slot "${SLOT_NAME}"`);
+    logger.debug(`Released ownership of slot "${SLOT_NAME}"`);
   }
 };
 
@@ -184,10 +184,10 @@ const main = async () => {
     slotAcquired = await acquireSlot(pool);
     if (slotAcquired) {
       clearInterval(int1);
-      logger.info("Acquired slot ownership");
+      logger.debug("Acquired slot ownership");
       return;
     }
-    logger.info("Slot is owned. Waiting in standby.");
+    logger.debug("Slot is owned. Waiting in standby.");
   }, OWNERSHIP_EXPIRY_MILLIS);
 
   // Poll the replication slot for new data
@@ -202,7 +202,7 @@ const main = async () => {
   // Gracefully shutdown on receiving a termination signal.
   let receivedTerminationSignal = false;
   const shutdown = async (signal: string) => {
-    logger.info(`Received ${signal} signal`);
+    logger.debug(`Received ${signal} signal`);
     if (receivedTerminationSignal) {
       return;
     }
@@ -212,11 +212,11 @@ const main = async () => {
     // Ownership will expire, but release anyway
     await releaseSlotOwnership(pool);
 
-    logger.info("Closing connection pool");
+    logger.debug("Closing connection pool");
     await pool.end();
 
     httpServer.close((_) => {
-      logger.info("SHUTDOWN");
+      logger.debug("SHUTDOWN");
       process.exit(0);
     });
   };

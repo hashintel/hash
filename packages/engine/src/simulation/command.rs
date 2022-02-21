@@ -25,10 +25,11 @@ use crate::{
     hash_types::{message::RemoveAgentPayload, Agent},
 };
 
-/// TODO: DOC Update docs to reflect that these variants are only allowed
 /// Variations of the protected message-target that is associated with the engine. If an agent
 /// sends a message to one of these variations, it's interpreted as a command rather than a message
 /// to be forwarded to another agent.
+///
+/// This array also forms the list of the **only** acceptable variants, e.g. `hAsH` is not allowed
 static HASH: [&str; 3] = ["hash", "Hash", "HASH"];
 
 /// The commands available to simulation agents

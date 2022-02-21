@@ -66,145 +66,102 @@ pub mod prelude {
 }
 
 #[cfg(test)]
-// TODO: OS - Unit-tests are broken, need updating for new Store read and write approach
 pub mod tests {
-    use super::prelude::*;
-    // use super::schema::{FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant};
-    //
-    // use rand::Rng;
-    // use std::borrow::Cow;
-    //
-    // use crate::datastore::batch::DynamicBatch;
-    // use crate::datastore::schema::{FieldScope, FieldSource, RootFieldSpec};
-    // use crate::datastore::test_utils::gen_schema_and_test_agents;
-    // use crate::hash_types::state::AgentStateField;
-    // use std::sync::Arc;
+    use std::{borrow::Cow, sync::Arc};
+
+    use rand::Rng;
+
+    use super::{prelude::*, test_utils::gen_schema_and_test_agents};
+    use crate::datastore::{
+        batch::DynamicBatch, table::state::State, test_utils::dummy_sim_run_config,
+    };
 
     #[test]
-    #[ignore] // TODO: reenable test
     pub fn growable_array_modification() -> Result<()> {
-        todo!()
-        // pub fn modify_name(message: &str) -> Result<Vec<Option<String>>> {
-        //     let mut sb = *AgentBatch::from_message(message)?;
-        //     let mut column = sb.get_agent_name()?;
-        //     // `targets` values will be checked against shared memory data
-        //     // in order to check if changes were flushed properly
-        //     let mut targets = Vec::with_capacity(column.len());
-        //     for i in 0..column.len() {
-        //         let mut rng = rand::thread_rng();
-        //         if rng.gen_bool(0.1) {
-        //             column[i] = None;
-        //             targets.push(None);
-        //         } else if rng.gen_bool(0.8) {
-        //             let count = rng.gen_range(0..1000);
-        //             let string = String::from_utf8(
-        //                 std::iter::repeat(())
-        //                     .map(|()| rng.sample(rand::distributions::Alphanumeric))
-        //                     .take(count)
-        //                     .collect::<Vec<u8>>(),
-        //             )
-        //             .unwrap();
-        //             targets.push(Some(string.clone()));
-        //             column[i] = Some(Cow::Owned(string));
-        //         } else {
-        //             match &column[i] {
-        //                 Some(v) => targets.push(Some(v.to_string())),
-        //                 None => targets.push(None),
-        //             }
-        //         }
-        //     }
-        //     let change = sb.agent_name_as_array(column)?;
-        //     sb.push_change(change)?;
-        //     sb.flush_changes()?;
-        //     Ok(targets)
-        // }
-        //
-        // let num_agents = 1000;
-        //
-        // let (schema, agents) = gen_schema_and_test_agents(num_agents, 0).unwrap();
-        //
-        // let store = Store::new(Arc::new("".into()), field_spec_map)?;
-        //
-        // // Create a new simulation
-        // let table_ref = store.new_table(&agents)?;
-        //
-        // let table = table_ref.try_write().unwrap();
-        // let message = table.dynamic_pool[0]
-        //     .try_read()
-        //     .expect("Should be able to read dynamic batch")
-        //     .memory
-        //     .get_message()
-        //     .to_string();
-        //
-        // // Run "behavior"
-        // let targets = modify_name(&message)?;
-        //
-        // let reloaded = AgentBatch::from_message(&message)?;
-        // let names = reloaded.get_agent_name()?;
-        //
-        // table.dynamic_pool[0]
-        //     .try_write()
-        //     .expect("Should be able to write to dynamic batch")
-        //     .reload()?;
-        // let states = table.get_agent_states()?;
-        // targets.into_iter().enumerate().for_each(|(i, t)| match t {
-        //     Some(v) => {
-        //         assert_eq!(v, states.get(i).unwrap().agent_name.as_ref().unwrap().0);
-        //         assert_eq!(v, names.get(i).unwrap().as_deref().unwrap());
-        //     }
-        //     None => {
-        //         assert!(states[i].agent_name.is_none());
-        //         assert!(names.get(i).unwrap().as_deref().is_none());
-        //     }
-        // });
-        //
-        // Ok(())
-    }
+        pub fn modify_name(shmem_os_id: &str) -> Result<Vec<Option<String>>> {
+            let mut state_batch = *AgentBatch::from_shmem_os_id(shmem_os_id)?;
+            let mut column = state_batch.get_agent_name()?;
+            // `targets` values will be checked against shared memory data
+            // in order to check if changes were flushed properly
+            let mut targets = Vec::with_capacity(column.len());
+            for i in 0..column.len() {
+                let mut rng = rand::thread_rng();
+                if rng.gen_bool(0.1) {
+                    column[i] = None;
+                    targets.push(None);
+                } else if rng.gen_bool(0.8) {
+                    let count = rng.gen_range(0..1000);
+                    let string = String::from_utf8(
+                        std::iter::repeat(())
+                            .map(|()| rng.sample(rand::distributions::Alphanumeric))
+                            .take(count)
+                            .collect::<Vec<u8>>(),
+                    )?;
+                    targets.push(Some(string.clone()));
+                    column[i] = Some(Cow::Owned(string));
+                } else {
+                    match &column[i] {
+                        Some(v) => targets.push(Some(v.to_string())),
+                        None => targets.push(None),
+                    }
+                }
+            }
+            let change = state_batch.agent_name_as_array(column)?;
+            state_batch.push_change(change)?;
+            state_batch.flush_changes()?;
+            Ok(targets)
+        }
 
-    #[test]
-    #[ignore] // TODO: reenable test
-    pub fn test_behavior_metadata() -> Result<()> {
-        todo!()
-        // let mut keys = FieldSpecMap::default()?;
-        // keys.add(FieldSpec::new_mergeable(
-        //     "age",
-        //     FieldType::new(FieldTypeVariant::Number, false),
-        // ))?;
-        // keys.add_built_in(&AgentStateField::Behaviors)?;
-        // let store = Store::new(Arc::new("".into()), keys)?;
-        //
-        // let num_agents = 5;
-        //
-        // let mut agents = Vec::with_capacity(num_agents);
-        //
-        // let target = vec!["age.rs", "collision.rs", "diffusion.rs", "self_destroy.rs"];
-        //
-        // for i in 0..num_agents {
-        //     let mut agent = AgentState::empty();
-        //     agent.set("age", i)?;
-        //     agent.set("behaviors", &target)?;
-        //     agents.push(agent);
-        // }
-        //
-        // let table_ref = store.new_table(&agents)?;
-        //
-        // let table = table_ref.try_write().unwrap();
-        //
-        // let message = table.dynamic_pool[0]
-        //     .try_read()
-        //     .expect("Should be able to read dynamic batch")
-        //     .get_batch_message()?;
-        //
-        // let reloaded = AgentBatch::from_message(&message.msg)?;
-        // reloaded
-        //     .get_behaviors()?
-        //     .iter()
-        //     .enumerate()
-        //     .for_each(|(i, v)| {
-        //         assert_eq!(v, &target[i]);
-        //     });
-        //
-        // Ok(())
+        let num_agents = 1000;
+
+        let (schema, agents) = gen_schema_and_test_agents(num_agents, 0)?;
+
+        let mut state = State::from_agent_states(&agents, Arc::new(dummy_sim_run_config()))
+            .expect("Couldn't turn `Vec<Agent>` into `State`");
+
+        // get the ID of the shared-memory segment for the first batch of agents
+        let shmem_id = state
+            .read()?
+            .agent_pool()
+            .batch(0)
+            .unwrap()
+            .memory
+            .data
+            .get_os_id()
+            .to_string();
+
+        // Run "behavior"
+        let targets = modify_name(&shmem_id)?;
+
+        let reloaded = AgentBatch::from_shmem_os_id(&shmem_id)?;
+        let names = reloaded.get_agent_name()?;
+
+        state
+            .write()?
+            .agent_pool_mut()
+            .batch_mut(0)
+            .unwrap()
+            .reload()?;
+
+        let states = state
+            .read()?
+            .agent_pool()
+            .batch(0)
+            .unwrap()
+            .batch
+            .into_agent_states(Some(&schema))?;
+        targets.into_iter().enumerate().for_each(|(i, t)| match t {
+            Some(v) => {
+                assert_eq!(v, states.get(i).unwrap().agent_name.as_ref().unwrap().0);
+                assert_eq!(v, names.get(i).unwrap().as_deref().unwrap());
+            }
+            None => {
+                assert!(states[i].agent_name.is_none());
+                assert!(names.get(i).unwrap().as_deref().is_none());
+            }
+        });
+
+        Ok(())
     }
 
     #[test]
@@ -232,31 +189,5 @@ pub mod tests {
         dbg!(&array.value(3).data_ref());
         // 0100 1001 | 1001 0010 | 0010 0100 | 0000 1001
         Ok(())
-    }
-
-    #[test]
-    #[ignore] // TODO: reenable test
-    pub fn test_struct_types_enabled() -> Result<()> {
-        todo!()
-        // let mut keys = FieldSpecMap::default()?;
-        // keys.add(FieldSpec::new_mergeable(
-        //     "struct",
-        //     FieldType::new(
-        //         FieldTypeVariant::Struct(vec![
-        //             FieldSpec::new_mergeable(
-        //                 "first_column",
-        //                 FieldType::new(FieldTypeVariant::Number, false),
-        //             ),
-        //             FieldSpec::new_mergeable(
-        //                 "second_column",
-        //                 FieldType::new(FieldTypeVariant::Boolean, true),
-        //             ),
-        //         ]),
-        //         true,
-        //     ),
-        // ))?;
-        //
-        // keys.get_arrow_schema()?;
-        // Ok(())
     }
 }

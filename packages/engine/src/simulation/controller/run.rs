@@ -5,7 +5,7 @@ use tokio::time::Duration;
 
 use super::{Error, Result};
 use crate::{
-    datastore::prelude::{SharedStore, Store},
+    datastore::prelude::Store,
     experiment::controller::comms::{sim_status::SimStatusSend, simulation::SimCtlRecv},
     hash_types::worker::RunnerError,
     output::SimulationOutputPersistenceRepr,
@@ -45,7 +45,6 @@ enum LoopControl {
 /// - Sends an update on the Step result to the Experiment Controller
 pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     config: Arc<SimRunConfig>,
-    shared_store: Arc<SharedStore>,
     comms: Comms,
     packages: Packages,
     mut sim_from_exp: SimCtlRecv,
@@ -56,7 +55,7 @@ pub async fn sim_run<P: SimulationOutputPersistenceRepr>(
     let max_num_steps = config.sim.max_num_steps;
     tracing::info!(steps = &max_num_steps, "Beginning simulation run");
 
-    let uninitialized_store = Store::new_uninitialized(shared_store, &config);
+    let uninitialized_store = Store::new_uninitialized();
 
     let mut engine = Engine::new(packages, uninitialized_store, comms, config.clone())
         .await

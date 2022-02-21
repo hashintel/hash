@@ -86,7 +86,7 @@ jobs:
   rustfmt:
     name: rustfmt
     needs: setup
-    if: needs.setup.outputs.rustfmt != '[]' && github.event_name == 'pull_request'
+    if: needs.setup.outputs.rustfmt != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -131,7 +131,7 @@ jobs:
   clippy:
     name: clippy
     needs: setup
-    if: needs.setup.outputs.clippy != '[]' && github.event_name == 'pull_request'
+    if: needs.setup.outputs.clippy != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -200,7 +200,7 @@ jobs:
   test:
     name: test
     needs: setup
-    if: needs.setup.outputs.test != '[]' && github.event_name == 'pull_request'
+    if: needs.setup.outputs.test != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

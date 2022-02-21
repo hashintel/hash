@@ -4,15 +4,11 @@ import {
   Resolver,
   MutationUpdatePageContentsArgs,
   UpdatePageAction,
-  InsertNewBlock,
-  RemoveBlock,
-  MoveBlock,
+  UpdateEntity,
 } from "../../apiTypes.gen";
-import { Entity, UnresolvedGQLEntity, User } from "../../../model";
+import { Block, Entity, Page, UnresolvedGQLEntity } from "../../../model";
 import { LoggedInGraphQLContext } from "../../context";
-import { DBClient } from "../../../db";
 import { exactlyOne } from "../../../util";
-import { DbBlockProperties, DbPageProperties } from "../../../db/adapter";
 
 const validateActionsInput = (actions: UpdatePageAction[]) => {
   for (const [i, action] of actions.entries()) {
@@ -31,76 +27,6 @@ const validateActionsInput = (actions: UpdatePageAction[]) => {
   }
 };
 
-/** Create a block and a new entity contained inside it. Returns the new block entity. */
-const createBlock = async (
-  client: DBClient,
-  { accountId, componentId, entity: entityDefinition }: InsertNewBlock,
-  user: User,
-) => {
-  const entity = await Entity.createEntityWithLinks(client, {
-    accountId,
-    user,
-    entityDefinition,
-  });
-
-  // Create the block
-  const blockProperties: DbBlockProperties = {
-    componentId,
-    entityId: entity.entityId,
-    accountId,
-  };
-
-  const newBlock = await Entity.create(client, {
-    accountId,
-    systemTypeName: "Block",
-    createdByAccountId: user.accountId,
-    properties: blockProperties,
-    versioned: true,
-  });
-
-  return newBlock;
-};
-
-const moveBlock = (properties: DbPageProperties, move: MoveBlock) => {
-  const length = properties.contents.length;
-  if (move.currentPosition < 0 || move.currentPosition >= length) {
-    throw new UserInputError(
-      `invalid currentPosition: ${move.currentPosition}`,
-    );
-  }
-  if (move.newPosition < 0 || move.newPosition >= length) {
-    throw new UserInputError(`invalid newPosition: ${move.newPosition}`);
-  }
-
-  const [block] = properties.contents.splice(move.currentPosition, 1);
-  properties.contents.splice(move.newPosition, 0, block);
-};
-
-const insertBlock = (
-  properties: DbPageProperties,
-  insert: { accountId: string; entityId: string; position: number },
-) => {
-  const length = properties.contents.length;
-  if (insert.position < 0 || insert.position > length) {
-    throw new UserInputError(`invalid position: ${insert.position}`);
-  }
-
-  const { accountId, entityId } = insert;
-  if (insert.position === length) {
-    properties.contents.push({ accountId, entityId });
-  } else {
-    properties.contents.splice(insert.position, 0, { accountId, entityId });
-  }
-};
-
-const removeBlock = (properties: DbPageProperties, remove: RemoveBlock) => {
-  const length = properties.contents.length;
-  if (remove.position < 0 || remove.position >= length) {
-    throw new UserInputError(`invalid position: ${remove.position}`);
-  }
-  properties.contents.splice(remove.position, 1);
-};
-
 export const updatePageContents: Resolver<
   Promise<UnresolvedGQLEntity>,
   {},
@@ -111,33 +37,53 @@ export const updatePageContents: Resolver<
 
   return await dataSources.db.transaction(async (client) => {
     // Create any _new_ blocks
-    const newBlocks = await Promise.all(
-      actions
-        .map((action, i) => ({ action, i }))
-        .filter(({ action }) => action.insertNewBlock)
-        .map(({ action, i }) =>
-          createBlock(client, action.insertNewBlock!, user).catch((err) => {
-            if (err instanceof UserInputError) {
-              throw new UserInputError(`action ${i}: ${err}`);
-            }
-            throw err;
-          }),
-        ),
-    );
+    const newBlocks: Block[] = [];
+
+    /** @todo: find way to concurrently create blocks with outgoing links */
+    for (const [i, action] of actions.entries()) {
+      if (action.insertNewBlock) {
+        try {
+          const {
+            accountId: blockAccountId,
+            componentId: blockComponentId,
+            entity: blockDataDefinition,
+          } = action.insertNewBlock;
+
+          const blockData = await Entity.createEntityWithLinks(client, {
+            accountId: blockAccountId, // assume that the "block entity" is in the same account as the block itself
+            user,
+            entityDefinition: blockDataDefinition,
+          });
+
+          const block = await Block.createBlock(client, {
+            blockData,
+            createdBy: user,
+            accountId: user.accountId,
+            properties: {
+              componentId: blockComponentId,
+            },
+          });
+
+          newBlocks.push(block);
+        } catch (error) {
+          if (error instanceof UserInputError) {
+            throw new UserInputError(`action ${i}: ${error}`);
+          }
+          throw error;
+        }
+      }
+    }
 
     // Perform any entity updates.
     await Promise.all(
       actions
-        .filter((action) => action.updateEntity)
-        .map((action) => {
-          // Populate the update entity action with the current user id before using it
-          return {
-            ...action.updateEntity!,
+        .map(({ updateEntity }) => updateEntity)
+        .filter((updateEntity): updateEntity is UpdateEntity => !!updateEntity)
+        .map(async (updateEntity) =>
+          Entity.updateProperties(client, {
+            ...updateEntity,
             updatedByAccountId: user.accountId,
-          };
-        })
-        .map((populatedAction) =>
-          Entity.updateProperties(client, populatedAction),
+          }),
         ),
     );
 
@@ -145,7 +91,7 @@ export const updatePageContents: Resolver<
     // with the page update.
     await Entity.acquireLock(client, { entityId });
 
-    const page = await Entity.getEntityLatestVersion(client, {
+    const page = await Page.getPageById(client, {
       accountId,
       entityId,
     });
@@ -155,25 +101,26 @@ export const updatePageContents: Resolver<
     }
 
     // Update the page by inserting new blocks, moving blocks and removing blocks
-    const pageProperties = page.properties as DbPageProperties;
     let insertCount = 0;
-    let propertiesChanged = false;
     for (const [i, action] of actions.entries()) {
       try {
         if (action.insertNewBlock) {
-          insertBlock(pageProperties, {
-            accountId: newBlocks[insertCount].accountId,
-            entityId: newBlocks[insertCount].entityId,
+          await page.insertBlock(client, {
+            block: newBlocks[insertCount],
             position: action.insertNewBlock.position,
+            insertedByAccountId: user.accountId,
           });
           insertCount += 1;
-          propertiesChanged = true;
         } else if (action.moveBlock) {
-          moveBlock(pageProperties, action.moveBlock);
-          propertiesChanged = true;
+          await page.moveBlock(client, {
+            ...action.moveBlock,
+            movedByAccountId: user.accountId,
+          });
         } else if (action.removeBlock) {
-          removeBlock(pageProperties, action.removeBlock);
-          propertiesChanged = true;
+          await page.removeBlock(client, {
+            ...action.removeBlock,
+            removedByAccountId: user.accountId,
+          });
         }
       } catch (err) {
         if (err instanceof UserInputError) {
@@ -182,21 +129,7 @@ export const updatePageContents: Resolver<
         throw err;
       }
     }
-    if (propertiesChanged) {
-      await page.updateEntityProperties(client, {
-        properties: pageProperties,
-        updatedByAccountId: user.accountId,
-      });
-    }
 
-    // Return the new state of the page
-    const updatedPage = await Entity.getEntityLatestVersion(client, {
-      accountId,
-      entityId,
-    });
-    if (!updatedPage) {
-      throw new Error(`could not find entity with fixed id ${entityId}`);
-    }
-    return updatedPage.toGQLUnknownEntity();
+    return page.toGQLUnknownEntity();
   });
 };

@@ -4,7 +4,6 @@ use super::action::{CreateActions, ExistingGroupBufferActions};
 use crate::{
     datastore::{
         error::{Error, Result},
-        prelude::*,
         table::pool::{agent::AgentPool, BatchPool},
     },
     proto::ExperimentRunTrait,
@@ -68,12 +67,7 @@ impl<'a> MigrationPlan<'a> {
         for (batch_index, action) in self.existing_mutations.iter().enumerate().rev() {
             if let ExistingGroupBufferActions::Remove = action {
                 // Removing in tandem to keep similarly sized batches together
-                removed_ids.push(
-                    state_agent_pool
-                        .swap_remove(batch_index)?
-                        .get_batch_id()
-                        .to_string(),
-                );
+                removed_ids.push(state_agent_pool.swap_remove(batch_index));
             }
         }
 

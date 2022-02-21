@@ -111,7 +111,7 @@ Note that you will need valid AWS credentials for this email transporter to work
 ## Integration with the Block Protocol
 
 HASH is built around the open [Block Protocol](https://blockprotocol.org) ([@blockprotocol/blockprotocol](https://github.com/blockprotocol/blockprotocol) on GitHub).
-By default, `packages/hash/shared/src/blockPaths.json` points to the `dev` branch’s deployment of the blockprotocol.org CDN at https://blockprotocol-git-dev-hashintel.vercel.app.
+By default, `packages/hash/shared/src/blockPaths.json` points to HASH blocks at https://blockprotocol.org/@hash.
 This can be changed to either a local instance of blockprotocol.org (see its `/site/README.md` on how to do that) or a webpack-dev-server instance of a block in development `yarn workspace @hashintel/block-<block-under-development> run dev --port 3010`.
 
 ## HASH blocks
@@ -376,3 +376,4 @@ If the service should report metrics to a StatsD server, the following variables
 - `HASH_SEARCH_QUEUE_NAME`: The name of the queue to push changes for the search loader service (default: `search`)
 - `NEXT_PUBLIC_API_ORIGIN`: The origin that the API service can be reached on (default: `http://localhost:5001`)
 - `SESSION_SECRET`: The secret used to sign login sessions (default: `secret`)
+- `LOG_LEVEL`: the level of runtime logs that should be omitted, either set to `debug`, `info`, `warn`, `error` (default: `info`)

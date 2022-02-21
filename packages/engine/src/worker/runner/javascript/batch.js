@@ -1,3 +1,5 @@
+// noinspection BadExpressionStatementJS
+
 (arrow, hash_util) => {
   "use strict";
   const Batch = function () {
@@ -63,7 +65,7 @@
     const vectors = {}; // Field name --> vector.
     for (var i = 0; i < vector_list.length; ++i) {
       // `VectorLoader` doesn't actually return instances of `Vector` for some reason.
-      const vector = arrow.Vector.new(vector_list[i]);
+      const vector = new arrow.makeVector(vector_list[i]);
       const field = schema.fields[i];
       vector.type.is_any = any_type_fields.has(field.name);
       vectors[field.name] = vector;
@@ -159,11 +161,11 @@
     }
   };
 
-  const builder_from_col = (col, field_type) => {
+  const array_data_from_col = (col, field_type) => {
     // TODO: Would `new arrow.Builder` work?
     // TODO: Faster way to convert JS array to vector than using `Builder`?
     //       `arrow.Vector.from(col)` doesn't seem to quite work.
-    const builder = arrow.Builder.new({
+    const builder = new arrow.makeBuilder({
       type: field_type,
       nullValues: [null, undefined],
     });
@@ -183,41 +185,32 @@
     // JS Arrow doesn't really document what `builder.finish` does, but
     // maybe it affects later serialization.
     builder.finish();
-    return builder;
+    return builder.flush();
   };
 
   // TODO: Can JS Arrow silently coerce some flushed values to different types if
   //       their type differs from what it's supposed to be according to the schema?
-  const array_data_from_builder = (builder) => {
-    // TODO: Union arrays.
-    // TODO: Use Arrow Data methods and function `builder.flush` more straightforwardly.
-
-    const len = builder.length;
-    const null_count = builder.nullCount;
-    const null_bits = builder._nulls ? builder._nulls.flush(len).buffer : null;
-    // `.buffer` gets Uint8Array's underlying ArrayBuffer for FFI.
-    // ArrayData offset is always 0. (Not to be confused with offset buffer.)
+  const ffi_data_from_array_data = (array_data) => {
+    const child_data = [];
+    for (var i = 0; i < array_data.children.length; ++i) {
+      child_data[i] = ffi_data_from_array_data(array_data.children[i]);
+    }
 
     const buffers = [];
-    const offsets = builder._offsets;
-    const values = builder._values;
-
+    const offsets = array_data.valueOffsets;
+    const values = array_data.values;
     if (offsets) {
-      buffers[0] = offsets.flush(len).buffer;
-      if (values) buffers.push(values.flush(offsets.last()).buffer);
+      buffers[0] = offsets.buffer;
+      if (values) buffers.push(values.buffer);
     } else if (values) {
-      buffers[0] = values.flush(len).buffer;
+      buffers[0] = values.buffer;
     }
 
-    const child_data = [];
-    for (var i = 0; i < builder.children.length; ++i) {
-      child_data[i] = array_data_from_builder(builder.children[i]);
-    }
     return {
       // Get datatype from schema later.
-      len: len,
-      null_count: null_count,
-      null_bits: null_bits,
+      len: array_data.length,
+      null_count: array_data.nullCount,
+      null_bits: array_data.nullBitmap.buffer,
       buffers: buffers,
       child_data: child_data,
     };
@@ -239,12 +232,12 @@
           col[i_agent] = JSON.stringify(col[i_agent]);
         }
       }
-      const builder = builder_from_col(col, field.type);
-      const data = array_data_from_builder(builder);
+      const array_data = array_data_from_col(col, field.type);
+      const data = ffi_data_from_array_data(array_data);
       changes.push({
-        // Some fields might be skipped, so a
-        i_field: i_field, // field's index in `changes` might not
-        data: data, // be equal to `i_field`.
+        // Some fields might be skipped, so a field's index in `changes` might not be equal to `i_field`.
+        i_field: i_field, //
+        data: data,
       });
     }
     return changes;

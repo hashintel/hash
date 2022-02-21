@@ -3,6 +3,7 @@
   "description": "HASH monorepo",
   "workspaces": [
     "packages/blocks/*",
+    "packages/engine/apache-arrow-js-bundle",
     "packages/hash/api",
     "packages/hash/api/datastore/postgres",
     "packages/hash/backend-utils",
@@ -23,14 +24,14 @@
     "dev:frontend": "yarn workspace @hashintel/hash-frontend dev",
     "external-services": "docker-compose --file external-services/docker-compose.yml",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
-    "fix:dependency-version-consistency": "check-dependency-version-consistency --fix .",
+    "fix:dependency-version-consistency": "check-dependency-version-consistency --fix . --ignore-package=@hashengine/apache-arrow-js-bundle",
     "fix:eslint": "yarn workspaces run fix:eslint",
     "fix:markdownlint": "markdownlint --dot --fix \"**/*\"",
     "fix:prettier": "prettier --write  --ignore-unknown \"**/*\"",
     "fix:yarn-deduplicate": "yarn install && yarn-deduplicate --strategy=fewer && yarn install",
     "install-hooks": "bash hooks/install.sh",
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
-    "lint:dependency-version-consistency": "check-dependency-version-consistency .",
+    "lint:dependency-version-consistency": "check-dependency-version-consistency . --ignore-package=@hashengine/apache-arrow-js-bundle",
     "lint:eslint": "yarn workspaces run lint:eslint",
     "lint:markdownlint": "markdownlint --dot \"**/*\"",
     "lint:prettier": "prettier --check --ignore-unknown \"**/*\"",
@@ -56,7 +57,7 @@
     "node-fetch": "^2.6.7"
   },
   "devDependencies": {
-    "check-dependency-version-consistency": "1.6.0",
+    "check-dependency-version-consistency": "2.0.0",
     "concurrently": "7.0.0",
     "cross-env": "7.0.3",
     "husky": "7.0.4",

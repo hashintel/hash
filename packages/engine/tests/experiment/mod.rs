@@ -9,7 +9,6 @@ use std::{
 
 use error::{bail, ensure, report, Result, ResultExt};
 use hash_engine_lib::{
-    init_logger,
     proto::ExperimentName,
     utils::{LogFormat, LogLevel, OutputLocation},
     Language,
@@ -17,6 +16,7 @@ use hash_engine_lib::{
 use orchestrator::{ExperimentConfig, ExperimentType, Manifest, Server};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Value;
+use tracing_subscriber::fmt::time::Uptime;
 
 pub type AgentStates = Value;
 pub type Globals = Value;
@@ -119,22 +119,27 @@ pub async fn run_test_suite(
 ) {
     // If this is an Err then the logger has already been initialised in another thread which is
     // okay
-    let _guard = init_logger(
-        LogFormat::Pretty,
-        &OutputLocation::StdErr,
-        std::env::temp_dir(),
-        // These are logs only from the Orchestrator library, *not* for the engine that we're
-        // starting, the configuration for the engine is setup below
-        Some(LogLevel::Info),
-        "tests",
-        "tests-texray",
-    );
+    let _ = tracing_subscriber::fmt()
+        .with_timer(Uptime::default())
+        .with_target(true)
+        .with_test_writer()
+        .try_init();
+
     // If `RUST_LOG` is set, only run it once, otherwise run with `warn` and `trace` on failure
     let log_levels = if std::env::var("RUST_LOG").is_ok() {
         vec![None]
     } else {
         vec![Some(LogLevel::Warning), Some(LogLevel::Trace)]
     };
+
+    let start_timeout = std::env::var("ENGINE_START_TIMEOUT").map_or(10, |val| {
+        val.parse::<u64>()
+            .expect("ENGINE_START_TIMEOUT couldn't be parsed as a u64")
+    });
+    let wait_timeout = std::env::var("ENGINE_WAIT_TIMEOUT").map_or(60, |val| {
+        val.parse::<u64>()
+            .expect("ENGINE_WAIT_TIMEOUT couldn't be parsed as a u64")
+    });
 
     let project_name = project_path
         .file_name()
@@ -182,12 +187,24 @@ pub async fn run_test_suite(
                     tracing::info!("Running test with log level `{log_level}`... ");
                 }
 
+                let output = output_folder.clone();
+
+                let experiment_config = ExperimentConfig {
+                    num_workers: num_cpus::get(),
+                    log_format: LogFormat::Pretty,
+                    log_folder: output.join("log"),
+                    log_level: *log_level,
+                    output_folder: output,
+                    output_location: OutputLocation::File("output.log".into()),
+                    start_timeout,
+                    wait_timeout,
+                };
+
                 let test_result = run_test(
                     experiment_type.clone(),
                     &project_path,
                     project_name.clone(),
-                    output_folder.clone(),
-                    *log_level,
+                    experiment_config,
                     language,
                     expected_outputs.len(),
                 )
@@ -226,7 +243,11 @@ pub async fn run_test_suite(
             {
                 expected
                     .assert_subset_of(&states, &globals, &analysis)
-                    .unwrap_or_else(|_| {
+                    .unwrap_or_else(|err| {
+                        if let Ok(log) = fs::read_to_string(&log_file_path) {
+                            eprintln!("{log}");
+                        }
+                        tracing::error!("{err:?}");
                         panic!(
                             "Output of simulation {} does not match expected output in experiment",
                             output_idx + 1
@@ -266,8 +287,7 @@ pub async fn run_test<P: AsRef<Path>>(
     experiment_type: ExperimentType,
     project_path: P,
     project_name: String,
-    output: PathBuf,
-    log_level: Option<LogLevel>,
+    experiment_config: ExperimentConfig,
     language: Option<Language>,
     num_outputs_expected: usize,
 ) -> Result<TestOutput> {
@@ -291,16 +311,7 @@ pub async fn run_test<P: AsRef<Path>>(
         .read(experiment_type)
         .wrap_err("Could not read manifest")?;
 
-    let experiment = orchestrator::Experiment::new(ExperimentConfig {
-        num_workers: num_cpus::get(),
-        log_format: LogFormat::Pretty,
-        log_folder: output.join("log"),
-        log_level,
-        output_folder: output,
-        output_location: OutputLocation::File("output.log".into()),
-        start_timeout: 10,
-        wait_timeout: 10 * 60,
-    });
+    let experiment = orchestrator::Experiment::new(experiment_config);
 
     let output_base_directory = experiment
         .config
@@ -406,7 +417,7 @@ fn assert_subset_value(subset: &Value, superset: &Value, path: String) -> Result
                 if let Some(super_value) = b.get(key) {
                     assert_subset_value(sub_value, super_value, format!("{path}.{key}"))?;
                 } else {
-                    bail!("{path:?}: {key:?} is not present output")
+                    bail!("{path:?}: {key:?} is not present in the output")
                 }
             }
         }
