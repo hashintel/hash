@@ -467,7 +467,8 @@ void (async () => {
           },
         },
       ],
-      // @todo: should this block be removed?
+      // @todo: this block was previously used to display collab functionality in the app.
+      // After the linkedAggregations work, it doesn't display anything. It needs to either be recreated or removed.
       [
         "t2",
         {
