@@ -1,4 +1,4 @@
-import { ProsemirrorNode, Schema } from "prosemirror-model";
+import { NodeType, ProsemirrorNode, Schema } from "prosemirror-model";
 import { Text } from "./graphql/apiTypes.gen";
 import { TextToken } from "./graphql/types";
 
@@ -91,9 +91,8 @@ type NodeWithAttrs<Attrs extends {}> = Omit<
   "attrs"
 > & { attrs: Attrs };
 
-export type ComponentNode = NodeWithAttrs<{
-  blockEntityId: string | null;
-}>;
+type ComponentNodeAttrs = {};
+export type ComponentNode = NodeWithAttrs<ComponentNodeAttrs>;
 
 export type EntityNode = NodeWithAttrs<{
   draftId: string | null;
@@ -103,20 +102,23 @@ export const isEntityNode = (
   node: ProsemirrorNode<Schema> | null,
 ): node is EntityNode => !!node && node.type === node.type.schema.nodes.entity;
 
-/**
- * @todo use group name for this
- */
+export const componentNodeGroupName = "componentNode";
+
+export const isComponentNodeType = (nodeType: NodeType<Schema>) =>
+  nodeType.groups?.includes(componentNodeGroupName) ?? false;
+
 export const isComponentNode = (
   node: ProsemirrorNode<Schema>,
-): node is ComponentNode =>
-  !!node.type.spec.attrs && "blockEntityId" in node.type.spec.attrs;
+): node is ComponentNode => isComponentNodeType(node.type);
 
-export const findComponentNodes = (doc: ProsemirrorNode<Schema>) => {
-  const componentNodes: [ComponentNode, number][] = [];
+export const findComponentNodes = (
+  containingNode: ProsemirrorNode<Schema>,
+): ComponentNode[] => {
+  const componentNodes: ComponentNode[] = [];
 
-  doc.descendants((node, pos) => {
+  containingNode.descendants((node) => {
     if (isComponentNode(node)) {
-      componentNodes.push([node, pos]);
+      componentNodes.push(node);
     }
 
     return true;
@@ -125,10 +127,23 @@ export const findComponentNodes = (doc: ProsemirrorNode<Schema>) => {
   return componentNodes;
 };
 
-export const getComponentNodeAttrs = (
-  entity?: { entityId?: string | null } | null,
-) => ({
-  blockEntityId: entity?.entityId ?? "",
-});
+export const findComponentNode = (
+  containingNode: ProsemirrorNode<Schema>,
+  containingNodePosition: number,
+): [ComponentNode, number] | null => {
+  let result: [ComponentNode, number] | null = null;
+
+  containingNode.descendants((node, pos) => {
+    if (isComponentNode(node)) {
+      result = [node, containingNodePosition + 1 + pos];
+
+      return false;
+    }
+
+    return true;
+  });
+
+  return result;
+};
 
 export const componentNodeToId = (node: ComponentNode) => node.type.name;
