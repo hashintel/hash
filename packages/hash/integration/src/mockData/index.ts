@@ -11,7 +11,6 @@ import {
   User,
   Block,
 } from "@hashintel/hash-api/src/model";
-import { createLinkedAggregationRaw } from "@hashintel/hash-api/src/graphql/resolvers/linkedAggregation/createLinkedAggregation";
 
 import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { createOrgs, createUsers } from "./accounts";
@@ -483,15 +482,19 @@ void (async () => {
     ]),
   );
 
-  const table1AccountId = results.get("t1")?.accountId;
-  const table1EntityId = results.get("t1")?.entityId;
+  const table1 = results.get("t1");
+  const table1AccountId = table1?.accountId;
+  const table1EntityId = table1?.entityId;
 
   if (table1AccountId && table1EntityId) {
-    await createLinkedAggregationRaw(
-      {
-        sourceAccountId: table1AccountId,
-        sourceEntityId: table1EntityId,
-        path: "$.data",
+    db.transaction(async (client) => {
+      const source = await Entity.getEntityLatestVersion(client, {
+        accountId: table1AccountId,
+        entityId: table1EntityId,
+      });
+
+      await source?.createAggregation(client, {
+        stringifiedPath: "$.data",
         operation: {
           entityTypeId: newTypeIds.Person,
           itemsPerPage: 5,
@@ -500,13 +503,11 @@ void (async () => {
               field: "createdAt",
             },
           ],
+          pageNumber: 1,
         },
-      },
-      {
-        db,
-        user,
-      },
-    );
+        createdBy: user,
+      });
+    });
   }
 
   // Create Blocks
