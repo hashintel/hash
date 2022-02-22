@@ -23,7 +23,7 @@ pub use self::error::{Error, Result};
 use self::mini_v8 as mv8;
 use super::comms::{
     inbound::InboundToRunnerMsgPayload,
-    outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, RunnerError},
+    outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload},
     ExperimentInitRunnerMsg, MessageTarget, NewSimulationRun, RunnerTaskMsg, TargetedRunnerTaskMsg,
 };
 use crate::{
@@ -46,7 +46,11 @@ use crate::{
     },
     types::TaskId,
     worker::{
-        runner::javascript::mv8::Values, Error as WorkerError, Result as WorkerResult, TaskMessage,
+        runner::{
+            comms::outbound::{PackageError, UserError, UserWarning},
+            javascript::mv8::Values,
+        },
+        Error as WorkerError, Result as WorkerResult, TaskMessage,
     },
     Language,
 };
@@ -378,21 +382,13 @@ fn schema_to_stream_bytes(schema: &Schema) -> Vec<u8> {
     stream_bytes
 }
 
-fn array_to_errors(array: mv8::Value<'_>) -> Vec<RunnerError> {
-    // TODO: Extract optional line numbers
+fn array_to_user_errors(array: mv8::Value<'_>) -> Vec<UserError> {
     let fallback = format!("Unparsed: {:?}", array);
 
     if let mv8::Value::Array(array) = array {
         let errors = array
             .elements()
-            .map(|e: mv8::Result<'_, mv8::Value<'_>>| {
-                e.map(|e| RunnerError {
-                    message: Some(format!("{:?}", e)),
-                    details: None,
-                    line_number: None,
-                    file_name: None,
-                })
-            })
+            .map(|e: mv8::Result<'_, mv8::Value<'_>>| e.map(|e| UserError(format!("{e:?}"))))
             .collect();
 
         if let Ok(errors) = errors {
@@ -400,16 +396,39 @@ fn array_to_errors(array: mv8::Value<'_>) -> Vec<RunnerError> {
         } // else unparsed
     } // else unparsed
 
-    vec![RunnerError {
-        message: Some(fallback),
-        ..RunnerError::default()
+    vec![UserError(fallback)]
+}
+
+fn array_to_user_warnings(array: mv8::Value<'_>) -> Vec<UserWarning> {
+    // TODO: Extract optional line numbers
+    let fallback = format!("Unparsed: {:?}", array);
+
+    if let mv8::Value::Array(array) = array {
+        let warnings = array
+            .elements()
+            .map(|e: mv8::Result<'_, mv8::Value<'_>>| {
+                e.map(|e| UserWarning {
+                    message: format!("{:?}", e),
+                    details: None,
+                })
+            })
+            .collect();
+
+        if let Ok(warnings) = warnings {
+            return warnings;
+        } // else unparsed
+    } // else unparsed
+
+    vec![UserWarning {
+        message: fallback,
+        details: None,
     }]
 }
 
 fn get_js_error(_mv8: &MiniV8, return_val: &mv8::Object<'_>) -> Option<Error> {
     if let Ok(errors) = return_val.get("user_errors") {
         if !matches!(errors, mv8::Value::Undefined) && !matches!(errors, mv8::Value::Null) {
-            let errors = array_to_errors(errors);
+            let errors = array_to_user_errors(errors);
             if !errors.is_empty() {
                 return Some(Error::User(errors));
             }
@@ -419,7 +438,7 @@ fn get_js_error(_mv8: &MiniV8, return_val: &mv8::Object<'_>) -> Option<Error> {
     if let Ok(mv8::Value::String(e)) = return_val.get("pkg_error") {
         // TODO: Don't silently ignore non-string, non-null-or-undefined errors
         //       (try to convert error value to JSON string and return as error?).
-        return Some(Error::Package(e.to_string()));
+        return Some(Error::Package(PackageError(e.to_string())));
     }
 
     if let Ok(mv8::Value::String(e)) = return_val.get("runner_error") {
@@ -430,10 +449,10 @@ fn get_js_error(_mv8: &MiniV8, return_val: &mv8::Object<'_>) -> Option<Error> {
     None
 }
 
-fn get_user_warnings(_mv8: &MiniV8, return_val: &mv8::Object<'_>) -> Option<Vec<RunnerError>> {
+fn get_user_warnings(_mv8: &MiniV8, return_val: &mv8::Object<'_>) -> Option<Vec<UserWarning>> {
     if let Ok(warnings) = return_val.get::<&str, mv8::Value<'_>>("user_warnings") {
         if !(warnings.is_undefined() || warnings.is_null()) {
-            let warnings = array_to_errors(warnings);
+            let warnings = array_to_user_warnings(warnings);
             if !warnings.is_empty() {
                 return Some(warnings);
             }
@@ -909,7 +928,7 @@ impl<'m> RunnerImpl<'m> {
             payload_str.clone(),
         ]);
 
-        let (next_task_msg, warnings, logs) = self.run_task(
+        match self.run_task(
             mv8,
             args,
             sim_id,
@@ -918,30 +937,55 @@ impl<'m> RunnerImpl<'m> {
             msg.task_id,
             &wrapper,
             msg.shared_store,
-        )?;
-        // TODO: `send` fn to reduce code duplication.
-        outbound_sender.send(OutboundFromRunnerMsg {
-            span: Span::current(),
-            source: Language::JavaScript,
-            sim_id,
-            payload: OutboundFromRunnerMsgPayload::TaskMsg(next_task_msg),
-        })?;
-        if let Some(warnings) = warnings {
-            outbound_sender.send(OutboundFromRunnerMsg {
-                span: Span::current(),
-                source: Language::JavaScript,
-                sim_id,
-                payload: OutboundFromRunnerMsgPayload::RunnerWarnings(warnings),
-            })?;
-        }
-        if let Some(logs) = logs {
-            outbound_sender.send(OutboundFromRunnerMsg {
-                span: Span::current(),
-                source: Language::JavaScript,
-                sim_id,
-                payload: OutboundFromRunnerMsgPayload::RunnerLogs(logs),
-            })?;
-        }
+        ) {
+            Ok((next_task_msg, warnings, logs)) => {
+                // TODO: `send` fn to reduce code duplication.
+                outbound_sender.send(OutboundFromRunnerMsg {
+                    span: Span::current(),
+                    source: Language::JavaScript,
+                    sim_id,
+                    payload: OutboundFromRunnerMsgPayload::TaskMsg(next_task_msg),
+                })?;
+                if let Some(warnings) = warnings {
+                    outbound_sender.send(OutboundFromRunnerMsg {
+                        span: Span::current(),
+                        source: Language::JavaScript,
+                        sim_id,
+                        payload: OutboundFromRunnerMsgPayload::UserWarnings(warnings),
+                    })?;
+                }
+                if let Some(logs) = logs {
+                    outbound_sender.send(OutboundFromRunnerMsg {
+                        span: Span::current(),
+                        source: Language::JavaScript,
+                        sim_id,
+                        payload: OutboundFromRunnerMsgPayload::RunnerLogs(logs),
+                    })?;
+                }
+            }
+            Err(error) => {
+                // UserErrors and PackageErrors are not fatal to the Runner
+                if let Error::User(errors) = error {
+                    outbound_sender.send(OutboundFromRunnerMsg {
+                        span: Span::current(),
+                        source: Language::JavaScript,
+                        sim_id,
+                        payload: OutboundFromRunnerMsgPayload::UserErrors(errors),
+                    })?;
+                } else if let Error::Package(package_error) = error {
+                    outbound_sender.send(OutboundFromRunnerMsg {
+                        span: Span::current(),
+                        source: Language::JavaScript,
+                        sim_id,
+                        payload: OutboundFromRunnerMsgPayload::PackageError(package_error),
+                    })?;
+                } else {
+                    // All other types of errors are fatal.
+                    return Err(error);
+                }
+            }
+        };
+
         Ok(())
     }
 
@@ -970,7 +1014,7 @@ impl<'m> RunnerImpl<'m> {
         mut shared_store: TaskSharedStore,
     ) -> Result<(
         TargetedRunnerTaskMsg,
-        Option<Vec<RunnerError>>,
+        Option<Vec<UserWarning>>,
         Option<Vec<String>>,
     )> {
         tracing::debug!("Calling JS run_task");
@@ -981,10 +1025,9 @@ impl<'m> RunnerImpl<'m> {
 
         tracing::debug!("Post-processing run_task result");
         if let Some(error) = get_js_error(mv8, &return_val) {
-            // All types of errors are fatal (user, package, runner errors).
             return Err(error);
         }
-        let warnings = get_user_warnings(mv8, &return_val);
+        let user_warnings = get_user_warnings(mv8, &return_val);
         let logs = get_print(mv8, &return_val);
         let (next_target, next_task_payload) = get_next_task(mv8, &return_val)?;
 
@@ -1011,7 +1054,7 @@ impl<'m> RunnerImpl<'m> {
                 payload: next_task_payload,
             },
         };
-        Ok((next_task_msg, warnings, logs))
+        Ok((next_task_msg, user_warnings, logs))
     }
 
     fn ctx_batch_sync(
