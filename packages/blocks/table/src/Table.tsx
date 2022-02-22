@@ -99,7 +99,7 @@ const cleanUpdateLinkedAggregationAction = (
 ) => {
   return produce(action, (draftAction) => {
     draftAction.updatedOperation.multiSort =
-      action.updatedOperation.multiSort?.map((sort) => {
+      draftAction.updatedOperation.multiSort?.map((sort) => {
         const newSort = sort as BlockProtocolMultiSort[number] & {
           __typename?: string;
         };
