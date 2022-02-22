@@ -22,6 +22,7 @@
     "dev:backend:realtime": "yarn workspace @hashintel/hash-realtime dev",
     "dev:backend:search-loader": "yarn workspace @hashintel/hash-search-loader dev",
     "dev:frontend": "yarn workspace @hashintel/hash-frontend dev",
+    "exe": "ts-node --require dotenv-flow/config --transpile-only",
     "external-services": "docker-compose --file external-services/docker-compose.yml",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "fix:dependency-version-consistency": "check-dependency-version-consistency --fix . --ignore-package=@hashengine/apache-arrow-js-bundle",
@@ -57,9 +58,13 @@
     "node-fetch": "^2.6.7"
   },
   "devDependencies": {
+    "algoliasearch": "4.12.1",
     "check-dependency-version-consistency": "2.0.0",
     "concurrently": "7.0.0",
     "cross-env": "7.0.3",
+    "dotenv-flow": "3.2.0",
+    "envalid": "7.2.2",
+    "gray-matter": "4.0.3",
     "husky": "7.0.4",
     "lint-staged": "12.3.3",
     "markdownlint-cli": "0.31.1",
@@ -71,6 +76,7 @@
     "prettier-plugin-sh": "0.8.1",
     "serve": "13.0.2",
     "suppress-exit-code": "1.0.0",
+    "ts-node": "10.4.0",
     "wait-on": "6.0.0",
     "yarn-deduplicate": "3.1.0"
   }

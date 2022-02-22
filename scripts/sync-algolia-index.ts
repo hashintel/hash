@@ -2,6 +2,9 @@ import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
 import algoliasearch from "algoliasearch";
+import * as envalid from "envalid";
+
+const monorepoDirPath = path.resolve(__dirname, "..");
 
 type DocsFrontMatter = {
   content: string;
@@ -48,7 +51,7 @@ const getFileInfos = (
 };
 
 type AlgoliaRecord = {
-  objectId: string;
+  objectId: undefined;
   content: string;
   objectID: string;
   type: string;
@@ -59,7 +62,7 @@ type AlgoliaRecord = {
 };
 
 const generateAlgoliaRecords: () => AlgoliaRecord[] = () => {
-  const getFormattedData = (matterData: DocsFrontMatter, type) => {
+  const getFormattedData = (matterData: DocsFrontMatter, type: string) => {
     const appendData = {
       ...matterData.data,
       objectId: undefined,
@@ -72,12 +75,12 @@ const generateAlgoliaRecords: () => AlgoliaRecord[] = () => {
   };
 
   const glossaryFiles = getFileInfos(
-    "../../../resources/glossary",
+    path.resolve(monorepoDirPath, "resources/glossary"),
     [],
     "glossary",
   );
   const docsFiles = getFileInfos(
-    "../../../resources/docs/simulation",
+    path.resolve(monorepoDirPath, "resources/docs/simulation"),
     [],
     "docs",
   );
@@ -96,10 +99,19 @@ const generateAlgoliaRecords: () => AlgoliaRecord[] = () => {
 };
 
 const syncAlgoliaIndex = async () => {
-  const client = algoliasearch(
-    process.env.ALGOLIA_PROJECT,
-    process.env.AGOLIA_WRITE_KEY,
-  );
+  const env = envalid.cleanEnv(process.env, {
+    ALGOLIA_PROJECT: envalid.str({
+      desc: "Algolia app id",
+      example: "A1B2C3D4C5D6",
+      docs: "https://www.algolia.com/doc/api-client/getting-started/instantiate-client-index/javascript/?client=javascript",
+    }),
+    ALGOLIA_WRITE_KEY: envalid.str({
+      desc: "Algolia app API key with write permissions (32-char HEX)",
+      docs: "https://www.algolia.com/doc/api-client/getting-started/instantiate-client-index/javascript/?client=javascript",
+    }),
+  });
+
+  const client = algoliasearch(env.ALGOLIA_PROJECT, env.ALGOLIA_WRITE_KEY);
 
   const index = client.initIndex("hash_learn");
 
