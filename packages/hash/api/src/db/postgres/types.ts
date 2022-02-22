@@ -3,54 +3,37 @@ import {
   DatabaseTransactionConnectionType,
 } from "slonik";
 
-// The variant kinds are distinct types.
-// Enum and union types unify at the top level type, which isn't desired for these typings.
-export type PoolConnectionKind = "PoolConnectionKind";
-export type TransactionConnectionKind = "TransactionConnection";
-
-/**
- * The types given for {@link PoolConnectionKind} and {@link TransactionConnectionKind} cannot be used as values directly.
- * This object maps a connection kind to its type.
- */
-export const ConnectionKind = {
-  PoolConnection: <PoolConnectionKind>"PoolConnectionKind",
-  TransactionConnection: <TransactionConnectionKind>"TransactionConnectionKind",
+export type PoolConnection = DatabasePoolConnectionType & {
+  type: "Pool";
 };
 
-export type PoolConnection = DatabasePoolConnectionType;
 export type TransactionConnection = Omit<
   DatabaseTransactionConnectionType,
   "transaction"
->;
-
-/**
- * Defines a tagging of type variants such that they can be narrowed at runtime.
- */
-export type Tag<Typ, UnionTag> = Typ & { _tag: UnionTag };
+> & { type: "Transaction" };
 
 /**
  * Postgres connection types.
  * Note that {@link TransactionConnection} does not allow for nested transactions.
- * Construction of these types can be done through {@link poolConnection} or {@link transactionConnection}
+ * Construction of these types can be done through {@link createPoolConnection} or {@link createTransactionConnection}
  */
-export type Connection =
-  | Tag<PoolConnection, PoolConnectionKind>
-  | Tag<TransactionConnection, TransactionConnectionKind>;
+export type Connection = PoolConnection | TransactionConnection;
 
 /**
  * Construct {@link PoolConnection} variant tagged with {@link PoolConnectionKind}
  * @param database pool connection
  * @returns a {@link Connection}
  */
-export const poolConnection = (connection: PoolConnection): Connection =>
-  Object.assign(connection, { _tag: ConnectionKind.PoolConnection });
+export const createPoolConnection = (
+  connection: DatabasePoolConnectionType,
+): PoolConnection => Object.assign(connection, { type: "Pool" } as const);
 
 /**
  * Construct {@link TransactionConnection} variant tagged with {@link TransactionConnectionKind}
  * @param database transaction connection
  * @returns a {@link Connection}
  */
-export const transactionConnection = (
-  connection: TransactionConnection,
-): Connection =>
-  Object.assign(connection, { _tag: ConnectionKind.TransactionConnection });
+export const createTransactionConnection = (
+  connection: DatabaseTransactionConnectionType,
+): TransactionConnection =>
+  Object.assign(connection, { type: "Transaction" } as const);

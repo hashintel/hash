@@ -1,7 +1,14 @@
 import { sql } from "slonik";
-import { Connection, ConnectionKind, transactionConnection } from "./types";
+import {
+  Connection,
+  createTransactionConnection,
+  TransactionConnection,
+} from "./types";
 
-export { poolConnection, transactionConnection } from "./types";
+export {
+  createPoolConnection as poolConnection,
+  createTransactionConnection as transactionConnection,
+} from "./types";
 
 /**
  * Conditionally create transaction or use active transaction depending on connection kind.
@@ -12,10 +19,10 @@ export { poolConnection, transactionConnection } from "./types";
  */
 export const transaction =
   (connection: Connection) =>
-  <T>(handler: (conn: Connection) => Promise<T>): Promise<T> => {
-    if (connection._tag === ConnectionKind.PoolConnection) {
+  <T>(handler: (conn: TransactionConnection) => Promise<T>): Promise<T> => {
+    if (connection.type === "Pool") {
       return connection.transaction(async (conn) => {
-        return handler(transactionConnection(conn));
+        return handler(createTransactionConnection(conn));
       });
     } else {
       return handler(connection);
