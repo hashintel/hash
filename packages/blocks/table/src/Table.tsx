@@ -16,6 +16,8 @@ import {
 import { BlockComponent } from "blockprotocol/react";
 import { tw } from "twind";
 import { orderBy } from "lodash";
+import { produce } from "immer";
+
 import { EditableCell } from "./components/EditableCell";
 import { makeColumns } from "./lib/columns";
 import { getSchemaPropertyDefinition } from "./lib/getSchemaProperty";
@@ -95,22 +97,20 @@ const cleanUpdateLinkedAggregationAction = (
     };
   },
 ) => {
-  const nextAction = action;
+  return produce(action, (draftAction) => {
+    draftAction.updatedOperation.multiSort =
+      action.updatedOperation.multiSort?.map((sort) => {
+        const newSort = sort as BlockProtocolMultiSort[number] & {
+          __typename?: string;
+        };
+        delete newSort.__typename;
+        return newSort;
+      });
 
-  nextAction.updatedOperation.multiSort =
-    action.updatedOperation.multiSort?.map((sort) => {
-      const newSort = sort as BlockProtocolMultiSort[number] & {
-        __typename?: string;
-      };
-      delete newSort.__typename;
-      return newSort;
-    });
+    delete draftAction.updatedOperation.pageCount;
 
-  delete nextAction.updatedOperation.pageCount;
-
-  delete nextAction.updatedOperation.__typename;
-
-  return nextAction;
+    delete draftAction.updatedOperation.__typename;
+  });
 };
 
 const path = "$.data";
