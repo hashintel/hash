@@ -12,10 +12,10 @@ export { poolConnection, transactionConnection } from "./types";
  */
 export const transaction =
   (connection: Connection) =>
-  async <T>(handler: (conn: Connection) => Promise<T>): Promise<T> => {
+  <T>(handler: (conn: Connection) => Promise<T>): Promise<T> => {
     if (connection._tag === ConnectionKind.PoolConnection) {
       return connection.transaction(async (conn) => {
-        return await handler(transactionConnection(conn));
+        return handler(transactionConnection(conn));
       });
     } else {
       return handler(connection);
