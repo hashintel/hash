@@ -20,7 +20,7 @@ export type TransactionConnection = Omit<
 export type Connection = PoolConnection | TransactionConnection;
 
 /**
- * Construct {@link PoolConnection} variant tagged with {@link PoolConnectionKind}
+ * Construct {@link PoolConnection} variant tagged with a type
  * @param database pool connection
  * @returns a {@link Connection}
  */
@@ -29,7 +29,7 @@ export const createPoolConnection = (
 ): PoolConnection => Object.assign(connection, { type: "Pool" } as const);
 
 /**
- * Construct {@link TransactionConnection} variant tagged with {@link TransactionConnectionKind}
+ * Construct {@link TransactionConnection} variant tagged a type
  * @param database transaction connection
  * @returns a {@link Connection}
  */
