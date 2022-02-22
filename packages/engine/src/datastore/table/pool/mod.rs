@@ -8,7 +8,6 @@ use parking_lot::RwLock;
 
 use self::proxy::{PoolReadProxy, PoolWriteProxy};
 use crate::datastore::{
-    batch::Batch,
     prelude::Result,
     table::proxy::{BatchReadProxy, BatchWriteProxy},
 };
@@ -31,7 +30,7 @@ trait Pool<B> {
 /// [`partial_read_proxies()`]: Self::partial_read_proxies
 /// [`write_proxies()`]: Self::write_proxies
 /// [`partial_write_proxies()`]: Self::partial_write_proxies
-pub trait BatchPool<B: Batch>: Send + Sync {
+pub trait BatchPool<B>: Send + Sync {
     /// Creates a new pool from [`Batches`].
     ///
     /// Because of the way `BatchPools` are organized it's required that the [`Batch`]es are
@@ -128,7 +127,7 @@ pub trait BatchPool<B: Batch>: Send + Sync {
     fn partial_write_proxies(&mut self, indices: &[usize]) -> Result<PoolWriteProxy<B>>;
 }
 
-impl<P: Pool<B> + Send + Sync, B: Batch> BatchPool<B> for P {
+impl<P: Pool<B> + Send + Sync, B> BatchPool<B> for P {
     fn new(batches: Vec<Arc<RwLock<B>>>) -> Self {
         Pool::new(batches)
     }

@@ -3,11 +3,7 @@ use std::sync::Arc;
 use parking_lot::RwLock;
 
 use crate::{
-    datastore::{
-        batch::{AgentBatch, DynamicBatch},
-        table::pool::proxy::PoolWriteProxy,
-        Result,
-    },
+    datastore::{batch::AgentBatch, table::pool::proxy::PoolWriteProxy, Result},
     simulation::package::state::StateColumn,
 };
 
@@ -42,14 +38,14 @@ impl Extend<AgentBatch> for AgentPool {
 
 impl PoolWriteProxy<AgentBatch> {
     /// TODO: DOC
-    pub fn set_pending_column(&mut self, column: StateColumn) -> Result<()> {
-        let mut index = 0;
+    pub fn modify_loaded_column(&mut self, column: StateColumn) -> Result<()> {
+        let mut group_start = 0;
         for batch in self.batches_iter_mut() {
             let num_agents = batch.num_agents();
-            let next_index = index + num_agents;
-            let change = column.get_arrow_change(index..next_index)?;
-            batch.push_change(change)?;
-            index = next_index;
+            let next_start = group_start + num_agents;
+            let change = column.get_arrow_change(group_start..next_start)?;
+            batch.queue_change(change)?;
+            group_start = next_start;
         }
         Ok(())
     }

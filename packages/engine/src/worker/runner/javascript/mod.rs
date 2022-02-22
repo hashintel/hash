@@ -32,7 +32,7 @@ use crate::{
     config::Globals,
     datastore::{
         arrow::util::arrow_continuation,
-        batch::{change::ArrayChange, Batch, DynamicBatch, Metaversion},
+        batch::{change::ColumnChange, ArrowBatch, Metaversion},
         prelude::{AgentBatch, MessageBatch, SharedStore},
         storage::memory::Memory,
         table::{
@@ -315,37 +315,26 @@ fn mem_batch_to_js<'m>(
     mv8: &'m MiniV8,
     batch_id: &str,
     mem: mv8::Object<'m>,
-    metaversion: &Metaversion,
+    persisted: Metaversion,
 ) -> Result<mv8::Value<'m>> {
     let batch = mv8.create_object();
     let batch_id = mv8.create_string(batch_id);
     batch.set("id", mv8::Value::String(batch_id))?;
     batch.set("mem", mem)?;
-    batch.set("mem_version", metaversion.memory())?;
-    batch.set("batch_version", metaversion.batch())?;
+    batch.set("mem_version", persisted.memory())?;
+    batch.set("batch_version", persisted.batch())?;
     Ok(mv8::Value::Object(batch))
 }
 
 fn batch_to_js<'m>(
     mv8: &'m MiniV8,
     mem: &Memory,
-    metaversion: &Metaversion,
+    persisted: Metaversion,
 ) -> Result<mv8::Value<'m>> {
     // TODO: Is `mem.data.len()` different from `mem.size`? (like Vec capacity vs len?)
     let arraybuffer = mv8.create_arraybuffer(mem.data.as_ptr(), mem.size);
     let batch_id = mem.get_id();
-    mem_batch_to_js(mv8, batch_id, arraybuffer, metaversion)
-}
-
-fn _mut_batch_to_js<'m>(
-    mv8: &'m MiniV8,
-    mem: &mut Memory,
-    metaversion: &Metaversion,
-) -> Result<mv8::Value<'m>> {
-    // TODO: Is `mem.data.len()` different from `mem.size`?
-    let arraybuffer = mv8.create_arraybuffer(mem.as_mut_ptr(), mem.size);
-    let batch_id = mem.get_id();
-    mem_batch_to_js(mv8, batch_id, arraybuffer, metaversion)
+    mem_batch_to_js(mv8, batch_id, arraybuffer, persisted)
 }
 
 fn state_to_js<'m, 'a, 'b>(
@@ -361,10 +350,18 @@ fn state_to_js<'m, 'a, 'b>(
         .zip(msg_batches.into_iter())
         .enumerate()
     {
-        let agent_batch = batch_to_js(mv8, agent_batch.memory(), agent_batch.metaversion())?;
+        let agent_batch = batch_to_js(
+            mv8,
+            agent_batch.memory(),
+            agent_batch.persisted_metaversion(),
+        )?;
         js_agent_batches.set(i_batch as u32, agent_batch)?;
 
-        let message_batch = batch_to_js(mv8, message_batch.memory(), message_batch.metaversion())?;
+        let message_batch = batch_to_js(
+            mv8,
+            message_batch.memory(),
+            message_batch.persisted_metaversion(),
+        )?;
         js_message_batches.set(i_batch as u32, message_batch)?;
     }
     Ok((
@@ -508,7 +505,7 @@ impl<'m> RunnerImpl<'m> {
         for (dataset_name, dataset) in shared_ctx.datasets.iter() {
             let js_name = mv8.create_string(dataset_name.as_str());
 
-            let json = dataset.memory().get_data_buffer()?;
+            let json = dataset.data();
             // TODO: Use `from_utf8_unchecked` instead here?
             //       (Since datasets' json can be quite large.)
             let json =
@@ -893,11 +890,11 @@ impl<'m> RunnerImpl<'m> {
         Ok(builder.build()?)
     }
 
-    fn flush_batch<B: DynamicBatch>(
+    fn flush_batch(
         &mut self,
         mv8: &'m MiniV8,
         changes: mv8::Array<'m>,
-        batch: &mut B,
+        batch: &mut ArrowBatch,
         schema: &Schema,
     ) -> Result<()> {
         for change in changes.elements() {
@@ -909,8 +906,8 @@ impl<'m> RunnerImpl<'m> {
 
             let data: mv8::Value<'_> = change.get("data")?;
             let data = self.array_data_from_js(mv8, &data, field.data_type(), None)?;
-            batch.push_change(ArrayChange {
-                array: data,
+            batch.queue_change(ColumnChange {
+                data,
                 index: i_field,
             })?;
         }
@@ -1075,7 +1072,7 @@ impl<'m> RunnerImpl<'m> {
         Ok(())
     }
 
-    /// TODO
+    /// TODO: DOC
     fn handle_task_msg(
         &mut self,
         mv8: &'m MiniV8,
@@ -1252,7 +1249,11 @@ impl<'m> RunnerImpl<'m> {
 
         let args = mv8::Values::from_vec(vec![
             sim_id_to_js(mv8, sim_run_id),
-            batch_to_js(mv8, context_batch.memory(), context_batch.metaversion())?,
+            batch_to_js(
+                mv8,
+                context_batch.memory(),
+                context_batch.persisted_metaversion(),
+            )?,
             idxs_to_js(mv8, &state_group_start_indices)?,
             current_step_to_js(mv8, current_step),
         ]);

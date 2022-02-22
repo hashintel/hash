@@ -184,7 +184,7 @@ impl Engine {
             .instrument(tracing::info_span!("context_sync"))
             .await?;
 
-        // Note: the comment below is mostly invalid until state sync is fixed
+        // Note: the comment below is mostly invalid until state sync is fixed:
         // We need to wait for state sync because state packages in the main loop
         // shouldn't write to state before workers have finished reading state.
         // In the case of the state snapshot, the main loop also shouldn't write to
@@ -210,7 +210,8 @@ impl Engine {
     }
 
     pub async fn run_output_packages(&mut self) -> Result<SimulationStepOutput> {
-        let (state, context) = self.store.take()?;
+        let (mut state, context) = self.store.take()?;
+        state.write()?.maybe_reload()?;
         let state = Arc::new(state);
         let context = Arc::new(context);
 
@@ -249,10 +250,11 @@ impl Engine {
         self.handle_messages(state, &message_map)?;
         let message_pool = self.finalize_agent_messages(state, context)?;
         let agent_pool = self.finalize_agent_state(state, context)?;
-        let state_view = StatePools {
+        let mut state_view = StatePools {
             agent_pool,
             message_pool,
         };
+        state_view.write()?.maybe_reload()?;
         Ok(StateSnapshot {
             state: state_view,
             message_map,

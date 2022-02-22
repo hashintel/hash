@@ -3,7 +3,7 @@ use serde_json::Value;
 use super::super::*;
 use crate::{
     config::{ExperimentConfig, TopologyConfig},
-    datastore::table::pool::BatchPool,
+    datastore::{batch::iterators::rb::topology_mut_iter, table::pool::BatchPool},
 };
 
 mod adjacency;
@@ -58,8 +58,11 @@ pub struct Topology {
 
 impl Topology {
     fn topology_correction(&self, batch: &mut AgentBatch) -> Result<bool> {
+        batch.maybe_reload()?;
+
         let mut ret = false;
-        let (pos_dir_mut_iter, mut position_was_corrected_col) = batch.topology_mut_iter()?;
+        let (pos_dir_mut_iter, mut position_was_corrected_col) =
+            topology_mut_iter(batch.record_batch_mut()?)?;
         pos_dir_mut_iter.enumerate().for_each(|(i, (pos, dir))| {
             let corrected = adjacency::correct_agent(pos, dir, &self.config);
             unsafe { position_was_corrected_col.set(i, corrected) };
@@ -83,7 +86,7 @@ impl Package for Topology {
             for agent_batch in state.agent_pool_mut().write_proxies()?.batches_iter_mut() {
                 if self.topology_correction(agent_batch)? {
                     // TODO: inplace changes and metaversioning should happen at a deeper level.
-                    agent_batch.metaversion.increment_batch();
+                    agent_batch.increment_batch_version();
                 }
             }
         }

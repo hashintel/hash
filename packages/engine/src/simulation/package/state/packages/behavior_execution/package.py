@@ -19,7 +19,7 @@ def load_behaviors(behavior_descs):
             bytecode = compile(desc.source.decode("utf-8"), desc.name, "exec")
             exec(bytecode, behavior_globals)
             behavior_fn = behavior_globals.get("behavior")
-            
+
             if callable(behavior_fn):
                 behaviors[desc.id] = {
                     "name": desc.name,
@@ -32,7 +32,7 @@ def load_behaviors(behavior_descs):
                 warnings.append(
                     "Couldn't load behavior: No function named 'behavior': " + desc.name
                 )
-            
+
         except Exception as e:
             # Have to catch generic `Exception`, because user's code could throw anything.
             n_pkg_fns = 2
@@ -90,32 +90,32 @@ def run_task(experiment, sim, _task_message, group_state, group_context):
     next_lang = None
     agent_state = None
     agent_context = None
-    
+
     for i_agent in range(group_state.n_agents()):
-    
+
         # Reuse `agent_state` object.
         agent_state = group_state.get_agent(i_agent, agent_state)
 
-        behavior_ids = agent_state.__behaviors
-        i_behavior = agent_state.__i_behavior # Need `i_behavior` outside loop scope.
-        while i_behavior < len(behavior_ids):
-            agent_state.__i_behavior = i_behavior
+        # ids of behaviors of this agent
+        behavior_ids = getattr(agent_state, BEHAVIOR_IDS_FIELD_KEY)
+        if len(behavior_ids) == 0:
+            continue  # This agent has no behaviors to run.
 
             behavior = experiment.behaviors[behavior_ids[i_behavior]]
             if behavior.language != "js":
                 next_lang = behavior.language # Multiple assignments are fine.
                 break
-            
+
             group_state.set_dynamic_access(behavior.dyn_access)
-            agent_context = group_context.get_agent(i_agent, agent_context)    
-    
+            agent_context = group_context.get_agent(i_agent, agent_context)
+
             try:
                 behavior.fn(agent_state, agent_context)
                 postprocess(agent_state)
-                
+
             except Exception as e:
                 # Have to catch generic `Exception`, because user's code could throw anything.
-                
+
                 error = format_behavior_error(behavior.name, e, sys.exc_info())
                 agent_state.__i_behavior = i_behavior
                 return {

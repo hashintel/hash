@@ -50,7 +50,7 @@ pub mod prelude {
         batch::{
             metaversion::Metaversion,
             migration::{CopyAction, CreateAction, RemoveAction, RowActions},
-            AgentBatch, AgentIndex, Batch, ContextBatch, Dataset, MessageBatch, MessageIndex,
+            AgentBatch, AgentIndex, ContextBatch, Dataset, MessageBatch, MessageIndex,
         },
         error::{Error, Result, SupportedType},
         meta::{
@@ -107,7 +107,7 @@ pub mod tests {
                 }
             }
             let change = state_batch.agent_name_as_array(column)?;
-            state_batch.push_change(change)?;
+            state_batch.queue_change(change)?;
             state_batch.flush_changes()?;
             Ok(targets)
         }

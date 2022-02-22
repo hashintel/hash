@@ -14,7 +14,7 @@ pub struct ResetIndexCol {
 }
 
 impl IntoArrowChange for ResetIndexCol {
-    fn get_arrow_change(&self, range: std::ops::Range<usize>) -> DatastoreResult<ArrayChange> {
+    fn get_arrow_change(&self, range: std::ops::Range<usize>) -> DatastoreResult<ColumnChange> {
         let num_agents = range.end - range.start;
 
         // new_buffer delegates to a method that zeroes the memory so we don't need to initialize
@@ -26,6 +26,6 @@ impl IntoArrowChange for ResetIndexCol {
             .add_buffer(data.into())
             .build()?;
 
-        Ok(ArrayChange::new(data, self.behavior_index_col_index))
+        Ok(ColumnChange::new(data, self.behavior_index_col_index))
     }
 }

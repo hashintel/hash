@@ -114,8 +114,11 @@
 
   /// `latest_batch` should have `id` (string), `batch_version` (number),
   /// `mem_version` (number) and `mem` (ArrayBuffer) fields.
+  // TODO: Read persisted metaversion from memory, removing the need
+  //       for the version fields in `latest_batch`.
   Batch.prototype.sync = function (latest_batch, schema) {
     const should_load = this.batch_version < latest_batch.batch_version;
+
     if (this.mem_version < latest_batch.mem_version) {
       if (!should_load) {
         throw new Error(
@@ -123,9 +126,11 @@
         );
       }
 
+      // JS is in same process as Rust, so just need to update pointer.
       this.mem = latest_batch.mem;
       this.mem_version = latest_batch.mem_version;
     }
+
     if (should_load) {
       this.vectors = load_marked_vectors(this.mem, schema);
       this.cols = {}; // Reset columns because they might be invalid due to vectors changing.

@@ -4,7 +4,6 @@ use std::{borrow::Cow, mem, ops::Deref, sync::Arc};
 
 use arrow::util::bit_util;
 
-use super::ArrowBatch;
 use crate::{
     datastore::{batch::AgentBatch, prelude::*, schema::state::AgentSchema},
     proto::ExperimentId,
@@ -421,25 +420,33 @@ impl<'a> BufferActions<'a> {
     }
 
     pub fn flush(&self, batch: &mut AgentBatch) -> Result<()> {
+        // TODO: Replace unversioned access to batch with higher-level access
+        //       (checking loaded and persisted metaversions) and ideally
+        //       rearrange modules so migration doesn't have access to
+        //       internal batch traits.
+        debug_assert!(batch.is_persisted());
         debug_assert!(offsets_start_at_zero(
-            &batch.memory,
-            &batch.static_meta,
-            &batch.dynamic_meta,
+            batch.memory(),
+            batch.static_meta(),
+            batch.dynamic_meta(),
         )?);
 
-        batch.metaversion.increment_with(
-            &batch
-                .memory
-                .set_data_length(self.new_dynamic_meta.data_length)?,
-        );
-        self.flush_memory(&mut batch.memory)?;
+        let change = batch
+            .memory_mut()
+            .set_data_length(self.new_dynamic_meta.data_length)?;
+        batch.loaded_metaversion_mut().increment_with(&change);
+        self.flush_memory(batch.memory_mut())?;
+        let loaded = batch.loaded_metaversion();
+        batch.set_persisted_metaversion(loaded);
+
         // Overwrite the Arrow Batch Metadata in memory
-        batch.set_dynamic_meta(&self.new_dynamic_meta)?;
+        batch.flush_dynamic_meta_unchecked(&self.new_dynamic_meta)?;
         debug_assert!(offsets_start_at_zero(
-            &batch.memory,
-            &batch.static_meta,
-            &batch.dynamic_meta,
+            batch.memory(),
+            batch.static_meta(),
+            batch.dynamic_meta(),
         )?);
+
         // Reload RecordBatch from memory
         batch.reload_record_batch()?;
         Ok(())
@@ -520,9 +527,8 @@ impl<'a> BufferActions<'a> {
                     let mut cur_length = if let Some(batch) = batch {
                         let start_index = buffer_meta.offset;
                         let end_index = start_index + buffer_meta.length;
-                        let data =
-                            &batch.as_ref().memory.get_data_buffer()?[start_index..end_index];
-                        debug_assert_eq!(data, batch.as_ref().get_buffer(buffer_index).unwrap());
+                        let data = &batch.memory().get_data_buffer()?[start_index..end_index];
+                        debug_assert_eq!(data, batch.get_buffer(buffer_index).unwrap());
                         debug_assert!(range_actions.is_well_ordered_remove());
                         let mut removed_count = 0;
                         range_actions.remove().iter().for_each(|range| {
@@ -562,7 +568,7 @@ impl<'a> BufferActions<'a> {
                         .copy()
                         .iter()
                         .try_for_each::<_, Result<()>>(|(j, v)| {
-                            let src_buffer = batches[*j].as_ref().get_buffer(buffer_index)?;
+                            let src_buffer = batches[*j].get_buffer(buffer_index)?;
 
                             v.iter().for_each(|range| {
                                 unset_bit_count += copy_bits_unchecked(
@@ -643,7 +649,7 @@ impl<'a> BufferActions<'a> {
                     debug_assert!({ range_actions.is_well_ordered_remove() });
                     let buffer = batch.map_or_else(
                         || Ok(&EMPTY_OFFSET_BUFFER[..]),
-                        |batch| batch.as_ref().get_buffer(buffer_index),
+                        |batch| batch.get_buffer(buffer_index),
                     )?;
 
                     // Markers are always n + 1 long
@@ -730,11 +736,7 @@ impl<'a> BufferActions<'a> {
                             .iter_mut()
                             .try_for_each::<_, Result<()>>(|(j, ranges)| {
                                 let src_buffer = unsafe {
-                                    batches[*j]
-                                        .as_ref()
-                                        .get_buffer(buffer_index)?
-                                        .align_to::<i32>()
-                                        .1
+                                    batches[*j].get_buffer(buffer_index)?.align_to::<i32>().1
                                 };
                                 ranges.iter_mut().for_each(|range| {
                                     let first_offset = src_buffer[range.index];
@@ -887,7 +889,7 @@ impl<'a> BufferActions<'a> {
                             .copy()
                             .iter()
                             .try_for_each::<_, Result<()>>(|(j, v)| {
-                                let src_buffer = batches[*j].as_ref().get_buffer(buffer_index)?;
+                                let src_buffer = batches[*j].get_buffer(buffer_index)?;
                                 v.iter().for_each(|range| {
                                     let from = range.index * unit_byte_size;
                                     let to = range.next_index() * unit_byte_size;
@@ -1015,7 +1017,7 @@ impl<'a> BufferActions<'a> {
         new_agents: Option<&'a RecordBatch>,
     ) -> Result<BufferActions<'a>> {
         let batch = batch_index.map(|index| &batches[index]);
-        let dynamic_meta = batch_index.map(|index| &batches[index].as_ref().dynamic_meta);
+        let dynamic_meta = batch_index.map(|index| batches[index].dynamic_meta());
         let mut next_indices = NextState {
             node_index: 0,
             buffer_index: 0,
@@ -1535,7 +1537,7 @@ pub(super) mod test {
             batch_index,
             (&row_actions).into(),
             &schema.static_meta,
-            Some(&create_agents.batch),
+            Some(&create_agents.rb),
         )?;
         buffer_actions.flush(&mut pool[0])?;
         println!("Migration took: {} us", now.elapsed().as_micros());
@@ -1720,7 +1722,7 @@ pub(super) mod test {
             batch_index,
             (&row_actions).into(),
             &schema.static_meta,
-            Some(&create_agents.batch),
+            Some(&create_agents.rb),
         )?;
         buffer_actions.flush(&mut pool[0])?;
         println!("Migration took: {} us", now.elapsed().as_micros());

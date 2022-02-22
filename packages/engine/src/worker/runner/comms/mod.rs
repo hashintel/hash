@@ -127,7 +127,7 @@ impl TargetedRunnerTaskMsg {
         let target = task_msg.target().into();
         let package_id = (task_msg.package_sid() as usize).into();
         // TODO: our version of flatbuffers doesn't let us have optional Scalars
-        // let group_index = task_msg.group_index().map(|val| val as usize);
+        let group_index = task_msg.group_index().map(|g| g.inner() as usize);
 
         let inner_msg: serde_json::Value = serde_json::from_slice(task_msg.payload().inner())?;
         let payload = TaskMessage::try_from_inner_msg_and_wrapper(inner_msg, sent.task_wrapper);
@@ -146,7 +146,7 @@ impl TargetedRunnerTaskMsg {
             msg: RunnerTaskMsg {
                 package_id,
                 task_id,
-                group_index: todo!(),
+                group_index,
                 payload,
                 shared_store: sent.shared_store,
             },

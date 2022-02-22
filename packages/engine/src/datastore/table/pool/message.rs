@@ -8,7 +8,7 @@ use rayon::iter::{
 use super::BatchPool;
 use crate::{
     datastore::{
-        batch::{self, AgentBatch, MessageBatch},
+        batch::{self, message, AgentBatch, MessageBatch},
         table::{
             pool::proxy::{PoolReadProxy, PoolWriteProxy},
             references::AgentMessageReference,
@@ -44,22 +44,22 @@ impl super::Pool<MessageBatch> for MessagePool {
 }
 
 impl PoolReadProxy<MessageBatch> {
-    pub fn get_reader(&self) -> MessageReader<'_> {
-        MessageReader {
-            loaders: self
-                .batches_iter()
-                .map(MessageBatch::message_loader)
-                .collect(),
-        }
+    pub fn get_reader(&self) -> Result<MessageReader<'_>> {
+        let loaders: Result<_> = self
+            .batches_iter()
+            .map(|b| b.record_batch())
+            .map(|res| res.map(message::rb::message_loader))
+            .collect();
+        Ok(MessageReader { loaders: loaders? })
     }
 
     pub fn recipient_iter_all<'b: 'r, 'r>(
         &'b self,
     ) -> impl ParallelIterator<Item = (Vec<&'b str>, AgentMessageReference)> + 'r {
         self.batches.par_iter().enumerate().flat_map(|(i, batch)| {
-            batch
-                .message_recipients_par_iter()
-                .zip_eq(batch.message_usize_index_iter(i))
+            let rb = batch.record_batch().unwrap(); // TODO: Unwrap --> err
+            message::rb::message_recipients_par_iter(rb)
+                .zip_eq(message::rb::message_usize_index_iter(rb, i))
                 .flat_map(|(recipients, references)| {
                     let res = recipients.collect::<Vec<_>>();
                     let refs = references.collect::<Vec<_>>();

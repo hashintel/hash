@@ -180,7 +180,7 @@ macro_rules! apply_index_filter_str {
             OutputCreator::index_creator(&$operations[1..], $accessor)? as OutputRunnerCreator;
         let field = $field.clone();
         Ok(Box::new(move |agents| {
-            let str_iterator = str_iter(agents, &field)?;
+            let str_iterator = str_iter(&agents, &field)?;
             let next = following(agents)?;
             let $cloned = $string.clone();
             Ok(Box::new(

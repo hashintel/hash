@@ -3,7 +3,6 @@ use std::sync::Arc;
 use crate::{
     config::StoreConfig,
     datastore::{
-        batch::DynamicBatch,
         prelude::*,
         schema::state::AgentSchema,
         table::{
@@ -95,7 +94,7 @@ impl Context {
     ///
     /// # Errors
     ///
-    /// Returns an error, if the context batch is currently in used, e.g. by cloning the [`Arc`]
+    /// Returns an error if the context batch is currently in use, e.g. due to cloning the [`Arc`]
     /// returned from [`global_batch()`](Self::global_batch).
     pub fn global_batch_mut(&mut self) -> Result<&mut ContextBatch> {
         Arc::get_mut(&mut self.batch)
@@ -191,7 +190,7 @@ impl PreContext {
         self,
         state_snapshot: StatePools,
         column_writers: &[&ContextColumn],
-        num_elements: usize,
+        num_agents: usize,
     ) -> Result<Context> {
         let mut context = Context {
             batch: self.batch,
@@ -200,7 +199,7 @@ impl PreContext {
         };
         context
             .global_batch_mut()?
-            .write_from_context_datas(column_writers, num_elements)?;
+            .write_from_context_datas(column_writers, num_agents)?;
         Ok(context)
     }
 }

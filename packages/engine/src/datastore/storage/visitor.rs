@@ -1,5 +1,7 @@
 //! TODO: DOC - expand upon this description
-//! Code to visit different regions of shared memory This module is the *sole* source of truth for
+//! Code to visit different regions of shared memory
+//!
+//! This module is the *sole* source of truth for
 //! keeping track of Arrow continuation bytes.
 
 use std::ops::{Index, IndexMut};

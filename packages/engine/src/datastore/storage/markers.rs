@@ -1,3 +1,24 @@
+//! Each shared memory segment contains four buffers. At the start
+//! of the segment, before the first buffer, are eight numbers called
+//! "markers" -- for each buffer, the offset (i.e. start index in bytes)
+//! and size (i.e. number of bytes) of the buffer.
+//!
+//! The four buffers are:
+//! * The schema buffer -- if the segment has an Arrow record batch, then the schema buffer
+//!   optionally contains the bytes of the serialized Arrow schema of that batch.
+//! * The header buffer -- this contains the metaversion (memory version, then batch version) of the
+//!   written data, followed by an optional name, e.g. the name of a dataset.
+//! * The metadata buffer -- if the segment has an Arrow record batch, then this contains the Arrow
+//!   metadata part of the batch.
+//! * The data buffer -- if the segment has an Arrow record batch, then this contains the Arrow data
+//!   part of the batch. Otherwise, this can contain arbitrary data, e.g. datasets.
+//!
+//! If the segment has an Arrow record batch, then the metadata and
+//! data buffers above together form the batch in Arrow format.
+
+// TODO: Make separate (i.e. fifth), fixed-size marker and buffer for (memory part of?) metaversion?
+//       This would also require modifying memory loading in the language runners.
+
 use std::ops::{Index, IndexMut};
 
 use super::ptr::MemoryPtr;
@@ -67,7 +88,7 @@ pub struct Markers {
 }
 
 impl Markers {
-    // This is the marker size for different locations in memory
+    /// Each marker is a u64, so it has 8 bytes.
     pub const MARKER_SIZE: usize = 8;
     // Markers:
     // 1) Header offset, 2) Header size, 3) Schema offset, 4) Schema size,

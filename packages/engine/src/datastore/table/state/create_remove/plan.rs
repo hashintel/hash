@@ -47,14 +47,14 @@ impl<'a> MigrationPlan<'a> {
             .try_for_each::<_, Result<()>>(|(action, batch)| {
                 match action {
                     ExistingGroupBufferActions::Persist { affinity } => {
-                        batch.set_affinity(*affinity);
+                        batch.affinity = *affinity;
                     }
                     ExistingGroupBufferActions::Remove => {
                         // Do nothing yet
                     }
                     ExistingGroupBufferActions::Update { actions, affinity } => {
                         actions.flush(batch)?;
-                        batch.set_affinity(*affinity);
+                        batch.affinity = *affinity;
                     }
                     ExistingGroupBufferActions::Undefined => {
                         return Err(Error::UnexpectedUndefinedCommand);

@@ -569,7 +569,7 @@ macro_rules! accessors {
                 // Do not commit if mutable actions were not done
                 if self.inner.$base.u_mut()?.set {
                     if let Some(change) = Accessors::as_change(self.inner.$base.u_ref()?)? {
-                        self.agent_batch.push_change(change)?
+                        self.agent_batch.queue_change(change)?
                     }
                 }
                 Ok(())

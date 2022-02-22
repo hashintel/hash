@@ -1,9 +1,4 @@
-mod chain;
-mod reset_index_col;
-// TODO: better name for config
-pub mod config;
-pub mod fields;
-pub mod tasks;
+use std::ops::Deref;
 
 use reset_index_col::reset_index_col;
 use serde_json::Value;
@@ -34,6 +29,13 @@ use crate::{
     },
     Language,
 };
+
+mod chain;
+mod reset_index_col;
+// TODO: better name for config
+pub mod config;
+pub mod fields;
+pub mod tasks;
 
 pub const BEHAVIOR_INDEX_INNER_COUNT: usize = 2;
 
@@ -74,7 +76,7 @@ impl GetWorkerExpStartMsg for Creator {
 
 impl PackageCreator for Creator {
     fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>> {
-        // TODO: Packaages shouldn't have to set the source
+        // TODO: Packages shouldn't have to set the source
         let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Package(
             PackageName::State(super::super::Name::BehaviorExecution),
         ));
@@ -164,7 +166,7 @@ impl BehaviorExecution {
             self.behavior_ids_col_index,
         )?;
 
-        agent_proxies.set_pending_column(behavior_ids)?;
+        agent_proxies.modify_loaded_column(behavior_ids)?;
         Ok(())
     }
 
@@ -173,18 +175,18 @@ impl BehaviorExecution {
         agent_proxies: &mut PoolWriteProxy<AgentBatch>,
     ) -> Result<()> {
         let behavior_index_col = reset_index_col(self.behavior_index_col_index)?;
-        agent_proxies.set_pending_column(behavior_index_col)?;
+        agent_proxies.modify_loaded_column(behavior_index_col)?;
 
         Ok(())
     }
 
     /// Iterate over languages of first behaviors to choose first language runner to send task to
-    fn get_first_lang<B: AsRef<AgentBatch>>(
+    fn get_first_lang<B: Deref<Target = AgentBatch>>(
         &self,
         agent_batches: &[B],
     ) -> Result<Option<Language>> {
         for batch in agent_batches.iter() {
-            for agent_behaviors in batch.as_ref().behavior_list_bytes_iter()? {
+            for agent_behaviors in chain::behavior_list_bytes_iter(batch.record_batch()?)? {
                 if agent_behaviors.is_empty() {
                     continue;
                 }
@@ -231,11 +233,19 @@ impl Package for BehaviorExecution {
     async fn run(&mut self, state: &mut State, context: &Context) -> Result<()> {
         tracing::trace!("Running BehaviorExecution");
         let mut state_proxy = state.write()?;
+        state_proxy.maybe_reload()?;
         let agent_pool = state_proxy.agent_pool_mut();
 
         self.fix_behavior_chains(agent_pool)?;
         self.reset_behavior_index_col(agent_pool)?;
         agent_pool.flush_pending_columns()?;
+        drop(agent_pool);
+
+        // TODO: Have to reload state agent batches twice, because
+        //       we just wrote the language ID of each behavior into
+        //       them, but now want to read it from them.
+        state_proxy.maybe_reload()?;
+        let agent_pool = state_proxy.agent_pool();
 
         let lang = match self.get_first_lang(&agent_pool.batches())? {
             Some(lang) => lang,
@@ -249,7 +259,6 @@ impl Package for BehaviorExecution {
         let active_task = self.begin_execution(state_proxy, context, lang).await?;
         let msg = active_task.drive_to_completion().await?;
         // Wait for results
-        // TODO: Get latest metaversions from message and reload state if necessary.
         tracing::trace!("BehaviorExecution task finished: {:?}", &msg);
         Ok(())
     }

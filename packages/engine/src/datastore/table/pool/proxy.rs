@@ -6,19 +6,16 @@ use std::{
     slice::SliceIndex,
 };
 
-use crate::datastore::{
-    batch::Batch,
-    table::proxy::{BatchReadProxy, BatchWriteProxy},
-};
+use crate::datastore::table::proxy::{BatchReadProxy, BatchWriteProxy};
 
 /// Collects [`BatchReadProxy`] for all the batches within the pool.
 #[derive(Default)]
-pub struct PoolReadProxy<K: Batch> {
+pub struct PoolReadProxy<K> {
     // TODO: Remove `pub(super)` by providing parallel iterator
     pub(super) batches: Vec<BatchReadProxy<K>>,
 }
 
-impl<K: Batch> PoolReadProxy<K> {
+impl<K> PoolReadProxy<K> {
     pub fn deconstruct(self) -> Vec<BatchReadProxy<K>> {
         self.batches
     }
@@ -36,7 +33,7 @@ impl<K: Batch> PoolReadProxy<K> {
     }
 
     // TODO: Use a concrete type, e.g.
-    //   struct BatchIter<'b, B: Batch + 'b> {
+    //   struct BatchIter<'b, B + 'b> {
     //       iter: std::slice::Iter<'b, BatchReadProxy<B>>,
     //   }
     pub fn batches_iter(&self) -> impl Iterator<Item = &K> {
@@ -49,7 +46,7 @@ impl<K: Batch> PoolReadProxy<K> {
     }
 }
 
-impl<K: Batch> Clone for PoolReadProxy<K> {
+impl<K> Clone for PoolReadProxy<K> {
     fn clone(&self) -> Self {
         Self {
             batches: self.batches.to_vec(),
@@ -57,7 +54,7 @@ impl<K: Batch> Clone for PoolReadProxy<K> {
     }
 }
 
-impl<K: Batch> FromIterator<BatchReadProxy<K>> for PoolReadProxy<K> {
+impl<K> FromIterator<BatchReadProxy<K>> for PoolReadProxy<K> {
     fn from_iter<T: IntoIterator<Item = BatchReadProxy<K>>>(iter: T) -> Self {
         Self {
             batches: Vec::from_iter(iter),
@@ -65,13 +62,13 @@ impl<K: Batch> FromIterator<BatchReadProxy<K>> for PoolReadProxy<K> {
     }
 }
 
-impl<K: Batch> From<Vec<BatchReadProxy<K>>> for PoolReadProxy<K> {
+impl<K> From<Vec<BatchReadProxy<K>>> for PoolReadProxy<K> {
     fn from(batches: Vec<BatchReadProxy<K>>) -> Self {
         Self { batches }
     }
 }
 
-impl<I, K: Batch> Index<I> for PoolReadProxy<K>
+impl<I, K> Index<I> for PoolReadProxy<K>
 where
     I: SliceIndex<[BatchReadProxy<K>]>,
 {
@@ -84,11 +81,11 @@ where
 
 /// Collects [`BatchWriteProxy`] for all the batches within the pool.
 #[derive(Default)]
-pub struct PoolWriteProxy<K: Batch> {
+pub struct PoolWriteProxy<K> {
     batches: Vec<BatchWriteProxy<K>>,
 }
 
-impl<K: Batch> PoolWriteProxy<K> {
+impl<K> PoolWriteProxy<K> {
     pub fn deconstruct(self) -> Vec<BatchWriteProxy<K>> {
         self.batches
     }
@@ -140,7 +137,7 @@ impl<K: Batch> PoolWriteProxy<K> {
     }
 }
 
-impl<K: Batch> FromIterator<BatchWriteProxy<K>> for PoolWriteProxy<K> {
+impl<K> FromIterator<BatchWriteProxy<K>> for PoolWriteProxy<K> {
     fn from_iter<T: IntoIterator<Item = BatchWriteProxy<K>>>(iter: T) -> Self {
         Self {
             batches: Vec::from_iter(iter),
@@ -148,13 +145,13 @@ impl<K: Batch> FromIterator<BatchWriteProxy<K>> for PoolWriteProxy<K> {
     }
 }
 
-impl<K: Batch> From<Vec<BatchWriteProxy<K>>> for PoolWriteProxy<K> {
+impl<K> From<Vec<BatchWriteProxy<K>>> for PoolWriteProxy<K> {
     fn from(batches: Vec<BatchWriteProxy<K>>) -> Self {
         Self { batches }
     }
 }
 
-impl<I, K: Batch> Index<I> for PoolWriteProxy<K>
+impl<I, K> Index<I> for PoolWriteProxy<K>
 where
     I: SliceIndex<[BatchWriteProxy<K>]>,
 {
@@ -165,7 +162,7 @@ where
     }
 }
 
-impl<I, K: Batch> IndexMut<I> for PoolWriteProxy<K>
+impl<I, K> IndexMut<I> for PoolWriteProxy<K>
 where
     I: SliceIndex<[BatchWriteProxy<K>]>,
 {
