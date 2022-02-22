@@ -15,17 +15,13 @@ import {
   entityStorePluginState,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import {
-  LatestEntityRef,
   GetBlocksQuery,
   GetBlocksQueryVariables,
   GetPageQuery,
   GetPageQueryVariables,
+  LatestEntityRef,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
-import {
-  getComponentNodeAttrs,
-  isComponentNode,
-  isEntityNode,
-} from "@hashintel/hash-shared/prosemirror";
+import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import {
   getBlocksQuery,
@@ -39,7 +35,7 @@ import { Response } from "express";
 import { isEqual, memoize, pick } from "lodash";
 import { Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
-import { Mapping, Step, Transform } from "prosemirror-transform";
+import { Step } from "prosemirror-transform";
 import { logger } from "../logger";
 import { EntityWatcher } from "./EntityWatcher";
 import { InvalidVersionError } from "./errors";
@@ -81,7 +77,6 @@ export class Instance {
   lastActive = Date.now();
   waiting: Waiting[] = [];
   saveChain = Promise.resolve();
-  saveMapping: Mapping | null = null;
   clientIds = new WeakMap<Step, string>();
 
   positionPollers: CollabPositionPoller[] = [];
@@ -288,9 +283,6 @@ export class Instance {
 
         const result = tr.maybeStep(steps[i]);
         if (!result.doc) return false;
-        if (this.saveMapping) {
-          this.saveMapping.appendMap(steps[i].getMap());
-        }
       }
 
       for (const action of actions) {
@@ -317,8 +309,6 @@ export class Instance {
     };
 
   save = (apolloClient: ApolloClient<unknown>) => (clientID: string) => {
-    const mapping = new Mapping();
-
     this.saveChain = this.saveChain
       .catch()
       .then(async () => {
@@ -340,7 +330,6 @@ export class Instance {
         return createdEntities;
       })
       .then((createdEntities) => {
-        this.saveMapping = mapping;
         const { doc } = this.state;
         const store = entityStorePluginState(this.state);
 
@@ -353,13 +342,6 @@ export class Instance {
           apolloClient,
           createdEntities,
         ).then((newPage) => {
-          /**
-           * This is purposefully based on the current doc, not the doc at
-           * the time of save, because we need to apply transforms to the
-           * current doc based on the result of the save query (in order to
-           * insert entity ids for new blocks)
-           */
-          const transform = new Transform<Schema>(this.state.doc);
           const actions: EntityStorePluginAction[] = [];
 
           /**
@@ -426,23 +408,9 @@ export class Instance {
                   },
                 });
               }
-            } else if (isComponentNode(node) && !node.attrs.blockEntityId) {
-              transform.setNodeMarkup(
-                mapping.map(pos),
-                undefined,
-                getComponentNodeAttrs(blockEntity),
-              );
             }
           });
 
-          /**
-           * We're posting actions and steps from the post-save
-           * transformation process for maximum safety – as we need to
-           * ensure the actions are processed before the steps, and that's
-           * not easy to do in one message right now
-           *
-           * @todo combine the two calls to addEvents
-           */
           if (actions.length) {
             this.addEvents(apolloClient)(
               this.version,
@@ -453,27 +421,11 @@ export class Instance {
             );
           }
 
-          if (transform.docChanged) {
-            this.addEvents(apolloClient)(
-              this.version,
-              transform.steps,
-              `${clientID}-server`,
-              [],
-              false,
-            );
-          }
-
           this.updateSavedContents(newPage.properties.contents);
         });
       })
       .catch((err) => {
         logger.error("could not save", err);
-      })
-
-      .finally(() => {
-        if (this.saveMapping === mapping) {
-          this.saveMapping = null;
-        }
       });
   };
 

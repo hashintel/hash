@@ -126,10 +126,11 @@ export class ComponentView implements NodeView<Schema> {
         .resolve(this.getPos())
         .node(2).attrs.draftId;
 
-      // @todo handle entity id not being defined
-      const entityId = node.attrs.blockEntityId ?? "";
-      const entity = this.store.draft[blockDraftId];
       const mappedUrl = componentIdToUrl(this.componentId);
+      const entity = this.store.draft[blockDraftId];
+
+      // @todo handle entity id not being defined
+      const entityId = entity.entityId ?? "";
 
       /** used by collaborative editing feature `FocusTracker` */
       this.target.setAttribute("data-entity-id", entityId);
