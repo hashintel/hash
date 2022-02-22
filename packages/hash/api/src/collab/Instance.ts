@@ -79,12 +79,9 @@ export class Instance {
   // The version number of the document instance.
   version = 0;
   lastActive = Date.now();
-  users: Record<string, boolean> = Object.create(null);
-  userCount = 0;
   waiting: Waiting[] = [];
   saveChain = Promise.resolve();
   saveMapping: Mapping | null = null;
-  collecting: ReturnType<typeof setTimeout> | null = null;
   clientIds = new WeakMap<Step, string>();
 
   positionPollers: CollabPositionPoller[] = [];
@@ -127,7 +124,6 @@ export class Instance {
 
   stop() {
     this.sendUpdates();
-    if (this.collecting != null) clearTimeout(this.collecting);
 
     clearInterval(this.positionCleanupInterval);
 
@@ -577,40 +573,11 @@ export class Instance {
 
     return {
       steps,
-      users: this.userCount,
       clientIDs: steps.map((step) => this.clientIds.get(step)),
       store,
       actions,
       shouldRespondImmediately: updates.length > 0,
     };
-  }
-
-  collectUsers() {
-    const oldUserCount = this.userCount;
-    this.users = Object.create(null);
-    this.userCount = 0;
-    this.collecting = null;
-    for (let i = 0; i < this.waiting.length; i++) {
-      this._registerUser(this.waiting[i].userId);
-    }
-    if (this.userCount !== oldUserCount) this.sendUpdates();
-  }
-
-  registerUser(ip: string) {
-    if (!(ip in this.users)) {
-      this._registerUser(ip);
-      this.sendUpdates();
-    }
-  }
-
-  _registerUser(ip: string | null) {
-    if (ip !== null && !(ip in this.users)) {
-      this.users[ip] = true;
-      this.userCount++;
-      if (this.collecting == null) {
-        this.collecting = setTimeout(() => this.collectUsers(), 5000);
-      }
-    }
   }
 
   extractPositions(userIdToExclude: string | null): CollabPosition[] {
@@ -776,12 +743,7 @@ const newInstance =
 
 export const getInstance =
   (apolloClient: ApolloClient<unknown>, entityWatcher: EntityWatcher) =>
-  async (
-    accountId: string,
-    pageEntityId: string,
-    userId: string | null,
-    forceNewInstance = false,
-  ) => {
+  async (accountId: string, pageEntityId: string, forceNewInstance = false) => {
     if (forceNewInstance) {
       instances[pageEntityId]?.stop();
       delete instances[pageEntityId];
@@ -789,7 +751,6 @@ export const getInstance =
     const inst =
       instances[pageEntityId] ||
       (await newInstance(apolloClient, entityWatcher)(accountId, pageEntityId));
-    if (userId) inst.registerUser(userId);
     inst.lastActive = Date.now();
     return inst;
   };
