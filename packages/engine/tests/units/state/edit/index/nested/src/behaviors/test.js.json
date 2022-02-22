@@ -50,9 +50,26 @@
             "nullable": false
           }
         },
+        "l2": {
+          "type": "list",
+          "nullable": true,
+          "child": {
+            "type": "number",
+            "nullable": false
+          }
+        },
         "f1": {
           "type": "fixed_size_list",
           "nullable": false,
+          "length": 2,
+          "child": {
+            "type": "number",
+            "nullable": false
+          }
+        },
+        "f2": {
+          "type": "fixed_size_list",
+          "nullable": true,
           "length": 2,
           "child": {
             "type": "number",

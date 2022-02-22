@@ -15194,32 +15194,27 @@ PERFORMANCE OF THIS SOFTWARE.
 
     /** @ignore */
     class StructBuilder extends Builder {
-      set(index, value) {
-        this.setValid(index, this.isValid(value));
-        this.setValue(index, value);
-        return this;
+      setValid(index, valid) {
+        if (!super.setValid(index, valid)) {
+          this.children.forEach((child) => child.setValid(index, valid));
+        }
+        return valid;
       }
       setValue(index, value) {
         const children = this.children;
-        if (value === null || value === undefined) {
-          return this.type.children.forEach((_, i) =>
-            children[i].set(index, null),
-          );
-        } else {
-          switch (Array.isArray(value) || value.constructor) {
-            case true:
-              return this.type.children.forEach((_, i) =>
-                children[i].set(index, value[i]),
-              );
-            case Map:
-              return this.type.children.forEach((f, i) =>
-                children[i].set(index, value.get(f.name)),
-              );
-            default:
-              return this.type.children.forEach((f, i) =>
-                children[i].set(index, value[f.name]),
-              );
-          }
+        switch (Array.isArray(value) || value.constructor) {
+          case true:
+            return this.type.children.forEach((_, i) =>
+              children[i].set(index, value[i]),
+            );
+          case Map:
+            return this.type.children.forEach((f, i) =>
+              children[i].set(index, value.get(f.name)),
+            );
+          default:
+            return this.type.children.forEach((f, i) =>
+              children[i].set(index, value[f.name]),
+            );
         }
       }
       addChild(child, name = `${this.numChildren}`) {
