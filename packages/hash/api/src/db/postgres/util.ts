@@ -17,7 +17,7 @@ export {
  * @param connection either top-level or one transaction level.
  * @returns handler callback
  */
-export const transaction =
+export const requireTransaction =
   (connection: Connection) =>
   <T>(handler: (conn: TransactionConnection) => Promise<T>): Promise<T> => {
     if (connection.type === "Pool") {

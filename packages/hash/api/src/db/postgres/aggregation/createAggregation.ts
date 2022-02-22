@@ -7,7 +7,7 @@ import {
 } from "../entity";
 import { DbEntityNotFoundError } from "../..";
 import { insertAggregation } from "./util";
-import { transaction } from "../util";
+import { requireTransaction } from "../util";
 
 export const createAggregation = async (
   existingConnection: Connection,
@@ -19,7 +19,7 @@ export const createAggregation = async (
     operation: object;
   },
 ): Promise<DBAggregation> =>
-  transaction(existingConnection)(async (conn) => {
+  requireTransaction(existingConnection)(async (conn) => {
     const { sourceAccountId, sourceEntityId, createdByAccountId } = params;
 
     await acquireEntityLock(conn, { entityId: sourceEntityId });

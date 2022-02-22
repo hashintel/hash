@@ -6,7 +6,7 @@ import {
 } from "../entity";
 import { DbEntityNotFoundError } from "../..";
 import { deleteAggregationRow } from "./util";
-import { transaction } from "../util";
+import { requireTransaction } from "../util";
 
 export const deleteAggregation = async (
   existingConnection: Connection,
@@ -17,7 +17,7 @@ export const deleteAggregation = async (
     deletedByAccountId: string;
   },
 ): Promise<void> =>
-  transaction(existingConnection)(async (conn) => {
+  requireTransaction(existingConnection)(async (conn) => {
     const { sourceAccountId, sourceEntityId, deletedByAccountId } = params;
 
     await acquireEntityLock(conn, { entityId: sourceEntityId });

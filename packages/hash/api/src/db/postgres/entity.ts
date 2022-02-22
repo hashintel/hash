@@ -20,7 +20,7 @@ import { getEntityIncomingLinks } from "./link/getEntityIncomingLinks";
 import { getEntityAggregations } from "./aggregation/getEntityAggregations";
 import { addSourceEntityVersionIdToAggregation } from "./aggregation/util";
 import { SystemType } from "../../types/entityTypes";
-import { transaction } from "./util";
+import { requireTransaction } from "./util";
 
 /** Prefix to distinguish identical fields when joining with a type record */
 const entityTypeFieldPrefix = "type.";
@@ -408,7 +408,7 @@ export const updateEntityAccountId = async (
     newAccountId: string;
   },
 ) => {
-  await transaction(existingConnection)(async (conn) => {
+  await requireTransaction(existingConnection)(async (conn) => {
     await Promise.all([
       // Deffer constraints on foreign keys so we can update them without issues
       conn.query(sql`

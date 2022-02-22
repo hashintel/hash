@@ -79,7 +79,7 @@ import { getEntityAggregations } from "./aggregation/getEntityAggregations";
 import { updateAggregationOperation } from "./aggregation/updateAggregationOperation";
 import { deleteAggregation } from "./aggregation/deleteAggregation";
 import { getEntityAggregation } from "./aggregation/getEntityAggregation";
-import { transaction } from "./util";
+import { requireTransaction } from "./util";
 
 export class PostgresClient implements DBClient {
   private conn: Connection;
@@ -91,7 +91,7 @@ export class PostgresClient implements DBClient {
   get transaction(): <T>(
     handler: (connection: Connection) => Promise<T>,
   ) => Promise<T> {
-    return transaction(this.conn);
+    return requireTransaction(this.conn);
   }
 
   /** Create an entity type definition and return its uuid. */

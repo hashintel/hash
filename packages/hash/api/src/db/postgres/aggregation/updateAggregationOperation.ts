@@ -11,7 +11,7 @@ import {
   updateAggregationRowOperation,
 } from "./util";
 import { DBAggregation } from "../../adapter";
-import { transaction } from "../util";
+import { requireTransaction } from "../util";
 
 export const updateAggregationOperation = (
   existingConnection: Connection,
@@ -22,7 +22,7 @@ export const updateAggregationOperation = (
     operation: object;
   },
 ): Promise<DBAggregation> =>
-  transaction(existingConnection)(async (conn) => {
+  requireTransaction(existingConnection)(async (conn) => {
     const { sourceAccountId, sourceEntityId, operation } = params;
 
     const now = new Date();

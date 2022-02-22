@@ -22,7 +22,7 @@ export type Connection = PoolConnection | TransactionConnection;
 /**
  * Construct {@link PoolConnection} variant tagged with a type
  * @param database pool connection
- * @returns a {@link Connection}
+ * @returns a {@link PoolConnection}
  */
 export const createPoolConnection = (
   connection: DatabasePoolConnectionType,
@@ -31,7 +31,7 @@ export const createPoolConnection = (
 /**
  * Construct {@link TransactionConnection} variant tagged a type
  * @param database transaction connection
- * @returns a {@link Connection}
+ * @returns a {@link TransactionConnection}
  */
 export const createTransactionConnection = (
   connection: DatabaseTransactionConnectionType,

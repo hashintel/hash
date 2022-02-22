@@ -13,7 +13,7 @@ import {
   insertLink,
   updateLinkIndices,
 } from "./util";
-import { transaction } from "../util";
+import { requireTransaction } from "../util";
 
 export const deleteLink = async (
   existingConnection: Connection,
@@ -23,7 +23,7 @@ export const deleteLink = async (
     deletedByAccountId: string;
   },
 ): Promise<void> =>
-  transaction(existingConnection)(async (conn) => {
+  requireTransaction(existingConnection)(async (conn) => {
     const dbLink = await getLink(conn, params);
 
     if (!dbLink) {
