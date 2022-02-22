@@ -1,0 +1,46 @@
+{
+  "keys": {
+    "s1": {
+      "type": "fixed_size_list",
+      "nullable": false,
+      "length": 2,
+      "child": {
+        "type": "string",
+        "nullable": true
+      }
+    },
+    "s2": {
+      "type": "fixed_size_list",
+      "nullable": false,
+      "length": 2,
+      "child": {
+        "type": "string",
+        "nullable": true
+      }
+    },
+    "s1_is_list": {
+      "type": "boolean",
+      "nullable": false
+    },
+    "s1_0_is_string": {
+      "type": "boolean",
+      "nullable": false
+    },
+    "s1_1_is_string": {
+      "type": "boolean",
+      "nullable": false
+    },
+    "s2_is_list": {
+      "type": "boolean",
+      "nullable": false
+    },
+    "s2_0_is_string": {
+      "type": "boolean",
+      "nullable": false
+    },
+    "s2_1_is_string": {
+      "type": "boolean",
+      "nullable": false
+    }
+  }
+}

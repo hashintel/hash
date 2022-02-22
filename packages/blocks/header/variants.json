@@ -17,7 +17,7 @@
   },
   {
     "displayName": "Heading 3",
-    "description": "For medium-large section headings",
+    "description": "For medium section headings",
     "icon": "public/h3.svg",
     "properties": {
       "level": 3
@@ -25,26 +25,10 @@
   },
   {
     "displayName": "Heading 4",
-    "description": "For medium-sized section headings",
+    "description": "For small section headings",
     "icon": "public/h4.svg",
     "properties": {
       "level": 4
-    }
-  },
-  {
-    "displayName": "Heading 5",
-    "description": "For medium-small section headings",
-    "icon": "public/h5.svg",
-    "properties": {
-      "level": 5
-    }
-  },
-  {
-    "displayName": "Heading 6",
-    "description": "For small section headings",
-    "icon": "public/h6.svg",
-    "properties": {
-      "level": 6
     }
   }
 ]

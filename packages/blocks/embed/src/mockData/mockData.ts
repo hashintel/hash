@@ -1,10 +1,8 @@
-import { ProviderNames } from "../types";
+import { ProviderName } from "../types";
 
 export type EmbedDataType = {
   initialHtml?: string;
   initialWidth?: number;
   initialHeight?: number;
-  embedType?: ProviderNames;
+  embedType?: ProviderName;
 };
-
-export const initialEmbedData: EmbedDataType = {};

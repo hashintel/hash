@@ -17,7 +17,7 @@ impl SimConfigurer {
     pub fn new(package_config: &ExperimentPackageConfig, num_workers: usize) -> SimConfigurer {
         let num_workers_per_sim = match package_config {
             ExperimentPackageConfig::Simple(config) => {
-                let num_runs = config.changed_properties.len();
+                let num_runs = config.changed_globals.len();
                 std::cmp::max(1, (num_workers as f64 / num_runs as f64).ceil() as usize)
             }
             ExperimentPackageConfig::SingleRun(_) => std::cmp::max(1, num_workers),

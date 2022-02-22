@@ -448,7 +448,7 @@ class ProsemirrorStateChangeHandler {
 
       // @todo in what circumstances does this occur
       if (!isDraftBlockEntity(parentEntity)) {
-        const componentNodeChild = findComponentNodes(node)[0][0];
+        const componentNodeChild = findComponentNodes(node)[0];
 
         addEntityStoreAction(this.state, this.tr, {
           type: "updateEntityProperties",

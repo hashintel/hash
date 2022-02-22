@@ -1,5 +1,3 @@
-#![cfg(not(debug_assertions))]
-
 use crate::run_test;
 
 // https://core.hash.ai/@hash/city-infection-model/6.4.2
@@ -22,10 +20,7 @@ mod sugarscape {
     run_test!(sugarscape, experiment: agent_density_linspace, #[ignore]);
 }
 
-// https://core.hash.ai/@hash/published-display-behaviors/2.3.0
-// Currently bugged:
-//   `thread 'tokio-runtime-worker' panicked at 'assertion failed: (offset + length) <= data.len()'`
-run_test!(published_display_behaviors, #[ignore]);
+run_test!(published_display_behaviors);
 
 // https://core.hash.ai/@hash/boids-3d/6.1.0
 mod boids_3d {
@@ -136,10 +131,9 @@ mod air_defense_system {
     run_test!(air_defense_system, experiment: radar_location_values);
 }
 
-// https://core.hash.ai/@hash/city-infection-model-with-vaccine/main at 2022-02-02
+// https://core.hash.ai/@hash/city-infection-model-with-vaccine/1.0.3
 // Rust behavior is currently not supported
 run_test!(city_infection_model_with_vaccine, #[ignore]);
 
-// https://core.hash.ai/@hash/wholesale-warehouse1/main at 2022-02-02
-// Currently not working on hCloud
-run_test!(wholesale_warehouse1, #[ignore]);
+// https://core.hash.ai/@hash/wholesale-warehouse1/1.1.1
+run_test!(wholesale_warehouse1);

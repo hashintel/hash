@@ -505,4 +505,32 @@ pub mod tests {
 
         assert_eq!(field_spec_map.len(), 1);
     }
+
+    #[test]
+    pub fn test_struct_types_enabled() -> Result<()> {
+        let mut keys = FieldSpecMap::default();
+        keys.add(RootFieldSpec {
+            inner: FieldSpec::new(
+                "struct".to_string(),
+                FieldType::new(
+                    FieldTypeVariant::Struct(vec![
+                        FieldSpec::new(
+                            "first_column".to_string(),
+                            FieldType::new(FieldTypeVariant::Number, false),
+                        ),
+                        FieldSpec::new(
+                            "second_column".to_string(),
+                            FieldType::new(FieldTypeVariant::Boolean, true),
+                        ),
+                    ]),
+                    true,
+                ),
+            ),
+            scope: FieldScope::Private,
+            source: FieldSource::Engine,
+        })?;
+
+        keys.get_arrow_schema()?;
+        Ok(())
+    }
 }

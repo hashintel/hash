@@ -4,7 +4,7 @@ pub fn behavior(state: &mut State<'_>, context: &Context<'_>) -> Result<()> {
     let mut position = state.take_position()?;
 
     let dt = context
-        .properties
+        .globals
         .get("dt")
         .ok_or("Need a dt specified")?
         .as_f64()
@@ -52,7 +52,7 @@ use crate::prelude::{AgentState, Context, SimulationResult, Vec3};
 // Simple Euler's method for now, can add more complex functionality later
 /// # Errors
 /// This function may fail when
-/// 1. `properties` does not have `dt` specified
+/// 1. `globals` does not have `dt` specified
 /// 2. `dt` is not a number
 /// 3. `velocity` not specified (or is an invalid `Vec3`) within the agent state
 /// 4. `force` not specified (or is an invalid `Vec3`) within the agent state
@@ -60,7 +60,7 @@ pub fn vintegrate(state: &mut AgentState, context: &Context) -> SimulationResult
     let m = state["mass"].as_f64().ok_or("Please specify a mass")?;
 
     let dt = context
-        .properties
+        .globals
         .get("dt")
         .ok_or("Need a dt specified")?
         .as_f64()

@@ -12,3 +12,6 @@ def behavior(state, context):
         state.number_array = data["number_array"]
         state.bool_array = data["bool_array"]
         state.struct_array = data["struct_array"]
+        state.fixed_number_array = data["fixed_number_array"]
+        state.fixed_bool_array = data["fixed_bool_array"]
+        state.fixed_struct_array = data["fixed_struct_array"]

@@ -1,7 +1,7 @@
 use std::{collections::HashSet, ops::Deref};
 
 use super::{AgentIndex, BatchIndex, Result, WorkerIndex};
-use crate::datastore::{batch::agent::Batch as AgentBatch, UUID_V4_LEN};
+use crate::datastore::{batch::agent::AgentBatch, UUID_V4_LEN};
 
 #[derive(Debug, Clone)]
 pub struct BaseBatch {

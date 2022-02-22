@@ -1,7 +1,7 @@
 import { GraphQLResolveInfo } from "graphql";
 import { DbUnknownEntity } from "../../../db/adapter";
 
-import { File } from "../../../model";
+import { Block, File, Page } from "../../../model";
 import { isRecord } from "../../../util";
 import { Resolver, UnknownEntity, FileProperties } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
@@ -144,20 +144,39 @@ export const properties: Resolver<
    * special code in the generic resolver
    * */
   // This avoids mutating the original, even if the above function does it should eventually be refactored not to
-  const props = { ...entity.properties };
+  const entityProperties = { ...entity.properties };
+
+  const { dataSources } = ctx;
+  const { db } = dataSources;
 
   /**
    * If this resolver needs more of these cases, it would be preferable to delegate the the logic away from here.
    */
-  if (
-    entity.entityTypeId ===
-    (await File.getEntityType(ctx.dataSources.db)).entityId
-  ) {
+  if (entity.entityTypeId === (await File.getEntityType(db)).entityId) {
     // Since the type of tne entityTypeId equals the DB's File system type entityId
     // this assumption would hold true.
     // Props is a reference here with a type assertion, modifications will mutate `props`
-    const fileProps = props as FileProperties;
+    const fileProps = entityProperties as FileProperties;
     fileProps.url = await fileUrlResolver(fileProps, {}, ctx, info);
+  } else if (entity.entityTypeId === (await Page.getEntityType(db)).entityId) {
+    /** @todo: deprecate this when API consumers stop accessing `properties.contents` of a Page */
+
+    const page = await Page.getPageById(db, entity);
+    entityProperties.contents = (await page!.getBlocks(db)).map((block) =>
+      block.toGQLUnknownEntity(),
+    );
+  } else if (entity.entityTypeId === (await Block.getEntityType(db)).entityId) {
+    /**
+     * @todo: deprecate this when API consumers stop accessing `properties.entity`,
+     * `properties.entityId` and `properties.accountId` of a Block
+     */
+
+    const block = await Block.getBlockById(db, entity);
+    const blockData = await block!.getBlockData(db);
+
+    entityProperties.accountId = blockData.accountId;
+    entityProperties.entityId = blockData.entityId;
+    entityProperties.entity = blockData.toGQLUnknownEntity();
   }
-  return props;
+  return entityProperties;
 };

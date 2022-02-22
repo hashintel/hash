@@ -15,7 +15,7 @@ export const getEntityIncomingLinks = async (
   const rows = await conn.any(sql<DBLinkRow>`
     select ${mapColumnNamesToSQL(linksColumnNames, "links")}
     from links inner join incoming_links on (
-      links.destination_account_id = incoming_links.destination_account_id
+      links.source_account_id = incoming_links.source_account_id
       and links.link_id = incoming_links.link_id
     )
     where

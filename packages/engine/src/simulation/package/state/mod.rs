@@ -13,7 +13,6 @@ use crate::{
         batch::change::ArrayChange,
         error::Result as DatastoreResult,
         schema::{accessor::FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
-        table::state::State,
     },
     simulation::{
         comms::package::PackageComms, package::ext_traits::GetWorkerExpStartMsg, Error, Result,

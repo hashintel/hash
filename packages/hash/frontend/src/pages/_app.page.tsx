@@ -13,7 +13,6 @@ import { useRouter } from "next/router";
 import { PageLayout } from "../components/layout/PageLayout/PageLayout";
 
 import twindConfig from "../../twind.config";
-import "../../styles/prism.css";
 import "../../styles/globals.scss";
 import { useUser } from "../components/hooks/useUser";
 
