@@ -487,7 +487,7 @@ void (async () => {
   const table1EntityId = table1?.entityId;
 
   if (table1AccountId && table1EntityId) {
-    db.transaction(async (client) => {
+    await db.transaction(async (client) => {
       const source = await Entity.getEntityLatestVersion(client, {
         accountId: table1AccountId,
         entityId: table1EntityId,
