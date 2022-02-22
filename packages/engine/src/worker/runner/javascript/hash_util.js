@@ -1,3 +1,5 @@
+// noinspection BadExpressionStatementJS
+
 (arrow) => {
   "use strict";
   // TODO: Add this file to hash_stdlib instead?
@@ -64,7 +66,7 @@
     return children.length === 1 && children[0].name === null;
   };
 
-  const _struct_to_obj = (struct, children) => {
+  const _struct_vec_to_obj = (struct, children) => {
     if (!struct) return struct; // Null in Arrow array
 
     const obj = {};
@@ -79,25 +81,36 @@
   const _vector_to_array = (vector) => {
     // TODO: This function is called often enough that it
     //       might be worth benchmarking and micro-optimizing.
-    if (!vector || !vector.toArray) {
+    if (!vector || typeof vector.toArray === "undefined") {
       return vector; // `vector` isn't actually a vector.
     }
-
     const shallow = load_shallow(vector);
-    const children = vector.type.children;
-    if (!children) return shallow;
 
     const deep = [];
-    if (_is_primitive_or_list(children)) {
-      // Primitive (strings, numbers) or list
-      // `!!field.type.listSize` --> fixed-size list.
-      for (var i = 0; i < shallow.length; ++i) {
-        deep[i] = _vector_to_array(shallow[i]);
+
+    // For the inner struct types Arrow returns a `StructRow` instead of a `Vector`, it implements an iterator that
+    // goes over field names and value pairs
+    if (vector.constructor?.name === "StructRow") {
+      const obj = {};
+      for (const [name, val] of vector) {
+        obj[name] = _vector_to_array(val);
       }
+      return obj;
     } else {
-      // Struct array (we don't use Arrow's union arrays)
-      for (var i = 0; i < shallow.length; ++i) {
-        deep[i] = _struct_to_obj(shallow[i], children);
+      const children = vector.type.children;
+      if (!children) return shallow;
+
+      if (_is_primitive_or_list(children)) {
+        // Primitive (strings, numbers) or list
+        // `!!field.type.listSize` --> fixed-size list.
+        for (var i = 0; i < shallow.length; ++i) {
+          deep[i] = _vector_to_array(shallow[i]);
+        }
+      } else {
+        // Struct array (we don't use Arrow's union arrays)
+        for (var i = 0; i < shallow.length; ++i) {
+          deep[i] = _struct_vec_to_obj(shallow[i], children);
+        }
       }
     }
     return deep;
@@ -116,7 +129,6 @@
       }
       return array;
     }
-
     return _vector_to_array(vector);
   };
 
@@ -137,7 +149,7 @@
     const children = type.children;
     if (!children) return elem;
     if (_is_primitive_or_list(children)) return _vector_to_array(elem);
-    return _struct_to_obj(elem, children);
+    return _struct_vec_to_obj(elem, children);
   };
 
   const uuid_to_bytes = (uuid) => {

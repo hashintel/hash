@@ -2,6 +2,8 @@ import { gql } from "apollo-server-express";
 
 export const pageTypedef = gql`
   type Page implements Entity {
+    contents: [Block!]!
+
     properties: PageProperties!
 
     # ENTITY INTERFACE FIELDS BEGIN #
@@ -89,6 +91,11 @@ export const pageTypedef = gql`
   type PageProperties {
     archived: Boolean
     contents: [Block!]!
+      @deprecated(
+        reason: """
+        The page "contents" are no longer stored in the properties of a page. Use the page's "contents" or "linkGroups" field resolvers instead.
+        """
+      )
     summary: String
     title: String!
   }

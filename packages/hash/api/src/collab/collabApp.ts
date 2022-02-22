@@ -35,7 +35,6 @@ const formatGetEventsResponse = (
   version: instance.version,
   steps: data.steps.map((step) => step.toJSON()),
   clientIDs: data.clientIDs,
-  users: data.users,
   store: data.store,
   actions: data.actions,
 });
@@ -141,7 +140,6 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
     const instance = await getInstance(apolloClient, entityWatcher)(
       request.params.accountId,
       request.params.pageEntityId,
-      userInfo.entityId,
       forceNewInstance,
     );
 
@@ -171,7 +169,6 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
         response.json({
           doc: instance.state.doc.toJSON(),
           store: entityStorePluginState(instance.state).store,
-          users: instance.userCount,
           version: instance.version,
         });
       } catch (error) {

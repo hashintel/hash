@@ -184,7 +184,7 @@ fn import_file<'m>(
 
 impl<'m> Embedded<'m> {
     fn import(mv8: &'m MiniV8) -> Result<Self> {
-        let arrow = eval_file(mv8, "./src/worker/runner/javascript/bundle_arrow.js")?;
+        let arrow = eval_file(mv8, "./src/worker/runner/javascript/apache-arrow-bundle.js")?;
         let hash_stdlib = eval_file(mv8, "./src/worker/runner/javascript/hash_stdlib.js")?;
         let hash_util = import_file(mv8, "./src/worker/runner/javascript/hash_util.js", vec![
             &arrow,

@@ -132,6 +132,15 @@ pub async fn run_test_suite(
         vec![Some(LogLevel::Warning), Some(LogLevel::Trace)]
     };
 
+    let start_timeout = std::env::var("ENGINE_START_TIMEOUT").map_or(10, |val| {
+        val.parse::<u64>()
+            .expect("ENGINE_START_TIMEOUT couldn't be parsed as a u64")
+    });
+    let wait_timeout = std::env::var("ENGINE_WAIT_TIMEOUT").map_or(60, |val| {
+        val.parse::<u64>()
+            .expect("ENGINE_WAIT_TIMEOUT couldn't be parsed as a u64")
+    });
+
     let project_name = project_path
         .file_name()
         .unwrap()
@@ -178,12 +187,24 @@ pub async fn run_test_suite(
                     tracing::info!("Running test with log level `{log_level}`... ");
                 }
 
+                let output = output_folder.clone();
+
+                let experiment_config = ExperimentConfig {
+                    num_workers: num_cpus::get(),
+                    log_format: LogFormat::Pretty,
+                    log_folder: output.join("log"),
+                    log_level: *log_level,
+                    output_folder: output,
+                    output_location: OutputLocation::File("output.log".into()),
+                    start_timeout,
+                    wait_timeout,
+                };
+
                 let test_result = run_test(
                     experiment_type.clone(),
                     &project_path,
                     project_name.clone(),
-                    output_folder.clone(),
-                    *log_level,
+                    experiment_config,
                     language,
                     expected_outputs.len(),
                 )
@@ -266,8 +287,7 @@ pub async fn run_test<P: AsRef<Path>>(
     experiment_type: ExperimentType,
     project_path: P,
     project_name: String,
-    output: PathBuf,
-    log_level: Option<LogLevel>,
+    experiment_config: ExperimentConfig,
     language: Option<Language>,
     num_outputs_expected: usize,
 ) -> Result<TestOutput> {
@@ -291,16 +311,7 @@ pub async fn run_test<P: AsRef<Path>>(
         .read(experiment_type)
         .wrap_err("Could not read manifest")?;
 
-    let experiment = orchestrator::Experiment::new(ExperimentConfig {
-        num_workers: num_cpus::get(),
-        log_format: LogFormat::Pretty,
-        log_folder: output.join("log"),
-        log_level,
-        output_folder: output,
-        output_location: OutputLocation::File("output.log".into()),
-        start_timeout: 10,
-        wait_timeout: 10 * 60,
-    });
+    let experiment = orchestrator::Experiment::new(experiment_config);
 
     let output_base_directory = experiment
         .config
@@ -406,7 +417,7 @@ fn assert_subset_value(subset: &Value, superset: &Value, path: String) -> Result
                 if let Some(super_value) = b.get(key) {
                     assert_subset_value(sub_value, super_value, format!("{path}.{key}"))?;
                 } else {
-                    bail!("{path:?}: {key:?} is not present output")
+                    bail!("{path:?}: {key:?} is not present in the output")
                 }
             }
         }

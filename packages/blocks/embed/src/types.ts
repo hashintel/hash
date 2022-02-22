@@ -1,6 +1,6 @@
 export type AppState = {
   embedUrl: string;
-  embedType: ProviderNames | undefined;
+  embedType: ProviderName | undefined;
   html?: string;
   height?: number;
   width?: number;
@@ -13,7 +13,7 @@ export type Actions =
   | { type: "UPDATE_STATE"; payload: Partial<AppState> }
   | { type: "RESET_STATE" };
 
-export type ProviderNames =
+export type ProviderName =
   | "23HQ"
   | "Bopp"
   | "GIPHY"

@@ -2,7 +2,14 @@
   {
     "displayName": "Embed",
     "description": "Embed Content",
-    "icon": "public/embed.svg"
+    "icon": "public/embed.svg",
+    "examples": [
+      {
+        "initialHtml": "<iframe src=\"https://core.hash.ai/embed.html?project=%40hash%2Fcity-infection-model&ref=6.4.2\" width=\"300\" height=\"171\" frameborder=\"0\" scrolling=\"auto\"></iframe>",
+        "initialWidth": 600,
+        "initialHeight": 340
+      }
+    ]
   },
   {
     "displayName": "Twitter",
@@ -10,7 +17,13 @@
     "icon": "public/twitter.svg",
     "properties": {
       "embedType": "Twitter"
-    }
+    },
+    "examples": [
+      {
+        "initialHtml": "<blockquote class=\"twitter-tweet\" data-width=\"300\"><p lang=\"en\" dir=\"ltr\">1/ We&#39;ve been working a new protocol at <a href=\"https://twitter.com/hashintel?ref_src=twsrc%5Etfw\">@hashintel</a><br><br>It&#39;s called the block protocol (but NOT about blockchain or NFTs!)<br><br>It allows you to build reusable blocks (aka. components) that are interchangeable across website/apps<br><br>It takes a minute to explain, but I’ve drawn pictures… <a href=\"https://t.co/9uhsPdAPSh\">pic.twitter.com/9uhsPdAPSh</a></p>&mdash; Maggie Appleton 🧭 (@Mappletons) <a href=\"https://twitter.com/Mappletons/status/1488131234089873408?ref_src=twsrc%5Etfw\">January 31, 2022</a></blockquote>\n<script async src=\"https://platform.twitter.com/widgets.js\" charset=\"utf-8\"></script>\n",
+        "initialHeight": 340
+      }
+    ]
   },
   {
     "displayName": "YouTube",
@@ -18,7 +31,14 @@
     "icon": "public/youtube.svg",
     "properties": {
       "embedType": "YouTube"
-    }
+    },
+    "examples": [
+      {
+        "initialHtml": "<iframe width=\"300\" height=\"225\" src=\"https://www.youtube.com/embed/tLcrXQxN70c?feature=oembed\" frameborder=\"0\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen></iframe>",
+        "initialWidth": 600,
+        "initialHeight": 340
+      }
+    ]
   },
   {
     "displayName": "Spotify",
@@ -26,7 +46,14 @@
     "icon": "public/spotify.svg",
     "properties": {
       "embedType": "Spotify"
-    }
+    },
+    "examples": [
+      {
+        "initialHtml": "<iframe width=\"100%\" height=\"380\" title=\"Spotify Embed: Today&apos;s Top Hits\" style=\"[object Object]\" frameborder=\"0\" allowfullscreen allow=\"autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture\" src=\"https://open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM5M?utm_source=oembed\"></iframe>",
+        "initialWidth": 600,
+        "initialHeight": 340
+      }
+    ]
   },
   {
     "displayName": "HASH",
@@ -34,6 +61,13 @@
     "icon": "public/hash.svg",
     "properties": {
       "embedType": "HASH"
-    }
+    },
+    "examples": [
+      {
+        "initialHtml": "<iframe src=\"https://core.hash.ai/embed.html?project=%40hash%2Fcity-infection-model&ref=6.4.2\" width=\"300\" height=\"171\" frameborder=\"0\" scrolling=\"auto\"></iframe>",
+        "initialWidth": 600,
+        "initialHeight": 340
+      }
+    ]
   }
 ]
