@@ -1,4 +1,4 @@
-import { transaction } from "./util";
+import { requireTransaction } from "./util";
 import { PoolConnection, TransactionConnection } from "./types";
 
 describe("transaction flattening", () => {
@@ -17,10 +17,10 @@ describe("transaction flattening", () => {
         .mockImplementation((handler) => handler(transactionConn)),
     };
 
-    await transaction(poolConn)(async (conn) => {
+    await requireTransaction(poolConn)(async (conn) => {
       // conn is now equal to `transactionConn`
       // this transactions should never happen.
-      return transaction(conn)(async (_) => {
+      return requireTransaction(conn)(async (_) => {
         return transactionsHandler();
       });
     });
@@ -48,12 +48,12 @@ describe("transaction flattening", () => {
         .mockImplementation((handler) => handler(transactionConn)),
     };
 
-    await transaction(poolConn)(async (conn) => {
-      return transaction(conn)(async (subConn) => {
+    await requireTransaction(poolConn)(async (conn) => {
+      return requireTransaction(conn)(async (subConn) => {
         await transactionsHandler.call(subConn);
-        return transaction(subConn)(async (subSubConn) => {
+        return requireTransaction(subConn)(async (subSubConn) => {
           await transactionsHandler(subSubConn);
-          return transaction(subSubConn)(async (subSubSubConn) => {
+          return requireTransaction(subSubConn)(async (subSubSubConn) => {
             return await transactionsHandler(subSubSubConn);
           });
         });
