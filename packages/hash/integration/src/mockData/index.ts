@@ -482,28 +482,22 @@ void (async () => {
     ]),
   );
 
-  const table1 = results.get("t1");
-  const table1AccountId = table1?.accountId;
-  const table1EntityId = table1?.entityId;
-
-  if (table1AccountId && table1EntityId) {
-    await db.transaction(async (client) => {
-      await table1?.createAggregation(client, {
-        stringifiedPath: "$.data",
-        operation: {
-          entityTypeId: newTypeIds.Person,
-          itemsPerPage: 5,
-          multiSort: [
-            {
-              field: "createdAt",
-            },
-          ],
-          pageNumber: 1,
+  const table1 = results.get("t1")!;
+  
+  await table1.createAggregation(db, {
+    stringifiedPath: "$.data",
+    operation: {
+      entityTypeId: newTypeIds.Person,
+      itemsPerPage: 5,
+      multiSort: [
+        {
+          field: "createdAt",
         },
-        createdBy: user,
-      });
-    });
-  }
+      ],
+      pageNumber: 1,
+    },
+    createdBy: user,
+  });
 
   // Create Blocks
   type CreateBlockArgs = {
