@@ -300,12 +300,18 @@ impl Experiment {
                 proto::EngineStatus::SimStop(sim_id) => {
                     debug!("Simulation stopped: {sim_id}");
                 }
-                proto::EngineStatus::Errors(sim_id, errs) => {
-                    error!("There were errors when running simulation [{sim_id}]: {errs:?}");
+                proto::EngineStatus::RunnerErrors(sim_id, errs) => {
+                    error!(
+                        "There were errors from the runner when running simulation [{sim_id}]: \
+                         {errs:?}"
+                    );
                     graceful_finish = false;
                 }
-                proto::EngineStatus::Warnings(sim_id, warnings) => {
-                    warn!("There were warnings when running simulation [{sim_id}]: {warnings:?}");
+                proto::EngineStatus::RunnerWarnings(sim_id, warnings) => {
+                    warn!(
+                        "There were warnings from the runner when running simulation [{sim_id}]: \
+                         {warnings:?}"
+                    );
                 }
                 proto::EngineStatus::Logs(sim_id, logs) => {
                     for log in logs {
@@ -314,8 +320,26 @@ impl Experiment {
                         }
                     }
                 }
+                proto::EngineStatus::UserErrors(sim_id, errs) => {
+                    error!(
+                        "There were user-facing errors when running simulation [{sim_id}]: \
+                         {errs:?}"
+                    );
+                }
+                proto::EngineStatus::UserWarnings(sim_id, warnings) => {
+                    warn!(
+                        "There were user-facing warnings when running simulation [{sim_id}]: \
+                         {warnings:?}"
+                    );
+                }
+                proto::EngineStatus::PackageError(sim_id, error) => {
+                    warn!(
+                        "There was an error from a package running simulation [{sim_id}]: \
+                         {error:?}"
+                    );
+                }
                 proto::EngineStatus::Exit => {
-                    debug!("Process exited successfully for experiment run \"{experiment_name}\"",);
+                    debug!("Process exited successfully for experiment run \"{experiment_name}\"");
                     break;
                 }
                 proto::EngineStatus::ProcessError(error) => {

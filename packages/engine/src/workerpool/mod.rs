@@ -296,19 +296,37 @@ impl WorkerPoolController {
                 tracing::debug!("Received RunnerErrors Message from Worker");
                 self.top_send
                     .inner
-                    .send((sim_id, WorkerPoolToExpCtlMsg::Errors(errors)))?;
+                    .send((sim_id, WorkerPoolToExpCtlMsg::RunnerErrors(errors)))?;
             }
             WorkerToWorkerPoolMsg::RunnerWarnings(warnings) => {
                 tracing::debug!("Received RunnerWarnings Message from Worker");
                 self.top_send
                     .inner
-                    .send((sim_id, WorkerPoolToExpCtlMsg::Warnings(warnings)))?;
+                    .send((sim_id, WorkerPoolToExpCtlMsg::RunnerWarnings(warnings)))?;
             }
             WorkerToWorkerPoolMsg::RunnerLogs(logs) => {
                 tracing::debug!("Received RunnerLogs Message from Worker");
                 self.top_send
                     .inner
                     .send((sim_id, WorkerPoolToExpCtlMsg::Logs(logs)))?;
+            }
+            WorkerToWorkerPoolMsg::UserErrors(errors) => {
+                tracing::debug!("Received UserErrors message from Worker");
+                self.top_send
+                    .inner
+                    .send((sim_id, WorkerPoolToExpCtlMsg::UserErrors(errors)))?
+            }
+            WorkerToWorkerPoolMsg::UserWarnings(warnings) => {
+                tracing::debug!("Received UserWarnings message from Worker");
+                self.top_send
+                    .inner
+                    .send((sim_id, WorkerPoolToExpCtlMsg::UserWarnings(warnings)))?
+            }
+            WorkerToWorkerPoolMsg::PackageError(error) => {
+                tracing::debug!("Received PackageError message from Worker");
+                self.top_send
+                    .inner
+                    .send((sim_id, WorkerPoolToExpCtlMsg::PackageError(error)))?
             }
         }
         Ok(())
