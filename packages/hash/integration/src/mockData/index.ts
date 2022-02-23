@@ -483,7 +483,7 @@ void (async () => {
   );
 
   const table1 = results.get("t1")!;
-  
+
   await table1.createAggregation(db, {
     stringifiedPath: "$.data",
     operation: {
