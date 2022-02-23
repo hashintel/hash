@@ -613,19 +613,8 @@ class __Entity {
         "entity"
       >(entityDefinitions, "linkedEntities", "entity");
 
-      const entities: {
-        link?: {
-          parentIndex: number;
-          meta: Omit<LinkedEntityDefinition, "entity">;
-        };
-        entity: Entity;
-      }[] = [];
-
-      // Promises are resolved sequentially because of transaction nesting issues
-      // This happens when more than one entity is created.
-      for (const entityDefinition of result) {
-        // Root entity does not have a link.
-        entities.push({
+      const entities = await Promise.all(
+        result.map(async (entityDefinition) => ({
           link: entityDefinition.meta
             ? {
                 parentIndex: entityDefinition.parentIndex,
@@ -637,25 +626,28 @@ class __Entity {
             accountId,
             entityDefinition,
           }),
-        });
-      }
+        })),
+      );
 
-      /** @todo: implement and use method for creating these links concurrently */
-      for (const { link, entity } of entities) {
-        if (link) {
-          const parentEntity = entities[link.parentIndex];
-          if (!parentEntity) {
-            throw new ApolloError("Could not find parent entity");
+      await Promise.all(
+        entities.map(({ link, entity }) => {
+          if (link) {
+            const parentEntity = entities[link.parentIndex];
+            if (!parentEntity) {
+              throw new ApolloError("Could not find parent entity");
+            }
+            // links are created as an outgoing link from the parent entity to the children.
+            return parentEntity.entity.createOutgoingLink(client, {
+              createdByAccountId: user.accountId,
+              destination: entity,
+              stringifiedPath: link.meta.path,
+              index: link.meta.index ?? undefined,
+            });
+          } else {
+            return null;
           }
-          // links are created as an outgoing link from the parent entity to the children.
-          await parentEntity.entity.createOutgoingLink(client, {
-            createdByAccountId: user.accountId,
-            destination: entity,
-            stringifiedPath: link.meta.path,
-            index: link.meta.index ?? undefined,
-          });
-        }
-      }
+        }),
+      );
 
       // the root entity is the first result, same of which the user supplied as the top level entity.
       if (entities.length > 0) {
