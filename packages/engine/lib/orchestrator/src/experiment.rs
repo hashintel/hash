@@ -78,14 +78,14 @@ pub struct ExperimentConfig {
         feature = "clap",
         clap(global = true, long, default_value = "2", env = "ENGINE_START_TIMEOUT")
     )]
-    pub start_timeout: u64,
+    pub start_timeout: f64,
 
     /// Timeout, in seconds, for how long to wait for updates when the Engine is executing
     #[cfg_attr(
         feature = "clap",
         clap(global = true, long, default_value = "60", env = "ENGINE_WAIT_TIMEOUT")
     )]
-    pub wait_timeout: u64,
+    pub wait_timeout: f64,
 
     /// Number of workers to run in parallel.
     ///
@@ -200,7 +200,7 @@ impl Experiment {
         // Wait to receive a message that the experiment has started before sending the init
         // message.
         let msg = timeout(
-            Duration::from_secs(self.config.start_timeout),
+            Duration::from_secs_f64(self.config.start_timeout),
             engine_handle.recv(),
         )
         .await
@@ -246,9 +246,9 @@ impl Experiment {
         loop {
             let msg: Option<proto::EngineStatus>;
             tokio::select! {
-                _ = sleep(Duration::from_secs(self.config.wait_timeout)) => {
+                _ = sleep(Duration::from_secs_f64(self.config.wait_timeout)) => {
                     error!(
-                        "Did not receive status from experiment \"{experiment_name}\" for over {:?}. \
+                        "Did not receive status from experiment \"{experiment_name}\" for over {}s. \
                         Exiting now.",
                         self.config.wait_timeout
                     );
