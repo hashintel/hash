@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function Pencil() {
+const Pencil: React.VoidFunctionComponent = () => {
   return (
     <svg
       width="24"
@@ -17,4 +17,6 @@ export default function Pencil() {
       />
     </svg>
   );
-}
+};
+
+export default Pencil;

@@ -26,13 +26,19 @@ const UPPER_BOUND_DATA_SIZE_MULTIPLIER: usize = 3;
 pub type AgentIndex = (u32, u32);
 pub type MessageIndex = (u32, u32, u32);
 
-pub struct Batch {
+/// Contains the information required to build the `context` object accessible in the language
+/// runners.
+///
+/// Data within the `ContextBatch` can rely on the contents of the **Agent** and **Message
+/// Pools** within the **Context** object. For example, the list of neighbors in the `ContextBatch`
+/// is a collection of indices pointing to different agents within the **Agent Pool**.
+pub struct ContextBatch {
     pub(crate) memory: Memory,
     pub(crate) metaversion: Metaversion,
     pub(crate) batch: RecordBatch,
 }
 
-impl BatchRepr for Batch {
+impl BatchRepr for ContextBatch {
     fn memory(&self) -> &Memory {
         &self.memory
     }
@@ -58,12 +64,12 @@ impl BatchRepr for Batch {
     }
 }
 
-impl Batch {
+impl ContextBatch {
     pub fn from_record_batch(
         record_batch: &RecordBatch,
         schema: Option<&Arc<ArrowSchema>>,
         experiment_id: &ExperimentId,
-    ) -> Result<Batch> {
+    ) -> Result<Self> {
         let (meta_buffer, data_buffer) = static_record_batch_to_bytes(record_batch);
 
         let memory = Memory::from_batch_buffers(
@@ -77,7 +83,7 @@ impl Batch {
         Self::from_memory(memory, schema)
     }
 
-    pub fn from_memory(memory: Memory, schema: Option<&Arc<ArrowSchema>>) -> Result<Batch> {
+    pub fn from_memory(memory: Memory, schema: Option<&Arc<ArrowSchema>>) -> Result<Self> {
         let (schema_buffer, _, meta_buffer, data_buffer) = memory.get_batch_buffers()?;
         let schema = if let Some(s) = schema {
             s.clone()
@@ -97,7 +103,7 @@ impl Batch {
             Err(e) => return Err(Error::from(e)),
         };
 
-        Ok(Batch {
+        Ok(Self {
             memory,
             metaversion: Metaversion::default(),
             batch,

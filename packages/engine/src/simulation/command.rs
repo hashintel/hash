@@ -14,9 +14,10 @@ use super::{Error, Result};
 use crate::{
     datastore::{
         arrow::batch_conversion::IntoRecordBatch,
+        batch::MessageBatch,
         schema::{state::AgentSchema, FieldKey},
         table::{
-            pool::message::MessagePoolRead, references::MessageMap,
+            pool::proxy::PoolReadProxy, references::MessageMap,
             state::create_remove::ProcessedCommands,
         },
         UUID_V4_LEN,
@@ -24,10 +25,11 @@ use crate::{
     hash_types::{message::RemoveAgentPayload, Agent},
 };
 
-/// TODO: DOC Update docs to reflect that these variants are only allowed
 /// Variations of the protected message-target that is associated with the engine. If an agent
 /// sends a message to one of these variations, it's interpreted as a command rather than a message
 /// to be forwarded to another agent.
+///
+/// This array also forms the list of the **only** acceptable variants, e.g. `hAsH` is not allowed
 static HASH: [&str; 3] = ["hash", "Hash", "HASH"];
 
 /// The commands available to simulation agents
@@ -148,9 +150,9 @@ impl Commands {
     /// commands.
     pub fn from_hash_messages(
         message_map: &MessageMap,
-        message_pool: MessagePoolRead<'_>,
+        message_proxies: PoolReadProxy<MessageBatch>,
     ) -> Result<Commands> {
-        let message_reader = message_pool.get_reader();
+        let message_reader = message_proxies.get_reader();
 
         let mut refs = Vec::with_capacity(HASH.len());
         for hash_recipient in &HASH {

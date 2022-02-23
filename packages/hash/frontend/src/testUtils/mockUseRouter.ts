@@ -14,7 +14,7 @@ export function mockUseRouter(
     pathname: "/",
     query: {},
     asPath: "/",
-    prefetch: () => new Promise<void>((resolve) => resolve()),
+    prefetch: async () => {},
   };
 
   (useRouter as jest.Mock).mockReturnValue({

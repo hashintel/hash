@@ -14,6 +14,7 @@ import {
   insertLink,
   updateLinkIndices,
 } from "./util";
+import { requireTransaction } from "../util";
 
 export const createLink = async (
   existingConnection: Connection,
@@ -28,7 +29,7 @@ export const createLink = async (
     destinationEntityVersionId?: string;
   },
 ): Promise<DBLink> =>
-  existingConnection.transaction(async (conn) => {
+  requireTransaction(existingConnection)(async (conn) => {
     const promises: Promise<void>[] = [];
 
     const now = new Date();
@@ -36,7 +37,6 @@ export const createLink = async (
     // Defer FKs until end of transaction so we can insert concurrently
     await conn.query(sql`
       set constraints
-        outgoing_links_source_account_id_link_id_fk,
         incoming_links_source_account_id_link_id_fk
       deferred
     `);

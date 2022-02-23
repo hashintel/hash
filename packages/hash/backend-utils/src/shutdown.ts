@@ -36,14 +36,14 @@ export class GracefulShutdown {
     if (this.alreadyShutdown) {
       return;
     }
-    this.logger.info("Running graceful shutdown procedures");
+    this.logger.debug("Running graceful shutdown procedures");
     this.alreadyShutdown = true;
     let wasError = false;
     for (const { name, cleanup } of this.cleanupProcedures.reverse()) {
       try {
-        this.logger.info(`Cleaning up ${name}`);
+        this.logger.debug(`Cleaning up ${name}`);
         await cleanup();
-        this.logger.info(`${name} cleaned up`);
+        this.logger.debug(`${name} cleaned up`);
       } catch (err) {
         wasError = true;
         this.logger.error(`cleaning up ${name}: ${err}`);
@@ -55,7 +55,7 @@ export class GracefulShutdown {
       );
       process.exit(1);
     }
-    this.logger.info("Shutdown successful");
+    this.logger.debug("Shutdown successful");
     process.exit(0);
   }
 

@@ -1,9 +1,9 @@
 import { SystemType } from "@hashintel/hash-api/src/types/entityTypes";
-import generatedIds from "./generatedIds.json";
 import {
   generateSchema$id,
   jsonSchemaVersion,
-} from "../../../../src/lib/schemas/jsonSchema";
+} from "@hashintel/hash-api/src/lib/schemas/jsonSchema";
+import generatedIds from "./generatedIds.json";
 
 const systemAccount = generatedIds.orgs.__system__;
 

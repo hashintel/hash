@@ -11,8 +11,9 @@ import {
 } from "blockprotocol";
 
 import Component from "./index";
-import { ProviderNames } from "./types";
-import { EmbedDataType, initialEmbedData } from "./mockData/mockData";
+import { ProviderName } from "./types";
+import { EmbedDataType } from "./mockData/mockData";
+import variants from "../variants.json";
 
 const node = document.getElementById("app");
 
@@ -21,7 +22,7 @@ const apiGraphQLEndpoint = "http://localhost:5001/graphql";
 
 async function getEmbedBlock(
   url: string,
-  type?: ProviderNames,
+  type?: ProviderName,
 ): Promise<{
   html: string;
   error?: string;
@@ -47,8 +48,20 @@ async function getEmbedBlock(
     }));
 }
 
-function AppComponent() {
-  const [state, setState] = useState<EmbedDataType>(initialEmbedData);
+// @todo replace typeof variants[number] with type BlockVariant when available
+const getVariantProperties = (variant: typeof variants[number]) => {
+  return {
+    ...variant.properties,
+    embedType: variant.properties?.embedType as ProviderName,
+    ...variant.examples?.[0],
+  };
+};
+
+const AppComponent: React.VoidFunctionComponent = () => {
+  const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
+  const [state, setState] = useState<EmbedDataType>(
+    getVariantProperties(variants[selectedVariantIndex]),
+  );
 
   const updateState = (newState: Partial<EmbedDataType>) => {
     setState((prevState) => ({
@@ -68,6 +81,20 @@ function AppComponent() {
 
   return (
     <div className={tw`mt-4 w-1/2 mx-auto`}>
+      <select
+        value={selectedVariantIndex}
+        onChange={(event) =>
+          setSelectedVariantIndex(parseInt(event.target.value, 10))
+        }
+      >
+        {variants.map((variant, variantIndex) => (
+          <option value={variantIndex} key={variant.displayName}>
+            {variant.displayName}
+          </option>
+        ))}
+      </select>
+      <br />
+      <br />
       <Component
         accountId="uuid-1234-account"
         type="uuid-1234-type"
@@ -77,10 +104,11 @@ function AppComponent() {
         getEmbedBlock={getEmbedBlock}
         updateEntities={updateBlockData}
         {...state}
+        {...getVariantProperties(variants[selectedVariantIndex])}
       />
     </div>
   );
-}
+};
 
 const App = () => {
   return <AppComponent />;

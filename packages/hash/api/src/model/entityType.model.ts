@@ -1,5 +1,6 @@
 import { ApolloError } from "apollo-server-express";
 import url from "url";
+import fetch from "node-fetch";
 import { JSONObject } from "blockprotocol";
 
 import { EntityExternalResolvers, EntityType } from ".";
@@ -162,6 +163,19 @@ class __EntityType {
     const dbEntityTypes = await client.getEntityTypeParents(params);
 
     return dbEntityTypes.map((entityType) => new EntityType(entityType));
+  }
+
+  public static async fetchComponentIdBlockSchema(componentId: string) {
+    const componentIdUrl = new URL(
+      "./block-schema.json",
+      `${componentId.replace(/\/+$/, "")}/`,
+    );
+
+    const blockSchema = await (await fetch(componentIdUrl.href))
+      .json()
+      .catch(() => ({}));
+
+    return { ...blockSchema, componentId };
   }
 
   toGQLEntityType(): UnresolvedGQLEntityType {

@@ -22,6 +22,7 @@ pub struct MiniV8 {
 
 /// C representation of Arrow array data nodes
 #[repr(C)]
+#[derive(Debug)]
 pub struct DataFfi {
     pub len: usize,
     pub null_count: usize,

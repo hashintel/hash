@@ -907,9 +907,11 @@ struct DataFFI {
     size_t len;
     size_t null_count;
     size_t n_buffers;
+    // The number of valid pointers in buffer_ptrs and valid capacities in buffer_capacities is equal to n_buffers,
+    // which is at most 2.
     const unsigned char *buffer_ptrs[2];
     size_t buffer_capacities[2];
-    const unsigned char *null_bits_ptr;
+    const unsigned char *null_bits_ptr; // This pointer can be null if the Arrow array doesn't have a null bitmap
     size_t null_bits_capacity;
 };
 
@@ -922,6 +924,7 @@ DataFFI mv8_data_node_from_js(
     const auto value = desc_to_value(isolate, context, data_desc);
     const auto obj = v8::Local<v8::Object>::Cast(value);
     DataFFI data;
+    memset( &data, 0, sizeof( DataFFI ) );
 
     const auto len_key = v8::String::NewFromUtf8(
       isolate,
@@ -954,6 +957,7 @@ DataFFI mv8_data_node_from_js(
     assert(buffers->Length() <= 2); // TODO: Return error on failure instead of crashing.
     data.n_buffers = (size_t)buffers->Length(); // TODO: uint32_t instead of size_t.
 
+    // TODO: Add checks for the casts as right now they can silently fail, if possible just assert on the type
     for (size_t i = 0; i < data.n_buffers; ++i) {
       const auto buffer_value = buffers->Get(context, (uint32_t)i).ToLocalChecked();
       const auto buffer = v8::Local<v8::ArrayBuffer>::Cast(buffer_value);
@@ -973,7 +977,6 @@ DataFFI mv8_data_node_from_js(
     const auto contents = null_bits->GetContents();
     data.null_bits_ptr = (const unsigned char*)contents.Data();
     data.null_bits_capacity = contents.ByteLength();
-    
     return data;
   });
 }

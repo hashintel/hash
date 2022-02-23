@@ -1,7 +1,7 @@
 import React from "react";
 import { tw } from "twind";
 
-export default function Loader() {
+const Loader: React.VoidFunctionComponent = () => {
   return (
     <svg
       className={tw`animate-spin h-4 text-white mr-2`}
@@ -24,4 +24,5 @@ export default function Loader() {
       />
     </svg>
   );
-}
+};
+export default Loader;

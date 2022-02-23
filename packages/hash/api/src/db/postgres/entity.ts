@@ -20,6 +20,7 @@ import { getEntityIncomingLinks } from "./link/getEntityIncomingLinks";
 import { getEntityAggregations } from "./aggregation/getEntityAggregations";
 import { addSourceEntityVersionIdToAggregation } from "./aggregation/util";
 import { SystemType } from "../../types/entityTypes";
+import { requireTransaction } from "./util";
 
 /** Prefix to distinguish identical fields when joining with a type record */
 const entityTypeFieldPrefix = "type.";
@@ -396,7 +397,7 @@ export const updateEntityVersionProperties = async (
  * This query also updates account id in the related links
  */
 export const updateEntityAccountId = async (
-  conn: Connection,
+  existingConnection: Connection,
   {
     originalAccountId,
     entityId,
@@ -407,15 +408,13 @@ export const updateEntityAccountId = async (
     newAccountId: string;
   },
 ) => {
-  await conn.transaction(async (transaction) => {
+  await requireTransaction(existingConnection)(async (conn) => {
     await Promise.all([
       // Deffer constraints on foreign keys so we can update them without issues
-      transaction.query(sql`
+      conn.query(sql`
         set constraints
           entity_versions_account_id_entity_id_fk,
           entity_account_account_id_entity_version_id_fk,
-          outgoing_links_source_account_id_source_entity_id_fk,
-          outgoing_links_source_account_id_link_id_fk,
           incoming_links_destination_account_id_destination_entity_id_fk,
           incoming_links_source_account_id_link_id_fk
         deferred
@@ -423,43 +422,43 @@ export const updateEntityAccountId = async (
       /** Update the account id in all the entity tables:
        * entity_versions, entity_account, entities
        */
-      transaction.query(sql`
+      conn.query(sql`
         update entity_versions set
           account_id = ${newAccountId}
         where
           account_id = ${originalAccountId}
           and entity_id = ${entityId}
       `),
-      transaction.query(sql`
+      conn.query(sql`
         update entity_account set
           account_id = ${newAccountId}
         where
           account_id = ${originalAccountId}
           and entity_id = ${entityId}
       `),
-      transaction.query(sql`
+      conn.query(sql`
         update entities set
           account_id = ${newAccountId}
         where
           account_id = ${originalAccountId}
           and entity_id = ${entityId}
       `),
-      /** Update links, incoming_links and outgoing_links account ids */
-      transaction.query(sql`
+      /** Update links and incoming_links account ids */
+      conn.query(sql`
         update links set
           source_account_id = ${newAccountId}
         where
           source_account_id = ${originalAccountId}
           and source_entity_id = ${entityId}
       `),
-      transaction.query(sql`
+      conn.query(sql`
         update links set
           destination_account_id = ${newAccountId}
         where
           destination_account_id = ${originalAccountId}
           and destination_entity_id = ${entityId}
       `),
-      transaction.query(sql`
+      conn.query(sql`
         update incoming_links set
           source_account_id = ${newAccountId}
         where
@@ -471,19 +470,12 @@ export const updateEntityAccountId = async (
               and source_entity_id = ${entityId}
           )
       `),
-      transaction.query(sql`
+      conn.query(sql`
         update incoming_links set
           destination_account_id = ${newAccountId}
         where
           destination_account_id = ${originalAccountId}
           and destination_entity_id = ${entityId}
-      `),
-      transaction.query(sql`
-        update outgoing_links set
-          source_account_id = ${newAccountId}
-        where
-          source_account_id = ${originalAccountId}
-          and source_entity_id = ${entityId}
       `),
     ]);
   });
@@ -803,8 +795,6 @@ export const updateVersionedEntity = async (
   await conn.query(sql`
     set constraints
       entity_account_account_id_entity_version_id_fk,
-      outgoing_links_source_account_id_source_entity_id_fk,
-      outgoing_links_source_account_id_link_id_fk,
       incoming_links_destination_account_id_destination_entity_id_fk,
       incoming_links_source_account_id_link_id_fk
     deferred

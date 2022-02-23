@@ -43,8 +43,7 @@ export const AuthLayout: VoidFunctionComponent<AuthLayoutProps> = ({
       </div>
 
       <div className={tw`absolute right-0 top-0 bottom-0`}>
-        {/* TODO: Remove next-images and resolve https://github.com/vercel/next.js/discussions/25752 */}
-        <img alt="" src={bgPattern as any} className={tw`h-screen`} />
+        <img alt="" src={bgPattern.src} className={tw`h-screen`} />
       </div>
       {onClose && (
         <button

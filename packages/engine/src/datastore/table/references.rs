@@ -5,11 +5,8 @@ use std::{
 
 use rayon::iter::ParallelIterator;
 
-use super::{
-    super::prelude::*,
-    pool::message::{MessagePoolRead, MessageReader},
-};
-use crate::datastore::UUID_V4_LEN;
+use super::{super::prelude::*, pool::message::MessageReader};
+use crate::datastore::{table::pool::proxy::PoolReadProxy, UUID_V4_LEN};
 
 #[derive(Clone, Debug)]
 pub struct AgentMessageReference {
@@ -39,7 +36,7 @@ pub struct MessageMap {
 }
 
 impl MessageMap {
-    pub fn new(pool: &MessagePoolRead<'_>) -> Result<MessageMap> {
+    pub fn new(pool: &PoolReadProxy<MessageBatch>) -> Result<MessageMap> {
         let iter = pool.recipient_iter_all();
         let inner = iter
             .fold(

@@ -1,11 +1,12 @@
 {
-  "https://block.blockprotocol.org/paragraph": "https://blockprotocol-git-main-hashintel.vercel.app/blocks/@hash/paragraph",
-  "https://block.blockprotocol.org/header": "https://blockprotocol-git-main-hashintel.vercel.app/blocks/@hash/header",
-  "https://block.blockprotocol.org/person": "https://blockprotocol-git-main-hashintel.vercel.app/blocks/@hash/person",
-  "https://block.blockprotocol.org/image": "https://blockprotocol-git-main-hashintel.vercel.app/blocks/@hash/image",
-  "https://block.blockprotocol.org/table": "https://blockprotocol-git-main-hashintel.vercel.app/blocks/@hash/table",
-  "https://block.blockprotocol.org/divider": "https://blockprotocol-git-main-hashintel.vercel.app/blocks/@hash/divider",
-  "https://block.blockprotocol.org/embed": "https://blockprotocol-git-main-hashintel.vercel.app/blocks/@hash/embed",
-  "https://block.blockprotocol.org/code": "https://blockprotocol-git-main-hashintel.vercel.app/blocks/@hash/code",
-  "https://block.blockprotocol.org/video": "https://blockprotocol-git-main-hashintel.vercel.app/blocks/@hash/video"
+  "https://blockprotocol.org/blocks/@hash/paragraph": "https://blockprotocol.org/blocks/@hash/paragraph",
+  "https://blockprotocol.org/blocks/@hash/header": "https://blockprotocol.org/blocks/@hash/header",
+  "https://blockprotocol.org/blocks/@hash/callout": "https://blockprotocol.org/blocks/@hash/callout",
+  "https://blockprotocol.org/blocks/@hash/person": "https://blockprotocol.org/blocks/@hash/person",
+  "https://blockprotocol.org/blocks/@hash/image": "https://blockprotocol.org/blocks/@hash/image",
+  "https://blockprotocol.org/blocks/@hash/table": "https://blockprotocol.org/blocks/@hash/table",
+  "https://blockprotocol.org/blocks/@hash/divider": "https://blockprotocol.org/blocks/@hash/divider",
+  "https://blockprotocol.org/blocks/@hash/embed": "https://blockprotocol.org/blocks/@hash/embed",
+  "https://blockprotocol.org/blocks/@hash/code": "https://blockprotocol.org/blocks/@hash/code",
+  "https://blockprotocol.org/blocks/@hash/video": "https://blockprotocol.org/blocks/@hash/video"
 }

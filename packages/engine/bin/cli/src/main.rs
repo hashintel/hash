@@ -84,9 +84,11 @@ async fn main() -> Result<()> {
         args.experiment_config.log_format,
         &args.experiment_config.output_location,
         args.experiment_config.log_folder.clone(),
+        args.experiment_config.log_level,
         &format!("cli-{now}"),
         &format!("cli-{now}-texray"),
-    );
+    )
+    .wrap_err("Failed to initialise the logger")?;
 
     let nng_listen_url = format!("ipc://hash-orchestrator-{now}");
 

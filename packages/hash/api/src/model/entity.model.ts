@@ -414,15 +414,15 @@ class __Entity {
       path?: PathComponent[];
     },
   ) {
+    const { stringifiedPath, path } = params || {};
+
     const outgoingDBLinks = await client.getEntityOutgoingLinks({
       accountId: this.accountId,
       entityId: this.entityId,
       entityVersionId: this.metadata.versioned
         ? this.entityVersionId
         : undefined,
-      path:
-        params?.stringifiedPath ??
-        (params?.path ? Link.stringifyPath(params.path) : undefined),
+      path: stringifiedPath ?? (path ? Link.stringifyPath(path) : undefined),
     });
     return outgoingDBLinks.map((dbLink) => new Link(dbLink));
   }
@@ -551,11 +551,18 @@ class __Entity {
           const systemAccountId = await client.getSystemAccountId();
 
           const name = capitalizeComponentName(componentId);
+
+          // ensure a trailing a trailing slash on componentId
+          const schema = await EntityType.fetchComponentIdBlockSchema(
+            componentId,
+          );
+
+          // Creation of an EntityType validates schema.
           entityTypeWithComponentId = await EntityType.create(client, {
             accountId: systemAccountId,
             createdByAccountId: params.user.accountId,
             name,
-            schema: { componentId },
+            schema,
           });
         }
 
@@ -606,19 +613,8 @@ class __Entity {
         "entity"
       >(entityDefinitions, "linkedEntities", "entity");
 
-      const entities: {
-        link?: {
-          parentIndex: number;
-          meta: Omit<LinkedEntityDefinition, "entity">;
-        };
-        entity: Entity;
-      }[] = [];
-
-      // Promises are resolved sequentially because of transaction nesting issues
-      // This happens when more than one entity is created.
-      for (const entityDefinition of result) {
-        // Root entity does not have a link.
-        entities.push({
+      const entities = await Promise.all(
+        result.map(async (entityDefinition) => ({
           link: entityDefinition.meta
             ? {
                 parentIndex: entityDefinition.parentIndex,
@@ -630,27 +626,26 @@ class __Entity {
             accountId,
             entityDefinition,
           }),
-        });
-      }
+        })),
+      );
 
-      // insert links between entities in tree
-      // No transactions, so can run concurrently
       await Promise.all(
-        entities.map(async ({ link, entity }) => {
+        entities.map(({ link, entity }) => {
           if (link) {
             const parentEntity = entities[link.parentIndex];
             if (!parentEntity) {
               throw new ApolloError("Could not find parent entity");
             }
             // links are created as an outgoing link from the parent entity to the children.
-            return await parentEntity.entity.createOutgoingLink(client, {
+            return parentEntity.entity.createOutgoingLink(client, {
               createdByAccountId: user.accountId,
               destination: entity,
               stringifiedPath: link.meta.path,
               index: link.meta.index ?? undefined,
             });
+          } else {
+            return null;
           }
-          return null;
         }),
       );
 

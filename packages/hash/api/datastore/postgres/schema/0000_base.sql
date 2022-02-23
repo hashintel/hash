@@ -168,19 +168,6 @@ create table if not exists links (
 
 /** @todo: create link table index */
 
-/** Stores parent --> child link references for looking up the outgoing links for a given entity */
-create table if not exists outgoing_links (
-    source_account_id           uuid not null,
-    source_entity_id            uuid not null,
-    link_id                     uuid not null,
-
-    constraint outgoing_links_pk primary key (
-      source_account_id, -- included in the primary key so it can be used as a sharding key
-      source_entity_id,
-      link_id
-    )
-);
-
 /** Stores reverse child --> parent link references for looking up the incoming links for a given entity */
 create table if not exists incoming_links (
     destination_account_id      uuid not null,

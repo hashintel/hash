@@ -1,30 +1,17 @@
-use std::sync::Arc;
-
 use super::prelude::*;
-use crate::{
-    config::{ExperimentConfig, SimulationConfig},
-    datastore::table::{context::Context, state::State},
-    SimRunConfig,
-};
+use crate::datastore::table::{context::Context, state::State};
 
 /// The underlying state of a simulation run.
 pub struct Store {
     state: Option<State>,
     context: Option<Context>,
-    // TODO: all three of these are unused, are they necessary?
-    _shared_store: Arc<SharedStore>,
-    _global_config: Arc<ExperimentConfig>,
-    _local_config: Arc<SimulationConfig>,
 }
 
 impl Store {
-    pub fn new_uninitialized(shared_store: Arc<SharedStore>, config: &SimRunConfig) -> Store {
+    pub fn new_uninitialized() -> Store {
         Store {
             state: None,
             context: None,
-            _shared_store: shared_store,
-            _global_config: config.exp.clone(),
-            _local_config: config.sim.clone(),
         }
     }
 

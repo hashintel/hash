@@ -1,0 +1,29 @@
+[
+  {
+    "steps": 3,
+    "expected-output": {
+      "json-state": {
+        "1": [
+          {
+            "n1": [10.0, 40.0],
+            "n1_is_list": true,
+            "n1_0_is_number": true,
+            "n2": [5.0, 20.0],
+            "n2_is_list": true,
+            "n2_0_is_number": true
+          }
+        ],
+        "2": [
+          {
+            "n1": [100.0, 800.0],
+            "n1_is_list": true,
+            "n1_0_is_number": true,
+            "n2": [50.0, 400.0],
+            "n2_is_list": true,
+            "n2_0_is_number": true
+          }
+        ]
+      }
+    }
+  }
+]

@@ -10,7 +10,9 @@
 
 HASH is an open-source, data-centric, all-in-one workspace. HASH combines a rich frontend editor with a powerful entity graph that makes it easy to capture and work with structured data. HASH is built atop the open [Block Protocol](https://github.com/blockprotocol/blockprotocol) allowing users to easily add new block types and functionality to their workspaces.
 
-**This app is not yet ready for production use.** For now it is intended to be used as a test-harness for developers building Block Protocol compliant blocks.
+**This app is not yet ready for production use.** For now it is intended to be used as a [test-harness for developers building Block Protocol-compliant blocks](#integration-with-the-block-protocol). It is currently not secure, not optimized, and missing key features.
+
+We will be developing HASH into a production-grade application which can be self-hosted. The current design and architecture, while not fully realized, paves the way for further features, scale, and performance. You can read about the long-term vision for HASH [here](https://hash.ai/platform/hash).
 
 ## Getting started
 
@@ -105,14 +107,18 @@ By default, the API server uses `DummyEmailTransporter` which simulates email se
 You will find authentication codes in `var/api/dummy-email-transporter/email-dumps.yml` and in the terminal output.
 If you chose to run the backend and frontend separately, it will be in the backend terminal.
 
+After you have run `yarn seed-data`, you will be able to log in as either `alice@example.com` or `bob@example.com`.
+
 To use `AwsSesEmailTransporter` instead, set `export HASH_EMAIL_TRANSPORTER=aws_ses` in your terminal before running the app.
 Note that you will need valid AWS credentials for this email transporter to work.
 
 ## Integration with the Block Protocol
 
 HASH is built around the open [Block Protocol](https://blockprotocol.org) ([@blockprotocol/blockprotocol](https://github.com/blockprotocol/blockprotocol) on GitHub).
-By default, `packages/hash/shared/src/blockPaths.json` points to the `dev` branch’s deployment of the blockprotocol.org CDN at https://blockprotocol-git-dev-hashintel.vercel.app.
-This can be changed to either a local instance of blockprotocol.org (see its `/site/README.md` on how to do that) or a webpack-dev-server instance of a block in development `yarn workspace @hashintel/block-<block-under-development> run dev --port 3010`.
+
+You can test blocks in HASH by going to any page, clicking on the menu next to an empty block, and pasting in the URL to your block's distribution folder (i.e. the one containing `block-metadata.json`, `block-schema.json`, and the block's code). If you need a way of serving your folder, try [`serve`](https://github.com/vercel/serve).
+
+To get started building a block, visit the [docs](https://blockprotocol.org/docs).
 
 ## HASH blocks
 
@@ -251,14 +257,13 @@ The below `package.json` file outlines the minimum requirements a package has to
     "@typescript-eslint/eslint-plugin": "5.6.0",
     "@typescript-eslint/parser": "5.6.0",
     "eslint": "^7.32.0",
-    "eslint-config-airbnb": "^18.2.1",
-    "eslint-config-prettier": "8.3.0",
-    "eslint-plugin-import": "^2.24.2",
-    "eslint-plugin-jest": "25.3.0",
-    "eslint-plugin-jsx-a11y": "^6.4.1",
-    "eslint-plugin-no-restricted-imports": "0.0.0",
-    "eslint-plugin-react": "^7.25.1",
-    "eslint-plugin-react-hooks": "4.2.0",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-import": "^2.25.4",
+    "eslint-plugin-jest": "^26.1.0",
+    "eslint-plugin-jsx-a11y": "^6.5.1",
+    "eslint-plugin-react": "^7.28.0",
+    "eslint-plugin-react-hooks": "^4.3.0",
     "rimraf": "3.2.0",
     "typescript": "4.5.2"
   }
@@ -377,3 +382,4 @@ If the service should report metrics to a StatsD server, the following variables
 - `HASH_SEARCH_QUEUE_NAME`: The name of the queue to push changes for the search loader service (default: `search`)
 - `NEXT_PUBLIC_API_ORIGIN`: The origin that the API service can be reached on (default: `http://localhost:5001`)
 - `SESSION_SECRET`: The secret used to sign login sessions (default: `secret`)
+- `LOG_LEVEL`: the level of runtime logs that should be omitted, either set to `debug`, `info`, `warn`, `error` (default: `info`)
