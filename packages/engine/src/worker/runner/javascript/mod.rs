@@ -928,7 +928,7 @@ impl<'m> RunnerImpl<'m> {
             payload_str.clone(),
         ]);
 
-        match self.run_task(
+        let run_task_result = self.run_task(
             mv8,
             args,
             sim_id,
@@ -937,7 +937,9 @@ impl<'m> RunnerImpl<'m> {
             msg.task_id,
             &wrapper,
             msg.shared_store,
-        ) {
+        );
+
+        match run_task_result {
             Ok((next_task_msg, warnings, logs)) => {
                 // TODO: `send` fn to reduce code duplication.
                 outbound_sender.send(OutboundFromRunnerMsg {
