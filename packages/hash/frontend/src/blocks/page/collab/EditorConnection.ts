@@ -41,8 +41,6 @@ type EditorConnectionAction =
       doc: ProsemirrorNode<Schema>;
       store: EntityStore;
       version: number;
-      // @todo type this
-      users: unknown;
     }
   | {
       type: "restart";
@@ -209,7 +207,6 @@ export class EditorConnection {
           doc,
           store: data.store,
           version: data.version,
-          users: data.users,
         });
       })
       .catch((err) => {
@@ -304,7 +301,6 @@ export class EditorConnection {
         } else {
           this.poll();
         }
-        // info.users.textContent = userString(data.users);
       },
       (err) => {
         if (err.status === 410 || badVersion(err)) {

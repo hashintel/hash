@@ -1,6 +1,6 @@
 import { BlockVariant } from "blockprotocol";
 import { isString } from "lodash";
-import { ProsemirrorNode, NodeSpec, Schema } from "prosemirror-model";
+import { NodeSpec, ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Transaction } from "prosemirror-state";
 import { EditorProps, EditorView } from "prosemirror-view";
 
@@ -28,21 +28,35 @@ import {
   entityStorePluginStateFromTransaction,
   newDraftId,
 } from "./entityStorePlugin";
-import { childrenForTextEntity, getComponentNodeAttrs } from "./prosemirror";
+import {
+  childrenForTextEntity,
+  componentNodeGroupName,
+  isComponentNode,
+  isComponentNodeType,
+} from "./prosemirror";
 
 declare interface OrderedMapPrivateInterface<T> {
   content: (string | T)[];
 }
 
-const createComponentNodeSpec = (spec: Partial<NodeSpec>): NodeSpec => ({
-  ...spec,
-  selectable: false,
-  group: "componentNode",
-  attrs: {
-    ...(spec.attrs ?? {}),
-    // @todo remove this
-    blockEntityId: { default: "" },
+const createComponentNodeSpec = (
+  spec: Omit<Partial<NodeSpec>, "group">,
+): NodeSpec => ({
+  /**
+   * @todo consider if we should encode the component id here / any other
+   *       information
+   */
+  toDOM: (node) => {
+    if (node.type.isTextblock) {
+      return ["span", { "data-hash-type": "component" }, 0];
+    } else {
+      return ["span", { "data-hash-type": "component" }];
+    }
   },
+  selectable: false,
+
+  ...spec,
+  group: componentNodeGroupName,
 });
 
 type NodeViewFactory = NonNullable<EditorProps<Schema>["nodeViews"]>[string];
@@ -123,18 +137,6 @@ export class ProsemirrorSchemaManager {
 
     const spec = createComponentNodeSpec({
       /**
-       * @todo consider if we should encode the component id here / any other
-       *       information
-       */
-      toDOM: (node) => {
-        if (node.type.isTextblock) {
-          return ["span", { "data-hash-type": "component" }, 0];
-        } else {
-          return ["span", { "data-hash-type": "component" }];
-        }
-      },
-
-      /**
        * Currently we detect whether a block takes editable text by detecting if
        * it has an editableRef prop in its schema – we need a more sophisticated
        * way for block authors to communicate this to us
@@ -167,16 +169,21 @@ export class ProsemirrorSchemaManager {
   private prepareToDisableBlankDefaultComponentNode() {
     const blankType = this.schema.nodes.blank;
 
-    if (blankType.spec.group === "componentNode") {
-      delete blankType.spec.group;
-    }
+    if (isComponentNodeType(blankType)) {
+      if (blankType.spec.group?.includes(componentNodeGroupName)) {
+        if (blankType.spec.group !== componentNodeGroupName) {
+          throw new Error(
+            "Blank node type has group expression more complicated than we can handle",
+          );
+        }
 
-    // Accessing private API here, hence the casting
-    const groups = (blankType as any).groups as string[];
+        delete blankType.spec.group;
+      }
 
-    const idx = groups.indexOf("componentNode");
-    if (idx > -1) {
-      groups.splice(idx, 1);
+      blankType.groups!.splice(
+        blankType.groups!.indexOf(componentNodeGroupName),
+        1,
+      );
     }
   }
 
@@ -239,10 +246,7 @@ export class ProsemirrorSchemaManager {
   async ensureDocDefined(doc: ProsemirrorNode<Schema>) {
     const componentIds = new Set<string>();
     doc.descendants((node) => {
-      if (
-        node.type.spec.group === "componentNode" &&
-        node.type.name.startsWith("http")
-      ) {
+      if (isComponentNode(node) && node.type.name.startsWith("http")) {
         componentIds.add(node.type.name);
       }
 
@@ -289,8 +293,6 @@ export class ProsemirrorSchemaManager {
       }
     }
 
-    const componentNodeAttributes = getComponentNodeAttrs(blockEntity);
-
     if (requiresText) {
       const draftTextEntity =
         draftBlockId && entityStore
@@ -317,12 +319,7 @@ export class ProsemirrorSchemaManager {
             {
               draftId: draftTextEntity?.draftId,
             },
-            [
-              this.schema.nodes[targetComponentId].create(
-                componentNodeAttributes,
-                content,
-              ),
-            ],
+            [this.schema.nodes[targetComponentId].create({}, content)],
           ),
         ]),
       ]);
@@ -340,12 +337,7 @@ export class ProsemirrorSchemaManager {
                 ? blockEntity.properties.entity.draftId
                 : null,
             },
-            [
-              this.schema.nodes[targetComponentId].create(
-                componentNodeAttributes,
-                [],
-              ),
-            ],
+            [this.schema.nodes[targetComponentId].create({}, [])],
           ),
         ),
       ]);

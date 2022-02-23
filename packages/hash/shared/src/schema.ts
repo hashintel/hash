@@ -1,3 +1,4 @@
+import { componentNodeGroupName } from "@hashintel/hash-shared/prosemirror";
 import { Schema } from "prosemirror-model";
 
 export const createSchema = () =>
@@ -15,8 +16,10 @@ export const createSchema = () =>
          * node from the componentNode group, which ensures that when
          * Prosemirror attempts to instantiate a componentNode it uses that
          * node instead of the blank one
+         *
+         * @see import("./ProsemirrorSchemaManager").ProsemirrorSchemaManager#prepareToDisableBlankDefaultComponentNode
          */
-        group: "componentNode",
+        group: componentNodeGroupName,
         toDOM: () => ["div", 0] as const,
       },
       block: {
