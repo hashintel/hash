@@ -13,6 +13,44 @@ const linkFieldsFragment = gql`
   }
 `;
 
+const linkedAggregationsFragment = gql`
+  fragment LinkedAggregationsFields on LinkedAggregation {
+    sourceAccountId
+    sourceEntityId
+    path
+    operation {
+      entityTypeId
+      entityTypeVersionId
+      multiFilter {
+        filters {
+          field
+          value
+          operator
+        }
+        operator
+      }
+      multiSort {
+        field
+        desc
+      }
+      itemsPerPage
+      pageNumber
+      pageCount
+    }
+    results {
+      id
+      entityVersionId
+      entityId
+      accountId
+      updatedAt
+      createdAt
+      entityVersionCreatedAt
+      createdByAccountId
+      properties
+    }
+  }
+`;
+
 const pageFieldsFragment = gql`
   fragment PageFields on Page {
     __typename
@@ -70,39 +108,7 @@ const pageFieldsFragment = gql`
               properties
             }
             linkedAggregations {
-              sourceAccountId
-              sourceEntityId
-              path
-              operation {
-                entityTypeId
-                entityTypeVersionId
-                multiFilter {
-                  filters {
-                    field
-                    value
-                    operator
-                  }
-                  operator
-                }
-                multiSort {
-                  field
-                  desc
-                }
-                itemsPerPage
-                pageNumber
-                pageCount
-              }
-              results {
-                id
-                entityVersionId
-                entityId
-                accountId
-                updatedAt
-                createdAt
-                entityVersionCreatedAt
-                createdByAccountId
-                properties
-              }
+              ...LinkedAggregationsFields
             }
           }
         }
@@ -110,6 +116,7 @@ const pageFieldsFragment = gql`
     }
   }
   ${linkFieldsFragment}
+  ${linkedAggregationsFragment}
 `;
 
 export const createPage = gql`

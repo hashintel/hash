@@ -488,12 +488,7 @@ void (async () => {
 
   if (table1AccountId && table1EntityId) {
     await db.transaction(async (client) => {
-      const source = await Entity.getEntityLatestVersion(client, {
-        accountId: table1AccountId,
-        entityId: table1EntityId,
-      });
-
-      await source?.createAggregation(client, {
+      await table1?.createAggregation(client, {
         stringifiedPath: "$.data",
         operation: {
           entityTypeId: newTypeIds.Person,
