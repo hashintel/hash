@@ -42,6 +42,10 @@ export const useBlockProtocolUpdateEntityType = (): {
       const results: BlockProtocolEntityType[] = [];
       // TODO: Support multiple actions in one GraphQL mutation for transaction integrity and better status reporting
       for (const { accountId, entityId, schema } of actions) {
+        if (!accountId) {
+          throw new Error("updateEntityTypes needs to be passed an accountId");
+        }
+
         const variables: UpdateEntityTypeMutationVariables = {
           entityId,
           accountId,
