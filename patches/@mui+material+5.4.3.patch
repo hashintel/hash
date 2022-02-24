@@ -1,0 +1,44 @@
+diff --git a/node_modules/@mui/material/styles/shadows.d.ts b/node_modules/@mui/material/styles/shadows.d.ts
+index 2f7e309..a53bc36 100644
+--- a/node_modules/@mui/material/styles/shadows.d.ts
++++ b/node_modules/@mui/material/styles/shadows.d.ts
+@@ -1,29 +1,12 @@
+-export type Shadows = [
+-  'none',
+-  string,
+-  string,
+-  string,
+-  string,
+-  string,
+-  string,
+-  string,
+-  string,
+-  string,
+-  string,
+-  string,
+-  string,
+-  string,
+-  string,
+-  string,
+-  string,
+-  string,
+-  string,
+-  string,
+-  string,
+-  string,
+-  string,
+-  string,
+-  string,
+-];
++export type Shadows = {
++  none: string;
++  xs: string;
++  sm: string;
++  md: string;
++  lg: string;
++  xl: string;
++  xxl: string;
++}
++
+ declare const shadows: Shadows;
+ export default shadows;
