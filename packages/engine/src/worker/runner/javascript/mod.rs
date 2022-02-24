@@ -696,7 +696,7 @@ impl<'m> RunnerImpl<'m> {
                 // the size is known
 
                 // SAFETY: `data.buffer_ptrs[0]` is provided by arrow, the type is `u8`, and
-                //   `target_len * *size as usize` corresponds for the `size` of *each* value.
+                //   `*size as usize * target_len` corresponds for the `size` of *each* value.
                 let values = unsafe {
                     slice::from_raw_parts(data.buffer_ptrs[0], target_len * *size as usize)
                 };
