@@ -11,7 +11,7 @@ import { unstable_batchedUpdates } from "react-dom";
 import { tw } from "twind";
 
 import { ResizeImageBlock } from "./components/ResizeImageBlock";
-import Cross from "./svgs/Cross";
+import { ImageErrorAlert } from "./components/ImageErrorAlert";
 import { UploadImageForm } from "./components/UploadImageForm";
 import Pencil from "./svgs/Pencil";
 
@@ -350,25 +350,10 @@ export const Image: BlockComponent<AppProps> = (props) => {
   return (
     <>
       {stateObject.errorString && (
-        <div
-          className={tw`w-96 mx-auto mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative`}
-          role="alert"
-        >
-          <div className={tw`mr-5`}>
-            <strong className={tw`font-bold`}>Error</strong>
-            <span className={tw`block sm:inline ml-2 `}>
-              {stateObject.errorString}
-            </span>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => updateStateObject({ errorString: null })}
-            className={tw`absolute top-0 bottom-0 right-0 px-4 py-3`}
-          >
-            <Cross />
-          </button>
-        </div>
+        <ImageErrorAlert
+          error={stateObject.errorString}
+          onClearError={() => updateStateObject({ errorString: null })}
+        />
       )}
 
       <UploadImageForm
