@@ -73,6 +73,7 @@ pub struct LocalCommand {
     log_level: Option<LogLevel>,
     output_location: OutputLocation,
     log_folder: PathBuf,
+    target_max_group_size: Option<usize>,
 }
 
 impl LocalCommand {
@@ -85,6 +86,7 @@ impl LocalCommand {
         log_level: Option<LogLevel>,
         output_location: OutputLocation,
         log_folder: PathBuf,
+        target_max_group_size: Option<usize>,
     ) -> Self {
         // The NNG URL that the engine process will listen on
         let engine_url = format!("ipc://run-{experiment_id}");
@@ -98,6 +100,7 @@ impl LocalCommand {
             log_level,
             output_location,
             log_folder,
+            target_max_group_size,
         }
     }
 }
@@ -138,6 +141,10 @@ impl process::Command for LocalCommand {
             .stderr(std::process::Stdio::inherit());
         if let Some(log_level) = self.log_level {
             cmd.arg("--log-level").arg(log_level.to_string());
+        }
+        if let Some(target_max_group_size) = self.target_max_group_size {
+            cmd.arg("--target-max-group-size")
+                .arg(target_max_group_size.to_string());
         }
         debug!("Running `{cmd:?}`");
 
