@@ -15,6 +15,7 @@ export const mapPGRowToEntityType = (row: EntityTypePGRow): EntityType => ({
   properties: row.properties,
   metadata: {
     versioned: row.versioned,
+    name: row.name,
     extra: {},
   },
   createdByAccountId: row.created_by,
@@ -35,6 +36,7 @@ export type EntityTypePGRow = {
   updated_by: string;
   updated_at: number;
   entity_id: string;
+  name: string;
   extra: any;
   ["type.entity_type_id"]: string;
   ["type.account_id"]: string;

@@ -10,6 +10,11 @@ export type SearchHit = {
   score: number;
   /** The content of the document. */
   document: JSONObject;
+  belongsToPage?: {
+    entityId: string;
+    entityVersionId: string;
+    accountId: string;
+  };
 };
 
 export type SearchResult = {
