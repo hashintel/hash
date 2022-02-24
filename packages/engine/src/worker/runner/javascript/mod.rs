@@ -674,7 +674,7 @@ impl<'m> RunnerImpl<'m> {
                     mv8,
                     &child,
                     inner_field,
-                    Some(target_len * *size as usize),
+                    Some(*size as usize * target_len),
                 )?);
             }
             DataType::Struct(inner_fields) => {
