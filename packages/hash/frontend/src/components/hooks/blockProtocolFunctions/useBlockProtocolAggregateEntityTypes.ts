@@ -16,6 +16,12 @@ export const useBlockProtocolAggregateEntityTypes = (): {
   const aggregateEntityTypes =
     useCallback<BlockProtocolAggregateEntityTypesFunction>(
       async (payload) => {
+        if (!payload.accountId) {
+          throw new Error(
+            "aggregateEntityTypes needs to be passed an accountId",
+          );
+        }
+
         const rawQueryResult = await apolloClient.query<
           GetAccountEntityTypesQuery,
           GetAccountEntityTypesQueryVariables

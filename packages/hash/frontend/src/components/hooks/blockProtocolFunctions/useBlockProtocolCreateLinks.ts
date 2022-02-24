@@ -28,6 +28,10 @@ export const useBlockProtocolCreateLinks = (): {
       const results: BlockProtocolLink[] = [];
       // TODO: Support multiple actions in one GraphQL mutation for transaction integrity and better status reporting
       for (const action of actions) {
+        if (!action.sourceAccountId) {
+          throw new Error("createLinks needs to be passed a sourceAccountId");
+        }
+
         const { data, errors } = await runCreateLinksMutation({
           variables: {
             link: {

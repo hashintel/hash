@@ -19,6 +19,10 @@ export const useBlockProtocolAggregateEntities = (): {
 
   const aggregateEntities: BlockProtocolAggregateEntitiesFunction = useCallback(
     async (action) => {
+      if (!action.accountId) {
+        throw new Error("aggregateEntities needs to be passed an accountId");
+      }
+
       /**
        * Using client.query since useLazyQuery does not return anything
        * useLazyQuery should return a promise as of apollo-client 3.5

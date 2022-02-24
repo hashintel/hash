@@ -43,8 +43,14 @@ export const useBlockProtocolUpdateEntities = (): {
   const updateEntities: BlockProtocolUpdateEntitiesFunction = useCallback(
     async (actions) =>
       Promise.all(
-        actions.map(async (action) =>
-          (action.entityTypeId === "Page" ? updatePageFn : updateEntityFn)({
+        actions.map(async (action) => {
+          if (!action.accountId) {
+            throw new Error("updateEntities needs to be passed an accountId");
+          }
+
+          return (
+            action.entityTypeId === "Page" ? updatePageFn : updateEntityFn
+          )({
             variables: {
               accountId: action.accountId,
               entityId: action.entityId,
@@ -54,8 +60,8 @@ export const useBlockProtocolUpdateEntities = (): {
             ({ data }) =>
               data &&
               ("updatePage" in data ? data.updatePage : data.updateEntity),
-          ),
-        ),
+          );
+        }),
       ),
     [updateEntityFn, updatePageFn],
   );

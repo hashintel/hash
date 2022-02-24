@@ -25,6 +25,10 @@ export const useBlockProtocolDeleteLinks = (): {
       const results: boolean[] = [];
       // TODO: Support multiple actions in one GraphQL mutation for transaction integrity and better status reporting
       for (const action of actions) {
+        if (!action.sourceAccountId) {
+          throw new Error("deleteLinks needs to be passed a sourceAccountId");
+        }
+
         const { data } = await runDeleteLinkMutation({
           variables: {
             linkId: action.linkId,

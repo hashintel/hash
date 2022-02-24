@@ -24,10 +24,11 @@ export const useBlockProtocolUpdateLinks = (): {
   // @todo implement updating linkgroups and linkedentities
   const getUpdatedLinksData = useCallback(
     async (action: BlockProtocolUpdateLinksAction) => {
-      if (action.updatedOperation) {
+      if (action.updatedOperation && action.sourceAccountId) {
         const { data, errors } = await runUpdateLinkedAggregationMutation({
           variables: {
             ...action,
+            sourceAccountId: action.sourceAccountId,
           },
         });
 
