@@ -462,22 +462,12 @@ void (async () => {
                 "employer.entityType",
               ],
             },
-            data: {
-              __linkedData: {
-                entityTypeId: newTypeIds.Person,
-                aggregate: {
-                  itemsPerPage: 5,
-                  multiSort: [
-                    {
-                      field: "createdAt",
-                    },
-                  ],
-                },
-              },
-            },
+            data: {},
           },
         },
       ],
+      // @todo: this block was previously used to display collab functionality in the app.
+      // After the linkedAggregations work, it doesn't display anything. It needs to either be recreated or removed.
       [
         "t2",
         {
@@ -491,6 +481,23 @@ void (async () => {
       ],
     ]),
   );
+
+  const table1 = results.get("t1")!;
+
+  await table1.createAggregation(db, {
+    stringifiedPath: "$.data",
+    operation: {
+      entityTypeId: newTypeIds.Person,
+      itemsPerPage: 5,
+      multiSort: [
+        {
+          field: "createdAt",
+        },
+      ],
+      pageNumber: 1,
+    },
+    createdBy: user,
+  });
 
   // Create Blocks
   type CreateBlockArgs = {
@@ -747,6 +754,19 @@ void (async () => {
         {
           entityId: results.get("b16")!.entityId,
           accountId: results.get("b16")!.accountId,
+        },
+      ],
+    },
+    {
+      title: "Table Testing Page",
+
+      accountId: user.accountId,
+      createdBy: user,
+
+      initialLinkedContents: [
+        {
+          entityId: results.get("b4")!.entityId,
+          accountId: results.get("b4")!.accountId,
         },
       ],
     },
