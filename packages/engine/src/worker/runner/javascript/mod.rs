@@ -579,48 +579,82 @@ impl<'m> RunnerImpl<'m> {
         // Arrow and pyarrow.
         let target_len = len.unwrap_or(data.len);
 
-        // TODO: Extra copies when generating buffers, because JS Arrow doesn't align things
-        //   properly. (Due to which buffer capacities are currently unused.)
+        // TODO: We currently copy the buffers because the JavsScript representation of arrays does
+        //   not match the Rust implementation. Try to reduce copies where possible.
         let mut builder = ArrayData::builder(field.data_type().clone());
 
         match field.data_type() {
-            DataType::Boolean => unsafe {
+            DataType::Boolean => {
+                // SAFETY: `data.buffer_ptrs[0]` is provided by arrow, the type is `u8`, and
+                //   `target_len` is carefully chosen
+                let values = unsafe { slice::from_raw_parts(data.buffer_ptrs[0], target_len) };
+
+                // Booleans are packed in arrow, `values` are already packed, so use them directly
                 let mut boolean_builder = BooleanBufferBuilder::new(target_len);
-                let values = slice::from_raw_parts(data.buffer_ptrs[0], target_len);
                 boolean_builder.append_packed_range(0..target_len, values);
 
                 builder = builder.add_buffer(boolean_builder.finish());
-            },
-            DataType::UInt16 => unsafe {
-                let values = slice::from_raw_parts(data.buffer_ptrs[0] as *const u16, target_len);
+            }
+            DataType::UInt16 => {
+                // SAFETY: `data.buffer_ptrs[0]` is provided by arrow, the type is `u16`, and
+                //   `target_len` is carefully chosen
+                let values =
+                    unsafe { slice::from_raw_parts(data.buffer_ptrs[0] as *const u16, target_len) };
+
                 builder = builder.add_buffer(Buffer::from_slice_ref(&values));
-            },
-            DataType::UInt32 => unsafe {
-                let values = slice::from_raw_parts(data.buffer_ptrs[0] as *const u32, target_len);
+            }
+            DataType::UInt32 => {
+                // SAFETY: `data.buffer_ptrs[0]` is provided by arrow, the type is `u32`, and
+                //   `target_len` is carefully chosen
+                let values =
+                    unsafe { slice::from_raw_parts(data.buffer_ptrs[0] as *const u32, target_len) };
+
                 builder = builder.add_buffer(Buffer::from_slice_ref(&values));
-            },
-            DataType::Float64 => unsafe {
-                let values = slice::from_raw_parts(data.buffer_ptrs[0] as *const f64, target_len);
+            }
+            DataType::Float64 => {
+                // SAFETY: `data.buffer_ptrs[0]` is provided by arrow, the type is `f64`, and
+                //   `target_len` is carefully chosen
+                let values =
+                    unsafe { slice::from_raw_parts(data.buffer_ptrs[0] as *const f64, target_len) };
+
                 builder = builder.add_buffer(Buffer::from_slice_ref(&values));
-            },
-            DataType::Utf8 => unsafe {
+            }
+            DataType::Utf8 => {
+                // Utf8 is stored in two buffers:
+                //   [0]: The offset buffer (i32)
+                //   [1]: The value buffer (u8)
+
                 // TODO: Use `data.len` or target_len?
-                //       (In practice, target_len has worked for a long time,
-                //       though that's not an ideal reason to use it. Maybe
-                //       `data.len` would also work.)
-                let offsets =
-                    slice::from_raw_parts(data.buffer_ptrs[0] as *const i32, target_len + 1);
-                builder = builder.add_buffer(Buffer::from_slice_ref(&offsets));
-                let values = if let Some(size) = offsets.last() {
-                    slice::from_raw_parts(data.buffer_ptrs[1], *size as usize)
-                } else {
-                    &[]
+                //   (In practice, target_len has worked for a long time, though that's not an ideal
+                //   reason to use it. Maybe `data.len` would also work.)
+                // The offsets are in the first buffer. For each value in the second buffer, we have
+                // a start offset and an end offset. The start offset is equal to the end offset of
+                // the previous value, thus we need `num_values + 1` offset values.
+                // SAFETY: `data.buffer_ptrs[0]` is provided by arrow as offsets, the type is `i32`,
+                //   and `target_len + 1` is carefully chosen.
+                let offsets = unsafe {
+                    slice::from_raw_parts(data.buffer_ptrs[0] as *const i32, target_len + 1)
                 };
-                builder = builder.add_buffer(values.into());
-            },
-            DataType::List(inner_field) => unsafe {
-                let offsets =
-                    slice::from_raw_parts(data.buffer_ptrs[0] as *const i32, target_len + 1);
+                builder = builder.add_buffer(Buffer::from_slice_ref(&offsets));
+
+                // SAFETY: `data.buffer_ptrs[1]` is provided by arrow as values, the type is
+                //   `u8`, and the length is provided by the offsets
+                let values = unsafe {
+                    slice::from_raw_parts(data.buffer_ptrs[1], offsets[target_len] as usize)
+                };
+                builder = builder.add_buffer(Buffer::from_slice_ref(&values));
+            }
+            DataType::List(inner_field) => {
+                // List is stored in one buffer and child data containing the indexed values:
+                //   buffer: The offset buffer (i32)
+                //   child_data: The value data
+
+                // See `DataType::Utf8` above for reasoning on `target_len + 1`
+                // SAFETY: `data.buffer_ptrs[0]` is provided by arrow, the type is `i32`, and
+                //   `target_len + 1` is carefully chosen.
+                let offsets = unsafe {
+                    slice::from_raw_parts(data.buffer_ptrs[0] as *const i32, target_len + 1)
+                };
                 builder = builder.add_buffer(Buffer::from_slice_ref(&offsets));
 
                 let child_data: mv8::Array<'_> = obj.get("child_data")?;
@@ -631,8 +665,10 @@ impl<'m> RunnerImpl<'m> {
                     inner_field,
                     None,
                 )?);
-            },
+            }
             DataType::FixedSizeList(inner_field, size) => {
+                // FixedSizeListList is only stored by child data, as offsets are not required
+                // because the size is known.
                 let child_data: mv8::Array<'_> = obj.get("child_data")?;
                 let child = child_data.get(0)?;
                 builder = builder.add_child_data(self.array_data_from_js(
@@ -643,6 +679,8 @@ impl<'m> RunnerImpl<'m> {
                 )?);
             }
             DataType::Struct(inner_fields) => {
+                // Structs are only defined by child data
+
                 let child_data: mv8::Array<'_> = obj.get("child_data")?;
                 for (i, inner_field) in inner_fields.iter().enumerate() {
                     let child = child_data.get(i as u32)?;
@@ -654,10 +692,17 @@ impl<'m> RunnerImpl<'m> {
                     )?);
                 }
             }
-            DataType::FixedSizeBinary(size) => unsafe {
-                let values = slice::from_raw_parts(data.buffer_ptrs[0], data.len * *size as usize);
+            DataType::FixedSizeBinary(size) => {
+                // FixedSizeBinary is only stored as a buffer (u8), offsets are not required because
+                // the size is known
+
+                // SAFETY: `data.buffer_ptrs[0]` is provided by arrow, the type is `u8`, and
+                //   `data.len * *size as usize` corresponds for the `size` of *each* value.
+                let values = unsafe {
+                    slice::from_raw_parts(data.buffer_ptrs[0], data.len * *size as usize)
+                };
                 builder = builder.add_buffer(Buffer::from_slice_ref(&values));
-            },
+            }
             data_type => return Err(Error::FlushType(data_type.clone())), // TODO: More types?
         };
 
