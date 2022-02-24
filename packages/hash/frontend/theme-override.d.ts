@@ -1,55 +1,28 @@
 declare module "@mui/material/styles" {
+  type PaletteValue = {
+    10: string;
+    20: string;
+    30: string;
+    40: string;
+    50: string;
+    60: string;
+    70: string;
+    80: string;
+    90: string;
+    100: string;
+  };
   interface Palette {
-    purple: {
-      100: string;
-      200: string;
-      300: string;
-      400: string;
-      500: string;
-      600: string;
-      700: string;
-      800: string;
-      subtle: string;
-    };
-    teal: {
-      100: string;
-      200: string;
-      300: string;
-      400: string;
-      500: string;
-      600: string;
-      700: string;
-    };
-    orange: {
-      100: string;
-      200: string;
-      300: string;
-      400: string;
-      500: string;
-      600: string;
-      700: string;
-    };
-    red: {
-      100: string;
-      200: string;
-      300: string;
-      400: string;
-      500: string;
-      600: string;
-      700: string;
-      800: string;
-    };
-    gray: {
-      10: string;
-      20: string;
-      30: string;
-      40: string;
-      50: string;
-      60: string;
-      70: string;
-      80: string;
-    };
+    gray: PaletteValue;
     grey: undefined;
+    blue: PaletteValue;
+    purple: PaletteValue;
+    red: PaletteValue;
+    orange: PaletteValue;
+    green: PaletteValue;
+    yellow: PaletteValue;
+    pink: PaletteValue;
+    teal: PaletteValue;
+    mint: PaletteValue;
   }
 
   interface TypographyVariants {
