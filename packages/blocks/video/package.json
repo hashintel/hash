@@ -75,6 +75,7 @@
         "initialCaption": "A blooming flower",
         "url": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm"
       }
-    ]
+    ],
+    "protocol": "0.1"
   }
 }
