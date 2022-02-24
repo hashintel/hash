@@ -1,20 +1,19 @@
+import {
+  BlockProtocolEntity,
+  BlockProtocolLinkGroup,
+  BlockProtocolUpdateEntitiesAction,
+  BlockProtocolUploadFileFunction,
+} from "blockprotocol";
+import { BlockComponent } from "blockprotocol/react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 
 import { tw } from "twind";
-import { BlockComponent } from "blockprotocol/react";
-import {
-  BlockProtocolLinkGroup,
-  BlockProtocolEntity,
-  BlockProtocolUploadFileFunction,
-  BlockProtocolUpdateEntitiesAction,
-} from "blockprotocol";
 
 import { ResizeImageBlock } from "./components/ResizeImageBlock";
-
-import Loader from "./svgs/Loader";
-import Pencil from "./svgs/Pencil";
 import Cross from "./svgs/Cross";
+import { UploadImageForm } from "./components/UploadImageForm";
+import Pencil from "./svgs/Pencil";
 
 // https://www.typescriptlang.org/docs/handbook/release-notes/overview.html#recursive-conditional-types
 type Awaited<T> = T extends PromiseLike<infer U> ? Awaited<U> : T;
@@ -33,12 +32,6 @@ type BlockProtocolUpdateEntitiesActionData = Pick<
 > & {
   file?: FileType;
 };
-
-const placeholderText = "Enter Image URL";
-const buttonText = "Embed Image";
-const bottomText = "Works with web-supported image formats";
-
-const IMG_MIME_TYPE = "image/*";
 
 function getLinkGroup(params: {
   linkGroups: BlockProtocolLinkGroup[];
@@ -296,8 +289,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
     ],
   );
 
-  const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const onUrlConfirm = () => {
     const { loading } = stateObject;
 
     if (loading) {
@@ -308,14 +300,6 @@ export const Image: BlockComponent<AppProps> = (props) => {
       handleImageUpload({ url: inputText });
     } else {
       displayError("Please enter a valid image URL or select a file below");
-    }
-  };
-
-  const onFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const { files } = event.target;
-
-    if (files?.[0]) {
-      handleImageUpload({ file: files[0] });
     }
   };
 
@@ -387,65 +371,14 @@ export const Image: BlockComponent<AppProps> = (props) => {
         </div>
       )}
 
-      <div
-        className={tw`w-96 mx-auto bg-white rounded-sm shadow-md overflow-hidden text-center p-4 border-2 border-gray-200`}
-        onDragOver={(event) => {
-          event.stopPropagation();
-          event.preventDefault();
-        }}
-        onDrop={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-
-          const dT = event.dataTransfer;
-          const files = dT.files;
-
-          if (files && files.length) {
-            // we set our input's 'files' property
-
-            if (files[0].type.search("image") > -1) {
-              handleImageUpload({ file: files[0] });
-            }
-          }
-        }}
-      >
-        <form className={tw`mb-0`} onSubmit={onSubmit}>
-          <div>
-            <input
-              className={tw`px-1.5 py-1 rounded-sm border-2 border-gray-200 bg-gray-50 focus:outline-none focus:ring focus:border-blue-300 w-full`}
-              onChange={(event) => setInputText(event.target.value)}
-              type="url"
-              placeholder={placeholderText}
-            />
-          </div>
-          <div>
-            <label>
-              <div
-                className={tw`my-4 bg-gray-50 border-2 border-dashed border-gray-200 py-4 text-sm text-gray-400 cursor-pointer`}
-              >
-                Choose a File. <br /> (or Drop it Here)
-              </div>
-
-              <input
-                className={tw`hidden`}
-                type="file"
-                accept={IMG_MIME_TYPE}
-                onChange={onFileSelect}
-              />
-            </label>
-          </div>
-          <div className={tw`mt-4`}>
-            <button
-              className={tw`bg-blue-400 rounded-sm hover:bg-blue-500 focus:bg-blue-600 py-1 text-white w-full flex items-center justify-center`}
-              type="submit"
-            >
-              {stateObject.loading && <Loader />}
-              {buttonText}
-            </button>
-          </div>
-          <div className={tw`text-sm text-gray-400 mt-4`}>{bottomText}</div>
-        </form>
-      </div>
+      <UploadImageForm
+        onUrlConfirm={onUrlConfirm}
+        onFileChoose={(file) => handleImageUpload({ file })}
+        onUrlChange={(url) => setInputText(url)}
+        src={stateObject.src}
+        width={stateObject.width}
+        loading={stateObject.loading}
+      />
     </>
   );
 };
