@@ -7,12 +7,17 @@ import React, {
 } from "react";
 import { TableOptions, useSortBy, useTable } from "react-table";
 import {
+  BlockProtocolLinkedAggregation,
   BlockProtocolEntityType,
+  BlockProtocolUpdateLinksAction,
   BlockProtocolLinkedDataDefinition,
+  BlockProtocolMultiSort,
 } from "blockprotocol";
 import { BlockComponent } from "blockprotocol/react";
 import { tw } from "twind";
 import { orderBy } from "lodash";
+import { produce } from "immer";
+
 import { EditableCell } from "./components/EditableCell";
 import { makeColumns } from "./lib/columns";
 import { getSchemaPropertyDefinition } from "./lib/getSchemaProperty";
@@ -22,6 +27,11 @@ import { Pagination } from "./components/Pagination";
 import { AggregateArgs, Header } from "./components/Header";
 import { EntityTypeDropdown } from "./components/EntityTypeDropdown";
 import { omitTypenameDeep } from "./lib/omitTypenameDeep";
+
+type TableData = {
+  data?: Record<string, any>[];
+  linkedAggregation?: BlockProtocolLinkedAggregation;
+};
 
 type AppProps = {
   data: {
@@ -34,19 +44,24 @@ type AppProps = {
   entityId: string;
 };
 
-const defaultData: AppProps["data"] = { data: [] };
-
-const useTableData = (data: AppProps["data"]) => {
-  const defaultAggregateData = {
-    tableData: data,
-    prevTableData: data,
+const useTableData = (
+  linkedAggregation: BlockProtocolLinkedAggregation | undefined,
+) => {
+  const defaultTableData: TableData = {
+    linkedAggregation,
+    data: linkedAggregation?.results,
   };
 
-  const [{ prevTableData, tableData }, setAggregateTableData] =
+  const defaultAggregateData = {
+    tableData: defaultTableData,
+    prevLinkedAggregation: linkedAggregation,
+  };
+
+  const [{ prevLinkedAggregation, tableData }, setAggregateTableData] =
     useState(defaultAggregateData);
 
   const setTableData = useCallback(
-    (nextData: AppProps["data"]) =>
+    (nextData: TableData) =>
       setAggregateTableData((existing) => ({
         ...existing,
         tableData: nextData,
@@ -54,31 +69,80 @@ const useTableData = (data: AppProps["data"]) => {
     [],
   );
 
-  if (data !== prevTableData) {
+  if (linkedAggregation !== prevLinkedAggregation) {
     setAggregateTableData(defaultAggregateData);
   }
 
   return [tableData, setTableData] as const;
 };
 
-export const App: BlockComponent<AppProps> = ({
-  data = defaultData,
-  initialState,
-  schemas,
-  updateEntities,
-  entityId,
+const getLinkedAggregation = (params: {
+  linkedAggregations: BlockProtocolLinkedAggregation[];
+  path: string;
+  sourceEntityId: string;
+}): BlockProtocolLinkedAggregation | undefined => {
+  const { linkedAggregations, path, sourceEntityId } = params;
+
+  return linkedAggregations.find(
+    (aggregation) =>
+      aggregation.path === path &&
+      aggregation.sourceEntityId === sourceEntityId,
+  );
+};
+
+const cleanUpdateLinkedAggregationAction = (
+  action: BlockProtocolUpdateLinksAction & {
+    updatedOperation: Partial<BlockProtocolLinkedAggregation> & {
+      __typename?: string;
+    };
+  },
+) => {
+  return produce(action, (draftAction) => {
+    draftAction.updatedOperation.multiSort =
+      draftAction.updatedOperation.multiSort?.map((sort) => {
+        const newSort = sort as BlockProtocolMultiSort[number] & {
+          __typename?: string;
+        };
+        delete newSort.__typename;
+        return newSort;
+      });
+
+    delete draftAction.updatedOperation.pageCount;
+
+    delete draftAction.updatedOperation.__typename;
+  });
+};
+
+const path = "$.data";
+
+export const Table: BlockComponent<AppProps> = ({
   aggregateEntities,
   aggregateEntityTypes,
+  entityId,
+  initialState,
+  linkedAggregations,
+  schemas,
+  updateEntities,
+  updateLinks,
 }) => {
-  const [tableData, setTableData] = useTableData(data);
+  const matchingLinkedAggregation = useMemo(() => {
+    return getLinkedAggregation({
+      linkedAggregations: linkedAggregations ?? [],
+      path,
+      sourceEntityId: entityId,
+    });
+  }, [entityId, linkedAggregations]);
+
+  const [tableData, setTableData] = useTableData(matchingLinkedAggregation);
 
   const columns = useMemo(
-    () => initialState?.columns ?? makeColumns(tableData.data?.[0] || {}),
-    [tableData.data, initialState],
+    () => makeColumns(tableData.data?.[0] || {}),
+    [tableData.data],
   );
 
   const [pageOptions, aggregateOptions] = useMemo(() => {
-    const aggregate = tableData.__linkedData?.aggregate;
+    const aggregate = tableData.linkedAggregation?.operation;
+
     return [
       {
         pageCount: aggregate?.pageCount || 1,
@@ -107,11 +171,11 @@ export const App: BlockComponent<AppProps> = ({
       initialState: {
         ...initialState,
       },
+      updateEntities,
       data: tableData.data || [],
       defaultColumn: {
         Cell: EditableCell,
       },
-      updateEntities,
       manualSortBy: true,
     },
     useSortBy,
@@ -128,35 +192,43 @@ export const App: BlockComponent<AppProps> = ({
       pageNumber: number;
       itemsPerPage?: number;
     }) => {
-      const linkedData = omitTypenameDeep(tableData.__linkedData);
+      const linkedData = omitTypenameDeep(tableData.linkedAggregation);
 
       if (
         !aggregateEntities ||
-        !linkedData?.aggregate ||
-        !linkedData.aggregate.entityTypeId
+        !linkedData?.operation ||
+        !linkedData.operation.entityTypeId
       ) {
         return;
       }
 
       const { itemsPerPage: prevPerPage, pageNumber: prevPage } =
-        linkedData.aggregate;
-      linkedData.aggregate.itemsPerPage = itemsPerPage || prevPerPage;
-      linkedData.aggregate.pageNumber = pageNumber || prevPage;
+        linkedData.operation;
+      linkedData.operation.itemsPerPage = itemsPerPage || prevPerPage;
+      linkedData.operation.pageNumber = pageNumber || prevPage;
 
       /** remove pageCount since it's not required in aggregate resolver */
-      if (linkedData.aggregate.pageCount) {
-        delete linkedData.aggregate.pageCount;
+      if (linkedData.operation.pageCount) {
+        delete linkedData.operation.pageCount;
       }
 
       aggregateEntities({
-        operation: linkedData.aggregate,
+        operation: linkedData.operation,
       })
         .then(({ operation, results }) => {
+          if (!tableData.linkedAggregation?.sourceAccountId) {
+            throw new Error("sourceAccountId is required");
+          }
+
           setTableData({
-            data: results as AppProps["data"]["data"],
-            __linkedData: {
-              ...tableData.__linkedData,
-              aggregate: operation,
+            data: results as TableData["data"],
+            linkedAggregation: {
+              ...tableData.linkedAggregation,
+              operation: {
+                ...operation,
+                entityTypeId:
+                  tableData?.linkedAggregation.operation.entityTypeId,
+              },
             },
           });
         })
@@ -164,65 +236,88 @@ export const App: BlockComponent<AppProps> = ({
           // @todo properly handle error
         });
     },
-    [aggregateEntities, setTableData, tableData.__linkedData],
+    [aggregateEntities, setTableData, tableData.linkedAggregation],
   );
 
   const handleUpdate = useCallback(
     ({ operation, multiFilter, multiSort, itemsPerPage }: AggregateArgs) => {
-      if (!updateEntities || !tableData.__linkedData) return;
+      if (
+        !updateEntities ||
+        !updateLinks ||
+        !matchingLinkedAggregation ||
+        !tableData.linkedAggregation
+      ) {
+        return;
+      }
 
-      const newLinkedData = omitTypenameDeep(tableData.__linkedData);
+      const newLinkedData = omitTypenameDeep(tableData.linkedAggregation);
       const newState = {
         hiddenColumns: initialState?.hiddenColumns,
         columns: initialState?.columns,
       };
 
-      if (!newLinkedData.aggregate) {
+      if (!newLinkedData.operation) {
         return;
       }
 
       if (operation === "sort" && multiSort) {
-        newLinkedData.aggregate.multiSort = multiSort;
+        newLinkedData.operation.multiSort = multiSort;
       }
 
       if (operation === "filter" && multiFilter) {
-        newLinkedData.aggregate.multiFilter = multiFilter;
+        newLinkedData.operation.multiFilter = multiFilter;
       }
 
       if (operation === "changePageSize" && itemsPerPage) {
-        const { itemsPerPage: prevItemsPerPage } = newLinkedData.aggregate;
-        newLinkedData.aggregate.itemsPerPage = itemsPerPage || prevItemsPerPage;
+        const { itemsPerPage: prevItemsPerPage } = newLinkedData.operation;
+        newLinkedData.operation.itemsPerPage = itemsPerPage || prevItemsPerPage;
       }
 
       if (
-        newLinkedData.aggregate.pageCount ||
-        newLinkedData.aggregate.pageNumber
+        newLinkedData.operation.pageCount ||
+        newLinkedData.operation.pageNumber
       ) {
-        delete newLinkedData.aggregate.pageCount;
-        delete newLinkedData.aggregate.pageNumber;
+        delete newLinkedData.operation.pageCount;
+        delete newLinkedData.operation.pageNumber;
       }
 
       void updateEntities<{
-        data: { __linkedData: BlockProtocolLinkedDataDefinition };
         initialState?: Record<string, any>;
       }>([
         {
           data: {
-            data: { __linkedData: newLinkedData },
             initialState: newState,
           },
           entityId,
         },
       ]);
+
+      void updateLinks([
+        cleanUpdateLinkedAggregationAction({
+          sourceAccountId: matchingLinkedAggregation.sourceAccountId,
+          sourceEntityId: matchingLinkedAggregation.sourceEntityId,
+          path,
+          updatedOperation: newLinkedData.operation,
+        }),
+      ]);
     },
-    [updateEntities, tableData.__linkedData, entityId, initialState],
+    [
+      matchingLinkedAggregation,
+      updateEntities,
+      updateLinks,
+      tableData.linkedAggregation,
+      entityId,
+      initialState,
+    ],
   );
 
   const updateRemoteColumns = (properties: {
     hiddenColumns?: string[];
     columns?: { Header: string; accessor: string }[];
   }) => {
-    if (!updateEntities) return;
+    if (!updateLinks || !updateEntities || !matchingLinkedAggregation) {
+      return;
+    }
 
     const newState = {
       ...initialState,
@@ -231,18 +326,28 @@ export const App: BlockComponent<AppProps> = ({
       }),
       ...(properties.columns && { columns: properties.columns }),
     };
-    void updateEntities<{
-      data: { __linkedData: BlockProtocolLinkedDataDefinition };
-      initialState?: Record<string, any>;
-    }>([
-      {
-        data: {
-          data: { __linkedData: { ...tableData.__linkedData } },
-          initialState: newState,
+
+    if (tableData.linkedAggregation?.sourceAccountId) {
+      void updateEntities<{
+        initialState?: Record<string, any>;
+      }>([
+        {
+          data: {
+            initialState: newState,
+          },
+          entityId,
         },
-        entityId,
-      },
-    ]);
+      ]);
+
+      void updateLinks([
+        cleanUpdateLinkedAggregationAction({
+          sourceAccountId: matchingLinkedAggregation.sourceAccountId,
+          sourceEntityId: matchingLinkedAggregation.sourceEntityId,
+          path,
+          updatedOperation: { ...tableData.linkedAggregation.operation },
+        }),
+      ]);
+    }
   };
 
   const updateRemoteColumnsRef = useRef(updateRemoteColumns);
@@ -285,11 +390,21 @@ export const App: BlockComponent<AppProps> = ({
     [handleAggregate],
   );
 
+  const entityTypeId = tableData?.linkedAggregation?.operation.entityTypeId;
+
   const setPageSize = useCallback(
     (size: number) => {
-      handleUpdate({ operation: "changePageSize", itemsPerPage: size });
+      if (!entityTypeId) {
+        return;
+      }
+
+      handleUpdate({
+        operation: "changePageSize",
+        itemsPerPage: size,
+        entityTypeId,
+      });
     },
-    [handleUpdate],
+    [handleUpdate, entityTypeId],
   );
 
   /**
@@ -322,38 +437,57 @@ export const App: BlockComponent<AppProps> = ({
   }, [aggregateEntityTypes]);
 
   const handleEntityTypeChange = useCallback(
-    (entityTypeId: string | undefined) => {
-      void updateEntities?.([
+    (updatedEntityTypeId: string | undefined) => {
+      if (!updateEntities || !updateLinks || !matchingLinkedAggregation) {
+        return;
+      }
+
+      void updateEntities<{
+        initialState?: Record<string, any>;
+      }>([
         {
-          data: {
-            data: {
-              __linkedData: entityTypeId
-                ? {
-                    entityTypeId,
-                    aggregate: {
-                      // There is scope to include other options if entity properties overlap
-                      itemsPerPage: data.__linkedData?.aggregate?.itemsPerPage,
-                    },
-                  }
-                : undefined,
-            },
-          },
           entityId,
+          data: {
+            initialState,
+          },
         },
       ]);
+
+      if (updatedEntityTypeId) {
+        void updateLinks?.([
+          cleanUpdateLinkedAggregationAction({
+            sourceAccountId: matchingLinkedAggregation.sourceAccountId,
+            sourceEntityId: matchingLinkedAggregation.sourceEntityId,
+            path,
+            updatedOperation: {
+              entityTypeId: updatedEntityTypeId,
+              // There is scope to include other options if entity properties overlap
+              itemsPerPage:
+                tableData.linkedAggregation?.operation?.itemsPerPage,
+            },
+          }),
+        ]);
+      }
     },
-    [updateEntities, data.__linkedData?.aggregate?.itemsPerPage, entityId],
+    [
+      entityId,
+      initialState,
+      tableData.linkedAggregation?.operation?.itemsPerPage,
+      matchingLinkedAggregation,
+      updateEntities,
+      updateLinks,
+    ],
   );
 
   const entityTypeDropdown = entityTypes ? (
     <EntityTypeDropdown
       options={entityTypes}
-      value={data?.__linkedData?.aggregate?.entityTypeId}
+      value={tableData?.linkedAggregation?.operation?.entityTypeId}
       onChange={handleEntityTypeChange}
     />
   ) : null;
 
-  if (!data.__linkedData?.aggregate?.entityTypeId) {
+  if (!tableData.linkedAggregation?.operation?.entityTypeId) {
     if (!aggregateEntityTypes) {
       return (
         <div>
@@ -375,6 +509,7 @@ export const App: BlockComponent<AppProps> = ({
         onAggregate={handleUpdate}
         aggregateOptions={aggregateOptions}
         entityTypeDropdown={entityTypeDropdown}
+        entityTypeId={tableData?.linkedAggregation.operation.entityTypeId}
       />
       <div className={tw`max-w-full`}>
         <table
