@@ -33,6 +33,7 @@
   "blockprotocol": {
     "displayName": "Inline HTML",
     "icon": "public/html.svg",
-    "image": "public/preview.svg"
+    "image": "public/preview.svg",
+    "protocol": "0.1"
   }
 }

@@ -79,6 +79,7 @@
         "email": "alice@example.com",
         "name": "Alice Alison"
       }
-    ]
+    ],
+    "protocol": "0.1"
   }
 }

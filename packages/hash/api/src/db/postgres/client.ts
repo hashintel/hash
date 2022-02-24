@@ -79,12 +79,19 @@ import { getEntityAggregations } from "./aggregation/getEntityAggregations";
 import { updateAggregationOperation } from "./aggregation/updateAggregationOperation";
 import { deleteAggregation } from "./aggregation/deleteAggregation";
 import { getEntityAggregation } from "./aggregation/getEntityAggregation";
+import { requireTransaction } from "./util";
 
 export class PostgresClient implements DBClient {
   private conn: Connection;
 
   constructor(conn: Connection) {
     this.conn = conn;
+  }
+
+  get transaction(): <T>(
+    handler: (connection: Connection) => Promise<T>,
+  ) => Promise<T> {
+    return requireTransaction(this.conn);
   }
 
   /** Create an entity type definition and return its uuid. */
@@ -97,7 +104,7 @@ export class PostgresClient implements DBClient {
   }): Promise<EntityType> {
     const { name, accountId, createdByAccountId, description, schema } = params;
 
-    return this.conn.transaction(async (conn) => {
+    return this.transaction(async (conn) => {
       // The fixed type id
       const entityTypeId = genId();
 
@@ -167,7 +174,7 @@ export class PostgresClient implements DBClient {
     versioned: boolean;
     properties: any;
   }): Promise<DbEntity> {
-    return await this.conn.transaction(async (conn) => {
+    return await this.transaction(async (conn) => {
       // Create the account if it does not already exist
       // TODO: this should be performed in a "createAccount" function, or similar.
       await insertAccount(conn, { accountId: params.accountId });
