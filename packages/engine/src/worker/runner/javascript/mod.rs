@@ -625,12 +625,10 @@ impl<'m> RunnerImpl<'m> {
                 //   [0]: The offset buffer (i32)
                 //   [1]: The value buffer (u8)
 
-                // TODO: Use `data.len` or target_len?
-                //   (In practice, target_len has worked for a long time, though that's not an ideal
-                //   reason to use it. Maybe `data.len` would also work.)
                 // The offsets are in the first buffer. For each value in the second buffer, we have
                 // a start offset and an end offset. The start offset is equal to the end offset of
                 // the previous value, thus we need `num_values + 1` offset values.
+
                 // SAFETY: `data.buffer_ptrs[0]` is provided by arrow as offsets, the type is `i32`,
                 //   and `target_len + 1` is carefully chosen.
                 let offsets = unsafe {
@@ -698,9 +696,9 @@ impl<'m> RunnerImpl<'m> {
                 // the size is known
 
                 // SAFETY: `data.buffer_ptrs[0]` is provided by arrow, the type is `u8`, and
-                //   `data.len * *size as usize` corresponds for the `size` of *each* value.
+                //   `target_len * *size as usize` corresponds for the `size` of *each* value.
                 let values = unsafe {
-                    slice::from_raw_parts(data.buffer_ptrs[0], data.len * *size as usize)
+                    slice::from_raw_parts(data.buffer_ptrs[0], target_len * *size as usize)
                 };
                 builder = builder.add_buffer(Buffer::from_slice_ref(&values));
             }
