@@ -66,6 +66,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   const { deleteLinks } = useBlockProtocolDeleteLinks();
   const { updateEntities } = useBlockProtocolUpdateEntities();
   const { uploadFile } = useFileUpload();
+  const { updateLinks } = useBlockProtocolUpdateLinks();
 
   const flattenedProperties = useMemo(() => {
     let flattenedLinkedEntities: UnknownEntity[] = [];

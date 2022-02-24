@@ -115,9 +115,11 @@ const cleanUpdateLinkedAggregationAction = (
 const path = "$.data";
 
 export const Table: BlockComponent<AppProps> = ({
+  accountId,
   aggregateEntities,
   aggregateEntityTypes,
   entityId,
+  entityTypeVersionId,
   initialState,
   linkedAggregations,
   schemas,
@@ -125,6 +127,10 @@ export const Table: BlockComponent<AppProps> = ({
   updateLinks,
 }) => {
   const matchingLinkedAggregation = useMemo(() => {
+    if (!entityId) {
+      return undefined;
+    }
+
     return getLinkedAggregation({
       linkedAggregations: linkedAggregations ?? [],
       path,
@@ -212,6 +218,10 @@ export const Table: BlockComponent<AppProps> = ({
       }
 
       aggregateEntities({
+        accountId,
+        entityId,
+        entityTypeId,
+        entityTypeVersionId,
         operation: linkedData.operation,
       })
         .then(({ operation, results }) => {
@@ -241,6 +251,7 @@ export const Table: BlockComponent<AppProps> = ({
   const handleUpdate = useCallback(
     ({ operation, multiFilter, multiSort, itemsPerPage }: AggregateArgs) => {
       if (
+        !entityId ||
         !updateEntities ||
         !updateLinks ||
         !matchingLinkedAggregation ||
@@ -317,7 +328,12 @@ export const Table: BlockComponent<AppProps> = ({
     hiddenColumns?: string[];
     columns?: { Header: string; accessor: string }[];
   }) => {
-    if (!updateLinks || !updateEntities || !matchingLinkedAggregation) {
+    if (
+      !entityId ||
+      !updateLinks ||
+      !updateEntities ||
+      !matchingLinkedAggregation
+    ) {
       return;
     }
 
@@ -334,10 +350,13 @@ export const Table: BlockComponent<AppProps> = ({
         initialState?: Record<string, any>;
       }>([
         {
+          accountId,
           data: {
             initialState: newState,
           },
           entityId,
+          entityTypeId,
+          entityTypeVersionId,
         },
       ]);
 
@@ -452,7 +471,12 @@ export const Table: BlockComponent<AppProps> = ({
 
   const handleEntityTypeChange = useCallback(
     (updatedEntityTypeId: string | undefined) => {
-      if (!updateEntities || !updateLinks || !matchingLinkedAggregation) {
+      if (
+        !entityId ||
+        !updateEntities ||
+        !updateLinks ||
+        !matchingLinkedAggregation
+      ) {
         return;
       }
 
@@ -460,10 +484,13 @@ export const Table: BlockComponent<AppProps> = ({
         initialState?: Record<string, any>;
       }>([
         {
+          accountId,
           entityId,
           data: {
             initialState,
           },
+          entityTypeId,
+          entityTypeVersionId,
         },
       ]);
 
