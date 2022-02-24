@@ -6,6 +6,7 @@ const fallbackFonts = [`"Helvetica"`, `"Arial"`, "sans-serif"];
 export const typography: ThemeOptions["typography"] = {
   fontFamily: [`"Inter"`, ...fallbackFonts].join(", "),
   fontSize: 16,
+  htmlFontSize: 16,
 
   title: {
     fontFamily: [`"Apercu Pro"`, ...fallbackFonts].join(", "),
@@ -13,7 +14,7 @@ export const typography: ThemeOptions["typography"] = {
     fontSize: 61,
     lineHeight: 1.1,
     fontWeight: 700,
-    color: customColors.gray["80"],
+    color: customColors.gray["90"],
   },
   h1: {
     fontFamily: [`"Apercu Pro"`, ...fallbackFonts].join(", "),
@@ -21,7 +22,7 @@ export const typography: ThemeOptions["typography"] = {
     fontSize: 48.8,
     lineHeight: 1.1,
     fontWeight: 700,
-    color: customColors.gray["80"],
+    color: customColors.gray["90"],
   },
   h2: {
     fontFamily: [`"Apercu Pro"`, ...fallbackFonts].join(", "),
@@ -29,7 +30,7 @@ export const typography: ThemeOptions["typography"] = {
     fontSize: 39,
     fontWeight: 400,
     lineHeight: 1.2,
-    color: customColors.gray["80"],
+    color: customColors.gray["90"],
   },
   h3: {
     fontFamily: [`"Apercu Pro"`, ...fallbackFonts].join(", "),
@@ -64,41 +65,41 @@ export const typography: ThemeOptions["typography"] = {
     // fontSize: "var(--step-1)",
     fontSize: 12,
     lineHeight: 1.5,
-    color: customColors.gray["80"],
+    color: customColors.gray["90"],
   },
   regularTextParagraphs: {
     // fontSize: "var(--step-0)",
     fontSize: 16,
     fontWeight: 400,
     lineHeight: 1.5,
-    color: customColors.gray["80"],
+    color: customColors.gray["90"],
   },
   regularTextLabels: {
     fontWeight: 500,
     // fontSize: "var(--step--1)",
     fontSize: 16,
     lineHeight: 1.1,
-    color: customColors.gray["80"],
+    color: customColors.gray["90"],
   },
   smallTextParagraphs: {
     // fontSize: "var(--step-0)",
     fontSize: 14,
     fontWeight: 400,
     lineHeight: 1.5,
-    color: customColors.gray["80"],
+    color: customColors.gray["90"],
   },
   smallTextLabels: {
     fontWeight: 500,
     // fontSize: "var(--step--1)",
     fontSize: 14,
     lineHeight: 1.3,
-    color: customColors.gray["80"],
+    color: customColors.gray["90"],
   },
   microText: {
     fontWeight: 500,
     // fontSize: "var(--step--2)",
     fontSize: 13,
     lineHeight: 1.4,
-    color: customColors.gray["80"],
+    color: customColors.gray["90"],
   },
 };

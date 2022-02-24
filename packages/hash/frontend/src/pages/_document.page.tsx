@@ -1,3 +1,4 @@
+import React from "react";
 import createEmotionServer from "@emotion/server/types/create-instance";
 import withTwindDocument from "@twind/next/document";
 import Document, { DocumentContext } from "next/document";
