@@ -63,7 +63,9 @@
   };
 
   const _is_primitive_or_list = (children) => {
-    // TODO: Change this to test by types
+    // TODO: This is currently a flakey form of duck-typing, that only works because the only nested field we support
+    // are structs (we do not support Union or Map types). We should be testing by the type of the object here,
+    // if we move to TypeScript this will become a lot easier to do
     return children.length === 1 && children[0].name === "item";
   };
 
