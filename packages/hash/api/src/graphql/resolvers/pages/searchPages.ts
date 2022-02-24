@@ -179,8 +179,17 @@ export const searchPages: Resolver<
 
   const { hits } = await search.search({
     index: ENTITIES_SEARCH_INDEX,
-    field: ENTITIES_SEARCH_FIELD,
-    query,
+    fields: {
+      [ENTITIES_SEARCH_FIELD]: {
+        query,
+        // https://www.elastic.co/guide/en/elasticsearch/reference/current/common-options.html#fuzziness
+        fuzziness: "AUTO",
+        // Match any word in the phrase. We could use the "query_string" search
+        // method to expose custom query logic to the client. For example:
+        // "((new york) AND (city)) OR (the big apple)". For more see:
+        operator: "and",
+      },
+    },
   });
 
   // For all text entity matches, find the pages and the blocks within those pages where

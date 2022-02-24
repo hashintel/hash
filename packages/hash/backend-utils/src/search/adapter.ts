@@ -28,10 +28,34 @@ export type SearchResultPaginated = SearchResult & {
   total: number;
 };
 
+export type SearchFieldPresence = "must" | "must_not" | "should" | "filter";
+
+export type SearchField = {
+  query: string | number | boolean | Date;
+  /**
+   * Number of character edits that can be done to allow a match.
+   * Alternatively "AUTO" to let OpenSearch decide.
+   * https://opensearch.org/docs/latest/opensearch/query-dsl/full-text/
+   */
+  fuzziness: number | "AUTO";
+  /**
+   * Whether all terms need to match (and) or only one term needs to match (or) for a document to be considered a match.
+   */
+  operator: "or" | "and";
+
+  /**
+   * Boolean presence operators.
+   * Allows for defining how the search field is present in the search result
+   * for example "must" defined that is has be be a part of the result while "should" marks it as optional
+   * see https://opensearch.org/docs/latest/opensearch/query-dsl/bool/
+   * @default "must"
+   */
+  presence?: SearchFieldPresence;
+};
+
 export type SearchParameters = {
   index: string;
-  field: string;
-  query: string | number | boolean | Date;
+  fields: { [_: string]: SearchField };
 };
 
 /** `SearchAdapter` specifies a generic interface to a search index. */

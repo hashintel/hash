@@ -10,6 +10,8 @@ import {
   SearchHit,
   SearchParameters,
   SearchResultPaginated,
+  SearchField,
+  SearchFieldPresence,
 } from "./adapter";
 
 const KEEP_ALIVE_CURSOR_DURATION = "10m";
@@ -44,18 +46,56 @@ const opaqueCursorParse = (cursor: string): OpenSearchCursorExtenstion =>
   JSON.parse(Buffer.from(cursor, "base64").toString());
 
 const searchBodyParams = (params: SearchParameters) => {
+  const fields = Object.entries(params.fields);
+  if (
+    fields.some(
+      ([_, it]) => typeof it.fuzziness === "number" && it.fuzziness < 0,
+    )
+  ) {
+    throw new Error(`Fuzziness must be a non-negative integer or "AUTO"`);
+  }
+
+  // Construct a boolean query expression
+  // see https://opensearch.org/docs/latest/opensearch/query-dsl/bool/ for more info
+  // const clauseas = chain(fields)
+  //   .map(([fieldName, { presence, fuzziness, operator, query }]) => [
+  //     presence ?? "must",
+  //     { [fieldName]: { fuzziness, operator, query } },
+  //   ])
+  //   .groupBy(([precense, _]) => precense)
+  //   .reduce([key])
+  //   .value();
+
+  const clauses = fields
+    .map<
+      [SearchFieldPresence, { [k in string]: Omit<SearchField, "presence"> }]
+    >(([fieldName, { presence, fuzziness, operator, query }]) => [
+      presence ?? ("must" as const),
+      { [fieldName]: { fuzziness, operator, query } },
+    ])
+    .reduce<
+      Record<
+        string,
+        { match: { [k in string]: Omit<SearchField, "presence"> } }[]
+      >
+    >((state, [presence, field]) => {
+      const matchField = { match: field };
+      if (!state[presence]) {
+        // eslint-disable-next-line no-param-reassign
+        state[presence] = [matchField];
+      } else {
+        state[presence].push(matchField);
+      }
+      return state;
+    }, {});
+
+  // eslint-disable-next-line no-console
+  console.log(clauses);
+
   return {
     query: {
-      match: {
-        [params.field]: {
-          query: params.query,
-          // https://www.elastic.co/guide/en/elasticsearch/reference/current/common-options.html#fuzziness
-          fuzziness: "AUTO",
-          // Match any word in the phrase. We could use the "query_string" search
-          // method to expose custom query logic to the client. For example:
-          // "((new york) AND (city)) OR (the big apple)". For more see:
-          operator: "OR",
-        },
+      bool: {
+        ...clauses,
       },
     },
   };
@@ -249,16 +289,19 @@ export class OpenSearch extends DataSource implements SearchAdapter {
   async startPaginatedSearch(
     params: Parameters<SearchAdapter["startPaginatedSearch"]>[0],
   ): Promise<SearchResultPaginated> {
+    const bodyQuery = {
+      size: params.pageSize,
+      ...searchBodyParams(params),
+    };
     // When a new paginated search is instantiated
     const resp = await this.client.search({
       index: params.index,
       scroll: KEEP_ALIVE_CURSOR_DURATION,
       // Adds hits.total property to response
-      body: {
-        size: params.pageSize,
-        ...searchBodyParams(params),
-      },
+      body: bodyQuery,
     });
+    // eslint-disable-next-line no-console
+    console.log(JSON.stringify(bodyQuery, null, 2));
 
     const { body, statusCode } = resp;
     if (statusCode !== 200) {

@@ -37,6 +37,10 @@ export const pageSearchResultConnection: Resolver<
     throw new UserInputError("field 'query' cannot be empty");
   }
 
+  const textType = await db.getSystemTypeLatestVersion({
+    systemTypeName: "Text",
+  });
+
   let hits: SearchHit[] = [];
   let cursor: string | undefined;
 
@@ -48,8 +52,19 @@ export const pageSearchResultConnection: Resolver<
     ({ hits, cursor } = await search.startPaginatedSearch({
       pageSize,
       index: ENTITIES_SEARCH_INDEX,
-      field: ENTITIES_SEARCH_FIELD,
-      query,
+      fields: {
+        [ENTITIES_SEARCH_FIELD]: {
+          query,
+          fuzziness: "AUTO",
+          operator: "or",
+        },
+        entityTypeId: {
+          query: textType.entityId,
+          fuzziness: 0,
+          operator: "and",
+          presence: "must",
+        },
+      },
     }));
   }
 
@@ -60,10 +75,6 @@ export const pageSearchResultConnection: Resolver<
   // `accountId` set in the query. A page may link to entities which belong to a
   // different account to that of the page. We don't filter by the `accountId` before this
   // point as it would remove these pages with cross-account links.
-
-  const textType = await db.getSystemTypeLatestVersion({
-    systemTypeName: "Text",
-  });
 
   // @todo: we could filter by entity type in the search index (Text, Page, ...)
   const textHits = hits.filter(
