@@ -79,6 +79,7 @@
         "color": "black",
         "height": "2px"
       }
-    ]
+    ],
+    "protocol": "0.1"
   }
 }

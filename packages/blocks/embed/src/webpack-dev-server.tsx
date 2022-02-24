@@ -88,8 +88,8 @@ const AppComponent: React.VoidFunctionComponent = () => {
         }
       >
         {variants.map((variant, variantIndex) => (
-          <option value={variantIndex} key={variant.displayName}>
-            {variant.displayName}
+          <option value={variantIndex} key={variant.name}>
+            {variant.name}
           </option>
         ))}
       </select>

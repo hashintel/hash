@@ -80,6 +80,7 @@
         "icon": "📢",
         "text": "Hello World!"
       }
-    ]
+    ],
+    "protocol": "0.1"
   }
 }

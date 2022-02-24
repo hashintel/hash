@@ -18,9 +18,14 @@ import { RemoteBlock } from "../RemoteBlock/RemoteBlock";
 import { useBlockProtocolAggregateEntityTypes } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregateEntityTypes";
 import { useBlockProtocolAggregateEntities } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregateEntities";
 import { useFileUpload } from "../hooks/useFileUpload";
-import { LinkGroup, UnknownEntity } from "../../graphql/apiTypes.gen";
+import {
+  LinkedAggregation,
+  LinkGroup,
+  UnknownEntity,
+} from "../../graphql/apiTypes.gen";
 import { useBlockProtocolCreateLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateLinks";
 import { useBlockProtocolDeleteLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolDeleteLinks";
+import { useBlockProtocolUpdateLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLinks";
 
 type BlockLoaderProps = {
   accountId: string;
@@ -32,6 +37,7 @@ type BlockLoaderProps = {
   entityProperties: {};
   linkGroups: LinkGroup[];
   linkedEntities: BlockEntity["properties"]["entity"]["linkedEntities"];
+  linkedAggregations: BlockEntity["properties"]["entity"]["linkedAggregations"];
   shouldSandbox?: boolean;
   sourceUrl: string;
 };
@@ -48,6 +54,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   entityProperties,
   linkGroups,
   linkedEntities,
+  linkedAggregations,
   shouldSandbox,
   sourceUrl,
 }) => {
@@ -73,9 +80,16 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
       accountId,
       linkGroups,
       linkedEntities: flattenedLinkedEntities,
+      linkedAggregations: linkedAggregations as LinkedAggregation[],
       properties: entityProperties,
     });
-  }, [accountId, entityProperties, linkGroups, linkedEntities]);
+  }, [
+    accountId,
+    entityProperties,
+    linkGroups,
+    linkedEntities,
+    linkedAggregations,
+  ]);
 
   const blockProperties = {
     ...flattenedProperties,
@@ -92,6 +106,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
     /** @todo pick one of getEmbedBlock or fetchEmbedCode */
     getEmbedBlock: fetchEmbedCode,
     updateEntities,
+    updateLinks,
     uploadFile,
   };
 
