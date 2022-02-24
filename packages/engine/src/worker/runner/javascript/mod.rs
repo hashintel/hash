@@ -580,7 +580,7 @@ impl<'m> RunnerImpl<'m> {
         let target_len = len.unwrap_or(data.len);
 
         // TODO: We currently copy the buffers by calling `Buffer::from_slice_ref` because the
-        //   JavaScript representation of arrays does   not match the Rust implementation. Try to
+        //   JavaScript representation of arrays does not match the Rust implementation. Try to
         //   reduce copies where possible.
         let mut builder = ArrayData::builder(field.data_type().clone());
 
@@ -698,7 +698,7 @@ impl<'m> RunnerImpl<'m> {
                 // SAFETY: `data.buffer_ptrs[0]` is provided by arrow, the type is `u8`, and
                 //   `*size as usize * target_len` corresponds for the `size` of *each* value.
                 let values = unsafe {
-                    slice::from_raw_parts(data.buffer_ptrs[0], target_len * *size as usize)
+                    slice::from_raw_parts(data.buffer_ptrs[0], *size as usize * target_len)
                 };
                 builder = builder.add_buffer(Buffer::from_slice_ref(&values));
             }
