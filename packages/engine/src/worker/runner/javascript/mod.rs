@@ -579,7 +579,7 @@ impl<'m> RunnerImpl<'m> {
         // Arrow and pyarrow.
         let target_len = len.unwrap_or(data.len);
 
-        // TODO: We currently copy the buffers because the JavsScript representation of arrays does
+        // TODO: We currently copy the buffers because the JavaScript representation of arrays does
         //   not match the Rust implementation. Try to reduce copies where possible.
         let mut builder = ArrayData::builder(field.data_type().clone());
 
