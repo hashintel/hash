@@ -19,10 +19,6 @@ jobs:
           node-version: 16
           cache: yarn
 
-      - name: Reduce the number of dependencies to install by hiding workspaces
-        run: |
-          npx replace '"workspaces":' '"ignored-workspaces":' package.json
-
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 

@@ -76,20 +76,19 @@ test("user can create page", async ({ page }) => {
 
   // TODO: Move the cursor below the new divider and update the test?
 
-  // TODO: Uncomment after fixing flaky ProseMirror behavior
-  // // Insert a paragraph creation with newlines
-  // await sleep(100); // TODO: investigate flakiness in FF and Webkit
-  // await page.keyboard.type("Second paragraph");
-  // await sleep(100); // TODO: investigate flakiness in FF and Webkit
-  // await page.keyboard.press("Shift+Enter");
-  // await sleep(100); // TODO: investigate flakiness in FF and Webkit
-  // await page.keyboard.press("Shift+Enter");
-  // await sleep(100); // TODO: investigate flakiness in FF and Webkit
-  // await page.keyboard.type("with");
-  // await page.keyboard.press("Shift+Enter");
-  // await sleep(100); // TODO: investigate flakiness in FF and Webkit
-  // await page.keyboard.type("line breaks");
-  // await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  // Insert a paragraph creation with newlines
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await page.keyboard.type("Second paragraph");
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await page.keyboard.press("Shift+Enter");
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await page.keyboard.press("Shift+Enter");
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await page.keyboard.type("with");
+  await page.keyboard.press("Shift+Enter");
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await page.keyboard.type("line breaks");
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
 
   // Expect just inserted content to be present on the page
   await expect(blockRegionLocator).toContainText(
@@ -124,11 +123,10 @@ test("user can create page", async ({ page }) => {
     blockRegionLocator.locator("p").nth(0).locator("em"),
   ).toContainText("italics");
 
-  // TODO: Uncomment after fixing flaky ProseMirror behavior
-  // await expect(blockRegionLocator.locator("p").nth(1)).toContainText(
-  //   "Second paragraph\n\nwith\nline breaks",
-  //   { useInnerText: true },
-  // );
+  await expect(blockRegionLocator.locator("p").nth(1)).toContainText(
+    "Second paragraph\n\nwith\nline breaks",
+    { useInnerText: true },
+  );
 
   await expect(blockRegionLocator.locator("hr")).toBeVisible();
 

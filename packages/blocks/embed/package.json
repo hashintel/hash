@@ -83,6 +83,7 @@
         "initialWidth": 600,
         "initialHeight": 340
       }
-    ]
+    ],
+    "protocol": "0.1"
   }
 }

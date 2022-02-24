@@ -7,7 +7,7 @@
 // fields:
 //    `msg` : the error message
 table PackageError {
-  msg:string;
+  msg:string (required);
 }
 
 root_type PackageError;

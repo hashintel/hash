@@ -78,14 +78,14 @@ pub struct ExperimentConfig {
         feature = "clap",
         clap(global = true, long, default_value = "2", env = "ENGINE_START_TIMEOUT")
     )]
-    pub start_timeout: u64,
+    pub start_timeout: f64,
 
     /// Timeout, in seconds, for how long to wait for updates when the Engine is executing
     #[cfg_attr(
         feature = "clap",
         clap(global = true, long, default_value = "60", env = "ENGINE_WAIT_TIMEOUT")
     )]
-    pub wait_timeout: u64,
+    pub wait_timeout: f64,
 
     /// Number of workers to run in parallel.
     ///
@@ -200,7 +200,7 @@ impl Experiment {
         // Wait to receive a message that the experiment has started before sending the init
         // message.
         let msg = timeout(
-            Duration::from_secs(self.config.start_timeout),
+            Duration::from_secs_f64(self.config.start_timeout),
             engine_handle.recv(),
         )
         .await
@@ -246,9 +246,9 @@ impl Experiment {
         loop {
             let msg: Option<proto::EngineStatus>;
             tokio::select! {
-                _ = sleep(Duration::from_secs(self.config.wait_timeout)) => {
+                _ = sleep(Duration::from_secs_f64(self.config.wait_timeout)) => {
                     error!(
-                        "Did not receive status from experiment \"{experiment_name}\" for over {:?}. \
+                        "Did not receive status from experiment \"{experiment_name}\" for over {}s. \
                         Exiting now.",
                         self.config.wait_timeout
                     );
@@ -300,12 +300,18 @@ impl Experiment {
                 proto::EngineStatus::SimStop(sim_id) => {
                     debug!("Simulation stopped: {sim_id}");
                 }
-                proto::EngineStatus::Errors(sim_id, errs) => {
-                    error!("There were errors when running simulation [{sim_id}]: {errs:?}");
+                proto::EngineStatus::RunnerErrors(sim_id, errs) => {
+                    error!(
+                        "There were errors from the runner when running simulation [{sim_id}]: \
+                         {errs:?}"
+                    );
                     graceful_finish = false;
                 }
-                proto::EngineStatus::Warnings(sim_id, warnings) => {
-                    warn!("There were warnings when running simulation [{sim_id}]: {warnings:?}");
+                proto::EngineStatus::RunnerWarnings(sim_id, warnings) => {
+                    warn!(
+                        "There were warnings from the runner when running simulation [{sim_id}]: \
+                         {warnings:?}"
+                    );
                 }
                 proto::EngineStatus::Logs(sim_id, logs) => {
                     for log in logs {
@@ -314,8 +320,26 @@ impl Experiment {
                         }
                     }
                 }
+                proto::EngineStatus::UserErrors(sim_id, errs) => {
+                    error!(
+                        "There were user-facing errors when running simulation [{sim_id}]: \
+                         {errs:?}"
+                    );
+                }
+                proto::EngineStatus::UserWarnings(sim_id, warnings) => {
+                    warn!(
+                        "There were user-facing warnings when running simulation [{sim_id}]: \
+                         {warnings:?}"
+                    );
+                }
+                proto::EngineStatus::PackageError(sim_id, error) => {
+                    warn!(
+                        "There was an error from a package running simulation [{sim_id}]: \
+                         {error:?}"
+                    );
+                }
                 proto::EngineStatus::Exit => {
-                    debug!("Process exited successfully for experiment run \"{experiment_name}\"",);
+                    debug!("Process exited successfully for experiment run \"{experiment_name}\"");
                     break;
                 }
                 proto::EngineStatus::ProcessError(error) => {

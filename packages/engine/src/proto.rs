@@ -53,7 +53,10 @@ impl FromStr for ExperimentName {
     }
 }
 
-use crate::simulation::enum_dispatch::*;
+use crate::{
+    simulation::enum_dispatch::*,
+    worker::runner::comms::outbound::{PackageError, UserError, UserWarning},
+};
 
 /// The message type sent from the engine to the orchestrator.
 #[derive(Serialize, Deserialize, Debug)]
@@ -75,8 +78,11 @@ pub enum EngineStatus {
     },
     SimStop(SimulationShortId),
     // TODO: OS - Confirm are these only Runner/Simulation errors, if so rename
-    Errors(SimulationShortId, Vec<RunnerError>),
-    Warnings(SimulationShortId, Vec<RunnerError>),
+    RunnerErrors(SimulationShortId, Vec<RunnerError>),
+    RunnerWarnings(SimulationShortId, Vec<RunnerError>),
+    UserErrors(SimulationShortId, Vec<UserError>),
+    UserWarnings(SimulationShortId, Vec<UserWarning>),
+    PackageError(SimulationShortId, PackageError),
     Logs(SimulationShortId, Vec<String>),
 }
 
@@ -126,9 +132,12 @@ impl EngineStatus {
                 globals: _,
             } => "SimStart",
             EngineStatus::SimStop(_) => "SimStop",
-            EngineStatus::Errors(..) => "Errors",
-            EngineStatus::Warnings(..) => "Warnings",
+            EngineStatus::RunnerErrors(..) => "RunnerErrors",
+            EngineStatus::RunnerWarnings(..) => "RunnerWarnings",
             EngineStatus::Logs(..) => "Logs",
+            EngineStatus::UserErrors(..) => "UserErrors",
+            EngineStatus::UserWarnings(..) => "UserWarnings",
+            EngineStatus::PackageError(..) => "PackageError",
         }
     }
 }

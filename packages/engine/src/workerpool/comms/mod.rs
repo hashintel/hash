@@ -18,7 +18,10 @@ use crate::{
     proto::SimulationShortId,
     types::{TaskId, WorkerIndex},
     worker::{
-        runner::comms::{outbound::RunnerError, NewSimulationRun},
+        runner::comms::{
+            outbound::{PackageError, RunnerError, UserError, UserWarning},
+            NewSimulationRun,
+        },
         task::{WorkerTask, WorkerTaskResultOrCancelled},
     },
     workerpool::comms::terminate::TerminateMessage,
@@ -104,6 +107,9 @@ pub enum WorkerToWorkerPoolMsg {
     RunnerErrors(Vec<RunnerError>),
     RunnerWarnings(Vec<RunnerError>),
     RunnerLogs(Vec<String>),
+    UserErrors(Vec<UserError>),
+    UserWarnings(Vec<UserWarning>),
+    PackageError(PackageError),
 }
 
 pub struct WorkerCommsWithWorkerPool {

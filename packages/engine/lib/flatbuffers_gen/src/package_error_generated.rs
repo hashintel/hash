@@ -54,9 +54,10 @@ impl<'a> PackageError<'a> {
     }
 
     #[inline]
-    pub fn msg(&self) -> Option<&'a str> {
+    pub fn msg(&self) -> &'a str {
         self._tab
             .get::<flatbuffers::ForwardsUOffset<&str>>(PackageError::VT_MSG, None)
+            .unwrap()
     }
 }
 
@@ -68,7 +69,7 @@ impl flatbuffers::Verifiable for PackageError<'_> {
     ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
         use self::flatbuffers::Verifiable;
         v.visit_table(pos)?
-            .visit_field::<flatbuffers::ForwardsUOffset<&str>>(&"msg", Self::VT_MSG, false)?
+            .visit_field::<flatbuffers::ForwardsUOffset<&str>>(&"msg", Self::VT_MSG, true)?
             .finish();
         Ok(())
     }
@@ -79,7 +80,9 @@ pub struct PackageErrorArgs<'a> {
 impl<'a> Default for PackageErrorArgs<'a> {
     #[inline]
     fn default() -> Self {
-        PackageErrorArgs { msg: None }
+        PackageErrorArgs {
+            msg: None, // required field
+        }
     }
 }
 pub struct PackageErrorBuilder<'a: 'b, 'b> {
@@ -105,6 +108,7 @@ impl<'a: 'b, 'b> PackageErrorBuilder<'a, 'b> {
     #[inline]
     pub fn finish(self) -> flatbuffers::WIPOffset<PackageError<'a>> {
         let o = self.fbb_.end_table(self.start_);
+        self.fbb_.required(o, PackageError::VT_MSG, "msg");
         flatbuffers::WIPOffset::new(o.value())
     }
 }
