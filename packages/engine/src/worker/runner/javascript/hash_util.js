@@ -63,7 +63,8 @@
   };
 
   const _is_primitive_or_list = (children) => {
-    return children.length === 1 && children[0].name === null;
+    // TODO: Change this to test by types
+    return children.length === 1 && children[0].name === "item";
   };
 
   const _struct_vec_to_obj = (struct, children) => {
