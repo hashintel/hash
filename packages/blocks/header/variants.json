@@ -1,6 +1,6 @@
 [
   {
-    "displayName": "Heading 1",
+    "name": "Heading 1",
     "description": "For the largest (top-level) section headings",
     "icon": "public/h1.svg",
     "properties": {
@@ -8,7 +8,7 @@
     }
   },
   {
-    "displayName": "Heading 2",
+    "name": "Heading 2",
     "description": "For large section headings",
     "icon": "public/h2.svg",
     "properties": {
@@ -16,7 +16,7 @@
     }
   },
   {
-    "displayName": "Heading 3",
+    "name": "Heading 3",
     "description": "For medium section headings",
     "icon": "public/h3.svg",
     "properties": {
@@ -24,7 +24,7 @@
     }
   },
   {
-    "displayName": "Heading 4",
+    "name": "Heading 4",
     "description": "For small section headings",
     "icon": "public/h4.svg",
     "properties": {

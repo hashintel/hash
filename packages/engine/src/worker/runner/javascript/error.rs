@@ -9,7 +9,7 @@ use crate::{
     simulation::package::id::PackageId,
     worker::runner::comms::{
         inbound::InboundToRunnerMsgPayload,
-        outbound::{OutboundFromRunnerMsg, RunnerError},
+        outbound::{OutboundFromRunnerMsg, PackageError, UserError},
     },
 };
 
@@ -41,7 +41,7 @@ pub enum Error {
     Eval(String, String), // First element is path/name.
 
     #[error("Error in package: {0}")]
-    Package(String),
+    Package(PackageError),
 
     #[error("Couldn't import package {0}: {1}")]
     PackageImport(String, String), // First element is path/name.
@@ -59,7 +59,7 @@ pub enum Error {
     TerminateMissingSimulationRun(SimulationShortId),
 
     #[error("User JavaScript errors: {0:?}")]
-    User(Vec<RunnerError>),
+    User(Vec<UserError>),
 
     #[error("Duplicate package (id, name): {0:?}, {1:?}")]
     DuplicatePackage(PackageId, String),

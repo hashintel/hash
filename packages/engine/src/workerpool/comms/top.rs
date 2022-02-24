@@ -1,6 +1,9 @@
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
-use crate::{proto::SimulationShortId, worker::runner::comms::outbound::RunnerError};
+use crate::{
+    proto::SimulationShortId,
+    worker::runner::comms::outbound::{PackageError, RunnerError, UserError, UserWarning},
+};
 // This is for communications between the worker pool and the simulation top-level controller.
 // Mainly used only for passing errors and warnings.
 
@@ -20,9 +23,12 @@ pub struct WorkerPoolMsgSend {
 
 #[derive(Debug)]
 pub enum WorkerPoolToExpCtlMsg {
-    Errors(Vec<RunnerError>),
-    Warnings(Vec<RunnerError>),
+    RunnerErrors(Vec<RunnerError>),
+    RunnerWarnings(Vec<RunnerError>),
     Logs(Vec<String>),
+    UserErrors(Vec<UserError>),
+    UserWarnings(Vec<UserWarning>),
+    PackageError(PackageError),
 }
 
 pub fn new_pair() -> (WorkerPoolMsgSend, WorkerPoolMsgRecv) {

@@ -1,6 +1,44 @@
 import gql from "graphql-tag";
 import { linkFieldsFragment } from "./link.queries";
 
+export const linkedAggregationsFragment = gql`
+  fragment LinkedAggregationsFields on LinkedAggregation {
+    sourceAccountId
+    sourceEntityId
+    path
+    operation {
+      entityTypeId
+      entityTypeVersionId
+      multiFilter {
+        filters {
+          field
+          value
+          operator
+        }
+        operator
+      }
+      multiSort {
+        field
+        desc
+      }
+      itemsPerPage
+      pageNumber
+      pageCount
+    }
+    results {
+      id
+      entityVersionId
+      entityId
+      accountId
+      updatedAt
+      createdAt
+      entityVersionCreatedAt
+      createdByAccountId
+      properties
+    }
+  }
+`;
+
 export const getEntity = gql`
   query getEntity($accountId: ID!, $entityId: ID!) {
     entity(accountId: $accountId, entityId: $entityId) {
@@ -26,6 +64,9 @@ export const getEntity = gql`
         entityTypeId
         properties
       }
+      linkedAggregations {
+        ...LinkedAggregationsFields
+      }
       updatedAt
       accountId
       ... on UnknownEntity {
@@ -39,6 +80,7 @@ export const getEntity = gql`
     }
   }
   ${linkFieldsFragment}
+  ${linkedAggregationsFragment}
 `;
 
 export const createEntity = gql`

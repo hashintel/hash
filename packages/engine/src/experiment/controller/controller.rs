@@ -143,22 +143,42 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
         msg: WorkerPoolToExpCtlMsg,
     ) -> Result<()> {
         let engine_status = match msg {
-            WorkerPoolToExpCtlMsg::Errors(errors) => {
-                tracing::debug!("Received Errors Experiment Control Message from Worker Pool");
+            WorkerPoolToExpCtlMsg::RunnerErrors(errors) => {
+                tracing::debug!(
+                    "Received RunnerErrors Experiment Control Message from Worker Pool"
+                );
                 let runner_errors = errors.into_iter().map(|w| w.into_sendable(false)).collect();
-                EngineStatus::Errors(id, runner_errors)
+                EngineStatus::RunnerErrors(id, runner_errors)
             }
-            WorkerPoolToExpCtlMsg::Warnings(warnings) => {
-                tracing::debug!("Received Warnings Experiment Control Message from Worker Pool");
+            WorkerPoolToExpCtlMsg::RunnerWarnings(warnings) => {
+                tracing::debug!(
+                    "Received RunnerWarnings Experiment Control Message from Worker Pool"
+                );
                 let runner_warnings = warnings
                     .into_iter()
                     .map(|w| w.into_sendable(true))
                     .collect();
-                EngineStatus::Warnings(id, runner_warnings)
+                EngineStatus::RunnerWarnings(id, runner_warnings)
             }
             WorkerPoolToExpCtlMsg::Logs(logs) => {
                 tracing::debug!("Received Logs Experiment Control Message from Worker Pool");
                 EngineStatus::Logs(id, logs)
+            }
+            WorkerPoolToExpCtlMsg::UserErrors(errors) => {
+                tracing::debug!("Received UserErrors Experiment Control Message from Worker Pool");
+                EngineStatus::UserErrors(id, errors)
+            }
+            WorkerPoolToExpCtlMsg::UserWarnings(warnings) => {
+                tracing::debug!(
+                    "Received UserWarnings Experiment Control Message from Worker Pool"
+                );
+                EngineStatus::UserWarnings(id, warnings)
+            }
+            WorkerPoolToExpCtlMsg::PackageError(error) => {
+                tracing::debug!(
+                    "Received PackageError Experiment Control Message from Worker Pool"
+                );
+                EngineStatus::PackageError(id, error)
             }
         };
         self.orch_client().send(engine_status).await?;
