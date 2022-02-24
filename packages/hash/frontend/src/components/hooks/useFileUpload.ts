@@ -93,7 +93,7 @@ export const useFileUpload = () => {
 
   const uploadFile: BlockProtocolUploadFileFunction = useCallback(
     async ({ accountId, file, url, mediaType }) => {
-      if (url?.trim()) {
+      if (url?.trim() && accountId) {
         const result = await createFileFromLinkFn({
           variables: {
             accountId,

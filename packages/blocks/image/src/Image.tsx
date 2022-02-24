@@ -258,9 +258,6 @@ export const Image: BlockComponent<AppProps> = (props) => {
       if (accountId && entityId && createLinks && deleteLinks && uploadFile) {
         uploadFile({
           accountId,
-          entityId,
-          entityTypeId,
-          entityTypeVersionId,
           ...imageProp,
           mediaType: "image",
         })

@@ -119,6 +119,7 @@ export const Table: BlockComponent<AppProps> = ({
   aggregateEntities,
   aggregateEntityTypes,
   entityId,
+  entityTypeId,
   entityTypeVersionId,
   initialState,
   linkedAggregations,
@@ -245,7 +246,15 @@ export const Table: BlockComponent<AppProps> = ({
           // @todo properly handle error
         });
     },
-    [aggregateEntities, setTableData, tableData.linkedAggregation],
+    [
+      accountId,
+      aggregateEntities,
+      entityId,
+      entityTypeId,
+      entityTypeVersionId,
+      setTableData,
+      tableData.linkedAggregation,
+    ],
   );
 
   const handleUpdate = useCallback(
@@ -315,12 +324,15 @@ export const Table: BlockComponent<AppProps> = ({
       ]);
     },
     [
+      accountId,
+      entityId,
+      entityTypeId,
+      entityTypeVersionId,
+      initialState,
       matchingLinkedAggregation,
       updateEntities,
       updateLinks,
       tableData.linkedAggregation,
-      entityId,
-      initialState,
     ],
   );
 
@@ -411,21 +423,22 @@ export const Table: BlockComponent<AppProps> = ({
     [handleAggregate],
   );
 
-  const entityTypeId = tableData?.linkedAggregation?.operation.entityTypeId;
+  const tableDataEntityTypeId =
+    tableData?.linkedAggregation?.operation.entityTypeId;
 
   const setPageSize = useCallback(
     (size: number) => {
-      if (!entityTypeId) {
+      if (!tableDataEntityTypeId) {
         return;
       }
 
       handleUpdate({
         operation: "changePageSize",
         itemsPerPage: size,
-        entityTypeId,
+        entityTypeId: tableDataEntityTypeId,
       });
     },
-    [handleUpdate, entityTypeId],
+    [handleUpdate, tableDataEntityTypeId],
   );
 
   /**
@@ -511,7 +524,10 @@ export const Table: BlockComponent<AppProps> = ({
       }
     },
     [
+      accountId,
       entityId,
+      entityTypeId,
+      entityTypeVersionId,
       initialState,
       tableData.linkedAggregation?.operation?.itemsPerPage,
       matchingLinkedAggregation,

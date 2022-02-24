@@ -217,9 +217,6 @@ export const Video: BlockComponent<AppProps> = (props) => {
       if (accountId && entityId && createLinks && deleteLinks && uploadFile) {
         uploadFile({
           accountId,
-          entityId,
-          entityTypeId,
-          entityTypeVersionId,
           ...videoProp,
           mediaType: "video",
         })
