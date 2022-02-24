@@ -82,6 +82,17 @@ const addEntityOutgoingLinks =
     }
   };
 
+const areEntitiesEquivalent = (
+  entity: Entity,
+  otherEntity: Entity,
+): boolean => {
+  return (
+    entity.accountId === otherEntity.accountId &&
+    entity.entityId === otherEntity.entityId &&
+    entity.entityVersionId === otherEntity.entityVersionId
+  );
+};
+
 /**
  * Adds the outgoing links of the aggregation results of an entity to the provided linkGroups object
  */
@@ -90,14 +101,20 @@ const addEntityAggregationResultOutgoingLinks =
   async (entity: Entity) => {
     const aggregations = await entity.getAggregations(client);
 
-    const allAggregationResults = (
-      await Promise.all(
-        aggregations.map((aggregation) => aggregation.getResults(client)),
-      )
-    )
+    const aggregationResults = await Promise.all(
+      aggregations.map((aggregation) => aggregation.getResults(client)),
+    );
+
+    const allAggregationResults = aggregationResults
       .flat()
       // filter duplicate resulting entities
-      .filter((result, i, all) => all.findIndex(result.isEquivalentTo) === i);
+      .filter((result, i, all) => {
+        return (
+          all.findIndex((resultEntity) =>
+            areEntitiesEquivalent(resultEntity, result),
+          ) === i
+        );
+      });
 
     await Promise.all(
       allAggregationResults.map(

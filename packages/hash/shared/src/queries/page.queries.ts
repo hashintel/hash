@@ -1,4 +1,5 @@
 import { gql } from "@apollo/client";
+import { linkedAggregationsFragment } from "./entity.queries";
 
 const linkFieldsFragment = gql`
   fragment LinkFields on Link {
@@ -54,11 +55,14 @@ const blockFieldsFragment = gql`
           entityTypeId
           properties
         }
+        linkedAggregations {
+          ...LinkedAggregationsFields
+        }
       }
     }
   }
-
   ${linkFieldsFragment}
+  ${linkedAggregationsFragment}
 `;
 
 const pageFieldsFragment = gql`
