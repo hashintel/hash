@@ -52,6 +52,7 @@ impl Context {
         })
     }
 
+    // TODO: unused?
     pub fn agent_pool(&self) -> &AgentPool {
         &self.previous_state.agent_pool
     }
@@ -68,6 +69,7 @@ impl Context {
         std::mem::replace(&mut self.previous_state.message_pool, MessagePool::empty())
     }
 
+    // TODO: unused?
     pub fn removed_batches(&mut self) -> &mut Vec<String> {
         &mut self.removed_batches
     }

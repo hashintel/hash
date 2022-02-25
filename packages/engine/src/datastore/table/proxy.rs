@@ -107,6 +107,7 @@ impl<K: Batch> BatchWriteProxy<K> {
         }
     }
 
+    // TODO: unused?
     pub fn downgrade(self) -> BatchReadProxy<K> {
         // Don't drop this, otherwise it would call `raw.unlock_exclusive()`
         // We can't destructure this because `Drop` is implemented
@@ -199,6 +200,7 @@ impl StateReadProxy {
         })
     }
 
+    // TODO: unused?
     pub fn new_partial(state: &StatePools, group_indices: &[usize]) -> Result<Self> {
         Ok(StateReadProxy {
             agent_proxies: state.agent_pool.partial_read_proxies(group_indices)?,
@@ -222,6 +224,7 @@ impl StateReadProxy {
         &self.agent_proxies
     }
 
+    // TODO: unused?
     pub fn agent_pool_mut(&mut self) -> &mut PoolReadProxy<AgentBatch> {
         &mut self.agent_proxies
     }
@@ -230,6 +233,7 @@ impl StateReadProxy {
         &self.message_proxies
     }
 
+    // TODO: unused?
     pub fn message_pool_mut(&mut self) -> &mut PoolReadProxy<MessageBatch> {
         &mut self.message_proxies
     }
@@ -281,6 +285,7 @@ impl StateWriteProxy {
         })
     }
 
+    // TODO: unused?
     pub fn new_partial(state: &mut StatePools, group_indices: &[usize]) -> Result<Self> {
         Ok(StateWriteProxy {
             agent_proxies: state.agent_pool.partial_write_proxies(group_indices)?,

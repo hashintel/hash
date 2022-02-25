@@ -458,11 +458,13 @@ where
 
 impl Agent {
     /// `delete_custom` removes a custom field from the agent state entirely
+    // TODO: unused?
     pub fn delete_custom(&mut self, key: &str) {
         self.custom.remove(key);
     }
 
     /// `set_unchecked` is the same as set, but will panic if any erorrs occurs
+    // TODO: unused?
     pub fn set_unchecked<V>(&mut self, key: &str, value: V)
     where
         V: Serialize,
@@ -511,6 +513,7 @@ impl Agent {
 
     /// `get_custom` is a utility function to easily get typed objects from the 'custom' map
     /// for accessing properties decompiled into the struct, use the fields themselves
+    // TODO: unused?
     #[must_use]
     pub fn get_custom<T>(&self, key: &str) -> Option<T>
     where
@@ -551,6 +554,7 @@ impl Agent {
     /// # Errors
     /// `add_message` will return an error if the data provided is both required and an invalid JSON
     /// value.
+    // TODO: unused?
     pub fn add_message<T: StrVec>(
         &mut self,
         to: &T,
@@ -603,6 +607,7 @@ impl Agent {
     ///
     /// # Errors
     /// `get_pos` will fail if the agent does not have a position.
+    // TODO: unused?
     pub fn get_pos(&self) -> Result<&Vec3> {
         self.position
             .as_ref()
@@ -613,6 +618,7 @@ impl Agent {
     ///
     /// # Errors
     /// `get_pos` will fail if the agent does not have a position.
+    // TODO: unused?
     pub fn get_pos_mut(&mut self) -> Result<&mut Vec3> {
         let error: Error = format!("Agent {} does not have a position", &self.agent_id).into();
         self.position.as_mut().ok_or(error)
@@ -622,6 +628,7 @@ impl Agent {
     ///
     /// # Errors
     /// `get_pos` will fail if the agent does not have a direction.
+    // TODO: unused?
     pub fn get_dir(&self) -> Result<&Vec3> {
         self.direction
             .as_ref()
@@ -632,12 +639,14 @@ impl Agent {
     ///
     /// # Errors
     /// `get_pos` will fail if the agent does not have a direction.
+    // TODO: Unused?
     pub fn get_dir_mut(&mut self) -> Result<&mut Vec3> {
         let error: Error = format!("Agent {} does not have a direction", self.agent_id).into();
         self.direction.as_mut().ok_or(error)
     }
 
     #[must_use]
+    // TODO: Unused?
     pub fn working_copy(&self) -> Self {
         Agent {
             agent_id: self.agent_id.clone(),
@@ -662,6 +671,7 @@ impl Agent {
     }
 
     #[must_use]
+    // TODO: Unused?
     pub fn child(&self) -> Self {
         Agent {
             // children get a new uuid
@@ -739,6 +749,7 @@ impl Agent {
     }
 
     #[must_use]
+    // TODO: Unused?
     pub fn has(&self, key: &str) -> bool {
         for &builtin in &BUILTIN_FIELDS {
             if key == builtin {

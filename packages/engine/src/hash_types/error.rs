@@ -19,6 +19,7 @@ use Error::{Inner, Message, OutboundMessageParse, Thread, UnknownBehavior};
 
 impl Error {
     #[must_use]
+    // TODO: Unused?
     pub fn new(message: &str) -> Error {
         Message(message.to_string())
     }

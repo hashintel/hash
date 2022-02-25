@@ -122,6 +122,7 @@ impl Dynamic {
         }
     }
 
+    // TODO: Unused?
     pub fn set_column_root_null_count(
         &mut self,
         static_meta: &Static,
@@ -210,6 +211,7 @@ pub enum BufferType {
     /// This buffer contains i32 offsets
     Offset,
     /// This buffer contains i64 offsets (currently not implemented)
+    // TODO: Unused?
     LargeOffset,
     /// This buffer contains fixed-size (byte-level) data
     Data {
@@ -351,6 +353,7 @@ pub struct ColumnDynamicMetadataBuilder {
 }
 
 impl ColumnDynamicMetadataBuilder {
+    // TODO: Unused?
     pub fn new() -> ColumnDynamicMetadataBuilder {
         Self::default()
     }

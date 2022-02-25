@@ -111,6 +111,7 @@ impl MessageReader<'_> {
         })
     }
 
+    // TODO: unused?
     pub fn raw_msg_iter<'b: 'r, 'r>(
         &'b self,
         message_references: &'r [AgentMessageReference],

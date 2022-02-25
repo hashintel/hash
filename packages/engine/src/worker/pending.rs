@@ -30,7 +30,7 @@ pub struct PendingWorkerTask {
     #[new(default)]
     pub final_task_messages: Vec<TaskMessage>,
     #[new(default)]
-    pub cancelling: CancelState,
+    pub cancelling: CancelState, // TODO: unused?
 }
 
 impl PendingWorkerTask {

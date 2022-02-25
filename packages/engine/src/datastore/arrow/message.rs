@@ -12,12 +12,12 @@ use crate::{
 };
 
 // Built in message types:
-pub const CREATE_AGENT: &str = OutboundCreateAgentPayload::KIND;
-pub const REMOVE_AGENT: &str = OutboundRemoveAgentPayload::KIND;
-pub const STOP_SIM: &str = OutboundStopSimPayload::KIND;
+pub const CREATE_AGENT: &str = OutboundCreateAgentPayload::KIND; // TODO: unused?
+pub const REMOVE_AGENT: &str = OutboundRemoveAgentPayload::KIND; // TODO: unused?
+pub const STOP_SIM: &str = OutboundStopSimPayload::KIND; // TODO: unused?
 
 // System-message recipient
-pub const SYSTEM_MESSAGE: &str = "hash";
+pub const SYSTEM_MESSAGE: &str = "hash"; // TODO: unused?
 
 pub const MESSAGE_COLUMN_NAME: &str = "messages";
 
@@ -114,6 +114,7 @@ pub fn get_generic(to: &[&str], r#type: &str, data_string: &str) -> Result<Outbo
     }))
 }
 
+// TODO: unused?
 pub fn get_system(to: &[&str], r#type: &str, data_string: &str) -> Result<Outbound> {
     let to_clone = to.iter().map(|v| (*v).to_string()).collect();
 
@@ -342,6 +343,7 @@ pub fn column_into_state(
     Ok(())
 }
 
+// TODO: unused?
 pub fn get_messages_column_from_batch(batch: &RecordBatch) -> Result<Vec<Vec<Outbound>>> {
     let (index, _) = batch
         .schema()

@@ -24,47 +24,57 @@ pub struct Vec3(
 
 impl Vec3 {
     #[must_use]
+    // TODO: unused?
     pub fn origin() -> Self {
         Self(0.0, 0.0, 0.0)
     }
 
     #[must_use]
+    // TODO: unused?
     pub fn x(&self) -> f64 {
         self.0
     }
 
     #[must_use]
+    // TODO: unused?
     pub fn y(&self) -> f64 {
         self.1
     }
 
     #[must_use]
+    // TODO: unused?
     pub fn z(&self) -> f64 {
         self.2
     }
 
+    // TODO: unused?
     pub fn x_mut(&mut self) -> &mut f64 {
         &mut self.0
     }
 
+    // TODO: unused?
     pub fn y_mut(&mut self) -> &mut f64 {
         &mut self.1
     }
 
+    // TODO: unused?
     pub fn z_mut(&mut self) -> &mut f64 {
         &mut self.2
     }
 
+    // TODO: unused?
     #[must_use]
     pub fn dot(self, vec: Vec3) -> f64 {
         self.0 * vec.0 + self.1 * vec.1 + self.2 * vec.2
     }
 
+    // TODO: unused?
     #[must_use]
     pub fn magnitude(self) -> f64 {
         self.dot(self).sqrt()
     }
 
+    // TODO: unused?
     #[must_use]
     pub fn norm(self) -> Vec3 {
         self / self.magnitude()
@@ -77,6 +87,7 @@ impl Vec3 {
     }
 
     // TODO: I'm not sure if we want truncation vs rounding, so I'm marking this as allowed.
+    // TODO: unused?
     #[allow(clippy::cast_possible_truncation)]
     #[must_use]
     pub fn to_grid(&self) -> [i64; 3] {

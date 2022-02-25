@@ -116,12 +116,12 @@ impl std::fmt::Display for PackageError {
 #[derive(Debug)]
 pub enum OutboundFromRunnerMsgPayload {
     TaskMsg(TargetedRunnerTaskMsg),
-    TaskCancelled(TaskId),
-    RunnerError(RunnerError),
-    RunnerErrors(Vec<RunnerError>),
-    RunnerWarning(RunnerError),
-    RunnerWarnings(Vec<RunnerError>),
-    RunnerLog(String),
+    TaskCancelled(TaskId), // TODO: unused?
+    RunnerError(RunnerError), // TODO: unused?
+    RunnerErrors(Vec<RunnerError>), // TODO: unused?
+    RunnerWarning(RunnerError), // TODO: unused?
+    RunnerWarnings(Vec<RunnerError>), // TODO: unused?
+    RunnerLog(String), // TODO: unused?
     RunnerLogs(Vec<String>),
     PackageError(PackageError),
     UserErrors(Vec<UserError>),
@@ -255,7 +255,7 @@ impl OutboundFromRunnerMsgPayload {
 
 #[derive(Debug)]
 pub struct OutboundFromRunnerMsg {
-    pub span: Span,
+    pub span: Span, // TODO: unused?
     pub source: Language,
     pub sim_id: SimulationShortId,
     pub payload: OutboundFromRunnerMsgPayload,

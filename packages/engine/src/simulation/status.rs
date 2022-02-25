@@ -33,6 +33,7 @@ impl SimStatus {
     }
 
     // TODO: Check this makes sense, default gives misleading amount of steps etc.
+    // TODO: unused?
     pub fn stop_signal(sim_id: SimulationShortId) -> SimStatus {
         SimStatus {
             sim_id,

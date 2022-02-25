@@ -13,6 +13,7 @@ use crate::{
 
 mod config;
 
+// TODO: unused?
 pub enum Task {}
 
 pub struct Creator {}

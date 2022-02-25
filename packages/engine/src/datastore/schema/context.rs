@@ -4,7 +4,7 @@ use crate::datastore::{prelude::*, schema::field_spec::FieldSpecMap};
 
 pub struct ContextSchema {
     pub arrow: Arc<ArrowSchema>,
-    pub static_meta: Arc<StaticMeta>,
+    pub static_meta: Arc<StaticMeta>, // TODO: unused?
     pub field_spec_map: Arc<FieldSpecMap>,
 }
 

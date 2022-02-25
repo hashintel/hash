@@ -50,6 +50,7 @@ pub struct Foo {
     quux: Option<[String; 16]>,
 }
 
+// TODO: Unused?
 fn rand_string(seed: u64) -> String {
     let mut rng = StdRng::seed_from_u64(seed);
     let count = rng.gen_range(0..64);
@@ -63,6 +64,7 @@ fn rand_string(seed: u64) -> String {
 }
 
 impl Foo {
+    // TODO: Unused?
     fn new(seed: u64) -> Foo {
         let mut rng = StdRng::seed_from_u64(seed);
         Foo {

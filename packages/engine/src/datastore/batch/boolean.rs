@@ -37,6 +37,7 @@ impl Column {
     ///
     /// This is inherently unsafe because it does not
     /// check bounds.
+    // TODO: unused?
     pub unsafe fn get(&mut self, index: usize) -> bool {
         bit_util::get_bit_raw(self.data, index)
     }

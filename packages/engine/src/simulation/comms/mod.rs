@@ -94,6 +94,7 @@ impl Comms {
     /// This function can fail if it's unable to acquire a write lock on the [`Commands`] object.
     ///
     /// [`CreateCommand`]: crate::simulation::command::CreateCommand
+    // TODO: unused?
     pub fn add_create_agent_command(&mut self, agent: Agent) -> Result<()> {
         let cmds = &mut self.cmds.try_write()?;
         cmds.add_create(agent);
@@ -106,6 +107,7 @@ impl Comms {
     /// This function can fail if it's unable to acquire a write lock on the [`Commands`] object.
     ///
     /// [`RemoveCommand`]: crate::simulation::command::RemoveCommand
+    // TODO: unused?
     pub fn add_remove_agent_command(&mut self, uuid: Uuid) -> Result<()> {
         let cmds = &mut self.cmds.try_write()?;
         cmds.add_remove(uuid);

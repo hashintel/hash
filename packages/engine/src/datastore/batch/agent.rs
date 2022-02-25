@@ -305,6 +305,7 @@ impl GrowableBatch<ArrayChange, Arc<array::ArrayData>> for AgentBatch {
 impl AgentBatch {
     /// This agent index column contains the indices of the agents *before* agent migration
     /// was performed. This is important so an agent can access its neighbor's outbox
+    // TODO: unused?
     pub fn write_agent_indices(&mut self, batch_index: usize) -> Result<()> {
         let batch_index = batch_index as u32;
 
@@ -333,6 +334,7 @@ impl AgentBatch {
 }
 
 impl AgentBatch {
+    // TODO: unused?
     pub fn from_shmem_os_id(os_id: &str) -> Result<Box<Self>> {
         let memory = Memory::shmem_os_id(os_id, true, true)?;
         Ok(Box::new(Self::from_memory(memory, None, None)?))
@@ -358,6 +360,7 @@ impl AgentBatch {
 
 // Special-case columns getter and setters
 impl AgentBatch {
+    // TODO: unused?
     pub fn get_arrow_column_ref(&self, key: &FieldKey) -> Result<&ArrayRef> {
         self.get_arrow_column(key.value())
     }
@@ -412,6 +415,7 @@ impl AgentBatch {
         self.str_iter(column_name)
     }
 
+    // TODO: unused?
     pub fn get_agent_name(&self) -> Result<Vec<Option<Cow<'_, str>>>> {
         let column_name = AgentStateField::AgentName.name();
         let row_count = self.batch.num_rows();
@@ -435,6 +439,7 @@ impl AgentBatch {
         Ok(result)
     }
 
+    // TODO: unused?
     #[allow(clippy::option_if_let_else)]
     pub fn agent_name_as_array(&self, column: Vec<Option<Cow<'_, str>>>) -> Result<ArrayChange> {
         let column_name = AgentStateField::AgentName.name();
@@ -565,6 +570,7 @@ impl AgentBatch {
         }))
     }
 
+    // TODO: unused?
     pub fn direction_iter(&self) -> Result<impl Iterator<Item = Option<&[f64; POSITION_DIM]>>> {
         let column_name = AgentStateField::Direction.name();
         let row_count = self.batch.num_rows();

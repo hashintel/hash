@@ -18,6 +18,7 @@ mod output;
 mod validation;
 mod value_iter;
 
+// TODO: unused?
 pub enum Task {}
 
 pub struct Creator {}

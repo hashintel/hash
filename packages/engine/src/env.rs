@@ -77,7 +77,7 @@ pub struct Environment {
     pub orch_client: OrchClient,
     pub orch_listener: nano::Server,
     pub experiment: ExperimentRunRepr, // TODO: extended experiment run??
-    pub execution_env: ExecutionEnvironment,
+    pub execution_env: ExecutionEnvironment, // TODO: Unused?
     pub dyn_payloads: serde_json::Map<String, serde_json::Value>,
 }
 

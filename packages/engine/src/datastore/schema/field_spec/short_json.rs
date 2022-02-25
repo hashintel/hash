@@ -38,10 +38,11 @@ impl std::fmt::Display for ExpectedFieldType {
     }
 }
 
-const DEFINED_KEY: &str = "defined";
-const SPECS_KEY: &str = "keys";
+const DEFINED_KEY: &str = "defined"; // TODO: unused?
+const SPECS_KEY: &str = "keys"; // TODO: unused?
 
 impl FieldType {
+    // TODO: unused?
     fn from_short_string(
         name: &str,
         definitions: Option<&HashMap<&str, FieldSpec>>,
@@ -119,6 +120,7 @@ impl FieldType {
 }
 
 impl FieldSpec {
+    // TODO: unused?
     fn from_short_json_object(
         name: &str,
         value: &serde_json::Value,
@@ -142,6 +144,7 @@ impl FieldSpec {
         }
     }
 
+    // TODO: unused?
     fn from_short_json_value(
         name: &str,
         value: &serde_json::Value,
@@ -165,6 +168,7 @@ impl FieldSpec {
 }
 
 impl FieldSpecMap {
+    // TODO: unused?
     pub(in crate::datastore) fn from_short_json(
         json: serde_json::Value,
         source: FieldSource,

@@ -60,6 +60,7 @@ pub struct Memory {
 
 // Constructors for Memory
 impl Memory {
+    // TODO: unused?
     pub fn as_ptr(&self) -> *const u8 {
         self.data.as_ptr()
     }
@@ -67,6 +68,7 @@ impl Memory {
     // TODO: `data.as_mut_ptr`, with `&mut self` argument, to avoid
     //       violating Rust's aliasing rules for pointers derived
     //       from const references.
+    // TODO: unused?
     pub fn as_mut_ptr(&mut self) -> *mut u8 {
         self.data.as_ptr()
     }
@@ -98,6 +100,7 @@ impl Memory {
         Ok(())
     }
 
+    // TODO: unused?
     pub fn raw_fd(&self) -> RawFd {
         self.data.raw_fd()
     }
@@ -107,6 +110,7 @@ impl Memory {
         self.data.get_os_id()
     }
 
+    // TODO: unused?
     pub fn unmap(self) {
         self.data.unmap()
     }
@@ -244,6 +248,7 @@ impl Memory {
         self.visitor_mut().write_schema_buffer(schema.as_ref())
     }
 
+    // TODO: unused?
     pub fn get_header(&self) -> Result<&[u8]> {
         Ok(self.visitor().header())
     }

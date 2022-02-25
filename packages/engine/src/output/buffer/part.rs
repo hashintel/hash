@@ -53,6 +53,7 @@ impl OutputPartBuffer {
         })
     }
 
+    // TODO: unused?
     pub fn is_at_capacity(&self) -> bool {
         self.current.len() > IN_MEMORY_SIZE
     }

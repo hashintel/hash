@@ -19,6 +19,7 @@ pub struct MigrationPlan<'a> {
 }
 
 impl<'a> MigrationPlan<'a> {
+    // TODO: unused?
     pub fn delete_all(num_batches: usize) -> MigrationPlan<'a> {
         MigrationPlan {
             existing_mutations: (0..num_batches)
