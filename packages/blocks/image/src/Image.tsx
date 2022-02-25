@@ -332,9 +332,6 @@ export const Image: BlockComponent<AppProps> = (props) => {
         onWidthChange={updateWidth}
         caption={draftCaption}
         onCaptionChange={(caption) => setDraftCaption(caption)}
-        /**
-         * @todo this makes no sense
-         */
         onCaptionConfirm={() => updateData({ src: draftSrc })}
         onReset={resetComponent}
         width={draftWidth}
