@@ -160,7 +160,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
 
   // @todo which should be the default
   const [draftSrc, setDraftSrc] = useDefaultState(
-    matchingLinkedEntities?.[0]?.url ?? url ?? "",
+    url ?? matchingLinkedEntities?.[0]?.url ?? "",
   );
 
   const [loading, setLoading] = useState(false);
