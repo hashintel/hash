@@ -183,7 +183,6 @@ export const Image: BlockComponent<AppProps> = (props) => {
     };
   }, []);
 
-  // @todo remove this
   const updateData = useCallback(
     ({
       width,
