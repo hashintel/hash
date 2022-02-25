@@ -64,11 +64,22 @@ export const pageSearchResultConnection: Resolver<
           query,
           fuzziness: "AUTO",
           operator: "or",
+          presence: "must",
         },
         // Only fetch entityes with the "Text" systemtype.
         // These will contain a "belongsToParent" property
         entityTypeId: {
           query: textType.entityId,
+          // Fuzziness is set to 0, such that an ID that is lexicographically similar don't match
+          // This filter used to be done in resolvers.
+          fuzziness: 0,
+          operator: "and",
+          presence: "must",
+        },
+        "belongsToPage.accountId": {
+          query: accountId,
+          // Fuzziness is set to 0, such that an ID that is lexicographically similar don't match
+          // This filter used to be done in resolvers.
           fuzziness: 0,
           operator: "and",
           presence: "must",
@@ -91,22 +102,20 @@ export const pageSearchResultConnection: Resolver<
     (hit): hit is TextSearchHit =>
       hit.document.entityTypeId === textType.entityId,
   );
-  const textMatches = textHits
-    .filter((it) => it.document.belongsToPage?.accountId === accountId)
-    .map(
-      (it) =>
-        <PageSearchResult>{
-          score: it.score,
-          page: it.document.belongsToPage!,
-          block: undefined,
-          text: {
-            accountId: it.document.accountId,
-            entityId: it.document.entityId,
-            entityVersionId: it.document.entityTypeVersionId,
-          },
-          content: it.document.fullTextSearch || "",
+  const textMatches = textHits.map(
+    (it) =>
+      <PageSearchResult>{
+        score: it.score,
+        page: it.document.belongsToPage!,
+        block: undefined,
+        text: {
+          accountId: it.document.accountId,
+          entityId: it.document.entityId,
+          entityVersionId: it.document.entityTypeVersionId,
         },
-    );
+        content: it.document.fullTextSearch || "",
+      },
+  );
 
   textMatches.sort((matchA, matchB) => matchB.score - matchA.score);
 
