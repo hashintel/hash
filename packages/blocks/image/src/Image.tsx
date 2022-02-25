@@ -5,7 +5,14 @@ import {
   BlockProtocolUploadFileFunction,
 } from "blockprotocol";
 import { BlockComponent } from "blockprotocol/react";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  Dispatch,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { unstable_batchedUpdates } from "react-dom";
 import { ImageErrorAlert } from "./components/ImageErrorAlert";
 import { ImageWithCaption } from "./components/ImageWithCaption";
@@ -27,6 +34,36 @@ type BlockProtocolUpdateEntitiesActionData = Pick<
   "initialCaption" | "initialWidth"
 > & {
   file?: FileType;
+};
+
+const useDefaultState = <T extends any>(
+  defaultValue: T,
+): [T, Dispatch<SetStateAction<T>>] => {
+  const defaultStateValue = {
+    prevDefault: defaultValue,
+    currentValue: defaultValue,
+  };
+  const [{ prevDefault, currentValue }, setNextValue] =
+    useState(defaultStateValue);
+
+  if (prevDefault !== defaultValue) {
+    setNextValue(defaultStateValue);
+  }
+
+  const setState = useCallback((value: SetStateAction<T>) => {
+    setNextValue((prevValue) => {
+      const nextValue =
+        // @ts-expect-error figure this out
+        typeof value === "function" ? value(prevValue.currentValue) : value;
+
+      return {
+        ...prevValue,
+        currentValue: nextValue,
+      };
+    });
+  }, []);
+
+  return [currentValue, setState];
 };
 
 function getLinkGroup(params: {
@@ -75,6 +112,19 @@ function getLinkedEntities<T>(params: {
   return matchingLinkedEntities as (BlockProtocolEntity & T)[];
 }
 
+// type ImageState = {
+//   url: string;
+//   caption: string;
+// }
+//
+// type ImageAction = {
+//
+// }
+//
+// function imageStateReducer(state: ImageState, action: ImageAction): ImageState {
+//   return state;
+// }
+
 export const Image: BlockComponent<AppProps> = (props) => {
   const {
     accountId,
@@ -91,24 +141,31 @@ export const Image: BlockComponent<AppProps> = (props) => {
     url,
   } = props;
 
-  // TODO: Consider replacing multiple states with useReducer()
-  // See also: Video block
-  const [stateObject, setStateObject] = useState<{
-    src: string;
-    loading: boolean;
-    width: number | undefined;
-    errorString: string | null;
-    userIsEditing: boolean;
-  }>({
-    src: "",
-    width: initialWidth,
-    loading: false,
-    errorString: null,
-    userIsEditing: !url,
-  });
+  let matchingLinkedEntities: (BlockProtocolEntity & { url: string })[] | null =
+    null;
 
-  const [inputText, setInputText] = useState("");
-  const [captionText, setCaptionText] = useState(initialCaption ?? "");
+  if (linkGroups && linkedEntities && entityId) {
+    matchingLinkedEntities = getLinkedEntities<{
+      url: string;
+    }>({
+      sourceEntityId: entityId,
+      path: "$.file",
+      linkGroups,
+      linkedEntities,
+    });
+  }
+
+  // @todo which should be the default
+  const [draftSrc, setDraftSrc] = useDefaultState(
+    matchingLinkedEntities?.[0]?.url ?? url ?? "",
+  );
+
+  const [loading, setLoading] = useState(false);
+  const [errorString, setErrorString] = useState<null | string>(null);
+
+  const [draftUrl, setDraftUrl] = useState("");
+  const [draftCaption, setDraftCaption] = useDefaultState(initialCaption ?? "");
+  const [draftWidth, setDraftWidth] = useDefaultState(initialWidth);
 
   const isMounted = useRef(false);
 
@@ -120,62 +177,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
     };
   }, []);
 
-  const updateStateObject = useCallback(
-    (properties: Partial<typeof stateObject>) => {
-      setStateObject((prevStateObject) => ({
-        ...prevStateObject,
-        ...properties,
-      }));
-    },
-    [],
-  );
-
-  const stateObjectRef = React.useRef(stateObject);
-  const captionTextRef = React.useRef(captionText);
-
-  useEffect(() => {
-    stateObjectRef.current = stateObject;
-    captionTextRef.current = captionText;
-  });
-
-  useEffect(() => {
-    const newPartialStateObject: Partial<typeof stateObject> = {};
-
-    if (linkGroups && linkedEntities && entityId) {
-      const matchingLinkedEntities = getLinkedEntities<{
-        url: string;
-      }>({
-        sourceEntityId: entityId,
-        path: "$.file",
-        linkGroups,
-        linkedEntities,
-      });
-
-      const { url: matchingUrl } = matchingLinkedEntities?.[0] ?? {};
-
-      if (matchingUrl && stateObjectRef.current.src !== matchingUrl) {
-        newPartialStateObject.src = matchingUrl;
-      }
-    }
-
-    if (stateObjectRef.current.width !== initialWidth) {
-      newPartialStateObject.width = initialWidth;
-    }
-
-    updateStateObject(newPartialStateObject);
-
-    if (initialCaption && captionTextRef.current !== initialCaption) {
-      setCaptionText(initialCaption);
-    }
-  }, [
-    entityId,
-    initialWidth,
-    initialCaption,
-    linkedEntities,
-    linkGroups,
-    updateStateObject,
-  ]);
-
+  // @todo remove this
   const updateData = useCallback(
     ({
       width,
@@ -191,7 +193,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
           const updateAction: BlockProtocolUpdateEntitiesAction<BlockProtocolUpdateEntitiesActionData> =
             {
               data: {
-                initialCaption: captionText,
+                initialCaption: draftCaption,
               },
               entityId,
             };
@@ -211,26 +213,35 @@ export const Image: BlockComponent<AppProps> = (props) => {
           void updateEntities([updateAction]);
         }
 
-        updateStateObject(width ? { src, width } : { src });
+        unstable_batchedUpdates(() => {
+          setErrorString(null);
+          if (width) {
+            setDraftWidth(width);
+          }
+          setDraftSrc(src);
+        });
       }
     },
-    [captionText, entityId, entityTypeId, updateStateObject, updateEntities],
+    [
+      draftCaption,
+      entityId,
+      entityTypeId,
+      setDraftSrc,
+      setDraftWidth,
+      updateEntities,
+    ],
   );
 
   const updateWidth = useCallback(
     (width: number) => {
-      updateData({ src: stateObject.src, width });
+      updateData({ src: draftSrc, width });
     },
-    [stateObject.src, updateData],
+    [draftSrc, updateData],
   );
-
-  const displayError = (errorString: string) => {
-    updateStateObject({ errorString });
-  };
 
   const handleImageUpload = useCallback(
     (imageProp: { url: string } | { file: FileList[number] }) => {
-      updateStateObject({ loading: true });
+      setLoading(true);
 
       if (entityId && createLinks && deleteLinks && uploadFile) {
         uploadFile({ ...imageProp, mediaType: "image" })
@@ -261,14 +272,16 @@ export const Image: BlockComponent<AppProps> = (props) => {
             ]);
 
             if (isMounted.current) {
-              updateData({ src: file.url, file });
-              updateStateObject({ loading: false, userIsEditing: false });
+              unstable_batchedUpdates(() => {
+                updateData({ src: file.url, file });
+                setLoading(false);
+              });
             }
           })
           .catch((error: Error) =>
-            updateStateObject({
-              errorString: error.message,
-              loading: false,
+            unstable_batchedUpdates(() => {
+              setErrorString(error.message);
+              setLoading(false);
             }),
           );
       }
@@ -280,70 +293,65 @@ export const Image: BlockComponent<AppProps> = (props) => {
       entityId,
       linkGroups,
       updateData,
-      updateStateObject,
       uploadFile,
     ],
   );
 
   const onUrlConfirm = () => {
-    const { loading } = stateObject;
-
     if (loading) {
       return;
     }
 
-    if (inputText?.trim()) {
-      handleImageUpload({ url: inputText });
+    if (draftUrl?.trim()) {
+      handleImageUpload({ url: draftUrl });
     } else {
-      displayError("Please enter a valid image URL or select a file below");
+      setErrorString("Please enter a valid image URL or select a file below");
     }
   };
 
   const resetComponent = () => {
     unstable_batchedUpdates(() => {
-      setStateObject({
-        loading: false,
-        errorString: null,
-        src: "",
-        width: undefined,
-        userIsEditing: true,
-      });
-
-      setInputText("");
-      setCaptionText("");
+      setLoading(false);
+      setErrorString(null);
+      setDraftWidth(undefined);
+      setDraftUrl("");
+      setDraftCaption("");
+      setDraftSrc("");
     });
   };
 
-  if (stateObject.src?.trim() || (url && !stateObject.userIsEditing)) {
+  if (draftSrc) {
     return (
       <ImageWithCaption
-        image={stateObject.src ? stateObject.src : url!}
+        image={draftSrc ?? ""}
         onWidthChange={updateWidth}
-        caption={captionText}
-        onCaptionChange={(caption) => setCaptionText(caption)}
-        onCaptionConfirm={() => updateData({ src: stateObject.src })}
+        caption={draftCaption}
+        onCaptionChange={(caption) => setDraftCaption(caption)}
+        /**
+         * @todo this makes no sense
+         */
+        onCaptionConfirm={() => updateData({ src: draftSrc })}
         onReset={resetComponent}
-        width={stateObject.width}
+        width={draftWidth}
       />
     );
   }
 
   return (
     <>
-      {stateObject.errorString && (
+      {errorString && (
         <ImageErrorAlert
-          error={stateObject.errorString}
-          onClearError={() => updateStateObject({ errorString: null })}
+          error={errorString}
+          onClearError={() => setErrorString(null)}
         />
       )}
 
       <UploadImageForm
         onUrlConfirm={onUrlConfirm}
         onFileChoose={(file) => handleImageUpload({ file })}
-        onUrlChange={(url) => setInputText(url)}
-        src={stateObject.src}
-        width={stateObject.width}
-        loading={stateObject.loading}
+        onUrlChange={(nextDraftUrl) => setDraftUrl(nextDraftUrl)}
+        width={draftWidth}
+        loading={loading}
       />
     </>
   );

@@ -7,7 +7,6 @@ type UploadImageFormProps = {
   onUrlChange: (url: string) => void;
   onUrlConfirm: () => void;
   loading: boolean;
-  src: string;
   width: number | undefined;
 };
 
