@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use async_trait::async_trait;
 use error::{Report, Result, ResultExt};
@@ -11,6 +11,12 @@ use hash_engine_lib::{
 use crate::process;
 
 const PROCESS_PATH_DEFAULT: &str = env!("CARGO_BIN_FILE_HASH_ENGINE");
+
+#[cfg(debug_assertions)]
+const PROCESS_PATH_FALLBACK: &str = "./target/debug/hash_engine";
+
+#[cfg(not(debug_assertions))]
+const PROCESS_PATH_FALLBACK: &str = "./target/release/hash_engine";
 
 /// A local [`hash_engine`] subprocess using the [`std::process`] library.  
 pub struct LocalProcess {
@@ -105,10 +111,13 @@ impl process::Command for LocalCommand {
     /// - if the process could not be spawned
     async fn run(self: Box<Self>) -> Result<Box<dyn process::Process + Send>> {
         let engine_path = std::env::var("ENGINE_PATH");
-        let process_path = engine_path
-            .as_ref()
-            .map(String::as_str)
-            .unwrap_or(PROCESS_PATH_DEFAULT);
+        let process_path = if let Ok(process_path) = &engine_path {
+            process_path.as_str()
+        } else if Path::new(PROCESS_PATH_DEFAULT).exists() {
+            PROCESS_PATH_DEFAULT
+        } else {
+            PROCESS_PATH_FALLBACK
+        };
 
         let mut cmd = std::process::Command::new(process_path);
         cmd.arg("--experiment-id")
