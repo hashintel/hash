@@ -10,13 +10,13 @@ use hash_engine_lib::{
 
 use crate::process;
 
-const PROCESS_PATH_DEFAULT: &str = env!("CARGO_BIN_FILE_HASH_ENGINE");
+const PROCESS_BIN_PATH_DEFAULT: &str = env!("CARGO_BIN_FILE_HASH_ENGINE");
 
 #[cfg(debug_assertions)]
-const PROCESS_PATH_FALLBACK: &str = "./target/debug/hash_engine";
+const PROCESS_BIN_PATH_FALLBACK: &str = "./target/debug/hash_engine";
 
 #[cfg(not(debug_assertions))]
-const PROCESS_PATH_FALLBACK: &str = "./target/release/hash_engine";
+const PROCESS_BIN_PATH_FALLBACK: &str = "./target/release/hash_engine";
 
 /// A local [`hash_engine`] subprocess using the [`std::process`] library.  
 pub struct LocalProcess {
@@ -113,10 +113,10 @@ impl process::Command for LocalCommand {
         let engine_path = std::env::var("ENGINE_PATH");
         let process_path = if let Ok(process_path) = &engine_path {
             process_path.as_str()
-        } else if Path::new(PROCESS_PATH_DEFAULT).exists() {
-            PROCESS_PATH_DEFAULT
+        } else if Path::new(PROCESS_BIN_PATH_DEFAULT).exists() {
+            PROCESS_BIN_PATH_DEFAULT
         } else {
-            PROCESS_PATH_FALLBACK
+            PROCESS_BIN_PATH_FALLBACK
         };
 
         let mut cmd = std::process::Command::new(process_path);
