@@ -60,6 +60,7 @@ export const ResizeImageBlock: React.VFC<ResizeBlockProps> = ({
 
     function onMouseUp() {
       document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
       setTimeout(() => {
         if (!imageRef.current) return;
         const { width: newWidth } = imageRef.current.getBoundingClientRect();
