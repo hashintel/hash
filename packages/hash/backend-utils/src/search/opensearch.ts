@@ -81,9 +81,6 @@ const searchBodyParams = (params: SearchParameters) => {
       return state;
     }, {});
 
-  // eslint-disable-next-line no-console
-  console.log(clauses);
-
   return {
     query: {
       bool: {
@@ -292,8 +289,6 @@ export class OpenSearch extends DataSource implements SearchAdapter {
       // Adds hits.total property to response
       body: bodyQuery,
     });
-    // eslint-disable-next-line no-console
-    console.log(JSON.stringify(bodyQuery, null, 2));
 
     const { body, statusCode } = resp;
     if (statusCode !== 200) {
