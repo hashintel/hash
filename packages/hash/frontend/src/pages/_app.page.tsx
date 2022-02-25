@@ -19,7 +19,6 @@ import { PageLayout } from "../components/layout/PageLayout/PageLayout";
 import twindConfig from "../../twind.config";
 import "../../styles/globals.scss";
 import { useUser } from "../components/hooks/useUser";
-import { Box } from "@mui/material";
 
 export const apolloClient = createApolloClient();
 

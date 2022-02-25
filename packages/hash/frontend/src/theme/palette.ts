@@ -151,7 +151,4 @@ export const customColors = {
 
 export const palette: ThemeOptions["palette"] = {
   ...customColors,
-  primary: {
-    main: customColors.purple[60],
-  },
 };
