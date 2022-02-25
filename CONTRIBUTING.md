@@ -17,7 +17,7 @@ These apply across all projects:
 - Before undertaking any significant work, please share your proposal with us: we don't want you to invest your time on changes we are already working on ourselves, or have different plans for. You can suggest changes as a [discussion](https://github.com/hashintel/hash/discussions) if it's a feature proposal, or an [issue](https://github.com/hashintel/hash/issues) if it's a bug you intend to fix. If you're unsure, you can always chat to us on [Discord](https://hash.ai/discord) first. If it's a typo or docs change, don't worry about this step.
 - When submitting a pull request, please fill out any sections of the provided template you feel able to. If you are unsure or don't feel a section is relevant, please say so. Include a link to the issue or discussion proposing the change.
 - Once you have receive a pull request review, please bear the following in mind:
-  - reviewers may make suggestions for _optional_ changes which are not required to get your code merged. It should be obvious which suggestions are obvious, and which are required changes. If it is not obvious, ask for clarification.
+  - reviewers may make suggestions for _optional_ changes which are not required to get your code merged. It should be obvious which suggestions are optional, and which are required changes. If it is not obvious, ask for clarification.
   - please do not resolve comment threads unless you opened them - leave it to the person who raised a comment to decide if any further discussion is required (GitHub will also automatically resolve any code suggestions you click 'commit' on). Comment threads may also be left open so that they can be linked to later.
 
 ## Paid Roles
