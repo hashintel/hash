@@ -177,7 +177,7 @@ export class SearchLoader {
 
       await this.search.index({
         index: this.searchEntititesIndex,
-        id: indexedEntity.entityVersionId,
+        id: indexedEntity.entityId,
         body: indexedEntity,
       });
     } else {
