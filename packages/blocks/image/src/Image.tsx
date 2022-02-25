@@ -125,6 +125,9 @@ function getLinkedEntities<T>(params: {
 //   return state;
 // }
 
+/**
+ * @todo Rewrite the state here to use a reducer, instead of batched updates
+ */
 export const Image: BlockComponent<AppProps> = (props) => {
   const {
     accountId,
@@ -163,9 +166,13 @@ export const Image: BlockComponent<AppProps> = (props) => {
   const [loading, setLoading] = useState(false);
   const [errorString, setErrorString] = useState<null | string>(null);
 
-  const [draftUrl, setDraftUrl] = useState("");
   const [draftCaption, setDraftCaption] = useDefaultState(initialCaption ?? "");
   const [draftWidth, setDraftWidth] = useDefaultState(initialWidth);
+
+  /**
+   * Default for this input field is blank, not the URL passed
+   */
+  const [draftUrl, setDraftUrl] = useState("");
 
   const isMounted = useRef(false);
 
