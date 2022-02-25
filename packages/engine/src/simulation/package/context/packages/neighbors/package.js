@@ -1,7 +1,7 @@
 const json_deepcopy = hash_util.json_deepcopy;
 
 /// Neighbor getters (`neighbor.your_state_field`)
-const gen_state_getters = (Neighbor, agent_schema) => {
+const gen_neighbor_state_getters = (Neighbor, agent_schema) => {
   // Don't need to deepcopy in these getters, because everything in
   // context pools should already be (deep (i.e. recursively)) frozen.
   for (var i = 0; i < agent_schema.fields.length; ++i) {
@@ -47,16 +47,17 @@ const gen_to_json = (agent_schema) => {
   };
 };
 
-/// AgentContext getter (`agent_context.neighbors`)
+// Neighbors getter for the AgentContext (`agent_context.neighbors`)
 const gen_neighbor_getter = (Neighbor) => {
-  return (agent_context, elem) => {
+  return (agent_context, neighbors_col) => {
     const neighbors = [];
     const snapshot = agent_context.state_snapshot;
-    for (var i_neighbor = 0; i_neighbor < elem.length; ++i_neighbor) {
+    for (var i_neighbor = 0; i_neighbor < neighbors_col.length; ++i_neighbor) {
       neighbors[i_neighbor] = new Neighbor(
         snapshot,
+        // TODO: this should probably use the _HIDDEN_0_PREVIOUS_INDEX column
         agent_context.__prev_loc,
-        elem.get(i_neighbor),
+        neighbors_col.get(i_neighbor),
       );
     }
     return neighbors;
@@ -69,7 +70,7 @@ const gen_neighbor = (agent_schema) => {
     this.__prev_loc = prev_loc; // For looking up messages in snapshot message pool
     this.__loc = loc; // For looking up neighbor agent fields in snapshot agent pool
   };
-  gen_state_getters(Neighbor, agent_schema);
+  gen_neighbor_state_getters(Neighbor, agent_schema);
   Neighbor.prototype.to_json = gen_to_json(agent_schema);
   return Object.freeze(Neighbor);
 };
