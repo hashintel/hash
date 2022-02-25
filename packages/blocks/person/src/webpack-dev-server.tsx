@@ -11,14 +11,20 @@ const node = document.getElementById("app");
 const props = {
   avatar: "https://i.pravatar.cc/300",
   employer: {
-    name: "General Manager of Insurance Claims",
-    position: "Bain & Co.",
+    name: "Bain & Co.",
+    position: "General Manager of Insurance Claims",
   },
   name: "Archibald Adams-Montgomery",
   email: "alice@example.com",
   link: "https://alice.com/about",
 };
 
-const App = () => <Component {...props} />;
+const App = () => (
+  <div style={{ padding: "1em" }}>
+    <div style={{ margin: "0 auto", width: "100%" }}>
+      <Component {...props} />
+    </div>
+  </div>
+);
 
 ReactDOM.render(<App />, node);

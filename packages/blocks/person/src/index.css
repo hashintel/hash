@@ -8,6 +8,10 @@
   margin-right: 20px;
 }
 
+.avatar-mobile {
+  display: none;
+}
+
 .person-container hr {
   border: none;
   background-color: #dde7f0;
@@ -32,7 +36,7 @@
   margin-right: 8px;
 }
 
-.person-link-container {
+.person-link {
   display: flex;
   align-items: center;
 }
@@ -88,12 +92,27 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-    width: 100%;
+    width: auto;
+    padding: 0px;
+  }
 
-    padding-bottom: 16px;
+  .person-name-container {
+    padding: 12px 24px;
+  }
+
+  .person-links-container {
+    padding: 12px 24px;
   }
 
   .person-container img {
     margin-bottom: 12px;
+  }
+
+  .avatar-mobile {
+    display: unset;
+  }
+
+  .avatar-desktop {
+    display: none;
   }
 }
