@@ -5,7 +5,7 @@ edition = "2021"
 
 [workspace]
 members = [".", "bin/*", "lib/*"]
-default-members = [".", "bin/*", "lib/*"]
+default-members = [".", "lib/*"]
 
 [dependencies]
 flatbuffers_gen = { path = "lib/flatbuffers_gen" }
