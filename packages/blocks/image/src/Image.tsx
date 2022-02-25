@@ -10,6 +10,7 @@ import React, {
   SetStateAction,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -132,19 +133,20 @@ export const Image: BlockComponent<AppProps> = (props) => {
     url,
   } = props;
 
-  let matchingLinkedEntities: (BlockProtocolEntity & { url: string })[] | null =
-    null;
+  const matchingLinkedEntities = useMemo(() => {
+    if (linkGroups && linkedEntities && entityId) {
+      return getLinkedEntities<{
+        url: string;
+      }>({
+        sourceEntityId: entityId,
+        path: "$.file",
+        linkGroups,
+        linkedEntities,
+      });
+    }
 
-  if (linkGroups && linkedEntities && entityId) {
-    matchingLinkedEntities = getLinkedEntities<{
-      url: string;
-    }>({
-      sourceEntityId: entityId,
-      path: "$.file",
-      linkGroups,
-      linkedEntities,
-    });
-  }
+    return null;
+  }, [entityId, linkGroups, linkedEntities]);
 
   const [draftSrc, setDraftSrc] = useDefaultState(
     url ?? matchingLinkedEntities?.[0]?.url ?? "",
