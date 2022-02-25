@@ -10,11 +10,7 @@ use hash_engine_lib::{
 
 use crate::process;
 
-#[cfg(debug_assertions)]
-const PROCESS_PATH_DEFAULT: &str = "./target/debug/hash_engine";
-
-#[cfg(not(debug_assertions))]
-const PROCESS_PATH_DEFAULT: &str = "./target/release/hash_engine";
+const PROCESS_PATH_DEFAULT: &str = env!("CARGO_BIN_FILE_HASH_ENGINE");
 
 /// A local [`hash_engine`] subprocess using the [`std::process`] library.  
 pub struct LocalProcess {
