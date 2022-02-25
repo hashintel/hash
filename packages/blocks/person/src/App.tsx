@@ -33,10 +33,22 @@ export const App: BlockComponent<AppProps> = ({
 
   return (
     <div className="person-container">
-      {avatar && <img className="avatar-desktop" src={avatar} />}
+      {avatar && (
+        <img
+          alt={`${name ? `${name}'s ` : ""}avatar`}
+          className="avatar-desktop"
+          src={avatar}
+        />
+      )}
       <div>
         <div className="person-name-container">
-          {avatar && <img className="avatar-mobile" src={avatar} />}
+          {avatar && (
+            <img
+              alt={`${name ? `${name}'s ` : ""}avatar`}
+              className="avatar-mobile"
+              src={avatar}
+            />
+          )}
           <div className="person-name">{name}</div>
           {employer && (
             <div className="person-employer">
