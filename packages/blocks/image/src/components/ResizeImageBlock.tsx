@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef } from "react";
+import React, { useEffect, useLayoutEffect, useRef } from "react";
 import { tw } from "twind";
 
 type ResizeBlockProps = {
@@ -19,6 +19,12 @@ export const ResizeImageBlock: React.VFC<ResizeBlockProps> = ({
   updateWidth,
 }) => {
   const imageRef = useRef<HTMLImageElement>(null);
+
+  const updateWidthRef = useRef(updateWidth);
+
+  useLayoutEffect(() => {
+    updateWidthRef.current = updateWidth;
+  });
 
   useLayoutEffect(() => {
     if (!imageRef.current) return;
@@ -64,7 +70,7 @@ export const ResizeImageBlock: React.VFC<ResizeBlockProps> = ({
       setTimeout(() => {
         if (!imageRef.current) return;
         const { width: newWidth } = imageRef.current.getBoundingClientRect();
-        updateWidth(newWidth);
+        updateWidthRef.current(newWidth);
       }, 1000);
     }
 
