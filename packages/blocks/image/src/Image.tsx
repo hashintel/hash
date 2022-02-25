@@ -158,7 +158,6 @@ export const Image: BlockComponent<AppProps> = (props) => {
     });
   }
 
-  // @todo which should be the default
   const [draftSrc, setDraftSrc] = useDefaultState(
     url ?? matchingLinkedEntities?.[0]?.url ?? "",
   );
