@@ -44,7 +44,7 @@ impl MessageMap {
                 |mut acc, (recipients, message_ref)| {
                     recipients.iter().for_each(|recipient| {
                         // TODO: OS - (decide) currently if message has duplicate recipients then
-                        // agents can get duplicate messages (filtering is expensive)
+                        //   agents can get duplicate messages (filtering is expensive)
                         if let Some(entry) = acc.get_mut(*recipient) {
                             entry.push(message_ref.clone())
                         } else {
