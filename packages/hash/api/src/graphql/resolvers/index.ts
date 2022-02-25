@@ -69,7 +69,7 @@ import { createLinkedAggregation } from "./linkedAggregation/createLinkedAggrega
 import { linkedAggregationResults } from "./linkedAggregation/linkedAggregationResults";
 import { orgEmailInvitationLinkedEntities } from "./orgEmailInvitation/linkedEntities";
 import { orgInvitationLinkLinkedEntities } from "./orgInvitationLink/linkedEntities";
-import { pageSearchResultConnection } from "./paginationConnection/pagePaginationConnection";
+import { pageSearchResultConnection } from "./paginationConnection/pageSearchResultConnection";
 
 export const resolvers = {
   Query: {

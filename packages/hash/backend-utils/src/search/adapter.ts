@@ -10,11 +10,6 @@ export type SearchHit = {
   score: number;
   /** The content of the document. */
   document: JSONObject;
-  belongsToPage?: {
-    entityId: string;
-    entityVersionId: string;
-    accountId: string;
-  };
 };
 
 export type SearchResult = {
@@ -23,6 +18,9 @@ export type SearchResult = {
 
 export type SearchCursor = string;
 
+/**
+ * For paginated search results, a cursor is returned if more pages of results are present.
+ */
 export type SearchResultPaginated = SearchResult & {
   cursor?: SearchCursor;
   total: number;
@@ -30,6 +28,9 @@ export type SearchResultPaginated = SearchResult & {
 
 export type SearchFieldPresence = "must" | "must_not" | "should" | "filter";
 
+/**
+ * Wrapper for declaratively defining OpenSearch queries
+ */
 export type SearchField = {
   query: string | number | boolean | Date;
   /**
@@ -53,6 +54,9 @@ export type SearchField = {
   presence?: SearchFieldPresence;
 };
 
+/**
+ * OpenSearch search parameters that allow a subset of search DSL, see {@link SearchField}
+ */
 export type SearchParameters = {
   index: string;
   fields: { [_: string]: SearchField };

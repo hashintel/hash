@@ -152,6 +152,9 @@ export const getPagesLinkingToTextEntities = async (
   return results;
 };
 
+/**
+ * @deprecated in favor of pageSearchResultConnection.
+ */
 export const searchPages: Resolver<
   Promise<PageSearchResult[]>,
   {},

@@ -10,6 +10,7 @@ import {
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 
+// These values are the same defined in searchPages.
 // The name of the search index containing entities and the document field to perform
 // the search on. See the README for the `search-loader` for more details.
 const ENTITIES_SEARCH_INDEX = "entities";
@@ -19,6 +20,10 @@ type TextSearchHit = Omit<SearchHit, "document"> & {
   document: EntitiesDocument;
 };
 
+/**
+ * Paginated search over user pages.
+ * Currently doesn't support searching for both user and organization pages.
+ */
 export const pageSearchResultConnection: Resolver<
   Promise<PageSearchResultConnection>,
   {},
@@ -33,8 +38,10 @@ export const pageSearchResultConnection: Resolver<
     );
   }
 
-  if (query === "") {
-    throw new UserInputError("field 'query' cannot be empty");
+  if (query == null && after == null) {
+    throw new UserInputError(
+      "Please provide one of 'query' or 'after' in the parameters.",
+    );
   }
 
   const textType = await db.getSystemTypeLatestVersion({
@@ -58,6 +65,8 @@ export const pageSearchResultConnection: Resolver<
           fuzziness: "AUTO",
           operator: "or",
         },
+        // Only fetch entityes with the "Text" systemtype.
+        // These will contain a "belongsToParent" property
         entityTypeId: {
           query: textType.entityId,
           fuzziness: 0,
@@ -76,7 +85,8 @@ export const pageSearchResultConnection: Resolver<
   // different account to that of the page. We don't filter by the `accountId` before this
   // point as it would remove these pages with cross-account links.
 
-  // @todo: we could filter by entity type in the search index (Text, Page, ...)
+  // @todo: filtering already happens in the search index, this filtering should be redundant.
+  // it is used for type assertion only.
   const textHits = hits.filter(
     (hit): hit is TextSearchHit =>
       hit.document.entityTypeId === textType.entityId,

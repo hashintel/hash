@@ -1,5 +1,6 @@
 import { JSONObject } from "blockprotocol";
 import { Client, ClientOptions } from "@opensearch-project/opensearch";
+import { ResponseError } from "@opensearch-project/opensearch/lib/errors";
 import { DataSource } from "apollo-datasource";
 
 import { sleep } from "@hashintel/hash-shared/sleep";
@@ -57,15 +58,6 @@ const searchBodyParams = (params: SearchParameters) => {
 
   // Construct a boolean query expression
   // see https://opensearch.org/docs/latest/opensearch/query-dsl/bool/ for more info
-  // const clauseas = chain(fields)
-  //   .map(([fieldName, { presence, fuzziness, operator, query }]) => [
-  //     presence ?? "must",
-  //     { [fieldName]: { fuzziness, operator, query } },
-  //   ])
-  //   .groupBy(([precense, _]) => precense)
-  //   .reduce([key])
-  //   .value();
-
   const clauses = fields
     .map<
       [SearchFieldPresence, { [k in string]: Omit<SearchField, "presence"> }]
@@ -349,10 +341,20 @@ export class OpenSearch extends DataSource implements SearchAdapter {
     const { seenCount, openSearchCursor } = opaqueCursorParse(cursor);
 
     // When a search is continued
-    const resp = await this.client.scroll({
-      scroll: KEEP_ALIVE_CURSOR_DURATION,
-      scroll_id: openSearchCursor,
-    });
+    let resp;
+    try {
+      resp = await this.client.scroll({
+        scroll: KEEP_ALIVE_CURSOR_DURATION,
+        scroll_id: openSearchCursor,
+      });
+    } catch (ex) {
+      if (ex instanceof ResponseError && ex.statusCode === 404) {
+        throw new Error(
+          "OpenSearch could not execute query. Perhaps the cursor is closed or the query is malformed?",
+        );
+      }
+      throw ex;
+    }
 
     const { body, statusCode } = resp;
     if (statusCode !== 200) {

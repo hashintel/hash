@@ -1,6 +1,10 @@
 import { gql } from "apollo-server-express";
 
 export const pagePagination = gql`
+  """
+  Each pagination specifies if there are more results to request.
+  Please use the 'nextPageCursor' for every subsequent pagination request with the 'after' parameter.
+  """
   type PageInfo {
     # could also just be a nextPageCursor since its presence encodes the boolean
     # kept in to comply with spec.
@@ -8,13 +12,19 @@ export const pagePagination = gql`
     nextPageCursor: String
   }
 
-  # The OpenSearch cursors are not per item, unfortunately.
-  # so the per-edge cursors are omitted
+  """
+  There are no cursors per-edge currently.
+  """
   type PageSearchResultEdge {
     # cursor: String!
     node: PageSearchResult!
   }
 
+  """
+  The result of pagination is this connection type.
+  pageInfo contains information about paginagtion.
+  edges contain the actual results.
+  """
   type PageSearchResultConnection {
     pageInfo: PageInfo!
     edges: [PageSearchResultEdge!]!
@@ -22,12 +32,26 @@ export const pagePagination = gql`
 
   extend type Query {
     """
-    after expects a cursor
+    Paginate an account's pages.
     """
     pageSearchResultConnection(
+      """
+      Page accountIds to filter results by.
+      """
       accountId: ID!
-      query: String!
-      pageSize: Int!
+      """
+      Search query string.
+      """
+      query: String
+      """
+      Number of pages to return for each result set.
+      This does not change the number of pages returned when using a cursor.
+      """
+      pageSize: Int! = 20
+      """
+      Cursor used to continue pagination.
+      Please re-set the cursor to 'nextPageCursor' after each pagination.
+      """
       after: String
     ): PageSearchResultConnection!
   }
