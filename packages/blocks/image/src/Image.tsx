@@ -113,19 +113,6 @@ function getLinkedEntities<T>(params: {
   return matchingLinkedEntities as (BlockProtocolEntity & T)[];
 }
 
-// type ImageState = {
-//   url: string;
-//   caption: string;
-// }
-//
-// type ImageAction = {
-//
-// }
-//
-// function imageStateReducer(state: ImageState, action: ImageAction): ImageState {
-//   return state;
-// }
-
 /**
  * @todo Rewrite the state here to use a reducer, instead of batched updates
  */
