@@ -13,26 +13,34 @@ type ImageWithCaptionProps = {
   onReset: () => void;
 };
 
-export const ImageWithCaption: VFC<ImageWithCaptionProps> = (props) => (
+export const ImageWithCaption: VFC<ImageWithCaptionProps> = ({
+  caption,
+  image,
+  onCaptionChange,
+  onCaptionConfirm,
+  onReset,
+  onWidthChange,
+  width,
+}) => (
   <div className={tw`flex justify-center text-center w-full`}>
     <div className={tw`flex flex-col`}>
       <ResizeImageBlock
-        imageSrc={props.image}
-        width={props.width}
-        updateWidth={props.onWidthChange}
+        imageSrc={image}
+        width={width}
+        updateWidth={onWidthChange}
       />
       <input
         placeholder="Add a caption"
         className={tw`focus:outline-none text-center mt-3`}
         type="text"
-        value={props.caption}
-        onChange={(event) => props.onCaptionChange(event.target.value)}
-        onBlur={props.onCaptionConfirm}
+        value={caption}
+        onChange={(event) => onCaptionChange(event.target.value)}
+        onBlur={onCaptionConfirm}
       />
     </div>
     <button
       type="button"
-      onClick={props.onReset}
+      onClick={onReset}
       className={tw`ml-2 bg-gray-100 p-1.5 border-1 border-gray-300 rounded-sm self-start`}
     >
       <Pencil />
