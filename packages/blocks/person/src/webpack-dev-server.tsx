@@ -8,17 +8,17 @@ import Component from "./index";
 
 const node = document.getElementById("app");
 
-const App = () => (
-  <Component
-    avatar="https://i.pravatar.cc/300"
-    employer={{
-      name: "General Manager of Insurance Claims",
-      position: "Bain & Co.",
-    }}
-    name="Archibald Adams-Montgomery"
-    email="alice@example.com"
-    link="https://alice.com/about"
-  />
-);
+const props = {
+  avatar: "https://i.pravatar.cc/300",
+  employer: {
+    name: "General Manager of Insurance Claims",
+    position: "Bain & Co.",
+  },
+  name: "Archibald Adams-Montgomery",
+  email: "alice@example.com",
+  link: "https://alice.com/about",
+};
+
+const App = () => <Component {...props} />;
 
 ReactDOM.render(<App />, node);

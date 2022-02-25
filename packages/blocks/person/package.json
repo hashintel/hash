@@ -77,8 +77,14 @@
     "image": "public/preview.svg",
     "examples": [
       {
+        "avatar": "https://i.pravatar.cc/300",
+        "employer": {
+          "name": "General Manager of Insurance Claims",
+          "position": "Bain & Co."
+        },
+        "name": "Archibald Adams-Montgomery",
         "email": "alice@example.com",
-        "name": "Alice Alison"
+        "link": "https://alice.com/about"
       }
     ],
     "protocol": "0.1"
