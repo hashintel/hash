@@ -254,9 +254,6 @@ jobs:
           cd ..
           rm -rf tmp # Delete the tmp folder
 
-      - name: Build tests
-        run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} --no-run
-
       - name: Run tests
         run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }}
 
@@ -315,9 +312,6 @@ jobs:
           mv -v vendor/v8/* .. # Move out the wanted files
           cd ..
           rm -rf tmp # Delete the tmp folder
-
-      - name: Build tests
-        run: cargo test --test ${{ matrix.tests }} --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }} --no-run
 
       - name: Run tests
         run: cargo test --test ${{ matrix.tests }} --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }} -- --test-threads=1
