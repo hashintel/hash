@@ -7,13 +7,9 @@ import {
 import { BlockComponent } from "blockprotocol/react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { unstable_batchedUpdates } from "react-dom";
-
-import { tw } from "twind";
-
-import { ResizeImageBlock } from "./components/ResizeImageBlock";
 import { ImageErrorAlert } from "./components/ImageErrorAlert";
+import { ImageWithCaption } from "./components/ImageWithCaption";
 import { UploadImageForm } from "./components/UploadImageForm";
-import Pencil from "./svgs/Pencil";
 
 // https://www.typescriptlang.org/docs/handbook/release-notes/overview.html#recursive-conditional-types
 type Awaited<T> = T extends PromiseLike<infer U> ? Awaited<U> : T;
@@ -320,30 +316,15 @@ export const Image: BlockComponent<AppProps> = (props) => {
 
   if (stateObject.src?.trim() || (url && !stateObject.userIsEditing)) {
     return (
-      <div className={tw`flex justify-center text-center w-full`}>
-        <div className={tw`flex flex-col`}>
-          <ResizeImageBlock
-            imageSrc={stateObject.src ? stateObject.src : url!}
-            width={stateObject.width}
-            updateWidth={updateWidth}
-          />
-          <input
-            placeholder="Add a caption"
-            className={tw`focus:outline-none text-center mt-3`}
-            type="text"
-            value={captionText}
-            onChange={(event) => setCaptionText(event.target.value)}
-            onBlur={() => updateData({ src: stateObject.src })}
-          />
-        </div>
-        <button
-          type="button"
-          onClick={resetComponent}
-          className={tw`ml-2 bg-gray-100 p-1.5 border-1 border-gray-300 rounded-sm self-start`}
-        >
-          <Pencil />
-        </button>
-      </div>
+      <ImageWithCaption
+        image={stateObject.src ? stateObject.src : url!}
+        onWidthChange={updateWidth}
+        caption={captionText}
+        onCaptionChange={(caption) => setCaptionText(caption)}
+        onCaptionConfirm={() => updateData({ src: stateObject.src })}
+        onReset={resetComponent}
+        width={stateObject.width}
+      />
     );
   }
 
