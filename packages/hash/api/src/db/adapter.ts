@@ -88,6 +88,10 @@ export type EntityTypeMeta = EntityMeta & {
 
 export type EntityType = Omit<DbEntity, EntityTypeTypeFields> & {
   metadata: EntityTypeMeta;
+  /**
+   *  @todo make these non-optional if we figure a way of getting the EntityType entityType
+   *    attached without recursion headaches. see https://github.com/hashintel/dev/pull/200
+   */
   entityType?: EntityType | undefined | null;
   entityTypeId?: string | undefined | null;
   entityTypeName?: "EntityType";
