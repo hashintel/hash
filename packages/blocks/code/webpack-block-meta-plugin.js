@@ -12,6 +12,7 @@ const {
   license,
   blockprotocol,
   repository,
+  protocol,
 } = require("./package.json");
 
 const { externals } = require("./webpack-main.config");
@@ -38,6 +39,7 @@ class StatsPlugin {
         source: main,
         variants,
         repository,
+        protocol,
         ...blockprotocol,
       };
 

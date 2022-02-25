@@ -54,9 +54,10 @@ impl<'a> UserError<'a> {
     }
 
     #[inline]
-    pub fn msg(&self) -> Option<&'a str> {
+    pub fn msg(&self) -> &'a str {
         self._tab
             .get::<flatbuffers::ForwardsUOffset<&str>>(UserError::VT_MSG, None)
+            .unwrap()
     }
 }
 
@@ -68,7 +69,7 @@ impl flatbuffers::Verifiable for UserError<'_> {
     ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
         use self::flatbuffers::Verifiable;
         v.visit_table(pos)?
-            .visit_field::<flatbuffers::ForwardsUOffset<&str>>(&"msg", Self::VT_MSG, false)?
+            .visit_field::<flatbuffers::ForwardsUOffset<&str>>(&"msg", Self::VT_MSG, true)?
             .finish();
         Ok(())
     }
@@ -79,7 +80,9 @@ pub struct UserErrorArgs<'a> {
 impl<'a> Default for UserErrorArgs<'a> {
     #[inline]
     fn default() -> Self {
-        UserErrorArgs { msg: None }
+        UserErrorArgs {
+            msg: None, // required field
+        }
     }
 }
 pub struct UserErrorBuilder<'a: 'b, 'b> {
@@ -105,6 +108,7 @@ impl<'a: 'b, 'b> UserErrorBuilder<'a, 'b> {
     #[inline]
     pub fn finish(self) -> flatbuffers::WIPOffset<UserError<'a>> {
         let o = self.fbb_.end_table(self.start_);
+        self.fbb_.required(o, UserError::VT_MSG, "msg");
         flatbuffers::WIPOffset::new(o.value())
     }
 }

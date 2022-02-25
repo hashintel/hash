@@ -19,6 +19,7 @@ import {
   VerificationCode,
 } from "../adapter";
 import { SystemType } from "../../types/entityTypes";
+import { createPoolConnection, createTransactionConnection } from "./types";
 
 export type Config = {
   host: string;
@@ -54,7 +55,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
   private async query<T>(fn: (client: DBClient) => Promise<T>): Promise<T> {
     return await this.pool.connect(async (conn) => {
-      const client = new PostgresClient(conn);
+      const client = new PostgresClient(createPoolConnection(conn));
       return await fn(client);
     });
   }
@@ -67,7 +68,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   ): Promise<T> {
     return await this.pool.connect(async (conn) => {
       return await conn.transaction(async (tx) => {
-        const client = new PostgresClient(tx);
+        const client = new PostgresClient(createTransactionConnection(tx));
         return await fn(client);
       });
     });
