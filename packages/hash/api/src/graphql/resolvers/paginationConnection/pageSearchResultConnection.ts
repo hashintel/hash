@@ -55,7 +55,7 @@ export const pageSearchResultConnection: Resolver<
     ({ hits, cursor } = await search.continuePaginatedSearch({
       cursor: after,
     }));
-  } else {
+  } else if (query && pageSize) {
     ({ hits, cursor } = await search.startPaginatedSearch({
       pageSize,
       index: ENTITIES_SEARCH_INDEX,
@@ -86,6 +86,10 @@ export const pageSearchResultConnection: Resolver<
         },
       },
     }));
+  } else {
+    throw new UserInputError(
+      "Could not execute search. Please revise arguments.",
+    );
   }
 
   // For all text entity matches, find the pages and the blocks within those pages where
