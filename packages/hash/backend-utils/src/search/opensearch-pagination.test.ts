@@ -60,9 +60,17 @@ describe("OpenSearch pagination", () => {
 
     const firstPage = await openSearch.startPaginatedSearch({
       pageSize,
-      field: "accountId",
       index: ENTITIES_SEARCH_INDEX,
-      query: "b85dae98-b233-4880-b6bc-99424d5066b9",
+      fields: {
+        accountId: {
+          query: "b85dae98-b233-4880-b6bc-99424d5066b9",
+          // Fuzziness is set to 0, such that an ID that is lexicographically similar don't match
+          // This filter used to be done in resolvers.
+          fuzziness: 0,
+          operator: "and",
+          presence: "must",
+        },
+      },
     });
 
     expect(firstPage.cursor).toBeUndefined();
@@ -79,9 +87,17 @@ describe("OpenSearch pagination", () => {
 
     const firstPage = await openSearch.startPaginatedSearch({
       pageSize,
-      field: "accountId",
       index: ENTITIES_SEARCH_INDEX,
-      query: "b85dae98-b233-4880-b6bc-99424d5066b9",
+      fields: {
+        accountId: {
+          query: "b85dae98-b233-4880-b6bc-99424d5066b9",
+          // Fuzziness is set to 0, such that an ID that is lexicographically similar don't match
+          // This filter used to be done in resolvers.
+          fuzziness: 0,
+          operator: "and",
+          presence: "must",
+        },
+      },
     });
 
     const secondPage = await openSearch.continuePaginatedSearch({
@@ -108,9 +124,17 @@ describe("OpenSearch pagination", () => {
 
     const firstPage = await openSearch.startPaginatedSearch({
       pageSize,
-      field: "accountId",
       index: ENTITIES_SEARCH_INDEX,
-      query: "b85dae98-b233-4880-b6bc-99424d5066b9",
+      fields: {
+        accountId: {
+          query: "b85dae98-b233-4880-b6bc-99424d5066b9",
+          // Fuzziness is set to 0, such that an ID that is lexicographically similar don't match
+          // This filter used to be done in resolvers.
+          fuzziness: 0,
+          operator: "and",
+          presence: "must",
+        },
+      },
     });
 
     let lastPage = firstPage;
