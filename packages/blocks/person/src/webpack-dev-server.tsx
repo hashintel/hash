@@ -4,15 +4,20 @@
  */
 import React from "react";
 import ReactDOM from "react-dom";
-import Component from "./index.ts";
+import Component from "./index";
 
 const node = document.getElementById("app");
 
 const App = () => (
   <Component
-    name="Alice Alison"
-    employer={{ name: "Example Org" }}
+    avatar="https://i.pravatar.cc/300"
+    employer={{
+      name: "General Manager of Insurance Claims",
+      position: "Bain & Co.",
+    }}
+    name="Archibald Adams-Montgomery"
     email="alice@example.com"
+    link="https://alice.com/about"
   />
 );
 
