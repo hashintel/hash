@@ -27,7 +27,6 @@ impl Dependencies {
         Ok(())
     }
 
-
     pub fn add_context_dep(&mut self, name: context::Name) -> Result<()> {
         let dependency = PackageName::Context(name);
         self.validate_clash(&dependency)?;

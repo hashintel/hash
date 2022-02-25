@@ -318,7 +318,7 @@ impl MessageBatch {
 pub struct Raw<'a> {
     pub from: &'a [u8; UUID_V4_LEN],
     pub to: Vec<&'a str>, // TODO: unused?
-    pub r#type: &'a str, // TODO: unused?
+    pub r#type: &'a str,  // TODO: unused?
     pub data: &'a str,
 }
 
