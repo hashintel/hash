@@ -53,7 +53,8 @@ const useDefaultState = <T extends any>(
   const setState = useCallback((value: SetStateAction<T>) => {
     setNextValue((prevValue) => {
       const nextValue =
-        // @ts-expect-error figure this out
+        // @ts-expect-error We know this is callable, but TS thinks value
+        // could be another kind of function
         typeof value === "function" ? value(prevValue.currentValue) : value;
 
       return {
