@@ -1,18 +1,27 @@
 import React from "react";
 import createEmotionServer from "@emotion/server/create-instance";
 import withTwindDocument from "@twind/next/document";
-import Document, { DocumentContext } from "next/document";
+import Document, { Html, Head, Main, NextScript } from "next/document";
 
 import twindConfig from "../../twind.config";
 import { createEmotionCache } from "../theme";
 
 class MyDocument extends Document {
-  static async getInitialProps(context: DocumentContext) {
-    const initialProps = await Document.getInitialProps(context);
-    return { ...initialProps };
+  render() {
+    return (
+      <Html lang="en">
+        <Head />
+        <body>
+          <Main />
+          <NextScript />
+        </body>
+      </Html>
+    );
   }
 }
 
+// This config is pulled from the official Nextjs + MUI example
+// @see https://github.com/mui/material-ui/blob/master/examples/nextjs/pages/_document.js
 // `getInitialProps` belongs to `_document` (instead of `_app`),
 // it's compatible with static-site generation (SSG).
 MyDocument.getInitialProps = async (ctx) => {
