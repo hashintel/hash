@@ -3,7 +3,7 @@ import createCache from "@emotion/cache";
 
 import { palette } from "./palette";
 import { typography } from "./typography";
-import { shadows } from "./shadows";
+import { shadows, boxShadows, dropShadows } from "./shadows";
 import { borderRadii } from "./borderRadii";
 import { components } from "./components";
 
@@ -12,6 +12,8 @@ export const theme = createTheme({
   typography,
   shadows,
   borderRadii,
+  boxShadows,
+  dropShadows,
   components,
 });
 

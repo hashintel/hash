@@ -1,4 +1,13 @@
 declare module "@mui/material/styles" {
+  interface ShadowSizes {
+    none: string;
+    xs: string;
+    sm: string;
+    md: string;
+    lg: string;
+    xl: string;
+    xxl: string;
+  }
   interface Theme {
     borderRadii: {
       none: string;
@@ -6,14 +15,18 @@ declare module "@mui/material/styles" {
       md: string;
       lg: string;
     };
+    boxShadows: ShadowSizes;
+    dropShadows: ShadowSizes;
   }
 
   interface ThemeOptions {
-    borderRadii?: {
-      none?: string;
-      sm?: string;
-      md?: string;
-      lg?: string;
+    boxShadows: ShadowSizes;
+    dropShadows: ShadowSizes;
+    borderRadii: {
+      none: string;
+      sm: string;
+      md: string;
+      lg: string;
     };
   }
 
