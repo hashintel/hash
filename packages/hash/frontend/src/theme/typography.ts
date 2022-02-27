@@ -97,4 +97,7 @@ export const typography: ThemeOptions["typography"] = {
   subtitle2: undefined,
   body1: undefined,
   body2: undefined,
+  caption: undefined,
+  button: undefined,
+  overline: undefined,
 };
