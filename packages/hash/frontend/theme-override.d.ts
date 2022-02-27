@@ -65,6 +65,7 @@ declare module "@mui/material/styles" {
     h5: React.CSSProperties;
     mediumCaps: React.CSSProperties;
     smallCaps: React.CSSProperties;
+    largeTextLabels: React.CSSProperties;
     regularTextParagraphs: React.CSSProperties;
     regularTextLabels: React.CSSProperties;
     smallTextParagraphs: React.CSSProperties;
@@ -81,6 +82,7 @@ declare module "@mui/material/styles" {
     h5?: React.CSSProperties;
     mediumCaps?: React.CSSProperties;
     smallCaps?: React.CSSProperties;
+    largeTextLabels?: React.CSSProperties;
     regularTextParagraphs?: React.CSSProperties;
     regularTextLabels?: React.CSSProperties;
     smallTextParagraphs?: React.CSSProperties;
@@ -99,11 +101,18 @@ declare module "@mui/material/Typography" {
     h5: true;
     mediumCaps: true;
     smallCaps: true;
+    largeTextLabels: true;
     regularTextParagaphs: true;
     regularTextLabels: true;
     smallTextParagraphs: true;
     smallTextLabels: true;
     microText: true;
+    // disable unused defaults
+    h6: false;
+    subtitle1: false;
+    subtitle2: false;
+    body1: false;
+    body2: false;
   }
 }
 

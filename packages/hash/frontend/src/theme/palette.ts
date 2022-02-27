@@ -151,4 +151,8 @@ export const customColors = {
 
 export const palette: ThemeOptions["palette"] = {
   ...customColors,
+  common: {
+    black: customColors.black,
+    white: customColors.white,
+  },
 };
