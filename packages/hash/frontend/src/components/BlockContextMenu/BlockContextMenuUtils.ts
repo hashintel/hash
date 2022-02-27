@@ -1,4 +1,3 @@
-import { tw } from "twind";
 import { BlockVariant } from "blockprotocol";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { BoxProps } from "@mui/material";
