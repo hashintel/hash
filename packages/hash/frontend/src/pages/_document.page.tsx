@@ -77,4 +77,6 @@ MyDocument.getInitialProps = async (ctx) => {
   };
 };
 
+// @todo remove twind when we have completely switched to MUI
+// NB: Some blocks set twind as a peer-dependency
 export default withTwindDocument(twindConfig, MyDocument);
