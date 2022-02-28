@@ -4,4 +4,6 @@
  *
  * Empty behavior (we need a behavior to execute)
  */
-const behavior = (state, context) => {};
+const behavior = (state, context) => {
+  state.list_is_null = state.list === "null";
+};

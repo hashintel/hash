@@ -8,6 +8,10 @@
         "type": "number",
         "nullable": false
       }
+    },
+    "list_is_null": {
+      "type": "boolean",
+      "nullable": false
     }
   }
 }
