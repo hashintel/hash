@@ -1,6 +1,6 @@
 import { gql } from "apollo-server-express";
 
-export const pagePagination = gql`
+export const pagePaginationTypedef = gql`
   """
   Each pagination specifies if there are more results to request.
   Please use the 'nextPageCursor' for every subsequent pagination request with the 'after' parameter.

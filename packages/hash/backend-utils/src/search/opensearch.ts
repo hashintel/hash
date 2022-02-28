@@ -35,18 +35,18 @@ export type OpenSearchConfig = {
  *
  * Also used as an opaque cursor from the user's perspective.
  */
-type OpenSearchCursorExtenstion = {
+type OpenSearchCursorExtension = {
   seenCount: number;
   openSearchCursor: string;
 };
 
-const opaqueCursorToString = (params: OpenSearchCursorExtenstion): string =>
+const opaqueCursorToString = (params: OpenSearchCursorExtension): string =>
   Buffer.from(JSON.stringify(params)).toString("base64");
 
-const opaqueCursorParse = (cursor: string): OpenSearchCursorExtenstion =>
+const opaqueCursorParse = (cursor: string): OpenSearchCursorExtension =>
   JSON.parse(Buffer.from(cursor, "base64").toString());
 
-const searchBodyParams = (params: SearchParameters) => {
+const generateSearchBody = (params: SearchParameters) => {
   const fields = Object.entries(params.fields);
   if (
     fields.some(
@@ -71,6 +71,10 @@ const searchBodyParams = (params: SearchParameters) => {
         { match: { [k in string]: Omit<SearchField, "presence"> } }[]
       >
     >((state, [presence, field]) => {
+      // Match any word in the phrase. We could use the "query_string" search
+      // method to expose custom query logic to the client. For example:
+      // "((new york) AND (city)) OR (the big apple)". For more see:
+      // https://opensearch.org/docs/latest/opensearch/query-dsl/full-text/#query-string
       const matchField = { match: field };
       if (!state[presence]) {
         // eslint-disable-next-line no-param-reassign
@@ -96,7 +100,7 @@ const searchBodyParams = (params: SearchParameters) => {
  * cluster.
  * */
 export class OpenSearch extends DataSource implements SearchAdapter {
-  public constructor(private client: Client, private logger: Logger) {
+  constructor(private client: Client, private logger: Logger) {
     super();
   }
 
@@ -196,7 +200,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
 
     const resp = await this.client.search({
       index: params.index,
-      body: searchBodyParams(params),
+      body: generateSearchBody(params),
     });
 
     const { body, statusCode } = resp;
@@ -216,6 +220,11 @@ export class OpenSearch extends DataSource implements SearchAdapter {
     );
 
     return { hits };
+  }
+
+  private async clearScrollAndReturnUndefined(cursor: string) {
+    await this.client.clear_scroll({ scroll_id: cursor });
+    return undefined;
   }
 
   /**
@@ -244,8 +253,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
       seenSoFar >= total;
 
     if (endOfSearch) {
-      await this.client.clear_scroll({ scroll_id: openSearchCursor });
-      return undefined;
+      return await this.clearScrollAndReturnUndefined(openSearchCursor);
     }
 
     // A new cursor requires the page to have hits and a proper next cursor
@@ -255,7 +263,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
             seenCount: seenSoFar,
             openSearchCursor: nextOpenSearchCursor,
           })
-        : undefined;
+        : await this.clearScrollAndReturnUndefined(openSearchCursor);
 
     // Only return a new search cursor if this is not the final page
     // If there are not hits in the page, the newCursor will be undefiend as well.
@@ -270,7 +278,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
    * The cursor is kept alive for 10 minutes.
    *
    * If this impacts performance when having many users,
-   * it should be replaces with a custom pagination technique as described
+   * it should be replaced with a custom pagination technique as described
    * in the end of the following section in documentation
    * https://opensearch.org/docs/latest/opensearch/ux/#sort-results
    * "search contexts consume a lot of memory"
@@ -280,7 +288,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
   ): Promise<SearchResultPaginated> {
     const bodyQuery = {
       size: params.pageSize,
-      ...searchBodyParams(params),
+      ...generateSearchBody(params),
     };
     // When a new paginated search is instantiated
     const resp = await this.client.search({
@@ -292,7 +300,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
 
     const { body, statusCode } = resp;
     if (statusCode !== 200) {
-      // @todo: could have inspect the response for the tyep of error -- e.g. index
+      // @todo: could inspect the response for the type of error -- e.g. index
       // does not exist
       throw new Error(JSON.stringify(resp));
     }

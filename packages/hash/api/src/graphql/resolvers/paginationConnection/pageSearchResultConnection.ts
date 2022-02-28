@@ -1,5 +1,9 @@
 import { ApolloError, UserInputError } from "apollo-server-express";
-import { EntitiesDocument } from "@hashintel/hash-backend-utils/search/doc-types";
+import {
+  ENTITIES_SEARCH_FIELD,
+  ENTITIES_SEARCH_INDEX,
+  EntitiesDocument,
+} from "@hashintel/hash-backend-utils/search/doc-types";
 import { SearchHit } from "@hashintel/hash-backend-utils/search/adapter";
 
 import {
@@ -9,12 +13,6 @@ import {
   PageSearchResult,
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-
-// These values are the same defined in searchPages.
-// The name of the search index containing entities and the document field to perform
-// the search on. See the README for the `search-loader` for more details.
-const ENTITIES_SEARCH_INDEX = "entities";
-const ENTITIES_SEARCH_FIELD = "fullTextSearch";
 
 type TextSearchHit = Omit<SearchHit, "document"> & {
   document: EntitiesDocument;
@@ -38,12 +36,13 @@ export const pageSearchResultConnection: Resolver<
     );
   }
 
-  if (query == null && after == null) {
+  if (!query && !after) {
     throw new UserInputError(
       "Please provide one of 'query' or 'after' in the parameters.",
     );
   }
 
+  // @todo text.model.ts model class should replace this manual adapter call.
   const textType = await db.getSystemTypeLatestVersion({
     systemTypeName: "Text",
   });
@@ -66,7 +65,7 @@ export const pageSearchResultConnection: Resolver<
           operator: "or",
           presence: "must",
         },
-        // Only fetch entityes with the "Text" systemtype.
+        // Only fetch entities with the "Text" system type.
         // These will contain a "belongsToParent" property
         entityTypeId: {
           query: textType.entityId,
@@ -102,24 +101,30 @@ export const pageSearchResultConnection: Resolver<
 
   // @todo: filtering already happens in the search index, this filtering should be redundant.
   // it is used for type assertion only.
-  const textHits = hits.filter(
-    (hit): hit is TextSearchHit =>
-      hit.document.entityTypeId === textType.entityId,
-  );
-  const textMatches = textHits.map(
-    (it) =>
-      <PageSearchResult>{
-        score: it.score,
-        page: it.document.belongsToPage!,
-        block: undefined,
-        text: {
-          accountId: it.document.accountId,
-          entityId: it.document.entityId,
-          entityVersionId: it.document.entityTypeVersionId,
+  const textMatches = hits
+    .filter(
+      (hit): hit is TextSearchHit =>
+        hit.document.entityTypeId === textType.entityId,
+    )
+    .map(
+      (it) =>
+        <PageSearchResult>{
+          score: it.score,
+          page: it.document.belongsToPage!,
+          /**
+           * @todo: Currently we are not getting the (parent) block of a text system type in the search-loader
+           * This means that scrolling to a block after selecting a search hit is not possible even though
+           * the API implies it is. We will need to implement indexing of the "parent block" within the search-loader.
+           */
+          block: undefined,
+          text: {
+            accountId: it.document.accountId,
+            entityId: it.document.entityId,
+            entityVersionId: it.document.entityTypeVersionId,
+          },
+          content: it.document.fullTextSearch || "",
         },
-        content: it.document.fullTextSearch || "",
-      },
-  );
+    );
 
   textMatches.sort((matchA, matchB) => matchB.score - matchA.score);
 

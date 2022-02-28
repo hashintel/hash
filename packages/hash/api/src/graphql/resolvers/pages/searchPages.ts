@@ -1,6 +1,10 @@
 import { uniq } from "lodash";
 import { ApolloError, UserInputError } from "apollo-server-express";
-import { EntitiesDocument } from "@hashintel/hash-backend-utils/search/doc-types";
+import {
+  ENTITIES_SEARCH_FIELD,
+  ENTITIES_SEARCH_INDEX,
+  EntitiesDocument,
+} from "@hashintel/hash-backend-utils/search/doc-types";
 import { SearchHit } from "@hashintel/hash-backend-utils/search/adapter";
 
 import {
@@ -12,11 +16,6 @@ import { GraphQLContext } from "../../context";
 import { DBAdapter } from "../../../db";
 import { DbEntity } from "../../../db/adapter";
 import { intersection } from "../../../util";
-
-// The name of the search index containing entities and the document field to perform
-// the search on. See the README for the `search-loader` for more details.
-const ENTITIES_SEARCH_INDEX = "entities";
-const ENTITIES_SEARCH_FIELD = "fullTextSearch";
 
 type TextSearchHit = Omit<SearchHit, "document"> & {
   document: EntitiesDocument;
@@ -34,7 +33,7 @@ const getEntityRef = (entity: {
   };
 };
 
-export const getPagesLinkingToTextEntities = async (
+const getPagesLinkingToTextEntities = async (
   textSearchHits: TextSearchHit[],
   db: DBAdapter,
 ) => {
@@ -187,9 +186,6 @@ export const searchPages: Resolver<
         query,
         // https://www.elastic.co/guide/en/elasticsearch/reference/current/common-options.html#fuzziness
         fuzziness: "AUTO",
-        // Match any word in the phrase. We could use the "query_string" search
-        // method to expose custom query logic to the client. For example:
-        // "((new york) AND (city)) OR (the big apple)". For more see:
         operator: "and",
       },
     },

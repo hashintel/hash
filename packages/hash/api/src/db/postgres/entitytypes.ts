@@ -163,13 +163,13 @@ export const getEntityType = async (
     entityVersionId: string;
   },
   lock: boolean = false,
-): Promise<EntityType | undefined> => {
+): Promise<EntityType | null> => {
   const query = lock
     ? sql`${selectEntityTypeVersion(params)} for update`
     : selectEntityTypeVersion(params);
 
   const row = await conn.maybeOne<EntityTypePGRow>(query);
-  return row ? mapPGRowToEntityType(row) : undefined;
+  return row ? mapPGRowToEntityType(row) : null;
 };
 
 /** Get an entityType by componentId

@@ -8,12 +8,10 @@ import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
 import { GracefulShutdown } from "@hashintel/hash-backend-utils/shutdown";
 import { PostgresAdapter } from "@hashintel/hash-api/src/db";
 import { OpenSearch } from "@hashintel/hash-backend-utils/search/opensearch";
+import { ENTITIES_SEARCH_INDEX } from "@hashintel/hash-backend-utils/search/doc-types";
 
 import { logger, INSTANCE_ID } from "./config";
-import { SearchLoader } from "./search-loader";
-
-// The name of the search index for entities.
-const ENTITIES_INDEX = "entities";
+import { SearchLoader } from "./searchLoader";
 
 const OPENSEARCH_ENABLED = process.env.HASH_OPENSEARCH_ENABLED === "true";
 if (!OPENSEARCH_ENABLED) {
@@ -138,11 +136,11 @@ const main = async () => {
   shutdown.addCleanup("OpenSearch", async () => search.close());
 
   // Create the `ENTITIES_INDEX` search index if it does not already exist.
-  if (!(await search.indexExists({ index: ENTITIES_INDEX }))) {
-    await search.createIndex({ index: ENTITIES_INDEX });
-    logger.info(`Created search index "${ENTITIES_INDEX}"`);
+  if (!(await search.indexExists({ index: ENTITIES_SEARCH_INDEX }))) {
+    await search.createIndex({ index: ENTITIES_SEARCH_INDEX });
+    logger.info(`Created search index "${ENTITIES_SEARCH_INDEX}"`);
   } else {
-    logger.info(`Search index "${ENTITIES_INDEX}" already exists`);
+    logger.info(`Search index "${ENTITIES_SEARCH_INDEX}" already exists`);
   }
 
   // Acquire read ownership on the queue
@@ -179,7 +177,7 @@ const main = async () => {
     db,
     search,
     queueConsumer,
-    searchEntititesIndex: ENTITIES_INDEX,
+    searchEntititesIndex: ENTITIES_SEARCH_INDEX,
     searchQueueName: SEARCH_QUEUE_NAME,
     systemAccountId,
     statsd,

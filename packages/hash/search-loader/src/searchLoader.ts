@@ -2,13 +2,17 @@ import { StatsD } from "hot-shots";
 
 import { QueueExclusiveConsumer } from "@hashintel/hash-backend-utils/queue/adapter";
 import { SearchAdapter } from "@hashintel/hash-backend-utils/search/adapter";
-import { EntitiesDocument } from "@hashintel/hash-backend-utils/search/doc-types";
+import {
+  EntitiesDocument,
+  ENTITIES_SEARCH_FIELD,
+} from "@hashintel/hash-backend-utils/search/doc-types";
 import { EntityVersion } from "@hashintel/hash-backend-utils/pgTables";
 import { Wal2JsonMsg } from "@hashintel/hash-backend-utils/wal2json";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import { DBAdapter } from "@hashintel/hash-api/src/db";
-import { EntityType } from "@hashintel/hash-api/src/model";
+import { Entity, EntityType } from "@hashintel/hash-api/src/model";
 import { sleep } from "@hashintel/hash-shared/sleep";
+import { SystemType } from "@hashintel/hash-api/src/types/entityTypes";
 
 import { logger } from "./config";
 
@@ -143,9 +147,10 @@ export class SearchLoader {
         entityType.accountId === this.systemAccountId &&
         entityType.metadata.name === "Text"
       ) {
-        indexedEntity.fullTextSearch = textEntityPropertiesToFTS(
+        indexedEntity[ENTITIES_SEARCH_FIELD] = textEntityPropertiesToFTS(
           entity.properties,
         );
+        // @todo this should be done through a model class instead of explicitly through the DB adapter.
         const grandparents = await this.db.getAncestorReferences({
           accountId: entity.accountId,
           entityId: entity.entityId,
@@ -153,10 +158,19 @@ export class SearchLoader {
         });
         // @todo: Do we handle text blocks that have multiple grandparent pages?
         if (grandparents.length === 1) {
-          const grandparentLatestEntity = await this.db.getEntityLatestVersion({
-            ...grandparents[0],
-          });
-          if (grandparentLatestEntity) {
+          const grandparentLatestEntity = await Entity.getEntityLatestVersion(
+            this.db,
+            {
+              ...grandparents[0],
+            },
+          );
+          const pageSystemTypeName: SystemType = "Page";
+
+          if (
+            grandparentLatestEntity &&
+            grandparentLatestEntity.entityType.metadata.name ===
+              pageSystemTypeName
+          ) {
             indexedEntity.belongsToPage = {
               entityId: grandparentLatestEntity.entityId,
               entityVersionId: grandparentLatestEntity.entityVersionId,
@@ -168,7 +182,7 @@ export class SearchLoader {
         entityType.accountId === this.systemAccountId &&
         entityType.metadata.name === "Page"
       ) {
-        indexedEntity.fullTextSearch = entity.properties.title;
+        indexedEntity[ENTITIES_SEARCH_FIELD] = entity.properties.title;
       } else {
         // @todo: we're only considering Text and Page entities for full text search at
         // the moment. Return here when we figure out how to deal with text search on
