@@ -52,33 +52,39 @@
     return copy;
   };
 
-  // Workaround for regression tested at `units::state::multi_fixed_size`: Fixed size lists are not filled if set to
-  // `null`
-  //
+  /**
+   * Recursively fills `vector` with an array of `null`s if `field_type` is a fixed-size-list. Returns an array of
+   * `null`s, if `vector === null` or returns a resized `vector` filled with `null`.
+   *
+   * This is used for a workaround for `tests::units::state::nullable_fixed_size_list` as fixed-size-lists does not
+   * contain an offset buffer, so the offset is calculated by the index and the size of the child type. Currently, our
+   * arrow code does not fill the child array with values to make the offset to be calculated correctly. This is wrong
+   * behavior and needs to be fixed ASAP.
+   */
   // TODO: child-data for fixed-size-lists needs `vector.type.listSize` elements. This wrongly sets a `null` fixed-size-
-  //   list to `[null, null, ..., null]` to ensure this, but this behavior is wrong.
+  //   list to `[null, null, ..., null]` to ensure this, but this behavior is wrong and this function needs to be
+  //   removed.
   //   see https://app.asana.com/0/0/1201893568192898/f
   //   see batch.js:array_data_from_col
-  //
-  // If `listSize` is set, we have a fixed size list. As we don't have offsets, the value must be set for `listSize`
-  // elements per field. If we have a `null` value, it gets replaced with `[null, null, ..., null]`.
-  const _fill_vector_for_fixed_size_list = (init, vector) => {
-    const size = vector.type.listSize;
-    if (init === null) {
-      if (vector.type.children[0].type.listSize) {
-        // Recursive fixed size list
-        return new Array(size).fill(
-          _fill_vector_for_fixed_size_list(null, vector.type.children[0]),
-        );
-      } else {
-        return new Array(size);
-      }
+  const _null_workaround_for_fixed_size_list = (vector, field_type) => {
+    // TODO: Don't use duck-typing for determine `vector`s type
+    if (!field_type.listSize) {
+      // `vector` is not a fixed-size-list
+      return vector;
+    }
+
+    // `vector` is not a fixed-size-list
+    const size = field_type.listSize;
+
+    if (vector === null) {
+      return Array(size).fill(
+        _null_workaround_for_fixed_size_list(null, field_type.children[0].type),
+      );
     } else {
-      // resize to `listSize`
-      while (init.length < size) {
-        init.push(null);
+      while (vector.length < size) {
+        vector.push(null);
       }
-      return init;
+      return vector;
     }
   };
 
@@ -88,11 +94,6 @@
     const shallow = [];
     for (var i = 0; i < vector.length; ++i) {
       shallow[i] = vector.get(i);
-
-      if (vector.type.listSize) {
-        // fixed_size_list
-        shallow[i] = _fill_vector_for_fixed_size_list(shallow[i], vector);
-      }
     }
     return shallow;
   };
@@ -111,11 +112,10 @@
     for (var j = 0; j < children.length; ++j) {
       const child = children[j];
       const name = child.name;
-      obj[name] = _vector_to_array(struct[name]);
-      if (child.type.listSize) {
-        // fixed-size-list
-        obj[name] = _fill_vector_for_fixed_size_list(obj[name], child);
-      }
+      obj[name] = _null_workaround_for_fixed_size_list(
+        _vector_to_array(struct[name]),
+        child.type,
+      );
     }
     return obj;
   };
@@ -146,11 +146,10 @@
         // Primitive (strings, numbers) or list
         // `!!field.type.listSize` --> fixed-size list.
         for (var i = 0; i < shallow.length; ++i) {
-          deep[i] = _vector_to_array(shallow[i]);
-          if (vector.type.listSize) {
-            // fixed-size-list
-            deep[i] = _fill_vector_for_fixed_size_list(deep[i], vector);
-          }
+          deep[i] = _null_workaround_for_fixed_size_list(
+            _vector_to_array(shallow[i]),
+            vector.type,
+          );
         }
       } else {
         // Struct array (we don't use Arrow's union arrays)
