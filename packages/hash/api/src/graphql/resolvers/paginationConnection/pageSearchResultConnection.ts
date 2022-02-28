@@ -125,9 +125,8 @@ export const pageSearchResultConnection: Resolver<
           },
           content: it.document.fullTextSearch || "",
         },
-    );
-
-  textMatches.sort((matchA, matchB) => matchB.score - matchA.score);
+    )
+    .sort((matchA, matchB) => matchB.score - matchA.score);
 
   // @todo: check for matches on Page titles.
 

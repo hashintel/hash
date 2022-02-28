@@ -10,9 +10,9 @@ import { EntityVersion } from "@hashintel/hash-backend-utils/pgTables";
 import { Wal2JsonMsg } from "@hashintel/hash-backend-utils/wal2json";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
 import { DBAdapter } from "@hashintel/hash-api/src/db";
-import { Entity, EntityType } from "@hashintel/hash-api/src/model";
+import { Entity, EntityType, Page } from "@hashintel/hash-api/src/model";
+import { EntityType as DbEntityType } from "@hashintel/hash-api/src/db/adapter";
 import { sleep } from "@hashintel/hash-shared/sleep";
-import { SystemType } from "@hashintel/hash-api/src/types/entityTypes";
 
 import { logger } from "./config";
 
@@ -81,6 +81,14 @@ export class SearchLoader {
     this.searchQueueName = searchQueueName;
     this.statsd = statsd;
     this.systemAccountId = systemAccountId;
+  }
+
+  private _pageEntitySystemType: DbEntityType | null = null;
+  async pageEntitySystemType() {
+    if (!this._pageEntitySystemType) {
+      this._pageEntitySystemType = await Page.getEntityType(this.db);
+    }
+    return this._pageEntitySystemType;
   }
 
   /** Start the loader process which reads messages from the ingestion queue and
@@ -164,12 +172,11 @@ export class SearchLoader {
               ...grandparents[0],
             },
           );
-          const pageSystemTypeName: SystemType = "Page";
 
           if (
             grandparentLatestEntity &&
-            grandparentLatestEntity.entityType.metadata.name ===
-              pageSystemTypeName
+            grandparentLatestEntity.entityType.entityId ===
+              (await this.pageEntitySystemType()).entityId
           ) {
             indexedEntity.belongsToPage = {
               entityId: grandparentLatestEntity.entityId,

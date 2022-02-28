@@ -279,11 +279,9 @@ export class PostgresClient implements DBClient {
   async getEntityType(
     params: Parameters<DBClient["getEntityType"]>[0],
   ): ReturnType<DBClient["getEntityType"]> {
-    return (
-      (await getEntityType(this.conn, {
-        entityVersionId: params.entityTypeVersionId,
-      })) || null
-    );
+    return await getEntityType(this.conn, {
+      entityVersionId: params.entityTypeVersionId,
+    });
   }
 
   async getEntityTypeLatestVersion(params: {
