@@ -53,8 +53,11 @@ impl CreateRemovePlanner {
             })
             .collect::<Result<_>>()?;
 
-        let distribution =
-            BatchDistribution::new(self.config.exp.worker_pool.num_workers, pending_batches);
+        let distribution = BatchDistribution::new(
+            self.config.exp.worker_pool.num_workers,
+            pending_batches,
+            self.config.exp.target_max_group_size,
+        );
 
         Ok(PendingPlan { distribution })
     }

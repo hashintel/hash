@@ -154,6 +154,7 @@ pub fn dummy_sim_run_config() -> SimRunConfig {
             output: Vec::new(),
         }),
         run: Arc::new(base.into()),
+        target_max_group_size: 100_000,
         worker_pool: Arc::new(WorkerPoolConfig {
             worker_base_config: Default::default(),
             num_workers: 0,
