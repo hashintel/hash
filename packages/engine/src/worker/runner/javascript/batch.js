@@ -173,11 +173,9 @@
     // TODO: Is there a way to add the whole column all at once to `builder`?
     try {
       for (var i_agent = 0; i_agent < col.length; ++i_agent) {
-        if (col[i_agent] === null && field_type.listSize) {
-          // null fixed-size-list
-          // TODO: child-data must contain `field_type.listSize` elements
-          //   see https://app.asana.com/0/0/1201893568192898/f
-        }
+        // TODO: If `field_type` is a fixed-size-list and `col[i_agent === null]` child-data must contain
+        //   `field_type.listSize` elements
+        //   see https://app.asana.com/0/0/1201893568192898/f
         builder.append(col[i_agent]);
       }
     } catch (e) {
