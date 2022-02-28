@@ -52,12 +52,47 @@
     return copy;
   };
 
+  // Workaround for regression tested at `units::state::multi_fixed_size`: Fixed size lists are not filled if set to
+  // `null`
+  //
+  // TODO: child-data for fixed-size-lists needs `vector.type.listSize` elements. This wrongly sets a `null` fixed-size-
+  //   list to `[null, null, ..., null]` to ensure this, but this behavior is wrong.
+  //   see https://app.asana.com/0/0/1201893568192898/f
+  //   see batch.js:array_data_from_col
+  //
+  // If `listSize` is set, we have a fixed size list. As we don't have offsets, the value must be set for `listSize`
+  // elements per field. If we have a `null` value, it gets replaced with `[null, null, ..., null]`.
+  const _fill_vector_for_fixed_size_list = (init, vector) => {
+    const size = vector.type.listSize;
+    if (init === null) {
+      if (vector.type.children[0].type.listSize) {
+        // Recursive fixed size list
+        return new Array(size).fill(
+          _fill_vector_for_fixed_size_list(null, vector.type.children[0]),
+        );
+      } else {
+        return new Array(size);
+      }
+    } else {
+      // resize to `listSize`
+      while (init.length < size) {
+        init.push(null);
+      }
+      return init;
+    }
+  };
+
   /// NB: If input is an `any`-type column, will return an array of strings (containing JSON).
   const load_shallow = (vector) => {
     // `vector.toArray` returns array-like (in some cases? TODO), not actual array.
     const shallow = [];
     for (var i = 0; i < vector.length; ++i) {
       shallow[i] = vector.get(i);
+
+      if (vector.type.listSize) {
+        // fixed_size_list
+        shallow[i] = _fill_vector_for_fixed_size_list(shallow[i], vector);
+      }
     }
     return shallow;
   };
@@ -77,6 +112,10 @@
       const child = children[j];
       const name = child.name;
       obj[name] = _vector_to_array(struct[name]);
+      if (child.type.listSize) {
+        // fixed-size-list
+        obj[name] = _fill_vector_for_fixed_size_list(obj[name], child);
+      }
     }
     return obj;
   };
@@ -108,6 +147,10 @@
         // `!!field.type.listSize` --> fixed-size list.
         for (var i = 0; i < shallow.length; ++i) {
           deep[i] = _vector_to_array(shallow[i]);
+          if (vector.type.listSize) {
+            // fixed-size-list
+            deep[i] = _fill_vector_for_fixed_size_list(deep[i], vector);
+          }
         }
       } else {
         // Struct array (we don't use Arrow's union arrays)
