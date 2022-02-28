@@ -41,6 +41,7 @@ declare module "@mui/material/styles" {
     80: string;
     90: string;
     100: string;
+    gradient: string;
   }
   interface Palette {
     gray: PaletteValue;
@@ -71,6 +72,9 @@ declare module "@mui/material/styles" {
     smallTextParagraphs: React.CSSProperties;
     smallTextLabels: React.CSSProperties;
     microText: React.CSSProperties;
+    smallCopy: React.CSSProperties;
+    smallSecondaryCopy: React.CSSProperties;
+    microCopy: React.CSSProperties;
   }
 
   interface TypographyVariantsOptions {
@@ -88,6 +92,9 @@ declare module "@mui/material/styles" {
     smallTextParagraphs?: React.CSSProperties;
     smallTextLabels?: React.CSSProperties;
     microText?: React.CSSProperties;
+    smallCopy: React.CSSProperties;
+    smallSecondaryCopy: React.CSSProperties;
+    microCopy: React.CSSProperties;
   }
 }
 
@@ -107,6 +114,9 @@ declare module "@mui/material/Typography" {
     smallTextParagraphs: true;
     smallTextLabels: true;
     microText: true;
+    smallCopy: true;
+    smallSecondaryCopy: true;
+    microCopy: true;
     // disable unused defaults
     h6: false;
     subtitle1: false;
@@ -117,6 +127,38 @@ declare module "@mui/material/Typography" {
     button: false;
     overline: false;
   }
+}
+
+declare module "@mui/material/Button" {
+  interface ButtonPropsVariantOverrides {
+    transparent: true;
+    primary: true;
+    secondary: true;
+    tertiary: true;
+    tertiary_quiet: true;
+    icon: true;
+    // Disable defaults
+    contained: false;
+    outlined: false;
+    text: false;
+  }
+
+  interface ButtonPropsColorOverrides {
+    purple: true;
+    teal: true;
+    warning: true;
+    danger: true;
+    gray: true;
+    // Disable defaults
+    primary: false;
+    secondary: false;
+    success: false;
+    error: false;
+    info: false;
+    warning: false;
+  }
+
+  interface ButtonPropsSizeOverrides {}
 }
 
 // eslint-disable-next-line import/no-default-export -- @see https://github.com/mui-org/material-ui/issues/28244

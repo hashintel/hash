@@ -9,4 +9,5 @@ export { default as PictureIcon } from "../../assets/svg/picture.svg";
 export { default as SpinnerIcon } from "../../assets/svg/spinner.svg";
 export { default as HashIcon } from "../../assets/svg/hash.svg";
 export { default as SearchIcon } from "../../assets/svg/lightbulb-on.svg";
+export { default as HashNavIcon } from "../../assets/svg/hash-nav.svg";
 export * from "./FontAwesomeSvgIcon";

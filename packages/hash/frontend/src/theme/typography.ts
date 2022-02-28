@@ -1,4 +1,5 @@
 import { ThemeOptions } from "@mui/material";
+import { customColors } from "./palette";
 
 const fallbackFonts = [`"Helvetica"`, `"Arial"`, "sans-serif"];
 
@@ -75,6 +76,24 @@ export const typography: ThemeOptions["typography"] = {
     fontSize: "var(--step--1)",
     fontWeight: 400,
     lineHeight: "24px",
+  },
+  smallCopy: {
+    fontWeight: 500,
+    fontSize: "var(--step--1)",
+    lineHeight: 1.5,
+    color: customColors.gray["80"],
+  },
+  smallSecondaryCopy: {
+    fontWeight: 500,
+    fontSize: "var(--step--1)",
+    lineHeight: 1.5,
+    color: customColors.gray["50"],
+  },
+  microCopy: {
+    fontWeight: 500,
+    fontSize: "var(--step--2)",
+    lineHeight: 1.1,
+    color: customColors.gray["80"],
   },
   smallTextParagraphs: {
     fontSize: "var(--step--1)",

@@ -35,6 +35,8 @@ export const customColors = {
     80: "#5532C3",
     90: "#4625AA",
     100: "#3A2084",
+    gradient:
+      "linear-gradient(82.89deg, #9E56FA 5.64%, #644CFF 78.19%, #0070F4 121.05%)",
   },
   red: {
     10: "#FFF5F7",

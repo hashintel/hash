@@ -1,4 +1,5 @@
 import { ThemeOptions } from "@mui/material";
+import { MuiButtonThemeOptions } from "./inputs/MuiButtonThemeOptions";
 
 import { MuiCssBaselineThemeOptions } from "./utils/MuiCssBaselineThemeOptions";
 
@@ -11,5 +12,6 @@ export const components: ThemeOptions["components"] = {
   /** ===== LAYOUT ===== */
   /** ===== UTILS ===== */
   MuiCssBaseline: MuiCssBaselineThemeOptions,
+  MuiButton: MuiButtonThemeOptions,
   /** ===== DATA GRID ===== */
 };

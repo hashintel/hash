@@ -1,0 +1,145 @@
+import { useState, useRef } from "react";
+import { faBell, faPlus } from "@fortawesome/free-solid-svg-icons";
+import {
+  Box,
+  Button,
+  ListItemButton,
+  Typography,
+  useTheme,
+} from "@mui/material";
+
+import { FontAwesomeSvgIcon } from "../../icons";
+import { Popover } from "../../Popover";
+import { Link } from "../../Link";
+
+export const NotificationsDropdown: React.FC = () => {
+  const theme = useTheme();
+
+  const buttonRef = useRef(null);
+
+  const [open, setOpen] = useState(false);
+  const [notificationsLength, setNotificationsLength] = useState(0);
+
+  const hasNotifications = !!notificationsLength;
+
+  const id = open ? "actions-popover" : undefined;
+
+  return (
+    <Box>
+      <Button
+        sx={{
+          mr: {
+            xs: 1,
+            md: 1.5,
+          },
+          width: hasNotifications ? "auto" : "32px",
+          px: hasNotifications ? 1.5 : "unset",
+          height: "32px",
+          borderRadius: hasNotifications ? 4 : "100%",
+          color: hasNotifications
+            ? theme.palette.common.white
+            : open
+            ? theme.palette.common.white
+            : theme.palette.gray[40],
+          backgroundColor: hasNotifications
+            ? theme.palette.blue["70"]
+            : open
+            ? theme.palette.blue["70"]
+            : theme.palette.gray[20],
+        }}
+        ref={buttonRef}
+        variant="icon"
+        onClick={() => setOpen(!open)}
+      >
+        <FontAwesomeSvgIcon icon={faBell} />
+        {hasNotifications && (
+          <Box component="span" ml={1}>
+            {notificationsLength}
+          </Box>
+        )}
+      </Button>
+
+      <Popover
+        id={id}
+        open={open}
+        anchorEl={buttonRef.current}
+        onClose={() => setOpen(false)}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "right",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "right",
+        }}
+        PaperProps={{
+          elevation: 4,
+          sx: {
+            width: 225,
+            borderRadius: "6px",
+            marginTop: 1,
+            border: `1px solid ${theme.palette.gray["20"]}`,
+          },
+        }}
+        sx={{
+          ".MuiListItemButton-root:hover": {
+            backgroundColor: theme.palette.blue["70"],
+            ".MuiTypography-smallCopy": {
+              color: theme.palette.common.white,
+            },
+            ".MuiTypography-smallSecondaryCopy": {
+              color: theme.palette.blue[30],
+            },
+          },
+        }}
+      >
+        <Box>
+          <Link noLinkStyle href="#" onClick={() => setOpen(false)}>
+            <ListItemButton
+              sx={{
+                padding: (theme) => theme.spacing(1, 2),
+                mx: 0.5,
+                mt: 0.5,
+                borderRadius: 1,
+                lineHeight: 1,
+                display: "flex",
+                justifyContent: "space-between",
+              }}
+            >
+              <Typography variant="smallCopy">Notification 1</Typography>
+            </ListItemButton>
+          </Link>
+          <Link noLinkStyle href="#" onClick={() => setOpen(false)}>
+            <ListItemButton
+              sx={{
+                padding: (theme) => theme.spacing(1, 2),
+                mx: 0.5,
+                borderRadius: 1,
+                lineHeight: 1,
+                display: "flex",
+                justifyContent: "space-between",
+              }}
+            >
+              <Typography variant="smallCopy">Notification 2</Typography>
+            </ListItemButton>
+          </Link>
+          <Link noLinkStyle href="#" onClick={() => setOpen(false)}>
+            <ListItemButton
+              sx={{
+                padding: (theme) => theme.spacing(1, 2),
+                mx: 0.5,
+                mb: 0.5,
+                borderRadius: 1,
+                lineHeight: 1,
+                display: "flex",
+                justifyContent: "space-between",
+              }}
+            >
+              <Typography variant="smallCopy">Notification 3</Typography>
+            </ListItemButton>
+          </Link>
+        </Box>
+      </Popover>
+    </Box>
+  );
+};

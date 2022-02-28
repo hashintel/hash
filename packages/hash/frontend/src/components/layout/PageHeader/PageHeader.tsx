@@ -1,25 +1,37 @@
-import Link from "next/link";
 import React from "react";
 import { useModal } from "react-modal-hook";
-import { tw } from "twind";
+import { Box, Button, useTheme } from "@mui/material";
+import { useRouter } from "next/router";
+import { faPlus } from "@fortawesome/free-solid-svg-icons";
 
-import { Button } from "../../forms/Button";
 import { useLogout } from "../../hooks/useLogout";
 import { useUser } from "../../hooks/useUser";
 import { LoginModal } from "../../Modals/AuthModal/LoginModal";
 import { AccountDropdown } from "./AccountDropdown";
 import { SearchBar } from "./SearchBar";
-import { SIDEBAR_WIDTH } from "../PageSidebar/PageSidebar";
+import { FontAwesomeSvgIcon, HashNavIcon } from "../../icons";
+import { Link } from "../../Link";
+import { ActionsDropdown } from "./ActionsDropdown";
+import { NotificationsDropdown } from "./NotificationsDropdown";
 
-interface NavProps {
-  tw?: string;
-}
-
-const Nav: React.FC<NavProps> = ({ tw: tw_, children }) => (
-  <nav className={tw`container mx-auto flex ${tw_}`}>{children}</nav>
+const Nav: React.FC = ({ children }) => (
+  <Box
+    component="nav"
+    sx={{
+      width: "100%",
+      display: "flex",
+      justifyContent: "space-between",
+      px: { xs: 2, md: 3 },
+    }}
+  >
+    {children}
+  </Box>
 );
 
 export const PageHeader: React.VFC = () => {
+  const theme = useTheme();
+  const router = useRouter();
+
   const { user, refetch } = useUser();
   const { logout } = useLogout();
 
@@ -35,25 +47,52 @@ export const PageHeader: React.VFC = () => {
   ));
 
   return (
-    <header
-      className={tw`bg-white h-16 flex items-center border(b-1 gray-300)`}
-      style={{ paddingLeft: SIDEBAR_WIDTH + 10 }}
+    <Box
+      component="header"
+      sx={{
+        background: theme.palette.common["white"],
+        borderBottom: `1px solid ${theme.palette.gray["30"]}`,
+        display: "flex",
+        alignItems: "center",
+        height: "4rem",
+      }}
     >
-      {user ? (
-        <Nav tw="justify-between">
-          <SearchBar />
-          <AccountDropdown name={user.properties.shortname!} logout={logout} />
-        </Nav>
-      ) : (
-        <Nav tw="justify-end">
-          <Link href="/signup">
-            <a className={tw`pb-0 border-b-0 hover:border-b-0`}>
-              <Button className="mr-3">Sign up</Button>
-            </a>
+      <Nav>
+        <Box sx={{ display: "flex", alignItems: "center" }}>
+          <Link noLinkStyle href={`/${user ? user.accountId : ""}`}>
+            <HashNavIcon />
           </Link>
-          <Button onClick={showLoginModal}>Sign in</Button>
-        </Nav>
-      )}
-    </header>
+        </Box>
+        {user ? (
+          <>
+            <SearchBar />
+
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <ActionsDropdown />
+              <NotificationsDropdown />
+              <AccountDropdown logout={logout} user={user!} />
+            </Box>
+          </>
+        ) : (
+          <Box>
+            <Button
+              variant="tertiary_quiet"
+              sx={{ mr: 1 }}
+              onClick={showLoginModal}
+            >
+              Log In
+            </Button>
+
+            <Button
+              size="small"
+              onClick={() => router.push("/signup")}
+              className="mr-3"
+            >
+              Sign up
+            </Button>
+          </Box>
+        )}
+      </Nav>
+    </Box>
   );
 };
