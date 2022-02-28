@@ -77,6 +77,7 @@ pub struct LocalCommand {
 }
 
 impl LocalCommand {
+    #[allow(clippy::too_many_arguments)]
     /// Creates a new [`LocalProcess`] with the provided parameters.
     pub fn new(
         experiment_id: ExperimentId,
