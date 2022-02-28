@@ -58,6 +58,7 @@ impl From<flatbuffers_gen::runner_warning_generated::RunnerWarning<'_>> for Runn
         }
     }
 }
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct UserError(pub String);
 
@@ -116,11 +117,17 @@ impl std::fmt::Display for PackageError {
 #[derive(Debug)]
 pub enum OutboundFromRunnerMsgPayload {
     TaskMsg(TargetedRunnerTaskMsg),
+    // TODO: UNUSED: Needs triage
     TaskCancelled(TaskId),
+    // TODO: UNUSED: Needs triage
     RunnerError(RunnerError),
+    // TODO: UNUSED: Needs triage
     RunnerErrors(Vec<RunnerError>),
+    // TODO: UNUSED: Needs triage
     RunnerWarning(RunnerError),
+    // TODO: UNUSED: Needs triage
     RunnerWarnings(Vec<RunnerError>),
+    // TODO: UNUSED: Needs triage
     RunnerLog(String),
     RunnerLogs(Vec<String>),
     PackageError(PackageError),
@@ -255,6 +262,7 @@ impl OutboundFromRunnerMsgPayload {
 
 #[derive(Debug)]
 pub struct OutboundFromRunnerMsg {
+    // TODO: UNUSED: Needs triage
     pub span: Span,
     pub source: Language,
     pub sim_id: SimulationShortId,

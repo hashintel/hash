@@ -29,6 +29,7 @@ pub struct PendingWorkerTask {
     /// A list of [`TaskMessage`]s sent by sub-tasks that have finished executing
     #[new(default)]
     pub final_task_messages: Vec<TaskMessage>,
+    // TODO: UNUSED: Needs triage
     #[new(default)]
     pub cancelling: CancelState,
 }

@@ -48,6 +48,7 @@ pub struct PartialStateReadProxy {
 pub enum SharedState {
     Partial(PartialSharedState),
     Write(StateWriteProxy),
+    // TODO: UNUSED: Needs triage
     Read(StateReadProxy),
     None,
 }
@@ -84,6 +85,7 @@ impl TaskSharedStoreBuilder {
         self.inner
     }
 
+    // TODO: UNUSED: Needs triage
     pub fn partial_write_state(
         mut self,
         state_pools: &mut StatePools,
@@ -95,6 +97,7 @@ impl TaskSharedStoreBuilder {
         Ok(self)
     }
 
+    // TODO: UNUSED: Needs triage
     pub fn partial_read_state(
         mut self,
         state_pools: &StatePools,
@@ -106,6 +109,7 @@ impl TaskSharedStoreBuilder {
     }
 
     /// Allow the task runners to have read access to all of agent state
+    // TODO: UNUSED: Needs triage
     pub fn read_state(mut self, state_proxy: StateReadProxy) -> Result<Self> {
         self.inner.state = SharedState::Read(state_proxy);
         Ok(self)
@@ -136,6 +140,7 @@ pub enum PartialSharedState {
 }
 
 impl PartialSharedState {
+    // TODO: UNUSED: Needs triage
     fn new_read(state: &StatePools, group_indices: Vec<usize>) -> Result<PartialSharedState> {
         let state_proxy = StateReadProxy::new_partial(state, &group_indices)?;
         Ok(PartialSharedState::Read(PartialStateReadProxy {
@@ -144,6 +149,7 @@ impl PartialSharedState {
         }))
     }
 
+    // TODO: UNUSED: Needs triage
     fn new_write(state: &mut StatePools, group_indices: Vec<usize>) -> Result<PartialSharedState> {
         let state_proxy = StateWriteProxy::new_partial(state, &group_indices)?;
         Ok(PartialSharedState::Write(PartialStateWriteProxy {
