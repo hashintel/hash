@@ -52,12 +52,7 @@ pub struct Args {
     pub log_folder: PathBuf,
 
     /// The size at which the engine aims to split a group of agents
-    #[clap(
-        global = true,
-        long,
-        default_value = "100000",
-        env = "ENGINE_TARGET_MAX_GROUP_SIZE"
-    )]
+    #[clap(long, default_value = "100000", env = "ENGINE_TARGET_MAX_GROUP_SIZE")]
     pub target_max_group_size: usize,
 }
 

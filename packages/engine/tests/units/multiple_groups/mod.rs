@@ -5,14 +5,12 @@ use crate::experiment::run_test_suite;
 #[tokio::test]
 #[ignore]
 async fn sugarscape() {
-    let project_path = dbg!(
-        std::path::Path::new(file!())
-            .parent()
-            .unwrap()
-            .join("sugarscape")
-    )
-    .canonicalize()
-    .unwrap();
+    let project_path = std::path::Path::new(file!())
+        .parent()
+        .unwrap()
+        .join("sugarscape")
+        .canonicalize()
+        .unwrap();
 
-    run_test_suite(project_path, "sugarscape", None, None, Some(500)).await
+    run_test_suite(project_path, module_path!(), None, None, Some(500)).await
 }

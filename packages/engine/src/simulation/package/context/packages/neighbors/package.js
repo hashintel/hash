@@ -49,15 +49,24 @@ const gen_to_json = (agent_schema) => {
 
 // Neighbors getter for the AgentContext (`agent_context.neighbors`)
 const gen_neighbor_getter = (Neighbor) => {
-  return (agent_context, neighbors_col) => {
+  /**
+   * A `getter` function for accessing a specific agent's neighbors.
+   * @param {AgentContext} agent_context - The view of the context for a specific agent
+   * TODO: type for neighbors_row
+   * @param neighbors_row - The 'row' of the neighbors column for the specific agent, i.e. all neighbors of the
+   * respective agent of the agent_context
+   */
+  return (agent_context, neighbors_row) => {
     const neighbors = [];
     const snapshot = agent_context.state_snapshot;
-    for (var i_neighbor = 0; i_neighbor < neighbors_col.length; ++i_neighbor) {
+    for (var i_neighbor = 0; i_neighbor < neighbors_row.length; ++i_neighbor) {
       neighbors[i_neighbor] = new Neighbor(
         snapshot,
-        // TODO: this should probably use the _HIDDEN_0_PREVIOUS_INDEX column
+        // TODO: this is wrong. It needs to use the result of `neighbors_row.get(i_neighbor)` to then look-up the
+        //  _HIDDEN_0_PREVIOUS_INDEX of the neighbor itself.
+        //  https://app.asana.com/0/1199548034582004/1201878208296266/f
         agent_context.__prev_loc,
-        neighbors_col.get(i_neighbor),
+        neighbors_row.get(i_neighbor), // this returns an index into the snapshot
       );
     }
     return neighbors;

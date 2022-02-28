@@ -15,25 +15,9 @@ function behavior(state, context) {
     return 0;
   }
 
-  if (context.step() === 2) {
-    throw new Error(
-      JSON.stringify(
-        context.neighbors().map((n) => [n.__loc, n._HIDDEN_0_previous_index]),
-      ),
-    );
-  }
-
-  const agents = context.neighbors().filter((n) => {
-    // if (context.step() === 2 && n === undefined) {
-    //   throw Error("WAT");
-    // }
-    // try {
-    return n.behaviors.includes("sugar_agent.js");
-    // }
-    // catch {
-    //   throw Error(JSON.stringify(n))
-    // }
-  });
+  const agents = context
+    .neighbors()
+    .filter((n) => n.behaviors.includes("sugar_agent.js"));
 
   const sugar_array = agents
     .map((a) => a.sugar)
