@@ -11,7 +11,7 @@ default-members = [".", "bin/*", "lib/*"]
 flatbuffers_gen = { path = "lib/flatbuffers_gen" }
 
 arr_macro = "0.1.3"
-arrow = { version = "9.0.2", default-features = false, features = ["ipc"] }
+arrow = { version = "9.1.0", default-features = false, features = ["ipc"] }
 async-trait = "0.1.48"
 clap = { version = "3.0.0", features = ["cargo", "derive", "env"] }
 csv = "1.1.5"
