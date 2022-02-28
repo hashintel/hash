@@ -1,4 +1,5 @@
 #![allow(clippy::unsafe_derive_deserialize)]
+
 use std::ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Sub, SubAssign};
 
 use serde::{Deserialize, Serialize};
@@ -23,48 +24,58 @@ pub struct Vec3(
 );
 
 impl Vec3 {
+    // TODO: UNUSED: Needs triage
     #[must_use]
     pub fn origin() -> Self {
         Self(0.0, 0.0, 0.0)
     }
 
+    // TODO: UNUSED: Needs triage
     #[must_use]
     pub fn x(&self) -> f64 {
         self.0
     }
 
+    // TODO: UNUSED: Needs triage
     #[must_use]
     pub fn y(&self) -> f64 {
         self.1
     }
 
+    // TODO: UNUSED: Needs triage
     #[must_use]
     pub fn z(&self) -> f64 {
         self.2
     }
 
+    // TODO: UNUSED: Needs triage
     pub fn x_mut(&mut self) -> &mut f64 {
         &mut self.0
     }
 
+    // TODO: UNUSED: Needs triage
     pub fn y_mut(&mut self) -> &mut f64 {
         &mut self.1
     }
 
+    // TODO: UNUSED: Needs triage
     pub fn z_mut(&mut self) -> &mut f64 {
         &mut self.2
     }
 
+    // TODO: UNUSED: Needs triage
     #[must_use]
     pub fn dot(self, vec: Vec3) -> f64 {
         self.0 * vec.0 + self.1 * vec.1 + self.2 * vec.2
     }
 
+    // TODO: UNUSED: Needs triage
     #[must_use]
     pub fn magnitude(self) -> f64 {
         self.dot(self).sqrt()
     }
 
+    // TODO: UNUSED: Needs triage
     #[must_use]
     pub fn norm(self) -> Vec3 {
         self / self.magnitude()
@@ -77,6 +88,7 @@ impl Vec3 {
     }
 
     // TODO: I'm not sure if we want truncation vs rounding, so I'm marking this as allowed.
+    // TODO: UNUSED: Needs triage
     #[allow(clippy::cast_possible_truncation)]
     #[must_use]
     pub fn to_grid(&self) -> [i64; 3] {

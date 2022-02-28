@@ -75,6 +75,7 @@ impl MessageMap {
         self.inner.get(recipient).map(Deref::deref).unwrap_or(&[])
     }
 
+    // TODO: UNUSED: Needs triage
     pub fn get_types<'a: 'b, 'b>(
         &'b self,
         recipient: &str,
@@ -85,6 +86,7 @@ impl MessageMap {
         Ok(types)
     }
 
+    // TODO: UNUSED: Needs triage
     pub fn get_datas<'a: 'b, 'b>(
         &'b self,
         recipient: &str,
@@ -95,6 +97,7 @@ impl MessageMap {
         Ok(datas)
     }
 
+    // TODO: UNUSED: Needs triage
     pub fn get_froms<'a: 'b, 'b>(
         &'b self,
         recipient: &str,

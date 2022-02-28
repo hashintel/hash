@@ -6,6 +6,7 @@ use super::prelude::*;
 
 pub const CONTINUATION: usize = 8;
 
+// TODO: UNUSED: Needs triage
 #[must_use]
 pub fn buffer_mut_without_continuation(buf: &mut [u8]) -> &mut [u8] {
     &mut buf[CONTINUATION..]
@@ -50,6 +51,7 @@ impl AsRef<[u8]> for FlatBufferWrapper<'_> {
     }
 }
 
+// TODO: UNUSED: Needs triage
 pub fn bool_to_arrow(data: &[bool]) -> Arc<array::ArrayData> {
     let num_byte = arrow_bit_util::ceil(data.len(), 8);
     let mut mut_buf = ArrowMutableBuffer::new(num_byte).with_bitset(num_byte, false);
@@ -67,6 +69,7 @@ pub fn bool_to_arrow(data: &[bool]) -> Arc<array::ArrayData> {
         .build()
 }
 
+// TODO: UNUSED: Needs triage
 pub fn opt_bool_to_arrow(data: &[Option<bool>]) -> Arc<array::ArrayData> {
     let num_byte = arrow_bit_util::ceil(data.len(), 8);
     let mut nulls = ArrowMutableBuffer::new(num_byte).with_bitset(num_byte, false);
@@ -94,6 +97,7 @@ pub fn opt_bool_to_arrow(data: &[Option<bool>]) -> Arc<array::ArrayData> {
         .build()
 }
 
+// TODO: UNUSED: Needs triage
 pub fn get_bit(buffer: &[u8], i: usize) -> bool {
     arrow_bit_util::get_bit(buffer, i)
 }
