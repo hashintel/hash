@@ -73,7 +73,6 @@
       return vector;
     }
 
-    // `vector` is not a fixed-size-list
     const size = field_type.listSize;
 
     if (vector === null) {
