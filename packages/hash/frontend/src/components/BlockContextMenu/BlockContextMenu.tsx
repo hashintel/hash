@@ -35,22 +35,22 @@ const MENU_ITEMS: Array<MenuItemType> = [
   {
     key: "delete",
     title: "Delete",
-    icon: <DeleteIcon sx={iconStyles} />,
+    icon: <DeleteIcon className={iconStyles} />,
   },
   {
     key: "duplicate",
     title: "Duplicate",
-    icon: <CopyIcon sx={iconStyles} />,
+    icon: <CopyIcon className={iconStyles} />,
   },
   {
     key: "copyLink",
     title: "Copy Link",
-    icon: <LinkIcon sx={iconStyles} />,
+    icon: <LinkIcon className={iconStyles} />,
   },
   {
     key: "switchBlock",
     title: "Turn into",
-    icon: <LoopIcon sx={iconStyles} />,
+    icon: <LoopIcon className={iconStyles} />,
   },
 ];
 
