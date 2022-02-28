@@ -167,6 +167,10 @@
             "name": "prosemirror-model",
             "importNames": ["Node"],
             "message": "Please import ProsemirrorNode instead"
+          },
+          {
+            "name": "@material-ui/core",
+            "message": "Please import from '@mui/material' instead"
           }
         ]
       }

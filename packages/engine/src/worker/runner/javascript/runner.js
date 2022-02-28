@@ -1,3 +1,5 @@
+// noinspection BadExpressionStatementJS
+
 (
   arrow,
   Batches,
@@ -110,14 +112,12 @@
 
       state: [],
 
-      /// Context loaders and getters are for columns in the context batch.
+      // Context loaders and getters are for columns in the context batch.
       context_loaders: {},
       context_getters: {},
 
-      /// State loaders and getters are for columns in state agent batches
-      /// (not message batches). Due to the possibility of dynamic access
-      /// to state, state objects need access to loaders, but context objects
-      /// don't.
+      // State loaders and getters are for columns in state agent batches (not message batches). Due to the
+      // possibility of dynamic access to state, state objects need access to loaders, but context objects don't.
       state_loaders: {},
       state_getters: {},
 
@@ -138,11 +138,30 @@
 
       const pkg_start_sim = pkg.start_sim;
       if (pkg_start_sim) {
-        const r = pkg_start_sim(pkg.experiment, pkg_sim, msg, init_ctx);
-        if (r && (pkg.type === "context" || pkg.type === "state")) {
+        // The return value of the `start_sim` method of the package.js impl
+        const pkg_loaders_and_getters = pkg_start_sim(
+          pkg.experiment,
+          pkg_sim,
+          msg,
+          init_ctx,
+        );
+        if (
+          pkg_loaders_and_getters &&
+          (pkg.type === "context" || pkg.type === "state")
+        ) {
           // Init and output packages can't specify loaders or getters.
-          maybe_add_custom_fns(sim[pkg.type + "_loaders"], r, "loaders", pkg);
-          maybe_add_custom_fns(sim[pkg.type + "_getters"], r, "getters", pkg);
+          maybe_add_custom_fns(
+            sim[pkg.type + "_loaders"],
+            pkg_loaders_and_getters,
+            "loaders",
+            pkg,
+          );
+          maybe_add_custom_fns(
+            sim[pkg.type + "_getters"],
+            pkg_loaders_and_getters,
+            "getters",
+            pkg,
+          );
         }
       }
     }
@@ -200,7 +219,11 @@
       }
     } catch (e) {
       return {
-        pkg_error: e.toString(),
+        // TODO: We should make a stack field on pkg_errors rather than just passing a string
+        pkg_error: `
+Error: ${e.toString()}
+Stack: ${JSON.stringify(e.stack)}
+`,
       };
     }
     return ret;

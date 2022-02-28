@@ -1,0 +1,21 @@
+{
+  "keys": {
+    "waiting": {
+      "nullable": true,
+      "type": "boolean"
+    },
+    "metabolism": {
+      "type": "any",
+      "nullable": true
+    },
+    "type": {
+      "nullable": true,
+      "type": "string"
+    },
+    "sugar": {
+      "nullable": true,
+      "type": "number"
+    }
+  },
+  "built_in_key_use": null
+}

@@ -1,8 +1,8 @@
 import React, { FormEvent, useRef, useState } from "react";
 import { tw } from "twind";
-import LanguageIcon from "@material-ui/icons/Language";
-import DeleteIcon from "@material-ui/icons/Delete";
-import LinkIcon from "@material-ui/icons/LinkOutlined";
+import LanguageIcon from "@mui/icons-material/Language";
+import DeleteIcon from "@mui/icons-material/Delete";
+import LinkIcon from "@mui/icons-material/LinkOutlined";
 import { isValidLink } from "./util";
 
 type LinkModalProps = {

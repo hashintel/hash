@@ -116,6 +116,7 @@ pub async fn run_test_suite(
     test_path: &'static str,
     language: Option<Language>,
     experiment: Option<&'static str>,
+    target_max_group_size: Option<usize>,
 ) {
     // If this is an Err then the logger has already been initialised in another thread which is
     // okay
@@ -207,6 +208,7 @@ pub async fn run_test_suite(
                     experiment_config,
                     language,
                     expected_outputs.len(),
+                    target_max_group_size,
                 )
                 .await;
 
@@ -290,6 +292,7 @@ pub async fn run_test<P: AsRef<Path>>(
     experiment_config: ExperimentConfig,
     language: Option<Language>,
     num_outputs_expected: usize,
+    target_max_group_size: Option<usize>,
 ) -> Result<TestOutput> {
     let project_path = project_path.as_ref();
 
@@ -321,7 +324,7 @@ pub async fn run_test<P: AsRef<Path>>(
 
     let now = Instant::now();
     experiment
-        .run(experiment_run, handler)
+        .run(experiment_run, handler, target_max_group_size)
         .await
         .wrap_err("Could not run experiment")?;
     let duration = now.elapsed();

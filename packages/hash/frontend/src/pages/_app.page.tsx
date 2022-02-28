@@ -10,6 +10,10 @@ import { ModalProvider } from "react-modal-hook";
 import { configureScope } from "@sentry/nextjs";
 import { AppProps } from "next/app";
 import { useRouter } from "next/router";
+import { CacheProvider, EmotionCache } from "@emotion/react";
+import CssBaseline from "@mui/material/CssBaseline";
+import { ThemeProvider } from "@mui/material/styles";
+import { theme, createEmotionCache } from "../theme";
 import { PageLayout } from "../components/layout/PageLayout/PageLayout";
 
 import twindConfig from "../../twind.config";
@@ -18,9 +22,16 @@ import { useUser } from "../components/hooks/useUser";
 
 export const apolloClient = createApolloClient();
 
-const MyApp: React.VoidFunctionComponent<AppProps> = ({
+const clientSideEmotionCache = createEmotionCache();
+
+type CustomAppProps = {
+  emotionCache?: EmotionCache;
+} & AppProps;
+
+const MyApp: React.VoidFunctionComponent<CustomAppProps> = ({
   Component,
   pageProps,
+  emotionCache = clientSideEmotionCache,
 }) => {
   const router = useRouter();
 
@@ -47,11 +58,16 @@ const MyApp: React.VoidFunctionComponent<AppProps> = ({
 
   return (
     <ApolloProvider client={apolloClient}>
-      <ModalProvider>
-        <PageLayout>
-          <Component {...pageProps} />
-        </PageLayout>
-      </ModalProvider>
+      <CacheProvider value={emotionCache}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <ModalProvider>
+            <PageLayout>
+              <Component {...pageProps} />
+            </PageLayout>
+          </ModalProvider>
+        </ThemeProvider>
+      </CacheProvider>
     </ApolloProvider>
   );
 };
