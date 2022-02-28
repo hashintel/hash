@@ -44,7 +44,7 @@ impl fmt::Debug for InboundToRunnerMsgPayload {
 }
 
 /// TODO: DOC
-// TODO: unused?
+// TODO: UNUSED: Needs triage
 pub struct InboundToRunnerMsg {
     pub sim_id: SimulationShortId,
     pub payload: InboundToRunnerMsgPayload,

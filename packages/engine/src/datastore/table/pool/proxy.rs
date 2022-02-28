@@ -101,7 +101,7 @@ impl<K: Batch> PoolWriteProxy<K> {
         self.len() == 0
     }
 
-    // TODO: unused?
+    // TODO: UNUSED: Needs triage
     pub fn batch(&self, index: usize) -> Option<&K> {
         self.batches.get(index).map(Deref::deref)
     }
@@ -128,7 +128,7 @@ impl<K: Batch> PoolWriteProxy<K> {
     }
 
     /// For each batch, downgrade write access to read access.
-    // TODO: unused?
+    // TODO: UNUSED: Needs triage
     pub fn downgrade(self) -> PoolReadProxy<K> {
         PoolReadProxy {
             batches: self

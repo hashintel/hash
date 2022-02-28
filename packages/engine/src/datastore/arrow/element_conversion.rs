@@ -13,7 +13,7 @@ use serde_json::value::Value;
 use super::{batch_conversion::col_to_json_vals, prelude::*};
 use crate::datastore::prelude::*;
 
-// TODO: unused?
+// TODO: UNUSED: Needs triage
 fn numeric_element_to_json_val<T: ArrowPrimitiveType + ArrowNumericType>(
     col: &ArrayRef,
     index: usize,
@@ -30,7 +30,7 @@ fn numeric_element_to_json_val<T: ArrowPrimitiveType + ArrowNumericType>(
     }
 }
 
-// TODO: unused?
+// TODO: UNUSED: Needs triage
 fn bool_element_to_json_val(col: &ArrayRef, index: usize) -> Result<Value> {
     let array = array::as_boolean_array(col);
     if !array.is_valid(index) {
@@ -41,7 +41,7 @@ fn bool_element_to_json_val(col: &ArrayRef, index: usize) -> Result<Value> {
     }
 }
 
-// TODO: unused?
+// TODO: UNUSED: Needs triage
 fn utf8_element_to_json_val(col: &ArrayRef, index: usize) -> Result<Value> {
     let array = array::as_string_array(col);
     if !array.is_valid(index) {
@@ -52,7 +52,7 @@ fn utf8_element_to_json_val(col: &ArrayRef, index: usize) -> Result<Value> {
     }
 }
 
-// TODO: unused?
+// TODO: UNUSED: Needs triage
 fn list_element_to_json_val(col: &ArrayRef, index: usize, inner_dt: &DataType) -> Result<Value> {
     let array =
         col.as_any()
@@ -69,7 +69,7 @@ fn list_element_to_json_val(col: &ArrayRef, index: usize, inner_dt: &DataType) -
     }
 }
 
-// TODO: unused?
+// TODO: UNUSED: Needs triage
 fn fixed_size_list_element_to_json_val(
     col: &ArrayRef,
     index: usize,
@@ -91,7 +91,7 @@ fn fixed_size_list_element_to_json_val(
     }
 }
 
-// TODO: unused?
+// TODO: UNUSED: Needs triage
 fn struct_element_to_json_val(
     col: &ArrayRef,
     index: usize,
@@ -122,7 +122,7 @@ fn struct_element_to_json_val(
     }
 }
 
-// TODO: unused?
+// TODO: UNUSED: Needs triage
 pub fn col_element_to_json_val(col: &ArrayRef, index: usize, dt: &DataType) -> Result<Value> {
     match dt {
         ArrowDataType::Float32 => numeric_element_to_json_val::<datatypes::Float32Type>(col, index),
@@ -285,7 +285,7 @@ pub mod tests {
                 col_element_to_json_val(
                     &array_ref,
                     idx,
-                    &DataType::List(Box::new(DataType::UInt32))
+                    &DataType::List(Box::new(DataType::UInt32)),
                 )
                 .unwrap(),
                 json!(expected_val)
@@ -314,7 +314,7 @@ pub mod tests {
                 col_element_to_json_val(
                     &array_ref,
                     idx,
-                    &DataType::FixedSizeList(Box::new(DataType::UInt32), 2)
+                    &DataType::FixedSizeList(Box::new(DataType::UInt32), 2),
                 )
                 .unwrap(),
                 json!(expected_val)

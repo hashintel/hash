@@ -283,7 +283,7 @@ pub fn init_logger<P: AsRef<Path>>(
     })
 }
 
-// TODO: Unused?
+// TODO: UNUSED: Needs triage
 pub fn parse_env_duration(name: &str, default: u64) -> Duration {
     Duration::from_secs(
         std::env::var(name)

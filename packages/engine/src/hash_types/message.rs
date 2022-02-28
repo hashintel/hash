@@ -146,8 +146,8 @@ impl Outbound {
         Outbound::Generic(msg)
     }
 
+    // TODO: UNUSED: Needs triage
     #[must_use]
-    // TODO: Unused?
     pub fn create_agent(state: Agent) -> Outbound {
         Outbound::CreateAgent(OutboundCreateAgentPayload {
             r#type: CreateAgent::Type,
@@ -156,8 +156,8 @@ impl Outbound {
         })
     }
 
+    // TODO: UNUSED: Needs triage
     #[must_use]
-    // TODO: Unused?
     pub fn remove_agent(agent_id: String) -> Outbound {
         Outbound::RemoveAgent(OutboundRemoveAgentPayload {
             r#type: RemoveAgent::Type,
@@ -292,7 +292,7 @@ impl Outbound {
     }
 
     #[must_use]
-    // TODO: Unused?
+    // TODO: UNUSED: Needs triage
     pub fn unchecked_from_json_value_with_state(
         value: serde_json::Value,
         agent_state: &Agent,
@@ -350,11 +350,13 @@ pub struct RemoveAgentPayload {
 impl RemoveAgentPayload {
     pub const IDENTIFIER: &'static str = "remove_agent";
 }
+
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub enum StopSim {
     #[serde(rename = "stop")]
     Type,
 }
+
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct OutboundStopSimPayload {
     pub r#type: StopSim,
@@ -396,7 +398,7 @@ where
     }
 }
 
-// TODO: Unused?
+// TODO: UNUSED: Needs triage
 pub type Map = HashMap<String, Vec<Incoming>>;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -407,8 +409,8 @@ pub struct Incoming {
 }
 
 impl Incoming {
+    // TODO: UNUSED: Needs triage
     #[must_use]
-    // TODO: Unused?
     pub fn r#type(&self) -> String {
         match &self.message {
             Outbound::Generic(msg) => msg.r#type.clone(),
@@ -416,8 +418,8 @@ impl Incoming {
         }
     }
 
+    // TODO: UNUSED: Needs triage
     #[must_use]
-    // TODO: Unused?
     pub fn data(&self) -> serde_json::Value {
         match &self.message {
             Outbound::Generic(msg) => match &msg.data {

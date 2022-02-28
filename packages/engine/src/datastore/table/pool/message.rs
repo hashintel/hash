@@ -111,7 +111,7 @@ impl MessageReader<'_> {
         })
     }
 
-    // TODO: unused?
+    // TODO: UNUSED: Needs triage
     pub fn raw_msg_iter<'b: 'r, 'r>(
         &'b self,
         message_references: &'r [AgentMessageReference],

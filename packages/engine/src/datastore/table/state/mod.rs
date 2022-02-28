@@ -1,6 +1,8 @@
 pub mod create_remove;
-pub mod hash_message; // TODO: unused?
-pub mod message; // TODO: unused?
+// TODO: UNUSED: Needs triage
+pub mod hash_message;
+// TODO: UNUSED: Needs triage
+pub mod message;
 pub mod view;
 
 use std::sync::Arc;
@@ -157,7 +159,7 @@ impl State {
         &self.state.message_pool
     }
 
-    // TODO: unused?
+    // TODO: UNUSED: Needs triage
     pub fn message_pool_mut(&mut self) -> &mut MessagePool {
         &mut self.state.message_pool
     }

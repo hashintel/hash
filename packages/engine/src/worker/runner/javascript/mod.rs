@@ -1270,7 +1270,7 @@ impl JavaScriptRunner {
             .ok_or(WorkerError::JavaScript(Error::OutboundReceive))
     }
 
-    // TODO: unused?
+    // TODO: UNUSED: Needs triage
     pub async fn recv_now(&mut self) -> WorkerResult<Option<OutboundFromRunnerMsg>> {
         self.recv().now_or_never().transpose()
     }

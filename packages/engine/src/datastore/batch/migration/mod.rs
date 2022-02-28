@@ -88,7 +88,7 @@ pub enum InnerShiftAction {
         // new index of the base offset, relative to the start of the buffer
         base_offset_index: usize,
     },
-    // TODO: unused?
+    // TODO: UNUSED: Needs triage
     LargeOffset {
         // Starting old index relative to the offset of the old buffer
         from: usize,
@@ -1108,7 +1108,7 @@ fn copy_bits_unchecked(
 }
 
 impl RowActions {
-    // TODO: unused?
+    // TODO: UNUSED: Needs triage
     pub fn is_well_ordered_remove(&self) -> bool {
         let mut last_i = 0;
         for action in &self.remove {

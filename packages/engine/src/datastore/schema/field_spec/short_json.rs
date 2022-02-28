@@ -38,11 +38,13 @@ impl std::fmt::Display for ExpectedFieldType {
     }
 }
 
-const DEFINED_KEY: &str = "defined"; // TODO: unused?
-const SPECS_KEY: &str = "keys"; // TODO: unused?
+// TODO: UNUSED: Needs triage
+const DEFINED_KEY: &str = "defined";
+// TODO: UNUSED: Needs triage
+const SPECS_KEY: &str = "keys";
 
 impl FieldType {
-    // TODO: unused?
+    // TODO: UNUSED: Needs triage
     fn from_short_string(
         name: &str,
         definitions: Option<&HashMap<&str, FieldSpec>>,
@@ -120,7 +122,7 @@ impl FieldType {
 }
 
 impl FieldSpec {
-    // TODO: unused?
+    // TODO: UNUSED: Needs triage
     fn from_short_json_object(
         name: &str,
         value: &serde_json::Value,
@@ -144,7 +146,7 @@ impl FieldSpec {
         }
     }
 
-    // TODO: unused?
+    // TODO: UNUSED: Needs triage
     fn from_short_json_value(
         name: &str,
         value: &serde_json::Value,
@@ -168,7 +170,7 @@ impl FieldSpec {
 }
 
 impl FieldSpecMap {
-    // TODO: unused?
+    // TODO: UNUSED: Needs triage
     pub(in crate::datastore) fn from_short_json(
         json: serde_json::Value,
         source: FieldSource,

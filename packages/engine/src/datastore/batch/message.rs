@@ -239,7 +239,7 @@ impl MessageBatch {
         Self::from_memory(memory, schema.clone(), meta)
     }
 
-    // TODO: unused?
+    // TODO: UNUSED: Needs triage
     pub fn empty(
         agents: &[&AgentState],
         schema: &Arc<ArrowSchema>,
@@ -317,14 +317,16 @@ impl MessageBatch {
 #[derive(Debug)]
 pub struct Raw<'a> {
     pub from: &'a [u8; UUID_V4_LEN],
-    pub to: Vec<&'a str>, // TODO: unused?
-    pub r#type: &'a str,  // TODO: unused?
+    pub to: Vec<&'a str>,
+    // TODO: UNUSED: Needs triage
+    pub r#type: &'a str,
+    // TODO: UNUSED: Needs triage
     pub data: &'a str,
 }
 
 // Iterators and getters
 impl MessageBatch {
-    // TODO: unused?
+    // TODO: UNUSED: Needs triage
     pub fn get_native_messages(&self) -> Result<Vec<Vec<OutboundMessage>>> {
         let reference = self
             .batch
@@ -360,7 +362,7 @@ impl MessageBatch {
         }
     }
 
-    // TODO: unused?
+    // TODO: UNUSED: Needs triage
     pub fn message_index_iter(&self, i: usize) -> impl Iterator<Item = MessageIndex> {
         let num_agents = self.batch.num_rows();
         let group_index = i as u32;
@@ -436,7 +438,7 @@ impl MessageBatch {
         })
     }
 
-    // TODO: unused?
+    // TODO: UNUSED: Needs triage
     pub fn message_recipients_iter(&self) -> impl Iterator<Item = Vec<&str>> {
         let num_agents = self.batch.num_rows();
         let (bufs, to) = self.get_message_field(message::FieldIndex::To);

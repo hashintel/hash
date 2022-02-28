@@ -25,7 +25,7 @@ enum Ctrl {
         msg_tx: MsgSender,
     },
     /// Signal to stop the experiment
-    Stop, // TODO: unused?
+    Stop, // TODO: UNUSED: Needs triage
 }
 
 /// A connection to receive [`EngineStatus`](proto::EngineStatus)es from an
@@ -116,7 +116,7 @@ impl Handler {
     /// # Errors
     ///
     /// - if communication with the server failed
-    // TODO: unused?
+    // TODO: UNUSED: Needs triage
     pub async fn stop_server(&mut self) -> Result<()> {
         self.send_ctrl(Ctrl::Stop).await
     }

@@ -16,7 +16,7 @@ impl Globals {
         serde_json::from_value(value)
     }
 
-    // TODO: Unused?
+    // TODO: UNUSED: Needs triage
     #[must_use]
     pub fn from_json_unchecked(value: serde_json::Value) -> Globals {
         Globals::from_json(value)

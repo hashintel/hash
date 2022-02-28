@@ -32,7 +32,7 @@ pub mod outbound;
 /// Fields:
 /// `shared_store`: Task shared store from inbound task message
 /// `task_wrapper`: Top two levels of nesting of task (when serialized as JSON)
-// TODO: unused?
+// TODO: UNUSED: Needs triage
 pub struct SentTask {
     pub shared_store: TaskSharedStore,
     pub task_wrapper: serde_json::Value,
@@ -109,7 +109,7 @@ pub struct TargetedRunnerTaskMsg {
 }
 
 impl TargetedRunnerTaskMsg {
-    // TODO: unused?
+    // TODO: UNUSED: Needs triage
     #[allow(unreachable_code, unused_variables)]
     pub fn try_from_fbs(
         task_msg: flatbuffers_gen::runner_outbound_msg_generated::TaskMsg<'_>,
@@ -159,7 +159,7 @@ pub struct StateInterimSync {
     pub shared_store: TaskSharedStore,
 }
 
-// TODO: unused?
+// TODO: UNUSED: Needs triage
 pub struct DatastoreInit {
     pub agent_batch_schema: Vec<u8>,
     pub message_batch_schema: Vec<u8>,

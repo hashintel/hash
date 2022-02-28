@@ -19,12 +19,12 @@ pub struct PackageComms {
 }
 
 impl PackageComms {
-    // TODO: unused?
+    // TODO: UNUSED: Needs triage
     pub fn add_create_agent_command(&mut self, agent: Agent) -> Result<()> {
         self.inner.add_create_agent_command(agent)
     }
 
-    // TODO: unused?
+    // TODO: UNUSED: Needs triage
     pub fn add_remove_agent_command(&mut self, uuid: Uuid) -> Result<()> {
         self.inner.add_remove_agent_command(uuid)
     }
