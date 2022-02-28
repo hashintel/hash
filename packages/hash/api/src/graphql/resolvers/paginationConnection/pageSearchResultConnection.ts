@@ -48,14 +48,15 @@ export const pageSearchResultConnection: Resolver<
   });
 
   let hits: SearchHit[] = [];
+  let pageCount: number;
   let cursor: string | undefined;
 
   if (after) {
-    ({ hits, cursor } = await search.continuePaginatedSearch({
+    ({ hits, cursor, pageCount } = await search.continuePaginatedSearch({
       cursor: after,
     }));
   } else if (query && pageSize) {
-    ({ hits, cursor } = await search.startPaginatedSearch({
+    ({ hits, cursor, pageCount } = await search.startPaginatedSearch({
       pageSize,
       index: ENTITIES_SEARCH_INDEX,
       fields: {
@@ -137,6 +138,7 @@ export const pageSearchResultConnection: Resolver<
     pageInfo: {
       hasNextPage: cursor !== undefined,
       nextPageCursor: cursor,
+      pageCount,
     },
   };
 };

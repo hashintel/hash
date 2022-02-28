@@ -24,6 +24,7 @@ export type SearchCursor = string;
 export type SearchResultPaginated = SearchResult & {
   cursor?: SearchCursor;
   total: number;
+  pageCount: number;
 };
 
 export type SearchFieldPresence = "must" | "must_not" | "should" | "filter";

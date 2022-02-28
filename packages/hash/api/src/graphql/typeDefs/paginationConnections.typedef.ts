@@ -9,6 +9,14 @@ export const pagePaginationTypedef = gql`
     # could also just be a nextPageCursor since its presence encodes the boolean
     # kept in to comply with spec.
     hasNextPage: Boolean!
+    """
+    Number of pages that can be paginated.
+    This number reflects total result count divided by page size.
+    """
+    pageCount: Int!
+    """
+    To be used for every subsequent pagination request.
+    """
     nextPageCursor: String
   }
 

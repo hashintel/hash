@@ -37,6 +37,7 @@ export type OpenSearchConfig = {
  */
 type OpenSearchCursorExtension = {
   seenCount: number;
+  pageSize: number;
   openSearchCursor: string;
 };
 
@@ -238,13 +239,22 @@ export class OpenSearch extends DataSource implements SearchAdapter {
    * @param nextOpenSearchCursor cursor to use after the current result
    * @returns a search cursor that contain more data or `undefined`
    */
-  private async incrementOrClearOpenSearchCursor(
-    hitCount: number,
-    seenCount: number,
-    total: number,
-    openSearchCursor: string,
-    nextOpenSearchCursor: string | undefined,
-  ) {
+  private async incrementOrClearOpenSearchCursor(params: {
+    pageSize: number;
+    hitCount: number;
+    seenCount: number;
+    total: number;
+    openSearchCursor: string;
+    nextOpenSearchCursor: string | undefined;
+  }) {
+    const {
+      hitCount,
+      nextOpenSearchCursor,
+      openSearchCursor,
+      seenCount,
+      total,
+      pageSize,
+    } = params;
     const seenSoFar = seenCount + hitCount;
 
     const endOfSearch =
@@ -262,6 +272,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
         ? opaqueCursorToString({
             seenCount: seenSoFar,
             openSearchCursor: nextOpenSearchCursor,
+            pageSize,
           })
         : await this.clearScrollAndReturnUndefined(openSearchCursor);
 
@@ -317,18 +328,20 @@ export class OpenSearch extends DataSource implements SearchAdapter {
     const total = body.hits.total.value as number;
 
     // Only return a new search cursor if this is not the final page
-    const newCursor = await this.incrementOrClearOpenSearchCursor(
-      hits.length as number,
-      0,
+    const newCursor = await this.incrementOrClearOpenSearchCursor({
+      pageSize: params.pageSize,
+      hitCount: hits.length as number,
+      seenCount: 0,
       total,
-      body._scroll_id,
-      body._scroll_id,
-    );
+      openSearchCursor: body._scroll_id,
+      nextOpenSearchCursor: body._scroll_id,
+    });
 
     return {
       hits,
       cursor: newCursor,
       total,
+      pageCount: Math.ceil(total / params.pageSize),
     };
   }
 
@@ -341,7 +354,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
   }: Parameters<
     SearchAdapter["continuePaginatedSearch"]
   >[0]): Promise<SearchResultPaginated> {
-    const { seenCount, openSearchCursor } = opaqueCursorParse(cursor);
+    const { seenCount, openSearchCursor, pageSize } = opaqueCursorParse(cursor);
 
     // When a search is continued
     let resp;
@@ -377,18 +390,20 @@ export class OpenSearch extends DataSource implements SearchAdapter {
 
     const total = body.hits.total.value as number;
 
-    const newCursor = await this.incrementOrClearOpenSearchCursor(
-      hits.length as number,
+    const newCursor = await this.incrementOrClearOpenSearchCursor({
+      pageSize,
+      hitCount: hits.length as number,
       seenCount,
       total,
       openSearchCursor,
-      body._scroll_id,
-    );
+      nextOpenSearchCursor: body._scroll_id,
+    });
 
     return {
       hits,
       cursor: newCursor,
       total,
+      pageCount: Math.ceil(total / pageSize),
     };
   }
 }
