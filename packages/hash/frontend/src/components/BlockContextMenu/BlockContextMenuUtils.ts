@@ -1,6 +1,5 @@
 import { BlockVariant } from "blockprotocol";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
-import { BoxProps } from "@mui/material";
 import { tw } from "twind";
 
 export type MenuState = {
