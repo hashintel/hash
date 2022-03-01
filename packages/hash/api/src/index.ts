@@ -55,7 +55,7 @@ const main = async () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     tracker = spTracker;
 
-    shutdown.addCleanup("OpenSearch", async () => {
+    shutdown.addCleanup("Snowplow Telemetry", async () => {
       logger.info("Flushing [Snowplow] telemetry");
       spEmitter.flush();
     });
