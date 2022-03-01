@@ -2,28 +2,31 @@ import React, { VFC } from "react";
 import { tw } from "twind";
 import Loader from "../svgs/Loader";
 
-type UploadImageFormProps = {
+type UploadMediaFormProps = {
   onFileChoose: (file: File) => void;
   onUrlChange: (url: string) => void;
   onUrlConfirm: () => void;
   loading: boolean;
-  width: number | undefined;
+  type: "image" | "video";
 };
 
-export const UploadImageForm: VFC<UploadImageFormProps> = ({
+export const UploadMediaForm: VFC<UploadMediaFormProps> = ({
   loading,
   onFileChoose,
   onUrlChange,
   onUrlConfirm,
+  type,
 }) => {
   /**
-   * @todo This should throw some kind of error if an invalid image is passed
+   * @todo This should throw some kind of error if an invalid media is passed
    */
   const onFilesChoose = (files: FileList | null) => {
-    if (files?.[0] && files[0].type.search("image") > -1) {
+    if (files?.[0] && files[0].type.search(type) > -1) {
       onFileChoose(files[0]);
     }
   };
+
+  const capitalisedType = type === "image" ? "Image" : "Video";
 
   return (
     <div
@@ -53,7 +56,7 @@ export const UploadImageForm: VFC<UploadImageFormProps> = ({
             className={tw`px-1.5 py-1 rounded-sm border-2 border-gray-200 bg-gray-50 focus:outline-none focus:ring focus:border-blue-300 w-full`}
             onChange={(event) => onUrlChange(event.target.value)}
             type="url"
-            placeholder="Enter Image URL"
+            placeholder={`Enter ${capitalisedType} URL`}
           />
         </div>
         <div>
@@ -67,7 +70,7 @@ export const UploadImageForm: VFC<UploadImageFormProps> = ({
             <input
               className={tw`hidden`}
               type="file"
-              accept="image/*"
+              accept={`${type}/*`}
               onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                 onFilesChoose(event.target.files)
               }
@@ -80,11 +83,11 @@ export const UploadImageForm: VFC<UploadImageFormProps> = ({
             type="submit"
           >
             {loading && <Loader />}
-            Embed Image
+            Embed {capitalisedType}
           </button>
         </div>
         <div className={tw`text-sm text-gray-400 mt-4`}>
-          Works with web-supported image formats
+          Works with web-supported {type} formats
         </div>
       </form>
     </div>

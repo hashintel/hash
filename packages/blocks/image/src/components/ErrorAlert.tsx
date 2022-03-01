@@ -4,7 +4,7 @@ import Cross from "../svgs/Cross";
 
 type ImageErrorAlertProps = { error: string | null; onClearError: () => void };
 
-export const ImageErrorAlert: VFC<ImageErrorAlertProps> = ({
+export const ErrorAlert: VFC<ImageErrorAlertProps> = ({
   error,
   onClearError,
 }) => (

@@ -2,27 +2,31 @@ import React, { VFC } from "react";
 import { tw } from "twind";
 import Loader from "../svgs/Loader";
 
-type UploadVideoFormProps = {
+type UploadMediaFormProps = {
   onFileChoose: (file: File) => void;
-  onUrlConfirm: () => void;
   onUrlChange: (url: string) => void;
+  onUrlConfirm: () => void;
   loading: boolean;
+  type: "image" | "video";
 };
 
-export const UploadVideoForm: VFC<UploadVideoFormProps> = ({
+export const UploadMediaForm: VFC<UploadMediaFormProps> = ({
   loading,
   onFileChoose,
   onUrlChange,
   onUrlConfirm,
+  type,
 }) => {
   /**
-   * @todo This should throw some kind of error if an invalid video is passed
+   * @todo This should throw some kind of error if an invalid media is passed
    */
   const onFilesChoose = (files: FileList | null) => {
-    if (files?.[0] && files[0].type.search("video") > -1) {
+    if (files?.[0] && files[0].type.search(type) > -1) {
       onFileChoose(files[0]);
     }
   };
+
+  const capitalisedType = type === "image" ? "Image" : "Video";
 
   return (
     <div
@@ -40,17 +44,19 @@ export const UploadVideoForm: VFC<UploadVideoFormProps> = ({
     >
       <form
         className={tw`mb-0`}
-        onSubmit={(event: React.FormEvent<HTMLFormElement>) => {
+        onSubmit={(event) => {
           event.preventDefault();
+
           onUrlConfirm();
         }}
       >
         <div>
+          {/** @todo need to make this controlled */}
           <input
             className={tw`px-1.5 py-1 rounded-sm border-2 border-gray-200 bg-gray-50 focus:outline-none focus:ring focus:border-blue-300 w-full`}
             onChange={(event) => onUrlChange(event.target.value)}
             type="url"
-            placeholder="Enter Video URL"
+            placeholder={`Enter ${capitalisedType} URL`}
           />
         </div>
         <div>
@@ -64,10 +70,10 @@ export const UploadVideoForm: VFC<UploadVideoFormProps> = ({
             <input
               className={tw`hidden`}
               type="file"
-              accept={"video/*"}
-              onChange={(event) => {
-                onFilesChoose(event.target.files);
-              }}
+              accept={`${type}/*`}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                onFilesChoose(event.target.files)
+              }
             />
           </label>
         </div>
@@ -77,11 +83,11 @@ export const UploadVideoForm: VFC<UploadVideoFormProps> = ({
             type="submit"
           >
             {loading && <Loader />}
-            Embed Video
+            Embed {capitalisedType}
           </button>
         </div>
         <div className={tw`text-sm text-gray-400 mt-4`}>
-          Works with web-supported video formats
+          Works with web-supported {type} formats
         </div>
       </form>
     </div>
