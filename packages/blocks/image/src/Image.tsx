@@ -199,7 +199,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
       file?: FileType;
     }) => {
       if (src?.trim()) {
-        if (updateEntities && accountId && entityId) {
+        if (updateEntities && entityId) {
           const updateAction: BlockProtocolUpdateEntitiesAction<BlockProtocolUpdateEntitiesActionData> =
             {
               accountId,
@@ -255,7 +255,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
     (imageProp: { url: string } | { file: FileList[number] }) => {
       updateStateObject({ loading: true });
 
-      if (accountId && entityId && createLinks && deleteLinks && uploadFile) {
+      if (entityId && createLinks && deleteLinks && uploadFile) {
         uploadFile({
           accountId,
           ...imageProp,

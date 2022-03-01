@@ -463,17 +463,15 @@ export const Table: BlockComponent<AppProps> = ({
   const [entityTypes, setEntityTypes] = useState<BlockProtocolEntityType[]>();
 
   useEffect(() => {
-    if (accountId) {
-      void aggregateEntityTypes?.({
-        accountId,
-        entityId,
-        entityTypeId,
-        entityTypeVersionId,
-        includeOtherTypesInUse: true,
-      }).then(({ results }) => {
-        setEntityTypes(orderBy(results, (entityType) => entityType.title));
-      });
-    }
+    void aggregateEntityTypes?.({
+      accountId,
+      entityId,
+      entityTypeId,
+      entityTypeVersionId,
+      includeOtherTypesInUse: true,
+    }).then(({ results }) => {
+      setEntityTypes(orderBy(results, (entityType) => entityType.title));
+    });
   }, [
     aggregateEntityTypes,
     accountId,
