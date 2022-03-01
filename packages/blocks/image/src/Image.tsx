@@ -236,9 +236,12 @@ export const Image: BlockComponent<AppProps> = (props) => {
 
   const handleImageUpload = useCallback(
     (imageProp: { url: string } | { file: FileList[number] }) => {
-      setLoading(true);
+      if (!loading && entityId && createLinks && deleteLinks && uploadFile) {
+        unstable_batchedUpdates(() => {
+          setErrorString(null);
+          setLoading(true);
+        });
 
-      if (entityId && createLinks && deleteLinks && uploadFile) {
         uploadFile({ ...imageProp, mediaType: "image" })
           .then(async (file) => {
             const existingLinkGroup = getLinkGroup({
@@ -287,6 +290,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
       deleteLinks,
       entityId,
       linkGroups,
+      loading,
       updateData,
       uploadFile,
     ],
@@ -318,7 +322,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
   if (draftSrc) {
     return (
       <ImageWithCaption
-        image={draftSrc ?? ""}
+        image={draftSrc}
         onWidthChange={updateWidth}
         caption={draftCaption}
         onCaptionChange={(caption) => setDraftCaption(caption)}

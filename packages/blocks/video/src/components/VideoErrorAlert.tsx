@@ -2,11 +2,11 @@ import React, { VFC } from "react";
 import { tw } from "twind";
 import Cross from "../svgs/Cross";
 
-type VideoErrorAlertProps = { errorString: string; onClick: () => void };
+type VideoErrorAlertProps = { errorString: string; onClearError: () => void };
 
 export const VideoErrorAlert: VFC<VideoErrorAlertProps> = ({
   errorString,
-  onClick,
+  onClearError,
 }) => {
   return (
     <div
@@ -20,7 +20,7 @@ export const VideoErrorAlert: VFC<VideoErrorAlertProps> = ({
 
       <button
         type="button"
-        onClick={onClick}
+        onClick={onClearError}
         className={tw`absolute top-0 bottom-0 right-0 px-4 py-3`}
       >
         <Cross />

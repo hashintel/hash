@@ -5,7 +5,15 @@ import {
   BlockProtocolUploadFileFunction,
 } from "blockprotocol";
 import { BlockComponent } from "blockprotocol/react";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  Dispatch,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { unstable_batchedUpdates } from "react-dom";
 import { UploadVideoForm } from "./components/UploadVideoForm";
@@ -27,6 +35,37 @@ type BlockProtocolUpdateEntitiesActionData = Pick<
   "initialCaption"
 > & {
   file?: FileType;
+};
+
+const useDefaultState = <T extends any>(
+  defaultValue: T,
+): [T, Dispatch<SetStateAction<T>>] => {
+  const defaultStateValue = {
+    prevDefault: defaultValue,
+    currentValue: defaultValue,
+  };
+  const [{ prevDefault, currentValue }, setNextValue] =
+    useState(defaultStateValue);
+
+  if (prevDefault !== defaultValue) {
+    setNextValue(defaultStateValue);
+  }
+
+  const setState = useCallback((value: SetStateAction<T>) => {
+    setNextValue((prevValue) => {
+      const nextValue =
+        // @ts-expect-error We know this is callable, but TS thinks value
+        // could be another kind of function
+        typeof value === "function" ? value(prevValue.currentValue) : value;
+
+      return {
+        ...prevValue,
+        currentValue: nextValue,
+      };
+    });
+  }, []);
+
+  return [currentValue, setState];
 };
 
 function getLinkGroup(params: {
@@ -75,6 +114,9 @@ function getLinkedEntities<T>(params: {
   return matchingLinkedEntities as (BlockProtocolEntity & T)[];
 }
 
+/**
+ * @todo Rewrite the state here to use a reducer, instead of batched updates
+ */
 export const Video: BlockComponent<AppProps> = (props) => {
   const {
     accountId,
@@ -90,24 +132,36 @@ export const Video: BlockComponent<AppProps> = (props) => {
     url,
   } = props;
 
-  // TODO: Consider replacing multiple states with useReducer()
-  // See also: Image block
-  const [stateObject, setStateObject] = useState<{
-    src: string;
-    loading: boolean;
-    errorString: string | null;
-    userIsEditing: boolean;
-  }>({
-    src: "",
-    loading: false,
-    errorString: null,
-    userIsEditing: !url,
-  });
+  const matchingLinkedEntities = useMemo(() => {
+    if (linkGroups && linkedEntities && entityId) {
+      return getLinkedEntities<{
+        url: string;
+      }>({
+        sourceEntityId: entityId,
+        path: "$.file",
+        linkGroups,
+        linkedEntities,
+      });
+    }
+
+    return null;
+  }, [entityId, linkGroups, linkedEntities]);
+
+  const [draftSrc, setDraftSrc] = useDefaultState(
+    url ?? matchingLinkedEntities?.[0]?.url ?? "",
+  );
+
+  const [loading, setLoading] = useState(false);
+  const [errorString, setErrorString] = useState<null | string>(null);
+
+  const [draftCaption, setDraftCaption] = useDefaultState(initialCaption ?? "");
+
+  /**
+   * Default for this input field is blank, not the URL passed
+   */
+  const [draftUrl, setDraftUrl] = useState("");
 
   const isMounted = useRef(false);
-
-  const [inputText, setInputText] = useState("");
-  const [captionText, setCaptionText] = useState(initialCaption ?? "");
 
   useEffect(() => {
     isMounted.current = true;
@@ -117,50 +171,11 @@ export const Video: BlockComponent<AppProps> = (props) => {
     };
   }, []);
 
-  const updateStateObject = useCallback(
-    (properties: Partial<typeof stateObject>) => {
-      setStateObject((prevStateObject) => ({
-        ...prevStateObject,
-        ...properties,
-      }));
-    },
-    [],
-  );
-
-  const stateObjectRef = React.useRef(stateObject);
-  const captionTextRef = React.useRef(captionText);
+  const draftSrcRef = useRef(draftSrc);
 
   useEffect(() => {
-    stateObjectRef.current = stateObject;
-    captionTextRef.current = captionText;
+    draftSrcRef.current = draftSrc;
   });
-
-  useEffect(() => {
-    if (linkGroups && linkedEntities && entityId) {
-      const matchingLinkedEntities = getLinkedEntities<{
-        url: string;
-      }>({
-        sourceEntityId: entityId,
-        path: "$.file",
-        linkGroups,
-        linkedEntities,
-      });
-
-      const { url: matchingUrl } = matchingLinkedEntities?.[0] ?? {};
-
-      if (matchingUrl && stateObjectRef.current.src !== matchingUrl) {
-        updateStateObject({ src: matchingUrl });
-      }
-    }
-
-    if (initialCaption && captionTextRef.current !== initialCaption) {
-      setCaptionText(initialCaption);
-    }
-  }, [entityId, linkedEntities, linkGroups, initialCaption, updateStateObject]);
-
-  function displayError(errorString: string) {
-    updateStateObject({ errorString });
-  }
 
   const updateData = useCallback(
     ({ file, src }: { src: string | undefined; file?: FileType }) => {
@@ -169,7 +184,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
           const updateAction: BlockProtocolUpdateEntitiesAction<BlockProtocolUpdateEntitiesActionData> =
             {
               data: {
-                initialCaption: captionText,
+                initialCaption: draftCaption,
               },
               entityId,
             };
@@ -185,17 +200,23 @@ export const Video: BlockComponent<AppProps> = (props) => {
           void updateEntities([updateAction]);
         }
 
-        updateStateObject({ src });
+        unstable_batchedUpdates(() => {
+          setErrorString(null);
+          setDraftSrc(src);
+        });
       }
     },
-    [captionText, entityId, entityTypeId, updateStateObject, updateEntities],
+    [draftCaption, entityId, entityTypeId, setDraftSrc, updateEntities],
   );
 
   const handleVideoUpload = useCallback(
     (videoProp: { url: string } | { file: FileList[number] }) => {
-      updateStateObject({ loading: true });
+      if (!loading && entityId && createLinks && deleteLinks && uploadFile) {
+        unstable_batchedUpdates(() => {
+          setErrorString(null);
+          setLoading(true);
+        });
 
-      if (entityId && createLinks && deleteLinks && uploadFile) {
         uploadFile({ ...videoProp, mediaType: "video" })
           .then(async (file) => {
             const existingLinkGroup = getLinkGroup({
@@ -224,16 +245,18 @@ export const Video: BlockComponent<AppProps> = (props) => {
             ]);
 
             if (isMounted.current) {
-              updateData({ file, src: file.url });
-              updateStateObject({ loading: false, userIsEditing: false });
+              unstable_batchedUpdates(() => {
+                updateData({ file, src: file.url });
+                setLoading(false);
+              });
             }
           })
-          .catch((error: Error) =>
-            updateStateObject({
-              errorString: error.message,
-              loading: false,
-            }),
-          );
+          .catch((error: Error) => {
+            unstable_batchedUpdates(() => {
+              setErrorString(error.message);
+              setLoading(false);
+            });
+          });
       }
     },
     [
@@ -242,49 +265,41 @@ export const Video: BlockComponent<AppProps> = (props) => {
       deleteLinks,
       entityId,
       linkGroups,
+      loading,
       updateData,
-      updateStateObject,
       uploadFile,
     ],
   );
 
   const onUrlConfirm = () => {
-    const { loading } = stateObject;
-
     if (loading) {
       return;
     }
 
-    if (inputText?.trim()) {
-      handleVideoUpload({ url: inputText });
+    if (draftUrl?.trim()) {
+      handleVideoUpload({ url: draftUrl });
     } else {
-      displayError("Please enter a valid video URL or select a file below");
+      setErrorString("Please enter a valid video URL or select a file below");
     }
   };
 
   const resetComponent = () => {
     unstable_batchedUpdates(() => {
-      setStateObject({
-        loading: false,
-        errorString: null,
-        src: "",
-        userIsEditing: true,
-      });
-
-      setInputText("");
-      setCaptionText("");
+      setLoading(false);
+      setErrorString(null);
+      setDraftSrc("");
+      setDraftUrl("");
+      setDraftCaption("");
     });
   };
 
-  if (stateObject.src?.trim() || (url && !stateObject.userIsEditing)) {
+  if (draftSrc) {
     return (
       <VideoWithCaption
-        src={stateObject.src ? stateObject.src : url}
-        caption={captionText}
-        onCaptionChange={(caption) => setCaptionText(caption)}
-        onCaptionConfirm={() => {
-          updateData({ src: stateObject.src });
-        }}
+        src={draftSrc}
+        caption={draftCaption}
+        onCaptionChange={(caption) => setDraftCaption(caption)}
+        onCaptionConfirm={() => updateData({ src: draftSrc })}
         onReset={resetComponent}
       />
     );
@@ -292,20 +307,18 @@ export const Video: BlockComponent<AppProps> = (props) => {
 
   return (
     <>
-      {stateObject.errorString && (
+      {errorString && (
         <VideoErrorAlert
-          errorString={stateObject.errorString}
-          onClick={() => updateStateObject({ errorString: null })}
+          errorString={errorString}
+          onClearError={() => setErrorString(null)}
         />
       )}
 
       <UploadVideoForm
         onUrlConfirm={onUrlConfirm}
-        onFileChoose={(file: File) => {
-          handleVideoUpload({ file });
-        }}
-        onUrlChange={(nextDraftUrl) => setInputText(nextDraftUrl)}
-        loading={stateObject.loading}
+        onFileChoose={(file: File) => handleVideoUpload({ file })}
+        onUrlChange={(nextDraftUrl) => setDraftUrl(nextDraftUrl)}
+        loading={loading}
       />
     </>
   );
