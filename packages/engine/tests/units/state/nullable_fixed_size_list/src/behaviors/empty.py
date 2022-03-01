@@ -5,4 +5,4 @@ def behavior(state, context):
 
     Empty behavior (we need a behavior to execute)
     """
-    state.list_is_null = type(state.list) is None
+    state.list_is_null = state.get.list is None
