@@ -32,6 +32,9 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
       // The :hover CSS styling applied to the button
       const hoverStyles: CSSObject = {};
 
+      // The :hover:before CSS styling applied to the button
+      const hoverBeforeStyles: CSSObject = {};
+
       // The .Mui-disabled CSS styling applied to the button
       const disabledStyles: CSSObject = {};
 
@@ -61,7 +64,10 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           color: theme.palette.common.white,
           background: theme.palette.blue[70],
           backgroundColor: theme.palette.blue[70],
-          transition: "all 0.5s ease-in-out",
+          position: "relative",
+          overflow: "hidden",
+          zIndex: 0,
+          transition: "opacity 0.5s ease-in-out",
           ...(size === "small" && {
             padding: theme.spacing("8px", "20px"),
           }),
@@ -71,8 +77,18 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           }),
         });
 
-        Object.assign(hoverStyles, {
+        Object.assign(beforeStyles, {
+          position: "absolute",
+          top: 0,
+          width: "100%",
+          height: "100%",
+          opacity: 0,
           background: theme.palette.purple.gradient,
+          zIndex: -1,
+        });
+
+        Object.assign(hoverBeforeStyles, {
+          opacity: 1,
         });
       } else if (variant === "tertiary_quiet") {
         /** ===== TERTIARY button specific styling ===== */
@@ -100,12 +116,6 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           color: theme.palette.purple["90"],
           backgroundColor: "unset",
         });
-        Object.assign(focusVisibleAfterStyles, {
-          borderWidth: 1,
-          bottom: 0,
-          top: 0,
-          borderRadius: 0,
-        });
       } else if (variant === "icon") {
         Object.assign(baseStyles, {
           minWidth: "unset",
@@ -124,6 +134,7 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         ...baseStyles,
         "&:before": beforeStyles,
         ":hover": hoverStyles,
+        "&:hover:before": hoverBeforeStyles,
         ":active": activeStyles,
         "&.Mui-disabled": disabledStyles,
         ":focus-visible:after": focusVisibleAfterStyles,

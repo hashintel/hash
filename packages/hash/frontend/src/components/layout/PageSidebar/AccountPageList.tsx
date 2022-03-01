@@ -2,7 +2,6 @@ import { VoidFunctionComponent } from "react";
 import Link from "next/link";
 
 import styles from "./PageSidebar.module.scss";
-import { CreatePageButton } from "../../Modals/CreatePage/CreatePageButton";
 import { useAccountPages } from "../../hooks/useAccountPages";
 
 type AccountPageListProps = {
@@ -30,7 +29,6 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
           </div>
         );
       })}
-      <CreatePageButton accountId={accountId} />
     </div>
   );
 };

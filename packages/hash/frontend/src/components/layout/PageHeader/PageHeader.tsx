@@ -2,14 +2,13 @@ import React from "react";
 import { useModal } from "react-modal-hook";
 import { Box, Button, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
-import { faPlus } from "@fortawesome/free-solid-svg-icons";
 
 import { useLogout } from "../../hooks/useLogout";
 import { useUser } from "../../hooks/useUser";
 import { LoginModal } from "../../Modals/AuthModal/LoginModal";
 import { AccountDropdown } from "./AccountDropdown";
 import { SearchBar } from "./SearchBar";
-import { FontAwesomeSvgIcon, HashNavIcon } from "../../icons";
+import { HashNavIcon } from "../../icons";
 import { Link } from "../../Link";
 import { ActionsDropdown } from "./ActionsDropdown";
 import { NotificationsDropdown } from "./NotificationsDropdown";
@@ -31,6 +30,8 @@ const Nav: React.FC = ({ children }) => (
 export const PageHeader: React.VFC = () => {
   const theme = useTheme();
   const router = useRouter();
+
+  const { accountId } = router.query as Record<string, string>;
 
   const { user, refetch } = useUser();
   const { logout } = useLogout();
@@ -68,7 +69,7 @@ export const PageHeader: React.VFC = () => {
             <SearchBar />
 
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <ActionsDropdown />
+              <ActionsDropdown accountId={accountId} />
               <NotificationsDropdown />
               <AccountDropdown logout={logout} user={user!} />
             </Box>

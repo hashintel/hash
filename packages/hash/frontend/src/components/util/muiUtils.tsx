@@ -20,6 +20,7 @@ export const useScrollLock = (active: boolean) =>
     document.documentElement.style.cssText = active
       ? "position: fixed; overflow-y: scroll; width: 100%"
       : "";
+    document.body.style.overflowY = active ? "hidden" : "unset";
     return () => {
       document.documentElement.style.cssText = "";
     };

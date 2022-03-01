@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useCallback, useState, useRef } from "react";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
@@ -9,11 +9,14 @@ import {
   useTheme,
 } from "@mui/material";
 
-import { FontAwesomeSvgIcon } from "../../icons";
-import { Popover } from "../../Popover";
-import { Link } from "../../Link";
+import { FontAwesomeSvgIcon } from "../../../icons";
+import { Popover } from "../../../Popover";
+import { Link } from "../../../Link";
+import { CreatePage } from "../../../Modals/CreatePage/CreatePage";
 
-export const ActionsDropdown: React.FC = () => {
+export const ActionsDropdown: React.FC<{
+  accountId: string;
+}> = ({ accountId }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
@@ -22,6 +25,15 @@ export const ActionsDropdown: React.FC = () => {
   const [open, setOpen] = useState(false);
 
   const id = open ? "actions-popover" : undefined;
+
+  const [showCreatePage, setShowCreatePage] = useState(false);
+
+  const closeCreatePage = useCallback(() => {
+    // Prevent the bug of closing a non-existing modal
+    if (showCreatePage) {
+      setShowCreatePage(false);
+    }
+  }, [showCreatePage]);
 
   return (
     <Box>
@@ -45,6 +57,12 @@ export const ActionsDropdown: React.FC = () => {
       >
         <FontAwesomeSvgIcon icon={faPlus} />
       </Button>
+
+      <CreatePage
+        show={showCreatePage}
+        close={closeCreatePage}
+        accountId={accountId}
+      />
 
       <Popover
         id={id}
@@ -81,42 +99,47 @@ export const ActionsDropdown: React.FC = () => {
         }}
       >
         <Box>
-          <Link noLinkStyle href="#" onClick={() => setOpen(false)}>
-            <ListItemButton
-              sx={{
-                padding: (theme) => theme.spacing(1, 2),
-                mx: 0.5,
-                mt: 0.5,
-                borderRadius: 1,
-                lineHeight: 1,
-                display: "flex",
-                justifyContent: "space-between",
-              }}
-            >
-              <Typography variant="smallCopy">Create page</Typography>
-              {!isMobile && (
-                <Typography variant="smallSecondaryCopy">Opt + P</Typography>
-              )}
-            </ListItemButton>
-          </Link>
-          <Link noLinkStyle href="#" onClick={() => setOpen(false)}>
-            <ListItemButton
-              sx={{
-                padding: (theme) => theme.spacing(1, 2),
-                mx: 0.5,
-                borderRadius: 1,
-                lineHeight: 1,
-                display: "flex",
-                justifyContent: "space-between",
-              }}
-            >
-              <Typography variant="smallCopy">Create entity</Typography>
-              {!isMobile && (
-                <Typography variant="smallSecondaryCopy">Opt + E</Typography>
-              )}
-            </ListItemButton>
-          </Link>
-          <Link noLinkStyle href="#" onClick={() => setOpen(false)}>
+          <ListItemButton
+            sx={{
+              padding: (theme) => theme.spacing(1, 2),
+              mx: 0.5,
+              mt: 0.5,
+              borderRadius: 1,
+              lineHeight: 1,
+              display: "flex",
+              justifyContent: "space-between",
+            }}
+            onClick={() => {
+              setShowCreatePage(true);
+              setOpen(false);
+            }}
+          >
+            <Typography variant="smallCopy">Create page</Typography>
+            {!isMobile && (
+              <Typography variant="smallSecondaryCopy">Opt + P</Typography>
+            )}
+          </ListItemButton>
+          <ListItemButton
+            sx={{
+              padding: (theme) => theme.spacing(1, 2),
+              mx: 0.5,
+              borderRadius: 1,
+              lineHeight: 1,
+              display: "flex",
+              justifyContent: "space-between",
+            }}
+            onClick={() => setOpen(false)}
+          >
+            <Typography variant="smallCopy">Create entity</Typography>
+            {!isMobile && (
+              <Typography variant="smallSecondaryCopy">Opt + E</Typography>
+            )}
+          </ListItemButton>
+          <Link
+            noLinkStyle
+            href={`/${accountId}/types/new`}
+            onClick={() => setOpen(false)}
+          >
             <ListItemButton
               sx={{
                 padding: (theme) => theme.spacing(1, 2),
