@@ -9,6 +9,7 @@ import express from "express";
 import helmet from "helmet";
 import { StatsD } from "hot-shots";
 import { customAlphabet } from "nanoid";
+import { Tracker } from "@snowplow/node-tracker";
 import { createHttpTerminator } from "http-terminator";
 import { OpenSearch } from "@hashintel/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@hashintel/hash-backend-utils/shutdown";
@@ -45,7 +46,20 @@ import { setupTelemtry } from "./telemetry/snowplow-setup";
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
 const main = async () => {
-  setupTelemtry();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let tracker: Tracker | undefined;
+  if (process.env.HASH_TELEMETRY_ENABLED === "true") {
+    logger.info("Starting [Snowplow] telemetry");
+
+    const [spEmitter, spTracker] = setupTelemtry();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    tracker = spTracker;
+
+    shutdown.addCleanup("OpenSearch", async () => {
+      logger.info("Flushing [Snowplow] telemetry");
+      spEmitter.flush();
+    });
+  }
 
   // Request ID generator
   const nanoid = customAlphabet(
