@@ -43,7 +43,7 @@ lazy_static! {
     pub static ref MESSAGE_ARROW_FIELDS: Vec<ArrowField> = vec![
         ArrowField::new(
             "to",
-            ArrowDataType::List(Box::new(ArrowDataType::Utf8)),
+            ArrowDataType::List(Box::new(ArrowField::new("item", ArrowDataType::Utf8, true))),
             false
         ),
         ArrowField::new("type", ArrowDataType::Utf8, false),
@@ -53,7 +53,7 @@ lazy_static! {
         ArrowDataType::Struct(MESSAGE_ARROW_FIELDS.clone());
     pub static ref MESSAGE_LIST_ARROW_FIELD: ArrowField = ArrowField::new(
         MESSAGE_COLUMN_NAME,
-        ArrowDataType::List(Box::new(MESSAGE_ARROW_TYPE.clone())),
+        ArrowDataType::List(Box::new(ArrowField::new("item", MESSAGE_ARROW_TYPE.clone(), true))),
         false
     );
     // It is important to keep this order unchanged. If changed
