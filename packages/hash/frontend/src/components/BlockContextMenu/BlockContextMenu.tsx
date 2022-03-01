@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from "react";
 import { tw } from "twind";
 
-import DeleteIcon from "@material-ui/icons/DeleteOutline";
-import CopyIcon from "@material-ui/icons/FileCopyOutlined";
-import LoopIcon from "@material-ui/icons/LoopOutlined";
-import LinkIcon from "@material-ui/icons/LinkOutlined";
+import DeleteIcon from "@mui/icons-material/DeleteOutline";
+import CopyIcon from "@mui/icons-material/FileCopyOutlined";
+import LoopIcon from "@mui/icons-material/LoopOutlined";
+import LinkIcon from "@mui/icons-material/LinkOutlined";
 import { useKey } from "rooks";
 import { unstable_batchedUpdates } from "react-dom";
 

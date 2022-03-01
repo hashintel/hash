@@ -1,6 +1,6 @@
-import { tw } from "twind";
 import { BlockVariant } from "blockprotocol";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { tw } from "twind";
 
 export type MenuState = {
   currentView: "normal" | "search";
@@ -24,4 +24,4 @@ export type MenuItemType = {
   icon: JSX.Element;
 };
 
-export const iconStyles = tw`!text-inherit mr-1`;
+export const iconStyles = tw`!text-base mr-1`;

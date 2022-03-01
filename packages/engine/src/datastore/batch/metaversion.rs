@@ -12,10 +12,12 @@ pub struct Metaversion {
 }
 
 impl Metaversion {
+    // TODO: UNUSED: Needs triage
     pub fn new(memory: u32, batch: u32) -> Metaversion {
         Metaversion { memory, batch }
     }
 
+    // TODO: UNUSED: Needs triage
     pub fn update(&mut self, new_state: &Metaversion) {
         self.memory = new_state.memory;
         self.batch = new_state.batch;

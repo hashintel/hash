@@ -18,6 +18,7 @@ pub enum Error {
 use Error::{Inner, Message, OutboundMessageParse, Thread, UnknownBehavior};
 
 impl Error {
+    // TODO: UNUSED: Needs triage
     #[must_use]
     pub fn new(message: &str) -> Error {
         Message(message.to_string())
