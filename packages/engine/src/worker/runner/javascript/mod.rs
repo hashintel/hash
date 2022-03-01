@@ -11,6 +11,7 @@ use arrow::{
     buffer::Buffer,
     datatypes::{DataType, Field, Schema},
     ipc::writer::{IpcDataGenerator, IpcWriteOptions},
+    util::bit_util,
 };
 use futures::FutureExt;
 use mv8::MiniV8;
@@ -707,13 +708,22 @@ impl<'m> RunnerImpl<'m> {
 
         builder = builder.len(target_len);
         if !data.null_bits_ptr.is_null() {
+            // Create a validity map with the provided data, but reserve for `target_len` bits
             let mut boolean_builder = BooleanBufferBuilder::new(target_len);
-            let values = unsafe { slice::from_raw_parts(data.null_bits_ptr, target_len) };
-            boolean_builder.append_packed_range(0..target_len, values);
+            // Read bits from JS
+            let values =
+                unsafe { slice::from_raw_parts(data.null_bits_ptr, bit_util::ceil(data.len, 8)) };
+            boolean_builder.append_packed_range(0..data.len, values);
+            // Resize the validity map to match the size of the resulting array. This won't resize
+            // the underlying buffer because we reserved with `target_len`. `resize` sets all new
+            // bits to `0`
+            boolean_builder.resize(target_len);
 
+            // The `data.null_count` provided is only valid for `data.len`, as the buffer is
+            // resized, the `null_count` has to be adjusted.
             builder = builder
                 .null_bit_buffer(boolean_builder.finish())
-                .null_count(data.null_count);
+                .null_count(data.null_count + target_len - data.len);
         }
 
         Ok(builder.build()?)
