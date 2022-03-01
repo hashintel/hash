@@ -132,8 +132,9 @@ export class PostgresClient implements DBClient {
         entityTypeName: "EntityType",
         properties,
         metadata: {
-          extra: {},
           versioned: true,
+          name,
+          extra: {},
         },
         createdAt: now,
         createdByAccountId,
@@ -143,6 +144,7 @@ export class PostgresClient implements DBClient {
       };
 
       // create the fixed record for the type
+      // @todo: insertEntityType needs name in its parameter object, this could be changes to take `EntityType` metadata.
       await insertEntityType(conn, { ...entityType, name });
 
       // create the first version
@@ -272,6 +274,14 @@ export class PostgresClient implements DBClient {
     entityId: string;
   }): Promise<DbEntity | undefined> {
     return (await getEntityLatestVersion(this.conn, params)) || undefined;
+  }
+
+  async getEntityType(
+    params: Parameters<DBClient["getEntityType"]>[0],
+  ): ReturnType<DBClient["getEntityType"]> {
+    return await getEntityType(this.conn, {
+      entityVersionId: params.entityTypeVersionId,
+    });
   }
 
   async getEntityTypeLatestVersion(params: {
@@ -657,7 +667,9 @@ export class PostgresClient implements DBClient {
     return getImpliedEntityHistory(this.conn, params);
   }
 
-  async getAncestorReferences(params: { accountId: string; entityId: string }) {
+  async getAncestorReferences(
+    params: Parameters<DBClient["getAncestorReferences"]>[0],
+  ): ReturnType<DBClient["getAncestorReferences"]> {
     return getAncestorReferences(this.conn, params);
   }
 

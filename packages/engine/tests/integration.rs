@@ -44,7 +44,7 @@ macro_rules! run_test {
                 .canonicalize()
                 .unwrap();
 
-            $crate::experiment::run_test_suite(project_path, concat!(module_path!(), "::", stringify!($project)), None, None).await
+            $crate::experiment::run_test_suite(project_path, concat!(module_path!(), "::", stringify!($project)), None, None, None).await
         }
     };
     ($project:ident, $language:ident $(,)? $(#[$attr:meta])* ) => {
@@ -62,7 +62,7 @@ macro_rules! run_test {
                 .canonicalize()
                 .unwrap();
 
-            $crate::experiment::run_test_suite(project_path, concat!(module_path!(), "::", stringify!($project)), Some(hash_engine_lib::Language::$language), None).await
+            $crate::experiment::run_test_suite(project_path, concat!(module_path!(), "::", stringify!($project)), Some(hash_engine_lib::Language::$language), None, None).await
         }
     };
     ($project:ident, experiment: $experiment:ident $(,)? $(#[$attr:meta])* ) => {
@@ -76,7 +76,7 @@ macro_rules! run_test {
                 .canonicalize()
                 .unwrap();
 
-            $crate::experiment::run_test_suite(project_path, concat!(module_path!(), "::", stringify!($experiment)), None, Some(stringify!($experiment))).await
+            $crate::experiment::run_test_suite(project_path, concat!(module_path!(), "::", stringify!($experiment)), None, Some(stringify!($experiment)), None).await
         }
     };
     ($project:ident, $language:ident, experiment: $experiment:ident $(,)? $(#[$attr:meta])* ) => {
@@ -94,7 +94,7 @@ macro_rules! run_test {
                 .canonicalize()
                 .unwrap();
 
-            $crate::experiment::run_test_suite(project_path, concat!(module_path!(), "::", stringify!($experiment)), Some(hash_engine_lib::Language::$language), Some(stringify!($experiment))).await
+            $crate::experiment::run_test_suite(project_path, concat!(module_path!(), "::", stringify!($experiment)), Some(hash_engine_lib::Language::$language), Some(stringify!($experiment)), None).await
         }
     };
 }

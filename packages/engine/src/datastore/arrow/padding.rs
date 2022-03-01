@@ -100,6 +100,7 @@ pub fn maybe_new_dynamic_pad(
     new_padding
 }
 
+// TODO: UNUSED: Needs triage
 #[must_use]
 pub fn maybe_new_dynamic_length(
     buffer_new_offset: usize,

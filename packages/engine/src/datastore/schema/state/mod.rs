@@ -30,6 +30,7 @@ impl AgentSchema {
         })
     }
 
+    // TODO: UNUSED: Needs triage
     pub fn column_index_of(&self, name: &str) -> Result<usize> {
         let index = self.arrow.index_of(name)?;
         Ok(index)

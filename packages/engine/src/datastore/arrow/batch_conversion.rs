@@ -52,6 +52,7 @@ pub fn new_zero_bits(n_bits: usize) -> MutableBuffer {
 }
 
 // `n_bits` 1 bits, possibly followed by 0 bit padding.
+// TODO: UNUSED: Needs triage
 pub fn new_one_bits(n_bits: usize) -> MutableBuffer {
     let n_bytes = arrow_bit_util::ceil(n_bits, 8);
     MutableBuffer::new(n_bytes).with_bitset(n_bytes, true)

@@ -148,6 +148,9 @@ impl StepPackages {
 
     pub async fn run_context(
         &mut self,
+        // TODO: rename to `snapshot_state_proxy` or better yet should we just remove the proxy and
+        //  let them get a proxy from the StateSnapshot?
+        //  https://app.asana.com/0/1199548034582004/1201892819201277/f
         state_proxy: &StateReadProxy,
         snapshot: StateSnapshot,
         pre_context: PreContext,
