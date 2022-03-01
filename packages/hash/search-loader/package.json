@@ -17,6 +17,7 @@
     "start": "cross-env NODE_ENV=production ts-node ./src/index.ts"
   },
   "dependencies": {
+    "@hashintel/hash-api": "0.0.0",
     "@hashintel/hash-backend-utils": "0.0.0",
     "@hashintel/hash-shared": "0.0.0",
     "@opensearch-project/opensearch": "1.0.0",

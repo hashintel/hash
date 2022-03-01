@@ -16,6 +16,7 @@ import { fileTypedef } from "./file.typedef";
 import { impliedHistoryTypedef } from "./impliedHistory.typedef";
 import { orgMembershipTypedef } from "./orgMembership.typedef";
 import { aggregationTypedef } from "./aggregation.typedef";
+import { pagePaginationTypedef } from "./paginationConnections.typedef";
 
 const baseSchema = gql`
   scalar Date
@@ -54,6 +55,7 @@ export const schema = [
   orgTypedef,
   orgMembershipTypedef,
   pageTypedef,
+  pagePaginationTypedef,
   textTypedef,
   userTypedef,
   fileTypedef,

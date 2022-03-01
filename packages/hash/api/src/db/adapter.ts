@@ -26,6 +26,11 @@ export type EntityTypeTypeFields =
   | "entityTypeName"
   | "entityTypeVersionId";
 
+export type EntityMeta = {
+  versioned: boolean;
+  extra: any;
+};
+
 export type DbEntity = {
   accountId: string;
   entityId: string;
@@ -77,7 +82,12 @@ export type DBAggregation = {
   createdAt: Date;
 };
 
+export type EntityTypeMeta = EntityMeta & {
+  name: string;
+};
+
 export type EntityType = Omit<DbEntity, EntityTypeTypeFields> & {
+  metadata: EntityTypeMeta;
   /**
    *  @todo make these non-optional if we figure a way of getting the EntityType entityType
    *    attached without recursion headaches. see https://github.com/hashintel/dev/pull/200
@@ -86,11 +96,6 @@ export type EntityType = Omit<DbEntity, EntityTypeTypeFields> & {
   entityTypeId?: string | undefined | null;
   entityTypeName?: "EntityType";
   entityTypeVersionId?: string;
-};
-
-export type EntityMeta = {
-  versioned: boolean;
-  extra: any;
 };
 
 export type EntityVersion = {
@@ -254,6 +259,14 @@ export interface DBClient {
     accountId: string;
     entityId: string;
   }): Promise<DbEntity | undefined>;
+
+  /**
+   * Get an entityType by a specific version ID
+   * @todo should this be merged with getEntityTypeLatestVersion?
+   */
+  getEntityType(params: {
+    entityTypeVersionId: string;
+  }): Promise<EntityType | null>;
 
   /**
    * Get an entityType by its fixed id.
