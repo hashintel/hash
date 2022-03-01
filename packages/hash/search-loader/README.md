@@ -71,12 +71,23 @@ search index. It indexes the following entity fields in a search index named
 - `updatedAt`
 - `createdBy`
 
+Each entity is indexed by its `entityId` such that only the latest version of each entity
+is indexed.
+
 An additional field named `fullTextSearch` is indexed for entities of system type `Text`
 and `Page`. For `Text` entities, this contains a sanitized form of the entities
 properties which strips all formatting identifiers and concatenates all items in the
 `text` array into a single string separated by a space. For `Page` entities,
 `fullTextSearch` is simply the page title. For all other entities, this field is currently
 empty.
+
+`Text` entities will also contain a `belongsToPage` field which will be an entity
+reference to the `Text` entity's `Page` grandparent - if the grandparent exists.
+`belongsToPage?`:
+
+- `accountId`
+- `entityId`
+- `entityVersionId`
 
 ## Metrics
 
