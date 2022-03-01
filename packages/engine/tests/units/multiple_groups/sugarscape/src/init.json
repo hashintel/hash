@@ -1,0 +1,25 @@
+[
+  {
+    "agent_name": "agent_creator",
+    "behaviors": ["create_agents.js", "@hash/remove-self/remove_self.js"],
+    "agent_template": {
+      "type": "agent",
+      "waiting": false,
+      "color": "white",
+      "height": 2,
+      "behaviors": ["sugar_agent.js", "@hash/age/age.js"]
+    }
+  },
+  {
+    "agent_name": "sugar_creator",
+    "behaviors": ["create_sugar.js", "@hash/remove-self/remove_self.js"]
+  },
+  {
+    "behaviors": ["gini_calculator.js"],
+    "search_radius": 50,
+    "position": [25, 25],
+    "height": 0.01,
+    "agent_name": "gini",
+    "gini_values": []
+  }
+]

@@ -156,6 +156,7 @@ pub mod tests {
                 worker_base_config: Default::default(),
                 num_workers: 0,
             }),
+            target_max_group_size: 100_000,
             base_globals: Default::default(),
         });
         validate!(context, experiment_config, PackageName::Context);

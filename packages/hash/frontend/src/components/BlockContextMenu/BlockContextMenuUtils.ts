@@ -1,6 +1,6 @@
 import { BlockVariant } from "blockprotocol";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
-import { BoxProps } from "@mui/material";
+import { tw } from "twind";
 
 export type MenuState = {
   currentView: "normal" | "search";
@@ -24,7 +24,4 @@ export type MenuItemType = {
   icon: JSX.Element;
 };
 
-export const iconStyles: BoxProps["sx"] = {
-  fontSize: "18px",
-  mr: 1,
-};
+export const iconStyles = tw`!text-base mr-1`;

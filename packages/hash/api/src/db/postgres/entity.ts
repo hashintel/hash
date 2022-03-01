@@ -112,6 +112,7 @@ export const selectEntities = sql<EntityPGRow>`
     typeMeta.created_by as "type.created_by",
     typeMeta.created_at as "type.created_at",
     typeMeta.name as "type.name",
+    typeMeta.versioned as "type.versioned",
     type.updated_at as "type.updated_at",
     type.updated_by as "type.updated_by"
   from

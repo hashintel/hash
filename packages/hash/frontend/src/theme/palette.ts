@@ -157,4 +157,5 @@ export const palette: ThemeOptions["palette"] = {
     black: customColors.black,
     white: customColors.white,
   },
+  // @todo override other mui palette fields to match design
 };
