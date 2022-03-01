@@ -2,12 +2,15 @@ import { gql } from "apollo-server-express";
 
 export const pagePaginationTypedef = gql`
   """
+  Information returned with paginated queries.
+
   Each pagination specifies if there are more results to request.
   Please use the 'nextPageCursor' for every subsequent pagination request with the 'after' parameter.
   """
   type PageInfo {
     # could also just be a nextPageCursor since its presence encodes the boolean
-    # kept in to comply with spec.
+    # kept in to comply with the Connections spec.
+    # @see https://relay.dev/graphql/connections.htm
     hasNextPage: Boolean!
     """
     Number of pages that can be paginated.
@@ -21,6 +24,8 @@ export const pagePaginationTypedef = gql`
   }
 
   """
+  An edge of a paginated query result.
+
   There are no cursors per-edge currently.
   """
   type PageSearchResultEdge {
@@ -55,10 +60,10 @@ export const pagePaginationTypedef = gql`
       Number of pages to return for each result set.
       This does not change the number of pages returned when using a cursor.
       """
-      pageSize: Int! = 20
+      pageSize: Int = 20
       """
       Cursor used to continue pagination.
-      Please re-set the cursor to 'nextPageCursor' after each pagination.
+      Please use the value of 'nextPageCursor' from the previous results.
       """
       after: String
     ): PageSearchResultConnection!

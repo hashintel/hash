@@ -70,16 +70,12 @@ export const pageSearchResultConnection: Resolver<
         // These will contain a "belongsToParent" property
         entityTypeId: {
           query: textType.entityId,
-          // Fuzziness is set to 0, such that an ID that is lexicographically similar don't match
-          // This filter used to be done in resolvers.
           fuzziness: 0,
           operator: "and",
           presence: "must",
         },
         "belongsToPage.accountId": {
           query: accountId,
-          // Fuzziness is set to 0, such that an ID that is lexicographically similar don't match
-          // This filter used to be done in resolvers.
           fuzziness: 0,
           operator: "and",
           presence: "must",
@@ -88,20 +84,14 @@ export const pageSearchResultConnection: Resolver<
     }));
   } else {
     throw new UserInputError(
-      "Could not execute search. Please revise arguments.",
+      "Could not execute search. Please supply one of (i) 'after' OR (ii) 'query' with an optional non-zero 'pageSize'.",
     );
   }
 
-  // For all text entity matches, find the pages and the blocks within those pages where
-  // the text match is present. Include hits corresponding only to the latest version
-  // of a page.
-  // Note: we filter the resulting array to keep only those pages which match the
-  // `accountId` set in the query. A page may link to entities which belong to a
-  // different account to that of the page. We don't filter by the `accountId` before this
-  // point as it would remove these pages with cross-account links.
-
-  // @todo: filtering already happens in the search index, this filtering should be redundant.
-  // it is used for type assertion only.
+  /**
+   * @todo: filtering already happens in the search index, this filtering should be redundant.
+   * it is used for type assertion only.
+   */
   const textMatches = hits
     .filter(
       (hit): hit is TextSearchHit =>

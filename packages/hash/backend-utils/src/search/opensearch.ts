@@ -51,7 +51,9 @@ const generateSearchBody = (params: SearchParameters) => {
   const fields = Object.entries(params.fields);
   if (
     fields.some(
-      ([_, it]) => typeof it.fuzziness === "number" && it.fuzziness < 0,
+      ([_, it]) =>
+        it.fuzziness !== "AUTO" &&
+        (!Number.isInteger(it.fuzziness) || it.fuzziness < 0),
     )
   ) {
     throw new Error(`Fuzziness must be a non-negative integer or "AUTO"`);
@@ -232,11 +234,11 @@ export class OpenSearch extends DataSource implements SearchAdapter {
    * Decide whether to increment the search cursor or to clear it.
    * If there are no more pages left (we've seen all `total` hits) then clear
    *
-   * @param hitCount number of hits in the result
-   * @param seenCount number of hits seen so far (not including the newly seen)
-   * @param total  number of hits for the whole search
-   * @param openSearchCursor cursor used to receive current result
-   * @param nextOpenSearchCursor cursor to use after the current result
+   * @param params.hitCount number of hits in the result
+   * @param params.seenCount number of hits seen so far (not including the newly seen)
+   * @param params.total  number of hits for the whole search
+   * @param params.openSearchCursor cursor used to receive the current result
+   * @param params.nextOpenSearchCursor cursor to retrieve results after the current results
    * @returns a search cursor that contain more data or `undefined`
    */
   private async incrementOrClearOpenSearchCursor(params: {
@@ -266,7 +268,10 @@ export class OpenSearch extends DataSource implements SearchAdapter {
       return await this.clearScrollAndReturnUndefined(openSearchCursor);
     }
 
-    // A new cursor requires the page to have hits and a proper next cursor
+    /**
+     * The next cursor requires the page to have hits and that a OpenSearch cursor exists.
+     * We close the current cursor if we're at the end of pagination - this does not happen automatically.
+     */
     const nextCursor =
       nextOpenSearchCursor && seenSoFar < total
         ? opaqueCursorToString({
@@ -277,7 +282,7 @@ export class OpenSearch extends DataSource implements SearchAdapter {
         : await this.clearScrollAndReturnUndefined(openSearchCursor);
 
     // Only return a new search cursor if this is not the final page
-    // If there are not hits in the page, the newCursor will be undefiend as well.
+    // If there are not hits in the page, the newCursor will be undefined as well.
     return seenCount < total ? nextCursor : undefined;
   }
 

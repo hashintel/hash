@@ -99,7 +99,7 @@ export interface SearchAdapter extends DataSource {
 
   /**
    * Continue paginating given a cursor
-   * @param params.cursor the search cursor to fetch hits form
+   * @param params.cursor the search cursor to fetch hits from
    * */
   continuePaginatedSearch(params: {
     cursor: SearchCursor;
