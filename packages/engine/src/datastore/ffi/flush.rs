@@ -196,7 +196,6 @@ unsafe fn node_into_prepared_array_data(
         child_data,
         null_buffer,
         buffers,
-        _node_index: node_index,
     };
 
     Ok((prepared, next_node_index))
@@ -208,7 +207,6 @@ pub struct PreparedArrayData<'a> {
     child_data: Vec<PreparedArrayData<'a>>,
     null_buffer: Option<&'a [u8]>,
     buffers: Vec<&'a [u8]>,
-    _node_index: usize, // TODO: unused, delete?
 }
 
 impl GrowableArrayData for PreparedArrayData<'_> {

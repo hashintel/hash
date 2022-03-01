@@ -1,8 +1,4 @@
 pub mod create_remove;
-// TODO: UNUSED: Needs triage
-pub mod hash_message;
-// TODO: UNUSED: Needs triage
-pub mod message;
 pub mod view;
 
 use std::sync::Arc;
@@ -157,11 +153,6 @@ impl State {
 
     pub fn message_pool(&self) -> &MessagePool {
         &self.state.message_pool
-    }
-
-    // TODO: UNUSED: Needs triage
-    pub fn message_pool_mut(&mut self) -> &mut MessagePool {
-        &mut self.state.message_pool
     }
 
     pub fn read(&self) -> Result<StateReadProxy> {

@@ -612,7 +612,7 @@ impl WorkerController {
 
         let context = task.shared_store.context().clone();
         let shared_stores = match task.shared_store.state {
-            SharedState::None | SharedState::Write(_) | SharedState::Read(_) => {
+            SharedState::None | SharedState::Write(_) => {
                 // Run the task on all groups
                 vec![(None, task.shared_store)]
             }

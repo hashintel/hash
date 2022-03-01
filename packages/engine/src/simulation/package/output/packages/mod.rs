@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use self::{analysis::AnalysisOutput, json_state::JsonStateOutput};
 use super::PackageCreator;
 use crate::{
-    datastore::table::task_shared_store::{SharedContext, SharedState},
+    datastore::table::task_shared_store::SharedState,
     simulation::{
         enum_dispatch::*,
         package::{id::PackageIdGenerator, name::PackageName, PackageMetadata, PackageType},
@@ -60,9 +60,7 @@ impl StoreAccessVerify for OutputTask {
     fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
         let state = &access.state;
         let context = access.context();
-        if (matches!(state, SharedState::Read(_)) || matches!(state, SharedState::None))
-            && (matches!(context, SharedContext::Read) || matches!(context, SharedContext::None))
-        {
+        if matches!(state, SharedState::None) {
             Ok(())
         } else {
             Err(Error::access_not_allowed(state, context, "Output".into()))

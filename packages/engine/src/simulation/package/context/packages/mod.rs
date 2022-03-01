@@ -50,9 +50,7 @@ impl StoreAccessVerify for ContextTask {
     fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
         let state = &access.state;
         let context = access.context();
-        if (matches!(state, SharedState::Read(_)) || matches!(state, SharedState::None))
-            && matches!(context, SharedContext::None)
-        {
+        if matches!(state, SharedState::None) && matches!(context, SharedContext::None) {
             Ok(())
         } else {
             Err(Error::access_not_allowed(state, context, "Context".into()))

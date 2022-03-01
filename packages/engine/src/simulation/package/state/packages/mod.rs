@@ -52,9 +52,7 @@ impl StoreAccessVerify for StateTask {
         let state = &access.state;
         let context = access.context();
         // All combinations (as of now) are allowed (but still being explicit)
-        if (matches!(state, SharedState::Write(_))
-            || matches!(state, SharedState::Read(_))
-            || matches!(state, SharedState::None))
+        if (matches!(state, SharedState::Write(_)) || matches!(state, SharedState::None))
             && (matches!(context, SharedContext::Read) || matches!(context, SharedContext::None))
         {
             Ok(())
