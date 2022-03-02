@@ -65,54 +65,54 @@ const pageFieldsFragment = gql`
       createdAt
       entityVersionId
     }
-    properties {
+    contents {
       __typename
-      archived
-      summary
-      title
-      contents {
+      entityVersionId
+      entityId
+      accountId
+      updatedAt
+      createdAt
+      entityVersionCreatedAt
+      createdByAccountId
+      data {
         __typename
         entityVersionId
         entityId
         accountId
         updatedAt
         createdAt
+        entityTypeId
+        entityTypeVersionId
         entityVersionCreatedAt
         createdByAccountId
-        properties {
-          componentId
-          entity {
-            __typename
-            entityVersionId
-            entityId
-            accountId
-            updatedAt
-            createdAt
-            entityTypeId
-            entityTypeVersionId
-            entityVersionCreatedAt
-            createdByAccountId
-            properties
-            linkGroups {
-              links {
-                ...LinkFields
-              }
-              sourceEntityId
-              sourceEntityVersionId
-              path
-            }
-            linkedEntities {
-              accountId
-              entityId
-              entityTypeId
-              properties
-            }
-            linkedAggregations {
-              ...LinkedAggregationsFields
-            }
+        properties
+        linkGroups {
+          links {
+            ...LinkFields
           }
+          sourceEntityId
+          sourceEntityVersionId
+          path
+        }
+        linkedEntities {
+          accountId
+          entityId
+          entityTypeId
+          properties
+        }
+        linkedAggregations {
+          ...LinkedAggregationsFields
         }
       }
+      properties {
+        componentId
+      }
+    }
+    properties {
+      __typename
+      archived
+      summary
+      title
     }
   }
   ${linkFieldsFragment}
