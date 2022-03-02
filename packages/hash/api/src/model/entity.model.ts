@@ -452,11 +452,6 @@ class __Entity {
       source: this,
     });
 
-    // If this is a versioned entity, fetch the updated entityVersionId
-    if (this.metadata.versioned) {
-      await this.refetchLatestVersion(client);
-    }
-
     return link;
   }
 
@@ -478,10 +473,6 @@ class __Entity {
     await link.delete(client, {
       deletedByAccountId: params.deletedByAccountId,
     });
-
-    if (this.metadata.versioned) {
-      await this.refetchLatestVersion(client);
-    }
   }
 
   private static async getOrCreate(
