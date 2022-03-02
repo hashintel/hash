@@ -1,4 +1,4 @@
-import { UserInputError } from "apollo-server-express";
+import { UserInputError, ApolloError } from "apollo-server-express";
 import {
   Block,
   Entity,
@@ -20,7 +20,6 @@ import {
   Page as GQLPage,
   LinkedEntityDefinition,
 } from "../graphql/apiTypes.gen";
-import { SystemType } from "../types/entityTypes";
 
 export type PageExternalResolvers =
   | EntityExternalResolvers
@@ -29,7 +28,6 @@ export type PageExternalResolvers =
 
 export type UnresolvedGQLPage = Omit<GQLPage, PageExternalResolvers> & {
   entityType: UnresolvedGQLEntityType;
-  properties: Omit<GQLPage["properties"], "contents">;
 };
 
 export type PageConstructorArgs = {
@@ -40,12 +38,9 @@ export type PageConstructorArgs = {
 class __Page extends Entity {
   properties: DbPageProperties;
 
-  parentEntityId?: string;
-
   constructor(args: PageConstructorArgs) {
     super(args);
     this.properties = args.properties;
-    this.parentEntityId = args.outgoingEntityIds?.[0] ?? undefined;
   }
 
   static async getEntityType(client: DBClient): Promise<EntityType> {
@@ -151,36 +146,158 @@ class __Page extends Entity {
       entityId,
     });
 
-    if (dbPage?.entityTypeId !== (await this.getEntityType(client)).entityId) {
-      return null;
+    if (dbPage) {
+      if (dbPage.entityTypeId !== (await Page.getEntityType(client)).entityId) {
+        throw new Error(
+          `Entity with entityId ${entityId} in account ${accountId} is not a Page`,
+        );
+      }
+      return new Page(dbPage);
     }
 
-    return new Page(dbPage);
+    return null;
   }
 
-  static async getAccountPagesWithParents(
+  static async getAllPagesInAccount(
     client: DBClient,
     params: {
       accountId: string;
-      systemTypeName: SystemType;
     },
   ): Promise<Page[]> {
-    const dbEntities = await client.getEntitiesByTypeWithOutgoingEntityIds(
-      params,
-    );
+    const pageEntities = await Entity.getEntitiesBySystemType(client, {
+      accountId: params.accountId,
+      systemTypeName: "Page",
+      latestOnly: true,
+    });
 
-    return dbEntities.map((dbEntity) => new Page(dbEntity));
+    return await Promise.all(
+      pageEntities.map((entity) => Page.fromEntity(client, entity)),
+    );
   }
 
-  static async getAccountPageWithParents(
+  static async fromEntity(client: DBClient, entity: Entity): Promise<Page> {
+    if (
+      entity.entityType.entityId !== (await Page.getEntityType(client)).entityId
+    ) {
+      throw new Error(
+        `Entity with entityId ${entity.entityId} does not have the Pag system type as its entity type`,
+      );
+    }
+    return new Page({
+      ...entity,
+      properties: entity.properties as DbPageProperties,
+    });
+  }
+
+  async getParentPage(client: DBClient): Promise<Page | null> {
+    const parentPageLinks = await this.getOutgoingLinks(client, {
+      path: ["parent"],
+    });
+
+    if (parentPageLinks.length > 1) {
+      throw new Error(
+        `Critical: Page with entityId ${this.entityId} in account ${this.accountId} has more than one parent page`,
+      );
+    }
+    if (parentPageLinks.length === 0) {
+      return null;
+    }
+    const [parentPageLink] = parentPageLinks;
+
+    const destinationEntity = await parentPageLink.getDestination(client);
+
+    return await Page.fromEntity(client, destinationEntity);
+  }
+
+  async hasParentPage(
     client: DBClient,
     params: {
-      accountId: string;
-      entityId: string;
+      page: Page;
     },
-  ): Promise<Page | null> {
-    const dbEntity = await client.getEntityWithOutgoingEntityIds(params);
-    return dbEntity ? new Page(dbEntity) : null;
+  ): Promise<boolean> {
+    const { page } = params;
+
+    if (this.entityId === page.entityId) {
+      throw new Error("A page cannot be the parent of itself");
+    }
+
+    const parentPage = await this.getParentPage(client);
+
+    if (!parentPage) {
+      return false;
+    }
+
+    if (parentPage.entityId === page.entityId) {
+      return true;
+    }
+
+    return parentPage.hasParentPage(client, params);
+  }
+
+  async deleteParentPage(
+    client: DBClient,
+    params: {
+      removedByAccountId: string;
+    },
+  ): Promise<void> {
+    const parentPageLinks = await this.getOutgoingLinks(client, {
+      path: ["parent"],
+    });
+
+    if (parentPageLinks.length > 1) {
+      throw new Error(
+        `Critical: Page with entityId ${this.entityId} in account ${this.accountId} has more than one parent page`,
+      );
+    }
+    if (parentPageLinks.length === 0) {
+      throw new Error(
+        `Page with entityId ${this.entityId} in account ${this.accountId} does not have a parent page`,
+      );
+    }
+    const [parentPageLink] = parentPageLinks;
+
+    const { removedByAccountId: deletedByAccountId } = params;
+
+    await this.deleteOutgoingLink(client, {
+      linkId: parentPageLink.linkId,
+      deletedByAccountId,
+    });
+  }
+
+  async setParentPage(
+    client: DBClient,
+    params: {
+      parentPage: Page | null;
+      setByAccountId: string;
+    },
+  ): Promise<void> {
+    const { setByAccountId } = params;
+
+    const existingParentPage = await this.getParentPage(client);
+
+    if (existingParentPage) {
+      await this.deleteParentPage(client, {
+        removedByAccountId: setByAccountId,
+      });
+    }
+
+    const { parentPage } = params;
+
+    if (parentPage) {
+      /** Check whether adding the parent page would create a cycle */
+      if (await parentPage.hasParentPage(client, { page: this })) {
+        throw new ApolloError(
+          `Could not set '${parentPage.entityId}' to '${this.entityId}' as this would create a cyclic dependency.`,
+          "CYCLIC_TREE",
+        );
+      }
+
+      await this.createOutgoingLink(client, {
+        createdByAccountId: setByAccountId,
+        stringifiedPath: "$.parent",
+        destination: parentPage,
+      });
+    }
   }
 
   async getBlocks(client: DBClient): Promise<Block[]> {
@@ -306,14 +423,6 @@ class __Page extends Entity {
 
     /** @todo: remove when modifying links no longer creates new versions of the source entity */
     await this.refetchLatestVersion(client);
-  }
-
-  toGQLPageEntity(): UnresolvedGQLPage {
-    return {
-      ...this.toGQLEntity(),
-      parentPageId: this.parentEntityId,
-      properties: this.properties,
-    };
   }
 }
 

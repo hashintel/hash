@@ -143,7 +143,7 @@ export const getPage = gql`
 
 export const getAccountPagesTree = gql`
   query getAccountPagesTree($accountId: ID!) {
-    accountPages(accountId: $accountId, structure: Tree) {
+    accountPages(accountId: $accountId) {
       entityId
       properties {
         title

@@ -51,11 +51,7 @@ import {
   updateEntityAccountId,
   getAccountEntities,
 } from "./entity";
-import {
-  getEntitiesByTypeWithOutgoingEntityIds,
-  getEntityOutgoingLinks,
-  getEntityWithOutgoingEntityIds,
-} from "./link/getEntityOutgoingLinks";
+import { getEntityOutgoingLinks } from "./link/getEntityOutgoingLinks";
 import { getLink, getLinkByEntityId } from "./link/getLink";
 import { createLink } from "./link/createLink";
 import { deleteLink } from "./link/deleteLink";
@@ -438,41 +434,6 @@ export class PostgresClient implements DBClient {
     return params.latestOnly
       ? await getEntitiesByTypeLatestVersion(this.conn, queryParams)
       : await getEntitiesByTypeAllVersions(this.conn, queryParams);
-  }
-
-  async getEntitiesByTypeWithOutgoingEntityIds(
-    params: Parameters<DBClient["getEntitiesByTypeWithOutgoingEntityIds"]>[0],
-  ): ReturnType<DBClient["getEntitiesByTypeWithOutgoingEntityIds"]> {
-    let entityTypeId: string = "";
-
-    if (params.entityTypeId) {
-      entityTypeId = params.entityTypeId;
-    } else if (params.systemTypeName) {
-      const { entity_type_id } = await this.conn.one<{
-        entity_type_id: string;
-      }>(selectSystemEntityTypeIds({ systemTypeName: params.systemTypeName }));
-
-      entityTypeId = entity_type_id ?? "";
-    }
-
-    if (!entityTypeId) {
-      throw new Error(
-        `Did not receive valid entityTypeId or systemTypeName for fetching outgoing entity ids for entity by entityTypeId. entityTypeId = '${params.entityTypeId}' systemTypeName = '${params.systemTypeName}'`,
-      );
-    }
-
-    const queryParams = {
-      entityTypeId,
-      accountId: params.accountId,
-    };
-
-    return await getEntitiesByTypeWithOutgoingEntityIds(this.conn, queryParams);
-  }
-
-  async getEntityWithOutgoingEntityIds(
-    params: Parameters<DBClient["getEntityWithOutgoingEntityIds"]>[0],
-  ): ReturnType<DBClient["getEntityWithOutgoingEntityIds"]> {
-    return getEntityWithOutgoingEntityIds(this.conn, params);
   }
 
   /** Get all entities of a given type in a given account. */

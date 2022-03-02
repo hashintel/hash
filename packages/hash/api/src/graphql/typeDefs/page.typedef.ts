@@ -131,11 +131,6 @@ export const pageTypedef = gql`
     content: String!
   }
 
-  enum PageStructure {
-    Flat
-    Tree
-  }
-
   extend type Query {
     """
     Return a page by its id
@@ -145,7 +140,7 @@ export const pageTypedef = gql`
     """
     Return a list of pages belonging to an account
     """
-    accountPages(accountId: ID!, structure: PageStructure = Flat): [Page!]!
+    accountPages(accountId: ID!): [Page!]!
 
     """
     Search for pages matching a query string.
