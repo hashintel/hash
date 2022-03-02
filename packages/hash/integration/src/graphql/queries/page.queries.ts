@@ -171,7 +171,7 @@ export const updatePageContents = gql`
 `;
 
 export const setPageParent = gql`
-  mutation setParentPage($accountId: ID!, $pageId: ID!, $parentPageId: ID!) {
+  mutation setParentPage($accountId: ID!, $pageId: ID!, $parentPageId: ID) {
     setParentPage(
       accountId: $accountId
       pageId: $pageId

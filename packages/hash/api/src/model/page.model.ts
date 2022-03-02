@@ -22,10 +22,14 @@ import {
 } from "../graphql/apiTypes.gen";
 import { SystemType } from "../types/entityTypes";
 
-export type PageExternalResolvers = EntityExternalResolvers | "contents"; // contents resolved in `src/graphql/resolvers/pages/linkedEntities.ts`
+export type PageExternalResolvers =
+  | EntityExternalResolvers
+  | "contents" // contents resolved in `src/graphql/resolvers/pages/linkedEntities.ts`
+  | "properties"; // properties.contents is deprecated, and resolved seperately.
 
 export type UnresolvedGQLPage = Omit<GQLPage, PageExternalResolvers> & {
   entityType: UnresolvedGQLEntityType;
+  properties: Omit<GQLPage["properties"], "contents">;
 };
 
 export type PageConstructorArgs = {
@@ -147,9 +151,11 @@ class __Page extends Entity {
       entityId,
     });
 
-    /** @todo: ensure this is entity has the page system type */
+    if (dbPage?.entityTypeId !== (await this.getEntityType(client)).entityId) {
+      return null;
+    }
 
-    return dbPage ? new Page(dbPage) : null;
+    return new Page(dbPage);
   }
 
   static async getAccountPagesWithParents(
@@ -300,6 +306,14 @@ class __Page extends Entity {
 
     /** @todo: remove when modifying links no longer creates new versions of the source entity */
     await this.refetchLatestVersion(client);
+  }
+
+  toGQLPageEntity(): UnresolvedGQLPage {
+    return {
+      ...this.toGQLEntity(),
+      parentPageId: this.parentEntityId,
+      properties: this.properties,
+    };
   }
 }
 

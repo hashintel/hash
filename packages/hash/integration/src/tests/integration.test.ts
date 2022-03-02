@@ -1521,6 +1521,30 @@ describe("logged in user ", () => {
         parentPageId: superPage.entityId,
       });
     });
+
+    it("Allow removing parents", async () => {
+      // - Super page 1
+      //   - sub page 1
+      // - sub sub page 1 <- changed to be a top-level page
+      const title = "sub sub page 1";
+
+      const result = await client.setParentPage({
+        accountId: existingUser.accountId,
+        pageId: subSubPage.entityId,
+        parentPageId: null,
+      });
+
+      const pageTree = await client.getAccountPagesTree({
+        accountId: existingUser.accountId,
+      });
+
+      expect(result.entityId).toEqual(subSubPage.entityId);
+      expect(pageTree).toContainEqual({
+        entityId: subSubPage.entityId,
+        properties: { title },
+        parentPageId: null,
+      });
+    });
   });
 
   it("can only create 5 login codes before being rate limited", async () => {

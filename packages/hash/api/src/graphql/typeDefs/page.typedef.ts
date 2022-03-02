@@ -258,7 +258,12 @@ export const pageTypedef = gql`
       properties: PageUpdateData!
     ): Page!
 
-    setParentPage(accountId: ID!, pageId: ID!, parentPageId: ID!): Page!
+    """
+    Set the parent of a page
+
+    If the parentPageId is not set, any existing page link is removed.
+    """
+    setParentPage(accountId: ID!, pageId: ID!, parentPageId: ID): Page!
 
     """
     Atomically update the contents of a page.
