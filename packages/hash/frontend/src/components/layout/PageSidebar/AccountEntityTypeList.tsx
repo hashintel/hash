@@ -1,5 +1,4 @@
 import { VFC, useState } from "react";
-import Link from "next/link";
 import { tw } from "twind";
 
 import { TreeView, TreeItem } from "@mui/lab";
@@ -8,11 +7,16 @@ import {
   faAdd,
   faChevronDown,
   faChevronRight,
+  faEllipsis,
   faSearch,
+  faArrowUpAZ,
 } from "@fortawesome/free-solid-svg-icons";
 // import styles from "./PageSidebar.module.scss";
 import { useAccountEntityTypes } from "../../hooks/useAccountEntityTypes";
 import { FontAwesomeSvgIcon } from "../../icons";
+import { NavLink } from "./NavLink";
+import { Link } from "../../Link";
+import { EntityTypeMenu } from "./EntityTypeMenu";
 
 type AccountEntityTypeListProps = {
   accountId: string;
@@ -21,56 +25,11 @@ type AccountEntityTypeListProps = {
 export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
   accountId,
 }) => {
-  const [visible, setVisible] = useState(false);
   const { data } = useAccountEntityTypes(accountId);
 
   return (
     <Box>
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          padding: "9px 18px",
-          mx: 0.5,
-          "&:hover": {
-            backgroundColor: ({ palette }) => palette.gray[20],
-          },
-        }}
-      >
-        <Typography
-          variant="smallCaps"
-          sx={{
-            mr: 1.4,
-            color: ({ palette }) => palette.gray[50],
-          }}
-        >
-          Types
-        </Typography>
-        <IconButton
-          sx={{
-            mr: "auto",
-          }}
-          onClick={() => setVisible((prev) => !prev)}
-        >
-          <FontAwesomeSvgIcon
-            sx={{
-              color: ({ palette }) => palette.gray[40],
-              fontSize: 12,
-              transform: visible ? `rotate(90deg)` : "none",
-            }}
-            icon={faChevronRight}
-          />
-        </IconButton>
-
-        <IconButton>
-          <FontAwesomeSvgIcon
-            icon={faAdd}
-            sx={{ fontSize: 12, color: ({ palette }) => palette.gray[40] }}
-          />
-        </IconButton>
-      </Box>
-
-      <Collapse in={visible}>
+      <NavLink title="Types" addButtonTooltip="Create new type">
         <Box component="ul">
           <Box
             component="li"
@@ -92,7 +51,7 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
               <FontAwesomeSvgIcon icon={faSearch} />
             </IconButton>
             <IconButton>
-              <FontAwesomeSvgIcon icon={faSearch} />
+              <FontAwesomeSvgIcon icon={faArrowUpAZ} />
             </IconButton>
           </Box>
           {data?.getAccountEntityTypes.map((entityType) => {
@@ -102,41 +61,62 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
                 sx={{
                   mx: 0.5,
                   pl: 3.75,
+                  pr: "4px",
+                  borderRadius: "4px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  color: ({ palette }) => palette.gray[70],
+
+                  "& .entity-type-menu": {
+                    visibility: "hidden",
+                  },
+
                   "&:hover": {
                     backgroundColor: ({ palette }) => palette.gray[20],
+                    color: ({ palette }) => palette.gray[80],
+
+                    "& .entity-type-menu": {
+                      visibility: "visible",
+                    },
+                  },
+
+                  "&:focus": {
+                    "& .entity-type-menu": {
+                      visibility: "visible",
+                    },
                   },
                 }}
                 key={entityType.entityId}
               >
-                <Link href={`/${accountId}/types/${entityType.entityId}`}>
+                <Link
+                  noLinkStyle
+                  href={`/${accountId}/types/${entityType.entityId}`}
+                  sx={{
+                    py: "8px",
+                    flex: 1,
+                    color: "inherit",
+                  }}
+                >
                   <Typography
                     variant="smallTextLabels"
                     sx={{
-                      color: ({ palette }) => palette.gray[50],
+                      color: "inherit",
                     }}
                   >
                     {entityType.properties.title}
                   </Typography>
                 </Link>
+                <EntityTypeMenu className="entity-type-menu" />
               </Box>
             );
           })}
         </Box>
-      </Collapse>
+      </NavLink>
     </Box>
   );
 
   // return (
-  //   <div className={styles.SidebarList}>
-  //     {data?.getAccountEntityTypes.map((entityType) => {
-  //       return (
-  //         <div key={entityType.entityId}>
-  //           <Link href={`/${accountId}/types/${entityType.entityId}`}>
-  //             <a>{entityType.properties.title}</a>
-  //           </Link>
-  //         </div>
-  //       );
-  //     })}
   //     <Link href={`/${accountId}/types/new`}>
   //       <a className={tw`inline-block hover:border-transparent`}>
   //         <Button>Create Entity Type</Button>

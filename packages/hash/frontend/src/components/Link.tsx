@@ -7,12 +7,14 @@ import NextLink, { LinkProps as NextLinkProps } from "next/link";
 // eslint-disable-next-line no-restricted-imports
 import MuiLink, { LinkProps as MuiLinkProps } from "@mui/material/Link";
 import { styled } from "@mui/material/styles";
-import { Button, useTheme } from "@mui/material";
+import { MuiButton } from "./MuiButton";
+import { FRONTEND_URL } from "../lib/config";
 
 export const isHrefExternal = (href: string | UrlObject) =>
   typeof href === "string" &&
   (href === "/discord" ||
-    !/^(mailto:|#|\/|https:\/\/blockprotocol\.org)/.test(href));
+    !/^(mailto:|#|\/|https:\/\/blockprotocol\.org)/.test(href)) &&
+  !href.startsWith(FRONTEND_URL);
 
 /**
  * This component is based on https://github.com/mui-org/material-ui/blob/a5c92dfd84dfe5888a8b383a9b5fe5701a934564/examples/nextjs/src/Link.js
@@ -68,7 +70,6 @@ export const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
       ...other
     } = props;
 
-    const theme = useTheme();
     const router = useRouter();
     const pathname = typeof href === "string" ? href : href.pathname;
     const className = clsx(classNameProps, {
@@ -77,7 +78,7 @@ export const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
 
     if (process.env.NODE_ENV !== "production") {
       const children = other.children;
-      if (React.isValidElement(children) && children.type === Button) {
+      if (React.isValidElement(children) && children.type === MuiButton) {
         throw new Error(
           "Please use <LinkButton /> instead of <Link><Button /></Link>",
         );
@@ -91,7 +92,6 @@ export const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
       if (noLinkStyle) {
         return (
           <Anchor
-            sx={{ ":hover": { borderBottom: "none" } }}
             className={className}
             href={href as string}
             ref={ref}
@@ -114,10 +114,8 @@ export const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
       return (
         <NextLinkComposed
           sx={{
-            borderBottom: "0px",
-            ":hover": { borderBottom: "0px", borderBottomColor: "transparent" },
             ":focus": {
-              outlineColor: theme.palette.blue["70"],
+              outlineColor: ({ palette }) => palette.blue["70"],
             },
           }}
           className={className}

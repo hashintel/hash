@@ -1,3 +1,4 @@
+import { MuiTooltipThemeOptions } from "./dataDisplay/MuiTooltipThemeOptions";
 import { ThemeOptions } from "@mui/material";
 import { MuiButtonThemeOptions } from "./inputs/MuiButtonThemeOptions";
 import { MuiDrawerThemeOptions } from "./navigation/MuiDrawerThemeOptions";
@@ -10,6 +11,7 @@ export const components: ThemeOptions["components"] = {
   MuiButton: MuiButtonThemeOptions,
   /** ===== DATA DISPLAY ===== */
   MuiIconButton: MuiIconButtonThemeOptions,
+  MuiTooltip: MuiTooltipThemeOptions,
   /** ===== FEEDBACK ===== */
   /** ===== SURFACES ===== */
   /** ===== NAVIGATION ===== */

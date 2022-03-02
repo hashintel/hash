@@ -228,6 +228,15 @@ export const MuiCssBaselineThemeOptions: Components["MuiCssBaseline"] = {
             overflow: auto;
           }
 
+          a {
+            text-decoration: none;
+            color: initial;
+
+            &:visited {
+              color: initial;
+            }
+          }
+
           body, p {
             font-size: var(--step-0);
             font-weight: 400;

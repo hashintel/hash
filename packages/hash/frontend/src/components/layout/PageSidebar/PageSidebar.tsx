@@ -1,7 +1,7 @@
 import { VoidFunctionComponent } from "react";
 
 import { useRouter } from "next/router";
-import { Box, Drawer, Typography, IconButton } from "@mui/material";
+import { Box, Drawer, Typography, IconButton, Tooltip } from "@mui/material";
 import { AccountSelect } from "./AccountSelect";
 import { AccountPageList } from "./AccountPageList";
 
@@ -17,9 +17,10 @@ import {
   faPencil,
   faZap,
 } from "@fortawesome/free-solid-svg-icons";
-import { NavLink } from "./NavLink";
+import { TopNavLink } from "./TopNavLink";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { useSidebarContext } from "../SidebarContext";
+import { NavLink } from "./NavLink";
 
 export const SIDEBAR_WIDTH = 260;
 
@@ -27,8 +28,6 @@ export const PageSidebar: VoidFunctionComponent = () => {
   const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebarContext();
   const { accountId, pageEntityId } = router.query as Record<string, string>;
-
-  console.log("sidebarOpen ==> ", sidebarOpen);
 
   const goToAccount = (id: string) => router.push(`/${id}`);
 
@@ -44,22 +43,39 @@ export const PageSidebar: VoidFunctionComponent = () => {
         <Box sx={{ flex: 1, overflowX: "hidden" }}>
           <WorkspaceSwitcher />
         </Box>
-        <IconButton
-          sx={{
-            height: 36,
-            width: 36,
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-          onClick={closeSidebar}
-        >
-          <FontAwesomeSvgIcon icon={faPencil} sx={{ fontSize: 24 }} />
-        </IconButton>
+        <Tooltip title="Collapse Sidebar">
+          <IconButton
+            sx={{
+              height: 32,
+              width: 32,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+            onClick={closeSidebar}
+          >
+            <FontAwesomeSvgIcon icon={faPencil} sx={{ fontSize: 16 }} />
+          </IconButton>
+        </Tooltip>
       </Box>
-      <NavLink icon={faHome} title="Home" to="/" />
-      <NavLink icon={faZap} title="Quick Capture" to="/" />
-      <NavLink icon={faHistory} title="Recently visited" to="/" />
+      <TopNavLink
+        icon={faHome}
+        title="Home"
+        href="/"
+        tooltipTitle="View your inbox and latest activity"
+      />
+      <TopNavLink
+        icon={faZap}
+        title="Quick Capture"
+        href="/"
+        tooltipTitle="Quickly create notes, entities, and types"
+      />
+      <TopNavLink
+        icon={faHistory}
+        title="Recently visited"
+        href="/"
+        tooltipTitle="Pages you’ve recently visited"
+      />
       <Box sx={{ mb: 1.5 }} />
 
       <Box
@@ -69,38 +85,11 @@ export const PageSidebar: VoidFunctionComponent = () => {
         }}
       >
         {/* PAGES */}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            padding: "9px 18px",
-            mx: 0.5,
-          }}
-        >
-          <Typography
-            variant="smallCaps"
-            sx={{
-              mr: 1.4,
-              color: ({ palette }) => palette.gray[50],
-            }}
-          >
-            Pages
-          </Typography>
-          <FontAwesomeSvgIcon
-            sx={{
-              mr: "auto",
-              color: ({ palette }) => palette.gray[40],
-              fontSize: 12,
-            }}
-            icon={faChevronRight}
-          />
-          <IconButton>
-            <FontAwesomeSvgIcon
-              icon={faAdd}
-              sx={{ fontSize: 12, color: ({ palette }) => palette.gray[40] }}
-            />
-          </IconButton>
-        </Box>
+        <AccountPageList
+          currentPageEntityId={pageEntityId}
+          accountId={accountId}
+        />
+
         {/* TYPES */}
         <AccountEntityTypeList accountId={accountId} />
 
