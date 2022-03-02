@@ -4,12 +4,7 @@ import {
   TaggedTemplateLiteralInvocationType,
 } from "slonik";
 import { EntityWithOutgoingEntityIds } from "../../adapter";
-import {
-  EntityPGRow,
-  mapPGRowToEntity,
-  selectEntities,
-  selectEntitiesByType,
-} from "../entity";
+import { EntityPGRow, mapPGRowToEntity, selectEntities } from "../entity";
 
 import { Connection } from "../types";
 import { mapColumnNamesToSQL } from "../util";
@@ -77,26 +72,6 @@ const entitiesOutgoingLinksQuery = (
     select * from distinct_entitites as a
     left join lateral (${outgoingLinkAggregationQuery}) as l on true
   `;
-
-/**
- * Get the latest version of all entities of a given type and their outgoing link ids with a matching entity type.
- * @param params.entityTypeId the entity type id to return entities of
- * @param params.entityTypeVersionId optionally limit to entities of a specific version of a type
- * @param params.accountId the account to retrieve entities from
- */
-export const getEntitiesByTypeWithOutgoingEntityIds = async (
-  conn: Connection,
-  params: {
-    entityTypeId: string;
-    entityTypeVersionId?: string;
-    accountId: string;
-  },
-): Promise<EntityWithOutgoingEntityIds[]> => {
-  const rows = await conn.any<EntityWithOutgoingEntityIdsPGRow>(
-    entitiesOutgoingLinksQuery(selectEntitiesByType(params)),
-  );
-  return rows.map(mapEntityWithOutgoingEntityIdsPGRowToEntity);
-};
 
 /**
  * Get the latest version of a given entity and all outgoing link ids with a matching entity type.
