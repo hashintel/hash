@@ -88,6 +88,7 @@ pub enum InnerShiftAction {
         // new index of the base offset, relative to the start of the buffer
         base_offset_index: usize,
     },
+    // TODO: UNUSED: Needs triage
     LargeOffset {
         // Starting old index relative to the offset of the old buffer
         from: usize,
@@ -454,7 +455,7 @@ impl<'a> BufferActions<'a> {
         parent_range_actions: &RangeActions,
         batch: Option<&B>,
         batches: &[B],
-        new_agents: Option<&'b Arc<arrow::array::ArrayData>>,
+        new_agents: Option<&'b arrow::array::ArrayData>,
         actions: &mut Vec<BufferAction<'b>>,
         buffer_metas: &mut Vec<Buffer>,
         node_metas: &mut Vec<Node>,
@@ -585,7 +586,7 @@ impl<'a> BufferActions<'a> {
                         };
 
                         if let Some(buffer) = maybe_buffer {
-                            let src_buffer = buffer.data();
+                            let src_buffer = buffer.as_slice();
                             range_actions.create().iter().for_each(|range| {
                                 unset_bit_count += copy_bits_unchecked(
                                     src_buffer,
@@ -609,11 +610,9 @@ impl<'a> BufferActions<'a> {
                                 );
                                 if range.len > 0 {
                                     unsafe {
-                                        bit_util::set_bits_raw(
-                                            ptr,
-                                            cur_length,
-                                            cur_length + range.len,
-                                        );
+                                        for i in cur_length..(cur_length + range.len) {
+                                            bit_util::set_bit_raw(ptr, i);
+                                        }
                                     }
                                 }
                                 cur_length += range.len;
@@ -915,7 +914,7 @@ impl<'a> BufferActions<'a> {
                     let create_actions = new_agents.map(|ad| {
                         let buffer = &ad.buffers()[i - 1];
 
-                        let src_buffer = buffer.data();
+                        let src_buffer = buffer.as_slice();
                         range_actions
                             .create()
                             .iter()
@@ -1107,6 +1106,7 @@ fn copy_bits_unchecked(
 }
 
 impl RowActions {
+    // TODO: UNUSED: Needs triage
     pub fn is_well_ordered_remove(&self) -> bool {
         let mut last_i = 0;
         for action in &self.remove {

@@ -32,6 +32,8 @@ type BlockLoaderProps = {
   blockEntityId: string;
   editableRef: unknown;
   entityId: string | undefined;
+  entityTypeId: string | undefined;
+  entityTypeVersionId: string | undefined;
   entityProperties: {};
   linkGroups: LinkGroup[];
   linkedEntities: BlockEntity["properties"]["entity"]["linkedEntities"];
@@ -47,6 +49,8 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   blockEntityId,
   editableRef,
   entityId,
+  entityTypeId,
+  entityTypeVersionId,
   entityProperties,
   linkGroups,
   linkedEntities,
@@ -56,16 +60,13 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
 }) => {
   const router = useRouter();
 
-  const { aggregateEntityTypes } =
-    useBlockProtocolAggregateEntityTypes(accountId);
-
-  const { updateEntities } = useBlockProtocolUpdateEntities(accountId);
-  const { aggregateEntities } = useBlockProtocolAggregateEntities(accountId);
-
-  const { uploadFile } = useFileUpload(accountId);
-  const { createLinks } = useBlockProtocolCreateLinks(accountId);
-  const { deleteLinks } = useBlockProtocolDeleteLinks(accountId);
-  const { updateLinks } = useBlockProtocolUpdateLinks(accountId);
+  const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
+  const { aggregateEntities } = useBlockProtocolAggregateEntities();
+  const { createLinks } = useBlockProtocolCreateLinks();
+  const { deleteLinks } = useBlockProtocolDeleteLinks();
+  const { updateEntities } = useBlockProtocolUpdateEntities();
+  const { uploadFile } = useFileUpload();
+  const { updateLinks } = useBlockProtocolUpdateLinks();
 
   const flattenedProperties = useMemo(() => {
     let flattenedLinkedEntities: UnknownEntity[] = [];
@@ -94,6 +95,8 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   const blockProperties = {
     ...flattenedProperties,
     entityId,
+    entityTypeId,
+    entityTypeVersionId,
   };
 
   const functions = {
@@ -159,6 +162,8 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
         blockProperties={{
           ...blockProperties,
           entityId: blockProperties.entityId ?? null,
+          entityTypeId: blockProperties.entityTypeId ?? null,
+          entityTypeVersionId: blockProperties.entityTypeVersionId ?? null,
         }}
         onBlockLoaded={onBlockLoaded}
         {...functions}

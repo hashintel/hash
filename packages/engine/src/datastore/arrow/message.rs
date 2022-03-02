@@ -12,11 +12,15 @@ use crate::{
 };
 
 // Built in message types:
+// TODO: UNUSED: Needs triage
 pub const CREATE_AGENT: &str = OutboundCreateAgentPayload::KIND;
+// TODO: UNUSED: Needs triage
 pub const REMOVE_AGENT: &str = OutboundRemoveAgentPayload::KIND;
+// TODO: UNUSED: Needs triage
 pub const STOP_SIM: &str = OutboundStopSimPayload::KIND;
 
 // System-message recipient
+// TODO: UNUSED: Needs triage
 pub const SYSTEM_MESSAGE: &str = "hash";
 
 pub const MESSAGE_COLUMN_NAME: &str = "messages";
@@ -39,7 +43,7 @@ lazy_static! {
     pub static ref MESSAGE_ARROW_FIELDS: Vec<ArrowField> = vec![
         ArrowField::new(
             "to",
-            ArrowDataType::List(Box::new(ArrowDataType::Utf8)),
+            ArrowDataType::List(Box::new(ArrowField::new("item", ArrowDataType::Utf8, true))),
             false
         ),
         ArrowField::new("type", ArrowDataType::Utf8, false),
@@ -49,7 +53,7 @@ lazy_static! {
         ArrowDataType::Struct(MESSAGE_ARROW_FIELDS.clone());
     pub static ref MESSAGE_LIST_ARROW_FIELD: ArrowField = ArrowField::new(
         MESSAGE_COLUMN_NAME,
-        ArrowDataType::List(Box::new(MESSAGE_ARROW_TYPE.clone())),
+        ArrowDataType::List(Box::new(ArrowField::new("item", MESSAGE_ARROW_TYPE.clone(), true))),
         false
     );
     // It is important to keep this order unchanged. If changed
@@ -114,6 +118,7 @@ pub fn get_generic(to: &[&str], r#type: &str, data_string: &str) -> Result<Outbo
     }))
 }
 
+// TODO: UNUSED: Needs triage
 pub fn get_system(to: &[&str], r#type: &str, data_string: &str) -> Result<Outbound> {
     let to_clone = to.iter().map(|v| (*v).to_string()).collect();
 
@@ -342,6 +347,7 @@ pub fn column_into_state(
     Ok(())
 }
 
+// TODO: UNUSED: Needs triage
 pub fn get_messages_column_from_batch(batch: &RecordBatch) -> Result<Vec<Vec<Outbound>>> {
     let (index, _) = batch
         .schema()

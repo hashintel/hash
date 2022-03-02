@@ -254,10 +254,6 @@ jobs:
           cd ..
           rm -rf tmp # Delete the tmp folder
 
-      - name: Build test dependencies
-        if: matrix.directory == 'packages/engine'
-        run: cargo build -p hash_engine --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }}
-
       - name: Run tests
         run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }}
 
@@ -316,9 +312,6 @@ jobs:
           mv -v vendor/v8/* .. # Move out the wanted files
           cd ..
           rm -rf tmp # Delete the tmp folder
-
-      - name: Build test dependencies
-        run: cargo build -p hash_engine --manifest-path ${{ matrix.directory }}/Cargo.toml ${{ matrix.flags }}
 
       - name: Run tests
         run: cargo test --test ${{ matrix.tests }} --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }} -- --test-threads=1

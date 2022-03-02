@@ -1,3 +1,5 @@
+// @todo update this to use mui 5 as it is blocking removal from mui 4 from the codebase
+// @see  https://github.com/rjsf-team/react-jsonschema-form/issues/2721
 import JSONSchemaForm from "@rjsf/material-ui";
 import jsonpath from "jsonpath";
 import { FormEvent, useMemo, VoidFunctionComponent } from "react";
@@ -168,6 +170,7 @@ export const EntityEditor: VoidFunctionComponent<EntityEditorProps> = ({
       entityProps
         .updateEntities([
           {
+            accountId,
             data: {
               ...existingProperties,
               ...args.formData,
@@ -180,7 +183,11 @@ export const EntityEditor: VoidFunctionComponent<EntityEditorProps> = ({
     } else {
       entityProps
         .createEntities([
-          { data: args.formData, entityTypeId: entityProps.entityTypeId },
+          {
+            accountId,
+            data: args.formData,
+            entityTypeId: entityProps.entityTypeId,
+          },
         ])
         // eslint-disable-next-line no-console -- TODO: consider using logger
         .catch((err) => console.error(`Error updating entity: ${err.message}`));
@@ -249,6 +256,7 @@ export const EntityEditor: VoidFunctionComponent<EntityEditorProps> = ({
             Entities linked from <em>{name}</em>
           </h2>
           <EntityLinksEditor
+            accountId={accountId}
             aggregateEntities={aggregate}
             createLinkFromEntity={createLinkWithFixedSource}
             deleteLinkFromEntity={deleteLinkWithFixedSource}

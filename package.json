@@ -46,7 +46,7 @@
     "seed-data": "concurrently \"yarn:seed-data:*\"",
     "test:backend-integration": "yarn workspace @hashintel/hash-integration test",
     "test:playwright": "yarn workspace @hashintel/hash-playwright playwright test",
-    "test:unit": "yarn workspace @hashintel/hash-api test && yarn workspace @hashintel/hash-shared test && yarn workspace @hashintel/hash-frontend test"
+    "test:unit": "yarn workspace @hashintel/hash-api test && yarn workspace @hashintel/hash-backend-utils test && yarn workspace @hashintel/hash-shared test && yarn workspace @hashintel/hash-frontend test"
   },
   "lint-staged": {
     "**/*": [

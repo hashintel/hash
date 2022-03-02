@@ -76,7 +76,9 @@ impl OrchClient {
 pub struct Environment {
     pub orch_client: OrchClient,
     pub orch_listener: nano::Server,
-    pub experiment: ExperimentRunRepr, // TODO: extended experiment run??
+    // TODO: extended experiment run??
+    pub experiment: ExperimentRunRepr,
+    // TODO: UNUSED: Needs triage
     pub execution_env: ExecutionEnvironment,
     pub dyn_payloads: serde_json::Map<String, serde_json::Value>,
 }

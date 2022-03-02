@@ -135,7 +135,7 @@ impl Engine {
             self.prepare_for_context_packages(&mut state, &mut context)?
         };
 
-        let state_proxy = snapshot.state.read()?;
+        let snapshot_state_proxy = snapshot.state.read()?;
 
         // Context packages use the snapshot and state packages use state.
         // Context packages will be ran before state packages, so start
@@ -144,13 +144,13 @@ impl Engine {
 
         // Synchronize snapshot with workers
         self.comms
-            .state_snapshot_sync(state_proxy.clone())
+            .state_snapshot_sync(snapshot_state_proxy.clone())
             .instrument(tracing::info_span!("snapshot_sync"))
             .await?;
 
         // Synchronize state with workers
         async {
-            let active_sync = self.comms.state_sync(state_proxy.clone()).await?;
+            let active_sync = self.comms.state_sync(snapshot_state_proxy.clone()).await?;
 
             // TODO: fix issues with getting write access to the message batch while state sync runs
             //  in parallel with context packages
@@ -168,7 +168,7 @@ impl Engine {
             .packages
             .step
             .run_context(
-                &state_proxy,
+                &snapshot_state_proxy,
                 snapshot,
                 pre_context,
                 state.num_agents(),

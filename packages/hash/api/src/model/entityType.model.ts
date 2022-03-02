@@ -9,7 +9,7 @@ import {
   EntityType as GQLEntityType,
   Visibility,
 } from "../graphql/apiTypes.gen";
-import { EntityTypeTypeFields } from "../db/adapter";
+import { EntityTypeMeta, EntityTypeTypeFields } from "../db/adapter";
 
 const { FRONTEND_URL } = require("../lib/config");
 
@@ -29,6 +29,7 @@ export type EntityTypeConstructorArgs = {
   entityVersionId: string;
   accountId: string;
   properties: JSONObject;
+  metadata: EntityTypeMeta;
   createdByAccountId: string;
   createdAt: Date;
   updatedByAccountId: string;
@@ -44,6 +45,7 @@ class __EntityType {
   entityVersionId: string;
   accountId: string;
   properties: JSONObject;
+  metadata: EntityTypeMeta;
   createdByAccountId: string;
   createdAt: Date;
   updatedByAccountId: string;
@@ -54,6 +56,7 @@ class __EntityType {
     entityVersionId,
     accountId,
     properties,
+    metadata,
     createdByAccountId,
     createdAt,
     updatedByAccountId,
@@ -63,6 +66,7 @@ class __EntityType {
     this.entityVersionId = entityVersionId;
     this.accountId = accountId;
     this.properties = properties;
+    this.metadata = metadata;
     this.createdByAccountId = createdByAccountId;
     this.createdAt = createdAt;
     this.updatedByAccountId = updatedByAccountId;
@@ -116,11 +120,22 @@ class __EntityType {
 
   static async getEntityType(
     client: DBClient,
-    params: { entityTypeId: string },
+    params: { entityTypeId?: string; entityTypeVersionId?: string },
   ) {
-    const dbEntityType = await client.getEntityTypeLatestVersion(params);
-
-    return dbEntityType ? new EntityType(dbEntityType) : null;
+    const { entityTypeId, entityTypeVersionId } = params;
+    if (entityTypeId) {
+      const dbEntityType = await client.getEntityTypeLatestVersion({
+        entityTypeId,
+      });
+      return dbEntityType ? new EntityType(dbEntityType) : null;
+    } else if (entityTypeVersionId) {
+      const dbEntityType = await client.getEntityType({ entityTypeVersionId });
+      return dbEntityType ? new EntityType(dbEntityType) : null;
+    } else {
+      throw new Error(
+        "Expected either `entityTypeId` or `entityTypeVersionId`",
+      );
+    }
   }
 
   static async getEntityTypeByComponentId(

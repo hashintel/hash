@@ -5,6 +5,7 @@ use crate::proto;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
+// TODO: UNUSED: Needs triage
 pub struct SimulationRunError {
     pub error: Error,
     pub sim_id: String,

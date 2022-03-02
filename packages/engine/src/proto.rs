@@ -10,6 +10,7 @@ use uuid::Uuid;
 
 use crate::{config::Globals, hash_types::worker::RunnerError, simulation::status::SimStatus};
 
+// TODO: UNUSED: Needs triage
 pub type SerdeMap = serde_json::Map<String, SerdeValue>;
 
 pub type ExperimentId = Uuid;
@@ -167,6 +168,7 @@ impl Debug for SharedDataset {
 }
 
 // #[derive(Deserialize, Serialize, Debug, Clone)]
+// TODO: UNUSED: Needs triage
 pub struct FetchedDataset {
     pub name: Option<String>,
     pub shortname: String,

@@ -120,6 +120,7 @@ export const Media: BlockComponent<
     deleteLinks,
     entityId,
     entityTypeId,
+    entityTypeVersionId,
     initialCaption,
     linkGroups,
     linkedEntities,
@@ -186,10 +187,13 @@ export const Media: BlockComponent<
         if (updateEntities && entityId) {
           const updateAction: BlockProtocolUpdateEntitiesAction<UpdateEntitiesMediaAction> =
             {
+              accountId,
               data: {
                 initialCaption: draftCaption,
               },
               entityId,
+              entityTypeId,
+              entityTypeVersionId,
             };
 
           if (width && mediaType === "image") {
@@ -217,9 +221,11 @@ export const Media: BlockComponent<
       }
     },
     [
+      accountId,
       draftCaption,
       entityId,
       entityTypeId,
+      entityTypeVersionId,
       mediaType,
       setDraftSrc,
       setDraftWidth,
@@ -242,7 +248,7 @@ export const Media: BlockComponent<
           setLoading(true);
         });
 
-        uploadFile({ ...imageProp, mediaType })
+        uploadFile({ accountId, ...imageProp, mediaType })
           .then(async (file) => {
             const existingLinkGroup = getLinkGroup({
               sourceEntityId: entityId,
@@ -253,8 +259,9 @@ export const Media: BlockComponent<
             if (existingLinkGroup) {
               await deleteLinks(
                 existingLinkGroup.links.map((link) => ({
-                  linkId: link.linkId,
+                  sourceAccountId: accountId,
                   sourceEntityId: link.sourceEntityId,
+                  linkId: link.linkId,
                 })),
               );
             }
@@ -263,6 +270,8 @@ export const Media: BlockComponent<
               {
                 sourceAccountId: accountId,
                 sourceEntityId: entityId,
+                sourceEntityTypeId: entityTypeId,
+                sourceEntityTypeVersionId: entityTypeVersionId,
                 destinationEntityId: file.entityId,
                 destinationAccountId: file.accountId,
                 path: "$.file",
@@ -289,6 +298,8 @@ export const Media: BlockComponent<
       createLinks,
       deleteLinks,
       entityId,
+      entityTypeId,
+      entityTypeVersionId,
       linkGroups,
       loading,
       mediaType,
