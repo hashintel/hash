@@ -63,7 +63,6 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
     if (aggregateEntityTypes && accountId) {
       aggregateEntityTypes({
         accountId,
-        entityId,
         includeOtherTypesInUse: true,
       })
         .then((response) => setAvailableEntityTypes(response.results))
@@ -72,7 +71,7 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
           console.error(`Error fetching entity type options: ${err.message}`),
         );
     }
-  }, [accountId, aggregateEntityTypes, entityId]);
+  }, [accountId, aggregateEntityTypes]);
 
   // The user will be working with a draft in local state, to enable optimistic UI and handle fast/competing updates
   const [workingSchemaDraft, dispatch] = useReducer(

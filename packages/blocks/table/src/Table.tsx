@@ -220,7 +220,6 @@ export const Table: BlockComponent<AppProps> = ({
 
       aggregateEntities({
         accountId,
-        entityId,
         entityTypeId,
         entityTypeVersionId,
         operation: linkedData.operation,
@@ -249,7 +248,6 @@ export const Table: BlockComponent<AppProps> = ({
     [
       accountId,
       aggregateEntities,
-      entityId,
       entityTypeId,
       entityTypeVersionId,
       setTableData,
@@ -465,20 +463,11 @@ export const Table: BlockComponent<AppProps> = ({
   useEffect(() => {
     void aggregateEntityTypes?.({
       accountId,
-      entityId,
-      entityTypeId,
-      entityTypeVersionId,
       includeOtherTypesInUse: true,
     }).then(({ results }) => {
       setEntityTypes(orderBy(results, (entityType) => entityType.title));
     });
-  }, [
-    aggregateEntityTypes,
-    accountId,
-    entityId,
-    entityTypeId,
-    entityTypeVersionId,
-  ]);
+  }, [aggregateEntityTypes, accountId]);
 
   const handleEntityTypeChange = useCallback(
     (updatedEntityTypeId: string | undefined) => {
