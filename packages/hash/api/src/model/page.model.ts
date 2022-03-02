@@ -287,7 +287,7 @@ class __Page extends Entity {
       /** Check whether adding the parent page would create a cycle */
       if (await parentPage.hasParentPage(client, { page: this })) {
         throw new ApolloError(
-          `Could not set '${parentPage.entityId}' to '${this.entityId}' as this would create a cyclic dependency.`,
+          `Could not set '${parentPage.entityId}' as parent of '${this.entityId}', this would create a cyclic dependency.`,
           "CYCLIC_TREE",
         );
       }

@@ -1433,7 +1433,7 @@ describe("logged in user ", () => {
           parentPageEntityId: subSubPage.entityId,
         }),
       ).rejects.toThrowError(
-        /Could not set '.*' as parent to '.*' as this would create a cyclic dependency./i,
+        /Could not set '.*' as parent of '.*', this would create a cyclic dependency./i,
       );
     });
 
@@ -1449,7 +1449,7 @@ describe("logged in user ", () => {
           parentPageEntityId: subSubPage.entityId,
         }),
       ).rejects.toThrowError(
-        /Could not set '.*' as parent to '.*' as this would create a cyclic dependency./i,
+        /Could not set '.*' as parent of '.*', this would create a cyclic dependency./i,
       );
     });
 
@@ -1544,6 +1544,19 @@ describe("logged in user ", () => {
         properties: { title },
         parentPageEntityId: null,
       });
+    });
+
+    it("Allow changing parent to itself", async () => {
+      // - Super page 1 <- try to set this as its own parent
+      //   - sub page 1
+      //   - sub sub page 1
+      await expect(
+        client.setParentPage({
+          accountId: existingUser.accountId,
+          pageEntityId: superPage.entityId,
+          parentPageEntityId: superPage.entityId,
+        }),
+      ).rejects.toThrowError(/A page cannot be the parent of itself/i);
     });
   });
 
