@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    process::ExitStatus,
+};
 
 use async_trait::async_trait;
 use error::{Report, Result, ResultExt};
@@ -20,7 +23,7 @@ const ENGINE_BIN_PATH_FALLBACK: &str = "./target/release/hash_engine";
 
 /// A local [`hash_engine`] subprocess using the [`std::process`] library.  
 pub struct LocalProcess {
-    child: std::process::Child,
+    child: tokio::process::Child,
     client: Option<nano::Client>,
     engine_url: String,
 }
@@ -30,6 +33,7 @@ impl process::Process for LocalProcess {
     async fn exit_and_cleanup(mut self: Box<Self>) -> Result<()> {
         self.child
             .kill()
+            .await
             .or_else(|e| match e.kind() {
                 // From `Child::kill` docs: Forces the child process to exit. If the child has
                 // already exited, an InvalidInput error is returned
@@ -60,6 +64,13 @@ impl process::Process for LocalProcess {
             .send(msg)
             .await
             .map_err(Report::from)
+    }
+
+    async fn wait(&mut self) -> Result<ExitStatus> {
+        self.child
+            .wait()
+            .await
+            .wrap_err("Could not wait for the process to exit")
     }
 }
 
@@ -123,7 +134,7 @@ impl process::Command for LocalCommand {
             ENGINE_BIN_PATH_FALLBACK
         };
 
-        let mut cmd = std::process::Command::new(process_path);
+        let mut cmd = tokio::process::Command::new(process_path);
         cmd.arg("--experiment-id")
             .arg(self.experiment_id.to_string())
             .arg("--orchestrator-url")
