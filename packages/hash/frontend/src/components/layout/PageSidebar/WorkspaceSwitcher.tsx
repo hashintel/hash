@@ -5,6 +5,8 @@ import { FontAwesomeSvgIcon } from "../../icons";
 import { Popover } from "../../Popover";
 import { Link } from "../../Link";
 import { useUser } from "../../hooks/useUser";
+import { Avatar } from "../../Avatar";
+import { useLogout } from "../../hooks/useLogout";
 
 type WorkspaceSwitcherProps = {};
 
@@ -19,44 +21,35 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const { user } = useUser();
+  const { logout } = useLogout();
 
-  console.log("user ==> ", user);
-
-  //   @todo make this a button
   return (
-    <Box>
+    <>
+      {/* @todo-mui use the Button component for this instead  */}
       <Box
         onClick={() => setOpen(true)}
         ref={buttonRef}
+        component="button"
         sx={{
           borderRadius: "4px",
           display: "flex",
+          width: "100%",
+          textAlign: "left",
           alignItems: "center",
           padding: "12px 16px 12px 18px",
           cursor: "pointer",
+
           "&:hover": {
             backgroundColor: ({ palette }) => palette.gray[20],
           },
+
+          "&:focus": {
+            outline: ({ palette }) => palette.blue[50],
+            outlineOffset: "2px",
+          },
         }}
       >
-        <Box
-          sx={{
-            height: 24,
-            width: 24,
-            borderRadius: "50%",
-            backgroundColor: ({ palette }) => palette.blue[70],
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <Typography
-            variant="smallTextLabels"
-            sx={{ color: ({ palette }) => palette.common.white, lineHeight: 1 }}
-          >
-            M
-          </Typography>
-        </Box>
+        <Avatar size={24} title={user?.properties.preferredName ?? "U"} />
         <Typography
           sx={{
             pr: 1,
@@ -91,69 +84,210 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
           },
         }}
       >
-        <Box
-          sx={{
-            py: 0.25,
-          }}
-        >
-          <Link
-            href="/"
-            noLinkStyle
+        <Box>
+          <Box
             sx={{
-              display: "flex",
+              pt: 1.25,
+              py: 1,
+              px: 0.4,
+              borderBottom: ({ palette }) => `1px solid ${palette.gray[30]}`,
             }}
           >
-            {/* @todo create a UserAvatar component */}
-            <Box
-              sx={{
-                height: 38,
-                width: 38,
-                borderRadius: "50%",
-                mr: 0.75,
-              }}
-            >
-              {/*  */}
-            </Box>
-            <Box>
-              <Typography>My personal workspace</Typography>
-              <Typography>1 member</Typography>
-            </Box>
-          </Link>
-          {user?.memberOf.map(({ org }) => (
-            // eslint-disable-next-line react/jsx-key
             <Link
-              href={`/${org.accountId}`}
+              href="/"
               noLinkStyle
-              key={org.accountId}
               sx={{
                 display: "flex",
+                py: 1,
+                px: 1.5,
+                //   @todo-mui this is a default style and should be placed in the Link component
+                "&:hover": {
+                  backgroundColor: ({ palette }) => palette.gray[20],
+                },
+
+                "&:focus": {
+                  outline: ({ palette }) => palette.blue[50],
+                  outlineOffset: "2px",
+                },
               }}
             >
-              {/* @todo create a UserAvatar component */}
-              <Box
+              <Avatar
+                size={38}
+                title={user?.properties.preferredName ?? "U"}
                 sx={{
-                  height: 38,
-                  width: 38,
-                  borderRadius: "50%",
                   mr: 0.75,
                 }}
+              />
+
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                }}
               >
-                {/*  */}
-              </Box>
-              <Box>
-                <Typography>{org.properties.name}</Typography>
-                <Typography>{`${org.memberships.length} members`}</Typography>
+                <Typography
+                  variant="smallTextLabels"
+                  sx={{
+                    fontWeight: 600,
+                    color: ({ palette }) => palette.gray[80],
+                    mb: "2px",
+                  }}
+                >
+                  My personal workspace
+                </Typography>
+                <Typography
+                  variant="microText"
+                  sx={{
+                    color: ({ palette }) => palette.gray[50],
+                    fontWeight: 500,
+                  }}
+                >{`@${user?.properties.shortname ?? "user"}`}</Typography>
               </Box>
             </Link>
-          ))}
+            {user?.memberOf.map(({ org }) => (
+              <Link
+                href={`/${org.accountId}`}
+                noLinkStyle
+                key={org.accountId}
+                sx={{
+                  display: "flex",
+                  py: 1,
+                  px: 1.5,
+                  borderRadius: "4px",
+                  //   @todo-mui this is a default style and should be placed in the Link component
+                  "&:hover": {
+                    backgroundColor: ({ palette }) => palette.gray[20],
+                  },
 
-          <Box>Workspace settings</Box>
-          <Box>Create or join workspace</Box>
-          <Box>
-            <Typography>Sign out</Typography>
+                  "&:focus": {
+                    outline: ({ palette }) => palette.blue[50],
+                    outlineOffset: "2px",
+                  },
+                }}
+              >
+                <Avatar
+                  size={38}
+                  sx={{
+                    mr: 0.75,
+                  }}
+                  title={org.properties.name}
+                />
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
+                  <Typography
+                    variant="smallTextLabels"
+                    sx={{
+                      mb: "2px",
+                    }}
+                  >
+                    {org.properties.name}
+                  </Typography>
+                  <Typography
+                    variant="microText"
+                    sx={{
+                      color: ({ palette }) => palette.gray[50],
+                      fontWeight: 500,
+                    }}
+                  >{`${org.memberships.length} members`}</Typography>
+                </Box>
+              </Link>
+            ))}
+          </Box>
+
+          <Box
+            sx={{
+              px: 0.5,
+              py: 0.75,
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            {[
+              {
+                title: "Workspace Settings",
+                id: 1,
+                href: "/",
+              },
+              {
+                title: "Create or Join a workspace",
+                id: 2,
+                href: "/",
+              },
+            ].map(({ title, id, href }) => (
+              <Link
+                key={id}
+                href={href}
+                noLinkStyle
+                sx={{
+                  px: 1.5,
+                  py: 1,
+                  borderRadius: "4px",
+                  //   @todo-mui this is a default style and should be placed in the Link component
+                  "&:hover": {
+                    backgroundColor: ({ palette }) => palette.gray[20],
+                  },
+
+                  "&:focus": {
+                    outline: ({ palette }) => palette.blue[50],
+                    outlineOffset: "2px",
+                  },
+                }}
+              >
+                <Typography
+                  variant="smallTextLabels"
+                  sx={{
+                    lineHeight: 1,
+                    color: ({ palette }) => palette.gray[80],
+                    fontWeight: 500,
+                  }}
+                >
+                  {title}
+                </Typography>
+              </Link>
+            ))}
+          </Box>
+
+          <Box
+            sx={{
+              p: "4px 4px 6px 4px",
+              borderTop: ({ palette }) => `1px solid ${palette.gray[30]}`,
+            }}
+          >
+            {/* @todo use the LinkButton for this once merged in */}
+            <Box
+              component="button"
+              sx={{
+                px: 1,
+                py: 1.5,
+                display: "block",
+                width: "100%",
+                textAlign: "left",
+                "&:hover": {
+                  backgroundColor: ({ palette }) => palette.gray[20],
+                },
+
+                "&:focus": {
+                  outline: ({ palette }) => palette.blue[50],
+                  outlineOffset: "2px",
+                },
+              }}
+              onClick={() => logout()}
+            >
+              <Typography
+                sx={{
+                  color: ({ palette }) => palette.gray[60],
+                }}
+              >
+                Sign out
+              </Typography>
+            </Box>
           </Box>
         </Box>
       </Popover>
-    </Box>
+    </>
   );
 };

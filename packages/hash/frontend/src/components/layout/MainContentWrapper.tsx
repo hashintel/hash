@@ -1,5 +1,5 @@
 import { faPencil } from "@fortawesome/free-solid-svg-icons";
-import { IconButton, Fade } from "@mui/material";
+import { IconButton, Fade, Box } from "@mui/material";
 import { FunctionComponent } from "react";
 
 import styles from "../../pages/index.module.scss";
@@ -11,7 +11,12 @@ export const MainContentWrapper: FunctionComponent = ({ children }) => {
   const { openSidebar, sidebarOpen } = useSidebarContext();
 
   return (
-    <div className={styles.MainWrapper}>
+    <Box
+      sx={{
+        display: "flex",
+        position: "relative",
+      }}
+    >
       <PageSidebar />
       <Fade in={!sidebarOpen}>
         <IconButton
@@ -30,8 +35,9 @@ export const MainContentWrapper: FunctionComponent = ({ children }) => {
           <FontAwesomeSvgIcon icon={faPencil} sx={{ fontSize: 24 }} />
         </IconButton>
       </Fade>
-
-      <main className={styles.MainContent}>{children}</main>
-    </div>
+      <Box component="main" sx={{ flex: 1, padding: "60px 120px" }}>
+        {children}
+      </Box>
+    </Box>
   );
 };

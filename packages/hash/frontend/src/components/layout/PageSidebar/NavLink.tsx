@@ -1,10 +1,19 @@
-import { useState } from "react";
+import { useState, FC } from "react";
 import { faAdd, faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import { Box, IconButton, Typography, Collapse, Tooltip } from "@mui/material";
 import { FontAwesomeSvgIcon } from "../../icons";
 // import { Link } from "./Link";
 
-export const NavLink = ({ title, children, addButtonTooltip }) => {
+type NavLinkProps = {
+  title: string;
+  addButtonTooltip: string;
+};
+
+export const NavLink: FC<NavLinkProps> = ({
+  title,
+  children,
+  addButtonTooltip,
+}) => {
   const [visible, setVisible] = useState(false);
 
   return (

@@ -1,12 +1,13 @@
 import { VFC } from "react";
-import { Box } from "@mui/material";
+import { Box, BoxProps } from "@mui/material";
 
-interface AvatarProps {
+interface AvatarProps extends BoxProps {
   title: string;
   size?: number;
 }
 
-export const Avatar: VFC<AvatarProps> = ({ title, size = 32 }) => {
+export const Avatar: VFC<AvatarProps> = ({ title, size = 32, ...props }) => {
+  const { sx, ...otherProps } = props;
   return (
     <Box
       display="flex"
@@ -20,7 +21,9 @@ export const Avatar: VFC<AvatarProps> = ({ title, size = 32 }) => {
         justifyContent: "center",
         borderRadius: "50%",
         backgroundColor: ({ palette }) => palette.blue[70],
+        ...sx,
       }}
+      {...otherProps}
     >
       <Box
         component="span"
@@ -30,7 +33,7 @@ export const Avatar: VFC<AvatarProps> = ({ title, size = 32 }) => {
           lineHeight: 1,
         }}
       >
-        {title?.charAt(0).toUpperCase() ?? "U"}
+        {title?.charAt(0).toUpperCase()}
       </Box>
     </Box>
   );

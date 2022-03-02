@@ -40,7 +40,7 @@ export const PageSidebar: VoidFunctionComponent = () => {
           alignItems: "center",
         }}
       >
-        <Box sx={{ flex: 1, overflowX: "hidden" }}>
+        <Box sx={{ flex: 1 }}>
           <WorkspaceSwitcher />
         </Box>
         <Tooltip title="Collapse Sidebar">
