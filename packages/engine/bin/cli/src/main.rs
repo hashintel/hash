@@ -107,5 +107,5 @@ async fn main() -> Result<()> {
 
     let experiment = Experiment::new(args.experiment_config);
 
-    experiment.run(experiment_run, handler).await
+    experiment.run(experiment_run, handler, None).await
 }

@@ -3,6 +3,7 @@ use super::package::output::packages::Output;
 pub struct SimulationStepOutput(pub Vec<Output>);
 
 impl SimulationStepOutput {
+    // TODO: UNUSED: Needs triage
     pub fn package_outputs(&self) -> &Vec<Output> {
         &self.0
     }

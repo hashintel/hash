@@ -1,4 +1,4 @@
-use arrow::datatypes::DataType;
+use arrow::{array::ArrayData, datatypes::DataType};
 
 use super::*;
 use crate::datastore::arrow::batch_conversion::new_buffer;
@@ -21,12 +21,10 @@ impl IntoArrowChange for ResetIndexCol {
         let data = new_buffer::<BehaviorIndexInnerDataType>(num_agents);
 
         // Indices
-        let builder = arrow::array::ArrayDataBuilder::new(DataType::Float64);
-        let data = builder
+        let data = ArrayData::builder(DataType::Float64)
             .len(num_agents)
-            .null_count(0)
-            .buffers(vec![data.freeze()])
-            .build();
+            .add_buffer(data.into())
+            .build()?;
 
         Ok(ArrayChange::new(data, self.behavior_index_col_index))
     }

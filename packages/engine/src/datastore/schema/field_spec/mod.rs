@@ -305,6 +305,7 @@ impl FieldSpecMap {
         }
     }
 
+    // TODO: UNUSED: Needs triage
     pub fn union(&mut self, set: FieldSpecMap) -> Result<()> {
         set.field_specs
             .into_iter()

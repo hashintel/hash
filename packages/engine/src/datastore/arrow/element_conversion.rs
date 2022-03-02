@@ -6,13 +6,14 @@
 
 use arrow::{
     array::{self, Array, ArrayRef},
-    datatypes::{self, ArrowNativeType, ArrowNumericType, ArrowPrimitiveType, DataType},
+    datatypes::{self, ArrowNumericType, ArrowPrimitiveType, DataType, JsonSerializable},
 };
 use serde_json::value::Value;
 
 use super::{batch_conversion::col_to_json_vals, prelude::*};
 use crate::datastore::prelude::*;
 
+// TODO: UNUSED: Needs triage
 fn numeric_element_to_json_val<T: ArrowPrimitiveType + ArrowNumericType>(
     col: &ArrayRef,
     index: usize,
@@ -29,6 +30,7 @@ fn numeric_element_to_json_val<T: ArrowPrimitiveType + ArrowNumericType>(
     }
 }
 
+// TODO: UNUSED: Needs triage
 fn bool_element_to_json_val(col: &ArrayRef, index: usize) -> Result<Value> {
     let array = array::as_boolean_array(col);
     if !array.is_valid(index) {
@@ -39,6 +41,7 @@ fn bool_element_to_json_val(col: &ArrayRef, index: usize) -> Result<Value> {
     }
 }
 
+// TODO: UNUSED: Needs triage
 fn utf8_element_to_json_val(col: &ArrayRef, index: usize) -> Result<Value> {
     let array = array::as_string_array(col);
     if !array.is_valid(index) {
@@ -49,6 +52,7 @@ fn utf8_element_to_json_val(col: &ArrayRef, index: usize) -> Result<Value> {
     }
 }
 
+// TODO: UNUSED: Needs triage
 fn list_element_to_json_val(col: &ArrayRef, index: usize, inner_dt: &DataType) -> Result<Value> {
     let array =
         col.as_any()
@@ -65,6 +69,7 @@ fn list_element_to_json_val(col: &ArrayRef, index: usize, inner_dt: &DataType) -
     }
 }
 
+// TODO: UNUSED: Needs triage
 fn fixed_size_list_element_to_json_val(
     col: &ArrayRef,
     index: usize,
@@ -86,6 +91,7 @@ fn fixed_size_list_element_to_json_val(
     }
 }
 
+// TODO: UNUSED: Needs triage
 fn struct_element_to_json_val(
     col: &ArrayRef,
     index: usize,
@@ -116,6 +122,7 @@ fn struct_element_to_json_val(
     }
 }
 
+// TODO: UNUSED: Needs triage
 pub fn col_element_to_json_val(col: &ArrayRef, index: usize, dt: &DataType) -> Result<Value> {
     match dt {
         ArrowDataType::Float32 => numeric_element_to_json_val::<datatypes::Float32Type>(col, index),
@@ -130,11 +137,11 @@ pub fn col_element_to_json_val(col: &ArrayRef, index: usize, dt: &DataType) -> R
         ArrowDataType::UInt64 => numeric_element_to_json_val::<datatypes::UInt64Type>(col, index),
         ArrowDataType::Boolean => bool_element_to_json_val(col, index),
         ArrowDataType::Utf8 => utf8_element_to_json_val(col, index),
-
-        // `Box<T>` isn't coerced to `&T`, so need explicit `&*`.
-        ArrowDataType::List(inner_dt) => list_element_to_json_val(col, index, &*inner_dt),
-        ArrowDataType::FixedSizeList(inner_dt, _) => {
-            fixed_size_list_element_to_json_val(col, index, &*inner_dt)
+        ArrowDataType::List(inner_field) => {
+            list_element_to_json_val(col, index, inner_field.data_type())
+        }
+        ArrowDataType::FixedSizeList(inner_field, _) => {
+            fixed_size_list_element_to_json_val(col, index, inner_field.data_type())
         }
         ArrowDataType::Struct(fields) => struct_element_to_json_val(col, index, fields),
         _ => Err(Error::NotImplemented(SupportedType::ArrowDataType(
@@ -278,7 +285,7 @@ pub mod tests {
                 col_element_to_json_val(
                     &array_ref,
                     idx,
-                    &DataType::List(Box::new(DataType::UInt32))
+                    &DataType::List(Box::new(ArrowField::new("item", DataType::UInt32, true))),
                 )
                 .unwrap(),
                 json!(expected_val)
@@ -307,7 +314,10 @@ pub mod tests {
                 col_element_to_json_val(
                     &array_ref,
                     idx,
-                    &DataType::FixedSizeList(Box::new(DataType::UInt32), 2)
+                    &DataType::FixedSizeList(
+                        Box::new(ArrowField::new("item", DataType::UInt32, true)),
+                        2,
+                    ),
                 )
                 .unwrap(),
                 json!(expected_val)
@@ -353,14 +363,17 @@ pub mod tests {
         }
 
         // check it works with an empty struct too
-        let struct_c1 =
-            arrow::array::StructArray::from(ArrayData::builder(DataType::Struct(vec![])).build());
+        let struct_c1 = arrow::array::StructArray::from(
+            ArrayData::builder(DataType::Struct(vec![]))
+                .build()
+                .unwrap(),
+        );
 
         assert_eq!(
             col_element_to_json_val(
                 &(Arc::new(struct_c1) as ArrayRef),
                 0,
-                &DataType::Struct(vec![])
+                &DataType::Struct(vec![]),
             )
             .unwrap(),
             json!({})

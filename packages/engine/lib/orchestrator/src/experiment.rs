@@ -162,6 +162,7 @@ impl Experiment {
         &self,
         experiment_id: ExperimentId,
         controller_url: &str,
+        target_max_group_size: Option<usize>,
     ) -> Box<dyn process::Command + Send> {
         Box::new(process::LocalCommand::new(
             experiment_id,
@@ -171,6 +172,7 @@ impl Experiment {
             self.config.log_level,
             self.config.output_location.clone(),
             self.config.log_folder.clone(),
+            target_max_group_size,
         ))
     }
 
@@ -186,6 +188,7 @@ impl Experiment {
         &self,
         experiment_run: proto::ExperimentRun,
         mut handler: Handler,
+        target_max_group_size: Option<usize>,
     ) -> Result<()> {
         let experiment_name = experiment_run.base.name.clone();
         let mut engine_handle = handler
@@ -194,7 +197,11 @@ impl Experiment {
             .wrap_err_lazy(|| format!("Could not register experiment \"{experiment_name}\""))?;
 
         // Create and start the experiment run
-        let cmd = self.create_engine_command(experiment_run.base.id, handler.url());
+        let cmd = self.create_engine_command(
+            experiment_run.base.id,
+            handler.url(),
+            target_max_group_size,
+        );
         let mut engine_process = cmd.run().await.wrap_err("Could not run experiment")?;
 
         // Wait to receive a message that the experiment has started before sending the init

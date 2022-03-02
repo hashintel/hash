@@ -65,6 +65,7 @@ impl ActiveTask {
         }
     }
 
+    // TODO: UNUSED: Needs triage
     pub async fn cancel(mut self) -> Result<()> {
         if self.running && !self.cancel_sent {
             let cancel_send = self

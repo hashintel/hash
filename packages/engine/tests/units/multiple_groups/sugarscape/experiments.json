@@ -1,0 +1,10 @@
+{
+  "agent_density_linspace": {
+    "steps": 25,
+    "type": "linspace",
+    "field": "agent_density",
+    "start": 0.3,
+    "stop": 0.9,
+    "samples": 3
+  }
+}

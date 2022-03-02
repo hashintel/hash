@@ -52,6 +52,7 @@ impl Context {
         })
     }
 
+    // TODO: UNUSED: Needs triage
     pub fn agent_pool(&self) -> &AgentPool {
         &self.previous_state.agent_pool
     }
@@ -68,6 +69,7 @@ impl Context {
         std::mem::replace(&mut self.previous_state.message_pool, MessagePool::empty())
     }
 
+    // TODO: UNUSED: Needs triage
     pub fn removed_batches(&mut self) -> &mut Vec<String> {
         &mut self.removed_batches
     }

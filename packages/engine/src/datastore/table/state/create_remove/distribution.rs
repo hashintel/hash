@@ -8,17 +8,25 @@ use super::{super::*, batch::PendingBatch, WorkerIndex};
 #[derive(Debug)]
 pub struct BatchDistribution {
     inner: Vec<Vec<PendingBatch>>,
+    target_max_group_size: usize,
 }
 
 impl BatchDistribution {
-    pub fn new(num_workers: usize, current_batches: Vec<PendingBatch>) -> BatchDistribution {
+    pub fn new(
+        num_workers: usize,
+        current_batches: Vec<PendingBatch>,
+        target_max_group_size: usize,
+    ) -> BatchDistribution {
         let mut inner = vec![vec![]; num_workers];
 
         for batch in current_batches {
             inner[batch.old_worker_unchecked()].push(batch);
         }
 
-        BatchDistribution { inner }
+        BatchDistribution {
+            inner,
+            target_max_group_size,
+        }
     }
 
     // TODO: these are unused
@@ -62,9 +70,6 @@ impl BatchDistribution {
     /// distribute each inbound group into the batches
     /// which may or may not already exist.
     pub fn set_batch_level_inbounds(&mut self, worker_level_inbound: Vec<usize>) -> Result<()> {
-        // Attempt to keep all batch sizes (number of agents) below this value
-        const UPPER_BOUND: usize = 100000;
-
         self.inner
             .iter_mut()
             .zip(worker_level_inbound.into_iter())
@@ -78,10 +83,11 @@ impl BatchDistribution {
                 } else {
                     0
                 };
-                if average_total_num_agents_per_batch > UPPER_BOUND {
+                if average_total_num_agents_per_batch > self.target_max_group_size {
                     // Create more pending batches, as inbound count is large
-                    let target_number_batches =
-                        ((total_num_agents as f64) / (UPPER_BOUND as f64)).ceil() as usize;
+                    let target_number_batches = ((total_num_agents as f64)
+                        / (self.target_max_group_size as f64))
+                        .ceil() as usize;
                     (0..target_number_batches - batches.len()).for_each(|_| {
                         current_distribution.push(0);
                         batches.push(PendingBatch::new(None, 0));

@@ -60,16 +60,16 @@ unsafe fn c_datatype_to_rust(c_field: &ArrowSchema) -> Result<DataType> {
         "Z" => DataType::LargeBinary,
         "u" => DataType::Utf8,
         "U" => DataType::LargeUtf8,
-        "+l" => DataType::List(Box::new(c_datatype_to_rust(&**c_field.children)?)),
+        "+l" => DataType::List(Box::new(c_column_to_rust(&**c_field.children)?)),
         "+w" => {
             let size = split
                 .get(1)
                 .ok_or_else(|| dt_error("Missing fixed size binary datatype", field_type))?
                 .parse::<i32>()
                 .map_err(|e| dt_error(&e.to_string(), field_type))?;
-            DataType::FixedSizeList(Box::new(c_datatype_to_rust(&**c_field.children)?), size)
+            DataType::FixedSizeList(Box::new(c_column_to_rust(&**c_field.children)?), size)
         }
-        "+L" => DataType::LargeList(Box::new(c_datatype_to_rust(&**c_field.children)?)),
+        "+L" => DataType::LargeList(Box::new(c_column_to_rust(&**c_field.children)?)),
         "+s" => {
             // Schema
             let num_fields = c_field.n_children as usize;
