@@ -1,6 +1,4 @@
-use std::sync::Arc;
-
-use flatbuffers_arrow::FlatBufferBuilder;
+use flatbuffers::FlatBufferBuilder;
 
 use super::prelude::*;
 
@@ -49,52 +47,6 @@ impl AsRef<[u8]> for FlatBufferWrapper<'_> {
     fn as_ref(&self) -> &[u8] {
         self.finished_builder.finished_data()
     }
-}
-
-// TODO: UNUSED: Needs triage
-pub fn bool_to_arrow(data: &[bool]) -> Arc<array::ArrayData> {
-    let num_byte = arrow_bit_util::ceil(data.len(), 8);
-    let mut mut_buf = ArrowMutableBuffer::new(num_byte).with_bitset(num_byte, false);
-    {
-        let mut_slice = mut_buf.data_mut();
-        for (i, b) in data.iter().enumerate() {
-            if *b {
-                arrow_bit_util::set_bit(mut_slice, i);
-            }
-        }
-    }
-    array::ArrayData::builder(ArrowDataType::Boolean)
-        .len(data.len())
-        .add_buffer(mut_buf.freeze())
-        .build()
-}
-
-// TODO: UNUSED: Needs triage
-pub fn opt_bool_to_arrow(data: &[Option<bool>]) -> Arc<array::ArrayData> {
-    let num_byte = arrow_bit_util::ceil(data.len(), 8);
-    let mut nulls = ArrowMutableBuffer::new(num_byte).with_bitset(num_byte, false);
-    let mut mut_buf = ArrowMutableBuffer::new(num_byte).with_bitset(num_byte, false);
-    let mut null_count = 0;
-    {
-        let mut_slice = mut_buf.data_mut();
-        let mut_nulls = nulls.data_mut();
-        for (i, b) in data.iter().enumerate() {
-            if let Some(b) = b {
-                arrow_bit_util::set_bit(mut_nulls, i);
-                if *b {
-                    arrow_bit_util::set_bit(mut_slice, i);
-                }
-            } else {
-                null_count += 1;
-            }
-        }
-    }
-    array::ArrayData::builder(ArrowDataType::Boolean)
-        .len(data.len())
-        .add_buffer(mut_buf.freeze())
-        .null_bit_buffer(nulls.freeze())
-        .null_count(null_count)
-        .build()
 }
 
 // TODO: UNUSED: Needs triage

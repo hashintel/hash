@@ -1,0 +1,17 @@
+{
+  "keys": {
+    "list": {
+      "type": "fixed_size_list",
+      "length": 3,
+      "nullable": true,
+      "child": {
+        "type": "number",
+        "nullable": false
+      }
+    },
+    "list_is_null": {
+      "type": "boolean",
+      "nullable": false
+    }
+  }
+}
