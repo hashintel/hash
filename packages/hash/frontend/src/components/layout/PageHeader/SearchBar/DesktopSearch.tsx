@@ -89,7 +89,7 @@ export const DesktopSearch: React.FC<{
       </SearchIconWrapper>
       <StyledInputBase
         placeholder="Search for anything"
-        ref={inputRef}
+        inputRef={inputRef}
         type="text"
         value={displayedQuery}
         onFocus={() => setResultListVisible(true)}

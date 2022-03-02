@@ -13,10 +13,14 @@ import { FontAwesomeSvgIcon } from "../../icons";
 import { Popover } from "../../Popover";
 import { Link } from "../../Link";
 import { CreatePage } from "../../Modals/CreatePage/CreatePage";
+import { useKeys } from "rooks";
+import { useRouter } from "next/router";
 
 export const ActionsDropdown: React.FC<{
   accountId: string;
 }> = ({ accountId }) => {
+  const router = useRouter();
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
@@ -34,6 +38,14 @@ export const ActionsDropdown: React.FC<{
       setShowCreatePage(false);
     }
   }, [showCreatePage]);
+
+  const newEntityTypeRoute = `/${accountId}/types/new`;
+
+  useKeys(["AltLeft", "KeyP"], () => {
+    setOpen(false);
+    setShowCreatePage(true);
+  });
+  useKeys(["AltLeft", "KeyT"], () => router.push(newEntityTypeRoute));
 
   return (
     <Box>
@@ -137,7 +149,7 @@ export const ActionsDropdown: React.FC<{
           </ListItemButton>
           <Link
             noLinkStyle
-            href={`/${accountId}/types/new`}
+            href={newEntityTypeRoute}
             onClick={() => setOpen(false)}
           >
             <ListItemButton

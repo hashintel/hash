@@ -60,10 +60,20 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
             className={tw`border border(solid gray-200)`}
           />
         ) : (
-          <AvatarIcon
-            style={{ height: "32px", width: "32px", borderRadius: "100%" }}
-            className={tw`border border(solid gray-200)`}
-          />
+          <Box
+            sx={{
+              height: "32px",
+              width: "32px",
+              borderRadius: "100%",
+              color: theme.palette.common.white,
+              background: theme.palette.blue[70],
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {user.properties.preferredName![0]}
+          </Box>
         )}
       </Button>
       <Popover
