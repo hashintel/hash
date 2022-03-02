@@ -89,6 +89,7 @@ export const Video: BlockComponent<AppProps> = (props) => {
     deleteLinks,
     entityId,
     entityTypeId,
+    entityTypeVersionId,
     initialCaption,
     linkGroups,
     linkedEntities,
@@ -175,10 +176,13 @@ export const Video: BlockComponent<AppProps> = (props) => {
         if (updateEntities && entityId) {
           const updateAction: BlockProtocolUpdateEntitiesAction<BlockProtocolUpdateEntitiesActionData> =
             {
+              accountId,
               data: {
                 initialCaption: captionText,
               },
               entityId,
+              entityTypeId,
+              entityTypeVersionId,
             };
 
           if (file) {
@@ -195,7 +199,15 @@ export const Video: BlockComponent<AppProps> = (props) => {
         updateStateObject({ src });
       }
     },
-    [captionText, entityId, entityTypeId, updateStateObject, updateEntities],
+    [
+      accountId,
+      captionText,
+      entityId,
+      entityTypeId,
+      entityTypeVersionId,
+      updateStateObject,
+      updateEntities,
+    ],
   );
 
   const handleVideoUpload = useCallback(
@@ -203,7 +215,11 @@ export const Video: BlockComponent<AppProps> = (props) => {
       updateStateObject({ loading: true });
 
       if (entityId && createLinks && deleteLinks && uploadFile) {
-        uploadFile({ ...videoProp, mediaType: "video" })
+        uploadFile({
+          accountId,
+          ...videoProp,
+          mediaType: "video",
+        })
           .then(async (file) => {
             const existingLinkGroup = getLinkGroup({
               sourceEntityId: entityId,
@@ -214,8 +230,9 @@ export const Video: BlockComponent<AppProps> = (props) => {
             if (existingLinkGroup) {
               await deleteLinks(
                 existingLinkGroup.links.map((link) => ({
+                  sourceAccountId: accountId,
+                  sourceEntityId: link.sourceEntityId,
                   linkId: link.linkId,
-                  sourceEntityId: entityId,
                 })),
               );
             }
@@ -224,6 +241,8 @@ export const Video: BlockComponent<AppProps> = (props) => {
               {
                 sourceAccountId: accountId,
                 sourceEntityId: entityId,
+                sourceEntityTypeId: entityTypeId,
+                sourceEntityTypeVersionId: entityTypeVersionId,
                 destinationEntityId: file.entityId,
                 destinationAccountId: file.accountId,
                 path: "$.file",
@@ -248,6 +267,8 @@ export const Video: BlockComponent<AppProps> = (props) => {
       createLinks,
       deleteLinks,
       entityId,
+      entityTypeId,
+      entityTypeVersionId,
       linkGroups,
       updateData,
       updateStateObject,

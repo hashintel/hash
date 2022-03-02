@@ -29,7 +29,7 @@ export const PageTitle: VoidFunctionComponent<PageTitleProps> = ({
 }) => {
   // TODO: Display update error once expected UX is discussed
   const { updateEntities, updateEntitiesLoading } =
-    useBlockProtocolUpdateEntities(accountId);
+    useBlockProtocolUpdateEntities();
   const [inputValue, setInputValue] = useState<string>(value);
 
   useEffect(() => {
@@ -61,6 +61,7 @@ export const PageTitle: VoidFunctionComponent<PageTitleProps> = ({
 
     void updateEntities([
       {
+        accountId,
         entityId: metadataId,
         entityTypeId: "Page",
         data: { title: valueToSave },

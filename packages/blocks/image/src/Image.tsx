@@ -93,6 +93,7 @@ export const Image: BlockComponent<AppProps> = (props) => {
     deleteLinks,
     entityId,
     entityTypeId,
+    entityTypeVersionId,
     initialCaption,
     initialWidth,
     linkGroups,
@@ -201,10 +202,13 @@ export const Image: BlockComponent<AppProps> = (props) => {
         if (updateEntities && entityId) {
           const updateAction: BlockProtocolUpdateEntitiesAction<BlockProtocolUpdateEntitiesActionData> =
             {
+              accountId,
               data: {
                 initialCaption: captionText,
               },
               entityId,
+              entityTypeId,
+              entityTypeVersionId,
             };
 
           if (width) {
@@ -225,7 +229,15 @@ export const Image: BlockComponent<AppProps> = (props) => {
         updateStateObject(width ? { src, width } : { src });
       }
     },
-    [captionText, entityId, entityTypeId, updateStateObject, updateEntities],
+    [
+      accountId,
+      captionText,
+      entityId,
+      entityTypeId,
+      entityTypeVersionId,
+      updateStateObject,
+      updateEntities,
+    ],
   );
 
   const updateWidth = useCallback(
@@ -244,7 +256,11 @@ export const Image: BlockComponent<AppProps> = (props) => {
       updateStateObject({ loading: true });
 
       if (entityId && createLinks && deleteLinks && uploadFile) {
-        uploadFile({ ...imageProp, mediaType: "image" })
+        uploadFile({
+          accountId,
+          ...imageProp,
+          mediaType: "image",
+        })
           .then(async (file) => {
             const existingLinkGroup = getLinkGroup({
               sourceEntityId: entityId,
@@ -255,8 +271,9 @@ export const Image: BlockComponent<AppProps> = (props) => {
             if (existingLinkGroup) {
               await deleteLinks(
                 existingLinkGroup.links.map((link) => ({
-                  linkId: link.linkId,
+                  sourceAccountId: accountId,
                   sourceEntityId: link.sourceEntityId,
+                  linkId: link.linkId,
                 })),
               );
             }
@@ -265,6 +282,8 @@ export const Image: BlockComponent<AppProps> = (props) => {
               {
                 sourceAccountId: accountId,
                 sourceEntityId: entityId,
+                sourceEntityTypeId: entityTypeId,
+                sourceEntityTypeVersionId: entityTypeVersionId,
                 destinationEntityId: file.entityId,
                 destinationAccountId: file.accountId,
                 path: "$.file",
@@ -289,6 +308,8 @@ export const Image: BlockComponent<AppProps> = (props) => {
       createLinks,
       deleteLinks,
       entityId,
+      entityTypeId,
+      entityTypeVersionId,
       linkGroups,
       updateData,
       updateStateObject,

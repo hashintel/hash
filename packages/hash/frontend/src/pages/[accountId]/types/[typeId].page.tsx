@@ -27,9 +27,8 @@ export const EntityType: VoidFunctionComponent = () => {
   const typeId = query.typeId as string;
   const accountId = query.accountId as string;
 
-  const { updateEntityTypes } = useBlockProtocolUpdateEntityType(accountId);
-  const { aggregateEntityTypes } =
-    useBlockProtocolAggregateEntityTypes(accountId);
+  const { updateEntityTypes } = useBlockProtocolUpdateEntityType();
+  const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
 
   /** @see https://json-schema.org/understanding-json-schema/structuring.html#json-pointer */
   const subSchemaReference =
@@ -128,6 +127,7 @@ export const EntityType: VoidFunctionComponent = () => {
             </Link>
           </div>
           <SchemaEditor
+            accountId={accountId}
             aggregateEntityTypes={aggregateEntityTypes}
             entityId={data.getEntityType.entityId}
             schema={schema}

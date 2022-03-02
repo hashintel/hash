@@ -41,7 +41,6 @@ type AppProps = {
   initialState?: TableOptions<{}>["initialState"] & {
     columns?: { Header: string; accessor: string }[];
   };
-  entityId: string;
 };
 
 const useTableData = (
@@ -116,9 +115,12 @@ const cleanUpdateLinkedAggregationAction = (
 const path = "$.data";
 
 export const Table: BlockComponent<AppProps> = ({
+  accountId,
   aggregateEntities,
   aggregateEntityTypes,
   entityId,
+  entityTypeId,
+  entityTypeVersionId,
   initialState,
   linkedAggregations,
   schemas,
@@ -126,6 +128,10 @@ export const Table: BlockComponent<AppProps> = ({
   updateLinks,
 }) => {
   const matchingLinkedAggregation = useMemo(() => {
+    if (!entityId) {
+      return undefined;
+    }
+
     return getLinkedAggregation({
       linkedAggregations: linkedAggregations ?? [],
       path,
@@ -213,6 +219,9 @@ export const Table: BlockComponent<AppProps> = ({
       }
 
       aggregateEntities({
+        accountId,
+        entityTypeId,
+        entityTypeVersionId,
         operation: linkedData.operation,
       })
         .then(({ operation, results }) => {
@@ -236,12 +245,20 @@ export const Table: BlockComponent<AppProps> = ({
           // @todo properly handle error
         });
     },
-    [aggregateEntities, setTableData, tableData.linkedAggregation],
+    [
+      accountId,
+      aggregateEntities,
+      entityTypeId,
+      entityTypeVersionId,
+      setTableData,
+      tableData.linkedAggregation,
+    ],
   );
 
   const handleUpdate = useCallback(
     ({ operation, multiFilter, multiSort, itemsPerPage }: AggregateArgs) => {
       if (
+        !entityId ||
         !updateEntities ||
         !updateLinks ||
         !matchingLinkedAggregation ||
@@ -285,10 +302,13 @@ export const Table: BlockComponent<AppProps> = ({
         initialState?: Record<string, any>;
       }>([
         {
+          accountId,
           data: {
             initialState: newState,
           },
           entityId,
+          entityTypeId,
+          entityTypeVersionId,
         },
       ]);
 
@@ -302,12 +322,15 @@ export const Table: BlockComponent<AppProps> = ({
       ]);
     },
     [
+      accountId,
+      entityId,
+      entityTypeId,
+      entityTypeVersionId,
+      initialState,
       matchingLinkedAggregation,
       updateEntities,
       updateLinks,
       tableData.linkedAggregation,
-      entityId,
-      initialState,
     ],
   );
 
@@ -315,7 +338,12 @@ export const Table: BlockComponent<AppProps> = ({
     hiddenColumns?: string[];
     columns?: { Header: string; accessor: string }[];
   }) => {
-    if (!updateLinks || !updateEntities || !matchingLinkedAggregation) {
+    if (
+      !entityId ||
+      !updateLinks ||
+      !updateEntities ||
+      !matchingLinkedAggregation
+    ) {
       return;
     }
 
@@ -332,10 +360,13 @@ export const Table: BlockComponent<AppProps> = ({
         initialState?: Record<string, any>;
       }>([
         {
+          accountId,
           data: {
             initialState: newState,
           },
           entityId,
+          entityTypeId,
+          entityTypeVersionId,
         },
       ]);
 
@@ -390,21 +421,22 @@ export const Table: BlockComponent<AppProps> = ({
     [handleAggregate],
   );
 
-  const entityTypeId = tableData?.linkedAggregation?.operation.entityTypeId;
+  const tableDataEntityTypeId =
+    tableData?.linkedAggregation?.operation.entityTypeId;
 
   const setPageSize = useCallback(
     (size: number) => {
-      if (!entityTypeId) {
+      if (!tableDataEntityTypeId) {
         return;
       }
 
       handleUpdate({
         operation: "changePageSize",
         itemsPerPage: size,
-        entityTypeId,
+        entityTypeId: tableDataEntityTypeId,
       });
     },
-    [handleUpdate, entityTypeId],
+    [handleUpdate, tableDataEntityTypeId],
   );
 
   /**
@@ -430,15 +462,21 @@ export const Table: BlockComponent<AppProps> = ({
 
   useEffect(() => {
     void aggregateEntityTypes?.({
+      accountId,
       includeOtherTypesInUse: true,
     }).then(({ results }) => {
       setEntityTypes(orderBy(results, (entityType) => entityType.title));
     });
-  }, [aggregateEntityTypes]);
+  }, [aggregateEntityTypes, accountId]);
 
   const handleEntityTypeChange = useCallback(
     (updatedEntityTypeId: string | undefined) => {
-      if (!updateEntities || !updateLinks || !matchingLinkedAggregation) {
+      if (
+        !entityId ||
+        !updateEntities ||
+        !updateLinks ||
+        !matchingLinkedAggregation
+      ) {
         return;
       }
 
@@ -446,10 +484,13 @@ export const Table: BlockComponent<AppProps> = ({
         initialState?: Record<string, any>;
       }>([
         {
+          accountId,
           entityId,
           data: {
             initialState,
           },
+          entityTypeId,
+          entityTypeVersionId,
         },
       ]);
 
@@ -470,7 +511,10 @@ export const Table: BlockComponent<AppProps> = ({
       }
     },
     [
+      accountId,
       entityId,
+      entityTypeId,
+      entityTypeVersionId,
       initialState,
       tableData.linkedAggregation?.operation?.itemsPerPage,
       matchingLinkedAggregation,

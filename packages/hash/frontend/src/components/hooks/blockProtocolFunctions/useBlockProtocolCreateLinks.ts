@@ -11,10 +11,7 @@ import {
   CreateLinkMutationVariables,
 } from "../../../graphql/apiTypes.gen";
 
-export const useBlockProtocolCreateLinks = (
-  /** Providing accountId here saves blocks from having to know it */
-  sourceAccountId: string,
-): {
+export const useBlockProtocolCreateLinks = (): {
   createLinks: BlockProtocolCreateLinksFunction;
   createLinksLoading: boolean;
   createLinksError: any;
@@ -31,14 +28,20 @@ export const useBlockProtocolCreateLinks = (
       const results: BlockProtocolLink[] = [];
       // TODO: Support multiple actions in one GraphQL mutation for transaction integrity and better status reporting
       for (const action of actions) {
+        if (!action.sourceAccountId) {
+          throw new Error("createLinks needs to be passed a sourceAccountId");
+        }
+
         const { data, errors } = await runCreateLinksMutation({
           variables: {
             link: {
-              ...action,
-              sourceAccountId,
+              destinationEntityId: action.destinationEntityId,
               destinationAccountId: action.destinationAccountId
                 ? action.destinationAccountId
-                : sourceAccountId,
+                : action.sourceAccountId,
+              path: action.path,
+              sourceEntityId: action.sourceEntityId,
+              sourceAccountId: action.sourceAccountId,
             },
           },
         });
@@ -50,7 +53,7 @@ export const useBlockProtocolCreateLinks = (
       }
       return results;
     },
-    [sourceAccountId, runCreateLinksMutation],
+    [runCreateLinksMutation],
   );
 
   return {
