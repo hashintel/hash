@@ -2,6 +2,8 @@
 
 mod local;
 
+use std::process::ExitStatus;
+
 use async_trait::async_trait;
 use error::Result;
 use hash_engine_lib::proto::EngineMsg;
@@ -21,6 +23,9 @@ pub trait Process {
     ///
     /// Returns an error if the message could not be sent.
     async fn send(&mut self, msg: &EngineMsg) -> Result<()>;
+
+    /// Waits for the process to exit completely, returning the status that it exited with.
+    async fn wait(&mut self) -> Result<ExitStatus>;
 }
 
 /// A command for creating an engine-subprocess represented by [`Process`].
