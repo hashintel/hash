@@ -148,7 +148,7 @@ export const getAccountPagesTree = gql`
       properties {
         title
       }
-      parentPageId
+      parentPageEntityId
     }
   }
 `;
@@ -171,11 +171,15 @@ export const updatePageContents = gql`
 `;
 
 export const setPageParent = gql`
-  mutation setParentPage($accountId: ID!, $pageId: ID!, $parentPageId: ID) {
+  mutation setParentPage(
+    $accountId: ID!
+    $pageEntityId: ID!
+    $parentPageEntityId: ID
+  ) {
     setParentPage(
       accountId: $accountId
-      pageId: $pageId
-      parentPageId: $parentPageId
+      pageEntityId: $pageEntityId
+      parentPageEntityId: $parentPageEntityId
     ) {
       entityId
       properties {

@@ -83,9 +83,15 @@ export const pageTypedef = gql`
     # ENTITY INTERFACE FIELDS END #
 
     """
-    The id of the page's parent. Used for nesting pages in a tree structure.
+    The entity id of the page's parent (equivalent to "parentPage.entityId").
+
+    Can be used for nesting pages in a tree structure.
     """
-    parentPageId: ID
+    parentPageEntityId: ID
+    """
+    The parent page of the page
+    """
+    parentPage: Page
   }
 
   type PageProperties {
@@ -256,9 +262,13 @@ export const pageTypedef = gql`
     """
     Set the parent of a page
 
-    If the parentPageId is not set, any existing page link is removed.
+    If the parentPageEntityId is not set, any existing page link is removed.
     """
-    setParentPage(accountId: ID!, pageId: ID!, parentPageId: ID): Page!
+    setParentPage(
+      accountId: ID!
+      pageEntityId: ID!
+      parentPageEntityId: ID
+    ): Page!
 
     """
     Atomically update the contents of a page.

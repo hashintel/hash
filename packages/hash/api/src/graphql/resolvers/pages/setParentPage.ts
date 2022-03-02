@@ -10,37 +10,37 @@ export const setParentPage: Resolver<
   MutationSetParentPageArgs
 > = async (
   _,
-  { accountId, pageId, parentPageId },
+  { accountId, pageEntityId, parentPageEntityId },
   { dataSources: { db }, user },
 ) => {
-  if (pageId === parentPageId) {
+  if (pageEntityId === parentPageEntityId) {
     throw new ApolloError("A page cannot be the parent of itself");
   }
 
   return await db.transaction(async (client) => {
     const pageEntity = await Page.getPageById(client, {
       accountId,
-      entityId: pageId,
+      entityId: pageEntityId,
     });
 
     if (!pageEntity) {
       throw new ApolloError(
-        `Could not find page entity with entityId = ${pageId} on account with id = ${accountId}.`,
+        `Could not find page entity with entityId = ${pageEntityId} on account with id = ${accountId}.`,
         "NOT_FOUND",
       );
     }
 
     let parentPage: Page | null = null;
 
-    if (parentPageId) {
+    if (parentPageEntityId) {
       parentPage = await Page.getPageById(client, {
         accountId,
-        entityId: parentPageId,
+        entityId: parentPageEntityId,
       });
 
       if (!parentPage) {
         throw new ApolloError(
-          `Could not find parent page entity with entityId = ${parentPageId} on account with id = ${accountId}.`,
+          `Could not find parent page entity with entityId = ${parentPageEntityId} on account with id = ${accountId}.`,
           "NOT_FOUND",
         );
       }
