@@ -191,7 +191,7 @@ class __Page extends Entity {
 
   async getParentPage(client: DBClient): Promise<Page | null> {
     const parentPageLinks = await this.getOutgoingLinks(client, {
-      path: ["parent"],
+      path: ["parentPage"],
     });
 
     if (parentPageLinks.length > 1) {
@@ -241,7 +241,7 @@ class __Page extends Entity {
     },
   ): Promise<void> {
     const parentPageLinks = await this.getOutgoingLinks(client, {
-      path: ["parent"],
+      path: ["parentPage"],
     });
 
     if (parentPageLinks.length > 1) {
@@ -294,7 +294,7 @@ class __Page extends Entity {
 
       await this.createOutgoingLink(client, {
         createdByAccountId: setByAccountId,
-        stringifiedPath: "$.parent",
+        stringifiedPath: "$.parentPage",
         destination: parentPage,
       });
     }
