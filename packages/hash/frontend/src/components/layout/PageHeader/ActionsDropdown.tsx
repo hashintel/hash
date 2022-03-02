@@ -9,10 +9,10 @@ import {
   useTheme,
 } from "@mui/material";
 
-import { FontAwesomeSvgIcon } from "../../../icons";
-import { Popover } from "../../../Popover";
-import { Link } from "../../../Link";
-import { CreatePage } from "../../../Modals/CreatePage/CreatePage";
+import { FontAwesomeSvgIcon } from "../../icons";
+import { Popover } from "../../Popover";
+import { Link } from "../../Link";
+import { CreatePage } from "../../Modals/CreatePage/CreatePage";
 
 export const ActionsDropdown: React.FC<{
   accountId: string;

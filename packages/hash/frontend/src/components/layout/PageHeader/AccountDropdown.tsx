@@ -39,7 +39,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
         variant="transparent"
         onClick={() => setOpen(!open)}
         title={user.properties.shortname!}
-        className="flex items-center relative z-10 m-auto focus:outline-none"
+        className="flex items-center relative m-auto focus:outline-none"
         ref={buttonRef}
         sx={{
           borderRadius: "100%",
