@@ -410,20 +410,20 @@ class __Entity {
   async getOutgoingLinks(
     client: DBClient,
     params?: {
+      activeAt?: Date;
       stringifiedPath?: string;
       path?: PathComponent[];
     },
   ) {
-    const { stringifiedPath, path } = params || {};
+    const { activeAt, stringifiedPath, path } = params || {};
 
     const outgoingDBLinks = await client.getEntityOutgoingLinks({
       accountId: this.accountId,
       entityId: this.entityId,
-      entityVersionId: this.metadata.versioned
-        ? this.entityVersionId
-        : undefined,
+      activeAt,
       path: stringifiedPath ?? (path ? Link.stringifyPath(path) : undefined),
     });
+
     return outgoingDBLinks.map((dbLink) => new Link(dbLink));
   }
 

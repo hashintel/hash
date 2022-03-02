@@ -7,8 +7,7 @@ import { EntityWithOutgoingEntityIds } from "../../adapter";
 import { EntityPGRow, mapPGRowToEntity, selectEntities } from "../entity";
 
 import { Connection } from "../types";
-import { mapColumnNamesToSQL } from "../util";
-import { DBLinkRow, linksColumnNames, mapDBLinkRowToDBLink } from "./util";
+import { getLinks } from "./util";
 
 export type EntityWithOutgoingEntityIdsPGRow = EntityPGRow & {
   outgoing_entity_ids: string[];
@@ -27,29 +26,18 @@ export const getEntityOutgoingLinks = async (
   params: {
     accountId: string;
     entityId: string;
-    entityVersionId?: string;
+    activeAt?: Date;
     path?: string;
   },
 ) => {
-  const rows = await conn.any(sql<DBLinkRow>`
-    select ${mapColumnNamesToSQL(linksColumnNames)}
-    from links
-    where
-    ${sql.join(
-      [
-        sql`source_account_id = ${params.accountId}`,
-        sql`source_entity_id = ${params.entityId}`,
-        params.entityVersionId !== undefined
-          ? sql`${params.entityVersionId} = ANY(source_entity_version_ids)`
-          : [],
-        params.path !== undefined ? sql`path = ${params.path}` : [],
-      ].flat(),
-      sql` and `,
-    )}
-    order by index
-  `);
+  const dbLinks = await getLinks(conn, {
+    sourceAccountId: params.accountId,
+    sourceEntityId: params.entityId,
+    activeAt: params.activeAt,
+    path: params.path,
+  });
 
-  return rows.map(mapDBLinkRowToDBLink);
+  return dbLinks;
 };
 
 const outgoingLinkAggregationQuery = sql`

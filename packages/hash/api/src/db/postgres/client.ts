@@ -530,12 +530,9 @@ export class PostgresClient implements DBClient {
     return await deleteAggregation(this.conn, params);
   }
 
-  async getEntityOutgoingLinks(params: {
-    accountId: string;
-    entityId: string;
-    entityVersionId?: string;
-    path?: string;
-  }): Promise<DBLink[]> {
+  async getEntityOutgoingLinks(
+    params: Parameters<DBClient["getEntityOutgoingLinks"]>[0],
+  ): Promise<DBLink[]> {
     return await getEntityOutgoingLinks(this.conn, params);
   }
 
