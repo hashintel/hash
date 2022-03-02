@@ -21,10 +21,7 @@ import {
   LinkedEntityDefinition,
 } from "../graphql/apiTypes.gen";
 
-export type PageExternalResolvers =
-  | EntityExternalResolvers
-  | "contents" // contents resolved in `src/graphql/resolvers/pages/linkedEntities.ts`
-  | "properties"; // properties.contents is deprecated, and resolved seperately.
+export type PageExternalResolvers = EntityExternalResolvers | "contents"; // contents resolved in `src/graphql/resolvers/pages/linkedEntities.ts`
 
 export type UnresolvedGQLPage = Omit<GQLPage, PageExternalResolvers> & {
   entityType: UnresolvedGQLEntityType;
