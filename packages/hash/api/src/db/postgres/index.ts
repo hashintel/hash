@@ -254,12 +254,6 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.getLink(params));
   }
 
-  getLinkByEntityId(
-    params: Parameters<DBClient["getLinkByEntityId"]>[0],
-  ): ReturnType<DBClient["getLinkByEntityId"]> {
-    return this.query((adapter) => adapter.getLinkByEntityId(params));
-  }
-
   deleteLink(params: {
     deletedByAccountId: string;
     sourceAccountId: string;

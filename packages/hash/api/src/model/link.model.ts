@@ -196,19 +196,6 @@ class __Link {
     return dbLink ? new Link(dbLink) : null;
   }
 
-  static async getByEntityId(
-    client: DBClient,
-    params: {
-      sourceAccountId: string;
-      sourceEntityId: string;
-      sourceEntityVersionId: string;
-      destinationEntityId: string;
-    },
-  ): Promise<Link | null> {
-    const dbLink = await client.getLinkByEntityId(params);
-    return dbLink ? new Link({ ...dbLink }) : null;
-  }
-
   async delete(client: DBClient, params: { deletedByAccountId: string }) {
     await client.deleteLink({
       deletedByAccountId: params.deletedByAccountId,

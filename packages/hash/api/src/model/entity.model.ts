@@ -441,22 +441,6 @@ class __Entity {
     return link;
   }
 
-  async getOutgoingLinkByEntityId(
-    client: DBClient,
-    params: {
-      destinationEntityId: string;
-    },
-  ) {
-    const link = await Link.getByEntityId(client, {
-      ...params,
-      sourceAccountId: this.accountId,
-      sourceEntityId: this.entityId,
-      sourceEntityVersionId: this.entityVersionId,
-    });
-
-    return link;
-  }
-
   async createOutgoingLink(
     client: DBClient,
     params: Omit<CreateLinkArgs, "source">,
