@@ -16,7 +16,7 @@ const props = {
   },
   name: "Archibald Adams-Montgomery",
   email: "alice@example.com",
-  link: "https://alice.com/about",
+  link: "https://example.com/alice",
 };
 
 const App = () => (
