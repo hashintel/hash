@@ -59,21 +59,20 @@ export const PageHeader: React.VFC = () => {
       }}
     >
       <Nav>
-        <Box sx={{ display: "flex", alignItems: "center" }}>
-          <Link noLinkStyle href={`/${user ? user.accountId : ""}`}>
-            <HashNavIcon />
-          </Link>
+        <Box sx={{ display: "flex" }}>
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <Link noLinkStyle href={`/${user ? user.accountId : ""}`}>
+              <HashNavIcon />
+            </Link>
+          </Box>
+          {user && <SearchBar />}
         </Box>
         {user ? (
-          <>
-            <SearchBar />
-
-            <Box sx={{ display: "flex", alignItems: "center" }}>
-              <ActionsDropdown accountId={accountId} />
-              <NotificationsDropdown />
-              <AccountDropdown logout={logout} user={user!} />
-            </Box>
-          </>
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <ActionsDropdown accountId={accountId} />
+            <NotificationsDropdown />
+            <AccountDropdown logout={logout} user={user!} />
+          </Box>
         ) : (
           <Box>
             <Button

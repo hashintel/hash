@@ -10,6 +10,18 @@ import React, {
 } from "react";
 import { useDebounce, useKey, useKeys, useOutsideClickRef } from "rooks";
 import { tw } from "twind";
+import {
+  alpha,
+  Box,
+  InputBase,
+  styled,
+  Theme,
+  useTheme,
+  useMediaQuery,
+} from "@mui/material";
+import { SxProps } from "@mui/system";
+import { faXmark } from "@fortawesome/free-solid-svg-icons";
+
 import { blockDomId } from "../../../blocks/page/BlockView";
 import {
   SearchPagesQuery,
@@ -17,9 +29,9 @@ import {
 } from "../../../graphql/apiTypes.gen";
 import { searchPages } from "../../../graphql/queries/search.queries";
 import { useUser } from "../../hooks/useUser";
-import { SearchIcon } from "../../icons";
+import { FontAwesomeSvgIcon, SearchIcon } from "../../icons";
 import { HASH_OPENSEARCH_ENABLED } from "../../../lib/public-env";
-import { alpha, Box, InputBase, styled } from "@mui/material";
+
 /** finds the query's words in the result and chops it into parts at the words' boundaries */
 const splitByMatches = (result: string, query: string) => {
   const separator = query
@@ -53,7 +65,7 @@ const ResultList: React.FC = (props) => (
     sx={(theme) => ({
       position: "absolute",
       zIndex: 10,
-      width: "50%",
+      width: "100%",
       maxHeight: "15rem",
       overflow: "auto",
       border: `1px solid ${theme.palette.gray[20]}`,
@@ -64,9 +76,16 @@ const ResultList: React.FC = (props) => (
   />
 );
 
-const ResultItem: React.FC = (props) => (
-  <li
-    className={tw`flex border border-gray-100 bg-gray-50 p-2 hover:bg-gray-100 cursor-pointer overflow-ellipsis overflow-hidden`}
+const ResultItem: React.FC<{
+  sx?: SxProps<Theme>;
+}> = ({ sx, ...props }) => (
+  <Box
+    component="li"
+    sx={{
+      display: "flex",
+      ...sx,
+    }}
+    className={tw`border border-gray-100 bg-gray-50 p-2 hover:bg-gray-100 cursor-pointer overflow-ellipsis overflow-hidden`}
     {...props}
   />
 );
@@ -109,19 +128,32 @@ const SearchIconWrapper = styled("div")(({ theme }) => ({
 }));
 
 const SlashIconWrapper = styled("div")(({ theme }) => ({
-  margin: theme.spacing(1),
-  padding: theme.spacing(0, 1),
+  margin: theme.spacing(0, 1),
+  height: "100%",
   position: "absolute",
   pointerEvents: "none",
   display: "flex",
   alignItems: "center",
-  justifyContent: "center",
   top: 0,
   right: 0,
   fontWeight: "bold",
-  color: theme.palette.gray[50],
-  backgroundColor: theme.palette.gray[20],
 }));
+
+const CrossIconWrapper = styled("div")(({ theme }) => ({
+  margin: theme.spacing(0, 1),
+  marginRight: 0,
+  padding: theme.spacing(0, 1),
+  position: "absolute",
+  display: "flex",
+  height: "100%",
+  alignItems: "center",
+  cursor: "pointer",
+  top: 0,
+  right: 0,
+  fontWeight: "bold",
+}));
+
+const buttonFocusBorderOffset = 4;
 
 const StyledInputBase = styled(InputBase)(({ theme }) => ({
   color: "inherit",
@@ -131,16 +163,25 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
     paddingLeft: `calc(1em + ${theme.spacing(3)})`,
     paddingRight: `calc(1em + ${theme.spacing(3)})`,
     transition: theme.transitions.create("width"),
-    width: "max-content",
     [theme.breakpoints.up("md")]: {
       width: "20ch",
     },
     border: `1px solid ${theme.palette.gray[30]}`,
     borderRadius: "6px",
+    position: "relative",
+
+    ":focus": {
+      margin: "-1px",
+      border: `2px solid ${theme.palette.blue[70]}`,
+    },
   },
 }));
 
 const SearchBarWhenSearchIsEnabled: React.VFC = () => {
+  const theme = useTheme();
+
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
   const inputRef = useRef<HTMLInputElement>(null);
   const [isResultListVisible, setResultListVisible] = useState(false);
   const [displayedQuery, submittedQuery, setQueryText] = useQueryText();
@@ -177,50 +218,100 @@ const SearchBarWhenSearchIsEnabled: React.VFC = () => {
       })}
       ref={rootRef}
     >
-      <Search>
-        <SearchIconWrapper>
-          <SearchIcon />
-        </SearchIconWrapper>
-        <StyledInputBase
-          placeholder="Search for anything"
-          ref={inputRef}
-          type="text"
-          value={displayedQuery}
-          onFocus={() => setResultListVisible(true)}
-          onChange={(event) => {
-            setResultListVisible(true);
-            setQueryText(event.target.value);
-          }}
-          inputProps={{ "aria-label": "search" }}
-        />
-        <SlashIconWrapper>/</SlashIconWrapper>
-      </Search>
-      {isResultListVisible && displayedQuery && (
-        <ResultList>
-          {isLoading ? (
-            <ResultItem>
-              Loading results for&nbsp;<b>{submittedQuery}</b>.
-            </ResultItem>
-          ) : !data?.searchPages.length ? (
-            <ResultItem>
-              No results found for&nbsp;<b>{submittedQuery}</b>.
-            </ResultItem>
-          ) : (
-            data.searchPages.map((searchPage) => (
-              <ResultItem
-                key={searchPage.block?.entityId ?? searchPage.page.entityId}
-              >
-                <Link href={toBlockUrl(searchPage)}>
-                  <a>
-                    {splitByMatches(searchPage.content, submittedQuery).map(
-                      (str, i) => (i % 2 === 1 ? <b>{str}</b> : str),
-                    )}
-                  </a>
-                </Link>
-              </ResultItem>
-            ))
+      {!isMobile ? (
+        <>
+          <Search>
+            <SearchIconWrapper>
+              <SearchIcon />
+            </SearchIconWrapper>
+            <StyledInputBase
+              placeholder="Search for anything"
+              ref={inputRef}
+              type="text"
+              value={displayedQuery}
+              onFocus={() => setResultListVisible(true)}
+              onChange={(event) => {
+                setResultListVisible(true);
+                setQueryText(event.target.value);
+              }}
+              inputProps={{ "aria-label": "search" }}
+            />
+            {displayedQuery.trim() ? (
+              <CrossIconWrapper>
+                <Box
+                  sx={(theme) => ({
+                    width: theme.spacing(2.5),
+                    height: theme.spacing(2.5),
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: theme.spacing(0.25),
+                    color: theme.palette.gray[50],
+                    transition: "all 0.2s ease-in-out",
+
+                    "&:hover": {
+                      backgroundColor: theme.palette.gray[20],
+                      color: theme.palette.gray[80],
+                    },
+                  })}
+                  onClick={() => {
+                    setQueryText("");
+                  }}
+                >
+                  <FontAwesomeSvgIcon icon={faXmark} />
+                </Box>
+              </CrossIconWrapper>
+            ) : (
+              <SlashIconWrapper>
+                <Box
+                  sx={(theme) => ({
+                    width: theme.spacing(3.25),
+                    height: theme.spacing(3.25),
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: theme.palette.gray[50],
+                    backgroundColor: theme.palette.gray[20],
+                    borderRadius: theme.spacing(0.25),
+                  })}
+                >
+                  /
+                </Box>
+              </SlashIconWrapper>
+            )}
+          </Search>
+          {isResultListVisible && displayedQuery && (
+            <ResultList>
+              {isLoading ? (
+                <ResultItem sx={{ display: "block" }}>
+                  Loading results for&nbsp;<b>{submittedQuery}</b>.
+                </ResultItem>
+              ) : !data?.searchPages.length ? (
+                <ResultItem sx={{ display: "block" }}>
+                  No results found for&nbsp;<b>{submittedQuery}</b>.
+                </ResultItem>
+              ) : (
+                data.searchPages.map((searchPage) => (
+                  <ResultItem
+                    key={searchPage.block?.entityId ?? searchPage.page.entityId}
+                  >
+                    <Link href={toBlockUrl(searchPage)}>
+                      <a>
+                        {splitByMatches(searchPage.content, submittedQuery).map(
+                          (str, i) => (i % 2 === 1 ? <b>{str}</b> : str),
+                        )}
+                      </a>
+                    </Link>
+                  </ResultItem>
+                ))
+              )}
+            </ResultList>
           )}
-        </ResultList>
+        </>
+      ) : (
+        <Box>
+          <SearchIcon />
+        </Box>
       )}
     </Box>
   );
