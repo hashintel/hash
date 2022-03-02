@@ -1,7 +1,8 @@
-import { VFC } from "react";
+import { useCallback, useMemo, useState, VFC } from "react";
 
 import { Typography, IconButton, Box } from "@mui/material";
 import { faSearch, faArrowUpAZ } from "@fortawesome/free-solid-svg-icons";
+import { orderBy } from "lodash";
 import { useAccountEntityTypes } from "../../hooks/useAccountEntityTypes";
 import { FontAwesomeSvgIcon } from "../../icons";
 import { NavLink } from "./NavLink";
@@ -17,6 +18,33 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
   accountId,
 }) => {
   const { data } = useAccountEntityTypes(accountId);
+  const [order, setOrder] = useState<"asc" | "desc" | undefined>();
+
+  const sortedData = useMemo(() => {
+    if (!order) {
+      return data?.getAccountEntityTypes ?? [];
+    }
+
+    return orderBy(
+      data?.getAccountEntityTypes ?? [],
+      ["properties.title"],
+      [order],
+    );
+  }, [order, data]);
+
+  const toggleSort = useCallback(() => {
+    if (!order) {
+      setOrder("asc");
+    }
+
+    if (order === "asc") {
+      setOrder("desc");
+    }
+
+    if (order === "desc") {
+      setOrder("asc");
+    }
+  }, [order]);
 
   return (
     <Box>
@@ -44,11 +72,11 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
             <IconButton sx={{ mr: 1.25 }}>
               <FontAwesomeSvgIcon icon={faSearch} />
             </IconButton>
-            <IconButton>
+            <IconButton onClick={toggleSort}>
               <FontAwesomeSvgIcon icon={faArrowUpAZ} />
             </IconButton>
           </Box>
-          {data?.getAccountEntityTypes.map((entityType) => {
+          {sortedData.map((entityType) => {
             return (
               <Box
                 component="li"
