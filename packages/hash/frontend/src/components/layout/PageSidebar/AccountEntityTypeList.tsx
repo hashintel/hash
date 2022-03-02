@@ -1,22 +1,13 @@
-import { VFC, useState } from "react";
-import { tw } from "twind";
+import { VFC } from "react";
 
-import { TreeView, TreeItem } from "@mui/lab";
-import { Typography, IconButton, Box, Collapse } from "@mui/material";
-import {
-  faAdd,
-  faChevronDown,
-  faChevronRight,
-  faEllipsis,
-  faSearch,
-  faArrowUpAZ,
-} from "@fortawesome/free-solid-svg-icons";
-// import styles from "./PageSidebar.module.scss";
+import { Typography, IconButton, Box } from "@mui/material";
+import { faSearch, faArrowUpAZ } from "@fortawesome/free-solid-svg-icons";
 import { useAccountEntityTypes } from "../../hooks/useAccountEntityTypes";
 import { FontAwesomeSvgIcon } from "../../icons";
 import { NavLink } from "./NavLink";
 import { Link } from "../../Link";
 import { EntityTypeMenu } from "./EntityTypeMenu";
+import { CreateEntityTypeButton } from "./CreateEntityTypeButton";
 
 type AccountEntityTypeListProps = {
   accountId: string;
@@ -29,7 +20,10 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
 
   return (
     <Box>
-      <NavLink title="Types" addButtonTooltip="Create new type">
+      <NavLink
+        title="Types"
+        endAdornment={<CreateEntityTypeButton accountId={accountId} />}
+      >
         <Box component="ul">
           <Box
             component="li"
@@ -115,13 +109,4 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
       </NavLink>
     </Box>
   );
-
-  // return (
-  //     <Link href={`/${accountId}/types/new`}>
-  //       <a className={tw`inline-block hover:border-transparent`}>
-  //         <Button>Create Entity Type</Button>
-  //       </a>
-  //     </Link>
-  //   </div>
-  // );
 };

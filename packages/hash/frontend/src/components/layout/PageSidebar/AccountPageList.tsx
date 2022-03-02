@@ -47,9 +47,12 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
   );
 
   return (
-    <NavLink title="Pages" addButtonTooltip="Create new page">
+    <NavLink
+      title="Pages"
+      endAdornment={<CreatePageButton accountId={accountId} />}
+    >
       <TreeView>{formattedData.map((node) => renderTree(node))}</TreeView>
-      <CreatePageButton accountId={accountId} />
+      {/* <CreatePageButton accountId={accountId} /> */}
     </NavLink>
   );
 
