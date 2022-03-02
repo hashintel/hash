@@ -19,6 +19,7 @@ import { PageLayout } from "../components/layout/PageLayout/PageLayout";
 import twindConfig from "../../twind.config";
 import "../../styles/globals.scss";
 import { useUser } from "../components/hooks/useUser";
+import { SidebarContextProvider } from "../components/layout/SidebarContext";
 
 export const apolloClient = createApolloClient();
 
@@ -62,9 +63,11 @@ const MyApp: React.VoidFunctionComponent<CustomAppProps> = ({
         <ThemeProvider theme={theme}>
           <CssBaseline />
           <ModalProvider>
-            <PageLayout>
-              <Component {...pageProps} />
-            </PageLayout>
+            <SidebarContextProvider>
+              <PageLayout>
+                <Component {...pageProps} />
+              </PageLayout>
+            </SidebarContextProvider>
           </ModalProvider>
         </ThemeProvider>
       </CacheProvider>

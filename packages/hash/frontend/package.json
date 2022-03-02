@@ -28,6 +28,7 @@
     "@hashintel/hash-shared": "0.0.0",
     "@headlessui/react": "1.4.1",
     "@mui/icons-material": "5.4.2",
+    "@mui/lab": "5.0.0-alpha.71",
     "@mui/material": "5.4.3",
     "@rjsf/core": "4.0.1",
     "@rjsf/material-ui": "4.0.1",

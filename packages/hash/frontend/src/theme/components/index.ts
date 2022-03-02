@@ -1,19 +1,19 @@
 import { ThemeOptions } from "@mui/material";
 import { MuiButtonThemeOptions } from "./inputs/MuiButtonThemeOptions";
-import { MuiIconButtonThemeOptions } from "./dataDisplay/MuiIconButtonThemeOptions";
+import { MuiDrawerThemeOptions } from "./navigation/MuiDrawerThemeOptions";
 
 import { MuiCssBaselineThemeOptions } from "./utils/MuiCssBaselineThemeOptions";
-import { MuiListItemButtonThemeOptions } from "./dataDisplay/MuiListItemButtonThemeOptions";
+import { MuiIconButtonThemeOptions } from "./dataDisplay/MuiIconButtonThemeOptions";
 
 export const components: ThemeOptions["components"] = {
   /** ===== INPUTS ===== */
   MuiButton: MuiButtonThemeOptions,
   /** ===== DATA DISPLAY ===== */
   MuiIconButton: MuiIconButtonThemeOptions,
-  MuiListItemButton: MuiListItemButtonThemeOptions,
   /** ===== FEEDBACK ===== */
   /** ===== SURFACES ===== */
   /** ===== NAVIGATION ===== */
+  MuiDrawer: MuiDrawerThemeOptions,
   /** ===== LAYOUT ===== */
   /** ===== UTILS ===== */
   MuiCssBaseline: MuiCssBaselineThemeOptions,
