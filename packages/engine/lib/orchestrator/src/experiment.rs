@@ -262,6 +262,15 @@ impl Experiment {
                     graceful_finish = false;
                     break;
                 }
+                exit_code = engine_process.wait() => {
+                    match exit_code {
+                        Ok(exit_code) if exit_code.success() => warn!("Engine process ended"),
+                        Ok(exit_code) => error!("Engine process errored with exit code {exit_code}"),
+                        Err(err) => error!("Engine process errored: {err}"),
+                    }
+                    graceful_finish = false;
+                    break;
+                }
                 m = engine_handle.recv() => { msg = Some(m) },
             }
             let msg = msg.unwrap();
