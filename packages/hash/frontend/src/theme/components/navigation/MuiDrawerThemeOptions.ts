@@ -1,5 +1,4 @@
 import { Components, Theme } from "@mui/material";
-import { customColors } from "../../palette";
 
 export const SIDEBAR_WIDTH = 260;
 const HEADER_HEIGHT = 66;
@@ -10,7 +9,7 @@ export const MuiDrawerThemeOptions: Components<Theme>["MuiDrawer"] = {
     variant: "persistent",
   },
   styleOverrides: {
-    root: ({ ownerState, theme }) => ({
+    root: ({ theme }) => ({
       width: SIDEBAR_WIDTH,
       flexShrink: 0,
       display: "flex",

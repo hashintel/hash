@@ -1,6 +1,6 @@
 import { useState, FC, ReactNode } from "react";
-import { faAdd, faChevronRight } from "@fortawesome/free-solid-svg-icons";
-import { Box, IconButton, Typography, Collapse, Tooltip } from "@mui/material";
+import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
+import { Box, IconButton, Typography, Collapse } from "@mui/material";
 import { FontAwesomeSvgIcon } from "../../icons";
 // import { Link } from "./Link";
 
@@ -15,8 +15,6 @@ export const NavLink: FC<NavLinkProps> = ({
   endAdornment,
 }) => {
   const [visible, setVisible] = useState(false);
-
-  console.log(endAdornment);
 
   return (
     <Box>
@@ -57,15 +55,6 @@ export const NavLink: FC<NavLinkProps> = ({
         </IconButton>
 
         {endAdornment}
-
-        {/* <Tooltip title={addButtonTooltip}>
-          <IconButton>
-            <FontAwesomeSvgIcon
-              icon={faAdd}
-              sx={{ fontSize: 12, color: ({ palette }) => palette.gray[40] }}
-            />
-          </IconButton>
-        </Tooltip> */}
       </Box>
       <Collapse in={visible}>{children}</Collapse>
     </Box>

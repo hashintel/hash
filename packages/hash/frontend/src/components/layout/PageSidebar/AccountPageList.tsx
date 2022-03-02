@@ -1,16 +1,17 @@
 import { VoidFunctionComponent } from "react";
-import Link from "next/link";
+// import Link from "next/link";
 
 import { treeFromParentReferences } from "@hashintel/hash-shared/util";
-import styles from "./PageSidebar.module.scss";
+import { TreeView } from "@mui/lab";
+// import styles from "./PageSidebar.module.scss";
+import { CreatePageButton } from "../../Modals/CreatePage/CreatePageButton";
 import { useAccountPages } from "../../hooks/useAccountPages";
 import { NavLink } from "./NavLink";
-import { TreeItem, TreeView } from "@mui/lab";
 import { PageTreeItem } from "./PageTreeItem";
 
 type AccountPageListProps = {
   accountId: string;
-  currentPageEntityId: string;
+  // currentPageEntityId: string;
 };
 
 type TreeElement = {
@@ -34,7 +35,7 @@ const renderTree = (node: TreeElement) => (
 );
 
 export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
-  currentPageEntityId,
+  // currentPageEntityId,
   accountId,
 }) => {
   const { data } = useAccountPages(accountId);
@@ -46,30 +47,31 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
     "children",
   );
 
+  // @todo-mui implement active state
   return (
     <NavLink
       title="Pages"
       endAdornment={<CreatePageButton accountId={accountId} />}
     >
       <TreeView>{formattedData.map((node) => renderTree(node))}</TreeView>
-      {/* <CreatePageButton accountId={accountId} /> */}
     </NavLink>
   );
 
-  return (
-    <div className={styles.SidebarList}>
-      {data.map((page) => {
-        if (page.entityId === currentPageEntityId) {
-          return <div key={page.entityId}>{page.title}</div>;
-        }
-        return (
-          <div key={page.entityId}>
-            <Link href={`/${accountId}/${page.entityId}`}>
-              <a>{page.title}</a>
-            </Link>
-          </div>
-        );
-      })}
-    </div>
-  );
+  // return (
+  //   <div className={styles.SidebarList}>
+  //     {data.map((page) => {
+  //       if (page.entityId === currentPageEntityId) {
+  //         return <div key={page.entityId}>{page.title}</div>;
+  //       }
+  //       return (
+  //         <div key={page.entityId}>
+  //           <Link href={`/${accountId}/${page.entityId}`}>
+  //             <a>{page.title}</a>
+  //           </Link>
+  //         </div>
+  //       );
+  //     })}
+  //     <CreatePageButton accountId={accountId} />
+  //   </div>
+  // );
 };

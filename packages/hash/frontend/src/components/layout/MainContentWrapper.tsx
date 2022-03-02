@@ -2,7 +2,6 @@ import { faPencil } from "@fortawesome/free-solid-svg-icons";
 import { IconButton, Fade, Box } from "@mui/material";
 import { FunctionComponent } from "react";
 
-import styles from "../../pages/index.module.scss";
 import { FontAwesomeSvgIcon } from "../icons";
 import { PageSidebar } from "./PageSidebar/PageSidebar";
 import { useSidebarContext } from "./SidebarContext";

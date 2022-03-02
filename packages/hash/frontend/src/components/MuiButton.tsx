@@ -89,7 +89,6 @@ export const MuiButton: FC<ButtonProps> = forwardRef(
         {...props}
         sx={{
           borderRadius: squared ? "6px" : undefined,
-          /** @todo: figure out how to properly merge this object with `props.sx` */
           ...props.sx,
           lineHeight: "1.5",
           ...(squared

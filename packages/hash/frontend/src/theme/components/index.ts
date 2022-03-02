@@ -1,6 +1,6 @@
-import { MuiTooltipThemeOptions } from "./dataDisplay/MuiTooltipThemeOptions";
 import { ThemeOptions } from "@mui/material";
 import { MuiButtonThemeOptions } from "./inputs/MuiButtonThemeOptions";
+import { MuiTooltipThemeOptions } from "./dataDisplay/MuiTooltipThemeOptions";
 import { MuiDrawerThemeOptions } from "./navigation/MuiDrawerThemeOptions";
 
 import { MuiCssBaselineThemeOptions } from "./utils/MuiCssBaselineThemeOptions";

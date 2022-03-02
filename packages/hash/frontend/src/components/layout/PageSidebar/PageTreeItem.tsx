@@ -1,44 +1,41 @@
 import * as React from "react";
-import TreeView from "@mui/lab/TreeView";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import TreeItem, {
   TreeItemProps,
   useTreeItem,
   TreeItemContentProps,
 } from "@mui/lab/TreeItem";
-import clsx from "clsx";
+// import clsx from "clsx";
 import { Box, IconButton, Typography } from "@mui/material";
-import { FontAwesomeSvgIcon } from "../../icons";
 import { faChevronRight, faFile } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeSvgIcon } from "../../icons";
 
 // inspiration gotten from @see https://mui.com/components/tree-view/#IconExpansionTreeView.tsx
 const CustomContent = React.forwardRef(
   (props: TreeItemContentProps & { hasChildren?: boolean }, ref) => {
     const {
-      classes,
-      className,
+      //   classes,
+      //   className,
       label,
       nodeId,
-      icon: iconProp,
-      expansionIcon,
-      displayIcon,
+      //   icon: iconProp,
+      //   expansionIcon,
+      //   displayIcon,
       hasChildren,
     } = props;
 
     const {
-      disabled,
-      expanded,
-      selected,
-      focused,
+      //   disabled,
+      //   expanded,
+      //   selected,
+      //   focused,
       handleExpansion,
       handleSelection,
       preventSelection,
     } = useTreeItem(nodeId);
 
-    const icon = iconProp || expansionIcon || displayIcon || (
-      <FontAwesomeSvgIcon icon={faChevronRight} sx={{ fontSize: 12 }} />
-    );
+    // const icon = iconProp || expansionIcon || displayIcon || (
+    //   <FontAwesomeSvgIcon icon={faChevronRight} sx={{ fontSize: 12 }} />
+    // );
 
     const handleMouseDown = (
       event: React.MouseEvent<HTMLDivElement, MouseEvent>,

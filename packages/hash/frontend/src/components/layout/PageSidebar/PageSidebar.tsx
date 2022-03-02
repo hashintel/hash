@@ -2,25 +2,22 @@ import { VoidFunctionComponent } from "react";
 
 import { useRouter } from "next/router";
 import { Box, Drawer, Typography, IconButton, Tooltip } from "@mui/material";
-import { AccountSelect } from "./AccountSelect";
-import { AccountPageList } from "./AccountPageList";
-
-import styles from "./PageSidebar.module.scss";
-import { AccountEntityTypeList } from "./AccountEntityTypeList";
-import { FontAwesomeSvgIcon } from "../../icons";
 import {
-  faAdd,
-  faChevronRight,
   faHistory,
   faHome,
   faLifeRing,
   faPencil,
   faZap,
 } from "@fortawesome/free-solid-svg-icons";
+import { AccountSelect } from "./AccountSelect";
+import { AccountPageList } from "./AccountPageList";
+
+import styles from "./PageSidebar.module.scss";
+import { AccountEntityTypeList } from "./AccountEntityTypeList";
+import { FontAwesomeSvgIcon } from "../../icons";
 import { TopNavLink } from "./TopNavLink";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { useSidebarContext } from "../SidebarContext";
-import { NavLink } from "./NavLink";
 
 export const SIDEBAR_WIDTH = 260;
 
