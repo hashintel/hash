@@ -8,13 +8,13 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
+import { useKeys } from "rooks";
+import { useRouter } from "next/router";
 
 import { FontAwesomeSvgIcon } from "../../icons";
 import { Popover } from "../../Popover";
 import { Link } from "../../Link";
 import { CreatePage } from "../../Modals/CreatePage/CreatePage";
-import { useKeys } from "rooks";
-import { useRouter } from "next/router";
 
 export const ActionsDropdown: React.FC<{
   accountId: string;
@@ -113,7 +113,7 @@ export const ActionsDropdown: React.FC<{
         <Box>
           <ListItemButton
             sx={{
-              padding: (theme) => theme.spacing(1, 2),
+              padding: theme.spacing(1, 2),
               mx: 0.5,
               mt: 0.5,
               borderRadius: 1,
@@ -133,7 +133,7 @@ export const ActionsDropdown: React.FC<{
           </ListItemButton>
           <ListItemButton
             sx={{
-              padding: (theme) => theme.spacing(1, 2),
+              padding: theme.spacing(1, 2),
               mx: 0.5,
               borderRadius: 1,
               lineHeight: 1,
@@ -154,7 +154,7 @@ export const ActionsDropdown: React.FC<{
           >
             <ListItemButton
               sx={{
-                padding: (theme) => theme.spacing(1, 2),
+                padding: theme.spacing(1, 2),
                 mx: 0.5,
                 mb: 0.5,
                 borderRadius: 1,

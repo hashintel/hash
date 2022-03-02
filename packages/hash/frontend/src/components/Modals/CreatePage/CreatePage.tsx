@@ -62,8 +62,6 @@ export const CreatePage: VoidFunctionComponent<CreatePageProps> = ({
     return () => Router.events.off("routeChangeComplete", routeChangeHandler);
   }, [close]);
 
-  console.log("create page", { show });
-
   return (
     <Modal show={show} close={close}>
       <form className={styles.CreatePage} onSubmit={createPage}>

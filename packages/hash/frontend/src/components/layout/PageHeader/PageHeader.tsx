@@ -53,7 +53,7 @@ export const PageHeader: React.VFC = () => {
     <Box
       component="header"
       sx={{
-        background: theme.palette.common["white"],
+        background: theme.palette.common.white,
         borderBottom: `1px solid ${theme.palette.gray["30"]}`,
         display: "flex",
         alignItems: "center",
@@ -86,7 +86,7 @@ export const PageHeader: React.VFC = () => {
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <ActionsDropdown accountId={accountId} />
             <NotificationsDropdown />
-            <AccountDropdown logout={logout} user={user!} />
+            <AccountDropdown logout={logout} user={user} />
           </Box>
         ) : (
           <Box>

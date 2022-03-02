@@ -10,8 +10,7 @@ import React, {
 } from "react";
 import { useDebounce, useKey, useOutsideClickRef } from "rooks";
 import { tw } from "twind";
-import { Box, Theme, useTheme, useMediaQuery } from "@mui/material";
-import { SxProps } from "@mui/system";
+import { Box, Theme, useTheme, useMediaQuery, SxProps } from "@mui/material";
 
 import { blockDomId } from "../../../../blocks/page/BlockView";
 import {
@@ -20,7 +19,6 @@ import {
 } from "../../../../graphql/apiTypes.gen";
 import { searchPages } from "../../../../graphql/queries/search.queries";
 import { useUser } from "../../../hooks/useUser";
-import { SearchIcon } from "../../../icons";
 import { HASH_OPENSEARCH_ENABLED } from "../../../../lib/public-env";
 import { DesktopSearch } from "./DesktopSearch";
 import { MobileSearch } from "./MobileSearch";
@@ -138,7 +136,7 @@ const SearchBarWhenSearchIsEnabled: React.VFC = () => {
 
   return (
     <Box
-      sx={(theme) => ({
+      sx={{
         marginLeft: 0,
         [theme.breakpoints.up("md")]: {
           marginLeft: theme.spacing(3),
@@ -155,7 +153,7 @@ const SearchBarWhenSearchIsEnabled: React.VFC = () => {
               px: 2,
             }
           : {}),
-      })}
+      }}
       ref={rootRef}
     >
       {!isMobile ? (
@@ -210,6 +208,6 @@ const SearchBarWhenSearchIsDisabled: VoidFunctionComponent = () => {
 
 // Note: This component becomes empty is opensearch is disabled
 export const SearchBar =
-  HASH_OPENSEARCH_ENABLED !== "true"
+  HASH_OPENSEARCH_ENABLED === "true"
     ? SearchBarWhenSearchIsEnabled
     : SearchBarWhenSearchIsDisabled;

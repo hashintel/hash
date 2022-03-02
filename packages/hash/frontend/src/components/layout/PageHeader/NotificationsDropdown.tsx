@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { faBell, faPlus } from "@fortawesome/free-solid-svg-icons";
+import { faBell } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   Button,
@@ -18,7 +18,7 @@ export const NotificationsDropdown: React.FC = () => {
   const buttonRef = useRef(null);
 
   const [open, setOpen] = useState(false);
-  const [notificationsLength, setNotificationsLength] = useState(0);
+  const [notificationsLength] = useState(0);
 
   const hasNotifications = !!notificationsLength;
 
@@ -97,7 +97,7 @@ export const NotificationsDropdown: React.FC = () => {
           <Link noLinkStyle href="#" onClick={() => setOpen(false)}>
             <ListItemButton
               sx={{
-                padding: (theme) => theme.spacing(1, 2),
+                padding: theme.spacing(1, 2),
                 mx: 0.5,
                 mt: 0.5,
                 borderRadius: 1,
@@ -112,7 +112,7 @@ export const NotificationsDropdown: React.FC = () => {
           <Link noLinkStyle href="#" onClick={() => setOpen(false)}>
             <ListItemButton
               sx={{
-                padding: (theme) => theme.spacing(1, 2),
+                padding: theme.spacing(1, 2),
                 mx: 0.5,
                 borderRadius: 1,
                 lineHeight: 1,
@@ -126,7 +126,7 @@ export const NotificationsDropdown: React.FC = () => {
           <Link noLinkStyle href="#" onClick={() => setOpen(false)}>
             <ListItemButton
               sx={{
-                padding: (theme) => theme.spacing(1, 2),
+                padding: theme.spacing(1, 2),
                 mx: 0.5,
                 mb: 0.5,
                 borderRadius: 1,

@@ -9,7 +9,6 @@ import {
   useTheme,
 } from "@mui/material";
 
-import { AvatarIcon } from "../../icons";
 import { UserFieldsFragment } from "../../../graphql/apiTypes.gen";
 import { Popover } from "../../Popover";
 import { Link } from "../../Link";
@@ -53,7 +52,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
       >
         {avatar ? (
           <Box
-            component={"img"}
+            component="img"
             alt="avatar"
             src={avatar}
             sx={{ height: "32px", width: "32px", borderRadius: "100%" }}
@@ -112,7 +111,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
           <Link noLinkStyle href="#" onClick={() => setOpen(false)}>
             <ListItemButton
               sx={{
-                padding: (theme) => theme.spacing(1, 2),
+                padding: theme.spacing(1, 2),
                 m: 0.5,
                 borderRadius: 1,
               }}
@@ -125,7 +124,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
           <Divider />
           <ListItemButton
             sx={{
-              padding: (theme) => theme.spacing(1, 2),
+              padding: theme.spacing(1, 2),
               m: 0.5,
               borderRadius: 0.5,
             }}
