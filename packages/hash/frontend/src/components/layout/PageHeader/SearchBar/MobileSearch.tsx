@@ -1,8 +1,6 @@
-import { faXmark } from "@fortawesome/free-solid-svg-icons";
-import { alpha, Box, InputBase, styled } from "@mui/material";
-import { useState } from "react";
+import { Box, Button, InputBase, styled } from "@mui/material";
 
-import { FontAwesomeSvgIcon, SearchIcon } from "../../../icons";
+import { SearchIcon } from "../../../icons";
 
 const SearchIconWrapper = styled("div")(({ theme }) => ({
   padding: theme.spacing(0, 2),
@@ -12,32 +10,6 @@ const SearchIconWrapper = styled("div")(({ theme }) => ({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-}));
-
-const SlashIconWrapper = styled("div")(({ theme }) => ({
-  margin: theme.spacing(0, 1),
-  height: "100%",
-  position: "absolute",
-  pointerEvents: "none",
-  display: "flex",
-  alignItems: "center",
-  top: 0,
-  right: 0,
-  fontWeight: "bold",
-}));
-
-const CrossIconWrapper = styled("div")(({ theme }) => ({
-  margin: theme.spacing(0, 1),
-  marginRight: 0,
-  padding: theme.spacing(0, 1),
-  position: "absolute",
-  display: "flex",
-  height: "100%",
-  alignItems: "center",
-  cursor: "pointer",
-  top: 0,
-  right: 0,
-  fontWeight: "bold",
 }));
 
 const StyledInputBase = styled(InputBase)(({ theme }) => ({
@@ -99,7 +71,15 @@ export const MobileSearch: React.FC<{
           inputProps={{ "aria-label": "search" }}
         />
       </Search>
-      <Box>Cancel</Box>
+      <Button
+        onClick={() => {
+          setQueryText("");
+          setDisplaySearchInput(false);
+        }}
+        variant="tertiary_quiet"
+      >
+        Cancel
+      </Button>
     </Box>
   ) : (
     <Box

@@ -1,6 +1,6 @@
 import React from "react";
 import { useModal } from "react-modal-hook";
-import { Box, Button, useTheme } from "@mui/material";
+import { Box, Button, useTheme, useMediaQuery } from "@mui/material";
 import { useRouter } from "next/router";
 
 import { useLogout } from "../../hooks/useLogout";
@@ -30,6 +30,8 @@ const Nav: React.FC = ({ children }) => (
 export const PageHeader: React.VFC = () => {
   const theme = useTheme();
   const router = useRouter();
+
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const { accountId } = router.query as Record<string, string>;
 
@@ -62,14 +64,15 @@ export const PageHeader: React.VFC = () => {
         <Box
           sx={{
             display: "flex",
-            width: {
-              xs: "100%",
-              md: "unset",
-            },
             justifyContent: {
               xs: "space-between",
               md: "unset",
             },
+            ...(isMobile && user
+              ? {
+                  width: "100%",
+                }
+              : {}),
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center" }}>

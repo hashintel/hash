@@ -95,6 +95,7 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
 
         Object.assign(baseStyles, {
           color: theme.palette.gray[70],
+          fontWeight: 500,
           background: theme.palette.common.white,
           "& > .MuiButton-startIcon, > .MuiButton-endIcon": {
             color: theme.palette.gray[40],
@@ -103,6 +104,10 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
 
         Object.assign(hoverStyles, {
           color: theme.palette.gray[80],
+        });
+
+        Object.assign(activeStyles, {
+          background: theme.palette.gray[20],
         });
       } else if (variant === "transparent") {
         /** ===== TRANSPARENT button specific styling ===== */

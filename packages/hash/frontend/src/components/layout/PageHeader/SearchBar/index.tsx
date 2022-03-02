@@ -52,11 +52,13 @@ const toBlockUrl = (searchPage: PageSearchResult): string => {
   return segments.join("");
 };
 
-const ResultList: React.FC = (props) => (
+const ResultList: React.FC<{
+  isMobile: boolean;
+}> = ({ isMobile, ...props }) => (
   <Box
     component="ul"
     sx={(theme) => ({
-      position: "absolute",
+      position: !isMobile ? "absolute" : "unset",
       zIndex: 10,
       width: "100%",
       maxHeight: "15rem",
@@ -64,7 +66,7 @@ const ResultList: React.FC = (props) => (
       border: `1px solid ${theme.palette.gray[20]}`,
       borderRadius: "",
     })}
-    className={tw`absolute z-10 w-1/2 max-h-60 overflow-auto border border-gray-100 rounded-lg shadow-md`}
+    className={tw`z-10 w-1/2 max-h-60 overflow-auto border border-gray-100 rounded-lg shadow-md`}
     {...props}
   />
 );
@@ -147,6 +149,10 @@ const SearchBarWhenSearchIsEnabled: React.VFC = () => {
           ? {
               position: "absolute",
               width: "100%",
+              zIndex: 1,
+              left: 0,
+              top: theme.spacing(1.5),
+              px: 2,
             }
           : {}),
       })}
@@ -168,7 +174,7 @@ const SearchBarWhenSearchIsEnabled: React.VFC = () => {
         />
       )}
       {isResultListVisible && displayedQuery && (
-        <ResultList>
+        <ResultList isMobile={isMobile}>
           {isLoading ? (
             <ResultItem sx={{ display: "block" }}>
               Loading results for&nbsp;<b>{submittedQuery}</b>.
