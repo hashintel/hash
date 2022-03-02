@@ -232,8 +232,6 @@ export const Video: BlockComponent<AppProps> = (props) => {
                 existingLinkGroup.links.map((link) => ({
                   sourceAccountId: accountId,
                   sourceEntityId: link.sourceEntityId,
-                  sourceEntityTypeId: entityTypeId,
-                  sourceEntityTypeVersionId: entityTypeVersionId,
                   linkId: link.linkId,
                 })),
               );
