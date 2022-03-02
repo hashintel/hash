@@ -12,7 +12,8 @@
     "packages/hash/playwright",
     "packages/hash/realtime",
     "packages/hash/search-loader",
-    "packages/hash/shared"
+    "packages/hash/shared",
+    "apps/dev"
   ],
   "scripts": {
     "codegen": "yarn workspace @hashintel/hash-api codegen && yarn workspace @hashintel/hash-frontend codegen && yarn workspace @hashintel/hash-integration codegen && yarn workspace @hashintel/hash-shared codegen",
