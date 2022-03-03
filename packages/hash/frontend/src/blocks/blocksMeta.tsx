@@ -22,7 +22,10 @@ export const BlocksMetaProvider: React.FC<{ value: BlocksMetaMap }> = ({
   value: initialValue,
   children,
 }) => {
-  const [value, setValue] = useLocalstorageState("blocks-meta", initialValue);
+  const [value, setValue] = useLocalstorageState(
+    "hash-workspace-blocks-meta",
+    initialValue,
+  );
 
   const state = useMemo(() => ({ value, setValue }), [value, setValue]);
 

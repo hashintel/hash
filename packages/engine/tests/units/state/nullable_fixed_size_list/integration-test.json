@@ -1,0 +1,20 @@
+[
+  {
+    "steps": 2,
+    "expected-output": {
+      "json-state": {
+        "1": [
+          {
+            "list_is_null": true
+          },
+          {
+            "list_is_null": false
+          },
+          {
+            "list_is_null": true
+          }
+        ]
+      }
+    }
+  }
+]

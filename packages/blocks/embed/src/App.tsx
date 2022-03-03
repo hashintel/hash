@@ -83,6 +83,7 @@ const reducer = (state: AppState, action: Actions): AppState => {
 };
 
 export const App: BlockComponent<AppProps> = ({
+  accountId,
   embedType: initialEmbedType,
   getEmbedBlock,
   initialHtml,
@@ -90,6 +91,7 @@ export const App: BlockComponent<AppProps> = ({
   initialWidth,
   entityId,
   entityTypeId,
+  entityTypeVersionId,
   updateEntities,
 }) => {
   const [
@@ -225,19 +227,18 @@ export const App: BlockComponent<AppProps> = ({
         initialWidth: number | undefined;
         embedType: string | undefined;
       }> = {
+        accountId,
         data,
         entityId,
+        entityTypeId,
+        entityTypeVersionId,
       };
-
-      if (entityTypeId) {
-        updateAction.entityTypeId = entityTypeId;
-      }
 
       if (updateEntities) {
         void updateEntities<any>([updateAction]);
       }
     },
-    [entityId, entityTypeId, updateEntities],
+    [accountId, entityId, entityTypeId, entityTypeVersionId, updateEntities],
   );
 
   const handleGetEmbed = async () => {

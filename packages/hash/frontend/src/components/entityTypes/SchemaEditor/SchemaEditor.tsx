@@ -43,10 +43,11 @@ type JsonSchemaEditorProps = {
   subSchemaReference?: string;
 } & Pick<
   BlockProtocolProps,
-  "aggregateEntityTypes" | "entityId" | "updateEntityTypes"
+  "accountId" | "aggregateEntityTypes" | "entityId" | "updateEntityTypes"
 >;
 
 export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
+  accountId,
   aggregateEntityTypes,
   entityId,
   GoToSchemaElement,
@@ -59,15 +60,18 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
   >(undefined);
 
   useEffect(() => {
-    if (aggregateEntityTypes) {
-      aggregateEntityTypes({ includeOtherTypesInUse: true })
+    if (aggregateEntityTypes && accountId) {
+      aggregateEntityTypes({
+        accountId,
+        includeOtherTypesInUse: true,
+      })
         .then((response) => setAvailableEntityTypes(response.results))
         .catch((err) =>
           // eslint-disable-next-line no-console -- TODO: consider using logger
           console.error(`Error fetching entity type options: ${err.message}`),
         );
     }
-  }, [aggregateEntityTypes]);
+  }, [accountId, aggregateEntityTypes]);
 
   // The user will be working with a draft in local state, to enable optimistic UI and handle fast/competing updates
   const [workingSchemaDraft, dispatch] = useReducer(
@@ -89,9 +93,14 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
   );
 
   useEffect(() => {
+    if (!accountId) {
+      throw new Error("accountId not provided. Schema cannot be updated.");
+    }
+
     if (!entityId) {
       throw new Error("entityId not provided. Schema cannot be updated.");
     }
+
     if (
       JSON.stringify(workingSchemaDraft) ===
       JSON.stringify(possiblyStaleDbSchema)
@@ -101,6 +110,7 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
     // Send updates to the API periodically when the draft is updated
     debouncedUpdate([
       {
+        accountId,
         entityId,
         schema: workingSchemaDraft as JSONObject,
       },
@@ -109,7 +119,13 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
       console.error(`Error updating schema: ${err.message}`);
       throw err;
     });
-  }, [debouncedUpdate, entityId, possiblyStaleDbSchema, workingSchemaDraft]);
+  }, [
+    accountId,
+    debouncedUpdate,
+    entityId,
+    possiblyStaleDbSchema,
+    workingSchemaDraft,
+  ]);
 
   useEffect(
     () => () => {

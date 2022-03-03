@@ -99,10 +99,13 @@ unsafe extern "C" fn get_dynamic_metadata(memory_ptr: *const CMemory) -> *const 
     let memory = &mut *(c_memory.memory as *mut Memory);
     match memory.get_metadata() {
         Ok(meta_buffer) => {
-            let batch_message = match arrow_ipc::get_root_as_message(meta_buffer)
-                .header_as_record_batch()
-                .ok_or_else(|| Error::ArrowBatch("Couldn't read message".into()))
-            {
+            let batch_message = match arrow_ipc::root_as_message(meta_buffer)
+                .map_err(Error::from)
+                .and_then(|message| {
+                    message
+                        .header_as_record_batch()
+                        .ok_or_else(|| Error::ArrowBatch("Couldn't read message".into()))
+                }) {
                 Ok(ret) => ret,
                 Err(why) => {
                     tracing::error!("Error in `get_dynamic_metadata`: {:?}", &why);

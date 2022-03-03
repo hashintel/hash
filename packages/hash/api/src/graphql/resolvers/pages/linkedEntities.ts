@@ -4,7 +4,7 @@ import {
   UnresolvedGQLPage,
   UnresolvedGQLUnknownEntity,
 } from "../../../model";
-import { Resolver } from "../../apiTypes.gen";
+import { Resolver, Scalars } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 
 const contents: Resolver<
@@ -27,6 +27,46 @@ const contents: Resolver<
   return blocks.map((block) => block.toGQLUnknownEntity());
 };
 
+const parentPage: Resolver<
+  Promise<UnresolvedGQLUnknownEntity | null>,
+  UnresolvedGQLPage,
+  GraphQLContext
+> = async ({ accountId, entityId }, _, { dataSources: { db } }) => {
+  const page = await Page.getPageById(db, { accountId, entityId });
+
+  if (!page) {
+    throw new ApolloError(
+      `Page with entityId ${entityId} not found in account ${accountId}`,
+      "NOT_FOUND",
+    );
+  }
+
+  const parentPageEntity = await page.getParentPage(db);
+
+  return parentPageEntity?.toGQLUnknownEntity() ?? null;
+};
+
+const parentPageEntityId: Resolver<
+  Promise<Scalars["ID"] | null>,
+  UnresolvedGQLPage,
+  GraphQLContext
+> = async ({ accountId, entityId }, _, { dataSources: { db } }) => {
+  const page = await Page.getPageById(db, { accountId, entityId });
+
+  if (!page) {
+    throw new ApolloError(
+      `Page with entityId ${entityId} not found in account ${accountId}`,
+      "NOT_FOUND",
+    );
+  }
+
+  const parentPageEntity = await page.getParentPage(db);
+
+  return parentPageEntity?.entityId ?? null;
+};
+
 export const pageLinkedEntities = {
   contents,
+  parentPage,
+  parentPageEntityId,
 };

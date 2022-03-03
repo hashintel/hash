@@ -350,12 +350,12 @@ impl Memory {
         experiment_id: &ExperimentId,
         schema: &[u8],
         header: &[u8],
-        meta: &[u8],
+        ipc_message: &[u8],
         data: &[u8],
         include_terminal_padding: bool,
     ) -> Result<Memory> {
         let markers =
-            Visitor::markers_from_sizes(schema.len(), header.len(), meta.len(), data.len());
+            Visitor::markers_from_sizes(schema.len(), header.len(), ipc_message.len(), data.len());
 
         let mut size = Self::calculate_total_size(
             markers.get_total_contents_size(),
@@ -388,7 +388,7 @@ impl Memory {
         // exact amount of space for them
         visitor.write_schema_buffer_unchecked(schema);
         visitor.write_header_buffer_unchecked(header);
-        visitor.write_meta_buffer_unchecked(meta);
+        visitor.write_meta_buffer_unchecked(ipc_message);
         visitor.write_data_buffer_unchecked(data);
 
         Ok(memory)
