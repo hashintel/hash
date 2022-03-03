@@ -15,8 +15,8 @@ export const HashNavIcon: FC<SvgIconProps> = (props) => {
         fill="#4D5C6C"
       />
       <path
-        fill-rule="evenodd"
-        clip-rule="evenodd"
+        fillRule="evenodd"
+        clipRule="evenodd"
         d="M55.6059 0.537109H51.1013L43.9229 17.5197H48.837L50.0414 14.5086H56.5454L57.7739 17.5197H62.7844L55.6059 0.537109ZM53.3175 6.07753L55.1963 10.8712H51.4145L53.3175 6.07753Z"
         fill="#4D5C6C"
       />
