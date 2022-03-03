@@ -68,7 +68,6 @@ const ResultList: React.FC<{
   >
     {props.children}
   </Box>
-  
 );
 
 const ResultItem: React.FC<{
