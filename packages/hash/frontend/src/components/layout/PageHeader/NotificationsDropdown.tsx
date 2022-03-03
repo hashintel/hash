@@ -42,9 +42,7 @@ export const NotificationsDropdown: React.FC = () => {
             : open
             ? theme.palette.common.white
             : theme.palette.gray[40],
-          backgroundColor: hasNotifications
-            ? theme.palette.blue["70"]
-            : open
+          backgroundColor: (hasNotifications || open)
             ? theme.palette.blue["70"]
             : theme.palette.gray[20],
         }}
