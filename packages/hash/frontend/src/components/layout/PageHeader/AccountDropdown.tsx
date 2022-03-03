@@ -48,6 +48,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
             boxShadow: "0px 0px 0px 2px #FFFFFF, 0px 0px 0px 5px #C1CFDE",
           },
         }}
+        title={user.properties.shortname!}
       >
         {avatar ? (
           <Box
@@ -74,7 +75,6 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
           </Box>
         )}
       </Button>
-
       <Popover
         id={id}
         open={open}
