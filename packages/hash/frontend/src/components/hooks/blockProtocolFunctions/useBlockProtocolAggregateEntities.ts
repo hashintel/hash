@@ -12,16 +12,17 @@ import {
   AggregateEntityQueryVariables,
 } from "../../../graphql/apiTypes.gen";
 
-export const useBlockProtocolAggregateEntities = (
-  /** Providing accountId here saves blocks from having to know it */
-  accountId: string,
-): {
+export const useBlockProtocolAggregateEntities = (): {
   aggregateEntities: BlockProtocolAggregateEntitiesFunction;
 } => {
   const client = useApolloClient();
 
   const aggregateEntities: BlockProtocolAggregateEntitiesFunction = useCallback(
     async (action) => {
+      if (!action.accountId) {
+        throw new Error("aggregateEntities needs to be passed an accountId");
+      }
+
       /**
        * Using client.query since useLazyQuery does not return anything
        * useLazyQuery should return a promise as of apollo-client 3.5
@@ -34,11 +35,11 @@ export const useBlockProtocolAggregateEntities = (
       >({
         query: aggregateEntity,
         variables: {
+          accountId: action.accountId,
           operation: {
             ...action.operation,
             entityTypeId: action.operation.entityTypeId!,
           },
-          accountId,
         },
       });
       const { operation, results } = response.data.aggregateEntity;
@@ -50,7 +51,7 @@ export const useBlockProtocolAggregateEntities = (
         results: newResults,
       } as BlockProtocolAggregateEntitiesResult;
     },
-    [accountId, client],
+    [client],
   );
 
   return {

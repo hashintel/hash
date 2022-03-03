@@ -404,17 +404,6 @@ export interface DBClient {
     systemTypeName: SystemType;
   }): Promise<DbEntity[]>;
 
-  getEntitiesByTypeWithOutgoingEntityIds(params: {
-    accountId: string;
-    entityTypeId?: string;
-    systemTypeName?: SystemType;
-  }): Promise<EntityWithOutgoingEntityIds[]>;
-
-  getEntityWithOutgoingEntityIds(params: {
-    accountId: string;
-    entityId: string;
-  }): Promise<EntityWithOutgoingEntityIds | null>;
-
   /**
    * Get all account type entities (User or Account).
    */

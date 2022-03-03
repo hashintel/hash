@@ -22,8 +22,8 @@ const NewEntity: VoidFunctionComponent = () => {
     entityTypeId,
   );
 
-  const { createEntities } = useBlockProtocolCreateEntities(accountId);
-  const { aggregateEntities } = useBlockProtocolAggregateEntities(accountId);
+  const { createEntities } = useBlockProtocolCreateEntities();
+  const { aggregateEntities } = useBlockProtocolAggregateEntities();
 
   const createAndNavigateToFirstEntity: BlockProtocolCreateEntitiesFunction = (
     args,
