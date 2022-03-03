@@ -373,6 +373,13 @@ If the service should report metrics to a StatsD server, the following variables
 - `STATSD_HOST`: the hostname of the StatsD server.
 - `STATSD_PORT`: (default: 8125) the port number the StatsD server is listening on.
 
+### Snowplow telemetry
+
+- `HASH_TELEMETRY_ENABLED`: whether Snowplow is used or not. `true` or `false`. (default: `false`)
+- `HASH_TELEMETRY_HTTPS`: set to "1" to connect to the Snowplow over an HTTPS connection. `true` or `false`. (default: `false`)
+- `HASH_TELEMETRY_DESTINATION`: the hostname of the Snowplow tracker endpoint to connect to. (required)
+- `HASH_TELEMETRY_APP_ID`: ID used to differentiate application by. Can be any string. (default: `hash-workspace-app`)
+
 ### Others
 
 - `FRONTEND_DOMAIN`: URL of the frontend website for links (default: `localhost:3000`)
