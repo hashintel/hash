@@ -103,7 +103,7 @@ export const PageHeader: React.VFC = () => {
               onClick={() => router.push("/signup")}
               className="mr-3"
             >
-              Sign up
+              Sign Up
             </Button>
           </Box>
         )}
