@@ -65,8 +65,10 @@ const ResultList: React.FC<{
       borderRadius: "",
     })}
     className={tw`z-10 w-1/2 max-h-60 overflow-auto border border-gray-100 rounded-lg shadow-md`}
-    {...props}
-  />
+  >
+    {props.children}
+  </Box>
+  
 );
 
 const ResultItem: React.FC<{
