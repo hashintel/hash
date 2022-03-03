@@ -37,7 +37,7 @@ export const ResizeImageBlock: React.VFC<ResizeBlockProps> = ({
       return;
     }
 
-    if (width && imageWidth !== width) {
+    if (imageWidth !== width) {
       imageRef.current.style.width = `${width}px`;
     }
   }, [width, imageSrc, updateWidth]);
