@@ -68,11 +68,7 @@ export const PageHeader: React.VFC = () => {
               xs: "space-between",
               md: "unset",
             },
-            ...(isMobile && user
-              ? {
-                  width: "100%",
-                }
-              : {}),
+            width: (isMobile && user) ? "100%" : undefined,
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center" }}>
