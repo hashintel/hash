@@ -1,4 +1,4 @@
-import React, { VoidFunctionComponent, SyntheticEvent } from "react";
+import React, { VoidFunctionComponent, SyntheticEvent, useMemo } from "react";
 // import Link from "next/link";
 
 import { treeFromParentReferences } from "@hashintel/hash-shared/util";
@@ -42,11 +42,15 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
   const { data } = useAccountPages(accountId);
   const router = useRouter();
 
-  const formattedData = treeFromParentReferences(
-    data as TreeElement[],
-    "entityId",
-    "parentPageEntityId",
-    "children",
+  const formattedData = useMemo(
+    () =>
+      treeFromParentReferences(
+        data as TreeElement[],
+        "entityId",
+        "parentPageEntityId",
+        "children",
+      ),
+    [data],
   );
 
   // @todo-mui implement active state

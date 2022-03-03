@@ -17,8 +17,6 @@ import { TopNavLink } from "./TopNavLink";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { useSidebarContext } from "../SidebarContext";
 
-export const SIDEBAR_WIDTH = 260;
-
 export const PageSidebar: VoidFunctionComponent = () => {
   const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebarContext();

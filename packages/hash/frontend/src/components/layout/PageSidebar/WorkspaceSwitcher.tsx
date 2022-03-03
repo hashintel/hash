@@ -43,8 +43,8 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
             backgroundColor: ({ palette }) => palette.gray[20],
           },
 
-          "&:focus": {
-            outlineColor: ({ palette }) => palette.blue[50],
+          "&:focus-visible": {
+            outlineColor: ({ palette }) => `2px solid ${palette.blue[70]}`,
             outlineOffset: "2px",
           },
         }}
@@ -100,13 +100,14 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
                 display: "flex",
                 py: 1,
                 px: 1.5,
+                borderRadius: "4px",
                 //   @todo-mui this is a default style and should be placed in the Link component
                 "&:hover": {
                   backgroundColor: ({ palette }) => palette.gray[20],
                 },
 
-                "&:focus": {
-                  outline: ({ palette }) => palette.blue[50],
+                "&:focus-visible": {
+                  outline: ({ palette }) => `2px solid ${palette.blue[70]}`,
                   outlineOffset: "2px",
                 },
               }}
@@ -159,8 +160,8 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
                     backgroundColor: ({ palette }) => palette.gray[20],
                   },
 
-                  "&:focus": {
-                    outline: ({ palette }) => palette.blue[50],
+                  "&:focus-visible": {
+                    outline: ({ palette }) => `2px solid ${palette.blue[70]}`,
                     outlineOffset: "2px",
                   },
                 }}
@@ -231,8 +232,8 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
                     backgroundColor: ({ palette }) => palette.gray[20],
                   },
 
-                  "&:focus": {
-                    outline: ({ palette }) => palette.blue[50],
+                  "&:focus-visible": {
+                    outline: ({ palette }) => `2px solid ${palette.blue[70]}`,
                     outlineOffset: "2px",
                   },
                 }}
@@ -270,8 +271,8 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
                   backgroundColor: ({ palette }) => palette.gray[20],
                 },
 
-                "&:focus": {
-                  outline: ({ palette }) => palette.blue[50],
+                "&:focus-visible": {
+                  outline: ({ palette }) => `2px solid ${palette.blue[70]}`,
                   outlineOffset: "2px",
                 },
               }}

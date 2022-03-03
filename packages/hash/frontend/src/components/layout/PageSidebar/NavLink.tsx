@@ -14,7 +14,7 @@ export const NavLink: FC<NavLinkProps> = ({
   children,
   endAdornment,
 }) => {
-  const [visible, setVisible] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   return (
     <Box>
@@ -41,12 +41,12 @@ export const NavLink: FC<NavLinkProps> = ({
           sx={{
             mr: "auto",
           }}
-          onClick={() => setVisible((prev) => !prev)}
+          onClick={() => setExpanded((prev) => !prev)}
         >
           <FontAwesomeSvgIcon
             sx={{
               color: ({ palette }) => palette.gray[40],
-              transform: visible ? `rotate(90deg)` : "none",
+              transform: expanded ? `rotate(90deg)` : "none",
               transition: ({ transitions }) =>
                 transitions.create("transform", { duration: 300 }),
             }}
@@ -56,7 +56,7 @@ export const NavLink: FC<NavLinkProps> = ({
 
         {endAdornment}
       </Box>
-      <Collapse in={visible}>{children}</Collapse>
+      <Collapse in={expanded}>{children}</Collapse>
     </Box>
   );
 };

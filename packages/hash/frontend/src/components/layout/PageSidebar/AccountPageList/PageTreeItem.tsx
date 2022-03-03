@@ -26,7 +26,7 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
 
   const {
     // disabled,
-    // expanded,
+    expanded,
     selected,
     // focused,
     handleExpansion,
@@ -51,7 +51,7 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
   };
 
   const handleSelectionClick = (
-    event: React.MouseEvent<HTMLDivElement, MouseEvent>,
+    event: React.MouseEvent<HTMLButtonElement, MouseEvent>,
   ) => {
     handleSelection(event);
   };
@@ -96,6 +96,10 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
           ...(hasChildren && {
             visibility: "visible",
             pointerEvents: "auto",
+
+            transform: expanded ? `rotate(90deg)` : "none",
+            transition: ({ transitions }) =>
+              transitions.create("transform", { duration: 300 }),
           }),
         }}
       >
@@ -110,16 +114,29 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
         }}
       />
       {/* <Link noLinkStyle href="/" sx={{ flex: 1, border: "1px solid red" }}> */}
-      <Typography
-        variant="smallTextLabels"
+      {/* @todo-mui this should be switched to our button component once we all the styles implemented */}
+      <Box
+        component="button"
         onClick={handleSelectionClick}
-        //   className={classes.label}
         sx={{
-          color: ({ palette }) => palette.gray[70],
+          border: "1px solid black",
+          flex: 1,
+          width: "100%",
+          outline: "none",
         }}
       >
-        {label}
-      </Typography>
+        <Typography
+          variant="smallTextLabels"
+          // onClick={handleSelectionClick}
+          //   className={classes.label}
+          sx={{
+            color: ({ palette }) => palette.gray[70],
+          }}
+        >
+          {label}
+        </Typography>
+      </Box>
+
       {/* </Link> */}
     </Box>
   );
