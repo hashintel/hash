@@ -2,14 +2,16 @@ mod error;
 mod mini_v8;
 
 use std::{
-    collections::HashMap, fs, future::Future, pin::Pin, result::Result as StdResult, sync::Arc,
+    collections::HashMap, fs, future::Future, pin::Pin, result::Result as StdResult, slice,
+    sync::Arc,
 };
 
 use arrow::{
-    array::ArrayData,
+    array::{ArrayData, ArrayDataBuilder, BooleanBufferBuilder},
     buffer::{Buffer, MutableBuffer},
     datatypes::{DataType, Schema},
     ipc::writer::{IpcDataGenerator, IpcWriteOptions},
+    util::bit_util,
 };
 use futures::FutureExt;
 use mv8::MiniV8;
@@ -580,47 +582,45 @@ impl<'m> RunnerImpl<'m> {
         // `data_node_from_js` isn't recursive -- doesn't convert children.
         let data: mv8::DataFfi = mv8.data_node_from_js(data);
 
+        let mut builder = ArrayDataBuilder::new(dt.clone());
+
         let n_children = child_data.len();
-        let child_data: Vec<ArrayData> = match dt.clone() {
+        match dt {
             DataType::List(t) => {
                 let child: mv8::Value<'_> = child_data.get(0)?;
-                Ok(vec![self.array_data_from_js(
+                builder = builder.add_child_data(self.array_data_from_js(
                     mv8,
                     &child,
                     &t.data_type(),
                     None,
-                )?])
+                )?);
             }
             DataType::FixedSizeList(t, multiplier) => {
                 let child: mv8::Value<'_> = child_data.get(0)?;
-                Ok(vec![self.array_data_from_js(
+                builder = builder.add_child_data(self.array_data_from_js(
                     mv8,
                     &child,
                     t.data_type(),
-                    Some(data.len * multiplier as usize),
-                )?])
+                    Some(data.len * *multiplier as usize),
+                )?);
             }
             DataType::Struct(fields) => {
-                let mut v = Vec::new();
                 for (i, field) in fields.iter().enumerate() {
                     let child = child_data.get(i as u32)?;
-                    v.push(self.array_data_from_js(
+                    builder = builder.add_child_data(self.array_data_from_js(
                         mv8,
                         &child,
                         field.data_type(),
                         Some(data.len),
                     )?);
                 }
-                Ok(v)
             }
             t => {
-                if n_children == 0 {
-                    Ok(vec![])
-                } else {
-                    Err(Error::FlushType(t))
+                if n_children != 0 {
+                    return Err(Error::FlushType(t.clone()));
                 }
             }
-        }?; // TODO: More types?
+        }; // TODO: More types?
 
         // TODO: Extra copies (in `new_buffer`) of buffers here,
         //       because JS Arrow doesn't align things properly.
@@ -629,31 +629,17 @@ impl<'m> RunnerImpl<'m> {
         // This target length is used because the JS repr does not mirror
         // buffer building as Rust Arrow and pyarrow.
         let target_len = len.unwrap_or(data.len);
+        builder = builder.len(target_len);
 
-        let null_bit_buffer = if data.null_bits_ptr.is_null() {
-            None // Can't match on `std::ptr::null()`, because not compile-time const.
-        } else {
-            let capacity = data.null_bits_capacity;
-            // Ceil division.
-            let n_bytes = (target_len / 8) + (if target_len % 8 == 0 { 0 } else { 1 });
-            Some(unsafe { self.new_buffer(data.null_bits_ptr, n_bytes, capacity) })
-            // Some(unsafe { Buffer::from_unowned(data.null_bits_ptr, n_bytes, capacity) })
-        };
-
-        let mut buffer_lens = Vec::with_capacity(2);
-
-        match dt.clone() {
+        let buffer_lens = match dt {
             DataType::Float64 => {
-                buffer_lens.push(target_len * 8); // 8 bytes per f64
-                Ok(())
+                vec![target_len * 8] // 8 bytes per f64
             }
             DataType::UInt32 => {
-                buffer_lens.push(target_len * 4); // 4 bytes per u32
-                Ok(())
+                vec![target_len * 4] // 4 bytes per u32
             }
             DataType::UInt16 => {
-                buffer_lens.push(target_len * 2); // 2 bytes per u16
-                Ok(())
+                vec![target_len * 2] // 2 bytes per u16
             }
             DataType::Utf8 => {
                 // TODO: Use `data.len` or target_len?
@@ -665,32 +651,28 @@ impl<'m> RunnerImpl<'m> {
                 };
                 debug_assert_eq!(offsets[0], 0);
                 let last = offsets[target_len];
+
                 // offsets
-                buffer_lens.push((target_len + 1) * 4);
-                buffer_lens.push(last as usize);
-                Ok(())
+                vec![(target_len + 1) * 4, last as usize]
             }
             DataType::List(_) => {
                 // offsets
-                buffer_lens.push((target_len + 1) * 4);
-                Ok(())
+                vec![(target_len + 1) * 4]
             } // Just offsets
-            DataType::Struct(_) => Ok(()), // No non-child buffers
-            DataType::FixedSizeList(..) => Ok(()),
+            DataType::Struct(_) => vec![], // No non-child buffers
+            DataType::FixedSizeList(..) => vec![],
             DataType::FixedSizeBinary(sz) => {
-                buffer_lens.push(data.len * sz as usize);
-                Ok(())
+                vec![*sz as usize * data.len]
             } // Just values
             DataType::Boolean => {
-                buffer_lens.push((data.len / 8) + (if data.len % 8 == 0 { 0 } else { 1 }));
-                Ok(())
+                vec![bit_util::ceil(data.len, 8)]
             } // Just values
-            t => Err(Error::FlushType(t)), // TODO: More types?
-        }?;
+            t => return Err(Error::FlushType(t.clone())),
+            // TODO: More types?
+        };
 
         debug_assert_eq!(data.n_buffers, buffer_lens.len());
-        let mut buffers = Vec::new();
-        for (i, &len) in buffer_lens.iter().enumerate().take(data.n_buffers) {
+        for (i, &len) in buffer_lens.iter().enumerate() {
             let ptr = data.buffer_ptrs[i];
             debug_assert_ne!(ptr, std::ptr::null());
             let capacity = data.buffer_capacities[i];
@@ -703,21 +685,29 @@ impl<'m> RunnerImpl<'m> {
                 mut_buffer.into()
             };
             // let buffer = unsafe { Buffer::from_unowned(ptr, len, capacity) };
-            buffers.push(buffer);
+            builder = builder.add_buffer(buffer);
         }
 
-        let data = unsafe {
-            ArrayData::new_unchecked(
-                dt.clone(),
-                len.unwrap_or(data.len),
-                Some(data.null_count),
-                null_bit_buffer,
-                0,
-                buffers,
-                child_data,
-            )
-        };
-        Ok(data)
+        if !data.null_bits_ptr.is_null() {
+            // Create a validity map with the provided data, but reserve for `target_len` bits
+            let mut boolean_builder = BooleanBufferBuilder::new(target_len);
+            // Read bits from JS
+            let values =
+                unsafe { slice::from_raw_parts(data.null_bits_ptr, bit_util::ceil(data.len, 8)) };
+            boolean_builder.append_packed_range(0..data.len, values);
+            // Resize the validity map to match the size of the resulting array. This won't resize
+            // the underlying buffer because we reserved with `target_len`. `resize` sets all new
+            // bits to `0`
+            boolean_builder.resize(target_len);
+
+            // The `data.null_count` provided is only valid for `data.len`, as the buffer is
+            // resized, the `null_count` has to be adjusted.
+            builder = builder
+                .null_bit_buffer(boolean_builder.finish())
+                .null_count(data.null_count + target_len - data.len);
+        }
+
+        Ok(builder.build()?)
     }
 
     fn flush_batch<B: DynamicBatch>(
