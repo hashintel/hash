@@ -77,7 +77,7 @@ export const createEntityTypes =
           items: { $ref: entityType.properties.$id },
         };
 
-        entityType = await EntityType.updateSchema(db, {
+        entityType = await EntityType.update(db, {
           entityId: entityType.entityId,
           ...baseParams,
           schema: taskEntityType.schema,
