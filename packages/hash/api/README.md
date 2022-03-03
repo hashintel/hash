@@ -111,7 +111,7 @@ sudo kmutil load -b org.virtualbox.kext.VBoxNetAdp
 sudo kmutil load -b org.virtualbox.kext.VBoxDrv
 ```
 
-In case of an error such as
+If you encounter an error such as
 `mount.nfs: access denied by server while mounting ...`
 It might be necessary to make the following changes to the Snowplow mini Vagrantfile to disable NFS.
 
@@ -122,3 +122,9 @@ It might be necessary to make the following changes to the Snowplow mini Vagrant
 ```
 
 Here the `config.vm.network` line and the `, nfs: true` argument are commented out.
+
+If you see `uninitialized constant VagrantPlugins::HostDarwin::Cap::Version` on MacOS, see [this issue](https://github.com/hashicorp/vagrant/issues/12583).
+
+If you encounter an issue on the `npm install` step (5), try commenting out lines 8 & 9 of the Vagrantfile (i.e. disable using NFS for shared folders).
+
+You may need to run `vagrant reload --provision` after applying fixes.
