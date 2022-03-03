@@ -16,7 +16,7 @@ type AccountPageListProps = {
 
 type TreeElement = {
   entityId: string;
-  parentPageId: string;
+  parentPageEntityId: string;
   title: string;
   children?: TreeElement[];
 };
@@ -43,7 +43,7 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
   const formattedData = treeFromParentReferences(
     data as TreeElement[],
     "entityId",
-    "parentPageId",
+    "parentPageEntityId",
     "children",
   );
 
@@ -53,7 +53,13 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
       title="Pages"
       endAdornment={<CreatePageButton accountId={accountId} />}
     >
-      <TreeView>{formattedData.map((node) => renderTree(node))}</TreeView>
+      <TreeView
+        sx={{
+          px: 0.25,
+        }}
+      >
+        {formattedData.map((node) => renderTree(node))}
+      </TreeView>
     </NavLink>
   );
 

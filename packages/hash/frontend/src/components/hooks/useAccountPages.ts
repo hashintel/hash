@@ -23,7 +23,7 @@ export const useAccountPages = (accountId: string) => {
     return data?.accountPages.map((page) => ({
       title: page.properties.title,
       entityId: page.entityId,
-      parentPageId: page.parentPageId,
+      parentPageEntityId: page.parentPageEntityId,
     }));
   }, [data]);
 
