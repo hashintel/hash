@@ -85,7 +85,17 @@ class __EntityType {
     const { name, schema, description } = params;
 
     const jsonSchemaCompiler = new JsonSchemaCompiler(async (schema$id) => {
-      return EntityType.getJsonSchemaBySchema$id(client, { schema$id });
+      const resolvedEntityType = await EntityType.getEntityTypeBySchema$id(
+        client,
+        {
+          schema$id,
+        },
+      );
+      if (resolvedEntityType) {
+        return resolvedEntityType.properties;
+      } else {
+        throw new Error(`Could not find schema with $id = ${schema$id}`);
+      }
     });
 
     const properties = await jsonSchemaCompiler.jsonSchema(
@@ -188,16 +198,12 @@ class __EntityType {
     return dbEntityType ? new EntityType(dbEntityType) : null;
   }
 
-  static async getJsonSchemaBySchema$id(
+  static async getEntityTypeBySchema$id(
     client: DBClient,
     params: { schema$id: string },
   ) {
     const dbEntityType = await client.getEntityTypeBySchema$id(params);
-    if (dbEntityType) {
-      return dbEntityType.properties;
-    } else {
-      throw new Error(`Could not find schema with $id = ${params.schema$id}`);
-    }
+    return dbEntityType ? new EntityType(dbEntityType) : null;
   }
 
   static async getEntityTypeType(client: DBClient) {

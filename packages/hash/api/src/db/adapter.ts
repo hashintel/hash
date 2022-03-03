@@ -1,5 +1,4 @@
 import { DataSource } from "apollo-datasource";
-// import { JSONObject } from "blockprotocol";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
 
 import { SystemType } from "../types/entityTypes";
