@@ -14,7 +14,7 @@ import { useRouter } from "next/router";
 import { FontAwesomeSvgIcon } from "../../icons";
 import { Popover } from "../../Popover";
 import { Link } from "../../Link";
-import { CreatePage } from "../../Modals/CreatePage/CreatePage";
+import { CreatePage } from "../../Modals/CreatePageModal";
 
 export const ActionsDropdown: React.FC<{
   accountId: string;

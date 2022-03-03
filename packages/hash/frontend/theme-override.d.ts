@@ -41,7 +41,6 @@ declare module "@mui/material/styles" {
     80: string;
     90: string;
     100: string;
-    gradient: string;
   }
   interface Palette {
     gray: PaletteValue;

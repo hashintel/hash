@@ -83,7 +83,8 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           width: "100%",
           height: "100%",
           opacity: 0,
-          background: theme.palette.purple.gradient,
+          background:
+            "linear-gradient(82.89deg, #9E56FA 5.64%, #644CFF 78.19%, #0070F4 121.05%)",
           zIndex: -1,
         });
 
