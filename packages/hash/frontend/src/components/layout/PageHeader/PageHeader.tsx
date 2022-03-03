@@ -27,13 +27,13 @@ const Nav: React.FC = ({ children }) => (
   </Box>
 );
 
-export const PageHeader: React.VFC = () => {
+export const PageHeader: React.VFC<{
+  accountId: string;
+}> = ({ accountId }) => {
   const theme = useTheme();
   const router = useRouter();
 
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-
-  const { accountId } = router.query as Record<string, string>;
 
   const { user, refetch } = useUser();
   const { logout } = useLogout();
@@ -68,7 +68,7 @@ export const PageHeader: React.VFC = () => {
               xs: "space-between",
               md: "unset",
             },
-            width: (isMobile && user) ? "100%" : undefined,
+            width: isMobile && user ? "100%" : undefined,
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center" }}>
