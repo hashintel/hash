@@ -582,7 +582,11 @@ impl<'m> RunnerImpl<'m> {
         // `data_node_from_js` isn't recursive -- doesn't convert children.
         let data: mv8::DataFfi = mv8.data_node_from_js(data);
 
-        let mut builder = ArrayDataBuilder::new(dt.clone());
+        // This target length is used because the JS repr does not mirror
+        // buffer building as Rust Arrow and pyarrow.
+        let target_len = len.unwrap_or(data.len);
+
+        let mut builder = ArrayDataBuilder::new(dt.clone()).len(target_len);
 
         let n_children = child_data.len();
         match dt {
@@ -591,7 +595,7 @@ impl<'m> RunnerImpl<'m> {
                 builder = builder.add_child_data(self.array_data_from_js(
                     mv8,
                     &child,
-                    &t.data_type(),
+                    t.data_type(),
                     None,
                 )?);
             }
@@ -601,7 +605,7 @@ impl<'m> RunnerImpl<'m> {
                     mv8,
                     &child,
                     t.data_type(),
-                    Some(data.len * *multiplier as usize),
+                    Some(target_len * *multiplier as usize),
                 )?);
             }
             DataType::Struct(fields) => {
@@ -611,7 +615,7 @@ impl<'m> RunnerImpl<'m> {
                         mv8,
                         &child,
                         field.data_type(),
-                        Some(data.len),
+                        Some(target_len),
                     )?);
                 }
             }
@@ -625,11 +629,6 @@ impl<'m> RunnerImpl<'m> {
         // TODO: Extra copies (in `new_buffer`) of buffers here,
         //       because JS Arrow doesn't align things properly.
         //       (Due to which buffer capacities are currently unused.)
-
-        // This target length is used because the JS repr does not mirror
-        // buffer building as Rust Arrow and pyarrow.
-        let target_len = len.unwrap_or(data.len);
-        builder = builder.len(target_len);
 
         let buffer_lens = match dt {
             DataType::Float64 => {
