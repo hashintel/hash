@@ -10,6 +10,7 @@ import {
   Visibility,
 } from "../graphql/apiTypes.gen";
 import { EntityTypeMeta, EntityTypeTypeFields } from "../db/adapter";
+import { JsonSchemaCompiler } from "../lib/schemas/jsonSchema";
 
 const { FRONTEND_URL } = require("../lib/config");
 
@@ -73,6 +74,29 @@ class __EntityType {
     this.updatedAt = updatedAt;
   }
 
+  static async validateJsonSchema(
+    client: DBClient,
+    params: {
+      name: string;
+      schema?: JSONObject | null;
+      description?: string | null;
+    },
+  ) {
+    const { name, schema, description } = params;
+
+    const jsonSchemaCompiler = new JsonSchemaCompiler(async (schema$id) => {
+      return EntityType.getJsonSchemaBySchema$id(client, { schema$id });
+    });
+
+    const properties = await jsonSchemaCompiler.jsonSchema(
+      name,
+      schema,
+      description,
+    );
+
+    return properties;
+  }
+
   static async create(
     client: DBClient,
     params: {
@@ -85,13 +109,18 @@ class __EntityType {
   ): Promise<EntityType> {
     const { accountId, createdByAccountId, description, schema, name } = params;
 
+    const properties = await EntityType.validateJsonSchema(client, {
+      name,
+      schema,
+      description,
+    });
+
     const entityType = await client
       .createEntityType({
         accountId,
         createdByAccountId,
-        description,
         name,
-        schema,
+        properties,
       })
       .catch((err) => {
         if (err.message.includes("not unique")) {
@@ -103,17 +132,30 @@ class __EntityType {
     return new EntityType(entityType);
   }
 
-  static async updateSchema(
+  static async update(
     client: DBClient,
     params: {
       accountId: string;
       createdByAccountId: string;
       entityId: string;
-      schema: JSONObject;
+      schema: Record<string, any>;
       updatedByAccountId: string;
     },
   ) {
-    const updatedDbEntityType = await client.updateEntityType(params);
+    const {
+      schema: { title, description },
+    } = params;
+
+    const properties = await EntityType.validateJsonSchema(client, {
+      name: title,
+      schema: params.schema,
+      description,
+    });
+
+    const updatedDbEntityType = await client.updateEntityType({
+      ...params,
+      properties,
+    });
 
     return new EntityType(updatedDbEntityType);
   }
@@ -144,6 +186,18 @@ class __EntityType {
   ) {
     const dbEntityType = await client.getEntityTypeByComponentId(params);
     return dbEntityType ? new EntityType(dbEntityType) : null;
+  }
+
+  static async getJsonSchemaBySchema$id(
+    client: DBClient,
+    params: { schema$id: string },
+  ) {
+    const dbEntityType = await client.getEntityTypeBySchema$id(params);
+    if (dbEntityType) {
+      return dbEntityType.properties;
+    } else {
+      throw new Error(`Could not find schema with $id = ${params.schema$id}`);
+    }
   }
 
   static async getEntityTypeType(client: DBClient) {

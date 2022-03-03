@@ -24,7 +24,6 @@ import {
   getEntityType,
   getEntityTypeByComponentId,
   getEntityTypeBySchema$id,
-  getJsonSchemaBySchema$id,
   getEntityTypeChildren,
   getEntityTypeParents,
   getEntityTypeLatestVersion,
@@ -65,7 +64,7 @@ import {
   getUserVerificationCodes,
 } from "./verificationCode";
 import { getImpliedEntityHistory } from "./history";
-import { JsonSchemaCompiler } from "../../lib/schemas/jsonSchema";
+import { generateSchema$id } from "../../lib/schemas/jsonSchema";
 import { SystemType } from "../../types/entityTypes";
 import { Visibility } from "../../graphql/apiTypes.gen";
 import { getOrgByShortname } from "./org";
@@ -91,14 +90,10 @@ export class PostgresClient implements DBClient {
   }
 
   /** Create an entity type definition and return its uuid. */
-  async createEntityType(params: {
-    name: string;
-    accountId: string;
-    createdByAccountId: string;
-    description?: string;
-    schema?: Record<string, any>;
-  }): Promise<EntityType> {
-    const { name, accountId, createdByAccountId, description, schema } = params;
+  async createEntityType(
+    params: Parameters<DBClient["createEntityType"]>[0],
+  ): Promise<EntityType> {
+    const { name, accountId, createdByAccountId, properties } = params;
 
     return this.transaction(async (conn) => {
       // The fixed type id
@@ -107,20 +102,12 @@ export class PostgresClient implements DBClient {
       // The id to assign this (first) version
       const entityTypeVersionId = genId();
 
-      // Conn is used here to prevent transaction-mismatching.
-      // this.conn is a parent of this transaction conn at this time.
-      const jsonSchemaCompiler = new JsonSchemaCompiler(async (url) => {
-        return getJsonSchemaBySchema$id(conn, url);
-      });
-
       const now = new Date();
-      const properties = await jsonSchemaCompiler.jsonSchema(
-        name,
-        accountId,
-        entityTypeId,
-        schema,
-        description,
-      );
+
+      // Ensure that the schema $id refers to the correct accountId + entityId
+      const $id = generateSchema$id(accountId, entityTypeId);
+      properties.$id = $id;
+
       const entityType: EntityType = {
         accountId,
         entityId: entityTypeId,
@@ -346,7 +333,7 @@ export class PostgresClient implements DBClient {
   async updateEntityType(
     params: Parameters<DBClient["updateEntityType"]>[0],
   ): ReturnType<DBClient["updateEntityType"]> {
-    const { entityId, entityVersionId, schema } = params;
+    const { entityId, entityVersionId, properties } = params;
 
     const entity = entityVersionId
       ? await getEntityType(this.conn, { entityVersionId })
@@ -361,31 +348,24 @@ export class PostgresClient implements DBClient {
       );
     }
 
-    const nameToSet = schema.title;
+    const nameToSet = properties.title;
 
     if (typeof nameToSet !== "string" || nameToSet === "") {
       throw new Error("Schema requires a name set via a 'title' property");
     }
 
-    const jsonSchemaCompiler = new JsonSchemaCompiler((url) => {
-      return getJsonSchemaBySchema$id(this.conn, url);
-    });
-
-    const schemaToSet = await jsonSchemaCompiler.jsonSchema(
-      nameToSet,
-      entity.accountId,
-      entityId,
-      schema,
-    );
-
     const now = new Date();
+
+    // Ensure that the schema $id refers to the correct accountId + entityId
+    const $id = generateSchema$id(entity.accountId, entityId);
+    properties.$id = $id;
 
     const newType: EntityType = {
       ...entity,
       entityVersionId: genId(),
       updatedAt: now,
       updatedByAccountId: params.updatedByAccountId,
-      properties: schemaToSet,
+      properties,
     };
 
     if (entity.metadata.versioned) {

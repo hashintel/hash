@@ -177,10 +177,8 @@ export class JsonSchemaCompiler {
    */
   async jsonSchema(
     title: string,
-    accountId: string,
-    entityTypeId: string,
-    maybeStringifiedSchema: string | JSONObject = {},
-    description?: string,
+    maybeStringifiedSchema: string | JSONObject | null = {},
+    description?: string | null,
   ) {
     if (title[0] !== title[0].toUpperCase()) {
       throw new Error(
@@ -196,7 +194,10 @@ export class JsonSchemaCompiler {
     const schema = {
       ...partialSchema,
       $schema: jsonSchemaVersion,
-      $id: generateSchema$id(accountId, entityTypeId),
+      // The schema $id starts out by being the title.
+      // When the accountId and entityId of the schema is known, this can be replaced.
+      // We will keep this as a placeholder for any validation.
+      $id: title,
       title,
       type: partialSchema.type ?? "object",
       description: partialSchema.description ?? description,

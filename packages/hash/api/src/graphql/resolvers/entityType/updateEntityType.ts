@@ -8,7 +8,7 @@ export const updateEntityType: Resolver<
   LoggedInGraphQLContext,
   MutationUpdateEntityTypeArgs
 > = async (_, { accountId, entityId, schema }, { dataSources, user }) => {
-  const entityType = await EntityType.updateSchema(dataSources.db, {
+  const entityType = await EntityType.update(dataSources.db, {
     accountId,
     updatedByAccountId: user.accountId,
     createdByAccountId: user.entityId,
