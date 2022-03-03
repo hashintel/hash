@@ -30,21 +30,25 @@ export const ActionsDropdown: React.FC<{
 
   const id = open ? "actions-popover" : undefined;
 
-  const [showCreatePage, setShowCreatePage] = useState(false);
+  const [createPageOpen, setCreatePageOpen] = useState(false);
 
   const closeCreatePage = useCallback(() => {
     // Prevent the bug of closing a non-existing modal
-    if (showCreatePage) {
-      setShowCreatePage(false);
+    if (createPageOpen) {
+      setCreatePageOpen(false);
     }
-  }, [showCreatePage]);
+  }, [createPageOpen]);
 
   const newEntityTypeRoute = `/${accountId}/types/new`;
 
-  useKeys(["AltLeft", "KeyP"], () => {
-    setOpen(false);
-    setShowCreatePage(true);
-  });
+  const showCreatePage = () => {
+    setCreatePageOpen(true);
+    if (open) {
+      setOpen(false);
+    }
+  };
+
+  useKeys(["AltLeft", "KeyP"], showCreatePage);
   useKeys(["AltLeft", "KeyT"], () => router.push(newEntityTypeRoute));
 
   return (
@@ -71,7 +75,7 @@ export const ActionsDropdown: React.FC<{
       </Button>
 
       <CreatePage
-        show={showCreatePage}
+        show={createPageOpen}
         close={closeCreatePage}
         accountId={accountId}
       />
@@ -121,10 +125,7 @@ export const ActionsDropdown: React.FC<{
               display: "flex",
               justifyContent: "space-between",
             }}
-            onClick={() => {
-              setShowCreatePage(true);
-              setOpen(false);
-            }}
+            onClick={showCreatePage}
           >
             <Typography variant="smallCopy">Create page</Typography>
             {!isMobile && (

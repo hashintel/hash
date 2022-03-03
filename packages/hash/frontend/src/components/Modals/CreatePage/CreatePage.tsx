@@ -63,7 +63,7 @@ export const CreatePage: VoidFunctionComponent<CreatePageProps> = ({
   }, [close]);
 
   return (
-    <Modal show={show} close={close}>
+    <Modal open={show} onClose={close}>
       <form className={styles.CreatePage} onSubmit={createPage}>
         <h2>Don't be afraid of a blank page...</h2>
 
