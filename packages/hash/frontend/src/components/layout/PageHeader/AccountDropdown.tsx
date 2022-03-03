@@ -71,7 +71,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
               justifyContent: "center",
             }}
           >
-            {user.properties.preferredName![0]}
+            {user.properties.preferredName![0].toUpperCase()}
           </Box>
         )}
       </Button>
