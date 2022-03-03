@@ -8,7 +8,7 @@ declare module "@mui/material/styles" {
     xl: string;
     xxl: string;
   }
-  interface Theme {
+  interface BaseTheme {
     borderRadii: {
       none: string;
       sm: string;
