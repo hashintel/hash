@@ -44,7 +44,7 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
           },
 
           "&:focus": {
-            outline: ({ palette }) => palette.blue[50],
+            outlineColor: ({ palette }) => palette.blue[50],
             outlineOffset: "2px",
           },
         }}

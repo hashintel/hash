@@ -25,7 +25,7 @@ import {
   schemaEditorReducer,
   SchemaEditorReducerAction,
 } from "./schemaEditorReducer";
-import { Button } from "../../forms/Button";
+import { OldButton } from "../../forms/OldButton";
 import { SubSchemaItem } from "./SubSchemaItem";
 
 export type SchemaSelectElementType = VoidFunctionComponent<{
@@ -278,7 +278,7 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
                   value={newSubSchemaName}
                 />
                 <br />
-                <Button type="submit">Create Sub-schema</Button>
+                <OldButton type="submit">Create Sub-schema</OldButton>
               </form>
             </div>
           ) : null}

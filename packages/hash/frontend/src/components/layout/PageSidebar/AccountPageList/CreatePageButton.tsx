@@ -2,8 +2,8 @@ import { useCallback, useState, VFC } from "react";
 
 import { faAdd } from "@fortawesome/free-solid-svg-icons";
 import { Tooltip, IconButton } from "@mui/material";
-import { CreatePage } from "./CreatePage";
-import { FontAwesomeSvgIcon } from "../../icons";
+import { CreatePageModal } from "../../../Modals/CreatePageModal";
+import { FontAwesomeSvgIcon } from "../../../icons";
 
 type CreatePageButtonProps = {
   accountId: string;
@@ -29,7 +29,11 @@ export const CreatePageButton: VFC<CreatePageButtonProps> = ({ accountId }) => {
           />
         </IconButton>
       </Tooltip>
-      {showCreatePage && <CreatePage close={close} accountId={accountId} />}
+      <CreatePageModal
+        close={close}
+        accountId={accountId}
+        show={showCreatePage}
+      />
     </>
   );
 };

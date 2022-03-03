@@ -3,7 +3,7 @@ import { VFC } from "react";
 import { faAdd } from "@fortawesome/free-solid-svg-icons";
 import { Tooltip, IconButton } from "@mui/material";
 import { useRouter } from "next/router";
-import { FontAwesomeSvgIcon } from "../../icons";
+import { FontAwesomeSvgIcon } from "../../../icons";
 
 type CreateEntityTypeButtonProps = {
   accountId: string;

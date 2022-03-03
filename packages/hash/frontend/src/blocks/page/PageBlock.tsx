@@ -6,7 +6,7 @@ import React, { useLayoutEffect, useRef, VoidFunctionComponent } from "react";
 import { useLocalstorageState } from "rooks";
 import { tw } from "twind";
 
-import { Button } from "../../components/forms/Button";
+import { OldButton } from "../../components/forms/OldButton";
 import { BlocksMetaMap, BlocksMetaProvider } from "../blocksMeta";
 import { EditorConnection } from "./collab/EditorConnection";
 import { createEditorView } from "./createEditorView";
@@ -88,14 +88,14 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           ? debugging
           : debugging.restartCollabButton
       ) ? (
-        <Button
+        <OldButton
           className={tw`fixed bottom-5 right-5 opacity-30 hover:(opacity-100) transition-all`}
           onClick={() => {
             prosemirrorSetup.current?.connection?.restart();
           }}
         >
           Restart Collab Instance
-        </Button>
+        </OldButton>
       ) : null}
     </BlocksMetaProvider>
   );

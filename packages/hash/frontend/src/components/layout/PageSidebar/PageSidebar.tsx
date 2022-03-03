@@ -6,15 +6,13 @@ import {
   faHistory,
   faHome,
   faLifeRing,
-  faPencil,
   faZap,
 } from "@fortawesome/free-solid-svg-icons";
 import { AccountSelect } from "./AccountSelect";
-import { AccountPageList } from "./AccountPageList";
+import { AccountPageList } from "./AccountPageList/AccountPageList";
 
-import styles from "./PageSidebar.module.scss";
-import { AccountEntityTypeList } from "./AccountEntityTypeList";
-import { FontAwesomeSvgIcon } from "../../icons";
+import { AccountEntityTypeList } from "./AccountEntityTypeList/AccountEntityTypeList";
+import { FontAwesomeSvgIcon, SidebarToggleIcon } from "../../icons";
 import { TopNavLink } from "./TopNavLink";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { useSidebarContext } from "../SidebarContext";
@@ -32,7 +30,8 @@ export const PageSidebar: VoidFunctionComponent = () => {
     <Drawer variant="persistent" open={sidebarOpen}>
       <Box
         sx={{
-          mx: 0.5,
+          mx: 0.75,
+          py: 0.5,
           display: "flex",
           alignItems: "center",
         }}
@@ -43,15 +42,19 @@ export const PageSidebar: VoidFunctionComponent = () => {
         <Tooltip title="Collapse Sidebar">
           <IconButton
             sx={{
-              height: 32,
-              width: 32,
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
+              height: 36,
+              width: 36,
+              borderRadius: "4px",
             }}
             onClick={closeSidebar}
           >
-            <FontAwesomeSvgIcon icon={faPencil} sx={{ fontSize: 16 }} />
+            <SidebarToggleIcon
+              sx={{
+                height: 20,
+                width: 20,
+              }}
+            />
+            {/* <FontAwesomeSvgIcon icon={faPencil} sx={{ fontSize: 16 }} /> */}
           </IconButton>
         </Tooltip>
       </Box>
@@ -90,18 +93,15 @@ export const PageSidebar: VoidFunctionComponent = () => {
         {/* TYPES */}
         <AccountEntityTypeList accountId={accountId} />
 
-        {/* <header className={styles.PageSidebar__Section__Header}>
-          <h2>Pages</h2>
-          <AccountPageList
-            currentPageEntityId={pageEntityId}
-            accountId={accountId}
-          />
-        </header> */}
-
-        <header className={styles.PageSidebar__Section__Header}>
+        <Box
+          sx={{
+            mx: 1,
+            mt: 5,
+          }}
+        >
           <h2>Account</h2>
           <AccountSelect onChange={goToAccount} value={accountId} />
-        </header>
+        </Box>
       </Box>
 
       {/* @todo replace with button implementation */}
@@ -137,28 +137,5 @@ export const PageSidebar: VoidFunctionComponent = () => {
         </Typography>
       </Box>
     </Drawer>
-    // <nav className={styles.PageSidebar} style={{ width: SIDEBAR_WIDTH }}>
-    //   <div className={styles.PageSidebar__Section}>
-    //     <header className={styles.PageSidebar__Section__Header}>
-    //       <h2>Account</h2>
-    //       <AccountSelect onChange={goToAccount} value={accountId} />
-    //     </header>
-    //   </div>
-    //   <div className={styles.PageSidebar__Section}>
-    //     <header className={styles.PageSidebar__Section__Header}>
-    //       <h2>Pages</h2>
-    //       <AccountPageList
-    //         currentPageEntityId={pageEntityId}
-    //         accountId={accountId}
-    //       />
-    //     </header>
-    //   </div>
-    //   <div className={styles.PageSidebar__Section}>
-    //     <header className={styles.PageSidebar__Section__Header}>
-    //       <h2>Entities</h2>
-    //       <AccountEntityTypeList accountId={accountId} />
-    //     </header>
-    //   </div>
-    // </nav>
   );
 };

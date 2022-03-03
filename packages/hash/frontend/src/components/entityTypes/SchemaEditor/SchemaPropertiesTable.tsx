@@ -5,7 +5,7 @@ import { SchemaPropertyRow } from "./SchemaPropertyRow";
 import { JsonSchema } from "../../../lib/json-utils";
 import { TextInputOrDisplay } from "./Inputs";
 import { SchemaEditorDispatcher } from "./schemaEditorReducer";
-import { Button } from "../../forms/Button";
+import { OldButton } from "../../forms/OldButton";
 
 type SchemaPropertiesTableProps = {
   dispatchSchemaUpdate: SchemaEditorDispatcher;
@@ -95,7 +95,7 @@ export const SchemaPropertiesTable: VoidFunctionComponent<
                   required
                 />
                 <br />
-                <Button type="submit">Create Property</Button>
+                <OldButton type="submit">Create Property</OldButton>
               </form>
             </td>
           </tr>

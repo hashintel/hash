@@ -7,7 +7,7 @@ import NextLink, { LinkProps as NextLinkProps } from "next/link";
 // eslint-disable-next-line no-restricted-imports
 import MuiLink, { LinkProps as MuiLinkProps } from "@mui/material/Link";
 import { styled } from "@mui/material/styles";
-import { MuiButton } from "./MuiButton";
+import { MuiButton } from "./Button";
 import { FRONTEND_URL } from "../lib/config";
 
 export const isHrefExternal = (href: string | UrlObject) =>

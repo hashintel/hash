@@ -1,8 +1,8 @@
 import { useRef, useState, VFC } from "react";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import { Box, IconButton } from "@mui/material";
-import { FontAwesomeSvgIcon } from "../../icons";
-import { Popover } from "../../Popover";
+import { FontAwesomeSvgIcon } from "../../../icons";
+import { Popover } from "../../../Popover";
 
 type EntityTypeMenuProps = {
   className: string;

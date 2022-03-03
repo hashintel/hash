@@ -7,8 +7,7 @@ import TreeItem, {
 // import clsx from "clsx";
 import { Box, IconButton, Typography } from "@mui/material";
 import { faChevronRight, faFile } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeSvgIcon } from "../../icons";
-import { Link } from "../../Link";
+import { FontAwesomeSvgIcon } from "../../../icons";
 
 type CustomContentProps = TreeItemContentProps & { hasChildren?: boolean };
 
@@ -28,7 +27,7 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
   const {
     // disabled,
     // expanded,
-    // selected,
+    selected,
     // focused,
     handleExpansion,
     handleSelection,
@@ -71,8 +70,18 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
       sx={{
         display: "flex",
         alignItems: "center",
-
         px: 1,
+        py: 1,
+
+        "&:hover": {
+          backgroundColor: ({ palette }) => palette.gray[20],
+          borderRadius: "4px",
+        },
+
+        ...(selected && {
+          backgroundColor: ({ palette }) => palette.gray[20],
+          borderRadius: "4px",
+        }),
       }}
     >
       <IconButton

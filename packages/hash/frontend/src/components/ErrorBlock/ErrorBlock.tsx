@@ -3,7 +3,7 @@ import React from "react";
 import { tw } from "twind";
 import { css } from "twind/css";
 
-import { Button } from "../forms/Button";
+import { OldButton } from "../forms/OldButton";
 
 /**
  * @todo make twind and other global styles available in iframes
@@ -24,11 +24,11 @@ export const ErrorBlock: React.VFC<ErrorBlockProps> = ({ error, onRetry }) => (
   >
     Error:{" "}
     <span className={tw`flex-grow truncate font-mono`}>{error.message}</span>
-    <Button
+    <OldButton
       className={`${tw`whitespace-nowrap`} ${tw(styles)}`}
       onClick={onRetry}
     >
       Reload block
-    </Button>
+    </OldButton>
   </div>
 );

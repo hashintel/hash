@@ -1,11 +1,12 @@
 import {
   Box,
   // eslint-disable-next-line no-restricted-imports
-  Button as MuiButton1,
+  Button as MuiButton,
   ButtonProps as MuiButtonProps,
 } from "@mui/material";
 import { FC, forwardRef } from "react";
 
+// @todo-mui update this to match the loading state in the design
 // inspired by https://github.com/loadingio/css-spinner/blob/master/src/ellipsis/index.styl
 const loadingAnimation = (
   <Box
@@ -77,15 +78,10 @@ export type ButtonProps = {
   loading?: boolean;
 } & MuiButtonProps & { rel?: string; target?: string }; // MUI button renders <a /> when href is provided, but typings miss rel and target
 
-// @todo: This is called MuiButton instead of Button because
-// there is an existing Button component used in other screens
-// Plan is to rename this to Button once the respective screens have
-// been reimplemented to use MuiButton
-// remember to also update eslint rules once this happens
-export const MuiButton: FC<ButtonProps> = forwardRef(
+export const Button: FC<ButtonProps> = forwardRef(
   ({ children, squared, loading, ...props }, ref) => {
     return (
-      <MuiButton1
+      <MuiButton
         {...props}
         sx={{
           borderRadius: squared ? "6px" : undefined,
@@ -98,7 +94,7 @@ export const MuiButton: FC<ButtonProps> = forwardRef(
         ref={ref}
       >
         {loading ? loadingAnimation : children}
-      </MuiButton1>
+      </MuiButton>
     );
   },
 );

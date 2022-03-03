@@ -11,3 +11,4 @@ export { default as HashIcon } from "../../assets/svg/hash.svg";
 export { SearchIcon } from "./SearchIcon";
 export { HashNavIcon } from "./HashNavIcon";
 export * from "./FontAwesomeSvgIcon";
+export * from "./SidebarToggleIcon";

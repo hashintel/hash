@@ -14,7 +14,7 @@ import { useRouter } from "next/router";
 import { FontAwesomeSvgIcon } from "../../icons";
 import { Popover } from "../../Popover";
 import { Link } from "../../Link";
-import { CreatePage } from "../../Modals/CreatePageModal";
+import { CreatePageModal } from "../../Modals/CreatePageModal";
 
 export const ActionsDropdown: React.FC<{
   accountId: string;
@@ -73,7 +73,7 @@ export const ActionsDropdown: React.FC<{
         <FontAwesomeSvgIcon icon={faPlus} />
       </IconButton>
 
-      <CreatePage
+      <CreatePageModal
         show={createPageOpen}
         close={closeCreatePage}
         accountId={accountId}

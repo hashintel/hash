@@ -1,12 +1,12 @@
-import { useCallback, useMemo, useState, VFC } from "react";
+import { useMemo, VFC } from "react";
 
-import { Typography, IconButton, Box } from "@mui/material";
-import { faSearch, faArrowUpAZ } from "@fortawesome/free-solid-svg-icons";
-import { orderBy } from "lodash";
-import { useAccountEntityTypes } from "../../hooks/useAccountEntityTypes";
-import { FontAwesomeSvgIcon } from "../../icons";
-import { NavLink } from "./NavLink";
-import { Link } from "../../Link";
+import { Typography, Box } from "@mui/material";
+// import { faSearch, faArrowUpAZ } from "@fortawesome/free-solid-svg-icons";
+// import { orderBy } from "lodash";
+import { useAccountEntityTypes } from "../../../hooks/useAccountEntityTypes";
+// import { FontAwesomeSvgIcon } from "../../../icons";
+import { NavLink } from "../NavLink";
+import { Link } from "../../../Link";
 import { EntityTypeMenu } from "./EntityTypeMenu";
 import { CreateEntityTypeButton } from "./CreateEntityTypeButton";
 
@@ -18,33 +18,37 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
   accountId,
 }) => {
   const { data } = useAccountEntityTypes(accountId);
-  const [order, setOrder] = useState<"asc" | "desc" | undefined>();
+  //   const [order, setOrder] = useState<"asc" | "desc" | undefined>();
 
   const sortedData = useMemo(() => {
-    if (!order) {
-      return data?.getAccountEntityTypes ?? [];
-    }
+    return data?.getAccountEntityTypes ?? [];
+  }, [data]);
 
-    return orderBy(
-      data?.getAccountEntityTypes ?? [],
-      ["properties.title"],
-      [order],
-    );
-  }, [order, data]);
+  //   const sortedData = useMemo(() => {
+  //     if (!order) {
+  //       return data?.getAccountEntityTypes ?? [];
+  //     }
 
-  const toggleSort = useCallback(() => {
-    if (!order) {
-      setOrder("asc");
-    }
+  //     return orderBy(
+  //       data?.getAccountEntityTypes ?? [],
+  //       ["properties.title"],
+  //       [order],
+  //     );
+  //   }, [order, data]);
 
-    if (order === "asc") {
-      setOrder("desc");
-    }
+  //   const toggleSort = useCallback(() => {
+  //     if (!order) {
+  //       setOrder("asc");
+  //     }
 
-    if (order === "desc") {
-      setOrder("asc");
-    }
-  }, [order]);
+  //     if (order === "asc") {
+  //       setOrder("desc");
+  //     }
+
+  //     if (order === "desc") {
+  //       setOrder("asc");
+  //     }
+  //   }, [order]);
 
   return (
     <Box>
@@ -53,7 +57,8 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
         endAdornment={<CreateEntityTypeButton accountId={accountId} />}
       >
         <Box component="ul">
-          <Box
+          {/* Can be uncommented once we have a page that displays all entity types */}
+          {/* <Box
             component="li"
             sx={{
               display: "flex",
@@ -75,7 +80,7 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
             <IconButton onClick={toggleSort}>
               <FontAwesomeSvgIcon icon={faArrowUpAZ} />
             </IconButton>
-          </Box>
+          </Box> */}
           {sortedData.map((entityType) => {
             return (
               <Box
@@ -115,7 +120,7 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
                   noLinkStyle
                   href={`/${accountId}/types/${entityType.entityId}`}
                   sx={{
-                    py: "8px",
+                    py: "7px",
                     flex: 1,
                     color: "inherit",
                   }}
