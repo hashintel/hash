@@ -117,11 +117,11 @@ class __EntityType {
       schema?: JSONObject | null;
     },
   ): Promise<EntityType> {
-    const { accountId, createdByAccountId, description, schema, name } = params;
+    const { accountId, createdByAccountId, description, name } = params;
 
-    const properties = await EntityType.validateJsonSchema(client, {
+    const schema = await EntityType.validateJsonSchema(client, {
       name,
-      schema,
+      schema: params.schema,
       description,
     });
 
@@ -130,7 +130,7 @@ class __EntityType {
         accountId,
         createdByAccountId,
         name,
-        properties,
+        schema,
       })
       .catch((err) => {
         if (err.message.includes("not unique")) {
@@ -156,7 +156,7 @@ class __EntityType {
       schema: { title, description },
     } = params;
 
-    const properties = await EntityType.validateJsonSchema(client, {
+    const schema = await EntityType.validateJsonSchema(client, {
       name: title,
       schema: params.schema,
       description,
@@ -164,7 +164,7 @@ class __EntityType {
 
     const updatedDbEntityType = await client.updateEntityType({
       ...params,
-      properties,
+      schema,
     });
 
     return new EntityType(updatedDbEntityType);

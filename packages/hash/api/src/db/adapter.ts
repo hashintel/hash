@@ -206,7 +206,7 @@ export interface DBClient {
     accountId: string;
     createdByAccountId: string;
     name: string;
-    properties: Record<string, any>;
+    schema: Record<string, any>;
   }): Promise<EntityType>;
 
   /**
@@ -323,7 +323,7 @@ export interface DBClient {
     entityId: string;
     updatedByAccountId: string;
     entityVersionId?: string;
-    properties: Record<string, any>;
+    schema: Record<string, any>;
   }): Promise<EntityType>;
 
   /**

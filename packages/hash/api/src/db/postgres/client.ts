@@ -93,7 +93,7 @@ export class PostgresClient implements DBClient {
   async createEntityType(
     params: Parameters<DBClient["createEntityType"]>[0],
   ): Promise<EntityType> {
-    const { name, accountId, createdByAccountId, properties } = params;
+    const { name, accountId, createdByAccountId, schema } = params;
 
     return this.transaction(async (conn) => {
       // The fixed type id
@@ -106,14 +106,14 @@ export class PostgresClient implements DBClient {
 
       // Ensure that the schema $id refers to the correct accountId + entityId
       const $id = generateSchema$id(accountId, entityTypeId);
-      properties.$id = $id;
+      schema.$id = $id;
 
       const entityType: EntityType = {
         accountId,
         entityId: entityTypeId,
         entityVersionId: entityTypeVersionId,
         entityTypeName: "EntityType",
-        properties,
+        properties: schema,
         metadata: {
           versioned: true,
           name,
@@ -333,7 +333,7 @@ export class PostgresClient implements DBClient {
   async updateEntityType(
     params: Parameters<DBClient["updateEntityType"]>[0],
   ): ReturnType<DBClient["updateEntityType"]> {
-    const { entityId, entityVersionId, properties } = params;
+    const { entityId, entityVersionId, schema } = params;
 
     const entity = entityVersionId
       ? await getEntityType(this.conn, { entityVersionId })
@@ -348,7 +348,7 @@ export class PostgresClient implements DBClient {
       );
     }
 
-    const nameToSet = properties.title;
+    const nameToSet = schema.title;
 
     if (typeof nameToSet !== "string" || nameToSet === "") {
       throw new Error("Schema requires a name set via a 'title' property");
@@ -358,14 +358,14 @@ export class PostgresClient implements DBClient {
 
     // Ensure that the schema $id refers to the correct accountId + entityId
     const $id = generateSchema$id(entity.accountId, entityId);
-    properties.$id = $id;
+    schema.$id = $id;
 
     const newType: EntityType = {
       ...entity,
       entityVersionId: genId(),
       updatedAt: now,
       updatedByAccountId: params.updatedByAccountId,
-      properties,
+      properties: schema,
     };
 
     if (entity.metadata.versioned) {
