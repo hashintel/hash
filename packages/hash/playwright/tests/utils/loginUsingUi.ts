@@ -42,5 +42,7 @@ export const loginUsingUi = async ({
   // Wait for Sign in button to disappear
   // TODO: Completely avoid rendering Sign up / Sign in after login
   await expect(page.locator('button:has-text("Sign in")')).not.toBeVisible();
-  await expect(page.locator('button:has-text("Account")')).toBeVisible();
+  await expect(
+    page.locator(`button[title="${accountShortName}"]`),
+  ).toBeVisible();
 };

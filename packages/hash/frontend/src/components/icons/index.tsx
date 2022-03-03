@@ -8,5 +8,6 @@ export { default as PeopleIcon } from "../../assets/svg/people.svg";
 export { default as PictureIcon } from "../../assets/svg/picture.svg";
 export { default as SpinnerIcon } from "../../assets/svg/spinner.svg";
 export { default as HashIcon } from "../../assets/svg/hash.svg";
-export { default as SearchIcon } from "../../assets/svg/lightbulb-on.svg";
+export { SearchIcon } from "./SearchIcon";
+export { HashNavIcon } from "./HashNavIcon";
 export * from "./FontAwesomeSvgIcon";

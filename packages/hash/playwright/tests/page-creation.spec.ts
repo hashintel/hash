@@ -13,7 +13,10 @@ const pageTitleInputSelector = '[placeholder="A title for the page"]';
 const modifierKey = process.platform === "darwin" ? "Meta" : "Control";
 
 test("user can create page", async ({ page }) => {
-  await loginUsingUi({ page, accountShortName: "alice" });
+  await loginUsingUi({
+    page,
+    accountShortName: "alice",
+  });
 
   // Check if we are on the user page
   await expect(
@@ -28,10 +31,11 @@ test("user can create page", async ({ page }) => {
   await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+$/));
 
   // Create the new page
-  await page.click("text=Create page");
+  await page.locator("button").first().click();
+  await page.locator("text=Create pageOpt + P").click();
   await page.type('[placeholder="What is this document?"]', pageName);
 
-  await page.click('div[role="dialog"] >> text=Create');
+  await page.locator('button[type="submit"] >> text=Create').click();
 
   await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+\/[\w-]+$/));
 

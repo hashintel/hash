@@ -8,13 +8,15 @@ import styles from "./CreatePage.module.scss";
 import { Button } from "../../forms/Button";
 
 type CreatePageProps = {
-  close: () => void;
   accountId: string;
+  close: () => void;
+  show: boolean;
 };
 
 export const CreatePage: VoidFunctionComponent<CreatePageProps> = ({
   close,
   accountId,
+  show,
 }) => {
   const [title, setTitle] = useState("");
   const [loading, setLoading] = useState(false);
@@ -61,7 +63,7 @@ export const CreatePage: VoidFunctionComponent<CreatePageProps> = ({
   }, [close]);
 
   return (
-    <Modal show close={close}>
+    <Modal open={show} onClose={close}>
       <form className={styles.CreatePage} onSubmit={createPage}>
         <h2>Don't be afraid of a blank page...</h2>
 

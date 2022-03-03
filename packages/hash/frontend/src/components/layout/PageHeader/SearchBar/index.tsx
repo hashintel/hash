@@ -4,21 +4,25 @@ import { escapeRegExp } from "lodash";
 import Link from "next/link";
 import React, {
   useCallback,
-  useRef,
+  useEffect,
   useState,
   VoidFunctionComponent,
 } from "react";
-import { useDebounce, useKey, useKeys, useOutsideClickRef } from "rooks";
+import { useDebounce, useKey, useOutsideClickRef } from "rooks";
 import { tw } from "twind";
-import { blockDomId } from "../../../blocks/page/BlockView";
+import { Box, Theme, useTheme, useMediaQuery, SxProps } from "@mui/material";
+
+import { blockDomId } from "../../../../blocks/page/BlockView";
 import {
   SearchPagesQuery,
   SearchPagesQueryVariables,
-} from "../../../graphql/apiTypes.gen";
-import { searchPages } from "../../../graphql/queries/search.queries";
-import { useUser } from "../../hooks/useUser";
-import { SearchIcon } from "../../icons";
-import { HASH_OPENSEARCH_ENABLED } from "../../../lib/public-env";
+} from "../../../../graphql/apiTypes.gen";
+import { searchPages } from "../../../../graphql/queries/search.queries";
+import { useUser } from "../../../hooks/useUser";
+import { HASH_OPENSEARCH_ENABLED } from "../../../../lib/public-env";
+import { DesktopSearch } from "./DesktopSearch";
+import { MobileSearch } from "./MobileSearch";
+
 /** finds the query's words in the result and chops it into parts at the words' boundaries */
 const splitByMatches = (result: string, query: string) => {
   const separator = query
@@ -46,16 +50,36 @@ const toBlockUrl = (searchPage: PageSearchResult): string => {
   return segments.join("");
 };
 
-const ResultList: React.FC = (props) => (
-  <ul
-    className={tw`absolute z-10 w-1/2 max-h-60 overflow-auto border border-gray-100 rounded-lg shadow-md`}
-    {...props}
-  />
+const ResultList: React.FC<{
+  isMobile: boolean;
+}> = ({ isMobile, ...props }) => (
+  <Box
+    component="ul"
+    sx={(theme) => ({
+      position: !isMobile ? "absolute" : "unset",
+      zIndex: 10,
+      width: "100%",
+      maxHeight: "15rem",
+      overflow: "auto",
+      border: `1px solid ${theme.palette.gray[20]}`,
+      borderRadius: "",
+    })}
+    className={tw`z-10 w-1/2 max-h-60 overflow-auto border border-gray-100 rounded-lg shadow-md`}
+  >
+    {props.children}
+  </Box>
 );
 
-const ResultItem: React.FC = (props) => (
-  <li
-    className={tw`flex border border-gray-100 bg-gray-50 p-2 hover:bg-gray-100 cursor-pointer overflow-ellipsis overflow-hidden`}
+const ResultItem: React.FC<{
+  sx?: SxProps<Theme>;
+}> = ({ sx, ...props }) => (
+  <Box
+    component="li"
+    sx={{
+      display: "flex",
+      ...sx,
+    }}
+    className={tw`border border-gray-100 bg-gray-50 p-2 hover:bg-gray-100 cursor-pointer overflow-ellipsis overflow-hidden`}
     {...props}
   />
 );
@@ -78,9 +102,20 @@ const useQueryText = (): [string, string, (queryText: string) => void] => {
 };
 
 const SearchBarWhenSearchIsEnabled: React.VFC = () => {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const theme = useTheme();
+
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
   const [isResultListVisible, setResultListVisible] = useState(false);
   const [displayedQuery, submittedQuery, setQueryText] = useQueryText();
+
+  const [displaySearchInput, setDisplaySearchInput] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (isMobile && displayedQuery.trim() && !displaySearchInput) {
+      setDisplaySearchInput(true);
+    }
+  }, [isMobile, displayedQuery, displaySearchInput]);
 
   const { user } = useUser();
 
@@ -95,38 +130,56 @@ const SearchBarWhenSearchIsEnabled: React.VFC = () => {
 
   useKey(["Escape"], () => setResultListVisible(false));
 
-  useKeys(["AltLeft", "KeyK"], () => inputRef.current?.focus());
-
   const [rootRef] = useOutsideClickRef(() => setResultListVisible(false));
 
   // present loading screen while waiting for the user to stop typing
   const isLoading = loading || displayedQuery !== submittedQuery;
 
   return (
-    <div ref={rootRef} className={tw`relative h-full w-full`}>
-      <div className={tw`absolute h-full flex flex-row items-center`}>
-        <SearchIcon className={tw`m-2 scale-150`} />
-      </div>
-      <input
-        className={tw`p-2 pl-10 w-1/2 border border-gray-200 rounded-lg focus:outline-none`}
-        ref={inputRef}
-        placeholder="Search (Alt+k)"
-        type="text"
-        value={displayedQuery}
-        onFocus={() => setResultListVisible(true)}
-        onChange={(event) => {
-          setResultListVisible(true);
-          setQueryText(event.target.value);
-        }}
-      />
+    <Box
+      sx={{
+        marginLeft: 0,
+        [theme.breakpoints.up("md")]: {
+          marginLeft: theme.spacing(3),
+        },
+        position: "relative",
+        height: "100%",
+        ...(isMobile && displaySearchInput
+          ? {
+              position: "absolute",
+              width: "100%",
+              zIndex: 1,
+              left: 0,
+              top: theme.spacing(1.5),
+              px: 2,
+            }
+          : {}),
+      }}
+      ref={rootRef}
+    >
+      {!isMobile ? (
+        <DesktopSearch
+          displayedQuery={displayedQuery}
+          setQueryText={setQueryText}
+          setResultListVisible={setResultListVisible}
+        />
+      ) : (
+        <MobileSearch
+          displayedQuery={displayedQuery}
+          setQueryText={setQueryText}
+          setResultListVisible={setResultListVisible}
+          displaySearchInput={displaySearchInput}
+          setDisplaySearchInput={setDisplaySearchInput}
+        />
+      )}
       {isResultListVisible && displayedQuery && (
-        <ResultList>
+        <ResultList isMobile={isMobile}>
           {isLoading ? (
-            <ResultItem>
+            <ResultItem sx={{ display: "block" }}>
               Loading results for&nbsp;<b>{submittedQuery}</b>.
             </ResultItem>
           ) : !data?.searchPages.length ? (
-            <ResultItem>
+            <ResultItem sx={{ display: "block" }}>
               No results found for&nbsp;<b>{submittedQuery}</b>.
             </ResultItem>
           ) : (
@@ -146,7 +199,7 @@ const SearchBarWhenSearchIsEnabled: React.VFC = () => {
           )}
         </ResultList>
       )}
-    </div>
+    </Box>
   );
 };
 
