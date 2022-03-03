@@ -93,7 +93,9 @@ export const MobileSearch: React.FC<{
       }}
       onClick={() => setDisplaySearchInput(true)}
     >
-      <SearchIcon />
+      <SearchIcon
+        sx={(theme) => ({ height: theme.spacing(2), width: "auto" })}
+      />
     </Box>
   );
 };
