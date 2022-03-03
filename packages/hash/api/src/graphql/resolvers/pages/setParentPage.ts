@@ -1,85 +1,54 @@
 import { ApolloError } from "apollo-server-express";
 import { MutationSetParentPageArgs, Resolver } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
-import { Entity, Page, UnresolvedGQLEntity } from "../../../model";
-import { topologicalSort } from "../../../util";
+import { Page, UnresolvedGQLEntity } from "../../../model";
 
 export const setParentPage: Resolver<
   Promise<UnresolvedGQLEntity>,
   {},
   LoggedInGraphQLContext,
   MutationSetParentPageArgs
-> = async (_, { accountId, pageId, parentPageId }, { dataSources, user }) => {
-  return await dataSources.db.transaction(async (client) => {
-    const [pageEntity, parentPageEntity] = await Promise.all([
-      Page.getAccountPageWithParents(client, {
-        accountId,
-        entityId: pageId,
-      }),
+> = async (
+  _,
+  { accountId, pageEntityId, parentPageEntityId },
+  { dataSources: { db }, user },
+) => {
+  if (pageEntityId === parentPageEntityId) {
+    throw new ApolloError("A page cannot be the parent of itself");
+  }
 
-      Entity.getEntityLatestVersion(client, {
-        accountId,
-        entityId: parentPageId,
-      }),
-    ]);
+  return await db.transaction(async (client) => {
+    const pageEntity = await Page.getPageById(client, {
+      accountId,
+      entityId: pageEntityId,
+    });
 
-    if (!pageEntity || !parentPageEntity) {
-      const notFoundId = pageEntity?.entityId
-        ? `'${parentPageId}'`
-        : `'${pageId}'${
-            parentPageEntity?.entityId
-              ? ""
-              : ` nor parent page with entityId = '${parentPageId}'`
-          }`;
+    if (!pageEntity) {
       throw new ApolloError(
-        `Could not find entity with entityId = ${notFoundId}.`,
+        `Could not find page entity with entityId = ${pageEntityId} on account with id = ${accountId}.`,
         "NOT_FOUND",
       );
     }
 
-    const pages = await Page.getAccountPagesWithParents(dataSources.db, {
-      accountId,
-      systemTypeName: "Page",
-    });
+    let parentPage: Page | null = null;
 
-    // Check for cyclic dependencies.
-    try {
-      const directedPages = pages
-        .filter((page) => page.parentEntityId != null)
-        .map(
-          (page) => [page.entityId, page.parentEntityId] as [string, string],
-        );
-      // add the new parent relation to the existing relations
-      directedPages.push([pageId, parentPageId]);
-      topologicalSort(directedPages);
-    } catch (_error) {
-      throw new ApolloError(
-        `Could not set '${parentPageId}' as parent to '${pageId}' as this would create a cyclic dependency.`,
-        "CYCLIC_TREE",
-      );
-    }
-
-    if (pageEntity.parentEntityId) {
-      const link = await pageEntity.getOutgoingLinkByEntityId(client, {
-        destinationEntityId: pageEntity.parentEntityId,
+    if (parentPageEntityId) {
+      parentPage = await Page.getPageById(client, {
+        accountId,
+        entityId: parentPageEntityId,
       });
-      if (!link) {
-        throw new Error(
-          `Could not find existing link to parent page = '${pageEntity.parentEntityId}'.`,
+
+      if (!parentPage) {
+        throw new ApolloError(
+          `Could not find parent page entity with entityId = ${parentPageEntityId} on account with id = ${accountId}.`,
+          "NOT_FOUND",
         );
       }
-
-      await pageEntity.deleteOutgoingLink(client, {
-        linkId: link.linkId,
-        deletedByAccountId: user.accountId,
-      });
     }
 
-    // @todo: lock entity to prevent potential race-condition when updating entity's properties
-    await pageEntity.createOutgoingLink(client, {
-      createdByAccountId: user.accountId,
-      stringifiedPath: "$.parent",
-      destination: parentPageEntity,
+    await pageEntity.setParentPage(client, {
+      parentPage,
+      setByAccountId: user.accountId,
     });
 
     return pageEntity.toGQLUnknownEntity();
