@@ -17,7 +17,6 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
       // The base CSS styling applied to the button
       const baseStyles: CSSObject = {
         textTransform: "none",
-        lineHeight: "24px",
       };
 
       // The :before CSS styling applied to the button
