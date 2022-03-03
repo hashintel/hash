@@ -37,14 +37,10 @@ export const NotificationsDropdown: React.FC = () => {
           px: hasNotifications ? 1.5 : "unset",
           height: "32px",
           borderRadius: hasNotifications ? 4 : "100%",
-          color: hasNotifications
-            ? theme.palette.common.white
-            : open
+          color: (hasNotifications || open)
             ? theme.palette.common.white
             : theme.palette.gray[40],
-          backgroundColor: hasNotifications
-            ? theme.palette.blue["70"]
-            : open
+          backgroundColor: (hasNotifications || open)
             ? theme.palette.blue["70"]
             : theme.palette.gray[20],
         }}
