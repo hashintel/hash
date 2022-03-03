@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { faBell } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
-  Button,
+  IconButton,
   ListItemButton,
   Typography,
   useTheme,
@@ -26,12 +26,13 @@ export const NotificationsDropdown: React.FC = () => {
 
   return (
     <Box>
-      <Button
+      <IconButton
         sx={{
           mr: {
             xs: 1,
             md: 1.5,
           },
+          fontSize: theme.spacing(2),
           width: hasNotifications ? "auto" : "32px",
           px: hasNotifications ? 1.5 : "unset",
           height: "32px",
@@ -48,7 +49,6 @@ export const NotificationsDropdown: React.FC = () => {
             : theme.palette.gray[20],
         }}
         ref={buttonRef}
-        variant="icon"
         onClick={() => setOpen(!open)}
       >
         <FontAwesomeSvgIcon icon={faBell} />
@@ -57,7 +57,7 @@ export const NotificationsDropdown: React.FC = () => {
             {notificationsLength}
           </Box>
         )}
-      </Button>
+      </IconButton>
 
       <Popover
         id={id}

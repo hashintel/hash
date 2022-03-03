@@ -2,7 +2,7 @@ import { useCallback, useState, useRef } from "react";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
-  Button,
+  IconButton,
   ListItemButton,
   Typography,
   useMediaQuery,
@@ -53,7 +53,7 @@ export const ActionsDropdown: React.FC<{
 
   return (
     <Box>
-      <Button
+      <IconButton
         sx={{
           mr: {
             xs: 1,
@@ -68,11 +68,10 @@ export const ActionsDropdown: React.FC<{
             : theme.palette.gray[20],
         }}
         ref={buttonRef}
-        variant="icon"
         onClick={() => setOpen(!open)}
       >
         <FontAwesomeSvgIcon icon={faPlus} />
-      </Button>
+      </IconButton>
 
       <CreatePage
         show={createPageOpen}

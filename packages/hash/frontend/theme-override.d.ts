@@ -136,7 +136,6 @@ declare module "@mui/material/Button" {
     secondary: true;
     tertiary: true;
     tertiary_quiet: true;
-    icon: true;
     // Disable defaults
     contained: false;
     outlined: false;

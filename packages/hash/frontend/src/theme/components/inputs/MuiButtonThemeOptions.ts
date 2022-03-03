@@ -121,18 +121,6 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           color: theme.palette.purple["90"],
           backgroundColor: "unset",
         });
-      } else if (variant === "icon") {
-        Object.assign(baseStyles, {
-          minWidth: "unset",
-          padding: "unset",
-          color: theme.palette.gray[40],
-          background: theme.palette.gray[20],
-        });
-
-        Object.assign(hoverStyles, {
-          color: theme.palette.common.white,
-          backgroundColor: theme.palette.blue["70"],
-        });
       }
 
       return {
