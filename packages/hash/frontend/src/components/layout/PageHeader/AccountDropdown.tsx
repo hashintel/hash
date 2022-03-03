@@ -99,10 +99,10 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
         }}
       >
         <Box px={2} pt={1} pb={1.5}>
-          <Typography variant="smallCopy">
+          <Typography variant="smallTextParagraphs">
             <strong>{user.properties.preferredName}</strong>
           </Typography>
-          <Typography component="p" variant="microCopy">
+          <Typography component="p" variant="microText">
             @{user.properties.shortname!}
           </Typography>
         </Box>
@@ -116,7 +116,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
                 borderRadius: 1,
               }}
             >
-              <Typography variant="smallCopy" sx={{ lineHeight: 1 }}>
+              <Typography variant="smallTextParagraphs" sx={{ lineHeight: 1 }}>
                 Account Settings
               </Typography>
             </ListItemButton>
@@ -130,7 +130,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
             }}
             onClick={logout}
           >
-            <Typography variant="smallCopy" sx={{ lineHeight: 1 }}>
+            <Typography variant="smallTextParagraphs" sx={{ lineHeight: 1 }}>
               Log Out
             </Typography>
           </ListItemButton>

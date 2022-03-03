@@ -126,10 +126,8 @@ export const ActionsDropdown: React.FC<{
             }}
             onClick={showCreatePage}
           >
-            <Typography variant="smallCopy">Create page</Typography>
-            {!isMobile && (
-              <Typography variant="smallSecondaryCopy">Opt + P</Typography>
-            )}
+            <Typography variant="smallTextParagraphs">Create page</Typography>
+            {!isMobile && <Typography variant="microText">Opt + P</Typography>}
           </ListItemButton>
           <ListItemButton
             sx={{
@@ -142,10 +140,8 @@ export const ActionsDropdown: React.FC<{
             }}
             onClick={() => setOpen(false)}
           >
-            <Typography variant="smallCopy">Create entity</Typography>
-            {!isMobile && (
-              <Typography variant="smallSecondaryCopy">Opt + E</Typography>
-            )}
+            <Typography variant="smallTextParagraphs">Create entity</Typography>
+            {!isMobile && <Typography variant="microText">Opt + E</Typography>}
           </ListItemButton>
           <Link
             noLinkStyle
@@ -163,9 +159,9 @@ export const ActionsDropdown: React.FC<{
                 justifyContent: "space-between",
               }}
             >
-              <Typography variant="smallCopy">Create type</Typography>
+              <Typography variant="smallTextParagraphs">Create type</Typography>
               {!isMobile && (
-                <Typography variant="smallSecondaryCopy">Opt + T</Typography>
+                <Typography variant="microText">Opt + T</Typography>
               )}
             </ListItemButton>
           </Link>

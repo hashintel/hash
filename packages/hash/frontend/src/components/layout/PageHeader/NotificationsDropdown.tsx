@@ -106,7 +106,9 @@ export const NotificationsDropdown: React.FC = () => {
                 justifyContent: "space-between",
               }}
             >
-              <Typography variant="smallCopy">Notification 1</Typography>
+              <Typography variant="smallTextParagraphs">
+                Notification 1
+              </Typography>
             </ListItemButton>
           </Link>
           <Link noLinkStyle href="#" onClick={() => setOpen(false)}>
@@ -120,7 +122,9 @@ export const NotificationsDropdown: React.FC = () => {
                 justifyContent: "space-between",
               }}
             >
-              <Typography variant="smallCopy">Notification 2</Typography>
+              <Typography variant="smallTextParagraphs">
+                Notification 2
+              </Typography>
             </ListItemButton>
           </Link>
           <Link noLinkStyle href="#" onClick={() => setOpen(false)}>
@@ -135,7 +139,9 @@ export const NotificationsDropdown: React.FC = () => {
                 justifyContent: "space-between",
               }}
             >
-              <Typography variant="smallCopy">Notification 3</Typography>
+              <Typography variant="smallTextParagraphs">
+                Notification 3
+              </Typography>
             </ListItemButton>
           </Link>
         </Box>

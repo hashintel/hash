@@ -72,9 +72,6 @@ declare module "@mui/material/styles" {
     smallTextParagraphs: React.CSSProperties;
     smallTextLabels: React.CSSProperties;
     microText: React.CSSProperties;
-    smallCopy: React.CSSProperties;
-    smallSecondaryCopy: React.CSSProperties;
-    microCopy: React.CSSProperties;
   }
 
   interface TypographyVariantsOptions {
@@ -92,9 +89,6 @@ declare module "@mui/material/styles" {
     smallTextParagraphs?: React.CSSProperties;
     smallTextLabels?: React.CSSProperties;
     microText?: React.CSSProperties;
-    smallCopy: React.CSSProperties;
-    smallSecondaryCopy: React.CSSProperties;
-    microCopy: React.CSSProperties;
   }
 }
 
@@ -114,9 +108,6 @@ declare module "@mui/material/Typography" {
     smallTextParagraphs: true;
     smallTextLabels: true;
     microText: true;
-    smallCopy: true;
-    smallSecondaryCopy: true;
-    microCopy: true;
     // disable unused defaults
     h6: false;
     subtitle1: false;

@@ -77,24 +77,6 @@ export const typography: ThemeOptions["typography"] = {
     fontWeight: 400,
     lineHeight: "24px",
   },
-  smallCopy: {
-    fontWeight: 500,
-    fontSize: "var(--step--1)",
-    lineHeight: 1.5,
-    color: customColors.gray["80"],
-  },
-  smallSecondaryCopy: {
-    fontWeight: 500,
-    fontSize: "var(--step--1)",
-    lineHeight: 1.5,
-    color: customColors.gray["50"],
-  },
-  microCopy: {
-    fontWeight: 500,
-    fontSize: "var(--step--2)",
-    lineHeight: 1.1,
-    color: customColors.gray["80"],
-  },
   smallTextParagraphs: {
     fontSize: "var(--step--1)",
     fontWeight: 400,
@@ -106,7 +88,7 @@ export const typography: ThemeOptions["typography"] = {
     lineHeight: "18px",
   },
   microText: {
-    fontSize: "var(--step--2)",
+    fontSize: "var(--step--0)",
     fontWeight: 400,
     lineHeight: "18px",
   },
