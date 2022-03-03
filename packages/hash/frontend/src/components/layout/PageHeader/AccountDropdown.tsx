@@ -37,7 +37,6 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
       <Button
         variant="transparent"
         onClick={() => setOpen(!open)}
-        title={user.properties.shortname!}
         className="flex items-center relative m-auto focus:outline-none"
         ref={buttonRef}
         sx={{
@@ -75,6 +74,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
           </Box>
         )}
       </Button>
+
       <Popover
         id={id}
         open={open}
@@ -97,12 +97,36 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
             border: `1px solid ${theme.palette.gray["20"]}`,
           },
         }}
+        sx={{
+          ".MuiListItemButton-root": {
+            color: theme.palette.gray[80],
+            ".MuiTypography-smallTextParagraphs": {
+              fontWeight: 500,
+            },
+            ".MuiTypography-microText": {
+              fontWeight: 500,
+              color: theme.palette.gray[50],
+            },
+          },
+          ".MuiListItemButton-root:hover": {
+            ".MuiTypography-smallTextParagraphs": {
+              color: theme.palette.gray[90],
+            },
+          },
+        }}
       >
         <Box px={2} pt={1} pb={1.5}>
-          <Typography variant="smallTextParagraphs">
+          <Typography
+            variant="smallTextParagraphs"
+            sx={{ color: theme.palette.gray[80] }}
+          >
             <strong>{user.properties.preferredName}</strong>
           </Typography>
-          <Typography component="p" variant="microText">
+          <Typography
+            component="p"
+            variant="microText"
+            sx={{ color: theme.palette.gray[80] }}
+          >
             @{user.properties.shortname!}
           </Typography>
         </Box>
@@ -130,7 +154,10 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
             }}
             onClick={logout}
           >
-            <Typography variant="smallTextParagraphs" sx={{ lineHeight: 1 }}>
+            <Typography
+              variant="smallTextParagraphs"
+              sx={{ lineHeight: 1, color: theme.palette.gray[60] }}
+            >
               Log Out
             </Typography>
           </ListItemButton>

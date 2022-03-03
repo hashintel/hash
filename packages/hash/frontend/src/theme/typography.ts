@@ -87,7 +87,7 @@ export const typography: ThemeOptions["typography"] = {
     lineHeight: "18px",
   },
   microText: {
-    fontSize: "var(--step--0)",
+    fontSize: "var(--step--2)",
     fontWeight: 400,
     lineHeight: "18px",
   },

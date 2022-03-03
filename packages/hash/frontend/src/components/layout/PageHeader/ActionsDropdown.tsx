@@ -102,12 +102,22 @@ export const ActionsDropdown: React.FC<{
           },
         }}
         sx={{
+          ".MuiListItemButton-root": {
+            ".MuiTypography-smallTextParagraphs": {
+              fontWeight: 500,
+              color: theme.palette.gray[80],
+            },
+            ".MuiTypography-microText": {
+              fontWeight: 500,
+              color: theme.palette.gray[50],
+            },
+          },
           ".MuiListItemButton-root:hover": {
             backgroundColor: theme.palette.blue["70"],
-            ".MuiTypography-smallCopy": {
+            ".MuiTypography-smallTextParagraphs": {
               color: theme.palette.common.white,
             },
-            ".MuiTypography-smallSecondaryCopy": {
+            ".MuiTypography-microText": {
               color: theme.palette.blue[30],
             },
           },
