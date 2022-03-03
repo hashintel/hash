@@ -156,11 +156,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
                 borderRadius: 1,
               }}
             >
-              <Typography variant="smallTextLabels" sx={{ lineHeight: 1 }}>
                 Account Settings
-              </Typography>
-            </ListItemButton>
-          </Link>
           <Divider sx={{ borderColor: theme.palette.gray[30] }} />
           <ListItemButton
             sx={{
