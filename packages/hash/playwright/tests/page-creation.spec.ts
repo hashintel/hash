@@ -35,7 +35,7 @@ test("user can create page", async ({ page }) => {
   await page.locator("text=Create pageOpt + P").click();
   await page.type('[placeholder="What is this document?"]', pageName);
 
-  await page.click('div[role="dialog"] >> text=Create');
+  await page.locator('div[role="presentation"] >> text=Create').click();
 
   await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+\/[\w-]+$/));
 
