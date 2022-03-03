@@ -57,7 +57,9 @@ export const MobileSearch: React.FC<{
     >
       <Search>
         <SearchIconWrapper>
-          <SearchIcon />
+          <SearchIcon
+            sx={(theme) => ({ height: theme.spacing(2), width: "auto" })}
+          />
         </SearchIconWrapper>
         <StyledInputBase
           placeholder="Search for anything"

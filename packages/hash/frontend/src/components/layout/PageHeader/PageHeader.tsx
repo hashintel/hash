@@ -77,7 +77,7 @@ export const PageHeader: React.VFC = () => {
         >
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <Link noLinkStyle href={`/${user ? user.accountId : ""}`}>
-              <HashNavIcon />
+              <HashNavIcon sx={{ height: theme.spacing(2), width: "auto" }} />
             </Link>
           </Box>
           {user && <SearchBar />}
