@@ -195,37 +195,6 @@ export const updateLinkIndices = async (
   `);
 };
 
-/**
- * Get all outgoing links for a versioned or non-versioned source entity
- * that are "active" (i.e. have not been removed), or were "active" at a
- * particular timestamp.
- * @param params.sourceAccountId the account id of the source entity
- * @param params.sourceEntityId the entityId of the source entity
- * @param params.activeAt the timestamp where the links were "active" (optional)
- * @param params.path the path of the link (optional)
- */
-export const getLinks = async (
-  conn: Connection,
-  params: {
-    sourceAccountId: string;
-    sourceEntityId: string;
-    activeAt?: Date;
-    path?: string;
-  },
-): Promise<DBLink[]> => {
-  const dbLinks = await conn.any(sql<DBLinkRow>`
-    ${selectAllLinksWithSourceEntity(params)}
-    ${
-      params.path !== undefined
-        ? /** if a link path was specified, we can order them by their index */
-          sql`order by index`
-        : sql``
-    }
-  `);
-
-  return dbLinks.map(mapDBLinkRowToDBLink);
-};
-
 export const getLinksWithMinimumIndex = async (
   conn: Connection,
   params: {
