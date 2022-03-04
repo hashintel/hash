@@ -118,6 +118,7 @@ export const Table: BlockComponent<AppProps> = ({
   accountId,
   aggregateEntities,
   aggregateEntityTypes,
+  createLinks,
   entityId,
   entityTypeId,
   entityTypeVersionId,
@@ -471,30 +472,46 @@ export const Table: BlockComponent<AppProps> = ({
 
   const handleEntityTypeChange = useCallback(
     (updatedEntityTypeId: string | undefined) => {
-      if (!entityId || !updateLinks) {
-        return;
+      if (!entityId || !updateLinks || !createLinks) {
+        throw new Error(
+          "All of entityId, createLinks and updateLinks must be passed to the block to update data linke from it",
+        );
       }
 
       if (updatedEntityTypeId) {
-        void updateLinks?.([
-          cleanUpdateLinkedAggregationAction({
-            sourceAccountId: accountId,
-            sourceEntityId: entityId,
-            path,
-            updatedOperation: {
-              entityTypeId: updatedEntityTypeId,
-              // There is scope to include other options if entity properties overlap
-              itemsPerPage:
-                tableData.linkedAggregation?.operation?.itemsPerPage,
+        if (tableData?.linkedAggregation) {
+          void updateLinks?.([
+            cleanUpdateLinkedAggregationAction({
+              sourceAccountId: accountId,
+              sourceEntityId: entityId,
+              path,
+              updatedOperation: {
+                entityTypeId: updatedEntityTypeId,
+                // There is scope to include other options if entity properties overlap
+                itemsPerPage:
+                  tableData.linkedAggregation?.operation?.itemsPerPage,
+              },
+            }),
+          ]);
+        } else {
+          void createLinks?.([
+            {
+              operation: {
+                entityTypeId: updatedEntityTypeId,
+              },
+              path,
+              sourceAccountId: accountId,
+              sourceEntityId: entityId,
             },
-          }),
-        ]);
+          ]);
+        }
       }
     },
     [
       accountId,
+      createLinks,
       entityId,
-      tableData.linkedAggregation?.operation?.itemsPerPage,
+      tableData.linkedAggregation,
       updateLinks,
     ],
   );
