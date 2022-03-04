@@ -1,5 +1,5 @@
 diff --git a/node_modules/blockprotocol/core.d.ts b/node_modules/blockprotocol/core.d.ts
-index 205630a..9dd787c 100644
+index 205630a..eb9a888 100644
 --- a/node_modules/blockprotocol/core.d.ts
 +++ b/node_modules/blockprotocol/core.d.ts
 @@ -66,6 +66,7 @@ export type BlockProtocolMultiSort = {
@@ -39,7 +39,7 @@ index 205630a..9dd787c 100644
    sourceEntityId: string;
    destinationEntityId: string;
    destinationEntityVersionId?: string | null;
-@@ -153,9 +158,30 @@ export type BlockProtocolLinkGroup = {
+@@ -153,25 +158,60 @@ export type BlockProtocolLinkGroup = {
    links: BlockProtocolLink[];
  };
  
@@ -67,10 +67,19 @@ index 205630a..9dd787c 100644
    sourceEntityId: string;
 +  sourceEntityTypeId?: string;
 +  sourceEntityTypeVersionId?: string;
++  index?: number | null;
++  path: string;
++} & { 
++  operation?: BlockProtocolAggregateOperationInput; 
++} | {  
    destinationAccountId?: string | null;
    destinationEntityId: string;
-   destinationEntityVersionId?: string | null;
-@@ -167,11 +193,22 @@ export type BlockProtocolCreateLinksFunction = {
+   destinationEntityVersionId?: string | null; 
+-  index?: number | null;
+-  path: string;
+ };
+ 
+ export type BlockProtocolCreateLinksFunction = {
    (actions: BlockProtocolCreateLinksAction[]): Promise<BlockProtocolLink[]>;
  };
  
@@ -94,7 +103,7 @@ index 205630a..9dd787c 100644
  };
  
  export type BlockProtocolDeleteLinksFunction = {
-@@ -185,6 +222,7 @@ export type BlockProtocolAggregateEntityTypesFunction = {
+@@ -185,6 +225,7 @@ export type BlockProtocolAggregateEntityTypesFunction = {
  };
  
  type BlockProtocolUpdateEntityTypesAction = {
@@ -102,7 +111,7 @@ index 205630a..9dd787c 100644
    entityId: string;
    schema: JSONObject;
  };
-@@ -219,6 +257,7 @@ export interface JSONArray extends Array<JSONValue> {}
+@@ -219,6 +260,7 @@ export interface JSONArray extends Array<JSONValue> {}
   * which the embedding application should provide.
   */
  export type BlockProtocolProps = {
@@ -110,7 +119,7 @@ index 205630a..9dd787c 100644
    aggregateEntities?: BlockProtocolAggregateEntitiesFunction;
    aggregateEntitiesLoading?: boolean;
    aggregateEntitiesError?: Error;
-@@ -234,8 +273,10 @@ export type BlockProtocolProps = {
+@@ -234,8 +276,10 @@ export type BlockProtocolProps = {
    deleteLinksError?: Error;
    entityId?: string;
    entityTypeId?: string;
@@ -121,7 +130,7 @@ index 205630a..9dd787c 100644
    id?: string;
    schemas?: Record<string, JSONObject>;
    type?: string;
-@@ -245,4 +286,6 @@ export type BlockProtocolProps = {
+@@ -245,4 +289,6 @@ export type BlockProtocolProps = {
    updateEntityTypes?: BlockProtocolUpdateEntityTypesFunction;
    updateEntityTypesLoading?: boolean;
    updateEntityTypesError?: Error;
