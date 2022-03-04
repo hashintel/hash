@@ -12,14 +12,26 @@ export const MuiListItemButtonThemeOptions: Components<Theme>["MuiListItemButton
           textTransform: "none",
           minWidth: "unset",
           padding: theme.spacing(1, 1.5),
-          color: theme.palette.gray[40],
+          ".MuiTypography-smallTextLabels": {
+            fontWeight: 500,
+            color: theme.palette.gray[80],
+          },
+          ".MuiTypography-microText": {
+            fontWeight: 500,
+            lineHeight: "18px",
+            color: theme.palette.gray[50],
+          },
         };
 
         // The :before CSS styling applied to the button
         const beforeStyles: CSSObject = {};
 
         // The :hover CSS styling applied to the button
-        const hoverStyles: CSSObject = {};
+        const hoverStyles: CSSObject = {
+          ".MuiTypography-smallTextLabels": {
+            color: theme.palette.gray[90],
+          },
+        };
 
         // The :hover:before CSS styling applied to the button
         const hoverBeforeStyles: CSSObject = {};
@@ -28,7 +40,15 @@ export const MuiListItemButtonThemeOptions: Components<Theme>["MuiListItemButton
         const disabledStyles: CSSObject = {};
 
         // The :active CSS styling applied to the button
-        const activeStyles: CSSObject = {};
+        const activeStyles: CSSObject = {
+          backgroundColor: theme.palette.blue["70"],
+          ".MuiTypography-smallTextLabels": {
+            color: theme.palette.common.white,
+          },
+          ".MuiTypography-microText": {
+            color: theme.palette.blue[30],
+          },
+        };
 
         // The :focus CSS styling applied to the button
         const focusStyles: CSSObject = {};

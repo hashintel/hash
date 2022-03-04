@@ -123,22 +123,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
           },
         }}
         sx={{
-          ".MuiListItemButton-root": {
-            color: theme.palette.gray[80],
-            ".MuiTypography-smallTextLabels": {
-              fontWeight: 500,
-            },
-            ".MuiTypography-microText": {
-              fontWeight: 500,
-
-              color: theme.palette.gray[50],
-            },
-          },
-          ".MuiListItemButton-root:hover": {
-            ".MuiTypography-smallTextLabels": {
-              color: theme.palette.gray[90],
-            },
-          },
+          color: theme.palette.gray[40],
         }}
       >
         <Box px={2} pt={1} pb={1.5}>
