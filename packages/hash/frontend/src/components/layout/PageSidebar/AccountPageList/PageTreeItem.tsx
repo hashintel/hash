@@ -11,32 +11,18 @@ import { FontAwesomeSvgIcon } from "../../../icons";
 
 type CustomContentProps = TreeItemContentProps & { hasChildren?: boolean };
 
-// inspiration gotten from @see https://mui.com/components/tree-view/#IconExpansionTreeView.tsx
+// inspiration gotten from https://mui.com/components/tree-view/#IconExpansionTreeView.tsx
 const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
-  const {
-    // classes,
-    // className,
-    label,
-    nodeId,
-    //   icon: iconProp,
-    //   expansionIcon,
-    //   displayIcon,
-    hasChildren,
-  } = props;
+  const { label, nodeId, hasChildren } = props;
 
   const {
-    // disabled,
     expanded,
     selected,
-    // focused,
+    focused,
     handleExpansion,
     handleSelection,
     preventSelection,
   } = useTreeItem(nodeId);
-
-  // const icon = iconProp || expansionIcon || displayIcon || (
-  //   <FontAwesomeSvgIcon icon={faChevronRight} sx={{ fontSize: 12 }} />
-  // );
 
   const handleMouseDown = (
     event: React.MouseEvent<HTMLDivElement, MouseEvent>,
@@ -59,19 +45,12 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
   return (
     // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <Box
-      // className={clsx(className, classes.root, {
-      //   [classes.expanded]: expanded,
-      //   [classes.selected]: selected,
-      //   [classes.focused]: focused,
-      //   [classes.disabled]: disabled,
-      // })}
       onMouseDown={handleMouseDown}
       ref={ref as React.Ref<HTMLDivElement>}
       sx={{
         display: "flex",
         alignItems: "center",
         px: 1,
-        py: 1,
 
         "&:hover": {
           backgroundColor: ({ palette }) => palette.gray[20],
@@ -82,6 +61,11 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
           backgroundColor: ({ palette }) => palette.gray[20],
           borderRadius: "4px",
         }),
+
+        ...(focused &&
+          {
+            // @todo-mui add focus styles
+          }),
       }}
     >
       <IconButton
@@ -113,31 +97,28 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
           color: ({ palette }) => palette.gray[50],
         }}
       />
-      {/* <Link noLinkStyle href="/" sx={{ flex: 1, border: "1px solid red" }}> */}
-      {/* @todo-mui this should be switched to our button component once we all the styles implemented */}
+      {/* @todo-mui this should be switched to our button component once we have all variants implemented */}
       <Box
         component="button"
         onClick={handleSelectionClick}
         sx={{
-          border: "1px solid black",
           flex: 1,
           width: "100%",
           outline: "none",
+          textAlign: "left",
         }}
       >
         <Typography
           variant="smallTextLabels"
-          // onClick={handleSelectionClick}
-          //   className={classes.label}
           sx={{
+            display: "block",
             color: ({ palette }) => palette.gray[70],
+            py: 1,
           }}
         >
           {label}
         </Typography>
       </Box>
-
-      {/* </Link> */}
     </Box>
   );
 });
@@ -152,6 +133,7 @@ export const PageTreeItem = (
       ContentComponent={CustomContent}
       {...otherProps}
       ContentProps={{
+        // @ts-expect-error -- can't seem to override TreeItemProps at the moment, plan to revisit
         hasChildren,
       }}
     />

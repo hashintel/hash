@@ -22,10 +22,7 @@ export const CreateEntityTypeButton: VFC<CreateEntityTypeButtonProps> = ({
           void router.push(`/${accountId}/types/new`);
         }}
       >
-        <FontAwesomeSvgIcon
-          icon={faAdd}
-          sx={{ fontSize: 12, color: ({ palette }) => palette.gray[40] }}
-        />
+        <FontAwesomeSvgIcon icon={faAdd} />
       </IconButton>
     </Tooltip>
   );

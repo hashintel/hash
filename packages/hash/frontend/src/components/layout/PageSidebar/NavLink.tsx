@@ -45,7 +45,6 @@ export const NavLink: FC<NavLinkProps> = ({
         >
           <FontAwesomeSvgIcon
             sx={{
-              color: ({ palette }) => palette.gray[40],
               transform: expanded ? `rotate(90deg)` : "none",
               transition: ({ transitions }) =>
                 transitions.create("transform", { duration: 300 }),

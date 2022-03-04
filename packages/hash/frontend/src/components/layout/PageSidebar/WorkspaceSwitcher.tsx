@@ -64,7 +64,10 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
         >
           {truncateText(user?.properties.preferredName ?? "User")}
         </Typography>
-        <FontAwesomeSvgIcon icon={faChevronDown} sx={{ fontSize: 12 }} />
+        <FontAwesomeSvgIcon
+          icon={faChevronDown}
+          sx={{ fontSize: 12, color: ({ palette }) => palette.gray[70] }}
+        />
       </Box>
       <Popover
         open={open}

@@ -8,7 +8,6 @@ import {
   faLifeRing,
   faZap,
 } from "@fortawesome/free-solid-svg-icons";
-import { AccountSelect } from "./AccountSelect";
 import { AccountPageList } from "./AccountPageList/AccountPageList";
 
 import { AccountEntityTypeList } from "./AccountEntityTypeList/AccountEntityTypeList";
@@ -21,8 +20,6 @@ export const PageSidebar: VoidFunctionComponent = () => {
   const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebarContext();
   const { accountId, pageEntityId } = router.query as Record<string, string>;
-
-  const goToAccount = (id: string) => router.push(`/${id}`);
 
   return (
     <Drawer variant="persistent" open={sidebarOpen}>
@@ -52,7 +49,6 @@ export const PageSidebar: VoidFunctionComponent = () => {
                 width: 20,
               }}
             />
-            {/* <FontAwesomeSvgIcon icon={faPencil} sx={{ fontSize: 16 }} /> */}
           </IconButton>
         </Tooltip>
       </Box>
@@ -87,19 +83,8 @@ export const PageSidebar: VoidFunctionComponent = () => {
           currentPageEntityId={pageEntityId}
           accountId={accountId}
         />
-
         {/* TYPES */}
         <AccountEntityTypeList accountId={accountId} />
-
-        <Box
-          sx={{
-            mx: 1,
-            mt: 5,
-          }}
-        >
-          <h2>Account</h2>
-          <AccountSelect onChange={goToAccount} value={accountId} />
-        </Box>
       </Box>
 
       {/* @todo replace with button implementation */}

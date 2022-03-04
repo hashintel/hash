@@ -108,7 +108,11 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
                     },
                   },
 
-                  "&:focus": {
+                  //   @todo-mui add focus state
+
+                  "&:focus-visible, &:focus-within": {
+                    backgroundColor: ({ palette }) => palette.gray[20],
+
                     "& .entity-type-menu": {
                       visibility: "visible",
                     },
@@ -120,15 +124,17 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
                   noLinkStyle
                   href={`/${accountId}/types/${entityType.entityId}`}
                   sx={{
-                    py: "7px",
                     flex: 1,
                     color: "inherit",
+                    outline: "none",
                   }}
                 >
                   <Typography
                     variant="smallTextLabels"
                     sx={{
+                      display: "block",
                       color: "inherit",
+                      py: "7px",
                     }}
                   >
                     {entityType.properties.title}

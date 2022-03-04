@@ -7,7 +7,7 @@ import NextLink, { LinkProps as NextLinkProps } from "next/link";
 // eslint-disable-next-line no-restricted-imports
 import MuiLink, { LinkProps as MuiLinkProps } from "@mui/material/Link";
 import { styled } from "@mui/material/styles";
-import { MuiButton } from "./Button";
+import { Button } from "./Button";
 import { FRONTEND_URL } from "../lib/config";
 
 export const isHrefExternal = (href: string | UrlObject) =>
@@ -78,7 +78,7 @@ export const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
 
     if (process.env.NODE_ENV !== "production") {
       const children = other.children;
-      if (React.isValidElement(children) && children.type === MuiButton) {
+      if (React.isValidElement(children) && children.type === Button) {
         throw new Error(
           "Please use <LinkButton /> instead of <Link><Button /></Link>",
         );

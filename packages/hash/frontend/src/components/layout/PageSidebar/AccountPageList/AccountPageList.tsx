@@ -61,7 +61,7 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
     >
       <TreeView
         sx={{
-          px: 0.25,
+          mx: 0.5,
         }}
         selected={currentPageEntityId}
         onNodeSelect={(_: SyntheticEvent, pageEntityId: string) => {

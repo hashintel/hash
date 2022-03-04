@@ -4,9 +4,8 @@ import { MuiTooltipThemeOptions } from "./dataDisplay/MuiTooltipThemeOptions";
 import { MuiDrawerThemeOptions } from "./navigation/MuiDrawerThemeOptions";
 
 import { MuiCssBaselineThemeOptions } from "./utils/MuiCssBaselineThemeOptions";
-// @todo-mui merge both MuiIconButtonThemeOptions into 1
 import { MuiIconButtonThemeOptions } from "./dataDisplay/MuiIconButtonThemeOptions";
-// import { MuiIconButtonThemeOptions } from './inputs/MuiIconButtonThemeOptions'
+import { MuiListItemButtonThemeOptions } from "./dataDisplay/MuiListItemButtonThemeOptions";
 
 export const components: ThemeOptions["components"] = {
   /** ===== INPUTS ===== */
@@ -14,6 +13,7 @@ export const components: ThemeOptions["components"] = {
   /** ===== DATA DISPLAY ===== */
   MuiIconButton: MuiIconButtonThemeOptions,
   MuiTooltip: MuiTooltipThemeOptions,
+  MuiListItemButton: MuiListItemButtonThemeOptions,
   /** ===== FEEDBACK ===== */
   /** ===== SURFACES ===== */
   /** ===== NAVIGATION ===== */
