@@ -45,6 +45,11 @@ export const NotificationsDropdown: React.FC = () => {
             hasNotifications || open
               ? theme.palette.blue["70"]
               : theme.palette.gray[20],
+
+          "&:hover": {
+            backgroundColor: theme.palette.blue["70"],
+            color: theme.palette.common.white,
+          },
         }}
         ref={buttonRef}
         onClick={() => setOpen(!open)}

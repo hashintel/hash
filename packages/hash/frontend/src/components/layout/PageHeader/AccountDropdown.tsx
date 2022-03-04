@@ -62,6 +62,8 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
           className="flex items-center relative m-auto focus:outline-none"
           ref={buttonRef}
           sx={{
+            height: 32,
+            width: 32,
             borderRadius: "100%",
             boxShadow: open
               ? "0px 0px 0px 2px #FFFFFF, 0px 0px 0px 5px #C1CFDE"
