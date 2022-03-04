@@ -569,7 +569,7 @@ impl<'m> RunnerImpl<'m> {
         &self,
         ptr: NonNull<T>,
         len: usize,
-        _capacity: usize,
+        _capacity: usize, // for future use to create a `Buffer::from_raw_parts`
         target_len: usize,
     ) -> Buffer {
         // TODO: OPTIM: We currently copy the buffers because the JavaScript representation of
@@ -605,7 +605,7 @@ impl<'m> RunnerImpl<'m> {
         &self,
         ptr: NonNull<i32>,
         len: usize,
-        _capacity: usize,
+        _capacity: usize, // for future use to create a `Buffer::from_raw_parts`
         target_len: usize,
     ) -> (Buffer, usize) {
         // TODO: OPTIM: We currently copy the buffers because the JavaScript representation of
@@ -653,7 +653,7 @@ impl<'m> RunnerImpl<'m> {
         &self,
         ptr: NonNull<u8>,
         len: usize,
-        _capacity: usize,
+        _capacity: usize, // for future use to create a `Buffer::from_raw_parts`
         target_len: usize,
     ) -> Buffer {
         // TODO: OPTIM: We currently copy the buffers because the JavaScript representation of
