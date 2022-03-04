@@ -18,7 +18,7 @@ export const NotificationsDropdown: React.FC = () => {
   const buttonRef = useRef(null);
 
   const [open, setOpen] = useState(false);
-  const [notificationsLength] = useState(0);
+  const [notificationsLength] = useState(3);
 
   const hasNotifications = !!notificationsLength;
 
@@ -51,9 +51,16 @@ export const NotificationsDropdown: React.FC = () => {
       >
         <FontAwesomeSvgIcon icon={faBell} />
         {hasNotifications && (
-          <Box component="span" ml={1}>
+          <Typography
+            sx={{
+              color: theme.palette.common.white,
+              fontWeight: 600,
+              lineHeight: 2,
+            }}
+            ml={0.5}
+          >
             {notificationsLength}
-          </Box>
+          </Typography>
         )}
       </IconButton>
 
