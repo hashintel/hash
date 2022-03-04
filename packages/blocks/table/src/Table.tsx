@@ -91,24 +91,19 @@ const getLinkedAggregation = (params: {
 
 const cleanUpdateLinkedAggregationAction = (
   action: BlockProtocolUpdateLinksAction & {
-    updatedOperation: Partial<BlockProtocolLinkedAggregation> & {
-      __typename?: string;
-    };
+    data: Partial<BlockProtocolLinkedAggregation>;
   },
 ) => {
   return produce(action, (draftAction) => {
-    draftAction.updatedOperation.multiSort =
-      draftAction.updatedOperation.multiSort?.map((sort) => {
-        const newSort = sort as BlockProtocolMultiSort[number] & {
-          __typename?: string;
-        };
-        delete newSort.__typename;
-        return newSort;
-      });
+    draftAction.data.multiSort = draftAction.data.multiSort?.map((sort) => {
+      const newSort = sort as BlockProtocolMultiSort[number] & {
+        __typename?: string;
+      };
+      delete newSort.__typename;
+      return newSort;
+    });
 
-    delete draftAction.updatedOperation.pageCount;
-
-    delete draftAction.updatedOperation.__typename;
+    delete draftAction.data.pageCount;
   });
 };
 
@@ -320,7 +315,7 @@ export const Table: BlockComponent<AppProps> = ({
           sourceAccountId: matchingLinkedAggregation.sourceAccountId,
           sourceEntityId: matchingLinkedAggregation.sourceEntityId,
           path,
-          updatedOperation: newLinkedData.operation,
+          data: newLinkedData.operation,
         }),
       ]);
     },
@@ -378,7 +373,7 @@ export const Table: BlockComponent<AppProps> = ({
           sourceAccountId: matchingLinkedAggregation.sourceAccountId,
           sourceEntityId: matchingLinkedAggregation.sourceEntityId,
           path,
-          updatedOperation: { ...tableData.linkedAggregation.operation },
+          data: { ...tableData.linkedAggregation.operation },
         }),
       ]);
     }
@@ -487,7 +482,7 @@ export const Table: BlockComponent<AppProps> = ({
               sourceAccountId: accountId,
               sourceEntityId: entityId,
               path,
-              updatedOperation: {
+              data: {
                 entityTypeId: updatedEntityTypeId,
                 // There is scope to include other options if entity properties overlap
                 itemsPerPage:
