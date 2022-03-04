@@ -121,7 +121,6 @@ declare module "@mui/material/Typography" {
 
 declare module "@mui/material/Button" {
   interface ButtonPropsVariantOverrides {
-    transparent: true;
     primary: true;
     secondary: true;
     tertiary: true;

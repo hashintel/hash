@@ -76,7 +76,7 @@ export const PageHeader: React.VFC<{
               <HashNavIcon sx={{ height: theme.spacing(2), width: "auto" }} />
             </Link>
           </Box>
-          {user && <SearchBar />}
+          {user ? <SearchBar /> : null}
         </Box>
         {user ? (
           <Box sx={{ display: "flex", alignItems: "center" }}>
@@ -94,11 +94,7 @@ export const PageHeader: React.VFC<{
               Log In
             </Button>
 
-            <Button
-              size="small"
-              onClick={() => router.push("/signup")}
-              className="mr-3"
-            >
+            <Button size="small" onClick={() => router.push("/signup")}>
               Sign Up
             </Button>
           </Box>

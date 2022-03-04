@@ -5,9 +5,9 @@ import {
   Typography,
   Divider,
   ListItemButton,
-  Button,
   useTheme,
   Tooltip,
+  IconButton,
 } from "@mui/material";
 
 import { UserFieldsFragment } from "../../../graphql/apiTypes.gen";
@@ -58,8 +58,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
           </Box>
         }
       >
-        <Button
-          variant="transparent"
+        <IconButton
           onClick={() => setOpen(!open)}
           className="flex items-center relative m-auto focus:outline-none"
           ref={buttonRef}
@@ -88,17 +87,18 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
                 height: "32px",
                 width: "32px",
                 borderRadius: "100%",
-                color: theme.palette.common.white,
                 background: theme.palette.blue[70],
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              {user.properties.preferredName![0].toUpperCase()}
+              <Typography sx={{ color: theme.palette.common.white }}>
+                {user.properties.preferredName![0].toUpperCase()}
+              </Typography>
             </Box>
           )}
-        </Button>
+        </IconButton>
       </Tooltip>
       <Popover
         id={id}
