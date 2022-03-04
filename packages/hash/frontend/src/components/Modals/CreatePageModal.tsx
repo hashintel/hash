@@ -63,7 +63,7 @@ export const CreatePageModal: VoidFunctionComponent<CreatePageModalProps> = ({
   }, [close]);
 
   return (
-    <Modal open={show} onClose={close}>
+    <Modal data-testid="create-page-modal" open={show} onClose={close}>
       <Box
         component="form"
         sx={{

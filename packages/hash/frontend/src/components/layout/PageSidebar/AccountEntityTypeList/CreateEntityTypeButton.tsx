@@ -18,6 +18,7 @@ export const CreateEntityTypeButton: VFC<CreateEntityTypeButtonProps> = ({
     <Tooltip title="Create new type">
       {/* @todo-mui use a LinkButton here once it has been implemented */}
       <IconButton
+        data-testid="create-entity-btn"
         onClick={() => {
           void router.push(`/${accountId}/types/new`);
         }}

@@ -60,6 +60,7 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
       endAdornment={<CreatePageButton accountId={accountId} />}
     >
       <TreeView
+        data-testid="pages-tree"
         sx={{
           mx: 0.5,
         }}

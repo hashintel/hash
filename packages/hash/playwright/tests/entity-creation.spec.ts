@@ -12,7 +12,7 @@ test("user can create and update entity", async ({ page }) => {
   ).toBeVisible();
 
   // Go to Create Entity
-  await page.click("text=Create Entity Type");
+  await page.locator('[data-testid="create-entity-btn"]').click();
   await page.waitForURL(
     (url) => !!url.pathname.match(/^\/[\w-]+\/types+\/new/),
   );

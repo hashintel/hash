@@ -22,7 +22,10 @@ export const CreatePageButton: VFC<CreatePageButtonProps> = ({ accountId }) => {
   return (
     <>
       <Tooltip title="Create new page">
-        <IconButton onClick={() => setShowCreatePage(true)}>
+        <IconButton
+          data-testid="create-page-btn"
+          onClick={() => setShowCreatePage(true)}
+        >
           <FontAwesomeSvgIcon icon={faAdd} />
         </IconButton>
       </Tooltip>
