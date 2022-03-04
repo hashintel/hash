@@ -65,6 +65,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
               width: "32px",
               borderRadius: "100%",
               color: theme.palette.common.white,
+              fontWeight: 500,
               background: theme.palette.blue[70],
               display: "flex",
               alignItems: "center",
@@ -100,44 +101,41 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
         sx={{
           ".MuiListItemButton-root": {
             color: theme.palette.gray[80],
-            ".MuiTypography-smallTextParagraphs": {
+            ".MuiTypography-smallTextLabels": {
               fontWeight: 500,
-              lineHeight: "18px",
             },
             ".MuiTypography-microText": {
               fontWeight: 500,
-              lineHeight: "18px",
+
               color: theme.palette.gray[50],
             },
           },
           ".MuiListItemButton-root:hover": {
-            ".MuiTypography-smallTextParagraphs": {
+            ".MuiTypography-smallTextLabels": {
               color: theme.palette.gray[90],
             },
           },
         }}
       >
-        <Box px={2} pb={1} pt={1.5}>
+        <Box px={2} pt={1} pb={1.5}>
           <Typography
-            variant="smallTextParagraphs"
+            variant="smallTextLabels"
             sx={{
               color: theme.palette.gray[80],
-              fontWeight: 500,
-              lineHeight: "18px",
+              fontWeight: 700,
             }}
-            mb={0.25}
           >
-            <strong>{user.properties.preferredName}</strong>
+            {user.properties.preferredName}
           </Typography>
           <Typography
             component="p"
             variant="microText"
-            sx={{ color: theme.palette.gray[70], lineHeight: "18px" }}
+            sx={{ color: theme.palette.gray[60], lineHeight: 1 }}
           >
             @{user.properties.shortname!}
           </Typography>
         </Box>
-        <Divider />
+        <Divider sx={{ borderColor: theme.palette.gray[30] }} />
         <Box>
           <Link noLinkStyle href="#" onClick={() => setOpen(false)}>
             <ListItemButton
@@ -146,12 +144,12 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
                 borderRadius: 1,
               }}
             >
-              <Typography variant="smallTextParagraphs" sx={{ lineHeight: 1 }}>
+              <Typography variant="smallTextLabels" sx={{ lineHeight: 1 }}>
                 Account Settings
               </Typography>
             </ListItemButton>
           </Link>
-          <Divider />
+          <Divider sx={{ borderColor: theme.palette.gray[30] }} />
           <ListItemButton
             sx={{
               m: 0.5,
@@ -160,10 +158,10 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
             onClick={logout}
           >
             <Typography
-              variant="smallTextParagraphs"
+              variant="smallTextLabels"
               sx={{ lineHeight: 1, color: theme.palette.gray[60] }}
             >
-              Log Out
+              Sign Out
             </Typography>
           </ListItemButton>
         </Box>
