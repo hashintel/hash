@@ -10,8 +10,6 @@ import {
   BlockProtocolLinkedAggregation,
   BlockProtocolEntityType,
   BlockProtocolUpdateLinksAction,
-  BlockProtocolLinkedDataDefinition,
-  BlockProtocolMultiSort,
 } from "blockprotocol";
 import { BlockComponent } from "blockprotocol/react";
 import { tw } from "twind";
@@ -34,10 +32,6 @@ type TableData = {
 };
 
 type AppProps = {
-  data: {
-    data?: Record<string, any>[];
-    __linkedData?: BlockProtocolLinkedDataDefinition;
-  };
   initialState?: TableOptions<{}>["initialState"] & {
     columns?: { Header: string; accessor: string }[];
   };
@@ -95,14 +89,6 @@ const cleanUpdateLinkedAggregationAction = (
   },
 ) => {
   return produce(action, (draftAction) => {
-    draftAction.data.multiSort = draftAction.data.multiSort?.map((sort) => {
-      const newSort = sort as BlockProtocolMultiSort[number] & {
-        __typename?: string;
-      };
-      delete newSort.__typename;
-      return newSort;
-    });
-
     delete draftAction.data.pageCount;
   });
 };
