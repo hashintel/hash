@@ -77,6 +77,7 @@ export const typography: ThemeOptions["typography"] = {
     lineHeight: "24px",
   },
   smallTextParagraphs: {
+    fontFamily: "Inter",
     fontSize: "var(--step--1)",
     fontWeight: 400,
     lineHeight: 1.5,
@@ -87,6 +88,7 @@ export const typography: ThemeOptions["typography"] = {
     lineHeight: "18px",
   },
   microText: {
+    fontFamily: "Inter",
     fontSize: "var(--step--2)",
     fontWeight: 400,
     lineHeight: "18px",
@@ -95,7 +97,10 @@ export const typography: ThemeOptions["typography"] = {
   h6: undefined,
   subtitle1: undefined,
   subtitle2: undefined,
-  body1: undefined,
+  body1: {
+    fontFamily: "Inter",
+    fontSize: "var(--step-0)",
+  },
   body2: undefined,
   caption: undefined,
   button: undefined,

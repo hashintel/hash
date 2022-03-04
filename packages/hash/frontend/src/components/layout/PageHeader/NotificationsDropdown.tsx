@@ -55,7 +55,7 @@ export const NotificationsDropdown: React.FC = () => {
             sx={{
               color: theme.palette.common.white,
               fontWeight: 600,
-              lineHeight: 2,
+              lineHeight: theme.spacing(2),
             }}
             ml={0.5}
           >
@@ -90,10 +90,12 @@ export const NotificationsDropdown: React.FC = () => {
           ".MuiListItemButton-root": {
             ".MuiTypography-smallTextParagraphs": {
               fontWeight: 500,
+              lineHeight: "18px",
               color: theme.palette.gray[80],
             },
             ".MuiTypography-microText": {
               fontWeight: 500,
+              lineHeight: "18px",
               color: theme.palette.gray[50],
             },
           },

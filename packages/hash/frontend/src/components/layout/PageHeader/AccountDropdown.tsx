@@ -102,9 +102,11 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
             color: theme.palette.gray[80],
             ".MuiTypography-smallTextParagraphs": {
               fontWeight: 500,
+              lineHeight: "18px",
             },
             ".MuiTypography-microText": {
               fontWeight: 500,
+              lineHeight: "18px",
               color: theme.palette.gray[50],
             },
           },
@@ -118,14 +120,18 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
         <Box px={2} pt={1} pb={1.5}>
           <Typography
             variant="smallTextParagraphs"
-            sx={{ color: theme.palette.gray[80] }}
+            sx={{
+              color: theme.palette.gray[80],
+              fontWeight: 500,
+              lineHeight: "18px",
+            }}
           >
             <strong>{user.properties.preferredName}</strong>
           </Typography>
           <Typography
             component="p"
             variant="microText"
-            sx={{ color: theme.palette.gray[80] }}
+            sx={{ color: theme.palette.gray[70], lineHeight: "18px" }}
           >
             @{user.properties.shortname!}
           </Typography>

@@ -105,10 +105,12 @@ export const ActionsDropdown: React.FC<{
           ".MuiListItemButton-root": {
             ".MuiTypography-smallTextParagraphs": {
               fontWeight: 500,
+              lineHeight: "18px",
               color: theme.palette.gray[80],
             },
             ".MuiTypography-microText": {
               fontWeight: 500,
+              lineHeight: "18px",
               color: theme.palette.gray[50],
             },
           },

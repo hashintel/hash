@@ -54,6 +54,7 @@ export const DesktopSearch: React.FC<{
         }}
         sx={(theme) => ({
           color: "inherit",
+          lineHeight: "18px",
           "& .MuiInputBase-input": {
             py: theme.spacing(1),
             paddingLeft: `calc(1em + ${theme.spacing(3)})`,
