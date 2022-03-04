@@ -76,10 +76,16 @@ export const PageHeader: React.VFC<{
         >
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <Link noLinkStyle href={`/${user ? user.accountId : ""}`}>
-              <HashNavIcon sx={{ height: theme.spacing(2), width: "auto" }} />
+              <HashNavIcon
+                sx={{
+                  height: theme.spacing(2.25),
+                  width: "auto",
+                  fill: theme.palette.gray["50"],
+                }}
+              />
             </Link>
           </Box>
-          {user && <SearchBar />}
+          {user ? <SearchBar /> : null}
         </Box>
         {user ? (
           <Box sx={{ display: "flex", alignItems: "center" }}>
@@ -96,14 +102,10 @@ export const PageHeader: React.VFC<{
               // since there's some z-index issues between the sidebar and the modal
               onClick={() => router.push("/login")}
             >
-              Log In
+              Sign In
             </Button>
 
-            <Button
-              size="small"
-              onClick={() => router.push("/signup")}
-              className="mr-3"
-            >
+            <Button size="small" onClick={() => router.push("/signup")}>
               Sign Up
             </Button>
           </Box>

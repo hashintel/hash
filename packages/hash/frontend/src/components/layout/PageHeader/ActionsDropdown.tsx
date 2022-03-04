@@ -101,34 +101,10 @@ export const ActionsDropdown: React.FC<{
             border: `1px solid ${theme.palette.gray["20"]}`,
           },
         }}
-        sx={{
-          ".MuiListItemButton-root": {
-            ".MuiTypography-smallTextParagraphs": {
-              fontWeight: 500,
-              lineHeight: "18px",
-              color: theme.palette.gray[80],
-            },
-            ".MuiTypography-microText": {
-              fontWeight: 500,
-              lineHeight: "18px",
-              color: theme.palette.gray[50],
-            },
-          },
-          ".MuiListItemButton-root:hover": {
-            backgroundColor: theme.palette.blue["70"],
-            ".MuiTypography-smallTextParagraphs": {
-              color: theme.palette.common.white,
-            },
-            ".MuiTypography-microText": {
-              color: theme.palette.blue[30],
-            },
-          },
-        }}
       >
         <Box>
           <ListItemButton
             sx={{
-              padding: theme.spacing(1, 2),
               mx: 0.5,
               mt: 0.5,
               borderRadius: 1,
@@ -138,12 +114,11 @@ export const ActionsDropdown: React.FC<{
             }}
             onClick={showCreatePage}
           >
-            <Typography variant="smallTextParagraphs">Create page</Typography>
+            <Typography variant="smallTextLabels">Create page</Typography>
             {!isMobile && <Typography variant="microText">Opt + P</Typography>}
           </ListItemButton>
           <ListItemButton
             sx={{
-              padding: theme.spacing(1, 2),
               mx: 0.5,
               borderRadius: 1,
               lineHeight: 1,
@@ -152,7 +127,7 @@ export const ActionsDropdown: React.FC<{
             }}
             onClick={() => setOpen(false)}
           >
-            <Typography variant="smallTextParagraphs">Create entity</Typography>
+            <Typography variant="smallTextLabels">Create entity</Typography>
             {!isMobile && <Typography variant="microText">Opt + E</Typography>}
           </ListItemButton>
           <Link
@@ -162,7 +137,6 @@ export const ActionsDropdown: React.FC<{
           >
             <ListItemButton
               sx={{
-                padding: theme.spacing(1, 2),
                 mx: 0.5,
                 mb: 0.5,
                 borderRadius: 1,
@@ -171,7 +145,7 @@ export const ActionsDropdown: React.FC<{
                 justifyContent: "space-between",
               }}
             >
-              <Typography variant="smallTextParagraphs">Create type</Typography>
+              <Typography variant="smallTextLabels">Create type</Typography>
               {!isMobile && (
                 <Typography variant="microText">Opt + T</Typography>
               )}

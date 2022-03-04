@@ -6,7 +6,7 @@ import { SearchIcon } from "../../../icons";
 // https://github.com/hashintel/hash/pull/358#discussion_r817736799
 
 const SearchIconWrapper = styled("div")(({ theme }) => ({
-  padding: theme.spacing(0, 2),
+  padding: theme.spacing(0, 1.5),
   height: "100%",
   position: "absolute",
   pointerEvents: "none",
@@ -22,7 +22,7 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
   "& .MuiInputBase-input": {
     padding: theme.spacing(1, 1, 1, 0),
     // vertical padding + font size from searchIcon
-    paddingLeft: `calc(1em + ${theme.spacing(3)})`,
+    paddingLeft: theme.spacing(4.5),
     transition: theme.transitions.create("width"),
     border: `1px solid ${theme.palette.gray[30]}`,
     borderRadius: "6px",
@@ -38,7 +38,7 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
 const Search = styled("div")(({ theme }) => ({
   position: "relative",
   borderRadius: theme.shape.borderRadius,
-  marginRight: theme.spacing(2),
+  marginRight: theme.spacing(1),
   width: "100%",
 }));
 

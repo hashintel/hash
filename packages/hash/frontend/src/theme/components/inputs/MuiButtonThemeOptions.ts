@@ -111,18 +111,6 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         Object.assign(activeStyles, {
           background: theme.palette.gray[20],
         });
-      } else if (variant === "transparent") {
-        /** ===== TRANSPARENT button specific styling ===== */
-
-        Object.assign(baseStyles, {
-          minWidth: "unset",
-          padding: "unset",
-          color: theme.palette.gray[50],
-        });
-        Object.assign(hoverStyles, {
-          color: theme.palette.purple["90"],
-          backgroundColor: "unset",
-        });
       }
 
       return {

@@ -1,4 +1,4 @@
-import { Box, InputAdornment, InputBase } from "@mui/material";
+import { Box, InputAdornment, InputBase, Tooltip } from "@mui/material";
 import { useRef } from "react";
 import { useKeys } from "rooks";
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
@@ -29,7 +29,7 @@ export const DesktopSearch: React.FC<{
     >
       <Box
         sx={(theme) => ({
-          padding: theme.spacing(0, 2),
+          padding: theme.spacing(0, 1.5),
           height: "100%",
           position: "absolute",
           pointerEvents: "none",
@@ -57,7 +57,7 @@ export const DesktopSearch: React.FC<{
           lineHeight: "18px",
           "& .MuiInputBase-input": {
             py: theme.spacing(1),
-            paddingLeft: `calc(1em + ${theme.spacing(3)})`,
+            paddingLeft: theme.spacing(4.5),
           },
         })}
         inputProps={{ "aria-label": "search" }}
@@ -68,37 +68,41 @@ export const DesktopSearch: React.FC<{
               // Perhaps this can be rewritten to no longer use the Box here?
               <Box
                 sx={(theme) => ({
-                  padding: theme.spacing(0, 1),
+                  marginRight: theme.spacing(1),
                   display: "flex",
                   height: "100%",
                   alignItems: "center",
                   cursor: "pointer",
                   fontWeight: "bold",
+                  width: "26px",
+                  justifyContent: "flex-end",
                 })}
               >
-                <Box
-                  sx={(theme) => ({
-                    width: theme.spacing(2.5),
-                    height: theme.spacing(2.5),
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderRadius: theme.spacing(0.25),
-                    color: theme.palette.gray[50],
+                <Tooltip title="Clear search" placement="right">
+                  <Box
+                    sx={(theme) => ({
+                      width: theme.spacing(2.5),
+                      height: theme.spacing(2.5),
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderRadius: theme.spacing(0.25),
+                      color: theme.palette.gray[50],
 
-                    "&:hover": {
-                      transition:
-                        "color 0.2s ease-in-out, background-color 0.2s ease-in-out",
-                      backgroundColor: theme.palette.gray[20],
-                      color: theme.palette.gray[80],
-                    },
-                  })}
-                  onClick={() => {
-                    setQueryText("");
-                  }}
-                >
-                  <FontAwesomeSvgIcon icon={faXmark} />
-                </Box>
+                      "&:hover": {
+                        transition:
+                          "color 0.2s ease-in-out, background-color 0.2s ease-in-out",
+                        backgroundColor: theme.palette.gray[20],
+                        color: theme.palette.gray[80],
+                      },
+                    })}
+                    onClick={() => {
+                      setQueryText("");
+                    }}
+                  >
+                    <FontAwesomeSvgIcon icon={faXmark} />
+                  </Box>
+                </Tooltip>
               </Box>
             ) : (
               <Box

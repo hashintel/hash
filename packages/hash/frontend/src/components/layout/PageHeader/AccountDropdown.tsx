@@ -5,8 +5,9 @@ import {
   Typography,
   Divider,
   ListItemButton,
-  Button,
   useTheme,
+  Tooltip,
+  IconButton,
 } from "@mui/material";
 
 import { UserFieldsFragment } from "../../../graphql/apiTypes.gen";
@@ -34,47 +35,71 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
 
   return (
     <Box>
-      <Button
-        variant="transparent"
-        onClick={() => setOpen(!open)}
-        className="flex items-center relative m-auto focus:outline-none"
-        ref={buttonRef}
-        sx={{
-          borderRadius: "100%",
-          boxShadow: open
-            ? "0px 0px 0px 2px #FFFFFF, 0px 0px 0px 5px #C1CFDE"
-            : "unset",
-          ":hover": {
-            boxShadow: "0px 0px 0px 2px #FFFFFF, 0px 0px 0px 5px #C1CFDE",
-          },
-        }}
-        title={user.properties.shortname!}
-      >
-        {avatar ? (
-          <Box
-            component="img"
-            alt="avatar"
-            src={avatar}
-            sx={{ height: "32px", width: "32px", borderRadius: "100%" }}
-            className={tw`border border(solid gray-200)`}
-          />
-        ) : (
-          <Box
-            sx={{
-              height: "32px",
-              width: "32px",
-              borderRadius: "100%",
-              color: theme.palette.common.white,
-              background: theme.palette.blue[70],
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            {user.properties.preferredName![0].toUpperCase()}
+      <Tooltip
+        title={
+          <Box p={1.5}>
+            <Typography
+              variant="smallTextLabels"
+              sx={{
+                fontWeight: 500,
+              }}
+              mb={0.5}
+            >
+              <strong>{user.properties.preferredName}</strong>
+            </Typography>
+            <Typography
+              component="p"
+              variant="microText"
+              sx={{ color: theme.palette.common.white }}
+            >
+              @{user.properties.shortname!}
+            </Typography>
           </Box>
-        )}
-      </Button>
+        }
+      >
+        <IconButton
+          onClick={() => setOpen(!open)}
+          className="flex items-center relative m-auto focus:outline-none"
+          ref={buttonRef}
+          sx={{
+            borderRadius: "100%",
+            boxShadow: open
+              ? "0px 0px 0px 2px #FFFFFF, 0px 0px 0px 5px #C1CFDE"
+              : "unset",
+            ":hover": {
+              boxShadow: "0px 0px 0px 2px #FFFFFF, 0px 0px 0px 5px #C1CFDE",
+            },
+          }}
+          title={user.properties.shortname!}
+        >
+          {avatar ? (
+            <Box
+              component="img"
+              alt="avatar"
+              src={avatar}
+              sx={{ height: "32px", width: "32px", borderRadius: "100%" }}
+              className={tw`border border(solid gray-200)`}
+            />
+          ) : (
+            <Box
+              sx={{
+                height: "32px",
+                width: "32px",
+                borderRadius: "100%",
+                background: theme.palette.blue[70],
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Typography sx={{ color: theme.palette.common.white }}>
+                {user.properties.preferredName![0].toUpperCase()}
+              </Typography>
+            </Box>
+          )}
+        </IconButton>
+      </Tooltip>
       <Popover
         id={id}
         open={open}
@@ -98,73 +123,54 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
           },
         }}
         sx={{
-          ".MuiListItemButton-root": {
-            color: theme.palette.gray[80],
-            ".MuiTypography-smallTextParagraphs": {
-              fontWeight: 500,
-              lineHeight: "18px",
-            },
-            ".MuiTypography-microText": {
-              fontWeight: 500,
-              lineHeight: "18px",
-              color: theme.palette.gray[50],
-            },
-          },
-          ".MuiListItemButton-root:hover": {
-            ".MuiTypography-smallTextParagraphs": {
-              color: theme.palette.gray[90],
-            },
-          },
+          color: theme.palette.gray[40],
         }}
       >
         <Box px={2} pt={1} pb={1.5}>
           <Typography
-            variant="smallTextParagraphs"
+            variant="smallTextLabels"
             sx={{
               color: theme.palette.gray[80],
-              fontWeight: 500,
-              lineHeight: "18px",
+              fontWeight: 700,
             }}
           >
-            <strong>{user.properties.preferredName}</strong>
+            {user.properties.preferredName}
           </Typography>
           <Typography
             component="p"
             variant="microText"
-            sx={{ color: theme.palette.gray[70], lineHeight: "18px" }}
+            sx={{ color: theme.palette.gray[60], lineHeight: 1 }}
           >
             @{user.properties.shortname!}
           </Typography>
         </Box>
-        <Divider />
+        <Divider sx={{ borderColor: theme.palette.gray[30] }} />
         <Box>
           <Link noLinkStyle href="#" onClick={() => setOpen(false)}>
             <ListItemButton
               sx={{
-                padding: theme.spacing(1, 2),
                 m: 0.5,
                 borderRadius: 1,
               }}
             >
-              <Typography variant="smallTextParagraphs" sx={{ lineHeight: 1 }}>
+              <Typography variant="smallTextLabels" sx={{ lineHeight: 1 }}>
                 Account Settings
               </Typography>
             </ListItemButton>
           </Link>
-          <Divider />
+          <Divider sx={{ borderColor: theme.palette.gray[30] }} />
           <ListItemButton
             sx={{
-              padding: theme.spacing(1, 2),
               m: 0.5,
               borderRadius: 0.5,
             }}
             onClick={logout}
           >
             <Typography
-              variant="smallTextParagraphs"
+              variant="smallTextLabels"
               sx={{ lineHeight: 1, color: theme.palette.gray[60] }}
             >
-              Log Out
+              Sign Out
             </Typography>
           </ListItemButton>
         </Box>
