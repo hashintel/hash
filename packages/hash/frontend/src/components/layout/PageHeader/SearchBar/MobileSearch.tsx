@@ -2,6 +2,9 @@ import { Box, Button, InputBase, styled } from "@mui/material";
 
 import { SearchIcon } from "../../../icons";
 
+// @todo don't use styled when this file and DesktopSearch are merged
+// https://github.com/hashintel/hash/pull/358#discussion_r817736799
+
 const SearchIconWrapper = styled("div")(({ theme }) => ({
   padding: theme.spacing(0, 2),
   height: "100%",
