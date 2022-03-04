@@ -105,8 +105,7 @@ export class PostgresClient implements DBClient {
       const now = new Date();
 
       // Ensure that the schema $id refers to the correct accountId + entityId
-      const $id = generateSchema$id(accountId, entityTypeId);
-      schema.$id = $id;
+      schema.$id = generateSchema$id(accountId, entityTypeId);
 
       const entityType: EntityType = {
         accountId,
@@ -357,8 +356,7 @@ export class PostgresClient implements DBClient {
     const now = new Date();
 
     // Ensure that the schema $id refers to the correct accountId + entityId
-    const $id = generateSchema$id(entity.accountId, entityId);
-    schema.$id = $id;
+    schema.$id = generateSchema$id(entity.accountId, entityId);
 
     const newType: EntityType = {
       ...entity,

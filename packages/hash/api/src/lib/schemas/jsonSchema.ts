@@ -175,11 +175,14 @@ export class JsonSchemaCompiler {
    * @param description optional description for the type
    * @returns schema the complete JSON schema object
    */
-  async jsonSchema(
-    title: string,
-    maybeStringifiedSchema: string | JSONObject | null = {},
-    description?: string | null,
-  ) {
+  async jsonSchema(params: {
+    $id?: string | null;
+    title: string;
+    maybeStringifiedSchema?: string | JSONObject | null;
+    description?: string | null;
+  }) {
+    const { $id, title, maybeStringifiedSchema, description } = params;
+
     if (title[0] !== title[0].toUpperCase()) {
       throw new Error(
         `Schema title should be in PascalCase, you passed '${title}'`,
@@ -197,7 +200,7 @@ export class JsonSchemaCompiler {
       // The schema $id starts out by being the title.
       // When the accountId and entityId of the schema is known, this can be replaced.
       // We will keep this as a placeholder for any validation.
-      $id: title,
+      $id: $id ?? undefined,
       title,
       type: partialSchema.type ?? "object",
       description: partialSchema.description ?? description,

@@ -98,11 +98,11 @@ class __EntityType {
       }
     });
 
-    const properties = await jsonSchemaCompiler.jsonSchema(
-      name,
-      schema,
+    const properties = await jsonSchemaCompiler.jsonSchema({
+      title: name,
+      maybeStringifiedSchema: schema,
       description,
-    );
+    });
 
     return properties;
   }
