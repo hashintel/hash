@@ -14,7 +14,7 @@ import { useRouter } from "next/router";
 import { FontAwesomeSvgIcon } from "../../icons";
 import { Popover } from "../../Popover";
 import { Link } from "../../Link";
-import { CreatePage } from "../../Modals/CreatePageModal";
+import { CreatePageModal } from "../../Modals/CreatePageModal";
 
 export const ActionsDropdown: React.FC<{
   accountId: string;
@@ -66,6 +66,11 @@ export const ActionsDropdown: React.FC<{
           backgroundColor: open
             ? theme.palette.blue["70"]
             : theme.palette.gray[20],
+
+          "&:hover": {
+            backgroundColor: theme.palette.blue["70"],
+            color: theme.palette.common.white,
+          },
         }}
         ref={buttonRef}
         onClick={() => setOpen(!open)}
@@ -73,7 +78,7 @@ export const ActionsDropdown: React.FC<{
         <FontAwesomeSvgIcon icon={faPlus} />
       </IconButton>
 
-      <CreatePage
+      <CreatePageModal
         show={createPageOpen}
         close={closeCreatePage}
         accountId={accountId}

@@ -7,7 +7,7 @@ import { loginUsingUi } from "./utils/loginUsingUi";
 const pageNameSuffix = Date.now();
 const pageName = `Test page ${pageNameSuffix}`;
 
-const listOfPagesSelector = 'nav header:has-text("Pages")';
+const listOfPagesSelector = '[data-testid="pages-tree"]';
 const pageTitleInputSelector = '[placeholder="A title for the page"]';
 
 const modifierKey = process.platform === "darwin" ? "Meta" : "Control";
@@ -18,24 +18,23 @@ test("user can create page", async ({ page }) => {
     accountShortName: "alice",
   });
 
-  // Check if we are on the user page
+  // TODO: Check if we are on the user page
   await expect(
     page.locator(
       "text=Please select a page from the list, or create a new page.",
     ),
   ).toBeVisible();
 
-  // TODO: Make sure account dropdown shows the current account
-
   // TODO: Check URL contains own login once we have replaced uuids implemented
   await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+$/));
 
   // Create the new page
-  await page.locator("button").first().click();
-  await page.locator("text=Create pageOpt + P").click();
+  await page.locator('[data-testid="create-page-btn"]').click();
   await page.type('[placeholder="What is this document?"]', pageName);
 
-  await page.locator('button[type="submit"] >> text=Create').click();
+  await page
+    .locator('[data-testid="create-page-modal"] >> text=Create')
+    .click();
 
   await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+\/[\w-]+$/));
 

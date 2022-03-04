@@ -224,15 +224,27 @@ export const MuiCssBaselineThemeOptions: Components["MuiCssBaseline"] = {
             scroll-behavior: smooth;
           }
 
+          #__next {
+            height: 100%;
+          }
+
           body {
             overflow: auto;
-          }
+          }          
 
           body, p {
             font-size: var(--step-0);
             font-weight: 400;
             line-height: 1.7;
             color: ${customColors.gray["90"]};
+          }
+
+          a {
+            text-decoration: none;
+
+            &:visited {
+              color: initial;
+            }
           }
 
           ${rootTypographyStyles}

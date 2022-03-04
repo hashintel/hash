@@ -1,11 +1,11 @@
 import React from "react";
-import { useModal } from "react-modal-hook";
+// import { useModal } from "react-modal-hook";
 import { Box, Button, useTheme, useMediaQuery } from "@mui/material";
 import { useRouter } from "next/router";
 
 import { useLogout } from "../../hooks/useLogout";
 import { useUser } from "../../hooks/useUser";
-import { LoginModal } from "../../Modals/AuthModal/LoginModal";
+// import { LoginModal } from "../../Modals/AuthModal/LoginModal";
 import { AccountDropdown } from "./AccountDropdown";
 import { SearchBar } from "./SearchBar";
 import { HashNavIcon } from "../../icons";
@@ -27,6 +27,8 @@ const Nav: React.FC = ({ children }) => (
   </Box>
 );
 
+export const HEADER_HEIGHT = 64;
+
 export const PageHeader: React.VFC<{
   accountId: string;
 }> = ({ accountId }) => {
@@ -35,19 +37,22 @@ export const PageHeader: React.VFC<{
 
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
-  const { user, refetch } = useUser();
+  const {
+    user,
+    // refetch
+  } = useUser();
   const { logout } = useLogout();
 
-  const [showLoginModal, hideLoginModal] = useModal(() => (
-    <LoginModal
-      show
-      onClose={hideLoginModal}
-      onLoggedIn={() => {
-        void refetch();
-        hideLoginModal();
-      }}
-    />
-  ));
+  // const [showLoginModal, hideLoginModal] = useModal(() => (
+  //   <LoginModal
+  //     show
+  //     onClose={hideLoginModal}
+  //     onLoggedIn={() => {
+  //       void refetch();
+  //       hideLoginModal();
+  //     }}
+  //   />
+  // ));
 
   return (
     <Box
@@ -57,7 +62,7 @@ export const PageHeader: React.VFC<{
         borderBottom: `1px solid ${theme.palette.gray["30"]}`,
         display: "flex",
         alignItems: "center",
-        height: "4rem",
+        height: HEADER_HEIGHT,
       }}
     >
       <Nav>
@@ -95,7 +100,9 @@ export const PageHeader: React.VFC<{
             <Button
               variant="tertiary_quiet"
               sx={{ mr: 1 }}
-              onClick={showLoginModal}
+              // navigating to the login route instead of showing the login modal for now
+              // since there's some z-index issues between the sidebar and the modal
+              onClick={() => router.push("/login")}
             >
               Sign In
             </Button>
