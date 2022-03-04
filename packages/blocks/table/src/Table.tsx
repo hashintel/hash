@@ -142,6 +142,8 @@ export const Table: BlockComponent<AppProps> = ({
 
   const [tableData, setTableData] = useTableData(matchingLinkedAggregation);
 
+  console.log({ matchingLinkedAggregation, tableData });
+
   const columns = useMemo(
     () => makeColumns(tableData.data?.[0] || {}),
     [tableData.data],
