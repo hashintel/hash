@@ -142,12 +142,11 @@ class __EntityType {
     return new EntityType(entityType);
   }
 
-  static async update(
+  async update(
     client: DBClient,
     params: {
       accountId: string;
       createdByAccountId: string;
-      entityId: string;
       schema: Record<string, any>;
       updatedByAccountId: string;
     },
@@ -164,6 +163,7 @@ class __EntityType {
 
     const updatedDbEntityType = await client.updateEntityType({
       ...params,
+      entityId: this.entityId,
       schema,
     });
 

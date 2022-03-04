@@ -192,7 +192,7 @@ export class JsonSchemaCompiler {
     const partialSchema: JSONObject =
       typeof maybeStringifiedSchema === "string"
         ? JSON.parse(maybeStringifiedSchema)
-        : maybeStringifiedSchema;
+        : maybeStringifiedSchema ?? {};
 
     const schema = {
       ...partialSchema,
