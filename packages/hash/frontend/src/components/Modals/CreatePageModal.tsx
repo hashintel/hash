@@ -7,11 +7,7 @@ import { Modal } from "./Modal";
 
 import { OldButton } from "../forms/OldButton";
 
-<<<<<<< HEAD:packages/hash/frontend/src/components/Modals/CreatePageModal.tsx
 type CreatePageModalProps = {
-=======
-type CreatePageProps = {
->>>>>>> 792206bd (Update Hash Header (#358)):packages/hash/frontend/src/components/Modals/CreatePageModal/index.tsx
   accountId: string;
   close: () => void;
   show: boolean;
@@ -67,7 +63,6 @@ export const CreatePageModal: VoidFunctionComponent<CreatePageModalProps> = ({
   }, [close]);
 
   return (
-<<<<<<< HEAD:packages/hash/frontend/src/components/Modals/CreatePageModal.tsx
     <Modal data-testid="create-page-modal" open={show} onClose={close}>
       <Box
         component="form"
@@ -96,10 +91,6 @@ export const CreatePageModal: VoidFunctionComponent<CreatePageModalProps> = ({
         }}
         onSubmit={createPage}
       >
-=======
-    <Modal open={show} onClose={close}>
-      <form className={styles.CreatePage} onSubmit={createPage}>
->>>>>>> 792206bd (Update Hash Header (#358)):packages/hash/frontend/src/components/Modals/CreatePageModal/index.tsx
         <h2>Don't be afraid of a blank page...</h2>
 
         <label>Title</label>
