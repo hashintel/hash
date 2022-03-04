@@ -73,7 +73,13 @@ export const PageHeader: React.VFC<{
         >
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <Link noLinkStyle href={`/${user ? user.accountId : ""}`}>
-              <HashNavIcon sx={{ height: theme.spacing(2), width: "auto" }} />
+              <HashNavIcon
+                sx={{
+                  height: theme.spacing(2.25),
+                  width: "auto",
+                  fill: theme.palette.gray["50"],
+                }}
+              />
             </Link>
           </Box>
           {user && <SearchBar />}
@@ -91,7 +97,7 @@ export const PageHeader: React.VFC<{
               sx={{ mr: 1 }}
               onClick={showLoginModal}
             >
-              Log In
+              Sign In
             </Button>
 
             <Button
