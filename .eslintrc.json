@@ -169,48 +169,38 @@
             "message": "Please import ProsemirrorNode instead"
           },
           {
-            "name": "@material-ui/core",
-            "message": "Please import from '@mui/material' instead"
+            "name": "@mui/material",
+            "importNames": ["Link"],
+            "message": "Please use the custom src/components/Link component instead to ensure Next.js and MUI compatibility."
           },
-          // should be uncommented when we've switched to MUI
-          // {
-          //   "name": "@mui/material",
-          //   "importNames": ["Link"],
-          //   "message": "Please use the custom src/components/Link component instead to ensure Next.js and MUI compatibility."
-          // },
-          // {
-          //   "name": "@mui/material/Link",
-          //   "message": "Please use the custom src/components/Link component instead to ensure Next.js and MUI compatibility."
-          // },
-          // {
-          //   "name": "next",
-          //   "importNames": ["Link"],
-          //   "message": "Please use the custom src/components/Link component instead to ensure Next.js and MUI compatibility."
-          // },
-          // {
-          //   "name": "next/link",
-          //   "message": "Please use the custom src/components/Link component instead to ensure Next.js and MUI compatibility."
-          // },
-          // {
-          //   "name": "@mui/material",
-          //   "importNames": ["Button", "TextField", "Popover", "Avatar"],
-          //   "message": "Please use the custom wrapper component in src/component instead."
-          // },
-          // {
-          //   "name": "@mui/material/Button",
-          //   "importNames": ["default"],
-          //   "message": "Please use the custom src/components/MuiButton component instead."
-          // },
-          // {
-          //   "name": "@mui/material/TextField",
-          //   "importNames": ["default"],
-          //   "message": "Please use the custom src/components/TextField component instead."
-          // },
-          // {
-          //   "name": "@mui/material/Popover",
-          //   "importNames": ["default"],
-          //   "message": "Please use the custom src/components/Popover component instead."
-          // },
+          {
+            "name": "@mui/material/Link",
+            "message": "Please use the custom src/components/Link component instead to ensure Next.js and MUI compatibility."
+          },
+          {
+            "name": "next",
+            "importNames": ["Link"],
+            "message": "Please use the custom src/components/Link component instead to ensure Next.js and MUI compatibility."
+          },
+          {
+            "name": "next/link",
+            "message": "Please use the custom src/components/Link component instead to ensure Next.js and MUI compatibility."
+          },
+          {
+            "name": "@mui/material",
+            "importNames": ["Button", "Popover", "Avatar"],
+            "message": "Please use the custom wrapper component in src/component instead."
+          },
+          {
+            "name": "@mui/material/Button",
+            "importNames": ["default"],
+            "message": "Please use the custom src/components/MuiButton component instead."
+          },
+          {
+            "name": "@mui/material/Popover",
+            "importNames": ["default"],
+            "message": "Please use the custom src/components/Popover component instead."
+          },
           {
             "name": "@mui/material/Avatar",
             "importNames": ["default"],
