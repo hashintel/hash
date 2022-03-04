@@ -89,6 +89,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
                 borderRadius: "100%",
                 color: theme.palette.common.white,
                 background: theme.palette.blue[70],
+                fontWeight: 600,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
