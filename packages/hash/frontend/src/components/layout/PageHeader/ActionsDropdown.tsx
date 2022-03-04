@@ -128,7 +128,6 @@ export const ActionsDropdown: React.FC<{
         <Box>
           <ListItemButton
             sx={{
-              padding: theme.spacing(1, 2),
               mx: 0.5,
               mt: 0.5,
               borderRadius: 1,
@@ -143,7 +142,6 @@ export const ActionsDropdown: React.FC<{
           </ListItemButton>
           <ListItemButton
             sx={{
-              padding: theme.spacing(1, 2),
               mx: 0.5,
               borderRadius: 1,
               lineHeight: 1,
@@ -162,7 +160,6 @@ export const ActionsDropdown: React.FC<{
           >
             <ListItemButton
               sx={{
-                padding: theme.spacing(1, 2),
                 mx: 0.5,
                 mb: 0.5,
                 borderRadius: 1,

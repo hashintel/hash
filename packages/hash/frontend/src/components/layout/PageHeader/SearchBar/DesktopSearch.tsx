@@ -29,7 +29,7 @@ export const DesktopSearch: React.FC<{
     >
       <Box
         sx={(theme) => ({
-          padding: theme.spacing(0, 2),
+          padding: theme.spacing(0, 1.5),
           height: "100%",
           position: "absolute",
           pointerEvents: "none",
@@ -57,7 +57,7 @@ export const DesktopSearch: React.FC<{
           lineHeight: "18px",
           "& .MuiInputBase-input": {
             py: theme.spacing(1),
-            paddingLeft: `calc(1em + ${theme.spacing(3)})`,
+            paddingLeft: theme.spacing(4.5),
           },
         })}
         inputProps={{ "aria-label": "search" }}
@@ -68,12 +68,14 @@ export const DesktopSearch: React.FC<{
               // Perhaps this can be rewritten to no longer use the Box here?
               <Box
                 sx={(theme) => ({
-                  padding: theme.spacing(0, 1),
+                  marginRight: theme.spacing(1),
                   display: "flex",
                   height: "100%",
                   alignItems: "center",
                   cursor: "pointer",
                   fontWeight: "bold",
+                  width: "26px",
+                  justifyContent: "flex-end",
                 })}
               >
                 <Box

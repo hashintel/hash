@@ -117,7 +117,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
           },
         }}
       >
-        <Box px={2} pt={1} pb={1.5}>
+        <Box px={2} pb={1} pt={1.5}>
           <Typography
             variant="smallTextParagraphs"
             sx={{
@@ -125,6 +125,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
               fontWeight: 500,
               lineHeight: "18px",
             }}
+            mb={0.25}
           >
             <strong>{user.properties.preferredName}</strong>
           </Typography>
@@ -141,7 +142,6 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
           <Link noLinkStyle href="#" onClick={() => setOpen(false)}>
             <ListItemButton
               sx={{
-                padding: theme.spacing(1, 2),
                 m: 0.5,
                 borderRadius: 1,
               }}
@@ -154,7 +154,6 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
           <Divider />
           <ListItemButton
             sx={{
-              padding: theme.spacing(1, 2),
               m: 0.5,
               borderRadius: 0.5,
             }}

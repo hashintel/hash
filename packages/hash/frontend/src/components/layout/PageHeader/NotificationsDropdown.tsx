@@ -114,7 +114,6 @@ export const NotificationsDropdown: React.FC = () => {
           <Link noLinkStyle href="#" onClick={() => setOpen(false)}>
             <ListItemButton
               sx={{
-                padding: theme.spacing(1, 2),
                 mx: 0.5,
                 mt: 0.5,
                 borderRadius: 1,
@@ -131,7 +130,6 @@ export const NotificationsDropdown: React.FC = () => {
           <Link noLinkStyle href="#" onClick={() => setOpen(false)}>
             <ListItemButton
               sx={{
-                padding: theme.spacing(1, 2),
                 mx: 0.5,
                 borderRadius: 1,
                 lineHeight: 1,
@@ -147,7 +145,6 @@ export const NotificationsDropdown: React.FC = () => {
           <Link noLinkStyle href="#" onClick={() => setOpen(false)}>
             <ListItemButton
               sx={{
-                padding: theme.spacing(1, 2),
                 mx: 0.5,
                 mb: 0.5,
                 borderRadius: 1,
