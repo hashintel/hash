@@ -12,12 +12,9 @@ export const MuiListItemButtonThemeOptions: Components<Theme>["MuiListItemButton
           textTransform: "none",
           minWidth: "unset",
           padding: theme.spacing(1, 1.5),
-          ".MuiTypography-smallTextLabels": {
-            fontWeight: 500,
-            color: theme.palette.gray[80],
-          },
+          color: theme.palette.gray[80],
+          fontWeight: 500,
           ".MuiTypography-microText": {
-            fontWeight: 500,
             lineHeight: "18px",
             color: theme.palette.gray[50],
           },
