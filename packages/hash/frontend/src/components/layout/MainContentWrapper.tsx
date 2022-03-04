@@ -3,6 +3,7 @@ import { FunctionComponent } from "react";
 import { SIDEBAR_WIDTH } from "../../theme/components/navigation/MuiDrawerThemeOptions";
 
 import { SidebarToggleIcon } from "../icons";
+import { HEADER_HEIGHT } from "./PageHeader/PageHeader";
 import { PageSidebar } from "./PageSidebar/PageSidebar";
 import { useSidebarContext } from "./SidebarContext";
 
@@ -11,8 +12,10 @@ const Main = styled("main", {
 })<{
   sidebarOpen?: boolean;
 }>(({ theme, sidebarOpen }) => ({
+  height: `calc(100vh - ${HEADER_HEIGHT}px)`,
+  overflowY: "scroll",
   flexGrow: 1,
-  padding: "60px 120px",
+  padding: "60px 120px 0 120px",
   transition: theme.transitions.create("margin", {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen,
@@ -39,7 +42,7 @@ export const MainContentWrapper: FunctionComponent = ({ children }) => {
     >
       <PageSidebar />
       <Fade in={!sidebarOpen}>
-        <Tooltip title="Collapse Sidebar">
+        <Tooltip title="Open Sidebar">
           <IconButton
             sx={{
               height: 36,
@@ -67,9 +70,6 @@ export const MainContentWrapper: FunctionComponent = ({ children }) => {
         </Tooltip>
       </Fade>
       <Main sidebarOpen={sidebarOpen}>{children}</Main>
-      {/* <Box component="main" sx={{ flex: 1, padding: "60px 120px" }}>
-        {children}
-      </Box> */}
     </Box>
   );
 };

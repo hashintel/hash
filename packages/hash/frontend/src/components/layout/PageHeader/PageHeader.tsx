@@ -27,6 +27,8 @@ const Nav: React.FC = ({ children }) => (
   </Box>
 );
 
+export const HEADER_HEIGHT = 64;
+
 export const PageHeader: React.VFC<{
   accountId: string;
 }> = ({ accountId }) => {
@@ -60,7 +62,7 @@ export const PageHeader: React.VFC<{
         borderBottom: `1px solid ${theme.palette.gray["30"]}`,
         display: "flex",
         alignItems: "center",
-        height: "4rem",
+        height: HEADER_HEIGHT,
       }}
     >
       <Nav>
