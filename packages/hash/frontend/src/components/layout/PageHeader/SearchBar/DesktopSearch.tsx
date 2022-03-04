@@ -1,4 +1,4 @@
-import { Box, InputAdornment, InputBase, styled } from "@mui/material";
+import { Box, InputAdornment, InputBase } from "@mui/material";
 import { useRef } from "react";
 import { useKeys } from "rooks";
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
