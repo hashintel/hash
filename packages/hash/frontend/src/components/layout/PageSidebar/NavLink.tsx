@@ -14,7 +14,7 @@ export const NavLink: FC<NavLinkProps> = ({
   children,
   endAdornment,
 }) => {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
 
   return (
     <Box>
