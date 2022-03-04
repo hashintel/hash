@@ -129,13 +129,14 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
           color: theme.palette.gray[40],
         }}
       >
-        <Box px={2} pt={1} pb={1.5}>
+        <Box px={2} pb={1} pt={1.5}>
           <Typography
             variant="smallTextLabels"
             sx={{
               color: theme.palette.gray[80],
               fontWeight: 700,
             }}
+            mb={0.25}
           >
             {user.properties.preferredName}
           </Typography>
