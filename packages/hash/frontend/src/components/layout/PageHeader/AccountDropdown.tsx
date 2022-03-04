@@ -44,7 +44,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
                 fontWeight: 500,
                 lineHeight: "18px",
               }}
-              mb={0.25}
+              mb={0.5}
             >
               <strong>{user.properties.preferredName}</strong>
             </Typography>
