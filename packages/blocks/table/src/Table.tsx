@@ -471,34 +471,15 @@ export const Table: BlockComponent<AppProps> = ({
 
   const handleEntityTypeChange = useCallback(
     (updatedEntityTypeId: string | undefined) => {
-      if (
-        !entityId ||
-        !updateEntities ||
-        !updateLinks ||
-        !matchingLinkedAggregation
-      ) {
+      if (!entityId || !updateLinks) {
         return;
       }
-
-      void updateEntities<{
-        initialState?: Record<string, any>;
-      }>([
-        {
-          accountId,
-          entityId,
-          data: {
-            initialState,
-          },
-          entityTypeId,
-          entityTypeVersionId,
-        },
-      ]);
 
       if (updatedEntityTypeId) {
         void updateLinks?.([
           cleanUpdateLinkedAggregationAction({
-            sourceAccountId: matchingLinkedAggregation.sourceAccountId,
-            sourceEntityId: matchingLinkedAggregation.sourceEntityId,
+            sourceAccountId: accountId,
+            sourceEntityId: entityId,
             path,
             updatedOperation: {
               entityTypeId: updatedEntityTypeId,
@@ -513,12 +494,7 @@ export const Table: BlockComponent<AppProps> = ({
     [
       accountId,
       entityId,
-      entityTypeId,
-      entityTypeVersionId,
-      initialState,
       tableData.linkedAggregation?.operation?.itemsPerPage,
-      matchingLinkedAggregation,
-      updateEntities,
       updateLinks,
     ],
   );
