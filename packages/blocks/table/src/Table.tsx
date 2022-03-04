@@ -10,8 +10,6 @@ import {
   BlockProtocolLinkedAggregation,
   BlockProtocolEntityType,
   BlockProtocolUpdateLinksAction,
-  BlockProtocolLinkedDataDefinition,
-  BlockProtocolMultiSort,
 } from "blockprotocol";
 import { BlockComponent } from "blockprotocol/react";
 import { tw } from "twind";
@@ -34,10 +32,6 @@ type TableData = {
 };
 
 type AppProps = {
-  data: {
-    data?: Record<string, any>[];
-    __linkedData?: BlockProtocolLinkedDataDefinition;
-  };
   initialState?: TableOptions<{}>["initialState"] & {
     columns?: { Header: string; accessor: string }[];
   };
@@ -91,24 +85,11 @@ const getLinkedAggregation = (params: {
 
 const cleanUpdateLinkedAggregationAction = (
   action: BlockProtocolUpdateLinksAction & {
-    updatedOperation: Partial<BlockProtocolLinkedAggregation> & {
-      __typename?: string;
-    };
+    data: Partial<BlockProtocolLinkedAggregation>;
   },
 ) => {
   return produce(action, (draftAction) => {
-    draftAction.updatedOperation.multiSort =
-      draftAction.updatedOperation.multiSort?.map((sort) => {
-        const newSort = sort as BlockProtocolMultiSort[number] & {
-          __typename?: string;
-        };
-        delete newSort.__typename;
-        return newSort;
-      });
-
-    delete draftAction.updatedOperation.pageCount;
-
-    delete draftAction.updatedOperation.__typename;
+    delete draftAction.data.pageCount;
   });
 };
 
@@ -118,6 +99,7 @@ export const Table: BlockComponent<AppProps> = ({
   accountId,
   aggregateEntities,
   aggregateEntityTypes,
+  createLinks,
   entityId,
   entityTypeId,
   entityTypeVersionId,
@@ -317,7 +299,7 @@ export const Table: BlockComponent<AppProps> = ({
           sourceAccountId: matchingLinkedAggregation.sourceAccountId,
           sourceEntityId: matchingLinkedAggregation.sourceEntityId,
           path,
-          updatedOperation: newLinkedData.operation,
+          data: newLinkedData.operation,
         }),
       ]);
     },
@@ -375,7 +357,7 @@ export const Table: BlockComponent<AppProps> = ({
           sourceAccountId: matchingLinkedAggregation.sourceAccountId,
           sourceEntityId: matchingLinkedAggregation.sourceEntityId,
           path,
-          updatedOperation: { ...tableData.linkedAggregation.operation },
+          data: { ...tableData.linkedAggregation.operation },
         }),
       ]);
     }
@@ -471,54 +453,46 @@ export const Table: BlockComponent<AppProps> = ({
 
   const handleEntityTypeChange = useCallback(
     (updatedEntityTypeId: string | undefined) => {
-      if (
-        !entityId ||
-        !updateEntities ||
-        !updateLinks ||
-        !matchingLinkedAggregation
-      ) {
-        return;
+      if (!entityId || !updateLinks || !createLinks) {
+        throw new Error(
+          "All of entityId, createLinks and updateLinks must be passed to the block to update data linke from it",
+        );
       }
 
-      void updateEntities<{
-        initialState?: Record<string, any>;
-      }>([
-        {
-          accountId,
-          entityId,
-          data: {
-            initialState,
-          },
-          entityTypeId,
-          entityTypeVersionId,
-        },
-      ]);
-
       if (updatedEntityTypeId) {
-        void updateLinks?.([
-          cleanUpdateLinkedAggregationAction({
-            sourceAccountId: matchingLinkedAggregation.sourceAccountId,
-            sourceEntityId: matchingLinkedAggregation.sourceEntityId,
-            path,
-            updatedOperation: {
-              entityTypeId: updatedEntityTypeId,
-              // There is scope to include other options if entity properties overlap
-              itemsPerPage:
-                tableData.linkedAggregation?.operation?.itemsPerPage,
+        if (tableData?.linkedAggregation) {
+          void updateLinks?.([
+            cleanUpdateLinkedAggregationAction({
+              sourceAccountId: accountId,
+              sourceEntityId: entityId,
+              path,
+              data: {
+                entityTypeId: updatedEntityTypeId,
+                // There is scope to include other options if entity properties overlap
+                itemsPerPage:
+                  tableData.linkedAggregation?.operation?.itemsPerPage,
+              },
+            }),
+          ]);
+        } else {
+          void createLinks?.([
+            {
+              operation: {
+                entityTypeId: updatedEntityTypeId,
+              },
+              path,
+              sourceAccountId: accountId,
+              sourceEntityId: entityId,
             },
-          }),
-        ]);
+          ]);
+        }
       }
     },
     [
       accountId,
+      createLinks,
       entityId,
-      entityTypeId,
-      entityTypeVersionId,
-      initialState,
-      tableData.linkedAggregation?.operation?.itemsPerPage,
-      matchingLinkedAggregation,
-      updateEntities,
+      tableData.linkedAggregation,
       updateLinks,
     ],
   );
