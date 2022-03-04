@@ -7,6 +7,7 @@ import {
   ListItemButton,
   Button,
   useTheme,
+  Tooltip,
 } from "@mui/material";
 
 import { UserFieldsFragment } from "../../../graphql/apiTypes.gen";
@@ -34,48 +35,70 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
 
   return (
     <Box>
-      <Button
-        variant="transparent"
-        onClick={() => setOpen(!open)}
-        className="flex items-center relative m-auto focus:outline-none"
-        ref={buttonRef}
-        sx={{
-          borderRadius: "100%",
-          boxShadow: open
-            ? "0px 0px 0px 2px #FFFFFF, 0px 0px 0px 5px #C1CFDE"
-            : "unset",
-          ":hover": {
-            boxShadow: "0px 0px 0px 2px #FFFFFF, 0px 0px 0px 5px #C1CFDE",
-          },
-        }}
-        title={user.properties.shortname!}
-      >
-        {avatar ? (
-          <Box
-            component="img"
-            alt="avatar"
-            src={avatar}
-            sx={{ height: "32px", width: "32px", borderRadius: "100%" }}
-            className={tw`border border(solid gray-200)`}
-          />
-        ) : (
-          <Box
-            sx={{
-              height: "32px",
-              width: "32px",
-              borderRadius: "100%",
-              color: theme.palette.common.white,
-              fontWeight: 500,
-              background: theme.palette.blue[70],
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            {user.properties.preferredName![0].toUpperCase()}
+      <Tooltip
+        title={
+          <Box p={1.5}>
+            <Typography
+              variant="smallTextLabels"
+              sx={{
+                fontWeight: 500,
+              }}
+              mb={0.25}
+            >
+              <strong>{user.properties.preferredName}</strong>
+            </Typography>
+            <Typography
+              component="p"
+              variant="microText"
+              sx={{ color: theme.palette.common.white }}
+            >
+              @{user.properties.shortname!}
+            </Typography>
           </Box>
-        )}
-      </Button>
+        }
+      >
+        <Button
+          variant="transparent"
+          onClick={() => setOpen(!open)}
+          className="flex items-center relative m-auto focus:outline-none"
+          ref={buttonRef}
+          sx={{
+            borderRadius: "100%",
+            boxShadow: open
+              ? "0px 0px 0px 2px #FFFFFF, 0px 0px 0px 5px #C1CFDE"
+              : "unset",
+            ":hover": {
+              boxShadow: "0px 0px 0px 2px #FFFFFF, 0px 0px 0px 5px #C1CFDE",
+            },
+          }}
+          title={user.properties.shortname!}
+        >
+          {avatar ? (
+            <Box
+              component="img"
+              alt="avatar"
+              src={avatar}
+              sx={{ height: "32px", width: "32px", borderRadius: "100%" }}
+              className={tw`border border(solid gray-200)`}
+            />
+          ) : (
+            <Box
+              sx={{
+                height: "32px",
+                width: "32px",
+                borderRadius: "100%",
+                color: theme.palette.common.white,
+                background: theme.palette.blue[70],
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {user.properties.preferredName![0].toUpperCase()}
+            </Box>
+          )}
+        </Button>
+      </Tooltip>
       <Popover
         id={id}
         open={open}
