@@ -156,6 +156,7 @@ export class ComponentView implements NodeView<Schema> {
             blockEntityId={entityId}
             shouldSandbox={!this.editable}
             editableRef={this.editable ? this.editableRef : undefined}
+            // @todo these asserted non-null fields do not definitely exist when the block is first loaded
             accountId={childEntity?.accountId!}
             entityId={childEntity?.entityId!}
             entityTypeId={childEntity?.entityTypeId!}
