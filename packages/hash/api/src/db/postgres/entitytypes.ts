@@ -228,18 +228,6 @@ export const getEntityTypeBySchema$id = async (
   return row ? mapPGRowToEntityType(row) : null;
 };
 
-export const getJsonSchemaBySchema$id = async (
-  conn: Connection,
-  schema$id: string,
-) => {
-  const schema = await getEntityTypeBySchema$id(conn, { schema$id });
-  if (schema) {
-    return schema.properties;
-  } else {
-    throw new Error(`Could not find schema with $id = ${schema$id}`);
-  }
-};
-
 /** Get all types that inherit from a specific type.
  */
 export const getEntityTypeChildren = async (
