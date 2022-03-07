@@ -14,3 +14,15 @@ async fn sugarscape() {
 
     run_test_suite(project_path, module_path!(), None, None, Some(500)).await
 }
+
+#[tokio::test]
+async fn age() {
+    let project_path = std::path::Path::new(file!())
+        .parent()
+        .unwrap()
+        .join("ageing-agents")
+        .canonicalize()
+        .unwrap();
+
+    run_test_suite(project_path, module_path!(), None, None, Some(10)).await
+}
