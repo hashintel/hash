@@ -564,7 +564,7 @@ impl<'m> RunnerImpl<'m> {
     ///
     /// # SAFETY
     ///
-    /// - `ptr` must be valid for `len` reads of `T`
+    /// - `ptr` must be valid for `data_len` reads of `T`
     unsafe fn read_primitive_buffer<T: ArrowNativeType>(
         &self,
         data_ptr: NonNull<T>,
@@ -600,7 +600,7 @@ impl<'m> RunnerImpl<'m> {
     ///
     /// # SAFETY
     ///
-    /// - `ptr` must be valid for `len + 1` reads of `i32`
+    /// - `ptr` must be valid for `data_len + 1` reads of `i32`
     unsafe fn read_offset_buffer(
         &self,
         data_ptr: NonNull<i32>,
@@ -647,7 +647,7 @@ impl<'m> RunnerImpl<'m> {
     ///
     /// # SAFETY
     ///
-    /// - `ptr` must be valid for `ceil(len/8)` reads of `u8`
+    /// - `ptr` must be valid for `ceil(data_len/8)` reads of `u8`
     unsafe fn read_boolean_buffer(
         &self,
         data_ptr: NonNull<u8>,
