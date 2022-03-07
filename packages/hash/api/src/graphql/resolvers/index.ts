@@ -208,8 +208,8 @@ export const resolvers = {
     entityTypeId: entityTypeTypeFields.entityTypeId,
     entityTypeName: entityTypeTypeFields.entityTypeName,
     entityTypeVersionId: entityTypeTypeFields.entityTypeVersionId,
-    children: entityTypeInheritance.entityTypeChildren,
-    parents: entityTypeInheritance.entityTypeParents,
+
+    ...entityTypeInheritance,
   },
 
   Account: {

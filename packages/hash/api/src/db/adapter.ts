@@ -1,5 +1,4 @@
 import { DataSource } from "apollo-datasource";
-import { JSONObject } from "blockprotocol";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
 
 import { SystemType } from "../types/entityTypes";
@@ -208,9 +207,8 @@ export interface DBClient {
   createEntityType(params: {
     accountId: string;
     createdByAccountId: string;
-    description?: string | null;
     name: string;
-    schema?: Record<string, any> | null;
+    schema: Record<string, any>;
   }): Promise<EntityType>;
 
   /**
@@ -327,7 +325,7 @@ export interface DBClient {
     entityId: string;
     updatedByAccountId: string;
     entityVersionId?: string;
-    schema: JSONObject;
+    schema: Record<string, any>;
   }): Promise<EntityType>;
 
   /**
