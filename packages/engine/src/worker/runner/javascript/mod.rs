@@ -560,7 +560,7 @@ impl<'m> RunnerImpl<'m> {
     }
 
     /// Creates a new buffer from the provided `data_ptr` and `data_capacity` with at least a with
-    /// `len` elements copied from `ptr` and a size of `target_len` elements.
+    /// `data_len` elements copied from `ptr` and a size of `target_len` elements.
     ///
     /// # SAFETY
     ///
@@ -568,7 +568,7 @@ impl<'m> RunnerImpl<'m> {
     unsafe fn read_primitive_buffer<T: ArrowNativeType>(
         &self,
         data_ptr: NonNull<T>,
-        len: usize,
+        data_len: usize,
         _data_capacity: usize, // for future use to create a `Buffer::from_raw_parts`
         target_len: usize,
     ) -> Buffer {
@@ -580,21 +580,21 @@ impl<'m> RunnerImpl<'m> {
         let mut builder = BufferBuilder::new(target_len);
 
         // Read data from JS
-        builder.append_slice(slice::from_raw_parts(data_ptr.as_ptr(), len));
+        builder.append_slice(slice::from_raw_parts(data_ptr.as_ptr(), data_len));
 
         // Ensure we don't subtract a larger unsigned number from a smaller
         // TODO: Use `buffer.resize()` instead of `builder.advance()`
         debug_assert!(
-            target_len >= len,
+            target_len >= data_len,
             "Expected length is smaller than the actual length for buffer: {:?}",
-            slice::from_raw_parts(data_ptr.as_ptr(), len)
+            slice::from_raw_parts(data_ptr.as_ptr(), data_len)
         );
-        builder.advance(target_len - len);
+        builder.advance(target_len - data_len);
         builder.finish()
     }
 
     /// Creates a new offset buffer from the provided `data_ptr` and `data_capacity` with at least a
-    /// with `len` elements copied from `ptr` and a size of `target_len` elements.
+    /// with `data_len` elements copied from `ptr` and a size of `target_len` elements.
     ///
     /// Returns the buffer and the last offset.
     ///
@@ -604,7 +604,7 @@ impl<'m> RunnerImpl<'m> {
     unsafe fn read_offset_buffer(
         &self,
         data_ptr: NonNull<i32>,
-        len: usize,
+        data_len: usize,
         _data_capacity: usize, // for future use to create a `Buffer::from_raw_parts`
         target_len: usize,
     ) -> (Buffer, usize) {
@@ -618,7 +618,7 @@ impl<'m> RunnerImpl<'m> {
         // offset values.
         let mut builder = BufferBuilder::new(target_len + 1);
 
-        let offsets = slice::from_raw_parts(data_ptr.as_ptr(), len + 1);
+        let offsets = slice::from_raw_parts(data_ptr.as_ptr(), data_len + 1);
         debug_assert_eq!(offsets[0], 0, "Offset buffer does not start with `0`");
         debug_assert!(
             offsets.iter().all(|o| *o >= 0),
@@ -629,21 +629,21 @@ impl<'m> RunnerImpl<'m> {
         // Read data from JS
         builder.append_slice(offsets);
 
-        let last = offsets[len];
+        let last = offsets[data_len];
 
         // Ensure we don't subtract a larger unsigned number from a smaller
         // TODO: Use `buffer.resize()` instead of `builder.append_n()`
         debug_assert!(
-            target_len >= len,
+            target_len >= data_len,
             "Expected offset count is smaller than the actual buffer: {:?}",
-            slice::from_raw_parts(data_ptr.as_ptr(), len + 1)
+            slice::from_raw_parts(data_ptr.as_ptr(), data_len + 1)
         );
-        builder.append_n(target_len - len, last);
+        builder.append_n(target_len - data_len, last);
         (builder.finish(), last as usize)
     }
 
     /// Creates a new packed buffer from the provided `data_ptr` and `data_capacity` with at least a
-    /// with `len` elements copied from `ptr` and a size of `target_len` elements.
+    /// with `data_len` elements copied from `ptr` and a size of `target_len` elements.
     ///
     /// # SAFETY
     ///
@@ -651,7 +651,7 @@ impl<'m> RunnerImpl<'m> {
     unsafe fn read_boolean_buffer(
         &self,
         data_ptr: NonNull<u8>,
-        len: usize,
+        data_len: usize,
         _data_capacity: usize, // for future use to create a `Buffer::from_raw_parts`
         target_len: usize,
     ) -> Buffer {
@@ -664,8 +664,8 @@ impl<'m> RunnerImpl<'m> {
 
         // Read data from JS
         builder.append_packed_range(
-            0..len,
-            slice::from_raw_parts(data_ptr.as_ptr(), bit_util::ceil(len, 8)),
+            0..data_len,
+            slice::from_raw_parts(data_ptr.as_ptr(), bit_util::ceil(data_len, 8)),
         );
         builder.resize(target_len);
         builder.finish()
