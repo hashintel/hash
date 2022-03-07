@@ -8,7 +8,14 @@ import React, {
   VoidFunctionComponent,
 } from "react";
 import { useDebounce, useKey, useOutsideClickRef } from "rooks";
-import { Box, Theme, useTheme, useMediaQuery, SxProps } from "@mui/material";
+import {
+  Box,
+  Theme,
+  useTheme,
+  useMediaQuery,
+  SxProps,
+  IconButton,
+} from "@mui/material";
 
 import { blockDomId } from "../../../../blocks/page/BlockView";
 import {
@@ -18,9 +25,10 @@ import {
 import { searchPages } from "../../../../graphql/queries/search.queries";
 import { useUser } from "../../../hooks/useUser";
 import { HASH_OPENSEARCH_ENABLED } from "../../../../lib/public-env";
-import { DesktopSearch } from "./DesktopSearch";
-import { MobileSearch } from "./MobileSearch";
+import { SearchInput } from "./SearchInput";
 import { Link } from "../../../Link";
+import { SearchIcon } from "../../../icons";
+import { Button } from "../../../Button";
 
 /** finds the query's words in the result and chops it into parts at the words' boundaries */
 const splitByMatches = (result: string, query: string) => {
@@ -79,14 +87,14 @@ const ResultItem: React.FC<{
       component="li"
       sx={{
         display: "flex",
-        border: `1px solid ${theme.palette.gray[20]}`,
-        backgroundColor: theme.palette.gray[50],
+        backgroundColor: theme.palette.gray[10],
+        border: "0px",
         padding: 1,
         cursor: "pointer",
         textOverflow: "ellipsis",
         overflow: "hidden",
         "&:hover": {
-          backgroundColor: theme.palette.gray[70],
+          backgroundColor: theme.palette.gray[20],
         },
         ...sx,
       }}
@@ -168,21 +176,51 @@ const SearchBarWhenSearchIsEnabled: React.VFC = () => {
       }}
       ref={rootRef}
     >
-      {!isMobile ? (
-        <DesktopSearch
-          displayedQuery={displayedQuery}
-          setQueryText={setQueryText}
-          setResultListVisible={setResultListVisible}
-        />
+      {/* If the user is in mobile view and the search icon isn't clicked, display the icon */}
+      {isMobile && !displaySearchInput ? (
+        <IconButton
+          sx={{
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            mr: 2,
+          }}
+          onClick={() => setDisplaySearchInput(true)}
+        >
+          <SearchIcon
+            sx={(theme) => ({ height: theme.spacing(2), width: "auto" })}
+          />
+        </IconButton>
       ) : (
-        <MobileSearch
-          displayedQuery={displayedQuery}
-          setQueryText={setQueryText}
-          setResultListVisible={setResultListVisible}
-          displaySearchInput={displaySearchInput}
-          setDisplaySearchInput={setDisplaySearchInput}
-        />
+        <Box
+          style={{
+            display: "flex",
+            width: "100%",
+            background: "white",
+            zIndex: 1,
+          }}
+        >
+          <SearchInput
+            displayedQuery={displayedQuery}
+            isMobile={isMobile}
+            setQueryText={setQueryText}
+            setResultListVisible={setResultListVisible}
+          />
+
+          {isMobile && (
+            <Button
+              onClick={() => {
+                setQueryText("");
+                setDisplaySearchInput(false);
+              }}
+              variant="tertiary_quiet"
+            >
+              Cancel
+            </Button>
+          )}
+        </Box>
       )}
+
       {isResultListVisible && displayedQuery && (
         <ResultList isMobile={isMobile}>
           {isLoading ? (
