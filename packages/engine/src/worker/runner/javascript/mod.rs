@@ -771,7 +771,7 @@ impl<'m> RunnerImpl<'m> {
                 //   type for strings is `u8`
                 unsafe {
                     debug_assert!(
-                        !data.buffer_ptrs[0].is_null(),
+                        !data.buffer_ptrs[1].is_null(),
                         "Required pointer for `Utf8` (`buffers[1]`) is null"
                     );
                     builder = builder.add_buffer(self.read_primitive_buffer(
