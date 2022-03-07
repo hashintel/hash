@@ -176,7 +176,7 @@ export class JsonSchemaCompiler {
    * @returns schema the complete JSON schema object
    */
   async jsonSchema(params: {
-    $id?: string | null;
+    $id?: string;
     title: string;
     maybeStringifiedSchema?: string | JSONObject | null;
     description?: string | null;
@@ -200,7 +200,7 @@ export class JsonSchemaCompiler {
       // The schema $id starts out by being the title.
       // When the accountId and entityId of the schema is known, this can be replaced.
       // We will keep this as a placeholder for any validation.
-      $id: $id ?? undefined,
+      $id,
       title,
       type: partialSchema.type ?? "object",
       description: partialSchema.description ?? description,

@@ -14,25 +14,25 @@ export const updateEntityType: Resolver<
   { accountId, entityId, schema },
   { dataSources: { db }, user },
 ) => {
-  const entityType = await EntityType.getEntityType(db, {
-    entityTypeId: entityId,
+  return await db.transaction(async (conn) => {
+    const entityType = await EntityType.getEntityType(db, {
+      entityTypeId: entityId,
+    });
+
+    if (!entityType) {
+      throw new ApolloError(
+        `EntityType with entityId ${entityId} not found`,
+        "NOT_FOUND",
+      );
+    }
+
+    await entityType.update(conn, {
+      accountId,
+      updatedByAccountId: user.accountId,
+      createdByAccountId: user.entityId,
+      schema,
+    });
+
+    return entityType.toGQLEntityType();
   });
-
-  if (!entityType) {
-    throw new ApolloError(
-      `EntityType with entityId ${entityId} not found`,
-      "NOT_FOUND",
-    );
-  }
-
-  return await db.transaction(async (conn) =>
-    (
-      await entityType.update(conn, {
-        accountId,
-        updatedByAccountId: user.accountId,
-        createdByAccountId: user.entityId,
-        schema,
-      })
-    ).toGQLEntityType(),
-  );
 };

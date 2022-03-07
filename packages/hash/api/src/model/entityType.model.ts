@@ -2,6 +2,7 @@ import { ApolloError } from "apollo-server-express";
 import url from "url";
 import fetch from "node-fetch";
 import { JSONObject } from "blockprotocol";
+import { merge } from "lodash";
 
 import { EntityExternalResolvers, EntityType } from ".";
 import { DBClient } from "../db";
@@ -167,7 +168,9 @@ class __EntityType {
       schema,
     });
 
-    return new EntityType(updatedDbEntityType);
+    merge(this, new EntityType(updatedDbEntityType));
+
+    return this;
   }
 
   static async getEntityType(
