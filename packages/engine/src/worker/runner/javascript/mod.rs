@@ -866,6 +866,8 @@ impl<'m> RunnerImpl<'m> {
                 )
             };
 
+            // The `data.null_count` provided is only valid for `data.len`, as the buffer is
+            // resized to `target_len`, the `null_count` has to be adjusted.
             builder = builder
                 .null_bit_buffer(null_bit_buffer)
                 .null_count(data.null_count + target_len - data.len);
