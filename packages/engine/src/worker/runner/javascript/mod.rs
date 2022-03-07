@@ -559,44 +559,42 @@ impl<'m> RunnerImpl<'m> {
         })
     }
 
-    /// Adds a new buffer from the provided `ptr` and `capacity` with at least a capacity of
-    /// Creates a new buffer from the provided `ptr` and `capacity`, with `len` elements 
-    /// copied from `ptr` and a capacity of at least `target_len` elements.
+    /// Creates a new buffer from the provided `data_ptr` and `data_capacity` with at least a with
+    /// `len` elements copied from `ptr` and a size of `target_len` elements.
     ///
     /// # SAFETY
     ///
     /// - `ptr` must be valid for `len` reads of `T`
     unsafe fn read_primitive_buffer<T: ArrowNativeType>(
         &self,
-        ptr: NonNull<T>,
+        data_ptr: NonNull<T>,
         len: usize,
-        _capacity: usize, // for future use to create a `Buffer::from_raw_parts`
+        _data_capacity: usize, // for future use to create a `Buffer::from_raw_parts`
         target_len: usize,
     ) -> Buffer {
         // TODO: OPTIM: We currently copy the buffers because the JavaScript representation of
         //   arrays does not match the Rust implementation. Try to reduce copies where possible by
-        //   reusing it, i.e. check, if `target_len` >= `capacity` and constructing it from raw
+        //   reusing it, i.e. check, if `target_len` >= `data_capacity` and constructing it from raw
         //   parts.
         // Create a buffer for `target_len` elements
         let mut builder = BufferBuilder::new(target_len);
 
         // Read data from JS
-        builder.append_slice(slice::from_raw_parts(ptr.as_ptr(), len));
+        builder.append_slice(slice::from_raw_parts(data_ptr.as_ptr(), len));
 
         // Ensure we don't subtract a larger unsigned number from a smaller
         // TODO: Use `buffer.resize()` instead of `builder.advance()`
         debug_assert!(
             target_len >= len,
             "Expected length is smaller than the actual length for buffer: {:?}",
-            slice::from_raw_parts(ptr.as_ptr(), len)
+            slice::from_raw_parts(data_ptr.as_ptr(), len)
         );
         builder.advance(target_len - len);
         builder.finish()
     }
 
-    /// Adds a new offset buffer from the provided `ptr` and `capacity` with at least a capacity of
-    /// Creates a new offset buffer from the provided `ptr` and `capacity`, with `len` elements 
-    /// copied from `ptr` and a capacity of at least `target_len` elements.
+    /// Creates a new offset buffer from the provided `data_ptr` and `data_capacity` with at least a
+    /// with `len` elements copied from `ptr` and a size of `target_len` elements.
     ///
     /// Returns the buffer and the last offset.
     ///
@@ -605,14 +603,14 @@ impl<'m> RunnerImpl<'m> {
     /// - `ptr` must be valid for `len + 1` reads of `i32`
     unsafe fn read_offset_buffer(
         &self,
-        ptr: NonNull<i32>,
+        data_ptr: NonNull<i32>,
         len: usize,
-        _capacity: usize, // for future use to create a `Buffer::from_raw_parts`
+        _data_capacity: usize, // for future use to create a `Buffer::from_raw_parts`
         target_len: usize,
     ) -> (Buffer, usize) {
         // TODO: OPTIM: We currently copy the buffers because the JavaScript representation of
         //   arrays does not match the Rust implementation. Try to reduce copies where possible by
-        //   reusing it, i.e. check, if `target_len` <= `capacity` and constructing it from raw
+        //   reusing it, i.e. check, if `target_len` <= `data_capacity` and constructing it from raw
         //   parts.
 
         // For each value in the buffer, we have a start offset and an end offset. The start offset
@@ -620,7 +618,7 @@ impl<'m> RunnerImpl<'m> {
         // offset values.
         let mut builder = BufferBuilder::new(target_len + 1);
 
-        let offsets = slice::from_raw_parts(ptr.as_ptr(), len + 1);
+        let offsets = slice::from_raw_parts(data_ptr.as_ptr(), len + 1);
         debug_assert_eq!(offsets[0], 0, "Offset buffer does not start with `0`");
         debug_assert!(
             offsets.iter().all(|o| *o >= 0),
@@ -638,29 +636,28 @@ impl<'m> RunnerImpl<'m> {
         debug_assert!(
             target_len >= len,
             "Expected offset count is smaller than the actual buffer: {:?}",
-            slice::from_raw_parts(ptr.as_ptr(), len + 1)
+            slice::from_raw_parts(data_ptr.as_ptr(), len + 1)
         );
         builder.append_n(target_len - len, last);
         (builder.finish(), last as usize)
     }
 
-    /// Adds a new packed buffer from the provided `ptr` and `capacity` with at least a capacity
-    /// Creates a new packed buffer from the provided `ptr` and `capacity`, with `len` elements 
-    /// copied from `ptr` and a capacity of at least `target_len` elements.
+    /// Creates a new packed buffer from the provided `data_ptr` and `data_capacity` with at least a
+    /// with `len` elements copied from `ptr` and a size of `target_len` elements.
     ///
     /// # SAFETY
     ///
     /// - `ptr` must be valid for `ceil(len/8)` reads of `u8`
     unsafe fn read_boolean_buffer(
         &self,
-        ptr: NonNull<u8>,
+        data_ptr: NonNull<u8>,
         len: usize,
-        _capacity: usize, // for future use to create a `Buffer::from_raw_parts`
+        _data_capacity: usize, // for future use to create a `Buffer::from_raw_parts`
         target_len: usize,
     ) -> Buffer {
         // TODO: OPTIM: We currently copy the buffers because the JavaScript representation of
         //   arrays does not match the Rust implementation. Try to reduce copies where possible by
-        //   reusing it, i.e. check, if `target_len` <= `capacity` and constructing it from raw
+        //   reusing it, i.e. check, if `target_len` <= `data_capacity` and constructing it from raw
         //   parts.
         // Create a buffer for `target_len` elements
         let mut builder = BooleanBufferBuilder::new(target_len);
@@ -668,7 +665,7 @@ impl<'m> RunnerImpl<'m> {
         // Read data from JS
         builder.append_packed_range(
             0..len,
-            slice::from_raw_parts(ptr.as_ptr(), bit_util::ceil(len, 8)),
+            slice::from_raw_parts(data_ptr.as_ptr(), bit_util::ceil(len, 8)),
         );
         builder.resize(target_len);
         builder.finish()
