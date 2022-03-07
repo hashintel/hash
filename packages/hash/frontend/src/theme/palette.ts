@@ -176,9 +176,9 @@ export const palette: ThemeOptions["palette"] = {
     light: customColors.blue[50],
   },
   success: {
-    dark: customColors.blue[80],
-    main: customColors.blue[60],
-    light: customColors.blue[40],
+    dark: customColors.green[80],
+    main: customColors.green[60],
+    light: customColors.green[40],
   },
   text: {
     primary: customColors.gray[80],
