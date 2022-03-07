@@ -559,12 +559,12 @@ impl<'m> RunnerImpl<'m> {
         })
     }
 
-    /// Creates a new buffer from the provided `data_ptr` and `data_capacity` with at least a with
-    /// `data_len` elements copied from `ptr` and a size of `target_len` elements.
+    /// Creates a new buffer from the provided `data_ptr` and `data_capacity` with at least
+    /// `data_len` elements copied from `data_ptr` and a size of `target_len` elements.
     ///
     /// # SAFETY
     ///
-    /// - `ptr` must be valid for `data_len` reads of `T`
+    /// - `data_ptr` must be valid for `data_len` reads of `T`
     unsafe fn read_primitive_buffer<T: ArrowNativeType>(
         &self,
         data_ptr: NonNull<T>,
@@ -642,12 +642,12 @@ impl<'m> RunnerImpl<'m> {
         (builder.finish(), last as usize)
     }
 
-    /// Creates a new packed buffer from the provided `data_ptr` and `data_capacity` with at least a
-    /// with `data_len` elements copied from `ptr` and a size of `target_len` elements.
+    /// Creates a new packed buffer from the provided `data_ptr` and `data_capacity` with at least
+    /// `data_len` elements copied from `data_ptr` and a size of `target_len` elements.
     ///
     /// # SAFETY
     ///
-    /// - `ptr` must be valid for `ceil(data_len/8)` reads of `u8`
+    /// - `data_ptr` must be valid for `ceil(data_len/8)` reads of `u8`
     unsafe fn read_boolean_buffer(
         &self,
         data_ptr: NonNull<u8>,
