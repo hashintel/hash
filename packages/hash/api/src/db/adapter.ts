@@ -64,11 +64,13 @@ export type DBLink = {
   index?: number;
   sourceAccountId: string;
   sourceEntityId: string;
-  sourceEntityVersionIds: Set<string>;
+  appliedToSourceAt: Date;
+  appliedToSourceBy: string;
+  removedFromSourceAt?: Date;
+  removedFromSourceBy?: string;
   destinationAccountId: string;
   destinationEntityId: string;
   destinationEntityVersionId?: string;
-  createdAt: Date;
 };
 
 export type DBAggregation = {
@@ -441,23 +443,28 @@ export interface DBClient {
     linkId: string;
   }): Promise<DBLink | null>;
 
-  getLinkByEntityId(params: {
-    sourceAccountId: string;
-    sourceEntityId: string;
-    sourceEntityVersionId: string;
-    destinationEntityId: string;
-  }): Promise<DBLink | null>;
-
   deleteLink(params: {
     deletedByAccountId: string;
     sourceAccountId: string;
     linkId: string;
   }): Promise<void>;
 
+  /**
+   * Gets all the outgoing links of an entity.
+   *
+   * Note: when the entity is versioned, the currently active links are returned by default. To get
+   * the outgoing links of the versioned entity at a particular point in time in its history, a
+   * timestamp can be specified using the `params.activeAt` parameter.
+   *
+   * @param params.accountId the account ID of the source entity
+   * @param params.entityId the entity ID of the source entity
+   * @param params.activeAt the timestamp at which the outgoing links were active, when the source entity is versioned (optional)
+   * @param params.path the path of the outgoing links (optional)
+   */
   getEntityOutgoingLinks(params: {
     accountId: string;
     entityId: string;
-    entityVersionId?: string;
+    activeAt?: Date;
     path?: string;
   }): Promise<DBLink[]>;
 

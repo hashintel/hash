@@ -254,12 +254,6 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.getLink(params));
   }
 
-  getLinkByEntityId(
-    params: Parameters<DBClient["getLinkByEntityId"]>[0],
-  ): ReturnType<DBClient["getLinkByEntityId"]> {
-    return this.query((adapter) => adapter.getLinkByEntityId(params));
-  }
-
   deleteLink(params: {
     deletedByAccountId: string;
     sourceAccountId: string;
@@ -268,12 +262,9 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.deleteLink(params));
   }
 
-  getEntityOutgoingLinks(params: {
-    accountId: string;
-    entityId: string;
-    entityVersionId?: string;
-    path?: string;
-  }): Promise<DBLink[]> {
+  getEntityOutgoingLinks(
+    params: Parameters<DBClient["getEntityOutgoingLinks"]>[0],
+  ): ReturnType<DBClient["getEntityOutgoingLinks"]> {
     return this.query((adapter) => adapter.getEntityOutgoingLinks(params));
   }
 
