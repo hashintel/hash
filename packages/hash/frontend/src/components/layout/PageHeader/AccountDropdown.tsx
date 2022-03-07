@@ -56,6 +56,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
             </Typography>
           </Box>
         }
+        placement="bottom"
       >
         <IconButton
           onClick={() => setOpen(!open)}

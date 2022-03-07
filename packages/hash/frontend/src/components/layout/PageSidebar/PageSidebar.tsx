@@ -22,7 +22,7 @@ export const PageSidebar: VoidFunctionComponent = () => {
   const { accountId, pageEntityId } = router.query as Record<string, string>;
 
   return (
-    <Drawer variant="persistent" open={sidebarOpen}>
+    <Drawer variant="persistent" open={sidebarOpen} sx={{ zIndex: 0 }}>
       <Box
         sx={{
           mx: 0.75,
