@@ -824,6 +824,12 @@ impl<'m> RunnerImpl<'m> {
             DataType::Struct(inner_fields) => {
                 // Structs are only defined by child data
                 let child_data: mv8::Array<'_> = obj.get("child_data")?;
+                debug_assert_eq!(
+                    child_data.len() as usize,
+                    inner_fields.len(),
+                    "Number of fields provided by JavaScript does not match expected number of \
+                     fields"
+                );
                 for (child, inner_field) in child_data.elements().zip(inner_fields) {
                     builder = builder.add_child_data(self.array_data_from_js(
                         mv8,
