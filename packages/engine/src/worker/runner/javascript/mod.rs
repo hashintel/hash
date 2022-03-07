@@ -2,13 +2,13 @@ mod error;
 mod mini_v8;
 
 use std::{
-    collections::HashMap, fs, future::Future, mem, pin::Pin, ptr::NonNull,
-    result::Result as StdResult, slice, sync::Arc,
+    collections::HashMap, fs, future::Future, pin::Pin, ptr::NonNull, result::Result as StdResult,
+    slice, sync::Arc,
 };
 
 use arrow::{
     array::{ArrayData, BooleanBufferBuilder, BufferBuilder},
-    buffer::{Buffer, MutableBuffer},
+    buffer::Buffer,
     datatypes::{ArrowNativeType, DataType, Schema},
     ipc::writer::{IpcDataGenerator, IpcWriteOptions},
     util::bit_util,
@@ -648,7 +648,6 @@ impl<'m> RunnerImpl<'m> {
     /// # SAFETY
     ///
     /// - `ptr` must be valid for `len` reads of `T`
-    #[tracing::instrument(skip_all, fields(?ptr, len, capacity=_capacity, target_len))]
     unsafe fn read_boolean_buffer(
         &self,
         ptr: NonNull<u8>,
@@ -700,7 +699,7 @@ impl<'m> RunnerImpl<'m> {
                 // SAFETY: `data` is provided by arrow
                 debug_assert!(
                     !data.buffer_ptrs[0].is_null(),
-                    "Required pointer for `Boolean` (`buffer[0]`) is null"
+                    "Required pointer for `Boolean` (`buffers[0]`) is null"
                 );
                 builder = builder.add_buffer(self.read_boolean_buffer(
                     NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8),
@@ -713,7 +712,7 @@ impl<'m> RunnerImpl<'m> {
                 // SAFETY: `data` is provided by arrow and the type is `u16`
                 debug_assert!(
                     !data.buffer_ptrs[0].is_null(),
-                    "Required pointer for `UInt16` (`buffer[0]`) is null"
+                    "Required pointer for `UInt16` (`buffers[0]`) is null"
                 );
                 builder = builder.add_buffer(self.read_primitive_buffer(
                     NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8).cast::<u16>(),
@@ -726,7 +725,7 @@ impl<'m> RunnerImpl<'m> {
                 // SAFETY: `data` is provided by arrow and the type is `u32`
                 debug_assert!(
                     !data.buffer_ptrs[0].is_null(),
-                    "Required pointer for `UInt32` (`buffer[0]`) is null"
+                    "Required pointer for `UInt32` (`buffers[0]`) is null"
                 );
                 builder = builder.add_buffer(self.read_primitive_buffer(
                     NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8).cast::<u32>(),
@@ -738,7 +737,7 @@ impl<'m> RunnerImpl<'m> {
             DataType::Float64 => unsafe {
                 debug_assert!(
                     !data.buffer_ptrs[0].is_null(),
-                    "Required pointer for `Float64` (`buffer[0]`) is null"
+                    "Required pointer for `Float64` (`buffers[0]`) is null"
                 );
                 // SAFETY: `data` is provided by arrow and the type is `f64`
                 builder = builder.add_buffer(self.read_primitive_buffer(
@@ -757,7 +756,7 @@ impl<'m> RunnerImpl<'m> {
                 let (offset_buffer, last_offset) = unsafe {
                     debug_assert!(
                         !data.buffer_ptrs[0].is_null(),
-                        "Required pointer for `Utf8` (`buffer[0]`) is null"
+                        "Required pointer for `Utf8` (`buffers[0]`) is null"
                     );
                     self.read_offset_buffer(
                         NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8).cast::<i32>(),
@@ -773,7 +772,7 @@ impl<'m> RunnerImpl<'m> {
                 unsafe {
                     debug_assert!(
                         !data.buffer_ptrs[0].is_null(),
-                        "Required pointer for `Utf8` (`buffer[1]`) is null"
+                        "Required pointer for `Utf8` (`buffers[1]`) is null"
                     );
                     builder = builder.add_buffer(self.read_primitive_buffer(
                         NonNull::new_unchecked(data.buffer_ptrs[1] as *mut u8),
@@ -792,7 +791,7 @@ impl<'m> RunnerImpl<'m> {
                 let (offset_buffer, last_offset) = unsafe {
                     debug_assert!(
                         !data.buffer_ptrs[0].is_null(),
-                        "Required pointer for `List` (`buffer[0]`) is null"
+                        "Required pointer for `List` (`buffers[0]`) is null"
                     );
                     self.read_offset_buffer(
                         NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8).cast::<i32>(),
@@ -842,7 +841,7 @@ impl<'m> RunnerImpl<'m> {
                 unsafe {
                     debug_assert!(
                         !data.buffer_ptrs[0].is_null(),
-                        "Required pointer for `FixedSizeBinary` (`buffer[0]`) is null"
+                        "Required pointer for `FixedSizeBinary` (`buffers[0]`) is null"
                     );
                     builder = builder.add_buffer(self.read_primitive_buffer(
                         NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8),
@@ -872,10 +871,8 @@ impl<'m> RunnerImpl<'m> {
                 .null_count(data.null_count + target_len - data.len);
         }
 
-        Ok(builder.build().map_err(|err| {
-            tracing::error!("{err}");
-            err
-        })?)
+        // TODO: OPTIM: skip validation for non-debug builds
+        Ok(builder.build()?)
     }
 
     fn flush_batch<B: DynamicBatch>(
