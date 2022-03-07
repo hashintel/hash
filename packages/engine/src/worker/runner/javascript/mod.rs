@@ -2,13 +2,13 @@ mod error;
 mod mini_v8;
 
 use std::{
-    collections::HashMap, fs, future::Future, pin::Pin, ptr::NonNull, result::Result as StdResult,
-    slice, sync::Arc,
+    collections::HashMap, fs, future::Future, mem, pin::Pin, ptr::NonNull,
+    result::Result as StdResult, slice, sync::Arc,
 };
 
 use arrow::{
     array::{ArrayData, BooleanBufferBuilder, BufferBuilder},
-    buffer::Buffer,
+    buffer::{Buffer, MutableBuffer},
     datatypes::{ArrowNativeType, DataType, Schema},
     ipc::writer::{IpcDataGenerator, IpcWriteOptions},
     util::bit_util,
@@ -565,7 +565,7 @@ impl<'m> RunnerImpl<'m> {
     /// # SAFETY
     ///
     /// - `ptr` must be valid for `len` reads of `T`
-    unsafe fn create_primitive_buffer<T: ArrowNativeType>(
+    unsafe fn read_primitive_buffer<T: ArrowNativeType>(
         &self,
         ptr: NonNull<T>,
         len: usize,
@@ -583,7 +583,7 @@ impl<'m> RunnerImpl<'m> {
         builder.append_slice(slice::from_raw_parts(ptr.as_ptr(), len));
 
         // Ensure we don't subtract a larger number from a smaller
-        // TODO: Use `builder.resize()` instead of `append_n`
+        // TODO: Use `buffer.resize()` instead of `builder.append_n()`
         debug_assert!(
             target_len >= len,
             "Expected length is smaller than the actual length for buffer: {:?}",
@@ -601,7 +601,7 @@ impl<'m> RunnerImpl<'m> {
     /// # SAFETY
     ///
     /// - `ptr` must be valid for `len` reads of `i32`
-    unsafe fn create_offset_buffer(
+    unsafe fn read_offset_buffer(
         &self,
         ptr: NonNull<i32>,
         len: usize,
@@ -632,7 +632,7 @@ impl<'m> RunnerImpl<'m> {
         let last = offsets[len];
 
         // Ensure we don't subtract a larger number from a smaller
-        // TODO: Use `builder.resize()` instead of `append_n`
+        // TODO: Use `buffer.resize()` instead of `builder.append_n()`
         debug_assert!(
             target_len >= len,
             "Expected offset count is smaller than the actual buffer: {:?}",
@@ -649,7 +649,7 @@ impl<'m> RunnerImpl<'m> {
     ///
     /// - `ptr` must be valid for `len` reads of `T`
     #[tracing::instrument(skip_all, fields(?ptr, len, capacity=_capacity, target_len))]
-    unsafe fn create_boolean_buffer(
+    unsafe fn read_boolean_buffer(
         &self,
         ptr: NonNull<u8>,
         len: usize,
@@ -702,7 +702,7 @@ impl<'m> RunnerImpl<'m> {
                     !data.buffer_ptrs[0].is_null(),
                     "Required pointer for `Boolean` (`buffer[0]`) is null"
                 );
-                builder = builder.add_buffer(self.create_boolean_buffer(
+                builder = builder.add_buffer(self.read_boolean_buffer(
                     NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8),
                     data.len,
                     data.buffer_capacities[0],
@@ -715,7 +715,7 @@ impl<'m> RunnerImpl<'m> {
                     !data.buffer_ptrs[0].is_null(),
                     "Required pointer for `UInt16` (`buffer[0]`) is null"
                 );
-                builder = builder.add_buffer(self.create_primitive_buffer(
+                builder = builder.add_buffer(self.read_primitive_buffer(
                     NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8).cast::<u16>(),
                     data.len,
                     data.buffer_capacities[0],
@@ -728,7 +728,7 @@ impl<'m> RunnerImpl<'m> {
                     !data.buffer_ptrs[0].is_null(),
                     "Required pointer for `UInt32` (`buffer[0]`) is null"
                 );
-                builder = builder.add_buffer(self.create_primitive_buffer(
+                builder = builder.add_buffer(self.read_primitive_buffer(
                     NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8).cast::<u32>(),
                     data.len,
                     data.buffer_capacities[0],
@@ -741,7 +741,7 @@ impl<'m> RunnerImpl<'m> {
                     "Required pointer for `Float64` (`buffer[0]`) is null"
                 );
                 // SAFETY: `data` is provided by arrow and the type is `f64`
-                builder = builder.add_buffer(self.create_primitive_buffer(
+                builder = builder.add_buffer(self.read_primitive_buffer(
                     NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8).cast::<f64>(),
                     data.len,
                     data.buffer_capacities[0],
@@ -759,7 +759,7 @@ impl<'m> RunnerImpl<'m> {
                         !data.buffer_ptrs[0].is_null(),
                         "Required pointer for `Utf8` (`buffer[0]`) is null"
                     );
-                    self.create_offset_buffer(
+                    self.read_offset_buffer(
                         NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8).cast::<i32>(),
                         data.len,
                         data.buffer_capacities[0],
@@ -775,7 +775,7 @@ impl<'m> RunnerImpl<'m> {
                         !data.buffer_ptrs[0].is_null(),
                         "Required pointer for `Utf8` (`buffer[1]`) is null"
                     );
-                    builder = builder.add_buffer(self.create_primitive_buffer(
+                    builder = builder.add_buffer(self.read_primitive_buffer(
                         NonNull::new_unchecked(data.buffer_ptrs[1] as *mut u8),
                         last_offset,
                         data.buffer_capacities[1],
@@ -794,7 +794,7 @@ impl<'m> RunnerImpl<'m> {
                         !data.buffer_ptrs[0].is_null(),
                         "Required pointer for `List` (`buffer[0]`) is null"
                     );
-                    self.create_offset_buffer(
+                    self.read_offset_buffer(
                         NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8).cast::<i32>(),
                         data.len,
                         data.buffer_capacities[0],
@@ -844,7 +844,7 @@ impl<'m> RunnerImpl<'m> {
                         !data.buffer_ptrs[0].is_null(),
                         "Required pointer for `FixedSizeBinary` (`buffer[0]`) is null"
                     );
-                    builder = builder.add_buffer(self.create_primitive_buffer(
+                    builder = builder.add_buffer(self.read_primitive_buffer(
                         NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8),
                         *size as usize * data.len,
                         data.buffer_capacities[0],
@@ -859,7 +859,7 @@ impl<'m> RunnerImpl<'m> {
         if let Some(null_bits_ptr) = NonNull::new(data.null_bits_ptr as *mut u8) {
             // SAFETY: null-bits are provided by arrow
             let null_bit_buffer = unsafe {
-                self.create_boolean_buffer(
+                self.read_boolean_buffer(
                     null_bits_ptr,
                     data.len,
                     data.null_bits_capacity,
