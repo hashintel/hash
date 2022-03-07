@@ -2,8 +2,8 @@ mod error;
 mod mini_v8;
 
 use std::{
-    any::type_name, collections::HashMap, fs, future::Future, pin::Pin, ptr::NonNull,
-    result::Result as StdResult, slice, sync::Arc,
+    collections::HashMap, fs, future::Future, pin::Pin, ptr::NonNull, result::Result as StdResult,
+    slice, sync::Arc,
 };
 
 use arrow::{
@@ -672,18 +672,6 @@ impl<'m> RunnerImpl<'m> {
         builder.finish()
     }
 
-    fn create_child_data(
-        &mut self,
-        mv8: &'m MiniV8,
-        child_data: &mv8::Array<'m>,
-        index: u32,
-        data_type: &DataType,
-        target_len: usize,
-    ) -> Result<ArrayData> {
-        let child = child_data.get(index)?;
-        self.array_data_from_js(mv8, &child, data_type, Some(target_len))
-    }
-
     /// TODO: DOC, flushing from a single column
     fn array_data_from_js(
         &mut self,
@@ -815,35 +803,34 @@ impl<'m> RunnerImpl<'m> {
                 };
                 builder = builder.add_buffer(offset_buffer);
 
-                builder = builder.add_child_data(self.create_child_data(
+                let child_data: mv8::Array<'_> = obj.get("child_data")?;
+                builder = builder.add_child_data(self.array_data_from_js(
                     mv8,
-                    &obj.get("child_data")?,
-                    0,
+                    &child_data.get(0)?,
                     inner_field.data_type(),
-                    last_offset,
+                    Some(last_offset),
                 )?);
             }
             DataType::FixedSizeList(inner_field, size) => {
                 // FixedSizeListList is only stored by child data, as offsets are not required
                 // because the size is known.
-                builder = builder.add_child_data(self.create_child_data(
+                let child_data: mv8::Array<'_> = obj.get("child_data")?;
+                builder = builder.add_child_data(self.array_data_from_js(
                     mv8,
-                    &obj.get("child_data")?,
-                    0,
+                    &child_data.get(0)?,
                     inner_field.data_type(),
-                    *size as usize * target_len,
+                    Some(*size as usize * target_len),
                 )?);
             }
             DataType::Struct(inner_fields) => {
                 // Structs are only defined by child data
                 let child_data: mv8::Array<'_> = obj.get("child_data")?;
-                for (i, inner_field) in inner_fields.iter().enumerate() {
-                    builder = builder.add_child_data(self.create_child_data(
+                for (child, inner_field) in child_data.elements().zip(inner_fields) {
+                    builder = builder.add_child_data(self.array_data_from_js(
                         mv8,
-                        &child_data,
-                        i as u32,
+                        &child?,
                         inner_field.data_type(),
-                        target_len,
+                        Some(target_len),
                     )?);
                 }
             }
