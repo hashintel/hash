@@ -96,24 +96,39 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         Object.assign(hoverStyles, {
           background: theme.palette.blue[20],
         });
+      } else if (variant === "tertiary") {
+        Object.assign(baseStyles, {
+          border: `1px solid ${theme.palette.gray[30]}`,
+          color: theme.palette.gray[80],
+          background: theme.palette.common.white,
+        });
+
+        Object.assign(hoverStyles, {
+          background: theme.palette.gray[20],
+          color: theme.palette.gray[90],
+        });
       } else if (variant === "tertiary_quiet") {
         /** ===== TERTIARY button specific styling ===== */
 
         Object.assign(baseStyles, {
+          border: `1px solid transparent`,
           color: theme.palette.gray[70],
-          fontWeight: 500,
           background: theme.palette.common.white,
-          "& > .MuiButton-startIcon, > .MuiButton-endIcon": {
-            color: theme.palette.gray[40],
-          },
         });
 
         Object.assign(hoverStyles, {
+          background: theme.palette.gray[20],
           color: theme.palette.gray[80],
         });
+      } else if (variant === "warning") {
+        Object.assign(baseStyles, {
+          color: theme.palette.orange[90],
+          background: theme.palette.orange[40],
+        });
 
-        Object.assign(activeStyles, {
-          background: theme.palette.gray[20],
+        Object.assign(hoverStyles, {
+          background: theme.palette.orange[50],
+          color: theme.palette.orange[100],
         });
       }
 
