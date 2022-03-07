@@ -191,20 +191,20 @@ fn import_file<'m>(
 impl<'m> Embedded<'m> {
     fn import(mv8: &'m MiniV8) -> Result<Self> {
         let arrow = eval_file(mv8, "./src/worker/runner/javascript/apache-arrow-bundle.js")?;
-        let hash_stdlib = eval_file(mv8, "./src/worker/runner/javascript/hash_stdlib.js")?;
-        let hash_util = import_file(mv8, "./src/worker/runner/javascript/hash_util.js", vec![
+        let hash_stdlib = eval_file(mv8, "./src/worker/runner/javascript/out/hash_stdlib.js")?;
+        let hash_util = import_file(mv8, "./src/worker/runner/javascript/out/hash_util.js", vec![
             &arrow,
         ])?;
-        let batches_prototype = import_file(mv8, "./src/worker/runner/javascript/batch.js", vec![
+        let batches_prototype = import_file(mv8, "./src/worker/runner/javascript/out/batch.js", vec![
             &arrow, &hash_util,
         ])?;
 
-        let ctx_import = import_file(mv8, "./src/worker/runner/javascript/context.js", vec![
+        let ctx_import = import_file(mv8, "./src/worker/runner/javascript/out/context.js", vec![
             &hash_util,
         ])?;
         let ctx_import = ctx_import.as_array().ok_or_else(|| {
             Error::FileImport(
-                "./src/worker/runner/javascript/context.js".into(),
+                "./src/worker/runner/javascript/out/context.js".into(),
                 "Couldn't get array (of functions) from 'context.js'".into(),
             )
         })?;
@@ -212,10 +212,10 @@ impl<'m> Embedded<'m> {
         let sim_init_ctx_prototype = ctx_import.get(1)?;
         let gen_ctx = ctx_import.get(2)?;
 
-        let gen_state = import_file(mv8, "./src/worker/runner/javascript/state.js", vec![
+        let gen_state = import_file(mv8, "./src/worker/runner/javascript/out/state.js", vec![
             &hash_util,
         ])?;
-        let fns = import_file(mv8, "./src/worker/runner/javascript/runner.js", vec![
+        let fns = import_file(mv8, "./src/worker/runner/javascript/out/runner.js", vec![
             &arrow,
             &batches_prototype,
             &experiment_ctx_prototype,
@@ -225,7 +225,7 @@ impl<'m> Embedded<'m> {
         ])?;
         let fns = fns.as_array().ok_or_else(|| {
             Error::FileImport(
-                "./src/worker/runner/javascript/runner.js".into(),
+                "./src/worker/runner/javascript/out/runner.js".into(),
                 "Couldn't get array (of functions) from 'runner.js'".into(),
             )
         })?;
