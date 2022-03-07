@@ -51,7 +51,7 @@ import {
   getAccountEntities,
 } from "./entity";
 import { getEntityOutgoingLinks } from "./link/getEntityOutgoingLinks";
-import { getLink, getLinkByEntityId } from "./link/getLink";
+import { getLink } from "./link/getLink";
 import { createLink } from "./link/createLink";
 import { deleteLink } from "./link/deleteLink";
 import { getUserByEmail, getUserByShortname } from "./user";
@@ -464,12 +464,6 @@ export class PostgresClient implements DBClient {
     return await getLink(this.conn, params);
   }
 
-  async getLinkByEntityId(
-    params: Parameters<DBClient["getLinkByEntityId"]>[0],
-  ): ReturnType<DBClient["getLinkByEntityId"]> {
-    return await getLinkByEntityId(this.conn, params);
-  }
-
   async deleteLink(params: {
     deletedByAccountId: string;
     sourceAccountId: string;
@@ -508,12 +502,9 @@ export class PostgresClient implements DBClient {
     return await deleteAggregation(this.conn, params);
   }
 
-  async getEntityOutgoingLinks(params: {
-    accountId: string;
-    entityId: string;
-    entityVersionId?: string;
-    path?: string;
-  }): Promise<DBLink[]> {
+  async getEntityOutgoingLinks(
+    params: Parameters<DBClient["getEntityOutgoingLinks"]>[0],
+  ): Promise<DBLink[]> {
     return await getEntityOutgoingLinks(this.conn, params);
   }
 

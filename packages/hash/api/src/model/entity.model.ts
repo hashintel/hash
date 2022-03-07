@@ -410,20 +410,20 @@ class __Entity {
   async getOutgoingLinks(
     client: DBClient,
     params?: {
+      activeAt?: Date;
       stringifiedPath?: string;
       path?: PathComponent[];
     },
   ) {
-    const { stringifiedPath, path } = params || {};
+    const { activeAt, stringifiedPath, path } = params || {};
 
     const outgoingDBLinks = await client.getEntityOutgoingLinks({
       accountId: this.accountId,
       entityId: this.entityId,
-      entityVersionId: this.metadata.versioned
-        ? this.entityVersionId
-        : undefined,
+      activeAt,
       path: stringifiedPath ?? (path ? Link.stringifyPath(path) : undefined),
     });
+
     return outgoingDBLinks.map((dbLink) => new Link(dbLink));
   }
 
@@ -441,22 +441,6 @@ class __Entity {
     return link;
   }
 
-  async getOutgoingLinkByEntityId(
-    client: DBClient,
-    params: {
-      destinationEntityId: string;
-    },
-  ) {
-    const link = await Link.getByEntityId(client, {
-      ...params,
-      sourceAccountId: this.accountId,
-      sourceEntityId: this.entityId,
-      sourceEntityVersionId: this.entityVersionId,
-    });
-
-    return link;
-  }
-
   async createOutgoingLink(
     client: DBClient,
     params: Omit<CreateLinkArgs, "source">,
@@ -467,11 +451,6 @@ class __Entity {
       ...params,
       source: this,
     });
-
-    // If this is a versioned entity, fetch the updated entityVersionId
-    if (this.metadata.versioned) {
-      await this.refetchLatestVersion(client);
-    }
 
     return link;
   }
@@ -494,10 +473,6 @@ class __Entity {
     await link.delete(client, {
       deletedByAccountId: params.deletedByAccountId,
     });
-
-    if (this.metadata.versioned) {
-      await this.refetchLatestVersion(client);
-    }
   }
 
   private static async getOrCreate(
