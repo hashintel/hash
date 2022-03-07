@@ -1,4 +1,4 @@
-#![feature(backtrace, box_patterns, map_try_insert, once_cell, test)]
+#![feature(backtrace, box_patterns, map_try_insert, once_cell, test, is_sorted)]
 #![warn(
     rust_2018_compatibility,
     rust_2018_idioms,
