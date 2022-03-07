@@ -688,8 +688,18 @@ impl<'m> RunnerImpl<'m> {
         // `data_node_from_js` isn't recursive -- doesn't convert children.
         let data: mv8::DataFfi = mv8.data_node_from_js(data);
 
-        // This target length is used because the JS repr does not mirror buffer building as Rust
-        // Arrow and pyarrow.
+        // The JS Arrow implementation tries to be efficient with the allocation of the values
+        // buffers. If you have a null value at the end, it doesn't always allocate that
+        // within the buffer. Rust expects that to be explicitly there though, so there's a
+        // mismatch in the expected lengths. `target_len` is the number of elements the Rust
+        // implementation of Arrow expects in the resulting `ArrayData`.
+        //
+        // Example:
+        // Considering a column of fixed-size-lists with two elements each: [[1, 2], [3, 4], null]
+        // JavaScript will only provide a value-array for the child data containing [1, 2, 3, 4]
+        // (data.len == 4), but Rust expects it to be [1, 2, 3, 4, ?, ?] (target_len == 6) where `?`
+        // means an unspecified value. We read [1, 2, 3, 4] from the JS data by using `data.len` and
+        // then resize the buffer to `target_len`.
         let target_len = len.unwrap_or(data.len);
 
         let mut builder = ArrayData::builder(data_type.clone());
