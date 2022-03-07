@@ -15,7 +15,7 @@ export const updateEntityType: Resolver<
   { dataSources: { db }, user },
 ) => {
   return await db.transaction(async (conn) => {
-    const entityType = await EntityType.getEntityType(db, {
+    const entityType = await EntityType.getEntityType(conn, {
       entityTypeId: entityId,
     });
 
