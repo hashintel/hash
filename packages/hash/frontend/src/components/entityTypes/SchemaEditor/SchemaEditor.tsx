@@ -4,7 +4,6 @@ import {
   BlockProtocolProps,
   JSONObject,
 } from "blockprotocol";
-import Link from "next/link";
 import React, {
   createContext,
   FormEvent,
@@ -27,6 +26,7 @@ import {
 } from "./schemaEditorReducer";
 import { OldButton } from "../../forms/OldButton";
 import { SubSchemaItem } from "./SubSchemaItem";
+import { Link } from "../../Link";
 
 export type SchemaSelectElementType = VoidFunctionComponent<{
   schemaRef: string;
@@ -213,13 +213,15 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
       </header>
 
       <section>
-        <div className={tw`flex items-center`}>
+        <div className={tw`flex items-center mb-7`}>
           <h2>
             Properties of{" "}
-            <Link href={workingSchemaDraft.$id ?? "#"}>{title}</Link>
+            <Link noLinkStyle href={workingSchemaDraft.$id ?? "#"}>
+              {title}
+            </Link>
           </h2>
           {subSchemaReference ? (
-            <h3 className={tw`mb-7 ml-2`}>{` > ${subSchemaReference
+            <h3 className={tw`ml-2`}>{` > ${subSchemaReference
               .split("/")
               .pop()}`}</h3>
           ) : null}

@@ -1,7 +1,6 @@
 import { useQuery } from "@apollo/client";
 import { PageSearchResult } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 import { escapeRegExp } from "lodash";
-import Link from "next/link";
 import React, {
   useCallback,
   useEffect,
@@ -22,6 +21,7 @@ import { useUser } from "../../../hooks/useUser";
 import { HASH_OPENSEARCH_ENABLED } from "../../../../lib/public-env";
 import { DesktopSearch } from "./DesktopSearch";
 import { MobileSearch } from "./MobileSearch";
+import { Link } from "../../../Link";
 
 /** finds the query's words in the result and chops it into parts at the words' boundaries */
 const splitByMatches = (result: string, query: string) => {
@@ -187,7 +187,7 @@ const SearchBarWhenSearchIsEnabled: React.VFC = () => {
               <ResultItem
                 key={searchPage.block?.entityId ?? searchPage.page.entityId}
               >
-                <Link href={toBlockUrl(searchPage)}>
+                <Link noLinkStyle href={toBlockUrl(searchPage)}>
                   <a>
                     {splitByMatches(searchPage.content, submittedQuery).map(
                       (str, i) => (i % 2 === 1 ? <b>{str}</b> : str),

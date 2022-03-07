@@ -1,5 +1,4 @@
 import { useCallback, VoidFunctionComponent } from "react";
-import Link from "next/link";
 import pluralize from "pluralize";
 import { useQuery } from "@apollo/client";
 import { useRouter } from "next/router";
@@ -19,6 +18,7 @@ import { AccountEntityOfTypeList } from "../../../components/entityTypes/Account
 import { useBlockProtocolUpdateEntityType } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntityType";
 import { useBlockProtocolAggregateEntityTypes } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregateEntityTypes";
 import { MainContentWrapper } from "../../../components/layout/MainContentWrapper";
+import { Link } from "../../../components/Link";
 
 export const EntityType: VoidFunctionComponent = () => {
   const router = useRouter();
@@ -94,7 +94,7 @@ export const EntityType: VoidFunctionComponent = () => {
       }
 
       return (
-        <Link href={schemaLinkPath}>
+        <Link noLinkStyle href={schemaLinkPath}>
           <a>
             <strong>{schemaRef.replace(/#\/\$defs\//g, "")}</strong>
           </a>
@@ -120,7 +120,10 @@ export const EntityType: VoidFunctionComponent = () => {
                 entityTypeId={typeId}
               />
             </div>
-            <Link href={`/${accountId}/entities/new?entityTypeId=${typeId}`}>
+            <Link
+              noLinkStyle
+              href={`/${accountId}/entities/new?entityTypeId=${typeId}`}
+            >
               <a>
                 <OldButton>New {schema.title}</OldButton>
               </a>

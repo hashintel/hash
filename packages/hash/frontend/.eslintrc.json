@@ -7,7 +7,7 @@
     "jsx-a11y/label-has-associated-control": "off",
     "import/no-default-export": "error",
     "no-restricted-imports": [
-      "warn",
+      "error",
       {
         "paths": [
           {

@@ -1,11 +1,11 @@
 // eslint-disable-next-line no-restricted-imports
-import { Box, ButtonProps } from "@mui/material";
 import Link, { LinkProps } from "next/link";
+import { Box, ButtonProps } from "@mui/material";
 import { VoidFunctionComponent } from "react";
 
 import { Button } from "./Button";
 
-type LinkButtonProps = ButtonProps &
+type LinkButtonProps = Omit<ButtonProps, "href"> &
   LinkProps & {
     noLinkStyle?: boolean;
   };

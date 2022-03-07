@@ -1,10 +1,10 @@
 import { VoidFunctionComponent } from "react";
 import { useRouter } from "next/router";
-import Link from "next/link";
 
 import { MainContentWrapper } from "../../components/layout/MainContentWrapper";
 import { useUser } from "../../components/hooks/useUser";
 import { useOrgs } from "../../components/hooks/useOrgs";
+import { Link } from "../../components/Link";
 
 export const AccountHome: VoidFunctionComponent = () => {
   const { query } = useRouter();
@@ -17,7 +17,7 @@ export const AccountHome: VoidFunctionComponent = () => {
       <MainContentWrapper>
         <h2>
           You must be{" "}
-          <Link href="/login">
+          <Link href="/login" noLinkStyle>
             <a style={{ fontWeight: "700" }}>logged in</a>
           </Link>{" "}
           to access this workspace.
