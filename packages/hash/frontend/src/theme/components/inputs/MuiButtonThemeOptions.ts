@@ -1,7 +1,9 @@
 import { Components, CSSObject, Theme } from "@mui/material";
 
-const buttonFocusBorderOffset = 4;
+const buttonFocusBorderOffset = 6;
 const buttonFocusBorderWidth = 3;
+const baseButtonBorderRadius = 4;
+const largeButtonBorderRadius = 6;
 
 export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
   defaultProps: {
@@ -37,7 +39,10 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
       const hoverBeforeStyles: CSSObject = {};
 
       // The .Mui-disabled CSS styling applied to the button
-      const disabledStyles: CSSObject = {};
+      const disabledStyles: CSSObject = {
+        background: theme.palette.gray[20],
+        color: theme.palette.gray[50],
+      };
 
       // The :active CSS styling applied to the button
       const activeStyles: CSSObject = {};
@@ -54,7 +59,10 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         bottom: -buttonFocusBorderOffset,
         right: -buttonFocusBorderOffset,
         border: `${buttonFocusBorderWidth}px solid`,
-        borderRadius: 6 + buttonFocusBorderOffset,
+        borderRadius:
+          (size === "large"
+            ? largeButtonBorderRadius
+            : baseButtonBorderRadius) + buttonFocusBorderOffset,
         borderColor: theme.palette.blue["70"],
       };
 
@@ -109,7 +117,6 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         });
       } else if (variant === "tertiary_quiet") {
         /** ===== TERTIARY button specific styling ===== */
-
         Object.assign(baseStyles, {
           border: `1px solid transparent`,
           color: theme.palette.gray[70],
@@ -130,17 +137,25 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           background: theme.palette.orange[50],
           color: theme.palette.orange[100],
         });
+      } else if (variant === "danger") {
+        Object.assign(baseStyles, {
+          color: theme.palette.common.white,
+          background: theme.palette.red[60],
+        });
+
+        Object.assign(hoverStyles, {
+          background: theme.palette.red[70],
+        });
       }
 
       /** ===== SIZES specific styling ===== */
-      // @todo-mui note that tertiary_quiet has different font-weight
       const sizeStyles = {
-        borderRadius: "4px",
+        borderRadius: `${baseButtonBorderRadius}px`,
         ...(size === "large" && {
           padding: "16px 32px",
           minHeight: 56,
           minWidth: 120,
-          borderRadius: "6px",
+          borderRadius: `${largeButtonBorderRadius}px`,
           ...theme.typography.largeTextLabels,
         }),
         ...(size === "medium" && {

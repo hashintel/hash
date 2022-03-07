@@ -73,6 +73,14 @@ const loadingAnimation = (
   </Box>
 );
 
+// @todo-mui
+// - add loading state (loading w w/o text)
+// - add button style w icon
+// - add disabled button with label
+// - add disabled button with Tooltip
+// - work on icon buttons
+// -
+
 export type ButtonProps = {
   squared?: boolean;
   loading?: boolean;
