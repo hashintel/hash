@@ -6,7 +6,7 @@ import {
   schema$idRef,
 } from "../../../lib/schemas/jsonSchema";
 
-const entityTypeChildrenResolver: Resolver<
+const children: Resolver<
   Promise<UnresolvedGQLEntityType[]>,
   GQLEntityType,
   GraphQLContext
@@ -20,7 +20,7 @@ const entityTypeChildrenResolver: Resolver<
   return entityTypes.map((entityType) => entityType.toGQLEntityType());
 };
 
-const entityTypeParentsResolver: Resolver<
+const parents: Resolver<
   Promise<UnresolvedGQLEntityType[]>,
   GQLEntityType,
   GraphQLContext
@@ -35,6 +35,6 @@ const entityTypeParentsResolver: Resolver<
 };
 
 export const entityTypeInheritance = {
-  entityTypeChildren: entityTypeChildrenResolver,
-  entityTypeParents: entityTypeParentsResolver,
+  children,
+  parents,
 };
