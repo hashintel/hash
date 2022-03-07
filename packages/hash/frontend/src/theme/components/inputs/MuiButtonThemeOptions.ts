@@ -68,7 +68,7 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           background: theme.palette.blue[70],
           position: "relative",
           zIndex: 0,
-          transition: "opacity 0.5s ease-in-out",
+          transition: "opacity 0.3s ease-in-out",
         });
 
         Object.assign(beforeStyles, {
@@ -85,6 +85,16 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
 
         Object.assign(hoverBeforeStyles, {
           opacity: 1,
+        });
+      } else if (variant === "secondary") {
+        Object.assign(baseStyles, {
+          border: `1px solid ${theme.palette.blue[70]}`,
+          color: theme.palette.blue[70],
+          background: theme.palette.common.white,
+        });
+
+        Object.assign(hoverStyles, {
+          background: theme.palette.blue[20],
         });
       } else if (variant === "tertiary_quiet") {
         /** ===== TERTIARY button specific styling ===== */

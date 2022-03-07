@@ -86,7 +86,6 @@ export const Button: FC<ButtonProps> = forwardRef(
         sx={{
           borderRadius: squared ? "6px" : undefined,
           ...props.sx,
-          lineHeight: "1.5",
           ...(squared
             ? { ":focus-visible:after": { borderRadius: 3 } }
             : undefined),
