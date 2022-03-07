@@ -8,7 +8,6 @@ import React, {
   VoidFunctionComponent,
 } from "react";
 import { useDebounce, useKey, useOutsideClickRef } from "rooks";
-import { tw } from "twind";
 import { Box, Theme, useTheme, useMediaQuery, SxProps } from "@mui/material";
 
 import { blockDomId } from "../../../../blocks/page/BlockView";
@@ -62,9 +61,9 @@ const ResultList: React.FC<{
       maxHeight: "15rem",
       overflow: "auto",
       border: `1px solid ${theme.palette.gray[20]}`,
-      borderRadius: "",
+      borderRadius: "0.5rem",
+      boxShadow: theme.shadows[1],
     })}
-    className={tw`z-10 w-1/2 max-h-60 overflow-auto border border-gray-100 rounded-lg shadow-md`}
   >
     {props.children}
   </Box>
@@ -72,17 +71,29 @@ const ResultList: React.FC<{
 
 const ResultItem: React.FC<{
   sx?: SxProps<Theme>;
-}> = ({ sx, ...props }) => (
-  <Box
-    component="li"
-    sx={{
-      display: "flex",
-      ...sx,
-    }}
-    className={tw`border border-gray-100 bg-gray-50 p-2 hover:bg-gray-100 cursor-pointer overflow-ellipsis overflow-hidden`}
-    {...props}
-  />
-);
+}> = ({ sx, ...props }) => {
+  const theme = useTheme();
+
+  return (
+    <Box
+      component="li"
+      sx={{
+        display: "flex",
+        border: `1px solid ${theme.palette.gray[20]}`,
+        backgroundColor: theme.palette.gray[50],
+        padding: 1,
+        cursor: "pointer",
+        textOverflow: "ellipsis",
+        overflow: "hidden",
+        "&:hover": {
+          backgroundColor: theme.palette.gray[70],
+        },
+        ...sx,
+      }}
+      {...props}
+    />
+  );
+};
 
 /** extends react's useState by returning an additional value updated after a short delay (debounce) */
 const useQueryText = (): [string, string, (queryText: string) => void] => {
