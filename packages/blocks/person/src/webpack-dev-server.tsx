@@ -15,8 +15,9 @@ const props = {
     position: "General Manager of Insurance Claims",
   },
   name: "Archibald Adams-Montgomery",
-  email: "alice@example.com",
-  link: "https://example.com/alice",
+  email: "archie@example.com",
+  link: "https://example.com/archie",
+  maxWidth: 700,
 };
 
 const App = () => (
