@@ -560,7 +560,8 @@ impl<'m> RunnerImpl<'m> {
     }
 
     /// Adds a new buffer from the provided `ptr` and `capacity` with at least a capacity of
-    /// `target_len` elements and `len` elements are copied from `ptr`.
+    /// Creates a new buffer from the provided `ptr` and `capacity`, with `len` elements 
+    /// copied from `ptr` and a capacity of at least `target_len` elements.
     ///
     /// # SAFETY
     ///
@@ -582,8 +583,8 @@ impl<'m> RunnerImpl<'m> {
         // Read data from JS
         builder.append_slice(slice::from_raw_parts(ptr.as_ptr(), len));
 
-        // Ensure we don't subtract a larger number from a smaller
-        // TODO: Use `buffer.resize()` instead of `builder.append_n()`
+        // Ensure we don't subtract a larger unsigned number from a smaller
+        // TODO: Use `buffer.resize()` instead of `builder.advance()`
         debug_assert!(
             target_len >= len,
             "Expected length is smaller than the actual length for buffer: {:?}",
@@ -594,13 +595,14 @@ impl<'m> RunnerImpl<'m> {
     }
 
     /// Adds a new offset buffer from the provided `ptr` and `capacity` with at least a capacity of
-    /// `target_len` elements and `len` elements are copied from `ptr`.
+    /// Creates a new offset buffer from the provided `ptr` and `capacity`, with `len` elements 
+    /// copied from `ptr` and a capacity of at least `target_len` elements.
     ///
     /// Returns the buffer and the last offset.
     ///
     /// # SAFETY
     ///
-    /// - `ptr` must be valid for `len` reads of `i32`
+    /// - `ptr` must be valid for `len + 1` reads of `i32`
     unsafe fn read_offset_buffer(
         &self,
         ptr: NonNull<i32>,
@@ -631,7 +633,7 @@ impl<'m> RunnerImpl<'m> {
 
         let last = offsets[len];
 
-        // Ensure we don't subtract a larger number from a smaller
+        // Ensure we don't subtract a larger unsigned number from a smaller
         // TODO: Use `buffer.resize()` instead of `builder.append_n()`
         debug_assert!(
             target_len >= len,
@@ -643,11 +645,12 @@ impl<'m> RunnerImpl<'m> {
     }
 
     /// Adds a new packed buffer from the provided `ptr` and `capacity` with at least a capacity
-    /// of `target_len` elements and `len` elements are copied from `ptr`.
+    /// Creates a new packed buffer from the provided `ptr` and `capacity`, with `len` elements 
+    /// copied from `ptr` and a capacity of at least `target_len` elements.
     ///
     /// # SAFETY
     ///
-    /// - `ptr` must be valid for `len` reads of `T`
+    /// - `ptr` must be valid for `ceil(len/8)` reads of `u8`
     unsafe fn read_boolean_buffer(
         &self,
         ptr: NonNull<u8>,
@@ -889,7 +892,7 @@ impl<'m> RunnerImpl<'m> {
                 .null_count(data.null_count + target_len - data.len);
         }
 
-        // TODO: OPTIM: skip validation for non-debug builds
+        // TODO: OPTIM: skip validation within `build()` for non-debug builds
         Ok(builder.build()?)
     }
 
