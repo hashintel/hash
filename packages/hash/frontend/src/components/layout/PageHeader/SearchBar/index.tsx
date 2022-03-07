@@ -131,10 +131,10 @@ const SearchBarWhenSearchIsEnabled: React.VFC = () => {
   const [displaySearchInput, setDisplaySearchInput] = useState<boolean>(false);
 
   useEffect(() => {
-    if (isMobile && displayedQuery.trim() && !displaySearchInput) {
+    if (displayedQuery.trim() && !displaySearchInput) {
       setDisplaySearchInput(true);
     }
-  }, [isMobile, displayedQuery, displaySearchInput]);
+  }, [displayedQuery, displaySearchInput]);
 
   const { user } = useUser();
 
