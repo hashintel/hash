@@ -187,9 +187,7 @@ const SearchBarWhenSearchIsEnabled: React.VFC = () => {
           }}
           onClick={() => setDisplaySearchInput(true)}
         >
-          <SearchIcon
-            sx={(theme) => ({ height: theme.spacing(2), width: "auto" })}
-          />
+          <SearchIcon sx={{ height: theme.spacing(2), width: "auto" }} />
         </IconButton>
       ) : (
         <Box
