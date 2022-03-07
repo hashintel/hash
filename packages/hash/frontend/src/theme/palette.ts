@@ -149,10 +149,45 @@ export const customColors = {
 } as const;
 
 export const palette: ThemeOptions["palette"] = {
-  ...customColors,
+  divider: customColors.gray[30],
+  primary: {
+    dark: customColors.blue[90],
+    main: customColors.blue[70],
+    light: customColors.blue[50],
+  },
+  secondary: {
+    dark: customColors.purple[90],
+    main: customColors.purple[70],
+    light: customColors.purple[50],
+  },
+  warning: {
+    dark: customColors.blue[80],
+    main: customColors.blue[60],
+    light: customColors.blue[40],
+  },
+  error: {
+    dark: customColors.red[90],
+    main: customColors.red[70],
+    light: customColors.red[50],
+  },
+  info: {
+    dark: customColors.blue[90],
+    main: customColors.blue[70],
+    light: customColors.blue[50],
+  },
+  success: {
+    dark: customColors.blue[80],
+    main: customColors.blue[60],
+    light: customColors.blue[40],
+  },
+  text: {
+    primary: customColors.gray[80],
+    secondary: customColors.gray[70],
+    disabled: customColors.gray[50],
+  },
   common: {
     black: customColors.black,
     white: customColors.white,
   },
-  // @todo-mui override other mui palette fields to match design
+  ...customColors,
 };
