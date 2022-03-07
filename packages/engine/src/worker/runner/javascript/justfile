@@ -1,0 +1,7 @@
+
+compile:
+  esbuild ./src/batch.ts > ./out/batch.js
+  esbuild ./src/context.ts > ./out/context.js
+  esbuild ./src/hash_util.ts > ./out/hash_util.js
+  esbuild ./src/runner.ts > ./out/runner.js
+  esbuild ./src/state.ts > ./out/state.js

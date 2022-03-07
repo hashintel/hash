@@ -3,7 +3,7 @@ import webpack from "webpack";
 export default {
   entry: "./src/index.mjs",
   output: {
-    filename: "apache-arrow-bundle.js",
+    filename: "./out/apache-arrow-bundle.js",
     library: {
       name: "arrow",
       type: "var",
