@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { CSSProperties, useMemo } from "react";
 import { BlockComponent } from "blockprotocol/react";
 
 import { MailIcon } from "./icons/MailIcon";
@@ -15,6 +15,7 @@ type AppProps = {
   };
   link?: string;
   name?: string;
+  maxWidth?: string | number;
 };
 
 export const App: BlockComponent<AppProps> = ({
@@ -23,6 +24,7 @@ export const App: BlockComponent<AppProps> = ({
   email,
   link,
   name,
+  maxWidth = "400px",
 }) => {
   const { name: employerName, position } = employer ?? {};
 
@@ -35,7 +37,10 @@ export const App: BlockComponent<AppProps> = ({
   }, [link]);
 
   return (
-    <div className="person-container">
+    <div
+      className="person-container"
+      style={{ "--person-container-max-width": maxWidth } as CSSProperties}
+    >
       {avatar && (
         <img
           alt={`${name ? `${name}'s ` : ""}avatar`}
@@ -43,7 +48,7 @@ export const App: BlockComponent<AppProps> = ({
           src={avatar}
         />
       )}
-      <div>
+      <div className="person-text-container">
         <div className="person-name-container">
           {avatar && (
             <img
@@ -52,7 +57,12 @@ export const App: BlockComponent<AppProps> = ({
               src={avatar}
             />
           )}
-          <div className="person-name">{name}</div>
+          <div
+            className="person-name"
+            style={{ marginBottom: name && employer ? "4px" : undefined }}
+          >
+            {name}
+          </div>
           {employer && (
             <div className="person-employer">
               {position} <span className="person-employer-breaker">at</span>{" "}
@@ -66,7 +76,10 @@ export const App: BlockComponent<AppProps> = ({
             <hr />
             <div className="person-links-container">
               {email && (
-                <div className="person-link">
+                <div
+                  className="person-link"
+                  style={{ marginBottom: email && link ? "4px" : undefined }}
+                >
                   <MailIcon />
 
                   <a href={`mailto:${email}`}>{email}</a>

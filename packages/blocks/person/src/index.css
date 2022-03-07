@@ -1,6 +1,23 @@
 @import url("https://fontlibrary.org//face/open-sauce-two");
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
 
+.person-container {
+  padding: 24px;
+  padding-right: 47px;
+  background: #ffffff;
+
+  /* Mono/Gray 30 */
+  border: 1px solid #dde7f0;
+
+  /* Shadow XS */
+  box-shadow: 0px 1px 5px rgba(27, 33, 40, 0.07);
+  border-radius: 6px;
+
+  max-width: var(--person-container-max-width);
+
+  display: flex;
+}
+
 .person-container img {
   width: 54px;
   height: 54px;
@@ -16,6 +33,7 @@
   border: none;
   background-color: #dde7f0;
   height: 1px;
+  margin: 12px 0px;
 }
 
 .person-container a {
@@ -39,22 +57,6 @@
 .person-link {
   display: flex;
   align-items: center;
-}
-
-.person-container {
-  padding: 24px;
-  background: #ffffff;
-
-  /* Mono/Gray 30 */
-  border: 1px solid #dde7f0;
-
-  /* Shadow XS */
-  box-shadow: 0px 1px 5px rgba(27, 33, 40, 0.07);
-  border-radius: 6px;
-
-  width: max-content;
-
-  display: flex;
 }
 
 .person-name {
@@ -92,7 +94,7 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-    width: auto;
+    max-width: 100%;
     padding: 0px;
   }
 
@@ -101,11 +103,19 @@
   }
 
   .person-links-container {
-    padding: 12px 24px;
+    padding: 14px 24px 16px 24px;
+  }
+
+  .person-text-container {
+    width: 100%;
   }
 
   .person-container img {
-    margin-bottom: 12px;
+    margin: 12px 0;
+  }
+
+  .person-container hr {
+    margin: 0px;
   }
 
   .avatar-mobile {
