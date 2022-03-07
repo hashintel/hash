@@ -6,6 +6,7 @@ const buttonFocusBorderWidth = 3;
 export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
   defaultProps: {
     variant: "primary",
+    size: "medium",
     disableElevation: true,
     disableRipple: true,
     disableTouchRipple: true,
@@ -17,7 +18,6 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
       // The base CSS styling applied to the button
       const baseStyles: CSSObject = {
         textTransform: "none",
-        lineHeight: "24px",
       };
 
       // The :before CSS styling applied to the button
@@ -58,24 +58,17 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         borderColor: theme.palette.blue["70"],
       };
 
+      /** ===== VARIANTS specific styling ===== */
+
       if (variant === "primary") {
         /** ===== PRIMARY button specific styling ===== */
 
         Object.assign(baseStyles, {
           color: theme.palette.common.white,
           background: theme.palette.blue[70],
-          backgroundColor: theme.palette.blue[70],
           position: "relative",
-          overflow: "hidden",
           zIndex: 0,
           transition: "opacity 0.5s ease-in-out",
-          ...(size === "small" && {
-            padding: theme.spacing("8px", "20px"),
-          }),
-          ...(size === "medium" && {
-            padding: theme.spacing("12px", "28px"),
-            minHeight: 51,
-          }),
         });
 
         Object.assign(beforeStyles, {
@@ -86,6 +79,7 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           opacity: 0,
           background:
             "linear-gradient(82.89deg, #9E56FA 5.64%, #644CFF 78.19%, #0070F4 121.05%)",
+          boxShadow: theme.boxShadows.purpleShadowMd,
           zIndex: -1,
         });
 
@@ -113,8 +107,44 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         });
       }
 
+      /** ===== SIZES specific styling ===== */
+      // @todo-mui note that tertiary_quiet has different font-weight
+      const sizeStyles = {
+        borderRadius: "4px",
+        ...(size === "large" && {
+          padding: "16px 32px",
+          minHeight: 56,
+          minWidth: 120,
+          borderRadius: "6px",
+          ...theme.typography.largeTextLabels,
+        }),
+        ...(size === "medium" && {
+          padding: "12px 20px",
+          minHeight: 48,
+          minWidth: 104,
+          ...theme.typography.regularTextLabels,
+        }),
+        ...(size === "small" && {
+          padding: "12px 20px",
+          minHeight: 42,
+          minWidth: 78,
+          ...theme.typography.smallTextLabels,
+        }),
+        ...(size === "xs" && {
+          padding: "8px 16px",
+          minHeight: 34,
+          minWidth: 52,
+          ...theme.typography.smallTextLabels,
+        }),
+        fontWeight: 600,
+        ...(["tertiary", "tertiary_quiet"].includes(variant || "primary") && {
+          fontWeight: 500,
+        }),
+      };
+
       return {
         ...baseStyles,
+        ...sizeStyles,
         "&:before": beforeStyles,
         ":hover": hoverStyles,
         "&:hover:before": hoverBeforeStyles,
