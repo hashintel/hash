@@ -234,13 +234,25 @@ class __EntityType {
     return dbEntityTypes.map((entityType) => new EntityType(entityType));
   }
 
-  static async getEntityTypeParents(
-    client: DBClient,
-    params: { entityTypeId: string },
-  ) {
-    const dbEntityTypes = await client.getEntityTypeParents(params);
+  async getParentEntityTypes(client: DBClient) {
+    const parentSchema$ids = (
+      Array.isArray(this.properties?.allOf) ? this.properties.allOf : []
+    )
+      .filter(
+        (allOfEntry: any): allOfEntry is { $ref: string } =>
+          "$ref" in allOfEntry,
+      )
+      .map((allOfEntry) => allOfEntry.$ref);
 
-    return dbEntityTypes.map((entityType) => new EntityType(entityType));
+    const parentEntityTypes = await Promise.all(
+      parentSchema$ids.map((schema$id) =>
+        client.getEntityTypeBySchema$id({ schema$id }),
+      ),
+    );
+
+    return parentEntityTypes.flatMap((entityType) =>
+      entityType ? [new EntityType(entityType)] : [],
+    );
   }
 
   public static async fetchComponentIdBlockSchema(componentId: string) {
