@@ -29,21 +29,15 @@ export const App: BlockComponent<AppProps> = ({
 }) => {
   const { name: employerName, position } = employer ?? {};
 
-  const linkData = useMemo(() => {
+  const safeAnchor = useMemo(() => {
     if (!link) {
       return null;
     }
 
-    return new URL(link);
-  }, [link]);
-
-  const safeAnchor = useMemo(() => {
-    if (!linkData) {
-      return null;
-    }
+    const linkData = new URL(link);
 
     return DOMPurify.sanitize(
-      `<a href="${link}">${linkData?.hostname}${
+      `<a href="${linkData.href}">${linkData?.hostname}${
         linkData?.pathname !== "/" ? linkData?.pathname : ""
       }</a>`,
       {
