@@ -1,17 +1,13 @@
 import { MockedProvider, MockedResponse } from "@apollo/client/testing";
-import { createTheme, ThemeProvider } from "@mui/material";
+import { ThemeProvider } from "@mui/material";
 // eslint-disable-next-line no-restricted-imports
 import { render, RenderOptions } from "@testing-library/react";
 
-import { borderRadii } from "../theme/borderRadii";
-import { palette } from "../theme/palette";
-import { boxShadows, dropShadows } from "../theme/shadows";
+import { theme } from "../theme";
 
 type CustomRenderOptions = RenderOptions & {
   mocks?: MockedResponse[];
 };
-
-const theme = createTheme({ palette, boxShadows, dropShadows, borderRadii });
 
 const customRender = (
   ui: React.ReactElement,
