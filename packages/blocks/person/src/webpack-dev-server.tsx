@@ -17,7 +17,6 @@ const props = {
   name: "Archibald Adams-Montgomery",
   email: "archie@example.com",
   link: "https://example.com/archie",
-  maxWidth: 700,
 };
 
 const App = () => (

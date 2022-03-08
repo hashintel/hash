@@ -1,5 +1,6 @@
 import React, { CSSProperties, useMemo } from "react";
 import { BlockComponent } from "blockprotocol/react";
+import DOMPurify from "dompurify";
 
 import { MailIcon } from "./icons/MailIcon";
 import { LinkIcon } from "./icons/LinkIcon";
@@ -34,6 +35,22 @@ export const App: BlockComponent<AppProps> = ({
     }
 
     return new URL(link);
+  }, [link]);
+
+  const safeAnchor = useMemo(() => {
+    if (!linkData) {
+      return null;
+    }
+
+    return DOMPurify.sanitize(
+      `<a href="${link}">${linkData?.hostname}${
+        linkData?.pathname !== "/" ? linkData?.pathname : ""
+      }</a>`,
+      {
+        ALLOWED_TAGS: ["a"],
+        ALLOWED_ATTR: ["href"],
+      },
+    );
   }, [link]);
 
   return (
@@ -86,14 +103,11 @@ export const App: BlockComponent<AppProps> = ({
                 </div>
               )}
 
-              {link && (
+              {safeAnchor && (
                 <div className="person-link">
                   <LinkIcon />
 
-                  <a href={link}>
-                    {linkData?.hostname}
-                    {linkData?.pathname !== "/" ? linkData?.pathname : ""}
-                  </a>
+                  <span dangerouslySetInnerHTML={{ __html: safeAnchor }} />
                 </div>
               )}
             </div>
