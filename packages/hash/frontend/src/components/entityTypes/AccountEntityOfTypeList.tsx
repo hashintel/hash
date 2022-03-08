@@ -5,9 +5,9 @@ import {
   AggregateEntityQueryVariables,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
 import { VoidFunctionComponent } from "react";
-import Link from "next/link";
 import { tw } from "twind";
 import { entityName } from "../../lib/entities";
+import { Link } from "../Link";
 
 type AccountEntityOfTypeListProps = {
   accountId: string;
@@ -42,7 +42,7 @@ export const AccountEntityOfTypeList: VoidFunctionComponent<
     <ul>
       {data.aggregateEntity.results.map((entity) => (
         <li className={tw`mb-2`} key={entity.entityId}>
-          <Link href={`/${accountId}/entities/${entity.entityId}`}>
+          <Link noLinkStyle href={`/${accountId}/entities/${entity.entityId}`}>
             <a>{entityName(entity)}</a>
           </Link>
         </li>

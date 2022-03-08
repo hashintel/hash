@@ -5,7 +5,37 @@
   "plugins": ["@typescript-eslint"],
   "rules": {
     "jsx-a11y/label-has-associated-control": "off",
-    "import/no-default-export": "error"
+    "import/no-default-export": "error",
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "@mui/material",
+            "importNames": ["Link"],
+            "message": "Please use the custom src/components/Link component instead to ensure Next.js and MUI compatibility."
+          },
+          {
+            "name": "@mui/material/Link",
+            "message": "Please use the custom src/components/Link component instead to ensure Next.js and MUI compatibility."
+          },
+          {
+            "name": "next",
+            "importNames": ["Link"],
+            "message": "Please use the custom src/components/Link component instead to ensure Next.js and MUI compatibility."
+          },
+          {
+            "name": "next/link",
+            "message": "Please use the custom src/components/Link component instead to ensure Next.js and MUI compatibility."
+          },
+          {
+            "name": "@mui/material/Popover",
+            "importNames": ["default"],
+            "message": "Please use the custom src/components/Popover component instead."
+          }
+        ]
+      }
+    ]
   },
   "overrides": [
     {
