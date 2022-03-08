@@ -12,6 +12,7 @@ import { HashNavIcon } from "../../icons";
 import { Link } from "../../Link";
 import { ActionsDropdown } from "./ActionsDropdown";
 import { NotificationsDropdown } from "./NotificationsDropdown";
+import { HEADER_HEIGHT } from "../../../theme/components/navigation/MuiDrawerThemeOptions";
 
 const Nav: React.FC = ({ children }) => (
   <Box
@@ -26,8 +27,6 @@ const Nav: React.FC = ({ children }) => (
     {children}
   </Box>
 );
-
-export const HEADER_HEIGHT = 64;
 
 export const PageHeader: React.VFC<{
   accountId: string;

@@ -1,7 +1,7 @@
 import { Components, Theme } from "@mui/material";
-import { HEADER_HEIGHT } from "../../../components/layout/PageHeader/PageHeader";
 
 export const SIDEBAR_WIDTH = 260;
+export const HEADER_HEIGHT = 64;
 
 export const MuiDrawerThemeOptions: Components<Theme>["MuiDrawer"] = {
   defaultProps: {
