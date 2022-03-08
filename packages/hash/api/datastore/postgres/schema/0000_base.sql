@@ -146,9 +146,16 @@ create table if not exists links (
     source_account_id             uuid not null,
     -- The entity id of the source entity.
     source_entity_id              uuid not null,
-    -- The entity version ids of the source entity's versions where
-    -- the link exists.
-    source_entity_version_ids     uuid[] not null,
+    -- The timestamp when the link was applied to the source entity (i.e. when
+    -- it was created)
+    applied_to_source_at          timestamp with time zone not null,
+    -- the account_id of the account which created the link
+    applied_to_source_by          uuid not null,
+    -- The timestamp when the link was removed from the source entity, if at
+    -- all (i.e. when it was deleted)
+    removed_from_source_at        timestamp with time zone,
+    -- the account_id of the account which deleted the link
+    removed_from_source_by        uuid,
     -- The account id of the destination entity
     destination_account_id        uuid not null,
     -- The entity id of the destination entity
@@ -158,7 +165,6 @@ create table if not exists links (
     -- of the destination entity. When set to null, the link is to the latest
     -- version of the destination entity.
     destination_entity_version_id  uuid,
-    created_at                     timestamp with time zone not null,
 
     constraint links_pk primary key (
       source_account_id, -- included in the primary key so it can be used as a sharding key

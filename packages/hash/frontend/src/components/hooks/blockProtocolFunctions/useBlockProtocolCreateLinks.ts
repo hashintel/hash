@@ -32,17 +32,33 @@ export const useBlockProtocolCreateLinks = (): {
           throw new Error("createLinks needs to be passed a sourceAccountId");
         }
 
+        const baseFields = {
+          path: action.path,
+          sourceEntityId: action.sourceEntityId,
+          sourceAccountId: action.sourceAccountId,
+        };
+
+        if ("operation" in action) {
+          throw new Error(
+            "Creating new linkedAggregations not yet implemented.",
+          );
+        } else if (!("destinationAccountId" in action)) {
+          throw new Error(
+            "One of operation or destinationEntityId must be provided",
+          );
+        }
+
+        const newLink = {
+          ...baseFields,
+          destinationEntityId: action.destinationEntityId,
+          destinationAccountId: action.destinationAccountId
+            ? action.destinationAccountId
+            : action.sourceAccountId,
+        };
+
         const { data, errors } = await runCreateLinksMutation({
           variables: {
-            link: {
-              destinationEntityId: action.destinationEntityId,
-              destinationAccountId: action.destinationAccountId
-                ? action.destinationAccountId
-                : action.sourceAccountId,
-              path: action.path,
-              sourceEntityId: action.sourceEntityId,
-              sourceAccountId: action.sourceAccountId,
-            },
+            link: newLink,
           },
         });
         if (!data) {
