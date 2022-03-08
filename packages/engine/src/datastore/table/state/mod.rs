@@ -133,7 +133,7 @@ impl State {
         let mut planner = CreateRemovePlanner::new(commands, config.clone())?;
         let plan = planner.run(&self.read()?)?;
         self.num_agents = plan.num_agents_after_execution;
-        let removed_ids = plan.execute(self.agent_pool_mut(), config)?;
+        let removed_ids = plan.execute(self.state_mut(), config)?;
 
         // Register all batches that were removed
         self.removed_batches().extend(removed_ids.into_iter());
@@ -163,6 +163,10 @@ impl State {
     // TODO: UNUSED: Needs triage
     pub fn message_pool_mut(&mut self) -> &mut MessagePool {
         &mut self.state.message_pool
+    }
+
+    pub fn state_mut(&mut self) -> &mut StatePools {
+        &mut self.state
     }
 
     pub fn read(&self) -> Result<StateReadProxy> {

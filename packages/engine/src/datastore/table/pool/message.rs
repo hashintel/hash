@@ -43,6 +43,16 @@ impl super::Pool<MessageBatch> for MessagePool {
     }
 }
 
+impl MessagePool {
+    pub fn reserve(&mut self, additional: usize) {
+        self.batches.reserve(additional);
+    }
+
+    pub fn push(&mut self, batch: MessageBatch) {
+        self.batches.push(Arc::new(RwLock::new(batch)))
+    }
+}
+
 impl PoolReadProxy<MessageBatch> {
     pub fn get_reader(&self) -> MessageReader<'_> {
         MessageReader {

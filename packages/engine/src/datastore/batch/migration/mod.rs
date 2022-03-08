@@ -6,7 +6,11 @@ use arrow::util::bit_util;
 
 use super::ArrowBatch;
 use crate::{
-    datastore::{batch::AgentBatch, prelude::*, schema::state::AgentSchema},
+    datastore::{
+        batch::AgentBatch,
+        prelude::*,
+        schema::state::{AgentSchema, MessageSchema},
+    },
     proto::ExperimentId,
 };
 
@@ -166,18 +170,28 @@ struct NextState {
 impl<'a> BufferActions<'a> {
     pub fn new_batch(
         &self,
-        schema: &Arc<AgentSchema>,
+        agent_schema: &Arc<AgentSchema>,
+        message_schema: &Arc<MessageSchema>,
         experiment_id: &ExperimentId,
         affinity: usize,
-    ) -> Result<AgentBatch> {
+    ) -> Result<(AgentBatch, MessageBatch)> {
         let mut memory = AgentBatch::get_prepared_memory_for_data(
-            schema,
+            agent_schema,
             &self.new_dynamic_meta,
             experiment_id,
         )?;
         self.flush_memory(&mut memory)?;
 
-        AgentBatch::from_memory(memory, Some(schema.as_ref()), Some(affinity))
+        let agent_batch =
+            AgentBatch::from_memory(memory, Some(agent_schema.as_ref()), Some(affinity))?;
+        let message_batch = MessageBatch::empty_from_agent_batch(
+            &agent_batch,
+            &message_schema.arrow,
+            Arc::clone(&message_schema.static_meta),
+            experiment_id,
+        )?;
+
+        Ok((agent_batch, message_batch))
     }
 
     #[allow(clippy::too_many_lines)]
