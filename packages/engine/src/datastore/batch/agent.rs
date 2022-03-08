@@ -5,28 +5,20 @@
 )]
 
 use std::{
-    borrow::Cow,
     ops::{Deref, DerefMut},
     sync::Arc,
 };
 
-use arrow::{
-    array::{self, make_array, ArrayData, ArrayRef},
-    datatypes::DataType,
-    ipc::{
-        reader::read_record_batch,
-        writer::{IpcDataGenerator, IpcWriteOptions},
-    },
+use arrow::ipc::{
+    reader::read_record_batch,
+    writer::{IpcDataGenerator, IpcWriteOptions},
 };
 
 use crate::{
     datastore::{
         arrow::{
-            batch_conversion::{col_to_json_vals, IntoRecordBatch},
-            ipc::{
-                read_record_batch, record_batch_data_to_bytes_owned_unchecked, schema_to_bytes,
-                simulate_record_batch_to_bytes,
-            },
+            batch_conversion::IntoRecordBatch,
+            ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
             meta_conversion::{get_dynamic_meta_flatbuffers, HashDynamicMeta, HashStaticMeta},
         },
         batch::{flush::GrowableBatch, ArrowBatch, Segment},
@@ -58,7 +50,7 @@ impl Deref for AgentBatch {
     }
 }
 
-impl DerefMut for Batch {
+impl DerefMut for AgentBatch {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.batch
     }
@@ -263,8 +255,8 @@ impl AgentBatch {
     }
 
     pub fn from_message(message: &str) -> Result<Box<Self>> {
-        let memory = Memory::from_message(message, true, true)?;
-        Ok(Box::new(Batch::from_memory(memory, None, None)?))
+        let memory = Memory::from_shmem_os_id(message, true, true)?;
+        Ok(Box::new(AgentBatch::from_memory(memory, None, None)?))
     }
 }
 

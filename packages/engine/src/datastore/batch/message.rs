@@ -7,7 +7,6 @@ use std::{
 
 use arrow::{
     array,
-    array::ArrayData,
     ipc::{
         reader::read_record_batch,
         writer::{DictionaryTracker, IpcDataGenerator, IpcWriteOptions},
@@ -48,7 +47,7 @@ pub struct MessageBatch {
     arrow_schema: Arc<ArrowSchema>,
 }
 
-impl Deref for Batch {
+impl Deref for MessageBatch {
     type Target = ArrowBatch;
 
     fn deref(&self) -> &Self::Target {
@@ -56,13 +55,13 @@ impl Deref for Batch {
     }
 }
 
-impl DerefMut for Batch {
+impl DerefMut for MessageBatch {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.batch
     }
 }
 
-impl Batch {
+impl MessageBatch {
     /// Clears the message batch, resizing as necessary.
     ///
     /// Uses the passed in `agents` for the `AgentId`s and the group

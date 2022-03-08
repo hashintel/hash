@@ -62,15 +62,15 @@ pub trait BatchPool<B>: Send + Sync {
     /// Removes the [`Batch`] at position `index` within the pool, shifting all elements after it to
     /// the left.
     ///
-    /// Returns the batch id of the removed [`Batch`].
+    /// Returns the removed [`Batch`].
     ///
     /// # Panics
     ///
     /// - If `index` is out of bounds, or
     /// - if the `Batch` is currently borrowed as a [`BatchReadProxy`] or [`BatchWriteProxy`].
-    fn remove(&mut self, index: usize) -> String;
+    fn remove(&mut self, index: usize) -> RwLock<B>;
 
-    /// Removes the [`Batch`] at position `index` within the pool and returns its id.
+    /// Removes the [`Batch`] at position `index` within the pool and returns it.
     ///
     /// The removed [`Batch`] is replaced by the last [`Batch`] of the pool. This does not preserve
     /// ordering, but is `O(1)`. If you need to preserve the element order, use
@@ -80,7 +80,7 @@ pub trait BatchPool<B>: Send + Sync {
     ///
     /// - If `index` is out of bounds, or
     /// - if the `Batch` is currently borrowed as a [`BatchReadProxy`] or [`BatchWriteProxy`].
-    fn swap_remove(&mut self, index: usize) -> String;
+    fn swap_remove(&mut self, index: usize) -> RwLock<B>;
 
     /// Creates a [`PoolReadProxy`] for _all_ batches within the pool.
     ///
@@ -140,21 +140,19 @@ impl<P: Pool<B> + Send + Sync, B> BatchPool<B> for P {
         self.get_batches_mut().push(Arc::new(RwLock::new(batch)))
     }
 
-    fn remove(&mut self, index: usize) -> String {
+    fn remove(&mut self, index: usize) -> RwLock<B> {
         let mut batch_arc = self.get_batches_mut().remove(index);
-        if let Some(rw_lock) = Arc::get_mut(&mut batch_arc) {
-            // This can't deadlock as we just checked that the Arc owning this RwLock is unique
-            rw_lock.write().get_batch_id().to_string()
+        if let Ok(batch) = Arc::try_unwrap(batch_arc) {
+            batch
         } else {
             panic!("Failed to remove Batch at index {index}, other Arcs to the Batch existed")
         }
     }
 
-    fn swap_remove(&mut self, index: usize) -> String {
+    fn swap_remove(&mut self, index: usize) -> RwLock<B> {
         let mut batch_arc = self.get_batches_mut().swap_remove(index);
-        if let Some(rw_lock) = Arc::get_mut(&mut batch_arc) {
-            // This can't deadlock as we just checked that the Arc owning this RwLock is unique
-            rw_lock.write().get_batch_id().to_string()
+        if let Ok(batch) = Arc::try_unwrap(batch_arc) {
+            batch
         } else {
             panic!("Failed to swap remove Batch at index {index}, other Arcs to the Batch existed")
         }

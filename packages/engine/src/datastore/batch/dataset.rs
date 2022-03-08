@@ -11,7 +11,7 @@ pub struct Dataset {
     segment: Segment,
 }
 
-impl Deref for Batch {
+impl Deref for Dataset {
     type Target = Segment;
 
     fn deref(&self) -> &Self::Target {

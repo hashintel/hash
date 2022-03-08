@@ -1,7 +1,4 @@
-use arrow::{
-    array::{ArrayData, ArrayDataRef},
-    buffer::Buffer as ArrowBuffer,
-};
+use arrow::{array::ArrayData, buffer::Buffer};
 
 use crate::datastore::batch::flush::{GrowableArrayData, GrowableColumn};
 
@@ -9,22 +6,22 @@ use crate::datastore::batch::flush::{GrowableArrayData, GrowableColumn};
 /// recorded in this format
 #[derive(derive_new::new)]
 pub struct ColumnChange {
-    pub data: ArrayDataRef,
+    pub data: ArrayData,
     /// Index of column
     pub index: usize,
 }
 
-impl GrowableColumn<ArrayDataRef> for ColumnChange {
+impl GrowableColumn<ArrayData> for ColumnChange {
     fn column_index(&self) -> usize {
         self.index
     }
 
-    fn data(&self) -> &ArrayDataRef {
+    fn data(&self) -> &ArrayData {
         &self.data
     }
 }
 
-impl GrowableArrayData for ArrayDataRef {
+impl GrowableArrayData for ArrayData {
     fn len(&self) -> usize {
         ArrayData::len(self)
     }
@@ -38,7 +35,7 @@ impl GrowableArrayData for ArrayDataRef {
     }
 
     fn buffer(&self, index: usize) -> &[u8] {
-        self.buffers()[index].data()
+        self.buffers()[index].as_slice()
     }
 
     fn num_buffers_except_null_buffer(&self) -> usize {

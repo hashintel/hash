@@ -11,14 +11,7 @@ use rayon::iter::{
 };
 
 use crate::{
-    datastore::{
-        arrow::{
-            ipc::{read_record_batch, static_record_batch_to_bytes},
-            meta_conversion::get_dynamic_meta_flatbuffers,
-        },
-        batch::Segment,
-        prelude::*,
-    },
+    datastore::{arrow::meta_conversion::get_dynamic_meta_flatbuffers, batch::Segment, prelude::*},
     proto::ExperimentId,
     simulation::package::context::ContextColumn,
 };
@@ -36,7 +29,7 @@ pub type MessageIndex = (u32, u32, u32);
 /// Data within the `ContextBatch` can rely on the contents of the **Agent** and **Message
 /// Pools** within the **Context** object. For example, the list of neighbors in the `ContextBatch`
 /// is a collection of indices pointing to different agents within the **Agent Pool**.
-pub struct Batch {
+pub struct ContextBatch {
     segment: Segment,
     batch: RecordBatch,
     loaded: Metaversion,

@@ -50,7 +50,7 @@ pub fn behavior_list_bytes_iter(
 
     let list_indices = unsafe { col_data.buffers()[0].typed_data::<i32>() };
     let string_indices = unsafe { col_data.child_data()[0].buffers()[0].typed_data::<i32>() };
-    let utf_8 = col_data.child_data()[0].buffers()[1].data();
+    let utf_8 = col_data.child_data()[0].buffers()[1].as_slice();
 
     Ok((0..row_count).map(move |i| {
         let list_from = list_indices[i] as usize;

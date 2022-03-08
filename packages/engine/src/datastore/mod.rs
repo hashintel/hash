@@ -50,7 +50,7 @@ pub mod prelude {
         batch::{
             metaversion::Metaversion,
             migration::{CopyAction, CreateAction, RemoveAction, RowActions},
-            AgentBatch, AgentIndex, ContextBatch, Dataset, MessageBatch, MessageIndex,
+            AgentBatch, AgentIndex, Dataset, MessageBatch, MessageIndex,
         },
         error::{Error, Result, SupportedType},
         meta::{

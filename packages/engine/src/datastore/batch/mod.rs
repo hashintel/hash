@@ -15,13 +15,13 @@ use std::{
 };
 
 pub use agent::AgentBatch;
-use arrow::array::ArrayDataRef;
-pub use context::{AgentIndex, ContextBatch, MessageIndex};
+use arrow::array::ArrayData;
+pub use context::{AgentIndex, MessageIndex};
 pub use dataset::Dataset;
 pub use message::MessageBatch;
 pub use metaversion::Metaversion;
 
-use super::{arrow::ipc::read_record_batch, prelude::*};
+use super::prelude::*;
 use crate::datastore::batch::{change::ColumnChange, flush::GrowableBatch};
 
 // TODO: This should probably be merged into `Memory`. Then `Memory`
@@ -126,7 +126,7 @@ impl DerefMut for ArrowBatch {
     }
 }
 
-impl GrowableBatch<ArrayDataRef, ColumnChange> for ArrowBatch {
+impl GrowableBatch<ArrayData, ColumnChange> for ArrowBatch {
     fn static_meta(&self) -> &StaticMeta {
         &self.static_meta
     }

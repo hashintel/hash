@@ -68,7 +68,8 @@ impl<'a> MigrationPlan<'a> {
         for (batch_index, action) in self.existing_mutations.iter().enumerate().rev() {
             if let ExistingGroupBufferActions::Remove = action {
                 // Removing in tandem to keep similarly sized batches together
-                removed_ids.push(state_agent_pool.swap_remove(batch_index));
+                let agent_batch = state_agent_pool.swap_remove(batch_index);
+                removed_ids.push(agent_batch.read().batch_id().to_string());
             }
         }
 

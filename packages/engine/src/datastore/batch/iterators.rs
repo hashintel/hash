@@ -202,12 +202,16 @@ pub fn column_with_name<'a>(rb: &'a RecordBatch, name: &str) -> Result<&'a Array
 pub mod rb {
     use std::borrow::Cow;
 
-    use arrow::{array::Array, datatypes::DataType, record_batch::RecordBatch};
+    use arrow::{
+        array::{make_array, Array},
+        datatypes::DataType,
+        record_batch::RecordBatch,
+    };
 
     use super::column_with_name;
     use crate::{
         datastore::{
-            arrow::{batch_conversion::col_to_json_vals, ipc::make_array},
+            arrow::batch_conversion::col_to_json_vals,
             batch::{boolean::Column as BooleanColumn, change::ColumnChange},
             prelude::arrow_bit_util,
             Error, Result, POSITION_DIM, UUID_V4_LEN,
@@ -233,7 +237,7 @@ pub mod rb {
                 as *const [u32; IND_N])
         };
         if let Some(nulls) = nulls {
-            let nulls = nulls.data();
+            let nulls = nulls.as_slice();
             if arrow_bit_util::get_bit(nulls, row_index) {
                 Ok(Some(res))
             } else {
@@ -251,7 +255,7 @@ pub mod rb {
         // FixedSizeBinary has a single buffer (no offsets)
         let data = column.data_ref();
         let buffer = &data.buffers()[0];
-        let mut ptr = buffer.raw_data();
+        let mut ptr = buffer.as_ptr();
         let offset = UUID_V4_LEN;
         Ok((0..column.len()).map(move |_| unsafe {
             let slice = &*(ptr as *const [u8; UUID_V4_LEN]);
@@ -308,7 +312,7 @@ pub mod rb {
             .ok_or_else(|| Error::ColumnNotFound(column_name.into()))?;
 
         Ok(ColumnChange {
-            data: make_array(builder.finish().data()).data(),
+            data: make_array(builder.finish().data().clone()).data().clone(),
             index,
         })
     }

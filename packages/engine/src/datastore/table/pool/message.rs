@@ -143,7 +143,8 @@ impl PoolWriteProxy<MessageBatch> {
             if let Some(dynamic_batch) = agent_proxies.batch(batch_index) {
                 self[batch_index].reset(dynamic_batch)?;
             } else {
-                removed.push(message_pool.remove(batch_index));
+                let message_batch = message_pool.remove(batch_index);
+                removed.push(message_batch.read().batch_id().to_string());
             }
         }
         if agent_proxies.len() > self.len() {
