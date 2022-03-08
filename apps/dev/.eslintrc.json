@@ -12,7 +12,9 @@
       "files": [
         "./src/pages/**/*.page.ts",
         "./src/pages/**/*.page.tsx",
-        "**/__mocks__/**"
+        "**/__mocks__/**",
+        "*.stories.ts",
+        "*.stories.tsx"
       ],
       "rules": {
         "import/no-default-export": "off"
