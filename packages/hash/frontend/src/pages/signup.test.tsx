@@ -1,9 +1,9 @@
 import React from "react";
 import { waitFor } from "@testing-library/dom";
 
+import { mockUseRouter } from "../testUtils/mockUseRouter";
 import { fireEvent, render } from "../testUtils/testUtils";
 import { SIGNUP_MOCKS } from "./__mocks__/signup.mock";
-import { mockUseRouter } from "../testUtils/mockUseRouter";
 import Signup from "./signup.page";
 
 describe("Signup page", () => {
