@@ -1,9 +1,13 @@
+import {
+  faChevronLeft,
+  faChevronRight,
+} from "@fortawesome/free-solid-svg-icons";
 import { IconButton, Fade, Box, Tooltip, styled } from "@mui/material";
 import { FunctionComponent } from "react";
 import { SIDEBAR_WIDTH } from "../../theme/components/navigation/MuiDrawerThemeOptions";
 import { Button } from "../Button";
 
-import { SidebarToggleIcon } from "../icons";
+import { FontAwesomeSvgIcon, SidebarToggleIcon } from "../icons";
 import { HEADER_HEIGHT } from "./PageHeader/PageHeader";
 import { PageSidebar } from "./PageSidebar/PageSidebar";
 import { useSidebarContext } from "./SidebarContext";
@@ -71,6 +75,8 @@ export const MainContentWrapper: FunctionComponent = ({ children }) => {
         </Tooltip>
       </Fade>
       <Main sidebarOpen={sidebarOpen}>
+        {children}
+        <Box mb={6} />
         <Box sx={{ display: "flex", alignItems: "flex-start" }}>
           <Button variant="primary" size="large">
             Primary Large
@@ -203,8 +209,33 @@ export const MainContentWrapper: FunctionComponent = ({ children }) => {
           </Button>
           <Box sx={{ mr: 2 }} />
         </Box>
-
-        {children}
+        <br />
+        <Box sx={{ display: "flex", alignItems: "flex-start" }}>
+          <Button
+            size="small"
+            href="/"
+            startIcon={<FontAwesomeSvgIcon icon={faChevronLeft} />}
+          >
+            Button
+          </Button>
+          <Box sx={{ mr: 2 }} />
+          <Button
+            variant="secondary"
+            size="small"
+            endIcon={<FontAwesomeSvgIcon icon={faChevronRight} />}
+          >
+            Secondary
+          </Button>
+          <Box sx={{ mr: 2 }} />
+          <Button
+            variant="secondary"
+            size="small"
+            href="/"
+            startIcon={<FontAwesomeSvgIcon icon={faChevronLeft} />}
+          >
+            Button
+          </Button>
+        </Box>
       </Main>
     </Box>
   );

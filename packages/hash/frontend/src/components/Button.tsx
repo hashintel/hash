@@ -1,3 +1,5 @@
+// eslint-disable-next-line no-restricted-imports
+import Link from "next/link";
 import {
   Box,
   // eslint-disable-next-line no-restricted-imports
@@ -9,7 +11,7 @@ import {
   tooltipClasses,
   TooltipProps,
 } from "@mui/material";
-import { VFC, FC, forwardRef } from "react";
+import { VFC, FC, forwardRef, useMemo } from "react";
 import { faWarning } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeSvgIcon, LoadingSpinnerIcon } from "./icons";
 import { isHrefExternal } from "./Link";
@@ -70,7 +72,6 @@ const LoadingContent: VFC<{
 };
 
 // @todo-mui
-// - add button style w icon
 // - work on icon buttons
 
 export type ButtonProps = {
@@ -82,11 +83,20 @@ export type ButtonProps = {
 
 export const Button: FC<ButtonProps> = forwardRef(
   ({ children, loading, loadingWithoutText, href, sx, ...props }, ref) => {
-    const additionalProps =
-      href && isHrefExternal(href) ? { rel: "noopener", target: "_blank" } : {};
+    const linkProps = useMemo(() => {
+      if (href && isHrefExternal(href)) {
+        return {
+          rel: "noopener",
+          target: "_blank",
+          href,
+        };
+      }
+
+      return {};
+    }, [href]);
 
     const Component = (
-      <MuiButton {...props} {...additionalProps} sx={sx} ref={ref}>
+      <MuiButton {...props} {...linkProps} sx={sx} ref={ref}>
         {loading || loadingWithoutText ? (
           <LoadingContent
             withText={!loadingWithoutText}
@@ -130,6 +140,14 @@ export const Button: FC<ButtonProps> = forwardRef(
         >
           <span>{Component}</span>
         </DisabledTooltip>
+      );
+    }
+
+    if (href && !isHrefExternal(href)) {
+      return (
+        <Link href={href} passHref>
+          {Component}
+        </Link>
       );
     }
 
