@@ -92,7 +92,7 @@ function getLinkedEntities<T>(params: {
     return null;
   }
 
-  const destinationEntityId = matchingLinkGroup.links[0].destinationEntityId;
+  const destinationEntityId = matchingLinkGroup.links[0]?.destinationEntityId;
 
   const matchingLinkedEntities = linkedEntities.filter(
     (link) => link.entityId === destinationEntityId,
