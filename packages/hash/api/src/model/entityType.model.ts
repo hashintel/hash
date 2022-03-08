@@ -2,6 +2,7 @@ import { ApolloError } from "apollo-server-express";
 import url from "url";
 import fetch from "node-fetch";
 import { JSONObject } from "blockprotocol";
+import { merge } from "lodash";
 
 import { EntityExternalResolvers, EntityType } from ".";
 import { DBClient } from "../db";
@@ -10,6 +11,7 @@ import {
   Visibility,
 } from "../graphql/apiTypes.gen";
 import { EntityTypeMeta, EntityTypeTypeFields } from "../db/adapter";
+import { JsonSchemaCompiler } from "../lib/schemas/jsonSchema";
 
 const { FRONTEND_URL } = require("../lib/config");
 
@@ -73,6 +75,39 @@ class __EntityType {
     this.updatedAt = updatedAt;
   }
 
+  static async validateJsonSchema(
+    client: DBClient,
+    params: {
+      name: string;
+      schema?: JSONObject | null;
+      description?: string | null;
+    },
+  ) {
+    const { name, schema, description } = params;
+
+    const jsonSchemaCompiler = new JsonSchemaCompiler(async (schema$id) => {
+      const resolvedEntityType = await EntityType.getEntityTypeBySchema$id(
+        client,
+        {
+          schema$id,
+        },
+      );
+      if (resolvedEntityType) {
+        return resolvedEntityType.properties;
+      } else {
+        throw new Error(`Could not find schema with $id = ${schema$id}`);
+      }
+    });
+
+    const properties = await jsonSchemaCompiler.jsonSchema({
+      title: name,
+      maybeStringifiedSchema: schema,
+      description,
+    });
+
+    return properties;
+  }
+
   static async create(
     client: DBClient,
     params: {
@@ -83,13 +118,18 @@ class __EntityType {
       schema?: JSONObject | null;
     },
   ): Promise<EntityType> {
-    const { accountId, createdByAccountId, description, schema, name } = params;
+    const { accountId, createdByAccountId, description, name } = params;
+
+    const schema = await EntityType.validateJsonSchema(client, {
+      name,
+      schema: params.schema,
+      description,
+    });
 
     const entityType = await client
       .createEntityType({
         accountId,
         createdByAccountId,
-        description,
         name,
         schema,
       })
@@ -103,19 +143,34 @@ class __EntityType {
     return new EntityType(entityType);
   }
 
-  static async updateSchema(
+  async update(
     client: DBClient,
     params: {
       accountId: string;
       createdByAccountId: string;
-      entityId: string;
-      schema: JSONObject;
+      schema: Record<string, any>;
       updatedByAccountId: string;
     },
   ) {
-    const updatedDbEntityType = await client.updateEntityType(params);
+    const {
+      schema: { title, description },
+    } = params;
 
-    return new EntityType(updatedDbEntityType);
+    const schema = await EntityType.validateJsonSchema(client, {
+      name: title,
+      schema: params.schema,
+      description,
+    });
+
+    const updatedDbEntityType = await client.updateEntityType({
+      ...params,
+      entityId: this.entityId,
+      schema,
+    });
+
+    merge(this, new EntityType(updatedDbEntityType));
+
+    return this;
   }
 
   static async getEntityType(
@@ -143,6 +198,14 @@ class __EntityType {
     params: { componentId: string },
   ) {
     const dbEntityType = await client.getEntityTypeByComponentId(params);
+    return dbEntityType ? new EntityType(dbEntityType) : null;
+  }
+
+  static async getEntityTypeBySchema$id(
+    client: DBClient,
+    params: { schema$id: string },
+  ) {
+    const dbEntityType = await client.getEntityTypeBySchema$id(params);
     return dbEntityType ? new EntityType(dbEntityType) : null;
   }
 

@@ -54,14 +54,34 @@ export class DbEntityTypeNotFoundError extends Error {
 }
 
 export class DbLinkNotFoundError extends Error {
-  accountId?: string;
+  sourceAccountId?: string;
   linkId: string;
 
-  constructor(params: { accountId?: string; linkId: string }) {
-    const { accountId, linkId } = params;
-    super(`Link ${linkId} not found in account ${accountId}`);
-    this.accountId = accountId;
+  constructor(params: { sourceAccountId?: string; linkId: string }) {
+    const { sourceAccountId, linkId } = params;
+    super(`Link ${linkId} not found in account ${sourceAccountId}`);
+    this.sourceAccountId = sourceAccountId;
     this.linkId = linkId;
+  }
+}
+
+export class DbAggregationNotFoundError extends Error {
+  sourceAccountId?: string;
+  sourceEntityId?: string;
+  path: string;
+
+  constructor(params: {
+    sourceAccountId?: string;
+    sourceEntityId?: string;
+    path: string;
+  }) {
+    const { sourceAccountId, sourceEntityId, path } = params;
+    super(
+      `Aggregation with path ${path} for source entity with id ${sourceEntityId} in account ${sourceAccountId} not found`,
+    );
+    this.sourceAccountId = sourceAccountId;
+    this.sourceEntityId = sourceEntityId;
+    this.path = path;
   }
 }
 

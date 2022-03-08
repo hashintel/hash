@@ -120,8 +120,6 @@ describe("Page model class ", () => {
       movedByAccountId: existingUser.accountId,
     });
 
-    await page.refetchLatestVersion(db);
-
     const newBlocks = await page.getBlocks(db);
 
     expect(newBlocks).toHaveLength(2);
@@ -137,8 +135,6 @@ describe("Page model class ", () => {
       position: 0,
       removedByAccountId: existingUser.accountId,
     });
-
-    await page.refetchLatestVersion(db);
 
     const blocks = await page.getBlocks(db);
 

@@ -1,3 +1,4 @@
+import { DistributiveOmit } from "@hashintel/hash-shared/util";
 import {
   BlockProtocolCreateLinksFunction,
   BlockProtocolDeleteLinksFunction,
@@ -11,7 +12,7 @@ export type EntityLinkDefinition = {
 
 export type CreateLinkFnWithFixedSource = {
   (
-    payload: Omit<
+    payload: DistributiveOmit<
       Parameters<BlockProtocolCreateLinksFunction>[0][0],
       "sourceAccountId" | "sourceEntityId"
     >,

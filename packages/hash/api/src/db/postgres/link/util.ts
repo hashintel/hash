@@ -1,4 +1,4 @@
-import { sql } from "slonik";
+import { sql, ValueExpressionType } from "slonik";
 
 import { Connection } from "../types";
 import { DBLink } from "../../adapter";
@@ -44,11 +44,13 @@ export const linksColumnNames = [
   "index",
   "source_account_id",
   "source_entity_id",
-  "source_entity_version_ids",
+  "applied_to_source_at",
+  "applied_to_source_by",
+  "removed_from_source_at",
+  "removed_from_source_by",
   "destination_account_id",
   "destination_entity_id",
   "destination_entity_version_id",
-  "created_at",
 ];
 
 export const linksColumnNamesSQL = mapColumnNamesToSQL(linksColumnNames);
@@ -59,11 +61,13 @@ export type DBLinkRow = {
   index: number | null;
   source_account_id: string;
   source_entity_id: string;
-  source_entity_version_ids: string[];
+  applied_to_source_at: string;
+  applied_to_source_by: string;
+  removed_from_source_at: string | null;
+  removed_from_source_by: string | null;
   destination_account_id: string;
   destination_entity_id: string;
   destination_entity_version_id: string | null;
-  created_at: string;
 };
 
 export const mapDBLinkRowToDBLink = (row: DBLinkRow): DBLink => ({
@@ -72,18 +76,61 @@ export const mapDBLinkRowToDBLink = (row: DBLinkRow): DBLink => ({
   index: row.index === null ? undefined : row.index,
   sourceAccountId: row.source_account_id,
   sourceEntityId: row.source_entity_id,
-  sourceEntityVersionIds: new Set(row.source_entity_version_ids),
+  appliedToSourceAt: new Date(row.applied_to_source_at),
+  appliedToSourceBy: row.applied_to_source_by,
+  removedFromSourceAt: row.removed_from_source_at
+    ? new Date(row.removed_from_source_at)
+    : undefined,
+  removedFromSourceBy: row.removed_from_source_by ?? undefined,
   destinationAccountId: row.destination_account_id,
   destinationEntityId: row.destination_entity_id,
-  destinationEntityVersionId: row.destination_entity_version_id || undefined,
-  createdAt: new Date(row.created_at),
+  destinationEntityVersionId: row.destination_entity_version_id ?? undefined,
 });
 
-export const selectLinks = sql<DBLinkRow>`
+export const selectAllLinks = sql<DBLinkRow>`
   select ${linksColumnNamesSQL}
   from links
 `;
 
+export const selectAllLinksWithSourceEntity = (params: {
+  sourceAccountId: string;
+  sourceEntityId: string;
+  activeAt?: Date;
+  path?: string;
+  additionalClauses?: ValueExpressionType[];
+}) => sql<DBLinkRow>`
+    ${selectAllLinks}
+    where
+      ${sql.join(
+        [
+          sql`source_account_id = ${params.sourceAccountId}`,
+          sql`source_entity_id = ${params.sourceEntityId}`,
+          params.activeAt
+            ? [
+                // the link was applied before the timestamp
+                sql`applied_to_source_at <= ${params.activeAt.toISOString()}`,
+                // either the link was removed after the timestamp, or the link hasn't been removed yet
+                sql`(
+                    removed_from_source_at >= ${params.activeAt.toISOString()}
+                  or
+                    removed_from_source_at is null 
+                )`,
+              ]
+            : [
+                // the link hasn't been removed yet (so can be considered as "active" right now)
+                sql`removed_from_source_at is null`,
+              ],
+          params.path !== undefined ? sql`path = ${params.path}` : [],
+          ...(params.additionalClauses ?? []),
+        ].flat(),
+        sql` and `,
+      )}
+`;
+
+/**
+ * Inserts a new link into the `links` table, and into the `incoming_links`
+ * lookup table.
+ */
 export const insertLink = async (
   conn: Connection,
   params: {
@@ -92,11 +139,11 @@ export const insertLink = async (
     index?: number;
     sourceAccountId: string;
     sourceEntityId: string;
-    sourceEntityVersionIds: Set<string>;
+    appliedToSourceAt: Date;
+    appliedToSourceBy: string;
     destinationAccountId: string;
     destinationEntityId: string;
     destinationEntityVersionId?: string;
-    createdAt: Date;
   },
 ): Promise<void> => {
   await Promise.all([
@@ -109,18 +156,18 @@ export const insertLink = async (
           params.index === undefined ? null : params.index,
           params.sourceAccountId,
           params.sourceEntityId,
-          sql.array(Array.from(params.sourceEntityVersionIds), "uuid"),
+          params.appliedToSourceAt.toISOString(),
+          params.appliedToSourceBy,
+          null,
+          null,
           params.destinationAccountId,
           params.destinationEntityId,
-          params.destinationEntityVersionId || null,
-          params.createdAt.toISOString(),
+          params.destinationEntityVersionId ?? null,
         ],
         sql`, `,
       )})
     `),
-    insertIncomingLink(conn, {
-      ...params,
-    }),
+    insertIncomingLink(conn, params),
   ]);
 };
 
@@ -153,23 +200,43 @@ export const getLinksWithMinimumIndex = async (
   params: {
     sourceAccountId: string;
     sourceEntityId: string;
-    sourceEntityVersionId: string;
+    activeAt?: Date;
     path: string;
     minimumIndex: number;
   },
 ): Promise<DBLink[]> => {
-  const linkRows = await conn.any(sql<DBLinkRow>`
-      ${selectLinks}
-      where
-        source_account_id = ${params.sourceAccountId}
-        and source_entity_id = ${params.sourceEntityId}
-        and ${params.sourceEntityVersionId} = ANY(source_entity_version_ids)
-        and path = ${params.path}
-        and index is not null
-        and index >= ${params.minimumIndex}
-  `);
+  const linkRows = await conn.any(
+    selectAllLinksWithSourceEntity({
+      ...params,
+      additionalClauses: [
+        sql`index is not null`,
+        sql`index >= ${params.minimumIndex}`,
+      ],
+    }),
+  );
 
   return linkRows.map(mapDBLinkRowToDBLink);
+};
+
+export const removeLinkFromSource = async (
+  conn: Connection,
+  params: {
+    sourceAccountId: string;
+    linkId: string;
+    removedFromSourceAt: Date;
+    removedFromSourceBy: string;
+  },
+): Promise<void> => {
+  await conn.query(sql`
+    update links
+    set
+      removed_from_source_at = ${params.removedFromSourceAt.toISOString()},
+      removed_from_source_by = ${params.removedFromSourceBy}
+    where (
+      source_account_id = ${params.sourceAccountId}
+      and link_id = ${params.linkId}
+    );
+  `);
 };
 
 export const deleteLinkRow = async (
@@ -180,31 +247,16 @@ export const deleteLinkRow = async (
 
   await Promise.all([
     conn.query(sql`
-    delete from incoming_links where source_account_id = ${params.sourceAccountId} and link_id = ${params.linkId};
+      delete from incoming_links
+      where source_account_id = ${params.sourceAccountId}
+      and link_id = ${params.linkId};
   `),
     conn.query(sql`
-    delete from links where source_account_id = ${params.sourceAccountId} and link_id = ${params.linkId};
+      delete from links
+      where
+          source_account_id = ${params.sourceAccountId}
+        and
+          link_id = ${params.linkId};
   `),
   ]);
-};
-
-export const addSourceEntityVersionIdToLink = async (
-  conn: Connection,
-  params: {
-    sourceAccountId: string;
-    linkId: string;
-    newSourceEntityVersionId: string;
-  },
-) => {
-  await conn.many(
-    sql`
-      update links
-      set source_entity_version_ids = array_append(links.source_entity_version_ids, ${params.newSourceEntityVersionId})
-      where
-        source_account_id = ${params.sourceAccountId}
-        and link_id = ${params.linkId}
-        and not ${params.newSourceEntityVersionId} = ANY(links.source_entity_version_ids)
-      returning link_id
-    `,
-  );
 };
