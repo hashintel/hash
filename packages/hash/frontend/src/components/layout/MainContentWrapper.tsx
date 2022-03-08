@@ -100,7 +100,6 @@ export const MainContentWrapper: FunctionComponent = ({ children }) => {
           <Button variant="secondary" size="xs">
             Secondary XS Button
           </Button>
-          <Box sx={{ mr: 2 }} />
         </Box>
         <br />
         <Box sx={{ display: "flex", alignItems: "flex-start" }}>
@@ -180,19 +179,31 @@ export const MainContentWrapper: FunctionComponent = ({ children }) => {
         </Box>
         <br />
         <Box sx={{ display: "flex", alignItems: "flex-start" }}>
-          <Button size="large" disabled>
-            Disabled Button Large
-          </Button>
-          <Box sx={{ mr: 2 }} />
-          <Button disabled> Disabled button </Button>
+          <Button disabled>Disabled Button</Button>
           <Box sx={{ mr: 2 }} />
           <Button disabled size="small">
             {" "}
             Disabled button{" "}
           </Button>
           <Box sx={{ mr: 2 }} />
+          <Button
+            disabled
+            disabledTooltipText="Please enter a title or type to continue"
+          >
+            A disabled button
+          </Button>
+          <Box sx={{ mr: 2 }} />
         </Box>
         <br />
+        <Box sx={{ display: "flex", alignItems: "flex-start" }}>
+          <Button loading>Primary</Button>
+          <Box sx={{ mr: 2 }} />
+          <Button variant="secondary" size="medium" loadingWithoutText>
+            Secondary
+          </Button>
+          <Box sx={{ mr: 2 }} />
+        </Box>
+
         {children}
       </Main>
     </Box>
