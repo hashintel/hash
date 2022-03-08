@@ -44,7 +44,9 @@ test("user can create and update entity", async ({ page }) => {
   );
 
   // Expect the created property to be present
-  await expect(page.locator("label[text=Property1]")).toBeVisible();
+  await expect(
+    page.locator(`text=Property1Property1 >> input[type="text"]`),
+  ).toBeVisible();
 
   // Go back and add another property to the entity
   await page.goBack();
@@ -60,5 +62,7 @@ test("user can create and update entity", async ({ page }) => {
   );
 
   // Expect the newly created property to be present
-  await expect(page.locator("text=Property2")).toBeVisible();
+  await expect(
+    page.locator(`text=Property2Property2 >> input[type="text"]`),
+  ).toBeVisible();
 });
