@@ -11,6 +11,19 @@ const userFieldsFragment = gql`
     entityTypeName
     visibility
     accountSignupComplete
+    memberOf {
+      entityId
+      org {
+        entityId
+        accountId
+        memberships {
+          entityId
+        }
+        properties {
+          name
+        }
+      }
+    }
     properties {
       shortname
       preferredName

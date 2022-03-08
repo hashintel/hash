@@ -12,13 +12,13 @@ import {
   BlockProtocolLink,
 } from "blockprotocol";
 import { tw } from "twind";
-import Link from "next/link";
 
 import {
   CreateLinkFnWithFixedSource,
   DeleteLinkFnWithFixedSource,
 } from "./types";
 import { entityName } from "../../lib/entities";
+import { Link } from "../Link";
 
 // @todo make this not need to know about accountId
 type MinimalEntity = { accountId: string; entityId: string; name: string };
