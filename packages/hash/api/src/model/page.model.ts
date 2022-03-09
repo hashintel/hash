@@ -341,9 +341,6 @@ class __Page extends Entity {
       createdByAccountId: insertedByAccountId,
       index: specifiedPosition ?? contentLinks.length,
     });
-
-    /** @todo: remove when modifying links no longer creates new versions of the source entity */
-    await this.refetchLatestVersion(client);
   }
 
   async moveBlock(
@@ -383,9 +380,6 @@ class __Page extends Entity {
       updatedIndex: newPosition,
       updatedByAccountId: movedByAccountId,
     });
-
-    /** @todo: remove when modifying links no longer creates new versions of the source entity */
-    await this.refetchLatestVersion(client);
   }
 
   async removeBlock(
@@ -417,9 +411,6 @@ class __Page extends Entity {
     const { removedByAccountId } = params;
 
     await link.delete(client, { deletedByAccountId: removedByAccountId });
-
-    /** @todo: remove when modifying links no longer creates new versions of the source entity */
-    await this.refetchLatestVersion(client);
   }
 }
 
