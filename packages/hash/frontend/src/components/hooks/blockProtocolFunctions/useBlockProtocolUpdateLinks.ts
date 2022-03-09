@@ -13,10 +13,7 @@ import {
   UpdateLinkedAggregationOperationMutationVariables,
 } from "../../../graphql/apiTypes.gen";
 
-export const useBlockProtocolUpdateLinks = (
-  /** Providing accountId here saves blocks from having to know it */
-  sourceAccountId: string,
-): {
+export const useBlockProtocolUpdateLinks = (): {
   updateLinks: BlockProtocolUpdateLinksFunction;
 } => {
   const [runUpdateLinkedAggregationMutation] = useMutation<
@@ -27,11 +24,12 @@ export const useBlockProtocolUpdateLinks = (
   // @todo implement updating linkgroups and linkedentities
   const getUpdatedLinksData = useCallback(
     async (action: BlockProtocolUpdateLinksAction) => {
-      if (action.updatedOperation) {
+      if (action.data && action.sourceAccountId) {
         const { data, errors } = await runUpdateLinkedAggregationMutation({
           variables: {
             ...action,
-            sourceAccountId,
+            updatedOperation: action.data,
+            sourceAccountId: action.sourceAccountId,
           },
         });
 
@@ -50,7 +48,7 @@ export const useBlockProtocolUpdateLinks = (
         ],
       };
     },
-    [runUpdateLinkedAggregationMutation, sourceAccountId],
+    [runUpdateLinkedAggregationMutation],
   );
 
   const updateLinks: BlockProtocolUpdateLinksFunction = useCallback(

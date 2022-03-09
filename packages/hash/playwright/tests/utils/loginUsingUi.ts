@@ -37,10 +37,16 @@ export const loginUsingUi = async ({
   await page.press(verificationCodeInputSelector, "Enter");
 
   // Wait for the redirect to the account page
-  await expect(page.locator("h1 >> text=Welcome to account")).toBeVisible();
+  await expect(
+    page.locator(
+      "p >> text=Please select a page from the list, or create a new page.",
+    ),
+  ).toBeVisible();
 
   // Wait for Sign in button to disappear
   // TODO: Completely avoid rendering Sign up / Sign in after login
   await expect(page.locator('button:has-text("Sign in")')).not.toBeVisible();
-  await expect(page.locator('button:has-text("Account")')).toBeVisible();
+  await expect(
+    page.locator(`button[title="${accountShortName}"]`),
+  ).toBeVisible();
 };

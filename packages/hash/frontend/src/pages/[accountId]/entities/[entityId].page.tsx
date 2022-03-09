@@ -34,10 +34,10 @@ const Entity: VoidFunctionComponent = () => {
       entityId,
     },
   });
-  const { createLinks } = useBlockProtocolCreateLinks(accountId);
-  const { deleteLinks } = useBlockProtocolDeleteLinks(accountId);
-  const { updateEntities } = useBlockProtocolUpdateEntities(accountId);
-  const { aggregateEntities } = useBlockProtocolAggregateEntities(accountId);
+  const { createLinks } = useBlockProtocolCreateLinks();
+  const { deleteLinks } = useBlockProtocolDeleteLinks();
+  const { updateEntities } = useBlockProtocolUpdateEntities();
+  const { aggregateEntities } = useBlockProtocolAggregateEntities();
 
   const updateAndNavigateToFirstEntity: BlockProtocolUpdateEntitiesFunction = (
     args,

@@ -1,30 +1,50 @@
-import { ReactNode, VoidFunctionComponent } from "react";
-import { Dialog } from "@headlessui/react";
-import { tw } from "twind";
+import { SxProps, Theme } from "@mui/material";
+import Box from "@mui/material/Box";
+import MuiModal, { ModalProps as MuiModalProps } from "@mui/material/Modal";
+import React from "react";
 
-export type ModalProps = {
-  children: ReactNode;
-  close: () => void;
-  show: boolean;
+import { useScrollLock } from "../util/muiUtils";
+
+const style: SxProps<Theme> = {
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  width: {
+    xs: "90%",
+    sm: 520,
+  },
+  bgcolor: "white",
+  boxShadow:
+    "0px 20px 41px rgba(61, 78, 133, 0.07), 0px 16px 25px rgba(61, 78, 133, 0.0531481), 0px 12px 12px rgba(61, 78, 133, 0.0325), 0px 2px 3.13px rgba(61, 78, 133, 0.02)",
+  borderRadius: 2,
+  p: { xs: 2, md: 4 },
 };
 
-export const Modal: VoidFunctionComponent<ModalProps> = ({
+type ModalProps = MuiModalProps & {
+  contentStyle?: SxProps<Theme>;
+};
+
+export const Modal: React.FC<ModalProps> = ({
+  open,
   children,
-  close,
-  show,
+  disableScrollLock = false,
+  onClose,
+  contentStyle,
+  ...props
 }) => {
+  useScrollLock(!disableScrollLock && open);
+
   return (
-    <Dialog
-      className={tw`fixed z-10 inset-0 overflow-y-auto flex h-screen justify-center items-center`}
-      open={show}
-      onClose={close}
+    <MuiModal
+      open={open}
+      onClose={onClose}
+      aria-labelledby="modal-modal-title"
+      aria-describedby="modal-modal-description"
+      disableScrollLock
+      {...props}
     >
-      <Dialog.Overlay className={tw`fixed inset-0 bg-black opacity-80`} />
-      <div
-        className={tw`inline-block w-full max-w-lg p-12 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-xl`}
-      >
-        {children}
-      </div>
-    </Dialog>
+      <Box sx={{ ...style, ...contentStyle }}>{children}</Box>
+    </MuiModal>
   );
 };

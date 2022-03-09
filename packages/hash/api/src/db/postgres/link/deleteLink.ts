@@ -1,9 +1,5 @@
 import { Connection } from "../types";
-import {
-  acquireEntityLock,
-  getEntityLatestVersion,
-  updateVersionedEntity,
-} from "../entity";
+import { acquireEntityLock, getEntityLatestVersion } from "../entity";
 import { DbEntityNotFoundError, DbLinkNotFoundError } from "../..";
 import { genId } from "../../../util";
 import { getLink } from "./getLink";
@@ -11,6 +7,7 @@ import {
   deleteLinkRow,
   getLinksWithMinimumIndex,
   insertLink,
+  removeLinkFromSource,
   updateLinkIndices,
 } from "./util";
 import { requireTransaction } from "../util";
@@ -24,17 +21,21 @@ export const deleteLink = async (
   },
 ): Promise<void> =>
   requireTransaction(existingConnection)(async (conn) => {
-    const dbLink = await getLink(conn, params);
+    const { sourceAccountId, linkId } = params;
+
+    const dbLink = await getLink(conn, { sourceAccountId, linkId });
 
     if (!dbLink) {
       throw new DbLinkNotFoundError(params);
     }
 
-    const { sourceAccountId, sourceEntityId, path, index } = dbLink;
+    const now = new Date();
+
+    const { sourceEntityId, path, index } = dbLink;
 
     await acquireEntityLock(conn, { entityId: sourceEntityId });
 
-    let dbSourceEntity = await getEntityLatestVersion(conn, {
+    const dbSourceEntity = await getEntityLatestVersion(conn, {
       accountId: sourceAccountId,
       entityId: sourceEntityId,
     }).then((dbEntity) => {
@@ -48,77 +49,91 @@ export const deleteLink = async (
       return dbEntity;
     });
 
+    const promises: Promise<void>[] = [];
+
     if (dbSourceEntity.metadata.versioned) {
+      const { deletedByAccountId } = params;
+
       /**
-       * When the source entity is versioned, we have to create a new version
-       * of the entity.
-       *
-       * Note when the deleted link also has an index, we have to re-create all
-       * links whose index has to be decremented, which are the links that:
+       * When the source entity is versioned, instead of deleting the link from the
+       * datastore we remove the link from the source at the current timestmap (so
+       * that the link is preserved in the history)
+       */
+      promises.push(
+        removeLinkFromSource(conn, {
+          sourceAccountId,
+          linkId,
+          removedFromSourceAt: now,
+          removedFromSourceBy: deletedByAccountId,
+        }),
+      );
+
+      if (index !== undefined) {
+        /**
+         * When the source entity is versioned and the deleted link also has an index,
+         * we have to re-create all links which:
+         *  - are outgoing links of the previous entity's version
+         *  - have the same path
+         *  - have an index which is greater than the index of the deleted link's index
+         *
+         * @todo: when we are storing links and versions of links in separate tables, we no longer
+         * have to fully re-create these affected links - only create new versions
+         */
+
+        const affectedOutgoingLinks = await getLinksWithMinimumIndex(conn, {
+          sourceAccountId,
+          sourceEntityId,
+          minimumIndex: index + 1,
+          path,
+        });
+
+        promises.push(
+          ...affectedOutgoingLinks
+            .map((previousLink) => [
+              removeLinkFromSource(conn, {
+                ...previousLink,
+                removedFromSourceAt: now,
+                removedFromSourceBy: deletedByAccountId,
+              }),
+              insertLink(conn, {
+                ...previousLink,
+                linkId: genId(),
+                index: previousLink.index! - 1,
+                appliedToSourceAt: now,
+                appliedToSourceBy: deletedByAccountId,
+              }),
+            ])
+            .flat(),
+        );
+      }
+    } else {
+      /**
+       * When the source entity is not versioned we can remove the link from the
+       * datastore entirely
+       */
+
+      promises.push(deleteLinkRow(conn, params));
+
+      /**
+       * When the source entity is not versioned and the deleted link also has an index,
+       * we have to directly increment the index of all the links which:
        *  - are outgoing links of the previous entity's version
        *  - have the same path
        *  - have an index which is greater than the index of the deleted link's index
        */
 
-      const affectedOutgoingLinks =
-        index !== undefined
-          ? await getLinksWithMinimumIndex(conn, {
-              sourceAccountId,
-              sourceEntityId,
-              sourceEntityVersionId: dbSourceEntity.entityVersionId,
-              minimumIndex: index + 1,
-              path,
-            })
-          : [];
-
-      const { deletedByAccountId } = params;
-
-      dbSourceEntity = await updateVersionedEntity(conn, {
-        entity: dbSourceEntity,
-        /** @todo: re-implement method to not require updated `properties` */
-        properties: dbSourceEntity.properties,
-        updatedByAccountId: deletedByAccountId,
-        omittedOutgoingLinks: [
-          ...affectedOutgoingLinks,
-          { sourceAccountId, linkId: params.linkId },
-        ],
-      });
-
       if (index !== undefined) {
-        /** @todo: implement insertLinks and use that instead of many insertLink queries */
-        const now = new Date();
-
-        await Promise.all(
-          affectedOutgoingLinks
-            .map((previousLink) => {
-              const linkId = genId();
-              return insertLink(conn, {
-                ...previousLink,
-                linkId,
-                index: previousLink.index! - 1,
-                sourceEntityVersionIds: new Set([
-                  dbSourceEntity.entityVersionId,
-                ]),
-                createdAt: now,
-              });
-            })
-            .flat(),
+        promises.push(
+          updateLinkIndices(conn, {
+            sourceAccountId,
+            sourceEntityId,
+            path,
+            minimumIndex: index + 1,
+            operation: "decrement",
+          }),
         );
       }
-    } else {
-      await Promise.all(
-        [
-          index !== undefined
-            ? updateLinkIndices(conn, {
-                sourceAccountId,
-                sourceEntityId,
-                path,
-                minimumIndex: index + 1,
-                operation: "decrement",
-              })
-            : [],
-          deleteLinkRow(conn, params),
-        ].flat(),
-      );
     }
+
+    await Promise.all(promises);
   });

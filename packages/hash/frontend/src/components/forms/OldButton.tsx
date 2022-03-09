@@ -1,7 +1,10 @@
 import { forwardRef, ComponentProps } from "react";
 import { tw } from "twind";
 
-export const Button = forwardRef<
+/**
+ * @deprecated
+ */
+export const OldButton = forwardRef<
   HTMLButtonElement,
   { big?: boolean; danger?: boolean } & ComponentProps<"button">
 >(({ big, children, className, disabled, danger, ...props }, ref) => {

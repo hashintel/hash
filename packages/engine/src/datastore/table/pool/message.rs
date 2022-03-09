@@ -43,6 +43,16 @@ impl super::Pool<MessageBatch> for MessagePool {
     }
 }
 
+impl MessagePool {
+    pub fn reserve(&mut self, additional: usize) {
+        self.batches.reserve(additional);
+    }
+
+    pub fn push(&mut self, batch: MessageBatch) {
+        self.batches.push(Arc::new(RwLock::new(batch)))
+    }
+}
+
 impl PoolReadProxy<MessageBatch> {
     pub fn get_reader(&self) -> MessageReader<'_> {
         MessageReader {
@@ -125,14 +135,13 @@ impl PoolWriteProxy<MessageBatch> {
     ) -> Result<()> {
         let message_schema = &sim_config.sim.store.message_schema;
         let experiment_id = &sim_config.exp.run.base().id;
-        let mut removed = vec![];
         // Reversing sequence to remove from the back if there are
         // fewer agent batches than message batches
         for batch_index in (0..self.len()).rev() {
             if let Some(dynamic_batch) = agent_proxies.batch(batch_index) {
                 self[batch_index].reset(dynamic_batch)?;
             } else {
-                removed.push(message_pool.remove(batch_index));
+                message_pool.remove(batch_index);
             }
         }
         if agent_proxies.len() > self.len() {

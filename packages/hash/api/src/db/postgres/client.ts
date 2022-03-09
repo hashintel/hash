@@ -24,9 +24,7 @@ import {
   getEntityType,
   getEntityTypeByComponentId,
   getEntityTypeBySchema$id,
-  getJsonSchemaBySchema$id,
   getEntityTypeChildren,
-  getEntityTypeParents,
   getEntityTypeLatestVersion,
   getSystemTypeLatestVersion,
   insertEntityType,
@@ -51,12 +49,8 @@ import {
   updateEntityAccountId,
   getAccountEntities,
 } from "./entity";
-import {
-  getEntitiesByTypeWithOutgoingEntityIds,
-  getEntityOutgoingLinks,
-  getEntityWithOutgoingEntityIds,
-} from "./link/getEntityOutgoingLinks";
-import { getLink, getLinkByEntityId } from "./link/getLink";
+import { getEntityOutgoingLinks } from "./link/getEntityOutgoingLinks";
+import { getLink } from "./link/getLink";
 import { createLink } from "./link/createLink";
 import { deleteLink } from "./link/deleteLink";
 import { getUserByEmail, getUserByShortname } from "./user";
@@ -69,7 +63,7 @@ import {
   getUserVerificationCodes,
 } from "./verificationCode";
 import { getImpliedEntityHistory } from "./history";
-import { JsonSchemaCompiler } from "../../lib/schemas/jsonSchema";
+import { generateSchema$id } from "../../lib/schemas/jsonSchema";
 import { SystemType } from "../../types/entityTypes";
 import { Visibility } from "../../graphql/apiTypes.gen";
 import { getOrgByShortname } from "./org";
@@ -95,14 +89,10 @@ export class PostgresClient implements DBClient {
   }
 
   /** Create an entity type definition and return its uuid. */
-  async createEntityType(params: {
-    name: string;
-    accountId: string;
-    createdByAccountId: string;
-    description?: string;
-    schema?: Record<string, any>;
-  }): Promise<EntityType> {
-    const { name, accountId, createdByAccountId, description, schema } = params;
+  async createEntityType(
+    params: Parameters<DBClient["createEntityType"]>[0],
+  ): Promise<EntityType> {
+    const { name, accountId, createdByAccountId, schema } = params;
 
     return this.transaction(async (conn) => {
       // The fixed type id
@@ -111,26 +101,17 @@ export class PostgresClient implements DBClient {
       // The id to assign this (first) version
       const entityTypeVersionId = genId();
 
-      // Conn is used here to prevent transaction-mismatching.
-      // this.conn is a parent of this transaction conn at this time.
-      const jsonSchemaCompiler = new JsonSchemaCompiler(async (url) => {
-        return getJsonSchemaBySchema$id(conn, url);
-      });
-
       const now = new Date();
-      const properties = await jsonSchemaCompiler.jsonSchema(
-        name,
-        accountId,
-        entityTypeId,
-        schema,
-        description,
-      );
+
+      // Ensure that the schema $id refers to the correct accountId + entityId
+      schema.$id = generateSchema$id(accountId, entityTypeId);
+
       const entityType: EntityType = {
         accountId,
         entityId: entityTypeId,
         entityVersionId: entityTypeVersionId,
         entityTypeName: "EntityType",
-        properties,
+        properties: schema,
         metadata: {
           versioned: true,
           name,
@@ -312,12 +293,6 @@ export class PostgresClient implements DBClient {
     return await getEntityTypeChildren(this.conn, params);
   }
 
-  async getEntityTypeParents(
-    params: Parameters<DBClient["getEntityTypeParents"]>[0],
-  ): ReturnType<DBClient["getEntityTypeParents"]> {
-    return await getEntityTypeParents(this.conn, params);
-  }
-
   /**
    * Update an entity, either versioned or non-versioned. Note: the update is always
    * applied to the latest version of the entity.
@@ -371,25 +346,17 @@ export class PostgresClient implements DBClient {
       throw new Error("Schema requires a name set via a 'title' property");
     }
 
-    const jsonSchemaCompiler = new JsonSchemaCompiler((url) => {
-      return getJsonSchemaBySchema$id(this.conn, url);
-    });
-
-    const schemaToSet = await jsonSchemaCompiler.jsonSchema(
-      nameToSet,
-      entity.accountId,
-      entityId,
-      schema,
-    );
-
     const now = new Date();
+
+    // Ensure that the schema $id refers to the correct accountId + entityId
+    schema.$id = generateSchema$id(entity.accountId, entityId);
 
     const newType: EntityType = {
       ...entity,
       entityVersionId: genId(),
       updatedAt: now,
       updatedByAccountId: params.updatedByAccountId,
-      properties: schemaToSet,
+      properties: schema,
     };
 
     if (entity.metadata.versioned) {
@@ -438,41 +405,6 @@ export class PostgresClient implements DBClient {
     return params.latestOnly
       ? await getEntitiesByTypeLatestVersion(this.conn, queryParams)
       : await getEntitiesByTypeAllVersions(this.conn, queryParams);
-  }
-
-  async getEntitiesByTypeWithOutgoingEntityIds(
-    params: Parameters<DBClient["getEntitiesByTypeWithOutgoingEntityIds"]>[0],
-  ): ReturnType<DBClient["getEntitiesByTypeWithOutgoingEntityIds"]> {
-    let entityTypeId: string = "";
-
-    if (params.entityTypeId) {
-      entityTypeId = params.entityTypeId;
-    } else if (params.systemTypeName) {
-      const { entity_type_id } = await this.conn.one<{
-        entity_type_id: string;
-      }>(selectSystemEntityTypeIds({ systemTypeName: params.systemTypeName }));
-
-      entityTypeId = entity_type_id ?? "";
-    }
-
-    if (!entityTypeId) {
-      throw new Error(
-        `Did not receive valid entityTypeId or systemTypeName for fetching outgoing entity ids for entity by entityTypeId. entityTypeId = '${params.entityTypeId}' systemTypeName = '${params.systemTypeName}'`,
-      );
-    }
-
-    const queryParams = {
-      entityTypeId,
-      accountId: params.accountId,
-    };
-
-    return await getEntitiesByTypeWithOutgoingEntityIds(this.conn, queryParams);
-  }
-
-  async getEntityWithOutgoingEntityIds(
-    params: Parameters<DBClient["getEntityWithOutgoingEntityIds"]>[0],
-  ): ReturnType<DBClient["getEntityWithOutgoingEntityIds"]> {
-    return getEntityWithOutgoingEntityIds(this.conn, params);
   }
 
   /** Get all entities of a given type in a given account. */
@@ -525,12 +457,6 @@ export class PostgresClient implements DBClient {
     return await getLink(this.conn, params);
   }
 
-  async getLinkByEntityId(
-    params: Parameters<DBClient["getLinkByEntityId"]>[0],
-  ): ReturnType<DBClient["getLinkByEntityId"]> {
-    return await getLinkByEntityId(this.conn, params);
-  }
-
   async deleteLink(params: {
     deletedByAccountId: string;
     sourceAccountId: string;
@@ -569,12 +495,9 @@ export class PostgresClient implements DBClient {
     return await deleteAggregation(this.conn, params);
   }
 
-  async getEntityOutgoingLinks(params: {
-    accountId: string;
-    entityId: string;
-    entityVersionId?: string;
-    path?: string;
-  }): Promise<DBLink[]> {
+  async getEntityOutgoingLinks(
+    params: Parameters<DBClient["getEntityOutgoingLinks"]>[0],
+  ): Promise<DBLink[]> {
     return await getEntityOutgoingLinks(this.conn, params);
   }
 

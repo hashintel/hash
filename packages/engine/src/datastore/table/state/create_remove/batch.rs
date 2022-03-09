@@ -52,7 +52,7 @@ impl PendingBatch {
         let remove_indices_len = remove_indices.len();
         let old_batch = BaseBatch {
             index: batch_index,
-            worker: batch.affinity,
+            worker: batch.worker_index,
             remove_indices,
         };
 

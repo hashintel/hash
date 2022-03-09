@@ -1,20 +1,22 @@
 import { FormEvent, useEffect, useState, VoidFunctionComponent } from "react";
 import { Router, useRouter } from "next/router";
+import { Box } from "@mui/material";
 
-import { useCreatePage } from "../../hooks/useCreatePage";
-import { Modal } from "../Modal";
+import { useCreatePage } from "../hooks/useCreatePage";
+import { Modal } from "./Modal";
 
-import styles from "./CreatePage.module.scss";
-import { Button } from "../../forms/Button";
+import { OldButton } from "../forms/OldButton";
 
-type CreatePageProps = {
-  close: () => void;
+type CreatePageModalProps = {
   accountId: string;
+  close: () => void;
+  show: boolean;
 };
 
-export const CreatePage: VoidFunctionComponent<CreatePageProps> = ({
+export const CreatePageModal: VoidFunctionComponent<CreatePageModalProps> = ({
   close,
   accountId,
+  show,
 }) => {
   const [title, setTitle] = useState("");
   const [loading, setLoading] = useState(false);
@@ -61,8 +63,34 @@ export const CreatePage: VoidFunctionComponent<CreatePageProps> = ({
   }, [close]);
 
   return (
-    <Modal show close={close}>
-      <form className={styles.CreatePage} onSubmit={createPage}>
+    <Modal data-testid="create-page-modal" open={show} onClose={close}>
+      <Box
+        component="form"
+        sx={{
+          "& > *": {
+            display: "block",
+          },
+          "& h2": {
+            fontSize: 26,
+            fontWeight: 600,
+            mb: "30px",
+          },
+          "& label": {
+            fontWeight: 600,
+            marginBottom: "8px",
+            fontSize: "17px",
+          },
+          "& input": {
+            padding: "12px 20px",
+            borderRadius: "4px",
+            border: "1px solid lightgray",
+            fontSize: 16,
+            mb: "30px",
+            width: "100%",
+          },
+        }}
+        onSubmit={createPage}
+      >
         <h2>Don't be afraid of a blank page...</h2>
 
         <label>Title</label>
@@ -74,10 +102,10 @@ export const CreatePage: VoidFunctionComponent<CreatePageProps> = ({
           value={title}
         />
 
-        <Button disabled={loading} big type="submit">
+        <OldButton disabled={loading} big type="submit">
           Create
-        </Button>
-      </form>
+        </OldButton>
+      </Box>
     </Modal>
   );
 };

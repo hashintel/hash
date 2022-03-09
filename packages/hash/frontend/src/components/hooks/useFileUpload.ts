@@ -59,7 +59,7 @@ function computeChecksumMd5(file: File): Promise<string> {
   });
 }
 
-export const useFileUpload = (accountId: string) => {
+export const useFileUpload = () => {
   const client = useApolloClient();
 
   const [requestFileUploadFn] = useMutation<
@@ -92,8 +92,8 @@ export const useFileUpload = (accountId: string) => {
   };
 
   const uploadFile: BlockProtocolUploadFileFunction = useCallback(
-    async ({ file, url, mediaType }) => {
-      if (url?.trim()) {
+    async ({ accountId, file, url, mediaType }) => {
+      if (url?.trim() && accountId) {
         const result = await createFileFromLinkFn({
           variables: {
             accountId,
@@ -174,7 +174,7 @@ export const useFileUpload = (accountId: string) => {
         mediaType,
       };
     },
-    [accountId, client, createFileFromLinkFn, requestFileUploadFn],
+    [client, createFileFromLinkFn, requestFileUploadFn],
   );
 
   return {

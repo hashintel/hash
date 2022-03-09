@@ -1,36 +1,16 @@
-import {
-  PageStructure,
-  QueryAccountPagesArgs,
-  Resolver,
-} from "../../apiTypes.gen";
+import { QueryAccountPagesArgs, Resolver } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { Entity, Page, UnresolvedGQLEntity } from "../../../model";
+import { Page, UnresolvedGQLEntity } from "../../../model";
 
 export const accountPages: Resolver<
   Promise<UnresolvedGQLEntity[]>,
   {},
   GraphQLContext,
   QueryAccountPagesArgs
-> = async (_, { accountId, structure }, { dataSources }) => {
-  let pages: UnresolvedGQLEntity[] = [];
-  if (structure === PageStructure.Flat) {
-    pages = (
-      await Entity.getEntitiesBySystemType(dataSources.db, {
-        accountId,
-        systemTypeName: "Page",
-        latestOnly: true,
-      })
-    ).map((page) => page.toGQLUnknownEntity());
-  } else if (structure === PageStructure.Tree) {
-    pages = (
-      await Page.getAccountPagesWithParents(dataSources.db, {
-        accountId,
-        systemTypeName: "Page",
-      })
-    ).map((page) => ({
-      ...page.toGQLUnknownEntity(),
-      parentPageId: page.parentEntityId,
-    }));
-  }
-  return pages;
+> = async (_, { accountId }, { dataSources }) => {
+  const pages = await Page.getAllPagesInAccount(dataSources.db, {
+    accountId,
+  });
+
+  return pages.map((page) => page.toGQLUnknownEntity());
 };

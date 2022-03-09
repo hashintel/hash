@@ -2,14 +2,14 @@ mod error;
 mod mini_v8;
 
 use std::{
-    collections::HashMap, fs, future::Future, pin::Pin, result::Result as StdResult, slice,
-    sync::Arc,
+    collections::HashMap, fs, future::Future, pin::Pin, ptr::NonNull, result::Result as StdResult,
+    slice, sync::Arc,
 };
 
 use arrow::{
-    array::{ArrayData, BooleanBufferBuilder},
+    array::{ArrayData, BooleanBufferBuilder, BufferBuilder},
     buffer::Buffer,
-    datatypes::{DataType, Field, Schema},
+    datatypes::{ArrowNativeType, DataType, Schema},
     ipc::writer::{IpcDataGenerator, IpcWriteOptions},
     util::bit_util,
 };
@@ -554,135 +554,292 @@ impl<'m> RunnerImpl<'m> {
         })
     }
 
+    /// Creates a new buffer from the provided `data_ptr` and `data_capacity` with at least
+    /// `data_len` elements copied from `data_ptr` and a size of `target_len` elements.
+    ///
+    /// # SAFETY
+    ///
+    /// - `data_ptr` must be valid for `data_len` reads of `T`
+    unsafe fn read_primitive_buffer<T: ArrowNativeType>(
+        &self,
+        data_ptr: NonNull<T>,
+        data_len: usize,
+        _data_capacity: usize, // for future use to create a `Buffer::from_raw_parts`
+        target_len: usize,
+    ) -> Buffer {
+        // TODO: OPTIM: We currently copy the buffers because the JavaScript representation of
+        //   arrays does not match the Rust implementation. Try to reduce copies where possible by
+        //   reusing it, i.e. check, if `target_len` >= `data_capacity` and constructing it from raw
+        //   parts.
+        // Create a buffer for `target_len` elements
+        let mut builder = BufferBuilder::new(target_len);
+
+        // Read data from JS
+        builder.append_slice(slice::from_raw_parts(data_ptr.as_ptr(), data_len));
+
+        // Ensure we don't subtract a larger unsigned number from a smaller
+        // TODO: Use `buffer.resize()` instead of `builder.advance()`
+        debug_assert!(
+            target_len >= data_len,
+            "Expected length is smaller than the actual length for buffer: {:?}",
+            slice::from_raw_parts(data_ptr.as_ptr(), data_len)
+        );
+        builder.advance(target_len - data_len);
+        builder.finish()
+    }
+
+    /// Creates a new offset buffer from the provided `data_ptr` and `data_capacity` with at least a
+    /// with `data_len` elements copied from `ptr` and a size of `target_len` elements.
+    ///
+    /// Returns the buffer and the last offset.
+    ///
+    /// # SAFETY
+    ///
+    /// - `ptr` must be valid for `data_len + 1` reads of `i32`
+    unsafe fn read_offset_buffer(
+        &self,
+        data_ptr: NonNull<i32>,
+        data_len: usize,
+        _data_capacity: usize, // for future use to create a `Buffer::from_raw_parts`
+        target_len: usize,
+    ) -> (Buffer, usize) {
+        // TODO: OPTIM: We currently copy the buffers because the JavaScript representation of
+        //   arrays does not match the Rust implementation. Try to reduce copies where possible by
+        //   reusing it, i.e. check, if `target_len` <= `data_capacity` and constructing it from raw
+        //   parts.
+
+        // For each value in the buffer, we have a start offset and an end offset. The start offset
+        // is equal to the end offset of the previous value, thus we need `num_values + 1`
+        // offset values.
+        let mut builder = BufferBuilder::new(target_len + 1);
+
+        let offsets = slice::from_raw_parts(data_ptr.as_ptr(), data_len + 1);
+        debug_assert_eq!(offsets[0], 0, "Offset buffer does not start with `0`");
+        debug_assert!(
+            offsets.iter().all(|o| *o >= 0),
+            "Offset buffer contains negative values"
+        );
+        debug_assert!(offsets.is_sorted(), "Offsets are not ordered");
+
+        // Read data from JS
+        builder.append_slice(offsets);
+
+        let last = offsets[data_len];
+
+        // Ensure we don't subtract a larger unsigned number from a smaller
+        // TODO: Use `buffer.resize()` instead of `builder.append_n()`
+        debug_assert!(
+            target_len >= data_len,
+            "Expected offset count is smaller than the actual buffer: {:?}",
+            slice::from_raw_parts(data_ptr.as_ptr(), data_len + 1)
+        );
+        builder.append_n(target_len - data_len, last);
+        (builder.finish(), last as usize)
+    }
+
+    /// Creates a new packed buffer from the provided `data_ptr` and `data_capacity` with at least
+    /// `data_len` elements copied from `data_ptr` and a size of `target_len` elements.
+    ///
+    /// # SAFETY
+    ///
+    /// - `data_ptr` must be valid for `ceil(data_len/8)` reads of `u8`
+    unsafe fn read_boolean_buffer(
+        &self,
+        data_ptr: NonNull<u8>,
+        data_len: usize,
+        _data_capacity: usize, // for future use to create a `Buffer::from_raw_parts`
+        target_len: usize,
+    ) -> Buffer {
+        // TODO: OPTIM: We currently copy the buffers because the JavaScript representation of
+        //   arrays does not match the Rust implementation. Try to reduce copies where possible by
+        //   reusing it, i.e. check, if `target_len` <= `data_capacity` and constructing it from raw
+        //   parts.
+        // Create a buffer for `target_len` elements
+        let mut builder = BooleanBufferBuilder::new(target_len);
+
+        // Read data from JS
+        builder.append_packed_range(
+            0..data_len,
+            slice::from_raw_parts(data_ptr.as_ptr(), bit_util::ceil(data_len, 8)),
+        );
+        builder.resize(target_len);
+        builder.finish()
+    }
+
     /// TODO: DOC, flushing from a single column
     fn array_data_from_js(
         &mut self,
         mv8: &'m MiniV8,
         data: &mv8::Value<'m>,
-        field: &Field,
+        data_type: &DataType,
         len: Option<usize>,
     ) -> Result<ArrayData> {
         // `data` must not be dropped until flush is over, because
         // pointers returned from FFI point inside `data`'s ArrayBuffers' memory.
         let obj = data.as_object().ok_or_else(|| {
-            Error::Embedded(format!("Flush data not object for field {:?}", field))
+            Error::Embedded(format!("Flush data not object for field {:?}", data_type))
         })?;
 
         // `data_node_from_js` isn't recursive -- doesn't convert children.
         let data: mv8::DataFfi = mv8.data_node_from_js(data);
 
-        // This target length is used because the JS repr does not mirror buffer building as Rust
-        // Arrow and pyarrow.
+        // The JS Arrow implementation tries to be efficient with the allocation of the values
+        // buffers. If you have a null value at the end, it doesn't always allocate that
+        // within the buffer. Rust expects that to be explicitly there though, so there's a
+        // mismatch in the expected lengths. `target_len` is the number of elements the Rust
+        // implementation of Arrow expects in the resulting `ArrayData`.
+        //
+        // Example:
+        // Considering a column of fixed-size-lists with two elements each: [[1, 2], [3, 4], null]
+        // JavaScript will only provide a value-array for the child data containing [1, 2, 3, 4]
+        // (data.len == 4), but Rust expects it to be [1, 2, 3, 4, ?, ?] (target_len == 6) where `?`
+        // means an unspecified value. We read [1, 2, 3, 4] from the JS data by using `data.len` and
+        // then resize the buffer to `target_len`.
         let target_len = len.unwrap_or(data.len);
 
-        // TODO: We currently copy the buffers by calling `Buffer::from_slice_ref` because the
-        //   JavaScript representation of arrays does not match the Rust implementation. Try to
-        //   reduce copies where possible.
-        let mut builder = ArrayData::builder(field.data_type().clone());
+        let mut builder = ArrayData::builder(data_type.clone());
 
-        match field.data_type() {
-            DataType::Boolean => {
-                // SAFETY: `data.buffer_ptrs[0]` is provided by arrow, the type is `u8`, and
-                //   `target_len` is carefully chosen
-                let values = unsafe { slice::from_raw_parts(data.buffer_ptrs[0], target_len) };
-
-                // Booleans are packed in arrow, `values` are already packed, so use them directly
-                let mut boolean_builder = BooleanBufferBuilder::new(target_len);
-                boolean_builder.append_packed_range(0..target_len, values);
-
-                builder = builder.add_buffer(boolean_builder.finish());
-            }
-            DataType::UInt16 => {
-                // SAFETY: `data.buffer_ptrs[0]` is provided by arrow, the type is `u16`, and
-                //   `target_len` is carefully chosen
-                let values =
-                    unsafe { slice::from_raw_parts(data.buffer_ptrs[0] as *const u16, target_len) };
-
-                builder = builder.add_buffer(Buffer::from_slice_ref(&values));
-            }
-            DataType::UInt32 => {
-                // SAFETY: `data.buffer_ptrs[0]` is provided by arrow, the type is `u32`, and
-                //   `target_len` is carefully chosen
-                let values =
-                    unsafe { slice::from_raw_parts(data.buffer_ptrs[0] as *const u32, target_len) };
-
-                builder = builder.add_buffer(Buffer::from_slice_ref(&values));
-            }
-            DataType::Float64 => {
-                // SAFETY: `data.buffer_ptrs[0]` is provided by arrow, the type is `f64`, and
-                //   `target_len` is carefully chosen
-                let values =
-                    unsafe { slice::from_raw_parts(data.buffer_ptrs[0] as *const f64, target_len) };
-
-                builder = builder.add_buffer(Buffer::from_slice_ref(&values));
-            }
+        match data_type {
+            DataType::Boolean => unsafe {
+                // SAFETY: `data` is provided by arrow
+                debug_assert!(
+                    !data.buffer_ptrs[0].is_null(),
+                    "Required pointer for `Boolean` (`buffers[0]`) is null"
+                );
+                builder = builder.add_buffer(self.read_boolean_buffer(
+                    NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8),
+                    data.len,
+                    data.buffer_capacities[0],
+                    target_len,
+                ));
+            },
+            DataType::UInt16 => unsafe {
+                // SAFETY: `data` is provided by arrow and the type is `u16`
+                debug_assert!(
+                    !data.buffer_ptrs[0].is_null(),
+                    "Required pointer for `UInt16` (`buffers[0]`) is null"
+                );
+                builder = builder.add_buffer(self.read_primitive_buffer(
+                    NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8).cast::<u16>(),
+                    data.len,
+                    data.buffer_capacities[0],
+                    target_len,
+                ))
+            },
+            DataType::UInt32 => unsafe {
+                // SAFETY: `data` is provided by arrow and the type is `u32`
+                debug_assert!(
+                    !data.buffer_ptrs[0].is_null(),
+                    "Required pointer for `UInt32` (`buffers[0]`) is null"
+                );
+                builder = builder.add_buffer(self.read_primitive_buffer(
+                    NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8).cast::<u32>(),
+                    data.len,
+                    data.buffer_capacities[0],
+                    target_len,
+                ))
+            },
+            DataType::Float64 => unsafe {
+                debug_assert!(
+                    !data.buffer_ptrs[0].is_null(),
+                    "Required pointer for `Float64` (`buffers[0]`) is null"
+                );
+                // SAFETY: `data` is provided by arrow and the type is `f64`
+                builder = builder.add_buffer(self.read_primitive_buffer(
+                    NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8).cast::<f64>(),
+                    data.len,
+                    data.buffer_capacities[0],
+                    target_len,
+                ))
+            },
             DataType::Utf8 => {
                 // Utf8 is stored in two buffers:
                 //   [0]: The offset buffer (i32)
                 //   [1]: The value buffer (u8)
 
-                // The offsets are in the first buffer. For each value in the second buffer, we have
-                // a start offset and an end offset. The start offset is equal to the end offset of
-                // the previous value, thus we need `num_values + 1` offset values.
-
-                // SAFETY: `data.buffer_ptrs[0]` is provided by arrow as offsets, the type is `i32`,
-                //   and `target_len + 1` is carefully chosen.
-                let offsets = unsafe {
-                    slice::from_raw_parts(data.buffer_ptrs[0] as *const i32, target_len + 1)
+                // SAFETY: Offset `data` is provided by arrow.
+                let (offset_buffer, last_offset) = unsafe {
+                    debug_assert!(
+                        !data.buffer_ptrs[0].is_null(),
+                        "Required pointer for `Utf8` (`buffers[0]`) is null"
+                    );
+                    self.read_offset_buffer(
+                        NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8).cast::<i32>(),
+                        data.len,
+                        data.buffer_capacities[0],
+                        target_len,
+                    )
                 };
-                builder = builder.add_buffer(Buffer::from_slice_ref(&offsets));
+                builder = builder.add_buffer(offset_buffer);
 
-                // SAFETY: `data.buffer_ptrs[1]` is provided by arrow as values, the type is
-                //   `u8`, and the length is provided by the offsets
-                let values = unsafe {
-                    slice::from_raw_parts(data.buffer_ptrs[1], offsets[target_len] as usize)
+                // SAFETY: `data` is provided by arrow, the length is provided by `offsets`, and the
+                //   type for strings is `u8`
+                unsafe {
+                    debug_assert!(
+                        !data.buffer_ptrs[1].is_null(),
+                        "Required pointer for `Utf8` (`buffers[1]`) is null"
+                    );
+                    builder = builder.add_buffer(self.read_primitive_buffer(
+                        NonNull::new_unchecked(data.buffer_ptrs[1] as *mut u8),
+                        last_offset,
+                        data.buffer_capacities[1],
+                        last_offset,
+                    ));
                 };
-                builder = builder.add_buffer(Buffer::from_slice_ref(&values));
             }
             DataType::List(inner_field) => {
                 // List is stored in one buffer and child data containing the indexed values:
                 //   buffer: The offset buffer (i32)
                 //   child_data: The value data
 
-                // See `DataType::Utf8` above for reasoning on `target_len + 1`
-                // SAFETY: `data.buffer_ptrs[0]` is provided by arrow, the type is `i32`, and
-                //   `target_len + 1` is carefully chosen.
-                let offsets = unsafe {
-                    slice::from_raw_parts(data.buffer_ptrs[0] as *const i32, target_len + 1)
+                // SAFETY: Offset `data` is provided by arrow.
+                let (offset_buffer, last_offset) = unsafe {
+                    debug_assert!(
+                        !data.buffer_ptrs[0].is_null(),
+                        "Required pointer for `List` (`buffers[0]`) is null"
+                    );
+                    self.read_offset_buffer(
+                        NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8).cast::<i32>(),
+                        data.len,
+                        data.buffer_capacities[0],
+                        target_len,
+                    )
                 };
-                builder = builder.add_buffer(Buffer::from_slice_ref(&offsets));
+                builder = builder.add_buffer(offset_buffer);
 
                 let child_data: mv8::Array<'_> = obj.get("child_data")?;
-                let child = child_data.get(0)?;
                 builder = builder.add_child_data(self.array_data_from_js(
                     mv8,
-                    &child,
-                    inner_field,
-                    None,
+                    &child_data.get(0)?,
+                    inner_field.data_type(),
+                    Some(last_offset),
                 )?);
             }
             DataType::FixedSizeList(inner_field, size) => {
                 // FixedSizeListList is only stored by child data, as offsets are not required
                 // because the size is known.
                 let child_data: mv8::Array<'_> = obj.get("child_data")?;
-                let child = child_data.get(0)?;
                 builder = builder.add_child_data(self.array_data_from_js(
                     mv8,
-                    &child,
-                    inner_field,
+                    &child_data.get(0)?,
+                    inner_field.data_type(),
                     Some(*size as usize * target_len),
                 )?);
             }
             DataType::Struct(inner_fields) => {
                 // Structs are only defined by child data
-
                 let child_data: mv8::Array<'_> = obj.get("child_data")?;
-                for (i, inner_field) in inner_fields.iter().enumerate() {
-                    let child = child_data.get(i as u32)?;
+                debug_assert_eq!(
+                    child_data.len() as usize,
+                    inner_fields.len(),
+                    "Number of fields provided by JavaScript does not match expected number of \
+                     fields"
+                );
+                for (child, inner_field) in child_data.elements().zip(inner_fields) {
                     builder = builder.add_child_data(self.array_data_from_js(
                         mv8,
-                        &child,
-                        inner_field,
+                        &child?,
+                        inner_field.data_type(),
                         Some(target_len),
                     )?);
                 }
@@ -691,36 +848,43 @@ impl<'m> RunnerImpl<'m> {
                 // FixedSizeBinary is only stored as a buffer (u8), offsets are not required because
                 // the size is known
 
-                // SAFETY: `data.buffer_ptrs[0]` is provided by arrow, the type is `u8`, and
-                //   `*size as usize * target_len` corresponds for the `size` of *each* value.
-                let values = unsafe {
-                    slice::from_raw_parts(data.buffer_ptrs[0], *size as usize * target_len)
+                // SAFETY: `data` is provided by arrow
+                unsafe {
+                    debug_assert!(
+                        !data.buffer_ptrs[0].is_null(),
+                        "Required pointer for `FixedSizeBinary` (`buffers[0]`) is null"
+                    );
+                    builder = builder.add_buffer(self.read_primitive_buffer(
+                        NonNull::new_unchecked(data.buffer_ptrs[0] as *mut u8),
+                        *size as usize * data.len,
+                        data.buffer_capacities[0],
+                        *size as usize * target_len,
+                    ));
                 };
-                builder = builder.add_buffer(Buffer::from_slice_ref(&values));
             }
             data_type => return Err(Error::FlushType(data_type.clone())), // TODO: More types?
         };
 
         builder = builder.len(target_len);
-        if !data.null_bits_ptr.is_null() {
-            // Create a validity map with the provided data, but reserve for `target_len` bits
-            let mut boolean_builder = BooleanBufferBuilder::new(target_len);
-            // Read bits from JS
-            let values =
-                unsafe { slice::from_raw_parts(data.null_bits_ptr, bit_util::ceil(data.len, 8)) };
-            boolean_builder.append_packed_range(0..data.len, values);
-            // Resize the validity map to match the size of the resulting array. This won't resize
-            // the underlying buffer because we reserved with `target_len`. `resize` sets all new
-            // bits to `0`
-            boolean_builder.resize(target_len);
+        if let Some(null_bits_ptr) = NonNull::new(data.null_bits_ptr as *mut u8) {
+            // SAFETY: null-bits are provided by arrow
+            let null_bit_buffer = unsafe {
+                self.read_boolean_buffer(
+                    null_bits_ptr,
+                    data.len,
+                    data.null_bits_capacity,
+                    target_len,
+                )
+            };
 
             // The `data.null_count` provided is only valid for `data.len`, as the buffer is
-            // resized, the `null_count` has to be adjusted.
+            // resized to `target_len`, the `null_count` has to be adjusted.
             builder = builder
-                .null_bit_buffer(boolean_builder.finish())
+                .null_bit_buffer(null_bit_buffer)
                 .null_count(data.null_count + target_len - data.len);
         }
 
+        // TODO: OPTIM: skip validation within `build()` for non-debug builds
         Ok(builder.build()?)
     }
 
@@ -739,7 +903,7 @@ impl<'m> RunnerImpl<'m> {
             let field = schema.field(i_field);
 
             let data: mv8::Value<'_> = change.get("data")?;
-            let data = self.array_data_from_js(mv8, &data, field, None)?;
+            let data = self.array_data_from_js(mv8, &data, field.data_type(), None)?;
             batch.push_change(ArrayChange {
                 array: data,
                 index: i_field,

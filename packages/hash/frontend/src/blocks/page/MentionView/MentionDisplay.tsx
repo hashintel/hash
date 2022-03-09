@@ -1,10 +1,10 @@
 import { useMemo, VFC } from "react";
 import { tw } from "twind";
-import Link from "next/link";
 import ArticleIcon from "@mui/icons-material/Article";
 
 import { useUsers } from "../../../components/hooks/useUsers";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
+import { Link } from "../../../components/Link";
 
 interface MentionDisplayProps {
   entityId: string;
@@ -74,7 +74,7 @@ export const MentionDisplay: VFC<MentionDisplayProps> = ({
   ]);
 
   return (
-    <Link href={href}>
+    <Link noLinkStyle href={href}>
       <a>
         <span className={tw`text-gray-400 font-medium cursor-pointer`}>
           {icon}

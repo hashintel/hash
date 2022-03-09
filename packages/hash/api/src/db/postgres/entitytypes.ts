@@ -228,18 +228,6 @@ export const getEntityTypeBySchema$id = async (
   return row ? mapPGRowToEntityType(row) : null;
 };
 
-export const getJsonSchemaBySchema$id = async (
-  conn: Connection,
-  schema$id: string,
-) => {
-  const schema = await getEntityTypeBySchema$id(conn, { schema$id });
-  if (schema) {
-    return schema.properties;
-  } else {
-    throw new Error(`Could not find schema with $id = ${schema$id}`);
-  }
-};
-
 /** Get all types that inherit from a specific type.
  */
 export const getEntityTypeChildren = async (
@@ -255,36 +243,6 @@ export const getEntityTypeChildren = async (
   select distinct on (entity_type_id) * from all_entity_types
   where properties->'allOf' @> ${schemaRef}
   order by entity_type_id, updated_at desc`;
-
-  const rows = await conn.any<EntityTypePGRow>(query);
-  return rows.map(mapPGRowToEntityType);
-};
-
-/** Get all types that a specific type inherits from.
- */
-export const getEntityTypeParents = async (
-  conn: Connection,
-  {
-    entityTypeId,
-  }: {
-    entityTypeId: string;
-  },
-): Promise<EntityType[]> => {
-  const query = sql`
-  with 
-    all_entity_types as (${selectEntityTypes})
-  , distinct_types as not MATERIALIZED (
-    select distinct on (entity_type_id) * from all_entity_types
-    order by entity_type_id, updated_at desc
-  )
-  , entity_type_ids_in_allof as (
-    -- JSONPath to simplify flattening of schema 'allOf' array
-    SELECT jsonb_array_elements_text(jsonb_path_query_array(properties, '$.allOf[*]."$ref"')) as json_entity_type_id
-    FROM distinct_types
-      where entity_type_id = ${entityTypeId}
-  )
-  SELECT * FROM distinct_types
-  WHERE properties->>'$id' IN (select * from entity_type_ids_in_allof)`;
 
   const rows = await conn.any<EntityTypePGRow>(query);
   return rows.map(mapPGRowToEntityType);

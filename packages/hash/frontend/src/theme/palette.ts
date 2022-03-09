@@ -144,7 +144,6 @@ export const customColors = {
     90: "#162670",
     100: "#0E1B5C",
   },
-  grey: undefined,
   black: "#0E1114",
   white: "#FFFFFF",
 } as const;
@@ -155,5 +154,5 @@ export const palette: ThemeOptions["palette"] = {
     black: customColors.black,
     white: customColors.white,
   },
-  // @todo override other mui palette fields to match design
+  // @todo-mui override other mui palette fields to match design
 };
