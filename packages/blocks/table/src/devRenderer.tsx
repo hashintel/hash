@@ -8,18 +8,12 @@ import { MockBlockDock } from "mock-block-dock";
 
 import Component from "./index";
 
-import { initialTableData } from "./mockData/mockData";
-
 const node = document.getElementById("app");
 
 const App = () => {
   return (
-    // @todo wrap in MockBlockDock once https://github.com/blockprotocol/blockprotocol/pull/249 is merged
     <MockBlockDock>
-      <Component
-        initialState={initialTableData.initialState}
-        entityId="table-1"
-      />
+      <Component entityId="table-1" />
     </MockBlockDock>
   );
 };

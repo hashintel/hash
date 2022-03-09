@@ -444,7 +444,7 @@ export const Table: BlockComponent<AppProps> = ({
     (updatedEntityTypeId: string | undefined) => {
       if (!entityId || !updateLinks || !createLinks) {
         throw new Error(
-          "All of entityId, createLinks and updateLinks must be passed to the block to update data linke from it",
+          "All of entityId, createLinks and updateLinks must be passed to the block to update data linked from it",
         );
       }
 
