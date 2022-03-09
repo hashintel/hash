@@ -1,14 +1,14 @@
 import React, { useEffect, useState, useRef, VFC } from "react";
 import { tw } from "twind";
-
 import { useRouter } from "next/router";
-import Link from "next/link";
+
 import Logo from "../../../assets/svg/logo.svg";
 import { SpinnerIcon } from "../../icons";
 import { TextInput } from "../../forms/TextInput";
 import { useUser } from "../../hooks/useUser";
 import { InviteHeader } from "../InviteHeader";
 import { InvitationInfo } from "../utils";
+import { Link } from "../../Link";
 
 type SignupIntroProps = {
   handleSubmit: (email: string) => void;
@@ -98,11 +98,13 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
       </form>
       <p className={tw`text-sm  md:whitespace-nowrap text-center`}>
         Alternatively if you already have a HASH account,{" "}
+        {/* @todo convert this to LinkButton on page refactor */}
         <Link
           href={{
             pathname: "/login",
             query: router.query,
           }}
+          noLinkStyle
         >
           <button type="button" className={tw`font-bold focus:outline-none`}>
             Click here to log in

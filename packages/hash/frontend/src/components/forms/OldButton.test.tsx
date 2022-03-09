@@ -1,10 +1,10 @@
 import React from "react";
 import { render } from "../../testUtils/testUtils";
-import { Button } from "./Button";
+import { OldButton } from "./OldButton";
 
-describe("Button", () => {
+describe("OldButton", () => {
   it("should render", () => {
-    const { getByText } = render(<Button>Test button</Button>);
+    const { getByText } = render(<OldButton>Test button</OldButton>);
     expect(getByText("Test button")).toBeVisible();
   });
 });

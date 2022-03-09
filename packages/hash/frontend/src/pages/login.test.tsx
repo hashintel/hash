@@ -1,7 +1,7 @@
 import React from "react";
 
-import { render } from "../testUtils/testUtils";
 import { mockUseRouter } from "../testUtils/mockUseRouter";
+import { render } from "../testUtils/testUtils";
 import Login from "./login.page";
 
 describe("Login page", () => {

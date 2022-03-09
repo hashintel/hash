@@ -12,7 +12,7 @@ test("user can create and update entity", async ({ page }) => {
   ).toBeVisible();
 
   // Go to Create Entity
-  await page.click("text=Create Entity Type");
+  await page.locator('[data-testid="create-entity-btn"]').click();
   await page.waitForURL(
     (url) => !!url.pathname.match(/^\/[\w-]+\/types+\/new/),
   );
@@ -44,7 +44,9 @@ test("user can create and update entity", async ({ page }) => {
   );
 
   // Expect the created property to be present
-  await expect(page.locator("text=Property1")).toBeVisible();
+  await expect(
+    page.locator(`text=Property1Property1 >> input[type="text"]`),
+  ).toBeVisible();
 
   // Go back and add another property to the entity
   await page.goBack();
@@ -60,5 +62,7 @@ test("user can create and update entity", async ({ page }) => {
   );
 
   // Expect the newly created property to be present
-  await expect(page.locator("text=Property2")).toBeVisible();
+  await expect(
+    page.locator(`text=Property2Property2 >> input[type="text"]`),
+  ).toBeVisible();
 });
