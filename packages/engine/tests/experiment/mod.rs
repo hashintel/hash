@@ -314,7 +314,9 @@ pub async fn run_test<P: AsRef<Path>>(
         .read(experiment_type)
         .wrap_err("Could not read manifest")?;
 
-    let experiment = orchestrator::Experiment::new(experiment_config);
+    let experiment = orchestrator::Experiment {
+        config: experiment_config,
+    };
 
     let output_base_directory = experiment
         .config

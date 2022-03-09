@@ -147,13 +147,6 @@ pub struct Experiment {
 }
 
 impl Experiment {
-    /// Creates an experiment from the provided `config`.
-    pub fn new(mut config: ExperimentConfig) -> Self {
-        // TODO: Remove when multiple workers are fixed
-        config.num_workers = 1;
-        Self { config }
-    }
-
     /// Creates a [`Command`] from the experiment's configuration, the given `experiment_id`, and
     /// `controller_url`.
     ///

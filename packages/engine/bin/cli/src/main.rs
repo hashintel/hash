@@ -105,7 +105,9 @@ async fn main() -> Result<()> {
         .read(args.r#type.into())
         .wrap_err("Could not read manifest")?;
 
-    let experiment = Experiment::new(args.experiment_config);
+    let experiment = Experiment {
+        config: args.experiment_config,
+    };
 
     experiment.run(experiment_run, handler, None).await
 }
