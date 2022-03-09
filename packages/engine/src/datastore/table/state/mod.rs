@@ -104,6 +104,7 @@ impl State {
         let num_agents = agent_states.len();
 
         // Split agents into groups that can be distributed across workers
+        // The last group might be smaller than the other ones.
         let num_agents_per_group = ((num_agents as f64 / num_workers as f64).ceil() as usize)
             .clamp(MIN_PER_WORKER, sim_config.exp.target_max_group_size);
         let mut agent_state_groups = vec![];
