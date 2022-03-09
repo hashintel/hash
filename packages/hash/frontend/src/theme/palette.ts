@@ -161,9 +161,9 @@ export const palette: ThemeOptions["palette"] = {
     light: customColors.purple[50],
   },
   warning: {
-    dark: customColors.blue[80],
-    main: customColors.blue[60],
-    light: customColors.blue[40],
+    dark: customColors.orange[80],
+    main: customColors.orange[60],
+    light: customColors.orange[40],
   },
   error: {
     dark: customColors.red[90],
