@@ -88,7 +88,7 @@ const ResultItem: React.FC<{
       sx={{
         display: "flex",
         backgroundColor: theme.palette.gray[10],
-        border: "0px",
+        border: "none",
         padding: 1,
         cursor: "pointer",
         textOverflow: "ellipsis",
