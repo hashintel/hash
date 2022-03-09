@@ -54,9 +54,8 @@ pub struct AgentBatch {
     /// `self.memory`
     pub changes: Vec<ArrayChange>,
     pub metaversion: Metaversion,
-    /// Affinity describes the possible distribution of batches
-    /// if multiple workers are used
-    pub affinity: usize,
+    /// Describes the worker the batch is distributed to if there are multiple workers
+    pub worker_index: usize,
 }
 
 impl BatchRepr for AgentBatch {
@@ -165,7 +164,7 @@ impl AgentBatch {
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
         let memory = Memory::duplicate_from(&batch.memory, experiment_id)?;
-        Self::from_memory(memory, Some(schema), Some(batch.affinity))
+        Self::from_memory(memory, Some(schema), Some(batch.worker_index))
     }
 
     // Copy contents from RecordBatch and create a memory-backed Batch
@@ -205,7 +204,7 @@ impl AgentBatch {
     pub fn from_memory(
         memory: Memory,
         schema: Option<&AgentSchema>,
-        affinity: Option<usize>,
+        worker_index: Option<usize>,
     ) -> Result<Self> {
         let (schema_buffer, _header_buffer, meta_buffer, data_buffer) =
             memory.get_batch_buffers()?;
@@ -237,7 +236,7 @@ impl AgentBatch {
             static_meta,
             changes: vec![],
             metaversion: Metaversion::default(),
-            affinity: affinity.unwrap_or(0),
+            worker_index: worker_index.unwrap_or(0),
         })
     }
 
@@ -345,8 +344,8 @@ impl AgentBatch {
         Ok(Box::new(Self::from_memory(memory, None, None)?))
     }
 
-    pub fn set_affinity(&mut self, affinity: usize) {
-        self.affinity = affinity;
+    pub fn set_worker_index(&mut self, worker_index: usize) {
+        self.worker_index = worker_index;
     }
 
     pub(in crate::datastore) fn get_arrow_column(

@@ -8,7 +8,7 @@ declare module "@mui/material/styles" {
     xl: string;
     xxl: string;
   }
-  interface Theme {
+  interface BaseTheme {
     borderRadii: {
       none: string;
       sm: string;
@@ -117,6 +117,36 @@ declare module "@mui/material/Typography" {
     button: false;
     overline: false;
   }
+}
+
+declare module "@mui/material/Button" {
+  interface ButtonPropsVariantOverrides {
+    primary: true;
+    secondary: true;
+    tertiary: true;
+    tertiary_quiet: true;
+    // Disable defaults
+    contained: false;
+    outlined: false;
+    text: false;
+  }
+
+  interface ButtonPropsColorOverrides {
+    purple: true;
+    teal: true;
+    warning: true;
+    danger: true;
+    gray: true;
+    // Disable defaults
+    primary: false;
+    secondary: false;
+    success: false;
+    error: false;
+    info: false;
+    warning: false;
+  }
+
+  interface ButtonPropsSizeOverrides {}
 }
 
 // eslint-disable-next-line import/no-default-export -- @see https://github.com/mui-org/material-ui/issues/28244
