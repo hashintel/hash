@@ -346,7 +346,7 @@ impl WorkerPoolController {
                     } => {
                         for worker in active_workers {
                             self.send_to_worker(
-                                worker.index(),
+                                *worker,
                                 WorkerPoolToWorkerMsg::cancel_task(task.task_id),
                             )?;
                         }
@@ -395,8 +395,8 @@ impl WorkerPoolController {
                         .map(|(task, (worker, store))| (worker, task, store))
                         .collect::<Vec<_>>(),
                     DistributionController::Distributed {
-                        active_workers: worker_list.clone(),
                         received_results: Vec::with_capacity(worker_list.len()),
+                        active_workers: worker_list.into_iter().map(Worker::index).collect(),
                         reference_task: task,
                     },
                 )

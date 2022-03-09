@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 
 use tokio::sync::oneshot;
 
@@ -14,7 +14,7 @@ use crate::{
             Task,
         },
     },
-    types::TaskId,
+    types::{TaskId, WorkerIndex},
     worker::task::WorkerTaskResultOrCancelled,
 };
 
@@ -22,7 +22,7 @@ type HasTerminated = bool;
 
 pub enum DistributionController {
     Distributed {
-        active_workers: Vec<Worker>,
+        active_workers: BTreeSet<WorkerIndex>,
         received_results: Vec<(Worker, TaskMessage)>,
         reference_task: Task,
     },
@@ -55,8 +55,8 @@ impl PendingWorkerPoolTask {
             reference_task,
         } = &mut self.distribution_controller
         {
-            received_results.insert(worker.index(), (worker, result));
-            active_workers_comms.remove(worker.index());
+            active_workers_comms.remove(&worker.index());
+            received_results.push((worker, result));
             if active_workers_comms.is_empty() {
                 received_results.sort_by(|a, b| a.0.cmp(&b.0));
                 let received_results = std::mem::take(received_results);
@@ -92,7 +92,7 @@ impl PendingWorkerPoolTask {
             reference_task: _,
         } = &mut self.distribution_controller
         {
-            active_workers_comms.remove(worker.index());
+            active_workers_comms.remove(&worker.index());
             if active_workers_comms.is_empty() {
                 let combined_result = TaskResultOrCancelled::Cancelled;
                 self.comms

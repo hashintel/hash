@@ -43,9 +43,11 @@ impl RustRunner {
     pub async fn send_if_spawned(
         &self,
         _sim_id: Option<SimulationShortId>,
-        _msg: InboundToRunnerMsgPayload,
+        msg: InboundToRunnerMsgPayload,
     ) -> WorkerResult<()> {
-        tracing::trace!("Received message to send to Rust Runner: {:?}", &_msg);
+        if self.spawned() {
+            tracing::trace!("Received message to send to Rust Runner: {:?}", &msg);
+        }
         Ok(())
     }
 

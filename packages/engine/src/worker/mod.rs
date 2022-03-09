@@ -85,7 +85,7 @@ impl WorkerController {
         worker_pool_comms: WorkerCommsWithWorkerPool,
         exp_init: ExperimentInitRunnerMsg,
     ) -> Result<WorkerController> {
-        tracing::debug!("Spawning worker controller");
+        tracing::debug!("Spawning worker controller[{}]", exp_init.worker_index);
         let WorkerSpawnConfig {
             python,
             javascript,
