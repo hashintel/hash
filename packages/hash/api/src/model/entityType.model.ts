@@ -3,6 +3,7 @@ import url from "url";
 import fetch from "node-fetch";
 import { JSONObject } from "blockprotocol";
 import { merge } from "lodash";
+import { JSONSchema7 } from "json-schema";
 
 import { EntityExternalResolvers, EntityType } from ".";
 import { DBClient } from "../db";
@@ -46,7 +47,7 @@ class __EntityType {
   entityId: string;
   entityVersionId: string;
   accountId: string;
-  properties: JSONObject;
+  properties: JSONSchema7;
   metadata: EntityTypeMeta;
   createdByAccountId: string;
   createdAt: Date;
@@ -204,7 +205,7 @@ class __EntityType {
   static async getEntityTypeBySchema$id(
     client: DBClient,
     params: { schema$id: string },
-  ) {
+  ): Promise<EntityType | null> {
     const dbEntityType = await client.getEntityTypeBySchema$id(params);
     return dbEntityType ? new EntityType(dbEntityType) : null;
   }
@@ -234,25 +235,32 @@ class __EntityType {
     return dbEntityTypes.map((entityType) => new EntityType(entityType));
   }
 
-  async getParentEntityTypes(client: DBClient) {
-    const parentSchema$ids = (
-      Array.isArray(this.properties?.allOf) ? this.properties.allOf : []
-    )
-      .filter(
-        (allOfEntry: any): allOfEntry is { $ref: string } =>
-          "$ref" in allOfEntry,
-      )
-      .map((allOfEntry) => allOfEntry.$ref);
+  async getParentEntityTypes(client: DBClient): Promise<EntityType[]> {
+    const parentSchema$ids =
+      this.properties?.allOf
+        ?.filter(
+          (allOfEntry): allOfEntry is { $ref: string } =>
+            typeof allOfEntry === "object" && "$ref" in allOfEntry,
+        )
+        .map(({ $ref }) => $ref) ?? [];
 
     const parentEntityTypes = await Promise.all(
-      parentSchema$ids.map((schema$id) =>
-        client.getEntityTypeBySchema$id({ schema$id }),
-      ),
+      parentSchema$ids.map(async (schema$id) => {
+        const parentEntityType = await client.getEntityTypeBySchema$id({
+          schema$id,
+        });
+
+        if (!parentEntityType) {
+          throw new Error(
+            `Critical: Could not find EntityType by Schema$id = ${schema$id}`,
+          );
+        }
+
+        return parentEntityType;
+      }),
     );
 
-    return parentEntityTypes.flatMap((entityType) =>
-      entityType ? [new EntityType(entityType)] : [],
-    );
+    return parentEntityTypes.map((entityType) => new EntityType(entityType));
   }
 
   public static async fetchComponentIdBlockSchema(componentId: string) {
@@ -277,9 +285,7 @@ class __EntityType {
       accountId: this.accountId,
       properties: {
         ...this.properties,
-        $id: schema$idWithFrontendDomain(
-          this.properties.$id as string | undefined,
-        ),
+        $id: schema$idWithFrontendDomain(this.properties.$id),
       },
       metadataId: this.entityId,
       createdAt: this.createdAt.toISOString(),

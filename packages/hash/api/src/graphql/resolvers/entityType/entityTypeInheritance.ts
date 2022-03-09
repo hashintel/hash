@@ -42,7 +42,7 @@ const parents: Resolver<
   }
   const entityTypeParents = await entityType.getParentEntityTypes(db);
 
-  return entityTypeParents?.map((ent) => ent.toGQLEntityType()) ?? [];
+  return entityTypeParents.map((ent) => ent.toGQLEntityType());
 };
 
 export const entityTypeInheritance = {
