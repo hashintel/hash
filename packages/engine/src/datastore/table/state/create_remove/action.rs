@@ -2,12 +2,12 @@ use crate::datastore::batch::migration::BufferActions;
 
 pub enum ExistingGroupBufferActions<'a> {
     Persist {
-        affinity: usize,
+        worker_index: usize,
     },
     Remove,
     Update {
         actions: BufferActions<'a>,
-        affinity: usize,
+        worker_index: usize,
     },
     Undefined,
 }
@@ -15,23 +15,23 @@ pub enum ExistingGroupBufferActions<'a> {
 #[derive(Debug)]
 pub struct CreateActions<'a> {
     pub actions: BufferActions<'a>,
-    pub affinity: usize,
+    pub worker_index: usize,
 }
 
 impl std::fmt::Debug for ExistingGroupBufferActions<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ExistingGroupBufferActions::Persist { affinity } => f
+            ExistingGroupBufferActions::Persist { worker_index } => f
                 .debug_struct("Persist")
-                .field("affinity", affinity)
+                .field("worker_index", worker_index)
                 .finish(),
             ExistingGroupBufferActions::Remove => f.debug_struct("Remove").finish(),
             ExistingGroupBufferActions::Update {
                 actions: _,
-                affinity,
+                worker_index,
             } => f
                 .debug_struct("Update")
-                .field("affinity", affinity)
+                .field("worker_index", worker_index)
                 .finish(),
             ExistingGroupBufferActions::Undefined => f.debug_struct("Undefined").finish(),
         }
