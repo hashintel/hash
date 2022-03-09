@@ -254,8 +254,8 @@ impl AgentBatch {
         Ok(())
     }
 
-    pub fn from_message(message: &str) -> Result<Box<Self>> {
-        let memory = Memory::from_shmem_os_id(message, true, true)?;
+    pub fn from_shmem_os_id(os_id: &str) -> Result<Box<Self>> {
+        let memory = Memory::from_shmem_os_id(os_id, true, true)?;
         Ok(Box::new(AgentBatch::from_memory(memory, None, None)?))
     }
 }

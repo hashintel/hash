@@ -73,14 +73,15 @@ pub mod tests {
 
     use super::{prelude::*, test_utils::gen_schema_and_test_agents};
     use crate::datastore::{
-        batch::DynamicBatch, table::state::State, test_utils::dummy_sim_run_config,
+        batch::iterators, table::state::State, test_utils::dummy_sim_run_config,
     };
 
     #[test]
     pub fn growable_array_modification() -> Result<()> {
         pub fn modify_name(shmem_os_id: &str) -> Result<Vec<Option<String>>> {
             let mut state_batch = *AgentBatch::from_shmem_os_id(shmem_os_id)?;
-            let mut column = state_batch.get_agent_name()?;
+            let rb = state_batch.record_batch()?;
+            let mut column = iterators::rb::get_agent_name(rb)?;
             // `targets` values will be checked against shared memory data
             // in order to check if changes were flushed properly
             let mut targets = Vec::with_capacity(column.len());
@@ -106,7 +107,7 @@ pub mod tests {
                     }
                 }
             }
-            let change = state_batch.agent_name_as_array(column)?;
+            let change = iterators::rb::agent_name_as_array(rb, column)?;
             state_batch.queue_change(change)?;
             state_batch.flush_changes()?;
             Ok(targets)
@@ -125,38 +126,41 @@ pub mod tests {
             .agent_pool()
             .batch(0)
             .unwrap()
-            .memory
-            .data
-            .get_os_id()
-            .to_string();
+            .batch_id()
+            .to_owned();
 
         // Run "behavior"
         let targets = modify_name(&shmem_id)?;
 
-        let reloaded = AgentBatch::from_shmem_os_id(&shmem_id)?;
-        let names = reloaded.get_agent_name()?;
+        // TODO: This actually shows that converting to and from a
+        //       batch id is a way to mutate a batch without acquiring
+        //       a write lock (by creating a write proxy).
+        let _unlocked_batch = AgentBatch::from_shmem_os_id(&shmem_id)?;
 
         state
             .write()?
             .agent_pool_mut()
             .batch_mut(0)
             .unwrap()
-            .reload()?;
+            .maybe_reload()?;
 
-        let states = state
-            .read()?
-            .agent_pool()
-            .batch(0)
-            .unwrap()
-            .batch
-            .into_agent_states(Some(&schema))?;
+        let state_proxy = state.read()?;
+        let batch_proxy: &AgentBatch = state_proxy.agent_pool().batch(0).unwrap();
+        let rb = batch_proxy.record_batch()?;
+
+        let names = iterators::rb::get_agent_name(rb)?;
+        let agent_states = rb.into_agent_states(Some(&schema))?;
+
         targets.into_iter().enumerate().for_each(|(i, t)| match t {
             Some(v) => {
-                assert_eq!(v, states.get(i).unwrap().agent_name.as_ref().unwrap().0);
+                assert_eq!(
+                    v,
+                    agent_states.get(i).unwrap().agent_name.as_ref().unwrap().0
+                );
                 assert_eq!(v, names.get(i).unwrap().as_deref().unwrap());
             }
             None => {
-                assert!(states[i].agent_name.is_none());
+                assert!(agent_states[i].agent_name.is_none());
                 assert!(names.get(i).unwrap().as_deref().is_none());
             }
         });

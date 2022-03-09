@@ -141,7 +141,7 @@ impl<P: Pool<B> + Send + Sync, B> BatchPool<B> for P {
     }
 
     fn remove(&mut self, index: usize) -> RwLock<B> {
-        let mut batch_arc = self.get_batches_mut().remove(index);
+        let batch_arc = self.get_batches_mut().remove(index);
         if let Ok(batch) = Arc::try_unwrap(batch_arc) {
             batch
         } else {
@@ -150,7 +150,7 @@ impl<P: Pool<B> + Send + Sync, B> BatchPool<B> for P {
     }
 
     fn swap_remove(&mut self, index: usize) -> RwLock<B> {
-        let mut batch_arc = self.get_batches_mut().swap_remove(index);
+        let batch_arc = self.get_batches_mut().swap_remove(index);
         if let Ok(batch) = Arc::try_unwrap(batch_arc) {
             batch
         } else {
