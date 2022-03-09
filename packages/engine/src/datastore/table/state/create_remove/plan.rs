@@ -66,7 +66,7 @@ impl<'a> MigrationPlan<'a> {
             if let ExistingGroupBufferActions::Remove = action {
                 // Removing in tandem to keep similarly sized batches together
                 removed_ids.push(state.agent_pool.swap_remove(batch_index));
-                state.message_pool.swap_remove(batch_index);
+                removed_ids.push(state.message_pool.swap_remove(batch_index));
             }
         }
 
