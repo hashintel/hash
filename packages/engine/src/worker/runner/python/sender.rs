@@ -325,6 +325,22 @@ fn shared_store_to_fbs<'f>(
 ) -> WIPOffset<flatbuffers_gen::sync_state_interim_generated::StateInterimSync<'f>> {
     let (agent_batches, msg_batches, indices) = match &shared_store.state {
         SharedState::None => (vec![], vec![], vec![]),
+        SharedState::Read(state) => {
+            let a: Vec<_> = state
+                .agent_pool()
+                .batches()
+                .iter()
+                .map(|b| batch_to_fbs::<AgentBatch>(fbb, b))
+                .collect();
+            let m: Vec<_> = state
+                .message_pool()
+                .batches()
+                .iter()
+                .map(|b| batch_to_fbs::<MessageBatch>(fbb, b))
+                .collect();
+            let indices = (0..a.len()).collect();
+            (a, m, indices)
+        }
         SharedState::Write(state) => {
             let a: Vec<_> = state
                 .agent_pool()

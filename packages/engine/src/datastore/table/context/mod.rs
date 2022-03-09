@@ -60,6 +60,10 @@ impl Context {
         std::mem::replace(&mut self.previous_state.message_pool, MessagePool::empty())
     }
 
+    pub fn removed_batches(&mut self) -> &mut Vec<String> {
+        &mut self.removed_batches
+    }
+
     /// Returns the [`ContextBatch`] for this context.
     ///
     /// The context batch is the part of the context that’s

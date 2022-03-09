@@ -289,6 +289,11 @@ fn batches_from_shared_store(
             state.message_pool().batches(),
             (0..state.agent_pool().len()).collect(),
         ),
+        SharedState::Read(state) => (
+            state.agent_pool().batches(),
+            state.message_pool().batches(),
+            (0..state.agent_pool().len()).collect(),
+        ),
         SharedState::Partial(partial) => {
             match partial {
                 PartialSharedState::Read(partial) => (
@@ -963,7 +968,7 @@ impl<'m> RunnerImpl<'m> {
         return_val: &mv8::Object<'m>,
     ) -> Result<()> {
         let (proxy, group_indices) = match &mut shared_store.state {
-            SharedState::None => return Ok(()),
+            SharedState::None | SharedState::Read(_) => return Ok(()),
             SharedState::Write(state) => {
                 let indices = (0..state.agent_pool().len()).collect();
                 (state, indices)

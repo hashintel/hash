@@ -3,7 +3,7 @@ use std::fmt::Debug;
 
 use super::proxy::{StateReadProxy, StateWriteProxy};
 use crate::{
-    config::{Worker, WorkerAllocation},
+    config::{StateBatchDistribution, Worker, WorkerAllocation},
     datastore::{prelude::Result, table::context::Context, Error},
     simulation::task::handler::worker_pool::SplitConfig,
 };
@@ -44,6 +44,7 @@ pub struct PartialStateReadProxy {
 pub enum SharedState {
     Partial(PartialSharedState),
     Write(StateWriteProxy),
+    Read(StateReadProxy),
     None,
 }
 
@@ -200,11 +201,20 @@ impl TaskSharedStore {
         match &self.state {
             SharedState::None => 0,
             SharedState::Write(state) => state.n_accessible_agents(),
+            SharedState::Read(state) => state.n_accessible_agents(),
             SharedState::Partial(partial) => match partial {
                 PartialSharedState::Read(partial) => partial.state_proxy.n_accessible_agents(),
                 PartialSharedState::Write(partial) => partial.state_proxy.n_accessible_agents(),
             },
         }
+    }
+
+    fn reads_state(&self) -> bool {
+        matches!(&self.state, SharedState::Read(_))
+            || matches!(
+                &self.state,
+                SharedState::Partial(PartialSharedState::Read(_))
+            )
     }
 
     fn writes_state(&self) -> bool {
@@ -218,8 +228,10 @@ impl TaskSharedStore {
     /// TODO: DOC
     pub fn distribute(
         self,
+        distribution: &StateBatchDistribution,
         worker_list: &WorkerAllocation,
     ) -> Result<(Vec<(Worker, Self)>, SplitConfig)> {
+        let reads_state = self.reads_state();
         let writes_state = self.writes_state();
         let context = self.context.clone();
 
@@ -267,6 +279,49 @@ impl TaskSharedStore {
                 })
                 .collect();
             (stores, split_config)
+        } else if reads_state && distribution.partitioned_batches {
+            // We take read access to state so we need to distribute
+            // each batch to a single worker.
+            // Note: This doesn't mean that each worker gets a single batch.
+            //       A worker can also get multiple batches or zero batches.
+            let ((agent_batches, msg_batches), group_indices) = match self.state {
+                SharedState::Read(state) => {
+                    let group_indices = (0..state.agent_pool().len()).collect();
+                    (state.deconstruct(), group_indices)
+                }
+                SharedState::Partial(PartialSharedState::Read(partial)) => {
+                    let (state, group_indices) = (partial.state_proxy, partial.group_indices);
+                    (state.deconstruct(), group_indices)
+                }
+                _ => unreachable!(),
+            };
+            let group_sizes = agent_batches
+                .iter()
+                .map(|batch| batch.num_agents())
+                .collect();
+            let (stores, split_config) = distribute_batches(
+                worker_list,
+                agent_batches,
+                msg_batches,
+                group_indices,
+                group_sizes,
+            );
+            let stores: Vec<_> = stores
+                .into_iter()
+                .map(|(worker, agent_batches, msg_batches, group_indices)| {
+                    let store = Self {
+                        state: SharedState::Partial(PartialSharedState::Read(
+                            PartialStateReadProxy {
+                                group_indices,
+                                state_proxy: StateReadProxy::from((agent_batches, msg_batches)),
+                            },
+                        )),
+                        context: context.clone(),
+                    };
+                    (worker, store)
+                })
+                .collect();
+            (stores, split_config)
         } else {
             // No access to state or duplicate read access to state, trivial split:
             // Give every worker the same access.
@@ -305,6 +360,7 @@ impl TaskSharedStore {
                     SharedState::Partial(PartialSharedState::Read(partial.clone()))
                 }
             },
+            SharedState::Read(state) => SharedState::Read(state.clone()),
             SharedState::None => SharedState::None,
         };
         Ok(Self {

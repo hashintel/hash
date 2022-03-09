@@ -384,8 +384,9 @@ impl WorkerPoolController {
         let worker_list = self.simulation_runs.get_worker_allocation(sim_id)?;
 
         let (triples, original_task) =
-            if let TaskDistributionConfig::Distributed(_distribution) = task.distribution() {
-                let (distributed_tables, split_config) = shared_store.distribute(worker_list)?;
+            if let TaskDistributionConfig::Distributed(distribution) = task.distribution() {
+                let (distributed_tables, split_config) =
+                    shared_store.distribute(&distribution, worker_list)?;
                 let tasks: Vec<Task> = task.split_task(&split_config)?;
                 (
                     tasks
