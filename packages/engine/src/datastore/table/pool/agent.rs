@@ -33,10 +33,13 @@ impl super::Pool<AgentBatch> for AgentPool {
     }
 }
 
-impl Extend<AgentBatch> for AgentPool {
-    fn extend<T: IntoIterator<Item = AgentBatch>>(&mut self, iter: T) {
-        self.batches
-            .extend(iter.into_iter().map(|batch| Arc::new(RwLock::new(batch))))
+impl AgentPool {
+    pub fn reserve(&mut self, additional: usize) {
+        self.batches.reserve(additional);
+    }
+
+    pub fn push(&mut self, batch: AgentBatch) {
+        self.batches.push(Arc::new(RwLock::new(batch)))
     }
 }
 

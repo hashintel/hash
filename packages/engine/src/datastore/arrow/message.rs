@@ -6,21 +6,17 @@ use super::prelude::*;
 use crate::{
     datastore::{prelude::*, schema::PresetFieldType},
     hash_types::message::{
-        CreateAgent, GenericPayload, Outbound, OutboundCreateAgentPayload,
-        OutboundRemoveAgentPayload, OutboundStopSimPayload, RemoveAgent, StopSim,
+        GenericPayload, Outbound, OutboundCreateAgentPayload, OutboundRemoveAgentPayload,
+        OutboundStopSimPayload,
     },
 };
 
 // Built in message types:
-// TODO: UNUSED: Needs triage
 pub const CREATE_AGENT: &str = OutboundCreateAgentPayload::KIND;
-// TODO: UNUSED: Needs triage
 pub const REMOVE_AGENT: &str = OutboundRemoveAgentPayload::KIND;
-// TODO: UNUSED: Needs triage
 pub const STOP_SIM: &str = OutboundStopSimPayload::KIND;
 
 // System-message recipient
-// TODO: UNUSED: Needs triage
 pub const SYSTEM_MESSAGE: &str = "hash";
 
 pub const MESSAGE_COLUMN_NAME: &str = "messages";
@@ -116,51 +112,6 @@ pub fn get_generic(to: &[&str], r#type: &str, data_string: &str) -> Result<Outbo
             Some(serde_json::Value::from(data_string))
         },
     }))
-}
-
-// TODO: UNUSED: Needs triage
-pub fn get_system(to: &[&str], r#type: &str, data_string: &str) -> Result<Outbound> {
-    let to_clone = to.iter().map(|v| (*v).to_string()).collect();
-
-    if to.len() != 1 && to[0].to_lowercase() == SYSTEM_MESSAGE {
-        return Err(Error::InvalidSystemMessage {
-            to: to_clone,
-            message_type: r#type.to_string(),
-            data: data_string.to_string(),
-        });
-    }
-
-    match r#type {
-        CREATE_AGENT => {
-            let message = OutboundCreateAgentPayload {
-                r#type: CreateAgent::Type,
-                to: vec!["hash".into()],
-                data: serde_json::from_str(data_string).map_err(Error::from)?,
-            };
-            Ok(Outbound::CreateAgent(message))
-        }
-        REMOVE_AGENT => {
-            let message = OutboundRemoveAgentPayload {
-                r#type: RemoveAgent::Type,
-                to: vec!["hash".into()],
-                data: serde_json::from_str(data_string).map_err(Error::from)?,
-            };
-            Ok(Outbound::RemoveAgent(message))
-        }
-        STOP_SIM => {
-            let message = OutboundStopSimPayload {
-                r#type: StopSim::Type,
-                to: vec!["hash".into()],
-                data: serde_json::from_str(data_string).map_err(Error::from)?,
-            };
-            Ok(Outbound::StopSim(message))
-        }
-        _ => Err(Error::InvalidSystemMessage {
-            to: to_clone,
-            message_type: r#type.to_string(),
-            data: data_string.to_string(),
-        }),
-    }
 }
 
 pub fn outbound_messages_to_arrow_column(
@@ -345,24 +296,6 @@ pub fn column_into_state(
         .enumerate()
         .try_for_each(|(i, v)| states[i].set(MESSAGE_COLUMN_NAME, v))?;
     Ok(())
-}
-
-// TODO: UNUSED: Needs triage
-pub fn get_messages_column_from_batch(batch: &RecordBatch) -> Result<Vec<Vec<Outbound>>> {
-    let (index, _) = batch
-        .schema()
-        .column_with_name(MESSAGE_COLUMN_NAME)
-        .ok_or_else(|| Error::ColumnNotFound(MESSAGE_COLUMN_NAME.into()))?;
-
-    let reference = batch
-        .column(index)
-        .as_any()
-        .downcast_ref::<array::ListArray>()
-        .ok_or_else(|| Error::InvalidArrowDowncast {
-            name: MESSAGE_COLUMN_NAME.into(),
-        })?;
-
-    get_column_from_list_array(reference)
 }
 
 pub fn batch_from_json(

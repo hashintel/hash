@@ -1,5 +1,7 @@
-use super::super::{Agent, OutboundMessage};
-use super::{Context, Result, SharedBehavior, State};
+use super::{
+    super::{Agent, OutboundMessage},
+    Context, Result, SharedBehavior, State,
+};
 
 pub fn behavior(state: &mut State<'_>, _context: &Context<'_>) -> Result<()> {
     for i in 0..state.num_agents() {
@@ -44,8 +46,8 @@ pub fn create_agents(state: &mut AgentState, _context: &Context) -> SimulationRe
                     for agent in agents {
                         let message = OutboundMessage::from_json_value_with_state(
                             json!({
-                                "to": ["HASH"],
-                                "type": "create_agent",
+                                "to": [SYSTEM_MESSAGE],
+                                "type": CREATE_AGENT,
                                 "data": agent
                             }),
                             &state,

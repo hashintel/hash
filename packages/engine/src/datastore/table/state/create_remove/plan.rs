@@ -4,7 +4,7 @@ use super::action::{CreateActions, ExistingGroupBufferActions};
 use crate::{
     datastore::{
         error::{Error, Result},
-        table::pool::{agent::AgentPool, BatchPool},
+        table::{pool::BatchPool, state::view::StatePools},
     },
     proto::ExperimentRunTrait,
     SimRunConfig,
@@ -19,27 +19,13 @@ pub struct MigrationPlan<'a> {
 }
 
 impl<'a> MigrationPlan<'a> {
-    // TODO: UNUSED: Needs triage
-    pub fn delete_all(num_batches: usize) -> MigrationPlan<'a> {
-        MigrationPlan {
-            existing_mutations: (0..num_batches)
-                .map(|_| ExistingGroupBufferActions::Remove)
-                .collect(),
-            create_commands: Vec::new(),
-            num_agents_after_execution: 0,
-        }
-    }
-
-    pub fn execute(
-        self,
-        state_agent_pool: &mut AgentPool,
-        config: &SimRunConfig,
-    ) -> Result<Vec<String>> {
+    pub fn execute(self, state: &mut StatePools, config: &SimRunConfig) -> Result<Vec<String>> {
         // tracing::debug!("Updating");
         self.existing_mutations
             .par_iter()
             .zip_eq(
-                state_agent_pool
+                state
+                    .agent_pool
                     .write_proxies()?
                     .batches_mut()
                     .par_iter_mut(),
@@ -71,7 +57,8 @@ impl<'a> MigrationPlan<'a> {
         for (batch_index, action) in self.existing_mutations.iter().enumerate().rev() {
             if let ExistingGroupBufferActions::Remove = action {
                 // Removing in tandem to keep similarly sized batches together
-                removed_ids.push(state_agent_pool.swap_remove(batch_index));
+                removed_ids.push(state.agent_pool.swap_remove(batch_index));
+                removed_ids.push(state.message_pool.swap_remove(batch_index));
             }
         }
 
@@ -80,18 +67,15 @@ impl<'a> MigrationPlan<'a> {
             .create_commands
             .into_par_iter()
             .map(|action| {
-                let buffer_actions = action.actions;
-                let new_batch = buffer_actions
-                    .new_batch(
-                        &config.sim.store.agent_schema,
-                        &config.exp.run.base().id,
-                        action.worker_index,
-                    )
-                    .map_err(Error::from)?;
-                Ok(new_batch)
+                action.actions.new_batch(
+                    &config.sim.store.agent_schema,
+                    &config.sim.store.message_schema,
+                    &config.exp.run.base().id,
+                    action.worker_index,
+                )
             })
             .collect::<Result<Vec<_>>>()?;
-        state_agent_pool.extend(created_dynamic_batches);
+        state.extend(created_dynamic_batches);
 
         // tracing::debug!("Finished");
         Ok(removed_ids)
