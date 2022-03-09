@@ -168,7 +168,7 @@ impl<'a> BufferActions<'a> {
         &self,
         schema: &Arc<AgentSchema>,
         experiment_id: &ExperimentId,
-        affinity: usize,
+        worker_index: usize,
     ) -> Result<AgentBatch> {
         let mut memory = AgentBatch::get_prepared_memory_for_data(
             schema,
@@ -177,7 +177,7 @@ impl<'a> BufferActions<'a> {
         )?;
         self.flush_memory(&mut memory)?;
 
-        AgentBatch::from_memory(memory, Some(schema.as_ref()), Some(affinity))
+        AgentBatch::from_memory(memory, Some(schema.as_ref()), Some(worker_index))
     }
 
     #[allow(clippy::too_many_lines)]

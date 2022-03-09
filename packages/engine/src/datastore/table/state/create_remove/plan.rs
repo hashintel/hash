@@ -46,15 +46,18 @@ impl<'a> MigrationPlan<'a> {
             )
             .try_for_each::<_, Result<()>>(|(action, batch)| {
                 match action {
-                    ExistingGroupBufferActions::Persist { affinity } => {
-                        batch.set_affinity(*affinity);
+                    ExistingGroupBufferActions::Persist { worker_index } => {
+                        batch.set_worker_index(*worker_index);
                     }
                     ExistingGroupBufferActions::Remove => {
                         // Do nothing yet
                     }
-                    ExistingGroupBufferActions::Update { actions, affinity } => {
+                    ExistingGroupBufferActions::Update {
+                        actions,
+                        worker_index,
+                    } => {
                         actions.flush(batch)?;
-                        batch.set_affinity(*affinity);
+                        batch.set_worker_index(*worker_index);
                     }
                     ExistingGroupBufferActions::Undefined => {
                         return Err(Error::UnexpectedUndefinedCommand);
@@ -82,7 +85,7 @@ impl<'a> MigrationPlan<'a> {
                     .new_batch(
                         &config.sim.store.agent_schema,
                         &config.exp.run.base().id,
-                        action.affinity,
+                        action.worker_index,
                     )
                     .map_err(Error::from)?;
                 Ok(new_batch)
