@@ -44,7 +44,7 @@ use crate::{
             msg::{TaskMessage, TaskResultOrCancelled},
         },
     },
-    types::TaskId,
+    types::{TaskId, WorkerIndex},
     worker::{
         pending::{PendingGroup, PendingWorkerTask},
         runner::comms::{inbound::InboundToRunnerMsgPayload, MessageTarget},
@@ -74,6 +74,7 @@ pub struct WorkerController {
     _config: WorkerConfig,
     worker_pool_comms: WorkerCommsWithWorkerPool,
     tasks: PendingWorkerTasks,
+    worker_index: WorkerIndex,
 }
 
 // TODO: impl drop for worker controller?
@@ -93,6 +94,7 @@ impl WorkerController {
         } = config.spawn;
         // TODO: Rust, JS
         Ok(WorkerController {
+            worker_index: exp_init.worker_index,
             py: PythonRunner::new(python, exp_init.clone())?,
             js: JavaScriptRunner::new(javascript, exp_init.clone())?,
             rs: RustRunner::new(rust, exp_init)?,
@@ -108,6 +110,7 @@ impl WorkerController {
     /// completion and send back completed tasks.
     ///
     /// [`await`]: https://doc.rust-lang.org/std/keyword.await.html
+    #[tracing::instrument(skip_all, fields(worker_index = self.worker_index))]
     pub async fn run(&mut self) -> Result<()> {
         tracing::debug!("Running worker");
         match self._run().await {

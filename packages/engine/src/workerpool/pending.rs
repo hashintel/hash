@@ -46,7 +46,7 @@ impl PendingWorkerPoolTask {
     fn handle_result_state(
         &mut self,
         worker: Worker,
-        _task_id: TaskId,
+        task_id: TaskId,
         result: TaskMessage,
     ) -> Result<HasTerminated> {
         if let DistributionController::Distributed {
@@ -55,9 +55,14 @@ impl PendingWorkerPoolTask {
             reference_task,
         } = &mut self.distribution_controller
         {
+            tracing::debug!(
+                "Task {task_id} completed by worker {}: {result:?}",
+                worker.index()
+            );
             active_workers_comms.remove(&worker.index());
             received_results.push((worker, result));
             if active_workers_comms.is_empty() {
+                tracing::debug!("Task {task_id} completed");
                 received_results.sort_by(|a, b| a.0.cmp(&b.0));
                 let received_results = std::mem::take(received_results);
                 let results = received_results.into_iter().map(|(_, res)| res).collect();
@@ -71,9 +76,14 @@ impl PendingWorkerPoolTask {
                     .map_err(|_| Error::from("Couldn't send combined result"))?;
                 Ok(true)
             } else {
+                tracing::debug!(
+                    "Task {task_id} partially completed, waiting for workers \
+                     {active_workers_comms:?}"
+                );
                 Ok(false)
             }
         } else {
+            tracing::debug!("Task {task_id} completed");
             self.comms
                 .result_send
                 .take()
@@ -85,7 +95,8 @@ impl PendingWorkerPoolTask {
     }
 
     /// TODO: DOC
-    fn handle_cancel_state(&mut self, worker: Worker, _task_id: TaskId) -> Result<HasTerminated> {
+    fn handle_cancel_state(&mut self, worker: Worker, task_id: TaskId) -> Result<HasTerminated> {
+        tracing::debug!("Task {task_id} canceled by worker {}", worker.index());
         if let DistributionController::Distributed {
             active_workers: active_workers_comms,
             received_results: _,
