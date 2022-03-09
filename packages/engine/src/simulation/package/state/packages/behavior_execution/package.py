@@ -96,10 +96,10 @@ def run_task(experiment, sim, _task_message, group_state, group_context):
         # Reuse `agent_state` object.
         agent_state = group_state.get_agent(i_agent, agent_state)
 
-        # ids of behaviors of this agent
-        behavior_ids = getattr(agent_state, BEHAVIOR_IDS_FIELD_KEY)
-        if len(behavior_ids) == 0:
-            continue  # This agent has no behaviors to run.
+        behavior_ids = agent_state.__behaviors
+        i_behavior = agent_state.__i_behavior # Need `i_behavior` outside loop scope.
+        while i_behavior < len(behavior_ids):
+            agent_state.__i_behavior = i_behavior
 
             behavior = experiment.behaviors[behavior_ids[i_behavior]]
             if behavior.language != "js":
