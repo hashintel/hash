@@ -10,6 +10,9 @@ import {
   BlockProtocolLinkedAggregation,
   BlockProtocolEntityType,
   BlockProtocolUpdateLinksAction,
+  BlockProtocolAggregateEntitiesPayload,
+  BlockProtocolAggregateEntitiesResult,
+  BlockProtocolEntity,
 } from "blockprotocol";
 import { BlockComponent } from "blockprotocol/react";
 import { tw } from "twind";
@@ -27,7 +30,7 @@ import { EntityTypeDropdown } from "./components/EntityTypeDropdown";
 import { omitTypenameDeep } from "./lib/omitTypenameDeep";
 
 type TableData = {
-  data?: Record<string, any>[];
+  data?: BlockProtocolLinkedAggregation["results"];
   linkedAggregation?: BlockProtocolLinkedAggregation;
 };
 
@@ -89,7 +92,7 @@ const cleanUpdateLinkedAggregationAction = (
   },
 ) => {
   return produce(action, (draftAction) => {
-    delete draftAction.data.pageCount;
+    delete draftAction.data.operation?.pageCount;
   });
 };
 
@@ -102,10 +105,10 @@ export const Table: BlockComponent<AppProps> = ({
   createLinks,
   entityId,
   entityTypeId,
+  entityTypes: schemas,
   entityTypeVersionId,
   initialState,
   linkedAggregations,
-  schemas,
   updateEntities,
   updateLinks,
 }) => {
@@ -202,8 +205,6 @@ export const Table: BlockComponent<AppProps> = ({
 
       aggregateEntities({
         accountId,
-        entityTypeId,
-        entityTypeVersionId,
         operation: linkedData.operation,
       })
         .then(({ operation, results }) => {
@@ -215,11 +216,7 @@ export const Table: BlockComponent<AppProps> = ({
             data: results as TableData["data"],
             linkedAggregation: {
               ...tableData.linkedAggregation,
-              operation: {
-                ...operation,
-                entityTypeId:
-                  tableData?.linkedAggregation.operation.entityTypeId,
-              },
+              operation,
             },
           });
         })
@@ -227,14 +224,7 @@ export const Table: BlockComponent<AppProps> = ({
           // @todo properly handle error
         });
     },
-    [
-      accountId,
-      aggregateEntities,
-      entityTypeId,
-      entityTypeVersionId,
-      setTableData,
-      tableData.linkedAggregation,
-    ],
+    [accountId, aggregateEntities, setTableData, tableData.linkedAggregation],
   );
 
   const handleUpdate = useCallback(
@@ -249,7 +239,8 @@ export const Table: BlockComponent<AppProps> = ({
         return;
       }
 
-      const newLinkedData = omitTypenameDeep(tableData.linkedAggregation);
+      const newLinkedData: BlockProtocolAggregateEntitiesPayload =
+        omitTypenameDeep(tableData.linkedAggregation);
       const newState = {
         hiddenColumns: initialState?.hiddenColumns,
         columns: initialState?.columns,
@@ -273,16 +264,16 @@ export const Table: BlockComponent<AppProps> = ({
       }
 
       if (
-        newLinkedData.operation.pageCount ||
-        newLinkedData.operation.pageNumber
+        "pageCount" in newLinkedData.operation ||
+        "pageNumber" in newLinkedData.operation
       ) {
-        delete newLinkedData.operation.pageCount;
+        delete (
+          newLinkedData.operation as BlockProtocolAggregateEntitiesResult<BlockProtocolEntity>["operation"]
+        ).pageCount;
         delete newLinkedData.operation.pageNumber;
       }
 
-      void updateEntities<{
-        initialState?: Record<string, any>;
-      }>([
+      void updateEntities([
         {
           accountId,
           data: {
@@ -338,9 +329,7 @@ export const Table: BlockComponent<AppProps> = ({
     };
 
     if (tableData.linkedAggregation?.sourceAccountId) {
-      void updateEntities<{
-        initialState?: Record<string, any>;
-      }>([
+      void updateEntities([
         {
           accountId,
           data: {
@@ -500,7 +489,7 @@ export const Table: BlockComponent<AppProps> = ({
   const entityTypeDropdown = entityTypes ? (
     <EntityTypeDropdown
       options={entityTypes}
-      value={tableData?.linkedAggregation?.operation?.entityTypeId}
+      value={tableData?.linkedAggregation?.operation?.entityTypeId ?? undefined}
       onChange={handleEntityTypeChange}
     />
   ) : null;
@@ -573,7 +562,9 @@ export const Table: BlockComponent<AppProps> = ({
                       cell.column.id,
                     );
                     const propertyDef = getSchemaPropertyDefinition(
-                      (schemas ?? {})[entity.type],
+                      (schemas ?? []).find(
+                        (schema) => schema.title === entity.type,
+                      ),
                       property,
                     );
                     const readOnly = propertyDef?.readOnly;

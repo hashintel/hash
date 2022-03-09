@@ -13244,6 +13244,15 @@ mock-block-dock@0.0.5:
     blockprotocol "0.0.6"
     uuid "^8.3.2"
 
+mock-block-dock@0.0.6:
+  version "0.0.6"
+  resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.0.6.tgz#86dbc984fffb67e0ae4d442bf716288350d9bf61"
+  integrity sha512-bJNMflnr0wFSzMsV135wRFhkVyFLm76Su267EAl4R+oqb4MbtHnypP8Z/zOOhF3N1+op7COAZhWwk/nsRw4nIQ==
+  dependencies:
+    blockprotocol "0.0.6"
+    lodash "^4.17.21"
+    uuid "^8.3.2"
+
 moment-timezone@^0.5.x:
   version "0.5.33"
   resolved "https://registry.yarnpkg.com/moment-timezone/-/moment-timezone-0.5.33.tgz#b252fd6bb57f341c9b59a5ab61a8e51a73bbd22c"

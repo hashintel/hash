@@ -1,5 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/Company",
+  "entityTypeId": "companyType1",
+  "title": "Company",
   "definitions": {
     "Location": {
       "properties": {

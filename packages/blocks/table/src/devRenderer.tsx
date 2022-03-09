@@ -4,7 +4,7 @@
  */
 import React from "react";
 import ReactDOM from "react-dom";
-import { tw } from "twind";
+import { MockBlockDock } from "mock-block-dock";
 
 import Component from "./index";
 
@@ -15,12 +15,12 @@ const node = document.getElementById("app");
 const App = () => {
   return (
     // @todo wrap in MockBlockDock once https://github.com/blockprotocol/blockprotocol/pull/249 is merged
-    <div className={tw`flex justify-center py-8 mx-2`}>
+    <MockBlockDock>
       <Component
         initialState={initialTableData.initialState}
         entityId="table-1"
       />
-    </div>
+    </MockBlockDock>
   );
 };
 
