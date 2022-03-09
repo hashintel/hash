@@ -12,7 +12,11 @@ import {
   Visibility,
 } from "../graphql/apiTypes.gen";
 import { EntityTypeMeta, EntityTypeTypeFields } from "../db/adapter";
-import { JsonSchemaCompiler } from "../lib/schemas/jsonSchema";
+import {
+  entityTypePropertyKeyValidator,
+  getSchemaAllOfRefs,
+  JSON_SCHEMA_VERSION,
+} from "./entityType.util";
 
 const { FRONTEND_URL } = require("../lib/config");
 
@@ -80,32 +84,47 @@ class __EntityType {
   static async validateJsonSchema(
     client: DBClient,
     params: {
-      name: string;
-      schema?: JSONObject | null;
-      description?: string | null;
+      $id?: string;
+      title: string;
+      schema?: string | JSONSchema7 | null;
+      description?: string;
     },
   ) {
-    const { name, schema, description } = params;
+    const { $id, title, schema: maybeStringifiedSchema, description } = params;
 
-    const jsonSchemaCompiler = new JsonSchemaCompiler(async (schema$id) => {
-      const resolvedEntityType = await EntityType.getEntityTypeBySchema$id(
-        client,
-        {
-          schema$id,
-        },
+    if (title[0] !== title[0].toUpperCase()) {
+      throw new Error(
+        `Schema title should be in PascalCase, you passed '${title}'`,
       );
-      if (resolvedEntityType) {
-        return resolvedEntityType.properties;
-      } else {
-        throw new Error(`Could not find schema with $id = ${schema$id}`);
-      }
-    });
+    }
 
-    const properties = await jsonSchemaCompiler.jsonSchema({
-      title: name,
-      maybeStringifiedSchema: schema,
-      description,
-    });
+    const partialSchema: JSONSchema7 =
+      typeof maybeStringifiedSchema === "string"
+        ? JSON.parse(maybeStringifiedSchema)
+        : maybeStringifiedSchema ?? {};
+
+    const schema = {
+      ...partialSchema,
+      $schema: JSON_SCHEMA_VERSION,
+      $id,
+      title,
+      type: partialSchema.type ?? "object",
+      description: partialSchema.description ?? description,
+    };
+
+    const parents = getSchemaAllOfRefs(schema);
+    const allSchemas = await Promise.all(
+      parents.map(async (schema$id) =>
+        (
+          await EntityType.getEntityTypeBySchema$id(client, { schema$id })
+        )?.getAllParents(client),
+      ),
+    );
+
+    const validationErrors = entityTypePropertyKeyValidator(
+      schema as JSONSchema7,
+      ...allSchemas,
+    );
 
     return properties;
   }
@@ -123,7 +142,7 @@ class __EntityType {
     const { accountId, createdByAccountId, description, name } = params;
 
     const schema = await EntityType.validateJsonSchema(client, {
-      name,
+      title: name,
       schema: params.schema,
       description,
     });
@@ -159,7 +178,7 @@ class __EntityType {
     } = params;
 
     const schema = await EntityType.validateJsonSchema(client, {
-      name: title,
+      title,
       schema: params.schema,
       description,
     });
@@ -237,13 +256,7 @@ class __EntityType {
   }
 
   async getParentEntityTypes(client: DBClient): Promise<EntityType[]> {
-    const parentSchema$ids =
-      this.properties?.allOf
-        ?.filter(
-          (allOfEntry): allOfEntry is { $ref: string } =>
-            typeof allOfEntry === "object" && "$ref" in allOfEntry,
-        )
-        .map(({ $ref }) => $ref) ?? [];
+    const parentSchema$ids = getSchemaAllOfRefs(this.properties);
 
     const parentEntityTypes = await Promise.all(
       parentSchema$ids.map(async (schema$id) => {
@@ -264,17 +277,35 @@ class __EntityType {
     return parentEntityTypes.map((entityType) => new EntityType(entityType));
   }
 
+  async getAllParents(client: DBClient): Promise<EntityType[]> {
+    const parents = await this.getParentEntityTypes(client);
+
+    const allSchemas = await Promise.all(
+      parents.map(async (parent) => [
+        parent,
+        ...(await parent.getParentEntityTypes(client)),
+      ]),
+    );
+
+    return allSchemas.flat();
+  }
+
   public static async fetchComponentIdBlockSchema(componentId: string) {
     const componentIdUrl = new URL(
       "./block-schema.json",
       `${componentId.replace(/\/+$/, "")}/`,
     );
 
+    // @todo: consider security implications of requesting user-supplied URLs here.
     const blockSchema = await (await fetch(componentIdUrl.href))
       .json()
       .catch(() => ({}));
 
     return { ...blockSchema, componentId };
+  }
+
+  get schema$idWithFrontendDomain() {
+    return schema$idWithFrontendDomain(this.properties.$id);
   }
 
   toGQLEntityType(): UnresolvedGQLEntityType {
@@ -286,7 +317,7 @@ class __EntityType {
       accountId: this.accountId,
       properties: {
         ...this.properties,
-        $id: schema$idWithFrontendDomain(this.properties.$id),
+        $id: this.schema$idWithFrontendDomain,
       },
       metadataId: this.entityId,
       createdAt: this.createdAt.toISOString(),

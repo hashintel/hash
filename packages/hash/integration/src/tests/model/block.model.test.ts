@@ -30,7 +30,7 @@ beforeAll(async () => {
   );
 });
 
-describe("Page model class ", () => {
+describe("Block model class ", () => {
   let existingUser: User;
 
   beforeAll(async () => {
