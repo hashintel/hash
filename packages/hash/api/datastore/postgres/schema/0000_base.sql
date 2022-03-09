@@ -44,7 +44,7 @@ create table if not exists entity_type_versions (
 
     -- Versioned types are never mutated, so the updated_at time always matches the
     -- created_at time. Non-versioned types may be mutatated in-place, and the
-    -- updated_at column changes when a mutation is made.';
+    -- updated_at column changes when a mutation is made.
     updated_at              timestamp with time zone not null
 );
 create index if not exists entity_type_versions_entity_type_id on entity_type_versions (entity_type_id);
@@ -140,8 +140,6 @@ create table if not exists links (
     link_id                       uuid not null,
     -- The JSON path of the link on the source entity's properties JSON blob
     path                          text not null,
-    -- The index of the link
-    index                         integer default null,
     -- The account id of the source entity
     source_account_id             uuid not null,
     -- The entity id of the source entity.
@@ -170,6 +168,27 @@ create table if not exists links (
       source_account_id, -- included in the primary key so it can be used as a sharding key
       link_id
     )
+);
+
+
+create table if not exists link_versions (
+    -- The account id of the source entity
+    source_account_id             uuid not null,
+    -- The account id of the source entity
+    -- The UUID of the link
+    link_version_id          uuid not null,
+    -- The UUID of the link
+    link_id                  uuid not null,
+    -- The index of the link
+    index                    integer default null,
+    -- Versioned links are never mutated, so the updated_at time always matches the
+    -- created_at time. Non-versioned links may be mutatated in-place, and the
+    -- updated_at column changes when a mutation is made.
+    updated_at              timestamp with time zone not null,
+    -- The account id of the account that updated (or created) this link version
+    updated_by              uuid not null,
+
+    primary key (source_account_id, link_version_id)
 );
 
 /** @todo: create link table index */
