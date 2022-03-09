@@ -5,8 +5,8 @@ use std::{
 
 use rayon::iter::ParallelIterator;
 
-use super::{super::prelude::*, pool::message::MessageReader};
-use crate::datastore::{table::pool::proxy::PoolReadProxy, UUID_V4_LEN};
+use super::super::prelude::*;
+use crate::datastore::table::pool::proxy::PoolReadProxy;
 
 #[derive(Clone, Debug)]
 pub struct AgentMessageReference {
@@ -73,38 +73,5 @@ impl MessageMap {
 
     pub fn get_msg_refs(&self, recipient: &str) -> &[AgentMessageReference] {
         self.inner.get(recipient).map(Deref::deref).unwrap_or(&[])
-    }
-
-    // TODO: UNUSED: Needs triage
-    pub fn get_types<'a: 'b, 'b>(
-        &'b self,
-        recipient: &str,
-        reader: &'a MessageReader<'a>,
-    ) -> Result<impl ParallelIterator<Item = &'a str> + 'b> {
-        let references = self.inner.get(recipient).map(Deref::deref).unwrap_or(&[]);
-        let types = reader.type_iter(references);
-        Ok(types)
-    }
-
-    // TODO: UNUSED: Needs triage
-    pub fn get_datas<'a: 'b, 'b>(
-        &'b self,
-        recipient: &str,
-        reader: &'a MessageReader<'a>,
-    ) -> Result<impl ParallelIterator<Item = &'a str> + 'b> {
-        let references = self.inner.get(recipient).map(Deref::deref).unwrap_or(&[]);
-        let datas = reader.data_iter(references);
-        Ok(datas)
-    }
-
-    // TODO: UNUSED: Needs triage
-    pub fn get_froms<'a: 'b, 'b>(
-        &'b self,
-        recipient: &str,
-        reader: &'a MessageReader<'a>,
-    ) -> Result<impl ParallelIterator<Item = &'a [u8; UUID_V4_LEN]> + 'b> {
-        let references = self.inner.get(recipient).map(Deref::deref).unwrap_or(&[]);
-        let froms = reader.from_iter(references);
-        Ok(froms)
     }
 }

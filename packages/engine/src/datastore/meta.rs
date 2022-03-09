@@ -122,25 +122,6 @@ impl Dynamic {
         }
     }
 
-    // TODO: UNUSED: Needs triage
-    pub fn set_column_root_null_count(
-        &mut self,
-        static_meta: &Static,
-        column_index: usize,
-        null_count: usize,
-    ) -> Result<()> {
-        let node_index = static_meta
-            .get_column_meta()
-            .get(column_index)
-            .ok_or(Error::InvalidIndex {
-                ind: column_index,
-                len: static_meta.get_column_meta().len(),
-            })?
-            .node_start;
-        self.nodes[node_index].null_count = null_count;
-        Ok(())
-    }
-
     pub fn from_column_dynamic_meta_list(
         cols: &[ColumnDynamicMetadata],
         num_elements: usize,

@@ -15,7 +15,6 @@ use crate::{
 };
 
 type Offset = i32;
-type LargeOffset = i64;
 
 static EMPTY_OFFSET_BUFFER: [u8; 4] = [0, 0, 0, 0];
 
@@ -92,17 +91,6 @@ pub enum InnerShiftAction {
         // new index of the base offset, relative to the start of the buffer
         base_offset_index: usize,
     },
-    // TODO: UNUSED: Needs triage
-    LargeOffset {
-        // Starting old index relative to the offset of the old buffer
-        from: usize,
-        // `to - from == len`
-        to: usize,
-        // the new value the base (offsets_buffer[from]) offset will take
-        base_offset_value: i64,
-        // new index of the base offset
-        base_offset_index: usize,
-    },
 }
 
 impl InnerShiftAction {
@@ -119,15 +107,6 @@ impl InnerShiftAction {
                 offset_value_dec: _,
                 base_offset_index,
             } => (len + base_offset_index) * mem::size_of::<Offset>(),
-            InnerShiftAction::LargeOffset {
-                from,
-                to,
-                base_offset_value: _,
-                base_offset_index,
-            } => {
-                let offset_count = *to - *from;
-                (offset_count + base_offset_index) * mem::size_of::<LargeOffset>()
-            }
         }
     }
 }
@@ -272,8 +251,6 @@ impl<'a> BufferActions<'a> {
                                         );
                                     }
                                 }
-
-                                _ => unimplemented!(),
                             });
                         } else if base_right_shift + new_length >= old_length {
                             // Iterate right to left because we know that
@@ -322,7 +299,6 @@ impl<'a> BufferActions<'a> {
                                             },
                                         );
                                     }
-                                    _ => unimplemented!(),
                                 });
                         } else {
                             // We're both right and left shifting, this has
@@ -378,7 +354,6 @@ impl<'a> BufferActions<'a> {
                                         );
                                     }
                                 }
-                                _ => unimplemented!(),
                             });
                             // Finally, copy temporary buffer into data buffer
                             data_buffer[new_offset..new_offset + temporary_buffer.len()]
@@ -1119,26 +1094,6 @@ fn copy_bits_unchecked(
     unset_bit_count
 }
 
-impl RowActions {
-    // TODO: UNUSED: Needs triage
-    pub fn is_well_ordered_remove(&self) -> bool {
-        let mut last_i = 0;
-        for action in &self.remove {
-            if action.val < last_i {
-                tracing::error!(
-                    "Remove row actions are not ordered correctly: {} < {}",
-                    action.val,
-                    last_i
-                );
-                return false;
-            } else {
-                last_i = action.val;
-            }
-        }
-        true
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct IndexRange {
     index: usize,
@@ -1355,26 +1310,6 @@ pub(super) mod test {
         datastore::{schema::state::MessageSchema, test_utils::gen_schema_and_test_agents},
         simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY,
     };
-
-    lazy_static::lazy_static! {
-        pub static ref JSON_KEYS: serde_json::Value = serde_json::json!({
-            "defined": {
-                "foo": {
-                    "bar": "boolean",
-                    "baz": "[number]",
-                    "qux": "[number; 4]",
-                    "quux": "[string; 16]?",
-                }
-            },
-            "keys": {
-                "complex": {
-                    "position": "[number; 2]",
-                    "abc": "[[foo; 6]]"
-                },
-                "fixed_of_variable" : "[[number]; 2]"
-            }
-        });
-    }
 
     #[derive(Serialize, Deserialize)]
     pub struct Foo {

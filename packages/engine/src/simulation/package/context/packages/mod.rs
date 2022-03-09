@@ -13,7 +13,6 @@ use serde::{Deserialize, Serialize};
 
 use super::PackageCreator;
 use crate::{
-    datastore::table::task_shared_store::{SharedContext, SharedState},
     simulation::{
         enum_dispatch::*,
         package::{id::PackageIdGenerator, PackageMetadata, PackageType},
@@ -21,6 +20,7 @@ use crate::{
     },
     ExperimentConfig,
 };
+
 /// All context package names are registered in this enum
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -50,9 +50,7 @@ impl StoreAccessVerify for ContextTask {
     fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
         let state = &access.state;
         let context = access.context();
-        if (matches!(state, SharedState::Read(_)) || matches!(state, SharedState::None))
-            && matches!(context, SharedContext::None)
-        {
+        if (state.is_readonly() || state.is_disabled()) && context.is_disabled() {
             Ok(())
         } else {
             Err(Error::access_not_allowed(state, context, "Context".into()))
