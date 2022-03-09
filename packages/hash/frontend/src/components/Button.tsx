@@ -75,7 +75,6 @@ const LoadingContent: VFC<{
 // - work on icon buttons
 
 export type ButtonProps = {
-  squared?: boolean;
   loading?: boolean;
   loadingWithoutText?: boolean;
   disabledTooltipText?: string;
