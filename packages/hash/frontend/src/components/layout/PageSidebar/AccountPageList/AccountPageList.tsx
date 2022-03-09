@@ -28,7 +28,7 @@ type TreeElement = {
 
 const renderTree = (node: TreeElement) => (
   <PageTreeItem
-    hasChildren={node.children ? node.children.length > 1 : false}
+    hasChildren={node.children ? node.children.length >= 1 : false}
     key={node.entityId}
     nodeId={node.entityId}
     label={node.title}
