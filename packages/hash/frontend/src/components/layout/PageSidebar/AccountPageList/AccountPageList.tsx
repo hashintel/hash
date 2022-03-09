@@ -5,10 +5,14 @@ import { treeFromParentReferences } from "@hashintel/hash-shared/util";
 import { TreeView } from "@mui/lab";
 // import styles from "./PageSidebar.module.scss";
 import { useRouter } from "next/router";
-import { CreatePageButton } from "./CreatePageButton";
+import { IconButton, Tooltip } from "@mui/material";
+import { faAdd } from "@fortawesome/free-solid-svg-icons";
+import { useModal } from "react-modal-hook";
 import { useAccountPages } from "../../../hooks/useAccountPages";
 import { NavLink } from "../NavLink";
 import { PageTreeItem } from "./PageTreeItem";
+import { CreatePageModal } from "../../../Modals/CreatePageModal";
+import { FontAwesomeSvgIcon } from "../../../icons";
 
 type AccountPageListProps = {
   accountId: string;
@@ -41,6 +45,9 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
 }) => {
   const { data } = useAccountPages(accountId);
   const router = useRouter();
+  const [showCreatePageModal, hideCreatePageModal] = useModal(() => (
+    <CreatePageModal accountId={accountId} show onClose={hideCreatePageModal} />
+  ));
 
   const formattedData = useMemo(
     () =>
@@ -57,7 +64,16 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
   return (
     <NavLink
       title="Pages"
-      endAdornment={<CreatePageButton accountId={accountId} />}
+      endAdornment={
+        <Tooltip title="Create new page">
+          <IconButton
+            data-testid="create-page-btn"
+            onClick={showCreatePageModal}
+          >
+            <FontAwesomeSvgIcon icon={faAdd} />
+          </IconButton>
+        </Tooltip>
+      }
     >
       <TreeView
         data-testid="pages-tree"

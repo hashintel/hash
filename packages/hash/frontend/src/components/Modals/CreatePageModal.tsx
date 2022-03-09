@@ -9,12 +9,12 @@ import { OldButton } from "../forms/OldButton";
 
 type CreatePageModalProps = {
   accountId: string;
-  close: () => void;
+  onClose: () => void;
   show: boolean;
 };
 
 export const CreatePageModal: VoidFunctionComponent<CreatePageModalProps> = ({
-  close,
+  onClose,
   accountId,
   show,
 }) => {
@@ -47,23 +47,23 @@ export const CreatePageModal: VoidFunctionComponent<CreatePageModalProps> = ({
         // eslint-disable-next-line no-console -- TODO: consider using logger
         console.error("Could not create page: ", err);
         setLoading(false);
-        close();
+        onClose();
       });
   };
 
   useEffect(() => {
     const routeChangeHandler = () => {
       setLoading(false);
-      close();
+      onClose();
     };
 
     Router.events.on("routeChangeComplete", routeChangeHandler);
 
     return () => Router.events.off("routeChangeComplete", routeChangeHandler);
-  }, [close]);
+  }, [onClose]);
 
   return (
-    <Modal data-testid="create-page-modal" open={show} onClose={close}>
+    <Modal data-testid="create-page-modal" open={show} onClose={onClose}>
       <Box
         component="form"
         sx={{

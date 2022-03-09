@@ -1,4 +1,4 @@
-import { useCallback, useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
@@ -11,6 +11,7 @@ import {
 import { useKeys } from "rooks";
 import { useRouter } from "next/router";
 
+import { useModal } from "react-modal-hook";
 import { FontAwesomeSvgIcon } from "../../icons";
 import { Popover } from "../../Popover";
 import { Link } from "../../Link";
@@ -30,25 +31,13 @@ export const ActionsDropdown: React.FC<{
 
   const id = open ? "actions-popover" : undefined;
 
-  const [createPageOpen, setCreatePageOpen] = useState(false);
-
-  const closeCreatePage = useCallback(() => {
-    // Prevent the bug of closing a non-existing modal
-    if (createPageOpen) {
-      setCreatePageOpen(false);
-    }
-  }, [createPageOpen]);
+  const [showCreatePageModal, hideCreatePageModal] = useModal(() => (
+    <CreatePageModal accountId={accountId} show onClose={hideCreatePageModal} />
+  ));
 
   const newEntityTypeRoute = `/${accountId}/types/new`;
 
-  const showCreatePage = () => {
-    setCreatePageOpen(true);
-    if (open) {
-      setOpen(false);
-    }
-  };
-
-  useKeys(["AltLeft", "KeyP"], showCreatePage);
+  useKeys(["AltLeft", "KeyP"], showCreatePageModal);
   useKeys(["AltLeft", "KeyT"], () => router.push(newEntityTypeRoute));
 
   return (
@@ -77,12 +66,6 @@ export const ActionsDropdown: React.FC<{
       >
         <FontAwesomeSvgIcon icon={faPlus} />
       </IconButton>
-
-      <CreatePageModal
-        show={createPageOpen}
-        close={closeCreatePage}
-        accountId={accountId}
-      />
 
       <Popover
         id={id}
@@ -117,7 +100,7 @@ export const ActionsDropdown: React.FC<{
               display: "flex",
               justifyContent: "space-between",
             }}
-            onClick={showCreatePage}
+            onClick={showCreatePageModal}
           >
             <Typography variant="smallTextLabels">Create page</Typography>
             {!isMobile && <Typography variant="microText">Opt + P</Typography>}
