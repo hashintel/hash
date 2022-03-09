@@ -13,7 +13,6 @@ use serde::{Deserialize, Serialize};
 use self::behavior_execution::tasks::{ExecuteBehaviorsTask, ExecuteBehaviorsTaskMessage};
 use super::PackageCreator;
 use crate::{
-    datastore::table::task_shared_store::{SharedContext, SharedState},
     simulation::{
         enum_dispatch::*,
         package::{id::PackageIdGenerator, PackageMetadata, PackageType},
@@ -52,10 +51,8 @@ impl StoreAccessVerify for StateTask {
         let state = &access.state;
         let context = access.context();
         // All combinations (as of now) are allowed (but still being explicit)
-        if (matches!(state, SharedState::Write(_))
-            || matches!(state, SharedState::Read(_))
-            || matches!(state, SharedState::None))
-            && (matches!(context, SharedContext::Read) || matches!(context, SharedContext::None))
+        if (state.is_readwrite() || state.is_readonly() || state.is_disabled())
+            && (context.is_readonly() || context.is_disabled())
         {
             Ok(())
         } else {

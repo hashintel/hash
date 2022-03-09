@@ -120,17 +120,6 @@ impl MessageReader<'_> {
             self.loaders[reference.batch_index].get_from(reference.agent_index)
         })
     }
-
-    // TODO: UNUSED: Needs triage
-    pub fn raw_msg_iter<'b: 'r, 'r>(
-        &'b self,
-        message_references: &'r [AgentMessageReference],
-    ) -> impl IndexedParallelIterator<Item = batch::message::Raw<'b>> + 'r {
-        message_references.par_iter().map(move |reference| {
-            self.loaders[reference.batch_index]
-                .get_raw_message(reference.agent_index, reference.message_index)
-        })
-    }
 }
 
 impl PoolWriteProxy<MessageBatch> {

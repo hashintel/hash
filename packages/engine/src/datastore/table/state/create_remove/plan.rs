@@ -19,17 +19,6 @@ pub struct MigrationPlan<'a> {
 }
 
 impl<'a> MigrationPlan<'a> {
-    // TODO: UNUSED: Needs triage
-    pub fn delete_all(num_batches: usize) -> MigrationPlan<'a> {
-        MigrationPlan {
-            existing_mutations: (0..num_batches)
-                .map(|_| ExistingGroupBufferActions::Remove)
-                .collect(),
-            create_commands: Vec::new(),
-            num_agents_after_execution: 0,
-        }
-    }
-
     pub fn execute(self, state: &mut StatePools, config: &SimRunConfig) -> Result<Vec<String>> {
         // tracing::debug!("Updating");
         self.existing_mutations
