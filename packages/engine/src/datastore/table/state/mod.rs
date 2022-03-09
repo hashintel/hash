@@ -124,6 +124,7 @@ impl State {
         Self::from_agent_groups(&agent_state_groups, num_agents, sim_config)
     }
 
+    // TODO: Currently unused, verify that this does not introduce a memory leak.
     pub fn removed_batches(&mut self) -> &mut Vec<String> {
         &mut self.removed_batches
     }
