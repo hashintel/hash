@@ -124,7 +124,8 @@ impl State {
         Self::from_agent_groups(&agent_state_groups, num_agents, sim_config)
     }
 
-    // TODO: Currently unused, verify that this does not introduce a memory leak.
+    // TODO: OPTIM - We should be using these to release memory, this requires propagation to the
+    //   runners, otherwise this is the cause of a possible memory leak
     pub fn removed_batches(&mut self) -> &mut Vec<String> {
         &mut self.removed_batches
     }
