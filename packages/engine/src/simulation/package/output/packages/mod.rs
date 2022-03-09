@@ -61,9 +61,11 @@ impl StoreAccessVerify for OutputTask {
     fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
         let state = &access.state;
         let context = access.context();
-        // TODO: This check is useless currently as we don't encapsulate output packages into real
-        //   tasks but running them directly. That probably isn't ideal and we should look at the
-        //   design. Especially if we expect output packages to be run from "real" runners.
+        // TODO: This check is useless currently as we don't encapsulate the run logic of output packages
+        //   into `Task` objects but run them directly. That probably isn't ideal and we should look at the
+        //   design, either trying to force things to be wrapped in Tasks, extracting verification logic out of 
+        //   tasks, for example, we _could_ verify access to State and Context at a package-level rather than 
+        //   Task level.
         if (matches!(state, SharedState::Read(_)) || matches!(state, SharedState::None))
             && (matches!(context, SharedContext::Read) || matches!(context, SharedContext::None))
         {
