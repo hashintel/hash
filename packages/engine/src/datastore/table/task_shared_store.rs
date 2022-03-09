@@ -66,6 +66,37 @@ impl Default for SharedContext {
     }
 }
 
+impl SharedState {
+    /// Returns if the shared state is neither readable nor writable.
+    pub fn is_disabled(&self) -> bool {
+        matches!(self, SharedState::None)
+    }
+
+    /// Returns if the shared state is readable (fully or partially) but not writable.
+    pub fn is_readonly(&self) -> bool {
+        matches!(self, SharedState::Read(_))
+            || matches!(self, SharedState::Partial(PartialSharedState::Read(_)))
+    }
+
+    /// Returns if the shared state is readable and writable (fully or partially).
+    pub fn is_readwrite(&self) -> bool {
+        matches!(self, SharedState::Write(_))
+            || matches!(self, SharedState::Partial(PartialSharedState::Write(_)))
+    }
+}
+
+impl SharedContext {
+    /// Returns if the shared context is neither readable nor writable.
+    pub fn is_disabled(&self) -> bool {
+        matches!(self, SharedContext::None)
+    }
+
+    /// Returns if the shared context is readable but not writable.
+    pub fn is_readonly(&self) -> bool {
+        matches!(self, SharedContext::Read)
+    }
+}
+
 #[derive(Default)]
 pub struct TaskSharedStoreBuilder {
     inner: TaskSharedStore,
@@ -209,30 +240,14 @@ impl TaskSharedStore {
         }
     }
 
-    fn reads_state(&self) -> bool {
-        matches!(&self.state, SharedState::Read(_))
-            || matches!(
-                &self.state,
-                SharedState::Partial(PartialSharedState::Read(_))
-            )
-    }
-
-    fn writes_state(&self) -> bool {
-        matches!(&self.state, SharedState::Write(_))
-            || matches!(
-                &self.state,
-                SharedState::Partial(PartialSharedState::Write(_))
-            )
-    }
-
     /// TODO: DOC
     pub fn distribute(
         self,
         distribution: &StateBatchDistribution,
         worker_list: &WorkerAllocation,
     ) -> Result<(Vec<(Worker, Self)>, SplitConfig)> {
-        let reads_state = self.reads_state();
-        let writes_state = self.writes_state();
+        let reads_state = self.state.is_readonly();
+        let writes_state = self.state.is_readwrite();
         let context = self.context.clone();
 
         // TODO: Code duplication between read and write
