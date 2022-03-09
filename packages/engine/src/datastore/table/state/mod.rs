@@ -27,7 +27,7 @@ use crate::{
     SimRunConfig,
 };
 
-pub const MIN_PER_WORKER: usize = 10;
+pub const MIN_AGENTS_PER_GROUP: usize = 10;
 
 pub struct State {
     /// View into the current step's Agent state.
@@ -103,15 +103,17 @@ impl State {
         let num_workers = sim_config.sim.engine.num_workers;
         let num_agents = agent_states.len();
 
-        // Split agents into groups that can be distributed across workers
-        // The last group might be smaller than the other ones.
-        let num_agents_per_group = ((num_agents as f64 / num_workers as f64).ceil() as usize)
-            .clamp(MIN_PER_WORKER, sim_config.exp.target_max_group_size);
+        // Ideally we can have one group per worker, so divide the agents evenly across them
+        let target_group_size = (num_agents as f64 / num_workers as f64).ceil() as usize;
+        // We may have lower or upper bounds on the size of an individual group so adjust for that
+        let target_group_size =
+            target_group_size.clamp(MIN_AGENTS_PER_GROUP, sim_config.exp.target_max_group_size);
+
         let mut agent_state_groups = vec![];
         let mut next_index = 0;
         while next_index != num_agents {
             let this_index = next_index;
-            next_index = (next_index + num_agents_per_group).min(num_agents);
+            next_index = (next_index + target_group_size).min(num_agents);
             agent_state_groups.push(&agent_states[this_index..next_index]);
         }
 
