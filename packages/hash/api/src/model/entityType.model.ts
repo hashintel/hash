@@ -47,6 +47,7 @@ class __EntityType {
   entityId: string;
   entityVersionId: string;
   accountId: string;
+  /** @todo: consider extending this type to be fully compatible with Draft 08 (2019-09) */
   properties: JSONSchema7;
   metadata: EntityTypeMeta;
   createdByAccountId: string;
