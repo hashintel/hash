@@ -1,5 +1,4 @@
 pub mod batch_conversion;
-pub mod element_conversion;
 pub mod field_conversion;
 pub mod ipc;
 pub mod message;
