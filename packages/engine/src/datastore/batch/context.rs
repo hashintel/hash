@@ -98,8 +98,8 @@ impl ContextBatch {
 
     /// Overwrite context batch with given columns.
     ///
-    /// The underlying shared memory is resized if either (1) the
-    /// new data is bigger than the existing capacity or (2) the
+    /// The underlying shared memory is resized if either the
+    /// new data is bigger than the existing capacity, or the
     /// new data is much smaller than the existing capacity, so
     /// we can make the capacity smaller.
     ///
