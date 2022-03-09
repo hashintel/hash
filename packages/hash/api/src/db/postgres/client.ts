@@ -25,7 +25,6 @@ import {
   getEntityTypeByComponentId,
   getEntityTypeBySchema$id,
   getEntityTypeChildren,
-  getEntityTypeParents,
   getEntityTypeLatestVersion,
   getSystemTypeLatestVersion,
   insertEntityType,
@@ -292,12 +291,6 @@ export class PostgresClient implements DBClient {
     params: Parameters<DBClient["getEntityTypeChildren"]>[0],
   ): ReturnType<DBClient["getEntityTypeChildren"]> {
     return await getEntityTypeChildren(this.conn, params);
-  }
-
-  async getEntityTypeParents(
-    params: Parameters<DBClient["getEntityTypeParents"]>[0],
-  ): ReturnType<DBClient["getEntityTypeParents"]> {
-    return await getEntityTypeParents(this.conn, params);
   }
 
   /**

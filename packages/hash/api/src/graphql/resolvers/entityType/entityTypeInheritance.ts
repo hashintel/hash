@@ -1,3 +1,5 @@
+import { ApolloError } from "apollo-server-express";
+
 import { Resolver, EntityType as GQLEntityType } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { EntityType, UnresolvedGQLEntityType } from "../../../model";
@@ -24,14 +26,23 @@ const parents: Resolver<
   Promise<UnresolvedGQLEntityType[]>,
   GQLEntityType,
   GraphQLContext
-> = async (params, _, { dataSources }) => {
+> = async (params, _, { dataSources: { db } }) => {
   const { entityId: entityTypeId } = params;
 
-  const entityTypes = await EntityType.getEntityTypeParents(dataSources.db, {
+  // The following entityType must exist for this resolver to be called
+  const entityType = await EntityType.getEntityType(db, {
     entityTypeId,
   });
 
-  return entityTypes.map((ent) => ent.toGQLEntityType());
+  if (!entityType) {
+    throw new ApolloError(
+      `EntityType with entityId ${entityTypeId} not found`,
+      "NOT_FOUND",
+    );
+  }
+  const entityTypeParents = await entityType.getParentEntityTypes(db);
+
+  return entityTypeParents.map((ent) => ent.toGQLEntityType());
 };
 
 export const entityTypeInheritance = {
