@@ -38,16 +38,6 @@ impl StatePools {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
-
-    pub fn swap_remove(&mut self, index: usize) -> String {
-        let removed_agent_id = self.agent_pool.swap_remove(index);
-        let removed_message_id = self.message_pool.swap_remove(index);
-        debug_assert_eq!(
-            removed_agent_id, removed_message_id,
-            "Removed two different groups from agent and message pools"
-        );
-        removed_agent_id
-    }
 }
 
 impl Extend<(AgentBatch, MessageBatch)> for StatePools {
