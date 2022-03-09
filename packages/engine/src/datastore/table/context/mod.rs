@@ -26,9 +26,6 @@ pub struct Context {
     batch: Arc<ContextBatch>,
     /// View of the state from the previous step.
     previous_state: StatePools,
-
-    /// The IDs of the batches that were removed between this step and the last.
-    removed_batches: Vec<String>,
 }
 
 impl Context {
@@ -48,7 +45,6 @@ impl Context {
         Ok(Self {
             batch: Arc::new(context_batch),
             previous_state: StatePools::empty(),
-            removed_batches: Vec::new(),
         })
     }
 
@@ -67,11 +63,6 @@ impl Context {
 
     pub fn take_message_pool(&mut self) -> MessagePool {
         std::mem::replace(&mut self.previous_state.message_pool, MessagePool::empty())
-    }
-
-    // TODO: UNUSED: Needs triage
-    pub fn removed_batches(&mut self) -> &mut Vec<String> {
-        &mut self.removed_batches
     }
 
     /// Returns the [`ContextBatch`] for this context.
@@ -103,10 +94,7 @@ impl Context {
     }
 
     pub fn into_pre_context(self) -> PreContext {
-        PreContext {
-            batch: self.batch,
-            removed_batches: self.removed_batches,
-        }
+        PreContext { batch: self.batch }
     }
 
     /// Copies the current agent `State` into the `Context`.
@@ -150,12 +138,10 @@ impl Context {
                 )?);
             }
         } else if dynamic_pool.len() < static_pool.len() {
-            // Remove unneeded static batches
-            let removed_ids = (dynamic_pool.len()..static_pool.len())
-                .rev()
-                .map(|remove_index| static_pool.remove(remove_index))
-                .collect::<Vec<_>>();
-            self.removed_batches.extend(removed_ids);
+            for remove_index in (dynamic_pool.len()..static_pool.len()).rev() {
+                // Remove unneeded static batches
+                static_pool.remove(remove_index);
+            }
         }
 
         // State group start indices need to be updated, because we
@@ -181,8 +167,6 @@ impl Context {
 /// AgentPool are possibly invalid and unneeded while building/updating the context.
 pub struct PreContext {
     batch: Arc<ContextBatch>,
-    /// Local metadata
-    removed_batches: Vec<String>,
 }
 
 impl PreContext {
@@ -196,7 +180,6 @@ impl PreContext {
         let mut context = Context {
             batch: self.batch,
             previous_state: state_snapshot,
-            removed_batches: self.removed_batches,
         };
         context
             .global_batch_mut()?

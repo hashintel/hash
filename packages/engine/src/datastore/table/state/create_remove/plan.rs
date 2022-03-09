@@ -30,7 +30,7 @@ impl<'a> MigrationPlan<'a> {
         }
     }
 
-    pub fn execute(self, state: &mut StatePools, config: &SimRunConfig) -> Result<Vec<String>> {
+    pub fn execute(self, state: &mut StatePools, config: &SimRunConfig) -> Result<()> {
         // tracing::debug!("Updating");
         self.existing_mutations
             .par_iter()
@@ -60,11 +60,10 @@ impl<'a> MigrationPlan<'a> {
                 Ok(())
             })?;
 
-        let mut removed_ids = vec![];
         // tracing::debug!("Deleting");
         for (batch_index, action) in self.existing_mutations.iter().enumerate().rev() {
             if let ExistingGroupBufferActions::Remove = action {
-                removed_ids.push(state.swap_remove(batch_index));
+                state.swap_remove(batch_index);
             }
         }
 
@@ -84,6 +83,6 @@ impl<'a> MigrationPlan<'a> {
         state.extend(created_dynamic_batches);
 
         // tracing::debug!("Finished");
-        Ok(removed_ids)
+        Ok(())
     }
 }

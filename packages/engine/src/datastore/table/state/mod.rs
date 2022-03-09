@@ -37,9 +37,6 @@ pub struct State {
     /// agent of each group in combined pool.
     group_start_indices: Arc<Vec<usize>>,
 
-    /// The IDs of the batches that were removed between this step and the last.
-    removed_batches: Vec<String>,
-
     num_agents: usize,
 
     sim_config: Arc<SimRunConfig>,
@@ -88,7 +85,6 @@ impl State {
                 agent_pool: AgentPool::new(agent_batches),
                 message_pool: MessagePool::new(message_batches),
             },
-            removed_batches: Vec::new(),
             num_agents,
             group_start_indices: Arc::new(group_start_indices),
             sim_config,
@@ -121,10 +117,6 @@ impl State {
         Self::from_agent_groups(&agent_state_groups, num_agents, sim_config)
     }
 
-    pub fn removed_batches(&mut self) -> &mut Vec<String> {
-        &mut self.removed_batches
-    }
-
     pub fn create_remove(
         &mut self,
         commands: CreateRemoveCommands,
@@ -133,10 +125,8 @@ impl State {
         let mut planner = CreateRemovePlanner::new(commands, config.clone())?;
         let plan = planner.run(&self.read()?)?;
         self.num_agents = plan.num_agents_after_execution;
-        let removed_ids = plan.execute(self.state_mut(), config)?;
+        plan.execute(self.state_mut(), config)?;
 
-        // Register all batches that were removed
-        self.removed_batches().extend(removed_ids.into_iter());
         Ok(())
     }
 
