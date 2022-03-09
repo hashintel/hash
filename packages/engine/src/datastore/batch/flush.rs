@@ -61,8 +61,8 @@ pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableCo
     /// persisted metaversion, this gives an error to avoid
     /// flushing stale data. (The loaded metaversion can't
     /// be newer than the persisted metaversion.)
-    /// (TODO: We might have to remove this restriction to
-    ///        allow flushing multiple changes in a row.)
+    // TODO: We might have to remove this restriction to
+    //        allow flushing multiple changes in a row.
     ///
     /// If the underlying segment has been corrupted somehow,
     /// this can give various errors.
