@@ -173,7 +173,7 @@ impl<'a> BufferActions<'a> {
         agent_schema: &Arc<AgentSchema>,
         message_schema: &Arc<MessageSchema>,
         experiment_id: &ExperimentId,
-        affinity: usize,
+        worker_index: usize,
     ) -> Result<(AgentBatch, MessageBatch)> {
         let mut memory = AgentBatch::get_prepared_memory_for_data(
             agent_schema,
@@ -183,7 +183,7 @@ impl<'a> BufferActions<'a> {
         self.flush_memory(&mut memory)?;
 
         let agent_batch =
-            AgentBatch::from_memory(memory, Some(agent_schema.as_ref()), Some(affinity))?;
+            AgentBatch::from_memory(memory, Some(agent_schema.as_ref()), Some(worker_index))?;
         let message_batch = MessageBatch::empty_from_agent_batch(
             &agent_batch,
             &message_schema.arrow,
