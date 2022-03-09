@@ -13770,9 +13770,10 @@ obuf@^1.0.0, obuf@^1.1.2:
   resolved "https://registry.yarnpkg.com/obuf/-/obuf-1.1.2.tgz#09bea3343d41859ebd446292d11c9d4db619084e"
   integrity sha512-PX1wu0AmAdPqOL1mWhqmlOd8kOIZQwGZw6rh7uby9fTc5lhaOWFLX3I6R1hrF9k3zUY40e6igsLGkDXK92LJNg==
 
-"oembed-providers@https://github.com/iamcal/oembed":
-  version "1.0.20210622"
-  resolved "https://github.com/iamcal/oembed#8df26e4534df3d393acd979434fb6de9125f0c41"
+oembed-providers@1.0.20220105:
+  version "1.0.20220105"
+  resolved "https://registry.yarnpkg.com/oembed-providers/-/oembed-providers-1.0.20220105.tgz#cb105e4082a35af24076bf4403de99bfd12b045b"
+  integrity sha512-LR88ow2SdLxy71H3TBsp/Ze7PfEoMiVBM29GmJbQVvjfU2rzBFwdRBQp1yuFMTQZ409vCweUdtMnQ9yxiVT1Dw==
 
 on-finished@^2.3.0, on-finished@~2.3.0:
   version "2.3.0"
