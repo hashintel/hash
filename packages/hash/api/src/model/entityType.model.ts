@@ -13,9 +13,11 @@ import {
 } from "../graphql/apiTypes.gen";
 import { EntityTypeMeta, EntityTypeTypeFields } from "../db/adapter";
 import {
+  tryCompileSchema,
   entityTypePropertyKeyValidator,
   getSchemaAllOfRefs,
   JSON_SCHEMA_VERSION,
+  SchemaTypeMismatch,
 } from "./entityType.util";
 
 const { FRONTEND_URL } = require("../lib/config");
@@ -81,6 +83,18 @@ class __EntityType {
     this.updatedAt = updatedAt;
   }
 
+  /**
+   * *This is a slow operation!*
+   * When a JSON schema is to be validated, the whole schema inheritance chain
+   * is validated.
+   *
+   * Validations include properties with the same name and verifying constraints
+   * are valid.
+   *
+   * @param client
+   * @param params
+   * @returns
+   */
   static async validateJsonSchema(
     client: DBClient,
     params: {
@@ -89,7 +103,7 @@ class __EntityType {
       schema?: string | JSONSchema7 | null;
       description?: string;
     },
-  ) {
+  ): Promise<JSONSchema7> {
     const { $id, title, schema: maybeStringifiedSchema, description } = params;
 
     if (title[0] !== title[0].toUpperCase()) {
@@ -113,20 +127,37 @@ class __EntityType {
     };
 
     const parents = getSchemaAllOfRefs(schema);
-    const allSchemas = await Promise.all(
-      parents.map(async (schema$id) =>
-        (
-          await EntityType.getEntityTypeBySchema$id(client, { schema$id })
-        )?.getAllParents(client),
-      ),
-    );
+    const allSchemas = (
+      await Promise.all(
+        parents.map(async (schema$id) => {
+          const parentEntity = await EntityType.getEntityTypeBySchema$id(
+            client,
+            {
+              schema$id,
+            },
+          );
+
+          const parentInheritanceChain = await parentEntity.getInheritanceChain(
+            client,
+          );
+
+          return [parentEntity, ...parentInheritanceChain];
+        }),
+      )
+    ).flat();
 
     const validationErrors = entityTypePropertyKeyValidator(
-      schema as JSONSchema7,
+      schema,
       ...allSchemas,
     );
 
-    return properties;
+    if (validationErrors.length > 0) {
+      throw new SchemaTypeMismatch(validationErrors.join("\n"));
+    }
+
+    await tryCompileSchema(schema);
+
+    return schema;
   }
 
   static async create(
@@ -134,7 +165,7 @@ class __EntityType {
     params: {
       accountId: string;
       createdByAccountId: string;
-      description?: string | null;
+      description?: string;
       name: string;
       schema?: JSONObject | null;
     },
@@ -225,9 +256,14 @@ class __EntityType {
   static async getEntityTypeBySchema$id(
     client: DBClient,
     params: { schema$id: string },
-  ): Promise<EntityType | null> {
+  ): Promise<EntityType> {
     const dbEntityType = await client.getEntityTypeBySchema$id(params);
-    return dbEntityType ? new EntityType(dbEntityType) : null;
+    if (!dbEntityType) {
+      throw new Error(
+        `Critical: Could not find EntityType by Schema$id = ${params.schema$id}`,
+      );
+    }
+    return new EntityType(dbEntityType);
   }
 
   static async getEntityTypeType(client: DBClient) {
@@ -258,26 +294,21 @@ class __EntityType {
   async getParentEntityTypes(client: DBClient): Promise<EntityType[]> {
     const parentSchema$ids = getSchemaAllOfRefs(this.properties);
 
-    const parentEntityTypes = await Promise.all(
+    return await Promise.all(
       parentSchema$ids.map(async (schema$id) => {
-        const parentEntityType = await client.getEntityTypeBySchema$id({
-          schema$id,
-        });
-
-        if (!parentEntityType) {
-          throw new Error(
-            `Critical: Could not find EntityType by Schema$id = ${schema$id}`,
-          );
-        }
+        const parentEntityType = await EntityType.getEntityTypeBySchema$id(
+          client,
+          {
+            schema$id,
+          },
+        );
 
         return parentEntityType;
       }),
     );
-
-    return parentEntityTypes.map((entityType) => new EntityType(entityType));
   }
 
-  async getAllParents(client: DBClient): Promise<EntityType[]> {
+  async getInheritanceChain(client: DBClient): Promise<EntityType[]> {
     const parents = await this.getParentEntityTypes(client);
 
     const allSchemas = await Promise.all(

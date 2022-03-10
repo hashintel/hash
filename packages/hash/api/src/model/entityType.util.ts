@@ -1,8 +1,37 @@
+import Ajv2019 from "ajv/dist/2019";
+import addFormats from "ajv-formats";
 import { JSONSchema7 } from "json-schema";
+
 import { EntityType } from ".";
+import { FRONTEND_URL } from "../lib/config";
 
 export const JSON_SCHEMA_VERSION =
   "https://json-schema.org/draft/2019-09/schema";
+
+/**
+ * Generates a URI for a schema in a HASH instance.
+ * $ids should use absolute URIs, and will need to be re-written if the origin changes.
+ * $refs should use relative URIs, which can be resolved relative to the $id's origin.
+ * If $refs used absolute URIs, they would need to be re-written if the origin changes also,
+ *    which would be (a) more writes, and (b) more complex if a schema has $refs to external URIs.
+ * @todo rewrite schema $ids when FRONTEND_URL config is changed.
+ *    ideally this URL would be configurable in an admin panel and stored in the db.
+ * */
+export const generateSchema$id = (
+  accountId: string,
+  entityTypeId: string,
+  relative: boolean = false,
+) => {
+  return `${relative ? "" : FRONTEND_URL}/${accountId}/types/${entityTypeId}`;
+};
+
+/**
+ * Given a Schema$id, generate an appropriate $ref to put into allOf field on JSON schema.
+ * This can be used to inherit from other schemas.
+ * */
+export const schema$idRef = (schema$id: string) => {
+  return JSON.stringify([{ $ref: schema$id }]);
+};
 
 export class SchemaTypeMismatch extends Error {
   constructor(msg: string) {
@@ -58,24 +87,53 @@ const propertyConstraintMerging: Record<
   minProperties: maximizeConstraint,
 } as const;
 
+/**
+ * Traverse properties of a schema recursively, visiting 'allOf' properties as well.
+ *
+ * @param schema JSON Schema that is to be traversed
+ * @param properties list of Properties from the resulting traversal
+ */
+function traverseProperties(schema: JSONSchema7, properties: Property[]) {
+  // Traverse top-level properties for a schema
+  for (const [field, value] of Object.entries(schema.properties ?? {})) {
+    if (typeof value === "object") {
+      const { type, format, description, ...otherFields } = value;
+      if (typeof type === "string") {
+        properties.push({
+          name: field,
+          type,
+          format,
+          description,
+          otherFields,
+        });
+      }
+    }
+  }
+
+  // For any 'allOf' entry, check if more properties are to be uncovered.
+  for (const allOfEntry of schema.allOf ?? []) {
+    // AllOf might have more properties to check!
+    if (typeof allOfEntry === "object" && "type" in allOfEntry) {
+      if (allOfEntry.type === "object") {
+        traverseProperties(allOfEntry, properties);
+      }
+    }
+  }
+}
+
 function extractProperties(schema: JSONSchema7): PropertyGroup {
   const properties: Property[] = [];
-  for (const [field, value] of Object.entries(schema ?? {})) {
-    const { type, format, description, ...otherFields } = value as Record<
-      string,
-      any
-    >;
-    properties.push({
-      name: field,
-      type,
-      format,
-      description,
-      otherFields,
-    });
-  }
+  traverseProperties(schema, properties);
+
   return { $id: schema.$id, parents: [], properties };
 }
 
+/**
+ * In JSON Schema, constraints can be put on numeric properties, this function validates that
+ * pairs of constraints (minimum and maximum) do not span over a negative interval.
+ * @param constraints
+ * @returns
+ */
 const validationConstraintPairs = (
   constraints: Record<string, number>,
 ): string[] => {
@@ -165,7 +223,11 @@ function validateProperties(
 }
 
 /**
- * Given a list of all properties, check if any duplicates are present by the property name.
+ * Validate a collection of JSON schemas based on their properties.
+ * For every schema given, any properties that overlap will be validated.
+ *
+ * Validation includes checking that types match and
+ *
  * @param properties list of properties to duplicate check
  * @returns a list of type-mismatch errors. Does not throw an exception.
  */
@@ -194,3 +256,28 @@ export const getSchemaAllOfRefs = (schema: JSONSchema7) =>
         typeof allOfEntry === "object" && "$ref" in allOfEntry,
     )
     .map(({ $ref }) => $ref) ?? [];
+
+const ajv = new Ajv2019({
+  addUsedSchema: false, // stop AJV trying to add compiled schemas to the instance
+  // At validation time, don't use the "proper" resolver.
+  loadSchema: async () => ({}),
+});
+
+ajv.addKeyword({
+  keyword: "componentId",
+  schemaType: "string",
+});
+
+addFormats(ajv);
+
+/**
+ * Try to compile schema in order to find any errors.
+ * This does not resolve references.
+ */
+export const tryCompileSchema = async (schema: JSONSchema7) => {
+  try {
+    await ajv.compileAsync(schema);
+  } catch (err: any) {
+    throw new Error(`Error in provided type schema: ${(err as Error).message}`);
+  }
+};

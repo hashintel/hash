@@ -6,7 +6,7 @@ import { EntityType, UnresolvedGQLEntityType } from "../../../model";
 import {
   generateSchema$id,
   schema$idRef,
-} from "../../../lib/schemas/jsonSchema";
+} from "../../../model/entityType.util";
 
 const children: Resolver<
   Promise<UnresolvedGQLEntityType[]>,

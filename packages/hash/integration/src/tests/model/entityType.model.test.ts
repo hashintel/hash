@@ -99,7 +99,7 @@ describe("EntityType model class", () => {
     });
 
     const parentSchemas = await fetched!.getParentEntityTypes(db);
-    const allParents = await fetched!.getAllParents(db);
+    const allParents = await fetched!.getInheritanceChain(db);
 
     expect(parentSchemas).toHaveLength(1);
     expect(allParents).toHaveLength(1);
@@ -144,10 +144,253 @@ describe("EntityType model class", () => {
     });
 
     const parentSchemas = await fetched!.getParentEntityTypes(db);
-    const allParents = await fetched!.getAllParents(db);
+    const allParents = await fetched!.getInheritanceChain(db);
 
     expect(parentSchemas).toHaveLength(1);
     expect(allParents).toHaveLength(2);
+  });
+
+  describe("compatibility validation", () => {
+    it("allows inheritance that do not re-write keys", async () => {
+      const schema = {
+        type: "object",
+        allOf: [
+          {
+            type: "object",
+            properties: {
+              name: { type: "string" },
+              age: { type: "number" },
+            },
+          },
+        ],
+        properties: {
+          id: { type: "string" },
+          updatedAt: { type: "string", format: "date-time" },
+          createdAt: { type: "string", format: "date-time" },
+        },
+      };
+
+      await expect(
+        EntityType.create(db, {
+          accountId: existingUser.accountId,
+          createdByAccountId: existingUser.accountId,
+          name: "Compatability1",
+          schema,
+        }),
+      ).resolves.toBeDefined();
+      // no error should be thrown
+    });
+
+    it("disallows overwriting incompatible, inheriting fields from props", async () => {
+      const schema = {
+        type: "object",
+        allOf: [
+          {
+            type: "object",
+            properties: {
+              name: { type: "string" },
+              age: { type: "string" },
+            },
+          },
+        ],
+        properties: {
+          id: { type: "string" },
+          age: { type: "number" },
+          updatedAt: { type: "string", format: "date-time" },
+          createdAt: { type: "string", format: "date-time" },
+        },
+      };
+
+      await expect(
+        EntityType.create(db, {
+          accountId: existingUser.accountId,
+          createdByAccountId: existingUser.accountId,
+          name: "Compatability2",
+          schema,
+        }),
+      ).rejects.toThrowError(
+        /Type mismatch on "age". Got "string" expected "number"/i,
+      );
+    });
+    it("allows overwriting compatible, inheriting fields from props", async () => {
+      const schema = {
+        type: "object",
+        allOf: [
+          {
+            type: "object",
+            properties: {
+              name: { type: "string" },
+              age: { type: "string" },
+            },
+          },
+        ],
+        properties: {
+          id: { type: "string" },
+          age: { type: "string" },
+          updatedAt: { type: "string", format: "date-time" },
+          createdAt: { type: "string", format: "date-time" },
+        },
+      };
+
+      await expect(
+        EntityType.create(db, {
+          accountId: existingUser.accountId,
+          createdByAccountId: existingUser.accountId,
+          name: "Compatability3",
+          schema,
+        }),
+      ).resolves.toBeDefined();
+    });
+
+    it("disallows overwriting incompatible, inheriting fields from other parent types", async () => {
+      const schema = {
+        type: "object",
+        allOf: [
+          {
+            type: "object",
+            properties: {
+              name: { type: "string" },
+              age: { type: "string" },
+            },
+          },
+          {
+            type: "object",
+            properties: {
+              age: { type: "number" },
+            },
+          },
+        ],
+        properties: {
+          id: { type: "string" },
+          updatedAt: { type: "string", format: "date-time" },
+          createdAt: { type: "string", format: "date-time" },
+        },
+      } as any;
+
+      await expect(
+        EntityType.create(db, {
+          accountId: existingUser.accountId,
+          createdByAccountId: existingUser.accountId,
+          name: "Compatability4",
+          schema,
+        }),
+      ).rejects.toThrowError(
+        /Type mismatch on "age". Got "number" expected "string"/i,
+      );
+    });
+
+    it("allows overwriting compatible, inheriting fields from other parent types", async () => {
+      const schema = {
+        type: "object",
+        allOf: [
+          {
+            type: "object",
+            properties: {
+              name: { type: "string" },
+              age: { type: "string" },
+            },
+          },
+          {
+            type: "object",
+            properties: {
+              age: { type: "string" },
+            },
+          },
+        ],
+        properties: {
+          id: { type: "string" },
+          updatedAt: { type: "string", format: "date-time" },
+          createdAt: { type: "string", format: "date-time" },
+        },
+      } as any;
+
+      await expect(
+        EntityType.create(db, {
+          accountId: existingUser.accountId,
+          createdByAccountId: existingUser.accountId,
+          name: "Compatability5",
+          schema,
+        }),
+      ).resolves.toBeDefined();
+    });
+
+    it("disallows overwriting incompatible, inheriting fields from nested parent types", async () => {
+      const schema = {
+        type: "object",
+        allOf: [
+          {
+            type: "object",
+            allOf: [
+              {
+                type: "object",
+                properties: {
+                  name: { type: "string" },
+                  height: { type: "string" },
+                },
+              },
+            ],
+            properties: {
+              age: { type: "number" },
+            },
+          },
+        ],
+        properties: {
+          id: { type: "string" },
+          height: { type: "number" },
+          updatedAt: { type: "string", format: "date-time" },
+          createdAt: { type: "string", format: "date-time" },
+        },
+      } as any;
+
+      await expect(
+        EntityType.create(db, {
+          accountId: existingUser.accountId,
+          createdByAccountId: existingUser.accountId,
+          name: "Compatability6",
+          schema,
+        }),
+      ).rejects.toThrowError(
+        /Type mismatch on "height". Got "string" expected "number"/i,
+      );
+    });
+
+    it("allows overwriting compatible, inheriting fields from nested parent types", async () => {
+      const schema = {
+        type: "object",
+        allOf: [
+          {
+            type: "object",
+            allOf: [
+              {
+                type: "object",
+                properties: {
+                  name: { type: "string" },
+                  height: { type: "string" },
+                },
+              },
+            ],
+            properties: {
+              age: { type: "number" },
+            },
+          },
+        ],
+        properties: {
+          id: { type: "string" },
+          lefthanded: { type: "boolean" },
+          updatedAt: { type: "string", format: "date-time" },
+          createdAt: { type: "string", format: "date-time" },
+        },
+      };
+
+      await expect(
+        EntityType.create(db, {
+          accountId: existingUser.accountId,
+          createdByAccountId: existingUser.accountId,
+          name: "Compatability7",
+          schema,
+        }),
+      ).resolves.toBeDefined();
+    });
   });
 });
 

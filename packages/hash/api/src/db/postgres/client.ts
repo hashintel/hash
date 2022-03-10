@@ -63,7 +63,7 @@ import {
   getUserVerificationCodes,
 } from "./verificationCode";
 import { getImpliedEntityHistory } from "./history";
-import { generateSchema$id } from "../../lib/schemas/jsonSchema";
+import { generateSchema$id } from "../../model/entityType.util";
 import { SystemType } from "../../types/entityTypes";
 import { Visibility } from "../../graphql/apiTypes.gen";
 import { getOrgByShortname } from "./org";
