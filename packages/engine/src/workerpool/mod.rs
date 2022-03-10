@@ -396,7 +396,11 @@ impl WorkerPoolController {
                         .collect::<Vec<_>>(),
                     DistributionController::Distributed {
                         received_results: Vec::with_capacity(worker_list.len()),
-                        active_workers: worker_list.into_iter().map(Worker::index).collect(),
+                        active_workers: worker_list
+                            .into_iter()
+                            .take(split_config.num_workers)
+                            .map(Worker::index)
+                            .collect(),
                         reference_task: task,
                     },
                 )

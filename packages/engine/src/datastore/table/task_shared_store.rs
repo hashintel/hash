@@ -186,7 +186,14 @@ impl PartialSharedState {
     }
 }
 
-/// TODO: DOC
+/// Distributes batches across multiple stores.
+///
+/// Returns a list of stores containing the agent batches, message batches, and group indices, and
+/// the [`SplitConfig`].
+///
+/// # Panics
+///
+/// All passed lists has to be the same size
 fn distribute_batches<A, M>(
     worker_list: &WorkerAllocation,
     agent_batches: Vec<A>,
@@ -194,11 +201,31 @@ fn distribute_batches<A, M>(
     group_indices: Vec<usize>,
     group_sizes: Vec<usize>, // Number of agents in each group
 ) -> (Vec<(Worker, Vec<A>, Vec<M>, Vec<usize>)>, SplitConfig) {
-    // Initialize with empty distribution.
-    let num_workers = worker_list.len();
+    debug_assert_eq!(
+        agent_batches.len(),
+        msg_batches.len(),
+        "Number of agent groups does not match the number of message groups"
+    );
+    debug_assert_eq!(
+        agent_batches.len(),
+        group_indices.len(),
+        "Number of agent groups does not match the number of groups"
+    );
+    debug_assert_eq!(
+        agent_batches.len(),
+        group_sizes.len(),
+        "Number of agent groups does not match the number of groups"
+    );
+
+    // Initialize with empty distribution. Only utilize as many workers as required, limited by the
+    // number of groups but at least one.
+    // TODO: What happens if we have no agents? This is a pointless scenario but we may want to
+    //       support it. For now, this is why the lower limit of `1` exists. Probably, as there will
+    //       be no task, this will infinitely wait for a task to be completed or canceled.
+    let num_workers = worker_list.len().clamp(1, agent_batches.len());
     let mut agent_distribution = Vec::with_capacity(num_workers);
     let mut stores = Vec::with_capacity(num_workers);
-    worker_list.iter().for_each(|worker| {
+    worker_list.iter().take(num_workers).for_each(|worker| {
         agent_distribution.push(0);
         stores.push((*worker, vec![], vec![], vec![]));
     });
