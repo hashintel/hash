@@ -81,17 +81,18 @@ impl BatchDistribution {
                 let average_total_num_agents_per_batch = if !batches.is_empty() {
                     total_num_agents / batches.len()
                 } else {
-                    0
+                    number_inbound
                 };
-                if average_total_num_agents_per_batch > self.target_max_group_size {
+                if average_total_num_agents_per_batch > self.target_max_group_size
+                    || batches.is_empty() && number_inbound != 0
+                {
                     // Create more pending batches, as inbound count is large
                     let target_number_batches = ((total_num_agents as f64)
                         / (self.target_max_group_size as f64))
                         .ceil() as usize;
-                    (0..target_number_batches - batches.len()).for_each(|_| {
-                        current_distribution.push(0);
-                        batches.push(PendingBatch::new(None, 0));
-                    });
+
+                    current_distribution.resize(target_number_batches, 0);
+                    batches.resize(target_number_batches, PendingBatch::new(None, 0));
                 }
                 for (batch_index, inbound_count) in
                     get_inbound_distribution(&current_distribution, number_inbound)?

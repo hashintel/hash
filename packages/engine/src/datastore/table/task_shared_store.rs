@@ -307,7 +307,13 @@ impl TaskSharedStore {
             );
             let stores: Vec<_> = stores
                 .into_iter()
-                .map(|(worker, agent_batches, msg_batches, group_indices)| {
+                .map(|(worker, mut agent_batches, msg_batches, group_indices)| {
+                    // Set the worker index for the agent
+                    // TODO: Find a better place to do this as this is only possible for writeable
+                    //       access
+                    for agent_batch in &mut agent_batches {
+                        agent_batch.worker_index = worker.index();
+                    }
                     let store = Self {
                         state: SharedState::Partial(PartialSharedState::Write(
                             PartialStateWriteProxy {
