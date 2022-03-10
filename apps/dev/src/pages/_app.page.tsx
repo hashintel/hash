@@ -1,9 +1,30 @@
-import { VFC } from "react";
+import { CacheProvider, EmotionCache, ThemeProvider } from "@emotion/react";
+import CssBaseline from "@mui/material/CssBaseline";
 import type { AppProps } from "next/app";
+import { VFC } from "react";
 import "../../styles/globals.css";
+import { theme } from "../theme";
+import { createEmotionCache } from "../util/createEmotionCache";
 
-const MyApp: VFC<AppProps> = ({ Component, pageProps }) => {
-  return <Component {...pageProps} />;
+const clientSideEmotionCache = createEmotionCache();
+
+type MyAppProps = {
+  emotionCache?: EmotionCache;
+} & AppProps;
+
+const MyApp: VFC<MyAppProps> = ({
+  Component,
+  pageProps,
+  emotionCache = clientSideEmotionCache,
+}) => {
+  return (
+    <CacheProvider value={emotionCache}>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Component {...pageProps} />
+      </ThemeProvider>
+    </CacheProvider>
+  );
 };
 
 export default MyApp;
