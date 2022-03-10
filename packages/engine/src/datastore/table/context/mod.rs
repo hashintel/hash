@@ -143,7 +143,7 @@ impl Context {
             // Remove unneeded static batches
             let removed_ids = (dynamic_pool.len()..previous_agent_pool.len())
                 .rev()
-                .map(|remove_index| previous_agent_pool.remove(remove_index))
+                .map(|remove_index| previous_agent_pool.remove(remove_index).get_batch_id().to_string())
                 .collect::<Vec<_>>();
             self.removed_batches.extend(removed_ids);
         }

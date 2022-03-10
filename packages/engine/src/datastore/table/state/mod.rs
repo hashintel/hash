@@ -207,9 +207,8 @@ impl State {
         mut old_context_message_pool: MessagePool,
         sim_config: &SimRunConfig,
     ) -> Result<MessagePool> {
-        let mut message_proxies = old_context_message_pool.write_proxies()?;
         let agent_proxies = self.agent_pool().read_proxies()?;
-        message_proxies.reset(&mut old_context_message_pool, &agent_proxies, sim_config)?;
+        old_context_message_pool.reset(&agent_proxies, sim_config)?;
         Ok(std::mem::replace(
             &mut self.state.message_pool,
             old_context_message_pool,
