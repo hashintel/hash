@@ -2,7 +2,6 @@ import { useCallback, useState, useRef } from "react";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
-  IconButton,
   ListItemButton,
   Typography,
   useMediaQuery,
@@ -13,6 +12,7 @@ import { useRouter } from "next/router";
 
 import { FontAwesomeIcon } from "../../icons";
 import { Popover } from "../../Popover";
+import { IconButton } from "../../IconButton";
 import { Link } from "../../Link";
 import { CreatePageModal } from "../../Modals/CreatePageModal";
 
@@ -54,23 +54,17 @@ export const ActionsDropdown: React.FC<{
   return (
     <Box>
       <IconButton
+        size="medium"
+        rounded
         sx={{
           mr: {
             xs: 1,
             md: 1.5,
           },
-          width: "32px",
-          height: "32px",
-          borderRadius: "100%",
           color: open ? theme.palette.common.white : theme.palette.gray[40],
           backgroundColor: open
             ? theme.palette.blue["70"]
             : theme.palette.gray[20],
-
-          "&:hover": {
-            backgroundColor: theme.palette.blue["70"],
-            color: theme.palette.common.white,
-          },
         }}
         ref={buttonRef}
         onClick={() => setOpen(!open)}

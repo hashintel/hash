@@ -5,29 +5,10 @@ import {
   // eslint-disable-next-line no-restricted-imports
   Button as MuiButton,
   ButtonProps as MuiButtonProps,
-  styled,
-  Typography,
-  Tooltip,
-  tooltipClasses,
-  TooltipProps,
 } from "@mui/material";
 import { VFC, FC, forwardRef, useMemo } from "react";
-import { faWarning } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, LoadingSpinnerIcon } from "./icons";
+import { LoadingSpinnerIcon } from "./icons";
 import { isHrefExternal } from "./Link";
-
-const DisabledTooltip = styled(({ className, ...props }: TooltipProps) => (
-  <Tooltip {...props} classes={{ popper: className }} />
-))(({ theme }) => ({
-  [`& .${tooltipClasses.tooltip}`]: {
-    width: 260,
-    backgroundColor: theme.palette.common.white,
-    padding: "17px 16px",
-    color: theme.palette.orange[80],
-    boxShadow: theme.boxShadows.md,
-    border: `1px solid ${theme.palette.gray[20]}`,
-  },
-}));
 
 const LoadingContent: VFC<{
   withText: boolean;

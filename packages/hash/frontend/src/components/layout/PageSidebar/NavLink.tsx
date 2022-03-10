@@ -1,7 +1,8 @@
 import { useState, FC, ReactNode } from "react";
 import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
-import { Box, IconButton, Typography, Collapse } from "@mui/material";
+import { Box, Typography, Collapse } from "@mui/material";
 import { FontAwesomeIcon } from "../../icons";
+import { IconButton } from "../../IconButton";
 // import { Link } from "./Link";
 
 type NavLinkProps = {
@@ -38,6 +39,9 @@ export const NavLink: FC<NavLinkProps> = ({
           {title}
         </Typography>
         <IconButton
+          size="small"
+          unpadded
+          rounded
           sx={{
             mr: "auto",
           }}

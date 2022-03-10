@@ -1,7 +1,7 @@
 import { VoidFunctionComponent } from "react";
 
 import { useRouter } from "next/router";
-import { Box, Drawer, Typography, IconButton, Tooltip } from "@mui/material";
+import { Box, Drawer, Typography, Tooltip } from "@mui/material";
 import {
   faHistory,
   faHome,
@@ -15,6 +15,7 @@ import { FontAwesomeIcon, SidebarToggleIcon } from "../../icons";
 import { TopNavLink } from "./TopNavLink";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { useSidebarContext } from "../SidebarContext";
+import { IconButton } from "../../IconButton";
 
 export const PageSidebar: VoidFunctionComponent = () => {
   const router = useRouter();
@@ -35,20 +36,8 @@ export const PageSidebar: VoidFunctionComponent = () => {
           <WorkspaceSwitcher />
         </Box>
         <Tooltip title="Collapse Sidebar">
-          <IconButton
-            sx={{
-              height: 36,
-              width: 36,
-              borderRadius: "4px",
-            }}
-            onClick={closeSidebar}
-          >
-            <SidebarToggleIcon
-              sx={{
-                height: 20,
-                width: 20,
-              }}
-            />
+          <IconButton size="large" onClick={closeSidebar}>
+            <SidebarToggleIcon />
           </IconButton>
         </Tooltip>
       </Box>

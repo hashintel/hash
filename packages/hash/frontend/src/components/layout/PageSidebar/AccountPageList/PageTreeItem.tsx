@@ -5,9 +5,10 @@ import TreeItem, {
   TreeItemContentProps,
 } from "@mui/lab/TreeItem";
 // import clsx from "clsx";
-import { Box, IconButton, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { faChevronRight, faFile } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "../../../icons";
+import { IconButton } from "../../../IconButton";
 
 type CustomContentProps = TreeItemContentProps & { hasChildren?: boolean };
 
@@ -70,11 +71,11 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
     >
       <IconButton
         onClick={handleExpansionClick}
+        size="medium"
+        unpadded
         sx={{
           visibility: "hidden",
           pointerEvents: "none",
-          height: 20,
-          width: 20,
           mr: 0.5,
 
           ...(hasChildren && {
@@ -87,7 +88,7 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
           }),
         }}
       >
-        <FontAwesomeIcon icon={faChevronRight} sx={{ fontSize: 12 }} />
+        <FontAwesomeIcon icon={faChevronRight} />
       </IconButton>
       <FontAwesomeIcon
         icon={faFile}
