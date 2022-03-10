@@ -63,7 +63,7 @@ impl MessagePool {
         &mut self,
         agent_proxies: &PoolReadProxy<AgentBatch>,
         sim_config: &SimRunConfig,
-    ) -> Result<()> {        
+    ) -> Result<()> {
         // Reversing sequence to remove from the back if there are fewer agent batches than message
         // batches
         for batch_index in (0..self.len()).rev() {
@@ -76,7 +76,7 @@ impl MessagePool {
                 self.remove(batch_index);
             }
         }
-        
+
         // Add message batches if there are more agent batches than message batches
         if agent_proxies.len() > self.len() {
             let experiment_id = &sim_config.exp.run.base().id;

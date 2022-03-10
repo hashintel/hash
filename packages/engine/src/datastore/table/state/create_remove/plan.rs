@@ -3,13 +3,13 @@ use rayon::prelude::*;
 use super::action::{CreateActions, ExistingGroupBufferActions};
 use crate::{
     datastore::{
+        batch::Batch,
         error::{Error, Result},
         table::{pool::BatchPool, state::view::StatePools},
     },
     proto::ExperimentRunTrait,
     SimRunConfig,
 };
-use crate::datastore::batch::Batch;
 
 #[derive(Debug)]
 pub struct MigrationPlan<'a> {
@@ -58,8 +58,20 @@ impl<'a> MigrationPlan<'a> {
         for (batch_index, action) in self.existing_mutations.iter().enumerate().rev() {
             if let ExistingGroupBufferActions::Remove = action {
                 // Removing in tandem to keep similarly sized batches together
-                removed_ids.push(state.agent_pool.swap_remove(batch_index).get_batch_id().to_string());
-                removed_ids.push(state.message_pool.swap_remove(batch_index).get_batch_id().to_string());
+                removed_ids.push(
+                    state
+                        .agent_pool
+                        .swap_remove(batch_index)
+                        .get_batch_id()
+                        .to_string(),
+                );
+                removed_ids.push(
+                    state
+                        .message_pool
+                        .swap_remove(batch_index)
+                        .get_batch_id()
+                        .to_string(),
+                );
             }
         }
 
