@@ -5473,6 +5473,15 @@
     "@types/scheduler" "*"
     csstype "^3.0.2"
 
+"@types/react@^17.0.39":
+  version "17.0.40"
+  resolved "https://registry.yarnpkg.com/@types/react/-/react-17.0.40.tgz#dc010cee6254d5239a138083f3799a16638e6bad"
+  integrity sha512-UrXhD/JyLH+W70nNSufXqMZNuUD2cXHu6UjCllC6pmOQgBX4SGXOH8fjRka0O0Ee0HrFxapDD8Bwn81Kmiz6jQ==
+  dependencies:
+    "@types/prop-types" "*"
+    "@types/scheduler" "*"
+    csstype "^3.0.2"
+
 "@types/redis@2.8.32":
   version "2.8.32"
   resolved "https://registry.yarnpkg.com/@types/redis/-/redis-2.8.32.tgz#1d3430219afbee10f8cfa389dad2571a05ecfb11"
@@ -7027,6 +7036,13 @@ blockprotocol@0.0.6:
   integrity sha512-iNpPKjahDrYtct2Pg4E9QzaAMH44KWi3AGA4lUOyhi6QT1T/y7xNv+U56eKMd4xQ0zsoZtCpEMDSKhYDXUhDvQ==
   dependencies:
     "@types/react" "^17.0.38"
+
+blockprotocol@0.0.7:
+  version "0.0.7"
+  resolved "https://registry.yarnpkg.com/blockprotocol/-/blockprotocol-0.0.7.tgz#e9f36e6e9c468a8611075a1f6d93b9af22711f19"
+  integrity sha512-8Hapdz1jaBoTYZqd2m9MY/+NAYCOGhMq0zR5t7Q3F8LjpKTP1DmAj6LayOIJFYVzQCYAbFouI45GhHyWmtRRnA==
+  dependencies:
+    "@types/react" "^17.0.39"
 
 bluebird@^3.5.1, bluebird@^3.5.5, bluebird@^3.7.1:
   version "3.7.2"
