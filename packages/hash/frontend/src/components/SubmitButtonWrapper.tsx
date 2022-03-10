@@ -1,0 +1,110 @@
+import {
+  faCircleExclamation,
+  faWarning,
+} from "@fortawesome/free-solid-svg-icons";
+import {
+  Box,
+  BoxProps,
+  Typography,
+  Tooltip,
+  tooltipClasses,
+  TooltipProps,
+  styled,
+  Collapse,
+} from "@mui/material";
+import React, { FC, forwardRef } from "react";
+import { Button } from "./Button";
+import { FontAwesomeIcon } from "./icons";
+
+const DisabledTooltip = styled(({ className, ...props }: TooltipProps) => (
+  <Tooltip {...props} classes={{ popper: className }} />
+))(({ theme }) => ({
+  [`& .${tooltipClasses.tooltip}`]: {
+    width: 260,
+    backgroundColor: theme.palette.common.white,
+    padding: "17px 16px",
+    color: theme.palette.orange[80],
+    boxShadow: theme.boxShadows.md,
+    border: `1px solid ${theme.palette.gray[20]}`,
+  },
+}));
+
+export type SubmitButtonWrapperProps = {
+  tooltip?: boolean;
+  helperText: string;
+} & BoxProps;
+
+export const SubmitButtonWrapper: FC<SubmitButtonWrapperProps> = forwardRef(
+  ({ children, tooltip, helperText, ...props }, ref) => {
+    if (process.env.NODE_ENV !== "production") {
+      if (!React.isValidElement(children) || children.type !== Button) {
+        throw new Error(
+          "Please wrap over a Button component => <ButtonHelperTextWrapper><Button /></ButtonHelperTextWrapper>",
+        );
+      }
+    }
+
+    if (tooltip && helperText) {
+      return (
+        <DisabledTooltip
+          placement="top"
+          title={
+            <Box display="flex" alignItems="center">
+              <Box
+                sx={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: ({ palette }) => palette.orange[20],
+                  color: ({ palette }) => palette.orange[60],
+                  mr: "12px",
+                  "& svg": {
+                    fontSize: 16,
+                  },
+                }}
+              >
+                <FontAwesomeIcon icon={faWarning} />
+              </Box>
+              <Typography variant="smallTextLabels" fontWeight={500} flex={1}>
+                {helperText}
+              </Typography>
+            </Box>
+          }
+        >
+          <Box ref={ref} {...props}>
+            {children}
+          </Box>
+        </DisabledTooltip>
+      );
+    }
+
+    return (
+      <Box ref={ref} {...props}>
+        {children}
+        <Collapse in={Boolean(helperText)}>
+          <Box display="flex" alignItems="center" mt={1}>
+            <FontAwesomeIcon
+              sx={{
+                mr: 1,
+                color: ({ palette }) => palette.orange[50],
+              }}
+              icon={faCircleExclamation}
+            />
+            <Typography
+              variant="microText"
+              sx={{
+                color: ({ palette }) => palette.orange[80],
+                fontWeight: 500,
+              }}
+            >
+              {helperText}
+            </Typography>
+          </Box>
+        </Collapse>
+      </Box>
+    );
+  },
+);

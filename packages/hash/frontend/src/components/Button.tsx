@@ -13,7 +13,7 @@ import {
 } from "@mui/material";
 import { VFC, FC, forwardRef, useMemo } from "react";
 import { faWarning } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeSvgIcon, LoadingSpinnerIcon } from "./icons";
+import { FontAwesomeIcon, LoadingSpinnerIcon } from "./icons";
 import { isHrefExternal } from "./Link";
 
 const DisabledTooltip = styled(({ className, ...props }: TooltipProps) => (
@@ -106,41 +106,6 @@ export const Button: FC<ButtonProps> = forwardRef(
         )}
       </MuiButton>
     );
-
-    if (props.disabled && props.disabledTooltipText) {
-      return (
-        <DisabledTooltip
-          placement="top"
-          title={
-            <Box display="flex" alignItems="center">
-              <Box
-                sx={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: ({ palette }) => palette.orange[20],
-                  color: ({ palette }) => palette.orange[60],
-                  mr: "12px",
-                  "& svg": {
-                    fontSize: 16,
-                  },
-                }}
-              >
-                <FontAwesomeSvgIcon icon={faWarning} />
-              </Box>
-              <Typography variant="smallTextLabels" fontWeight={500} flex={1}>
-                {props.disabledTooltipText}
-              </Typography>
-            </Box>
-          }
-        >
-          <span>{Component}</span>
-        </DisabledTooltip>
-      );
-    }
 
     if (href && !isHrefExternal(href)) {
       return (

@@ -7,7 +7,8 @@ import { FunctionComponent } from "react";
 import { SIDEBAR_WIDTH } from "../../theme/components/navigation/MuiDrawerThemeOptions";
 import { Button } from "../Button";
 
-import { FontAwesomeSvgIcon, SidebarToggleIcon } from "../icons";
+import { FontAwesomeIcon, SidebarToggleIcon } from "../icons";
+import { SubmitButtonWrapper } from "../SubmitButtonWrapper";
 import { HEADER_HEIGHT } from "./PageHeader/PageHeader";
 import { PageSidebar } from "./PageSidebar/PageSidebar";
 import { useSidebarContext } from "./SidebarContext";
@@ -187,17 +188,19 @@ export const MainContentWrapper: FunctionComponent = ({ children }) => {
         <Box sx={{ display: "flex", alignItems: "flex-start" }}>
           <Button disabled>Disabled Button</Button>
           <Box sx={{ mr: 2 }} />
-          <Button disabled size="small">
-            {" "}
-            Disabled button{" "}
-          </Button>
+          <SubmitButtonWrapper helperText="Please enter a title or type to continue">
+            <Button sx={{ width: 260 }} disabled>
+              A disabled button
+            </Button>
+          </SubmitButtonWrapper>
           <Box sx={{ mr: 2 }} />
-          <Button
-            disabled
-            disabledTooltipText="Please enter a title or type to continue"
+          <SubmitButtonWrapper
+            helperText="Please enter a title or type to continue"
+            tooltip
           >
-            A disabled button
-          </Button>
+            <Button disabled>A disabled button</Button>
+          </SubmitButtonWrapper>
+
           <Box sx={{ mr: 2 }} />
         </Box>
         <br />
@@ -214,7 +217,7 @@ export const MainContentWrapper: FunctionComponent = ({ children }) => {
           <Button
             size="small"
             href="/"
-            startIcon={<FontAwesomeSvgIcon icon={faChevronLeft} />}
+            startIcon={<FontAwesomeIcon icon={faChevronLeft} />}
           >
             Button
           </Button>
@@ -222,7 +225,7 @@ export const MainContentWrapper: FunctionComponent = ({ children }) => {
           <Button
             variant="secondary"
             size="small"
-            endIcon={<FontAwesomeSvgIcon icon={faChevronRight} />}
+            endIcon={<FontAwesomeIcon icon={faChevronRight} />}
           >
             Secondary
           </Button>
@@ -231,7 +234,7 @@ export const MainContentWrapper: FunctionComponent = ({ children }) => {
             variant="secondary"
             size="small"
             href="/"
-            startIcon={<FontAwesomeSvgIcon icon={faChevronLeft} />}
+            startIcon={<FontAwesomeIcon icon={faChevronLeft} />}
           >
             Button
           </Button>
