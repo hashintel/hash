@@ -22,7 +22,7 @@ const props = {
 const App = () => (
   <div style={{ padding: "1em" }}>
     <div style={{ margin: "0 auto", width: "100%" }}>
-      <Component {...props} />
+      <Component entityId="person1" {...props} />
     </div>
   </div>
 );
