@@ -3,7 +3,6 @@
 use std::sync::Arc;
 
 use arrow::{
-    array,
     array::ArrayData,
     ipc::{
         reader::read_record_batch,
@@ -19,9 +18,7 @@ use crate::{
     datastore::{
         arrow::{
             ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
-            message::{
-                self, get_column_from_list_array, MESSAGE_COLUMN_INDEX, MESSAGE_COLUMN_NAME,
-            },
+            message::{self, MESSAGE_COLUMN_INDEX},
         },
         prelude::*,
         schema::state::MessageSchema,
@@ -243,17 +240,6 @@ impl MessageBatch {
         Self::from_memory(memory, schema.clone(), meta)
     }
 
-    // TODO: UNUSED: Needs triage
-    pub fn empty(
-        agents: &[&AgentState],
-        schema: &Arc<ArrowSchema>,
-        meta: Arc<StaticMeta>,
-        experiment_id: &ExperimentId,
-    ) -> Result<Self> {
-        let arrow_batch = agents.into_empty_message_batch(schema)?;
-        Self::from_record_batch(&arrow_batch, schema.clone(), meta, experiment_id)
-    }
-
     pub fn from_agent_states<K: IntoRecordBatch>(
         agents: K,
         schema: &Arc<MessageSchema>,
@@ -324,28 +310,11 @@ impl MessageBatch {
 #[derive(Debug)]
 pub struct Raw<'a> {
     pub from: &'a [u8; UUID_V4_LEN],
-    pub to: Vec<&'a str>,
-    // TODO: UNUSED: Needs triage
-    pub r#type: &'a str,
-    // TODO: UNUSED: Needs triage
     pub data: &'a str,
 }
 
 // Iterators and getters
 impl MessageBatch {
-    // TODO: UNUSED: Needs triage
-    pub fn get_native_messages(&self) -> Result<Vec<Vec<OutboundMessage>>> {
-        let reference = self
-            .batch
-            .column(MESSAGE_COLUMN_INDEX)
-            .as_any()
-            .downcast_ref::<array::ListArray>()
-            .ok_or(Error::InvalidArrowDowncast {
-                name: MESSAGE_COLUMN_NAME.into(),
-            })?;
-        get_column_from_list_array(reference)
-    }
-
     pub fn message_loader(&self) -> MessageLoader<'_> {
         let column = self.batch.column(message::FROM_COLUMN_INDEX);
         let data = column.data_ref();
@@ -367,26 +336,6 @@ impl MessageBatch {
             data_bufs,
             data,
         }
-    }
-
-    // TODO: UNUSED: Needs triage
-    pub fn message_index_iter(&self, i: usize) -> impl Iterator<Item = MessageIndex> {
-        let num_agents = self.batch.num_rows();
-        let group_index = i as u32;
-        let column = self.batch.column(MESSAGE_COLUMN_INDEX);
-        let data = column.data_ref();
-        // This is the offset buffer for message objects.
-        // offset_buffers[1] - offset_buffers[0] = number of messages from the 1st agent
-        let offsets = &data.buffers()[0];
-        // Markers are stored in i32 in the Arrow format
-        // There are n + 1 offsets always in Offset buffers in the Arrow format
-        let i32_offsets =
-            unsafe { std::slice::from_raw_parts(offsets.as_ptr() as *const i32, num_agents + 1) };
-        (0..num_agents).flat_map(move |j| {
-            let num_messages = i32_offsets[j + 1] - i32_offsets[j];
-            let agent_index = j as u32;
-            (0..num_messages).map(move |k| (group_index, agent_index, k as u32))
-        })
     }
 
     pub fn message_usize_index_iter(
@@ -425,38 +374,6 @@ impl MessageBatch {
 
             let to_list_indices = &to_list_i32_offsets[row_index..=next_row_index];
             (0..num_messages).into_par_iter().map(move |k| {
-                let to_list_index = to_list_indices[k] as usize;
-                let next_to_list_index = to_list_indices[k + 1] as usize;
-
-                let recipient_count = next_to_list_index - to_list_index;
-
-                let recipient_indices = &to_i32_offsets[to_list_index..=next_to_list_index];
-
-                let mut recipients = Vec::with_capacity(recipient_count);
-                for l in 0..recipient_count {
-                    let recipient_index = recipient_indices[l] as usize;
-                    let next_recipient_index = recipient_indices[l + 1] as usize;
-                    let recipient_value = &to[recipient_index..next_recipient_index];
-                    recipients.push(recipient_value);
-                }
-
-                recipients
-            })
-        })
-    }
-
-    // TODO: UNUSED: Needs triage
-    pub fn message_recipients_iter(&self) -> impl Iterator<Item = Vec<&str>> {
-        let num_agents = self.batch.num_rows();
-        let (bufs, to) = self.get_message_field(message::FieldIndex::To);
-        let (i32_offsets, to_list_i32_offsets, to_i32_offsets) = (bufs[0], bufs[1], bufs[2]);
-        (0..num_agents).flat_map(move |j| {
-            let row_index = i32_offsets[j] as usize;
-            let next_row_index = i32_offsets[j + 1] as usize;
-            let num_messages = next_row_index - row_index;
-
-            let to_list_indices = &to_list_i32_offsets[row_index..=next_row_index];
-            (0..num_messages).map(move |k| {
                 let to_list_index = to_list_indices[k] as usize;
                 let next_to_list_index = to_list_indices[k + 1] as usize;
 
@@ -595,8 +512,6 @@ impl<'a> MessageLoader<'a> {
     pub fn get_raw_message(&self, agent_index: usize, message_index: usize) -> Raw<'a> {
         Raw {
             from: self.get_from(agent_index),
-            to: self.get_recipients(agent_index, message_index),
-            r#type: self.get_type(agent_index, message_index),
             data: self.get_data(agent_index, message_index),
         }
     }
