@@ -64,7 +64,7 @@
     "nocache": "^3.0.1",
     "node-fetch": "^2.6.7",
     "nodemailer": "6.6.3",
-    "oembed-providers": "https://github.com/iamcal/oembed",
+    "oembed-providers": "1.0.20220105",
     "passport": "0.4.1",
     "pg": "8.7.1",
     "prosemirror-model": "1.16.1",

@@ -10,8 +10,7 @@ use crate::{
     datastore::{
         batch::{self, AgentBatch, MessageBatch},
         table::{
-            pool::proxy::{PoolReadProxy, PoolWriteProxy},
-            references::AgentMessageReference,
+            pool::proxy::PoolReadProxy, proxy::BatchWriteProxy, references::AgentMessageReference,
         },
         Error, Result, UUID_V4_LEN,
     },
@@ -50,6 +49,55 @@ impl MessagePool {
 
     pub fn push(&mut self, batch: MessageBatch) {
         self.batches.push(Arc::new(RwLock::new(batch)))
+    }
+
+    /// Clears all message columns in the pool and resizes them as necessary to accommodate new
+    /// messages according to the provided `agent_proxies`.
+    ///
+    /// This can result in the number of batches being changed if more/less are now needed.
+    ///
+    /// # Panics
+    ///
+    /// If batches in the message pool are currently borrowed elsewhere.
+    pub fn reset(
+        &mut self,
+        agent_proxies: &PoolReadProxy<AgentBatch>,
+        sim_config: &SimRunConfig,
+    ) -> Result<()> {
+        // Reversing sequence to remove from the back if there are fewer agent batches than message
+        // batches
+        for batch_index in (0..self.len()).rev() {
+            if let Some(dynamic_batch) = agent_proxies.batch(batch_index) {
+                let mut write_proxy = BatchWriteProxy::new(&self.batches[batch_index])
+                    .unwrap_or_else(|err| {
+                        panic!("Failed to reset Batch at index {batch_index}: {err}");
+                    });
+                write_proxy.reset(dynamic_batch)?;
+            } else {
+                // TODO: We possibly need to propagate the IDs of these batches to the runners, so
+                //       they can be freed.
+                //       https://app.asana.com/0/1199548034582004/1201940767289027/f
+                self.remove(batch_index);
+            }
+        }
+
+        // Add message batches if there are more agent batches than message batches
+        if agent_proxies.len() > self.len() {
+            let experiment_id = &sim_config.exp.run.base().id;
+            let message_schema = &sim_config.sim.store.message_schema;
+
+            self.reserve(agent_proxies.len() - self.len());
+            for agent_proxy in &agent_proxies[self.len()..] {
+                let inbox = MessageBatch::empty_from_agent_batch(
+                    agent_proxy,
+                    &message_schema.arrow,
+                    message_schema.static_meta.clone(),
+                    experiment_id,
+                )?;
+                self.push(inbox);
+            }
+        }
+        Ok(())
     }
 }
 
@@ -119,43 +167,5 @@ impl MessageReader<'_> {
         message_references.par_iter().map(move |reference| {
             self.loaders[reference.batch_index].get_from(reference.agent_index)
         })
-    }
-}
-
-impl PoolWriteProxy<MessageBatch> {
-    /// Clears all message columns in the pool and resizes them as necessary to accommodate new
-    /// messages according to the provided [`agent_pool`].
-    ///
-    /// This can result in the number of batches being changed if more/less are now needed.
-    pub fn reset(
-        &mut self,
-        message_pool: &mut MessagePool,
-        agent_proxies: &PoolReadProxy<AgentBatch>,
-        sim_config: &SimRunConfig,
-    ) -> Result<()> {
-        let message_schema = &sim_config.sim.store.message_schema;
-        let experiment_id = &sim_config.exp.run.base().id;
-        // Reversing sequence to remove from the back if there are
-        // fewer agent batches than message batches
-        for batch_index in (0..self.len()).rev() {
-            if let Some(dynamic_batch) = agent_proxies.batch(batch_index) {
-                self[batch_index].reset(dynamic_batch)?;
-            } else {
-                message_pool.remove(batch_index);
-            }
-        }
-        if agent_proxies.len() > self.len() {
-            // Add message batches if there are more agent batches than message batches
-            for agent_proxy in &agent_proxies[self.len()..] {
-                let inbox = MessageBatch::empty_from_agent_batch(
-                    agent_proxy,
-                    &message_schema.arrow,
-                    message_schema.static_meta.clone(),
-                    experiment_id,
-                )?;
-                message_pool.push(inbox);
-            }
-        }
-        Ok(())
     }
 }
