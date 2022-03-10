@@ -15,7 +15,6 @@ import { genId } from "../../util";
 import { insertEntityAccount } from "./account";
 import { DbEntityNotFoundError } from "../errors";
 import { getEntityOutgoingLinks } from "./link/getEntityOutgoingLinks";
-import { addSourceEntityVersionIdToLink } from "./link/util";
 import { getEntityIncomingLinks } from "./link/getEntityIncomingLinks";
 import { getEntityAggregations } from "./aggregation/getEntityAggregations";
 import { addSourceEntityVersionIdToAggregation } from "./aggregation/util";
@@ -112,6 +111,7 @@ export const selectEntities = sql<EntityPGRow>`
     typeMeta.created_by as "type.created_by",
     typeMeta.created_at as "type.created_at",
     typeMeta.name as "type.name",
+    typeMeta.versioned as "type.versioned",
     type.updated_at as "type.updated_at",
     type.updated_by as "type.updated_by"
   from
@@ -143,7 +143,8 @@ export const selectEntityAllVersions = (params: {
   entityId: string;
 }) => sql`
   with entities as (${selectEntities})
-  select * from entities
+  select *
+  from entities
   where
     account_id = ${params.accountId} and entity_id = ${params.entityId}
 `;
@@ -717,42 +718,6 @@ const addSourceEntityVersionIdToAggregations = async (
   );
 };
 
-const addSourceEntityVersionIdToOutgoingLinks = async (
-  conn: Connection,
-  params: {
-    entity: DbEntity;
-    omittedOutgoingLinks?: { sourceAccountId: string; linkId: string }[];
-    newSourceEntityVersionId: string;
-  },
-) => {
-  const { entity } = params;
-
-  const outgoingLinks = await getEntityOutgoingLinks(conn, {
-    accountId: entity.accountId,
-    entityId: entity.entityId,
-    entityVersionId: entity.entityVersionId,
-  });
-
-  const isDbLinkInNextVersion = (link: DBLink): boolean =>
-    params.omittedOutgoingLinks?.find(
-      ({ linkId }) => link.linkId === linkId,
-    ) === undefined;
-
-  const { newSourceEntityVersionId } = params;
-
-  await Promise.all(
-    outgoingLinks
-      .filter(isDbLinkInNextVersion)
-      .map(({ sourceAccountId, linkId }) =>
-        addSourceEntityVersionIdToLink(conn, {
-          sourceAccountId,
-          linkId,
-          newSourceEntityVersionId,
-        }),
-      ),
-  );
-};
-
 /** Update the properties of the provided entity by creating a new version.
  * @throws `DbEntityNotFoundError` if the entity does not exist.
  * @throws `DbInvalidLinksError` if the entity's new properties link to an entity which
@@ -764,7 +729,6 @@ export const updateVersionedEntity = async (
     entity: DbEntity;
     properties: any;
     updatedByAccountId: string;
-    omittedOutgoingLinks?: { sourceAccountId: string; linkId: string }[];
     omittedAggregations?: {
       sourceAccountId: string;
       sourceEntityId: string;
@@ -800,16 +764,11 @@ export const updateVersionedEntity = async (
     deferred
   `);
 
-  const { omittedOutgoingLinks, omittedAggregations } = params;
+  const { omittedAggregations } = params;
 
   await Promise.all([
     insertEntityVersion(conn, newEntityVersion),
 
-    addSourceEntityVersionIdToOutgoingLinks(conn, {
-      entity,
-      omittedOutgoingLinks,
-      newSourceEntityVersionId: newEntityVersion.entityVersionId,
-    }),
     addSourceEntityVersionIdToAggregations(conn, {
       entity,
       omittedAggregations,

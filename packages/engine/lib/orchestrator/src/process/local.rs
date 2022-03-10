@@ -1,4 +1,7 @@
-use std::path::PathBuf;
+use std::{
+    path::{Path, PathBuf},
+    process::ExitStatus,
+};
 
 use async_trait::async_trait;
 use error::{Report, Result, ResultExt};
@@ -10,15 +13,17 @@ use hash_engine_lib::{
 
 use crate::process;
 
+const ENGINE_BIN_PATH_DEFAULT: &str = env!("CARGO_BIN_FILE_HASH_ENGINE");
+
 #[cfg(debug_assertions)]
-const PROCESS_PATH_DEFAULT: &str = "./target/debug/hash_engine";
+const ENGINE_BIN_PATH_FALLBACK: &str = "./target/debug/hash_engine";
 
 #[cfg(not(debug_assertions))]
-const PROCESS_PATH_DEFAULT: &str = "./target/release/hash_engine";
+const ENGINE_BIN_PATH_FALLBACK: &str = "./target/release/hash_engine";
 
 /// A local [`hash_engine`] subprocess using the [`std::process`] library.  
 pub struct LocalProcess {
-    child: std::process::Child,
+    child: tokio::process::Child,
     client: Option<nano::Client>,
     engine_url: String,
 }
@@ -28,6 +33,7 @@ impl process::Process for LocalProcess {
     async fn exit_and_cleanup(mut self: Box<Self>) -> Result<()> {
         self.child
             .kill()
+            .await
             .or_else(|e| match e.kind() {
                 // From `Child::kill` docs: Forces the child process to exit. If the child has
                 // already exited, an InvalidInput error is returned
@@ -59,6 +65,13 @@ impl process::Process for LocalProcess {
             .await
             .map_err(Report::from)
     }
+
+    async fn wait(&mut self) -> Result<ExitStatus> {
+        self.child
+            .wait()
+            .await
+            .wrap_err("Could not wait for the process to exit")
+    }
 }
 
 /// Stores information to create a [`LocalProcess`] for creating an engine-subprocess.
@@ -71,9 +84,11 @@ pub struct LocalCommand {
     log_level: Option<LogLevel>,
     output_location: OutputLocation,
     log_folder: PathBuf,
+    target_max_group_size: Option<usize>,
 }
 
 impl LocalCommand {
+    #[allow(clippy::too_many_arguments)]
     /// Creates a new [`LocalProcess`] with the provided parameters.
     pub fn new(
         experiment_id: ExperimentId,
@@ -83,6 +98,7 @@ impl LocalCommand {
         log_level: Option<LogLevel>,
         output_location: OutputLocation,
         log_folder: PathBuf,
+        target_max_group_size: Option<usize>,
     ) -> Self {
         // The NNG URL that the engine process will listen on
         let engine_url = format!("ipc://run-{experiment_id}");
@@ -96,6 +112,7 @@ impl LocalCommand {
             log_level,
             output_location,
             log_folder,
+            target_max_group_size,
         }
     }
 }
@@ -109,12 +126,15 @@ impl process::Command for LocalCommand {
     /// - if the process could not be spawned
     async fn run(self: Box<Self>) -> Result<Box<dyn process::Process + Send>> {
         let engine_path = std::env::var("ENGINE_PATH");
-        let process_path = engine_path
-            .as_ref()
-            .map(String::as_str)
-            .unwrap_or(PROCESS_PATH_DEFAULT);
+        let process_path = if let Ok(process_path) = &engine_path {
+            process_path.as_str()
+        } else if Path::new(ENGINE_BIN_PATH_DEFAULT).exists() {
+            ENGINE_BIN_PATH_DEFAULT
+        } else {
+            ENGINE_BIN_PATH_FALLBACK
+        };
 
-        let mut cmd = std::process::Command::new(process_path);
+        let mut cmd = tokio::process::Command::new(process_path);
         cmd.arg("--experiment-id")
             .arg(self.experiment_id.to_string())
             .arg("--orchestrator-url")
@@ -133,6 +153,10 @@ impl process::Command for LocalCommand {
             .stderr(std::process::Stdio::inherit());
         if let Some(log_level) = self.log_level {
             cmd.arg("--log-level").arg(log_level.to_string());
+        }
+        if let Some(target_max_group_size) = self.target_max_group_size {
+            cmd.arg("--target-max-group-size")
+                .arg(target_max_group_size.to_string());
         }
         debug!("Running `{cmd:?}`");
 

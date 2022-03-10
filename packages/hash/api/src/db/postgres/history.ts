@@ -167,7 +167,9 @@ export const getImpliedEntityHistory = async (
             accountId: link.sourceAccountId,
             entityId: link.sourceEntityId,
             entityVersionId: link.destinationEntityVersionId,
-            validForSourceEntityVersionIds: link.sourceEntityVersionIds,
+            /** @todo: fix this type when fixing implied history resolver */
+            validForSourceEntityVersionIds: (link as any)
+              .sourceEntityVersionIds,
           }),
         ),
       ),

@@ -16,6 +16,7 @@ pub mod shared_store;
 pub mod storage;
 pub mod store;
 pub mod table;
+#[cfg(test)]
 pub mod test_utils;
 
 /// We store Agent IDs in the UUID-byte format (not string bytes).
@@ -30,8 +31,8 @@ pub mod prelude {
         array::Array as ArrowArray,
         buffer::{Buffer as ArrowBuffer, MutableBuffer as ArrowMutableBuffer},
         datatypes::{
-            DataType as ArrowDataType, DateUnit as ArrowDateUnit, Field as ArrowField,
-            IntervalUnit as ArrowIntervalUnit, Schema as ArrowSchema, TimeUnit as ArrowTimeUnit,
+            DataType as ArrowDataType, Field as ArrowField, IntervalUnit as ArrowIntervalUnit,
+            Schema as ArrowSchema, TimeUnit as ArrowTimeUnit,
         },
         error::ArrowError,
         ipc as arrow_ipc,

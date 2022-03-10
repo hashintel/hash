@@ -1,6 +1,10 @@
 import { uniq } from "lodash";
 import { ApolloError, UserInputError } from "apollo-server-express";
-import { EntitiesDocument } from "@hashintel/hash-backend-utils/search/doc-types";
+import {
+  ENTITIES_SEARCH_FIELD,
+  ENTITIES_SEARCH_INDEX,
+  EntitiesDocument,
+} from "@hashintel/hash-backend-utils/search/doc-types";
 import { SearchHit } from "@hashintel/hash-backend-utils/search/adapter";
 
 import {
@@ -12,11 +16,6 @@ import { GraphQLContext } from "../../context";
 import { DBAdapter } from "../../../db";
 import { DbEntity } from "../../../db/adapter";
 import { intersection } from "../../../util";
-
-// The name of the search index containing entities and the document field to perform
-// the search on. See the README for the `search-loader` for more details.
-const ENTITIES_SEARCH_INDEX = "entities";
-const ENTITIES_SEARCH_FIELD = "fullTextSearch";
 
 type TextSearchHit = Omit<SearchHit, "document"> & {
   document: EntitiesDocument;
@@ -152,6 +151,9 @@ const getPagesLinkingToTextEntities = async (
   return results;
 };
 
+/**
+ * @deprecated in favor of pageSearchResultConnection.
+ */
 export const searchPages: Resolver<
   Promise<PageSearchResult[]>,
   {},
@@ -179,8 +181,14 @@ export const searchPages: Resolver<
 
   const { hits } = await search.search({
     index: ENTITIES_SEARCH_INDEX,
-    field: ENTITIES_SEARCH_FIELD,
-    query,
+    fields: {
+      [ENTITIES_SEARCH_FIELD]: {
+        query,
+        // https://www.elastic.co/guide/en/elasticsearch/reference/current/common-options.html#fuzziness
+        fuzziness: "AUTO",
+        operator: "and",
+      },
+    },
   });
 
   // For all text entity matches, find the pages and the blocks within those pages where

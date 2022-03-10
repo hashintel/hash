@@ -1,0 +1,26 @@
+{
+  "topology": {
+    "x_bounds": [0, 50],
+    "y_bounds": [0, 50],
+    "wrapping_preset": "torus",
+    "search_radius": 0
+  },
+  "agent_density": 0.3,
+  "max_age": {
+    "max": 100,
+    "min": 60
+  },
+  "growth_rate": 1,
+  "initial_sugar": {
+    "max": 25,
+    "min": 10
+  },
+  "agent_vision": {
+    "max": 10,
+    "min": 1
+  },
+  "agent_metabolism": {
+    "max": 10,
+    "min": 1
+  }
+}

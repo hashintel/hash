@@ -13,4 +13,5 @@ pub mod task;
 
 pub use self::error::{Error, Result};
 
+// TODO: UNUSED: Needs triage
 pub struct SimulationRunState {}

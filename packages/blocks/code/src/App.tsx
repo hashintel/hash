@@ -11,14 +11,12 @@ type AppProps = {
   caption: string;
   language: LanguageType;
   content: string;
-  entityId: string;
-  entityTypeId?: string;
-  accountId: string;
 };
 
 export const App: BlockComponent<AppProps> = ({
   entityId,
   entityTypeId,
+  entityTypeVersionId,
   accountId,
   caption,
   content,
@@ -54,10 +52,11 @@ export const App: BlockComponent<AppProps> = ({
   const updateRemoteData = () => {
     void updateEntities?.([
       {
-        entityId,
-        entityTypeId,
         accountId,
         data: localData,
+        entityId,
+        entityTypeId,
+        entityTypeVersionId,
       },
     ] as BlockProtocolUpdateEntitiesAction<AppProps>[]);
   };

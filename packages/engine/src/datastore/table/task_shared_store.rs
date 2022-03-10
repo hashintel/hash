@@ -4,11 +4,7 @@ use std::fmt::Debug;
 use super::proxy::{StateReadProxy, StateWriteProxy};
 use crate::{
     config::{StateBatchDistribution, Worker, WorkerAllocation},
-    datastore::{
-        prelude::Result,
-        table::{context::Context, state::view::StatePools},
-        Error,
-    },
+    datastore::{prelude::Result, table::context::Context, Error},
     simulation::task::handler::worker_pool::SplitConfig,
 };
 
@@ -70,6 +66,37 @@ impl Default for SharedContext {
     }
 }
 
+impl SharedState {
+    /// Returns if the shared state is neither readable nor writable.
+    pub fn is_disabled(&self) -> bool {
+        matches!(self, SharedState::None)
+    }
+
+    /// Returns if the shared state is readable (fully or partially) but not writable.
+    pub fn is_readonly(&self) -> bool {
+        matches!(self, SharedState::Read(_))
+            || matches!(self, SharedState::Partial(PartialSharedState::Read(_)))
+    }
+
+    /// Returns if the shared state is readable and writable (fully or partially).
+    pub fn is_readwrite(&self) -> bool {
+        matches!(self, SharedState::Write(_))
+            || matches!(self, SharedState::Partial(PartialSharedState::Write(_)))
+    }
+}
+
+impl SharedContext {
+    /// Returns if the shared context is neither readable nor writable.
+    pub fn is_disabled(&self) -> bool {
+        matches!(self, SharedContext::None)
+    }
+
+    /// Returns if the shared context is readable but not writable.
+    pub fn is_readonly(&self) -> bool {
+        matches!(self, SharedContext::Read)
+    }
+}
+
 #[derive(Default)]
 pub struct TaskSharedStoreBuilder {
     inner: TaskSharedStore,
@@ -82,33 +109,6 @@ impl TaskSharedStoreBuilder {
 
     pub fn build(self) -> TaskSharedStore {
         self.inner
-    }
-
-    pub fn partial_write_state(
-        mut self,
-        state_pools: &mut StatePools,
-        batch_indices: Vec<usize>,
-    ) -> Result<Self> {
-        self.inner.state =
-            SharedState::Partial(PartialSharedState::new_write(state_pools, batch_indices)?);
-
-        Ok(self)
-    }
-
-    pub fn partial_read_state(
-        mut self,
-        state_pools: &StatePools,
-        batch_indices: Vec<usize>,
-    ) -> Result<Self> {
-        self.inner.state =
-            SharedState::Partial(PartialSharedState::new_read(state_pools, batch_indices)?);
-        Ok(self)
-    }
-
-    /// Allow the task runners to have read access to all of agent state
-    pub fn read_state(mut self, state_proxy: StateReadProxy) -> Result<Self> {
-        self.inner.state = SharedState::Read(state_proxy);
-        Ok(self)
     }
 
     /// Allow the task runners to have write access to all of agent state
@@ -136,22 +136,6 @@ pub enum PartialSharedState {
 }
 
 impl PartialSharedState {
-    fn new_read(state: &StatePools, group_indices: Vec<usize>) -> Result<PartialSharedState> {
-        let state_proxy = StateReadProxy::new_partial(state, &group_indices)?;
-        Ok(PartialSharedState::Read(PartialStateReadProxy {
-            group_indices,
-            state_proxy,
-        }))
-    }
-
-    fn new_write(state: &mut StatePools, group_indices: Vec<usize>) -> Result<PartialSharedState> {
-        let state_proxy = StateWriteProxy::new_partial(state, &group_indices)?;
-        Ok(PartialSharedState::Write(PartialStateWriteProxy {
-            group_indices,
-            state_proxy,
-        }))
-    }
-
     /// Partitions this `PartialSharedState` into many `PartialSharedState`s, one for each group
     /// index.
     pub fn split_into_individual_per_group(self) -> Vec<Self> {
@@ -256,30 +240,14 @@ impl TaskSharedStore {
         }
     }
 
-    fn reads_state(&self) -> bool {
-        matches!(&self.state, SharedState::Read(_))
-            || matches!(
-                &self.state,
-                SharedState::Partial(PartialSharedState::Read(_))
-            )
-    }
-
-    fn writes_state(&self) -> bool {
-        matches!(&self.state, SharedState::Write(_))
-            || matches!(
-                &self.state,
-                SharedState::Partial(PartialSharedState::Write(_))
-            )
-    }
-
     /// TODO: DOC
     pub fn distribute(
         self,
         distribution: &StateBatchDistribution,
         worker_list: &WorkerAllocation,
     ) -> Result<(Vec<(Worker, Self)>, SplitConfig)> {
-        let reads_state = self.reads_state();
-        let writes_state = self.writes_state();
+        let reads_state = self.state.is_readonly();
+        let writes_state = self.state.is_readwrite();
         let context = self.context.clone();
 
         // TODO: Code duplication between read and write

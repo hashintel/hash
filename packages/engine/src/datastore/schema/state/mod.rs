@@ -29,9 +29,4 @@ impl AgentSchema {
             field_spec_map: Arc::new(field_spec_map),
         })
     }
-
-    pub fn column_index_of(&self, name: &str) -> Result<usize> {
-        let index = self.arrow.index_of(name)?;
-        Ok(index)
-    }
 }

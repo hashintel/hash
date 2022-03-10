@@ -1,5 +1,4 @@
 import { DataSource } from "apollo-datasource";
-import { JSONObject } from "blockprotocol";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
 
 import { SystemType } from "../types/entityTypes";
@@ -25,6 +24,11 @@ export type EntityTypeTypeFields =
   | "entityTypeId"
   | "entityTypeName"
   | "entityTypeVersionId";
+
+export type EntityMeta = {
+  versioned: boolean;
+  extra: any;
+};
 
 export type DbEntity = {
   accountId: string;
@@ -60,11 +64,13 @@ export type DBLink = {
   index?: number;
   sourceAccountId: string;
   sourceEntityId: string;
-  sourceEntityVersionIds: Set<string>;
+  appliedToSourceAt: Date;
+  appliedToSourceBy: string;
+  removedFromSourceAt?: Date;
+  removedFromSourceBy?: string;
   destinationAccountId: string;
   destinationEntityId: string;
   destinationEntityVersionId?: string;
-  createdAt: Date;
 };
 
 export type DBAggregation = {
@@ -77,7 +83,12 @@ export type DBAggregation = {
   createdAt: Date;
 };
 
+export type EntityTypeMeta = EntityMeta & {
+  name: string;
+};
+
 export type EntityType = Omit<DbEntity, EntityTypeTypeFields> & {
+  metadata: EntityTypeMeta;
   /**
    *  @todo make these non-optional if we figure a way of getting the EntityType entityType
    *    attached without recursion headaches. see https://github.com/hashintel/dev/pull/200
@@ -86,11 +97,6 @@ export type EntityType = Omit<DbEntity, EntityTypeTypeFields> & {
   entityTypeId?: string | undefined | null;
   entityTypeName?: "EntityType";
   entityTypeVersionId?: string;
-};
-
-export type EntityMeta = {
-  versioned: boolean;
-  extra: any;
 };
 
 export type EntityVersion = {
@@ -201,9 +207,8 @@ export interface DBClient {
   createEntityType(params: {
     accountId: string;
     createdByAccountId: string;
-    description?: string | null;
     name: string;
-    schema?: Record<string, any> | null;
+    schema: Record<string, any>;
   }): Promise<EntityType>;
 
   /**
@@ -256,6 +261,14 @@ export interface DBClient {
   }): Promise<DbEntity | undefined>;
 
   /**
+   * Get an entityType by a specific version ID
+   * @todo should this be merged with getEntityTypeLatestVersion?
+   */
+  getEntityType(params: {
+    entityTypeVersionId: string;
+  }): Promise<EntityType | null>;
+
+  /**
    * Get an entityType by its fixed id.
    * @todo should this also handle requests for a specific version?
    *    Should be consistent with how getEntity/getEntityLatestVersion are merged.
@@ -286,11 +299,6 @@ export interface DBClient {
   getEntityTypeChildren(params: { schemaRef: string }): Promise<EntityType[]>;
 
   /**
-   * Get all types that a specific type inherits from.
-   */
-  getEntityTypeParents(params: { entityTypeId: string }): Promise<EntityType[]>;
-
-  /**
    * Get the latest version of a system entity type.
    * */
   getSystemTypeLatestVersion(params: {
@@ -312,7 +320,7 @@ export interface DBClient {
     entityId: string;
     updatedByAccountId: string;
     entityVersionId?: string;
-    schema: JSONObject;
+    schema: Record<string, any>;
   }): Promise<EntityType>;
 
   /**
@@ -391,17 +399,6 @@ export interface DBClient {
     systemTypeName: SystemType;
   }): Promise<DbEntity[]>;
 
-  getEntitiesByTypeWithOutgoingEntityIds(params: {
-    accountId: string;
-    entityTypeId?: string;
-    systemTypeName?: SystemType;
-  }): Promise<EntityWithOutgoingEntityIds[]>;
-
-  getEntityWithOutgoingEntityIds(params: {
-    accountId: string;
-    entityId: string;
-  }): Promise<EntityWithOutgoingEntityIds | null>;
-
   /**
    * Get all account type entities (User or Account).
    */
@@ -441,23 +438,28 @@ export interface DBClient {
     linkId: string;
   }): Promise<DBLink | null>;
 
-  getLinkByEntityId(params: {
-    sourceAccountId: string;
-    sourceEntityId: string;
-    sourceEntityVersionId: string;
-    destinationEntityId: string;
-  }): Promise<DBLink | null>;
-
   deleteLink(params: {
     deletedByAccountId: string;
     sourceAccountId: string;
     linkId: string;
   }): Promise<void>;
 
+  /**
+   * Gets all the outgoing links of an entity.
+   *
+   * Note: when the entity is versioned, the currently active links are returned by default. To get
+   * the outgoing links of the versioned entity at a particular point in time in its history, a
+   * timestamp can be specified using the `params.activeAt` parameter.
+   *
+   * @param params.accountId the account ID of the source entity
+   * @param params.entityId the entity ID of the source entity
+   * @param params.activeAt the timestamp at which the outgoing links were active, when the source entity is versioned (optional)
+   * @param params.path the path of the outgoing links (optional)
+   */
   getEntityOutgoingLinks(params: {
     accountId: string;
     entityId: string;
-    entityVersionId?: string;
+    activeAt?: Date;
     path?: string;
   }): Promise<DBLink[]>;
 

@@ -6,7 +6,14 @@
 
 use std::{borrow::Cow, sync::Arc};
 
-use arrow::{array, array::ArrayRef, datatypes::DataType};
+use arrow::{
+    array::{self, make_array, ArrayData, ArrayRef},
+    datatypes::DataType,
+    ipc::{
+        reader::read_record_batch,
+        writer::{IpcDataGenerator, IpcWriteOptions},
+    },
+};
 
 use super::{
     boolean::Column as BooleanColumn, change::ArrayChange, flush::GrowableBatch, ArrowBatch,
@@ -16,10 +23,7 @@ use crate::{
     datastore::{
         arrow::{
             batch_conversion::{col_to_json_vals, IntoRecordBatch},
-            ipc::{
-                make_array, read_record_batch, record_batch_data_to_bytes_owned_unchecked,
-                schema_to_bytes, simulate_record_batch_to_bytes,
-            },
+            ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
             meta_conversion::{get_dynamic_meta_flatbuffers, HashDynamicMeta, HashStaticMeta},
         },
         prelude::*,
@@ -50,9 +54,8 @@ pub struct AgentBatch {
     /// `self.memory`
     pub changes: Vec<ArrayChange>,
     pub metaversion: Metaversion,
-    /// Affinity describes the possible distribution of batches
-    /// if multiple workers are used
-    pub affinity: usize,
+    /// Describes the worker the batch is distributed to if there are multiple workers
+    pub worker_index: usize,
 }
 
 impl BatchRepr for AgentBatch {
@@ -161,7 +164,7 @@ impl AgentBatch {
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
         let memory = Memory::duplicate_from(&batch.memory, experiment_id)?;
-        Self::from_memory(memory, Some(schema), Some(batch.affinity))
+        Self::from_memory(memory, Some(schema), Some(batch.worker_index))
     }
 
     // Copy contents from RecordBatch and create a memory-backed Batch
@@ -170,24 +173,26 @@ impl AgentBatch {
         schema: &AgentSchema,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
-        let schema_buffer = schema_to_bytes(&schema.arrow);
+        let ipc_data_generator = IpcDataGenerator::default();
+        let schema_buffer =
+            ipc_data_generator.schema_to_bytes(&schema.arrow, &IpcWriteOptions::default());
 
         let header_buffer = vec![]; // Nothing here
 
-        let (meta_buffer, data_len) = simulate_record_batch_to_bytes(record_batch);
+        let (ipc_message, data_len) = simulate_record_batch_to_bytes(record_batch);
 
         let mut memory = Memory::from_sizes(
             experiment_id,
-            schema_buffer.len(),
+            schema_buffer.ipc_message.len(),
             header_buffer.len(),
-            meta_buffer.len(),
+            ipc_message.len(),
             data_len,
             true,
         )?;
 
-        memory.set_schema(&schema_buffer)?;
+        memory.set_schema(&schema_buffer.ipc_message)?;
         memory.set_header(&header_buffer)?;
-        memory.set_metadata(&meta_buffer)?;
+        memory.set_metadata(&ipc_message)?;
 
         let data_buffer = memory.get_mut_data_buffer()?;
         // Write new data
@@ -199,14 +204,14 @@ impl AgentBatch {
     pub fn from_memory(
         memory: Memory,
         schema: Option<&AgentSchema>,
-        affinity: Option<usize>,
+        worker_index: Option<usize>,
     ) -> Result<Self> {
         let (schema_buffer, _header_buffer, meta_buffer, data_buffer) =
             memory.get_batch_buffers()?;
         let (schema, static_meta) = if let Some(s) = schema {
             (s.arrow.clone(), s.static_meta.clone())
         } else {
-            let message = arrow_ipc::get_root_as_message(schema_buffer);
+            let message = arrow_ipc::root_as_message(schema_buffer)?;
             let ipc_schema = match message.header_as_schema() {
                 Some(s) => s,
                 None => return Err(Error::ArrowSchemaRead),
@@ -216,16 +221,13 @@ impl AgentBatch {
             (schema, static_meta)
         };
 
-        let batch_message = arrow_ipc::get_root_as_message(meta_buffer)
+        let batch_message = arrow_ipc::root_as_message(meta_buffer)?
             .header_as_record_batch()
             .ok_or_else(|| Error::ArrowBatch("Couldn't read message".into()))?;
 
         let dynamic_meta = batch_message.into_meta(data_buffer.len())?;
 
-        let batch = match read_record_batch(data_buffer, &batch_message, schema, &[]) {
-            Ok(rb) => rb.unwrap(),
-            Err(e) => return Err(Error::from(e)),
-        };
+        let batch = read_record_batch(data_buffer, batch_message, schema, &[])?;
 
         Ok(Self {
             memory,
@@ -234,7 +236,7 @@ impl AgentBatch {
             static_meta,
             changes: vec![],
             metaversion: Metaversion::default(),
-            affinity: affinity.unwrap_or(0),
+            worker_index: worker_index.unwrap_or(0),
         })
     }
 
@@ -243,13 +245,15 @@ impl AgentBatch {
         dynamic_meta: &DynamicMeta,
         experiment_id: &ExperimentId,
     ) -> Result<Memory> {
-        let schema_buffer = schema_to_bytes(&schema.arrow);
+        let ipc_data_generator = IpcDataGenerator::default();
+        let schema_buffer =
+            ipc_data_generator.schema_to_bytes(&schema.arrow, &IpcWriteOptions::default());
         let header_buffer = vec![];
         let meta_buffer = get_dynamic_meta_flatbuffers(dynamic_meta)?;
 
         let mut memory = Memory::from_sizes(
             experiment_id,
-            schema_buffer.len(),
+            schema_buffer.ipc_message.len(),
             header_buffer.len(),
             meta_buffer.len(),
             dynamic_meta.data_length,
@@ -276,7 +280,7 @@ impl AgentBatch {
     }
 }
 
-impl GrowableBatch<ArrayChange, Arc<array::ArrayData>> for AgentBatch {
+impl GrowableBatch<ArrayChange, ArrayData> for AgentBatch {
     fn take_changes(&mut self) -> Vec<ArrayChange> {
         std::mem::take(&mut self.changes)
     }
@@ -305,6 +309,7 @@ impl GrowableBatch<ArrayChange, Arc<array::ArrayData>> for AgentBatch {
 impl AgentBatch {
     /// This agent index column contains the indices of the agents *before* agent migration
     /// was performed. This is important so an agent can access its neighbor's outbox
+    // TODO: UNUSED: Needs triage
     pub fn write_agent_indices(&mut self, batch_index: usize) -> Result<()> {
         let batch_index = batch_index as u32;
 
@@ -333,13 +338,14 @@ impl AgentBatch {
 }
 
 impl AgentBatch {
+    // TODO: UNUSED: Needs triage
     pub fn from_shmem_os_id(os_id: &str) -> Result<Box<Self>> {
         let memory = Memory::shmem_os_id(os_id, true, true)?;
         Ok(Box::new(Self::from_memory(memory, None, None)?))
     }
 
-    pub fn set_affinity(&mut self, affinity: usize) {
-        self.affinity = affinity;
+    pub fn set_worker_index(&mut self, worker_index: usize) {
+        self.worker_index = worker_index;
     }
 
     pub(in crate::datastore) fn get_arrow_column(
@@ -358,6 +364,7 @@ impl AgentBatch {
 
 // Special-case columns getter and setters
 impl AgentBatch {
+    // TODO: UNUSED: Needs triage
     pub fn get_arrow_column_ref(&self, key: &FieldKey) -> Result<&ArrayRef> {
         self.get_arrow_column(key.value())
     }
@@ -380,7 +387,7 @@ impl AgentBatch {
                 as *const [u32; IND_N])
         };
         if let Some(nulls) = nulls {
-            let nulls = nulls.data();
+            let nulls = nulls.as_slice();
             if arrow_bit_util::get_bit(nulls, row_index) {
                 Ok(Some(res))
             } else {
@@ -398,7 +405,7 @@ impl AgentBatch {
         // FixedSizeBinary has a single buffer (no offsets)
         let data = column.data_ref();
         let buffer = &data.buffers()[0];
-        let mut ptr = buffer.raw_data();
+        let mut ptr = buffer.as_ptr();
         let offset = UUID_V4_LEN;
         Ok((0..column.len()).map(move |_| unsafe {
             let slice = &*(ptr as *const [u8; UUID_V4_LEN]);
@@ -412,6 +419,7 @@ impl AgentBatch {
         self.str_iter(column_name)
     }
 
+    // TODO: UNUSED: Needs triage
     pub fn get_agent_name(&self) -> Result<Vec<Option<Cow<'_, str>>>> {
         let column_name = AgentStateField::AgentName.name();
         let row_count = self.batch.num_rows();
@@ -435,6 +443,7 @@ impl AgentBatch {
         Ok(result)
     }
 
+    // TODO: UNUSED: Needs triage
     #[allow(clippy::option_if_let_else)]
     pub fn agent_name_as_array(&self, column: Vec<Option<Cow<'_, str>>>) -> Result<ArrayChange> {
         let column_name = AgentStateField::AgentName.name();
@@ -453,7 +462,7 @@ impl AgentBatch {
             .ok_or_else(|| Error::ColumnNotFound(column_name.into()))?;
 
         Ok(ArrayChange {
-            array: make_array(builder.finish().data()).data(),
+            array: make_array(builder.finish().data().clone()).data().clone(),
             index,
         })
     }
@@ -565,6 +574,7 @@ impl AgentBatch {
         }))
     }
 
+    // TODO: UNUSED: Needs triage
     pub fn direction_iter(&self) -> Result<impl Iterator<Item = Option<&[f64; POSITION_DIM]>>> {
         let column_name = AgentStateField::Direction.name();
         let row_count = self.batch.num_rows();
@@ -751,7 +761,7 @@ pub fn behavior_list_bytes_iter<K: AgentList>(
 
     let list_indices = unsafe { col_data.buffers()[0].typed_data::<i32>() };
     let string_indices = unsafe { col_data.child_data()[0].buffers()[0].typed_data::<i32>() };
-    let utf_8 = col_data.child_data()[0].buffers()[1].data();
+    let utf_8 = col_data.child_data()[0].buffers()[1].as_slice();
 
     Ok((0..row_count).map(move |i| {
         let list_from = list_indices[i] as usize;

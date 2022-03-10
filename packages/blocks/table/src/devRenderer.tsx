@@ -13,12 +13,10 @@ import { initialTableData } from "./mockData/mockData";
 const node = document.getElementById("app");
 
 const App = () => {
-  // @todo recreate useMockData hook when needed
-
   return (
+    // @todo wrap in MockBlockDock once https://github.com/blockprotocol/blockprotocol/pull/249 is merged
     <div className={tw`flex justify-center py-8 mx-2`}>
       <Component
-        data={initialTableData.data}
         initialState={initialTableData.initialState}
         entityId="table-1"
       />

@@ -2,7 +2,13 @@
 
 use std::sync::Arc;
 
-use arrow::array;
+use arrow::{
+    array::ArrayData,
+    ipc::{
+        reader::read_record_batch,
+        writer::{DictionaryTracker, IpcDataGenerator, IpcWriteOptions},
+    },
+};
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 
 use super::{
@@ -11,13 +17,8 @@ use super::{
 use crate::{
     datastore::{
         arrow::{
-            ipc::{
-                read_record_batch, record_batch_data_to_bytes_owned_unchecked,
-                record_batch_to_bytes, simulate_record_batch_to_bytes,
-            },
-            message::{
-                self, get_column_from_list_array, MESSAGE_COLUMN_INDEX, MESSAGE_COLUMN_NAME,
-            },
+            ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
+            message::{self, MESSAGE_COLUMN_INDEX},
         },
         prelude::*,
         schema::state::MessageSchema,
@@ -125,7 +126,7 @@ impl DynamicBatch for MessageBatch {
     }
 }
 
-impl GrowableBatch<ArrayChange, Arc<array::ArrayData>> for MessageBatch {
+impl GrowableBatch<ArrayChange, ArrayData> for MessageBatch {
     fn take_changes(&mut self) -> Vec<ArrayChange> {
         std::mem::replace(&mut self.changes, Vec::with_capacity(3))
     }
@@ -239,16 +240,6 @@ impl MessageBatch {
         Self::from_memory(memory, schema.clone(), meta)
     }
 
-    pub fn empty(
-        agents: &[&AgentState],
-        schema: &Arc<ArrowSchema>,
-        meta: Arc<StaticMeta>,
-        experiment_id: &ExperimentId,
-    ) -> Result<Self> {
-        let arrow_batch = agents.into_empty_message_batch(schema)?;
-        Self::from_record_batch(&arrow_batch, schema.clone(), meta, experiment_id)
-    }
-
     pub fn from_agent_states<K: IntoRecordBatch>(
         agents: K,
         schema: &Arc<MessageSchema>,
@@ -269,14 +260,20 @@ impl MessageBatch {
         meta: Arc<StaticMeta>,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
-        let (meta_buffer, data_buffer) = record_batch_to_bytes(record_batch);
+        let ipc_data_generator = IpcDataGenerator::default();
+        let mut dictionary_tracker = DictionaryTracker::new(true);
+        let (_, encoded_data) = ipc_data_generator.encoded_batch(
+            record_batch,
+            &mut dictionary_tracker,
+            &IpcWriteOptions::default(),
+        )?;
 
         let memory = Memory::from_batch_buffers(
             experiment_id,
             &[],
             &[],
-            meta_buffer.as_ref(),
-            &data_buffer,
+            &encoded_data.ipc_message,
+            &encoded_data.arrow_data,
             true,
         )?;
         Self::from_memory(memory, schema, meta)
@@ -289,17 +286,14 @@ impl MessageBatch {
     ) -> Result<Self> {
         let (_, _, meta_buffer, data_buffer) = memory.get_batch_buffers()?;
 
-        let batch_message = arrow_ipc::get_root_as_message(meta_buffer)
+        let batch_message = arrow_ipc::root_as_message(meta_buffer)?
             .header_as_record_batch()
             .expect("Unable to read IPC message as record batch");
 
         let memory_len = data_buffer.len();
         let dynamic_meta = batch_message.into_meta(memory_len)?;
 
-        let batch = match read_record_batch(data_buffer, &batch_message, schema.clone(), &[]) {
-            Ok(rb) => rb.unwrap(),
-            Err(e) => return Err(Error::from(e)),
-        };
+        let batch = read_record_batch(data_buffer, batch_message, schema.clone(), &[])?;
 
         Ok(Self {
             memory,
@@ -316,25 +310,11 @@ impl MessageBatch {
 #[derive(Debug)]
 pub struct Raw<'a> {
     pub from: &'a [u8; UUID_V4_LEN],
-    pub to: Vec<&'a str>,
-    pub r#type: &'a str,
     pub data: &'a str,
 }
 
 // Iterators and getters
 impl MessageBatch {
-    pub fn get_native_messages(&self) -> Result<Vec<Vec<OutboundMessage>>> {
-        let reference = self
-            .batch
-            .column(MESSAGE_COLUMN_INDEX)
-            .as_any()
-            .downcast_ref::<array::ListArray>()
-            .ok_or(Error::InvalidArrowDowncast {
-                name: MESSAGE_COLUMN_NAME.into(),
-            })?;
-        get_column_from_list_array(reference)
-    }
-
     pub fn message_loader(&self) -> MessageLoader<'_> {
         let column = self.batch.column(message::FROM_COLUMN_INDEX);
         let data = column.data_ref();
@@ -358,25 +338,6 @@ impl MessageBatch {
         }
     }
 
-    pub fn message_index_iter(&self, i: usize) -> impl Iterator<Item = MessageIndex> {
-        let num_agents = self.batch.num_rows();
-        let group_index = i as u32;
-        let column = self.batch.column(MESSAGE_COLUMN_INDEX);
-        let data = column.data_ref();
-        // This is the offset buffer for message objects.
-        // offset_buffers[1] - offset_buffers[0] = number of messages from the 1st agent
-        let offsets = &data.buffers()[0];
-        // Markers are stored in i32 in the Arrow format
-        // There are n + 1 offsets always in Offset buffers in the Arrow format
-        let i32_offsets =
-            unsafe { std::slice::from_raw_parts(offsets.raw_data() as *const i32, num_agents + 1) };
-        (0..num_agents).flat_map(move |j| {
-            let num_messages = i32_offsets[j + 1] - i32_offsets[j];
-            let agent_index = j as u32;
-            (0..num_messages).map(move |k| (group_index, agent_index, k as u32))
-        })
-    }
-
     pub fn message_usize_index_iter(
         &self,
         i: usize,
@@ -391,7 +352,7 @@ impl MessageBatch {
         // Markers are stored in i32 in the Arrow format
         // There are n + 1 offsets always in Offset buffers in the Arrow format
         let i32_offsets =
-            unsafe { std::slice::from_raw_parts(offsets.raw_data() as *const i32, num_agents + 1) };
+            unsafe { std::slice::from_raw_parts(offsets.as_ptr() as *const i32, num_agents + 1) };
         (0..num_agents).into_par_iter().map(move |j| {
             let num_messages = i32_offsets[j + 1] - i32_offsets[j];
             (0..num_messages)
@@ -433,37 +394,6 @@ impl MessageBatch {
         })
     }
 
-    pub fn message_recipients_iter(&self) -> impl Iterator<Item = Vec<&str>> {
-        let num_agents = self.batch.num_rows();
-        let (bufs, to) = self.get_message_field(message::FieldIndex::To);
-        let (i32_offsets, to_list_i32_offsets, to_i32_offsets) = (bufs[0], bufs[1], bufs[2]);
-        (0..num_agents).flat_map(move |j| {
-            let row_index = i32_offsets[j] as usize;
-            let next_row_index = i32_offsets[j + 1] as usize;
-            let num_messages = next_row_index - row_index;
-
-            let to_list_indices = &to_list_i32_offsets[row_index..=next_row_index];
-            (0..num_messages).map(move |k| {
-                let to_list_index = to_list_indices[k] as usize;
-                let next_to_list_index = to_list_indices[k + 1] as usize;
-
-                let recipient_count = next_to_list_index - to_list_index;
-
-                let recipient_indices = &to_i32_offsets[to_list_index..=next_to_list_index];
-
-                let mut recipients = Vec::with_capacity(recipient_count);
-                for l in 0..recipient_count {
-                    let recipient_index = recipient_indices[l] as usize;
-                    let next_recipient_index = recipient_indices[l + 1] as usize;
-                    let recipient_value = &to[recipient_index..next_recipient_index];
-                    recipients.push(recipient_value);
-                }
-
-                recipients
-            })
-        })
-    }
-
     fn get_message_field(&self, index: message::FieldIndex) -> (Vec<&[i32]>, &str) {
         // The "to" field is the 0th field in MESSAGE_ARROW_FIELDS
         // The "type" field is the 1st field in MESSAGE_ARROW_FIELDS
@@ -482,7 +412,7 @@ impl MessageBatch {
         // Markers are stored in i32 in the Arrow format
         // There are n + 1 offsets always in Offset buffers in the Arrow format
         let i32_offsets =
-            unsafe { std::slice::from_raw_parts(offsets.raw_data() as *const i32, num_agents + 1) };
+            unsafe { std::slice::from_raw_parts(offsets.as_ptr() as *const i32, num_agents + 1) };
         buffers.push(i32_offsets);
 
         let struct_level = &data.child_data()[0];
@@ -499,7 +429,7 @@ impl MessageBatch {
 
             let field_list_i32_offsets = unsafe {
                 std::slice::from_raw_parts(
-                    field_list_offsets.raw_data() as *const i32,
+                    field_list_offsets.as_ptr() as *const i32,
                     field_list_offsets_byte_len / i32_byte_len + 1,
                 )
             };
@@ -517,7 +447,7 @@ impl MessageBatch {
 
         let field_i32_offsets = unsafe {
             std::slice::from_raw_parts(
-                field_offsets.raw_data() as *const i32,
+                field_offsets.as_ptr() as *const i32,
                 field_offsets_byte_len / i32_byte_len,
             )
         };
@@ -527,7 +457,7 @@ impl MessageBatch {
 
         // This panics when we have messed up with indices.
         // Arrow string arrays hold utf-8 strings
-        let field = std::str::from_utf8(field_data.data()).unwrap();
+        let field = std::str::from_utf8(field_data.as_slice()).unwrap();
         (buffers, field)
     }
 }
@@ -582,8 +512,6 @@ impl<'a> MessageLoader<'a> {
     pub fn get_raw_message(&self, agent_index: usize, message_index: usize) -> Raw<'a> {
         Raw {
             from: self.get_from(agent_index),
-            to: self.get_recipients(agent_index, message_index),
-            r#type: self.get_type(agent_index, message_index),
             data: self.get_data(agent_index, message_index),
         }
     }

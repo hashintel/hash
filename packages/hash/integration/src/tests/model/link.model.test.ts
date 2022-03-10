@@ -113,7 +113,7 @@ describe("Link model class ", () => {
       properties: {},
     });
 
-    const entityAVersionId1 = entityA.entityVersionId;
+    const entityAV1Timestamp = new Date();
 
     const entityB = await Entity.create(db, {
       accountId,
@@ -130,36 +130,16 @@ describe("Link model class ", () => {
       destination: entityB,
     });
 
-    await entityA.refetchLatestVersion(db);
+    const entityAV1OutgoingLinks = await entityA.getOutgoingLinks(db, {
+      activeAt: entityAV1Timestamp,
+    });
 
-    const entityAVersionId2 = entityA.entityVersionId;
+    expect(entityAV1OutgoingLinks).toHaveLength(0);
 
-    expect(entityAVersionId1).not.toBe(entityAVersionId2);
+    const entityAV2OutgoingLinks = await entityA.getOutgoingLinks(db);
 
-    const entityAVersion1 = (await Entity.getEntity(db, {
-      accountId: entityA.accountId,
-      entityVersionId: entityAVersionId1,
-    }))!;
-
-    expect(entityAVersion1).not.toBe(null);
-
-    const entityAVersionId1OutgoingLinks =
-      await entityAVersion1.getOutgoingLinks(db);
-
-    expect(entityAVersionId1OutgoingLinks).toHaveLength(0);
-
-    const entityAVersion2 = (await Entity.getEntity(db, {
-      accountId: entityA.accountId,
-      entityVersionId: entityAVersionId2,
-    }))!;
-
-    expect(entityAVersion2).not.toBe(null);
-
-    const entityAVersionId2OutgoingLinks =
-      await entityAVersion2.getOutgoingLinks(db);
-
-    expect(entityAVersionId2OutgoingLinks).toHaveLength(1);
-    expect(entityAVersionId2OutgoingLinks[0]).toEqual(link);
+    expect(entityAV2OutgoingLinks).toHaveLength(1);
+    expect(entityAV2OutgoingLinks[0]).toEqual(link);
   });
 
   it("static get method can retrieve a link from the datastore", async () => {
@@ -196,12 +176,11 @@ describe("Link model class ", () => {
 
     expect(retrievedLink).not.toBeNull();
     expect(retrievedLink.linkId).toBe(link.linkId);
-    expect(retrievedLink.createdAt).toEqual(link.createdAt);
+
+    expect(retrievedLink.appliedToSourceAt).toEqual(link.appliedToSourceAt);
+
     expect(retrievedLink.sourceAccountId).toBe(link.sourceAccountId);
     expect(retrievedLink.sourceEntityId).toBe(link.sourceEntityId);
-    expect(retrievedLink.sourceEntityVersionIds).toEqual(
-      link.sourceEntityVersionIds,
-    );
     expect(retrievedLink.destinationAccountId).toBe(link.destinationAccountId);
     expect(retrievedLink.destinationEntityId).toBe(link.destinationEntityId);
     expect(retrievedLink.destinationEntityVersionId).toBe(
@@ -213,6 +192,8 @@ describe("Link model class ", () => {
     const accountId = existingUser.accountId;
     const createdByAccountId = accountId;
 
+    const stringifiedPath = "$.indexedLink";
+
     const entityA = await Entity.create(db, {
       accountId,
       createdByAccountId,
@@ -221,7 +202,7 @@ describe("Link model class ", () => {
       properties: {},
     });
 
-    const entityAVersionId1 = entityA.entityVersionId;
+    const entityATimestamp1 = new Date();
 
     const [entityB, entityC] = await Promise.all([
       Entity.create(db, {
@@ -244,114 +225,79 @@ describe("Link model class ", () => {
       createdByAccountId,
       source: entityA,
       destination: entityB,
-      stringifiedPath: "$.test",
+      stringifiedPath,
       index: 0,
     });
 
-    await entityA.refetchLatestVersion(db);
-
-    const entityAVersionId2 = entityA.entityVersionId;
-
-    expect(entityAVersionId1).not.toBe(entityAVersionId2);
+    const entityATimestamp2 = new Date();
 
     const linkAToC = await Link.create(db, {
       createdByAccountId,
       source: entityA,
       destination: entityC,
-      stringifiedPath: "$.test",
+      stringifiedPath,
       index: 0,
     });
 
-    await entityA.refetchLatestVersion(db);
-
-    const entityAVersionId3 = entityA.entityVersionId;
-
-    expect(entityAVersionId2).not.toBe(entityAVersionId3);
+    const entityATimestamp3 = new Date();
 
     await entityA.deleteOutgoingLink(db, {
       linkId: linkAToC.linkId,
       deletedByAccountId: accountId,
     });
 
-    const entityAVersionId4 = entityA.entityVersionId;
+    const entityATimestamp4 = new Date();
 
-    expect(entityAVersionId3).not.toBe(entityAVersionId4);
+    const entityATimestamp1OutgoingLinks = await entityA.getOutgoingLinks(db, {
+      activeAt: entityATimestamp1,
+      stringifiedPath,
+    });
 
-    const entityAVersion1 = (await Entity.getEntity(db, {
-      accountId,
-      entityVersionId: entityAVersionId1,
-    }))!;
+    expect(entityATimestamp1OutgoingLinks.length).toBe(0);
 
-    expect(entityAVersion1).not.toBe(null);
+    const entityATimestamp2OutgoingLinks = await entityA.getOutgoingLinks(db, {
+      activeAt: entityATimestamp2,
+      stringifiedPath,
+    });
 
-    const entityAVersion1OutgoingLinks = await entityAVersion1.getOutgoingLinks(
-      db,
-    );
+    expect(entityATimestamp2OutgoingLinks.length).toBe(1);
+    expect(entityATimestamp2OutgoingLinks[0].linkId).toBe(linkAToB.linkId);
+    expect(entityATimestamp2OutgoingLinks[0].index).toBe(0);
 
-    expect(entityAVersion1OutgoingLinks.length).toBe(0);
+    const entityATimestamp3OutgoingLinks = await entityA.getOutgoingLinks(db, {
+      activeAt: entityATimestamp3,
+      stringifiedPath,
+    });
 
-    const entityAVersion2 = (await Entity.getEntity(db, {
-      accountId,
-      entityVersionId: entityAVersionId2,
-    }))!;
+    expect(entityATimestamp3OutgoingLinks.length).toBe(2);
+    expect(entityATimestamp3OutgoingLinks[0].linkId).toBe(linkAToC.linkId);
+    expect(entityATimestamp3OutgoingLinks[0].index).toBe(0);
 
-    expect(entityAVersion2).not.toBe(null);
-
-    const entityAVersion2OutgoingLinks = await entityAVersion2.getOutgoingLinks(
-      db,
-    );
-
-    expect(entityAVersion2OutgoingLinks.length).toBe(1);
-    expect(entityAVersion2OutgoingLinks[0].linkId).toBe(linkAToB.linkId);
-    expect(entityAVersion2OutgoingLinks[0].index).toBe(0);
-
-    const entityAVersion3 = (await Entity.getEntity(db, {
-      accountId,
-      entityVersionId: entityAVersionId3,
-    }))!;
-
-    expect(entityAVersion3).not.toBe(null);
-
-    const entityAVersion3OutgoingLinks = await entityAVersion3.getOutgoingLinks(
-      db,
-    );
-
-    expect(entityAVersion3OutgoingLinks.length).toBe(2);
-    expect(entityAVersion3OutgoingLinks[0].linkId).toBe(linkAToC.linkId);
-    expect(entityAVersion3OutgoingLinks[0].index).toBe(0);
-
-    expect(entityAVersion3OutgoingLinks[1].linkId).not.toBe(linkAToB.linkId);
-    expect(entityAVersion3OutgoingLinks[1].sourceEntityId).toBe(
+    expect(entityATimestamp3OutgoingLinks[1].linkId).not.toBe(linkAToB.linkId);
+    expect(entityATimestamp3OutgoingLinks[1].sourceEntityId).toBe(
       linkAToB.sourceEntityId,
     );
-    expect(entityAVersion3OutgoingLinks[1].destinationEntityId).toBe(
+    expect(entityATimestamp3OutgoingLinks[1].destinationEntityId).toBe(
       linkAToB.destinationEntityId,
     );
-    expect(entityAVersion3OutgoingLinks[1].destinationEntityVersionId).toBe(
+    expect(entityATimestamp3OutgoingLinks[1].destinationEntityVersionId).toBe(
       linkAToB.destinationEntityVersionId,
     );
-    expect(entityAVersion3OutgoingLinks[1].index).toBe(1);
+    expect(entityATimestamp3OutgoingLinks[1].index).toBe(1);
 
-    const entityAVersion4 = (await Entity.getEntity(db, {
-      accountId,
-      entityVersionId: entityAVersionId4,
-    }))!;
+    const entityATimestamp4OutgoingLinks = await entityA.getOutgoingLinks(db, {
+      activeAt: entityATimestamp4,
+    });
 
-    expect(entityAVersion4).not.toBe(null);
+    expect(entityATimestamp4OutgoingLinks.length).toBe(1);
 
-    const entityAVersion4OutgoingLinks = await entityAVersion4.getOutgoingLinks(
-      db,
-    );
-
-    expect(entityAVersion4OutgoingLinks.length).toBe(1);
-
-    expect(entityAVersion4OutgoingLinks[0].sourceEntityId).toBe(
+    expect(entityATimestamp4OutgoingLinks[0].sourceEntityId).toBe(
       entityA.entityId,
     );
-    expect(entityAVersion4OutgoingLinks[0].destinationEntityId).toBe(
+    expect(entityATimestamp4OutgoingLinks[0].destinationEntityId).toBe(
       entityB.entityId,
     );
-    expect(entityAVersion4OutgoingLinks[0].index).toBe(0);
+    expect(entityATimestamp4OutgoingLinks[0].index).toBe(0);
   });
 });
 

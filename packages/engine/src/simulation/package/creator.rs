@@ -380,6 +380,7 @@ impl PackageCreators {
 
     // Needed in tests when creating dummy SimRunConfigs, and using `self.from_config` results in
     // initialising the SyncOnceCell's multiple times and erroring
+    #[cfg(test)]
     pub(crate) fn new(
         init: Vec<(
             PackageId,

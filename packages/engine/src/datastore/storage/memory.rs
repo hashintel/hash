@@ -60,6 +60,7 @@ pub struct Memory {
 
 // Constructors for Memory
 impl Memory {
+    // TODO: UNUSED: Needs triage
     pub fn as_ptr(&self) -> *const u8 {
         self.data.as_ptr()
     }
@@ -67,6 +68,7 @@ impl Memory {
     // TODO: `data.as_mut_ptr`, with `&mut self` argument, to avoid
     //       violating Rust's aliasing rules for pointers derived
     //       from const references.
+    // TODO: UNUSED: Needs triage
     pub fn as_mut_ptr(&mut self) -> *mut u8 {
         self.data.as_ptr()
     }
@@ -98,6 +100,7 @@ impl Memory {
         Ok(())
     }
 
+    // TODO: UNUSED: Needs triage
     pub fn raw_fd(&self) -> RawFd {
         self.data.raw_fd()
     }
@@ -107,6 +110,7 @@ impl Memory {
         self.data.get_os_id()
     }
 
+    // TODO: UNUSED: Needs triage
     pub fn unmap(self) {
         self.data.unmap()
     }
@@ -244,6 +248,7 @@ impl Memory {
         self.visitor_mut().write_schema_buffer(schema.as_ref())
     }
 
+    // TODO: UNUSED: Needs triage
     pub fn get_header(&self) -> Result<&[u8]> {
         Ok(self.visitor().header())
     }
@@ -345,12 +350,12 @@ impl Memory {
         experiment_id: &ExperimentId,
         schema: &[u8],
         header: &[u8],
-        meta: &[u8],
+        ipc_message: &[u8],
         data: &[u8],
         include_terminal_padding: bool,
     ) -> Result<Memory> {
         let markers =
-            Visitor::markers_from_sizes(schema.len(), header.len(), meta.len(), data.len());
+            Visitor::markers_from_sizes(schema.len(), header.len(), ipc_message.len(), data.len());
 
         let mut size = Self::calculate_total_size(
             markers.get_total_contents_size(),
@@ -383,7 +388,7 @@ impl Memory {
         // exact amount of space for them
         visitor.write_schema_buffer_unchecked(schema);
         visitor.write_header_buffer_unchecked(header);
-        visitor.write_meta_buffer_unchecked(meta);
+        visitor.write_meta_buffer_unchecked(ipc_message);
         visitor.write_data_buffer_unchecked(data);
 
         Ok(memory)

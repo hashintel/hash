@@ -577,30 +577,25 @@ describe("logged in user ", () => {
       });
 
       expect(updatedPage.entityId).toEqual(page.entityId);
-      expect(updatedPage.entityVersionId).not.toEqual(page.entityVersionId); // new version
+      // creating a link shouldn't create a new version of the source entity
+      expect(updatedPage.entityVersionId).toEqual(page.entityVersionId);
       // expect(updatedPage.history).toHaveLength(2);
       // expect(updatedPage.history).toEqual(pageHistory);
       expect(updatedPage.properties.title).toEqual("My first page");
 
       // We inserted a block at the beginning of the page. The remaining blocks should
       // be the same.
-      expect(updatedPage.properties.contents.length).toEqual(
-        page.properties.contents.length + 1,
-      );
-      expect(updatedPage.properties.contents.slice(1)).toEqual(
-        page.properties.contents,
-      );
+      expect(updatedPage.contents.length).toEqual(page.contents.length + 1);
+      expect(updatedPage.contents.slice(1)).toEqual(page.contents);
 
       // Get the text entity we just inserted and make sure it matches
-      const newBlock = updatedPage.properties.contents[0];
-      textEntityId = newBlock.properties.entity.entityId;
+      const newBlock = updatedPage.contents[0];
+      textEntityId = newBlock.data.entityId;
       const textEntity = await client.getUnknownEntity({
         entityId: textEntityId,
         accountId: existingUser.accountId,
       });
-      expect(textEntity.entityVersionId).toEqual(
-        newBlock.properties.entity.entityVersionId,
-      );
+      expect(textEntity.entityVersionId).toEqual(newBlock.data.entityVersionId);
       expect(textEntity.properties).toEqual(textProperties);
     });
 
@@ -630,19 +625,19 @@ describe("logged in user ", () => {
         entityId: page.entityId,
       });
 
-      expect(
-        updatedPage.properties.contents[0].properties.entity.entityVersionId,
-      ).toEqual(newTextEntity.entityVersionId);
+      expect(updatedPage.contents[0].data.entityVersionId).toEqual(
+        newTextEntity.entityVersionId,
+      );
 
       // Update the header block text entity (2nd block)
       const newHeaderTextProperties = {
         tokens: [{ tokenType: "text", text: "Header Text" }],
       };
 
-      const headerBlock = updatedPage.properties.contents[1];
+      const headerBlock = updatedPage.contents[1];
       const headerUpdate = await client.updateEntity({
         accountId: existingUser.accountId,
-        entityId: headerBlock.properties.entity.entityId,
+        entityId: headerBlock.data.entityId,
         properties: newHeaderTextProperties,
       });
 
@@ -651,9 +646,9 @@ describe("logged in user ", () => {
         accountId: existingUser.accountId,
         entityId: page.entityId,
       });
-      expect(
-        updatedPage.properties.contents[1].properties.entity.entityVersionId,
-      ).toEqual(headerUpdate.entityVersionId);
+      expect(updatedPage.contents[1].data.entityVersionId).toEqual(
+        headerUpdate.entityVersionId,
+      );
     });
 
     // ComponentId doesn't exist in the database
@@ -687,15 +682,16 @@ describe("logged in user ", () => {
       });
 
       expect(updatedPage.entityId).toEqual(page.entityId);
-      expect(updatedPage.entityVersionId).not.toEqual(page.entityVersionId); // new version
+      // creating links shouldn't create a new version of the source entity
+      expect(updatedPage.entityVersionId).toEqual(page.entityVersionId);
       // expect(updatedPage.history).toHaveLength(3);
       // expect(updatedPage.history).toEqual(pageHistory);
       expect(updatedPage.properties.title).toEqual("My first page");
 
       // Get the new entity we just inserted and make sure it matches
-      const newBlock = updatedPage.properties.contents[0];
-      const entityId = newBlock.properties.entity.entityId;
-      entityTypeComponentId = newBlock.properties.entity.entityTypeId;
+      const newBlock = updatedPage.contents[0];
+      const entityId = newBlock.data.entityId;
+      entityTypeComponentId = newBlock.data.entityTypeId;
 
       // Get the EntitType that has been created because of the ComponentId
       const componentIdType = await client.getEntityType({
@@ -708,7 +704,7 @@ describe("logged in user ", () => {
       });
 
       expect(entityWithComponentIdType.entityVersionId).toEqual(
-        newBlock.properties.entity.entityVersionId,
+        newBlock.data.entityVersionId,
       );
       expect(entityWithComponentIdType.properties).toEqual({});
       expect(entityWithComponentIdType.entityTypeId).toEqual(
@@ -748,7 +744,8 @@ describe("logged in user ", () => {
       });
 
       expect(updatedPage.entityId).toEqual(page.entityId);
-      expect(updatedPage.entityVersionId).not.toEqual(page.entityVersionId); // new version
+      // updating links shouldn't create a new version of the source entity
+      expect(updatedPage.entityVersionId).toEqual(page.entityVersionId);
 
       // expect(updatedPage.history).toHaveLength(4);
       // expect(updatedPage.history).toEqual(pageHistory);
@@ -756,8 +753,8 @@ describe("logged in user ", () => {
       expect(updatedPage.properties.title).toEqual("My first page");
 
       // Get the new entity we just inserted and make sure it matches
-      const newBlock = updatedPage.properties.contents[0];
-      const entityId = newBlock.properties.entity.entityId;
+      const newBlock = updatedPage.contents[0];
+      const entityId = newBlock.data.entityId;
 
       // Get the EntitType that has been created _previously_ because of the ComponentId
       const componentIdType = await client.getEntityType({
@@ -770,7 +767,7 @@ describe("logged in user ", () => {
       });
 
       expect(entityWithComponentIdType.entityVersionId).toEqual(
-        newBlock.properties.entity.entityVersionId,
+        newBlock.data.entityVersionId,
       );
       expect(entityWithComponentIdType.properties).toEqual({});
       expect(entityWithComponentIdType.entityTypeId).toEqual(
@@ -849,7 +846,7 @@ describe("logged in user ", () => {
       },
     });
     // The page currently has 1 block: an empty paragraph block
-    expect(page.properties.contents).toHaveLength(1);
+    expect(page.contents).toHaveLength(1);
 
     const textPropertiesA = { tokens: [{ tokenType: "text", text: "A" }] };
     const textPropertiesB = { tokens: [{ tokenType: "text", text: "B" }] };
@@ -887,8 +884,8 @@ describe("logged in user ", () => {
         },
         {
           updateEntity: {
-            accountId: page.properties.contents[0].properties.entity.accountId,
-            entityId: page.properties.contents[0].properties.entity.entityId,
+            accountId: page.contents[0].data.accountId,
+            entityId: page.contents[0].data.entityId,
             properties: textPropertiesC,
           },
         },
@@ -901,9 +898,7 @@ describe("logged in user ", () => {
       ],
     });
 
-    const pageEntities = updatedPage.properties.contents.map(
-      (block) => block.properties.entity,
-    );
+    const pageEntities = updatedPage.contents.map((block) => block.data);
 
     expect(pageEntities[2].properties).toMatchObject(textPropertiesA);
     expect(pageEntities[1].properties).toMatchObject(textPropertiesB);
@@ -1115,47 +1110,55 @@ describe("logged in user ", () => {
       ],
     });
 
-    expect(updatedPage.properties.contents).toHaveLength(2);
+    expect(updatedPage.contents).toHaveLength(2);
 
-    const pageEntities = updatedPage.properties.contents.map(
-      (block) => block.properties.entity,
-    );
+    const pageEntities = updatedPage.contents.map((block) => block.data);
 
     // The page will have an empty paragraph and a text paragraph with textPropertiesA
     expect(pageEntities[0].properties).toMatchObject({ tokens: [] });
     expect(pageEntities[1].properties).toMatchObject(textPropertiesA);
 
-    // getEntities gives back entities orderes by updated_at
-    const { entities } = await client.getEntities({
-      accountId: page.accountId,
-    });
+    // Check text entity A was created with the correct properties & outgoing links
 
-    expect(
-      entities
-        .slice(0, 5)
-        .map((entity) => ({
-          type: entity.entityTypeName,
-          props:
-            entity.entityTypeName === "Text" ? entity.properties : undefined,
-        }))
-        .sort((a, b) =>
-          // lexical sorting to circumvent concurrency of linked entity ordering when they are inserted
-          // Non-text blocks are first, page and block are not inserted concurrently and will be stable.
-          a.props === undefined || b.props === undefined
-            ? (a.props === undefined) !== (b.props === undefined)
-            : (a.props as any).tokens![0].text.localeCompare(
-                (b.props as any).tokens![0].text,
-              ),
-        ),
-    ).toEqual([
-      { type: "Page", props: undefined },
-      { type: "Block", props: undefined },
-      // The following 3 Text elements should be the concurrently inserted, nested entities
-      // sorting beforehand ensures reproducibility.
-      { type: "Text", props: textPropertiesA },
-      { type: "Text", props: textPropertiesB },
-      { type: "Text", props: textPropertiesC },
-    ]);
+    const textEntityA = (await Entity.getEntityLatestVersion(db, {
+      accountId: pageEntities[1].accountId,
+      entityId: pageEntities[1].entityId,
+    }))!;
+
+    expect(textEntityA).not.toBeNull();
+    expect(textEntityA.properties).toMatchObject(textPropertiesA);
+
+    const textEntityAOutgoingLinks = await textEntityA.getOutgoingLinks(db);
+
+    expect(textEntityAOutgoingLinks).toHaveLength(1);
+
+    const [textEntityAOutgoingLink] = textEntityAOutgoingLinks;
+
+    expect(textEntityAOutgoingLink.stringifiedPath).toBe("$.textB");
+
+    // Check text entity B was created with the correct properties & outgoing links
+
+    const textEntityB = await textEntityAOutgoingLink.getDestination(db);
+
+    expect(textEntityB.properties).toMatchObject(textPropertiesB);
+
+    const textEntityBOutgoingLinks = await textEntityB.getOutgoingLinks(db);
+
+    expect(textEntityBOutgoingLinks).toHaveLength(1);
+
+    const [textEntityBOutgoingLink] = textEntityBOutgoingLinks;
+
+    expect(textEntityBOutgoingLink.stringifiedPath).toBe("$.textC");
+
+    // Check text entity C was created with the correct properties & outgoing links
+
+    const textEntityC = await textEntityBOutgoingLink.getDestination(db);
+
+    expect(textEntityC.properties).toMatchObject(textPropertiesC);
+
+    const textEntityCOutgoingLinks = await textEntityC.getOutgoingLinks(db);
+
+    expect(textEntityCOutgoingLinks).toHaveLength(0);
   });
 
   describe("can create entity types", () => {
@@ -1374,8 +1377,8 @@ describe("logged in user ", () => {
 
       const result = await client.setParentPage({
         accountId: existingUser.accountId,
-        pageId: subPage.entityId,
-        parentPageId: superPage.entityId,
+        pageEntityId: subPage.entityId,
+        parentPageEntityId: superPage.entityId,
       });
 
       const pageTree = await client.getAccountPagesTree({
@@ -1386,7 +1389,7 @@ describe("logged in user ", () => {
       expect(pageTree).toContainEqual({
         entityId: subPage.entityId,
         properties: { title },
-        parentPageId: superPage.entityId,
+        parentPageEntityId: superPage.entityId,
       });
     });
 
@@ -1405,8 +1408,8 @@ describe("logged in user ", () => {
 
       const result = await client.setParentPage({
         accountId: existingUser.accountId,
-        pageId: subSubPage.entityId,
-        parentPageId: subPage.entityId,
+        pageEntityId: subSubPage.entityId,
+        parentPageEntityId: subPage.entityId,
       });
 
       const pageTree = await client.getAccountPagesTree({
@@ -1417,7 +1420,7 @@ describe("logged in user ", () => {
       expect(pageTree).toContainEqual({
         entityId: subSubPage.entityId,
         properties: { title },
-        parentPageId: subPage.entityId,
+        parentPageEntityId: subPage.entityId,
       });
     });
 
@@ -1429,11 +1432,11 @@ describe("logged in user ", () => {
       await expect(
         client.setParentPage({
           accountId: existingUser.accountId,
-          pageId: superPage.entityId,
-          parentPageId: subSubPage.entityId,
+          pageEntityId: superPage.entityId,
+          parentPageEntityId: subSubPage.entityId,
         }),
       ).rejects.toThrowError(
-        /Could not set '.*' as parent to '.*' as this would create a cyclic dependency./i,
+        /Could not set '.*' as parent of '.*', this would create a cyclic dependency./i,
       );
     });
 
@@ -1445,18 +1448,18 @@ describe("logged in user ", () => {
       await expect(
         client.setParentPage({
           accountId: existingUser.accountId,
-          pageId: subPage.entityId,
-          parentPageId: subSubPage.entityId,
+          pageEntityId: subPage.entityId,
+          parentPageEntityId: subSubPage.entityId,
         }),
       ).rejects.toThrowError(
-        /Could not set '.*' as parent to '.*' as this would create a cyclic dependency./i,
+        /Could not set '.*' as parent of '.*', this would create a cyclic dependency./i,
       );
     });
 
     it("can reconstruct a tree based on the resulting pages", async () => {
       type TreeElement = {
         entityId: string;
-        parentPageId: string;
+        parentPageEntityId: string;
         properties: {
           title: string;
         };
@@ -1472,22 +1475,22 @@ describe("logged in user ", () => {
       const treePages = treeFromParentReferences(
         pages,
         "entityId",
-        "parentPageId",
+        "parentPageEntityId",
         "children",
       );
 
       expect(treePages).toContainEqual({
-        parentPageId: undefined,
+        parentPageEntityId: undefined,
         entityId: superPage.entityId,
         properties: { title: superTitle },
         children: [
           {
-            parentPageId: superPage.entityId,
+            parentPageEntityId: superPage.entityId,
             entityId: subPage.entityId,
             properties: { title: subPage.properties.title },
             children: [
               {
-                parentPageId: subPage.entityId,
+                parentPageEntityId: subPage.entityId,
                 entityId: subSubPage.entityId,
                 properties: { title: subSubPage.properties.title },
                 children: undefined,
@@ -1506,8 +1509,8 @@ describe("logged in user ", () => {
 
       const result = await client.setParentPage({
         accountId: existingUser.accountId,
-        pageId: subSubPage.entityId,
-        parentPageId: superPage.entityId,
+        pageEntityId: subSubPage.entityId,
+        parentPageEntityId: superPage.entityId,
       });
 
       const pageTree = await client.getAccountPagesTree({
@@ -1518,8 +1521,45 @@ describe("logged in user ", () => {
       expect(pageTree).toContainEqual({
         entityId: subSubPage.entityId,
         properties: { title },
-        parentPageId: superPage.entityId,
+        parentPageEntityId: superPage.entityId,
       });
+    });
+
+    it("Allow removing parents", async () => {
+      // - Super page 1
+      //   - sub page 1
+      // - sub sub page 1 <- changed to be a top-level page
+      const title = "sub sub page 1";
+
+      const result = await client.setParentPage({
+        accountId: existingUser.accountId,
+        pageEntityId: subSubPage.entityId,
+        parentPageEntityId: null,
+      });
+
+      const pageTree = await client.getAccountPagesTree({
+        accountId: existingUser.accountId,
+      });
+
+      expect(result.entityId).toEqual(subSubPage.entityId);
+      expect(pageTree).toContainEqual({
+        entityId: subSubPage.entityId,
+        properties: { title },
+        parentPageEntityId: null,
+      });
+    });
+
+    it("Allow changing parent to itself", async () => {
+      // - Super page 1 <- try to set this as its own parent
+      //   - sub page 1
+      //   - sub sub page 1
+      await expect(
+        client.setParentPage({
+          accountId: existingUser.accountId,
+          pageEntityId: superPage.entityId,
+          parentPageEntityId: superPage.entityId,
+        }),
+      ).rejects.toThrowError(/A page cannot be the parent of itself/i);
     });
   });
 
