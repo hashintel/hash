@@ -70,7 +70,7 @@ impl MessagePool {
             if let Some(dynamic_batch) = agent_proxies.batch(batch_index) {
                 let mut write_proxy = BatchWriteProxy::new(&self.batches[batch_index])
                     .unwrap_or_else(|err| {
-                        panic!("Failed to reset Batch at index {index}: {err}");
+                        panic!("Failed to reset Batch at index {batch_index}: {err}");
                     });
                 write_proxy.reset(dynamic_batch)?;
             } else {
