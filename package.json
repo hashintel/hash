@@ -34,7 +34,7 @@
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
     "lint:dependency-version-consistency": "check-dependency-version-consistency . --ignore-package=@hashengine/apache-arrow-js-bundle",
     "lint:eslint": "yarn workspaces run lint:eslint",
-    "lint:lockfile-lint": "lockfile-lint --path yarn.lock --allowed-hosts yarn --allowed-schemes \"https:\"",
+    "lint:lockfile-lint": "lockfile-lint --path yarn.lock --allowed-hosts registry.yarnpkg.com --allowed-schemes \"https:\"",
     "lint:markdownlint": "markdownlint --dot \"**/*\"",
     "lint:prettier": "prettier --check --ignore-unknown \"**/*\"",
     "lint:tsc": "yarn workspaces run lint:tsc",
