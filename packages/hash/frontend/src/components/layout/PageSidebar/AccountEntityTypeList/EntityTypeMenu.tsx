@@ -9,7 +9,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import pluralize from "pluralize";
 import { Box, IconButton, ListItemButton, Typography } from "@mui/material";
-import { FontAwesomeSvgIcon } from "../../../icons";
+import { FontAwesomeIcon } from "../../../icons";
 import { Popover } from "../../../Popover";
 import { Link } from "../../../Link";
 
@@ -63,7 +63,7 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({ className }) => {
         }}
       >
         {/* @todo-mui figure out how to make this override default style in MuiIconButtonThemeOptions without using !important */}
-        <FontAwesomeSvgIcon
+        <FontAwesomeIcon
           icon={faEllipsis}
           sx={{ fontSize: "16px !important" }}
         />
@@ -98,7 +98,7 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({ className }) => {
               return (
                 <Link noLinkStyle href={href}>
                   <ListItemButton onClick={() => setOpen(false)}>
-                    <FontAwesomeSvgIcon icon={icon} />
+                    <FontAwesomeIcon icon={icon} />
                     <Typography variant="smallTextLabels">{title}</Typography>
                   </ListItemButton>
                 </Link>
@@ -141,7 +141,7 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({ className }) => {
                     },
                   }}
                 >
-                  <FontAwesomeSvgIcon icon={icon} />
+                  <FontAwesomeIcon icon={icon} />
                   <Typography variant="smallTextLabels">{title}</Typography>
                 </ListItemButton>
               );

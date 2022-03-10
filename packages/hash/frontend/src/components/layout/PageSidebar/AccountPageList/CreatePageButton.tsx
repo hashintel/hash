@@ -3,7 +3,7 @@ import { useCallback, useState, VFC } from "react";
 import { faAdd } from "@fortawesome/free-solid-svg-icons";
 import { Tooltip, IconButton } from "@mui/material";
 import { CreatePageModal } from "../../../Modals/CreatePageModal";
-import { FontAwesomeSvgIcon } from "../../../icons";
+import { FontAwesomeIcon } from "../../../icons";
 
 type CreatePageButtonProps = {
   accountId: string;
@@ -26,7 +26,7 @@ export const CreatePageButton: VFC<CreatePageButtonProps> = ({ accountId }) => {
           data-testid="create-page-btn"
           onClick={() => setShowCreatePage(true)}
         >
-          <FontAwesomeSvgIcon icon={faAdd} />
+          <FontAwesomeIcon icon={faAdd} />
         </IconButton>
       </Tooltip>
       <CreatePageModal

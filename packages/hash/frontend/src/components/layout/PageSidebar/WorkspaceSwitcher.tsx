@@ -1,7 +1,7 @@
 import { VFC, useState, useRef } from "react";
 import { Box, Typography } from "@mui/material";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeSvgIcon } from "../../icons";
+import { FontAwesomeIcon } from "../../icons";
 import { Popover } from "../../Popover";
 import { Link } from "../../Link";
 import { useUser } from "../../hooks/useUser";
@@ -64,7 +64,7 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
         >
           {truncateText(user?.properties.preferredName ?? "User")}
         </Typography>
-        <FontAwesomeSvgIcon
+        <FontAwesomeIcon
           icon={faChevronDown}
           sx={{ fontSize: 12, color: ({ palette }) => palette.gray[70] }}
         />

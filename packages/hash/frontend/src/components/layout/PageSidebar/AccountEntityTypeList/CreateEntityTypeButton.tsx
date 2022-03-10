@@ -3,7 +3,7 @@ import { VFC } from "react";
 import { faAdd } from "@fortawesome/free-solid-svg-icons";
 import { Tooltip, IconButton } from "@mui/material";
 import { useRouter } from "next/router";
-import { FontAwesomeSvgIcon } from "../../../icons";
+import { FontAwesomeIcon } from "../../../icons";
 
 type CreateEntityTypeButtonProps = {
   accountId: string;
@@ -23,7 +23,7 @@ export const CreateEntityTypeButton: VFC<CreateEntityTypeButtonProps> = ({
           void router.push(`/${accountId}/types/new`);
         }}
       >
-        <FontAwesomeSvgIcon icon={faAdd} />
+        <FontAwesomeIcon icon={faAdd} />
       </IconButton>
     </Tooltip>
   );

@@ -1,7 +1,7 @@
 import { useState, FC, ReactNode } from "react";
 import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import { Box, IconButton, Typography, Collapse } from "@mui/material";
-import { FontAwesomeSvgIcon } from "../../icons";
+import { FontAwesomeIcon } from "../../icons";
 // import { Link } from "./Link";
 
 type NavLinkProps = {
@@ -43,7 +43,7 @@ export const NavLink: FC<NavLinkProps> = ({
           }}
           onClick={() => setExpanded((prev) => !prev)}
         >
-          <FontAwesomeSvgIcon
+          <FontAwesomeIcon
             sx={{
               transform: expanded ? `rotate(90deg)` : "none",
               transition: ({ transitions }) =>

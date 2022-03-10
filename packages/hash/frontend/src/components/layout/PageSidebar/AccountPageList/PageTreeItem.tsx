@@ -7,7 +7,7 @@ import TreeItem, {
 // import clsx from "clsx";
 import { Box, IconButton, Typography } from "@mui/material";
 import { faChevronRight, faFile } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeSvgIcon } from "../../../icons";
+import { FontAwesomeIcon } from "../../../icons";
 
 type CustomContentProps = TreeItemContentProps & { hasChildren?: boolean };
 
@@ -87,9 +87,9 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
           }),
         }}
       >
-        <FontAwesomeSvgIcon icon={faChevronRight} sx={{ fontSize: 12 }} />
+        <FontAwesomeIcon icon={faChevronRight} sx={{ fontSize: 12 }} />
       </IconButton>
-      <FontAwesomeSvgIcon
+      <FontAwesomeIcon
         icon={faFile}
         sx={{
           fontSize: 16,

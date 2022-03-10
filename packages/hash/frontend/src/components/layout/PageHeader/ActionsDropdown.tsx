@@ -11,7 +11,7 @@ import {
 import { useKeys } from "rooks";
 import { useRouter } from "next/router";
 
-import { FontAwesomeSvgIcon } from "../../icons";
+import { FontAwesomeIcon } from "../../icons";
 import { Popover } from "../../Popover";
 import { Link } from "../../Link";
 import { CreatePageModal } from "../../Modals/CreatePageModal";
@@ -75,7 +75,7 @@ export const ActionsDropdown: React.FC<{
         ref={buttonRef}
         onClick={() => setOpen(!open)}
       >
-        <FontAwesomeSvgIcon icon={faPlus} />
+        <FontAwesomeIcon icon={faPlus} />
       </IconButton>
 
       <CreatePageModal

@@ -11,7 +11,7 @@ import {
 import { AccountPageList } from "./AccountPageList/AccountPageList";
 
 import { AccountEntityTypeList } from "./AccountEntityTypeList/AccountEntityTypeList";
-import { FontAwesomeSvgIcon, SidebarToggleIcon } from "../../icons";
+import { FontAwesomeIcon, SidebarToggleIcon } from "../../icons";
 import { TopNavLink } from "./TopNavLink";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { useSidebarContext } from "../SidebarContext";
@@ -107,7 +107,7 @@ export const PageSidebar: VoidFunctionComponent = () => {
           },
         }}
       >
-        <FontAwesomeSvgIcon
+        <FontAwesomeIcon
           sx={{ mr: 1.5, color: ({ palette }) => palette.gray[50] }}
           color="inherit"
           icon={faLifeRing}
