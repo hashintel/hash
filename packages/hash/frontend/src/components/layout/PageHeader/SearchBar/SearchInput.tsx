@@ -1,9 +1,97 @@
-import { Box, InputAdornment, InputBase, Tooltip } from "@mui/material";
-import { useRef } from "react";
+import {
+  Box,
+  IconButton,
+  InputAdornment,
+  InputBase,
+  Tooltip,
+  Typography,
+} from "@mui/material";
+import { useCallback, useRef } from "react";
 import { useKeys } from "rooks";
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
 
 import { SearchIcon, FontAwesomeSvgIcon } from "../../../icons";
+
+const ClearSearchIcon: React.FC<{
+  clearSearch: () => void;
+}> = ({ clearSearch }) => {
+  return (
+    <Box
+      sx={(theme) => ({
+        marginRight: theme.spacing(1),
+        display: "flex",
+        height: "100%",
+        alignItems: "center",
+        cursor: "pointer",
+        fontWeight: "bold",
+        width: "26px",
+        justifyContent: "flex-end",
+      })}
+    >
+      <Tooltip title="Clear search" placement="right">
+        <IconButton
+          sx={(theme) => ({
+            width: theme.spacing(2.5),
+            height: theme.spacing(2.5),
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            // @todo figure out how to fetch this from `theme`
+            borderRadius: "2px",
+            color: theme.palette.gray[50],
+
+            "&:hover": {
+              transition: theme.transitions.create([
+                "color",
+                "background-color",
+              ]),
+              backgroundColor: theme.palette.gray[20],
+              color: theme.palette.gray[80],
+            },
+          })}
+          onClick={clearSearch}
+        >
+          <FontAwesomeSvgIcon icon={faXmark} />
+        </IconButton>
+      </Tooltip>
+    </Box>
+  );
+};
+
+const ShortcutIcon = () => {
+  const isMac = navigator.userAgent.toUpperCase().includes("MAC");
+
+  return (
+    <Box
+      sx={(theme) => ({
+        marginRight: theme.spacing(1),
+        height: "100%",
+        pointerEvents: "none",
+        display: "flex",
+        alignItems: "center",
+        fontWeight: "bold",
+      })}
+    >
+      <Box
+        sx={(theme) => ({
+          height: "26px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: theme.palette.gray[50],
+          backgroundColor: theme.palette.gray[20],
+          borderRadius: "2px",
+          px: 1,
+          py: 0.75,
+        })}
+      >
+        <Typography variant="microText">
+          {isMac ? "Cmd" : "Ctrl"} + P
+        </Typography>
+      </Box>
+    </Box>
+  );
+};
 
 export const SearchInput: React.FC<{
   displayedQuery: string;
@@ -15,6 +103,10 @@ export const SearchInput: React.FC<{
 
   useKeys(["AltLeft", "KeyK"], () => inputRef.current?.focus());
 
+  const clearSearch = useCallback(() => {
+    setQueryText("");
+  }, []);
+
   return (
     <Box
       sx={(theme) => ({
@@ -23,11 +115,16 @@ export const SearchInput: React.FC<{
         borderWidth: 1,
         borderStyle: "solid",
         borderColor: theme.palette.gray[30],
-        width: isMobile ? "100%" : undefined,
+        width: isMobile ? "385px" : undefined,
         ":focus-within": {
           margin: "-1px",
           borderWidth: 2,
           borderColor: theme.palette.blue[70],
+          transition: theme.transitions.create([
+            "border-color",
+            "border-width",
+            "margin",
+          ]),
         },
       })}
     >
@@ -42,9 +139,7 @@ export const SearchInput: React.FC<{
           justifyContent: "center",
         })}
       >
-        <SearchIcon
-          sx={(theme) => ({ height: theme.spacing(2), width: "auto" })}
-        />
+        <SearchIcon sx={{ height: "16px", width: "auto" }} />
       </Box>
       <InputBase
         placeholder="Search for anything"
@@ -58,7 +153,7 @@ export const SearchInput: React.FC<{
         }}
         sx={(theme) => ({
           color: "inherit",
-          width: isMobile ? "100%" : undefined,
+          width: "100%",
           lineHeight: "18px",
           "& .MuiInputBase-input": {
             py: theme.spacing(1),
@@ -69,73 +164,10 @@ export const SearchInput: React.FC<{
         endAdornment={
           !isMobile ? (
             <InputAdornment position="end">
-              {displayedQuery.trim() ? (
-                // @todo - the parent Box component was originally added in to help align the icon within the Search layout.
-                // Perhaps this can be rewritten to no longer use the Box here?
-                <Box
-                  sx={(theme) => ({
-                    marginRight: theme.spacing(1),
-                    display: "flex",
-                    height: "100%",
-                    alignItems: "center",
-                    cursor: "pointer",
-                    fontWeight: "bold",
-                    width: "26px",
-                    justifyContent: "flex-end",
-                  })}
-                >
-                  <Tooltip title="Clear search" placement="right">
-                    <Box
-                      sx={(theme) => ({
-                        width: theme.spacing(2.5),
-                        height: theme.spacing(2.5),
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        borderRadius: theme.spacing(0.25),
-                        color: theme.palette.gray[50],
-
-                        "&:hover": {
-                          transition:
-                            "color 0.2s ease-in-out, background-color 0.2s ease-in-out",
-                          backgroundColor: theme.palette.gray[20],
-                          color: theme.palette.gray[80],
-                        },
-                      })}
-                      onClick={() => {
-                        setQueryText("");
-                      }}
-                    >
-                      <FontAwesomeSvgIcon icon={faXmark} />
-                    </Box>
-                  </Tooltip>
-                </Box>
+              {displayedQuery ? (
+                <ClearSearchIcon clearSearch={clearSearch} />
               ) : (
-                <Box
-                  sx={(theme) => ({
-                    marginRight: theme.spacing(1),
-                    height: "100%",
-                    pointerEvents: "none",
-                    display: "flex",
-                    alignItems: "center",
-                    fontWeight: "bold",
-                  })}
-                >
-                  <Box
-                    sx={(theme) => ({
-                      width: theme.spacing(3.25),
-                      height: theme.spacing(3.25),
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: theme.palette.gray[50],
-                      backgroundColor: theme.palette.gray[20],
-                      borderRadius: theme.spacing(0.25),
-                    })}
-                  >
-                    /
-                  </Box>
-                </Box>
+                <ShortcutIcon />
               )}
             </InputAdornment>
           ) : null
