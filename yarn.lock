@@ -12637,6 +12637,25 @@ locate-path@^5.0.0:
   dependencies:
     p-locate "^4.1.0"
 
+lockfile-lint-api@^5.1.7:
+  version "5.1.7"
+  resolved "https://registry.yarnpkg.com/lockfile-lint-api/-/lockfile-lint-api-5.1.7.tgz#052f615ab85ac3ad69f8c90b03eb3b64dbd6ebd9"
+  integrity sha512-o10D4DiLUFXl/8UqYBsuNnye3DcNtAuIm6+vCsnSwHONIQqR6etWUA0v94lMhh5tIDqPOV08Gc8Ds+A3bMqW4g==
+  dependencies:
+    "@yarnpkg/lockfile" "^1.1.0"
+    debug "^4.1.1"
+    object-hash "^2.0.1"
+
+lockfile-lint@4.6.2:
+  version "4.6.2"
+  resolved "https://registry.yarnpkg.com/lockfile-lint/-/lockfile-lint-4.6.2.tgz#ca4a896f702ea22b04d4084246ce0ecfb2b4ff74"
+  integrity sha512-TvWN2Yfc/dvSy1GKdpy0wJ6GCvq/9Qj457D+QQtP+eYvsX4zNp3vaaB2LS1d+TK1lO/7I0VQ0qqRCRCOzSj2wQ==
+  dependencies:
+    cosmiconfig "^6.0.0"
+    debug "^4.1.1"
+    lockfile-lint-api "^5.1.7"
+    yargs "^16.0.0"
+
 lodash._getnative@^3.0.0:
   version "3.9.1"
   resolved "https://registry.yarnpkg.com/lodash._getnative/-/lodash._getnative-3.9.1.tgz#570bc7dede46d61cdcde687d65d3eecbaa3aaff5"
@@ -13662,6 +13681,11 @@ object-copy@^0.1.0:
     define-property "^0.2.5"
     kind-of "^3.0.3"
 
+object-hash@^2.0.1:
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/object-hash/-/object-hash-2.2.0.tgz#5ad518581eefc443bd763472b8ff2e9c2c0d54a5"
+  integrity sha512-gScRMn0bS5fH+IuwyIFgnh9zBdo4DV+6GhygmWM9HyNJSgS0hScp1f5vjtm7oIIOiT9trXrShAkLFSc2IqKNgw==
+
 object-inspect@^1.11.0, object-inspect@^1.12.0, object-inspect@^1.9.0:
   version "1.12.0"
   resolved "https://registry.yarnpkg.com/object-inspect/-/object-inspect-1.12.0.tgz#6e2c120e868fd1fd18cb4f18c31741d0d6e776f0"
@@ -13763,9 +13787,10 @@ obuf@^1.0.0, obuf@^1.1.2:
   resolved "https://registry.yarnpkg.com/obuf/-/obuf-1.1.2.tgz#09bea3343d41859ebd446292d11c9d4db619084e"
   integrity sha512-PX1wu0AmAdPqOL1mWhqmlOd8kOIZQwGZw6rh7uby9fTc5lhaOWFLX3I6R1hrF9k3zUY40e6igsLGkDXK92LJNg==
 
-"oembed-providers@https://github.com/iamcal/oembed":
-  version "1.0.20210622"
-  resolved "https://github.com/iamcal/oembed#8df26e4534df3d393acd979434fb6de9125f0c41"
+oembed-providers@1.0.20220105:
+  version "1.0.20220105"
+  resolved "https://registry.yarnpkg.com/oembed-providers/-/oembed-providers-1.0.20220105.tgz#cb105e4082a35af24076bf4403de99bfd12b045b"
+  integrity sha512-LR88ow2SdLxy71H3TBsp/Ze7PfEoMiVBM29GmJbQVvjfU2rzBFwdRBQp1yuFMTQZ409vCweUdtMnQ9yxiVT1Dw==
 
 on-finished@^2.3.0, on-finished@~2.3.0:
   version "2.3.0"
@@ -18324,7 +18349,7 @@ yargs@^15.3.1:
     y18n "^4.0.0"
     yargs-parser "^18.1.2"
 
-yargs@^16.0.3, yargs@^16.2.0:
+yargs@^16.0.0, yargs@^16.0.3, yargs@^16.2.0:
   version "16.2.0"
   resolved "https://registry.yarnpkg.com/yargs/-/yargs-16.2.0.tgz#1c82bf0f6b6a66eafce7ef30e376f49a12477f66"
   integrity sha512-D1mvvtDG0L5ft/jGWkLpG1+m0eQxOfaBvTNELraWj22wSVUMWxZUvYgJYcKh6jGGIkJFhH4IZPQhR4TKpc8mBw==
