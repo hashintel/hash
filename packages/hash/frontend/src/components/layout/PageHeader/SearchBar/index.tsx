@@ -64,6 +64,7 @@ const ResultList: React.FC<{
     component="ul"
     sx={(theme) => ({
       position: !isMobile ? "absolute" : "unset",
+      top: !isMobile ? "calc(100% + 1px)" : "unset",
       zIndex: 10,
       width: "100%",
       maxHeight: "15rem",
@@ -206,15 +207,20 @@ const SearchBarWhenSearchIsEnabled: React.VFC = () => {
           />
 
           {isMobile && (
-            <Button
-              onClick={() => {
-                setQueryText("");
-                setDisplaySearchInput(false);
-              }}
-              variant="tertiary_quiet"
+            <Box
+              component="span"
+              sx={(theme) => ({ marginLeft: theme.spacing(2) })}
             >
-              Cancel
-            </Button>
+              <Button
+                onClick={() => {
+                  setQueryText("");
+                  setDisplaySearchInput(false);
+                }}
+                variant="tertiary_quiet"
+              >
+                Cancel
+              </Button>
+            </Box>
           )}
         </Box>
       )}

@@ -20,12 +20,14 @@ export const SearchInput: React.FC<{
       sx={(theme) => ({
         position: "relative",
         borderRadius: theme.spacing(0.75),
-        marginRight: theme.spacing(2),
-        border: `1px solid ${theme.palette.gray[30]}`,
+        borderWidth: 1,
+        borderStyle: "solid",
+        borderColor: theme.palette.gray[30],
         width: isMobile ? "100%" : undefined,
-        ":focus": {
+        ":focus-within": {
           margin: "-1px",
-          border: `2px solid ${theme.palette.blue[70]}`,
+          borderWidth: 2,
+          borderColor: theme.palette.blue[70],
         },
       })}
     >
