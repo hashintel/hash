@@ -99,7 +99,7 @@ describe("EntityType model class", () => {
     });
 
     const parentSchemas = await fetched!.getImmediateParents(db);
-    const allParents = await fetched!.getInheritanceChain(db);
+    const allParents = await fetched!.getAllParents(db);
 
     expect(parentSchemas).toHaveLength(1);
     expect(allParents).toHaveLength(1);
@@ -144,7 +144,7 @@ describe("EntityType model class", () => {
     });
 
     const parentSchemas = await fetched!.getImmediateParents(db);
-    const allParents = await fetched!.getInheritanceChain(db);
+    const allParents = await fetched!.getAllParents(db);
 
     expect(parentSchemas).toHaveLength(1);
     expect(allParents).toHaveLength(2);

@@ -45,7 +45,31 @@ const immediateParents: Resolver<
   return entityTypeParents.map((ent) => ent.toGQLEntityType());
 };
 
+const allParents: Resolver<
+  Promise<UnresolvedGQLEntityType[]>,
+  GQLEntityType,
+  GraphQLContext
+> = async (params, _, { dataSources: { db } }) => {
+  const { entityId: entityTypeId } = params;
+
+  // The following entityType must exist for this resolver to be called
+  const entityType = await EntityType.getEntityType(db, {
+    entityTypeId,
+  });
+
+  if (!entityType) {
+    throw new ApolloError(
+      `EntityType with entityId ${entityTypeId} not found`,
+      "NOT_FOUND",
+    );
+  }
+  const entityTypeAllParents = await entityType.getAllParents(db);
+
+  return entityTypeAllParents.map((ent) => ent.toGQLEntityType());
+};
+
 export const entityTypeInheritance = {
   immediateChildren,
   immediateParents,
+  allParents,
 };

@@ -137,7 +137,7 @@ class __EntityType {
             },
           );
 
-          const parentInheritanceChain = await parentEntity.getInheritanceChain(
+          const parentInheritanceChain = await parentEntity.getAllParents(
             client,
           );
 
@@ -308,7 +308,10 @@ class __EntityType {
     );
   }
 
-  async getInheritanceChain(client: DBClient): Promise<EntityType[]> {
+  /**
+   * Get all parents recursively, resolving parents' parents and so forth.
+   */
+  async getAllParents(client: DBClient): Promise<EntityType[]> {
     const parents = await this.getImmediateParents(client);
 
     const allSchemas = await Promise.all(

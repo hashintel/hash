@@ -165,8 +165,7 @@ export const entityTypeTypedef = gql`
     immediateParents: [EntityType!]
 
     """
-    Retrieve all EntityTypes that this EntityType inherits from
-    and every parent of those recursively.
+    Retrieve all parents recursively, resolving parents' parents and so forth.
     """
     allParents: [EntityType!]
   }
