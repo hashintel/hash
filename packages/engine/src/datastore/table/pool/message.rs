@@ -58,7 +58,7 @@ impl MessagePool {
     ///
     /// # Panics
     ///
-    /// If the message pool contains batches, which are currently borrowed.
+    /// If batches in the message pool are currently borrowed elsewhere.
     pub fn reset(
         &mut self,
         agent_proxies: &PoolReadProxy<AgentBatch>,
@@ -68,11 +68,15 @@ impl MessagePool {
         // batches
         for batch_index in (0..self.len()).rev() {
             if let Some(dynamic_batch) = agent_proxies.batch(batch_index) {
-                let mut write_proxy = BatchWriteProxy::new(&self.batches[batch_index]).expect(
-                    "Failed to remove Batch at index {index}, other Arcs to the Batch existed",
-                );
+                let mut write_proxy = BatchWriteProxy::new(&self.batches[batch_index])
+                    .unwrap_or_else(|err| {
+                        panic!("Failed to reset Batch at index {index}: {err}");
+                    });
                 write_proxy.reset(dynamic_batch)?;
             } else {
+                // TODO: We possibly need to propagate the IDs of these batches to the runners, so
+                //       they can be freed.
+                //       https://app.asana.com/0/1199548034582004/1201940767289027/f
                 self.remove(batch_index);
             }
         }

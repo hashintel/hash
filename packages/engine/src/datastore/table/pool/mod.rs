@@ -63,7 +63,7 @@ pub trait BatchPool<B: Batch>: Send + Sync {
     /// Removes the [`Batch`] at position `index` within the pool, shifting all elements after it to
     /// the left.
     ///
-    /// Returns the batch id of the removed [`Batch`].
+    /// Returns the removed [`Batch`].
     ///
     /// # Panics
     ///
@@ -76,6 +76,8 @@ pub trait BatchPool<B: Batch>: Send + Sync {
     /// The removed [`Batch`] is replaced by the last [`Batch`] of the pool. This does not preserve
     /// ordering, but is `O(1)`. If you need to preserve the element order, use
     /// [`remove()`](Self::remove) instead.
+    ///
+    /// Returns the removed [`Batch`].
     ///
     /// # Panics
     ///
