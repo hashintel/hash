@@ -152,7 +152,22 @@ export const entityTypeTypedef = gql`
     """
     linkedAggregations: [LinkedAggregation!]!
     # ENTITY INTERFACE FIELDS END #
-    children: [EntityType!]
-    parents: [EntityType!]
+
+    """
+    Retrieve all EntityTypes that are immediate children
+    to the current EntityType.
+    """
+    immediateChildren: [EntityType!]
+    """
+    Retrieve all EntityTypes that are immediate parents
+    to the current EntityType.
+    """
+    immediateParents: [EntityType!]
+
+    """
+    Retrieve all EntityTypes that this EntityType inherits from
+    and every parent of those recursively.
+    """
+    allParents: [EntityType!]
   }
 `;

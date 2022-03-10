@@ -282,7 +282,7 @@ class __EntityType {
     return dbTypes.map((dbType) => new EntityType(dbType).toGQLEntityType());
   }
 
-  static async getEntityTypeChildren(
+  static async getImmediateChildren(
     client: DBClient,
     params: { schemaRef: string },
   ) {
@@ -291,7 +291,7 @@ class __EntityType {
     return dbEntityTypes.map((entityType) => new EntityType(entityType));
   }
 
-  async getParentEntityTypes(client: DBClient): Promise<EntityType[]> {
+  async getImmediateParents(client: DBClient): Promise<EntityType[]> {
     const parentSchema$ids = getSchemaAllOfRefs(this.properties);
 
     return await Promise.all(
@@ -309,12 +309,12 @@ class __EntityType {
   }
 
   async getInheritanceChain(client: DBClient): Promise<EntityType[]> {
-    const parents = await this.getParentEntityTypes(client);
+    const parents = await this.getImmediateParents(client);
 
     const allSchemas = await Promise.all(
       parents.map(async (parent) => [
         parent,
-        ...(await parent.getParentEntityTypes(client)),
+        ...(await parent.getImmediateParents(client)),
       ]),
     );
 

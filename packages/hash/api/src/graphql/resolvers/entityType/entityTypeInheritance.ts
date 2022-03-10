@@ -8,7 +8,7 @@ import {
   schema$idRef,
 } from "../../../model/entityType.util";
 
-const children: Resolver<
+const immediateChildren: Resolver<
   Promise<UnresolvedGQLEntityType[]>,
   GQLEntityType,
   GraphQLContext
@@ -17,12 +17,12 @@ const children: Resolver<
   const schema$ID = generateSchema$id(accountId, entityTypeId);
   const schemaRef = schema$idRef(schema$ID);
 
-  const entityTypes = await EntityType.getEntityTypeChildren(db, { schemaRef });
+  const entityTypes = await EntityType.getImmediateChildren(db, { schemaRef });
 
   return entityTypes.map((entityType) => entityType.toGQLEntityType());
 };
 
-const parents: Resolver<
+const immediateParents: Resolver<
   Promise<UnresolvedGQLEntityType[]>,
   GQLEntityType,
   GraphQLContext
@@ -40,12 +40,12 @@ const parents: Resolver<
       "NOT_FOUND",
     );
   }
-  const entityTypeParents = await entityType.getParentEntityTypes(db);
+  const entityTypeParents = await entityType.getImmediateParents(db);
 
   return entityTypeParents.map((ent) => ent.toGQLEntityType());
 };
 
 export const entityTypeInheritance = {
-  children,
-  parents,
+  immediateChildren,
+  immediateParents,
 };

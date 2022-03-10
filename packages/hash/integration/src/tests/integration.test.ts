@@ -808,7 +808,7 @@ describe("logged in user ", () => {
         .getEntityType({
           entityTypeId: subType1.entityId,
         })
-        .then((entyp) => entyp.parents);
+        .then((entyp) => entyp.immediateParents);
 
       expect(subTypeParent).toHaveLength(1);
       if (!subTypeParent?.length) throw new Error("");
@@ -827,7 +827,7 @@ describe("logged in user ", () => {
         .getEntityType({
           entityTypeId: superType.entityId,
         })
-        .then((entyp) => entyp.children);
+        .then((entyp) => entyp.immediateChildren);
 
       expect(superTypeChldren).toHaveLength(2);
       if (!superTypeChldren?.length) throw new Error("");
