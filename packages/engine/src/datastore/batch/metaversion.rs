@@ -210,7 +210,6 @@ impl Metaversion {
         }
     }
 
-    // TODO: UNUSED: Needs triage
     pub fn from_le_bytes(b: [u8; 8]) -> Result<Self> {
         // Slicing gives wrong type
         let memory = u32::from_le_bytes([b[0], b[1], b[2], b[3]]);
