@@ -112,7 +112,7 @@ export const SearchInput: React.FC<{
 
   const clearSearch = useCallback(() => {
     setQueryText("");
-  }, []);
+  }, [setQueryText]);
 
   return (
     <Box

@@ -207,10 +207,7 @@ const SearchBarWhenSearchIsEnabled: React.VFC = () => {
           />
 
           {isMobile && (
-            <Box
-              component="span"
-              sx={(theme) => ({ marginLeft: theme.spacing(2) })}
-            >
+            <Box component="span" sx={{ marginLeft: theme.spacing(2) }}>
               <Button
                 onClick={() => {
                   setQueryText("");
