@@ -256,10 +256,9 @@ pub mod rb {
         let data = column.data_ref();
         let buffer = &data.buffers()[0];
         let mut ptr = buffer.as_ptr();
-        let offset = UUID_V4_LEN;
         Ok((0..column.len()).map(move |_| unsafe {
             let slice = &*(ptr as *const [u8; UUID_V4_LEN]);
-            ptr = ptr.add(offset);
+            ptr = ptr.add(UUID_V4_LEN);
             slice
         }))
     }
