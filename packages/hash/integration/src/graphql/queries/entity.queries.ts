@@ -56,6 +56,21 @@ export const getEntityType = gql`
   }
 `;
 
+export const getEntityTypeAllParents = gql`
+  query getEntityTypeAllParents($entityTypeId: ID!) {
+    getEntityType(entityTypeId: $entityTypeId) {
+      entityId
+      entityVersionId
+      properties
+      allParents {
+        entityId
+        properties
+      }
+      __typename
+    }
+  }
+`;
+
 export const createEntityType = gql`
   mutation createEntityType(
     $accountId: ID!

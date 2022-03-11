@@ -1249,9 +1249,7 @@ describe("logged in user ", () => {
               },
             ],
             properties: {
-              testPropertyString: {
-                type: "number",
-              },
+              testPropertyString: { type: "number" },
             },
           },
           name: `${schemaName}1`,
@@ -1261,14 +1259,14 @@ describe("logged in user ", () => {
       );
     });
 
-    let superType!: Pick<
+    let subType!: Pick<
       GQLEntityType,
       "entityId" | "properties" | "entityTypeName"
     >;
     it("allows schema that inherits with compatible property types", async () => {
-      const schemaName = "Schema invalid property inheritance";
+      const schemaName = "Schema valid property inheritance";
 
-      superType = await client.createEntityType({
+      subType = await client.createEntityType({
         accountId: existingUser.accountId,
         schema: {
           allOf: [
@@ -1277,14 +1275,12 @@ describe("logged in user ", () => {
             },
           ],
           properties: {
-            testPropertyString: {
-              type: "string",
-            },
+            testPropertyString: { type: "string" },
           },
         },
         name: `${schemaName}1`,
       });
-      expect(superType).toBeDefined();
+      expect(subType).toBeDefined();
     });
 
     it("rejects schema that inherits with incompatible property types deeper than top level", async () => {
@@ -1295,13 +1291,11 @@ describe("logged in user ", () => {
           schema: {
             allOf: [
               {
-                $ref: superType.properties.$id,
+                $ref: subType.properties.$id,
               },
             ],
             properties: {
-              testPropertyNumber: {
-                type: "string",
-              },
+              testPropertyNumber: { type: "string" },
             },
           },
           name: `${schemaName}1`,
@@ -1309,6 +1303,34 @@ describe("logged in user ", () => {
       ).rejects.toThrowError(
         /Type mismatch on ".+". Got "number" expected "string"/i,
       );
+    });
+
+    it("can get inheritance chain of a EntityType", async () => {
+      const schemaName = "ThreeLayerType";
+
+      const entityType = await client.createEntityType({
+        accountId: existingUser.accountId,
+        schema: {
+          allOf: [
+            {
+              $ref: subType.properties.$id,
+            },
+          ],
+          properties: {
+            anotherProp: { type: "string" },
+          },
+        },
+        name: `${schemaName}1`,
+      });
+
+      const fetched = await client.getEntityTypeAllParents({
+        entityTypeId: entityType.entityId,
+      });
+
+      const allParentEntityIds = fetched.allParents?.map((x) => x.entityId);
+      expect(allParentEntityIds).toHaveLength(2);
+      expect(allParentEntityIds).toContain(testEntityType.entityId);
+      expect(allParentEntityIds).toContain(subType.entityId);
     });
   });
 
