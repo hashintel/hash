@@ -1,14 +1,11 @@
 use std::fmt;
 
-use arrow::{
-    datatypes::{DataType, Field as ArrowField},
-    error::ArrowError,
-};
+use arrow::{datatypes::DataType, error::ArrowError};
 use thiserror::Error as ThisError;
 
 use super::prelude::*;
 use crate::{
-    datastore::schema::{FieldKey, FieldType, RootFieldSpec, ShortJsonError},
+    datastore::schema::{FieldKey, FieldType, RootFieldSpec},
     hash_types,
     hash_types::state::AgentStateField,
 };
@@ -45,14 +42,8 @@ pub enum Error {
     #[error("Couldn't acquire exclusive lock on object")]
     ProxyExclusiveLock,
 
-    #[error("Special field missing in schema: {0}")]
-    SpecialKeyMissing(String),
-
     #[error("Arrow Error: {0}")]
     Arrow(#[from] ArrowError),
-
-    #[error("Field not found in Schema: {0}")]
-    FieldNotFound(ArrowField),
 
     #[error("Invalid Arrow object downcast. Field name: {name}")]
     InvalidArrowDowncast { name: String },
@@ -81,9 +72,6 @@ pub enum Error {
     #[error("Shared memory error: {0}")]
     SharedMemory(#[from] shared_memory::ShmemError),
 
-    #[error("Failed to acquire lock ({0})")]
-    Lock(&'static str),
-
     #[error("Agent id ({0}) is not a valid uuid")]
     InvalidAgentId(String),
 
@@ -102,48 +90,20 @@ pub enum Error {
     #[error("Array data was expected to contain child data")]
     ChildDataExpected,
 
-    #[error("Array data was expected to contain buffers")]
-    BufferExpected,
-
-    #[error("Join Handle error: {0}")]
-    JoinHandle(String),
-
     #[error("Unexpected vector length: was {len} but expected {expected}")]
     UnexpectedVectorLength { len: usize, expected: usize },
-
-    #[error("Invalid system agent message: to: {to:?}, type: {message_type}, data: {data}")]
-    InvalidSystemMessage {
-        to: Vec<String>,
-        message_type: String,
-        data: String,
-    },
-
-    #[error("Unexpected Arrow datatype. Expected: {expected:?}, got: {got:?}")]
-    UnexpectedArrowDataType {
-        expected: ArrowDataType,
-        got: ArrowDataType,
-    },
 
     #[error("Unsupported Arrow datatype: {d_type:?}")]
     UnsupportedArrowDataType { d_type: ArrowDataType },
 
-    #[error("Expected Arrow Node to contain a null buffer")]
-    NullBufferExpected,
-
     #[error("Did not expect to resize Shared Memory")]
     UnexpectedAgentBatchMemoryResize,
-
-    #[error("did not expect to resize Message Batch shared memory")]
-    UnexpectedMessageBatchMemoryResize,
 
     #[error("Uuid error: {0}")]
     Uuid(#[from] uuid::Error),
 
     #[error("Shmem max size reached: Size: {0}, Allowed: {1}")]
     SharedMemoryMaxSize(u64, u64),
-
-    #[error("Expected Buffer actions to contain at least one action")]
-    EmptyBufferActionsList,
 
     #[error("Expected Node Metadata")]
     NodeMetadataExpected,
@@ -154,17 +114,11 @@ pub enum Error {
     #[error("Expected Shift Action Vector to be non-empty")]
     EmptyShiftActionVector,
 
-    #[error("Schema size mismatch. Current size: {current}, proposed size: {proposed}")]
-    SchemaBufferSizeMismatch { current: usize, proposed: usize },
-
     #[error("Invalid fixed size list. Required size of list: {required}, actual: {actual}.")]
     FixedSizeListInvalidValue { required: i32, actual: usize },
 
     #[error("Object is missing field with name: {0}")]
     MissingFieldInObject(String),
-
-    #[error("Batch expected in pool with length of {length} at index: {index}")]
-    BatchExpected { length: usize, index: usize },
 
     #[error("Expected boolean value in `serde_json::Value`")]
     BooleanSerdeValueExpected,
@@ -178,23 +132,8 @@ pub enum Error {
     #[error("Cannot create empty shared memory objects")]
     EmptySharedMemory,
 
-    #[error("Cannot unwrap Arc")]
-    ArcUnwrap,
-
-    #[error("Cannot get inner value from RwLock for agent batch")]
-    RwLockInnerAgentBatch(#[from] std::sync::PoisonError<AgentBatch>),
-
-    #[error("Cannot get inner value from RwLock for message batch: {0:?}")]
-    RwLockInnerMessageBatch(#[from] std::sync::PoisonError<MessageBatch>),
-
     #[error("Built-in column missing: {0:?}")]
     BuiltInColumnMissing(AgentStateField),
-
-    #[error("Behavior keys are missing for behavior: {0}")]
-    BehaviorKeysMissing(String),
-
-    #[error("Key missing in KeySet: {0}")]
-    CannotFindKeyInKeySet(String),
 
     #[error("IO: {0:?}")]
     IO(#[from] std::io::Error),
@@ -205,17 +144,8 @@ pub enum Error {
     #[error("Invalid utf-8: {0}")]
     FromUtf8Error(#[from] std::string::FromUtf8Error),
 
-    #[error("Invalid behavior name: \"{0}\"")]
-    InvalidBehaviorName(String),
-
-    #[error("Behavior names should be valid utf-8 bytes")]
-    InvalidBehaviorNameUtf8,
-
     #[error("Unexpected undefined command")]
     UnexpectedUndefinedCommand,
-
-    #[error("Field Spec Short JSON repr error: {0}")]
-    ShortJsonError(#[from] ShortJsonError),
 
     #[error(
         "Key clash when attempting to insert a new agent-scoped field with key: {0:?}. The new \

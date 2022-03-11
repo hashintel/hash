@@ -1,8 +1,4 @@
 pub mod create_remove;
-// TODO: UNUSED: Needs triage
-pub mod hash_message;
-// TODO: UNUSED: Needs triage
-pub mod message;
 pub mod view;
 
 use std::sync::Arc;
@@ -26,6 +22,8 @@ use crate::{
     simulation::command::CreateRemoveCommands,
     SimRunConfig,
 };
+
+pub const MIN_AGENTS_PER_GROUP: usize = 10;
 
 pub struct State {
     /// View into the current step's Agent state.
@@ -105,21 +103,25 @@ impl State {
         let num_workers = sim_config.sim.engine.num_workers;
         let num_agents = agent_states.len();
 
-        // Split agents into groups that can be distributed across workers
-        const MIN_PER_WORKER: usize = 10;
-        let num_agents_per_worker =
-            ((num_agents as f64 / num_workers as f64).ceil() as usize).max(MIN_PER_WORKER);
+        // Ideally we can have one group per worker, so divide the agents evenly across them
+        let target_group_size = (num_agents as f64 / num_workers as f64).ceil() as usize;
+        // We may have lower or upper bounds on the size of an individual group so adjust for that
+        let target_group_size =
+            target_group_size.clamp(MIN_AGENTS_PER_GROUP, sim_config.exp.target_max_group_size);
+
         let mut agent_state_groups = vec![];
         let mut next_index = 0;
         while next_index != num_agents {
             let this_index = next_index;
-            next_index = (next_index + num_agents_per_worker).min(num_agents);
+            next_index = (next_index + target_group_size).min(num_agents);
             agent_state_groups.push(&agent_states[this_index..next_index]);
         }
 
         Self::from_agent_groups(&agent_state_groups, num_agents, sim_config)
     }
 
+    // TODO: OPTIM - We should be using these to release memory, this requires propagation to the
+    //   runners, otherwise this is the cause of a possible memory leak
     pub fn removed_batches(&mut self) -> &mut Vec<String> {
         &mut self.removed_batches
     }
@@ -132,7 +134,7 @@ impl State {
         let mut planner = CreateRemovePlanner::new(commands, config.clone())?;
         let plan = planner.run(&self.read()?)?;
         self.num_agents = plan.num_agents_after_execution;
-        let removed_ids = plan.execute(self.agent_pool_mut(), config)?;
+        let removed_ids = plan.execute(self.state_mut(), config)?;
 
         // Register all batches that were removed
         self.removed_batches().extend(removed_ids.into_iter());
@@ -159,9 +161,12 @@ impl State {
         &self.state.message_pool
     }
 
-    // TODO: UNUSED: Needs triage
     pub fn message_pool_mut(&mut self) -> &mut MessagePool {
         &mut self.state.message_pool
+    }
+
+    pub fn state_mut(&mut self) -> &mut StatePools {
+        &mut self.state
     }
 
     pub fn read(&self) -> Result<StateReadProxy> {
@@ -202,9 +207,8 @@ impl State {
         mut old_context_message_pool: MessagePool,
         sim_config: &SimRunConfig,
     ) -> Result<MessagePool> {
-        let mut message_proxies = old_context_message_pool.write_proxies()?;
         let agent_proxies = self.agent_pool().read_proxies()?;
-        message_proxies.reset(&mut old_context_message_pool, &agent_proxies, sim_config)?;
+        old_context_message_pool.reset(&agent_proxies, sim_config)?;
         Ok(std::mem::replace(
             &mut self.state.message_pool,
             old_context_message_pool,

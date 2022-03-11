@@ -16,7 +16,6 @@ pub mod accessor;
 pub mod built_in;
 pub mod creator;
 pub mod display;
-pub mod short_json;
 
 pub const HIDDEN_PREFIX: &str = "_HIDDEN_";
 pub const PRIVATE_PREFIX: &str = "_PRIVATE_";
@@ -305,8 +304,8 @@ impl FieldSpecMap {
         }
     }
 
-    // TODO: UNUSED: Needs triage
-    pub fn union(&mut self, set: FieldSpecMap) -> Result<()> {
+    #[cfg(test)]
+    pub(crate) fn union(&mut self, set: FieldSpecMap) -> Result<()> {
         set.field_specs
             .into_iter()
             .try_for_each(|(_, field_spec)| self.add(field_spec))
