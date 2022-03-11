@@ -9,7 +9,7 @@ export const createEntityTypes =
     const userTypeUri = userType.properties.$id;
 
     const schema: any = {
-      title: "Tesk",
+      title: "Task",
       description: "A task, ticket, job, etc",
       properties: {
         assignee: {
@@ -57,7 +57,7 @@ export const createEntityTypes =
         };
         let entityType = await EntityType.create(db, {
           schema,
-          name: "Tesk",
+          name: "Task",
           description: "A task, ticket, job, etc",
           ...baseParams,
         });
