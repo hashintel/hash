@@ -25,7 +25,7 @@
     "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev -- --watch --verbose\" \"yarn dev\""
   },
   "dependencies": {
-    "blockprotocol": "0.0.1",
+    "blockprotocol": "0.0.7",
     "dompurify": "2.3.6"
   },
   "devDependencies": {

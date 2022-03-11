@@ -10,6 +10,7 @@ import {
   BlockProtocolAggregateEntitiesFunction,
   BlockProtocolEntity,
   BlockProtocolLink,
+  JSONObject,
 } from "blockprotocol";
 import { tw } from "twind";
 
@@ -91,9 +92,9 @@ export const EntityFieldLinkEditor: VoidFunctionComponent<
          * @todo support users defining the JSON Schema uniqueItems property on an array field
          */
         setEntityOptions(
-          (results as BlockProtocolEntity[]).map(
+          results.map(
             ({ accountId: resultAccountId, entityId, ...properties }) => ({
-              accountId: resultAccountId,
+              accountId: resultAccountId ?? "",
               entityId,
               name: entityName({ entityId, ...properties }),
             }),
@@ -182,7 +183,7 @@ export const EntityFieldLinkEditor: VoidFunctionComponent<
                 <Link
                   href={`/${linkedEntity.accountId}/entities/${linkedEntity.entityId}`}
                 >
-                  <a>{entityName(linkedEntity)}</a>
+                  <a>{entityName(linkedEntity as JSONObject)}</a>
                 </Link>
               </div>
               <button

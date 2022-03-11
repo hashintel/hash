@@ -35,7 +35,14 @@ export const useBlockProtocolCreateEntities = (): {
               entityTypeVersionId: action.entityTypeVersionId,
               accountId: action.accountId,
             },
-          }).then(({ data }) => data?.createEntity);
+          }).then(({ data }) => {
+            if (!data) {
+              throw new Error(
+                `Could not create entity with action ${JSON.stringify(action)}`,
+              );
+            }
+            return data.createEntity;
+          });
         }),
       ),
     [createFn],
