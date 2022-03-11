@@ -1304,6 +1304,34 @@ describe("logged in user ", () => {
         /Type mismatch on ".+". Got "number" expected "string"/i,
       );
     });
+
+    it("can get inheritance chain of a EntityType", async () => {
+      const schemaName = "ThreeLayerType";
+
+      const entityType = await client.createEntityType({
+        accountId: existingUser.accountId,
+        schema: {
+          allOf: [
+            {
+              $ref: subType.properties.$id,
+            },
+          ],
+          properties: {
+            anotherProp: { type: "string" },
+          },
+        },
+        name: `${schemaName}1`,
+      });
+
+      const fetched = await client.getEntityTypeAllParents({
+        entityTypeId: entityType.entityId,
+      });
+
+      const allParentEntityIds = fetched.ancestors?.map((x) => x.entityId);
+      expect(allParentEntityIds).toHaveLength(2);
+      expect(allParentEntityIds).toContain(testEntityType.entityId);
+      expect(allParentEntityIds).toContain(subType.entityId);
+    });
   });
 
   describe("can update entity types", () => {
