@@ -1,6 +1,6 @@
 import Ajv2019 from "ajv/dist/2019";
 import addFormats from "ajv-formats";
-import { JSONSchema7 } from "json-schema";
+import { JSONSchema } from "./entityType.model";
 
 import { EntityType } from ".";
 import { FRONTEND_URL } from "../lib/config";
@@ -29,16 +29,9 @@ export const generateSchema$id = (
  * Given a Schema$id, generate an appropriate $ref to put into allOf field on JSON schema.
  * This can be used to inherit from other schemas.
  * */
-export const schema$idRef = (schema$id: string) => {
+export const createSchema$idRef = (schema$id: string) => {
   return JSON.stringify([{ $ref: schema$id }]);
 };
-
-export class SchemaTypeMismatch extends Error {
-  constructor(msg: string) {
-    super(msg);
-    Object.setPrototypeOf(this, SchemaTypeMismatch.prototype);
-  }
-}
 
 // The following types are internally used to validate JSON schemas.
 type PropertyGroup = {
@@ -52,7 +45,7 @@ type Property = {
   type: string;
   format?: string;
   description?: string;
-  otherFields: Partial<JSONSchema7>;
+  otherFields: Partial<JSONSchema>;
 };
 
 // If any property constraint has 'min' or 'max' in their name, it is a numeric constraint
@@ -113,7 +106,7 @@ const propertyConstraintMerging: Record<
  * @param schema JSON Schema that is to be traversed
  * @param properties list of Properties from the resulting traversal
  */
-function traverseProperties(schema: JSONSchema7, properties: Property[]) {
+function traverseProperties(schema: JSONSchema, properties: Property[]) {
   // Traverse top-level properties for a schema
   for (const [field, value] of Object.entries(schema.properties ?? {})) {
     if (typeof value === "object") {
@@ -141,7 +134,7 @@ function traverseProperties(schema: JSONSchema7, properties: Property[]) {
   }
 }
 
-function extractProperties(schema: JSONSchema7): PropertyGroup {
+function extractProperties(schema: JSONSchema): PropertyGroup {
   const properties: Property[] = [];
   traverseProperties(schema, properties);
 
@@ -206,7 +199,7 @@ function validatePropertyType(
 }
 
 function validateProperties(
-  entityType: JSONSchema7,
+  entityType: JSONSchema,
   existingErrors?: string[],
   alreadySeen?: Map<string, PropertyWithConstraint>,
 ) {
@@ -258,7 +251,7 @@ function validateProperties(
  * @returns a list of type-mismatch errors. Does not throw an exception.
  */
 export const entityTypePropertyKeyValidator = (
-  ...schemas: (EntityType | JSONSchema7)[]
+  ...schemas: (EntityType | JSONSchema)[]
 ): string[] => {
   const seen: Map<string, PropertyWithConstraint> = new Map();
   const errors: string[] = [];
@@ -281,7 +274,7 @@ export const entityTypePropertyKeyValidator = (
  * @param schema the JSON Schema to extract '$ref's from.
  * @returns list of '$ref' values
  */
-export const getSchemaAllOfRefs = (schema: JSONSchema7) =>
+export const getSchemaAllOfRefs = (schema: JSONSchema) =>
   schema.allOf
     ?.filter(
       (allOfEntry): allOfEntry is { $ref: string } =>
@@ -307,7 +300,7 @@ addFormats(ajv);
  * Try to compile schema in order to find any errors.
  * This does not resolve references.
  */
-export const tryCompileSchema = async (schema: JSONSchema7) => {
+export const compileAjvSchema = async (schema: JSONSchema) => {
   try {
     await ajv.compileAsync(schema);
   } catch (err: any) {

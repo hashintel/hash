@@ -157,16 +157,16 @@ export const entityTypeTypedef = gql`
     Retrieve all EntityTypes that are immediate children
     to the current EntityType.
     """
-    immediateChildren: [EntityType!]
+    children: [EntityType!]
     """
     Retrieve all EntityTypes that are immediate parents
     to the current EntityType.
     """
-    immediateParents: [EntityType!]
+    parents: [EntityType!]
 
     """
-    Retrieve all parents recursively, resolving parents' parents and so forth.
+    Retrieve all ancestors recursively, resolving parents' parents and so forth.
     """
-    allParents: [EntityType!]
+    ancestors: [EntityType!]
   }
 `;

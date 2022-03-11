@@ -13,14 +13,16 @@ import {
 } from "../graphql/apiTypes.gen";
 import { EntityTypeMeta, EntityTypeTypeFields } from "../db/adapter";
 import {
-  tryCompileSchema,
+  compileAjvSchema,
   entityTypePropertyKeyValidator,
   getSchemaAllOfRefs,
   JSON_SCHEMA_VERSION,
-  SchemaTypeMismatch,
+  createSchema$idRef,
 } from "./entityType.util";
 
 const { FRONTEND_URL } = require("../lib/config");
+
+export type JSONSchema = JSONSchema7;
 
 /**
  * We handle the various entityType fields for an entityType in separate field resolvers,
@@ -54,7 +56,7 @@ class __EntityType {
   entityVersionId: string;
   accountId: string;
   /** @todo: consider extending this type to be fully compatible with Draft 08 (2019-09) */
-  properties: JSONSchema7;
+  properties: JSONSchema;
   metadata: EntityTypeMeta;
   createdByAccountId: string;
   createdAt: Date;
@@ -100,10 +102,10 @@ class __EntityType {
     params: {
       $id?: string;
       title: string;
-      schema?: string | JSONSchema7 | null;
+      schema?: string | JSONSchema;
       description?: string;
     },
-  ): Promise<JSONSchema7> {
+  ): Promise<JSONSchema> {
     const { $id, title, schema: maybeStringifiedSchema, description } = params;
 
     if (title[0] !== title[0].toUpperCase()) {
@@ -112,7 +114,7 @@ class __EntityType {
       );
     }
 
-    const partialSchema: JSONSchema7 =
+    const partialSchema: JSONSchema =
       typeof maybeStringifiedSchema === "string"
         ? JSON.parse(maybeStringifiedSchema)
         : maybeStringifiedSchema ?? {};
@@ -130,18 +132,24 @@ class __EntityType {
     const allSchemas = (
       await Promise.all(
         parents.map(async (schema$id) => {
-          const parentEntity = await EntityType.getEntityTypeBySchema$id(
+          const parentEntityType = await EntityType.getEntityTypeBySchema$id(
             client,
             {
               schema$id,
             },
           );
 
-          const parentInheritanceChain = await parentEntity.getAllParents(
+          if (!parentEntityType) {
+            throw new Error(
+              `Critical: Could not find EntityType by Schema$id = ${schema$id}`,
+            );
+          }
+
+          const parentInheritanceChain = await parentEntityType.getAncestors(
             client,
           );
 
-          return [parentEntity, ...parentInheritanceChain];
+          return [parentEntityType, ...parentInheritanceChain];
         }),
       )
     ).flat();
@@ -152,10 +160,10 @@ class __EntityType {
     );
 
     if (validationErrors.length > 0) {
-      throw new SchemaTypeMismatch(validationErrors.join("\n"));
+      throw new Error(validationErrors.join("\n"));
     }
 
-    await tryCompileSchema(schema);
+    await compileAjvSchema(schema);
 
     return schema;
   }
@@ -167,7 +175,7 @@ class __EntityType {
       createdByAccountId: string;
       description?: string;
       name: string;
-      schema?: JSONObject | null;
+      schema?: JSONObject;
     },
   ): Promise<EntityType> {
     const { accountId, createdByAccountId, description, name } = params;
@@ -256,14 +264,10 @@ class __EntityType {
   static async getEntityTypeBySchema$id(
     client: DBClient,
     params: { schema$id: string },
-  ): Promise<EntityType> {
+  ): Promise<EntityType | null> {
     const dbEntityType = await client.getEntityTypeBySchema$id(params);
-    if (!dbEntityType) {
-      throw new Error(
-        `Critical: Could not find EntityType by Schema$id = ${params.schema$id}`,
-      );
-    }
-    return new EntityType(dbEntityType);
+
+    return dbEntityType ? new EntityType(dbEntityType) : null;
   }
 
   static async getEntityTypeType(client: DBClient) {
@@ -282,16 +286,22 @@ class __EntityType {
     return dbTypes.map((dbType) => new EntityType(dbType).toGQLEntityType());
   }
 
-  static async getImmediateChildren(
-    client: DBClient,
-    params: { schemaRef: string },
-  ) {
-    const dbEntityTypes = await client.getEntityTypeChildren(params);
+  async getChildren(client: DBClient) {
+    const schema$id = this.properties.$id;
+    if (!schema$id) {
+      throw new Error(
+        `EntityType with ID = '${this.entityId} does not have a JSON Schema $id.'`,
+      );
+    }
+
+    const schemaRef = createSchema$idRef(schema$id);
+
+    const dbEntityTypes = await client.getEntityTypeChildren({ schemaRef });
 
     return dbEntityTypes.map((entityType) => new EntityType(entityType));
   }
 
-  async getImmediateParents(client: DBClient): Promise<EntityType[]> {
+  async getParents(client: DBClient): Promise<EntityType[]> {
     const parentSchema$ids = getSchemaAllOfRefs(this.properties);
 
     return await Promise.all(
@@ -303,6 +313,12 @@ class __EntityType {
           },
         );
 
+        if (!parentEntityType) {
+          throw new Error(
+            `Critical: Could not find EntityType by Schema$id = ${schema$id}`,
+          );
+        }
+
         return parentEntityType;
       }),
     );
@@ -311,17 +327,15 @@ class __EntityType {
   /**
    * Get all parents recursively, resolving parents' parents and so forth.
    */
-  async getAllParents(client: DBClient): Promise<EntityType[]> {
-    const parents = await this.getImmediateParents(client);
+  async getAncestors(client: DBClient): Promise<EntityType[]> {
+    const parents = await this.getParents(client);
 
-    const allSchemas = await Promise.all(
-      parents.map(async (parent) => [
-        parent,
-        ...(await parent.getImmediateParents(client)),
-      ]),
-    );
-
-    return allSchemas.flat();
+    return [
+      ...parents,
+      ...(await Promise.all(
+        parents.map((parent) => parent.getAncestors(client)),
+      )),
+    ].flat();
   }
 
   public static async fetchComponentIdBlockSchema(componentId: string) {

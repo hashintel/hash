@@ -98,8 +98,8 @@ describe("EntityType model class", () => {
       entityTypeId: medicalProfCreated.entityId,
     });
 
-    const parentSchemas = await fetched!.getImmediateParents(db);
-    const allParents = await fetched!.getAllParents(db);
+    const parentSchemas = await fetched!.getParents(db);
+    const allParents = await fetched!.getAncestors(db);
 
     expect(parentSchemas).toHaveLength(1);
     expect(allParents).toHaveLength(1);
@@ -143,8 +143,8 @@ describe("EntityType model class", () => {
       entityTypeId: paramedicCreated.entityId,
     });
 
-    const parentSchemas = await fetched!.getImmediateParents(db);
-    const allParents = await fetched!.getAllParents(db);
+    const parentSchemas = await fetched!.getParents(db);
+    const allParents = await fetched!.getAncestors(db);
 
     expect(parentSchemas).toHaveLength(1);
     expect(allParents).toHaveLength(2);

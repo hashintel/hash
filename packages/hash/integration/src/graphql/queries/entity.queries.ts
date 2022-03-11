@@ -42,12 +42,12 @@ export const getEntityType = gql`
       entityId
       entityVersionId
       properties
-      immediateChildren {
+      children {
         entityId
         properties
       }
 
-      immediateParents {
+      parents {
         entityId
         properties
       }
@@ -62,7 +62,7 @@ export const getEntityTypeAllParents = gql`
       entityId
       entityVersionId
       properties
-      allParents {
+      ancestors {
         entityId
         properties
       }

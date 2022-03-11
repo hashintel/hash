@@ -1,5 +1,6 @@
 import { DBAdapter } from "@hashintel/hash-api/src/db";
 import { EntityType, User } from "@hashintel/hash-api/src/model";
+import { JSONSchema } from "@hashintel/hash-api/src/model/entityType.model";
 
 // Creates entity types for each of the accounts passed in
 export const createEntityTypes =
@@ -8,7 +9,7 @@ export const createEntityTypes =
     const userType = await User.getEntityType(db);
     const userTypeUri = userType.properties.$id;
 
-    const schema: any = {
+    const schema: JSONSchema = {
       title: "Task",
       description: "A task, ticket, job, etc",
       properties: {
@@ -56,20 +57,21 @@ export const createEntityTypes =
           updatedByAccountId: accountId,
         };
         let entityType = await EntityType.create(db, {
-          schema,
+          // @todo: We should type the JSONObjects as JSONSchema.
+          schema: schema as any,
           name: "Task",
           description: "A task, ticket, job, etc",
           ...baseParams,
         });
 
-        schema.properties.parent = {
+        schema.properties!.parent = {
           $ref: entityType.properties.$id,
         };
-        schema.properties.dependents = {
+        schema.properties!.dependents = {
           type: "array",
           items: { $ref: entityType.properties.$id },
         };
-        schema.properties.dependencies = {
+        schema.properties!.dependencies = {
           type: "array",
           items: { $ref: entityType.properties.$id },
         };
