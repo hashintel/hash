@@ -88,8 +88,8 @@ class __EntityType {
    * When a JSON schema is to be validated, the whole schema inheritance chain
    * is validated.
    *
-   * Validations include properties with the same name and verifying constraints
-   * are valid.
+   * Validations include checking types of properties with the same name and
+   * verifying numeric constraints are compatible.
    *
    * @param client
    * @param params

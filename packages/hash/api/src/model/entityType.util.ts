@@ -40,13 +40,14 @@ export class SchemaTypeMismatch extends Error {
   }
 }
 
-export type PropertyGroup = {
+// The following types are internally used to validate JSON schemas.
+type PropertyGroup = {
   parents: PropertyGroup[];
   $id?: string;
   properties: Property[];
 };
 
-export type Property = {
+type Property = {
   name: string;
   type: string;
   format?: string;
@@ -54,11 +55,27 @@ export type Property = {
   otherFields: Partial<JSONSchema7>;
 };
 
+// If any property constraint has 'min' or 'max' in their name, it is a numeric constraint
+// JSON Schema 4 would allow booleans for 'exclusiveMinimum' and 'exclusiveMaximum', though.
 const CONSTRAINT_RE = /.*(min|max).*/i;
 
+/**
+ * When a 'minimim' constraint is defined twice on the same property (across multiple schemas),
+ * the constraint should be 'maximized' such that the minimum is changed to the most permissive
+ * value.
+ */
 const maximizeConstraint = Math.max;
+
+/**
+ * When a 'maximum' constraint is defined twice on the same property (across multiple schemas),
+ * the constraint should be 'minimized' such that the maximum is changed to the least permissive
+ * value.
+ */
 const minimizeConstraint = Math.min;
 
+/**
+ * All JSON Schema numeric constraints that we support validation for.
+ */
 type Constraint =
   | "exclusiveMaximum"
   | "exclusiveMinimum"
@@ -71,6 +88,9 @@ type Constraint =
   | "maxProperties"
   | "minProperties";
 
+/**
+ * Mapping from constraint names to what kind of permissiveness that is required
+ */
 const propertyConstraintMerging: Record<
   Constraint | string,
   (...values: number[]) => number
@@ -131,8 +151,8 @@ function extractProperties(schema: JSONSchema7): PropertyGroup {
 /**
  * In JSON Schema, constraints can be put on numeric properties, this function validates that
  * pairs of constraints (minimum and maximum) do not span over a negative interval.
- * @param constraints
- * @returns
+ *
+ * Negative intervals can be a result of validating nested types that define the same property
  */
 const validationConstraintPairs = (
   constraints: Record<string, number>,
@@ -168,6 +188,10 @@ type PropertyWithConstraint = {
   numberConstraints: Record<string, number>;
 };
 
+/**
+ * This function type checks properties of the same name.
+ * It is relevant when checking property types across inherited schemas.
+ */
 function validatePropertyType(
   property: Property,
   seenProperty: PropertyWithConstraint,
@@ -193,14 +217,16 @@ function validateProperties(
   for (const property of propertyGroup.properties) {
     const constraints: [string, number][] = Object.entries(
       property.otherFields,
-      // Assumption is being made here about all "min" and "max" constraints always having number values
+      // Assumption is being made here about all "min" and "max" constraints being number values
     ).filter((prop): prop is [string, number] => CONSTRAINT_RE.test(prop[0]));
 
     if (seen.has(property.name)) {
       const seenProperty = seen.get(property.name)!;
 
+      // First type check the pair of properties with the same name
       errors.push(...validatePropertyType(property, seenProperty));
 
+      // Then validate that their constraints are compatible
       for (const [fieldName, fieldValue] of constraints) {
         const constraintNarrow = propertyConstraintMerging[fieldName];
         if (constraintNarrow) {
@@ -226,7 +252,7 @@ function validateProperties(
  * Validate a collection of JSON schemas based on their properties.
  * For every schema given, any properties that overlap will be validated.
  *
- * Validation includes checking that types match and
+ * Validation includes checking that types match and that constraints are not negative
  *
  * @param properties list of properties to duplicate check
  * @returns a list of type-mismatch errors. Does not throw an exception.
@@ -249,6 +275,12 @@ export const entityTypePropertyKeyValidator = (
   return errors;
 };
 
+/**
+ * Extract all 'allOf' objects which contain '$ref' values
+ *
+ * @param schema the JSON Schema to extract '$ref's from.
+ * @returns list of '$ref' values
+ */
 export const getSchemaAllOfRefs = (schema: JSONSchema7) =>
   schema.allOf
     ?.filter(
@@ -258,7 +290,8 @@ export const getSchemaAllOfRefs = (schema: JSONSchema7) =>
     .map(({ $ref }) => $ref) ?? [];
 
 const ajv = new Ajv2019({
-  addUsedSchema: false, // stop AJV trying to add compiled schemas to the instance
+  // stop AJV trying to add compiled schemas to the instance
+  addUsedSchema: false,
   // At validation time, don't use the "proper" resolver.
   loadSchema: async () => ({}),
 });
