@@ -133,7 +133,7 @@ export const SearchInput: React.FC<{
     <Box
       sx={(theme) => ({
         position: "relative",
-        borderRadius: theme.spacing(0.75),
+        borderRadius: "6px",
         borderWidth: 1,
         borderStyle: "solid",
         borderColor: theme.palette.gray[30],
@@ -184,6 +184,7 @@ export const SearchInput: React.FC<{
           "& .MuiInputBase-input": {
             py: theme.spacing(1),
             paddingLeft: theme.spacing(4.5),
+            paddingRight: isMobile ? 1 : "unset",
           },
         })}
         inputProps={{ "aria-label": "search" }}
