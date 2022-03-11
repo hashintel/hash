@@ -6,7 +6,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useKeys } from "rooks";
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
 
@@ -109,6 +109,21 @@ export const SearchInput: React.FC<{
       inputRef.current?.focus();
     }
   });
+
+  useEffect(() => {
+    function checkSearchKey(event: KeyboardEvent) {
+      if (isMac && event.key === "p" && event.metaKey) {
+        event.preventDefault();
+        inputRef.current?.focus();
+      }
+    }
+
+    document.addEventListener("keydown", checkSearchKey);
+
+    return () => {
+      document.removeEventListener("keydown", checkSearchKey);
+    };
+  }, [isMac]);
 
   const clearSearch = useCallback(() => {
     setQueryText("");
