@@ -34,12 +34,6 @@ export const createSchema$idRef = (schema$id: string) => {
 };
 
 // The following types are internally used to validate JSON schemas.
-type PropertyGroup = {
-  parents: PropertyGroup[];
-  $id?: string;
-  properties: Property[];
-};
-
 type Property = {
   name: string;
   type: string;
@@ -101,13 +95,13 @@ const propertyConstraintMerging: Record<
 } as const;
 
 /**
- * Traverse properties of a schema recursively, visiting 'allOf' properties as well.
+ * Traverse properties of a schema and convert to a {@link Property}
  *
  * @param schema JSON Schema that is to be traversed
- * @param properties list of Properties from the resulting traversal
  */
-function traverseProperties(schema: JSONSchema, properties: Property[]) {
-  // Traverse top-level properties for a schema
+function extractProperties(schema: JSONSchema): Property[] {
+  const properties: Property[] = [];
+
   for (const [field, value] of Object.entries(schema.properties ?? {})) {
     if (typeof value === "object") {
       const { type, format, description, ...otherFields } = value;
@@ -122,13 +116,8 @@ function traverseProperties(schema: JSONSchema, properties: Property[]) {
       }
     }
   }
-}
 
-function extractProperties(schema: JSONSchema): PropertyGroup {
-  const properties: Property[] = [];
-  traverseProperties(schema, properties);
-
-  return { $id: schema.$id, parents: [], properties };
+  return properties;
 }
 
 /**
@@ -196,8 +185,8 @@ function validateProperties(
   const seen = alreadySeen ?? new Map();
   const errors = existingErrors ?? [];
 
-  const propertyGroup = extractProperties(entityType);
-  for (const property of propertyGroup.properties) {
+  const properties = extractProperties(entityType);
+  for (const property of properties) {
     const constraints: [string, number][] = Object.entries(
       property.otherFields,
       // Assumption is being made here about all "min" and "max" constraints being number values
