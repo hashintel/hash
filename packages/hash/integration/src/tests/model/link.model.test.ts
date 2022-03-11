@@ -19,6 +19,8 @@ let existingUser: User;
 let dummyEntityType: EntityType;
 
 beforeAll(async () => {
+  // recreating DB takes longer than the default 5 seconds.
+  jest.setTimeout(60000);
   await recreateDbAndRunSchemaMigrations();
 
   db = new PostgresAdapter(
