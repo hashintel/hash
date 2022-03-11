@@ -1,4 +1,5 @@
-import { CacheProvider, EmotionCache, ThemeProvider } from "@emotion/react";
+import { CacheProvider, EmotionCache } from "@emotion/react";
+import { ThemeProvider } from "@mui/material";
 import CssBaseline from "@mui/material/CssBaseline";
 import type { AppProps } from "next/app";
 import { VFC } from "react";
