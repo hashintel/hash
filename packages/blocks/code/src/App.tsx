@@ -105,10 +105,7 @@ export const App: BlockComponent<AppProps> = ({
   }, [localData.caption]);
 
   const handleCaptionInputBlur = () => {
-    setCaptionVisibility(true);
-    if (!captionRef.current?.value.length) {
-      setCaptionVisibility(false);
-    }
+    setCaptionVisibility(!!captionRef.current?.value.length);
     updateRemoteData();
   };
 
