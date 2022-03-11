@@ -10,6 +10,7 @@ module.exports = {
     "react-hooks/exhaustive-deps": "error",
     "react/jsx-key": "error",
     "react/jsx-no-useless-fragment": "error",
+    "react/no-danger": "error",
     "react/self-closing-comp": "error",
     curly: ["error", "multi-line"],
     "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
