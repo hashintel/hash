@@ -3,68 +3,66 @@ use arrow::{array::ArrayRef, record_batch::RecordBatch};
 use crate::datastore::{Error, Result};
 
 pub mod agent {
-    use std::ops::Deref;
-
     use arrow::datatypes::DataType;
 
     use crate::datastore::{prelude::*, POSITION_DIM, UUID_V4_LEN};
 
-    pub fn agent_id_iter<B: Deref<Target = AgentBatch>>(
-        agent_pool: &[B],
-    ) -> Result<impl Iterator<Item = &[u8; UUID_V4_LEN]>> {
-        let mut iterables = Vec::with_capacity(agent_pool.len());
-
-        // Collect iterators first, because we want to check for any errors.
-        for agent_batch in agent_pool {
-            let iterable = super::rb::agent_id_iter(agent_batch.record_batch()?)?;
-            iterables.push(iterable);
-        }
-        Ok(iterables.into_iter().flatten())
-    }
-
-    // TODO: UNUSED: Needs triage
-    pub fn agent_id_iter_ref<'b: 'a, 'a, B: Deref<Target = AgentBatch>>(
-        agent_pool: &'a [&'b B],
+    pub fn agent_id_iter<'b: 'a, 'a>(
+        agent_pool: &'a [&'b AgentBatch],
     ) -> Result<impl Iterator<Item = &'b [u8; UUID_V4_LEN]> + 'a> {
         let mut iterables = Vec::with_capacity(agent_pool.len());
 
         // Collect iterators first, because we want to check for any errors.
         for agent_batch in agent_pool {
-            let iterable = super::rb::agent_id_iter(agent_batch.record_batch()?)?;
-            iterables.push(iterable);
-        }
-        Ok(iterables.into_iter().flatten())
-    }
-
-    pub fn agent_name_iter<B: Deref<Target = AgentBatch>>(
-        agent_pool: &[B],
-    ) -> Result<impl Iterator<Item = Option<&str>>> {
-        let mut iterables = Vec::with_capacity(agent_pool.len());
-
-        // Collect iterators first, because we want to check for any errors.
-        for agent_batch in agent_pool {
-            let iterable = super::rb::agent_name_iter(agent_batch.record_batch()?)?;
+            let iterable = super::record_batch::agent_id_iter(agent_batch.record_batch()?)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
     }
 
     // TODO: UNUSED: Needs triage
-    pub fn agent_name_iter_ref<'b: 'a, 'a, B: Deref<Target = AgentBatch>>(
-        agent_pool: &'a [&'b B],
-    ) -> Result<impl Iterator<Item = Option<&'b str>> + 'a> {
+    pub fn agent_id_iter_ref<'b: 'a, 'a>(
+        agent_pool: &'a [&'b AgentBatch],
+    ) -> Result<impl Iterator<Item = &'b [u8; UUID_V4_LEN]> + 'a> {
         let mut iterables = Vec::with_capacity(agent_pool.len());
 
         // Collect iterators first, because we want to check for any errors.
         for agent_batch in agent_pool {
-            let iterable = super::rb::agent_name_iter(agent_batch.record_batch()?)?;
+            let iterable = super::record_batch::agent_id_iter(agent_batch.record_batch()?)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
     }
 
-    pub fn json_value_iter_cols<'a, B: Deref<Target = AgentBatch>>(
-        agent_pool: &'a [B],
+    pub fn agent_name_iter<'b: 'a, 'a>(
+        agent_pool: &'a [&'b AgentBatch],
+    ) -> Result<impl Iterator<Item = Option<&'b str>> + 'a> {
+        let mut iterables = Vec::with_capacity(agent_pool.len());
+
+        // Collect iterators first, because we want to check for any errors.
+        for agent_batch in agent_pool {
+            let iterable = super::record_batch::agent_name_iter(agent_batch.record_batch()?)?;
+            iterables.push(iterable);
+        }
+        Ok(iterables.into_iter().flatten())
+    }
+
+    // TODO: UNUSED: Needs triage
+    pub fn agent_name_iter_ref<'b: 'a, 'a>(
+        agent_pool: &'a [&'b AgentBatch],
+    ) -> Result<impl Iterator<Item = Option<&'b str>> + 'a> {
+        let mut iterables = Vec::with_capacity(agent_pool.len());
+
+        // Collect iterators first, because we want to check for any errors.
+        for agent_batch in agent_pool {
+            let iterable = super::record_batch::agent_name_iter(agent_batch.record_batch()?)?;
+            iterables.push(iterable);
+        }
+        Ok(iterables.into_iter().flatten())
+    }
+
+    pub fn json_value_iter_cols<'b: 'a, 'a>(
+        agent_pool: &'a [&'b AgentBatch],
         field_name: &str,
         data_type: &DataType,
     ) -> Result<Box<dyn Iterator<Item = serde_json::Value> + Send + Sync + 'a>> {
@@ -72,17 +70,20 @@ pub mod agent {
 
         // Collect iterators first, because we want to check for any errors.
         for agent_batch in agent_pool {
-            let iterable =
-                super::rb::json_values(agent_batch.record_batch()?, field_name, data_type)?;
+            let iterable = super::record_batch::json_values(
+                agent_batch.record_batch()?,
+                field_name,
+                data_type,
+            )?;
             iterables.push(iterable.into_iter());
         }
         Ok(Box::new(iterables.into_iter().flatten()))
     }
 
     /// Get the index of an agent in Context Batch
-    pub fn index_iter<B: Deref<Target = AgentBatch>>(
-        agent_pool: &[B],
-    ) -> impl Iterator<Item = AgentIndex> + '_ {
+    pub fn index_iter<'b: 'a, 'a>(
+        agent_pool: &'a [&'b AgentBatch],
+    ) -> impl Iterator<Item = AgentIndex> + 'a {
         agent_pool.iter().enumerate().flat_map(|(i, g)| {
             let num_agents = g.num_agents() as u32;
             let group_index = i as u32;
@@ -90,116 +91,118 @@ pub mod agent {
         })
     }
 
-    pub fn position_iter<B: Deref<Target = AgentBatch>>(
-        agent_pool: &[B],
-    ) -> Result<impl Iterator<Item = Option<&[f64; POSITION_DIM]>>> {
+    pub fn position_iter<'b: 'a, 'a>(
+        agent_pool: &'a [&'b AgentBatch],
+    ) -> Result<impl Iterator<Item = Option<&'b [f64; POSITION_DIM]>> + 'a> {
         let mut iterables = Vec::with_capacity(agent_pool.len());
 
         // Collect iterators first, because we want to check for any errors.
         for agent_batch in agent_pool {
-            let iterable = super::rb::position_iter(agent_batch.record_batch()?)?;
+            let iterable = super::record_batch::position_iter(agent_batch.record_batch()?)?;
             iterables.push(iterable);
         }
 
         Ok(iterables.into_iter().flatten())
     }
 
-    pub fn search_radius_iter<B: Deref<Target = AgentBatch>>(
-        agent_pool: &[B],
-    ) -> Result<impl Iterator<Item = Option<f64>> + '_> {
+    pub fn search_radius_iter<'b: 'a, 'a>(
+        agent_pool: &'a [&'b AgentBatch],
+    ) -> Result<impl Iterator<Item = Option<f64>> + 'a> {
         let mut iterables = Vec::with_capacity(agent_pool.len());
 
         // Collect iterators first, because we want to check for any errors.
         for agent_batch in agent_pool {
-            let iterable = super::rb::search_radius_iter(agent_batch.record_batch()?)?;
+            let iterable = super::record_batch::search_radius_iter(agent_batch.record_batch()?)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
     }
 
-    pub fn f64_iter<'a, B: Deref<Target = AgentBatch>>(
-        agent_pool: &'a [B],
+    pub fn f64_iter<'b: 'a, 'a>(
+        agent_pool: &'a [&'b AgentBatch],
         field_name: &str,
     ) -> Result<impl Iterator<Item = Option<f64>> + 'a> {
         let mut iterables = Vec::with_capacity(agent_pool.len());
 
         // Collect iterators first, because we want to check for any errors.
         for agent_batch in agent_pool {
-            let iterable = super::rb::f64_iter(agent_batch.record_batch()?, field_name)?;
+            let iterable = super::record_batch::f64_iter(agent_batch.record_batch()?, field_name)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
     }
 
-    pub fn exists_iter<'a, B: Deref<Target = AgentBatch>>(
-        agent_pool: &'a [B],
+    pub fn exists_iter<'b: 'a, 'a>(
+        agent_pool: &'a [&'b AgentBatch],
         field_name: &str,
     ) -> Result<impl Iterator<Item = bool> + 'a> {
         let mut iterables = Vec::with_capacity(agent_pool.len());
 
         // Collect iterators first, because we want to check for any errors.
         for agent_batch in agent_pool {
-            let iterable = super::rb::exists_iter(agent_batch.record_batch()?, field_name)?;
+            let iterable =
+                super::record_batch::exists_iter(agent_batch.record_batch()?, field_name)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
     }
 
-    pub fn str_iter<'a, B: Deref<Target = AgentBatch>>(
-        agent_pool: &'a [B],
+    pub fn str_iter<'b: 'a, 'a>(
+        agent_pool: &'a [&'b AgentBatch],
         field_name: &str,
-    ) -> Result<impl Iterator<Item = Option<&'a str>> + 'a> {
+    ) -> Result<impl Iterator<Item = Option<&'b str>> + 'a> {
         let mut iterables = Vec::with_capacity(agent_pool.len());
 
         // Collect iterators first, because we want to check for any errors.
         for agent_batch in agent_pool {
-            let iterable = super::rb::str_iter(agent_batch.record_batch()?, field_name)?;
+            let iterable = super::record_batch::str_iter(agent_batch.record_batch()?, field_name)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
     }
 
-    pub fn bool_iter<'a, B: Deref<Target = AgentBatch>>(
-        agent_pool: &'a [B],
+    pub fn bool_iter<'b: 'a, 'a>(
+        agent_pool: &'a [&'b AgentBatch],
         field_name: &str,
     ) -> Result<impl Iterator<Item = Option<bool>> + 'a> {
         let mut iterables = Vec::with_capacity(agent_pool.len());
 
         // Collect iterators first, because we want to check for any errors.
         for agent_batch in agent_pool {
-            let iterable = super::rb::bool_iter(agent_batch.record_batch()?, field_name)?;
+            let iterable = super::record_batch::bool_iter(agent_batch.record_batch()?, field_name)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
     }
 
-    pub fn json_serialized_value_iter<'a, B: Deref<Target = AgentBatch>>(
-        agent_pool: &'a [B],
+    pub fn json_serialized_value_iter<'b: 'a, 'a>(
+        agent_pool: &'a [&'b AgentBatch],
         field_name: &str,
     ) -> Result<impl Iterator<Item = serde_json::Value> + Send + Sync + 'a> {
         let mut iterables = Vec::with_capacity(agent_pool.len());
 
         // Collect iterators first, because we want to check for any errors.
         for agent_batch in agent_pool {
-            let rb = agent_batch.record_batch()?;
-            let iterable = super::rb::json_deserialize_str_value_iter(rb, field_name)?;
+            let record_batch = agent_batch.record_batch()?;
+            let iterable =
+                super::record_batch::json_deserialize_str_value_iter(record_batch, field_name)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
     }
 }
 
-pub fn column_with_name<'a>(rb: &'a RecordBatch, name: &str) -> Result<&'a ArrayRef> {
-    let (index, _) = rb
+pub fn column_with_name<'a>(record_batch: &'a RecordBatch, name: &str) -> Result<&'a ArrayRef> {
+    let (index, _) = record_batch
         .schema()
         .column_with_name(name)
         .ok_or_else(|| Error::ColumnNotFound(name.into()))?;
 
-    Ok(rb.column(index))
+    Ok(record_batch.column(index))
 }
 
 // Special-case columns getters and setters
-pub mod rb {
+pub mod record_batch {
     use std::borrow::Cow;
 
     use arrow::{array::Array, datatypes::DataType, record_batch::RecordBatch};
@@ -217,37 +220,50 @@ pub mod rb {
 
     // TODO: Use in Rust runner, and look up column without using PREVIOUS_INDEX_COLUMN_INDEX
     #[allow(unused, unreachable_code)]
-    pub fn get_old_message_index(rb: &RecordBatch, row_index: usize) -> Result<Option<&[u32; 2]>> {
-        let col = rb.column(todo!());
+    pub fn get_old_message_index(
+        record_batch: &RecordBatch,
+        row_index: usize,
+    ) -> Result<Option<&[u32; 2]>> {
+        let col = record_batch.column(todo!());
         let data_ref = col.data_ref();
         let nulls = data_ref.null_buffer();
 
+        // TODO: If there are nulls in the column with old message locations,
+        //       then `typed_data` might give a reference to uninitialized data,
+        //       so `MaybeUninit<u32>` would be a better type.
         let child_data_buffer =
             unsafe { data_ref.child_data()[0].buffers()[0].typed_data::<u32>() };
 
-        const IND_N: usize = 2;
-        let start_index = row_index * IND_N;
-        // SAFETY: safe because we keep the same `IND_N` constant
-        let res = unsafe {
-            &*(&child_data_buffer[start_index..start_index + IND_N][0] as *const u32
-                as *const [u32; IND_N])
-        };
+        // SAFETY: The column with old message locations has two `u32` indices per row
+        // (i.e. each location is a tuple of two indices), so it must be viewable as a
+        // slice of `[u32; 2]`. (Space is allocated for a tuple even if a row is null.)
+        // TODO: Safer way to do this? (safe transmute crate?)
+        let data_as_tuples = unsafe { &*(child_data_buffer as *const [u32] as *const [[u32; 2]]) };
+        let old_message_location = &data_as_tuples[row_index];
+
         if let Some(nulls) = nulls {
+            // This column is nullable.
             let nulls = nulls.as_slice();
             if arrow_bit_util::get_bit(nulls, row_index) {
-                Ok(Some(res))
+                // The null buffer contains a 1 for this row, so this row isn't null.
+                Ok(Some(old_message_location))
             } else {
+                // This row is null, so the data referenced by `old_message_location` is
+                // actually invalid and shouldn't be returned.
                 Ok(None)
             }
         } else {
-            Ok(Some(res))
+            // This column is non-nullable, so this row can't be null.
+            Ok(Some(old_message_location))
         }
     }
 
     // TODO: no set_id, but ID must have null bytes if too short
-    pub fn agent_id_iter(rb: &RecordBatch) -> Result<impl Iterator<Item = &[u8; UUID_V4_LEN]>> {
+    pub fn agent_id_iter(
+        record_batch: &RecordBatch,
+    ) -> Result<impl Iterator<Item = &[u8; UUID_V4_LEN]>> {
         let column_name = AgentStateField::AgentId.name();
-        let column = column_with_name(rb, column_name)?;
+        let column = column_with_name(record_batch, column_name)?;
         // FixedSizeBinary has a single buffer (no offsets)
         let data = column.data_ref();
         let buffer = &data.buffers()[0];
@@ -259,15 +275,17 @@ pub mod rb {
         }))
     }
 
-    pub fn agent_name_iter(rb: &RecordBatch) -> Result<impl Iterator<Item = Option<&str>>> {
+    pub fn agent_name_iter(
+        record_batch: &RecordBatch,
+    ) -> Result<impl Iterator<Item = Option<&str>>> {
         let column_name = AgentStateField::AgentName.name();
-        str_iter(rb, column_name)
+        str_iter(record_batch, column_name)
     }
 
-    pub fn get_agent_name(rb: &RecordBatch) -> Result<Vec<Option<Cow<'_, str>>>> {
+    pub fn get_agent_name(record_batch: &RecordBatch) -> Result<Vec<Option<Cow<'_, str>>>> {
         let column_name = AgentStateField::AgentName.name();
-        let row_count = rb.num_rows();
-        let column = column_with_name(rb, column_name)?;
+        let row_count = record_batch.num_rows();
+        let column = column_with_name(record_batch, column_name)?;
 
         let column = column
             .as_any()
@@ -289,7 +307,7 @@ pub mod rb {
 
     #[allow(clippy::option_if_let_else)]
     pub fn agent_name_as_array(
-        rb: &RecordBatch,
+        record_batch: &RecordBatch,
         column: Vec<Option<Cow<'_, str>>>,
     ) -> Result<ColumnChange> {
         let column_name = AgentStateField::AgentName.name();
@@ -301,19 +319,19 @@ pub mod rb {
                 builder.append_null()
             }
         })?;
-        let (index, _) = rb
+        let (index, _) = record_batch
             .schema()
             .column_with_name(column_name)
             .ok_or_else(|| Error::ColumnNotFound(column_name.into()))?;
 
         Ok(ColumnChange {
-            data: builder.finish(),
+            data: builder.finish().data().clone(),
             index,
         })
     }
 
     pub fn topology_mut_iter(
-        rb: &mut RecordBatch,
+        record_batch: &mut RecordBatch,
     ) -> Result<(
         impl Iterator<
             Item = (
@@ -323,13 +341,13 @@ pub mod rb {
         >,
         BooleanColumn,
     )> {
-        let row_count = rb.num_rows();
+        let row_count = record_batch.num_rows();
         // TODO: Remove the dependency on the `position_was_corrected` field
-        let pwc_column = column_with_name(rb, "position_was_corrected")?;
+        let pwc_column = column_with_name(record_batch, "position_was_corrected")?;
         let pwc_column = BooleanColumn::new_non_nullable(pwc_column);
 
         let pos_column_name = AgentStateField::Position.name();
-        let pos_column = column_with_name(rb, pos_column_name)?;
+        let pos_column = column_with_name(record_batch, pos_column_name)?;
 
         let pos_column = pos_column
             .as_any()
@@ -344,7 +362,7 @@ pub mod rb {
             unsafe { pos_column.data_ref().child_data()[0].buffers()[0].typed_data::<f64>() };
 
         let dir_column_name = AgentStateField::Direction.name();
-        let dir_column = column_with_name(rb, dir_column_name)?;
+        let dir_column = column_with_name(record_batch, dir_column_name)?;
 
         let dir_column = dir_column
             .as_any()
@@ -389,11 +407,11 @@ pub mod rb {
     }
 
     pub fn position_iter(
-        rb: &RecordBatch,
+        record_batch: &RecordBatch,
     ) -> Result<impl Iterator<Item = Option<&[f64; POSITION_DIM]>>> {
         let column_name = AgentStateField::Position.name();
-        let row_count = rb.num_rows();
-        let column = column_with_name(rb, column_name)?;
+        let row_count = record_batch.num_rows();
+        let column = column_with_name(record_batch, column_name)?;
 
         let column = column
             .as_any()
@@ -422,11 +440,11 @@ pub mod rb {
     }
 
     pub fn direction_iter(
-        rb: &RecordBatch,
+        record_batch: &RecordBatch,
     ) -> Result<impl Iterator<Item = Option<&[f64; POSITION_DIM]>>> {
         let column_name = AgentStateField::Direction.name();
-        let row_count = rb.num_rows();
-        let column = column_with_name(rb, column_name)?;
+        let row_count = record_batch.num_rows();
+        let column = column_with_name(record_batch, column_name)?;
 
         let column = column
             .as_any()
@@ -454,18 +472,20 @@ pub mod rb {
         }))
     }
 
-    pub fn search_radius_iter(rb: &RecordBatch) -> Result<impl Iterator<Item = Option<f64>> + '_> {
+    pub fn search_radius_iter(
+        record_batch: &RecordBatch,
+    ) -> Result<impl Iterator<Item = Option<f64>> + '_> {
         // TODO[1] remove dependency on neighbors package
         let column_name = "search_radius";
-        f64_iter(rb, column_name)
+        f64_iter(record_batch, column_name)
     }
 
     pub fn f64_iter<'a>(
-        rb: &'a RecordBatch,
+        record_batch: &'a RecordBatch,
         column_name: &str,
     ) -> Result<impl Iterator<Item = Option<f64>> + 'a> {
-        let row_count = rb.num_rows();
-        let column = column_with_name(rb, column_name)?;
+        let row_count = record_batch.num_rows();
+        let column = column_with_name(record_batch, column_name)?;
 
         let column = column
             .as_any()
@@ -484,21 +504,21 @@ pub mod rb {
     }
 
     pub fn exists_iter<'a>(
-        rb: &'a RecordBatch,
+        record_batch: &'a RecordBatch,
         column_name: &str,
     ) -> Result<impl Iterator<Item = bool> + 'a> {
-        let row_count = rb.num_rows();
-        let column = column_with_name(rb, column_name)?;
+        let row_count = record_batch.num_rows();
+        let column = column_with_name(record_batch, column_name)?;
 
         Ok((0..row_count).map(move |i| column.is_valid(i)))
     }
 
     pub fn str_iter<'a>(
-        rb: &'a RecordBatch,
+        record_batch: &'a RecordBatch,
         column_name: &str,
     ) -> Result<impl Iterator<Item = Option<&'a str>>> {
-        let row_count = rb.num_rows();
-        let column = column_with_name(rb, column_name)?;
+        let row_count = record_batch.num_rows();
+        let column = column_with_name(record_batch, column_name)?;
 
         let column = column
             .as_any()
@@ -517,11 +537,11 @@ pub mod rb {
     }
 
     pub fn bool_iter<'a>(
-        rb: &'a RecordBatch,
+        record_batch: &'a RecordBatch,
         column_name: &str,
     ) -> Result<impl Iterator<Item = Option<bool>> + 'a> {
-        let row_count = rb.num_rows();
-        let column = column_with_name(rb, column_name)?;
+        let row_count = record_batch.num_rows();
+        let column = column_with_name(record_batch, column_name)?;
 
         let column = column
             .as_any()
@@ -541,10 +561,10 @@ pub mod rb {
 
     // Iterate string fields and deserialize them into serde_json::Value objects
     pub fn json_deserialize_str_value_iter<'a>(
-        rb: &'a RecordBatch,
+        record_batch: &'a RecordBatch,
         column_name: &str,
     ) -> Result<impl Iterator<Item = serde_json::Value> + 'a> {
-        let iterator = str_iter(rb, column_name)?.map(|a| {
+        let iterator = str_iter(record_batch, column_name)?.map(|a| {
             a.map(|v| match serde_json::from_str(v) {
                 Ok(v) => v,
                 Err(_) => {
@@ -561,11 +581,11 @@ pub mod rb {
     // Iterate over any non-serialized fields (like f64, array, struct, ...) and serialize them into
     // serde_json::Value objects
     pub fn json_values(
-        rb: &RecordBatch,
+        record_batch: &RecordBatch,
         column_name: &str,
         data_type: &DataType,
     ) -> Result<Vec<serde_json::Value>> {
-        let column = column_with_name(rb, column_name)?;
+        let column = column_with_name(record_batch, column_name)?;
         col_to_json_vals(column, data_type)
     }
 }

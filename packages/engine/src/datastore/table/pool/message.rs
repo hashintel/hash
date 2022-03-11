@@ -113,9 +113,9 @@ impl PoolReadProxy<MessageBatch> {
 
     pub fn recipient_iter_all<'b: 'r, 'r>(
         &'b self,
-    ) -> Result<impl ParallelIterator<Item = (Vec<&'b str>, AgentMessageReference)> + 'r> {
-        Ok(self.batches.par_iter().enumerate().flat_map(|(i, batch)| {
-            let record_batch = batch.record_batch()?;
+    ) -> impl ParallelIterator<Item = (Vec<&'b str>, AgentMessageReference)> + 'r {
+        self.batches.par_iter().enumerate().flat_map(|(i, batch)| {
+            let record_batch = batch.record_batch().unwrap(); // TODO: unwrap --> err
             message::record_batch::message_recipients_par_iter(record_batch)
                 .zip_eq(message::record_batch::message_usize_index_iter(
                     record_batch,
@@ -124,9 +124,9 @@ impl PoolReadProxy<MessageBatch> {
                 .flat_map(|(recipients, references)| {
                     let res = recipients.collect::<Vec<_>>();
                     let refs = references.collect::<Vec<_>>();
-                    res.into_par_iter().zip(refs.into_par_iter())
+                    res.into_par_iter().zip(refs.into_par_iter()) // TODO: zip_eq?
                 })
-        }))
+        })
     }
 }
 

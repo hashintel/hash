@@ -3,7 +3,7 @@ use serde_json::Value;
 use super::super::*;
 use crate::{
     config::{ExperimentConfig, TopologyConfig},
-    datastore::{batch::iterators::rb::topology_mut_iter, table::pool::BatchPool},
+    datastore::{batch::iterators::record_batch::topology_mut_iter, table::pool::BatchPool},
 };
 
 mod adjacency;

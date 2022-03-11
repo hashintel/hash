@@ -37,7 +37,7 @@ pub struct MessageMap {
 
 impl MessageMap {
     pub fn new(pool: &PoolReadProxy<MessageBatch>) -> Result<MessageMap> {
-        let iter = pool.recipient_iter_all()?;
+        let iter = pool.recipient_iter_all();
         let inner = iter
             .fold(
                 HashMap::<String, Vec<AgentMessageReference>>::new,
