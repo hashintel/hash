@@ -60,7 +60,7 @@ impl DerefMut for MessageBatch {
 }
 
 impl MessageBatch {
-    /// Clears the message batch, resizing as necessary.
+    /// Clears the message batch and resizes it as necessary.
     ///
     /// Uses the passed in `agents` for the `AgentId`s and the group
     /// size. `agents` must have equal loaded and persisted metaversions.
