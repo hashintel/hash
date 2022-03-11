@@ -3,6 +3,7 @@ import { useApolloClient } from "@apollo/client";
 import {
   BlockProtocolAggregateEntitiesFunction,
   BlockProtocolAggregateEntitiesResult,
+  BlockProtocolEntity,
 } from "blockprotocol";
 import { aggregateEntity } from "@hashintel/hash-shared/queries/entity.queries";
 import { useCallback } from "react";
@@ -49,7 +50,7 @@ export const useBlockProtocolAggregateEntities = (): {
       return {
         operation,
         results: newResults,
-      } as BlockProtocolAggregateEntitiesResult;
+      } as BlockProtocolAggregateEntitiesResult<BlockProtocolEntity>;
     },
     [client],
   );

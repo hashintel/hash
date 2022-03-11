@@ -8,6 +8,6 @@ import Component from "./index";
 
 const node = document.getElementById("app");
 
-const App = () => <Component color="red" height="2px" />;
+const App = () => <Component color="red" entityId="divider1" height="2px" />;
 
 ReactDOM.render(<App />, node);

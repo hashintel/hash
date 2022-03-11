@@ -46,11 +46,13 @@ export const BlockSuggester: VFC<BlockSuggesterProps> = ({
       renderItem={(option) => (
         <>
           <div className={tw`flex w-16 items-center justify-center`}>
-            <img
-              className={tw`w-6 h-6`}
-              alt={option.variant.displayName}
-              src={option.variant.icon}
-            />
+            {option.variant.icon && (
+              <img
+                className={tw`w-6 h-6`}
+                alt={option.variant.displayName ?? undefined}
+                src={option.variant.icon}
+              />
+            )}
           </div>
           <div className={tw`py-3 flex-1 pr-2`}>
             <p className={tw`text-sm font-bold`}>
