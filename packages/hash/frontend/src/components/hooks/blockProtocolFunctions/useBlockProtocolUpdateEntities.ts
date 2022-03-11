@@ -56,11 +56,14 @@ export const useBlockProtocolUpdateEntities = (): {
               entityId: action.entityId,
               properties: action.data,
             },
-          }).then(
-            ({ data }) =>
-              data &&
-              ("updatePage" in data ? data.updatePage : data.updateEntity),
-          );
+          }).then(({ data }) => {
+            if (!data) {
+              throw new Error(
+                `Could not update entity with action ${JSON.stringify(action)}`,
+              );
+            }
+            return "updatePage" in data ? data.updatePage : data.updateEntity;
+          });
         }),
       ),
     [updateEntityFn, updatePageFn],

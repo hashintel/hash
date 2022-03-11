@@ -49,6 +49,7 @@ export const EntityLinksEditor: VoidFunctionComponent<
               link: linkDef,
               linkedEntity: linkedEntities.find(
                 ({ entityId, entityVersionId }) =>
+                  !("operation" in linkDef) &&
                   linkDef.destinationEntityId === entityId &&
                   (linkDef.destinationEntityVersionId == null ||
                     linkDef.destinationEntityVersionId === entityVersionId),

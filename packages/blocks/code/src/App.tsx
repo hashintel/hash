@@ -58,7 +58,7 @@ export const App: BlockComponent<AppProps> = ({
         entityTypeId,
         entityTypeVersionId,
       },
-    ] as BlockProtocolUpdateEntitiesAction<AppProps>[]);
+    ] as BlockProtocolUpdateEntitiesAction[]);
   };
 
   const copyToClipboard = async () => {
