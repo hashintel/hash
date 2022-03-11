@@ -1,17 +1,15 @@
 import React from "react";
-// import { useModal } from "react-modal-hook";
-import { Box, Button, useTheme, useMediaQuery } from "@mui/material";
-import { useRouter } from "next/router";
+import { Box, useTheme, useMediaQuery } from "@mui/material";
 
 import { useLogout } from "../../hooks/useLogout";
 import { useUser } from "../../hooks/useUser";
-// import { LoginModal } from "../../Modals/AuthModal/LoginModal";
 import { AccountDropdown } from "./AccountDropdown";
 import { SearchBar } from "./SearchBar";
 import { HashNavIcon } from "../../icons";
 import { Link } from "../../Link";
 import { ActionsDropdown } from "./ActionsDropdown";
 import { NotificationsDropdown } from "./NotificationsDropdown";
+import { LinkButton } from "../../LinkButton";
 
 const Nav: React.FC = ({ children }) => (
   <Box
@@ -33,26 +31,10 @@ export const PageHeader: React.VFC<{
   accountId: string;
 }> = ({ accountId }) => {
   const theme = useTheme();
-  const router = useRouter();
-
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
-  const {
-    user,
-    // refetch
-  } = useUser();
+  const { user } = useUser();
   const { logout } = useLogout();
-
-  // const [showLoginModal, hideLoginModal] = useModal(() => (
-  //   <LoginModal
-  //     show
-  //     onClose={hideLoginModal}
-  //     onLoggedIn={() => {
-  //       void refetch();
-  //       hideLoginModal();
-  //     }}
-  //   />
-  // ));
 
   return (
     <Box
@@ -97,19 +79,19 @@ export const PageHeader: React.VFC<{
           </Box>
         ) : (
           <Box>
-            <Button
+            <LinkButton
               variant="tertiary_quiet"
               sx={{ mr: 1 }}
               // navigating to the login route instead of showing the login modal for now
               // since there's some z-index issues between the sidebar and the modal
-              onClick={() => router.push("/login")}
+              href="/login"
             >
               Sign In
-            </Button>
+            </LinkButton>
 
-            <Button size="small" onClick={() => router.push("/signup")}>
+            <LinkButton href="/signup" size="small">
               Sign Up
-            </Button>
+            </LinkButton>
           </Box>
         )}
       </Nav>
