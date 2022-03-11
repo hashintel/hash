@@ -60,17 +60,33 @@ export type EntityWithOutgoingEntityIds = DbEntity & {
 
 export type DBLink = {
   linkId: string;
+  linkVersionId: string;
   path: string;
   index?: number;
   sourceAccountId: string;
   sourceEntityId: string;
+
   appliedToSourceAt: Date;
-  appliedToSourceBy: string;
+  appliedToSourceByAccountId: string;
+
   removedFromSourceAt?: Date;
-  removedFromSourceBy?: string;
+  removedFromSourceByAccountId?: string;
+
   destinationAccountId: string;
   destinationEntityId: string;
   destinationEntityVersionId?: string;
+
+  updatedAt: Date;
+  updatedByAccountId: string;
+};
+
+export type DBLinkVersion = {
+  sourceAccountId: string;
+  linkVersionId: string;
+  linkId: string;
+  index?: number;
+  updatedAt: Date;
+  updatedByAccountId: string;
 };
 
 export type DBAggregation = {

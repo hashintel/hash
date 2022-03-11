@@ -1,8 +1,11 @@
 import { sql } from "slonik";
 
 import { Connection } from "../types";
-import { DBLinkRow, linksColumnNames, mapDBLinkRowToDBLink } from "./util";
-import { mapColumnNamesToSQL } from "../util";
+import {
+  mapDBRowsToDBLink,
+  DBLinkWithVersionRow,
+  selectAllLinksWithDestinationEntity,
+} from "./sql/links.util";
 
 export const getEntityIncomingLinks = async (
   conn: Connection,
@@ -12,25 +15,19 @@ export const getEntityIncomingLinks = async (
     entityVersionId?: string;
   },
 ) => {
-  const rows = await conn.any(sql<DBLinkRow>`
-    select ${mapColumnNamesToSQL(linksColumnNames, "links")}
-    from links inner join incoming_links on (
-      links.source_account_id = incoming_links.source_account_id
-      and links.link_id = incoming_links.link_id
+  const rows = await conn.any(sql<DBLinkWithVersionRow>`
+    with all_links as (${selectAllLinksWithDestinationEntity({
+      destinationAccountId: params.accountId,
+      destinationEntityId: params.entityId,
+      destinationEntityVersionId: params.entityVersionId,
+    })})
+    select *
+    from all_links join incoming_links on (
+      all_links.source_account_id = incoming_links.source_account_id
+      and all_links.link_id = incoming_links.link_id
     )
-    where
-    ${sql.join(
-      [
-        sql`incoming_links.destination_account_id = ${params.accountId}`,
-        sql`incoming_links.destination_entity_id = ${params.entityId}`,
-        params.entityVersionId !== undefined
-          ? sql`links.destination_entity_version_id = ${params.entityVersionId}`
-          : [],
-      ].flat(),
-      sql` and `,
-    )}
     order by index
   `);
 
-  return rows.map(mapDBLinkRowToDBLink);
+  return rows.map(mapDBRowsToDBLink);
 };

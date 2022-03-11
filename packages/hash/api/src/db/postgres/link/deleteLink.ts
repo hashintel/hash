@@ -5,11 +5,13 @@ import { genId } from "../../../util";
 import { getLink } from "./getLink";
 import {
   deleteLinkRow,
-  getLinksWithMinimumIndex,
-  insertLink,
+  getIndexedLinks,
   removeLinkFromSource,
-  updateLinkIndices,
-} from "./util";
+} from "./sql/links.util";
+import {
+  updateLinkVersionIndices,
+  insertLinkVersionRow,
+} from "./sql/link_versions.util";
 import { requireTransaction } from "../util";
 
 export const deleteLink = async (
@@ -51,9 +53,9 @@ export const deleteLink = async (
 
     const promises: Promise<void>[] = [];
 
-    if (dbSourceEntity.metadata.versioned) {
-      const { deletedByAccountId } = params;
+    const { deletedByAccountId } = params;
 
+    if (dbSourceEntity.metadata.versioned) {
       /**
        * When the source entity is versioned, instead of deleting the link from the
        * datastore we remove the link from the source at the current timestmap (so
@@ -80,31 +82,26 @@ export const deleteLink = async (
          * have to fully re-create these affected links - only create new versions
          */
 
-        const affectedOutgoingLinks = await getLinksWithMinimumIndex(conn, {
+        const affectedOutgoingLinks = await getIndexedLinks(conn, {
           sourceAccountId,
           sourceEntityId,
           minimumIndex: index + 1,
           path,
         });
 
-        promises.push(
-          ...affectedOutgoingLinks
-            .map((previousLink) => [
-              removeLinkFromSource(conn, {
-                ...previousLink,
-                removedFromSourceAt: now,
-                removedFromSourceBy: deletedByAccountId,
-              }),
-              insertLink(conn, {
-                ...previousLink,
-                linkId: genId(),
-                index: previousLink.index! - 1,
-                appliedToSourceAt: now,
-                appliedToSourceBy: deletedByAccountId,
-              }),
-            ])
-            .flat(),
-        );
+        for (const affectedOutgoingLink of affectedOutgoingLinks) {
+          promises.push(
+            insertLinkVersionRow(conn, {
+              dbLinkVersion: {
+                ...affectedOutgoingLink,
+                linkVersionId: genId(),
+                index: affectedOutgoingLink.index! - 1,
+                updatedAt: now,
+                updatedByAccountId: deletedByAccountId,
+              },
+            }),
+          );
+        }
       }
     } else {
       /**
@@ -124,12 +121,14 @@ export const deleteLink = async (
 
       if (index !== undefined) {
         promises.push(
-          updateLinkIndices(conn, {
+          updateLinkVersionIndices(conn, {
             sourceAccountId,
             sourceEntityId,
             path,
             minimumIndex: index + 1,
             operation: "decrement",
+            updatedAt: now,
+            updatedBy: deletedByAccountId,
           }),
         );
       }
