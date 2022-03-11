@@ -1,11 +1,10 @@
-import { useRef, useState, VoidFunctionComponent } from "react";
+import { useMemo, useRef, useState, VoidFunctionComponent } from "react";
 import { tw } from "twind";
 import {
   Box,
   Typography,
   Divider,
   ListItemButton,
-  useTheme,
   Tooltip,
   IconButton,
 } from "@mui/material";
@@ -25,19 +24,27 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
   logout,
   user,
 }) => {
-  const theme = useTheme();
-
   const buttonRef = useRef(null);
 
   const [open, setOpen] = useState(false);
 
   const id = open ? "account-popover" : undefined;
 
+  const userEmail = useMemo(() => {
+    const primaryEmail = user.properties.emails.find((email) => email.primary);
+
+    if (primaryEmail) {
+      return primaryEmail.address;
+    }
+
+    return user.properties.emails[0].address;
+  }, [user]);
+
   return (
     <Box>
       <Tooltip
         title={
-          <Box p={1.5}>
+          <>
             <Typography
               variant="smallTextLabels"
               sx={{
@@ -50,11 +57,11 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
             <Typography
               component="p"
               variant="microText"
-              sx={{ color: theme.palette.common.white }}
+              sx={({ palette }) => ({ color: palette.common.white })}
             >
-              @{user.properties.shortname!}
+              {userEmail}
             </Typography>
-          </Box>
+          </>
         }
         placement="bottom"
       >
@@ -85,18 +92,22 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
             />
           ) : (
             <Box
-              sx={{
+              sx={({ palette }) => ({
                 height: "32px",
                 width: "32px",
                 borderRadius: "100%",
-                background: theme.palette.blue[70],
+                background: palette.blue[70],
                 fontWeight: 600,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-              }}
+              })}
             >
-              <Typography sx={{ color: theme.palette.common.white }}>
+              <Typography
+                sx={({ palette }) => ({
+                  color: palette.common.white,
+                })}
+              >
                 {user.properties.preferredName![0].toUpperCase()}
               </Typography>
             </Box>
@@ -118,36 +129,36 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
         }}
         PaperProps={{
           elevation: 4,
-          sx: {
+          sx: ({ palette }) => ({
             width: 225,
             borderRadius: "6px",
             marginTop: 1,
-            border: `1px solid ${theme.palette.gray["20"]}`,
-          },
+            border: `1px solid ${palette.gray["20"]}`,
+          }),
         }}
-        sx={{
-          color: theme.palette.gray[40],
-        }}
+        sx={({ palette }) => ({
+          color: palette.gray[40],
+        })}
       >
         <Box px={2} pt={1} pb={1.5}>
           <Typography
             variant="smallTextLabels"
-            sx={{
-              color: theme.palette.gray[80],
+            sx={({ palette }) => ({
+              color: palette.gray[80],
               fontWeight: 700,
-            }}
+            })}
           >
             {user.properties.preferredName}
           </Typography>
           <Typography
             component="p"
             variant="microText"
-            sx={{ color: theme.palette.gray[60], lineHeight: 1 }}
+            sx={({ palette }) => ({ color: palette.gray[60], lineHeight: 1 })}
           >
-            @{user.properties.shortname!}
+            {userEmail}
           </Typography>
         </Box>
-        <Divider sx={{ borderColor: theme.palette.gray[30] }} />
+        <Divider sx={({ palette }) => ({ borderColor: palette.gray[30] })} />
         <Box>
           <Link noLinkStyle href="#" onClick={() => setOpen(false)}>
             <ListItemButton
@@ -161,7 +172,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
               </Typography>
             </ListItemButton>
           </Link>
-          <Divider sx={{ borderColor: theme.palette.gray[30] }} />
+          <Divider sx={({ palette }) => ({ borderColor: palette.gray[30] })} />
           <ListItemButton
             sx={{
               m: 0.5,
@@ -171,7 +182,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
           >
             <Typography
               variant="smallTextLabels"
-              sx={{ lineHeight: 1, color: theme.palette.gray[60] }}
+              sx={({ palette }) => ({ lineHeight: 1, color: palette.gray[60] })}
             >
               Sign Out
             </Typography>
