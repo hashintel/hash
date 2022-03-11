@@ -122,16 +122,6 @@ function traverseProperties(schema: JSONSchema, properties: Property[]) {
       }
     }
   }
-
-  // For any 'allOf' entry, check if more properties are to be uncovered.
-  for (const allOfEntry of schema.allOf ?? []) {
-    // AllOf might have more properties to check!
-    if (typeof allOfEntry === "object" && "type" in allOfEntry) {
-      if (allOfEntry.type === "object") {
-        traverseProperties(allOfEntry, properties);
-      }
-    }
-  }
 }
 
 function extractProperties(schema: JSONSchema): PropertyGroup {
