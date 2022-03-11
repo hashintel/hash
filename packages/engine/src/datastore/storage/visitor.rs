@@ -1,4 +1,4 @@
-//! TODO: DOC - expand upon this description
+// TODO: DOC: expand upon this description
 //! Code to visit different regions of shared memory
 //!
 //! This module is the *sole* source of truth for

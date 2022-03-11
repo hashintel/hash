@@ -73,7 +73,7 @@ impl Segment {
     /// Set the latest batch version and memory version of this batch
     /// that is persisted in memory (in this experiment as a whole).
     ///
-    /// ### Panics
+    /// # Panics
     ///
     /// If the metaversion wasn't written properly when
     /// the batch was created or the part of memory with the
@@ -139,12 +139,12 @@ impl GrowableBatch<ArrayData, ColumnChange> for ArrowBatch {
         &mut self.dynamic_meta
     }
 
-    fn memory_mut(&mut self) -> &mut Memory {
-        self.segment.memory_mut()
-    }
-
     fn memory(&self) -> &Memory {
         self.segment.memory()
+    }
+
+    fn memory_mut(&mut self) -> &mut Memory {
+        self.segment.memory_mut()
     }
 }
 
@@ -267,9 +267,9 @@ impl ArrowBatch {
     /// persisted metaversion, this gives an error to avoid
     /// queueing stale data. (The loaded metaversion can't
     /// be newer than the persisted metaversion.)
-    /// (TODO: We might have to remove this restriction to
-    ///        allow flushing changes multiple times without
-    ///        loading.)
+    // TODO: We might have to remove this restriction to
+    //       allow flushing changes multiple times without
+    //       loading.
     pub fn queue_change(&mut self, change: ColumnChange) -> Result<()> {
         if self.is_persisted() {
             self.queue_change_unchecked(change)
@@ -336,7 +336,7 @@ impl ArrowBatch {
     /// # Errors
     ///
     /// There must be no queued changes.
-    /// (TODO other errors?)
+    // TODO: other errors?
     pub fn sync(&mut self, new_batch: &Self) -> Result<()> {
         if self.has_queued_changes() {
             return Err(Error::from(
