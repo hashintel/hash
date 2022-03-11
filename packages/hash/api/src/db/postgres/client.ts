@@ -75,6 +75,7 @@ import { deleteAggregation } from "./aggregation/deleteAggregation";
 import { getEntityAggregation } from "./aggregation/getEntityAggregation";
 import { requireTransaction } from "./util";
 import { getEntityIncomingLinks } from "./link/getEntityIncomingLinks";
+import { updateLink } from "./link/updateLink";
 
 export class PostgresClient implements DbClient {
   private conn: Connection;
@@ -449,6 +450,12 @@ export class PostgresClient implements DbClient {
     destinationEntityVersionId?: string;
   }): Promise<DbLink> {
     return await createLink(this.conn, params);
+  }
+
+  async updateLink(
+    params: Parameters<DbClient["updateLink"]>[0],
+  ): Promise<DbLink> {
+    return await updateLink(this.conn, params);
   }
 
   async getLink(params: {

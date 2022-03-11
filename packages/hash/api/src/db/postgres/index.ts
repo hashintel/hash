@@ -225,7 +225,6 @@ export class PostgresAdapter extends DataSource implements DbAdapter {
     return this.query((adapter) => adapter.updateEntityMetadata(params));
   }
 
-  /** Create a link */
   createLink(params: {
     createdByAccountId: string;
     accountId: string;
@@ -239,6 +238,10 @@ export class PostgresAdapter extends DataSource implements DbAdapter {
     destinationEntityVersionId?: string;
   }): Promise<DbLink> {
     return this.query((adapter) => adapter.createLink(params));
+  }
+
+  updateLink(params: Parameters<DbClient["updateLink"]>[0]): Promise<DbLink> {
+    return this.query((adapter) => adapter.updateLink(params));
   }
 
   getLink(params: {

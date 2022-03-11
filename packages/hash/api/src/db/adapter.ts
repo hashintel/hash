@@ -451,6 +451,21 @@ export interface DbClient {
     destinationEntityVersionId?: string;
   }): Promise<DbLink>;
 
+  /**
+   * Updates the index of a link (and the other affected links)
+   *
+   * @param params.sourceAccountId the account ID of the source entity
+   * @param params.linkId the link ID of the link
+   * @param params.updatedIndex the updated index of the link
+   * @param params.updatedByAccountId the account ID of the user that is updating the entity
+   */
+  updateLink(params: {
+    sourceAccountId: string;
+    linkId: string;
+    updatedIndex: number;
+    updatedByAccountId: string;
+  }): Promise<DbLink>;
+
   getLink(params: {
     sourceAccountId: string;
     linkId: string;

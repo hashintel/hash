@@ -87,6 +87,7 @@ export const updateLinkVersionRow = async (
     where
       source_account_id = ${params.sourceAccountId}
       and link_version_id = ${params.linkVersionId}
+    returning *;
   `);
 };
 
@@ -111,17 +112,19 @@ export const updateLinkVersionIndices = async (
       index = index + ${operation === "increment" ? 1 : -1},
       updated_at = ${params.updatedAt.toISOString()},
       updated_by_account_id = ${params.updatedByAccountId}
+    from
+      links
     where ${sql.join(
       [
-        sql`source_account_id = ${params.sourceAccountId}`,
-        sql`source_entity_id = ${params.sourceEntityId}`,
-        sql`path = ${params.path}`,
-        sql`and index is not null`,
+        sql`links.source_account_id = ${params.sourceAccountId}`,
+        sql`links.source_entity_id = ${params.sourceEntityId}`,
+        sql`link_versions.link_id = links.link_id`,
+        sql`link_versions.index is not null`,
         typeof minimumIndex !== "undefined"
-          ? sql`index >= ${minimumIndex}`
+          ? sql`link_versions.index >= ${minimumIndex}`
           : [],
         typeof maximumIndex !== "undefined"
-          ? sql`index <= ${maximumIndex}`
+          ? sql`link_versions.index <= ${maximumIndex}`
           : [],
       ].flat(),
       sql` and `,
