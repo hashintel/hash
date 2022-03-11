@@ -99,9 +99,16 @@ export const SearchInput: React.FC<{
   setResultListVisible: (visible: boolean) => void;
   setQueryText: (queryText: string) => void;
 }> = ({ displayedQuery, isMobile, setResultListVisible, setQueryText }) => {
+  const isMac = navigator.userAgent.toUpperCase().includes("MAC");
+
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useKeys(["AltLeft", "KeyK"], () => inputRef.current?.focus());
+  useKeys(["ControlLeft", "KeyP"], (event) => {
+    event.preventDefault();
+    if (!isMac) {
+      inputRef.current?.focus();
+    }
+  });
 
   const clearSearch = useCallback(() => {
     setQueryText("");
@@ -115,7 +122,7 @@ export const SearchInput: React.FC<{
         borderWidth: 1,
         borderStyle: "solid",
         borderColor: theme.palette.gray[30],
-        width: isMobile ? "385px" : undefined,
+        width: isMobile ? "100%" : "385px",
         ":focus-within": {
           margin: "-1px",
           borderWidth: 2,
@@ -125,6 +132,10 @@ export const SearchInput: React.FC<{
             "border-width",
             "margin",
           ]),
+          ".MuiInputAdornment-root": {
+            marginRight: "-2px",
+            transition: theme.transitions.create(["margin"]),
+          },
         },
       })}
     >
