@@ -4,13 +4,13 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "build-storybook": "build-storybook -s ./public",
+    "build-storybook": "cross-env TS_NODE_PROJECT=.storybook/tsconfig.json build-storybook -s ./public",
     "dev": "next dev",
     "fix:eslint": "eslint --ext .js,.ts,.tsx --fix ./src/",
     "lint:eslint": "eslint --ext .js,.ts,.tsx ./src/",
     "lint:tsc": "tsc --noEmit",
     "start": "next start",
-    "storybook": "start-storybook -p 6006  -s ./public"
+    "storybook": "cross-env TS_NODE_PROJECT=.storybook/tsconfig.json start-storybook -p 6006  -s ./public"
   },
   "resolutions": {
     "node-fetch": "^2.6.7",
@@ -28,13 +28,13 @@
   },
   "devDependencies": {
     "@babel/core": "^7.17.4",
-    "@storybook/addon-actions": "^6.4.19",
-    "@storybook/addon-essentials": "^6.4.19",
-    "@storybook/addon-interactions": "^6.4.19",
-    "@storybook/addon-links": "^6.4.19",
-    "@storybook/builder-webpack5": "^6.4.19",
-    "@storybook/manager-webpack5": "^6.4.19",
-    "@storybook/react": "^6.4.19",
+    "@storybook/addon-actions": "6.5.0-alpha.47",
+    "@storybook/addon-essentials": "6.5.0-alpha.47",
+    "@storybook/addon-interactions": "6.5.0-alpha.47",
+    "@storybook/addon-links": "6.5.0-alpha.47",
+    "@storybook/builder-webpack5": "6.5.0-alpha.47",
+    "@storybook/manager-webpack5": "6.5.0-alpha.47",
+    "@storybook/react": "6.5.0-alpha.47",
     "@storybook/testing-library": "^0.0.9",
     "@types/node": "16.7.6",
     "@types/react": "17.0.38",
