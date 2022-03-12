@@ -183,7 +183,7 @@ export const OrgCreate: VFC<OrgCreateProps> = ({
     <div className={tw`flex flex-col items-center`}>
       <h1 className={tw`text-3xl font-bold mb-12`}>Create a team workspace</h1>
       <div className={tw`text-center mb-6`}>
-        {}
+        {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
         <label className={tw`cursor-pointer`}>
           {avatarImg ? (
             <img
