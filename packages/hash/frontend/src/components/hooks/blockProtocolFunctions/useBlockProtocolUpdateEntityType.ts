@@ -57,7 +57,7 @@ export const useBlockProtocolUpdateEntityType = (): {
 
         if (!data) {
           throw new Error(
-            errors?.[0].message || "Could not update entity type",
+            errors?.[0]!.message || "Could not update entity type",
           );
         }
 

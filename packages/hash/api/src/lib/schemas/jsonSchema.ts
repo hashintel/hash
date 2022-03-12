@@ -183,7 +183,7 @@ export class JsonSchemaCompiler {
   }) {
     const { $id, title, maybeStringifiedSchema, description } = params;
 
-    if (title[0] !== title[0].toUpperCase()) {
+    if (title[0] !== title[0]?.toUpperCase()) {
       throw new Error(
         `Schema title should be in PascalCase, you passed '${title}'`,
       );

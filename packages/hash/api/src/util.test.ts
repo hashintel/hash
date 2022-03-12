@@ -172,7 +172,7 @@ describe("tree flattening", () => {
       ],
     };
 
-    graph.linkedGraphs![0].entity = graph;
+    graph.linkedGraphs![0]!.entity = graph;
 
     expect(() => {
       linkedTreeFlatten(graph, "linkedGraphs", "entity");

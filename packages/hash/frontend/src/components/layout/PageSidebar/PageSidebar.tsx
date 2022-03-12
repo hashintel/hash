@@ -19,7 +19,10 @@ import { useSidebarContext } from "../SidebarContext";
 export const PageSidebar: VoidFunctionComponent = () => {
   const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebarContext();
-  const { accountId, pageEntityId } = router.query as Record<string, string>;
+  const { accountId, pageEntityId } = router.query as Record<
+    "accountId" | "pageEntityId",
+    string
+  >;
 
   return (
     <Drawer variant="persistent" open={sidebarOpen} sx={{ zIndex: 0 }}>

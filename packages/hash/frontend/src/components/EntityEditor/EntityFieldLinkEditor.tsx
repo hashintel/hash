@@ -136,7 +136,7 @@ export const EntityFieldLinkEditor: VoidFunctionComponent<
         });
       } else {
         if (lastLinkData) {
-          void deleteLinkFromEntity({ linkId: linksOnField[0].link.linkId });
+          void deleteLinkFromEntity({ linkId: linksOnField[0]!.link.linkId });
         }
         if (selectedEntityId !== noSelectionValue) {
           void createLinkFromEntity({

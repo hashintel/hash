@@ -48,7 +48,7 @@ export const useGetInvitationInfo = () => {
       });
     },
     onError: ({ graphQLErrors }) => {
-      const message = graphQLErrors?.[0].message;
+      const message = graphQLErrors?.[0]!.message;
       setErrorMessage(message);
     },
   });

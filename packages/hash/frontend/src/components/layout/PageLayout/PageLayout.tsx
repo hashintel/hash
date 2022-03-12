@@ -24,7 +24,7 @@ export const PageLayout: FC = ({ children }) => {
       {!AUTH_ROUTES.includes(router.pathname) ? (
         // Presently, accountId is passed down as either the page's accountId, or the accountId of the user, if route doesn't have accountId in it.
         // @todo replace with a more standardized way of fetching a page's accountId
-        <PageHeader accountId={accountId ?? user?.accountId} />
+        <PageHeader accountId={accountId ?? user?.accountId!} />
       ) : null}
       {children}
     </>

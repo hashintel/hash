@@ -110,7 +110,7 @@ const moveBlocks = defineOperation(
     entities = [...entities];
 
     for (let position = 0; position < entities.length; position++) {
-      const block = entities[position];
+      const block = entities[position]!;
       const positionInDoc = otherExistingBlockEntityIds.findIndex(
         (blockEntityId) => blockEntityId === block.entityId,
       );

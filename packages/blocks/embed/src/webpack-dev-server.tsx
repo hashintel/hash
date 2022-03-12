@@ -61,7 +61,7 @@ const getVariantProperties = (variant: typeof variants[number]) => {
 const AppComponent: React.VoidFunctionComponent = () => {
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
   const [state, setState] = useState<EmbedDataType>(
-    getVariantProperties(variants[selectedVariantIndex]),
+    getVariantProperties(variants[selectedVariantIndex]!),
   );
 
   const updateState = (newState: Partial<EmbedDataType>) => {
@@ -76,8 +76,9 @@ const AppComponent: React.VoidFunctionComponent = () => {
   ) => {
     if (actions[0]) {
       updateState(actions[0].data);
+      return [actions[0].data] as BlockProtocolEntity[];
     }
-    return [actions[0].data] as BlockProtocolEntity[];
+    return [];
   };
 
   return (
@@ -103,7 +104,7 @@ const AppComponent: React.VoidFunctionComponent = () => {
         getEmbedBlock={getEmbedBlock}
         updateEntities={updateBlockData}
         {...state}
-        {...getVariantProperties(variants[selectedVariantIndex])}
+        {...getVariantProperties(variants[selectedVariantIndex]!)}
       />
     </div>
   );

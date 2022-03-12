@@ -92,8 +92,8 @@ type Inputs = {
 const getInitials = (name: string) => {
   const initials = name.trim().split(" ");
   if (!initials.length) return "";
-  if (initials.length === 1) return initials[0][0];
-  if (initials.length > 1) return initials[0][0] + initials[1][0];
+  if (initials.length === 1) return initials[0]![0];
+  if (initials.length > 1) return initials[0]![0]! + initials[1]![0]!;
 };
 
 export const OrgCreate: VFC<OrgCreateProps> = ({
@@ -124,7 +124,7 @@ export const OrgCreate: VFC<OrgCreateProps> = ({
     errorPolicy: "ignore",
     onCompleted: (res) => {
       const accessToken =
-        res.createOrg.invitationLinks[0].properties.accessToken;
+        res.createOrg.invitationLinks[0]!.properties.accessToken;
       if (accessToken) {
         onCreateOrgSuccess({
           orgEntityId: res.createOrg.accountId,
@@ -183,7 +183,7 @@ export const OrgCreate: VFC<OrgCreateProps> = ({
     <div className={tw`flex flex-col items-center`}>
       <h1 className={tw`text-3xl font-bold mb-12`}>Create a team workspace</h1>
       <div className={tw`text-center mb-6`}>
-        {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+        {}
         <label className={tw`cursor-pointer`}>
           {avatarImg ? (
             <img

@@ -1,12 +1,12 @@
 import { MockedProvider, MockedResponse } from "@apollo/client/testing";
 import { ThemeProvider } from "@mui/material";
-// eslint-disable-next-line no-restricted-imports
+
 import { render, RenderOptions } from "@testing-library/react";
 
 import { theme } from "../theme";
 
 type CustomRenderOptions = RenderOptions & {
-  mocks?: MockedResponse[];
+  mocks?: Readonly<MockedResponse[]>;
 };
 
 const customRender = (
@@ -25,6 +25,5 @@ const customRender = (
   return render(ui, { wrapper: Wrapper, ...options });
 };
 
-// eslint-disable-next-line no-restricted-imports
 export * from "@testing-library/react";
 export { customRender as render };
