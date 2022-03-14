@@ -2,7 +2,7 @@ import {
   Box,
   IconButton,
   InputAdornment,
-  InputBase,
+  OutlinedInput,
   Tooltip,
   Typography,
 } from "@mui/material";
@@ -17,8 +17,7 @@ const ClearSearchIcon: React.FC<{
 }> = ({ clearSearch }) => {
   return (
     <Box
-      sx={(theme) => ({
-        marginRight: theme.spacing(1),
+      sx={{
         display: "flex",
         height: "100%",
         alignItems: "center",
@@ -26,7 +25,8 @@ const ClearSearchIcon: React.FC<{
         fontWeight: "bold",
         width: "26px",
         justifyContent: "flex-end",
-      })}
+        marginRight: 1,
+      }}
     >
       <Tooltip title="Clear search" placement="right">
         <IconButton
@@ -63,18 +63,18 @@ const ShortcutIcon = () => {
 
   return (
     <Box
-      sx={(theme) => ({
-        marginRight: theme.spacing(1),
+      sx={{
         height: "100%",
         pointerEvents: "none",
         display: "flex",
         alignItems: "center",
         fontWeight: "bold",
-      })}
+        marginRight: 0.5,
+      }}
     >
       <Box
         sx={(theme) => ({
-          height: "26px",
+          height: "30px",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -130,76 +130,50 @@ export const SearchInput: React.FC<{
   }, [setQueryText]);
 
   return (
-    <Box
-      sx={(theme) => ({
-        position: "relative",
-        borderRadius: "6px",
-        borderWidth: 1,
-        borderStyle: "solid",
-        borderColor: theme.palette.gray[30],
+    <OutlinedInput
+      placeholder="Search for anything"
+      inputRef={inputRef}
+      type="text"
+      value={displayedQuery}
+      onFocus={() => setResultListVisible(true)}
+      onChange={(event) => {
+        setResultListVisible(true);
+        setQueryText(event.target.value);
+      }}
+      sx={{
         width: isMobile ? "100%" : "385px",
-        ":focus-within": {
-          margin: "-1px",
-          borderWidth: 2,
-          borderColor: theme.palette.blue[70],
-          transition: theme.transitions.create([
-            "border-color",
-            "border-width",
-            "margin",
-          ]),
-          ".MuiInputAdornment-root": {
-            marginRight: "-2px",
-            transition: theme.transitions.create(["margin"]),
-          },
+        "& .MuiInputBase-input": {
+          paddingLeft: "unset",
+          paddingRight: isMobile ? 1 : "unset",
         },
-      })}
-    >
-      <Box
-        sx={(theme) => ({
-          padding: theme.spacing(0, 1.5),
-          height: "100%",
-          position: "absolute",
-          pointerEvents: "none",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        })}
-      >
-        <SearchIcon sx={{ height: "16px", width: "auto" }} />
-      </Box>
-      <InputBase
-        placeholder="Search for anything"
-        inputRef={inputRef}
-        type="text"
-        value={displayedQuery}
-        onFocus={() => setResultListVisible(true)}
-        onChange={(event) => {
-          setResultListVisible(true);
-          setQueryText(event.target.value);
-        }}
-        sx={(theme) => ({
-          color: "inherit",
-          width: "100%",
-          lineHeight: "18px",
-          "& .MuiInputBase-input": {
-            py: theme.spacing(1),
-            paddingLeft: theme.spacing(4.5),
-            paddingRight: isMobile ? 1 : "unset",
-          },
-        })}
-        inputProps={{ "aria-label": "search" }}
-        endAdornment={
-          !isMobile ? (
-            <InputAdornment position="end">
-              {displayedQuery ? (
-                <ClearSearchIcon clearSearch={clearSearch} />
-              ) : (
-                <ShortcutIcon />
-              )}
-            </InputAdornment>
-          ) : null
-        }
-      />
-    </Box>
+      }}
+      inputProps={{ "aria-label": "search" }}
+      startAdornment={
+        <InputAdornment position="start">
+          <Box
+            sx={{
+              height: "100%",
+              pointerEvents: "none",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <SearchIcon sx={{ height: "16px", width: "auto" }} />
+          </Box>
+        </InputAdornment>
+      }
+      endAdornment={
+        !isMobile ? (
+          <InputAdornment position="end">
+            {displayedQuery ? (
+              <ClearSearchIcon clearSearch={clearSearch} />
+            ) : (
+              <ShortcutIcon />
+            )}
+          </InputAdornment>
+        ) : null
+      }
+    />
   );
 };
