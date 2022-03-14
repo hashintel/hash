@@ -102,7 +102,7 @@ export const App: BlockComponent<AppProps> = ({
 
   useEffect(() => {
     if (captionRef.current !== document.activeElement) {
-      setCaptionVisibility(localData.caption?.length > 0);
+      setCaptionVisibility(localData.caption && localData.caption?.length > 0);
     }
   }, [localData.caption]);
 
