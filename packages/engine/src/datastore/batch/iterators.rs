@@ -267,11 +267,14 @@ pub mod record_batch {
         // FixedSizeBinary has a single buffer (no offsets)
         let data = column.data_ref();
         let buffer = &data.buffers()[0];
-        let mut ptr = buffer.as_ptr();
+        let mut bytes_ptr = buffer.as_ptr();
+        // SAFETY: All ids have `UUID_V4_LEN` bytes, so we can iterate
+        // over them by moving the pointer forward by that amount after
+        // each agent.
         Ok((0..column.len()).map(move |_| unsafe {
-            let slice = &*(ptr as *const [u8; UUID_V4_LEN]);
-            ptr = ptr.add(UUID_V4_LEN);
-            slice
+            let id = &*(bytes_ptr as *const [u8; UUID_V4_LEN]);
+            bytes_ptr = bytes_ptr.add(UUID_V4_LEN);
+            id // one id per agent
         }))
     }
 
@@ -310,8 +313,14 @@ pub mod record_batch {
         record_batch: &RecordBatch,
         column: Vec<Option<Cow<'_, str>>>,
     ) -> Result<ColumnChange> {
-        let column_name = AgentStateField::AgentName.name();
+        // Guess that the concatenated names of all agents in this record batch have at least 512
+        // characters. This initial capacity guess only affects performance, so the exact value
+        // isn't too important.
+
+        // TODO: OPTIM: Maybe we can still improve performance though by adjusting this value or
+        //       making it depend on the number of agents.
         let mut builder = arrow::array::StringBuilder::new(512);
+
         column.into_iter().try_for_each(|v| {
             if let Some(value) = v {
                 builder.append_value(value.as_ref())
@@ -319,6 +328,8 @@ pub mod record_batch {
                 builder.append_null()
             }
         })?;
+
+        let column_name = AgentStateField::AgentName.name();
         let (index, _) = record_batch
             .schema()
             .column_with_name(column_name)
@@ -356,10 +367,20 @@ pub mod record_batch {
                 name: pos_column_name.into(),
             })?;
 
-        // column.data_ref()                                                  -> [[f64; 3]]
+        // SAFETY: The position column contains fixed sized lists of 3 floats. These are stored
+        // consecutively in memory, i.e. as [first agent's first coordinate, first agent's second
+        // coordinate, first agent's third coordinate, second agent's first coordinate, etc]. The
+        // child data contains these consecutive floats as a flat slice.
+
+        // column.data_ref() -> [[f64; 3]]
         // column.data_ref().child_data()[0].buffers()[0].typed_data::<f64>() -> [f64]
         let pos_child_data_buffer =
             unsafe { pos_column.data_ref().child_data()[0].buffers()[0].typed_data::<f64>() };
+        debug_assert_eq!(
+            row_count * POSITION_DIM,
+            pos_child_data_buffer,
+            "Position column child data doesn't have expected number of coordinates per row"
+        );
 
         let dir_column_name = AgentStateField::Direction.name();
         let dir_column = column_with_name(record_batch, dir_column_name)?;
@@ -371,16 +392,20 @@ pub mod record_batch {
                 name: dir_column_name.into(),
             })?;
 
-        // column.data_ref()                                                  -> [[f64; 3]]
-        // column.data_ref().child_data()[0].buffers()[0].typed_data::<f64>() -> [f64]
+        // SAFETY: Same as position child data above
         let dir_child_data_buffer =
             unsafe { dir_column.data_ref().child_data()[0].buffers()[0].typed_data::<f64>() };
+        debug_assert_eq!(
+            row_count * POSITION_DIM, // Positions and directions have same dimensions.
+            dir_child_data_buffer,
+            "Direction column child data doesn't have expected number of coordinates per row"
+        );
 
         Ok((
             (0..row_count).map(move |i| {
                 let pos = if pos_column.is_valid(i) {
                     let start_index = i * POSITION_DIM;
-                    // Does not fail
+                    // SAFETY: We checked that this buffer has `POSITION_DIM` values per row above.
                     Some(unsafe {
                         &mut *(pos_child_data_buffer[start_index..start_index + POSITION_DIM]
                             .as_ptr() as *mut [f64; POSITION_DIM])
@@ -391,7 +416,7 @@ pub mod record_batch {
 
                 let dir = if dir_column.is_valid(i) {
                     let start_index = i * POSITION_DIM;
-                    // Does not fail
+                    // SAFETY: We checked that this buffer has `POSITION_DIM` values per row above.
                     Some(unsafe {
                         &mut *(dir_child_data_buffer[start_index..start_index + POSITION_DIM]
                             .as_ptr() as *mut [f64; POSITION_DIM])
@@ -420,15 +445,25 @@ pub mod record_batch {
                 name: column_name.into(),
             })?;
 
-        // column.data_ref()                                                  -> [[f64; 3]]
+        // SAFETY: The position column contains fixed sized lists of 3 floats. These are stored
+        // consecutively in memory, i.e. as [first agent's first coordinate, first agent's second
+        // coordinate, first agent's third coordinate, second agent's first coordinate, etc]. The
+        // child data contains these consecutive floats as a flat slice.
+
+        // column.data_ref() -> [[f64; 3]]
         // column.data_ref().child_data()[0].buffers()[0].typed_data::<f64>() -> [f64]
         let child_data_buffer =
-            unsafe { column.data_ref().child_data()[0].buffers()[0].typed_data::<f64>() };
+            unsafe { pos_column.data_ref().child_data()[0].buffers()[0].typed_data::<f64>() };
+        debug_assert_eq!(
+            row_count * POSITION_DIM,
+            child_data_buffer,
+            "Position column child data doesn't have expected number of coordinates per row"
+        );
 
         Ok((0..row_count).map(move |i| {
             if column.is_valid(i) {
                 let start_index = i * POSITION_DIM;
-                // Does not fail
+                // SAFETY: We checked that this buffer has `POSITION_DIM` values per row above.
                 Some(unsafe {
                     &*(child_data_buffer[start_index..start_index + POSITION_DIM].as_ptr()
                         as *const [f64; POSITION_DIM])
@@ -453,15 +488,14 @@ pub mod record_batch {
                 name: column_name.into(),
             })?;
 
-        // column.data_ref()                                                  -> [[f64; 3]]
-        // column.data_ref().child_data()[0].buffers()[0].typed_data::<f64>() -> [f64]
+        // SAFETY: Same as in `position_iter` function above
         let child_data_buffer =
             unsafe { column.data_ref().child_data()[0].buffers()[0].typed_data::<f64>() };
 
         Ok((0..row_count).map(move |i| {
             if column.is_valid(i) {
                 let start_index = i * POSITION_DIM;
-                // Does not fail
+                // SAFETY: Same as in `position_iter` function above
                 Some(unsafe {
                     &*(child_data_buffer[start_index..start_index + POSITION_DIM].as_ptr()
                         as *const [f64; POSITION_DIM])

@@ -5,9 +5,12 @@ use std::{
     sync::Arc,
 };
 
-use arrow::ipc::{
-    reader::read_record_batch,
-    writer::{DictionaryTracker, IpcDataGenerator, IpcWriteOptions},
+use arrow::{
+    array,
+    ipc::{
+        reader::read_record_batch,
+        writer::{DictionaryTracker, IpcDataGenerator, IpcWriteOptions},
+    },
 };
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 
@@ -15,7 +18,9 @@ use crate::{
     datastore::{
         arrow::{
             ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
-            message::{self, MESSAGE_COLUMN_INDEX},
+            message::{
+                self, get_column_from_list_array, MESSAGE_COLUMN_INDEX, MESSAGE_COLUMN_NAME,
+            },
         },
         batch::{flush::GrowableBatch, ArrowBatch, Segment},
         prelude::*,
@@ -72,12 +77,12 @@ impl MessageBatch {
     pub fn reset(&mut self, agents: &AgentBatch) -> Result<()> {
         tracing::trace!("Resetting batch");
 
-        let mut to_persist = self.persisted_metaversion();
+        let mut metaversion_to_persist = self.persisted_metaversion();
 
-        if to_persist.memory() != self.loaded_metaversion().memory() {
+        if metaversion_to_persist.memory() != self.loaded_metaversion().memory() {
             return Err(Error::from(format!(
                 "Can't reset message batch when latest persisted memory isn't loaded: {:?}, {:?}",
-                to_persist,
+                metaversion_to_persist,
                 self.loaded_metaversion(),
             )));
         }
@@ -111,18 +116,26 @@ impl MessageBatch {
                 self.memory_mut().resize(upper_bound)?;
                 self.memory_mut().set_data_length(data_len)?;
                 // Always increment when resizing
-                to_persist.increment();
+                metaversion_to_persist.increment();
             }
         }
 
-        // Metadata size should not change!
+        let old_metadata_size = self.memory().get_metadata()?.len();
         // Write new metadata
         self.memory_mut().set_metadata(&meta_buffer)?;
+        debug_assert_eq!(
+            old_metadata_size,
+            self.memory()
+                .get_metadata()
+                .expect("Memory should have metadata, because we just set it")
+                .len(),
+            "Metadata size should not change"
+        );
 
         let cur_len = self.memory().get_data_buffer_len()?;
         if cur_len < data_len && self.memory_mut().set_data_length(data_len)?.resized() {
             // This shouldn't happen very often unless the bounds above are very inaccurate.
-            to_persist.increment();
+            metaversion_to_persist.increment();
             tracing::info!(
                 "Unexpected message batch memory resize. Was {}, should have been at least {}",
                 cur_len,
@@ -136,10 +149,10 @@ impl MessageBatch {
 
         // TODO: reloading batch could be faster if we persisted
         //       fbb and WIPOffset<Message> from `simulate_record_batch_to_bytes`
-        to_persist.increment_batch();
-        self.set_persisted_metaversion(to_persist);
+        metaversion_to_persist.increment_batch();
+        self.set_persisted_metaversion(metaversion_to_persist);
         self.reload_record_batch_and_dynamic_meta()?;
-        self.loaded = to_persist;
+        self.loaded_metaversion = metaversion_to_persist;
         Ok(())
     }
 
@@ -234,7 +247,7 @@ impl MessageBatch {
 
         let record_batch = read_record_batch(data_buffer, batch_message, schema.clone(), &[])?;
 
-        let persisted = memory.get_metaversion()?;
+        let persisted = memory.metaversion()?;
         Ok(Self {
             batch: ArrowBatch {
                 segment: Segment(memory),
@@ -315,7 +328,7 @@ pub mod record_batch {
             let num_messages = i32_offsets[i_agent + 1] - i32_offsets[i_agent];
             (0..num_messages)
                 .into_par_iter()
-                .map(move |i_msg| AgentMessageReference::new(i_batch, i_agent, i_msg as usize))
+                .map(move |i_msg| AgentMessageReference::new(batch_index, i_agent, i_msg as usize))
         })
     }
 

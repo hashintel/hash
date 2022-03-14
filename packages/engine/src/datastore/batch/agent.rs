@@ -63,8 +63,8 @@ impl AgentBatch {
         schema: &Arc<AgentSchema>,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
-        let rb = agents.into_agent_batch(schema)?;
-        Self::from_record_batch(&rb, schema, experiment_id)
+        let record_batch = agents.into_agent_batch(schema)?;
+        Self::from_record_batch(&record_batch, schema, experiment_id)
     }
 
     pub fn duplicate_from(
@@ -72,17 +72,17 @@ impl AgentBatch {
         schema: &AgentSchema,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
-        if batch.loaded.memory() != batch.persisted_metaversion().memory() {
+        if batch.loaded_metaversion.memory() != batch.persisted_metaversion().memory() {
             return Err(Error::from(format!(
                 "Can't duplicate agent batch with loaded memory older than latest persisted: \
                  {:?}, {:?}",
-                batch.loaded,
+                batch.loaded_metaversion,
                 batch.persisted_metaversion(),
             )));
         }
 
         let memory = Memory::duplicate_from(batch.memory(), experiment_id)?;
-        Self::from_memory(memory, Some(schema), Some(batch.worker_index))
+        Self::from_memory(memory, Some(schema), Some(batch.affinity))
     }
 
     /// Copy contents from RecordBatch and create a memory-backed Batch
@@ -122,7 +122,7 @@ impl AgentBatch {
         schema: Option<&AgentSchema>,
         worker_index: Option<usize>,
     ) -> Result<Self> {
-        let persisted = memory.get_metaversion()?;
+        let persisted = memory.metaversion()?;
         let (schema_buffer, _header_buffer, meta_buffer, data_buffer) =
             memory.get_batch_buffers()?;
         let (schema, static_meta) = if let Some(s) = schema {
@@ -144,16 +144,16 @@ impl AgentBatch {
 
         let dynamic_meta = batch_message.into_meta(data_buffer.len())?;
 
-        let rb = read_record_batch(data_buffer, batch_message, schema, &[])?;
+        let record_batch = read_record_batch(data_buffer, batch_message, schema, &[])?;
 
         Ok(Self {
             batch: ArrowBatch {
                 segment: Segment(memory),
-                record_batch: rb,
+                record_batch,
                 dynamic_meta,
                 static_meta,
                 changes: vec![],
-                loaded: persisted,
+                loaded_metaversion: persisted,
             },
             worker_index: worker_index.unwrap_or(0),
         })
@@ -226,12 +226,12 @@ impl AgentBatch {
         let batch_index = batch_index as u32;
 
         let column_name = PREVIOUS_INDEX_FIELD_KEY;
-        let rb = self.batch.record_batch_unchecked();
-        let (i_column, _) = rb
+        let record_batch = self.batch.record_batch_unchecked();
+        let (i_column, _) = record_batch
             .schema()
             .column_with_name(column_name)
             .ok_or_else(|| Error::ColumnNotFound(column_name.into()))?;
-        let data = rb.column(i_column).data_ref();
+        let data = record_batch.column(i_column).data_ref();
 
         // SAFETY: A column with this datatype has this buffer.
         let data_buffer = unsafe { data.child_data()[0].buffers()[0].typed_data::<u32>() };

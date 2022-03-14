@@ -48,6 +48,10 @@ pub fn behavior_list_bytes_iter(
     let column = agent_batch.column(column_id);
     let col_data = column.data_ref();
 
+    // SAFETY: This column has data type `List<String>`. The first buffer of this type of column is
+    //         an offset buffer and offsets (not `LargeList` offsets) have type `i32`. The first
+    //         buffer of the child data is the same as the first buffer of a `String` column, which
+    //         is also an offset buffer.
     let list_indices = unsafe { col_data.buffers()[0].typed_data::<i32>() };
     let string_indices = unsafe { col_data.child_data()[0].buffers()[0].typed_data::<i32>() };
     let utf_8 = col_data.child_data()[0].buffers()[1].as_slice();
@@ -149,6 +153,9 @@ impl IntoArrowChange for ChainList {
             .add_child_data(child_data)
             .build()?;
 
-        Ok(ColumnChange::new(data, self.behavior_ids_col_index))
+        Ok(ColumnChange {
+            data,
+            index: self.behavior_ids_col_index,
+        })
     }
 }

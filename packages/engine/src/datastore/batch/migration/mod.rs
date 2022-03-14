@@ -278,6 +278,7 @@ impl<'a> BufferActions<'a> {
                                         let offset_size = mem::size_of::<Offset>();
                                         let start_offset = old_offset + *from * offset_size;
                                         let byte_len = len * offset_size;
+                                        // TODO: SAFETY (same as above?)
                                         let old_offsets = unsafe {
                                             data_buffer[start_offset..start_offset + byte_len]
                                                 .align_to::<i32>()
@@ -287,6 +288,7 @@ impl<'a> BufferActions<'a> {
                                             new_offset + *base_offset_index * offset_size;
 
                                         let decrement = offset_value_dec;
+                                        // TODO: SAFETY (same as above?)
                                         let new_offsets = unsafe {
                                             let ptr = &data_buffer[new_start_offset] as *const u8;
                                             let ptr = ptr as *mut Offset;
@@ -332,6 +334,7 @@ impl<'a> BufferActions<'a> {
                                         let offset_size = mem::size_of::<Offset>();
                                         let start_offset = old_offset + *from * offset_size;
                                         let byte_len = len * offset_size;
+                                        // TODO: SAFETY (same as above?)
                                         let old_offsets = unsafe {
                                             data_buffer[start_offset..start_offset + byte_len]
                                                 .align_to::<i32>()
@@ -340,6 +343,7 @@ impl<'a> BufferActions<'a> {
                                         let new_temp_start_offset =
                                             *base_offset_index * offset_size;
                                         let decrement = offset_value_dec;
+                                        // TODO: SAFETY (same as above?)
                                         let new_offsets = unsafe {
                                             temporary_buffer
                                                 [new_temp_start_offset..new_temp_start_offset + len]
@@ -386,6 +390,7 @@ impl<'a> BufferActions<'a> {
                                             + base_offset_index * mem::size_of::<Offset>();
                                         let end_offset =
                                             start_offset + data.len() * mem::size_of::<Offset>();
+                                        // TODO: SAFETY (same as above?)
                                         let new_offsets = unsafe {
                                             data_buffer[start_offset..end_offset]
                                                 .align_to_mut::<i32>()
@@ -413,12 +418,14 @@ impl<'a> BufferActions<'a> {
         //       (checking loaded and persisted metaversions) and ideally
         //       rearrange modules so migration doesn't have access to
         //       internal batch traits.
-        debug_assert!(batch.is_persisted());
-        debug_assert!(offsets_start_at_zero(
-            batch.memory(),
-            batch.static_meta(),
-            batch.dynamic_meta(),
-        )?);
+        debug_assert!(
+            batch.is_persisted(),
+            "Can't flush migration changes when haven't loaded latest persisted agent batch"
+        );
+        debug_assert!(
+            offsets_start_at_zero(batch.memory(), batch.static_meta(), batch.dynamic_meta(),),
+            "Can't flush migration changes, because agent batch already contains invalid offsets"
+        );
 
         let change = batch
             .memory_mut()
@@ -430,11 +437,10 @@ impl<'a> BufferActions<'a> {
 
         // Overwrite the Arrow Batch Metadata in memory
         batch.flush_dynamic_meta_unchecked(&self.new_dynamic_meta)?;
-        debug_assert!(offsets_start_at_zero(
-            batch.memory(),
-            batch.static_meta(),
-            batch.dynamic_meta(),
-        )?);
+        debug_assert!(
+            offsets_start_at_zero(batch.memory(), batch.static_meta(), batch.dynamic_meta(),)?,
+            "Agent batch contains invalid offsets after flushing migration changes"
+        );
 
         // Reload RecordBatch from memory
         batch.reload_record_batch()?;
@@ -604,6 +610,7 @@ impl<'a> BufferActions<'a> {
                                     range.len
                                 );
                                 if range.len > 0 {
+                                    // TODO: SAFETY
                                     unsafe {
                                         for i in cur_length..(cur_length + range.len) {
                                             bit_util::set_bit_raw(ptr, i);
@@ -661,6 +668,7 @@ impl<'a> BufferActions<'a> {
                         .remove_mut()
                         .iter_mut()
                         .map(|range| {
+                            // TODO: SAFETY
                             let (from, to, start_offset_value) = unsafe {
                                 (
                                     get_offset_by_index(buffer, range.index),
@@ -693,6 +701,7 @@ impl<'a> BufferActions<'a> {
                     range_actions.remove.0 = total_remove_len;
                     debug_assert!(next_index <= original_last_index);
                     debug_assert_eq!(next_offset_index, next_index - removed_count);
+                    // TODO: SAFETY
                     let start_offset_value = unsafe { get_offset_by_index(buffer, next_index) };
                     let offset_value_dec = start_offset_value - next_offset_value;
                     let last_remove_action = InnerShiftAction::Offset {
@@ -703,6 +712,7 @@ impl<'a> BufferActions<'a> {
                         base_offset_index: next_offset_index,
                     };
                     next_offset_index = original_length - removed_count;
+                    // TODO: SAFETY (same as above?)
                     let end_offset_value =
                         unsafe { get_offset_by_index(buffer, original_last_index) };
                     let mut last_offset_value = end_offset_value - offset_value_dec;
@@ -724,6 +734,7 @@ impl<'a> BufferActions<'a> {
                             .copy_mut()
                             .iter_mut()
                             .try_for_each::<_, Result<()>>(|(j, ranges)| {
+                                // TODO: SAFETY
                                 let src_buffer = unsafe {
                                     batches[*j].get_buffer(buffer_index)?.align_to::<i32>().1
                                 };
@@ -734,6 +745,7 @@ impl<'a> BufferActions<'a> {
                                     (range.index + 1..=range.index + range.len).for_each(|k| {
                                         let new_offset = src_buffer[k] + offset_diff;
                                         // Assumes little endian
+                                        // TODO: SAFETY
                                         let slice = unsafe {
                                             std::slice::from_raw_parts(
                                                 &new_offset as *const i32 as *const _,
@@ -769,6 +781,7 @@ impl<'a> BufferActions<'a> {
                     let create_actions = new_agents.map(|ad| {
                         let buffer = &ad.buffers()[i - 1];
 
+                        // TODO: SAFETY
                         let src_buffer = unsafe { buffer.typed_data::<Offset>() };
                         let mut total_create_len = 0;
                         let ret = range_actions
@@ -1279,16 +1292,22 @@ fn offsets_start_at_zero(
     static_meta.get_node_meta().iter().for_each(|meta| {
         meta.get_data_types().iter().for_each(|data_type| {
             match data_type {
-                super::super::meta::BufferType::BitMap { is_null_bitmap: _ } => {}
                 super::super::meta::BufferType::Offset => {
                     let buffer_meta = &dynamic_meta.buffers[buffer_index];
-                    let offset = buffer_meta.offset;
-                    let first_offset = unsafe { *(&data[offset] as *const u8 as *const i32) };
+                    let offset_of_offsets = buffer_meta.offset;
+
+                    // SAFETY: We know that this is an offset buffer. Offset buffers always contain
+                    //         at least one offset, because there are at least 0 rows and offset
+                    //         buffers contain `num_rows + 1` offsets. Also, we know that this
+                    //         isn't a `LargeOffset` buffer, so the offset type is `i32`.
+                    let first_offset =
+                        unsafe { *(&data[offset_of_offsets] as *const u8 as *const i32) };
+
                     let offset_starts_at_zero = first_offset == 0;
                     if !offset_starts_at_zero {
-                        println!(
-                            "Does not start at zero! {}, {:?}, value: {}",
-                            buffer_index, meta, first_offset
+                        tracing::warn!(
+                            "Does not start at zero! {buffer_index}, {meta:?}, value: \
+                             {first_offset}"
                         );
                     }
                     starts_at_zero = starts_at_zero && offset_starts_at_zero;
