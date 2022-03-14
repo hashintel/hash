@@ -52,21 +52,25 @@ export const isUnupportedJSONPath = (components: JSONPathComponent[]) =>
 
 type LinkConstructorArgs = {
   linkId: string;
+  linkVersionId: string;
   path: string;
   index?: number;
   sourceAccountId: string;
   sourceEntityId: string;
   appliedToSourceAt: Date;
-  appliedToSourceBy: string;
+  appliedToSourceByAccountId: string;
   removedFromSourceAt?: Date;
-  removedFromSourceBy?: string;
+  removedFromSourceByAccountId?: string;
   destinationAccountId: string;
   destinationEntityId: string;
   destinationEntityVersionId?: string;
+  updatedAt: Date;
+  updatedByAccountId: string;
 };
 
 class __Link {
   linkId: string;
+  linkVersionId: string;
   stringifiedPath: string;
   path: jp.PathComponent[];
   index?: number;
@@ -75,41 +79,50 @@ class __Link {
   sourceEntityId: string;
 
   appliedToSourceAt: Date;
-  appliedToSourceBy: string;
+  appliedToSourceByAccountId: string;
   removedFromSourceAt?: Date;
-  removedFromSourceBy?: string;
+  removedFromSourceByAccountId?: string;
 
   destinationAccountId: string;
   destinationEntityId: string;
   destinationEntityVersionId?: string;
 
+  updatedAt: Date;
+  updatedByAccountId: string;
+
   constructor({
     linkId,
+    linkVersionId,
     path,
     index,
     sourceAccountId,
     sourceEntityId,
     appliedToSourceAt,
-    appliedToSourceBy,
+    appliedToSourceByAccountId,
     removedFromSourceAt,
-    removedFromSourceBy,
+    removedFromSourceByAccountId,
     destinationAccountId,
     destinationEntityId,
     destinationEntityVersionId,
+    updatedAt,
+    updatedByAccountId,
   }: LinkConstructorArgs) {
     this.linkId = linkId;
+    this.linkVersionId = linkVersionId;
     this.stringifiedPath = path;
     this.path = Link.parseStringifiedPath(path);
     this.index = index;
     this.sourceAccountId = sourceAccountId;
     this.sourceEntityId = sourceEntityId;
     this.appliedToSourceAt = appliedToSourceAt;
-    this.appliedToSourceBy = appliedToSourceBy;
+    this.appliedToSourceByAccountId = appliedToSourceByAccountId;
     this.removedFromSourceAt = removedFromSourceAt;
-    this.removedFromSourceBy = removedFromSourceBy;
+    this.removedFromSourceByAccountId = removedFromSourceByAccountId;
     this.destinationAccountId = destinationAccountId;
     this.destinationEntityId = destinationEntityId;
     this.destinationEntityVersionId = destinationEntityVersionId;
+    this.updatedAt = updatedAt;
+    this.updatedByAccountId = updatedByAccountId;
   }
 
   static isPathValid(path: string): boolean {
