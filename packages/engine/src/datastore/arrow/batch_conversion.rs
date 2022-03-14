@@ -578,8 +578,8 @@ pub trait IntoAgentStates {
 // }
 // This works: https://docs.rs/arrow/1.0.1/src/arrow/array/cast.rs.html
 
-fn get_i_col(field: AgentStateField, rb: &RecordBatch) -> Result<Option<usize>> {
-    match rb.schema().column_with_name(field.name()) {
+fn get_i_col(field: AgentStateField, record_batch: &RecordBatch) -> Result<Option<usize>> {
+    match record_batch.schema().column_with_name(field.name()) {
         Some((i, _)) => Ok(Some(i)),
         None => {
             if field.is_required() {
@@ -591,10 +591,10 @@ fn get_i_col(field: AgentStateField, rb: &RecordBatch) -> Result<Option<usize>> 
     }
 }
 
-fn set_states_agent_id(states: &mut [AgentState], rb: &RecordBatch) -> Result<()> {
+fn set_states_agent_id(states: &mut [AgentState], record_batch: &RecordBatch) -> Result<()> {
     let field = AgentStateField::AgentId;
-    if let Some(i_col) = get_i_col(field, rb)? {
-        let array = rb
+    if let Some(i_col) = get_i_col(field, record_batch)? {
+        let array = record_batch
             .column(i_col)
             .as_any()
             .downcast_ref::<arrow::array::FixedSizeBinaryArray>()
@@ -613,10 +613,10 @@ fn set_states_agent_id(states: &mut [AgentState], rb: &RecordBatch) -> Result<()
     Ok(())
 }
 
-fn set_states_agent_name(states: &mut [AgentState], rb: &RecordBatch) -> Result<()> {
+fn set_states_agent_name(states: &mut [AgentState], record_batch: &RecordBatch) -> Result<()> {
     let field = AgentStateField::AgentName;
-    if let Some(i_col) = get_i_col(field.clone(), rb)? {
-        let array = rb
+    if let Some(i_col) = get_i_col(field.clone(), record_batch)? {
+        let array = record_batch
             .column(i_col)
             .as_any()
             .downcast_ref::<StringArray>()
@@ -635,10 +635,10 @@ fn set_states_agent_name(states: &mut [AgentState], rb: &RecordBatch) -> Result<
     Ok(())
 }
 
-fn set_states_shape(states: &mut [AgentState], rb: &RecordBatch) -> Result<()> {
+fn set_states_shape(states: &mut [AgentState], record_batch: &RecordBatch) -> Result<()> {
     let field = AgentStateField::Shape;
-    if let Some(i_col) = get_i_col(field.clone(), rb)? {
-        let array = rb
+    if let Some(i_col) = get_i_col(field.clone(), record_batch)? {
+        let array = record_batch
             .column(i_col)
             .as_any()
             .downcast_ref::<StringArray>()
@@ -657,10 +657,10 @@ fn set_states_shape(states: &mut [AgentState], rb: &RecordBatch) -> Result<()> {
     Ok(())
 }
 
-fn set_states_color(states: &mut [AgentState], rb: &RecordBatch) -> Result<()> {
+fn set_states_color(states: &mut [AgentState], record_batch: &RecordBatch) -> Result<()> {
     let field = AgentStateField::Color;
-    if let Some(i_col) = get_i_col(field.clone(), rb)? {
-        let array = rb
+    if let Some(i_col) = get_i_col(field.clone(), record_batch)? {
+        let array = record_batch
             .column(i_col)
             .as_any()
             .downcast_ref::<StringArray>()
@@ -687,9 +687,9 @@ macro_rules! set_states_opt_vec3_gen {
         // At least for now, need `field` parameter in addition to `field_name` parameter,
         // because other functions use `field` enum, not just the field name.
 
-        fn $function_name(states: &mut [AgentState], rb: &RecordBatch) -> Result<()> {
-            if let Some(i_col) = get_i_col($field, rb)? {
-                let vec3_array = rb
+        fn $function_name(states: &mut [AgentState], record_batch: &RecordBatch) -> Result<()> {
+            if let Some(i_col) = get_i_col($field, record_batch)? {
+                let vec3_array = record_batch
                     .column(i_col)
                     .as_any()
                     .downcast_ref::<FixedSizeListArray>()
@@ -729,9 +729,9 @@ set_states_opt_vec3_gen!(velocity, set_states_velocity, AgentStateField::Velocit
 
 macro_rules! set_states_opt_f64_gen {
     ($field_name:ident, $function_name:ident, $field:expr) => {
-        fn $function_name(states: &mut [AgentState], rb: &RecordBatch) -> Result<()> {
-            if let Some(i_col) = get_i_col($field, rb)? {
-                let array = rb
+        fn $function_name(states: &mut [AgentState], record_batch: &RecordBatch) -> Result<()> {
+            if let Some(i_col) = get_i_col($field, record_batch)? {
+                let array = record_batch
                     .column(i_col)
                     .as_any()
                     .downcast_ref::<arrow::array::Float64Array>()
@@ -754,10 +754,10 @@ macro_rules! set_states_opt_f64_gen {
 
 set_states_opt_f64_gen!(height, set_states_height, AgentStateField::Height);
 
-fn set_states_hidden(states: &mut [AgentState], rb: &RecordBatch) -> Result<()> {
+fn set_states_hidden(states: &mut [AgentState], record_batch: &RecordBatch) -> Result<()> {
     let field = AgentStateField::Hidden;
-    if let Some(i_col) = get_i_col(field.clone(), rb)? {
-        let array = rb
+    if let Some(i_col) = get_i_col(field.clone(), record_batch)? {
+        let array = record_batch
             .column(i_col)
             .as_any()
             .downcast_ref::<arrow::array::BooleanArray>()
@@ -772,13 +772,13 @@ fn set_states_hidden(states: &mut [AgentState], rb: &RecordBatch) -> Result<()> 
     Ok(())
 }
 
-fn set_states_previous_index(states: &mut [AgentState], rb: &RecordBatch) -> Result<()> {
-    let index = rb
+fn set_states_previous_index(states: &mut [AgentState], record_batch: &RecordBatch) -> Result<()> {
+    let index = record_batch
         .schema()
         .column_with_name(PREVIOUS_INDEX_FIELD_KEY)
         .map(|v| v.0);
     if let Some(i_col) = index {
-        let vec2_array = rb
+        let vec2_array = record_batch
             .column(i_col)
             .as_any()
             .downcast_ref::<FixedSizeListArray>()
@@ -1020,13 +1020,13 @@ pub(in crate::datastore) fn col_to_json_vals(col: &ArrayRef, dt: &DataType) -> R
 
 fn set_states_custom(
     states: &mut [AgentState],
-    rb: &RecordBatch,
+    record_batch: &RecordBatch,
     i_field: usize,
     field: &Field,
 ) -> Result<()> {
     // https://docs.rs/arrow/1.0.1/src/arrow/datatypes.rs.html#1539-1544
     // ---> i_field == i_col
-    let col = rb.column(i_field);
+    let col = record_batch.column(i_field);
     let vals = col_to_json_vals(col, field.data_type())?;
     for (i_val, val) in vals.into_iter().enumerate() {
         if col.null_count() == 0 || col.is_valid(i_val) {
@@ -1038,13 +1038,13 @@ fn set_states_custom(
 
 fn set_states_serialized(
     states: &mut [AgentState],
-    rb: &RecordBatch,
+    record_batch: &RecordBatch,
     i_field: usize,
     field: &Field,
 ) -> Result<()> {
     // https://docs.rs/arrow/1.0.1/src/arrow/datatypes.rs.html#1539-1544
     // ---> i_field == i_col
-    let col = rb.column(i_field);
+    let col = record_batch.column(i_field);
     let vals = json_utf8_json_vals(col)?;
     for (i_val, val) in vals.into_iter().enumerate() {
         if col.null_count() == 0 || col.is_valid(i_val) {

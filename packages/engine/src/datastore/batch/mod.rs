@@ -92,7 +92,7 @@ pub struct ArrowBatch {
     segment: Segment,
 
     /// Arrow `RecordBatch` with references to `self.segment`
-    rb: RecordBatch,
+    record_batch: RecordBatch,
 
     /// Metadata referring to positions, sizes, null counts
     /// and value counts of different Arrow buffers
@@ -158,13 +158,13 @@ impl ArrowBatch {
     /// Return record batch without checking whether the
     /// latest persisted data has been loaded.
     fn record_batch_unchecked(&self) -> &RecordBatch {
-        &self.rb
+        &self.record_batch
     }
 
     /// Return record batch without checking whether the
     /// latest persisted data has been loaded.
     fn record_batch_unchecked_mut(&mut self) -> &mut RecordBatch {
-        &mut self.rb
+        &mut self.record_batch
     }
 
     fn loaded_metaversion_mut(&mut self) -> &mut Metaversion {
@@ -174,21 +174,24 @@ impl ArrowBatch {
     /// Reload record batch (without checking metaversions).
     fn reload_record_batch(&mut self) -> Result<()> {
         debug_assert!(self.memory().validate_markers());
-        let rb_msg = load::record_batch_message(&self.segment)?;
+        let record_batch_message = load::record_batch_message(&self.segment)?;
 
         let schema = self.record_batch_unchecked().schema();
-        *self.record_batch_unchecked_mut() = load::record_batch(&self.segment, rb_msg, schema)?;
+        *self.record_batch_unchecked_mut() =
+            load::record_batch(&self.segment, record_batch_message, schema)?;
         Ok(())
     }
 
     /// Reload record batch and dynamic metadata (without checking metaversions).
     fn reload_record_batch_and_dynamic_meta(&mut self) -> Result<()> {
         debug_assert!(self.memory().validate_markers());
-        let rb_msg = load::record_batch_message(&self.segment)?;
-        let dynamic_meta = rb_msg.into_meta(self.memory().get_data_buffer()?.len())?;
+        let record_batch_message = load::record_batch_message(&self.segment)?;
+        let dynamic_meta =
+            record_batch_message.into_meta(self.memory().get_data_buffer()?.len())?;
 
         let schema = self.record_batch_unchecked().schema();
-        *self.record_batch_unchecked_mut() = load::record_batch(&self.segment, rb_msg, schema)?;
+        *self.record_batch_unchecked_mut() =
+            load::record_batch(&self.segment, record_batch_message, schema)?;
         *self.dynamic_meta_mut() = dynamic_meta;
         Ok(())
     }
@@ -383,25 +386,12 @@ impl ArrowBatch {
     /// mutated to be the persisted one.
     pub fn maybe_reload(&mut self) -> Result<()> {
         if !self.is_persisted() {
-            tracing::debug!(
-                "Persisted before reload: {:?}",
-                self.persisted_metaversion()
-            );
             let persisted = self.persisted_metaversion();
 
             if self.loaded.memory() < persisted.memory() {
                 self.segment.0.reload()?;
-                tracing::debug!(
-                    "Persisted after segment reload: {:?}",
-                    self.persisted_metaversion()
-                );
             }
-
             self.reload_record_batch_and_dynamic_meta()?;
-            tracing::debug!(
-                "Persisted after rb reload: {:?}",
-                self.persisted_metaversion()
-            );
 
             self.loaded = persisted;
             debug_assert!(self.is_persisted());
@@ -427,10 +417,15 @@ mod load {
 
     pub fn record_batch(
         segment: &Segment,
-        rb_msg: RecordBatchMessage<'_>,
+        record_batch_message: RecordBatchMessage<'_>,
         schema: Arc<ArrowSchema>,
     ) -> Result<RecordBatch> {
         let (_, _, _, data_buffer) = segment.memory().get_batch_buffers()?;
-        Ok(read_record_batch(data_buffer, rb_msg, schema, &[])?)
+        Ok(read_record_batch(
+            data_buffer,
+            record_batch_message,
+            schema,
+            &[],
+        )?)
     }
 }

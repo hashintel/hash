@@ -202,11 +202,7 @@ pub fn column_with_name<'a>(rb: &'a RecordBatch, name: &str) -> Result<&'a Array
 pub mod rb {
     use std::borrow::Cow;
 
-    use arrow::{
-        array::{make_array, Array},
-        datatypes::DataType,
-        record_batch::RecordBatch,
-    };
+    use arrow::{array::Array, datatypes::DataType, record_batch::RecordBatch};
 
     use super::column_with_name;
     use crate::{

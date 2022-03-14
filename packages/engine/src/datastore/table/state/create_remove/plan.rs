@@ -3,7 +3,6 @@ use rayon::prelude::*;
 use super::action::{CreateActions, ExistingGroupBufferActions};
 use crate::{
     datastore::{
-        batch::Batch,
         error::{Error, Result},
         table::{pool::BatchPool, state::view::StatePools},
     },

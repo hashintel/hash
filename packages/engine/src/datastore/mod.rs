@@ -1,9 +1,11 @@
-//! The `datastore` module includes logic about handling creation, modification, and access of
-//! simulation data that's shared across the engine and runtimes.
+//! The `datastore` module includes logic about handling creation,
+//! modification, and access of simulation data that's shared across
+//! the engine and runtimes.
 //!
-//! It contains the logic relating to storing data within Arrow, which allows us
-//! to efficiently share large quantities of data between runtimes. It also includes the
-//! functionalities we use to dynamically initialize data from schemas, and logic around data
+//! It contains the logic relating to storing data within Arrow, which
+//! allows us to efficiently share large quantities of data between
+//! runtimes. It also includes the functionalities we use to
+//! dynamically initialize data from schemas, and logic around data
 //! access and safety.
 // TODO: DOC improve wording of above, and signpost the key modules
 pub mod arrow;
@@ -81,8 +83,8 @@ pub mod tests {
     pub fn growable_array_modification() -> Result<()> {
         pub fn modify_name(shmem_os_id: &str) -> Result<Vec<Option<String>>> {
             let mut state_batch = *AgentBatch::from_shmem_os_id(shmem_os_id)?;
-            let rb = state_batch.record_batch()?;
-            let mut column = iterators::rb::get_agent_name(rb)?;
+            let record_batch = state_batch.record_batch()?;
+            let mut column = iterators::record_batch::get_agent_name(record_batch)?;
             // `targets` values will be checked against shared memory data
             // in order to check if changes were flushed properly
             let mut targets = Vec::with_capacity(column.len());
@@ -108,7 +110,7 @@ pub mod tests {
                     }
                 }
             }
-            let change = iterators::rb::agent_name_as_array(rb, column)?;
+            let change = iterators::record_batch::agent_name_as_array(record_batch, column)?;
             state_batch.queue_change(change)?;
             state_batch.flush_changes()?;
             Ok(targets)
@@ -147,10 +149,10 @@ pub mod tests {
 
         let state_proxy = state.read()?;
         let batch_proxy: &AgentBatch = state_proxy.agent_pool().batch(0).unwrap();
-        let rb = batch_proxy.record_batch()?;
+        let record_batch = batch_proxy.record_batch()?;
 
-        let names = iterators::rb::get_agent_name(rb)?;
-        let agent_states = rb.into_agent_states(Some(&schema))?;
+        let names = iterators::record_batch::get_agent_name(record_batch)?;
+        let agent_states = record_batch.into_agent_states(Some(&schema))?;
 
         targets.into_iter().enumerate().for_each(|(i, t)| match t {
             Some(v) => {

@@ -5,12 +5,9 @@ use std::{
     sync::Arc,
 };
 
-use arrow::{
-    array::ArrayData,
-    ipc::{
-        reader::read_record_batch,
-        writer::{DictionaryTracker, IpcDataGenerator, IpcWriteOptions},
-    },
+use arrow::ipc::{
+    reader::read_record_batch,
+    writer::{DictionaryTracker, IpcDataGenerator, IpcWriteOptions},
 };
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 
@@ -91,16 +88,16 @@ impl MessageBatch {
         }
 
         let agent_count = agents.num_agents();
-        let agent_rb = agents.record_batch()?; // Agent batch must be up to date
+        let agent_record_batch = agents.record_batch()?; // Agent batch must be up to date
         let column_name = AgentStateField::AgentId.name();
-        let id_column = super::iterators::column_with_name(agent_rb, column_name)?;
+        let id_column = super::iterators::column_with_name(agent_record_batch, column_name)?;
         let empty_message_column = message::empty_messages_column(agent_count).map(Arc::new)?;
 
-        let rb = RecordBatch::try_new(self.arrow_schema.clone(), vec![
+        let record_batch = RecordBatch::try_new(self.arrow_schema.clone(), vec![
             Arc::clone(id_column),
             empty_message_column,
         ])?;
-        let (meta_buffer, data_len) = simulate_record_batch_to_bytes(&rb);
+        let (meta_buffer, data_len) = simulate_record_batch_to_bytes(&record_batch);
 
         // Perform some light bound checks
         // we can't release memory on mac because we can't resize the segment
@@ -135,7 +132,7 @@ impl MessageBatch {
 
         let data_buffer = self.memory_mut().get_mut_data_buffer()?;
         // Write new data
-        record_batch_data_to_bytes_owned_unchecked(&rb, data_buffer);
+        record_batch_data_to_bytes_owned_unchecked(&record_batch, data_buffer);
 
         // TODO: reloading batch could be faster if we persisted
         //       fbb and WIPOffset<Message> from `simulate_record_batch_to_bytes`
@@ -153,18 +150,18 @@ impl MessageBatch {
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
         let agent_count = agent_batch.num_agents();
-        let agent_rb = agent_batch.record_batch()?;
+        let agent_record_batch = agent_batch.record_batch()?;
         let column_name = AgentStateField::AgentId.name();
-        let id_column = super::iterators::column_with_name(agent_rb, column_name)?;
+        let id_column = super::iterators::column_with_name(agent_record_batch, column_name)?;
         let empty_message_column = message::empty_messages_column(agent_count).map(Arc::new)?;
 
-        let rb = RecordBatch::try_new(schema.clone(), vec![
+        let record_batch = RecordBatch::try_new(schema.clone(), vec![
             id_column.clone(),
             empty_message_column,
         ])?;
 
         let header = Metaversion::default().to_le_bytes();
-        let (meta_buffer, data_len) = simulate_record_batch_to_bytes(&rb);
+        let (meta_buffer, data_len) = simulate_record_batch_to_bytes(&record_batch);
         let mut memory = Memory::from_sizes(
             experiment_id,
             0,
@@ -176,7 +173,7 @@ impl MessageBatch {
         memory.set_metadata(&meta_buffer)?;
 
         let data_buffer = memory.get_mut_data_buffer()?;
-        record_batch_data_to_bytes_owned_unchecked(&rb, data_buffer);
+        record_batch_data_to_bytes_owned_unchecked(&record_batch, data_buffer);
         memory.set_header(&header)?;
         Self::from_memory(memory, schema.clone(), meta)
     }
@@ -186,9 +183,9 @@ impl MessageBatch {
         schema: &Arc<MessageSchema>,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
-        let rb = agents.into_message_batch(&schema.arrow)?;
+        let record_batch = agents.into_message_batch(&schema.arrow)?;
         Self::from_record_batch(
-            &rb,
+            &record_batch,
             schema.arrow.clone(),
             schema.static_meta.clone(),
             experiment_id,
@@ -235,13 +232,13 @@ impl MessageBatch {
         let memory_len = data_buffer.len();
         let dynamic_meta = batch_message.into_meta(memory_len)?;
 
-        let rb = read_record_batch(data_buffer, batch_message, schema.clone(), &[])?;
+        let record_batch = read_record_batch(data_buffer, batch_message, schema.clone(), &[])?;
 
         let persisted = memory.get_metaversion()?;
         Ok(Self {
             batch: ArrowBatch {
                 segment: Segment(memory),
-                rb,
+                record_batch,
                 dynamic_meta,
                 static_meta,
                 changes: Vec::with_capacity(3),
@@ -259,17 +256,33 @@ pub struct Raw<'a> {
 }
 
 // Iterators and getters
-impl MessageBatch {
-    pub fn message_loader(&self) -> MessageLoader<'_> {
-        let column = self.batch.column(message::FROM_COLUMN_INDEX);
+pub mod record_batch {
+    use arrow::array;
+
+    use super::*;
+    use crate::datastore::arrow::message::{get_column_from_list_array, MESSAGE_COLUMN_NAME};
+
+    pub fn get_native_messages(record_batch: &RecordBatch) -> Result<Vec<Vec<OutboundMessage>>> {
+        let reference = record_batch
+            .column(MESSAGE_COLUMN_INDEX)
+            .as_any()
+            .downcast_ref::<array::ListArray>()
+            .ok_or(Error::InvalidArrowDowncast {
+                name: MESSAGE_COLUMN_NAME.into(),
+            })?;
+        get_column_from_list_array(reference)
+    }
+
+    pub fn message_loader(record_batch: &RecordBatch) -> MessageLoader<'_> {
+        let column = record_batch.column(message::FROM_COLUMN_INDEX);
         let data = column.data_ref();
         let from = unsafe { data.buffers()[0].typed_data::<u8>() };
 
-        let (to_bufs, to) = get_message_field(rb, message::FieldIndex::To);
+        let (to_bufs, to) = get_message_field(record_batch, message::FieldIndex::To);
         debug_assert_eq!(to_bufs.len(), 3);
-        let (typ_bufs, typ) = get_message_field(rb, message::FieldIndex::Type);
+        let (typ_bufs, typ) = get_message_field(record_batch, message::FieldIndex::Type);
         debug_assert_eq!(typ_bufs.len(), 2);
-        let (data_bufs, data) = get_message_field(rb, message::FieldIndex::Data);
+        let (data_bufs, data) = get_message_field(record_batch, message::FieldIndex::Data);
         debug_assert_eq!(data_bufs.len(), 2);
 
         MessageLoader {
@@ -284,12 +297,12 @@ impl MessageBatch {
     }
 
     pub fn message_usize_index_iter(
-        rb: &RecordBatch,
+        record_batch: &RecordBatch,
         i_batch: usize,
     ) -> impl IndexedParallelIterator<Item = impl ParallelIterator<Item = AgentMessageReference>>
     {
-        let num_agents = rb.num_rows();
-        let column = rb.column(MESSAGE_COLUMN_INDEX);
+        let num_agents = record_batch.num_rows();
+        let column = record_batch.column(MESSAGE_COLUMN_INDEX);
         let data = column.data_ref();
         // This is the offset buffer for message objects.
         // offset_buffers[1] - offset_buffers[0] = number of messages from the 1st agent
@@ -307,10 +320,10 @@ impl MessageBatch {
     }
 
     pub fn message_recipients_par_iter(
-        rb: &RecordBatch,
+        record_batch: &RecordBatch,
     ) -> impl IndexedParallelIterator<Item = impl ParallelIterator<Item = Vec<&str>>> {
-        let num_agents = rb.num_rows();
-        let (bufs, to) = get_message_field(rb, message::FieldIndex::To);
+        let num_agents = record_batch.num_rows();
+        let (bufs, to) = get_message_field(record_batch, message::FieldIndex::To);
         let (i32_offsets, to_list_i32_offsets, to_i32_offsets) = (bufs[0], bufs[1], bufs[2]);
         (0..num_agents).into_par_iter().map(move |j| {
             let row_index = i32_offsets[j] as usize;
@@ -340,9 +353,9 @@ impl MessageBatch {
     }
 
     // TODO: UNUSED: Needs triage
-    pub fn message_recipients_iter(rb: &RecordBatch) -> impl Iterator<Item = Vec<&str>> {
-        let num_agents = rb.num_rows();
-        let (bufs, to) = get_message_field(rb, message::FieldIndex::To);
+    pub fn message_recipients_iter(record_batch: &RecordBatch) -> impl Iterator<Item = Vec<&str>> {
+        let num_agents = record_batch.num_rows();
+        let (bufs, to) = get_message_field(record_batch, message::FieldIndex::To);
         let (i32_offsets, to_list_i32_offsets, to_i32_offsets) = (bufs[0], bufs[1], bufs[2]);
         (0..num_agents).flat_map(move |j| {
             let row_index = i32_offsets[j] as usize;
@@ -371,7 +384,10 @@ impl MessageBatch {
         })
     }
 
-    fn get_message_field(rb: &RecordBatch, index: message::FieldIndex) -> (Vec<&[i32]>, &str) {
+    fn get_message_field(
+        record_batch: &RecordBatch,
+        index: message::FieldIndex,
+    ) -> (Vec<&[i32]>, &str) {
         // The "to" field is the 0th field in MESSAGE_ARROW_FIELDS
         // The "type" field is the 1st field in MESSAGE_ARROW_FIELDS
         // The "data" field is the 2nd field in MESSAGE_ARROW_FIELDS
@@ -380,8 +396,8 @@ impl MessageBatch {
         let i32_byte_len = 4;
         let mut buffers = Vec::with_capacity(3);
 
-        let num_agents = rb.num_rows();
-        let column = rb.column(MESSAGE_COLUMN_INDEX);
+        let num_agents = record_batch.num_rows();
+        let column = record_batch.column(MESSAGE_COLUMN_INDEX);
         let data = column.data_ref();
         // This is the offset buffer for message objects.
         // offset_buffers[1] - offset_buffers[0] = number of messages from the 1st agent

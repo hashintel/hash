@@ -106,24 +106,27 @@ impl PoolReadProxy<MessageBatch> {
         let loaders: Result<_> = self
             .batches_iter()
             .map(|b| b.record_batch())
-            .map(|res| res.map(message::rb::message_loader))
+            .map(|res| res.map(message::record_batch::message_loader))
             .collect();
         Ok(MessageReader { loaders: loaders? })
     }
 
     pub fn recipient_iter_all<'b: 'r, 'r>(
         &'b self,
-    ) -> impl ParallelIterator<Item = (Vec<&'b str>, AgentMessageReference)> + 'r {
-        self.batches.par_iter().enumerate().flat_map(|(i, batch)| {
-            let rb = batch.record_batch().unwrap(); // TODO: Unwrap --> err
-            message::rb::message_recipients_par_iter(rb)
-                .zip_eq(message::rb::message_usize_index_iter(rb, i))
+    ) -> Result<impl ParallelIterator<Item = (Vec<&'b str>, AgentMessageReference)> + 'r> {
+        Ok(self.batches.par_iter().enumerate().flat_map(|(i, batch)| {
+            let record_batch = batch.record_batch()?;
+            message::record_batch::message_recipients_par_iter(record_batch)
+                .zip_eq(message::record_batch::message_usize_index_iter(
+                    record_batch,
+                    i,
+                ))
                 .flat_map(|(recipients, references)| {
                     let res = recipients.collect::<Vec<_>>();
                     let refs = references.collect::<Vec<_>>();
                     res.into_par_iter().zip(refs.into_par_iter())
                 })
-        })
+        }))
     }
 }
 

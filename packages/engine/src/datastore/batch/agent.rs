@@ -149,7 +149,7 @@ impl AgentBatch {
         Ok(Self {
             batch: ArrowBatch {
                 segment: Segment(memory),
-                rb,
+                record_batch: rb,
                 dynamic_meta,
                 static_meta,
                 changes: vec![],

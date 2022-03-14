@@ -63,22 +63,22 @@ def load_record_batch(mem, schema=None):
     # what is between them is padding.)
     if schema is None:
         schema_buf = mem[schema_offset: schema_offset + schema_size]
-    rb_buf = mem[meta_offset: data_offset + data_size]
+    record_batch_buf = mem[meta_offset: data_offset + data_size]
 
     if schema is None:
         schema = pa.ipc.read_schema(schema_buf)
-    rb = pa.ipc.read_record_batch(rb_buf, schema)
+    record_batch = pa.ipc.read_record_batch(record_batch_buf, schema)
 
     any_type_fields = parse_any_type_fields(schema.metadata)
 
     # Put data about `any` types and nullability directly in record batch.
-    for i_field in range(len(rb.num_columns)):
-        field = rb.schema.field(i_field)
-        vector = rb.column(i_field)
+    for i_field in range(len(record_batch.num_columns)):
+        field = record_batch.schema.field(i_field)
+        vector = record_batch.column(i_field)
         vector.type.is_any = field.name in any_type_fields
         vector.type.is_nullable = field.nullable
 
-    return rb
+    return record_batch
 
 
 # Returns dataset name, dataset contents and whether JSON could be loaded.
@@ -109,7 +109,7 @@ class Batch:
         self.mem_version = -1
         self.batch_version = -1
         self.mem = None  # After loading, `mem` will be a shared buffer.
-        self.rb = None  # After loading, `rb` will be a record batch.
+        self.record_batch = None  # After loading, `record_batch` will be a record batch.
         self.cols = {}  # Syncing erases columns that have become invalid.
 
         # For flushing:
@@ -133,12 +133,12 @@ class Batch:
 
         if should_load:
             self.batch_version = latest_batch.batch_version
-            self.rb = load_record_batch(self.mem, schema)
+            self.record_batch = load_record_batch(self.mem, schema)
             self.cols = {}  # Avoid using obsolete column data.
-            self.static_meta = static_meta_from_schema(self.rb.schema)
+            self.static_meta = static_meta_from_schema(self.record_batch.schema)
 
     def load_col(self, name, loader=None):
-        vector = self.rb.column(name)
+        vector = self.record_batch.column(name)
         if not vector:
             raise RuntimeError("Missing vector for " + name)
 

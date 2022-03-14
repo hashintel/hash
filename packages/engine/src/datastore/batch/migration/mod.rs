@@ -1018,7 +1018,8 @@ impl<'a> BufferActions<'a> {
         let mut buffer_metas = Vec::with_capacity(static_meta.get_buffer_count());
         let mut node_metas = Vec::with_capacity(static_meta.get_node_count());
         for (column_index, column) in static_meta.get_column_meta().iter().enumerate() {
-            let new_agents_data_ref = new_agents.map(|rb| rb.column(column_index).data_ref());
+            let new_agents_data_ref =
+                new_agents.map(|record_batch| record_batch.column(column_index).data_ref());
             let range_actions = Cow::Borrowed(&base_range_actions);
             next_indices = Self::traverse_nodes(
                 next_indices,
@@ -1486,7 +1487,7 @@ pub(super) mod test {
             batch_index,
             (&row_actions).into(),
             &schema.static_meta,
-            Some(&create_agents.rb),
+            Some(&create_agents.record_batch),
         )?;
         buffer_actions.flush(&mut pool[0])?;
         println!("Migration took: {} us", now.elapsed().as_micros());
@@ -1671,7 +1672,7 @@ pub(super) mod test {
             batch_index,
             (&row_actions).into(),
             &schema.static_meta,
-            Some(&create_agents.rb),
+            Some(&create_agents.record_batch),
         )?;
         buffer_actions.flush(&mut pool[0])?;
         println!("Migration took: {} us", now.elapsed().as_micros());
