@@ -179,6 +179,9 @@ export const EntityEditor: VoidFunctionComponent<EntityEditorProps> = ({
         // eslint-disable-next-line no-console -- TODO: consider using logger
         .catch((err) => console.error(`Error creating entity: ${err.message}`));
     } else {
+      if (!entityProps.entityTypeId) {
+        throw new Error("entityTypeId is required to create a new entity.");
+      }
       entityProps
         .createEntities([
           {

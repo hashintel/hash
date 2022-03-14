@@ -43,13 +43,13 @@ type JsonSchemaEditorProps = {
   subSchemaReference?: string;
 } & Pick<
   BlockProtocolProps,
-  "accountId" | "aggregateEntityTypes" | "entityId" | "updateEntityTypes"
+  "accountId" | "aggregateEntityTypes" | "entityTypeId" | "updateEntityTypes"
 >;
 
 export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
   accountId,
   aggregateEntityTypes,
-  entityId,
+  entityTypeId,
   GoToSchemaElement,
   schema: possiblyStaleDbSchema,
   subSchemaReference,
@@ -97,8 +97,8 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
       throw new Error("accountId not provided. Schema cannot be updated.");
     }
 
-    if (!entityId) {
-      throw new Error("entityId not provided. Schema cannot be updated.");
+    if (!entityTypeId) {
+      throw new Error("entityTypeId not provided. Schema cannot be updated.");
     }
 
     if (
@@ -111,7 +111,7 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
     debouncedUpdate([
       {
         accountId,
-        entityId,
+        entityTypeId,
         schema: workingSchemaDraft as JSONObject,
       },
     ])?.catch((err) => {
@@ -122,7 +122,7 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
   }, [
     accountId,
     debouncedUpdate,
-    entityId,
+    entityTypeId,
     possiblyStaleDbSchema,
     workingSchemaDraft,
   ]);
@@ -176,7 +176,7 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
   const { title } = workingSchemaDraft;
   const { description } = selectedSchema;
 
-  const readonly = !updateEntityTypes || !entityId;
+  const readonly = !updateEntityTypes || !entityTypeId;
 
   const addSubSchema = (newSubSchemaName: string) =>
     dispatchSchemaUpdate({

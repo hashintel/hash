@@ -7,7 +7,7 @@ import {
 } from "react";
 import {
   BlockProtocolFunction,
-  BlockProtocolProps,
+  BlockProtocolFunctions,
   JSONObject,
 } from "blockprotocol";
 import { v4 as uuid } from "uuid";
@@ -17,7 +17,7 @@ import { MessageFromBlockFramer, MessageFromFramedBlock } from "../types";
 import { memoizeFetchFunction } from "../../../lib/memoize";
 import { FetchEmbedCodeFn } from "../../BlockLoader/fetchEmbedCode";
 
-export type CrossFrameProxyProps = BlockProtocolProps & {
+export type CrossFrameProxyProps = BlockProtocolFunctions & {
   blockProperties: JSONObject;
   getEmbedBlock?: FetchEmbedCodeFn;
   sourceUrl: string;
