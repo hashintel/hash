@@ -47,7 +47,9 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         transition: theme.transitions.create("border-color"),
       };
 
-      const focusVisibleAfterStyles: CSSObject = {};
+      const focusVisibleAfterStyles: CSSObject = {
+        borderColor: "initial",
+      };
 
       switch (size) {
         case "large": {
