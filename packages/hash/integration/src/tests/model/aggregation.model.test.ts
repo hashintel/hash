@@ -188,8 +188,8 @@ describe("Aggregation model class ", () => {
 
     const refetchedAggregation = refetchedSourceAggregations[0];
 
-    expect(refetchedAggregation.createdAt).toEqual(aggregation.createdAt);
-    expect(refetchedAggregation.operation).toEqual(updatedOperation);
+    expect(refetchedAggregation!.createdAt).toEqual(aggregation.createdAt);
+    expect(refetchedAggregation!.operation).toEqual(updatedOperation);
   });
 
   it("delete method deletes an aggregation with a non-versioned source entity", async () => {

@@ -213,7 +213,7 @@ export class DummyEmailTransporter implements EmailTransporter {
 
     if (copyCodesOrLinksToClipboard) {
       try {
-        await clipboardy.write(rowsToDisplay[rowsToDisplay.length - 1]);
+        await clipboardy.write(rowsToDisplay[rowsToDisplay.length - 1]!);
       } catch {
         // Prevent hard crash on Ubuntu without xsel installed (e.g. in CI)
         rowsToDisplay.push("(could not copy to clipboard)");

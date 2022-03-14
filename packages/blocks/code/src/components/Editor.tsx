@@ -32,7 +32,7 @@ export const Editor = ({
 
   useEffect(() => {
     if (!highlightedElementRef.current) return;
-    Prism.highlightElement(highlightedElementRef.current.children[0]);
+    Prism.highlightElement(highlightedElementRef.current.children[0]!);
   }, [language, content]);
 
   /**

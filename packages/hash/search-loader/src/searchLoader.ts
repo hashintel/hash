@@ -169,7 +169,7 @@ export class SearchLoader {
           const grandparentLatestEntity = await Entity.getEntityLatestVersion(
             this.db,
             {
-              ...grandparents[0],
+              ...grandparents[0]!,
             },
           );
 

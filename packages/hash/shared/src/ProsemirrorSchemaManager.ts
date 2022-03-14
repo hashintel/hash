@@ -99,7 +99,7 @@ export class ProsemirrorSchemaManager {
             value.schema = existingSchema;
             this.nodes[key] = value;
           } else {
-            this.nodes[key].contentMatch = value.contentMatch;
+            this.nodes[key]!.contentMatch = value.contentMatch;
           }
         }
       }
@@ -167,7 +167,7 @@ export class ProsemirrorSchemaManager {
    *          {@link ProsemirrorSchemaManager#defineNewNode}
    */
   private prepareToDisableBlankDefaultComponentNode() {
-    const blankType = this.schema.nodes.blank;
+    const blankType = this.schema.nodes.blank!;
 
     if (isComponentNodeType(blankType)) {
       if (blankType.spec.group?.includes(componentNodeGroupName)) {
@@ -313,13 +313,13 @@ export class ProsemirrorSchemaManager {
        *    3. [Outermost] The block node (rendered by BlockView) which
        *       provides the surrounding UI
        */
-      return this.schema.nodes.block.create({}, [
-        this.schema.nodes.entity.create({ draftId: draftBlockId }, [
-          this.schema.nodes.entity.create(
+      return this.schema.nodes.block!.create({}, [
+        this.schema.nodes.entity!.create({ draftId: draftBlockId }, [
+          this.schema.nodes.entity!.create(
             {
               draftId: draftTextEntity?.draftId,
             },
-            [this.schema.nodes[targetComponentId].create({}, content)],
+            [this.schema.nodes[targetComponentId]!.create({}, content)],
           ),
         ]),
       ]);
@@ -328,16 +328,16 @@ export class ProsemirrorSchemaManager {
        * @todo arguably this doesn't need to be here – remove it if possible
        *   when working on switching blocks
        */
-      return this.schema.nodes.block.create({}, [
-        this.schema.nodes.entity.create(
+      return this.schema.nodes.block!.create({}, [
+        this.schema.nodes.entity!.create(
           { draftId: draftBlockId },
-          this.schema.nodes.entity.create(
+          this.schema.nodes.entity!.create(
             {
               draftId: isDraftBlockEntity(blockEntity)
                 ? blockEntity.properties.entity.draftId
                 : null,
             },
-            [this.schema.nodes[targetComponentId].create({}, [])],
+            [this.schema.nodes[targetComponentId]!.create({}, [])],
           ),
         ),
       ]);
@@ -543,7 +543,7 @@ export class ProsemirrorSchemaManager {
           text: {
             __linkedData: {},
             data: entityStorePluginStateFromTransaction(tr, this.view.state)
-              .store.draft[newTextDraftId],
+              .store.draft[newTextDraftId]!,
           },
         };
       }

@@ -72,7 +72,7 @@ export const useBlockProtocolUpdateLinks = (): {
         const { data, errors } = await getUpdatedLinksData(action);
 
         if (!data) {
-          throw new Error(`Could not update link: ${errors?.[0].message}`);
+          throw new Error(`Could not update link: ${errors?.[0]!.message}`);
         }
 
         // @todo, add a proper typecheck. The GraphQL query for multiFilter { operator } returns String, but BlockProtocolLinkedAggregationUpdateMutationResults defines the exact type for operator. This typecast is used to typecast string to the one the query expects.

@@ -83,7 +83,7 @@ const generateSearchBody = (params: SearchParameters) => {
         // eslint-disable-next-line no-param-reassign
         state[presence] = [matchField];
       } else {
-        state[presence].push(matchField);
+        state[presence]!.push(matchField);
       }
       return state;
     }, {});

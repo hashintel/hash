@@ -47,7 +47,7 @@ const isUnsupportedJSONPathComponent = (component: JSONPathComponent) =>
 
 export const isUnupportedJSONPath = (components: JSONPathComponent[]) =>
   components.length < 2 ||
-  components[0].expression.type !== "root" ||
+  components[0]!.expression.type !== "root" ||
   components.slice(1).find(isUnsupportedJSONPathComponent) !== undefined;
 
 type LinkConstructorArgs = {

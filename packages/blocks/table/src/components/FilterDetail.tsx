@@ -82,7 +82,7 @@ export const FilterDetail: React.VFC<FilterDetailProps> = ({
     setFilters((prevFields) => [
       ...prevFields,
       {
-        field: columns?.[0].id ?? "",
+        field: columns?.[0]?.id ?? "",
         operator: "CONTAINS",
         value: "",
         id: uuid(),

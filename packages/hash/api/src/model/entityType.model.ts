@@ -108,7 +108,7 @@ class __EntityType {
   ): Promise<JSONSchema> {
     const { $id, title, schema: maybeStringifiedSchema, description } = params;
 
-    if (title[0] !== title[0].toUpperCase()) {
+    if (title[0] !== title[0]?.toUpperCase()) {
       throw new Error(
         `Schema title should be in PascalCase, you passed '${title}'`,
       );

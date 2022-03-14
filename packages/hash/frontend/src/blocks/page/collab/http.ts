@@ -65,7 +65,7 @@ export const req = (
       });
       if (conf.headers) {
         for (const header of Object.keys(conf.headers)) {
-          request.setRequestHeader(header, conf.headers[header]);
+          request.setRequestHeader(header, conf.headers[header]!);
         }
       }
       request.send(conf.body || null);

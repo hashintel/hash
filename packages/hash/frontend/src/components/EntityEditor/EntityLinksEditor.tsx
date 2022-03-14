@@ -79,7 +79,7 @@ export const EntityLinksEditor: VoidFunctionComponent<
             <EntityFieldLinkEditor
               accountId={accountId}
               aggregateEntities={aggregateEntities}
-              entityTypeId={link.permittedTypeIds[0]} // @todo handle multiple permitted types
+              entityTypeId={link.permittedTypeIds[0]!} // @todo handle multiple permitted types
               allowsMultipleSelections={!!link.array}
               createLinkFromEntity={createLinkFromEntity}
               deleteLinkFromEntity={deleteLinkFromEntity}

@@ -108,18 +108,20 @@ class __Block extends Entity {
       path: ["data"],
     });
 
-    if (blockDataLinks.length === 0) {
+    const [firstLink, ...otherLinks] = blockDataLinks;
+
+    if (!firstLink) {
       throw new Error(
         `Critical: block with entityId ${this.entityId} in account with accountId ${this.accountId} has no linked block data entity`,
       );
     }
-    if (blockDataLinks.length > 1) {
+    if (otherLinks.length > 0) {
       throw new Error(
         `Critical: block with entityId ${this.entityId} in account with accountId ${this.accountId} has more than one linked block data entity`,
       );
     }
 
-    return blockDataLinks[0].getDestination(client);
+    return firstLink.getDestination(client);
   }
 }
 
