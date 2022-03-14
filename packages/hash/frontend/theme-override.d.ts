@@ -9,7 +9,7 @@ declare module "@mui/material/styles" {
     xxl: string;
     purpleShadowMd: string;
   }
-  interface Theme {
+  interface BaseTheme {
     borderRadii: {
       none: string;
       sm: string;

@@ -52,9 +52,6 @@ const LoadingContent: VFC<{
   );
 };
 
-// @todo-mui
-// - work on icon buttons
-
 export type ButtonProps = {
   loading?: boolean;
   loadingWithoutText?: boolean;
@@ -62,7 +59,7 @@ export type ButtonProps = {
 } & MuiButtonProps & { rel?: string; target?: string }; // MUI button renders <a /> when href is provided, but typings miss rel and target
 
 export const Button: FC<ButtonProps> = forwardRef(
-  ({ children, loading, loadingWithoutText, href, sx, ...props }, ref) => {
+  ({ children, loading, loadingWithoutText, href, ...props }, ref) => {
     const linkProps = useMemo(() => {
       if (href && isHrefExternal(href)) {
         return {
@@ -76,8 +73,8 @@ export const Button: FC<ButtonProps> = forwardRef(
     }, [href]);
 
     const Component = (
-      <MuiButton {...props} {...linkProps} sx={sx} ref={ref}>
-        {loading || loadingWithoutText ? (
+      <MuiButton {...props} {...linkProps} ref={ref}>
+        {loading ? (
           <LoadingContent
             withText={!loadingWithoutText}
             isXS={props.size === "xs"}

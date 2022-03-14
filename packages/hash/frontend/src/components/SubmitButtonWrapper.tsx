@@ -13,7 +13,6 @@ import {
   Collapse,
 } from "@mui/material";
 import React, { FC, forwardRef } from "react";
-import { Button } from "./Button";
 import { FontAwesomeIcon } from "./icons";
 
 const DisabledTooltip = styled(({ className, ...props }: TooltipProps) => (
@@ -22,7 +21,7 @@ const DisabledTooltip = styled(({ className, ...props }: TooltipProps) => (
   [`& .${tooltipClasses.tooltip}`]: {
     width: 260,
     backgroundColor: theme.palette.common.white,
-    padding: "17px 16px",
+    padding: theme.spacing(2),
     color: theme.palette.orange[80],
     boxShadow: theme.boxShadows.md,
     border: `1px solid ${theme.palette.gray[20]}`,
@@ -30,21 +29,13 @@ const DisabledTooltip = styled(({ className, ...props }: TooltipProps) => (
 }));
 
 export type SubmitButtonWrapperProps = {
-  tooltip?: boolean;
+  useTooltip?: boolean;
   helperText: string;
 } & BoxProps;
 
 export const SubmitButtonWrapper: FC<SubmitButtonWrapperProps> = forwardRef(
-  ({ children, tooltip, helperText, ...props }, ref) => {
-    if (process.env.NODE_ENV !== "production") {
-      if (!React.isValidElement(children) || children.type !== Button) {
-        throw new Error(
-          "Please wrap over a Button component => <ButtonHelperTextWrapper><Button /></ButtonHelperTextWrapper>",
-        );
-      }
-    }
-
-    if (tooltip && helperText) {
+  ({ children, useTooltip, helperText, ...props }, ref) => {
+    if (useTooltip && helperText) {
       return (
         <DisabledTooltip
           placement="top"
@@ -66,7 +57,7 @@ export const SubmitButtonWrapper: FC<SubmitButtonWrapperProps> = forwardRef(
                   },
                 }}
               >
-                <FontAwesomeIcon icon={faWarning} />
+                <FontAwesomeIcon sx={{}} icon={faWarning} />
               </Box>
               <Typography variant="smallTextLabels" fontWeight={500} flex={1}>
                 {helperText}

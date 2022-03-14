@@ -19,6 +19,7 @@ export const VersionDropdown: VoidFunctionComponent<VersionDropdownProps> = ({
   const now = new Date();
 
   return (
+    // @todo use MUI Select component for this instead
     <Box
       component="select"
       sx={{

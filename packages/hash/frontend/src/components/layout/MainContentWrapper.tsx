@@ -187,7 +187,7 @@ export const MainContentWrapper: FunctionComponent = ({ children }) => {
           <Box sx={{ mr: 2 }} />
           <SubmitButtonWrapper
             helperText="Please enter a title or type to continue"
-            tooltip
+            useTooltip
           >
             <Button disabled>A disabled button</Button>
           </SubmitButtonWrapper>

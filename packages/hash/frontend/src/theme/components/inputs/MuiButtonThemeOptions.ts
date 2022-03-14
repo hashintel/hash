@@ -76,7 +76,7 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           background: theme.palette.blue[70],
           position: "relative",
           zIndex: 0,
-          transition: "opacity 0.3s ease-in-out",
+          transition: theme.transitions.create("opacity"),
         });
 
         Object.assign(beforeStyles, {
@@ -88,7 +88,12 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           background:
             "linear-gradient(82.89deg, #9E56FA 5.64%, #644CFF 78.19%, #0070F4 121.05%)",
           boxShadow: theme.boxShadows.purpleShadowMd,
+          transition: theme.transitions.create("opacity"),
           zIndex: -1,
+        });
+
+        Object.assign(hoverStyles, {
+          background: theme.palette.blue[70],
         });
 
         Object.assign(hoverBeforeStyles, {
