@@ -265,7 +265,7 @@ The below `package.json` file outlines the minimum requirements a package has to
     "eslint-plugin-react": "^7.28.0",
     "eslint-plugin-react-hooks": "^4.3.0",
     "rimraf": "3.2.0",
-    "typescript": "4.5.2"
+    "typescript": "4.6.2"
   }
 }
 ```

@@ -163,7 +163,7 @@ void (async () => {
       ),
     );
     mutations.forEach((res, i) => {
-      const name = names[i];
+      const name = names[i]!;
       results.set(name, res);
     });
   };
@@ -801,13 +801,13 @@ void (async () => {
     ),
   );
 
-  await subPage.setParentPage(db, {
-    parentPage,
+  await subPage!.setParentPage(db, {
+    parentPage: parentPage!,
     setByAccountId: user.accountId,
   });
 
-  await subSubpage.setParentPage(db, {
-    parentPage: subPage,
+  await subSubpage!.setParentPage(db, {
+    parentPage: subPage!,
     setByAccountId: user.accountId,
   });
 

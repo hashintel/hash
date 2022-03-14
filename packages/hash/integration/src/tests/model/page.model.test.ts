@@ -71,7 +71,7 @@ describe("Page model class ", () => {
 
     const [block] = pageBlocks;
 
-    const blockData = await block.getBlockData(db);
+    const blockData = await block!.getBlockData(db);
 
     // Expect the block's entity's entity type to be the Text entity type
     expect(blockData.entityType.entityId).toBe(textSystemType.entityId);

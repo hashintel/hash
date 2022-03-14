@@ -175,7 +175,7 @@ export const getImpliedEntityHistory = async (
       ),
     );
     for (const [i, links] of entityLinks.entries()) {
-      graph.set(slice[i].entityId, links);
+      graph.set(slice[i]!.entityId, links);
     }
     slice = uniq(
       entityLinks.flat().filter(({ entityId }) => !graph.has(entityId)),
@@ -192,7 +192,7 @@ export const getImpliedEntityHistory = async (
         ),
       )
     ).map((versions, i): [string, EntityVersion[]] => [
-      entityRefs[i].entityId,
+      entityRefs[i]!.entityId,
       versions,
     ]),
   );
@@ -213,7 +213,7 @@ export const getImpliedEntityHistory = async (
   while (true) {
     const rootVersion = entityVersions.get(root.entityId)![
       checkpoints.getRoot()
-    ];
+    ]!;
     const subGraph: Graph = {
       entities: [],
       links: [],
@@ -244,7 +244,7 @@ export const getImpliedEntityHistory = async (
           ? linkedVersions.find(
               (ver) => ver.entityVersionId === link.entityVersionId,
             )!
-          : linkedVersions[checkpoints.get(ref.entityId, link.entityId)];
+          : linkedVersions[checkpoints.get(ref.entityId, link.entityId)]!;
 
         // If the link is fixed, and the position of the specified version in its timeline
         // is after the checkpointed version of this entity, then we need to update the

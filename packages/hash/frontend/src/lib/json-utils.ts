@@ -1,7 +1,9 @@
 import { JSONValue, JSONObject, JSONArray } from "blockprotocol";
 import { Schema } from "jsonschema";
 
-export const isParsedJsonObject = (val: JSONValue): val is JSONObject =>
+export const isParsedJsonObject = (
+  val: JSONValue | undefined,
+): val is JSONObject =>
   typeof val === "object" && val !== null && !Array.isArray(val);
 
 export const isParsedJsonObjectOrArray = (

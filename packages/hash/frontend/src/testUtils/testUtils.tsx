@@ -6,7 +6,7 @@ import { render, RenderOptions } from "@testing-library/react";
 import { theme } from "../theme";
 
 type CustomRenderOptions = RenderOptions & {
-  mocks?: MockedResponse[];
+  mocks?: Readonly<MockedResponse[]>;
 };
 
 const customRender = (

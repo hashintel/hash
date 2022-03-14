@@ -628,7 +628,7 @@ class __Entity {
       // the root entity is the first result, same of which the user supplied as the top level entity.
       if (entities.length > 0) {
         // First element will be the root entity.
-        return entities[0].entity;
+        return entities[0]!.entity;
       } else {
         throw new ApolloError(
           "Could not create entity tree",

@@ -124,7 +124,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   }, []);
 
   useEffect(() => {
-    const routeHash = router.asPath.split("#")[1];
+    const routeHash = router.asPath.split("#")[1]!;
 
     function frame() {
       const routeElement = document.getElementById(routeHash);

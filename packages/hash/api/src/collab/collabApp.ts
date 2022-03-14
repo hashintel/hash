@@ -138,8 +138,8 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
     );
 
     const instance = await getInstance(apolloClient, entityWatcher)(
-      request.params.accountId,
-      request.params.pageEntityId,
+      request.params.accountId!,
+      request.params.pageEntityId!,
       forceNewInstance,
     );
 

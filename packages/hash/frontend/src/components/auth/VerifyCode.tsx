@@ -32,7 +32,7 @@ const parseVerificationCodeInput = (inputCode: string) =>
 
 const doesVerificationCodeLookValid = (code: string) => {
   const units = code.split("-");
-  return units.length >= 4 && units?.[3].length > 0;
+  return units.length >= 4 && units?.[3]!.length > 0;
 };
 
 export const VerifyCode: VFC<VerifyCodeProps> = ({
