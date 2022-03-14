@@ -3,140 +3,95 @@
  */
 import { Components, CSSObject, Theme } from "@mui/material";
 
-const buttonBorderRadius = 34;
-const buttonFocusBorderOffset = 6;
-const buttonFocusBorderWidth = 4;
-
 export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
   defaultProps: {
     variant: "primary",
-    color: "purple",
+    color: "default",
     disableElevation: true,
     disableRipple: true,
     disableTouchRipple: true,
   },
   styleOverrides: {
     root: ({ ownerState, theme }) => {
-      const { variant, color, size } = ownerState;
+      const { variant, size } = ownerState;
 
       const { typography } = theme;
 
       // The base CSS styling applied to the button
       const baseStyles: CSSObject = {
         textTransform: "none",
-        fontSize:
-          size === "small"
-            ? typography.bpSmallCopy.fontSize
-            : size === "medium"
-            ? typography.bpBodyCopy.fontSize
-            : undefined,
-      };
-
-      // The :before CSS styling applied to the button
-      const beforeStyles: CSSObject = {
-        content: `""`,
-        borderRadius: "inherit",
-        position: "absolute",
-        width: "100%",
-        height: "100%",
-        border: "1px solid transparent",
+        lineHeight: 1,
+        boxSizing: "border-box",
+        border: "2px solid",
       };
 
       // The :hover CSS styling applied to the button
       const hoverStyles: CSSObject = {};
 
       // The .Mui-disabled CSS styling applied to the button
-      const disabledStyles: CSSObject = {};
+      // @todo set these
+      const disabledStyles: CSSObject = {
+        backgroundColor: theme.palette.gray[20],
+        borderColor: theme.palette.gray[20],
+        color: theme.palette.gray[50],
+      };
 
       // The :active CSS styling applied to the button
       const activeStyles: CSSObject = {};
 
-      // The :focus-visible:after CSS styling applied to the button
-      const focusVisibleAfterStyles: CSSObject = {
-        content: `""`,
-        position: "absolute",
-        left: -buttonFocusBorderOffset,
-        top: -buttonFocusBorderOffset,
-        bottom: -buttonFocusBorderOffset,
-        right: -buttonFocusBorderOffset,
-        border: `${buttonFocusBorderWidth}px solid`,
-        borderRadius: 6 + buttonFocusBorderOffset,
-      };
+      switch (size) {
+        case "large": {
+          Object.assign(baseStyles, {
+            fontSize: typography.bpBodyCopy.fontSize,
+            borderRadius: 27,
+            minHeight: 54,
+            padding: theme.spacing("16px", "39.5px"),
+          });
+          break;
+        }
+        case "medium": {
+          Object.assign(baseStyles, {
+            fontSize: typography.bpSmallCopy.fontSize,
+            borderRadius: 22,
+            minHeight: 42,
+            padding: theme.spacing("12px", "20px"),
+          });
+          break;
+        }
+      }
 
-      if (variant === "primary") {
-        /** ===== PRIMARY button specific styling ===== */
+      switch (variant) {
+        case "primary": {
+          /** ===== PRIMARY button specific styling ===== */
+          Object.assign(baseStyles, {
+            fontWeight: 600,
+            color: theme.palette.orange[800],
+            backgroundColor: theme.palette.yellow[300],
+            borderColor: theme.palette.white,
+          });
+          Object.assign(hoverStyles, {
+            color: theme.palette.orange[900],
+            backgroundColor: theme.palette.yellow[300],
+            borderColor: theme.palette.yellow[500],
+          });
+          break;
+        }
+        case "secondary": {
+          Object.assign(baseStyles, {
+            fontWeight: 600,
+          });
+          break;
+        }
+        case "tertiary": {
+          Object.assign(baseStyles, {
+            fontWeight: 500,
+          });
+          break;
+        }
+      }
 
-        Object.assign(baseStyles, {
-          color: theme.palette.gray[20],
-          borderRadius: buttonBorderRadius,
-          ...(size === "small" && {
-            padding: theme.spacing("8px", "20px"),
-            minHeight: 40,
-          }),
-          ...(size === "medium" && {
-            padding: theme.spacing("12px", "28px"),
-            minHeight: 51,
-          }),
-          ...(color &&
-            {
-              purple: {
-                zIndex: 0,
-                background: theme.palette.purple[600],
-              },
-              teal: { backgroundColor: theme.palette.teal[500] },
-              gray: {
-                color: theme.palette.gray[90],
-                backgroundColor: theme.palette.gray[50],
-              },
-              warning: { backgroundColor: theme.palette.orange[500] },
-              danger: { backgroundColor: theme.palette.red[600] },
-              inherit: {},
-            }[color]),
-        });
-        Object.assign(beforeStyles, {
-          ...(color === "purple" && {
-            zIndex: -1,
-            opacity: 0,
-            transition: theme.transitions.create("opacity"),
-            background: `radial-gradient(57.38% 212.75% at 50.1% 134.31%, ${theme.palette.teal["400"]} 0%, ${theme.palette.purple[600]} 100%)`,
-          }),
-        });
-        Object.assign(hoverStyles, {
-          ...(color &&
-            {
-              purple: {
-                background: theme.palette.purple[600],
-                ":before": {
-                  opacity: 1,
-                },
-              },
-              teal: { backgroundColor: theme.palette.teal[600] },
-              gray: { backgroundColor: theme.palette.gray[30] },
-              warning: { backgroundColor: theme.palette.orange[600] },
-              danger: { backgroundColor: theme.palette.red[700] },
-              inherit: {},
-            }[color]),
-        });
-        Object.assign(disabledStyles, {
-          ...(color === "purple" && {
-            background: theme.palette.purple[200],
-            color: theme.palette.purple[100],
-          }),
-        });
-        Object.assign(focusVisibleAfterStyles, {
-          borderRadius: buttonBorderRadius + buttonFocusBorderOffset,
-          ...(color &&
-            {
-              purple: { borderColor: theme.palette.purple[600] },
-              teal: { borderColor: theme.palette.teal[500] },
-              gray: { borderColor: theme.palette.gray[50] },
-              warning: { borderColor: theme.palette.orange[500] },
-              danger: { borderColor: theme.palette.red[700] },
-              inherit: {},
-            }[color]),
-        });
-      } else if (variant === "secondary") {
-        /** ===== SECONDARY button specific styling ===== */
+      /* else if (variant === "secondary") {
+        /** ===== SECONDARY button specific styling ===== * /
 
         Object.assign(baseStyles, {
           background: theme.palette.gray[10],
@@ -164,9 +119,6 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
               danger: { color: theme.palette.red[600] },
               inherit: {},
             }[color]),
-        });
-        Object.assign(beforeStyles, {
-          borderColor: "currentColor",
         });
         Object.assign(hoverStyles, {
           ...(color &&
@@ -207,7 +159,7 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
             }[color]),
         });
       } else if (variant === "tertiary") {
-        /** ===== TERTIARY button specific styling ===== */
+        /** ===== TERTIARY button specific styling ===== * /
 
         Object.assign(baseStyles, {
           borderRadius: buttonBorderRadius,
@@ -283,7 +235,7 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           borderRadius: buttonBorderRadius + buttonFocusBorderOffset,
         });
       } else if (variant === "transparent") {
-        /** ===== TRANSPARENT button specific styling ===== */
+        /** ===== TRANSPARENT button specific styling ===== * /
 
         Object.assign(baseStyles, {
           minWidth: "unset",
@@ -300,15 +252,13 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           top: 0,
           borderRadius: 0,
         });
-      }
+      } */
 
       return {
         ...baseStyles,
-        "&:before": beforeStyles,
         ":hover": hoverStyles,
         ":active": activeStyles,
         "&.Mui-disabled": disabledStyles,
-        ":focus-visible:after": focusVisibleAfterStyles,
       };
     },
     endIcon: {

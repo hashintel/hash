@@ -3,7 +3,11 @@
  */
 declare module "@mui/material/styles" {
   interface Palette {
+    white: string;
     purple: {
+      600: string;
+    };
+    yellow: {
       100: string;
       200: string;
       300: string;
@@ -12,16 +16,7 @@ declare module "@mui/material/styles" {
       600: string;
       700: string;
       800: string;
-      subtle: string;
-    };
-    teal: {
-      100: string;
-      200: string;
-      300: string;
-      400: string;
-      500: string;
-      600: string;
-      700: string;
+      900: string;
     };
     orange: {
       100: string;
@@ -31,16 +26,8 @@ declare module "@mui/material/styles" {
       500: string;
       600: string;
       700: string;
-    };
-    red: {
-      100: string;
-      200: string;
-      300: string;
-      400: string;
-      500: string;
-      600: string;
-      700: string;
       800: string;
+      900: string;
     };
     gray: {
       10: string;
@@ -113,11 +100,7 @@ declare module "@mui/material/Button" {
   }
 
   interface ButtonPropsColorOverrides {
-    purple: true;
-    teal: true;
-    warning: true;
-    danger: true;
-    gray: true;
+    default: true;
     // Disable defaults
     primary: false;
     secondary: false;
@@ -127,13 +110,14 @@ declare module "@mui/material/Button" {
     warning: false;
   }
 
-  interface ButtonPropsSizeOverrides {}
+  interface ButtonPropsSizeOverrides {
+    small: undefined;
+  }
 }
 
 declare module "@mui/material/Paper" {
   interface PaperPropsVariantOverrides {
-    teal: true;
-    purple: true;
+    yellow: true;
   }
 }
 

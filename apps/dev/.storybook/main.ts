@@ -7,6 +7,7 @@ export default {
     "@storybook/addon-links",
     "@storybook/addon-essentials",
     "@storybook/addon-interactions",
+    "@storybook/addon-controls",
     "storybook-addon-next",
   ],
   framework: "@storybook/react",
