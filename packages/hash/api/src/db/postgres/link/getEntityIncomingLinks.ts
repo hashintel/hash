@@ -12,14 +12,12 @@ export const getEntityIncomingLinks = async (
   params: {
     accountId: string;
     entityId: string;
-    entityVersionId?: string;
   },
 ) => {
   const rows = await conn.any(sql<DBLinkWithVersionRow>`
     with all_links as (${selectAllLinksWithDestinationEntity({
       destinationAccountId: params.accountId,
       destinationEntityId: params.entityId,
-      destinationEntityVersionId: params.entityVersionId,
     })})
     select *
     from all_links join incoming_links on (

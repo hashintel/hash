@@ -479,6 +479,20 @@ export interface DBClient {
     path?: string;
   }): Promise<DBLink[]>;
 
+  /**
+   * Gets all the incoming links of an entity.
+   *
+   * @todo: support getting the incoming links of an entity at
+   * a particular point in its history
+   *
+   * @param params.accountId the account ID of the destination entity
+   * @param params.entityId the entity ID of the destination entity
+   */
+  getEntityIncomingLinks(params: {
+    accountId: string;
+    entityId: string;
+  }): Promise<DBLink[]>;
+
   /** Create a verification code */
   createVerificationCode(params: {
     accountId: string;
