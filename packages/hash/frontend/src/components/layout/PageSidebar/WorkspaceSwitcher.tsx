@@ -43,7 +43,7 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
             backgroundColor: ({ palette }) => palette.gray[20],
           },
 
-          "&:focus-visible": {
+          "&:focus": {
             outlineColor: ({ palette }) => `2px solid ${palette.blue[70]}`,
             outlineOffset: "2px",
           },
@@ -109,7 +109,7 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
                   backgroundColor: ({ palette }) => palette.gray[20],
                 },
 
-                "&:focus-visible": {
+                "&:focus": {
                   outline: ({ palette }) => `2px solid ${palette.blue[70]}`,
                   outlineOffset: "2px",
                 },
@@ -163,7 +163,7 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
                     backgroundColor: ({ palette }) => palette.gray[20],
                   },
 
-                  "&:focus-visible": {
+                  "&:focus": {
                     outline: ({ palette }) => `2px solid ${palette.blue[70]}`,
                     outlineOffset: "2px",
                   },
@@ -235,7 +235,7 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
                     backgroundColor: ({ palette }) => palette.gray[20],
                   },
 
-                  "&:focus-visible": {
+                  "&:focus": {
                     outline: ({ palette }) => `2px solid ${palette.blue[70]}`,
                     outlineOffset: "2px",
                   },
@@ -274,7 +274,7 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
                   backgroundColor: ({ palette }) => palette.gray[20],
                 },
 
-                "&:focus-visible": {
+                "&:focus": {
                   outline: ({ palette }) => `2px solid ${palette.blue[70]}`,
                   outlineOffset: "2px",
                 },
