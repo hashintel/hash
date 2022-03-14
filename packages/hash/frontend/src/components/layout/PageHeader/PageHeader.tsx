@@ -39,13 +39,13 @@ export const PageHeader: React.VFC<{
   return (
     <Box
       component="header"
-      sx={{
-        background: theme.palette.common.white,
-        borderBottom: `1px solid ${theme.palette.gray["30"]}`,
+      sx={({ palette }) => ({
+        background: palette.common.white,
+        borderBottom: `1px solid ${palette.gray["30"]}`,
         display: "flex",
         alignItems: "center",
         height: HEADER_HEIGHT,
-      }}
+      })}
     >
       <Nav>
         <Box
@@ -61,11 +61,11 @@ export const PageHeader: React.VFC<{
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <Link noLinkStyle href={`/${user ? user.accountId : ""}`}>
               <HashNavIcon
-                sx={{
-                  height: theme.spacing(2.25),
+                sx={({ palette }) => ({
+                  height: "18px",
                   width: "auto",
-                  fill: theme.palette.gray["50"],
-                }}
+                  fill: palette.gray["50"],
+                })}
               />
             </Link>
           </Box>
