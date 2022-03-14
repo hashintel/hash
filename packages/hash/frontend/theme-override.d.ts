@@ -1,3 +1,5 @@
+import { Components } from "@mui/material";
+
 declare module "@mui/material/styles" {
   interface ShadowSizes {
     none: string;
@@ -22,6 +24,7 @@ declare module "@mui/material/styles" {
   }
 
   interface ThemeOptions {
+    components: Components<Theme>;
     boxShadows: ShadowSizes;
     dropShadows: ShadowSizes;
     borderRadii: {
