@@ -134,7 +134,7 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({ className }) => {
                       },
                     },
 
-                    "&:focus-visible": {
+                    "&:focus": {
                       backgroundColor: ({ palette }) => palette.blue[70],
                     },
                   }}

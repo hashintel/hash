@@ -53,13 +53,10 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
       const activeStyles: CSSObject = {};
 
       // The :focus CSS styling applied to the button
-      const focusStyles: CSSObject = { outline: "none" };
+      let focusStyles: CSSObject = { outline: "none" };
 
-      // The :focus-visible CSS styling applied to the button
-      let focusVisibleStyles: CSSObject = {};
-
-      // The :focus-visible:after CSS styling applied to the button
-      const focusVisibleAfterStyles: CSSObject = {
+      // The :focus:after CSS styling applied to the button
+      const focusAfterStyles: CSSObject = {
         content: `""`,
         position: "absolute",
         left: -buttonFocusBorderOffset,
@@ -169,8 +166,8 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           },
         };
 
-        focusVisibleStyles = {
-          ...focusVisibleStyles,
+        focusStyles = {
+          ...focusStyles,
           color: theme.palette.gray[80],
         };
       } else if (variant === "warning") {
@@ -243,9 +240,8 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         "&:hover:before": hoverBeforeStyles,
         ":active": activeStyles,
         "&.Mui-disabled": disabledStyles,
-        ":focus-visible": focusVisibleStyles,
-        ":focus-visible:after": focusVisibleAfterStyles,
         ":focus": focusStyles,
+        ":focus:after": focusAfterStyles,
       };
     },
     endIcon: {
