@@ -36,15 +36,18 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         color: theme.palette.gray[50],
       };
 
-      const focusVisibleAfterStyles: CSSObject = {
+      const afterStyles = {
         content: `""`,
         position: "absolute",
         left: -buttonFocusBorderOffset,
         top: -buttonFocusBorderOffset,
         bottom: -buttonFocusBorderOffset,
         right: -buttonFocusBorderOffset,
-        border: `${buttonFocusBorderWidth}px solid`,
+        border: `${buttonFocusBorderWidth}px solid transparent`,
+        transition: theme.transitions.create("border-color"),
       };
+
+      const focusVisibleAfterStyles: CSSObject = {};
 
       switch (size) {
         case "large": {
@@ -55,7 +58,7 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
             minHeight: 54,
             padding: theme.spacing("14px", "37.5px"),
           });
-          Object.assign(focusVisibleAfterStyles, {
+          Object.assign(afterStyles, {
             borderRadius:
               borderRadius + buttonFocusBorderOffset + buttonFocusBorderWidth,
           });
@@ -69,7 +72,7 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
             minHeight: 42,
             padding: theme.spacing("10px", "18px"),
           });
-          Object.assign(focusVisibleAfterStyles, {
+          Object.assign(afterStyles, {
             borderRadius:
               borderRadius + buttonFocusBorderOffset + buttonFocusBorderWidth,
           });
@@ -84,7 +87,7 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
             fontWeight: 600,
             color: theme.palette.orange[800],
             backgroundColor: theme.palette.yellow[300],
-            borderColor: theme.palette.white,
+            borderColor: size === "large" ? theme.palette.white : "transparent",
           });
           Object.assign(hoverStyles, {
             color: theme.palette.orange[900],
@@ -279,6 +282,7 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         ":hover": hoverStyles,
         ":focus-visible": hoverStyles,
         ":disabled": disabledStyles,
+        ":after": afterStyles,
         ":focus-visible:after": focusVisibleAfterStyles,
       };
     },
