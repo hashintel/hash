@@ -70,7 +70,8 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
             padding: theme.spacing("10px", "18px"),
           });
           Object.assign(focusVisibleAfterStyles, {
-            borderRadius: borderRadius + buttonFocusBorderOffset,
+            borderRadius:
+              borderRadius + buttonFocusBorderOffset + buttonFocusBorderWidth,
           });
           break;
         }
