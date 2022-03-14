@@ -29,6 +29,7 @@ export const App: BlockComponent<AppProps> = ({
     language,
   }));
   const [copied, setCopied] = useState(false);
+  const [captionIsVisible, setCaptionVisibility] = useState(caption.length > 0);
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const captionRef = useRef<HTMLInputElement>(null);
 
@@ -86,12 +87,26 @@ export const App: BlockComponent<AppProps> = ({
     }
   };
 
-  const handleCaptionBtnClick = () => {
-    if (!captionRef.current) return;
-    if (captionRef.current.classList.contains("invisible")) {
-      captionRef.current.classList.remove("invisible");
+  const handleCaptionButtonClick = () => {
+    setCaptionVisibility(true);
+    setTimeout(() => {
+      captionRef.current?.focus();
+      captionRef.current?.setSelectionRange(
+        0,
+        captionRef.current?.value.length,
+      );
+    }, 0);
+  };
+
+  useEffect(() => {
+    if (captionRef.current !== document.activeElement) {
+      setCaptionVisibility(localData.caption.length > 0);
     }
-    captionRef.current.focus();
+  }, [localData.caption]);
+
+  const handleCaptionInputBlur = () => {
+    setCaptionVisibility(!!captionRef.current?.value.length);
+    updateRemoteData();
   };
 
   return (
@@ -128,7 +143,7 @@ export const App: BlockComponent<AppProps> = ({
             <button
               type="button"
               className={tw`bg-black bg-opacity-10 hover:bg-opacity-20 px-2 py-1 rounded-md`}
-              onClick={handleCaptionBtnClick}
+              onClick={handleCaptionButtonClick}
             >
               Caption
             </button>
@@ -144,11 +159,13 @@ export const App: BlockComponent<AppProps> = ({
       </div>
       <input
         ref={captionRef}
-        className={tw`text-sm text-gray-400 outline-none w-full invisible`}
+        className={tw`text-sm text-gray-400 outline-none w-full ${
+          captionIsVisible ? "" : "invisible"
+        }`}
         placeholder="Write a caption..."
         value={localData.caption}
         onChange={(evt) => updateLocalData({ caption: evt.target.value })}
-        onBlur={updateRemoteData}
+        onBlur={handleCaptionInputBlur}
       />
     </div>
   );
