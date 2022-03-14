@@ -3,6 +3,9 @@
  */
 import { Components, CSSObject, Theme } from "@mui/material";
 
+const buttonFocusBorderOffset = 6;
+const buttonFocusBorderWidth = 2;
+
 export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
   defaultProps: {
     variant: "primary",
@@ -17,18 +20,15 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
 
       const { typography } = theme;
 
-      // The base CSS styling applied to the button
       const baseStyles: CSSObject = {
         textTransform: "none",
         lineHeight: 1,
-        boxSizing: "border-box",
         border: "2px solid",
+        position: "relative",
       };
 
-      // The :hover CSS styling applied to the button
       const hoverStyles: CSSObject = {};
 
-      // The .Mui-disabled CSS styling applied to the button
       // @todo set these
       const disabledStyles: CSSObject = {
         backgroundColor: theme.palette.gray[20],
@@ -36,25 +36,41 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         color: theme.palette.gray[50],
       };
 
-      // The :active CSS styling applied to the button
-      const activeStyles: CSSObject = {};
+      const focusVisibleAfterStyles: CSSObject = {
+        content: `""`,
+        position: "absolute",
+        left: -buttonFocusBorderOffset,
+        top: -buttonFocusBorderOffset,
+        bottom: -buttonFocusBorderOffset,
+        right: -buttonFocusBorderOffset,
+        border: `${buttonFocusBorderWidth}px solid`,
+      };
 
       switch (size) {
         case "large": {
+          const borderRadius = 29;
           Object.assign(baseStyles, {
             fontSize: typography.bpBodyCopy.fontSize,
-            borderRadius: 27,
+            borderRadius,
             minHeight: 54,
-            padding: theme.spacing("16px", "39.5px"),
+            padding: theme.spacing("14px", "37.5px"),
+          });
+          Object.assign(focusVisibleAfterStyles, {
+            borderRadius:
+              borderRadius + buttonFocusBorderOffset + buttonFocusBorderWidth,
           });
           break;
         }
         case "medium": {
+          const borderRadius = 22;
           Object.assign(baseStyles, {
             fontSize: typography.bpSmallCopy.fontSize,
-            borderRadius: 22,
+            borderRadius,
             minHeight: 42,
-            padding: theme.spacing("12px", "20px"),
+            padding: theme.spacing("10px", "18px"),
+          });
+          Object.assign(focusVisibleAfterStyles, {
+            borderRadius: borderRadius + buttonFocusBorderOffset,
           });
           break;
         }
@@ -73,6 +89,9 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
             color: theme.palette.orange[900],
             backgroundColor: theme.palette.yellow[300],
             borderColor: theme.palette.yellow[500],
+          });
+          Object.assign(focusVisibleAfterStyles, {
+            borderColor: theme.palette.yellow[800],
           });
           break;
         }
@@ -257,8 +276,9 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
       return {
         ...baseStyles,
         ":hover": hoverStyles,
-        ":active": activeStyles,
-        "&.Mui-disabled": disabledStyles,
+        ":focus-visible": hoverStyles,
+        ":disabled": disabledStyles,
+        ":focus-visible:after": focusVisibleAfterStyles,
       };
     },
     endIcon: {
