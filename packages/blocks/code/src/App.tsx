@@ -8,7 +8,7 @@ import { languages, LanguageType } from "./utils";
 import { Editor } from "./components/Editor";
 
 type AppProps = {
-  caption: string;
+  caption?: string;
   language: LanguageType;
   content: string;
 };
