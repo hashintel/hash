@@ -1,8 +1,8 @@
 import { SystemType } from "@hashintel/hash-api/src/types/entityTypes";
 import {
   generateSchema$id,
-  jsonSchemaVersion,
-} from "@hashintel/hash-api/src/lib/schemas/jsonSchema";
+  JSON_SCHEMA_VERSION,
+} from "@hashintel/hash-api/src/model/entityType.util";
 import generatedIds from "./generatedIds.json";
 
 const systemAccount = generatedIds.orgs.__system__;
@@ -188,7 +188,7 @@ const systemTypeSchemas: {
 
 export const entityTypeJson = (name: SystemType) =>
   JSON.stringify({
-    $schema: jsonSchemaVersion,
+    $schema: JSON_SCHEMA_VERSION,
     $id: schema$id(name),
     title: name,
     type: "object",
