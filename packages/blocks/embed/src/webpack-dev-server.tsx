@@ -8,6 +8,7 @@ import { tw } from "twind";
 import {
   BlockProtocolUpdateEntitiesFunction,
   BlockProtocolUpdateEntitiesAction,
+  BlockProtocolEntity,
 } from "blockprotocol";
 
 import Component from "./index";
@@ -60,7 +61,7 @@ const getVariantProperties = (variant: typeof variants[number]) => {
 const AppComponent: React.VoidFunctionComponent = () => {
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
   const [state, setState] = useState<EmbedDataType>(
-    getVariantProperties(variants[selectedVariantIndex]),
+    getVariantProperties(variants[selectedVariantIndex]!),
   );
 
   const updateState = (newState: Partial<EmbedDataType>) => {
@@ -71,12 +72,13 @@ const AppComponent: React.VoidFunctionComponent = () => {
   };
 
   const updateBlockData: BlockProtocolUpdateEntitiesFunction = async (
-    actions: BlockProtocolUpdateEntitiesAction<any>[],
+    actions: BlockProtocolUpdateEntitiesAction[],
   ) => {
     if (actions[0]) {
       updateState(actions[0].data);
+      return [actions[0].data] as BlockProtocolEntity[];
     }
-    return actions[0].data;
+    return [];
   };
 
   return (
@@ -97,14 +99,12 @@ const AppComponent: React.VoidFunctionComponent = () => {
       <br />
       <Component
         accountId="uuid-1234-account"
-        type="uuid-1234-type"
-        id="uuid-1234-id"
         entityId="uuid-1234-id"
         entityTypeId="Embed"
         getEmbedBlock={getEmbedBlock}
         updateEntities={updateBlockData}
         {...state}
-        {...getVariantProperties(variants[selectedVariantIndex])}
+        {...getVariantProperties(variants[selectedVariantIndex]!)}
       />
     </div>
   );

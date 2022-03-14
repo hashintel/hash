@@ -132,7 +132,7 @@ export const EntityType: VoidFunctionComponent = () => {
           <SchemaEditor
             accountId={accountId}
             aggregateEntityTypes={aggregateEntityTypes}
-            entityId={data.getEntityType.entityId}
+            entityTypeId={data.getEntityType.entityId}
             schema={schema}
             GoToSchemaElement={schemaSelectElement}
             subSchemaReference={subSchemaReference}

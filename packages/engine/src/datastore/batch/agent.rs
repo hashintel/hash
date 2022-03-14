@@ -35,11 +35,8 @@ use crate::{
 #[allow(clippy::module_name_repetitions)]
 pub struct AgentBatch {
     batch: ArrowBatch,
-    /// Affinity describes the possible distribution of batches
-    /// if multiple workers are used
-    /// TODO: Should message batches also have affinity, not only
-    ///       agent batches?
-    pub affinity: usize,
+    /// Describes the worker the batch is distributed to if there are multiple workers
+    pub worker_index: usize,
 }
 
 impl Deref for AgentBatch {
@@ -85,7 +82,7 @@ impl AgentBatch {
         }
 
         let memory = Memory::duplicate_from(batch.memory(), experiment_id)?;
-        Self::from_memory(memory, Some(schema), Some(batch.affinity))
+        Self::from_memory(memory, Some(schema), Some(batch.worker_index))
     }
 
     /// Copy contents from RecordBatch and create a memory-backed Batch
@@ -123,7 +120,7 @@ impl AgentBatch {
     pub fn from_memory(
         memory: Memory,
         schema: Option<&AgentSchema>,
-        affinity: Option<usize>,
+        worker_index: Option<usize>,
     ) -> Result<Self> {
         let persisted = memory.get_metaversion()?;
         let (schema_buffer, _header_buffer, meta_buffer, data_buffer) =
@@ -158,7 +155,7 @@ impl AgentBatch {
                 changes: vec![],
                 loaded: persisted,
             },
-            affinity: affinity.unwrap_or(0),
+            worker_index: worker_index.unwrap_or(0),
         })
     }
 
@@ -257,6 +254,10 @@ impl AgentBatch {
     pub fn from_shmem_os_id(os_id: &str) -> Result<Box<Self>> {
         let memory = Memory::from_shmem_os_id(os_id, true, true)?;
         Ok(Box::new(AgentBatch::from_memory(memory, None, None)?))
+    }
+
+    pub fn set_worker_index(&mut self, worker_index: usize) {
+        self.worker_index = worker_index;
     }
 }
 

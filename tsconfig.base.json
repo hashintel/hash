@@ -6,6 +6,7 @@
     "lib": ["dom", "es2020"], // We use types like File and Window in shared packages, so depend on DOM in backend too.
     "module": "commonjs",
     "moduleResolution": "node",
+    "noUncheckedIndexedAccess": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": true,

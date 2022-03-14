@@ -15,7 +15,10 @@ use super::{
     message::{self},
     Vec3,
 };
-use crate::config::globals::Globals;
+use crate::{
+    config::globals::Globals,
+    datastore::arrow::message::{CREATE_AGENT, REMOVE_AGENT, STOP_SIM},
+};
 
 #[allow(clippy::module_name_repetitions)]
 pub type SimulationState = Vec<Agent>;
@@ -565,8 +568,9 @@ impl Agent {
             CreateAgent, GenericPayload, OutboundCreateAgentPayload, OutboundRemoveAgentPayload,
             OutboundStopSimPayload, RemoveAgent, StopSim,
         };
+
         self.messages.push(match kind {
-            "remove_agent" => message::Outbound::RemoveAgent(OutboundRemoveAgentPayload {
+            REMOVE_AGENT => message::Outbound::RemoveAgent(OutboundRemoveAgentPayload {
                 r#type: RemoveAgent::Type,
                 to: to.to_vec(),
                 data: serde_json::from_value(
@@ -582,14 +586,14 @@ impl Agent {
                     }),
                 )?,
             }),
-            "create_agent" => message::Outbound::CreateAgent(OutboundCreateAgentPayload {
+            CREATE_AGENT => message::Outbound::CreateAgent(OutboundCreateAgentPayload {
                 r#type: CreateAgent::Type,
                 to: to.to_vec(),
                 data: serde_json::from_value(
                     data.ok_or_else(|| Error::from("Missing AgentState to create"))?,
                 )?,
             }),
-            "stop" => message::Outbound::StopSim(OutboundStopSimPayload {
+            STOP_SIM => message::Outbound::StopSim(OutboundStopSimPayload {
                 r#type: StopSim::Type,
                 to: to.to_vec(),
                 data,

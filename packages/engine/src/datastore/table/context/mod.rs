@@ -52,15 +52,6 @@ impl Context {
         })
     }
 
-    // TODO: UNUSED: Needs triage
-    pub fn agent_pool(&self) -> &AgentPool {
-        &self.previous_state.agent_pool
-    }
-
-    pub fn agent_pool_mut(&mut self) -> &mut AgentPool {
-        &mut self.previous_state.agent_pool
-    }
-
     pub fn take_agent_pool(&mut self) -> AgentPool {
         std::mem::replace(&mut self.previous_state.agent_pool, AgentPool::empty())
     }
@@ -69,7 +60,6 @@ impl Context {
         std::mem::replace(&mut self.previous_state.message_pool, MessagePool::empty())
     }
 
-    // TODO: UNUSED: Needs triage
     pub fn removed_batches(&mut self) -> &mut Vec<String> {
         &mut self.removed_batches
     }
@@ -122,7 +112,9 @@ impl Context {
         agent_schema: &AgentSchema,
         experiment_id: &ExperimentId,
     ) -> Result<()> {
-        let mut static_pool = self.agent_pool_mut().write_proxies()?;
+        // TODO search everywhere and replace static_pool and dynamic_pool to more descriptively
+        //  refer to context/state (respectively)
+        let mut static_pool = self.previous_state.agent_pool.write_proxies()?;
         let dynamic_pool = state.agent_pool().read_proxies()?;
 
         for (static_batch, dynamic_batch) in static_pool
@@ -132,33 +124,33 @@ impl Context {
             static_batch.sync(dynamic_batch)?;
         }
 
-        // TODO search everywhere and replace static_pool and dynamic_pool to more descriptively
-        //  refer to context/state (respectively)
         // Release write access to the agent pool, so
         // we can remove batches from it.
         drop(static_pool);
-        let static_pool = self.agent_pool_mut();
+        let previous_agent_pool = &mut self.previous_state.agent_pool;
 
         #[allow(clippy::comparison_chain)]
-        if dynamic_pool.len() > static_pool.len() {
+        if dynamic_pool.len() > previous_agent_pool.len() {
             // Add more static batches
-            for batch in &dynamic_pool[static_pool.len()..dynamic_pool.len()] {
-                static_pool.push(AgentBatch::duplicate_from(
+            for batch in &dynamic_pool[previous_agent_pool.len()..dynamic_pool.len()] {
+                previous_agent_pool.push(AgentBatch::duplicate_from(
                     batch,
                     agent_schema,
                     experiment_id,
                 )?);
             }
-        } else if dynamic_pool.len() < static_pool.len() {
+        } else if dynamic_pool.len() < previous_agent_pool.len() {
             // Remove unneeded static batches
-            let mut removed_ids = Vec::with_capacity(static_pool.len() - dynamic_pool.len());
-            for remove_index in (dynamic_pool.len()..static_pool.len()).rev() {
-                let removed_agent_batch = static_pool.remove(remove_index);
-                removed_ids.push(removed_agent_batch.read().batch_id().to_string());
-            }
-            removed_ids
-                .into_iter()
-                .for_each(|id| self.removed_batches.push(id));
+            let removed_ids = (dynamic_pool.len()..previous_agent_pool.len())
+                .rev()
+                .map(|remove_index| {
+                    previous_agent_pool
+                        .remove(remove_index)
+                        .batch_id()
+                        .to_string()
+                })
+                .collect::<Vec<_>>();
+            self.removed_batches.extend(removed_ids);
         }
 
         // State group start indices need to be updated, because we

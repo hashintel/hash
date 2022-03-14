@@ -299,11 +299,6 @@ export interface DBClient {
   getEntityTypeChildren(params: { schemaRef: string }): Promise<EntityType[]>;
 
   /**
-   * Get all types that a specific type inherits from.
-   */
-  getEntityTypeParents(params: { entityTypeId: string }): Promise<EntityType[]>;
-
-  /**
    * Get the latest version of a system entity type.
    * */
   getSystemTypeLatestVersion(params: {

@@ -191,18 +191,19 @@ class __Page extends Entity {
       path: ["parentPage"],
     });
 
-    if (parentPageLinks.length > 1) {
+    const [parentPageLink, ...unexpectedParentPageLinks] = parentPageLinks;
+
+    if (unexpectedParentPageLinks.length > 0) {
       throw new Error(
         `Critical: Page with entityId ${this.entityId} in account ${this.accountId} has more than one parent page`,
       );
     }
-    if (parentPageLinks.length === 0) {
+
+    if (!parentPageLink) {
       return null;
     }
-    const [parentPageLink] = parentPageLinks;
 
     const destinationEntity = await parentPageLink.getDestination(client);
-
     return await Page.fromEntity(client, destinationEntity);
   }
 
@@ -241,17 +242,19 @@ class __Page extends Entity {
       path: ["parentPage"],
     });
 
-    if (parentPageLinks.length > 1) {
+    const [parentPageLink, ...unexpectedParentPageLinks] = parentPageLinks;
+
+    if (unexpectedParentPageLinks.length > 0) {
       throw new Error(
         `Critical: Page with entityId ${this.entityId} in account ${this.accountId} has more than one parent page`,
       );
     }
-    if (parentPageLinks.length === 0) {
+
+    if (!parentPageLink) {
       throw new Error(
         `Page with entityId ${this.entityId} in account ${this.accountId} does not have a parent page`,
       );
     }
-    const [parentPageLink] = parentPageLinks;
 
     const { removedByAccountId: deletedByAccountId } = params;
 

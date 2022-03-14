@@ -3,6 +3,7 @@ use std::{collections::HashMap, fmt};
 use serde::{de::Deserializer, Deserialize, Serialize};
 
 use super::{error::Result, state::Agent};
+use crate::datastore::arrow::message::{CREATE_AGENT, REMOVE_AGENT, SYSTEM_MESSAGE};
 
 /*
  * We want Serde to deserialize a message to the correct enum variant,
@@ -137,7 +138,7 @@ impl fmt::Display for Error {
 }
 
 fn is_system_message(kind: &str) -> bool {
-    kind == "create_agent" || kind == "remove_agent"
+    kind == CREATE_AGENT || kind == REMOVE_AGENT
 }
 
 impl Outbound {
@@ -146,29 +147,9 @@ impl Outbound {
         Outbound::Generic(msg)
     }
 
-    // TODO: UNUSED: Needs triage
-    #[must_use]
-    pub fn create_agent(state: Agent) -> Outbound {
-        Outbound::CreateAgent(OutboundCreateAgentPayload {
-            r#type: CreateAgent::Type,
-            to: vec!["hash".to_string()],
-            data: state,
-        })
-    }
-
-    // TODO: UNUSED: Needs triage
-    #[must_use]
-    pub fn remove_agent(agent_id: String) -> Outbound {
-        Outbound::RemoveAgent(OutboundRemoveAgentPayload {
-            r#type: RemoveAgent::Type,
-            to: vec!["hash".to_string()],
-            data: RemoveAgentPayload { agent_id },
-        })
-    }
-
     fn is_json_message_remove_agent(value: &serde_json::Value) -> bool {
         if let Some(serde_json::Value::String(kind)) = value.get("type") {
-            return kind == RemoveAgentPayload::IDENTIFIER;
+            return kind == REMOVE_AGENT;
         }
         false
     }
@@ -196,7 +177,9 @@ impl Outbound {
             if let Some(obj) = value.as_object_mut() {
                 obj.insert(
                     String::from("to"),
-                    serde_json::Value::Array(vec![serde_json::Value::String(String::from("hash"))]),
+                    serde_json::Value::Array(vec![serde_json::Value::String(
+                        SYSTEM_MESSAGE.to_string(),
+                    )]),
                 );
             }
         }
@@ -220,7 +203,7 @@ impl Outbound {
 
     fn is_hash_engine_message(value: &mut serde_json::Value) -> bool {
         if let Some(serde_json::Value::String(recipient)) = value.get("to") {
-            return recipient.eq_ignore_ascii_case("hash");
+            return recipient.eq_ignore_ascii_case(SYSTEM_MESSAGE);
         }
         false
     }
@@ -345,10 +328,6 @@ pub enum RemoveAgent {
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct RemoveAgentPayload {
     pub agent_id: String,
-}
-
-impl RemoveAgentPayload {
-    pub const IDENTIFIER: &'static str = "remove_agent";
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]

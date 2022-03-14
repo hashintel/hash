@@ -106,7 +106,7 @@ export const updatePageContents: Resolver<
       try {
         if (action.insertNewBlock) {
           await page.insertBlock(client, {
-            block: newBlocks[insertCount],
+            block: newBlocks[insertCount]!,
             position: action.insertNewBlock.position,
             insertedByAccountId: user.accountId,
           });

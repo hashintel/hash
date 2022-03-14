@@ -108,10 +108,10 @@ export class BlockView implements NodeView<Schema> {
     public manager: ProsemirrorSchemaManager,
   ) {
     this.dom = document.createElement("div");
-    this.dom.classList.add(styles.Block);
+    this.dom.classList.add(styles.Block!);
 
     this.selectContainer = document.createElement("div");
-    this.selectContainer.classList.add(styles.Block__UI);
+    this.selectContainer.classList.add(styles.Block__UI!);
 
     this.dom.appendChild(this.selectContainer);
 
@@ -119,7 +119,7 @@ export class BlockView implements NodeView<Schema> {
 
     this.contentDOM = document.createElement("div");
     this.dom.appendChild(this.contentDOM);
-    this.contentDOM.classList.add(styles.Block__Content);
+    this.contentDOM.classList.add(styles.Block__Content!);
 
     this.store = entityStorePluginState(view.state).store;
     this.unsubscribe = subscribeToEntityStore(this.view, (store) => {
@@ -202,9 +202,9 @@ export class BlockView implements NodeView<Schema> {
      * selected whilst we are dragging it
      */
     if (this.dragging) {
-      this.dom.classList.add(styles["Block--dragging"]);
+      this.dom.classList.add(styles["Block--dragging"]!);
     } else {
-      this.dom.classList.remove(styles["Block--dragging"]);
+      this.dom.classList.remove(styles["Block--dragging"]!);
     }
 
     const blockEntityId = this.getBlockEntityIdFromNode(this.node);
@@ -233,7 +233,7 @@ export class BlockView implements NodeView<Schema> {
             this.allowDragging = true;
 
             this.dragging = true;
-            this.dom.classList.add(styles["Block--dragging"]);
+            this.dom.classList.add(styles["Block--dragging"]!);
 
             const { tr } = this.view.state;
 

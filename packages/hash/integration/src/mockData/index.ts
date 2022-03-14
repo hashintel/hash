@@ -163,7 +163,7 @@ void (async () => {
       ),
     );
     mutations.forEach((res, i) => {
-      const name = names[i];
+      const name = names[i]!;
       results.set(name, res);
     });
   };
@@ -782,6 +782,34 @@ void (async () => {
       }),
     ),
   );
+
+  // Create pages that will nest
+  const [parentPage, subPage, subSubpage] = await Promise.all(
+    [
+      { title: "Top page" },
+      { title: "Middle page" },
+      { title: "End page" },
+    ].map(async ({ title }) =>
+      Page.createPage(db, {
+        accountId: user.accountId,
+        createdBy: user,
+        initialLinkedContents: [],
+        properties: {
+          title,
+        },
+      }),
+    ),
+  );
+
+  await subPage!.setParentPage(db, {
+    parentPage: parentPage!,
+    setByAccountId: user.accountId,
+  });
+
+  await subSubpage!.setParentPage(db, {
+    parentPage: subPage!,
+    setByAccountId: user.accountId,
+  });
 
   // eslint-disable-next-line no-console -- TODO: consider moving this file to /scripts/ so that no-console rule is autodisabled
   console.log("Mock data created");

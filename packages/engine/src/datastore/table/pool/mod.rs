@@ -68,7 +68,7 @@ pub trait BatchPool<B>: Send + Sync {
     ///
     /// - If `index` is out of bounds, or
     /// - if the `Batch` is currently borrowed as a [`BatchReadProxy`] or [`BatchWriteProxy`].
-    fn remove(&mut self, index: usize) -> RwLock<B>;
+    fn remove(&mut self, index: usize) -> B;
 
     /// Removes the [`Batch`] at position `index` within the pool and returns it.
     ///
@@ -76,11 +76,13 @@ pub trait BatchPool<B>: Send + Sync {
     /// ordering, but is `O(1)`. If you need to preserve the element order, use
     /// [`remove()`](Self::remove) instead.
     ///
+    /// Returns the removed [`Batch`].
+    ///
     /// # Panics
     ///
     /// - If `index` is out of bounds, or
     /// - if the `Batch` is currently borrowed as a [`BatchReadProxy`] or [`BatchWriteProxy`].
-    fn swap_remove(&mut self, index: usize) -> RwLock<B>;
+    fn swap_remove(&mut self, index: usize) -> B;
 
     /// Creates a [`PoolReadProxy`] for _all_ batches within the pool.
     ///
@@ -140,19 +142,19 @@ impl<P: Pool<B> + Send + Sync, B> BatchPool<B> for P {
         self.get_batches_mut().push(Arc::new(RwLock::new(batch)))
     }
 
-    fn remove(&mut self, index: usize) -> RwLock<B> {
+    fn remove(&mut self, index: usize) -> B {
         let batch_arc = self.get_batches_mut().remove(index);
-        if let Ok(batch) = Arc::try_unwrap(batch_arc) {
-            batch
+        if let Ok(rw_lock) = Arc::try_unwrap(batch_arc) {
+            rw_lock.into_inner()
         } else {
             panic!("Failed to remove Batch at index {index}, other Arcs to the Batch existed")
         }
     }
 
-    fn swap_remove(&mut self, index: usize) -> RwLock<B> {
+    fn swap_remove(&mut self, index: usize) -> B {
         let batch_arc = self.get_batches_mut().swap_remove(index);
-        if let Ok(batch) = Arc::try_unwrap(batch_arc) {
-            batch
+        if let Ok(rw_lock) = Arc::try_unwrap(batch_arc) {
+            rw_lock.into_inner()
         } else {
             panic!("Failed to swap remove Batch at index {index}, other Arcs to the Batch existed")
         }

@@ -34,6 +34,19 @@ jobs:
             exit 1
           fi
 
+      - name: Run yarn lint:lockfile-lint
+        if: ${{ success() || failure() }}
+        run: |
+          if ! yarn lint:lockfile-lint; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Try resetting yarn.lock to its previous state and then run `yarn install`.'
+            echo 'If your `~/.npmrc` mentions a custom registry, you should remove this setting first.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
       - name: Run yarn lint:markdownlint
         if: ${{ success() || failure() }}
         run: |

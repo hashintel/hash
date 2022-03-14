@@ -16,6 +16,7 @@ pub mod shared_store;
 pub mod storage;
 pub mod store;
 pub mod table;
+#[cfg(test)]
 pub mod test_utils;
 
 /// We store Agent IDs in the UUID-byte format (not string bytes).

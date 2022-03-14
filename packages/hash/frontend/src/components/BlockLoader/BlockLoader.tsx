@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import { useRouter } from "next/router";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
+import { BlockProtocolLinkedAggregation } from "blockprotocol";
 
 import { blockDomId } from "../../blocks/page/BlockView";
 import { useBlockProtocolUpdateEntities } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateEntities";
@@ -31,7 +32,7 @@ type BlockLoaderProps = {
   accountId: string;
   blockEntityId: string;
   editableRef: unknown;
-  entityId: string | undefined;
+  entityId: string;
   entityTypeId: string | undefined;
   entityTypeVersionId: string | undefined;
   entityProperties: {};
@@ -123,7 +124,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   }, []);
 
   useEffect(() => {
-    const routeHash = router.asPath.split("#")[1];
+    const routeHash = router.asPath.split("#")[1]!;
 
     function frame() {
       const routeElement = document.getElementById(routeHash);
@@ -175,6 +176,9 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
     <RemoteBlock
       {...blockProperties}
       {...functions}
+      linkedAggregations={
+        blockProperties.linkedAggregations as BlockProtocolLinkedAggregation[]
+      }
       editableRef={editableRef}
       onBlockLoaded={onBlockLoaded}
       sourceUrl={sourceUrl}

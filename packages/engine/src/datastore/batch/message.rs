@@ -6,7 +6,7 @@ use std::{
 };
 
 use arrow::{
-    array,
+    array::ArrayData,
     ipc::{
         reader::read_record_batch,
         writer::{DictionaryTracker, IpcDataGenerator, IpcWriteOptions},
@@ -18,9 +18,7 @@ use crate::{
     datastore::{
         arrow::{
             ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
-            message::{
-                self, get_column_from_list_array, MESSAGE_COLUMN_INDEX, MESSAGE_COLUMN_NAME,
-            },
+            message::{self, MESSAGE_COLUMN_INDEX},
         },
         batch::{flush::GrowableBatch, ArrowBatch, Segment},
         prelude::*,
@@ -183,17 +181,6 @@ impl MessageBatch {
         Self::from_memory(memory, schema.clone(), meta)
     }
 
-    // TODO: UNUSED: Needs triage
-    pub fn empty(
-        agents: &[&AgentState],
-        schema: &Arc<ArrowSchema>,
-        meta: Arc<StaticMeta>,
-        experiment_id: &ExperimentId,
-    ) -> Result<Self> {
-        let rb = agents.into_empty_message_batch(schema)?;
-        Self::from_record_batch(&rb, schema.clone(), meta, experiment_id)
-    }
-
     pub fn from_agent_states<K: IntoRecordBatch>(
         agents: K,
         schema: &Arc<MessageSchema>,
@@ -268,31 +255,13 @@ impl MessageBatch {
 #[derive(Debug)]
 pub struct Raw<'a> {
     pub from: &'a [u8; UUID_V4_LEN],
-    pub to: Vec<&'a str>,
-    // TODO: UNUSED: Needs triage
-    pub r#type: &'a str,
-    // TODO: UNUSED: Needs triage
     pub data: &'a str,
 }
 
 // Iterators and getters
-// TODO: don't call it rb
-pub mod rb {
-    use super::*;
-
-    pub fn get_native_messages(rb: &RecordBatch) -> Result<Vec<Vec<OutboundMessage>>> {
-        let reference = rb
-            .column(MESSAGE_COLUMN_INDEX)
-            .as_any()
-            .downcast_ref::<array::ListArray>()
-            .ok_or(Error::InvalidArrowDowncast {
-                name: MESSAGE_COLUMN_NAME.into(),
-            })?;
-        get_column_from_list_array(reference)
-    }
-
-    pub fn message_loader(rb: &RecordBatch) -> MessageLoader<'_> {
-        let column = rb.column(message::FROM_COLUMN_INDEX);
+impl MessageBatch {
+    pub fn message_loader(&self) -> MessageLoader<'_> {
+        let column = self.batch.column(message::FROM_COLUMN_INDEX);
         let data = column.data_ref();
         let from = unsafe { data.buffers()[0].typed_data::<u8>() };
 
@@ -312,26 +281,6 @@ pub mod rb {
             data_bufs,
             data,
         }
-    }
-
-    // TODO: UNUSED: Needs triage
-    pub fn message_index_iter(rb: &RecordBatch, i: usize) -> impl Iterator<Item = MessageIndex> {
-        let num_agents = rb.num_rows();
-        let group_index = i as u32;
-        let column = rb.column(MESSAGE_COLUMN_INDEX);
-        let data = column.data_ref();
-        // This is the offset buffer for message objects.
-        // offset_buffers[1] - offset_buffers[0] = number of messages from the 1st agent
-        let offsets = &data.buffers()[0];
-        // Markers are stored in i32 in the Arrow format
-        // There are n + 1 offsets always in Offset buffers in the Arrow format
-        let i32_offsets =
-            unsafe { std::slice::from_raw_parts(offsets.as_ptr() as *const i32, num_agents + 1) };
-        (0..num_agents).flat_map(move |j| {
-            let num_messages = i32_offsets[j + 1] - i32_offsets[j];
-            let agent_index = j as u32;
-            (0..num_messages).map(move |k| (group_index, agent_index, k as u32))
-        })
     }
 
     pub fn message_usize_index_iter(
@@ -540,8 +489,6 @@ impl<'a> MessageLoader<'a> {
     pub fn get_raw_message(&self, agent_index: usize, message_index: usize) -> Raw<'a> {
         Raw {
             from: self.get_from(agent_index),
-            to: self.get_recipients(agent_index, message_index),
-            r#type: self.get_type(agent_index, message_index),
             data: self.get_data(agent_index, message_index),
         }
     }

@@ -25,7 +25,7 @@
     "start": "concurrently -n webpack,webpack-dev-server -c green,cyan \"yarn build:dev -- --watch --verbose\" \"yarn dev\""
   },
   "dependencies": {
-    "blockprotocol": "0.0.1"
+    "blockprotocol": "0.0.7"
   },
   "devDependencies": {
     "@babel/cli": "^7.12.10",
@@ -54,7 +54,7 @@
     "rimraf": "^3.0.2",
     "serve": "13.0.2",
     "twind": "0.16.16",
-    "typescript": "4.5.5",
+    "typescript": "4.6.2",
     "typescript-json-schema": "0.50.1",
     "webpack": "^4.44.2",
     "webpack-assets-manifest": "^3.1.1",
@@ -63,8 +63,9 @@
     "webpack-dev-server": "^3.11.0"
   },
   "peerDependencies": {
-    "react": "17.0.2",
-    "twind": "0.16.16"
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "twind": "^0.16.16"
   },
   "blockprotocol": {
     "displayName": "Video",

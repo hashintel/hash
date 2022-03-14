@@ -10,7 +10,6 @@ use serde::{Deserialize, Serialize};
 
 use super::PackageCreator;
 use crate::{
-    datastore::table::task_shared_store::{SharedContext, SharedState},
     simulation::{
         enum_dispatch::*,
         package::{id::PackageIdGenerator, PackageMetadata, PackageType},
@@ -51,7 +50,7 @@ impl StoreAccessVerify for InitTask {
     fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
         let state = &access.state;
         let context = access.context();
-        if matches!(state, SharedState::None) && matches!(context, SharedContext::None) {
+        if state.is_disabled() && context.is_disabled() {
             Ok(())
         } else {
             Err(Error::access_not_allowed(state, context, "Init".into()))

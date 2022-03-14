@@ -25,7 +25,6 @@ import {
   getEntityTypeByComponentId,
   getEntityTypeBySchema$id,
   getEntityTypeChildren,
-  getEntityTypeParents,
   getEntityTypeLatestVersion,
   getSystemTypeLatestVersion,
   insertEntityType,
@@ -64,7 +63,7 @@ import {
   getUserVerificationCodes,
 } from "./verificationCode";
 import { getImpliedEntityHistory } from "./history";
-import { generateSchema$id } from "../../lib/schemas/jsonSchema";
+import { generateSchema$id } from "../../model/entityType.util";
 import { SystemType } from "../../types/entityTypes";
 import { Visibility } from "../../graphql/apiTypes.gen";
 import { getOrgByShortname } from "./org";
@@ -292,12 +291,6 @@ export class PostgresClient implements DBClient {
     params: Parameters<DBClient["getEntityTypeChildren"]>[0],
   ): ReturnType<DBClient["getEntityTypeChildren"]> {
     return await getEntityTypeChildren(this.conn, params);
-  }
-
-  async getEntityTypeParents(
-    params: Parameters<DBClient["getEntityTypeParents"]>[0],
-  ): ReturnType<DBClient["getEntityTypeParents"]> {
-    return await getEntityTypeParents(this.conn, params);
   }
 
   /**

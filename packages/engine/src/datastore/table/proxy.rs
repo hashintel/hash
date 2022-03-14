@@ -152,18 +152,10 @@ impl<K> Drop for BatchWriteProxy<K> {
     }
 }
 
+#[derive(Clone)]
 pub struct StateReadProxy {
     pub agent_proxies: PoolReadProxy<AgentBatch>,
     pub message_proxies: PoolReadProxy<MessageBatch>,
-}
-
-impl Clone for StateReadProxy {
-    fn clone(&self) -> Self {
-        Self {
-            agent_proxies: self.agent_proxies.clone(),
-            message_proxies: self.message_proxies.clone(),
-        }
-    }
 }
 
 impl

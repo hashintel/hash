@@ -42,7 +42,7 @@ To run HASH locally, please follow these steps:
 
     If you use Docker for macOS or Windows, go to _Preferences_ → _Resources_ and ensure that Docker can use at least 4GB of RAM (8GB is recommended).
 
-1.  [Clone](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) this repository and navigate to the project folder in your terminal.
+1.  [Clone](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) this repository and navigate to the root of the repository folder in your terminal.
 
 1.  Install dependencies:
 
@@ -265,7 +265,7 @@ The below `package.json` file outlines the minimum requirements a package has to
     "eslint-plugin-react": "^7.28.0",
     "eslint-plugin-react-hooks": "^4.3.0",
     "rimraf": "3.2.0",
-    "typescript": "4.5.2"
+    "typescript": "4.6.2"
   }
 }
 ```

@@ -62,6 +62,7 @@ import {
   createEntity,
   createEntityType,
   getEntityType,
+  getEntityTypeAllParents,
   getUnknownEntity,
   getEntities,
   updateEntity,
@@ -262,6 +263,15 @@ export class ApiClient {
         Pick<Query, "getEntityType">,
         QueryGetEntityTypeArgs
       >(getEntityType, vars)
+    ).getEntityType;
+  }
+
+  async getEntityTypeAllParents(vars: QueryGetEntityTypeArgs) {
+    return (
+      await this.client.request<
+        Pick<Query, "getEntityType">,
+        QueryGetEntityTypeArgs
+      >(getEntityTypeAllParents, vars)
     ).getEntityType;
   }
 

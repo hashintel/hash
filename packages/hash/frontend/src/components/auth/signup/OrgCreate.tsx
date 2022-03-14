@@ -92,8 +92,8 @@ type Inputs = {
 const getInitials = (name: string) => {
   const initials = name.trim().split(" ");
   if (!initials.length) return "";
-  if (initials.length === 1) return initials[0][0];
-  if (initials.length > 1) return initials[0][0] + initials[1][0];
+  if (initials.length === 1) return initials[0]![0];
+  if (initials.length > 1) return initials[0]![0]! + initials[1]![0]!;
 };
 
 export const OrgCreate: VFC<OrgCreateProps> = ({
@@ -124,7 +124,7 @@ export const OrgCreate: VFC<OrgCreateProps> = ({
     errorPolicy: "ignore",
     onCompleted: (res) => {
       const accessToken =
-        res.createOrg.invitationLinks[0].properties.accessToken;
+        res.createOrg.invitationLinks[0]!.properties.accessToken;
       if (accessToken) {
         onCreateOrgSuccess({
           orgEntityId: res.createOrg.accountId,
