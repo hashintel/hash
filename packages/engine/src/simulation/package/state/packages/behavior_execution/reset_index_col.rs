@@ -26,6 +26,9 @@ impl IntoArrowChange for ResetIndexCol {
             .add_buffer(data.into())
             .build()?;
 
-        Ok(ColumnChange::new(data, self.behavior_index_col_index))
+        Ok(ColumnChange {
+            data,
+            index: self.behavior_index_col_index,
+        })
     }
 }

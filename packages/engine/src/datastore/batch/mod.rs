@@ -194,9 +194,10 @@ impl ArrowBatch {
         );
         let record_batch_message = load::record_batch_message(&self.segment)?;
 
-        let schema = self.record_batch_unchecked().schema();
-        *self.record_batch_unchecked_mut() =
-            load::record_batch(&self.segment, record_batch_message, schema)?;
+        // The record batch was loaded at least once before, since this struct has a `RecordBatch`
+        // field, and the Arrow schema doesn't change, so we can reuse it.
+        let schema = self.record_batch.schema();
+        self.record_batch = load::record_batch(&self.segment, record_batch_message, schema)?;
         Ok(())
     }
 
@@ -210,9 +211,10 @@ impl ArrowBatch {
         let dynamic_meta =
             record_batch_message.into_meta(self.memory().get_data_buffer()?.len())?;
 
-        let schema = self.record_batch_unchecked().schema();
-        *self.record_batch_unchecked_mut() =
-            load::record_batch(&self.segment, record_batch_message, schema)?;
+        // The record batch was loaded at least once before, since this struct has a `RecordBatch`
+        // field, and the Arrow schema doesn't change, so we can reuse it.
+        let schema = self.record_batch.schema();
+        self.record_batch = load::record_batch(&self.segment, record_batch_message, schema)?;
         *self.dynamic_meta_mut() = dynamic_meta;
         Ok(())
     }
