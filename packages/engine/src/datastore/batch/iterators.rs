@@ -307,7 +307,7 @@ pub mod rb {
             .ok_or_else(|| Error::ColumnNotFound(column_name.into()))?;
 
         Ok(ColumnChange {
-            data: builder.finish().into(),
+            data: builder.finish(),
             index,
         })
     }
