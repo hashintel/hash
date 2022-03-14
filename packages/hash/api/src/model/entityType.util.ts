@@ -47,7 +47,7 @@ type Property = {
 const CONSTRAINT_RE = /.*(min|max).*/i;
 
 /**
- * When a 'minimim' constraint is defined twice on the same property (across multiple schemas),
+ * When a 'minimum' constraint is defined twice on the same property (across multiple schemas),
  * the constraint should be 'maximized' such that the minimum is changed to the most permissive
  * value.
  */

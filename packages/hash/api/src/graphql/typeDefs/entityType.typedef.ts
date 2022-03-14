@@ -154,18 +154,18 @@ export const entityTypeTypedef = gql`
     # ENTITY INTERFACE FIELDS END #
 
     """
-    Retrieve all EntityTypes that are immediate children
-    to the current EntityType.
+    Retrieve all EntityTypes that are children of
+    the current EntityType.
     """
     children: [EntityType!]
     """
-    Retrieve all EntityTypes that are immediate parents
-    to the current EntityType.
+    Retrieve all EntityTypes that are parents of
+    the current EntityType.
     """
     parents: [EntityType!]
 
     """
-    Retrieve all ancestors recursively, resolving parents' parents and so forth.
+    Retrieve all ancestors of the current Entity Type (resolving the parents, parents' parents and so forth)
     """
     ancestors: [EntityType!]
   }
