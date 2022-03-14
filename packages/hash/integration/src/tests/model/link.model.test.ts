@@ -273,7 +273,7 @@ describe("Link model class ", () => {
     expect(entityATimestamp3OutgoingLinks[0]!.linkId).toBe(linkAToC.linkId);
     expect(entityATimestamp3OutgoingLinks[0]!.index).toBe(0);
 
-    expect(entityATimestamp3OutgoingLinks[1]!.linkId).not.toBe(linkAToB.linkId);
+    expect(entityATimestamp3OutgoingLinks[1]!.linkId).toBe(linkAToB.linkId);
     expect(entityATimestamp3OutgoingLinks[1]!.sourceEntityId).toBe(
       linkAToB.sourceEntityId,
     );
