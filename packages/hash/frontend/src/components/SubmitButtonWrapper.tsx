@@ -24,7 +24,9 @@ const DisabledTooltip = styled(({ className, ...props }: TooltipProps) => (
     padding: theme.spacing(2),
     color: theme.palette.orange[80],
     boxShadow: theme.boxShadows.md,
-    border: `1px solid ${theme.palette.gray[20]}`,
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: theme.palette.gray[20],
   },
 }));
 

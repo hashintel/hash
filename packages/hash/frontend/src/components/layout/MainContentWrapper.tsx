@@ -1,4 +1,4 @@
-import { faChevronLeft } from "@fortawesome/free-solid-svg-icons";
+import { faChevronLeft, faPlus } from "@fortawesome/free-solid-svg-icons";
 import { Fade, Box, Tooltip, styled, Typography } from "@mui/material";
 import { FunctionComponent } from "react";
 import { SIDEBAR_WIDTH } from "../../theme/components/navigation/MuiDrawerThemeOptions";
@@ -203,6 +203,35 @@ export const MainContentWrapper: FunctionComponent = ({ children }) => {
           </Button>
           <Box sx={{ mr: 2 }} />
         </Box>
+        <br />
+        <Box sx={{ display: "flex", alignItems: "flex-start" }}>
+          <Button variant="primary" endIcon={<FontAwesomeIcon icon={faPlus} />}>
+            Primary
+          </Button>
+          <Box sx={{ mr: 2 }} />
+          <Button
+            variant="secondary"
+            endIcon={<FontAwesomeIcon icon={faPlus} />}
+          >
+            Secondary
+          </Button>
+          <Box sx={{ mr: 2 }} />
+          <Button
+            variant="tertiary"
+            endIcon={<FontAwesomeIcon icon={faPlus} />}
+          >
+            Tertiary
+          </Button>
+          <Box sx={{ mr: 2 }} />
+          <Button
+            variant="tertiary_quiet"
+            endIcon={<FontAwesomeIcon icon={faPlus} />}
+          >
+            Tertiary Quiet
+          </Button>
+          <Box sx={{ mr: 2 }} />
+        </Box>
+        <br />
         <br />
         <br />
         <br />
