@@ -3,6 +3,7 @@ import {
   BlockProtocolAggregateEntitiesFunction,
   BlockProtocolAggregateEntityTypesFunction,
   BlockProtocolCreateEntitiesFunction,
+  BlockProtocolEntity,
   BlockProtocolUpdateEntitiesFunction,
   JSONObject,
 } from "blockprotocol";
@@ -97,8 +98,13 @@ export const FramedBlock: VoidFunctionComponent = () => {
   const getEmbedBlock: FetchEmbedCodeFn = (...payload) =>
     sendMessage({ payload, type: "getEmbedBlock" });
 
-  const props = {
+  if (typeof blockProperties.entityId !== "string") {
+    throw new Error("No entityId present in block properties.");
+  }
+
+  const props: BlockProtocolEntity = {
     ...blockProperties,
+    entityId: blockProperties.entityId,
     aggregateEntities,
     aggregateEntityTypes,
     createEntities,

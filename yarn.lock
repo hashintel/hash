@@ -5471,7 +5471,16 @@
   dependencies:
     "@types/react" "*"
 
-"@types/react@*", "@types/react@17.0.38", "@types/react@^17.0.38":
+"@types/react@*", "@types/react@^17.0.38", "@types/react@^17.0.39":
+  version "17.0.40"
+  resolved "https://registry.yarnpkg.com/@types/react/-/react-17.0.40.tgz#dc010cee6254d5239a138083f3799a16638e6bad"
+  integrity sha512-UrXhD/JyLH+W70nNSufXqMZNuUD2cXHu6UjCllC6pmOQgBX4SGXOH8fjRka0O0Ee0HrFxapDD8Bwn81Kmiz6jQ==
+  dependencies:
+    "@types/prop-types" "*"
+    "@types/scheduler" "*"
+    csstype "^3.0.2"
+
+"@types/react@17.0.38":
   version "17.0.38"
   resolved "https://registry.yarnpkg.com/@types/react/-/react-17.0.38.tgz#f24249fefd89357d5fa71f739a686b8d7c7202bd"
   integrity sha512-SI92X1IA+FMnP3qM5m4QReluXzhcmovhZnLNm3pyeQlooi02qI7sLiepEYqT678uNiyc25XfCqxREFpy3W7YhQ==
@@ -7033,19 +7042,19 @@ bl@^4.0.3:
     inherits "^2.0.4"
     readable-stream "^3.4.0"
 
-blockprotocol@0.0.1:
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/blockprotocol/-/blockprotocol-0.0.1.tgz#2723d6b80f50c3da7cf4984b4e5824fc26570f76"
-  integrity sha512-neITCxiFVxM5S0C0KTPucMCB2Xip5xIYo3LZFXUY/vamUKM5Ov2viv39+og1X6Vfd/IZwuwONK3gjO6dtGDXDA==
-  dependencies:
-    "@types/react" "^17.0.38"
-
 blockprotocol@0.0.6:
   version "0.0.6"
   resolved "https://registry.yarnpkg.com/blockprotocol/-/blockprotocol-0.0.6.tgz#9a547a9889f06158634124608fba0e73da1e8cab"
   integrity sha512-iNpPKjahDrYtct2Pg4E9QzaAMH44KWi3AGA4lUOyhi6QT1T/y7xNv+U56eKMd4xQ0zsoZtCpEMDSKhYDXUhDvQ==
   dependencies:
     "@types/react" "^17.0.38"
+
+blockprotocol@0.0.7:
+  version "0.0.7"
+  resolved "https://registry.yarnpkg.com/blockprotocol/-/blockprotocol-0.0.7.tgz#e9f36e6e9c468a8611075a1f6d93b9af22711f19"
+  integrity sha512-8Hapdz1jaBoTYZqd2m9MY/+NAYCOGhMq0zR5t7Q3F8LjpKTP1DmAj6LayOIJFYVzQCYAbFouI45GhHyWmtRRnA==
+  dependencies:
+    "@types/react" "^17.0.39"
 
 bluebird@^3.5.1, bluebird@^3.5.5, bluebird@^3.7.1:
   version "3.7.2"
@@ -13277,12 +13286,13 @@ mkdirp@^1.0.3, mkdirp@^1.0.4:
   resolved "https://registry.yarnpkg.com/mkdirp/-/mkdirp-1.0.4.tgz#3eb5ed62622756d79a5f0e2a221dfebad75c2f7e"
   integrity sha512-vVqVZQyf3WLx2Shd0qJ9xuvqgAyKPLAiqITEtqW0oIUjzo3PePDd6fW9iFz30ef7Ysp/oiWqbhszeGWW2T6Gzw==
 
-mock-block-dock@0.0.5:
-  version "0.0.5"
-  resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.0.5.tgz#c1343d67a19c67e576569523fc26a8889470a845"
-  integrity sha512-dxmOQ7V2buEtZ0ggiCOCJgKbvPw3pabml2lu1BPtte8umEK+FhA8WHxfTZrWnEnx4NEZp9kN0sbMVfpsIka5kA==
+mock-block-dock@0.0.6:
+  version "0.0.6"
+  resolved "https://registry.yarnpkg.com/mock-block-dock/-/mock-block-dock-0.0.6.tgz#86dbc984fffb67e0ae4d442bf716288350d9bf61"
+  integrity sha512-bJNMflnr0wFSzMsV135wRFhkVyFLm76Su267EAl4R+oqb4MbtHnypP8Z/zOOhF3N1+op7COAZhWwk/nsRw4nIQ==
   dependencies:
     blockprotocol "0.0.6"
+    lodash "^4.17.21"
     uuid "^8.3.2"
 
 moment-timezone@^0.5.x:

@@ -8,6 +8,7 @@ import { tw } from "twind";
 import {
   BlockProtocolUpdateEntitiesFunction,
   BlockProtocolUpdateEntitiesAction,
+  BlockProtocolEntity,
 } from "blockprotocol";
 
 import Component from "./index";
@@ -71,12 +72,12 @@ const AppComponent: React.VoidFunctionComponent = () => {
   };
 
   const updateBlockData: BlockProtocolUpdateEntitiesFunction = async (
-    actions: BlockProtocolUpdateEntitiesAction<any>[],
+    actions: BlockProtocolUpdateEntitiesAction[],
   ) => {
     if (actions[0]) {
       updateState(actions[0].data);
     }
-    return actions[0].data;
+    return [actions[0].data] as BlockProtocolEntity[];
   };
 
   return (
@@ -97,8 +98,6 @@ const AppComponent: React.VoidFunctionComponent = () => {
       <br />
       <Component
         accountId="uuid-1234-account"
-        type="uuid-1234-type"
-        id="uuid-1234-id"
         entityId="uuid-1234-id"
         entityTypeId="Embed"
         getEmbedBlock={getEmbedBlock}
