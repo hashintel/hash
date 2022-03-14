@@ -30,14 +30,14 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
 
   const id = open ? "account-popover" : undefined;
 
-  const userEmail = useMemo(() => {
+  const userPrimaryEmail = useMemo(() => {
     const primaryEmail = user.properties.emails.find((email) => email.primary);
 
-    if (primaryEmail) {
-      return primaryEmail.address;
+    if (!primaryEmail) {
+      throw new Error("User doesn't have a primary email set.");
     }
 
-    return user.properties.emails[0].address;
+    return primaryEmail.address;
   }, [user]);
 
   return (
@@ -59,7 +59,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
               variant="microText"
               sx={({ palette }) => ({ color: palette.common.white })}
             >
-              {userEmail}
+              {userPrimaryEmail}
             </Typography>
           </>
         }
@@ -155,7 +155,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
             variant="microText"
             sx={({ palette }) => ({ color: palette.gray[60], lineHeight: 1 })}
           >
-            {userEmail}
+            {userPrimaryEmail}
           </Typography>
         </Box>
         <Divider sx={({ palette }) => ({ borderColor: palette.gray[30] })} />
