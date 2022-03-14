@@ -111,7 +111,7 @@ declare module "@mui/material/Button" {
   }
 
   interface ButtonPropsSizeOverrides {
-    small: undefined;
+    small: false;
   }
 }
 
