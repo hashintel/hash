@@ -378,7 +378,7 @@ pub mod record_batch {
             unsafe { pos_column.data_ref().child_data()[0].buffers()[0].typed_data::<f64>() };
         debug_assert_eq!(
             row_count * POSITION_DIM,
-            pos_child_data_buffer,
+            pos_child_data_buffer.len(),
             "Position column child data doesn't have expected number of coordinates per row"
         );
 
@@ -397,7 +397,7 @@ pub mod record_batch {
             unsafe { dir_column.data_ref().child_data()[0].buffers()[0].typed_data::<f64>() };
         debug_assert_eq!(
             row_count * POSITION_DIM, // Positions and directions have same dimensions.
-            dir_child_data_buffer,
+            dir_child_data_buffer.len(),
             "Direction column child data doesn't have expected number of coordinates per row"
         );
 
@@ -453,14 +453,15 @@ pub mod record_batch {
         // column.data_ref() -> [[f64; 3]]
         // column.data_ref().child_data()[0].buffers()[0].typed_data::<f64>() -> [f64]
         let child_data_buffer =
-            unsafe { pos_column.data_ref().child_data()[0].buffers()[0].typed_data::<f64>() };
+            unsafe { column.data_ref().child_data()[0].buffers()[0].typed_data::<f64>() };
         debug_assert_eq!(
             row_count * POSITION_DIM,
-            child_data_buffer,
+            child_data_buffer.len(),
             "Position column child data doesn't have expected number of coordinates per row"
         );
 
         Ok((0..row_count).map(move |i| {
+            let _ = &child_data_buffer;
             if column.is_valid(i) {
                 let start_index = i * POSITION_DIM;
                 // SAFETY: We checked that this buffer has `POSITION_DIM` values per row above.

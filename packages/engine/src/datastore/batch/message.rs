@@ -5,12 +5,9 @@ use std::{
     sync::Arc,
 };
 
-use arrow::{
-    array,
-    ipc::{
-        reader::read_record_batch,
-        writer::{DictionaryTracker, IpcDataGenerator, IpcWriteOptions},
-    },
+use arrow::ipc::{
+    reader::read_record_batch,
+    writer::{DictionaryTracker, IpcDataGenerator, IpcWriteOptions},
 };
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 
@@ -18,9 +15,7 @@ use crate::{
     datastore::{
         arrow::{
             ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
-            message::{
-                self, get_column_from_list_array, MESSAGE_COLUMN_INDEX, MESSAGE_COLUMN_NAME,
-            },
+            message::{self, MESSAGE_COLUMN_INDEX},
         },
         batch::{flush::GrowableBatch, ArrowBatch, Segment},
         prelude::*,
@@ -247,7 +242,7 @@ impl MessageBatch {
 
         let record_batch = read_record_batch(data_buffer, batch_message, schema.clone(), &[])?;
 
-        let persisted = memory.metaversion()?;
+        let persisted = memory.get_metaversion()?;
         Ok(Self {
             batch: ArrowBatch {
                 segment: Segment(memory),
@@ -255,7 +250,7 @@ impl MessageBatch {
                 dynamic_meta,
                 static_meta,
                 changes: Vec::with_capacity(3),
-                loaded: persisted,
+                loaded_metaversion: persisted,
             },
             arrow_schema: schema,
         })
@@ -311,7 +306,7 @@ pub mod record_batch {
 
     pub fn message_usize_index_iter(
         record_batch: &RecordBatch,
-        i_batch: usize,
+        batch_index: usize,
     ) -> impl IndexedParallelIterator<Item = impl ParallelIterator<Item = AgentMessageReference>>
     {
         let num_agents = record_batch.num_rows();

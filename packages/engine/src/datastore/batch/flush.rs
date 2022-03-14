@@ -44,10 +44,10 @@ pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableCo
     fn static_meta(&self) -> &StaticMeta;
     fn dynamic_meta(&self) -> &DynamicMeta;
     fn dynamic_meta_mut(&mut self) -> &mut DynamicMeta;
-    /// TODO: segment_mut?
-    fn memory_mut(&mut self) -> &mut Memory;
     /// TODO: Change to `segment` after creating CSegment in py FFI
     fn memory(&self) -> &Memory;
+    /// TODO: segment_mut?
+    fn memory_mut(&mut self) -> &mut Memory;
 
     /// Persist all queued changes to memory, empty the queue
     /// and increment the persisted metaversion.
@@ -67,9 +67,9 @@ pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableCo
     /// If the underlying segment has been corrupted somehow,
     /// this can give various errors.
     #[allow(clippy::too_many_lines)]
-    fn flush_changes(&mut self, mut changes: Vec<C>) -> Result<BufferChange> {
+    fn flush_changes(&mut self, mut column_changes: Vec<C>) -> Result<BufferChange> {
         // Sort the changes by the order in which the columns are
-        changes.sort_by_key(|a| a.column_index());
+        column_changes.sort_by_key(|a| a.column_index());
 
         let column_metas = self.static_meta().get_column_meta();
 
@@ -81,7 +81,7 @@ pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableCo
 
         // Go over all of the pending changes, calculate target locations for those buffers
         // and neighbouring buffers if they need to be moved.
-        changes.iter().for_each(|change| {
+        column_changes.iter().for_each(|change| {
             let column_index = change.column_index();
             // `meta` contains the information about where to look in `self.dynamic_meta` for
             // current offset/node information
@@ -207,7 +207,9 @@ pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableCo
         let change = self.memory_mut().set_data_length(data_length)?;
         debug_assert_eq!(
             self.dynamic_meta().data_length,
-            self.memory().get_data_buffer()?.len()
+            self.memory().get_data_buffer()?.len(),
+            "Size of new data to write and size of data buffer must be equal, because we just \
+             resized the data buffer"
         );
 
         // Iterate backwards over every buffer action and perform them
@@ -224,7 +226,10 @@ pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableCo
                     last_index,
                 } => {
                     // We shouldn't be left-shifting buffers
-                    debug_assert!(old_offset <= new_offset);
+                    debug_assert!(
+                        old_offset <= new_offset,
+                        "Flush shouldn't left-shift buffers"
+                    );
                     (first_index..=last_index).for_each(|j| {
                         // To avoid the modular nature of unsigned int subtraction:
                         self.dynamic_meta_mut().buffers[j].offset += new_offset;
@@ -274,12 +279,19 @@ pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableCo
         let dynamic_meta = self.dynamic_meta();
         let new_data_length =
             dynamic_meta.buffers[dynamic_meta.buffers.len() - 1].get_next_offset();
-        debug_assert!(self.static_meta().validate_lengths(self.dynamic_meta()));
+        debug_assert!(
+            self.static_meta().validate_lengths(self.dynamic_meta()),
+            "New dynamic metadata row count is inconsistent with existing static metadata"
+        );
         self.memory_mut().set_data_length(new_data_length)?;
         let meta_buffer = get_dynamic_meta_flatbuffers(self.dynamic_meta())?;
         self.memory_mut().set_metadata(&meta_buffer)?;
 
-        debug_assert!(self.memory().validate_markers());
+        debug_assert!(
+            self.memory().validate_markers(),
+            "Incorrect markers -- possibly buffer locations are wrong or the markers weren't \
+             written correctly, so they don't correspond to the actual locations"
+        );
         Ok(change)
     }
 }

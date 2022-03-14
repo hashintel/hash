@@ -82,7 +82,7 @@ impl AgentBatch {
         }
 
         let memory = Memory::duplicate_from(batch.memory(), experiment_id)?;
-        Self::from_memory(memory, Some(schema), Some(batch.affinity))
+        Self::from_memory(memory, Some(schema), Some(batch.worker_index))
     }
 
     /// Copy contents from RecordBatch and create a memory-backed Batch
@@ -122,7 +122,7 @@ impl AgentBatch {
         schema: Option<&AgentSchema>,
         worker_index: Option<usize>,
     ) -> Result<Self> {
-        let persisted = memory.metaversion()?;
+        let persisted = memory.get_metaversion()?;
         let (schema_buffer, _header_buffer, meta_buffer, data_buffer) =
             memory.get_batch_buffers()?;
         let (schema, static_meta) = if let Some(s) = schema {

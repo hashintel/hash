@@ -60,7 +60,7 @@ impl Segment {
     /// read the metaversion.
     pub fn persisted_metaversion(&self) -> Metaversion {
         self.0
-            .metaversion()
+            .get_metaversion()
             .expect("Every segment must have a metaversion")
     }
 

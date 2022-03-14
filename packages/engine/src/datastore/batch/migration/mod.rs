@@ -70,10 +70,10 @@ pub enum InnerCreateAction<'a> {
 #[derive(Debug, Clone)]
 pub enum InnerShiftAction {
     /// Move a slice of existing buffer by an offset
-    /// `offset` is the start byte index of the sub-buffer inside the old buffer.
-    /// `len` is the length of the sub-buffer.
-    /// `dest_offset` is the relative location inside the old buffer where
-    /// this sub-buffer will be inserted.
+    /// `offset` is the start byte index of the sub-buffer inside the
+    /// old buffer. `len` is the length of the sub-buffer.
+    /// `dest_offset` is the relative location inside the old buffer
+    /// where this sub-buffer will be inserted.
     Data {
         offset: usize,
         len: usize,
@@ -227,6 +227,7 @@ impl<'a> BufferActions<'a> {
                                         let offset_size = mem::size_of::<Offset>();
                                         let start_offset = old_offset + *from * offset_size;
                                         let byte_len = len * offset_size;
+                                        // TODO: SAFETY
                                         let old_offsets = unsafe {
                                             data_buffer[start_offset..start_offset + byte_len]
                                                 .align_to::<i32>()
@@ -238,6 +239,7 @@ impl<'a> BufferActions<'a> {
                                         let decrement = offset_value_dec;
                                         // We are going left-to-right so we can at most change the
                                         // same value we're inspecting
+                                        // TODO: SAFETY
                                         let new_offsets = unsafe {
                                             let ptr: *const u8 = &data_buffer[new_start_offset];
                                             let ptr = ptr as *mut Offset;
@@ -423,7 +425,8 @@ impl<'a> BufferActions<'a> {
             "Can't flush migration changes when haven't loaded latest persisted agent batch"
         );
         debug_assert!(
-            offsets_start_at_zero(batch.memory(), batch.static_meta(), batch.dynamic_meta(),),
+            offsets_start_at_zero(batch.memory(), batch.static_meta(), batch.dynamic_meta())
+                .is_ok(),
             "Can't flush migration changes, because agent batch already contains invalid offsets"
         );
 
@@ -1002,10 +1005,10 @@ impl<'a> BufferActions<'a> {
 
         // There are 3 cases with remove actions:
         // 1) No buffer shift -> commit inner actions left to right
-        // 2) Buffer shift to the right, new rightmost index >= old rightmost index
-        //    -> commit right to left
-        // 3) Buffer shift to the right, new rightmost index < old rightmost index
-        //    -> build separately
+        // 2) Buffer shift to the right, new rightmost index >= old rightmost
+        // index    -> commit right to left
+        // 3) Buffer shift to the right, new rightmost index < old rightmost
+        // index    -> build separately
 
         Ok(next_state)
     }
@@ -1280,6 +1283,15 @@ impl From<&RowActions> for RangeActions {
     }
 }
 
+/// Return true if every offset buffer in the Arrow record batch in `memory` starts with 0.
+///
+/// The first offset of an Arrow offset buffer should always be 0, because there can't be any
+/// elements before the first element of the corresponding Arrow data buffer.
+///
+/// Columns that don't contain any offset buffers are skipped.
+///
+/// # Errors
+/// `memory` doesn't have a data buffer, so it can't contain an Arrow record batch.
 fn offsets_start_at_zero(
     memory: &Memory,
     static_meta: &StaticMeta,

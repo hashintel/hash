@@ -147,7 +147,10 @@ impl ContextBatch {
             persisted.increment_with(&change);
         }
 
-        debug_assert!(self.segment.memory().get_data_buffer_len()? >= dynamic.data_length);
+        debug_assert!(
+            self.segment.memory().get_data_buffer_len()? >= dynamic.data_length,
+            "Data buffer can't be smaller than new data, because we just checked its size"
+        );
         let data = self.segment.memory_mut().get_mut_data_buffer()?;
 
         let mut next_offset = 0;

@@ -59,6 +59,9 @@ impl Dataset {
     /// supposed to be changed after creation), then it
     /// might not have a data buffer.
     pub fn data(&self) -> &[u8] {
-        self.segment.memory().get_data_buffer().unwrap()
+        self.segment
+            .memory()
+            .get_data_buffer()
+            .expect("Dataset segment must have data buffer")
     }
 }
