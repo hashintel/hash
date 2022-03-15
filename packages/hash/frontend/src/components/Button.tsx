@@ -5,14 +5,11 @@ import {
   // eslint-disable-next-line no-restricted-imports
   Button as MuiButton,
   ButtonProps as MuiButtonProps,
-  CircularProgress,
-  circularProgressClasses,
-  Theme,
+  useTheme,
 } from "@mui/material";
 import { VFC, FC, forwardRef, useMemo } from "react";
 import { isHrefExternal } from "./Link";
-
-const LOADING_SPINNER_THICKNESS = 4;
+import { LoadingSpinnerIcon } from "./icons";
 
 export type ButtonProps = {
   loading?: boolean;
@@ -20,37 +17,36 @@ export type ButtonProps = {
   disabledTooltipText?: string;
 } & MuiButtonProps & { rel?: string; target?: string }; // MUI button renders <a /> when href is provided, but typings miss rel and target
 
-const mapVariantToLoadingIndicatorColour =
-  (variant: ButtonProps["variant"]) =>
-  ({ palette }: Theme) => {
-    switch (variant) {
-      case "tertiary":
-      case "tertiary_quiet":
-        return palette.gray[50];
-      default:
-        return "currentColor";
-    }
-  };
-
-const mapSizeToSpinnerSize = (size: ButtonProps["size"]) => {
-  switch (size) {
-    case "large":
-      return 20;
-    case "medium":
-      return 16;
-    case "xs":
-      return 12;
-    default:
-      return 16;
-  }
-};
-
 const LoadingContent: VFC<{
   withText: boolean;
   variant: ButtonProps["variant"];
   size: ButtonProps["size"];
 }> = ({ withText, size, variant = "primary" }) => {
-  const spinnerSize = mapSizeToSpinnerSize(size);
+  const theme = useTheme();
+
+  const spinnerSize = useMemo(() => {
+    switch (size) {
+      case "large":
+        return 20;
+      case "medium":
+        return 16;
+      case "xs":
+        return 12;
+      default:
+        return 16;
+    }
+  }, [size]);
+
+  const spinnerColor = useMemo(() => {
+    switch (variant) {
+      case "tertiary":
+      case "tertiary_quiet":
+        return theme.palette.gray[50];
+      default:
+        return "currentColor";
+    }
+  }, [theme, variant]);
+
   return (
     <Box
       sx={{
@@ -58,35 +54,12 @@ const LoadingContent: VFC<{
         alignItems: "center",
       }}
     >
-      <Box position="relative" height={spinnerSize} width={spinnerSize}>
-        <CircularProgress
-          variant="determinate"
-          sx={{
-            opacity: 0.2,
-            color: mapVariantToLoadingIndicatorColour(variant),
-            position: "absolute",
-            left: 0,
-          }}
-          size={spinnerSize}
-          thickness={LOADING_SPINNER_THICKNESS}
-          value={100}
-        />
-        <CircularProgress
-          variant="indeterminate"
-          disableShrink
-          sx={{
-            color: mapVariantToLoadingIndicatorColour(variant),
-            animationDuration: "750ms",
-            position: "absolute",
-            left: 0,
-            [`& .${circularProgressClasses.circle}`]: {
-              strokeLinecap: "round",
-            },
-          }}
-          size={spinnerSize}
-          thickness={LOADING_SPINNER_THICKNESS}
-        />
-      </Box>
+      <LoadingSpinnerIcon
+        color={spinnerColor}
+        size={spinnerSize}
+        thickness={4}
+      />
+
       {withText && (
         <Box
           component="span"

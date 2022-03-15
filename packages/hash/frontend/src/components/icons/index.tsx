@@ -12,3 +12,4 @@ export { SearchIcon } from "./SearchIcon";
 export { HashNavIcon } from "./HashNavIcon";
 export * from "./FontAwesomeIcon";
 export * from "./SidebarToggleIcon";
+export * from "./LoadingSpinnerIcon";
