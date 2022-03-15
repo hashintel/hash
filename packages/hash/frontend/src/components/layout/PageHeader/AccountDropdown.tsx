@@ -97,7 +97,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
               }}
             >
               <Typography sx={{ color: theme.palette.common.white }}>
-                {user.properties.preferredName![0].toUpperCase()}
+                {user.properties.preferredName![0]!.toUpperCase()}
               </Typography>
             </Box>
           )}

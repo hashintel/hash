@@ -194,7 +194,7 @@ export const createSuggester = (
           const onMentionChange = (entityId: string, mentionType: string) => {
             const { tr } = view.state;
 
-            const mentionNode = view.state.schema.nodes.mention.create({
+            const mentionNode = view.state.schema.nodes.mention!.create({
               mentionType,
               entityId,
             });

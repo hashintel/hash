@@ -147,7 +147,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
               <MarksTooltip
                 activeMarks={activeMarks}
                 toggleMark={(name, attrs) => {
-                  toggleMark(editorView.state.schema.marks[name], attrs)(
+                  toggleMark(editorView.state.schema.marks[name]!, attrs)(
                     editorView.state,
                     editorView.dispatch,
                   );
@@ -182,7 +182,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
       },
       apply(tr, pluginState, prevEditorState, nextEditorState) {
         let linkUrl: string | null = null;
-        const linkMark = nextEditorState.schema.marks.link;
+        const linkMark = nextEditorState.schema.marks.link!;
 
         // If cursor is within link
         if (

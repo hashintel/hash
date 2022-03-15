@@ -126,7 +126,7 @@ export const createEditorView = (
     plugins,
   );
 
-  view.dom.classList.add(styles.ProseMirror);
+  view.dom.classList.add(styles.ProseMirror!);
 
   // prosemirror will use the first node type (per group) for auto-creation.
   // we want this to be the paragraph node type.

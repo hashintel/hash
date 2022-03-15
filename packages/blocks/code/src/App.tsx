@@ -8,7 +8,7 @@ import { languages, LanguageType } from "./utils";
 import { Editor } from "./components/Editor";
 
 type AppProps = {
-  caption: string;
+  caption?: string;
   language: LanguageType;
   content: string;
 };
@@ -29,7 +29,9 @@ export const App: BlockComponent<AppProps> = ({
     language,
   }));
   const [copied, setCopied] = useState(false);
-  const [captionIsVisible, setCaptionVisibility] = useState(caption.length > 0);
+  const [captionIsVisible, setCaptionVisibility] = useState(
+    caption && caption.length > 0,
+  );
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const captionRef = useRef<HTMLInputElement>(null);
 
@@ -100,7 +102,7 @@ export const App: BlockComponent<AppProps> = ({
 
   useEffect(() => {
     if (captionRef.current !== document.activeElement) {
-      setCaptionVisibility(localData.caption.length > 0);
+      setCaptionVisibility(localData.caption && localData.caption?.length > 0);
     }
   }, [localData.caption]);
 
@@ -163,7 +165,7 @@ export const App: BlockComponent<AppProps> = ({
           captionIsVisible ? "" : "invisible"
         }`}
         placeholder="Write a caption..."
-        value={localData.caption}
+        value={localData.caption ?? ""}
         onChange={(evt) => updateLocalData({ caption: evt.target.value })}
         onBlur={handleCaptionInputBlur}
       />
