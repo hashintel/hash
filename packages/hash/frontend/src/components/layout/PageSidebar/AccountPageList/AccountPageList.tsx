@@ -3,7 +3,6 @@ import React, { VoidFunctionComponent, SyntheticEvent, useMemo } from "react";
 
 import { treeFromParentReferences } from "@hashintel/hash-shared/util";
 import { TreeView } from "@mui/lab";
-// import styles from "./PageSidebar.module.scss";
 import { useRouter } from "next/router";
 import { CreatePageButton } from "./CreatePageButton";
 import { useAccountPages } from "../../../hooks/useAccountPages";

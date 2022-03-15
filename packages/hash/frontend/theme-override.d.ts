@@ -1,3 +1,5 @@
+import { Components } from "@mui/material";
+
 declare module "@mui/material/styles" {
   interface ShadowSizes {
     none: string;
@@ -7,8 +9,10 @@ declare module "@mui/material/styles" {
     lg: string;
     xl: string;
     xxl: string;
+    purpleShadowMd: string;
   }
-  interface BaseTheme {
+
+  interface Theme {
     borderRadii: {
       none: string;
       sm: string;
@@ -20,6 +24,7 @@ declare module "@mui/material/styles" {
   }
 
   interface ThemeOptions {
+    components: Components<Theme>;
     boxShadows: ShadowSizes;
     dropShadows: ShadowSizes;
     borderRadii: {
@@ -66,6 +71,7 @@ declare module "@mui/material/styles" {
     mediumCaps: React.CSSProperties;
     smallCaps: React.CSSProperties;
     largeTextLabels: React.CSSProperties;
+    regularTextPages: React.CSSProperties;
     regularTextParagraphs: React.CSSProperties;
     regularTextLabels: React.CSSProperties;
     smallTextParagraphs: React.CSSProperties;
@@ -83,6 +89,7 @@ declare module "@mui/material/styles" {
     mediumCaps?: React.CSSProperties;
     smallCaps?: React.CSSProperties;
     largeTextLabels?: React.CSSProperties;
+    regularTextPages?: React.CSSProperties;
     regularTextParagraphs?: React.CSSProperties;
     regularTextLabels?: React.CSSProperties;
     smallTextParagraphs?: React.CSSProperties;
@@ -102,6 +109,7 @@ declare module "@mui/material/Typography" {
     mediumCaps: true;
     smallCaps: true;
     largeTextLabels: true;
+    regularTextPages: true;
     regularTextParagaphs: true;
     regularTextLabels: true;
     smallTextParagraphs: true;
@@ -125,6 +133,8 @@ declare module "@mui/material/Button" {
     secondary: true;
     tertiary: true;
     tertiary_quiet: true;
+    warning: true;
+    danger: true;
     // Disable defaults
     contained: false;
     outlined: false;
@@ -146,7 +156,12 @@ declare module "@mui/material/Button" {
     warning: false;
   }
 
-  interface ButtonPropsSizeOverrides {}
+  interface ButtonPropsSizeOverrides {
+    large: true;
+    medium: true;
+    small: true;
+    xs: true;
+  }
 }
 
 // eslint-disable-next-line import/no-default-export -- @see https://github.com/mui-org/material-ui/issues/28244

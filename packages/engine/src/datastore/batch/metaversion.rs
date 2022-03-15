@@ -50,9 +50,9 @@
 //!      (because the written data doesn't depend on the loaded data, so there's
 //!      no danger of writing incorrect data if the loaded data is stale).
 //!
-//! TODO OPTIM: Load/write integers in place in JS
-//! TODO OPTIM: Any faster to lazy-load nullable integers than just loading like
-//!             columns of dynamically-sized types?
+// TODO OPTIM: Load/write integers in place in JS
+// TODO OPTIM: Any faster to lazy-load nullable integers than just loading like
+//             columns of dynamically-sized types?
 //! * When writing by queueing a change, not in place: The loaded and persisted versions must be
 //!   equal beforehand (because even if this change contains fixed data, which doesn't depend on the
 //!   loaded version, queueing it with an old loaded version would prevent later queueing changes
@@ -63,8 +63,8 @@
 //!   be flushed before transferring write access to another engine component, so flushing can't
 //!   give an error due to the other engine component modifying the batch or persisted metaversion.
 //!
-//! TODO: Is there a use case for reloading a batch when there
-//!       are queued changes?
+// TODO: Is there a use case for reloading a batch when there
+//       are queued changes?
 //!
 //! ## Examples
 //!
@@ -128,12 +128,12 @@
 //! * The JavaScript component of behavior execution starts. The persisted version, 1,
 //! is greater than the JavaScript runner's loaded version, 0, so the runner reloads
 //! the batch and sets its loaded version equal to the persisted version.
-//! (TODO: Currently columns are likely to end up being loaded twice, which is,
-//!        of course, bad for performance. Either the state sync above should be
-//!        removed (which loses parallelism with context packages) or the writing
-//!        of behavior ids should be moved into the language runner components of
-//!        the behavior execution package -- into whichever language is executed
-//!        first.)
+// TODO: Currently columns are likely to end up being loaded twice, which is,
+//       of course, bad for performance. Either the state sync above should be
+//       removed (which loses parallelism with context packages) or the writing
+//       of behavior ids should be moved into the language runner components of
+//       the behavior execution package -- into whichever language is executed
+//       first.
 //!
 //! * Behaviors are executed, modifying the loaded `behaviors` column. The runner
 //! increments its loaded version to 2, flushes the column (possibly along with

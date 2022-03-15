@@ -1,6 +1,7 @@
 import { VoidFunctionComponent } from "react";
 import { useRouter } from "next/router";
 
+import { Box, Typography } from "@mui/material";
 import { MainContentWrapper } from "../../components/layout/MainContentWrapper";
 import { useUser } from "../../components/hooks/useUser";
 import { useOrgs } from "../../components/hooks/useOrgs";
@@ -18,7 +19,20 @@ export const AccountHome: VoidFunctionComponent = () => {
         <h2>
           You must be{" "}
           <Link href="/login" noLinkStyle>
-            <a style={{ fontWeight: "700" }}>logged in</a>
+            <Box
+              component="strong"
+              sx={{
+                paddingBottom: "3px",
+                borderBottom: `3px solid transparent`,
+
+                "&:hover": {
+                  borderBottom: ({ palette }) =>
+                    `3px solid ${palette.blue[70]}`,
+                },
+              }}
+            >
+              logged in
+            </Box>
           </Link>{" "}
           to access this workspace.
         </h2>
@@ -44,15 +58,17 @@ export const AccountHome: VoidFunctionComponent = () => {
 
   return (
     <MainContentWrapper>
-      <header style={{ marginTop: "1.5rem" }}>
-        <h1>
-          <strong>Hi, {user.properties.preferredName}!</strong>
-        </h1>
-        <h2>Welcome to {workspaceName} workspace.</h2>
-      </header>
-      <p style={{ fontSize: "1.2rem" }}>
+      <Box component="header" mt={1.5}>
+        <Typography mb={2} variant="h1">
+          Hi, {user.properties.preferredName}!
+        </Typography>
+        <Typography mb={2} variant="h3">
+          Welcome to {workspaceName} workspace.
+        </Typography>
+      </Box>
+      <Typography>
         Please select a page from the list, or create a new page.
-      </p>
+      </Typography>
     </MainContentWrapper>
   );
 };
