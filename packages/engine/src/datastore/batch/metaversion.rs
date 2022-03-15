@@ -242,8 +242,11 @@ impl Metaversion {
     /// *the same batch* as `self`.
     fn verify(&self, version: Self) {
         if cfg!(debug_assertions) {
-            assert!(self.batch >= self.memory);
-            assert!(version.batch >= version.memory);
+            assert!(self.batch >= self.memory, "Batch is older than the memory");
+            assert!(
+                version.batch >= version.memory,
+                "Batch is older than the memory"
+            );
             // `self` and `version` are metaversions of the same batch,
             // so they can be linearly ordered -- one must have been
             // obtained by modifying the other some number of times

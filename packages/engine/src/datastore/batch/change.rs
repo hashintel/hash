@@ -11,7 +11,7 @@ pub struct ColumnChange {
 }
 
 impl GrowableColumn<ArrayData> for ColumnChange {
-    fn column_index(&self) -> usize {
+    fn index(&self) -> usize {
         self.index
     }
 
@@ -37,7 +37,7 @@ impl GrowableArrayData for ArrayData {
         self.buffers()[index].as_slice()
     }
 
-    fn num_buffers_except_null_buffer(&self) -> usize {
+    fn non_null_buffer_count(&self) -> usize {
         self.buffers().len()
     }
 

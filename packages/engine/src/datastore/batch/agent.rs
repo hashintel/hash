@@ -107,7 +107,7 @@ impl AgentBatch {
         schema: Option<&AgentSchema>,
         worker_index: Option<usize>,
     ) -> Result<Self> {
-        let persisted = memory.get_metaversion()?;
+        let persisted = memory.metaversion()?;
         let (schema_buffer, _header_buffer, meta_buffer, data_buffer) =
             memory.get_batch_buffers()?;
         let (schema, static_meta) = if let Some(s) = schema {

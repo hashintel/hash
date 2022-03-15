@@ -66,7 +66,7 @@ impl ContextBatch {
     }
 
     pub fn from_memory(memory: Memory, schema: Option<&Arc<ArrowSchema>>) -> Result<Self> {
-        let persisted = memory.get_metaversion()?;
+        let persisted = memory.metaversion()?;
         let (schema_buffer, _, meta_buffer, data_buffer) = memory.get_batch_buffers()?;
 
         let schema = if let Some(s) = schema {
@@ -134,6 +134,7 @@ impl ContextBatch {
                 .set_data_length(dynamic.data_length)?;
             persisted.increment_with(&change);
         } else if current_data_size > UPPER_BOUND_DATA_SIZE_MULTIPLIER * dynamic.data_length {
+            // Shrink memory if it's getting to big
             let change = self
                 .segment
                 .memory_mut()

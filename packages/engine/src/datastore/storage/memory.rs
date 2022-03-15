@@ -255,7 +255,7 @@ impl Memory {
     }
 
     /// Try to read the metaversion from the initial part of the header
-    pub fn get_metaversion(&self) -> Result<Metaversion> {
+    pub fn metaversion(&self) -> Result<Metaversion> {
         let header = self.get_header()?;
         let n_header_bytes = header.len();
         let n_metaversion_bytes = std::mem::size_of::<Metaversion>();

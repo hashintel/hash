@@ -14,7 +14,7 @@ use crate::{
             ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
             message::{self, MESSAGE_COLUMN_INDEX},
         },
-        batch::{flush::GrowableBatch, ArrowBatch, Segment},
+        batch::{flush::GrowableBatch, iterators::column_with_name, ArrowBatch, Segment},
         prelude::*,
         schema::state::MessageSchema,
         table::references::AgentMessageReference,
@@ -74,7 +74,7 @@ impl MessageBatch {
         let agent_count = agent_batch.num_agents();
         let agent_record_batch = agent_batch.batch.record_batch()?; // Agent batch must be up to date
         let column_name = AgentStateField::AgentId.name();
-        let id_column = super::iterators::column_with_name(agent_record_batch, column_name)?;
+        let id_column = column_with_name(agent_record_batch, column_name)?;
         let empty_message_column = message::empty_messages_column(agent_count).map(Arc::new)?;
 
         let record_batch = RecordBatch::try_new(self.arrow_schema.clone(), vec![
@@ -147,7 +147,7 @@ impl MessageBatch {
         let agent_count = agent_batch.num_agents();
         let agent_record_batch = agent_batch.batch.record_batch()?;
         let column_name = AgentStateField::AgentId.name();
-        let id_column = super::iterators::column_with_name(agent_record_batch, column_name)?;
+        let id_column = column_with_name(agent_record_batch, column_name)?;
         let empty_message_column = message::empty_messages_column(agent_count).map(Arc::new)?;
 
         let record_batch = RecordBatch::try_new(schema.clone(), vec![
@@ -229,7 +229,7 @@ impl MessageBatch {
 
         let record_batch = read_record_batch(data_buffer, batch_message, schema.clone(), &[])?;
 
-        let persisted = memory.get_metaversion()?;
+        let persisted = memory.metaversion()?;
         Ok(Self {
             batch: ArrowBatch {
                 segment: Segment(memory),
