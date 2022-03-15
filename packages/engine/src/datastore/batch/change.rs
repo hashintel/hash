@@ -2,8 +2,7 @@ use arrow::{array::ArrayData, buffer::Buffer};
 
 use crate::datastore::batch::flush::{GrowableArrayData, GrowableColumn};
 
-/// When a mutable column is modified not in place, the change is
-/// recorded in this format
+/// When a mutable column is modified not in place, the change is recorded in this format.
 pub struct ColumnChange {
     pub data: ArrayData,
     /// Index of column

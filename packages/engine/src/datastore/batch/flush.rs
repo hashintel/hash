@@ -34,12 +34,11 @@ pub(in crate::datastore) trait GrowableColumn<D: GrowableArrayData>:
 ///
 /// Can be implemented by agent groups, message groups, context
 /// global batch, Python FFI batch.
-///
-/// TODO: Move flush_changes outside of trait and make it a function
-///       with type parameters and remove the type parameters from the
-///       trait? (would simplify impl of this trait a bit; still
-///       couldn't make the trait public (outside the datastore)
-///       though due to `memory_mut`)
+// TODO: Move flush_changes outside of trait and make it a function
+//       with type parameters and remove the type parameters from the
+//       trait? (would simplify impl of this trait a bit; still
+//       couldn't make the trait public (outside the datastore)
+//       though due to `memory_mut`)
 pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
     fn static_meta(&self) -> &StaticMeta;
     fn dynamic_meta(&self) -> &DynamicMeta;

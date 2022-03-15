@@ -1072,7 +1072,7 @@ impl<'m> RunnerImpl<'m> {
         Ok(())
     }
 
-    /// TODO: DOC
+    // TODO: DOC
     fn handle_task_msg(
         &mut self,
         mv8: &'m MiniV8,

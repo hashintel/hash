@@ -40,7 +40,7 @@ impl AgentPool {
 }
 
 impl PoolWriteProxy<AgentBatch> {
-    /// TODO: DOC
+    // TODO: DOC
     pub fn modify_loaded_column(&mut self, column: StateColumn) -> Result<()> {
         let mut group_start = 0;
         for agent_batch in self.batches_iter_mut() {

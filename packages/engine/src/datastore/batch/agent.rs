@@ -27,8 +27,7 @@ use crate::{
 };
 
 /// An Arrow batch with agent state columns
-///
-/// TODO: Maybe rename to AgentGroup
+// TODO: Maybe rename to AgentGroup
 #[allow(clippy::module_name_repetitions)]
 pub struct AgentBatch {
     pub batch: ArrowBatch,
