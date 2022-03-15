@@ -191,7 +191,7 @@ impl BehaviorExecution {
                 let first_behavior = agent_behaviors[0];
                 let behavior_lang = self
                     .behavior_ids
-                    .get_index(&first_behavior)
+                    .get_index(first_behavior)
                     .ok_or_else(|| {
                         let bytes = Vec::from(first_behavior);
                         let utf8 = String::from_utf8(bytes.clone());
@@ -236,7 +236,6 @@ impl Package for BehaviorExecution {
         self.fix_behavior_chains(agent_pool)?;
         self.reset_behavior_index_col(agent_pool)?;
         agent_pool.flush_pending_columns()?;
-        drop(agent_pool);
 
         // TODO: Have to reload state agent batches twice, because
         //       we just wrote the language ID of each behavior into

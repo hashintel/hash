@@ -178,6 +178,8 @@
 //! more/earlier than necessary -- only when one needs to load the latest data or send
 //! it to a language runner.
 
+use std::cmp::Ordering;
+
 use crate::datastore::{storage::BufferChange, Error, Result};
 
 /// Simple way for every component (language runners + main loop)
@@ -193,7 +195,7 @@ pub struct Metaversion {
 impl Metaversion {
     // TODO: UNUSED: Needs triage
     pub fn new(memory: u32, batch: u32) -> Result<Self> {
-        if !(batch >= memory) {
+        if batch < memory {
             // TODO: Actually this is true for *writing*, but not
             //       necessarily for *reading* -- if some other engine
             //       component updates both memory and batches, but
@@ -239,26 +241,26 @@ impl Metaversion {
     /// Assert invariants, given that `version` is a metaversion of
     /// *the same batch* as `self`.
     fn verify(&self, version: Self) {
-        debug_assert!(self.batch >= self.memory);
-        debug_assert!(version.batch >= version.memory);
-        // `self` and `version` are metaversions of the same batch,
-        // so they can be linearly ordered -- one must have been
-        // obtained by modifying the other some number of times
-        // (possibly zero). Each modification increments the batch
-        // version and sometimes also increments the memory version.
-        // Therefore, if the memory version changed, then the batch
-        // version must have also changed at least once.
-        if self.batch == version.batch {
-            debug_assert!(self.memory == version.memory);
-        } else if self.batch < version.batch {
-            debug_assert!(self.memory <= version.memory);
-        } else if self.batch > version.batch {
-            debug_assert!(self.memory >= version.memory);
+        if cfg!(debug_assertions) {
+            assert!(self.batch >= self.memory);
+            assert!(version.batch >= version.memory);
+            // `self` and `version` are metaversions of the same batch,
+            // so they can be linearly ordered -- one must have been
+            // obtained by modifying the other some number of times
+            // (possibly zero). Each modification increments the batch
+            // version and sometimes also increments the memory version.
+            // Therefore, if the memory version changed, then the batch
+            // version must have also changed at least once.
+            match self.batch.cmp(&version.batch) {
+                Ordering::Less => assert!(self.memory <= version.memory),
+                Ordering::Equal => assert_eq!(self.memory, version.memory),
+                Ordering::Greater => assert!(self.memory >= version.memory),
+            }
+            // This implies:
+            // * If the memory is older, then the batch must also be older.
+            // * If the memory is newer, then the batch must also be newer.
+            // * If memory versions are equal, then batch versions can have any ordering.
         }
-        // This implies:
-        // * If the memory is older, then the batch must also be older.
-        // * If the memory is newer, then the batch must also be newer.
-        // * If memory versions are equal, then batch versions can have any ordering.
     }
 
     /// Return whether `self` is older than the given `version`.

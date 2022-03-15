@@ -297,7 +297,6 @@ impl ArrowBatch {
         if self.is_persisted() {
             Ok(self.record_batch_unchecked())
         } else {
-            assert!(false, "ALoaded record batch is older than persisted one");
             Err(Error::from(
                 "Loaded record batch is older than persisted one",
             ))
@@ -316,7 +315,6 @@ impl ArrowBatch {
         if self.is_persisted() {
             Ok(self.record_batch_unchecked_mut())
         } else {
-            assert!(false, "ALoaded record batch is older than persisted one");
             Err(Error::from(
                 "Loaded record batch is older than persisted one",
             ))
