@@ -339,14 +339,14 @@ fn batch_to_js<'m>(
 
 fn state_to_js<'m, 'a, 'b>(
     mv8: &'m MiniV8,
-    agent_batchs: impl Iterator<Item = &'a AgentBatch>,
-    message_batchs: impl Iterator<Item = &'b MessageBatch>,
+    agent_batches: impl Iterator<Item = &'a AgentBatch>,
+    message_batches: impl Iterator<Item = &'b MessageBatch>,
 ) -> Result<(mv8::Value<'m>, mv8::Value<'m>)> {
     let js_agent_batches = mv8.create_array();
-    let js_message_batchs = mv8.create_array();
+    let js_message_batches = mv8.create_array();
 
     for (i_batch, (agent_batch, message_batch)) in
-        agent_batchs.into_iter().zip(message_batchs).enumerate()
+        agent_batches.into_iter().zip(message_batches).enumerate()
     {
         let agent_batch = batch_to_js(
             mv8,
@@ -360,11 +360,11 @@ fn state_to_js<'m, 'a, 'b>(
             message_batch.batch.segment().memory(),
             message_batch.batch.segment().persisted_metaversion(),
         )?;
-        js_message_batchs.set(i_batch as u32, message_batch)?;
+        js_message_batches.set(i_batch as u32, message_batch)?;
     }
     Ok((
         mv8::Value::Array(js_agent_batches),
-        mv8::Value::Array(js_message_batchs),
+        mv8::Value::Array(js_message_batches),
     ))
 }
 

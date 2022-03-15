@@ -127,26 +127,26 @@ impl Context {
         // Release write access to the agent pool, so
         // we can remove batches from it.
         drop(previous_agent_batch_proxies);
-        let previous_agent_batchs = &mut self.previous_state.agent_pool;
+        let previous_agent_batches = &mut self.previous_state.agent_pool;
 
         #[allow(clippy::comparison_chain)]
-        if current_agent_batch_proxies.len() > previous_agent_batchs.len() {
+        if current_agent_batch_proxies.len() > previous_agent_batches.len() {
             // Add more static batches
             for batch in &current_agent_batch_proxies
-                [previous_agent_batchs.len()..current_agent_batch_proxies.len()]
+                [previous_agent_batches.len()..current_agent_batch_proxies.len()]
             {
-                previous_agent_batchs.push(AgentBatch::duplicate_from(
+                previous_agent_batches.push(AgentBatch::duplicate_from(
                     batch,
                     agent_schema,
                     experiment_id,
                 )?);
             }
-        } else if current_agent_batch_proxies.len() < previous_agent_batchs.len() {
+        } else if current_agent_batch_proxies.len() < previous_agent_batches.len() {
             // Remove unneeded static batches
-            let removed_ids = (current_agent_batch_proxies.len()..previous_agent_batchs.len())
+            let removed_ids = (current_agent_batch_proxies.len()..previous_agent_batches.len())
                 .rev()
                 .map(|remove_index| {
-                    previous_agent_batchs
+                    previous_agent_batches
                         .remove(remove_index)
                         .batch
                         .segment()

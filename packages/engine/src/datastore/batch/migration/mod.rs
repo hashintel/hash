@@ -429,7 +429,7 @@ impl<'a> BufferActions<'a> {
             offsets_start_at_zero(
                 batch.segment.memory(),
                 batch.static_meta(),
-                batch.dynamic_meta()
+                batch.dynamic_meta(),
             )
             .is_ok(),
             "Can't flush migration changes, because agent batch already contains invalid offsets"
@@ -469,7 +469,7 @@ impl<'a> BufferActions<'a> {
         dynamic_meta: Option<&DynamicMeta>,
         parent_range_actions: &RangeActions,
         agent_batch: Option<&AgentBatch>,
-        agent_batchs: &[&AgentBatch],
+        agent_batches: &[&AgentBatch],
         new_agents: Option<&'b arrow::array::ArrayData>,
         actions: &mut Vec<BufferAction<'b>>,
         buffer_metas: &mut Vec<Buffer>,
@@ -577,7 +577,7 @@ impl<'a> BufferActions<'a> {
                         .copy()
                         .iter()
                         .try_for_each::<_, Result<()>>(|(j, v)| {
-                            let src_buffer = agent_batchs[*j].get_buffer(buffer_index)?;
+                            let src_buffer = agent_batches[*j].get_buffer(buffer_index)?;
 
                             v.iter().for_each(|range| {
                                 unset_bit_count += copy_bits_unchecked(
@@ -750,7 +750,7 @@ impl<'a> BufferActions<'a> {
                             .try_for_each::<_, Result<()>>(|(j, ranges)| {
                                 // TODO: SAFETY
                                 let src_buffer = unsafe {
-                                    agent_batchs[*j]
+                                    agent_batches[*j]
                                         .get_buffer(buffer_index)?
                                         .align_to::<i32>()
                                         .1
@@ -908,7 +908,7 @@ impl<'a> BufferActions<'a> {
                             .copy()
                             .iter()
                             .try_for_each::<_, Result<()>>(|(j, v)| {
-                                let src_buffer = agent_batchs[*j].get_buffer(buffer_index)?;
+                                let src_buffer = agent_batches[*j].get_buffer(buffer_index)?;
                                 v.iter().for_each(|range| {
                                     let from = range.index * unit_byte_size;
                                     let to = range.next_index() * unit_byte_size;
@@ -1009,7 +1009,7 @@ impl<'a> BufferActions<'a> {
                 dynamic_meta,
                 range_actions,
                 agent_batch,
-                agent_batchs,
+                agent_batches,
                 new_agents.map(|parent| &parent.child_data()[child_index]),
                 actions,
                 buffer_metas,
@@ -1029,14 +1029,14 @@ impl<'a> BufferActions<'a> {
 
     #[allow(clippy::too_many_lines)]
     pub fn from(
-        agent_batchs: &[&AgentBatch],
+        agent_batches: &[&AgentBatch],
         batch_index: Option<usize>,
         base_range_actions: RangeActions,
         static_meta: &StaticMeta,
         new_agents: Option<&'a RecordBatch>,
     ) -> Result<BufferActions<'a>> {
-        let agent_batch = batch_index.map(|index| agent_batchs[index]);
-        let dynamic_meta = batch_index.map(|index| agent_batchs[index].batch.dynamic_meta());
+        let agent_batch = batch_index.map(|index| agent_batches[index]);
+        let dynamic_meta = batch_index.map(|index| agent_batches[index].batch.dynamic_meta());
         let mut next_indices = NextState {
             node_index: 0,
             buffer_index: 0,
@@ -1059,7 +1059,7 @@ impl<'a> BufferActions<'a> {
                 dynamic_meta,
                 range_actions.as_ref(),
                 agent_batch,
-                agent_batchs,
+                agent_batches,
                 new_agents_data_ref,
                 &mut actions,
                 &mut buffer_metas,
