@@ -50,8 +50,8 @@ export const MuiListItemButtonThemeOptions: Components<Theme>["MuiListItemButton
         // The :focus CSS styling applied to the button
         const focusStyles: CSSObject = {};
 
-        // The :focus-visible:after CSS styling applied to the button
-        const focusVisibleAfterStyles: CSSObject = {};
+        // The :focus:after CSS styling applied to the button
+        const focusAfterStyles: CSSObject = {};
 
         return {
           ...baseStyles,
@@ -60,7 +60,7 @@ export const MuiListItemButtonThemeOptions: Components<Theme>["MuiListItemButton
           "&:hover:before": hoverBeforeStyles,
           ":active": activeStyles,
           "&.Mui-disabled": disabledStyles,
-          ":focus-visible:after": focusVisibleAfterStyles,
+          ":focus:after": focusAfterStyles,
           ":focus": focusStyles,
         };
       },

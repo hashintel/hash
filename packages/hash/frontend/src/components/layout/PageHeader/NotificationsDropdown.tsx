@@ -8,7 +8,7 @@ import {
   useTheme,
 } from "@mui/material";
 
-import { FontAwesomeSvgIcon } from "../../icons";
+import { FontAwesomeIcon } from "../../icons";
 import { Popover } from "../../Popover";
 import { Link } from "../../Link";
 
@@ -54,7 +54,7 @@ export const NotificationsDropdown: React.FC = () => {
         ref={buttonRef}
         onClick={() => setOpen(!open)}
       >
-        <FontAwesomeSvgIcon icon={faBell} />
+        <FontAwesomeIcon icon={faBell} />
         {hasNotifications && (
           <Typography
             sx={{

@@ -10,9 +10,6 @@ export const Avatar: VFC<AvatarProps> = ({ title, size = 32, ...props }) => {
   const { sx, ...otherProps } = props;
   return (
     <Box
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
       sx={{
         width: size,
         height: size,
@@ -33,7 +30,7 @@ export const Avatar: VFC<AvatarProps> = ({ title, size = 32, ...props }) => {
           lineHeight: 1,
         }}
       >
-        {title?.charAt(0).toUpperCase()}
+        {(title || "User").charAt(0).toUpperCase()}
       </Box>
     </Box>
   );

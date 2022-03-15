@@ -188,7 +188,7 @@
           },
           {
             "name": "@mui/material",
-            "importNames": ["Button", "Popover", "Avatar"],
+            "importNames": ["Button", "Popover", "Avatar", "IconButton"],
             "message": "Please use the custom wrapper component in src/component instead."
           },
           {
@@ -206,6 +206,12 @@
             "importNames": ["default"],
             "message": "Please use the custom src/components/Avatar component instead."
           }
+          // @todo-mui uncomment when styles are completed
+          // {
+          //   "name": "@mui/material/IconButton",
+          //   "importNames": ["default"],
+          //   "message": "Please use the custom src/components/IconButton component instead."
+          // }
         ]
       }
     ],
