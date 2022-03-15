@@ -34,8 +34,7 @@
 //! when there are no queued changes.
 //!
 //! * When reading: The loaded and persisted versions must be equal (to avoid reading stale data).
-//!
-//! // TODO: Only when rewriting the whole batch; "data" version for in place changes?
+// TODO: Only when rewriting the whole batch; "data" version for in place changes?
 //! * When writing in place: There must be no queued changes (because this would, in effect, flush
 //!   the newer change before the older changes, and also because the loaded and persisted
 //!   metaversions can be checked when queueing changes, and incrementing the persisted metaversion
