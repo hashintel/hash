@@ -10,7 +10,7 @@ type LoadingSpinnerProps = {
   color?: string;
 };
 
-export const LoadingSpinnerIcon: VFC<LoadingSpinnerProps> = ({
+export const LoadingSpinner: VFC<LoadingSpinnerProps> = ({
   size = DEFAULT_SIZE,
   thickness = DEFAULT_THICKNESS,
   color = "currentColor",

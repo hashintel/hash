@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import { VFC, FC, forwardRef, useMemo } from "react";
 import { isHrefExternal } from "./Link";
-import { LoadingSpinnerIcon } from "./icons";
+import { LoadingSpinner } from "./LoadingSpinner";
 
 export type ButtonProps = {
   loading?: boolean;
@@ -54,11 +54,7 @@ const LoadingContent: VFC<{
         alignItems: "center",
       }}
     >
-      <LoadingSpinnerIcon
-        color={spinnerColor}
-        size={spinnerSize}
-        thickness={4}
-      />
+      <LoadingSpinner color={spinnerColor} size={spinnerSize} thickness={4} />
 
       {withText && (
         <Box
