@@ -69,7 +69,7 @@ pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableCo
     #[allow(clippy::too_many_lines)]
     fn flush_changes(&mut self, mut column_changes: Vec<C>) -> Result<BufferChange> {
         // Sort the changes by the order in which the columns are
-        column_changes.sort_by_key(|a| a.index());
+        column_changes.sort_by_key(|c| c.index());
 
         let column_metas = self.static_meta().get_column_meta();
 
