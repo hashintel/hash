@@ -2,10 +2,10 @@ import { sql } from "slonik";
 
 import { Connection } from "../types";
 import {
-  mapDBLinkRowToDBLink,
   selectAllLinksWithSourceEntity,
-  DBLinkRow,
-} from "./util";
+  mapDBRowsToDBLink,
+  DBLinkWithVersionRow,
+} from "./sql/links.util";
 
 export const getEntityOutgoingLinks = async (
   conn: Connection,
@@ -16,7 +16,7 @@ export const getEntityOutgoingLinks = async (
     path?: string;
   },
 ) => {
-  const dbLinkRows = await conn.any(sql<DBLinkRow>`
+  const dbLinkRows = await conn.any<DBLinkWithVersionRow>(sql`
     ${selectAllLinksWithSourceEntity({
       sourceAccountId: params.accountId,
       sourceEntityId: params.entityId,
@@ -30,5 +30,5 @@ export const getEntityOutgoingLinks = async (
     }
   `);
 
-  return dbLinkRows.map(mapDBLinkRowToDBLink);
+  return dbLinkRows.map(mapDBRowsToDBLink);
 };

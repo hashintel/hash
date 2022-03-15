@@ -428,6 +428,15 @@ class __Entity {
     return outgoingDBLinks.map((dbLink) => new Link(dbLink));
   }
 
+  async getIncomingLinks(client: DBClient) {
+    const incomingDBLinks = await client.getEntityIncomingLinks({
+      accountId: this.accountId,
+      entityId: this.entityId,
+    });
+
+    return incomingDBLinks.map((dbLink) => new Link(dbLink));
+  }
+
   async getOutgoingLink(
     client: DBClient,
     params: {

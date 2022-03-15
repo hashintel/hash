@@ -84,10 +84,10 @@ describe("Org model class ", () => {
     expect(orgMembers.length).toBe(2);
     expect(
       orgMembers.find(({ entityId }) => entityId === orgMember1.entityId),
-    ).not.toBeUndefined();
+    ).toBeDefined();
     expect(
       orgMembers.find(({ entityId }) => entityId === orgMember2.entityId),
-    ).not.toBeUndefined();
+    ).toBeDefined();
   });
 });
 

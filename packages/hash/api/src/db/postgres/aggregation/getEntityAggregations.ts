@@ -16,7 +16,7 @@ export const getEntityAggregations = async (
     sourceEntityVersionId?: string;
   },
 ): Promise<DBAggregation[]> => {
-  const rows = await conn.any(sql<DBAggregationRow>`
+  const rows = await conn.any<DBAggregationRow>(sql`
     select ${aggregationsColumnNamesSQL}
     from aggregations
     where
