@@ -85,13 +85,13 @@ describe("Entity model class ", () => {
       ({ stringifiedPath }) => stringifiedPath === "$.linkFromAToB1",
     );
 
-    expect(outgoingLink1).not.toBeUndefined();
+    expect(outgoingLink1).toBeDefined();
 
     const outgoingLink2 = outgoingLinks.find(
       ({ stringifiedPath }) => stringifiedPath === "$.linkFromAToB2",
     );
 
-    expect(outgoingLink2).not.toBeUndefined();
+    expect(outgoingLink2).toBeDefined();
   });
 
   it("can get incmoing links", async () => {
@@ -103,13 +103,13 @@ describe("Entity model class ", () => {
       ({ stringifiedPath }) => stringifiedPath === "$.linkFromAToB1",
     );
 
-    expect(incomingLink1).not.toBeUndefined();
+    expect(incomingLink1).toBeDefined();
 
     const incomingLink2 = incomingLinks.find(
       ({ stringifiedPath }) => stringifiedPath === "$.linkFromAToB2",
     );
 
-    expect(incomingLink2).not.toBeUndefined();
+    expect(incomingLink2).toBeDefined();
   });
 });
 
