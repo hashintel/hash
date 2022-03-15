@@ -6,7 +6,35 @@ import { Components, CSSObject, Theme } from "@mui/material";
 const buttonFocusBorderOffset = 6;
 const buttonFocusBorderWidth = 2;
 
-// @todo focus border radius needs fixing
+const focusPositionStyles = (borderOffset: number): CSSObject => ({
+  left: -borderOffset,
+  top: -borderOffset,
+  bottom: -borderOffset,
+  right: -borderOffset,
+});
+
+const focusBorderRadiusStyles = (
+  borderRadius: number,
+  borderOffset: number,
+  borderWidth: number,
+): CSSObject => ({
+  borderRadius: borderRadius + (borderOffset - borderWidth),
+});
+
+const focusBorderStyles = (borderWidth: number): CSSObject => ({
+  border: `${borderWidth}px solid transparent`,
+});
+
+const focusStyles = (
+  borderWidth: number,
+  borderOffset: number,
+  borderRadius: number,
+): CSSObject => ({
+  ...focusPositionStyles(borderOffset),
+  ...focusBorderStyles(borderWidth),
+  ...focusBorderRadiusStyles(borderRadius, borderOffset, borderWidth),
+});
+
 export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
   defaultProps: {
     variant: "primary",
@@ -41,16 +69,15 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         color: theme.palette.gray[50],
       };
 
-      const afterStyles = {
+      const afterStyles: CSSObject = {
         content: `""`,
         position: "absolute",
-        left: -buttonFocusBorderOffset,
-        top: -buttonFocusBorderOffset,
-        bottom: -buttonFocusBorderOffset,
-        right: -buttonFocusBorderOffset,
-        border: `${buttonFocusBorderWidth}px solid transparent`,
+        ...focusBorderStyles(buttonFocusBorderWidth),
+        ...focusPositionStyles(buttonFocusBorderOffset),
         transition: theme.transitions.create("border-color"),
       };
+
+      const focusVisibleStyles: CSSObject = {};
 
       const focusVisibleAfterStyles: CSSObject = {
         borderColor: "initial",
@@ -80,9 +107,11 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
               color: theme.palette.black,
               boxShadow,
             });
+            Object.assign(focusVisibleStyles, {
+              boxShadow: "none",
+            });
             Object.assign(afterStyles, {
-              borderRadius:
-                borderRadius + buttonFocusBorderOffset + buttonFocusBorderWidth,
+              ...focusStyles(3, 7, borderRadius + 2),
             });
             Object.assign(focusVisibleAfterStyles, {
               borderColor: theme.palette.yellow[800],
@@ -96,8 +125,11 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
               padding: theme.spacing("14px", "37.5px"),
             });
             Object.assign(afterStyles, {
-              borderRadius:
-                borderRadius + buttonFocusBorderOffset + buttonFocusBorderWidth,
+              ...focusStyles(
+                buttonFocusBorderWidth,
+                buttonFocusBorderOffset,
+                borderRadius,
+              ),
             });
           }
 
@@ -112,8 +144,11 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
             padding: theme.spacing("10px", "18px"),
           });
           Object.assign(afterStyles, {
-            borderRadius:
-              borderRadius + buttonFocusBorderOffset + buttonFocusBorderWidth,
+            ...focusStyles(
+              buttonFocusBorderWidth,
+              buttonFocusBorderOffset,
+              borderRadius,
+            ),
           });
           break;
         }
@@ -339,7 +374,10 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
       return {
         ...baseStyles,
         ":hover": hoverStyles,
-        ":focus-visible": hoverStyles,
+        ":focus-visible": {
+          ...hoverStyles,
+          ...focusVisibleStyles,
+        },
         ":disabled": disabledStyles,
         ":after": afterStyles,
         ":focus-visible:after": focusVisibleAfterStyles,
