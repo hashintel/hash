@@ -174,15 +174,14 @@ create table if not exists links (
 create table if not exists link_versions (
     -- The account id of the source entity
     source_account_id             uuid not null,
-    -- The account id of the source entity
-    -- The UUID of the link
+    -- The UUID of the link version
     link_version_id          uuid not null,
     -- The UUID of the link
     link_id                  uuid not null,
     -- The index of the link
     index                    integer default null,
-    -- Versioned links are never mutated, so the updated_at time always matches the
-    -- created_at time. Non-versioned links may be mutatated in-place, and the
+    -- Versioned links are never mutated, so the updated_at time represents when
+    -- the version was created. Non-versioned links may be mutatated in-place, and the
     -- updated_at column changes when a mutation is made.
     updated_at              timestamp with time zone not null,
     -- The account id of the account that updated (or created) this link version
