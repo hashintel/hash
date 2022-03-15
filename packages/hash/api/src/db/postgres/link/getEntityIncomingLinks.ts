@@ -20,11 +20,12 @@ export const getEntityIncomingLinks = async (
       destinationEntityId: params.entityId,
     })})
     select *
-    from all_links join incoming_links on (
-      all_links.source_account_id = incoming_links.source_account_id
-      and all_links.link_id = incoming_links.link_id
-    )
-    order by index
+    from 
+      all_links
+      join incoming_links on
+          all_links.source_account_id = incoming_links.source_account_id
+        and
+          all_links.link_id = incoming_links.link_id
   `);
 
   return rows.map(mapDBRowsToDBLink);
