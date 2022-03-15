@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use crate::{
     datastore::{batch::Segment, prelude::*},
     proto::{ExperimentId, SharedDataset},
@@ -11,15 +9,11 @@ pub struct Dataset {
     segment: Segment,
 }
 
-impl Deref for Dataset {
-    type Target = Segment;
-
-    fn deref(&self) -> &Self::Target {
+impl Dataset {
+    pub fn segment(&self) -> &Segment {
         &self.segment
     }
-}
 
-impl Dataset {
     pub fn new_from_dataset(dataset: &SharedDataset, experiment_id: &ExperimentId) -> Result<Self> {
         let metaversion = Metaversion::default().to_le_bytes();
         let dataset_name = &dataset.shortname;

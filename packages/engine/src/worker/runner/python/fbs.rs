@@ -54,7 +54,7 @@ pub fn shared_ctx_to_fbs<'f>(
 ) -> WIPOffset<flatbuffers_gen::shared_context_generated::SharedContext<'f>> {
     let mut batch_offsets = Vec::new();
     for (_, dataset) in shared_ctx.datasets.iter() {
-        batch_offsets.push(batch_to_fbs(fbb, dataset));
+        batch_offsets.push(batch_to_fbs(fbb, dataset.segment()));
     }
     // let batch_offsets: Vec<_> = shared_ctx.datasets
     //     .iter()
