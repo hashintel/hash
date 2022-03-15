@@ -6,7 +6,7 @@ import {
   insertLinkVersionRow,
 } from "./link_versions.util";
 import { Connection } from "../../types";
-import { DBLink } from "../../../adapter";
+import { DBLink, DBLinkWithIndex } from "../../../adapter";
 import { mapColumnNamesToSQL } from "../../util";
 import { insertIncomingLinkRow } from "./incoming_links.util";
 
@@ -239,7 +239,7 @@ export const getIndexedLinks = async (
     minimumIndex?: number;
     maximumIndex?: number;
   },
-): Promise<DBLink[]> => {
+): Promise<DBLinkWithIndex[]> => {
   const { minimumIndex, maximumIndex } = params;
 
   const linkRows = await conn.any(
@@ -257,7 +257,13 @@ export const getIndexedLinks = async (
     }),
   );
 
-  return linkRows.map(mapDBRowsToDBLink);
+  return linkRows.map((linkRow) => {
+    const dbLink = mapDBRowsToDBLink(linkRow);
+    return {
+      ...dbLink,
+      index: dbLink.index!,
+    };
+  });
 };
 
 export const removeLinkFromSource = async (

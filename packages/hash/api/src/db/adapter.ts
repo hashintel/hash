@@ -80,6 +80,8 @@ export type DBLink = {
   updatedByAccountId: string;
 };
 
+export type DBLinkWithIndex = DBLink & Required<Pick<DBLink, "index">>;
+
 export type DBLinkVersion = {
   sourceAccountId: string;
   linkVersionId: string;

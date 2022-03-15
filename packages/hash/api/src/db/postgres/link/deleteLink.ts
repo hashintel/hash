@@ -92,7 +92,7 @@ export const deleteLink = async (
               dbLinkVersion: {
                 ...affectedOutgoingLink,
                 linkVersionId: genId(),
-                index: affectedOutgoingLink.index! - 1,
+                index: affectedOutgoingLink.index - 1,
                 updatedAt: now,
                 updatedByAccountId: deletedByAccountId,
               },
