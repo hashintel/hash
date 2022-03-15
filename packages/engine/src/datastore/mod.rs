@@ -83,7 +83,7 @@ pub mod tests {
     pub fn growable_array_modification() -> Result<()> {
         pub fn modify_name(shmem_os_id: &str) -> Result<Vec<Option<String>>> {
             let mut state_batch = *AgentBatch::from_shmem_os_id(shmem_os_id)?;
-            let record_batch = state_batch.record_batch()?;
+            let record_batch = state_batch.batch.record_batch()?;
             let mut column = iterators::record_batch::get_agent_name(record_batch)?;
             // `targets` values will be checked against shared memory data
             // in order to check if changes were flushed properly
@@ -111,8 +111,8 @@ pub mod tests {
                 }
             }
             let change = iterators::record_batch::agent_name_as_array(record_batch, column)?;
-            state_batch.queue_change(change)?;
-            state_batch.flush_changes()?;
+            state_batch.batch.queue_change(change)?;
+            state_batch.batch.flush_changes()?;
             Ok(targets)
         }
 
@@ -129,7 +129,10 @@ pub mod tests {
             .agent_pool()
             .batch(0)
             .unwrap()
-            .batch_id()
+            .batch
+            .segment()
+            .memory()
+            .id()
             .to_owned();
 
         // Run "behavior"
@@ -145,11 +148,12 @@ pub mod tests {
             .agent_pool_mut()
             .batch_mut(0)
             .unwrap()
+            .batch
             .maybe_reload()?;
 
         let state_proxy = state.read()?;
         let batch_proxy: &AgentBatch = state_proxy.agent_pool().batch(0).unwrap();
-        let record_batch = batch_proxy.record_batch()?;
+        let record_batch = batch_proxy.batch.record_batch()?;
 
         let names = iterators::record_batch::get_agent_name(record_batch)?;
         let agent_states = record_batch.into_agent_states(Some(&schema))?;

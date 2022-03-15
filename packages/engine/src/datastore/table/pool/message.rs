@@ -105,8 +105,12 @@ impl PoolReadProxy<MessageBatch> {
     pub fn get_reader(&self) -> Result<MessageReader<'_>> {
         let loaders: Result<_> = self
             .batches_iter()
-            .map(|b| b.record_batch())
-            .map(|res| res.map(message::record_batch::message_loader))
+            .map(|group| {
+                group
+                    .batch
+                    .record_batch()
+                    .map(message::record_batch::message_loader)
+            })
             .collect();
         Ok(MessageReader { loaders: loaders? })
     }
@@ -114,8 +118,8 @@ impl PoolReadProxy<MessageBatch> {
     pub fn recipient_iter_all<'b: 'r, 'r>(
         &'b self,
     ) -> impl ParallelIterator<Item = (Vec<&'b str>, AgentMessageReference)> + 'r {
-        self.batches.par_iter().enumerate().flat_map(|(i, batch)| {
-            let record_batch = batch.record_batch().unwrap(); // TODO: unwrap --> err
+        self.batches.par_iter().enumerate().flat_map(|(i, group)| {
+            let record_batch = group.batch.record_batch().unwrap(); // TODO: unwrap --> err
             message::record_batch::message_recipients_par_iter(record_batch)
                 .zip_eq(message::record_batch::message_usize_index_iter(
                     record_batch,

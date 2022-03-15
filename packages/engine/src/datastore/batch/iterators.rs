@@ -5,7 +5,7 @@ use crate::datastore::{Error, Result};
 pub mod agent {
     use arrow::datatypes::DataType;
 
-    use crate::datastore::{prelude::*, POSITION_DIM, UUID_V4_LEN};
+    use crate::datastore::{batch::iterators::record_batch, prelude::*, POSITION_DIM, UUID_V4_LEN};
 
     pub fn agent_id_iter<'b: 'a, 'a>(
         agent_pool: &'a [&'b AgentBatch],
@@ -14,7 +14,7 @@ pub mod agent {
 
         // Collect iterators first, because we want to check for any errors.
         for agent_batch in agent_pool {
-            let iterable = super::record_batch::agent_id_iter(agent_batch.record_batch()?)?;
+            let iterable = record_batch::agent_id_iter(agent_batch.batch.record_batch()?)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
@@ -28,7 +28,7 @@ pub mod agent {
 
         // Collect iterators first, because we want to check for any errors.
         for agent_batch in agent_pool {
-            let iterable = super::record_batch::agent_id_iter(agent_batch.record_batch()?)?;
+            let iterable = record_batch::agent_id_iter(agent_batch.batch.record_batch()?)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
@@ -41,7 +41,7 @@ pub mod agent {
 
         // Collect iterators first, because we want to check for any errors.
         for agent_batch in agent_pool {
-            let iterable = super::record_batch::agent_name_iter(agent_batch.record_batch()?)?;
+            let iterable = record_batch::agent_name_iter(agent_batch.batch.record_batch()?)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
@@ -55,7 +55,7 @@ pub mod agent {
 
         // Collect iterators first, because we want to check for any errors.
         for agent_batch in agent_pool {
-            let iterable = super::record_batch::agent_name_iter(agent_batch.record_batch()?)?;
+            let iterable = record_batch::agent_name_iter(agent_batch.batch.record_batch()?)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
@@ -70,8 +70,8 @@ pub mod agent {
 
         // Collect iterators first, because we want to check for any errors.
         for agent_batch in agent_pool {
-            let iterable = super::record_batch::json_values(
-                agent_batch.record_batch()?,
+            let iterable = record_batch::json_values(
+                agent_batch.batch.record_batch()?,
                 field_name,
                 data_type,
             )?;
@@ -98,7 +98,7 @@ pub mod agent {
 
         // Collect iterators first, because we want to check for any errors.
         for agent_batch in agent_pool {
-            let iterable = super::record_batch::position_iter(agent_batch.record_batch()?)?;
+            let iterable = record_batch::position_iter(agent_batch.batch.record_batch()?)?;
             iterables.push(iterable);
         }
 
@@ -112,7 +112,7 @@ pub mod agent {
 
         // Collect iterators first, because we want to check for any errors.
         for agent_batch in agent_pool {
-            let iterable = super::record_batch::search_radius_iter(agent_batch.record_batch()?)?;
+            let iterable = record_batch::search_radius_iter(agent_batch.batch.record_batch()?)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
@@ -126,7 +126,7 @@ pub mod agent {
 
         // Collect iterators first, because we want to check for any errors.
         for agent_batch in agent_pool {
-            let iterable = super::record_batch::f64_iter(agent_batch.record_batch()?, field_name)?;
+            let iterable = record_batch::f64_iter(agent_batch.batch.record_batch()?, field_name)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
@@ -141,7 +141,7 @@ pub mod agent {
         // Collect iterators first, because we want to check for any errors.
         for agent_batch in agent_pool {
             let iterable =
-                super::record_batch::exists_iter(agent_batch.record_batch()?, field_name)?;
+                record_batch::exists_iter(agent_batch.batch.record_batch()?, field_name)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
@@ -155,7 +155,7 @@ pub mod agent {
 
         // Collect iterators first, because we want to check for any errors.
         for agent_batch in agent_pool {
-            let iterable = super::record_batch::str_iter(agent_batch.record_batch()?, field_name)?;
+            let iterable = record_batch::str_iter(agent_batch.batch.record_batch()?, field_name)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
@@ -169,7 +169,7 @@ pub mod agent {
 
         // Collect iterators first, because we want to check for any errors.
         for agent_batch in agent_pool {
-            let iterable = super::record_batch::bool_iter(agent_batch.record_batch()?, field_name)?;
+            let iterable = record_batch::bool_iter(agent_batch.batch.record_batch()?, field_name)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
@@ -183,9 +183,8 @@ pub mod agent {
 
         // Collect iterators first, because we want to check for any errors.
         for agent_batch in agent_pool {
-            let record_batch = agent_batch.record_batch()?;
-            let iterable =
-                super::record_batch::json_deserialize_str_value_iter(record_batch, field_name)?;
+            let record_batch = agent_batch.batch.record_batch()?;
+            let iterable = record_batch::json_deserialize_str_value_iter(record_batch, field_name)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
@@ -207,11 +206,12 @@ pub mod record_batch {
 
     use arrow::{array::Array, datatypes::DataType, record_batch::RecordBatch};
 
-    use super::column_with_name;
     use crate::{
         datastore::{
             arrow::batch_conversion::col_to_json_vals,
-            batch::{boolean::Column as BooleanColumn, change::ColumnChange},
+            batch::{
+                boolean::Column as BooleanColumn, change::ColumnChange, iterators::column_with_name,
+            },
             prelude::arrow_bit_util,
             Error, Result, POSITION_DIM, UUID_V4_LEN,
         },
@@ -268,9 +268,8 @@ pub mod record_batch {
         let data = column.data_ref();
         let buffer = &data.buffers()[0];
         let mut bytes_ptr = buffer.as_ptr();
-        // SAFETY: All ids have `UUID_V4_LEN` bytes, so we can iterate
-        // over them by moving the pointer forward by that amount after
-        // each agent.
+        // SAFETY: All ids have `UUID_V4_LEN` bytes, so we can iterate over them by moving the
+        // pointer forward by that amount after each agent.
         Ok((0..column.len()).map(move |_| unsafe {
             let id = &*(bytes_ptr as *const [u8; UUID_V4_LEN]);
             bytes_ptr = bytes_ptr.add(UUID_V4_LEN);
@@ -406,6 +405,8 @@ pub mod record_batch {
                 let pos = if pos_column.is_valid(i) {
                     let start_index = i * POSITION_DIM;
                     // SAFETY: We checked that this buffer has `POSITION_DIM` values per row above.
+                    // TODO: UNSOUND: we are casting `&[f64]` to `&mut [f64;3];
+                    //   see https://app.asana.com/0/1199548034582004/1201971484219243/f
                     Some(unsafe {
                         &mut *(pos_child_data_buffer[start_index..start_index + POSITION_DIM]
                             .as_ptr() as *mut [f64; POSITION_DIM])
@@ -417,6 +418,8 @@ pub mod record_batch {
                 let dir = if dir_column.is_valid(i) {
                     let start_index = i * POSITION_DIM;
                     // SAFETY: We checked that this buffer has `POSITION_DIM` values per row above.
+                    // TODO: UNSOUND: we are casting `&[f64]` to `&mut [f64;3];
+                    //   see https://app.asana.com/0/1199548034582004/1201971484219243/f
                     Some(unsafe {
                         &mut *(dir_child_data_buffer[start_index..start_index + POSITION_DIM]
                             .as_ptr() as *mut [f64; POSITION_DIM])
@@ -465,10 +468,11 @@ pub mod record_batch {
             if column.is_valid(i) {
                 let start_index = i * POSITION_DIM;
                 // SAFETY: We checked that this buffer has `POSITION_DIM` values per row above.
-                Some(unsafe {
-                    &*(child_data_buffer[start_index..start_index + POSITION_DIM].as_ptr()
-                        as *const [f64; POSITION_DIM])
-                })
+                Some(
+                    child_data_buffer[start_index..start_index + POSITION_DIM]
+                        .try_into()
+                        .unwrap(),
+                )
             } else {
                 None
             }
@@ -496,11 +500,12 @@ pub mod record_batch {
         Ok((0..row_count).map(move |i| {
             if column.is_valid(i) {
                 let start_index = i * POSITION_DIM;
-                // SAFETY: Same as in `position_iter` function above
-                Some(unsafe {
-                    &*(child_data_buffer[start_index..start_index + POSITION_DIM].as_ptr()
-                        as *const [f64; POSITION_DIM])
-                })
+                // SAFETY: We checked that this buffer has `POSITION_DIM` values per row above.
+                Some(
+                    child_data_buffer[start_index..start_index + POSITION_DIM]
+                        .try_into()
+                        .unwrap(),
+                )
             } else {
                 None
             }

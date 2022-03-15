@@ -143,10 +143,9 @@ impl Accessors for Vec3 {
                 unsafe { data_ref.child_data()[0].buffers()[0].typed_data::<f64>() };
             let start_index = i * POSITION_DIM;
             // Does not fail
-            let pos = unsafe {
-                &*(child_data_buffer[start_index..start_index + POSITION_DIM].as_ptr()
-                    as *const [f64; POSITION_DIM])
-            };
+            let pos = child_data_buffer[start_index..start_index + POSITION_DIM]
+                .try_into()
+                .unwrap();
             Ok(Vec3::from(pos.as_ref()))
         } else {
             Err(
@@ -171,10 +170,9 @@ impl Accessors for Vec3 {
             .map(move |i| {
                 let start_index = i * POSITION_DIM;
                 // Does not fail
-                let pos = unsafe {
-                    &*(child_data_buffer[start_index..start_index + POSITION_DIM].as_ptr()
-                        as *const [f64; POSITION_DIM])
-                };
+                let pos = child_data_buffer[start_index..start_index + POSITION_DIM]
+                    .try_into()
+                    .unwrap();
                 Vec3::from(pos.as_ref())
             })
             .collect())

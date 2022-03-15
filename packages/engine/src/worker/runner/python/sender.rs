@@ -191,7 +191,7 @@ fn inbound_to_nng(
             )
         }
         InboundToRunnerMsgPayload::ContextBatchSync(msg) => {
-            let batch = batch_to_fbs(fbb, &msg.context_batch);
+            let batch = batch_to_fbs(fbb, msg.context_batch.segment());
             let msg = flatbuffers_gen::sync_context_batch_generated::ContextBatchSync::create(
                 fbb,
                 &flatbuffers_gen::sync_context_batch_generated::ContextBatchSyncArgs {
@@ -302,14 +302,14 @@ fn state_sync_to_fbs<'f>(
     let agent_pool_offset: Vec<_> = state_proxy
         .agent_proxies
         .batches_iter()
-        .map(|batch| batch_to_fbs(fbb, batch))
+        .map(|agent_batch| batch_to_fbs(fbb, agent_batch.batch.segment()))
         .collect();
     let agent_pool_forward_offset = fbb.create_vector(&agent_pool_offset);
 
     let message_pool_offset: Vec<_> = state_proxy
         .message_proxies
         .batches_iter()
-        .map(|batch| batch_to_fbs(fbb, batch))
+        .map(|message_batch| batch_to_fbs(fbb, message_batch.batch.segment()))
         .collect();
     let message_pool_forward_offset = fbb.create_vector(&message_pool_offset);
 
@@ -328,13 +328,13 @@ fn shared_store_to_fbs<'f>(
                 .agent_pool()
                 .batches()
                 .iter()
-                .map(|b| batch_to_fbs(fbb, b))
+                .map(|agent_batch| batch_to_fbs(fbb, agent_batch.batch.segment()))
                 .collect();
             let m: Vec<_> = state
                 .message_pool()
                 .batches()
                 .iter()
-                .map(|b| batch_to_fbs(fbb, b))
+                .map(|message_batch| batch_to_fbs(fbb, message_batch.batch.segment()))
                 .collect();
             let indices = (0..a.len()).collect();
             (a, m, indices)
@@ -344,13 +344,13 @@ fn shared_store_to_fbs<'f>(
                 .agent_pool()
                 .batches()
                 .iter()
-                .map(|b| batch_to_fbs(fbb, b))
+                .map(|agent_batch| batch_to_fbs(fbb, agent_batch.batch.segment()))
                 .collect();
             let m: Vec<_> = state
                 .message_pool()
                 .batches()
                 .iter()
-                .map(|b| batch_to_fbs(fbb, b))
+                .map(|message_batch| batch_to_fbs(fbb, message_batch.batch.segment()))
                 .collect();
             let indices = (0..a.len()).collect();
             (a, m, indices)
@@ -362,13 +362,13 @@ fn shared_store_to_fbs<'f>(
                     .agent_pool()
                     .batches()
                     .iter()
-                    .map(|b| batch_to_fbs(fbb, b))
+                    .map(|agent_batch| batch_to_fbs(fbb, agent_batch.batch.segment()))
                     .collect();
                 let m: Vec<_> = state
                     .message_pool()
                     .batches()
                     .iter()
-                    .map(|b| batch_to_fbs(fbb, b))
+                    .map(|message_batch| batch_to_fbs(fbb, message_batch.batch.segment()))
                     .collect();
                 (a, m, partial.group_indices.clone())
             }
@@ -378,13 +378,13 @@ fn shared_store_to_fbs<'f>(
                     .agent_pool()
                     .batches()
                     .iter()
-                    .map(|b| batch_to_fbs(fbb, b))
+                    .map(|agent_batch| batch_to_fbs(fbb, agent_batch.batch.segment()))
                     .collect();
                 let m: Vec<_> = state
                     .message_pool()
                     .batches()
                     .iter()
-                    .map(|b| batch_to_fbs(fbb, b))
+                    .map(|message_batch| batch_to_fbs(fbb, message_batch.batch.segment()))
                     .collect();
                 (a, m, partial.group_indices.clone())
             }

@@ -175,9 +175,7 @@ impl<'mem: 'v, 'v> VisitorMut<'mem> {
     pub fn shrink_with_data_length(&mut self, size: usize) -> Result<BufferChange> {
         let markers = self.markers_mut();
         if size >= markers.data_size() {
-            return Err(Error::ExpectedSmallerNewDataSize(
-                self.memory.get_id().into(),
-            ));
+            return Err(Error::ExpectedSmallerNewDataSize(self.memory.id().into()));
         }
         markers[Val::DataSize] = size as u64;
 

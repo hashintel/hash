@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use arrow::array::ArrayData;
 
 use super::*;
@@ -8,8 +6,8 @@ use crate::{
     simulation::package::state::packages::behavior_execution::config::BehaviorId,
 };
 
-pub fn gather_behavior_chains<B: Deref<Target = AgentBatch>>(
-    agent_batches: &[B],
+pub fn gather_behavior_chains(
+    agent_batches: &[&AgentBatch],
     behavior_ids: &BehaviorIds,
     data_types: [arrow::datatypes::DataType; 3],
     behavior_ids_col_index: usize,
@@ -24,13 +22,13 @@ pub fn gather_behavior_chains<B: Deref<Target = AgentBatch>>(
     })))
 }
 
-pub fn pool_behavior_list_bytes_iter<'a, B: Deref<Target = AgentBatch>>(
-    agent_pool: &'a [B],
-) -> Result<impl Iterator<Item = Vec<&[u8]>> + 'a> {
+pub fn pool_behavior_list_bytes_iter<'a>(
+    agent_pool: &'a [&AgentBatch],
+) -> Result<impl Iterator<Item = Vec<&'a [u8]>>> {
     let mut iterables = Vec::with_capacity(agent_pool.len());
 
     for agent_batch in agent_pool {
-        let iterable = behavior_list_bytes_iter(agent_batch.record_batch()?)?;
+        let iterable = behavior_list_bytes_iter(agent_batch.batch.record_batch()?)?;
         iterables.push(iterable);
     }
     Ok(iterables.into_iter().flatten())

@@ -4,10 +4,7 @@
     clippy::cast_sign_loss
 )]
 
-use std::{
-    ops::{Deref, DerefMut},
-    sync::Arc,
-};
+use std::sync::Arc;
 
 use arrow::ipc::{
     reader::read_record_batch,
@@ -34,23 +31,9 @@ use crate::{
 /// TODO: Maybe rename to AgentGroup
 #[allow(clippy::module_name_repetitions)]
 pub struct AgentBatch {
-    batch: ArrowBatch,
+    pub batch: ArrowBatch,
     /// Describes the worker the batch is distributed to if there are multiple workers
     pub worker_index: usize,
-}
-
-impl Deref for AgentBatch {
-    type Target = ArrowBatch;
-
-    fn deref(&self) -> &Self::Target {
-        &self.batch
-    }
-}
-
-impl DerefMut for AgentBatch {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.batch
-    }
 }
 
 /// Constructors for `Batch`
@@ -68,21 +51,23 @@ impl AgentBatch {
     }
 
     pub fn duplicate_from(
-        batch: &Self,
+        agent_batch: &Self,
         schema: &AgentSchema,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
-        if batch.loaded_metaversion.memory() != batch.persisted_metaversion().memory() {
+        if agent_batch.batch.loaded_metaversion.memory()
+            != agent_batch.batch.segment.persisted_metaversion().memory()
+        {
             return Err(Error::from(format!(
                 "Can't duplicate agent batch with loaded memory older than latest persisted: \
                  {:?}, {:?}",
-                batch.loaded_metaversion,
-                batch.persisted_metaversion(),
+                agent_batch.batch.loaded_metaversion,
+                agent_batch.batch.segment.persisted_metaversion(),
             )));
         }
 
-        let memory = Memory::duplicate_from(batch.memory(), experiment_id)?;
-        Self::from_memory(memory, Some(schema), Some(batch.worker_index))
+        let memory = Memory::duplicate_from(agent_batch.batch.memory(), experiment_id)?;
+        Self::from_memory(memory, Some(schema), Some(agent_batch.worker_index))
     }
 
     /// Copy contents from RecordBatch and create a memory-backed Batch
@@ -122,7 +107,7 @@ impl AgentBatch {
         schema: Option<&AgentSchema>,
         worker_index: Option<usize>,
     ) -> Result<Self> {
-        let persisted = memory.get_metaversion()?;
+        let persisted = memory.metaversion()?;
         let (schema_buffer, _header_buffer, meta_buffer, data_buffer) =
             memory.get_batch_buffers()?;
         let (schema, static_meta) = if let Some(s) = schema {

@@ -118,8 +118,6 @@ class Batch:
         self.static_meta = None
 
     def sync(self, latest_batch, schema=None):
-        print("loaded", self.mem_version, self.batch_version, "latest",
-              latest_batch.mem_version, latest_batch.batch_version)
         should_load = self.batch_version < latest_batch.batch_version
         if self.mem_version < latest_batch.mem_version:
             self.mem_version = latest_batch.mem_version

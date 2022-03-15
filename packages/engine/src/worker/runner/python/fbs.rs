@@ -54,7 +54,7 @@ pub fn shared_ctx_to_fbs<'f>(
 ) -> WIPOffset<flatbuffers_gen::shared_context_generated::SharedContext<'f>> {
     let mut batch_offsets = Vec::new();
     for (_, dataset) in shared_ctx.datasets.iter() {
-        batch_offsets.push(batch_to_fbs(fbb, dataset));
+        batch_offsets.push(batch_to_fbs(fbb, dataset.segment()));
     }
     // let batch_offsets: Vec<_> = shared_ctx.datasets
     //     .iter()
@@ -75,7 +75,7 @@ pub fn batch_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
     batch_segment: &Segment,
 ) -> WIPOffset<flatbuffers_gen::batch_generated::Batch<'f>> {
-    let batch_id_offset = fbb.create_string(batch_segment.batch_id());
+    let batch_id_offset = fbb.create_string(batch_segment.memory().id());
     let metaversion_offset = metaversion_to_fbs(
         fbb,
         // TODO: Don't serialize the metaversion and just send the

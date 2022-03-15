@@ -1059,8 +1059,8 @@ impl IntoAgentStates for (&AgentBatch, &MessageBatch) {
         &self,
         agent_schema: Option<&Arc<AgentSchema>>,
     ) -> Result<Vec<AgentState>> {
-        let agents = self.0.record_batch()?;
-        let messages = self.1.record_batch()?;
+        let agents = self.0.batch.record_batch()?;
+        let messages = self.1.batch.record_batch()?;
         let mut states = agents.into_agent_states(agent_schema)?;
         set_states_messages(&mut states, messages)?;
         Ok(states)
@@ -1070,8 +1070,8 @@ impl IntoAgentStates for (&AgentBatch, &MessageBatch) {
         &self,
         agent_schema: &Arc<AgentSchema>,
     ) -> Result<Vec<AgentState>> {
-        let agents = self.0.record_batch()?;
-        let messages = self.1.record_batch()?;
+        let agents = self.0.batch.record_batch()?;
+        let messages = self.1.batch.record_batch()?;
         let mut states = agents.into_filtered_agent_states(agent_schema)?;
         set_states_messages(&mut states, messages)?;
         Ok(states)

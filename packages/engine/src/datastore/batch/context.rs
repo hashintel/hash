@@ -1,6 +1,6 @@
 #![allow(clippy::cast_possible_wrap)]
 
-use std::{ops::Deref, sync::Arc};
+use std::sync::Arc;
 
 use arrow::ipc::{
     reader::read_record_batch,
@@ -35,15 +35,11 @@ pub struct ContextBatch {
     loaded: Metaversion,
 }
 
-impl Deref for ContextBatch {
-    type Target = Segment;
-
-    fn deref(&self) -> &Self::Target {
+impl ContextBatch {
+    pub fn segment(&self) -> &Segment {
         &self.segment
     }
-}
 
-impl ContextBatch {
     pub fn from_record_batch(
         record_batch: &RecordBatch,
         schema: Option<&Arc<ArrowSchema>>,
@@ -70,7 +66,7 @@ impl ContextBatch {
     }
 
     pub fn from_memory(memory: Memory, schema: Option<&Arc<ArrowSchema>>) -> Result<Self> {
-        let persisted = memory.get_metaversion()?;
+        let persisted = memory.metaversion()?;
         let (schema_buffer, _, meta_buffer, data_buffer) = memory.get_batch_buffers()?;
 
         let schema = if let Some(s) = schema {
@@ -121,7 +117,7 @@ impl ContextBatch {
             return Err(Error::from("Expected context datas to not be empty"));
         }
 
-        let mut persisted = self.persisted_metaversion();
+        let mut persisted = self.segment.persisted_metaversion();
 
         let column_dynamic_meta_list = column_writers
             .iter()
@@ -138,6 +134,7 @@ impl ContextBatch {
                 .set_data_length(dynamic.data_length)?;
             persisted.increment_with(&change);
         } else if current_data_size > UPPER_BOUND_DATA_SIZE_MULTIPLIER * dynamic.data_length {
+            // Shrink memory if it's getting to big
             let change = self
                 .segment
                 .memory_mut()

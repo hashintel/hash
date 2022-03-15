@@ -80,9 +80,12 @@ impl Package for JsonState {
             .agent_pool()
             .batches_iter()
             .zip(state.message_pool().batches_iter())
-            .map(|(agent_batch, message_batch)| {
+            .map(|(agent_group, message_batch)| {
                 let _ = (&state, &_context);
-                (agent_batch.record_batch()?, message_batch.record_batch()?)
+                (
+                    agent_group.batch.record_batch()?,
+                    message_batch.batch.record_batch()?,
+                )
                     .into_agent_states(Some(&self.sim_run_config.sim.store.agent_schema))
             })
             .collect();

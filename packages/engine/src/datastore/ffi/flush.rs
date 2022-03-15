@@ -225,7 +225,7 @@ impl GrowableArrayData for PreparedArrayData<'_> {
         self.buffers[index]
     }
 
-    fn num_buffers_except_null_buffer(&self) -> usize {
+    fn non_null_buffer_count(&self) -> usize {
         self.buffers.len()
     }
 
@@ -240,7 +240,7 @@ pub struct PreparedColumn<'a> {
 }
 
 impl<'a> GrowableColumn<PreparedArrayData<'a>> for PreparedColumn<'a> {
-    fn column_index(&self) -> usize {
+    fn index(&self) -> usize {
         self.index
     }
 

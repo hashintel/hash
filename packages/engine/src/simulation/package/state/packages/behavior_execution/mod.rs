@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use reset_index_col::reset_index_col;
 use serde_json::Value;
 
@@ -181,12 +179,11 @@ impl BehaviorExecution {
     }
 
     /// Iterate over languages of first behaviors to choose first language runner to send task to
-    fn get_first_lang<B: Deref<Target = AgentBatch>>(
-        &self,
-        agent_batches: &[B],
-    ) -> Result<Option<Language>> {
-        for batch in agent_batches.iter() {
-            for agent_behaviors in chain::behavior_list_bytes_iter(batch.record_batch()?)? {
+    fn get_first_lang(&self, agent_batches: &[&AgentBatch]) -> Result<Option<Language>> {
+        for agent_pool in agent_batches.iter() {
+            for agent_behaviors in
+                chain::behavior_list_bytes_iter(agent_pool.batch.record_batch()?)?
+            {
                 if agent_behaviors.is_empty() {
                     continue;
                 }
@@ -194,7 +191,7 @@ impl BehaviorExecution {
                 let first_behavior = agent_behaviors[0];
                 let behavior_lang = self
                     .behavior_ids
-                    .get_index(&first_behavior)
+                    .get_index(first_behavior)
                     .ok_or_else(|| {
                         let bytes = Vec::from(first_behavior);
                         let utf8 = String::from_utf8(bytes.clone());
@@ -239,7 +236,6 @@ impl Package for BehaviorExecution {
         self.fix_behavior_chains(agent_pool)?;
         self.reset_behavior_index_col(agent_pool)?;
         agent_pool.flush_pending_columns()?;
-        drop(agent_pool);
 
         // TODO: Have to reload state agent batches twice, because
         //       we just wrote the language ID of each behavior into

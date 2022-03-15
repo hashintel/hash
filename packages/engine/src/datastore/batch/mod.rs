@@ -9,10 +9,7 @@ pub mod message;
 pub mod metaversion;
 pub mod migration;
 
-use std::{
-    ops::{Deref, DerefMut},
-    sync::Arc,
-};
+use std::sync::Arc;
 
 pub use agent::AgentBatch;
 use arrow::array::ArrayData;
@@ -43,12 +40,6 @@ use crate::datastore::batch::{change::ColumnChange, flush::GrowableBatch};
 pub struct Segment(Memory);
 
 impl Segment {
-    /// TODO: Rename to `segment_id`? Or keep name `batch_id`, but
-    ///       move into ArrowBatch?
-    pub fn batch_id(&self) -> &str {
-        self.0.get_id()
-    }
-
     /// The latest batch version and memory version of this batch
     /// that is persisted in memory (in this experiment as a whole)
     ///
@@ -60,7 +51,7 @@ impl Segment {
     /// read the metaversion.
     pub fn persisted_metaversion(&self) -> Metaversion {
         self.0
-            .get_metaversion()
+            .metaversion()
             .expect("Every segment must have a metaversion")
     }
 
@@ -116,20 +107,6 @@ pub struct ArrowBatch {
     loaded_metaversion: Metaversion,
 }
 
-impl Deref for ArrowBatch {
-    type Target = Segment;
-
-    fn deref(&self) -> &Self::Target {
-        &self.segment
-    }
-}
-
-impl DerefMut for ArrowBatch {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.segment
-    }
-}
-
 impl GrowableBatch<ArrayData, ColumnChange> for ArrowBatch {
     fn static_meta(&self) -> &StaticMeta {
         &self.static_meta
@@ -153,6 +130,10 @@ impl GrowableBatch<ArrayData, ColumnChange> for ArrowBatch {
 }
 
 impl ArrowBatch {
+    pub fn segment(&self) -> &Segment {
+        &self.segment
+    }
+
     /// Add change to internal queue without checking metaversions.
     fn queue_change_unchecked(&mut self, change: ColumnChange) {
         debug_assert!(
@@ -248,7 +229,7 @@ impl ArrowBatch {
     /// loaded data.
     pub fn is_persisted(&self) -> bool {
         let loaded = self.loaded_metaversion();
-        let persisted = self.persisted_metaversion();
+        let persisted = self.segment.persisted_metaversion();
         debug_assert!(!loaded.newer_than(persisted));
         loaded == persisted
     }
@@ -258,14 +239,14 @@ impl ArrowBatch {
             return Err(Error::from(format!(
                 "Tried to flush changes older than or equal to already written data: {:?}, {:?}",
                 self.loaded_metaversion(),
-                self.persisted_metaversion(),
+                self.segment.persisted_metaversion(),
             )));
         }
 
         let changes = std::mem::take(&mut self.changes);
         let changed = GrowableBatch::flush_changes(self, changes)?;
 
-        let mut persisted = self.persisted_metaversion();
+        let mut persisted = self.segment.persisted_metaversion();
         let before = persisted;
         if changed.resized() {
             persisted.increment(); // Memory must be reloaded (along with batch).
@@ -279,7 +260,7 @@ impl ArrowBatch {
         self.segment.set_persisted_metaversion(persisted);
         tracing::debug!(
             "Flush metaversions: {before:?}, {persisted:?}, {:?}",
-            self.persisted_metaversion()
+            self.segment.persisted_metaversion()
         );
         Ok(())
     }
@@ -304,7 +285,7 @@ impl ArrowBatch {
             Err(Error::from(format!(
                 "Tried to queue changes older than or equal to already written data: {:?}, {:?}",
                 self.loaded_metaversion(),
-                self.persisted_metaversion(),
+                self.segment.persisted_metaversion(),
             )))
         }
     }
@@ -316,7 +297,6 @@ impl ArrowBatch {
         if self.is_persisted() {
             Ok(self.record_batch_unchecked())
         } else {
-            assert!(false, "ALoaded record batch is older than persisted one");
             Err(Error::from(
                 "Loaded record batch is older than persisted one",
             ))
@@ -335,7 +315,6 @@ impl ArrowBatch {
         if self.is_persisted() {
             Ok(self.record_batch_unchecked_mut())
         } else {
-            assert!(false, "ALoaded record batch is older than persisted one");
             Err(Error::from(
                 "Loaded record batch is older than persisted one",
             ))
@@ -345,9 +324,9 @@ impl ArrowBatch {
     pub fn increment_batch_version(&mut self) {
         debug_assert!(self.is_persisted());
         self.loaded_metaversion.increment_batch();
-        let mut persisted = self.persisted_metaversion();
+        let mut persisted = self.segment.persisted_metaversion();
         persisted.increment_batch();
-        self.set_persisted_metaversion(persisted);
+        self.segment.set_persisted_metaversion(persisted);
     }
 
     /// Copy data from `new_batch` into self and increment
@@ -371,7 +350,7 @@ impl ArrowBatch {
             ));
         }
 
-        let mut metaversion_to_persist = self.persisted_metaversion();
+        let mut metaversion_to_persist = self.segment.persisted_metaversion();
 
         let new_memory = new_batch.memory();
         // Make capacity at least as large as new memory capacity.
@@ -397,7 +376,8 @@ impl ArrowBatch {
         self.reload_record_batch()?;
         metaversion_to_persist.increment_batch();
 
-        self.set_persisted_metaversion(metaversion_to_persist);
+        self.segment
+            .set_persisted_metaversion(metaversion_to_persist);
         // Right before this function was called, the loaded
         // metaversion must have been older than or equal to
         // the persisted one, so now it is strictly older.
@@ -414,7 +394,7 @@ impl ArrowBatch {
     /// mutated to be the persisted one.
     pub fn maybe_reload(&mut self) -> Result<()> {
         if !self.is_persisted() {
-            let persisted = self.persisted_metaversion();
+            let persisted = self.segment.persisted_metaversion();
 
             if self.loaded_metaversion.memory() < persisted.memory() {
                 self.segment.0.reload()?;

@@ -17,7 +17,7 @@ pub(in crate::datastore) trait GrowableArrayData:
     fn null_buffer(&self) -> Option<&[u8]>;
     fn buffer(&self, index: usize) -> &[u8];
     /// Arrow stores the null buffer separately from other buffers.
-    fn num_buffers_except_null_buffer(&self) -> usize;
+    fn non_null_buffer_count(&self) -> usize;
     fn child_data(&self) -> &[Self];
 }
 
@@ -25,7 +25,7 @@ pub(in crate::datastore) trait GrowableArrayData:
 pub(in crate::datastore) trait GrowableColumn<D: GrowableArrayData>:
     Sized
 {
-    fn column_index(&self) -> usize;
+    fn index(&self) -> usize;
     fn data(&self) -> &D;
 }
 
@@ -69,7 +69,7 @@ pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableCo
     #[allow(clippy::too_many_lines)]
     fn flush_changes(&mut self, mut column_changes: Vec<C>) -> Result<BufferChange> {
         // Sort the changes by the order in which the columns are
-        column_changes.sort_by_key(|a| a.column_index());
+        column_changes.sort_by_key(|c| c.index());
 
         let column_metas = self.static_meta().get_column_meta();
 
@@ -81,8 +81,8 @@ pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableCo
 
         // Go over all of the pending changes, calculate target locations for those buffers
         // and neighbouring buffers if they need to be moved.
-        column_changes.iter().for_each(|change| {
-            let column_index = change.column_index();
+        column_changes.iter().for_each(|column_change| {
+            let column_index = column_change.index();
             // `meta` contains the information about where to look in `self.dynamic_meta` for
             // current offset/node information
             let meta = &column_metas[column_index];
@@ -90,7 +90,7 @@ pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableCo
             let buffer_start = meta.buffer_start;
             // Depth-first is required, because this is the order in which
             // nodes are written into memory, see `write_static_array_data` in ./arrow/ipc.rs
-            let array_datas = gather_array_datas_depth_first(change.data());
+            let array_datas = gather_array_datas_depth_first(column_change.data());
 
             // Iterate over buffers that are not modified, but might have to be moved,
             // because of preceding buffers which may have been moved/resized
@@ -162,7 +162,8 @@ pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableCo
                 // Have to do `meta.buffer_counts[i] - 1` because the null buffer is separate
                 debug_assert_eq!(
                     meta.buffer_counts[i] - 1,
-                    array_data.num_buffers_except_null_buffer()
+                    array_data.non_null_buffer_count(),
+                    "Number of buffers in meta data does not match actual number of buffers"
                 );
                 // todo: when adding datatypes with no null buffer (the null datatype), then this
                 //   convention does not work
