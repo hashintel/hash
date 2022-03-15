@@ -1,4 +1,4 @@
-import { VFC, useState, useRef } from "react";
+import { VFC, useState, useRef, useMemo } from "react";
 import { Box, Typography } from "@mui/material";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "../../icons";
@@ -7,6 +7,7 @@ import { Link } from "../../Link";
 import { useUser } from "../../hooks/useUser";
 import { Avatar } from "../../Avatar";
 import { useLogout } from "../../hooks/useLogout";
+import { useRouter } from "next/router";
 
 type WorkspaceSwitcherProps = {};
 
@@ -22,6 +23,26 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const { user } = useUser();
   const { logout } = useLogout();
+  const { query } = useRouter();
+
+  const activeWorkspace = useMemo(() => {
+    const activeAccountId = query.accountId as string;
+    let accountName = "";
+
+    if (user && activeAccountId === user.accountId) {
+      accountName = user.properties.preferredName || user.properties.shortname!;
+    } else {
+      const activeOrg = user?.memberOf.find(
+        ({ org }) => org.accountId === activeAccountId,
+      )?.org;
+
+      if (activeOrg) {
+        accountName = activeOrg.properties.name;
+      }
+    }
+
+    return { name: accountName || "User" };
+  }, [query, user]);
 
   return (
     <>
@@ -49,7 +70,7 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
           },
         }}
       >
-        <Avatar size={24} title={user?.properties.preferredName ?? "U"} />
+        <Avatar size={24} title={activeWorkspace.name} />
         <Typography
           sx={{
             pr: 1,
@@ -62,7 +83,7 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
           }}
           variant="smallTextLabels"
         >
-          {truncateText(user?.properties.preferredName ?? "User")}
+          {truncateText(activeWorkspace.name)}
         </Typography>
         <FontAwesomeIcon
           icon={faChevronDown}
@@ -83,7 +104,6 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
             width: 269,
             borderRadius: "6px",
             mt: 0.5,
-            minHeight: 180, // @todo remove
           },
         }}
       >
@@ -185,6 +205,8 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
                   <Typography
                     variant="smallTextLabels"
                     sx={{
+                      fontWeight: 600,
+                      color: ({ palette }) => palette.gray[80],
                       mb: "2px",
                     }}
                   >
