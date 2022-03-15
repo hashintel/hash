@@ -18,7 +18,7 @@ export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"]
         paddingRight: "unset",
         paddingLeft: theme.spacing(1.5),
         "&.Mui-focused": {
-          "& .MuiOutlinedInput-notchedOutline": {
+          [`& .${outlinedInputClasses.notchedOutline}`]: {
             borderWidth: "2px",
             borderColor: theme.palette.blue[70],
           },
