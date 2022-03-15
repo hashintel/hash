@@ -9,7 +9,7 @@ import { HashNavIcon } from "../../icons";
 import { Link } from "../../Link";
 import { ActionsDropdown } from "./ActionsDropdown";
 import { NotificationsDropdown } from "./NotificationsDropdown";
-import { LinkButton } from "../../LinkButton";
+import { Button } from "../../Button";
 
 const Nav: React.FC = ({ children }) => (
   <Box
@@ -79,19 +79,20 @@ export const PageHeader: React.VFC<{
           </Box>
         ) : (
           <Box>
-            <LinkButton
+            <Button
               variant="tertiary_quiet"
               sx={{ mr: 1 }}
+              size="xs"
               // navigating to the login route instead of showing the login modal for now
               // since there's some z-index issues between the sidebar and the modal
               href="/login"
             >
               Sign In
-            </LinkButton>
+            </Button>
 
-            <LinkButton href="/signup" size="small">
+            <Button href="/signup" size={isMobile ? "xs" : "small"}>
               Sign Up
-            </LinkButton>
+            </Button>
           </Box>
         )}
       </Nav>
