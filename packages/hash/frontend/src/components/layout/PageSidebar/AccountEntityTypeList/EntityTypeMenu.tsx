@@ -8,10 +8,11 @@ import {
   faFilter,
 } from "@fortawesome/free-solid-svg-icons";
 import pluralize from "pluralize";
-import { Box, IconButton, ListItemButton, Typography } from "@mui/material";
-import { FontAwesomeSvgIcon } from "../../../icons";
+import { Box, ListItemButton, Typography } from "@mui/material";
+import { FontAwesomeIcon } from "../../../icons";
 import { Popover } from "../../../Popover";
 import { Link } from "../../../Link";
+import { IconButton } from "../../../IconButton";
 
 type EntityTypeMenuProps = {
   className: string;
@@ -52,21 +53,18 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({ className }) => {
   return (
     <Box className={className}>
       <IconButton
+        size="medium"
+        unpadded
         ref={buttonRef}
         onClick={() => {
           // setOpen(true)
         }}
         sx={{
           backgroundColor: ({ palette }) => palette.gray[30],
-          borderRadius: "4px",
           color: ({ palette }) => palette.gray[70],
         }}
       >
-        {/* @todo-mui figure out how to make this override default style in MuiIconButtonThemeOptions without using !important */}
-        <FontAwesomeSvgIcon
-          icon={faEllipsis}
-          sx={{ fontSize: "16px !important" }}
-        />
+        <FontAwesomeIcon icon={faEllipsis} />
       </IconButton>
       {/* @todo-mui switch to using a menu instead */}
       <Popover
@@ -98,7 +96,7 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({ className }) => {
               return (
                 <Link noLinkStyle href={href}>
                   <ListItemButton onClick={() => setOpen(false)}>
-                    <FontAwesomeSvgIcon icon={icon} />
+                    <FontAwesomeIcon icon={icon} />
                     <Typography variant="smallTextLabels">{title}</Typography>
                   </ListItemButton>
                 </Link>
@@ -136,12 +134,12 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({ className }) => {
                       },
                     },
 
-                    "&:focus-visible": {
+                    "&:focus": {
                       backgroundColor: ({ palette }) => palette.blue[70],
                     },
                   }}
                 >
-                  <FontAwesomeSvgIcon icon={icon} />
+                  <FontAwesomeIcon icon={icon} />
                   <Typography variant="smallTextLabels">{title}</Typography>
                 </ListItemButton>
               );

@@ -87,8 +87,6 @@ export const MobileSearch: React.FC<{
     <IconButton
       sx={{
         height: "100%",
-        display: "flex",
-        alignItems: "center",
         mr: 2,
       }}
       onClick={() => setDisplaySearchInput(true)}

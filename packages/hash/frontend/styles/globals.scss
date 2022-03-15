@@ -1,20 +1,6 @@
 // @todo remove these styles when main components are converted to mui
 main {
-  a {
-    text-decoration: none;
-    padding-bottom: 3px;
-    color: initial;
-    font-weight: 400;
-    border-bottom: 3px solid transparent;
 
-    &:hover {
-      border-bottom: 3px solid $bright-blue;
-    }
-
-    &:visited {
-      color: initial;
-    }
-  }
 
   h1 {
     font-size: 2rem;

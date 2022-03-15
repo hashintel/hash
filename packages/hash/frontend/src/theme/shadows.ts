@@ -9,6 +9,7 @@ type ShadowSizes = {
   lg: string;
   xl: string;
   xxl: string;
+  purpleShadowMd: string;
 };
 
 const content = {
@@ -44,6 +45,13 @@ const content = {
     "0px 48.6px 56.2359px rgba(61, 78, 133, 0.08775)",
     "0px 19.2px 20.9625px rgba(61, 78, 133, 0.065)",
     "0px 4.2px 7.45781px rgba(61, 78, 133, 0.04225)",
+  ],
+  purpleShadowMd: [
+    "0px 1px 1px rgba(85, 50, 195, 0.35)",
+    "0px 2px 7px 2px rgba(141, 104, 248, 0.2)",
+    "0px 6px 18px 5px rgba(113, 63, 255, 0.15)",
+    "0px 4px 30px 2px rgba(113, 63, 255, 0.08)",
+    "inset 0px -4px 8px rgba(85, 75, 160, 0.3)",
   ],
 };
 
@@ -81,6 +89,7 @@ export const boxShadows = {
   lg: content.lg.join(","),
   xl: content.xl.join(","),
   xxl: content.xxl.join(","),
+  purpleShadowMd: content.purpleShadowMd.join(","),
 };
 
 export const dropShadows = {
@@ -91,4 +100,5 @@ export const dropShadows = {
   lg: toDropShadow("lg"),
   xl: toDropShadow("xl"),
   xxl: toDropShadow("xxl"),
+  purpleShadowMd: toDropShadow("purpleShadowMd"),
 };
