@@ -5,12 +5,11 @@ import { DBLink } from "../../adapter";
 import { acquireEntityLock, getEntityLatestVersion } from "../entity";
 import { DbEntityNotFoundError } from "../..";
 import { genId } from "../../../util";
+import { getIndexedLinks, insertLink } from "./sql/links.util";
 import {
-  getLinksWithMinimumIndex,
-  insertLink,
-  removeLinkFromSource,
-  updateLinkIndices,
-} from "./util";
+  updateLinkVersionIndices,
+  insertLinkVersionRow,
+} from "./sql/link_versions.util";
 import { requireTransaction } from "../util";
 
 export const createLink = async (
@@ -40,9 +39,15 @@ export const createLink = async (
 
     const { sourceAccountId, sourceEntityId, createdByAccountId } = params;
 
-    const linkId = genId();
-    const appliedToSourceAt = now;
-    const appliedToSourceBy = createdByAccountId;
+    const dbLink: DBLink = {
+      ...params,
+      linkId: genId(),
+      linkVersionId: genId(),
+      appliedToSourceAt: now,
+      appliedToSourceByAccountId: createdByAccountId,
+      updatedAt: now,
+      updatedByAccountId: createdByAccountId,
+    };
 
     await acquireEntityLock(conn, {
       entityId: sourceEntityId,
@@ -76,36 +81,27 @@ export const createLink = async (
 
       if (dbSourceEntity.metadata.versioned) {
         /**
-         * When the source entity is versioned, we have have to "re-create" the affected links
-         *
-         * @todo: when we are storing links and versions of links in separate tables, we no longer
-         * have to fully re-create these affected links - only create new versions
+         * When the source entity is versioned, we have have create a new version of
+         * the affected outgoing links of that entity
          */
 
-        const affectedOutgoingLinks = await getLinksWithMinimumIndex(conn, {
+        const affectedOutgoingLinks = await getIndexedLinks(conn, {
           sourceAccountId,
           sourceEntityId,
           minimumIndex: index,
           path,
         });
 
-        /** @todo: implement insertLinks and use that instead of many insertLink queries */
-
-        for (const previousLink of affectedOutgoingLinks) {
+        for (const affectedOutgoingLink of affectedOutgoingLinks) {
           promises.push(
-            removeLinkFromSource(conn, {
-              ...previousLink,
-              removedFromSourceAt: now,
-              removedFromSourceBy: createdByAccountId,
-            }),
-          );
-          promises.push(
-            insertLink(conn, {
-              ...previousLink,
-              linkId: genId(),
-              index: previousLink.index! + 1,
-              appliedToSourceAt: now,
-              appliedToSourceBy,
+            insertLinkVersionRow(conn, {
+              dbLinkVersion: {
+                ...affectedOutgoingLink,
+                linkVersionId: genId(),
+                index: affectedOutgoingLink.index + 1,
+                updatedAt: now,
+                updatedByAccountId: createdByAccountId,
+              },
             }),
           );
         }
@@ -115,27 +111,22 @@ export const createLink = async (
          * the affected links
          */
         promises.push(
-          updateLinkIndices(conn, {
+          updateLinkVersionIndices(conn, {
             sourceAccountId,
             sourceEntityId,
             path,
             minimumIndex: index,
             operation: "increment",
+            updatedAt: now,
+            updatedBy: createdByAccountId,
           }),
         );
       }
     }
 
-    promises.push(
-      insertLink(conn, {
-        ...params,
-        appliedToSourceAt,
-        appliedToSourceBy,
-        linkId,
-      }),
-    );
+    promises.push(insertLink(conn, { dbLink }));
 
     await Promise.all(promises);
 
-    return { ...params, linkId, appliedToSourceAt, appliedToSourceBy };
+    return dbLink;
   });

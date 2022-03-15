@@ -74,6 +74,7 @@ import { updateAggregationOperation } from "./aggregation/updateAggregationOpera
 import { deleteAggregation } from "./aggregation/deleteAggregation";
 import { getEntityAggregation } from "./aggregation/getEntityAggregation";
 import { requireTransaction } from "./util";
+import { getEntityIncomingLinks } from "./link/getEntityIncomingLinks";
 
 export class PostgresClient implements DBClient {
   private conn: Connection;
@@ -499,6 +500,12 @@ export class PostgresClient implements DBClient {
     params: Parameters<DBClient["getEntityOutgoingLinks"]>[0],
   ): Promise<DBLink[]> {
     return await getEntityOutgoingLinks(this.conn, params);
+  }
+
+  async getEntityIncomingLinks(
+    params: Parameters<DBClient["getEntityIncomingLinks"]>[0],
+  ): Promise<DBLink[]> {
+    return await getEntityIncomingLinks(this.conn, params);
   }
 
   async createVerificationCode(params: {
