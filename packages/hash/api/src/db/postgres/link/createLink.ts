@@ -81,10 +81,8 @@ export const createLink = async (
 
       if (dbSourceEntity.metadata.versioned) {
         /**
-         * When the source entity is versioned, we have have to "re-create" the affected links
-         *
-         * @todo: when we are storing links and versions of links in separate tables, we no longer
-         * have to fully re-create these affected links - only create new versions
+         * When the source entity is versioned, we have have create a new version of
+         * the affected outgoing links of that entity
          */
 
         const affectedOutgoingLinks = await getIndexedLinks(conn, {

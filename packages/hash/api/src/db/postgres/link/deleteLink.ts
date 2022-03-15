@@ -73,13 +73,10 @@ export const deleteLink = async (
       if (index !== undefined) {
         /**
          * When the source entity is versioned and the deleted link also has an index,
-         * we have to re-create all links which:
+         * we have to create new versions all links which:
          *  - are outgoing links of the previous entity's version
          *  - have the same path
          *  - have an index which is greater than the index of the deleted link's index
-         *
-         * @todo: when we are storing links and versions of links in separate tables, we no longer
-         * have to fully re-create these affected links - only create new versions
          */
 
         const affectedOutgoingLinks = await getIndexedLinks(conn, {
