@@ -49,7 +49,6 @@
 //!      The loaded metaversion can be older than the persisted metaversion
 //!      (because the written data doesn't depend on the loaded data, so there's
 //!      no danger of writing incorrect data if the loaded data is stale).
-//!
 // TODO OPTIM: Load/write integers in place in JS
 // TODO OPTIM: Any faster to lazy-load nullable integers than just loading like
 //             columns of dynamically-sized types?
@@ -62,7 +61,6 @@
 //!   persisted metaversion is incremented after flushing queued changes. Generally changes should
 //!   be flushed before transferring write access to another engine component, so flushing can't
 //!   give an error due to the other engine component modifying the batch or persisted metaversion.
-//!
 // TODO: Is there a use case for reloading a batch when there
 //       are queued changes?
 //!
