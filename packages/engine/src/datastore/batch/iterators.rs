@@ -127,7 +127,8 @@ pub mod agent {
 
         // Collect iterators first, because we want to check for any errors.
         for agent_group in agent_pool {
-            let iterable = super::record_batch::f64_iter(agent_group.batch.record_batch()?, field_name)?;
+            let iterable =
+                super::record_batch::f64_iter(agent_group.batch.record_batch()?, field_name)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
@@ -156,7 +157,8 @@ pub mod agent {
 
         // Collect iterators first, because we want to check for any errors.
         for agent_group in agent_pool {
-            let iterable = super::record_batch::str_iter(agent_group.batch.record_batch()?, field_name)?;
+            let iterable =
+                super::record_batch::str_iter(agent_group.batch.record_batch()?, field_name)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
@@ -170,7 +172,8 @@ pub mod agent {
 
         // Collect iterators first, because we want to check for any errors.
         for agent_group in agent_pool {
-            let iterable = super::record_batch::bool_iter(agent_group.batch.record_batch()?, field_name)?;
+            let iterable =
+                super::record_batch::bool_iter(agent_group.batch.record_batch()?, field_name)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
