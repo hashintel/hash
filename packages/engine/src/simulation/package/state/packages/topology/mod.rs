@@ -57,12 +57,12 @@ pub struct Topology {
 }
 
 impl Topology {
-    fn topology_correction(&self, agent_group: &mut AgentBatch) -> Result<bool> {
-        agent_group.batch.maybe_reload()?;
+    fn topology_correction(&self, agent_batch: &mut AgentBatch) -> Result<bool> {
+        agent_batch.batch.maybe_reload()?;
 
         let mut ret = false;
         let (pos_dir_mut_iter, mut position_was_corrected_col) =
-            topology_mut_iter(agent_group.batch.record_batch_mut()?)?;
+            topology_mut_iter(agent_batch.batch.record_batch_mut()?)?;
         pos_dir_mut_iter.enumerate().for_each(|(i, (pos, dir))| {
             let corrected = adjacency::correct_agent(pos, dir, &self.config);
             unsafe { position_was_corrected_col.set(i, corrected) };
@@ -83,10 +83,10 @@ impl Package for Topology {
     async fn run(&mut self, state: &mut State, _context: &Context) -> Result<()> {
         tracing::trace!("Running Topology package");
         if self.config.move_wrapped_agents {
-            for agent_group in state.agent_pool_mut().write_proxies()?.batches_iter_mut() {
-                if self.topology_correction(agent_group)? {
+            for agent_batch in state.agent_pool_mut().write_proxies()?.batches_iter_mut() {
+                if self.topology_correction(agent_batch)? {
                     // TODO: inplace changes and metaversioning should happen at a deeper level.
-                    agent_group.batch.increment_batch_version();
+                    agent_batch.batch.increment_batch_version();
                 }
             }
         }

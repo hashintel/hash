@@ -51,23 +51,23 @@ impl AgentBatch {
     }
 
     pub fn duplicate_from(
-        agent_group: &Self,
+        agent_batch: &Self,
         schema: &AgentSchema,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
-        if agent_group.batch.loaded_metaversion.memory()
-            != agent_group.batch.segment.persisted_metaversion().memory()
+        if agent_batch.batch.loaded_metaversion.memory()
+            != agent_batch.batch.segment.persisted_metaversion().memory()
         {
             return Err(Error::from(format!(
                 "Can't duplicate agent batch with loaded memory older than latest persisted: \
                  {:?}, {:?}",
-                agent_group.batch.loaded_metaversion,
-                agent_group.batch.segment.persisted_metaversion(),
+                agent_batch.batch.loaded_metaversion,
+                agent_batch.batch.segment.persisted_metaversion(),
             )));
         }
 
-        let memory = Memory::duplicate_from(agent_group.batch.memory(), experiment_id)?;
-        Self::from_memory(memory, Some(schema), Some(agent_group.worker_index))
+        let memory = Memory::duplicate_from(agent_batch.batch.memory(), experiment_id)?;
+        Self::from_memory(memory, Some(schema), Some(agent_batch.worker_index))
     }
 
     /// Copy contents from RecordBatch and create a memory-backed Batch

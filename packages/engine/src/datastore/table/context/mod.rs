@@ -112,41 +112,41 @@ impl Context {
         agent_schema: &AgentSchema,
         experiment_id: &ExperimentId,
     ) -> Result<()> {
-        let mut previous_agent_group_proxies = self.previous_state.agent_pool.write_proxies()?;
-        let current_agent_group_proxies = state.agent_pool().read_proxies()?;
+        let mut previous_agent_batch_proxies = self.previous_state.agent_pool.write_proxies()?;
+        let current_agent_batch_proxies = state.agent_pool().read_proxies()?;
 
-        for (previous_agent_group, current_agent_group) in previous_agent_group_proxies
+        for (previous_agent_batch, current_agent_batch) in previous_agent_batch_proxies
             .batches_iter_mut()
-            .zip(current_agent_group_proxies.batches_iter())
+            .zip(current_agent_batch_proxies.batches_iter())
         {
-            previous_agent_group
+            previous_agent_batch
                 .batch
-                .sync(&current_agent_group.batch)?;
+                .sync(&current_agent_batch.batch)?;
         }
 
         // Release write access to the agent pool, so
         // we can remove batches from it.
-        drop(previous_agent_group_proxies);
-        let previous_agent_groups = &mut self.previous_state.agent_pool;
+        drop(previous_agent_batch_proxies);
+        let previous_agent_batchs = &mut self.previous_state.agent_pool;
 
         #[allow(clippy::comparison_chain)]
-        if current_agent_group_proxies.len() > previous_agent_groups.len() {
+        if current_agent_batch_proxies.len() > previous_agent_batchs.len() {
             // Add more static batches
-            for batch in &current_agent_group_proxies
-                [previous_agent_groups.len()..current_agent_group_proxies.len()]
+            for batch in &current_agent_batch_proxies
+                [previous_agent_batchs.len()..current_agent_batch_proxies.len()]
             {
-                previous_agent_groups.push(AgentBatch::duplicate_from(
+                previous_agent_batchs.push(AgentBatch::duplicate_from(
                     batch,
                     agent_schema,
                     experiment_id,
                 )?);
             }
-        } else if current_agent_group_proxies.len() < previous_agent_groups.len() {
+        } else if current_agent_batch_proxies.len() < previous_agent_batchs.len() {
             // Remove unneeded static batches
-            let removed_ids = (current_agent_group_proxies.len()..previous_agent_groups.len())
+            let removed_ids = (current_agent_batch_proxies.len()..previous_agent_batchs.len())
                 .rev()
                 .map(|remove_index| {
-                    previous_agent_groups
+                    previous_agent_batchs
                         .remove(remove_index)
                         .batch
                         .segment()
@@ -162,7 +162,7 @@ impl Context {
         // might have added/removed agents to/from groups.
         let mut cumulative_num_agents = 0;
         let group_start_indices = Arc::new(
-            current_agent_group_proxies
+            current_agent_batch_proxies
                 .batches_iter()
                 .map(|batch| {
                     let n = cumulative_num_agents;
@@ -171,7 +171,7 @@ impl Context {
                 })
                 .collect(),
         );
-        drop(current_agent_group_proxies);
+        drop(current_agent_batch_proxies);
         state.set_group_start_indices(group_start_indices);
         Ok(())
     }

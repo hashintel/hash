@@ -13,8 +13,8 @@ pub mod agent {
         let mut iterables = Vec::with_capacity(agent_pool.len());
 
         // Collect iterators first, because we want to check for any errors.
-        for agent_group in agent_pool {
-            let iterable = super::record_batch::agent_id_iter(agent_group.batch.record_batch()?)?;
+        for agent_batch in agent_pool {
+            let iterable = super::record_batch::agent_id_iter(agent_batch.batch.record_batch()?)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
@@ -27,8 +27,8 @@ pub mod agent {
         let mut iterables = Vec::with_capacity(agent_pool.len());
 
         // Collect iterators first, because we want to check for any errors.
-        for agent_group in agent_pool {
-            let iterable = super::record_batch::agent_id_iter(agent_group.batch.record_batch()?)?;
+        for agent_batch in agent_pool {
+            let iterable = super::record_batch::agent_id_iter(agent_batch.batch.record_batch()?)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
@@ -40,8 +40,8 @@ pub mod agent {
         let mut iterables = Vec::with_capacity(agent_pool.len());
 
         // Collect iterators first, because we want to check for any errors.
-        for agent_group in agent_pool {
-            let iterable = super::record_batch::agent_name_iter(agent_group.batch.record_batch()?)?;
+        for agent_batch in agent_pool {
+            let iterable = super::record_batch::agent_name_iter(agent_batch.batch.record_batch()?)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
@@ -54,8 +54,8 @@ pub mod agent {
         let mut iterables = Vec::with_capacity(agent_pool.len());
 
         // Collect iterators first, because we want to check for any errors.
-        for agent_group in agent_pool {
-            let iterable = super::record_batch::agent_name_iter(agent_group.batch.record_batch()?)?;
+        for agent_batch in agent_pool {
+            let iterable = super::record_batch::agent_name_iter(agent_batch.batch.record_batch()?)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
@@ -69,9 +69,9 @@ pub mod agent {
         let mut iterables = Vec::with_capacity(agent_pool.len());
 
         // Collect iterators first, because we want to check for any errors.
-        for agent_group in agent_pool {
+        for agent_batch in agent_pool {
             let iterable = super::record_batch::json_values(
-                agent_group.batch.record_batch()?,
+                agent_batch.batch.record_batch()?,
                 field_name,
                 data_type,
             )?;
@@ -97,8 +97,8 @@ pub mod agent {
         let mut iterables = Vec::with_capacity(agent_pool.len());
 
         // Collect iterators first, because we want to check for any errors.
-        for agent_group in agent_pool {
-            let iterable = super::record_batch::position_iter(agent_group.batch.record_batch()?)?;
+        for agent_batch in agent_pool {
+            let iterable = super::record_batch::position_iter(agent_batch.batch.record_batch()?)?;
             iterables.push(iterable);
         }
 
@@ -111,9 +111,9 @@ pub mod agent {
         let mut iterables = Vec::with_capacity(agent_pool.len());
 
         // Collect iterators first, because we want to check for any errors.
-        for agent_group in agent_pool {
+        for agent_batch in agent_pool {
             let iterable =
-                super::record_batch::search_radius_iter(agent_group.batch.record_batch()?)?;
+                super::record_batch::search_radius_iter(agent_batch.batch.record_batch()?)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
@@ -126,9 +126,9 @@ pub mod agent {
         let mut iterables = Vec::with_capacity(agent_pool.len());
 
         // Collect iterators first, because we want to check for any errors.
-        for agent_group in agent_pool {
+        for agent_batch in agent_pool {
             let iterable =
-                super::record_batch::f64_iter(agent_group.batch.record_batch()?, field_name)?;
+                super::record_batch::f64_iter(agent_batch.batch.record_batch()?, field_name)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
@@ -141,9 +141,9 @@ pub mod agent {
         let mut iterables = Vec::with_capacity(agent_pool.len());
 
         // Collect iterators first, because we want to check for any errors.
-        for agent_group in agent_pool {
+        for agent_batch in agent_pool {
             let iterable =
-                super::record_batch::exists_iter(agent_group.batch.record_batch()?, field_name)?;
+                super::record_batch::exists_iter(agent_batch.batch.record_batch()?, field_name)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
@@ -156,9 +156,9 @@ pub mod agent {
         let mut iterables = Vec::with_capacity(agent_pool.len());
 
         // Collect iterators first, because we want to check for any errors.
-        for agent_group in agent_pool {
+        for agent_batch in agent_pool {
             let iterable =
-                super::record_batch::str_iter(agent_group.batch.record_batch()?, field_name)?;
+                super::record_batch::str_iter(agent_batch.batch.record_batch()?, field_name)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
@@ -171,9 +171,9 @@ pub mod agent {
         let mut iterables = Vec::with_capacity(agent_pool.len());
 
         // Collect iterators first, because we want to check for any errors.
-        for agent_group in agent_pool {
+        for agent_batch in agent_pool {
             let iterable =
-                super::record_batch::bool_iter(agent_group.batch.record_batch()?, field_name)?;
+                super::record_batch::bool_iter(agent_batch.batch.record_batch()?, field_name)?;
             iterables.push(iterable);
         }
         Ok(iterables.into_iter().flatten())
@@ -186,8 +186,8 @@ pub mod agent {
         let mut iterables = Vec::with_capacity(agent_pool.len());
 
         // Collect iterators first, because we want to check for any errors.
-        for agent_group in agent_pool {
-            let record_batch = agent_group.batch.record_batch()?;
+        for agent_batch in agent_pool {
+            let record_batch = agent_batch.batch.record_batch()?;
             let iterable =
                 super::record_batch::json_deserialize_str_value_iter(record_batch, field_name)?;
             iterables.push(iterable);

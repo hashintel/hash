@@ -51,7 +51,7 @@ impl State {
     ///
     /// Effectively converts the `agent_state_groups` from Array-of-Structs into a
     /// Struct-of-Arrays.
-    pub fn from_agent_groups(
+    pub fn from_agent_batchs(
         agent_state_groups: &[&[AgentState]],
         num_agents: usize,
         sim_config: Arc<SimRunConfig>,
@@ -117,7 +117,7 @@ impl State {
             agent_state_groups.push(&agent_states[this_index..next_index]);
         }
 
-        Self::from_agent_groups(&agent_state_groups, num_agents, sim_config)
+        Self::from_agent_batchs(&agent_state_groups, num_agents, sim_config)
     }
 
     // TODO: OPTIM - We should be using these to release memory, this requires propagation to the

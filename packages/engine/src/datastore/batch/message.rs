@@ -52,7 +52,7 @@ impl MessageBatch {
     /// The persisted metaversion is updated after clearing the column
     /// and the loaded metaversion is set equal to the persisted one
     /// after loading the cleared column.
-    pub fn reset(&mut self, agent_group: &AgentBatch) -> Result<()> {
+    pub fn reset(&mut self, agent_batch: &AgentBatch) -> Result<()> {
         tracing::trace!("Resetting batch");
 
         let batch = &mut self.batch;
@@ -71,8 +71,8 @@ impl MessageBatch {
             ));
         }
 
-        let agent_count = agent_group.num_agents();
-        let agent_record_batch = agent_group.batch.record_batch()?; // Agent batch must be up to date
+        let agent_count = agent_batch.num_agents();
+        let agent_record_batch = agent_batch.batch.record_batch()?; // Agent batch must be up to date
         let column_name = AgentStateField::AgentId.name();
         let id_column = super::iterators::column_with_name(agent_record_batch, column_name)?;
         let empty_message_column = message::empty_messages_column(agent_count).map(Arc::new)?;
@@ -99,12 +99,12 @@ impl MessageBatch {
             }
         }
 
-        let old_metadata_size = self.batch.memory().get_metadata()?.len();
+        let old_metadata_size = batch.memory().get_metadata()?.len();
         // Write new metadata
-        self.batch.memory_mut().set_metadata(&meta_buffer)?;
+        batch.memory_mut().set_metadata(&meta_buffer)?;
         debug_assert_eq!(
             old_metadata_size,
-            self.batch
+            batch
                 .memory()
                 .get_metadata()
                 .expect("Memory should have metadata, because we just set it")
@@ -112,8 +112,8 @@ impl MessageBatch {
             "Metadata size should not change"
         );
 
-        let cur_len = self.batch.memory().get_data_buffer_len()?;
-        if cur_len < data_len && self.batch.memory_mut().set_data_length(data_len)?.resized() {
+        let cur_len = batch.memory().get_data_buffer_len()?;
+        if cur_len < data_len && batch.memory_mut().set_data_length(data_len)?.resized() {
             // This shouldn't happen very often unless the bounds above are very inaccurate.
             metaversion_to_persist.increment();
             tracing::info!(
@@ -123,29 +123,29 @@ impl MessageBatch {
             );
         }
 
-        let data_buffer = self.batch.memory_mut().get_mut_data_buffer()?;
+        let data_buffer = batch.memory_mut().get_mut_data_buffer()?;
         // Write new data
         record_batch_data_to_bytes_owned_unchecked(&record_batch, data_buffer);
 
         // TODO: reloading batch could be faster if we persisted
         //       fbb and WIPOffset<Message> from `simulate_record_batch_to_bytes`
         metaversion_to_persist.increment_batch();
-        self.batch
+        batch
             .segment
             .set_persisted_metaversion(metaversion_to_persist);
-        self.batch.reload_record_batch_and_dynamic_meta()?;
-        self.batch.loaded_metaversion = metaversion_to_persist;
+        batch.reload_record_batch_and_dynamic_meta()?;
+        batch.loaded_metaversion = metaversion_to_persist;
         Ok(())
     }
 
     pub fn empty_from_agent_batch(
-        agent_group: &AgentBatch,
+        agent_batch: &AgentBatch,
         schema: &Arc<ArrowSchema>,
         meta: Arc<StaticMeta>,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
-        let agent_count = agent_group.num_agents();
-        let agent_record_batch = agent_group.batch.record_batch()?;
+        let agent_count = agent_batch.num_agents();
+        let agent_record_batch = agent_batch.batch.record_batch()?;
         let column_name = AgentStateField::AgentId.name();
         let id_column = super::iterators::column_with_name(agent_record_batch, column_name)?;
         let empty_message_column = message::empty_messages_column(agent_count).map(Arc::new)?;
