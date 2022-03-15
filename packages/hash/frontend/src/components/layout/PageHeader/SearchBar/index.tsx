@@ -121,6 +121,30 @@ const useQueryText = (): [string, string, (queryText: string) => void] => {
   return [displayedQuery, submittedQuery, setQuery];
 };
 
+const getSearchBarResponsiveStyles = (
+  isMobile: boolean,
+  displaySearchInput: boolean,
+): SxProps<Theme> => {
+  if (isMobile) {
+    if (displaySearchInput) {
+      return {
+        position: "absolute",
+        width: "100%",
+        zIndex: 1,
+        left: 0,
+        top: "12px",
+        px: 2,
+      };
+    } else {
+      return {
+        mr: 1,
+      };
+    }
+  }
+
+  return {};
+};
+
 const SearchBarWhenSearchIsEnabled: React.VFC = () => {
   const theme = useTheme();
 
@@ -164,16 +188,7 @@ const SearchBarWhenSearchIsEnabled: React.VFC = () => {
         },
         position: "relative",
         height: "100%",
-        ...(isMobile && displaySearchInput
-          ? {
-              position: "absolute",
-              width: "100%",
-              zIndex: 1,
-              left: 0,
-              top: theme.spacing(1.5),
-              px: 2,
-            }
-          : {}),
+        ...getSearchBarResponsiveStyles(isMobile, displaySearchInput),
       }}
       ref={rootRef}
     >
@@ -181,19 +196,20 @@ const SearchBarWhenSearchIsEnabled: React.VFC = () => {
       {isMobile && !displaySearchInput ? (
         <IconButton
           sx={{
-            height: "100%",
+            height: "32px",
+            width: "32px",
             display: "flex",
             alignItems: "center",
-            mr: 2,
           }}
           onClick={() => setDisplaySearchInput(true)}
         >
-          <SearchIcon sx={{ height: theme.spacing(2), width: "auto" }} />
+          <SearchIcon sx={{ height: "16px", width: "auto" }} />
         </IconButton>
       ) : (
         <Box
           style={{
             display: "flex",
+            alignItems: "center",
             width: "100%",
             background: "white",
             zIndex: 1,
@@ -207,24 +223,16 @@ const SearchBarWhenSearchIsEnabled: React.VFC = () => {
           />
 
           {isMobile && (
-            <Box
-              component="span"
-              sx={{
-                marginLeft: theme.spacing(2),
-                display: "flex",
-                alignItems: "center",
+            <Button
+              onClick={() => {
+                setQueryText("");
+                setDisplaySearchInput(false);
               }}
+              variant="tertiary_quiet"
+              sx={{ ml: 1 }}
             >
-              <Button
-                onClick={() => {
-                  setQueryText("");
-                  setDisplaySearchInput(false);
-                }}
-                variant="tertiary_quiet"
-              >
-                Cancel
-              </Button>
-            </Box>
+              Cancel
+            </Button>
           )}
         </Box>
       )}
