@@ -169,6 +169,10 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           ...focusStyles,
           color: theme.palette.gray[80],
           background: theme.palette.common.white,
+
+          [`& > .${buttonClasses.startIcon}, & > .${buttonClasses.endIcon}`]: {
+            color: theme.palette.gray[50],
+          },
         };
       } else if (variant === "tertiary_quiet") {
         /** ===== TERTIARY QUIET variant specific styling ===== */
@@ -197,6 +201,10 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           ...focusStyles,
           color: theme.palette.gray[80],
           background: theme.palette.common.white,
+
+          [`& > .${buttonClasses.startIcon}, & > .${buttonClasses.endIcon}`]: {
+            color: theme.palette.gray[50],
+          },
         };
       } else if (variant === "warning") {
         /** ===== WARNING variant specific styling ===== */
