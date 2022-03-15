@@ -29,6 +29,10 @@ const ButtonSetup: VFC<{
           <Button size={size} variant={variant} disabled>
             {contents[idx]}
           </Button>
+          <div style={{ width: 30 }} />
+          <Button size={size} variant={variant} className="Button--hover">
+            {contents[idx]}
+          </Button>
         </div>
       </div>
     ))}

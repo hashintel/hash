@@ -194,7 +194,7 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
 
       return {
         ...baseStyles,
-        ":hover": hoverStyles,
+        ":hover, &.Button--hover": hoverStyles,
         ":focus-visible": {
           ...hoverStyles,
           ...focusVisibleStyles,
