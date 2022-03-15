@@ -94,7 +94,7 @@ describe("Entity model class ", () => {
     expect(outgoingLink2).toBeDefined();
   });
 
-  it("can get incmoing links", async () => {
+  it("can get incoming links", async () => {
     const incomingLinks = await entityB.getIncomingLinks(db);
 
     expect(incomingLinks).toHaveLength(2);
