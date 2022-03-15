@@ -127,7 +127,7 @@ export class ComponentView implements NodeView<Schema> {
         .node(2).attrs.draftId;
 
       const mappedUrl = componentIdToUrl(this.componentId);
-      const entity = this.store.draft[blockDraftId];
+      const entity = this.store.draft[blockDraftId]!;
 
       // @todo handle entity id not being defined
       const entityId = entity.entityId ?? "";

@@ -60,6 +60,9 @@ const cloneEntityWithPropertiesAtRoot = (
 };
 
 /**
+ * @todo rework this to only move properties up for root entity
+ *    - entities no longer have other entities in their trees
+ *
  * Clones an entity tree, and for each entity within it,
  * moves the contents of its 'properties' to the root of that entity.
  *

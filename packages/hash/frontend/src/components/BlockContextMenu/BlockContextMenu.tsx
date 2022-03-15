@@ -204,19 +204,19 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
     if (usableMenuItems[selectedIndex]?.key === "switchBlock") {
       updateMenuState({ subMenuVisible: true });
     } else {
-      onItemClick(usableMenuItems[selectedIndex].key);
+      onItemClick(usableMenuItems[selectedIndex]!.key);
     }
   };
 
   const onSearchViewEnter = () => {
     // if selected item is an action, execute the action, else convert the current block to the selected block
     if (selectedIndex < filteredMenuItems.actions.length) {
-      onItemClick(filteredMenuItems.actions[selectedIndex].key);
+      onItemClick(filteredMenuItems.actions[selectedIndex]!.key);
     } else {
       const selectedBlock =
         filteredMenuItems.blocks[
           selectedIndex - filteredMenuItems.actions.length
-        ];
+        ]!;
       blockSuggesterProps.onChange(selectedBlock.variant, selectedBlock.meta);
     }
   };
@@ -256,7 +256,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
           subMenuVisible={subMenuVisible}
           onItemClick={onItemClick}
           blockSuggesterProps={blockSuggesterProps}
-          blockData={blockData}
+          blockData={blockData ?? null}
         />
       ) : (
         <SearchView

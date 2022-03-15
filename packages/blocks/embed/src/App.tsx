@@ -41,9 +41,6 @@ type AppProps = {
   initialHtml?: string;
   initialWidth?: number;
   initialHeight?: number;
-  entityId: string;
-  entityTypeId?: string;
-  accountId: string;
 };
 
 const getInitialState = ({
@@ -221,12 +218,7 @@ export const App: BlockComponent<AppProps> = ({
         embedType: properties.embedType,
       };
 
-      const updateAction: BlockProtocolUpdateEntitiesAction<{
-        initialHtml: string | undefined;
-        initialHeight: number | undefined;
-        initialWidth: number | undefined;
-        embedType: string | undefined;
-      }> = {
+      const updateAction: BlockProtocolUpdateEntitiesAction = {
         accountId,
         data,
         entityId,
@@ -235,7 +227,7 @@ export const App: BlockComponent<AppProps> = ({
       };
 
       if (updateEntities) {
-        void updateEntities<any>([updateAction]);
+        void updateEntities([updateAction]);
       }
     },
     [accountId, entityId, entityTypeId, entityTypeVersionId, updateEntities],

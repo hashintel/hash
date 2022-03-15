@@ -14,6 +14,8 @@ const logger = new Logger({
 
 let db: PostgresAdapter;
 
+// recreating DB takes longer than the default 5 seconds.
+jest.setTimeout(60000);
 beforeAll(async () => {
   await recreateDbAndRunSchemaMigrations();
 
@@ -30,7 +32,7 @@ beforeAll(async () => {
   );
 });
 
-describe("Page model class ", () => {
+describe("Block model class ", () => {
   let existingUser: User;
 
   beforeAll(async () => {

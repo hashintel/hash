@@ -89,7 +89,7 @@ const getPagesLinkingToTextEntities = async (
   );
   const pageToBlock = new Map<string, Set<string>>(
     blockHits.map((blocks, i) => [
-      pages[i].entityVersionId,
+      pages[i]!.entityVersionId,
       new Set(blocks.map((block) => block.entityVersionId)),
     ]),
   );
@@ -108,7 +108,7 @@ const getPagesLinkingToTextEntities = async (
   );
   const blockToText = new Map<string, Set<string>>(
     textHits.map((texts, i) => [
-      blocks[i].entityVersionId,
+      blocks[i]!.entityVersionId,
       new Set(texts.map((text) => text.entityVersionId)),
     ]),
   );

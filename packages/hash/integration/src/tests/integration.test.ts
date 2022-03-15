@@ -25,8 +25,6 @@ import {
   EntityType as GQLEntityType,
 } from "../graphql/apiTypes.gen";
 
-jest.setTimeout(60000);
-
 const logger = new Logger({
   mode: "dev",
   level: "debug",
@@ -267,7 +265,7 @@ describe("logged in user ", () => {
       throw new Error(`'set-cookie' field was not found in response header`);
     }
 
-    const cookie = setCookieValue.split(";")[0];
+    const cookie = setCookieValue.split(";")[0]!;
 
     client.setCookie(cookie);
   });
@@ -316,18 +314,18 @@ describe("logged in user ", () => {
 
     expect(invitationLinkLinkGroup).not.toBeUndefined();
     expect(invitationLinkLinkGroup.links).toHaveLength(1);
-    expect(invitationLinkLinkGroup.links[0].destinationEntityId).toBe(
-      invitationLink.entityId,
+    expect(invitationLinkLinkGroup.links[0]!.destinationEntityId).toBe(
+      invitationLink!.entityId,
     );
 
     const gqlInvitationLink = gqlOrg.linkedEntities.find(
-      ({ entityId }) => entityId === invitationLink.entityId,
+      ({ entityId }) => entityId === invitationLink!.entityId,
     )!;
 
     expect(gqlInvitationLink).not.toBeUndefined();
     expect(
       (gqlInvitationLink.properties as OrgInvitationLinkProperties).accessToken,
-    ).toBe(invitationLink.properties.accessToken);
+    ).toBe(invitationLink!.properties.accessToken);
 
     // Test the user is now a member of the org
     const updatedExistingUser = (await User.getUserById(db, existingUser))!;
@@ -357,7 +355,7 @@ describe("logged in user ", () => {
 
     expect(inviterLinkGroup).not.toBeUndefined();
     expect(inviterLinkGroup.links).toHaveLength(1);
-    expect(inviterLinkGroup.links[0].destinationEntityId).toBe(
+    expect(inviterLinkGroup.links[0]!.destinationEntityId).toBe(
       existingUser.entityId,
     );
 
@@ -368,7 +366,7 @@ describe("logged in user ", () => {
 
     expect(orgLinkGroup).not.toBeUndefined();
     expect(orgLinkGroup.links).toHaveLength(1);
-    expect(orgLinkGroup.links[0].destinationEntityId).toBe(
+    expect(orgLinkGroup.links[0]!.destinationEntityId).toBe(
       existingOrg.entityId,
     );
 
@@ -437,7 +435,7 @@ describe("logged in user ", () => {
 
     expect(inviterLinkGroup).not.toBeUndefined();
     expect(inviterLinkGroup.links).toHaveLength(1);
-    expect(inviterLinkGroup.links[0].destinationEntityId).toBe(
+    expect(inviterLinkGroup.links[0]!.destinationEntityId).toBe(
       bobUser.entityId,
     );
 
@@ -451,10 +449,10 @@ describe("logged in user ", () => {
 
     const gqlInvitation = await client.getOrgInvitationLink({
       orgEntityId: bobOrg.entityId,
-      invitationLinkToken: invitation.properties.accessToken,
+      invitationLinkToken: invitation!.properties.accessToken,
     });
 
-    expect(gqlInvitation.entityId).toEqual(invitation.entityId);
+    expect(gqlInvitation.entityId).toEqual(invitation!.entityId);
     const orgLinkGroup = gqlInvitation.linkGroups.find(
       ({ sourceEntityId, path }) =>
         sourceEntityId === gqlInvitation.entityId && path === "$.org",
@@ -462,7 +460,7 @@ describe("logged in user ", () => {
 
     expect(orgLinkGroup).not.toBeUndefined();
     expect(orgLinkGroup.links).toHaveLength(1);
-    expect(orgLinkGroup.links[0].destinationEntityId).toBe(bobOrg.entityId);
+    expect(orgLinkGroup.links[0]!.destinationEntityId).toBe(bobOrg.entityId);
 
     /** @todo: cleanup created bob user and org */
   });
@@ -515,7 +513,7 @@ describe("logged in user ", () => {
     const gqlUser = await client.joinOrg({
       orgEntityId: bobOrg.entityId,
       verification: {
-        invitationLinkToken: invitation.properties.accessToken,
+        invitationLinkToken: invitation!.properties.accessToken,
       },
       responsibility,
     });
@@ -589,7 +587,7 @@ describe("logged in user ", () => {
       expect(updatedPage.contents.slice(1)).toEqual(page.contents);
 
       // Get the text entity we just inserted and make sure it matches
-      const newBlock = updatedPage.contents[0];
+      const newBlock = updatedPage.contents[0]!;
       textEntityId = newBlock.data.entityId;
       const textEntity = await client.getUnknownEntity({
         entityId: textEntityId,
@@ -625,7 +623,7 @@ describe("logged in user ", () => {
         entityId: page.entityId,
       });
 
-      expect(updatedPage.contents[0].data.entityVersionId).toEqual(
+      expect(updatedPage.contents[0]!.data.entityVersionId).toEqual(
         newTextEntity.entityVersionId,
       );
 
@@ -634,7 +632,7 @@ describe("logged in user ", () => {
         tokens: [{ tokenType: "text", text: "Header Text" }],
       };
 
-      const headerBlock = updatedPage.contents[1];
+      const headerBlock = updatedPage.contents[1]!;
       const headerUpdate = await client.updateEntity({
         accountId: existingUser.accountId,
         entityId: headerBlock.data.entityId,
@@ -646,7 +644,7 @@ describe("logged in user ", () => {
         accountId: existingUser.accountId,
         entityId: page.entityId,
       });
-      expect(updatedPage.contents[1].data.entityVersionId).toEqual(
+      expect(updatedPage.contents[1]!.data.entityVersionId).toEqual(
         headerUpdate.entityVersionId,
       );
     });
@@ -689,7 +687,7 @@ describe("logged in user ", () => {
       expect(updatedPage.properties.title).toEqual("My first page");
 
       // Get the new entity we just inserted and make sure it matches
-      const newBlock = updatedPage.contents[0];
+      const newBlock = updatedPage.contents[0]!;
       const entityId = newBlock.data.entityId;
       entityTypeComponentId = newBlock.data.entityTypeId;
 
@@ -753,7 +751,7 @@ describe("logged in user ", () => {
       expect(updatedPage.properties.title).toEqual("My first page");
 
       // Get the new entity we just inserted and make sure it matches
-      const newBlock = updatedPage.contents[0];
+      const newBlock = updatedPage.contents[0]!;
       const entityId = newBlock.data.entityId;
 
       // Get the EntitType that has been created _previously_ because of the ComponentId
@@ -812,7 +810,7 @@ describe("logged in user ", () => {
 
       expect(subTypeParent).toHaveLength(1);
       if (!subTypeParent?.length) throw new Error("");
-      expect(subTypeParent[0].entityId).toEqual(superType.entityId);
+      expect(subTypeParent[0]!.entityId).toEqual(superType.entityId);
     });
 
     it("can get all children of supertype", async () => {
@@ -884,8 +882,8 @@ describe("logged in user ", () => {
         },
         {
           updateEntity: {
-            accountId: page.contents[0].data.accountId,
-            entityId: page.contents[0].data.entityId,
+            accountId: page.contents[0]!.data.accountId,
+            entityId: page.contents[0]!.data.entityId,
             properties: textPropertiesC,
           },
         },
@@ -900,9 +898,9 @@ describe("logged in user ", () => {
 
     const pageEntities = updatedPage.contents.map((block) => block.data);
 
-    expect(pageEntities[2].properties).toMatchObject(textPropertiesA);
-    expect(pageEntities[1].properties).toMatchObject(textPropertiesB);
-    expect(pageEntities[0].properties).toMatchObject(textPropertiesC);
+    expect(pageEntities[2]?.properties).toMatchObject(textPropertiesA);
+    expect(pageEntities[1]?.properties).toMatchObject(textPropertiesB);
+    expect(pageEntities[0]?.properties).toMatchObject(textPropertiesC);
   });
 
   describe("can get and filter their entities", () => {
@@ -1115,14 +1113,14 @@ describe("logged in user ", () => {
     const pageEntities = updatedPage.contents.map((block) => block.data);
 
     // The page will have an empty paragraph and a text paragraph with textPropertiesA
-    expect(pageEntities[0].properties).toMatchObject({ tokens: [] });
-    expect(pageEntities[1].properties).toMatchObject(textPropertiesA);
+    expect(pageEntities[0]?.properties).toMatchObject({ tokens: [] });
+    expect(pageEntities[1]?.properties).toMatchObject(textPropertiesA);
 
     // Check text entity A was created with the correct properties & outgoing links
 
     const textEntityA = (await Entity.getEntityLatestVersion(db, {
-      accountId: pageEntities[1].accountId,
-      entityId: pageEntities[1].entityId,
+      accountId: pageEntities[1]!.accountId,
+      entityId: pageEntities[1]!.entityId,
     }))!;
 
     expect(textEntityA).not.toBeNull();
@@ -1134,11 +1132,11 @@ describe("logged in user ", () => {
 
     const [textEntityAOutgoingLink] = textEntityAOutgoingLinks;
 
-    expect(textEntityAOutgoingLink.stringifiedPath).toBe("$.textB");
+    expect(textEntityAOutgoingLink!.stringifiedPath).toBe("$.textB");
 
     // Check text entity B was created with the correct properties & outgoing links
 
-    const textEntityB = await textEntityAOutgoingLink.getDestination(db);
+    const textEntityB = await textEntityAOutgoingLink!.getDestination(db);
 
     expect(textEntityB.properties).toMatchObject(textPropertiesB);
 
@@ -1148,11 +1146,11 @@ describe("logged in user ", () => {
 
     const [textEntityBOutgoingLink] = textEntityBOutgoingLinks;
 
-    expect(textEntityBOutgoingLink.stringifiedPath).toBe("$.textC");
+    expect(textEntityBOutgoingLink!.stringifiedPath).toBe("$.textC");
 
     // Check text entity C was created with the correct properties & outgoing links
 
-    const textEntityC = await textEntityBOutgoingLink.getDestination(db);
+    const textEntityC = await textEntityBOutgoingLink!.getDestination(db);
 
     expect(textEntityC.properties).toMatchObject(textPropertiesC);
 
@@ -1249,9 +1247,7 @@ describe("logged in user ", () => {
               },
             ],
             properties: {
-              testPropertyString: {
-                type: "number",
-              },
+              testPropertyString: { type: "number" },
             },
           },
           name: `${schemaName}1`,
@@ -1261,14 +1257,14 @@ describe("logged in user ", () => {
       );
     });
 
-    let superType!: Pick<
+    let subType!: Pick<
       GQLEntityType,
       "entityId" | "properties" | "entityTypeName"
     >;
     it("allows schema that inherits with compatible property types", async () => {
-      const schemaName = "Schema invalid property inheritance";
+      const schemaName = "Schema valid property inheritance";
 
-      superType = await client.createEntityType({
+      subType = await client.createEntityType({
         accountId: existingUser.accountId,
         schema: {
           allOf: [
@@ -1277,14 +1273,12 @@ describe("logged in user ", () => {
             },
           ],
           properties: {
-            testPropertyString: {
-              type: "string",
-            },
+            testPropertyString: { type: "string" },
           },
         },
         name: `${schemaName}1`,
       });
-      expect(superType).toBeDefined();
+      expect(subType).toBeDefined();
     });
 
     it("rejects schema that inherits with incompatible property types deeper than top level", async () => {
@@ -1295,13 +1289,11 @@ describe("logged in user ", () => {
           schema: {
             allOf: [
               {
-                $ref: superType.properties.$id,
+                $ref: subType.properties.$id,
               },
             ],
             properties: {
-              testPropertyNumber: {
-                type: "string",
-              },
+              testPropertyNumber: { type: "string" },
             },
           },
           name: `${schemaName}1`,
@@ -1309,6 +1301,34 @@ describe("logged in user ", () => {
       ).rejects.toThrowError(
         /Type mismatch on ".+". Got "number" expected "string"/i,
       );
+    });
+
+    it("can get inheritance chain of a EntityType", async () => {
+      const schemaName = "ThreeLayerType";
+
+      const entityType = await client.createEntityType({
+        accountId: existingUser.accountId,
+        schema: {
+          allOf: [
+            {
+              $ref: subType.properties.$id,
+            },
+          ],
+          properties: {
+            anotherProp: { type: "string" },
+          },
+        },
+        name: `${schemaName}1`,
+      });
+
+      const fetched = await client.getEntityTypeAllParents({
+        entityTypeId: entityType.entityId,
+      });
+
+      const allParentEntityIds = fetched.ancestors?.map((x) => x.entityId);
+      expect(allParentEntityIds).toHaveLength(2);
+      expect(allParentEntityIds).toContain(testEntityType.entityId);
+      expect(allParentEntityIds).toContain(subType.entityId);
     });
   });
 
@@ -1656,8 +1676,8 @@ describe("logged in user ", () => {
 
     expect(withLinks.entityId).toEqual(entityWithLinks.entityId);
     expect(withLinks.linkedEntities.length).toEqual(1);
-    expect(withLinks.linkedEntities[0].entityTypeName).toEqual("Dummy-4");
-    expect(withLinks.linkedEntities[0].entityTypeId).toEqual(
+    expect(withLinks.linkedEntities[0]!.entityTypeName).toEqual("Dummy-4");
+    expect(withLinks.linkedEntities[0]!.entityTypeId).toEqual(
       linkedEntityType.entityId,
     );
   });

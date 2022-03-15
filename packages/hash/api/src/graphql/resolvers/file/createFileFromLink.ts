@@ -3,11 +3,11 @@ import { MutationCreateFileFromLinkArgs, Resolver } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
 import { File, UnresolvedGQLUnknownEntity } from "../../../model";
 
-function guessFileNameFromURL(url: string) {
+function guessFileNameFromURL(url: string): string {
   const fileNameRegex = /[^/\\&?]+\w+(?=([?&].*$|$))/;
   const fileName = url.match(fileNameRegex);
   if (fileName && fileName.length > 0) {
-    return fileName[0];
+    return fileName[0]!;
   } else {
     return genId();
   }

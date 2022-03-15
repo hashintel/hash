@@ -62,7 +62,7 @@ export const useBlockProtocolCreateLinks = (): {
           },
         });
         if (!data) {
-          throw new Error(`Could not create link: ${errors?.[0].message}`);
+          throw new Error(`Could not create link: ${errors?.[0]!.message}`);
         }
 
         results.push(data.createLink);

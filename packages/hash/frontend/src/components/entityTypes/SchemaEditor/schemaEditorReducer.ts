@@ -96,7 +96,7 @@ const getDependentProperties = (
     if (
       property?.$ref?.includes(subSchemaNameToDelete) ||
       (Array.isArray(property?.items)
-        ? property?.items[0].$ref?.includes(subSchemaNameToDelete)
+        ? property?.items[0]?.$ref?.includes(subSchemaNameToDelete)
         : property?.items?.$ref?.includes(subSchemaNameToDelete))
     ) {
       dependentProperties.push(prefix ? [prefix, propertyName] : propertyName);
@@ -205,8 +205,8 @@ export const schemaEditorReducer: Reducer<
           // Update the subschema property
           if (Array.isArray(dependentProperty)) {
             return updatePropertyType(
-              $defs![dependentProperty[0]],
-              dependentProperty[1],
+              $defs![dependentProperty[0]!]!,
+              dependentProperty[1]!,
               "string",
             );
           }
@@ -290,7 +290,7 @@ export const schemaEditorReducer: Reducer<
 
       return produce(schemaState, (draftRootSchema) => {
         const schemaToEdit = selectSubSchema(draftRootSchema, pathToSubSchema);
-        schemaToEdit.properties![propertyName].description =
+        schemaToEdit.properties![propertyName]!.description =
           newPropertyDescription;
       });
     }
@@ -308,7 +308,7 @@ export const schemaEditorReducer: Reducer<
         const schemaToEdit = selectSubSchema(draftRootSchema, pathToSubSchema);
         schemaToEdit.properties ??= {};
         schemaToEdit.properties[newPropertyName] =
-          schemaToEdit.properties[oldPropertyName];
+          schemaToEdit.properties[oldPropertyName]!;
         delete schemaToEdit.properties[oldPropertyName];
       });
     }

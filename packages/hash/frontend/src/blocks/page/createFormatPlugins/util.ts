@@ -57,7 +57,7 @@ export function updateLink(editorView: EditorView<Schema>, href: string) {
   const tr = state.tr.removeMark(from, to, linkMark);
 
   if (linkUrl && isValidLink(linkUrl)) {
-    const mark = state.schema.marks.link.create({
+    const mark = state.schema.marks.link!.create({
       href: linkUrl,
     });
 
@@ -108,7 +108,7 @@ export function removeLink(editorView: EditorView<Schema>) {
       let targetMark: Mark<Schema> | null = null;
 
       for (let idx = nodesBefore.length - 1; idx >= 0; idx--) {
-        const [pos, node] = nodesBefore[idx];
+        const [pos, node] = nodesBefore[idx]!;
 
         let linkMark: Mark<Schema<any, any>> | null;
 
@@ -129,7 +129,7 @@ export function removeLink(editorView: EditorView<Schema>) {
       }
 
       for (let idx = 0; idx < nodesAfter.length; idx++) {
-        const [pos, node] = nodesAfter[idx];
+        const [pos, node] = nodesAfter[idx]!;
 
         let linkMark: Mark<Schema<any, any>> | null;
 
@@ -165,19 +165,19 @@ export function linkInputRule() {
   return new InputRule<Schema>(
     new RegExp(`${urlRegexSafe({ returnString: true })}\\s$`),
     (state, match, start, end) => {
-      const attrs = { href: match[0].slice(0, -1) };
+      const attrs = { href: match[0]!.slice(0, -1) };
       const tr = state.tr;
       let newEnd = end;
 
       if (match[1]) {
-        const textStart = start + match[0].indexOf(match[1]);
+        const textStart = start + match[0]!.indexOf(match[1]);
         const textEnd = textStart + match[1].length;
         if (textEnd < newEnd) tr.delete(textEnd, newEnd);
         if (textStart > start) tr.delete(start, textStart);
         newEnd = start + match[1].length;
       }
 
-      tr.addMark(start, newEnd, state.schema.marks.link.create(attrs));
+      tr.addMark(start, newEnd, state.schema.marks.link!.create(attrs));
       // insert space at the end
       tr.insertText(" ", newEnd);
       return tr;

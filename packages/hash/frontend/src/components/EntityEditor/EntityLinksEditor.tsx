@@ -49,6 +49,7 @@ export const EntityLinksEditor: VoidFunctionComponent<
               link: linkDef,
               linkedEntity: linkedEntities.find(
                 ({ entityId, entityVersionId }) =>
+                  !("operation" in linkDef) &&
                   linkDef.destinationEntityId === entityId &&
                   (linkDef.destinationEntityVersionId == null ||
                     linkDef.destinationEntityVersionId === entityVersionId),
@@ -78,7 +79,7 @@ export const EntityLinksEditor: VoidFunctionComponent<
             <EntityFieldLinkEditor
               accountId={accountId}
               aggregateEntities={aggregateEntities}
-              entityTypeId={link.permittedTypeIds[0]} // @todo handle multiple permitted types
+              entityTypeId={link.permittedTypeIds[0]!} // @todo handle multiple permitted types
               allowsMultipleSelections={!!link.array}
               createLinkFromEntity={createLinkFromEntity}
               deleteLinkFromEntity={deleteLinkFromEntity}

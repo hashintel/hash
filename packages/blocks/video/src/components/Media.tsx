@@ -30,11 +30,6 @@ import { UploadMediaForm } from "./UploadMediaForm";
 // https://www.typescriptlang.org/docs/handbook/release-notes/overview.html#recursive-conditional-types
 type Awaited<T> = T extends PromiseLike<infer U> ? Awaited<U> : T;
 type FileType = Awaited<ReturnType<BlockProtocolUploadFileFunction>>;
-type UpdateEntitiesMediaAction = {
-  initialCaption?: string;
-  initialWidth?: number;
-  file?: FileType;
-};
 
 const useDefaultState = <
   T extends number | string | boolean | null | undefined,
@@ -96,8 +91,14 @@ function getLinkedEntities<T>(params: {
     sourceEntityId,
   });
 
-  if (!matchingLinkGroup) {
+  if (!matchingLinkGroup?.links?.[0]) {
     return null;
+  }
+
+  if (!("destinationEntityId" in matchingLinkGroup.links[0])) {
+    throw new Error(
+      "No destinationEntityId present in matched link - cannot find linked file entity.",
+    );
   }
 
   const destinationEntityId = matchingLinkGroup.links[0]?.destinationEntityId;
@@ -193,16 +194,15 @@ export const Media: BlockComponent<
     }) => {
       if (src?.trim()) {
         if (updateEntities && entityId) {
-          const updateAction: BlockProtocolUpdateEntitiesAction<UpdateEntitiesMediaAction> =
-            {
-              accountId,
-              data: {
-                initialCaption: draftCaption,
-              },
-              entityId,
-              entityTypeId,
-              entityTypeVersionId,
-            };
+          const updateAction: BlockProtocolUpdateEntitiesAction = {
+            accountId,
+            data: {
+              initialCaption: draftCaption,
+            },
+            entityId,
+            entityTypeId,
+            entityTypeVersionId,
+          };
 
           if (width && mediaType === "image") {
             updateAction.data.initialWidth = width;
@@ -279,7 +279,6 @@ export const Media: BlockComponent<
                 sourceAccountId: accountId,
                 sourceEntityId: entityId,
                 sourceEntityTypeId: entityTypeId,
-                sourceEntityTypeVersionId: entityTypeVersionId,
                 destinationEntityId: file.entityId,
                 destinationAccountId: file.accountId,
                 path: "$.file",
@@ -307,7 +306,6 @@ export const Media: BlockComponent<
       deleteLinks,
       entityId,
       entityTypeId,
-      entityTypeVersionId,
       linkGroups,
       loading,
       mediaType,

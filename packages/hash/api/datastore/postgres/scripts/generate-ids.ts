@@ -26,7 +26,7 @@ for (const [entityType, nameList] of Object.entries(requiredIds)) {
   for (const name of nameList) {
     const fixedId = genId();
     const firstVersionId = genId();
-    generatedIds[entityType][name] = {
+    generatedIds[entityType]![name] = {
       fixedId,
       firstVersionId,
     };

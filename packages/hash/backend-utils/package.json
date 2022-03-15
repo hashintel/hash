@@ -23,7 +23,7 @@
   "dependencies": {
     "@opensearch-project/opensearch": "1.0.0",
     "apollo-datasource": "3.3.0",
-    "blockprotocol": "0.0.1",
+    "blockprotocol": "0.0.7",
     "dotenv-flow": "3.2.0",
     "redis": "3.1.2",
     "slonik": "24.1.2",
@@ -36,6 +36,6 @@
     "@types/redis": "2.8.32",
     "@types/wait-on": "5.3.1",
     "rimraf": "^3.0.2",
-    "typescript": "4.5.5"
+    "typescript": "4.6.2"
   }
 }

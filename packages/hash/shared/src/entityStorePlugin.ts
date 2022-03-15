@@ -126,7 +126,7 @@ const updateEntitiesByDraftId = (
   draftId: string,
   updateHandler: (entity: Draft<DraftEntity>) => void,
 ) => {
-  const entities: Draft<DraftEntity>[] = [draftEntityStore[draftId]];
+  const entities: Draft<DraftEntity>[] = [draftEntityStore[draftId]!];
 
   for (const entity of Object.values(draftEntityStore)) {
     if (isDraftBlockEntity(entity)) {
@@ -605,7 +605,9 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
       return;
     }
 
-    if (getMeta(transactions[transactions.length - 1])?.disableInterpretation) {
+    if (
+      getMeta(transactions[transactions.length - 1]!)?.disableInterpretation
+    ) {
       return;
     }
 

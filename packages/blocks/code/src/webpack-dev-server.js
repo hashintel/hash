@@ -13,7 +13,6 @@ const node = document.getElementById("app");
 const initialData = {
   content: 'var foo = "bar";',
   language: "javascript",
-  caption: "",
 };
 
 const App = () => {
