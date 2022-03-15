@@ -1,4 +1,4 @@
-import { Components, Theme } from "@mui/material";
+import { Components, outlinedInputClasses, Theme } from "@mui/material";
 
 export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"] =
   {
