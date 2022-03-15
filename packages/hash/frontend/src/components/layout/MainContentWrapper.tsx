@@ -198,8 +198,20 @@ export const MainContentWrapper: FunctionComponent = ({ children }) => {
         <Box sx={{ display: "flex", alignItems: "flex-start" }}>
           <Button loading>Primary</Button>
           <Box sx={{ mr: 2 }} />
-          <Button variant="secondary" size="medium" loadingWithoutText>
+          <Button variant="secondary" size="medium" loading loadingWithoutText>
             Secondary
+          </Button>
+          <Box sx={{ mr: 2 }} />
+          <Button variant="tertiary" size="small" loading>
+            Secondary
+          </Button>
+          <Box sx={{ mr: 2 }} />
+          <Button variant="warning" size="small" loading loadingWithoutText>
+            Warning
+          </Button>
+          <Box sx={{ mr: 2 }} />
+          <Button variant="danger" size="small" loading>
+            Danger
           </Button>
           <Box sx={{ mr: 2 }} />
         </Box>

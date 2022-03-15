@@ -5,15 +5,52 @@ import {
   // eslint-disable-next-line no-restricted-imports
   Button as MuiButton,
   ButtonProps as MuiButtonProps,
+  CircularProgress,
+  circularProgressClasses,
+  Theme,
 } from "@mui/material";
 import { VFC, FC, forwardRef, useMemo } from "react";
-import { LoadingSpinnerIcon } from "./icons";
 import { isHrefExternal } from "./Link";
+
+const LOADING_SPINNER_THICKNESS = 4;
+
+export type ButtonProps = {
+  loading?: boolean;
+  loadingWithoutText?: boolean;
+  disabledTooltipText?: string;
+} & MuiButtonProps & { rel?: string; target?: string }; // MUI button renders <a /> when href is provided, but typings miss rel and target
+
+const mapVariantToLoadingIndicatorColour =
+  (variant: ButtonProps["variant"]) =>
+  ({ palette }: Theme) => {
+    switch (variant) {
+      case "tertiary":
+      case "tertiary_quiet":
+        return palette.gray[50];
+      default:
+        return "currentColor";
+    }
+  };
+
+const mapSizeToSpinnerSize = (size: ButtonProps["size"]) => {
+  switch (size) {
+    case "large":
+      return 20;
+    case "medium":
+      return 16;
+    case "xs":
+      return 12;
+    default:
+      return 16;
+  }
+};
 
 const LoadingContent: VFC<{
   withText: boolean;
-  isXS: boolean;
-}> = ({ withText, isXS }) => {
+  variant: ButtonProps["variant"];
+  size: ButtonProps["size"];
+}> = ({ withText, size, variant = "primary" }) => {
+  const spinnerSize = mapSizeToSpinnerSize(size);
   return (
     <Box
       sx={{
@@ -21,28 +58,41 @@ const LoadingContent: VFC<{
         alignItems: "center",
       }}
     >
-      <LoadingSpinnerIcon
-        sx={{
-          width: 16,
-          height: 16,
-          animation: "spin 1.1s linear infinite",
-          "@keyframes spin": {
-            "0%": {
-              transform: "rotate(0)",
+      <Box position="relative" height={spinnerSize} width={spinnerSize}>
+        <CircularProgress
+          variant="determinate"
+          sx={{
+            opacity: 0.2,
+            color: mapVariantToLoadingIndicatorColour(variant),
+            position: "absolute",
+            left: 0,
+          }}
+          size={spinnerSize}
+          thickness={LOADING_SPINNER_THICKNESS}
+          value={100}
+        />
+        <CircularProgress
+          variant="indeterminate"
+          disableShrink
+          sx={{
+            color: mapVariantToLoadingIndicatorColour(variant),
+            animationDuration: "750ms",
+            position: "absolute",
+            left: 0,
+            [`& .${circularProgressClasses.circle}`]: {
+              strokeLinecap: "round",
             },
-            "100%": {
-              transform: "rotate(360deg)",
-            },
-          },
-        }}
-      />
-
+          }}
+          size={spinnerSize}
+          thickness={LOADING_SPINNER_THICKNESS}
+        />
+      </Box>
       {withText && (
         <Box
           component="span"
           sx={{
             ml: "12px",
-            ...(isXS && { ml: "8px" }),
+            ...(size === "xs" && { ml: "8px" }),
           }}
         >
           Loading...
@@ -51,12 +101,6 @@ const LoadingContent: VFC<{
     </Box>
   );
 };
-
-export type ButtonProps = {
-  loading?: boolean;
-  loadingWithoutText?: boolean;
-  disabledTooltipText?: string;
-} & MuiButtonProps & { rel?: string; target?: string }; // MUI button renders <a /> when href is provided, but typings miss rel and target
 
 export const Button: FC<ButtonProps> = forwardRef(
   ({ children, loading, loadingWithoutText, href, ...props }, ref) => {
@@ -73,11 +117,20 @@ export const Button: FC<ButtonProps> = forwardRef(
     }, [href]);
 
     const Component = (
-      <MuiButton {...props} {...linkProps} ref={ref}>
+      <MuiButton
+        sx={{
+          ...(loading && { pointerEvents: "none" }),
+          ...props.sx,
+        }}
+        {...props}
+        {...linkProps}
+        ref={ref}
+      >
         {loading ? (
           <LoadingContent
             withText={!loadingWithoutText}
-            isXS={props.size === "xs"}
+            size={props.size}
+            variant={props.variant}
           />
         ) : (
           children
