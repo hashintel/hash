@@ -3,7 +3,7 @@ import { useRef } from "react";
 import { useKeys } from "rooks";
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
 
-import { SearchIcon, FontAwesomeSvgIcon } from "../../../icons";
+import { SearchIcon, FontAwesomeIcon } from "../../../icons";
 
 export const DesktopSearch: React.FC<{
   displayedQuery: string;
@@ -100,7 +100,7 @@ export const DesktopSearch: React.FC<{
                       setQueryText("");
                     }}
                   >
-                    <FontAwesomeSvgIcon icon={faXmark} />
+                    <FontAwesomeIcon icon={faXmark} />
                   </Box>
                 </Tooltip>
               </Box>

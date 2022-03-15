@@ -1,11 +1,14 @@
-import { Components, CSSObject, Theme } from "@mui/material";
+import { Components, CSSObject, Theme, buttonClasses } from "@mui/material";
 
-const buttonFocusBorderOffset = 4;
+const buttonFocusBorderOffset = 6;
 const buttonFocusBorderWidth = 3;
+const baseButtonBorderRadius = 4;
+const largeButtonBorderRadius = 6;
 
 export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
   defaultProps: {
     variant: "primary",
+    size: "medium",
     disableElevation: true,
     disableRipple: true,
     disableTouchRipple: true,
@@ -14,39 +17,49 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
     root: ({ ownerState, theme }) => {
       const { variant, size } = ownerState;
 
-      // The base CSS styling applied to the button
-      const baseStyles: CSSObject = {
+      /** ====================== INITIAL Button styles ============================= */
+
+      // base CSS styling applied to the button
+      let baseStyles: CSSObject = {
         textTransform: "none",
-        lineHeight: "24px",
+
+        [`& > .${buttonClasses.startIcon}, & > .${buttonClasses.endIcon}`]: {
+          color: "currentColor",
+        },
       };
 
-      // The :before CSS styling applied to the button
-      const beforeStyles: CSSObject = {
+      // :before CSS styling applied to the button
+      let beforeStyles: CSSObject = {
         content: `""`,
         borderRadius: "inherit",
         position: "absolute",
         width: "100%",
         height: "100%",
-        border: "1px solid transparent",
       };
 
-      // The :hover CSS styling applied to the button
-      const hoverStyles: CSSObject = {};
+      // :hover CSS styling applied to the button
+      let hoverStyles: CSSObject = {};
 
-      // The :hover:before CSS styling applied to the button
-      const hoverBeforeStyles: CSSObject = {};
+      // :hover:before CSS styling applied to the button
+      let hoverBeforeStyles: CSSObject = {};
 
-      // The .Mui-disabled CSS styling applied to the button
-      const disabledStyles: CSSObject = {};
+      // .Mui-disabled CSS styling applied to the button
+      const disabledStyles: CSSObject = {
+        background: theme.palette.gray[20],
+        color: theme.palette.gray[50],
+      };
 
       // The :active CSS styling applied to the button
       const activeStyles: CSSObject = {};
 
       // The :focus CSS styling applied to the button
-      const focusStyles: CSSObject = { outline: "none" };
+      let focusStyles: CSSObject = { outline: "none" };
 
-      // The :focus-visible:after CSS styling applied to the button
-      const focusVisibleAfterStyles: CSSObject = {
+      // :focus:before CSS styling applied to the button
+      let focusBeforeStyles: CSSObject = {};
+
+      // The :focus:after CSS styling applied to the button
+      const focusAfterStyles: CSSObject = {
         content: `""`,
         position: "absolute",
         left: -buttonFocusBorderOffset,
@@ -54,31 +67,28 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         bottom: -buttonFocusBorderOffset,
         right: -buttonFocusBorderOffset,
         border: `${buttonFocusBorderWidth}px solid`,
-        borderRadius: 6 + buttonFocusBorderOffset,
+        borderRadius:
+          (size === "large"
+            ? largeButtonBorderRadius
+            : baseButtonBorderRadius) + buttonFocusBorderOffset,
         borderColor: theme.palette.blue["70"],
       };
 
-      if (variant === "primary") {
-        /** ===== PRIMARY button specific styling ===== */
+      /** ====================== VARIANTS specific styling ============================= */
 
-        Object.assign(baseStyles, {
+      if (variant === "primary") {
+        /** ===== PRIMARY variant specific styling ===== */
+        baseStyles = {
+          ...baseStyles,
           color: theme.palette.common.white,
           background: theme.palette.blue[70],
-          backgroundColor: theme.palette.blue[70],
           position: "relative",
-          overflow: "hidden",
           zIndex: 0,
-          transition: "opacity 0.5s ease-in-out",
-          ...(size === "small" && {
-            padding: theme.spacing("8px", "20px"),
-          }),
-          ...(size === "medium" && {
-            padding: theme.spacing("12px", "28px"),
-            minHeight: 51,
-          }),
-        });
+          transition: theme.transitions.create("opacity"),
+        };
 
-        Object.assign(beforeStyles, {
+        beforeStyles = {
+          ...beforeStyles,
           position: "absolute",
           top: 0,
           width: "100%",
@@ -86,32 +96,190 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           opacity: 0,
           background:
             "linear-gradient(82.89deg, #9E56FA 5.64%, #644CFF 78.19%, #0070F4 121.05%)",
+          boxShadow: theme.boxShadows.purpleShadowMd,
+          transition: theme.transitions.create("opacity"),
           zIndex: -1,
-        });
+        };
 
-        Object.assign(hoverBeforeStyles, {
+        hoverStyles = {
+          ...hoverStyles,
+          background: theme.palette.blue[70],
+        };
+
+        hoverBeforeStyles = {
+          ...hoverBeforeStyles,
           opacity: 1,
-        });
-      } else if (variant === "tertiary_quiet") {
-        /** ===== TERTIARY button specific styling ===== */
+        };
 
-        Object.assign(baseStyles, {
-          color: theme.palette.gray[70],
-          fontWeight: 500,
+        focusStyles = {
+          ...focusStyles,
+          color: theme.palette.common.white,
+          background: theme.palette.blue[70],
+        };
+
+        focusBeforeStyles = {
+          ...focusBeforeStyles,
+          opacity: 0,
+        };
+      } else if (variant === "secondary") {
+        baseStyles = {
+          ...baseStyles,
+          borderWidth: 1,
+          borderStyle: "solid",
+          borderColor: theme.palette.blue[70],
+          color: theme.palette.blue[70],
           background: theme.palette.common.white,
-          "& > .MuiButton-startIcon, > .MuiButton-endIcon": {
-            color: theme.palette.gray[40],
-          },
-        });
+        };
 
-        Object.assign(hoverStyles, {
+        hoverStyles = {
+          ...hoverStyles,
+          background: theme.palette.blue[20],
+        };
+
+        focusStyles = {
+          color: theme.palette.blue[70],
+          background: theme.palette.common.white,
+        };
+      } else if (variant === "tertiary") {
+        /** ===== TERTIARY variant specific styling ===== */
+        baseStyles = {
+          ...baseStyles,
+          borderWidth: 1,
+          borderStyle: "solid",
+          borderColor: theme.palette.gray[30],
           color: theme.palette.gray[80],
-        });
+          background: theme.palette.common.white,
 
-        Object.assign(activeStyles, {
+          [`& > .${buttonClasses.startIcon}, & > .${buttonClasses.endIcon}`]: {
+            color: theme.palette.gray[50],
+          },
+        };
+
+        hoverStyles = {
+          ...hoverStyles,
           background: theme.palette.gray[20],
-        });
+          color: theme.palette.gray[90],
+
+          [`& > .${buttonClasses.startIcon}, & > .${buttonClasses.endIcon}`]: {
+            color: theme.palette.gray[80],
+          },
+        };
+
+        focusStyles = {
+          ...focusStyles,
+          color: theme.palette.gray[80],
+          background: theme.palette.common.white,
+
+          [`& > .${buttonClasses.startIcon}, & > .${buttonClasses.endIcon}`]: {
+            color: theme.palette.gray[50],
+          },
+        };
+      } else if (variant === "tertiary_quiet") {
+        /** ===== TERTIARY QUIET variant specific styling ===== */
+        baseStyles = {
+          ...baseStyles,
+          border: `1px solid transparent`,
+          color: theme.palette.gray[70],
+          background: theme.palette.common.white,
+
+          [`& > .${buttonClasses.startIcon}, & > .${buttonClasses.endIcon}`]: {
+            color: theme.palette.gray[50],
+          },
+        };
+
+        hoverStyles = {
+          ...hoverStyles,
+          background: theme.palette.gray[20],
+          color: theme.palette.gray[80],
+
+          [`& > .${buttonClasses.startIcon}, & > .${buttonClasses.endIcon}`]: {
+            color: theme.palette.gray[80],
+          },
+        };
+
+        focusStyles = {
+          ...focusStyles,
+          color: theme.palette.gray[80],
+          background: theme.palette.common.white,
+
+          [`& > .${buttonClasses.startIcon}, & > .${buttonClasses.endIcon}`]: {
+            color: theme.palette.gray[50],
+          },
+        };
+      } else if (variant === "warning") {
+        /** ===== WARNING variant specific styling ===== */
+        baseStyles = {
+          ...baseStyles,
+          color: theme.palette.orange[90],
+          background: theme.palette.orange[40],
+        };
+
+        hoverStyles = {
+          ...hoverStyles,
+          background: theme.palette.orange[50],
+          color: theme.palette.orange[100],
+        };
+
+        focusStyles = {
+          ...focusStyles,
+          color: theme.palette.orange[90],
+          background: theme.palette.orange[40],
+        };
+      } else if (variant === "danger") {
+        /** ===== DANGER variant specific styling ===== */
+        baseStyles = {
+          ...baseStyles,
+          color: theme.palette.common.white,
+          background: theme.palette.red[60],
+        };
+
+        hoverStyles = {
+          ...hoverStyles,
+          background: theme.palette.red[70],
+        };
+
+        focusStyles = {
+          ...focusStyles,
+          color: theme.palette.common.white,
+          background: theme.palette.red[60],
+        };
       }
+
+      /** ====================== SIZE specific styling ============================= */
+
+      baseStyles = {
+        ...baseStyles,
+        borderRadius: `${baseButtonBorderRadius}px`,
+        ...(size === "large" && {
+          padding: "16px 32px",
+          minHeight: 56,
+          minWidth: 120,
+          borderRadius: `${largeButtonBorderRadius}px`,
+          ...theme.typography.largeTextLabels,
+        }),
+        ...(size === "medium" && {
+          padding: "12px 20px",
+          minHeight: 48,
+          minWidth: 104,
+          ...theme.typography.regularTextLabels,
+        }),
+        ...(size === "small" && {
+          padding: "12px 20px",
+          minHeight: 42,
+          minWidth: 78,
+          ...theme.typography.smallTextLabels,
+        }),
+        ...(size === "xs" && {
+          padding: "8px 16px",
+          minHeight: 34,
+          minWidth: 52,
+          ...theme.typography.smallTextLabels,
+        }),
+        fontWeight: 600,
+        ...(["tertiary", "tertiary_quiet"].includes(variant || "primary") && {
+          fontWeight: 500,
+        }),
+      };
 
       return {
         ...baseStyles,
@@ -120,8 +288,9 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         "&:hover:before": hoverBeforeStyles,
         ":active": activeStyles,
         "&.Mui-disabled": disabledStyles,
-        ":focus-visible:after": focusVisibleAfterStyles,
         ":focus": focusStyles,
+        ":focus:before": focusBeforeStyles,
+        ":focus:after": focusAfterStyles,
       };
     },
     endIcon: {

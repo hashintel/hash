@@ -2,7 +2,6 @@ import { useCallback, useState, useRef } from "react";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
-  IconButton,
   ListItemButton,
   Typography,
   useMediaQuery,
@@ -11,8 +10,9 @@ import {
 import { useKeys } from "rooks";
 import { useRouter } from "next/router";
 
-import { FontAwesomeSvgIcon } from "../../icons";
+import { FontAwesomeIcon } from "../../icons";
 import { Popover } from "../../Popover";
+import { IconButton } from "../../IconButton";
 import { Link } from "../../Link";
 import { CreatePageModal } from "../../Modals/CreatePageModal";
 
@@ -54,14 +54,13 @@ export const ActionsDropdown: React.FC<{
   return (
     <Box>
       <IconButton
+        size="medium"
+        rounded
         sx={{
           mr: {
             xs: 1,
             md: 1.5,
           },
-          width: "32px",
-          height: "32px",
-          borderRadius: "100%",
           color: open ? theme.palette.common.white : theme.palette.gray[40],
           backgroundColor: open
             ? theme.palette.blue["70"]
@@ -74,7 +73,7 @@ export const ActionsDropdown: React.FC<{
         ref={buttonRef}
         onClick={() => setOpen(!open)}
       >
-        <FontAwesomeSvgIcon icon={faPlus} />
+        <FontAwesomeIcon icon={faPlus} />
       </IconButton>
 
       <CreatePageModal

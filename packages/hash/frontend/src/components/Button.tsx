@@ -1,100 +1,120 @@
+// eslint-disable-next-line no-restricted-imports
+import Link from "next/link";
 import {
   Box,
   // eslint-disable-next-line no-restricted-imports
   Button as MuiButton,
   ButtonProps as MuiButtonProps,
+  useTheme,
 } from "@mui/material";
-import { FC, forwardRef } from "react";
-
-// @todo-mui update this to match the loading state in the design
-// inspired by https://github.com/loadingio/css-spinner/blob/master/src/ellipsis/index.styl
-const loadingAnimation = (
-  <Box
-    sx={{
-      display: "inline-block",
-      position: "relative",
-      width: 80,
-      height: 13,
-      "> div": {
-        position: "absolute",
-        top: 0,
-        width: 12,
-        height: 12,
-        borderRadius: "50%",
-        background: "currentColor",
-        animationTimingFunction: "cubic-bezier(0, 1, 1, 0)",
-        "&:nth-child(1)": {
-          left: 8,
-          animation: "lds-ellipsis1 0.6s infinite",
-        },
-        "&:nth-child(2)": {
-          left: 8,
-          animation: "lds-ellipsis2 0.6s infinite",
-        },
-        "&:nth-child(3)": {
-          left: 32,
-          animation: "lds-ellipsis2 0.6s infinite",
-        },
-        "&:nth-child(4)": {
-          left: 56,
-          animation: "lds-ellipsis3 0.6s infinite",
-        },
-      },
-      "@keyframes lds-ellipsis1": {
-        "0%": {
-          transform: "scale(0)",
-        },
-        "100%": {
-          transform: "scale(1)",
-        },
-      },
-      "@keyframes lds-ellipsis3": {
-        "0%": {
-          transform: "scale(1)",
-        },
-        "100%": {
-          transform: "scale(0)",
-        },
-      },
-      "@keyframes lds-ellipsis2": {
-        "0%": {
-          transform: "translate(0, 0)",
-        },
-        "100%": {
-          transform: "translate(24px, 0)",
-        },
-      },
-    }}
-  >
-    <div />
-    <div />
-    <div />
-    <div />
-  </Box>
-);
+import { VFC, FC, forwardRef, useMemo } from "react";
+import { isHrefExternal } from "./Link";
+import { LoadingSpinner } from "./LoadingSpinner";
 
 export type ButtonProps = {
-  squared?: boolean;
   loading?: boolean;
+  loadingWithoutText?: boolean;
+  disabledTooltipText?: string;
 } & MuiButtonProps & { rel?: string; target?: string }; // MUI button renders <a /> when href is provided, but typings miss rel and target
 
+const LoadingContent: VFC<{
+  withText: boolean;
+  variant: ButtonProps["variant"];
+  size: ButtonProps["size"];
+}> = ({ withText, size, variant = "primary" }) => {
+  const theme = useTheme();
+
+  const spinnerSize = useMemo(() => {
+    switch (size) {
+      case "large":
+        return 20;
+      case "medium":
+        return 16;
+      case "xs":
+        return 12;
+      default:
+        return 16;
+    }
+  }, [size]);
+
+  const spinnerColor = useMemo(() => {
+    switch (variant) {
+      case "tertiary":
+      case "tertiary_quiet":
+        return theme.palette.gray[50];
+      default:
+        return "currentColor";
+    }
+  }, [theme, variant]);
+
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+      }}
+    >
+      <LoadingSpinner color={spinnerColor} size={spinnerSize} thickness={4} />
+
+      {withText && (
+        <Box
+          component="span"
+          sx={{
+            ml: "12px",
+            ...(size === "xs" && { ml: "8px" }),
+          }}
+        >
+          Loading...
+        </Box>
+      )}
+    </Box>
+  );
+};
+
 export const Button: FC<ButtonProps> = forwardRef(
-  ({ children, squared, loading, ...props }, ref) => {
-    return (
+  ({ children, loading, loadingWithoutText, href, ...props }, ref) => {
+    const linkProps = useMemo(() => {
+      if (href && isHrefExternal(href)) {
+        return {
+          rel: "noopener",
+          target: "_blank",
+          href,
+        };
+      }
+
+      return {};
+    }, [href]);
+
+    const Component = (
       <MuiButton
-        {...props}
         sx={{
-          borderRadius: squared ? "6px" : undefined,
+          ...(loading && { pointerEvents: "none" }),
           ...props.sx,
-          lineHeight: "1.5",
-          ...(squared
-            ? { ":focus-visible:after": { borderRadius: 3 } }
-            : undefined),
         }}
+        {...props}
+        {...linkProps}
         ref={ref}
       >
-        {loading ? loadingAnimation : children}
+        {loading ? (
+          <LoadingContent
+            withText={!loadingWithoutText}
+            size={props.size}
+            variant={props.variant}
+          />
+        ) : (
+          children
+        )}
       </MuiButton>
     );
+
+    if (href && !isHrefExternal(href)) {
+      return (
+        <Link href={href} passHref>
+          {Component}
+        </Link>
+      );
+    }
+
+    return Component;
   },
 );
