@@ -106,7 +106,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
                   color: palette.common.white,
                 })}
               >
-                {user.properties.preferredName![0].toUpperCase()}
+                {user.properties.preferredName![0]!.toUpperCase()}
               </Typography>
             </Box>
           )}
