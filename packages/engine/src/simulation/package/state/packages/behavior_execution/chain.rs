@@ -29,8 +29,8 @@ pub fn pool_behavior_list_bytes_iter<'a, B: Deref<Target = AgentBatch>>(
 ) -> Result<impl Iterator<Item = Vec<&[u8]>> + 'a> {
     let mut iterables = Vec::with_capacity(agent_pool.len());
 
-    for agent_batch in agent_pool {
-        let iterable = behavior_list_bytes_iter(agent_batch.record_batch()?)?;
+    for agent_group in agent_pool {
+        let iterable = behavior_list_bytes_iter(agent_group.batch.record_batch()?)?;
         iterables.push(iterable);
     }
     Ok(iterables.into_iter().flatten())

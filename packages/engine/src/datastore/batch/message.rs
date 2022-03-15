@@ -72,7 +72,7 @@ impl MessageBatch {
         }
 
         let agent_count = agent_group.num_agents();
-        let agent_record_batch = agent_group.record_batch()?; // Agent batch must be up to date
+        let agent_record_batch = agent_group.batch.record_batch()?; // Agent batch must be up to date
         let column_name = AgentStateField::AgentId.name();
         let id_column = super::iterators::column_with_name(agent_record_batch, column_name)?;
         let empty_message_column = message::empty_messages_column(agent_count).map(Arc::new)?;
@@ -137,13 +137,13 @@ impl MessageBatch {
     }
 
     pub fn empty_from_agent_batch(
-        agent_batch: &AgentBatch,
+        agent_group: &AgentBatch,
         schema: &Arc<ArrowSchema>,
         meta: Arc<StaticMeta>,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
-        let agent_count = agent_batch.num_agents();
-        let agent_record_batch = agent_batch.record_batch()?;
+        let agent_count = agent_group.num_agents();
+        let agent_record_batch = agent_group.batch.record_batch()?;
         let column_name = AgentStateField::AgentId.name();
         let id_column = super::iterators::column_with_name(agent_record_batch, column_name)?;
         let empty_message_column = message::empty_messages_column(agent_count).map(Arc::new)?;

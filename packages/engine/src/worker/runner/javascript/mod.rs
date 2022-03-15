@@ -339,28 +339,26 @@ fn batch_to_js<'m>(
 
 fn state_to_js<'m, 'a, 'b>(
     mv8: &'m MiniV8,
-    agent_batches: impl Iterator<Item = &'a AgentBatch>,
-    msg_batches: impl Iterator<Item = &'b MessageBatch>,
+    agent_groups: impl Iterator<Item = &'a AgentBatch>,
+    message_groups: impl Iterator<Item = &'b MessageBatch>,
 ) -> Result<(mv8::Value<'m>, mv8::Value<'m>)> {
     let js_agent_batches = mv8.create_array();
     let js_message_groups = mv8.create_array();
 
-    for (i_batch, (agent_batch, message_batch)) in agent_batches
-        .into_iter()
-        .zip(msg_batches.into_iter())
-        .enumerate()
+    for (i_batch, (agent_group, message_group)) in
+        agent_groups.into_iter().zip(message_groups).enumerate()
     {
-        let agent_batch = batch_to_js(
+        let agent_group = batch_to_js(
             mv8,
-            agent_batch.memory(),
-            agent_batch.persisted_metaversion(),
+            agent_group.batch.memory(),
+            agent_group.batch.persisted_metaversion(),
         )?;
-        js_agent_batches.set(i_batch as u32, agent_batch)?;
+        js_agent_batches.set(i_batch as u32, agent_group)?;
 
         let message_group = batch_to_js(
             mv8,
-            message_batch.batch.memory(),
-            message_batch.batch.persisted_metaversion(),
+            message_group.batch.memory(),
+            message_group.batch.persisted_metaversion(),
         )?;
         js_message_groups.set(i_batch as u32, message_group)?;
     }
@@ -936,10 +934,11 @@ impl<'m> RunnerImpl<'m> {
         self.flush_batch(
             mv8,
             agent_changes,
-            state_proxy
+            &mut state_proxy
                 .agent_pool_mut()
                 .batch_mut(i_proxy)
-                .ok_or_else(|| format!("Could not access batch at index {i_proxy}"))?,
+                .ok_or_else(|| format!("Could not access batch at index {i_proxy}"))?
+                .batch,
             agent_schema,
         )?;
 

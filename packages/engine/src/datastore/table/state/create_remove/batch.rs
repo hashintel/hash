@@ -39,11 +39,11 @@ impl PendingBatch {
 
     pub fn from_batch(
         batch_index: usize,
-        batch: &AgentBatch,
+        agent_group: &AgentBatch,
         remove_ids: &mut HashSet<[u8; UUID_V4_LEN]>,
     ) -> Result<PendingBatch> {
         let mut remove_indices = vec![];
-        record_batch::agent_id_iter(batch.record_batch()?)?
+        record_batch::agent_id_iter(agent_group.batch.record_batch()?)?
             .enumerate()
             .try_for_each::<_, Result<()>>(|(row_index, id)| {
                 if remove_ids.remove(id) {
@@ -54,14 +54,14 @@ impl PendingBatch {
         let remove_indices_len = remove_indices.len();
         let old_batch = BaseBatch {
             index: batch_index,
-            worker: batch.worker_index,
+            worker: agent_group.worker_index,
             remove_indices,
         };
 
         Ok(PendingBatch {
             base: Some(old_batch),
             num_inbound: 0,
-            num_agents: batch.num_agents() - remove_indices_len,
+            num_agents: agent_group.num_agents() - remove_indices_len,
         })
     }
 

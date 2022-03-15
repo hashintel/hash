@@ -61,6 +61,7 @@ impl<'a> MigrationPlan<'a> {
                     state
                         .agent_pool
                         .swap_remove(batch_index)
+                        .batch
                         .segment_id()
                         .to_string(),
                 );

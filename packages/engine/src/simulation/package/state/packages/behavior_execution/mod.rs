@@ -185,8 +185,10 @@ impl BehaviorExecution {
         &self,
         agent_batches: &[B],
     ) -> Result<Option<Language>> {
-        for batch in agent_batches.iter() {
-            for agent_behaviors in chain::behavior_list_bytes_iter(batch.record_batch()?)? {
+        for agent_pool in agent_batches.iter() {
+            for agent_behaviors in
+                chain::behavior_list_bytes_iter(agent_pool.batch.record_batch()?)?
+            {
                 if agent_behaviors.is_empty() {
                     continue;
                 }

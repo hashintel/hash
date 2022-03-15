@@ -43,11 +43,11 @@ impl PoolWriteProxy<AgentBatch> {
     /// TODO: DOC
     pub fn modify_loaded_column(&mut self, column: StateColumn) -> Result<()> {
         let mut group_start = 0;
-        for batch in self.batches_iter_mut() {
-            let num_agents = batch.num_agents();
+        for agent_group in self.batches_iter_mut() {
+            let num_agents = agent_group.num_agents();
             let next_start = group_start + num_agents;
             let change = column.get_arrow_change(group_start..next_start)?;
-            batch.queue_change(change)?;
+            agent_group.batch.queue_change(change)?;
             group_start = next_start;
         }
         Ok(())
@@ -55,8 +55,8 @@ impl PoolWriteProxy<AgentBatch> {
 
     /// Calls [`Batch::flush_changes()`] on all batches in this proxy.
     pub fn flush_pending_columns(&mut self) -> Result<()> {
-        for batch in self.batches_iter_mut() {
-            batch.flush_changes()?;
+        for agent_group in self.batches_iter_mut() {
+            agent_group.batch.flush_changes()?;
         }
         Ok(())
     }

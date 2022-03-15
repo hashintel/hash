@@ -302,7 +302,7 @@ fn state_sync_to_fbs<'f>(
     let agent_pool_offset: Vec<_> = state_proxy
         .agent_proxies
         .batches_iter()
-        .map(|batch| batch_to_fbs(fbb, batch))
+        .map(|agent_group| batch_to_fbs(fbb, &agent_group.batch))
         .collect();
     let agent_pool_forward_offset = fbb.create_vector(&agent_pool_offset);
 
@@ -328,7 +328,7 @@ fn shared_store_to_fbs<'f>(
                 .agent_pool()
                 .batches()
                 .iter()
-                .map(|b| batch_to_fbs(fbb, b))
+                .map(|agent_group| batch_to_fbs(fbb, &agent_group.batch))
                 .collect();
             let m: Vec<_> = state
                 .message_pool()
@@ -345,7 +345,7 @@ fn shared_store_to_fbs<'f>(
                 .agent_pool()
                 .batches()
                 .iter()
-                .map(|b| batch_to_fbs(fbb, b))
+                .map(|agent_group| batch_to_fbs(fbb, &agent_group.batch))
                 .collect();
             let m: Vec<_> = state
                 .message_pool()
@@ -364,7 +364,7 @@ fn shared_store_to_fbs<'f>(
                     .agent_pool()
                     .batches()
                     .iter()
-                    .map(|b| batch_to_fbs(fbb, b))
+                    .map(|agent_group| batch_to_fbs(fbb, &agent_group.batch))
                     .collect();
                 let m: Vec<_> = state
                     .message_pool()
@@ -381,7 +381,7 @@ fn shared_store_to_fbs<'f>(
                     .agent_pool()
                     .batches()
                     .iter()
-                    .map(|b| batch_to_fbs(fbb, b))
+                    .map(|agent_group| batch_to_fbs(fbb, &agent_group.batch))
                     .collect();
                 let m: Vec<_> = state
                     .message_pool()
