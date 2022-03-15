@@ -4,6 +4,7 @@
 declare module "@mui/material/styles" {
   interface Palette {
     white: string;
+    black: string;
     purple: {
       600: string;
     };
@@ -89,8 +90,8 @@ declare module "@mui/material/Typography" {
 
 declare module "@mui/material/Button" {
   interface ButtonPropsVariantOverrides {
-    transparent: true;
     primary: true;
+    primarySquare: true;
     secondary: true;
     tertiary: true;
     // Disable defaults

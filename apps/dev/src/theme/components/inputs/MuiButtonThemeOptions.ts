@@ -6,6 +6,7 @@ import { Components, CSSObject, Theme } from "@mui/material";
 const buttonFocusBorderOffset = 6;
 const buttonFocusBorderWidth = 2;
 
+// @todo focus border radius needs fixing
 export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
   defaultProps: {
     variant: "primary",
@@ -17,6 +18,10 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
   styleOverrides: {
     root: ({ ownerState, theme }) => {
       const { variant, size } = ownerState;
+
+      if (variant === "primarySquare" && size !== "large") {
+        throw new Error("primarySquare buttons must be large");
+      }
 
       const { typography } = theme;
 
@@ -53,17 +58,49 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
 
       switch (size) {
         case "large": {
-          const borderRadius = 29;
-          Object.assign(baseStyles, {
-            fontSize: typography.bpBodyCopy.fontSize,
-            borderRadius,
-            minHeight: 54,
-            padding: theme.spacing("14px", "37.5px"),
-          });
-          Object.assign(afterStyles, {
-            borderRadius:
-              borderRadius + buttonFocusBorderOffset + buttonFocusBorderWidth,
-          });
+          if (variant === "primarySquare") {
+            // @todo use palette colour
+            const boxShadow = "inset 0px -2px 6px rgba(231, 162, 89, 0.5)";
+            const borderRadius = 4;
+
+            Object.assign(baseStyles, {
+              borderRadius,
+              borderWidth: 1,
+              borderColor: theme.palette.orange[400],
+              color: theme.palette.gray[90],
+              backgroundColor: theme.palette.white,
+              padding: theme.spacing("24px", "31px"),
+              fontSize: typography.bpBodyCopy.fontSize,
+              fontWeight: 400,
+              boxShadow,
+              minHeight: 72,
+            });
+            Object.assign(hoverStyles, {
+              backgroundColor: theme.palette.yellow[100],
+              color: theme.palette.black,
+              boxShadow,
+            });
+            Object.assign(afterStyles, {
+              borderRadius:
+                borderRadius + buttonFocusBorderOffset + buttonFocusBorderWidth,
+            });
+            Object.assign(focusVisibleAfterStyles, {
+              borderColor: theme.palette.yellow[800],
+            });
+          } else {
+            const borderRadius = 29;
+            Object.assign(baseStyles, {
+              fontSize: typography.bpBodyCopy.fontSize,
+              borderRadius,
+              minHeight: 54,
+              padding: theme.spacing("14px", "37.5px"),
+            });
+            Object.assign(afterStyles, {
+              borderRadius:
+                borderRadius + buttonFocusBorderOffset + buttonFocusBorderWidth,
+            });
+          }
+
           break;
         }
         case "medium": {
@@ -81,7 +118,6 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           break;
         }
       }
-
       switch (variant) {
         case "primary": {
           /** ===== PRIMARY button specific styling ===== */
@@ -104,12 +140,33 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         case "secondary": {
           Object.assign(baseStyles, {
             fontWeight: 600,
+            color: theme.palette.orange[800],
+            backgroundColor: theme.palette.white,
+            borderColor: theme.palette.yellow[300],
+          });
+          Object.assign(hoverStyles, {
+            color: theme.palette.orange[900],
+            backgroundColor: theme.palette.yellow[100],
+            borderColor: theme.palette.yellow[400],
+          });
+          Object.assign(focusVisibleAfterStyles, {
+            borderColor: theme.palette.yellow[800],
           });
           break;
         }
         case "tertiary": {
           Object.assign(baseStyles, {
             fontWeight: 500,
+            color: theme.palette.gray[70],
+            backgroundColor: theme.palette.gray[10],
+            borderColor: "transparent",
+          });
+          Object.assign(hoverStyles, {
+            color: theme.palette.gray[80],
+            backgroundColor: theme.palette.gray[20],
+          });
+          Object.assign(focusVisibleAfterStyles, {
+            borderColor: theme.palette.yellow[800],
           });
           break;
         }
