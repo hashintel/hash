@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::Deref};
+use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
@@ -63,8 +63,8 @@ impl BehaviorIds {
         })
     }
 
-    pub fn get_index<K: Deref<Target = [u8]>>(&self, key: &K) -> Option<&BehaviorId> {
-        self.name_to_index.get(key.deref())
+    pub fn get_index(&self, key: &[u8]) -> Option<&BehaviorId> {
+        self.name_to_index.get(key)
     }
 
     // TODO: UNUSED: Needs triage

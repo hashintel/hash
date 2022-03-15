@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use reset_index_col::reset_index_col;
 use serde_json::Value;
 
@@ -181,10 +179,7 @@ impl BehaviorExecution {
     }
 
     /// Iterate over languages of first behaviors to choose first language runner to send task to
-    fn get_first_lang<B: Deref<Target = AgentBatch>>(
-        &self,
-        agent_batches: &[B],
-    ) -> Result<Option<Language>> {
+    fn get_first_lang(&self, agent_batches: &[&AgentBatch]) -> Result<Option<Language>> {
         for agent_pool in agent_batches.iter() {
             for agent_behaviors in
                 chain::behavior_list_bytes_iter(agent_pool.batch.record_batch()?)?

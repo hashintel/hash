@@ -1,6 +1,6 @@
 #![allow(clippy::cast_sign_loss, clippy::cast_ptr_alignment)]
 
-use std::{borrow::Cow, mem, ops::Deref, sync::Arc};
+use std::{borrow::Cow, mem, sync::Arc};
 
 use arrow::util::bit_util;
 
@@ -461,15 +461,15 @@ impl<'a> BufferActions<'a> {
     }
 
     #[allow(clippy::too_many_lines, clippy::too_many_arguments)]
-    fn traverse_nodes<'b, B: Deref<Target = AgentBatch>>(
+    fn traverse_nodes<'b>(
         mut next_state: NextState,
         children_meta: &NodeMapping,
         column_meta: &ColumnMeta,
         static_meta: &StaticMeta,
         dynamic_meta: Option<&DynamicMeta>,
         parent_range_actions: &RangeActions,
-        agent_group: Option<&B>,
-        agent_groups: &[B],
+        agent_group: Option<&AgentBatch>,
+        agent_groups: &[&AgentBatch],
         new_agents: Option<&'b arrow::array::ArrayData>,
         actions: &mut Vec<BufferAction<'b>>,
         buffer_metas: &mut Vec<Buffer>,
@@ -1028,14 +1028,14 @@ impl<'a> BufferActions<'a> {
     }
 
     #[allow(clippy::too_many_lines)]
-    pub fn from<B: Deref<Target = AgentBatch>>(
-        agent_groups: &[B],
+    pub fn from(
+        agent_groups: &[&AgentBatch],
         batch_index: Option<usize>,
         base_range_actions: RangeActions,
         static_meta: &StaticMeta,
         new_agents: Option<&'a RecordBatch>,
     ) -> Result<BufferActions<'a>> {
-        let agent_group = batch_index.map(|index| &agent_groups[index]);
+        let agent_group = batch_index.map(|index| agent_groups[index]);
         let dynamic_meta = batch_index.map(|index| agent_groups[index].batch.dynamic_meta());
         let mut next_indices = NextState {
             node_index: 0,
