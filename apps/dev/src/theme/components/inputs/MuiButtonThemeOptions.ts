@@ -1,6 +1,3 @@
-/**
- * @todo update from blockprotocol
- */
 import { Components, CSSObject, Theme } from "@mui/material";
 
 const buttonFocusBorderOffset = 6;
@@ -62,7 +59,6 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
 
       const hoverStyles: CSSObject = {};
 
-      // @todo set these
       const disabledStyles: CSSObject = {
         backgroundColor: theme.palette.gray[20],
         borderColor: theme.palette.gray[20],
