@@ -15,6 +15,7 @@ import { Popover } from "../../Popover";
 import { IconButton } from "../../IconButton";
 import { Link } from "../../Link";
 import { CreatePageModal } from "../../Modals/CreatePageModal";
+import { useModal } from "react-modal-hook";
 
 export const ActionsDropdown: React.FC<{
   accountId: string;
@@ -30,25 +31,13 @@ export const ActionsDropdown: React.FC<{
 
   const id = open ? "actions-popover" : undefined;
 
-  const [createPageOpen, setCreatePageOpen] = useState(false);
-
-  const closeCreatePage = useCallback(() => {
-    // Prevent the bug of closing a non-existing modal
-    if (createPageOpen) {
-      setCreatePageOpen(false);
-    }
-  }, [createPageOpen]);
+  const [showCreatePageModal, hideCreatePageModal] = useModal(() => (
+    <CreatePageModal accountId={accountId} show onClose={hideCreatePageModal} />
+  ));
 
   const newEntityTypeRoute = `/${accountId}/types/new`;
 
-  const showCreatePage = () => {
-    setCreatePageOpen(true);
-    if (open) {
-      setOpen(false);
-    }
-  };
-
-  useKeys(["AltLeft", "KeyP"], showCreatePage);
+  useKeys(["AltLeft", "KeyP"], showCreatePageModal);
   useKeys(["AltLeft", "KeyT"], () => router.push(newEntityTypeRoute));
 
   return (
@@ -71,12 +60,6 @@ export const ActionsDropdown: React.FC<{
       >
         <FontAwesomeIcon icon={faPlus} />
       </IconButton>
-
-      <CreatePageModal
-        show={createPageOpen}
-        close={closeCreatePage}
-        accountId={accountId}
-      />
 
       <Popover
         id={id}
@@ -111,7 +94,7 @@ export const ActionsDropdown: React.FC<{
               display: "flex",
               justifyContent: "space-between",
             }}
-            onClick={showCreatePage}
+            onClick={showCreatePageModal}
           >
             <Typography variant="smallTextLabels">Create page</Typography>
             {!isMobile && <Typography variant="microText">Opt + P</Typography>}

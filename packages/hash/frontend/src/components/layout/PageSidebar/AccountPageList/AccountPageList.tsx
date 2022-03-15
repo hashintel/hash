@@ -1,13 +1,16 @@
 import React, { VoidFunctionComponent, SyntheticEvent, useMemo } from "react";
-// import Link from "next/link";
 
 import { treeFromParentReferences } from "@hashintel/hash-shared/util";
 import { TreeView } from "@mui/lab";
 import { useRouter } from "next/router";
-import { CreatePageButton } from "./CreatePageButton";
+import { useModal } from "react-modal-hook";
+import { faAdd } from "@fortawesome/free-solid-svg-icons";
+import { IconButton, Tooltip } from "@mui/material";
 import { useAccountPages } from "../../../hooks/useAccountPages";
 import { NavLink } from "../NavLink";
 import { PageTreeItem } from "./PageTreeItem";
+import { CreatePageModal } from "../../../Modals/CreatePageModal";
+import { FontAwesomeIcon } from "../../../icons";
 
 type AccountPageListProps = {
   accountId: string;
@@ -23,7 +26,7 @@ type TreeElement = {
 
 const renderTree = (node: TreeElement) => (
   <PageTreeItem
-    hasChildren={node.children ? node.children.length > 1 : false}
+    hasChildren={node.children ? node.children.length >= 1 : false}
     key={node.entityId}
     nodeId={node.entityId}
     label={node.title}
@@ -40,6 +43,9 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
 }) => {
   const { data } = useAccountPages(accountId);
   const router = useRouter();
+  const [showCreatePageModal, hideCreatePageModal] = useModal(() => (
+    <CreatePageModal accountId={accountId} show onClose={hideCreatePageModal} />
+  ));
 
   const formattedData = useMemo(
     () =>
@@ -56,7 +62,16 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
   return (
     <NavLink
       title="Pages"
-      endAdornment={<CreatePageButton accountId={accountId} />}
+      endAdornment={
+        <Tooltip title="Create new page">
+          <IconButton
+            data-testid="create-page-btn"
+            onClick={showCreatePageModal}
+          >
+            <FontAwesomeIcon icon={faAdd} />
+          </IconButton>
+        </Tooltip>
+      }
     >
       <TreeView
         data-testid="pages-tree"

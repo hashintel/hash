@@ -1,14 +1,15 @@
 import { useMemo, VFC } from "react";
 
-import { Typography, Box } from "@mui/material";
+import { Typography, Box, Tooltip, IconButton } from "@mui/material";
+import { faAdd } from "@fortawesome/free-solid-svg-icons";
 // import { faSearch, faArrowUpAZ } from "@fortawesome/free-solid-svg-icons";
 // import { orderBy } from "lodash";
+import { useRouter } from "next/router";
 import { useAccountEntityTypes } from "../../../hooks/useAccountEntityTypes";
-// import { FontAwesomeIcon } from "../../../icons";
+import { FontAwesomeIcon } from "../../../icons";
 import { NavLink } from "../NavLink";
 import { Link } from "../../../Link";
 import { EntityTypeMenu } from "./EntityTypeMenu";
-import { CreateEntityTypeButton } from "./CreateEntityTypeButton";
 
 type AccountEntityTypeListProps = {
   accountId: string;
@@ -18,6 +19,7 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
   accountId,
 }) => {
   const { data } = useAccountEntityTypes(accountId);
+  const router = useRouter();
   //   const [order, setOrder] = useState<"asc" | "desc" | undefined>();
 
   const sortedData = useMemo(() => {
@@ -54,7 +56,19 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
     <Box>
       <NavLink
         title="Types"
-        endAdornment={<CreateEntityTypeButton accountId={accountId} />}
+        endAdornment={
+          <Tooltip title="Create new type">
+            {/* @todo-mui use a Link here */}
+            <IconButton
+              data-testid="create-entity-btn"
+              onClick={() => {
+                void router.push(`/${accountId}/types/new`);
+              }}
+            >
+              <FontAwesomeIcon icon={faAdd} />
+            </IconButton>
+          </Tooltip>
+        }
       >
         <Box component="ul">
           {/* Can be uncommented once we have a page that displays all entity types */}
