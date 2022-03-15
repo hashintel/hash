@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { tw } from "twind";
-import { OldButton } from "../forms/OldButton";
+import { Button } from "../Button";
 import { useBlocksMeta } from "../../blocks/blocksMeta";
 import { useBlockView } from "../../blocks/page/BlockViewContext";
 
@@ -51,8 +51,12 @@ export const BlockLoaderInput: React.VFC = () => {
         className={tw`mt-2 block w-full px-2 py-1 bg-gray-50 border-1 text-sm rounded-sm `}
       />
       {blockUrl && (
-        <OldButton
-          className={tw`mt-2 py-1 text-sm w-full`}
+        <Button
+          size="xs"
+          sx={{
+            mt: 1,
+            width: "100%",
+          }}
           onClick={loadBlockFromUrl}
           disabled={isDefinedBlock || !isValidBlockUrl || error != null}
         >
@@ -63,7 +67,7 @@ export const BlockLoaderInput: React.VFC = () => {
             : error
             ? "An error occurred"
             : "Load Block"}
-        </OldButton>
+        </Button>
       )}
     </>
   );

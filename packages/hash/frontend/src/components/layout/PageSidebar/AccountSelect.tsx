@@ -1,10 +1,9 @@
-import { VoidFunctionComponent } from "react";
+import { VoidFunctionComponent, ChangeEvent } from "react";
 import { useQuery } from "@apollo/client";
+import { Box } from "@mui/material";
 
 import { GetAccountsQuery } from "../../../graphql/apiTypes.gen";
 import { getAccounts } from "../../../graphql/queries/account.queries";
-
-import styles from "./PageSidebar.module.scss";
 
 type AccountSelectProps = {
   onChange: (account: string) => void;
@@ -18,9 +17,17 @@ export const AccountSelect: VoidFunctionComponent<AccountSelectProps> = ({
   const { data } = useQuery<GetAccountsQuery>(getAccounts);
 
   return (
-    <select
-      className={styles.AccountSelect}
-      onChange={(event) => onChange(event.target.value)}
+    <Box
+      component="select"
+      sx={{
+        padding: "8px 15px",
+        border: "1px solid lightgray",
+        width: 120,
+        borderRadius: "4px",
+      }}
+      onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+        onChange(event.target.value)
+      }
       value={value}
     >
       {data?.accounts.map((account) => (
@@ -28,6 +35,6 @@ export const AccountSelect: VoidFunctionComponent<AccountSelectProps> = ({
           {account.properties.shortname}
         </option>
       ))}
-    </select>
+    </Box>
   );
 };

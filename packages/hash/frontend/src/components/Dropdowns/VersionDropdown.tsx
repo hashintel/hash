@@ -1,7 +1,6 @@
-import { VoidFunctionComponent } from "react";
+import { VoidFunctionComponent, ChangeEvent } from "react";
 import { formatDistance } from "date-fns";
-
-import styles from "../layout/PageSidebar/PageSidebar.module.scss";
+import { Box } from "@mui/material";
 
 type VersionDropdownProps = {
   onChange: (value?: string) => void;
@@ -20,10 +19,18 @@ export const VersionDropdown: VoidFunctionComponent<VersionDropdownProps> = ({
   const now = new Date();
 
   return (
-    <select
-      className={styles.AccountSelect}
-      onChange={(event) => onChange(event.target.value)}
-      style={{ width: 200 }}
+    // @todo use MUI Select component for this instead
+    <Box
+      component="select"
+      sx={{
+        padding: "8px 15px",
+        border: "1px solid lightgray",
+        width: 200,
+        borderRadius: "4px",
+      }}
+      onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+        onChange(event.target.value)
+      }
       value={value}
     >
       {versions.map((version) => (
@@ -33,6 +40,6 @@ export const VersionDropdown: VoidFunctionComponent<VersionDropdownProps> = ({
           })}
         </option>
       ))}
-    </select>
+    </Box>
   );
 };

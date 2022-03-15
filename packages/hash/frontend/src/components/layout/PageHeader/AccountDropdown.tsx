@@ -7,12 +7,13 @@ import {
   ListItemButton,
   useTheme,
   Tooltip,
-  IconButton,
 } from "@mui/material";
 
 import { UserFieldsFragment } from "../../../graphql/apiTypes.gen";
 import { Popover } from "../../Popover";
 import { Link } from "../../Link";
+import { Avatar } from "../../Avatar";
+import { IconButton } from "../../IconButton";
 
 type AccountDropdownProps = {
   avatar?: string;
@@ -62,10 +63,11 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
           onClick={() => setOpen(!open)}
           className="flex items-center relative m-auto focus:outline-none"
           ref={buttonRef}
+          rounded
           sx={{
             height: 32,
             width: 32,
-            borderRadius: "100%",
+            padding: 0,
             boxShadow: open
               ? "0px 0px 0px 2px #FFFFFF, 0px 0px 0px 5px #C1CFDE"
               : "unset",
@@ -84,22 +86,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
               className={tw`border border(solid gray-200)`}
             />
           ) : (
-            <Box
-              sx={{
-                height: "32px",
-                width: "32px",
-                borderRadius: "100%",
-                background: theme.palette.blue[70],
-                fontWeight: 600,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Typography sx={{ color: theme.palette.common.white }}>
-                {user.properties.preferredName![0]!.toUpperCase()}
-              </Typography>
-            </Box>
+            <Avatar size={32} title={user?.properties.preferredName ?? "U"} />
           )}
         </IconButton>
       </Tooltip>

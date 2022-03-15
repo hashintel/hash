@@ -66,13 +66,17 @@ export const typography: ThemeOptions["typography"] = {
     lineHeight: "24px",
     fontWeight: 400,
   },
+  regularTextPages: {
+    fontSize: "var(--step-0)",
+    lineHeight: 1.7,
+  },
   regularTextParagraphs: {
     fontSize: "var(--step-0)",
     fontWeight: 400,
     lineHeight: 1.5,
   },
   regularTextLabels: {
-    fontSize: "var(--step--1)",
+    fontSize: "var(--step-0)",
     fontWeight: 400,
     lineHeight: "24px",
   },
