@@ -67,9 +67,8 @@ export const ActionsDropdown: React.FC<{
             ? theme.palette.blue["70"]
             : theme.palette.gray[20],
 
-          "&:hover": {
-            backgroundColor: theme.palette.blue["70"],
-            color: theme.palette.common.white,
+          ":hover": {
+            boxShadow: "0px 0px 0px 2px #FFFFFF, 0px 0px 0px 5px #C1CFDE",
           },
         }}
         ref={buttonRef}
