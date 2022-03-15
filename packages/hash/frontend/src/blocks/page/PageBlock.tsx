@@ -1,4 +1,5 @@
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import { BlockMetadata } from "blockprotocol";
 import { Schema } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
 import "prosemirror-view/style/prosemirror.css";
@@ -8,12 +9,14 @@ import { tw } from "twind";
 
 import { OldButton } from "../../components/forms/OldButton";
 import { BlocksMetaMap, BlocksMetaProvider } from "../blocksMeta";
+import { UserBlocksProvider } from "../userBlocks";
 import { EditorConnection } from "./collab/EditorConnection";
 import { createEditorView } from "./createEditorView";
 import { usePortals } from "./usePortals";
 
 type PageBlockProps = {
   blocksMeta: BlocksMetaMap;
+  initialUserBlocks: BlockMetadata[];
   accountId: string;
   entityId: string;
 };
@@ -26,6 +29,7 @@ type PageBlockProps = {
  */
 export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   blocksMeta,
+  initialUserBlocks,
   accountId,
   entityId,
 }) => {
@@ -78,25 +82,27 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
   return (
     <BlocksMetaProvider value={blocksMeta}>
-      <div id="root" ref={root} />
-      {portals}
-      {/**
-       * @todo position this better
-       */}
-      {(
-        typeof debugging === "boolean"
-          ? debugging
-          : debugging.restartCollabButton
-      ) ? (
-        <OldButton
-          className={tw`fixed bottom-5 right-5 opacity-30 hover:(opacity-100) transition-all`}
-          onClick={() => {
-            prosemirrorSetup.current?.connection?.restart();
-          }}
-        >
-          Restart Collab Instance
-        </OldButton>
-      ) : null}
+      <UserBlocksProvider value={initialUserBlocks}>
+        <div id="root" ref={root} />
+        {portals}
+        {/**
+         * @todo position this better
+         */}
+        {(
+          typeof debugging === "boolean"
+            ? debugging
+            : debugging.restartCollabButton
+        ) ? (
+          <OldButton
+            className={tw`fixed bottom-5 right-5 opacity-30 hover:(opacity-100) transition-all`}
+            onClick={() => {
+              prosemirrorSetup.current?.connection?.restart();
+            }}
+          >
+            Restart Collab Instance
+          </OldButton>
+        ) : null}
+      </UserBlocksProvider>
     </BlocksMetaProvider>
   );
 };

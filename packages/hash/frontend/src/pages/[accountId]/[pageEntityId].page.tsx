@@ -24,6 +24,7 @@ import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import { PageTransferDropdown } from "../../components/Dropdowns/PageTransferDropdown";
 import { MainContentWrapper } from "../../components/layout/MainContentWrapper";
 import type { BlocksMetaMap } from "../../blocks/blocksMeta";
+import { BlockMetadata } from "blockprotocol";
 
 /**
  * preload all configured blocks for now. in the future these will be loaded
@@ -37,16 +38,34 @@ export const getStaticPaths: GetStaticPaths<{ slug: string }> = () => ({
   fallback: "blocking", // indicates the type of fallback
 });
 
+interface PageProps {
+  blocksMeta: BlocksMetaMap;
+  initialUserBlocks: BlockMetadata[];
+}
+
 /**
  * This is used to fetch the metadata associated with blocks that're preloaded
  * ahead of time so that the client doesn't need to
  *
  * @todo Include blocks present in the document in this
  */
-export const getStaticProps: GetStaticProps = async () => {
+export const getStaticProps: GetStaticProps<PageProps> = async () => {
   const fetchedBlocksMeta = await Promise.all(
     preloadedComponentIds.map((componentId) => fetchBlockMeta(componentId)),
   );
+
+  if (!process.env.BLOCK_PROTOCOL_API_KEY) {
+    throw new Error("BLOCK_PROTOCOL_API_KEY is required to run the app.");
+  }
+
+  const blocksMetadataHeaders = new Headers();
+  blocksMetadataHeaders.set("x-api-key", process.env.BLOCK_PROTOCOL_API_KEY);
+
+  const initialUserBlocks = (
+    await fetch("http://blockprotocol.org/api/blocks", {
+      headers: blocksMetadataHeaders,
+    }).then((response) => response.json())
+  ).results;
 
   return {
     props: {
@@ -54,12 +73,14 @@ export const getStaticProps: GetStaticProps = async () => {
         fetchedBlocksMeta,
         (blockMeta) => blockMeta.componentMetadata.componentId,
       ),
+      initialUserBlocks,
     },
   };
 };
 
-export const Page: React.VFC<{ blocksMeta: BlocksMetaMap }> = ({
+export const Page: React.VFC<PageProps> = ({
   blocksMeta,
+  initialUserBlocks,
 }) => {
   const router = useRouter();
 
@@ -175,6 +196,7 @@ export const Page: React.VFC<{ blocksMeta: BlocksMetaMap }> = ({
           <PageBlock
             accountId={data.page.accountId}
             blocksMeta={blocksMeta}
+            initialUserBlocks={initialUserBlocks}
             entityId={data.page.entityId}
           />
         </CollabPositionProvider>
