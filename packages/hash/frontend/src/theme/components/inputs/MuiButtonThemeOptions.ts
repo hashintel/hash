@@ -55,6 +55,9 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
       // The :focus CSS styling applied to the button
       let focusStyles: CSSObject = { outline: "none" };
 
+      // :focus:before CSS styling applied to the button
+      let focusBeforeStyles: CSSObject = {};
+
       // The :focus:after CSS styling applied to the button
       const focusAfterStyles: CSSObject = {
         content: `""`,
@@ -107,10 +110,23 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           ...hoverBeforeStyles,
           opacity: 1,
         };
+
+        focusStyles = {
+          ...focusStyles,
+          color: theme.palette.common.white,
+          background: theme.palette.blue[70],
+        };
+
+        focusBeforeStyles = {
+          ...focusBeforeStyles,
+          opacity: 0,
+        };
       } else if (variant === "secondary") {
         baseStyles = {
           ...baseStyles,
-          border: `1px solid ${theme.palette.blue[70]}`,
+          borderWidth: 1,
+          borderStyle: "solid",
+          borderColor: theme.palette.blue[70],
           color: theme.palette.blue[70],
           background: theme.palette.common.white,
         };
@@ -118,6 +134,11 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         hoverStyles = {
           ...hoverStyles,
           background: theme.palette.blue[20],
+        };
+
+        focusStyles = {
+          color: theme.palette.blue[70],
+          background: theme.palette.common.white,
         };
       } else if (variant === "tertiary") {
         /** ===== TERTIARY variant specific styling ===== */
@@ -142,6 +163,12 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           [`& > .${buttonClasses.startIcon}, & > .${buttonClasses.endIcon}`]: {
             color: theme.palette.gray[80],
           },
+        };
+
+        focusStyles = {
+          ...focusStyles,
+          color: theme.palette.gray[80],
+          background: theme.palette.common.white,
         };
       } else if (variant === "tertiary_quiet") {
         /** ===== TERTIARY QUIET variant specific styling ===== */
@@ -169,6 +196,7 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         focusStyles = {
           ...focusStyles,
           color: theme.palette.gray[80],
+          background: theme.palette.common.white,
         };
       } else if (variant === "warning") {
         /** ===== WARNING variant specific styling ===== */
@@ -183,6 +211,12 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           background: theme.palette.orange[50],
           color: theme.palette.orange[100],
         };
+
+        focusStyles = {
+          ...focusStyles,
+          color: theme.palette.orange[90],
+          background: theme.palette.orange[40],
+        };
       } else if (variant === "danger") {
         /** ===== DANGER variant specific styling ===== */
         baseStyles = {
@@ -194,6 +228,12 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         hoverStyles = {
           ...hoverStyles,
           background: theme.palette.red[70],
+        };
+
+        focusStyles = {
+          ...focusStyles,
+          color: theme.palette.common.white,
+          background: theme.palette.red[60],
         };
       }
 
@@ -241,6 +281,7 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         ":active": activeStyles,
         "&.Mui-disabled": disabledStyles,
         ":focus": focusStyles,
+        ":focus:before": focusBeforeStyles,
         ":focus:after": focusAfterStyles,
       };
     },
