@@ -15,10 +15,8 @@ export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"]
             borderColor: theme.palette.gray[30],
           },
         },
-        "&.MuiOutlinedInput-root": {
-          paddingRight: "unset",
-          paddingLeft: theme.spacing(1.5),
-        },
+        paddingRight: "unset",
+        paddingLeft: theme.spacing(1.5),
         "&.Mui-focused": {
           "& .MuiOutlinedInput-notchedOutline": {
             borderWidth: "2px",
