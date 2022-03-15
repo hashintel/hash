@@ -426,24 +426,29 @@ impl<'a> BufferActions<'a> {
             "Can't flush migration changes when haven't loaded latest persisted agent batch"
         );
         debug_assert!(
-            offsets_start_at_zero(batch.memory(), batch.static_meta(), batch.dynamic_meta())
-                .is_ok(),
+            offsets_start_at_zero(
+                batch.segment.memory(),
+                batch.static_meta(),
+                batch.dynamic_meta()
+            )
+            .is_ok(),
             "Can't flush migration changes, because agent batch already contains invalid offsets"
         );
 
         let change = batch
+            .segment
             .memory_mut()
             .set_data_length(self.new_dynamic_meta.data_length)?;
         batch.loaded_metaversion_mut().increment_with(&change);
-        self.flush_memory(batch.memory_mut())?;
+        self.flush_memory(batch.segment.memory_mut())?;
         let loaded = batch.loaded_metaversion();
-        batch.set_persisted_metaversion(loaded);
+        batch.segment.set_persisted_metaversion(loaded);
 
         // Overwrite the Arrow Batch Metadata in memory
         agent_group.flush_dynamic_meta_unchecked(&self.new_dynamic_meta)?;
         debug_assert!(
             offsets_start_at_zero(
-                agent_group.batch.memory(),
+                agent_group.batch.segment.memory(),
                 agent_group.batch.static_meta(),
                 agent_group.batch.dynamic_meta(),
             )?,
@@ -530,8 +535,8 @@ impl<'a> BufferActions<'a> {
                     let mut cur_length = if let Some(agent_group) = agent_group {
                         let start_index = buffer_meta.offset;
                         let end_index = start_index + buffer_meta.length;
-                        let data =
-                            &agent_group.batch.memory().get_data_buffer()?[start_index..end_index];
+                        let data = &agent_group.batch.segment.memory().get_data_buffer()?
+                            [start_index..end_index];
                         debug_assert_eq!(data, agent_group.get_buffer(buffer_index).unwrap());
                         debug_assert!(range_actions.is_well_ordered_remove());
                         let mut removed_count = 0;

@@ -75,7 +75,7 @@ pub fn batch_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
     batch_segment: &Segment,
 ) -> WIPOffset<flatbuffers_gen::batch_generated::Batch<'f>> {
-    let batch_id_offset = fbb.create_string(batch_segment.segment_id());
+    let batch_id_offset = fbb.create_string(batch_segment.memory().id());
     let metaversion_offset = metaversion_to_fbs(
         fbb,
         // TODO: Don't serialize the metaversion and just send the

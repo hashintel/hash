@@ -101,7 +101,7 @@ impl Memory {
     }
 
     /// Get the ID of the shared memory segment
-    pub fn get_id(&self) -> &str {
+    pub fn id(&self) -> &str {
         self.data.get_os_id()
     }
 
@@ -200,7 +200,7 @@ impl Memory {
     }
 
     pub fn validate_markers(&self) -> bool {
-        self.visitor().validate_markers(self.get_id(), self.size)
+        self.visitor().validate_markers(self.id(), self.size)
     }
 
     /// Get the bytes which contain relevant batch data/metadata
@@ -478,7 +478,7 @@ pub mod tests {
             true,
         )?;
 
-        let message = memory.get_id();
+        let message = memory.id();
 
         let new_memory = Memory::from_shmem_os_id(&message, true, false)?;
 

@@ -62,7 +62,9 @@ impl<'a> MigrationPlan<'a> {
                         .agent_pool
                         .swap_remove(batch_index)
                         .batch
-                        .segment_id()
+                        .segment()
+                        .memory()
+                        .id()
                         .to_string(),
                 );
                 removed_ids.push(
@@ -70,7 +72,9 @@ impl<'a> MigrationPlan<'a> {
                         .message_pool
                         .swap_remove(batch_index)
                         .batch
-                        .segment_id()
+                        .segment()
+                        .memory()
+                        .id()
                         .to_string(),
                 );
             }

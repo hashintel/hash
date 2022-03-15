@@ -55,12 +55,14 @@ impl AgentBatch {
         schema: &AgentSchema,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
-        if agent_group.batch.loaded_metaversion.memory() != agent_group.batch.persisted_metaversion().memory() {
+        if agent_group.batch.loaded_metaversion.memory()
+            != agent_group.batch.segment.persisted_metaversion().memory()
+        {
             return Err(Error::from(format!(
                 "Can't duplicate agent batch with loaded memory older than latest persisted: \
                  {:?}, {:?}",
                 agent_group.batch.loaded_metaversion,
-                agent_group.batch.persisted_metaversion(),
+                agent_group.batch.segment.persisted_metaversion(),
             )));
         }
 

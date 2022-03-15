@@ -149,7 +149,9 @@ impl Context {
                     previous_agent_groups
                         .remove(remove_index)
                         .batch
-                        .segment_id()
+                        .segment()
+                        .memory()
+                        .id()
                         .to_string()
                 })
                 .collect::<Vec<_>>();

@@ -56,7 +56,7 @@ impl MessageBatch {
         tracing::trace!("Resetting batch");
 
         let batch = &mut self.batch;
-        let mut metaversion_to_persist = batch.persisted_metaversion();
+        let mut metaversion_to_persist = batch.segment.persisted_metaversion();
 
         if metaversion_to_persist.memory() != batch.loaded_metaversion().memory() {
             return Err(Error::from(format!(
@@ -130,7 +130,9 @@ impl MessageBatch {
         // TODO: reloading batch could be faster if we persisted
         //       fbb and WIPOffset<Message> from `simulate_record_batch_to_bytes`
         metaversion_to_persist.increment_batch();
-        self.batch.set_persisted_metaversion(metaversion_to_persist);
+        self.batch
+            .segment
+            .set_persisted_metaversion(metaversion_to_persist);
         self.batch.reload_record_batch_and_dynamic_meta()?;
         self.batch.loaded_metaversion = metaversion_to_persist;
         Ok(())

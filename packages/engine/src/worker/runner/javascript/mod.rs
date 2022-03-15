@@ -333,7 +333,7 @@ fn batch_to_js<'m>(
 ) -> Result<mv8::Value<'m>> {
     // TODO: Is `mem.data.len()` different from `mem.size`? (like Vec capacity vs len?)
     let arraybuffer = mv8.create_arraybuffer(mem.data.as_ptr(), mem.size);
-    let batch_id = mem.get_id();
+    let batch_id = mem.id();
     mem_batch_to_js(mv8, batch_id, arraybuffer, persisted)
 }
 
@@ -350,15 +350,15 @@ fn state_to_js<'m, 'a, 'b>(
     {
         let agent_group = batch_to_js(
             mv8,
-            agent_group.batch.memory(),
-            agent_group.batch.persisted_metaversion(),
+            agent_group.batch.segment().memory(),
+            agent_group.batch.segment().persisted_metaversion(),
         )?;
         js_agent_batches.set(i_batch as u32, agent_group)?;
 
         let message_group = batch_to_js(
             mv8,
-            message_group.batch.memory(),
-            message_group.batch.persisted_metaversion(),
+            message_group.batch.segment().memory(),
+            message_group.batch.segment().persisted_metaversion(),
         )?;
         js_message_groups.set(i_batch as u32, message_group)?;
     }
