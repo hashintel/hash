@@ -61,14 +61,15 @@ impl<'a> MigrationPlan<'a> {
                     state
                         .agent_pool
                         .swap_remove(batch_index)
-                        .batch_id()
+                        .segment_id()
                         .to_string(),
                 );
                 removed_ids.push(
                     state
                         .message_pool
                         .swap_remove(batch_index)
-                        .batch_id()
+                        .batch
+                        .segment_id()
                         .to_string(),
                 );
             }

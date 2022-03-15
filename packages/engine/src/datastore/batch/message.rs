@@ -1,9 +1,6 @@
 #![allow(clippy::cast_ptr_alignment, clippy::cast_sign_loss)]
 
-use std::{
-    ops::{Deref, DerefMut},
-    sync::Arc,
-};
+use std::sync::Arc;
 
 use arrow::ipc::{
     reader::read_record_batch,
@@ -37,23 +34,9 @@ const UPPER_MULTIPLIER: usize = 1000;
 const LOWER_BOUND: usize = 10000;
 
 pub struct MessageBatch {
-    batch: ArrowBatch,
+    pub batch: ArrowBatch,
     /// Arrow schema with message batch fields
     arrow_schema: Arc<ArrowSchema>,
-}
-
-impl Deref for MessageBatch {
-    type Target = ArrowBatch;
-
-    fn deref(&self) -> &Self::Target {
-        &self.batch
-    }
-}
-
-impl DerefMut for MessageBatch {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.batch
-    }
 }
 
 impl MessageBatch {
@@ -69,26 +52,27 @@ impl MessageBatch {
     /// The persisted metaversion is updated after clearing the column
     /// and the loaded metaversion is set equal to the persisted one
     /// after loading the cleared column.
-    pub fn reset(&mut self, agents: &AgentBatch) -> Result<()> {
+    pub fn reset(&mut self, agent_group: &AgentBatch) -> Result<()> {
         tracing::trace!("Resetting batch");
 
-        let mut metaversion_to_persist = self.persisted_metaversion();
+        let batch = &mut self.batch;
+        let mut metaversion_to_persist = batch.persisted_metaversion();
 
-        if metaversion_to_persist.memory() != self.loaded_metaversion().memory() {
+        if metaversion_to_persist.memory() != batch.loaded_metaversion().memory() {
             return Err(Error::from(format!(
                 "Can't reset message batch when latest persisted memory isn't loaded: {:?}, {:?}",
                 metaversion_to_persist,
-                self.loaded_metaversion(),
+                batch.loaded_metaversion(),
             )));
         }
-        if self.has_queued_changes() {
+        if batch.has_queued_changes() {
             return Err(Error::from(
                 "Can't reset message batch when there are queued changes",
             ));
         }
 
-        let agent_count = agents.num_agents();
-        let agent_record_batch = agents.record_batch()?; // Agent batch must be up to date
+        let agent_count = agent_group.num_agents();
+        let agent_record_batch = agent_group.record_batch()?; // Agent batch must be up to date
         let column_name = AgentStateField::AgentId.name();
         let id_column = super::iterators::column_with_name(agent_record_batch, column_name)?;
         let empty_message_column = message::empty_messages_column(agent_count).map(Arc::new)?;
@@ -101,34 +85,35 @@ impl MessageBatch {
 
         // Perform some light bound checks
         // we can't release memory on mac because we can't resize the segment
-        if cfg!(not(target_os = "macos")) && self.memory().size > LOWER_BOUND {
+        if cfg!(not(target_os = "macos")) && batch.memory().size > LOWER_BOUND {
             let upper_bound = agent_count * UPPER_MULTIPLIER;
-            if self.memory().size > upper_bound
-                && self
+            if batch.memory().size > upper_bound
+                && batch
                     .memory()
                     .target_total_size_accommodates_data_size(upper_bound, data_len)
             {
-                self.memory_mut().resize(upper_bound)?;
-                self.memory_mut().set_data_length(data_len)?;
+                batch.memory_mut().resize(upper_bound)?;
+                batch.memory_mut().set_data_length(data_len)?;
                 // Always increment when resizing
                 metaversion_to_persist.increment();
             }
         }
 
-        let old_metadata_size = self.memory().get_metadata()?.len();
+        let old_metadata_size = self.batch.memory().get_metadata()?.len();
         // Write new metadata
-        self.memory_mut().set_metadata(&meta_buffer)?;
+        self.batch.memory_mut().set_metadata(&meta_buffer)?;
         debug_assert_eq!(
             old_metadata_size,
-            self.memory()
+            self.batch
+                .memory()
                 .get_metadata()
                 .expect("Memory should have metadata, because we just set it")
                 .len(),
             "Metadata size should not change"
         );
 
-        let cur_len = self.memory().get_data_buffer_len()?;
-        if cur_len < data_len && self.memory_mut().set_data_length(data_len)?.resized() {
+        let cur_len = self.batch.memory().get_data_buffer_len()?;
+        if cur_len < data_len && self.batch.memory_mut().set_data_length(data_len)?.resized() {
             // This shouldn't happen very often unless the bounds above are very inaccurate.
             metaversion_to_persist.increment();
             tracing::info!(
@@ -138,16 +123,16 @@ impl MessageBatch {
             );
         }
 
-        let data_buffer = self.memory_mut().get_mut_data_buffer()?;
+        let data_buffer = self.batch.memory_mut().get_mut_data_buffer()?;
         // Write new data
         record_batch_data_to_bytes_owned_unchecked(&record_batch, data_buffer);
 
         // TODO: reloading batch could be faster if we persisted
         //       fbb and WIPOffset<Message> from `simulate_record_batch_to_bytes`
         metaversion_to_persist.increment_batch();
-        self.set_persisted_metaversion(metaversion_to_persist);
-        self.reload_record_batch_and_dynamic_meta()?;
-        self.loaded_metaversion = metaversion_to_persist;
+        self.batch.set_persisted_metaversion(metaversion_to_persist);
+        self.batch.reload_record_batch_and_dynamic_meta()?;
+        self.batch.loaded_metaversion = metaversion_to_persist;
         Ok(())
     }
 

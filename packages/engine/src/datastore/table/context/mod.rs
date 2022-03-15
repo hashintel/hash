@@ -146,7 +146,7 @@ impl Context {
                 .map(|remove_index| {
                     previous_agent_pool
                         .remove(remove_index)
-                        .batch_id()
+                        .segment_id()
                         .to_string()
                 })
                 .collect::<Vec<_>>();

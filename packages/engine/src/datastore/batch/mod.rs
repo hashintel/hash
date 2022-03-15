@@ -43,9 +43,8 @@ use crate::datastore::batch::{change::ColumnChange, flush::GrowableBatch};
 pub struct Segment(Memory);
 
 impl Segment {
-    /// TODO: Rename to `segment_id`? Or keep name `batch_id`, but
-    ///       move into ArrowBatch?
-    pub fn batch_id(&self) -> &str {
+    /// TODO: move into ArrowBatch (and maybe rename to `batch_id`)?
+    pub fn segment_id(&self) -> &str {
         self.0.get_id()
     }
 

@@ -309,7 +309,7 @@ fn state_sync_to_fbs<'f>(
     let message_pool_offset: Vec<_> = state_proxy
         .message_proxies
         .batches_iter()
-        .map(|batch| batch_to_fbs(fbb, batch))
+        .map(|message_group| batch_to_fbs(fbb, &message_group.batch))
         .collect();
     let message_pool_forward_offset = fbb.create_vector(&message_pool_offset);
 
@@ -334,7 +334,8 @@ fn shared_store_to_fbs<'f>(
                 .message_pool()
                 .batches()
                 .iter()
-                .map(|b| batch_to_fbs(fbb, b))
+                .map(|message_group| batch_to_fbs(fbb, &message_group
+                    .batch))
                 .collect();
             let indices = (0..a.len()).collect();
             (a, m, indices)
@@ -350,7 +351,8 @@ fn shared_store_to_fbs<'f>(
                 .message_pool()
                 .batches()
                 .iter()
-                .map(|b| batch_to_fbs(fbb, b))
+                .map(|message_group| batch_to_fbs(fbb, &message_group
+                    .batch))
                 .collect();
             let indices = (0..a.len()).collect();
             (a, m, indices)
@@ -368,7 +370,8 @@ fn shared_store_to_fbs<'f>(
                     .message_pool()
                     .batches()
                     .iter()
-                    .map(|b| batch_to_fbs(fbb, b))
+                    .map(|message_group| batch_to_fbs(fbb, &message_group
+                        .batch))
                     .collect();
                 (a, m, partial.group_indices.clone())
             }
@@ -384,7 +387,8 @@ fn shared_store_to_fbs<'f>(
                     .message_pool()
                     .batches()
                     .iter()
-                    .map(|b| batch_to_fbs(fbb, b))
+                    .map(|message_group| batch_to_fbs(fbb, &message_group
+                        .batch))
                     .collect();
                 (a, m, partial.group_indices.clone())
             }

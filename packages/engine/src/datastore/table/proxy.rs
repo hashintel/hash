@@ -297,8 +297,8 @@ impl StateWriteProxy {
     }
 
     pub fn maybe_reload(&mut self) -> Result<()> {
-        for batch in self.message_proxies.batches_iter_mut() {
-            batch.maybe_reload()?;
+        for group in self.message_proxies.batches_iter_mut() {
+            group.batch.maybe_reload()?;
         }
         for batch in self.agent_proxies.batches_iter_mut() {
             batch.maybe_reload()?;

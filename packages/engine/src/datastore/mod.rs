@@ -129,7 +129,7 @@ pub mod tests {
             .agent_pool()
             .batch(0)
             .unwrap()
-            .batch_id()
+            .segment_id()
             .to_owned();
 
         // Run "behavior"
