@@ -1,4 +1,4 @@
-import { Fade, Box, Tooltip, styled, Typography } from "@mui/material";
+import { Fade, Box, Tooltip, styled } from "@mui/material";
 import { FunctionComponent } from "react";
 import { SIDEBAR_WIDTH } from "../../theme/components/navigation/MuiDrawerThemeOptions";
 
