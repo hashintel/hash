@@ -43,7 +43,7 @@ pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableCo
     fn static_meta(&self) -> &StaticMeta;
     fn dynamic_meta(&self) -> &DynamicMeta;
     fn dynamic_meta_mut(&mut self) -> &mut DynamicMeta;
-    /// TODO: Change to `segment` after creating CSegment in py FFI
+    // TODO: Change to `segment` after creating CSegment in py FFI
     fn memory(&self) -> &Memory;
     /// TODO: segment_mut?
     fn memory_mut(&mut self) -> &mut Memory;
