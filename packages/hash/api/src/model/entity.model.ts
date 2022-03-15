@@ -35,8 +35,9 @@ export type EntityExternalResolvers =
   | "linkGroups" // resolved in resolvers/linkGroups
   | "linkedEntities" // resolved in resolvers/linkedEntities
   | "linkedAggregations" // resovled in resolvers/linkedAggregations
-  | "children" // resolved in resolvers/entityType/entityTypeInheritance
-  | "parents" // resolved in resolvers/entityType/entityTypeInheritance
+  | "immediateChildren" // resolved in resolvers/entityType/entityTypeInheritance
+  | "immediateParents" // resolved in resolvers/entityType/entityTypeInheritance
+  | "allParents" // resolved in resolvers/entityType/entityTypeInheritance
   | "__typename";
 
 export type UnresolvedGQLEntity = Omit<GQLEntity, EntityExternalResolvers> & {
