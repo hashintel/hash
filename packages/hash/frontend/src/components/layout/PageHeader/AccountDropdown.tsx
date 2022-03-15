@@ -33,11 +33,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
   const userPrimaryEmail = useMemo(() => {
     const primaryEmail = user.properties.emails.find((email) => email.primary);
 
-    if (!primaryEmail) {
-      throw new Error("User doesn't have a primary email set.");
-    }
-
-    return primaryEmail.address;
+    return primaryEmail?.address;
   }, [user]);
 
   return (
@@ -54,13 +50,15 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
             >
               <strong>{user.properties.preferredName}</strong>
             </Typography>
-            <Typography
-              component="p"
-              variant="microText"
-              sx={({ palette }) => ({ color: palette.common.white })}
-            >
-              {userPrimaryEmail}
-            </Typography>
+            {userPrimaryEmail && (
+              <Typography
+                component="p"
+                variant="microText"
+                sx={({ palette }) => ({ color: palette.common.white })}
+              >
+                {userPrimaryEmail}
+              </Typography>
+            )}
           </>
         }
         placement="bottom"
@@ -150,13 +148,15 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
           >
             {user.properties.preferredName}
           </Typography>
-          <Typography
-            component="p"
-            variant="microText"
-            sx={({ palette }) => ({ color: palette.gray[60], lineHeight: 1 })}
-          >
-            {userPrimaryEmail}
-          </Typography>
+          {userPrimaryEmail && (
+            <Typography
+              component="p"
+              variant="microText"
+              sx={({ palette }) => ({ color: palette.gray[60], lineHeight: 1 })}
+            >
+              {userPrimaryEmail}
+            </Typography>
+          )}
         </Box>
         <Divider sx={({ palette }) => ({ borderColor: palette.gray[30] })} />
         <Box>
