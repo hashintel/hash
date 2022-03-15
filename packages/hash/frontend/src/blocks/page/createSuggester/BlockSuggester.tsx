@@ -1,17 +1,32 @@
-import { BlockVariant } from "blockprotocol";
-import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { BlockMetadata, BlockVariant } from "blockprotocol";
 import { useMemo, VFC } from "react";
 import { tw } from "twind";
 
-import { useBlocksMeta } from "../../blocksMeta";
 import { fuzzySearchBy } from "./fuzzySearchBy";
 import { Suggester } from "./Suggester";
+import { useUserBlocks } from "../../userBlocks";
 
 export interface BlockSuggesterProps {
   search?: string;
-  onChange(variant: BlockVariant, block: BlockMeta): void;
+  onChange(variant: BlockVariant, block: BlockMetadata): void;
   className?: string;
 }
+
+// @todo remove this when API returns actual icon URL
+const getVariantIcon = (option: {
+  variant: BlockVariant;
+  meta: BlockMetadata;
+}): string | undefined => {
+  if (option.variant.icon?.startsWith("/")) {
+    return `https://blockprotocol.org${option.variant.icon}`;
+  }
+
+  if (option.variant.icon?.startsWith("public/")) {
+    return `https://blockprotocol.org/blocks/${option.meta.packagePath}/${option.variant.icon}`;
+  }
+
+  return option.variant.icon;
+};
 
 /**
  * used to present list of blocks to choose from to the user
@@ -23,22 +38,38 @@ export const BlockSuggester: VFC<BlockSuggesterProps> = ({
   onChange,
   className,
 }) => {
-  const { value: blocksMeta } = useBlocksMeta();
+  const { value: userBlocks } = useUserBlocks();
 
   const options = useMemo(() => {
-    const allOptions = Object.values(blocksMeta).flatMap((blockMeta) =>
-      blockMeta.componentMetadata.variants.map((variant) => ({
-        variant,
-        meta: blockMeta,
-      })),
+    const allOptions: {
+      variant: BlockVariant;
+      meta: BlockMetadata;
+    }[] = Object.values(userBlocks).flatMap((blockMeta) =>
+      blockMeta.variants
+        ? blockMeta.variants.map((variant) => ({
+            variant: {
+              ...variant,
+              name: variant.name ?? variant.displayName,
+            },
+            meta: blockMeta,
+          }))
+        : {
+            variant: {
+              description: blockMeta.description,
+              name: blockMeta.displayName,
+              icon: blockMeta.icon,
+              properties: {},
+            },
+            meta: blockMeta,
+          },
     );
 
     return fuzzySearchBy(allOptions, search, (option) =>
-      [option.variant.displayName, option.variant.description]
+      [option?.variant.name, option?.variant.description]
         .map((str) => str ?? "")
         .join(" "),
     );
-  }, [search, blocksMeta]);
+  }, [search, userBlocks]);
 
   return (
     <Suggester
@@ -46,27 +77,23 @@ export const BlockSuggester: VFC<BlockSuggesterProps> = ({
       renderItem={(option) => (
         <>
           <div className={tw`flex w-16 items-center justify-center`}>
-            {option.variant.icon && (
+            {option?.variant.icon && (
               <img
                 className={tw`w-6 h-6`}
-                alt={option.variant.displayName ?? undefined}
-                src={option.variant.icon}
+                alt={option.variant.name}
+                src={getVariantIcon(option)}
               />
             )}
           </div>
           <div className={tw`py-3 flex-1 pr-2`}>
-            <p className={tw`text-sm font-bold`}>
-              {option.variant.displayName}
-            </p>
+            <p className={tw`text-sm font-bold`}>{option?.variant.name}</p>
             <p className={tw`text-xs text-opacity-60 text-black`}>
-              {option.variant.description}
+              {option?.variant.description}
             </p>
           </div>
         </>
       )}
-      itemKey={({ meta, variant }) =>
-        `${meta.componentMetadata.name}/${variant.displayName}`
-      }
+      itemKey={({ meta, variant }) => `${meta.name}/${variant.name}`}
       onChange={(option) => onChange(option.variant, option.meta)}
       className={className}
     />

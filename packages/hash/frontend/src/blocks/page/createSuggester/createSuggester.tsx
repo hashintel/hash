@@ -1,4 +1,4 @@
-import type { BlockVariant } from "blockprotocol";
+import type { BlockMetadata, BlockVariant } from "blockprotocol";
 import {
   blockComponentRequiresText,
   BlockMeta,
@@ -163,15 +163,11 @@ export const createSuggester = (
            */
           const onBlockSuggesterChange = (
             variant: BlockVariant,
-            meta: BlockMeta,
+            meta: BlockMetadata,
           ) => {
             getManager()
-              .createRemoteBlockTr(
-                meta.componentMetadata.componentId,
-                null,
-                variant,
-              )
-              .then(([tr, node]) => {
+              .createRemoteBlockTr(meta.name!, null, variant)
+              .then(([tr, node, meta]) => {
                 const $end = view.state.doc.resolve(to);
                 const endPosition = $end.end(1);
                 tr.insert(endPosition, node);
