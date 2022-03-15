@@ -1251,8 +1251,8 @@ impl<'m> RunnerImpl<'m> {
             sim_id_to_js(mv8, sim_run_id),
             batch_to_js(
                 mv8,
-                context_batch.memory(),
-                context_batch.persisted_metaversion(),
+                context_batch.segment().memory(),
+                context_batch.segment().persisted_metaversion(),
             )?,
             idxs_to_js(mv8, &state_group_start_indices)?,
             current_step_to_js(mv8, current_step),

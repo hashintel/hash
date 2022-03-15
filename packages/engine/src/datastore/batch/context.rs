@@ -1,6 +1,6 @@
 #![allow(clippy::cast_possible_wrap)]
 
-use std::{ops::Deref, sync::Arc};
+use std::sync::Arc;
 
 use arrow::ipc::{
     reader::read_record_batch,
@@ -35,15 +35,11 @@ pub struct ContextBatch {
     loaded: Metaversion,
 }
 
-impl Deref for ContextBatch {
-    type Target = Segment;
-
-    fn deref(&self) -> &Self::Target {
+impl ContextBatch {
+    pub fn segment(&self) -> &Segment {
         &self.segment
     }
-}
 
-impl ContextBatch {
     pub fn from_record_batch(
         record_batch: &RecordBatch,
         schema: Option<&Arc<ArrowSchema>>,
@@ -121,7 +117,7 @@ impl ContextBatch {
             return Err(Error::from("Expected context datas to not be empty"));
         }
 
-        let mut persisted = self.persisted_metaversion();
+        let mut persisted = self.segment.persisted_metaversion();
 
         let column_dynamic_meta_list = column_writers
             .iter()
