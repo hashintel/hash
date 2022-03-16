@@ -6,10 +6,12 @@ import { MuiDrawerThemeOptions } from "./navigation/MuiDrawerThemeOptions";
 import { MuiCssBaselineThemeOptions } from "./utils/MuiCssBaselineThemeOptions";
 import { MuiIconButtonThemeOptions } from "./dataDisplay/MuiIconButtonThemeOptions";
 import { MuiListItemButtonThemeOptions } from "./dataDisplay/MuiListItemButtonThemeOptions";
+import { MuiOutlinedInputThemeOptions } from "./inputs/MuiOutlinedInputThemeOptions";
 
 export const components: Components<Theme> = {
   /** ===== INPUTS ===== */
   MuiButton: MuiButtonThemeOptions,
+  MuiOutlinedInput: MuiOutlinedInputThemeOptions,
   /** ===== DATA DISPLAY ===== */
   MuiIconButton: MuiIconButtonThemeOptions,
   MuiTooltip: MuiTooltipThemeOptions,

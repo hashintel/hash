@@ -8,7 +8,14 @@ import React, {
   VoidFunctionComponent,
 } from "react";
 import { useDebounce, useKey, useOutsideClickRef } from "rooks";
-import { Box, Theme, useTheme, useMediaQuery, SxProps } from "@mui/material";
+import {
+  Box,
+  Theme,
+  useTheme,
+  useMediaQuery,
+  SxProps,
+  IconButton,
+} from "@mui/material";
 
 import { blockDomId } from "../../../../blocks/page/BlockView";
 import {
@@ -18,9 +25,10 @@ import {
 import { searchPages } from "../../../../graphql/queries/search.queries";
 import { useUser } from "../../../hooks/useUser";
 import { HASH_OPENSEARCH_ENABLED } from "../../../../lib/public-env";
-import { DesktopSearch } from "./DesktopSearch";
-import { MobileSearch } from "./MobileSearch";
+import { SearchInput } from "./SearchInput";
 import { Link } from "../../../Link";
+import { SearchIcon } from "../../../icons";
+import { Button } from "../../../Button";
 
 /** finds the query's words in the result and chops it into parts at the words' boundaries */
 const splitByMatches = (result: string, query: string) => {
@@ -56,6 +64,7 @@ const ResultList: React.FC<{
     component="ul"
     sx={(theme) => ({
       position: !isMobile ? "absolute" : "unset",
+      top: !isMobile ? "calc(100% + 1px)" : "unset",
       zIndex: 10,
       width: "100%",
       maxHeight: "15rem",
@@ -79,14 +88,14 @@ const ResultItem: React.FC<{
       component="li"
       sx={{
         display: "flex",
-        border: `1px solid ${theme.palette.gray[20]}`,
-        backgroundColor: theme.palette.gray[50],
+        backgroundColor: theme.palette.gray[10],
+        border: "none",
         padding: 1,
         cursor: "pointer",
         textOverflow: "ellipsis",
         overflow: "hidden",
         "&:hover": {
-          backgroundColor: theme.palette.gray[70],
+          backgroundColor: theme.palette.gray[20],
         },
         ...sx,
       }}
@@ -112,6 +121,30 @@ const useQueryText = (): [string, string, (queryText: string) => void] => {
   return [displayedQuery, submittedQuery, setQuery];
 };
 
+const getSearchBarResponsiveStyles = (
+  isMobile: boolean,
+  displaySearchInput: boolean,
+): SxProps<Theme> => {
+  if (isMobile) {
+    if (displaySearchInput) {
+      return {
+        position: "absolute",
+        width: "100%",
+        zIndex: 1,
+        left: 0,
+        top: "12px",
+        px: 2,
+      };
+    } else {
+      return {
+        mr: 1,
+      };
+    }
+  }
+
+  return {};
+};
+
 const SearchBarWhenSearchIsEnabled: React.VFC = () => {
   const theme = useTheme();
 
@@ -123,10 +156,10 @@ const SearchBarWhenSearchIsEnabled: React.VFC = () => {
   const [displaySearchInput, setDisplaySearchInput] = useState<boolean>(false);
 
   useEffect(() => {
-    if (isMobile && displayedQuery.trim() && !displaySearchInput) {
+    if (displayedQuery.trim() && !displaySearchInput) {
       setDisplaySearchInput(true);
     }
-  }, [isMobile, displayedQuery, displaySearchInput]);
+  }, [displayedQuery, displaySearchInput]);
 
   const { user } = useUser();
 
@@ -155,34 +188,56 @@ const SearchBarWhenSearchIsEnabled: React.VFC = () => {
         },
         position: "relative",
         height: "100%",
-        ...(isMobile && displaySearchInput
-          ? {
-              position: "absolute",
-              width: "100%",
-              zIndex: 1,
-              left: 0,
-              top: theme.spacing(1.5),
-              px: 2,
-            }
-          : {}),
+        ...getSearchBarResponsiveStyles(isMobile, displaySearchInput),
       }}
       ref={rootRef}
     >
-      {!isMobile ? (
-        <DesktopSearch
-          displayedQuery={displayedQuery}
-          setQueryText={setQueryText}
-          setResultListVisible={setResultListVisible}
-        />
+      {/* If the user is in mobile view and the search icon isn't clicked, display the icon */}
+      {isMobile && !displaySearchInput ? (
+        <IconButton
+          sx={{
+            height: "32px",
+            width: "32px",
+            display: "flex",
+            alignItems: "center",
+          }}
+          onClick={() => setDisplaySearchInput(true)}
+        >
+          <SearchIcon sx={{ height: "16px", width: "auto" }} />
+        </IconButton>
       ) : (
-        <MobileSearch
-          displayedQuery={displayedQuery}
-          setQueryText={setQueryText}
-          setResultListVisible={setResultListVisible}
-          displaySearchInput={displaySearchInput}
-          setDisplaySearchInput={setDisplaySearchInput}
-        />
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            width: "100%",
+            background: "white",
+            zIndex: 1,
+          }}
+        >
+          <SearchInput
+            displayedQuery={displayedQuery}
+            isMobile={isMobile}
+            setQueryText={setQueryText}
+            setResultListVisible={setResultListVisible}
+          />
+
+          {isMobile && (
+            <Button
+              onClick={() => {
+                setQueryText("");
+                setDisplaySearchInput(false);
+              }}
+              variant="tertiary_quiet"
+              size="xs"
+              sx={{ ml: 1 }}
+            >
+              Cancel
+            </Button>
+          )}
+        </Box>
       )}
+
       {isResultListVisible && displayedQuery && (
         <ResultList isMobile={isMobile}>
           {isLoading ? (
