@@ -1,4 +1,4 @@
-import { ThemeOptions } from "@mui/material";
+import { Components, Theme } from "@mui/material/styles";
 import { MuiButtonThemeOptions } from "./inputs/MuiButtonThemeOptions";
 import { MuiTooltipThemeOptions } from "./dataDisplay/MuiTooltipThemeOptions";
 import { MuiDrawerThemeOptions } from "./navigation/MuiDrawerThemeOptions";
@@ -8,7 +8,7 @@ import { MuiIconButtonThemeOptions } from "./dataDisplay/MuiIconButtonThemeOptio
 import { MuiListItemButtonThemeOptions } from "./dataDisplay/MuiListItemButtonThemeOptions";
 import { MuiOutlinedInputThemeOptions } from "./inputs/MuiOutlinedInputThemeOptions";
 
-export const components: ThemeOptions["components"] = {
+export const components: Components<Theme> = {
   /** ===== INPUTS ===== */
   MuiButton: MuiButtonThemeOptions,
   MuiOutlinedInput: MuiOutlinedInputThemeOptions,

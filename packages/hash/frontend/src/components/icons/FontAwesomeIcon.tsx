@@ -2,14 +2,14 @@ import * as React from "react";
 import { SvgIcon, SvgIconProps } from "@mui/material";
 import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 
-type FontAwesomeSvgIconProps = {
+type FontAwesomeIconProps = {
   icon: IconDefinition;
 } & SvgIconProps;
 
 // gotten from https://mui.com/components/icons/#font-awesome
-export const FontAwesomeSvgIcon = React.forwardRef<
+export const FontAwesomeIcon = React.forwardRef<
   SVGSVGElement,
-  FontAwesomeSvgIconProps
+  FontAwesomeIconProps
 >((props, ref) => {
   const { icon, sx, ...otherProps } = props;
 

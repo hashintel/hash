@@ -4,7 +4,7 @@ import { Typography, Box } from "@mui/material";
 // import { faSearch, faArrowUpAZ } from "@fortawesome/free-solid-svg-icons";
 // import { orderBy } from "lodash";
 import { useAccountEntityTypes } from "../../../hooks/useAccountEntityTypes";
-// import { FontAwesomeSvgIcon } from "../../../icons";
+// import { FontAwesomeIcon } from "../../../icons";
 import { NavLink } from "../NavLink";
 import { Link } from "../../../Link";
 import { EntityTypeMenu } from "./EntityTypeMenu";
@@ -75,10 +75,10 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
               View All Types
             </Typography>
             <IconButton sx={{ mr: 1.25 }}>
-              <FontAwesomeSvgIcon icon={faSearch} />
+              <FontAwesomeIcon icon={faSearch} />
             </IconButton>
             <IconButton onClick={toggleSort}>
-              <FontAwesomeSvgIcon icon={faArrowUpAZ} />
+              <FontAwesomeIcon icon={faArrowUpAZ} />
             </IconButton>
           </Box> */}
           {sortedData.map((entityType) => {
@@ -110,7 +110,7 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
 
                   //   @todo-mui add focus state
 
-                  "&:focus-visible, &:focus-within": {
+                  "&:focus, &:focus-within": {
                     backgroundColor: ({ palette }) => palette.gray[20],
 
                     "& .entity-type-menu": {

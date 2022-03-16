@@ -2,8 +2,19 @@ import { FC } from "react";
 import { SvgIcon, SvgIconProps } from "@mui/material";
 
 export const SidebarToggleIcon: FC<SvgIconProps> = (props) => {
+  const { sx, ...otherProps } = props;
   return (
-    <SvgIcon width="20" height="20" viewBox="0 0 20 20" fill="none" {...props}>
+    <SvgIcon
+      viewBox="0 0 20 20"
+      fill="none"
+      sx={{
+        width: "1em",
+        height: "1em",
+        fontSize: 20,
+        ...sx,
+      }}
+      {...otherProps}
+    >
       <path
         fillRule="evenodd"
         clipRule="evenodd"

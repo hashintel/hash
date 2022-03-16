@@ -241,10 +241,6 @@ export const MuiCssBaselineThemeOptions: Components["MuiCssBaseline"] = {
 
           a {
             text-decoration: none;
-
-            &:visited {
-              color: initial;
-            }
           }
 
           ${rootTypographyStyles}
