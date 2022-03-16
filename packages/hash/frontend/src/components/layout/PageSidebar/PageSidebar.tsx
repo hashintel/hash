@@ -49,6 +49,7 @@ export const PageSidebar: VoidFunctionComponent = () => {
         title="Home"
         href="/"
         tooltipTitle="View your inbox and latest activity"
+        active={router.pathname === "/[accountId]"}
       />
       <TopNavLink
         icon={faZap}

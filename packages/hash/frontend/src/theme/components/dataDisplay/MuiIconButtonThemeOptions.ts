@@ -22,8 +22,7 @@ export const MuiIconButtonThemeOptions: Components<Theme>["MuiIconButton"] = {
         color: theme.palette.gray[80],
       },
 
-      // @todo icon button styles
-      "&:focus-within": {
+      "&:focus": {
         outlineColor: theme.palette.blue[70],
         outlineOffset: "2px",
       },

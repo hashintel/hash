@@ -1,21 +1,30 @@
-import { useState, FC, ReactNode } from "react";
-import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
-import { Box, Typography, Collapse } from "@mui/material";
+import { useState, FC } from "react";
+import { faAdd, faChevronRight } from "@fortawesome/free-solid-svg-icons";
+import { Box, Typography, Collapse, Tooltip } from "@mui/material";
 import { FontAwesomeIcon } from "../../icons";
-import { IconButton } from "../../IconButton";
+import { IconButton, IconButtonProps } from "../../IconButton";
 // import { Link } from "./Link";
 
 type NavLinkProps = {
   title: string;
-  endAdornment: ReactNode;
+  endAdornmentProps: {
+    tooltipTitle: string;
+    "data-testid"?: string;
+  } & IconButtonProps;
 };
 
 export const NavLink: FC<NavLinkProps> = ({
   title,
   children,
-  endAdornment,
+  endAdornmentProps,
 }) => {
   const [expanded, setExpanded] = useState(true);
+  const [hovered, setHovered] = useState(false);
+  const {
+    tooltipTitle: endAdornmentTooltipTitle,
+    sx: endAdormentSx,
+    ...otherEndAdornmentProps
+  } = endAdornmentProps;
 
   return (
     <Box>
@@ -23,11 +32,17 @@ export const NavLink: FC<NavLinkProps> = ({
         sx={{
           display: "flex",
           alignItems: "center",
-          py: "9px",
-          pl: "18px",
-          pr: 0.5,
+          borderRadius: "4px",
+          py: "8px",
+          pl: "12px",
+          pr: "6px",
           mx: 0.5,
+          ...(hovered && {
+            backgroundColor: ({ palette }) => palette.gray[20],
+          }),
         }}
+        onMouseOver={() => setHovered(true)}
+        onMouseOut={() => setHovered(false)}
       >
         <Typography
           variant="smallCaps"
@@ -44,6 +59,11 @@ export const NavLink: FC<NavLinkProps> = ({
           rounded
           sx={{
             mr: "auto",
+            ...(!expanded && { color: ({ palette }) => palette.gray[40] }),
+            ...(hovered && {
+              backgroundColor: ({ palette }) => palette.gray[30],
+              color: ({ palette }) => palette.gray[80],
+            }),
           }}
           onClick={() => setExpanded((prev) => !prev)}
         >
@@ -57,7 +77,26 @@ export const NavLink: FC<NavLinkProps> = ({
           />
         </IconButton>
 
-        {endAdornment}
+        {/* endAdornment */}
+        <Tooltip title={endAdornmentTooltipTitle}>
+          <IconButton
+            size="small"
+            unpadded
+            rounded
+            data-testid="create-page-btn"
+            onClick={endAdornmentProps.onClick}
+            {...otherEndAdornmentProps}
+            sx={{
+              ...(hovered && {
+                backgroundColor: ({ palette }) => palette.gray[30],
+                color: ({ palette }) => palette.gray[80],
+              }),
+              ...endAdormentSx,
+            }}
+          >
+            <FontAwesomeIcon icon={faAdd} />
+          </IconButton>
+        </Tooltip>
       </Box>
       <Collapse in={expanded}>{children}</Collapse>
     </Box>
