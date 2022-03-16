@@ -229,6 +229,7 @@ const SearchBarWhenSearchIsEnabled: React.VFC = () => {
                 setDisplaySearchInput(false);
               }}
               variant="tertiary_quiet"
+              size="xs"
               sx={{ ml: 1 }}
             >
               Cancel
