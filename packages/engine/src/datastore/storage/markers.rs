@@ -188,6 +188,12 @@ impl Markers {
 
     #[must_use]
     pub fn get_total_contents_size(&self) -> usize {
+        debug_assert_eq!(
+            Buffer::Data.next(),
+            None,
+            "If the data buffer is not the last buffer, then the markers implementation needs to be updated"
+        );
+        // The end of the last buffer is the end of the whole segment.
         self.data_offset() + self.data_size()
     }
 

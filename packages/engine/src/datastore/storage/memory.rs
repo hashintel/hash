@@ -204,8 +204,6 @@ impl Memory {
     }
 
     /// Get the bytes which contain relevant batch data/metadata
-    // TODO: This seems to return just the data buffer, in which case
-    //       the function's name is confusing.
     pub fn get_contents_bytes(&self) -> Result<&[u8]> {
         self.visitor().get_all_buffers()
     }
