@@ -11,7 +11,7 @@ export const MuiIconButtonThemeOptions: Components<Theme>["MuiIconButton"] = {
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
-      color: theme.palette.gray[40],
+      color: theme.palette.gray[50],
 
       "& svg": {
         color: "currentColor",
@@ -22,24 +22,29 @@ export const MuiIconButtonThemeOptions: Components<Theme>["MuiIconButton"] = {
         color: theme.palette.gray[80],
       },
 
-      "&:focus": {
+      // @todo icon button styles
+      "&:focus-within": {
         outlineColor: theme.palette.blue[70],
         outlineOffset: "2px",
       },
 
-      ...(ownerState.size === "small" && {}),
-
-      ...(ownerState.size === "medium" && {
-        height: 24,
-        width: 24,
-        padding: 0,
-
+      ...(ownerState.size === "small" && {
         "& svg": {
           fontSize: 12,
         },
       }),
 
-      ...(ownerState.size === "large" && {}),
+      ...(ownerState.size === "medium" && {
+        "& svg": {
+          fontSize: 16,
+        },
+      }),
+
+      ...(ownerState.size === "large" && {
+        "& svg": {
+          fontSize: 20,
+        },
+      }),
     }),
   },
 };

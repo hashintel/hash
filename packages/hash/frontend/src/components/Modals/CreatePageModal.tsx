@@ -1,11 +1,11 @@
 import { FormEvent, useEffect, useState, VoidFunctionComponent } from "react";
 import { Router, useRouter } from "next/router";
-import { Box } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 
 import { useCreatePage } from "../hooks/useCreatePage";
 import { Modal } from "./Modal";
 
-import { OldButton } from "../forms/OldButton";
+import { Button } from "../Button";
 
 type CreatePageModalProps = {
   accountId: string;
@@ -67,19 +67,6 @@ export const CreatePageModal: VoidFunctionComponent<CreatePageModalProps> = ({
       <Box
         component="form"
         sx={{
-          "& > *": {
-            display: "block",
-          },
-          "& h2": {
-            fontSize: 26,
-            fontWeight: 600,
-            mb: "30px",
-          },
-          "& label": {
-            fontWeight: 600,
-            marginBottom: "8px",
-            fontSize: "17px",
-          },
           "& input": {
             padding: "12px 20px",
             borderRadius: "4px",
@@ -91,9 +78,14 @@ export const CreatePageModal: VoidFunctionComponent<CreatePageModalProps> = ({
         }}
         onSubmit={createPage}
       >
-        <h2>Don't be afraid of a blank page...</h2>
+        <Typography component="h2" variant="h4" mb="30px">
+          Don't be afraid of a blank page...
+        </Typography>
 
-        <label>Title</label>
+        <Typography display="block" component="label" fontWeight={600} mb="8px">
+          Title
+        </Typography>
+
         <input
           onChange={(event) => setTitle(event.target.value)}
           placeholder="What is this document?"
@@ -102,9 +94,9 @@ export const CreatePageModal: VoidFunctionComponent<CreatePageModalProps> = ({
           value={title}
         />
 
-        <OldButton disabled={loading} big type="submit">
+        <Button disabled={loading} type="submit">
           Create
-        </OldButton>
+        </Button>
       </Box>
     </Modal>
   );

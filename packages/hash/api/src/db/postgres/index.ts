@@ -262,6 +262,12 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.getEntityOutgoingLinks(params));
   }
 
+  getEntityIncomingLinks(
+    params: Parameters<DBClient["getEntityIncomingLinks"]>[0],
+  ): ReturnType<DBClient["getEntityIncomingLinks"]> {
+    return this.query((adapter) => adapter.getEntityIncomingLinks(params));
+  }
+
   createAggregation(
     params: Parameters<DBClient["createAggregation"]>[0],
   ): Promise<DBAggregation> {

@@ -303,7 +303,7 @@ describe("logged in user ", () => {
     const invitationLinks = await org.getInvitationLinks(db);
     expect(invitationLinks.length).toEqual(1);
     const [invitationLink] = invitationLinks;
-    expect(invitationLink).not.toBeUndefined();
+    expect(invitationLink).toBeDefined();
 
     // Test a linked invitationLink has been returned in the createOrg GraphQL mutation
 
@@ -312,7 +312,7 @@ describe("logged in user ", () => {
         sourceEntityId === org.entityId && path === "$.invitationLink",
     )!;
 
-    expect(invitationLinkLinkGroup).not.toBeUndefined();
+    expect(invitationLinkLinkGroup).toBeDefined();
     expect(invitationLinkLinkGroup.links).toHaveLength(1);
     expect(invitationLinkLinkGroup.links[0]!.destinationEntityId).toBe(
       invitationLink!.entityId,
@@ -322,7 +322,7 @@ describe("logged in user ", () => {
       ({ entityId }) => entityId === invitationLink!.entityId,
     )!;
 
-    expect(gqlInvitationLink).not.toBeUndefined();
+    expect(gqlInvitationLink).toBeDefined();
     expect(
       (gqlInvitationLink.properties as OrgInvitationLinkProperties).accessToken,
     ).toBe(invitationLink!.properties.accessToken);
@@ -353,7 +353,7 @@ describe("logged in user ", () => {
         path === "$.inviter",
     )!;
 
-    expect(inviterLinkGroup).not.toBeUndefined();
+    expect(inviterLinkGroup).toBeDefined();
     expect(inviterLinkGroup.links).toHaveLength(1);
     expect(inviterLinkGroup.links[0]!.destinationEntityId).toBe(
       existingUser.entityId,
@@ -364,7 +364,7 @@ describe("logged in user ", () => {
         sourceEntityId === gqlOrgEmailInvitation.entityId && path === "$.org",
     )!;
 
-    expect(orgLinkGroup).not.toBeUndefined();
+    expect(orgLinkGroup).toBeDefined();
     expect(orgLinkGroup.links).toHaveLength(1);
     expect(orgLinkGroup.links[0]!.destinationEntityId).toBe(
       existingOrg.entityId,
@@ -433,7 +433,7 @@ describe("logged in user ", () => {
         sourceEntityId === gqlEmailInvitation.entityId && path === "$.inviter",
     )!;
 
-    expect(inviterLinkGroup).not.toBeUndefined();
+    expect(inviterLinkGroup).toBeDefined();
     expect(inviterLinkGroup.links).toHaveLength(1);
     expect(inviterLinkGroup.links[0]!.destinationEntityId).toBe(
       bobUser.entityId,
@@ -458,7 +458,7 @@ describe("logged in user ", () => {
         sourceEntityId === gqlInvitation.entityId && path === "$.org",
     )!;
 
-    expect(orgLinkGroup).not.toBeUndefined();
+    expect(orgLinkGroup).toBeDefined();
     expect(orgLinkGroup.links).toHaveLength(1);
     expect(orgLinkGroup.links[0]!.destinationEntityId).toBe(bobOrg.entityId);
 
@@ -498,7 +498,7 @@ describe("logged in user ", () => {
       ({ address }) => address === inviteeEmailAddress,
     )!;
 
-    expect(addedEmail).not.toBeUndefined();
+    expect(addedEmail).toBeDefined();
     expect(addedEmail.verified).toEqual(true);
     expect(addedEmail.primary).toEqual(false);
   });

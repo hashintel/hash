@@ -143,10 +143,10 @@ describe("Aggregation model class ", () => {
     expect(results).toHaveLength(2);
     expect(
       results.find((result) => entityB.isEquivalentTo(result)),
-    ).not.toBeUndefined();
+    ).toBeDefined();
     expect(
       results.find((result) => entityC.isEquivalentTo(result)),
-    ).not.toBeUndefined();
+    ).toBeDefined();
   });
 
   it("updateOperation method updates an aggregation operation with a non-versioned source entity", async () => {
