@@ -4,13 +4,10 @@ import { treeFromParentReferences } from "@hashintel/hash-shared/util";
 import { TreeView } from "@mui/lab";
 import { useRouter } from "next/router";
 import { useModal } from "react-modal-hook";
-import { faAdd } from "@fortawesome/free-solid-svg-icons";
-import { IconButton, Tooltip } from "@mui/material";
 import { useAccountPages } from "../../../hooks/useAccountPages";
 import { NavLink } from "../NavLink";
 import { PageTreeItem } from "./PageTreeItem";
 import { CreatePageModal } from "../../../Modals/CreatePageModal";
-import { FontAwesomeIcon } from "../../../icons";
 
 type AccountPageListProps = {
   accountId: string;
@@ -26,10 +23,15 @@ type TreeElement = {
 
 const renderTree = (node: TreeElement) => (
   <PageTreeItem
-    hasChildren={node.children ? node.children.length >= 1 : false}
     key={node.entityId}
     nodeId={node.entityId}
     label={node.title}
+    ContentProps={{
+      // @ts-expect-error -- can't seem to override TreeItemProps at the moment, plan to revisit
+      expandable: Boolean(
+        Array.isArray(node.children) ? node.children.length : node.children,
+      ),
+    }}
   >
     {Array.isArray(node.children)
       ? node.children.map((child) => renderTree(child))
@@ -58,20 +60,14 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
     [data],
   );
 
-  // @todo-mui implement active state
   return (
     <NavLink
       title="Pages"
-      endAdornment={
-        <Tooltip title="Create new page">
-          <IconButton
-            data-testid="create-page-btn"
-            onClick={showCreatePageModal}
-          >
-            <FontAwesomeIcon icon={faAdd} />
-          </IconButton>
-        </Tooltip>
-      }
+      endAdornmentProps={{
+        tooltipTitle: "Create new Page",
+        onClick: showCreatePageModal,
+        "data-testid": "create-page-btn",
+      }}
     >
       <TreeView
         data-testid="pages-tree"

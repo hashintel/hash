@@ -3,6 +3,7 @@ import TreeItem, {
   TreeItemProps,
   useTreeItem,
   TreeItemContentProps,
+  treeItemClasses,
 } from "@mui/lab/TreeItem";
 // import clsx from "clsx";
 import { Box, Typography } from "@mui/material";
@@ -10,11 +11,11 @@ import { faChevronRight, faFile } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "../../../icons";
 import { IconButton } from "../../../IconButton";
 
-type CustomContentProps = TreeItemContentProps & { hasChildren?: boolean };
+type CustomContentProps = TreeItemContentProps & { expandable?: boolean };
 
 // inspiration gotten from https://mui.com/components/tree-view/#IconExpansionTreeView.tsx
 const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
-  const { label, nodeId, hasChildren } = props;
+  const { label, nodeId, expandable } = props;
 
   const {
     expanded,
@@ -65,20 +66,22 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
 
         ...(focused &&
           {
+            // backgroundColor: "red !important"
             // @todo-mui add focus styles
           }),
       }}
     >
       <IconButton
         onClick={handleExpansionClick}
-        size="medium"
+        size="small"
         unpadded
+        rounded
         sx={{
           visibility: "hidden",
           pointerEvents: "none",
           mr: 0.5,
 
-          ...(hasChildren && {
+          ...(expandable && {
             visibility: "visible",
             pointerEvents: "auto",
 
@@ -124,19 +127,6 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
   );
 });
 
-export const PageTreeItem = (
-  props: TreeItemProps & { hasChildren?: boolean },
-) => {
-  const { hasChildren, ...otherProps } = props;
-
-  return (
-    <TreeItem
-      ContentComponent={CustomContent}
-      {...otherProps}
-      ContentProps={{
-        // @ts-expect-error -- can't seem to override TreeItemProps at the moment, plan to revisit
-        hasChildren,
-      }}
-    />
-  );
+export const PageTreeItem = (props: TreeItemProps) => {
+  return <TreeItem {...props} ContentComponent={CustomContent} />;
 };

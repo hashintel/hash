@@ -6,6 +6,8 @@ import { MuiDrawerThemeOptions } from "./navigation/MuiDrawerThemeOptions";
 import { MuiCssBaselineThemeOptions } from "./utils/MuiCssBaselineThemeOptions";
 import { MuiIconButtonThemeOptions } from "./dataDisplay/MuiIconButtonThemeOptions";
 import { MuiListItemButtonThemeOptions } from "./dataDisplay/MuiListItemButtonThemeOptions";
+import { MuiMenuThemeOptions } from "./navigation/MuiMenuThemeOptions";
+import { MuiMenuItemThemeOptions } from "./navigation/MuiMenuItemThemeOptions";
 
 export const components: Components<Theme> = {
   /** ===== INPUTS ===== */
@@ -18,6 +20,9 @@ export const components: Components<Theme> = {
   /** ===== SURFACES ===== */
   /** ===== NAVIGATION ===== */
   MuiDrawer: MuiDrawerThemeOptions,
+  MuiMenu: MuiMenuThemeOptions,
+  MuiMenuItem: MuiMenuItemThemeOptions,
+
   /** ===== LAYOUT ===== */
   /** ===== UTILS ===== */
   MuiCssBaseline: MuiCssBaselineThemeOptions,
