@@ -9,10 +9,10 @@ import { useKey } from "rooks";
 import { unstable_batchedUpdates } from "react-dom";
 
 import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
+import { BlockVariant } from "blockprotocol";
 
 import { blockDomId } from "../../blocks/page/BlockView";
 import { BlockSuggesterProps } from "../../blocks/page/createSuggester/BlockSuggester";
-import { useBlocksMeta } from "../../blocks/blocksMeta";
 import { NormalView } from "./NormalView";
 import { SearchView } from "./SearchView";
 import {
@@ -23,6 +23,7 @@ import {
   iconStyles,
 } from "./BlockContextMenuUtils";
 import { BlockLoaderInput } from "./BlockLoaderInput";
+import { UserBlock, useUserBlocks } from "../../blocks/userBlocks";
 
 type BlockContextMenuProps = {
   blockSuggesterProps: BlockSuggesterProps;
@@ -83,16 +84,32 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
     }));
   };
 
-  const { value: blocksMeta } = useBlocksMeta();
+  const { value: userBlocks } = useUserBlocks();
 
-  const blockOptions = useMemo(() => {
-    return Object.values(blocksMeta).flatMap((blockMeta) =>
-      blockMeta.componentMetadata.variants.map((variant) => ({
-        variant,
-        meta: blockMeta,
-      })),
+  const blockOptions: {
+    variant: BlockVariant;
+    meta: UserBlock;
+  }[] = useMemo(() => {
+    return Object.values(userBlocks).flatMap((blockMeta) =>
+      blockMeta.variants
+        ? blockMeta.variants.map((variant) => ({
+            variant: {
+              ...variant,
+              name: variant.name ?? variant.displayName,
+            },
+            meta: blockMeta,
+          }))
+        : {
+            variant: {
+              description: blockMeta.description,
+              name: blockMeta.displayName,
+              icon: blockMeta.icon,
+              properties: {},
+            } as BlockVariant,
+            meta: blockMeta,
+          },
     );
-  }, [blocksMeta]);
+  }, [userBlocks]);
 
   const usableMenuItems = MENU_ITEMS.filter(({ key }) => {
     return key !== "copyLink" || entityId;
@@ -110,10 +127,8 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
 
   const filteredBlocks = blockOptions.filter(
     (block) =>
-      block.variant.displayName &&
-      block.variant.displayName
-        ?.toLocaleLowerCase()
-        .includes(lowerCaseSearchText),
+      block.variant.name &&
+      block.variant.name?.toLocaleLowerCase().includes(lowerCaseSearchText),
   );
 
   const filteredMenuItems: FilteredMenuItems = {

@@ -1,4 +1,3 @@
-import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { EntityStore } from "@hashintel/hash-shared/entityStore";
 import {
   entityStorePluginState,
@@ -6,7 +5,7 @@ import {
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
-import { BlockMetadata, BlockVariant } from "blockprotocol";
+import { BlockVariant } from "blockprotocol";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
@@ -15,6 +14,7 @@ import { useOutsideClick } from "rooks";
 import { tw } from "twind";
 import { BlockContextMenu } from "../../components/BlockContextMenu/BlockContextMenu";
 import { DragVerticalIcon } from "../../components/icons";
+import { UserBlock } from "../userBlocks";
 import { BlockViewContext } from "./BlockViewContext";
 import { CollabPositionIndicators } from "./CollabPositionIndicators";
 import { BlockSuggesterProps } from "./createSuggester/BlockSuggester";
@@ -275,7 +275,7 @@ export class BlockView implements NodeView<Schema> {
   /**
    * @todo restore the ability to load in new block types here
    */
-  onBlockChange = (variant: BlockVariant, meta: BlockMetadata) => {
+  onBlockChange = (variant: BlockVariant, meta: UserBlock) => {
     const { node, view, getPos } = this;
 
     const state = view.state;
@@ -287,7 +287,13 @@ export class BlockView implements NodeView<Schema> {
     }
 
     this.manager
-      .replaceNodeWithRemoteBlock(draftId, meta.name, variant, node, getPos())
+      .replaceNodeWithRemoteBlock(
+        draftId,
+        `https://blockprotocol.org/blocks/${meta.packagePath}`,
+        variant,
+        node,
+        getPos(),
+      )
       .catch((err: Error) => {
         // eslint-disable-next-line no-console -- TODO: consider using logger
         console.error(err);

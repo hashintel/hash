@@ -6,6 +6,7 @@ import { keyBy } from "lodash";
 import { GetStaticPaths, GetStaticProps } from "next";
 import { Router, useRouter } from "next/router";
 import { tw } from "twind";
+import { BlockMetadata } from "blockprotocol";
 
 import React, { useEffect, useState } from "react";
 import {
@@ -24,7 +25,6 @@ import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import { PageTransferDropdown } from "../../components/Dropdowns/PageTransferDropdown";
 import { MainContentWrapper } from "../../components/layout/MainContentWrapper";
 import type { BlocksMetaMap } from "../../blocks/blocksMeta";
-import { BlockMetadata } from "blockprotocol";
 
 /**
  * preload all configured blocks for now. in the future these will be loaded

@@ -10,7 +10,11 @@ import {
 } from "react";
 import { useLocalstorageState } from "rooks";
 
-type UserBlocks = BlockMetadata[];
+export type UserBlock = BlockMetadata & {
+  packagePath: string;
+};
+
+type UserBlocks = UserBlock[];
 
 interface UserBlocksContextState {
   value: UserBlocks;
@@ -20,7 +24,7 @@ interface UserBlocksContextState {
 /** @private enforces use of custom provider */
 const UserBlocksContext = createContext<UserBlocksContextState | null>(null);
 
-export const UserBlocksProvider: React.FC<{ value: BlockMetadata[] }> = ({
+export const UserBlocksProvider: React.FC<{ value: UserBlocks }> = ({
   value: initialUserBlocks,
   children,
 }) => {
@@ -47,7 +51,7 @@ export const UserBlocksProvider: React.FC<{ value: BlockMetadata[] }> = ({
     });
 
     setValue(nextUserBlocks);
-  }, [initialUserBlocks]);
+  }, [initialUserBlocks, value, setValue]);
 
   const state = useMemo(() => ({ value, setValue }), [value, setValue]);
 

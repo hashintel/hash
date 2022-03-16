@@ -1,8 +1,5 @@
-import type { BlockMetadata, BlockVariant } from "blockprotocol";
-import {
-  blockComponentRequiresText,
-  BlockMeta,
-} from "@hashintel/hash-shared/blockMeta";
+import type { BlockVariant } from "blockprotocol";
+import { blockComponentRequiresText } from "@hashintel/hash-shared/blockMeta";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { Schema } from "prosemirror-model";
 import {
@@ -16,6 +13,7 @@ import { RenderPortal } from "../usePortals";
 import { ensureMounted } from "../../../lib/dom";
 import { BlockSuggester } from "./BlockSuggester";
 import { MentionSuggester } from "./MentionSuggester";
+import { UserBlock } from "../../userBlocks";
 
 interface Trigger {
   char: "@" | "/";
@@ -163,11 +161,11 @@ export const createSuggester = (
            */
           const onBlockSuggesterChange = (
             variant: BlockVariant,
-            meta: BlockMetadata,
+            userBlockMeta: UserBlock,
           ) => {
             getManager()
               .createRemoteBlockTr(
-                `https://blockprotocol.org/blocks/${meta.packagePath}`,
+                `https://blockprotocol.org/blocks/${userBlockMeta.packagePath}`,
                 null,
                 variant,
               )

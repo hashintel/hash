@@ -1,21 +1,21 @@
-import { BlockMetadata, BlockVariant } from "blockprotocol";
+import { BlockVariant } from "blockprotocol";
 import { useMemo, VFC } from "react";
 import { tw } from "twind";
 
 import { fuzzySearchBy } from "./fuzzySearchBy";
 import { Suggester } from "./Suggester";
-import { useUserBlocks } from "../../userBlocks";
+import { UserBlock, useUserBlocks } from "../../userBlocks";
 
 export interface BlockSuggesterProps {
   search?: string;
-  onChange(variant: BlockVariant, block: BlockMetadata): void;
+  onChange(variant: BlockVariant, block: UserBlock): void;
   className?: string;
 }
 
 // @todo remove this when API returns actual icon URL
-const getVariantIcon = (option: {
+export const getVariantIcon = (option: {
   variant: BlockVariant;
-  meta: BlockMetadata;
+  meta: UserBlock;
 }): string | undefined => {
   if (option.variant.icon?.startsWith("/")) {
     return `https://blockprotocol.org${option.variant.icon}`;
@@ -45,7 +45,7 @@ export const BlockSuggester: VFC<BlockSuggesterProps> = ({
   const options = useMemo(() => {
     const allOptions: {
       variant: BlockVariant;
-      meta: BlockMetadata;
+      meta: UserBlock;
     }[] = Object.values(userBlocks).flatMap((blockMeta) =>
       blockMeta.variants
         ? blockMeta.variants.map((variant) => ({

@@ -1,5 +1,4 @@
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
-import { BlockMetadata } from "blockprotocol";
 import { Schema } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
 import "prosemirror-view/style/prosemirror.css";
@@ -8,14 +7,14 @@ import { useLocalstorageState } from "rooks";
 
 import { Button } from "../../components/Button";
 import { BlocksMetaMap, BlocksMetaProvider } from "../blocksMeta";
-import { UserBlocksProvider } from "../userBlocks";
+import { UserBlock, UserBlocksProvider } from "../userBlocks";
 import { EditorConnection } from "./collab/EditorConnection";
 import { createEditorView } from "./createEditorView";
 import { usePortals } from "./usePortals";
 
 type PageBlockProps = {
   blocksMeta: BlocksMetaMap;
-  initialUserBlocks: BlockMetadata[];
+  initialUserBlocks: UserBlock[];
   accountId: string;
   entityId: string;
 };
