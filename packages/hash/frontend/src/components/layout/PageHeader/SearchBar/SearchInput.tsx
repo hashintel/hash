@@ -10,7 +10,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { useKeys } from "rooks";
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
 
-import { SearchIcon, FontAwesomeSvgIcon } from "../../../icons";
+import { SearchIcon, FontAwesomeIcon } from "../../../icons";
 
 const ClearSearchIcon: React.FC<{
   clearSearch: () => void;
@@ -31,12 +31,11 @@ const ClearSearchIcon: React.FC<{
       <Tooltip title="Clear search" placement="right">
         <IconButton
           sx={(theme) => ({
-            width: theme.spacing(2.5),
-            height: theme.spacing(2.5),
+            width: "20px",
+            height: "20px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            // @todo figure out how to fetch this from `theme`
             borderRadius: "2px",
             color: theme.palette.gray[50],
 
@@ -51,7 +50,10 @@ const ClearSearchIcon: React.FC<{
           })}
           onClick={clearSearch}
         >
-          <FontAwesomeSvgIcon icon={faXmark} />
+          <FontAwesomeIcon
+            sx={{ width: "12px", height: "12px" }}
+            icon={faXmark}
+          />
         </IconButton>
       </Tooltip>
     </Box>
