@@ -162,7 +162,7 @@ pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableCo
                 debug_assert_eq!(
                     meta.buffer_counts[i] - 1,
                     array_data.non_null_buffer_count(),
-                    "Number of buffers in meta data does not match actual number of buffers"
+                    "Number of buffers in metadata does not match actual number of buffers"
                 );
                 // todo: when adding datatypes with no null buffer (the null datatype), then this
                 //   convention does not work
