@@ -21,6 +21,7 @@ use tracing_subscriber::{
     },
     prelude::*,
     registry::LookupSpan,
+    util::TryInitError,
     EnvFilter,
 };
 
@@ -198,9 +199,9 @@ pub fn init_logger<P: AsRef<Path>>(
     output_location: &OutputLocation,
     log_folder: P,
     log_level: Option<LogLevel>,
-    log_file_output_name: &str,
-    texray_output_name: &str,
-) -> impl Drop {
+    log_file_name: &str,
+    texray_log_file_name: &str,
+) -> Result<impl Drop, TryInitError> {
     let log_folder = log_folder.as_ref();
 
     let filter = if let Some(log_level) = log_level {
@@ -255,7 +256,7 @@ pub fn init_logger<P: AsRef<Path>>(
     };
 
     let json_file_appender =
-        tracing_appender::rolling::never(log_folder, format!("{log_file_output_name}.json"));
+        tracing_appender::rolling::never(log_folder, format!("{log_file_name}.json"));
     let (non_blocking, _json_file_guard) = tracing_appender::non_blocking(json_file_appender);
 
     let json_file_layer = fmt::layer()
@@ -264,7 +265,7 @@ pub fn init_logger<P: AsRef<Path>>(
         .with_writer(non_blocking);
 
     let (texray_layer, _texray_guard) =
-        texray::create_texray_layer(&log_folder, texray_output_name);
+        texray::create_texray_layer(&log_folder, texray_log_file_name);
 
     tracing_subscriber::registry()
         .with(filter)
@@ -273,15 +274,16 @@ pub fn init_logger<P: AsRef<Path>>(
         .with(json_file_layer)
         .with(error_layer)
         .with(texray_layer)
-        .init();
+        .try_init()?;
 
-    LogGuard {
+    Ok(LogGuard {
         _output_guard,
         _json_file_guard,
         _texray_guard,
-    }
+    })
 }
 
+// TODO: UNUSED: Needs triage
 pub fn parse_env_duration(name: &str, default: u64) -> Duration {
     Duration::from_secs(
         std::env::var(name)

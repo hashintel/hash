@@ -2,18 +2,15 @@ import { sql } from "slonik";
 
 import { Connection } from "../types";
 import { DBLink } from "../../adapter";
-import {
-  acquireEntityLock,
-  getEntityLatestVersion,
-  updateVersionedEntity,
-} from "../entity";
+import { acquireEntityLock, getEntityLatestVersion } from "../entity";
 import { DbEntityNotFoundError } from "../..";
 import { genId } from "../../../util";
+import { getIndexedLinks, insertLink } from "./sql/links.util";
 import {
-  getLinksWithMinimumIndex,
-  insertLink,
-  updateLinkIndices,
-} from "./util";
+  updateLinkVersionIndices,
+  insertLinkVersionRow,
+} from "./sql/link_versions.util";
+import { requireTransaction } from "../util";
 
 export const createLink = async (
   existingConnection: Connection,
@@ -28,7 +25,7 @@ export const createLink = async (
     destinationEntityVersionId?: string;
   },
 ): Promise<DBLink> =>
-  existingConnection.transaction(async (conn) => {
+  requireTransaction(existingConnection)(async (conn) => {
     const promises: Promise<void>[] = [];
 
     const now = new Date();
@@ -36,116 +33,100 @@ export const createLink = async (
     // Defer FKs until end of transaction so we can insert concurrently
     await conn.query(sql`
       set constraints
-        outgoing_links_source_account_id_link_id_fk,
         incoming_links_source_account_id_link_id_fk
       deferred
     `);
 
-    const { sourceAccountId, sourceEntityId } = params;
+    const { sourceAccountId, sourceEntityId, createdByAccountId } = params;
 
-    await acquireEntityLock(conn, { entityId: sourceEntityId });
+    const dbLink: DBLink = {
+      ...params,
+      linkId: genId(),
+      linkVersionId: genId(),
+      appliedToSourceAt: now,
+      appliedToSourceByAccountId: createdByAccountId,
+      updatedAt: now,
+      updatedByAccountId: createdByAccountId,
+    };
 
-    let dbSourceEntity = await getEntityLatestVersion(conn, {
-      accountId: sourceAccountId,
+    await acquireEntityLock(conn, {
       entityId: sourceEntityId,
-    }).then((dbEntity) => {
-      if (!dbEntity) {
-        throw new DbEntityNotFoundError({
-          accountId: sourceAccountId,
-          entityId: sourceEntityId,
-        });
-      }
-      return dbEntity;
     });
 
-    const { index, path, createdByAccountId } = params;
+    const dbSourceEntity = await getEntityLatestVersion(conn, {
+      accountId: sourceAccountId,
+      entityId: sourceEntityId,
+    });
+
+    if (!dbSourceEntity) {
+      throw new DbEntityNotFoundError({
+        accountId: sourceAccountId,
+        entityId: sourceEntityId,
+      });
+    }
+
+    const { index, path } = params;
+
     /** @todo: check index isn't out of bounds */
 
-    if (dbSourceEntity.metadata.versioned) {
+    /** @todo: when no index is provided, set a default value if other links are indexed */
+
+    if (index !== undefined) {
       /**
-       * When the source entity is versioned, we have to create a new version
-       * of the entity (with an updated entityVerisonId).
-       *
-       * Note when the new link also has an index, we have to re-create all
-       * links whose index has to be incremented, which are the links that:
-       *  - are outgoing links of the previous entity's version
+       * When the link has an index we have to increment the index of the links that:
+       *  - are currently active outgoing links of the source entity
        *  - have the same path
        *  - have an index which is greater than or equal to the index of the new link's index
        */
 
-      const affectedOutgoingLinks =
-        index !== undefined
-          ? await getLinksWithMinimumIndex(conn, {
-              sourceAccountId,
-              sourceEntityId,
-              sourceEntityVersionId: dbSourceEntity.entityVersionId,
-              minimumIndex: index,
-              path,
-            })
-          : [];
-
-      dbSourceEntity = await updateVersionedEntity(conn, {
-        entity: dbSourceEntity,
-        updatedByAccountId: createdByAccountId,
-        /** @todo: re-implement method to not require updated `properties` */
-        properties: dbSourceEntity.properties,
+      if (dbSourceEntity.metadata.versioned) {
         /**
-         * When the new link is indexed, we have to omit all links whose index
-         * have to be changed from the new entity version
+         * When the source entity is versioned, we have have create a new version of
+         * the affected outgoing links of that entity
          */
-        omittedOutgoingLinks: affectedOutgoingLinks,
-      });
 
-      if (index !== undefined) {
-        /** @todo: implement insertLinks and use that instead of many insertLink queries */
+        const affectedOutgoingLinks = await getIndexedLinks(conn, {
+          sourceAccountId,
+          sourceEntityId,
+          minimumIndex: index,
+          path,
+        });
 
-        for (const previousLink of affectedOutgoingLinks) {
+        for (const affectedOutgoingLink of affectedOutgoingLinks) {
           promises.push(
-            insertLink(conn, {
-              ...previousLink,
-              linkId: genId(),
-              index: previousLink.index! + 1,
-              sourceEntityVersionIds: new Set([dbSourceEntity.entityVersionId]),
-              createdAt: now,
+            insertLinkVersionRow(conn, {
+              dbLinkVersion: {
+                ...affectedOutgoingLink,
+                linkVersionId: genId(),
+                index: affectedOutgoingLink.index + 1,
+                updatedAt: now,
+                updatedByAccountId: createdByAccountId,
+              },
             }),
           );
         }
+      } else {
+        /**
+         * When the source entity is not versioned, we can directly update the index of
+         * the affected links
+         */
+        promises.push(
+          updateLinkVersionIndices(conn, {
+            sourceAccountId,
+            sourceEntityId,
+            path,
+            minimumIndex: index,
+            operation: "increment",
+            updatedAt: now,
+            updatedBy: createdByAccountId,
+          }),
+        );
       }
-    } else if (index !== undefined) {
-      /**
-       * When the source entity is not versioned and the new link has an index,
-       * we can directly updated the links that:
-       *  - are outgoing links of the source entity
-       *  - have the same path
-       *  - have an index which is greater than or equal to the index of the new link's index
-       */
-      promises.push(
-        updateLinkIndices(conn, {
-          sourceAccountId,
-          sourceEntityId,
-          path,
-          minimumIndex: index,
-          operation: "increment",
-        }),
-      );
     }
 
-    const linkId = genId();
-    const sourceEntityVersionIds: Set<string> = new Set([
-      dbSourceEntity.entityVersionId,
-    ]);
-    const createdAt = now;
-
-    promises.push(
-      insertLink(conn, {
-        ...params,
-        sourceEntityVersionIds,
-        linkId,
-        createdAt,
-      }),
-    );
+    promises.push(insertLink(conn, { dbLink }));
 
     await Promise.all(promises);
 
-    return { ...params, sourceEntityVersionIds, linkId, createdAt };
+    return dbLink;
   });

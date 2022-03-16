@@ -1,5 +1,6 @@
 import jp from "jsonpath";
 import { UserInputError } from "apollo-server-errors";
+import { merge } from "lodash";
 import { DBClient } from "../db";
 import { Entity, Link } from ".";
 import { Link as GQLLink } from "../graphql/apiTypes.gen";
@@ -46,61 +47,82 @@ const isUnsupportedJSONPathComponent = (component: JSONPathComponent) =>
 
 export const isUnupportedJSONPath = (components: JSONPathComponent[]) =>
   components.length < 2 ||
-  components[0].expression.type !== "root" ||
+  components[0]!.expression.type !== "root" ||
   components.slice(1).find(isUnsupportedJSONPathComponent) !== undefined;
 
 type LinkConstructorArgs = {
   linkId: string;
+  linkVersionId: string;
   path: string;
   index?: number;
   sourceAccountId: string;
   sourceEntityId: string;
-  sourceEntityVersionIds: Set<string>;
+  appliedToSourceAt: Date;
+  appliedToSourceByAccountId: string;
+  removedFromSourceAt?: Date;
+  removedFromSourceByAccountId?: string;
   destinationAccountId: string;
   destinationEntityId: string;
   destinationEntityVersionId?: string;
-  createdAt: Date;
+  updatedAt: Date;
+  updatedByAccountId: string;
 };
 
 class __Link {
   linkId: string;
+  linkVersionId: string;
   stringifiedPath: string;
   path: jp.PathComponent[];
   index?: number;
 
   sourceAccountId: string;
   sourceEntityId: string;
-  sourceEntityVersionIds: Set<string>;
+
+  appliedToSourceAt: Date;
+  appliedToSourceByAccountId: string;
+  removedFromSourceAt?: Date;
+  removedFromSourceByAccountId?: string;
 
   destinationAccountId: string;
   destinationEntityId: string;
   destinationEntityVersionId?: string;
 
-  createdAt: Date;
+  updatedAt: Date;
+  updatedByAccountId: string;
 
   constructor({
     linkId,
+    linkVersionId,
     path,
     index,
     sourceAccountId,
     sourceEntityId,
-    sourceEntityVersionIds,
+    appliedToSourceAt,
+    appliedToSourceByAccountId,
+    removedFromSourceAt,
+    removedFromSourceByAccountId,
     destinationAccountId,
     destinationEntityId,
     destinationEntityVersionId,
-    createdAt,
+    updatedAt,
+    updatedByAccountId,
   }: LinkConstructorArgs) {
     this.linkId = linkId;
+    this.linkVersionId = linkVersionId;
     this.stringifiedPath = path;
     this.path = Link.parseStringifiedPath(path);
     this.index = index;
     this.sourceAccountId = sourceAccountId;
     this.sourceEntityId = sourceEntityId;
-    this.sourceEntityVersionIds = sourceEntityVersionIds;
+    this.appliedToSourceAt = appliedToSourceAt;
+    this.appliedToSourceByAccountId = appliedToSourceByAccountId;
+    this.removedFromSourceAt = removedFromSourceAt;
+    this.removedFromSourceByAccountId = removedFromSourceByAccountId;
     this.destinationAccountId = destinationAccountId;
     this.destinationEntityId = destinationEntityId;
     this.destinationEntityVersionId = destinationEntityVersionId;
-    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+    this.updatedByAccountId = updatedByAccountId;
   }
 
   static isPathValid(path: string): boolean {
@@ -139,8 +161,13 @@ class __Link {
   }
 
   static async create(client: DBClient, params: CreateLinkArgs): Promise<Link> {
-    const { stringifiedPath, source, destination, destinationEntityVersionId } =
-      params;
+    const {
+      stringifiedPath,
+      source,
+      destination,
+      destinationEntityVersionId,
+      index,
+    } = params;
 
     Link.validatePath(stringifiedPath);
 
@@ -163,6 +190,7 @@ class __Link {
       destinationAccountId,
       destinationEntityId,
       destinationEntityVersionId,
+      index,
     });
 
     const link = new Link(dbLink);
@@ -178,20 +206,7 @@ class __Link {
     },
   ): Promise<Link | null> {
     const dbLink = await client.getLink(params);
-    return dbLink ? new Link({ ...dbLink }) : null;
-  }
-
-  static async getByEntityId(
-    client: DBClient,
-    params: {
-      sourceAccountId: string;
-      sourceEntityId: string;
-      sourceEntityVersionId: string;
-      destinationEntityId: string;
-    },
-  ): Promise<Link | null> {
-    const dbLink = await client.getLinkByEntityId(params);
-    return dbLink ? new Link({ ...dbLink }) : null;
+    return dbLink ? new Link(dbLink) : null;
   }
 
   async delete(client: DBClient, params: { deletedByAccountId: string }) {
@@ -239,6 +254,33 @@ class __Link {
 
   async getDestination(client: DBClient) {
     return await this.fetchDestination(client);
+  }
+
+  async update(
+    client: DBClient,
+    params: { updatedIndex: number; updatedByAccountId: string },
+  ) {
+    const { updatedIndex, updatedByAccountId } = params;
+
+    /** @todo: implement way of updating a link's index without deleting the current one and creating a new one */
+
+    const [source, destination] = await Promise.all([
+      this.getSource(client),
+      this.getDestination(client),
+      this.delete(client, { deletedByAccountId: updatedByAccountId }),
+    ]);
+
+    const newLink = await Link.create(client, {
+      source,
+      destination,
+      index: updatedIndex,
+      stringifiedPath: this.stringifiedPath,
+      createdByAccountId: updatedByAccountId,
+    });
+
+    merge(this, newLink);
+
+    return this;
   }
 
   toUnresolvedGQLLink(): UnresolvedGQLLink {

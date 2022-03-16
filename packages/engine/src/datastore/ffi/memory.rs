@@ -20,7 +20,7 @@ pub unsafe extern "C" fn load_shmem(id: *const u8, len: u64) -> *mut CMemory {
     // `include_terminal_padding` = true because if external modules resize
     // the shared memory, then that means that this shared memory module
     // contains data subject to external resizing
-    match Memory::from_message(message, true, true) {
+    match Memory::shmem_os_id(message, true, true) {
         Ok(memory) => {
             let ptr = memory.data.as_ptr();
             let memory_size = memory.size as i64;

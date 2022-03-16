@@ -35,8 +35,9 @@ export type EntityExternalResolvers =
   | "linkGroups" // resolved in resolvers/linkGroups
   | "linkedEntities" // resolved in resolvers/linkedEntities
   | "linkedAggregations" // resovled in resolvers/linkedAggregations
-  | "children" // resolved in resolvers/entityType/entityTypeInheritance
-  | "parents" // resolved in resolvers/entityType/entityTypeInheritance
+  | "immediateChildren" // resolved in resolvers/entityType/entityTypeInheritance
+  | "immediateParents" // resolved in resolvers/entityType/entityTypeInheritance
+  | "allParents" // resolved in resolvers/entityType/entityTypeInheritance
   | "__typename";
 
 export type UnresolvedGQLEntity = Omit<GQLEntity, EntityExternalResolvers> & {
@@ -410,21 +411,30 @@ class __Entity {
   async getOutgoingLinks(
     client: DBClient,
     params?: {
+      activeAt?: Date;
       stringifiedPath?: string;
       path?: PathComponent[];
     },
   ) {
+    const { activeAt, stringifiedPath, path } = params || {};
+
     const outgoingDBLinks = await client.getEntityOutgoingLinks({
       accountId: this.accountId,
       entityId: this.entityId,
-      entityVersionId: this.metadata.versioned
-        ? this.entityVersionId
-        : undefined,
-      path:
-        params?.stringifiedPath ??
-        (params?.path ? Link.stringifyPath(params.path) : undefined),
+      activeAt,
+      path: stringifiedPath ?? (path ? Link.stringifyPath(path) : undefined),
     });
+
     return outgoingDBLinks.map((dbLink) => new Link(dbLink));
+  }
+
+  async getIncomingLinks(client: DBClient) {
+    const incomingDBLinks = await client.getEntityIncomingLinks({
+      accountId: this.accountId,
+      entityId: this.entityId,
+    });
+
+    return incomingDBLinks.map((dbLink) => new Link(dbLink));
   }
 
   async getOutgoingLink(
@@ -441,22 +451,6 @@ class __Entity {
     return link;
   }
 
-  async getOutgoingLinkByEntityId(
-    client: DBClient,
-    params: {
-      destinationEntityId: string;
-    },
-  ) {
-    const link = await Link.getByEntityId(client, {
-      ...params,
-      sourceAccountId: this.accountId,
-      sourceEntityId: this.entityId,
-      sourceEntityVersionId: this.entityVersionId,
-    });
-
-    return link;
-  }
-
   async createOutgoingLink(
     client: DBClient,
     params: Omit<CreateLinkArgs, "source">,
@@ -467,11 +461,6 @@ class __Entity {
       ...params,
       source: this,
     });
-
-    // If this is a versioned entity, fetch the updated entityVersionId
-    if (this.metadata.versioned) {
-      await this.refetchLatestVersion(client);
-    }
 
     return link;
   }
@@ -494,10 +483,6 @@ class __Entity {
     await link.delete(client, {
       deletedByAccountId: params.deletedByAccountId,
     });
-
-    if (this.metadata.versioned) {
-      await this.refetchLatestVersion(client);
-    }
   }
 
   private static async getOrCreate(
@@ -551,11 +536,18 @@ class __Entity {
           const systemAccountId = await client.getSystemAccountId();
 
           const name = capitalizeComponentName(componentId);
+
+          // ensure a trailing a trailing slash on componentId
+          const schema = await EntityType.fetchComponentIdBlockSchema(
+            componentId,
+          );
+
+          // Creation of an EntityType validates schema.
           entityTypeWithComponentId = await EntityType.create(client, {
             accountId: systemAccountId,
             createdByAccountId: params.user.accountId,
             name,
-            schema: { componentId },
+            schema,
           });
         }
 
@@ -606,19 +598,8 @@ class __Entity {
         "entity"
       >(entityDefinitions, "linkedEntities", "entity");
 
-      const entities: {
-        link?: {
-          parentIndex: number;
-          meta: Omit<LinkedEntityDefinition, "entity">;
-        };
-        entity: Entity;
-      }[] = [];
-
-      // Promises are resolved sequentially because of transaction nesting issues
-      // This happens when more than one entity is created.
-      for (const entityDefinition of result) {
-        // Root entity does not have a link.
-        entities.push({
+      const entities = await Promise.all(
+        result.map(async (entityDefinition) => ({
           link: entityDefinition.meta
             ? {
                 parentIndex: entityDefinition.parentIndex,
@@ -630,34 +611,33 @@ class __Entity {
             accountId,
             entityDefinition,
           }),
-        });
-      }
+        })),
+      );
 
-      // insert links between entities in tree
-      // No transactions, so can run concurrently
       await Promise.all(
-        entities.map(async ({ link, entity }) => {
+        entities.map(({ link, entity }) => {
           if (link) {
             const parentEntity = entities[link.parentIndex];
             if (!parentEntity) {
               throw new ApolloError("Could not find parent entity");
             }
             // links are created as an outgoing link from the parent entity to the children.
-            return await parentEntity.entity.createOutgoingLink(client, {
+            return parentEntity.entity.createOutgoingLink(client, {
               createdByAccountId: user.accountId,
               destination: entity,
               stringifiedPath: link.meta.path,
               index: link.meta.index ?? undefined,
             });
+          } else {
+            return null;
           }
-          return null;
         }),
       );
 
       // the root entity is the first result, same of which the user supplied as the top level entity.
       if (entities.length > 0) {
         // First element will be the root entity.
-        return entities[0].entity;
+        return entities[0]!.entity;
       } else {
         throw new ApolloError(
           "Could not create entity tree",

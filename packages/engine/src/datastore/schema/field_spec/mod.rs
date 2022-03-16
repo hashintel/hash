@@ -16,7 +16,6 @@ pub mod accessor;
 pub mod built_in;
 pub mod creator;
 pub mod display;
-pub mod short_json;
 
 pub const HIDDEN_PREFIX: &str = "_HIDDEN_";
 pub const PRIVATE_PREFIX: &str = "_PRIVATE_";
@@ -305,7 +304,8 @@ impl FieldSpecMap {
         }
     }
 
-    pub fn union(&mut self, set: FieldSpecMap) -> Result<()> {
+    #[cfg(test)]
+    pub(crate) fn union(&mut self, set: FieldSpecMap) -> Result<()> {
         set.field_specs
             .into_iter()
             .try_for_each(|(_, field_spec)| self.add(field_spec))
@@ -504,5 +504,33 @@ pub mod tests {
             .unwrap();
 
         assert_eq!(field_spec_map.len(), 1);
+    }
+
+    #[test]
+    pub fn test_struct_types_enabled() -> Result<()> {
+        let mut keys = FieldSpecMap::default();
+        keys.add(RootFieldSpec {
+            inner: FieldSpec::new(
+                "struct".to_string(),
+                FieldType::new(
+                    FieldTypeVariant::Struct(vec![
+                        FieldSpec::new(
+                            "first_column".to_string(),
+                            FieldType::new(FieldTypeVariant::Number, false),
+                        ),
+                        FieldSpec::new(
+                            "second_column".to_string(),
+                            FieldType::new(FieldTypeVariant::Boolean, true),
+                        ),
+                    ]),
+                    true,
+                ),
+            ),
+            scope: FieldScope::Private,
+            source: FieldSource::Engine,
+        })?;
+
+        keys.get_arrow_schema()?;
+        Ok(())
     }
 }

@@ -8,13 +8,7 @@ import {
   DeleteLinkMutationVariables,
 } from "../../../graphql/apiTypes.gen";
 
-export const useBlockProtocolDeleteLinks = (
-  /**
-   * Providing sourceAccountId here saves blocks from having to know it
-   * @todo save the FE having to deal with this at all - BE can look up the accountId
-   */
-  sourceAccountId: string,
-): {
+export const useBlockProtocolDeleteLinks = (): {
   deleteLinks: BlockProtocolDeleteLinksFunction;
   deleteLinksLoading: boolean;
   deleteLinksError: any;
@@ -31,17 +25,26 @@ export const useBlockProtocolDeleteLinks = (
       const results: boolean[] = [];
       // TODO: Support multiple actions in one GraphQL mutation for transaction integrity and better status reporting
       for (const action of actions) {
+        if (!action.sourceAccountId) {
+          throw new Error("deleteLinks needs to be passed a sourceAccountId");
+        }
+
+        if (!action.sourceEntityId) {
+          throw new Error("deleteLinks needs to be passed a sourceEntityId");
+        }
+
         const { data } = await runDeleteLinkMutation({
           variables: {
-            ...action,
-            sourceAccountId,
+            linkId: action.linkId,
+            sourceAccountId: action.sourceAccountId,
+            sourceEntityId: action.sourceEntityId,
           },
         });
         results.push(!!data?.deleteLink);
       }
       return results;
     },
-    [sourceAccountId, runDeleteLinkMutation],
+    [runDeleteLinkMutation],
   );
 
   return {

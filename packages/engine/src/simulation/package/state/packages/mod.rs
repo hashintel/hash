@@ -46,6 +46,21 @@ pub enum StateTask {
     ExecuteBehaviorsTask,
 }
 
+impl StoreAccessVerify for StateTask {
+    fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
+        let state = &access.state;
+        let context = access.context();
+        // All combinations (as of now) are allowed (but still being explicit)
+        if (state.is_readwrite() || state.is_readonly() || state.is_disabled())
+            && (context.is_readonly() || context.is_disabled())
+        {
+            Ok(())
+        } else {
+            Err(Error::access_not_allowed(state, context, "State".into()))
+        }
+    }
+}
+
 /// All state package task messages are registered in this enum
 #[enum_dispatch(RegisterWithoutTrait)]
 #[derive(Clone, Debug, Serialize, Deserialize)]

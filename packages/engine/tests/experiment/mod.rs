@@ -16,6 +16,7 @@ use hash_engine_lib::{
 use orchestrator::{ExperimentConfig, ExperimentType, Manifest, Server};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Value;
+use tracing_subscriber::fmt::time::Uptime;
 
 pub type AgentStates = Value;
 pub type Globals = Value;
@@ -115,13 +116,31 @@ pub async fn run_test_suite(
     test_path: &'static str,
     language: Option<Language>,
     experiment: Option<&'static str>,
+    target_max_group_size: Option<usize>,
 ) {
+    // If this is an Err then the logger has already been initialised in another thread which is
+    // okay
+    let _ = tracing_subscriber::fmt()
+        .with_timer(Uptime::default())
+        .with_target(true)
+        .with_test_writer()
+        .try_init();
+
     // If `RUST_LOG` is set, only run it once, otherwise run with `warn` and `trace` on failure
     let log_levels = if std::env::var("RUST_LOG").is_ok() {
         vec![None]
     } else {
         vec![Some(LogLevel::Warning), Some(LogLevel::Trace)]
     };
+
+    let start_timeout = std::env::var("ENGINE_START_TIMEOUT").map_or(10., |val| {
+        val.parse::<f64>()
+            .expect("ENGINE_START_TIMEOUT couldn't be parsed as a f64")
+    });
+    let wait_timeout = std::env::var("ENGINE_WAIT_TIMEOUT").map_or(60., |val| {
+        val.parse::<f64>()
+            .expect("ENGINE_WAIT_TIMEOUT couldn't be parsed as a f64")
+    });
 
     let project_name = project_path
         .file_name()
@@ -166,30 +185,43 @@ pub async fn run_test_suite(
             let mut test_output = None;
             for log_level in &log_levels {
                 if let Some(log_level) = log_level {
-                    eprint!("Running test with log level `{log_level}`... ");
+                    tracing::info!("Running test with log level `{log_level}`... ");
                 }
+
+                let output = output_folder.clone();
+
+                let experiment_config = ExperimentConfig {
+                    num_workers: num_cpus::get(),
+                    log_format: LogFormat::Pretty,
+                    log_folder: output.join("log"),
+                    log_level: *log_level,
+                    output_folder: output,
+                    output_location: OutputLocation::File("output.log".into()),
+                    start_timeout,
+                    wait_timeout,
+                };
 
                 let test_result = run_test(
                     experiment_type.clone(),
                     &project_path,
                     project_name.clone(),
-                    output_folder.clone(),
-                    *log_level,
+                    experiment_config,
                     language,
                     expected_outputs.len(),
+                    target_max_group_size,
                 )
                 .await;
 
                 match test_result {
                     Ok(outputs) => {
-                        eprintln!("success");
                         test_output = Some(outputs);
                         break;
                     }
                     Err(err) => {
-                        eprintln!("failed");
-                        eprintln!("{err:?}");
+                        tracing::error!("Test failed");
+                        tracing::error!("Err:\n{err:?}");
                         if let Ok(log) = fs::read_to_string(&log_file_path) {
+                            tracing::error!("Logs:");
                             eprintln!("{log}");
                         }
                     }
@@ -213,7 +245,11 @@ pub async fn run_test_suite(
             {
                 expected
                     .assert_subset_of(&states, &globals, &analysis)
-                    .unwrap_or_else(|_| {
+                    .unwrap_or_else(|err| {
+                        if let Ok(log) = fs::read_to_string(&log_file_path) {
+                            eprintln!("{log}");
+                        }
+                        tracing::error!("{err:?}");
                         panic!(
                             "Output of simulation {} does not match expected output in experiment",
                             output_idx + 1
@@ -253,10 +289,10 @@ pub async fn run_test<P: AsRef<Path>>(
     experiment_type: ExperimentType,
     project_path: P,
     project_name: String,
-    output: PathBuf,
-    log_level: Option<LogLevel>,
+    experiment_config: ExperimentConfig,
     language: Option<Language>,
     num_outputs_expected: usize,
+    target_max_group_size: Option<usize>,
 ) -> Result<TestOutput> {
     let project_path = project_path.as_ref();
 
@@ -278,16 +314,7 @@ pub async fn run_test<P: AsRef<Path>>(
         .read(experiment_type)
         .wrap_err("Could not read manifest")?;
 
-    let experiment = orchestrator::Experiment::new(ExperimentConfig {
-        num_workers: num_cpus::get(),
-        log_format: LogFormat::Pretty,
-        log_folder: output.join("log"),
-        log_level,
-        output_folder: output,
-        output_location: OutputLocation::File("output.log".into()),
-        start_timeout: 10,
-        wait_timeout: 10 * 60,
-    });
+    let experiment = orchestrator::Experiment::new(experiment_config);
 
     let output_base_directory = experiment
         .config
@@ -297,7 +324,7 @@ pub async fn run_test<P: AsRef<Path>>(
 
     let now = Instant::now();
     experiment
-        .run(experiment_run, handler)
+        .run(experiment_run, handler, target_max_group_size)
         .await
         .wrap_err("Could not run experiment")?;
     let duration = now.elapsed();
@@ -393,7 +420,7 @@ fn assert_subset_value(subset: &Value, superset: &Value, path: String) -> Result
                 if let Some(super_value) = b.get(key) {
                     assert_subset_value(sub_value, super_value, format!("{path}.{key}"))?;
                 } else {
-                    bail!("{path:?}: {key:?} is not present output")
+                    bail!("{path:?}: {key:?} is not present in the output")
                 }
             }
         }

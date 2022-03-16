@@ -12,9 +12,9 @@ const {
   license,
   blockprotocol,
   repository,
+  protocol,
+  peerDependencies,
 } = require("./package.json");
-
-const { externals } = require("./webpack-main.config");
 
 const variants = fs.existsSync("./variants.json")
   ? require("./variants.json")
@@ -33,11 +33,12 @@ class StatsPlugin {
         description,
         author,
         license,
-        externals,
+        externals: peerDependencies,
         schema: "block-schema.json",
         source: main,
         variants,
         repository,
+        protocol,
         ...blockprotocol,
       };
 

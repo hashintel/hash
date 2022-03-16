@@ -36,7 +36,7 @@ impl<'a> SimQueue<'a> {
             let msg = ExperimentControl::StartSim {
                 span_id: tracing::Span::current().id(),
                 sim_id,
-                changed_properties: changed_props.clone(),
+                changed_globals: changed_props.clone(),
                 max_num_steps: self.max_num_steps,
             };
             self.pkg_to_exp.send(msg).await?;
@@ -63,12 +63,12 @@ impl SimpleExperiment {
         mut exp_pkg_update_recv: ExpPkgUpdateRecv,
     ) -> Result<()> {
         let max_num_steps = self.config.num_steps;
-        let num_sims = self.config.changed_properties.len();
+        let num_sims = self.config.changed_globals.len();
         let max_sims_in_parallel = self.config.max_sims_in_parallel.unwrap_or(num_sims);
 
         let mut queued_iter =
             self.config
-                .changed_properties
+                .changed_globals
                 .iter()
                 .enumerate()
                 .map(|(sim_idx, props)| {

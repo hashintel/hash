@@ -26,6 +26,7 @@ pub type MetricObjective = proto::MetricObjective;
 pub type PackageName = proto::ExperimentPackageConfig;
 pub type ExperimentRun = proto::ExperimentRun;
 
+// TODO: UNUSED: Needs triage
 pub fn objective_to_string(m: &Option<MetricObjective>) -> Result<String> {
     match m {
         Some(MetricObjective::Max) => Ok("max".into()),
@@ -34,7 +35,7 @@ pub fn objective_to_string(m: &Option<MetricObjective>) -> Result<String> {
     }
 }
 
-fn set_nested_property(
+fn set_nested_global_property(
     map: &mut serde_json::Map<String, SerdeValue>,
     property_path: Vec<&str>,
     new_value: SerdeValue,
@@ -47,12 +48,12 @@ fn set_nested_property(
         let _ = map.insert(name.to_string(), new_value);
         Ok(())
     } else {
-        // TODO: OS - Uninitialized nested properties (JV)
-        let property = map
+        // TODO: OS - Uninitialized nested globals
+        let global_property = map
             .get_mut(name)
             .ok_or_else(|| Error::MissingChangedGlobalProperty(name.to_string()))?;
-        set_nested_property(
-            property
+        set_nested_global_property(
+            global_property
                 .as_object_mut()
                 .ok_or_else(|| Error::NestedPropertyNotObject(name.to_string()))?,
             property_path,
@@ -62,18 +63,16 @@ fn set_nested_property(
     }
 }
 
-pub fn apply_property_changes(base: Globals, changes: &SerdeValue) -> Result<Globals> {
+pub fn apply_globals_changes(base: Globals, changes: &SerdeValue) -> Result<Globals> {
     let mut map = base
         .0
         .as_object()
         .ok_or(Error::BaseGlobalsNotProject)?
         .clone();
-    let changes = changes
-        .as_object()
-        .ok_or(Error::ChangedPropertiesNotObject)?;
+    let changes = changes.as_object().ok_or(Error::ChangedGlobalsNotObject)?;
     for (property_path, changed_value) in changes.iter() {
         let property_path = property_path.split('.').collect();
-        set_nested_property(&mut map, property_path, changed_value.clone(), 0)?;
+        set_nested_global_property(&mut map, property_path, changed_value.clone(), 0)?;
     }
     let globals = Globals(map.into());
     Ok(globals)
@@ -89,7 +88,7 @@ pub struct Initializer {
 pub enum ExperimentControl {
     StartSim {
         sim_id: proto::SimulationShortId,
-        changed_properties: serde_json::Value,
+        changed_globals: serde_json::Value,
         max_num_steps: usize,
         span_id: SpanId,
     },

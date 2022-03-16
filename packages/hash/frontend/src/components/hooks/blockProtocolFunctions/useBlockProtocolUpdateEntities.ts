@@ -11,10 +11,7 @@ import {
   UpdatePageMutationVariables,
 } from "../../../graphql/apiTypes.gen";
 
-export const useBlockProtocolUpdateEntities = (
-  /** Providing accountId here saves blocks from having to know it */
-  accountId: string,
-): {
+export const useBlockProtocolUpdateEntities = (): {
   updateEntities: BlockProtocolUpdateEntitiesFunction;
   updateEntitiesLoading: boolean;
   updateEntitiesError: any;
@@ -46,21 +43,30 @@ export const useBlockProtocolUpdateEntities = (
   const updateEntities: BlockProtocolUpdateEntitiesFunction = useCallback(
     async (actions) =>
       Promise.all(
-        actions.map(async (action) =>
-          (action.entityTypeId === "Page" ? updatePageFn : updateEntityFn)({
+        actions.map(async (action) => {
+          if (!action.accountId) {
+            throw new Error("updateEntities needs to be passed an accountId");
+          }
+
+          return (
+            action.entityTypeId === "Page" ? updatePageFn : updateEntityFn
+          )({
             variables: {
+              accountId: action.accountId,
               entityId: action.entityId,
               properties: action.data,
-              accountId,
             },
-          }).then(
-            ({ data }) =>
-              data &&
-              ("updatePage" in data ? data.updatePage : data.updateEntity),
-          ),
-        ),
+          }).then(({ data }) => {
+            if (!data) {
+              throw new Error(
+                `Could not update entity with action ${JSON.stringify(action)}`,
+              );
+            }
+            return "updatePage" in data ? data.updatePage : data.updateEntity;
+          });
+        }),
       ),
-    [accountId, updateEntityFn, updatePageFn],
+    [updateEntityFn, updatePageFn],
   );
 
   const updateEntitiesLoading = updateEntityLoading || updatePageLoading;

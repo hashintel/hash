@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import { useRouter } from "next/router";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
+import { BlockProtocolLinkedAggregation } from "blockprotocol";
 
 import { blockDomId } from "../../blocks/page/BlockView";
 import { useBlockProtocolUpdateEntities } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateEntities";
@@ -18,18 +19,26 @@ import { RemoteBlock } from "../RemoteBlock/RemoteBlock";
 import { useBlockProtocolAggregateEntityTypes } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregateEntityTypes";
 import { useBlockProtocolAggregateEntities } from "../hooks/blockProtocolFunctions/useBlockProtocolAggregateEntities";
 import { useFileUpload } from "../hooks/useFileUpload";
-import { LinkGroup, UnknownEntity } from "../../graphql/apiTypes.gen";
+import {
+  LinkedAggregation,
+  LinkGroup,
+  UnknownEntity,
+} from "../../graphql/apiTypes.gen";
 import { useBlockProtocolCreateLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateLinks";
 import { useBlockProtocolDeleteLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolDeleteLinks";
+import { useBlockProtocolUpdateLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLinks";
 
 type BlockLoaderProps = {
   accountId: string;
   blockEntityId: string;
   editableRef: unknown;
-  entityId: string | undefined;
+  entityId: string;
+  entityTypeId: string | undefined;
+  entityTypeVersionId: string | undefined;
   entityProperties: {};
   linkGroups: LinkGroup[];
   linkedEntities: BlockEntity["properties"]["entity"]["linkedEntities"];
+  linkedAggregations: BlockEntity["properties"]["entity"]["linkedAggregations"];
   shouldSandbox?: boolean;
   sourceUrl: string;
 };
@@ -41,23 +50,24 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   blockEntityId,
   editableRef,
   entityId,
+  entityTypeId,
+  entityTypeVersionId,
   entityProperties,
   linkGroups,
   linkedEntities,
+  linkedAggregations,
   shouldSandbox,
   sourceUrl,
 }) => {
   const router = useRouter();
 
-  const { aggregateEntityTypes } =
-    useBlockProtocolAggregateEntityTypes(accountId);
-
-  const { updateEntities } = useBlockProtocolUpdateEntities(accountId);
-  const { aggregateEntities } = useBlockProtocolAggregateEntities(accountId);
-
-  const { uploadFile } = useFileUpload(accountId);
-  const { createLinks } = useBlockProtocolCreateLinks(accountId);
-  const { deleteLinks } = useBlockProtocolDeleteLinks(accountId);
+  const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
+  const { aggregateEntities } = useBlockProtocolAggregateEntities();
+  const { createLinks } = useBlockProtocolCreateLinks();
+  const { deleteLinks } = useBlockProtocolDeleteLinks();
+  const { updateEntities } = useBlockProtocolUpdateEntities();
+  const { uploadFile } = useFileUpload();
+  const { updateLinks } = useBlockProtocolUpdateLinks();
 
   const flattenedProperties = useMemo(() => {
     let flattenedLinkedEntities: UnknownEntity[] = [];
@@ -72,13 +82,22 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
       accountId,
       linkGroups,
       linkedEntities: flattenedLinkedEntities,
+      linkedAggregations: linkedAggregations as LinkedAggregation[],
       properties: entityProperties,
     });
-  }, [accountId, entityProperties, linkGroups, linkedEntities]);
+  }, [
+    accountId,
+    entityProperties,
+    linkGroups,
+    linkedEntities,
+    linkedAggregations,
+  ]);
 
   const blockProperties = {
     ...flattenedProperties,
     entityId,
+    entityTypeId,
+    entityTypeVersionId,
   };
 
   const functions = {
@@ -89,6 +108,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
     /** @todo pick one of getEmbedBlock or fetchEmbedCode */
     getEmbedBlock: fetchEmbedCode,
     updateEntities,
+    updateLinks,
     uploadFile,
   };
 
@@ -104,7 +124,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   }, []);
 
   useEffect(() => {
-    const routeHash = router.asPath.split("#")[1];
+    const routeHash = router.asPath.split("#")[1]!;
 
     function frame() {
       const routeElement = document.getElementById(routeHash);
@@ -143,6 +163,8 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
         blockProperties={{
           ...blockProperties,
           entityId: blockProperties.entityId ?? null,
+          entityTypeId: blockProperties.entityTypeId ?? null,
+          entityTypeVersionId: blockProperties.entityTypeVersionId ?? null,
         }}
         onBlockLoaded={onBlockLoaded}
         {...functions}
@@ -154,6 +176,9 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
     <RemoteBlock
       {...blockProperties}
       {...functions}
+      linkedAggregations={
+        blockProperties.linkedAggregations as BlockProtocolLinkedAggregation[]
+      }
       editableRef={editableRef}
       onBlockLoaded={onBlockLoaded}
       sourceUrl={sourceUrl}

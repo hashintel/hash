@@ -19,6 +19,7 @@ import {
   VerificationCode,
 } from "../adapter";
 import { SystemType } from "../../types/entityTypes";
+import { createPoolConnection, createTransactionConnection } from "./types";
 
 export type Config = {
   host: string;
@@ -54,7 +55,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
 
   private async query<T>(fn: (client: DBClient) => Promise<T>): Promise<T> {
     return await this.pool.connect(async (conn) => {
-      const client = new PostgresClient(conn);
+      const client = new PostgresClient(createPoolConnection(conn));
       return await fn(client);
     });
   }
@@ -67,7 +68,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   ): Promise<T> {
     return await this.pool.connect(async (conn) => {
       return await conn.transaction(async (tx) => {
-        const client = new PostgresClient(tx);
+        const client = new PostgresClient(createTransactionConnection(tx));
         return await fn(client);
       });
     });
@@ -77,7 +78,7 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     accountId: string;
     createdByAccountId: string;
     name: string;
-    schema?: Record<string, any>;
+    schema: Record<string, any>;
   }): Promise<EntityType> {
     return this.query((adapter) => adapter.createEntityType(params));
   }
@@ -116,6 +117,12 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.getEntityLatestVersion(params));
   }
 
+  getEntityType(
+    params: Parameters<DBClient["getEntityType"]>[0],
+  ): ReturnType<DBClient["getEntityType"]> {
+    return this.query((adapter) => adapter.getEntityType(params));
+  }
+
   getEntityTypeLatestVersion(params: {
     entityTypeId: string;
   }): Promise<EntityType | null> {
@@ -144,12 +151,6 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     params: Parameters<DBClient["getEntityTypeChildren"]>[0],
   ): ReturnType<DBClient["getEntityTypeChildren"]> {
     return this.query((adapter) => adapter.getEntityTypeChildren(params));
-  }
-
-  getEntityTypeParents(
-    params: Parameters<DBClient["getEntityTypeParents"]>[0],
-  ): ReturnType<DBClient["getEntityTypeParents"]> {
-    return this.query((adapter) => adapter.getEntityTypeParents(params));
   }
 
   updateEntityType(
@@ -208,22 +209,6 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.getEntitiesBySystemType(params));
   }
 
-  getEntitiesByTypeWithOutgoingEntityIds(
-    params: Parameters<DBClient["getEntitiesByTypeWithOutgoingEntityIds"]>[0],
-  ): ReturnType<DBClient["getEntitiesByTypeWithOutgoingEntityIds"]> {
-    return this.query((adapter) =>
-      adapter.getEntitiesByTypeWithOutgoingEntityIds(params),
-    );
-  }
-
-  getEntityWithOutgoingEntityIds(
-    params: Parameters<DBClient["getEntityWithOutgoingEntityIds"]>[0],
-  ): ReturnType<DBClient["getEntityWithOutgoingEntityIds"]> {
-    return this.query((adapter) =>
-      adapter.getEntityWithOutgoingEntityIds(params),
-    );
-  }
-
   accountExists(params: { accountId: string }): Promise<boolean> {
     return this.query((adapter) => adapter.accountExists(params));
   }
@@ -263,12 +248,6 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.getLink(params));
   }
 
-  getLinkByEntityId(
-    params: Parameters<DBClient["getLinkByEntityId"]>[0],
-  ): ReturnType<DBClient["getLinkByEntityId"]> {
-    return this.query((adapter) => adapter.getLinkByEntityId(params));
-  }
-
   deleteLink(params: {
     deletedByAccountId: string;
     sourceAccountId: string;
@@ -277,13 +256,16 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return this.query((adapter) => adapter.deleteLink(params));
   }
 
-  getEntityOutgoingLinks(params: {
-    accountId: string;
-    entityId: string;
-    entityVersionId?: string;
-    path?: string;
-  }): Promise<DBLink[]> {
+  getEntityOutgoingLinks(
+    params: Parameters<DBClient["getEntityOutgoingLinks"]>[0],
+  ): ReturnType<DBClient["getEntityOutgoingLinks"]> {
     return this.query((adapter) => adapter.getEntityOutgoingLinks(params));
+  }
+
+  getEntityIncomingLinks(
+    params: Parameters<DBClient["getEntityIncomingLinks"]>[0],
+  ): ReturnType<DBClient["getEntityIncomingLinks"]> {
+    return this.query((adapter) => adapter.getEntityIncomingLinks(params));
   }
 
   createAggregation(

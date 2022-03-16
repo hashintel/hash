@@ -106,7 +106,7 @@ export const parseGraphQLError = (
   }
 
   return {
-    errorCode: errors[0].extensions?.code,
-    message: errors[0].message,
+    errorCode: errors[0]!.extensions?.code,
+    message: errors[0]!.message,
   };
 };

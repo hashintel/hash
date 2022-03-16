@@ -40,7 +40,7 @@ impl PackageCreator for Creator {
         _state_field_spec_accessor: FieldSpecMapAccessor,
         context_field_spec_accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn ContextPackage>> {
-        let custom_message_handlers = custom_message_handlers_from_properties(&config.sim.globals)?;
+        let custom_message_handlers = custom_message_handlers_from_globals(&config.sim.globals)?;
         Ok(Box::new(ApiRequests {
             custom_message_handlers,
             context_field_spec_accessor,
@@ -145,11 +145,13 @@ impl Package for ApiRequests {
         let arrow_fields = context_schema
             .arrow
             .field_with_name(field_key.value())
-            .map(|field| match field.data_type() {
-                DataType::List(box DataType::Struct(sub_fields)) => sub_fields,
-                _ => {
-                    unreachable!()
+            .map(|field| {
+                if let DataType::List(inner_field) = field.data_type() {
+                    if let DataType::Struct(sub_fields) = inner_field.data_type() {
+                        return sub_fields;
+                    }
                 }
+                unreachable!()
             })?
             .clone();
 
@@ -173,20 +175,18 @@ impl Package for ApiRequests {
     }
 }
 
-pub fn custom_message_handlers_from_properties(
-    properties: &Globals,
-) -> Result<Option<Vec<String>>> {
-    properties
+pub fn custom_message_handlers_from_globals(globals: &Globals) -> Result<Option<Vec<String>>> {
+    globals
         .get_cloned("messageHandlers")
         .map(|handlers| match handlers {
             serde_json::Value::Array(handlers) => handlers
                 .into_iter()
                 .map(|handler| match handler {
                     serde_json::Value::String(handler) => Ok(handler),
-                    _ => Err(Error::PropertiesParseError("messageHandlers".into())),
+                    _ => Err(Error::GlobalsParseError("messageHandlers".into())),
                 })
                 .collect::<Result<Vec<String>>>(),
-            _ => Err(Error::PropertiesParseError("messageHandlers".into())),
+            _ => Err(Error::GlobalsParseError("messageHandlers".into())),
         })
         .transpose()
 }

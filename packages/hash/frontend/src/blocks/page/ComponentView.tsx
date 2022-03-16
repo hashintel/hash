@@ -17,7 +17,6 @@ import {
   componentNodeToId,
   isComponentNode,
 } from "@hashintel/hash-shared/prosemirror";
-import type { Scope } from "@sentry/browser";
 import * as Sentry from "@sentry/nextjs";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
@@ -127,17 +126,18 @@ export class ComponentView implements NodeView<Schema> {
         .resolve(this.getPos())
         .node(2).attrs.draftId;
 
-      // @todo handle entity id not being defined
-      const entityId = node.attrs.blockEntityId ?? "";
-      const entity = this.store.draft[blockDraftId];
       const mappedUrl = componentIdToUrl(this.componentId);
+      const entity = this.store.draft[blockDraftId]!;
+
+      // @todo handle entity id not being defined
+      const entityId = entity.entityId ?? "";
 
       /** used by collaborative editing feature `FocusTracker` */
       this.target.setAttribute("data-entity-id", entityId);
 
       const childEntity = getChildEntity(entity);
 
-      const beforeCapture = (scope: Scope) => {
+      const beforeCapture = (scope: Sentry.Scope) => {
         scope.setTag("block", this.componentId);
       };
 
@@ -156,8 +156,11 @@ export class ComponentView implements NodeView<Schema> {
             blockEntityId={entityId}
             shouldSandbox={!this.editable}
             editableRef={this.editable ? this.editableRef : undefined}
+            // @todo these asserted non-null fields do not definitely exist when the block is first loaded
             accountId={childEntity?.accountId!}
             entityId={childEntity?.entityId!}
+            entityTypeId={childEntity?.entityTypeId!}
+            entityTypeVersionId={childEntity?.entityVersionId!}
             entityProperties={
               childEntity && "properties" in childEntity
                 ? childEntity.properties
@@ -165,6 +168,7 @@ export class ComponentView implements NodeView<Schema> {
             }
             linkGroups={childEntity?.linkGroups ?? []}
             linkedEntities={childEntity?.linkedEntities ?? []}
+            linkedAggregations={childEntity?.linkedAggregations ?? []}
           />
         </Sentry.ErrorBoundary>,
         this.target,

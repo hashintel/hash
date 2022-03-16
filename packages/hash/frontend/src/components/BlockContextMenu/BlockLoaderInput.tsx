@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { tw } from "twind";
-import { Button } from "../forms/Button";
+import { Button } from "../Button";
 import { useBlocksMeta } from "../../blocks/blocksMeta";
 import { useBlockView } from "../../blocks/page/BlockViewContext";
 
@@ -52,7 +52,11 @@ export const BlockLoaderInput: React.VFC = () => {
       />
       {blockUrl && (
         <Button
-          className={tw`mt-2 py-1 text-sm w-full`}
+          size="xs"
+          sx={{
+            mt: 1,
+            width: "100%",
+          }}
           onClick={loadBlockFromUrl}
           disabled={isDefinedBlock || !isValidBlockUrl || error != null}
         >

@@ -11,10 +11,7 @@ import {
 } from "../../../graphql/apiTypes.gen";
 import { updateEntityTypeMutation } from "../../../graphql/queries/entityType.queries";
 
-export const useBlockProtocolUpdateEntityType = (
-  /** Providing accountId here saves blocks from having to know it */
-  accountId: string,
-): {
+export const useBlockProtocolUpdateEntityType = (): {
   updateEntityTypes: BlockProtocolUpdateEntityTypesFunction;
   updateEntityTypesLoading: boolean;
   updateEntityTypesError: any;
@@ -44,9 +41,13 @@ export const useBlockProtocolUpdateEntityType = (
     async (actions) => {
       const results: BlockProtocolEntityType[] = [];
       // TODO: Support multiple actions in one GraphQL mutation for transaction integrity and better status reporting
-      for (const { entityId, schema } of actions) {
+      for (const { accountId, entityTypeId, schema } of actions) {
+        if (!accountId) {
+          throw new Error("updateEntityTypes needs to be passed an accountId");
+        }
+
         const variables: UpdateEntityTypeMutationVariables = {
-          entityId,
+          entityId: entityTypeId,
           accountId,
           schema,
         };
@@ -56,7 +57,7 @@ export const useBlockProtocolUpdateEntityType = (
 
         if (!data) {
           throw new Error(
-            errors?.[0].message || "Could not update entity type",
+            errors?.[0]!.message || "Could not update entity type",
           );
         }
 
@@ -67,7 +68,7 @@ export const useBlockProtocolUpdateEntityType = (
       }
       return results;
     },
-    [accountId, runUpdateEntityTypeMutation],
+    [runUpdateEntityTypeMutation],
   );
 
   return {

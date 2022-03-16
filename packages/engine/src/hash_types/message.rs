@@ -3,6 +3,7 @@ use std::{collections::HashMap, fmt};
 use serde::{de::Deserializer, Deserialize, Serialize};
 
 use super::{error::Result, state::Agent};
+use crate::datastore::arrow::message::{CREATE_AGENT, REMOVE_AGENT, SYSTEM_MESSAGE};
 
 /*
  * We want Serde to deserialize a message to the correct enum variant,
@@ -137,7 +138,7 @@ impl fmt::Display for Error {
 }
 
 fn is_system_message(kind: &str) -> bool {
-    kind == "create_agent" || kind == "remove_agent"
+    kind == CREATE_AGENT || kind == REMOVE_AGENT
 }
 
 impl Outbound {
@@ -146,27 +147,9 @@ impl Outbound {
         Outbound::Generic(msg)
     }
 
-    #[must_use]
-    pub fn create_agent(state: Agent) -> Outbound {
-        Outbound::CreateAgent(OutboundCreateAgentPayload {
-            r#type: CreateAgent::Type,
-            to: vec!["hash".to_string()],
-            data: state,
-        })
-    }
-
-    #[must_use]
-    pub fn remove_agent(agent_id: String) -> Outbound {
-        Outbound::RemoveAgent(OutboundRemoveAgentPayload {
-            r#type: RemoveAgent::Type,
-            to: vec!["hash".to_string()],
-            data: RemoveAgentPayload { agent_id },
-        })
-    }
-
     fn is_json_message_remove_agent(value: &serde_json::Value) -> bool {
         if let Some(serde_json::Value::String(kind)) = value.get("type") {
-            return kind == RemoveAgentPayload::IDENTIFIER;
+            return kind == REMOVE_AGENT;
         }
         false
     }
@@ -194,7 +177,9 @@ impl Outbound {
             if let Some(obj) = value.as_object_mut() {
                 obj.insert(
                     String::from("to"),
-                    serde_json::Value::Array(vec![serde_json::Value::String(String::from("hash"))]),
+                    serde_json::Value::Array(vec![serde_json::Value::String(
+                        SYSTEM_MESSAGE.to_string(),
+                    )]),
                 );
             }
         }
@@ -218,7 +203,7 @@ impl Outbound {
 
     fn is_hash_engine_message(value: &mut serde_json::Value) -> bool {
         if let Some(serde_json::Value::String(recipient)) = value.get("to") {
-            return recipient.eq_ignore_ascii_case("hash");
+            return recipient.eq_ignore_ascii_case(SYSTEM_MESSAGE);
         }
         false
     }
@@ -290,6 +275,7 @@ impl Outbound {
     }
 
     #[must_use]
+    // TODO: UNUSED: Needs triage
     pub fn unchecked_from_json_value_with_state(
         value: serde_json::Value,
         agent_state: &Agent,
@@ -344,14 +330,12 @@ pub struct RemoveAgentPayload {
     pub agent_id: String,
 }
 
-impl RemoveAgentPayload {
-    pub const IDENTIFIER: &'static str = "remove_agent";
-}
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub enum StopSim {
     #[serde(rename = "stop")]
     Type,
 }
+
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct OutboundStopSimPayload {
     pub r#type: StopSim,
@@ -393,6 +377,7 @@ where
     }
 }
 
+// TODO: UNUSED: Needs triage
 pub type Map = HashMap<String, Vec<Incoming>>;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -403,6 +388,7 @@ pub struct Incoming {
 }
 
 impl Incoming {
+    // TODO: UNUSED: Needs triage
     #[must_use]
     pub fn r#type(&self) -> String {
         match &self.message {
@@ -411,6 +397,7 @@ impl Incoming {
         }
     }
 
+    // TODO: UNUSED: Needs triage
     #[must_use]
     pub fn data(&self) -> serde_json::Value {
         match &self.message {

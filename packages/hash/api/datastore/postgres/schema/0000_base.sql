@@ -44,7 +44,7 @@ create table if not exists entity_type_versions (
 
     -- Versioned types are never mutated, so the updated_at time always matches the
     -- created_at time. Non-versioned types may be mutatated in-place, and the
-    -- updated_at column changes when a mutation is made.';
+    -- updated_at column changes when a mutation is made.
     updated_at              timestamp with time zone not null
 );
 create index if not exists entity_type_versions_entity_type_id on entity_type_versions (entity_type_id);
@@ -140,15 +140,20 @@ create table if not exists links (
     link_id                       uuid not null,
     -- The JSON path of the link on the source entity's properties JSON blob
     path                          text not null,
-    -- The index of the link
-    index                         integer default null,
     -- The account id of the source entity
     source_account_id             uuid not null,
     -- The entity id of the source entity.
     source_entity_id              uuid not null,
-    -- The entity version ids of the source entity's versions where
-    -- the link exists.
-    source_entity_version_ids     uuid[] not null,
+    -- The timestamp when the link was applied to the source entity (i.e. when
+    -- it was created)
+    applied_to_source_at          timestamp with time zone not null,
+    -- the account_id of the account which created the link
+    applied_to_source_by          uuid not null,
+    -- The timestamp when the link was removed from the source entity, if at
+    -- all (i.e. when it was deleted)
+    removed_from_source_at        timestamp with time zone,
+    -- the account_id of the account which deleted the link
+    removed_from_source_by        uuid,
     -- The account id of the destination entity
     destination_account_id        uuid not null,
     -- The entity id of the destination entity
@@ -158,7 +163,6 @@ create table if not exists links (
     -- of the destination entity. When set to null, the link is to the latest
     -- version of the destination entity.
     destination_entity_version_id  uuid,
-    created_at                     timestamp with time zone not null,
 
     constraint links_pk primary key (
       source_account_id, -- included in the primary key so it can be used as a sharding key
@@ -166,20 +170,27 @@ create table if not exists links (
     )
 );
 
-/** @todo: create link table index */
 
-/** Stores parent --> child link references for looking up the outgoing links for a given entity */
-create table if not exists outgoing_links (
-    source_account_id           uuid not null,
-    source_entity_id            uuid not null,
-    link_id                     uuid not null,
+create table if not exists link_versions (
+    -- The account id of the source entity
+    source_account_id             uuid not null,
+    -- The UUID of the link version
+    link_version_id          uuid not null,
+    -- The UUID of the link
+    link_id                  uuid not null,
+    -- The index of the link
+    index                    integer default null,
+    -- Versioned links are never mutated, so the updated_at time represents when
+    -- the version was created. Non-versioned links may be mutatated in-place, and the
+    -- updated_at column changes when a mutation is made.
+    updated_at              timestamp with time zone not null,
+    -- The account id of the account that updated (or created) this link version
+    updated_by              uuid not null,
 
-    constraint outgoing_links_pk primary key (
-      source_account_id, -- included in the primary key so it can be used as a sharding key
-      source_entity_id,
-      link_id
-    )
+    primary key (source_account_id, link_version_id)
 );
+
+/** @todo: create link table index */
 
 /** Stores reverse child --> parent link references for looking up the incoming links for a given entity */
 create table if not exists incoming_links (

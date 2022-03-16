@@ -35,7 +35,6 @@ const formatGetEventsResponse = (
   version: instance.version,
   steps: data.steps.map((step) => step.toJSON()),
   clientIDs: data.clientIDs,
-  users: data.users,
   store: data.store,
   actions: data.actions,
 });
@@ -76,10 +75,10 @@ interface SessionSupport {
 }
 
 export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
-  logger.info(`Acquiring read ownership on queue "${COLLAB_QUEUE_NAME}" ...`);
+  logger.debug(`Acquiring read ownership on queue "${COLLAB_QUEUE_NAME}" ...`);
 
   while (!(await queue.acquire(COLLAB_QUEUE_NAME, 5_000))) {
-    logger.info(
+    logger.debug(
       "Queue is owned by another consumer. Attempting to acquire ownership again ...",
     );
   }
@@ -139,9 +138,8 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
     );
 
     const instance = await getInstance(apolloClient, entityWatcher)(
-      request.params.accountId,
-      request.params.pageEntityId,
-      userInfo.entityId,
+      request.params.accountId!,
+      request.params.pageEntityId!,
       forceNewInstance,
     );
 
@@ -171,7 +169,6 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
         response.json({
           doc: instance.state.doc.toJSON(),
           store: entityStorePluginState(instance.state).store,
-          users: instance.userCount,
           version: instance.version,
         });
       } catch (error) {

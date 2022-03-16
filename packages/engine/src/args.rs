@@ -50,6 +50,10 @@ pub struct Args {
     /// Logging output folder.
     #[clap(long, default_value = "./log")]
     pub log_folder: PathBuf,
+
+    /// The size at which the engine aims to split a group of agents
+    #[clap(long, default_value = "100000", env = "ENGINE_TARGET_MAX_GROUP_SIZE")]
+    pub target_max_group_size: usize,
 }
 
 pub fn args() -> Args {

@@ -12,7 +12,7 @@ impl Column {
         let data = array.data_ref();
         let bool_buffer = &data.buffers()[0];
         Column {
-            data: bool_buffer.raw_data() as *mut _,
+            data: bool_buffer.as_ptr() as *mut _,
         }
     }
 
@@ -37,6 +37,7 @@ impl Column {
     ///
     /// This is inherently unsafe because it does not
     /// check bounds.
+    // TODO: UNUSED: Needs triage
     pub unsafe fn get(&mut self, index: usize) -> bool {
         bit_util::get_bit_raw(self.data, index)
     }

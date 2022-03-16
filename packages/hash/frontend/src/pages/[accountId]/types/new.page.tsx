@@ -11,7 +11,7 @@ import {
   CreateEntityTypeMutationVariables,
 } from "../../../graphql/apiTypes.gen";
 import { TextInput } from "../../../components/forms/TextInput";
-import { Button } from "../../../components/forms/Button";
+import { Button } from "../../../components/Button";
 import { MainContentWrapper } from "../../../components/layout/MainContentWrapper";
 import { getAccountEntityTypes } from "../../../graphql/queries/account.queries";
 
@@ -77,7 +77,7 @@ export const NewEntityType: VoidFunctionComponent = () => {
             />
           </div>
           <div>
-            <Button disabled={loading} type="submit">
+            <Button loading={loading} disabled={loading} type="submit">
               Create Entity Type
             </Button>
           </div>

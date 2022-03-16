@@ -7,6 +7,7 @@ mod js {
     run_test!(multiple_recipients, JavaScript);
 
     run_test!(all_types, JavaScript);
+    run_test!(nested_types, JavaScript);
     // TODO: Make mapbox work
     //   see https://app.asana.com/0/1199548034582004/1200329934588478/f
     run_test!(mapbox, JavaScript, #[ignore]);
@@ -25,6 +26,7 @@ mod py {
     run_test!(one_recipient, Python);
     run_test!(multiple_recipients, Python);
 
+    run_test!(nested_types, Python, #[ignore]);
     run_test!(all_types, Python);
     // TODO: Make mapbox work
     //   see https://app.asana.com/0/1199548034582004/1200329934588478/f
@@ -33,7 +35,5 @@ mod py {
     run_test!(create_agent, Python);
     run_test!(remove_agent, Python);
     run_test!(remove_self, Python);
-    // TODO: Handle stop messages
-    //   see https://app.asana.com/0/1199550852792314/1201630005867419/f
-    run_test!(stop_simulation, Python, #[ignore]);
+    run_test!(stop_simulation, Python);
 }

@@ -19,7 +19,12 @@ import {
   getTextEntityFromSavedBlock,
   isDraftTextContainingEntityProperties,
 } from "./entity";
-import { EntityStore, isBlockEntity, isDraftBlockEntity } from "./entityStore";
+import {
+  DraftEntity,
+  EntityStore,
+  isBlockEntity,
+  isDraftBlockEntity,
+} from "./entityStore";
 import {
   CreateEntityMutation,
   CreateEntityMutationVariables,
@@ -33,9 +38,9 @@ import {
   UpdatePageContentsMutationVariables,
 } from "./graphql/apiTypes.gen";
 import {
-  ComponentNode,
   componentNodeToId,
-  findComponentNodes,
+  EntityNode,
+  findComponentNode,
   isComponentNode,
   isEntityNode,
   textBlockNodeToEntityProperties,
@@ -66,14 +71,12 @@ const defineOperation =
   };
 
 const removeBlocks = defineOperation(
-  (entities: BlockEntity[], nodes: [ComponentNode, number][]) => {
-    const draftBlockEntityIds = new Set(
-      nodes.map(([node]) => node.attrs.blockEntityId),
-    );
+  (entities: BlockEntity[], draftBlockEntityIds: DraftEntity["entityId"][]) => {
+    const draftBlockEntityIdsSet = new Set(draftBlockEntityIds);
 
     const removedBlockEntities = entities
       .map((block, position) => [block, position] as const)
-      .filter(([block]) => !draftBlockEntityIds.has(block.entityId));
+      .filter(([block]) => !draftBlockEntityIdsSet.has(block.entityId));
 
     const updatedEntities = entities.filter(
       (_, position) =>
@@ -98,18 +101,18 @@ const removeBlocks = defineOperation(
 );
 
 const moveBlocks = defineOperation(
-  (entities: BlockEntity[], nodes: [ComponentNode, number][]) => {
-    const entitiesWithoutNewBlocks = nodes.filter(
-      ([node]) => !!node.attrs.blockEntityId,
+  (entities: BlockEntity[], draftBlockEntityIds: DraftEntity["entityId"][]) => {
+    const otherExistingBlockEntityIds = draftBlockEntityIds.filter(
+      (blockEntityId) => !!blockEntityId,
     );
 
     const actions: UpdatePageAction[] = [];
     entities = [...entities];
 
     for (let position = 0; position < entities.length; position++) {
-      const block = entities[position];
-      const positionInDoc = entitiesWithoutNewBlocks.findIndex(
-        ([node]) => node.attrs.blockEntityId === block.entityId,
+      const block = entities[position]!;
+      const positionInDoc = otherExistingBlockEntityIds.findIndex(
+        (blockEntityId) => blockEntityId === block.entityId,
       );
 
       if (positionInDoc < 0) {
@@ -141,6 +144,7 @@ const moveBlocks = defineOperation(
 
 type CreatedEntities = Map<number, CreateEntityMutation["createEntity"]>;
 
+type BlockEntityNodeDescriptor = [EntityNode, number, string | null];
 /**
  * @warning this does not apply its actions to the entities it returns as it is
  *          not necessary for the pipeline of calculations. Be wary of this.
@@ -148,17 +152,31 @@ type CreatedEntities = Map<number, CreateEntityMutation["createEntity"]>;
 const insertBlocks = defineOperation(
   (
     entities: BlockEntity[],
-    nodes: [ComponentNode, number][],
+    blockEntityNodes: BlockEntityNodeDescriptor[],
     accountId: string,
     createdEntities: CreatedEntities,
   ) => {
     const actions: UpdatePageAction[] = [];
     const exists = blockEntityIdExists(entities);
 
-    for (const [position, [node, nodePosition]] of Object.entries(nodes)) {
-      if (exists(node.attrs.blockEntityId)) {
+    for (const [
+      position,
+      [blockNode, blockNodePosition, blockEntityId],
+    ] of Object.entries(blockEntityNodes)) {
+      if (exists(blockEntityId)) {
         continue;
       }
+
+      const componentNodeResult = findComponentNode(
+        blockNode,
+        blockNodePosition,
+      );
+
+      if (!componentNodeResult) {
+        throw new Error("Unexpected prosemirror structure");
+      }
+
+      const [node, nodePosition] = componentNodeResult;
 
       if (createdEntities.has(nodePosition)) {
         const createdEntity = createdEntities.get(nodePosition)!;
@@ -208,7 +226,7 @@ const insertBlocks = defineOperation(
 const updateBlocks = defineOperation(
   (
     entities: BlockEntity[],
-    nodes: [ComponentNode, number][],
+    nodes: BlockEntityNodeDescriptor[],
     entityStore: EntityStore,
   ) => {
     const exists = blockEntityIdExists(entities);
@@ -230,10 +248,15 @@ const updateBlocks = defineOperation(
          * create a list of entities that we need to post updates to via
          * GraphQL
          */
-        .flatMap(([node]) => {
-          const { blockEntityId } = node.attrs;
+        .flatMap(([blockNode, blockNodePos, blockEntityId]) => {
           if (!exists(blockEntityId)) {
             return [];
+          }
+
+          const node = findComponentNode(blockNode, blockNodePos)?.[0];
+
+          if (!node) {
+            throw new Error("Unexpected prosemirror structure");
           }
 
           const savedEntity = entityStore.saved[blockEntityId];
@@ -326,20 +349,43 @@ const calculateSaveActions = (
   entityStore: EntityStore,
   createdEntities: CreatedEntities,
 ) => {
-  const componentNodes = findComponentNodes(doc);
   let actions: UpdatePageAction[] = [];
 
+  const draftBlockEntityIds: DraftEntity["entityId"][] = [];
+  const draftBlockEntityNodes: BlockEntityNodeDescriptor[] = [];
+
+  doc.descendants((node, pos) => {
+    if (isEntityNode(node)) {
+      if (!node.attrs.draftId) {
+        throw new Error("Unexpected prosemirror structure");
+      }
+
+      const draftEntity = entityStore.draft[node.attrs.draftId];
+
+      if (!draftEntity || !isDraftBlockEntity(draftEntity)) {
+        throw new Error("Unexpected prosemirror structure");
+      }
+
+      // @todo handle entityId not being set
+
+      draftBlockEntityNodes.push([node, pos, draftEntity.entityId]);
+      draftBlockEntityIds.push(draftEntity.entityId);
+
+      return false;
+    }
+  });
+
   blocks = [...blocks];
-  [actions, blocks] = removeBlocks(actions, blocks, componentNodes);
-  [actions, blocks] = moveBlocks(actions, blocks, componentNodes);
+  [actions, blocks] = removeBlocks(actions, blocks, draftBlockEntityIds);
+  [actions, blocks] = moveBlocks(actions, blocks, draftBlockEntityIds);
   [actions, blocks] = insertBlocks(
     actions,
     blocks,
-    componentNodes,
+    draftBlockEntityNodes,
     accountId,
     createdEntities,
   );
-  [actions] = updateBlocks(actions, blocks, componentNodes, entityStore);
+  [actions] = updateBlocks(actions, blocks, draftBlockEntityNodes, entityStore);
   return actions;
 };
 

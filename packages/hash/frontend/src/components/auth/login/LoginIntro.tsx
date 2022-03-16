@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { useRouter } from "next/router";
 import React, {
   useEffect,
@@ -10,6 +9,7 @@ import { tw } from "twind";
 
 import Logo from "../../../assets/svg/logo.svg";
 import { HashIcon, KeyboardReturnIcon } from "../../icons";
+import { Link } from "../../Link";
 import { InviteHeader } from "../InviteHeader";
 import { InvitationInfo } from "../utils";
 
@@ -105,7 +105,9 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
           <p className={tw`mb-3.5`}>
             <strong>No account?</strong> No problem
           </p>
+          {/* @todo convert this to LinkButton on page refactor */}
           <Link
+            noLinkStyle
             href={{
               pathname: "/signup",
               query: router.query,

@@ -11,7 +11,7 @@ import { tw } from "twind";
 import { BlockComponent } from "blockprotocol/react";
 
 import { BlockProtocolUpdateEntitiesAction } from "blockprotocol";
-import { ProviderNames, AppState, Actions } from "./types";
+import { ProviderName, AppState, Actions } from "./types";
 import { HtmlBlock } from "./HtmlBlock";
 import { getFormCopy } from "./utils";
 import Pencil from "./svgs/Pencil";
@@ -29,7 +29,7 @@ type AppProps = {
   // @todo temporarily using application-provided getEmbedCode - implement fallbacks for CORS-blocked oembed endpoints and remove
   getEmbedBlock: (
     url: string,
-    type?: ProviderNames,
+    type?: ProviderName,
   ) => Promise<{
     html: string;
     error?: string;
@@ -37,13 +37,10 @@ type AppProps = {
     width?: number;
     providerName?: string;
   }>;
-  embedType?: ProviderNames;
+  embedType?: ProviderName;
   initialHtml?: string;
   initialWidth?: number;
   initialHeight?: number;
-  entityId: string;
-  entityTypeId?: string;
-  accountId: string;
 };
 
 const getInitialState = ({
@@ -73,6 +70,7 @@ const reducer = (state: AppState, action: Actions): AppState => {
     case "RESET_STATE":
       return {
         ...getInitialState(),
+        embedType: state.embedType,
         embedUrl: state.embedUrl,
       };
 
@@ -82,6 +80,7 @@ const reducer = (state: AppState, action: Actions): AppState => {
 };
 
 export const App: BlockComponent<AppProps> = ({
+  accountId,
   embedType: initialEmbedType,
   getEmbedBlock,
   initialHtml,
@@ -89,6 +88,7 @@ export const App: BlockComponent<AppProps> = ({
   initialWidth,
   entityId,
   entityTypeId,
+  entityTypeVersionId,
   updateEntities,
 }) => {
   const [
@@ -117,17 +117,75 @@ export const App: BlockComponent<AppProps> = ({
   // The default width the block takes up. Ideally it should be provided by the EA
   const blockWidthRef = useRef<number | null>(null);
 
+  const getBlockDefaultSize = useCallback(
+    ({
+      embedType: providerName,
+      embedWidth,
+      embedHeight,
+    }: {
+      embedType: ProviderName | undefined;
+      embedWidth: number | undefined;
+      embedHeight: number | undefined;
+    }) => {
+      const blockShouldNotBeResized =
+        providerName && PROVIDER_NAMES_THAT_CANT_BE_RESIZED.has(providerName);
+
+      const blockShouldRespectAspectRatio =
+        providerName &&
+        PROVIDER_NAMES_TO_RESPECT_ASPECT_RATIO.has(providerName);
+
+      let defaultWidth: number = BASE_WIDTH;
+      let defaultHeight: number = BASE_HEIGHT;
+
+      if (blockShouldNotBeResized) {
+        defaultWidth = embedWidth as number;
+        defaultHeight = embedHeight as number;
+      } else {
+        defaultWidth = Math.min(
+          Math.max(blockWidthRef.current ?? 0, defaultWidth),
+          maxWidth,
+        );
+
+        if (blockShouldRespectAspectRatio && embedHeight && embedWidth) {
+          const embedAspectRatio =
+            Math.round((embedWidth / embedHeight) * 100) / 100;
+          if (embedAspectRatio) {
+            defaultHeight = Math.ceil(defaultWidth / embedAspectRatio);
+          }
+        }
+      }
+
+      return {
+        defaultWidth,
+        defaultHeight,
+      };
+    },
+    [maxWidth],
+  );
+
   useEffect(() => {
+    const { defaultHeight, defaultWidth } = getBlockDefaultSize({
+      embedHeight: initialHeight,
+      embedWidth: initialWidth,
+      embedType: initialEmbedType,
+    });
+
     dispatch({
       type: "UPDATE_STATE",
       payload: {
         html: initialHtml,
-        width: initialWidth,
-        height: initialHeight,
-        embedType,
+        width: defaultWidth,
+        height: defaultHeight,
+        embedType: initialEmbedType,
       },
     });
-  }, [initialHtml, initialHeight, initialWidth, embedType]);
+  }, [
+    getBlockDefaultSize,
+    initialHtml,
+    initialHeight,
+    initialWidth,
+    initialEmbedType,
+  ]);
 
   const setErrorString = (error: string) =>
     dispatch({ type: "UPDATE_STATE", payload: { errorString: error } });
@@ -160,25 +218,19 @@ export const App: BlockComponent<AppProps> = ({
         embedType: properties.embedType,
       };
 
-      const updateAction: BlockProtocolUpdateEntitiesAction<{
-        initialHtml: string | undefined;
-        initialHeight: number | undefined;
-        initialWidth: number | undefined;
-        embedType: string | undefined;
-      }> = {
+      const updateAction: BlockProtocolUpdateEntitiesAction = {
+        accountId,
         data,
         entityId,
+        entityTypeId,
+        entityTypeVersionId,
       };
 
-      if (entityTypeId) {
-        updateAction.entityTypeId = entityTypeId;
-      }
-
       if (updateEntities) {
-        void updateEntities<any>([updateAction]);
+        void updateEntities([updateAction]);
       }
     },
-    [entityId, entityTypeId, updateEntities],
+    [accountId, entityId, entityTypeId, entityTypeVersionId, updateEntities],
   );
 
   const handleGetEmbed = async () => {
@@ -204,40 +256,17 @@ export const App: BlockComponent<AppProps> = ({
       });
     }
 
-    const blockShouldNotBeResized =
-      providerName &&
-      PROVIDER_NAMES_THAT_CANT_BE_RESIZED.has(providerName as ProviderNames);
-
-    const blockShouldRespectAspectRatio =
-      providerName &&
-      PROVIDER_NAMES_TO_RESPECT_ASPECT_RATIO.has(providerName as ProviderNames);
-
-    let defaultWidth: number = BASE_WIDTH;
-    let defaultHeight: number = BASE_HEIGHT;
-
-    if (blockShouldNotBeResized) {
-      defaultWidth = embedWidth as number;
-      defaultHeight = embedHeight as number;
-    } else {
-      defaultWidth = Math.min(
-        Math.max(blockWidthRef.current ?? 0, defaultWidth),
-        maxWidth,
-      );
-
-      if (blockShouldRespectAspectRatio && embedHeight && embedWidth) {
-        const embedAspectRatio =
-          Math.round((embedWidth / embedHeight) * 100) / 100;
-        if (embedAspectRatio) {
-          defaultHeight = Math.ceil(defaultWidth / embedAspectRatio);
-        }
-      }
-    }
+    const { defaultHeight, defaultWidth } = getBlockDefaultSize({
+      embedHeight,
+      embedType: providerName as ProviderName,
+      embedWidth,
+    });
 
     const payload = {
       html: embedHtml,
       width: defaultWidth,
       height: defaultHeight,
-      embedType: providerName as ProviderNames,
+      embedType: providerName as ProviderName,
     };
 
     dispatch({ type: "UPDATE_STATE", payload: { ...payload, loading: false } });

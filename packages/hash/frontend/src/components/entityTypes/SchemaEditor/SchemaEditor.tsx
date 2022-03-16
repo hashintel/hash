@@ -4,7 +4,6 @@ import {
   BlockProtocolProps,
   JSONObject,
 } from "blockprotocol";
-import Link from "next/link";
 import React, {
   createContext,
   FormEvent,
@@ -25,8 +24,9 @@ import {
   schemaEditorReducer,
   SchemaEditorReducerAction,
 } from "./schemaEditorReducer";
-import { Button } from "../../forms/Button";
+import { Button } from "../../Button";
 import { SubSchemaItem } from "./SubSchemaItem";
+import { Link } from "../../Link";
 
 export type SchemaSelectElementType = VoidFunctionComponent<{
   schemaRef: string;
@@ -43,12 +43,13 @@ type JsonSchemaEditorProps = {
   subSchemaReference?: string;
 } & Pick<
   BlockProtocolProps,
-  "aggregateEntityTypes" | "entityId" | "updateEntityTypes"
+  "accountId" | "aggregateEntityTypes" | "entityTypeId" | "updateEntityTypes"
 >;
 
 export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
+  accountId,
   aggregateEntityTypes,
-  entityId,
+  entityTypeId,
   GoToSchemaElement,
   schema: possiblyStaleDbSchema,
   subSchemaReference,
@@ -59,15 +60,18 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
   >(undefined);
 
   useEffect(() => {
-    if (aggregateEntityTypes) {
-      aggregateEntityTypes({ includeOtherTypesInUse: true })
+    if (aggregateEntityTypes && accountId) {
+      aggregateEntityTypes({
+        accountId,
+        includeOtherTypesInUse: true,
+      })
         .then((response) => setAvailableEntityTypes(response.results))
         .catch((err) =>
           // eslint-disable-next-line no-console -- TODO: consider using logger
           console.error(`Error fetching entity type options: ${err.message}`),
         );
     }
-  }, [aggregateEntityTypes]);
+  }, [accountId, aggregateEntityTypes]);
 
   // The user will be working with a draft in local state, to enable optimistic UI and handle fast/competing updates
   const [workingSchemaDraft, dispatch] = useReducer(
@@ -89,9 +93,14 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
   );
 
   useEffect(() => {
-    if (!entityId) {
-      throw new Error("entityId not provided. Schema cannot be updated.");
+    if (!accountId) {
+      throw new Error("accountId not provided. Schema cannot be updated.");
     }
+
+    if (!entityTypeId) {
+      throw new Error("entityTypeId not provided. Schema cannot be updated.");
+    }
+
     if (
       JSON.stringify(workingSchemaDraft) ===
       JSON.stringify(possiblyStaleDbSchema)
@@ -101,7 +110,8 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
     // Send updates to the API periodically when the draft is updated
     debouncedUpdate([
       {
-        entityId,
+        accountId,
+        entityTypeId,
         schema: workingSchemaDraft as JSONObject,
       },
     ])?.catch((err) => {
@@ -109,7 +119,13 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
       console.error(`Error updating schema: ${err.message}`);
       throw err;
     });
-  }, [debouncedUpdate, entityId, possiblyStaleDbSchema, workingSchemaDraft]);
+  }, [
+    accountId,
+    debouncedUpdate,
+    entityTypeId,
+    possiblyStaleDbSchema,
+    workingSchemaDraft,
+  ]);
 
   useEffect(
     () => () => {
@@ -160,7 +176,7 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
   const { title } = workingSchemaDraft;
   const { description } = selectedSchema;
 
-  const readonly = !updateEntityTypes || !entityId;
+  const readonly = !updateEntityTypes || !entityTypeId;
 
   const addSubSchema = (newSubSchemaName: string) =>
     dispatchSchemaUpdate({
@@ -197,13 +213,15 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
       </header>
 
       <section>
-        <div className={tw`flex items-center`}>
+        <div className={tw`flex items-center mb-7`}>
           <h2>
             Properties of{" "}
-            <Link href={workingSchemaDraft.$id ?? "#"}>{title}</Link>
+            <Link noLinkStyle href={workingSchemaDraft.$id ?? "#"}>
+              {title}
+            </Link>
           </h2>
           {subSchemaReference ? (
-            <h3 className={tw`mb-7 ml-2`}>{` > ${subSchemaReference
+            <h3 className={tw`ml-2`}>{` > ${subSchemaReference
               .split("/")
               .pop()}`}</h3>
           ) : null}

@@ -5,12 +5,11 @@ import {
   updateVersionedEntity,
 } from "../entity";
 import { DbEntityNotFoundError } from "../..";
-import {
-  getAggregation,
-  insertAggregation,
-  updateAggregationRowOperation,
-} from "./util";
+import { insertAggregation, updateAggregationRowOperation } from "./util";
+import { getEntityAggregation } from "./getEntityAggregation";
 import { DBAggregation } from "../../adapter";
+import { requireTransaction } from "../util";
+import { DbAggregationNotFoundError } from "../../errors";
 
 export const updateAggregationOperation = (
   existingConnection: Connection,
@@ -21,16 +20,22 @@ export const updateAggregationOperation = (
     operation: object;
   },
 ): Promise<DBAggregation> =>
-  existingConnection.transaction(async (conn) => {
+  requireTransaction(existingConnection)(async (conn) => {
     const { sourceAccountId, sourceEntityId, operation } = params;
 
     const now = new Date();
+
+    const dbAggregation = await getEntityAggregation(conn, params);
+
+    if (!dbAggregation) {
+      throw new DbAggregationNotFoundError(params);
+    }
 
     const {
       createdByAccountId,
       createdAt,
       sourceEntityVersionIds: prevSourceEntityVersionIds,
-    } = await getAggregation(conn, params);
+    } = dbAggregation;
 
     let sourceEntityVersionIds: Set<string> = prevSourceEntityVersionIds;
 

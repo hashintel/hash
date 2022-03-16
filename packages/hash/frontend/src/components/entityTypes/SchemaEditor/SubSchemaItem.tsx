@@ -4,7 +4,7 @@ import { tw } from "twind";
 
 import { JsonSchema } from "../../../lib/json-utils";
 import { ConfirmationAlert } from "../../ConfirmationAlert";
-import { Button } from "../../forms/Button";
+import { Button } from "../../Button";
 import { SchemaSelectElementType } from "./SchemaEditor";
 import {
   getSubschemaDependentProperties,
@@ -99,9 +99,9 @@ export const SubSchemaItem: VoidFunctionComponent<SubSchemaItemProps> = ({
     <div className={tw`mb-4`} key={subSchemaName}>
       <GoToSchemaElement schemaRef={`#/$defs/${subSchemaName}`} />
       <Button
+        variant="danger"
         onClick={() => deleteSubschemaItem(subSchemaName)}
-        className={tw`ml-4`}
-        danger
+        sx={{ ml: 2 }}
       >
         Delete Subschema
       </Button>

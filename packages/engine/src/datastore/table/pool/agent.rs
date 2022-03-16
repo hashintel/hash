@@ -12,6 +12,8 @@ use crate::{
 };
 
 /// An ordered collection of similar [`AgentBatch`]es for each group within a simulation run.
+///
+/// All fields (except for messages) that agents' have are persisted in the Agent Pool.
 #[derive(Clone)]
 pub struct AgentPool {
     batches: Vec<Arc<RwLock<AgentBatch>>>,
@@ -31,14 +33,18 @@ impl super::Pool<AgentBatch> for AgentPool {
     }
 }
 
-impl Extend<AgentBatch> for AgentPool {
-    fn extend<T: IntoIterator<Item = AgentBatch>>(&mut self, iter: T) {
-        self.batches
-            .extend(iter.into_iter().map(|batch| Arc::new(RwLock::new(batch))))
+impl AgentPool {
+    pub fn reserve(&mut self, additional: usize) {
+        self.batches.reserve(additional);
+    }
+
+    pub fn push(&mut self, batch: AgentBatch) {
+        self.batches.push(Arc::new(RwLock::new(batch)))
     }
 }
 
 impl PoolWriteProxy<AgentBatch> {
+    /// TODO: DOC
     pub fn set_pending_column(&mut self, column: StateColumn) -> Result<()> {
         let mut index = 0;
         for batch in self.batches_iter_mut() {
@@ -51,6 +57,7 @@ impl PoolWriteProxy<AgentBatch> {
         Ok(())
     }
 
+    /// Calls [`Batch::flush_changes()`] on all batches in this proxy.
     pub fn flush_pending_columns(&mut self) -> Result<()> {
         for batch in self.batches_iter_mut() {
             batch.flush_changes()?;

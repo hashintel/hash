@@ -7,7 +7,7 @@ import {
 } from "react";
 import {
   BlockProtocolFunction,
-  BlockProtocolProps,
+  BlockProtocolFunctions,
   JSONObject,
 } from "blockprotocol";
 import { v4 as uuid } from "uuid";
@@ -17,7 +17,7 @@ import { MessageFromBlockFramer, MessageFromFramedBlock } from "../types";
 import { memoizeFetchFunction } from "../../../lib/memoize";
 import { FetchEmbedCodeFn } from "../../BlockLoader/fetchEmbedCode";
 
-export type CrossFrameProxyProps = BlockProtocolProps & {
+export type CrossFrameProxyProps = BlockProtocolFunctions & {
   blockProperties: JSONObject;
   getEmbedBlock?: FetchEmbedCodeFn;
   sourceUrl: string;
@@ -109,10 +109,8 @@ export const BlockFramer: VoidFunctionComponent<CrossFrameProxyProps> = ({
         return;
       }
 
-      /**
-       * @todo args is a tuple but the compiler doesn't know. why?
-       */
-      fn(...(args as [FixMeLater]))
+      // @ts-expect-error -- Args is a tuple but the compiler doesn't know. why?
+      fn(...args)
         .then((response) => {
           sendMessage({ ...responseMsg, payload: { data: response ?? "ok" } });
         })

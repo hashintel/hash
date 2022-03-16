@@ -10,20 +10,22 @@ import {
   BlockProtocolAggregateEntitiesFunction,
   BlockProtocolEntity,
   BlockProtocolLink,
+  JSONObject,
 } from "blockprotocol";
 import { tw } from "twind";
-import Link from "next/link";
 
 import {
   CreateLinkFnWithFixedSource,
   DeleteLinkFnWithFixedSource,
 } from "./types";
 import { entityName } from "../../lib/entities";
+import { Link } from "../Link";
 
 // @todo make this not need to know about accountId
 type MinimalEntity = { accountId: string; entityId: string; name: string };
 
 type EntitySelectProps = {
+  accountId: string;
   aggregateEntities: BlockProtocolAggregateEntitiesFunction;
   allowsMultipleSelections: boolean;
   createLinkFromEntity: CreateLinkFnWithFixedSource;
@@ -64,6 +66,7 @@ const SelectInput: VoidFunctionComponent<
 export const EntityFieldLinkEditor: VoidFunctionComponent<
   EntitySelectProps
 > = ({
+  accountId,
   aggregateEntities,
   allowsMultipleSelections,
   createLinkFromEntity,
@@ -76,6 +79,7 @@ export const EntityFieldLinkEditor: VoidFunctionComponent<
 
   useEffect(() => {
     aggregateEntities({
+      accountId,
       operation: {
         entityTypeId,
         itemsPerPage: 100, // @todo paginate
@@ -88,9 +92,9 @@ export const EntityFieldLinkEditor: VoidFunctionComponent<
          * @todo support users defining the JSON Schema uniqueItems property on an array field
          */
         setEntityOptions(
-          (results as BlockProtocolEntity[]).map(
-            ({ accountId, entityId, ...properties }) => ({
-              accountId,
+          results.map(
+            ({ accountId: resultAccountId, entityId, ...properties }) => ({
+              accountId: resultAccountId ?? "",
               entityId,
               name: entityName({ entityId, ...properties }),
             }),
@@ -103,7 +107,7 @@ export const EntityFieldLinkEditor: VoidFunctionComponent<
           `Error fetching entities to populate select options: ${err.message}`,
         ),
       );
-  }, [aggregateEntities, entityTypeId]);
+  }, [accountId, aggregateEntities, entityTypeId]);
 
   const onSelectNew = useCallback(
     (evt: ChangeEvent<HTMLSelectElement>) => {
@@ -132,7 +136,7 @@ export const EntityFieldLinkEditor: VoidFunctionComponent<
         });
       } else {
         if (lastLinkData) {
-          void deleteLinkFromEntity({ linkId: linksOnField[0].link.linkId });
+          void deleteLinkFromEntity({ linkId: linksOnField[0]!.link.linkId });
         }
         if (selectedEntityId !== noSelectionValue) {
           void createLinkFromEntity({
@@ -179,7 +183,7 @@ export const EntityFieldLinkEditor: VoidFunctionComponent<
                 <Link
                   href={`/${linkedEntity.accountId}/entities/${linkedEntity.entityId}`}
                 >
-                  <a>{entityName(linkedEntity)}</a>
+                  <a>{entityName(linkedEntity as JSONObject)}</a>
                 </Link>
               </div>
               <button

@@ -78,14 +78,14 @@ pub struct ExperimentConfig {
         feature = "clap",
         clap(global = true, long, default_value = "2", env = "ENGINE_START_TIMEOUT")
     )]
-    pub start_timeout: u64,
+    pub start_timeout: f64,
 
     /// Timeout, in seconds, for how long to wait for updates when the Engine is executing
     #[cfg_attr(
         feature = "clap",
         clap(global = true, long, default_value = "60", env = "ENGINE_WAIT_TIMEOUT")
     )]
-    pub wait_timeout: u64,
+    pub wait_timeout: f64,
 
     /// Number of workers to run in parallel.
     ///
@@ -162,6 +162,7 @@ impl Experiment {
         &self,
         experiment_id: ExperimentId,
         controller_url: &str,
+        target_max_group_size: Option<usize>,
     ) -> Box<dyn process::Command + Send> {
         Box::new(process::LocalCommand::new(
             experiment_id,
@@ -171,6 +172,7 @@ impl Experiment {
             self.config.log_level,
             self.config.output_location.clone(),
             self.config.log_folder.clone(),
+            target_max_group_size,
         ))
     }
 
@@ -186,6 +188,7 @@ impl Experiment {
         &self,
         experiment_run: proto::ExperimentRun,
         mut handler: Handler,
+        target_max_group_size: Option<usize>,
     ) -> Result<()> {
         let experiment_name = experiment_run.base.name.clone();
         let mut engine_handle = handler
@@ -194,13 +197,17 @@ impl Experiment {
             .wrap_err_lazy(|| format!("Could not register experiment \"{experiment_name}\""))?;
 
         // Create and start the experiment run
-        let cmd = self.create_engine_command(experiment_run.base.id, handler.url());
+        let cmd = self.create_engine_command(
+            experiment_run.base.id,
+            handler.url(),
+            target_max_group_size,
+        );
         let mut engine_process = cmd.run().await.wrap_err("Could not run experiment")?;
 
         // Wait to receive a message that the experiment has started before sending the init
         // message.
         let msg = timeout(
-            Duration::from_secs(self.config.start_timeout),
+            Duration::from_secs_f64(self.config.start_timeout),
             engine_handle.recv(),
         )
         .await
@@ -242,16 +249,26 @@ impl Experiment {
             .wrap_err("Could not send `Init` message")?;
         debug!("Sent init message to \"{experiment_name}\"");
 
-        let mut errored = false;
+        let mut graceful_finish = true;
         loop {
             let msg: Option<proto::EngineStatus>;
             tokio::select! {
-                _ = sleep(Duration::from_secs(self.config.wait_timeout)) => {
+                _ = sleep(Duration::from_secs_f64(self.config.wait_timeout)) => {
                     error!(
-                        "Did not receive status from experiment \"{experiment_name}\" for over {:?}. \
+                        "Did not receive status from experiment \"{experiment_name}\" for over {}s. \
                         Exiting now.",
                         self.config.wait_timeout
                     );
+                    graceful_finish = false;
+                    break;
+                }
+                exit_code = engine_process.wait() => {
+                    match exit_code {
+                        Ok(exit_code) if exit_code.success() => warn!("Engine process ended"),
+                        Ok(exit_code) => error!("Engine process errored with exit code {exit_code}"),
+                        Err(err) => error!("Engine process errored: {err}"),
+                    }
+                    graceful_finish = false;
                     break;
                 }
                 m = engine_handle.recv() => { msg = Some(m) },
@@ -287,7 +304,7 @@ impl Experiment {
                                 );
                             }
                             StopStatus::Error => {
-                                errored = true;
+                                graceful_finish = false;
                                 tracing::error!(
                                     "Simulation stopped by agent `{agent}` with an error{reason}"
                                 );
@@ -299,12 +316,18 @@ impl Experiment {
                 proto::EngineStatus::SimStop(sim_id) => {
                     debug!("Simulation stopped: {sim_id}");
                 }
-                proto::EngineStatus::Errors(sim_id, errs) => {
-                    error!("There were errors when running simulation [{sim_id}]: {errs:?}");
-                    errored = true;
+                proto::EngineStatus::RunnerErrors(sim_id, errs) => {
+                    error!(
+                        "There were errors from the runner when running simulation [{sim_id}]: \
+                         {errs:?}"
+                    );
+                    graceful_finish = false;
                 }
-                proto::EngineStatus::Warnings(sim_id, warnings) => {
-                    warn!("There were warnings when running simulation [{sim_id}]: {warnings:?}");
+                proto::EngineStatus::RunnerWarnings(sim_id, warnings) => {
+                    warn!(
+                        "There were warnings from the runner when running simulation [{sim_id}]: \
+                         {warnings:?}"
+                    );
                 }
                 proto::EngineStatus::Logs(sim_id, logs) => {
                     for log in logs {
@@ -313,13 +336,31 @@ impl Experiment {
                         }
                     }
                 }
+                proto::EngineStatus::UserErrors(sim_id, errs) => {
+                    error!(
+                        "There were user-facing errors when running simulation [{sim_id}]: \
+                         {errs:?}"
+                    );
+                }
+                proto::EngineStatus::UserWarnings(sim_id, warnings) => {
+                    warn!(
+                        "There were user-facing warnings when running simulation [{sim_id}]: \
+                         {warnings:?}"
+                    );
+                }
+                proto::EngineStatus::PackageError(sim_id, error) => {
+                    warn!(
+                        "There was an error from a package running simulation [{sim_id}]: \
+                         {error:?}"
+                    );
+                }
                 proto::EngineStatus::Exit => {
-                    debug!("Process exited successfully for experiment run \"{experiment_name}\"",);
+                    debug!("Process exited successfully for experiment run \"{experiment_name}\"");
                     break;
                 }
                 proto::EngineStatus::ProcessError(error) => {
                     error!("Got error: {error:?}");
-                    errored = true;
+                    graceful_finish = false;
                     break;
                 }
                 proto::EngineStatus::Started => {
@@ -338,7 +379,7 @@ impl Experiment {
             .await
             .wrap_err("Could not cleanup after finish")?;
 
-        ensure!(!errored, "experiment had errors");
+        ensure!(graceful_finish, "Engine didn't exit gracefully.");
 
         Ok(())
     }
@@ -371,7 +412,7 @@ fn get_simple_experiment_config(
 
     let config = SimpleExperimentConfig {
         experiment_name,
-        changed_properties: plan
+        changed_globals: plan
             .inner
             .into_iter()
             .flat_map(|v| {

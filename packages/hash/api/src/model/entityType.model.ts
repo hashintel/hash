@@ -1,6 +1,9 @@
 import { ApolloError } from "apollo-server-express";
 import url from "url";
+import fetch from "node-fetch";
 import { JSONObject } from "blockprotocol";
+import { merge } from "lodash";
+import { JSONSchema7 } from "json-schema";
 
 import { EntityExternalResolvers, EntityType } from ".";
 import { DBClient } from "../db";
@@ -8,9 +11,18 @@ import {
   EntityType as GQLEntityType,
   Visibility,
 } from "../graphql/apiTypes.gen";
-import { EntityTypeTypeFields } from "../db/adapter";
+import { EntityTypeMeta, EntityTypeTypeFields } from "../db/adapter";
+import {
+  compileAjvSchema,
+  entityTypePropertyKeyValidator,
+  getSchemaAllOfRefs,
+  JSON_SCHEMA_VERSION,
+  createSchema$idRef,
+} from "./entityType.util";
 
 const { FRONTEND_URL } = require("../lib/config");
+
+export type JSONSchema = JSONSchema7;
 
 /**
  * We handle the various entityType fields for an entityType in separate field resolvers,
@@ -28,6 +40,7 @@ export type EntityTypeConstructorArgs = {
   entityVersionId: string;
   accountId: string;
   properties: JSONObject;
+  metadata: EntityTypeMeta;
   createdByAccountId: string;
   createdAt: Date;
   updatedByAccountId: string;
@@ -42,7 +55,9 @@ class __EntityType {
   entityId: string;
   entityVersionId: string;
   accountId: string;
-  properties: JSONObject;
+  /** @todo: consider extending this type to be fully compatible with Draft 08 (2019-09) */
+  properties: JSONSchema;
+  metadata: EntityTypeMeta;
   createdByAccountId: string;
   createdAt: Date;
   updatedByAccountId: string;
@@ -53,6 +68,7 @@ class __EntityType {
     entityVersionId,
     accountId,
     properties,
+    metadata,
     createdByAccountId,
     createdAt,
     updatedByAccountId,
@@ -62,10 +78,94 @@ class __EntityType {
     this.entityVersionId = entityVersionId;
     this.accountId = accountId;
     this.properties = properties;
+    this.metadata = metadata;
     this.createdByAccountId = createdByAccountId;
     this.createdAt = createdAt;
     this.updatedByAccountId = updatedByAccountId;
     this.updatedAt = updatedAt;
+  }
+
+  /**
+   * *This is a slow operation!*
+   * When a JSON schema is to be validated, the whole schema inheritance chain
+   * is validated.
+   *
+   * Validations include checking types of properties with the same name and
+   * verifying numeric constraints are compatible.
+   *
+   * @param client
+   * @param params
+   * @returns
+   */
+  static async validateJsonSchema(
+    client: DBClient,
+    params: {
+      $id?: string;
+      title: string;
+      schema?: string | JSONSchema;
+      description?: string;
+    },
+  ): Promise<JSONSchema> {
+    const { $id, title, schema: maybeStringifiedSchema, description } = params;
+
+    if (title[0] !== title[0]?.toUpperCase()) {
+      throw new Error(
+        `Schema title should be in PascalCase, you passed '${title}'`,
+      );
+    }
+
+    const partialSchema: JSONSchema =
+      typeof maybeStringifiedSchema === "string"
+        ? JSON.parse(maybeStringifiedSchema)
+        : maybeStringifiedSchema ?? {};
+
+    const schema = {
+      ...partialSchema,
+      $schema: JSON_SCHEMA_VERSION,
+      $id,
+      title,
+      type: partialSchema.type ?? "object",
+      description: partialSchema.description ?? description,
+    };
+
+    const parents = getSchemaAllOfRefs(schema);
+    const allSchemas = (
+      await Promise.all(
+        parents.map(async (schema$id) => {
+          const parentEntityType = await EntityType.getEntityTypeBySchema$id(
+            client,
+            {
+              schema$id,
+            },
+          );
+
+          if (!parentEntityType) {
+            throw new Error(
+              `Critical: Could not find EntityType by Schema$id = ${schema$id}`,
+            );
+          }
+
+          const parentInheritanceChain = await parentEntityType.getAncestors(
+            client,
+          );
+
+          return [parentEntityType, ...parentInheritanceChain];
+        }),
+      )
+    ).flat();
+
+    const validationErrors = entityTypePropertyKeyValidator(
+      schema,
+      ...allSchemas,
+    );
+
+    if (validationErrors.length > 0) {
+      throw new Error(validationErrors.join("\n"));
+    }
+
+    await compileAjvSchema(schema);
+
+    return schema;
   }
 
   static async create(
@@ -73,18 +173,23 @@ class __EntityType {
     params: {
       accountId: string;
       createdByAccountId: string;
-      description?: string | null;
+      description?: string;
       name: string;
-      schema?: JSONObject | null;
+      schema?: JSONObject;
     },
   ): Promise<EntityType> {
-    const { accountId, createdByAccountId, description, schema, name } = params;
+    const { accountId, createdByAccountId, description, name } = params;
+
+    const schema = await EntityType.validateJsonSchema(client, {
+      title: name,
+      schema: params.schema,
+      description,
+    });
 
     const entityType = await client
       .createEntityType({
         accountId,
         createdByAccountId,
-        description,
         name,
         schema,
       })
@@ -98,28 +203,54 @@ class __EntityType {
     return new EntityType(entityType);
   }
 
-  static async updateSchema(
+  async update(
     client: DBClient,
     params: {
       accountId: string;
       createdByAccountId: string;
-      entityId: string;
-      schema: JSONObject;
+      schema: Record<string, any>;
       updatedByAccountId: string;
     },
   ) {
-    const updatedDbEntityType = await client.updateEntityType(params);
+    const {
+      schema: { title, description },
+    } = params;
 
-    return new EntityType(updatedDbEntityType);
+    const schema = await EntityType.validateJsonSchema(client, {
+      title,
+      schema: params.schema,
+      description,
+    });
+
+    const updatedDbEntityType = await client.updateEntityType({
+      ...params,
+      entityId: this.entityId,
+      schema,
+    });
+
+    merge(this, new EntityType(updatedDbEntityType));
+
+    return this;
   }
 
   static async getEntityType(
     client: DBClient,
-    params: { entityTypeId: string },
+    params: { entityTypeId?: string; entityTypeVersionId?: string },
   ) {
-    const dbEntityType = await client.getEntityTypeLatestVersion(params);
-
-    return dbEntityType ? new EntityType(dbEntityType) : null;
+    const { entityTypeId, entityTypeVersionId } = params;
+    if (entityTypeId) {
+      const dbEntityType = await client.getEntityTypeLatestVersion({
+        entityTypeId,
+      });
+      return dbEntityType ? new EntityType(dbEntityType) : null;
+    } else if (entityTypeVersionId) {
+      const dbEntityType = await client.getEntityType({ entityTypeVersionId });
+      return dbEntityType ? new EntityType(dbEntityType) : null;
+    } else {
+      throw new Error(
+        "Expected either `entityTypeId` or `entityTypeVersionId`",
+      );
+    }
   }
 
   static async getEntityTypeByComponentId(
@@ -127,6 +258,15 @@ class __EntityType {
     params: { componentId: string },
   ) {
     const dbEntityType = await client.getEntityTypeByComponentId(params);
+    return dbEntityType ? new EntityType(dbEntityType) : null;
+  }
+
+  static async getEntityTypeBySchema$id(
+    client: DBClient,
+    params: { schema$id: string },
+  ): Promise<EntityType | null> {
+    const dbEntityType = await client.getEntityTypeBySchema$id(params);
+
     return dbEntityType ? new EntityType(dbEntityType) : null;
   }
 
@@ -146,22 +286,74 @@ class __EntityType {
     return dbTypes.map((dbType) => new EntityType(dbType).toGQLEntityType());
   }
 
-  static async getEntityTypeChildren(
-    client: DBClient,
-    params: { schemaRef: string },
-  ) {
-    const dbEntityTypes = await client.getEntityTypeChildren(params);
+  async getChildren(client: DBClient) {
+    const schema$id = this.properties.$id;
+    if (!schema$id) {
+      throw new Error(
+        `EntityType with ID = '${this.entityId} does not have a JSON Schema $id.'`,
+      );
+    }
+
+    const schemaRef = createSchema$idRef(schema$id);
+
+    const dbEntityTypes = await client.getEntityTypeChildren({ schemaRef });
 
     return dbEntityTypes.map((entityType) => new EntityType(entityType));
   }
 
-  static async getEntityTypeParents(
-    client: DBClient,
-    params: { entityTypeId: string },
-  ) {
-    const dbEntityTypes = await client.getEntityTypeParents(params);
+  async getParents(client: DBClient): Promise<EntityType[]> {
+    const parentSchema$ids = getSchemaAllOfRefs(this.properties);
 
-    return dbEntityTypes.map((entityType) => new EntityType(entityType));
+    return await Promise.all(
+      parentSchema$ids.map(async (schema$id) => {
+        const parentEntityType = await EntityType.getEntityTypeBySchema$id(
+          client,
+          {
+            schema$id,
+          },
+        );
+
+        if (!parentEntityType) {
+          throw new Error(
+            `Critical: Could not find EntityType by Schema$id = ${schema$id}`,
+          );
+        }
+
+        return parentEntityType;
+      }),
+    );
+  }
+
+  /**
+   * Get all parents recursively, resolving parents' parents and so forth.
+   */
+  async getAncestors(client: DBClient): Promise<EntityType[]> {
+    const parents = await this.getParents(client);
+
+    return [
+      ...parents,
+      ...(await Promise.all(
+        parents.map((parent) => parent.getAncestors(client)),
+      )),
+    ].flat();
+  }
+
+  public static async fetchComponentIdBlockSchema(componentId: string) {
+    const componentIdUrl = new URL(
+      "./block-schema.json",
+      `${componentId.replace(/\/+$/, "")}/`,
+    );
+
+    // @todo: consider security implications of requesting user-supplied URLs here.
+    const blockSchema = await (await fetch(componentIdUrl.href))
+      .json()
+      .catch(() => ({}));
+
+    return { ...blockSchema, componentId };
+  }
+
+  get schema$idWithFrontendDomain() {
+    return schema$idWithFrontendDomain(this.properties.$id);
   }
 
   toGQLEntityType(): UnresolvedGQLEntityType {
@@ -173,9 +365,7 @@ class __EntityType {
       accountId: this.accountId,
       properties: {
         ...this.properties,
-        $id: schema$idWithFrontendDomain(
-          this.properties.$id as string | undefined,
-        ),
+        $id: this.schema$idWithFrontendDomain,
       },
       metadataId: this.entityId,
       createdAt: this.createdAt.toISOString(),

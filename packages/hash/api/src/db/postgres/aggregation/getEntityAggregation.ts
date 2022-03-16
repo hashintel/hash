@@ -17,7 +17,7 @@ export const getEntityAggregation = async (
     path: string;
   },
 ): Promise<DBAggregation | null> => {
-  const row = await conn.maybeOne(sql<DBAggregationRow>`
+  const row = await conn.maybeOne<DBAggregationRow>(sql`
     select ${aggregationsColumnNamesSQL}
     from aggregations
     where
@@ -32,6 +32,8 @@ export const getEntityAggregation = async (
         ].flat(),
         sql` and `,
       )}
+    order by created_at desc  
+    limit 1
   `);
 
   return row ? mapRowToDBAggregation(row) : null;

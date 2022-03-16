@@ -13,11 +13,17 @@ pub struct Config {
     pub packages: Arc<package::Config>,
     pub run: Arc<ExperimentRunRepr>,
     pub worker_pool: Arc<worker_pool::Config>,
+    /// The size at which the engine aims to split a group of agents
+    pub target_max_group_size: usize,
     pub base_globals: Globals,
 }
 
 impl Config {
-    pub(super) fn new(experiment_run: ExperimentRunRepr, num_workers: usize) -> Result<Config> {
+    pub(super) fn new(
+        experiment_run: ExperimentRunRepr,
+        num_workers: usize,
+        target_max_group_size: usize,
+    ) -> Result<Config> {
         // For differentiation purposes when multiple experiment runs are active in the same system
         let package_config = package::ConfigBuilder::new()
             .add_init_package(
@@ -48,6 +54,7 @@ impl Config {
             packages: Arc::new(package_config),
             run,
             base_globals,
+            target_max_group_size,
             worker_pool,
         })
     }
@@ -59,6 +66,7 @@ impl Config {
             packages: self.packages.clone(),
             run: Arc::new(run_base.into()),
             worker_pool: self.worker_pool.clone(),
+            target_max_group_size: self.target_max_group_size,
             base_globals: self.base_globals.clone(),
         })
     }
@@ -74,6 +82,7 @@ impl From<&Config> for Config {
             packages: value.packages.clone(),
             run: Arc::clone(&value.run),
             worker_pool: value.worker_pool.clone(),
+            target_max_group_size: value.target_max_group_size,
             base_globals: value.base_globals.clone(),
         }
     }

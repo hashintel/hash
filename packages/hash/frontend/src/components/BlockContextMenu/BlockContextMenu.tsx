@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from "react";
 import { tw } from "twind";
 
-import DeleteIcon from "@material-ui/icons/DeleteOutline";
-import CopyIcon from "@material-ui/icons/FileCopyOutlined";
-import LoopIcon from "@material-ui/icons/LoopOutlined";
-import LinkIcon from "@material-ui/icons/LinkOutlined";
+import DeleteIcon from "@mui/icons-material/DeleteOutline";
+import CopyIcon from "@mui/icons-material/FileCopyOutlined";
+import LoopIcon from "@mui/icons-material/LoopOutlined";
+import LinkIcon from "@mui/icons-material/LinkOutlined";
 import { useKey } from "rooks";
 import { unstable_batchedUpdates } from "react-dom";
 
@@ -204,19 +204,19 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
     if (usableMenuItems[selectedIndex]?.key === "switchBlock") {
       updateMenuState({ subMenuVisible: true });
     } else {
-      onItemClick(usableMenuItems[selectedIndex].key);
+      onItemClick(usableMenuItems[selectedIndex]!.key);
     }
   };
 
   const onSearchViewEnter = () => {
     // if selected item is an action, execute the action, else convert the current block to the selected block
     if (selectedIndex < filteredMenuItems.actions.length) {
-      onItemClick(filteredMenuItems.actions[selectedIndex].key);
+      onItemClick(filteredMenuItems.actions[selectedIndex]!.key);
     } else {
       const selectedBlock =
         filteredMenuItems.blocks[
           selectedIndex - filteredMenuItems.actions.length
-        ];
+        ]!;
       blockSuggesterProps.onChange(selectedBlock.variant, selectedBlock.meta);
     }
   };
@@ -256,7 +256,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
           subMenuVisible={subMenuVisible}
           onItemClick={onItemClick}
           blockSuggesterProps={blockSuggesterProps}
-          blockData={blockData}
+          blockData={blockData ?? null}
         />
       ) : (
         <SearchView

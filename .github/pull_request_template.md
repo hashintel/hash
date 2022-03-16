@@ -25,7 +25,7 @@
 
 - ...
 
-### Does this require a change to the docs?
+### 📜 Does this require a change to the docs?
 
 <!-- If this adds a user facing feature or modifies how an existing feature is used, it likely needs a docs change. -->
 
@@ -34,10 +34,10 @@
 ## 🔗 Related links
 
 <!-- Add links to any context it is worth capturing (e.g. Issues, Discussions, Discord, Asana) -->
-<!-- Mark any links which are not publically accessible as (_internal_) -->
+<!-- Mark any links which are not publically accessible as _(internal)_ -->
 <!-- Don't rely on links to explain the PR, especially internal ones: use the sections above -->
 
-- [Asana task](link) (_internal_)
+- [Asana task](link) _(internal)_
 
 ## 🛡 What tests cover this?
 

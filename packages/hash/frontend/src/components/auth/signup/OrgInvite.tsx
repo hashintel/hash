@@ -37,7 +37,7 @@ export const OrgInvite: VFC<OrgInviteProps> = ({
   >(createOrgEmailInvitationMutation, {
     onCompleted: (_) => {},
     onError: ({ graphQLErrors }) => {
-      const errorMsg = graphQLErrors?.[0].message;
+      const errorMsg = graphQLErrors[0]!.message;
       setError(errorMsg);
     },
   });

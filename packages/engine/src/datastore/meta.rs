@@ -122,24 +122,6 @@ impl Dynamic {
         }
     }
 
-    pub fn set_column_root_null_count(
-        &mut self,
-        static_meta: &Static,
-        column_index: usize,
-        null_count: usize,
-    ) -> Result<()> {
-        let node_index = static_meta
-            .get_column_meta()
-            .get(column_index)
-            .ok_or(Error::InvalidIndex {
-                ind: column_index,
-                len: static_meta.get_column_meta().len(),
-            })?
-            .node_start;
-        self.nodes[node_index].null_count = null_count;
-        Ok(())
-    }
-
     pub fn from_column_dynamic_meta_list(
         cols: &[ColumnDynamicMetadata],
         num_elements: usize,
@@ -210,6 +192,7 @@ pub enum BufferType {
     /// This buffer contains i32 offsets
     Offset,
     /// This buffer contains i64 offsets (currently not implemented)
+    // TODO: UNUSED: Needs triage
     LargeOffset,
     /// This buffer contains fixed-size (byte-level) data
     Data {
@@ -351,6 +334,7 @@ pub struct ColumnDynamicMetadataBuilder {
 }
 
 impl ColumnDynamicMetadataBuilder {
+    // TODO: UNUSED: Needs triage
     pub fn new() -> ColumnDynamicMetadataBuilder {
         Self::default()
     }

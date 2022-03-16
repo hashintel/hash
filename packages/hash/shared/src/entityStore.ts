@@ -15,6 +15,8 @@ type PropertiesType<Properties extends {}> = Properties extends {
 export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
   accountId?: string | null;
   entityId: Type["entityId"] | null;
+  entityTypeId?: string | null;
+  entityVersionId?: string | null;
 
   // @todo thinking about removing this – as they're keyed by this anyway
   //  and it makes it complicated to deal with types – should probably just
@@ -28,6 +30,9 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
     : undefined;
   linkedEntities?: Type extends { linkedEntities: any }
     ? Type["linkedEntities"]
+    : undefined;
+  linkedAggregations?: Type extends { linkedAggregations: any }
+    ? Type["linkedAggregations"]
     : undefined;
 } & (Type extends { properties: any }
   ? { properties: PropertiesType<Type["properties"]> }
@@ -98,7 +103,7 @@ const restoreDraftId = (
   }
 
   // eslint-disable-next-line no-param-reassign
-  (entity as unknown as DraftEntity).draftId = entityToDraft[textEntityId];
+  (entity as unknown as DraftEntity).draftId = entityToDraft[textEntityId]!;
 };
 /**
  * @todo this should be flat – so that we don't have to traverse links
@@ -128,7 +133,7 @@ export const createEntityStore = (
 
   for (const entity of entities) {
     saved[entity.entityId] = entity;
-    const draftId = entityToDraft[entity.entityId];
+    const draftId = entityToDraft[entity.entityId]!;
 
     /**
      * We current violate Immer's rules, as properties inside entities can be
@@ -144,7 +149,7 @@ export const createEntityStore = (
       (draftEntity: Draft<DraftEntity>) => {
         if (draftData[draftId]) {
           if (
-            new Date(draftData[draftId].entityVersionCreatedAt).getTime() >
+            new Date(draftData[draftId]!.entityVersionCreatedAt).getTime() >
             new Date(draftEntity.entityVersionCreatedAt).getTime()
           ) {
             Object.assign(draftEntity, draftData[draftId]);
@@ -154,7 +159,7 @@ export const createEntityStore = (
     );
 
     draft[draftId] = produce<DraftEntity>(
-      draft[draftId],
+      draft[draftId]!,
       (draftEntity: Draft<DraftEntity>) => {
         if (isTextContainingEntityProperties(draftEntity.properties)) {
           restoreDraftId(draftEntity.properties.text.data, entityToDraft);

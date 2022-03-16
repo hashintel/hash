@@ -1,7 +1,7 @@
 use std::{collections::HashSet, ops::Deref};
 
 use super::{AgentIndex, BatchIndex, Result, WorkerIndex};
-use crate::datastore::{batch::agent::Batch as AgentBatch, UUID_V4_LEN};
+use crate::datastore::{batch::agent::AgentBatch, UUID_V4_LEN};
 
 #[derive(Debug, Clone)]
 pub struct BaseBatch {
@@ -10,8 +10,6 @@ pub struct BaseBatch {
     /// Current Worker index
     worker: WorkerIndex,
     remove_indices: Vec<AgentIndex>,
-    /// Number of agents in the batch (before any changes)
-    _num_agents: usize, // TODO: unused, delete?
 }
 
 /// Represents a batch of agents from the dynamic pool
@@ -54,9 +52,8 @@ impl PendingBatch {
         let remove_indices_len = remove_indices.len();
         let old_batch = BaseBatch {
             index: batch_index,
-            worker: batch.affinity,
+            worker: batch.worker_index,
             remove_indices,
-            _num_agents: batch.num_agents(),
         };
 
         Ok(PendingBatch {

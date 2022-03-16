@@ -13,7 +13,10 @@ use uuid::Uuid;
 use super::{Error, Result};
 use crate::{
     datastore::{
-        arrow::batch_conversion::IntoRecordBatch,
+        arrow::{
+            batch_conversion::IntoRecordBatch,
+            message::{CREATE_AGENT, REMOVE_AGENT, STOP_SIM},
+        },
         batch::MessageBatch,
         schema::{state::AgentSchema, FieldKey},
         table::{
@@ -25,10 +28,11 @@ use crate::{
     hash_types::{message::RemoveAgentPayload, Agent},
 };
 
-/// TODO: DOC Update docs to reflect that these variants are only allowed
 /// Variations of the protected message-target that is associated with the engine. If an agent
 /// sends a message to one of these variations, it's interpreted as a command rather than a message
 /// to be forwarded to another agent.
+///
+/// This array also forms the list of the **only** acceptable variants, e.g. `hAsH` is not allowed
 static HASH: [&str; 3] = ["hash", "Hash", "HASH"];
 
 /// The commands available to simulation agents
@@ -167,11 +171,11 @@ impl Commands {
                     message_reader
                         .type_iter(refs)
                         .map(|type_str| match type_str {
-                            "create_agent" => Ok(HashMessageType::Create),
-                            "remove_agent" => Ok(HashMessageType::Remove),
+                            CREATE_AGENT => Ok(HashMessageType::Create),
+                            REMOVE_AGENT => Ok(HashMessageType::Remove),
                             // TODO: When implementing "mapbox" don't forget updating module docs
                             "mapbox" => todo!(),
-                            "stop" => Ok(HashMessageType::Stop),
+                            STOP_SIM => Ok(HashMessageType::Stop),
                             _ => Err(Error::UnexpectedSystemMessage {
                                 message_type: type_str.into(),
                             }),

@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use flatbuffers_gen::runner_outbound_msg_generated::root_as_runner_outbound_msg;
+use serde::{Deserialize, Serialize};
 use tracing::Span;
 
 use super::TargetedRunnerTaskMsg;
@@ -58,20 +59,80 @@ impl From<flatbuffers_gen::runner_warning_generated::RunnerWarning<'_>> for Runn
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct UserError(pub String);
+
+impl From<flatbuffers_gen::user_error_generated::UserError<'_>> for UserError {
+    fn from(user_error: flatbuffers_gen::user_error_generated::UserError<'_>) -> Self {
+        Self(user_error.msg().to_string())
+    }
+}
+
+impl std::fmt::Display for UserError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct UserWarning {
+    pub message: String,
+    pub details: Option<String>,
+}
+
+impl From<flatbuffers_gen::user_warning_generated::UserWarning<'_>> for UserWarning {
+    fn from(user_warning: flatbuffers_gen::user_warning_generated::UserWarning<'_>) -> Self {
+        Self {
+            message: user_warning.msg().to_string(),
+            details: user_warning.details().map(|warning| warning.to_string()),
+        }
+    }
+}
+
+impl std::fmt::Display for UserWarning {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(details) = &self.details {
+            write!(f, "Message: {}\nDetails: {}", self.message, details)
+        } else {
+            write!(f, "Message: {}", self.message)
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PackageError(pub String);
+
+impl From<flatbuffers_gen::package_error_generated::PackageError<'_>> for PackageError {
+    fn from(package_error: flatbuffers_gen::package_error_generated::PackageError<'_>) -> Self {
+        Self(package_error.msg().to_string())
+    }
+}
+
+impl std::fmt::Display for PackageError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 #[derive(Debug)]
 pub enum OutboundFromRunnerMsgPayload {
     TaskMsg(TargetedRunnerTaskMsg),
+    // TODO: UNUSED: Needs triage
     TaskCancelled(TaskId),
+    // TODO: UNUSED: Needs triage
     RunnerError(RunnerError),
+    // TODO: UNUSED: Needs triage
     RunnerErrors(Vec<RunnerError>),
+    // TODO: UNUSED: Needs triage
     RunnerWarning(RunnerError),
+    // TODO: UNUSED: Needs triage
     RunnerWarnings(Vec<RunnerError>),
+    // TODO: UNUSED: Needs triage
     RunnerLog(String),
     RunnerLogs(Vec<String>),
-    /* TODO: add
-     * PackageError
-     * UserErrors
-     * UserWarnings */
+    PackageError(PackageError),
+    UserErrors(Vec<UserError>),
+    UserWarnings(Vec<UserWarning>),
 }
 
 impl OutboundFromRunnerMsgPayload {
@@ -155,34 +216,44 @@ impl OutboundFromRunnerMsgPayload {
                 Self::RunnerWarnings(runner_warnings)
             }
             flatbuffers_gen::runner_outbound_msg_generated::RunnerOutboundMsgPayload::PackageError => {
-                let _payload = parsed_msg.payload_as_package_error().ok_or_else(|| {
+                let payload = parsed_msg.payload_as_package_error().ok_or_else(|| {
                     Error::from(
                         "Message from runner should have had a PackageError payload but it was \
                          missing",
                     )
                 })?;
 
-                todo!() // TODO: there is no Self::PackageError
+                Self::PackageError(payload.into())
             }
             flatbuffers_gen::runner_outbound_msg_generated::RunnerOutboundMsgPayload::UserErrors => {
-                let _payload = parsed_msg.payload_as_user_errors().ok_or_else(|| {
+                let payload = parsed_msg.payload_as_user_errors().ok_or_else(|| {
                     Error::from(
                         "Message from runner should have had a UserErrors payload but it was \
                          missing",
                     )
                 })?;
 
-                todo!() // TODO: there is no Self::UserErrors
+                let user_errors = payload
+                    .inner()
+                    .iter()
+                    .map(|user_error| user_error.into())
+                    .collect();
+                Self::UserErrors(user_errors)
             }
             flatbuffers_gen::runner_outbound_msg_generated::RunnerOutboundMsgPayload::UserWarnings => {
-                let _payload = parsed_msg.payload_as_user_warnings().ok_or_else(|| {
+                let payload = parsed_msg.payload_as_user_warnings().ok_or_else(|| {
                     Error::from(
                         "Message from runner should have had a UserWarnings payload but it was \
                          missing",
                     )
                 })?;
 
-                todo!() // TODO: there is no Self::UserWarnings
+                let user_warnings = payload
+                    .inner()
+                    .iter()
+                    .map(|user_warning| user_warning.into())
+                    .collect();
+                Self::UserWarnings(user_warnings)
             }
             _ => return Err(Error::from("Invalid outbound flatbuffers message payload")),
         })
@@ -191,6 +262,7 @@ impl OutboundFromRunnerMsgPayload {
 
 #[derive(Debug)]
 pub struct OutboundFromRunnerMsg {
+    // TODO: UNUSED: Needs triage
     pub span: Span,
     pub source: Language,
     pub sim_id: SimulationShortId,

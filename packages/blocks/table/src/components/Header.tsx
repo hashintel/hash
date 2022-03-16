@@ -21,6 +21,7 @@ type HeaderProps = {
     "multiFilter" | "multiSort"
   >;
   entityTypeDropdown: React.ReactNode;
+  entityTypeId: string;
 };
 
 export const Header: VFC<HeaderProps> = ({
@@ -29,6 +30,7 @@ export const Header: VFC<HeaderProps> = ({
   toggleHideColumn,
   aggregateOptions,
   entityTypeDropdown,
+  entityTypeId,
 }) => {
   return (
     <div className={tw`pb-3 relative z-0`}>
@@ -38,9 +40,17 @@ export const Header: VFC<HeaderProps> = ({
           <Menu label="Filter">
             <FilterDetail
               columns={columns}
-              onFilter={(filters) =>
-                onAggregate({ operation: "filter", multiFilter: filters })
-              }
+              onFilter={(filters) => {
+                if (!entityTypeId) {
+                  return;
+                }
+
+                onAggregate({
+                  operation: "filter",
+                  multiFilter: filters,
+                  entityTypeId,
+                });
+              }}
               multiFilter={aggregateOptions.multiFilter}
             />
           </Menu>
@@ -49,9 +59,17 @@ export const Header: VFC<HeaderProps> = ({
           <Menu label="Sort">
             <SortDetail
               columns={columns}
-              onSort={(sortFields) =>
-                onAggregate({ operation: "sort", multiSort: sortFields })
-              }
+              onSort={(sortFields) => {
+                if (!entityTypeId) {
+                  return;
+                }
+
+                onAggregate({
+                  operation: "sort",
+                  multiSort: sortFields,
+                  entityTypeId,
+                });
+              }}
               multiSort={aggregateOptions.multiSort}
             />
           </Menu>

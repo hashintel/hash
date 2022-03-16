@@ -9,6 +9,7 @@ const WebpackAssetsManifest = require("webpack-assets-manifest");
 const { BundleAnalyzerPlugin } = require("webpack-bundle-analyzer");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const { StatsPlugin } = require("./webpack-block-meta-plugin");
+const { peerDependencies } = require("./package.json");
 
 module.exports = {
   plugins: [
@@ -32,11 +33,9 @@ module.exports = {
     libraryTarget: "commonjs",
     filename: "main.[contenthash].js",
   },
-  externals: {
-    react: "react",
-    "react-dom": "react-dom",
-    twind: "twind",
-  },
+  externals: Object.fromEntries(
+    Object.keys(peerDependencies).map((key) => [key, key]),
+  ),
   module: {
     rules: [
       {
@@ -45,6 +44,10 @@ module.exports = {
         use: {
           loader: "babel-loader",
         },
+      },
+      {
+        test: /\.css$/i,
+        use: ["style-loader", "css-loader"],
       },
     ],
   },

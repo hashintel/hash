@@ -22,7 +22,7 @@ pub use self::{
     persistence::Config as PersistenceConfig,
     simulation::Config as SimulationConfig,
     store::Config as StoreConfig,
-    task_distribution::{Config as TaskDistributionConfig, Distribution},
+    task_distribution::{Config as TaskDistributionConfig, StateBatchDistribution},
     topology::Config as TopologyConfig,
     worker::{Config as WorkerConfig, SpawnConfig as WorkerSpawnConfig},
     worker_pool::Config as WorkerPoolConfig,
@@ -36,7 +36,11 @@ pub struct SimRunConfig {
 }
 
 pub async fn experiment_config(args: &Args, env: &Environment) -> Result<ExperimentConfig> {
-    ExperimentConfig::new(env.experiment.clone(), args.num_workers)
+    ExperimentConfig::new(
+        env.experiment.clone(),
+        args.num_workers,
+        args.target_max_group_size,
+    )
 }
 
 impl SimRunConfig {

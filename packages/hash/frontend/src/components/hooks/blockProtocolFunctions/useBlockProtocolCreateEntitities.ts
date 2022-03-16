@@ -8,10 +8,7 @@ import {
   CreateEntityMutationVariables,
 } from "../../../graphql/apiTypes.gen";
 
-export const useBlockProtocolCreateEntities = (
-  /** Providing accountId here saves blocks from having to know it */
-  accountId: string,
-): {
+export const useBlockProtocolCreateEntities = (): {
   createEntities: BlockProtocolCreateEntitiesFunction;
   createEntitiesLoading: boolean;
   createEntitiesError: any;
@@ -27,17 +24,28 @@ export const useBlockProtocolCreateEntities = (
     (actions) =>
       Promise.all(
         actions.map((action) => {
+          if (!action.accountId) {
+            throw new Error("createEntities needs to be passed an accountId");
+          }
+
           return createFn({
             variables: {
               properties: action.data,
               entityTypeId: action.entityTypeId,
               entityTypeVersionId: action.entityTypeVersionId,
-              accountId: action.accountId ?? accountId,
+              accountId: action.accountId,
             },
-          }).then(({ data }) => data?.createEntity);
+          }).then(({ data }) => {
+            if (!data) {
+              throw new Error(
+                `Could not create entity with action ${JSON.stringify(action)}`,
+              );
+            }
+            return data.createEntity;
+          });
         }),
       ),
-    [accountId, createFn],
+    [createFn],
   );
 
   return {

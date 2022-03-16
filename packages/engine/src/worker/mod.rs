@@ -24,7 +24,7 @@ use self::{
     pending::PendingWorkerTasks,
     runner::{
         comms::{
-            outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, RunnerError},
+            outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload},
             ExperimentInitRunnerMsg, NewSimulationRun, RunnerTaskMsg,
         },
         javascript::JavaScriptRunner,
@@ -349,28 +349,33 @@ impl WorkerController {
                 //     .in_current_span()
                 //     .await?;
             }
-            RunnerError(err) => {
-                self.handle_errors(sim_id, vec![err])
-                    .in_current_span()
-                    .await?
-            }
-            RunnerErrors(errs) => self.handle_errors(sim_id, errs).in_current_span().await?,
-            RunnerWarning(warning) => {
-                self.handle_warnings(sim_id, vec![warning])
-                    .in_current_span()
-                    .await?
-            }
-            RunnerWarnings(warnings) => {
-                self.handle_warnings(sim_id, warnings)
-                    .in_current_span()
-                    .await?
-            }
-            RunnerLog(log) => {
-                self.handle_logs(sim_id, vec![log])
-                    .in_current_span()
-                    .await?
-            }
-            RunnerLogs(logs) => self.handle_logs(sim_id, logs).in_current_span().await?,
+            RunnerError(error) => self
+                .worker_pool_comms
+                .send(sim_id, WorkerToWorkerPoolMsg::RunnerErrors(vec![error]))?,
+            RunnerErrors(errors) => self
+                .worker_pool_comms
+                .send(sim_id, WorkerToWorkerPoolMsg::RunnerErrors(errors))?,
+            RunnerWarning(warning) => self
+                .worker_pool_comms
+                .send(sim_id, WorkerToWorkerPoolMsg::RunnerWarnings(vec![warning]))?,
+            RunnerWarnings(warnings) => self
+                .worker_pool_comms
+                .send(sim_id, WorkerToWorkerPoolMsg::RunnerWarnings(warnings))?,
+            RunnerLog(log) => self
+                .worker_pool_comms
+                .send(sim_id, WorkerToWorkerPoolMsg::RunnerLogs(vec![log]))?,
+            RunnerLogs(logs) => self
+                .worker_pool_comms
+                .send(sim_id, WorkerToWorkerPoolMsg::RunnerLogs(logs))?,
+            UserErrors(errors) => self
+                .worker_pool_comms
+                .send(sim_id, WorkerToWorkerPoolMsg::UserErrors(errors))?,
+            UserWarnings(warnings) => self
+                .worker_pool_comms
+                .send(sim_id, WorkerToWorkerPoolMsg::UserWarnings(warnings))?,
+            PackageError(package_error) => self
+                .worker_pool_comms
+                .send(sim_id, WorkerToWorkerPoolMsg::PackageError(package_error))?,
         }
         Ok(())
     }
@@ -595,36 +600,13 @@ impl WorkerController {
         // Ok(())
     }
 
-    /// Forwards the errors to the worker pool.
-    async fn handle_errors(
-        &mut self,
-        sim_id: SimulationShortId,
-        errors: Vec<RunnerError>,
-    ) -> Result<()> {
-        self.worker_pool_comms
-            .send(sim_id, WorkerToWorkerPoolMsg::RunnerErrors(errors))?;
-        Ok(())
-    }
-
-    /// Forwards the warnings to the worker pool.
-    async fn handle_warnings(
-        &mut self,
-        sim_id: SimulationShortId,
-        warnings: Vec<RunnerError>,
-    ) -> Result<()> {
-        self.worker_pool_comms
-            .send(sim_id, WorkerToWorkerPoolMsg::RunnerWarnings(warnings))?;
-        Ok(())
-    }
-
-    /// Forwards the log entries to the worker pool.
-    async fn handle_logs(&mut self, sim_id: SimulationShortId, logs: Vec<String>) -> Result<()> {
-        self.worker_pool_comms
-            .send(sim_id, WorkerToWorkerPoolMsg::RunnerLogs(logs))?;
-        Ok(())
-    }
-
     /// Sends a message containing the `task` to the appropriate language runner.
+    ///
+    /// Splits the [`WorkerTask`] into multiple executions if the [`TaskSharedStore`] is
+    /// [`SharedState::Partial`] by using the
+    /// [`PartialSharedState::split_into_individual_per_group()`] method.
+    ///
+    /// [`PartialSharedState::split_into_individual_per_group`]: crate::datastore::table::task_shared_store::PartialSharedState::split_into_individual_per_group
     async fn spawn_task(&mut self, sim_id: SimulationShortId, task: WorkerTask) -> Result<()> {
         let task_id = task.task_id;
         let msg = WorkerHandler::start_message(&task.inner)?;

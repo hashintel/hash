@@ -60,27 +60,17 @@ const ensureEntitiesAreWrapped = (
       }
 
       /**
-       * @todo we won't need this once we remove blockEntityId from the
-       *       component node
-       */
-      if (wrappers && !wrapperNodes) {
-        tr.setNodeMarkup(tr.mapping.map(position), undefined, {
-          blockEntityId: null,
-        });
-      }
-
-      /**
        * In the event that a block is not fully wrapped (i.e. is _not_ a block node), we provide a fallback
        *    in case wrapperNodes were not provided.
        * We need to ensure that the layers match those provided in ProsemirrorSchemaManager
        * @see ProsemirrorSchemaManager, createRemoteBlock
        * @todo this should never happen, can we remove it?
        */
-      const DEFAULT_WRAPPERS = [{ type: schema.nodes.block }];
+      const defaultWrappers = [{ type: schema.nodes.block! }];
       if (node.type !== schema.nodes.entity) {
-        DEFAULT_WRAPPERS.push(
-          { type: schema.nodes.entity },
-          { type: schema.nodes.entity },
+        defaultWrappers.push(
+          { type: schema.nodes.entity! },
+          { type: schema.nodes.entity! },
         );
       }
 
@@ -89,7 +79,7 @@ const ensureEntitiesAreWrapped = (
         wrapperNodes?.map((wrapperNode) => ({
           type: wrapperNode.type,
           attrs: wrapperNode.attrs,
-        })) ?? DEFAULT_WRAPPERS,
+        })) ?? defaultWrappers,
       );
     }
 
@@ -227,7 +217,7 @@ const wrapEntitiesKeymap = (baseKeymap: Record<string, Command<Schema>>) =>
     ...mapValues(baseKeymap, prepareCommandForWrappedEntities),
 
     // @todo better way of working out that this command doesn't need wrapping
-    "Mod-a": baseKeymap["Mod-a"],
+    "Mod-a": baseKeymap["Mod-a"]!,
   });
 
 export const wrapEntitiesPlugin = (

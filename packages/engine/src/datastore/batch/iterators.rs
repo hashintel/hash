@@ -18,6 +18,7 @@ pub mod agent {
         Ok(iterables.into_iter().flatten())
     }
 
+    // TODO: UNUSED: Needs triage
     pub fn agent_id_iter_ref<'b: 'a, 'a, B: Deref<Target = AgentBatch>>(
         agent_pool: &'a [&'b B],
     ) -> Result<impl Iterator<Item = &'b [u8; UUID_V4_LEN]> + 'a> {
@@ -44,6 +45,7 @@ pub mod agent {
         Ok(iterables.into_iter().flatten())
     }
 
+    // TODO: UNUSED: Needs triage
     pub fn agent_name_iter_ref<'b: 'a, 'a, B: Deref<Target = AgentBatch>>(
         agent_pool: &'a [&'b B],
     ) -> Result<impl Iterator<Item = Option<&'b str>> + 'a> {
@@ -194,3 +196,5 @@ pub mod agent {
         Ok(iterables.into_iter().flatten())
     }
 }
+
+// TODO: add unit tests

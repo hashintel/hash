@@ -2,6 +2,8 @@ import { gql } from "apollo-server-express";
 
 export const pageTypedef = gql`
   type Page implements Entity {
+    contents: [Block!]!
+
     properties: PageProperties!
 
     # ENTITY INTERFACE FIELDS BEGIN #
@@ -81,14 +83,25 @@ export const pageTypedef = gql`
     # ENTITY INTERFACE FIELDS END #
 
     """
-    The id of the page's parent. Used for nesting pages in a tree structure.
+    The entity id of the page's parent (equivalent to "parentPage.entityId").
+
+    Can be used for nesting pages in a tree structure.
     """
-    parentPageId: ID
+    parentPageEntityId: ID
+    """
+    The parent page of the page
+    """
+    parentPage: Page
   }
 
   type PageProperties {
     archived: Boolean
     contents: [Block!]!
+      @deprecated(
+        reason: """
+        The page "contents" are no longer stored in the properties of a page. Use the page's "contents" or "linkGroups" field resolvers instead.
+        """
+      )
     summary: String
     title: String!
   }
@@ -124,11 +137,6 @@ export const pageTypedef = gql`
     content: String!
   }
 
-  enum PageStructure {
-    Flat
-    Tree
-  }
-
   extend type Query {
     """
     Return a page by its id
@@ -138,7 +146,7 @@ export const pageTypedef = gql`
     """
     Return a list of pages belonging to an account
     """
-    accountPages(accountId: ID!, structure: PageStructure = Flat): [Page!]!
+    accountPages(accountId: ID!): [Page!]!
 
     """
     Search for pages matching a query string.
@@ -251,7 +259,16 @@ export const pageTypedef = gql`
       properties: PageUpdateData!
     ): Page!
 
-    setParentPage(accountId: ID!, pageId: ID!, parentPageId: ID!): Page!
+    """
+    Set the parent of a page
+
+    If the parentPageEntityId is not set, any existing page link is removed.
+    """
+    setParentPage(
+      accountId: ID!
+      pageEntityId: ID!
+      parentPageEntityId: ID
+    ): Page!
 
     """
     Atomically update the contents of a page.

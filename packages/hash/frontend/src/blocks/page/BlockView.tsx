@@ -1,25 +1,25 @@
-import { BlockVariant } from "blockprotocol";
 import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { EntityStore } from "@hashintel/hash-shared/entityStore";
+import {
+  entityStorePluginState,
+  subscribeToEntityStore,
+} from "@hashintel/hash-shared/entityStorePlugin";
+import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
-import { findComponentNodes } from "@hashintel/hash-shared/prosemirror";
+import { BlockVariant } from "blockprotocol";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
 import { createRef, forwardRef, RefObject, useMemo, useState } from "react";
 import { useOutsideClick } from "rooks";
 import { tw } from "twind";
-import { EntityStore } from "@hashintel/hash-shared/entityStore";
-import {
-  entityStorePluginState,
-  subscribeToEntityStore,
-} from "@hashintel/hash-shared/entityStorePlugin";
 import { BlockContextMenu } from "../../components/BlockContextMenu/BlockContextMenu";
-import { BlockSuggesterProps } from "./createSuggester/BlockSuggester";
 import { DragVerticalIcon } from "../../components/icons";
+import { BlockViewContext } from "./BlockViewContext";
+import { CollabPositionIndicators } from "./CollabPositionIndicators";
+import { BlockSuggesterProps } from "./createSuggester/BlockSuggester";
 import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
-import { CollabPositionIndicators } from "./CollabPositionIndicators";
-import { BlockViewContext } from "./BlockViewContext";
 
 type BlockHandleProps = {
   entityId: string | null;
@@ -85,14 +85,19 @@ export class BlockView implements NodeView<Schema> {
   private unsubscribe: Function;
 
   getBlockEntityIdFromNode = (node: ProsemirrorNode<Schema>) => {
-    const componentNodes = findComponentNodes(node);
-    if (componentNodes.length !== 1) {
+    const blockEntityNode = node.firstChild;
+
+    if (!blockEntityNode || !isEntityNode(blockEntityNode)) {
+      throw new Error("Unexpected prosemirror structure");
+    }
+
+    if (!blockEntityNode.attrs.draftId) {
       return null;
     }
-    const { blockEntityId } = componentNodes[0][0].attrs;
 
-    // The current default for this is an empty string, not null.
-    return blockEntityId === "" ? null : blockEntityId;
+    const draftEntity = this.store.draft[blockEntityNode.attrs.draftId];
+
+    return draftEntity?.entityId ?? null;
   };
 
   constructor(
@@ -103,10 +108,10 @@ export class BlockView implements NodeView<Schema> {
     public manager: ProsemirrorSchemaManager,
   ) {
     this.dom = document.createElement("div");
-    this.dom.classList.add(styles.Block);
+    this.dom.classList.add(styles.Block!);
 
     this.selectContainer = document.createElement("div");
-    this.selectContainer.classList.add(styles.Block__UI);
+    this.selectContainer.classList.add(styles.Block__UI!);
 
     this.dom.appendChild(this.selectContainer);
 
@@ -114,7 +119,7 @@ export class BlockView implements NodeView<Schema> {
 
     this.contentDOM = document.createElement("div");
     this.dom.appendChild(this.contentDOM);
-    this.contentDOM.classList.add(styles.Block__Content);
+    this.contentDOM.classList.add(styles.Block__Content!);
 
     this.store = entityStorePluginState(view.state).store;
     this.unsubscribe = subscribeToEntityStore(this.view, (store) => {
@@ -197,9 +202,9 @@ export class BlockView implements NodeView<Schema> {
      * selected whilst we are dragging it
      */
     if (this.dragging) {
-      this.dom.classList.add(styles["Block--dragging"]);
+      this.dom.classList.add(styles["Block--dragging"]!);
     } else {
-      this.dom.classList.remove(styles["Block--dragging"]);
+      this.dom.classList.remove(styles["Block--dragging"]!);
     }
 
     const blockEntityId = this.getBlockEntityIdFromNode(this.node);
@@ -228,7 +233,7 @@ export class BlockView implements NodeView<Schema> {
             this.allowDragging = true;
 
             this.dragging = true;
-            this.dom.classList.add(styles["Block--dragging"]);
+            this.dom.classList.add(styles["Block--dragging"]!);
 
             const { tr } = this.view.state;
 

@@ -1,51 +1,17 @@
-html,
-body {
-  padding: 0;
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
-    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
-  height: 100%;
-}
+// @todo remove these styles when main components are converted to mui
+main {
 
-a {
-  text-decoration: none;
-  padding-bottom: 3px;
-  color: initial;
-  font-weight: 400;
-  border-bottom: 3px solid transparent;
 
-  &:hover {
-    border-bottom: 3px solid $bright-blue;
-  }
-
-  &:visited {
-    color: initial;
-  }
-}
-
-* {
-  box-sizing: border-box;
-}
-
-#__next {
-  height: 100%;
-}
-
-/**
- * twind preflight overrides
- * (using an additional selector increases specificity)
- */
-html {
   h1 {
     font-size: 2rem;
     font-weight: 400;
   }
-  
+
   h2 {
     font-size: 1.6rem;
     font-weight: 400;
   }
-  
+
   h3 {
     font-size: 1.3rem;
     font-weight: 400;

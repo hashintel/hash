@@ -16,10 +16,17 @@ import { DBAdapter } from "../../../db";
 import {
   Graph,
   DbEntity,
-  DbPageProperties,
-  DbBlockProperties,
+  // DbPageProperties,
+  // DbBlockProperties,
 } from "../../../db/adapter";
 import { dbAggregateEntity } from "./aggregateEntity";
+
+/**
+ * IMPORTANT NOTE: the implementation of the implied history resolver
+ * is currently broken due to changes that were made in the way we store
+ * links between entities in the datastore. This will be rectified in an
+ * upcoming task.
+ */
 
 /**
  * An identifier used as a key in the cache for identifying an implied version
@@ -169,6 +176,8 @@ const hydrateEntity = async (
   }
 };
 
+/** Temporarily commenting out broken code
+
 // Pages are a special case which do not use __linkedData. The links to the blocks are
 // contained in its "contents" array property.
 // @todo: can use `hydrateEntity` when Page links are made consistent with other entity
@@ -208,6 +217,9 @@ const hydratePageEntity = (
   page.properties.contents = blocks;
 };
 
+
+ */
+
 /**
  * @todo: function assumes that the sub-graph rooted at `rootEntityVersionId` is acyclic.
  * What should we do for cyclic graphs?
@@ -237,7 +249,7 @@ const hydrateRootSubgraph = async (
   for (const entityVersionId of sortedEntityVersionIds) {
     const entity = entityVersionIdEntityMap.get(entityVersionId)!;
     if (entity.entityTypeName === "Page") {
-      hydratePageEntity(entity, graph, entityVersionIdEntityMap);
+      // hydratePageEntity(entity, graph, entityVersionIdEntityMap);
     } else {
       await hydrateEntity(db, entity, graph, entityVersionIdEntityMap);
     }

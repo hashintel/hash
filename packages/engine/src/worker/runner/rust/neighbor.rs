@@ -1,5 +1,6 @@
-use arrow::array::UInt32Array;
 use std::{collections::HashMap, sync::Arc};
+
+use arrow::array::UInt32Array;
 
 use super::{state::StateSnapshot, Error, Result, SimSchema};
 use crate::datastore::batch::{AgentBatch, MessageBatch};
@@ -21,6 +22,11 @@ impl<'c> Neighbor<'c> {
         }
 
         if let Some((i_field, field)) = self.schema.agent.column_with_name(name) {
+            // TODO: We removed this and similar methods as part of PR #361. If needs be we can 
+            //   reintroduce the code by copying it back in. But we should explore other methods that are
+            //   less involved. We've updated Arrow significantly since the code was written so there are 
+            //   likely other utilities that will help us. For instance these methods might help:
+            //   https://docs.rs/arrow/latest/arrow/json/index.html
             crate::datastore::arrow::element_conversion::col_element_to_json_val(
                 self.agent_batch.column(i_field),
                 self.index_in_group,

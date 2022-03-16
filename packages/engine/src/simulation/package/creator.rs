@@ -377,6 +377,39 @@ impl PackageCreators {
 
         Ok(ContextSchema::new(field_spec_map)?)
     }
+
+    // Needed in tests when creating dummy SimRunConfigs, and using `self.from_config` results in
+    // initialising the SyncOnceCell's multiple times and erroring
+    #[cfg(test)]
+    pub(crate) fn new(
+        init: Vec<(
+            PackageId,
+            PackageName,
+            &'static Box<dyn init::PackageCreator>,
+        )>,
+        context: Vec<(
+            PackageId,
+            PackageName,
+            &'static Box<dyn context::PackageCreator>,
+        )>,
+        state: Vec<(
+            PackageId,
+            PackageName,
+            &'static Box<dyn state::PackageCreator>,
+        )>,
+        output: Vec<(
+            PackageId,
+            PackageName,
+            &'static Box<dyn output::PackageCreator>,
+        )>,
+    ) -> Self {
+        Self {
+            init,
+            context,
+            state,
+            output,
+        }
+    }
 }
 
 // TODO: this should be deleted, i.e. if this value is required use

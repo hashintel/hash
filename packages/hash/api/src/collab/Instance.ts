@@ -15,17 +15,13 @@ import {
   entityStorePluginState,
 } from "@hashintel/hash-shared/entityStorePlugin";
 import {
-  LatestEntityRef,
   GetBlocksQuery,
   GetBlocksQueryVariables,
   GetPageQuery,
   GetPageQueryVariables,
+  LatestEntityRef,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
-import {
-  getComponentNodeAttrs,
-  isComponentNode,
-  isEntityNode,
-} from "@hashintel/hash-shared/prosemirror";
+import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import {
   getBlocksQuery,
@@ -39,7 +35,7 @@ import { Response } from "express";
 import { isEqual, memoize, pick } from "lodash";
 import { Schema } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
-import { Mapping, Step, Transform } from "prosemirror-transform";
+import { Step } from "prosemirror-transform";
 import { logger } from "../logger";
 import { EntityWatcher } from "./EntityWatcher";
 import { InvalidVersionError } from "./errors";
@@ -79,12 +75,8 @@ export class Instance {
   // The version number of the document instance.
   version = 0;
   lastActive = Date.now();
-  users: Record<string, boolean> = Object.create(null);
-  userCount = 0;
   waiting: Waiting[] = [];
   saveChain = Promise.resolve();
-  saveMapping: Mapping | null = null;
-  collecting: ReturnType<typeof setTimeout> | null = null;
   clientIds = new WeakMap<Step, string>();
 
   positionPollers: CollabPositionPoller[] = [];
@@ -127,7 +119,6 @@ export class Instance {
 
   stop() {
     this.sendUpdates();
-    if (this.collecting != null) clearTimeout(this.collecting);
 
     clearInterval(this.positionCleanupInterval);
 
@@ -288,13 +279,10 @@ export class Instance {
       }
 
       for (let i = 0; i < steps.length; i++) {
-        this.clientIds.set(steps[i], clientID);
+        this.clientIds.set(steps[i]!, clientID);
 
-        const result = tr.maybeStep(steps[i]);
+        const result = tr.maybeStep(steps[i]!);
         if (!result.doc) return false;
-        if (this.saveMapping) {
-          this.saveMapping.appendMap(steps[i].getMap());
-        }
       }
 
       for (const action of actions) {
@@ -321,8 +309,6 @@ export class Instance {
     };
 
   save = (apolloClient: ApolloClient<unknown>) => (clientID: string) => {
-    const mapping = new Mapping();
-
     this.saveChain = this.saveChain
       .catch()
       .then(async () => {
@@ -344,7 +330,6 @@ export class Instance {
         return createdEntities;
       })
       .then((createdEntities) => {
-        this.saveMapping = mapping;
         const { doc } = this.state;
         const store = entityStorePluginState(this.state);
 
@@ -357,13 +342,6 @@ export class Instance {
           apolloClient,
           createdEntities,
         ).then((newPage) => {
-          /**
-           * This is purposefully based on the current doc, not the doc at
-           * the time of save, because we need to apply transforms to the
-           * current doc based on the result of the save query (in order to
-           * insert entity ids for new blocks)
-           */
-          const transform = new Transform<Schema>(this.state.doc);
           const actions: EntityStorePluginAction[] = [];
 
           /**
@@ -430,23 +408,9 @@ export class Instance {
                   },
                 });
               }
-            } else if (isComponentNode(node) && !node.attrs.blockEntityId) {
-              transform.setNodeMarkup(
-                mapping.map(pos),
-                undefined,
-                getComponentNodeAttrs(blockEntity),
-              );
             }
           });
 
-          /**
-           * We're posting actions and steps from the post-save
-           * transformation process for maximum safety – as we need to
-           * ensure the actions are processed before the steps, and that's
-           * not easy to do in one message right now
-           *
-           * @todo combine the two calls to addEvents
-           */
           if (actions.length) {
             this.addEvents(apolloClient)(
               this.version,
@@ -457,27 +421,11 @@ export class Instance {
             );
           }
 
-          if (transform.docChanged) {
-            this.addEvents(apolloClient)(
-              this.version,
-              transform.steps,
-              `${clientID}-server`,
-              [],
-              false,
-            );
-          }
-
           this.updateSavedContents(newPage.properties.contents);
         });
       })
       .catch((err) => {
         logger.error("could not save", err);
-      })
-
-      .finally(() => {
-        if (this.saveMapping === mapping) {
-          this.saveMapping = null;
-        }
       });
   };
 
@@ -577,40 +525,11 @@ export class Instance {
 
     return {
       steps,
-      users: this.userCount,
       clientIDs: steps.map((step) => this.clientIds.get(step)),
       store,
       actions,
       shouldRespondImmediately: updates.length > 0,
     };
-  }
-
-  collectUsers() {
-    const oldUserCount = this.userCount;
-    this.users = Object.create(null);
-    this.userCount = 0;
-    this.collecting = null;
-    for (let i = 0; i < this.waiting.length; i++) {
-      this._registerUser(this.waiting[i].userId);
-    }
-    if (this.userCount !== oldUserCount) this.sendUpdates();
-  }
-
-  registerUser(ip: string) {
-    if (!(ip in this.users)) {
-      this._registerUser(ip);
-      this.sendUpdates();
-    }
-  }
-
-  _registerUser(ip: string | null) {
-    if (ip !== null && !(ip in this.users)) {
-      this.users[ip] = true;
-      this.userCount++;
-      if (this.collecting == null) {
-        this.collecting = setTimeout(() => this.collectUsers(), 5000);
-      }
-    }
   }
 
   extractPositions(userIdToExclude: string | null): CollabPosition[] {
@@ -639,7 +558,7 @@ export class Instance {
 
     if (timedPositionIndex !== -1) {
       if (entityId) {
-        const existingPosition = this.timedPositions[timedPositionIndex];
+        const existingPosition = this.timedPositions[timedPositionIndex]!;
         existingPosition.entityId = entityId;
         existingPosition.reportedAt = currentTimestamp;
       } else {
@@ -720,15 +639,15 @@ const maxCount = 20;
 
 const newInstance =
   (apolloClient: ApolloClient<unknown>, entityWatcher: EntityWatcher) =>
-  async (accountId: string, pageEntityId: string) => {
+  async (accountId: string, pageEntityId: string): Promise<Instance> => {
     if (++instanceCount > maxCount) {
       let oldest = null;
       for (const instanceId of Object.keys(instances)) {
-        const inst = instances[instanceId];
+        const inst = instances[instanceId]!;
         if (!oldest || inst.lastActive < oldest.lastActive) oldest = inst;
       }
       if (oldest) {
-        instances[oldest.pageEntityId].stop();
+        instances[oldest.pageEntityId]!.stop();
         delete instances[oldest.pageEntityId];
         --instanceCount;
       }
@@ -758,7 +677,7 @@ const newInstance =
 
     // The instance may have been created whilst another user we were doing the above work
     if (instances[pageEntityId]) {
-      return instances[pageEntityId];
+      return instances[pageEntityId]!;
     }
 
     instances[pageEntityId] = new Instance(
@@ -771,17 +690,12 @@ const newInstance =
       apolloClient,
     );
 
-    return instances[pageEntityId];
+    return instances[pageEntityId]!;
   };
 
 export const getInstance =
   (apolloClient: ApolloClient<unknown>, entityWatcher: EntityWatcher) =>
-  async (
-    accountId: string,
-    pageEntityId: string,
-    userId: string | null,
-    forceNewInstance = false,
-  ) => {
+  async (accountId: string, pageEntityId: string, forceNewInstance = false) => {
     if (forceNewInstance) {
       instances[pageEntityId]?.stop();
       delete instances[pageEntityId];
@@ -789,7 +703,6 @@ export const getInstance =
     const inst =
       instances[pageEntityId] ||
       (await newInstance(apolloClient, entityWatcher)(accountId, pageEntityId));
-    if (userId) inst.registerUser(userId);
     inst.lastActive = Date.now();
     return inst;
   };

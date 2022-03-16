@@ -4,9 +4,8 @@ import { EditorView } from "prosemirror-view";
 import "prosemirror-view/style/prosemirror.css";
 import React, { useLayoutEffect, useRef, VoidFunctionComponent } from "react";
 import { useLocalstorageState } from "rooks";
-import { tw } from "twind";
 
-import { Button } from "../../components/forms/Button";
+import { Button } from "../../components/Button";
 import { BlocksMetaMap, BlocksMetaProvider } from "../blocksMeta";
 import { EditorConnection } from "./collab/EditorConnection";
 import { createEditorView } from "./createEditorView";
@@ -89,7 +88,16 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           : debugging.restartCollabButton
       ) ? (
         <Button
-          className={tw`fixed bottom-5 right-5 opacity-30 hover:(opacity-100) transition-all`}
+          sx={{
+            position: "fixed",
+            bottom: 2.5,
+            right: 2.5,
+            opacity: 0.3,
+
+            "&:hover": {
+              opacity: 1,
+            },
+          }}
           onClick={() => {
             prosemirrorSetup.current?.connection?.restart();
           }}

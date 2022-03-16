@@ -63,7 +63,7 @@ export const EditableCell: VoidFunctionComponent<EditableCellProps> = ({
     const updateKeyChain = property.split(".");
     let objectToModify = newEntity;
     for (let i = 0; i < updateKeyChain.length; i++) {
-      const key = updateKeyChain[i];
+      const key = updateKeyChain[i]!;
       if (i === updateKeyChain.length - 1) {
         objectToModify[key] = value;
       } else {

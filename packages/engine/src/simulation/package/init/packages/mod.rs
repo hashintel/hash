@@ -17,7 +17,6 @@ use crate::{
     },
     ExperimentConfig,
 };
-
 pub mod js_py;
 pub mod json;
 
@@ -45,6 +44,18 @@ impl std::fmt::Display for Name {
 pub enum InitTask {
     JsInitTask,
     PyInitTask,
+}
+
+impl StoreAccessVerify for InitTask {
+    fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
+        let state = &access.state;
+        let context = access.context();
+        if state.is_disabled() && context.is_disabled() {
+            Ok(())
+        } else {
+            Err(Error::access_not_allowed(state, context, "Init".into()))
+        }
+    }
 }
 
 /// All init package task messages are registered in this enum

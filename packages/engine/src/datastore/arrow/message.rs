@@ -6,8 +6,8 @@ use super::prelude::*;
 use crate::{
     datastore::{prelude::*, schema::PresetFieldType},
     hash_types::message::{
-        CreateAgent, GenericPayload, Outbound, OutboundCreateAgentPayload,
-        OutboundRemoveAgentPayload, OutboundStopSimPayload, RemoveAgent, StopSim,
+        GenericPayload, Outbound, OutboundCreateAgentPayload, OutboundRemoveAgentPayload,
+        OutboundStopSimPayload,
     },
 };
 
@@ -39,7 +39,7 @@ lazy_static! {
     pub static ref MESSAGE_ARROW_FIELDS: Vec<ArrowField> = vec![
         ArrowField::new(
             "to",
-            ArrowDataType::List(Box::new(ArrowDataType::Utf8)),
+            ArrowDataType::List(Box::new(ArrowField::new("item", ArrowDataType::Utf8, true))),
             false
         ),
         ArrowField::new("type", ArrowDataType::Utf8, false),
@@ -49,7 +49,7 @@ lazy_static! {
         ArrowDataType::Struct(MESSAGE_ARROW_FIELDS.clone());
     pub static ref MESSAGE_LIST_ARROW_FIELD: ArrowField = ArrowField::new(
         MESSAGE_COLUMN_NAME,
-        ArrowDataType::List(Box::new(MESSAGE_ARROW_TYPE.clone())),
+        ArrowDataType::List(Box::new(ArrowField::new("item", MESSAGE_ARROW_TYPE.clone(), true))),
         false
     );
     // It is important to keep this order unchanged. If changed
@@ -112,50 +112,6 @@ pub fn get_generic(to: &[&str], r#type: &str, data_string: &str) -> Result<Outbo
             Some(serde_json::Value::from(data_string))
         },
     }))
-}
-
-pub fn get_system(to: &[&str], r#type: &str, data_string: &str) -> Result<Outbound> {
-    let to_clone = to.iter().map(|v| (*v).to_string()).collect();
-
-    if to.len() != 1 && to[0].to_lowercase() == SYSTEM_MESSAGE {
-        return Err(Error::InvalidSystemMessage {
-            to: to_clone,
-            message_type: r#type.to_string(),
-            data: data_string.to_string(),
-        });
-    }
-
-    match r#type {
-        CREATE_AGENT => {
-            let message = OutboundCreateAgentPayload {
-                r#type: CreateAgent::Type,
-                to: vec!["hash".into()],
-                data: serde_json::from_str(data_string).map_err(Error::from)?,
-            };
-            Ok(Outbound::CreateAgent(message))
-        }
-        REMOVE_AGENT => {
-            let message = OutboundRemoveAgentPayload {
-                r#type: RemoveAgent::Type,
-                to: vec!["hash".into()],
-                data: serde_json::from_str(data_string).map_err(Error::from)?,
-            };
-            Ok(Outbound::RemoveAgent(message))
-        }
-        STOP_SIM => {
-            let message = OutboundStopSimPayload {
-                r#type: StopSim::Type,
-                to: vec!["hash".into()],
-                data: serde_json::from_str(data_string).map_err(Error::from)?,
-            };
-            Ok(Outbound::StopSim(message))
-        }
-        _ => Err(Error::InvalidSystemMessage {
-            to: to_clone,
-            message_type: r#type.to_string(),
-            data: data_string.to_string(),
-        }),
-    }
 }
 
 pub fn outbound_messages_to_arrow_column(
@@ -340,23 +296,6 @@ pub fn column_into_state(
         .enumerate()
         .try_for_each(|(i, v)| states[i].set(MESSAGE_COLUMN_NAME, v))?;
     Ok(())
-}
-
-pub fn get_messages_column_from_batch(batch: &RecordBatch) -> Result<Vec<Vec<Outbound>>> {
-    let (index, _) = batch
-        .schema()
-        .column_with_name(MESSAGE_COLUMN_NAME)
-        .ok_or_else(|| Error::ColumnNotFound(MESSAGE_COLUMN_NAME.into()))?;
-
-    let reference = batch
-        .column(index)
-        .as_any()
-        .downcast_ref::<array::ListArray>()
-        .ok_or_else(|| Error::InvalidArrowDowncast {
-            name: MESSAGE_COLUMN_NAME.into(),
-        })?;
-
-    get_column_from_list_array(reference)
 }
 
 pub fn batch_from_json(

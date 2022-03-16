@@ -13,6 +13,44 @@ const linkFieldsFragment = gql`
   }
 `;
 
+const linkedAggregationsFragment = gql`
+  fragment LinkedAggregationsFields on LinkedAggregation {
+    sourceAccountId
+    sourceEntityId
+    path
+    operation {
+      entityTypeId
+      entityTypeVersionId
+      multiFilter {
+        filters {
+          field
+          value
+          operator
+        }
+        operator
+      }
+      multiSort {
+        field
+        desc
+      }
+      itemsPerPage
+      pageNumber
+      pageCount
+    }
+    results {
+      id
+      entityVersionId
+      entityId
+      accountId
+      updatedAt
+      createdAt
+      entityVersionCreatedAt
+      createdByAccountId
+      properties
+    }
+  }
+`;
+
 const pageFieldsFragment = gql`
   fragment PageFields on Page {
     __typename
@@ -27,54 +65,58 @@ const pageFieldsFragment = gql`
       createdAt
       entityVersionId
     }
-    properties {
+    contents {
       __typename
-      archived
-      summary
-      title
-      contents {
+      entityVersionId
+      entityId
+      accountId
+      updatedAt
+      createdAt
+      entityVersionCreatedAt
+      createdByAccountId
+      data {
         __typename
         entityVersionId
         entityId
         accountId
         updatedAt
         createdAt
+        entityTypeId
+        entityTypeVersionId
         entityVersionCreatedAt
         createdByAccountId
-        properties {
-          componentId
-          entity {
-            __typename
-            entityVersionId
-            entityId
-            accountId
-            updatedAt
-            createdAt
-            entityTypeId
-            entityTypeVersionId
-            entityVersionCreatedAt
-            createdByAccountId
-            properties
-            linkGroups {
-              links {
-                ...LinkFields
-              }
-              sourceEntityId
-              sourceEntityVersionId
-              path
-            }
-            linkedEntities {
-              accountId
-              entityId
-              entityTypeId
-              properties
-            }
+        properties
+        linkGroups {
+          links {
+            ...LinkFields
           }
+          sourceEntityId
+          sourceEntityVersionId
+          path
+        }
+        linkedEntities {
+          accountId
+          entityId
+          entityTypeId
+          properties
+        }
+        linkedAggregations {
+          ...LinkedAggregationsFields
         }
       }
+      properties {
+        componentId
+      }
+    }
+    properties {
+      __typename
+      archived
+      summary
+      title
     }
   }
   ${linkFieldsFragment}
+  ${linkedAggregationsFragment}
 `;
 
 export const createPage = gql`
@@ -101,12 +143,12 @@ export const getPage = gql`
 
 export const getAccountPagesTree = gql`
   query getAccountPagesTree($accountId: ID!) {
-    accountPages(accountId: $accountId, structure: Tree) {
+    accountPages(accountId: $accountId) {
       entityId
       properties {
         title
       }
-      parentPageId
+      parentPageEntityId
     }
   }
 `;
@@ -129,11 +171,15 @@ export const updatePageContents = gql`
 `;
 
 export const setPageParent = gql`
-  mutation setParentPage($accountId: ID!, $pageId: ID!, $parentPageId: ID!) {
+  mutation setParentPage(
+    $accountId: ID!
+    $pageEntityId: ID!
+    $parentPageEntityId: ID
+  ) {
     setParentPage(
       accountId: $accountId
-      pageId: $pageId
-      parentPageId: $parentPageId
+      pageEntityId: $pageEntityId
+      parentPageEntityId: $parentPageEntityId
     ) {
       entityId
       properties {

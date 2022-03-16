@@ -1,16 +1,12 @@
 import type { FallbackRender } from "@sentry/react/dist/errorboundary";
 import React from "react";
 import { tw } from "twind";
-import { css } from "twind/css";
 
-import { Button } from "../forms/Button";
+import { Button } from "../Button";
 
 /**
  * @todo make twind and other global styles available in iframes
  */
-const styles = css({
-  fontFamily: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";`,
-});
 
 type FallbackRenderProps = Parameters<FallbackRender>[0];
 
@@ -24,10 +20,7 @@ export const ErrorBlock: React.VFC<ErrorBlockProps> = ({ error, onRetry }) => (
   >
     Error:{" "}
     <span className={tw`flex-grow truncate font-mono`}>{error.message}</span>
-    <Button
-      className={`${tw`whitespace-nowrap`} ${tw(styles)}`}
-      onClick={onRetry}
-    >
+    <Button sx={{ whiteSpace: "nowrap" }} onClick={onRetry}>
       Reload block
     </Button>
   </div>

@@ -1,9 +1,9 @@
-const HtmlWebpackPlugin = require("html-webpack-plugin");
+const HtmlWebpackPlugin = require("html-webpack-plugin-v4");
 const webpack = require("webpack");
 const config = require("./webpack.config");
 
 module.exports = {
-  entry: "./src/webpack-dev-server.js",
+  entry: "./src/webpack-dev-server.tsx",
   plugins: [
     ...config[0].plugins,
     new HtmlWebpackPlugin({

@@ -2,38 +2,149 @@ use std::sync::Arc;
 
 use rand::{prelude::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::{
+    config::{
+        EngineConfig, Globals, PackageConfig, PersistenceConfig, StoreConfig, WorkerPoolConfig,
+    },
     datastore::{
         error::Error,
         schema::{
-            state::AgentSchema, FieldScope, FieldSource, FieldSpecMap, FieldType, FieldTypeVariant,
-            RootFieldSpecCreator,
+            state::AgentSchema, FieldScope, FieldSource, FieldSpec, FieldSpecMap, FieldType,
+            FieldTypeVariant, RootFieldSpec, RootFieldSpecCreator,
         },
     },
     hash_types::state::{Agent, AgentStateField},
-    simulation::package::creator::get_base_agent_fields,
+    proto::{ExperimentRunBase, InitialState, InitialStateName, ProjectBase},
+    simulation::package::creator::{get_base_agent_fields, PackageCreators},
+    ExperimentConfig, SimRunConfig, SimulationConfig,
 };
 
-lazy_static::lazy_static! {
-    pub static ref JSON_KEYS: serde_json::Value = serde_json::json!({
-        "defined": {
-            "foo": {
-                "bar": "boolean",
-                "baz": "[number]",
-                "qux": "[number; 4]",
-                "quux": "[string; 16]?",
-            }
+fn test_field_specs() -> FieldSpecMap {
+    let mut map = FieldSpecMap::default();
+    map.add(RootFieldSpec {
+        inner: FieldSpec::last_state_index_key(),
+        source: FieldSource::Engine,
+        scope: FieldScope::Hidden,
+    })
+    .unwrap();
+    map.add(RootFieldSpec {
+        inner: FieldSpec {
+            name: "fixed_of_variable".to_string(),
+            field_type: FieldType::new(
+                FieldTypeVariant::FixedLengthArray {
+                    kind: Box::new(FieldType::new(
+                        FieldTypeVariant::VariableLengthArray(Box::new(FieldType::new(
+                            FieldTypeVariant::Number,
+                            false,
+                        ))),
+                        false,
+                    )),
+                    len: 2,
+                },
+                false,
+            ),
         },
-        "keys": {
-            "complex": {
-                "position": "[number; 2]",
-                "abc": "[[foo; 6]]"
-            },
-            "fixed_of_variable" : "[[number]; 2]",
-            "seed": "number"
-        }
-    });
+        scope: FieldScope::Agent,
+        source: FieldSource::Engine,
+    })
+    .unwrap();
+    map.add(RootFieldSpec {
+        inner: FieldSpec {
+            name: "seed".to_string(),
+            field_type: FieldType::new(FieldTypeVariant::Number, false),
+        },
+        scope: FieldScope::Agent,
+        source: FieldSource::Engine,
+    })
+    .unwrap();
+    map.add(RootFieldSpec {
+        inner: FieldSpec {
+            name: "complex".to_string(),
+            field_type: FieldType::new(
+                FieldTypeVariant::Struct(vec![
+                    FieldSpec {
+                        name: "position".to_string(),
+                        field_type: FieldType::new(
+                            FieldTypeVariant::FixedLengthArray {
+                                kind: Box::new(FieldType::new(FieldTypeVariant::Number, false)),
+                                len: 2,
+                            },
+                            false,
+                        ),
+                    },
+                    FieldSpec {
+                        name: "abc".to_string(),
+                        field_type: FieldType::new(
+                            FieldTypeVariant::VariableLengthArray(Box::new(FieldType::new(
+                                FieldTypeVariant::FixedLengthArray {
+                                    kind: Box::new(FieldType::new(
+                                        FieldTypeVariant::Struct(vec![
+                                            FieldSpec {
+                                                name: "bar".to_string(),
+                                                field_type: FieldType::new(
+                                                    FieldTypeVariant::Boolean,
+                                                    false,
+                                                ),
+                                            },
+                                            FieldSpec {
+                                                name: "baz".to_string(),
+                                                field_type: FieldType::new(
+                                                    FieldTypeVariant::VariableLengthArray(
+                                                        Box::new(FieldType::new(
+                                                            FieldTypeVariant::Number,
+                                                            false,
+                                                        )),
+                                                    ),
+                                                    false,
+                                                ),
+                                            },
+                                            FieldSpec {
+                                                name: "qux".to_string(),
+                                                field_type: FieldType::new(
+                                                    FieldTypeVariant::FixedLengthArray {
+                                                        kind: Box::new(FieldType::new(
+                                                            FieldTypeVariant::Number,
+                                                            false,
+                                                        )),
+                                                        len: 4,
+                                                    },
+                                                    false,
+                                                ),
+                                            },
+                                            FieldSpec {
+                                                name: "quux".to_string(),
+                                                field_type: FieldType::new(
+                                                    FieldTypeVariant::FixedLengthArray {
+                                                        kind: Box::new(FieldType::new(
+                                                            FieldTypeVariant::String,
+                                                            false,
+                                                        )),
+                                                        len: 16,
+                                                    },
+                                                    true,
+                                                ),
+                                            },
+                                        ]),
+                                        false,
+                                    )),
+                                    len: 6,
+                                },
+                                false,
+                            ))),
+                            false,
+                        ),
+                    },
+                ]),
+                false,
+            ),
+        },
+        scope: FieldScope::Agent,
+        source: FieldSource::Engine,
+    })
+    .unwrap();
+    map
 }
 
 #[derive(Serialize, Deserialize)]
@@ -118,6 +229,65 @@ fn make_dummy_agent(seed: u64) -> Result<Agent, Error> {
     Ok(agent)
 }
 
+pub fn dummy_sim_run_config() -> SimRunConfig {
+    let project_base = ProjectBase {
+        name: "project_name".to_string(),
+        initial_state: InitialState {
+            name: InitialStateName::InitJson,
+            src: "{}".to_string(),
+        },
+        globals_src: "{}".to_string(),
+        experiments_src: None,
+        behaviors: Vec::new(),
+        datasets: Vec::new(),
+        packages: Vec::new(),
+    };
+    let base = ExperimentRunBase {
+        name: "experiment_name".to_string().into(),
+        id: Uuid::new_v4(),
+        project_base,
+    };
+    let globals: Globals = Default::default();
+
+    let exp_config = Arc::new(ExperimentConfig {
+        packages: Arc::new(PackageConfig {
+            init: Vec::new(),
+            context: Vec::new(),
+            state: Vec::new(),
+            output: Vec::new(),
+        }),
+        run: Arc::new(base.into()),
+        target_max_group_size: 100_000,
+        worker_pool: Arc::new(WorkerPoolConfig {
+            worker_base_config: Default::default(),
+            num_workers: 0,
+        }),
+        base_globals: globals.clone(),
+    });
+
+    // We can't use `PackageCreators::from_config` as it will initialise the global static
+    // `SyncOnceCell`s multiple times (thus erroring) if we run multiple tests at once
+    let package_creators = PackageCreators::new(Vec::new(), Vec::new(), Vec::new(), Vec::new());
+
+    SimRunConfig {
+        exp: exp_config.clone(),
+        sim: Arc::new(SimulationConfig {
+            id: 0,
+            globals: Arc::default(),
+            store: Arc::new(
+                StoreConfig::new_sim(&exp_config, &globals, &package_creators).unwrap(),
+            ),
+            engine: Arc::new(EngineConfig {
+                worker_allocation: Vec::new(),
+                num_workers: 0,
+            }),
+            max_num_steps: 0,
+            persistence: PersistenceConfig::new_sim(&exp_config, &globals, &package_creators)
+                .unwrap(),
+        }),
+    }
+}
+
 /// Creates a FieldSpecMap, vec of dummy Agent states for testing, and accompanying AgentSchema
 pub fn gen_schema_and_test_agents(
     num_agents: usize,
@@ -138,11 +308,7 @@ pub fn gen_schema_and_test_agents(
             Error::from(format!("Failed to add base agent field specs: {err}"))
         })?)?;
 
-    field_spec_map.union(FieldSpecMap::from_short_json(
-        JSON_KEYS.clone(),
-        FieldSource::Engine,
-        FieldScope::Agent,
-    )?)?;
+    field_spec_map.union(test_field_specs())?;
 
     let schema = Arc::new(AgentSchema::new(field_spec_map)?);
 

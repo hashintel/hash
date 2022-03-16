@@ -46,6 +46,18 @@ impl std::fmt::Display for Name {
 #[derive(Clone, Debug)]
 pub struct ContextTask {}
 
+impl StoreAccessVerify for ContextTask {
+    fn verify_store_access(&self, access: &TaskSharedStore) -> Result<()> {
+        let state = &access.state;
+        let context = access.context();
+        if (state.is_readonly() || state.is_disabled()) && context.is_disabled() {
+            Ok(())
+        } else {
+            Err(Error::access_not_allowed(state, context, "Context".into()))
+        }
+    }
+}
+
 // Empty impls to satisfy constraints from enum_dispatch while there are no task variants
 impl GetTaskName for ContextTask {
     fn get_task_name(&self) -> &'static str {

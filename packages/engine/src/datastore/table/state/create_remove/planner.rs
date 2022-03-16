@@ -53,8 +53,11 @@ impl CreateRemovePlanner {
             })
             .collect::<Result<_>>()?;
 
-        let distribution =
-            BatchDistribution::new(self.config.exp.worker_pool.num_workers, pending_batches);
+        let distribution = BatchDistribution::new(
+            self.config.exp.worker_pool.num_workers,
+            pending_batches,
+            self.config.exp.target_max_group_size,
+        );
 
         Ok(PendingPlan { distribution })
     }
@@ -89,7 +92,6 @@ impl PendingPlan {
         let mut num_inbound_agents_allocated = 0;
         let mut num_agents_after_execution = 0;
         for (worker_index, batch) in self.distribution.iter() {
-            let affinity = worker_index;
             let planned_num_agents = batch.num_agents();
             num_agents_after_execution += planned_num_agents;
             if batch.wraps_batch() {
@@ -100,7 +102,7 @@ impl PendingPlan {
                     ExistingGroupBufferActions::Remove
                 } else if batch.num_delete_unchecked() == 0 && batch.num_inbound() == 0 {
                     // No outbound nor inbound agents
-                    ExistingGroupBufferActions::Persist { affinity }
+                    ExistingGroupBufferActions::Persist { worker_index }
                 } else {
                     let actions = buffer_actions_from_pending_batch(
                         state_proxy,
@@ -109,7 +111,10 @@ impl PendingPlan {
                         &config.sim.store.agent_schema,
                         &mut num_inbound_agents_allocated,
                     )?;
-                    ExistingGroupBufferActions::Update { actions, affinity }
+                    ExistingGroupBufferActions::Update {
+                        actions,
+                        worker_index,
+                    }
                 }
             } else {
                 let actions = buffer_actions_from_pending_batch(
@@ -119,7 +124,10 @@ impl PendingPlan {
                     &config.sim.store.agent_schema,
                     &mut num_inbound_agents_allocated,
                 )?;
-                let create_command = CreateActions { actions, affinity };
+                let create_command = CreateActions {
+                    actions,
+                    worker_index,
+                };
 
                 create_commands.push(create_command)
             }

@@ -7,31 +7,34 @@ import { loginUsingUi } from "./utils/loginUsingUi";
 const pageNameSuffix = Date.now();
 const pageName = `Test page ${pageNameSuffix}`;
 
-const listOfPagesSelector = 'nav header:has-text("Pages")';
+const listOfPagesSelector = '[data-testid="pages-tree"]';
 const pageTitleInputSelector = '[placeholder="A title for the page"]';
 
 const modifierKey = process.platform === "darwin" ? "Meta" : "Control";
 
 test("user can create page", async ({ page }) => {
-  await loginUsingUi({ page, accountShortName: "alice" });
+  await loginUsingUi({
+    page,
+    accountShortName: "alice",
+  });
 
-  // Check if we are on the user page
+  // TODO: Check if we are on the user page
   await expect(
     page.locator(
       "text=Please select a page from the list, or create a new page.",
     ),
   ).toBeVisible();
 
-  // TODO: Make sure account dropdown shows the current account
-
   // TODO: Check URL contains own login once we have replaced uuids implemented
   await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+$/));
 
   // Create the new page
-  await page.click("text=Create page");
+  await page.locator('[data-testid="create-page-btn"]').click();
   await page.type('[placeholder="What is this document?"]', pageName);
 
-  await page.click('div[role="dialog"] >> text=Create');
+  await page
+    .locator('[data-testid="create-page-modal"] >> text=Create')
+    .click();
 
   await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+\/[\w-]+$/));
 
@@ -76,20 +79,19 @@ test("user can create page", async ({ page }) => {
 
   // TODO: Move the cursor below the new divider and update the test?
 
-  // TODO: Uncomment after fixing flaky ProseMirror behavior
-  // // Insert a paragraph creation with newlines
-  // await sleep(100); // TODO: investigate flakiness in FF and Webkit
-  // await page.keyboard.type("Second paragraph");
-  // await sleep(100); // TODO: investigate flakiness in FF and Webkit
-  // await page.keyboard.press("Shift+Enter");
-  // await sleep(100); // TODO: investigate flakiness in FF and Webkit
-  // await page.keyboard.press("Shift+Enter");
-  // await sleep(100); // TODO: investigate flakiness in FF and Webkit
-  // await page.keyboard.type("with");
-  // await page.keyboard.press("Shift+Enter");
-  // await sleep(100); // TODO: investigate flakiness in FF and Webkit
-  // await page.keyboard.type("line breaks");
-  // await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  // Insert a paragraph creation with newlines
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await page.keyboard.type("Second paragraph");
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await page.keyboard.press("Shift+Enter");
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await page.keyboard.press("Shift+Enter");
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await page.keyboard.type("with");
+  await page.keyboard.press("Shift+Enter");
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+  await page.keyboard.type("line breaks");
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
 
   // Expect just inserted content to be present on the page
   await expect(blockRegionLocator).toContainText(
@@ -124,11 +126,10 @@ test("user can create page", async ({ page }) => {
     blockRegionLocator.locator("p").nth(0).locator("em"),
   ).toContainText("italics");
 
-  // TODO: Uncomment after fixing flaky ProseMirror behavior
-  // await expect(blockRegionLocator.locator("p").nth(1)).toContainText(
-  //   "Second paragraph\n\nwith\nline breaks",
-  //   { useInnerText: true },
-  // );
+  await expect(blockRegionLocator.locator("p").nth(1)).toContainText(
+    "Second paragraph\n\nwith\nline breaks",
+    { useInnerText: true },
+  );
 
   await expect(blockRegionLocator.locator("hr")).toBeVisible();
 

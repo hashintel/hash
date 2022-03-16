@@ -1,6 +1,7 @@
-#![allow(dead_code)] // TODO: Remove
-
-use arrow::{datatypes::Schema, ipc::writer::schema_to_bytes};
+use arrow::{
+    datatypes::Schema,
+    ipc::writer::{IpcDataGenerator, IpcWriteOptions},
+};
 use flatbuffers::{FlatBufferBuilder, ForwardsUOffset, Vector, WIPOffset};
 use flatbuffers_gen::sync_state_interim_generated::StateInterimSyncArgs;
 use nng::{options::Options, Aio, Socket};
@@ -269,7 +270,7 @@ fn inbound_to_nng(
                 &flatbuffers_gen::new_simulation_run_generated::NewSimulationRunArgs {
                     sim_id: Some(_sim_id),
                     sid: msg.short_id,
-                    properties: Some(globals),
+                    globals: Some(globals),
                     package_config: Some(package_config),
                     datastore_init: Some(datastore_init),
                 },
@@ -422,8 +423,9 @@ fn str_to_serialized<'f>(
 
 // TODO: Code duplication with JS runner; move this function into datastore?
 fn schema_to_stream_bytes(schema: &Schema) -> Vec<u8> {
-    let content = schema_to_bytes(schema);
-    let mut stream_bytes = arrow_continuation(content.len());
-    stream_bytes.extend_from_slice(&content);
+    let ipc_data_generator = IpcDataGenerator::default();
+    let content = ipc_data_generator.schema_to_bytes(schema, &IpcWriteOptions::default());
+    let mut stream_bytes = arrow_continuation(content.ipc_message.len());
+    stream_bytes.extend_from_slice(&content.ipc_message);
     stream_bytes
 }
