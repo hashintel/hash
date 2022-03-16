@@ -14,7 +14,7 @@ import { useOutsideClick } from "rooks";
 import { tw } from "twind";
 import { BlockContextMenu } from "../../components/BlockContextMenu/BlockContextMenu";
 import { DragVerticalIcon } from "../../components/icons";
-import { UserBlock } from "../userBlocks";
+import { getComponentId, UserBlock } from "../userBlocks";
 import { BlockViewContext } from "./BlockViewContext";
 import { CollabPositionIndicators } from "./CollabPositionIndicators";
 import { BlockSuggesterProps } from "./createSuggester/BlockSuggester";
@@ -289,7 +289,7 @@ export class BlockView implements NodeView<Schema> {
     this.manager
       .replaceNodeWithRemoteBlock(
         draftId,
-        `https://blockprotocol.org/blocks/${meta.packagePath}`,
+        getComponentId(meta),
         variant,
         node,
         getPos(),

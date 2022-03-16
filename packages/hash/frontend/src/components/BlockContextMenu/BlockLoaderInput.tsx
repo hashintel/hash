@@ -1,12 +1,14 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, FormEvent } from "react";
 import { tw } from "twind";
 import { Button } from "../Button";
 import { useBlocksMeta } from "../../blocks/blocksMeta";
 import { useBlockView } from "../../blocks/page/BlockViewContext";
+import { UserBlock, useUserBlocks } from "../../blocks/userBlocks";
 
 export const BlockLoaderInput: React.VFC = () => {
   const blockView = useBlockView();
   const { value: blocksMeta, setValue: setBlocksMeta } = useBlocksMeta();
+  const { setValue: setUserBlocks } = useUserBlocks();
 
   const [error, setError] = useState(null);
   const [blockUrl, setBlockUrl] = useState("");
@@ -15,7 +17,15 @@ export const BlockLoaderInput: React.VFC = () => {
   const isDefinedBlock = blockUrl in blocksMeta;
   const isValidBlockUrl = Boolean(blockUrlRef.current?.validity.valid);
 
-  const loadBlockFromUrl = () => {
+  const inputDisabled = isDefinedBlock || !isValidBlockUrl || error != null;
+
+  const loadBlockFromUrl = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (inputDisabled) {
+      return;
+    }
+
     // take point before any state/pm-doc changes occur
     const pos = blockView.getPos();
 
@@ -24,6 +34,10 @@ export const BlockLoaderInput: React.VFC = () => {
       .then((blockMeta) => {
         setError(null);
         setBlocksMeta((prev) => ({ ...prev, [blockUrl]: blockMeta }));
+        setUserBlocks((prevUserBlocks) => [
+          ...prevUserBlocks,
+          blockMeta.componentMetadata as UserBlock,
+        ]);
         return blockView.manager.createRemoteBlock(blockUrl);
       })
       .then((block) => {
@@ -41,7 +55,7 @@ export const BlockLoaderInput: React.VFC = () => {
   };
 
   return (
-    <>
+    <form onSubmit={loadBlockFromUrl}>
       <input
         ref={blockUrlRef}
         type="url"
@@ -49,6 +63,7 @@ export const BlockLoaderInput: React.VFC = () => {
         onChange={(event) => setBlockUrl(event.target.value)}
         placeholder="Load Block from URL..."
         className={tw`mt-2 block w-full px-2 py-1 bg-gray-50 border-1 text-sm rounded-sm `}
+        required
       />
       {blockUrl && (
         <Button
@@ -57,8 +72,8 @@ export const BlockLoaderInput: React.VFC = () => {
             mt: 1,
             width: "100%",
           }}
-          onClick={loadBlockFromUrl}
-          disabled={isDefinedBlock || !isValidBlockUrl || error != null}
+          disabled={inputDisabled}
+          type="submit"
         >
           {isDefinedBlock
             ? "Block got defined"
@@ -69,6 +84,6 @@ export const BlockLoaderInput: React.VFC = () => {
             : "Load Block"}
         </Button>
       )}
-    </>
+    </form>
   );
 };

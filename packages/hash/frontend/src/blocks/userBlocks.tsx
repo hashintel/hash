@@ -11,7 +11,20 @@ import {
 import { useLocalstorageState } from "rooks";
 
 export type UserBlock = BlockMetadata & {
-  packagePath: string;
+  componentId?: string;
+  packagePath?: string;
+};
+
+export const getComponentId = (meta: UserBlock) => {
+  if (meta.componentId) {
+    return meta.componentId;
+  }
+
+  if (meta.packagePath) {
+    return `https://blockprotocol.org/blocks/${meta.packagePath}`;
+  }
+
+  throw new Error("Added a block without packagePath or componentId");
 };
 
 type UserBlocks = UserBlock[];

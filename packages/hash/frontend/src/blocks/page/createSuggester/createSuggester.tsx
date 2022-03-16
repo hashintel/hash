@@ -13,7 +13,7 @@ import { RenderPortal } from "../usePortals";
 import { ensureMounted } from "../../../lib/dom";
 import { BlockSuggester } from "./BlockSuggester";
 import { MentionSuggester } from "./MentionSuggester";
-import { UserBlock } from "../../userBlocks";
+import { getComponentId, UserBlock } from "../../userBlocks";
 
 interface Trigger {
   char: "@" | "/";
@@ -164,11 +164,7 @@ export const createSuggester = (
             userBlockMeta: UserBlock,
           ) => {
             getManager()
-              .createRemoteBlockTr(
-                `https://blockprotocol.org/blocks/${userBlockMeta.packagePath}`,
-                null,
-                variant,
-              )
+              .createRemoteBlockTr(getComponentId(userBlockMeta), null, variant)
               .then(([tr, node, meta]) => {
                 const $end = view.state.doc.resolve(to);
                 const endPosition = $end.end(1);
