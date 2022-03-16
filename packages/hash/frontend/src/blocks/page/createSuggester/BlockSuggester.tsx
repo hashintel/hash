@@ -5,6 +5,7 @@ import { tw } from "twind";
 import { fuzzySearchBy } from "./fuzzySearchBy";
 import { Suggester } from "./Suggester";
 import { UserBlock, useUserBlocks } from "../../userBlocks";
+import { useFilteredBlocks } from "./useFilteredBlocks";
 
 export interface BlockSuggesterProps {
   search?: string;
@@ -42,40 +43,11 @@ export const BlockSuggester: VFC<BlockSuggesterProps> = ({
 }) => {
   const { value: userBlocks } = useUserBlocks();
 
-  const options = useMemo(() => {
-    const allOptions: {
-      variant: BlockVariant;
-      meta: UserBlock;
-    }[] = Object.values(userBlocks).flatMap((blockMeta) =>
-      blockMeta.variants
-        ? blockMeta.variants.map((variant) => ({
-            variant: {
-              ...variant,
-              name: variant.name ?? variant.displayName,
-            },
-            meta: blockMeta,
-          }))
-        : {
-            variant: {
-              description: blockMeta.description,
-              name: blockMeta.displayName,
-              icon: blockMeta.icon,
-              properties: {},
-            } as BlockVariant,
-            meta: blockMeta,
-          },
-    );
-
-    return fuzzySearchBy(allOptions, search, (option) =>
-      [option?.variant.name, option?.variant.description]
-        .map((str) => str ?? "")
-        .join(" "),
-    );
-  }, [search, userBlocks]);
+  const filteredBlocks = useFilteredBlocks(search, userBlocks);
 
   return (
     <Suggester
-      options={options}
+      options={filteredBlocks}
       renderItem={(option) => (
         <>
           <div className={tw`flex w-16 items-center justify-center`}>

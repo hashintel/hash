@@ -24,6 +24,7 @@ import {
 } from "./BlockContextMenuUtils";
 import { BlockLoaderInput } from "./BlockLoaderInput";
 import { UserBlock, useUserBlocks } from "../../blocks/userBlocks";
+import { useFilteredBlocks } from "../../blocks/page/createSuggester/useFilteredBlocks";
 
 type BlockContextMenuProps = {
   blockSuggesterProps: BlockSuggesterProps;
@@ -86,31 +87,6 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
 
   const { value: userBlocks } = useUserBlocks();
 
-  const blockOptions: {
-    variant: BlockVariant;
-    meta: UserBlock;
-  }[] = useMemo(() => {
-    return Object.values(userBlocks).flatMap((blockMeta) =>
-      blockMeta.variants
-        ? blockMeta.variants.map((variant) => ({
-            variant: {
-              ...variant,
-              name: variant.name ?? variant.displayName,
-            },
-            meta: blockMeta,
-          }))
-        : {
-            variant: {
-              description: blockMeta.description,
-              name: blockMeta.displayName,
-              icon: blockMeta.icon,
-              properties: {},
-            } as BlockVariant,
-            meta: blockMeta,
-          },
-    );
-  }, [userBlocks]);
-
   const usableMenuItems = MENU_ITEMS.filter(({ key }) => {
     return key !== "copyLink" || entityId;
   });
@@ -125,11 +101,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
     item.title.toLocaleLowerCase().includes(lowerCaseSearchText),
   );
 
-  const filteredBlocks = blockOptions.filter(
-    (block) =>
-      block.variant.name &&
-      block.variant.name?.toLocaleLowerCase().includes(lowerCaseSearchText),
-  );
+  const filteredBlocks = useFilteredBlocks(lowerCaseSearchText, userBlocks);
 
   const filteredMenuItems: FilteredMenuItems = {
     actions: filteredActions,
