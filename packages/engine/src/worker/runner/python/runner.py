@@ -431,6 +431,9 @@ class Runner:
                             "Tasks on arbitrary subsets of groups are not supported currently"
                         )
 
+                    self.state_interim_sync(
+                        msg.sim_id, msg.sync.group_idxs, msg.sync.agent_batches, msg.sync.message_batches
+                    )
                     self.run_task(msg.sim_id, group_idx, msg.pkg_id, msg.task_id, msg.payload)
 
                 elif msg_type == MESSAGE_TYPE.CancelTask:
