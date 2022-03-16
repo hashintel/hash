@@ -22,7 +22,9 @@ const getVariantIcon = (option: {
   }
 
   if (option.variant.icon?.startsWith("public/")) {
-    return `https://blockprotocol.org/blocks/${option.meta.packagePath}/${option.variant.icon}`;
+    return `https://blockprotocol.org${
+      option.meta.icon!.split("public/")[0]
+    }public/${option.variant.icon.split("public/")[1]}`;
   }
 
   return option.variant.icon;
@@ -59,7 +61,7 @@ export const BlockSuggester: VFC<BlockSuggesterProps> = ({
               name: blockMeta.displayName,
               icon: blockMeta.icon,
               properties: {},
-            },
+            } as BlockVariant,
             meta: blockMeta,
           },
     );
@@ -94,7 +96,9 @@ export const BlockSuggester: VFC<BlockSuggesterProps> = ({
         </>
       )}
       itemKey={({ meta, variant }) => `${meta.name}/${variant.name}`}
-      onChange={(option) => onChange(option.variant, option.meta)}
+      onChange={(option) => {
+        onChange(option.variant, option.meta);
+      }}
       className={className}
     />
   );

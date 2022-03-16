@@ -6,7 +6,7 @@ import {
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
-import { BlockVariant } from "blockprotocol";
+import { BlockMetadata, BlockVariant } from "blockprotocol";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
@@ -275,7 +275,7 @@ export class BlockView implements NodeView<Schema> {
   /**
    * @todo restore the ability to load in new block types here
    */
-  onBlockChange = (variant: BlockVariant, meta: BlockMeta) => {
+  onBlockChange = (variant: BlockVariant, meta: BlockMetadata) => {
     const { node, view, getPos } = this;
 
     const state = view.state;
@@ -287,13 +287,7 @@ export class BlockView implements NodeView<Schema> {
     }
 
     this.manager
-      .replaceNodeWithRemoteBlock(
-        draftId,
-        meta.componentMetadata.componentId,
-        variant,
-        node,
-        getPos(),
-      )
+      .replaceNodeWithRemoteBlock(draftId, meta.name, variant, node, getPos())
       .catch((err: Error) => {
         // eslint-disable-next-line no-console -- TODO: consider using logger
         console.error(err);
