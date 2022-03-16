@@ -166,7 +166,11 @@ export const createSuggester = (
             meta: BlockMetadata,
           ) => {
             getManager()
-              .createRemoteBlockTr(meta.name!, null, variant)
+              .createRemoteBlockTr(
+                `https://blockprotocol.org/blocks/${meta.packagePath}`,
+                null,
+                variant,
+              )
               .then(([tr, node, meta]) => {
                 const $end = view.state.doc.resolve(to);
                 const endPosition = $end.end(1);
