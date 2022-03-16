@@ -207,7 +207,7 @@ const SearchBarWhenSearchIsEnabled: React.VFC = () => {
         </IconButton>
       ) : (
         <Box
-          style={{
+          sx={{
             display: "flex",
             alignItems: "center",
             width: "100%",
