@@ -12,7 +12,7 @@ import { LinkedDataDefinition } from "../util";
 import { GraphQLContext } from "../../context";
 import { genId, topologicalSort, isRecord } from "../../../util";
 import { UnresolvedGQLEntity, Entity } from "../../../model";
-import { DBAdapter } from "../../../db";
+import { DbAdapter } from "../../../db";
 import {
   Graph,
   DbEntity,
@@ -109,7 +109,7 @@ export const getImpliedEntityHistory: Resolver<
  * entity's properties.
  */
 const hydrateEntity = async (
-  db: DBAdapter,
+  db: DbAdapter,
   entity: DbEntity,
   graph: Graph,
   versionIdEntityMap: Map<string, DbEntity>,
@@ -225,7 +225,7 @@ const hydratePageEntity = (
  * What should we do for cyclic graphs?
  */
 const hydrateRootSubgraph = async (
-  db: DBAdapter,
+  db: DbAdapter,
   rootEntityVersionId: string,
   graph: Graph,
   entities: DbEntity[],

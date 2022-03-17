@@ -3,7 +3,7 @@ import { SearchAdapter } from "@hashintel/hash-backend-utils/search/adapter";
 
 import { PassportGraphQLMethods } from "../auth/passport";
 import { User } from "../model";
-import { DBAdapter } from "../db";
+import { DbAdapter } from "../db";
 import { CacheAdapter } from "../cache";
 import { EmailTransporter } from "../email/transporters";
 import { StorageType } from "./apiTypes.gen";
@@ -14,7 +14,7 @@ import { StorageType } from "./apiTypes.gen";
  */
 export interface GraphQLContext {
   dataSources: {
-    db: DBAdapter;
+    db: DbAdapter;
     cache: CacheAdapter;
     search?: SearchAdapter;
   };
