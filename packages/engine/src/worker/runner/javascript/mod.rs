@@ -15,7 +15,6 @@ use arrow::{
 };
 use futures::FutureExt;
 use mv8::MiniV8;
-use regex::internal::Input;
 use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     task::JoinError,

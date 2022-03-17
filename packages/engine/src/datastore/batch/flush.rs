@@ -7,8 +7,7 @@ use crate::datastore::{
 
 /// The info required about Arrow array data in order to grow it
 ///
-/// Can be implemented by ArrayData, ArrayDataRef, Python FFI array
-/// data.
+/// Can be implemented by ArrayData, ArrayDataRef, Python FFI array data.
 pub(in crate::datastore) trait GrowableArrayData:
     Sized + std::fmt::Debug
 {
@@ -50,23 +49,19 @@ pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableCo
     // TODO: segment_mut?
     fn memory_mut(&mut self) -> &mut Memory;
 
-    /// Persist all queued changes to memory, empty the queue
-    /// and increment the persisted metaversion.
+    /// Persist all queued changes to memory, empty the queue and increment the persisted
+    /// metaversion.
     ///
-    /// Calculates all moves, copies and resizes required to persist
-    /// the changes.
+    /// Calculates all moves, copies and resizes required to persist the changes.
     ///
     /// # Errors
     ///
-    /// If the loaded metaversion isn't equal to the
-    /// persisted metaversion, this gives an error to avoid
-    /// flushing stale data. (The loaded metaversion can't
-    /// be newer than the persisted metaversion.)
-    // TODO: We might have to remove this restriction to
-    //        allow flushing multiple changes in a row.
+    /// If the loaded metaversion isn't equal to the persisted metaversion, this gives an error to
+    /// avoid flushing stale data. (The loaded metaversion can't be newer than the persisted
+    /// metaversion.)
+    // TODO: We might have to remove this restriction to allow flushing multiple changes in a row.
     ///
-    /// If the underlying segment has been corrupted somehow,
-    /// this can give various errors.
+    /// If the underlying segment has been corrupted somehow, this can give various errors.
     #[allow(clippy::too_many_lines)]
     fn flush_changes(&mut self, mut column_changes: Vec<C>) -> Result<BufferChange> {
         // Sort the changes by the order in which the columns are

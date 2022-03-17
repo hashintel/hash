@@ -1,12 +1,9 @@
-//! The `datastore` module includes logic about handling creation,
-//! modification, and access of simulation data that's shared across
-//! the engine and runtimes.
+//! The `datastore` module includes logic about handling creation, modification, and access of
+//! simulation data that's shared across the engine and runtimes.
 //!
-//! It contains the logic relating to storing data within Arrow, which
-//! allows us to efficiently share large quantities of data between
-//! runtimes. It also includes the functionalities we use to
-//! dynamically initialize data from schemas, and logic around data
-//! access and safety.
+//! It contains the logic relating to storing data within Arrow, which allows us to efficiently
+//! share large quantities of data between runtimes. It also includes the functionalities we use to
+//! dynamically initialize data from schemas, and logic around data access and safety.
 // TODO: DOC improve wording of above, and signpost the key modules
 pub mod arrow;
 pub mod batch;
@@ -138,9 +135,8 @@ pub mod tests {
         // Run "behavior"
         let targets = modify_name(&shmem_id)?;
 
-        // TODO: This actually shows that converting to and from a
-        //       batch id is a way to mutate a batch without acquiring
-        //       a write lock (by creating a write proxy).
+        // TODO: This actually shows that converting to and from a batch id is a way to mutate a
+        //       batch without acquiring a write lock (by creating a write proxy).
         let _unlocked_batch = AgentBatch::from_shmem_os_id(&shmem_id)?;
 
         state

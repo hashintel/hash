@@ -78,9 +78,8 @@ pub fn batch_to_fbs<'f>(
     let batch_id_offset = fbb.create_string(batch_segment.memory().id());
     let metaversion_offset = metaversion_to_fbs(
         fbb,
-        // TODO: Don't serialize the metaversion and just send the
-        //       batch id and read the persisted metaversion in the
-        //       runner instead.
+        // TODO: Don't serialize the metaversion and just send the batch id and read the persisted
+        //       metaversion in the runner instead.
         batch_segment.persisted_metaversion(),
     );
     flatbuffers_gen::batch_generated::Batch::create(

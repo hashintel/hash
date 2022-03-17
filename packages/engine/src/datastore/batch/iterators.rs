@@ -228,16 +228,16 @@ pub mod record_batch {
         let data_ref = col.data_ref();
         let nulls = data_ref.null_buffer();
 
-        // TODO: If there are nulls in the column with old message locations,
-        //       then `typed_data` might give a reference to uninitialized data,
-        //       so `MaybeUninit<u32>` would be a better type.
+        // TODO: If there are nulls in the column with old message locations, then `typed_data`
+        //       might give a reference to uninitialized data, so `MaybeUninit<u32>` would be a
+        //       better type.
         let child_data_buffer =
             unsafe { data_ref.child_data()[0].buffers()[0].typed_data::<u32>() };
 
-        // SAFETY: The column with old message locations has two `u32` indices per row
-        // (i.e. each location is a tuple of two indices), so it must be viewable as a
-        // slice of `[u32; 2]`. (Space is allocated for a tuple even if a row is null.)
-        // TODO: Safer way to do this? (safe transmute crate?)
+        // SAFETY: The column with old message locations has two `u32` indices per row (i.e. each
+        //         location is a tuple of two indices), so it must be viewable as a slice of
+        //         `[u32; 2]`. (Space is allocated for a tuple even if a row is null.)
+        // TODO: Use `TryInto` instead
         let data_as_tuples = unsafe { &*(child_data_buffer as *const [u32] as *const [[u32; 2]]) };
         let old_message_location = &data_as_tuples[row_index];
 
@@ -269,7 +269,7 @@ pub mod record_batch {
         let buffer = &data.buffers()[0];
         let mut bytes_ptr = buffer.as_ptr();
         // SAFETY: All ids have `UUID_V4_LEN` bytes, so we can iterate over them by moving the
-        // pointer forward by that amount after each agent.
+        //         pointer forward by that amount after each agent.
         Ok((0..column.len()).map(move |_| unsafe {
             let id = &*(bytes_ptr as *const [u8; UUID_V4_LEN]);
             bytes_ptr = bytes_ptr.add(UUID_V4_LEN);

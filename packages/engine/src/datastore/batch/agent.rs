@@ -166,8 +166,8 @@ impl AgentBatch {
         if memory.set_header(&header_buffer)?.resized()
             || memory.set_metadata(&meta_buffer)?.resized()
         {
-            // We set the sizes above to be exactly those of the header
-            // and metadata, so resizing shouldn't be necessary.
+            // We set the sizes above to be exactly those of the header and metadata, so resizing
+            // shouldn't be necessary.
             Err(Error::UnexpectedAgentBatchMemoryResize)
         } else {
             Ok(memory)
@@ -175,12 +175,9 @@ impl AgentBatch {
     }
 
     pub fn num_agents(&self) -> usize {
-        // TODO: Require `self.is_persisted()` (loaded metaversion
-        //       equal to persisted one)? Just warn if older?
-        //       (Number of agents might have changed between
-        //       loads, though there might be a use case for
-        //       checking the old number of agents before loading
-        //       (n_agents_unchecked?).)
+        // TODO: Require `self.is_persisted()` (loaded metaversion equal to persisted one)? Just
+        // warn if older? (Number of agents might have changed between loads, though there might be
+        // a use case for checking the old number of agents before loading (`n_agents_unchecked`?).)
         self.batch.record_batch_unchecked().num_rows()
     }
 
@@ -202,7 +199,7 @@ impl AgentBatch {
     }
 
     /// This agent index column contains the indices of the agents *before* agent migration
-    /// was performed. This is important so an agent can access its neighbor's outbox
+    /// was performed. This is important so an agent can access its neighbor's outbox.
     // TODO: UNUSED: Needs triage -Should it be removed or used in the Rust runner or elsewhere?
     // TODO: This doesn't check metaversions, so either it should be changed to check metaversions
     //       or not used outside the datastore.

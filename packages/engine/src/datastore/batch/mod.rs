@@ -21,20 +21,15 @@ pub use metaversion::Metaversion;
 use super::prelude::*;
 use crate::datastore::batch::{change::ColumnChange, flush::GrowableBatch};
 
-// TODO: This should probably be merged into `Memory`. Then `Memory`
-//       would always have a memory version (currently part of the
-//       batch metaversion) and the memory version should probably
-//       be a fifth marker.
-// TODO: Functions with mutable access to `Memory` should be made
-//       private to the datastore, so that code outside the datastore
-//       can't mutate memory directly, even if it has mutable access
-//       to a batch.
-//       `CMemory` in the Python FFI would need to be replaced with
-//       `CSegment`.
-// TODO: Probably move loaded memory version into Segment -- we'll
-//       have to split metaversion storage into memory and batch
-//       versions, because some segments contain things which don't
-//       really have batch versions, e.g. datasets.
+// TODO: This should probably be merged into `Memory`. Then `Memory` would always have a memory
+//       version (currently part of the batch metaversion) and the memory version should probably be
+//       a fifth marker.
+// TODO: Functions with mutable access to `Memory` should be made private to the datastore, so that
+//       code outside the datastore can't mutate memory directly, even if it has mutable access to a
+//       batch. `CMemory` in the Python FFI would need to be replaced with `CSegment`.
+// TODO: Probably move loaded memory version into Segment -- we'll have to split metaversion storage
+//       into memory and batch versions, because some segments contain things which don't really
+//       have batch versions, e.g. datasets.
 /// Used by datasets, agent batches, message batches, context global batch, [`PreparedBatch`].
 ///
 /// [`PreparedBatch`]: crate::datastore::ffi::PreparedBatch
@@ -136,8 +131,7 @@ impl ArrowBatch {
         self.changes.push(change)
     }
 
-    /// Return record batch without checking whether the
-    /// latest persisted data has been loaded.
+    /// Return record batch without checking whether the latest persisted data has been loaded.
     fn record_batch_unchecked(&self) -> &RecordBatch {
         debug_assert!(
             self.is_persisted(),
@@ -146,8 +140,7 @@ impl ArrowBatch {
         &self.record_batch
     }
 
-    /// Return record batch without checking whether the
-    /// latest persisted data has been loaded.
+    /// Return record batch without checking whether the latest persisted data has been loaded.
     fn record_batch_unchecked_mut(&mut self) -> &mut RecordBatch {
         debug_assert!(
             self.is_persisted(),
@@ -276,9 +269,8 @@ impl ArrowBatch {
         }
     }
 
-    /// Return record batch if and only if the loaded version
-    /// is equal to the persisted version. (The loaded version
-    /// can't be newer than the persisted version.)
+    /// Return record batch if and only if the loaded version is equal to the persisted version.
+    /// (The loaded version can't be newer than the persisted version.)
     pub fn record_batch(&self) -> Result<&RecordBatch> {
         if self.is_persisted() {
             Ok(self.record_batch_unchecked())
@@ -289,9 +281,8 @@ impl ArrowBatch {
         }
     }
 
-    /// Return record batch if and only if the loaded version
-    /// is equal to the persisted version. (The loaded version
-    /// can't be newer than the persisted version.)
+    /// Return record batch if and only if the loaded version is equal to the persisted version.
+    /// (The loaded version can't be newer than the persisted version.)
     ///
     /// TODO: Should remove this function, because using it
     ///       doesn't automatically update the persisted metaversion
@@ -315,14 +306,11 @@ impl ArrowBatch {
         self.segment.set_persisted_metaversion(persisted);
     }
 
-    /// Copy data from `new_batch` into self and increment
-    /// persisted metaversion of self. (Don't change the
-    /// loaded version, because the persisted data of
-    /// `new_batch` was only copied to the persisted data
-    /// of self, without loading data.)
+    /// Copy data from `new_batch` into self and increment persisted metaversion of self. (Don't
+    /// change the loaded version, because the persisted data of `new_batch` was only copied to the
+    /// persisted data of self, without loading data.)
     ///
-    /// The loaded metaversion can be older than the
-    /// persisted one, because the written data doesn't
+    /// The loaded metaversion can be older than the persisted one, because the written data doesn't
     /// depend on what is loaded.
     ///
     /// # Errors
@@ -364,20 +352,17 @@ impl ArrowBatch {
 
         self.segment
             .set_persisted_metaversion(metaversion_to_persist);
-        // Right before this function was called, the loaded
-        // metaversion must have been older than or equal to
-        // the persisted one, so now it is strictly older.
+        // Right before this function was called, the loaded metaversion must have been older than
+        // or equal to the persisted one, so now it is strictly older.
         debug_assert!(self.loaded_metaversion().older_than(metaversion_to_persist));
         // We reloaded the record batch above after writing it.
         *self.loaded_metaversion_mut() = metaversion_to_persist;
         Ok(())
     }
 
-    /// If the persisted metaversion is greater than the loaded
-    /// version (i.e. either the batch version or the memory version
-    /// is strictly greater than the loaded version), then the batch
-    /// and/or memory is reloaded and the loaded metaversion is
-    /// mutated to be the persisted one.
+    /// If the persisted metaversion is greater than the loaded version (i.e. either the batch
+    /// version or the memory version is strictly greater than the loaded version), then the batch
+    /// and/or memory is reloaded and the loaded metaversion is mutated to be the persisted one.
     pub fn maybe_reload(&mut self) -> Result<()> {
         if !self.is_persisted() {
             let persisted = self.segment.persisted_metaversion();

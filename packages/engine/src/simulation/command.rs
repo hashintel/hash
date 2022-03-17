@@ -166,7 +166,7 @@ impl Commands {
             .into_par_iter()
             .map(|refs| {
                 // TODO: OPTIM See if collecting type information before (to avoid cache
-                //   misses on large batches) yields better results.
+                //       misses on large batches) yields better results.
                 let hash_message_types =
                     message_reader
                         .type_iter(refs)

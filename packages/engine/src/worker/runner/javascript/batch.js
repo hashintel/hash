@@ -118,8 +118,8 @@
     return load_vectors(record_batch_bytes, schema);
   };
 
-  /// `latest_batch` should have `id` (string), `batch_version` (number),
-  /// `mem_version` (number) and `mem` (ArrayBuffer) fields.
+  /// `latest_batch` should have `id` (string), `batch_version` (number), `mem_version` (number) and `mem` (ArrayBuffer)
+  /// fields.
   // TODO: Read persisted metaversion from memory, removing the need
   //       for the version fields in `latest_batch`.
   Batch.prototype.sync = function (latest_batch, schema) {

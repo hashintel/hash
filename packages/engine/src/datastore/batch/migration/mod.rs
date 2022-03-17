@@ -1016,10 +1016,10 @@ impl<'a> BufferActions<'a> {
 
         // There are 3 cases with remove actions:
         // 1) No buffer shift -> commit inner actions left to right
-        // 2) Buffer shift to the right, new rightmost index >= old rightmost
-        // index    -> commit right to left
-        // 3) Buffer shift to the right, new rightmost index < old rightmost
-        // index    -> build separately
+        // 2) Buffer shift to the right, new rightmost index >= old rightmost index
+        //    -> commit right to left
+        // 3) Buffer shift to the right, new rightmost index < old rightmost index
+        //    -> build separately
 
         Ok(next_state)
     }

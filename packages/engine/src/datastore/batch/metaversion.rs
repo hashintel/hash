@@ -107,12 +107,10 @@
 //! * The JavaScript component of behavior execution starts. The persisted version, 1, is greater
 //!   than the JavaScript runner's loaded version, 0, so the runner reloads the batch and sets its
 //!   loaded version equal to the persisted version.
-// TODO: Currently columns are likely to end up being loaded twice, which is,
-//       of course, bad for performance. Either the state sync above should be
-//       removed (which loses parallelism with context packages) or the writing
-//       of behavior ids should be moved into the language runner components of
-//       the behavior execution package -- into whichever language is executed
-//       first.
+// TODO: Currently columns are likely to end up being loaded twice, which is, of course, bad for
+//       performance. Either the state sync above should be removed (which loses parallelism with
+//       context packages) or the writing of behavior ids should be moved into the language runner
+//       components of the behavior execution package -- into whichever language is executed first.
 //!
 //! * Behaviors are executed, modifying the loaded `behaviors` column. The runner increments its
 //!   loaded version to 2, flushes the column (possibly along with other columns) to the agent state
@@ -156,9 +154,8 @@ use std::cmp::Ordering;
 
 use crate::datastore::{storage::BufferChange, Error, Result};
 
-/// Simple way for every component (language runners + main loop)
-/// using the datastore to track whether it has to reload memory
-/// or reload the record batch.
+/// Simple way for every component (language runners + main loop) using the datastore to track
+/// whether it has to reload memory or reload the record batch.
 #[must_use]
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct Metaversion {
@@ -209,8 +206,7 @@ impl Metaversion {
         self.batch
     }
 
-    /// Assert invariants, given that `version` is a metaversion of
-    /// *the same batch* as `self`.
+    /// Assert invariants, given that `version` is a metaversion of *the same batch* as `self`.
     // TODO: Actually this only applies to persisted metaversions, because loaded metaversions can
     //       have memory versions newer than batch versions.
     fn verify(&self, version: Self) {
@@ -220,13 +216,11 @@ impl Metaversion {
                 version.batch >= version.memory,
                 "Batch is older than the memory"
             );
-            // `self` and `version` are metaversions of the same batch,
-            // so they can be linearly ordered -- one must have been
-            // obtained by modifying the other some number of times
-            // (possibly zero). Each modification increments the batch
-            // version and sometimes also increments the memory version.
-            // Therefore, if the memory version changed, then the batch
-            // version must have also changed at least once.
+            // `self` and `version` are metaversions of the same batch, so they can be linearly
+            // ordered -- one must have been obtained by modifying the other some number of times
+            // (possibly zero). Each modification increments the batch version and sometimes also
+            // increments the memory version. Therefore, if the memory version changed, then the
+            // batch version must have also changed at least once.
             match self.batch.cmp(&version.batch) {
                 Ordering::Less => assert!(self.memory <= version.memory),
                 Ordering::Equal => assert_eq!(self.memory, version.memory),
@@ -271,8 +265,8 @@ impl Metaversion {
         self.batch += 1;
     }
 
-    /// Indicate what (if anything) needs to be reloaded based on
-    /// how a buffer has changed in this shared memory segment.
+    /// Indicate what (if anything) needs to be reloaded based on how a buffer has changed in this
+    /// shared memory segment.
     pub fn increment_with(&mut self, change: &BufferChange) {
         if change.resized() {
             self.increment();

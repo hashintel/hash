@@ -106,8 +106,8 @@ impl StepPackages {
         let keys_and_columns = self
             .context
             .iter()
-            // TODO: remove the need for this by creating a method to generate
-            //       empty arrow columns from the schema
+            // TODO: remove the need for this by creating a method to generate empty arrow columns 
+            //       from the schema
             .map(|package| {
                 package
                     .get_empty_arrow_columns(num_agents, &sim_run_config.sim.store.context_schema)
