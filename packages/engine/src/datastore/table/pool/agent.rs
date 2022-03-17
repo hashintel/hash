@@ -42,13 +42,13 @@ impl AgentPool {
 impl PoolWriteProxy<AgentBatch> {
     // TODO: DOC
     pub fn modify_loaded_column(&mut self, column: StateColumn) -> Result<()> {
-        let mut group_start = 0;
+        let mut batch_start = 0;
         for agent_batch in self.batches_iter_mut() {
             let num_agents = agent_batch.num_agents();
-            let next_start = group_start + num_agents;
-            let change = column.get_arrow_change(group_start..next_start)?;
+            let next_start = batch_start + num_agents;
+            let change = column.get_arrow_change(batch_start..next_start)?;
             agent_batch.batch.queue_change(change)?;
-            group_start = next_start;
+            batch_start = next_start;
         }
         Ok(())
     }

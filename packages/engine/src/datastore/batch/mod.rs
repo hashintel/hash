@@ -156,7 +156,7 @@ impl ArrowBatch {
     /// Reload record batch (without checking metaversions).
     fn reload_record_batch(&mut self) -> Result<()> {
         debug_assert!(
-            self.memory().validate_markers(),
+            self.memory().validate_markers().is_ok(),
             "Can't reload record batch; see validate_markers"
         );
         let record_batch_message = load::record_batch_message(&self.segment)?;
@@ -171,7 +171,7 @@ impl ArrowBatch {
     /// Reload record batch and dynamic metadata (without checking metaversions).
     fn reload_record_batch_and_dynamic_meta(&mut self) -> Result<()> {
         debug_assert!(
-            self.memory().validate_markers(),
+            self.memory().validate_markers().is_ok(),
             "Can't reload record batch; see validate_markers"
         );
         let record_batch_message = load::record_batch_message(&self.segment)?;

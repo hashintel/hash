@@ -239,6 +239,10 @@ impl Package for BehaviorExecution {
 
         // Have to reload state agent batches twice, because we just wrote the language ID of each
         // behavior into them, but now want to read it from them.
+        // TODO: This could be changed so that they only need to be reloaded once, e.g. by getting
+        //       the first language before fixing behavior chains using the behaviors column strings
+        //       (instead of reading behavior ids in Rust) or by returning the first language from
+        //       fix_behavior_chains.
         state_proxy.maybe_reload()?;
         let agent_pool = state_proxy.agent_pool();
 

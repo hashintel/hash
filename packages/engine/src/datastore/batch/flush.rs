@@ -30,7 +30,7 @@ pub(in crate::datastore) trait GrowableColumn<D: GrowableArrayData>:
 
 /// A batch that can be grown after creation.
 ///
-/// This implies, that `flush_changes` may alter the memory location.
+/// Implementing this trait implies that `flush_changes` may alter the memory location.
 ///
 /// This trait is useful for batches with dynamically sized Arrow columns, such as string columns,
 /// and Arrow batches whose number of elements can change due to the number of agents changing, such
@@ -284,14 +284,10 @@ pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableCo
         let meta_buffer = get_dynamic_meta_flatbuffers(self.dynamic_meta())?;
         self.memory_mut().set_metadata(&meta_buffer)?;
 
-        if cfg!(debug_assertions) && !self.memory().validate_markers() {
-            Err(Error::from(
-                "Incorrect markers -- possibly buffer locations are wrong or the markers weren't \
-                 written correctly, so they don't correspond to the actual locations",
-            ))
-        } else {
-            Ok(change)
+        if cfg!(debug_assertions) {
+            self.memory().validate_markers()?;
         }
+        Ok(change)
     }
 }
 

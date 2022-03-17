@@ -171,6 +171,7 @@ impl Metaversion {
             //       some other engine component updates both memory and batches, but this engine
             //       component only reads the memory that has been updated, ignoring the batch, then
             //       the read memory version can become greater than the read batch version.
+            //   see https://app.asana.com/0/1199548034582004/1201976651517492/f
             Err(Error::from(
                 "Batch is updated when memory is updated, so must have batch version >= memory \
                  version",

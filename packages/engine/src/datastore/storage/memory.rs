@@ -199,8 +199,15 @@ impl Memory {
         Ok(())
     }
 
-    pub fn validate_markers(&self) -> bool {
-        self.visitor().validate_markers(self.id(), self.size)
+    pub fn validate_markers(&self) -> Result<()> {
+        if self.visitor().validate_markers(self.id(), self.size) {
+            Ok(())
+        } else {
+            Err(Error::from(
+                "Incorrect markers -- possibly buffer locations are wrong or the markers weren't \
+                 written correctly, so they don't correspond to the actual locations",
+            ))
+        }
     }
 
     /// Get the bytes which contain relevant batch data/metadata

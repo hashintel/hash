@@ -105,8 +105,8 @@ impl PoolReadProxy<MessageBatch> {
     pub fn get_reader(&self) -> Result<MessageReader<'_>> {
         let loaders: Result<_> = self
             .batches_iter()
-            .map(|group| {
-                group
+            .map(|batch| {
+                batch
                     .batch
                     .record_batch()
                     .map(message::record_batch::message_loader)
