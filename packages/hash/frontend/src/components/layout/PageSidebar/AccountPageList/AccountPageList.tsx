@@ -21,7 +21,11 @@ type TreeElement = {
   children?: TreeElement[];
 };
 
-const renderTree = (node: TreeElement, depth: number = 0) => {
+const renderTree = (
+  node: TreeElement,
+  accountId: string,
+  depth: number = 0,
+) => {
   // console.log("depth ==> ", depth);
   return (
     <PageTreeItem
@@ -34,10 +38,11 @@ const renderTree = (node: TreeElement, depth: number = 0) => {
         expandable: Boolean(
           Array.isArray(node.children) ? node.children.length : node.children,
         ),
+        pageUrl: `/${accountId}/${node.entityId}`,
       }}
     >
       {Array.isArray(node.children)
-        ? node.children.map((child) => renderTree(child, depth + 1))
+        ? node.children.map((child) => renderTree(child, accountId, depth + 1))
         : null}
     </PageTreeItem>
   );
@@ -111,7 +116,7 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
         {/* {formattedData.map((node) => (
           <Tree key={node.entityId} node={node} depth={0} />
         ))} */}
-        {formattedData.map((node) => renderTree(node, 0))}
+        {formattedData.map((node) => renderTree(node, accountId, 0))}
       </TreeView>
     </NavLink>
   );

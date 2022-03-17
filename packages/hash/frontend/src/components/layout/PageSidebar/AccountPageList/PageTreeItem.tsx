@@ -10,12 +10,17 @@ import { Box, Typography } from "@mui/material";
 import { faChevronRight, faFile } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "../../../icons";
 import { IconButton } from "../../../IconButton";
+// import { Button } from "../../../Button";
+import { Link } from "../../../Link";
 
-type CustomContentProps = TreeItemContentProps & { expandable?: boolean };
+type CustomContentProps = TreeItemContentProps & {
+  expandable?: boolean;
+  pageUrl: string;
+};
 
 // inspiration gotten from https://mui.com/components/tree-view/#IconExpansionTreeView.tsx
 const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
-  const { label, nodeId, expandable } = props;
+  const { label, nodeId, expandable, pageUrl } = props;
 
   const {
     expanded,
@@ -102,7 +107,29 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
         }}
       />
       {/* @todo-mui this should be switched to our button component once we have all variants implemented */}
-      <Box
+      <Link
+        noLinkStyle
+        sx={{
+          flex: 1,
+          width: "100%",
+          outline: "none",
+          textAlign: "left",
+        }}
+        href={pageUrl}
+      >
+        <Typography
+          variant="smallTextLabels"
+          sx={{
+            display: "block",
+            color: ({ palette }) => palette.gray[70],
+            py: 1,
+          }}
+        >
+          {label}
+        </Typography>
+      </Link>
+
+      {/* <Box
         component="button"
         onClick={handleSelectionClick}
         sx={{
@@ -122,7 +149,7 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
         >
           {label}
         </Typography>
-      </Box>
+      </Box> */}
     </Box>
   );
 });
