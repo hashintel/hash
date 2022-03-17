@@ -1,9 +1,8 @@
 import { Components, CSSObject, Theme, buttonClasses } from "@mui/material";
 
-const buttonFocusBorderOffset = 6;
-const buttonFocusBorderWidth = 3;
-const baseButtonBorderRadius = 4;
-const largeButtonBorderRadius = 6;
+const buttonFocusBorderOffset = { md: 4, lg: 6 };
+const buttonFocusBorderWidth = { md: 2, lg: 3 };
+const buttonBorderRadius = { md: 4, lg: 6 };
 
 export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
   defaultProps: {
@@ -53,24 +52,26 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
       const activeStyles: CSSObject = {};
 
       // The :focus CSS styling applied to the button
-      let focusStyles: CSSObject = { outline: "none" };
+      const focusStyles: CSSObject = { outline: "none" };
 
       // :focus:before CSS styling applied to the button
-      let focusBeforeStyles: CSSObject = {};
+      let focusVisibleBeforeStyles: CSSObject = {};
 
-      // The :focus:after CSS styling applied to the button
-      const focusAfterStyles: CSSObject = {
+      const focusBorderOffset =
+        buttonFocusBorderOffset[variant === "primary" ? "lg" : "md"];
+
+      // The :focus-visible:after CSS styling applied to the button
+      const focusVisibleAfterStyles: CSSObject = {
         content: `""`,
         position: "absolute",
-        left: -buttonFocusBorderOffset,
-        top: -buttonFocusBorderOffset,
-        bottom: -buttonFocusBorderOffset,
-        right: -buttonFocusBorderOffset,
+        left: -focusBorderOffset,
+        top: -focusBorderOffset,
+        bottom: -focusBorderOffset,
+        right: -focusBorderOffset,
         border: `${buttonFocusBorderWidth}px solid`,
         borderRadius:
-          (size === "large"
-            ? largeButtonBorderRadius
-            : baseButtonBorderRadius) + buttonFocusBorderOffset,
+          buttonBorderRadius[size === "large" ? "lg" : "md"] +
+          focusBorderOffset,
         borderColor: theme.palette.blue["70"],
       };
 
@@ -111,14 +112,14 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           opacity: 1,
         };
 
-        focusStyles = {
-          ...focusStyles,
-          color: theme.palette.common.white,
-          background: theme.palette.blue[70],
-        };
+        // focusStyles = {
+        //   ...focusStyles,
+        //   color: theme.palette.common.white,
+        //   background: theme.palette.blue[70],
+        // };
 
-        focusBeforeStyles = {
-          ...focusBeforeStyles,
+        focusVisibleBeforeStyles = {
+          ...focusVisibleBeforeStyles,
           opacity: 0,
         };
       } else if (variant === "secondary") {
@@ -136,10 +137,10 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           background: theme.palette.blue[20],
         };
 
-        focusStyles = {
-          color: theme.palette.blue[70],
-          background: theme.palette.common.white,
-        };
+        // focusStyles = {
+        //   color: theme.palette.blue[70],
+        //   background: theme.palette.common.white,
+        // };
       } else if (variant === "tertiary") {
         /** ===== TERTIARY variant specific styling ===== */
         baseStyles = {
@@ -165,15 +166,15 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           },
         };
 
-        focusStyles = {
-          ...focusStyles,
-          color: theme.palette.gray[80],
-          background: theme.palette.common.white,
+        // focusStyles = {
+        //   ...focusStyles,
+        //   color: theme.palette.gray[80],
+        //   background: theme.palette.common.white,
 
-          [`& > .${buttonClasses.startIcon}, & > .${buttonClasses.endIcon}`]: {
-            color: theme.palette.gray[50],
-          },
-        };
+        //   [`& > .${buttonClasses.startIcon}, & > .${buttonClasses.endIcon}`]: {
+        //     color: theme.palette.gray[50],
+        //   },
+        // };
       } else if (variant === "tertiary_quiet") {
         /** ===== TERTIARY QUIET variant specific styling ===== */
         baseStyles = {
@@ -197,15 +198,15 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           },
         };
 
-        focusStyles = {
-          ...focusStyles,
-          color: theme.palette.gray[80],
-          background: theme.palette.common.white,
+        // focusStyles = {
+        //   ...focusStyles,
+        //   color: theme.palette.gray[80],
+        //   background: theme.palette.common.white,
 
-          [`& > .${buttonClasses.startIcon}, & > .${buttonClasses.endIcon}`]: {
-            color: theme.palette.gray[50],
-          },
-        };
+        //   [`& > .${buttonClasses.startIcon}, & > .${buttonClasses.endIcon}`]: {
+        //     color: theme.palette.gray[50],
+        //   },
+        // };
       } else if (variant === "warning") {
         /** ===== WARNING variant specific styling ===== */
         baseStyles = {
@@ -220,11 +221,11 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           color: theme.palette.orange[100],
         };
 
-        focusStyles = {
-          ...focusStyles,
-          color: theme.palette.orange[90],
-          background: theme.palette.orange[40],
-        };
+        // focusStyles = {
+        //   ...focusStyles,
+        //   color: theme.palette.orange[90],
+        //   background: theme.palette.orange[40],
+        // };
       } else if (variant === "danger") {
         /** ===== DANGER variant specific styling ===== */
         baseStyles = {
@@ -238,23 +239,23 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           background: theme.palette.red[70],
         };
 
-        focusStyles = {
-          ...focusStyles,
-          color: theme.palette.common.white,
-          background: theme.palette.red[60],
-        };
+        // focusStyles = {
+        //   ...focusStyles,
+        //   color: theme.palette.common.white,
+        //   background: theme.palette.red[60],
+        // };
       }
 
       /** ====================== SIZE specific styling ============================= */
 
       baseStyles = {
         ...baseStyles,
-        borderRadius: `${baseButtonBorderRadius}px`,
+        borderRadius: `${buttonBorderRadius.md}px`,
         ...(size === "large" && {
           padding: "16px 32px",
           minHeight: 56,
           minWidth: 120,
-          borderRadius: `${largeButtonBorderRadius}px`,
+          borderRadius: `${buttonBorderRadius.lg}px`,
           ...theme.typography.largeTextLabels,
         }),
         ...(size === "medium" && {
@@ -289,8 +290,8 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         ":active": activeStyles,
         "&.Mui-disabled": disabledStyles,
         ":focus": focusStyles,
-        ":focus:before": focusBeforeStyles,
-        ":focus:after": focusAfterStyles,
+        ":focus-visible:before": focusVisibleBeforeStyles,
+        ":focus-visible:after": focusVisibleAfterStyles,
       };
     },
     endIcon: {

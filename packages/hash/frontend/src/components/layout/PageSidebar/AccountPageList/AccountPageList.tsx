@@ -4,6 +4,7 @@ import { treeFromParentReferences } from "@hashintel/hash-shared/util";
 import { TreeView } from "@mui/lab";
 import { useRouter } from "next/router";
 import { useModal } from "react-modal-hook";
+import { Box } from "@mui/material";
 import { useAccountPages } from "../../../hooks/useAccountPages";
 import { NavLink } from "../NavLink";
 import { PageTreeItem } from "./PageTreeItem";
@@ -26,7 +27,7 @@ const renderTree = (
   accountId: string,
   depth: number = 0,
 ) => {
-  // console.log("depth ==> ", depth);
+  console.log("depth ==> ", depth);
   return (
     <PageTreeItem
       key={node.entityId}

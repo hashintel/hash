@@ -7,6 +7,7 @@ import TreeItem, {
 } from "@mui/lab/TreeItem";
 // import clsx from "clsx";
 import { Box, Typography } from "@mui/material";
+import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
 import {
   faChevronRight,
   faEllipsis,
@@ -16,6 +17,7 @@ import { FontAwesomeIcon } from "../../../icons";
 import { IconButton } from "../../../IconButton";
 // import { Button } from "../../../Button";
 import { Link } from "../../../Link";
+import { PageMenu } from "./PageMenu";
 
 type CustomContentProps = TreeItemContentProps & {
   expandable?: boolean;
@@ -26,6 +28,11 @@ type CustomContentProps = TreeItemContentProps & {
 const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
   const { label, nodeId, expandable, pageUrl } = props;
   const [hovered, setHovered] = React.useState(false);
+  const pageMenuTriggerRef = React.useRef(null);
+  const popupState = usePopupState({
+    variant: "popover",
+    popupId: "page-menu",
+  });
 
   const {
     expanded,
@@ -64,7 +71,7 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
       sx={{
         display: "flex",
         alignItems: "center",
-        // pr: 1,
+        px: 1,
 
         "&:hover": {
           backgroundColor: ({ palette }) => palette.gray[20],
@@ -158,6 +165,8 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
         </Typography>
       </Box> */}
       <IconButton
+        ref={pageMenuTriggerRef}
+        {...bindTrigger(popupState)}
         size="medium"
         unpadded
         sx={{
@@ -173,6 +182,7 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
       >
         <FontAwesomeIcon icon={faEllipsis} />
       </IconButton>
+      <PageMenu popupState={popupState} />
     </Box>
   );
 });
@@ -182,20 +192,21 @@ export const PageTreeItem = ({
   depth,
   ...props
 }: TreeItemProps & { depth: number }) => {
-  // console.log("depth page ==> ", depth);
+  console.log("depth passed to component ==> ", depth);
   // Figure out why depth doesn't update with the right value
   return (
     <TreeItem
       {...props}
       sx={{
         ...sx,
-        [`& .${treeItemClasses.group}`]: {
-          marginLeft: 0,
-          [`& .${treeItemClasses.content}`]: {
-            pl: `${depth * 15 + 8}px`,
-            pr: 1,
-          },
-        },
+        // uncommenting this resets TreeItems default styles
+        // [`& .${treeItemClasses.group}`]: {
+        //   marginLeft: 0,
+        //   [`& .${treeItemClasses.content}`]: {
+        //     pl: `${depth * 15 + 8}px`,
+        //     pr: 1,
+        //   },
+        // },
       }}
       ContentComponent={CustomContent}
     />

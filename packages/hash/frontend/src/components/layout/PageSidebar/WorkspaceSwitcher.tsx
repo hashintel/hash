@@ -25,7 +25,10 @@ const truncateText = (text: string) => {
 
 export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const popupState = usePopupState({ variant: "popover", popupId: "demoMenu" });
+  const popupState = usePopupState({
+    variant: "popover",
+    popupId: "workspace-switcher-menu",
+  });
   const { user } = useUser();
   const { logout } = useLogout();
   const { query } = useRouter();
