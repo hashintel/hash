@@ -3,7 +3,7 @@ import { set } from "lodash";
 import { Resolver, Entity as GQLEntity, LinkGroup } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { Entity, Link } from "../../../model";
-import { DBClient } from "../../../db";
+import { DbClient } from "../../../db";
 import { DbUnknownEntity } from "../../../db/adapter";
 
 export const DEFAULT_LINK_DEPTH = 2;
@@ -34,7 +34,7 @@ export const linkHasSameDestinationAs = (linkA: Link) => (linkB: Link) =>
  * @param depth the depth of outgoing links to add.
  */
 const addEntityOutgoingLinks =
-  (client: DBClient, linkGroupsObject: LinkGroupsObject, depth: number) =>
+  (client: DbClient, linkGroupsObject: LinkGroupsObject, depth: number) =>
   async (entity: Entity) => {
     const existingGroups =
       linkGroupsObject?.[entity.entityId]?.[entity.entityVersionId];
@@ -97,7 +97,7 @@ const areEntitiesEquivalent = (
  * Adds the outgoing links of the aggregation results of an entity to the provided linkGroups object
  */
 const addEntityAggregationResultOutgoingLinks =
-  (client: DBClient, linkGroups: LinkGroupsObject) =>
+  (client: DbClient, linkGroups: LinkGroupsObject) =>
   async (entity: Entity) => {
     const aggregations = await entity.getAggregations(client);
 
@@ -131,7 +131,7 @@ const addEntityAggregationResultOutgoingLinks =
  * Creates a linkGroups object for a provided entity
  */
 export const generateEntityLinkGroupsObject = async (
-  client: DBClient,
+  client: DbClient,
   entity: Entity,
 ): Promise<LinkGroupsObject> => {
   const linkGroupsObj: LinkGroupsObject = {};

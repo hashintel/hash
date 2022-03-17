@@ -1,12 +1,12 @@
 import { sql, ValueExpressionType } from "slonik";
 
 import {
-  DBLinkVersionRow,
+  DbLinkVersionRow,
   linkVersionsColumnNames,
   insertLinkVersionRow,
 } from "./link_versions.util";
 import { Connection } from "../../types";
-import { DBLink, DBLinkWithIndex } from "../../../adapter";
+import { DbLink, DbLinkWithIndex } from "../../../adapter";
 import { mapColumnNamesToSQL } from "../../util";
 import { insertIncomingLinkRow } from "./incoming_links.util";
 
@@ -26,7 +26,7 @@ export const linksColumnNames = [
 
 export const linksColumnNamesSQL = mapColumnNamesToSQL(linksColumnNames);
 
-export type DBLinkRow = {
+export type DbLinkRow = {
   link_id: string;
   path: string;
   index: number | null;
@@ -41,10 +41,10 @@ export type DBLinkRow = {
   destination_entity_version_id: string | null;
 };
 
-export type DBLinkWithVersionRow = DBLinkRow & DBLinkVersionRow;
+export type DbLinkWithVersionRow = DbLinkRow & DbLinkVersionRow;
 
 /** selects all link versions in the datastore */
-const selectAllLinkVersions = sql<DBLinkWithVersionRow>`
+const selectAllLinkVersions = sql<DbLinkWithVersionRow>`
   select
     ${mapColumnNamesToSQL(linksColumnNames, "links")},
     ${mapColumnNamesToSQL(
@@ -57,7 +57,7 @@ const selectAllLinkVersions = sql<DBLinkWithVersionRow>`
 `;
 
 /** selects all links in the datastore with their latest version */
-const selectAllLatestVersionsOfLinks = sql<DBLinkWithVersionRow>`
+const selectAllLatestVersionsOfLinks = sql<DbLinkWithVersionRow>`
   with all_link_versions as (${selectAllLinkVersions})
   select distinct on (link_id) *
   from all_link_versions
@@ -68,7 +68,7 @@ const selectAllLatestVersionsOfLinks = sql<DBLinkWithVersionRow>`
 const selectAllLatestVersionsOfLinksBeforeTimestamp = (params: {
   beforeTimestamp: Date;
 }) =>
-  sql<DBLinkWithVersionRow>`
+  sql<DbLinkWithVersionRow>`
     with all_link_versions as (
       ${selectAllLinkVersions}
       where link_versions.updated_at <= ${params.beforeTimestamp.toISOString()}
@@ -82,7 +82,7 @@ const selectAllLatestVersionsOfLinksBeforeTimestamp = (params: {
 const selectAllVersionsOfLink = (params: {
   sourceAccountId: string;
   linkId: string;
-}) => sql<DBLinkWithVersionRow>`
+}) => sql<DbLinkWithVersionRow>`
   with all_links as (${selectAllLinkVersions})
   select *
   from all_links
@@ -94,7 +94,7 @@ const selectAllVersionsOfLink = (params: {
 export const selectLatestVersionOfLink = (params: {
   sourceAccountId: string;
   linkId: string;
-}) => sql<DBLinkWithVersionRow>`
+}) => sql<DbLinkWithVersionRow>`
   with all_link_versions as (${selectAllVersionsOfLink(params)})
   select distinct on (link_id) *
   from all_link_versions
@@ -104,7 +104,7 @@ export const selectLatestVersionOfLink = (params: {
 export const selectAllLinksWithDestinationEntity = (params: {
   destinationAccountId: string;
   destinationEntityId: string;
-}) => sql<DBLinkWithVersionRow>`
+}) => sql<DbLinkWithVersionRow>`
   with all_links as (${selectAllLatestVersionsOfLinks})
   select *
   from all_links
@@ -124,7 +124,7 @@ export const selectAllLinksWithSourceEntity = (params: {
   activeAt?: Date;
   path?: string;
   additionalClauses?: ValueExpressionType[];
-}) => sql<DBLinkWithVersionRow>`
+}) => sql<DbLinkWithVersionRow>`
   with all_links as (${
     params.activeAt
       ? selectAllLatestVersionsOfLinksBeforeTimestamp({
@@ -168,7 +168,7 @@ export const selectAllLinksWithSourceEntity = (params: {
 export const insertLink = async (
   conn: Connection,
   params: {
-    dbLink: DBLink;
+    dbLink: DbLink;
   },
 ): Promise<void> => {
   const { dbLink } = params;
@@ -202,9 +202,9 @@ export const insertLink = async (
   ]);
 };
 
-export const mapDBRowsToDBLink = (
-  dbLinkWithVersionRow: DBLinkWithVersionRow,
-): DBLink => ({
+export const mapDbRowsToDbLink = (
+  dbLinkWithVersionRow: DbLinkWithVersionRow,
+): DbLink => ({
   linkId: dbLinkWithVersionRow.link_id,
   linkVersionId: dbLinkWithVersionRow.link_version_id,
   path: dbLinkWithVersionRow.path,
@@ -240,7 +240,7 @@ export const getIndexedLinks = async (
     minimumIndex?: number;
     maximumIndex?: number;
   },
-): Promise<DBLinkWithIndex[]> => {
+): Promise<DbLinkWithIndex[]> => {
   const { minimumIndex, maximumIndex } = params;
 
   const linkRows = await conn.any(
@@ -259,7 +259,7 @@ export const getIndexedLinks = async (
   );
 
   return linkRows.map((linkRow) => {
-    const dbLink = mapDBRowsToDBLink(linkRow);
+    const dbLink = mapDbRowsToDbLink(linkRow);
     return {
       ...dbLink,
       index: dbLink.index!,

@@ -1,10 +1,10 @@
 import { sql } from "slonik";
 
 import { Connection } from "../types";
-import { DBAggregation } from "../../adapter";
+import { DbAggregation } from "../../adapter";
 import { mapColumnNamesToSQL } from "../util";
 
-export type DBAggregationRow = {
+export type DbAggregationRow = {
   source_account_id: string;
   source_entity_id: string;
   path: string;
@@ -14,9 +14,9 @@ export type DBAggregationRow = {
   created_at: string;
 };
 
-export const mapRowToDBAggregation = (
-  row: DBAggregationRow,
-): DBAggregation => ({
+export const mapRowToDbAggregation = (
+  row: DbAggregationRow,
+): DbAggregation => ({
   sourceAccountId: row.source_account_id,
   sourceEntityId: row.source_entity_id,
   path: row.path,
@@ -46,7 +46,7 @@ export const aggregationsColumnNamesSQL = mapColumnNamesToSQL(
 export const insertAggregation = async (
   conn: Connection,
   params: {
-    aggregation: DBAggregation;
+    aggregation: DbAggregation;
   },
 ): Promise<void> => {
   const { aggregation } = params;

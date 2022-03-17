@@ -2,8 +2,8 @@ import { sql, NotFoundError } from "slonik";
 import { uniq } from "lodash";
 
 import {
-  DBAggregation,
-  DBLink,
+  DbAggregation,
+  DbLink,
   DbEntity,
   EntityType,
   EntityVersion,
@@ -697,7 +697,7 @@ const addSourceEntityVersionIdToAggregations = async (
     sourceEntityVersionId: entity.entityVersionId,
   });
 
-  const isDbAggregationInNextVersion = (aggregation: DBAggregation): boolean =>
+  const isDbAggregationInNextVersion = (aggregation: DbAggregation): boolean =>
     params.omittedAggregations?.find(
       ({ path }) => path === aggregation.path,
     ) === undefined;
@@ -847,7 +847,7 @@ export const updateEntity = async (
 
 export const getDestinationEntityOfLink = async (
   conn: Connection,
-  link: DBLink,
+  link: DbLink,
 ): Promise<DbEntity> => {
   const destinationEntity = link.destinationEntityVersionId
     ? await getEntity(conn, {

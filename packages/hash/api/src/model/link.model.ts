@@ -1,7 +1,7 @@
 import jp from "jsonpath";
 import { UserInputError } from "apollo-server-errors";
 import { merge } from "lodash";
-import { DBClient } from "../db";
+import { DbClient } from "../db";
 import { Entity, Link } from ".";
 import { Link as GQLLink } from "../graphql/apiTypes.gen";
 
@@ -160,7 +160,7 @@ class __Link {
     }
   }
 
-  static async create(client: DBClient, params: CreateLinkArgs): Promise<Link> {
+  static async create(client: DbClient, params: CreateLinkArgs): Promise<Link> {
     const {
       stringifiedPath,
       source,
@@ -199,7 +199,7 @@ class __Link {
   }
 
   static async get(
-    client: DBClient,
+    client: DbClient,
     params: {
       sourceAccountId: string;
       linkId: string;
@@ -209,7 +209,7 @@ class __Link {
     return dbLink ? new Link(dbLink) : null;
   }
 
-  async delete(client: DBClient, params: { deletedByAccountId: string }) {
+  async delete(client: DbClient, params: { deletedByAccountId: string }) {
     await client.deleteLink({
       deletedByAccountId: params.deletedByAccountId,
       sourceAccountId: this.sourceAccountId,
@@ -217,7 +217,7 @@ class __Link {
     });
   }
 
-  private async fetchSource(client: DBClient) {
+  private async fetchSource(client: DbClient) {
     const source = await Entity.getEntityLatestVersion(client, {
       accountId: this.sourceAccountId,
       entityId: this.sourceEntityId,
@@ -230,11 +230,11 @@ class __Link {
     return source;
   }
 
-  async getSource(client: DBClient) {
+  async getSource(client: DbClient) {
     return await this.fetchSource(client);
   }
 
-  private async fetchDestination(client: DBClient) {
+  private async fetchDestination(client: DbClient) {
     const destination = this.destinationEntityVersionId
       ? await Entity.getEntity(client, {
           accountId: this.destinationAccountId,
@@ -252,12 +252,12 @@ class __Link {
     return destination;
   }
 
-  async getDestination(client: DBClient) {
+  async getDestination(client: DbClient) {
     return await this.fetchDestination(client);
   }
 
   async update(
-    client: DBClient,
+    client: DbClient,
     params: { updatedIndex: number; updatedByAccountId: string },
   ) {
     const { updatedIndex, updatedByAccountId } = params;

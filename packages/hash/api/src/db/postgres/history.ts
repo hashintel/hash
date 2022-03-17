@@ -79,7 +79,7 @@ immediately moved to the linked version, and it's not changed unless a subsequen
 of the reference entity updates the link.
 */
 
-/** @todo: deprecate this type, and use the DBLink type instead */
+/** @todo: deprecate this type, and use the DbLink type instead */
 type OutgoingLink = {
   accountId: string;
   entityId: string;

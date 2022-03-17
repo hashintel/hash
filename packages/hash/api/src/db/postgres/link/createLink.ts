@@ -1,7 +1,7 @@
 import { sql } from "slonik";
 
 import { Connection } from "../types";
-import { DBLink } from "../../adapter";
+import { DbLink } from "../../adapter";
 import { acquireEntityLock, getEntityLatestVersion } from "../entity";
 import { DbEntityNotFoundError } from "../..";
 import { genId } from "../../../util";
@@ -24,7 +24,7 @@ export const createLink = async (
     destinationEntityId: string;
     destinationEntityVersionId?: string;
   },
-): Promise<DBLink> =>
+): Promise<DbLink> =>
   requireTransaction(existingConnection)(async (conn) => {
     const promises: Promise<void>[] = [];
 
@@ -39,7 +39,7 @@ export const createLink = async (
 
     const { sourceAccountId, sourceEntityId, createdByAccountId } = params;
 
-    const dbLink: DBLink = {
+    const dbLink: DbLink = {
       ...params,
       linkId: genId(),
       linkVersionId: genId(),

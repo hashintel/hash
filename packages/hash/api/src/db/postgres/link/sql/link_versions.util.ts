@@ -1,8 +1,8 @@
 import { sql } from "slonik";
 
 import { Connection } from "../../types";
-import { DBLinkRow } from "./links.util";
-import { DBLinkVersion } from "../../../adapter";
+import { DbLinkRow } from "./links.util";
+import { DbLinkVersion } from "../../../adapter";
 import { mapColumnNamesToSQL } from "../../util";
 
 export const linkVersionsColumnNames = [
@@ -18,7 +18,7 @@ export const linkVersionsColumnNamesSQL = mapColumnNamesToSQL(
   linkVersionsColumnNames,
 );
 
-export type DBLinkVersionRow = {
+export type DbLinkVersionRow = {
   source_account_id: string;
   link_version_id: string;
   link_id: string;
@@ -27,7 +27,7 @@ export type DBLinkVersionRow = {
   updated_by_account_id: string;
 };
 
-export const selectAllLinkVersions = sql<DBLinkRow>`
+export const selectAllLinkVersions = sql<DbLinkRow>`
   select ${linkVersionsColumnNamesSQL}
   from links
 `;
@@ -35,7 +35,7 @@ export const selectAllLinkVersions = sql<DBLinkRow>`
 export const selectAllLinkVersionsOfLink = (params: {
   sourceAccountId: string;
   linkId: string;
-}) => sql<DBLinkRow>`
+}) => sql<DbLinkRow>`
   select ${linkVersionsColumnNamesSQL}
   from link_versions
   where
@@ -47,7 +47,7 @@ export const selectAllLinkVersionsOfLink = (params: {
 export const insertLinkVersionRow = async (
   conn: Connection,
   params: {
-    dbLinkVersion: DBLinkVersion;
+    dbLinkVersion: DbLinkVersion;
   },
 ): Promise<void> => {
   const { dbLinkVersion } = params;
@@ -129,9 +129,9 @@ export const updateLinkVersionIndices = async (
   `);
 };
 
-export const mapDBLinkVersionRowToDBLinkVersion = (
-  row: DBLinkVersionRow,
-): DBLinkVersion => ({
+export const mapDbLinkVersionRowToDbLinkVersion = (
+  row: DbLinkVersionRow,
+): DbLinkVersion => ({
   sourceAccountId: row.source_account_id,
   linkVersionId: row.link_version_id,
   linkId: row.link_id,
