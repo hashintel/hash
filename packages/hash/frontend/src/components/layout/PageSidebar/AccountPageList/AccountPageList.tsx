@@ -21,23 +21,52 @@ type TreeElement = {
   children?: TreeElement[];
 };
 
-const renderTree = (node: TreeElement) => (
-  <PageTreeItem
-    key={node.entityId}
-    nodeId={node.entityId}
-    label={node.title}
-    ContentProps={{
-      // @ts-expect-error -- can't seem to override TreeItemProps at the moment, plan to revisit
-      expandable: Boolean(
-        Array.isArray(node.children) ? node.children.length : node.children,
-      ),
-    }}
-  >
-    {Array.isArray(node.children)
-      ? node.children.map((child) => renderTree(child))
-      : null}
-  </PageTreeItem>
-);
+const renderTree = (node: TreeElement, depth: number = 0) => {
+  // console.log("depth ==> ", depth);
+  return (
+    <PageTreeItem
+      key={node.entityId}
+      nodeId={node.entityId}
+      label={node.title}
+      depth={depth}
+      ContentProps={{
+        // @ts-expect-error -- can't seem to override TreeItemProps at the moment, plan to revisit
+        expandable: Boolean(
+          Array.isArray(node.children) ? node.children.length : node.children,
+        ),
+      }}
+    >
+      {Array.isArray(node.children)
+        ? node.children.map((child) => renderTree(child, depth + 1))
+        : null}
+    </PageTreeItem>
+  );
+};
+
+const Tree = ({ node, depth = 0 }: { node: TreeElement; depth?: number }) => {
+  const newDepth = depth;
+  // console.log("depth ==> ", depth);
+  return (
+    <PageTreeItem
+      key={node.entityId}
+      nodeId={node.entityId}
+      label={node.title}
+      depth={depth}
+      ContentProps={{
+        // @ts-expect-error -- can't seem to override TreeItemProps at the moment, plan to revisit
+        expandable: Boolean(
+          Array.isArray(node.children) ? node.children.length : node.children,
+        ),
+      }}
+    >
+      {Array.isArray(node.children)
+        ? node.children.map((child) => (
+            <Tree key={child.entityId} node={child} depth={newDepth + 1} />
+          ))
+        : null}
+    </PageTreeItem>
+  );
+};
 
 export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
   currentPageEntityId,
@@ -79,7 +108,10 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
           void router.push(`/${accountId}/${pageEntityId}`);
         }}
       >
-        {formattedData.map((node) => renderTree(node))}
+        {/* {formattedData.map((node) => (
+          <Tree key={node.entityId} node={node} depth={0} />
+        ))} */}
+        {formattedData.map((node) => renderTree(node, 0))}
       </TreeView>
     </NavLink>
   );

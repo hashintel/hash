@@ -52,7 +52,7 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
       sx={{
         display: "flex",
         alignItems: "center",
-        px: 1,
+        // pr: 1,
 
         "&:hover": {
           backgroundColor: ({ palette }) => palette.gray[20],
@@ -127,6 +127,27 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
   );
 });
 
-export const PageTreeItem = (props: TreeItemProps) => {
-  return <TreeItem {...props} ContentComponent={CustomContent} />;
+export const PageTreeItem = ({
+  sx,
+  depth,
+  ...props
+}: TreeItemProps & { depth: number }) => {
+  // console.log("depth page ==> ", depth);
+  // Figure out why depth doesn't update with the right value
+  return (
+    <TreeItem
+      {...props}
+      sx={{
+        ...sx,
+        [`& .${treeItemClasses.group}`]: {
+          marginLeft: 0,
+          [`& .${treeItemClasses.content}`]: {
+            pl: `${depth * 15 + 8}px`,
+            pr: 1,
+          },
+        },
+      }}
+      ContentComponent={CustomContent}
+    />
+  );
 };
