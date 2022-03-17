@@ -23,9 +23,19 @@ export const MuiIconButtonThemeOptions: Components<Theme>["MuiIconButton"] = {
       },
 
       "&:focus": {
+        outline: "none",
+      },
+
+      "&:focus-visible": {
         outlineColor: theme.palette.blue[70],
         outlineOffset: "2px",
       },
+
+      ...(ownerState.size === "xs" && {
+        "& svg": {
+          fontSize: 8,
+        },
+      }),
 
       ...(ownerState.size === "small" && {
         "& svg": {

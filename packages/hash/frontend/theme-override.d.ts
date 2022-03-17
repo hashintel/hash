@@ -164,5 +164,14 @@ declare module "@mui/material/Button" {
   }
 }
 
+declare module "@mui/material/IconButton" {
+  interface IconButtonPropsSizeOverrides {
+    large: true;
+    medium: true;
+    small: true;
+    xs: true;
+  }
+}
+
 // eslint-disable-next-line import/no-default-export -- @see https://github.com/mui-org/material-ui/issues/28244
 export default "";

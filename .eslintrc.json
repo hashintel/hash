@@ -194,7 +194,7 @@
           {
             "name": "@mui/material/Button",
             "importNames": ["default"],
-            "message": "Please use the custom src/components/MuiButton component instead."
+            "message": "Please use the custom src/components/Button component instead."
           },
           {
             "name": "@mui/material/Popover",
