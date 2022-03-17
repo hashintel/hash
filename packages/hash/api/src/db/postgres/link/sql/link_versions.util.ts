@@ -11,7 +11,7 @@ export const linkVersionsColumnNames = [
   "link_id",
   "index",
   "updated_at",
-  "updated_by",
+  "updated_by_account_id",
 ];
 
 export const linkVersionsColumnNamesSQL = mapColumnNamesToSQL(
@@ -24,7 +24,7 @@ export type DBLinkVersionRow = {
   link_id: string;
   index: number | null;
   updated_at: string;
-  updated_by: string;
+  updated_by_account_id: string;
 };
 
 export const selectAllLinkVersions = sql<DBLinkRow>`
@@ -83,7 +83,7 @@ export const updateLinkVersionRow = async (
     set
       index = ${params.updatedIndex},
       updated_at = ${params.updatedAt.toISOString()},
-      updated_by = ${params.updatedBy}
+      updated_by_account_id = ${params.updatedBy}
     where
       source_account_id = ${params.sourceAccountId}
       and link_version_id = ${params.linkVersionId}
@@ -110,7 +110,7 @@ export const updateLinkVersionIndices = async (
     set
       index = index + ${operation === "increment" ? 1 : -1},
       updated_at = ${params.updatedAt.toISOString()},
-      updated_by = ${params.updatedBy}
+      updated_by_account_id = ${params.updatedBy}
     where ${sql.join(
       [
         sql`source_account_id = ${params.sourceAccountId}`,
@@ -137,5 +137,5 @@ export const mapDBLinkVersionRowToDBLinkVersion = (
   linkId: row.link_id,
   index: row.index === null ? undefined : row.index,
   updatedAt: new Date(row.updated_at),
-  updatedByAccountId: row.updated_by,
+  updatedByAccountId: row.updated_by_account_id,
 });

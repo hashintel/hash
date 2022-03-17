@@ -10,7 +10,7 @@ export type DBAggregationRow = {
   path: string;
   source_entity_version_ids: string[];
   operation: any;
-  created_by: string;
+  created_by_account_id: string;
   created_at: string;
 };
 
@@ -22,7 +22,7 @@ export const mapRowToDBAggregation = (
   path: row.path,
   operation: row.operation,
   sourceEntityVersionIds: new Set(row.source_entity_version_ids),
-  createdByAccountId: row.created_by,
+  createdByAccountId: row.created_by_account_id,
   createdAt: new Date(row.created_at),
 });
 
@@ -32,7 +32,7 @@ export const aggregationsColumnNames = [
   "path",
   "source_entity_version_ids",
   "operation",
-  "created_by",
+  "created_by_account_id",
   "created_at",
 ];
 
