@@ -1,4 +1,4 @@
-import { Components, CSSObject, Theme } from "@mui/material";
+import { alpha, Components, CSSObject, Theme } from "@mui/material";
 
 const buttonFocusBorderOffset = 6;
 const buttonFocusBorderWidth = 2;
@@ -86,7 +86,10 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           });
 
           if (variant === "primarySquare") {
-            const boxShadow = `inset 0px -2px 6px ${theme.palette.yellow["500-50%"]}`;
+            const boxShadow = `inset 0px -2px 6px ${alpha(
+              theme.palette.yellow[500],
+              0.5,
+            )}`;
             const borderRadius = 4;
 
             Object.assign(baseStyles, {
