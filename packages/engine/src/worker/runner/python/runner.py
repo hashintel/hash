@@ -101,12 +101,12 @@ class Runner:
         prefix = f"Package `{pkg.name}` experiment init: "
         warnings = result.get('warnings')
         if warnings is not None:
-            warnings = tuple(prefix+w for w in warnings)
+            warnings = tuple(prefix + w for w in warnings)
             self.messenger.send_user_warnings(warnings)
 
         errors = result.get('errors')
         if errors is not None:
-            errors = tuple(prefix+e for e in errors)
+            errors = tuple(prefix + e for e in errors)
             self.messenger.send_user_errors(errors)
             return True
 
@@ -229,12 +229,12 @@ class Runner:
         prefix = f"Package `{pkg.name}` sim init: "
         warnings = result.get('warnings')
         if warnings is not None:
-            warnings = tuple(prefix+w for w in warnings)
+            warnings = tuple(prefix + w for w in warnings)
             self.messenger.send_user_warnings(warnings, sim_id)
 
         errors = result.get('errors')
         if errors is not None:
-            errors = tuple(prefix+e for e in errors)
+            errors = tuple(prefix + e for e in errors)
             self.messenger.send_user_errors(errors, sim_id)
             return True
 

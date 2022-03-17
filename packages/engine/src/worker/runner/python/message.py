@@ -93,18 +93,10 @@ class PyPackage:
         self.payload = json_from_np(fb.InitPayload().InnerAsNumpy())
 
 
+# TODO: Remove `PyBatchMsg` and use the batch id directly
 class PyBatchMsg:
     def __init__(self, fb):
         self.id = fb.BatchId()
-        m = fb.Metaversion()
-        self.mem_version = m.Memory()
-        self.batch_version = m.Batch()
-
-
-class PyMetaversion:
-    def __init__(self, fb):
-        self.mem = fb.Memory()
-        self.batch = fb.Batch()
 
 
 class PyTaskMsg:
@@ -267,13 +259,13 @@ class Messenger:
         )
 
     def send_task_continuation(
-        self,
-        sim_id,
-        changes,
-        pkg_id,
-        task_id,
-        group_idx,
-        continuation
+            self,
+            sim_id,
+            changes,
+            pkg_id,
+            task_id,
+            group_idx,
+            continuation
     ):
         # TODO: OPTIM Combine warnings, errors and other values into single message.
         self.send_user_warnings(continuation.get("warnings", []))

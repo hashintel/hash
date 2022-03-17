@@ -111,13 +111,13 @@ class GroupState:
         self.__agent_batch = agent_batch
         self.__msg_batch = msg_batch
         # TODO: Use numpy for msgs_native
-        self.__msgs_native = [False * len(agent_batch.cols['agent_id'])]
+        self.__msgs_native = [False] * len(agent_batch.cols['agent_id'])
         self.__loaders = loaders
 
     def set_batches(self, agent_batch, msg_batch):
         self.__agent_batch = agent_batch
         self.__msg_batch = msg_batch
-        self.__msgs_native = [False * len(agent_batch.cols['agent_id'])]
+        self.__msgs_native = [False] * len(agent_batch.cols['agent_id'])
 
     def to_json(self):
         raise RuntimeError("Group state shouldn't be copied to JSON.")
