@@ -10,23 +10,23 @@ import {
   UpdatePropertiesPayload,
   PartialPropertiesUpdatePayload,
 } from ".";
-import { DBClient } from "../db";
-import { DBOrgProperties, EntityType } from "../db/adapter";
+import { DbClient } from "../db";
+import { DbOrgProperties, EntityType } from "../db/adapter";
 import { genId } from "../util";
 
 type OrgConstructorArgs = {
-  properties: DBOrgProperties;
+  properties: DbOrgProperties;
 } & Omit<AccountConstructorArgs, "type">;
 
 class __Org extends Account {
-  properties: DBOrgProperties;
+  properties: DbOrgProperties;
 
   constructor({ properties, ...remainingArgs }: OrgConstructorArgs) {
     super({ ...remainingArgs, properties });
     this.properties = properties;
   }
 
-  static async getEntityType(client: DBClient): Promise<EntityType> {
+  static async getEntityType(client: DbClient): Promise<EntityType> {
     const orgEntityType = await client.getSystemTypeLatestVersion({
       systemTypeName: "Org",
     });
@@ -34,7 +34,7 @@ class __Org extends Account {
   }
 
   static async getOrgById(
-    client: DBClient,
+    client: DbClient,
     params: { entityId: string },
   ): Promise<Org | null> {
     const { entityId } = params;
@@ -47,7 +47,7 @@ class __Org extends Account {
   }
 
   static async getOrgByShortname(
-    client: DBClient,
+    client: DbClient,
     params: { shortname: string },
   ): Promise<Org | null> {
     const { shortname } = params;
@@ -57,10 +57,10 @@ class __Org extends Account {
   }
 
   static async createOrg(
-    client: DBClient,
+    client: DbClient,
     params: {
       createdByAccountId: string;
-      properties: DBOrgProperties;
+      properties: DbOrgProperties;
     },
   ): Promise<Org> {
     const { properties, createdByAccountId } = params;
@@ -87,22 +87,22 @@ class __Org extends Account {
   }
 
   async partialPropertiesUpdate(
-    client: DBClient,
-    params: PartialPropertiesUpdatePayload<DBOrgProperties>,
+    client: DbClient,
+    params: PartialPropertiesUpdatePayload<DbOrgProperties>,
   ) {
     return super.partialPropertiesUpdate(client, params);
   }
 
   async updateProperties(
-    client: DBClient,
-    params: UpdatePropertiesPayload<DBOrgProperties>,
+    client: DbClient,
+    params: UpdatePropertiesPayload<DbOrgProperties>,
   ) {
     await super.updateProperties(client, params);
     this.properties = params.properties;
     return params.properties;
   }
 
-  async getOrgMemberships(client: DBClient): Promise<OrgMembership[]> {
+  async getOrgMemberships(client: DbClient): Promise<OrgMembership[]> {
     const outgoingMembershipLinks = await this.getOutgoingLinks(client, {
       path: ["membership"],
     });
@@ -130,7 +130,7 @@ class __Org extends Account {
     );
   }
 
-  async getOrgMembers(client: DBClient): Promise<User[]> {
+  async getOrgMembers(client: DbClient): Promise<User[]> {
     const orgMemberships = await this.getOrgMemberships(client);
 
     return Promise.all(
@@ -141,7 +141,7 @@ class __Org extends Account {
   /**
    * @returns all invitations associated with the organization
    */
-  async getInvitationLinks(client: DBClient): Promise<OrgInvitationLink[]> {
+  async getInvitationLinks(client: DbClient): Promise<OrgInvitationLink[]> {
     /** @todo: query for invitations with correct outgoing 'org' relationships */
     const dbEntities = await client.getEntitiesBySystemType({
       accountId: this.accountId,
@@ -155,7 +155,7 @@ class __Org extends Account {
    * @returns the invitation associated with the organization that has a matching token, or null.
    */
   async getInvitationLinkWithToken(
-    client: DBClient,
+    client: DbClient,
     params: {
       invitationLinkToken: string;
       errorCodePrefix?: string;
@@ -182,7 +182,7 @@ class __Org extends Account {
   /**
    * @returns all email invitations associated with the organization.
    */
-  async getEmailInvitations(client: DBClient): Promise<OrgEmailInvitation[]> {
+  async getEmailInvitations(client: DbClient): Promise<OrgEmailInvitation[]> {
     /** @todo: query for email invitations with correct outgoing 'org' relationships */
     const dbEntities = await client.getEntitiesBySystemType({
       accountId: this.accountId,
@@ -196,7 +196,7 @@ class __Org extends Account {
    * @returns the email invitation associated with the organization that has a matching token, or null.
    */
   async getEmailInvitationWithToken(
-    client: DBClient,
+    client: DbClient,
     params: {
       invitationEmailToken: string;
       errorCodePrefix?: string;

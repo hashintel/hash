@@ -1,5 +1,5 @@
 import { Connection } from "../types";
-import { DBAggregation } from "../../adapter";
+import { DbAggregation } from "../../adapter";
 import {
   acquireEntityLock,
   getEntityLatestVersion,
@@ -18,7 +18,7 @@ export const createAggregation = async (
     path: string;
     operation: object;
   },
-): Promise<DBAggregation> =>
+): Promise<DbAggregation> =>
   requireTransaction(existingConnection)(async (conn) => {
     const { sourceAccountId, sourceEntityId, createdByAccountId } = params;
 

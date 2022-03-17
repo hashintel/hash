@@ -19,14 +19,14 @@ for (const typeName of SYSTEM_TYPES.filter((name: string) => name !== "Org")) {
 
   sqlStatements.push(`insert into entity_types (
   entity_type_id, account_id, name, versioned,
-  created_by, created_at, metadata_updated_at
+  created_by_account_id, created_at, metadata_updated_at
 ) values (
   '${type.fixedId}', '${systemAccount.fixedId}', '${typeName}', true,
   '${systemAccount.fixedId}', '${now}', '${now}'
 ) on conflict do nothing;
 insert into entity_type_versions (
   entity_type_id, entity_type_version_id, account_id,
-  properties, updated_by, updated_at
+  properties, updated_by_account_id, updated_at
 ) values (
   '${type.fixedId}', '${type.firstVersionId}', '${systemAccount.fixedId}',
   '${entityTypeJson(typeName)}',

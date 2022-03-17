@@ -1,7 +1,7 @@
 import passport, { AuthenticateOptions } from "passport";
 import { Express } from "express";
 import { ExpressContext } from "apollo-server-express";
-import { DBAdapter } from "../../db";
+import { DbAdapter } from "../../db";
 import { User as UserModel } from "../../model";
 
 declare global {
@@ -15,7 +15,7 @@ type SerializedPassportUser = {
   entityId: string;
 };
 
-export const setupPassport = (app: Express, db: DBAdapter) => {
+export const setupPassport = (app: Express, db: DbAdapter) => {
   passport.serializeUser<SerializedPassportUser>((user, done) =>
     done(null, { entityId: user.entityId }),
   );
