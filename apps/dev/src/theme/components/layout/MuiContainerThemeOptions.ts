@@ -7,7 +7,7 @@ export const MuiContainerThemeOptions: Components["MuiContainer"] = {
   styleOverrides: {
     root: {
       "@media (min-width: 1200px)": {
-        maxWidth: "1400px",
+        maxWidth: "1200px",
       },
       paddingLeft: "16px",
       paddingRight: "16px",

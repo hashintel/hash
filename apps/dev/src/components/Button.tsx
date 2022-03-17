@@ -1,28 +1,18 @@
 /**
- * @todo update from blockprotocol
+ * @todo update from HASH workspace
  */
 
-// eslint-disable-next-line no-restricted-imports
-import Link from "next/link";
 import {
   Box,
-  // eslint-disable-next-line no-restricted-imports
   Button as MuiButton,
   ButtonProps as MuiButtonProps,
   useTheme,
 } from "@mui/material";
-import { VFC, FC, forwardRef, useMemo } from "react";
-import { UrlObject } from "url";
+// eslint-disable-next-line no-restricted-imports
+import Link from "next/link";
+import { FC, forwardRef, useMemo, VFC } from "react";
+import { isHrefExternal } from "./Link";
 import { LoadingSpinner } from "./LoadingSpinner";
-
-/**
- * @todo set this up properly
- */
-export const isHrefExternal = (href: string | UrlObject) =>
-  typeof href === "string" &&
-  (href === "/discord" ||
-    !/^(mailto:|#|\/|https:\/\/blockprotocol\.org)/.test(href)) &&
-  !href.includes("localhost");
 
 export type ButtonProps = {
   loading?: boolean;

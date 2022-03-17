@@ -139,6 +139,13 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
             borderRadius,
             minHeight: 42,
             padding: theme.spacing("10px", "18px"),
+
+            ...(variant === "tertiary"
+              ? {
+                  minHeight: 33,
+                  padding: theme.spacing("6px", "16px"),
+                }
+              : {}),
           });
           Object.assign(afterStyles, {
             ...focusStyles(
