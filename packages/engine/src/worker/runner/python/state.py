@@ -59,6 +59,9 @@ class AgentState:
 
         return col[idx]
 
+    def __getitem__(self, field):
+        return self.__getattr__(field)
+
     def __setattr__(self, field, value):  # Can raise AttributeError.
         idx = self.__dict__['__idx_in_group']
         if field == "messages":
@@ -74,6 +77,9 @@ class AgentState:
             self.__dict__['__cols'][field] = col = self.__dict__['__group_state'].load(field)
 
         col[idx] = value
+
+    def __setitem__(self, field, value):
+        self.__setattr__(field, value)
 
     def get(self, field_name):
         return hash_util.json_deepcopy(getattr(self, field_name))
