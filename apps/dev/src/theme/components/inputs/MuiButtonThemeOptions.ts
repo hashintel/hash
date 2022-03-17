@@ -194,14 +194,15 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
 
       return {
         ...baseStyles,
-        ":hover, &.Button--hover": hoverStyles,
-        ":focus-visible": {
+        ":hover, &.Button--hover:not(:disabled)": hoverStyles,
+        ":focus-visible, &.Button--focus:not(:disabled)": {
           ...hoverStyles,
           ...focusVisibleStyles,
         },
         ":disabled": disabledStyles,
         ":after": afterStyles,
-        ":focus-visible:after": focusVisibleAfterStyles,
+        ":focus-visible:after, &.Button--focus:not(:disabled):after":
+          focusVisibleAfterStyles,
       };
     },
     endIcon: {
