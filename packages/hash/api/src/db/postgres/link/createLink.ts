@@ -118,7 +118,7 @@ export const createLink = async (
             minimumIndex: index,
             operation: "increment",
             updatedAt: now,
-            updatedBy: createdByAccountId,
+            updatedByAccountId: createdByAccountId,
           }),
         );
       }

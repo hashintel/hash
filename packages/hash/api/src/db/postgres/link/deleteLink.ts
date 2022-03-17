@@ -125,7 +125,7 @@ export const deleteLink = async (
             minimumIndex: index + 1,
             operation: "decrement",
             updatedAt: now,
-            updatedBy: deletedByAccountId,
+            updatedByAccountId: deletedByAccountId,
           }),
         );
       }

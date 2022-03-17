@@ -75,7 +75,7 @@ export const updateLinkVersionRow = async (
     linkVersionId: string;
     updatedIndex: number;
     updatedAt: Date;
-    updatedBy: string;
+    updatedByAccountId: string;
   },
 ): Promise<void> => {
   await conn.one(sql`
@@ -83,7 +83,7 @@ export const updateLinkVersionRow = async (
     set
       index = ${params.updatedIndex},
       updated_at = ${params.updatedAt.toISOString()},
-      updated_by_account_id = ${params.updatedBy}
+      updated_by_account_id = ${params.updatedByAccountId}
     where
       source_account_id = ${params.sourceAccountId}
       and link_version_id = ${params.linkVersionId}
@@ -98,7 +98,7 @@ export const updateLinkVersionIndices = async (
     path: string;
     operation: "increment" | "decrement";
     updatedAt: Date;
-    updatedBy: string;
+    updatedByAccountId: string;
     minimumIndex?: number;
     maximumIndex?: number;
   },
@@ -110,7 +110,7 @@ export const updateLinkVersionIndices = async (
     set
       index = index + ${operation === "increment" ? 1 : -1},
       updated_at = ${params.updatedAt.toISOString()},
-      updated_by_account_id = ${params.updatedBy}
+      updated_by_account_id = ${params.updatedByAccountId}
     where ${sql.join(
       [
         sql`source_account_id = ${params.sourceAccountId}`,
