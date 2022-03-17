@@ -60,17 +60,35 @@ export type EntityWithOutgoingEntityIds = DbEntity & {
 
 export type DBLink = {
   linkId: string;
+  linkVersionId: string;
   path: string;
   index?: number;
   sourceAccountId: string;
   sourceEntityId: string;
+
   appliedToSourceAt: Date;
-  appliedToSourceBy: string;
+  appliedToSourceByAccountId: string;
+
   removedFromSourceAt?: Date;
-  removedFromSourceBy?: string;
+  removedFromSourceByAccountId?: string;
+
   destinationAccountId: string;
   destinationEntityId: string;
   destinationEntityVersionId?: string;
+
+  updatedAt: Date;
+  updatedByAccountId: string;
+};
+
+export type DBLinkWithIndex = DBLink & Required<Pick<DBLink, "index">>;
+
+export type DBLinkVersion = {
+  sourceAccountId: string;
+  linkVersionId: string;
+  linkId: string;
+  index?: number;
+  updatedAt: Date;
+  updatedByAccountId: string;
 };
 
 export type DBAggregation = {
@@ -461,6 +479,20 @@ export interface DBClient {
     entityId: string;
     activeAt?: Date;
     path?: string;
+  }): Promise<DBLink[]>;
+
+  /**
+   * Gets all the incoming links of an entity.
+   *
+   * @todo: support getting the incoming links of an entity at
+   * a particular point in its history
+   *
+   * @param params.accountId the account ID of the destination entity
+   * @param params.entityId the entity ID of the destination entity
+   */
+  getEntityIncomingLinks(params: {
+    accountId: string;
+    entityId: string;
   }): Promise<DBLink[]>;
 
   /** Create a verification code */
