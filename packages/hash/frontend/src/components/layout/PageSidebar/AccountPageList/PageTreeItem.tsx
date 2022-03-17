@@ -7,7 +7,11 @@ import TreeItem, {
 } from "@mui/lab/TreeItem";
 // import clsx from "clsx";
 import { Box, Typography } from "@mui/material";
-import { faChevronRight, faFile } from "@fortawesome/free-solid-svg-icons";
+import {
+  faChevronRight,
+  faEllipsis,
+  faFile,
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "../../../icons";
 import { IconButton } from "../../../IconButton";
 // import { Button } from "../../../Button";
@@ -21,6 +25,7 @@ type CustomContentProps = TreeItemContentProps & {
 // inspiration gotten from https://mui.com/components/tree-view/#IconExpansionTreeView.tsx
 const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
   const { label, nodeId, expandable, pageUrl } = props;
+  const [hovered, setHovered] = React.useState(false);
 
   const {
     expanded,
@@ -53,6 +58,8 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
     // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <Box
       onMouseDown={handleMouseDown}
+      onMouseOver={() => setHovered(true)}
+      onMouseOut={() => setHovered(false)}
       ref={ref as React.Ref<HTMLDivElement>}
       sx={{
         display: "flex",
@@ -150,6 +157,22 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
           {label}
         </Typography>
       </Box> */}
+      <IconButton
+        size="medium"
+        unpadded
+        sx={{
+          color: ({ palette }) => palette.gray[40],
+          ...((hovered || selected) && {
+            color: ({ palette }) => palette.gray[50],
+          }),
+          "&:hover": {
+            backgroundColor: ({ palette }) => palette.gray[30],
+            color: ({ palette }) => palette.gray[50],
+          },
+        }}
+      >
+        <FontAwesomeIcon icon={faEllipsis} />
+      </IconButton>
     </Box>
   );
 });
