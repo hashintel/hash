@@ -27,7 +27,7 @@
 //! size. The persisted metaversion always fits within such an initial part, because it is
 //! near the start of the segment and doesn't move within it.
 //!
-//! (Memory should always be reloaded on Mac OS, which can't resize shared memory.)
+//! (The memory version can't ever change on Mac OS, because it can't resize shared memory.)
 //!
 //! # Access control
 //!
@@ -35,16 +35,18 @@
 //! Nothing is allowed without reloading memory.
 //!
 //! * If loaded memory is latest persisted, but loaded batch is older than latest persisted:
-//! It is allowed to overwrite part of memory (except for markers) and treat the rest of memory as
-//! being uninitialized (except for markers). It is not allowed to write something (except for
-//! markers) and still treat the rest of memory as being initialized, because the overwritten part
-//! might be at an unexpected location due to the batch changing. It is not allowed to read anything
-//! (except for markers) without reloading the batch (because data might be outdated and also
-//! because data might have moved to a different location in memory).
+//! It is allowed to overwrite part of memory (except for [`Markers`]) and treat the rest of memory
+//! as being uninitialized (except for [`Markers`]). It is not allowed to write something (except
+//! for [`Markers`]) and still treat the rest of memory as being initialized, because the
+//! overwritten part might be at an unexpected location due to the batch changing. It is not allowed
+//! to read anything (except for [`Markers`]) without reloading the batch (because data might be
+//! outdated and also because data might have moved to a different location in memory).
 //!
 //! * If loaded memory and batch are latest persisted:
 //! All reading and writing is allowed. If writing in place (e.g. overwriting an integer column),
 //! there must be no queued changes.
+//!
+//! [`Markers`]: crate::datastore::storage::markers::Markers
 //!
 //! ## Examples
 //!
@@ -168,13 +170,10 @@ impl Metaversion {
     // TODO: UNUSED: Needs triage
     pub fn new(memory: u32, batch: u32) -> Result<Self> {
         if batch < memory {
-            // TODO: Actually this is true for *writing*, but not
-            //       necessarily for *reading* -- if some other engine
-            //       component updates both memory and batches, but
-            //       this engine component only reads the memory that
-            //       has been updated, ignoring the batch, then the
-            //       read memory version can become greater than the
-            //       read batch version.
+            // TODO: Actually this is true for *writing*, but not necessarily for *reading* -- if
+            //       some other engine component updates both memory and batches, but this engine
+            //       component only reads the memory that has been updated, ignoring the batch, then
+            //       the read memory version can become greater than the read batch version.
             Err(Error::from(
                 "Batch is updated when memory is updated, so must have batch version >= memory \
                  version",

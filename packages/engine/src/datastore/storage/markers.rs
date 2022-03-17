@@ -1,7 +1,9 @@
-//! Each shared memory segment contains four buffers. At the start
-//! of the segment, before the first buffer, are eight numbers called
-//! "markers" -- for each buffer, the offset (i.e. start index in bytes)
-//! and size (i.e. number of bytes) of the buffer.
+//! Each shared memory segment is made up of a set of [`Markers`] and Buffers. The Markers are
+//! stored at the start of the segment, and consist of pairs of values for each buffer, the offset
+//! (i.e. start index in bytes) and size (i.e. number of bytes). These are laid out contiguously in
+//! bytes, in 8 `u64`s next to each other, in the order of the buffers described below. (So the
+//! first two u64s are the markers for the schema buffer, the next two are for the header buffer,
+//! and so on.)
 //!
 //! The four buffers are:
 //! * The schema buffer -- if the segment has an Arrow record batch, then the schema buffer
@@ -13,13 +15,16 @@
 //! * The data buffer -- if the segment has an Arrow record batch, then this contains the Arrow data
 //!   part of the batch. Otherwise, this can contain arbitrary data, e.g. datasets.
 //!
-//! If the segment has an Arrow record batch, then the metadata and
-//! data buffers above together form the batch in Arrow format.
+//! If the segment has an Arrow record batch, then the metadata and data buffers above together form
+//! the batch in Arrow format.
 
 // TODO: Make separate (i.e. fifth), fixed-size marker and buffer for (memory part of?) metaversion?
 //       This would also require modifying memory loading in the language runners.
 
-use std::ops::{Index, IndexMut};
+use std::{
+    mem,
+    ops::{Index, IndexMut},
+};
 
 use super::ptr::MemoryPtr;
 use crate::datastore::prelude::*;
@@ -34,6 +39,8 @@ pub enum Val {
     MetaSize = 5,
     DataOffset = 6,
     DataSize = 7,
+    // TODO: Incorporate `Metaversions` into the markers directly:
+    // MetaVersions: 8,
 }
 
 #[repr(usize)]
@@ -89,7 +96,7 @@ pub struct Markers {
 
 impl Markers {
     /// Each marker is a u64, so it has 8 bytes.
-    pub const MARKER_SIZE: usize = 8;
+    pub const MARKER_SIZE: usize = mem::size_of::<u64>();
     // Markers:
     // 1) Header offset, 2) Header size, 3) Schema offset, 4) Schema size,
     // 5) Meta offset,   6) Meta size,   7) Data offset,   8) Data size
@@ -191,7 +198,8 @@ impl Markers {
         debug_assert_eq!(
             Buffer::Data.next(),
             None,
-            "If the data buffer is not the last buffer, then the markers implementation needs to be updated"
+            "If the data buffer is not the last buffer, then the markers implementation needs to \
+             be updated"
         );
         // The end of the last buffer is the end of the whole segment.
         self.data_offset() + self.data_size()

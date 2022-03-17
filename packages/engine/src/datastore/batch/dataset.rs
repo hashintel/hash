@@ -3,8 +3,8 @@ use crate::{
     proto::{ExperimentId, SharedDataset},
 };
 
-// TODO: Rename from "dataset batch" to "data(set?) segment"?
-//       (since it's not related to arrow/record batches)
+// TODO: Datasets are just data in memory segments, not really batches, so the parent module should
+//       be renamed or the `Dataset` struct should be moved.
 pub struct Dataset {
     segment: Segment,
 }
@@ -44,14 +44,12 @@ impl Dataset {
         })
     }
 
-    /// Contents of the dataset, e.g. a JSON or CSV string
+    /// Contents of the dataset, e.g. a JSON or CSV string.
     ///
     /// # Panics
     ///
-    /// If the dataset batch was created incorrectly or
-    /// somehow overwritten (even though the batch isn't
-    /// supposed to be changed after creation), then it
-    /// might not have a data buffer.
+    /// If the dataset batch was created incorrectly or somehow overwritten (even though the batch
+    /// isn't supposed to be changed after creation), then it might not have a data buffer.
     pub fn data(&self) -> &[u8] {
         self.segment
             .memory()

@@ -73,15 +73,11 @@ impl GetWorkerSimStartMsg for JsonState {
 impl Package for JsonState {
     async fn run(&mut self, state: Arc<State>, _context: Arc<Context>) -> Result<Output> {
         let state = state.read()?;
-        // Output packages can't reload state batches, since they only
-        // have read access to state, but reloading would mean
-        // mutating the loaded data.
         let agent_states: crate::datastore::Result<Vec<_>> = state
             .agent_pool()
             .batches_iter()
             .zip(state.message_pool().batches_iter())
             .map(|(agent_group, message_batch)| {
-                let _ = (&state, &_context);
                 (
                     agent_group.batch.record_batch()?,
                     message_batch.batch.record_batch()?,

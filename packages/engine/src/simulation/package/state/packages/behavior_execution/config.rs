@@ -12,7 +12,6 @@ pub struct BehaviorDescription {
     pub short_names: Vec<String>,
     pub source: String,
     pub required_field_keys: Vec<String>,
-    /// serde serialized to "Python", "JavaScript" or "Rust"
     pub language: Language,
     pub dyn_access: bool,
 }

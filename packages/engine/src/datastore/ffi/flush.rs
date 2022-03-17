@@ -249,6 +249,7 @@ impl<'a> GrowableColumn<PreparedArrayData<'a>> for PreparedColumn<'a> {
     }
 }
 
+/// Batch used by Python FFI.
 pub struct PreparedBatch<'a> {
     static_meta: *const StaticMeta,
     dynamic_meta: &'a mut DynamicMeta,
@@ -268,11 +269,11 @@ impl<'a> GrowableBatch<PreparedArrayData<'a>, PreparedColumn<'a>> for PreparedBa
         self.dynamic_meta
     }
 
-    fn memory_mut(&mut self) -> &mut Memory {
+    fn memory(&self) -> &Memory {
         self.memory
     }
 
-    fn memory(&self) -> &Memory {
+    fn memory_mut(&mut self) -> &mut Memory {
         self.memory
     }
 }

@@ -301,6 +301,8 @@ impl StepPackages {
         let collected = futs.collect::<Vec<_>>().await;
 
         // Collect outputs and put back packages that we took.
+        // Output packages can't reload state batches, since they only have read access to state,
+        // but reloading would mean mutating the loaded data.
         let mut pkgs = Vec::with_capacity(num_pkgs);
         let mut outputs = SimulationStepOutput::with_capacity(num_pkgs);
         for result in collected {

@@ -142,7 +142,7 @@ impl Accessors for Vec3 {
             let child_data_buffer =
                 unsafe { data_ref.child_data()[0].buffers()[0].typed_data::<f64>() };
             let start_index = i * POSITION_DIM;
-            // Does not fail
+            // A position always have 3 values, thus it should never fail.
             let pos = child_data_buffer[start_index..start_index + POSITION_DIM]
                 .try_into()
                 .unwrap();
@@ -169,7 +169,7 @@ impl Accessors for Vec3 {
         Ok((0..data_ref.len())
             .map(move |i| {
                 let start_index = i * POSITION_DIM;
-                // Does not fail
+                // A position always have 3 values, thus it should never fail.
                 let pos = child_data_buffer[start_index..start_index + POSITION_DIM]
                     .try_into()
                     .unwrap();

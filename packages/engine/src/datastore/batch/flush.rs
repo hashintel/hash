@@ -29,15 +29,18 @@ pub(in crate::datastore) trait GrowableColumn<D: GrowableArrayData>:
     fn data(&self) -> &D;
 }
 
-/// A batch that can change in size
+/// A batch that can be grown after creation.
 ///
-/// This trait is useful for batches with dynamically sized Arrow columns, e.g. string columns, and
-/// Arrow batches whose number of elements can change due to the number of agents changing.
-// TODO: Move flush_changes outside of trait and make it a function
-//       with type parameters and remove the type parameters from the
-//       trait? (would simplify impl of this trait a bit; still
-//       couldn't make the trait public (outside the datastore)
-//       though due to `memory_mut`)
+/// This implies, that `flush_changes` may alter the memory location.
+///
+/// This trait is useful for batches with dynamically sized Arrow columns, such as string columns,
+/// and Arrow batches whose number of elements can change due to the number of agents changing, such
+/// as components of state or context, or [`PreparedBatch`] used by Python FFI.
+///
+/// [`PreparedBatch`]: crate::datastore::ffi::PreparedBatch
+// TODO: Move `flush_changes` outside of trait and make it a function with type parameters and
+//       remove the type parameters from the trait? (would simplify impl of this trait a bit; still
+//       couldn't make the trait public (outside the datastore) though due to `memory_mut`)
 pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
     fn static_meta(&self) -> &StaticMeta;
     fn dynamic_meta(&self) -> &DynamicMeta;
@@ -286,12 +289,14 @@ pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableCo
         let meta_buffer = get_dynamic_meta_flatbuffers(self.dynamic_meta())?;
         self.memory_mut().set_metadata(&meta_buffer)?;
 
-        debug_assert!(
-            self.memory().validate_markers(),
-            "Incorrect markers -- possibly buffer locations are wrong or the markers weren't \
-             written correctly, so they don't correspond to the actual locations"
-        );
-        Ok(change)
+        if cfg!(debug_assertions) && !self.memory().validate_markers() {
+            Err(Error::from(
+                "Incorrect markers -- possibly buffer locations are wrong or the markers weren't \
+                 written correctly, so they don't correspond to the actual locations",
+            ))
+        } else {
+            Ok(change)
+        }
     }
 }
 

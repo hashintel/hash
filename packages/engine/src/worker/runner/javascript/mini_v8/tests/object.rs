@@ -11,7 +11,7 @@ fn set_get() {
     object.set(123, "a").unwrap();
     let parent = mv8.create_object();
     parent.set("obj", object).unwrap();
-    let object: Object<'_> = parent.get("obj").unwrap();
+    let object: Object<'_> = parent["obj"];
     assert_eq!(object.get::<_, i8>("a").unwrap(), 123);
     assert_eq!(object.get::<_, StdString>("a").unwrap(), "123");
     assert_eq!(object.get::<_, StdString>("123").unwrap(), "a");

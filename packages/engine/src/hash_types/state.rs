@@ -898,7 +898,7 @@ mod tests {
             .as_object()
             .unwrap()
             .clone();
-        let arr = map.get("scale").unwrap().clone();
+        let arr = map["scale"].clone();
         assert_eq!(arr, json!([5.0, 2.0, 1.0]));
     }
 

@@ -35,20 +35,19 @@ use crate::datastore::batch::{change::ColumnChange, flush::GrowableBatch};
 //       have to split metaversion storage into memory and batch
 //       versions, because some segments contain things which don't
 //       really have batch versions, e.g. datasets.
-/// Used by datasets, agent groups, message groups, context global
-/// batch, Python FFI batch.
+/// Used by datasets, agent batches, message batches, context global batch, [`PreparedBatch`].
+///
+/// [`PreparedBatch`]: crate::datastore::ffi::PreparedBatch
 pub struct Segment(Memory);
 
 impl Segment {
-    /// The latest batch version and memory version of this batch
-    /// that is persisted in memory (in this experiment as a whole)
+    /// The latest batch version and memory version of this batch that is persisted in memory (in
+    /// this experiment as a whole)
     ///
     /// # Panics
     ///
-    /// If the metaversion wasn't written properly when
-    /// the batch was created or the part of memory with the
-    /// metaversion was deallocated later, this might fail to
-    /// read the metaversion.
+    /// If the metaversion wasn't written properly when the batch was created or the part of memory
+    /// with the metaversion was deallocated later, this might fail to read the metaversion.
     pub fn persisted_metaversion(&self) -> Metaversion {
         self.0
             .metaversion()
@@ -63,15 +62,11 @@ impl Segment {
         &mut self.0
     }
 
-    /// Set the latest batch version and memory version of this batch
-    /// that is persisted in memory (in this experiment as a whole).
+    /// Set the latest batch version and memory version of this batch that is persisted in memory
+    /// (in this experiment as a whole). # Panics
     ///
-    /// # Panics
-    ///
-    /// If the metaversion wasn't written properly when
-    /// the batch was created or the part of memory with the
-    /// metaversion was deallocated later, this might fail to
-    /// read the metaversion.
+    /// If the metaversion wasn't written properly when the batch was created or the part of memory
+    /// with the metaversion was deallocated later, this might fail to read the metaversion.
     pub(in crate::datastore::batch) fn set_persisted_metaversion(
         &mut self,
         metaversion: Metaversion,
@@ -89,17 +84,15 @@ pub struct ArrowBatch {
     /// Arrow `RecordBatch` with references to `self.segment`
     record_batch: RecordBatch,
 
-    /// Metadata referring to positions, sizes, null counts
-    /// and value counts of different Arrow buffers
+    /// Metadata referring to positions, sizes, null counts and value counts of different Arrow
+    /// buffers.
     dynamic_meta: DynamicMeta,
 
-    /// Map of which Arrow `Buffer`s and `FieldNode`s
-    /// correspond to which column
+    /// Map of which Arrow `Buffer`s and `FieldNode`s correspond to which column.
     static_meta: Arc<StaticMeta>,
 
-    /// When growable columns are modified, their Arrow intermediate
-    /// column representations are kept here and wait for the
-    /// `self.flush_changes()` call, which inserts them into
+    /// When growable columns are modified, their Arrow intermediate column representations are
+    /// kept here and wait for the `self.flush_changes()` call, which inserts them into
     /// `self.segment`.
     changes: Vec<ColumnChange>,
 
@@ -204,7 +197,7 @@ impl ArrowBatch {
         !self.changes.is_empty()
     }
 
-    /// (Have to implement twice, because GrowableBatch trait isn't public.)
+    // Have to implement twice, because GrowableBatch trait isn't public.
     pub fn static_meta(&self) -> &StaticMeta {
         &self.static_meta
     }
@@ -213,20 +206,16 @@ impl ArrowBatch {
         &self.dynamic_meta
     }
 
-    /// The versions of the batch and memory that are currently
-    /// loaded (in this runtime/process)
+    /// The versions of the batch and memory that are currently loaded (in this runtime/process).
     pub fn loaded_metaversion(&self) -> Metaversion {
         self.loaded_metaversion
     }
 
-    /// Returns whether the latest persisted data has been loaded.
-    /// That means that the batch is up to date, unless some other
-    /// engine component has queued changes that it hasn't flushed
-    /// yet.
+    /// Returns whether the latest persisted data has been loaded. That means that the batch is up
+    /// to date, unless some other engine component has queued changes that it hasn't flushed yet.
     ///
-    /// The loaded metaversion can't be newer than the persisted
-    /// metaversion, since queueing changes doesn't affect the
-    /// loaded data.
+    /// The loaded metaversion can't be newer than the persisted metaversion, since queueing changes
+    /// doesn't affect the loaded data.
     pub fn is_persisted(&self) -> bool {
         let loaded = self.loaded_metaversion();
         let persisted = self.segment.persisted_metaversion();
@@ -265,18 +254,15 @@ impl ArrowBatch {
         Ok(())
     }
 
-    /// Add an Arrow column's data to an internal queue of changes
-    /// to later persist to memory.
+    /// Add an Arrow column's data to an internal queue of changes to later persist to memory.
     ///
     /// # Errors
     ///
-    /// If the loaded metaversion isn't equal to the
-    /// persisted metaversion, this gives an error to avoid
-    /// queueing stale data. (The loaded metaversion can't
-    /// be newer than the persisted metaversion.)
-    // TODO: We might have to remove this restriction to
-    //       allow flushing changes multiple times without
-    //       loading.
+    /// If the loaded metaversion isn't equal to the persisted metaversion, this gives an error to
+    /// avoid queueing stale data. (The loaded metaversion can't be newer than the persisted
+    /// metaversion.)
+    // TODO: We might have to remove this restriction to allow flushing changes multiple times
+    //       without loading.
     pub fn queue_change(&mut self, change: ColumnChange) -> Result<()> {
         if self.is_persisted() {
             self.queue_change_unchecked(change);

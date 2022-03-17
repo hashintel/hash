@@ -1,6 +1,6 @@
-use super::{Context, Error, Result, SharedBehavior, State};
-
 use std::collections::HashMap;
+
+use super::{Context, Error, Result, SharedBehavior, State};
 
 pub fn behavior(state: &mut State, context: &Context) -> Result<()> {
     let mut json_state = state.get_json_state()?;
@@ -39,7 +39,7 @@ pub fn behavior(state: &mut State, context: &Context) -> Result<()> {
                         .to_grid();
 
                     if neighbor_map.contains_key(&position) {
-                        let old_value = *neighbor_map.get(&position).unwrap();
+                        let old_value = *neighbor_map[&position];
                         let monotone = uphill == (old_value < neighbor_value);
                         if cumulative {
                             neighbor_map.insert(position, old_value + neighbor_value);
@@ -139,7 +139,7 @@ pub fn orient_toward_value(state: &mut AgentState, context: &Context) -> Simulat
                 let position = neighbor.get_pos()?.to_grid();
 
                 if neighbor_map.contains_key(&position) {
-                    let old_value = *neighbor_map.get(&position).unwrap();
+                    let old_value = *neighbor_map[&position];
                     let monotone = uphill == (old_value < neighbor_value);
                     if cumulative {
                         neighbor_map.insert(position, old_value + neighbor_value);

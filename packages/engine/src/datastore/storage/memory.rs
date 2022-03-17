@@ -1,6 +1,6 @@
 #![allow(clippy::similar_names)]
 
-use std::{env, path::Path};
+use std::{env, mem, path::Path};
 
 use shared_memory::{Shmem, ShmemConf};
 
@@ -256,7 +256,7 @@ impl Memory {
     pub fn metaversion(&self) -> Result<Metaversion> {
         let header = self.get_header()?;
         let n_header_bytes = header.len();
-        let n_metaversion_bytes = std::mem::size_of::<Metaversion>();
+        let n_metaversion_bytes = 2 * mem::size_of::<u32>();
         if n_header_bytes < n_metaversion_bytes {
             Err(Error::from("Memory header too small to read metaversion"))
         } else {
@@ -269,7 +269,7 @@ impl Memory {
     pub fn set_metaversion(&mut self, metaversion: Metaversion) -> Result<()> {
         let header = self.visitor_mut().header_mut();
         let n_header_bytes = header.len();
-        let n_metaversion_bytes = std::mem::size_of::<Metaversion>();
+        let n_metaversion_bytes = 2 * mem::size_of::<u32>();
         if n_header_bytes < n_metaversion_bytes {
             Err(Error::from("Memory header too small to write metaversion"))
         } else {

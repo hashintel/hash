@@ -237,9 +237,8 @@ impl Package for BehaviorExecution {
         self.reset_behavior_index_col(agent_pool)?;
         agent_pool.flush_pending_columns()?;
 
-        // TODO: Have to reload state agent batches twice, because
-        //       we just wrote the language ID of each behavior into
-        //       them, but now want to read it from them.
+        // Have to reload state agent batches twice, because we just wrote the language ID of each
+        // behavior into them, but now want to read it from them.
         state_proxy.maybe_reload()?;
         let agent_pool = state_proxy.agent_pool();
 

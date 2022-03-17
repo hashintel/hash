@@ -15,6 +15,7 @@ use arrow::{
 };
 use futures::FutureExt;
 use mv8::MiniV8;
+use regex::internal::Input;
 use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     task::JoinError,
@@ -339,14 +340,16 @@ fn batch_to_js<'m>(
 
 fn state_to_js<'m, 'a, 'b>(
     mv8: &'m MiniV8,
-    agent_batches: impl Iterator<Item = &'a AgentBatch>,
-    message_batches: impl Iterator<Item = &'b MessageBatch>,
+    mut agent_batches: impl Iterator<Item = &'a AgentBatch>,
+    mut message_batches: impl Iterator<Item = &'b MessageBatch>,
 ) -> Result<(mv8::Value<'m>, mv8::Value<'m>)> {
     let js_agent_batches = mv8.create_array();
     let js_message_batches = mv8.create_array();
 
-    for (i_batch, (agent_batch, message_batch)) in
-        agent_batches.into_iter().zip(message_batches).enumerate()
+    for (i_batch, (agent_batch, message_batch)) in agent_batches
+        .by_ref()
+        .zip(message_batches.by_ref())
+        .enumerate()
     {
         let agent_batch = batch_to_js(
             mv8,
@@ -362,6 +365,12 @@ fn state_to_js<'m, 'a, 'b>(
         )?;
         js_message_batches.set(i_batch as u32, message_batch)?;
     }
+
+    debug_assert!(
+        agent_batches.count() == 0 && message_batches.count() == 0,
+        "Agent batches and message batches needs to have the same size"
+    );
+
     Ok((
         mv8::Value::Array(js_agent_batches),
         mv8::Value::Array(js_message_batches),

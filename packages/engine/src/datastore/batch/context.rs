@@ -16,8 +16,7 @@ use crate::{
     simulation::package::context::ContextColumn,
 };
 
-// If required data size is 3 times less than current data size
-// then shmem size will be readjusted
+// If required data size is 3 times less than current data size then shmem size will be readjusted.
 const UPPER_BOUND_DATA_SIZE_MULTIPLIER: usize = 3;
 
 pub type AgentIndex = (u32, u32);
@@ -94,20 +93,16 @@ impl ContextBatch {
 
     /// Overwrite context batch with given columns.
     ///
-    /// The underlying shared memory is resized if either the
-    /// new data is bigger than the existing capacity, or the
-    /// new data is much smaller than the existing capacity, so
-    /// we can make the capacity smaller.
+    /// The underlying shared memory is resized if either the new data is bigger than the existing
+    /// capacity, or the new data is much smaller than the existing capacity, so we can make the
+    /// capacity smaller.
     ///
-    /// The written data doesn't necessarily depend on the currently
-    /// loaded data, so the loaded metaversion isn't checked. (If it
-    /// does depend on the loaded data, then the metaversion should
-    /// have already been checked earlier, when reading the loaded
-    /// data.)
+    /// The written data doesn't necessarily depend on the currently loaded data, so the loaded
+    /// metaversion isn't checked. (If it does depend on the loaded data, then the metaversion
+    /// should have already been checked earlier, when reading the loaded data.)
     ///
-    /// The persisted metaversion is incremented after writing data
-    /// and then the loaded metaversion is set to the new persisted
-    /// metaversion after reloading.
+    /// The persisted metaversion is incremented after writing data and then the loaded metaversion
+    /// is set to the new persisted metaversion after reloading.
     pub fn write_from_context_datas(
         &mut self,
         column_writers: &[&ContextColumn],

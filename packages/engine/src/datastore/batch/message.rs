@@ -42,16 +42,14 @@ pub struct MessageBatch {
 impl MessageBatch {
     /// Clears the message batch and resizes it as necessary.
     ///
-    /// Uses the passed in `agents` for the `AgentId`s and the group
-    /// size. `agents` must have equal loaded and persisted metaversions.
+    /// Uses the passed in `agent_batch` for the `AgentId`s and the batch size. `agent_batch` must
+    /// have equal loaded and persisted metaversions.
     ///
-    /// The whole message batch is overwritten, so its loaded batch
-    /// version can be older than the persisted one, but there can't
-    /// be any queued changes.
+    /// The whole message batch is overwritten, so its loaded batch version can be older than the
+    /// persisted one, but there can't be any queued changes.
     ///
-    /// The persisted metaversion is updated after clearing the column
-    /// and the loaded metaversion is set equal to the persisted one
-    /// after loading the cleared column.
+    /// The persisted metaversion is updated after clearing the column and the loaded metaversion is
+    /// set equal to the persisted one after loading the cleared column.
     pub fn reset(&mut self, agent_batch: &AgentBatch) -> Result<()> {
         tracing::trace!("Resetting batch");
 

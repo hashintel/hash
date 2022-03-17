@@ -128,7 +128,7 @@ impl PoolReadProxy<MessageBatch> {
                 .flat_map(|(recipients, references)| {
                     let res = recipients.collect::<Vec<_>>();
                     let refs = references.collect::<Vec<_>>();
-                    res.into_par_iter().zip(refs.into_par_iter()) // TODO: zip_eq?
+                    res.into_par_iter().zip_eq(refs.into_par_iter())
                 })
         })
     }

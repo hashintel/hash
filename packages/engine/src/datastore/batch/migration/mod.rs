@@ -69,18 +69,15 @@ pub enum InnerCreateAction<'a> {
 
 #[derive(Debug, Clone)]
 pub enum InnerShiftAction {
-    /// Move a slice of existing buffer by an offset
-    /// `offset` is the start byte index of the sub-buffer inside the
-    /// old buffer. `len` is the length of the sub-buffer.
-    /// `dest_offset` is the relative location inside the old buffer
-    /// where this sub-buffer will be inserted.
+    /// Move a slice of existing buffer by an offset `offset` is the start byte index of the
+    /// sub-buffer inside the old buffer. `len` is the length of the sub-buffer. `dest_offset` is
+    /// the relative location inside the old buffer where this sub-buffer will be inserted.
     Data {
         offset: usize,
         len: usize,
         dest_offset: usize,
     },
-    /// Markers need to be shifted if data is deleted.
-    /// Indices are per i32 index.
+    /// Markers need to be shifted if data is deleted, indices are per i32 index.
     Offset {
         // Starting old index relative to the offset of the old buffer
         from: usize,
