@@ -157,7 +157,7 @@ pub mod tests {
         targets.into_iter().enumerate().for_each(|(i, t)| match t {
             Some(v) => {
                 assert_eq!(v, agent_states[i].agent_name.as_ref().unwrap().0);
-                assert_eq!(v, names[i].unwrap().as_deref().unwrap());
+                assert_eq!(v, names[i].as_deref().unwrap());
             }
             None => {
                 assert!(agent_states[i].agent_name.is_none());

@@ -23,7 +23,7 @@ fn js_constructor() {
     let mv8 = MiniV8::new();
     let func: Function<'_> = mv8.eval("(function(x) { this.x = x; })").unwrap();
     let value: Object<'_> = func.call_new((10,)).unwrap();
-    let n: i64 = value["x"];
+    let n: i64 = value.get("x").unwrap();
     assert_eq!(10, n);
 }
 
@@ -130,7 +130,7 @@ fn rust_closure_mut_callback_error() {
         .call::<_, ()>((false,))
     {
         Err(Error::Value(v)) => {
-            let message: StdString = v.as_object().unwrap()["message"];
+            let message: StdString = v.as_object().unwrap().get("message").unwrap();
             assert_eq!(message, "mutable callback called recursively".to_string());
         }
         other => panic!("incorrect result: {:?}", other),
