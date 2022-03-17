@@ -138,9 +138,11 @@ def run_task(experiment, _sim, _task_message, group_state, group_context):
     agent_context = None
 
     for i_agent in range(group_state.n_agents()):
-        # Reuse `agent_state` and `agent_context` objects.
-        agent_state = group_state.get_agent(i_agent, agent_state)
-        agent_context = group_context.get_agent(i_agent, agent_context)
+        # TODO: Reuse `agent_state` and `agent_context` objects.
+        # agent_state = group_state.get_agent(i_agent, agent_state)
+        # agent_context = group_context.get_agent(i_agent, agent_context)
+        agent_state = group_state.get_agent(i_agent)
+        agent_context = group_context.get_agent(i_agent)
 
         # ids of behaviors of this agent
         behavior_ids = getattr(agent_state, BEHAVIOR_IDS_FIELD_KEY)
