@@ -29,11 +29,10 @@ pub(in crate::datastore) trait GrowableColumn<D: GrowableArrayData>:
     fn data(&self) -> &D;
 }
 
-/// A batch that can be grown (i.e. mutated not in place) after
-/// creation
+/// A batch that can change in size
 ///
-/// Can be implemented by agent groups, message groups, context
-/// global batch, Python FFI batch.
+/// This trait is useful for batches with dynamically sized Arrow columns, e.g. string columns, and
+/// Arrow batches whose number of elements can change due to the number of agents changing.
 // TODO: Move flush_changes outside of trait and make it a function
 //       with type parameters and remove the type parameters from the
 //       trait? (would simplify impl of this trait a bit; still
