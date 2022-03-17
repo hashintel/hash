@@ -86,8 +86,7 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           });
 
           if (variant === "primarySquare") {
-            // @todo use palette colour
-            const boxShadow = "inset 0px -2px 6px rgba(231, 162, 89, 0.5)";
+            const boxShadow = `inset 0px -2px 6px ${theme.palette.yellow["500-50%"]}`;
             const borderRadius = 4;
 
             Object.assign(baseStyles, {
