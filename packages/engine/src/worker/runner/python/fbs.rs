@@ -2,10 +2,7 @@ use flatbuffers::{FlatBufferBuilder, WIPOffset};
 
 use super::error::Result;
 use crate::{
-    datastore::{
-        batch::{Batch, Dataset},
-        prelude::SharedStore,
-    },
+    datastore::{batch::Segment, prelude::SharedStore},
     worker::runner::comms::PackageMsgs,
 };
 
@@ -57,7 +54,7 @@ pub fn shared_ctx_to_fbs<'f>(
 ) -> WIPOffset<flatbuffers_gen::shared_context_generated::SharedContext<'f>> {
     let mut batch_offsets = Vec::new();
     for (_, dataset) in shared_ctx.datasets.iter() {
-        batch_offsets.push(batch_to_fbs::<Dataset>(fbb, dataset));
+        batch_offsets.push(batch_to_fbs(fbb, dataset.segment()));
     }
     // let batch_offsets: Vec<_> = shared_ctx.datasets
     //     .iter()
@@ -74,12 +71,17 @@ pub fn shared_ctx_to_fbs<'f>(
     )
 }
 
-pub fn batch_to_fbs<'f, B: Batch>(
+pub fn batch_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
-    batch: &B,
+    batch_segment: &Segment,
 ) -> WIPOffset<flatbuffers_gen::batch_generated::Batch<'f>> {
-    let batch_id_offset = fbb.create_string(batch.get_batch_id());
-    let metaversion_offset = metaversion_to_fbs(fbb, batch.metaversion());
+    let batch_id_offset = fbb.create_string(batch_segment.memory().id());
+    let metaversion_offset = metaversion_to_fbs(
+        fbb,
+        // TODO: Don't serialize the metaversion and just send the batch id and read the persisted
+        //       metaversion in the runner instead.
+        batch_segment.persisted_metaversion(),
+    );
     flatbuffers_gen::batch_generated::Batch::create(
         fbb,
         &flatbuffers_gen::batch_generated::BatchArgs {
@@ -91,7 +93,7 @@ pub fn batch_to_fbs<'f, B: Batch>(
 
 pub fn metaversion_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
-    metaversion: &crate::datastore::batch::metaversion::Metaversion,
+    metaversion: crate::datastore::batch::metaversion::Metaversion,
 ) -> WIPOffset<flatbuffers_gen::metaversion_generated::Metaversion<'f>> {
     flatbuffers_gen::metaversion_generated::Metaversion::create(
         fbb,

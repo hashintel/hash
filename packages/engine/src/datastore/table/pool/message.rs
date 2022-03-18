@@ -8,7 +8,7 @@ use rayon::iter::{
 use super::BatchPool;
 use crate::{
     datastore::{
-        batch::{self, AgentBatch, MessageBatch},
+        batch::{self, message, AgentBatch, MessageBatch},
         table::{
             pool::proxy::PoolReadProxy, proxy::BatchWriteProxy, references::AgentMessageReference,
         },
@@ -102,26 +102,33 @@ impl MessagePool {
 }
 
 impl PoolReadProxy<MessageBatch> {
-    pub fn get_reader(&self) -> MessageReader<'_> {
-        MessageReader {
-            loaders: self
-                .batches_iter()
-                .map(MessageBatch::message_loader)
-                .collect(),
-        }
+    pub fn get_reader(&self) -> Result<MessageReader<'_>> {
+        let loaders: Result<_> = self
+            .batches_iter()
+            .map(|batch| {
+                batch
+                    .batch
+                    .record_batch()
+                    .map(message::record_batch::message_loader)
+            })
+            .collect();
+        Ok(MessageReader { loaders: loaders? })
     }
 
     pub fn recipient_iter_all<'b: 'r, 'r>(
         &'b self,
     ) -> impl ParallelIterator<Item = (Vec<&'b str>, AgentMessageReference)> + 'r {
-        self.batches.par_iter().enumerate().flat_map(|(i, batch)| {
-            batch
-                .message_recipients_par_iter()
-                .zip_eq(batch.message_usize_index_iter(i))
+        self.batches.par_iter().enumerate().flat_map(|(i, group)| {
+            let record_batch = group.batch.record_batch().unwrap(); // TODO: unwrap --> err
+            message::record_batch::message_recipients_par_iter(record_batch)
+                .zip_eq(message::record_batch::message_usize_index_iter(
+                    record_batch,
+                    i,
+                ))
                 .flat_map(|(recipients, references)| {
                     let res = recipients.collect::<Vec<_>>();
                     let refs = references.collect::<Vec<_>>();
-                    res.into_par_iter().zip(refs.into_par_iter())
+                    res.into_par_iter().zip_eq(refs.into_par_iter())
                 })
         })
     }

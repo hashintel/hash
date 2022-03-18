@@ -1,10 +1,9 @@
 //! The `datastore` module includes logic about handling creation, modification, and access of
 //! simulation data that's shared across the engine and runtimes.
 //!
-//! It contains the logic relating to storing data within Arrow, which allows us
-//! to efficiently share large quantities of data between runtimes. It also includes the
-//! functionalities we use to dynamically initialize data from schemas, and logic around data
-//! access and safety.
+//! It contains the logic relating to storing data within Arrow, which allows us to efficiently
+//! share large quantities of data between runtimes. It also includes the functionalities we use to
+//! dynamically initialize data from schemas, and logic around data access and safety.
 // TODO: DOC improve wording of above, and signpost the key modules
 pub mod arrow;
 pub mod batch;
@@ -51,7 +50,7 @@ pub mod prelude {
         batch::{
             metaversion::Metaversion,
             migration::{CopyAction, CreateAction, RemoveAction, RowActions},
-            AgentBatch, AgentIndex, Batch, ContextBatch, Dataset, MessageBatch, MessageIndex,
+            AgentBatch, AgentIndex, Dataset, MessageBatch, MessageIndex,
         },
         error::{Error, Result, SupportedType},
         meta::{
@@ -74,14 +73,15 @@ pub mod tests {
 
     use super::{prelude::*, test_utils::gen_schema_and_test_agents};
     use crate::datastore::{
-        batch::DynamicBatch, table::state::State, test_utils::dummy_sim_run_config,
+        batch::iterators, table::state::State, test_utils::dummy_sim_run_config,
     };
 
     #[test]
     pub fn growable_array_modification() -> Result<()> {
         pub fn modify_name(shmem_os_id: &str) -> Result<Vec<Option<String>>> {
             let mut state_batch = *AgentBatch::from_shmem_os_id(shmem_os_id)?;
-            let mut column = state_batch.get_agent_name()?;
+            let record_batch = state_batch.batch.record_batch()?;
+            let mut column = iterators::record_batch::get_agent_name(record_batch)?;
             // `targets` values will be checked against shared memory data
             // in order to check if changes were flushed properly
             let mut targets = Vec::with_capacity(column.len());
@@ -107,9 +107,9 @@ pub mod tests {
                     }
                 }
             }
-            let change = state_batch.agent_name_as_array(column)?;
-            state_batch.push_change(change)?;
-            state_batch.flush_changes()?;
+            let change = iterators::record_batch::agent_name_as_array(record_batch, column)?;
+            state_batch.batch.queue_change(change)?;
+            state_batch.batch.flush_changes()?;
             Ok(targets)
         }
 
@@ -126,39 +126,42 @@ pub mod tests {
             .agent_pool()
             .batch(0)
             .unwrap()
-            .memory
-            .data
-            .get_os_id()
-            .to_string();
+            .batch
+            .segment()
+            .memory()
+            .id()
+            .to_owned();
 
         // Run "behavior"
         let targets = modify_name(&shmem_id)?;
 
-        let reloaded = AgentBatch::from_shmem_os_id(&shmem_id)?;
-        let names = reloaded.get_agent_name()?;
+        // TODO: This actually shows that converting to and from a batch id is a way to mutate a
+        //       batch without acquiring a write lock (by creating a write proxy).
+        let _unlocked_batch = AgentBatch::from_shmem_os_id(&shmem_id)?;
 
         state
             .write()?
             .agent_pool_mut()
             .batch_mut(0)
             .unwrap()
-            .reload()?;
-
-        let states = state
-            .read()?
-            .agent_pool()
-            .batch(0)
-            .unwrap()
             .batch
-            .into_agent_states(Some(&schema))?;
+            .maybe_reload()?;
+
+        let state_proxy = state.read()?;
+        let batch_proxy: &AgentBatch = state_proxy.agent_pool().batch(0).unwrap();
+        let record_batch = batch_proxy.batch.record_batch()?;
+
+        let names = iterators::record_batch::get_agent_name(record_batch)?;
+        let agent_states = record_batch.into_agent_states(Some(&schema))?;
+
         targets.into_iter().enumerate().for_each(|(i, t)| match t {
             Some(v) => {
-                assert_eq!(v, states.get(i).unwrap().agent_name.as_ref().unwrap().0);
-                assert_eq!(v, names.get(i).unwrap().as_deref().unwrap());
+                assert_eq!(v, agent_states[i].agent_name.as_ref().unwrap().0);
+                assert_eq!(v, names[i].as_deref().unwrap());
             }
             None => {
-                assert!(states[i].agent_name.is_none());
-                assert!(names.get(i).unwrap().as_deref().is_none());
+                assert!(agent_states[i].agent_name.is_none());
+                assert!(names[i].as_deref().is_none());
             }
         });
 

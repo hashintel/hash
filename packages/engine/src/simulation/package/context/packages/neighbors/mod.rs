@@ -1,4 +1,4 @@
-use std::{ops::Deref, sync::Arc};
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use serde_json::Value;
@@ -96,7 +96,7 @@ struct Neighbors {
 }
 
 impl Neighbors {
-    fn neighbor_vec<B: Deref<Target = AgentBatch>>(batches: &[B]) -> Result<Vec<NeighborRef<'_>>> {
+    fn neighbor_vec<'a>(batches: &'a [&AgentBatch]) -> Result<Vec<NeighborRef<'a>>> {
         Ok(iterators::agent::position_iter(batches)?
             .zip(iterators::agent::index_iter(batches))
             .zip(iterators::agent::search_radius_iter(batches)?)
