@@ -4,6 +4,15 @@ import { Link } from "./Link";
 import { Logo } from "./Logo";
 import { Spacer } from "./Spacer";
 
+const FooterLinkLabel: FC = ({ children }) => (
+  <Typography
+    sx={{ color: "purple.600", textTransform: "uppercase" }}
+    as="span"
+  >
+    {children}
+  </Typography>
+);
+
 /**
  * @todo Fonts, colors, etc
  */
@@ -54,9 +63,15 @@ export const Footer: FC = () => (
           {/** @todo where do these go? */}
           {/** @todo badges */}
           <Stack spacing={2}>
-            <Link href="https://blockprotocol.org">Block Protocol</Link>
-            <Link href="https://hash.ai">HASH</Link>
-            <Link href="https://hash.ai">hEngine</Link>
+            <Link href="https://blockprotocol.org">
+              Block Protocol <FooterLinkLabel>Open Source</FooterLinkLabel>
+            </Link>
+            <Link href="https://hash.ai">
+              HASH <FooterLinkLabel>Open Source</FooterLinkLabel>
+            </Link>
+            <Link href="https://hash.ai">
+              hEngine <FooterLinkLabel>Fair Source</FooterLinkLabel>
+            </Link>
             <Link href="https://core.hash.ai">hCore</Link>
             <Link href="https://hash.ai">hCloud</Link>
           </Stack>
