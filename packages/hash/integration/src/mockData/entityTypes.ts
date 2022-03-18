@@ -1,10 +1,10 @@
-import { DBAdapter } from "@hashintel/hash-api/src/db";
+import { DbAdapter } from "@hashintel/hash-api/src/db";
 import { EntityType, User } from "@hashintel/hash-api/src/model";
 import { JSONSchema } from "@hashintel/hash-api/src/model/entityType.model";
 
 // Creates entity types for each of the accounts passed in
 export const createEntityTypes =
-  (db: DBAdapter) =>
+  (db: DbAdapter) =>
   async (accountIds: string[]): Promise<EntityType[]> => {
     const userType = await User.getEntityType(db);
     const userTypeUri = userType.properties.$id;

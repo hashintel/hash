@@ -6,7 +6,7 @@ import { merge } from "lodash";
 import { JSONSchema7 } from "json-schema";
 
 import { EntityExternalResolvers, EntityType } from ".";
-import { DBClient } from "../db";
+import { DbClient } from "../db";
 import {
   EntityType as GQLEntityType,
   Visibility,
@@ -98,7 +98,7 @@ class __EntityType {
    * @returns
    */
   static async validateJsonSchema(
-    client: DBClient,
+    client: DbClient,
     params: {
       $id?: string;
       title: string;
@@ -169,7 +169,7 @@ class __EntityType {
   }
 
   static async create(
-    client: DBClient,
+    client: DbClient,
     params: {
       accountId: string;
       createdByAccountId: string;
@@ -204,7 +204,7 @@ class __EntityType {
   }
 
   async update(
-    client: DBClient,
+    client: DbClient,
     params: {
       accountId: string;
       createdByAccountId: string;
@@ -234,7 +234,7 @@ class __EntityType {
   }
 
   static async getEntityType(
-    client: DBClient,
+    client: DbClient,
     params: { entityTypeId?: string; entityTypeVersionId?: string },
   ) {
     const { entityTypeId, entityTypeVersionId } = params;
@@ -254,7 +254,7 @@ class __EntityType {
   }
 
   static async getEntityTypeByComponentId(
-    client: DBClient,
+    client: DbClient,
     params: { componentId: string },
   ) {
     const dbEntityType = await client.getEntityTypeByComponentId(params);
@@ -262,7 +262,7 @@ class __EntityType {
   }
 
   static async getEntityTypeBySchema$id(
-    client: DBClient,
+    client: DbClient,
     params: { schema$id: string },
   ): Promise<EntityType | null> {
     const dbEntityType = await client.getEntityTypeBySchema$id(params);
@@ -270,7 +270,7 @@ class __EntityType {
     return dbEntityType ? new EntityType(dbEntityType) : null;
   }
 
-  static async getEntityTypeType(client: DBClient) {
+  static async getEntityTypeType(client: DbClient) {
     const dbEntityTypeEntityType = await client.getSystemTypeLatestVersion({
       systemTypeName: "EntityType",
     });
@@ -278,7 +278,7 @@ class __EntityType {
   }
 
   static async getAccountEntityTypes(
-    client: DBClient,
+    client: DbClient,
     params: { accountId: string; includeOtherTypesInUse?: boolean | null },
   ) {
     const dbTypes = await client.getAccountEntityTypes(params);
@@ -286,7 +286,7 @@ class __EntityType {
     return dbTypes.map((dbType) => new EntityType(dbType).toGQLEntityType());
   }
 
-  async getChildren(client: DBClient) {
+  async getChildren(client: DbClient) {
     const schema$id = this.properties.$id;
     if (!schema$id) {
       throw new Error(
@@ -301,7 +301,7 @@ class __EntityType {
     return dbEntityTypes.map((entityType) => new EntityType(entityType));
   }
 
-  async getParents(client: DBClient): Promise<EntityType[]> {
+  async getParents(client: DbClient): Promise<EntityType[]> {
     const parentSchema$ids = getSchemaAllOfRefs(this.properties);
 
     return await Promise.all(
@@ -327,7 +327,7 @@ class __EntityType {
   /**
    * Get all parents recursively, resolving parents' parents and so forth.
    */
-  async getAncestors(client: DBClient): Promise<EntityType[]> {
+  async getAncestors(client: DbClient): Promise<EntityType[]> {
     const parents = await this.getParents(client);
 
     return [

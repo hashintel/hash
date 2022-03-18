@@ -6,7 +6,7 @@ import {
   EntityExternalResolvers,
   UnresolvedGQLEntityType,
 } from ".";
-import { DBClient } from "../db";
+import { DbClient } from "../db";
 import { DbBlockProperties, EntityType } from "../db/adapter";
 import { SystemTypeName, Block as GQLBlock } from "../graphql/apiTypes.gen";
 
@@ -32,7 +32,7 @@ class __Block extends Entity {
     this.parentEntityId = args.outgoingEntityIds?.[0] ?? undefined;
   }
 
-  static async getEntityType(client: DBClient): Promise<EntityType> {
+  static async getEntityType(client: DbClient): Promise<EntityType> {
     const blockEntityType = await client.getSystemTypeLatestVersion({
       systemTypeName: "Block",
     });
@@ -40,7 +40,7 @@ class __Block extends Entity {
   }
 
   static async createBlock(
-    client: DBClient,
+    client: DbClient,
     params: {
       accountId?: string;
       properties: DbBlockProperties;
@@ -73,7 +73,7 @@ class __Block extends Entity {
     return new Block({ ...entity, properties });
   }
 
-  static async fromEntity(client: DBClient, entity: Entity): Promise<Block> {
+  static async fromEntity(client: DbClient, entity: Entity): Promise<Block> {
     if (
       entity.entityType.entityId !==
       (await Block.getEntityType(client)).entityId
@@ -89,7 +89,7 @@ class __Block extends Entity {
   }
 
   static async getBlockById(
-    client: DBClient,
+    client: DbClient,
     params: { accountId: string; entityId: string },
   ): Promise<Block | null> {
     const { accountId, entityId } = params;
@@ -103,7 +103,7 @@ class __Block extends Entity {
     return dbBlock ? new Block(dbBlock) : null;
   }
 
-  async getBlockData(client: DBClient): Promise<Entity> {
+  async getBlockData(client: DbClient): Promise<Entity> {
     const blockDataLinks = await this.getOutgoingLinks(client, {
       path: ["data"],
     });

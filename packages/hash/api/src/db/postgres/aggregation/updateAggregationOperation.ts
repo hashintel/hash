@@ -7,7 +7,7 @@ import {
 import { DbEntityNotFoundError } from "../..";
 import { insertAggregation, updateAggregationRowOperation } from "./util";
 import { getEntityAggregation } from "./getEntityAggregation";
-import { DBAggregation } from "../../adapter";
+import { DbAggregation } from "../../adapter";
 import { requireTransaction } from "../util";
 import { DbAggregationNotFoundError } from "../../errors";
 
@@ -19,7 +19,7 @@ export const updateAggregationOperation = (
     path: string;
     operation: object;
   },
-): Promise<DBAggregation> =>
+): Promise<DbAggregation> =>
   requireTransaction(existingConnection)(async (conn) => {
     const { sourceAccountId, sourceEntityId, operation } = params;
 

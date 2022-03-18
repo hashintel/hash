@@ -1,7 +1,7 @@
 import jp from "jsonpath";
 import { UserInputError } from "apollo-server-errors";
 import { get, orderBy } from "lodash";
-import { DBClient } from "../db";
+import { DbClient } from "../db";
 import {
   Entity,
   isUnupportedJSONPath,
@@ -15,7 +15,7 @@ import {
   AggregateOperation,
   AggregateOperationInput,
 } from "../graphql/apiTypes.gen";
-import { DBAggregation } from "../db/adapter";
+import { DbAggregation } from "../db/adapter";
 
 export type GQLLinkedAggregationExternalResolvers = "__typename" | "results";
 
@@ -49,7 +49,7 @@ export type AggregationConstructorArgs = {
   createdAt: Date;
 };
 
-const mapDBAggregationToModel = (dbAggregation: DBAggregation) =>
+const mapDbAggregationToModel = (dbAggregation: DbAggregation) =>
   new Aggregation({
     ...dbAggregation,
     stringifiedPath: dbAggregation.path,
@@ -195,7 +195,7 @@ class __Aggregation {
   }
 
   static async create(
-    client: DBClient,
+    client: DbClient,
     params: CreateAggregationArgs,
   ): Promise<Aggregation> {
     const {
@@ -234,11 +234,11 @@ class __Aggregation {
       createdByAccountId: createdBy.accountId,
     });
 
-    return mapDBAggregationToModel(dbAggregation);
+    return mapDbAggregationToModel(dbAggregation);
   }
 
   static async getEntityAggregation(
-    client: DBClient,
+    client: DbClient,
     params: {
       source: Entity;
       stringifiedPath: string;
@@ -256,11 +256,11 @@ class __Aggregation {
       path: stringifiedPath,
     });
 
-    return dbAggregation ? mapDBAggregationToModel(dbAggregation) : null;
+    return dbAggregation ? mapDbAggregationToModel(dbAggregation) : null;
   }
 
   static async getAllEntityAggregations(
-    client: DBClient,
+    client: DbClient,
     params: {
       source: Entity;
     },
@@ -276,11 +276,11 @@ class __Aggregation {
         : undefined,
     });
 
-    return dbAggregations.map(mapDBAggregationToModel);
+    return dbAggregations.map(mapDbAggregationToModel);
   }
 
   async updateOperation(
-    client: DBClient,
+    client: DbClient,
     params: {
       operation: AggregateOperationInput;
     },
@@ -302,7 +302,7 @@ class __Aggregation {
     return this;
   }
 
-  async getResults(client: DBClient): Promise<Entity[]> {
+  async getResults(client: DbClient): Promise<Entity[]> {
     const {
       entityTypeId,
       entityTypeVersionId,
@@ -342,7 +342,7 @@ class __Aggregation {
   }
 
   async delete(
-    client: DBClient,
+    client: DbClient,
     params: { deletedByAccountId: string },
   ): Promise<void> {
     const { deletedByAccountId } = params;
@@ -355,7 +355,7 @@ class __Aggregation {
   }
 
   async toGQLLinkedAggregation(
-    client: DBClient,
+    client: DbClient,
   ): Promise<UnresolvedGQLLinkedAggregation> {
     const { itemsPerPage } = this.operation;
 
