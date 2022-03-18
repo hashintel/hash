@@ -33,6 +33,13 @@ const rootTypographyStyles = `
   }
 
   :root {
+    --f--3-min: 12;
+    --f--3-max: 12;
+    --step--3: calc(
+      ((var(--f--3-min) / 16) * 1rem) + (var(--f--3-max) - var(--f--3-min)) *
+        var(--fluid-bp)
+    );
+  
     --f--2-min: 13;
     --f--2-max: 14;
     --step--2: calc(

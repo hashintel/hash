@@ -91,4 +91,29 @@ export const typography: ThemeOptions["typography"] = {
     lineHeight: 1.1,
     color: customColors.gray[90],
   },
+  hashSmallText: {
+    fontSize: "var(--step--1)",
+    fontWeight: 400,
+    color: customColors.gray[70],
+    lineHeight: 1.4,
+  },
+  hashSmallTextMedium: {
+    fontSize: "var(--step--1)",
+    fontWeight: 500,
+    color: customColors.gray[70],
+    lineHeight: 1.4,
+  },
+  hashSmallCaps: {
+    fontWeight: 600,
+    fontSize: "var(--step--3)",
+    lineHeight: 1.4,
+    color: customColors.gray[80],
+    textTransform: "uppercase",
+  },
+  hashFooterHeading: {
+    fontSize: "var(--step--1)",
+    fontWeight: 600,
+    color: customColors.gray[80],
+    lineHeight: 1.2,
+  },
 };

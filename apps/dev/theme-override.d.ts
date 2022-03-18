@@ -8,6 +8,9 @@ declare module "@mui/material/styles" {
     purple: {
       600: string;
     };
+    blue: {
+      700: string;
+    };
     yellow: {
       100: string;
       200: string;
@@ -55,6 +58,10 @@ declare module "@mui/material/styles" {
     bpBodyCopy: React.CSSProperties;
     bpSmallCopy: React.CSSProperties;
     bpMicroCopy: React.CSSProperties;
+    hashSmallText: React.CSSProperties;
+    hashSmallTextMedium: React.CSSProperties;
+    hashSmallCaps: React.CSSProperties;
+    hashFooterHeading: React.CSSProperties;
   }
 
   interface TypographyVariantsOptions {
@@ -69,6 +76,10 @@ declare module "@mui/material/styles" {
     bpBodyCopy?: React.CSSProperties;
     bpSmallCopy?: React.CSSProperties;
     bpMicroCopy?: React.CSSProperties;
+    hashSmallText?: React.CSSProperties;
+    hashSmallTextMedium?: React.CSSProperties;
+    hashSmallCaps?: React.CSSProperties;
+    hashFooterHeading?: React.CSSProperties;
   }
 }
 
@@ -85,6 +96,11 @@ declare module "@mui/material/Typography" {
     bpBodyCopy: true;
     bpSmallCopy: true;
     bpMicroCopy: true;
+
+    hashSmallText: true;
+    hashSmallTextMedium: true;
+    hashFooterHeading: true;
+    hashSmallCaps: true;
   }
 }
 

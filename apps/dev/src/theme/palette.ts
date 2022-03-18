@@ -146,6 +146,9 @@ export const customColors = {
   purple: {
     600: "#7A4FF5",
   },
+  blue: {
+    700: "#0775E3",
+  },
   // should adjust to be consistent with the ones above
   gray: {
     10: "#F7FAFC",
