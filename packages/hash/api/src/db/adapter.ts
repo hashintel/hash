@@ -240,11 +240,11 @@ export interface DbClient {
   createEntity(params: {
     accountId: string;
     createdByAccountId: string;
-    entityId?: string | null | undefined;
-    entityVersionId?: string | null | undefined;
+    entityId?: string;
+    entityVersionId?: string;
     entityTypeId?: string;
-    entityTypeVersionId?: string | null | undefined;
-    systemTypeName?: SystemType | null | undefined;
+    entityTypeVersionId?: string;
+    systemTypeName?: SystemType;
     versioned: boolean;
     properties: any;
   }): Promise<DbEntity>;

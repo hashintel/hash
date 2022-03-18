@@ -18,7 +18,6 @@ import {
   EntityVersion,
   VerificationCode,
 } from "../adapter";
-import { SystemType } from "../../types/entityTypes";
 import { createPoolConnection, createTransactionConnection } from "./types";
 
 export type Config = {
@@ -74,46 +73,33 @@ export class PostgresAdapter extends DataSource implements DbAdapter {
     });
   }
 
-  createEntityType(params: {
-    accountId: string;
-    createdByAccountId: string;
-    name: string;
-    schema: Record<string, any>;
-  }): Promise<EntityType> {
+  createEntityType(
+    params: Parameters<DbClient["createEntityType"]>[0],
+  ): Promise<EntityType> {
     return this.query((adapter) => adapter.createEntityType(params));
   }
 
-  createEntity(params: {
-    accountId: string;
-    entityVersionId?: string;
-    entityTypeId?: string;
-    entityTypeVersionId?: string;
-    systemTypeName?: SystemType;
-    createdByAccountId: string;
-    versioned: boolean;
-    properties: any;
-  }): Promise<DbEntity> {
+  createEntity(
+    params: Parameters<DbClient["createEntity"]>[0],
+  ): Promise<DbEntity> {
     return this.query((adapter) => adapter.createEntity(params));
   }
 
-  getEntityAccountId(params: {
-    entityId: string;
-    entityVersionId?: string;
-  }): Promise<string> {
+  getEntityAccountId(
+    params: Parameters<DbClient["getEntityAccountId"]>[0],
+  ): Promise<string> {
     return this.query((adapter) => adapter.getEntityAccountId(params));
   }
 
-  getEntity(params: {
-    accountId: string;
-    entityVersionId: string;
-  }): Promise<DbEntity | undefined> {
+  getEntity(
+    params: Parameters<DbClient["getEntity"]>[0],
+  ): Promise<DbEntity | undefined> {
     return this.query((adapter) => adapter.getEntity(params));
   }
 
-  getEntityLatestVersion(params: {
-    accountId: string;
-    entityId: string;
-  }): Promise<DbEntity | undefined> {
+  getEntityLatestVersion(
+    params: Parameters<DbClient["getEntityLatestVersion"]>[0],
+  ): Promise<DbEntity | undefined> {
     return this.query((adapter) => adapter.getEntityLatestVersion(params));
   }
 
@@ -123,15 +109,15 @@ export class PostgresAdapter extends DataSource implements DbAdapter {
     return this.query((adapter) => adapter.getEntityType(params));
   }
 
-  getEntityTypeLatestVersion(params: {
-    entityTypeId: string;
-  }): Promise<EntityType | null> {
+  getEntityTypeLatestVersion(
+    params: Parameters<DbClient["getEntityTypeLatestVersion"]>[0],
+  ): Promise<EntityType | null> {
     return this.query((adapter) => adapter.getEntityTypeLatestVersion(params));
   }
 
-  getSystemTypeLatestVersion(params: {
-    systemTypeName: SystemType;
-  }): Promise<EntityType> {
+  getSystemTypeLatestVersion(
+    params: Parameters<DbClient["getSystemTypeLatestVersion"]>[0],
+  ): Promise<EntityType> {
     return this.query((adapter) => adapter.getSystemTypeLatestVersion(params));
   }
 
@@ -159,57 +145,51 @@ export class PostgresAdapter extends DataSource implements DbAdapter {
     return this.query((adapter) => adapter.updateEntityType(params));
   }
 
-  updateEntity(params: {
-    updatedByAccountId: string;
-    accountId: string;
-    entityId: string;
-    properties: any;
-  }): Promise<DbEntity> {
+  updateEntity(
+    params: Parameters<DbClient["updateEntity"]>[0],
+  ): Promise<DbEntity> {
     return this.query((adapter) => adapter.updateEntity(params));
   }
 
-  updateEntityAccountId(params: {
-    originalAccountId: string;
-    entityId: string;
-    newAccountId: string;
-  }): Promise<void> {
+  updateEntityAccountId(
+    params: Parameters<DbClient["updateEntityAccountId"]>[0],
+  ): Promise<void> {
     return this.query((adapter) => adapter.updateEntityAccountId(params));
   }
 
-  getUserByEmail(params: {
-    email: string;
-    verified?: boolean;
-    primary?: boolean;
-  }): Promise<DbEntity | null> {
+  getUserByEmail(
+    params: Parameters<DbClient["getUserByEmail"]>[0],
+  ): Promise<DbEntity | null> {
     return this.query((adapter) => adapter.getUserByEmail(params));
   }
 
-  getUserByShortname(params: { shortname: string }): Promise<DbEntity | null> {
+  getUserByShortname(
+    params: Parameters<DbClient["getUserByShortname"]>[0],
+  ): Promise<DbEntity | null> {
     return this.query((adapter) => adapter.getUserByShortname(params));
   }
 
-  getOrgByShortname(params: { shortname: string }): Promise<DbEntity | null> {
+  getOrgByShortname(
+    params: Parameters<DbClient["getOrgByShortname"]>[0],
+  ): Promise<DbEntity | null> {
     return this.query((adapter) => adapter.getOrgByShortname(params));
   }
 
-  getEntitiesByType(params: {
-    entityTypeId: string;
-    entityTypeVersionId?: string;
-    accountId: string;
-    latestOnly: boolean;
-  }): Promise<DbEntity[]> {
+  getEntitiesByType(
+    params: Parameters<DbClient["getEntitiesByType"]>[0],
+  ): Promise<DbEntity[]> {
     return this.query((adapter) => adapter.getEntitiesByType(params));
   }
 
-  getEntitiesBySystemType(params: {
-    accountId: string;
-    systemTypeName: SystemType;
-    latestOnly?: boolean;
-  }): Promise<DbEntity[]> {
+  getEntitiesBySystemType(
+    params: Parameters<DbClient["getEntitiesBySystemType"]>[0],
+  ): Promise<DbEntity[]> {
     return this.query((adapter) => adapter.getEntitiesBySystemType(params));
   }
 
-  accountExists(params: { accountId: string }): Promise<boolean> {
+  accountExists(
+    params: Parameters<DbClient["accountExists"]>[0],
+  ): Promise<boolean> {
     return this.query((adapter) => adapter.accountExists(params));
   }
 
@@ -217,26 +197,13 @@ export class PostgresAdapter extends DataSource implements DbAdapter {
     return this.query((adapter) => adapter.getAllAccounts());
   }
 
-  updateEntityMetadata(params: {
-    accountId: string;
-    entityId: string;
-    extra: any;
-  }): Promise<EntityMeta> {
+  updateEntityMetadata(
+    params: Parameters<DbClient["updateEntityMetadata"]>[0],
+  ): Promise<EntityMeta> {
     return this.query((adapter) => adapter.updateEntityMetadata(params));
   }
 
-  createLink(params: {
-    createdByAccountId: string;
-    accountId: string;
-    path: string;
-    index?: number;
-    sourceAccountId: string;
-    sourceEntityId: string;
-    sourceEntityVersionIds: Set<string>;
-    destinationAccountId: string;
-    destinationEntityId: string;
-    destinationEntityVersionId?: string;
-  }): Promise<DbLink> {
+  createLink(params: Parameters<DbClient["createLink"]>[0]): Promise<DbLink> {
     return this.query((adapter) => adapter.createLink(params));
   }
 
@@ -244,18 +211,11 @@ export class PostgresAdapter extends DataSource implements DbAdapter {
     return this.query((adapter) => adapter.updateLink(params));
   }
 
-  getLink(params: {
-    sourceAccountId: string;
-    linkId: string;
-  }): Promise<DbLink | null> {
+  getLink(params: Parameters<DbClient["getLink"]>[0]): Promise<DbLink | null> {
     return this.query((adapter) => adapter.getLink(params));
   }
 
-  deleteLink(params: {
-    deletedByAccountId: string;
-    sourceAccountId: string;
-    linkId: string;
-  }): Promise<void> {
+  deleteLink(params: Parameters<DbClient["deleteLink"]>[0]): Promise<void> {
     return this.query((adapter) => adapter.deleteLink(params));
   }
 
@@ -301,53 +261,47 @@ export class PostgresAdapter extends DataSource implements DbAdapter {
     return this.query((adapter) => adapter.deleteAggregation(params));
   }
 
-  createVerificationCode(params: {
-    accountId: string;
-    userId: string;
-    code: string;
-    emailAddress: string;
-  }): Promise<VerificationCode> {
+  createVerificationCode(
+    params: Parameters<DbClient["createVerificationCode"]>[0],
+  ): Promise<VerificationCode> {
     return this.query((adapter) => adapter.createVerificationCode(params));
   }
 
-  getVerificationCode(params: {
-    id: string;
-  }): Promise<VerificationCode | null> {
+  getVerificationCode(
+    params: Parameters<DbClient["getVerificationCode"]>[0],
+  ): Promise<VerificationCode | null> {
     return this.query((adapter) => adapter.getVerificationCode(params));
   }
 
-  getUserVerificationCodes(params: {
-    userEntityId: string;
-    createdAfter?: Date;
-  }): Promise<VerificationCode[]> {
+  getUserVerificationCodes(
+    params: Parameters<DbClient["getUserVerificationCodes"]>[0],
+  ): Promise<VerificationCode[]> {
     return this.query((adapter) => adapter.getUserVerificationCodes(params));
   }
 
-  incrementVerificationCodeAttempts(params: {
-    id: string;
-    userId: string;
-  }): Promise<void> {
+  incrementVerificationCodeAttempts(
+    params: Parameters<DbClient["incrementVerificationCodeAttempts"]>[0],
+  ): Promise<void> {
     return this.query((adapter) =>
       adapter.incrementVerificationCodeAttempts(params),
     );
   }
 
-  setVerificationCodeToUsed(params: {
-    id: string;
-    userId: string;
-  }): Promise<void> {
+  setVerificationCodeToUsed(
+    params: Parameters<DbClient["setVerificationCodeToUsed"]>[0],
+  ): Promise<void> {
     return this.query((adapter) => adapter.setVerificationCodeToUsed(params));
   }
 
-  pruneVerificationCodes(params: { maxAgeInMs: number }): Promise<number> {
+  pruneVerificationCodes(
+    params: Parameters<DbClient["pruneVerificationCodes"]>[0],
+  ): Promise<number> {
     return this.query((adapter) => adapter.pruneVerificationCodes(params));
   }
 
-  getEntityHistory(params: {
-    accountId: string;
-    entityId: string;
-    order: "asc" | "desc";
-  }): Promise<EntityVersion[]> {
+  getEntityHistory(
+    params: Parameters<DbClient["getEntityHistory"]>[0],
+  ): Promise<EntityVersion[]> {
     return this.query((adapter) => adapter.getEntityHistory(params));
   }
 
@@ -367,29 +321,27 @@ export class PostgresAdapter extends DataSource implements DbAdapter {
     return this.query((adapter) => adapter.getAccountEntities(params));
   }
 
-  getAccountEntityTypes(params: {
-    accountId: string;
-    includeOtherTypesInUse?: boolean | null;
-  }): Promise<EntityType[]> {
+  getAccountEntityTypes(
+    params: Parameters<DbClient["getAccountEntityTypes"]>[0],
+  ): Promise<EntityType[]> {
     return this.query((adapter) => adapter.getAccountEntityTypes(params));
   }
 
-  acquireEntityLock = (params: { entityId: string }): Promise<null> => {
+  acquireEntityLock(
+    params: Parameters<DbClient["getEntityAccountId"]>[0],
+  ): Promise<null> {
     return this.query((adapter) => adapter.acquireEntityLock(params));
-  };
+  }
 
-  getImpliedEntityHistory = (params: {
-    accountId: string;
-    entityId: string;
-  }) => {
+  getImpliedEntityHistory(
+    params: Parameters<DbClient["getImpliedEntityHistory"]>[0],
+  ) {
     return this.query((adapter) => adapter.getImpliedEntityHistory(params));
-  };
+  }
 
-  getAncestorReferences(params: {
-    accountId: string;
-    entityId: string;
-    depth?: number;
-  }) {
+  getAncestorReferences(
+    params: Parameters<DbClient["getAncestorReferences"]>[0],
+  ) {
     return this.query((adapter) => adapter.getAncestorReferences(params));
   }
 
@@ -397,11 +349,7 @@ export class PostgresAdapter extends DataSource implements DbAdapter {
     return this.query((adapter) => adapter.getSystemAccountId());
   }
 
-  getChildren(params: {
-    accountId: string;
-    entityId: string;
-    entityVersionId: string;
-  }) {
+  getChildren(params: Parameters<DbClient["getChildren"]>[0]) {
     return this.query((adapter) => adapter.getChildren(params));
   }
 }
