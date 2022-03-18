@@ -1,5 +1,15 @@
 import { VFC, useRef, useMemo } from "react";
-import { Box, Typography, Menu, MenuItem, Divider } from "@mui/material";
+import {
+  Box,
+  Typography,
+  Menu,
+  MenuItem,
+  Divider,
+  menuItemClasses,
+  ListItemText,
+  ListItemAvatar,
+  listItemTextClasses,
+} from "@mui/material";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
 import { useRouter } from "next/router";
 import {
@@ -52,9 +62,27 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
     return { name: accountName || "User" };
   }, [query, user]);
 
+  const workspaceList = useMemo(() => {
+    return [
+      {
+        key: user?.accountId,
+        url: "/",
+        title: "My personal workspace",
+        subText: `@${user?.properties.shortname ?? "user"}`,
+        avatarTitle: user?.properties.preferredName ?? "U",
+      },
+      ...(user?.memberOf ?? []).map(({ org }) => ({
+        key: org.accountId,
+        url: `/${org.accountId}`,
+        title: org.properties.name,
+        subText: `${org.memberships.length} members`,
+        avatarTitle: org.properties.name,
+      })),
+    ];
+  }, [user]);
+
   return (
     <Box>
-      {/* @todo-mui use the Button component for this instead  */}
       <Button
         ref={buttonRef}
         variant="tertiary_quiet"
@@ -87,91 +115,36 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
           sx={{ fontSize: 12, color: ({ palette }) => palette.gray[70] }}
         />
       </Button>
+
       <Menu {...bindMenu(popupState)}>
-        <MenuItem>
-          <Link
-            href="/"
-            noLinkStyle
+        {workspaceList.map(({ title, subText, url, key }) => (
+          <MenuItem
+            key={key}
             sx={{
-              display: "flex",
+              [`&.${menuItemClasses.focusVisible}`]: {
+                backgroundColor: "red",
+              },
             }}
           >
-            <Avatar
-              size={38}
-              title={user?.properties.preferredName ?? "U"}
-              sx={{
-                mr: 0.75,
-              }}
-            />
-
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              <Typography
-                variant="smallTextLabels"
-                sx={{
-                  fontWeight: 600,
-                  color: ({ palette }) => palette.gray[80],
-                  mb: "2px",
-                }}
-              >
-                My personal workspace
-              </Typography>
-              <Typography
-                variant="microText"
-                sx={{
-                  color: ({ palette }) => palette.gray[50],
-                  fontWeight: 500,
-                }}
-              >{`@${user?.properties.shortname ?? "user"}`}</Typography>
-            </Box>
-          </Link>
-        </MenuItem>
-
-        {user?.memberOf.map(({ org }) => (
-          <MenuItem key={org.accountId} onClick={popupState.close}>
             <Link
-              href={`/${org.accountId}`}
+              href={url}
               noLinkStyle
-              key={org.accountId}
               sx={{
                 display: "flex",
               }}
             >
-              <Avatar
-                size={38}
-                sx={{
-                  mr: 0.75,
-                }}
-                title={org.properties.name}
+              <ListItemAvatar>
+                <Avatar
+                  size={34}
+                  title={user?.properties.preferredName ?? "U"}
+                />
+              </ListItemAvatar>
+
+              <ListItemText
+                primary={title}
+                secondary={subText}
+                primaryTypographyProps={{ fontWeight: 600 }}
               />
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                <Typography
-                  variant="smallTextLabels"
-                  sx={{
-                    fontWeight: 600,
-                    color: ({ palette }) => palette.gray[80],
-                    mb: "2px",
-                  }}
-                >
-                  {org.properties.name}
-                </Typography>
-                <Typography
-                  variant="microText"
-                  sx={{
-                    color: ({ palette }) => palette.gray[50],
-                    fontWeight: 500,
-                  }}
-                >{`${org.memberships.length} members`}</Typography>
-              </Box>
             </Link>
           </MenuItem>
         ))}
@@ -192,29 +165,20 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
         ].map(({ title, id, href }) => (
           <MenuItem key={id}>
             <Link key={id} href={href} noLinkStyle>
-              <Typography
-                variant="smallTextLabels"
-                sx={{
-                  lineHeight: 1,
-                  color: ({ palette }) => palette.gray[80],
-                  fontWeight: 500,
-                }}
-              >
-                {title}
-              </Typography>
+              <ListItemText primary={title} />
             </Link>
           </MenuItem>
         ))}
         <Divider />
-        <MenuItem onClick={() => logout()}>
-          <Typography
-            variant="smallTextLabels"
-            sx={{
+        <MenuItem
+          sx={{
+            [`& .${listItemTextClasses.primary}`]: {
               color: ({ palette }) => palette.gray[60],
-            }}
-          >
-            Sign out
-          </Typography>
+            },
+          }}
+          onClick={() => logout()}
+        >
+          <ListItemText primary="Sign out" />
         </MenuItem>
       </Menu>
     </Box>

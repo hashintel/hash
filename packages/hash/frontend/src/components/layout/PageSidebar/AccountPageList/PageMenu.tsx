@@ -65,7 +65,14 @@ const menuItems = [
 
 export const PageMenu: VFC<PageMenuProps> = ({ popupState }) => {
   return (
-    <Menu {...bindMenu(popupState)}>
+    <Menu
+      {...bindMenu(popupState)}
+      PaperProps={{
+        sx: {
+          minWidth: 240,
+        },
+      }}
+    >
       {menuItems.map(({ title, icon, type, id }) => {
         if (type === "divider") {
           return <Divider key={id} />;

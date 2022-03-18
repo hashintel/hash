@@ -60,6 +60,9 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
       const focusBorderOffset =
         buttonFocusBorderOffset[variant === "primary" ? "lg" : "md"];
 
+      const focusBorderWidth =
+        buttonFocusBorderWidth[variant === "primary" ? "lg" : "md"];
+
       // The :focus-visible:after CSS styling applied to the button
       const focusVisibleAfterStyles: CSSObject = {
         content: `""`,
@@ -68,7 +71,7 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         top: -focusBorderOffset,
         bottom: -focusBorderOffset,
         right: -focusBorderOffset,
-        border: `${buttonFocusBorderWidth}px solid`,
+        border: `${focusBorderWidth}px solid`,
         borderRadius:
           buttonBorderRadius[size === "large" ? "lg" : "md"] +
           focusBorderOffset,
@@ -112,12 +115,6 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           opacity: 1,
         };
 
-        // focusStyles = {
-        //   ...focusStyles,
-        //   color: theme.palette.common.white,
-        //   background: theme.palette.blue[70],
-        // };
-
         focusVisibleBeforeStyles = {
           ...focusVisibleBeforeStyles,
           opacity: 0,
@@ -136,11 +133,6 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           ...hoverStyles,
           background: theme.palette.blue[20],
         };
-
-        // focusStyles = {
-        //   color: theme.palette.blue[70],
-        //   background: theme.palette.common.white,
-        // };
       } else if (variant === "tertiary") {
         /** ===== TERTIARY variant specific styling ===== */
         baseStyles = {
@@ -165,16 +157,6 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
             color: theme.palette.gray[80],
           },
         };
-
-        // focusStyles = {
-        //   ...focusStyles,
-        //   color: theme.palette.gray[80],
-        //   background: theme.palette.common.white,
-
-        //   [`& > .${buttonClasses.startIcon}, & > .${buttonClasses.endIcon}`]: {
-        //     color: theme.palette.gray[50],
-        //   },
-        // };
       } else if (variant === "tertiary_quiet") {
         /** ===== TERTIARY QUIET variant specific styling ===== */
         baseStyles = {
@@ -197,16 +179,6 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
             color: theme.palette.gray[80],
           },
         };
-
-        // focusStyles = {
-        //   ...focusStyles,
-        //   color: theme.palette.gray[80],
-        //   background: theme.palette.common.white,
-
-        //   [`& > .${buttonClasses.startIcon}, & > .${buttonClasses.endIcon}`]: {
-        //     color: theme.palette.gray[50],
-        //   },
-        // };
       } else if (variant === "warning") {
         /** ===== WARNING variant specific styling ===== */
         baseStyles = {
@@ -220,12 +192,6 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           background: theme.palette.orange[50],
           color: theme.palette.orange[100],
         };
-
-        // focusStyles = {
-        //   ...focusStyles,
-        //   color: theme.palette.orange[90],
-        //   background: theme.palette.orange[40],
-        // };
       } else if (variant === "danger") {
         /** ===== DANGER variant specific styling ===== */
         baseStyles = {
@@ -238,12 +204,6 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           ...hoverStyles,
           background: theme.palette.red[70],
         };
-
-        // focusStyles = {
-        //   ...focusStyles,
-        //   color: theme.palette.common.white,
-        //   background: theme.palette.red[60],
-        // };
       }
 
       /** ====================== SIZE specific styling ============================= */
