@@ -18,6 +18,9 @@ table TaskCancelled {
   task_id:TaskId;
 }
 
+table SyncCompletion {
+}
+
 
 // The payload for the `RunnerOutboundMsg` type
 //
@@ -33,7 +36,8 @@ union RunnerOutboundMsgPayload {
   RunnerWarnings,
   PackageError,
   UserErrors,
-  UserWarnings
+  UserWarnings,
+  SyncCompletion
 }
 
 table RunnerOutboundMsg {
