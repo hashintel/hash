@@ -173,7 +173,9 @@ class GroupState:
         for i_agent, agent_msgs in enumerate(group_msgs):
             if self.__msgs_native[i_agent]:
                 for msg in agent_msgs:
-                    msg['data'] = json.dumps(msg['data'])
+                    # When sending a remove-agent message, `data` may be empty to remove self
+                    if "data" in msg:
+                        msg['data'] = json.dumps(msg['data'])
 
         self.__msg_batch.flush_changes(schema.message, set())
 
