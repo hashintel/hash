@@ -3,10 +3,6 @@ import type { NextPage } from "next";
 import Head from "next/head";
 import { ComponentProps, VFC } from "react";
 
-const HeroDividerBox: VFC<ComponentProps<typeof Box>> = ({
-  sx = [],
-  ...props
-}) => <Box sx={[...(Array.isArray(sx) ? sx : [sx])]} {...props} />;
 const HeroDivider: VFC<ComponentProps<typeof Stack>> = (props) => {
   const bgcolor = "orange.400";
   const size = 12;
