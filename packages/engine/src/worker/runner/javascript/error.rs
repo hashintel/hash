@@ -3,7 +3,6 @@ use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 use tracing::Span;
 
-use super::mini_v8 as mv8;
 use crate::{
     proto::SimulationShortId,
     simulation::package::id::PackageId,
@@ -87,12 +86,6 @@ pub enum Error {
 
     #[error("serde: {0:?}")]
     Serde(#[from] serde_json::Error),
-}
-
-impl From<mv8::Error<'_>> for Error {
-    fn from(e: mv8::Error<'_>) -> Self {
-        Error::V8(format!("{:?}", e))
-    }
 }
 
 impl From<&str> for Error {
