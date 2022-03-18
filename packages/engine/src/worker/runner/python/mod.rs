@@ -20,6 +20,7 @@ use super::comms::{
 };
 use crate::{
     proto::SimulationShortId,
+    simulation::comms::message::SyncCompletionSender,
     types::TaskId,
     worker::{
         runner::comms::outbound::OutboundFromRunnerMsgPayload, Error as WorkerError,
@@ -139,6 +140,7 @@ async fn _run(
 
     tracing::debug!("Waiting for messages to Python runner");
     let mut sent_tasks: HashMap<TaskId, SentTask> = HashMap::new();
+    let mut sync_completion_sender = None;
     'select_loop: loop {
         // TODO: Send errors instead of immediately stopping?
         tokio::select! {
@@ -177,15 +179,9 @@ async fn _run(
                 match inbound {
                     InboundToRunnerMsgPayload::TerminateRunner => break 'select_loop,
                     InboundToRunnerMsgPayload::StateSync(sync) => {
-                        // TODO: Remember inbound state sync (store completion sender
-                        //       in some hashmap) and only send the completion message
-                        //       after receiving the corresponding outbound nng message
-                        //       from the Python process -- not immediately.
-                        sync.completion_sender
-                            .send(Ok(()))
-                            .map_err(|e| Error::from(format!(
-                                "Couldn't send state sync completion from Python: {:?}", e
-                            )))?;
+                        if sync_completion_sender.replace(sync.completion_sender).is_some() {
+                            return Err(Error::AlreadyAwaiting.into())
+                        }
                     }
                     InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMsg {
                         task_id,
@@ -226,8 +222,18 @@ async fn _run(
                     err
                 })?;
                 tracing::trace!("Got outbound {outbound:?}");
-                if let OutboundFromRunnerMsgPayload::RunnerWarnings(warnings) = &outbound.payload {
-                    tracing::warn!("Sim {} warnings: {warnings:?}", outbound.sim_id);
+                match &outbound.payload {
+                    OutboundFromRunnerMsgPayload::RunnerWarnings(warnings) => {
+                        tracing::warn!("Sim {} warnings: {warnings:?}", outbound.sim_id);
+                    }
+                    OutboundFromRunnerMsgPayload::SyncCompletion => {
+                        sync_completion_sender.take().ok_or(Error::NotAwaiting)?
+                            .send(Ok(()))
+                            .map_err(|e| Error::from(format!(
+                                "Couldn't send state sync completion from Python: {:?}", e
+                            )))?;
+                    }
+                    _ => {},
                 }
                 outbound_sender.send(outbound)?;
             }

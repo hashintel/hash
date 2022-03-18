@@ -32,13 +32,13 @@ pub const ENUM_MIN_RUNNER_OUTBOUND_MSG_PAYLOAD: u8 = 0;
     since = "2.0.0",
     note = "Use associated constants instead. This will no longer be generated in 2021."
 )]
-pub const ENUM_MAX_RUNNER_OUTBOUND_MSG_PAYLOAD: u8 = 9;
+pub const ENUM_MAX_RUNNER_OUTBOUND_MSG_PAYLOAD: u8 = 10;
 #[deprecated(
     since = "2.0.0",
     note = "Use associated constants instead. This will no longer be generated in 2021."
 )]
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_RUNNER_OUTBOUND_MSG_PAYLOAD: [RunnerOutboundMsgPayload; 10] = [
+pub const ENUM_VALUES_RUNNER_OUTBOUND_MSG_PAYLOAD: [RunnerOutboundMsgPayload; 11] = [
     RunnerOutboundMsgPayload::NONE,
     RunnerOutboundMsgPayload::TaskMsg,
     RunnerOutboundMsgPayload::TaskCancelled,
@@ -49,6 +49,7 @@ pub const ENUM_VALUES_RUNNER_OUTBOUND_MSG_PAYLOAD: [RunnerOutboundMsgPayload; 10
     RunnerOutboundMsgPayload::PackageError,
     RunnerOutboundMsgPayload::UserErrors,
     RunnerOutboundMsgPayload::UserWarnings,
+    RunnerOutboundMsgPayload::SyncCompletion,
 ];
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
@@ -56,7 +57,7 @@ pub const ENUM_VALUES_RUNNER_OUTBOUND_MSG_PAYLOAD: [RunnerOutboundMsgPayload; 10
 pub struct RunnerOutboundMsgPayload(pub u8);
 #[allow(non_upper_case_globals)]
 impl RunnerOutboundMsgPayload {
-    pub const ENUM_MAX: u8 = 9;
+    pub const ENUM_MAX: u8 = 10;
     pub const ENUM_MIN: u8 = 0;
     pub const ENUM_VALUES: &'static [Self] = &[
         Self::NONE,
@@ -69,6 +70,7 @@ impl RunnerOutboundMsgPayload {
         Self::PackageError,
         Self::UserErrors,
         Self::UserWarnings,
+        Self::SyncCompletion,
     ];
     pub const NONE: Self = Self(0);
     pub const PackageError: Self = Self(7);
@@ -76,6 +78,7 @@ impl RunnerOutboundMsgPayload {
     pub const RunnerErrors: Self = Self(4);
     pub const RunnerWarning: Self = Self(5);
     pub const RunnerWarnings: Self = Self(6);
+    pub const SyncCompletion: Self = Self(10);
     pub const TaskCancelled: Self = Self(2);
     pub const TaskMsg: Self = Self(1);
     pub const UserErrors: Self = Self(8);
@@ -94,6 +97,7 @@ impl RunnerOutboundMsgPayload {
             Self::PackageError => Some("PackageError"),
             Self::UserErrors => Some("UserErrors"),
             Self::UserWarnings => Some("UserWarnings"),
+            Self::SyncCompletion => Some("SyncCompletion"),
             _ => None,
         }
     }
@@ -254,6 +258,85 @@ impl std::fmt::Debug for TaskCancelled<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut ds = f.debug_struct("TaskCancelled");
         ds.field("task_id", &self.task_id());
+        ds.finish()
+    }
+}
+pub enum SyncCompletionOffset {}
+#[derive(Copy, Clone, PartialEq)]
+
+pub struct SyncCompletion<'a> {
+    pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for SyncCompletion<'a> {
+    type Inner = SyncCompletion<'a>;
+
+    #[inline]
+    fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+        Self {
+            _tab: flatbuffers::Table { buf, loc },
+        }
+    }
+}
+
+impl<'a> SyncCompletion<'a> {
+    #[inline]
+    pub fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+        SyncCompletion { _tab: table }
+    }
+
+    #[allow(unused_mut)]
+    pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+        _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+        _args: &'args SyncCompletionArgs,
+    ) -> flatbuffers::WIPOffset<SyncCompletion<'bldr>> {
+        let mut builder = SyncCompletionBuilder::new(_fbb);
+        builder.finish()
+    }
+}
+
+impl flatbuffers::Verifiable for SyncCompletion<'_> {
+    #[inline]
+    fn run_verifier(
+        v: &mut flatbuffers::Verifier,
+        pos: usize,
+    ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+        use self::flatbuffers::Verifiable;
+        v.visit_table(pos)?.finish();
+        Ok(())
+    }
+}
+pub struct SyncCompletionArgs {}
+impl<'a> Default for SyncCompletionArgs {
+    #[inline]
+    fn default() -> Self {
+        SyncCompletionArgs {}
+    }
+}
+pub struct SyncCompletionBuilder<'a: 'b, 'b> {
+    fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+    start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b> SyncCompletionBuilder<'a, 'b> {
+    #[inline]
+    pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> SyncCompletionBuilder<'a, 'b> {
+        let start = _fbb.start_table();
+        SyncCompletionBuilder {
+            fbb_: _fbb,
+            start_: start,
+        }
+    }
+
+    #[inline]
+    pub fn finish(self) -> flatbuffers::WIPOffset<SyncCompletion<'a>> {
+        let o = self.fbb_.end_table(self.start_);
+        flatbuffers::WIPOffset::new(o.value())
+    }
+}
+
+impl std::fmt::Debug for SyncCompletion<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut ds = f.debug_struct("SyncCompletion");
         ds.finish()
     }
 }
@@ -424,6 +507,17 @@ impl<'a> RunnerOutboundMsg<'a> {
             None
         }
     }
+
+    #[inline]
+    #[allow(non_snake_case)]
+    pub fn payload_as_sync_completion(&self) -> Option<SyncCompletion<'a>> {
+        if self.payload_type() == RunnerOutboundMsgPayload::SyncCompletion {
+            let u = self.payload();
+            Some(SyncCompletion::init_from_table(u))
+        } else {
+            None
+        }
+    }
 }
 
 impl flatbuffers::Verifiable for RunnerOutboundMsg<'_> {
@@ -485,6 +579,11 @@ impl flatbuffers::Verifiable for RunnerOutboundMsg<'_> {
                     RunnerOutboundMsgPayload::UserWarnings => v
                         .verify_union_variant::<flatbuffers::ForwardsUOffset<UserWarnings>>(
                             "RunnerOutboundMsgPayload::UserWarnings",
+                            pos,
+                        ),
+                    RunnerOutboundMsgPayload::SyncCompletion => v
+                        .verify_union_variant::<flatbuffers::ForwardsUOffset<SyncCompletion>>(
+                            "RunnerOutboundMsgPayload::SyncCompletion",
                             pos,
                         ),
                     _ => Ok(()),
@@ -643,6 +742,16 @@ impl std::fmt::Debug for RunnerOutboundMsg<'_> {
             }
             RunnerOutboundMsgPayload::UserWarnings => {
                 if let Some(x) = self.payload_as_user_warnings() {
+                    ds.field("payload", &x)
+                } else {
+                    ds.field(
+                        "payload",
+                        &"InvalidFlatbuffer: Union discriminant does not match value.",
+                    )
+                }
+            }
+            RunnerOutboundMsgPayload::SyncCompletion => {
+                if let Some(x) = self.payload_as_sync_completion() {
                     ds.field("payload", &x)
                 } else {
                     ds.field(

@@ -37,6 +37,7 @@ from fbs import UserErrors
 from fbs import UserWarning
 from fbs import UserWarnings
 from fbs import RunnerOutboundMsg
+from fbs import SyncCompletion
 from fbs.RunnerOutboundMsgPayload import RunnerOutboundMsgPayload
 
 from batch import load_dataset
@@ -273,6 +274,10 @@ class Messenger:
         target = continuation.get("target", "Main")
         task_msg = continuation.get("task", "{}")
         fbs_bytes = outbound_task_to_fbs_bytes(sim_id, changes, pkg_id, task_id, target, group_idx, task_msg)
+        self.to_rust.send(fbs_bytes)
+
+    def send_sync_completion(self, sim_id=0):
+        fbs_bytes = completion_to_fbs_bytes(sim_id)
         self.to_rust.send(fbs_bytes)
 
     def send_runner_error(self, error, sim_id=0):
@@ -513,6 +518,25 @@ def task_to_fbs(builder, changes, pkg_id, task_id, target, group_idx, task_msg):
     FbTaskMsg.AddMetaversioning(builder, sync_offset)
     FbTaskMsg.AddPayload(builder, payload_offset)
     return FbTaskMsg.End(builder)
+
+
+def completion_to_fbs(builder):
+    SyncCompletion.Start(builder)
+    return SyncCompletion.End(builder)
+
+
+def completion_to_fbs_bytes(sim_id):
+    builder = flatbuffers.Builder(initialSize=0)
+    sync_completion = completion_to_fbs(builder)
+
+    RunnerOutboundMsg.Start(builder)
+    RunnerOutboundMsg.AddSimSid(builder, sim_id)
+    RunnerOutboundMsg.AddPayloadType(builder, RunnerOutboundMsgPayload.SyncCompletion)
+    RunnerOutboundMsg.AddPayload(builder, sync_completion)
+    outbound_offset = RunnerOutboundMsg.End(builder)
+
+    builder.Finish(outbound_offset)
+    return bytes(builder.Output())
 
 
 def outbound_task_to_fbs_bytes(sim_id, changes, pkg_id, task_id, target, group_idx, task_msg):
