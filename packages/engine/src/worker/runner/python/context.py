@@ -27,7 +27,6 @@ class AgentContext:
         return self.__sim_ctx.step()
 
     def __getattr__(self, field_name):
-        print(f"__getattr__ cols: {self.__dict__['_AgentContext__cols']}")
         elem = self.__dict__['_AgentContext__cols'][field_name][self.__dict__['_AgentContext__idx_in_sim']]
         getter = self.__dict__['_AgentContext__getters'].get(field_name)
         return elem if getter is None else getter(self, elem)
