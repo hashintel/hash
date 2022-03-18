@@ -56,15 +56,13 @@ export const ActionsDropdown: React.FC<{
       <IconButton
         size="medium"
         rounded
-        sx={{
+        sx={({ palette }) => ({
           mr: {
             xs: 1,
             md: 1.5,
           },
-          color: open ? theme.palette.common.white : theme.palette.gray[40],
-          backgroundColor: open
-            ? theme.palette.blue["70"]
-            : theme.palette.gray[20],
+          color: open ? palette.common.white : palette.gray[40],
+          backgroundColor: open ? palette.blue["70"] : palette.gray[20],
 
           ":hover": {
             boxShadow: "0px 0px 0px 2px #FFFFFF, 0px 0px 0px 5px #C1CFDE",
@@ -72,9 +70,9 @@ export const ActionsDropdown: React.FC<{
 
           "&:focus-within": {
             outline: "none",
-            boxShadow: `0px 0px 0px 2px #FFFFFF, 0px 0px 0px 5px ${theme.palette.blue[70]}`,
+            boxShadow: `0px 0px 0px 2px #FFFFFF, 0px 0px 0px 5px ${palette.blue[70]}`,
           },
-        }}
+        })}
         ref={buttonRef}
         onClick={() => setOpen(!open)}
       >

@@ -72,7 +72,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
           className="flex items-center relative m-auto focus:outline-none"
           ref={buttonRef}
           rounded
-          sx={{
+          sx={({ palette }) => ({
             height: 32,
             width: 32,
             padding: 0,
@@ -84,9 +84,9 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
             },
             "&:focus-within": {
               outline: "none",
-              boxShadow: `0px 0px 0px 2px #FFFFFF, 0px 0px 0px 5px ${theme.palette.blue[70]}`,
+              boxShadow: `0px 0px 0px 2px #FFFFFF, 0px 0px 0px 5px ${palette.blue[70]}`,
             },
-          }}
+          })}
           title={user.properties.shortname!}
         >
           {avatar ? (
