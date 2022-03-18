@@ -81,9 +81,6 @@ const Hero: VFC = () => (
   </Box>
 );
 
-/**
- * @todo gradient
- */
 const Home: NextPage = () => {
   return (
     <>
