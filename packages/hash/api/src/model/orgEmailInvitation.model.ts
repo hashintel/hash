@@ -1,10 +1,10 @@
 import { ApolloError } from "apollo-server-errors";
-import { DBClient } from "../db";
+import { DbClient } from "../db";
 import { EntityType } from "../db/adapter";
 import {
   AccessToken,
   OrgEmailInvitation,
-  DBAccessTokenProperties,
+  DbAccessTokenProperties,
   AccessTokenConstructorArgs,
   Org,
   User,
@@ -15,17 +15,17 @@ import {
 import { sendOrgEmailInvitationToEmailAddress } from "../email";
 import { EmailTransporter } from "../email/transporters";
 
-export type DBOrgEmailInvitationProperties = {
+export type DbOrgEmailInvitationProperties = {
   inviteeEmailAddress: string;
   usedAt?: string;
-} & DBAccessTokenProperties;
+} & DbAccessTokenProperties;
 
 type OrgEmailInvitationConstructorArgs = {
-  properties: DBOrgEmailInvitationProperties;
+  properties: DbOrgEmailInvitationProperties;
 } & AccessTokenConstructorArgs;
 
 class __OrgEmailInvitation extends AccessToken {
-  properties: DBOrgEmailInvitationProperties;
+  properties: DbOrgEmailInvitationProperties;
 
   errorMsgPrefix: string;
 
@@ -38,7 +38,7 @@ class __OrgEmailInvitation extends AccessToken {
     this.errorMsgPrefix = `The email invitation with entityId ${this.entityId} `;
   }
 
-  static async getEntityType(client: DBClient): Promise<EntityType> {
+  static async getEntityType(client: DbClient): Promise<EntityType> {
     const dbEntityType = await client.getSystemTypeLatestVersion({
       systemTypeName: "OrgEmailInvitation",
     });
@@ -46,7 +46,7 @@ class __OrgEmailInvitation extends AccessToken {
   }
 
   static async getOrgEmailInvitation(
-    client: DBClient,
+    client: DbClient,
     params: { accountId: string; entityId: string },
   ): Promise<OrgEmailInvitation | null> {
     const dbOrgEmailInvitation = await client.getEntityLatestVersion(params);
@@ -63,7 +63,7 @@ class __OrgEmailInvitation extends AccessToken {
    * @param {string} inviteeEmailAddress - The email address that will receive the invitation.
    */
   static async createOrgEmailInvitation(
-    client: DBClient,
+    client: DbClient,
     emailTransporter: EmailTransporter,
     params: {
       org: Org;
@@ -73,7 +73,7 @@ class __OrgEmailInvitation extends AccessToken {
   ): Promise<OrgEmailInvitation> {
     const { org, inviter, inviteeEmailAddress } = params;
 
-    const properties: DBOrgEmailInvitationProperties = {
+    const properties: DbOrgEmailInvitationProperties = {
       inviteeEmailAddress /** @todo: validate email address */,
       accessToken: AccessToken.generateAccessToken(),
     };
@@ -123,7 +123,7 @@ class __OrgEmailInvitation extends AccessToken {
   }
 
   async updateProperties(
-    client: DBClient,
+    client: DbClient,
     params: UpdatePropertiesPayload<any>,
   ) {
     await super.updateProperties(client, params);
@@ -131,7 +131,7 @@ class __OrgEmailInvitation extends AccessToken {
     return params.properties;
   }
 
-  async getOrg(client: DBClient): Promise<Org> {
+  async getOrg(client: DbClient): Promise<Org> {
     const outgoingOrgLinks = await this.getOutgoingLinks(client, {
       path: ["org"],
     });
@@ -159,7 +159,7 @@ class __OrgEmailInvitation extends AccessToken {
     return org;
   }
 
-  async getInviter(client: DBClient): Promise<User> {
+  async getInviter(client: DbClient): Promise<User> {
     const outgoingInviterLinks = await this.getOutgoingLinks(client, {
       path: ["inviter"],
     });
@@ -190,7 +190,7 @@ class __OrgEmailInvitation extends AccessToken {
   /**
    * Sets the email invitation to used.
    */
-  use(client: DBClient, updatedByAccountId: string) {
+  use(client: DbClient, updatedByAccountId: string) {
     if (this.hasBeenUsed()) {
       throw new Error(
         `OrgEmailInvitation with entityId ${this.entityId} has already been used`,

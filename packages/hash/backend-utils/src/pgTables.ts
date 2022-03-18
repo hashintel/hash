@@ -25,7 +25,7 @@ export class EntityVersion {
         typeof row.properties === "string"
           ? JSON.parse(row.properties)
           : row.properties,
-      updatedByAccountId: row.updated_by as string,
+      updatedByAccountId: row.updated_by_account_id as string,
       updatedAt: new Date(row.updated_at as string),
     };
   }

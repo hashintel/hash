@@ -11,22 +11,22 @@ description: "Get started creating agents in our Hello, HASH tutorial!"
 
 We're going to create a basic agent-based model where two agents will exchange pleasantries.
 
-To start, create a new simulation file from scratch by using the _File_ menu and clicking _New Simulation._
+To start, create a new simulation file from scratch by using the _File_ menu and clicking _New Project_ > _Empty Simulation_.
 
-In your new simulation workspace, open the **init.json** file shown in the left-hand side panel. You'll see an empty pair of square brackets.
+In your new simulation workspace, open the **init.json** file in the **src** folder of the left-hand side panel. You'll see an empty pair of square brackets.
 
 The **init.json** file defines the 'initial state' of the simulation as a collection of objects in a JSON array.
 
 We'll begin by adding two agents into the array, and give them names.
 
-```javascript
+```json
 [
   {
-    agent_name: "Alice",
+    "agent_name": "Alice"
   },
   {
-    agent_name: "Bob",
-  },
+    "agent_name": "Bob"
+  }
 ];
 ```
 

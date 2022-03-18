@@ -8,16 +8,16 @@ are shared access across all accounts, and for performance reasons we do not wan
 to shard the entity_types table by account_id.*/
 create table if not exists entity_types (
     -- The fixed ID across all versions of an entity type
-    entity_type_id       uuid not null primary key,
+    entity_type_id         uuid not null primary key,
 
-    account_id           uuid not null references accounts (account_id) deferrable,
-    created_by           uuid not null, -- todo add references accounts (account_id)
+    account_id             uuid not null references accounts (account_id) deferrable,
+    created_by_account_id  uuid not null, -- todo add references accounts (account_id)
 
     -- The time at which the first version of this type was created
-    created_at           timestamp with time zone not null,
+    created_at             timestamp with time zone not null,
 
     -- The time at which the shared type metadata was last updated
-    metadata_updated_at  timestamp with time zone not null,
+    metadata_updated_at    timestamp with time zone not null,
 
     /**
     * Remaining columns are metadata shared across all versions of an entity
@@ -26,10 +26,10 @@ create table if not exists entity_types (
     -- If true, multiple versions of this type may exist in the entity_type_versions
     -- table. For non-versioned types, this column is `false` and the type has exactly
     -- one corresponding row in entity_type_versions
-    versioned            boolean not null default true,
+    versioned              boolean not null default true,
 
-    extra                jsonb,
-    name                 text not null,
+    extra                  jsonb,
+    name                   text not null,
 
     unique(account_id, name)
 );
@@ -40,7 +40,7 @@ create table if not exists entity_type_versions (
     entity_type_id          uuid not null references entity_types (entity_type_id),
     properties              jsonb not null,
 
-    updated_by              uuid not null, -- todo add: references accounts (account_id)
+    updated_by_account_id              uuid not null, -- todo add: references accounts (account_id)
 
     -- Versioned types are never mutated, so the updated_at time always matches the
     -- created_at time. Non-versioned types may be mutatated in-place, and the
@@ -78,7 +78,7 @@ create table if not exists entities (
     created_at           timestamp with time zone not null,
 
     -- The account id of the account that created this entity
-    created_by           uuid not null,
+    created_by_account_id           uuid not null,
 
     -- The time at which the shared entity metadata was last updated
     metadata_updated_at  timestamp with time zone not null,
@@ -111,7 +111,7 @@ create table if not exists entity_versions (
     properties              jsonb not null,
 
     -- The account id of the account that updated (or created) this entity version
-    updated_by              uuid not null,
+    updated_by_account_id   uuid not null,
 
     -- Versioned entities are never mutated, so the updated_at time always matches the
     -- created_at time. Non-versioned entities may be mutatated in-place, and the
@@ -137,32 +137,32 @@ create index if not exists entity_account_entity_id on entity_account (entity_id
 /** Stores links between entities */
 create table if not exists links (
     -- The UUID of the link
-    link_id                       uuid not null,
+    link_id                            uuid not null,
     -- The JSON path of the link on the source entity's properties JSON blob
-    path                          text not null,
+    path                               text not null,
     -- The account id of the source entity
-    source_account_id             uuid not null,
+    source_account_id                  uuid not null,
     -- The entity id of the source entity.
-    source_entity_id              uuid not null,
+    source_entity_id                   uuid not null,
     -- The timestamp when the link was applied to the source entity (i.e. when
     -- it was created)
-    applied_to_source_at          timestamp with time zone not null,
+    applied_to_source_at               timestamp with time zone not null,
     -- the account_id of the account which created the link
-    applied_to_source_by          uuid not null,
+    applied_to_source_by_account_id    uuid not null,
     -- The timestamp when the link was removed from the source entity, if at
     -- all (i.e. when it was deleted)
-    removed_from_source_at        timestamp with time zone,
+    removed_from_source_at             timestamp with time zone,
     -- the account_id of the account which deleted the link
-    removed_from_source_by        uuid,
+    removed_from_source_by_account_id  uuid,
     -- The account id of the destination entity
-    destination_account_id        uuid not null,
+    destination_account_id             uuid not null,
     -- The entity id of the destination entity
-    destination_entity_id         uuid not null,
+    destination_entity_id              uuid not null,
     -- The entity version id of a specific version of the link's destination
     -- entity which is defined only if this link is pinned to a specific version
     -- of the destination entity. When set to null, the link is to the latest
     -- version of the destination entity.
-    destination_entity_version_id  uuid,
+    destination_entity_version_id      uuid,
 
     constraint links_pk primary key (
       source_account_id, -- included in the primary key so it can be used as a sharding key
@@ -173,7 +173,7 @@ create table if not exists links (
 
 create table if not exists link_versions (
     -- The account id of the source entity
-    source_account_id             uuid not null,
+    source_account_id        uuid not null,
     -- The UUID of the link version
     link_version_id          uuid not null,
     -- The UUID of the link
@@ -183,9 +183,9 @@ create table if not exists link_versions (
     -- Versioned links are never mutated, so the updated_at time represents when
     -- the version was created. Non-versioned links may be mutatated in-place, and the
     -- updated_at column changes when a mutation is made.
-    updated_at              timestamp with time zone not null,
+    updated_at               timestamp with time zone not null,
     -- The account id of the account that updated (or created) this link version
-    updated_by              uuid not null,
+    updated_by_account_id    uuid not null,
 
     primary key (source_account_id, link_version_id)
 );
@@ -220,7 +220,7 @@ create table if not exists aggregations (
     -- The aggregation operation
     operation                     jsonb not null,
     -- The account that created this aggregation
-    created_by                    uuid not null,
+    created_by_account_id         uuid not null,
     -- The time at which the first version of this type was created
     created_at                    timestamp with time zone not null,
 
