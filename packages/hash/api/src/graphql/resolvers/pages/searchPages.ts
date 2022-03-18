@@ -13,7 +13,7 @@ import {
   Resolver,
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
-import { DBAdapter } from "../../../db";
+import { DbAdapter } from "../../../db";
 import { DbEntity } from "../../../db/adapter";
 import { intersection } from "../../../util";
 
@@ -35,7 +35,7 @@ const getEntityRef = (entity: {
 
 const getPagesLinkingToTextEntities = async (
   textSearchHits: TextSearchHit[],
-  db: DBAdapter,
+  db: DbAdapter,
 ) => {
   const scoreLookup = new Map(
     textSearchHits.map((hit) => [

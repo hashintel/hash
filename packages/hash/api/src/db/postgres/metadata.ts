@@ -17,7 +17,7 @@ export const insertEntityMetadata = async (
 ): Promise<EntityMeta> => {
   await conn.query(sql`
     insert into entities (
-      account_id, entity_id, versioned, extra, created_by, created_at, metadata_updated_at
+      account_id, entity_id, versioned, extra, created_by_account_id, created_at, metadata_updated_at
     )
     values (
       ${params.accountId}, ${params.entityId}, ${params.versioned},

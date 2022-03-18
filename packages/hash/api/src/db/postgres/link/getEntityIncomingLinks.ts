@@ -2,8 +2,8 @@ import { sql } from "slonik";
 
 import { Connection } from "../types";
 import {
-  mapDBRowsToDBLink,
-  DBLinkWithVersionRow,
+  mapDbRowsToDbLink,
+  DbLinkWithVersionRow,
   selectAllLinksWithDestinationEntity,
 } from "./sql/links.util";
 
@@ -14,7 +14,7 @@ export const getEntityIncomingLinks = async (
     entityId: string;
   },
 ) => {
-  const rows = await conn.any<DBLinkWithVersionRow>(sql`
+  const rows = await conn.any<DbLinkWithVersionRow>(sql`
     with all_links as (${selectAllLinksWithDestinationEntity({
       destinationAccountId: params.accountId,
       destinationEntityId: params.entityId,
@@ -28,5 +28,5 @@ export const getEntityIncomingLinks = async (
           all_links.link_id = incoming_links.link_id
   `);
 
-  return rows.map(mapDBRowsToDBLink);
+  return rows.map(mapDbRowsToDbLink);
 };

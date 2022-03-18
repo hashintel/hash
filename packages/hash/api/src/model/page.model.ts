@@ -8,7 +8,7 @@ import {
   UnresolvedGQLEntityType,
   User,
 } from ".";
-import { DBClient } from "../db";
+import { DbClient } from "../db";
 import {
   DbBlockProperties,
   DbPageProperties,
@@ -40,7 +40,7 @@ class __Page extends Entity {
     this.properties = args.properties;
   }
 
-  static async getEntityType(client: DBClient): Promise<EntityType> {
+  static async getEntityType(client: DbClient): Promise<EntityType> {
     const pageEntityType = await client.getSystemTypeLatestVersion({
       systemTypeName: "Page",
     });
@@ -48,7 +48,7 @@ class __Page extends Entity {
   }
 
   static async createPage(
-    client: DBClient,
+    client: DbClient,
     params: {
       createdBy: User;
       accountId: string;
@@ -134,7 +134,7 @@ class __Page extends Entity {
   }
 
   static async getPageById(
-    client: DBClient,
+    client: DbClient,
     params: { accountId: string; entityId: string },
   ): Promise<Page | null> {
     const { accountId, entityId } = params;
@@ -156,7 +156,7 @@ class __Page extends Entity {
   }
 
   static async getAllPagesInAccount(
-    client: DBClient,
+    client: DbClient,
     params: {
       accountId: string;
     },
@@ -172,7 +172,7 @@ class __Page extends Entity {
     );
   }
 
-  static async fromEntity(client: DBClient, entity: Entity): Promise<Page> {
+  static async fromEntity(client: DbClient, entity: Entity): Promise<Page> {
     if (
       entity.entityType.entityId !== (await Page.getEntityType(client)).entityId
     ) {
@@ -186,7 +186,7 @@ class __Page extends Entity {
     });
   }
 
-  async getParentPage(client: DBClient): Promise<Page | null> {
+  async getParentPage(client: DbClient): Promise<Page | null> {
     const parentPageLinks = await this.getOutgoingLinks(client, {
       path: ["parentPage"],
     });
@@ -208,7 +208,7 @@ class __Page extends Entity {
   }
 
   async hasParentPage(
-    client: DBClient,
+    client: DbClient,
     params: {
       page: Page;
     },
@@ -233,7 +233,7 @@ class __Page extends Entity {
   }
 
   async deleteParentPage(
-    client: DBClient,
+    client: DbClient,
     params: {
       removedByAccountId: string;
     },
@@ -265,7 +265,7 @@ class __Page extends Entity {
   }
 
   async setParentPage(
-    client: DBClient,
+    client: DbClient,
     params: {
       parentPage: Page | null;
       setByAccountId: string;
@@ -300,7 +300,7 @@ class __Page extends Entity {
     }
   }
 
-  async getBlocks(client: DBClient): Promise<Block[]> {
+  async getBlocks(client: DbClient): Promise<Block[]> {
     const contentLinks = await this.getOutgoingLinks(client, {
       path: ["contents"],
     });
@@ -316,7 +316,7 @@ class __Page extends Entity {
   }
 
   async insertBlock(
-    client: DBClient,
+    client: DbClient,
     params: {
       block: Block;
       insertedByAccountId: string;
@@ -347,7 +347,7 @@ class __Page extends Entity {
   }
 
   async moveBlock(
-    client: DBClient,
+    client: DbClient,
     params: {
       currentPosition: number;
       newPosition: number;
@@ -386,7 +386,7 @@ class __Page extends Entity {
   }
 
   async removeBlock(
-    client: DBClient,
+    client: DbClient,
     params: { position: number; removedByAccountId: string },
   ) {
     const { position } = params;

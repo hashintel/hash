@@ -24,7 +24,7 @@ insert into accounts (account_id) values('${
 -- create org entity type
 insert into entity_types (
   entity_type_id, account_id, name, versioned,
-  created_by, created_at, metadata_updated_at
+  created_by_account_id, created_at, metadata_updated_at
 ) values (
   '${Org.fixedId}', '${systemAccount.fixedId}', 'Org', true,
   '${systemAccount.fixedId}', '${now}', '${now}'
@@ -32,7 +32,7 @@ insert into entity_types (
 
 insert into entity_type_versions (
   entity_type_id, entity_type_version_id, account_id,
-  properties, updated_by, updated_at
+  properties, updated_by_account_id, updated_at
 ) values (
   '${Org.fixedId}', '${Org.firstVersionId}', '${systemAccount.fixedId}',
   '${entityTypeJson("Org")}',
@@ -41,7 +41,7 @@ insert into entity_type_versions (
 
 -- create system account
 insert into entities (
-  account_id, entity_id, versioned, created_at, created_by, metadata_updated_at
+  account_id, entity_id, versioned, created_at, created_by_account_id, metadata_updated_at
 ) values (
   '${systemAccount.fixedId}', '${systemAccount.fixedId}', false,
   '${now}', '${systemAccount.fixedId}', '${now}'
@@ -50,7 +50,7 @@ insert into entities (
 insert into entity_versions (
   account_id, entity_version_id, entity_type_version_id,
   properties, entity_id,
-  updated_by, updated_at
+  updated_by_account_id, updated_at
 ) values (
   '${systemAccount.fixedId}', '${systemAccount.firstVersionId}', '${
   Org.firstVersionId

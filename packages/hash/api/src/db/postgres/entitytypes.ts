@@ -18,9 +18,9 @@ export const mapPGRowToEntityType = (row: EntityTypePGRow): EntityType => ({
     name: row.name,
     extra: {},
   },
-  createdByAccountId: row.created_by,
+  createdByAccountId: row.created_by_account_id,
   createdAt: new Date(row.created_at),
-  updatedByAccountId: row.updated_by,
+  updatedByAccountId: row.updated_by_account_id,
   updatedAt: new Date(row.updated_at),
   visibility: Visibility.Public /** @todo implement this */,
 });
@@ -31,9 +31,9 @@ export type EntityTypePGRow = {
   entity_type_version_id: string;
   properties: any;
   versioned: boolean;
-  created_by: string;
+  created_by_account_id: string;
   created_at: number;
-  updated_by: string;
+  updated_by_account_id: string;
   updated_at: number;
   entity_id: string;
   name: string;
@@ -42,7 +42,7 @@ export type EntityTypePGRow = {
   ["type.account_id"]: string;
   ["type.entity_type_version_id"]: string;
   ["type.properties"]: any;
-  ["type.created_by"]: string;
+  ["type.created_by_account_id"]: string;
   ["type.created_at"]: number;
 };
 
@@ -52,12 +52,12 @@ export const selectEntityTypes = sql<EntityTypePGRow>`
     type.entity_type_id,
     type.versioned,
     type.extra,
-    type.created_by,
+    type.created_by_account_id,
     type.created_at,
     type.name,
     ver.properties,
     ver.entity_type_version_id,
-    ver.updated_by,
+    ver.updated_by_account_id,
     ver.updated_at
     
   from
@@ -282,7 +282,7 @@ export const insertEntityType = async (
     await conn.query(sql`
       insert into entity_types (
         name, account_id, entity_type_id, versioned,
-        created_by, created_at, metadata_updated_at
+        created_by_account_id, created_at, metadata_updated_at
       )
       values (
         ${params.name}, ${params.accountId}, ${params.entityId}, true,
@@ -343,7 +343,7 @@ export const insertEntityTypeVersion = async (
   await conn.query(sql`
     insert into entity_type_versions (
       account_id, entity_type_id, entity_type_version_id, properties,
-      updated_by, updated_at
+      updated_by_account_id, updated_at
     )
     values (
       ${params.accountId}, ${params.entityId}, ${params.entityVersionId},

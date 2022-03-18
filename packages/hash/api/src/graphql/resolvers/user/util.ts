@@ -1,9 +1,9 @@
 import { ApolloError } from "apollo-server-express";
-import { DBClient } from "../../../db";
+import { DbClient } from "../../../db";
 import { User, VerificationCode } from "../../../model";
 
 export const verifyVerificationCode =
-  (client: DBClient) =>
+  (client: DbClient) =>
   async ({
     id,
     code,

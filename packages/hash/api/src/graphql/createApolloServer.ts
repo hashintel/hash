@@ -11,7 +11,7 @@ import { SearchAdapter } from "@hashintel/hash-backend-utils/search/adapter";
 
 import { schema } from "./typeDefs";
 import { resolvers } from "./resolvers";
-import { DBAdapter } from "../db";
+import { DbAdapter } from "../db";
 import { CacheAdapter } from "../cache";
 import { buildPassportGraphQLMethods } from "../auth/passport";
 import { GraphQLContext } from "./context";
@@ -19,7 +19,7 @@ import { EmailTransporter } from "../email/transporters";
 import { StorageType } from "./apiTypes.gen";
 
 export interface CreateApolloServerParams {
-  db: DBAdapter;
+  db: DbAdapter;
   cache: CacheAdapter;
   search?: SearchAdapter;
   emailTransporter: EmailTransporter;

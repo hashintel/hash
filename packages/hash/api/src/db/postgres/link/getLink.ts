@@ -1,13 +1,13 @@
-import { DBLink } from "../../adapter";
+import { DbLink } from "../../adapter";
 
 import { Connection } from "../types";
-import { selectLatestVersionOfLink, mapDBRowsToDBLink } from "./sql/links.util";
+import { selectLatestVersionOfLink, mapDbRowsToDbLink } from "./sql/links.util";
 
 export const getLink = async (
   conn: Connection,
   params: { sourceAccountId: string; linkId: string },
-): Promise<DBLink | null> => {
+): Promise<DbLink | null> => {
   const row = await conn.maybeOne(selectLatestVersionOfLink(params));
 
-  return row ? mapDBRowsToDBLink(row) : null;
+  return row ? mapDbRowsToDbLink(row) : null;
 };

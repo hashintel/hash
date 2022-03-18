@@ -1,8 +1,8 @@
 import { sql } from "slonik";
 
 import { Connection } from "../../types";
-import { DBLinkRow } from "./links.util";
-import { DBLinkVersion } from "../../../adapter";
+import { DbLinkRow } from "./links.util";
+import { DbLinkVersion } from "../../../adapter";
 import { mapColumnNamesToSQL } from "../../util";
 
 export const linkVersionsColumnNames = [
@@ -11,23 +11,23 @@ export const linkVersionsColumnNames = [
   "link_id",
   "index",
   "updated_at",
-  "updated_by",
+  "updated_by_account_id",
 ];
 
 export const linkVersionsColumnNamesSQL = mapColumnNamesToSQL(
   linkVersionsColumnNames,
 );
 
-export type DBLinkVersionRow = {
+export type DbLinkVersionRow = {
   source_account_id: string;
   link_version_id: string;
   link_id: string;
   index: number | null;
   updated_at: string;
-  updated_by: string;
+  updated_by_account_id: string;
 };
 
-export const selectAllLinkVersions = sql<DBLinkRow>`
+export const selectAllLinkVersions = sql<DbLinkRow>`
   select ${linkVersionsColumnNamesSQL}
   from links
 `;
@@ -35,7 +35,7 @@ export const selectAllLinkVersions = sql<DBLinkRow>`
 export const selectAllLinkVersionsOfLink = (params: {
   sourceAccountId: string;
   linkId: string;
-}) => sql<DBLinkRow>`
+}) => sql<DbLinkRow>`
   select ${linkVersionsColumnNamesSQL}
   from link_versions
   where
@@ -47,7 +47,7 @@ export const selectAllLinkVersionsOfLink = (params: {
 export const insertLinkVersionRow = async (
   conn: Connection,
   params: {
-    dbLinkVersion: DBLinkVersion;
+    dbLinkVersion: DbLinkVersion;
   },
 ): Promise<void> => {
   const { dbLinkVersion } = params;
@@ -75,7 +75,7 @@ export const updateLinkVersionRow = async (
     linkVersionId: string;
     updatedIndex: number;
     updatedAt: Date;
-    updatedBy: string;
+    updatedByAccountId: string;
   },
 ): Promise<void> => {
   await conn.one(sql`
@@ -83,7 +83,7 @@ export const updateLinkVersionRow = async (
     set
       index = ${params.updatedIndex},
       updated_at = ${params.updatedAt.toISOString()},
-      updated_by = ${params.updatedBy}
+      updated_by_account_id = ${params.updatedByAccountId}
     where
       source_account_id = ${params.sourceAccountId}
       and link_version_id = ${params.linkVersionId}
@@ -98,7 +98,7 @@ export const updateLinkVersionIndices = async (
     path: string;
     operation: "increment" | "decrement";
     updatedAt: Date;
-    updatedBy: string;
+    updatedByAccountId: string;
     minimumIndex?: number;
     maximumIndex?: number;
   },
@@ -110,7 +110,7 @@ export const updateLinkVersionIndices = async (
     set
       index = index + ${operation === "increment" ? 1 : -1},
       updated_at = ${params.updatedAt.toISOString()},
-      updated_by = ${params.updatedBy}
+      updated_by_account_id = ${params.updatedByAccountId}
     where ${sql.join(
       [
         sql`source_account_id = ${params.sourceAccountId}`,
@@ -129,13 +129,13 @@ export const updateLinkVersionIndices = async (
   `);
 };
 
-export const mapDBLinkVersionRowToDBLinkVersion = (
-  row: DBLinkVersionRow,
-): DBLinkVersion => ({
+export const mapDbLinkVersionRowToDbLinkVersion = (
+  row: DbLinkVersionRow,
+): DbLinkVersion => ({
   sourceAccountId: row.source_account_id,
   linkVersionId: row.link_version_id,
   linkId: row.link_id,
   index: row.index === null ? undefined : row.index,
   updatedAt: new Date(row.updated_at),
-  updatedByAccountId: row.updated_by,
+  updatedByAccountId: row.updated_by_account_id,
 });
