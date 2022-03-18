@@ -68,7 +68,7 @@ unsafe extern "C" fn flush_changes(
         }
     };
     // We only write metaversion back to memory if they have changed
-    let mut metaversion = loaded_metaversion.clone();
+    let mut metaversion = loaded_metaversion;
 
     let mut prepared = PreparedBatch {
         static_meta,
