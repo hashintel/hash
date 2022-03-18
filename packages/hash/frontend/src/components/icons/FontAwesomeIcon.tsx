@@ -11,7 +11,7 @@ export const FontAwesomeIcon = React.forwardRef<
   SVGSVGElement,
   FontAwesomeIconProps
 >((props, ref) => {
-  const { icon, sx, ...otherProps } = props;
+  const { icon, sx = [], ...otherProps } = props;
 
   const {
     icon: [width, height, , , svgPathData],
@@ -21,13 +21,15 @@ export const FontAwesomeIcon = React.forwardRef<
     <SvgIcon
       ref={ref}
       viewBox={`0 0 ${width} ${height}`}
-      sx={{
-        color: "currentColor",
-        width: "1em",
-        height: "1em",
-        fontSize: "15px",
-        ...sx,
-      }}
+      sx={[
+        {
+          color: "currentColor",
+          width: "1em",
+          height: "1em",
+          fontSize: "15px",
+        },
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
       {...otherProps}
     >
       {typeof svgPathData === "string" ? (
