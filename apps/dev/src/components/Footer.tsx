@@ -20,13 +20,16 @@ export const Footer: FC = () => (
         lg: 8,
       },
       background: "linear-gradient(359.56deg, #FFFFFF 59.36%, #F7F8FA 99.57%)",
+      "&, a": {
+        color: "gray.70",
+      },
     }}
   >
     <Stack direction={{ xs: "column", sm: "row" }} spacing={{ xs: 6, sm: 10 }}>
       <Stack>
         <Logo />
         <Spacer y={2} sm={{ y: 3 }} />
-        <Typography sx={{ width: { xs: 1, sm: 271 } }}>
+        <Typography sx={{ width: { xs: 1, sm: 271 }, color: "inherit" }}>
           Open-source resources and tools for developers who want to build the
           future of decision-making with HASH
         </Typography>
@@ -37,12 +40,12 @@ export const Footer: FC = () => (
           <Typography>Resources</Typography>
           <Divider />
           <Stack spacing={2}>
-            <Typography>Guides</Typography>
-            <Typography>Blog</Typography>
-            <Typography>FAQs</Typography>
-            <Typography>Careers</Typography>
-            <Typography>Contact Us</Typography>
-            <Typography>Terms of Service</Typography>
+            <Link href="#">Guides</Link>
+            <Link href="#">Blog</Link>
+            <Link href="#">FAQs</Link>
+            <Link href="#">Careers</Link>
+            <Link href="#">Contact Us</Link>
+            <Link href="#">Terms of Service</Link>
           </Stack>
         </Stack>
         <Stack>
