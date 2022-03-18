@@ -1,0 +1,1 @@
+FROM meltano/meltano:latest
