@@ -210,7 +210,11 @@ impl Engine {
 
     pub async fn run_output_packages(&mut self) -> Result<SimulationStepOutput> {
         let (mut state, context) = self.store.take()?;
+
+        // Output packages can't reload state batches, since they only have read access to state.
+        // Reload the state here, so the packages have the latest state available.
         state.write()?.maybe_reload()?;
+
         let state = Arc::new(state);
         let context = Arc::new(context);
 
