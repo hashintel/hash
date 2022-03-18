@@ -18,25 +18,36 @@ const HeroDivider: VFC<ComponentProps<typeof Stack>> = (props) => {
 };
 
 const Hero: VFC = () => (
-  <Box width={{ xs: 1, md: 871 }} py={16}>
-    <Typography variant="hashHeading4" component="h1" mb={3}>
-      HASH for Developers
-    </Typography>
-    <Typography variant="hashHeading1" component="h2" mb={5}>
-      Help build the future of decision-making
-    </Typography>
-    <HeroDivider mb={5} />
-    <Box width={{ xs: 1, md: 550 }}>
-      <Typography mb={2}>
-        HASH is an organization building the next generation of simulation,
-        decision-making, and knowledge management tools.
-      </Typography>
-      <Typography>
-        Here you’ll find resources for developers who want to use our open
-        source projects and build blocks, plugins, and integrations for the
-        ecosystem.
-      </Typography>
-    </Box>
+  <Box
+    component="header"
+    py={16}
+    sx={{
+      background: "url(/gradient.png) no-repeat",
+      backgroundPosition: "right top",
+    }}
+  >
+    <Container>
+      <Box width={{ xs: 1, md: 871 }}>
+        <Typography variant="hashHeading4" component="h1" mb={3}>
+          HASH for Developers
+        </Typography>
+        <Typography variant="hashHeading1" component="h2" mb={5}>
+          Help build the future of decision-making
+        </Typography>
+        <HeroDivider mb={5} />
+        <Box width={{ xs: 1, md: 550 }}>
+          <Typography mb={2} sx={{ lineHeight: 1.5 }}>
+            HASH is an organization building the next generation of simulation,
+            decision-making, and knowledge management tools.
+          </Typography>
+          <Typography sx={{ lineHeight: 1.5 }}>
+            Here you’ll find resources for developers who want to use our open
+            source projects and build blocks, plugins, and integrations for the
+            ecosystem.
+          </Typography>
+        </Box>
+      </Box>
+    </Container>
   </Box>
 );
 
@@ -49,9 +60,7 @@ const Home: NextPage = () => {
       <Head>
         <title>HASH</title>
       </Head>
-      <Container>
-        <Hero />
-      </Container>
+      <Hero />
     </>
   );
 };

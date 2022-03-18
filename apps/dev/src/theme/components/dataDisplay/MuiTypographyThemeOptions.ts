@@ -5,6 +5,7 @@ import { Components, Theme } from "@mui/material";
 
 export const MuiTypographyThemeOptions: Components<Theme>["MuiTypography"] = {
   defaultProps: {
+    // @todo need to set these
     variantMapping: {
       bpTitle: "h1",
       bpSubtitle: "p",
@@ -17,8 +18,10 @@ export const MuiTypographyThemeOptions: Components<Theme>["MuiTypography"] = {
       bpBodyCopy: "p",
       bpSmallCopy: "span",
       bpMicroCopy: "span",
+
+      hashBodyCopy: "p",
     },
-    variant: "bpBodyCopy",
+    variant: "hashBodyCopy",
   },
   styleOverrides: {
     root: ({ ownerState, theme }) => ({

@@ -112,7 +112,12 @@ export const typography: ThemeOptions["typography"] = {
     lineHeight: 1.2,
     color: customColors.gray[80],
   },
-
+  hashBodyCopy: {
+    fontSize: "var(--step-0)",
+    fontWeight: 400,
+    lineHeight: 1.75,
+    color: customColors.gray[90],
+  },
   hashSmallText: {
     fontSize: "var(--step--1)",
     fontWeight: 400,
