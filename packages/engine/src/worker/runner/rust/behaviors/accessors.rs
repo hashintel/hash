@@ -142,11 +142,10 @@ impl Accessors for Vec3 {
             let child_data_buffer =
                 unsafe { data_ref.child_data()[0].buffers()[0].typed_data::<f64>() };
             let start_index = i * POSITION_DIM;
-            // Does not fail
-            let pos = unsafe {
-                &*(child_data_buffer[start_index..start_index + POSITION_DIM].as_ptr()
-                    as *const [f64; POSITION_DIM])
-            };
+            // A position always have 3 values, thus it should never fail.
+            let pos = child_data_buffer[start_index..start_index + POSITION_DIM]
+                .try_into()
+                .unwrap();
             Ok(Vec3::from(pos.as_ref()))
         } else {
             Err(
@@ -170,11 +169,10 @@ impl Accessors for Vec3 {
         Ok((0..data_ref.len())
             .map(move |i| {
                 let start_index = i * POSITION_DIM;
-                // Does not fail
-                let pos = unsafe {
-                    &*(child_data_buffer[start_index..start_index + POSITION_DIM].as_ptr()
-                        as *const [f64; POSITION_DIM])
-                };
+                // A position always have 3 values, thus it should never fail.
+                let pos = child_data_buffer[start_index..start_index + POSITION_DIM]
+                    .try_into()
+                    .unwrap();
                 Vec3::from(pos.as_ref())
             })
             .collect())
@@ -569,7 +567,7 @@ macro_rules! accessors {
                 // Do not commit if mutable actions were not done
                 if self.inner.$base.u_mut()?.set {
                     if let Some(change) = Accessors::as_change(self.inner.$base.u_ref()?)? {
-                        self.agent_batch.push_change(change)?
+                        self.agent_batch.queue_change(change)?
                     }
                 }
                 Ok(())

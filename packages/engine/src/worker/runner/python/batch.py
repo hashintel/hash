@@ -65,11 +65,11 @@ def load_record_batch(mem, schema=None):
         schema_buf = mem[schema_offset: schema_offset + schema_size]
         schema = pa.ipc.read_schema(schema_buf)
 
-    rb_buf = mem[meta_offset: data_offset + data_size]
-    rb = pa.ipc.read_record_batch(rb_buf, schema)
+    record_batch_buf = mem[meta_offset: data_offset + data_size]
+    record_batch = pa.ipc.read_record_batch(record_batch_buf, schema)
 
     any_type_fields = parse_any_type_fields(schema.metadata)
-    return rb, any_type_fields
+    return record_batch, any_type_fields
 
 
 # Returns dataset name, dataset contents and whether JSON could be loaded.
@@ -78,8 +78,10 @@ def load_dataset(batch_id):
     (_, _, header_offset, header_size, _, _, data_offset, data_size) = load_markers(mem)
 
     # The header has the shortname of the dataset
-    header_buf = mem[header_offset: header_offset + header_size]
-    dataset_name = str(header_buf.to_pybytes().decode('utf-8'))
+    n_metaversion_bytes = 8  # Memory u32 + batch u32 version
+    name_offset = header_offset + n_metaversion_bytes  # Skip metaversion.
+    name_buf = mem[name_offset: name_offset + header_size]
+    dataset_name = str(name_buf.to_pybytes().decode('utf-8'))
 
     # This data buffer has the dataset as a JSON string
     data_buf = mem[data_offset: data_offset + data_size]
@@ -97,10 +99,12 @@ class Batch:
 
         self.mem_version = -1
         self.batch_version = -1
-        self.mem = None  # After loading, `mem` will be a shared buffer.
-        self.rb = None  # After loading, `rb` will be a record batch.
-        self.any_type_fields = None  # TODO: Remove after upgrading Arrow and putting
-                                     #       schema metadata in individual fields.
+        # After loading, `mem` will be a shared buffer.
+        self.mem = None
+        # After loading, `record_batch` will be a record batch.
+        self.record_batch = None
+        # TODO: Remove after upgrading Arrow and putting schema metadata in individual fields.
+        self.any_type_fields = None
         self.cols = {}  # Syncing erases columns that have become invalid.
 
         # For flushing:
@@ -122,17 +126,17 @@ class Batch:
 
         if should_load:
             self.batch_version = latest_batch.batch_version
-            self.rb, self.any_type_fields = load_record_batch(self.mem, schema)
+            self.record_batch, self.any_type_fields = load_record_batch(self.mem, schema)
             self.cols = {}  # Avoid using obsolete column data.
-            self.static_meta = static_meta_from_schema(self.rb.schema)
+            self.static_meta = static_meta_from_schema(self.record_batch.schema)
 
     def load_col(self, name, loader=None):
-        i_field = self.rb.schema.get_field_index(name)
+        i_field = self.record_batch.schema.get_field_index(name)
         if i_field < 0:
             raise RuntimeError(f"Missing field for {name}")
 
-        field = self.rb.schema.field(i_field)
-        vector = self.rb.column(i_field)
+        field = self.record_batch.schema.field(i_field)
+        vector = self.record_batch.column(i_field)
         is_any = name in self.any_type_fields
         if loader is not None:
             col = loader(vector, field.nullable, is_any)
