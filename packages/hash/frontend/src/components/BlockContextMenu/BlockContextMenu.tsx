@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { tw } from "twind";
 
 import DeleteIcon from "@mui/icons-material/DeleteOutline";
@@ -9,7 +9,6 @@ import { useKey } from "rooks";
 import { unstable_batchedUpdates } from "react-dom";
 
 import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
-import { BlockVariant } from "blockprotocol";
 
 import { blockDomId } from "../../blocks/page/BlockView";
 import { BlockSuggesterProps } from "../../blocks/page/createSuggester/BlockSuggester";
@@ -23,7 +22,7 @@ import {
   iconStyles,
 } from "./BlockContextMenuUtils";
 import { BlockLoaderInput } from "./BlockLoaderInput";
-import { UserBlock, useUserBlocks } from "../../blocks/userBlocks";
+import { useUserBlocks } from "../../blocks/userBlocks";
 import { useFilteredBlocks } from "../../blocks/page/createSuggester/useFilteredBlocks";
 
 type BlockContextMenuProps = {

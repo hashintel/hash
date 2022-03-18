@@ -1,8 +1,7 @@
 import { BlockVariant } from "blockprotocol";
-import { useMemo, VFC } from "react";
+import { VFC } from "react";
 import { tw } from "twind";
 
-import { fuzzySearchBy } from "./fuzzySearchBy";
 import { Suggester } from "./Suggester";
 import { UserBlock, useUserBlocks } from "../../userBlocks";
 import { useFilteredBlocks } from "./useFilteredBlocks";
