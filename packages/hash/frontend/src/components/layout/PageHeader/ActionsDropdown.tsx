@@ -69,6 +69,11 @@ export const ActionsDropdown: React.FC<{
           ":hover": {
             boxShadow: "0px 0px 0px 2px #FFFFFF, 0px 0px 0px 5px #C1CFDE",
           },
+
+          "&:focus-within": {
+            outline: "none",
+            boxShadow: `0px 0px 0px 2px #FFFFFF, 0px 0px 0px 5px ${theme.palette.blue[70]}`,
+          },
         }}
         ref={buttonRef}
         onClick={() => setOpen(!open)}

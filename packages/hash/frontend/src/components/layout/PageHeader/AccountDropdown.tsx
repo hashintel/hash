@@ -6,6 +6,7 @@ import {
   Divider,
   ListItemButton,
   Tooltip,
+  useTheme,
 } from "@mui/material";
 
 import { UserFieldsFragment } from "../../../graphql/apiTypes.gen";
@@ -25,6 +26,8 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
   logout,
   user,
 }) => {
+  const theme = useTheme();
+
   const buttonRef = useRef(null);
 
   const [open, setOpen] = useState(false);
@@ -78,6 +81,10 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
               : "unset",
             ":hover": {
               boxShadow: "0px 0px 0px 2px #FFFFFF, 0px 0px 0px 5px #C1CFDE",
+            },
+            "&:focus-within": {
+              outline: "none",
+              boxShadow: `0px 0px 0px 2px #FFFFFF, 0px 0px 0px 5px ${theme.palette.blue[70]}`,
             },
           }}
           title={user.properties.shortname!}
