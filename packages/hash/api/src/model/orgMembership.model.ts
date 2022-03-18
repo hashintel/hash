@@ -7,11 +7,11 @@ import {
   Entity,
   Link,
 } from ".";
-import { DBClient } from "../db";
-import { DBOrgMembershipProperties, EntityType } from "../db/adapter";
+import { DbClient } from "../db";
+import { DbOrgMembershipProperties, EntityType } from "../db/adapter";
 import { genId } from "../util";
 
-type OrgMembershipModelProperties = DBOrgMembershipProperties;
+type OrgMembershipModelProperties = DbOrgMembershipProperties;
 
 type OrgMembershipConstructorArgs = {
   properties: OrgMembershipModelProperties;
@@ -25,7 +25,7 @@ class __OrgMembership extends Entity {
     this.properties = properties;
   }
 
-  static async getEntityType(client: DBClient): Promise<EntityType> {
+  static async getEntityType(client: DbClient): Promise<EntityType> {
     const orgMembershipEntityType = await client.getSystemTypeLatestVersion({
       systemTypeName: "OrgMembership",
     });
@@ -33,7 +33,7 @@ class __OrgMembership extends Entity {
   }
 
   static async getOrgMembershipById(
-    client: DBClient,
+    client: DbClient,
     params: { accountId: string; entityId: string },
   ): Promise<OrgMembership | null> {
     const dbOrgMembership = await client.getEntityLatestVersion(params);
@@ -42,7 +42,7 @@ class __OrgMembership extends Entity {
   }
 
   static async createOrgMembership(
-    client: DBClient,
+    client: DbClient,
     params: {
       responsibility: string;
       user: User;
@@ -53,7 +53,7 @@ class __OrgMembership extends Entity {
 
     const id = genId();
 
-    const properties: DBOrgMembershipProperties = {
+    const properties: DbOrgMembershipProperties = {
       responsibility,
     };
 
@@ -86,15 +86,15 @@ class __OrgMembership extends Entity {
 
   // Have to use properties as any because `OrgMembership` inherits from `Account` even though their properties are very different and not compatible
   async updateProperties(
-    client: DBClient,
-    params: UpdatePropertiesPayload<DBOrgMembershipProperties>,
+    client: DbClient,
+    params: UpdatePropertiesPayload<DbOrgMembershipProperties>,
   ) {
     await super.updateProperties(client, params);
     this.properties = params.properties;
     return params.properties;
   }
 
-  async getUser(client: DBClient): Promise<User> {
+  async getUser(client: DbClient): Promise<User> {
     const outgoingUserLinks = await this.getOutgoingLinks(client, {
       path: ["user"],
     });
@@ -122,7 +122,7 @@ class __OrgMembership extends Entity {
     return user;
   }
 
-  async getOrg(client: DBClient): Promise<Org> {
+  async getOrg(client: DbClient): Promise<Org> {
     const outgoingOrgLinks = await this.getOutgoingLinks(client, {
       path: ["org"],
     });

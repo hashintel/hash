@@ -10,9 +10,9 @@ import {
   PartialPropertiesUpdatePayload,
   Link,
 } from ".";
-import { DBClient } from "../db";
+import { DbClient } from "../db";
 import {
-  DBUserProperties,
+  DbUserProperties,
   EntityType,
   UserInfoProvidedAtSignup,
 } from "../db/adapter";
@@ -32,18 +32,18 @@ export const getEmailRateLimitQueryTime = () => {
 };
 
 type UserConstructorArgs = {
-  properties: DBUserProperties;
+  properties: DbUserProperties;
 } & Omit<AccountConstructorArgs, "type">;
 
 class __User extends Account {
-  properties: DBUserProperties;
+  properties: DbUserProperties;
 
   constructor({ properties, ...remainingArgs }: UserConstructorArgs) {
     super({ ...remainingArgs, properties });
     this.properties = properties;
   }
 
-  static async getEntityType(client: DBClient): Promise<EntityType> {
+  static async getEntityType(client: DbClient): Promise<EntityType> {
     const userEntityType = await client.getSystemTypeLatestVersion({
       systemTypeName: "User",
     });
@@ -51,7 +51,7 @@ class __User extends Account {
   }
 
   static async getUserById(
-    client: DBClient,
+    client: DbClient,
     params: { entityId: string },
   ): Promise<User | null> {
     const { entityId } = params;
@@ -64,7 +64,7 @@ class __User extends Account {
   }
 
   static async getUserByEmail(
-    client: DBClient,
+    client: DbClient,
     params: {
       email: string;
       verified?: boolean;
@@ -81,7 +81,7 @@ class __User extends Account {
   }
 
   static async getUserByShortname(
-    client: DBClient,
+    client: DbClient,
     params: { shortname: string },
   ): Promise<User | null> {
     const dbUser = await client.getUserByShortname(params);
@@ -89,8 +89,8 @@ class __User extends Account {
   }
 
   static async createUser(
-    client: DBClient,
-    properties: DBUserProperties,
+    client: DbClient,
+    properties: DbUserProperties,
   ): Promise<User> {
     const id = genId();
 
@@ -107,15 +107,15 @@ class __User extends Account {
   }
 
   async partialPropertiesUpdate(
-    client: DBClient,
-    params: PartialPropertiesUpdatePayload<DBUserProperties>,
+    client: DbClient,
+    params: PartialPropertiesUpdatePayload<DbUserProperties>,
   ) {
     return await super.partialPropertiesUpdate(client, params);
   }
 
   async updateProperties(
-    client: DBClient,
-    params: UpdatePropertiesPayload<DBUserProperties>,
+    client: DbClient,
+    params: UpdatePropertiesPayload<DbUserProperties>,
   ) {
     await super.updateProperties(client, params);
     this.properties = params.properties;
@@ -128,7 +128,7 @@ class __User extends Account {
    * to prevent overriding externally-updated properties
    */
   updateShortname(
-    client: DBClient,
+    client: DbClient,
     params: {
       updatedByAccountId: string;
       updatedShortname: string;
@@ -151,7 +151,7 @@ class __User extends Account {
    * to prevent overriding externally-updated properties
    */
   updatePreferredName(
-    client: DBClient,
+    client: DbClient,
     params: {
       updatedByAccountId: string;
       updatedPreferredName: string;
@@ -170,7 +170,7 @@ class __User extends Account {
    * to prevent overriding externally-updated properties
    */
   updateInfoProvidedAtSignup(
-    client: DBClient,
+    client: DbClient,
     params: {
       updatedByAccountId: string;
       updatedInfo: UserInfoProvidedAtSignup;
@@ -224,7 +224,7 @@ class __User extends Account {
    * to prevent overriding externally-updated properties
    */
   async addEmailAddress(
-    client: DBClient,
+    client: DbClient,
     params: {
       updatedByAccountId: string;
       email: Email;
@@ -262,7 +262,7 @@ class __User extends Account {
    * to prevent overriding externally-updated properties
    */
   verifyExistingEmailAddress(
-    client: DBClient,
+    client: DbClient,
     params: {
       updatedByAccountId: string;
       emailAddress: string;
@@ -287,7 +287,7 @@ class __User extends Account {
   }
 
   async sendLoginVerificationCode(
-    client: DBClient,
+    client: DbClient,
     tp: EmailTransporter,
     params: {
       alternateEmailAddress?: string;
@@ -335,7 +335,7 @@ class __User extends Account {
   }
 
   async sendEmailVerificationCode(
-    client: DBClient,
+    client: DbClient,
     tp: EmailTransporter,
     params: { emailAddress: string; magicLinkQueryParams?: string },
   ) {
@@ -376,7 +376,7 @@ class __User extends Account {
     }).then(() => verificationCode);
   }
 
-  async canCreateVerificationCode(client: DBClient) {
+  async canCreateVerificationCode(client: DbClient) {
     const createdAfter = getEmailRateLimitQueryTime();
     const verificationCodes = await client.getUserVerificationCodes({
       userEntityId: this.entityId,
@@ -388,7 +388,7 @@ class __User extends Account {
     return true;
   }
 
-  async getOrgMemberships(client: DBClient) {
+  async getOrgMemberships(client: DbClient) {
     const outgoingMemberOfLinks = await this.getOutgoingLinks(client, {
       path: ["memberOf"],
     });
@@ -416,7 +416,7 @@ class __User extends Account {
     );
   }
 
-  async isMemberOfOrg(client: DBClient, orgEntityId: string) {
+  async isMemberOfOrg(client: DbClient, orgEntityId: string) {
     const orgMemberships = await this.getOrgMemberships(client);
 
     for (const orgMembership of orgMemberships) {
@@ -433,7 +433,7 @@ class __User extends Account {
    * to prevent overriding externally-updated properties
    */
   async joinOrg(
-    client: DBClient,
+    client: DbClient,
     params: { org: Org; responsibility: string; updatedByAccountId: string },
   ) {
     if (await this.isMemberOfOrg(client, params.org.entityId)) {

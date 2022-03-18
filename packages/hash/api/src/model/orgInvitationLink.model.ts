@@ -1,10 +1,10 @@
 import { ApolloError } from "apollo-server-errors";
-import { DBClient } from "../db";
+import { DbClient } from "../db";
 import { EntityType } from "../db/adapter";
 import {
   AccessToken,
   OrgInvitationLink,
-  DBAccessTokenProperties,
+  DbAccessTokenProperties,
   AccessTokenConstructorArgs,
   Org,
   UpdatePropertiesPayload,
@@ -12,16 +12,16 @@ import {
   Link,
 } from ".";
 
-export type DBOrgInvitationLinkProperties = {
+export type DbOrgInvitationLinkProperties = {
   useCount: number;
-} & DBAccessTokenProperties;
+} & DbAccessTokenProperties;
 
 type OrgInvitationLinkConstructorArgs = {
-  properties: DBOrgInvitationLinkProperties;
+  properties: DbOrgInvitationLinkProperties;
 } & AccessTokenConstructorArgs;
 
 class __OrgInvitationLink extends AccessToken {
-  properties: DBOrgInvitationLinkProperties;
+  properties: DbOrgInvitationLinkProperties;
   errorMsgPrefix: string;
 
   constructor({
@@ -33,7 +33,7 @@ class __OrgInvitationLink extends AccessToken {
     this.errorMsgPrefix = `The invitation link with entityId ${this.entityId}`;
   }
 
-  static async getEntityType(client: DBClient): Promise<EntityType> {
+  static async getEntityType(client: DbClient): Promise<EntityType> {
     const dbEntityType = await client.getSystemTypeLatestVersion({
       systemTypeName: "OrgInvitationLink",
     });
@@ -41,7 +41,7 @@ class __OrgInvitationLink extends AccessToken {
   }
 
   static async getOrgInvitationLink(
-    client: DBClient,
+    client: DbClient,
     params: { accountId: string; entityId: string },
   ): Promise<OrgInvitationLink | null> {
     const dbOrgInvitationLink = await client.getEntityLatestVersion(params);
@@ -56,7 +56,7 @@ class __OrgInvitationLink extends AccessToken {
    * @param {Org} org - The organisation the invitation is associated with.
    */
   static async createOrgInvitationLink(
-    client: DBClient,
+    client: DbClient,
     params: {
       org: Org;
       createdByAccountId: string;
@@ -64,7 +64,7 @@ class __OrgInvitationLink extends AccessToken {
   ): Promise<OrgInvitationLink> {
     const { org, createdByAccountId } = params;
 
-    const properties: DBOrgInvitationLinkProperties = {
+    const properties: DbOrgInvitationLinkProperties = {
       useCount: 0,
       accessToken: AccessToken.generateAccessToken(),
     };
@@ -99,7 +99,7 @@ class __OrgInvitationLink extends AccessToken {
     return orgInvitationLink;
   }
 
-  async getOrg(client: DBClient): Promise<Org> {
+  async getOrg(client: DbClient): Promise<Org> {
     const outgoingOrgLinks = await this.getOutgoingLinks(client, {
       path: ["org"],
     });
@@ -128,7 +128,7 @@ class __OrgInvitationLink extends AccessToken {
   }
 
   async updateProperties(
-    client: DBClient,
+    client: DbClient,
     params: UpdatePropertiesPayload<any>,
   ) {
     await super.updateProperties(client, params);
@@ -139,7 +139,7 @@ class __OrgInvitationLink extends AccessToken {
   /**
    * Increments the use count of the invitation.
    */
-  use(client: DBClient, updatedByAccountId: string) {
+  use(client: DbClient, updatedByAccountId: string) {
     return this.partialPropertiesUpdate(client, {
       updatedByAccountId,
       properties: {

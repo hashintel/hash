@@ -1,5 +1,5 @@
-import { DBAdapter } from "@hashintel/hash-api/src/db";
-import { DBOrgProperties } from "@hashintel/hash-api/src/db/adapter";
+import { DbAdapter } from "@hashintel/hash-api/src/db";
+import { DbOrgProperties } from "@hashintel/hash-api/src/db/adapter";
 import { User, Org } from "@hashintel/hash-api/src/model";
 import { WayToUseHash } from "../graphql/apiTypes.gen";
 
@@ -11,7 +11,7 @@ type CreateUserArgs = {
 
 // Note, the email addresses of these users will automatically be verified
 export const createUsers =
-  (db: DBAdapter) =>
+  (db: DbAdapter) =>
   async (org: Org): Promise<User[]> => {
     const createUserArgs: CreateUserArgs[] = [
       {
@@ -55,8 +55,8 @@ export const createUsers =
  * Create additional orgs we might want as dummy/seed data
  * The HASH org is now created as part of migration, as it doubles up as the 'system' account.
  */
-export const createOrgs = async (db: DBAdapter): Promise<Org[]> => {
-  const orgs: { properties: DBOrgProperties; createdByAccountId: string }[] =
+export const createOrgs = async (db: DbAdapter): Promise<Org[]> => {
+  const orgs: { properties: DbOrgProperties; createdByAccountId: string }[] =
     [];
 
   return await Promise.all(orgs.map((params) => Org.createOrg(db, params)));

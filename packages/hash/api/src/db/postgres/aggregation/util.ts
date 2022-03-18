@@ -1,28 +1,28 @@
 import { sql } from "slonik";
 
 import { Connection } from "../types";
-import { DBAggregation } from "../../adapter";
+import { DbAggregation } from "../../adapter";
 import { mapColumnNamesToSQL } from "../util";
 
-export type DBAggregationRow = {
+export type DbAggregationRow = {
   source_account_id: string;
   source_entity_id: string;
   path: string;
   source_entity_version_ids: string[];
   operation: any;
-  created_by: string;
+  created_by_account_id: string;
   created_at: string;
 };
 
-export const mapRowToDBAggregation = (
-  row: DBAggregationRow,
-): DBAggregation => ({
+export const mapRowToDbAggregation = (
+  row: DbAggregationRow,
+): DbAggregation => ({
   sourceAccountId: row.source_account_id,
   sourceEntityId: row.source_entity_id,
   path: row.path,
   operation: row.operation,
   sourceEntityVersionIds: new Set(row.source_entity_version_ids),
-  createdByAccountId: row.created_by,
+  createdByAccountId: row.created_by_account_id,
   createdAt: new Date(row.created_at),
 });
 
@@ -32,7 +32,7 @@ export const aggregationsColumnNames = [
   "path",
   "source_entity_version_ids",
   "operation",
-  "created_by",
+  "created_by_account_id",
   "created_at",
 ];
 
@@ -46,7 +46,7 @@ export const aggregationsColumnNamesSQL = mapColumnNamesToSQL(
 export const insertAggregation = async (
   conn: Connection,
   params: {
-    aggregation: DBAggregation;
+    aggregation: DbAggregation;
   },
 ): Promise<void> => {
   const { aggregation } = params;

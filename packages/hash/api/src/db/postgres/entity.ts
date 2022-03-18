@@ -2,8 +2,8 @@ import { sql, NotFoundError } from "slonik";
 import { uniq } from "lodash";
 
 import {
-  DBAggregation,
-  DBLink,
+  DbAggregation,
+  DbLink,
   DbEntity,
   EntityType,
   EntityVersion,
@@ -41,9 +41,9 @@ export const mapPGRowToEntity = (row: EntityPGRow): DbEntity => {
       extra: row.extra,
     },
     createdAt: new Date(row.created_at),
-    createdByAccountId: row.created_by,
+    createdByAccountId: row.created_by_account_id,
     updatedAt: new Date(row.updated_at),
-    updatedByAccountId: row.updated_by,
+    updatedByAccountId: row.updated_by_account_id,
     visibility: Visibility.Public /** @todo implement this */,
   };
 
@@ -68,9 +68,9 @@ export type EntityPGRow = {
   entity_version_id: string;
   entity_type_version_id: string;
   properties: any;
-  created_by: string;
+  created_by_account_id: string;
   created_at: number;
-  updated_by: string;
+  updated_by_account_id: string;
   updated_at: number;
   entity_id: string;
   extra: any;
@@ -79,9 +79,9 @@ export type EntityPGRow = {
   ["type.account_id"]: string;
   ["type.entity_type_version_id"]: string;
   ["type.properties"]: any;
-  ["type.created_by"]: string;
+  ["type.created_by_account_id"]: string;
   ["type.created_at"]: number;
-  ["type.updated_by"]: string;
+  ["type.updated_by_account_id"]: string;
   ["type.updated_at"]: number;
 };
 
@@ -96,24 +96,24 @@ export const selectEntities = sql<EntityPGRow>`
     e.entity_version_id,
     e.entity_type_version_id,
     e.properties,
-    e.updated_by,
+    e.updated_by_account_id,
     e.updated_at,
     e.entity_id,
     meta.extra,
     meta.versioned,
-    meta.created_by,
+    meta.created_by_account_id,
     meta.created_at,
 
     type.account_id as "type.account_id",
     type.entity_type_id as "type.entity_type_id",
     type.entity_type_version_id as "type.entity_type_version_id",
     type.properties as "type.properties",
-    typeMeta.created_by as "type.created_by",
+    typeMeta.created_by_account_id as "type.created_by_account_id",
     typeMeta.created_at as "type.created_at",
     typeMeta.name as "type.name",
     typeMeta.versioned as "type.versioned",
     type.updated_at as "type.updated_at",
-    type.updated_by as "type.updated_by"
+    type.updated_by_account_id as "type.updated_by_account_id"
   from
     entity_versions as e
     join entity_type_versions as type on
@@ -360,7 +360,7 @@ export const insertEntityVersion = async (
   await conn.query(sql`
     insert into entity_versions (
       account_id, entity_version_id, entity_id, entity_type_version_id,
-      properties, updated_at, updated_by
+      properties, updated_at, updated_by_account_id
     )
     values (
       ${params.accountId}, ${params.entityVersionId}, ${params.entityId},
@@ -385,7 +385,7 @@ export const updateEntityVersionProperties = async (
     update entity_versions set
       properties = ${sql.json(params.properties)},
       updated_at = ${params.updatedAt.toISOString()},
-      updated_by = ${params.updatedByAccountId}
+      updated_by_account_id = ${params.updatedByAccountId}
     where
       account_id = ${params.accountId}
       and entity_version_id = ${params.entityVersionId}
@@ -492,7 +492,7 @@ export const getEntityHistory = async (
 ): Promise<EntityVersion[]> => {
   const rows = await conn.any(sql`
     select
-      entity_version_id, updated_by, updated_at
+      entity_version_id, updated_by_account_id, updated_at
     from entity_versions
     where
       account_id = ${params.accountId}
@@ -504,7 +504,7 @@ export const getEntityHistory = async (
     accountId: params.accountId,
     entityVersionId: row.entity_version_id as string,
     updatedAt: new Date(row.updated_at as string),
-    updatedByAccountId: row.updated_by as string,
+    updatedByAccountId: row.updated_by_account_id as string,
   }));
 };
 
@@ -697,7 +697,7 @@ const addSourceEntityVersionIdToAggregations = async (
     sourceEntityVersionId: entity.entityVersionId,
   });
 
-  const isDbAggregationInNextVersion = (aggregation: DBAggregation): boolean =>
+  const isDbAggregationInNextVersion = (aggregation: DbAggregation): boolean =>
     params.omittedAggregations?.find(
       ({ path }) => path === aggregation.path,
     ) === undefined;
@@ -847,7 +847,7 @@ export const updateEntity = async (
 
 export const getDestinationEntityOfLink = async (
   conn: Connection,
-  link: DBLink,
+  link: DbLink,
 ): Promise<DbEntity> => {
   const destinationEntity = link.destinationEntityVersionId
     ? await getEntity(conn, {

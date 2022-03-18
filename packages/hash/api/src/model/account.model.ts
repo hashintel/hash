@@ -9,34 +9,34 @@ import {
   UpdatePropertiesPayload,
   User,
 } from ".";
-import { DBClient } from "../db";
+import { DbClient } from "../db";
 import { RESTRICTED_SHORTNAMES } from "./util";
-import { DBOrgProperties, DBUserProperties } from "../db/adapter";
+import { DbOrgProperties, DbUserProperties } from "../db/adapter";
 
 export const ALLOWED_SHORTNAME_CHARS = /^[a-zA-Z0-9-_]+$/;
 
-type DBAccountProperties = DBUserProperties | DBOrgProperties;
+type DbAccountProperties = DbUserProperties | DbOrgProperties;
 
 export type AccountConstructorArgs = {
-  properties: DBAccountProperties;
+  properties: DbAccountProperties;
 } & EntityConstructorArgs;
 
 abstract class __Account extends Entity {
   protected partialPropertiesUpdate(
-    client: DBClient,
-    params: PartialPropertiesUpdatePayload<DBAccountProperties>,
+    client: DbClient,
+    params: PartialPropertiesUpdatePayload<DbAccountProperties>,
   ) {
     return super.partialPropertiesUpdate(client, params);
   }
 
   protected updateProperties(
-    client: DBClient,
-    params: UpdatePropertiesPayload<DBAccountProperties>,
+    client: DbClient,
+    params: UpdatePropertiesPayload<DbAccountProperties>,
   ) {
     return super.updateProperties(client, params);
   }
 
-  static async getAll(client: DBClient): Promise<(User | Org)[]> {
+  static async getAll(client: DbClient): Promise<(User | Org)[]> {
     const accountDbEntities = await client.getAllAccounts();
 
     return accountDbEntities.map((dbEntity) =>
@@ -47,7 +47,7 @@ abstract class __Account extends Entity {
   }
 
   static async accountExists(
-    client: DBClient,
+    client: DbClient,
     accountId: string,
   ): Promise<boolean> {
     return await client.accountExists({
@@ -75,7 +75,7 @@ abstract class __Account extends Entity {
   }
 
   static async isShortnameTaken(
-    client: DBClient,
+    client: DbClient,
     shortname: string,
   ): Promise<boolean> {
     const [org, user] = await Promise.all([
@@ -86,7 +86,7 @@ abstract class __Account extends Entity {
     return org !== null || user !== null;
   }
 
-  static async validateShortname(client: DBClient, shortname: string) {
+  static async validateShortname(client: DbClient, shortname: string) {
     Account.checkShortnameChars(shortname);
 
     if (
@@ -110,7 +110,7 @@ abstract class __Account extends Entity {
    * to prevent overriding externally-updated properties
    */
   updateShortname(
-    db: DBClient,
+    db: DbClient,
     params: {
       updatedByAccountId: string;
       updatedShortname: string;

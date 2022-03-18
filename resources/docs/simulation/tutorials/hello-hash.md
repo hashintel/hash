@@ -19,13 +19,13 @@ The **init.json** file defines the 'initial state' of the simulation as a collec
 
 We'll begin by adding two agents into the array, and give them names.
 
-```javascript
+```json
 [
   {
-    "agent_name": "Alice",
+    "agent_name": "Alice"
   },
   {
-    "agent_name": "Bob",
+    "agent_name": "Bob"
   }
 ]
 ```
