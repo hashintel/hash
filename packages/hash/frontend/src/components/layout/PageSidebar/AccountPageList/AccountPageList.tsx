@@ -4,7 +4,6 @@ import { treeFromParentReferences } from "@hashintel/hash-shared/util";
 import { TreeView } from "@mui/lab";
 import { useRouter } from "next/router";
 import { useModal } from "react-modal-hook";
-import { Box } from "@mui/material";
 import { useAccountPages } from "../../../hooks/useAccountPages";
 import { NavLink } from "../NavLink";
 import { PageTreeItem } from "./PageTreeItem";
@@ -49,31 +48,6 @@ const renderTree = (
   );
 };
 
-const Tree = ({ node, depth = 0 }: { node: TreeElement; depth?: number }) => {
-  const newDepth = depth;
-  // console.log("depth ==> ", depth);
-  return (
-    <PageTreeItem
-      key={node.entityId}
-      nodeId={node.entityId}
-      label={node.title}
-      depth={depth}
-      ContentProps={{
-        // @ts-expect-error -- can't seem to override TreeItemProps at the moment, plan to revisit
-        expandable: Boolean(
-          Array.isArray(node.children) ? node.children.length : node.children,
-        ),
-      }}
-    >
-      {Array.isArray(node.children)
-        ? node.children.map((child) => (
-            <Tree key={child.entityId} node={child} depth={newDepth + 1} />
-          ))
-        : null}
-    </PageTreeItem>
-  );
-};
-
 export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
   currentPageEntityId,
   accountId,
@@ -106,6 +80,7 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
     >
       <TreeView
         data-testid="pages-tree"
+        tabIndex={-1}
         sx={{
           mx: 0.5,
         }}
@@ -114,9 +89,6 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
           void router.push(`/${accountId}/${pageEntityId}`);
         }}
       >
-        {/* {formattedData.map((node) => (
-          <Tree key={node.entityId} node={node} depth={0} />
-        ))} */}
         {formattedData.map((node) => renderTree(node, accountId, 0))}
       </TreeView>
     </NavLink>

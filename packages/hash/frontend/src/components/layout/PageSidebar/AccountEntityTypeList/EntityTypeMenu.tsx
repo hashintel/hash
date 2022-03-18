@@ -20,26 +20,31 @@ type EntityTypeMenuProps = {
 
 const navItems = [
   {
+    id: 1,
     title: "Add to Bookmarks",
     icon: faBookmark, // @todo-mui get a free icon that matches the design closely
     onClick: () => {},
   },
   {
+    id: 2,
     title: `Create new ${pluralize.singular("People")}`,
     icon: faAdd,
     href: "/",
   },
   {
+    id: 3,
     title: "Copy Link to People",
     icon: faLink,
     onClick: () => {},
   },
   {
+    id: 4,
     title: "Create filtered page",
     icon: faFilter, // @todo-mui get a free icon that matches the design closely
     onClick: () => {},
   },
   {
+    id: 5,
     title: "Delete type",
     icon: faTrash,
     onClick: () => {},
@@ -89,12 +94,12 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({ className }) => {
             py: 0.5,
           }}
         >
-          {navItems.map(({ title, icon, onClick, href }) => {
+          {navItems.map(({ title, icon, onClick, href, id }) => {
             // const lastItem = index === navItems.length - 1;
 
             if (href) {
               return (
-                <Link noLinkStyle href={href}>
+                <Link key={id} noLinkStyle href={href}>
                   <ListItemButton onClick={() => setOpen(false)}>
                     <FontAwesomeIcon icon={icon} />
                     <Typography variant="smallTextLabels">{title}</Typography>
@@ -105,6 +110,7 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({ className }) => {
             if (onClick) {
               return (
                 <ListItemButton
+                  key={id}
                   onClick={() => {
                     onClick();
                     setOpen(false);

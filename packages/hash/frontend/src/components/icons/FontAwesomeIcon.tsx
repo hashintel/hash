@@ -26,7 +26,7 @@ export const FontAwesomeIcon = React.forwardRef<
           color: "currentColor",
           width: "1em",
           height: "1em",
-          fontSize: "15px",
+          fontSize: "16px",
         },
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}

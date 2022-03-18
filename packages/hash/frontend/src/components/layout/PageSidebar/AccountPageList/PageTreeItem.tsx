@@ -15,7 +15,6 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "../../../icons";
 import { IconButton } from "../../../IconButton";
-// import { Button } from "../../../Button";
 import { Link } from "../../../Link";
 import { PageMenu } from "./PageMenu";
 
@@ -65,6 +64,7 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
   return (
     // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <Box
+      tabIndex={0}
       onMouseDown={handleMouseDown}
       onMouseOver={() => setHovered(true)}
       onMouseOut={() => setHovered(false)}
@@ -85,12 +85,6 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
         ...(selected && {
           backgroundColor: ({ palette }) => palette.gray[30],
         }),
-
-        ...(focused &&
-          {
-            // backgroundColor: "red !important"
-            // @todo-mui add focus styles
-          }),
       }}
     >
       <IconButton
@@ -123,50 +117,34 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
           color: ({ palette }) => palette.gray[50],
         }}
       />
-      {/* @todo-mui this should be switched to our button component once we have all variants implemented */}
       <Link
         noLinkStyle
+        tabIndex={-1}
         sx={{
           flex: 1,
-          width: "100%",
-          outline: "none",
-          textAlign: "left",
         }}
         href={pageUrl}
       >
         <Typography
           variant="smallTextLabels"
-          sx={{
+          sx={({ palette }) => ({
             display: "block",
-            color: ({ palette }) => palette.gray[70],
+            color: palette.gray[70],
+            fontWeight: 400,
             py: 1,
-          }}
+
+            ...(hovered && {
+              color: palette.gray[80],
+            }),
+
+            ...(selected && {
+              color: palette.gray[90],
+            }),
+          })}
         >
           {label}
         </Typography>
       </Link>
-
-      {/* <Box
-        component="button"
-        onClick={handleSelectionClick}
-        sx={{
-          flex: 1,
-          width: "100%",
-          outline: "none",
-          textAlign: "left",
-        }}
-      >
-        <Typography
-          variant="smallTextLabels"
-          sx={{
-            display: "block",
-            color: ({ palette }) => palette.gray[70],
-            py: 1,
-          }}
-        >
-          {label}
-        </Typography>
-      </Box> */}
       <Tooltip
         title="Add subpages, delete, duplicate and more"
         componentsProps={{
@@ -185,8 +163,6 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
           sx={{
             color: ({ palette }) => palette.gray[40],
             ...(hovered && {
-              backgroundColor: ({ palette }) =>
-                palette.gray[selected ? 40 : 30],
               color: ({ palette }) => palette.gray[50],
             }),
             "&:hover": {
@@ -205,26 +181,23 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
 });
 
 export const PageTreeItem = ({
-  sx,
-  // depth,
+  sx = [],
   ...props
 }: TreeItemProps & { depth: number }) => {
-  // console.log("depth passed to component ==> ", depth);
-  // Figure out why depth doesn't update with the right value
   return (
     <TreeItem
       {...props}
-      sx={{
-        ...sx,
-        // uncommenting this resets TreeItems default styles
-        [`& .${treeItemClasses.group}`]: {
-          marginLeft: 0,
-          // [`& .${treeItemClasses.content}`]: {
-          //   pl: `${depth * 15 + 8}px`,
-          //   pr: 1,
-          // },
+      sx={[
+        {
+          // resets the default margin applied to a TreeItem's child(ren)
+          // we apply a padding instead to the CustomComponent
+          // this makes it possible for the hover background to span the entire sidebar width
+          [`& .${treeItemClasses.group}`]: {
+            marginLeft: 0,
+          },
         },
-      }}
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
       ContentComponent={CustomContent}
     />
   );

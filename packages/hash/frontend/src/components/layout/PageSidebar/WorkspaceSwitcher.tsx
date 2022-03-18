@@ -65,7 +65,7 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
   const workspaceList = useMemo(() => {
     return [
       {
-        key: user?.accountId,
+        key: user?.accountId ?? "currentUser",
         url: "/",
         title: "My personal workspace",
         subText: `@${user?.properties.shortname ?? "user"}`,
@@ -116,7 +116,15 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
         />
       </Button>
 
-      <Menu {...bindMenu(popupState)}>
+      <Menu
+        {...bindMenu(popupState)}
+        MenuListProps={{
+          sx: {
+            paddingTop: "10px",
+            paddingBottom: "6px",
+          },
+        }}
+      >
         {workspaceList.map(({ title, subText, url, key }) => (
           <MenuItem
             key={key}

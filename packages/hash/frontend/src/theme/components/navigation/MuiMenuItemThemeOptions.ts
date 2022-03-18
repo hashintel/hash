@@ -39,6 +39,12 @@ export const MuiMenuItemThemeOptions: Components<Theme>["MuiMenuItem"] = {
         color: theme.palette.gray[50],
       },
 
+      [`& .${listItemIconClasses.root}`]: {
+        color: theme.palette.gray[50],
+        minWidth: "unset",
+        marginRight: 12,
+      },
+
       [`& .${listItemAvatarClasses.root}`]: {
         border: "2px solid transparent",
         marginRight: "12px",
@@ -46,27 +52,28 @@ export const MuiMenuItemThemeOptions: Components<Theme>["MuiMenuItem"] = {
         minWidth: "unset",
       },
 
-      [`&.${menuItemClasses.selected}, &.${menuItemClasses.focusVisible}`]: {
-        backgroundColor: theme.palette.blue[70],
-        color: theme.palette.common.white,
+      [`&.${menuItemClasses.selected}, &.${menuItemClasses.focusVisible}, &:focus`]:
+        {
+          backgroundColor: theme.palette.blue[70],
+          color: theme.palette.common.white,
 
-        [`& .${listItemIconClasses.root}`]: {
-          color: theme.palette.blue[30],
-        },
+          [`& .${listItemIconClasses.root}`]: {
+            color: theme.palette.blue[30],
+          },
 
-        [`& .${listItemTextClasses.primary}`]: {
-          color: theme.palette.white,
-        },
+          [`& .${listItemTextClasses.primary}`]: {
+            color: theme.palette.white,
+          },
 
-        [`& .${listItemTextClasses.secondary}`]: {
-          color: theme.palette.blue[30],
-        },
+          [`& .${listItemTextClasses.secondary}`]: {
+            color: theme.palette.blue[30],
+          },
 
-        [`& .${listItemAvatarClasses.root}`]: {
-          borderColor: theme.palette.white,
-          // borderRadius: "50%",
+          [`& .${listItemAvatarClasses.root}`]: {
+            borderColor: theme.palette.white,
+            // borderRadius: "50%",
+          },
         },
-      },
 
       ...(!ownerState.disableGutters && {
         marginLeft: theme.spacing(0.5),
