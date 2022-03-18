@@ -80,7 +80,8 @@ def load_dataset(batch_id):
     # The header has the shortname of the dataset
     n_metaversion_bytes = 8  # Memory u32 + batch u32 version
     name_offset = header_offset + n_metaversion_bytes  # Skip metaversion.
-    name_buf = mem[name_offset: name_offset + header_size]
+    header_end = header_offset + header_size
+    name_buf = mem[name_offset:header_end]
     dataset_name = str(name_buf.to_pybytes().decode('utf-8'))
 
     # This data buffer has the dataset as a JSON string
@@ -103,7 +104,7 @@ class Batch:
         self.mem = None
         # After loading, `record_batch` will be a record batch.
         self.record_batch = None
-        # TODO: Remove after upgrading Arrow and putting schema metadata in individual fields.
+        # TODO: Remove `any_type_fields` after upgrading Arrow and putting schema metadata in individual fields.
         self.any_type_fields = None
         self.cols = {}  # Syncing erases columns that have become invalid.
 
