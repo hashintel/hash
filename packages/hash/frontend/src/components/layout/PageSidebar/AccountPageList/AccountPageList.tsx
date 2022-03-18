@@ -27,7 +27,6 @@ const renderTree = (
   accountId: string,
   depth: number = 0,
 ) => {
-  console.log("depth ==> ", depth);
   return (
     <PageTreeItem
       key={node.entityId}
@@ -40,6 +39,7 @@ const renderTree = (
           Array.isArray(node.children) ? node.children.length : node.children,
         ),
         pageUrl: `/${accountId}/${node.entityId}`,
+        depth,
       }}
     >
       {Array.isArray(node.children)

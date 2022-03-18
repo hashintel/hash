@@ -64,10 +64,6 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
           padding: "12px 16px 12px 18px",
           justifyContent: "flex-start",
           textAlign: "left",
-
-          "&:focus": {
-            backgroundColor: "transparent",
-          },
         }}
         {...bindTrigger(popupState)}
       >

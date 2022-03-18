@@ -54,7 +54,7 @@ export const NavLink: FC<NavLinkProps> = ({
           {title}
         </Typography>
         <IconButton
-          size="small"
+          size="xs"
           unpadded
           rounded
           sx={{

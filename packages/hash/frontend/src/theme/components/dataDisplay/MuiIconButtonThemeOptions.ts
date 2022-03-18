@@ -27,7 +27,7 @@ export const MuiIconButtonThemeOptions: Components<Theme>["MuiIconButton"] = {
       },
 
       "&:focus-visible": {
-        outlineColor: theme.palette.blue[70],
+        outline: `2px solid ${theme.palette.blue[70]}`,
         outlineOffset: "2px",
       },
 

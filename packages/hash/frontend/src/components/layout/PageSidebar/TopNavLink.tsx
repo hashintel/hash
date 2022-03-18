@@ -56,7 +56,7 @@ export const TopNavLink: FC<NavLinkProps> = ({
             },
           },
 
-          "&:focus": {
+          "&:focus-visible": {
             outline: ({ palette }) => `2px solid ${palette.blue[70]}`,
             outlineOffset: 2,
           },

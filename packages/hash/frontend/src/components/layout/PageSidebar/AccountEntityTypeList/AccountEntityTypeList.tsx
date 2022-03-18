@@ -113,9 +113,7 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
                     },
                   },
 
-                  //   @todo-mui add focus state
-
-                  "&:focus, &:focus-within": {
+                  "&:focus-visible, &:focus-within": {
                     backgroundColor: ({ palette }) => palette.gray[20],
 
                     "& .entity-type-menu": {

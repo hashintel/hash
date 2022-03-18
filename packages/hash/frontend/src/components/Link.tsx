@@ -114,7 +114,7 @@ export const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
       return (
         <NextLinkComposed
           sx={{
-            ":focus": {
+            ":focus-visible": {
               outlineColor: ({ palette }) => palette.blue["70"],
             },
           }}

@@ -6,7 +6,7 @@ import TreeItem, {
   treeItemClasses,
 } from "@mui/lab/TreeItem";
 // import clsx from "clsx";
-import { Box, Typography } from "@mui/material";
+import { Box, Tooltip, Typography } from "@mui/material";
 import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
 import {
   faChevronRight,
@@ -22,11 +22,12 @@ import { PageMenu } from "./PageMenu";
 type CustomContentProps = TreeItemContentProps & {
   expandable?: boolean;
   pageUrl: string;
+  depth: number;
 };
 
 // inspiration gotten from https://mui.com/components/tree-view/#IconExpansionTreeView.tsx
 const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
-  const { label, nodeId, expandable, pageUrl } = props;
+  const { label, nodeId, expandable, pageUrl, depth } = props;
   const [hovered, setHovered] = React.useState(false);
   const pageMenuTriggerRef = React.useRef(null);
   const popupState = usePopupState({
@@ -71,16 +72,18 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
       sx={{
         display: "flex",
         alignItems: "center",
-        px: 1,
+        borderRadius: "4px",
 
-        "&:hover": {
-          backgroundColor: ({ palette }) => palette.gray[20],
-          borderRadius: "4px",
-        },
+        pl: `${depth * 15 + 8}px`,
+        pr: 1,
+
+        ...((hovered || focused) &&
+          !selected && {
+            backgroundColor: ({ palette }) => palette.gray[20],
+          }),
 
         ...(selected && {
-          backgroundColor: ({ palette }) => palette.gray[20],
-          borderRadius: "4px",
+          backgroundColor: ({ palette }) => palette.gray[30],
         }),
 
         ...(focused &&
@@ -92,7 +95,7 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
     >
       <IconButton
         onClick={handleExpansionClick}
-        size="small"
+        size="xs"
         unpadded
         rounded
         sx={{
@@ -164,24 +167,36 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
           {label}
         </Typography>
       </Box> */}
-      <IconButton
-        ref={pageMenuTriggerRef}
-        {...bindTrigger(popupState)}
-        size="medium"
-        unpadded
-        sx={{
-          color: ({ palette }) => palette.gray[40],
-          ...((hovered || selected) && {
-            color: ({ palette }) => palette.gray[50],
-          }),
-          "&:hover": {
-            backgroundColor: ({ palette }) => palette.gray[30],
-            color: ({ palette }) => palette.gray[50],
+      <Tooltip
+        title="Add subpages, delete, duplicate and more"
+        componentsProps={{
+          tooltip: {
+            sx: {
+              width: 175,
+            },
           },
         }}
       >
-        <FontAwesomeIcon icon={faEllipsis} />
-      </IconButton>
+        <IconButton
+          ref={pageMenuTriggerRef}
+          {...bindTrigger(popupState)}
+          size="medium"
+          unpadded
+          sx={{
+            color: ({ palette }) => palette.gray[40],
+            ...(hovered && {
+              color: ({ palette }) => palette.gray[50],
+            }),
+            "&:hover": {
+              backgroundColor: ({ palette }) =>
+                palette.gray[selected ? 40 : 30],
+              color: ({ palette }) => palette.gray[50],
+            },
+          }}
+        >
+          <FontAwesomeIcon icon={faEllipsis} />
+        </IconButton>
+      </Tooltip>
       <PageMenu popupState={popupState} />
     </Box>
   );
@@ -189,10 +204,10 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
 
 export const PageTreeItem = ({
   sx,
-  depth,
+  // depth,
   ...props
 }: TreeItemProps & { depth: number }) => {
-  console.log("depth passed to component ==> ", depth);
+  // console.log("depth passed to component ==> ", depth);
   // Figure out why depth doesn't update with the right value
   return (
     <TreeItem
@@ -200,13 +215,13 @@ export const PageTreeItem = ({
       sx={{
         ...sx,
         // uncommenting this resets TreeItems default styles
-        // [`& .${treeItemClasses.group}`]: {
-        //   marginLeft: 0,
-        //   [`& .${treeItemClasses.content}`]: {
-        //     pl: `${depth * 15 + 8}px`,
-        //     pr: 1,
-        //   },
-        // },
+        [`& .${treeItemClasses.group}`]: {
+          marginLeft: 0,
+          // [`& .${treeItemClasses.content}`]: {
+          //   pl: `${depth * 15 + 8}px`,
+          //   pr: 1,
+          // },
+        },
       }}
       ContentComponent={CustomContent}
     />
