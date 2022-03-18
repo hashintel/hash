@@ -59,7 +59,16 @@ unsafe extern "C" fn flush_changes(
         }
     };
 
-    let memory = &mut *((*c_memory).memory as *mut _);
+    let memory = &mut *((*c_memory).memory as *mut Memory);
+    let loaded_metaversion = match memory.metaversion() {
+        Ok(v) => v,
+        Err(err) => {
+            println!("Could not read metaversions in `flush_changes`: {err:?}");
+            return ERROR_FLAG;
+        }
+    };
+    // We only write metaversion back to memory if they have changed
+    let mut metaversion = loaded_metaversion.clone();
 
     let mut prepared = PreparedBatch {
         static_meta,
@@ -79,16 +88,30 @@ unsafe extern "C" fn flush_changes(
         }
     };
 
-    if changed.resized() {
+    let return_flag = if changed.resized() {
         let ptr = memory.data.as_ptr();
         let len = memory.size as i64;
         let mut_c_memory = &mut *c_memory;
+        metaversion.increment();
         mut_c_memory.ptr = ptr;
         mut_c_memory.len = len;
         MEMORY_WAS_RESIZED
     } else {
+        if num_changes != 0 {
+            metaversion.increment_batch();
+        }
         MEMORY_SIZE_UNCHANGED
+    };
+    if loaded_metaversion != metaversion {
+        match memory.set_metaversion(metaversion) {
+            Ok(v) => v,
+            Err(err) => {
+                println!("Could not write metaversion in `flush_changes`: {err:?}");
+                return ERROR_FLAG;
+            }
+        };
     }
+    return_flag
 }
 
 // Assumes all buffers are properly aligned

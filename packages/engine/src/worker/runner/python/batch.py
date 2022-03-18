@@ -10,18 +10,28 @@ from wrappers import dynamic_meta_from_c_memory
 from wrappers import static_meta_from_schema
 from wrappers import flush
 
+N_MARKER_BYTES = 8  # Markers are all u64s.
+N_MARKERS = 8  # NUMBER_OF_MARKERS in datastore/memory.rs.
+N_MARKERS_BYTES = N_MARKER_BYTES * N_MARKERS
 
-def load_markers(mem):
-    n_marker_bytes = 8  # Markers are all u64s.
-    n_markers = 8  # NUMBER_OF_MARKERS in datastore/memory.rs.
-    n_markers_bytes = n_marker_bytes * n_markers
-    markers_bytes = mem[:n_markers_bytes].to_pybytes()
+
+def _load_markers_unchecked(mem):
+    markers_bytes = mem[:N_MARKERS_BYTES].to_pybytes()
 
     # '<' implies little-endian.
     # '<' also implies standard sizes, so Q matches a u64.
-    markers_fmt = '<' + 'Q' * n_markers
-    markers = struct.unpack_from(markers_fmt, markers_bytes)
-    assert len(markers) == n_markers, markers
+    markers_fmt = '<' + 'Q' * N_MARKERS
+    return struct.unpack_from(markers_fmt, markers_bytes)
+
+
+def load_markers(mem):
+    markers = _load_markers_unchecked(mem)
+    verify_markers(markers, mem)
+    return markers
+
+
+def verify_markers(markers, mem):
+    assert len(markers) == N_MARKERS, markers
 
     # Same order as in `datastore/storage/markers.rs`.
     # Units are all numbers of bytes.
@@ -34,13 +44,12 @@ def load_markers(mem):
     # https://arrow.apache.org/docs/format/Columnar.html#recordbatch-message
 
     # Schema comes immediately after markers.
-    assert schema_offset == n_markers_bytes, \
-        "schema_offset: {}, n_markers_bytes: {}".format(schema_offset, n_markers_bytes)
+    assert schema_offset == N_MARKERS_BYTES, \
+        "schema_offset: {}, n_markers_bytes: {}".format(schema_offset, N_MARKERS_BYTES)
     assert schema_offset + schema_size <= header_offset
     assert header_offset + header_size <= meta_offset
     assert meta_offset + meta_size <= data_offset
     assert data_offset + data_size <= mem.size
-    return markers
 
 
 def parse_any_type_fields(metadata):
@@ -113,23 +122,44 @@ class Batch:
         self.dynamic_meta = None
         self.static_meta = None
 
-    def sync(self, latest_batch, schema=None):
-        should_load = self.batch_version < latest_batch.batch_version
-        if self.mem_version < latest_batch.mem_version:
-            self.mem_version = latest_batch.mem_version
-            assert should_load, "Should be impossible to have new memory without new batch"
+    def load_persisted_metaversion(self):
+        if self.mem is None:
+            return 0, 0, None
+
+        # Can't verify markers right now as `self.mem` maybe needs to be reloaded first (e.g. after resizing)
+        markers = _load_markers_unchecked(self.mem)
+        (_, _, header_offset, header_size, _, _, _, _) = markers
+
+        n_metaversion_bytes = 8  # Memory u32 + batch u32 version
+        metaversion_buffer = self.mem[header_offset:header_offset + n_metaversion_bytes]
+        metaversion_bytes = metaversion_buffer.to_pybytes()
+        mem_version, batch_version = struct.unpack_from("<II", metaversion_bytes)
+        return mem_version, batch_version, markers
+
+    def sync(self, batch, schema=None):
+        persisted_mem_version, persisted_batch_version, markers = self.load_persisted_metaversion()
+
+        should_load_batch = self.batch_version < persisted_batch_version
+        if self.mem_version < persisted_mem_version:
+            assert should_load_batch, "Should be impossible to have new memory without new batch"
 
             # `load_shared_mem` throws an exception if loading fails,
             # but otherwise the returned pointer to shared memory is non-null.
-            self.c_memory = load_shared_mem(latest_batch.id)
+            self.c_memory = load_shared_mem(batch.id)
             self.mem = shared_buf_from_c_memory(self.c_memory)
-            self.dynamic_meta = dynamic_meta_from_c_memory(self.c_memory)
 
-        if should_load:
-            self.batch_version = latest_batch.batch_version
+            self.mem_version = persisted_mem_version
+
+        if markers:
+            verify_markers(markers, self.mem)
+
+        if should_load_batch:
             self.record_batch, self.any_type_fields = load_record_batch(self.mem, schema)
             self.cols = {}  # Avoid using obsolete column data.
             self.static_meta = static_meta_from_schema(self.record_batch.schema)
+            self.dynamic_meta = dynamic_meta_from_c_memory(self.c_memory)
+
+            self.batch_version = persisted_batch_version
 
     def load_col(self, name, loader=None):
         i_field = self.record_batch.schema.get_field_index(name)
