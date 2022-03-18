@@ -33,7 +33,9 @@ def logging_setup():
                 if possible_level is not None:
                     level = possible_level
                     break
-    logging.basicConfig(level=level)
+    # TODO: Forward logging to rust-tracing
+    #   see https://app.asana.com/0/1199548034582004/1201989297281277/f
+    # logging.basicConfig(level=level)
 
 
 if __name__ == "__main__":
