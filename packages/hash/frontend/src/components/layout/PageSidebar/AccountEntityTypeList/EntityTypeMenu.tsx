@@ -1,6 +1,5 @@
-import { useRef, useState, VFC } from "react";
+import { useMemo, VFC } from "react";
 import {
-  faEllipsis,
   faLink,
   faAdd,
   faBookmark,
@@ -8,152 +7,114 @@ import {
   faFilter,
 } from "@fortawesome/free-solid-svg-icons";
 import pluralize from "pluralize";
-import { Box, ListItemButton, Typography } from "@mui/material";
+import {
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+  listItemTextClasses,
+  listItemIconClasses,
+} from "@mui/material";
+import { bindMenu, PopupState } from "material-ui-popup-state/core";
 import { FontAwesomeIcon } from "../../../icons";
-import { Popover } from "../../../Popover";
 import { Link } from "../../../Link";
-import { IconButton } from "../../../IconButton";
 
 type EntityTypeMenuProps = {
-  className: string;
+  popupState: PopupState;
+  accountId: string;
+  entityId: string;
+  entityTitle: string;
 };
 
-const navItems = [
-  {
-    id: 1,
-    title: "Add to Bookmarks",
-    icon: faBookmark, // @todo-mui get a free icon that matches the design closely
-    onClick: () => {},
-  },
-  {
-    id: 2,
-    title: `Create new ${pluralize.singular("People")}`,
-    icon: faAdd,
-    href: "/",
-  },
-  {
-    id: 3,
-    title: "Copy Link to People",
-    icon: faLink,
-    onClick: () => {},
-  },
-  {
-    id: 4,
-    title: "Create filtered page",
-    icon: faFilter, // @todo-mui get a free icon that matches the design closely
-    onClick: () => {},
-  },
-  {
-    id: 5,
-    title: "Delete type",
-    icon: faTrash,
-    onClick: () => {},
-  },
-];
-
-export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({ className }) => {
-  const [open, setOpen] = useState(false);
-  const buttonRef = useRef<HTMLButtonElement>(null);
+export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({
+  popupState,
+  accountId,
+  entityId,
+  entityTitle,
+}) => {
+  const navItems = useMemo(() => {
+    return [
+      {
+        id: 1,
+        title: "Add to Bookmarks",
+        icon: faBookmark, // @todo-mui get a free icon that matches the design closely
+        onClick: () => {},
+      },
+      {
+        id: 2,
+        title: `Create new ${pluralize.singular(entityTitle)}`,
+        icon: faAdd,
+        href: `/${accountId}/entities/new?entityTypeId=${entityId}`,
+      },
+      {
+        id: 3,
+        title: `Copy Link to ${entityTitle}`,
+        icon: faLink,
+        onClick: () => {
+          void navigator.clipboard.writeText(
+            `${window.location.origin}/${accountId}/types/${entityId}`,
+          );
+          // @todo-mui add some visual feedback to sure it's been copied
+        },
+      },
+      {
+        id: 4,
+        title: "Create filtered page",
+        icon: faFilter, // @todo-mui get a free icon that matches the design closely
+        onClick: () => {},
+      },
+      {
+        id: 5,
+        title: "Delete type",
+        icon: faTrash,
+        onClick: () => {},
+        faded: true,
+      },
+    ];
+  }, [accountId, entityId, entityTitle]);
 
   return (
-    <Box className={className}>
-      <IconButton
-        size="medium"
-        unpadded
-        ref={buttonRef}
-        onClick={() => {
-          // setOpen(true)
-        }}
-        sx={{
-          backgroundColor: ({ palette }) => palette.gray[30],
-          color: ({ palette }) => palette.gray[70],
-        }}
-      >
-        <FontAwesomeIcon icon={faEllipsis} />
-      </IconButton>
-      {/* @todo-mui switch to using a menu instead */}
-      <Popover
-        open={open}
-        anchorEl={buttonRef.current}
-        onClose={() => setOpen(false)}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "right",
-        }}
-        PaperProps={{
-          elevation: 4,
-          sx: {
-            width: 235,
-            borderRadius: "6px",
-            mt: 1,
-          },
-        }}
-      >
-        <Box
-          sx={{
-            py: 0.5,
-          }}
-        >
-          {navItems.map(({ title, icon, onClick, href, id }) => {
-            // const lastItem = index === navItems.length - 1;
-
-            if (href) {
-              return (
-                <Link key={id} noLinkStyle href={href}>
-                  <ListItemButton onClick={() => setOpen(false)}>
-                    <FontAwesomeIcon icon={icon} />
-                    <Typography variant="smallTextLabels">{title}</Typography>
-                  </ListItemButton>
-                </Link>
-              );
-            }
-            if (onClick) {
-              return (
-                <ListItemButton
-                  key={id}
-                  onClick={() => {
-                    onClick();
-                    setOpen(false);
-                  }}
-                  sx={{
-                    mx: 0.5,
-                    py: 1,
-                    px: 1.5,
-                    borderRadius: "4px",
-
-                    "& svg": {
-                      fontSize: 16,
-                      mr: 0.75,
-                      color: ({ palette }) => palette.gray[50],
-                    },
-
-                    "& .MuiTypography-root": {
-                      color: ({ palette }) => palette.gray[80],
-                      fontWeight: 500,
-                    },
-
-                    "&:hover": {
-                      backgroundColor: ({ palette }) => palette.gray[20],
-
-                      "& svg": {
-                        color: ({ palette }) => palette.gray[60],
-                      },
-                    },
-
-                    "&:focus-visible": {
-                      backgroundColor: ({ palette }) => palette.blue[70],
-                    },
-                  }}
-                >
+    <Menu {...bindMenu(popupState)}>
+      {navItems.map(({ title, icon, onClick, href, id, faded }) => {
+        if (href) {
+          return (
+            <MenuItem onClick={() => popupState.close()}>
+              <Link sx={{ display: "flex" }} key={id} noLinkStyle href={href}>
+                <ListItemIcon>
                   <FontAwesomeIcon icon={icon} />
-                  <Typography variant="smallTextLabels">{title}</Typography>
-                </ListItemButton>
-              );
-            }
-            return null;
-          })}
-        </Box>
-      </Popover>
-    </Box>
+                </ListItemIcon>
+                <ListItemText primary={title} />
+              </Link>
+            </MenuItem>
+          );
+        }
+        if (onClick) {
+          return (
+            <MenuItem
+              sx={{
+                ...(Boolean(faded) && {
+                  [`& .${listItemTextClasses.primary}`]: {
+                    color: ({ palette }) => palette.gray[50],
+                  },
+                  [`& .${listItemIconClasses.root}`]: {
+                    color: ({ palette }) => palette.gray[40],
+                  },
+                }),
+              }}
+              onClick={() => {
+                onClick();
+                popupState.close();
+              }}
+            >
+              <ListItemIcon>
+                <FontAwesomeIcon icon={icon} />
+              </ListItemIcon>
+              <ListItemText primary={title} />
+            </MenuItem>
+          );
+        }
+        return null;
+      })}
+    </Menu>
   );
 };
