@@ -85,7 +85,8 @@ impl<'s> AgentState<'s> {
         // we could store agent ids as bytes, not in as hyphenated
         // owned strings
         if self.msgs.is_none() {
-            *self.msgs = Some(self.msg_batch.get_native_messages()?);
+            // TODO: get_native_messages(msg_batch.record_batch()?)
+            // *self.msgs = Some(self.msg_batch.get_native_messages()?);
         }
 
         // SAFETY: will not fail as we've checked this is not None
@@ -94,7 +95,8 @@ impl<'s> AgentState<'s> {
 
     pub fn messages_take(&mut self) -> Result<Vec<Vec<OutboundMessage>>> {
         if self.msgs.is_none() {
-            *self.msgs = Some(self.msg_batch.get_native_messages()?);
+            // TODO: get_native_messages(msg_batch.record_batch()?)
+            // *self.msgs = Some(self.msg_batch.get_native_messages()?);
         }
 
         // SAFETY: will not fail as we've checked this is not None
@@ -115,7 +117,7 @@ impl<'s> AgentState<'s> {
             let msgs = self.msgs.as_ref().unwrap();
             let builder = get_message_arrow_builder();
             let message_column = outbound_messages_to_arrow_column(&msgs, builder)?;
-            self.msg_batch.batch.push_change(ArrayChange {
+            self.msg_batch.batch.queue_change(ArrayChange {
                 array: message_column.data(),
                 index: MESSAGE_COLUMN_INDEX,
             })?;
@@ -163,7 +165,7 @@ impl<'s> GroupState<'s> {
         if let Some(ref msgs) = self.msgs {
             let builder = get_message_arrow_builder();
             let message_column = outbound_messages_to_arrow_column(msgs, builder)?;
-            self.msg_batch.batch.push_change(ArrayChange {
+            self.msg_batch.batch.queue_change(ArrayChange {
                 array: message_column.data(),
                 index: MESSAGE_COLUMN_INDEX,
             })?;

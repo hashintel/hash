@@ -3,7 +3,7 @@ use std::{fmt, sync::Arc};
 use futures::future::join_all;
 
 use crate::{
-    datastore::{prelude::ContextBatch, table::proxy::StateReadProxy},
+    datastore::{batch::context::ContextBatch, table::proxy::StateReadProxy},
     simulation::comms::message::{SyncCompletionReceiver, SyncCompletionSender},
     worker::{
         error::{Error as WorkerError, Result as WorkerResult},

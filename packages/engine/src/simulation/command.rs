@@ -155,7 +155,7 @@ impl Commands {
         message_map: &MessageMap,
         message_proxies: PoolReadProxy<MessageBatch>,
     ) -> Result<Commands> {
-        let message_reader = message_proxies.get_reader();
+        let message_reader = message_proxies.get_reader()?;
 
         let mut refs = Vec::with_capacity(HASH.len());
         for hash_recipient in &HASH {
@@ -165,15 +165,15 @@ impl Commands {
         let res: Commands = refs
             .into_par_iter()
             .map(|refs| {
-                // TODO[5](optimization) see if collecting type information before (to avoid cache
-                //   misses on large batches) yields better results
+                // TODO: OPTIM See if collecting type information before (to avoid cache
+                //       misses on large batches) yields better results.
                 let hash_message_types =
                     message_reader
                         .type_iter(refs)
                         .map(|type_str| match type_str {
                             CREATE_AGENT => Ok(HashMessageType::Create),
                             REMOVE_AGENT => Ok(HashMessageType::Remove),
-                            // TODO: When implementing "mapbox" don't forget updating module docs
+                            // TODO: When implementing "mapbox" don't forget to update module docs.
                             "mapbox" => todo!(),
                             STOP_SIM => Ok(HashMessageType::Stop),
                             _ => Err(Error::UnexpectedSystemMessage {

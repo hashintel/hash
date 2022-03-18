@@ -2,36 +2,70 @@ use crate::datastore::{
     arrow::{meta_conversion::get_dynamic_meta_flatbuffers, padding},
     error::Result,
     prelude::*,
+    storage::BufferChange,
 };
 
-pub trait GrowableArrayData: Sized + std::fmt::Debug {
-    fn _len(&self) -> usize;
-    fn _null_count(&self) -> usize;
-    fn _null_buffer(&self) -> Option<&[u8]>;
-    fn _get_buffer(&self, index: usize) -> &[u8];
-    fn _get_non_null_buffer_count(&self) -> usize;
-    fn _child_data(&self) -> &[Self];
+/// The info required about Arrow array data in order to grow it
+///
+/// Can be implemented by ArrayData, ArrayDataRef, Python FFI array data.
+pub(in crate::datastore) trait GrowableArrayData:
+    Sized + std::fmt::Debug
+{
+    fn len(&self) -> usize;
+    fn null_count(&self) -> usize;
+    fn null_buffer(&self) -> Option<&[u8]>;
+    fn buffer(&self, index: usize) -> &[u8];
+    /// Arrow stores the null buffer separately from other buffers.
+    fn non_null_buffer_count(&self) -> usize;
+    fn child_data(&self) -> &[Self];
 }
 
-pub trait GrowableColumn<D: GrowableArrayData> {
-    fn get_column_index(&self) -> usize;
-    fn get_data(&self) -> &D;
+/// The info required about an Arrow column in order to grow it
+pub(in crate::datastore) trait GrowableColumn<D: GrowableArrayData>:
+    Sized
+{
+    fn index(&self) -> usize;
+    fn data(&self) -> &D;
 }
 
-pub trait GrowableBatch<C: GrowableColumn<D>, D: GrowableArrayData> {
-    fn take_changes(&mut self) -> Vec<C>;
+/// A batch that can be grown after creation.
+///
+/// Implementing this trait implies that `flush_changes` may alter the memory location.
+///
+/// This trait is useful for batches with dynamically sized Arrow columns, such as string columns,
+/// and Arrow batches whose number of elements can change due to the number of agents changing, such
+/// as components of state or context, or [`PreparedBatch`] used by Python FFI.
+///
+/// [`PreparedBatch`]: crate::datastore::ffi::PreparedBatch
+// TODO: Move `flush_changes` outside of trait and make it a function with type parameters and
+//       remove the type parameters from the trait? (would simplify impl of this trait a bit; still
+//       couldn't make the trait public (outside the datastore) though due to `memory_mut`)
+pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
     fn static_meta(&self) -> &StaticMeta;
     fn dynamic_meta(&self) -> &DynamicMeta;
-    fn mut_dynamic_meta(&mut self) -> &mut DynamicMeta;
+    fn dynamic_meta_mut(&mut self) -> &mut DynamicMeta;
+    // TODO: Change to `segment` after creating CSegment in py FFI
     fn memory(&self) -> &Memory;
-    fn mut_memory(&mut self) -> &mut Memory;
-    /// All changes that have been added into `self.changes` are commited into memory.
-    /// Calculates all moves, copies and resizes required to commit the changes.
+    // TODO: segment_mut?
+    fn memory_mut(&mut self) -> &mut Memory;
+
+    /// Persist all queued changes to memory, empty the queue and increment the persisted
+    /// metaversion.
+    ///
+    /// Calculates all moves, copies and resizes required to persist the changes.
+    ///
+    /// # Errors
+    ///
+    /// If the loaded metaversion isn't equal to the persisted metaversion, this gives an error to
+    /// avoid flushing stale data. (The loaded metaversion can't be newer than the persisted
+    /// metaversion.)
+    // TODO: We might have to remove this restriction to allow flushing multiple changes in a row.
+    ///
+    /// If the underlying segment has been corrupted somehow, this can give various errors.
     #[allow(clippy::too_many_lines)]
-    fn flush_changes(&mut self) -> Result<bool> {
-        let mut changes = self.take_changes();
+    fn flush_changes(&mut self, mut column_changes: Vec<C>) -> Result<BufferChange> {
         // Sort the changes by the order in which the columns are
-        changes.sort_by_key(|a| a.get_column_index());
+        column_changes.sort_by_key(|c| c.index());
 
         let column_metas = self.static_meta().get_column_meta();
 
@@ -43,8 +77,8 @@ pub trait GrowableBatch<C: GrowableColumn<D>, D: GrowableArrayData> {
 
         // Go over all of the pending changes, calculate target locations for those buffers
         // and neighbouring buffers if they need to be moved.
-        changes.iter().for_each(|array_data| {
-            let column_index = array_data.get_column_index();
+        column_changes.iter().for_each(|column_change| {
+            let column_index = column_change.index();
             // `meta` contains the information about where to look in `self.dynamic_meta` for
             // current offset/node information
             let meta = &column_metas[column_index];
@@ -52,7 +86,7 @@ pub trait GrowableBatch<C: GrowableColumn<D>, D: GrowableArrayData> {
             let buffer_start = meta.buffer_start;
             // Depth-first is required, because this is the order in which
             // nodes are written into memory, see `write_static_array_data` in ./arrow/ipc.rs
-            let array_datas = gather_array_datas_depth_first(array_data.get_data());
+            let array_datas = gather_array_datas_depth_first(column_change.data());
 
             // Iterate over buffers that are not modified, but might have to be moved,
             // because of preceding buffers which may have been moved/resized
@@ -73,8 +107,8 @@ pub trait GrowableBatch<C: GrowableColumn<D>, D: GrowableArrayData> {
                 let node_index = meta.node_start + i;
                 // Update Node information
                 node_changes.push((node_index, Node {
-                    null_count: array_data._null_count(),
-                    length: array_data._len(),
+                    null_count: array_data.null_count(),
+                    length: array_data.len(),
                 }));
 
                 // Null buffer calculation.
@@ -82,7 +116,7 @@ pub trait GrowableBatch<C: GrowableColumn<D>, D: GrowableArrayData> {
                 // it is found under `array_data.null_buffer()` and
                 // NOT under `array_data.buffers()[0]`
                 {
-                    let num_bytes = arrow_bit_util::ceil(array_data._len(), 8);
+                    let num_bytes = arrow_bit_util::ceil(array_data.len(), 8);
                     let next_buffer_offset = self
                         .dynamic_meta()
                         .buffers
@@ -94,7 +128,7 @@ pub trait GrowableBatch<C: GrowableColumn<D>, D: GrowableArrayData> {
                         next_buffer_offset,
                     );
                     // Safety: A null buffer is always followed by another buffer
-                    if let Some(b) = array_data._null_buffer() {
+                    if let Some(b) = array_data.null_buffer() {
                         buffer_actions.push(BufferAction::Ref {
                             index: this_buffer_index,
                             offset: this_buffer_offset,
@@ -124,12 +158,13 @@ pub trait GrowableBatch<C: GrowableColumn<D>, D: GrowableArrayData> {
                 // Have to do `meta.buffer_counts[i] - 1` because the null buffer is separate
                 debug_assert_eq!(
                     meta.buffer_counts[i] - 1,
-                    array_data._get_non_null_buffer_count()
+                    array_data.non_null_buffer_count(),
+                    "Number of buffers in metadata does not match actual number of buffers"
                 );
                 // todo: when adding datatypes with no null buffer (the null datatype), then this
                 //   convention does not work
                 (0..meta.buffer_counts[i] - 1).for_each(|j| {
-                    let buffer = array_data._get_buffer(j);
+                    let buffer = array_data.buffer(j);
                     let new_len = buffer.len();
                     let next_buffer_offset = self
                         .dynamic_meta()
@@ -157,7 +192,7 @@ pub trait GrowableBatch<C: GrowableColumn<D>, D: GrowableArrayData> {
         // attended to yet. Create actions for them too and use
         // the chance to update final data length
         let last_buffer_index = self.static_meta().get_padding_meta().len() - 1;
-        self.mut_dynamic_meta().data_length = push_non_modify_actions(
+        self.dynamic_meta_mut().data_length = push_non_modify_actions(
             &mut buffer_actions,
             this_buffer_index,
             last_buffer_index,
@@ -166,9 +201,13 @@ pub trait GrowableBatch<C: GrowableColumn<D>, D: GrowableArrayData> {
         );
         let data_length = self.dynamic_meta().data_length;
         // Resize memory if needed
-        let change = self.mut_memory().set_data_length(data_length)?;
-
-        debug_assert!(self.dynamic_meta().data_length == self.memory().get_data_buffer()?.len());
+        let change = self.memory_mut().set_data_length(data_length)?;
+        debug_assert_eq!(
+            self.dynamic_meta().data_length,
+            self.memory().get_data_buffer()?.len(),
+            "Size of new data to write and size of data buffer must be equal, because we just \
+             resized the data buffer"
+        );
 
         // Iterate backwards over every buffer action and perform them
         // Also update offset information in `self.dynamic_meta`
@@ -184,14 +223,17 @@ pub trait GrowableBatch<C: GrowableColumn<D>, D: GrowableArrayData> {
                     last_index,
                 } => {
                     // We shouldn't be left-shifting buffers
-                    debug_assert!(old_offset <= new_offset);
+                    debug_assert!(
+                        old_offset <= new_offset,
+                        "Flush shouldn't left-shift buffers"
+                    );
                     (first_index..=last_index).for_each(|j| {
                         // To avoid the modular nature of unsigned int subtraction:
-                        self.mut_dynamic_meta().buffers[j].offset += new_offset;
-                        self.mut_dynamic_meta().buffers[j].offset -= old_offset;
+                        self.dynamic_meta_mut().buffers[j].offset += new_offset;
+                        self.dynamic_meta_mut().buffers[j].offset -= old_offset;
                     });
 
-                    self.mut_memory().copy_in_data_buffer_unchecked(
+                    self.memory_mut().copy_in_data_buffer_unchecked(
                         old_offset,
                         new_offset,
                         old_total_length,
@@ -203,11 +245,11 @@ pub trait GrowableBatch<C: GrowableColumn<D>, D: GrowableArrayData> {
                     padding,
                     buffer,
                 } => {
-                    let dynamic_meta = self.mut_dynamic_meta();
+                    let dynamic_meta = self.dynamic_meta_mut();
                     dynamic_meta.buffers[index].offset = offset;
                     dynamic_meta.buffers[index].padding = padding;
                     dynamic_meta.buffers[index].length = buffer.len();
-                    self.mut_memory()
+                    self.memory_mut()
                         .overwrite_in_data_buffer_unchecked_nonoverlapping(offset, &buffer)
                 }
                 BufferAction::Ref {
@@ -216,30 +258,36 @@ pub trait GrowableBatch<C: GrowableColumn<D>, D: GrowableArrayData> {
                     padding,
                     buffer,
                 } => {
-                    let dynamic_meta = self.mut_dynamic_meta();
+                    let dynamic_meta = self.dynamic_meta_mut();
                     dynamic_meta.buffers[index].offset = offset;
                     dynamic_meta.buffers[index].padding = padding;
                     dynamic_meta.buffers[index].length = buffer.len();
-                    self.mut_memory()
+                    self.memory_mut()
                         .overwrite_in_data_buffer_unchecked_nonoverlapping(offset, buffer)
                 }
             })?;
 
         // Update `FieldNode` data with null_count/element count values
         node_changes.into_iter().for_each(|(i, n)| {
-            self.mut_dynamic_meta().nodes[i] = n;
+            self.dynamic_meta_mut().nodes[i] = n;
         });
 
         // Write `self.dynamic_meta` in Arrow format into the `meta_buffer` in `self.memory`
         let dynamic_meta = self.dynamic_meta();
         let new_data_length =
             dynamic_meta.buffers[dynamic_meta.buffers.len() - 1].get_next_offset();
-        debug_assert!(self.static_meta().validate_lengths(self.dynamic_meta()));
-        self.mut_memory().set_data_length(new_data_length)?;
+        debug_assert!(
+            self.static_meta().validate_lengths(self.dynamic_meta()),
+            "New dynamic metadata row count is inconsistent with existing static metadata"
+        );
+        self.memory_mut().set_data_length(new_data_length)?;
         let meta_buffer = get_dynamic_meta_flatbuffers(self.dynamic_meta())?;
-        self.mut_memory().set_metadata(&meta_buffer)?;
-        debug_assert!(self.memory().validate_markers());
-        Ok(change.resized())
+        self.memory_mut().set_metadata(&meta_buffer)?;
+
+        if cfg!(debug_assertions) {
+            self.memory().validate_markers()?;
+        }
+        Ok(change)
     }
 }
 
@@ -277,10 +325,10 @@ fn push_non_modify_actions(
     this_buffer_offset
 }
 
-fn gather_array_datas_depth_first<D: GrowableArrayData>(array_ref: &D) -> Vec<&D> {
-    let mut ret = vec![array_ref];
+fn gather_array_datas_depth_first<D: GrowableArrayData>(data: &D) -> Vec<&D> {
+    let mut ret = vec![data];
     // Depth-first get all nodes
-    array_ref._child_data().iter().for_each(|v| {
+    data.child_data().iter().for_each(|v| {
         ret.append(&mut gather_array_datas_depth_first(v));
     });
     ret
