@@ -415,7 +415,7 @@ class __Entity {
       stringifiedPath?: string;
       path?: PathComponent[];
     },
-  ) {
+  ): Promise<Link[]> {
     const { activeAt, stringifiedPath, path } = params || {};
 
     const outgoingDbLinks = await client.getEntityOutgoingLinks({
@@ -614,25 +614,30 @@ class __Entity {
         })),
       );
 
-      await Promise.all(
-        entities.map(({ link, entity }) => {
-          if (link) {
-            const parentEntity = entities[link.parentIndex];
-            if (!parentEntity) {
-              throw new ApolloError("Could not find parent entity");
-            }
-            // links are created as an outgoing link from the parent entity to the children.
-            return parentEntity.entity.createOutgoingLink(client, {
-              createdByAccountId: user.accountId,
-              destination: entity,
-              stringifiedPath: link.meta.path,
-              index: link.meta.index ?? undefined,
-            });
-          } else {
-            return null;
+      /**
+       * Currently the outgoing links of an entity cannot be reliably created in parallel,
+       * because when indexed links are created the affected indexed links which have the same path
+       * and source entity have to be udpated. Running these operations in parallel can result in the
+       * update methods being run out of order, resulting in incorrect `index` values for the affected links.
+       *
+       * @todo: find a way to run these in parallel - potentially by implementing a `createLinks` adapter method,
+       * or by locking/releasing the relevant rows of affected outgoing links in the `createLink` adapter method.
+       */
+      for (const { link, entity } of entities) {
+        if (link) {
+          const parentEntity = entities[link.parentIndex];
+          if (!parentEntity) {
+            throw new ApolloError("Could not find parent entity");
           }
-        }),
-      );
+          // links are created as an outgoing link from the parent entity to the children.
+          await parentEntity.entity.createOutgoingLink(client, {
+            createdByAccountId: user.accountId,
+            destination: entity,
+            stringifiedPath: link.meta.path,
+            index: link.meta.index ?? undefined,
+          });
+        }
+      }
 
       // the root entity is the first result, same of which the user supplied as the top level entity.
       if (entities.length > 0) {
