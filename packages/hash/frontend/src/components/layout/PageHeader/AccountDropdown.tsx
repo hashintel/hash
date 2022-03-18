@@ -6,7 +6,6 @@ import {
   Divider,
   ListItemButton,
   Tooltip,
-  useTheme,
 } from "@mui/material";
 
 import { UserFieldsFragment } from "../../../graphql/apiTypes.gen";
@@ -26,8 +25,6 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
   logout,
   user,
 }) => {
-  const theme = useTheme();
-
   const buttonRef = useRef(null);
 
   const [open, setOpen] = useState(false);
