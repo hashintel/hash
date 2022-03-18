@@ -1,11 +1,34 @@
+import fnmatch
+import os
 import sys
+
+import numpy
 from distutils.core import setup
 from distutils.extension import Extension
 from Cython.Build import cythonize
-import numpy
 
 script_path = sys.argv[3]
 sys.argv.remove(script_path)
+
+
+def find_directory(pattern, path):
+    result = []
+    for root, dirs, files in os.walk(path):
+        for name in files:
+            if fnmatch.fnmatch(name, pattern):
+                file = os.path.join(root, name)
+                file = os.path.abspath(file)
+                result.append(os.path.dirname(file))
+    return result
+
+
+def last_modified(path):
+    return os.path.getmtime(path)
+
+
+library_dirs = sorted(find_directory('libhash_engine_lib.so', f"{script_path}/../../../../"),
+                      key=last_modified,
+                      reverse=True)
 
 # Convert path to Python module prefix.
 if script_path == '.':
@@ -19,15 +42,7 @@ setup(
                   [script_path + "/wrappers.pyx"],
                   include_dirs=[numpy.get_include()],
                   libraries=["hash_engine_lib"],
-                  library_dirs=[  # Process directory should be packages/engine.
-                      # TODO, should we just add all possibilities for targets here, we might need to do a
-                      #  programmatic directory search
-                      "./target/release",  # Prioritize release over debug.
-                      "./target/x86_64-apple-darwin/release",
-                      "./",
-                      "./target/debug",
-                      "./target/x86_64-apple-darwin/debug",
-                  ]
+                  library_dirs=library_dirs,
                   )
     ])
 )
