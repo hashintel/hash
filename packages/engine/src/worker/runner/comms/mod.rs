@@ -135,7 +135,7 @@ impl TargetedRunnerTaskMsg {
         let target = task_msg.target().into();
         let package_id = (task_msg.package_sid() as usize).into();
         // TODO: our version of flatbuffers doesn't let us have optional Scalars
-        // let group_index = task_msg.group_index().map(|val| val as usize);
+        let group_index = task_msg.group_index().map(|val| val.inner() as usize);
 
         tracing::trace!(
             "Outbound task payload string: {:?}",
@@ -158,7 +158,7 @@ impl TargetedRunnerTaskMsg {
             msg: RunnerTaskMsg {
                 package_id,
                 task_id,
-                group_index: todo!(),
+                group_index,
                 payload,
                 shared_store: sent.shared_store,
             },

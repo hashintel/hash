@@ -28,6 +28,7 @@ from fbs import Metaversion
 from fbs import Batch
 from fbs import StateInterimSync as FbStateInterimSync
 from fbs import TaskId
+from fbs import GroupIndex
 from fbs import TaskMsg as FbTaskMsg
 from fbs import RunnerError
 from fbs import PackageError
@@ -271,6 +272,7 @@ class Messenger:
         changes,
         pkg_id,
         task_id,
+        group_idx,
         continuation
     ):
         # TODO: OPTIM Combine warnings, errors and other values into single message.
@@ -278,7 +280,7 @@ class Messenger:
         self.send_user_errors(continuation.get("errors", []))
         target = continuation.get("target", "Main")
         task_msg = continuation.get("task", "{}")
-        fbs_bytes = outbound_task_to_fbs_bytes(sim_id, changes, pkg_id, task_id, target, task_msg)
+        fbs_bytes = outbound_task_to_fbs_bytes(sim_id, changes, pkg_id, task_id, target, group_idx, task_msg)
         self.to_rust.send(fbs_bytes)
 
     def send_runner_error(self, error, sim_id=0):
@@ -506,7 +508,7 @@ def serialized_to_fbs(builder, inner_bytes):
     return Serialized.End(builder)
 
 
-def task_to_fbs(builder, changes, pkg_id, task_id, target, task_msg):
+def task_to_fbs(builder, changes, pkg_id, task_id, target, group_idx, task_msg):
     sync_offset = interim_sync_to_fbs(builder, changes)
     payload_offset = serialized_to_fbs(builder, bytes(task_msg, encoding='utf-8'))
 
@@ -514,14 +516,16 @@ def task_to_fbs(builder, changes, pkg_id, task_id, target, task_msg):
     FbTaskMsg.AddPackageSid(builder, pkg_id)
     FbTaskMsg.AddTaskId(builder, TaskId.CreateTaskId(builder, task_id.Inner()))
     FbTaskMsg.AddTarget(builder, target_to_fbs(target))
+    if group_idx is not None:
+        FbTaskMsg.AddGroupIndex(builder, GroupIndex.CreateGroupIndex(builder, group_idx))
     FbTaskMsg.AddMetaversioning(builder, sync_offset)
     FbTaskMsg.AddPayload(builder, payload_offset)
     return FbTaskMsg.End(builder)
 
 
-def outbound_task_to_fbs_bytes(sim_id, changes, pkg_id, task_id, target, task_msg):
+def outbound_task_to_fbs_bytes(sim_id, changes, pkg_id, task_id, target, group_idx, task_msg):
     builder = flatbuffers.Builder(initialSize=0)
-    task_offset = task_to_fbs(builder, changes, pkg_id, task_id, target, task_msg)
+    task_offset = task_to_fbs(builder, changes, pkg_id, task_id, target, group_idx, task_msg)
 
     RunnerOutboundMsg.Start(builder)
     RunnerOutboundMsg.AddSimSid(builder, sim_id)

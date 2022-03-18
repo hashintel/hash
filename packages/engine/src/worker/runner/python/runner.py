@@ -294,6 +294,7 @@ class Runner:
             changes,
             pkg_id,
             task_id,
+            group_idx,
             continuation
         )
         # TODO: OPTIM chaining if `continuation.target == "Python"`
