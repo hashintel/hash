@@ -29,6 +29,7 @@ enum LoopControl {
 /// The main function for the run of a simulation. The general flow is in two sections as follows:
 ///
 /// # Initialization
+// TODO: DOC: expand on docs and add links to the Package system and packages
 /// - Create an uninitialized store (i.e. create the underlying state of the simulation)
 /// - Create the underlying simulation engine which
 ///   - Runs the appropriate init package to initialize Agent state
