@@ -91,6 +91,28 @@ export const typography: ThemeOptions["typography"] = {
     lineHeight: 1.1,
     color: customColors.gray[90],
   },
+  hashLargeTitle: {
+    fontFamily: ["Open Sauce Two", ...fallbackFonts].join(", "),
+    fontSize: "var(--step-6)",
+    fontWeight: 700,
+    lineHeight: 1.2,
+    color: customColors.gray[90],
+  },
+  hashHeading1: {
+    fontFamily: ["Open Sauce Two", ...fallbackFonts].join(", "),
+    fontSize: "var(--step-5)",
+    fontWeight: 600,
+    lineHeight: 1.1,
+    color: customColors.gray[90],
+  },
+  hashHeading4: {
+    fontFamily: ["Open Sauce Two", ...fallbackFonts].join(", "),
+    fontSize: "var(--step-2)",
+    fontWeight: 400,
+    lineHeight: 1.2,
+    color: customColors.gray[80],
+  },
+
   hashSmallText: {
     fontSize: "var(--step--1)",
     fontWeight: 400,
