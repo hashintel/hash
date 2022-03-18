@@ -40,6 +40,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
   return (
     <Box>
       <Tooltip
+        componentsProps={{ tooltip: { sx: { p: 1.5 } } }}
         title={
           <>
             <Typography
