@@ -185,6 +185,8 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
           sx={{
             color: ({ palette }) => palette.gray[40],
             ...(hovered && {
+              backgroundColor: ({ palette }) =>
+                palette.gray[selected ? 40 : 30],
               color: ({ palette }) => palette.gray[50],
             }),
             "&:hover": {

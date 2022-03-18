@@ -59,6 +59,8 @@ declare module "@mui/material/styles" {
     pink: PaletteValue;
     teal: PaletteValue;
     mint: PaletteValue;
+    white: string;
+    black: string;
   }
 
   interface TypographyVariants {
