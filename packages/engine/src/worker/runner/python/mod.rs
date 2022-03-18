@@ -20,7 +20,6 @@ use super::comms::{
 };
 use crate::{
     proto::SimulationShortId,
-    simulation::comms::message::SyncCompletionSender,
     types::TaskId,
     worker::{
         runner::comms::outbound::OutboundFromRunnerMsgPayload, Error as WorkerError,

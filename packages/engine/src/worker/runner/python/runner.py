@@ -418,6 +418,7 @@ class Runner:
                 elif msg_type == MESSAGE_TYPE.StateSnapshotSync:
                     logging.debug("Handling snapshot sync")
                     self.state_snapshot_sync(msg.sim_id, msg.agent_pool, msg.message_pool)
+                    self.messenger.send_sync_completion(msg.sim_id)
 
                 elif msg_type == MESSAGE_TYPE.TaskMsg:
                     logging.debug("Running task")

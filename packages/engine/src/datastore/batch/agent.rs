@@ -97,8 +97,6 @@ impl AgentBatch {
         let _ = memory.set_header(&header_buffer)?;
         let _ = memory.set_metadata(&ipc_message)?;
 
-        memory.verify_size();
-
         let data_buffer = memory.get_mut_data_buffer()?;
         // Write new data
         record_batch_data_to_bytes_owned_unchecked(record_batch, data_buffer);
