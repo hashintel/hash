@@ -365,6 +365,8 @@ fn state_to_js<'m, 'a, 'b>(
         js_message_batches.set(i_batch as u32, message_batch)?;
     }
 
+    // There is no stable way of ensuring the length of an iterator, `zip` will stop as soon as one
+    // iterator returns None, thus if both iterators has no elements left, they had the same length.
     debug_assert!(
         agent_batches.count() == 0 && message_batches.count() == 0,
         "Agent batches and message batches needs to have the same size"
