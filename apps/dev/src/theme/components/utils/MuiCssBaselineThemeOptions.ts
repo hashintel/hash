@@ -107,50 +107,105 @@ const rootTypographyStyles = `
 
 export const MuiCssBaselineThemeOptions: Components["MuiCssBaseline"] = {
   styleOverrides: `
+          /* INTER */
           @font-face {
             font-family: 'Inter';
             font-weight: 300;
-            src: url("/assets/fonts/inter-light.ttf") format("trueType");
+            src: url("/fonts/inter-light.ttf") format("trueType");
           }
           @font-face {
               font-family: 'Inter';
               font-weight: 400;
-              src: url("/assets/fonts/inter-regular.ttf") format("trueType");
+              src: url("/fonts/inter-regular.ttf") format("trueType");
           }
           @font-face {
               font-family: 'Inter';
               font-weight: 500;
-              src: url("/assets/fonts/inter-medium.ttf") format("trueType");
+              src: url("/fonts/inter-medium.ttf") format("trueType");
           }
           @font-face {
             font-family: 'Inter';
             font-weight: 600;
-            src: url("/assets/fonts/inter-semibold.ttf") format("trueType");
+            src: url("/fonts/inter-semibold.ttf") format("trueType");
           }
           @font-face {
             font-family: 'Inter';
             font-weight: 700;
-            src: url("/assets/fonts/inter-bold.ttf") format("trueType");
+            src: url("/fonts/inter-bold.ttf") format("trueType");
           }
+          
+        
+          /* OPEN SAUCE TWO */
           @font-face {
-            font-family: 'Apercu Pro';
+            font-family: "Open Sauce Two";
+            font-style: normal;
             font-weight: 300;
-            src: url("/assets/fonts/apercu-light-pro.ttf") format("trueType");
+            font-display: swap;
+            src: url("/fonts/OpenSauceTwo-Light.ttf") format("truetype");
           }
           @font-face {
-              font-family: 'Apercu Pro';
-              font-weight: 400;
-              src: url("/assets/fonts/apercu-regular-pro.ttf") format("trueType");
+            font-family: "Open Sauce Two";
+            font-style: italic;
+            font-weight: 300;
+            font-display: swap;
+            src: url("/fonts/OpenSauceTwo-LightItalic.ttf") format("truetype");
           }
           @font-face {
-              font-family: 'Apercu Pro';
-              font-weight: 500;
-              src: url("/assets/fonts/apercu-medium-pro.ttf") format("trueType");
+            font-family: "Open Sauce Two";
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: url("/fonts/OpenSauceTwo-Regular.ttf") format("truetype");
           }
           @font-face {
-            font-family: 'Apercu Pro';
+            font-family: "Open Sauce Two";
+            font-style: italic;
+            font-weight: 400;
+            font-display: swap;
+            src: url("/fonts/OpenSauceTwo-Italic.ttf") format("truetype");
+          }
+          @font-face {
+            font-family: "Open Sauce Two";
+            font-style: normal;
+            font-weight: 500;
+            font-display: swap;
+            src: url("/fonts/OpenSauceTwo-Medium.ttf") format("truetype"),
+              url("/fonts/OpenSauceTwo-Medium.woff") format("woff");
+          }
+          @font-face {
+            font-family: "Open Sauce Two";
+            font-style: italic;
+            font-weight: 500;
+            font-display: swap;
+            src: url("/fonts/OpenSauceTwo-MediumItalic.ttf") format("truetype");
+          }
+          @font-face {
+            font-family: "Open Sauce Two";
+            font-style: normal;
+            font-weight: 600;
+            font-display: swap;
+            src: url("/fonts/OpenSauceTwo-SemiBold.ttf") format("truetype");
+          }
+          @font-face {
+            font-family: "Open Sauce Two";
+            font-style: italic;
+            font-weight: 600;
+            font-display: swap;
+            src: url("/fonts/OpenSauceTwo-SemiBoldItalic.ttf") format("truetype");
+          }
+          @font-face {
+            font-family: "Open Sauce Two";
+            font-style: normal;
             font-weight: 700;
-            src: url("/assets/fonts/apercu-bold-pro.ttf") format("trueType");
+            font-display: swap;
+            src: url("/fonts/OpenSauceTwo-Bold.ttf") format("truetype");
+          }
+          @font-face {
+            font-family: "Open Sauce Two";
+            font-style: italic;
+            font-weight: 700;
+            font-display: swap;
+            src: url("/fonts/OpenSauceTwo-BoldItalic.ttf") format("truetype");
           }
 
           html {
