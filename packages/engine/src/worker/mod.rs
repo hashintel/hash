@@ -376,6 +376,9 @@ impl WorkerController {
             PackageError(package_error) => self
                 .worker_pool_comms
                 .send(sim_id, WorkerToWorkerPoolMsg::PackageError(package_error))?,
+            SyncCompletion => {
+                unimplemented!("Handled in Python runner")
+            }
         }
         Ok(())
     }

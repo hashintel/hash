@@ -221,20 +221,15 @@ async fn _run(
                     err
                 })?;
                 tracing::trace!("Got outbound {outbound:?}");
-                match &outbound.payload {
-                    OutboundFromRunnerMsgPayload::RunnerWarnings(warnings) => {
-                        tracing::warn!("Sim {} warnings: {warnings:?}", outbound.sim_id);
-                    }
-                    OutboundFromRunnerMsgPayload::SyncCompletion => {
-                        sync_completion_sender.take().ok_or(Error::NotAwaiting)?
-                            .send(Ok(()))
-                            .map_err(|e| Error::from(format!(
-                                "Couldn't send state sync completion from Python: {:?}", e
-                            )))?;
-                    }
-                    _ => {},
+                if let OutboundFromRunnerMsgPayload::SyncCompletion = &outbound.payload {
+                    sync_completion_sender.take().ok_or(Error::NotAwaiting)?
+                        .send(Ok(()))
+                        .map_err(|error| Error::from(format!(
+                            "Couldn't send state sync completion from Python: {error:?}"
+                        )))?;
+                } else {
+                    outbound_sender.send(outbound)?;
                 }
-                outbound_sender.send(outbound)?;
             }
         }
     }
