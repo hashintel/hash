@@ -1,6 +1,9 @@
 name: CI
 on: pull_request
 
+env:
+  BLOCK_PROTOCOL_API_KEY: ${{ secrets.BLOCK_PROTOCOL_API_KEY }}
+
 jobs:
   linting:
     name: Linting
