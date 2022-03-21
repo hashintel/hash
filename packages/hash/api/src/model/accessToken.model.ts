@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { DBClient } from "../db";
+import { DbClient } from "../db";
 import {
   Entity,
   EntityConstructorArgs,
@@ -7,17 +7,17 @@ import {
   UpdatePropertiesPayload,
 } from ".";
 
-export type DBAccessTokenProperties = {
+export type DbAccessTokenProperties = {
   accessToken: string;
   revokedAt?: string;
 };
 
 export type AccessTokenConstructorArgs = {
-  properties: DBAccessTokenProperties;
+  properties: DbAccessTokenProperties;
 } & EntityConstructorArgs;
 
 abstract class __AccessToken extends Entity {
-  properties: DBAccessTokenProperties;
+  properties: DbAccessTokenProperties;
 
   constructor({ properties, ...remainingArgs }: AccessTokenConstructorArgs) {
     super({ ...remainingArgs, properties });
@@ -33,15 +33,15 @@ abstract class __AccessToken extends Entity {
   }
 
   protected async partialPropertiesUpdate(
-    client: DBClient,
-    params: PartialPropertiesUpdatePayload<DBAccessTokenProperties>,
+    client: DbClient,
+    params: PartialPropertiesUpdatePayload<DbAccessTokenProperties>,
   ) {
     return super.partialPropertiesUpdate(client, params);
   }
 
   protected async updateProperties(
-    client: DBClient,
-    params: UpdatePropertiesPayload<DBAccessTokenProperties>,
+    client: DbClient,
+    params: UpdatePropertiesPayload<DbAccessTokenProperties>,
   ) {
     await super.updateProperties(client, params);
     this.properties = params.properties;
@@ -51,7 +51,7 @@ abstract class __AccessToken extends Entity {
   /**
    * Revokes the access token, so that it can no longer be used.
    */
-  revoke(client: DBClient, updatedByAccountId: string) {
+  revoke(client: DbClient, updatedByAccountId: string) {
     if (this.hasBeenRevoked()) {
       throw new Error(
         `${this.entityType.properties.title} access token with entityId ${this.entityId} has already been revoked`,

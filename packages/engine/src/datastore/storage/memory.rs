@@ -1,6 +1,6 @@
 #![allow(clippy::similar_names)]
 
-use std::{env, os::unix::io::RawFd, path::Path};
+use std::{env, mem, path::Path};
 
 use shared_memory::{Shmem, ShmemConf};
 
@@ -100,13 +100,8 @@ impl Memory {
         Ok(())
     }
 
-    // TODO: UNUSED: Needs triage
-    pub fn raw_fd(&self) -> RawFd {
-        self.data.raw_fd()
-    }
-
     /// Get the ID of the shared memory segment
-    pub fn get_id(&self) -> &str {
+    pub fn id(&self) -> &str {
         self.data.get_os_id()
     }
 
@@ -133,13 +128,13 @@ impl Memory {
         })
     }
 
-    pub fn shmem_os_id(
-        message: &str,
+    pub fn from_shmem_os_id(
+        os_id: &str,
         droppable: bool,
         include_terminal_padding: bool,
     ) -> Result<Memory> {
-        if message.contains("shm_") {
-            let id = &message;
+        if os_id.contains("shm_") {
+            let id = &os_id;
             let data = ShmemConf::new(droppable).os_id(id).open()?;
             let size = data.len();
             Self::validate_size(size)?;
@@ -204,8 +199,15 @@ impl Memory {
         Ok(())
     }
 
-    pub fn validate_markers(&self) -> bool {
-        self.visitor().validate_markers(self.get_id(), self.size)
+    pub fn validate_markers(&self) -> Result<()> {
+        if self.visitor().validate_markers(self.id(), self.size) {
+            Ok(())
+        } else {
+            Err(Error::from(
+                "Incorrect markers -- possibly buffer locations are wrong or the markers weren't \
+                 written correctly, so they don't correspond to the actual locations",
+            ))
+        }
     }
 
     /// Get the bytes which contain relevant batch data/metadata
@@ -255,6 +257,33 @@ impl Memory {
 
     pub fn set_header<K: AsRef<[u8]>>(&mut self, header: &K) -> Result<BufferChange> {
         self.visitor_mut().write_header_buffer(header.as_ref())
+    }
+
+    /// Try to read the metaversion from the initial part of the header
+    pub fn metaversion(&self) -> Result<Metaversion> {
+        let header = self.get_header()?;
+        let n_header_bytes = header.len();
+        let n_metaversion_bytes = 2 * mem::size_of::<u32>();
+        if n_header_bytes < n_metaversion_bytes {
+            Err(Error::from("Memory header too small to read metaversion"))
+        } else {
+            let bytes: [u8; 8] = header[..8].try_into().unwrap();
+            Metaversion::from_le_bytes(bytes)
+        }
+    }
+
+    /// Overwrite the initial part of the header with the given metaversion
+    pub fn set_metaversion(&mut self, metaversion: Metaversion) -> Result<()> {
+        let header = self.visitor_mut().header_mut();
+        let n_header_bytes = header.len();
+        let n_metaversion_bytes = 2 * mem::size_of::<u32>();
+        if n_header_bytes < n_metaversion_bytes {
+            Err(Error::from("Memory header too small to write metaversion"))
+        } else {
+            let bytes = metaversion.to_le_bytes();
+            header[..n_metaversion_bytes].copy_from_slice(&bytes);
+            Ok(())
+        }
     }
 
     pub fn get_metadata(&self) -> Result<&[u8]> {
@@ -454,9 +483,9 @@ pub mod tests {
             true,
         )?;
 
-        let message = memory.get_id();
+        let message = memory.id();
 
-        let new_memory = Memory::shmem_os_id(&message, true, false)?;
+        let new_memory = Memory::from_shmem_os_id(&message, true, false)?;
 
         let slice = unsafe {
             let shmem = &memory.data;

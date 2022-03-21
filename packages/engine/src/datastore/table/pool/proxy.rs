@@ -6,20 +6,17 @@ use std::{
     slice::SliceIndex,
 };
 
-use crate::datastore::{
-    batch::Batch,
-    table::proxy::{BatchReadProxy, BatchWriteProxy},
-};
+use crate::datastore::table::proxy::{BatchReadProxy, BatchWriteProxy};
 
 /// Collects [`BatchReadProxy`] for all the batches within the pool.
 #[derive(Default)]
-pub struct PoolReadProxy<K: Batch> {
+pub struct PoolReadProxy<B> {
     // TODO: Remove `pub(super)` by providing parallel iterator
-    pub(super) batches: Vec<BatchReadProxy<K>>,
+    pub(super) batches: Vec<BatchReadProxy<B>>,
 }
 
-impl<K: Batch> PoolReadProxy<K> {
-    pub fn deconstruct(self) -> Vec<BatchReadProxy<K>> {
+impl<B> PoolReadProxy<B> {
+    pub fn deconstruct(self) -> Vec<BatchReadProxy<B>> {
         self.batches
     }
 
@@ -31,25 +28,25 @@ impl<K: Batch> PoolReadProxy<K> {
         self.len() == 0
     }
 
-    pub fn batch(&self, index: usize) -> Option<&K> {
+    pub fn batch(&self, index: usize) -> Option<&B> {
         self.batches.get(index).map(Deref::deref)
     }
 
     // TODO: Use a concrete type, e.g.
-    //   struct BatchIter<'b, B: Batch + 'b> {
+    //   struct BatchIter<'b, B + 'b> {
     //       iter: std::slice::Iter<'b, BatchReadProxy<B>>,
     //   }
-    pub fn batches_iter(&self) -> impl Iterator<Item = &K> {
+    pub fn batches_iter(&self) -> impl Iterator<Item = &B> {
         self.batches.iter().map(Deref::deref)
     }
 
     // TODO: Remove and use `batches_iter` instead
-    pub fn batches(&self) -> Vec<&K> {
+    pub fn batches(&self) -> Vec<&B> {
         self.batches_iter().collect()
     }
 }
 
-impl<K: Batch> Clone for PoolReadProxy<K> {
+impl<B> Clone for PoolReadProxy<B> {
     fn clone(&self) -> Self {
         Self {
             batches: self.batches.to_vec(),
@@ -57,23 +54,23 @@ impl<K: Batch> Clone for PoolReadProxy<K> {
     }
 }
 
-impl<K: Batch> FromIterator<BatchReadProxy<K>> for PoolReadProxy<K> {
-    fn from_iter<T: IntoIterator<Item = BatchReadProxy<K>>>(iter: T) -> Self {
+impl<B> FromIterator<BatchReadProxy<B>> for PoolReadProxy<B> {
+    fn from_iter<T: IntoIterator<Item = BatchReadProxy<B>>>(iter: T) -> Self {
         Self {
             batches: Vec::from_iter(iter),
         }
     }
 }
 
-impl<K: Batch> From<Vec<BatchReadProxy<K>>> for PoolReadProxy<K> {
-    fn from(batches: Vec<BatchReadProxy<K>>) -> Self {
+impl<B> From<Vec<BatchReadProxy<B>>> for PoolReadProxy<B> {
+    fn from(batches: Vec<BatchReadProxy<B>>) -> Self {
         Self { batches }
     }
 }
 
-impl<I, K: Batch> Index<I> for PoolReadProxy<K>
+impl<I, B> Index<I> for PoolReadProxy<B>
 where
-    I: SliceIndex<[BatchReadProxy<K>]>,
+    I: SliceIndex<[BatchReadProxy<B>]>,
 {
     type Output = I::Output;
 
@@ -84,12 +81,12 @@ where
 
 /// Collects [`BatchWriteProxy`] for all the batches within the pool.
 #[derive(Default)]
-pub struct PoolWriteProxy<K: Batch> {
-    batches: Vec<BatchWriteProxy<K>>,
+pub struct PoolWriteProxy<B> {
+    batches: Vec<BatchWriteProxy<B>>,
 }
 
-impl<K: Batch> PoolWriteProxy<K> {
-    pub fn deconstruct(self) -> Vec<BatchWriteProxy<K>> {
+impl<B> PoolWriteProxy<B> {
+    pub fn deconstruct(self) -> Vec<BatchWriteProxy<B>> {
         self.batches
     }
 
@@ -102,34 +99,34 @@ impl<K: Batch> PoolWriteProxy<K> {
     }
 
     // TODO: UNUSED: Needs triage
-    pub fn batch(&self, index: usize) -> Option<&K> {
+    pub fn batch(&self, index: usize) -> Option<&B> {
         self.batches.get(index).map(Deref::deref)
     }
 
-    pub fn batch_mut(&mut self, index: usize) -> Option<&mut K> {
+    pub fn batch_mut(&mut self, index: usize) -> Option<&mut B> {
         self.batches.get_mut(index).map(DerefMut::deref_mut)
     }
 
-    pub fn batches_iter(&self) -> impl Iterator<Item = &K> {
+    pub fn batches_iter(&self) -> impl Iterator<Item = &B> {
         self.batches.iter().map(Deref::deref)
     }
 
-    pub fn batches_iter_mut(&mut self) -> impl Iterator<Item = &mut K> {
+    pub fn batches_iter_mut(&mut self) -> impl Iterator<Item = &mut B> {
         self.batches.iter_mut().map(DerefMut::deref_mut)
     }
 
     // TODO: Remove and use `batches_iter` instead
-    pub fn batches(&self) -> Vec<&K> {
+    pub fn batches(&self) -> Vec<&B> {
         self.batches_iter().collect()
     }
 
-    pub fn batches_mut(&mut self) -> Vec<&mut K> {
+    pub fn batches_mut(&mut self) -> Vec<&mut B> {
         self.batches_iter_mut().collect()
     }
 
     /// For each batch, downgrade write access to read access.
     // TODO: UNUSED: Needs triage
-    pub fn downgrade(self) -> PoolReadProxy<K> {
+    pub fn downgrade(self) -> PoolReadProxy<B> {
         PoolReadProxy {
             batches: self
                 .batches
@@ -140,23 +137,23 @@ impl<K: Batch> PoolWriteProxy<K> {
     }
 }
 
-impl<K: Batch> FromIterator<BatchWriteProxy<K>> for PoolWriteProxy<K> {
-    fn from_iter<T: IntoIterator<Item = BatchWriteProxy<K>>>(iter: T) -> Self {
+impl<B> FromIterator<BatchWriteProxy<B>> for PoolWriteProxy<B> {
+    fn from_iter<T: IntoIterator<Item = BatchWriteProxy<B>>>(iter: T) -> Self {
         Self {
             batches: Vec::from_iter(iter),
         }
     }
 }
 
-impl<K: Batch> From<Vec<BatchWriteProxy<K>>> for PoolWriteProxy<K> {
-    fn from(batches: Vec<BatchWriteProxy<K>>) -> Self {
+impl<B> From<Vec<BatchWriteProxy<B>>> for PoolWriteProxy<B> {
+    fn from(batches: Vec<BatchWriteProxy<B>>) -> Self {
         Self { batches }
     }
 }
 
-impl<I, K: Batch> Index<I> for PoolWriteProxy<K>
+impl<I, B> Index<I> for PoolWriteProxy<B>
 where
-    I: SliceIndex<[BatchWriteProxy<K>]>,
+    I: SliceIndex<[BatchWriteProxy<B>]>,
 {
     type Output = I::Output;
 
@@ -165,9 +162,9 @@ where
     }
 }
 
-impl<I, K: Batch> IndexMut<I> for PoolWriteProxy<K>
+impl<I, B> IndexMut<I> for PoolWriteProxy<B>
 where
-    I: SliceIndex<[BatchWriteProxy<K>]>,
+    I: SliceIndex<[BatchWriteProxy<B>]>,
 {
     fn index_mut(&mut self, index: I) -> &mut Self::Output {
         self.batches.index_mut(index)

@@ -6,10 +6,10 @@ import {
 } from "../../apiTypes.gen";
 import { GraphQLContext } from "../../context";
 import { Aggregation, Entity, UnresolvedGQLEntity } from "../../../model";
-import { DBAdapter } from "../../../db";
+import { DbAdapter } from "../../../db";
 
 export const dbAggregateEntity =
-  (db: DBAdapter) =>
+  (db: DbAdapter) =>
   async (params: { accountId: string; operation: AggregateOperationInput }) => {
     const { accountId, operation } = params;
     const { entityTypeId } = operation;

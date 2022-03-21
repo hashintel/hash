@@ -3,7 +3,6 @@ use rayon::prelude::*;
 use super::action::{CreateActions, ExistingGroupBufferActions};
 use crate::{
     datastore::{
-        batch::Batch,
         error::{Error, Result},
         table::{pool::BatchPool, state::view::StatePools},
     },
@@ -62,14 +61,20 @@ impl<'a> MigrationPlan<'a> {
                     state
                         .agent_pool
                         .swap_remove(batch_index)
-                        .get_batch_id()
+                        .batch
+                        .segment()
+                        .memory()
+                        .id()
                         .to_string(),
                 );
                 removed_ids.push(
                     state
                         .message_pool
                         .swap_remove(batch_index)
-                        .get_batch_id()
+                        .batch
+                        .segment()
+                        .memory()
+                        .id()
                         .to_string(),
                 );
             }
