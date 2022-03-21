@@ -69,7 +69,12 @@ const Hero: VFC = () => (
         <Typography variant="hashHeading4" component="h1" mb={3}>
           HASH for Developers
         </Typography>
-        <Typography variant="hashHeading1" component="h2" mb={5}>
+        <Typography
+          variant="hashLargeTitle"
+          component="h2"
+          mb={5}
+          sx={{ lineHeight: 1.1 }}
+        >
           Help build the future of decision-making
         </Typography>
         <StylishDivider mb={5} />
