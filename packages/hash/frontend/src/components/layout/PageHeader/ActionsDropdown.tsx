@@ -12,9 +12,9 @@ import { useRouter } from "next/router";
 
 import { FontAwesomeIcon } from "../../icons";
 import { Popover } from "../../Popover";
-import { IconButton } from "../../IconButton";
 import { Link } from "../../Link";
 import { CreatePageModal } from "../../Modals/CreatePageModal";
+import { HeaderIconButton } from "./HeaderIconButton";
 
 export const ActionsDropdown: React.FC<{
   accountId: string;
@@ -53,7 +53,7 @@ export const ActionsDropdown: React.FC<{
 
   return (
     <Box>
-      <IconButton
+      <HeaderIconButton
         size="medium"
         rounded
         sx={({ palette }) => ({
@@ -66,19 +66,14 @@ export const ActionsDropdown: React.FC<{
 
           ":hover": {
             color: palette.gray[50],
-            boxShadow: `0px 0px 0px 2px ${palette.common.white}, 0px 0px 0px 5px ${palette.gray[40]}`,
-          },
-
-          "&:focus-within": {
-            outline: "none",
-            boxShadow: `0px 0px 0px 2px ${palette.common.white}, 0px 0px 0px 5px ${palette.blue[70]}`,
           },
         })}
         ref={buttonRef}
         onClick={() => setOpen(!open)}
+        open={open}
       >
         <FontAwesomeIcon icon={faPlus} />
-      </IconButton>
+      </HeaderIconButton>
 
       <CreatePageModal
         show={createPageOpen}

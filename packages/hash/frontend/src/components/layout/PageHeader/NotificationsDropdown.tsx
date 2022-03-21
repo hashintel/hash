@@ -1,16 +1,11 @@
 import { useState, useRef } from "react";
 import { faBell } from "@fortawesome/free-solid-svg-icons";
-import {
-  Box,
-  IconButton,
-  ListItemButton,
-  Typography,
-  useTheme,
-} from "@mui/material";
+import { Box, ListItemButton, Typography, useTheme } from "@mui/material";
 
 import { FontAwesomeIcon } from "../../icons";
 import { Popover } from "../../Popover";
 import { Link } from "../../Link";
+import { HeaderIconButton } from "./HeaderIconButton";
 
 export const NotificationsDropdown: React.FC = () => {
   const theme = useTheme();
@@ -26,7 +21,7 @@ export const NotificationsDropdown: React.FC = () => {
 
   return (
     <Box>
-      <IconButton
+      <HeaderIconButton
         sx={{
           mr: {
             xs: 1,
@@ -47,12 +42,13 @@ export const NotificationsDropdown: React.FC = () => {
               : theme.palette.gray[20],
 
           "&:hover": {
-            backgroundColor: theme.palette.blue["70"],
             color: theme.palette.common.white,
+            backgroundColor: theme.palette.blue["70"],
           },
         }}
         ref={buttonRef}
         onClick={() => setOpen(!open)}
+        open={open}
       >
         <FontAwesomeIcon icon={faBell} />
         {hasNotifications && (
@@ -67,7 +63,7 @@ export const NotificationsDropdown: React.FC = () => {
             {notificationsLength}
           </Typography>
         )}
-      </IconButton>
+      </HeaderIconButton>
 
       <Popover
         id={id}

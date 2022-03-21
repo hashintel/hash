@@ -11,7 +11,7 @@ import { UserFieldsFragment } from "../../../graphql/apiTypes.gen";
 import { Popover } from "../../Popover";
 import { Link } from "../../Link";
 import { Avatar } from "../../Avatar";
-import { IconButton } from "../../IconButton";
+import { HeaderIconButton } from "./HeaderIconButton";
 
 type AccountDropdownProps = {
   avatar?: string;
@@ -64,26 +64,17 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
         }
         placement="bottom"
       >
-        <IconButton
+        <HeaderIconButton
           onClick={() => setOpen(!open)}
           ref={buttonRef}
           rounded
-          sx={({ palette }) => ({
+          sx={{
             height: 32,
             width: 32,
             padding: 0,
-            boxShadow: open
-              ? `0px 0px 0px 2px ${palette.common.white}, 0px 0px 0px 5px ${palette.gray[40]}`
-              : "unset",
-            ":hover": {
-              boxShadow: `0px 0px 0px 2px ${palette.common.white}, 0px 0px 0px 5px ${palette.gray[40]}`,
-            },
-            "&:focus-within": {
-              outline: "none",
-              boxShadow: `0px 0px 0px 2px ${palette.common.white}, 0px 0px 0px 5px ${palette.blue[70]}`,
-            },
-          })}
+          }}
           title={user.properties.shortname!}
+          open={open}
         >
           {avatar ? (
             <Box
@@ -95,7 +86,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
           ) : (
             <Avatar size={32} title={user?.properties.preferredName ?? "U"} />
           )}
-        </IconButton>
+        </HeaderIconButton>
       </Tooltip>
       <Popover
         id={id}
