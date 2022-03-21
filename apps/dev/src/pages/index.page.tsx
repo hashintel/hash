@@ -263,6 +263,85 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
   );
 };
 
+const Community: VFC = () => {
+  return (
+    <Box
+      sx={{
+        // @todo check if this is correct
+        pb: { xs: 10, sm: 11, md: 12 },
+        pt: 2,
+        minHeight: 260,
+        background: `
+         linear-gradient(1.3deg, #FFD79B -10.15%, rgba(255, 239, 198, 0) 66.01%)
+        `,
+      }}
+    >
+      <Container>
+        {/** @todo check what styles should be in place for hashHeading4 */}
+        <Typography
+          variant="hashHeading4"
+          sx={{ fontWeight: 600, color: "gray.90", mb: 5 }}
+          align="center"
+          // @todo remove need for this, check whether its right
+          component="h4"
+        >
+          Join our community of HASH developers
+        </Typography>
+        {/** @todo icons, look into using Grid */}
+        <Box>
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            spacing={2}
+            justifyContent="center"
+          >
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={2}
+              justifyContent="center"
+            >
+              <Button
+                variant="primarySquare"
+                size="large"
+                href="https://hash.ai/discord"
+              >
+                Join our Discord
+              </Button>
+              <Button
+                variant="primarySquare"
+                size="large"
+                href="https://github.com/hashintel/hash/issues"
+              >
+                Browse open issues
+              </Button>
+            </Stack>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={2}
+              justifyContent="center"
+            >
+              {/** @todo where should this link to? */}
+              <Button
+                variant="primarySquare"
+                size="large"
+                href="https://github.com/hashintel/hash/stargazers"
+              >
+                Star us on Github
+              </Button>
+              <Button
+                variant="primarySquare"
+                size="large"
+                href="https://hash.ai/contact"
+              >
+                Get in touch
+              </Button>
+            </Stack>
+          </Stack>
+        </Box>
+      </Container>
+    </Box>
+  );
+};
+
 const Home: NextPage = () => {
   return (
     <>
@@ -271,6 +350,7 @@ const Home: NextPage = () => {
       </Head>
       <Hero />
       <Projects mb={12} />
+      <Community />
     </>
   );
 };
