@@ -116,7 +116,7 @@ export const typography: ThemeOptions["typography"] = {
     fontSize: "var(--step-0)",
     fontWeight: 400,
     lineHeight: 1.75,
-    color: customColors.gray[90],
+    color: customColors.gray[80],
   },
   hashSmallText: {
     fontSize: "var(--step--1)",
