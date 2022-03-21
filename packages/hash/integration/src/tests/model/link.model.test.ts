@@ -363,7 +363,7 @@ describe("Link model class ", () => {
     );
   });
 
-  it.only("update method correctly updates link with a versioned source entity", async () => {
+  it("update method correctly updates link with a versioned source entity", async () => {
     const { accountId } = existingUser;
 
     const stringifiedPath = "$.test";
