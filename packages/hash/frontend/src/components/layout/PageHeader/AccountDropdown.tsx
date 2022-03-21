@@ -1,5 +1,4 @@
 import { useMemo, useRef, useState, VoidFunctionComponent } from "react";
-import { tw } from "twind";
 import {
   Box,
   Typography,
@@ -67,7 +66,6 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
       >
         <IconButton
           onClick={() => setOpen(!open)}
-          className="flex items-center relative m-auto focus:outline-none"
           ref={buttonRef}
           rounded
           sx={({ palette }) => ({
@@ -75,14 +73,14 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
             width: 32,
             padding: 0,
             boxShadow: open
-              ? "0px 0px 0px 2px #FFFFFF, 0px 0px 0px 5px #C1CFDE"
+              ? `0px 0px 0px 2px ${palette.common.white}, 0px 0px 0px 5px ${palette.gray[40]}`
               : "unset",
             ":hover": {
-              boxShadow: "0px 0px 0px 2px #FFFFFF, 0px 0px 0px 5px #C1CFDE",
+              boxShadow: `0px 0px 0px 2px ${palette.common.white}, 0px 0px 0px 5px ${palette.gray[40]}`,
             },
             "&:focus-within": {
               outline: "none",
-              boxShadow: `0px 0px 0px 2px #FFFFFF, 0px 0px 0px 5px ${palette.blue[70]}`,
+              boxShadow: `0px 0px 0px 2px ${palette.common.white}, 0px 0px 0px 5px ${palette.blue[70]}`,
             },
           })}
           title={user.properties.shortname!}
@@ -93,7 +91,6 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
               alt="avatar"
               src={avatar}
               sx={{ height: "32px", width: "32px", borderRadius: "100%" }}
-              className={tw`border border(solid gray-200)`}
             />
           ) : (
             <Avatar size={32} title={user?.properties.preferredName ?? "U"} />

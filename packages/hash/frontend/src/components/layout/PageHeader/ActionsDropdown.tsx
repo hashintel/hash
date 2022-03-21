@@ -65,12 +65,13 @@ export const ActionsDropdown: React.FC<{
           backgroundColor: open ? palette.blue["70"] : palette.gray[20],
 
           ":hover": {
-            boxShadow: "0px 0px 0px 2px #FFFFFF, 0px 0px 0px 5px #C1CFDE",
+            color: palette.gray[50],
+            boxShadow: `0px 0px 0px 2px ${palette.common.white}, 0px 0px 0px 5px ${palette.gray[40]}`,
           },
 
           "&:focus-within": {
             outline: "none",
-            boxShadow: `0px 0px 0px 2px #FFFFFF, 0px 0px 0px 5px ${palette.blue[70]}`,
+            boxShadow: `0px 0px 0px 2px ${palette.common.white}, 0px 0px 0px 5px ${palette.blue[70]}`,
           },
         })}
         ref={buttonRef}
