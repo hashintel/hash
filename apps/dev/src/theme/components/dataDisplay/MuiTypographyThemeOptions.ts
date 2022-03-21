@@ -1,6 +1,3 @@
-/**
- * @todo update from blockprotocol
- */
 import { Components, Theme } from "@mui/material";
 
 export const MuiTypographyThemeOptions: Components<Theme>["MuiTypography"] = {
@@ -25,29 +22,16 @@ export const MuiTypographyThemeOptions: Components<Theme>["MuiTypography"] = {
   },
   styleOverrides: {
     root: ({ ownerState, theme }) => ({
+      // @todo hover colours?
       "& a": {
-        ...(ownerState.variant === "bpBodyCopy" && {
+        ...(ownerState.variant === "hashBodyCopy" && {
           fontWeight: 600,
-          color: theme.palette.purple[700],
-          borderBottomWidth: 2,
-          borderBottomColor: theme.palette.purple[700],
-          borderBottomStyle: "solid",
-          transition: theme.transitions.create("color"),
-          ":hover": {
-            color: theme.palette.purple[500],
-            borderBottomColor: theme.palette.purple[500],
-          },
-        }),
-        ...(ownerState.variant === "bpSmallCopy" && {
-          color: "currentColor",
-          borderBottomWidth: 2,
-          borderBottomColor: "currentColor",
-          borderBottomStyle: "solid",
-          transition: theme.transitions.create("color"),
-          ":hover": {
-            color: theme.palette.purple[700],
-            borderBottomColor: theme.palette.purple[700],
-          },
+          color: theme.palette.yellow[900],
+          /**
+           * @todo check if text decoration underline is sufficient –
+           *       renders differently in figma
+           */
+          textDecoration: "underline",
         }),
       },
     }),
