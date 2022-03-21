@@ -37,6 +37,29 @@ interface UserBlocksContextState {
 /** @private enforces use of custom provider */
 const UserBlocksContext = createContext<UserBlocksContextState | null>(null);
 
+const mergeBlocksData = (
+  oldBlocksData: UserBlocks,
+  newBlocksData: UserBlocks,
+): UserBlocks => {
+  return produce(oldBlocksData, (draftUserBlocks) => {
+    for (const latestUserBlock of newBlocksData) {
+      const matchingUserBlockIndex = draftUserBlocks.findIndex(
+        (userBlock) =>
+          userBlock.name === latestUserBlock.name &&
+          userBlock.version !== latestUserBlock.version,
+      );
+
+      // Using `any` to fix a `Type instantiation is excessively deep` error.
+      // @todo find a potential fix.
+      if (matchingUserBlockIndex > -1) {
+        draftUserBlocks[matchingUserBlockIndex] = latestUserBlock as any;
+      } else {
+        draftUserBlocks.push(latestUserBlock as any);
+      }
+    }
+  });
+};
+
 export const UserBlocksProvider: React.FC<{ value: UserBlocks }> = ({
   value: initialUserBlocks,
   children,
@@ -47,24 +70,34 @@ export const UserBlocksProvider: React.FC<{ value: UserBlocks }> = ({
   );
 
   useEffect(() => {
-    const nextUserBlocks = produce(value, (draftUserBlocks) => {
-      for (const latestUserBlock of initialUserBlocks) {
-        const matchingUserBlockIndex = draftUserBlocks.findIndex(
-          (userBlock) =>
-            userBlock.name === latestUserBlock.name &&
-            userBlock.version !== latestUserBlock.version,
+    const setInitialBlocks = async () => {
+      if (process.env.NEXT_PUBLIC_BLOCK_PROTOCOL_API_KEY) {
+        const blocksMetadataHeaders = new Headers();
+        blocksMetadataHeaders.set(
+          "x-api-key",
+          process.env.NEXT_PUBLIC_BLOCK_PROTOCOL_API_KEY,
         );
 
-        if (matchingUserBlockIndex > -1) {
-          // Using `any` to fix a `Type instantiation is excessively deep` error.
-          // @todo find a potential fix.
-          draftUserBlocks[matchingUserBlockIndex] = latestUserBlock as any;
-        }
-      }
-    });
+        const userBlocks = (
+          await fetch("https://blockprotocol.org/api/blocks", {
+            headers: blocksMetadataHeaders,
+          }).then((response) => response.json())
+        ).results as UserBlocks;
 
-    setValue(nextUserBlocks);
-  }, [initialUserBlocks, value, setValue]);
+        setValue((prevValue) => {
+          return mergeBlocksData(prevValue, userBlocks);
+        });
+      }
+    };
+
+    void setInitialBlocks();
+  }, [setValue]);
+
+  useEffect(() => {
+    setValue((prevValue) => {
+      return mergeBlocksData(prevValue, initialUserBlocks);
+    });
+  }, [initialUserBlocks, setValue]);
 
   const state = useMemo(() => ({ value, setValue }), [value, setValue]);
 

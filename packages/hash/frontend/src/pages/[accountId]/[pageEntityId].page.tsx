@@ -1,14 +1,13 @@
 import { useQuery } from "@apollo/client";
-import { fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { BlockMeta, fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { blockPaths } from "@hashintel/hash-shared/paths";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { keyBy } from "lodash";
 import { GetStaticPaths, GetStaticProps } from "next";
 import { Router, useRouter } from "next/router";
 import { tw } from "twind";
-import { BlockMetadata } from "blockprotocol";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   GetPageQuery,
   GetPageQueryVariables,
@@ -24,7 +23,7 @@ import styles from "../index.module.scss";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import { PageTransferDropdown } from "../../components/Dropdowns/PageTransferDropdown";
 import { MainContentWrapper } from "../../components/layout/MainContentWrapper";
-import type { BlocksMetaMap } from "../../blocks/blocksMeta";
+import { UserBlock } from "../../blocks/userBlocks";
 
 /**
  * preload all configured blocks for now. in the future these will be loaded
@@ -39,8 +38,7 @@ export const getStaticPaths: GetStaticPaths<{ slug: string }> = () => ({
 });
 
 interface PageProps {
-  blocksMeta: BlocksMetaMap;
-  initialUserBlocks: BlockMetadata[];
+  blocksMeta: BlockMeta[];
 }
 
 /**
@@ -54,34 +52,14 @@ export const getStaticProps: GetStaticProps<PageProps> = async () => {
     preloadedComponentIds.map((componentId) => fetchBlockMeta(componentId)),
   );
 
-  if (!process.env.BLOCK_PROTOCOL_API_KEY) {
-    throw new Error("BLOCK_PROTOCOL_API_KEY is required to run the app.");
-  }
-
-  const blocksMetadataHeaders = new Headers();
-  blocksMetadataHeaders.set("x-api-key", process.env.BLOCK_PROTOCOL_API_KEY);
-
-  const initialUserBlocks = (
-    await fetch("http://blockprotocol.org/api/blocks", {
-      headers: blocksMetadataHeaders,
-    }).then((response) => response.json())
-  ).results;
-
   return {
     props: {
-      blocksMeta: keyBy(
-        fetchedBlocksMeta,
-        (blockMeta) => blockMeta.componentMetadata.componentId,
-      ),
-      initialUserBlocks,
+      blocksMeta: fetchedBlocksMeta,
     },
   };
 };
 
-export const Page: React.VFC<PageProps> = ({
-  blocksMeta,
-  initialUserBlocks,
-}) => {
+export const Page: React.VFC<PageProps> = ({ blocksMeta }) => {
   const router = useRouter();
 
   // entityId is the consistent identifier for pages (across all versions)
@@ -89,6 +67,17 @@ export const Page: React.VFC<PageProps> = ({
   const accountId = router.query.accountId as string;
   // versionId is an optional param for requesting a specific page version
   const versionId = router.query.version as string | undefined;
+
+  const blocksMetaMap = useMemo(() => {
+    return keyBy(
+      blocksMeta,
+      (blockMeta) => blockMeta.componentMetadata.componentId,
+    );
+  }, [blocksMeta]);
+
+  const initialUserBlocks: UserBlock[] = useMemo(() => {
+    return blocksMeta.map((blockMeta) => blockMeta.componentMetadata);
+  }, [blocksMeta]);
 
   const [pageState, setPageState] = useState<"normal" | "transferring">(
     "normal",
@@ -195,7 +184,7 @@ export const Page: React.VFC<PageProps> = ({
         <CollabPositionProvider value={collabPositions}>
           <PageBlock
             accountId={data.page.accountId}
-            blocksMeta={blocksMeta}
+            blocksMeta={blocksMetaMap}
             initialUserBlocks={initialUserBlocks}
             entityId={data.page.entityId}
           />
