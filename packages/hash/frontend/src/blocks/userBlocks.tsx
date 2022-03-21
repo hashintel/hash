@@ -44,17 +44,22 @@ const mergeBlocksData = (
   return produce(oldBlocksData, (draftUserBlocks) => {
     for (const latestUserBlock of newBlocksData) {
       const matchingUserBlockIndex = draftUserBlocks.findIndex(
-        (userBlock) =>
-          userBlock.name === latestUserBlock.name &&
-          userBlock.version !== latestUserBlock.version,
+        (userBlock) => userBlock.name === latestUserBlock.name,
       );
 
       // Using `any` to fix a `Type instantiation is excessively deep` error.
       // @todo find a potential fix.
-      if (matchingUserBlockIndex > -1) {
-        draftUserBlocks[matchingUserBlockIndex] = latestUserBlock as any;
-      } else {
+      if (matchingUserBlockIndex === -1) {
         draftUserBlocks.push(latestUserBlock as any);
+      }
+
+      // Using `any` to fix a `Type instantiation is excessively deep` error.
+      // @todo find a potential fix.
+      if (
+        draftUserBlocks[matchingUserBlockIndex]?.version !==
+        latestUserBlock.version
+      ) {
+        draftUserBlocks[matchingUserBlockIndex] = latestUserBlock as any;
       }
     }
   });
