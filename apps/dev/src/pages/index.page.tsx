@@ -10,6 +10,7 @@ import type { NextPage } from "next";
 import Head from "next/head";
 import { ComponentProps, FC, ReactNode, VFC } from "react";
 import { Button } from "../components/Button";
+import { Link } from "../components/Link";
 
 const StylishDivider: VFC<ComponentProps<typeof Stack>> = (props) => {
   const bgcolor = "orange.400";
@@ -80,7 +81,11 @@ const Hero: VFC = () => (
         <StylishDivider mb={5} />
         <Box width={{ xs: 1, md: 550 }}>
           <Typography mb={2} sx={{ lineHeight: 1.5 }}>
-            HASH is an organization building the next generation of simulation,
+            {/** @todo check which font weight is the default */}
+            <Link href="https://hash.ai" sx={{ fontWeight: 700 }}>
+              HASH
+            </Link>{" "}
+            is an organization building the next generation of simulation,
             decision-making, and knowledge management tools.
           </Typography>
           <Typography sx={{ lineHeight: 1.5 }}>
@@ -185,10 +190,12 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
               Please note: the current version is not yet ready for use.
             </strong>
           </Typography>
-          {/** @todo links */}
           <Typography>
             Download and run it yourself, or sign up for the hosted platform
-            waitlist at hash.ai/platform/hash
+            waitlist at{" "}
+            <Link href="https://hash.ai/platform/hash">
+              hash.ai/platform/hash
+            </Link>
           </Typography>
         </Project>
         <Project
