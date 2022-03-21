@@ -280,7 +280,7 @@ const Community: VFC = () => {
         {/** @todo check what styles should be in place for hashHeading4 */}
         <Typography
           variant="hashHeading4"
-          sx={{ fontWeight: 600, color: "gray.90", mb: 5 }}
+          sx={{ fontWeight: 600, color: "gray.90", mb: { xs: 4, sm: 5 } }}
           align="center"
           // @todo remove need for this, check whether its right
           component="h4"
