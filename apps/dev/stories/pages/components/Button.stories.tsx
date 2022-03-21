@@ -1,5 +1,6 @@
 import { Button as MuiButton } from "@mui/material";
 import clsx from "clsx";
+import { Button as HashButton } from "../../../src/components/Button";
 
 export default {
   title: "Components/Button",
@@ -31,15 +32,40 @@ export default {
       defaultValue: "Click me",
       control: { type: "text" },
     },
+    icon: {
+      defaultValue: null,
+      options: [null, "fa"],
+      control: { type: "radio" },
+    },
+    iconName: {
+      defaultValue: "arrow-up-right-from-square",
+      control: { type: "string" },
+    },
   },
 };
 
-export const Button = ({ hover = false, focus = false, ...props }: any) => (
-  <MuiButton
+// @todo replace with actual component
+const FaIcon = (_: { icon: string }) => null;
+
+export const Button = ({
+  hover = false,
+  focus = false,
+  icon = false,
+  iconName = "",
+  ...props
+}: any) => (
+  <HashButton
     className={clsx({
       "Button--hover": hover,
       "Button--focus": focus,
     })}
+    {...(icon === "fa"
+      ? {
+          [icon === "start" ? "startIcon" : "endIcon"]: (
+            <FaIcon icon={iconName} />
+          ),
+        }
+      : {})}
     {...props}
   />
 );

@@ -21,6 +21,7 @@
     "@emotion/react": "11.8.1",
     "@emotion/server": "11.4.0",
     "@emotion/styled": "11.8.1",
+    "@fortawesome/free-solid-svg-icons": "6.1.0",
     "@mui/material": "5.5.0",
     "@mui/system": "5.5.1",
     "clsx": "1.1.1",

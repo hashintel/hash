@@ -169,9 +169,11 @@ export const customColors = {
 export const palette: ThemeOptions["palette"] = {
   ...customColors,
   primary: {
+    // @todo check this
     main: customColors.yellow[300],
   },
   secondary: {
+    // @todo check this
     main: customColors.purple[600],
   },
 };
