@@ -66,7 +66,7 @@ const Hero: VFC = () => (
     }}
   >
     <Container>
-      <Box width={{ xs: 1, md: 871 }}>
+      <Box width={{ xs: 1, md: 873 }}>
         <Typography variant="hashHeading4" component="h1" mb={3}>
           HASH for Developers
         </Typography>
@@ -99,14 +99,25 @@ const Hero: VFC = () => (
   </Box>
 );
 
+// @todo handle this being too big at certain breakpoints
 const Project: FC<{
   title: ReactNode;
   buttons: ReactNode;
-}> = ({ buttons, children, title }) => {
+  image: ReactNode;
+}> = ({ buttons, children, title, image }) => {
   return (
     // @todo check this with the design
-    <Stack direction={{ xs: "column", md: "row" }} spacing={9}>
-      <Box sx={{ width: 420 }}>
+    <Stack direction={{ xs: "column", md: "row" }} spacing={{ xs: 6, lg: 9 }}>
+      <Box
+        sx={[
+          { width: { xs: 1, md: 420 }, flexShrink: 0 },
+          (theme) => ({
+            [theme.breakpoints.down("md")]: { width: 1 },
+            [theme.breakpoints.up("md")]: { width: 345 },
+            [theme.breakpoints.up("lg")]: { width: 420 },
+          }),
+        ]}
+      >
         <Typography
           variant="hashHeading4"
           component="h4"
@@ -120,7 +131,7 @@ const Project: FC<{
             [`& .${typographyClasses.root}`]: { lineHeight: "inherit" },
           }}
           mb={3}
-          spacing={4}
+          spacing={3}
         >
           {children}
         </Stack>
@@ -129,9 +140,8 @@ const Project: FC<{
           {buttons}
         </Stack>
       </Box>
-      <Box>
-        {/** @todo scaling, alt text */}
-        <Image src="/home/projects/bp.svg" width={445} height={326.26} />
+      <Box flexShrink={0} fontSize={0}>
+        {image}
       </Box>
     </Stack>
   );
@@ -142,16 +152,24 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
     <Stack
       {...props}
       component="section"
-      direction={{ xs: "column", md: "row" }}
+      direction={{ xs: "column", lg: "row" }}
       spacing={6}
     >
-      <Stack mb={{ md: 6 }} width={{ xs: 1, md: 240 }} spacing={4}>
+      <Stack
+        spacing={4}
+        sx={[
+          (theme) => ({
+            [theme.breakpoints.down("lg")]: { width: 1 },
+            [theme.breakpoints.up("lg")]: { mb: 6, flex: 1 },
+          }),
+        ]}
+      >
         <Typography variant="hashHeading4" component="h3">
           Our projects
         </Typography>
         <StylishDivider />
       </Stack>
-      <Stack spacing={10}>
+      <Stack flexShrink={0}>
         <Project
           title="Block Protocol"
           buttons={
@@ -159,6 +177,10 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
             <Button href="https://blockprotocol.org">
               Visit blockprotocol.org
             </Button>
+          }
+          image={
+            /** @todo scaling, alt text */
+            <Image src="/home/projects/bp.svg" width={445} height={326.26} />
           }
         >
           <Typography>
@@ -171,7 +193,7 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
           </Typography>
         </Project>
         <Project
-          title="HASH"
+          title={<Box sx={{ mt: 8 }}>HASH</Box>}
           buttons={
             <>
               {/* @todo action */}
@@ -179,6 +201,10 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
               {/* @todo link */}
               <Button variant="secondary">Read the setup guide</Button>
             </>
+          }
+          image={
+            /** @todo scaling, alt text */
+            <Image src="/home/projects/hash.svg" width={374} height={465.24} />
           }
         >
           <Typography>
@@ -207,6 +233,14 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
               {/* @todo link */}
               <Button variant="secondary">Read the setup guide</Button>
             </>
+          }
+          image={
+            /** @todo scaling, alt text */
+            <Image
+              src="/home/projects/hEngine.svg"
+              width={411}
+              height={374.5}
+            />
           }
         >
           <Typography>
