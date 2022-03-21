@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::{
     config::StoreConfig,
     datastore::{
-        batch::DynamicBatch,
+        batch::context::ContextBatch,
         prelude::*,
         schema::state::AgentSchema,
         table::{
@@ -85,7 +85,7 @@ impl Context {
     ///
     /// # Errors
     ///
-    /// Returns an error, if the context batch is currently in used, e.g. by cloning the [`Arc`]
+    /// Returns an error if the context batch is currently in use, e.g. due to cloning the [`Arc`]
     /// returned from [`global_batch()`](Self::global_batch).
     pub fn global_batch_mut(&mut self) -> Result<&mut ContextBatch> {
         Arc::get_mut(&mut self.batch)
@@ -112,41 +112,46 @@ impl Context {
         agent_schema: &AgentSchema,
         experiment_id: &ExperimentId,
     ) -> Result<()> {
-        // TODO search everywhere and replace static_pool and dynamic_pool to more descriptively
-        //  refer to context/state (respectively)
-        let mut static_pool = self.previous_state.agent_pool.write_proxies()?;
-        let dynamic_pool = state.agent_pool().read_proxies()?;
+        let mut previous_agent_batch_proxies = self.previous_state.agent_pool.write_proxies()?;
+        let current_agent_batch_proxies = state.agent_pool().read_proxies()?;
 
-        for (static_batch, dynamic_batch) in static_pool
+        for (previous_agent_batch, current_agent_batch) in previous_agent_batch_proxies
             .batches_iter_mut()
-            .zip(dynamic_pool.batches_iter())
+            .zip(current_agent_batch_proxies.batches_iter())
         {
-            static_batch.sync(dynamic_batch)?;
+            previous_agent_batch
+                .batch
+                .sync(&current_agent_batch.batch)?;
         }
 
         // Release write access to the agent pool, so
         // we can remove batches from it.
-        drop(static_pool);
-        let previous_agent_pool = &mut self.previous_state.agent_pool;
+        drop(previous_agent_batch_proxies);
+        let previous_agent_batches = &mut self.previous_state.agent_pool;
 
         #[allow(clippy::comparison_chain)]
-        if dynamic_pool.len() > previous_agent_pool.len() {
+        if current_agent_batch_proxies.len() > previous_agent_batches.len() {
             // Add more static batches
-            for batch in &dynamic_pool[previous_agent_pool.len()..dynamic_pool.len()] {
-                previous_agent_pool.push(AgentBatch::duplicate_from(
+            for batch in &current_agent_batch_proxies
+                [previous_agent_batches.len()..current_agent_batch_proxies.len()]
+            {
+                previous_agent_batches.push(AgentBatch::duplicate_from(
                     batch,
                     agent_schema,
                     experiment_id,
                 )?);
             }
-        } else if dynamic_pool.len() < previous_agent_pool.len() {
+        } else if current_agent_batch_proxies.len() < previous_agent_batches.len() {
             // Remove unneeded static batches
-            let removed_ids = (dynamic_pool.len()..previous_agent_pool.len())
+            let removed_ids = (current_agent_batch_proxies.len()..previous_agent_batches.len())
                 .rev()
                 .map(|remove_index| {
-                    previous_agent_pool
+                    previous_agent_batches
                         .remove(remove_index)
-                        .get_batch_id()
+                        .batch
+                        .segment()
+                        .memory()
+                        .id()
                         .to_string()
                 })
                 .collect::<Vec<_>>();
@@ -157,7 +162,7 @@ impl Context {
         // might have added/removed agents to/from groups.
         let mut cumulative_num_agents = 0;
         let group_start_indices = Arc::new(
-            dynamic_pool
+            current_agent_batch_proxies
                 .batches_iter()
                 .map(|batch| {
                     let n = cumulative_num_agents;
@@ -166,7 +171,7 @@ impl Context {
                 })
                 .collect(),
         );
-        drop(dynamic_pool);
+        drop(current_agent_batch_proxies);
         state.set_group_start_indices(group_start_indices);
         Ok(())
     }
@@ -186,7 +191,7 @@ impl PreContext {
         self,
         state_snapshot: StatePools,
         column_writers: &[&ContextColumn],
-        num_elements: usize,
+        num_agents: usize,
     ) -> Result<Context> {
         let mut context = Context {
             batch: self.batch,
@@ -195,7 +200,7 @@ impl PreContext {
         };
         context
             .global_batch_mut()?
-            .write_from_context_datas(column_writers, num_elements)?;
+            .write_from_context_datas(column_writers, num_agents)?;
         Ok(context)
     }
 }
