@@ -87,7 +87,7 @@ export const updateLinkVersionRow = async (
     where
       source_account_id = ${params.sourceAccountId}
       and link_version_id = ${params.linkVersionId}
-    returning *;
+    returning link_version_id;
   `);
 };
 
