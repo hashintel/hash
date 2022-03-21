@@ -92,15 +92,14 @@ export const Footer: FC = () => (
         </Typography>
         {/** @todo icon row */}
       </Stack>
-      {/** @todo where do these link to? */}
+      {/** @todo link hover styles */}
       <Stack direction="row" spacing={{ xs: 6, md: 10 }}>
         <FooterSection label="Resources">
-          <FooterLink href="#">Guides</FooterLink>
-          <FooterLink href="#">Blog</FooterLink>
-          <FooterLink href="#">FAQs</FooterLink>
-          <FooterLink href="#">Careers</FooterLink>
-          <FooterLink href="#">Contact Us</FooterLink>
-          <FooterLink href="#">Terms of Service</FooterLink>
+          <FooterLink href="https://hash.ai/careers">Careers</FooterLink>
+          <FooterLink href="https://hash.ai/contact">Contact Us</FooterLink>
+          <FooterLink href="https://hash.ai/legal/terms">
+            Terms of Service
+          </FooterLink>
         </FooterSection>
         <FooterSection label="Our projects">
           <FooterLinkWithLabel type="open" href="https://blockprotocol.org">
@@ -109,11 +108,14 @@ export const Footer: FC = () => (
           <FooterLinkWithLabel type="open" href="https://hash.ai">
             HASH
           </FooterLinkWithLabel>
-          <FooterLinkWithLabel type="fair" href="https://hash.ai">
+          <FooterLinkWithLabel
+            type="fair"
+            href="https://hash.ai/platform/engine"
+          >
             hEngine
           </FooterLinkWithLabel>
-          <FooterLink href="https://core.hash.ai">hCore</FooterLink>
-          <FooterLink href="https://hash.ai">hCloud</FooterLink>
+          <FooterLink href="https://hash.ai/platform/core">hCore</FooterLink>
+          <FooterLink href="https://hash.ai/platform/cloud">hCloud</FooterLink>
         </FooterSection>
       </Stack>
     </Stack>
