@@ -149,111 +149,117 @@ const Project: FC<{
 
 const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
   return (
-    <Stack
-      {...props}
-      component="section"
-      direction={{ xs: "column", lg: "row" }}
-      spacing={6}
-    >
+    <Container>
       <Stack
-        spacing={4}
-        sx={[
-          (theme) => ({
-            [theme.breakpoints.down("lg")]: { width: 1 },
-            [theme.breakpoints.up("lg")]: { mb: 6, flex: 1 },
-          }),
-        ]}
+        {...props}
+        component="section"
+        direction={{ xs: "column", lg: "row" }}
+        spacing={6}
       >
-        <Typography variant="hashHeading4" component="h3">
-          Our projects
-        </Typography>
-        <StylishDivider />
+        <Stack
+          spacing={4}
+          sx={[
+            (theme) => ({
+              [theme.breakpoints.down("lg")]: { width: 1 },
+              [theme.breakpoints.up("lg")]: { mb: 6, flex: 1 },
+            }),
+          ]}
+        >
+          <Typography variant="hashHeading4" component="h3">
+            Our projects
+          </Typography>
+          <StylishDivider />
+        </Stack>
+        <Stack flexShrink={0}>
+          <Project
+            title="Block Protocol"
+            buttons={
+              /* @todo icon */
+              <Button href="https://blockprotocol.org">
+                Visit blockprotocol.org
+              </Button>
+            }
+            image={
+              /** @todo scaling, alt text */
+              <Image src="/home/projects/bp.svg" width={445} height={326.26} />
+            }
+          >
+            <Typography>
+              The Block Protocol is an open-source standard and registry for
+              sharing interactive blocks connected to structured data.
+            </Typography>
+            <Typography>
+              You can build your own blocks, embed them in a website, or allow
+              your users to embed blocks directly within your application.
+            </Typography>
+          </Project>
+          <Project
+            title={<Box sx={{ mt: 8 }}>HASH</Box>}
+            buttons={
+              <>
+                {/* @todo action */}
+                <Button>Download</Button>
+                {/* @todo link */}
+                <Button variant="secondary">Read the setup guide</Button>
+              </>
+            }
+            image={
+              /** @todo scaling, alt text */
+              <Image
+                src="/home/projects/hash.svg"
+                width={374}
+                height={465.24}
+              />
+            }
+          >
+            <Typography>
+              HASH is our forthcoming open-source, all-in-one workspace platform
+              built around structured data and interactive blocks. It feels like
+              taking notes, but works like a powerful database.{" "}
+              {/** @todo check styles */}
+              <strong>
+                Please note: the current version is not yet ready for use.
+              </strong>
+            </Typography>
+            <Typography>
+              Download and run it yourself, or sign up for the hosted platform
+              waitlist at{" "}
+              <Link href="https://hash.ai/platform/hash">
+                hash.ai/platform/hash
+              </Link>
+            </Typography>
+          </Project>
+          <Project
+            title="hEngine"
+            buttons={
+              <>
+                {/* @todo action */}
+                <Button>Download</Button>
+                {/* @todo link */}
+                <Button variant="secondary">Read the setup guide</Button>
+              </>
+            }
+            image={
+              /** @todo scaling, alt text */
+              <Image
+                src="/home/projects/hEngine.svg"
+                width={411}
+                height={374.5}
+              />
+            }
+          >
+            <Typography>
+              hEngine is a simulation engine that allows you to run agent-based
+              simulations using your own private and public data from HASH.
+            </Typography>
+            <Typography>
+              The HASH all-in-one workspace will make it easy to clean,
+              organise, and transform your data first.
+            </Typography>
+          </Project>
+        </Stack>
       </Stack>
-      <Stack flexShrink={0}>
-        <Project
-          title="Block Protocol"
-          buttons={
-            /* @todo icon */
-            <Button href="https://blockprotocol.org">
-              Visit blockprotocol.org
-            </Button>
-          }
-          image={
-            /** @todo scaling, alt text */
-            <Image src="/home/projects/bp.svg" width={445} height={326.26} />
-          }
-        >
-          <Typography>
-            The Block Protocol is an open-source standard and registry for
-            sharing interactive blocks connected to structured data.
-          </Typography>
-          <Typography>
-            You can build your own blocks, embed them in a website, or allow
-            your users to embed blocks directly within your application.
-          </Typography>
-        </Project>
-        <Project
-          title={<Box sx={{ mt: 8 }}>HASH</Box>}
-          buttons={
-            <>
-              {/* @todo action */}
-              <Button>Download</Button>
-              {/* @todo link */}
-              <Button variant="secondary">Read the setup guide</Button>
-            </>
-          }
-          image={
-            /** @todo scaling, alt text */
-            <Image src="/home/projects/hash.svg" width={374} height={465.24} />
-          }
-        >
-          <Typography>
-            HASH is our forthcoming open-source, all-in-one workspace platform
-            built around structured data and interactive blocks. It feels like
-            taking notes, but works like a powerful database.{" "}
-            {/** @todo check styles */}
-            <strong>
-              Please note: the current version is not yet ready for use.
-            </strong>
-          </Typography>
-          <Typography>
-            Download and run it yourself, or sign up for the hosted platform
-            waitlist at{" "}
-            <Link href="https://hash.ai/platform/hash">
-              hash.ai/platform/hash
-            </Link>
-          </Typography>
-        </Project>
-        <Project
-          title="hEngine"
-          buttons={
-            <>
-              {/* @todo action */}
-              <Button>Download</Button>
-              {/* @todo link */}
-              <Button variant="secondary">Read the setup guide</Button>
-            </>
-          }
-          image={
-            /** @todo scaling, alt text */
-            <Image
-              src="/home/projects/hEngine.svg"
-              width={411}
-              height={374.5}
-            />
-          }
-        >
-          <Typography>
-            hEngine is a simulation engine that allows you to run agent-based
-            simulations using your own private and public data from HASH.
-          </Typography>
-          <Typography>
-            The HASH all-in-one workspace will make it easy to clean, organise,
-            and transform your data first.
-          </Typography>
-        </Project>
-      </Stack>
-    </Stack>
+    </Container>
   );
 };
 
@@ -264,9 +270,7 @@ const Home: NextPage = () => {
         <title>HASH</title>
       </Head>
       <Hero />
-      <Container>
-        <Projects mb={12} />
-      </Container>
+      <Projects mb={12} />
     </>
   );
 };
