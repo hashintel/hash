@@ -10,12 +10,12 @@ import {
 import { useKeys } from "rooks";
 import { useRouter } from "next/router";
 
+import { useModal } from "react-modal-hook";
 import { FontAwesomeIcon } from "../../icons";
 import { Popover } from "../../Popover";
-import { IconButton } from "../../IconButton";
 import { Link } from "../../Link";
 import { CreatePageModal } from "../../Modals/CreatePageModal";
-import { useModal } from "react-modal-hook";
+import { HeaderIconButton } from "./HeaderIconButton";
 
 export const ActionsDropdown: React.FC<{
   accountId: string;
@@ -42,24 +42,27 @@ export const ActionsDropdown: React.FC<{
 
   return (
     <Box>
-      <IconButton
+      <HeaderIconButton
         size="medium"
         rounded
-        sx={{
+        sx={({ palette }) => ({
           mr: {
             xs: 1,
             md: 1.5,
           },
-          color: open ? theme.palette.common.white : theme.palette.gray[40],
-          backgroundColor: open
-            ? theme.palette.blue["70"]
-            : theme.palette.gray[20],
-        }}
+          color: open ? palette.common.white : palette.gray[40],
+          backgroundColor: open ? palette.blue["70"] : palette.gray[20],
+
+          ":hover": {
+            color: palette.gray[50],
+          },
+        })}
         ref={buttonRef}
         onClick={() => setOpen(!open)}
+        open={open}
       >
         <FontAwesomeIcon icon={faPlus} />
-      </IconButton>
+      </HeaderIconButton>
 
       <Popover
         id={id}
