@@ -1,9 +1,9 @@
 import { sql } from "slonik";
 
 import {
-  DBAggregation,
-  DBClient,
-  DBLink,
+  DbAggregation,
+  DbClient,
+  DbLink,
   DbEntity,
   EntityMeta,
   EntityType,
@@ -76,7 +76,7 @@ import { getEntityAggregation } from "./aggregation/getEntityAggregation";
 import { requireTransaction } from "./util";
 import { getEntityIncomingLinks } from "./link/getEntityIncomingLinks";
 
-export class PostgresClient implements DBClient {
+export class PostgresClient implements DbClient {
   private conn: Connection;
 
   constructor(conn: Connection) {
@@ -91,7 +91,7 @@ export class PostgresClient implements DBClient {
 
   /** Create an entity type definition and return its uuid. */
   async createEntityType(
-    params: Parameters<DBClient["createEntityType"]>[0],
+    params: Parameters<DbClient["createEntityType"]>[0],
   ): Promise<EntityType> {
     const { name, accountId, createdByAccountId, schema } = params;
 
@@ -259,8 +259,8 @@ export class PostgresClient implements DBClient {
   }
 
   async getEntityType(
-    params: Parameters<DBClient["getEntityType"]>[0],
-  ): ReturnType<DBClient["getEntityType"]> {
+    params: Parameters<DbClient["getEntityType"]>[0],
+  ): ReturnType<DbClient["getEntityType"]> {
     return await getEntityType(this.conn, {
       entityVersionId: params.entityTypeVersionId,
     });
@@ -277,20 +277,20 @@ export class PostgresClient implements DBClient {
   }
 
   async getEntityTypeByComponentId(
-    params: Parameters<DBClient["getEntityTypeByComponentId"]>[0],
-  ): ReturnType<DBClient["getEntityTypeByComponentId"]> {
+    params: Parameters<DbClient["getEntityTypeByComponentId"]>[0],
+  ): ReturnType<DbClient["getEntityTypeByComponentId"]> {
     return await getEntityTypeByComponentId(this.conn, params);
   }
 
   async getEntityTypeBySchema$id(
-    params: Parameters<DBClient["getEntityTypeBySchema$id"]>[0],
-  ): ReturnType<DBClient["getEntityTypeBySchema$id"]> {
+    params: Parameters<DbClient["getEntityTypeBySchema$id"]>[0],
+  ): ReturnType<DbClient["getEntityTypeBySchema$id"]> {
     return await getEntityTypeBySchema$id(this.conn, params);
   }
 
   async getEntityTypeChildren(
-    params: Parameters<DBClient["getEntityTypeChildren"]>[0],
-  ): ReturnType<DBClient["getEntityTypeChildren"]> {
+    params: Parameters<DbClient["getEntityTypeChildren"]>[0],
+  ): ReturnType<DbClient["getEntityTypeChildren"]> {
     return await getEntityTypeChildren(this.conn, params);
   }
 
@@ -324,8 +324,8 @@ export class PostgresClient implements DBClient {
   }
 
   async updateEntityType(
-    params: Parameters<DBClient["updateEntityType"]>[0],
-  ): ReturnType<DBClient["updateEntityType"]> {
+    params: Parameters<DbClient["updateEntityType"]>[0],
+  ): ReturnType<DbClient["updateEntityType"]> {
     const { entityId, entityVersionId, schema } = params;
 
     const entity = entityVersionId
@@ -447,14 +447,14 @@ export class PostgresClient implements DBClient {
     destinationAccountId: string;
     destinationEntityId: string;
     destinationEntityVersionId?: string;
-  }): Promise<DBLink> {
+  }): Promise<DbLink> {
     return await createLink(this.conn, params);
   }
 
   async getLink(params: {
     sourceAccountId: string;
     linkId: string;
-  }): Promise<DBLink | null> {
+  }): Promise<DbLink | null> {
     return await getLink(this.conn, params);
   }
 
@@ -467,44 +467,44 @@ export class PostgresClient implements DBClient {
   }
 
   async createAggregation(
-    params: Parameters<DBClient["createAggregation"]>[0],
-  ): Promise<DBAggregation> {
+    params: Parameters<DbClient["createAggregation"]>[0],
+  ): Promise<DbAggregation> {
     return await createAggregation(this.conn, params);
   }
 
   async updateAggregationOperation(
-    params: Parameters<DBClient["updateAggregationOperation"]>[0],
-  ): Promise<DBAggregation> {
+    params: Parameters<DbClient["updateAggregationOperation"]>[0],
+  ): Promise<DbAggregation> {
     return await updateAggregationOperation(this.conn, params);
   }
 
   async getEntityAggregation(
-    params: Parameters<DBClient["getEntityAggregation"]>[0],
-  ): Promise<DBAggregation | null> {
+    params: Parameters<DbClient["getEntityAggregation"]>[0],
+  ): Promise<DbAggregation | null> {
     return await getEntityAggregation(this.conn, params);
   }
 
   async getEntityAggregations(
-    params: Parameters<DBClient["getEntityAggregations"]>[0],
-  ): Promise<DBAggregation[]> {
+    params: Parameters<DbClient["getEntityAggregations"]>[0],
+  ): Promise<DbAggregation[]> {
     return await getEntityAggregations(this.conn, params);
   }
 
   async deleteAggregation(
-    params: Parameters<DBClient["deleteAggregation"]>[0],
+    params: Parameters<DbClient["deleteAggregation"]>[0],
   ): Promise<void> {
     return await deleteAggregation(this.conn, params);
   }
 
   async getEntityOutgoingLinks(
-    params: Parameters<DBClient["getEntityOutgoingLinks"]>[0],
-  ): Promise<DBLink[]> {
+    params: Parameters<DbClient["getEntityOutgoingLinks"]>[0],
+  ): Promise<DbLink[]> {
     return await getEntityOutgoingLinks(this.conn, params);
   }
 
   async getEntityIncomingLinks(
-    params: Parameters<DBClient["getEntityIncomingLinks"]>[0],
-  ): Promise<DBLink[]> {
+    params: Parameters<DbClient["getEntityIncomingLinks"]>[0],
+  ): Promise<DbLink[]> {
     return await getEntityIncomingLinks(this.conn, params);
   }
 
@@ -562,8 +562,8 @@ export class PostgresClient implements DBClient {
   }
 
   async getAccountEntities(
-    params: Parameters<DBClient["getAccountEntities"]>[0],
-  ): ReturnType<DBClient["getAccountEntities"]> {
+    params: Parameters<DbClient["getAccountEntities"]>[0],
+  ): ReturnType<DbClient["getAccountEntities"]> {
     const systemAccountId = await this.getSystemAccountId();
 
     return await getAccountEntities(this.conn, { systemAccountId, ...params });
@@ -598,8 +598,8 @@ export class PostgresClient implements DBClient {
   }
 
   async getAncestorReferences(
-    params: Parameters<DBClient["getAncestorReferences"]>[0],
-  ): ReturnType<DBClient["getAncestorReferences"]> {
+    params: Parameters<DbClient["getAncestorReferences"]>[0],
+  ): ReturnType<DbClient["getAncestorReferences"]> {
     return getAncestorReferences(this.conn, params);
   }
 

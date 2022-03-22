@@ -1,23 +1,18 @@
-use std::ops::Deref;
-
 use arrow::array::ArrayData;
 
 use super::*;
 use crate::{
-    datastore::{
-        arrow::batch_conversion::{new_buffer, new_offsets_buffer},
-        batch::iterators,
-    },
+    datastore::arrow::batch_conversion::{new_buffer, new_offsets_buffer},
     simulation::package::state::packages::behavior_execution::config::BehaviorId,
 };
 
-pub fn gather_behavior_chains<B: Deref<Target = AgentBatch>>(
-    agent_batches: &[B],
+pub fn gather_behavior_chains(
+    agent_batches: &[&AgentBatch],
     behavior_ids: &BehaviorIds,
     data_types: [arrow::datatypes::DataType; 3],
     behavior_ids_col_index: usize,
 ) -> Result<StateColumn> {
-    let inner = iterators::agent::behavior_list_bytes_iter(agent_batches)?
+    let inner = pool_behavior_list_bytes_iter(agent_batches)?
         .map(|v| Chain::from_behaviors(&v, behavior_ids))
         .collect::<Result<Vec<_>>>()?;
     Ok(StateColumn::new(Box::new(ChainList {
@@ -25,6 +20,54 @@ pub fn gather_behavior_chains<B: Deref<Target = AgentBatch>>(
         behavior_ids_col_index,
         data_types,
     })))
+}
+
+pub fn pool_behavior_list_bytes_iter<'a>(
+    agent_pool: &'a [&AgentBatch],
+) -> Result<impl Iterator<Item = Vec<&'a [u8]>>> {
+    let mut iterables = Vec::with_capacity(agent_pool.len());
+
+    for agent_batch in agent_pool {
+        let iterable = behavior_list_bytes_iter(agent_batch.batch.record_batch()?)?;
+        iterables.push(iterable);
+    }
+    Ok(iterables.into_iter().flatten())
+}
+
+pub fn behavior_list_bytes_iter(
+    agent_batch: &RecordBatch,
+) -> Result<impl Iterator<Item = Vec<&[u8]>>> {
+    let column_name = "behaviors";
+    let row_count = agent_batch.num_rows();
+    let (column_id, _) = agent_batch
+        .schema()
+        .column_with_name(column_name)
+        .ok_or_else(|| crate::datastore::Error::ColumnNotFound(column_name.into()))?;
+    let column = agent_batch.column(column_id);
+    let col_data = column.data_ref();
+
+    // SAFETY: This column has data type `List<String>`. The first buffer of this type of column is
+    //         an offset buffer and offsets (not `LargeList` offsets) have type `i32`. The first
+    //         buffer of the child data is the same as the first buffer of a `String` column, which
+    //         is also an offset buffer.
+    let list_indices = unsafe { col_data.buffers()[0].typed_data::<i32>() };
+    let string_indices = unsafe { col_data.child_data()[0].buffers()[0].typed_data::<i32>() };
+    let utf_8 = col_data.child_data()[0].buffers()[1].as_slice();
+
+    Ok((0..row_count).map(move |i| {
+        let list_from = list_indices[i] as usize;
+        let list_to = list_indices[i + 1] as usize;
+        let indices = &string_indices[list_from..=list_to];
+        let mut next_index = indices[0] as usize;
+        (0..list_to - list_from)
+            .map(|j| {
+                let new_index = indices[j + 1] as usize;
+                let slice = &utf_8[next_index..new_index];
+                next_index = new_index;
+                slice
+            })
+            .collect()
+    }))
 }
 
 pub struct Chain {
@@ -62,7 +105,7 @@ pub struct ChainList {
 }
 
 impl IntoArrowChange for ChainList {
-    fn get_arrow_change(&self, range: std::ops::Range<usize>) -> DatastoreResult<ArrayChange> {
+    fn get_arrow_change(&self, range: std::ops::Range<usize>) -> DatastoreResult<ColumnChange> {
         debug_assert!(self.inner.len() >= range.end);
         let num_agents = range.end - range.start;
         let chains = &self.inner[range.start..range.end];
@@ -108,6 +151,9 @@ impl IntoArrowChange for ChainList {
             .add_child_data(child_data)
             .build()?;
 
-        Ok(ArrayChange::new(data, self.behavior_ids_col_index))
+        Ok(ColumnChange {
+            data,
+            index: self.behavior_ids_col_index,
+        })
     }
 }

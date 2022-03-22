@@ -3,10 +3,7 @@ use serde_json::Value;
 pub use self::config::JsonStateOutputConfig;
 use super::super::*;
 use crate::{
-    datastore::{
-        batch::ArrowBatch,
-        schema::{HIDDEN_PREFIX, PRIVATE_PREFIX},
-    },
+    datastore::schema::{HIDDEN_PREFIX, PRIVATE_PREFIX},
     hash_types::Agent,
     simulation::package::{name::PackageName, output, output::Package},
 };
@@ -76,12 +73,15 @@ impl GetWorkerSimStartMsg for JsonState {
 impl Package for JsonState {
     async fn run(&mut self, state: Arc<State>, _context: Arc<Context>) -> Result<Output> {
         let state = state.read()?;
-        let agent_states: std::result::Result<Vec<_>, crate::datastore::error::Error> = state
+        let agent_states: crate::datastore::Result<Vec<_>> = state
             .agent_pool()
             .batches_iter()
             .zip(state.message_pool().batches_iter())
             .map(|(agent_batch, message_batch)| {
-                (agent_batch.record_batch(), message_batch.record_batch())
+                (
+                    agent_batch.batch.record_batch()?,
+                    message_batch.batch.record_batch()?,
+                )
                     .into_agent_states(Some(&self.sim_run_config.sim.store.agent_schema))
             })
             .collect();

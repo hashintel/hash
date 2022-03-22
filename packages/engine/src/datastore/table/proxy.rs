@@ -32,17 +32,16 @@ use parking_lot::{
 
 use super::pool::proxy::{PoolReadProxy, PoolWriteProxy};
 use crate::datastore::{
-    batch::Batch,
     prelude::{AgentBatch, Error, MessageBatch, Result},
     table::{pool::BatchPool, state::view::StatePools},
 };
 
 /// A thread-sendable guard for reading a batch, see module-level documentation for more reasoning.
-pub struct BatchReadProxy<K: Batch> {
+pub struct BatchReadProxy<K> {
     arc: Arc<RwLock<K>>,
 }
 
-impl<K: Batch> BatchReadProxy<K> {
+impl<K> BatchReadProxy<K> {
     pub fn new(arc: &Arc<RwLock<K>>) -> Result<BatchReadProxy<K>> {
         // Safety: `try_lock_shared` locks the `RawRwLock` and returns if the lock could be
         // acquired. The lock is not used if it couldn't be acquired.
@@ -54,7 +53,7 @@ impl<K: Batch> BatchReadProxy<K> {
     }
 }
 
-impl<K: Batch> Deref for BatchReadProxy<K> {
+impl<K> Deref for BatchReadProxy<K> {
     type Target = K;
 
     fn deref(&self) -> &Self::Target {
@@ -65,7 +64,7 @@ impl<K: Batch> Deref for BatchReadProxy<K> {
     }
 }
 
-impl<K: Batch> Clone for BatchReadProxy<K> {
+impl<K> Clone for BatchReadProxy<K> {
     fn clone(&self) -> Self {
         // Acquire another shared lock for the new proxy
         // SAFETY: `BatchReadProxy` is guaranteed to contain a shared lock acquired in `new()`, thus
@@ -83,7 +82,7 @@ impl<K: Batch> Clone for BatchReadProxy<K> {
     }
 }
 
-impl<K: Batch> Drop for BatchReadProxy<K> {
+impl<K> Drop for BatchReadProxy<K> {
     fn drop(&mut self) {
         // SAFETY: `BatchReadProxy` is guaranteed to contain a shared lock acquired in `new()`, thus
         // it's safe (and required) to unlock it, when the proxy goes out of scope.
@@ -92,11 +91,11 @@ impl<K: Batch> Drop for BatchReadProxy<K> {
 }
 
 /// A thread-sendable guard for writing a batch, see module-level documentation for more reasoning.
-pub struct BatchWriteProxy<K: Batch> {
+pub struct BatchWriteProxy<K> {
     arc: Arc<RwLock<K>>,
 }
 
-impl<K: Batch> BatchWriteProxy<K> {
+impl<K> BatchWriteProxy<K> {
     pub fn new(arc: &Arc<RwLock<K>>) -> Result<BatchWriteProxy<K>> {
         // Safety: `try_lock_exclusive` locks the `RawRwLock` and returns if the lock could be
         // acquired. The lock is not used if it couldn't be acquired.
@@ -125,7 +124,7 @@ impl<K: Batch> BatchWriteProxy<K> {
     }
 }
 
-impl<K: Batch> Deref for BatchWriteProxy<K> {
+impl<K> Deref for BatchWriteProxy<K> {
     type Target = K;
 
     fn deref(&self) -> &Self::Target {
@@ -136,7 +135,7 @@ impl<K: Batch> Deref for BatchWriteProxy<K> {
     }
 }
 
-impl<K: Batch> DerefMut for BatchWriteProxy<K> {
+impl<K> DerefMut for BatchWriteProxy<K> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         let ptr = self.arc.data_ptr();
         // SAFETY: `BatchWriteProxy` is guaranteed to contain a unique lock acquired in `new()`,
@@ -145,7 +144,7 @@ impl<K: Batch> DerefMut for BatchWriteProxy<K> {
     }
 }
 
-impl<K: Batch> Drop for BatchWriteProxy<K> {
+impl<K> Drop for BatchWriteProxy<K> {
     fn drop(&mut self) {
         // SAFETY: `BatchWriteProxy` is guaranteed to contain a unique lock acquired in `new()`,
         // thus it's safe (and required) to unlock it, when the proxy goes out of scope.
@@ -295,6 +294,16 @@ impl StateWriteProxy {
             self.agent_proxies.deconstruct(),
             self.message_proxies.deconstruct(),
         )
+    }
+
+    pub fn maybe_reload(&mut self) -> Result<()> {
+        for message_batch in self.message_proxies.batches_iter_mut() {
+            message_batch.batch.maybe_reload()?;
+        }
+        for agent_batch in self.agent_proxies.batches_iter_mut() {
+            agent_batch.batch.maybe_reload()?;
+        }
+        Ok(())
     }
 
     pub fn agent_pool(&self) -> &PoolWriteProxy<AgentBatch> {

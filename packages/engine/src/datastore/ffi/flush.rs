@@ -62,14 +62,13 @@ unsafe extern "C" fn flush_changes(
     let memory = &mut *((*c_memory).memory as *mut _);
 
     let mut prepared = PreparedBatch {
-        changes: prepared_columns,
         static_meta,
         dynamic_meta: &mut *dynamic_meta,
         memory,
     };
 
-    let resized = match prepared.flush_changes() {
-        Ok(resized) => resized,
+    let changed = match prepared.flush_changes(prepared_columns) {
+        Ok(changed) => changed,
         Err(Error::SharedMemory(shared_memory::ShmemError::DevShmOutOfMemory)) => {
             tracing::error!("Out of memory in `flush_changes`");
             return OUT_OF_MEMORY;
@@ -80,7 +79,7 @@ unsafe extern "C" fn flush_changes(
         }
     };
 
-    if resized {
+    if changed.resized() {
         let ptr = memory.data.as_ptr();
         let len = memory.size as i64;
         let mut_c_memory = &mut *c_memory;
@@ -210,27 +209,27 @@ pub struct PreparedArrayData<'a> {
 }
 
 impl GrowableArrayData for PreparedArrayData<'_> {
-    fn _len(&self) -> usize {
+    fn len(&self) -> usize {
         unsafe { (*self.inner).length as usize }
     }
 
-    fn _null_count(&self) -> usize {
+    fn null_count(&self) -> usize {
         unsafe { (*self.inner).null_count as usize }
     }
 
-    fn _null_buffer(&self) -> Option<&[u8]> {
+    fn null_buffer(&self) -> Option<&[u8]> {
         self.null_buffer
     }
 
-    fn _get_buffer(&self, index: usize) -> &[u8] {
+    fn buffer(&self, index: usize) -> &[u8] {
         self.buffers[index]
     }
 
-    fn _get_non_null_buffer_count(&self) -> usize {
+    fn non_null_buffer_count(&self) -> usize {
         self.buffers.len()
     }
 
-    fn _child_data(&self) -> &[Self] {
+    fn child_data(&self) -> &[Self] {
         &self.child_data
     }
 }
@@ -241,27 +240,23 @@ pub struct PreparedColumn<'a> {
 }
 
 impl<'a> GrowableColumn<PreparedArrayData<'a>> for PreparedColumn<'a> {
-    fn get_column_index(&self) -> usize {
+    fn index(&self) -> usize {
         self.index
     }
 
-    fn get_data(&self) -> &PreparedArrayData<'a> {
+    fn data(&self) -> &PreparedArrayData<'a> {
         &self.data
     }
 }
 
+/// Batch used by Python FFI.
 pub struct PreparedBatch<'a> {
-    changes: Vec<PreparedColumn<'a>>,
     static_meta: *const StaticMeta,
     dynamic_meta: &'a mut DynamicMeta,
     memory: &'a mut Memory,
 }
 
-impl<'a> GrowableBatch<PreparedColumn<'a>, PreparedArrayData<'a>> for PreparedBatch<'a> {
-    fn take_changes(&mut self) -> Vec<PreparedColumn<'a>> {
-        std::mem::take(&mut self.changes)
-    }
-
+impl<'a> GrowableBatch<PreparedArrayData<'a>, PreparedColumn<'a>> for PreparedBatch<'a> {
     fn static_meta(&self) -> &StaticMeta {
         unsafe { &*self.static_meta }
     }
@@ -270,7 +265,7 @@ impl<'a> GrowableBatch<PreparedColumn<'a>, PreparedArrayData<'a>> for PreparedBa
         self.dynamic_meta
     }
 
-    fn mut_dynamic_meta(&mut self) -> &mut DynamicMeta {
+    fn dynamic_meta_mut(&mut self) -> &mut DynamicMeta {
         self.dynamic_meta
     }
 
@@ -278,7 +273,7 @@ impl<'a> GrowableBatch<PreparedColumn<'a>, PreparedArrayData<'a>> for PreparedBa
         self.memory
     }
 
-    fn mut_memory(&mut self) -> &mut Memory {
+    fn memory_mut(&mut self) -> &mut Memory {
         self.memory
     }
 }

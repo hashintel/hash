@@ -1,10 +1,10 @@
 import { ApolloError } from "apollo-server-express";
 import { PresignedPost } from "@aws-sdk/s3-presigned-post";
-import { DBClient } from "../db";
+import { DbClient } from "../db";
 import { CreateEntityArgs, Entity, EntityConstructorArgs, File } from ".";
 import { createEntityArgsBuilder, genId } from "../util";
 
-import { DBFileProperties, EntityType } from "../db/adapter";
+import { DbFileProperties, EntityType } from "../db/adapter";
 import { StorageType } from "../graphql/apiTypes.gen";
 import {
   getStorageProvider,
@@ -17,11 +17,11 @@ const DOWNLOAD_URL_EXPIRATION_SECONDS = 60 * 60 * 24 * 7;
 const UPLOAD_URL_EXPIRATION_SECONDS = 60 * 30;
 
 export type FileConstructorArgs = {
-  properties: DBFileProperties;
+  properties: DbFileProperties;
 } & EntityConstructorArgs;
 
 export type CreateFileArgs = {
-  properties: DBFileProperties;
+  properties: DbFileProperties;
   entityVersionId?: string;
 } & CreateEntityArgs;
 
@@ -45,14 +45,14 @@ export interface CreateUploadRequestFileResponse {
 }
 
 class __File extends Entity {
-  properties: DBFileProperties;
+  properties: DbFileProperties;
 
   constructor(args: FileConstructorArgs) {
     super(args);
     this.properties = args.properties;
   }
 
-  static async getEntityType(client: DBClient): Promise<EntityType> {
+  static async getEntityType(client: DbClient): Promise<EntityType> {
     const fileEntityType = await client.getSystemTypeLatestVersion({
       systemTypeName: "File",
     });
@@ -60,7 +60,7 @@ class __File extends Entity {
   }
 
   static async createFile(
-    client: DBClient,
+    client: DbClient,
     params: CreateFileArgs,
   ): Promise<File> {
     const dbEntity = await client.createEntity(params);
@@ -81,7 +81,7 @@ class __File extends Entity {
    * setting its storage to `EXTERNAL_LINK` and keeping the link in the `key` property.
    */
   static async createFileEntityFromLink(
-    client: DBClient,
+    client: DbClient,
     params: CreateFileFromLinkArgs,
   ): Promise<File> {
     const { name, accountId, url, createdByAccountId } = params;
@@ -89,7 +89,7 @@ class __File extends Entity {
     // The external file storage will know to use the key to retrieve the url.
     const key = url;
     try {
-      const properties: DBFileProperties = {
+      const properties: DbFileProperties = {
         name,
         size: 0,
         key,
@@ -115,7 +115,7 @@ class __File extends Entity {
   }
 
   static async createFileEntityFromUploadRequest(
-    client: DBClient,
+    client: DbClient,
     params: CreateUploadRequestArgs,
   ): Promise<CreateUploadRequestFileResponse> {
     const { name, contentMd5, accountId, size } = params;
@@ -138,7 +138,7 @@ class __File extends Entity {
         fields: {},
         expiresInSeconds: UPLOAD_URL_EXPIRATION_SECONDS,
       });
-      const properties: DBFileProperties = {
+      const properties: DbFileProperties = {
         name,
         contentMd5,
         size,

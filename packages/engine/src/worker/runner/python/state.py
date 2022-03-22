@@ -121,14 +121,14 @@ class GroupState:
         raise RuntimeError("Group state shouldn't be copied to JSON.")
 
     def load(self, field_name):
-        if self.__agent_batch.rb.schema.get_field_index(field_name) < 0:
+        if self.__agent_batch.record_batch.schema.get_field_index(field_name) < 0:
             raise_missing_field(field_name)  # Missing even with dynamic access
 
         return self.__agent_batch.load_col(field_name, self.__loaders.get(field_name))
 
     # Returns the number of agents in this group.
     def n_agents(self):
-        return self.__agent_batch.rb.num_rows
+        return self.__agent_batch.record_batch.num_rows
 
     def get_agent(self, i_agent_in_group, old_agent_state=None):
         if old_agent_state is not None:

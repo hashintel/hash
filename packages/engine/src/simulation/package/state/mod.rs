@@ -10,7 +10,7 @@ pub use crate::config::Globals;
 use crate::{
     config::ExperimentConfig,
     datastore::{
-        batch::change::ArrayChange,
+        batch::change::ColumnChange,
         error::Result as DatastoreResult,
         schema::{accessor::FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
     },
@@ -65,7 +65,7 @@ pub struct StateColumn {
 }
 
 impl StateColumn {
-    pub fn get_arrow_change(&self, range: std::ops::Range<usize>) -> DatastoreResult<ArrayChange> {
+    pub fn get_arrow_change(&self, range: std::ops::Range<usize>) -> DatastoreResult<ColumnChange> {
         self.inner.get_arrow_change(range)
     }
 
@@ -75,5 +75,5 @@ impl StateColumn {
 }
 
 pub trait IntoArrowChange {
-    fn get_arrow_change(&self, range: std::ops::Range<usize>) -> DatastoreResult<ArrayChange>;
+    fn get_arrow_change(&self, range: std::ops::Range<usize>) -> DatastoreResult<ColumnChange>;
 }

@@ -1,6 +1,6 @@
 import { rword } from "rword";
 import { VerificationCode } from ".";
-import { DBClient } from "../db";
+import { DbClient } from "../db";
 import { VerificationCodeMetadata as GQLVerificationCodeMetadata } from "../graphql/apiTypes.gen";
 
 // Maximum age of a valid verification code (1 hour)
@@ -56,7 +56,7 @@ class __VerificationCode {
   }
 
   static async create(
-    client: DBClient,
+    client: DbClient,
     params: { accountId: string; userId: string; emailAddress: string },
   ) {
     const dbVerificationCode = await client.createVerificationCode({
@@ -68,7 +68,7 @@ class __VerificationCode {
   }
 
   static async getById(
-    client: DBClient,
+    client: DbClient,
     params: { id: string },
   ): Promise<VerificationCode | null> {
     const dbVerificationCode = await client.getVerificationCode(params);
@@ -88,14 +88,14 @@ class __VerificationCode {
     return this.used;
   }
 
-  async incrementAttempts(client: DBClient) {
+  async incrementAttempts(client: DbClient) {
     await client.incrementVerificationCodeAttempts({
       id: this.id,
       userId: this.userId,
     });
   }
 
-  async setToUsed(client: DBClient) {
+  async setToUsed(client: DbClient) {
     await client.setVerificationCodeToUsed({
       id: this.id,
       userId: this.userId,
