@@ -78,7 +78,7 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({
       {navItems.map(({ title, icon, onClick, href, id, faded }) => {
         if (href) {
           return (
-            <MenuItem onClick={() => popupState.close()}>
+            <MenuItem key={id} onClick={() => popupState.close()}>
               <Link sx={{ display: "flex" }} key={id} noLinkStyle href={href}>
                 <ListItemIcon>
                   <FontAwesomeIcon icon={icon} />
@@ -91,6 +91,7 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({
         if (onClick) {
           return (
             <MenuItem
+              key={id}
               sx={{
                 ...(Boolean(faded) && {
                   [`& .${listItemTextClasses.primary}`]: {

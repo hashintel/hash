@@ -27,6 +27,7 @@ const Container = styled(
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
+  color: theme.palette.gray[70],
 
   "&:hover": {
     backgroundColor: theme.palette.gray[20],
@@ -36,14 +37,17 @@ const Container = styled(
   ...((hovered || focused) &&
     !selected && {
       backgroundColor: theme.palette.gray[20],
+      color: theme.palette.gray[80],
     }),
 
   "&:focus-within": {
     backgroundColor: theme.palette.gray[20],
+    color: theme.palette.gray[80],
   },
 
   ...(selected && {
     backgroundColor: theme.palette.gray[30],
+    color: theme.palette.gray[80],
   }),
 }));
 
@@ -72,7 +76,12 @@ export const EntityTypeItem: VFC<EntityTypeItemProps> = ({
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
     >
-      <Link noLinkStyle href={`/${accountId}/types/${entityId}`} flex={1}>
+      <Link
+        sx={{ flex: 1 }}
+        noLinkStyle
+        href={`/${accountId}/types/${entityId}`}
+        flex={1}
+      >
         <Typography
           variant="smallTextLabels"
           sx={{

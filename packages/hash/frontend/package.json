@@ -67,6 +67,7 @@
     "react-dom": "17.0.2",
     "react-hook-form": "7.17.0",
     "react-modal-hook": "3.0.0",
+    "react-transition-group": "4.4.2",
     "rooks": "5.7.1",
     "setimmediate": "1.0.5",
     "spark-md5": "3.0.2",
