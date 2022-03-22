@@ -6,10 +6,9 @@ from runner import Runner
 
 
 def get_logging_level(value):
-    # pylint: disable=unreachable
     # TODO: Forward logging to rust-tracing
     #   see https://app.asana.com/0/1199548034582004/1201989297281277/f
-    return None
+    value = "to-be-fixed"
 
     value = value.lower()
     if value == "debug":
@@ -26,7 +25,7 @@ def get_logging_level(value):
 def logging_setup():
     # Use the same logging levels as Rust
     levels = os.getenv("RUST_LOG")
-    level = logging.DEBUG
+    level = None
     if levels is not None:
         kv_pairs = levels.split(",")
         for kv_pair in kv_pairs:
