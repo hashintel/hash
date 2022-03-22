@@ -7,7 +7,6 @@ import { HEADER_HEIGHT } from "./PageHeader/PageHeader";
 import { PageSidebar } from "./PageSidebar/PageSidebar";
 import { useSidebarContext } from "./SidebarContext";
 import { IconButton } from "../IconButton";
-import { Button } from "../Button";
 
 const Main = styled("main", {
   shouldForwardProp: (prop) => prop !== "sidebarOpen",
@@ -64,15 +63,7 @@ export const MainContentWrapper: FunctionComponent = ({ children }) => {
           </IconButton>
         </Tooltip>
       </Fade>
-      <Main sidebarOpen={sidebarOpen}>
-        {children}
-        {/* <Box sx={{ mb: 4 }} />
-        <Box display="flex">
-          <Button>Hi there</Button>
-          <Box sx={{ mr: 2 }} />
-          <Button>Hi there</Button>
-        </Box> */}
-      </Main>
+      <Main sidebarOpen={sidebarOpen}>{children}</Main>
     </Box>
   );
 };

@@ -69,7 +69,6 @@ export const MuiMenuItemThemeOptions: Components<Theme>["MuiMenuItem"] = {
 
           [`& .${listItemAvatarClasses.root}`]: {
             borderColor: theme.palette.white,
-            // borderRadius: "50%",
           },
         },
 

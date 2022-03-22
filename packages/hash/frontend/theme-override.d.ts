@@ -177,7 +177,7 @@ declare module "@mui/material/IconButton" {
 
 declare module "@mui/lab/TreeItem" {
   interface TreeItemContentProps {
-    expandable?: boolean;
+    expandable: boolean;
     url: string;
     depth: number;
   }

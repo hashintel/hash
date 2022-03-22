@@ -123,7 +123,6 @@ export const EntityTypeItem: VFC<EntityTypeItemProps> = ({
           <FontAwesomeIcon icon={faEllipsis} />
         </IconButton>
       </Tooltip>
-      {/* @todo-mui Improve current prop drilling setup */}
       <EntityTypeMenu
         popupState={popupState}
         accountId={accountId}

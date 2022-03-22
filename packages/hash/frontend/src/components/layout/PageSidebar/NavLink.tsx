@@ -3,7 +3,6 @@ import { faAdd, faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import { Box, Typography, Collapse, Tooltip } from "@mui/material";
 import { FontAwesomeIcon } from "../../icons";
 import { IconButton, IconButtonProps } from "../../IconButton";
-// import { Link } from "./Link";
 
 type NavLinkProps = {
   title: string;
@@ -22,7 +21,7 @@ export const NavLink: FC<NavLinkProps> = ({
   const [hovered, setHovered] = useState(false);
   const {
     tooltipTitle: endAdornmentTooltipTitle,
-    sx: endAdormentSx,
+    sx: endAdormentSx = [],
     ...otherEndAdornmentProps
   } = endAdornmentProps;
 
@@ -76,8 +75,6 @@ export const NavLink: FC<NavLinkProps> = ({
             icon={faChevronRight}
           />
         </IconButton>
-
-        {/* endAdornment */}
         <Tooltip title={endAdornmentTooltipTitle}>
           <IconButton
             size="small"
@@ -86,13 +83,17 @@ export const NavLink: FC<NavLinkProps> = ({
             data-testid="create-page-btn"
             onClick={endAdornmentProps.onClick}
             {...otherEndAdornmentProps}
-            sx={{
-              ...(hovered && {
-                backgroundColor: ({ palette }) => palette.gray[30],
-                color: ({ palette }) => palette.gray[80],
+            sx={[
+              ({ palette }) => ({
+                ...(hovered && {
+                  backgroundColor: palette.gray[30],
+                  color: palette.gray[80],
+                }),
               }),
-              ...endAdormentSx,
-            }}
+              ...(Array.isArray(endAdormentSx)
+                ? endAdormentSx
+                : [endAdormentSx]),
+            ]}
           >
             <FontAwesomeIcon icon={faAdd} />
           </IconButton>

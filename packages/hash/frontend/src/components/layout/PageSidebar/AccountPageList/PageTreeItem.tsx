@@ -27,14 +27,8 @@ const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
     popupId: "page-menu",
   });
 
-  const {
-    expanded,
-    selected,
-    focused,
-    handleExpansion,
-    // handleSelection,
-    preventSelection,
-  } = useTreeItem(nodeId);
+  const { expanded, selected, focused, handleExpansion, preventSelection } =
+    useTreeItem(nodeId);
 
   const handleMouseDown = (
     event: React.MouseEvent<HTMLDivElement, MouseEvent>,

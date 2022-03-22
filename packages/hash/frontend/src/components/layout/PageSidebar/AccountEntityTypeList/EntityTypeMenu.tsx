@@ -63,7 +63,6 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({
             setCopied(false);
             popupState.close();
           }, 1000);
-          // @todo-mui add some visual feedback to sure it's been copied
         },
       },
       {
