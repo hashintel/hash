@@ -1,5 +1,9 @@
 import { Components, Theme } from "@mui/material";
 
+const focusBorderOffset = 4;
+const focusBorderWidth = 2;
+const buttonBorderRadius = 4;
+
 export const MuiIconButtonThemeOptions: Components<Theme>["MuiIconButton"] = {
   defaultProps: {
     disableFocusRipple: true,
@@ -26,9 +30,17 @@ export const MuiIconButtonThemeOptions: Components<Theme>["MuiIconButton"] = {
         outline: "none",
       },
 
-      "&:focus-visible": {
-        outline: `2px solid ${theme.palette.blue[70]}`,
-        outlineOffset: "2px",
+      "&:focus-visible:after": {
+        content: `""`,
+        position: "absolute",
+        top: -focusBorderOffset,
+        left: -focusBorderOffset,
+        right: -focusBorderOffset,
+        bottom: -focusBorderOffset,
+        borderWidth: focusBorderWidth,
+        borderStyle: "solid",
+        borderRadius: buttonBorderRadius + focusBorderOffset,
+        borderColor: theme.palette.blue[70],
       },
 
       ...(ownerState.size === "xs" && {

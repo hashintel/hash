@@ -68,6 +68,7 @@ export const EntityTypeItem: VFC<EntityTypeItemProps> = ({
   return (
     <Container
       component="li"
+      tabIndex={0}
       selected={selected}
       hovered={hovered}
       focused={focused}
@@ -77,6 +78,7 @@ export const EntityTypeItem: VFC<EntityTypeItemProps> = ({
       onBlur={() => setFocused(false)}
     >
       <Link
+        tabIndex={-1}
         sx={{ flex: 1 }}
         noLinkStyle
         href={`/${accountId}/types/${entityId}`}
@@ -94,7 +96,7 @@ export const EntityTypeItem: VFC<EntityTypeItemProps> = ({
         </Typography>
       </Link>
       <Tooltip
-        title="Add subpages, delete, duplicate and more"
+        title="Create entity, copy link, delete and more."
         componentsProps={{
           tooltip: {
             sx: {

@@ -151,6 +151,7 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
       >
         <Box component="ul">
           <Box
+            tabIndex={0}
             component="li"
             sx={({ palette }) => ({
               display: "flex",
@@ -160,6 +161,9 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
               borderRadius: "4px",
               "&:hover": {
                 backgroundColor: palette.gray[20],
+              },
+              "&:focus-visible": {
+                backgroundColor: "red",
               },
               ...(sortActionsPopupState.isOpen && {
                 backgroundColor: palette.gray[20],
@@ -177,6 +181,7 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
               <Link
                 href="/"
                 noLinkStyle
+                tabIndex={-1}
                 sx={{
                   mr: "auto",
                   flex: 1,

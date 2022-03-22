@@ -15,7 +15,4 @@ export const MuiMenuThemeOptions: Components<Theme>["MuiMenu"] = {
       },
     },
   },
-  styleOverrides: {
-    root: () => ({}),
-  },
 };

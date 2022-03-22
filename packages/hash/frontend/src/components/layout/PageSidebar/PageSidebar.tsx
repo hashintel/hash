@@ -16,6 +16,7 @@ import { TopNavLink } from "./TopNavLink";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { useSidebarContext } from "../SidebarContext";
 import { IconButton } from "../../IconButton";
+import { Link } from "../../Link";
 
 export const PageSidebar: VoidFunctionComponent = () => {
   const router = useRouter();
@@ -80,8 +81,9 @@ export const PageSidebar: VoidFunctionComponent = () => {
         <AccountEntityTypeList accountId={accountId} />
       </Box>
 
-      {/* @todo replace with button implementation */}
-      <Box
+      <Link
+        noLinkStyle
+        href="/"
         sx={{
           position: "absolute",
           bottom: 0,
@@ -111,7 +113,7 @@ export const PageSidebar: VoidFunctionComponent = () => {
         >
           Help and Support
         </Typography>
-      </Box>
+      </Link>
     </Drawer>
   );
 };

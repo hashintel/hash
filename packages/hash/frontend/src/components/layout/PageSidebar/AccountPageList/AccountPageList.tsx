@@ -43,7 +43,7 @@ const renderTree = (
           expandable: Boolean(
             Array.isArray(node.children) ? node.children.length : node.children,
           ),
-          pageUrl: `/${accountId}/${node.entityId}`,
+          url: `/${accountId}/${node.entityId}`,
           depth,
         } as any
       }
