@@ -4,12 +4,19 @@ import {
   BlockProtocolCreateLinksFunction,
   BlockProtocolLink,
 } from "blockprotocol";
-import { createLinkMutation } from "@hashintel/hash-shared/queries/link.queries";
+import {
+  createLinkedAggregationMutation,
+  createLinkMutation,
+} from "@hashintel/hash-shared/queries/link.queries";
 import { useCallback } from "react";
 import {
   CreateLinkMutation,
   CreateLinkMutationVariables,
 } from "../../../graphql/apiTypes.gen";
+import {
+  CreateLinkedAggregationOperationMutation,
+  CreateLinkedAggregationOperationMutationVariables,
+} from "@hashintel/hash-shared/graphql/apiTypes.gen";
 
 export const useBlockProtocolCreateLinks = (): {
   createLinks: BlockProtocolCreateLinksFunction;
@@ -22,6 +29,11 @@ export const useBlockProtocolCreateLinks = (): {
   ] = useMutation<CreateLinkMutation, CreateLinkMutationVariables>(
     createLinkMutation,
   );
+
+  const [runUpdateLinkedAggregationMutation] = useMutation<
+    CreateLinkedAggregationOperationMutation,
+    CreateLinkedAggregationOperationMutationVariables
+  >(createLinkedAggregationMutation);
 
   const createLinks: BlockProtocolCreateLinksFunction = useCallback(
     async (actions) => {
@@ -39,33 +51,55 @@ export const useBlockProtocolCreateLinks = (): {
         };
 
         if ("operation" in action) {
-          throw new Error(
-            "Creating new linkedAggregations not yet implemented.",
+          if (!action.operation.entityTypeId) {
+            throw new Error(
+              "entityTypeId is compulsory on operation while trying to create a linkedAggregation",
+            );
+          }
+
+          const { data, errors } = await runUpdateLinkedAggregationMutation({
+            variables: {
+              ...action,
+              operation: {
+                // @todo this shouldn't be necessary
+                ...action.operation,
+                entityTypeId: action.operation.entityTypeId,
+              },
+              sourceAccountId: action.sourceAccountId!,
+            },
+          });
+          if (!data) {
+            throw new Error(`Could not create link: ${errors?.[0]!.message}`);
+          }
+
+          // @todo, add a proper typecheck. The GraphQL query for multiFilter { operator } returns String, but BlockProtocolLinkedAggregationUpdateMutationResults defines the exact type for operator. This typecast is used to typecast string to the one the query expects.
+          results.push(
+            data.createLinkedAggregation as unknown as BlockProtocolLink,
           );
         } else if (!("destinationAccountId" in action)) {
           throw new Error(
             "One of operation or destinationEntityId must be provided",
           );
+        } else {
+          const newLink = {
+            ...baseFields,
+            destinationEntityId: action.destinationEntityId,
+            destinationAccountId: action.destinationAccountId
+              ? action.destinationAccountId
+              : action.sourceAccountId,
+          };
+
+          const { data, errors } = await runCreateLinksMutation({
+            variables: {
+              link: newLink,
+            },
+          });
+          if (!data) {
+            throw new Error(`Could not create link: ${errors?.[0]!.message}`);
+          }
+
+          results.push(data.createLink);
         }
-
-        const newLink = {
-          ...baseFields,
-          destinationEntityId: action.destinationEntityId,
-          destinationAccountId: action.destinationAccountId
-            ? action.destinationAccountId
-            : action.sourceAccountId,
-        };
-
-        const { data, errors } = await runCreateLinksMutation({
-          variables: {
-            link: newLink,
-          },
-        });
-        if (!data) {
-          throw new Error(`Could not create link: ${errors?.[0]!.message}`);
-        }
-
-        results.push(data.createLink);
       }
       return results;
     },

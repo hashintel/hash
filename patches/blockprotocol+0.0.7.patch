@@ -1,0 +1,20 @@
+diff --git a/node_modules/blockprotocol/core.d.ts b/node_modules/blockprotocol/core.d.ts
+index 20a9bbd..1da6ebd 100644
+--- a/node_modules/blockprotocol/core.d.ts
++++ b/node_modules/blockprotocol/core.d.ts
+@@ -250,6 +250,7 @@ export type BlockProtocolUploadFileFunction = {
+ // ----------------------------- LINKS -------------------------------- //
+ 
+ type SingleTargetLinkFields = {
++  linkId: string;
+   destinationEntityId: string;
+   destinationEntityTypeId?: string | null;
+   destinationEntityVersionId?: string | null;
+@@ -260,7 +261,6 @@ type AggregationTargetLinkFields = {
+ };
+ 
+ export type BlockProtocolLink = {
+-  linkId: string;
+   sourceAccountId?: string | null;
+   sourceEntityId: string;
+   sourceEntityTypeId?: string | null;
