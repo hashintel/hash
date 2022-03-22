@@ -38,12 +38,18 @@ const FooterLinkWithLabel: FC<
             (theme) => theme.typography.hashSmallCaps,
             {
               color: type === "open" ? "purple.600" : "blue.700",
-              position: "absolute",
-              left: "100%",
-              top: "50%",
-              transform: (theme) =>
-                `translateX(${theme.spacing(1)}) translateY(-50%)`,
             },
+            (theme) => ({
+              [theme.breakpoints.up("sm")]: {
+                position: "absolute",
+                left: "100%",
+                top: "50%",
+                transform: `translateX(${theme.spacing(1)}) translateY(-50%)`,
+              },
+              [theme.breakpoints.down("sm")]: {
+                display: "block",
+              },
+            }),
           ]}
           component="span"
         >
@@ -82,7 +88,7 @@ export const Footer: FC = () => (
       // @todo check palette for colours
       background: "linear-gradient(359.56deg, #FFFFFF 59.36%, #F7F8FA 99.57%)",
       boxShadow: "0px -2px 16px rgba(254, 177, 115, 0.2)",
-      border: 4,
+      borderTop: 4,
       borderColor: "white",
     }}
   >
@@ -92,6 +98,7 @@ export const Footer: FC = () => (
         <Spacer y={2} sm={{ y: 3 }} />
         {/** @todo check spacing */}
         <Typography
+          // @todo check if this should be 100%
           sx={{ width: { xs: 1, md: 289 }, mb: 4.5 }}
           variant="hashSmallText"
         >
