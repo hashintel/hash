@@ -101,7 +101,6 @@ export const UserBlocksProvider: React.FC<{ value: UserBlocks }> = ({
           ).results as UserBlocks;
 
           setValue((prevValue) => {
-            console.log({ prevValue, userBlocks });
             return mergeBlocksData(prevValue, userBlocks);
           });
         } catch (error) {

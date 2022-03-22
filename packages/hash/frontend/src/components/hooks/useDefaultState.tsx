@@ -14,7 +14,6 @@ export const useDefaultState = <
   });
 
   if (prevDefault !== defaultValue) {
-    console.log({ prevDefault, defaultValue });
     setNextValue({
       prevDefault: defaultValue,
       currentValue: produceNextValue(defaultValue, currentValue),
@@ -23,7 +22,6 @@ export const useDefaultState = <
 
   const setState = useCallback((value: SetStateAction<T>) => {
     setNextValue((prevValue) => {
-      console.log({ value, prevValue });
       const nextValue =
         typeof value === "function" ? value(prevValue.currentValue) : value;
 
@@ -54,7 +52,6 @@ export const useCachedDefaultState = <
   );
 
   if (prevDefault !== defaultValue) {
-    console.log({ prevDefault, defaultValue });
     setNextValue({
       prevDefault: defaultValue,
       currentValue: produceNextValue(defaultValue, currentValue),
@@ -63,7 +60,6 @@ export const useCachedDefaultState = <
 
   const setState = useCallback((value: SetStateAction<T>) => {
     setNextValue((prevValue) => {
-      console.log({ value, prevValue });
       const nextValue =
         typeof value === "function" ? value(prevValue.currentValue) : value;
 
