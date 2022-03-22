@@ -13,11 +13,12 @@ import { useCachedDefaultState } from "../components/hooks/useDefaultState";
 import { advancedFetch } from "../components/util/advancedFetch";
 
 export type UserBlock = BlockMetadata & {
-  componentId?: string;
+  componentId: string;
   packagePath?: string;
 };
 
-export const getComponentId = (meta: UserBlock) => {
+// @todo - remove this and packagePath once componentId starts being generated on the backend
+const getComponentId = (meta: UserBlock) => {
   if (meta.componentId) {
     return meta.componentId;
   }
@@ -104,7 +105,12 @@ export const UserBlocksProvider: React.FC<{ value: UserBlocks }> = ({
             return response.json();
           })
           .then((responseData) => {
-            const userBlocks = responseData.results as UserBlocks;
+            const userBlocks = (responseData.results as UserBlocks).map(
+              (userBlock) => ({
+                ...userBlock,
+                componentId: getComponentId(userBlock),
+              }),
+            );
 
             setValue((prevValue) => {
               return mergeBlocksData(prevValue, userBlocks);
