@@ -241,6 +241,7 @@ impl WorkerController {
         let span = msg.span;
         match msg.payload {
             WorkerPoolToWorkerMsgPayload::Task(task) => {
+                tracing::debug!("Spawning task {task:?}");
                 self.spawn_task(
                     msg.sim_id
                         .ok_or_else(|| Error::from("Expected simulation id for spawning a task"))?,
@@ -250,6 +251,7 @@ impl WorkerController {
                 .await?;
             }
             WorkerPoolToWorkerMsgPayload::Sync(sync) => {
+                tracing::debug!("Synchronize {sync:?}");
                 self.sync_runners(msg.sim_id, sync, pending_syncs)
                     .instrument(span)
                     .await?;
@@ -719,8 +721,11 @@ impl WorkerController {
             // self.rs.send_if_spawned(sim_id, rs_msg),
         )?;
         let fut = async move {
-            let sync = sync; // Capture `sync` in lambda.
-            sync.forward_children(runner_receivers).await
+            // Capture `sync` in lambda.
+            let sync = sync;
+            tracing::trace!("Synchronizing runners");
+            let result = sync.forward_children(runner_receivers).await;
+            tracing::trace!("Synchronized workers: {result:?}");
         }
         .in_current_span();
         pending_syncs.push(Box::pin(fut) as _);

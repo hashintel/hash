@@ -40,17 +40,18 @@ impl WaitableStateSync {
     /// Create child messages with the same payload as `self`, which must complete
     /// for `self` to be complete.
     pub fn create_children(&self, n_children: usize) -> (Vec<Self>, Vec<SyncCompletionReceiver>) {
-        let mut child_msgs = Vec::new();
-        let mut child_receivers = Vec::new();
-        for _ in 0..n_children {
-            let (sender, receiver) = tokio::sync::oneshot::channel();
-            child_receivers.push(receiver);
-            child_msgs.push(Self {
-                completion_sender: sender,
-                state_proxy: self.state_proxy.clone(),
-            });
-        }
-        (child_msgs, child_receivers)
+        (0..n_children)
+            .map(|_| {
+                let (sender, receiver) = tokio::sync::oneshot::channel();
+                (
+                    Self {
+                        completion_sender: sender,
+                        state_proxy: self.state_proxy.clone(),
+                    },
+                    receiver,
+                )
+            })
+            .unzip()
     }
 
     /// Wait for all child messages to be handled and then send that
@@ -66,7 +67,7 @@ impl WaitableStateSync {
     pub async fn forward_children(self, child_receivers: Vec<SyncCompletionReceiver>) {
         tracing::trace!("Getting state sync completions");
         let child_results: Vec<_> = join_all(child_receivers).await;
-        tracing::trace!("Got all state sync completions");
+        tracing::trace!("Got all state sync completions: {child_results:?}");
         let result = child_results
             .into_iter()
             .map(|recv_result| {
