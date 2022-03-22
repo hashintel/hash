@@ -60,6 +60,7 @@ declare module "@mui/material/styles" {
     bpMicroCopy: React.CSSProperties;
     hashLargeTitle: React.CSSProperties;
     hashHeading1: React.CSSProperties;
+    hashHeading2: React.CSSProperties;
     hashHeading4: React.CSSProperties;
     hashBodyCopy: React.CSSProperties;
     hashSmallText: React.CSSProperties;
@@ -83,6 +84,7 @@ declare module "@mui/material/styles" {
     bpMicroCopy?: React.CSSProperties;
     hashLargeTitle?: React.CSSProperties;
     hashHeading1?: React.CSSProperties;
+    hashHeading2?: React.CSSProperties;
     hashHeading4?: React.CSSProperties;
     hashBodyCopy?: React.CSSProperties;
     hashSmallText?: React.CSSProperties;
@@ -109,6 +111,7 @@ declare module "@mui/material/Typography" {
 
     hashLargeTitle: true;
     hashHeading1: true;
+    hashHeading2: true;
     hashHeading4: true;
     hashBodyCopy: true;
     hashSmallText: true;

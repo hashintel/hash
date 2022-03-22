@@ -2,6 +2,7 @@ import Image from "next/image";
 import {
   Box,
   Container,
+  Input,
   Stack,
   Typography,
   typographyClasses,
@@ -12,6 +13,7 @@ import { ComponentProps, FC, ReactNode, VFC } from "react";
 import { Button } from "../components/Button";
 import { FaIcon } from "../components/icons/FaIcon";
 import { Link } from "../components/Link";
+import { NAV_HEIGHT } from "../components/Navbar";
 
 const StylishDivider: VFC<ComponentProps<typeof Stack>> = (props) => {
   const bgcolor = "orange.400";
@@ -150,13 +152,8 @@ const Project: FC<{
 
 const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
   return (
-    <Container>
-      <Stack
-        {...props}
-        component="section"
-        direction={{ xs: "column", lg: "row" }}
-        spacing={6}
-      >
+    <Container component="section">
+      <Stack {...props} direction={{ xs: "column", lg: "row" }} spacing={6}>
         <Stack
           spacing={4}
           sx={[
@@ -268,6 +265,50 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
   );
 };
 
+// @todo responsive
+const Subscribe: VFC = () => {
+  return (
+    <Container
+      component="section"
+      id="subscribe"
+      sx={[
+        (theme) => ({
+          pt: `calc(${theme.spacing(1)} + ${NAV_HEIGHT}px)`,
+          mt: `calc(0 - ${theme.spacing(1)} - ${NAV_HEIGHT}px)`,
+        }),
+      ]}
+    >
+      <Box
+        sx={{
+          py: 8,
+          px: 20,
+          border: 2,
+          borderColor: "orange.400",
+          mb: 16,
+          textAlign: "center",
+        }}
+      >
+        <Typography variant="hashHeading2" component="h3" mb={2}>
+          Stay up to date with HASH news
+        </Typography>
+        <Typography sx={{ lineHeight: 1.5, maxWidth: 683, mx: "auto", mb: 3 }}>
+          Subscribe to our mailing list to get our monthly newsletter – you’ll
+          be first to hear about partnership opportunities, new releases, and
+          product updates
+        </Typography>
+        {/** @todo check this spacing */}
+        <Stack direction="row" justifyContent="center" spacing={1.5}>
+          <Input sx={{ width: 459, flexShrink: 1 }} />
+          {/** @todo action */}
+          <Button variant="primary" size="large">
+            Join
+          </Button>
+        </Stack>
+      </Box>
+    </Container>
+  );
+};
+
 const Community: VFC = () => {
   return (
     <Box
@@ -276,10 +317,12 @@ const Community: VFC = () => {
         pb: { xs: 10, sm: 11, md: 12 },
         pt: 2,
         minHeight: 260,
+        // @todo use palette colours
         background: `
          linear-gradient(1.3deg, #FFD79B -10.15%, rgba(255, 239, 198, 0) 66.01%)
         `,
       }}
+      component="section"
     >
       <Container>
         {/** @todo check what styles should be in place for hashHeading4 */}
@@ -359,6 +402,7 @@ const Home: NextPage = () => {
       </Head>
       <Hero />
       <Projects mb={12} />
+      <Subscribe />
       <Community />
     </>
   );

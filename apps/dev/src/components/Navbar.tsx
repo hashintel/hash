@@ -5,7 +5,7 @@ import { FaIcon } from "./icons/FaIcon";
 import { Logo } from "./Logo";
 import { Spacer } from "./Spacer";
 
-const NAV_HEIGHT = 58;
+export const NAV_HEIGHT = 58;
 
 export const Navbar: VFC = () => (
   <>
@@ -47,6 +47,7 @@ export const Navbar: VFC = () => (
             size="medium"
             variant="primary"
             startIcon={<FaIcon name="envelope" type="regular" />}
+            href="#subscribe"
           >
             Join the mailing list
           </Button>

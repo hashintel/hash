@@ -105,6 +105,13 @@ export const typography: ThemeOptions["typography"] = {
     lineHeight: 1.1,
     color: customColors.gray[90],
   },
+  hashHeading2: {
+    fontFamily: ["Open Sauce Two", ...fallbackFonts].join(", "),
+    fontSize: "var(--step-4)",
+    fontWeight: 400,
+    lineHeight: 1.1,
+    color: customColors.gray[90],
+  },
   hashHeading4: {
     fontFamily: ["Open Sauce Two", ...fallbackFonts].join(", "),
     fontSize: "var(--step-2)",

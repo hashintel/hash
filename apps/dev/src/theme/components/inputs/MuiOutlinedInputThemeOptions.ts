@@ -23,7 +23,7 @@ export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"]
         },
         "&.Mui-error": {
           "& .MuiOutlinedInput-notchedOutline": {
-            borderColor: theme.palette.red[600],
+            // borderColor: theme.palette.red[600],
           },
         },
       }),
@@ -37,7 +37,7 @@ export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"]
       adornedEnd: ({ theme }) => ({
         "&.Mui-error": {
           svg: {
-            color: theme.palette.red[600],
+            // color: theme.palette.red[600],
           },
         },
       }),
