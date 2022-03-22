@@ -7,6 +7,7 @@ from pyarrow.types import is_primitive
 from wrappers import np_force_writable
 
 
+# TODO: Use `to_json` methods of custom objects like in `hash_util.js`.
 def json_deepcopy(x):
     return deepcopy(x)
 
@@ -40,3 +41,6 @@ def load_full(vector, is_nullable, is_any):  # TODO: Change arguments after upgr
     col_np = vector.to_numpy(zero_copy_only=True)
     np_force_writable(col_np)
     return col_np
+
+
+# TODO: `load_elem` like in `hash_util.js` if a use case for it comes up in a package.
