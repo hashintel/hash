@@ -1,17 +1,15 @@
 import React from "react";
-// import { useModal } from "react-modal-hook";
-import { Box, Button, useTheme, useMediaQuery } from "@mui/material";
-import { useRouter } from "next/router";
+import { Box, useTheme, useMediaQuery } from "@mui/material";
 
 import { useLogout } from "../../hooks/useLogout";
 import { useUser } from "../../hooks/useUser";
-// import { LoginModal } from "../../Modals/AuthModal/LoginModal";
 import { AccountDropdown } from "./AccountDropdown";
 import { SearchBar } from "./SearchBar";
 import { HashNavIcon } from "../../icons";
 import { Link } from "../../Link";
 import { ActionsDropdown } from "./ActionsDropdown";
 import { NotificationsDropdown } from "./NotificationsDropdown";
+import { Button } from "../../Button";
 
 const Nav: React.FC = ({ children }) => (
   <Box
@@ -33,37 +31,21 @@ export const PageHeader: React.VFC<{
   accountId: string;
 }> = ({ accountId }) => {
   const theme = useTheme();
-  const router = useRouter();
-
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
-  const {
-    user,
-    // refetch
-  } = useUser();
+  const { user } = useUser();
   const { logout } = useLogout();
-
-  // const [showLoginModal, hideLoginModal] = useModal(() => (
-  //   <LoginModal
-  //     show
-  //     onClose={hideLoginModal}
-  //     onLoggedIn={() => {
-  //       void refetch();
-  //       hideLoginModal();
-  //     }}
-  //   />
-  // ));
 
   return (
     <Box
       component="header"
-      sx={{
-        background: theme.palette.common.white,
-        borderBottom: `1px solid ${theme.palette.gray["30"]}`,
+      sx={({ palette }) => ({
+        background: palette.common.white,
+        borderBottom: `1px solid ${palette.gray["30"]}`,
         display: "flex",
         alignItems: "center",
         height: HEADER_HEIGHT,
-      }}
+      })}
     >
       <Nav>
         <Box
@@ -79,11 +61,11 @@ export const PageHeader: React.VFC<{
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <Link noLinkStyle href={`/${user ? user.accountId : ""}`}>
               <HashNavIcon
-                sx={{
-                  height: theme.spacing(2.25),
+                sx={({ palette }) => ({
+                  height: "18px",
                   width: "auto",
-                  fill: theme.palette.gray["50"],
-                }}
+                  fill: palette.gray["50"],
+                })}
               />
             </Link>
           </Box>
@@ -100,14 +82,15 @@ export const PageHeader: React.VFC<{
             <Button
               variant="tertiary_quiet"
               sx={{ mr: 1 }}
+              size="xs"
               // navigating to the login route instead of showing the login modal for now
               // since there's some z-index issues between the sidebar and the modal
-              onClick={() => router.push("/login")}
+              href="/login"
             >
               Sign In
             </Button>
 
-            <Button size="small" onClick={() => router.push("/signup")}>
+            <Button href="/signup" size={isMobile ? "xs" : "small"}>
               Sign Up
             </Button>
           </Box>
