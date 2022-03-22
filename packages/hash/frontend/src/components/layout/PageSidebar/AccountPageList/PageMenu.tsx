@@ -1,4 +1,4 @@
-import { VFC } from "react";
+import { VFC, useMemo, useState } from "react";
 import {
   Divider,
   ListItemIcon,
@@ -18,60 +18,99 @@ import {
   faPencil,
 } from "@fortawesome/free-solid-svg-icons";
 import { faFileAlt, faTrashCan } from "@fortawesome/free-regular-svg-icons";
+import { useRouter } from "next/router";
 import { FontAwesomeIcon } from "../../../icons";
 
 type PageMenuProps = {
   popupState: PopupState;
+  entityId: string;
 };
 
-const menuItems = [
-  {
-    id: 1,
-    title: "Add to bookmarks",
-    icon: faBookmark,
-  },
-  {
-    id: 2,
-    title: "Add subpage",
-    icon: faFileAlt,
-  },
-  {
-    id: 3,
-    title: "Copy link to page",
-    icon: faLink,
-  },
-  {
-    id: 4,
-    title: "Duplicate Page",
-    icon: faCopy,
-  },
-  {
-    id: 5,
-    title: "Rename Page",
-    icon: faPencil,
-  },
-  {
-    id: 6,
-    title: "Move Page",
-    icon: faArrowRight,
-  },
-  {
-    id: 7,
-    title: "Make private",
-    icon: faEyeSlash,
-  },
-  {
-    id: 8,
-    type: "divider",
-  },
-  {
-    id: 9,
-    title: "Delete",
-    icon: faTrashCan,
-  },
-];
+export const PageMenu: VFC<PageMenuProps> = ({ popupState, entityId }) => {
+  const [copied, setCopied] = useState(false);
+  const { query } = useRouter();
+  const accountId = query.accountId as string;
 
-export const PageMenu: VFC<PageMenuProps> = ({ popupState }) => {
+  const menuItems = useMemo(
+    () => [
+      {
+        id: 1,
+        title: "Add to bookmarks",
+        icon: faBookmark,
+        onClick: () => {
+          popupState.close();
+        },
+      },
+      {
+        id: 2,
+        title: "Add subpage",
+        icon: faFileAlt,
+        onClick: () => {
+          popupState.close();
+        },
+      },
+      {
+        id: 3,
+        title: "Copy link to page",
+        icon: faLink,
+        onClick: () => {
+          void navigator.clipboard.writeText(
+            `${window.location.origin}/${accountId}/${entityId}`,
+          );
+          setCopied(true);
+          setTimeout(() => {
+            setCopied(false);
+            popupState.close();
+          }, 1000);
+        },
+      },
+      {
+        id: 4,
+        title: "Duplicate Page",
+        icon: faCopy,
+        onClick: () => {
+          popupState.close();
+        },
+      },
+      {
+        id: 5,
+        title: "Rename Page",
+        icon: faPencil,
+        onClick: () => {
+          popupState.close();
+        },
+      },
+      {
+        id: 6,
+        title: "Move Page",
+        icon: faArrowRight,
+        onClick: () => {
+          popupState.close();
+        },
+      },
+      {
+        id: 7,
+        title: "Make private",
+        icon: faEyeSlash,
+        onClick: () => {
+          popupState.close();
+        },
+      },
+      {
+        id: 8,
+        type: "divider",
+      },
+      {
+        id: 9,
+        title: "Delete",
+        icon: faTrashCan,
+        onClick: () => {
+          popupState.close();
+        },
+      },
+    ],
+    [copied, popupState],
+  );
   return (
     <Menu {...bindMenu(popupState)}>
       {menuItems.map(({ title, icon, type, id }, index) => {

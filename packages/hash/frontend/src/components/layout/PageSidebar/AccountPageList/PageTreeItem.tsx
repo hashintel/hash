@@ -154,7 +154,7 @@ const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
           <FontAwesomeIcon icon={faEllipsis} />
         </IconButton>
       </Tooltip>
-      <PageMenu popupState={popupState} />
+      <PageMenu popupState={popupState} entityId={nodeId} />
     </Box>
   );
 });

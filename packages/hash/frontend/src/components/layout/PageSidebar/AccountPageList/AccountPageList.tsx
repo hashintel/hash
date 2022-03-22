@@ -1,13 +1,17 @@
-import React, { VoidFunctionComponent, SyntheticEvent, useMemo } from "react";
+import React, {
+  VoidFunctionComponent,
+  SyntheticEvent,
+  useMemo,
+  useState,
+} from "react";
 
 import { treeFromParentReferences } from "@hashintel/hash-shared/util";
 import { TreeView } from "@mui/lab";
 import { useRouter } from "next/router";
-import { useModal } from "react-modal-hook";
 import { useAccountPages } from "../../../hooks/useAccountPages";
 import { NavLink } from "../NavLink";
 import { PageTreeItem } from "./PageTreeItem";
-import { CreatePageModal } from "../../../Modals/CreatePageModal";
+import { useCreatePage } from "../../../hooks/useCreatePage";
 
 type AccountPageListProps = {
   accountId: string;
@@ -61,9 +65,33 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
 }) => {
   const { data } = useAccountPages(accountId);
   const router = useRouter();
-  const [showCreatePageModal, hideCreatePageModal] = useModal(() => (
-    <CreatePageModal accountId={accountId} show onClose={hideCreatePageModal} />
-  ));
+  const [loading, setLoading] = useState(false);
+
+  const { create } = useCreatePage();
+
+  const addPage = () => {
+    if (loading) {
+      return;
+    }
+
+    setLoading(true);
+    create({
+      variables: { accountId, properties: { title: "Untitled" } },
+    })
+      .then((response) => {
+        const { accountId: pageAccountId, entityId: pageEntityId } =
+          response.data?.createPage ?? {};
+
+        if (pageAccountId && pageEntityId) {
+          return router.push(`/${pageAccountId}/${pageEntityId}`);
+        }
+      })
+      .catch((err) => {
+        // eslint-disable-next-line no-console -- TODO: consider using logger
+        console.error("Could not create page: ", err);
+        setLoading(false);
+      });
+  };
 
   const formattedData = useMemo(
     () =>
@@ -81,7 +109,7 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
       title="Pages"
       endAdornmentProps={{
         tooltipTitle: "Create new Page",
-        onClick: showCreatePageModal,
+        onClick: addPage,
         "data-testid": "create-page-btn",
       }}
     >
