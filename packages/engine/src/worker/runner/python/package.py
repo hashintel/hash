@@ -8,9 +8,7 @@ import hash_util
 
 def get_pkg_path(pkg_name, pkg_type):
     # The engine should be started from the engine's root directory in the repo.
-    return Path("./src/simulation/package/{}/packages/{}/package.py".format(
-        pkg_type, pkg_name
-    ))
+    return Path(f"./src/simulation/package/{pkg_type}/packages/{pkg_name}/package.py")
 
 
 def load_fns(pkg_name, pkg_type):
@@ -18,22 +16,21 @@ def load_fns(pkg_name, pkg_type):
     path = get_pkg_path(pkg_name, pkg_type)
 
     try:
-        code = path.read_text()
+        code = path.read_text(encoding="utf8")
     except IOError:
-        logging.info("`" + str(path) + "` doesn't exist, possibly intentionally")
+        logging.info("`%s` doesn't exist, possibly intentionally", path)
         return [None, None, None]
 
     # Run code.
     pkg_globals = {"hash_util": hash_util}
     try:
         bytecode = compile(code, pkg_name, "exec")
+        # pylint: disable=exec-used
         exec(bytecode, pkg_globals)
     except Exception:
         # Have to catch generic Exception, because package could throw anything
-        e = str(traceback.format_exception(*sys.exc_info()))
-        raise RuntimeError(
-            "Couldn't import package " + str(path) + ": " + e
-        )
+        error = str(traceback.format_exception(*sys.exc_info()))
+        raise RuntimeError from f"Couldn't import package {path}: {error}"
 
     # Extract functions.
     fn_names = ["start_experiment", "start_sim", "run_task"]
@@ -43,9 +40,7 @@ def load_fns(pkg_name, pkg_type):
     for (fn_name, fn) in zip(fn_names, fns):
         if fn is not None and not callable(fn):
             raise Exception(
-                "Couldn't import package {}: {} should be callable, not {}".format(
-                    pkg_name, fn_name, type(fn)
-                )
+                f"Couldn't import package {pkg_name}: {fn_name} should be callable, not {type(fn)}"
             )
     return fns
 

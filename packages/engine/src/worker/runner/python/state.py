@@ -1,7 +1,6 @@
 from copy import deepcopy
 from uuid import UUID
 
-import hash_util
 import json
 
 
@@ -29,23 +28,23 @@ class AgentState:
         self.__dict__['__dyn_access'] = enable_dynamic_access
 
     def to_json(self):
-        r = {}
-        for name, col in self.__dict__['__cols'].items():
-            r[name] = hash_util.json_deepcopy(getattr(self, name))
+        ret = {}
+        for name, _col in self.__dict__['__cols'].items():
+            ret[name] = deepcopy(getattr(self, name))
 
-        r['messages'] = hash_util.json_deepcopy(self.messages)
-        return r
+        ret['messages'] = deepcopy(self.messages)
+        return ret
 
     def __getattr__(self, field):  # Can raise AttributeError.
         idx = self.__dict__['__idx_in_group']
         if field == "messages":
-            msgs = self.__dict__['__msgs'][idx]
+            messages = self.__dict__['__msgs'][idx]
             if not self.__dict__['__msgs_native'][idx]:
-                for m in msgs:
-                    m["data"] = json.loads(m["data"])
+                for message in messages:
+                    message["data"] = json.loads(message["data"])
                 self.__dict__['__msgs_native'][idx] = True
 
-            return msgs
+            return messages
 
         if field == "agent_id":
             return str(UUID(bytes=self.__dict__['__cols']["agent_id"][idx]))
@@ -82,10 +81,10 @@ class AgentState:
         self.__setattr__(field, value)
 
     def get(self, field_name):
-        return hash_util.json_deepcopy(getattr(self, field_name))
+        return deepcopy(getattr(self, field_name))
 
     def set(self, field_name, value):
-        setattr(self, field_name, hash_util.json_deepcopy(value))
+        setattr(self, field_name, deepcopy(value))
 
     def modify(self, field_name, fn):
         self.set(field_name, fn(self.get(field_name)))
@@ -109,7 +108,8 @@ class AgentState:
 
     def behavior_index(self):
         """Return the index of the currently executing behavior in the agent's behavior chain."""
-        return getattr(self, BEHAVIOR_INDEX_FIELD_KEY)  # Uses `__getattr__` to get index from column.
+        return getattr(self,
+                       BEHAVIOR_INDEX_FIELD_KEY)  # Uses `__getattr__` to get index from column.
 
 
 class GroupState:
@@ -126,6 +126,7 @@ class GroupState:
         self.__msgs_native = [False] * len(agent_batch.cols['agent_id'])
 
     def to_json(self):
+        # pylint: disable=no-self-use
         raise RuntimeError("Group state shouldn't be copied to JSON.")
 
     def load(self, field_name):

@@ -29,13 +29,11 @@ class Sim:
             # TODO: Uncomment after propagating owned_fields:
             # if not pkg.owns_field.get(field_name):
             #     raise RuntimeError(
-            #         "Packages can only specify " + custom_property + " for fields they own, not '" +
-            #         field_name + "' in " + pkg.name
+            #         f"Packages can only specify {custom_property} for fields they own, "
+            #         f"not '{field_name}' in {pkg.name}"
             #     )
 
             if field_name in custom_fns:
-                raise RuntimeError(
-                    "Duplicate '" + field_name + "' in " + pkg.name + " " + custom_property
-                )
+                raise RuntimeError(f"Duplicate '{field_name}' in {pkg.name}  {custom_property}")
 
             custom_fns[field_name] = to_add[field_name]

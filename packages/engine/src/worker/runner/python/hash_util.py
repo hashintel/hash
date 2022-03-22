@@ -1,4 +1,3 @@
-from copy import deepcopy
 from json import loads
 
 import pyarrow as pa
@@ -7,13 +6,9 @@ from pyarrow.types import is_primitive
 from wrappers import np_force_writable
 
 
-# TODO: Use `to_json` methods of custom objects like in `hash_util.js`.
-def json_deepcopy(x):
-    return deepcopy(x)
-
-
-def load_shallow(vector, is_nullable, is_any):  # TODO: Change arguments after upgrading Arrow.
-    return [elem for elem in vector]
+# TODO: Change arguments after upgrading Arrow.
+def load_shallow(vector, _is_nullable, _is_any):
+    return vector[:]
 
 
 def _writable_in_place(typ):

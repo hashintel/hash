@@ -45,7 +45,7 @@ def verify_markers(markers, mem):
 
     # Schema comes immediately after markers.
     assert schema_offset == N_MARKERS_BYTES, \
-        "schema_offset: {}, n_markers_bytes: {}".format(schema_offset, N_MARKERS_BYTES)
+        f"schema_offset: {schema_offset}, n_markers_bytes: {N_MARKERS_BYTES}"
     assert schema_offset + schema_size <= header_offset
     assert header_offset + header_size <= meta_offset
     assert meta_offset + meta_size <= data_offset
@@ -113,9 +113,11 @@ class Batch:
         self.mem = None
         # After loading, `record_batch` will be a record batch.
         self.record_batch = None
-        # TODO: Remove `any_type_fields` after upgrading Arrow and putting schema metadata in individual fields.
+        # TODO: Remove `any_type_fields` after upgrading Arrow and putting schema metadata in
+        #       individual fields.
         self.any_type_fields = None
-        self.cols = {}  # Syncing erases columns that have become invalid.
+        # Syncing erases columns that have become invalid.
+        self.cols = {}
 
         # For flushing:
         self.c_memory = None
@@ -126,9 +128,10 @@ class Batch:
         if self.mem is None:
             return 0, 0, None
 
-        # Can't verify markers right now as `self.mem` maybe needs to be reloaded first (e.g. after resizing)
+        # Can't verify markers right now as `self.mem` maybe needs to be reloaded first (e.g. after
+        # resizing)
         markers = _load_markers_unchecked(self.mem)
-        (_, _, header_offset, header_size, _, _, _, _) = markers
+        (_, _, header_offset, _, _, _, _, _) = markers
 
         n_metaversion_bytes = 8  # Memory u32 + batch u32 version
         metaversion_buffer = self.mem[header_offset:header_offset + n_metaversion_bytes]

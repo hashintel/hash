@@ -2,10 +2,11 @@ import fnmatch
 import os
 import sys
 
-import numpy
 from distutils.core import setup
 from distutils.extension import Extension
 from Cython.Build import cythonize
+
+import numpy
 
 script_path = sys.argv[3]
 sys.argv.remove(script_path)
@@ -13,7 +14,7 @@ sys.argv.remove(script_path)
 
 def find_directory(pattern, path):
     result = []
-    for root, dirs, files in os.walk(path):
+    for root, _dirs, files in os.walk(path):
         for name in files:
             if fnmatch.fnmatch(name, pattern):
                 file = os.path.join(root, name)
@@ -32,6 +33,7 @@ library_dirs = sorted(find_directory('libhash_engine_lib.so', f"{script_path}/..
 
 # Convert path to Python module prefix.
 if script_path == '.':
+    # pylint: disable=invalid-name
     prefix = ''
 else:
     prefix = script_path.replace("./", "").replace("/", ".") + "."
