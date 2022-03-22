@@ -110,7 +110,11 @@ export const UserBlocksProvider: React.FC<{ value: UserBlocks }> = ({
               return mergeBlocksData(prevValue, userBlocks);
             });
           })
-          .catch((error) => console.error(error));
+
+          .catch((error) => {
+            // eslint-disable-next-line no-console -- TODO: consider using logger
+            console.error(error);
+          });
 
         return fetchUserBlocks;
       }

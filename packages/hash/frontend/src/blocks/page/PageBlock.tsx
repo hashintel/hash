@@ -6,10 +6,9 @@ import React, { useLayoutEffect, useRef, VoidFunctionComponent } from "react";
 import { useLocalstorageState } from "rooks";
 
 import { Button } from "../../components/Button";
-import { BlocksMetaMap, BlocksMetaProvider } from "../blocksMeta";
 import { UserBlock, UserBlocksProvider } from "../userBlocks";
 import { EditorConnection } from "./collab/EditorConnection";
-import { createEditorView } from "./createEditorView";
+import { BlocksMetaMap, createEditorView } from "./createEditorView";
 import { usePortals } from "./usePortals";
 
 type PageBlockProps = {
@@ -79,37 +78,35 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   }, [accountId, blocksMeta, entityId, renderPortal]);
 
   return (
-    <BlocksMetaProvider value={blocksMeta}>
-      <UserBlocksProvider value={initialUserBlocks}>
-        <div id="root" ref={root} />
-        {portals}
-        {/**
-         * @todo position this better
-         */}
-        {(
-          typeof debugging === "boolean"
-            ? debugging
-            : debugging.restartCollabButton
-        ) ? (
-          <Button
-            sx={{
-              position: "fixed",
-              bottom: 2.5,
-              right: 2.5,
-              opacity: 0.3,
+    <UserBlocksProvider value={initialUserBlocks}>
+      <div id="root" ref={root} />
+      {portals}
+      {/**
+       * @todo position this better
+       */}
+      {(
+        typeof debugging === "boolean"
+          ? debugging
+          : debugging.restartCollabButton
+      ) ? (
+        <Button
+          sx={{
+            position: "fixed",
+            bottom: 2.5,
+            right: 2.5,
+            opacity: 0.3,
 
-              "&:hover": {
-                opacity: 1,
-              },
-            }}
-            onClick={() => {
-              prosemirrorSetup.current?.connection?.restart();
-            }}
-          >
-            Restart Collab Instance
-          </Button>
-        ) : null}
-      </UserBlocksProvider>
-    </BlocksMetaProvider>
+            "&:hover": {
+              opacity: 1,
+            },
+          }}
+          onClick={() => {
+            prosemirrorSetup.current?.connection?.restart();
+          }}
+        >
+          Restart Collab Instance
+        </Button>
+      ) : null}
+    </UserBlocksProvider>
   );
 };

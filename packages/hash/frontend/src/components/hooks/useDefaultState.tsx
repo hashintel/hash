@@ -44,7 +44,7 @@ export const useCachedDefaultState = <
     nextValue,
 ): [T, Dispatch<SetStateAction<T>>] => {
   const [{ prevDefault, currentValue }, setNextValue] = useLocalstorageState(
-    "hash-workspace-user-blocks",
+    key,
     {
       prevDefault: defaultValue,
       currentValue: defaultValue,
@@ -58,17 +58,20 @@ export const useCachedDefaultState = <
     });
   }
 
-  const setState = useCallback((value: SetStateAction<T>) => {
-    setNextValue((prevValue) => {
-      const nextValue =
-        typeof value === "function" ? value(prevValue.currentValue) : value;
+  const setState = useCallback(
+    (value: SetStateAction<T>) => {
+      setNextValue((prevValue) => {
+        const nextValue =
+          typeof value === "function" ? value(prevValue.currentValue) : value;
 
-      return {
-        ...prevValue,
-        currentValue: nextValue,
-      };
-    });
-  }, []);
+        return {
+          ...prevValue,
+          currentValue: nextValue,
+        };
+      });
+    },
+    [setNextValue],
+  );
 
   return [currentValue, setState];
 };

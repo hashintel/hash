@@ -1,20 +1,22 @@
 import React, { useState, useRef, FormEvent } from "react";
+import { unstable_batchedUpdates } from "react-dom";
 import { tw } from "twind";
+
 import { Button } from "../Button";
-import { useBlocksMeta } from "../../blocks/blocksMeta";
 import { useBlockView } from "../../blocks/page/BlockViewContext";
 import { UserBlock, useUserBlocks } from "../../blocks/userBlocks";
 
 export const BlockLoaderInput: React.VFC = () => {
   const blockView = useBlockView();
-  const { value: blocksMeta, setValue: setBlocksMeta } = useBlocksMeta();
-  const { setValue: setUserBlocks } = useUserBlocks();
+  const { value: userBlocks, setValue: setUserBlocks } = useUserBlocks();
 
   const [error, setError] = useState(null);
   const [blockUrl, setBlockUrl] = useState("");
   const blockUrlRef = useRef<HTMLInputElement | null>(null);
 
-  const isDefinedBlock = blockUrl in blocksMeta;
+  const isDefinedBlock = userBlocks.some(
+    (userBlock) => userBlock.componentId === blockUrl,
+  );
   const isValidBlockUrl = Boolean(blockUrlRef.current?.validity.valid);
 
   const inputDisabled = isDefinedBlock || !isValidBlockUrl || error != null;
@@ -32,12 +34,13 @@ export const BlockLoaderInput: React.VFC = () => {
     blockView.manager
       .fetchAndDefineBlock(blockUrl)
       .then((blockMeta) => {
-        setError(null);
-        setBlocksMeta((prev) => ({ ...prev, [blockUrl]: blockMeta }));
-        setUserBlocks((prevUserBlocks) => [
-          ...prevUserBlocks,
-          blockMeta.componentMetadata as UserBlock,
-        ]);
+        unstable_batchedUpdates(() => {
+          setError(null);
+          setUserBlocks((prevUserBlocks) => [
+            ...prevUserBlocks,
+            blockMeta.componentMetadata as UserBlock,
+          ]);
+        });
         return blockView.manager.createRemoteBlock(blockUrl);
       })
       .then((block) => {
