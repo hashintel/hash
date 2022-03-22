@@ -6,9 +6,16 @@ import { Spacer } from "./Spacer";
 
 const FooterLink: FC<
   { href: string } & Omit<ComponentProps<typeof Typography>, "variant">
-> = ({ href, children, ...props }) => (
+> = ({ href, sx = [], children, ...props }) => (
   <Link href={href}>
-    <Typography {...props} variant="hashSmallTextMedium">
+    <Typography
+      {...props}
+      sx={[
+        ...(Array.isArray(sx) ? sx : [sx]),
+        { display: "flex", whiteSpace: "nowrap" },
+      ]}
+      variant="hashSmallTextMedium"
+    >
       {children}
     </Typography>
   </Link>
@@ -18,16 +25,10 @@ const FooterLinkWithLabel: FC<
   ComponentProps<typeof FooterLink> & {
     type: "open" | "fair";
   }
-> = ({ type, sx = [], children, ...props }) => {
+> = ({ type, children, ...props }) => {
   return (
-    <FooterLink
-      {...props}
-      sx={[
-        ...(Array.isArray(sx) ? sx : [sx]),
-        { display: "flex", whiteSpace: "nowrap" },
-      ]}
-    >
-      <Box position="relative">
+    <FooterLink {...props}>
+      <Box component="span" position="relative">
         {children}
         <Typography
           sx={[
