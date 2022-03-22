@@ -60,8 +60,9 @@ export type EntityStorePluginAction = { received?: boolean } & (
   | {
       type: "newDraftEntity";
       payload: {
-        entityId: string | null;
+        accountId: string;
         draftId: string;
+        entityId: string | null;
       };
     }
   | {
@@ -252,6 +253,7 @@ const entityStoreReducer = (
         }
 
         draftState.store.draft[action.payload.draftId] = {
+          accountId: action.payload.accountId,
           entityId: action.payload.entityId,
           draftId: action.payload.draftId,
           entityVersionCreatedAt: new Date().toISOString(),
@@ -528,8 +530,9 @@ class ProsemirrorStateChangeHandler {
       addEntityStoreAction(this.state, this.tr, {
         type: "newDraftEntity",
         payload: {
-          entityId: entityId ?? null,
+          accountId,
           draftId,
+          entityId: entityId ?? null,
         },
       });
     }
