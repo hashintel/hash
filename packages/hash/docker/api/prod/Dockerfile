@@ -30,6 +30,10 @@ WORKDIR /app
 RUN groupadd -g 999 appuser \
   && useradd -r -u 999 -g appuser appuser
 
-USER appuser
+USER root
+RUN chown appuser:appuser /app
 
-CMD ["yarn", "workspace","@hashintel/hash-api", "start"]
+USER appuser
+ENV NODE_ENV production
+
+CMD ["node", "--max-old-space-size=2048", "./node_modules/.bin/ts-node", "./packages/hash/api/src/index.ts"]
