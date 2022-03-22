@@ -25,10 +25,10 @@ def get_logging_level(value):
 
 def logging_setup():
     # Use the same logging levels as Rust
-    levels = os.getenv('RUST_LOG')
+    levels = os.getenv("RUST_LOG")
     level = logging.DEBUG
     if levels is not None:
-        kv_pairs = levels.split(',')
+        kv_pairs = levels.split(",")
         for kv_pair in kv_pairs:
             pair = kv_pair.replace(" ", "").split("=")
             if len(pair) != 2:
@@ -47,13 +47,14 @@ if __name__ == "__main__":
 
     script_path = sys.argv[3]
     sys.path.append(script_path)
-    sys.path.append(script_path + '/fbs')
+    sys.path.append(script_path + "/fbs")
 
     experiment_id = sys.argv[1]
     worker_index = int(sys.argv[2])
     logging.info(
         "Running Python runner for experiment id %s and worker index %s",
-        experiment_id, worker_index
+        experiment_id,
+        worker_index,
     )
     runner = Runner(experiment_id, worker_index)
 

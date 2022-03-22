@@ -13,7 +13,7 @@ def load_shallow(vector, _is_nullable, _is_any):
 
 def _writable_in_place(typ):
     if is_primitive(typ):
-        is_bool = (typ.bit_width == 1)
+        is_bool = typ.bit_width == 1
         return not is_bool
 
     if isinstance(typ, pa.FixedSizeListType):
@@ -22,7 +22,9 @@ def _writable_in_place(typ):
     return False  # TODO: Struct? Union? FixedSizeBinary?
 
 
-def load_full(vector, is_nullable, is_any):  # TODO: Change arguments after upgrading Arrow.
+def load_full(
+    vector, is_nullable, is_any
+):  # TODO: Change arguments after upgrading Arrow.
     if is_any:
         # `any` type fields are expensive
         return [loads(any_obj.as_buffer().to_pybytes()) for any_obj in vector]

@@ -69,7 +69,7 @@ class Runner:
             self.pkgs[pkg_id] = pkg = Package(
                 name=config.name,
                 pkg_type=config.type,
-                owned_fields=[]  # TODO: Propagate `config.owned_fields` here.
+                owned_fields=[],  # TODO: Propagate `config.owned_fields` here.
             )
 
             if pkg.start_experiment is not None:
@@ -101,12 +101,12 @@ class Runner:
             return False
 
         prefix = f"Package `{pkg.name}` experiment init: "
-        warnings = result.get('warnings')
+        warnings = result.get("warnings")
         if warnings is not None:
             warnings = tuple(prefix + w for w in warnings)
             self.messenger.send_user_warnings(warnings)
 
-        errors = result.get('errors')
+        errors = result.get("errors")
         if errors is not None:
             errors = tuple(prefix + e for e in errors)
             self.messenger.send_user_errors(errors)
@@ -136,7 +136,9 @@ class Runner:
         """
 
         error = f"Runner error: {format_exc_info(exc_info)}"
-        logging.error(error)  # First make sure the error gets logged; then try to send it.
+        logging.error(
+            error
+        )  # First make sure the error gets logged; then try to send it.
         self.messenger.send_runner_error(error, sim_id)
         self._kill_after_sent()
 
@@ -153,7 +155,9 @@ class Runner:
         error = f"Package `{pkg.name}` {origin}: {format_exc_info(exc_info)}"
         # TODO: Custom log level(s) for non-engine (i.e. package/user) errors/warnings,
         #       e.g. `logging.external_error`?
-        logging.error(error)  # First make sure the error gets logged; then try to send it.
+        logging.error(
+            error
+        )  # First make sure the error gets logged; then try to send it.
         self.messenger.send_pkg_error(error, sim_id)
 
     def _kill_after_sent(self):
@@ -191,7 +195,9 @@ class Runner:
                     sent by the package's Rust code.
         """
         self.sims[msg.sim_id] = sim = Sim(msg.schema, self.experiment_ctx, msg.globals)
-        sim_init_ctx = SimInitContext(self.experiment_ctx, sim.globals, sim.schema.agent)
+        sim_init_ctx = SimInitContext(
+            self.experiment_ctx, sim.globals, sim.schema.agent
+        )
 
         for pkg_id, pkg in self.pkgs.items():
             pkg.sims[msg.sim_id] = pkg_sim_data = {}
@@ -200,7 +206,9 @@ class Runner:
                 payload = msg.pkgs[pkg_id].payload
 
                 try:
-                    result = pkg.start_sim(pkg.experiment, pkg_sim_data, payload, sim_init_ctx)
+                    result = pkg.start_sim(
+                        pkg.experiment, pkg_sim_data, payload, sim_init_ctx
+                    )
                     if self._handle_sim_init_result(msg.sim_id, sim, pkg, result):
                         self.sims.pop(msg.sim_id)
                         return
@@ -229,12 +237,12 @@ class Runner:
 
         # TODO: Duplication with experiment init result handling.
         prefix = f"Package `{pkg.name}` sim init: "
-        warnings = result.get('warnings')
+        warnings = result.get("warnings")
         if warnings is not None:
             warnings = tuple(prefix + w for w in warnings)
             self.messenger.send_user_warnings(warnings, sim_id)
 
-        errors = result.get('errors')
+        errors = result.get("errors")
         if errors is not None:
             errors = tuple(prefix + e for e in errors)
             self.messenger.send_user_errors(errors, sim_id)
@@ -279,8 +287,10 @@ class Runner:
         pkg = self.pkgs[pkg_id]
         try:
             # TODO: Pass `task_id` to package?
-            continuation = pkg.run_task(pkg.experiment, pkg.sims[sim_id], task_msg, state,
-                                        ctx) or {}
+            continuation = (
+                pkg.run_task(pkg.experiment, pkg.sims[sim_id], task_msg, state, ctx)
+                or {}
+            )
         except Exception:
             # Have to catch generic Exception, because package could throw anything.
             self._handle_pkg_error(pkg, "run_task", sys.exc_info(), sim_id)
@@ -289,16 +299,11 @@ class Runner:
 
         changes = state.flush_changes(sim.schema)
         if group_idx is not None:
-            changes['i_group'] = group_idx
+            changes["i_group"] = group_idx
             changes = [changes]
 
         self.messenger.send_task_continuation(
-            sim_id,
-            changes,
-            pkg_id,
-            task_id,
-            group_idx,
-            continuation
+            sim_id, changes, pkg_id, task_id, group_idx, continuation
         )
         # TODO: OPTIM chaining if `continuation.target == "Python"`
 
@@ -335,12 +340,19 @@ class Runner:
         # readable as `enumerate(zip(...))`
         # pylint: disable=consider-using-enumerate
         for group_index in range(len(agent_pool)):
-            agent_pool[group_index] = self.batches.sync(agent_pool[group_index], sim.schema.agent)
-            agent_pool[group_index].load_missing_cols(sim.schema.agent, sim.state_loaders)
+            agent_pool[group_index] = self.batches.sync(
+                agent_pool[group_index], sim.schema.agent
+            )
+            agent_pool[group_index].load_missing_cols(
+                sim.schema.agent, sim.state_loaders
+            )
 
-            message_pool[group_index] = self.batches.sync(message_pool[group_index],
-                                                          sim.schema.message)
-            message_pool[group_index].load_missing_cols(sim.schema.message, sim.state_loaders)
+            message_pool[group_index] = self.batches.sync(
+                message_pool[group_index], sim.schema.message
+            )
+            message_pool[group_index].load_missing_cols(
+                sim.schema.message, sim.state_loaders
+            )
 
     def state_sync(self, sim_id, agent_pool, message_pool):
         """
@@ -421,12 +433,17 @@ class Runner:
                 elif msg_type == RunnerInboundMsgPayload.StateInterimSync:
                     logging.debug("Handling state interim sync")
                     self.state_interim_sync(
-                        msg.sim_id, msg.group_idxs, msg.agent_batches, msg.message_batches
+                        msg.sim_id,
+                        msg.group_idxs,
+                        msg.agent_batches,
+                        msg.message_batches,
                     )
 
                 elif msg_type == RunnerInboundMsgPayload.StateSnapshotSync:
                     logging.debug("Handling snapshot sync")
-                    self.state_snapshot_sync(msg.sim_id, msg.agent_pool, msg.message_pool)
+                    self.state_snapshot_sync(
+                        msg.sim_id, msg.agent_pool, msg.message_pool
+                    )
 
                 elif msg_type == RunnerInboundMsgPayload.TaskMsg:
                     logging.debug("Running task")
@@ -442,10 +459,14 @@ class Runner:
                         )
 
                     self.state_interim_sync(
-                        msg.sim_id, msg.sync.group_idxs, msg.sync.agent_batches,
-                        msg.sync.message_batches
+                        msg.sim_id,
+                        msg.sync.group_idxs,
+                        msg.sync.agent_batches,
+                        msg.sync.message_batches,
                     )
-                    self.run_task(msg.sim_id, group_idx, msg.pkg_id, msg.task_id, msg.payload)
+                    self.run_task(
+                        msg.sim_id, group_idx, msg.pkg_id, msg.task_id, msg.payload
+                    )
 
                 elif msg_type == RunnerInboundMsgPayload.CancelTask:
                     pass  # TODO: CancelTask isn't used for now

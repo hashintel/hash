@@ -24,7 +24,7 @@ class Sim:
         if to_add is None:
             return
 
-        custom_fns = getattr(self, pkg.type + '_' + custom_property)
+        custom_fns = getattr(self, pkg.type + "_" + custom_property)
         for field_name in to_add:
             # TODO: Uncomment after propagating owned_fields:
             # if not pkg.owns_field.get(field_name):
@@ -34,6 +34,8 @@ class Sim:
             #     )
 
             if field_name in custom_fns:
-                raise RuntimeError(f"Duplicate '{field_name}' in {pkg.name}  {custom_property}")
+                raise RuntimeError(
+                    f"Duplicate '{field_name}' in {pkg.name}  {custom_property}"
+                )
 
             custom_fns[field_name] = to_add[field_name]

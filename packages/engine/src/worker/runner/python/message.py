@@ -57,7 +57,7 @@ def pkgs_from_config(config):
 
 
 def json_from_np(np_utf8):
-    return json.loads(np_utf8.tobytes().decode('utf-8'))
+    return json.loads(np_utf8.tobytes().decode("utf-8"))
 
 
 class PyInit:
@@ -73,7 +73,9 @@ class PySharedContext:
     def __init__(self, shared_context_fbs):
         self.__datasets = {}
         for i_dataset in range(shared_context_fbs.DatasetsLength()):
-            name, data, _did_parse = load_dataset(shared_context_fbs.Datasets(i_dataset).BatchId())
+            name, data, _did_parse = load_dataset(
+                shared_context_fbs.Datasets(i_dataset).BatchId()
+            )
             # TODO: Use `did_parse` to show warnings to user?
             self.__datasets[name] = data
 
@@ -84,7 +86,7 @@ class PySharedContext:
 class PyPackage:
     def __init__(self, package_fbs):
         self.type = str_from_pkg_type(package_fbs.Type())
-        self.name = package_fbs.Name().decode('utf-8')
+        self.name = package_fbs.Name().decode("utf-8")
         # TODO: Instead of using numpy, just replace `Serialized` with
         #       a string in the flatbuffers file?
         self.payload = json_from_np(package_fbs.InitPayload().InnerAsNumpy())
@@ -119,7 +121,8 @@ class PyStateInterimSync:
 
         assert_eq(n_groups, state_interim_sync_fbs.MessageBatchesLength())
         self.message_batches = [
-            PyBatchMsg(state_interim_sync_fbs.MessageBatches(i)) for i in range(n_groups)
+            PyBatchMsg(state_interim_sync_fbs.MessageBatches(i))
+            for i in range(n_groups)
         ]
 
 
@@ -134,11 +137,12 @@ class PyStateSync:
     def __init__(self, sim_id, state_sync_fbs):
         self.sim_id = sim_id
         self.agent_pool = [
-            PyBatchMsg(state_sync_fbs.AgentPool(i)) for i in range(state_sync_fbs.AgentPoolLength())
+            PyBatchMsg(state_sync_fbs.AgentPool(i))
+            for i in range(state_sync_fbs.AgentPoolLength())
         ]
         self.message_pool = [
-            PyBatchMsg(state_sync_fbs.MessagePool(i)) for i in
-            range(state_sync_fbs.MessagePoolLength())
+            PyBatchMsg(state_sync_fbs.MessagePool(i))
+            for i in range(state_sync_fbs.MessagePoolLength())
         ]
 
 
@@ -146,7 +150,7 @@ class PySimRun:
     def __init__(self, sim_run_fbs):
         self.sim_id = sim_run_fbs.Sid()
         self.pkgs = pkgs_from_config(sim_run_fbs.PackageConfig())
-        self.globals = json.loads(sim_run_fbs.Globals().decode('utf-8'))
+        self.globals = json.loads(sim_run_fbs.Globals().decode("utf-8"))
         self.schema = PySchema(sim_run_fbs.DatastoreInit())
         # TODO: DatastoreInit datasets per sim run?
 
@@ -154,11 +158,14 @@ class PySimRun:
 class PySchema:
     def __init__(self, schema_fbs):
         self.agent = pa.ipc.read_schema(
-            pa.py_buffer(schema_fbs.AgentBatchSchemaAsNumpy().tobytes()))
+            pa.py_buffer(schema_fbs.AgentBatchSchemaAsNumpy().tobytes())
+        )
         self.context = pa.ipc.read_schema(
-            pa.py_buffer(schema_fbs.ContextBatchSchemaAsNumpy().tobytes()))
+            pa.py_buffer(schema_fbs.ContextBatchSchemaAsNumpy().tobytes())
+        )
         self.message = pa.ipc.read_schema(
-            pa.py_buffer(schema_fbs.MessageBatchSchemaAsNumpy().tobytes()))
+            pa.py_buffer(schema_fbs.MessageBatchSchemaAsNumpy().tobytes())
+        )
 
 
 class PyTerminateSim:
@@ -168,33 +175,33 @@ class PyTerminateSim:
 
 class Messenger:
     def __init__(self, experiment_id, worker_index):
-        prefix = 'ipc://' + experiment_id
+        prefix = "ipc://" + experiment_id
         worker_index = str(worker_index)
 
         # `to_rust` is for sending messages to the Rust process,
         # e.g. requesting init message and sending task results.
         # `send_address` format must match format in nng receiver
         # in `python/mod.rs`.
-        send_address = prefix + '-frompy' + worker_index
+        send_address = prefix + "-frompy" + worker_index
         self.to_rust = Pair0(dial=send_address)
         logging.debug("Opened socket to Rust")
 
         # For receiving messages from the Rust process
-        recv_address = prefix + '-topy' + worker_index
+        recv_address = prefix + "-topy" + worker_index
         self.from_rust = Pair0(listen=recv_address)
 
     def __del__(self):
         # Have to check with `hasattr` because exception
         # might have been thrown in the middle of __init__.
-        if hasattr(self, 'to_rust'):
+        if hasattr(self, "to_rust"):
             self.to_rust.close()
-        if hasattr(self, 'from_rust'):
+        if hasattr(self, "from_rust"):
             self.from_rust.close()
 
     # Receive experiment init message.
     def recv_init(self):
         # Notify Rust process that the Python runner has opened the socket.
-        self.to_rust.send(b'\x00')  # Arbitrary message
+        self.to_rust.send(b"\x00")  # Arbitrary message
         logging.debug("Waiting for init")
 
         # Get reply from Rust process with init message.
@@ -202,7 +209,7 @@ class Messenger:
         fbs_bytes = self.to_rust.recv()
         logging.debug("Received init message")
 
-        self.to_rust.send(b'\x00')  # Arbitrary message
+        self.to_rust.send(b"\x00")  # Arbitrary message
         return PyInit(fbs_bytes)
 
     def recv(self):
@@ -258,13 +265,7 @@ class Messenger:
         raise RuntimeError(f"Unknown message type {msg_type} from sim {sim_sid}")
 
     def send_task_continuation(
-            self,
-            sim_id,
-            changes,
-            pkg_id,
-            task_id,
-            group_idx,
-            continuation
+            self, sim_id, changes, pkg_id, task_id, group_idx, continuation
     ):
         # TODO: OPTIM Combine warnings, errors and other values into single message.
         self.send_user_warnings(continuation.get("warnings", []))
@@ -469,11 +470,11 @@ def interim_sync_to_fbs(builder, changes):
     agent_offsets = []
     message_offsets = []
     for change in changes:
-        group_idxs.append(change['i_group'])
+        group_idxs.append(change["i_group"])
     for change in changes:
-        agent_offsets.append(batch_to_fbs(builder, change['agent']))
+        agent_offsets.append(batch_to_fbs(builder, change["agent"]))
     for change in changes:
-        message_offsets.append(batch_to_fbs(builder, change['message']))
+        message_offsets.append(batch_to_fbs(builder, change["message"]))
 
     FbStateInterimSync.StartGroupIdxVector(builder, len(group_idxs))
     for idx in reversed(group_idxs):
@@ -507,14 +508,16 @@ def serialized_to_fbs(builder, inner_bytes):
 
 def task_to_fbs(builder, changes, pkg_id, task_id, target, group_idx, task_msg):
     sync_offset = interim_sync_to_fbs(builder, changes)
-    payload_offset = serialized_to_fbs(builder, bytes(task_msg, encoding='utf-8'))
+    payload_offset = serialized_to_fbs(builder, bytes(task_msg, encoding="utf-8"))
 
     FbTaskMsg.Start(builder)
     FbTaskMsg.AddPackageSid(builder, pkg_id)
     FbTaskMsg.AddTaskId(builder, TaskId.CreateTaskId(builder, task_id.Inner()))
     FbTaskMsg.AddTarget(builder, target_to_fbs(target))
     if group_idx is not None:
-        FbTaskMsg.AddGroupIndex(builder, GroupIndex.CreateGroupIndex(builder, group_idx))
+        FbTaskMsg.AddGroupIndex(
+            builder, GroupIndex.CreateGroupIndex(builder, group_idx)
+        )
     FbTaskMsg.AddMetaversioning(builder, sync_offset)
     FbTaskMsg.AddPayload(builder, payload_offset)
     return FbTaskMsg.End(builder)
@@ -539,9 +542,13 @@ def completion_to_fbs_bytes(sim_id):
     return bytes(builder.Output())
 
 
-def outbound_task_to_fbs_bytes(sim_id, changes, pkg_id, task_id, target, group_idx, task_msg):
+def outbound_task_to_fbs_bytes(
+        sim_id, changes, pkg_id, task_id, target, group_idx, task_msg
+):
     builder = flatbuffers.Builder(initialSize=0)
-    task_offset = task_to_fbs(builder, changes, pkg_id, task_id, target, group_idx, task_msg)
+    task_offset = task_to_fbs(
+        builder, changes, pkg_id, task_id, target, group_idx, task_msg
+    )
 
     RunnerOutboundMsg.Start(builder)
     RunnerOutboundMsg.AddSimSid(builder, sim_id)

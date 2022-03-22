@@ -27,24 +27,29 @@ def last_modified(path):
     return os.path.getmtime(path)
 
 
-library_dirs = sorted(find_directory('libhash_engine_lib.so', f"{script_path}/../../../../"),
-                      key=last_modified,
-                      reverse=True)
+library_dirs = sorted(
+    find_directory("libhash_engine_lib.so", f"{script_path}/../../../../"),
+    key=last_modified,
+    reverse=True,
+)
 
 # Convert path to Python module prefix.
-if script_path == '.':
+if script_path == ".":
     # pylint: disable=invalid-name
-    prefix = ''
+    prefix = ""
 else:
     prefix = script_path.replace("./", "").replace("/", ".") + "."
 
 setup(
-    ext_modules=cythonize([
-        Extension(prefix + "wrappers",
-                  [script_path + "/wrappers.pyx"],
-                  include_dirs=[numpy.get_include()],
-                  libraries=["hash_engine_lib"],
-                  library_dirs=library_dirs,
-                  )
-    ])
+    ext_modules=cythonize(
+        [
+            Extension(
+                prefix + "wrappers",
+                [script_path + "/wrappers.pyx"],
+                include_dirs=[numpy.get_include()],
+                libraries=["hash_engine_lib"],
+                library_dirs=library_dirs,
+            )
+        ]
+    )
 )

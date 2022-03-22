@@ -28,9 +28,9 @@ class AgentContext:
         return self.__sim_ctx.step()
 
     def __getattr__(self, field_name):
-        column = self.__dict__['_AgentContext__cols'][field_name]
-        element = column[self.__dict__['_AgentContext__idx_in_sim']]
-        getter = self.__dict__['_AgentContext__getters'].get(field_name)
+        column = self.__dict__["_AgentContext__cols"][field_name]
+        element = column[self.__dict__["_AgentContext__idx_in_sim"]]
+        getter = self.__dict__["_AgentContext__getters"].get(field_name)
         return element if getter is None else getter(self, element)
 
     # Context is immutable, so there's no `__setattr__`.
@@ -97,12 +97,7 @@ class SimContext:
     # TODO: step getter method
 
     def get_group(self, i_group):
-        return GroupContext(
-            self,
-            self.__ctx_batch,
-            self.state_snapshot,
-            i_group
-        )
+        return GroupContext(self, self.__ctx_batch, self.state_snapshot, i_group)
 
     def get_agent(self, i_agent_in_sim, _old_agent_ctx=None):
         # TODO: Reuse AgentContext object for performance.
@@ -110,9 +105,7 @@ class SimContext:
         #     old_agent_ctx.__AgentContext_idx_in_sim = i_agent_in_sim
         #     return old_agent_ctx
 
-        return AgentContext(
-            self, self.__ctx_batch, self.state_snapshot, i_agent_in_sim
-        )
+        return AgentContext(self, self.__ctx_batch, self.state_snapshot, i_agent_in_sim)
 
     def globals(self):
         return self.__globals
