@@ -34,24 +34,16 @@ export default {
     },
     icon: {
       defaultValue: null,
-      options: [null, "fa"],
+      options: [null, "start", "end"],
       control: { type: "radio" },
-    },
-    iconName: {
-      defaultValue: "arrow-up-right-from-square",
-      control: { type: "string" },
     },
   },
 };
-
-// @todo replace with actual component
-const FaIcon = (_: { icon: string }) => null;
 
 export const Button = ({
   hover = false,
   focus = false,
   icon = false,
-  iconName = "",
   ...props
 }: any) => (
   <HashButton
@@ -59,10 +51,10 @@ export const Button = ({
       "Button--hover": hover,
       "Button--focus": focus,
     })}
-    {...(icon === "fa"
+    {...(icon
       ? {
           [icon === "start" ? "startIcon" : "endIcon"]: (
-            <FaIcon icon={iconName} />
+            <span className="fa-solid fa-arrow-up-right-from-square" />
           ),
         }
       : {})}

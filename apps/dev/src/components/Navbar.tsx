@@ -24,7 +24,6 @@ export const Navbar: VFC = () => (
         <Stack direction="row" sx={{ alignItems: "center" }}>
           <Logo />
           <Spacer x={2} />
-          {/** @todo add end icon */}
           <Button size="medium" variant="tertiary" href="https://hash.ai">
             Visit our main site
           </Button>
