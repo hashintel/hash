@@ -11,16 +11,18 @@ export type IconButtonProps = {
 } & MuiIconButtonProps;
 
 export const IconButton: FC<IconButtonProps> = forwardRef(
-  ({ children, unpadded, rounded, sx, ...props }, ref) => {
+  ({ children, unpadded, rounded, sx = [], ...props }, ref) => {
     return (
       <MuiIconButton
         ref={ref}
         {...props}
-        sx={{
-          padding: unpadded ? "4px" : "8px",
-          borderRadius: rounded ? "50%" : "4px",
-          ...sx,
-        }}
+        sx={[
+          {
+            padding: unpadded ? "4px" : "8px",
+            borderRadius: rounded ? "50%" : "4px",
+          },
+          ...(Array.isArray(sx) ? sx : [sx]),
+        ]}
       >
         {children}
       </MuiIconButton>
