@@ -3,7 +3,13 @@ mod fbs;
 mod receiver;
 mod sender;
 
-use std::{collections::HashMap, future::Future, pin::Pin, result::Result as StdResult, sync::Arc};
+use std::{
+    collections::{hash_map::Entry, HashMap},
+    future::Future,
+    pin::Pin,
+    result::Result as StdResult,
+    sync::Arc,
+};
 
 use futures::FutureExt;
 use tokio::{
@@ -139,7 +145,7 @@ async fn _run(
 
     tracing::debug!("Waiting for messages to Python runner");
     let mut sent_tasks: HashMap<TaskId, SentTask> = HashMap::new();
-    // let mut sync_completion_sender = None;
+    let mut sync_completion_senders = HashMap::new();
     'select_loop: loop {
         // TODO: Send errors instead of immediately stopping?
         tokio::select! {
@@ -178,14 +184,12 @@ async fn _run(
                 match inbound {
                     InboundToRunnerMsgPayload::TerminateRunner => break 'select_loop,
                     InboundToRunnerMsgPayload::StateSync(sync) => {
-                        // if sync_completion_sender.replace(sync.completion_sender).is_some() {
-                        //     return Err(Error::AlreadyAwaiting.into())
-                        // }
-                        sync.completion_sender
-                            .send(Ok(()))
-                            .map_err(|e| Error::from(format!(
-                                "Couldn't send state sync completion from Python: {:?}", e
-                            )))?;
+                        let sim_id = sim_id.ok_or_else(|| WorkerError::from("Missing simulation id"))?;
+                        if let Entry::Vacant(entry) = sync_completion_senders.entry(sim_id) {
+                            entry.insert(sync.completion_sender);
+                        } else {
+                            return Err(Error::AlreadyAwaiting.into());
+                        }
                     }
                     InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMsg {
                         task_id,
@@ -227,12 +231,13 @@ async fn _run(
                 })?;
                 tracing::trace!("Got outbound {outbound:?}");
                 if let OutboundFromRunnerMsgPayload::SyncCompletion = &outbound.payload {
-                    // panic!();
-                    // sync_completion_sender.take().ok_or(Error::NotAwaiting)?
-                    //     .send(Ok(()))
-                    //     .map_err(|error| Error::from(format!(
-                    //         "Couldn't send state sync completion from Python: {error:?}"
-                    //     )))?;
+                    sync_completion_senders
+                        .remove(&outbound.sim_id)
+                        .ok_or(Error::NotAwaiting)?
+                        .send(Ok(()))
+                        .map_err(|error| Error::from(format!(
+                            "Couldn't send state sync completion from Python: {error:?}"
+                        )))?;
                 } else {
                     outbound_sender.send(outbound)?;
                 }

@@ -1,4 +1,4 @@
-use std::{mem, sync::Arc, thread, time::Duration};
+use std::{mem, sync::Arc};
 
 use tracing::Instrument;
 
@@ -125,8 +125,6 @@ impl Engine {
     /// dependent on each other, then all context packages are run in parallel
     /// and their outputs are merged into one Context object.
     async fn run_context_packages(&mut self, current_step: usize) -> Result<()> {
-        thread::sleep(Duration::from_millis(100));
-
         tracing::trace!("Starting run context packages stage");
         // Need write access to state to prepare for context packages,
         // so can't start state sync (with workers) yet.
