@@ -6,11 +6,6 @@ missing-module-docstring,
 missing-class-docstring,
 missing-function-docstring,
 """
-#too-few-public-methods,
-#too-many-instance-attributes,
-#invalid-name,
-#unused-private-member,
-#protected-access,
 
 output-format = "colorized"
 
