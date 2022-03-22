@@ -1,5 +1,8 @@
 import { Box, Divider, Stack, Typography } from "@mui/material";
 import { ComponentProps, FC, ReactNode } from "react";
+import { DiscordIcon } from "./icons/DiscordIcon";
+import { GithubIcon } from "./icons/GithubIcon";
+import { TwitterIcon } from "./icons/TwitterIcon";
 import { Link } from "./Link";
 import { Logo } from "./Logo";
 import { Spacer } from "./Spacer";
@@ -87,11 +90,28 @@ export const Footer: FC = () => (
       <Stack>
         <Logo />
         <Spacer y={2} sm={{ y: 3 }} />
-        <Typography sx={{ width: { xs: 1, md: 289 } }} variant="hashSmallText">
+        {/** @todo check spacing */}
+        <Typography
+          sx={{ width: { xs: 1, md: 289 }, mb: 4.5 }}
+          variant="hashSmallText"
+        >
           Open-source resources and tools for developers who want to build the
           future of decision-making with HASH
         </Typography>
-        {/** @todo icon row */}
+        {/** @todo link hover styles */}
+        <Typography variant="hashSocialIconLink">
+          <Stack direction="row" spacing={3}>
+            <Link href="https://github.com/hashintel/hash">
+              <GithubIcon fontSize="inherit" />
+            </Link>
+            <Link href="https://twitter.com/hashintel">
+              <TwitterIcon fontSize="inherit" />
+            </Link>
+            <Link href="https://hash.ai/discord">
+              <DiscordIcon fontSize="inherit" />
+            </Link>
+          </Stack>
+        </Typography>
       </Stack>
       {/** @todo link hover styles */}
       <Stack direction="row" spacing={{ xs: 6, md: 10 }}>

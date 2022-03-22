@@ -34,6 +34,12 @@ export const MuiTypographyThemeOptions: Components<Theme>["MuiTypography"] = {
           textDecoration: "underline",
         }),
       },
+      ...(ownerState.variant === "hashSocialIconLink" && {
+        "& a": {
+          fontSize: 20,
+          color: theme.palette.gray[50],
+        },
+      }),
     }),
   },
 };

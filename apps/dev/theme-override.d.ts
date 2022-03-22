@@ -64,8 +64,9 @@ declare module "@mui/material/styles" {
     hashBodyCopy: React.CSSProperties;
     hashSmallText: React.CSSProperties;
     hashSmallTextMedium: React.CSSProperties;
-    hashSmallCaps: React.CSSProperties;
     hashFooterHeading: React.CSSProperties;
+    hashSmallCaps: React.CSSProperties;
+    hashSocialIconLink?: React.CSSProperties;
   }
 
   interface TypographyVariantsOptions {
@@ -86,8 +87,9 @@ declare module "@mui/material/styles" {
     hashBodyCopy?: React.CSSProperties;
     hashSmallText?: React.CSSProperties;
     hashSmallTextMedium?: React.CSSProperties;
-    hashSmallCaps?: React.CSSProperties;
     hashFooterHeading?: React.CSSProperties;
+    hashSmallCaps?: React.CSSProperties;
+    hashSocialIconLink?: React.CSSProperties;
   }
 }
 
@@ -113,6 +115,7 @@ declare module "@mui/material/Typography" {
     hashSmallTextMedium: true;
     hashFooterHeading: true;
     hashSmallCaps: true;
+    hashSocialIconLink: true;
   }
 }
 
