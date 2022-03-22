@@ -8,7 +8,8 @@ import {
   useEffect,
   useMemo,
 } from "react";
-import { useLocalstorageState } from "rooks";
+
+import { useCachedDefaultState } from "../components/hooks/useDefaultState";
 
 export type UserBlock = BlockMetadata & {
   componentId?: string;
@@ -69,9 +70,12 @@ export const UserBlocksProvider: React.FC<{ value: UserBlocks }> = ({
   value: initialUserBlocks,
   children,
 }) => {
-  const [value, setValue] = useLocalstorageState<UserBlocks>(
-    "hash-workspace-user-blocks",
+  const [value, setValue] = useCachedDefaultState(
     initialUserBlocks,
+    "hash-workspace-user-blocks",
+    (nextInitialItems, prevInitialItems) => {
+      return mergeBlocksData(prevInitialItems, nextInitialItems);
+    },
   );
 
   useEffect(() => {
@@ -83,15 +87,27 @@ export const UserBlocksProvider: React.FC<{ value: UserBlocks }> = ({
           process.env.NEXT_PUBLIC_BLOCK_PROTOCOL_API_KEY,
         );
 
-        const userBlocks = (
-          await fetch("https://blockprotocol.org/api/blocks", {
-            headers: blocksMetadataHeaders,
-          }).then((response) => response.json())
-        ).results as UserBlocks;
+        try {
+          const userBlocks = (
+            await fetch("https://blockprotocol.org/api/blocks", {
+              headers: blocksMetadataHeaders,
+            }).then((response) => {
+              if (!response.ok) {
+                throw new Error(
+                  `Fetch failed with status: ${response.statusText}`,
+                );
+              }
+              return response.json();
+            })
+          ).results as UserBlocks;
 
-        setValue((prevValue) => {
-          return mergeBlocksData(prevValue, userBlocks);
-        });
+          setValue((prevValue) => {
+            console.log({ prevValue, userBlocks });
+            return mergeBlocksData(prevValue, userBlocks);
+          });
+        } catch (error) {
+          console.error(error);
+        }
       }
     };
 
