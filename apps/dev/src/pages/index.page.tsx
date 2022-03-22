@@ -10,6 +10,7 @@ import type { NextPage } from "next";
 import Head from "next/head";
 import { ComponentProps, FC, ReactNode, VFC } from "react";
 import { Button } from "../components/Button";
+import { FaIcon } from "../components/icons/FaIcon";
 import { Link } from "../components/Link";
 
 const StylishDivider: VFC<ComponentProps<typeof Stack>> = (props) => {
@@ -174,8 +175,12 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
           <Project
             title="Block Protocol"
             buttons={
-              /* @todo icon */
-              <Button href="https://blockprotocol.org">
+              <Button
+                href="https://blockprotocol.org"
+                endIcon={
+                  <FaIcon name="arrow-up-right-from-square" type="solid" />
+                }
+              >
                 Visit blockprotocol.org
               </Button>
             }
@@ -287,7 +292,7 @@ const Community: VFC = () => {
         >
           Join our community of HASH developers
         </Typography>
-        {/** @todo icons, look into using Grid */}
+        {/** @todo look into using Grid */}
         <Box>
           <Stack
             direction={{ xs: "column", md: "row" }}
@@ -303,6 +308,7 @@ const Community: VFC = () => {
                 variant="primarySquare"
                 size="large"
                 href="https://hash.ai/discord"
+                startIcon={<FaIcon name="discord" type="brands" />}
               >
                 Join our Discord
               </Button>
@@ -310,6 +316,7 @@ const Community: VFC = () => {
                 variant="primarySquare"
                 size="large"
                 href="https://github.com/hashintel/hash/issues"
+                startIcon={<FaIcon name="comment-code" type="solid" />}
               >
                 Browse open issues
               </Button>
@@ -324,6 +331,7 @@ const Community: VFC = () => {
                 variant="primarySquare"
                 size="large"
                 href="https://github.com/hashintel/hash/stargazers"
+                startIcon={<FaIcon name="github" type="brands " />}
               >
                 Star us on Github
               </Button>
@@ -331,6 +339,7 @@ const Community: VFC = () => {
                 variant="primarySquare"
                 size="large"
                 href="https://hash.ai/contact"
+                startIcon={<FaIcon name="envelope" type="regular" />}
               >
                 Get in touch
               </Button>

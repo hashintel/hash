@@ -12,11 +12,14 @@ export const MuiProvider: FC<{
   emotionCache?: EmotionCache;
   theme: ThemeProviderProps["theme"];
 }> = ({ children, theme, emotionCache = clientSideEmotionCache }) => {
+  /**
+   * Necessary for FaIcon
+   * @see import("../components/icons/FaIcon").FaIcon
+   */
   useEffect(() => {
     const script = document.createElement("script");
 
     script.src = "https://kit.fontawesome.com/87ed5c925c.js";
-    // script.async = true;
     script.crossOrigin = "anonymous";
     script.type = "text/javascript";
 

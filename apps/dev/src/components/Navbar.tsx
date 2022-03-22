@@ -1,6 +1,7 @@
 import { Box, Container, Stack } from "@mui/material";
 import { VFC } from "react";
 import { Button } from "./Button";
+import { FaIcon } from "./icons/FaIcon";
 import { Logo } from "./Logo";
 import { Spacer } from "./Spacer";
 
@@ -24,16 +25,29 @@ export const Navbar: VFC = () => (
         <Stack direction="row" sx={{ alignItems: "center" }}>
           <Logo />
           <Spacer x={2} />
-          <Button size="medium" variant="tertiary" href="https://hash.ai">
+          <Button
+            size="medium"
+            variant="tertiary"
+            href="https://hash.ai"
+            endIcon={<FaIcon name="arrow-up-right-from-square" type="solid" />}
+          >
             Visit our main site
           </Button>
           <Spacer flex />
-          {/** @todo these need to be nav links and need icons */}
-          <Button size="medium" variant="tertiary">
+          {/** @todo these need to be nav links */}
+          <Button
+            size="medium"
+            variant="tertiary"
+            startIcon={<FaIcon name="discord" type="brands" />}
+          >
             Chat to us on Discord
           </Button>
           <Spacer x={2} />
-          <Button size="medium" variant="primary">
+          <Button
+            size="medium"
+            variant="primary"
+            startIcon={<FaIcon name="envelope" type="regular" />}
+          >
             Join the mailing list
           </Button>
         </Stack>
