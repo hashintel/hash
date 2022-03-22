@@ -10,6 +10,7 @@ import {
 } from "react";
 
 import { useCachedDefaultState } from "../components/hooks/useDefaultState";
+import { advancedFetch } from "../components/util/advancedFetch";
 
 export type UserBlock = BlockMetadata & {
   componentId?: string;
@@ -78,7 +79,7 @@ export const UserBlocksProvider: React.FC<{ value: UserBlocks }> = ({
   );
 
   useEffect(() => {
-    const setInitialBlocks = async () => {
+    const setInitialBlocks = () => {
       if (process.env.NEXT_PUBLIC_BLOCK_PROTOCOL_API_KEY) {
         const blocksMetadataHeaders = new Headers();
         blocksMetadataHeaders.set(
@@ -86,30 +87,42 @@ export const UserBlocksProvider: React.FC<{ value: UserBlocks }> = ({
           process.env.NEXT_PUBLIC_BLOCK_PROTOCOL_API_KEY,
         );
 
-        try {
-          const userBlocks = (
-            await fetch("https://blockprotocol.org/api/blocks", {
-              headers: blocksMetadataHeaders,
-            }).then((response) => {
-              if (!response.ok) {
-                throw new Error(
-                  `Fetch failed with status: ${response.statusText}`,
-                );
-              }
-              return response.json();
-            })
-          ).results as UserBlocks;
+        const fetchUserBlocks = advancedFetch(
+          "https://blockprotocol.org/api/blocks",
+          {
+            headers: blocksMetadataHeaders,
+          },
+        );
 
-          setValue((prevValue) => {
-            return mergeBlocksData(prevValue, userBlocks);
-          });
-        } catch (error) {
-          console.error(error);
-        }
+        fetchUserBlocks.ready
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(
+                `Fetch failed with status: ${response.statusText}`,
+              );
+            }
+            return response.json();
+          })
+          .then((responseData) => {
+            const userBlocks = responseData.results as UserBlocks;
+
+            setValue((prevValue) => {
+              return mergeBlocksData(prevValue, userBlocks);
+            });
+          })
+          .catch((error) => console.error(error));
+
+        return fetchUserBlocks;
       }
     };
 
-    void setInitialBlocks();
+    const { abort } = setInitialBlocks() ?? {};
+
+    return () => {
+      if (abort) {
+        abort();
+      }
+    };
   }, [setValue]);
 
   useEffect(() => {
