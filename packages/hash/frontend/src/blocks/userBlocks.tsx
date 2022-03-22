@@ -48,19 +48,18 @@ const mergeBlocksData = (
         (userBlock) => userBlock.name === latestUserBlock.name,
       );
 
-      // Using `any` to fix a `Type instantiation is excessively deep` error.
-      // @todo find a potential fix.
+      // @todo Remove need for @ts-expect-error here
       if (matchingUserBlockIndex === -1) {
-        draftUserBlocks.push(latestUserBlock as any);
+        // @ts-expect-error TS warns `Type instantiation is excessively deep` but this isn't a problem here
+        draftUserBlocks.push(latestUserBlock);
       }
 
-      // Using `any` to fix a `Type instantiation is excessively deep` error.
-      // @todo find a potential fix.
       if (
         draftUserBlocks[matchingUserBlockIndex]?.version !==
         latestUserBlock.version
       ) {
-        draftUserBlocks[matchingUserBlockIndex] = latestUserBlock as any;
+        // @ts-expect-error TS warns `Type instantiation is excessively deep` but this isn't a problem here
+        draftUserBlocks[matchingUserBlockIndex] = latestUserBlock;
       }
     }
   });
