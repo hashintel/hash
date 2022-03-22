@@ -32,14 +32,21 @@ const renderTree = (
       nodeId={node.entityId}
       label={node.title}
       depth={depth}
-      ContentProps={{
-        // @ts-expect-error -- can't seem to override TreeItemProps at the moment, plan to revisit
-        expandable: Boolean(
-          Array.isArray(node.children) ? node.children.length : node.children,
-        ),
-        pageUrl: `/${accountId}/${node.entityId}`,
-        depth,
-      }}
+      ContentProps={
+        {
+          /**
+           *  ContentProps type is currently limited to HtmlAttributes and unfortunately can't be augmented
+           *  Casting the type to any as a temporary workaround
+           * @see https://stackoverflow.com/a/69483286
+           * @see https://github.com/mui/material-ui/issues/28668
+           */
+          expandable: Boolean(
+            Array.isArray(node.children) ? node.children.length : node.children,
+          ),
+          pageUrl: `/${accountId}/${node.entityId}`,
+          depth,
+        } as any
+      }
     >
       {Array.isArray(node.children)
         ? node.children.map((child) => renderTree(child, accountId, depth + 1))

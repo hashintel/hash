@@ -175,5 +175,13 @@ declare module "@mui/material/IconButton" {
   }
 }
 
+declare module "@mui/lab/TreeItem" {
+  interface TreeItemContentProps {
+    expandable?: boolean;
+    url: string;
+    depth: number;
+  }
+}
+
 // eslint-disable-next-line import/no-default-export -- @see https://github.com/mui-org/material-ui/issues/28244
 export default "";

@@ -18,15 +18,9 @@ import { IconButton } from "../../../IconButton";
 import { Link } from "../../../Link";
 import { PageMenu } from "./PageMenu";
 
-type CustomContentProps = TreeItemContentProps & {
-  expandable?: boolean;
-  pageUrl: string;
-  depth: number;
-};
-
 // inspiration gotten from https://mui.com/components/tree-view/#IconExpansionTreeView.tsx
-const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
-  const { label, nodeId, expandable, pageUrl, depth } = props;
+const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
+  const { label, nodeId, expandable, url, depth } = props;
   const [hovered, setHovered] = React.useState(false);
   const popupState = usePopupState({
     variant: "popover",
@@ -115,7 +109,7 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
         sx={{
           flex: 1,
         }}
-        href={pageUrl}
+        href={url}
       >
         <Typography
           variant="smallTextLabels"
