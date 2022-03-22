@@ -28,7 +28,6 @@ type CustomContentProps = TreeItemContentProps & {
 const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
   const { label, nodeId, expandable, pageUrl, depth } = props;
   const [hovered, setHovered] = React.useState(false);
-  const pageMenuTriggerRef = React.useRef(null);
   const popupState = usePopupState({
     variant: "popover",
     popupId: "page-menu",
@@ -39,7 +38,7 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
     selected,
     focused,
     handleExpansion,
-    handleSelection,
+    // handleSelection,
     preventSelection,
   } = useTreeItem(nodeId);
 
@@ -55,14 +54,7 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
     handleExpansion(event);
   };
 
-  const handleSelectionClick = (
-    event: React.MouseEvent<HTMLButtonElement, MouseEvent>,
-  ) => {
-    handleSelection(event);
-  };
-
   return (
-    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <Box
       tabIndex={0}
       onMouseDown={handleMouseDown}
@@ -156,7 +148,6 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
         }}
       >
         <IconButton
-          ref={pageMenuTriggerRef}
           {...bindTrigger(popupState)}
           size="medium"
           unpadded

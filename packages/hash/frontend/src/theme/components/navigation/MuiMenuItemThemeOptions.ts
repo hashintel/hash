@@ -15,8 +15,6 @@ export const MuiMenuItemThemeOptions: Components<Theme>["MuiMenuItem"] = {
   },
   styleOverrides: {
     root: ({ ownerState, theme }) => ({
-      //   marginLeft: theme.spacing(0.5),
-      //   marginRight: theme.spacing(0.5),
       borderRadius: "4px",
       padding: theme.spacing(1, 1.5),
       ...theme.typography.smallTextLabels,
@@ -52,7 +50,7 @@ export const MuiMenuItemThemeOptions: Components<Theme>["MuiMenuItem"] = {
         minWidth: "unset",
       },
 
-      [`&.${menuItemClasses.selected}, &.${menuItemClasses.focusVisible}, &:focus`]:
+      [`&.${menuItemClasses.selected}, &.${menuItemClasses.selected}:hover, &.${menuItemClasses.focusVisible}, &.${menuItemClasses.focusVisible}:hover, &:focus`]:
         {
           backgroundColor: theme.palette.blue[70],
           color: theme.palette.common.white,

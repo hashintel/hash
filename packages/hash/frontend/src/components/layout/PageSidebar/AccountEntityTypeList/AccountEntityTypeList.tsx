@@ -1,13 +1,4 @@
-import {
-  useCallback,
-  useState,
-  useMemo,
-  useRef,
-  VFC,
-  useEffect,
-  Ref,
-} from "react";
-
+import { useState, useMemo, useRef, VFC, useEffect, Ref } from "react";
 import {
   Typography,
   Box,
@@ -19,18 +10,20 @@ import {
 } from "@mui/material";
 import { TransitionGroup } from "react-transition-group";
 import {
-  faSearch,
   faArrowUpAZ,
+  faSearch,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { orderBy } from "lodash";
 import { useRouter } from "next/router";
+import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
 import { useAccountEntityTypes } from "../../../hooks/useAccountEntityTypes";
 import { FontAwesomeIcon } from "../../../icons";
 import { NavLink } from "../NavLink";
 import { Link } from "../../../Link";
 import { IconButton } from "../../../IconButton";
 import { EntityTypeItem } from "./EntityTypeItem";
+import { SortActionsDropdown, SortType } from "./SortActionsDropdown";
 
 type SearchInputProps = {
   searchVisible: boolean;
@@ -113,10 +106,14 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
   const { data } = useAccountEntityTypes(accountId);
   const router = useRouter();
 
-  const [order, setOrder] = useState<"asc" | "desc" | undefined>();
+  const [sortType, setSortType] = useState<SortType>("asc");
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const sortActionsPopupState = usePopupState({
+    variant: "popover",
+    popupId: "type-sort-actions-menu",
+  });
 
   useEffect(() => {
     if (searchVisible) {
@@ -134,26 +131,13 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
       );
     }
 
-    if (!order) {
-      return entityTypes;
+    // Right now we just handle ascending/descending
+    if (sortType === "asc" || sortType === "desc") {
+      return orderBy(entityTypes, ["properties.title"], [sortType]);
     }
 
-    return orderBy(entityTypes, ["properties.title"], [order]);
-  }, [order, data, searchQuery]);
-
-  const toggleSort = useCallback(() => {
-    if (!order) {
-      setOrder("asc");
-    }
-
-    if (order === "asc") {
-      setOrder("desc");
-    }
-
-    if (order === "desc") {
-      setOrder("asc");
-    }
-  }, [order]);
+    return entityTypes;
+  }, [sortType, data, searchQuery]);
 
   return (
     <Box>
@@ -177,6 +161,9 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
               "&:hover": {
                 backgroundColor: palette.gray[20],
               },
+              ...(sortActionsPopupState.isOpen && {
+                backgroundColor: palette.gray[20],
+              }),
             })}
           >
             <Box
@@ -214,12 +201,24 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
                 onChangeText={(query: string) => setSearchQuery(query)}
               />
             </Box>
-
             <Tooltip title="Sort types">
-              <IconButton onClick={toggleSort}>
+              <IconButton
+                {...bindTrigger(sortActionsPopupState)}
+                sx={({ palette }) => ({
+                  ...(sortActionsPopupState.isOpen && {
+                    backgroundColor: palette.gray[30],
+                    color: palette.gray[80],
+                  }),
+                })}
+              >
                 <FontAwesomeIcon icon={faArrowUpAZ} />
               </IconButton>
             </Tooltip>
+            <SortActionsDropdown
+              popupState={sortActionsPopupState}
+              setSortType={setSortType}
+              activeSortType={sortType}
+            />
           </Box>
           <TransitionGroup>
             {filteredData.map((entityType) => {

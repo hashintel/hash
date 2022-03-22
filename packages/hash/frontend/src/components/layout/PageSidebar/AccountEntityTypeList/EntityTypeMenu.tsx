@@ -1,4 +1,4 @@
-import { useMemo, VFC } from "react";
+import { useMemo, useState, VFC } from "react";
 import {
   faLink,
   faAdd,
@@ -32,13 +32,17 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({
   entityId,
   entityTitle,
 }) => {
-  const navItems = useMemo(() => {
+  const [copied, setCopied] = useState(false);
+
+  const menuItems = useMemo(() => {
     return [
       {
         id: 1,
         title: "Add to Bookmarks",
         icon: faBookmark, // @todo-mui get a free icon that matches the design closely
-        onClick: () => {},
+        onClick: () => {
+          popupState.close();
+        },
       },
       {
         id: 2,
@@ -48,12 +52,17 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({
       },
       {
         id: 3,
-        title: `Copy Link to ${entityTitle}`,
+        title: copied ? "Copied!" : `Copy Link to ${entityTitle}`,
         icon: faLink,
         onClick: () => {
           void navigator.clipboard.writeText(
             `${window.location.origin}/${accountId}/types/${entityId}`,
           );
+          setCopied(true);
+          setTimeout(() => {
+            setCopied(false);
+            popupState.close();
+          }, 1000);
           // @todo-mui add some visual feedback to sure it's been copied
         },
       },
@@ -61,21 +70,25 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({
         id: 4,
         title: "Create filtered page",
         icon: faFilter, // @todo-mui get a free icon that matches the design closely
-        onClick: () => {},
+        onClick: () => {
+          popupState.close();
+        },
       },
       {
         id: 5,
         title: "Delete type",
         icon: faTrash,
-        onClick: () => {},
+        onClick: () => {
+          popupState.close();
+        },
         faded: true,
       },
     ];
-  }, [accountId, entityId, entityTitle]);
+  }, [accountId, entityId, entityTitle, copied, popupState]);
 
   return (
     <Menu {...bindMenu(popupState)}>
-      {navItems.map(({ title, icon, onClick, href, id, faded }) => {
+      {menuItems.map(({ title, icon, onClick, href, id, faded }) => {
         if (href) {
           return (
             <MenuItem key={id} onClick={() => popupState.close()}>
@@ -102,10 +115,7 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({
                   },
                 }),
               }}
-              onClick={() => {
-                onClick();
-                popupState.close();
-              }}
+              onClick={onClick}
             >
               <ListItemIcon>
                 <FontAwesomeIcon icon={icon} />
