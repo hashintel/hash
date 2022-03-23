@@ -39,7 +39,9 @@ export const updateLink = async (
     const { updatedIndex } = params;
 
     if (previousIndex === updatedIndex) {
-      throw new Error("NOOP");
+      throw new Error(
+        "NOOP: Cannot update index of link where previous index has the same value",
+      );
     }
 
     const updatedDbLink: DbLink = { ...previousDbLink, index: updatedIndex };
