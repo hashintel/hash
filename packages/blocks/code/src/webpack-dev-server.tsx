@@ -22,7 +22,6 @@ const initialData: {
 };
 
 const App = () => {
-  const [data, setData] = useState(initialData);
   return (
     <div className={tw`mx-auto mt-14 max-w-3xl`}>
       <MockBlockDock>
@@ -30,7 +29,7 @@ const App = () => {
           entityTypeId="code"
           entityId="entity-code"
           accountId="account-code"
-          {...data}
+          {...initialData}
         />
       </MockBlockDock>
     </div>
