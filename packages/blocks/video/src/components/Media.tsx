@@ -266,11 +266,14 @@ export const Media: BlockComponent<
 
             if (existingLinkGroup) {
               await deleteLinks(
-                existingLinkGroup.links.map((link) => ({
-                  sourceAccountId: accountId,
-                  sourceEntityId: link.sourceEntityId,
-                  linkId: link.linkId,
-                })),
+                existingLinkGroup.links
+                  .filter((link) => "linkId" in link)
+                  .map((link) => ({
+                    sourceAccountId: accountId,
+                    sourceEntityId: link.sourceEntityId,
+                    // @ts-expect-error
+                    linkId: link.linkId,
+                  })),
               );
             }
 
