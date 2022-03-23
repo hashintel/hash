@@ -104,12 +104,12 @@ export const updateLinkVersionIndices = async (
     maximumIndex?: number;
   },
 ): Promise<void> => {
-  const { operation, minimumIndex, maximumIndex } = params;
+  const { minimumIndex, maximumIndex } = params;
 
   await conn.query(sql`
     update link_versions
     set
-      index = index + ${operation === "increment" ? 1 : -1},
+      index = index + ${params.operation === "increment" ? 1 : -1},
       updated_at = ${params.updatedAt.toISOString()},
       updated_by_account_id = ${params.updatedByAccountId}
     from
