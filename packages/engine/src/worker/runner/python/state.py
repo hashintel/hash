@@ -14,7 +14,7 @@ BEHAVIOR_INDEX_FIELD_KEY = "_PRIVATE_14_behavior_index"
 
 class AgentState:
     def __init__(
-        self, group_state, agent_batch, msg_batch, msgs_native, i_agent_in_group
+            self, group_state, agent_batch, msg_batch, msgs_native, i_agent_in_group
     ):
         self.__dict__["__group_state"] = group_state
         self.__dict__["__cols"] = agent_batch.cols
@@ -28,14 +28,6 @@ class AgentState:
     #       authors to.
     def set_dynamic_access(self, enable_dynamic_access):
         self.__dict__["__dyn_access"] = enable_dynamic_access
-
-    def to_json(self):
-        ret = {}
-        for name, _col in self.__dict__["__cols"].items():
-            ret[name] = deepcopy(getattr(self, name))
-
-        ret["messages"] = deepcopy(self.messages)
-        return ret
 
     def __getattr__(self, field):  # Can raise AttributeError.
         idx = self.__dict__["__idx_in_group"]
@@ -110,9 +102,7 @@ class AgentState:
             {
                 "to": [to] if isinstance(to, str) else to,
                 "type": msg_type,
-                "data": deepcopy(data)
-                if self.__dict__["__msgs_native"][idx]
-                else json.dumps(data),
+                "data": deepcopy(data) if self.__dict__["__msgs_native"][idx] else json.dumps(data),
             }
         )
 
@@ -135,10 +125,6 @@ class GroupState:
         self.__agent_batch = agent_batch
         self.__msg_batch = msg_batch
         self.__msgs_native = [False] * len(agent_batch.cols["agent_id"])
-
-    def to_json(self):
-        # pylint: disable=no-self-use
-        raise RuntimeError("Group state shouldn't be copied to JSON.")
 
     def load(self, field_name):
         if self.__agent_batch.record_batch.schema.get_field_index(field_name) < 0:

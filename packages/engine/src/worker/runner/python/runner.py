@@ -10,6 +10,11 @@ from sim import Sim
 from message import Messenger
 from util import format_exc_info
 
+"""
+Amount of seconds to sleep after killing the process.
+"""
+SLEEP_AFTER_KILL = 2
+
 
 # We want to catch everything
 # pylint: disable=broad-except
@@ -28,7 +33,10 @@ class Runner:
         self.experiment_ctx = None
 
         try:
-            if self.start_experiment():  # Package/user error
+            # Package/user error
+            # TODO: Use execptions instead
+            #   see https://app.asana.com/0/1199548034582004/1202011714603649/f
+            if not self.start_experiment():
                 self._kill_after_sent()
         except Exception as error:
             # Have to catch generic Exception -- if we knew what the error
@@ -61,7 +69,7 @@ class Runner:
         always the first message that the Rust process sends to a
         Python process.
 
-        :return: Whether a package/user error occurred
+        :return: Whether the experiment has started, `False` if a package/user error occurred
         """
         init = self.messenger.recv_init()
         self.experiment_ctx = init.shared_ctx
@@ -81,14 +89,14 @@ class Runner:
                     if were_user_errors:
                         # TODO: Should we kill the runner here or let the Rust process
                         #       terminate it after receiving user errors?
-                        return True
+                        return False
 
                 except Exception:
                     # Have to catch generic exception, because package could throw anything.
                     self._handle_pkg_error(pkg, "experiment init", sys.exc_info())
-                    return True
+                    return False
 
-        return False
+        return True
 
     def _handle_experiment_init_result(self, pkg, result):
         """
@@ -97,7 +105,7 @@ class Runner:
         :return: Whether any user errors occurred during this
                  package's experiment init
         """
-        if not result:  # Package didn't return anything.
+        if result is None:  # Package didn't return anything.
             return False
 
         prefix = f"Package `{pkg.name}` experiment init: "
@@ -165,10 +173,12 @@ class Runner:
         Give the Rust process time to receive nng messages and then
         kill the runner.
         """
-        time.sleep(2)
-        self._kill()
+        # TODO: check/fix shared memory allocation
+        #   see https://app.asana.com/0/1201461747883418/1201634225076144/f
+        time.sleep(SLEEP_AFTER_KILL)
+        self._free()
 
-    def _kill(self):
+    def _free(self):
         """Release all resources."""
         self.batches.free()
         self.messenger = None
@@ -228,14 +238,14 @@ class Runner:
         :return: Whether any user errors occurred during this
                  package's sim init
         """
-        if not result:  # Package didn't return anything.
+        if result is not None:  # Package didn't return anything.
             return False
 
         if pkg.type in ("context", "state"):
             sim.maybe_add_custom_fns(result, "loaders", pkg)
             sim.maybe_add_custom_fns(result, "getters", pkg)
 
-        # TODO: Duplication with experiment init result handling.
+        # TODO: Remove duplication with experiment init result handling.
         prefix = f"Package `{pkg.name}` sim init: "
         warnings = result.get("warnings")
         if warnings is not None:
@@ -288,8 +298,8 @@ class Runner:
         try:
             # TODO: Pass `task_id` to package?
             continuation = (
-                pkg.run_task(pkg.experiment, pkg.sims[sim_id], task_msg, state, ctx)
-                or {}
+                    pkg.run_task(pkg.experiment, pkg.sims[sim_id], task_msg, state, ctx)
+                    or {}
             )
         except Exception:
             # Have to catch generic Exception, because package could throw anything.
@@ -409,6 +419,7 @@ class Runner:
         try:
             while True:
                 msg, msg_type = self.messenger.recv()
+                # TODO: try and use `match` when we upgrade to Python 3.10+
                 if msg_type == RunnerInboundMsgPayload.TerminateRunner:
                     logging.debug("Terminating runner")
                     break
@@ -478,4 +489,4 @@ class Runner:
             # Catch generic Exception to make sure it's logged before the runner exits.
             self._handle_runner_error(sys.exc_info())
 
-        self._kill()
+        self._free()

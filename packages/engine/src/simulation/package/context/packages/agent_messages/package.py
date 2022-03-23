@@ -5,47 +5,51 @@ from uuid import UUID
 class InboxMessage:
     def __init__(self, ctx_msg_pool, msg_loc):
         self.__pool = ctx_msg_pool
-        self.__loc = msg_loc  # i_group, i_agent, i_msg
-        # (`i_msg` was index in  `agent_state.messages` on the previous step.)
+        # group_idx, agent_idx, message_idx (`message_idx` was index in  `agent_state.messages` on
+        # the previous step.)
+        self.__loc = msg_loc
         self.__data = None
-
-    def to_json(self):
-        return {
-            "from": self["from"],
-            "to": self["to"],
-            "type": self["type"],
-            "data": self["data"]
-        }
 
     def __getitem__(self, key):
         loc = self.__loc  # Local variable lookup is faster than global lookup.
+        group_idx = loc[0].as_py()
+        agent_idx = loc[1].as_py()
+        message_idx = loc[2].as_py()
 
         if key == "data":
             if self.__data is None:
                 self.__data = json_loads(
-                    self.__pool[loc[0].as_py()].cols["messages"][loc[1].as_py()][loc[2].as_py()]["data"])
+                    self.__pool[group_idx].cols["messages"][agent_idx][message_idx]["data"])
             return self.__data
 
         if key == "from":
-            src = self.__pool[loc[0].as_py()].cols["from"][loc[1].as_py()]
+            src = self.__pool[group_idx].cols["from"][agent_idx]
             if type(src) == bytes:
                 src = str(UUID(bytes=src))
             return src
 
-        return self.__pool[loc[0].as_py()].cols["messages"][loc[1].as_py()][loc[2].as_py()][key]
+        return self.__pool[group_idx].cols["messages"][agent_idx][message_idx][key]
 
 
 def _get_msgs(agent_context, msg_locs):
-    def get_msg_func():
+    """
+    Returns a function for getting messages.
+    """
+
+    def messages():
+        """
+        We expect a function when calling `messages()`. This wraps the behavior in a function and
+        returns that instead
+        """
         pool = agent_context.state_snapshot.message_pool
         msgs = [InboxMessage(pool, loc) for loc in msg_locs]
 
         # TODO: Enable API responses package
         # msgs.extend(agent_context.api_responses)
-        
+
         return msgs
 
-    return get_msg_func
+    return messages
 
 
 def start_sim(experiment, sim, init_message, init_context):

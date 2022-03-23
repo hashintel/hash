@@ -19,22 +19,11 @@ class Neighbor:
 
         return ret
 
-    def to_json(self):
-        fields = {
-            "messages": self.messages
-        }
-
-        cols = self.__snapshot.agent_pool[self.__loc[0]].cols
-        for field, col in cols.items():
-            fields[field_name] = col[self.__loc[1]]
-
-        return fields
-
 
 def _get_neighbors(agent_context, neighbor_locs):
     def neighbor_func():
         snapshot = agent_context.state_snapshot
-        # TODO: Get _previous_index from the engine by passing it to the state-batch
+        # TODO: Use the `_HIDDEN_0_previous_index` field for prev_loc
         # prev_loc = agent_context._previous_index
         return [Neighbor(snapshot, loc) for loc in neighbor_locs]
 

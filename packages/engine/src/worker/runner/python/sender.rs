@@ -378,11 +378,6 @@ fn shared_store_to_fbs<'f>(
             }
             PartialSharedState::Write(partial) => {
                 let state = &partial.state_proxy;
-                tracing::trace!(
-                    "Partial write: {} groups, {} batches",
-                    partial.group_indices.len(),
-                    state.agent_pool().len(),
-                );
                 let a: Vec<_> = state
                     .agent_pool()
                     .batches()

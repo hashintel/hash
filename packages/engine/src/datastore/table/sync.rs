@@ -67,7 +67,7 @@ impl WaitableStateSync {
     pub async fn forward_children(self, child_receivers: Vec<SyncCompletionReceiver>) {
         tracing::trace!("Getting state sync completions");
         let child_results: Vec<_> = join_all(child_receivers).await;
-        tracing::trace!("Got all state sync completions: {child_results:?}");
+        tracing::trace!("Got all state sync completions");
         let result = child_results
             .into_iter()
             .map(|recv_result| {

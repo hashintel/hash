@@ -129,7 +129,7 @@ impl WorkerController {
     }
 
     async fn _run(&mut self) -> Result<()> {
-        // TODO: Rust, JS
+        // TODO: Rust
         let mut py_handle = self.py.run().await?;
         // let mut rs_handle = self.rs.run().await?;
         let mut js_handle = self.js.run().await?;
@@ -194,14 +194,14 @@ impl WorkerController {
                     break;
                 }
                 py_res = &mut py_handle => {
-                    tracing::debug!("Python runner finished unexpectedly");
+                    tracing::warn!("Python runner finished unexpectedly: {py_res:?}");
                     py_res??;
                     // TODO: send termination to js_handle
                     js_handle.await??;
                     return Ok(());
                 }
                 js_res = &mut js_handle => {
-                    tracing::debug!("Javascript runner finished unexpectedly: {:?}", js_res);
+                    tracing::warn!("Javascript runner finished unexpectedly: {js_res:?}");
                     js_res??;
                     // TODO: send termination to py_handle
                     py_handle.await??;
@@ -241,7 +241,6 @@ impl WorkerController {
         let span = msg.span;
         match msg.payload {
             WorkerPoolToWorkerMsgPayload::Task(task) => {
-                tracing::debug!("Spawning task {task:?}");
                 self.spawn_task(
                     msg.sim_id
                         .ok_or_else(|| Error::from("Expected simulation id for spawning a task"))?,
@@ -379,7 +378,7 @@ impl WorkerController {
                 .worker_pool_comms
                 .send(sim_id, WorkerToWorkerPoolMsg::PackageError(package_error))?,
             SyncCompletion => {
-                unimplemented!("Handled in Python runner")
+                unreachable!("Synchronizing is expected to be done at runner level")
             }
         }
         Ok(())
@@ -723,9 +722,9 @@ impl WorkerController {
         let fut = async move {
             // Capture `sync` in lambda.
             let sync = sync;
-            tracing::trace!("Synchronizing runners");
+            tracing::trace!("Waiting for runner synchronization");
             let result = sync.forward_children(runner_receivers).await;
-            tracing::trace!("Synchronized workers: {result:?}");
+            tracing::trace!("Runners synchronized");
         }
         .in_current_span();
         pending_syncs.push(Box::pin(fut) as _);

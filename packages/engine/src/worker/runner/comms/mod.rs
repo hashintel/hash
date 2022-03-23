@@ -137,10 +137,6 @@ impl TargetedRunnerTaskMsg {
         // TODO: our version of flatbuffers doesn't let us have optional Scalars
         let group_index = task_msg.group_index().map(|val| val.inner() as usize);
 
-        tracing::trace!(
-            "Outbound task payload string: {:?}",
-            std::str::from_utf8(task_msg.payload().inner())
-        );
         let inner_msg: serde_json::Value = serde_json::from_slice(task_msg.payload().inner())?;
         let payload = TaskMessage::try_from_inner_msg_and_wrapper(inner_msg, sent.task_wrapper);
         // TODO: Error message duplication with JS runner

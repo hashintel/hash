@@ -11,6 +11,7 @@ def get_logging_level(value):
     value = "to-be-fixed"
 
     value = value.lower()
+    # TODO: Make this a `match` when upgrading to Python 3.10
     if value == "debug":
         return logging.DEBUG
     if value == "info":

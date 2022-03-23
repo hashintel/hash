@@ -131,8 +131,8 @@ class Batch:
         self.mem = None
         # After loading, `record_batch` will be a record batch.
         self.record_batch = None
-        # TODO: Remove `any_type_fields` after upgrading Arrow and putting schema metadata in
-        #       individual fields.
+        # TODO: Remove `any_type_fields` after upgrading Arrow and putting metadata in individual
+        #       columns.
         self.any_type_fields = None
         # Syncing erases columns that have become invalid.
         self.cols = {}
@@ -282,5 +282,6 @@ class Batches:
     def free(self):
         # TODO: Check that this releases references to shared memory
         #       (Call _free_rust_static_meta, _free_rust_dynamic_meta, unload_shared_mem here?)
+        #   see https://app.asana.com/0/1201461747883418/1201634225076144/f
         # TODO: Make this the `__del__` method?
         self.batches = {}

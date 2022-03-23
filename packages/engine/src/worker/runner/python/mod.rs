@@ -168,10 +168,10 @@ async fn _run(
                         (Some(payload), Some(wrapper))
                     }
                     InboundToRunnerMsgPayload::CancelTask(_) => {
+                        todo!("canceling of tasks is currently not implemented");
                         // Don't send to Python process -- unused for now.
                         // TODO: Remove `continue` when/if a package uses `CancelTask`
                         //       and it's implemented in Python.
-                        continue;
                     }
                     _ => (None, None)
                 };
@@ -196,7 +196,7 @@ async fn _run(
                         shared_store,
                         ..
                     }) => {
-                        tracing::trace!("Sent task_id {:?}", task_id);
+                        tracing::trace!("Sent task with id {task_id:?}");
                         // unwrap: TaskMsg variant, so must have serialized payload earlier.
                         let sent = SentTask {
                             task_wrapper: task_wrapper.unwrap(),
@@ -212,7 +212,6 @@ async fn _run(
                 }
             }
             outbound = nng_receiver.get_recv_result() => {
-                tracing::trace!("Tried to get outbound {outbound:?}");
                 let outbound = outbound.map_err(WorkerError::from)?;
                 let outbound = OutboundFromRunnerMsg::try_from_nng(
                     outbound,
@@ -229,7 +228,6 @@ async fn _run(
                     tracing::error!("{err}");
                     err
                 })?;
-                tracing::trace!("Got outbound {outbound:?}");
                 if let OutboundFromRunnerMsgPayload::SyncCompletion = &outbound.payload {
                     sync_completion_senders
                         .remove(&outbound.sim_id)

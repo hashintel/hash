@@ -26,10 +26,11 @@ mod py {
     run_test!(one_recipient, Python);
     run_test!(multiple_recipients, Python);
 
-    // TODO: Python and arrow-rs have different expectations about FixedSizeLists, we probably want
-    //       to switch to arrow2.
+    // TODO: Python and arrow-rs have different expectations about FixedSizeLists
+    //   see https://app.asana.com/0/1199548034582004/1202011714603646/f
     run_test!(nested_types, Python, #[ignore]);
     // TODO: Python and arrow-rs have different expectations about FixedSizeLists
+    //   see https://app.asana.com/0/1199548034582004/1202011714603646/f
     run_test!(all_types, Python, #[ignore]);
     // TODO: Make mapbox work
     //   see https://app.asana.com/0/1199548034582004/1200329934588478/f

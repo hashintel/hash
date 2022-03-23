@@ -8,7 +8,7 @@ from wrappers import np_force_writable
 
 # TODO: Change arguments after upgrading Arrow.
 def load_shallow(vector, _is_nullable, _is_any):
-    return vector[:]
+    return vector
 
 
 def _writable_in_place(typ):
@@ -23,8 +23,8 @@ def _writable_in_place(typ):
 
 
 def load_full(
-    vector, is_nullable, is_any
-):  # TODO: Change arguments after upgrading Arrow.
+        vector, is_nullable, is_any
+):  # TODO: Change arguments after upgrading pyarrow from 0.17.
     if is_any:
         # `any` type fields are expensive
         return [loads(any_obj.as_buffer().to_pybytes()) for any_obj in vector]
@@ -38,6 +38,5 @@ def load_full(
     col_np = vector.to_numpy(zero_copy_only=True)
     np_force_writable(col_np)
     return col_np
-
 
 # TODO: `load_elem` like in `hash_util.js` if a use case for it comes up in a package.

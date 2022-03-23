@@ -21,8 +21,11 @@ def _load_behaviors(behavior_descs):
     behaviors = {}
     warnings = []  # TODO: Accumulate warnings automatically with something like `hash_util.warn`
     for desc in behavior_descs:
+        lang_idx = desc['id'][0]
+        id_within_lang = desc['id'][1]
+
         if desc['language'] != "Python":
-            behaviors[_hash_behavior_id(desc['id'][0], desc['id'][1])] = {
+            behaviors[_hash_behavior_id(lang_idx, id_within_lang)] = {
                 "name": desc['name'],
                 "language": desc['language'],
             }
@@ -36,7 +39,7 @@ def _load_behaviors(behavior_descs):
             behavior_fn = behavior_globals.get("behavior")
 
             if callable(behavior_fn):
-                behaviors[_hash_behavior_id(desc['id'][0], desc['id'][1])] = {
+                behaviors[_hash_behavior_id(lang_idx, id_within_lang)] = {
                     "name": desc['name'],
                     "language": desc['language'],
                     # TODO: Propagate desc['columns'] here so we can load

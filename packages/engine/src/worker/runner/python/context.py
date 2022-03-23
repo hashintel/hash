@@ -12,12 +12,6 @@ class AgentContext:
         self.state_snapshot = state_snapshot
         self.__idx_in_sim = i_agent_in_sim  # (As opposed to agent index in its group)
 
-    def to_json(self):
-        ret = {}
-        for field_name in self.__cols:
-            ret[field_name] = deepcopy(self.__getattr__(field_name))
-        return ret
-
     def globals(self):
         return self.__sim_ctx.globals()
 
@@ -28,6 +22,7 @@ class AgentContext:
         return self.__sim_ctx.step()
 
     def __getattr__(self, field_name):
+        # Prefixes are because class field names get mangled
         column = self.__dict__["_AgentContext__cols"][field_name]
         element = column[self.__dict__["_AgentContext__idx_in_sim"]]
         getter = self.__dict__["_AgentContext__getters"].get(field_name)

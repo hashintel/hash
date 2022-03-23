@@ -250,9 +250,10 @@ impl WorkerPoolController {
                 }
                 let fut = async move {
                     let sync = sync; // Capture `sync` in lambda.
-                    tracing::trace!("Synchronizing workers");
+                    // TODO: these types of logs are better suited as a span
+                    tracing::trace!("Waiting for worker synchronization");
                     sync.forward_children(worker_completion_receivers).await;
-                    tracing::trace!("Synchronized workers");
+                    tracing::trace!("Workers synchronized");
                 }
                 .in_current_span();
                 pending_syncs.push(Box::pin(fut) as _);

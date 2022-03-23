@@ -12,6 +12,8 @@ script_path = sys.argv[3]
 sys.argv.remove(script_path)
 
 
+# TODO: Use `Pathlib` instead of `os`
+#   see https://app.asana.com/0/1199548034582004/1202011714603651/f
 def find_directory(pattern, path):
     result = []
     for root, _dirs, files in os.walk(path):
