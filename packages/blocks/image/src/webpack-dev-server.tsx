@@ -12,6 +12,8 @@ import {
 import React from "react";
 import ReactDOM from "react-dom";
 import { tw } from "twind";
+import { MockBlockDock } from "mock-block-dock";
+
 import Component from "./index";
 
 const node = document.getElementById("app");
@@ -74,15 +76,17 @@ const App = () => {
 
   return (
     <div className={tw`mt-5`}>
-      <Component
-        accountId="account-asdasd"
-        createLinks={createLinks}
-        deleteLinks={deleteLinks}
-        entityId="entity-asdasd"
-        initialCaption="Image of a Dog"
-        uploadFile={uploadFile}
-        url="https://placedog.net/450/300"
-      />
+      <MockBlockDock>
+        <Component
+          accountId="account-asdasd"
+          createLinks={createLinks}
+          deleteLinks={deleteLinks}
+          entityId="entity-asdasd"
+          initialCaption="Image of a Dog"
+          uploadFile={uploadFile}
+          url="https://placedog.net/450/300"
+        />
+      </MockBlockDock>
     </div>
   );
 };
