@@ -13,7 +13,7 @@ class Neighbor:
             p = self.__prev_loc
             ret = self.__snapshot.message_pool[p[0]].cols["messages"][p[1]]
 
-        ret = self.__snapshot.agent_pool[self.__loc[0].as_py()].cols[field][self.__loc[1].as_py()]
+        ret = self.__snapshot.agent_pool[self.__loc[0]].cols[field][self.__loc[1]]
         if field == "agent_id":
             ret = str(UUID(bytes=ret))
 
