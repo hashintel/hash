@@ -55,7 +55,7 @@
 
   /// NB: If input is an `any`-type column, will return an array of strings (containing JSON).
   // TODO: Change arguments after upgrading Arrow (is_nullable and is_any will probably become
-  //       unnecessary).
+  //       unnecessary as we want to store them in column metadata).
   const load_shallow = (vector, is_nullable, is_any) => {
     // `vector.toArray` returns array-like (in some cases? TODO), not actual array.
     const shallow = [];
