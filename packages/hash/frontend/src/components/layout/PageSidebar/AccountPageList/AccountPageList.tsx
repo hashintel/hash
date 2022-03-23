@@ -3,6 +3,7 @@ import React, {
   SyntheticEvent,
   useMemo,
   useState,
+  useCallback,
 } from "react";
 
 import { treeFromParentReferences } from "@hashintel/hash-shared/util";
@@ -70,7 +71,7 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
   const { createUntitledPage } = useCreatePage(accountId);
 
   // @todo handle loading/error states properly
-  const addPage = async () => {
+  const addPage = useCallback(async () => {
     if (loading) {
       return;
     }
@@ -83,7 +84,7 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
       console.error("Could not create page: ", err);
       setLoading(false);
     }
-  };
+  }, [createUntitledPage, loading]);
 
   const formattedData = useMemo(
     () =>
