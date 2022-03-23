@@ -1,15 +1,6 @@
 import { sql } from "slonik";
 
-import {
-  DbAggregation,
-  DbClient,
-  DbLink,
-  DbEntity,
-  EntityMeta,
-  EntityType,
-  EntityVersion,
-  VerificationCode,
-} from "../adapter";
+import { DbClient, DbEntity, EntityType } from "../adapter";
 import { genId, exactlyOne } from "../../util";
 import { Connection } from "./types";
 import {
@@ -92,7 +83,7 @@ export class PostgresClient implements DbClient {
   /** Create an entity type definition and return its uuid. */
   async createEntityType(
     params: Parameters<DbClient["createEntityType"]>[0],
-  ): Promise<EntityType> {
+  ): ReturnType<DbClient["createEntityType"]> {
     const { name, accountId, createdByAccountId, schema } = params;
 
     return this.transaction(async (conn) => {
@@ -138,7 +129,7 @@ export class PostgresClient implements DbClient {
 
   async getSystemTypeLatestVersion(
     params: Parameters<DbClient["getSystemTypeLatestVersion"]>[0],
-  ): Promise<EntityType> {
+  ): ReturnType<DbClient["getSystemTypeLatestVersion"]> {
     return getSystemTypeLatestVersion(this.conn, params);
   }
 
@@ -149,7 +140,7 @@ export class PostgresClient implements DbClient {
    */
   async createEntity(
     params: Parameters<DbClient["createEntity"]>[0],
-  ): Promise<DbEntity> {
+  ): ReturnType<DbClient["createEntity"]> {
     return await this.transaction(async (conn) => {
       // Create the account if it does not already exist
       // TODO: this should be performed in a "createAccount" function, or similar.
@@ -228,20 +219,20 @@ export class PostgresClient implements DbClient {
 
   async getEntityAccountId(
     params: Parameters<DbClient["getEntityAccountId"]>[0],
-  ): Promise<string> {
+  ): ReturnType<DbClient["getEntityAccountId"]> {
     return getEntityAccountId(this.conn, params);
   }
 
   async getEntity(
     params: Parameters<DbClient["getEntity"]>[0],
     lock: boolean = false,
-  ): Promise<DbEntity | undefined> {
+  ): ReturnType<DbClient["getEntity"]> {
     return (await getEntity(this.conn, params, lock)) || undefined;
   }
 
   async getEntityLatestVersion(
     params: Parameters<DbClient["getEntityLatestVersion"]>[0],
-  ): Promise<DbEntity | undefined> {
+  ): ReturnType<DbClient["getEntityLatestVersion"]> {
     return (await getEntityLatestVersion(this.conn, params)) || undefined;
   }
 
@@ -255,7 +246,7 @@ export class PostgresClient implements DbClient {
 
   async getEntityTypeLatestVersion(
     params: Parameters<DbClient["getEntityTypeLatestVersion"]>[0],
-  ): Promise<EntityType | null> {
+  ): ReturnType<DbClient["getEntityTypeLatestVersion"]> {
     return (
       (await getEntityTypeLatestVersion(this.conn, {
         entityId: params.entityTypeId,
@@ -295,15 +286,13 @@ export class PostgresClient implements DbClient {
    */
   async updateEntity(
     params: Parameters<DbClient["updateEntity"]>[0],
-  ): Promise<DbEntity> {
+  ): ReturnType<DbClient["updateEntity"]> {
     return updateEntity(this.conn, params);
   }
 
-  async updateEntityAccountId(params: {
-    originalAccountId: string;
-    entityId: string;
-    newAccountId: string;
-  }): Promise<void> {
+  async updateEntityAccountId(
+    params: Parameters<DbClient["updateEntityAccountId"]>[0],
+  ): ReturnType<DbClient["updateEntityAccountId"]> {
     await updateEntityAccountId(this.conn, params);
   }
 
@@ -356,25 +345,27 @@ export class PostgresClient implements DbClient {
     return newType;
   }
 
-  async getUserByEmail(params: Parameters<DbClient["getUserByEmail"]>[0]) {
+  async getUserByEmail(
+    params: Parameters<DbClient["getUserByEmail"]>[0],
+  ): ReturnType<DbClient["getUserByEmail"]> {
     return await getUserByEmail(this.conn, params);
   }
 
   async getUserByShortname(
     params: Parameters<DbClient["getUserByShortname"]>[0],
-  ) {
+  ): ReturnType<DbClient["getUserByShortname"]> {
     return await getUserByShortname(this.conn, params);
   }
 
   async getOrgByShortname(
     params: Parameters<DbClient["getOrgByShortname"]>[0],
-  ) {
+  ): ReturnType<DbClient["getOrgByShortname"]> {
     return await getOrgByShortname(this.conn, params);
   }
 
   async getEntitiesBySystemType(
     params: Parameters<DbClient["getEntitiesBySystemType"]>[0],
-  ): Promise<DbEntity[]> {
+  ): ReturnType<DbClient["getEntitiesBySystemType"]> {
     const { entity_type_id: entityTypeId } = await this.conn.one(
       selectSystemEntityTypeIds(params),
     );
@@ -393,7 +384,7 @@ export class PostgresClient implements DbClient {
   /** Get all entities of a given type in a given account. */
   async getEntitiesByType(
     params: Parameters<DbClient["getEntitiesByType"]>[0],
-  ): Promise<DbEntity[]> {
+  ): ReturnType<DbClient["getEntitiesByType"]> {
     return params.latestOnly
       ? await getEntitiesByTypeLatestVersion(this.conn, params)
       : await getEntitiesByTypeAllVersions(this.conn, params);
@@ -401,90 +392,90 @@ export class PostgresClient implements DbClient {
 
   async accountExists(
     params: Parameters<DbClient["accountExists"]>[0],
-  ): Promise<boolean> {
+  ): ReturnType<DbClient["accountExists"]> {
     return await accountExists(this.conn, params);
   }
 
   /**  Get all account type entities (User or Org). */
-  async getAllAccounts(): Promise<DbEntity[]> {
+  async getAllAccounts(): ReturnType<DbClient["getAllAccounts"]> {
     return await getAllAccounts(this.conn);
   }
 
   async updateEntityMetadata(
     params: Parameters<DbClient["updateEntityMetadata"]>[0],
-  ): Promise<EntityMeta> {
+  ): ReturnType<DbClient["updateEntityMetadata"]> {
     return await updateEntityMetadata(this.conn, params);
   }
 
   async createLink(
     params: Parameters<DbClient["createLink"]>[0],
-  ): Promise<DbLink> {
+  ): ReturnType<DbClient["createLink"]> {
     return await createLink(this.conn, params);
   }
 
   async updateLink(
     params: Parameters<DbClient["updateLink"]>[0],
-  ): Promise<DbLink> {
+  ): ReturnType<DbClient["updateLink"]> {
     return await updateLink(this.conn, params);
   }
 
   async getLink(
     params: Parameters<DbClient["getLink"]>[0],
-  ): Promise<DbLink | null> {
+  ): ReturnType<DbClient["getLink"]> {
     return await getLink(this.conn, params);
   }
 
   async deleteLink(
     params: Parameters<DbClient["deleteLink"]>[0],
-  ): Promise<void> {
+  ): ReturnType<DbClient["deleteLink"]> {
     return await deleteLink(this.conn, params);
   }
 
   async createAggregation(
     params: Parameters<DbClient["createAggregation"]>[0],
-  ): Promise<DbAggregation> {
+  ): ReturnType<DbClient["createAggregation"]> {
     return await createAggregation(this.conn, params);
   }
 
   async updateAggregationOperation(
     params: Parameters<DbClient["updateAggregationOperation"]>[0],
-  ): Promise<DbAggregation> {
+  ): ReturnType<DbClient["updateAggregationOperation"]> {
     return await updateAggregationOperation(this.conn, params);
   }
 
   async getEntityAggregation(
     params: Parameters<DbClient["getEntityAggregation"]>[0],
-  ): Promise<DbAggregation | null> {
+  ): ReturnType<DbClient["getEntityAggregation"]> {
     return await getEntityAggregation(this.conn, params);
   }
 
   async getEntityAggregations(
     params: Parameters<DbClient["getEntityAggregations"]>[0],
-  ): Promise<DbAggregation[]> {
+  ): ReturnType<DbClient["getEntityAggregations"]> {
     return await getEntityAggregations(this.conn, params);
   }
 
   async deleteAggregation(
     params: Parameters<DbClient["deleteAggregation"]>[0],
-  ): Promise<void> {
+  ): ReturnType<DbClient["deleteAggregation"]> {
     return await deleteAggregation(this.conn, params);
   }
 
   async getEntityOutgoingLinks(
     params: Parameters<DbClient["getEntityOutgoingLinks"]>[0],
-  ): Promise<DbLink[]> {
+  ): ReturnType<DbClient["getEntityOutgoingLinks"]> {
     return await getEntityOutgoingLinks(this.conn, params);
   }
 
   async getEntityIncomingLinks(
     params: Parameters<DbClient["getEntityIncomingLinks"]>[0],
-  ): Promise<DbLink[]> {
+  ): ReturnType<DbClient["getEntityIncomingLinks"]> {
     return await getEntityIncomingLinks(this.conn, params);
   }
 
   async createVerificationCode(
     params: Parameters<DbClient["createVerificationCode"]>[0],
-  ): Promise<VerificationCode> {
+  ): ReturnType<DbClient["createVerificationCode"]> {
     const id = genId();
     const createdAt = new Date();
     await insertVerificationCode(this.conn, { ...params, id, createdAt });
@@ -493,37 +484,37 @@ export class PostgresClient implements DbClient {
 
   async getVerificationCode(
     params: Parameters<DbClient["getVerificationCode"]>[0],
-  ): Promise<VerificationCode | null> {
+  ): ReturnType<DbClient["getVerificationCode"]> {
     return await getVerificationCode(this.conn, params);
   }
 
   async getUserVerificationCodes(
     params: Parameters<DbClient["getUserVerificationCodes"]>[0],
-  ): Promise<VerificationCode[]> {
+  ): ReturnType<DbClient["getUserVerificationCodes"]> {
     return await getUserVerificationCodes(this.conn, params);
   }
 
   async incrementVerificationCodeAttempts(
     params: Parameters<DbClient["incrementVerificationCodeAttempts"]>[0],
-  ): Promise<void> {
+  ): ReturnType<DbClient["incrementVerificationCodeAttempts"]> {
     return await incrementVerificationCodeAttempts(this.conn, params);
   }
 
   async setVerificationCodeToUsed(
     params: Parameters<DbClient["setVerificationCodeToUsed"]>[0],
-  ): Promise<void> {
+  ): ReturnType<DbClient["setVerificationCodeToUsed"]> {
     return await setVerificationCodeToUsed(this.conn, params);
   }
 
   async pruneVerificationCodes(
     params: Parameters<DbClient["pruneVerificationCodes"]>[0],
-  ): Promise<number> {
+  ): ReturnType<DbClient["pruneVerificationCodes"]> {
     return await pruneVerificationCodes(this.conn, params);
   }
 
   async getEntityHistory(
     params: Parameters<DbClient["getEntityHistory"]>[0],
-  ): Promise<EntityVersion[]> {
+  ): ReturnType<DbClient["getEntityHistory"]> {
     return await getEntityHistory(this.conn, params);
   }
 
@@ -536,30 +527,26 @@ export class PostgresClient implements DbClient {
   }
 
   async getEntities(
-    entities: {
-      accountId: string;
-      entityId: string;
-      entityVersionId?: string;
-    }[],
-  ): Promise<DbEntity[]> {
-    return await getEntities(this.conn, entities);
+    params: Parameters<DbClient["getEntities"]>[0],
+  ): ReturnType<DbClient["getEntities"]> {
+    return await getEntities(this.conn, params);
   }
 
   async getAccountEntityTypes(
     params: Parameters<DbClient["getAccountEntityTypes"]>[0],
-  ): Promise<EntityType[]> {
+  ): ReturnType<DbClient["getAccountEntityTypes"]> {
     return await getAccountEntityTypes(this.conn, params);
   }
 
   async acquireEntityLock(
     params: Parameters<DbClient["acquireEntityLock"]>[0],
-  ): Promise<null> {
+  ): ReturnType<DbClient["acquireEntityLock"]> {
     return acquireEntityLock(this.conn, params);
   }
 
   async getImpliedEntityHistory(
     params: Parameters<DbClient["getImpliedEntityHistory"]>[0],
-  ) {
+  ): ReturnType<DbClient["getImpliedEntityHistory"]> {
     return getImpliedEntityHistory(this.conn, params);
   }
 
@@ -569,11 +556,13 @@ export class PostgresClient implements DbClient {
     return getAncestorReferences(this.conn, params);
   }
 
-  async getSystemAccountId() {
+  async getSystemAccountId(): ReturnType<DbClient["getSystemAccountId"]> {
     return getSystemAccountId(this.conn);
   }
 
-  async getChildren(params: Parameters<DbClient["getChildren"]>[0]) {
+  async getChildren(
+    params: Parameters<DbClient["getChildren"]>[0],
+  ): ReturnType<DbClient["getChildren"]> {
     return getChildren(this.conn, params);
   }
 }
