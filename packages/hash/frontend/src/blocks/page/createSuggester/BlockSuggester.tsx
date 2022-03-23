@@ -26,15 +26,38 @@ export const BlockSuggester: VFC<BlockSuggesterProps> = ({
   const { value: blocksMeta } = useBlocksMeta();
 
   const options = useMemo(() => {
-    const allOptions = Object.values(blocksMeta).flatMap((blockMeta) =>
-      blockMeta.componentMetadata.variants.map((variant) => ({
-        variant,
+    const allOptions = Object.values(blocksMeta).flatMap((blockMeta) => {
+      if (blockMeta.componentMetadata.variants.length > 0) {
+        return blockMeta.componentMetadata.variants.map((variant) => ({
+          variant,
+          meta: blockMeta,
+        }));
+      }
+      return {
+        variant: {
+          description:
+            blockMeta.componentMetadata.description ??
+            blockMeta.componentMetadata.displayName ??
+            blockMeta.componentMetadata.name,
+          displayName:
+            blockMeta.componentMetadata.displayName ??
+            blockMeta.componentMetadata.name,
+          // @todo add a fallback icon
+          icon: blockMeta.componentMetadata.icon ?? "",
+          name:
+            blockMeta.componentMetadata.displayName ??
+            blockMeta.componentMetadata.name,
+          properties: blockMeta.componentMetadata.default ?? {},
+        },
         meta: blockMeta,
-      })),
-    );
+      };
+    });
 
     return fuzzySearchBy(allOptions, search, (option) =>
-      [option.variant.displayName, option.variant.description]
+      [
+        option.variant.name ?? option.variant.displayName,
+        option.variant.description,
+      ]
         .map((str) => str ?? "")
         .join(" "),
     );
@@ -65,7 +88,7 @@ export const BlockSuggester: VFC<BlockSuggesterProps> = ({
         </>
       )}
       itemKey={({ meta, variant }) =>
-        `${meta.componentMetadata.name}/${variant.displayName}`
+        `${meta.componentMetadata.name}/${variant.description}`
       }
       onChange={(option) => onChange(option.variant, option.meta)}
       className={className}
