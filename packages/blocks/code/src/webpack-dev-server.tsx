@@ -2,7 +2,7 @@
  * This is the entry point for developing and debugging.
  * This file is not bundled with the library during the build process.
  */
-import React, { useState } from "react";
+import React from "react";
 import ReactDOM from "react-dom";
 import { tw } from "twind";
 import { MockBlockDock } from "mock-block-dock";
