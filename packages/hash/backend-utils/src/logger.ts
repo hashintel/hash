@@ -12,6 +12,10 @@ export type LoggerConfig = {
   level?: LogLevel;
   serviceName: string;
   metadata?: Record<string, string>;
+  /**
+   * For things that need to configure the direction for their logs such as in singer target
+   */
+  useStream?: NodeJS.WritableStream;
 };
 
 const tbdIsLogLevel = (level: string): level is LogLevel =>
@@ -41,7 +45,8 @@ export class Logger {
     });
     if (cfg.mode === "dev") {
       logger.add(
-        new winston.transports.Console({
+        new winston.transports.Stream({
+          stream: cfg.useStream ?? process.stdout,
           level: cfg.level,
           format: winston.format.combine(
             winston.format.json(),
@@ -55,7 +60,8 @@ export class Logger {
       // Datadog: https://github.com/winstonjs/winston/blob/master/docs/transports.md#datadog-transport
       // Just output to console for now
       logger.add(
-        new winston.transports.Console({
+        new winston.transports.Stream({
+          stream: cfg.useStream ?? process.stdout,
           level: cfg.level,
           format: winston.format.combine(
             winston.format.timestamp(),
