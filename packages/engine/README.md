@@ -222,7 +222,7 @@ If one of the environment variables shown in the help page is passed, it will ov
 
 ### Run a simulation
 
-> **Warning** - Rust runners are currently not supported. Within your simulation project, you should only see `.js` files within dependencies (for example, dependencies/@hash/age/src/behaviors/age.js). Files ending in `.rs` will be ignored and the run will possibly fail in unclear ways. This also means that only an `init.json` or `init.js` is supported at the moment, not `init.py`.
+> **Warning** - Rust runners are currently not supported. Within your simulation project, you should only see `.js` files within dependencies (for example, dependencies/@hash/age/src/behaviors/age.js). Files ending in `.rs` will be ignored and the run will possibly fail in unclear ways.
 >
 > Currently, the easiest way of creating a project is by using the integrated IDE at [https://core.hash.ai][hcore] (hCore). In the absence of an in-depth description of expected project structure (which will be coming in the future), downloading a project from hCore is currently the easiest way to learn how one should be set out.
 
