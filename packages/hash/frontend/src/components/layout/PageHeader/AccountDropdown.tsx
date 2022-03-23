@@ -73,7 +73,6 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
             width: 32,
             padding: 0,
           }}
-          title={user.properties.shortname!}
           open={open}
         >
           {avatar ? (
