@@ -5,6 +5,8 @@
 import React, { useState } from "react";
 import ReactDOM from "react-dom";
 import { tw } from "twind";
+import { MockBlockDock } from "mock-block-dock";
+
 // eslint-disable-next-line import/extensions
 import Component from "./index.ts";
 
@@ -27,13 +29,15 @@ const App = () => {
 
   return (
     <div className={tw`mx-auto mt-14 max-w-3xl`}>
-      <Component
-        entityTypeId="code"
-        entityId="entity-code"
-        accountId="account-code"
-        updateEntities={handleUpdateEntities}
-        {...data}
-      />
+      <MockBlockDock>
+        <Component
+          entityTypeId="code"
+          entityId="entity-code"
+          accountId="account-code"
+          updateEntities={handleUpdateEntities}
+          {...data}
+        />
+      </MockBlockDock>
     </div>
   );
 };

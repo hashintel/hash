@@ -10,6 +10,7 @@ import {
   BlockProtocolUpdateEntitiesAction,
   BlockProtocolEntity,
 } from "blockprotocol";
+import { MockBlockDock } from "mock-block-dock";
 
 import Component from "./index";
 import { ProviderName } from "./types";
@@ -97,15 +98,17 @@ const AppComponent: React.VoidFunctionComponent = () => {
       </select>
       <br />
       <br />
-      <Component
-        accountId="uuid-1234-account"
-        entityId="uuid-1234-id"
-        entityTypeId="Embed"
-        getEmbedBlock={getEmbedBlock}
-        updateEntities={updateBlockData}
-        {...state}
-        {...getVariantProperties(variants[selectedVariantIndex]!)}
-      />
+      <MockBlockDock>
+        <Component
+          accountId="uuid-1234-account"
+          entityId="uuid-1234-id"
+          entityTypeId="Embed"
+          getEmbedBlock={getEmbedBlock}
+          updateEntities={updateBlockData}
+          {...state}
+          {...getVariantProperties(variants[selectedVariantIndex]!)}
+        />
+      </MockBlockDock>
     </div>
   );
 };
