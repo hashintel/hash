@@ -442,7 +442,8 @@ impl<'a> BufferActions<'a> {
         batch.segment.set_persisted_metaversion(loaded);
 
         // Overwrite the Arrow Batch Metadata in memory
-        agent_batch.flush_dynamic_meta_unchecked(&self.new_dynamic_meta)?;
+        let change = agent_batch.flush_dynamic_meta_unchecked(&self.new_dynamic_meta)?;
+        debug_assert!(!change.resized() && !change.shifted());
         debug_assert!(
             offsets_start_at_zero(
                 agent_batch.batch.segment.memory(),

@@ -91,7 +91,8 @@ impl MessageBatch {
                     .target_total_size_accommodates_data_size(upper_bound, data_len)
             {
                 batch.memory_mut().resize(upper_bound)?;
-                batch.memory_mut().set_data_length(data_len)?;
+                let change = batch.memory_mut().set_data_length(data_len)?;
+                debug_assert!(!change.resized() && !change.shifted());
                 // Always increment when resizing
                 metaversion_to_persist.increment();
             }
@@ -99,7 +100,8 @@ impl MessageBatch {
 
         let old_metadata_size = batch.memory().get_metadata()?.len();
         // Write new metadata
-        batch.memory_mut().set_metadata(&meta_buffer)?;
+        let change = batch.memory_mut().set_metadata(&meta_buffer)?;
+        debug_assert!(!change.resized() && !change.shifted());
         debug_assert_eq!(
             old_metadata_size,
             batch
@@ -163,11 +165,13 @@ impl MessageBatch {
             data_len,
             true,
         )?;
-        memory.set_metadata(&meta_buffer)?;
+        let change = memory.set_metadata(&meta_buffer)?;
+        debug_assert!(!change.resized() && !change.shifted());
 
         let data_buffer = memory.get_mut_data_buffer()?;
         record_batch_data_to_bytes_owned_unchecked(&record_batch, data_buffer);
-        memory.set_header(&header)?;
+        let change = memory.set_header(&header)?;
+        debug_assert!(!change.resized() && !change.shifted());
         Self::from_memory(memory, schema.clone(), meta)
     }
 

@@ -228,6 +228,11 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           override: true
 
+      - name: Install Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.7"
+
       - name: Cache dependencies
         uses: actions/cache@v2
         with:
@@ -253,6 +258,16 @@ jobs:
           mv -v vendor/v8/* .. # Move out the wanted files
           cd ..
           rm -rf tmp # Delete the tmp folder
+
+      - name: Build tests
+        if: matrix.directory == 'packages/engine'
+        run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-run ${{ matrix.flags }}
+
+      - name: Setup Python environment
+        if: matrix.directory == 'packages/engine'
+        working-directory: ${{ matrix.directory }}
+        run: |
+          src/worker/runner/python/setup.sh python3.7
 
       - name: Run tests
         run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }}
@@ -287,6 +302,11 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           override: true
 
+      - name: Install Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.7"
+
       - name: Cache dependencies
         uses: actions/cache@v2
         with:
@@ -312,6 +332,16 @@ jobs:
           mv -v vendor/v8/* .. # Move out the wanted files
           cd ..
           rm -rf tmp # Delete the tmp folder
+
+      - name: Build tests
+        if: matrix.directory == 'packages/engine'
+        run: cargo test --manifest-path ${{ matrix.directory }}/Cargo.toml --no-run ${{ matrix.flags }}
+
+      - name: Setup Python environment
+        if: matrix.directory == 'packages/engine'
+        working-directory: ${{ matrix.directory }}
+        run: |
+          src/worker/runner/python/setup.sh python3.7
 
       - name: Run tests
         run: cargo test --test ${{ matrix.tests }} --manifest-path ${{ matrix.directory }}/Cargo.toml --no-fail-fast ${{ matrix.flags }} -- --test-threads=1
