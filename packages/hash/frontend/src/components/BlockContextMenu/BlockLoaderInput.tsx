@@ -61,7 +61,7 @@ export const BlockLoaderInput: React.VFC = () => {
           disabled={isDefinedBlock || !isValidBlockUrl || error != null}
         >
           {isDefinedBlock
-            ? "Block got defined"
+            ? "Block already defined"
             : !isValidBlockUrl
             ? "Invalid URL"
             : error

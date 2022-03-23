@@ -129,6 +129,10 @@ export class EditorConnection {
         }
         break;
       case "update":
+        console.log(
+          "We get here before erroring when adding a third-party block",
+        );
+        console.log({ transaction });
         if (!this.state.edit) {
           throw new Error("Cannot apply transaction without state to apply to");
         }
