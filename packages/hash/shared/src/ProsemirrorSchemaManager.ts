@@ -68,6 +68,7 @@ export class ProsemirrorSchemaManager {
     public schema: Schema,
     private view: EditorView<Schema> | null = null,
     private componentNodeViewFactory: ComponentNodeViewFactory | null = null,
+    public accountId: string,
   ) {}
 
   /**
@@ -522,6 +523,7 @@ export class ProsemirrorSchemaManager {
         addEntityStoreAction(this.view.state, tr, {
           type: "newDraftEntity",
           payload: {
+            accountId: this.accountId,
             draftId: newTextDraftId,
             entityId: null,
           },
@@ -578,6 +580,7 @@ export class ProsemirrorSchemaManager {
     addEntityStoreAction(this.view.state, tr, {
       type: "newDraftEntity",
       payload: {
+        accountId: this.accountId,
         draftId: newBlockId,
         entityId: null,
       },
@@ -587,12 +590,13 @@ export class ProsemirrorSchemaManager {
     addEntityStoreAction(this.view.state, tr, {
       type: "newDraftEntity",
       payload: {
+        accountId: this.accountId,
         draftId: newVariantDraftId,
         entityId: null,
       },
     });
 
-    // // @todo handle non-intermediary entities
+    // @todo handle non-intermediary entities
     addEntityStoreAction(this.view.state, tr, {
       type: "updateEntityProperties",
       payload: {

@@ -115,6 +115,7 @@ export const createEditorView = (
         accountId,
       );
     },
+    accountId,
   );
 
   connection = new EditorConnection(
