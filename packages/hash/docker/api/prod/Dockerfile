@@ -36,4 +36,4 @@ RUN chown appuser:appuser /app
 USER appuser
 ENV NODE_ENV production
 
-CMD ["node", "--max-old-space-size=2048", "./node_modules/.bin/ts-node", "./packages/hash/api/src/index.ts"]
+CMD ["node", "--max-old-space-size=2048", "./node_modules/.bin/ts-node", "--transpile-only", "./packages/hash/api/src/index.ts"]

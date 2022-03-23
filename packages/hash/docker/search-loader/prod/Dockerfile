@@ -2,6 +2,8 @@ FROM node:16 AS builder
 
 WORKDIR /app
 
+COPY packages/hash/api packages/hash/api
+COPY packages/hash/shared packages/hash/shared
 COPY packages/hash/backend-utils packages/hash/backend-utils
 COPY packages/hash/search-loader packages/hash/search-loader
 COPY packages/hash/shared packages/hash/shared
@@ -28,6 +30,10 @@ WORKDIR /app
 RUN groupadd -g 999 appuser \
   && useradd -r -u 999 -g appuser appuser
 
-USER appuser
+USER root
+RUN chown appuser:appuser /app
 
-CMD ["yarn", "workspace","@hashintel/hash-search-loader", "start"]
+USER appuser
+ENV NODE_ENV production
+
+CMD ["node", "--max-old-space-size=2048", "./node_modules/.bin/ts-node", "--transpile-only", "./packages/hash/search-loader/src/index.ts"]
