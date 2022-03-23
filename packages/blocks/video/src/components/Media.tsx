@@ -272,6 +272,8 @@ export const Media: BlockComponent<
                     sourceAccountId: accountId,
                     sourceEntityId: link.sourceEntityId,
                     // @ts-expect-error
+                    // linkId is filtered for before mapping over the data,
+                    // hence this should contain linkId already
                     linkId: link.linkId,
                   })),
               );
