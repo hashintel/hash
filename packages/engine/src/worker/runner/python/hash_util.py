@@ -6,11 +6,6 @@ from pyarrow.types import is_primitive
 from wrappers import np_force_writable
 
 
-# TODO: Change arguments after upgrading Arrow.
-def load_shallow(vector, _is_nullable, _is_any):
-    return vector
-
-
 def _writable_in_place(typ):
     if is_primitive(typ):
         is_bool = typ.bit_width == 1

@@ -31,13 +31,9 @@ def _get_neighbors(agent_context, neighbor_locs):
 
 
 def start_sim(experiment, sim, init_message, init_context):
-    loaders = {
-        "neighbors": hash_util.load_shallow
-    }
-    getters = {
-        "neighbors": _get_neighbors
-    }
     return {
-        "loaders": loaders,
-        "getters": getters
+        "loaders": {},
+        "getters": {
+            "neighbors": _get_neighbors
+        }
     }

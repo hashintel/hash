@@ -52,14 +52,10 @@ def _get_msgs(agent_context, msg_locs):
     return messages
 
 
-def start_sim(experiment, sim, init_message, init_context):
-    loaders = {
-        "messages": hash_util.load_shallow
-    }
-    getters = {
-        "messages": _get_msgs
-    }
+def start_sim(_experiment, _sim, _init_message, _init_context):
     return {
-        "loaders": loaders,
-        "getters": getters
+        "loaders": {},
+        "getters": {
+            "messages": _get_msgs
+        }
     }

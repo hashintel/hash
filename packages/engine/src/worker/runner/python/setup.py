@@ -37,16 +37,16 @@ library_dirs = sorted(
 
 # Convert path to Python module prefix.
 if script_path == ".":
-    # pylint: disable=invalid-name
-    prefix = ""
+    wrappers_import = "wrappers"
 else:
-    prefix = script_path.replace("./", "").replace("/", ".") + "."
+    script_path_as_import = script_path.replace("./", "").replace("/", ".")
+    wrappers_import = f"{script_path_as_import}.wrappers"
 
 setup(
     ext_modules=cythonize(
         [
             Extension(
-                prefix + "wrappers",
+                wrappers_import,
                 [script_path + "/wrappers.pyx"],
                 include_dirs=[numpy.get_include()],
                 libraries=["hash_engine_lib"],

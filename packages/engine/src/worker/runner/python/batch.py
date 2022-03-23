@@ -204,7 +204,7 @@ class Batch:
             col = loader(vector, field.nullable, is_any)
         elif name.startswith("_PRIVATE_") or name.startswith("_HIDDEN_"):
             # only agent-scoped fields are fully loaded by default
-            col = hash_util.load_shallow(vector, field.nullable, is_any)
+            col = vector
         else:
             col = hash_util.load_full(vector, field.nullable, is_any)
 

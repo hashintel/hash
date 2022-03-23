@@ -11,9 +11,9 @@ from message import Messenger
 from util import format_exc_info
 
 """
-Amount of seconds to sleep after killing the process.
+Amount of seconds to sleep before freeing resources.
 """
-SLEEP_AFTER_KILL = 2
+SLEEP_BEFORE_FREE = 2
 
 
 # We want to catch everything
@@ -37,7 +37,7 @@ class Runner:
             # TODO: Use execptions instead
             #   see https://app.asana.com/0/1199548034582004/1202011714603649/f
             if self.start_experiment():
-                self._kill_after_sent()
+                self._free_after_sent()
         except Exception as error:
             # Have to catch generic Exception -- if we knew what the error
             # in the runner was, we could have fixed it in the first place.
@@ -149,7 +149,7 @@ class Runner:
             error
         )  # First make sure the error gets logged; then try to send it.
         self.messenger.send_runner_error(error, sim_id)
-        self._kill_after_sent()
+        self._free_after_sent()
 
     def _handle_pkg_error(self, pkg, origin, exc_info, sim_id=0):
         """
@@ -169,14 +169,14 @@ class Runner:
         )  # First make sure the error gets logged; then try to send it.
         self.messenger.send_pkg_error(error, sim_id)
 
-    def _kill_after_sent(self):
+    def _free_after_sent(self):
         """
         Give the Rust process time to receive nng messages and then
         kill the runner.
         """
         # TODO: check/fix shared memory allocation
         #   see https://app.asana.com/0/1201461747883418/1201634225076144/f
-        time.sleep(SLEEP_AFTER_KILL)
+        time.sleep(SLEEP_BEFORE_FREE)
         self._free()
 
     def _free(self):
