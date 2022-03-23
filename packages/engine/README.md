@@ -59,8 +59,7 @@ We're building a community of people who care about enabling better decision-mak
 
 As outlined above, this project is the next-generation of our simulation engine, and differs from the one currently powering [hCore](https://hash.ai/platform/core?utm_medium=organic&utm_source=github_readme_engine) and [hCloud](https://hash.ai/platform/cloud?utm_medium=organic&utm_source=github_readme_engine). It's published here as a pre-release technology preview, and as such the feature-set and codebase should be considered unstable until it's released. That means that there are a number of features you may use on the HASH platform that at present may not be supported by this project, notably:
 
-- Python runners, and therefore **Python behaviors** are currently **disabled**. This is a high-priority item for us and will be one of the main items of development focused on in the near future. A large part of the implementation is finished and can be found in this repository, if you are interested in exploring it (Although as it is _not_ completely finished, expect to find bugs).
-- Rust runners, and therefore **Rust behaviors** (which are generally a subset of the @hash behaviors found within hIndex) are currently **disabled**. This will be taken on after we have enabled the Python runners. Similar to Python, a large amount of the implementation is finished and available to explore, but currently not-in-use.
+- Rust runners, and therefore **Rust behaviors** (which are generally a subset of the @hash behaviors found within hIndex) are currently **disabled**. This is a high-priority item for us and will be one of the main items of development focused on in the near future. A large part of the implementation is finished and can be found in this repository, if you are interested in exploring it (Although as it is _not_ completely finished, expect to find bugs).
 
 There are a number of other functionalities in the HASH platform that are possibly under-development and/or not stable within the current repository. Feel free to try things out, but don't be dissuaded if they don't work yet. We don't want to make any guarantees until we've had time to properly test features, and for now we're prioritising development to get those features out!
 
@@ -108,8 +107,6 @@ Depending on your needs, different dependencies are required. Building this proj
 ### Optional dependencies
 
 - Python [3.7.x] is required, if you want to run a simulation with the python runner (i.e. have any python behaviors or _init.py_).
-
-  > **Warning**: The Python runner currently is not supported by the CLI.
 
   - Python installation guidance from [their website](https://www.python.org/downloads/)
 
@@ -225,7 +222,7 @@ If one of the environment variables shown in the help page is passed, it will ov
 
 ### Run a simulation
 
-> **Warning** - Python and Rust runners are currently not supported. Within your simulation project, you should only see `.js` files within dependencies (for example, dependencies/@hash/age/src/behaviors/age.js). Files ending in `.rs` and `.py` will be ignored and the run will possibly fail in unclear ways. This also means that only an `init.json` or `init.js` is supported at the moment, not `init.py`.
+> **Warning** - Rust runners are currently not supported. Within your simulation project, you should only see `.js` files within dependencies (for example, dependencies/@hash/age/src/behaviors/age.js). Files ending in `.rs` will be ignored and the run will possibly fail in unclear ways. This also means that only an `init.json` or `init.js` is supported at the moment, not `init.py`.
 >
 > Currently, the easiest way of creating a project is by using the integrated IDE at [https://core.hash.ai][hcore] (hCore). In the absence of an in-depth description of expected project structure (which will be coming in the future), downloading a project from hCore is currently the easiest way to learn how one should be set out.
 
