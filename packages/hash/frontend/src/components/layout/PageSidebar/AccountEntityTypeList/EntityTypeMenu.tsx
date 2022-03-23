@@ -94,7 +94,7 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({ className }) => {
 
             if (href) {
               return (
-                <Link noLinkStyle href={href}>
+                <Link noLinkStyle href={href} key={title}>
                   <ListItemButton onClick={() => setOpen(false)}>
                     <FontAwesomeIcon icon={icon} />
                     <Typography variant="smallTextLabels">{title}</Typography>
@@ -109,6 +109,7 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({ className }) => {
                     onClick();
                     setOpen(false);
                   }}
+                  key={title}
                   sx={{
                     mx: 0.5,
                     py: 1,
