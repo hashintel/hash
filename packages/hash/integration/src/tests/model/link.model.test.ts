@@ -300,7 +300,7 @@ describe("Link model class ", () => {
     expect(entityATimestamp4OutgoingLinks[0]!.index).toBe(0);
   });
 
-  it("update method correctly updates link with a non-versioned source entity", async () => {
+  it("update method correctly updates link with a versioned source entity", async () => {
     const { accountId } = existingUser;
 
     const stringifiedPath = "$.test";
@@ -363,7 +363,7 @@ describe("Link model class ", () => {
     );
   });
 
-  it("update method correctly updates link with a versioned source entity", async () => {
+  it("update method correctly updates link with a non-versioned source entity", async () => {
     const { accountId } = existingUser;
 
     const stringifiedPath = "$.test";
