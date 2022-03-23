@@ -2,10 +2,7 @@ import { test, expect } from "@playwright/test";
 import { sleep } from "@hashintel/hash-shared/sleep";
 import { loginUsingUi } from "./utils/loginUsingUi";
 
-// TODO: Remove dynamic page suffix when we start seeding the DB before each test
-// Partially blocked by https://github.com/hashintel/dev/pull/379
-const pageNameSuffix = Date.now();
-const pageName = `Test page ${pageNameSuffix}`;
+const pageName = "Untitled";
 
 const listOfPagesSelector = '[data-testid="pages-tree"]';
 const pageTitleInputSelector = '[placeholder="A title for the page"]';
@@ -30,11 +27,6 @@ test("user can create page", async ({ page }) => {
 
   // Create the new page
   await page.locator('[data-testid="create-page-btn"]').click();
-  await page.type('[placeholder="What is this document?"]', pageName);
-
-  await page
-    .locator('[data-testid="create-page-modal"] >> text=Create')
-    .click();
 
   await page.waitForURL((url) => !!url.pathname.match(/^\/[\w-]+\/[\w-]+$/));
 
