@@ -1,0 +1,68 @@
+export PATH := "./node_modules/.bin:" + env_var('PATH')
+
+github-test:
+  node ./bin/tap-github.js
+
+github-update-spec:
+  # Open API Generator requires Open API 3.0
+  # Long term, we might not want to vendor these in
+  # https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.json
+  curl https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.json \
+    --output src/github/assets/api.github.com.json
+  curl https://raw.githubusercontent.com/github/rest-api-description/main/descriptions-next/api.github.com/dereferenced/api.github.com.deref.json \
+    --output src/github/assets/api.github.com-3.1.deref.json
+  
+  # Hmm, sometimes input is wrong. I think it is because of open api spec 3.1
+  # I thought maybe it was related to the file being too large...
+  # jq -c . < src/github/assets/api.github.com.json > src/github/assets/api.github.com.min.json
+  just github-generate
+
+# Extract the json schemas from the current API endpoints
+github-generate:
+  cat "./src/github/assets/api.github.com-3.1.deref.json" \
+    | jq '.paths."/issues".get.responses."200".content."application/json".schema.items' \
+    > src/github/gen/schemas/issue.json
+
+# WIP
+github-generate-api-client:
+  # See https://openapi-generator.tech/docs/generators/typescript-axios/
+  openapi-generator-cli generate \
+    -p apiPackage=apipkg \
+    -p modelPackage=modelPkg \
+    -p withSeparateModelsAndApi=true \
+    -p modelPropertyNaming=original \
+    -p supportsES6=true \
+    -i src/github/assets/api.github.com.json \
+    -g typescript-fetch \
+    -o src/github/gen/ApiGithubComClient \
+    --skip-validate-spec
+
+asana-update-spec:
+  # Be aware that there might be more to discuss on individually packaging / releasing taps
+  # so we can allow people to stick with previous versions of their taps (i.e. self-hosting Jira 2016 & Jira 2016 tap)
+
+  # Long term, we might not want to vendor these in
+  curl https://raw.githubusercontent.com/Asana/developer-docs/master/defs/asana_oas.yaml \
+    --output src/asana/assets/asana_oas.yaml
+
+  just asana-generate
+
+asana-generate:
+  # Borrowed from https://github.com/Asana/node-asana/issues/244#issuecomment-1019276179
+  openapi-generator-cli generate \
+    -p apiPackage=apipkg \
+    -p modelPackage=modelPkg \
+    -p withSeparateModelsAndApi=true \
+    -p modelPropertyNaming=original \
+    -p supportsES6=true \
+    -i src/asana/assets/asana_oas.yaml \
+    -g typescript-fetch \
+    -o src/asana/gen/AsanaClient
+  # --skip-validate-spec # Consider if necessary
+
+# Included for documentation purposes
+dangerously-setup-macos-with-zsh:
+  yarn
+  brew install java
+  echo 'export PATH="/opt/homebrew/opt/openjdk/bin:$PATH"' >> ~/.zshrc
+  zsh # reload zsh

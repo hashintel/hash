@@ -1,0 +1,18 @@
+{
+  "name": "hash-taps",
+  "private": true,
+  "bin": {
+    "tap-asana": "./bin/tap-asana.js",
+    "tap-github": "./bin/tap-github.js"
+  },
+  "dependencies": {
+    "@octokit/rest": "18.12.0",
+    "ts-node": "10.7.0",
+    "zod": "3.14.2",
+    "zod-to-json-schema": "3.11.3"
+  },
+  "devDependencies": {
+    "@openapi-contrib/openapi-schema-to-json-schema": "3.1.1",
+    "@openapitools/openapi-generator-cli": "2.4.26"
+  }
+}
