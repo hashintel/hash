@@ -11,6 +11,7 @@
     "packages/hash/integration",
     "packages/hash/playwright",
     "packages/hash/realtime",
+    "packages/hash/singer-target",
     "packages/hash/search-loader",
     "packages/hash/shared"
   ],

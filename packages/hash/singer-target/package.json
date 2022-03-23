@@ -1,0 +1,17 @@
+{
+  "name": "@hashintel/hash-singer-target",
+  "version": "0.0.0",
+  "private": true,
+  "bin": {
+    "singer-target": "./bin/singer-target.js"
+  },
+  "scripts": {
+    "test-github-to-target": "cat ./test-data/tap-github--ingest--bonsai.jsonl | node ./bin/singer-target.js"
+  },
+  "dependencies": {
+    "@hashintel/hash-api": "0.0.0",
+    "@hashintel/hash-backend-utils": "0.0.0",
+    "ts-node": "10.7.0",
+    "typescript": "4.6.2"
+  }
+}
