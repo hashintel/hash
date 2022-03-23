@@ -83,6 +83,9 @@ export class Instance {
   timedPositions: TimedCollabPosition[] = [];
   positionCleanupInterval: ReturnType<typeof setInterval>;
 
+  errored = false;
+  stopped = false;
+
   /**
    * @todo absorb position updates into this
    */
@@ -118,6 +121,11 @@ export class Instance {
   }
 
   stop() {
+    if (this.stopped) {
+      return;
+    }
+
+    this.stopped = true;
     this.sendUpdates();
 
     clearInterval(this.positionCleanupInterval);
@@ -130,6 +138,26 @@ export class Instance {
     this.unsubscribeFromEntityWatcher();
   }
 
+  error(err: unknown) {
+    if (this.errored) {
+      logger.warn(
+        "Error encountered when instance already in errored state",
+        err,
+      );
+      return false;
+    }
+
+    logger.warn(
+      `Stopping instance ${this.accountId}/${this.pageEntityId}`,
+      err,
+    );
+
+    this.errored = true;
+    this.updates = [];
+    this.sendUpdates();
+    this.stop();
+  }
+
   /**
    * This has a non-ideal implementation as we have to walk the entity tree
    * twice – the first time to work out if the entity version we've received is
@@ -139,6 +167,10 @@ export class Instance {
    * walkValueForEntity cannot handle async operations
    */
   private async processEntityVersion(entityVersion: EntityVersion) {
+    if (this.errored) {
+      return;
+    }
+
     /**
      * This removes any extra properties from a passed object containing an
      * accountId and entityId, which may be an Entity or a LatestEntityRef, or
@@ -237,6 +269,10 @@ export class Instance {
   }
 
   private updateSavedContents(nextSavedContents: BlockEntity[]) {
+    if (this.errored) {
+      return false;
+    }
+
     const { tr } = this.state;
     addEntityStoreAction(this.state, tr, {
       type: "mergeNewPageContents",
@@ -270,39 +306,51 @@ export class Instance {
       actions: EntityStorePluginAction[] = [],
       fromClient = true,
     ) => {
+      if (this.errored) {
+        return false;
+      }
+
       this.checkVersion(version);
       if (this.version !== version) return false;
-      const tr = this.state.tr;
 
-      if (fromClient) {
-        disableEntityStoreTransactionInterpretation(tr);
-      }
+      try {
+        const tr = this.state.tr;
 
-      for (let i = 0; i < steps.length; i++) {
-        this.clientIds.set(steps[i]!, clientID);
+        if (fromClient) {
+          disableEntityStoreTransactionInterpretation(tr);
+        }
 
-        const result = tr.maybeStep(steps[i]!);
-        if (!result.doc) return false;
-      }
+        for (let i = 0; i < steps.length; i++) {
+          this.clientIds.set(steps[i]!, clientID);
 
-      for (const action of actions) {
-        addEntityStoreAction(this.state, tr, { ...action, received: true });
-      }
+          const result = tr.maybeStep(steps[i]!);
+          if (!result.doc) {
+            logger.warn("Bad step", steps[i]);
+            throw new Error("Could not apply step");
+          }
+        }
 
-      this.state = this.state.apply(tr);
+        for (const action of actions) {
+          addEntityStoreAction(this.state, tr, { ...action, received: true });
+        }
 
-      // this.doc = doc;
-      this.addUpdates(steps.map((step) => ({ type: "step", payload: step })));
+        this.state = this.state.apply(tr);
 
-      for (const action of actions) {
-        this.addUpdates([{ type: "action", payload: action }]);
-      }
+        this.addUpdates(steps.map((step) => ({ type: "step", payload: step })));
 
-      this.sendUpdates();
+        for (const action of actions) {
+          this.addUpdates([{ type: "action", payload: action }]);
+        }
 
-      if (apolloClient) {
-        // @todo offload saves to a separate process / debounce them
-        this.save(apolloClient)(clientID);
+        this.sendUpdates();
+
+        if (apolloClient) {
+          // @todo offload saves to a separate process / debounce them
+          this.save(apolloClient)(clientID);
+        }
+      } catch (err) {
+        this.error(err);
+        return false;
       }
 
       return { version: this.version };
@@ -312,6 +360,10 @@ export class Instance {
     this.saveChain = this.saveChain
       .catch()
       .then(async () => {
+        if (this.errored) {
+          throw new Error("Saving when instance stopped");
+        }
+
         const { actions, createdEntities } = await createNecessaryEntities(
           this.state,
           this.accountId,
@@ -550,6 +602,10 @@ export class Instance {
     userPreferredName: string;
     entityId: string | null;
   }): void {
+    if (this.errored) {
+      return;
+    }
+
     const currentTimestamp = Date.now();
 
     const timedPositionIndex = this.timedPositions.findIndex(
@@ -592,6 +648,10 @@ export class Instance {
   }
 
   addPositionPoller(positionPoller: CollabPositionPoller) {
+    if (this.errored) {
+      return;
+    }
+
     this.positionPollers.push(positionPoller);
   }
 
@@ -619,6 +679,10 @@ export class Instance {
    * @todo do we want to force sending updates here too?
    */
   private addUpdates(updates: Update[]) {
+    if (this.errored) {
+      return false;
+    }
+
     this.updates = [...this.updates, ...updates];
 
     /**

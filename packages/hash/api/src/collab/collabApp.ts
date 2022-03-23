@@ -166,6 +166,11 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
           request.query.forceNewInstance === "true",
         );
 
+        if (instance.errored) {
+          // @todo need a way to reset this without forceNewInstance
+          return response.status(500).json({ error: true });
+        }
+
         response.json({
           doc: instance.state.doc.toJSON(),
           store: entityStorePluginState(instance.state).store,
@@ -193,18 +198,25 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
           return;
         }
         if (data.shouldRespondImmediately) {
-          return response.json(formatGetEventsResponse(instance, data));
+          return instance.errored
+            ? response.status(500).json({ error: true })
+            : response.json(formatGetEventsResponse(instance, data));
         }
         // If the server version matches the given version,
         // wait until a new version is published to return the event data.
         const wait = new Waiting(response, instance, userInfo.entityId, () => {
-          const events = instance.getEvents(version);
-          if (events === false) {
-            response.status(410).send("History no longer available");
-            return;
-          }
+          if (instance.errored) {
+            wait.send({ error: true }, 500);
+          } else {
+            const events = instance.getEvents(version);
+            if (events === false) {
+              // @todo track this
+              response.status(410).send("History no longer available");
+              return;
+            }
 
-          wait.send(formatGetEventsResponse(instance, events));
+            wait.send(formatGetEventsResponse(instance, events));
+          }
         });
         instance.waiting.push(wait);
         response.on("close", () => wait.abort());
@@ -222,6 +234,10 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
         const { apolloClient, instance } =
           await prepareSessionSupportWithInstance(request);
 
+        if (instance.errored) {
+          return response.status(500).json({ error: true });
+        }
+
         // @todo type this
         const data: any = request.body;
         const version = parseVersion(data.version);
@@ -235,7 +251,11 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
           data.actions,
         );
         if (!result) {
-          response.status(409).send("Version not current");
+          if (instance.errored) {
+            return response.status(500).json({ error: true });
+          } else {
+            response.status(409).send("Version not current");
+          }
         } else {
           response.json(result);
         }
