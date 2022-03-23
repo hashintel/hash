@@ -1,7 +1,7 @@
 use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 
-use super::runner::{javascript::JSRunnerError as JavaScriptError, python::Error as PythonError};
+use super::runner::{javascript::Error as JavaScriptError, python::Error as PythonError};
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 

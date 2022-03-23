@@ -10,6 +10,7 @@
 // Even though rusty_v8 returns an Option on Object::get,
 // if the object does not have the property the result will be Some(undefined)
 
+mod data_ffi;
 mod error;
 
 use std::{collections::HashMap, fs, pin::Pin, ptr::NonNull, slice, sync::Arc};
@@ -28,7 +29,7 @@ use tokio::{
 };
 use tracing::{Instrument, Span};
 
-pub use self::error::{Error as JSRunnerError, Result as JSRunnerResult};
+pub use self::error::{Error, Result};
 use super::comms::{
     inbound::InboundToRunnerMsgPayload,
     outbound::{OutboundFromRunnerMsg, PackageError, UserError, UserWarning},
@@ -53,10 +54,7 @@ use crate::{
         task::msg::TaskMessage,
     },
     types::TaskId,
-    worker::{
-        runner::comms::outbound::OutboundFromRunnerMsgPayload, Error as WorkerError,
-        Result as WorkerResult,
-    },
+    worker::{runner::comms::outbound::OutboundFromRunnerMsgPayload, Result as WorkerResult},
     Language,
 };
 
@@ -80,9 +78,9 @@ impl<'s> JsPackage<'s> {
         embedded: &Embedded<'s>,
         name: &str,
         pkg_type: PackageType,
-    ) -> JSRunnerResult<Self> {
+    ) -> Result<Self> {
         let path = get_pkg_path(name, pkg_type);
-        tracing::debug!("Importing package from path `{}`", &path);
+        tracing::debug!("Importing package from path `{path}`");
         let code = match fs::read_to_string(path.clone()) {
             Ok(s) => s,
             Err(_) => {
@@ -90,15 +88,12 @@ impl<'s> JsPackage<'s> {
                 // Packages don't have to use JS.
                 let fns = v8::Array::new(scope, 3);
                 let undefined = v8::undefined(scope).into();
-                fns.set_index(scope, 0, undefined).ok_or_else(|| {
-                    JSRunnerError::V8("Could not create Undefined value".to_string())
-                })?;
-                fns.set_index(scope, 1, undefined).ok_or_else(|| {
-                    JSRunnerError::V8("Could not create Undefined value".to_string())
-                })?;
-                fns.set_index(scope, 2, undefined).ok_or_else(|| {
-                    JSRunnerError::V8("Could not create Undefined value".to_string())
-                })?;
+                fns.set_index(scope, 0, undefined)
+                    .ok_or_else(|| Error::V8("Could not create Undefined value".to_string()))?;
+                fns.set_index(scope, 1, undefined)
+                    .ok_or_else(|| Error::V8("Could not create Undefined value".to_string()))?;
+                fns.set_index(scope, 2, undefined)
+                    .ok_or_else(|| Error::V8("Could not create Undefined value".to_string()))?;
 
                 return Ok(JsPackage { fns });
             }
@@ -109,8 +104,7 @@ impl<'s> JsPackage<'s> {
         let wrapped_code = new_js_string(
             scope,
             &format!(
-                "((hash_util, hash_stdlib) => {{
-                    {code}
+                "((hash_util, hash_stdlib) => {{{code}
                     return [
                         typeof start_experiment === 'undefined' ? undefined : start_experiment,
                         typeof start_sim === 'undefined' ? undefined : start_sim,
@@ -121,15 +115,14 @@ impl<'s> JsPackage<'s> {
         )?;
 
         let pkg: v8::Local<'_, v8::Function> = {
-            let pkg = v8::Script::compile(scope, wrapped_code, None).ok_or_else(|| {
-                JSRunnerError::V8("Could not create wrapped code scipt".to_string())
-            })?;
-            let pkg = pkg.run(scope).ok_or_else(|| {
-                JSRunnerError::V8("Could not execute wrapped code script".to_string())
-            })?;
+            let pkg = v8::Script::compile(scope, wrapped_code, None)
+                .ok_or_else(|| Error::V8("Could not create wrapped code scipt".to_string()))?;
+            let pkg = pkg
+                .run(scope)
+                .ok_or_else(|| Error::V8("Could not execute wrapped code script".to_string()))?;
 
-            pkg.try_into().map_err(|e| {
-                JSRunnerError::V8(format!("Could not convert wrapped code to Function: {e}"))
+            pkg.try_into().map_err(|err| {
+                Error::V8(format!("Could not convert wrapped code to Function: {err}"))
             })?
         };
 
@@ -139,37 +132,35 @@ impl<'s> JsPackage<'s> {
             let fns = pkg
                 .call(scope, global_context.into(), args)
                 .ok_or_else(|| {
-                    JSRunnerError::PackageImport(
+                    Error::PackageImport(
                         path.clone(),
                         "Could not run wrapped code function".to_string(),
                     )
                 })?;
 
-            fns.try_into().map_err(|e| {
-                JSRunnerError::V8(format!(
-                    "Could not convert wrapped code return value to Array: {e}"
+            fns.try_into().map_err(|err| {
+                Error::V8(format!(
+                    "Could not convert wrapped code return value to Array: {err}"
                 ))
             })?
         };
 
         if fns.length() != 3 {
-            return Err(JSRunnerError::PackageImport(
-                path.clone(),
-                "Stray return".into(),
-            ));
+            return Err(Error::PackageImport(path.clone(), "Stray return".into()));
         }
 
         // Validate returned array.
         let fn_names = ["start_experiment", "start_sim", "run_task"];
-        for (i, fn_name) in (0..fns.length()).zip(fn_names) {
-            let elem: v8::Local<'_, v8::Value> = fns.get_index(scope, i).ok_or_else(|| {
-                JSRunnerError::PackageImport(path.clone(), format!("Couldn't index array: {:?}", i))
-            })?;
+        for (idx_fn, fn_name) in fn_names.iter().enumerate() {
+            let elem: v8::Local<'_, v8::Value> =
+                fns.get_index(scope, idx_fn as u32).ok_or_else(|| {
+                    Error::PackageImport(path.clone(), format!("Couldn't index array: {idx_fn:?}"))
+                })?;
 
             if !(elem.is_function() || elem.is_undefined()) {
-                return Err(JSRunnerError::PackageImport(
+                return Err(Error::PackageImport(
                     path.clone(),
-                    format!("{} should be a function, not {:?}", fn_name, elem),
+                    format!("{fn_name} should be a function, not {elem:?}"),
                 ));
             }
         }
@@ -192,22 +183,19 @@ struct Embedded<'s> {
     state_snapshot_sync: v8::Local<'s, v8::Function>,
 }
 
-fn read_file(path: &str) -> JSRunnerResult<String> {
-    fs::read_to_string(path).map_err(|e| JSRunnerError::IO(path.into(), e))
+fn read_file(path: &str) -> Result<String> {
+    fs::read_to_string(path).map_err(|err| Error::IO(path.into(), err))
 }
 
-fn eval_file<'s>(
-    scope: &mut v8::HandleScope<'s>,
-    path: &str,
-) -> JSRunnerResult<v8::Local<'s, v8::Value>> {
+fn eval_file<'s>(scope: &mut v8::HandleScope<'s>, path: &str) -> Result<v8::Local<'s, v8::Value>> {
     let source_code = read_file(path)?;
     let js_source_code = new_js_string(scope, &source_code)?;
     let script = v8::Script::compile(scope, js_source_code, None)
-        .ok_or_else(|| JSRunnerError::Eval(path.into(), "compile error".to_string()))?;
+        .ok_or_else(|| Error::Eval(path.into(), "compile error".to_string()))?;
 
     script
         .run(scope)
-        .ok_or_else(|| JSRunnerError::Eval(path.into(), "execution error".to_string()))
+        .ok_or_else(|| Error::Eval(path.into(), "execution error".to_string()))
 }
 
 fn import_file<'s>(
@@ -215,16 +203,16 @@ fn import_file<'s>(
     context: v8::Local<'s, v8::Context>,
     path: &str,
     args: &[v8::Local<'s, v8::Value>],
-) -> JSRunnerResult<v8::Local<'s, v8::Value>> {
+) -> Result<v8::Local<'s, v8::Value>> {
     let v = eval_file(scope, path)?;
-    let f: v8::Local<'_, v8::Function> = v.try_into().map_err(|e| {
-        JSRunnerError::FileImport(path.into(), format!("Failed to wrap file: {:?}, {e}", &v))
+    let f: v8::Local<'_, v8::Function> = v.try_into().map_err(|err| {
+        Error::FileImport(path.into(), format!("Failed to wrap file: {v:?}, {err}"))
     })?;
 
     let global_context = context.global(scope);
-    let imported = f.call(scope, global_context.into(), args).ok_or_else(|| {
-        JSRunnerError::FileImport(path.into(), "could not call function".to_string())
-    })?;
+    let imported = f
+        .call(scope, global_context.into(), args)
+        .ok_or_else(|| Error::FileImport(path.into(), "could not call function".to_string()))?;
 
     Ok(imported)
 }
@@ -233,7 +221,7 @@ impl<'s> Embedded<'s> {
     fn import(
         scope: &mut v8::HandleScope<'s>,
         context: v8::Local<'s, v8::Context>,
-    ) -> JSRunnerResult<Self> {
+    ) -> Result<Self> {
         let arrow = eval_file(
             scope,
             "./src/worker/runner/javascript/apache-arrow-bundle.js",
@@ -258,21 +246,21 @@ impl<'s> Embedded<'s> {
             "./src/worker/runner/javascript/context.js",
             &[hash_util],
         )?;
-        let ctx_import: v8::Local<'_, v8::Array> = ctx_import.try_into().map_err(|e| {
-            JSRunnerError::FileImport(
+        let ctx_import: v8::Local<'_, v8::Array> = ctx_import.try_into().map_err(|err| {
+            Error::FileImport(
                 "./src/worker/runner/javascript/context.js".to_string(),
-                format!("Couldn't get array (of functions) from 'context.js': {e}"),
+                format!("Couldn't get array (of functions) from 'context.js': {err}"),
             )
         })?;
-        let experiment_ctx_prototype = ctx_import.get_index(scope, 0).ok_or_else(|| {
-            JSRunnerError::V8("Could not get index 0 from context.js array".to_string())
-        })?;
-        let sim_init_ctx_prototype = ctx_import.get_index(scope, 1).ok_or_else(|| {
-            JSRunnerError::V8("Could not get index 1 from context.js array".to_string())
-        })?;
-        let gen_ctx = ctx_import.get_index(scope, 2).ok_or_else(|| {
-            JSRunnerError::V8("Could not get index 2 from context.js array".to_string())
-        })?;
+        let experiment_ctx_prototype = ctx_import
+            .get_index(scope, 0)
+            .ok_or_else(|| Error::V8("Could not get index 0 from context.js array".to_string()))?;
+        let sim_init_ctx_prototype = ctx_import
+            .get_index(scope, 1)
+            .ok_or_else(|| Error::V8("Could not get index 1 from context.js array".to_string()))?;
+        let gen_ctx = ctx_import
+            .get_index(scope, 2)
+            .ok_or_else(|| Error::V8("Could not get index 2 from context.js array".to_string()))?;
 
         let gen_state = import_file(
             scope,
@@ -293,88 +281,74 @@ impl<'s> Embedded<'s> {
                 gen_state,
             ],
         )?;
-        let fns: v8::Local<'_, v8::Array> = fns.try_into().map_err(|e| {
-            JSRunnerError::FileImport(
+        let fns: v8::Local<'_, v8::Array> = fns.try_into().map_err(|err| {
+            Error::FileImport(
                 "./src/worker/runner/javascript/runner.js".into(),
-                format!("Couldn't get array (of functions) from 'runner.js': {e}"),
+                format!("Couldn't get array (of functions) from 'runner.js': {err}"),
             )
         })?;
 
         let start_experiment: v8::Local<'_, v8::Function> = fns
             .get_index(scope, 0)
-            .ok_or_else(|| {
-                JSRunnerError::V8("Could not get index 0 from runner.js array".to_string())
-            })?
+            .ok_or_else(|| Error::V8("Could not get index 0 from runner.js array".to_string()))?
             .try_into()
-            .map_err(|e| {
-                JSRunnerError::V8(format!(
-                    "Could not convert value at index 0 in runner.js as a function: {e}"
+            .map_err(|err| {
+                Error::V8(format!(
+                    "Could not convert value at index 0 in runner.js as a function: {err}"
                 ))
             })?;
         let start_sim: v8::Local<'_, v8::Function> = fns
             .get_index(scope, 1)
-            .ok_or_else(|| {
-                JSRunnerError::V8("Could not get index 1 from runner.js array".to_string())
-            })?
+            .ok_or_else(|| Error::V8("Could not get index 1 from runner.js array".to_string()))?
             .try_into()
-            .map_err(|e| {
-                JSRunnerError::V8(format!(
-                    "Could not convert value at index 1 in runner.js as a function: {e}"
+            .map_err(|err| {
+                Error::V8(format!(
+                    "Could not convert value at index 1 in runner.js as a function: {err}"
                 ))
             })?;
         let run_task: v8::Local<'_, v8::Function> = fns
             .get_index(scope, 2)
-            .ok_or_else(|| {
-                JSRunnerError::V8("Could not get index 2 from runner.js array".to_string())
-            })?
+            .ok_or_else(|| Error::V8("Could not get index 2 from runner.js array".to_string()))?
             .try_into()
-            .map_err(|e| {
-                JSRunnerError::V8(format!(
-                    "Could not convert value at index 2 in runner.js as a function: {e}"
+            .map_err(|err| {
+                Error::V8(format!(
+                    "Could not convert value at index 2 in runner.js as a function: {err}"
                 ))
             })?;
         let ctx_batch_sync: v8::Local<'_, v8::Function> = fns
             .get_index(scope, 3)
-            .ok_or_else(|| {
-                JSRunnerError::V8("Could not get index 3 from runner.js array".to_string())
-            })?
+            .ok_or_else(|| Error::V8("Could not get index 3 from runner.js array".to_string()))?
             .try_into()
-            .map_err(|e| {
-                JSRunnerError::V8(format!(
-                    "Could not convert value at index 3 in runner.js as a function: {e}"
+            .map_err(|err| {
+                Error::V8(format!(
+                    "Could not convert value at index 3 in runner.js as a function: {err}"
                 ))
             })?;
         let state_sync: v8::Local<'_, v8::Function> = fns
             .get_index(scope, 4)
-            .ok_or_else(|| {
-                JSRunnerError::V8("Could not get index 4 from runner.js array".to_string())
-            })?
+            .ok_or_else(|| Error::V8("Could not get index 4 from runner.js array".to_string()))?
             .try_into()
-            .map_err(|e| {
-                JSRunnerError::V8(format!(
-                    "Could not convert value at index 4 in runner.js as a function: {e}"
+            .map_err(|err| {
+                Error::V8(format!(
+                    "Could not convert value at index 4 in runner.js as a function: {err}"
                 ))
             })?;
         let state_interim_sync: v8::Local<'_, v8::Function> = fns
             .get_index(scope, 5)
-            .ok_or_else(|| {
-                JSRunnerError::V8("Could not get index 5 from runner.js array".to_string())
-            })?
+            .ok_or_else(|| Error::V8("Could not get index 5 from runner.js array".to_string()))?
             .try_into()
-            .map_err(|e| {
-                JSRunnerError::V8(format!(
-                    "Could not convert value at index 5 in runner.js as a function: {e}"
+            .map_err(|err| {
+                Error::V8(format!(
+                    "Could not convert value at index 5 in runner.js as a function: {err}"
                 ))
             })?;
         let state_snapshot_sync: v8::Local<'_, v8::Function> = fns
             .get_index(scope, 6)
-            .ok_or_else(|| {
-                JSRunnerError::V8("Could not get index 6 from runner.js array".to_string())
-            })?
+            .ok_or_else(|| Error::V8("Could not get index 6 from runner.js array".to_string()))?
             .try_into()
-            .map_err(|e| {
-                JSRunnerError::V8(format!(
-                    "Could not convert value at index 6 in runner.js as a function: {e}"
+            .map_err(|err| {
+                Error::V8(format!(
+                    "Could not convert value at index 6 in runner.js as a function: {err}"
                 ))
             })?;
 
@@ -392,6 +366,7 @@ impl<'s> Embedded<'s> {
     }
 }
 
+/// Due to flushing, need batches and schemas in both Rust and JS.
 struct SimState {
     agent_schema: Arc<Schema>,
     msg_schema: Arc<Schema>,
@@ -420,13 +395,12 @@ fn pkg_id_to_js<'s>(
 fn idxs_to_js<'s>(
     scope: &mut v8::HandleScope<'s>,
     idxs: &[usize],
-) -> JSRunnerResult<v8::Local<'s, v8::Value>> {
+) -> Result<v8::Local<'s, v8::Value>> {
     let a = v8::Array::new(scope, idxs.len() as i32);
     for (i, idx) in idxs.iter().enumerate() {
         let js_idx = v8::Number::new(scope, *idx as u32 as f64);
-        a.set_index(scope, i as u32, js_idx.into()).ok_or_else(|| {
-            JSRunnerError::V8(format!("Could not set index {idx} on idxs_to_js Array"))
-        })?;
+        a.set_index(scope, i as u32, js_idx.into())
+            .ok_or_else(|| Error::V8(format!("Could not set index {idx} on idxs_to_js Array")))?;
     }
 
     Ok(a.into())
@@ -441,7 +415,7 @@ fn current_step_to_js<'s>(
 
 fn batches_from_shared_store(
     shared_store: &TaskSharedStore,
-) -> JSRunnerResult<(Vec<&AgentBatch>, Vec<&MessageBatch>, Vec<usize>)> {
+) -> Result<(Vec<&AgentBatch>, Vec<&MessageBatch>, Vec<usize>)> {
     // TODO: Remove duplication between read and write access
     Ok(match &shared_store.state {
         SharedState::None => (vec![], vec![], vec![]),
@@ -477,7 +451,7 @@ fn mem_batch_to_js<'s>(
     batch_id: &str,
     mem: v8::Local<'s, v8::Object>,
     persisted: Metaversion,
-) -> JSRunnerResult<v8::Local<'s, v8::Value>> {
+) -> Result<v8::Local<'s, v8::Value>> {
     let batch = v8::Object::new(scope);
     let batch_id = new_js_string(scope, batch_id)?;
 
@@ -488,20 +462,18 @@ fn mem_batch_to_js<'s>(
 
     batch
         .set(scope, id_field.into(), batch_id.into())
-        .ok_or_else(|| JSRunnerError::V8("Could not set id field on batch".to_string()))?;
+        .ok_or_else(|| Error::V8("Could not set id field on batch".to_string()))?;
     batch
         .set(scope, mem_field.into(), mem.into())
-        .ok_or_else(|| JSRunnerError::V8("Could not set mem field on batch".to_string()))?;
+        .ok_or_else(|| Error::V8("Could not set mem field on batch".to_string()))?;
     let js_memory = v8::Number::new(scope, persisted.memory() as f64);
     batch
         .set(scope, mem_version_field.into(), js_memory.into())
-        .ok_or_else(|| JSRunnerError::V8("Could not set mem_version field on batch".to_string()))?;
+        .ok_or_else(|| Error::V8("Could not set mem_version field on batch".to_string()))?;
     let js_batch = v8::Number::new(scope, persisted.batch() as f64);
     batch
         .set(scope, batch_version_field.into(), js_batch.into())
-        .ok_or_else(|| {
-            JSRunnerError::V8("Could not set batch_version field on batch".to_string())
-        })?;
+        .ok_or_else(|| Error::V8("Could not set batch_version field on batch".to_string()))?;
 
     Ok(batch.into())
 }
@@ -510,16 +482,24 @@ fn batch_to_js<'s>(
     scope: &mut v8::HandleScope<'s>,
     mem: &Memory,
     persisted: Metaversion,
-) -> JSRunnerResult<v8::Local<'s, v8::Value>> {
-    // The memory is owned by the shared memory
-    // we don't want JS or Rust to try to de-allocate it
+) -> Result<v8::Local<'s, v8::Value>> {
+    // The memory is owned by the shared memory, we don't want JS or Rust to try to de-allocate it
     unsafe extern "C" fn no_op(_: *mut std::ffi::c_void, _: usize, _: *mut std::ffi::c_void) {}
 
-    tracing::debug!("Calling batch_to_js");
     // https://github.com/denoland/rusty_v8/pull/926
+    //
+    // # Safety
+    //
+    // `mem.data` points to valid memory and is valie for `mem.size` bytes
+    // `no_op` will not try to de-allocate share memory
+    //
+    // As of writing this comment I don't know if/when shared memory is accessed/modified
+    // there could be some unsafety
+    // It's also not 100% clear what [`ArrayBuffer`] expects
+    // (is it ok to read/write while the [`ArrayBuffer`] exists?)
     let backing_store = unsafe {
         v8::ArrayBuffer::new_backing_store_from_ptr(
-            mem.data.as_ptr() as *mut _,
+            mem.data.as_ptr().cast(),
             mem.size,
             no_op,
             std::ptr::null_mut(),
@@ -535,7 +515,7 @@ fn state_to_js<'s, 'a>(
     scope: &mut v8::HandleScope<'s>,
     mut agent_batches: impl Iterator<Item = &'a AgentBatch>,
     mut message_batches: impl Iterator<Item = &'a MessageBatch>,
-) -> JSRunnerResult<(v8::Local<'s, v8::Value>, v8::Local<'s, v8::Value>)> {
+) -> Result<(v8::Local<'s, v8::Value>, v8::Local<'s, v8::Value>)> {
     // I'm not sure if we need to know the length beforehand or not
     let js_agent_batches = v8::Array::new(scope, 0);
     let js_message_batches = v8::Array::new(scope, 0);
@@ -553,7 +533,7 @@ fn state_to_js<'s, 'a>(
         js_agent_batches
             .set_index(scope, i_batch as u32, agent_batch)
             .ok_or_else(|| {
-                JSRunnerError::V8(format!("Could not set index {i_batch} on js_agent_batches"))
+                Error::V8(format!("Could not set index {i_batch} on js_agent_batches"))
             })?;
 
         let message_batch = batch_to_js(
@@ -564,7 +544,7 @@ fn state_to_js<'s, 'a>(
         js_message_batches
             .set_index(scope, i_batch as u32, message_batch)
             .ok_or_else(|| {
-                JSRunnerError::V8(format!(
+                Error::V8(format!(
                     "Could not set index {i_batch} on js_message_batches"
                 ))
             })?;
@@ -584,6 +564,11 @@ fn bytes_to_js<'s>(scope: &mut v8::HandleScope<'s>, bytes: &[u8]) -> v8::Local<'
     let buffer = v8::ArrayBuffer::new(scope, bytes.len());
 
     if !bytes.is_empty() {
+        // # Safety
+        //
+        // `bytes` can be read for `bytes.len()`
+        // `buffer` can be written to for `bytes.len()`
+        // and they are properly aligned
         unsafe {
             std::ptr::copy(
                 bytes.as_ptr(),
@@ -591,7 +576,8 @@ fn bytes_to_js<'s>(scope: &mut v8::HandleScope<'s>, bytes: &[u8]) -> v8::Local<'
                     .get_backing_store()
                     .data()
                     .expect("bytes to not be empty")
-                    .as_ptr() as *mut u8,
+                    .as_ptr()
+                    .cast(),
                 bytes.len(),
             );
         }
@@ -612,7 +598,7 @@ fn array_to_user_errors<'s>(
     scope: &mut v8::HandleScope<'s>,
     array: v8::Local<'s, v8::Value>,
 ) -> Vec<UserError> {
-    let fallback = format!("Unparsed: {:?}", array);
+    let fallback = format!("Unparsed: {array:?}");
 
     if array.is_array() {
         let array: v8::Local<'s, v8::Array> = array
@@ -621,9 +607,11 @@ fn array_to_user_errors<'s>(
         let errors = (0..array.length())
             .map(|i| {
                 let element = array.get_index(scope, i).ok_or_else(|| {
-                    JSRunnerError::V8(format!("Could not get index {i} in array_to_user_errors"))
+                    Error::V8(format!(
+                        "Could not get error at index {i} in array_to_user_errors"
+                    ))
                 });
-                element.map(|e| UserError(format!("{e:?}")))
+                element.map(|err| UserError(format!("{err:?}")))
             })
             .collect();
 
@@ -640,7 +628,7 @@ fn array_to_user_warnings<'s>(
     array: v8::Local<'s, v8::Value>,
 ) -> Vec<UserWarning> {
     // TODO: Extract optional line numbers
-    let fallback = format!("Unparsed: {:?}", array);
+    let fallback = format!("Unparsed: {array:?}");
 
     if array.is_array() {
         let array: v8::Local<'s, v8::Array> = array
@@ -649,10 +637,12 @@ fn array_to_user_warnings<'s>(
         let warnings = (0..array.length())
             .map(|i| {
                 let element = array.get_index(scope, i).ok_or_else(|| {
-                    JSRunnerError::V8(format!("Could not get index {i} in array_to_user_warnings"))
+                    Error::V8(format!(
+                        "Could not get warning at index {i} in array_to_user_warnings"
+                    ))
                 });
-                element.map(|e| UserWarning {
-                    message: format!("{:?}", e),
+                element.map(|err| UserWarning {
+                    message: format!("{err:?}"),
                     details: None,
                 })
             })
@@ -672,19 +662,19 @@ fn array_to_user_warnings<'s>(
 fn get_js_error<'s>(
     scope: &mut v8::HandleScope<'s>,
     return_val: v8::Local<'s, v8::Object>,
-) -> Option<JSRunnerError> {
+) -> Option<Error> {
     tracing::debug!("Collecting JS errors");
     let user_errors = if let Some(user_errors) = v8::String::new(scope, "user_errors") {
         user_errors
     } else {
-        return Some(JSRunnerError::V8("Could not create String".to_string()));
+        return Some(Error::V8("Could not create String".to_string()));
     };
 
     if let Some(errors) = return_val.get(scope, user_errors.into()) {
         if !errors.is_null_or_undefined() {
             let errors = array_to_user_errors(scope, errors);
             if !errors.is_empty() {
-                return Some(JSRunnerError::User(errors));
+                return Some(Error::User(errors));
             }
         }
     }
@@ -692,51 +682,47 @@ fn get_js_error<'s>(
     let pkg_error = if let Some(pkg_error) = v8::String::new(scope, "pkg_error") {
         pkg_error
     } else {
-        return Some(JSRunnerError::V8("Could not create String".to_string()));
+        return Some(Error::V8("Could not create String".to_string()));
     };
 
     let runner_error = if let Some(runner_error) = v8::String::new(scope, "runner_error") {
         runner_error
     } else {
-        return Some(JSRunnerError::V8("Could not create String".to_string()));
+        return Some(Error::V8("Could not create String".to_string()));
     };
 
-    if let Some(e) = return_val.get(scope, pkg_error.into()) {
+    if let Some(err) = return_val.get(scope, pkg_error.into()) {
         // Even though rusty_v8 returns an Option, if the object does not have the property the
         // result will be Some(undefined)
-        if !e.is_undefined() {
-            let e: v8::Local<'s, v8::String> = match e.to_string(scope) {
-                Some(e) => e,
+        if !err.is_undefined() {
+            let err: v8::Local<'s, v8::String> = match err.to_string(scope) {
+                Some(err) => err,
                 None => {
-                    return Some(JSRunnerError::V8(
-                        "Could not convert e to String".to_string(),
-                    ));
+                    return Some(Error::V8("Could not convert err to String".to_string()));
                 }
             };
 
             // TODO: Don't silently ignore non-string, non-null-or-undefined errors
             //       (try to convert error value to JSON string and return as error?).
-            return Some(JSRunnerError::Package(PackageError(
-                e.to_rust_string_lossy(scope),
+            return Some(Error::Package(PackageError(
+                err.to_rust_string_lossy(scope),
             )));
         }
     }
 
-    if let Some(e) = return_val.get(scope, runner_error.into()) {
+    if let Some(err) = return_val.get(scope, runner_error.into()) {
         // Even though rusty_v8 returns an Option, if the object does not have the property the
         // result will be Some(undefined)
-        if !e.is_undefined() {
-            let e: v8::Local<'s, v8::String> = match e.to_string(scope) {
-                Some(e) => e,
+        if !err.is_undefined() {
+            let err: v8::Local<'s, v8::String> = match err.to_string(scope) {
+                Some(err) => err,
                 None => {
-                    return Some(JSRunnerError::V8(
-                        "Could not convert e to String".to_string(),
-                    ));
+                    return Some(Error::V8("Could not convert err tos String".to_string()));
                 }
             };
 
             // TODO: Don't ignore non-string, non-null-or-undefined errors
-            return Some(JSRunnerError::Embedded(e.to_rust_string_lossy(scope)));
+            return Some(Error::Embedded(err.to_rust_string_lossy(scope)));
         }
     }
 
@@ -746,7 +732,7 @@ fn get_js_error<'s>(
 fn get_user_warnings<'s>(
     scope: &mut v8::HandleScope<'s>,
     return_val: v8::Local<'s, v8::Object>,
-) -> JSRunnerResult<Option<Vec<UserWarning>>> {
+) -> Result<Option<Vec<UserWarning>>> {
     let user_warnings = new_js_string(scope, "user_warnings")?;
 
     if let Some(warnings) = return_val.get(scope, user_warnings.into()) {
@@ -764,7 +750,7 @@ fn get_user_warnings<'s>(
 fn get_print<'s>(
     scope: &mut v8::HandleScope<'s>,
     return_val: v8::Local<'s, v8::Object>,
-) -> JSRunnerResult<Option<Vec<String>>> {
+) -> Result<Option<Vec<String>>> {
     let print = new_js_string(scope, "print")?;
 
     if let Some(printed_val) = return_val.get(scope, print.into()) {
@@ -789,7 +775,7 @@ fn get_print<'s>(
 fn get_next_task<'s>(
     scope: &mut v8::HandleScope<'s>,
     return_val: v8::Local<'s, v8::Object>,
-) -> JSRunnerResult<(MessageTarget, String)> {
+) -> Result<(MessageTarget, String)> {
     let target = new_js_string(scope, "target")?;
 
     let target = if let Some(target) = return_val.get(scope, target.into()) {
@@ -803,7 +789,7 @@ fn get_next_task<'s>(
                 "Rust" => MessageTarget::Rust,
                 "Dynamic" => MessageTarget::Dynamic,
                 "Main" => MessageTarget::Main,
-                _ => return Err(JSRunnerError::UnknownTarget(target)),
+                _ => return Err(Error::UnknownTarget(target)),
             }
         } else {
             // If no target was specified, go back to simulation main loop by default.
@@ -836,7 +822,7 @@ impl<'s> ThreadLocalRunner<'s> {
     fn load_datasets(
         scope: &mut v8::HandleScope<'s>,
         shared_ctx: &SharedStore,
-    ) -> JSRunnerResult<v8::Local<'s, v8::Value>> {
+    ) -> Result<v8::Local<'s, v8::Value>> {
         let js_datasets = v8::Object::new(scope);
         for (dataset_name, dataset) in shared_ctx.datasets.iter() {
             let js_name = new_js_string(scope, &dataset_name)?;
@@ -844,13 +830,13 @@ impl<'s> ThreadLocalRunner<'s> {
             let json = dataset.data();
             // TODO: Use `from_utf8_unchecked` instead here?
             //       (Since datasets' json can be quite large.)
-            let json = std::str::from_utf8(json)
-                .map_err(|_| JSRunnerError::Unique("Dataset not utf8".into()))?;
+            let json =
+                std::str::from_utf8(json).map_err(|_| Error::Unique("Dataset not utf8".into()))?;
             let json = new_js_string(scope, json)?;
 
             js_datasets
                 .set(scope, js_name.into(), json.into())
-                .ok_or_else(|| JSRunnerError::V8("Could not set property on Object".to_string()))?;
+                .ok_or_else(|| Error::V8("Could not set property on Object".to_string()))?;
         }
 
         Ok(js_datasets.into())
@@ -860,7 +846,7 @@ impl<'s> ThreadLocalRunner<'s> {
         scope: &mut v8::HandleScope<'s>,
         context: v8::Local<'s, v8::Context>,
         init: &ExperimentInitRunnerMsg,
-    ) -> JSRunnerResult<Self> {
+    ) -> Result<Self> {
         let embedded = Embedded::import(scope, context)?;
         let datasets = Self::load_datasets(scope, &init.shared_context)?;
 
@@ -870,7 +856,7 @@ impl<'s> ThreadLocalRunner<'s> {
         for (i_pkg, pkg_init) in pkg_config.values().enumerate() {
             let i_pkg = i_pkg as u32;
 
-            let pkg_name = format!("{}", &pkg_init.name);
+            let pkg_name = pkg_init.name.to_string();
             let pkg = JsPackage::import(scope, context, &embedded, &pkg_name, pkg_init.r#type)?;
             tracing::trace!(
                 "pkg experiment init name {:?}, type {}, fns {:?}",
@@ -881,7 +867,7 @@ impl<'s> ThreadLocalRunner<'s> {
             pkg_fns
                 .set_index(scope, i_pkg, pkg.fns.into())
                 .ok_or_else(|| {
-                    JSRunnerError::V8(format!("Could not set index {i_pkg} on pkg_fns array"))
+                    Error::V8(format!("Could not set index {i_pkg} on pkg_fns array"))
                 })?;
 
             let pkg_init = serde_json::to_string(&pkg_init).unwrap();
@@ -889,7 +875,7 @@ impl<'s> ThreadLocalRunner<'s> {
             pkg_init_msgs
                 .set_index(scope, i_pkg, pkg_init.into())
                 .ok_or_else(|| {
-                    JSRunnerError::V8(format!(
+                    Error::V8(format!(
                         "Could not set index {i_pkg} on pkg_init_msgs array"
                     ))
                 })?;
@@ -900,7 +886,7 @@ impl<'s> ThreadLocalRunner<'s> {
         embedded
             .start_experiment
             .call(scope, this.into(), args)
-            .ok_or_else(|| JSRunnerError::V8("Could not call start_experiment".to_string()))?;
+            .ok_or_else(|| Error::V8("Could not call start_experiment".to_string()))?;
 
         Ok(ThreadLocalRunner {
             embedded,
@@ -1028,15 +1014,15 @@ impl<'s> ThreadLocalRunner<'s> {
         data: v8::Local<'s, v8::Value>,
         data_type: &DataType,
         len: Option<usize>,
-    ) -> JSRunnerResult<ArrayData> {
+    ) -> Result<ArrayData> {
         // `data` must not be dropped until flush is over, because
         // pointers returned from FFI point inside `data`'s ArrayBuffers' memory.
         let obj = data.to_object(scope).ok_or_else(|| {
-            JSRunnerError::Embedded(format!("Flush data not object for field {:?}", data_type))
+            Error::Embedded(format!("Flush data not object for field {data_type:?}"))
         })?;
 
         // `data_node_from_js` isn't recursive -- doesn't convert children.
-        let data = data_node_from_js(scope, data)?;
+        let data = data_ffi::DataFfi::new_from_js(scope, data)?;
 
         // The JS Arrow implementation tries to be efficient with the allocation of the values
         // buffers. If you have a null value at the end, it doesn't always allocate that
@@ -1162,22 +1148,10 @@ impl<'s> ThreadLocalRunner<'s> {
                 };
                 builder = builder.add_buffer(offset_buffer);
 
-                let child_data = new_js_string(scope, "child_data")?;
-
-                let child_data: v8::Local<'s, v8::Array> = obj
-                    .get(scope, child_data.into())
-                    .ok_or_else(|| {
-                        JSRunnerError::V8("Could not get child_data property on obj".to_string())
-                    })?
-                    .try_into()
-                    .map_err(|err| {
-                        JSRunnerError::V8(format!(
-                            "Could not convert child_data from Value to Array: {err}"
-                        ))
-                    })?;
+                let child_data = get_child_data(scope, obj)?;
 
                 let child = child_data.get_index(scope, 0).ok_or_else(|| {
-                    JSRunnerError::V8("Could not access index 0 on child_data".to_string())
+                    Error::V8("Could not access index 0 on child_data".to_string())
                 })?;
                 builder = builder.add_child_data(self.array_data_from_js(
                     scope,
@@ -1187,23 +1161,12 @@ impl<'s> ThreadLocalRunner<'s> {
                 )?);
             }
             DataType::FixedSizeList(inner_field, size) => {
-                let child_data = new_js_string(scope, "child_data")?;
                 // FixedSizeListList is only stored by child data, as offsets are not required
                 // because the size is known.
-                let child_data: v8::Local<'s, v8::Array> = obj
-                    .get(scope, child_data.into())
-                    .ok_or_else(|| {
-                        JSRunnerError::V8("Could not get child_data property on obj".to_string())
-                    })?
-                    .try_into()
-                    .map_err(|err| {
-                        JSRunnerError::V8(format!(
-                            "Could not convert child_data from Value to Array: {err}"
-                        ))
-                    })?;
+                let child_data = get_child_data(scope, obj)?;
 
                 let child = child_data.get_index(scope, 0).ok_or_else(|| {
-                    JSRunnerError::V8("Could not access index 0 on child_data".to_string())
+                    Error::V8("Could not access index 0 on child_data".to_string())
                 })?;
                 builder = builder.add_child_data(self.array_data_from_js(
                     scope,
@@ -1213,19 +1176,8 @@ impl<'s> ThreadLocalRunner<'s> {
                 )?);
             }
             DataType::Struct(inner_fields) => {
-                let child_data = new_js_string(scope, "child_data")?;
                 // Structs are only defined by child data
-                let child_data: v8::Local<'s, v8::Array> = obj
-                    .get(scope, child_data.into())
-                    .ok_or_else(|| {
-                        JSRunnerError::V8("Could not get child_data property on obj".to_string())
-                    })?
-                    .try_into()
-                    .map_err(|err| {
-                        JSRunnerError::V8(format!(
-                            "Could not convert child_data from Value to Array: {err}"
-                        ))
-                    })?;
+                let child_data = get_child_data(scope, obj)?;
                 debug_assert_eq!(
                     child_data.length() as usize,
                     inner_fields.len(),
@@ -1234,7 +1186,7 @@ impl<'s> ThreadLocalRunner<'s> {
                 );
                 for (i, inner_field) in (0..child_data.length()).zip(inner_fields) {
                     let child = child_data.get_index(scope, i as u32).ok_or_else(|| {
-                        JSRunnerError::V8(format!("Could not access index {i} on child_data"))
+                        Error::V8(format!("Could not access index {i} on child_data"))
                     })?;
                     builder = builder.add_child_data(self.array_data_from_js(
                         scope,
@@ -1262,8 +1214,8 @@ impl<'s> ThreadLocalRunner<'s> {
                     ));
                 };
             }
-            data_type => return Err(JSRunnerError::FlushType(data_type.clone())), /* TODO: More
-                                                                                   * types? */
+            // TODO: More types?
+            data_type => return Err(Error::FlushType(data_type.clone())),
         };
 
         builder = builder.len(target_len);
@@ -1295,25 +1247,23 @@ impl<'s> ThreadLocalRunner<'s> {
         changes: v8::Local<'s, v8::Array>,
         batch: &mut ArrowBatch,
         schema: &Schema,
-    ) -> JSRunnerResult<()> {
-        for i in 0..changes.length() {
-            let change = changes.get_index(scope, i as u32).ok_or_else(|| {
-                JSRunnerError::V8(format!("Could not access index {i} on changes"))
+    ) -> Result<()> {
+        for change_idx in 0..changes.length() {
+            let change = changes.get_index(scope, change_idx as u32).ok_or_else(|| {
+                Error::V8(format!("Could not access index {change_idx} on changes"))
             })?;
             let change = change.to_object(scope).ok_or_else(|| {
-                JSRunnerError::V8("Could not convert change from Value to Object".to_string())
+                Error::V8("Could not convert change from Value to Object".to_string())
             })?;
 
             let i_field = new_js_string(scope, "i_field")?;
 
             let i_field: v8::Local<'s, v8::Number> = change
                 .get(scope, i_field.into())
-                .ok_or_else(|| {
-                    JSRunnerError::V8("Could not get i_field property on change".to_string())
-                })?
+                .ok_or_else(|| Error::V8("Could not get i_field property on change".to_string()))?
                 .try_into()
                 .map_err(|err| {
-                    JSRunnerError::V8(format!(
+                    Error::V8(format!(
                         "Could not convert i_field from Value to Number: {err}"
                     ))
                 })?;
@@ -1323,9 +1273,9 @@ impl<'s> ThreadLocalRunner<'s> {
 
             let data = new_js_string(scope, "data")?;
 
-            let data = change.get(scope, data.into()).ok_or_else(|| {
-                JSRunnerError::V8("Could not get data property on change".to_string())
-            })?;
+            let data = change
+                .get(scope, data.into())
+                .ok_or_else(|| Error::V8("Could not get data property on change".to_string()))?;
             let data = self.array_data_from_js(scope, data, field.data_type(), None)?;
 
             batch.queue_change(ColumnChange {
@@ -1352,19 +1302,17 @@ impl<'s> ThreadLocalRunner<'s> {
         state_proxy: &mut StateWriteProxy,
         i_proxy: usize,
         changes: v8::Local<'s, v8::Value>,
-    ) -> JSRunnerResult<()> {
+    ) -> Result<()> {
         let changes = changes.to_object(scope).unwrap();
 
         let agent = new_js_string(scope, "agent")?;
 
         let agent_changes: v8::Local<'s, v8::Array> = changes
             .get(scope, agent.into())
-            .ok_or_else(|| {
-                JSRunnerError::V8("Could not get agent property on changes".to_string())
-            })?
+            .ok_or_else(|| Error::V8("Could not get agent property on changes".to_string()))?
             .try_into()
             .map_err(|err| {
-                JSRunnerError::V8(format!(
+                Error::V8(format!(
                     "Could not convert agent_changes from Value to Array, {err}"
                 ))
             })?;
@@ -1384,10 +1332,10 @@ impl<'s> ThreadLocalRunner<'s> {
 
         let msg_changes = changes
             .get(scope, msg.into())
-            .ok_or_else(|| JSRunnerError::V8("Could not get msg property on changes".to_string()))?
+            .ok_or_else(|| Error::V8("Could not get msg property on changes".to_string()))?
             .try_into()
             .map_err(|err| {
-                JSRunnerError::V8(format!(
+                Error::V8(format!(
                     "Could not convert msg_changes from Value to Array, {err}"
                 ))
             })?;
@@ -1411,7 +1359,7 @@ impl<'s> ThreadLocalRunner<'s> {
         sim_run_id: SimulationShortId,
         shared_store: &mut TaskSharedStore,
         return_val: v8::Local<'s, v8::Object>,
-    ) -> JSRunnerResult<()> {
+    ) -> Result<()> {
         let (proxy, group_indices) = match &mut shared_store.state {
             SharedState::None | SharedState::Read(_) => return Ok(()),
             SharedState::Write(state) => {
@@ -1430,7 +1378,7 @@ impl<'s> ThreadLocalRunner<'s> {
         let state = self
             .sims_state
             .get(&sim_run_id)
-            .ok_or(JSRunnerError::MissingSimulationRun(sim_run_id))?;
+            .ok_or(Error::MissingSimulationRun(sim_run_id))?;
         // Assuming cloning an Arc once is faster than looking up `state` in
         // the `sims_state` HashMap in every `flush_group` call.
         let agent_schema = state.agent_schema.clone();
@@ -1438,9 +1386,9 @@ impl<'s> ThreadLocalRunner<'s> {
 
         let changes = new_js_string(scope, "changes")?;
 
-        let changes = return_val.get(scope, changes.into()).ok_or_else(|| {
-            JSRunnerError::V8("Could not get changes property on return_val".to_string())
-        })?;
+        let changes = return_val
+            .get(scope, changes.into())
+            .ok_or_else(|| Error::V8("Could not get changes property on return_val".to_string()))?;
 
         if group_indices.len() == 1 {
             self.flush_group(scope, &agent_schema, &msg_schema, proxy, 0, changes)?;
@@ -1449,7 +1397,7 @@ impl<'s> ThreadLocalRunner<'s> {
             for i_proxy in 0..group_indices.len() {
                 // In principle, `i_proxy` and `group_indices[i_proxy]` can differ.
                 let group_changes = changes.get_index(scope, i_proxy as u32).ok_or_else(|| {
-                    JSRunnerError::V8(format!("Could not access index {i_proxy} on changes"))
+                    Error::V8(format!("Could not access index {i_proxy} on changes"))
                 })?;
 
                 self.flush_group(
@@ -1472,11 +1420,7 @@ impl<'s> ThreadLocalRunner<'s> {
     ///  - Run init packages (e.g. init.js)
     ///      - init.js can depend on globals, which vary between sim runs, so it has to be executed
     ///        at the start of a sim run, not at the start of the experiment run.
-    fn start_sim(
-        &mut self,
-        scope: &mut v8::HandleScope<'s>,
-        run: NewSimulationRun,
-    ) -> JSRunnerResult<()> {
+    fn start_sim(&mut self, scope: &mut v8::HandleScope<'s>, run: NewSimulationRun) -> Result<()> {
         // Initialize JS.
 
         // Passing in schemas with an immutable reference is allowed,
@@ -1526,7 +1470,7 @@ impl<'s> ThreadLocalRunner<'s> {
                 pkg_msgs.into(),
                 globals.into(),
             ])
-            .ok_or_else(|| JSRunnerError::V8("Could not run start_sim Function".to_string()))?;
+            .ok_or_else(|| Error::V8("Could not run start_sim Function".to_string()))?;
 
         // Initialize Rust.
         let state = SimState {
@@ -1535,7 +1479,7 @@ impl<'s> ThreadLocalRunner<'s> {
         };
         self.sims_state
             .try_insert(run.short_id, state)
-            .map_err(|_| JSRunnerError::DuplicateSimulationRun(run.short_id))?;
+            .map_err(|_| Error::DuplicateSimulationRun(run.short_id))?;
 
         Ok(())
     }
@@ -1547,7 +1491,7 @@ impl<'s> ThreadLocalRunner<'s> {
         sim_id: SimulationShortId,
         msg: RunnerTaskMsg,
         outbound_sender: &UnboundedSender<OutboundFromRunnerMsg>,
-    ) -> JSRunnerResult<()> {
+    ) -> Result<()> {
         tracing::debug!("Starting state interim sync before running task");
         // TODO: Move JS part of sync into `run_task` function in JS for better performance.
         self.state_interim_sync(scope, sim_id, &msg.shared_store)?;
@@ -1558,7 +1502,7 @@ impl<'s> ThreadLocalRunner<'s> {
             .payload
             .extract_inner_msg_with_wrapper()
             .map_err(|err| {
-                JSRunnerError::from(format!("Failed to extract the inner task message: {err}"))
+                Error::from(format!("Failed to extract the inner task message: {err}"))
             })?;
         let payload_str = new_js_string(scope, &serde_json::to_string(&payload)?)?;
         let group_index = match msg.group_index {
@@ -1607,14 +1551,14 @@ impl<'s> ThreadLocalRunner<'s> {
             }
             Err(error) => {
                 // UserErrors and PackageErrors are not fatal to the Runner
-                if let JSRunnerError::User(errors) = error {
+                if let Error::User(errors) = error {
                     outbound_sender.send(OutboundFromRunnerMsg {
                         span: Span::current(),
                         source: Language::JavaScript,
                         sim_id,
                         payload: OutboundFromRunnerMsgPayload::UserErrors(errors),
                     })?;
-                } else if let JSRunnerError::Package(package_error) = error {
+                } else if let Error::Package(package_error) = error {
                     outbound_sender.send(OutboundFromRunnerMsg {
                         span: Span::current(),
                         source: Language::JavaScript,
@@ -1654,7 +1598,7 @@ impl<'s> ThreadLocalRunner<'s> {
         task_id: TaskId,
         wrapper: &serde_json::Value,
         mut shared_store: TaskSharedStore,
-    ) -> JSRunnerResult<(
+    ) -> Result<(
         TargetedRunnerTaskMsg,
         Option<Vec<UserWarning>>,
         Option<Vec<String>>,
@@ -1664,9 +1608,9 @@ impl<'s> ThreadLocalRunner<'s> {
             .embedded
             .run_task
             .call(scope, self.this, args)
-            .ok_or_else(|| JSRunnerError::V8("Could not run run_task Function".to_string()))?;
+            .ok_or_else(|| Error::V8("Could not run run_task Function".to_string()))?;
         let return_val = return_val.to_object(scope).ok_or_else(|| {
-            JSRunnerError::V8("Could not convert return_val from Value to Object".to_string())
+            Error::V8("Could not convert return_val from Value to Object".to_string())
         })?;
 
         tracing::debug!("Post-processing run_task result");
@@ -1681,7 +1625,7 @@ impl<'s> ThreadLocalRunner<'s> {
         let next_task_payload =
             TaskMessage::try_from_inner_msg_and_wrapper(next_inner_task_msg, wrapper.clone())
                 .map_err(|err| {
-                    JSRunnerError::from(format!(
+                    Error::from(format!(
                         "Failed to wrap and create a new TaskMessage, perhaps the inner: \
                          {next_task_payload}, was formatted incorrectly. Underlying error: {err}"
                     ))
@@ -1709,7 +1653,7 @@ impl<'s> ThreadLocalRunner<'s> {
         scope: &mut v8::HandleScope<'s>,
         sim_run_id: SimulationShortId,
         ctx_batch_sync: ContextBatchSync,
-    ) -> JSRunnerResult<()> {
+    ) -> Result<()> {
         let ContextBatchSync {
             context_batch,
             current_step,
@@ -1742,7 +1686,7 @@ impl<'s> ThreadLocalRunner<'s> {
         scope: &mut v8::HandleScope<'s>,
         sim_run_id: SimulationShortId,
         msg: WaitableStateSync,
-    ) -> JSRunnerResult<()> {
+    ) -> Result<()> {
         // TODO: Technically this might violate Rust's aliasing rules, because
         //       at this point, the state batches are immutable, but we pass
         //       pointers to them into V8 that can later to be used to mutate
@@ -1761,10 +1705,9 @@ impl<'s> ThreadLocalRunner<'s> {
             .ok_or_else(|| "Could not run state_sync Function".to_string())?;
 
         tracing::trace!("Sending state sync completion");
-        msg.completion_sender.send(Ok(())).map_err(|e| {
-            JSRunnerError::from(format!(
-                "Couldn't send state sync completion to worker: {:?}",
-                e
+        msg.completion_sender.send(Ok(())).map_err(|err| {
+            Error::from(format!(
+                "Couldn't send state sync completion to worker: {err:?}",
             ))
         })?;
         tracing::trace!("Sent state sync completion");
@@ -1777,7 +1720,7 @@ impl<'s> ThreadLocalRunner<'s> {
         scope: &mut v8::HandleScope<'s>,
         sim_id: SimulationShortId,
         shared_store: &TaskSharedStore,
-    ) -> JSRunnerResult<()> {
+    ) -> Result<()> {
         // Sync JS.
         let (agent_batches, msg_batches, group_indices) = batches_from_shared_store(shared_store)?;
         // TODO: Pass `agent_pool` and `msg_pool` by reference
@@ -1794,9 +1737,7 @@ impl<'s> ThreadLocalRunner<'s> {
                 agent_batches,
                 msg_batches,
             ])
-            .ok_or_else(|| {
-                JSRunnerError::V8("Could not call state_interim_sync Function".to_string())
-            })?;
+            .ok_or_else(|| Error::V8("Could not call state_interim_sync Function".to_string()))?;
 
         Ok(())
     }
@@ -1806,7 +1747,7 @@ impl<'s> ThreadLocalRunner<'s> {
         scope: &mut v8::HandleScope<'s>,
         sim_run_id: SimulationShortId,
         msg: StateSync,
-    ) -> JSRunnerResult<()> {
+    ) -> Result<()> {
         // TODO: Duplication with `state_sync`
         let agent_pool = msg.state_proxy.agent_pool().batches_iter();
         let msg_pool = msg.state_proxy.message_pool().batches_iter();
@@ -1828,7 +1769,7 @@ impl<'s> ThreadLocalRunner<'s> {
         sim_id: Option<SimulationShortId>,
         msg: InboundToRunnerMsgPayload,
         outbound_sender: &UnboundedSender<OutboundFromRunnerMsg>,
-    ) -> JSRunnerResult<bool> {
+    ) -> Result<bool> {
         match msg {
             InboundToRunnerMsgPayload::TerminateRunner => {
                 tracing::debug!("Stopping execution on Javascript runner");
@@ -1840,30 +1781,29 @@ impl<'s> ThreadLocalRunner<'s> {
                 self.start_sim(scope, new_run)?;
             }
             InboundToRunnerMsgPayload::TerminateSimulationRun => {
-                let sim_id = sim_id.ok_or(JSRunnerError::SimulationIdRequired("terminate sim"))?;
+                let sim_id = sim_id.ok_or(Error::SimulationIdRequired("terminate sim"))?;
                 self.sims_state
                     .remove(&sim_id)
-                    .ok_or(JSRunnerError::TerminateMissingSimulationRun(sim_id))?;
+                    .ok_or(Error::TerminateMissingSimulationRun(sim_id))?;
             }
             InboundToRunnerMsgPayload::StateSync(state_msg) => {
-                let sim_id = sim_id.ok_or(JSRunnerError::SimulationIdRequired("state sync"))?;
+                let sim_id = sim_id.ok_or(Error::SimulationIdRequired("state sync"))?;
                 self.state_sync(scope, sim_id, state_msg)?;
             }
             InboundToRunnerMsgPayload::StateInterimSync(interim_msg) => {
-                let sim_id = sim_id.ok_or(JSRunnerError::SimulationIdRequired("interim sync"))?;
+                let sim_id = sim_id.ok_or(Error::SimulationIdRequired("interim sync"))?;
                 self.state_interim_sync(scope, sim_id, &interim_msg.shared_store)?;
             }
             InboundToRunnerMsgPayload::StateSnapshotSync(state_msg) => {
-                let sim_id = sim_id.ok_or(JSRunnerError::SimulationIdRequired("snapshot sync"))?;
+                let sim_id = sim_id.ok_or(Error::SimulationIdRequired("snapshot sync"))?;
                 self.state_snapshot_sync(scope, sim_id, state_msg)?;
             }
             InboundToRunnerMsgPayload::ContextBatchSync(ctx_batch) => {
-                let sim_id =
-                    sim_id.ok_or(JSRunnerError::SimulationIdRequired("context batch sync"))?;
+                let sim_id = sim_id.ok_or(Error::SimulationIdRequired("context batch sync"))?;
                 self.ctx_batch_sync(scope, sim_id, ctx_batch)?;
             }
             InboundToRunnerMsgPayload::TaskMsg(msg) => {
-                let sim_id = sim_id.ok_or(JSRunnerError::SimulationIdRequired("run task"))?;
+                let sim_id = sim_id.ok_or(Error::SimulationIdRequired("run task"))?;
                 self.handle_task_msg(scope, sim_id, msg, outbound_sender)?;
             }
             InboundToRunnerMsgPayload::CancelTask(_) => {}
@@ -1873,11 +1813,27 @@ impl<'s> ThreadLocalRunner<'s> {
     }
 }
 
+fn get_child_data<'s>(
+    scope: &mut v8::HandleScope<'s>,
+    obj: v8::Local<'s, v8::Object>,
+) -> Result<v8::Local<'s, v8::Array>> {
+    let child_data = new_js_string(scope, "child_data")?;
+
+    obj.get(scope, child_data.into())
+        .ok_or_else(|| Error::V8("Could not get child_data property on obj".to_string()))?
+        .try_into()
+        .map_err(|err| {
+            Error::V8(format!(
+                "Could not convert child_data from Value to Array: {err}"
+            ))
+        })
+}
+
 pub struct JavaScriptRunner {
-    // JavaScriptRunner and RunnerImpl are separate because the
-    // V8 Isolate inside RunnerImpl can't be sent between threads.
+    // [`JavaScriptRunner`] and [`ThreadLocalRunner`] are separate because the
+    // V8 Isolate inside [`ThreadLocalRunner`] can't be sent between threads.
     init_msg: Arc<ExperimentInitRunnerMsg>,
-    // Args to RunnerImpl::new
+    // Args to [`ThreadLocalRunner::new`]
     inbound_sender: UnboundedSender<(Span, Option<SimulationShortId>, InboundToRunnerMsgPayload)>,
     inbound_receiver:
         Option<UnboundedReceiver<(Span, Option<SimulationShortId>, InboundToRunnerMsgPayload)>>,
@@ -1906,10 +1862,10 @@ impl JavaScriptRunner {
         sim_id: Option<SimulationShortId>,
         msg: InboundToRunnerMsgPayload,
     ) -> WorkerResult<()> {
-        tracing::trace!("Sending message to JavaScript: {:?}", &msg);
+        tracing::trace!("Sending message to JavaScript: {msg:?}");
         self.inbound_sender
             .send((Span::current(), sim_id, msg))
-            .map_err(|e| WorkerError::JavaScript(JSRunnerError::InboundSend(e)))
+            .map_err(|err| Error::InboundSend(err).into())
     }
 
     pub async fn send_if_spawned(
@@ -1918,7 +1874,6 @@ impl JavaScriptRunner {
         msg: InboundToRunnerMsgPayload,
     ) -> WorkerResult<()> {
         if self.spawned() {
-            tracing::trace!("JavaScript is spawned, sending message: {:?}", &msg);
             self.send(sim_id, msg).await?;
         }
         Ok(())
@@ -1928,7 +1883,7 @@ impl JavaScriptRunner {
         self.outbound_receiver
             .recv()
             .await
-            .ok_or(WorkerError::JavaScript(JSRunnerError::OutboundReceive))
+            .ok_or(Error::OutboundReceive.into())
     }
 
     // TODO: UNUSED: Needs triage
@@ -1951,14 +1906,8 @@ impl JavaScriptRunner {
         }
 
         let init_msg = Arc::clone(&self.init_msg);
-        let inbound_receiver = self
-            .inbound_receiver
-            .take()
-            .ok_or(JSRunnerError::AlreadyRunning)?;
-        let outbound_sender = self
-            .outbound_sender
-            .take()
-            .ok_or(JSRunnerError::AlreadyRunning)?;
+        let inbound_receiver = self.inbound_receiver.take().ok_or(Error::AlreadyRunning)?;
+        let outbound_sender = self.outbound_sender.take().ok_or(Error::AlreadyRunning)?;
 
         let f = || run_experiment(init_msg, inbound_receiver, outbound_sender);
         Ok(Box::pin(tokio::task::spawn_blocking(f)))
@@ -1978,7 +1927,7 @@ fn run_experiment(
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
-        .map_err(|e| JSRunnerError::IO("Local tokio runtime".into(), e))?;
+        .map_err(|err| Error::IO("Local tokio runtime".into(), err))?;
 
     tokio::pin! {
         let impl_future = async {
@@ -2000,9 +1949,9 @@ fn run_experiment(
                         let _span = span.entered();
                         // TODO: Send errors instead of immediately stopping?
                         let msg_str = msg.as_str();
-                        tracing::debug!("JS runner got sim `{:?}` inbound {}", &sim_id, msg_str);
+                        tracing::debug!("JS runner got sim `{sim_id:?}` inbound {msg_str}");
                         let keep_running = thread_local_runner.handle_msg(scope, sim_id, msg, &outbound_sender)?;
-                        tracing::debug!("JS runner handled sim `{:?}` inbound {}", sim_id, msg_str);
+                        tracing::debug!("JS runner handled sim `{sim_id:?}` inbound {msg_str}");
                         if !keep_running {
                             tracing::debug!("JavaScript Runner has finished execution, stopping");
                             break;
@@ -2023,117 +1972,7 @@ fn run_experiment(
 fn new_js_string<'s>(
     scope: &mut v8::HandleScope<'s>,
     s: impl AsRef<str>,
-) -> JSRunnerResult<v8::Local<'s, v8::String>> {
+) -> Result<v8::Local<'s, v8::String>> {
     let s = s.as_ref();
-    v8::String::new(scope, s)
-        .ok_or_else(|| JSRunnerError::V8(format!("Could not create String: {s}")))
-}
-
-/// C representation of Arrow array data nodes
-#[repr(C)]
-#[derive(Debug)]
-pub struct DataFfi<'s> {
-    pub len: usize,
-    pub null_count: usize,
-    pub n_buffers: u32,
-    pub buffer_ptrs: [*const u8; 2],
-    pub buffer_capacities: [usize; 2],
-    pub null_bits_ptr: *const u8,
-    pub null_bits_capacity: usize,
-    _phantom: std::marker::PhantomData<v8::Local<'s, ()>>,
-}
-
-/// Translation of the old mv8::mv8_data_node_from_js from C++ to Rust
-fn data_node_from_js<'s>(
-    scope: &mut v8::HandleScope<'s>,
-    data: v8::Local<'s, v8::Value>,
-) -> JSRunnerResult<DataFfi<'s>> {
-    // The names in this function are kept identical to help the review process
-    tracing::debug!("Calling data_node_from_js");
-    let obj = data.to_object(scope).ok_or_else(|| {
-        JSRunnerError::V8("Could not convert data from Value to Object".to_string())
-    })?;
-
-    let len_key = new_js_string(scope, "len")?;
-    let len_value = obj
-        .get(scope, len_key.into())
-        .ok_or_else(|| JSRunnerError::V8("Could not get len_key property on obj".to_string()))?;
-    let len_num: v8::Local<'s, v8::Number> = len_value.try_into().map_err(|err| {
-        JSRunnerError::V8(format!(
-            "Could not convert len_value from Value to Number: {err}"
-        ))
-    })?;
-
-    let null_count_key = new_js_string(scope, "null_count")?;
-    let null_count_value = obj
-        .get(scope, null_count_key.into())
-        .ok_or_else(|| JSRunnerError::V8("Could not get null_count property on obj".to_string()))?;
-    let null_count_num: v8::Local<'s, v8::Number> = null_count_value.try_into().map_err(|err| {
-        JSRunnerError::V8(format!(
-            "Could not convert null_count_value from Value to Number: {err}"
-        ))
-    })?;
-
-    let buffers = new_js_string(scope, "buffers")?;
-    let buffers_value = obj
-        .get(scope, buffers.into())
-        .ok_or_else(|| JSRunnerError::V8("Could not get buffers property on obj".to_string()))?;
-    let buffers: v8::Local<'s, v8::Array> = buffers_value.try_into().map_err(|err| {
-        JSRunnerError::V8(format!(
-            "Could not convert buffers from Value to Array: {err}"
-        ))
-    })?;
-    let n_buffers = buffers.length();
-    if n_buffers > 2 {
-        return Err(JSRunnerError::V8(format!(
-            "Invalid buffers length ({}), expected no more than 2",
-            buffers.length()
-        )));
-    }
-
-    let mut buffer_ptrs = [std::ptr::null(); 2];
-    let mut buffer_capacities = [0; 2];
-    for i in 0..buffers.length() {
-        let buffer_value = buffers
-            .get_index(scope, i)
-            .ok_or_else(|| JSRunnerError::V8(format!("Could not access index {i} on buffers")))?;
-        let buffer: v8::Local<'s, v8::ArrayBuffer> = buffer_value.try_into().map_err(|err| {
-            JSRunnerError::V8(format!(
-                "Could not convert buffer_value from Value to ArrayBuffer: {err}"
-            ))
-        })?;
-        let contents = buffer.get_backing_store();
-        buffer_ptrs[i as usize] = contents
-            .data()
-            .map(NonNull::as_ptr)
-            .unwrap_or(std::ptr::null_mut()) as *mut u8;
-        buffer_capacities[i as usize] = contents.byte_length();
-    }
-
-    let null_bits_key = new_js_string(scope, "null_bits")?;
-    let null_bits_value = obj
-        .get(scope, null_bits_key.into())
-        .ok_or_else(|| JSRunnerError::V8("Could not get null_bits property on obj".to_string()))?;
-    let null_bits: v8::Local<'s, v8::ArrayBuffer> = null_bits_value.try_into().map_err(|err| {
-        JSRunnerError::V8(format!(
-            "Could not convert len from Value to ArrayBuffer: {err}"
-        ))
-    })?;
-    let contents = null_bits.get_backing_store();
-    let null_bits_ptr = contents
-        .data()
-        .map(NonNull::as_ptr)
-        .unwrap_or(std::ptr::null_mut()) as *mut u8;
-    let null_bits_capacity = contents.byte_length();
-
-    Ok(DataFfi {
-        len: len_num.value() as usize,
-        null_count: null_count_num.value() as usize,
-        n_buffers,
-        buffer_ptrs,
-        buffer_capacities,
-        null_bits_ptr,
-        null_bits_capacity,
-        _phantom: std::marker::PhantomData,
-    })
+    v8::String::new(scope, s).ok_or_else(|| Error::V8(format!("Could not create String: {s}")))
 }
