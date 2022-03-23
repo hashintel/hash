@@ -13,6 +13,7 @@ import {
   BlockProtocolAggregateEntitiesPayload,
   BlockProtocolAggregateEntitiesResult,
   BlockProtocolEntity,
+  BlockProtocolAggregateOperationInput,
 } from "blockprotocol";
 import { BlockComponent } from "blockprotocol/react";
 import { tw } from "twind";
@@ -88,11 +89,15 @@ const getLinkedAggregation = (params: {
 
 const cleanUpdateLinkedAggregationAction = (
   action: BlockProtocolUpdateLinksAction & {
-    data: Partial<BlockProtocolLinkedAggregation>;
+    data: BlockProtocolAggregateOperationInput & {
+      __typename?: string;
+      pageCount?: number | null;
+    };
   },
 ) => {
   return produce(action, (draftAction) => {
-    delete draftAction.data.operation?.pageCount;
+    delete draftAction.data.pageCount;
+    delete draftAction.data.__typename;
   });
 };
 

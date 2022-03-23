@@ -10,13 +10,14 @@ import {
 } from "@hashintel/hash-shared/queries/link.queries";
 import { useCallback } from "react";
 import {
-  CreateLinkMutation,
-  CreateLinkMutationVariables,
-} from "../../../graphql/apiTypes.gen";
-import {
   CreateLinkedAggregationOperationMutation,
   CreateLinkedAggregationOperationMutationVariables,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
+
+import {
+  CreateLinkMutation,
+  CreateLinkMutationVariables,
+} from "../../../graphql/apiTypes.gen";
 
 export const useBlockProtocolCreateLinks = (): {
   createLinks: BlockProtocolCreateLinksFunction;
@@ -30,7 +31,7 @@ export const useBlockProtocolCreateLinks = (): {
     createLinkMutation,
   );
 
-  const [runUpdateLinkedAggregationMutation] = useMutation<
+  const [runCreateLinkedAggregationMutation] = useMutation<
     CreateLinkedAggregationOperationMutation,
     CreateLinkedAggregationOperationMutationVariables
   >(createLinkedAggregationMutation);
@@ -57,7 +58,7 @@ export const useBlockProtocolCreateLinks = (): {
             );
           }
 
-          const { data, errors } = await runUpdateLinkedAggregationMutation({
+          const { data, errors } = await runCreateLinkedAggregationMutation({
             variables: {
               ...action,
               operation: {
@@ -103,7 +104,7 @@ export const useBlockProtocolCreateLinks = (): {
       }
       return results;
     },
-    [runCreateLinksMutation],
+    [runCreateLinksMutation, runCreateLinkedAggregationMutation],
   );
 
   return {
