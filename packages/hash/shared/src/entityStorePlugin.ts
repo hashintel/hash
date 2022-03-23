@@ -359,7 +359,7 @@ class ProsemirrorStateChangeHandler {
   private readonly tr: Transaction<Schema>;
   private handled = false;
 
-  constructor(private state: EditorState<Schema>) {
+  constructor(private state: EditorState<Schema>, public accountId: string) {
     this.tr = state.tr;
   }
 
@@ -530,7 +530,7 @@ class ProsemirrorStateChangeHandler {
       addEntityStoreAction(this.state, this.tr, {
         type: "newDraftEntity",
         payload: {
-          accountId,
+          accountId: this.accountId,
           draftId,
           entityId: entityId ?? null,
         },
@@ -573,47 +573,48 @@ class ProsemirrorStateChangeHandler {
   }
 }
 
-export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
-  key: entityStorePluginKey,
-  state: {
-    init(_): EntityStorePluginState {
-      return {
-        store: createEntityStore([], {}),
-        listeners: [],
-        trackedActions: [],
-      };
-    },
-    apply(tr, initialState): EntityStorePluginState {
-      const nextState = getMeta(tr)?.store ?? initialState;
+export const createEntityStorePlugin = ({ accountId }: { accountId: string }) =>
+  new Plugin<EntityStorePluginState, Schema>({
+    key: entityStorePluginKey,
+    state: {
+      init(_): EntityStorePluginState {
+        return {
+          store: createEntityStore([], {}),
+          listeners: [],
+          trackedActions: [],
+        };
+      },
+      apply(tr, initialState): EntityStorePluginState {
+        const nextState = getMeta(tr)?.store ?? initialState;
 
-      if (nextState !== initialState) {
-        for (const listener of nextState.listeners) {
-          listener(nextState.store);
+        if (nextState !== initialState) {
+          for (const listener of nextState.listeners) {
+            listener(nextState.store);
+          }
         }
+
+        return nextState;
+      },
+    },
+
+    /**
+     * This is necessary to ensure the draft entity store stays in sync with the
+     * changes made by users to the document
+     *
+     * @todo we need to take the state left by the transactions as the start
+     * for nodeChangeHandler
+     */
+    appendTransaction(transactions, _, state) {
+      if (!transactions.some((tr) => tr.docChanged)) {
+        return;
       }
 
-      return nextState;
+      if (
+        getMeta(transactions[transactions.length - 1]!)?.disableInterpretation
+      ) {
+        return;
+      }
+
+      return new ProsemirrorStateChangeHandler(state, accountId).handleDoc();
     },
-  },
-
-  /**
-   * This is necessary to ensure the draft entity store stays in sync with the
-   * changes made by users to the document
-   *
-   * @todo we need to take the state left by the transactions as the start
-   * for nodeChangeHandler
-   */
-  appendTransaction(transactions, _, state) {
-    if (!transactions.some((tr) => tr.docChanged)) {
-      return;
-    }
-
-    if (
-      getMeta(transactions[transactions.length - 1]!)?.disableInterpretation
-    ) {
-      return;
-    }
-
-    return new ProsemirrorStateChangeHandler(state).handleDoc();
-  },
-});
+  });

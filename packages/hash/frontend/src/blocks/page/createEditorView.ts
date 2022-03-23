@@ -30,7 +30,7 @@ export const createEditorView = (
     createSuggester(renderPortal, () => manager, accountId),
   ];
 
-  const state = createProseMirrorState({ plugins });
+  const state = createProseMirrorState({ accountId, plugins });
 
   let connection: EditorConnection;
 
@@ -124,6 +124,7 @@ export const createEditorView = (
     view,
     manager,
     plugins,
+    accountId,
   );
 
   view.dom.classList.add(styles.ProseMirror!);

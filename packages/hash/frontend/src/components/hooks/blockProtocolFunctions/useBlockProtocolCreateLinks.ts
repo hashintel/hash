@@ -66,7 +66,7 @@ export const useBlockProtocolCreateLinks = (): {
                 ...action.operation,
                 entityTypeId: action.operation.entityTypeId,
               },
-              sourceAccountId: action.sourceAccountId!,
+              sourceAccountId: action.sourceAccountId,
             },
           });
           if (!data) {

@@ -37,6 +37,7 @@ class State {
 
 type EditorConnectionAction =
   | {
+      accountId: string;
       type: "loaded";
       doc: ProsemirrorNode<Schema>;
       store: EntityStore;
@@ -74,6 +75,7 @@ export class EditorConnection {
     public view: EditorView<Schema>,
     public manager: ProsemirrorSchemaManager,
     public additionalPlugins: Plugin<unknown, Schema>[],
+    public accountId: string,
   ) {
     this.start();
   }
@@ -91,6 +93,7 @@ export class EditorConnection {
     switch (action.type) {
       case "loaded": {
         const editorState = createProseMirrorState({
+          accountId: action.accountId,
           doc: action.doc,
           plugins: [
             ...this.additionalPlugins,
@@ -203,6 +206,7 @@ export class EditorConnection {
         this.report.success();
         this.backOff = 0;
         this.dispatch({
+          accountId: this.accountId,
           type: "loaded",
           doc,
           store: data.store,
