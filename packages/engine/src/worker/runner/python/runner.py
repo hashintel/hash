@@ -36,7 +36,7 @@ class Runner:
             # Package/user error
             # TODO: Use execptions instead
             #   see https://app.asana.com/0/1199548034582004/1202011714603649/f
-            if not self.start_experiment():
+            if self.start_experiment():
                 self._kill_after_sent()
         except Exception as error:
             # Have to catch generic Exception -- if we knew what the error
@@ -69,7 +69,7 @@ class Runner:
         always the first message that the Rust process sends to a
         Python process.
 
-        :return: Whether the experiment has started, `False` if a package/user error occurred
+        :return: Whether a package/user error occurred
         """
         init = self.messenger.recv_init()
         self.experiment_ctx = init.shared_ctx
@@ -89,14 +89,14 @@ class Runner:
                     if were_user_errors:
                         # TODO: Should we kill the runner here or let the Rust process
                         #       terminate it after receiving user errors?
-                        return False
+                        return True
 
                 except Exception:
                     # Have to catch generic exception, because package could throw anything.
                     self._handle_pkg_error(pkg, "experiment init", sys.exc_info())
-                    return False
+                    return True
 
-        return True
+        return False
 
     def _handle_experiment_init_result(self, pkg, result):
         """
@@ -105,7 +105,8 @@ class Runner:
         :return: Whether any user errors occurred during this
                  package's experiment init
         """
-        if result is None:  # Package didn't return anything.
+        # Not checking for None as we are currently not consistent with returns from packages
+        if not result:  # Package didn't return anything.
             return False
 
         prefix = f"Package `{pkg.name}` experiment init: "
@@ -238,7 +239,8 @@ class Runner:
         :return: Whether any user errors occurred during this
                  package's sim init
         """
-        if result is not None:  # Package didn't return anything.
+        # Not checking for None as we are currently not consistent with returns from packages
+        if not result:  # Package didn't return anything.
             return False
 
         if pkg.type in ("context", "state"):
