@@ -723,7 +723,7 @@ impl WorkerController {
             // Capture `sync` in lambda.
             let sync = sync;
             tracing::trace!("Waiting for runner synchronization");
-            let result = sync.forward_children(runner_receivers).await;
+            sync.forward_children(runner_receivers).await;
             tracing::trace!("Runners synchronized");
         }
         .in_current_span();
