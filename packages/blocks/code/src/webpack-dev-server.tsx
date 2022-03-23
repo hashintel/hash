@@ -8,25 +8,21 @@ import { tw } from "twind";
 import { MockBlockDock } from "mock-block-dock";
 
 // eslint-disable-next-line import/extensions
-import Component from "./index.ts";
+import Component from "./index";
+import { LanguageType } from "./utils";
 
 const node = document.getElementById("app");
 
-const initialData = {
+const initialData: {
+  content: string;
+  language: LanguageType;
+} = {
   content: 'var foo = "bar";',
   language: "javascript",
 };
 
 const App = () => {
   const [data, setData] = useState(initialData);
-
-  const handleUpdateEntities = async (actions) => {
-    // do something with the data
-    const newData = actions[0].data;
-
-    setTimeout(() => setData(newData), 500);
-  };
-
   return (
     <div className={tw`mx-auto mt-14 max-w-3xl`}>
       <MockBlockDock>
@@ -34,7 +30,6 @@ const App = () => {
           entityTypeId="code"
           entityId="entity-code"
           accountId="account-code"
-          updateEntities={handleUpdateEntities}
           {...data}
         />
       </MockBlockDock>
