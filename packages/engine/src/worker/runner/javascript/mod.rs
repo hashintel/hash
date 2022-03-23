@@ -1,14 +1,14 @@
-// rusty_v8 tips:
+// Some notes on rusty_v8:
 //
-// When calling JS functions the second argument is the "this" object
-// for free functions it's the `Context` created at the very beginning
-// Since the argument needs to be a `Local<Value>`
-// we need to call `Context::global` and convert it `into` a `Local<Value>`
+// - When calling JS functions the second argument is the "this" object for free functions it's the
+// `Context` created at the very beginning
+// Since the argument needs to be a `Local<Value>` we need to call `Context::global` and convert
+// it `into` a `Local<Value>`
 //
-// `Local` is cheap to `Copy`
+// - `Local` is cheap to `Copy`
 //
-// Even though rusty_v8 returns an Option on Object::get,
-// if the object does not have the property the result will be Some(undefined)
+// - Even though rusty_v8 returns an Option on Object::get, if the object does not have the
+// property the result will be Some(undefined)
 
 mod data_ffi;
 mod error;
@@ -1830,8 +1830,8 @@ fn get_child_data<'s>(
 }
 
 pub struct JavaScriptRunner {
-    // [`JavaScriptRunner`] and [`ThreadLocalRunner`] are separate because the
-    // V8 Isolate inside [`ThreadLocalRunner`] can't be sent between threads.
+    // [`JavaScriptRunner`] and [`ThreadLocalRunner`] are separate because the V8 Isolate inside
+    // [`ThreadLocalRunner`] can't be sent between threads.
     init_msg: Arc<ExperimentInitRunnerMsg>,
     // Args to [`ThreadLocalRunner::new`]
     inbound_sender: UnboundedSender<(Span, Option<SimulationShortId>, InboundToRunnerMsgPayload)>,
