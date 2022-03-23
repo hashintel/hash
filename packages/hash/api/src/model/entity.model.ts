@@ -617,7 +617,7 @@ class __Entity {
       /**
        * Currently the outgoing links of an entity cannot be reliably created in parallel,
        * because when indexed links are created the affected indexed links which have the same path
-       * and source entity have to be udpated. Running these operations in parallel can result in the
+       * and source entity have to be updated. Running these operations in parallel can result in the
        * update methods being run out of order, resulting in incorrect `index` values for the affected links.
        *
        * @todo: find a way to run these in parallel - potentially by implementing a `createLinks` adapter method,
