@@ -24,51 +24,49 @@ export const TopNavLink: FC<NavLinkProps> = ({
       <Link
         href={href}
         noLinkStyle
-        sx={{
+        sx={({ palette, transitions }) => ({
           display: "flex",
           alignItems: "center",
           padding: "8px 16px",
           borderRadius: "4px",
           mx: 0.5,
-          transition: ({ transitions }) =>
-            transitions.create("backgroundColor", { duration: 300 }),
+          transition: transitions.create("backgroundColor", { duration: 300 }),
 
           [`& > .${typographyClasses.root}, & > svg`]: {
-            transition: ({ transitions }) =>
-              transitions.create("color", {
-                duration: 300,
-              }),
+            transition: transitions.create("color", {
+              duration: 300,
+            }),
           },
 
           "& > svg": {
-            color: ({ palette }) => palette.gray[50],
+            color: palette.gray[50],
           },
 
           [`& > .${typographyClasses.root}`]: {
-            color: ({ palette }) => palette.gray[70],
+            color: palette.gray[70],
           },
 
           "&:hover": {
-            backgroundColor: ({ palette }) => palette.gray[20],
+            backgroundColor: palette.gray[20],
 
             [`& > svg, & > .${typographyClasses.root}`]: {
-              color: ({ palette }) => palette.gray[80],
+              color: palette.gray[80],
             },
           },
 
           "&:focus-visible": {
-            outline: ({ palette }) => `2px solid ${palette.blue[70]}`,
+            outline: `2px solid ${palette.blue[70]}`,
             outlineOffset: 2,
           },
 
           ...(active && {
-            backgroundColor: ({ palette }) => palette.gray[30],
+            backgroundColor: palette.gray[30],
 
             [`& > svg, & > .${typographyClasses.root}`]: {
-              color: ({ palette }) => palette.gray[90],
+              color: palette.gray[90],
             },
           }),
-        }}
+        })}
       >
         <FontAwesomeIcon sx={{ mr: 1.5 }} icon={icon} />
         <Typography variant="smallTextLabels" fontWeight={500}>

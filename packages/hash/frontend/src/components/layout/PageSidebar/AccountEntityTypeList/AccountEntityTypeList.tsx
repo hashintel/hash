@@ -203,7 +203,7 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
                 searchInputRef={searchInputRef}
                 showSearchInput={() => setSearchVisible(true)}
                 hideSearchInput={() => setSearchVisible(false)}
-                onChangeText={(query: string) => setSearchQuery(query)}
+                onChangeText={(query) => setSearchQuery(query)}
               />
             </Box>
             <Tooltip title="Sort types">

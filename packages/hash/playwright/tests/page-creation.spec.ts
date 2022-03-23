@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { sleep } from "@hashintel/hash-shared/sleep";
 import { loginUsingUi } from "./utils/loginUsingUi";
 
+const pageNameSuffix = Date.now();
 const pageName = "Untitled";
 
 const listOfPagesSelector = '[data-testid="pages-tree"]';

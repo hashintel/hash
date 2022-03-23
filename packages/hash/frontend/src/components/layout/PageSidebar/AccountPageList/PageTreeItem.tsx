@@ -18,7 +18,7 @@ import { IconButton } from "../../../IconButton";
 import { Link } from "../../../Link";
 import { PageMenu } from "./PageMenu";
 
-// inspiration gotten from https://mui.com/components/tree-view/#IconExpansionTreeView.tsx
+// tweaked the example at https://mui.com/components/tree-view/#IconExpansionTreeView.tsx
 const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
   const { label, nodeId, expandable, url, depth } = props;
   const [hovered, setHovered] = React.useState(false);
@@ -49,7 +49,7 @@ const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
       onMouseOver={() => setHovered(true)}
       onMouseOut={() => setHovered(false)}
       ref={ref as React.Ref<HTMLDivElement>}
-      sx={{
+      sx={({ palette }) => ({
         display: "flex",
         alignItems: "center",
         borderRadius: "4px",
@@ -59,20 +59,20 @@ const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
 
         ...((hovered || focused) &&
           !selected && {
-            backgroundColor: ({ palette }) => palette.gray[20],
+            backgroundColor: palette.gray[20],
           }),
 
         ...(selected && {
-          backgroundColor: ({ palette }) => palette.gray[30],
+          backgroundColor: palette.gray[30],
         }),
-      }}
+      })}
     >
       <IconButton
         onClick={handleExpansionClick}
         size="xs"
         unpadded
         rounded
-        sx={{
+        sx={({ transitions }) => ({
           visibility: "hidden",
           pointerEvents: "none",
           mr: 0.5,
@@ -82,10 +82,9 @@ const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
             pointerEvents: "auto",
 
             transform: expanded ? `rotate(90deg)` : "none",
-            transition: ({ transitions }) =>
-              transitions.create("transform", { duration: 300 }),
+            transition: transitions.create("transform", { duration: 300 }),
           }),
-        }}
+        })}
       >
         <FontAwesomeIcon icon={faChevronRight} />
       </IconButton>
@@ -139,17 +138,16 @@ const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
           {...bindTrigger(popupState)}
           size="medium"
           unpadded
-          sx={{
-            color: ({ palette }) => palette.gray[40],
+          sx={({ palette }) => ({
+            color: palette.gray[40],
             ...(hovered && {
-              color: ({ palette }) => palette.gray[50],
+              color: palette.gray[50],
             }),
             "&:hover": {
-              backgroundColor: ({ palette }) =>
-                palette.gray[selected ? 40 : 30],
-              color: ({ palette }) => palette.gray[50],
+              backgroundColor: palette.gray[selected ? 40 : 30],
+              color: palette.gray[50],
             },
-          }}
+          })}
         >
           <FontAwesomeIcon icon={faEllipsis} />
         </IconButton>

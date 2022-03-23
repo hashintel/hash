@@ -28,7 +28,7 @@ export const NavLink: FC<NavLinkProps> = ({
   return (
     <Box>
       <Box
-        sx={{
+        sx={({ palette }) => ({
           display: "flex",
           alignItems: "center",
           borderRadius: "4px",
@@ -37,18 +37,18 @@ export const NavLink: FC<NavLinkProps> = ({
           pr: "6px",
           mx: 0.5,
           ...(hovered && {
-            backgroundColor: ({ palette }) => palette.gray[20],
+            backgroundColor: palette.gray[20],
           }),
-        }}
+        })}
         onMouseOver={() => setHovered(true)}
         onMouseOut={() => setHovered(false)}
       >
         <Typography
           variant="smallCaps"
-          sx={{
+          sx={({ palette }) => ({
             mr: 1.4,
-            color: ({ palette }) => palette.gray[50],
-          }}
+            color: palette.gray[50],
+          })}
         >
           {title}
         </Typography>
@@ -56,22 +56,21 @@ export const NavLink: FC<NavLinkProps> = ({
           size="xs"
           unpadded
           rounded
-          sx={{
+          sx={({ palette }) => ({
             mr: "auto",
-            ...(!expanded && { color: ({ palette }) => palette.gray[40] }),
+            ...(!expanded && { color: palette.gray[40] }),
             ...(hovered && {
-              backgroundColor: ({ palette }) => palette.gray[30],
-              color: ({ palette }) => palette.gray[80],
+              backgroundColor: palette.gray[30],
+              color: palette.gray[80],
             }),
-          }}
+          })}
           onClick={() => setExpanded((prev) => !prev)}
         >
           <FontAwesomeIcon
-            sx={{
+            sx={({ transitions }) => ({
               transform: expanded ? `rotate(90deg)` : "none",
-              transition: ({ transitions }) =>
-                transitions.create("transform", { duration: 300 }),
-            }}
+              transition: transitions.create("transform", { duration: 300 }),
+            })}
             icon={faChevronRight}
           />
         </IconButton>

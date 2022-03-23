@@ -110,17 +110,16 @@ export const EntityTypeItem: VFC<EntityTypeItemProps> = ({
           {...bindTrigger(popupState)}
           size="medium"
           unpadded
-          sx={{
-            color: ({ palette }) => palette.gray[40],
+          sx={({ palette }) => ({
+            color: palette.gray[40],
             ...(hovered && {
-              color: ({ palette }) => palette.gray[50],
+              color: palette.gray[50],
             }),
             "&:hover": {
-              backgroundColor: ({ palette }) =>
-                palette.gray[selected ? 40 : 30],
-              color: ({ palette }) => palette.gray[50],
+              backgroundColor: palette.gray[selected ? 40 : 30],
+              color: palette.gray[50],
             },
-          }}
+          })}
         >
           <FontAwesomeIcon icon={faEllipsis} />
         </IconButton>

@@ -62,7 +62,7 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({
           setTimeout(() => {
             setCopied(false);
             popupState.close();
-          }, 1000);
+          }, 2000);
         },
       },
       {
