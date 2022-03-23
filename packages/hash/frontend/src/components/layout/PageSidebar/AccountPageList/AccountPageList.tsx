@@ -67,30 +67,22 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  const { create } = useCreatePage();
+  const { createUntitledPage } = useCreatePage(accountId);
 
-  const addPage = () => {
+  // @todo handle loading/error states properly
+  const addPage = async () => {
     if (loading) {
       return;
     }
 
     setLoading(true);
-    create({
-      variables: { accountId, properties: { title: "Untitled" } },
-    })
-      .then((response) => {
-        const { accountId: pageAccountId, entityId: pageEntityId } =
-          response.data?.createPage ?? {};
-
-        if (pageAccountId && pageEntityId) {
-          return router.push(`/${pageAccountId}/${pageEntityId}`);
-        }
-      })
-      .catch((err) => {
-        // eslint-disable-next-line no-console -- TODO: consider using logger
-        console.error("Could not create page: ", err);
-        setLoading(false);
-      });
+    try {
+      await createUntitledPage();
+    } catch (err) {
+      // eslint-disable-next-line no-console -- TODO: consider using logger
+      console.error("Could not create page: ", err);
+      setLoading(false);
+    }
   };
 
   const formattedData = useMemo(

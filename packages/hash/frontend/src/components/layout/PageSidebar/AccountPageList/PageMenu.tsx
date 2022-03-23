@@ -20,6 +20,7 @@ import {
 import { faFileAlt, faTrashCan } from "@fortawesome/free-regular-svg-icons";
 import { useRouter } from "next/router";
 import { FontAwesomeIcon } from "../../../icons";
+import { useCreatePage } from "../../../hooks/useCreatePage";
 
 type PageMenuProps = {
   popupState: PopupState;
@@ -30,6 +31,7 @@ export const PageMenu: VFC<PageMenuProps> = ({ popupState, entityId }) => {
   const [copied, setCopied] = useState(false);
   const { query } = useRouter();
   const accountId = query.accountId as string;
+  const { createSubPage } = useCreatePage(accountId);
 
   const menuItems = useMemo(
     () => [
@@ -45,13 +47,21 @@ export const PageMenu: VFC<PageMenuProps> = ({ popupState, entityId }) => {
         id: 2,
         title: "Add subpage",
         icon: faFileAlt,
-        onClick: () => {
-          popupState.close();
+        onClick: async () => {
+          try {
+            // @todo handle loading/error states properly
+            await createSubPage(entityId);
+          } catch (err) {
+            // eslint-disable-next-line no-console -- TODO: consider using logger
+            console.log("err ==> ", err);
+          } finally {
+            popupState.close();
+          }
         },
       },
       {
         id: 3,
-        title: "Copy link to page",
+        title: copied ? "Copied!" : "Copy link to page",
         icon: faLink,
         onClick: () => {
           void navigator.clipboard.writeText(
@@ -61,7 +71,7 @@ export const PageMenu: VFC<PageMenuProps> = ({ popupState, entityId }) => {
           setTimeout(() => {
             setCopied(false);
             popupState.close();
-          }, 1000);
+          }, 2000);
         },
       },
       {
@@ -109,11 +119,11 @@ export const PageMenu: VFC<PageMenuProps> = ({ popupState, entityId }) => {
         },
       },
     ],
-    [copied, popupState],
+    [copied, popupState, createSubPage, accountId, entityId],
   );
   return (
     <Menu {...bindMenu(popupState)}>
-      {menuItems.map(({ title, icon, type, id }, index) => {
+      {menuItems.map(({ title, icon, type, id, onClick }, index) => {
         if (type === "divider") {
           return <Divider key={id} />;
         }
@@ -132,6 +142,7 @@ export const PageMenu: VFC<PageMenuProps> = ({ popupState, entityId }) => {
                 },
               }),
             }}
+            onClick={onClick}
           >
             <ListItemIcon>
               <FontAwesomeIcon icon={icon!} />
