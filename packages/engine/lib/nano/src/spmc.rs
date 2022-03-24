@@ -6,7 +6,7 @@ use tokio::sync::{mpsc, Mutex};
 /// may be cloned. Each value in the queue will be received by at most one consumer.
 /// Internally, consumers acquire a tokio lock on the receiving side of a channel which
 /// ensures a fair allocation of messages to consumers based on FIFO locking order.
-/// See: https://tokio-rs.github.io/tokio/doc/tokio/sync/struct.Mutex.html
+/// See: <https://tokio-rs.github.io/tokio/doc/tokio/sync/struct.Mutex.html>
 pub(crate) fn channel<T>(buffer: usize) -> (Sender<T>, Receiver<T>) {
     let (tx, rx) = mpsc::channel::<T>(buffer);
     let sender = Sender { sender: tx };
