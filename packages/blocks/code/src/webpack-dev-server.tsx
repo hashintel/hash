@@ -7,7 +7,6 @@ import ReactDOM from "react-dom";
 import { tw } from "twind";
 import { MockBlockDock } from "mock-block-dock";
 
-// eslint-disable-next-line import/extensions
 import Component from "./index";
 import { LanguageType } from "./utils";
 
