@@ -1397,7 +1397,10 @@ impl<'m> RunnerImpl<'m> {
                 let sim_id = sim_id.ok_or(Error::SimulationIdRequired("run task"))?;
                 self.handle_task_msg(mv8, sim_id, msg, outbound_sender)?;
             }
-            InboundToRunnerMsgPayload::CancelTask(_) => {} // TODO
+            InboundToRunnerMsgPayload::CancelTask(_) => {
+                todo!("Cancel messages are not implemented yet");
+                // see https://app.asana.com/0/1199548034582004/1202011714603653/f
+            }
         }
         Ok(true) // Continue running.
     }

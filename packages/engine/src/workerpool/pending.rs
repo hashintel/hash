@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use tokio::sync::oneshot;
-
 use super::error::{Error, Result};
 use crate::{
     config::Worker,
@@ -85,35 +83,39 @@ impl PendingWorkerPoolTask {
     }
 
     /// TODO: DOC
-    fn handle_cancel_state(&mut self, worker: Worker, _task_id: TaskId) -> Result<HasTerminated> {
-        if let DistributionController::Distributed {
-            active_workers: active_workers_comms,
-            received_results: _,
-            reference_task: _,
-        } = &mut self.distribution_controller
-        {
-            active_workers_comms.remove(worker.index());
-            if active_workers_comms.is_empty() {
-                let combined_result = TaskResultOrCancelled::Cancelled;
-                self.comms
-                    .result_send
-                    .take()
-                    .ok_or(Error::NoResultSender)?
-                    .send(combined_result)
-                    .map_err(|_| Error::from("Couldn't send cancelled task result"))?;
-                Ok(true)
-            } else {
-                Ok(false)
-            }
-        } else {
-            self.comms
-                .result_send
-                .take()
-                .ok_or(Error::NoResultSender)?
-                .send(TaskResultOrCancelled::Cancelled)
-                .map_err(|_| Error::from("Couldn't send cancelled task result"))?;
-            Ok(true)
-        }
+    #[allow(dead_code)]
+    fn handle_cancel_state(&mut self, _worker: Worker, _task_id: TaskId) -> Result<HasTerminated> {
+        todo!("Cancel messages are not implemented yet");
+        // see https://app.asana.com/0/1199548034582004/1202011714603653/f
+
+        // if let DistributionController::Distributed {
+        //     active_workers: active_workers_comms,
+        //     received_results: _,
+        //     reference_task: _,
+        // } = &mut self.distribution_controller
+        // {
+        //     active_workers_comms.remove(worker.index());
+        //     if active_workers_comms.is_empty() {
+        //         let combined_result = TaskResultOrCancelled::Cancelled;
+        //         self.comms
+        //             .result_send
+        //             .take()
+        //             .ok_or(Error::NoResultSender)?
+        //             .send(combined_result)
+        //             .map_err(|_| Error::from("Couldn't send cancelled task result"))?;
+        //         Ok(true)
+        //     } else {
+        //         Ok(false)
+        //     }
+        // } else {
+        //     self.comms
+        //         .result_send
+        //         .take()
+        //         .ok_or(Error::NoResultSender)?
+        //         .send(TaskResultOrCancelled::Cancelled)
+        //         .map_err(|_| Error::from("Couldn't send cancelled task result"))?;
+        //     Ok(true)
+        // }
     }
 
     /// TODO: DOC
@@ -128,7 +130,9 @@ impl PendingWorkerPoolTask {
                 &TaskResultOrCancelled::Cancelled
             )
         {
-            self.handle_cancel_state(worker, result_or_cancelled.task_id)
+            todo!("Cancel messages are not implemented yet")
+            // see https://app.asana.com/0/1199548034582004/1202011714603653/f
+            // self.handle_cancel_state(worker, result_or_cancelled.task_id)
         } else if let TaskResultOrCancelled::Result(result) = result_or_cancelled.payload {
             self.handle_result_state(worker, result_or_cancelled.task_id, result)
         } else {
@@ -138,22 +142,24 @@ impl PendingWorkerPoolTask {
         }
     }
 
-    // TODO: delete or use when cancel is revisited
     #[allow(dead_code)]
     pub fn recv_cancel(&mut self) -> Result<Option<CancelTask>> {
-        use oneshot::error::TryRecvError;
-        if !self.cancelling {
-            return match self.comms.cancel_recv.try_recv() {
-                Ok(res) => Ok(Some(res)),
-                Err(err) => match err {
-                    TryRecvError::Empty => Ok(None),
-                    TryRecvError::Closed => Err(Error::CancelClosed),
-                },
-            };
-        }
-        // Don't send anything because we've already received a cancel
-        // message.
-        Ok(None)
+        todo!("Cancel messages are not implemented yet");
+        // see https://app.asana.com/0/1199548034582004/1202011714603653/f
+
+        // use oneshot::error::TryRecvError;
+        // if !self.cancelling {
+        //     return match self.comms.cancel_recv.try_recv() {
+        //         Ok(res) => Ok(Some(res)),
+        //         Err(err) => match err {
+        //             TryRecvError::Empty => Ok(None),
+        //             TryRecvError::Closed => Err(Error::CancelClosed),
+        //         },
+        //     };
+        // }
+        // // Don't send anything because we've already received a cancel
+        // // message.
+        // Ok(None)
     }
 }
 
@@ -164,19 +170,21 @@ pub struct PendingWorkerPoolTasks {
 }
 
 impl PendingWorkerPoolTasks {
-    // TODO: delete or use when cancel is revisited
     #[allow(dead_code)]
     pub async fn run_cancel_check(&mut self) -> Vec<TaskId> {
-        self.inner
-            .iter_mut()
-            .filter_map(|(id, task)| {
-                // Ignore if closed
-                if let Ok(Some(_)) = task.recv_cancel() {
-                    Some(*id)
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>()
+        todo!("Cancel messages are not implemented yet");
+        // see https://app.asana.com/0/1199548034582004/1202011714603653/f
+
+        // self.inner
+        //     .iter_mut()
+        //     .filter_map(|(id, task)| {
+        //         // Ignore if closed
+        //         if let Ok(Some(_)) = task.recv_cancel() {
+        //             Some(*id)
+        //         } else {
+        //             None
+        //         }
+        //     })
+        //     .collect::<Vec<_>>()
     }
 }

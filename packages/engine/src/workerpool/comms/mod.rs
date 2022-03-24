@@ -84,12 +84,16 @@ impl WorkerPoolToWorkerMsg {
         }
     }
 
-    pub fn cancel_task(task_id: TaskId) -> WorkerPoolToWorkerMsg {
-        WorkerPoolToWorkerMsg {
-            span: Span::current(),
-            sim_id: None,
-            payload: WorkerPoolToWorkerMsgPayload::CancelTask(task_id),
-        }
+    #[allow(dead_code)]
+    pub fn cancel_task(_task_id: TaskId) -> WorkerPoolToWorkerMsg {
+        todo!("Cancel messages are not implemented yet");
+        // see https://app.asana.com/0/1199548034582004/1202011714603653/f
+
+        // WorkerPoolToWorkerMsg {
+        //     span: Span::current(),
+        //     sim_id: None,
+        //     payload: WorkerPoolToWorkerMsgPayload::CancelTask(task_id),
+        // }
     }
 
     pub fn new_simulation_run(new_simulation_run: NewSimulationRun) -> WorkerPoolToWorkerMsg {

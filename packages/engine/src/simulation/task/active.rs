@@ -65,32 +65,35 @@ impl ActiveTask {
         }
     }
 
-    // TODO: UNUSED: Needs triage
-    pub async fn cancel(mut self) -> Result<()> {
-        if self.running && !self.cancel_sent {
-            let cancel_send = self
-                .comms
-                .cancel_send
-                .take()
-                .ok_or_else(|| Error::from("Couldn't take cancel send"))?;
-            cancel_send
-                .send(CancelTask::new())
-                .map_err(|_| Error::from("Failed to send Cancel Task"))?;
-            self.cancel_sent = true;
-            let recv = self
-                .comms
-                .result_recv
-                .take()
-                .ok_or_else(|| Error::from("Couldn't take result recv"))?;
-            let res = recv.await?;
-            if matches!(res, TaskResultOrCancelled::Cancelled) {
-                tracing::warn!("Task was cancelled, but completed in the meanwhile");
-            }
-            self.running = false;
-        } else if !self.running {
-            tracing::warn!("Tried to cancel task which was not running");
-        }
-        Ok(())
+    #[allow(dead_code)]
+    pub async fn cancel(self) -> Result<()> {
+        todo!("Cancel messages are not implemented yet");
+        // see https://app.asana.com/0/1199548034582004/1202011714603653/f
+
+        // if self.running && !self.cancel_sent {
+        //     let cancel_send = self
+        //         .comms
+        //         .cancel_send
+        //         .take()
+        //         .ok_or_else(|| Error::from("Couldn't take cancel send"))?;
+        //     cancel_send
+        //         .send(CancelTask::new())
+        //         .map_err(|_| Error::from("Failed to send Cancel Task"))?;
+        //     self.cancel_sent = true;
+        //     let recv = self
+        //         .comms
+        //         .result_recv
+        //         .take()
+        //         .ok_or_else(|| Error::from("Couldn't take result recv"))?;
+        //     let res = recv.await?;
+        //     if matches!(res, TaskResultOrCancelled::Cancelled) {
+        //         tracing::warn!("Task was cancelled, but completed in the meanwhile");
+        //     }
+        //     self.running = false;
+        // } else if !self.running {
+        //     tracing::warn!("Tried to cancel task which was not running");
+        // }
+        // Ok(())
     }
 }
 
