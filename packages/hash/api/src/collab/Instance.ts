@@ -318,10 +318,10 @@ export class Instance {
         return false;
       }
 
-      this.checkVersion(version);
-      if (this.version !== version) return false;
-
       try {
+        this.checkVersion(version);
+        if (this.version !== version) return false;
+
         const tr = this.state.tr;
 
         if (fromClient) {
