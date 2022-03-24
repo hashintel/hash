@@ -86,6 +86,7 @@ impl NngReceiver {
             .map_err(|(msg, err)| Error::NngSend(msg, err))?;
 
         let _init_ack = self.from_py.recv()?;
+        self.from_py.recv_async(&self.aio)?;
         Ok(())
     }
 

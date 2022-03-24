@@ -24,17 +24,18 @@ class Sim:
         if to_add is None:
             return
 
-        custom_fns = getattr(self, pkg.type + '_' + custom_property)
+        custom_fns = getattr(self, pkg.type + "_" + custom_property)
         for field_name in to_add:
-            if not pkg.owns_field.get(field_name):
-                raise RuntimeError(
-                    "Packages can only specify " + custom_property + " for fields they own, not '" +
-                    field_name + "' in " + pkg.name
-                )
+            # TODO: Uncomment after propagating owned_fields:
+            # if not pkg.owns_field.get(field_name):
+            #     raise RuntimeError(
+            #         f"Packages can only specify {custom_property} for fields they own, "
+            #         f"not '{field_name}' in {pkg.name}"
+            #     )
 
             if field_name in custom_fns:
                 raise RuntimeError(
-                    "Duplicate '" + field_name + "' in " + pkg.name + " " + custom_property
+                    f"Duplicate '{field_name}' in {pkg.name}  {custom_property}"
                 )
 
             custom_fns[field_name] = to_add[field_name]

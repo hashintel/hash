@@ -1760,7 +1760,7 @@ impl<'s> ThreadLocalRunner<'s> {
                 let sim_id = sim_id.ok_or(Error::SimulationIdRequired("run task"))?;
                 self.handle_task_msg(scope, sim_id, msg, outbound_sender)?;
             }
-            InboundToRunnerMsgPayload::CancelTask(_) => {}
+            InboundToRunnerMsgPayload::CancelTask(_) => {} // TODO
         }
 
         Ok(true) // Continue running.
@@ -1898,8 +1898,8 @@ fn run_experiment(
             let mut thread_local_runner = ThreadLocalRunner::new(&mut context_scope, context, &init_msg)?;
 
             loop {
-                tokio::select! {
-                    Some((span, sim_id, msg)) = inbound_receiver.recv() => {
+                match inbound_receiver.recv().await {
+                    Some((span, sim_id, msg)) => {
                         let _span = span.entered();
                         // TODO: Send errors instead of immediately stopping?
                         let msg_str = msg.as_str();
@@ -1915,6 +1915,10 @@ fn run_experiment(
                             tracing::debug!("JavaScript Runner has finished execution, stopping");
                             break;
                         }
+                    }
+                    None => {
+                        tracing::error!("Inbound sender to JS exited");
+                        return Err(Error::InboundReceive.into());
                     }
                 }
             }
