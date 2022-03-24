@@ -1,83 +1,88 @@
 from copy import deepcopy
 from uuid import UUID
 
-import hash_util
 import json
+
 
 def raise_missing_field(field_name):
     raise RuntimeError("Missing field (behavior keys?): " + field_name)
 
 
+# TODO: Propagate field specs to runners and use in state and context objects
+BEHAVIOR_INDEX_FIELD_KEY = "_PRIVATE_14_behavior_index"
+
+
 class AgentState:
-    def __init__(self, group_state, i_agent_in_group):
-        self.__group_state = group_state
-        self.__cols = group_state.__GroupState_agent_batch.cols
-        self.__msgs = group_state.__GroupState_msg_batch.cols['messages']
-        self.__msgs_native = group_state.__GroupState_msgs_native
-        self.__idx_in_group = i_agent_in_group
-        self.__dyn_access = False
+    def __init__(
+            self, group_state, agent_batch, msg_batch, msgs_native, i_agent_in_group
+    ):
+        self.__dict__["__group_state"] = group_state
+        self.__dict__["__cols"] = agent_batch.cols
+        self.__dict__["__msgs"] = msg_batch.cols["messages"]
+        self.__dict__["__msgs_native"] = msgs_native
+        self.__dict__["__idx_in_group"] = i_agent_in_group
+        self.__dict__["__dyn_access"] = False
 
     # TODO: It's possible that we don't want package users to
     #       have access to this, though we do want package
     #       authors to.
     def set_dynamic_access(self, enable_dynamic_access):
-        self.__dyn_access = enable_dynamic_access
-
-    def to_json(self):
-        r = {}
-        for name, col in self.__cols.items():
-            r[name] = hash_util.json_deepcopy(self.__getattr__(name))
-
-        r['messages'] = hash_util.json_deepcopy(self.messages)
-        return r
-
-    def _hasattr(self, field):
-        return field == "messages" or field in self.__cols
+        self.__dict__["__dyn_access"] = enable_dynamic_access
 
     def __getattr__(self, field):  # Can raise AttributeError.
-        idx = self.__dict__['__idx_in_group']
+        idx = self.__dict__["__idx_in_group"]
         if field == "messages":
-            msgs = self.__dict__['__msgs'][idx]
-            if not self.__dict__['__msgs_native'][idx]:
-                for m in msgs:
-                    m["data"] = json.loads(m["data"])
-                self.__dict__['__msgs_native'][idx] = True
+            messages = self.__dict__["__msgs"][idx]
+            if not self.__dict__["__msgs_native"][idx]:
+                for message in messages:
+                    message["data"] = json.loads(message["data"])
+                self.__dict__["__msgs_native"][idx] = True
 
-            return msgs
+            return messages
 
         if field == "agent_id":
-            return str(UUID(bytes=self.__dict__['__cols']["agent_id"][idx]))
+            return str(UUID(bytes=self.__dict__["__cols"]["agent_id"][idx]))
 
-        col = self.__dict__['__cols'].get(field)
+        col = self.__dict__["__cols"].get(field)
         if col is None:  # Slow path -- unlikely branch
-            if self.__dict__['__dyn_access']:
-                self.__dict__['__cols'][field] = col = self.__group_state.load(field)
+            if self.__dict__["__dyn_access"]:
+                self.__dict__["__cols"][field] = col = self.__dict__[
+                    "__group_state"
+                ].load(field)
             else:
                 raise_missing_field(field)
 
         return col[idx]
 
+    def __getitem__(self, field):
+        return self.__getattr__(field)
+
     def __setattr__(self, field, value):  # Can raise AttributeError.
-        idx = self.__dict__['__idx_in_group']
+        idx = self.__dict__["__idx_in_group"]
         if field == "messages":
-            self.__dict__['__msgs'][idx] = value
-            self.__dict__['__msgs_native'][idx] = True
+            self.__dict__["__msgs"][idx] = value
+            self.__dict__["__msgs_native"][idx] = True
             return
 
         # TODO: Prevent users from setting `agent_id` field?
         #       (Throw exception -- maybe ValueError or AttributeError.)
 
-        col = self.__dict__['__cols'].get(field)
+        col = self.__dict__["__cols"].get(field)
         if col is None:  # Slow path -- unlikely branch
-            self.__dict__['__cols'][field] = col = self.__group_state.load(field)
+            self.__dict__["__cols"][field] = col = self.__dict__["__group_state"].load(
+                field
+            )
 
         col[idx] = value
 
+    def __setitem__(self, field, value):
+        self.__setattr__(field, value)
+
     def get(self, field_name):
-        return hash_util.json_deepcopy(self.__getattr__(field_name))
+        return deepcopy(getattr(self, field_name))
 
     def set(self, field_name, value):
-        self.__setattr__(field_name, hash_util.json_deepcopy(value))
+        setattr(self, field_name, deepcopy(value))
 
     def modify(self, field_name, fn):
         self.set(field_name, fn(self.get(field_name)))
@@ -92,16 +97,20 @@ class AgentState:
 
     # `data` is an optional argument. `data` must be JSON-serializable.
     def add_message(self, to, msg_type, data=None):
-        idx = self.__idx
-        self.__dict__['__msgs'][idx].append({
-            "to": [to] if isinstance(to, str) else to,
-            "type": msg_type,
-            "data": deepcopy(data) if self.__dict__['__msgs_native'][idx] else json.dumps(data)
-        })
+        idx = self.__dict__["__idx_in_group"]
+        self.__dict__["__msgs"][idx].append(
+            {
+                "to": [to] if isinstance(to, str) else to,
+                "type": msg_type,
+                "data": deepcopy(data) if self.__dict__["__msgs_native"][idx] else json.dumps(data),
+            }
+        )
 
-    # Returns the index of the currently executing behavior in the agent's behavior chain.
     def behavior_index(self):
-        return self.__i_behavior
+        """Return the index of the currently executing behavior in the agent's behavior chain."""
+        return getattr(
+            self, BEHAVIOR_INDEX_FIELD_KEY
+        )  # Uses `__getattr__` to get index from column.
 
 
 class GroupState:
@@ -109,16 +118,13 @@ class GroupState:
         self.__agent_batch = agent_batch
         self.__msg_batch = msg_batch
         # TODO: Use numpy for msgs_native
-        self.__msgs_native = [False * len(agent_batch.cols['agent_id'])]
+        self.__msgs_native = [False] * len(agent_batch.cols["agent_id"])
         self.__loaders = loaders
 
     def set_batches(self, agent_batch, msg_batch):
         self.__agent_batch = agent_batch
         self.__msg_batch = msg_batch
-        self.__msgs_native = [False * len(agent_batch.cols['agent_id'])]
-
-    def to_json(self):
-        raise RuntimeError("Group state shouldn't be copied to JSON.")
+        self.__msgs_native = [False] * len(agent_batch.cols["agent_id"])
 
     def load(self, field_name):
         if self.__agent_batch.record_batch.schema.get_field_index(field_name) < 0:
@@ -132,10 +138,17 @@ class GroupState:
 
     def get_agent(self, i_agent_in_group, old_agent_state=None):
         if old_agent_state is not None:
-            old_agent_state.__AgentState_idx = i_agent_in_group
+            # TODO - we should figure out a way to not have to manually unmangle this
+            old_agent_state.__dict__["_AgentState__idx_in_group"] = i_agent_in_group
             return old_agent_state
 
-        return AgentState(self, i_agent_in_group)
+        return AgentState(
+            self,
+            self.__agent_batch,
+            self.__msg_batch,
+            self.__msgs_native,
+            i_agent_in_group,
+        )
 
     def flush_changes(self, schema):
         # TODO: Only flush columns that were written to.
@@ -148,24 +161,23 @@ class GroupState:
         # a message's data to JSON and add it without converting existing
         # messages to native JavaScript objects.
 
-        skip = {'agent_id': True}
+        skip = {"agent_id"}
         self.__agent_batch.flush_changes(schema.agent, skip)
 
         # Convert any native message objects to JSON before flushing message batch.
         # Note that this is distinct from (though analogous to) 'any'-type handling
         # in `batch.flush_changes`.
-        group_msgs = self.__msg_batch.cols['messages']
+        group_msgs = self.__msg_batch.cols["messages"]
         for i_agent, agent_msgs in enumerate(group_msgs):
             if self.__msgs_native[i_agent]:
                 for msg in agent_msgs:
-                    msg.data = json.dumps(msg.data)
+                    # When sending a remove-agent message, `data` may be empty to remove self
+                    if "data" in msg:
+                        msg["data"] = json.dumps(msg["data"])
 
-        self.__msg_batch.flush_changes(schema.message, {})
+        self.__msg_batch.flush_changes(schema.message, set())
 
-        return {
-            "agent": self.__agent_batch,
-            "message": self.__msg_batch
-        }
+        return {"agent": self.__agent_batch, "message": self.__msg_batch}
 
 
 class SimState:
@@ -175,6 +187,9 @@ class SimState:
 
     def n_groups(self):
         return len(self.groups)
+
+    def get_group(self, i_group):
+        return self.groups[i_group]
 
     def set_pools(self, agent_pool, msg_pool, loaders):
         for i_group in range(min(len(self.groups), len(agent_pool))):
@@ -190,13 +205,10 @@ class SimState:
                     GroupState(agent_pool[i_group], msg_pool[i_group], loaders)
                 )
 
-    def get_group(self, i_group):
-        return self.groups[i_group]
-
     def flush_changes(self, schema):
-        r = []
+        groups_changes = []
         for i_group, group in enumerate(self.groups):
             changes = group.flush_changes(schema)
             changes["i_group"] = i_group
-            r.append(changes)
-        return r
+            groups_changes.append(changes)
+        return groups_changes

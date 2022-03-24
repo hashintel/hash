@@ -85,7 +85,11 @@ impl PendingWorkerPoolTask {
     }
 
     /// TODO: DOC
+    #[allow(unused_variables, unreachable_code)]
     fn handle_cancel_state(&mut self, worker: Worker, _task_id: TaskId) -> Result<HasTerminated> {
+        todo!("Cancel messages are not implemented yet");
+        // see https://app.asana.com/0/1199548034582004/1202011714603653/f
+
         if let DistributionController::Distributed {
             active_workers: active_workers_comms,
             received_results: _,
@@ -117,6 +121,7 @@ impl PendingWorkerPoolTask {
     }
 
     /// TODO: DOC
+    #[allow(unreachable_code)]
     pub fn handle_result_or_cancel(
         &mut self,
         worker: Worker,
@@ -128,6 +133,8 @@ impl PendingWorkerPoolTask {
                 &TaskResultOrCancelled::Cancelled
             )
         {
+            todo!("Cancel messages are not implemented yet");
+            // see https://app.asana.com/0/1199548034582004/1202011714603653/f
             self.handle_cancel_state(worker, result_or_cancelled.task_id)
         } else if let TaskResultOrCancelled::Result(result) = result_or_cancelled.payload {
             self.handle_result_state(worker, result_or_cancelled.task_id, result)
@@ -138,9 +145,11 @@ impl PendingWorkerPoolTask {
         }
     }
 
-    // TODO: delete or use when cancel is revisited
-    #[allow(dead_code)]
+    #[allow(dead_code, unreachable_code)]
     pub fn recv_cancel(&mut self) -> Result<Option<CancelTask>> {
+        todo!("Cancel messages are not implemented yet");
+        // see https://app.asana.com/0/1199548034582004/1202011714603653/f
+
         use oneshot::error::TryRecvError;
         if !self.cancelling {
             return match self.comms.cancel_recv.try_recv() {
@@ -164,9 +173,11 @@ pub struct PendingWorkerPoolTasks {
 }
 
 impl PendingWorkerPoolTasks {
-    // TODO: delete or use when cancel is revisited
-    #[allow(dead_code)]
+    #[allow(dead_code, unreachable_code)]
     pub async fn run_cancel_check(&mut self) -> Vec<TaskId> {
+        todo!("Cancel messages are not implemented yet");
+        // see https://app.asana.com/0/1199548034582004/1202011714603653/f
+
         self.inner
             .iter_mut()
             .filter_map(|(id, task)| {
