@@ -1891,13 +1891,13 @@ fn run_experiment(
             v8::V8::initialize_platform(platform);
             v8::V8::initialize();
 
-            let isolate = &mut v8::Isolate::new(Default::default());
+            let mut isolate = v8::Isolate::new(Default::default());
 
-            let scope = &mut v8::HandleScope::new(isolate);
-            let context = v8::Context::new(scope);
-            let scope = &mut v8::ContextScope::new(scope, context);
+            let mut handle_scope = v8::HandleScope::new(&mut isolate);
+            let context = v8::Context::new(&mut handle_scope);
+            let mut context_scope = v8::ContextScope::new(&mut handle_scope, context);
 
-            let mut thread_local_runner = ThreadLocalRunner::new(scope, context, &init_msg)?;
+            let mut thread_local_runner = ThreadLocalRunner::new(&mut context_scope, context, &init_msg)?;
 
             loop {
                 tokio::select! {
@@ -1906,7 +1906,12 @@ fn run_experiment(
                         // TODO: Send errors instead of immediately stopping?
                         let msg_str = msg.as_str();
                         tracing::debug!("JS runner got sim `{sim_id:?}` inbound {msg_str}");
-                        let keep_running = thread_local_runner.handle_msg(scope, sim_id, msg, &outbound_sender)?;
+                        let keep_running = thread_local_runner.handle_msg(
+                            &mut context_scope,
+                            sim_id,
+                            msg,
+                            &outbound_sender,
+                        )?;
                         tracing::debug!("JS runner handled sim `{sim_id:?}` inbound {msg_str}");
                         if !keep_running {
                             tracing::debug!("JavaScript Runner has finished execution, stopping");
