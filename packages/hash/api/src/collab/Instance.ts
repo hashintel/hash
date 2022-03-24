@@ -53,6 +53,12 @@ const isUnused = (response: Response): boolean => {
   );
 };
 
+const simulateInstability = () => {
+  if (Math.random() < 0.01) {
+    throw new Error("Instability");
+  }
+};
+
 type StepUpdate = {
   type: "step";
   payload: Step<Schema>;
@@ -176,6 +182,8 @@ export class Instance {
     }
 
     try {
+      simulateInstability();
+
       /**
        * This removes any extra properties from a passed object containing an
        * accountId and entityId, which may be an Entity or a LatestEntityRef, or
@@ -281,6 +289,8 @@ export class Instance {
       return false;
     }
 
+    simulateInstability();
+
     const { tr } = this.state;
     addEntityStoreAction(this.state, tr, {
       type: "mergeNewPageContents",
@@ -296,6 +306,8 @@ export class Instance {
    *       clients, instead of the whole store
    */
   private recordStoreUpdate() {
+    simulateInstability();
+
     this.addUpdates([
       {
         type: "store",
@@ -319,6 +331,8 @@ export class Instance {
       }
 
       try {
+        simulateInstability();
+
         this.checkVersion(version);
         if (this.version !== version) return false;
 
@@ -372,6 +386,8 @@ export class Instance {
           throw new Error("Saving when instance stopped");
         }
 
+        simulateInstability();
+
         const { actions, createdEntities } = await createNecessaryEntities(
           this.state,
           this.accountId,
@@ -393,6 +409,8 @@ export class Instance {
         const { doc } = this.state;
         const store = entityStorePluginState(this.state);
 
+        simulateInstability();
+
         return updatePageMutation(
           this.accountId,
           this.pageEntityId,
@@ -402,6 +420,8 @@ export class Instance {
           apolloClient,
           createdEntities,
         ).then((newPage) => {
+          simulateInstability();
+
           const actions: EntityStorePluginAction[] = [];
 
           /**
@@ -499,6 +519,8 @@ export class Instance {
       actions: EntityStorePluginAction[] = [],
     ) => {
       try {
+        simulateInstability();
+
         /**
          * This isn't strictly necessary, and will result in more laggy collab
          * performance. However, it is a quick way to improve stability by
@@ -573,6 +595,8 @@ export class Instance {
       if (this.errored) {
         return false;
       }
+
+      simulateInstability();
 
       this.checkVersion(version);
       const startIndex = this.updates.length - (this.version - version);
