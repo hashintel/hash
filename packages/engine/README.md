@@ -125,6 +125,8 @@ Due to limitations in Cargo at the moment we can't properly check if it's being 
 - Run `cargo build`
 - If you want to use a Python runner, also run `./src/worker/runner/python/setup.sh` and follow the instructions from the help
 
+The initial setup time may be long at the moment. We need to use a fork of `rusty_v8` but expect significant improvement after [rusty_v8#926](https://github.com/denoland/rusty_v8/pull/926) is merged and a new crates.io release is made.
+
 ### Running for development
 
 > **WIP** - This section is a work-in-progress. However, slightly more detailed documentation of the CLI is provided below in [CLI Arguments and Options](#cli-arguments-and-options).
