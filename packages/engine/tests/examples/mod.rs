@@ -49,10 +49,8 @@ mod model_market {
 mod wildfire_regrowth {
     use crate::run_test;
 
-    // Rust behavior is currently not supported
-    run_test!(wildfire_regrowth, experiment: test_experiment, #[ignore]);
-    // Rust behavior is currently not supported
-    run_test!(wildfire_regrowth, experiment: lightning_chance_linspace, #[ignore]);
+    run_test!(wildfire_regrowth, experiment: test_experiment);
+    run_test!(wildfire_regrowth, experiment: lightning_chance_linspace);
 }
 
 // https://core.hash.ai/@hash/ant-foraging/7.4.0

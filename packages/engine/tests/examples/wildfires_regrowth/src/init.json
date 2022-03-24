@@ -8,7 +8,7 @@
     "grid_templates": [
       {
         "template_name": "forest",
-        "behaviors": ["forest.js", "@hash/age/age.rs"],
+        "behaviors": ["forest.js", "age.js"],
         "color": "green",
         "shape": "xmas-tree",
         "scale": [2, 2]
