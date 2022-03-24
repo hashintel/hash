@@ -87,12 +87,24 @@ impl<'s> JsPackage<'s> {
                 // Packages don't have to use JS.
                 let fns = v8::Array::new(scope, 3);
                 let undefined = v8::undefined(scope).into();
-                fns.set_index(scope, 0, undefined)
-                    .ok_or_else(|| Error::V8("Could not create Undefined value".to_string()))?;
-                fns.set_index(scope, 1, undefined)
-                    .ok_or_else(|| Error::V8("Could not create Undefined value".to_string()))?;
-                fns.set_index(scope, 2, undefined)
-                    .ok_or_else(|| Error::V8("Could not create Undefined value".to_string()))?;
+                fns.set_index(scope, 0, undefined).ok_or_else(|| {
+                    Error::PackageImport(
+                        path.clone(),
+                        "Could not set Undefined value on package function array".to_string(),
+                    )
+                })?;
+                fns.set_index(scope, 1, undefined).ok_or_else(|| {
+                    Error::PackageImport(
+                        path.clone(),
+                        "Could not set Undefined value on package function array".to_string(),
+                    )
+                })?;
+                fns.set_index(scope, 2, undefined).ok_or_else(|| {
+                    Error::PackageImport(
+                        path.clone(),
+                        "Could not set Undefined value on package function array".to_string(),
+                    )
+                })?;
 
                 return Ok(JsPackage { fns });
             }
@@ -114,14 +126,27 @@ impl<'s> JsPackage<'s> {
         )?;
 
         let pkg: v8::Local<'_, v8::Function> = {
-            let pkg = v8::Script::compile(scope, wrapped_code, None)
-                .ok_or_else(|| Error::V8("Could not create wrapped code scipt".to_string()))?;
-            let pkg = pkg
-                .run(scope)
-                .ok_or_else(|| Error::V8("Could not execute wrapped code script".to_string()))?;
+            let pkg = v8::Script::compile(scope, wrapped_code, None).ok_or_else(|| {
+                Error::PackageImport(
+                    path.clone(),
+                    format!("Could not compile code for package: {name}"),
+                )
+            })?;
+            let pkg = pkg.run(scope).ok_or_else(|| {
+                Error::PackageImport(
+                    path.clone(),
+                    format!("Couldn't execute package {name} setup"),
+                )
+            })?;
 
             pkg.try_into().map_err(|err| {
-                Error::V8(format!("Could not convert wrapped code to Function: {err}"))
+                Error::PackageImport(
+                    path.clone(),
+                    format!(
+                        "Could not convert return value for package {name} setup into Function: \
+                         {err}"
+                    ),
+                )
             })?
         };
 
@@ -131,21 +156,25 @@ impl<'s> JsPackage<'s> {
             let fns = pkg
                 .call(scope, global_context.into(), args)
                 .ok_or_else(|| {
-                    Error::PackageImport(
-                        path.clone(),
-                        "Could not run wrapped code function".to_string(),
-                    )
+                    Error::PackageImport(path.clone(), format!("Couldn't call package {name}"))
                 })?;
 
             fns.try_into().map_err(|err| {
-                Error::V8(format!(
-                    "Could not convert wrapped code return value to Array: {err}"
-                ))
+                Error::PackageImport(
+                    path.clone(),
+                    format!(
+                        "Couldn't convert package {name} return value to array of package \
+                         functions: {err}"
+                    ),
+                )
             })?
         };
 
         if fns.length() != 3 {
-            return Err(Error::PackageImport(path.clone(), "Stray return".into()));
+            return Err(Error::PackageImport(
+                path.clone(),
+                "Unexpected amount of returned arguments".into(),
+            ));
         }
 
         // Validate returned array.
@@ -153,13 +182,18 @@ impl<'s> JsPackage<'s> {
         for (idx_fn, fn_name) in fn_names.iter().enumerate() {
             let elem: v8::Local<'_, v8::Value> =
                 fns.get_index(scope, idx_fn as u32).ok_or_else(|| {
-                    Error::PackageImport(path.clone(), format!("Couldn't index array: {idx_fn:?}"))
+                    Error::PackageImport(
+                        path.clone(),
+                        format!("Couldn't index package {name} functions array: {idx_fn:?}"),
+                    )
                 })?;
 
             if !(elem.is_function() || elem.is_undefined()) {
                 return Err(Error::PackageImport(
                     path.clone(),
-                    format!("{fn_name} should be a function, not {elem:?}"),
+                    format!(
+                        "{fn_name} returned from package {name} should be a function, not {elem:?}"
+                    ),
                 ));
             }
         }
@@ -205,7 +239,10 @@ fn import_file<'s>(
 ) -> Result<v8::Local<'s, v8::Value>> {
     let v = eval_file(scope, path)?;
     let f: v8::Local<'_, v8::Function> = v.try_into().map_err(|err| {
-        Error::FileImport(path.into(), format!("Failed to wrap file: {v:?}, {err}"))
+        Error::FileImport(
+            path.into(),
+            format!("Could not convert file {path} into Function: {err}"),
+        )
     })?;
 
     let global_context = context.global(scope);
@@ -228,7 +265,7 @@ impl<'s> Embedded<'s> {
         ) -> Result<v8::Local<'s, v8::Function>> {
             fns.get_index(scope, index)
                 .ok_or_else(|| {
-                    Error::V8(format!("Could not get index {index} from runner.js array"))
+                    Error::V8(format!("Could not get package function at index {index}"))
                 })?
                 .try_into()
                 .map_err(|err| {
@@ -269,15 +306,24 @@ impl<'s> Embedded<'s> {
                 format!("Couldn't get array (of functions) from 'context.js': {err}"),
             )
         })?;
-        let experiment_ctx_prototype = ctx_import
-            .get_index(scope, 0)
-            .ok_or_else(|| Error::V8("Could not get index 0 from context.js array".to_string()))?;
-        let sim_init_ctx_prototype = ctx_import
-            .get_index(scope, 1)
-            .ok_or_else(|| Error::V8("Could not get index 1 from context.js array".to_string()))?;
-        let gen_ctx = ctx_import
-            .get_index(scope, 2)
-            .ok_or_else(|| Error::V8("Could not get index 2 from context.js array".to_string()))?;
+        let experiment_ctx_prototype = ctx_import.get_index(scope, 0).ok_or_else(|| {
+            Error::V8(
+                "Couldn't get experiment_ctx_prototype from index 0 of the context.js return \
+                 values"
+                    .to_string(),
+            )
+        })?;
+        let sim_init_ctx_prototype = ctx_import.get_index(scope, 1).ok_or_else(|| {
+            Error::V8(
+                "Couldn't get sim_init_ctx_prototype from index 1 of the context.js return values"
+                    .to_string(),
+            )
+        })?;
+        let gen_ctx = ctx_import.get_index(scope, 2).ok_or_else(|| {
+            Error::V8(
+                "Couldn't get gen_ctx from index 2 of the context.js return values".to_string(),
+            )
+        })?;
 
         let gen_state = import_file(
             scope,
@@ -363,7 +409,7 @@ fn new_js_array_from_usizes<'s>(
     for (i, idx) in values.iter().enumerate() {
         let js_idx = v8::Number::new(scope, *idx as u32 as f64);
         a.set_index(scope, i as u32, js_idx.into())
-            .ok_or_else(|| Error::V8(format!("Could not set index {idx} on idxs_to_js Array")))?;
+            .ok_or_else(|| Error::V8(format!("Couldn't set value at index {idx} on JS array")))?;
     }
 
     Ok(a.into())
@@ -492,7 +538,9 @@ fn state_to_js<'s, 'a>(
         js_agent_batches
             .set_index(scope, i_batch as u32, agent_batch)
             .ok_or_else(|| {
-                Error::V8(format!("Could not set index {i_batch} on js_agent_batches"))
+                Error::V8(format!(
+                    "Couldn't set agent batch at index {i_batch} on batch array"
+                ))
             })?;
 
         let message_batch = batch_to_js(
@@ -562,12 +610,12 @@ fn array_to_user_errors<'s>(
     if array.is_array() {
         let array: v8::Local<'s, v8::Array> = array
             .try_into()
-            .expect("array conversion to never fail as we just checked it was the right type");
+            .expect("UserErrors array conversion failed");
         let errors = (0..array.length())
             .map(|i| {
                 let element = array.get_index(scope, i).ok_or_else(|| {
                     Error::V8(format!(
-                        "Could not get error at index {i} in array_to_user_errors"
+                        "Could not get error at index {i} in the UserErrors array"
                     ))
                 });
                 element.map(|err| UserError(format!("{err:?}")))
@@ -592,12 +640,12 @@ fn array_to_user_warnings<'s>(
     if array.is_array() {
         let array: v8::Local<'s, v8::Array> = array
             .try_into()
-            .expect("array conversion to never fail as we just checked it was the right type");
+            .expect("UserWarnings array conversion failed");
         let warnings = (0..array.length())
             .map(|i| {
                 let element = array.get_index(scope, i).ok_or_else(|| {
                     Error::V8(format!(
-                        "Could not get warning at index {i} in array_to_user_warnings"
+                        "Could not get warning at index {i} in the UserWarnings array"
                     ))
                 });
                 element.map(|err| UserWarning {
@@ -821,7 +869,10 @@ impl<'s> ThreadLocalRunner<'s> {
             pkg_fns
                 .set_index(scope, i_pkg, pkg.fns.into())
                 .ok_or_else(|| {
-                    Error::V8(format!("Could not set index {i_pkg} on pkg_fns array"))
+                    Error::V8(format!(
+                        "Couldn't set package function at index {i_pkg} on {pkg_name} package \
+                         function array"
+                    ))
                 })?;
 
             let pkg_init = serde_json::to_string(&pkg_init).unwrap();
@@ -830,7 +881,8 @@ impl<'s> ThreadLocalRunner<'s> {
                 .set_index(scope, i_pkg, pkg_init.into())
                 .ok_or_else(|| {
                     Error::V8(format!(
-                        "Could not set index {i_pkg} on pkg_init_msgs array"
+                        "Couldn't set package init function at index {i_pkg} on {pkg_name} \
+                         package init function array"
                     ))
                 })?;
         }
@@ -1398,14 +1450,14 @@ impl<'s> ThreadLocalRunner<'s> {
         for (i_pkg, (pkg_id, pkg_msg)) in run.packages.0.iter().enumerate() {
             let i_pkg = i_pkg as u32;
             let js_pkg_id = pkg_id_to_js(scope, *pkg_id);
-            pkg_ids
-                .set_index(scope, i_pkg, js_pkg_id)
-                .ok_or_else(|| format!("Could not set pkg_ids at index {i_pkg}"))?;
+            pkg_ids.set_index(scope, i_pkg, js_pkg_id).ok_or_else(|| {
+                format!("Couldn't set package id {pkg_id} at index {i_pkg} on package id array")
+            })?;
             let payload = serde_json::to_string(&pkg_msg.payload).unwrap();
             let payload = new_js_string(scope, &payload)?.into();
-            pkg_msgs
-                .set_index(scope, i_pkg, payload)
-                .ok_or_else(|| format!("Could not set pkg_msgs at index {i_pkg}"))?;
+            pkg_msgs.set_index(scope, i_pkg, payload).ok_or_else(|| {
+                format!("Couldn't set payload at index {i_pkg} on package message array")
+            })?;
         }
 
         let globals: &Globals = &run.globals;
