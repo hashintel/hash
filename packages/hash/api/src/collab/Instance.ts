@@ -139,6 +139,10 @@ export class Instance {
   }
 
   error(err: unknown) {
+    if (err instanceof InvalidVersionError) {
+      throw err;
+    }
+
     if (this.errored) {
       logger.warn(
         "Error encountered when instance already in errored state",
