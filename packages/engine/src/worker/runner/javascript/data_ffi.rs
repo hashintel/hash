@@ -1,7 +1,5 @@
 use std::{self, ptr::NonNull};
 
-use tracing;
-
 use super::{new_js_string, Error, Result};
 
 /// C representation of Arrow array data nodes

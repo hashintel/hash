@@ -670,7 +670,6 @@ fn get_js_error<'s>(
     scope: &mut v8::HandleScope<'s>,
     return_val: v8::Local<'s, v8::Object>,
 ) -> Option<Error> {
-    tracing::debug!("Collecting JS errors");
     let user_errors = match new_js_string(scope, "user_errors") {
         Ok(user_errors) => user_errors,
         Err(err) => return Some(err),
