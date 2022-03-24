@@ -7,6 +7,7 @@ import { SpinnerIcon } from "../../../components/icons";
 export interface SuggesterProps<T> {
   options: T[];
   renderItem(item: T): ReactElement;
+  renderError?: ReactElement | null;
   onChange(item: T): void;
   loading?: boolean;
   itemKey(option: T): string;
@@ -19,9 +20,10 @@ export interface SuggesterProps<T> {
 export const Suggester = <T,>({
   onChange,
   options,
-  renderItem,
   loading,
   itemKey,
+  renderItem,
+  renderError,
   sx = [],
 }: SuggesterProps<T>): ReactElement => {
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -72,11 +74,12 @@ export const Suggester = <T,>({
           display: "grid",
           gridTemplateRows: "1fr auto",
           overflow: "hidden",
+          textAlign: "left",
         }),
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
     >
-      <Box component="ul" sx={{ zIndex: 10, overflow: "auto" }}>
+      <Box component="ul" sx={{ overflow: "auto" }}>
         {loading && (
           <li className={tw`flex justify-center py-1`}>
             <SpinnerIcon className={tw`h-3 w-3 text-gray-500 animate-spin`} />
@@ -104,9 +107,7 @@ export const Suggester = <T,>({
           </Box>
         ))}
       </Box>
-      <Box sx={({ palette }) => ({ backgroundColor: palette.common.white })}>
-        Error
-      </Box>
+      {renderError}
     </Box>
   );
 };

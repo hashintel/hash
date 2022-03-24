@@ -102,9 +102,7 @@ export const UserBlocksProvider: React.FC<{ value: UserBlocks }> = ({
         fetchUserBlocks.ready
           .then((response) => {
             if (!response.ok) {
-              throw new Error(
-                `Fetch failed with status: ${response.statusText}`,
-              );
+              throw new Error(`Fetch failed with status: ${response.status}`);
             }
             return response.json();
           })
@@ -120,7 +118,6 @@ export const UserBlocksProvider: React.FC<{ value: UserBlocks }> = ({
               return mergeBlocksData(prevValue, userBlocks);
             });
           })
-
           .catch((error) => {
             // eslint-disable-next-line no-console -- TODO: consider using logger
             console.error(error);

@@ -1,11 +1,12 @@
 import { BlockVariant } from "blockprotocol";
 import { VFC } from "react";
 import { tw } from "twind";
-import { SxProps, Theme } from "@mui/material";
+import { Box, SxProps, Theme, Typography } from "@mui/material";
 
 import { Suggester } from "./Suggester";
 import { UserBlock, useUserBlocks } from "../../userBlocks";
 import { useFilteredBlocks } from "./useFilteredBlocks";
+import { WarnIcon } from "../../../components/icons/WarnIcon";
 
 export interface BlockSuggesterProps {
   search?: string;
@@ -67,6 +68,51 @@ export const BlockSuggester: VFC<BlockSuggesterProps> = ({
           </div>
         </>
       )}
+      renderError={
+        blockFetchFailed ? (
+          <Box
+            sx={({ palette }) => ({
+              backgroundColor: palette.common.white,
+              position: "relative",
+            })}
+          >
+            <Box
+              sx={{
+                background:
+                  "linear-gradient(0deg, rgba(193, 207, 222, 0.36) -5%, rgba(255, 255, 255, 0) 50%)",
+                height: "40px",
+                width: "100%",
+                position: "absolute",
+                top: "-40px",
+                pointerEvents: "none",
+              }}
+            />
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                p: 1,
+              }}
+            >
+              <Box sx={{ px: 0.75 }}>
+                <WarnIcon sx={{ width: "20px", height: "20px" }} />
+              </Box>
+              <Box sx={{ px: 1, py: 0.5 }}>
+                <Typography
+                  variant="smallTextLabels"
+                  sx={({ palette }) => ({
+                    fontWeight: 500,
+                    color: palette.gray[70],
+                  })}
+                >
+                  Unable to load all blocks due to a network error. Please try
+                  again later.
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+        ) : null
+      }
       itemKey={({ meta, variant }) => `${meta.name}/${variant.name}`}
       onChange={(option) => {
         onChange(option.variant, option.meta);

@@ -64,7 +64,6 @@ export const NormalView: VoidFunctionComponent<NormalViewComponentProps> = ({
                       left: "100%",
                       marginLeft: "0.125rem",
                       marginTop: "0.5rem",
-                      textAlign: "left",
                     }}
                     {...blockSuggesterProps}
                   />
