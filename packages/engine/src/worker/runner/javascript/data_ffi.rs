@@ -26,7 +26,6 @@ impl<'s> DataFfi<'s> {
         scope: &mut v8::HandleScope<'s>,
         data: v8::Local<'s, v8::Value>,
     ) -> Result<DataFfi<'s>> {
-        tracing::debug!("Calling data_node_from_js");
         let obj = data
             .to_object(scope)
             .ok_or_else(|| Error::V8("Could not convert data from Value to Object".to_string()))?;
