@@ -18,7 +18,7 @@
     ]
   },
   {
-    "behaviors": ["@hash/age/age.rs", "introduce_vaccine.js"],
+    "behaviors": ["age.js", "introduce_vaccine.js"],
     "position": [0, 0],
     "age": 0,
     "search_radius": 100,

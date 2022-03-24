@@ -4,8 +4,5 @@
       "type": "number",
       "nullable": true
     }
-  },
-  "built_in_key_use": {
-    "selected": []
   }
 }
