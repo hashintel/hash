@@ -12,7 +12,7 @@ function behavior(state, context) {
     state.behaviors = [
       "search.js",
       "wrap_angle.js",
-      "@hash/move-in-direction/move_in_direction.rs",
+      "move_in_direction.js",
       "eat.js",
     ];
     state.color = "black";

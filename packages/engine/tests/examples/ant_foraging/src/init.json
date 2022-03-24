@@ -25,7 +25,7 @@
       {
         "template_name": "pheromones",
         "height": 0.1,
-        "behaviors": ["pheromone_field.js", "@hash/age/age.rs"],
+        "behaviors": ["pheromone_field.js", "age.js"],
         "strength": 0,
         "rgb": [230, 230, 250]
       }

@@ -16,7 +16,7 @@ function behavior(state, context) {
         behaviors: [
           "search.js",
           "wrap_angle.js",
-          "move_in_direction",
+          "move_in_direction.js",
           "eat.js",
         ],
         color: "black",

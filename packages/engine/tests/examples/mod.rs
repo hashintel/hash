@@ -61,11 +61,14 @@ mod wildfire_regrowth {
 mod ant_foraging {
     use crate::run_test;
 
-    // Rust behavior is currently not supported
+    // TODO: `neighbor.behaviors` is not set
+    //   see https://app.asana.com/0/1199548034582004/1202018454545560/f
     run_test!(ant_foraging, experiment: number_of_ants_arange, #[ignore]);
-    // Rust behavior is currently not supported
+    // TODO: `neighbor.behaviors` is not set
+    //   see https://app.asana.com/0/1199548034582004/1202018454545560/f
     run_test!(ant_foraging, experiment: decay_rate_arange, #[ignore]);
-    // Rust behavior is currently not supported
+    // TODO: `neighbor.behaviors` is not set
+    //   see https://app.asana.com/0/1199548034582004/1202018454545560/f
     run_test!(ant_foraging, experiment: diffusion_rate_arange, #[ignore]);
 }
 

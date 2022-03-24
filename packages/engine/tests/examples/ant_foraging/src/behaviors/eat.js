@@ -14,11 +14,7 @@ function behavior(state, context) {
   state.position = new_messages[0].data.position;
 
   // Switch to delivering
-  state.behaviors = [
-    "deliver.js",
-    "wrap_angle.js",
-    "@hash/move-in-direction/move_in_direction.rs",
-  ];
+  state.behaviors = ["deliver.js", "wrap_angle.js", "move_in_direction.js"];
   state.color = "red";
 
   // Remove the food agent
