@@ -11,6 +11,7 @@ import {
   BlockProtocolEntity,
   BlockProtocolLink,
   JSONObject,
+  SingleTargetLinkFields,
 } from "blockprotocol";
 import { tw } from "twind";
 
@@ -135,7 +136,7 @@ export const EntityFieldLinkEditor: VoidFunctionComponent<
           index: (lastLinkData?.link.index ?? -1) + 1,
         });
       } else {
-        if (lastLinkData) {
+        if (lastLinkData && "linkId" in linksOnField[0]!.link) {
           void deleteLinkFromEntity({ linkId: linksOnField[0]!.link.linkId });
         }
         if (selectedEntityId !== noSelectionValue) {
@@ -173,28 +174,39 @@ export const EntityFieldLinkEditor: VoidFunctionComponent<
         }
       />
       {allowsMultipleSelections
-        ? linksOnField.map(({ link, linkedEntity }) => (
-            <div className={tw`flex my-6`} key={link.linkId}>
-              <div className={tw`font-bold w-32`}>
-                {/*
-                 * @todo remove the need for this component to know about links and accountId
-                 *    e.g. pass a GoToEntity component into it
-                 */}
-                <Link
-                  href={`/${linkedEntity.accountId}/entities/${linkedEntity.entityId}`}
+        ? linksOnField
+            .filter(
+              (
+                linkOnField,
+              ): linkOnField is {
+                link: BlockProtocolLink & SingleTargetLinkFields;
+                linkedEntity: BlockProtocolEntity;
+              } => {
+                return "linkId" in linkOnField.link;
+              },
+            )
+            .map(({ link, linkedEntity }) => (
+              <div className={tw`flex my-6`} key={link.linkId}>
+                <div className={tw`font-bold w-32`}>
+                  {/*
+                   * @todo remove the need for this component to know about links and accountId
+                   *    e.g. pass a GoToEntity component into it
+                   */}
+                  <Link
+                    href={`/${linkedEntity.accountId}/entities/${linkedEntity.entityId}`}
+                  >
+                    <a>{entityName(linkedEntity as JSONObject)}</a>
+                  </Link>
+                </div>
+                <button
+                  className={tw`text-red-500 text-sm`}
+                  onClick={() => deleteLinkFromEntity({ linkId: link.linkId })}
+                  type="button"
                 >
-                  <a>{entityName(linkedEntity as JSONObject)}</a>
-                </Link>
+                  Remove
+                </button>
               </div>
-              <button
-                className={tw`text-red-500 text-sm`}
-                onClick={() => deleteLinkFromEntity({ linkId: link.linkId })}
-                type="button"
-              >
-                Remove
-              </button>
-            </div>
-          ))
+            ))
         : null}
     </div>
   );

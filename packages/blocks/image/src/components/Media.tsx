@@ -8,9 +8,11 @@
  */
 import {
   BlockProtocolEntity,
+  BlockProtocolLink,
   BlockProtocolLinkGroup,
   BlockProtocolUpdateEntitiesAction,
   BlockProtocolUploadFileFunction,
+  SingleTargetLinkFields,
 } from "blockprotocol";
 import { BlockComponent } from "blockprotocol/react";
 import React, {
@@ -267,17 +269,18 @@ export const Media: BlockComponent<
             if (existingLinkGroup) {
               await deleteLinks(
                 existingLinkGroup.links
-                  .filter((link) => "linkId" in link)
-                  .map((link) => {
-                    return {
-                      sourceAccountId: accountId,
-                      sourceEntityId: link.sourceEntityId,
-                      // @ts-expect-error
-                      // linkId is filtered for before mapping over the data,
-                      // hence this should contain linkId already
-                      linkId: link.linkId,
-                    };
-                  }),
+                  .filter(
+                    (
+                      link,
+                    ): link is BlockProtocolLink & SingleTargetLinkFields => {
+                      return "linkId" in link;
+                    },
+                  )
+                  .map((link) => ({
+                    sourceAccountId: accountId,
+                    sourceEntityId: link.sourceEntityId,
+                    linkId: link.linkId,
+                  })),
               );
             }
 
