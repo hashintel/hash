@@ -20,6 +20,10 @@ lazy_static::lazy_static! {
 type Request = (nng::Message, oneshot::Sender<Result<()>>);
 
 /// Client represents the request side of the NNG rep/req protocol.
+#[allow(
+    missing_debug_implementations,
+    reason = "WorkerHandle does not implement Debug"
+)]
 pub struct Client {
     workers: Vec<WorkerHandle>,
     sender: spmc::Sender<Request>,

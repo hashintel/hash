@@ -11,6 +11,10 @@ const NUM_WORKERS: usize = 4;
 type MsgSender = mpsc::UnboundedSender<nng::Message>;
 type MsgReceiver = mpsc::UnboundedReceiver<nng::Message>;
 
+#[allow(
+    missing_debug_implementations,
+    reason = "Worker does not implement Debug"
+)]
 pub struct Server {
     // We don't use the socket and workers directly once the server is created. But,
     // we need to keep them alive for nng.
