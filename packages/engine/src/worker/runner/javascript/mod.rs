@@ -530,9 +530,9 @@ fn bytes_to_js<'s>(scope: &mut v8::HandleScope<'s>, bytes: &[u8]) -> v8::Local<'
     if !bytes.is_empty() {
         // # Safety
         //
-        // `bytes` can be read for `bytes.len()`
-        // `buffer` can be written to for `bytes.len()`
-        // and they are properly aligned
+        // `bytes` is a slice so it can be read for `bytes.len()`
+        // `buffer` was created with `bytes.len()` bytes so can be written to for `bytes.len()`
+        // and they are properly aligned as bytes have are always correctly aligned
         unsafe {
             std::ptr::copy(
                 bytes.as_ptr(),
