@@ -1,7 +1,7 @@
 [
   {
     "agent_name": "raincloud",
-    "behaviors": ["raincloud.js", "@hash/age/age.rs"],
+    "behaviors": ["raincloud.js", "age.js"],
     "age": 0
   },
   {
@@ -15,7 +15,7 @@
       "pooled": false,
       "behaviors": [
         "@hash/diffusion/diffusion.rs",
-        "@hash/age/age.rs",
+        "age.js",
         "switch_behaviors.js"
       ]
     }

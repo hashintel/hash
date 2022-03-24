@@ -29,7 +29,7 @@ function behavior(state, context) {
         behaviors: [
           "raindrop.js",
           "@hash/orient-toward-value/orient_toward_value.rs",
-          "@hash/move-in-direction/move_in_direction.rs",
+          "move_in_direction.js",
         ],
       });
     }
