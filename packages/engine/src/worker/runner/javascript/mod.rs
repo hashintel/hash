@@ -623,10 +623,9 @@ fn get_js_error<'s>(
     return_val: v8::Local<'s, v8::Object>,
 ) -> Option<Error> {
     tracing::debug!("Collecting JS errors");
-    let user_errors = if let Some(user_errors) = v8::String::new(scope, "user_errors") {
-        user_errors
-    } else {
-        return Some(Error::V8("Could not create String".to_string()));
+    let user_errors = match new_js_string(scope, "user_errors") {
+        Ok(user_errors) => user_errors,
+        Err(err) => return Some(err),
     };
 
     if let Some(errors) = return_val.get(scope, user_errors.into()) {
@@ -638,16 +637,14 @@ fn get_js_error<'s>(
         }
     }
 
-    let pkg_error = if let Some(pkg_error) = v8::String::new(scope, "pkg_error") {
-        pkg_error
-    } else {
-        return Some(Error::V8("Could not create String".to_string()));
+    let pkg_error = match new_js_string(scope, "pkg_error") {
+        Ok(pkg_error) => pkg_error,
+        Err(err) => return Some(err),
     };
 
-    let runner_error = if let Some(runner_error) = v8::String::new(scope, "runner_error") {
-        runner_error
-    } else {
-        return Some(Error::V8("Could not create String".to_string()));
+    let runner_error = match new_js_string(scope, "runner_error") {
+        Ok(runner_error) => runner_error,
+        Err(err) => return Some(err),
     };
 
     if let Some(err) = return_val.get(scope, pkg_error.into()) {
