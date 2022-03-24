@@ -188,7 +188,7 @@ describe("Link model class ", () => {
     );
   });
 
-  it("static create/delete methods can create/delete indexed links on versioned source entity", async () => {
+  it("create/delete methods can create/delete indexed links on versioned source entity", async () => {
     const accountId = existingUser.accountId;
     const createdByAccountId = accountId;
 
@@ -298,6 +298,136 @@ describe("Link model class ", () => {
       entityB.entityId,
     );
     expect(entityATimestamp4OutgoingLinks[0]!.index).toBe(0);
+  });
+
+  it("update method correctly updates link with a versioned source entity", async () => {
+    const { accountId } = existingUser;
+
+    const stringifiedPath = "$.test";
+
+    const entityA = await Entity.createEntityWithLinks(db, {
+      user: existingUser,
+      accountId,
+      entityDefinition: {
+        versioned: true,
+        entityType: { entityTypeId: dummyEntityType.entityId },
+        entityProperties: {},
+        linkedEntities: [0, 1, 2].map((index) => ({
+          path: stringifiedPath,
+          index,
+          destinationAccountId: accountId,
+          entity: {
+            entityType: { entityTypeId: dummyEntityType.entityId },
+            entityProperties: {},
+          },
+        })),
+      },
+    });
+
+    const outgoingLinks = await entityA.getOutgoingLinks(db, {
+      stringifiedPath,
+    });
+
+    expect(outgoingLinks).toHaveLength(3);
+
+    const previousLinkVersionId = outgoingLinks[1]!.linkVersionId;
+
+    await outgoingLinks[1]!.update(db, {
+      updatedIndex: 2,
+      updatedByAccountId: accountId,
+    });
+
+    // because the link is versioned the linkVersionId should have changed
+    expect(previousLinkVersionId).not.toBe(outgoingLinks[1]!.linkVersionId);
+
+    const updatedOutgoingLinks = await entityA.getOutgoingLinks(db, {
+      stringifiedPath,
+    });
+
+    expect(updatedOutgoingLinks).toHaveLength(3);
+
+    expect(updatedOutgoingLinks[0]!.index).toBe(0);
+    expect(updatedOutgoingLinks[1]!.index).toBe(1);
+    expect(updatedOutgoingLinks[2]!.index).toBe(2);
+
+    expect(outgoingLinks[0]).toEqual(updatedOutgoingLinks[0]);
+
+    expect(outgoingLinks[1]!.linkId).toBe(updatedOutgoingLinks[2]!.linkId);
+    expect(previousLinkVersionId).not.toBe(
+      updatedOutgoingLinks[2]!.linkVersionId,
+    );
+
+    expect(outgoingLinks[2]!.linkId).toBe(updatedOutgoingLinks[1]!.linkId);
+    expect(outgoingLinks[2]!.linkVersionId).not.toBe(
+      updatedOutgoingLinks[1]!.linkVersionId,
+    );
+  });
+
+  it("update method correctly updates link with a non-versioned source entity", async () => {
+    const { accountId } = existingUser;
+
+    const stringifiedPath = "$.test";
+
+    const entityA = await Entity.createEntityWithLinks(db, {
+      user: existingUser,
+      accountId,
+      entityDefinition: {
+        versioned: false,
+        entityType: { entityTypeId: dummyEntityType.entityId },
+        entityProperties: {},
+        linkedEntities: [0, 1, 2].map((index) => ({
+          path: stringifiedPath,
+          index,
+          destinationAccountId: accountId,
+          entity: {
+            entityType: { entityTypeId: dummyEntityType.entityId },
+            entityProperties: {},
+          },
+        })),
+      },
+    });
+
+    const outgoingLinks = await entityA.getOutgoingLinks(db, {
+      stringifiedPath,
+    });
+
+    expect(outgoingLinks).toHaveLength(3);
+
+    const previousLinkVersionId = outgoingLinks[1]!.linkVersionId;
+
+    await outgoingLinks[1]!.update(db, {
+      updatedIndex: 2,
+      updatedByAccountId: accountId,
+    });
+
+    // because the link is not versioned the linkVersionId shouldn't change
+    expect(previousLinkVersionId).toBe(outgoingLinks[1]!.linkVersionId);
+
+    const updatedOutgoingLinks = await entityA.getOutgoingLinks(db, {
+      stringifiedPath,
+    });
+
+    expect(updatedOutgoingLinks).toHaveLength(3);
+
+    expect(updatedOutgoingLinks[0]!.index).toBe(0);
+    expect(updatedOutgoingLinks[1]!.index).toBe(1);
+    expect(updatedOutgoingLinks[2]!.index).toBe(2);
+
+    expect(outgoingLinks[0]).toEqual(updatedOutgoingLinks[0]);
+
+    expect(updatedOutgoingLinks[2]!.linkId).toBe(outgoingLinks[1]!.linkId);
+    expect(updatedOutgoingLinks[2]!.updatedAt.getTime()).toBeGreaterThan(
+      outgoingLinks[1]!.updatedAt.getTime(),
+    );
+    expect(previousLinkVersionId).toBe(updatedOutgoingLinks[2]!.linkVersionId);
+
+    expect(outgoingLinks[2]!.linkId).toBe(updatedOutgoingLinks[1]!.linkId);
+    expect(updatedOutgoingLinks[2]!.updatedAt.getTime()).toBeGreaterThan(
+      outgoingLinks[1]!.updatedAt.getTime(),
+    );
+    expect(outgoingLinks[2]!.linkVersionId).toBe(
+      updatedOutgoingLinks[1]!.linkVersionId,
+    );
   });
 });
 
