@@ -155,9 +155,17 @@
       col = loader(vector);
     } else if (name.startsWith("_HIDDEN_") || name.startsWith("_PRIVATE_")) {
       // only agent-scoped fields are fully loaded by default
-      col = hash_util.load_shallow(vector);
+      // TODO: Whether a column is nullable doesn't currently affect Arrow loading in JS, but if we
+      //       want to modify fixed-size non-nullable columns in place, `is_nullable` needs to be
+      //       set to the correct value here.
+      const is_nullable = undefined;
+      col = hash_util.load_shallow(vector, is_nullable, vector.type.is_any);
     } else {
-      col = hash_util.load_full(vector);
+      // TODO: Whether a column is nullable doesn't currently affect Arrow loading in JS, but if we
+      //       want to modify fixed-size non-nullable columns in place, `is_nullable` needs to be
+      //       set to the correct value here.
+      const is_nullable = undefined;
+      col = hash_util.load_full(vector, is_nullable, vector.type.is_any);
     }
     return (this.cols[name] = col);
   };

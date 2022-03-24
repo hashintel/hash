@@ -6,38 +6,8 @@ include "package_error.fbs";
 include "user_errors.fbs";
 include "user_warnings.fbs";
 include "serialized.fbs";
-include "sync_state_interim.fbs";
-include "target.fbs";
+include "task_msg.fbs";
 
-// A Task UUID
-//
-// This is duplicated in multiple files since it is a struct
-// and cannot be a root type.
-//
-// fields:
-//    `inner` : the uuid as bytes
-struct TaskId {
-  inner:[byte:16];
-}
-
-// A task message for a Task (run by a package) 
-// which is outbound from a worker.
-//
-// fields:
-//    `package_sid`    : the short id for the package
-//    `task_id`        : the uuid for the task
-//    `metaversioning` : included when any batches have changed (possibly since the last `StateSync`)
-//    `group_index`    : If present, it's the index of the group of agents to execute on. If absent, it indicates that
-//                       the task is to be executed on all groups
-//    `payload`        : payload for the task message (json)
-table TaskMsg {
-  package_sid:uint64;
-  task_id:TaskId;
-  target:Target;
-  group_index:uint64;
-  metaversioning:StateInterimSync;
-  payload:Serialized (required);
-}
 
 // A confirmation message for a Task (run by a package)
 // that was cancelled
@@ -46,6 +16,9 @@ table TaskMsg {
 //    `task_id`        : the uuid for the task
 table TaskCancelled {
   task_id:TaskId;
+}
+
+table SyncCompletion {
 }
 
 
@@ -63,7 +36,8 @@ union RunnerOutboundMsgPayload {
   RunnerWarnings,
   PackageError,
   UserErrors,
-  UserWarnings
+  UserWarnings,
+  SyncCompletion
 }
 
 table RunnerOutboundMsg {

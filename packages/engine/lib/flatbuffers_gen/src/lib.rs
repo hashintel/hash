@@ -1,4 +1,5 @@
 #![allow(clippy::all)]
+#![allow(unused_imports)]
 
 /// Manually created mod.rs file as flatc 2.0.0 does not generate one although it seems that work is
 /// underway to do so automatically
@@ -21,6 +22,7 @@ pub mod sync_state_generated;
 pub mod sync_state_interim_generated;
 pub mod sync_state_snapshot_generated;
 pub mod target_generated;
+pub mod task_msg_generated;
 pub mod user_error_generated;
 pub mod user_errors_generated;
 pub mod user_warning_generated;

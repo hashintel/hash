@@ -92,7 +92,18 @@ impl From<flatbuffers_gen::target_generated::Target> for MessageTarget {
     }
 }
 
-// TODO: Group indices have type u32 in RunnerTaskMsg, but usize in StateInterimSync.
+impl From<MessageTarget> for flatbuffers_gen::target_generated::Target {
+    fn from(target: MessageTarget) -> Self {
+        match target {
+            MessageTarget::Rust => Self::Rust,
+            MessageTarget::Python => Self::Python,
+            MessageTarget::JavaScript => Self::JavaScript,
+            MessageTarget::Dynamic => Self::Dynamic,
+            MessageTarget::Main => Self::Main,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct RunnerTaskMsg {
     pub package_id: PackageId,
@@ -112,13 +123,10 @@ impl TargetedRunnerTaskMsg {
     // TODO: UNUSED: Needs triage
     #[allow(unreachable_code, unused_variables)]
     pub fn try_from_fbs(
-        task_msg: flatbuffers_gen::runner_outbound_msg_generated::TaskMsg<'_>,
+        task_msg: flatbuffers_gen::task_msg_generated::TaskMsg<'_>,
         sent_tasks: &mut HashMap<TaskId, SentTask>,
     ) -> Result<Self> {
-        let task_id = task_msg.task_id().ok_or_else(|| {
-            Error::from("The TaskMessage from the runner didn't have a required task_id field")
-        })?;
-        let task_id = uuid::Uuid::from_slice(&task_id.0)?.as_u128();
+        let task_id = TaskId::from_le_bytes(task_msg.task_id().0);
 
         let sent = sent_tasks.remove(&task_id).ok_or_else(|| {
             Error::from(format!("Outbound message w/o sent task id {:?}", task_id))
@@ -127,7 +135,7 @@ impl TargetedRunnerTaskMsg {
         let target = task_msg.target().into();
         let package_id = (task_msg.package_sid() as usize).into();
         // TODO: our version of flatbuffers doesn't let us have optional Scalars
-        // let group_index = task_msg.group_index().map(|val| val as usize);
+        let group_index = task_msg.group_index().map(|val| val.inner() as usize);
 
         let inner_msg: serde_json::Value = serde_json::from_slice(task_msg.payload().inner())?;
         let payload = TaskMessage::try_from_inner_msg_and_wrapper(inner_msg, sent.task_wrapper);
@@ -146,7 +154,7 @@ impl TargetedRunnerTaskMsg {
             msg: RunnerTaskMsg {
                 package_id,
                 task_id,
-                group_index: todo!(),
+                group_index,
                 payload,
                 shared_store: sent.shared_store,
             },

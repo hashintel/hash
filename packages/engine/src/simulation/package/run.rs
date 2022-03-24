@@ -251,7 +251,8 @@ impl StepPackages {
         // Design-choices:
         // Cannot use trait bounds as dyn Package won't be object-safe
         // Traits are tricky anyway for working with iterators
-        // Will instead use state.upgrade() and exstate.downgrade() and respectively for context
+        // Will instead use state.into_mut() and state_mut.into_shared() and respectively for
+        // context
         for pkg in self.state.iter_mut() {
             let span = pkg.span();
             pkg.run(state, context).instrument(span).await?;
