@@ -222,6 +222,24 @@ impl<'s> Embedded<'s> {
         scope: &mut v8::HandleScope<'s>,
         context: v8::Local<'s, v8::Context>,
     ) -> Result<Self> {
+        fn get_function_from_aray<'s>(
+            scope: &mut v8::HandleScope<'s>,
+            fns: v8::Local<'s, v8::Array>,
+            index: u32,
+        ) -> Result<v8::Local<'s, v8::Function>> {
+            fns.get_index(scope, index)
+                .ok_or_else(|| {
+                    Error::V8(format!("Could not get index {index} from runner.js array"))
+                })?
+                .try_into()
+                .map_err(|err| {
+                    Error::V8(format!(
+                        "Could not convert value at index {index} in runner.js as a function: \
+                         {err}"
+                    ))
+                })
+        }
+
         let arrow = eval_file(
             scope,
             "./src/worker/runner/javascript/apache-arrow-bundle.js",
@@ -288,69 +306,15 @@ impl<'s> Embedded<'s> {
             )
         })?;
 
-        let start_experiment: v8::Local<'_, v8::Function> = fns
-            .get_index(scope, 0)
-            .ok_or_else(|| Error::V8("Could not get index 0 from runner.js array".to_string()))?
-            .try_into()
-            .map_err(|err| {
-                Error::V8(format!(
-                    "Could not convert value at index 0 in runner.js as a function: {err}"
-                ))
-            })?;
-        let start_sim: v8::Local<'_, v8::Function> = fns
-            .get_index(scope, 1)
-            .ok_or_else(|| Error::V8("Could not get index 1 from runner.js array".to_string()))?
-            .try_into()
-            .map_err(|err| {
-                Error::V8(format!(
-                    "Could not convert value at index 1 in runner.js as a function: {err}"
-                ))
-            })?;
-        let run_task: v8::Local<'_, v8::Function> = fns
-            .get_index(scope, 2)
-            .ok_or_else(|| Error::V8("Could not get index 2 from runner.js array".to_string()))?
-            .try_into()
-            .map_err(|err| {
-                Error::V8(format!(
-                    "Could not convert value at index 2 in runner.js as a function: {err}"
-                ))
-            })?;
-        let ctx_batch_sync: v8::Local<'_, v8::Function> = fns
-            .get_index(scope, 3)
-            .ok_or_else(|| Error::V8("Could not get index 3 from runner.js array".to_string()))?
-            .try_into()
-            .map_err(|err| {
-                Error::V8(format!(
-                    "Could not convert value at index 3 in runner.js as a function: {err}"
-                ))
-            })?;
-        let state_sync: v8::Local<'_, v8::Function> = fns
-            .get_index(scope, 4)
-            .ok_or_else(|| Error::V8("Could not get index 4 from runner.js array".to_string()))?
-            .try_into()
-            .map_err(|err| {
-                Error::V8(format!(
-                    "Could not convert value at index 4 in runner.js as a function: {err}"
-                ))
-            })?;
-        let state_interim_sync: v8::Local<'_, v8::Function> = fns
-            .get_index(scope, 5)
-            .ok_or_else(|| Error::V8("Could not get index 5 from runner.js array".to_string()))?
-            .try_into()
-            .map_err(|err| {
-                Error::V8(format!(
-                    "Could not convert value at index 5 in runner.js as a function: {err}"
-                ))
-            })?;
-        let state_snapshot_sync: v8::Local<'_, v8::Function> = fns
-            .get_index(scope, 6)
-            .ok_or_else(|| Error::V8("Could not get index 6 from runner.js array".to_string()))?
-            .try_into()
-            .map_err(|err| {
-                Error::V8(format!(
-                    "Could not convert value at index 6 in runner.js as a function: {err}"
-                ))
-            })?;
+        let start_experiment: v8::Local<'_, v8::Function> = get_function_from_aray(scope, fns, 0)?;
+        let start_sim: v8::Local<'_, v8::Function> = get_function_from_aray(scope, fns, 1)?;
+        let run_task: v8::Local<'_, v8::Function> = get_function_from_aray(scope, fns, 2)?;
+        let ctx_batch_sync: v8::Local<'_, v8::Function> = get_function_from_aray(scope, fns, 3)?;
+        let state_sync: v8::Local<'_, v8::Function> = get_function_from_aray(scope, fns, 4)?;
+        let state_interim_sync: v8::Local<'_, v8::Function> =
+            get_function_from_aray(scope, fns, 5)?;
+        let state_snapshot_sync: v8::Local<'_, v8::Function> =
+            get_function_from_aray(scope, fns, 6)?;
 
         Ok(Embedded {
             hash_stdlib,
