@@ -134,7 +134,7 @@ impl PendingWorkerPoolTask {
         {
             todo!("Cancel messages are not implemented yet")
             // see https://app.asana.com/0/1199548034582004/1202011714603653/f
-            // self.handle_cancel_state(worker, result_or_cancelled.task_id)
+            self.handle_cancel_state(worker, result_or_cancelled.task_id)
         } else if let TaskResultOrCancelled::Result(result) = result_or_cancelled.payload {
             self.handle_result_state(worker, result_or_cancelled.task_id, result)
         } else {
