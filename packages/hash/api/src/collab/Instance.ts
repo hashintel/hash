@@ -175,100 +175,104 @@ export class Instance {
       return;
     }
 
-    /**
-     * This removes any extra properties from a passed object containing an
-     * accountId and entityId, which may be an Entity or a LatestEntityRef, or
-     * similar, in order to generate a LatestEntityRef with only the
-     * specific properties. This allows us to create objects which identify
-     * specific entities for use in GraphQL requests or comparisons. Because
-     * TypeScript's "substitutability", this function can be called with objects
-     * with extra properties than those specified.
-     *
-     * This function is memoized so that the resulting value can be used inside
-     * Map or Set, or for direct comparison, in absence of support for the
-     * Record proposal. The second argument to memoize allows calling this
-     * function with an object.
-     *
-     * This is defined locally as we only need calls to be referentially equal
-     * within the scope of `processEntityVersion`.
-     *
-     * @todo replace this with a Record once the proposal is usable
-     * @see https://github.com/tc39/proposal-record-tuple
-     * @see https://github.com/Microsoft/TypeScript/wiki/FAQ#substitutability
-     */
-    const getEntityRef = memoize(
-      (ref: { accountId: string; entityId: string }): LatestEntityRef =>
-        pick(ref, "accountId", "entityId"),
-      ({ accountId, entityId }) => `${accountId}/${entityId}`,
-    );
-
-    const entityVersionTime = new Date(entityVersion.updatedAt).getTime();
-    const entityVersionRef = getEntityRef(entityVersion);
-
-    const blocksToRefresh = new Set(
-      flatMapBlocks(this.savedContents, (entity, blockEntity) => {
-        const entityRef = getEntityRef(entity);
-
-        if (
-          entityRef === entityVersionRef &&
-          entityVersionTime > new Date(entity.updatedAt).getTime()
-        ) {
-          return [getEntityRef(blockEntity)];
-        }
-
-        return [];
-      }),
-    );
-
-    if (blocksToRefresh.size) {
-      const refreshedBlocksQuery = await this.fallbackClient.query<
-        GetBlocksQuery,
-        GetBlocksQueryVariables
-      >({
-        query: getBlocksQuery,
-        variables: {
-          blocks: Array.from(blocksToRefresh.values()),
-        },
-        fetchPolicy: "network-only",
-      });
-
-      const refreshedPageBlocks = new Map<LatestEntityRef, BlockEntity>(
-        refreshedBlocksQuery.data.blocks.map(
-          (block) => [getEntityRef(block), block] as const,
-        ),
+    try {
+      /**
+       * This removes any extra properties from a passed object containing an
+       * accountId and entityId, which may be an Entity or a LatestEntityRef, or
+       * similar, in order to generate a LatestEntityRef with only the
+       * specific properties. This allows us to create objects which identify
+       * specific entities for use in GraphQL requests or comparisons. Because
+       * TypeScript's "substitutability", this function can be called with objects
+       * with extra properties than those specified.
+       *
+       * This function is memoized so that the resulting value can be used inside
+       * Map or Set, or for direct comparison, in absence of support for the
+       * Record proposal. The second argument to memoize allows calling this
+       * function with an object.
+       *
+       * This is defined locally as we only need calls to be referentially equal
+       * within the scope of `processEntityVersion`.
+       *
+       * @todo replace this with a Record once the proposal is usable
+       * @see https://github.com/tc39/proposal-record-tuple
+       * @see https://github.com/Microsoft/TypeScript/wiki/FAQ#substitutability
+       */
+      const getEntityRef = memoize(
+        (ref: { accountId: string; entityId: string }): LatestEntityRef =>
+          pick(ref, "accountId", "entityId"),
+        ({ accountId, entityId }) => `${accountId}/${entityId}`,
       );
 
-      const nextSavedContents = this.savedContents.map((block) => {
-        const blockRef = getEntityRef(block);
+      const entityVersionTime = new Date(entityVersion.updatedAt).getTime();
+      const entityVersionRef = getEntityRef(entityVersion);
 
-        if (blocksToRefresh.has(blockRef)) {
-          const refreshedBlock = refreshedPageBlocks.get(blockRef);
+      const blocksToRefresh = new Set(
+        flatMapBlocks(this.savedContents, (entity, blockEntity) => {
+          const entityRef = getEntityRef(entity);
 
-          if (!refreshedBlock) {
-            throw new Error("Cannot find updated block in updated page");
+          if (
+            entityRef === entityVersionRef &&
+            entityVersionTime > new Date(entity.updatedAt).getTime()
+          ) {
+            return [getEntityRef(blockEntity)];
           }
 
-          return refreshedBlock;
-        }
+          return [];
+        }),
+      );
 
-        return block;
-      });
+      if (blocksToRefresh.size) {
+        const refreshedBlocksQuery = await this.fallbackClient.query<
+          GetBlocksQuery,
+          GetBlocksQueryVariables
+        >({
+          query: getBlocksQuery,
+          variables: {
+            blocks: Array.from(blocksToRefresh.values()),
+          },
+          fetchPolicy: "network-only",
+        });
 
-      /**
-       * We should know not to notify consumers of changes they've already been
-       * notified of, but because of a race condition between saves triggered
-       * by collab and saves triggered by frontend blocks, this doesn't
-       * necessarily work, so unfortunately we need to notify on every
-       * notification from realtime right now. This means clients will be
-       * notified about prosemirror changes twice right now. There are no known
-       * downsides to this other than performance.
-       *
-       * If nextSavedContents === this.savedContents, then we're likely
-       * notifying of changes the client is possibly already aware of
-       *
-       * @todo fix this
-       */
-      this.updateSavedContents(nextSavedContents);
+        const refreshedPageBlocks = new Map<LatestEntityRef, BlockEntity>(
+          refreshedBlocksQuery.data.blocks.map(
+            (block) => [getEntityRef(block), block] as const,
+          ),
+        );
+
+        const nextSavedContents = this.savedContents.map((block) => {
+          const blockRef = getEntityRef(block);
+
+          if (blocksToRefresh.has(blockRef)) {
+            const refreshedBlock = refreshedPageBlocks.get(blockRef);
+
+            if (!refreshedBlock) {
+              throw new Error("Cannot find updated block in updated page");
+            }
+
+            return refreshedBlock;
+          }
+
+          return block;
+        });
+
+        /**
+         * We should know not to notify consumers of changes they've already been
+         * notified of, but because of a race condition between saves triggered
+         * by collab and saves triggered by frontend blocks, this doesn't
+         * necessarily work, so unfortunately we need to notify on every
+         * notification from realtime right now. This means clients will be
+         * notified about prosemirror changes twice right now. There are no known
+         * downsides to this other than performance.
+         *
+         * If nextSavedContents === this.savedContents, then we're likely
+         * notifying of changes the client is possibly already aware of
+         *
+         * @todo fix this
+         */
+        this.updateSavedContents(nextSavedContents);
+      }
+    } catch (err) {
+      this.error(err);
     }
   }
 
