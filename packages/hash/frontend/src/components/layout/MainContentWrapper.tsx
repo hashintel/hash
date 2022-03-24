@@ -1,5 +1,5 @@
-import { Fade, Box, Tooltip, styled } from "@mui/material";
-import { FunctionComponent } from "react";
+import { Fade, Box, Tooltip, styled, Switch } from "@mui/material";
+import { FC } from "react";
 import { SIDEBAR_WIDTH } from "../../theme/components/navigation/MuiDrawerThemeOptions";
 
 import { SidebarToggleIcon } from "../icons";
@@ -31,7 +31,7 @@ const Main = styled("main", {
   }),
 }));
 
-export const MainContentWrapper: FunctionComponent = ({ children }) => {
+export const MainContentWrapper: FC = ({ children }) => {
   const { openSidebar, sidebarOpen } = useSidebarContext();
 
   return (
@@ -63,7 +63,14 @@ export const MainContentWrapper: FunctionComponent = ({ children }) => {
           </IconButton>
         </Tooltip>
       </Fade>
-      <Main sidebarOpen={sidebarOpen}>{children}</Main>
+      <Main sidebarOpen={sidebarOpen}>
+        {children}
+        <br />
+        <br />
+        <Switch />
+        <br />
+        <Switch size="small" />
+      </Main>
     </Box>
   );
 };
