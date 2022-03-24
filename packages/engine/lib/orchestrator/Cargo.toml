@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 error = { path = "../../lib/error", features = ["spantrace"] }
+nano = { path = "../nano" }
 hash_engine_lib = { path = "../..", default-features = false }
 hash_engine = { path = "../../bin/hash_engine", default-features = false, artifact = "bin" }
 
@@ -18,8 +19,3 @@ serde_json = "1.0.74"
 tracing = "0.1.29"
 tokio = { version = "1.5.0" }
 uuid = { version = "0.8.1", features = ["v4", "serde"] }
-
-[features]
-default = ["build-nng"]
-build-nng = ["hash_engine_lib/build-nng"]
-texray = ["hash_engine_lib/texray"]
