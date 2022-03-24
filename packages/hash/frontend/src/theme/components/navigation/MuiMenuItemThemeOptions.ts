@@ -50,10 +50,20 @@ export const MuiMenuItemThemeOptions: Components<Theme>["MuiMenuItem"] = {
         minWidth: "unset",
       },
 
-      [`&.${menuItemClasses.selected}, &.${menuItemClasses.selected}:hover, &.${menuItemClasses.focusVisible}, &.${menuItemClasses.focusVisible}:hover, &:focus`]:
+      "&:focus": {
+        outline: "none",
+      },
+
+      [`&.${menuItemClasses.focusVisible}, &:focus`]: {
+        boxShadow: `0px 0px 0px 2px ${theme.palette.white}, 0px 0px 0px 4px ${theme.palette.blue[70]}`,
+        backgroundColor: "transparent",
+      },
+
+      [`&.${menuItemClasses.selected}, &.${menuItemClasses.selected}:hover, &:active`]:
         {
           backgroundColor: theme.palette.blue[70],
           color: theme.palette.common.white,
+          boxShadow: "unset",
 
           [`& .${listItemIconClasses.root}`]: {
             color: theme.palette.blue[30],

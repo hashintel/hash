@@ -59,7 +59,7 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
       }
     }
 
-    return { name: accountName || "User" };
+    return { name: accountName || "User", accountId: activeAccountId };
   }, [query, user]);
 
   const workspaceList = useMemo(() => {
@@ -124,16 +124,10 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
             paddingBottom: "6px",
           },
         }}
+        autoFocus={false}
       >
         {workspaceList.map(({ title, subText, url, key }) => (
-          <MenuItem
-            key={key}
-            sx={{
-              [`&.${menuItemClasses.focusVisible}`]: {
-                backgroundColor: "red",
-              },
-            }}
-          >
+          <MenuItem key={key} selected={key === activeWorkspace.accountId}>
             <Link
               href={url}
               noLinkStyle
