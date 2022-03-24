@@ -85,7 +85,7 @@ impl PendingWorkerPoolTask {
     }
 
     /// TODO: DOC
-    #[allow(dead_code, unused_variables, unreachable_code)]
+    #[allow(unused_variables, unreachable_code)]
     fn handle_cancel_state(&mut self, worker: Worker, _task_id: TaskId) -> Result<HasTerminated> {
         todo!("Cancel messages are not implemented yet");
         // see https://app.asana.com/0/1199548034582004/1202011714603653/f
@@ -121,6 +121,7 @@ impl PendingWorkerPoolTask {
     }
 
     /// TODO: DOC
+    #[allow(unreachable_code)]
     pub fn handle_result_or_cancel(
         &mut self,
         worker: Worker,
@@ -132,7 +133,7 @@ impl PendingWorkerPoolTask {
                 &TaskResultOrCancelled::Cancelled
             )
         {
-            todo!("Cancel messages are not implemented yet")
+            todo!("Cancel messages are not implemented yet");
             // see https://app.asana.com/0/1199548034582004/1202011714603653/f
             self.handle_cancel_state(worker, result_or_cancelled.task_id)
         } else if let TaskResultOrCancelled::Result(result) = result_or_cancelled.payload {
