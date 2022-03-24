@@ -888,7 +888,7 @@ impl<'s> ThreadLocalRunner<'s> {
             .call(scope, this.into(), args)
             .ok_or_else(|| Error::V8("Could not call start_experiment".to_string()))?;
 
-        Ok(ThreadLocalRunner {
+        Ok(Self {
             embedded,
             this: this.into(),
             sims_state: HashMap::new(),
