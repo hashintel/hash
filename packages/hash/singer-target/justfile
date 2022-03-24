@@ -1,4 +1,0 @@
-set dotenv-load
-
-test-github-target:
-  cat ./test-data/tap-github--example/tap-github--ingest--bonsai.jsonl | node ./bin/singer-target.js
