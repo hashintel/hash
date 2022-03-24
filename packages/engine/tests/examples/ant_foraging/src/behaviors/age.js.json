@@ -1,0 +1,8 @@
+{
+  "keys": {
+    "age": {
+      "type": "number",
+      "nullable": true
+    }
+  }
+}
