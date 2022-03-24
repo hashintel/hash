@@ -1,14 +1,13 @@
 // Some notes on rusty_v8:
 //
 // - When calling JS functions the second argument is the "this" object for free functions it's the
-// `Context` created at the very beginning
-// Since the argument needs to be a `Local<Value>` we need to call `Context::global` and convert
-// it `into` a `Local<Value>`
+//   `Context` created at the very beginning. Since the argument needs to be a `Local<Value>` we
+//   need to call `Context::global` and convert it `into` a `Local<Value>`.
 //
-// - `Local` is cheap to `Copy`
+// - `Local` is cheap to `Copy`.
 //
-// - Even though rusty_v8 returns an Option on Object::get, if the object does not have the
-// property the result will be Some(undefined)
+// - Even though `rusty_v8` returns an `Option` on `Object::get`, if the object does not have the
+//   property the result will be `Some(undefined)`.
 
 mod data_ffi;
 mod error;
@@ -452,15 +451,11 @@ fn batch_to_js<'s>(
 
     // https://github.com/denoland/rusty_v8/pull/926
     //
-    // # Safety
-    //
-    // `mem.data` points to valid memory and is valie for `mem.size` bytes
-    // `no_op` will not try to de-allocate share memory
-    //
-    // As of writing this comment I don't know if/when shared memory is accessed/modified
-    // there could be some unsafety
-    // It's also not 100% clear what [`ArrayBuffer`] expects
-    // (is it ok to read/write while the [`ArrayBuffer`] exists?)
+    // SAFETY: `mem.data` points to valid memory and is valid for `mem.size` bytes `no_op` will not
+    //         try to de-allocate share memory.
+    // TODO: Investigate, that this does not have any implications on reading/writing shared memory.
+    //       It's also not 100% clear what [`ArrayBuffer`] expects, is it ok to read/write while the
+    //       [`ArrayBuffer`] exists?)
     let backing_store = unsafe {
         v8::ArrayBuffer::new_backing_store_from_ptr(
             mem.data.as_ptr().cast(),
