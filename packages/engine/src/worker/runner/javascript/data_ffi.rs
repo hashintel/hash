@@ -22,12 +22,10 @@ pub struct DataFfi<'s> {
 }
 
 impl<'s> DataFfi<'s> {
-    /// Translation of the old mv8::mv8_data_node_from_js from C++ to Rust
     pub(crate) fn new_from_js(
         scope: &mut v8::HandleScope<'s>,
         data: v8::Local<'s, v8::Value>,
     ) -> Result<DataFfi<'s>> {
-        // The names in this function are kept identical to help the review process
         tracing::debug!("Calling data_node_from_js");
         let obj = data
             .to_object(scope)
