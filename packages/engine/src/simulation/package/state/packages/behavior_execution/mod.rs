@@ -107,7 +107,7 @@ impl PackageCreator for Creator {
             .index_of(behavior_ids_col.value())?;
 
         let behavior_index_col = accessor
-            .get_agent_scoped_field_spec(BEHAVIOR_INDEX_FIELD_NAME)?
+            .get_local_private_scoped_field_spec(BEHAVIOR_INDEX_FIELD_NAME)?
             .to_key()?;
         let behavior_index_col_index = config
             .sim
@@ -244,9 +244,7 @@ impl Package for BehaviorExecution {
         //       (instead of reading behavior ids in Rust) or by returning the first language from
         //       fix_behavior_chains.
         state_proxy.maybe_reload()?;
-        let agent_pool = state_proxy.agent_pool();
-
-        let lang = match self.get_first_lang(&agent_pool.batches())? {
+        let lang = match self.get_first_lang(&state_proxy.agent_pool().batches())? {
             Some(lang) => lang,
             None => {
                 tracing::warn!("No behaviors were found to execute");

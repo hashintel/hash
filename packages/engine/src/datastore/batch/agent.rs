@@ -21,6 +21,7 @@ use crate::{
         batch::{flush::GrowableBatch, ArrowBatch, Segment},
         prelude::*,
         schema::state::AgentSchema,
+        storage::BufferChange,
     },
     proto::ExperimentId,
     simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY,
@@ -90,9 +91,11 @@ impl AgentBatch {
             true,
         )?;
 
-        memory.set_schema(&schema_buffer.ipc_message)?;
-        memory.set_header(&header_buffer)?;
-        memory.set_metadata(&ipc_message)?;
+        // Memory needs to be loaded after creating regardless of metaverion, so we can ignore, if
+        // the memory changed.
+        let _ = memory.set_schema(&schema_buffer.ipc_message)?;
+        let _ = memory.set_header(&header_buffer)?;
+        let _ = memory.set_metadata(&ipc_message)?;
 
         let data_buffer = memory.get_mut_data_buffer()?;
         // Write new data
@@ -185,11 +188,10 @@ impl AgentBatch {
     pub(in crate::datastore) fn flush_dynamic_meta_unchecked(
         &mut self,
         dynamic_meta: &DynamicMeta,
-    ) -> Result<()> {
+    ) -> Result<BufferChange> {
         self.batch.dynamic_meta = dynamic_meta.clone();
         let meta_buffer = get_dynamic_meta_flatbuffers(dynamic_meta)?;
-        self.batch.memory_mut().set_metadata(&meta_buffer)?;
-        Ok(())
+        self.batch.memory_mut().set_metadata(&meta_buffer)
     }
 
     pub fn get_buffer(&self, buffer_index: usize) -> Result<&[u8]> {

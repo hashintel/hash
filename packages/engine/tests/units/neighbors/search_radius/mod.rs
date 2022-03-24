@@ -8,6 +8,6 @@ mod js {
 mod py {
     use crate::run_test;
 
-    run_test!(global, Python, #[ignore]);
-    run_test!(local, Python, #[ignore]);
+    run_test!(global, Python);
+    run_test!(local, Python);
 }
