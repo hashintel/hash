@@ -1,11 +1,11 @@
 import { sql } from "slonik";
-import { DBAggregation } from "../../adapter";
+import { DbAggregation } from "../../adapter";
 
 import { Connection } from "../types";
 import {
-  DBAggregationRow,
+  DbAggregationRow,
   aggregationsColumnNamesSQL,
-  mapRowToDBAggregation,
+  mapRowToDbAggregation,
 } from "./util";
 
 export const getEntityAggregation = async (
@@ -16,8 +16,8 @@ export const getEntityAggregation = async (
     sourceEntityVersionId?: string;
     path: string;
   },
-): Promise<DBAggregation | null> => {
-  const row = await conn.maybeOne(sql<DBAggregationRow>`
+): Promise<DbAggregation | null> => {
+  const row = await conn.maybeOne<DbAggregationRow>(sql`
     select ${aggregationsColumnNamesSQL}
     from aggregations
     where
@@ -36,5 +36,5 @@ export const getEntityAggregation = async (
     limit 1
   `);
 
-  return row ? mapRowToDBAggregation(row) : null;
+  return row ? mapRowToDbAggregation(row) : null;
 };

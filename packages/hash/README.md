@@ -26,7 +26,7 @@ To run HASH locally, please follow these steps:
     ## ≥ 2.17
     
     node --version
-    ## ≥ 16.13
+    ## ≥ 16.13 and < 17.00 (`@opensearch-project/opensearch` currently does not support node 17)
     
     yarn --version
     ## ≥ 1.16
@@ -265,7 +265,7 @@ The below `package.json` file outlines the minimum requirements a package has to
     "eslint-plugin-react": "^7.28.0",
     "eslint-plugin-react-hooks": "^4.3.0",
     "rimraf": "3.2.0",
-    "typescript": "4.5.2"
+    "typescript": "4.6.2"
   }
 }
 ```

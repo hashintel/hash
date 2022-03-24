@@ -7,7 +7,7 @@ import { SchemaSelectElementType } from "./SchemaEditor";
 import { ToggleInputOrDisplay, TextInputOrDisplay } from "./Inputs";
 import { JsonSchema } from "../../../lib/json-utils";
 import { SchemaEditorDispatcher } from "./schemaEditorReducer";
-import { OldButton } from "../../forms/OldButton";
+import { Button } from "../../Button";
 
 type SchemaPropertyRowProps = {
   dispatchSchemaUpdate: SchemaEditorDispatcher;
@@ -135,9 +135,9 @@ export const SchemaPropertyRow: VoidFunctionComponent<
         ))}
       </td>
       <td className={tdClasses}>
-        <OldButton onClick={deleteProperty} danger>
+        <Button variant="danger" onClick={deleteProperty}>
           Delete
-        </OldButton>
+        </Button>
       </td>
     </tr>
   );

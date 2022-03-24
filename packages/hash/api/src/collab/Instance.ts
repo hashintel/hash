@@ -279,9 +279,9 @@ export class Instance {
       }
 
       for (let i = 0; i < steps.length; i++) {
-        this.clientIds.set(steps[i], clientID);
+        this.clientIds.set(steps[i]!, clientID);
 
-        const result = tr.maybeStep(steps[i]);
+        const result = tr.maybeStep(steps[i]!);
         if (!result.doc) return false;
       }
 
@@ -558,7 +558,7 @@ export class Instance {
 
     if (timedPositionIndex !== -1) {
       if (entityId) {
-        const existingPosition = this.timedPositions[timedPositionIndex];
+        const existingPosition = this.timedPositions[timedPositionIndex]!;
         existingPosition.entityId = entityId;
         existingPosition.reportedAt = currentTimestamp;
       } else {
@@ -639,15 +639,15 @@ const maxCount = 20;
 
 const newInstance =
   (apolloClient: ApolloClient<unknown>, entityWatcher: EntityWatcher) =>
-  async (accountId: string, pageEntityId: string) => {
+  async (accountId: string, pageEntityId: string): Promise<Instance> => {
     if (++instanceCount > maxCount) {
       let oldest = null;
       for (const instanceId of Object.keys(instances)) {
-        const inst = instances[instanceId];
+        const inst = instances[instanceId]!;
         if (!oldest || inst.lastActive < oldest.lastActive) oldest = inst;
       }
       if (oldest) {
-        instances[oldest.pageEntityId].stop();
+        instances[oldest.pageEntityId]!.stop();
         delete instances[oldest.pageEntityId];
         --instanceCount;
       }
@@ -677,7 +677,7 @@ const newInstance =
 
     // The instance may have been created whilst another user we were doing the above work
     if (instances[pageEntityId]) {
-      return instances[pageEntityId];
+      return instances[pageEntityId]!;
     }
 
     instances[pageEntityId] = new Instance(
@@ -690,7 +690,7 @@ const newInstance =
       apolloClient,
     );
 
-    return instances[pageEntityId];
+    return instances[pageEntityId]!;
   };
 
 export const getInstance =

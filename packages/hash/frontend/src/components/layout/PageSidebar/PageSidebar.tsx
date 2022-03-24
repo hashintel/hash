@@ -1,7 +1,7 @@
 import { VoidFunctionComponent } from "react";
 
 import { useRouter } from "next/router";
-import { Box, Drawer, Typography, IconButton, Tooltip } from "@mui/material";
+import { Box, Drawer, Typography, Tooltip } from "@mui/material";
 import {
   faHistory,
   faHome,
@@ -11,15 +11,19 @@ import {
 import { AccountPageList } from "./AccountPageList/AccountPageList";
 
 import { AccountEntityTypeList } from "./AccountEntityTypeList/AccountEntityTypeList";
-import { FontAwesomeSvgIcon, SidebarToggleIcon } from "../../icons";
+import { FontAwesomeIcon, SidebarToggleIcon } from "../../icons";
 import { TopNavLink } from "./TopNavLink";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { useSidebarContext } from "../SidebarContext";
+import { IconButton } from "../../IconButton";
 
 export const PageSidebar: VoidFunctionComponent = () => {
   const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebarContext();
-  const { accountId, pageEntityId } = router.query as Record<string, string>;
+  const { accountId, pageEntityId } = router.query as Record<
+    "accountId" | "pageEntityId",
+    string
+  >;
 
   return (
     <Drawer variant="persistent" open={sidebarOpen} sx={{ zIndex: 0 }}>
@@ -35,20 +39,8 @@ export const PageSidebar: VoidFunctionComponent = () => {
           <WorkspaceSwitcher />
         </Box>
         <Tooltip title="Collapse Sidebar">
-          <IconButton
-            sx={{
-              height: 36,
-              width: 36,
-              borderRadius: "4px",
-            }}
-            onClick={closeSidebar}
-          >
-            <SidebarToggleIcon
-              sx={{
-                height: 20,
-                width: 20,
-              }}
-            />
+          <IconButton size="large" onClick={closeSidebar}>
+            <SidebarToggleIcon />
           </IconButton>
         </Tooltip>
       </Box>
@@ -107,7 +99,7 @@ export const PageSidebar: VoidFunctionComponent = () => {
           },
         }}
       >
-        <FontAwesomeSvgIcon
+        <FontAwesomeIcon
           sx={{ mr: 1.5, color: ({ palette }) => palette.gray[50] }}
           color="inherit"
           icon={faLifeRing}

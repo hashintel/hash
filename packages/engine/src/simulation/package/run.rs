@@ -106,7 +106,8 @@ impl StepPackages {
         let keys_and_columns = self
             .context
             .iter()
-            // TODO: remove the need for this creating a method to generate empty arrow columns from schema
+            // TODO: remove the need for this by creating a method to generate empty arrow columns 
+            //       from the schema
             .map(|package| {
                 package
                     .get_empty_arrow_columns(num_agents, &sim_run_config.sim.store.context_schema)
@@ -250,7 +251,8 @@ impl StepPackages {
         // Design-choices:
         // Cannot use trait bounds as dyn Package won't be object-safe
         // Traits are tricky anyway for working with iterators
-        // Will instead use state.upgrade() and exstate.downgrade() and respectively for context
+        // Will instead use state.into_mut() and state_mut.into_shared() and respectively for
+        // context
         for pkg in self.state.iter_mut() {
             let span = pkg.span();
             pkg.run(state, context).instrument(span).await?;
@@ -267,6 +269,7 @@ impl StepPackages {
         let mut futs = FuturesOrdered::new();
 
         let num_pkgs = self.output.len();
+        // Take packages so we can send them to a potentially different thread.
         let pkgs = std::mem::take(&mut self.output);
         pkgs.into_iter().for_each(|mut pkg| {
             let state = state.clone();
@@ -298,6 +301,9 @@ impl StepPackages {
 
         let collected = futs.collect::<Vec<_>>().await;
 
+        // Collect outputs and put back packages that we took.
+        // Output packages can't reload state batches, since they only have read access to state,
+        // but reloading would mean mutating the loaded data.
         let mut pkgs = Vec::with_capacity(num_pkgs);
         let mut outputs = SimulationStepOutput::with_capacity(num_pkgs);
         for result in collected {

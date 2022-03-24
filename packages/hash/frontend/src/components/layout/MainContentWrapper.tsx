@@ -1,4 +1,4 @@
-import { IconButton, Fade, Box, Tooltip, styled } from "@mui/material";
+import { Fade, Box, Tooltip, styled } from "@mui/material";
 import { FunctionComponent } from "react";
 import { SIDEBAR_WIDTH } from "../../theme/components/navigation/MuiDrawerThemeOptions";
 
@@ -6,6 +6,7 @@ import { SidebarToggleIcon } from "../icons";
 import { HEADER_HEIGHT } from "./PageHeader/PageHeader";
 import { PageSidebar } from "./PageSidebar/PageSidebar";
 import { useSidebarContext } from "./SidebarContext";
+import { IconButton } from "../IconButton";
 
 const Main = styled("main", {
   shouldForwardProp: (prop) => prop !== "sidebarOpen",
@@ -13,7 +14,7 @@ const Main = styled("main", {
   sidebarOpen?: boolean;
 }>(({ theme, sidebarOpen }) => ({
   height: `calc(100vh - ${HEADER_HEIGHT}px)`,
-  overflowY: "scroll",
+  overflowY: "auto",
   flexGrow: 1,
   padding: "60px 120px 0 120px",
   transition: theme.transitions.create("margin", {
@@ -44,12 +45,10 @@ export const MainContentWrapper: FunctionComponent = ({ children }) => {
       <Fade in={!sidebarOpen}>
         <Tooltip title="Open Sidebar">
           <IconButton
+            size="large"
             sx={{
-              height: 36,
-              width: 36,
-              borderRadius: "4px",
               position: "absolute",
-              top: 32,
+              top: "8px",
               left: 32,
               transform: "rotate(180deg)",
 
@@ -60,12 +59,7 @@ export const MainContentWrapper: FunctionComponent = ({ children }) => {
             }}
             onClick={openSidebar}
           >
-            <SidebarToggleIcon
-              sx={{
-                height: 20,
-                width: 20,
-              }}
-            />
+            <SidebarToggleIcon />
           </IconButton>
         </Tooltip>
       </Fade>

@@ -2,7 +2,6 @@ import { useCallback, useState, useRef } from "react";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
-  IconButton,
   ListItemButton,
   Typography,
   useMediaQuery,
@@ -11,10 +10,11 @@ import {
 import { useKeys } from "rooks";
 import { useRouter } from "next/router";
 
-import { FontAwesomeSvgIcon } from "../../icons";
+import { FontAwesomeIcon } from "../../icons";
 import { Popover } from "../../Popover";
 import { Link } from "../../Link";
 import { CreatePageModal } from "../../Modals/CreatePageModal";
+import { HeaderIconButton } from "./HeaderIconButton";
 
 export const ActionsDropdown: React.FC<{
   accountId: string;
@@ -53,30 +53,27 @@ export const ActionsDropdown: React.FC<{
 
   return (
     <Box>
-      <IconButton
-        sx={{
+      <HeaderIconButton
+        size="medium"
+        rounded
+        sx={({ palette }) => ({
           mr: {
             xs: 1,
             md: 1.5,
           },
-          width: "32px",
-          height: "32px",
-          borderRadius: "100%",
-          color: open ? theme.palette.common.white : theme.palette.gray[40],
-          backgroundColor: open
-            ? theme.palette.blue["70"]
-            : theme.palette.gray[20],
+          color: open ? palette.common.white : palette.gray[40],
+          backgroundColor: open ? palette.blue["70"] : palette.gray[20],
 
-          "&:hover": {
-            backgroundColor: theme.palette.blue["70"],
-            color: theme.palette.common.white,
+          ":hover": {
+            color: palette.gray[50],
           },
-        }}
+        })}
         ref={buttonRef}
         onClick={() => setOpen(!open)}
+        open={open}
       >
-        <FontAwesomeSvgIcon icon={faPlus} />
-      </IconButton>
+        <FontAwesomeIcon icon={faPlus} />
+      </HeaderIconButton>
 
       <CreatePageModal
         show={createPageOpen}

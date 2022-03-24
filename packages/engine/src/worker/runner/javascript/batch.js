@@ -45,8 +45,8 @@
     return any_type_fields;
   };
 
-  const load_vectors = (rb_bytes, schema) => {
-    const reader = new arrow.MessageReader(rb_bytes);
+  const load_vectors = (record_batch_bytes, schema) => {
+    const reader = new arrow.MessageReader(record_batch_bytes);
     const msg = reader.readMessage();
     const header = msg.header();
     const body = reader.readMessageBody(msg.bodyLength);
@@ -60,7 +60,7 @@
     const vector_list = loader.visitMany(schema.fields);
     const any_type_fields = parse_any_type_fields(schema.metadata);
     // Unnecessary:
-    // const rb = new arrow.RecordBatch(schema, header.length, vector_list);
+    // const record_batch = new arrow.RecordBatch(schema, header.length, vector_list);
 
     const vectors = {}; // Field name --> vector.
     for (var i = 0; i < vector_list.length; ++i) {
@@ -106,16 +106,25 @@
   };
 
   const load_marked_vectors = (shared_bytes, schema) => {
-    const m = load_markers(shared_bytes); // Record batch bytes are subset of all shared.
-    const n_rb_bytes = m.data_offset + m.data_size - m.meta_offset;
-    const rb_bytes = new Uint8Array(shared_bytes, m.meta_offset, n_rb_bytes);
-    return load_vectors(rb_bytes, schema);
+    const markers = load_markers(shared_bytes); // Record batch bytes are subset of all shared.
+    const data_end = markers.data_offset + markers.data_size;
+    const record_batch_offset = markers.meta_offset;
+    const record_batch_size = data_end - record_batch_offset;
+    const record_batch_bytes = new Uint8Array(
+      shared_bytes,
+      record_batch_offset,
+      record_batch_size,
+    );
+    return load_vectors(record_batch_bytes, schema);
   };
 
-  /// `latest_batch` should have `id` (string), `batch_version` (number),
-  /// `mem_version` (number) and `mem` (ArrayBuffer) fields.
+  /// `latest_batch` should have `id` (string), `batch_version` (number), `mem_version` (number) and `mem` (ArrayBuffer)
+  /// fields.
+  // TODO: Read persisted metaversion from memory, removing the need
+  //       for the version fields in `latest_batch`.
   Batch.prototype.sync = function (latest_batch, schema) {
     const should_load = this.batch_version < latest_batch.batch_version;
+
     if (this.mem_version < latest_batch.mem_version) {
       if (!should_load) {
         throw new Error(
@@ -123,9 +132,11 @@
         );
       }
 
+      // JS is in same process as Rust, so just need to update pointer.
       this.mem = latest_batch.mem;
       this.mem_version = latest_batch.mem_version;
     }
+
     if (should_load) {
       this.vectors = load_marked_vectors(this.mem, schema);
       this.cols = {}; // Reset columns because they might be invalid due to vectors changing.
@@ -144,9 +155,17 @@
       col = loader(vector);
     } else if (name.startsWith("_HIDDEN_") || name.startsWith("_PRIVATE_")) {
       // only agent-scoped fields are fully loaded by default
-      col = hash_util.load_shallow(vector);
+      // TODO: Whether a column is nullable doesn't currently affect Arrow loading in JS, but if we
+      //       want to modify fixed-size non-nullable columns in place, `is_nullable` needs to be
+      //       set to the correct value here.
+      const is_nullable = undefined;
+      col = hash_util.load_shallow(vector, is_nullable, vector.type.is_any);
     } else {
-      col = hash_util.load_full(vector);
+      // TODO: Whether a column is nullable doesn't currently affect Arrow loading in JS, but if we
+      //       want to modify fixed-size non-nullable columns in place, `is_nullable` needs to be
+      //       set to the correct value here.
+      const is_nullable = undefined;
+      col = hash_util.load_full(vector, is_nullable, vector.type.is_any);
     }
     return (this.cols[name] = col);
   };

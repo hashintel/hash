@@ -1,5 +1,5 @@
 import { Express } from "express";
-import { DBAdapter } from "../db";
+import { DbAdapter } from "../db";
 import { setupPassport } from "./passport";
 import { setupSession, SessionConfig } from "./session";
 import { Config as PgConfig } from "../db/postgres";
@@ -8,7 +8,7 @@ const setupAuth = (
   app: Express,
   sessConfig: SessionConfig,
   pgConfig: PgConfig,
-  db: DBAdapter,
+  db: DbAdapter,
 ) => {
   // setup session related middleware
   setupSession(app, sessConfig, pgConfig);

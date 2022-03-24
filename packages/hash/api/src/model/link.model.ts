@@ -1,7 +1,7 @@
 import jp from "jsonpath";
 import { UserInputError } from "apollo-server-errors";
 import { merge } from "lodash";
-import { DBClient } from "../db";
+import { DbClient } from "../db";
 import { Entity, Link } from ".";
 import { Link as GQLLink } from "../graphql/apiTypes.gen";
 
@@ -47,26 +47,30 @@ const isUnsupportedJSONPathComponent = (component: JSONPathComponent) =>
 
 export const isUnupportedJSONPath = (components: JSONPathComponent[]) =>
   components.length < 2 ||
-  components[0].expression.type !== "root" ||
+  components[0]!.expression.type !== "root" ||
   components.slice(1).find(isUnsupportedJSONPathComponent) !== undefined;
 
 type LinkConstructorArgs = {
   linkId: string;
+  linkVersionId: string;
   path: string;
   index?: number;
   sourceAccountId: string;
   sourceEntityId: string;
   appliedToSourceAt: Date;
-  appliedToSourceBy: string;
+  appliedToSourceByAccountId: string;
   removedFromSourceAt?: Date;
-  removedFromSourceBy?: string;
+  removedFromSourceByAccountId?: string;
   destinationAccountId: string;
   destinationEntityId: string;
   destinationEntityVersionId?: string;
+  updatedAt: Date;
+  updatedByAccountId: string;
 };
 
 class __Link {
   linkId: string;
+  linkVersionId: string;
   stringifiedPath: string;
   path: jp.PathComponent[];
   index?: number;
@@ -75,41 +79,50 @@ class __Link {
   sourceEntityId: string;
 
   appliedToSourceAt: Date;
-  appliedToSourceBy: string;
+  appliedToSourceByAccountId: string;
   removedFromSourceAt?: Date;
-  removedFromSourceBy?: string;
+  removedFromSourceByAccountId?: string;
 
   destinationAccountId: string;
   destinationEntityId: string;
   destinationEntityVersionId?: string;
 
+  updatedAt: Date;
+  updatedByAccountId: string;
+
   constructor({
     linkId,
+    linkVersionId,
     path,
     index,
     sourceAccountId,
     sourceEntityId,
     appliedToSourceAt,
-    appliedToSourceBy,
+    appliedToSourceByAccountId,
     removedFromSourceAt,
-    removedFromSourceBy,
+    removedFromSourceByAccountId,
     destinationAccountId,
     destinationEntityId,
     destinationEntityVersionId,
+    updatedAt,
+    updatedByAccountId,
   }: LinkConstructorArgs) {
     this.linkId = linkId;
+    this.linkVersionId = linkVersionId;
     this.stringifiedPath = path;
     this.path = Link.parseStringifiedPath(path);
     this.index = index;
     this.sourceAccountId = sourceAccountId;
     this.sourceEntityId = sourceEntityId;
     this.appliedToSourceAt = appliedToSourceAt;
-    this.appliedToSourceBy = appliedToSourceBy;
+    this.appliedToSourceByAccountId = appliedToSourceByAccountId;
     this.removedFromSourceAt = removedFromSourceAt;
-    this.removedFromSourceBy = removedFromSourceBy;
+    this.removedFromSourceByAccountId = removedFromSourceByAccountId;
     this.destinationAccountId = destinationAccountId;
     this.destinationEntityId = destinationEntityId;
     this.destinationEntityVersionId = destinationEntityVersionId;
+    this.updatedAt = updatedAt;
+    this.updatedByAccountId = updatedByAccountId;
   }
 
   static isPathValid(path: string): boolean {
@@ -147,7 +160,7 @@ class __Link {
     }
   }
 
-  static async create(client: DBClient, params: CreateLinkArgs): Promise<Link> {
+  static async create(client: DbClient, params: CreateLinkArgs): Promise<Link> {
     const {
       stringifiedPath,
       source,
@@ -186,7 +199,7 @@ class __Link {
   }
 
   static async get(
-    client: DBClient,
+    client: DbClient,
     params: {
       sourceAccountId: string;
       linkId: string;
@@ -196,7 +209,7 @@ class __Link {
     return dbLink ? new Link(dbLink) : null;
   }
 
-  async delete(client: DBClient, params: { deletedByAccountId: string }) {
+  async delete(client: DbClient, params: { deletedByAccountId: string }) {
     await client.deleteLink({
       deletedByAccountId: params.deletedByAccountId,
       sourceAccountId: this.sourceAccountId,
@@ -204,7 +217,7 @@ class __Link {
     });
   }
 
-  private async fetchSource(client: DBClient) {
+  private async fetchSource(client: DbClient) {
     const source = await Entity.getEntityLatestVersion(client, {
       accountId: this.sourceAccountId,
       entityId: this.sourceEntityId,
@@ -217,11 +230,11 @@ class __Link {
     return source;
   }
 
-  async getSource(client: DBClient) {
+  async getSource(client: DbClient) {
     return await this.fetchSource(client);
   }
 
-  private async fetchDestination(client: DBClient) {
+  private async fetchDestination(client: DbClient) {
     const destination = this.destinationEntityVersionId
       ? await Entity.getEntity(client, {
           accountId: this.destinationAccountId,
@@ -239,12 +252,12 @@ class __Link {
     return destination;
   }
 
-  async getDestination(client: DBClient) {
+  async getDestination(client: DbClient) {
     return await this.fetchDestination(client);
   }
 
   async update(
-    client: DBClient,
+    client: DbClient,
     params: { updatedIndex: number; updatedByAccountId: string },
   ) {
     const { updatedIndex, updatedByAccountId } = params;

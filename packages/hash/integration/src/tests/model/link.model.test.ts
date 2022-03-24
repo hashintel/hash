@@ -261,8 +261,8 @@ describe("Link model class ", () => {
     });
 
     expect(entityATimestamp2OutgoingLinks.length).toBe(1);
-    expect(entityATimestamp2OutgoingLinks[0].linkId).toBe(linkAToB.linkId);
-    expect(entityATimestamp2OutgoingLinks[0].index).toBe(0);
+    expect(entityATimestamp2OutgoingLinks[0]!.linkId).toBe(linkAToB.linkId);
+    expect(entityATimestamp2OutgoingLinks[0]!.index).toBe(0);
 
     const entityATimestamp3OutgoingLinks = await entityA.getOutgoingLinks(db, {
       activeAt: entityATimestamp3,
@@ -270,20 +270,20 @@ describe("Link model class ", () => {
     });
 
     expect(entityATimestamp3OutgoingLinks.length).toBe(2);
-    expect(entityATimestamp3OutgoingLinks[0].linkId).toBe(linkAToC.linkId);
-    expect(entityATimestamp3OutgoingLinks[0].index).toBe(0);
+    expect(entityATimestamp3OutgoingLinks[0]!.linkId).toBe(linkAToC.linkId);
+    expect(entityATimestamp3OutgoingLinks[0]!.index).toBe(0);
 
-    expect(entityATimestamp3OutgoingLinks[1].linkId).not.toBe(linkAToB.linkId);
-    expect(entityATimestamp3OutgoingLinks[1].sourceEntityId).toBe(
+    expect(entityATimestamp3OutgoingLinks[1]!.linkId).toBe(linkAToB.linkId);
+    expect(entityATimestamp3OutgoingLinks[1]!.sourceEntityId).toBe(
       linkAToB.sourceEntityId,
     );
-    expect(entityATimestamp3OutgoingLinks[1].destinationEntityId).toBe(
+    expect(entityATimestamp3OutgoingLinks[1]!.destinationEntityId).toBe(
       linkAToB.destinationEntityId,
     );
-    expect(entityATimestamp3OutgoingLinks[1].destinationEntityVersionId).toBe(
+    expect(entityATimestamp3OutgoingLinks[1]!.destinationEntityVersionId).toBe(
       linkAToB.destinationEntityVersionId,
     );
-    expect(entityATimestamp3OutgoingLinks[1].index).toBe(1);
+    expect(entityATimestamp3OutgoingLinks[1]!.index).toBe(1);
 
     const entityATimestamp4OutgoingLinks = await entityA.getOutgoingLinks(db, {
       activeAt: entityATimestamp4,
@@ -291,13 +291,13 @@ describe("Link model class ", () => {
 
     expect(entityATimestamp4OutgoingLinks.length).toBe(1);
 
-    expect(entityATimestamp4OutgoingLinks[0].sourceEntityId).toBe(
+    expect(entityATimestamp4OutgoingLinks[0]!.sourceEntityId).toBe(
       entityA.entityId,
     );
-    expect(entityATimestamp4OutgoingLinks[0].destinationEntityId).toBe(
+    expect(entityATimestamp4OutgoingLinks[0]!.destinationEntityId).toBe(
       entityB.entityId,
     );
-    expect(entityATimestamp4OutgoingLinks[0].index).toBe(0);
+    expect(entityATimestamp4OutgoingLinks[0]!.index).toBe(0);
   });
 });
 

@@ -4,7 +4,7 @@ import { useQuery } from "@apollo/client";
 import { useRouter } from "next/router";
 
 import { tw } from "twind";
-import { OldButton } from "../../../components/forms/OldButton";
+import { Button } from "../../../components/Button";
 import {
   GetEntityTypeQuery,
   GetEntityTypeQueryVariables,
@@ -120,19 +120,15 @@ export const EntityType: VoidFunctionComponent = () => {
                 entityTypeId={typeId}
               />
             </div>
-            <Link
-              noLinkStyle
-              href={`/${accountId}/entities/new?entityTypeId=${typeId}`}
-            >
-              <a>
-                <OldButton>New {schema.title}</OldButton>
-              </a>
-            </Link>
+
+            <Button href={`/${accountId}/entities/new?entityTypeId=${typeId}`}>
+              New {schema.title}
+            </Button>
           </div>
           <SchemaEditor
             accountId={accountId}
             aggregateEntityTypes={aggregateEntityTypes}
-            entityId={data.getEntityType.entityId}
+            entityTypeId={data.getEntityType.entityId}
             schema={schema}
             GoToSchemaElement={schemaSelectElement}
             subSchemaReference={subSchemaReference}

@@ -66,11 +66,11 @@ const ensureEntitiesAreWrapped = (
        * @see ProsemirrorSchemaManager, createRemoteBlock
        * @todo this should never happen, can we remove it?
        */
-      const DEFAULT_WRAPPERS = [{ type: schema.nodes.block }];
+      const defaultWrappers = [{ type: schema.nodes.block! }];
       if (node.type !== schema.nodes.entity) {
-        DEFAULT_WRAPPERS.push(
-          { type: schema.nodes.entity },
-          { type: schema.nodes.entity },
+        defaultWrappers.push(
+          { type: schema.nodes.entity! },
+          { type: schema.nodes.entity! },
         );
       }
 
@@ -79,7 +79,7 @@ const ensureEntitiesAreWrapped = (
         wrapperNodes?.map((wrapperNode) => ({
           type: wrapperNode.type,
           attrs: wrapperNode.attrs,
-        })) ?? DEFAULT_WRAPPERS,
+        })) ?? defaultWrappers,
       );
     }
 
@@ -217,7 +217,7 @@ const wrapEntitiesKeymap = (baseKeymap: Record<string, Command<Schema>>) =>
     ...mapValues(baseKeymap, prepareCommandForWrappedEntities),
 
     // @todo better way of working out that this command doesn't need wrapping
-    "Mod-a": baseKeymap["Mod-a"],
+    "Mod-a": baseKeymap["Mod-a"]!,
   });
 
 export const wrapEntitiesPlugin = (

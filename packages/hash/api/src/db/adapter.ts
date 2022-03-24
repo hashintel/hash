@@ -58,22 +58,40 @@ export type EntityWithOutgoingEntityIds = DbEntity & {
   outgoingEntityIds?: string[];
 };
 
-export type DBLink = {
+export type DbLink = {
   linkId: string;
+  linkVersionId: string;
   path: string;
   index?: number;
   sourceAccountId: string;
   sourceEntityId: string;
+
   appliedToSourceAt: Date;
-  appliedToSourceBy: string;
+  appliedToSourceByAccountId: string;
+
   removedFromSourceAt?: Date;
-  removedFromSourceBy?: string;
+  removedFromSourceByAccountId?: string;
+
   destinationAccountId: string;
   destinationEntityId: string;
   destinationEntityVersionId?: string;
+
+  updatedAt: Date;
+  updatedByAccountId: string;
 };
 
-export type DBAggregation = {
+export type DbLinkWithIndex = DbLink & Required<Pick<DbLink, "index">>;
+
+export type DbLinkVersion = {
+  sourceAccountId: string;
+  linkVersionId: string;
+  linkId: string;
+  index?: number;
+  updatedAt: Date;
+  updatedByAccountId: string;
+};
+
+export type DbAggregation = {
   sourceAccountId: string;
   sourceEntityId: string;
   sourceEntityVersionIds: Set<string>;
@@ -118,7 +136,7 @@ export type VerificationCode = {
   createdAt: Date;
 };
 
-export type DBUserEmail = {
+export type DbUserEmail = {
   address: string;
   verified: boolean;
   primary: boolean;
@@ -128,18 +146,18 @@ export type UserInfoProvidedAtSignup = {
   usingHow?: WayToUseHash;
 };
 
-export type DBUserProperties = {
-  emails: DBUserEmail[];
+export type DbUserProperties = {
+  emails: DbUserEmail[];
   shortname?: string;
   preferredName?: string;
   infoProvidedAtSignup: UserInfoProvidedAtSignup;
 };
 
-export type DBOrgMembershipProperties = {
+export type DbOrgMembershipProperties = {
   responsibility: string;
 };
 
-export type DBFileProperties = {
+export type DbFileProperties = {
   name: string;
   key: string;
   size: number;
@@ -152,7 +170,7 @@ export type OrgInfoProvidedAtCreation = {
   orgSize: OrgSize;
 };
 
-export type DBOrgProperties = {
+export type DbOrgProperties = {
   shortname: string;
   name: string;
   infoProvidedAtCreation?: OrgInfoProvidedAtCreation;
@@ -188,17 +206,17 @@ export type DbPageEntity = Omit<DbEntity, "properties"> & {
 
 export type DbUnknownEntity = DbEntity;
 
-export interface DBAdapter extends DataSource, DBClient {
-  /** Initiate a new database transaction. All `DBAdapter` methods called within
+export interface DbAdapter extends DataSource, DbClient {
+  /** Initiate a new database transaction. All `DbAdapter` methods called within
    * the provided callback `fn` are executed within the same transaction.
    * */
-  transaction<T>(fn: (client: DBClient) => Promise<T>): Promise<T>;
+  transaction<T>(fn: (client: DbClient) => Promise<T>): Promise<T>;
 }
 
 /**
  * Generic interface to the database.
  */
-export interface DBClient {
+export interface DbClient {
   /**
    * Create an entity type.
    * @param params.name the type name - must be unique in the specified account
@@ -431,12 +449,12 @@ export interface DBClient {
     destinationAccountId: string;
     destinationEntityId: string;
     destinationEntityVersionId?: string;
-  }): Promise<DBLink>;
+  }): Promise<DbLink>;
 
   getLink(params: {
     sourceAccountId: string;
     linkId: string;
-  }): Promise<DBLink | null>;
+  }): Promise<DbLink | null>;
 
   deleteLink(params: {
     deletedByAccountId: string;
@@ -461,7 +479,21 @@ export interface DBClient {
     entityId: string;
     activeAt?: Date;
     path?: string;
-  }): Promise<DBLink[]>;
+  }): Promise<DbLink[]>;
+
+  /**
+   * Gets all the incoming links of an entity.
+   *
+   * @todo: support getting the incoming links of an entity at
+   * a particular point in its history
+   *
+   * @param params.accountId the account ID of the destination entity
+   * @param params.entityId the entity ID of the destination entity
+   */
+  getEntityIncomingLinks(params: {
+    accountId: string;
+    entityId: string;
+  }): Promise<DbLink[]>;
 
   /** Create a verification code */
   createVerificationCode(params: {
@@ -477,27 +509,27 @@ export interface DBClient {
     sourceEntityId: string;
     path: string;
     operation: object;
-  }): Promise<DBAggregation>;
+  }): Promise<DbAggregation>;
 
   updateAggregationOperation(params: {
     sourceAccountId: string;
     sourceEntityId: string;
     path: string;
     operation: object;
-  }): Promise<DBAggregation>;
+  }): Promise<DbAggregation>;
 
   getEntityAggregation(params: {
     sourceAccountId: string;
     sourceEntityId: string;
     sourceEntityVersionId?: string;
     path: string;
-  }): Promise<DBAggregation | null>;
+  }): Promise<DbAggregation | null>;
 
   getEntityAggregations(params: {
     sourceAccountId: string;
     sourceEntityId: string;
     sourceEntityVersionId?: string;
-  }): Promise<DBAggregation[]>;
+  }): Promise<DbAggregation[]>;
 
   deleteAggregation(params: {
     deletedByAccountId: string;

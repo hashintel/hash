@@ -9,7 +9,7 @@ import {
 import { EntityVersion } from "@hashintel/hash-backend-utils/pgTables";
 import { Wal2JsonMsg } from "@hashintel/hash-backend-utils/wal2json";
 import { TextToken } from "@hashintel/hash-shared/graphql/types";
-import { DBAdapter } from "@hashintel/hash-api/src/db";
+import { DbAdapter } from "@hashintel/hash-api/src/db";
 import { Entity, EntityType, Page } from "@hashintel/hash-api/src/model";
 import { EntityType as DbEntityType } from "@hashintel/hash-api/src/db/adapter";
 import { sleep } from "@hashintel/hash-shared/sleep";
@@ -17,7 +17,7 @@ import { sleep } from "@hashintel/hash-shared/sleep";
 import { logger } from "./config";
 
 export type SearchLoaderConfig = {
-  db: DBAdapter;
+  db: DbAdapter;
   queueConsumer: QueueExclusiveConsumer;
   search: SearchAdapter;
   searchEntititesIndex: string;
@@ -55,7 +55,7 @@ const textEntityPropertiesToFTS = (properties: any): string => {
 export class SearchLoader {
   private stopRequested = false;
   private isStopped = false;
-  private db: DBAdapter;
+  private db: DbAdapter;
   private queueConsumer: QueueExclusiveConsumer;
   private search: SearchAdapter;
   private readonly searchEntititesIndex: string;
@@ -169,7 +169,7 @@ export class SearchLoader {
           const grandparentLatestEntity = await Entity.getEntityLatestVersion(
             this.db,
             {
-              ...grandparents[0],
+              ...grandparents[0]!,
             },
           );
 

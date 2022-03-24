@@ -1,52 +1,46 @@
 use arrow::{array::ArrayData, buffer::Buffer};
 
-use super::flush::{GrowableArrayData, GrowableColumn};
+use crate::datastore::batch::flush::{GrowableArrayData, GrowableColumn};
 
-/// When a growable column is modified, the change is recorded in this format.
-pub struct ArrayChange {
-    pub array: ArrayData,
+/// When a mutable column is modified not in place, the change is recorded in this format.
+pub struct ColumnChange {
+    pub data: ArrayData,
     /// Index of column
     pub index: usize,
 }
 
-impl ArrayChange {
-    pub fn new(array: ArrayData, index: usize) -> ArrayChange {
-        ArrayChange { array, index }
-    }
-}
-
-impl GrowableColumn<ArrayData> for ArrayChange {
-    fn get_column_index(&self) -> usize {
+impl GrowableColumn<ArrayData> for ColumnChange {
+    fn index(&self) -> usize {
         self.index
     }
 
-    fn get_data(&self) -> &ArrayData {
-        &self.array
+    fn data(&self) -> &ArrayData {
+        &self.data
     }
 }
 
 impl GrowableArrayData for ArrayData {
-    fn _len(&self) -> usize {
-        self.len()
+    fn len(&self) -> usize {
+        ArrayData::len(self)
     }
 
-    fn _null_count(&self) -> usize {
-        self.null_count()
+    fn null_count(&self) -> usize {
+        ArrayData::null_count(self)
     }
 
-    fn _null_buffer(&self) -> Option<&[u8]> {
-        self.null_buffer().map(Buffer::as_slice)
+    fn null_buffer(&self) -> Option<&[u8]> {
+        ArrayData::null_buffer(self).map(Buffer::as_slice)
     }
 
-    fn _get_buffer(&self, index: usize) -> &[u8] {
+    fn buffer(&self, index: usize) -> &[u8] {
         self.buffers()[index].as_slice()
     }
 
-    fn _get_non_null_buffer_count(&self) -> usize {
+    fn non_null_buffer_count(&self) -> usize {
         self.buffers().len()
     }
 
-    fn _child_data(&self) -> &[Self] {
-        self.child_data()
+    fn child_data(&self) -> &[Self] {
+        ArrayData::child_data(self)
     }
 }

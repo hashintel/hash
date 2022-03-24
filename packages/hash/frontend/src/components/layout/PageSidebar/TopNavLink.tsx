@@ -1,7 +1,7 @@
 import { FC } from "react";
 import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import { Typography, Tooltip } from "@mui/material";
-import { FontAwesomeSvgIcon } from "../../icons";
+import { FontAwesomeIcon } from "../../icons";
 import { Link } from "../../Link";
 
 type NavLinkProps = {
@@ -60,7 +60,7 @@ export const TopNavLink: FC<NavLinkProps> = ({
           }),
         }}
       >
-        <FontAwesomeSvgIcon
+        <FontAwesomeIcon
           sx={{
             mr: 1.5,
             // color: ({ palette }) => palette.gray[50],

@@ -29,7 +29,7 @@ export const identityEntityAndProperty = (
   let nextObject = tree;
 
   for (let i = 0; i < accessorKeys.length; i++) {
-    const key = accessorKeys[i];
+    const key = accessorKeys[i]!;
     const nextValue = nextObject[key];
     if (isRecord(nextValue)) {
       nextObject = nextValue;

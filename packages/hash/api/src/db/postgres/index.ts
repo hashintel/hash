@@ -8,10 +8,10 @@ import {
 
 import { PostgresClient } from "./client";
 import {
-  DBAdapter,
-  DBAggregation,
-  DBClient,
-  DBLink,
+  DbAdapter,
+  DbAggregation,
+  DbClient,
+  DbLink,
   DbEntity,
   EntityMeta,
   EntityType,
@@ -30,7 +30,7 @@ export type Config = {
   maxPoolSize: number;
 };
 
-export class PostgresAdapter extends DataSource implements DBAdapter {
+export class PostgresAdapter extends DataSource implements DbAdapter {
   private statsdInterval: NodeJS.Timeout;
   private pool: PgPool;
 
@@ -53,14 +53,14 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     return await this.pool.end();
   }
 
-  private async query<T>(fn: (client: DBClient) => Promise<T>): Promise<T> {
+  private async query<T>(fn: (client: DbClient) => Promise<T>): Promise<T> {
     return await this.pool.connect(async (conn) => {
       const client = new PostgresClient(createPoolConnection(conn));
       return await fn(client);
     });
   }
 
-  /** Initiate a new database transaction. All `DBAdapter` methods called within
+  /** Initiate a new database transaction. All `DbAdapter` methods called within
    * the provided callback `fn` are executed within the same transaction.
    * */
   async transaction<T>(
@@ -118,8 +118,8 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   }
 
   getEntityType(
-    params: Parameters<DBClient["getEntityType"]>[0],
-  ): ReturnType<DBClient["getEntityType"]> {
+    params: Parameters<DbClient["getEntityType"]>[0],
+  ): ReturnType<DbClient["getEntityType"]> {
     return this.query((adapter) => adapter.getEntityType(params));
   }
 
@@ -136,26 +136,26 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   }
 
   getEntityTypeByComponentId(
-    params: Parameters<DBClient["getEntityTypeByComponentId"]>[0],
+    params: Parameters<DbClient["getEntityTypeByComponentId"]>[0],
   ): Promise<EntityType | null> {
     return this.query((adapter) => adapter.getEntityTypeByComponentId(params));
   }
 
   getEntityTypeBySchema$id(
-    params: Parameters<DBClient["getEntityTypeBySchema$id"]>[0],
-  ): ReturnType<DBClient["getEntityTypeBySchema$id"]> {
+    params: Parameters<DbClient["getEntityTypeBySchema$id"]>[0],
+  ): ReturnType<DbClient["getEntityTypeBySchema$id"]> {
     return this.query((adapter) => adapter.getEntityTypeBySchema$id(params));
   }
 
   getEntityTypeChildren(
-    params: Parameters<DBClient["getEntityTypeChildren"]>[0],
-  ): ReturnType<DBClient["getEntityTypeChildren"]> {
+    params: Parameters<DbClient["getEntityTypeChildren"]>[0],
+  ): ReturnType<DbClient["getEntityTypeChildren"]> {
     return this.query((adapter) => adapter.getEntityTypeChildren(params));
   }
 
   updateEntityType(
-    params: Parameters<DBClient["updateEntityType"]>[0],
-  ): ReturnType<DBClient["updateEntityType"]> {
+    params: Parameters<DbClient["updateEntityType"]>[0],
+  ): ReturnType<DbClient["updateEntityType"]> {
     return this.query((adapter) => adapter.updateEntityType(params));
   }
 
@@ -237,14 +237,14 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
     destinationAccountId: string;
     destinationEntityId: string;
     destinationEntityVersionId?: string;
-  }): Promise<DBLink> {
+  }): Promise<DbLink> {
     return this.query((adapter) => adapter.createLink(params));
   }
 
   getLink(params: {
     sourceAccountId: string;
     linkId: string;
-  }): Promise<DBLink | null> {
+  }): Promise<DbLink | null> {
     return this.query((adapter) => adapter.getLink(params));
   }
 
@@ -257,37 +257,43 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   }
 
   getEntityOutgoingLinks(
-    params: Parameters<DBClient["getEntityOutgoingLinks"]>[0],
-  ): ReturnType<DBClient["getEntityOutgoingLinks"]> {
+    params: Parameters<DbClient["getEntityOutgoingLinks"]>[0],
+  ): ReturnType<DbClient["getEntityOutgoingLinks"]> {
     return this.query((adapter) => adapter.getEntityOutgoingLinks(params));
   }
 
+  getEntityIncomingLinks(
+    params: Parameters<DbClient["getEntityIncomingLinks"]>[0],
+  ): ReturnType<DbClient["getEntityIncomingLinks"]> {
+    return this.query((adapter) => adapter.getEntityIncomingLinks(params));
+  }
+
   createAggregation(
-    params: Parameters<DBClient["createAggregation"]>[0],
-  ): Promise<DBAggregation> {
+    params: Parameters<DbClient["createAggregation"]>[0],
+  ): Promise<DbAggregation> {
     return this.query((adapter) => adapter.createAggregation(params));
   }
 
   updateAggregationOperation(
-    params: Parameters<DBClient["updateAggregationOperation"]>[0],
-  ): Promise<DBAggregation> {
+    params: Parameters<DbClient["updateAggregationOperation"]>[0],
+  ): Promise<DbAggregation> {
     return this.query((adapter) => adapter.updateAggregationOperation(params));
   }
 
   getEntityAggregation(
-    params: Parameters<DBClient["getEntityAggregation"]>[0],
-  ): Promise<DBAggregation | null> {
+    params: Parameters<DbClient["getEntityAggregation"]>[0],
+  ): Promise<DbAggregation | null> {
     return this.query((adapter) => adapter.getEntityAggregation(params));
   }
 
   getEntityAggregations(
-    params: Parameters<DBClient["getEntityAggregations"]>[0],
-  ): Promise<DBAggregation[]> {
+    params: Parameters<DbClient["getEntityAggregations"]>[0],
+  ): Promise<DbAggregation[]> {
     return this.query((adapter) => adapter.getEntityAggregations(params));
   }
 
   deleteAggregation(
-    params: Parameters<DBClient["deleteAggregation"]>[0],
+    params: Parameters<DbClient["deleteAggregation"]>[0],
   ): Promise<void> {
     return this.query((adapter) => adapter.deleteAggregation(params));
   }
@@ -353,8 +359,8 @@ export class PostgresAdapter extends DataSource implements DBAdapter {
   }
 
   getAccountEntities(
-    params: Parameters<DBClient["getAccountEntities"]>[0],
-  ): ReturnType<DBClient["getAccountEntities"]> {
+    params: Parameters<DbClient["getAccountEntities"]>[0],
+  ): ReturnType<DbClient["getAccountEntities"]> {
     return this.query((adapter) => adapter.getAccountEntities(params));
   }
 

@@ -37,7 +37,7 @@ export const TagsInput: React.VFC<TagsInputProps> = ({
     } else if (evt.key === "Backspace" || evt.key === "Delete") {
       if (inputRef.current.value === "" && tags.length > 0) {
         evt.preventDefault();
-        const tagToRemove = tags[tags.length - 1];
+        const tagToRemove = tags[tags.length - 1]!;
         setTags(tags.slice(0, -1));
         inputRef.current.value = tagToRemove;
       }

@@ -13,7 +13,7 @@ import {
   CreateAggregationArgs,
   User,
 } from ".";
-import { DBClient } from "../db";
+import { DbClient } from "../db";
 import { EntityMeta, EntityType as DbEntityType } from "../db/adapter";
 import {
   Visibility,
@@ -35,8 +35,9 @@ export type EntityExternalResolvers =
   | "linkGroups" // resolved in resolvers/linkGroups
   | "linkedEntities" // resolved in resolvers/linkedEntities
   | "linkedAggregations" // resovled in resolvers/linkedAggregations
-  | "children" // resolved in resolvers/entityType/entityTypeInheritance
-  | "parents" // resolved in resolvers/entityType/entityTypeInheritance
+  | "immediateChildren" // resolved in resolvers/entityType/entityTypeInheritance
+  | "immediateParents" // resolved in resolvers/entityType/entityTypeInheritance
+  | "allParents" // resolved in resolvers/entityType/entityTypeInheritance
   | "__typename";
 
 export type UnresolvedGQLEntity = Omit<GQLEntity, EntityExternalResolvers> & {
@@ -149,7 +150,7 @@ class __Entity {
   }
 
   static async create(
-    client: DBClient,
+    client: DbClient,
     params: CreateEntityArgs,
   ): Promise<Entity> {
     const dbEntity = await client.createEntity(params);
@@ -158,7 +159,7 @@ class __Entity {
   }
 
   static async getEntity(
-    client: DBClient,
+    client: DbClient,
     params: {
       accountId: string;
       entityVersionId: string;
@@ -171,7 +172,7 @@ class __Entity {
 
   /** Gets all versions of a single entity */
   static async getEntityHistory(
-    client: DBClient,
+    client: DbClient,
     {
       accountId,
       entityId,
@@ -194,7 +195,7 @@ class __Entity {
   }
 
   static async getEntityLatestVersion(
-    client: DBClient,
+    client: DbClient,
     params: {
       accountId: string;
       entityId: string;
@@ -206,7 +207,7 @@ class __Entity {
   }
 
   static async getEntitiesByType(
-    client: DBClient,
+    client: DbClient,
     params: {
       accountId: string;
       entityTypeId: string;
@@ -220,7 +221,7 @@ class __Entity {
   }
 
   static async getEntitiesBySystemType(
-    client: DBClient,
+    client: DbClient,
     params: {
       accountId: string;
       latestOnly: boolean;
@@ -233,7 +234,7 @@ class __Entity {
   }
 
   static async getEntities(
-    client: DBClient,
+    client: DbClient,
     entities: {
       accountId: string;
       entityId: string;
@@ -246,7 +247,7 @@ class __Entity {
   }
 
   static async getAccountEntities(
-    client: DBClient,
+    client: DbClient,
     params: {
       accountId: string;
       entityTypeFilter?: {
@@ -263,7 +264,7 @@ class __Entity {
   }
 
   static async updateProperties(
-    client: DBClient,
+    client: DbClient,
     params: UpdateEntityPropertiesParams,
   ) {
     const updatedDbEntity = await client.updateEntity(params);
@@ -272,7 +273,7 @@ class __Entity {
   }
 
   protected async partialPropertiesUpdate(
-    client: DBClient,
+    client: DbClient,
     params: PartialPropertiesUpdatePayload,
   ) {
     return this.updateProperties(client, {
@@ -285,7 +286,7 @@ class __Entity {
   }
 
   protected async updateProperties(
-    client: DBClient,
+    client: DbClient,
     params: UpdatePropertiesPayload,
   ) {
     const updatedDbEntity = await client.updateEntity({
@@ -299,11 +300,11 @@ class __Entity {
     return this.properties;
   }
 
-  updateEntityProperties(client: DBClient, params: UpdatePropertiesPayload) {
+  updateEntityProperties(client: DbClient, params: UpdatePropertiesPayload) {
     return this.updateProperties(client, params);
   }
 
-  async transferEntity(client: DBClient, newAccountId: string) {
+  async transferEntity(client: DbClient, newAccountId: string) {
     if (Account.isEntityAnAccount(this)) {
       throw new Error(
         `Trying to transfer entity ${this.entityId} which is an account. Accounts can't be transferred.`,
@@ -323,11 +324,11 @@ class __Entity {
     this.accountId = newAccountId;
   }
 
-  static acquireLock(client: DBClient, params: { entityId: string }) {
+  static acquireLock(client: DbClient, params: { entityId: string }) {
     return client.acquireEntityLock(params);
   }
 
-  acquireLock(client: DBClient) {
+  acquireLock(client: DbClient) {
     return Entity.acquireLock(client, { entityId: this.entityId });
   }
 
@@ -337,7 +338,7 @@ class __Entity {
    *
    * This may update the `entityVersionId` if the entity is versioned.
    */
-  async refetchLatestVersion(client: DBClient) {
+  async refetchLatestVersion(client: DbClient) {
     const refetchedDbEntity = await client.getEntityLatestVersion({
       accountId: this.accountId,
       entityId: this.entityId,
@@ -362,7 +363,7 @@ class __Entity {
     );
   }
 
-  async getHistory(client: DBClient, params?: { order: "desc" | "asc" }) {
+  async getHistory(client: DbClient, params?: { order: "desc" | "asc" }) {
     const history = await Entity.getEntityHistory(client, {
       accountId: this.accountId,
       entityId: this.entityId,
@@ -373,7 +374,7 @@ class __Entity {
   }
 
   async createAggregation(
-    client: DBClient,
+    client: DbClient,
     params: Omit<CreateAggregationArgs, "source">,
   ): Promise<Aggregation> {
     const aggregation = await Aggregation.create(client, {
@@ -384,7 +385,7 @@ class __Entity {
     return aggregation;
   }
 
-  async getAggregations(client: DBClient) {
+  async getAggregations(client: DbClient) {
     const aggregations = await Aggregation.getAllEntityAggregations(client, {
       source: this,
     });
@@ -393,7 +394,7 @@ class __Entity {
   }
 
   async getAggregation(
-    client: DBClient,
+    client: DbClient,
     params: {
       stringifiedPath: string;
     },
@@ -408,7 +409,7 @@ class __Entity {
   }
 
   async getOutgoingLinks(
-    client: DBClient,
+    client: DbClient,
     params?: {
       activeAt?: Date;
       stringifiedPath?: string;
@@ -417,18 +418,27 @@ class __Entity {
   ) {
     const { activeAt, stringifiedPath, path } = params || {};
 
-    const outgoingDBLinks = await client.getEntityOutgoingLinks({
+    const outgoingDbLinks = await client.getEntityOutgoingLinks({
       accountId: this.accountId,
       entityId: this.entityId,
       activeAt,
       path: stringifiedPath ?? (path ? Link.stringifyPath(path) : undefined),
     });
 
-    return outgoingDBLinks.map((dbLink) => new Link(dbLink));
+    return outgoingDbLinks.map((dbLink) => new Link(dbLink));
+  }
+
+  async getIncomingLinks(client: DbClient) {
+    const incomingDbLinks = await client.getEntityIncomingLinks({
+      accountId: this.accountId,
+      entityId: this.entityId,
+    });
+
+    return incomingDbLinks.map((dbLink) => new Link(dbLink));
   }
 
   async getOutgoingLink(
-    client: DBClient,
+    client: DbClient,
     params: {
       linkId: string;
     },
@@ -442,7 +452,7 @@ class __Entity {
   }
 
   async createOutgoingLink(
-    client: DBClient,
+    client: DbClient,
     params: Omit<CreateLinkArgs, "source">,
   ) {
     /** @todo: check entity type whether this link can be created */
@@ -456,7 +466,7 @@ class __Entity {
   }
 
   async deleteOutgoingLink(
-    client: DBClient,
+    client: DbClient,
     params: { linkId: string; deletedByAccountId: string },
   ): Promise<void> {
     const link = await this.getOutgoingLink(client, params);
@@ -476,7 +486,7 @@ class __Entity {
   }
 
   private static async getOrCreate(
-    client: DBClient,
+    client: DbClient,
     params: {
       user: User;
       accountId: string;
@@ -572,7 +582,7 @@ class __Entity {
   }
 
   static async createEntityWithLinks(
-    client: DBClient,
+    client: DbClient,
     params: {
       user: User;
       accountId: string;
@@ -627,7 +637,7 @@ class __Entity {
       // the root entity is the first result, same of which the user supplied as the top level entity.
       if (entities.length > 0) {
         // First element will be the root entity.
-        return entities[0].entity;
+        return entities[0]!.entity;
       } else {
         throw new ApolloError(
           "Could not create entity tree",

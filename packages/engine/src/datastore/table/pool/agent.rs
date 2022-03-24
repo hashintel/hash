@@ -3,11 +3,7 @@ use std::sync::Arc;
 use parking_lot::RwLock;
 
 use crate::{
-    datastore::{
-        batch::{AgentBatch, DynamicBatch},
-        table::pool::proxy::PoolWriteProxy,
-        Result,
-    },
+    datastore::{batch::AgentBatch, table::pool::proxy::PoolWriteProxy, Result},
     simulation::package::state::StateColumn,
 };
 
@@ -44,23 +40,23 @@ impl AgentPool {
 }
 
 impl PoolWriteProxy<AgentBatch> {
-    /// TODO: DOC
-    pub fn set_pending_column(&mut self, column: StateColumn) -> Result<()> {
-        let mut index = 0;
-        for batch in self.batches_iter_mut() {
-            let num_agents = batch.num_agents();
-            let next_index = index + num_agents;
-            let change = column.get_arrow_change(index..next_index)?;
-            batch.push_change(change)?;
-            index = next_index;
+    // TODO: DOC
+    pub fn modify_loaded_column(&mut self, column: StateColumn) -> Result<()> {
+        let mut batch_start = 0;
+        for agent_batch in self.batches_iter_mut() {
+            let num_agents = agent_batch.num_agents();
+            let next_start = batch_start + num_agents;
+            let change = column.get_arrow_change(batch_start..next_start)?;
+            agent_batch.batch.queue_change(change)?;
+            batch_start = next_start;
         }
         Ok(())
     }
 
     /// Calls [`Batch::flush_changes()`] on all batches in this proxy.
     pub fn flush_pending_columns(&mut self) -> Result<()> {
-        for batch in self.batches_iter_mut() {
-            batch.flush_changes()?;
+        for agent_batch in self.batches_iter_mut() {
+            agent_batch.batch.flush_changes()?;
         }
         Ok(())
     }

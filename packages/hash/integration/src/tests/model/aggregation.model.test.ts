@@ -143,10 +143,10 @@ describe("Aggregation model class ", () => {
     expect(results).toHaveLength(2);
     expect(
       results.find((result) => entityB.isEquivalentTo(result)),
-    ).not.toBeUndefined();
+    ).toBeDefined();
     expect(
       results.find((result) => entityC.isEquivalentTo(result)),
-    ).not.toBeUndefined();
+    ).toBeDefined();
   });
 
   it("updateOperation method updates an aggregation operation with a non-versioned source entity", async () => {
@@ -188,8 +188,8 @@ describe("Aggregation model class ", () => {
 
     const refetchedAggregation = refetchedSourceAggregations[0];
 
-    expect(refetchedAggregation.createdAt).toEqual(aggregation.createdAt);
-    expect(refetchedAggregation.operation).toEqual(updatedOperation);
+    expect(refetchedAggregation!.createdAt).toEqual(aggregation.createdAt);
+    expect(refetchedAggregation!.operation).toEqual(updatedOperation);
   });
 
   it("delete method deletes an aggregation with a non-versioned source entity", async () => {

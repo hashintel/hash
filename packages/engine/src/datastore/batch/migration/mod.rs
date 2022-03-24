@@ -1,10 +1,9 @@
 #![allow(clippy::cast_sign_loss, clippy::cast_ptr_alignment)]
 
-use std::{borrow::Cow, mem, ops::Deref, sync::Arc};
+use std::{borrow::Cow, mem, sync::Arc};
 
 use arrow::util::bit_util;
 
-use super::ArrowBatch;
 use crate::{
     datastore::{
         batch::AgentBatch,
@@ -70,18 +69,15 @@ pub enum InnerCreateAction<'a> {
 
 #[derive(Debug, Clone)]
 pub enum InnerShiftAction {
-    /// Move a slice of existing buffer by an offset
-    /// `offset` is the start byte index of the sub-buffer inside the old buffer.
-    /// `len` is the length of the sub-buffer.
-    /// `dest_offset` is the relative location inside the old buffer where
-    /// this sub-buffer will be inserted.
+    /// Move a slice of existing buffer by an offset `offset` is the start byte index of the
+    /// sub-buffer inside the old buffer. `len` is the length of the sub-buffer. `dest_offset` is
+    /// the relative location inside the old buffer where this sub-buffer will be inserted.
     Data {
         offset: usize,
         len: usize,
         dest_offset: usize,
     },
-    /// Markers need to be shifted if data is deleted.
-    /// Indices are per i32 index.
+    /// Markers need to be shifted if data is deleted, indices are per i32 index.
     Offset {
         // Starting old index relative to the offset of the old buffer
         from: usize,
@@ -228,6 +224,7 @@ impl<'a> BufferActions<'a> {
                                         let offset_size = mem::size_of::<Offset>();
                                         let start_offset = old_offset + *from * offset_size;
                                         let byte_len = len * offset_size;
+                                        // TODO: SAFETY
                                         let old_offsets = unsafe {
                                             data_buffer[start_offset..start_offset + byte_len]
                                                 .align_to::<i32>()
@@ -239,6 +236,7 @@ impl<'a> BufferActions<'a> {
                                         let decrement = offset_value_dec;
                                         // We are going left-to-right so we can at most change the
                                         // same value we're inspecting
+                                        // TODO: SAFETY
                                         let new_offsets = unsafe {
                                             let ptr: *const u8 = &data_buffer[new_start_offset];
                                             let ptr = ptr as *mut Offset;
@@ -279,6 +277,7 @@ impl<'a> BufferActions<'a> {
                                         let offset_size = mem::size_of::<Offset>();
                                         let start_offset = old_offset + *from * offset_size;
                                         let byte_len = len * offset_size;
+                                        // TODO: SAFETY (same as above?)
                                         let old_offsets = unsafe {
                                             data_buffer[start_offset..start_offset + byte_len]
                                                 .align_to::<i32>()
@@ -288,6 +287,7 @@ impl<'a> BufferActions<'a> {
                                             new_offset + *base_offset_index * offset_size;
 
                                         let decrement = offset_value_dec;
+                                        // TODO: SAFETY (same as above?)
                                         let new_offsets = unsafe {
                                             let ptr = &data_buffer[new_start_offset] as *const u8;
                                             let ptr = ptr as *mut Offset;
@@ -333,6 +333,7 @@ impl<'a> BufferActions<'a> {
                                         let offset_size = mem::size_of::<Offset>();
                                         let start_offset = old_offset + *from * offset_size;
                                         let byte_len = len * offset_size;
+                                        // TODO: SAFETY (same as above?)
                                         let old_offsets = unsafe {
                                             data_buffer[start_offset..start_offset + byte_len]
                                                 .align_to::<i32>()
@@ -341,6 +342,7 @@ impl<'a> BufferActions<'a> {
                                         let new_temp_start_offset =
                                             *base_offset_index * offset_size;
                                         let decrement = offset_value_dec;
+                                        // TODO: SAFETY (same as above?)
                                         let new_offsets = unsafe {
                                             temporary_buffer
                                                 [new_temp_start_offset..new_temp_start_offset + len]
@@ -387,6 +389,7 @@ impl<'a> BufferActions<'a> {
                                             + base_offset_index * mem::size_of::<Offset>();
                                         let end_offset =
                                             start_offset + data.len() * mem::size_of::<Offset>();
+                                        // TODO: SAFETY (same as above?)
                                         let new_offsets = unsafe {
                                             data_buffer[start_offset..end_offset]
                                                 .align_to_mut::<i32>()
@@ -409,41 +412,62 @@ impl<'a> BufferActions<'a> {
         Ok(())
     }
 
-    pub fn flush(&self, batch: &mut AgentBatch) -> Result<()> {
-        debug_assert!(offsets_start_at_zero(
-            &batch.memory,
-            &batch.static_meta,
-            &batch.dynamic_meta,
-        )?);
-
-        batch.metaversion.increment_with(
-            &batch
-                .memory
-                .set_data_length(self.new_dynamic_meta.data_length)?,
+    pub fn flush(&self, agent_batch: &mut AgentBatch) -> Result<()> {
+        let batch = &mut agent_batch.batch;
+        // TODO: Replace unversioned access to batch with higher-level access
+        //       (checking loaded and persisted metaversions) and ideally
+        //       rearrange modules so migration doesn't have access to
+        //       internal batch traits.
+        debug_assert!(
+            batch.is_persisted(),
+            "Can't flush migration changes when haven't loaded latest persisted agent batch"
         );
-        self.flush_memory(&mut batch.memory)?;
+        debug_assert!(
+            offsets_start_at_zero(
+                batch.segment.memory(),
+                batch.static_meta(),
+                batch.dynamic_meta(),
+            )
+            .is_ok(),
+            "Can't flush migration changes, because agent batch already contains invalid offsets"
+        );
+
+        let change = batch
+            .segment
+            .memory_mut()
+            .set_data_length(self.new_dynamic_meta.data_length)?;
+        batch.loaded_metaversion_mut().increment_with(&change);
+        self.flush_memory(batch.segment.memory_mut())?;
+        let loaded = batch.loaded_metaversion();
+        batch.segment.set_persisted_metaversion(loaded);
+
         // Overwrite the Arrow Batch Metadata in memory
-        batch.set_dynamic_meta(&self.new_dynamic_meta)?;
-        debug_assert!(offsets_start_at_zero(
-            &batch.memory,
-            &batch.static_meta,
-            &batch.dynamic_meta,
-        )?);
+        let change = agent_batch.flush_dynamic_meta_unchecked(&self.new_dynamic_meta)?;
+        debug_assert!(!change.resized() && !change.shifted());
+        debug_assert!(
+            offsets_start_at_zero(
+                agent_batch.batch.segment.memory(),
+                agent_batch.batch.static_meta(),
+                agent_batch.batch.dynamic_meta(),
+            )?,
+            "Agent batch contains invalid offsets after flushing migration changes"
+        );
+
         // Reload RecordBatch from memory
-        batch.reload_record_batch()?;
+        agent_batch.batch.reload_record_batch()?;
         Ok(())
     }
 
     #[allow(clippy::too_many_lines, clippy::too_many_arguments)]
-    fn traverse_nodes<'b, B: Deref<Target = AgentBatch>>(
+    fn traverse_nodes<'b>(
         mut next_state: NextState,
         children_meta: &NodeMapping,
         column_meta: &ColumnMeta,
         static_meta: &StaticMeta,
         dynamic_meta: Option<&DynamicMeta>,
         parent_range_actions: &RangeActions,
-        batch: Option<&B>,
-        batches: &[B],
+        agent_batch: Option<&AgentBatch>,
+        agent_batches: &[&AgentBatch],
         new_agents: Option<&'b arrow::array::ArrayData>,
         actions: &mut Vec<BufferAction<'b>>,
         buffer_metas: &mut Vec<Buffer>,
@@ -506,12 +530,12 @@ impl<'a> BufferActions<'a> {
                     // REMOVE ACTIONS
 
                     let mut bytes = vec![0_u8; target_buffer_size];
-                    let mut cur_length = if let Some(batch) = batch {
+                    let mut cur_length = if let Some(agent_batch) = agent_batch {
                         let start_index = buffer_meta.offset;
                         let end_index = start_index + buffer_meta.length;
-                        let data =
-                            &batch.as_ref().memory.get_data_buffer()?[start_index..end_index];
-                        debug_assert_eq!(data, batch.as_ref().get_buffer(buffer_index).unwrap());
+                        let data = &agent_batch.batch.segment.memory().get_data_buffer()?
+                            [start_index..end_index];
+                        debug_assert_eq!(data, agent_batch.get_buffer(buffer_index).unwrap());
                         debug_assert!(range_actions.is_well_ordered_remove());
                         let mut removed_count = 0;
                         range_actions.remove().iter().for_each(|range| {
@@ -551,7 +575,7 @@ impl<'a> BufferActions<'a> {
                         .copy()
                         .iter()
                         .try_for_each::<_, Result<()>>(|(j, v)| {
-                            let src_buffer = batches[*j].as_ref().get_buffer(buffer_index)?;
+                            let src_buffer = agent_batches[*j].get_buffer(buffer_index)?;
 
                             v.iter().for_each(|range| {
                                 unset_bit_count += copy_bits_unchecked(
@@ -598,6 +622,7 @@ impl<'a> BufferActions<'a> {
                                     range.len
                                 );
                                 if range.len > 0 {
+                                    // TODO: SAFETY
                                     unsafe {
                                         for i in cur_length..(cur_length + range.len) {
                                             bit_util::set_bit_raw(ptr, i);
@@ -630,9 +655,9 @@ impl<'a> BufferActions<'a> {
                     let mut range_actions =
                         updated_range_actions.unwrap_or_else(|| parent_range_actions.clone());
                     debug_assert!({ range_actions.is_well_ordered_remove() });
-                    let buffer = batch.map_or_else(
+                    let buffer = agent_batch.map_or_else(
                         || Ok(&EMPTY_OFFSET_BUFFER[..]),
-                        |batch| batch.as_ref().get_buffer(buffer_index),
+                        |batch| batch.get_buffer(buffer_index),
                     )?;
 
                     // Markers are always n + 1 long
@@ -655,6 +680,7 @@ impl<'a> BufferActions<'a> {
                         .remove_mut()
                         .iter_mut()
                         .map(|range| {
+                            // TODO: SAFETY
                             let (from, to, start_offset_value) = unsafe {
                                 (
                                     get_offset_by_index(buffer, range.index),
@@ -687,6 +713,7 @@ impl<'a> BufferActions<'a> {
                     range_actions.remove.0 = total_remove_len;
                     debug_assert!(next_index <= original_last_index);
                     debug_assert_eq!(next_offset_index, next_index - removed_count);
+                    // TODO: SAFETY
                     let start_offset_value = unsafe { get_offset_by_index(buffer, next_index) };
                     let offset_value_dec = start_offset_value - next_offset_value;
                     let last_remove_action = InnerShiftAction::Offset {
@@ -697,6 +724,7 @@ impl<'a> BufferActions<'a> {
                         base_offset_index: next_offset_index,
                     };
                     next_offset_index = original_length - removed_count;
+                    // TODO: SAFETY (same as above?)
                     let end_offset_value =
                         unsafe { get_offset_by_index(buffer, original_last_index) };
                     let mut last_offset_value = end_offset_value - offset_value_dec;
@@ -718,9 +746,9 @@ impl<'a> BufferActions<'a> {
                             .copy_mut()
                             .iter_mut()
                             .try_for_each::<_, Result<()>>(|(j, ranges)| {
+                                // TODO: SAFETY
                                 let src_buffer = unsafe {
-                                    batches[*j]
-                                        .as_ref()
+                                    agent_batches[*j]
                                         .get_buffer(buffer_index)?
                                         .align_to::<i32>()
                                         .1
@@ -732,6 +760,7 @@ impl<'a> BufferActions<'a> {
                                     (range.index + 1..=range.index + range.len).for_each(|k| {
                                         let new_offset = src_buffer[k] + offset_diff;
                                         // Assumes little endian
+                                        // TODO: SAFETY
                                         let slice = unsafe {
                                             std::slice::from_raw_parts(
                                                 &new_offset as *const i32 as *const _,
@@ -767,6 +796,7 @@ impl<'a> BufferActions<'a> {
                     let create_actions = new_agents.map(|ad| {
                         let buffer = &ad.buffers()[i - 1];
 
+                        // TODO: SAFETY
                         let src_buffer = unsafe { buffer.typed_data::<Offset>() };
                         let mut total_create_len = 0;
                         let ret = range_actions
@@ -876,7 +906,7 @@ impl<'a> BufferActions<'a> {
                             .copy()
                             .iter()
                             .try_for_each::<_, Result<()>>(|(j, v)| {
-                                let src_buffer = batches[*j].as_ref().get_buffer(buffer_index)?;
+                                let src_buffer = agent_batches[*j].get_buffer(buffer_index)?;
                                 v.iter().for_each(|range| {
                                     let from = range.index * unit_byte_size;
                                     let to = range.next_index() * unit_byte_size;
@@ -976,8 +1006,8 @@ impl<'a> BufferActions<'a> {
                 static_meta,
                 dynamic_meta,
                 range_actions,
-                batch,
-                batches,
+                agent_batch,
+                agent_batches,
                 new_agents.map(|parent| &parent.child_data()[child_index]),
                 actions,
                 buffer_metas,
@@ -996,15 +1026,15 @@ impl<'a> BufferActions<'a> {
     }
 
     #[allow(clippy::too_many_lines)]
-    pub fn from<B: Deref<Target = AgentBatch>>(
-        batches: &[B],
+    pub fn from(
+        agent_batches: &[&AgentBatch],
         batch_index: Option<usize>,
         base_range_actions: RangeActions,
         static_meta: &StaticMeta,
         new_agents: Option<&'a RecordBatch>,
     ) -> Result<BufferActions<'a>> {
-        let batch = batch_index.map(|index| &batches[index]);
-        let dynamic_meta = batch_index.map(|index| &batches[index].as_ref().dynamic_meta);
+        let agent_batch = batch_index.map(|index| agent_batches[index]);
+        let dynamic_meta = batch_index.map(|index| agent_batches[index].batch.dynamic_meta());
         let mut next_indices = NextState {
             node_index: 0,
             buffer_index: 0,
@@ -1016,7 +1046,8 @@ impl<'a> BufferActions<'a> {
         let mut buffer_metas = Vec::with_capacity(static_meta.get_buffer_count());
         let mut node_metas = Vec::with_capacity(static_meta.get_node_count());
         for (column_index, column) in static_meta.get_column_meta().iter().enumerate() {
-            let new_agents_data_ref = new_agents.map(|rb| rb.column(column_index).data_ref());
+            let new_agents_data_ref =
+                new_agents.map(|record_batch| record_batch.column(column_index).data_ref());
             let range_actions = Cow::Borrowed(&base_range_actions);
             next_indices = Self::traverse_nodes(
                 next_indices,
@@ -1025,8 +1056,8 @@ impl<'a> BufferActions<'a> {
                 static_meta,
                 dynamic_meta,
                 range_actions.as_ref(),
-                batch,
-                batches,
+                agent_batch,
+                agent_batches,
                 new_agents_data_ref,
                 &mut actions,
                 &mut buffer_metas,
@@ -1264,6 +1295,15 @@ impl From<&RowActions> for RangeActions {
     }
 }
 
+/// Return true if every offset buffer in the Arrow record batch in `memory` starts with 0.
+///
+/// The first offset of an Arrow offset buffer should always be 0, because there can't be any
+/// elements before the first element of the corresponding Arrow data buffer.
+///
+/// Columns that don't contain any offset buffers are skipped.
+///
+/// # Errors
+/// `memory` doesn't have a data buffer, so it can't contain an Arrow record batch.
 fn offsets_start_at_zero(
     memory: &Memory,
     static_meta: &StaticMeta,
@@ -1276,16 +1316,22 @@ fn offsets_start_at_zero(
     static_meta.get_node_meta().iter().for_each(|meta| {
         meta.get_data_types().iter().for_each(|data_type| {
             match data_type {
-                super::super::meta::BufferType::BitMap { is_null_bitmap: _ } => {}
                 super::super::meta::BufferType::Offset => {
                     let buffer_meta = &dynamic_meta.buffers[buffer_index];
-                    let offset = buffer_meta.offset;
-                    let first_offset = unsafe { *(&data[offset] as *const u8 as *const i32) };
+                    let offset_of_offsets = buffer_meta.offset;
+
+                    // SAFETY: We know that this is an offset buffer. Offset buffers always contain
+                    //         at least one offset, because there are at least 0 rows and offset
+                    //         buffers contain `num_rows + 1` offsets. Also, we know that this
+                    //         isn't a `LargeOffset` buffer, so the offset type is `i32`.
+                    let first_offset =
+                        unsafe { *(&data[offset_of_offsets] as *const u8 as *const i32) };
+
                     let offset_starts_at_zero = first_offset == 0;
                     if !offset_starts_at_zero {
-                        println!(
-                            "Does not start at zero! {}, {:?}, value: {}",
-                            buffer_index, meta, first_offset
+                        tracing::warn!(
+                            "Does not start at zero! {buffer_index}, {meta:?}, value: \
+                             {first_offset}"
                         );
                     }
                     starts_at_zero = starts_at_zero && offset_starts_at_zero;
@@ -1484,7 +1530,7 @@ pub(super) mod test {
             batch_index,
             (&row_actions).into(),
             &schema.static_meta,
-            Some(&create_agents.batch),
+            Some(&create_agents.batch.record_batch),
         )?;
         buffer_actions.flush(&mut pool[0])?;
         println!("Migration took: {} us", now.elapsed().as_micros());
@@ -1669,7 +1715,7 @@ pub(super) mod test {
             batch_index,
             (&row_actions).into(),
             &schema.static_meta,
-            Some(&create_agents.batch),
+            Some(&create_agents.batch.record_batch),
         )?;
         buffer_actions.flush(&mut pool[0])?;
         println!("Migration took: {} us", now.elapsed().as_micros());

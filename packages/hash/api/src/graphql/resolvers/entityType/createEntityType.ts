@@ -16,7 +16,7 @@ export const createEntityType: Resolver<
     const entityType = await EntityType.create(client, {
       accountId,
       createdByAccountId: user.accountId,
-      description,
+      description: description ?? undefined,
       name,
       schema,
     });

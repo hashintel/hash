@@ -21,12 +21,12 @@ const errorLink = onError(({ graphQLErrors, operation }) => {
   if (graphQLErrors) {
     graphQLErrors.forEach(({ message, extensions, path }) => {
       Sentry.withScope((scope) => {
-        const error = new Error(`GraphQL Error: ${path?.[0].toString()}`);
+        const error = new Error(`GraphQL Error: ${path?.[0]?.toString()}`);
         scope.setExtra("Exception", extensions?.exception);
         scope.setExtra("Location", path);
         scope.setExtra("Query", operation.query?.loc?.source?.body);
         scope.setExtra("Variables", operation.variables);
-        error.message = `GraphQL error - ${path?.[0].toString()} - ${message}`;
+        error.message = `GraphQL error - ${path?.[0]?.toString()} - ${message}`;
         Sentry.captureException(error);
       });
     });

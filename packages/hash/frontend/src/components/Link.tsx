@@ -80,7 +80,7 @@ export const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
       const children = other.children;
       if (React.isValidElement(children) && children.type === Button) {
         throw new Error(
-          "Please use <LinkButton /> instead of <Link><Button /></Link>",
+          "Please use <Button href='' /> instead of <Link><Button /></Link>",
         );
       }
     }
