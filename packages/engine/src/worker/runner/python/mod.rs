@@ -168,10 +168,8 @@ async fn _run(
                         (Some(payload), Some(wrapper))
                     }
                     InboundToRunnerMsgPayload::CancelTask(_) => {
-                        // Don't send to Python process -- unused for now.
-                        // TODO: Remove `continue` when/if a package uses `CancelTask`
-                        //       and it's implemented in Python.
-                        continue
+                        todo!("Cancel messages are not implemented yet");
+                        // see https://app.asana.com/0/1199548034582004/1202011714603653/f
                     }
                     _ => (None, None)
                 };
