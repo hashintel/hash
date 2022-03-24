@@ -79,31 +79,6 @@ Depending on your needs, different dependencies are required. Building this proj
   - We recommend installing and using rustup, following the [instructions on the Rust-Lang website](https://www.rust-lang.org/tools/install)
   - hEngine runs on the Nightly toolchain. The version is managed by the [rust-toolchain.toml](./rust-toolchain.toml) file. To verify, run `rustup show` from the [engine](.) directory.
 
-- CMake [3.X.X >= 3.21.2]
-
-  - CMake installation guidance from the [CMake page](https://cmake.org/install/) or if on macOS through [brew](https://brew.sh/)
-
-- a C++ compiler, pkg-config, openssl development files (see [Possible Dependencies and Debugging](#possible-dependencies-and-debugging))
-
-- For now, you need a pre-compiled _libv8_monolith.a_ accessible under the `$V8_PATH` environment variable
-
-  - The following will produce the necessary files under `~/.v8/vendor` by downloading a precompiled library from a Ruby Gem. The `<URL TO GEM>` should be the link to the relevant gem on the [rubyjs/libv8 releases page](https://github.com/rubyjs/libv8/releases/tag/v8.4.255.0)
-
-    ```shell
-    mkdir -p ~/.v8/tmp # Create the .v8 directory and a tmp folder
-    cd ~/.v8/tmp
-    curl -L -o libv8.tar.gz <URL TO GEM> # Download the Ruby gem
-    tar xf libv8.tar.gz # Extract the gem
-    tar xf data.tar.gz # Extract the data folder
-    mv -v vendor/v8/* .. # Move out the wanted files
-    cd ..
-    rm -rf tmp # Delete the tmp folder
-    ```
-
-  - With the V8 folder containing `include` and `out.gn` you can then set the variable for your terminal session with `export V8_PATH=<path to folder>` or you can set it permanently by [adding it to your shell's environment](https://unix.stackexchange.com/questions/117467/how-to-permanently-set-environmental-variables)
-
-  - Please also see [macOS Developer Specific Instructions](#macos-developer-specific-instructions) if you are running macOS
-
 ### Optional dependencies
 
 - Python [3.7.x] is required, if you want to run a simulation with the python runner (i.e. have any python behaviors or _init.py_).
@@ -144,17 +119,6 @@ Due to limitations in Cargo at the moment we can't properly check if it's being 
 - It's then necessary to set the `NNG_PATH` environment variable, similar to `V8_PATH`
 
   - The command is likely to be: `export NNG_PATH=/usr/local/Cellar/nng/1.5.2`
-
-- If the V8 monolith is failing to link due to symbol errors, it might be necessary to download the gem for the "darwin_universal" version.
-
-### Possible Dependencies and Debugging
-
-Depending on how lightweight your OS install is, you may be missing some low level dependencies, so try the following (examples given for Ubuntu/Debian-based Unix systems):
-
-- `apt-get install build-essentials` - Includes the GCC/g++ compilers, libraries, and some other utilities
-- `apt-get install pkg-config` - A helper tool used when compiling applications and libraries
-- `apt-get install libssl-dev` - A development package of OpenSSL
-- `apt-get install python3-dev` - A collection of developer utilities for Python such as header files (e.g. needed when seeing `fatal error: Python.h: No such file or directory`)
 
 ### Project Setup / Building
 
