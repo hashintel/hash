@@ -8,9 +8,21 @@ description: "Design and build a portfolio"
 
 ## The Basic Model
 
-In our simulation, each agent holds a portfolio of securities, which are stored in an array. Each array entry stores a number of properties which make up the basic model.
+In our simulation, each agent holds a portfolio of securities, which are stored in an array. Each array entry stores a number of heteregenous properties which make up the basic model.
 
 [portfolio_init.js excerpt]
+
+```javascript
+const items = context.globals()["trade_items"];
+
+if (!state.portfolio) {
+  state.portfolio = [];
+
+  for (item of items) {
+    // Create security
+  }
+}
+```
 
 The **name** of the security is just a label to identify the security to humans, such as “gold” or “altcoin”. The **quantity** represents how many items of the security are held by the agent at that time. The quantity can be negative, if we want to model a short position. We will explain next what the rest of the properties represent.
 
@@ -40,7 +52,22 @@ When exercising an option, our code does not need to directly deal with the orig
 
 We will start by initializing every agent with a randomized portfolio of assets. In our example, we choose a number of securities including commodities and ETF funds.
 
-[portfolio_init.js excerpt]
+```javascript
+const stored_price = Math.max(
+  hstd.stats.normal.sample(item.mean_price, item.variance_price),
+  0,
+);
+
+const agent_portfolio_item = {
+  name: item.name,
+  stored_price: stored_price,
+  volatility: item.variance_price,
+  quantity: Math.round(Math.max(Math.random() * 10, 0)),
+  time: 0,
+  strike_price: stored_price,
+  seller: null,
+};
+```
 
 We could also simulate trading of tokens or cryptocurrency using the same model.
 
@@ -48,12 +75,8 @@ We could also simulate trading of tokens or cryptocurrency using the same model.
 
 We also store basic properties of each security, such as volatility and time to maturity. As long as a security has reached maturity, we can increase its value at every time step according to the rate of return.
 
-[portfolio_value.js excerpt]
-
 Stocks are modeled as having a higher volatility, and commodities as having a low volatility. At each time step for an agent, we increase the price of each security according to a random stochastic process based on the interest rate and volatility.
 
 ## Valuation
 
 The value of the long-short portfolio can be easily calculated from the stored properties. We will use the Black-Scholes equation to calculate the total value of all securities at any particular moment.
-
-[portfolio_value.js excerpt]

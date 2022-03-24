@@ -6,7 +6,7 @@ description: "Explore financial modeling in HASH"
 
 # What is a "financial toolbox"?
 
-HASH makes agent-based modeling accessible through our browser-based editor ([hCore](https://hash.ai/platform/core)), and simulation platform ([hCloud](https://hash.ai/platform/cloud)). A large number of our users are interested in finance and crypto, so we decided to build a *financial toolbox* that makes it easier for anybody to get started using HASH for financial and economic modeling.
+HASH makes agent-based modeling accessible through our browser-based editor ([hCore](https://hash.ai/platform/core)), and simulation platform ([hCloud](https://hash.ai/platform/cloud)). A large number of our users are interested in finance and crypto, so we decided to build a _financial toolbox_ that makes it easier for anybody to get started using HASH for financial and economic modeling.
 
 Finance jobs are infamous for their copious use of spreadsheets. However, there are a large number of problems that spreadsheets are bad at modeling, like emergent phenomena and systemic risks, as seen in the financial crisis of ‘07/08 and more recently in COVID-related supply chain disruptions. We hope that HASH can help, by making it easier to use agent-based modeling in financial decision-making, and running probabilistic simulations (Monte Carlo-style and more!)
 
@@ -14,7 +14,7 @@ Finance jobs are infamous for their copious use of spreadsheets. However, there 
 
 This tutorial is aimed at people with only a basic understanding of financial terms and conventions, such as options, pricing and trading.
 
-This tutorial will take you on a guided tour of HASH’s *financial toolbox* simulation, and by the end you should be able to code your own trading strategies, as well as understand how the HASH platform works in practice. The tutorial will be all in JavaScript, although HASH allows for Python code as well.
+This tutorial will take you on a guided tour of HASH’s _financial toolbox_ simulation, and by the end you should be able to code your own trading strategies, as well as understand how the HASH platform works in practice. The tutorial will be all in JavaScript, although HASH allows for Python code as well.
 
 ## Overview
 
