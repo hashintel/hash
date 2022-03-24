@@ -356,12 +356,12 @@ fn pkg_id_to_js<'s>(
     v8::Number::new(scope, pkg_id.as_usize() as f64).into()
 }
 
-fn idxs_to_js<'s>(
+fn new_js_array_from_usizes<'s>(
     scope: &mut v8::HandleScope<'s>,
-    idxs: &[usize],
+    values: &[usize],
 ) -> Result<v8::Local<'s, v8::Value>> {
-    let a = v8::Array::new(scope, idxs.len() as i32);
-    for (i, idx) in idxs.iter().enumerate() {
+    let a = v8::Array::new(scope, values.len() as i32);
+    for (i, idx) in values.iter().enumerate() {
         let js_idx = v8::Number::new(scope, *idx as u32 as f64);
         a.set_index(scope, i as u32, js_idx.into())
             .ok_or_else(|| Error::V8(format!("Could not set index {idx} on idxs_to_js Array")))?;
@@ -1630,7 +1630,7 @@ impl<'s> ThreadLocalRunner<'s> {
             context_batch.segment().memory(),
             context_batch.segment().persisted_metaversion(),
         )?;
-        let js_idxs = idxs_to_js(scope, &state_group_start_indices)?;
+        let js_idxs = new_js_array_from_usizes(scope, &state_group_start_indices)?;
         let js_current_step = current_step_to_js(scope, current_step);
         self.embedded
             .ctx_batch_sync
@@ -1692,7 +1692,7 @@ impl<'s> ThreadLocalRunner<'s> {
             state_to_js(scope, agent_batches.into_iter(), msg_batches.into_iter())?;
 
         let js_sim_id = sim_id_to_js(scope, sim_id);
-        let js_idxs = idxs_to_js(scope, &group_indices)?;
+        let js_idxs = new_js_array_from_usizes(scope, &group_indices)?;
         self.embedded
             .state_interim_sync
             .call(scope, self.this, &[
