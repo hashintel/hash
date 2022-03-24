@@ -665,9 +665,9 @@ const newInstance =
 
     const manager = new ProsemirrorSchemaManager(
       state.schema,
-      null,
-      null,
       accountId,
+      null,
+      null,
     );
 
     /**
