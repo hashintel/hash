@@ -736,62 +736,62 @@ impl WorkerController {
     }
 
     /// Sends a message to all spawned runners to cancel the current task.
-    #[allow(dead_code)]
-    async fn cancel_task(&mut self, _task_id: TaskId) -> Result<()> {
+    #[allow(dead_code, unused_variables, unreachable_code)]
+    async fn cancel_task(&mut self, task_id: TaskId) -> Result<()> {
         todo!("Cancel messages are not implemented yet");
         // see https://app.asana.com/0/1199548034582004/1202011714603653/f
 
-        // tracing::trace!("Cancelling task");
-        // if let Some(_task) = self.tasks.inner.get_mut(&task_id) {
-        //     // TODO: Or `CancelState::None`?
-        //     // task.cancelling = CancelState::Active(vec![task.active_runner]);
-        // }
-        // tokio::try_join!(
-        //     self.py
-        //         .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id)),
-        //     self.js
-        //         .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id)),
-        //     self.rs
-        //         .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id))
-        // )?;
-        // Ok(())
+        tracing::trace!("Cancelling task");
+        if let Some(_task) = self.tasks.inner.get_mut(&task_id) {
+            // TODO: Or `CancelState::None`?
+            // task.cancelling = CancelState::Active(vec![task.active_runner]);
+        }
+        tokio::try_join!(
+            self.py
+                .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id)),
+            self.js
+                .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id)),
+            self.rs
+                .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id))
+        )?;
+        Ok(())
     }
 
     /// Sends a message to cancel the current task to any runner except for `runner_language`.
-    #[allow(dead_code)]
+    #[allow(dead_code, unused_variables, unreachable_code)]
     async fn cancel_task_except_for_runner(
         &self,
-        _task_id: TaskId,
-        _runner_language: Language,
+        task_id: TaskId,
+        runner_language: Language,
     ) -> Result<()> {
         todo!("Cancel messages are not implemented yet");
         // see https://app.asana.com/0/1199548034582004/1202011714603653/f
 
-        // if matches!(runner_language, Language::Python) {
-        //     self.js
-        //         .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id))
-        //         .await?;
-        //     self.rs
-        //         .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id))
-        //         .await?;
-        // }
-        // if matches!(runner_language, Language::JavaScript) {
-        //     self.py
-        //         .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id))
-        //         .await?;
-        //     self.rs
-        //         .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id))
-        //         .await?;
-        // }
-        // if matches!(runner_language, Language::Rust) {
-        //     self.py
-        //         .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id))
-        //         .await?;
-        //     self.js
-        //         .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id))
-        //         .await?;
-        // }
-        // Ok(())
+        if matches!(runner_language, Language::Python) {
+            self.js
+                .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id))
+                .await?;
+            self.rs
+                .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id))
+                .await?;
+        }
+        if matches!(runner_language, Language::JavaScript) {
+            self.py
+                .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id))
+                .await?;
+            self.rs
+                .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id))
+                .await?;
+        }
+        if matches!(runner_language, Language::Rust) {
+            self.py
+                .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id))
+                .await?;
+            self.js
+                .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id))
+                .await?;
+        }
+        Ok(())
     }
 
     /// Forwards `new_simulation_run` to all spawned workers.

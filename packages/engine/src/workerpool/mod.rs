@@ -336,38 +336,38 @@ impl WorkerPoolController {
     }
 
     // TODO: delete or use when cancel is revisited
-    #[allow(dead_code)]
-    async fn handle_cancel_msgs(&mut self, _cancel_msgs: Vec<TaskId>) -> Result<()> {
+    #[allow(dead_code, unused_variables, unreachable_code)]
+    async fn handle_cancel_msgs(&mut self, cancel_msgs: Vec<TaskId>) -> Result<()> {
         todo!("Cancel messages are not implemented yet");
         // see https://app.asana.com/0/1199548034582004/1202011714603653/f
 
-        // for id in cancel_msgs {
-        //     tracing::trace!("Handling cancel msg for task with id: {}", id);
-        //     if let Some(task) = self.pending_tasks.inner.get(&id) {
-        //         match &task.distribution_controller {
-        //             DistributionController::Distributed {
-        //                 active_workers,
-        //                 received_results: _,
-        //                 reference_task: _,
-        //             } => {
-        //                 for worker in active_workers {
-        //                     self.send_to_worker(
-        //                         worker.index(),
-        //                         WorkerPoolToWorkerMsg::cancel_task(task.task_id),
-        //                     )?;
-        //                 }
-        //             }
-        //             DistributionController::Single { active_worker } => {
-        //                 self.send_to_worker(
-        //                     active_worker.index(),
-        //                     WorkerPoolToWorkerMsg::cancel_task(task.task_id),
-        //                 )?;
-        //             }
-        //         }
-        //     }
-        // }
-        //
-        // Ok(())
+        for id in cancel_msgs {
+            tracing::trace!("Handling cancel msg for task with id: {}", id);
+            if let Some(task) = self.pending_tasks.inner.get(&id) {
+                match &task.distribution_controller {
+                    DistributionController::Distributed {
+                        active_workers,
+                        received_results: _,
+                        reference_task: _,
+                    } => {
+                        for worker in active_workers {
+                            self.send_to_worker(
+                                worker.index(),
+                                WorkerPoolToWorkerMsg::cancel_task(task.task_id),
+                            )?;
+                        }
+                    }
+                    DistributionController::Single { active_worker } => {
+                        self.send_to_worker(
+                            active_worker.index(),
+                            WorkerPoolToWorkerMsg::cancel_task(task.task_id),
+                        )?;
+                    }
+                }
+            }
+        }
+
+        Ok(())
     }
 
     fn send_to_worker(&self, index: WorkerIndex, msg: WorkerPoolToWorkerMsg) -> Result<()> {
