@@ -258,7 +258,7 @@ impl<'s> Embedded<'s> {
         scope: &mut v8::HandleScope<'s>,
         context: v8::Local<'s, v8::Context>,
     ) -> Result<Self> {
-        fn get_function_from_aray<'s>(
+        fn get_function_from_array<'s>(
             scope: &mut v8::HandleScope<'s>,
             fns: v8::Local<'s, v8::Array>,
             index: u32,
@@ -351,15 +351,15 @@ impl<'s> Embedded<'s> {
             )
         })?;
 
-        let start_experiment: v8::Local<'_, v8::Function> = get_function_from_aray(scope, fns, 0)?;
-        let start_sim: v8::Local<'_, v8::Function> = get_function_from_aray(scope, fns, 1)?;
-        let run_task: v8::Local<'_, v8::Function> = get_function_from_aray(scope, fns, 2)?;
-        let ctx_batch_sync: v8::Local<'_, v8::Function> = get_function_from_aray(scope, fns, 3)?;
-        let state_sync: v8::Local<'_, v8::Function> = get_function_from_aray(scope, fns, 4)?;
+        let start_experiment: v8::Local<'_, v8::Function> = get_function_from_array(scope, fns, 0)?;
+        let start_sim: v8::Local<'_, v8::Function> = get_function_from_array(scope, fns, 1)?;
+        let run_task: v8::Local<'_, v8::Function> = get_function_from_array(scope, fns, 2)?;
+        let ctx_batch_sync: v8::Local<'_, v8::Function> = get_function_from_array(scope, fns, 3)?;
+        let state_sync: v8::Local<'_, v8::Function> = get_function_from_array(scope, fns, 4)?;
         let state_interim_sync: v8::Local<'_, v8::Function> =
-            get_function_from_aray(scope, fns, 5)?;
+            get_function_from_array(scope, fns, 5)?;
         let state_snapshot_sync: v8::Local<'_, v8::Function> =
-            get_function_from_aray(scope, fns, 6)?;
+            get_function_from_array(scope, fns, 6)?;
 
         Ok(Embedded {
             hash_stdlib,
