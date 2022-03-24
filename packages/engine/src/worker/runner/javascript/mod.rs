@@ -714,7 +714,7 @@ fn get_js_error<'s>(
 
     if let Some(err) = return_val.get(scope, runner_error.into()) {
         // Even though rusty_v8 returns an Option, if the object does not have the property the
-        // result will be Some(undefined)
+        // result will be `Some(undefined)` rather than `None`
         if !err.is_undefined() {
             let err: v8::Local<'s, v8::String> = if let Some(err) = err.to_string(scope) {
                 err
