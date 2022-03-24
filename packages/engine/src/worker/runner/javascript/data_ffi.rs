@@ -11,8 +11,11 @@ pub struct DataFfi<'s> {
     pub len: usize,
     pub null_count: usize,
     pub n_buffers: u32,
+    // The number of valid pointers in buffer_ptrs and valid capacities in buffer_capacities is
+    // equal to n_buffers, which is at most 2.
     pub buffer_ptrs: [*const u8; 2],
     pub buffer_capacities: [usize; 2],
+    // This pointer can be null if the Arrow array doesn't have a null bitmap
     pub null_bits_ptr: *const u8,
     pub null_bits_capacity: usize,
     pub(crate) _phantom: std::marker::PhantomData<v8::Local<'s, ()>>,
