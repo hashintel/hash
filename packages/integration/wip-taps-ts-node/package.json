@@ -7,6 +7,7 @@
   },
   "dependencies": {
     "@octokit/rest": "18.12.0",
+    "dotenv-flow": "3.2.0",
     "ts-node": "10.7.0",
     "zod": "3.14.2",
     "zod-to-json-schema": "3.11.3"

@@ -1,0 +1,4 @@
+
+test-docker:
+  cd dev
+  docker run --rm -it $(docker build -q .)
