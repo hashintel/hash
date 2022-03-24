@@ -22,7 +22,7 @@ use crate::{
     proto::{ExperimentId, SimulationShortId},
     simulation::enum_dispatch::TaskSharedStore,
     types::WorkerIndex,
-    worker::runner::comms::inbound::InboundToRunnerMsgPayload,
+    worker::runner::comms::{inbound::InboundToRunnerMsgPayload, MessageTarget},
 };
 
 /// Only used for sending messages to the Python process
@@ -134,6 +134,7 @@ fn inbound_to_nng(
 
     let (msg, msg_type) = match msg {
         InboundToRunnerMsgPayload::TaskMsg(msg) => {
+            tracing::trace!("Sending TaskMsg");
             let shared_store = shared_store_to_fbs(fbb, &msg.shared_store);
 
             // unwrap: TaskMsg variant, so must have serialized payload earlier (and
@@ -142,16 +143,19 @@ fn inbound_to_nng(
             let payload = serde_json::to_string(payload)?;
             let payload = str_to_serialized(fbb, &payload);
 
-            let task_id =
-                flatbuffers_gen::runner_inbound_msg_generated::TaskId(msg.task_id.to_le_bytes());
-
-            let msg = flatbuffers_gen::runner_inbound_msg_generated::TaskMsg::create(
+            let task_id = flatbuffers_gen::task_msg_generated::TaskId(msg.task_id.to_le_bytes());
+            let group_index = msg.group_index.map(|inner| {
+                flatbuffers_gen::task_msg_generated::GroupIndex((inner as u64).to_le_bytes())
+            });
+            let msg = flatbuffers_gen::task_msg_generated::TaskMsg::create(
                 fbb,
-                &flatbuffers_gen::runner_inbound_msg_generated::TaskMsgArgs {
+                &flatbuffers_gen::task_msg_generated::TaskMsgArgs {
                     package_sid: msg.package_id.as_usize() as u64,
                     task_id: Some(&task_id),
-                    payload: Some(payload),
+                    target: MessageTarget::Python.into(),
+                    group_index: group_index.as_ref(),
                     metaversioning: Some(shared_store),
+                    payload: Some(payload),
                 },
             );
             (
@@ -196,7 +200,7 @@ fn inbound_to_nng(
                 fbb,
                 &flatbuffers_gen::sync_context_batch_generated::ContextBatchSyncArgs {
                     context_batch: Some(batch),
-                    current_step: -1, // TODO: Should have current_step in ContextBatchSync
+                    current_step: msg.current_step as i64,
                 },
             );
             (

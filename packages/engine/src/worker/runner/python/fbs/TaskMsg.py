@@ -53,8 +53,12 @@ class TaskMsg(object):
     def GroupIndex(self):
         o = flatbuffers.number_types.UOffsetTFlags.py_type(self._tab.Offset(10))
         if o != 0:
-            return self._tab.Get(flatbuffers.number_types.Uint64Flags, o + self._tab.Pos)
-        return 0
+            x = o + self._tab.Pos
+            from GroupIndex import GroupIndex
+            obj = GroupIndex()
+            obj.Init(self._tab.Bytes, x)
+            return obj
+        return None
 
     # TaskMsg
     def Metaversioning(self):
@@ -94,7 +98,7 @@ def AddTarget(builder, target): builder.PrependInt8Slot(2, target, 0)
 def TaskMsgAddTarget(builder, target):
     """This method is deprecated. Please switch to AddTarget."""
     return AddTarget(builder, target)
-def AddGroupIndex(builder, groupIndex): builder.PrependUint64Slot(3, groupIndex, 0)
+def AddGroupIndex(builder, groupIndex): builder.PrependStructSlot(3, flatbuffers.number_types.UOffsetTFlags.py_type(groupIndex), 0)
 def TaskMsgAddGroupIndex(builder, groupIndex):
     """This method is deprecated. Please switch to AddGroupIndex."""
     return AddGroupIndex(builder, groupIndex)

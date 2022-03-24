@@ -1,10 +1,12 @@
 def behavior(state, context):
     """Gets and sets a number fixed-size-array using set/get notation"""
-    state.set("n1_is_list", type(state.get("n1")) is list)
-    state.set("n1_0_is_number", type(state.get("n1")[0]) is float)
+    state.set("s1_is_list", type(state.get("s1")) is list)
+    state.set("s1_0_is_string", type(state.get("s1")[0]) is str)
+    state.set("s1_1_is_string", type(state.get("s1")[1]) is str)
 
-    state.set("n2", [state.get("n1")[0] * 5, state.get("n1")[1] * 10])
-    state.set("n1", [state.get("n1")[0] * 10, state.get("n1")[1] * 20])
+    state.set("s2", [state.get("s1")[0] + "bar", state.get("s1")[1] + "foo"])
+    state.set("s1", [state.get("s1")[0] + "boo", state.get("s1")[1] + "far"])
 
-    state.set("n2_is_list", type(state.get("n1")) is list)
-    state.set("n2_0_is_number", type(state.get("n2")[0]) is float)
+    state.set("s2_is_list", type(state.get("s2")) is list)
+    state.set("s2_0_is_string", type(state.get("s2")[0]) is str)
+    state.set("s2_1_is_string", type(state.get("s2")[1]) is str)

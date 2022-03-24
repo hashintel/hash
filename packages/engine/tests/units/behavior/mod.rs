@@ -5,5 +5,5 @@ mod js {
 }
 
 mod py {
-    crate::run_test!(composability, Python, #[ignore]);
+    crate::run_test!(composability, Python);
 }
