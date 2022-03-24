@@ -551,14 +551,14 @@ export class Instance {
       }
     };
 
-  sendUpdates() {
+  private sendUpdates() {
     while (this.waiting.length) this.waiting.pop()?.finish();
   }
 
   // : (Number)
   // Check if a document version number relates to an existing
   // document version.
-  checkVersion(version: number) {
+  private checkVersion(version: number) {
     if (version < 0 || version > this.version) {
       throw new InvalidVersionError(version);
     }
@@ -655,7 +655,7 @@ export class Instance {
     this.notifyPositionPollers();
   }
 
-  cleanupPositions() {
+  private cleanupPositions() {
     const previousNumberOfPositions = this.timedPositions.length;
     const currentTimestamp = Date.now();
 
@@ -677,7 +677,7 @@ export class Instance {
     this.positionPollers.push(positionPoller);
   }
 
-  notifyPositionPollers() {
+  private notifyPositionPollers() {
     for (const { baselinePositions, userIdToExclude, response } of this
       .positionPollers) {
       const positions = this.extractPositions(userIdToExclude);
@@ -691,7 +691,7 @@ export class Instance {
     });
   }
 
-  cleanupPositionPollers() {
+  private cleanupPositionPollers() {
     this.positionPollers = this.positionPollers.filter(({ response }) =>
       isUnused(response),
     );
