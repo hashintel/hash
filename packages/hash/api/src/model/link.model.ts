@@ -259,26 +259,17 @@ class __Link {
   async update(
     client: DbClient,
     params: { updatedIndex: number; updatedByAccountId: string },
-  ) {
+  ): Promise<Link> {
     const { updatedIndex, updatedByAccountId } = params;
 
-    /** @todo: implement way of updating a link's index without deleting the current one and creating a new one */
-
-    const [source, destination] = await Promise.all([
-      this.getSource(client),
-      this.getDestination(client),
-      this.delete(client, { deletedByAccountId: updatedByAccountId }),
-    ]);
-
-    const newLink = await Link.create(client, {
-      source,
-      destination,
-      index: updatedIndex,
-      stringifiedPath: this.stringifiedPath,
-      createdByAccountId: updatedByAccountId,
+    const updatedDbLink = await client.updateLink({
+      sourceAccountId: this.sourceAccountId,
+      linkId: this.linkId,
+      updatedIndex,
+      updatedByAccountId,
     });
 
-    merge(this, newLink);
+    merge(this, new Link(updatedDbLink));
 
     return this;
   }
