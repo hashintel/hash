@@ -14,10 +14,8 @@ mod city_infection_model {
 mod sugarscape {
     use crate::run_test;
 
-    // Rust behavior is currently not supported
-    run_test!(sugarscape, experiment: initial_sugar_linear_sweep, #[ignore]);
-    // Rust behavior is currently not supported
-    run_test!(sugarscape, experiment: agent_density_linspace, #[ignore]);
+    run_test!(sugarscape, experiment: initial_sugar_linear_sweep);
+    run_test!(sugarscape, experiment: agent_density_linspace);
 }
 
 run_test!(published_display_behaviors);

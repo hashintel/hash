@@ -7,7 +7,7 @@
       "waiting": false,
       "color": "white",
       "height": 2,
-      "behaviors": ["sugar_agent.js", "@hash/age/age.rs"]
+      "behaviors": ["sugar_agent.js", "age.js"]
     }
   },
   {
