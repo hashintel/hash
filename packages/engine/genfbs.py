@@ -73,12 +73,18 @@ def python(target_dir):
 
     with tempfile.TemporaryDirectory() as tmpdir:
         flatbuffers = [name for name in os.listdir() if name.endswith(".fbs")]
-        subprocess.run(["flatc", "-o", tmpdir, "--python"] + flatbuffers, check=True)
+        try:
+            subprocess.run(
+                ["flatc", "-o", tmpdir, "--python"] + flatbuffers,
+                check=True,
+                capture_output=True
+            )
+        except subprocess.CalledProcessError as e:
+            print(f"flatc failed to generate Python: code {e.returncode}\nOutput: {e.output}")
+            raise e
 
         os.chdir(tmpdir)
-
         python_files = [name for name in os.listdir() if name.endswith(".py")]
-
         for name in python_files:
             new_filepath = os.path.join(target_dir, name)
             os.rename(name, new_filepath)

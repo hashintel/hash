@@ -32,7 +32,7 @@ fn get_behavior_index_field_spec(
     Ok(field_spec_creator.create(
         BEHAVIOR_INDEX_FIELD_NAME.into(),
         field_type,
-        FieldScope::Agent,
+        FieldScope::Private,
     ))
 }
 

@@ -70,8 +70,10 @@ pub struct WorkerController {
     py: PythonRunner,
     js: JavaScriptRunner,
     rs: RustRunner,
+
     // TODO: unused, remove?
     _config: WorkerConfig,
+
     worker_pool_comms: WorkerCommsWithWorkerPool,
     tasks: PendingWorkerTasks,
 }
@@ -127,9 +129,8 @@ impl WorkerController {
     }
 
     async fn _run(&mut self) -> Result<()> {
-        // TODO: Rust, JS
-
-        // let mut py_handle = self.py.run().await?;
+        // TODO: Rust
+        let mut py_handle = self.py.run().await?;
         // let mut rs_handle = self.rs.run().await?;
         let mut js_handle = self.js.run().await?;
 
@@ -192,24 +193,24 @@ impl WorkerController {
                     self.worker_pool_comms.confirm_terminate().map_err(|err| Error::from(format!("Failed to send confirmation of terminating workers: {:?}", err)))?;
                     break;
                 }
-                // py_res = &mut py_handle => {
-                //     tracing::debug!("Python runner finished unexpectedly");
-                //     py_res??;
-                //     // TODO: send termination to js_handle
-                //     js_handle.await??;
-                //     return Ok(());
-                // }
+                py_res = &mut py_handle => {
+                    tracing::warn!("Python runner finished unexpectedly: {py_res:?}");
+                    py_res??;
+                    // TODO: send termination to js_handle
+                    js_handle.await??;
+                    return Ok(());
+                }
                 js_res = &mut js_handle => {
-                    tracing::debug!("Javascript runner finished unexpectedly: {:?}", js_res);
+                    tracing::warn!("Javascript runner finished unexpectedly: {js_res:?}");
                     js_res??;
                     // TODO: send termination to py_handle
-                    // py_handle.await??;
+                    py_handle.await??;
                     return Ok(());
                 }
             }
         }
 
-        // py_handle.await??;
+        py_handle.await??;
         // rs_handle.await??;
         js_handle.await??;
 
@@ -249,6 +250,7 @@ impl WorkerController {
                 .await?;
             }
             WorkerPoolToWorkerMsgPayload::Sync(sync) => {
+                tracing::debug!("Synchronize {sync:?}");
                 self.sync_runners(msg.sim_id, sync, pending_syncs)
                     .instrument(span)
                     .await?;
@@ -375,6 +377,9 @@ impl WorkerController {
             PackageError(package_error) => self
                 .worker_pool_comms
                 .send(sim_id, WorkerToWorkerPoolMsg::PackageError(package_error))?,
+            SyncCompletion => {
+                unreachable!("Synchronizing is expected to be done at runner level")
+            }
         }
         Ok(())
     }
@@ -405,7 +410,7 @@ impl WorkerController {
         task_id: TaskId,
         sim_id: SimulationShortId,
         group_index: Option<usize>,
-        source: Language,
+        _source: Language,
         message: TaskMessage,
         shared_store: TaskSharedStore,
     ) -> Result<()> {
@@ -440,7 +445,11 @@ impl WorkerController {
                     "No more pending groups on task [{task_id}], cancelling task on the other \
                      runners"
                 );
-                self.cancel_task_except_for_runner(task_id, source).await?;
+
+                // TODO: Cancel messages are not implemented yet");
+                //   see https://app.asana.com/0/1199548034582004/1202011714603653/f
+                // self.cancel_task_except_for_runner(task_id, source).await?;
+
                 self.worker_pool_comms.send(
                     sim_id,
                     WorkerToWorkerPoolMsg::TaskResultOrCancelled(WorkerTaskResultOrCancelled {
@@ -699,36 +708,39 @@ impl WorkerController {
         };
 
         // TODO: Change to `children(n)` for `n` enabled runners and adjust the following lines as
-        //   well.
-        debug_assert!(!self.py.spawned());
+        //       well.
         debug_assert!(!self.rs.spawned());
-        let (runner_msgs, runner_receivers) = sync.create_children(1);
-        let messages: [_; 1] = runner_msgs
+        let (runner_msgs, runner_receivers) = sync.create_children(2);
+        let messages: [_; 2] = runner_msgs
             .into_iter()
             .map(InboundToRunnerMsgPayload::StateSync)
             .collect::<Vec<_>>()
             .try_into()
             .unwrap();
-        let [js_msg /* , py_msg, rs_msg */] = messages;
+        let [js_msg, py_msg /* rs_msg */] = messages;
         tokio::try_join!(
             self.js.send_if_spawned(sim_id, js_msg),
-            // self.py.send_if_spawned(msg.sim_id, py_msg),
-            // self.rs.send_if_spawned(msg.sim_id, rs_msg),
+            self.py.send_if_spawned(sim_id, py_msg),
+            // self.rs.send_if_spawned(sim_id, rs_msg),
         )?;
         let fut = async move {
-            let sync = sync; // Capture `sync` in lambda.
-            sync.forward_children(runner_receivers).await
+            // Capture `sync` in lambda.
+            let sync = sync;
+            tracing::trace!("Waiting for runner synchronization");
+            sync.forward_children(runner_receivers).await;
+            tracing::trace!("Runners synchronized");
         }
         .in_current_span();
         pending_syncs.push(Box::pin(fut) as _);
         Ok(())
     }
 
-    // TODO: We don't currently use Task cancelling, and to be able use it we would need
-    //  to change how and when cancel messages are sent
     /// Sends a message to all spawned runners to cancel the current task.
-    #[allow(dead_code)]
+    #[allow(dead_code, unused_variables, unreachable_code)]
     async fn cancel_task(&mut self, task_id: TaskId) -> Result<()> {
+        todo!("Cancel messages are not implemented yet");
+        // see https://app.asana.com/0/1199548034582004/1202011714603653/f
+
         tracing::trace!("Cancelling task");
         if let Some(_task) = self.tasks.inner.get_mut(&task_id) {
             // TODO: Or `CancelState::None`?
@@ -746,11 +758,15 @@ impl WorkerController {
     }
 
     /// Sends a message to cancel the current task to any runner except for `runner_language`.
+    #[allow(dead_code, unused_variables, unreachable_code)]
     async fn cancel_task_except_for_runner(
         &self,
         task_id: TaskId,
         runner_language: Language,
     ) -> Result<()> {
+        todo!("Cancel messages are not implemented yet");
+        // see https://app.asana.com/0/1199548034582004/1202011714603653/f
+
         if matches!(runner_language, Language::Python) {
             self.js
                 .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id))

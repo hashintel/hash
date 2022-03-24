@@ -5,8 +5,8 @@ def behavior(state, context):
 
     o1 = state.get("o1")
 
-    o1.n2 = o1.n1 + 1
-    o1.n1 = 3
+    o1["n2"] = o1["n1"] + 1
+    o1["n1"] = 3
 
     state.set("o1", o1)
 

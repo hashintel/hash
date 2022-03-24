@@ -54,6 +54,7 @@
         sims: {},
       });
       if (pkg_start_experiment) {
+        // TODO: Get warnings from returned object, if any.
         pkg_start_experiment(pkg.experiment, msg.payload, this.experiment_ctx);
       }
     }
