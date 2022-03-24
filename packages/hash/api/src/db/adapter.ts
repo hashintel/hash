@@ -240,11 +240,11 @@ export interface DbClient {
   createEntity(params: {
     accountId: string;
     createdByAccountId: string;
-    entityId?: string | null | undefined;
-    entityVersionId?: string | null | undefined;
+    entityId?: string;
+    entityVersionId?: string;
     entityTypeId?: string;
-    entityTypeVersionId?: string | null | undefined;
-    systemTypeName?: SystemType | null | undefined;
+    entityTypeVersionId?: string;
+    systemTypeName?: SystemType;
     versioned: boolean;
     properties: any;
   }): Promise<DbEntity>;
@@ -449,6 +449,21 @@ export interface DbClient {
     destinationAccountId: string;
     destinationEntityId: string;
     destinationEntityVersionId?: string;
+  }): Promise<DbLink>;
+
+  /**
+   * Updates the index of a link (and the other affected links)
+   *
+   * @param params.sourceAccountId the account ID of the source entity
+   * @param params.linkId the link ID of the link
+   * @param params.updatedIndex the updated index of the link
+   * @param params.updatedByAccountId the account ID of the user that is updating the entity
+   */
+  updateLink(params: {
+    sourceAccountId: string;
+    linkId: string;
+    updatedIndex: number;
+    updatedByAccountId: string;
   }): Promise<DbLink>;
 
   getLink(params: {

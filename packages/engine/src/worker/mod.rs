@@ -413,7 +413,7 @@ impl WorkerController {
         task_id: TaskId,
         sim_id: SimulationShortId,
         group_index: Option<usize>,
-        source: Language,
+        _source: Language,
         message: TaskMessage,
         shared_store: TaskSharedStore,
     ) -> Result<()> {
@@ -448,7 +448,11 @@ impl WorkerController {
                     "No more pending groups on task [{task_id}], cancelling task on the other \
                      runners"
                 );
-                self.cancel_task_except_for_runner(task_id, source).await?;
+
+                // TODO: Cancel messages are not implemented yet");
+                //   see https://app.asana.com/0/1199548034582004/1202011714603653/f
+                // self.cancel_task_except_for_runner(task_id, source).await?;
+
                 self.worker_pool_comms.send(
                     sim_id,
                     WorkerToWorkerPoolMsg::TaskResultOrCancelled(WorkerTaskResultOrCancelled {
@@ -734,11 +738,12 @@ impl WorkerController {
         Ok(())
     }
 
-    // TODO: We don't currently use Task cancelling, and to be able use it we would need
-    //  to change how and when cancel messages are sent
     /// Sends a message to all spawned runners to cancel the current task.
-    #[allow(dead_code)]
+    #[allow(dead_code, unused_variables, unreachable_code)]
     async fn cancel_task(&mut self, task_id: TaskId) -> Result<()> {
+        todo!("Cancel messages are not implemented yet");
+        // see https://app.asana.com/0/1199548034582004/1202011714603653/f
+
         tracing::trace!("Cancelling task");
         if let Some(_task) = self.tasks.inner.get_mut(&task_id) {
             // TODO: Or `CancelState::None`?
@@ -756,11 +761,15 @@ impl WorkerController {
     }
 
     /// Sends a message to cancel the current task to any runner except for `runner_language`.
+    #[allow(dead_code, unused_variables, unreachable_code)]
     async fn cancel_task_except_for_runner(
         &self,
         task_id: TaskId,
         runner_language: Language,
     ) -> Result<()> {
+        todo!("Cancel messages are not implemented yet");
+        // see https://app.asana.com/0/1199548034582004/1202011714603653/f
+
         if matches!(runner_language, Language::Python) {
             self.js
                 .send_if_spawned(None, InboundToRunnerMsgPayload::CancelTask(task_id))
