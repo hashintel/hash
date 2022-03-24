@@ -1,0 +1,36 @@
+{
+  "type": "RECORD",
+  "stream": "events",
+  "record": {
+    "id": 20715612378.0,
+    "type": "IssuesEvent",
+    "actor": {
+      "id": 50053.0,
+      "login": "ecton",
+      "display_login": "ecton",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/ecton",
+      "avatar_url": "https://avatars.githubusercontent.com/u/50053?"
+    },
+    "repo": {
+      "id": 349627612.0,
+      "name": "khonsulabs/bonsaidb",
+      "url": "https://api.github.com/repos/khonsulabs/bonsaidb"
+    },
+    "payload": {
+      "action": "closed",
+      "issue": "{'url': 'https://api.github.com/repos/khonsulabs/bonsaidb/issues/224', 'repository_url': 'https://api.github.com/repos/khonsulabs/bonsaidb', 'labels_url': 'https://api.github.com/repos/khonsulabs/bonsaidb/issues/224/labels{/name}', 'comments_url': 'https://api.github.com/repos/khonsulabs/bonsaidb/issues/224/comments', 'events_url': 'https://api.github.com/repos/khonsulabs/bonsaidb/issues/224/events', 'html_url': 'https://github.com/khonsulabs/bonsaidb/issues/224', 'id': 1167313994, 'node_id': 'I_kwDOFNbk3M5Fk8xK', 'number': 224, 'title': 'PrimaryKey of () causes uncoverable collection', 'user': {'login': 'ecton', 'id': 50053, 'node_id': 'MDQ6VXNlcjUwMDUz', 'avatar_url': 'https://avatars.githubusercontent.com/u/50053?v=4', 'gravatar_id': '', 'url': 'https://api.github.com/users/ecton', 'html_url': 'https://github.com/ecton', 'followers_url': 'https://api.github.com/users/ecton/followers', 'following_url': 'https://api.github.com/users/ecton/following{/other_user}', 'gists_url': 'https://api.github.com/users/ecton/gists{/gist_id}', 'starred_url': 'https://api.github.com/users/ecton/starred{/owner}{/repo}', 'subscriptions_url': 'https://api.github.com/users/ecton/subscriptions', 'organizations_url': 'https://api.github.com/users/ecton/orgs', 'repos_url': 'https://api.github.com/users/ecton/repos', 'events_url': 'https://api.github.com/users/ecton/events{/privacy}', 'received_events_url': 'https://api.github.com/users/ecton/received_events', 'type': 'User', 'site_admin': False}, 'labels': [{'id': 2838861541, 'node_id': 'MDU6TGFiZWwyODM4ODYxNTQx', 'url': 'https://api.github.com/repos/khonsulabs/bonsaidb/labels/bug', 'name': 'bug', 'color': 'b5081f', 'default': True, 'description': \"Something isn't working\"}, {'id': 2886366699, 'node_id': 'MDU6TGFiZWwyODg2MzY2Njk5', 'url': 'https://api.github.com/repos/khonsulabs/bonsaidb/labels/collections', 'name': 'collections', 'color': '3e0080', 'default': False, 'description': 'Issues impacting collections or views'}], 'state': 'closed', 'locked': False, 'assignee': None, 'assignees': [], 'milestone': {'url': 'https://api.github.com/repos/khonsulabs/bonsaidb/milestones/1', 'html_url': 'https://github.com/khonsulabs/bonsaidb/milestone/1', 'labels_url': 'https://api.github.com/repos/khonsulabs/bonsaidb/milestones/1/labels', 'id': 6696138, 'node_id': 'MDk6TWlsZXN0b25lNjY5NjEzOA==', 'number': 1, 'title': 'v1.0', 'description': 'Issues yet to be assigned to a specific release milestone but we wish to have completed for v1.0', 'creator': {'login': 'ecton', 'id': 50053, 'node_id': 'MDQ6VXNlcjUwMDUz', 'avatar_url': 'https://avatars.githubusercontent.com/u/50053?v=4', 'gravatar_id': '', 'url': 'https://api.github.com/users/ecton', 'html_url': 'https://github.com/ecton', 'followers_url': 'https://api.github.com/users/ecton/followers', 'following_url': 'https://api.github.com/users/ecton/following{/other_user}', 'gists_url': 'https://api.github.com/users/ecton/gists{/gist_id}', 'starred_url': 'https://api.github.com/users/ecton/starred{/owner}{/repo}', 'subscriptions_url': 'https://api.github.com/users/ecton/subscriptions', 'organizations_url': 'https://api.github.com/users/ecton/orgs', 'repos_url': 'https://api.github.com/users/ecton/repos', 'events_url': 'https://api.github.com/users/ecton/events{/privacy}', 'received_events_url': 'https://api.github.com/users/ecton/received_events', 'type': 'User', 'site_admin': False}, 'open_issues': 47, 'closed_issues': 2, 'state': 'open', 'created_at': '2021-04-25T22:10:31Z', 'updated_at': '2022-03-12T15:50:51Z', 'due_on': None, 'closed_at': None}, 'comments': 1, 'created_at': '2022-03-12T15:12:17Z', 'updated_at': '2022-03-12T15:50:51Z', 'closed_at': '2022-03-12T15:50:51Z', 'author_association': 'MEMBER', 'active_lock_reason': None, 'body': 'A user tried to use a primary key of () to create a singleton-like colleciton. This is currently causing a crash upon attempting to push a second value:\\r\\n\\r\\nhttps://gist.github.com/freopen/301f977fa6a8c76333410dfc31e84df8', 'reactions': {'url': 'https://api.github.com/repos/khonsulabs/bonsaidb/issues/224/reactions', 'total_count': 0, '+1': 0, '-1': 0, 'laugh': 0, 'hooray': 0, 'confused': 0, 'heart': 0, 'rocket': 0, 'eyes': 0}, 'timeline_url': 'https://api.github.com/repos/khonsulabs/bonsaidb/issues/224/timeline', 'performed_via_github_app': None}"
+    },
+    "public": true,
+    "created_at": "2022-03-12T15:50:51Z",
+    "org": {
+      "id": 50191483.0,
+      "login": "khonsulabs",
+      "gravatar_id": "",
+      "url": "https://api.github.com/orgs/khonsulabs",
+      "avatar_url": "https://avatars.githubusercontent.com/u/50191483?"
+    },
+    "_sdc_repository": "khonsulabs/bonsaidb"
+  },
+  "time_extracted": "2022-03-12T17:22:47.446252Z"
+}

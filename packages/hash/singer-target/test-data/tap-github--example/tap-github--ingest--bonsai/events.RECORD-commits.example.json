@@ -1,0 +1,38 @@
+{
+  "type": "RECORD",
+  "stream": "commits",
+  "record": {
+    "sha": "32c5adc151b7a8bab93929f8c4e65f6d4209daa3",
+    "commit": {
+      "author": {
+        "name": "Jonathan Johnson",
+        "email": "jon@khonsulabs.com",
+        "date": "2022-02-17T20:37:41.000000Z"
+      },
+      "committer": {
+        "name": "Jonathan Johnson",
+        "email": "jon@khonsulabs.com",
+        "date": "2022-02-17T20:37:41.000000Z"
+      },
+      "message": "Renaming generics + AnyDocumentId",
+      "tree": {
+        "sha": "b704080806e6e4bd6d62c089612d1255c3302847",
+        "url": "https://api.github.com/repos/khonsulabs/bonsaidb/git/trees/b704080806e6e4bd6d62c089612d1255c3302847"
+      },
+      "url": "https://api.github.com/repos/khonsulabs/bonsaidb/git/commits/32c5adc151b7a8bab93929f8c4e65f6d4209daa3",
+      "comment_count": 0
+    },
+    "url": "https://api.github.com/repos/khonsulabs/bonsaidb/commits/32c5adc151b7a8bab93929f8c4e65f6d4209daa3",
+    "html_url": "https://github.com/khonsulabs/bonsaidb/commit/32c5adc151b7a8bab93929f8c4e65f6d4209daa3",
+    "comments_url": "https://api.github.com/repos/khonsulabs/bonsaidb/commits/32c5adc151b7a8bab93929f8c4e65f6d4209daa3/comments",
+    "parents": [
+      {
+        "sha": "8867bf0818ebbbbd44e41b5488663faa92a7472f",
+        "url": "https://api.github.com/repos/khonsulabs/bonsaidb/commits/8867bf0818ebbbbd44e41b5488663faa92a7472f",
+        "html_url": "https://github.com/khonsulabs/bonsaidb/commit/8867bf0818ebbbbd44e41b5488663faa92a7472f"
+      }
+    ],
+    "_sdc_repository": "khonsulabs/bonsaidb"
+  },
+  "time_extracted": "2022-03-12T17:18:14.678010Z"
+}
