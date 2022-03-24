@@ -1,13 +1,13 @@
 // Some notes on rusty_v8:
 //
-// - When calling JS functions the second argument is the "this" object for free functions it's the
+// - When calling JS functions the second argument is the "this" object, for free functions it's the
 //   `Context` created at the very beginning. Since the argument needs to be a `Local<Value>` we
 //   need to call `Context::global` and convert it `into` a `Local<Value>`.
 //
 // - `Local` is cheap to `Copy`.
 //
 // - Even though `rusty_v8` returns an `Option` on `Object::get`, if the object does not have the
-//   property the result will be `Some(undefined)`.
+//   property the result will be `Some(undefined)` rather than `None`.
 
 mod data_ffi;
 mod error;
