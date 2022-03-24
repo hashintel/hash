@@ -75,7 +75,8 @@ impl<'s> DataFfi<'s> {
             buffer_ptrs[i as usize] = contents
                 .data()
                 .map(NonNull::as_ptr)
-                .unwrap_or(std::ptr::null_mut()) as *mut u8;
+                .unwrap_or(std::ptr::null_mut())
+                .cast();
             buffer_capacities[i as usize] = contents.byte_length();
         }
 
@@ -90,7 +91,8 @@ impl<'s> DataFfi<'s> {
         let null_bits_ptr = contents
             .data()
             .map(NonNull::as_ptr)
-            .unwrap_or(std::ptr::null_mut()) as *mut u8;
+            .unwrap_or(std::ptr::null_mut())
+            .cast();
         let null_bits_capacity = contents.byte_length();
 
         Ok(DataFfi {
