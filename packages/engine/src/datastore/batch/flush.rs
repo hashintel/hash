@@ -280,9 +280,9 @@ pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableCo
             self.static_meta().validate_lengths(self.dynamic_meta()),
             "New dynamic metadata row count is inconsistent with existing static metadata"
         );
-        self.memory_mut().set_data_length(new_data_length)?;
+        let change = change.combine(self.memory_mut().set_data_length(new_data_length)?);
         let meta_buffer = get_dynamic_meta_flatbuffers(self.dynamic_meta())?;
-        self.memory_mut().set_metadata(&meta_buffer)?;
+        let change = change.combine(self.memory_mut().set_metadata(&meta_buffer)?);
 
         if cfg!(debug_assertions) {
             self.memory().validate_markers()?;
