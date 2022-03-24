@@ -80,7 +80,7 @@ function behavior(state, context) {
       out = true;
 
       if (!state.get("deceased")) {
-        behaviors.push("@hash/move-in-direction/move_in_direction.rs");
+        behaviors.push("move_in_direction.js");
       }
     }
   }

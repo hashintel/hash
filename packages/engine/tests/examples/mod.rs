@@ -4,9 +4,11 @@ use crate::run_test;
 mod city_infection_model {
     use crate::run_test;
 
-    // Rust behavior is currently not supported
+    // TODO: Fails with KdTree(NonFiniteCoordinate)
+    //   see https://app.asana.com/0/1199548034582004/1202018854938186/f
     run_test!(city_infection_model, experiment: infected_linspace, #[ignore]);
-    // Rust behavior is currently not supported
+    // TODO: Fails with KdTree(NonFiniteCoordinate)
+    //   see https://app.asana.com/0/1199548034582004/1202018854938186/f
     run_test!(city_infection_model, experiment: duration_range_monte_carlo, #[ignore]);
 }
 

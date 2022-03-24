@@ -64,7 +64,7 @@ function behavior(state, context) {
       state.out = true;
 
       if (!state.deceased) {
-        state.behaviors.push("@hash/move-in-direction/move_in_direction.rs");
+        state.behaviors.push("move_in_direction.js");
       }
     }
   }
