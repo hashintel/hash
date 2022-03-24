@@ -60,7 +60,12 @@ export const NormalView: VoidFunctionComponent<NormalViewComponentProps> = ({
               subMenu={
                 key === "switchBlock" ? (
                   <BlockSuggester
-                    className="left-full ml-0.5 mt-2 block text-left hover:block group-hover:block shadow-xl"
+                    sx={{
+                      left: "100%",
+                      marginLeft: "0.125rem",
+                      marginTop: "0.5rem",
+                      textAlign: "left",
+                    }}
                     {...blockSuggesterProps}
                   />
                 ) : null

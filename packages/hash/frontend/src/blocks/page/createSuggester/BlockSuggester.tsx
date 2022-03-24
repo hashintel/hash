@@ -1,6 +1,7 @@
 import { BlockVariant } from "blockprotocol";
 import { VFC } from "react";
 import { tw } from "twind";
+import { SxProps, Theme } from "@mui/material";
 
 import { Suggester } from "./Suggester";
 import { UserBlock, useUserBlocks } from "../../userBlocks";
@@ -9,7 +10,7 @@ import { useFilteredBlocks } from "./useFilteredBlocks";
 export interface BlockSuggesterProps {
   search?: string;
   onChange(variant: BlockVariant, block: UserBlock): void;
-  className?: string;
+  sx?: SxProps<Theme>;
 }
 
 // @todo remove this when API returns actual icon URL
@@ -38,9 +39,9 @@ export const getVariantIcon = (option: {
 export const BlockSuggester: VFC<BlockSuggesterProps> = ({
   search = "",
   onChange,
-  className,
+  sx,
 }) => {
-  const { value: userBlocks } = useUserBlocks();
+  const { value: userBlocks, blockFetchFailed } = useUserBlocks();
 
   const filteredBlocks = useFilteredBlocks(search, userBlocks);
 
@@ -70,7 +71,7 @@ export const BlockSuggester: VFC<BlockSuggesterProps> = ({
       onChange={(option) => {
         onChange(option.variant, option.meta);
       }}
-      className={className}
+      sx={sx}
     />
   );
 };

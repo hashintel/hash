@@ -7,6 +7,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useState,
 } from "react";
 
 import { useCachedDefaultState } from "../components/hooks/useDefaultState";
@@ -35,6 +36,7 @@ type UserBlocks = UserBlock[];
 interface UserBlocksContextState {
   value: UserBlocks;
   setValue: Dispatch<SetStateAction<UserBlocks>>;
+  blockFetchFailed: boolean;
 }
 
 /** @private enforces use of custom provider */
@@ -79,6 +81,8 @@ export const UserBlocksProvider: React.FC<{ value: UserBlocks }> = ({
     },
   );
 
+  const [blockFetchFailed, setBlockFetchFailed] = useState(false);
+
   useEffect(() => {
     const setInitialBlocks = () => {
       if (process.env.NEXT_PUBLIC_BLOCK_PROTOCOL_API_KEY) {
@@ -120,6 +124,7 @@ export const UserBlocksProvider: React.FC<{ value: UserBlocks }> = ({
           .catch((error) => {
             // eslint-disable-next-line no-console -- TODO: consider using logger
             console.error(error);
+            setBlockFetchFailed(true);
           });
 
         return fetchUserBlocks;
@@ -141,7 +146,10 @@ export const UserBlocksProvider: React.FC<{ value: UserBlocks }> = ({
     });
   }, [initialUserBlocks, setValue]);
 
-  const state = useMemo(() => ({ value, setValue }), [value, setValue]);
+  const state = useMemo(
+    () => ({ value, setValue, blockFetchFailed }),
+    [value, setValue, blockFetchFailed],
+  );
 
   return (
     <UserBlocksContext.Provider value={state}>
