@@ -477,7 +477,7 @@ export class Instance {
         });
       })
       .catch((err) => {
-        logger.error("could not save", err);
+        this.error(err);
       });
   };
 
