@@ -651,11 +651,10 @@ fn get_js_error<'s>(
         // Even though rusty_v8 returns an Option, if the object does not have the property the
         // result will be Some(undefined)
         if !err.is_undefined() {
-            let err: v8::Local<'s, v8::String> = match err.to_string(scope) {
-                Some(err) => err,
-                None => {
-                    return Some(Error::V8("Could not convert err to String".to_string()));
-                }
+            let err: v8::Local<'s, v8::String> = if let Some(err) = err.to_string(scope) {
+                err
+            } else {
+                return Some(Error::V8("Could not convert err to String".to_string()));
             };
 
             // TODO: Don't silently ignore non-string, non-null-or-undefined errors
@@ -670,11 +669,10 @@ fn get_js_error<'s>(
         // Even though rusty_v8 returns an Option, if the object does not have the property the
         // result will be Some(undefined)
         if !err.is_undefined() {
-            let err: v8::Local<'s, v8::String> = match err.to_string(scope) {
-                Some(err) => err,
-                None => {
-                    return Some(Error::V8("Could not convert err tos String".to_string()));
-                }
+            let err: v8::Local<'s, v8::String> = if let Some(err) = err.to_string(scope) {
+                err
+            } else {
+                return Some(Error::V8("Could not convert err to String".to_string()));
             };
 
             // TODO: Don't ignore non-string, non-null-or-undefined errors
