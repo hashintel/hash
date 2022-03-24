@@ -498,52 +498,57 @@ export class Instance {
       blockIds: string[],
       actions: EntityStorePluginAction[] = [],
     ) => {
-      /**
-       * This isn't strictly necessary, and will result in more laggy collab
-       * performance. However, it is a quick way to improve stability by
-       * reducing moving parts – because it means each client will not try to
-       * send another set of updates until the previous updates (even those
-       * from other clients are finished saving). This is a good way to improve
-       * stability until we're more confident in collab not breaking with
-       * frequent updates.
-       *
-       * @todo remove this
-       */
-      await this.saveChain;
+      try {
+        /**
+         * This isn't strictly necessary, and will result in more laggy collab
+         * performance. However, it is a quick way to improve stability by
+         * reducing moving parts – because it means each client will not try to
+         * send another set of updates until the previous updates (even those
+         * from other clients are finished saving). This is a good way to improve
+         * stability until we're more confident in collab not breaking with
+         * frequent updates.
+         *
+         * @todo remove this
+         */
+        await this.saveChain;
 
-      /**
-       * This is a potential security risk as the frontend can instruct us
-       * to make a web request
-       */
-      await Promise.all(
-        blockIds.map((id) => this.manager.defineRemoteBlock(id)),
-      );
+        /**
+         * This is a potential security risk as the frontend can instruct us
+         * to make a web request
+         */
+        await Promise.all(
+          blockIds.map((id) => this.manager.defineRemoteBlock(id)),
+        );
 
-      const steps = jsonSteps.map((step) =>
-        Step.fromJSON(this.state.doc.type.schema, step),
-      );
+        const steps = jsonSteps.map((step) =>
+          Step.fromJSON(this.state.doc.type.schema, step),
+        );
 
-      const res = this.addEvents(apolloClient)(
-        version,
-        steps,
-        clientId,
-        actions,
-      );
+        const res = this.addEvents(apolloClient)(
+          version,
+          steps,
+          clientId,
+          actions,
+        );
 
-      /**
-       * This isn't strictly necessary, and will result in more laggy collab
-       * performance. However, it is a quick way to improve stability by
-       * reducing moving parts – because it means each client will not try to
-       * send another set of updates until the previous updates (even those
-       * from other clients are finished saving). This is a good way to improve
-       * stability until we're more confident in collab not breaking with
-       * frequent updates.
-       *
-       * @todo remove this
-       */
-      await this.saveChain;
+        /**
+         * This isn't strictly necessary, and will result in more laggy collab
+         * performance. However, it is a quick way to improve stability by
+         * reducing moving parts – because it means each client will not try to
+         * send another set of updates until the previous updates (even those
+         * from other clients are finished saving). This is a good way to improve
+         * stability until we're more confident in collab not breaking with
+         * frequent updates.
+         *
+         * @todo remove this
+         */
+        await this.saveChain;
 
-      return res;
+        return res;
+      } catch (err) {
+        this.error(err);
+        return false;
+      }
     };
 
   sendUpdates() {
