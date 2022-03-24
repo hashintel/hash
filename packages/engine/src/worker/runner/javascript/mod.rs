@@ -1883,7 +1883,7 @@ impl JavaScriptRunner {
         self.outbound_receiver
             .recv()
             .await
-            .ok_or(Error::OutboundReceive.into())
+            .ok_or_else(|| Error::OutboundReceive.into())
     }
 
     // TODO: UNUSED: Needs triage
