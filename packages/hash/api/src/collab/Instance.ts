@@ -564,32 +564,41 @@ export class Instance {
    * version.
    */
   getEvents(version: number) {
-    this.checkVersion(version);
-    const startIndex = this.updates.length - (this.version - version);
-    if (startIndex < 0) return false;
+    try {
+      if (this.errored) {
+        return false;
+      }
 
-    const updates = this.updates.slice(startIndex);
-    const steps = updates
-      .filter((update): update is StepUpdate => update.type === "step")
-      .map((update) => update.payload);
+      this.checkVersion(version);
+      const startIndex = this.updates.length - (this.version - version);
+      if (startIndex < 0) return false;
 
-    const store =
-      [...updates]
-        .reverse()
-        .find((update): update is StoreUpdate => update.type === "store")
-        ?.payload ?? null;
+      const updates = this.updates.slice(startIndex);
+      const steps = updates
+        .filter((update): update is StepUpdate => update.type === "step")
+        .map((update) => update.payload);
 
-    const actions = updates
-      .filter((update): update is ActionUpdate => update.type === "action")
-      .map((update) => update.payload);
+      const store =
+        [...updates]
+          .reverse()
+          .find((update): update is StoreUpdate => update.type === "store")
+          ?.payload ?? null;
 
-    return {
-      steps,
-      clientIDs: steps.map((step) => this.clientIds.get(step)),
-      store,
-      actions,
-      shouldRespondImmediately: updates.length > 0,
-    };
+      const actions = updates
+        .filter((update): update is ActionUpdate => update.type === "action")
+        .map((update) => update.payload);
+
+      return {
+        steps,
+        clientIDs: steps.map((step) => this.clientIds.get(step)),
+        store,
+        actions,
+        shouldRespondImmediately: updates.length > 0,
+      };
+    } catch (err) {
+      this.error(err);
+      return false;
+    }
   }
 
   extractPositions(userIdToExclude: string | null): CollabPosition[] {

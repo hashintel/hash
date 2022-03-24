@@ -193,22 +193,24 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
         const version = parseVersion(request.query.version);
         const data = instance.getEvents(version);
 
-        if (data === false) {
+        if (data === false && !instance.errored) {
           response.status(410).send("History no longer available");
           return;
         }
-        if (data.shouldRespondImmediately) {
-          return instance.errored
-            ? response.status(500).json({ error: true })
-            : response.json(formatGetEventsResponse(instance, data));
+        if (instance.errored) {
+          return response.status(500).json({ error: true });
+        }
+        if (data && data.shouldRespondImmediately) {
+          return response.json(formatGetEventsResponse(instance, data));
         }
         // If the server version matches the given version,
         // wait until a new version is published to return the event data.
         const wait = new Waiting(response, instance, userInfo.entityId, () => {
+          const events = instance.getEvents(version);
+
           if (instance.errored) {
             wait.send({ error: true }, 500);
           } else {
-            const events = instance.getEvents(version);
             if (events === false) {
               // @todo track this
               response.status(410).send("History no longer available");
