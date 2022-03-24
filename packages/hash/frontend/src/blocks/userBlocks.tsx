@@ -137,12 +137,6 @@ export const UserBlocksProvider: React.FC<{ value: UserBlocks }> = ({
     };
   }, [setValue]);
 
-  useEffect(() => {
-    setValue((prevValue) => {
-      return mergeBlocksData(prevValue, initialUserBlocks);
-    });
-  }, [initialUserBlocks, setValue]);
-
   const state = useMemo(
     () => ({ value, setValue, blockFetchFailed }),
     [value, setValue, blockFetchFailed],
