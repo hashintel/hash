@@ -5,11 +5,7 @@
 import React, { useState } from "react";
 import ReactDOM from "react-dom";
 import { tw } from "twind";
-import {
-  BlockProtocolUpdateEntitiesFunction,
-  BlockProtocolUpdateEntitiesAction,
-  BlockProtocolEntity,
-} from "blockprotocol";
+import { MockBlockDock } from "mock-block-dock";
 
 import Component from "./index";
 import { ProviderName } from "./types";
@@ -58,28 +54,15 @@ const getVariantProperties = (variant: typeof variants[number]) => {
   };
 };
 
+const initialVariantIndex = 0;
+
+const initialState: EmbedDataType = getVariantProperties(
+  variants[initialVariantIndex]!,
+);
+
 const AppComponent: React.VoidFunctionComponent = () => {
-  const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
-  const [state, setState] = useState<EmbedDataType>(
-    getVariantProperties(variants[selectedVariantIndex]!),
-  );
-
-  const updateState = (newState: Partial<EmbedDataType>) => {
-    setState((prevState) => ({
-      ...prevState,
-      ...newState,
-    }));
-  };
-
-  const updateBlockData: BlockProtocolUpdateEntitiesFunction = async (
-    actions: BlockProtocolUpdateEntitiesAction[],
-  ) => {
-    if (actions[0]) {
-      updateState(actions[0].data);
-      return [actions[0].data] as BlockProtocolEntity[];
-    }
-    return [];
-  };
+  const [selectedVariantIndex, setSelectedVariantIndex] =
+    useState(initialVariantIndex);
 
   return (
     <div className={tw`mt-4 w-1/2 mx-auto`}>
@@ -97,15 +80,16 @@ const AppComponent: React.VoidFunctionComponent = () => {
       </select>
       <br />
       <br />
-      <Component
-        accountId="uuid-1234-account"
-        entityId="uuid-1234-id"
-        entityTypeId="Embed"
-        getEmbedBlock={getEmbedBlock}
-        updateEntities={updateBlockData}
-        {...state}
-        {...getVariantProperties(variants[selectedVariantIndex]!)}
-      />
+      <MockBlockDock>
+        <Component
+          accountId="uuid-1234-account"
+          entityId="uuid-1234-id"
+          entityTypeId="Embed"
+          getEmbedBlock={getEmbedBlock}
+          {...initialState}
+          {...getVariantProperties(variants[selectedVariantIndex]!)}
+        />
+      </MockBlockDock>
     </div>
   );
 };
