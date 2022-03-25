@@ -74,19 +74,21 @@ Depending on your needs, different dependencies are required. Building this proj
 
 ### Required dependencies
 
-
-- CMake [3.X.X >= 3.21.2]
-
-  - CMake installation guidance from the [CMake page](https://cmake.org/install/) or if on macOS through [brew](https://brew.sh/)
-
 - The Rust Compiler
 
   - We recommend installing and using rustup, following the [instructions on the Rust-Lang website](https://www.rust-lang.org/tools/install)
   - hEngine runs on the Nightly toolchain. The version is managed by the [rust-toolchain.toml](./rust-toolchain.toml) file. To verify, run `rustup show` from the [engine](.) directory.
 
+- CMake [3.X.X >= 3.21.2]
+
+  - CMake installation guidance from the [CMake page](https://cmake.org/install/) or if on macOS through [brew](https://brew.sh/)
+  - a C++ compiler, pkg-config, openssl development files (see [Possible Dependencies and Debugging](#possible-dependencies-and-debugging))
+
 - Python [3.7.x]
 
   - Python installation guidance from [their website](https://www.python.org/downloads/)
+
+- Please also see [macOS Developer Specific Instructions](#macos-developer-specific-instructions) if you are running macOS
 
 ### Optional dependencies
 
