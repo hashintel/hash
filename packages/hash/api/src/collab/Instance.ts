@@ -148,7 +148,7 @@ export class Instance {
         "Error encountered when instance already in errored state",
         err,
       );
-      return false;
+      return;
     }
 
     logger.warn(
@@ -278,7 +278,7 @@ export class Instance {
 
   private updateSavedContents(nextSavedContents: BlockEntity[]) {
     if (this.errored) {
-      return false;
+      return;
     }
 
     const { tr } = this.state;
@@ -702,7 +702,7 @@ export class Instance {
    */
   private addUpdates(updates: Update[]) {
     if (this.errored) {
-      return false;
+      return;
     }
 
     this.updates = [...this.updates, ...updates];
