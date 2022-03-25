@@ -127,25 +127,16 @@ impl<'s> JsPackage<'s> {
 
         let pkg: v8::Local<'_, v8::Function> = {
             let pkg = v8::Script::compile(scope, wrapped_code, None).ok_or_else(|| {
-                Error::PackageImport(
-                    path.clone(),
-                    format!("Could not compile code for package: {name}"),
-                )
+                Error::PackageImport(path.clone(), format!("Could not compile code for package"))
             })?;
             let pkg = pkg.run(scope).ok_or_else(|| {
-                Error::PackageImport(
-                    path.clone(),
-                    format!("Couldn't execute package {name} setup"),
-                )
+                Error::PackageImport(path.clone(), format!("Couldn't execute package setup"))
             })?;
 
             pkg.try_into().map_err(|err| {
                 Error::PackageImport(
                     path.clone(),
-                    format!(
-                        "Could not convert return value for package {name} setup into Function: \
-                         {err}"
-                    ),
+                    format!("Could not convert package setup return value into Function: {err}"),
                 )
             })?
         };
@@ -156,15 +147,15 @@ impl<'s> JsPackage<'s> {
             let fns = pkg
                 .call(scope, global_context.into(), args)
                 .ok_or_else(|| {
-                    Error::PackageImport(path.clone(), format!("Couldn't call package {name}"))
+                    Error::PackageImport(path.clone(), format!("Couldn't call package"))
                 })?;
 
             fns.try_into().map_err(|err| {
                 Error::PackageImport(
                     path.clone(),
                     format!(
-                        "Couldn't convert package {name} return value to array of package \
-                         functions: {err}"
+                        "Couldn't convert package return value to array of package functions: \
+                         {err}"
                     ),
                 )
             })?
@@ -184,16 +175,14 @@ impl<'s> JsPackage<'s> {
                 fns.get_index(scope, idx_fn as u32).ok_or_else(|| {
                     Error::PackageImport(
                         path.clone(),
-                        format!("Couldn't index package {name} functions array: {idx_fn:?}"),
+                        format!("Couldn't index package functions array: {idx_fn:?}"),
                     )
                 })?;
 
             if !(elem.is_function() || elem.is_undefined()) {
                 return Err(Error::PackageImport(
                     path.clone(),
-                    format!(
-                        "{fn_name} returned from package {name} should be a function, not {elem:?}"
-                    ),
+                    format!("{fn_name} returned from package should be a function, not {elem:?}"),
                 ));
             }
         }
@@ -552,7 +541,7 @@ fn state_to_js<'s, 'a>(
             .set_index(scope, i_batch as u32, message_batch)
             .ok_or_else(|| {
                 Error::V8(format!(
-                    "Could not set index {i_batch} on js_message_batches"
+                    "Could not set message batch at index {i_batch} on message batch array"
                 ))
             })?;
     }
@@ -1681,7 +1670,7 @@ impl<'s> ThreadLocalRunner<'s> {
                 js_idxs,
                 js_current_step,
             ])
-            .ok_or_else(|| "Could not run ctx_batch_sync Function".to_string())?;
+            .ok_or_else(|| "Could not run ctx_batch_sync function".to_string())?;
 
         Ok(())
     }
