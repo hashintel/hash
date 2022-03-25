@@ -11,7 +11,6 @@ import {
 } from "react";
 
 import { useCachedDefaultState } from "../components/hooks/useDefaultState";
-import { advancedFetch } from "../components/util/advancedFetch";
 
 export type RemoteBlockMetadata = BlockMetadata & {
   componentId: string;
@@ -92,14 +91,13 @@ export const UserBlocksProvider: React.FC<{ value: UserBlocks }> = ({
           process.env.NEXT_PUBLIC_BLOCK_PROTOCOL_API_KEY,
         );
 
-        const fetchUserBlocks = advancedFetch(
-          "https://blockprotocol.org/api/blocks",
-          {
-            headers: blocksMetadataHeaders,
-          },
-        );
+        const controller = new AbortController();
+        const signal = controller.signal;
 
-        fetchUserBlocks.ready
+        fetch("https://blockprotocol.org/api/blocks", {
+          headers: blocksMetadataHeaders,
+          signal,
+        })
           .then((response) => {
             if (!response.ok) {
               throw new Error(`Fetch failed with status: ${response.status}`);
@@ -124,15 +122,15 @@ export const UserBlocksProvider: React.FC<{ value: UserBlocks }> = ({
             setBlockFetchFailed(true);
           });
 
-        return fetchUserBlocks;
+        return controller;
       }
     };
 
-    const { abort } = setInitialBlocks() ?? {};
+    const controller = setInitialBlocks();
 
     return () => {
-      if (abort) {
-        abort();
+      if (controller) {
+        controller.abort();
       }
     };
   }, [setValue]);
