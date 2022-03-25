@@ -357,7 +357,7 @@ impl PackageCreators {
         &self,
         exp_config: &ExperimentConfig,
         globals: &Globals,
-    ) -> std::result::Result<ContextSchema, Error> {
+    ) -> Result<ContextSchema, Error> {
         let mut field_spec_map = FieldSpecMap::empty();
 
         self.context.iter().try_for_each::<_, Result<()>>(
@@ -420,7 +420,9 @@ pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec>> {
     let mut field_specs = Vec::with_capacity(13);
     let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
 
-    use crate::hash_types::state::AgentStateField::*;
+    use crate::hash_types::state::AgentStateField::{
+        AgentId, AgentName, Color, Direction, Height, Hidden, Position, Scale, Shape, Velocity, RGB,
+    };
     let used = [
         AgentId, AgentName, Position, Direction, Velocity, Shape, Height, Scale, Color, RGB, Hidden,
     ];

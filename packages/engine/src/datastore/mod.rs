@@ -25,46 +25,6 @@ pub const POSITION_DIM: usize = 3;
 
 pub use self::error::{Error, Result};
 
-pub mod prelude {
-    pub use arrow::{
-        array::Array as ArrowArray,
-        buffer::{Buffer as ArrowBuffer, MutableBuffer as ArrowMutableBuffer},
-        datatypes::{
-            DataType as ArrowDataType, Field as ArrowField, IntervalUnit as ArrowIntervalUnit,
-            Schema as ArrowSchema, TimeUnit as ArrowTimeUnit,
-        },
-        error::ArrowError,
-        ipc as arrow_ipc,
-        ipc::gen::Message::RecordBatch as RecordBatchMessage,
-        record_batch::RecordBatch,
-        util::bit_util as arrow_bit_util,
-    };
-
-    pub use super::{
-        arrow::{
-            batch_conversion::{IntoAgentStates, IntoRecordBatch},
-            field_conversion,
-            meta_conversion::{HashDynamicMeta, HashStaticMeta},
-            padding,
-        },
-        batch::{
-            metaversion::Metaversion,
-            migration::{CopyAction, CreateAction, RemoveAction, RowActions},
-            AgentBatch, AgentIndex, Dataset, MessageBatch, MessageIndex,
-        },
-        error::{Error, Result, SupportedType},
-        meta::{
-            Buffer, BufferAction, Column as ColumnMeta, Dynamic as DynamicMeta, Node, NodeMapping,
-            NodeStatic as NodeStaticMeta, Static as StaticMeta,
-        },
-        shared_store::SharedStore,
-        storage::memory::Memory,
-        store::Store,
-        table::state::State,
-    };
-    pub use crate::hash_types::{message::Outbound as OutboundMessage, Agent as AgentState};
-}
-
 #[cfg(test)]
 pub mod tests {
     use std::{borrow::Cow, sync::Arc};

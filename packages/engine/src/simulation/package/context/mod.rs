@@ -11,8 +11,8 @@ use super::{
 pub use crate::config::Globals;
 use crate::{
     datastore::{
+        error::Result as DatastoreResult,
         meta::ColumnDynamicMetadata,
-        prelude::Result as DatastoreResult,
         schema::{
             accessor::FieldSpecMapAccessor, context::ContextSchema, FieldKey, FieldSpec,
             RootFieldSpec, RootFieldSpecCreator,

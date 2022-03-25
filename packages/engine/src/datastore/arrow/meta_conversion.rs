@@ -16,8 +16,7 @@ use arrow::{
 use flatbuffers::FlatBufferBuilder;
 
 use crate::datastore::{
-    meta::{Buffer, BufferType, Column, Node, NodeMapping},
-    prelude::{DynamicMeta, NodeStaticMeta, StaticMeta},
+    meta::{self, Buffer, BufferType, Column, Node, NodeMapping},
     Error, Result,
 };
 
@@ -102,22 +101,22 @@ impl TryFrom<DataType> for SupportedDataTypes {
 }
 
 pub trait HashStaticMeta {
-    fn get_static_metadata(&self) -> StaticMeta;
+    fn get_static_metadata(&self) -> meta::Static;
 }
 
 impl HashStaticMeta for Arc<Schema> {
-    fn get_static_metadata(&self) -> StaticMeta {
+    fn get_static_metadata(&self) -> meta::Static {
         let (indices, padding, data) = schema_to_column_hierarchy(self.clone());
-        StaticMeta::new(indices, padding, data)
+        meta::Static::new(indices, padding, data)
     }
 }
 
 pub trait HashDynamicMeta {
-    fn into_meta(&self, data_length: usize) -> Result<DynamicMeta>;
+    fn into_meta(&self, data_length: usize) -> Result<meta::Dynamic>;
 }
 
 impl HashDynamicMeta for ipc::RecordBatch<'_> {
-    fn into_meta(&self, data_length: usize) -> Result<DynamicMeta> {
+    fn into_meta(&self, data_length: usize) -> Result<meta::Dynamic> {
         let nodes = self
             .nodes()
             .ok_or(Error::ArrowBatch("Missing field nodes".into()))?
@@ -150,7 +149,7 @@ impl HashDynamicMeta for ipc::RecordBatch<'_> {
             })
             .collect::<Result<_>>()?;
 
-        Ok(DynamicMeta {
+        Ok(meta::Dynamic {
             length: self.length() as usize,
             data_length,
             nodes,
@@ -161,7 +160,7 @@ impl HashDynamicMeta for ipc::RecordBatch<'_> {
 
 /// Computes the flat_buffers builder from the metadata, using this builder
 /// the metadata of a shared batch can be modified
-pub fn get_dynamic_meta_flatbuffers(meta: &DynamicMeta) -> Result<Vec<u8>> {
+pub fn get_dynamic_meta_flatbuffers(meta: &meta::Dynamic) -> Result<Vec<u8>> {
     // TODO: OPTIM: Evaluate, if we want to return the flatbuffer instead to remove the slice-to-vec
     //   conversion.
     // Build Arrow Buffer and FieldNode messages
@@ -210,7 +209,7 @@ pub fn get_dynamic_meta_flatbuffers(meta: &DynamicMeta) -> Result<Vec<u8>> {
 /// This also returns information about which buffers are growable
 fn schema_to_column_hierarchy(
     schema: Arc<Schema>,
-) -> (Vec<Column>, Vec<bool>, Vec<NodeStaticMeta>) {
+) -> (Vec<Column>, Vec<bool>, Vec<meta::NodeStatic>) {
     let mut padding_meta = vec![];
     let mut node_meta = vec![];
     let column_indices =
@@ -272,7 +271,7 @@ pub fn data_type_to_metadata(
     usize,
     Vec<usize>,
     Vec<bool>,
-    Vec<NodeStaticMeta>,
+    Vec<meta::NodeStatic>,
     NodeMapping,
 ) {
     type D = SupportedDataTypes;
@@ -283,7 +282,7 @@ pub fn data_type_to_metadata(
             };
             let offsets = BufferType::Offset;
             let binary = BufferType::Data { unit_byte_size: 1 };
-            let node_meta = NodeStaticMeta::new(multiplier, vec![bit_map, offsets, binary]);
+            let node_meta = meta::NodeStatic::new(multiplier, vec![bit_map, offsets, binary]);
             (
                 1,
                 3,
@@ -298,7 +297,7 @@ pub fn data_type_to_metadata(
             2,
             vec![2],
             vec![is_parent_growable, is_parent_growable],
-            vec![NodeStaticMeta::new(multiplier, vec![
+            vec![meta::NodeStatic::new(multiplier, vec![
                 BufferType::BitMap {
                     is_null_bitmap: true,
                 },
@@ -315,7 +314,7 @@ pub fn data_type_to_metadata(
             buffer_counts.append(&mut b);
             let mut padding_meta = vec![is_parent_growable, is_parent_growable];
             padding_meta.append(&mut p);
-            let mut node_meta = vec![NodeStaticMeta::new(multiplier, vec![
+            let mut node_meta = vec![meta::NodeStatic::new(multiplier, vec![
                 BufferType::BitMap {
                     is_null_bitmap: true,
                 },
@@ -338,9 +337,11 @@ pub fn data_type_to_metadata(
             buffer_counts.append(&mut b);
             let mut padding_meta = vec![is_parent_growable];
             padding_meta.append(&mut p);
-            let mut node_meta = vec![NodeStaticMeta::new(multiplier, vec![BufferType::BitMap {
-                is_null_bitmap: true,
-            }])];
+            let mut node_meta = vec![meta::NodeStatic::new(multiplier, vec![
+                BufferType::BitMap {
+                    is_null_bitmap: true,
+                },
+            ])];
             node_meta.append(&mut c);
             (
                 n + 1,
@@ -356,7 +357,7 @@ pub fn data_type_to_metadata(
             2,
             vec![2],
             vec![is_parent_growable, is_parent_growable],
-            vec![NodeStaticMeta::new(multiplier, vec![
+            vec![meta::NodeStatic::new(multiplier, vec![
                 BufferType::BitMap {
                     is_null_bitmap: true,
                 },
@@ -404,9 +405,11 @@ pub fn data_type_to_metadata(
             let mut buffer_counts = vec![1];
             let mut buffer_count = 1;
             let mut buffer_is_growable_values = vec![is_parent_growable];
-            let mut node_meta = vec![NodeStaticMeta::new(multiplier, vec![BufferType::BitMap {
-                is_null_bitmap: true,
-            }])];
+            let mut node_meta = vec![meta::NodeStatic::new(multiplier, vec![
+                BufferType::BitMap {
+                    is_null_bitmap: true,
+                },
+            ])];
             let mut child_node_mappings = Vec::with_capacity(fields.len());
             for field in fields {
                 let (n, child_buffer_count, mut b, mut p, mut c, node_mapping) =
@@ -443,7 +446,7 @@ fn data_type_metadata(
     usize,
     Vec<usize>,
     Vec<bool>,
-    Vec<NodeStaticMeta>,
+    Vec<meta::NodeStatic>,
     NodeMapping,
 ) {
     (
@@ -451,7 +454,7 @@ fn data_type_metadata(
         2,
         vec![2],
         vec![is_parent_growable, is_parent_growable],
-        vec![NodeStaticMeta::new(multiplier, vec![
+        vec![meta::NodeStatic::new(multiplier, vec![
             BufferType::BitMap {
                 is_null_bitmap: true,
             },
@@ -490,8 +493,8 @@ pub mod tests {
 
     fn get_buffer_counts_from_array_data<'a>(
         node_data: &ArrowArrayData,
-        node_meta: &'a [NodeStaticMeta],
-    ) -> (Vec<usize>, &'a [NodeStaticMeta]) {
+        node_meta: &'a [meta::NodeStatic],
+    ) -> (Vec<usize>, &'a [meta::NodeStatic]) {
         // check current node's bitmap, node_meta is created by pre-order traversal so ordering
         // should be same
         let has_null_bitmap = node_meta[0].get_data_types().iter().any(|buffer_type| {
@@ -541,7 +544,7 @@ pub mod tests {
     // children
     fn get_col_hierarchy_from_arrow_array(
         arrow_array: &dyn ArrowArray,
-        node_infos: &[NodeStaticMeta],
+        node_infos: &[meta::NodeStatic],
     ) -> (usize, Vec<usize>, NodeMapping) {
         let node_count = get_num_nodes_from_array_data(arrow_array.data_ref());
         let (buffer_counts, _) =
@@ -573,7 +576,7 @@ pub mod tests {
 
         let expected_buffer_info = vec![false; num_buffers]; // no growable parents
 
-        let expected_node_info = vec![NodeStaticMeta::new(1, vec![
+        let expected_node_info = vec![meta::NodeStatic::new(1, vec![
             BufferType::BitMap {
                 is_null_bitmap: true,
             },
@@ -641,10 +644,10 @@ pub mod tests {
         let expected_buffer_info = vec![false; fields.len() * num_buffers];
 
         // all nodes have the same structure aside from size of data buffer
-        let expected_node_info: Vec<NodeStaticMeta> = [1, 2, 4, 8, 1, 2, 4, 8, 4, 8]
+        let expected_node_info: Vec<meta::NodeStatic> = [1, 2, 4, 8, 1, 2, 4, 8, 4, 8]
             .iter()
             .map(|&unit_byte_size| {
-                NodeStaticMeta::new(1, vec![
+                meta::NodeStatic::new(1, vec![
                     BufferType::BitMap {
                         is_null_bitmap: true,
                     },
@@ -742,10 +745,10 @@ pub mod tests {
         let expected_buffer_info = vec![false; fields.len() * num_buffers];
 
         // all nodes have same structure aside from data-size determined by if Time32 or Time64
-        let expected_node_info: Vec<NodeStaticMeta> = unit_byte_sizes
+        let expected_node_info: Vec<meta::NodeStatic> = unit_byte_sizes
             .iter()
             .map(|&unit_byte_size| {
-                NodeStaticMeta::new(1, vec![
+                meta::NodeStatic::new(1, vec![
                     BufferType::BitMap {
                         is_null_bitmap: true,
                     },
@@ -830,10 +833,10 @@ pub mod tests {
         let expected_buffer_info = vec![false; fields.len() * num_buffers];
 
         // all nodes have same structure aside from data-size determined by if Date32 or Date64
-        let expected_node_info: Vec<NodeStaticMeta> = unit_byte_sizes
+        let expected_node_info: Vec<meta::NodeStatic> = unit_byte_sizes
             .iter()
             .map(|&unit_byte_size| {
-                NodeStaticMeta::new(1, vec![
+                meta::NodeStatic::new(1, vec![
                     BufferType::BitMap {
                         is_null_bitmap: true,
                     },
@@ -914,9 +917,9 @@ pub mod tests {
         let expected_buffer_info = vec![false; fields.len() * num_buffers];
 
         // all nodes have same structure
-        let expected_node_info: Vec<NodeStaticMeta> = (0..fields.len())
+        let expected_node_info: Vec<meta::NodeStatic> = (0..fields.len())
             .map(|_| {
-                NodeStaticMeta::new(1, vec![
+                meta::NodeStatic::new(1, vec![
                     BufferType::BitMap {
                         is_null_bitmap: true,
                     },
@@ -1010,10 +1013,10 @@ pub mod tests {
         let expected_buffer_info = vec![false; fields.len() * num_buffers];
 
         // all nodes have same structure aside from data-size determined by interval unit
-        let expected_node_info: Vec<NodeStaticMeta> = unit_byte_sizes
+        let expected_node_info: Vec<meta::NodeStatic> = unit_byte_sizes
             .iter()
             .map(|&unit_byte_size| {
-                NodeStaticMeta::new(1, vec![
+                meta::NodeStatic::new(1, vec![
                     BufferType::BitMap {
                         is_null_bitmap: true,
                     },
@@ -1095,9 +1098,9 @@ pub mod tests {
             .collect();
 
         // all nodes have same structure
-        let expected_node_info: Vec<NodeStaticMeta> = (0..fields.len())
+        let expected_node_info: Vec<meta::NodeStatic> = (0..fields.len())
             .map(|_| {
-                NodeStaticMeta::new(1, vec![
+                meta::NodeStatic::new(1, vec![
                     BufferType::BitMap {
                         is_null_bitmap: true,
                     },
@@ -1189,10 +1192,10 @@ pub mod tests {
         let expected_buffer_info = vec![false; fields.len() * num_buffers];
 
         // all nodes have same structure aside from data-size which is determined by the fixed size
-        let expected_node_info: Vec<NodeStaticMeta> = fixed_sizes
+        let expected_node_info: Vec<meta::NodeStatic> = fixed_sizes
             .iter()
             .map(|&fixed_size| {
-                NodeStaticMeta::new(1, vec![
+                meta::NodeStatic::new(1, vec![
                     BufferType::BitMap {
                         is_null_bitmap: true,
                     },
@@ -1270,9 +1273,9 @@ pub mod tests {
             .collect();
 
         // all nodes have the same structure
-        let expected_node_info: Vec<NodeStaticMeta> = (0..fields.len())
+        let expected_node_info: Vec<meta::NodeStatic> = (0..fields.len())
             .map(|_| {
-                NodeStaticMeta::new(1, vec![
+                meta::NodeStatic::new(1, vec![
                     BufferType::BitMap {
                         is_null_bitmap: true,
                     },
@@ -1364,16 +1367,16 @@ pub mod tests {
             })
             .collect();
 
-        let expected_node_info: Vec<NodeStaticMeta> = vec![
+        let expected_node_info: Vec<meta::NodeStatic> = vec![
             // List Node "c0"
-            NodeStaticMeta::new(1, vec![
+            meta::NodeStatic::new(1, vec![
                 BufferType::BitMap {
                     is_null_bitmap: true,
                 },
                 BufferType::Offset,
             ]),
             // Bool Node
-            NodeStaticMeta::new(1, vec![
+            meta::NodeStatic::new(1, vec![
                 BufferType::BitMap {
                     is_null_bitmap: true,
                 },
@@ -1382,14 +1385,14 @@ pub mod tests {
                 },
             ]),
             // List Node "c1"
-            NodeStaticMeta::new(1, vec![
+            meta::NodeStatic::new(1, vec![
                 BufferType::BitMap {
                     is_null_bitmap: true,
                 },
                 BufferType::Offset,
             ]),
             // UInt32 Node
-            NodeStaticMeta::new(1, vec![
+            meta::NodeStatic::new(1, vec![
                 BufferType::BitMap {
                     is_null_bitmap: true,
                 },
@@ -1499,11 +1502,11 @@ pub mod tests {
 
         let expected_node_info = vec![
             // struct "c0"
-            NodeStaticMeta::new(1, vec![BufferType::BitMap {
+            meta::NodeStatic::new(1, vec![BufferType::BitMap {
                 is_null_bitmap: true,
             }]),
             // utf8 "a"
-            NodeStaticMeta::new(1, vec![
+            meta::NodeStatic::new(1, vec![
                 BufferType::BitMap {
                     is_null_bitmap: true,
                 },
@@ -1511,7 +1514,7 @@ pub mod tests {
                 BufferType::Data { unit_byte_size: 1 },
             ]),
             // bool "b"
-            NodeStaticMeta::new(1, vec![
+            meta::NodeStatic::new(1, vec![
                 BufferType::BitMap {
                     is_null_bitmap: true,
                 },
@@ -1520,7 +1523,7 @@ pub mod tests {
                 },
             ]),
             // struct "c1"
-            NodeStaticMeta::new(1, vec![BufferType::BitMap {
+            meta::NodeStatic::new(1, vec![BufferType::BitMap {
                 is_null_bitmap: true,
             }]),
         ];

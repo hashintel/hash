@@ -3,7 +3,7 @@ use std::collections::hash_map;
 use serde_json::Value;
 use thiserror::Error as ThisError;
 
-use super::*;
+use super::{handlers, ApiResponseMap, Error, Result};
 use crate::datastore::{
     table::{pool::message::MessageReader, references::AgentMessageReference},
     UUID_V4_LEN,
@@ -63,7 +63,10 @@ pub mod mapbox {
 
     use futures::StreamExt;
 
-    use super::*;
+    use super::{
+        hash_map, ApiResponseMap, CustomError, Request, Requests, Result, ThisError, Value,
+        ACTIVE_REQUESTS,
+    };
     use crate::datastore::UUID_V4_LEN;
 
     #[derive(ThisError, Debug)]

@@ -2,13 +2,16 @@
 
 use std::{borrow::Cow, mem, sync::Arc};
 
-use arrow::util::bit_util;
+use arrow::{self, array::Array, record_batch::RecordBatch, util::bit_util};
 
 use crate::{
     datastore::{
-        batch::AgentBatch,
-        prelude::*,
+        arrow::padding,
+        batch::{AgentBatch, MessageBatch},
+        error::{Error, Result},
+        meta::{self, Buffer, Node, NodeMapping},
         schema::state::{AgentSchema, MessageSchema},
+        storage::memory::Memory,
     },
     proto::ExperimentId,
 };
@@ -131,7 +134,7 @@ pub struct BufferAction<'a> {
 #[derive(Debug, Clone)]
 pub struct BufferActions<'a> {
     pub actions: Vec<BufferAction<'a>>,
-    pub new_dynamic_meta: DynamicMeta,
+    pub new_dynamic_meta: meta::Dynamic,
 }
 
 #[derive(Debug, Clone)]
@@ -462,9 +465,9 @@ impl<'a> BufferActions<'a> {
     fn traverse_nodes<'b>(
         mut next_state: NextState,
         children_meta: &NodeMapping,
-        column_meta: &ColumnMeta,
-        static_meta: &StaticMeta,
-        dynamic_meta: Option<&DynamicMeta>,
+        column_meta: &meta::Column,
+        static_meta: &meta::Static,
+        dynamic_meta: Option<&meta::Dynamic>,
         parent_range_actions: &RangeActions,
         agent_batch: Option<&AgentBatch>,
         agent_batches: &[&AgentBatch],
@@ -1030,7 +1033,7 @@ impl<'a> BufferActions<'a> {
         agent_batches: &[&AgentBatch],
         batch_index: Option<usize>,
         base_range_actions: RangeActions,
-        static_meta: &StaticMeta,
+        static_meta: &meta::Static,
         new_agents: Option<&'a RecordBatch>,
     ) -> Result<BufferActions<'a>> {
         let agent_batch = batch_index.map(|index| agent_batches[index]);
@@ -1084,7 +1087,8 @@ impl<'a> BufferActions<'a> {
                 val
             })
         });
-        let new_dynamic_meta = DynamicMeta::new(num_agents, data_length, node_metas, buffer_metas);
+        let new_dynamic_meta =
+            meta::Dynamic::new(num_agents, data_length, node_metas, buffer_metas);
 
         let bufferactions = BufferActions {
             actions,
@@ -1306,8 +1310,8 @@ impl From<&RowActions> for RangeActions {
 /// `memory` doesn't have a data buffer, so it can't contain an Arrow record batch.
 fn offsets_start_at_zero(
     memory: &Memory,
-    static_meta: &StaticMeta,
-    dynamic_meta: &DynamicMeta,
+    static_meta: &meta::Static,
+    dynamic_meta: &meta::Dynamic,
 ) -> Result<bool> {
     let data = memory.get_data_buffer()?;
 

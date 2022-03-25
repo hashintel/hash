@@ -5,7 +5,10 @@ use std::{
     time::Duration,
 };
 
-use super::*;
+use super::{
+    Array, Error, FromValue, FromValues, Function, MiniV8, Object, Result, String, ToValue,
+    ToValues, Value, Values, Variadic,
+};
 
 impl<'mv8> ToValue<'mv8> for Value<'mv8> {
     fn to_value(self, _mv8: &'mv8 MiniV8) -> Result<'mv8, Value<'mv8>> {

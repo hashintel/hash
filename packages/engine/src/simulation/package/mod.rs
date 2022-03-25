@@ -39,10 +39,7 @@ pub mod prelude {
     };
     pub use crate::{
         config::{ExperimentConfig, SimulationConfig},
-        datastore::{
-            prelude::*,
-            table::{context::Context, state::State},
-        },
+        datastore::table::{context::Context, state::State},
         simulation::{Error, Result},
     };
 }

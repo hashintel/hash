@@ -6,11 +6,15 @@ use std::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use super::super::*;
+use super::super::{
+    async_trait, Agent, Arc, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg,
+    GetWorkerSimStartMsg, InitPackage, InitTask, InitTaskMessage, MaybeCpuBound, PackageComms,
+    PackageCreator, SimRunConfig,
+};
 use crate::{
     proto::{ExperimentRunTrait, InitialState, InitialStateName},
     simulation::{
-        enum_dispatch::*,
+        enum_dispatch::{enum_dispatch, RegisterWithoutTrait, TaskSharedStore},
         package::init::packages::js_py::{js::JsInitTask, py::PyInitTask},
         Error, Result,
     },

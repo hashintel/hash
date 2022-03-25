@@ -3,14 +3,21 @@ use std::sync::Arc;
 use arrow::{
     array::{self, Array},
     datatypes::{DataType, Field, Schema},
+    record_batch::RecordBatch,
 };
 use lazy_static::lazy_static;
 
 use crate::{
-    datastore::{prelude::*, schema::PresetFieldType},
-    hash_types::message::{
-        GenericPayload, Outbound, OutboundCreateAgentPayload, OutboundRemoveAgentPayload,
-        OutboundStopSimPayload,
+    datastore::{
+        error::{Error, Result},
+        schema::PresetFieldType,
+    },
+    hash_types::{
+        message::{
+            GenericPayload, Outbound, OutboundCreateAgentPayload, OutboundRemoveAgentPayload,
+            OutboundStopSimPayload,
+        },
+        Agent,
     },
 };
 
@@ -280,11 +287,7 @@ pub fn get_column_from_list_array(array: &array::ListArray) -> Result<Vec<Vec<Ou
     Ok(result)
 }
 
-pub fn column_into_state(
-    states: &mut [AgentState],
-    batch: &RecordBatch,
-    index: usize,
-) -> Result<()> {
+pub fn column_into_state(states: &mut [Agent], batch: &RecordBatch, index: usize) -> Result<()> {
     let reference = batch
         .column(index)
         .as_any()

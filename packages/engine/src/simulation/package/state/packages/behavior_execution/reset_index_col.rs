@@ -1,6 +1,8 @@
 use arrow::{array::ArrayData, datatypes::DataType};
 
-use super::*;
+use super::{
+    BehaviorIndexInnerDataType, ColumnChange, DatastoreResult, IntoArrowChange, Result, StateColumn,
+};
 use crate::datastore::arrow::batch_conversion::new_buffer;
 
 pub fn reset_index_col(behavior_index_col_index: usize) -> Result<StateColumn> {
