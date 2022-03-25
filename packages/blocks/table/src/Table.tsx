@@ -322,12 +322,7 @@ export const Table: BlockComponent<AppProps> = ({
     hiddenColumns?: string[];
     columns?: { Header: string; accessor: string }[];
   }) => {
-    if (
-      !entityId ||
-      !updateLinks ||
-      !updateEntities ||
-      !matchingLinkedAggregation
-    ) {
+    if (!entityId || !updateEntities) {
       return;
     }
 
@@ -350,15 +345,6 @@ export const Table: BlockComponent<AppProps> = ({
           entityTypeId,
           entityTypeVersionId,
         },
-      ]);
-
-      void updateLinks([
-        cleanUpdateLinkedAggregationAction({
-          sourceAccountId: matchingLinkedAggregation.sourceAccountId,
-          sourceEntityId: matchingLinkedAggregation.sourceEntityId,
-          path,
-          data: { ...tableData.linkedAggregation.operation },
-        }),
       ]);
     }
   };
