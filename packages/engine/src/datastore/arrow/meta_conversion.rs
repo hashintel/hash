@@ -16,7 +16,7 @@ use arrow::{
 use flatbuffers::FlatBufferBuilder;
 
 use crate::datastore::{
-    meta::{self, Buffer, BufferType, Column, Node, NodeMapping},
+    meta::{self, Buffer, BufferType, Node, NodeMapping},
     Error, Result,
 };
 
@@ -209,7 +209,7 @@ pub fn get_dynamic_meta_flatbuffers(meta: &meta::Dynamic) -> Result<Vec<u8>> {
 /// This also returns information about which buffers are growable
 fn schema_to_column_hierarchy(
     schema: Arc<Schema>,
-) -> (Vec<Column>, Vec<bool>, Vec<meta::NodeStatic>) {
+) -> (Vec<meta::Column>, Vec<bool>, Vec<meta::NodeStatic>) {
     let mut padding_meta = vec![];
     let mut node_meta = vec![];
     let column_indices =
@@ -235,7 +235,7 @@ fn schema_to_column_hierarchy(
                 // Nullable fields have the same buffer count as non-nullable
                 // see `write_array_data` in `ipc.rs`. This means we don't have to check
                 // for this here.
-                accum.0.push(Column {
+                accum.0.push(meta::Column {
                     node_start: accum.1,
                     node_count,
                     root_node_mapping,
@@ -469,14 +469,14 @@ pub mod tests {
     use std::collections::HashMap;
 
     use arrow::{
-        array::ArrayRef,
+        array::{Array, ArrayRef},
         datatypes::{IntervalUnit, TimeUnit},
     };
 
+    use super::*;
+
     type D = DataType;
     type ArrowArrayData = arrow::array::ArrayData;
-
-    use super::*;
 
     fn get_dummy_metadata() -> HashMap<String, String> {
         [("Key".to_string(), "Value".to_string())]
@@ -543,7 +543,7 @@ pub mod tests {
     // Extracts column hierarchy metadata from the Arrow Array data for a given FieldNode, and its
     // children
     fn get_col_hierarchy_from_arrow_array(
-        arrow_array: &dyn ArrowArray,
+        arrow_array: &dyn Array,
         node_infos: &[meta::NodeStatic],
     ) -> (usize, Vec<usize>, NodeMapping) {
         let node_count = get_num_nodes_from_array_data(arrow_array.data_ref());
@@ -565,7 +565,7 @@ pub mod tests {
         // set up expected col hierarchy data
 
         let num_buffers = 2;
-        let expected_col_info = vec![ColumnMeta {
+        let expected_col_info = vec![meta::Column {
             node_start: 0,
             node_count: 1,
             buffer_start: 0,
@@ -629,8 +629,8 @@ pub mod tests {
 
         // all fields are one node, with each node having 2 buffers
         let num_buffers = 2;
-        let expected_col_info: Vec<ColumnMeta> = (0..10)
-            .map(|idx| ColumnMeta {
+        let expected_col_info: Vec<meta::Column> = (0..10)
+            .map(|idx| meta::Column {
                 node_start: idx,
                 node_count: 1,
                 buffer_start: idx * num_buffers,
@@ -675,7 +675,7 @@ pub mod tests {
         let float32_array = arrow::array::Float32Array::from(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
         let float64_array = arrow::array::Float64Array::from(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
 
-        let dummy_data_arrays: Vec<&dyn ArrowArray> = vec![
+        let dummy_data_arrays: Vec<&dyn Array> = vec![
             &int8_array,
             &int16_array,
             &int32_array,
@@ -730,8 +730,8 @@ pub mod tests {
 
         // all fields are one node, with each node having 2 buffers
         let num_buffers = 2;
-        let expected_col_info: Vec<ColumnMeta> = (0..fields.len())
-            .map(|idx| ColumnMeta {
+        let expected_col_info: Vec<meta::Column> = (0..fields.len())
+            .map(|idx| meta::Column {
                 node_start: idx,
                 node_count: 1,
                 buffer_start: idx * num_buffers,
@@ -774,7 +774,7 @@ pub mod tests {
             arrow::array::Time32MillisecondArray::from(vec![1, 2, 3, 4, 5, 6]);
         let time32_second_array = arrow::array::Time32SecondArray::from(vec![1, 2, 3, 4, 5, 6]);
 
-        let dummy_data_arrays: Vec<&dyn ArrowArray> = vec![
+        let dummy_data_arrays: Vec<&dyn Array> = vec![
             &time64_nanosecond_array,
             &time64_microsecond_array,
             &time32_millisecond_array,
@@ -818,8 +818,8 @@ pub mod tests {
 
         // all fields are one node, with each node having 2 buffers
         let num_buffers = 2;
-        let expected_col_info: Vec<ColumnMeta> = (0..fields.len())
-            .map(|idx| ColumnMeta {
+        let expected_col_info: Vec<meta::Column> = (0..fields.len())
+            .map(|idx| meta::Column {
                 node_start: idx,
                 node_count: 1,
                 buffer_start: idx * num_buffers,
@@ -857,7 +857,7 @@ pub mod tests {
         let date32_array = arrow::array::Date32Array::from(vec![1, 2, 3, 4, 5, 6]);
         let date64_array = arrow::array::Date64Array::from(vec![1, 2, 3, 4, 5, 6]);
 
-        let dummy_data_arrays: Vec<&dyn ArrowArray> = vec![
+        let dummy_data_arrays: Vec<&dyn Array> = vec![
             &date32_array,
             &date32_array, /* duplicate to match schema as underlying unit doesn't affect memory
                             * layout */
@@ -902,8 +902,8 @@ pub mod tests {
 
         // all fields are one node, with each node having 2 buffers
         let num_buffers = 2;
-        let expected_col_info: Vec<ColumnMeta> = (0..fields.len())
-            .map(|idx| ColumnMeta {
+        let expected_col_info: Vec<meta::Column> = (0..fields.len())
+            .map(|idx| meta::Column {
                 node_start: idx,
                 node_count: 1,
                 buffer_start: idx * num_buffers,
@@ -945,7 +945,7 @@ pub mod tests {
             arrow::array::DurationMillisecondArray::from(vec![1, 2, 3, 4, 5, 6]);
         let duration_second_array = arrow::array::DurationSecondArray::from(vec![1, 2, 3, 4, 5, 6]);
 
-        let dummy_data_arrays: Vec<&dyn ArrowArray> = vec![
+        let dummy_data_arrays: Vec<&dyn Array> = vec![
             &duration_nanosecond_array,
             &duration_microsecond_array,
             &duration_millisecond_array,
@@ -998,8 +998,8 @@ pub mod tests {
 
         // all fields are one node, with each node having 2 buffers
         let num_buffers = 2;
-        let expected_col_info: Vec<ColumnMeta> = (0..fields.len())
-            .map(|idx| ColumnMeta {
+        let expected_col_info: Vec<meta::Column> = (0..fields.len())
+            .map(|idx| meta::Column {
                 node_start: idx,
                 node_count: 1,
                 buffer_start: idx * num_buffers,
@@ -1039,7 +1039,7 @@ pub mod tests {
         let interval_year_month_array =
             arrow::array::IntervalYearMonthArray::from(vec![1, 2, 3, 4, 5, 6]);
 
-        let dummy_data_arrays: Vec<&dyn ArrowArray> =
+        let dummy_data_arrays: Vec<&dyn Array> =
             vec![&interval_day_time_array, &interval_year_month_array];
 
         for (arrow_array, column_meta) in
@@ -1086,8 +1086,8 @@ pub mod tests {
 
         // all fields are one node, with each node having 2 buffers
         let num_buffers = 2;
-        let expected_col_info: Vec<ColumnMeta> = (0..fields.len())
-            .map(|idx| ColumnMeta {
+        let expected_col_info: Vec<meta::Column> = (0..fields.len())
+            .map(|idx| meta::Column {
                 node_start: idx,
                 node_count: 1,
                 buffer_start: idx * num_buffers,
@@ -1139,7 +1139,7 @@ pub mod tests {
             .unwrap();
         let timestamp_second_array = timestamp_second_buffer_builder.finish();
 
-        let dummy_data_arrays: Vec<&dyn ArrowArray> = vec![
+        let dummy_data_arrays: Vec<&dyn Array> = vec![
             &timestamp_nanosecond_array,
             &timestamp_microsecond_array,
             &timestamp_millisecond_array,
@@ -1177,8 +1177,8 @@ pub mod tests {
 
         // all fields are one node, with each node having 2 buffers
         let num_buffers = 2;
-        let expected_col_info: Vec<ColumnMeta> = (0..fields.len())
-            .map(|idx| ColumnMeta {
+        let expected_col_info: Vec<meta::Column> = (0..fields.len())
+            .map(|idx| meta::Column {
                 node_start: idx,
                 node_count: 1,
                 buffer_start: idx * num_buffers,
@@ -1256,8 +1256,8 @@ pub mod tests {
 
         // all fields are one node, with each node having 3 buffers
         let num_buffers = 3;
-        let expected_col_info: Vec<ColumnMeta> = (0..fields.len())
-            .map(|idx| ColumnMeta {
+        let expected_col_info: Vec<meta::Column> = (0..fields.len())
+            .map(|idx| meta::Column {
                 node_start: idx,
                 node_count: 1,
                 buffer_start: idx * num_buffers,
@@ -1304,7 +1304,7 @@ pub mod tests {
         binary_builder.append_value(&vec![3u8; 6]).unwrap();
         let binary_array = binary_builder.finish();
 
-        let dummy_data_arrays: Vec<&dyn ArrowArray> = vec![&string_array, &binary_array];
+        let dummy_data_arrays: Vec<&dyn Array> = vec![&string_array, &binary_array];
 
         for (arrow_array, column_meta) in
             dummy_data_arrays.into_iter().zip(expected_col_info.iter())
@@ -1345,8 +1345,8 @@ pub mod tests {
         let num_nodes = 2; // each list has a node with a nested node
         let num_buffers_per_node = 2; // each selected node happens to have 2 buffers
 
-        let expected_col_info: Vec<ColumnMeta> = (0..fields.len())
-            .map(|idx| ColumnMeta {
+        let expected_col_info: Vec<meta::Column> = (0..fields.len())
+            .map(|idx| meta::Column {
                 node_start: idx * num_nodes,
                 node_count: num_nodes,
                 buffer_start: idx * num_buffers_per_node * num_nodes,
@@ -1433,7 +1433,7 @@ pub mod tests {
         }
         let uint32_list = uint32_list_builder.finish();
 
-        let dummy_data_arrays: Vec<&dyn ArrowArray> = vec![&bool_list, &uint32_list];
+        let dummy_data_arrays: Vec<&dyn Array> = vec![&bool_list, &uint32_list];
 
         for (arrow_array, column_meta) in
             dummy_data_arrays.into_iter().zip(expected_col_info.iter())
@@ -1469,7 +1469,7 @@ pub mod tests {
 
         let expected_col_info = vec![
             // "c0"
-            ColumnMeta {
+            meta::Column {
                 node_start: 0,
                 node_count: 3, // 1 parent struct node + 2 child nodes
                 buffer_start: 0,
@@ -1482,7 +1482,7 @@ pub mod tests {
                 ],
             },
             // "c1"
-            ColumnMeta {
+            meta::Column {
                 node_start: 3,
                 node_count: 1, // 1 parent struct node
                 buffer_start: 6,
@@ -1560,7 +1560,7 @@ pub mod tests {
             ArrowArrayData::builder(D::Struct(vec![])).build().unwrap(),
         );
 
-        let dummy_data_arrays: Vec<&dyn ArrowArray> = vec![&struct_c0, &struct_c1];
+        let dummy_data_arrays: Vec<&dyn Array> = vec![&struct_c0, &struct_c1];
 
         for (arrow_array, column_meta) in
             dummy_data_arrays.into_iter().zip(expected_col_info.iter())

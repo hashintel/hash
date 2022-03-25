@@ -1357,7 +1357,10 @@ pub(super) mod test {
 
     use super::*;
     use crate::{
-        datastore::{schema::state::MessageSchema, test_utils::gen_schema_and_test_agents},
+        datastore::{
+            arrow::batch_conversion::IntoAgents, schema::state::MessageSchema,
+            test_utils::gen_schema_and_test_agents,
+        },
         simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY,
     };
 
