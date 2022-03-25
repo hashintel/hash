@@ -163,7 +163,10 @@ fn inbound_to_nng(
                 flatbuffers_gen::runner_inbound_msg_generated::RunnerInboundMsgPayload::TaskMsg,
             )
         }
-        InboundToRunnerMsgPayload::CancelTask(_) => todo!(), // Unused for now
+        InboundToRunnerMsgPayload::CancelTask(_) => {
+            todo!("Cancel messages are not implemented yet");
+            // see https://app.asana.com/0/1199548034582004/1202011714603653/f
+        }
         InboundToRunnerMsgPayload::StateSync(msg) => {
             let (agent_pool, message_pool) = state_sync_to_fbs(fbb, &msg.state_proxy)?;
             let msg = flatbuffers_gen::sync_state_generated::StateSync::create(

@@ -336,8 +336,11 @@ impl WorkerPoolController {
     }
 
     // TODO: delete or use when cancel is revisited
-    #[allow(dead_code)]
+    #[allow(dead_code, unused_variables, unreachable_code)]
     async fn handle_cancel_msgs(&mut self, cancel_msgs: Vec<TaskId>) -> Result<()> {
+        todo!("Cancel messages are not implemented yet");
+        // see https://app.asana.com/0/1199548034582004/1202011714603653/f
+
         for id in cancel_msgs {
             tracing::trace!("Handling cancel msg for task with id: {}", id);
             if let Some(task) = self.pending_tasks.inner.get(&id) {
