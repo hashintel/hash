@@ -8,4 +8,4 @@ single-char-binding-names-threshold = 0
 
 # Names should be expressive, avoid throw-away variable names, abbrevations, and redundant names
 # defaults to ["foo", "baz", "quux"]
-blacklisted-names = ["foo", "baz", "quux", "toto", "tutu", "tata", "rb", "res", "yes", "no"]
+blacklisted-names = ["foo", "baz", "quux", "toto", "tutu", "tata", "rb", "yes", "no"]
