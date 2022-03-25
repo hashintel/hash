@@ -4,20 +4,20 @@ import { tw } from "twind";
 import { Box, SxProps, Theme, Typography } from "@mui/material";
 
 import { Suggester } from "./Suggester";
-import { UserBlock, useUserBlocks } from "../../userBlocks";
+import { RemoteBlockMetadata, useUserBlocks } from "../../userBlocks";
 import { useFilteredBlocks } from "./useFilteredBlocks";
 import { WarnIcon } from "../../../components/icons/WarnIcon";
 
 export interface BlockSuggesterProps {
   search?: string;
-  onChange(variant: BlockVariant, block: UserBlock): void;
+  onChange(variant: BlockVariant, block: RemoteBlockMetadata): void;
   sx?: SxProps<Theme>;
 }
 
 // @todo remove this when API returns actual icon URL
 export const getVariantIcon = (option: {
   variant: BlockVariant;
-  meta: UserBlock;
+  meta: RemoteBlockMetadata;
 }): string | undefined => {
   if (option.variant.icon?.startsWith("/")) {
     return `https://blockprotocol.org${option.variant.icon}`;

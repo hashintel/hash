@@ -23,7 +23,7 @@ import styles from "../index.module.scss";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import { PageTransferDropdown } from "../../components/Dropdowns/PageTransferDropdown";
 import { MainContentWrapper } from "../../components/layout/MainContentWrapper";
-import { UserBlock } from "../../blocks/userBlocks";
+import { RemoteBlockMetadata } from "../../blocks/userBlocks";
 
 /**
  * preload all configured blocks for now. in the future these will be loaded
@@ -75,7 +75,7 @@ export const Page: React.VFC<PageProps> = ({ blocksMeta }) => {
     );
   }, [blocksMeta]);
 
-  const initialUserBlocks: UserBlock[] = useMemo(() => {
+  const initialUserBlocks: RemoteBlockMetadata[] = useMemo(() => {
     return blocksMeta.map((blockMeta) => blockMeta.componentMetadata);
   }, [blocksMeta]);
 

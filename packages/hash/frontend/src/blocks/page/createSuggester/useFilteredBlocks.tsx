@@ -1,17 +1,17 @@
 import { BlockVariant } from "blockprotocol";
 import { useMemo } from "react";
 
-import { UserBlock } from "../../userBlocks";
+import { RemoteBlockMetadata } from "../../userBlocks";
 import { fuzzySearchBy } from "./fuzzySearchBy";
 
 type Option = {
   variant: BlockVariant;
-  meta: UserBlock;
+  meta: RemoteBlockMetadata;
 };
 
 export const useFilteredBlocks = (
   searchText: string,
-  userBlocks: UserBlock[],
+  userBlocks: RemoteBlockMetadata[],
 ) => {
   return useMemo(() => {
     const allOptions: Option[] = Object.values(userBlocks).flatMap(

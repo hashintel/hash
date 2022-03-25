@@ -1,6 +1,6 @@
 import { BlockVariant } from "blockprotocol";
 import { tw } from "twind";
-import { UserBlock } from "../../blocks/userBlocks";
+import { RemoteBlockMetadata } from "../../blocks/userBlocks";
 
 export type MenuState = {
   currentView: "normal" | "search";
@@ -12,7 +12,7 @@ export type FilteredMenuItems = {
   actions: Array<MenuItemType>;
   blocks: Array<{
     variant: BlockVariant;
-    meta: UserBlock;
+    meta: RemoteBlockMetadata;
   }>;
 };
 

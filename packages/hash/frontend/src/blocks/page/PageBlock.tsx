@@ -6,14 +6,14 @@ import React, { useLayoutEffect, useRef, VoidFunctionComponent } from "react";
 import { useLocalstorageState } from "rooks";
 
 import { Button } from "../../components/Button";
-import { UserBlock, UserBlocksProvider } from "../userBlocks";
+import { RemoteBlockMetadata, UserBlocksProvider } from "../userBlocks";
 import { EditorConnection } from "./collab/EditorConnection";
 import { BlocksMetaMap, createEditorView } from "./createEditorView";
 import { usePortals } from "./usePortals";
 
 type PageBlockProps = {
   blocksMeta: BlocksMetaMap;
-  initialUserBlocks: UserBlock[];
+  initialUserBlocks: RemoteBlockMetadata[];
   accountId: string;
   entityId: string;
 };
@@ -25,6 +25,8 @@ type PageBlockProps = {
  * do that
  */
 export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
+  // @todo consolidate blocksMeta and initialUserBlocks as they share properties
+  // @see - https://app.asana.com/0/1200211978612931/1202023490862451/f
   blocksMeta,
   initialUserBlocks,
   accountId,

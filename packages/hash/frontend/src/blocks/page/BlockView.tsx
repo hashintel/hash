@@ -14,7 +14,7 @@ import { useOutsideClick } from "rooks";
 import { tw } from "twind";
 import { BlockContextMenu } from "../../components/BlockContextMenu/BlockContextMenu";
 import { DragVerticalIcon } from "../../components/icons";
-import { UserBlock } from "../userBlocks";
+import { RemoteBlockMetadata } from "../userBlocks";
 import { BlockViewContext } from "./BlockViewContext";
 import { CollabPositionIndicators } from "./CollabPositionIndicators";
 import { BlockSuggesterProps } from "./createSuggester/BlockSuggester";
@@ -275,7 +275,7 @@ export class BlockView implements NodeView<Schema> {
   /**
    * @todo restore the ability to load in new block types here
    */
-  onBlockChange = (variant: BlockVariant, meta: UserBlock) => {
+  onBlockChange = (variant: BlockVariant, meta: RemoteBlockMetadata) => {
     const { node, view, getPos } = this;
 
     const state = view.state;

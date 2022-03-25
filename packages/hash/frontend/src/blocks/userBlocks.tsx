@@ -13,13 +13,13 @@ import {
 import { useCachedDefaultState } from "../components/hooks/useDefaultState";
 import { advancedFetch } from "../components/util/advancedFetch";
 
-export type UserBlock = BlockMetadata & {
+export type RemoteBlockMetadata = BlockMetadata & {
   componentId: string;
   packagePath?: string;
 };
 
 // @todo - remove this and packagePath once componentId starts being generated on the backend
-const getComponentId = (meta: UserBlock) => {
+const getComponentId = (meta: RemoteBlockMetadata) => {
   if (meta.componentId) {
     return meta.componentId;
   }
@@ -31,7 +31,7 @@ const getComponentId = (meta: UserBlock) => {
   throw new Error("Added a block without packagePath or componentId");
 };
 
-type UserBlocks = UserBlock[];
+type UserBlocks = RemoteBlockMetadata[];
 
 interface UserBlocksContextState {
   value: UserBlocks;

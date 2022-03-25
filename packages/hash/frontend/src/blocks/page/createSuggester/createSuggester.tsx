@@ -13,7 +13,7 @@ import { RenderPortal } from "../usePortals";
 import { ensureMounted } from "../../../lib/dom";
 import { BlockSuggester } from "./BlockSuggester";
 import { MentionSuggester } from "./MentionSuggester";
-import { UserBlock } from "../../userBlocks";
+import { RemoteBlockMetadata } from "../../userBlocks";
 
 interface Trigger {
   char: "@" | "/";
@@ -161,7 +161,7 @@ export const createSuggester = (
            */
           const onBlockSuggesterChange = (
             variant: BlockVariant,
-            userBlockMeta: UserBlock,
+            userBlockMeta: RemoteBlockMetadata,
           ) => {
             getManager()
               .createRemoteBlockTr(userBlockMeta.componentId, null, variant)
