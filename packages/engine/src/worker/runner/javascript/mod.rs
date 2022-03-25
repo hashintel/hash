@@ -260,7 +260,7 @@ fn import_file<'s>(
     let f: v8::Local<'_, v8::Function> = v.try_into().map_err(|err| {
         Error::FileImport(
             path.into(),
-            format!("Could not convert file {path} into Function: {err}"),
+            format!("Could not convert file into Function: {err}"),
         )
     })?;
 
