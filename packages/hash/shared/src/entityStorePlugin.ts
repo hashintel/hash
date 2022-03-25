@@ -570,6 +570,30 @@ class ProsemirrorStateChangeHandler {
   }
 }
 
+const updateEntityStorePluginListeners = collect<
+  [
+    view: EditorView<Schema>,
+    nextState: EditorState<Schema>,
+    prevState: EditorState<Schema>,
+    entityStorePlugin: Plugin<EntityStorePluginState, Schema>,
+  ]
+>((calls) => {
+  for (const [view, nextState, prevState, entityStorePlugin] of calls) {
+    if (view.state !== nextState) {
+      continue;
+    }
+
+    const nextPluginState = entityStorePlugin.getState(nextState);
+    const prevPluginState = entityStorePlugin.getState(prevState);
+
+    if (nextPluginState !== prevPluginState) {
+      for (const listener of nextPluginState.listeners) {
+        listener(nextPluginState.store);
+      }
+    }
+  }
+});
+
 export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
   key: entityStorePluginKey,
   state: {
@@ -581,16 +605,21 @@ export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
       };
     },
     apply(tr, initialState): EntityStorePluginState {
-      const nextState = getMeta(tr)?.store ?? initialState;
-
-      if (nextState !== initialState) {
-        for (const listener of nextState.listeners) {
-          listener(nextState.store);
-        }
-      }
-
-      return nextState;
+      return getMeta(tr)?.store ?? initialState;
     },
+  },
+
+  view() {
+    return {
+      update: (view, prevState) => {
+        updateEntityStorePluginListeners(
+          view,
+          view.state,
+          prevState,
+          entityStorePlugin,
+        );
+      },
+    };
   },
 
   /**
