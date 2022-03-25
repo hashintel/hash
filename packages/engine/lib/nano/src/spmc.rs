@@ -1,12 +1,15 @@
-use std::{result::Result, sync::Arc};
+use core::{fmt, result::Result};
+use std::sync::Arc;
 
 use tokio::sync::{mpsc, Mutex};
 
-/// Create a new single-producer multi-consumer queue. The `Receiver` end of the queue
-/// may be cloned. Each value in the queue will be received by at most one consumer.
-/// Internally, consumers acquire a tokio lock on the receiving side of a channel which
-/// ensures a fair allocation of messages to consumers based on FIFO locking order.
-/// See: <https://tokio-rs.github.io/tokio/doc/tokio/sync/struct.Mutex.html>
+/// Create a new single-producer multi-consumer queue.
+///
+/// The `Receiver` end of the queue may be cloned. Each value in the queue will be received by at
+/// most one consumer. Internally, consumers acquire a tokio lock on the receiving side of a channel
+/// which ensures a fair allocation of messages to consumers based on FIFO locking order.
+///
+/// Also see [`tokio::sync::Mutex`]
 pub(crate) fn channel<T: Send>(buffer: usize) -> (Sender<T>, Receiver<T>) {
     let (tx, rx) = mpsc::channel::<T>(buffer);
     let sender = Sender { sender: tx };
@@ -17,8 +20,14 @@ pub(crate) fn channel<T: Send>(buffer: usize) -> (Sender<T>, Receiver<T>) {
 }
 
 #[derive(Clone)]
-pub(crate) struct Sender<T: Send> {
+pub(crate) struct Sender<T> {
     sender: mpsc::Sender<T>,
+}
+
+impl<T> fmt::Debug for Sender<T> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("Sender { ... }")
+    }
 }
 
 impl<T: Send> Sender<T> {
@@ -29,11 +38,11 @@ impl<T: Send> Sender<T> {
     }
 }
 
-pub(crate) struct Receiver<T: Send> {
+pub(crate) struct Receiver<T> {
     receiver: Arc<Mutex<mpsc::Receiver<T>>>,
 }
 
-impl<T: Send> Clone for Receiver<T> {
+impl<T> Clone for Receiver<T> {
     fn clone(&self) -> Self {
         Self {
             receiver: Arc::clone(&self.receiver),

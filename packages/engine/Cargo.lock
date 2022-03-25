@@ -1393,7 +1393,6 @@ dependencies = [
 name = "nano"
 version = "0.0.0"
 dependencies = [
- "lazy_static",
  "nng",
  "serde",
  "serde_json",

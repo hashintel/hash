@@ -1,3 +1,5 @@
+use core::fmt;
+
 use tokio::sync::mpsc;
 
 /// Based on the server example at:
@@ -12,16 +14,20 @@ const NUM_WORKERS: usize = 4;
 type MsgSender = mpsc::UnboundedSender<nng::Message>;
 type MsgReceiver = mpsc::UnboundedReceiver<nng::Message>;
 
-#[allow(
-    missing_debug_implementations,
-    reason = "Worker does not implement Debug"
-)]
 pub struct Server {
     // We don't use the socket and workers directly once the server is created. But,
     // we need to keep them alive for nng.
     _socket: nng::Socket,
     _workers: Vec<Worker>,
     receiver: MsgReceiver,
+}
+
+impl fmt::Debug for Server {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("Server")
+            .field("receiver", &self.receiver)
+            .finish()
+    }
 }
 
 struct Worker {
@@ -92,7 +98,7 @@ impl Server {
     /// Creating a `Server` returns an error, if
     ///
     /// - the nng socket could not be created, or
-    /// - the [`Worker`] could not be created from the provided `url`.
+    /// - the worker could not be created from the provided `url`.
     pub fn new(url: &str) -> Result<Self> {
         let socket = nng::Socket::new(nng::Protocol::Rep0)?;
         socket.listen(url)?;
