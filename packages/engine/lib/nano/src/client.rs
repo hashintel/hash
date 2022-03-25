@@ -1,4 +1,4 @@
-use std::time::Duration;
+use core::{fmt, time::Duration};
 
 use nng::options::{protocol::reqrep::ResendTime, Options, ReconnectMaxTime, ReconnectMinTime};
 use tokio::sync::{mpsc, oneshot};
@@ -7,23 +7,16 @@ use super::{
     error::{Error, Result},
     spmc,
 };
+use crate::{RECV_EXPECT_MESSAGE, SEND_EXPECT_MESSAGE};
 
-lazy_static::lazy_static! {
-    // Time after which NNG will try to retry sending a message
-    static ref RESEND_TIME: Duration = Duration::from_secs(1);
-    // Minimum time to wait before attempting to retry NNG dial
-    static ref RECCONNECT_MIN_TIME: Duration = Duration::from_millis(50);
-    // Maximum time to wait for an NNG dial to succeed
-    static ref RECCONNECT_MAX_TIME: Duration = Duration::from_secs(10);
-}
+const RESEND_TIME: Duration = Duration::from_secs(1);
+const RECONNECT_MIN_TIME: Duration = Duration::from_millis(50);
+const RECONNECT_MAX_TIME: Duration = Duration::from_secs(10);
 
 type Request = (nng::Message, oneshot::Sender<Result<()>>);
 
 /// Client represents the request side of the NNG rep/req protocol.
-#[allow(
-    missing_debug_implementations,
-    reason = "WorkerHandle does not implement Debug"
-)]
+#[derive(Debug)]
 pub struct Client {
     workers: Vec<WorkerHandle>,
     sender: spmc::Sender<Request>,
@@ -44,17 +37,23 @@ struct WorkerHandle {
     stop_tx: mpsc::UnboundedSender<()>,
 }
 
+impl fmt::Debug for WorkerHandle {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("WorkerHandle { ... }")
+    }
+}
+
 impl Worker {
     fn new(url: &str, request_rx: spmc::Receiver<Request>) -> Result<Self> {
         let socket = nng::Socket::new(nng::Protocol::Req0)?;
 
         let builder = nng::DialerBuilder::new(&socket, url)?;
-        builder.set_opt::<ReconnectMaxTime>(Some(*RECCONNECT_MAX_TIME))?;
-        builder.set_opt::<ReconnectMinTime>(Some(*RECCONNECT_MIN_TIME))?;
+        builder.set_opt::<ReconnectMaxTime>(Some(RECONNECT_MAX_TIME))?;
+        builder.set_opt::<ReconnectMinTime>(Some(RECONNECT_MIN_TIME))?;
         let dialer = builder.start(false).map_err(|e| e.1)?;
 
         let ctx = nng::Context::new(&socket)?;
-        ctx.set_opt::<ResendTime>(Some(*RESEND_TIME))?;
+        ctx.set_opt::<ResendTime>(Some(RESEND_TIME))?;
 
         // There will only ever be one message in the channel. But, it needs to be
         // unbounded because we can't .await inside an nng::Aio.
@@ -63,17 +62,19 @@ impl Worker {
         let (reply_tx, reply_rx) = mpsc::unbounded_channel();
 
         let ctx_clone = ctx.clone();
-        let aio = nng::Aio::new(move |aio, res| match res {
+        let aio = nng::Aio::new(move |aio, aio_result| match aio_result {
             nng::AioResult::Send(_) => {
                 // The message was sent. Wait for the reply to arrive.
-                ctx_clone.recv(&aio).unwrap();
+                ctx_clone.recv(&aio).expect(RECV_EXPECT_MESSAGE);
             }
-            nng::AioResult::Recv(res) => {
+            nng::AioResult::Recv(message) => {
                 // We received the reply.
-                reply_tx.send(res.map(|_| ()).map_err(Error::from)).unwrap();
+                reply_tx
+                    .send(message.map(|_| ()).map_err(Error::from))
+                    .expect(SEND_EXPECT_MESSAGE);
             }
             nng::AioResult::Sleep(_) => {
-                panic!("unexpected sleep");
+                unreachable!("unexpected sleep");
             }
         })?;
 
@@ -90,13 +91,13 @@ impl Worker {
     async fn handle_request(&mut self, (msg, sender): Request) {
         // Send the message to the server
         if let Err((_, e)) = self.ctx.send(&self.aio, msg) {
-            sender.send(Err(Error::from(e))).unwrap();
+            sender.send(Err(Error::from(e))).expect(SEND_EXPECT_MESSAGE);
             return;
         }
 
         // Wait for a reply from the server
-        let res = self.reply_rx.recv().await.unwrap();
-        sender.send(res).unwrap();
+        let recv_result = self.reply_rx.recv().await.expect(RECV_EXPECT_MESSAGE);
+        sender.send(recv_result).expect(SEND_EXPECT_MESSAGE);
     }
 
     async fn run(&mut self, mut stop_rx: mpsc::UnboundedReceiver<()>) {
@@ -110,10 +111,15 @@ impl Worker {
 }
 
 impl Client {
-    /// Create a new `Client` with a given number of background workers. Each worker
-    /// provides one extra concurrent request.
+    /// Create a new `Client` with a given number of background workers.
+    ///
+    /// Each worker provides one extra concurrent request.
     ///
     /// # Errors
+    ///
+    /// Creating a `Client` returns an error if
+    ///
+    /// - a worker could not be created from the provided url.
     pub fn new(url: &str, num_workers: usize) -> Result<Self> {
         let (sender, receiver) = spmc::channel(num_workers);
 
@@ -130,24 +136,40 @@ impl Client {
             })
             .collect::<Result<Vec<_>>>()?;
 
-        Ok(Client { workers, sender })
+        Ok(Self { workers, sender })
     }
 
     /// Sends a JSON-serializable message.
-    pub async fn send<T: serde::Serialize>(&mut self, msg: &T) -> Result<()> {
+    ///
+    /// # Errors
+    ///
+    /// Sending a message returns an error, if
+    ///
+    /// - the message could not be serialized to JSON.
+    ///
+    /// # Panics
+    ///
+    /// Sending a message panics, if
+    ///
+    /// - the message could not be sent, or
+    /// - the response could not be received
+    pub async fn send<T: serde::Serialize + Sync>(&mut self, msg: &T) -> Result<()> {
         let mut nng_msg = nng::Message::new();
         serde_json::to_writer(&mut nng_msg, msg)?;
 
         let (tx, rx) = oneshot::channel();
-        self.sender.send((nng_msg, tx)).await.unwrap();
-        rx.await.unwrap()
+        self.sender
+            .send((nng_msg, tx))
+            .await
+            .expect(SEND_EXPECT_MESSAGE);
+        rx.await.expect(RECV_EXPECT_MESSAGE)
     }
 }
 
 impl Drop for Client {
     fn drop(&mut self) {
-        for worker in self.workers.iter() {
-            worker.stop_tx.send(()).unwrap();
+        for worker in &self.workers {
+            worker.stop_tx.send(()).expect(SEND_EXPECT_MESSAGE);
         }
     }
 }
