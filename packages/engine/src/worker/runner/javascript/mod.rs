@@ -546,7 +546,6 @@ fn state_to_js<'s, 'a>(
     mut agent_batches: impl Iterator<Item = &'a AgentBatch>,
     mut message_batches: impl Iterator<Item = &'a MessageBatch>,
 ) -> Result<(Value<'s>, Value<'s>)> {
-    // I'm not sure if we need to know the length beforehand or not
     let js_agent_batches = v8::Array::new(scope, 0);
     let js_message_batches = v8::Array::new(scope, 0);
 
