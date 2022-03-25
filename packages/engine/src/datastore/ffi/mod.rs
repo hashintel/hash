@@ -7,10 +7,14 @@ mod test;
 
 use std::{ffi::c_void, os::raw::c_char, sync::Arc};
 
+use arrow::ipc;
 use memory::CMemory;
 
-use super::prelude::{
-    arrow_ipc, DynamicMeta, Error, HashDynamicMeta, HashStaticMeta, Memory, StaticMeta,
+use crate::datastore::{
+    arrow::meta_conversion::{HashDynamicMeta, HashStaticMeta},
+    error::Error,
+    meta,
+    storage::memory::Memory,
 };
 
 pub type ReleaseArrowArray = extern "C" fn(*mut ArrowArray);
@@ -57,7 +61,7 @@ pub struct ArrowArray {
 
 // Call this at the beginning of the experiment runs
 #[no_mangle]
-unsafe extern "C" fn get_static_metadata(schema: usize) -> *const StaticMeta {
+unsafe extern "C" fn get_static_metadata(schema: usize) -> *const meta::Static {
     let schema = schema as *const ArrowSchema;
     match schema_conversion::c_schema_to_rust(&*schema) {
         Ok(rust_schema) => {
@@ -73,7 +77,7 @@ unsafe extern "C" fn get_static_metadata(schema: usize) -> *const StaticMeta {
 }
 
 #[no_mangle]
-unsafe extern "C" fn free_static_metadata(ptr: *mut StaticMeta) {
+unsafe extern "C" fn free_static_metadata(ptr: *mut meta::Static) {
     if !ptr.is_null() {
         Box::from_raw(ptr);
     }
@@ -94,12 +98,12 @@ unsafe extern "C" fn free_c_arrow_array(array: usize) {
 // Call this when a new batch is loaded
 // Lifetime: lifetime of batch
 #[no_mangle]
-unsafe extern "C" fn get_dynamic_metadata(memory_ptr: *const CMemory) -> *const DynamicMeta {
+unsafe extern "C" fn get_dynamic_metadata(memory_ptr: *const CMemory) -> *const meta::Dynamic {
     let c_memory = &*memory_ptr;
     let memory = &mut *(c_memory.memory as *mut Memory);
     match memory.get_metadata() {
         Ok(meta_buffer) => {
-            let batch_message = match arrow_ipc::root_as_message(meta_buffer)
+            let batch_message = match ipc::root_as_message(meta_buffer)
                 .map_err(Error::from)
                 .and_then(|message| {
                     message
@@ -132,7 +136,7 @@ unsafe extern "C" fn get_dynamic_metadata(memory_ptr: *const CMemory) -> *const 
 }
 
 #[no_mangle]
-unsafe extern "C" fn free_dynamic_metadata(ptr: *mut DynamicMeta) {
+unsafe extern "C" fn free_dynamic_metadata(ptr: *mut meta::Dynamic) {
     if !ptr.is_null() {
         Box::from_raw(ptr);
     }

@@ -302,7 +302,10 @@ impl WorkerController {
     /// [`Dynamic`]: MessageTarget::Dynamic
     /// [`Main`]: MessageTarget::Main
     async fn handle_runner_msg(&mut self, msg: OutboundFromRunnerMsg) -> Result<()> {
-        use OutboundFromRunnerMsgPayload::*;
+        use OutboundFromRunnerMsgPayload::{
+            PackageError, RunnerError, RunnerErrors, RunnerLog, RunnerLogs, RunnerWarning,
+            RunnerWarnings, SyncCompletion, TaskCancelled, TaskMsg, UserErrors, UserWarnings,
+        };
         let sim_id = msg.sim_id;
         match msg.payload {
             TaskMsg(task) => match task.target {

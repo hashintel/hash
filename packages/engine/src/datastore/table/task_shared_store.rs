@@ -4,7 +4,10 @@ use std::fmt::Debug;
 use super::proxy::{StateReadProxy, StateWriteProxy};
 use crate::{
     config::{StateBatchDistribution, Worker, WorkerAllocation},
-    datastore::{prelude::Result, table::context::Context, Error},
+    datastore::{
+        error::{Error, Result},
+        table::context::Context,
+    },
     simulation::task::handler::worker_pool::SplitConfig,
 };
 

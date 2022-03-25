@@ -1,4 +1,4 @@
-use super::prelude::Result;
+use crate::simulation::error::Result;
 
 pub trait GetWorkerExpStartMsg {
     // TODO: maybe the Ok(Null) return should be impl by default

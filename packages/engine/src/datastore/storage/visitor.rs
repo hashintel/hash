@@ -10,7 +10,11 @@ use super::{
     ptr::MemoryPtr,
     BufferChange,
 };
-use crate::datastore::{arrow::util, prelude::*};
+use crate::datastore::{
+    arrow::util,
+    error::{Error, Result},
+    storage::memory::Memory,
+};
 
 pub(in crate::datastore) trait Visit<'mem: 'v, 'v> {
     fn ptr(&self) -> &MemoryPtr;

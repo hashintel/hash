@@ -1,5 +1,9 @@
 use crate::{
-    datastore::{batch::Segment, prelude::*},
+    datastore::{
+        batch::{metaversion::Metaversion, Segment},
+        error::Result,
+        storage::memory::Memory,
+    },
     proto::{ExperimentId, SharedDataset},
 };
 
