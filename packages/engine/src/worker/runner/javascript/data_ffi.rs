@@ -22,33 +22,13 @@ pub struct DataFfi<'s> {
 impl<'s> DataFfi<'s> {
     pub(crate) fn new_from_js(
         scope: &mut v8::HandleScope<'s>,
-        data: v8::Local<'s, v8::Value>,
+        data: v8::Local<'s, v8::Object>,
     ) -> Result<DataFfi<'s>> {
-        let obj = data
-            .to_object(scope)
-            .ok_or_else(|| Error::V8("Could not convert data from Value to Object".to_string()))?;
-
-        let len_value = get_obj_property(scope, obj, "len")?;
-        let len_num: v8::Local<'s, v8::Number> = len_value.try_into().map_err(|err| {
-            Error::V8(format!(
-                "Could not convert len_value from Value to Number: {err}"
-            ))
-        })?;
-
-        let null_count_value = get_obj_property(scope, obj, "null_count")?;
+        let len_num: v8::Local<'s, v8::Number> = get_data_property(scope, data, "len")?;
         let null_count_num: v8::Local<'s, v8::Number> =
-            null_count_value.try_into().map_err(|err| {
-                Error::V8(format!(
-                    "Could not convert null_count_value from Value to Number: {err}"
-                ))
-            })?;
+            get_data_property(scope, data, "null_count")?;
 
-        let buffers_value = get_obj_property(scope, obj, "buffers")?;
-        let buffers: v8::Local<'s, v8::Array> = buffers_value.try_into().map_err(|err| {
-            Error::V8(format!(
-                "Could not convert buffers from Value to Array: {err}"
-            ))
-        })?;
+        let buffers: v8::Local<'s, v8::Array> = get_data_property(scope, data, "buffers")?;
         let n_buffers = buffers.length();
         if n_buffers > 2 {
             return Err(Error::V8(format!(
@@ -78,13 +58,8 @@ impl<'s> DataFfi<'s> {
             buffer_capacities[i as usize] = contents.byte_length();
         }
 
-        let null_bits_value = get_obj_property(scope, obj, "null_bits")?;
         let null_bits: v8::Local<'s, v8::ArrayBuffer> =
-            null_bits_value.try_into().map_err(|err| {
-                Error::V8(format!(
-                    "Could not convert len from Value to ArrayBuffer: {err}"
-                ))
-            })?;
+            get_data_property(scope, data, "null_bits")?;
         let contents = null_bits.get_backing_store();
         let null_bits_ptr = contents
             .data()
@@ -116,4 +91,22 @@ pub(crate) fn get_obj_property<'s>(
 
     obj.get(scope, js_key.into())
         .ok_or_else(|| Error::V8(format!("Could not get {key} property on obj")))
+}
+
+fn get_data_property<'s, T>(
+    scope: &mut v8::HandleScope<'s>,
+    data: v8::Local<'s, v8::Object>,
+    property: &str,
+) -> Result<v8::Local<'s, T>>
+where
+    v8::Local<'s, T>: TryFrom<v8::Local<'s, v8::Value>>,
+    <v8::Local<'s, T> as TryFrom<v8::Local<'s, v8::Value>>>::Error: std::fmt::Display,
+{
+    let len_value = get_obj_property(scope, data, property)?;
+    len_value.try_into().map_err(|err| {
+        Error::V8(format!(
+            "Could not convert {property} from Value to {}: {err}",
+            std::any::type_name::<T>().rsplit_once(':').unwrap().1
+        ))
+    })
 }

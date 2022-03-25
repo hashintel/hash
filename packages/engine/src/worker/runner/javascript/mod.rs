@@ -1047,7 +1047,7 @@ impl<'s> ThreadLocalRunner<'s> {
         })?;
 
         // `data_node_from_js` isn't recursive -- doesn't convert children.
-        let data = data_ffi::DataFfi::new_from_js(scope, data)?;
+        let data = data_ffi::DataFfi::new_from_js(scope, obj)?;
 
         // The JS Arrow implementation tries to be efficient with the allocation of the values
         // buffers. If you have a null value at the end, it doesn't always allocate that
