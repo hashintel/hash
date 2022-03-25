@@ -5,7 +5,6 @@ use super::{
     id::PackageId,
     init, output,
     output::packages::OutputPackagesSimConfig,
-    prelude::Comms,
     run::{InitPackages, Packages, StepPackages},
     state, PackageType,
 };
@@ -16,7 +15,7 @@ use crate::{
         FieldSource, FieldSpec, FieldSpecMap, FieldType, RootFieldSpec, RootFieldSpecCreator,
     },
     simulation::{
-        comms::package::PackageComms,
+        comms::{package::PackageComms, Comms},
         package::{name::PackageName, worker_init::PackageInitMsgForWorker},
         Error, Result,
     },

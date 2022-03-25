@@ -1,8 +1,9 @@
+use async_trait::async_trait;
 use serde_json::Value;
 
 pub use self::config::JsonStateOutputConfig;
 use super::super::{
-    async_trait, Arc, Context, Error, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg,
+    Arc, Context, Error, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg,
     GetWorkerSimStartMsg, Globals, MaybeCpuBound, Output, PackageComms, PackageCreator, Result,
     SimRunConfig, Span, State,
 };

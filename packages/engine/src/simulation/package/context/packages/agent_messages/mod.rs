@@ -4,14 +4,27 @@ mod indices;
 mod writer;
 
 use arrow::array::{Array, FixedSizeListBuilder, ListBuilder};
+pub use async_trait::async_trait;
 use serde_json::Value;
 use tracing::Span;
 
 use self::collected::Messages;
 use super::super::{
-    async_trait, Arc, ContextColumn, ContextPackage, ContextSchema, ExperimentConfig, FieldKey,
-    FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, Globals, MaybeCpuBound,
-    PackageCreator, Result, RootFieldSpecCreator, SimRunConfig, StateReadProxy, StateSnapshot,
+    Arc, ContextColumn, ContextSchema, FieldKey, FieldSpecMapAccessor, GetWorkerExpStartMsg,
+    GetWorkerSimStartMsg, Globals, MaybeCpuBound, PackageCreator, RootFieldSpecCreator,
+    SimRunConfig, StateReadProxy, StateSnapshot,
+};
+pub use crate::{
+    config::{ExperimentConfig, SimulationConfig},
+    datastore::table::{context::Context, state::State},
+    simulation::{
+        comms::Comms,
+        package::{
+            context::Package as ContextPackage, init::Package as InitPackage,
+            output::Package as OutputPackage, state::Package as StatePackage,
+        },
+        Error, Result,
+    },
 };
 use crate::{
     datastore::{

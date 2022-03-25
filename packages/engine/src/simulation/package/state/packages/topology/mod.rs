@@ -1,16 +1,17 @@
+use async_trait::async_trait;
 use serde_json::Value;
 
 use super::super::{
-    async_trait, Arc, Context, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg,
-    Globals, Package, PackageComms, PackageCreator, Result, RootFieldSpec, RootFieldSpecCreator,
-    SimRunConfig, Span, State,
+    Arc, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, Globals, Package,
+    PackageComms, PackageCreator, RootFieldSpec, RootFieldSpecCreator, SimRunConfig, Span,
 };
 use crate::{
     config::{ExperimentConfig, TopologyConfig},
     datastore::{
         batch::{iterators::record_batch::topology_mut_iter, AgentBatch},
-        table::pool::BatchPool,
+        table::{context::Context, pool::BatchPool, state::State},
     },
+    simulation::Result,
 };
 
 mod adjacency;

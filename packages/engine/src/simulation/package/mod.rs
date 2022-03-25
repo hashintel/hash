@@ -30,20 +30,6 @@ pub mod package;
 pub mod run;
 pub mod worker_init;
 
-pub mod prelude {
-    pub use async_trait::async_trait;
-
-    pub use super::{
-        super::comms::Comms, context::Package as ContextPackage, init::Package as InitPackage,
-        output::Package as OutputPackage, state::Package as StatePackage,
-    };
-    pub use crate::{
-        config::{ExperimentConfig, SimulationConfig},
-        datastore::table::{context::Context, state::State},
-        simulation::{Error, Result},
-    };
-}
-
 use serde::Serialize;
 
 use crate::simulation::package::{deps::Dependencies, id::PackageId};

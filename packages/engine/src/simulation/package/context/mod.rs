@@ -1,15 +1,15 @@
 use std::sync::Arc;
 
+use async_trait::async_trait;
 pub use packages::{ContextTask, ContextTaskMessage, Name, PACKAGE_CREATORS};
 use tracing::Span;
 
 use super::{
     deps::Dependencies,
     ext_traits::{GetWorkerSimStartMsg, MaybeCpuBound},
-    prelude::*,
 };
-pub use crate::config::Globals;
 use crate::{
+    config::{ExperimentConfig, Globals},
     datastore::{
         error::Result as DatastoreResult,
         meta::ColumnDynamicMetadata,
@@ -19,7 +19,11 @@ use crate::{
         },
         table::{proxy::StateReadProxy, state::view::StateSnapshot},
     },
-    simulation::{comms::package::PackageComms, package::ext_traits::GetWorkerExpStartMsg, Result},
+    simulation::{
+        comms::package::PackageComms,
+        package::{context::Package as ContextPackage, ext_traits::GetWorkerExpStartMsg},
+        Error, Result,
+    },
     SimRunConfig,
 };
 
