@@ -3,6 +3,7 @@ use thiserror::Error as ThisError;
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(ThisError, Debug)]
+#[non_exhaustive]
 pub enum Error {
     #[error("Serialize/Deserialize error")]
     Serde(#[from] serde_json::Error),
@@ -21,13 +22,13 @@ pub enum Error {
 }
 
 impl From<&str> for Error {
-    fn from(s: &str) -> Self {
-        Error::Unique(s.to_string())
+    fn from(error: &str) -> Self {
+        Self::Unique(error.to_owned())
     }
 }
 
 impl From<String> for Error {
-    fn from(s: String) -> Self {
-        Error::Unique(s)
+    fn from(error: String) -> Self {
+        Self::Unique(error)
     }
 }

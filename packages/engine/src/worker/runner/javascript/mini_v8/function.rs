@@ -1,6 +1,9 @@
 use std::{cmp, fmt, mem};
 
-use super::*;
+use super::{
+    desc_to_result, mv8_function_call, mv8_function_call_new, mv8_function_create, value_to_desc,
+    FromValue, MiniV8, Object, Ref, Result, ToValue, ToValues, Value, ValueDesc, Values,
+};
 
 /// Reference to a JavaScript function.
 #[derive(Clone)]

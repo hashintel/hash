@@ -3,7 +3,7 @@
 use std::{collections::HashMap, fmt::Display};
 
 use error::{bail, report, Result, ResultExt};
-use hash_engine_lib::{nano, proto, proto::ExperimentId};
+use hash_engine_lib::{proto, proto::ExperimentId};
 use tokio::sync::{mpsc, oneshot};
 
 type ResultSender = oneshot::Sender<Result<()>>;
