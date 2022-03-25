@@ -24,8 +24,6 @@
     missing_abi,
     missing_copy_implementations,
     missing_debug_implementations,
-    clippy::pedantic,
-    clippy::nursery,
     reason = "All warnings are enabled by default"
 )]
 
