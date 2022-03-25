@@ -123,11 +123,32 @@ impl<'s> JsPackage<'s> {
         )?;
 
         let pkg: v8::Local<'_, v8::Function> = {
-            let pkg = v8::Script::compile(scope, wrapped_code, None).ok_or_else(|| {
-                Error::PackageImport(path.clone(), format!("Could not compile code for package"))
+            let mut try_catch = v8::TryCatch::new(scope);
+
+            let pkg = v8::Script::compile(&mut try_catch, wrapped_code, None).ok_or_else(|| {
+                let exception = try_catch.exception().unwrap();
+                let exception_string = exception
+                    .to_string(&mut try_catch)
+                    .unwrap()
+                    .to_rust_string_lossy(&mut try_catch);
+
+                Error::PackageImport(
+                    path.clone(),
+                    format!("Could not compile code for package: {exception_string}"),
+                )
             })?;
-            let pkg = pkg.run(scope).ok_or_else(|| {
-                Error::PackageImport(path.clone(), format!("Couldn't execute package setup"))
+
+            let pkg = pkg.run(&mut try_catch).ok_or_else(|| {
+                let exception = try_catch.exception().unwrap();
+                let exception_string = exception
+                    .to_string(&mut try_catch)
+                    .unwrap()
+                    .to_rust_string_lossy(&mut try_catch);
+
+                Error::PackageImport(
+                    path.clone(),
+                    format!("Couldn't execute package setup: {exception_string}"),
+                )
             })?;
 
             pkg.try_into().map_err(|err| {
@@ -141,11 +162,9 @@ impl<'s> JsPackage<'s> {
         let args = &[embedded.hash_util, embedded.hash_stdlib];
         let fns: v8::Local<'_, v8::Array> = {
             let global_context = context.global(scope);
-            let fns = pkg
-                .call(scope, global_context.into(), args)
-                .ok_or_else(|| {
-                    Error::PackageImport(path.clone(), format!("Couldn't call package"))
-                })?;
+            let fns = call_js_function(scope, pkg, global_context.into(), args).map_err(|err| {
+                Error::PackageImport(path.clone(), format!("Couldn't call package: {err}"))
+            })?;
 
             fns.try_into().map_err(|err| {
                 Error::PackageImport(
@@ -209,12 +228,26 @@ fn read_file(path: &str) -> Result<String> {
 fn eval_file<'s>(scope: &mut v8::HandleScope<'s>, path: &str) -> Result<Value<'s>> {
     let source_code = read_file(path)?;
     let js_source_code = new_js_string(scope, &source_code)?;
-    let script = v8::Script::compile(scope, js_source_code, None)
-        .ok_or_else(|| Error::Eval(path.into(), "compile error".to_string()))?;
+    let mut try_catch = v8::TryCatch::new(scope);
+    let script = v8::Script::compile(&mut try_catch, js_source_code, None).ok_or_else(|| {
+        let exception = try_catch.exception().unwrap();
+        let exception_string = exception
+            .to_string(&mut try_catch)
+            .unwrap()
+            .to_rust_string_lossy(&mut try_catch);
 
-    script
-        .run(scope)
-        .ok_or_else(|| Error::Eval(path.into(), "execution error".to_string()))
+        Error::Eval(path.into(), format!("Compile error: {exception_string}"))
+    })?;
+
+    script.run(&mut try_catch).ok_or_else(|| {
+        let exception = try_catch.exception().unwrap();
+        let exception_string = exception
+            .to_string(&mut try_catch)
+            .unwrap()
+            .to_rust_string_lossy(&mut try_catch);
+
+        Error::Eval(path.into(), format!("Execution error: {exception_string}"))
+    })
 }
 
 fn import_file<'s>(
@@ -232,9 +265,8 @@ fn import_file<'s>(
     })?;
 
     let global_context = context.global(scope);
-    let imported = f
-        .call(scope, global_context.into(), args)
-        .ok_or_else(|| Error::FileImport(path.into(), "could not call function".to_string()))?;
+    let imported = call_js_function(scope, f, global_context.into(), args)
+        .map_err(|err| Error::FileImport(path.into(), format!("Could not call function: {err}")))?;
 
     Ok(imported)
 }
@@ -393,6 +425,22 @@ fn new_js_array_from_usizes<'s>(
     }
 
     Ok(a.into())
+}
+
+fn call_js_function<'s>(
+    scope: &mut v8::HandleScope<'s>,
+    func: Function<'s>,
+    this: Value<'s>,
+    args: &[Value<'s>],
+) -> std::result::Result<Value<'s>, String> {
+    let mut try_catch = v8::TryCatch::new(scope);
+    func.call(&mut try_catch, this, args).ok_or_else(|| {
+        let exception = try_catch.exception().unwrap();
+        exception
+            .to_string(&mut try_catch)
+            .unwrap()
+            .to_rust_string_lossy(&mut try_catch)
+    })
 }
 
 fn current_step_to_js<'s>(scope: &mut v8::HandleScope<'s>, current_step: usize) -> Value<'s> {
@@ -859,10 +907,8 @@ impl<'s> ThreadLocalRunner<'s> {
 
         let this = v8::Object::new(scope);
         let args = &[datasets, pkg_init_msgs.into(), pkg_fns.into()];
-        embedded
-            .start_experiment
-            .call(scope, this.into(), args)
-            .ok_or_else(|| Error::V8("Could not call start_experiment".to_string()))?;
+        call_js_function(scope, embedded.start_experiment, this.into(), args)
+            .map_err(|err| Error::V8(format!("Could not call start_experiment: {err}")))?;
 
         Ok(Self {
             embedded,
@@ -1435,18 +1481,16 @@ impl<'s> ThreadLocalRunner<'s> {
         let globals = new_js_string(scope, &globals)?;
 
         let js_sim_id = sim_id_to_js(scope, run.short_id);
-        self.embedded
-            .start_sim
-            .call(scope, self.this, &[
-                js_sim_id,
-                agent_schema_bytes,
-                msg_schema_bytes,
-                ctx_schema_bytes,
-                pkg_ids.into(),
-                pkg_msgs.into(),
-                globals.into(),
-            ])
-            .ok_or_else(|| Error::V8("Could not run start_sim Function".to_string()))?;
+        call_js_function(scope, self.embedded.start_sim, self.this, &[
+            js_sim_id,
+            agent_schema_bytes,
+            msg_schema_bytes,
+            ctx_schema_bytes,
+            pkg_ids.into(),
+            pkg_msgs.into(),
+            globals.into(),
+        ])
+        .map_err(|err| Error::V8(format!("Could not run start_sim Function: {err}")))?;
 
         // Initialize Rust.
         let state = SimState {
@@ -1580,11 +1624,9 @@ impl<'s> ThreadLocalRunner<'s> {
         Option<Vec<String>>,
     )> {
         tracing::debug!("Calling JS run_task");
-        let return_val: Value<'s> = self
-            .embedded
-            .run_task
-            .call(scope, self.this, args)
-            .ok_or_else(|| Error::V8("Could not run run_task Function".to_string()))?;
+        let return_val: Value<'s> =
+            call_js_function(scope, self.embedded.run_task, self.this, args)
+                .map_err(|err| Error::V8(format!("Could not run run_task Function: {err}")))?;
         let return_val = return_val.to_object(scope).ok_or_else(|| {
             Error::V8("Could not convert return_val from Value to Object".to_string())
         })?;
@@ -1644,15 +1686,13 @@ impl<'s> ThreadLocalRunner<'s> {
         )?;
         let js_idxs = new_js_array_from_usizes(scope, &state_group_start_indices)?;
         let js_current_step = current_step_to_js(scope, current_step);
-        self.embedded
-            .ctx_batch_sync
-            .call(scope, self.this, &[
-                js_sim_id,
-                js_batch_id,
-                js_idxs,
-                js_current_step,
-            ])
-            .ok_or_else(|| "Could not run ctx_batch_sync function".to_string())?;
+        call_js_function(scope, self.embedded.ctx_batch_sync, self.this, &[
+            js_sim_id,
+            js_batch_id,
+            js_idxs,
+            js_current_step,
+        ])
+        .map_err(|err| format!("Could not run ctx_batch_sync function: {err}"))?;
 
         Ok(())
     }
@@ -1675,10 +1715,10 @@ impl<'s> ThreadLocalRunner<'s> {
         // TODO: Pass `agent_pool` and `msg_pool` by reference
         let (agent_pool, msg_pool) = state_to_js(scope, agent_pool, msg_pool)?;
         let js_sim_id = sim_id_to_js(scope, sim_run_id);
-        self.embedded
-            .state_sync
-            .call(scope, self.this, &[js_sim_id, agent_pool, msg_pool])
-            .ok_or_else(|| "Could not run state_sync Function".to_string())?;
+        call_js_function(scope, self.embedded.state_sync, self.this, &[
+            js_sim_id, agent_pool, msg_pool,
+        ])
+        .map_err(|err| format!("Could not run state_sync Function: {err}"))?;
 
         tracing::trace!("Sending state sync completion");
         msg.completion_sender.send(Ok(())).map_err(|err| {
@@ -1705,15 +1745,13 @@ impl<'s> ThreadLocalRunner<'s> {
 
         let js_sim_id = sim_id_to_js(scope, sim_id);
         let js_idxs = new_js_array_from_usizes(scope, &group_indices)?;
-        self.embedded
-            .state_interim_sync
-            .call(scope, self.this, &[
-                js_sim_id,
-                js_idxs,
-                agent_batches,
-                msg_batches,
-            ])
-            .ok_or_else(|| Error::V8("Could not call state_interim_sync Function".to_string()))?;
+        call_js_function(scope, self.embedded.state_interim_sync, self.this, &[
+            js_sim_id,
+            js_idxs,
+            agent_batches,
+            msg_batches,
+        ])
+        .map_err(|err| Error::V8(format!("Could not call state_interim_sync Function: {err}")))?;
 
         Ok(())
     }
@@ -1729,10 +1767,10 @@ impl<'s> ThreadLocalRunner<'s> {
         let msg_pool = msg.state_proxy.message_pool().batches_iter();
         let (agent_pool, msg_pool) = state_to_js(scope, agent_pool, msg_pool)?;
         let sim_run_id = sim_id_to_js(scope, sim_run_id);
-        self.embedded
-            .state_snapshot_sync
-            .call(scope, self.this, &[sim_run_id, agent_pool, msg_pool])
-            .ok_or_else(|| "Could not run state_snapshot_sync Function".to_string())?;
+        call_js_function(scope, self.embedded.state_snapshot_sync, self.this, &[
+            sim_run_id, agent_pool, msg_pool,
+        ])
+        .map_err(|err| format!("Could not run state_snapshot_sync Function: {err}"))?;
 
         // State snapshots are part of context, not state, so don't need to
         // sync Rust state pools.
