@@ -104,11 +104,11 @@ Depending on your needs, different dependencies are required. Building this proj
 
   - Please also see [macOS Developer Specific Instructions](#macos-developer-specific-instructions) if you are running macOS
 
-### Optional dependencies
-
-- Python [3.7.x] is required, if you want to run a simulation with the python runner (i.e. have any python behaviors or _init.py_).
+- Python [3.7.x]
 
   - Python installation guidance from [their website](https://www.python.org/downloads/)
+
+### Optional dependencies
 
 - Flatbuffers [2.0.0] is required to generate structs in Javascript, Python, or Rust for messaging between processes in hCloud. Unless the schema files in [./format](./format) are changed (and thus require generation to be rerun), flatc is not needed.
 
