@@ -103,6 +103,7 @@ export const BlockSuggester: VFC<BlockSuggesterProps> = ({
                   sx={({ palette }) => ({
                     fontWeight: 500,
                     color: palette.gray[70],
+                    wordBreak: "normal",
                   })}
                 >
                   Unable to load all blocks due to a network error. Please try
