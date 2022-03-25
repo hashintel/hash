@@ -57,6 +57,10 @@ use crate::{
     Language,
 };
 
+type Object<'scope> = v8::Local<'scope, v8::Object>;
+type Value<'scope> = v8::Local<'scope, v8::Value>;
+type Function<'scope> = v8::Local<'scope, v8::Function>;
+
 struct JsPackage<'s> {
     fns: v8::Local<'s, v8::Array>,
 }
@@ -186,23 +190,23 @@ impl<'s> JsPackage<'s> {
 
 /// Embedded JS of runner itself (from hardcoded paths)
 struct Embedded<'s> {
-    hash_stdlib: v8::Local<'s, v8::Value>,
-    hash_util: v8::Local<'s, v8::Value>,
+    hash_stdlib: Value<'s>,
+    hash_util: Value<'s>,
 
-    start_experiment: v8::Local<'s, v8::Function>,
-    start_sim: v8::Local<'s, v8::Function>,
-    run_task: v8::Local<'s, v8::Function>,
-    ctx_batch_sync: v8::Local<'s, v8::Function>,
-    state_sync: v8::Local<'s, v8::Function>,
-    state_interim_sync: v8::Local<'s, v8::Function>,
-    state_snapshot_sync: v8::Local<'s, v8::Function>,
+    start_experiment: Function<'s>,
+    start_sim: Function<'s>,
+    run_task: Function<'s>,
+    ctx_batch_sync: Function<'s>,
+    state_sync: Function<'s>,
+    state_interim_sync: Function<'s>,
+    state_snapshot_sync: Function<'s>,
 }
 
 fn read_file(path: &str) -> Result<String> {
     fs::read_to_string(path).map_err(|err| Error::IO(path.into(), err))
 }
 
-fn eval_file<'s>(scope: &mut v8::HandleScope<'s>, path: &str) -> Result<v8::Local<'s, v8::Value>> {
+fn eval_file<'s>(scope: &mut v8::HandleScope<'s>, path: &str) -> Result<Value<'s>> {
     let source_code = read_file(path)?;
     let js_source_code = new_js_string(scope, &source_code)?;
     let script = v8::Script::compile(scope, js_source_code, None)
@@ -217,8 +221,8 @@ fn import_file<'s>(
     scope: &mut v8::HandleScope<'s>,
     context: v8::Local<'s, v8::Context>,
     path: &str,
-    args: &[v8::Local<'s, v8::Value>],
-) -> Result<v8::Local<'s, v8::Value>> {
+    args: &[Value<'s>],
+) -> Result<Value<'s>> {
     let v = eval_file(scope, path)?;
     let f: v8::Local<'_, v8::Function> = v.try_into().map_err(|err| {
         Error::FileImport(
@@ -244,7 +248,7 @@ impl<'s> Embedded<'s> {
             scope: &mut v8::HandleScope<'s>,
             fns: v8::Local<'s, v8::Array>,
             index: u32,
-        ) -> Result<v8::Local<'s, v8::Function>> {
+        ) -> Result<Function<'s>> {
             fns.get_index(scope, index)
                 .ok_or_else(|| {
                     Error::V8(format!("Could not get package function at index {index}"))
@@ -365,28 +369,22 @@ struct SimState {
 
 struct ThreadLocalRunner<'s> {
     embedded: Embedded<'s>,
-    this: v8::Local<'s, v8::Value>,
+    this: Value<'s>,
     sims_state: HashMap<SimulationShortId, SimState>,
 }
 
-fn sim_id_to_js<'s>(
-    scope: &mut v8::HandleScope<'s>,
-    sim_id: SimulationShortId,
-) -> v8::Local<'s, v8::Value> {
+fn sim_id_to_js<'s>(scope: &mut v8::HandleScope<'s>, sim_id: SimulationShortId) -> Value<'s> {
     v8::Number::new(scope, sim_id as f64).into()
 }
 
-fn pkg_id_to_js<'s>(
-    scope: &mut v8::HandleScope<'s>,
-    pkg_id: PackageId,
-) -> v8::Local<'s, v8::Value> {
+fn pkg_id_to_js<'s>(scope: &mut v8::HandleScope<'s>, pkg_id: PackageId) -> Value<'s> {
     v8::Number::new(scope, pkg_id.as_usize() as f64).into()
 }
 
 fn new_js_array_from_usizes<'s>(
     scope: &mut v8::HandleScope<'s>,
     values: &[usize],
-) -> Result<v8::Local<'s, v8::Value>> {
+) -> Result<Value<'s>> {
     let a = v8::Array::new(scope, values.len() as i32);
     for (i, idx) in values.iter().enumerate() {
         let js_idx = v8::Number::new(scope, *idx as u32 as f64);
@@ -397,10 +395,7 @@ fn new_js_array_from_usizes<'s>(
     Ok(a.into())
 }
 
-fn current_step_to_js<'s>(
-    scope: &mut v8::HandleScope<'s>,
-    current_step: usize,
-) -> v8::Local<'s, v8::Value> {
+fn current_step_to_js<'s>(scope: &mut v8::HandleScope<'s>, current_step: usize) -> Value<'s> {
     v8::Number::new(scope, current_step as f64).into()
 }
 
@@ -440,9 +435,9 @@ fn batches_from_shared_store(
 fn mem_batch_to_js<'s>(
     scope: &mut v8::HandleScope<'s>,
     batch_id: &str,
-    mem: v8::Local<'s, v8::Object>,
+    mem: Object<'s>,
     persisted: Metaversion,
-) -> Result<v8::Local<'s, v8::Value>> {
+) -> Result<Value<'s>> {
     let batch = v8::Object::new(scope);
     let batch_id = new_js_string(scope, batch_id)?;
 
@@ -473,7 +468,7 @@ fn batch_to_js<'s>(
     scope: &mut v8::HandleScope<'s>,
     mem: &Memory,
     persisted: Metaversion,
-) -> Result<v8::Local<'s, v8::Value>> {
+) -> Result<Value<'s>> {
     // The memory is owned by the shared memory, we don't want JS or Rust to try to de-allocate it
     unsafe extern "C" fn no_op(_: *mut std::ffi::c_void, _: usize, _: *mut std::ffi::c_void) {}
 
@@ -502,7 +497,7 @@ fn state_to_js<'s, 'a>(
     scope: &mut v8::HandleScope<'s>,
     mut agent_batches: impl Iterator<Item = &'a AgentBatch>,
     mut message_batches: impl Iterator<Item = &'a MessageBatch>,
-) -> Result<(v8::Local<'s, v8::Value>, v8::Local<'s, v8::Value>)> {
+) -> Result<(Value<'s>, Value<'s>)> {
     // I'm not sure if we need to know the length beforehand or not
     let js_agent_batches = v8::Array::new(scope, 0);
     let js_message_batches = v8::Array::new(scope, 0);
@@ -549,7 +544,7 @@ fn state_to_js<'s, 'a>(
     Ok((js_agent_batches.into(), js_message_batches.into()))
 }
 
-fn bytes_to_js<'s>(scope: &mut v8::HandleScope<'s>, bytes: &[u8]) -> v8::Local<'s, v8::Value> {
+fn bytes_to_js<'s>(scope: &mut v8::HandleScope<'s>, bytes: &[u8]) -> Value<'s> {
     let buffer = v8::ArrayBuffer::new(scope, bytes.len());
 
     if !bytes.is_empty() {
@@ -583,10 +578,7 @@ fn schema_to_stream_bytes(schema: &Schema) -> Vec<u8> {
     stream_bytes
 }
 
-fn array_to_user_errors<'s>(
-    scope: &mut v8::HandleScope<'s>,
-    array: v8::Local<'s, v8::Value>,
-) -> Vec<UserError> {
+fn array_to_user_errors<'s>(scope: &mut v8::HandleScope<'s>, array: Value<'s>) -> Vec<UserError> {
     let fallback = format!("Unparsed: {array:?}");
 
     if array.is_array() {
@@ -614,7 +606,7 @@ fn array_to_user_errors<'s>(
 
 fn array_to_user_warnings<'s>(
     scope: &mut v8::HandleScope<'s>,
-    array: v8::Local<'s, v8::Value>,
+    array: Value<'s>,
 ) -> Vec<UserWarning> {
     // TODO: Extract optional line numbers
     let fallback = format!("Unparsed: {array:?}");
@@ -648,10 +640,7 @@ fn array_to_user_warnings<'s>(
     }]
 }
 
-fn get_js_error<'s>(
-    scope: &mut v8::HandleScope<'s>,
-    return_val: v8::Local<'s, v8::Object>,
-) -> Option<Error> {
+fn get_js_error<'s>(scope: &mut v8::HandleScope<'s>, return_val: Object<'s>) -> Option<Error> {
     let user_errors = match new_js_string(scope, "user_errors") {
         Ok(user_errors) => user_errors,
         Err(err) => return Some(err),
@@ -714,7 +703,7 @@ fn get_js_error<'s>(
 
 fn get_user_warnings<'s>(
     scope: &mut v8::HandleScope<'s>,
-    return_val: v8::Local<'s, v8::Object>,
+    return_val: Object<'s>,
 ) -> Result<Option<Vec<UserWarning>>> {
     let user_warnings = new_js_string(scope, "user_warnings")?;
 
@@ -732,7 +721,7 @@ fn get_user_warnings<'s>(
 
 fn get_print<'s>(
     scope: &mut v8::HandleScope<'s>,
-    return_val: v8::Local<'s, v8::Object>,
+    return_val: Object<'s>,
 ) -> Result<Option<Vec<String>>> {
     let print = new_js_string(scope, "print")?;
 
@@ -757,7 +746,7 @@ fn get_print<'s>(
 
 fn get_next_task<'s>(
     scope: &mut v8::HandleScope<'s>,
-    return_val: v8::Local<'s, v8::Object>,
+    return_val: Object<'s>,
 ) -> Result<(MessageTarget, String)> {
     let target = new_js_string(scope, "target")?;
 
@@ -805,7 +794,7 @@ impl<'s> ThreadLocalRunner<'s> {
     fn load_datasets(
         scope: &mut v8::HandleScope<'s>,
         shared_ctx: &SharedStore,
-    ) -> Result<v8::Local<'s, v8::Value>> {
+    ) -> Result<Value<'s>> {
         let js_datasets = v8::Object::new(scope);
         for (dataset_name, dataset) in shared_ctx.datasets.iter() {
             let js_name = new_js_string(scope, &dataset_name)?;
@@ -998,7 +987,7 @@ impl<'s> ThreadLocalRunner<'s> {
     fn array_data_from_js(
         &mut self,
         scope: &mut v8::HandleScope<'s>,
-        data: v8::Local<'s, v8::Value>,
+        data: Value<'s>,
         data_type: &DataType,
         len: Option<usize>,
     ) -> Result<ArrayData> {
@@ -1288,7 +1277,7 @@ impl<'s> ThreadLocalRunner<'s> {
         msg_schema: &Arc<Schema>,
         state_proxy: &mut StateWriteProxy,
         i_proxy: usize,
-        changes: v8::Local<'s, v8::Value>,
+        changes: Value<'s>,
     ) -> Result<()> {
         let changes = changes.to_object(scope).unwrap();
 
@@ -1345,7 +1334,7 @@ impl<'s> ThreadLocalRunner<'s> {
         scope: &mut v8::HandleScope<'s>,
         sim_run_id: SimulationShortId,
         shared_store: &mut TaskSharedStore,
-        return_val: v8::Local<'s, v8::Object>,
+        return_val: Object<'s>,
     ) -> Result<()> {
         let (proxy, group_indices) = match &mut shared_store.state {
             SharedState::None | SharedState::Read(_) => return Ok(()),
@@ -1578,7 +1567,7 @@ impl<'s> ThreadLocalRunner<'s> {
     fn run_task(
         &mut self,
         scope: &mut v8::HandleScope<'s>,
-        args: &[v8::Local<'s, v8::Value>],
+        args: &[Value<'s>],
         sim_id: SimulationShortId,
         group_index: Option<usize>,
         package_id: PackageId,
@@ -1591,7 +1580,7 @@ impl<'s> ThreadLocalRunner<'s> {
         Option<Vec<String>>,
     )> {
         tracing::debug!("Calling JS run_task");
-        let return_val: v8::Local<'s, v8::Value> = self
+        let return_val: Value<'s> = self
             .embedded
             .run_task
             .call(scope, self.this, args)
@@ -1802,7 +1791,7 @@ impl<'s> ThreadLocalRunner<'s> {
 
 fn get_child_data<'s>(
     scope: &mut v8::HandleScope<'s>,
-    obj: v8::Local<'s, v8::Object>,
+    obj: Object<'s>,
 ) -> Result<v8::Local<'s, v8::Array>> {
     let child_data = new_js_string(scope, "child_data")?;
 
