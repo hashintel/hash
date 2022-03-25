@@ -60,9 +60,10 @@ use crate::{
 type Object<'scope> = v8::Local<'scope, v8::Object>;
 type Value<'scope> = v8::Local<'scope, v8::Value>;
 type Function<'scope> = v8::Local<'scope, v8::Function>;
+type Array<'scope> = v8::Local<'scope, v8::Array>;
 
 struct JsPackage<'s> {
-    fns: v8::Local<'s, v8::Array>,
+    fns: Array<'s>,
 }
 
 fn get_pkg_path(name: &str, pkg_type: PackageType) -> String {
@@ -160,7 +161,7 @@ impl<'s> JsPackage<'s> {
         };
 
         let args = &[embedded.hash_util, embedded.hash_stdlib];
-        let fns: v8::Local<'_, v8::Array> = {
+        let fns: Array<'_> = {
             let global_context = context.global(scope);
             let fns = call_js_function(scope, pkg, global_context.into(), args).map_err(|err| {
                 Error::PackageImport(path.clone(), format!("Couldn't call package: {err}"))
@@ -278,7 +279,7 @@ impl<'s> Embedded<'s> {
     ) -> Result<Self> {
         fn get_function_from_array<'s>(
             scope: &mut v8::HandleScope<'s>,
-            fns: v8::Local<'s, v8::Array>,
+            fns: Array<'s>,
             index: u32,
         ) -> Result<Function<'s>> {
             fns.get_index(scope, index)
@@ -318,7 +319,7 @@ impl<'s> Embedded<'s> {
             "./src/worker/runner/javascript/context.js",
             &[hash_util],
         )?;
-        let ctx_import: v8::Local<'_, v8::Array> = ctx_import.try_into().map_err(|err| {
+        let ctx_import: Array<'_> = ctx_import.try_into().map_err(|err| {
             Error::FileImport(
                 "./src/worker/runner/javascript/context.js".to_string(),
                 format!("Couldn't get array (of functions) from 'context.js': {err}"),
@@ -362,7 +363,7 @@ impl<'s> Embedded<'s> {
                 gen_state,
             ],
         )?;
-        let fns: v8::Local<'_, v8::Array> = fns.try_into().map_err(|err| {
+        let fns: Array<'_> = fns.try_into().map_err(|err| {
             Error::FileImport(
                 "./src/worker/runner/javascript/runner.js".into(),
                 format!("Couldn't get array (of functions) from 'runner.js': {err}"),
@@ -630,7 +631,7 @@ fn array_to_user_errors<'s>(scope: &mut v8::HandleScope<'s>, array: Value<'s>) -
     let fallback = format!("Unparsed: {array:?}");
 
     if array.is_array() {
-        let array: v8::Local<'s, v8::Array> = array
+        let array: Array<'s> = array
             .try_into()
             .expect("UserErrors array conversion failed");
         let errors = (0..array.length())
@@ -660,7 +661,7 @@ fn array_to_user_warnings<'s>(
     let fallback = format!("Unparsed: {array:?}");
 
     if array.is_array() {
-        let array: v8::Local<'s, v8::Array> = array
+        let array: Array<'s> = array
             .try_into()
             .expect("UserWarnings array conversion failed");
         let warnings = (0..array.length())
@@ -1261,7 +1262,7 @@ impl<'s> ThreadLocalRunner<'s> {
     fn flush_batch(
         &mut self,
         scope: &mut v8::HandleScope<'s>,
-        changes: v8::Local<'s, v8::Array>,
+        changes: Array<'s>,
         batch: &mut ArrowBatch,
         schema: &Schema,
     ) -> Result<()> {
@@ -1324,7 +1325,7 @@ impl<'s> ThreadLocalRunner<'s> {
 
         let agent = new_js_string(scope, "agent");
 
-        let agent_changes: v8::Local<'s, v8::Array> = changes
+        let agent_changes: Array<'s> = changes
             .get(scope, agent.into())
             .ok_or_else(|| Error::V8("Could not get agent property on changes".to_string()))?
             .try_into()
@@ -1410,7 +1411,7 @@ impl<'s> ThreadLocalRunner<'s> {
         if group_indices.len() == 1 {
             self.flush_group(scope, &agent_schema, &msg_schema, proxy, 0, changes)?;
         } else {
-            let changes: v8::Local<'s, v8::Array> = changes.try_into().unwrap();
+            let changes: Array<'s> = changes.try_into().unwrap();
             for i_proxy in 0..group_indices.len() {
                 // In principle, `i_proxy` and `group_indices[i_proxy]` can differ.
                 let group_changes = changes.get_index(scope, i_proxy as u32).ok_or_else(|| {
@@ -1825,10 +1826,7 @@ impl<'s> ThreadLocalRunner<'s> {
     }
 }
 
-fn get_child_data<'s>(
-    scope: &mut v8::HandleScope<'s>,
-    obj: Object<'s>,
-) -> Result<v8::Local<'s, v8::Array>> {
+fn get_child_data<'s>(scope: &mut v8::HandleScope<'s>, obj: Object<'s>) -> Result<Array<'s>> {
     let child_data = new_js_string(scope, "child_data");
 
     obj.get(scope, child_data.into())
