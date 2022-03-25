@@ -745,25 +745,22 @@ fn get_js_error<'s>(scope: &mut v8::HandleScope<'s>, return_val: Object<'s>) -> 
 fn get_user_warnings<'s>(
     scope: &mut v8::HandleScope<'s>,
     return_val: Object<'s>,
-) -> Result<Option<Vec<UserWarning>>> {
+) -> Option<Vec<UserWarning>> {
     let user_warnings = new_js_string(scope, "user_warnings");
 
     if let Some(warnings) = return_val.get(scope, user_warnings.into()) {
         if warnings != v8::undefined(scope) && warnings != v8::null(scope) {
             let warnings = array_to_user_warnings(scope, warnings);
             if !warnings.is_empty() {
-                return Ok(Some(warnings));
+                return Some(warnings);
             }
         }
     }
 
-    Ok(None)
+    None
 }
 
-fn get_print<'s>(
-    scope: &mut v8::HandleScope<'s>,
-    return_val: Object<'s>,
-) -> Result<Option<Vec<String>>> {
+fn get_print<'s>(scope: &mut v8::HandleScope<'s>, return_val: Object<'s>) -> Option<Vec<String>> {
     let print = new_js_string(scope, "print");
 
     if let Some(printed_val) = return_val.get(scope, print.into()) {
@@ -771,17 +768,15 @@ fn get_print<'s>(
             let printed_val: v8::Local<'s, v8::String> = printed_val;
             let printed_val = printed_val.to_rust_string_lossy(scope);
             if !printed_val.is_empty() {
-                Ok(Some(
-                    printed_val.split('\n').map(|s| s.to_string()).collect(),
-                ))
+                Some(printed_val.split('\n').map(|s| s.to_string()).collect())
             } else {
-                Ok(None)
+                None
             }
         } else {
-            Ok(None)
+            None
         }
     } else {
-        Ok(None)
+        None
     }
 }
 
@@ -1628,8 +1623,8 @@ impl<'s> ThreadLocalRunner<'s> {
         if let Some(error) = get_js_error(scope, return_val) {
             return Err(error);
         }
-        let user_warnings = get_user_warnings(scope, return_val)?;
-        let logs = get_print(scope, return_val)?;
+        let user_warnings = get_user_warnings(scope, return_val);
+        let logs = get_print(scope, return_val);
         let (next_target, next_task_payload) = get_next_task(scope, return_val)?;
 
         let next_inner_task_msg: serde_json::Value = serde_json::from_str(&next_task_payload)?;
