@@ -79,11 +79,13 @@ export const MainContentWrapper: FC = ({ children }) => {
         <br />
         <Switch size="small" />
         <br />
-        <Radio name="btn" value="a" />
+        <Radio sx={{ mr: 2 }} name="btn" value="a" />
         <Radio name="btn" value="b" />
         <br />
-        <Checkbox />
+        <Checkbox sx={{ mr: 2 }} />
         <Checkbox checked />
+        <br />
+        <br />
       </Main>
     </Box>
   );
