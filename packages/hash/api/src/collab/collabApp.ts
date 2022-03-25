@@ -167,7 +167,6 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
         );
 
         if (instance.errored) {
-          // @todo need a way to reset this without forceNewInstance
           return response.status(500).json({ error: true });
         }
 
