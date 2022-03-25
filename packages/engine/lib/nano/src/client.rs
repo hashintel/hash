@@ -20,6 +20,10 @@ lazy_static::lazy_static! {
 type Request = (nng::Message, oneshot::Sender<Result<()>>);
 
 /// Client represents the request side of the NNG rep/req protocol.
+#[allow(
+    missing_debug_implementations,
+    reason = "WorkerHandle does not implement Debug"
+)]
 pub struct Client {
     workers: Vec<WorkerHandle>,
     sender: spmc::Sender<Request>,
@@ -73,7 +77,7 @@ impl Worker {
             }
         })?;
 
-        Ok(Worker {
+        Ok(Self {
             _socket: socket,
             _dialer: dialer,
             aio,
@@ -108,6 +112,8 @@ impl Worker {
 impl Client {
     /// Create a new `Client` with a given number of background workers. Each worker
     /// provides one extra concurrent request.
+    ///
+    /// # Errors
     pub fn new(url: &str, num_workers: usize) -> Result<Self> {
         let (sender, receiver) = spmc::channel(num_workers);
 
