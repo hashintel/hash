@@ -159,7 +159,9 @@ Depending on how lightweight your OS install is, you may be missing some low lev
 ### Project Setup / Building
 
 - Run `cargo build`
-- If you want to use a Python runner, also run `./src/worker/runner/python/setup.sh` and follow the instructions from the help
+- Setup a Python environment by running `./src/worker/runner/python/setup.sh` and follow the instructions from the help.
+
+> **WIP** - In the future, setting up Python will only be required if Python behaviors are present, but for now it is always required.
 
 ### Running for development
 
