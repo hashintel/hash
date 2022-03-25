@@ -86,18 +86,6 @@ impl<'s> DataFfi<'s> {
     }
 }
 
-pub(crate) fn get_obj_property<'s>(
-    scope: &mut v8::HandleScope<'s>,
-    obj: v8::Local<'s, v8::Object>,
-    key: impl AsRef<str>,
-) -> Result<v8::Local<'s, v8::Value>> {
-    let key = key.as_ref();
-    let js_key = new_js_string(scope, key)?;
-
-    obj.get(scope, js_key.into())
-        .ok_or_else(|| Error::V8(format!("Could not get {key} property on obj")))
-}
-
 fn get_data_property<'s, T>(
     scope: &mut v8::HandleScope<'s>,
     data: v8::Local<'s, v8::Object>,
@@ -107,7 +95,13 @@ where
     v8::Local<'s, T>: TryFrom<v8::Local<'s, v8::Value>>,
     <v8::Local<'s, T> as TryFrom<v8::Local<'s, v8::Value>>>::Error: std::fmt::Display,
 {
-    let len_value = get_obj_property(scope, data, property)?;
+    let js_key = new_js_string(scope, property)?;
+
+    let len_value = data.get(scope, js_key.into()).ok_or_else(|| {
+        Error::V8(format!(
+            "Could not get {property} property from data object"
+        ))
+    })?;
     len_value.try_into().map_err(|err| {
         Error::V8(format!(
             "Could not convert {property} from Value to {}: {err}",
