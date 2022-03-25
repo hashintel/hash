@@ -123,7 +123,7 @@ impl<'s> JsPackage<'s> {
             ),
         );
 
-        let pkg: v8::Local<'_, v8::Function> = {
+        let pkg: Function<'_> = {
             let mut try_catch = v8::TryCatch::new(scope);
 
             let pkg = v8::Script::compile(&mut try_catch, wrapped_code, None).ok_or_else(|| {
@@ -188,13 +188,12 @@ impl<'s> JsPackage<'s> {
         // Validate returned array.
         let fn_names = ["start_experiment", "start_sim", "run_task"];
         for (idx_fn, fn_name) in fn_names.iter().enumerate() {
-            let elem: v8::Local<'_, v8::Value> =
-                fns.get_index(scope, idx_fn as u32).ok_or_else(|| {
-                    Error::PackageImport(
-                        path.clone(),
-                        format!("Couldn't index package functions array: {idx_fn:?}"),
-                    )
-                })?;
+            let elem: Value<'_> = fns.get_index(scope, idx_fn as u32).ok_or_else(|| {
+                Error::PackageImport(
+                    path.clone(),
+                    format!("Couldn't index package functions array: {idx_fn:?}"),
+                )
+            })?;
 
             if !(elem.is_function() || elem.is_undefined()) {
                 return Err(Error::PackageImport(
@@ -258,7 +257,7 @@ fn import_file<'s>(
     args: &[Value<'s>],
 ) -> Result<Value<'s>> {
     let v = eval_file(scope, path)?;
-    let f: v8::Local<'_, v8::Function> = v.try_into().map_err(|err| {
+    let f: Function<'_> = v.try_into().map_err(|err| {
         Error::FileImport(
             path.into(),
             format!("Could not convert file into Function: {err}"),
@@ -370,15 +369,13 @@ impl<'s> Embedded<'s> {
             )
         })?;
 
-        let start_experiment: v8::Local<'_, v8::Function> = get_function_from_array(scope, fns, 0)?;
-        let start_sim: v8::Local<'_, v8::Function> = get_function_from_array(scope, fns, 1)?;
-        let run_task: v8::Local<'_, v8::Function> = get_function_from_array(scope, fns, 2)?;
-        let ctx_batch_sync: v8::Local<'_, v8::Function> = get_function_from_array(scope, fns, 3)?;
-        let state_sync: v8::Local<'_, v8::Function> = get_function_from_array(scope, fns, 4)?;
-        let state_interim_sync: v8::Local<'_, v8::Function> =
-            get_function_from_array(scope, fns, 5)?;
-        let state_snapshot_sync: v8::Local<'_, v8::Function> =
-            get_function_from_array(scope, fns, 6)?;
+        let start_experiment: Function<'_> = get_function_from_array(scope, fns, 0)?;
+        let start_sim: Function<'_> = get_function_from_array(scope, fns, 1)?;
+        let run_task: Function<'_> = get_function_from_array(scope, fns, 2)?;
+        let ctx_batch_sync: Function<'_> = get_function_from_array(scope, fns, 3)?;
+        let state_sync: Function<'_> = get_function_from_array(scope, fns, 4)?;
+        let state_interim_sync: Function<'_> = get_function_from_array(scope, fns, 5)?;
+        let state_snapshot_sync: Function<'_> = get_function_from_array(scope, fns, 6)?;
 
         Ok(Embedded {
             hash_stdlib,
