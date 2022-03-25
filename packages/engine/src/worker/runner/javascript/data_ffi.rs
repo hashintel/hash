@@ -39,10 +39,15 @@ impl<'s> DataFfi<'s> {
 
         let mut buffer_ptrs = [std::ptr::null(); 2];
         let mut buffer_capacities = [0; 2];
-        for i in 0..buffers.length() {
-            let buffer_value = buffers
-                .get_index(scope, i)
-                .ok_or_else(|| Error::V8(format!("Could not access index {i} on buffers")))?;
+        for (buffer_idx, (buffer_ptr, buffer_capacity)) in buffer_ptrs
+            .iter_mut()
+            .zip(&mut buffer_capacities)
+            .take(n_buffers as usize)
+            .enumerate()
+        {
+            let buffer_value = buffers.get_index(scope, buffer_idx as u32).ok_or_else(|| {
+                Error::V8(format!("Could not access index {buffer_idx} on buffers"))
+            })?;
             let buffer: v8::Local<'s, v8::ArrayBuffer> =
                 buffer_value.try_into().map_err(|err| {
                     Error::V8(format!(
@@ -50,12 +55,12 @@ impl<'s> DataFfi<'s> {
                     ))
                 })?;
             let contents = buffer.get_backing_store();
-            buffer_ptrs[i as usize] = contents
+            *buffer_ptr = contents
                 .data()
                 .map(NonNull::as_ptr)
                 .unwrap_or(std::ptr::null_mut())
                 .cast();
-            buffer_capacities[i as usize] = contents.byte_length();
+            *buffer_capacity = contents.byte_length();
         }
 
         let null_bits: v8::Local<'s, v8::ArrayBuffer> =
