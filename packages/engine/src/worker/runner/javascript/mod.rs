@@ -87,24 +87,17 @@ impl<'s> JsPackage<'s> {
                 // Packages don't have to use JS.
                 let fns = v8::Array::new(scope, 3);
                 let undefined = v8::undefined(scope).into();
-                fns.set_index(scope, 0, undefined).ok_or_else(|| {
-                    Error::PackageImport(
-                        path.clone(),
-                        "Could not set Undefined value on package function array".to_string(),
-                    )
-                })?;
-                fns.set_index(scope, 1, undefined).ok_or_else(|| {
-                    Error::PackageImport(
-                        path.clone(),
-                        "Could not set Undefined value on package function array".to_string(),
-                    )
-                })?;
-                fns.set_index(scope, 2, undefined).ok_or_else(|| {
-                    Error::PackageImport(
-                        path.clone(),
-                        "Could not set Undefined value on package function array".to_string(),
-                    )
-                })?;
+                for fn_idx in 0..3 {
+                    fns.set_index(scope, fn_idx, undefined).ok_or_else(|| {
+                        Error::PackageImport(
+                            path.clone(),
+                            format!(
+                                "Could not set Undefined value at index {fn_idx} on package \
+                                 function array"
+                            ),
+                        )
+                    })?;
+                }
 
                 return Ok(JsPackage { fns });
             }
