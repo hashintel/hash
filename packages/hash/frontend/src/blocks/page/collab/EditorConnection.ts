@@ -86,7 +86,7 @@ export class EditorConnection {
   // All state changes go through this
   dispatch = (action: EditorConnectionAction) => {
     if (this.errored) {
-      if (action.type === "update") {
+      if (action.type === "update" && action.transaction) {
         this.view.updateState(this.view.state.apply(action.transaction));
       }
 

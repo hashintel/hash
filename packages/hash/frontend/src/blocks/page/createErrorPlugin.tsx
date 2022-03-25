@@ -15,11 +15,11 @@ const ErrorView: VFC<ErrorProps> = ({ errored }) => {
         <Typography variant="h1" mb={2}>
           Error with collaborative server
         </Typography>
-        <Typography variant="body1">
+        <Typography>
           The collaborative server has errored.{" "}
           <strong>Recent changes may not have been saved.</strong>
         </Typography>
-        <Typography variant="body1" mb={4}>
+        <Typography mb={4}>
           Please refresh to ensure no further work is lost.
         </Typography>
         <Stack direction="row" justifyContent="center">
@@ -68,10 +68,11 @@ export const createErrorPlugin = (renderPortal: RenderPortal) => {
           },
           destroy() {
             renderPortal(null, mountNode);
+            mountNode.remove();
           },
         };
       },
-    }),
+    }) as Plugin<unknown, Schema>,
     (tr: Transaction<Schema>) => {
       // @todo log
       return tr.setMeta(key, true);
