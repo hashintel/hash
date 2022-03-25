@@ -144,7 +144,7 @@ export class Instance {
     }
 
     if (this.errored) {
-      logger.warn(
+      logger.error(
         "Error encountered when instance already in errored state",
         err,
       );
