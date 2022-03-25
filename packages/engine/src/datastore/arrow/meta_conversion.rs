@@ -9,19 +9,19 @@
 
 use std::sync::Arc;
 
-use arrow::ipc::{
-    Buffer as BufferMessage, FieldNode as NodeMessage, MessageBuilder, MessageHeader,
-    MetadataVersion, RecordBatch, RecordBatchBuilder,
+use arrow::{
+    datatypes::{DataType, Field, IntervalUnit, Schema, TimeUnit},
+    ipc,
 };
 use flatbuffers::FlatBufferBuilder;
 
 use crate::datastore::{
-    error::Error,
-    meta::{Buffer, BufferType, Column as ColumnMeta, NodeMapping},
-    prelude::*,
+    meta::{Buffer, BufferType, Column, Node, NodeMapping},
+    prelude::{DynamicMeta, NodeStaticMeta, StaticMeta},
+    Error, Result,
 };
 
-pub enum SupportedArrowDataTypes {
+pub enum SupportedDataTypes {
     Boolean,
     Utf8,
     Binary,
@@ -40,62 +40,62 @@ pub enum SupportedArrowDataTypes {
     Float32,
     Float64,
 
-    Time32(ArrowTimeUnit),
-    Time64(ArrowTimeUnit),
-    Timestamp(ArrowTimeUnit, Option<String>),
+    Time32(TimeUnit),
+    Time64(TimeUnit),
+    Timestamp(TimeUnit, Option<String>),
 
     Date32,
     Date64,
 
-    Interval(ArrowIntervalUnit),
-    Duration(ArrowTimeUnit),
+    Interval(IntervalUnit),
+    Duration(TimeUnit),
 
-    List(Box<SupportedArrowDataTypes>),
-    FixedSizeList(Box<SupportedArrowDataTypes>, i32),
-    Struct(Vec<ArrowField>),
+    List(Box<SupportedDataTypes>),
+    FixedSizeList(Box<SupportedDataTypes>, i32),
+    Struct(Vec<Field>),
 }
 
-impl TryFrom<ArrowDataType> for SupportedArrowDataTypes {
+impl TryFrom<DataType> for SupportedDataTypes {
     type Error = Error;
 
-    fn try_from(arrow_data_type: ArrowDataType) -> Result<Self, Self::Error> {
+    fn try_from(arrow_data_type: DataType) -> Result<Self, Self::Error> {
         match arrow_data_type {
-            ArrowDataType::Boolean => Ok(Self::Boolean),
-            ArrowDataType::Utf8 => Ok(Self::Utf8),
-            ArrowDataType::Binary => Ok(Self::Binary),
-            ArrowDataType::FixedSizeBinary(size) => Ok(Self::FixedSizeBinary(size)),
+            DataType::Boolean => Ok(Self::Boolean),
+            DataType::Utf8 => Ok(Self::Utf8),
+            DataType::Binary => Ok(Self::Binary),
+            DataType::FixedSizeBinary(size) => Ok(Self::FixedSizeBinary(size)),
 
-            ArrowDataType::Int8 => Ok(Self::Int8),
-            ArrowDataType::Int16 => Ok(Self::Int16),
-            ArrowDataType::Int32 => Ok(Self::Int32),
-            ArrowDataType::Int64 => Ok(Self::Int64),
+            DataType::Int8 => Ok(Self::Int8),
+            DataType::Int16 => Ok(Self::Int16),
+            DataType::Int32 => Ok(Self::Int32),
+            DataType::Int64 => Ok(Self::Int64),
 
-            ArrowDataType::UInt8 => Ok(Self::Uint8),
-            ArrowDataType::UInt16 => Ok(Self::Uint16),
-            ArrowDataType::UInt32 => Ok(Self::Uint32),
-            ArrowDataType::UInt64 => Ok(Self::Uint64),
+            DataType::UInt8 => Ok(Self::Uint8),
+            DataType::UInt16 => Ok(Self::Uint16),
+            DataType::UInt32 => Ok(Self::Uint32),
+            DataType::UInt64 => Ok(Self::Uint64),
 
-            ArrowDataType::Float32 => Ok(Self::Float32),
-            ArrowDataType::Float64 => Ok(Self::Float64),
+            DataType::Float32 => Ok(Self::Float32),
+            DataType::Float64 => Ok(Self::Float64),
 
-            ArrowDataType::Time32(elapsed) => Ok(Self::Time32(elapsed)),
-            ArrowDataType::Time64(elapsed) => Ok(Self::Time64(elapsed)),
-            ArrowDataType::Timestamp(elapsed, time_zone) => Ok(Self::Timestamp(elapsed, time_zone)),
+            DataType::Time32(elapsed) => Ok(Self::Time32(elapsed)),
+            DataType::Time64(elapsed) => Ok(Self::Time64(elapsed)),
+            DataType::Timestamp(elapsed, time_zone) => Ok(Self::Timestamp(elapsed, time_zone)),
 
-            ArrowDataType::Date32 => Ok(Self::Date32),
-            ArrowDataType::Date64 => Ok(Self::Date64),
+            DataType::Date32 => Ok(Self::Date32),
+            DataType::Date64 => Ok(Self::Date64),
 
-            ArrowDataType::Interval(interval) => Ok(Self::Interval(interval)),
-            ArrowDataType::Duration(elapsed) => Ok(Self::Duration(elapsed)),
+            DataType::Interval(interval) => Ok(Self::Interval(interval)),
+            DataType::Duration(elapsed) => Ok(Self::Duration(elapsed)),
 
-            ArrowDataType::List(field) => Ok(Self::List(Box::new(Self::try_from(
+            DataType::List(field) => Ok(Self::List(Box::new(Self::try_from(
                 field.data_type().clone(),
             )?))),
-            ArrowDataType::FixedSizeList(field, size) => Ok(Self::FixedSizeList(
+            DataType::FixedSizeList(field, size) => Ok(Self::FixedSizeList(
                 Box::new(Self::try_from(field.data_type().clone())?),
                 size,
             )),
-            ArrowDataType::Struct(fields) => Ok(Self::Struct(fields)),
+            DataType::Struct(fields) => Ok(Self::Struct(fields)),
             d_type => Err(Error::UnsupportedArrowDataType { d_type }),
         }
     }
@@ -105,7 +105,7 @@ pub trait HashStaticMeta {
     fn get_static_metadata(&self) -> StaticMeta;
 }
 
-impl HashStaticMeta for Arc<ArrowSchema> {
+impl HashStaticMeta for Arc<Schema> {
     fn get_static_metadata(&self) -> StaticMeta {
         let (indices, padding, data) = schema_to_column_hierarchy(self.clone());
         StaticMeta::new(indices, padding, data)
@@ -116,7 +116,7 @@ pub trait HashDynamicMeta {
     fn into_meta(&self, data_length: usize) -> Result<DynamicMeta>;
 }
 
-impl HashDynamicMeta for RecordBatch<'_> {
+impl HashDynamicMeta for ipc::RecordBatch<'_> {
     fn into_meta(&self, data_length: usize) -> Result<DynamicMeta> {
         let nodes = self
             .nodes()
@@ -165,15 +165,15 @@ pub fn get_dynamic_meta_flatbuffers(meta: &DynamicMeta) -> Result<Vec<u8>> {
     // TODO: OPTIM: Evaluate, if we want to return the flatbuffer instead to remove the slice-to-vec
     //   conversion.
     // Build Arrow Buffer and FieldNode messages
-    let buffers: Vec<BufferMessage> = meta
+    let buffers: Vec<ipc::Buffer> = meta
         .buffers
         .iter()
-        .map(|b| BufferMessage::new(b.offset as i64, b.length as i64))
+        .map(|b| ipc::Buffer::new(b.offset as i64, b.length as i64))
         .collect();
-    let nodes: Vec<NodeMessage> = meta
+    let nodes: Vec<ipc::FieldNode> = meta
         .nodes
         .iter()
-        .map(|n| NodeMessage::new(n.length as i64, n.null_count as i64))
+        .map(|n| ipc::FieldNode::new(n.length as i64, n.null_count as i64))
         .collect();
 
     let mut fbb = FlatBufferBuilder::new();
@@ -186,7 +186,7 @@ pub fn get_dynamic_meta_flatbuffers(meta: &DynamicMeta) -> Result<Vec<u8>> {
     let nodes = fbb.create_vector(&nodes);
 
     let root = {
-        let mut batch_builder = RecordBatchBuilder::new(&mut fbb);
+        let mut batch_builder = ipc::RecordBatchBuilder::new(&mut fbb);
         batch_builder.add_length(meta.length as i64);
         batch_builder.add_nodes(nodes);
         batch_builder.add_buffers(buffers);
@@ -194,9 +194,9 @@ pub fn get_dynamic_meta_flatbuffers(meta: &DynamicMeta) -> Result<Vec<u8>> {
         b.as_union_value()
     };
     // create an ipc::Message
-    let mut message = MessageBuilder::new(&mut fbb);
-    message.add_version(MetadataVersion::V4);
-    message.add_header_type(MessageHeader::RecordBatch);
+    let mut message = ipc::MessageBuilder::new(&mut fbb);
+    message.add_version(ipc::MetadataVersion::V4);
+    message.add_header_type(ipc::MessageHeader::RecordBatch);
     message.add_bodyLength(meta.data_length as i64);
     message.add_header(root);
     let root = message.finish();
@@ -209,8 +209,8 @@ pub fn get_dynamic_meta_flatbuffers(meta: &DynamicMeta) -> Result<Vec<u8>> {
 /// Column hierarchy is the mapping from column index to buffer and node indices.
 /// This also returns information about which buffers are growable
 fn schema_to_column_hierarchy(
-    schema: Arc<ArrowSchema>,
-) -> (Vec<ColumnMeta>, Vec<bool>, Vec<NodeStaticMeta>) {
+    schema: Arc<Schema>,
+) -> (Vec<Column>, Vec<bool>, Vec<NodeStaticMeta>) {
     let mut padding_meta = vec![];
     let mut node_meta = vec![];
     let column_indices =
@@ -226,7 +226,7 @@ fn schema_to_column_hierarchy(
                     mut data,
                     root_node_mapping,
                 ) = data_type_to_metadata(
-                    &SupportedArrowDataTypes::try_from((*field.data_type()).clone()).unwrap(),
+                    &SupportedDataTypes::try_from((*field.data_type()).clone()).unwrap(),
                     false,
                     1,
                 );
@@ -236,7 +236,7 @@ fn schema_to_column_hierarchy(
                 // Nullable fields have the same buffer count as non-nullable
                 // see `write_array_data` in `ipc.rs`. This means we don't have to check
                 // for this here.
-                accum.0.push(ColumnMeta {
+                accum.0.push(Column {
                     node_start: accum.1,
                     node_count,
                     root_node_mapping,
@@ -264,7 +264,7 @@ fn schema_to_column_hierarchy(
 #[allow(clippy::too_many_lines)]
 #[must_use]
 pub fn data_type_to_metadata(
-    data_type: &SupportedArrowDataTypes,
+    data_type: &SupportedDataTypes,
     is_parent_growable: bool,
     multiplier: usize,
 ) -> (
@@ -275,7 +275,7 @@ pub fn data_type_to_metadata(
     Vec<NodeStaticMeta>,
     NodeMapping,
 ) {
-    type D = SupportedArrowDataTypes;
+    type D = SupportedDataTypes;
     match data_type {
         D::Utf8 | D::Binary => {
             let bit_map = BufferType::BitMap {
@@ -470,7 +470,7 @@ pub mod tests {
         datatypes::{IntervalUnit, TimeUnit},
     };
 
-    type D = ArrowDataType;
+    type D = DataType;
     type ArrowArrayData = arrow::array::ArrayData;
 
     use super::*;
@@ -553,8 +553,8 @@ pub mod tests {
 
     #[test]
     fn bool_dtype_schema_to_col_hierarchy() {
-        let schema = ArrowSchema::new_with_metadata(
-            vec![ArrowField::new("c0", D::Boolean, false)],
+        let schema = Schema::new_with_metadata(
+            vec![Field::new("c0", D::Boolean, false)],
             get_dummy_metadata(),
         );
         let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
@@ -607,18 +607,18 @@ pub mod tests {
     #[test]
     fn num_dtypes_schema_to_col_hierarchy() {
         let fields = vec![
-            ArrowField::new("c1", D::Int8, false),
-            ArrowField::new("c2", D::Int16, false),
-            ArrowField::new("c3", D::Int32, false),
-            ArrowField::new("c4", D::Int64, false),
-            ArrowField::new("c5", D::UInt8, false),
-            ArrowField::new("c6", D::UInt16, false),
-            ArrowField::new("c7", D::UInt32, false),
-            ArrowField::new("c8", D::UInt64, false),
-            ArrowField::new("c9", D::Float32, false),
-            ArrowField::new("c10", D::Float64, false),
+            Field::new("c1", D::Int8, false),
+            Field::new("c2", D::Int16, false),
+            Field::new("c3", D::Int32, false),
+            Field::new("c4", D::Int64, false),
+            Field::new("c5", D::UInt8, false),
+            Field::new("c6", D::UInt16, false),
+            Field::new("c7", D::UInt32, false),
+            Field::new("c8", D::UInt64, false),
+            Field::new("c9", D::Float32, false),
+            Field::new("c10", D::Float64, false),
         ];
-        let schema = ArrowSchema::new_with_metadata(fields.clone(), get_dummy_metadata());
+        let schema = Schema::new_with_metadata(fields.clone(), get_dummy_metadata());
 
         let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
 
@@ -717,14 +717,10 @@ pub mod tests {
                 _ => unimplemented!(),
             }
 
-            fields.push(ArrowField::new(
-                &format!("c{}", fields.len()),
-                time_unit,
-                false,
-            ));
+            fields.push(Field::new(&format!("c{}", fields.len()), time_unit, false));
         }
 
-        let schema = ArrowSchema::new_with_metadata(fields.clone(), get_dummy_metadata());
+        let schema = Schema::new_with_metadata(fields.clone(), get_dummy_metadata());
         let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
 
         // set up expected col hierarchy data
@@ -809,14 +805,10 @@ pub mod tests {
                 _ => unimplemented!(),
             }
 
-            fields.push(ArrowField::new(
-                &format!("c{}", fields.len()),
-                date_dtype,
-                false,
-            ));
+            fields.push(Field::new(&format!("c{}", fields.len()), date_dtype, false));
         }
 
-        let schema = ArrowSchema::new_with_metadata(fields.clone(), get_dummy_metadata());
+        let schema = Schema::new_with_metadata(fields.clone(), get_dummy_metadata());
         let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
 
         // set up expected col hierarchy data
@@ -886,7 +878,7 @@ pub mod tests {
 
     #[test]
     fn duration_dtypes_schema_to_col_hierarchy() {
-        let fields: Vec<ArrowField> = [
+        let fields: Vec<Field> = [
             TimeUnit::Nanosecond,
             TimeUnit::Microsecond,
             TimeUnit::Millisecond,
@@ -896,11 +888,11 @@ pub mod tests {
         .enumerate()
         .map(|(idx, time_unit)| {
             let duration_type = D::Duration(time_unit.clone());
-            ArrowField::new(&format!("c{}", idx), duration_type, false)
+            Field::new(&format!("c{}", idx), duration_type, false)
         })
         .collect();
 
-        let schema = ArrowSchema::new_with_metadata(fields.clone(), get_dummy_metadata());
+        let schema = Schema::new_with_metadata(fields.clone(), get_dummy_metadata());
         let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
 
         // set up expected col hierarchy data
@@ -982,7 +974,7 @@ pub mod tests {
             IntervalUnit::MonthDayNano,
         ] {
             let interval_type = D::Interval(interval_unit.clone());
-            fields.push(ArrowField::new(
+            fields.push(Field::new(
                 &format!("c{}", fields.len()),
                 interval_type,
                 false,
@@ -996,7 +988,7 @@ pub mod tests {
             })
         }
 
-        let schema = ArrowSchema::new_with_metadata(fields.clone(), get_dummy_metadata());
+        let schema = Schema::new_with_metadata(fields.clone(), get_dummy_metadata());
         let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
 
         // set up expected col hierarchy data
@@ -1076,7 +1068,7 @@ pub mod tests {
                 Some("Africa/Johannesburg".to_string()),
                 None,
             ] {
-                fields.push(ArrowField::new(
+                fields.push(Field::new(
                     &format!("c{}", fields.len()),
                     D::Timestamp(time_unit.clone(), time_zone),
                     false,
@@ -1084,7 +1076,7 @@ pub mod tests {
             }
         }
 
-        let schema = ArrowSchema::new_with_metadata(fields.clone(), get_dummy_metadata());
+        let schema = Schema::new_with_metadata(fields.clone(), get_dummy_metadata());
         let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
 
         // set up expected col hierarchy data
@@ -1169,15 +1161,13 @@ pub mod tests {
     fn fixed_size_binary_dtype_schema_to_col_hierarchy() {
         // try a variety of sizes
         let fixed_sizes = [2, 3, 6, 8];
-        let fields: Vec<ArrowField> = fixed_sizes
+        let fields: Vec<Field> = fixed_sizes
             .iter()
             .enumerate()
-            .map(|(idx, &size)| {
-                ArrowField::new(&format!("c{}", idx), D::FixedSizeBinary(size), false)
-            })
+            .map(|(idx, &size)| Field::new(&format!("c{}", idx), D::FixedSizeBinary(size), false))
             .collect();
 
-        let schema = ArrowSchema::new_with_metadata(fields.clone(), get_dummy_metadata());
+        let schema = Schema::new_with_metadata(fields.clone(), get_dummy_metadata());
         let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
 
         // set up expected col hierarchy data
@@ -1252,10 +1242,10 @@ pub mod tests {
     #[test]
     fn variable_length_base_dtypes_schema_to_col_hierarchy() {
         let fields = vec![
-            ArrowField::new("c0", D::Utf8, false),
-            ArrowField::new("c1", D::Binary, false),
+            Field::new("c0", D::Utf8, false),
+            Field::new("c1", D::Binary, false),
         ];
-        let schema = ArrowSchema::new_with_metadata(fields.clone(), get_dummy_metadata());
+        let schema = Schema::new_with_metadata(fields.clone(), get_dummy_metadata());
 
         let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
 
@@ -1330,19 +1320,19 @@ pub mod tests {
     #[test]
     fn list_dtype_schema_to_col_hierarchy() {
         let fields = vec![
-            ArrowField::new(
+            Field::new(
                 "c0",
-                D::List(Box::new(ArrowField::new("item", D::Boolean, true))),
+                D::List(Box::new(Field::new("item", D::Boolean, true))),
                 false,
             ),
-            ArrowField::new(
+            Field::new(
                 "c1",
-                D::List(Box::new(ArrowField::new("item", D::UInt32, true))),
+                D::List(Box::new(Field::new("item", D::UInt32, true))),
                 false,
             ),
         ];
 
-        let schema = ArrowSchema::new_with_metadata(fields.clone(), get_dummy_metadata());
+        let schema = Schema::new_with_metadata(fields.clone(), get_dummy_metadata());
 
         let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
 
@@ -1459,18 +1449,18 @@ pub mod tests {
     #[test]
     fn struct_dtypes_schema_to_col_hierarchy() {
         let fields = vec![
-            ArrowField::new(
+            Field::new(
                 "c0",
                 D::Struct(vec![
-                    ArrowField::new("a", D::Utf8, false),
-                    ArrowField::new("b", D::Boolean, false),
+                    Field::new("a", D::Utf8, false),
+                    Field::new("b", D::Boolean, false),
                 ]),
                 false,
             ),
-            ArrowField::new("c1", D::Struct(vec![]), false),
+            Field::new("c1", D::Struct(vec![]), false),
         ];
 
-        let schema = ArrowSchema::new_with_metadata(fields.clone(), get_dummy_metadata());
+        let schema = Schema::new_with_metadata(fields.clone(), get_dummy_metadata());
 
         let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
 
@@ -1554,11 +1544,11 @@ pub mod tests {
 
         let struct_c0 = arrow::array::StructArray::from(vec![
             (
-                ArrowField::new("a", D::Utf8, false),
+                Field::new("a", D::Utf8, false),
                 Arc::new(string_array) as ArrayRef,
             ),
             (
-                ArrowField::new("b", D::Boolean, false),
+                Field::new("b", D::Boolean, false),
                 Arc::new(bool_array) as ArrayRef,
             ),
         ]);

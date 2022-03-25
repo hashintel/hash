@@ -12,15 +12,18 @@ use arrow::{
         PrimitiveArray, StringArray, StructArray,
     },
     buffer::MutableBuffer,
-    datatypes::{self, ArrowNumericType, ArrowPrimitiveType, DataType, Field, JsonSerializable},
+    datatypes::{
+        self, ArrowNumericType, ArrowPrimitiveType, DataType, Field as ArrowField, Field,
+        JsonSerializable, Schema as ArrowSchema,
+    },
+    util::bit_util as arrow_bit_util,
 };
 use serde::de::DeserializeOwned;
 use serde_json::value::Value;
 
-use super::prelude::*;
 use crate::{
     datastore::{
-        arrow::message::messages_column_from_serde_values,
+        arrow::{message, message::messages_column_from_serde_values},
         prelude::*,
         schema::{state::AgentSchema, FieldKey, FieldScope, FieldTypeVariant, IsRequired},
         UUID_V4_LEN,
@@ -135,8 +138,8 @@ macro_rules! agents_to_vec_col_gen {
             }
             let child_array: array::Float64Array = flat.into();
 
-            let dt = ArrowDataType::FixedSizeList(
-                Box::new(ArrowField::new("item", ArrowDataType::Float64, true)),
+            let dt = DataType::FixedSizeList(
+                Box::new(ArrowField::new("item", DataType::Float64, true)),
                 3,
             );
 
@@ -242,7 +245,7 @@ fn json_vals_to_list(
     // Nested values are always nullable.
     let child_data = json_vals_to_col(combined_vals, &inner_field, true)?;
 
-    Ok(ArrayData::builder(ArrowDataType::List(inner_field))
+    Ok(ArrayData::builder(DataType::List(inner_field))
         .len(n_elem)
         .null_count(null_count)
         .null_bit_buffer(null_bits.into())
@@ -289,7 +292,7 @@ fn json_vals_to_fixed_size_list(
     let child_data = json_vals_to_col(combined_vals, &inner_field, true)?;
 
     Ok(
-        ArrayData::builder(ArrowDataType::FixedSizeList(inner_field, size))
+        ArrayData::builder(DataType::FixedSizeList(inner_field, size))
             .len(n_elem)
             .null_count(null_count)
             .null_bit_buffer(null_bits.into())
@@ -360,47 +363,50 @@ fn json_vals_to_col(vals: Vec<Value>, field: &ArrowField, nullable: bool) -> Res
     // Inner columns (i.e. columns that are elements of list or struct arrays) are
     // always nullable; fields might not be.
     match field.data_type() {
-        ArrowDataType::Float64 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Float64Type>(
+        DataType::Float64 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Float64Type>(
             vals, nullable,
         )?)),
-        ArrowDataType::Float32 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Float32Type>(
+        DataType::Float32 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Float32Type>(
             vals, nullable,
         )?)),
-        ArrowDataType::Int64 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Int64Type>(
+        DataType::Int64 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Int64Type>(
             vals, nullable,
         )?)),
-        ArrowDataType::Int32 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Int32Type>(
+        DataType::Int32 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Int32Type>(
             vals, nullable,
         )?)),
-        ArrowDataType::Int16 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Int16Type>(
+        DataType::Int16 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Int16Type>(
             vals, nullable,
         )?)),
-        ArrowDataType::Int8 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Int8Type>(
+        DataType::Int8 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Int8Type>(
             vals, nullable,
         )?)),
-        ArrowDataType::UInt64 => Ok(Arc::new(json_vals_to_primitive::<datatypes::UInt64Type>(
+        DataType::UInt64 => Ok(Arc::new(json_vals_to_primitive::<datatypes::UInt64Type>(
             vals, nullable,
         )?)),
-        ArrowDataType::UInt32 => Ok(Arc::new(json_vals_to_primitive::<datatypes::UInt32Type>(
+        DataType::UInt32 => Ok(Arc::new(json_vals_to_primitive::<datatypes::UInt32Type>(
             vals, nullable,
         )?)),
-        ArrowDataType::UInt16 => Ok(Arc::new(json_vals_to_primitive::<datatypes::UInt16Type>(
+        DataType::UInt16 => Ok(Arc::new(json_vals_to_primitive::<datatypes::UInt16Type>(
             vals, nullable,
         )?)),
-        ArrowDataType::UInt8 => Ok(Arc::new(json_vals_to_primitive::<datatypes::UInt8Type>(
+        DataType::UInt8 => Ok(Arc::new(json_vals_to_primitive::<datatypes::UInt8Type>(
             vals, nullable,
         )?)),
-        ArrowDataType::Boolean => Ok(Arc::new(json_vals_to_bool(vals)?)),
-        ArrowDataType::Utf8 => Ok(Arc::new(json_vals_to_utf8(vals, nullable)?)),
-        ArrowDataType::List(inner_field) => Ok(Arc::new(json_vals_to_list(
+        DataType::Boolean => Ok(Arc::new(json_vals_to_bool(vals)?)),
+        DataType::Utf8 => Ok(Arc::new(json_vals_to_utf8(vals, nullable)?)),
+        DataType::List(inner_field) => Ok(Arc::new(json_vals_to_list(
             vals,
             nullable,
             inner_field.clone(),
         )?)),
-        ArrowDataType::FixedSizeList(inner_field, size) => Ok(Arc::new(
-            json_vals_to_fixed_size_list(vals, nullable, inner_field.clone(), *size)?,
-        )),
-        ArrowDataType::Struct(fields) => Ok(Arc::new(json_vals_to_struct(
+        DataType::FixedSizeList(inner_field, size) => Ok(Arc::new(json_vals_to_fixed_size_list(
+            vals,
+            nullable,
+            inner_field.clone(),
+            *size,
+        )?)),
+        DataType::Struct(fields) => Ok(Arc::new(json_vals_to_struct(
             vals,
             nullable,
             fields.clone(),
@@ -422,8 +428,8 @@ fn json_vals_to_any_type_col(vals: Vec<Value>, dt: &DataType) -> Result<ArrayRef
     Ok(Arc::new(builder.finish()))
 }
 
-fn previous_index_to_empty_col(num_agents: usize, dt: ArrowDataType) -> Result<ArrayRef> {
-    if let ArrowDataType::FixedSizeList(inner_field, inner_len) = dt.clone() {
+fn previous_index_to_empty_col(num_agents: usize, dt: DataType) -> Result<ArrayRef> {
+    if let DataType::FixedSizeList(inner_field, inner_len) = dt.clone() {
         debug_assert!(matches!(inner_field.data_type(), DataType::UInt32));
         let data_byte_size = inner_len as usize * num_agents * std::mem::size_of::<u32>();
         let mut buffer = MutableBuffer::new(data_byte_size);
@@ -995,23 +1001,23 @@ fn struct_to_json_vals(col: &ArrayRef, fields: &[ArrowField]) -> Result<Vec<Valu
 
 pub(in crate::datastore) fn col_to_json_vals(col: &ArrayRef, dt: &DataType) -> Result<Vec<Value>> {
     match dt {
-        ArrowDataType::Float32 => numeric_to_json_vals::<datatypes::Float32Type>(col),
-        ArrowDataType::Float64 => numeric_to_json_vals::<datatypes::Float64Type>(col),
-        ArrowDataType::Int8 => numeric_to_json_vals::<datatypes::Int8Type>(col),
-        ArrowDataType::Int16 => numeric_to_json_vals::<datatypes::Int16Type>(col),
-        ArrowDataType::Int32 => numeric_to_json_vals::<datatypes::Int32Type>(col),
-        ArrowDataType::Int64 => numeric_to_json_vals::<datatypes::Int64Type>(col),
-        ArrowDataType::UInt8 => numeric_to_json_vals::<datatypes::UInt8Type>(col),
-        ArrowDataType::UInt16 => numeric_to_json_vals::<datatypes::UInt16Type>(col),
-        ArrowDataType::UInt32 => numeric_to_json_vals::<datatypes::UInt32Type>(col),
-        ArrowDataType::UInt64 => numeric_to_json_vals::<datatypes::UInt64Type>(col),
-        ArrowDataType::Boolean => bool_to_json_vals(col),
-        ArrowDataType::Utf8 => utf8_to_json_vals(col),
-        ArrowDataType::List(inner_field) => list_to_json_vals(col, inner_field.data_type()),
-        ArrowDataType::FixedSizeList(inner_field, _) => {
+        DataType::Float32 => numeric_to_json_vals::<datatypes::Float32Type>(col),
+        DataType::Float64 => numeric_to_json_vals::<datatypes::Float64Type>(col),
+        DataType::Int8 => numeric_to_json_vals::<datatypes::Int8Type>(col),
+        DataType::Int16 => numeric_to_json_vals::<datatypes::Int16Type>(col),
+        DataType::Int32 => numeric_to_json_vals::<datatypes::Int32Type>(col),
+        DataType::Int64 => numeric_to_json_vals::<datatypes::Int64Type>(col),
+        DataType::UInt8 => numeric_to_json_vals::<datatypes::UInt8Type>(col),
+        DataType::UInt16 => numeric_to_json_vals::<datatypes::UInt16Type>(col),
+        DataType::UInt32 => numeric_to_json_vals::<datatypes::UInt32Type>(col),
+        DataType::UInt64 => numeric_to_json_vals::<datatypes::UInt64Type>(col),
+        DataType::Boolean => bool_to_json_vals(col),
+        DataType::Utf8 => utf8_to_json_vals(col),
+        DataType::List(inner_field) => list_to_json_vals(col, inner_field.data_type()),
+        DataType::FixedSizeList(inner_field, _) => {
             fixed_size_list_to_json_vals(col, inner_field.data_type())
         }
-        ArrowDataType::Struct(fields) => struct_to_json_vals(col, fields),
+        DataType::Struct(fields) => struct_to_json_vals(col, fields),
         _ => Err(Error::NotImplemented(SupportedType::ArrowDataType(
             dt.clone(),
         ))),
