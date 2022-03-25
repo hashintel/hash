@@ -524,9 +524,10 @@ fn batch_to_js<'s>(
     //
     // SAFETY: `mem.data` points to valid memory and is valid for `mem.size` bytes `no_op` will not
     //         try to de-allocate share memory.
-    // TODO: Investigate, that this does not have any implications on reading/writing shared memory.
+    // TODO: Investigate to make sure that this does not have any implications on reading/writing.
     //       It's also not 100% clear what `ArrayBuffer` expects, is it ok to read/write while the
     //       `ArrayBuffer` exists?)
+    //       https://app.asana.com/0/1199548034582004/1202024534527158/f
     let backing_store = unsafe {
         v8::ArrayBuffer::new_backing_store_from_ptr(
             mem.data.as_ptr().cast(),
