@@ -1,4 +1,12 @@
-import { Fade, Box, Tooltip, styled, Switch } from "@mui/material";
+import {
+  Fade,
+  Box,
+  Tooltip,
+  styled,
+  Switch,
+  Radio,
+  Checkbox,
+} from "@mui/material";
 import { FC } from "react";
 import { SIDEBAR_WIDTH } from "../../theme/components/navigation/MuiDrawerThemeOptions";
 
@@ -70,6 +78,12 @@ export const MainContentWrapper: FC = ({ children }) => {
         <Switch />
         <br />
         <Switch size="small" />
+        <br />
+        <Radio name="btn" value="a" />
+        <Radio name="btn" value="b" />
+        <br />
+        <Checkbox />
+        <Checkbox checked />
       </Main>
     </Box>
   );

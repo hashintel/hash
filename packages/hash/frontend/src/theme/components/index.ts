@@ -11,12 +11,16 @@ import { MuiListItemTextThemeOptions } from "./dataDisplay/MuiListItemTextThemeO
 import { MuiMenuThemeOptions } from "./navigation/MuiMenuThemeOptions";
 import { MuiMenuItemThemeOptions } from "./navigation/MuiMenuItemThemeOptions";
 import { MuiOutlinedInputThemeOptions } from "./inputs/MuiOutlinedInputThemeOptions";
+import { MuiRadioThemeOptions } from "./inputs/MuiRadioThemeOptions";
+import { MuiCheckboxThemeOptions } from "./inputs/MuiCheckboxThemeOptions";
 
 export const components: Components<Theme> = {
   /** ===== INPUTS ===== */
   MuiButton: MuiButtonThemeOptions,
   MuiOutlinedInput: MuiOutlinedInputThemeOptions,
   MuiSwitch: MuiSwitchThemeOptions,
+  MuiRadio: MuiRadioThemeOptions,
+  MuiCheckbox: MuiCheckboxThemeOptions,
   /** ===== DATA DISPLAY ===== */
   MuiIconButton: MuiIconButtonThemeOptions,
   MuiTooltip: MuiTooltipThemeOptions,
