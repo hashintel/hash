@@ -35,6 +35,8 @@ export const useDefaultState = <
   return [currentValue, setState];
 };
 
+// @todo - needs work to make this concurrency-compliant
+// @see - https://github.com/hashintel/hash/pull/407#discussion_r834643556
 export const useCachedDefaultState = <
   T extends object | number | string | boolean | null | undefined,
 >(

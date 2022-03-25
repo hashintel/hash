@@ -7,7 +7,7 @@ import { SpinnerIcon } from "../../../components/icons";
 export interface SuggesterProps<T> {
   options: T[];
   renderItem(item: T): ReactElement;
-  renderError?: ReactElement | null;
+  error?: ReactElement | null;
   onChange(item: T): void;
   loading?: boolean;
   itemKey(option: T): string;
@@ -23,7 +23,7 @@ export const Suggester = <T,>({
   loading,
   itemKey,
   renderItem,
-  renderError,
+  error,
   sx = [],
 }: SuggesterProps<T>): ReactElement => {
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -107,7 +107,7 @@ export const Suggester = <T,>({
           </Box>
         ))}
       </Box>
-      {renderError}
+      {error}
     </Box>
   );
 };

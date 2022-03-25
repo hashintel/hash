@@ -4,7 +4,7 @@ import { tw } from "twind";
 
 import { Button } from "../Button";
 import { useBlockView } from "../../blocks/page/BlockViewContext";
-import { RemoteBlockMetadata, useUserBlocks } from "../../blocks/userBlocks";
+import { useUserBlocks } from "../../blocks/userBlocks";
 
 export const BlockLoaderInput: React.VFC = () => {
   const blockView = useBlockView();
@@ -38,7 +38,7 @@ export const BlockLoaderInput: React.VFC = () => {
           setError(null);
           setUserBlocks((prevUserBlocks) => [
             ...prevUserBlocks,
-            blockMeta.componentMetadata as RemoteBlockMetadata,
+            blockMeta.componentMetadata,
           ]);
         });
         return blockView.manager.createRemoteBlock(blockUrl);

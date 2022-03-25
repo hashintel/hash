@@ -68,7 +68,7 @@ export const BlockSuggester: VFC<BlockSuggesterProps> = ({
           </div>
         </>
       )}
-      renderError={
+      error={
         blockFetchFailed ? (
           <Box
             sx={({ palette }) => ({
