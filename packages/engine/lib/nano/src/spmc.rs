@@ -7,7 +7,7 @@ use tokio::sync::{mpsc, Mutex};
 /// Internally, consumers acquire a tokio lock on the receiving side of a channel which
 /// ensures a fair allocation of messages to consumers based on FIFO locking order.
 /// See: <https://tokio-rs.github.io/tokio/doc/tokio/sync/struct.Mutex.html>
-pub(crate) fn channel<T>(buffer: usize) -> (Sender<T>, Receiver<T>) {
+pub(crate) fn channel<T: Send>(buffer: usize) -> (Sender<T>, Receiver<T>) {
     let (tx, rx) = mpsc::channel::<T>(buffer);
     let sender = Sender { sender: tx };
     let receiver = Receiver {
@@ -17,11 +17,11 @@ pub(crate) fn channel<T>(buffer: usize) -> (Sender<T>, Receiver<T>) {
 }
 
 #[derive(Clone)]
-pub(crate) struct Sender<T> {
+pub(crate) struct Sender<T: Send> {
     sender: mpsc::Sender<T>,
 }
 
-impl<T> Sender<T> {
+impl<T: Send> Sender<T> {
     /// Send a value into the queue. Returns an error if all receive ends of the queue
     /// are dropped.
     pub(crate) async fn send(&mut self, value: T) -> Result<(), mpsc::error::SendError<T>> {
@@ -29,19 +29,19 @@ impl<T> Sender<T> {
     }
 }
 
-pub(crate) struct Receiver<T> {
+pub(crate) struct Receiver<T: Send> {
     receiver: Arc<Mutex<mpsc::Receiver<T>>>,
 }
 
-impl<T> Clone for Receiver<T> {
+impl<T: Send> Clone for Receiver<T> {
     fn clone(&self) -> Self {
-        Receiver {
-            receiver: self.receiver.clone(),
+        Self {
+            receiver: Arc::clone(&self.receiver),
         }
     }
 }
 
-impl<T> Receiver<T> {
+impl<T: Send> Receiver<T> {
     /// Receive a value from the queue. Returns `None` if the send half is dropped.
     pub(crate) async fn recv(&mut self) -> Option<T> {
         let mut ch = self.receiver.lock().await;
