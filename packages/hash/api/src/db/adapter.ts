@@ -61,7 +61,23 @@ export type EntityWithOutgoingEntityIds = DbEntity & {
 export type DbLink = {
   linkId: string;
   linkVersionId: string;
+
+  /**
+   * Path into the source entity's properties.
+   *
+   * @example
+   * "$.contents"
+   * "$.parentPage"
+   */
   path: string;
+
+  /**
+   * Defines order between multiple link entities.
+   *
+   * 1/10 (Cole): Consider using a fractional index so we don't need to update
+   * multiple links when re-ordering. Then occaisionally, you can do a re-balance
+   * when re-ordering between two items with too low of a distance.
+   */
   index?: number;
   sourceAccountId: string;
   sourceEntityId: string;
@@ -72,8 +88,36 @@ export type DbLink = {
   removedFromSourceAt?: Date;
   removedFromSourceByAccountId?: string;
 
+  /**
+   * Question: When would we intend that `destinationAccountId` is different than `sourceAccountId`
+   *  * Does this have negative implications for sharding?
+   *  * e.g. When all items from Account A point to many items in Account B
+   */
   destinationAccountId: string;
+
+  /**
+   * Idea 1/10:
+   * Consider making the target of the link actually a composite of:
+   *    entity_type_id + key_property_values e.g. `{ entityType: "GithubIssue", where: { id: 1236728 } }`
+   *  * This could allow us to better support out of order ingestion.
+   *  * This could implicate that we need a view or something to join in pgSQL instead of us proactively
+   *    updating custom link index tables. (e.g. for canonicalization)
+   */
   destinationEntityId: string;
+
+  /**
+   * Optional way to pin the link to a specific
+   * version of the destination entity.
+   *
+   * Progress 0/10:
+   *
+   * Maybe a smart idea if the way we consider internal
+   * versions as something mapping to versions of an use-cases
+   * domain model like specific dependency version.
+   * But, at that point would it make sense to instead store
+   * separate entities for each "dependency version" or
+   * "license version", etc?
+   */
   destinationEntityVersionId?: string;
 
   updatedAt: Date;
@@ -448,6 +492,7 @@ export interface DbClient {
     sourceEntityVersionIds: Set<string>;
     destinationAccountId: string;
     destinationEntityId: string;
+    /** See docs for {@link DbLink.destinationEntityVersionId} */
     destinationEntityVersionId?: string;
   }): Promise<DbLink>;
 
