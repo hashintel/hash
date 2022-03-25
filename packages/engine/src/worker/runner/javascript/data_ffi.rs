@@ -95,7 +95,7 @@ where
     v8::Local<'s, T>: TryFrom<v8::Local<'s, v8::Value>>,
     <v8::Local<'s, T> as TryFrom<v8::Local<'s, v8::Value>>>::Error: std::fmt::Display,
 {
-    let js_key = new_js_string(scope, property)?;
+    let js_key = new_js_string(scope, property);
 
     let len_value = data.get(scope, js_key.into()).ok_or_else(|| {
         Error::V8(format!(

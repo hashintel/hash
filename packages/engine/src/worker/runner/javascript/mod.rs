@@ -120,7 +120,7 @@ impl<'s> JsPackage<'s> {
                     ]
                 }})",
             ),
-        )?;
+        );
 
         let pkg: v8::Local<'_, v8::Function> = {
             let mut try_catch = v8::TryCatch::new(scope);
@@ -227,7 +227,7 @@ fn read_file(path: &str) -> Result<String> {
 
 fn eval_file<'s>(scope: &mut v8::HandleScope<'s>, path: &str) -> Result<Value<'s>> {
     let source_code = read_file(path)?;
-    let js_source_code = new_js_string(scope, &source_code)?;
+    let js_source_code = new_js_string(scope, &source_code);
     let mut try_catch = v8::TryCatch::new(scope);
     let script = v8::Script::compile(&mut try_catch, js_source_code, None).ok_or_else(|| {
         let exception = try_catch.exception().unwrap();
@@ -487,12 +487,12 @@ fn mem_batch_to_js<'s>(
     persisted: Metaversion,
 ) -> Result<Value<'s>> {
     let batch = v8::Object::new(scope);
-    let batch_id = new_js_string(scope, batch_id)?;
+    let batch_id = new_js_string(scope, batch_id);
 
-    let id_field = new_js_string(scope, "id")?;
-    let mem_field = new_js_string(scope, "mem")?;
-    let mem_version_field = new_js_string(scope, "mem_version")?;
-    let batch_version_field = new_js_string(scope, "batch_version")?;
+    let id_field = new_js_string(scope, "id");
+    let mem_field = new_js_string(scope, "mem");
+    let mem_version_field = new_js_string(scope, "mem_version");
+    let batch_version_field = new_js_string(scope, "batch_version");
 
     batch
         .set(scope, id_field.into(), batch_id.into())
@@ -689,10 +689,7 @@ fn array_to_user_warnings<'s>(
 }
 
 fn get_js_error<'s>(scope: &mut v8::HandleScope<'s>, return_val: Object<'s>) -> Option<Error> {
-    let user_errors = match new_js_string(scope, "user_errors") {
-        Ok(user_errors) => user_errors,
-        Err(err) => return Some(err),
-    };
+    let user_errors = new_js_string(scope, "user_errors");
 
     if let Some(errors) = return_val.get(scope, user_errors.into()) {
         if !errors.is_null_or_undefined() {
@@ -703,15 +700,9 @@ fn get_js_error<'s>(scope: &mut v8::HandleScope<'s>, return_val: Object<'s>) -> 
         }
     }
 
-    let pkg_error = match new_js_string(scope, "pkg_error") {
-        Ok(pkg_error) => pkg_error,
-        Err(err) => return Some(err),
-    };
+    let pkg_error = new_js_string(scope, "pkg_error");
 
-    let runner_error = match new_js_string(scope, "runner_error") {
-        Ok(runner_error) => runner_error,
-        Err(err) => return Some(err),
-    };
+    let runner_error = new_js_string(scope, "runner_error");
 
     if let Some(err) = return_val.get(scope, pkg_error.into()) {
         // Even though rusty_v8 returns an Option, if the object does not have the property the
@@ -757,7 +748,7 @@ fn get_user_warnings<'s>(
     scope: &mut v8::HandleScope<'s>,
     return_val: Object<'s>,
 ) -> Result<Option<Vec<UserWarning>>> {
-    let user_warnings = new_js_string(scope, "user_warnings")?;
+    let user_warnings = new_js_string(scope, "user_warnings");
 
     if let Some(warnings) = return_val.get(scope, user_warnings.into()) {
         if warnings != v8::undefined(scope) && warnings != v8::null(scope) {
@@ -775,7 +766,7 @@ fn get_print<'s>(
     scope: &mut v8::HandleScope<'s>,
     return_val: Object<'s>,
 ) -> Result<Option<Vec<String>>> {
-    let print = new_js_string(scope, "print")?;
+    let print = new_js_string(scope, "print");
 
     if let Some(printed_val) = return_val.get(scope, print.into()) {
         if let Ok(printed_val) = printed_val.try_into() {
@@ -800,7 +791,7 @@ fn get_next_task<'s>(
     scope: &mut v8::HandleScope<'s>,
     return_val: Object<'s>,
 ) -> Result<(MessageTarget, String)> {
-    let target = new_js_string(scope, "target")?;
+    let target = new_js_string(scope, "target");
 
     let target = if let Some(target) = return_val.get(scope, target.into()) {
         if let Ok(target) = target.try_into() {
@@ -824,7 +815,7 @@ fn get_next_task<'s>(
         MessageTarget::Main
     };
 
-    let task = new_js_string(scope, "task")?;
+    let task = new_js_string(scope, "task");
 
     let next_task_payload = if let Some(task) = return_val.get(scope, task.into()) {
         if let Ok(task) = task.try_into() {
@@ -849,14 +840,14 @@ impl<'s> ThreadLocalRunner<'s> {
     ) -> Result<Value<'s>> {
         let js_datasets = v8::Object::new(scope);
         for (dataset_name, dataset) in shared_ctx.datasets.iter() {
-            let js_name = new_js_string(scope, &dataset_name)?;
+            let js_name = new_js_string(scope, &dataset_name);
 
             let json = dataset.data();
             // TODO: Use `from_utf8_unchecked` instead here?
             //       (Since datasets' json can be quite large.)
             let json =
                 std::str::from_utf8(json).map_err(|_| Error::Unique("Dataset not utf8".into()))?;
-            let json = new_js_string(scope, json)?;
+            let json = new_js_string(scope, json);
 
             js_datasets
                 .set(scope, js_name.into(), json.into())
@@ -898,7 +889,7 @@ impl<'s> ThreadLocalRunner<'s> {
                 })?;
 
             let pkg_init = serde_json::to_string(&pkg_init).unwrap();
-            let pkg_init = new_js_string(scope, &pkg_init)?;
+            let pkg_init = new_js_string(scope, &pkg_init);
             pkg_init_msgs
                 .set_index(scope, i_pkg, pkg_init.into())
                 .ok_or_else(|| {
@@ -1282,7 +1273,7 @@ impl<'s> ThreadLocalRunner<'s> {
                 Error::V8("Could not convert change from Value to Object".to_string())
             })?;
 
-            let i_field = new_js_string(scope, "i_field")?;
+            let i_field = new_js_string(scope, "i_field");
 
             let i_field: v8::Local<'s, v8::Number> = change
                 .get(scope, i_field.into())
@@ -1297,7 +1288,7 @@ impl<'s> ThreadLocalRunner<'s> {
             let i_field = i_field.value() as usize;
             let field = schema.field(i_field);
 
-            let data = new_js_string(scope, "data")?;
+            let data = new_js_string(scope, "data");
 
             let data = change
                 .get(scope, data.into())
@@ -1331,7 +1322,7 @@ impl<'s> ThreadLocalRunner<'s> {
     ) -> Result<()> {
         let changes = changes.to_object(scope).unwrap();
 
-        let agent = new_js_string(scope, "agent")?;
+        let agent = new_js_string(scope, "agent");
 
         let agent_changes: v8::Local<'s, v8::Array> = changes
             .get(scope, agent.into())
@@ -1354,7 +1345,7 @@ impl<'s> ThreadLocalRunner<'s> {
             agent_schema,
         )?;
 
-        let msg = new_js_string(scope, "msg")?;
+        let msg = new_js_string(scope, "msg");
 
         let msg_changes = changes
             .get(scope, msg.into())
@@ -1410,7 +1401,7 @@ impl<'s> ThreadLocalRunner<'s> {
         let agent_schema = state.agent_schema.clone();
         let msg_schema = state.msg_schema.clone();
 
-        let changes = new_js_string(scope, "changes")?;
+        let changes = new_js_string(scope, "changes");
 
         let changes = return_val
             .get(scope, changes.into())
@@ -1474,7 +1465,7 @@ impl<'s> ThreadLocalRunner<'s> {
                 format!("Couldn't set package id {pkg_id} at index {i_pkg} on package id array")
             })?;
             let payload = serde_json::to_string(&pkg_msg.payload).unwrap();
-            let payload = new_js_string(scope, &payload)?.into();
+            let payload = new_js_string(scope, &payload).into();
             pkg_msgs.set_index(scope, i_pkg, payload).ok_or_else(|| {
                 format!("Couldn't set payload at index {i_pkg} on package message array")
             })?;
@@ -1482,7 +1473,7 @@ impl<'s> ThreadLocalRunner<'s> {
 
         let globals: &Globals = &run.globals;
         let globals = serde_json::to_string(globals).unwrap();
-        let globals = new_js_string(scope, &globals)?;
+        let globals = new_js_string(scope, &globals);
 
         let js_sim_id = sim_id_to_js(scope, run.short_id);
         call_js_function(scope, self.embedded.start_sim, self.this, &[
@@ -1528,7 +1519,7 @@ impl<'s> ThreadLocalRunner<'s> {
             .map_err(|err| {
                 Error::from(format!("Failed to extract the inner task message: {err}"))
             })?;
-        let payload_str = new_js_string(scope, &serde_json::to_string(&payload)?)?;
+        let payload_str = new_js_string(scope, &serde_json::to_string(&payload)?);
         let group_index = match msg.group_index {
             None => v8::undefined(scope).into(),
             Some(val) => v8::Number::new(scope, val as f64).into(),
@@ -1838,7 +1829,7 @@ fn get_child_data<'s>(
     scope: &mut v8::HandleScope<'s>,
     obj: Object<'s>,
 ) -> Result<v8::Local<'s, v8::Array>> {
-    let child_data = new_js_string(scope, "child_data")?;
+    let child_data = new_js_string(scope, "child_data");
 
     obj.get(scope, child_data.into())
         .ok_or_else(|| Error::V8("Could not get child_data property on obj".to_string()))?
@@ -2002,7 +1993,7 @@ fn run_experiment(
 fn new_js_string<'s>(
     scope: &mut v8::HandleScope<'s>,
     s: impl AsRef<str>,
-) -> Result<v8::Local<'s, v8::String>> {
+) -> v8::Local<'s, v8::String> {
     let s = s.as_ref();
-    v8::String::new(scope, s).ok_or_else(|| Error::V8(format!("Could not create String: {s}")))
+    v8::String::new(scope, s).expect(&format!("Could not create JS String: {s}"))
 }
