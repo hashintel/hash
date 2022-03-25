@@ -24,10 +24,13 @@
     missing_abi,
     missing_copy_implementations,
     missing_debug_implementations,
+    reason = "All applicable rustc warnings are enabled by default"
+)]
+#![warn(
     clippy::pedantic,
     clippy::nursery,
     clippy::restriction,
-    reason = "All warnings are enabled by default"
+    reason = "All clippy warnings are enabled by default"
 )]
 // TODO: DOC
 #![allow(
@@ -40,17 +43,18 @@
     reason = "We didn't any serious optimization work until now"
 )]
 #![allow(
+    clippy::blanket_clippy_restriction_lints,
     clippy::implicit_return,
     clippy::expect_used,
     clippy::unreachable,
     clippy::integer_arithmetic,
-    clippy::blanket_clippy_restriction_lints,
     clippy::pattern_type_mismatch,
-    reason = "Allow lints, which are too verbose to verbose to apply"
+    reason = "Allow lints, which are too verbose to be applied"
 )]
 #![allow(
     clippy::redundant_pub_crate,
-    reason = "Conflicts with `unreachable_pub`, see rust-lang/rust-clippy#5369"
+    reason = "Conflicts with `unreachable_pub` \
+              see <https://github.com/rust-lang/rust-clippy/issues/5369>"
 )]
 
 mod client;
@@ -58,8 +62,8 @@ mod error;
 mod server;
 mod spmc;
 
-const SEND_ERROR_MESSAGE: &str = "Could not send message to nng";
-const RECV_ERROR_MESSAGE: &str = "Could not receive message from nng";
+const SEND_EXPECT_MESSAGE: &str = "Could not send message to nng";
+const RECV_EXPECT_MESSAGE: &str = "Could not receive message from nng";
 
 pub use self::{
     client::Client,

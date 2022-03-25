@@ -5,7 +5,7 @@ use tokio::sync::mpsc;
 /// Based on the server example at:
 /// <https://github.com/nanomsg/nng/blob/708cdf1a8938b0ff128b134dcc2241ff99763209/demo/async/server.c>
 use super::error::{Error, Result};
-use crate::{RECV_ERROR_MESSAGE, SEND_ERROR_MESSAGE};
+use crate::{RECV_EXPECT_MESSAGE, SEND_EXPECT_MESSAGE};
 
 // The number of NNG async I/O contexts to run concurrently.
 // TODO: experiment with how large we can set this.
@@ -64,13 +64,13 @@ impl Worker {
         let aio = nng::Aio::new(move |aio, result| match result {
             nng::AioResult::Send(_) => {
                 // Back to the recv state. The client will re-send if the reply failed
-                ctx.recv(&aio).expect(RECV_ERROR_MESSAGE);
+                ctx.recv(&aio).expect(RECV_EXPECT_MESSAGE);
             }
             nng::AioResult::Recv(Ok(msg)) => {
                 // We've received a message. Now reply back
                 ctx.send(&aio, nng::Message::new())
-                    .expect(SEND_ERROR_MESSAGE);
-                sender.send(msg).expect(SEND_ERROR_MESSAGE);
+                    .expect(SEND_EXPECT_MESSAGE);
+                sender.send(msg).expect(SEND_EXPECT_MESSAGE);
             }
             nng::AioResult::Recv(Err(nng::Error::Closed)) => {
                 tracing::debug!(%socket_url, "aio context closed for socket listening");
@@ -133,7 +133,7 @@ impl Server {
     where
         for<'de> T: serde::Deserialize<'de>,
     {
-        let msg = self.receiver.recv().await.expect(RECV_ERROR_MESSAGE);
+        let msg = self.receiver.recv().await.expect(RECV_EXPECT_MESSAGE);
         serde_json::from_slice::<T>(msg.as_slice()).map_err(Error::from)
     }
 }

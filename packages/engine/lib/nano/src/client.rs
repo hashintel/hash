@@ -7,7 +7,7 @@ use super::{
     error::{Error, Result},
     spmc,
 };
-use crate::{RECV_ERROR_MESSAGE, SEND_ERROR_MESSAGE};
+use crate::{RECV_EXPECT_MESSAGE, SEND_EXPECT_MESSAGE};
 
 const RESEND_TIME: Duration = Duration::from_secs(1);
 const RECONNECT_MIN_TIME: Duration = Duration::from_millis(50);
@@ -65,13 +65,13 @@ impl Worker {
         let aio = nng::Aio::new(move |aio, aio_result| match aio_result {
             nng::AioResult::Send(_) => {
                 // The message was sent. Wait for the reply to arrive.
-                ctx_clone.recv(&aio).expect(RECV_ERROR_MESSAGE);
+                ctx_clone.recv(&aio).expect(RECV_EXPECT_MESSAGE);
             }
             nng::AioResult::Recv(message) => {
                 // We received the reply.
                 reply_tx
                     .send(message.map(|_| ()).map_err(Error::from))
-                    .expect(SEND_ERROR_MESSAGE);
+                    .expect(SEND_EXPECT_MESSAGE);
             }
             nng::AioResult::Sleep(_) => {
                 unreachable!("unexpected sleep");
@@ -91,13 +91,13 @@ impl Worker {
     async fn handle_request(&mut self, (msg, sender): Request) {
         // Send the message to the server
         if let Err((_, e)) = self.ctx.send(&self.aio, msg) {
-            sender.send(Err(Error::from(e))).expect(SEND_ERROR_MESSAGE);
+            sender.send(Err(Error::from(e))).expect(SEND_EXPECT_MESSAGE);
             return;
         }
 
         // Wait for a reply from the server
-        let recv_result = self.reply_rx.recv().await.expect(RECV_ERROR_MESSAGE);
-        sender.send(recv_result).expect(SEND_ERROR_MESSAGE);
+        let recv_result = self.reply_rx.recv().await.expect(RECV_EXPECT_MESSAGE);
+        sender.send(recv_result).expect(SEND_EXPECT_MESSAGE);
     }
 
     async fn run(&mut self, mut stop_rx: mpsc::UnboundedReceiver<()>) {
@@ -161,15 +161,15 @@ impl Client {
         self.sender
             .send((nng_msg, tx))
             .await
-            .expect(SEND_ERROR_MESSAGE);
-        rx.await.expect(RECV_ERROR_MESSAGE)
+            .expect(SEND_EXPECT_MESSAGE);
+        rx.await.expect(RECV_EXPECT_MESSAGE)
     }
 }
 
 impl Drop for Client {
     fn drop(&mut self) {
         for worker in &self.workers {
-            worker.stop_tx.send(()).expect(SEND_ERROR_MESSAGE);
+            worker.stop_tx.send(()).expect(SEND_EXPECT_MESSAGE);
         }
     }
 }
