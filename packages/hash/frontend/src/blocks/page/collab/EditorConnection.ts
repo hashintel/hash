@@ -93,7 +93,7 @@ export class EditorConnection {
     switch (action.type) {
       case "loaded": {
         const editorState = createProseMirrorState({
-          accountId: action.accountId,
+          accountId: this.accountId,
           doc: action.doc,
           plugins: [
             ...this.additionalPlugins,

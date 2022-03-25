@@ -359,7 +359,7 @@ class ProsemirrorStateChangeHandler {
   private readonly tr: Transaction<Schema>;
   private handled = false;
 
-  constructor(private state: EditorState<Schema>, public accountId: string) {
+  constructor(private state: EditorState<Schema>, private accountId: string) {
     this.tr = state.tr;
   }
 

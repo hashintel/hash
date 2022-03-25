@@ -66,7 +66,7 @@ type ComponentNodeViewFactory = (meta: BlockMeta) => NodeViewFactory;
 export class ProsemirrorSchemaManager {
   constructor(
     public schema: Schema,
-    public accountId: string,
+    private accountId: string,
     private view: EditorView<Schema> | null = null,
     private componentNodeViewFactory: ComponentNodeViewFactory | null = null,
   ) {}
