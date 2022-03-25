@@ -14,6 +14,8 @@ import {
   BlockProtocolAggregateEntitiesResult,
   BlockProtocolEntity,
   BlockProtocolAggregateOperationInput,
+  BlockProtocolSort,
+  BlockProtocolUpdateLinkedAggregationActionFragment,
 } from "blockprotocol";
 import { BlockComponent } from "blockprotocol/react";
 import { tw } from "twind";
@@ -88,16 +90,20 @@ const getLinkedAggregation = (params: {
 };
 
 const cleanUpdateLinkedAggregationAction = (
-  action: BlockProtocolUpdateLinksAction & {
-    data: BlockProtocolAggregateOperationInput & {
+  action: BlockProtocolUpdateLinkedAggregationActionFragment & {
+    data: Omit<BlockProtocolAggregateOperationInput, "multiSort"> & {
       __typename?: string;
       pageCount?: number | null;
+      multiSort?: (BlockProtocolSort & { __typename?: string })[] | null;
     };
   },
 ) => {
   return produce(action, (draftAction) => {
     delete draftAction.data.pageCount;
     delete draftAction.data.__typename;
+    for (const sort of draftAction.data.multiSort ?? []) {
+      delete sort?.__typename;
+    }
   });
 };
 
@@ -365,6 +371,7 @@ export const Table: BlockComponent<AppProps> = ({
 
   const doesNotNeedInitialColumns =
     initialState?.columns || !tableData.data?.length;
+
   const defaultColumnData = tableData?.data?.[0];
 
   const defaultColumnDataRef = useRef(defaultColumnData);
@@ -431,7 +438,7 @@ export const Table: BlockComponent<AppProps> = ({
     setHiddenColumns(newHiddenColumns);
 
     // @todo throttle this call
-    updateRemoteColumns({ hiddenColumns: newHiddenColumns });
+    updateRemoteColumnsRef.current({ hiddenColumns: newHiddenColumns });
   };
 
   const [entityTypes, setEntityTypes] = useState<BlockProtocolEntityType[]>();
