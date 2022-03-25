@@ -167,14 +167,14 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
         );
 
         if (instance.errored) {
-          return response.status(500).json({ error: true });
+          response.status(500).json({ error: true });
+        } else {
+          response.json({
+            doc: instance.state.doc.toJSON(),
+            store: entityStorePluginState(instance.state).store,
+            version: instance.version,
+          });
         }
-
-        response.json({
-          doc: instance.state.doc.toJSON(),
-          store: entityStorePluginState(instance.state).store,
-          version: instance.version,
-        });
       } catch (error) {
         next(error);
       }
@@ -253,7 +253,7 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
         );
         if (!result) {
           if (instance.errored) {
-            return response.status(500).json({ error: true });
+            response.status(500).json({ error: true });
           } else {
             response.status(409).send("Version not current");
           }
