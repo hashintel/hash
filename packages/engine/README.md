@@ -84,11 +84,11 @@ Depending on your needs, different dependencies are required. Building this proj
   - We recommend installing and using rustup, following the [instructions on the Rust-Lang website](https://www.rust-lang.org/tools/install)
   - hEngine runs on the Nightly toolchain. The version is managed by the [rust-toolchain.toml](./rust-toolchain.toml) file. To verify, run `rustup show` from the [engine](.) directory.
 
-### Optional dependencies
-
-- Python [3.7.x] is required, if you want to run a simulation with the python runner (i.e. have any python behaviors or _init.py_).
+- Python [3.7.x]
 
   - Python installation guidance from [their website](https://www.python.org/downloads/)
+
+### Optional dependencies
 
 - Flatbuffers [2.0.0] is required to generate structs in Javascript, Python, or Rust for messaging between processes in hCloud. Unless the schema files in [./format](./format) are changed (and thus require generation to be rerun), flatc is not needed.
 
@@ -137,7 +137,9 @@ Depending on how lightweight your OS install is, you may be missing some low lev
 ### Project Setup / Building
 
 - Run `cargo build`
-- If you want to use a Python runner, also run `./src/worker/runner/python/setup.sh` and follow the instructions from the help
+- Setup a Python environment by running `./src/worker/runner/python/setup.sh` and follow the instructions from the help.
+
+> **WIP** - In the future, setting up Python will only be required if Python behaviors are present, but for now it is always required.
 
 The initial setup time may be long at the moment. We need to use a fork of `rusty_v8` but expect significant improvement after [rusty_v8#926](https://github.com/denoland/rusty_v8/pull/926) is merged and a new crates.io release is made.
 

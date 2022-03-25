@@ -9,6 +9,7 @@ default-members = [".", "bin/*", "lib/*"]
 
 [dependencies]
 flatbuffers_gen = { path = "lib/flatbuffers_gen" }
+nano = { path = "lib/nano" }
 
 arr_macro = "0.1.3"
 arrow = { version = "10.0.0", default-features = false, features = ["ipc"] }
@@ -56,7 +57,7 @@ num_cpus = "1.13.1"
 
 [features]
 default = ["build-nng"]
-build-nng = ["nng/build-nng"]
+build-nng = ["nano/build-nng"]
 texray = ["tracing-texray"]
 
 [lib]
