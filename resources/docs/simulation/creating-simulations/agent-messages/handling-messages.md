@@ -13,9 +13,9 @@ The Context passed to every agent provides a list of messages in the agent's inb
 ```javascript
 context {
     messages(): [
-        {   
+        {
             "from": "string" // uuid of agent who sent the message
-            "type": "string" // describing contents or purpose 
+            "type": "string" // describing contents or purpose
             "data": "any" // additional data contained in the message
         }
     ],

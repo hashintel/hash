@@ -12,7 +12,7 @@ Messages are a simple yet powerful way of moving data around a simulation and ca
 
 Agents send messages by adding them to the `state.messages` array, and they receive them by accessing `context.messages().`
 
-Agents can create a message to send to either another agent or the simulation engine itself. Here, we send a message to an agent with an  `agent_name` of "schelling":
+Agents can create a message to send to either another agent or the simulation engine itself. Here, we send a message to an agent with an `agent_name` of "schelling":
 
 <Tabs>
 <Tab title="JavaScript" >
