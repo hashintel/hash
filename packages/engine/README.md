@@ -74,6 +74,11 @@ Depending on your needs, different dependencies are required. Building this proj
 
 ### Required dependencies
 
+
+- CMake [3.X.X >= 3.21.2]
+
+  - CMake installation guidance from the [CMake page](https://cmake.org/install/) or if on macOS through [brew](https://brew.sh/)
+
 - The Rust Compiler
 
   - We recommend installing and using rustup, following the [instructions on the Rust-Lang website](https://www.rust-lang.org/tools/install)
@@ -119,6 +124,15 @@ Due to limitations in Cargo at the moment we can't properly check if it's being 
 - It's then necessary to set the `NNG_PATH` environment variable, similar to `V8_PATH`
 
   - The command is likely to be: `export NNG_PATH=/usr/local/Cellar/nng/1.5.2`
+
+### Possible Dependencies and Debugging
+
+Depending on how lightweight your OS install is, you may be missing some low level dependencies, so try the following (examples given for Ubuntu/Debian-based Unix systems):
+
+- `apt-get install build-essentials` - Includes the GCC/g++ compilers, libraries, and some other utilities
+- `apt-get install pkg-config` - A helper tool used when compiling applications and libraries
+- `apt-get install libssl-dev` - A development package of OpenSSL
+- `apt-get install python3-dev` - A collection of developer utilities for Python such as header files (e.g. needed when seeing `fatal error: Python.h: No such file or directory`)
 
 ### Project Setup / Building
 
