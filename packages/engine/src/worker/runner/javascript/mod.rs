@@ -719,7 +719,9 @@ fn get_js_error<'s>(scope: &mut v8::HandleScope<'s>, return_val: Object<'s>) -> 
             let err: v8::Local<'s, v8::String> = if let Some(err) = err.to_string(scope) {
                 err
             } else {
-                return Some(Error::V8("Could not convert err to String".to_string()));
+                return Some(Error::V8(
+                    "Could not convert package error to String".to_string(),
+                ));
             };
 
             // TODO: Don't silently ignore non-string, non-null-or-undefined errors
@@ -737,7 +739,9 @@ fn get_js_error<'s>(scope: &mut v8::HandleScope<'s>, return_val: Object<'s>) -> 
             let err: v8::Local<'s, v8::String> = if let Some(err) = err.to_string(scope) {
                 err
             } else {
-                return Some(Error::V8("Could not convert err to String".to_string()));
+                return Some(Error::V8(
+                    "Could not convert runner error to String".to_string(),
+                ));
             };
 
             // TODO: Don't ignore non-string, non-null-or-undefined errors
