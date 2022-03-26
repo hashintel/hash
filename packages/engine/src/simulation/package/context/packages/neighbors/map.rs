@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
-use super::*;
+use super::{Result, TopologyConfig};
 use crate::{datastore::batch::AgentIndex, simulation::Error};
 
 pub(super) type PositionSubType = f64;

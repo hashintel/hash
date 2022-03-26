@@ -5,11 +5,12 @@ use std::{
     sync::Arc,
 };
 
+use arrow::datatypes::Schema;
 use tracing::Span;
 
 use crate::{
     config::{EngineConfig, Globals},
-    datastore::{prelude::ArrowSchema, schema::state::AgentSchema, shared_store::SharedStore},
+    datastore::{schema::state::AgentSchema, shared_store::SharedStore},
     proto::{ExperimentId, SimulationShortId},
     simulation::{
         enum_dispatch::TaskSharedStore,
@@ -191,8 +192,8 @@ pub struct NewSimulationRun {
 #[derive(derive_new::new, Clone)]
 pub struct DatastoreSimulationPayload {
     pub agent_batch_schema: Arc<AgentSchema>,
-    pub message_batch_schema: Arc<ArrowSchema>,
-    pub context_batch_schema: Arc<ArrowSchema>,
+    pub message_batch_schema: Arc<Schema>,
+    pub context_batch_schema: Arc<Schema>,
     pub shared_store: Arc<SharedStore>,
 }
 

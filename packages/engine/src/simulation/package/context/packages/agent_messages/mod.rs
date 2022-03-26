@@ -3,12 +3,29 @@ mod fields;
 mod indices;
 mod writer;
 
-use arrow::array::{FixedSizeListBuilder, ListBuilder};
+use arrow::array::{Array, FixedSizeListBuilder, ListBuilder};
+pub use async_trait::async_trait;
 use serde_json::Value;
 use tracing::Span;
 
 use self::collected::Messages;
-use super::super::*;
+use super::super::{
+    Arc, ContextColumn, ContextSchema, FieldKey, FieldSpecMapAccessor, GetWorkerExpStartMsg,
+    GetWorkerSimStartMsg, Globals, MaybeCpuBound, PackageCreator, RootFieldSpecCreator,
+    SimRunConfig, StateReadProxy, StateSnapshot,
+};
+pub use crate::{
+    config::{ExperimentConfig, SimulationConfig},
+    datastore::table::{context::Context, state::State},
+    simulation::{
+        comms::Comms,
+        package::{
+            context::Package as ContextPackage, init::Package as InitPackage,
+            output::Package as OutputPackage, state::Package as StatePackage,
+        },
+        Error, Result,
+    },
+};
 use crate::{
     datastore::{
         batch::iterators,
@@ -109,7 +126,7 @@ impl Package for AgentMessages {
         &self,
         num_agents: usize,
         _schema: &ContextSchema,
-    ) -> Result<Vec<(FieldKey, Arc<dyn ArrowArray>)>> {
+    ) -> Result<Vec<(FieldKey, Arc<dyn Array>)>> {
         let index_builder = ArrowIndexBuilder::new(1024);
         let loc_builder = FixedSizeListBuilder::new(index_builder, 3);
         let mut messages_builder = ListBuilder::new(loc_builder);

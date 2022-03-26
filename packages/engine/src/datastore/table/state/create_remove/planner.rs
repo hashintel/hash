@@ -1,8 +1,10 @@
 //! TODO: DOC
 use std::sync::Arc;
 
+use arrow::record_batch::RecordBatch;
+
 use super::{
-    super::*,
+    super::AgentSchema,
     action::{CreateActions, ExistingGroupBufferActions},
     batch::PendingBatch,
     command::ProcessedCommands,
@@ -11,9 +13,11 @@ use super::{
 };
 use crate::{
     datastore::{
-        batch::migration::{BufferActions, IndexRange, RangeActions},
+        batch::{
+            migration::{BufferActions, IndexRange, RangeActions},
+            AgentBatch,
+        },
         error::Result,
-        prelude::*,
         table::{pool::proxy::PoolReadProxy, proxy::StateReadProxy},
     },
     simulation::command::CreateRemoveCommands,

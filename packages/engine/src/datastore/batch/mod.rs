@@ -12,14 +12,19 @@ pub mod migration;
 use std::sync::Arc;
 
 pub use agent::AgentBatch;
-use arrow::array::ArrayData;
+use arrow::{array::ArrayData, datatypes::Schema, record_batch::RecordBatch};
 pub use context::{AgentIndex, MessageIndex};
 pub use dataset::Dataset;
 pub use message::MessageBatch;
 pub use metaversion::Metaversion;
 
-use super::prelude::*;
-use crate::datastore::batch::{change::ColumnChange, flush::GrowableBatch};
+use crate::datastore::{
+    arrow::meta_conversion::HashDynamicMeta,
+    batch::{change::ColumnChange, flush::GrowableBatch},
+    error::{Error, Result},
+    meta,
+    storage::memory::Memory,
+};
 
 // TODO: This should probably be merged into `Memory`. Then `Memory` would always have a memory
 //       version (currently part of the batch metaversion) and the memory version should probably be
@@ -81,10 +86,10 @@ pub struct ArrowBatch {
 
     /// Metadata referring to positions, sizes, null counts and value counts of different Arrow
     /// buffers.
-    dynamic_meta: DynamicMeta,
+    dynamic_meta: meta::Dynamic,
 
     /// Map of which Arrow `Buffer`s and `FieldNode`s correspond to which column.
-    static_meta: Arc<StaticMeta>,
+    static_meta: Arc<meta::Static>,
 
     /// When growable columns are modified, their Arrow intermediate column representations are
     /// kept here and wait for the `self.flush_changes()` call, which inserts them into
@@ -96,15 +101,15 @@ pub struct ArrowBatch {
 }
 
 impl GrowableBatch<ArrayData, ColumnChange> for ArrowBatch {
-    fn static_meta(&self) -> &StaticMeta {
+    fn static_meta(&self) -> &meta::Static {
         &self.static_meta
     }
 
-    fn dynamic_meta(&self) -> &DynamicMeta {
+    fn dynamic_meta(&self) -> &meta::Dynamic {
         &self.dynamic_meta
     }
 
-    fn dynamic_meta_mut(&mut self) -> &mut DynamicMeta {
+    fn dynamic_meta_mut(&mut self) -> &mut meta::Dynamic {
         &mut self.dynamic_meta
     }
 
@@ -191,11 +196,11 @@ impl ArrowBatch {
     }
 
     // Have to implement twice, because GrowableBatch trait isn't public.
-    pub fn static_meta(&self) -> &StaticMeta {
+    pub fn static_meta(&self) -> &meta::Static {
         &self.static_meta
     }
 
-    pub fn dynamic_meta(&self) -> &DynamicMeta {
+    pub fn dynamic_meta(&self) -> &meta::Dynamic {
         &self.dynamic_meta
     }
 
@@ -382,22 +387,22 @@ impl ArrowBatch {
 mod load {
     use std::sync::Arc;
 
-    use arrow::ipc::reader::read_record_batch;
+    use arrow::{ipc, ipc::reader::read_record_batch};
 
-    use super::*;
+    use super::{Error, RecordBatch, Result, Schema, Segment};
 
     /// Read the Arrow RecordBatch metadata from memory
-    pub fn record_batch_message(segment: &Segment) -> Result<RecordBatchMessage<'_>> {
+    pub fn record_batch_message(segment: &Segment) -> Result<ipc::RecordBatch<'_>> {
         let (_, _, meta_buffer, _) = segment.memory().get_batch_buffers()?;
-        arrow_ipc::root_as_message(meta_buffer)?
+        ipc::root_as_message(meta_buffer)?
             .header_as_record_batch()
             .ok_or(Error::InvalidRecordBatchIpcMessage)
     }
 
     pub fn record_batch(
         segment: &Segment,
-        record_batch_message: RecordBatchMessage<'_>,
-        schema: Arc<ArrowSchema>,
+        record_batch_message: ipc::RecordBatch<'_>,
+        schema: Arc<Schema>,
     ) -> Result<RecordBatch> {
         let (_, _, _, data_buffer) = segment.memory().get_batch_buffers()?;
         Ok(read_record_batch(
