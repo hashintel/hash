@@ -65,8 +65,8 @@ impl Vec3 {
 
     // TODO: UNUSED: Needs triage
     #[must_use]
-    pub fn dot(self, vec: Vec3) -> f64 {
-        self.0 * vec.0 + self.1 * vec.1 + self.2 * vec.2
+    pub fn dot(self, vec: Self) -> f64 {
+        self.2.mul_add(vec.2, self.0.mul_add(vec.0, self.1 * vec.1))
     }
 
     // TODO: UNUSED: Needs triage
@@ -77,7 +77,7 @@ impl Vec3 {
 
     // TODO: UNUSED: Needs triage
     #[must_use]
-    pub fn norm(self) -> Vec3 {
+    pub fn norm(self) -> Self {
         self / self.magnitude()
     }
 
@@ -230,10 +230,10 @@ impl DivAssign<f64> for Vec3 {
     }
 }
 
-impl Add<Vec3> for Vec3 {
+impl Add<Self> for Vec3 {
     type Output = Self;
 
-    fn add(mut self, rhs: Vec3) -> Self::Output {
+    fn add(mut self, rhs: Self) -> Self::Output {
         self.0 += rhs.0;
         self.1 += rhs.1;
         self.2 += rhs.2;
@@ -241,18 +241,18 @@ impl Add<Vec3> for Vec3 {
     }
 }
 
-impl AddAssign<Vec3> for Vec3 {
-    fn add_assign(&mut self, rhs: Vec3) {
+impl AddAssign<Self> for Vec3 {
+    fn add_assign(&mut self, rhs: Self) {
         self.0 += rhs.0;
         self.1 += rhs.1;
         self.2 += rhs.2;
     }
 }
 
-impl Sub<Vec3> for Vec3 {
+impl Sub<Self> for Vec3 {
     type Output = Self;
 
-    fn sub(mut self, rhs: Vec3) -> Self::Output {
+    fn sub(mut self, rhs: Self) -> Self::Output {
         self.0 -= rhs.0;
         self.1 -= rhs.1;
         self.2 -= rhs.2;
@@ -260,8 +260,8 @@ impl Sub<Vec3> for Vec3 {
     }
 }
 
-impl SubAssign<Vec3> for Vec3 {
-    fn sub_assign(&mut self, rhs: Vec3) {
+impl SubAssign<Self> for Vec3 {
+    fn sub_assign(&mut self, rhs: Self) {
         self.0 -= rhs.0;
         self.1 -= rhs.1;
         self.2 -= rhs.2;

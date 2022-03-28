@@ -126,19 +126,19 @@ pub enum AgentStateField {
 }
 
 impl AgentStateField {
-    pub const FIELDS: &'static [AgentStateField] = &[
-        AgentStateField::AgentId,
-        AgentStateField::AgentName,
-        AgentStateField::Messages,
-        AgentStateField::Position,
-        AgentStateField::Direction,
-        AgentStateField::Velocity,
-        AgentStateField::Shape,
-        AgentStateField::Height,
-        AgentStateField::Scale,
-        AgentStateField::Color,
-        AgentStateField::Rgb,
-        AgentStateField::Hidden,
+    pub const FIELDS: &'static [Self] = &[
+        Self::AgentId,
+        Self::AgentName,
+        Self::Messages,
+        Self::Position,
+        Self::Direction,
+        Self::Velocity,
+        Self::Shape,
+        Self::Height,
+        Self::Scale,
+        Self::Color,
+        Self::Rgb,
+        Self::Hidden,
     ];
 
     #[must_use]
@@ -164,7 +164,7 @@ impl AgentStateField {
 }
 
 impl<'de> Deserialize<'de> for AgentStateField {
-    fn deserialize<D>(deserializer: D) -> Result<AgentStateField, D::Error>
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -377,8 +377,8 @@ fn to_f64_default(val: Option<&serde_json::Value>, default: f64) -> Option<f64> 
 }
 
 #[test]
-/// This test describes the scenario in which a message is parsed before the agent_id key
-/// when enumerating over the MapAccess entries when deserializing JSON
+/// This test describes the scenario in which a message is parsed before the `agent_id` key
+/// when enumerating over the `MapAccess` entries when deserializing JSON
 fn deserialize_messages_before_agent_id() {
     let agent: Agent = serde_json::from_str(
         r#"
@@ -419,7 +419,7 @@ impl Default for Agent {
     fn default() -> Self {
         Self {
             agent_id: generate_agent_id(),
-            ..Agent::empty()
+            ..Self::empty()
         }
     }
 }
@@ -493,7 +493,7 @@ impl Agent {
         V: Serialize,
     {
         let key = key.as_ref();
-        if Agent::is_field_name(key) {
+        if Self::is_field_name(key) {
             return self.set_known_field(key, serde_json::to_value(value)?);
         }
 
@@ -521,8 +521,8 @@ impl Agent {
     }
 
     #[must_use]
-    pub fn empty() -> Agent {
-        Agent {
+    pub fn empty() -> Self {
+        Self {
             agent_id: String::new(),
             agent_name: None,
 
@@ -645,7 +645,7 @@ impl Agent {
     #[must_use]
     // TODO: UNUSED: Needs triage
     pub fn working_copy(&self) -> Self {
-        Agent {
+        Self {
             agent_id: self.agent_id.clone(),
             agent_name: self.agent_name.clone(),
 
@@ -670,7 +670,7 @@ impl Agent {
     #[must_use]
     // TODO: UNUSED: Needs triage
     pub fn child(&self) -> Self {
-        Agent {
+        Self {
             // children get a new uuid
             agent_id: generate_agent_id(),
             // children do not get the same name
@@ -714,7 +714,7 @@ impl Agent {
             "hidden" => serde_json::to_value(&self.hidden),
             _ => Ok(self[key].clone()),
         }
-        .map_err(|e| e.into())
+        .map_err(Into::into)
     }
 
     /// `set_known_field` will match upon `key` and set the field directly on the `Agent` struct
@@ -779,9 +779,11 @@ impl Index<&str> for Agent {
 impl IndexMut<&str> for Agent {
     fn index_mut(&mut self, index: &str) -> &mut serde_json::Value {
         for &builtin in &BUILTIN_FIELDS {
-            if index == builtin {
-                panic!("Cannot access {} through []. Access it directly", index);
-            }
+            assert!(
+                index != builtin,
+                "Cannot access {} through []. Access it directly",
+                index
+            );
         }
 
         if self.custom.get(index).is_none() {
@@ -1022,7 +1024,7 @@ mod tests {
         let data = Some(json!({"foo": "bar"}));
         let to: Vec<String> = vec!["alice".to_string(), "bob".to_string()];
         agent
-            .add_message(&to.clone(), "custom_message", data.clone())
+            .add_message(&to, "custom_message", data.clone())
             .unwrap();
         assert_eq!(agent.messages, vec![message::Outbound::Generic(
             GenericPayload {

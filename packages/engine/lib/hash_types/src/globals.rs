@@ -10,20 +10,20 @@ impl Globals {
     ///
     /// This function cannot fail, as Globals is a free-flowing JSON object.
     /// TODO: Audit this (Can a `serde_json::Value` be anything else?)
-    pub fn from_json(value: serde_json::Value) -> Result<Globals, serde_json::Error> {
+    pub fn from_json(value: serde_json::Value) -> Result<Self, serde_json::Error> {
         serde_json::from_value(value)
     }
 
     // TODO: UNUSED: Needs triage
     #[must_use]
-    pub fn from_json_unchecked(value: serde_json::Value) -> Globals {
-        Globals::from_json(value)
+    pub fn from_json_unchecked(value: serde_json::Value) -> Self {
+        Self::from_json(value)
             .expect("This should not happen (Globals is a free-flowing JSON object)")
     }
 
     #[must_use]
-    pub fn empty() -> Globals {
-        Globals(serde_json::Value::Object(serde_json::Map::new()))
+    pub fn empty() -> Self {
+        Self(serde_json::Value::Object(serde_json::Map::new()))
     }
 
     pub fn get<S>(&self, key: S) -> Option<&serde_json::Value>
@@ -42,7 +42,7 @@ impl Globals {
 }
 
 impl Default for Globals {
-    fn default() -> Globals {
-        Globals::empty()
+    fn default() -> Self {
+        Self::empty()
     }
 }

@@ -20,7 +20,7 @@ use Error::{Inner, Message, OutboundMessageParse, Thread, UnknownBehavior};
 impl Error {
     // TODO: UNUSED: Needs triage
     #[must_use]
-    pub fn new(message: &str) -> Error {
+    pub fn new(message: &str) -> Self {
         Message(message.to_string())
     }
 }
@@ -49,31 +49,31 @@ impl StdError for Error {
 }
 
 impl From<message::Error> for Error {
-    fn from(err: message::Error) -> Error {
+    fn from(err: message::Error) -> Self {
         OutboundMessageParse(err)
     }
 }
 
 impl From<&str> for Error {
-    fn from(t: &str) -> Error {
+    fn from(t: &str) -> Self {
         Message(t.to_string())
     }
 }
 
 impl From<String> for Error {
-    fn from(t: String) -> Error {
+    fn from(t: String) -> Self {
         Message(t)
     }
 }
 
 impl From<serde_json::Error> for Error {
-    fn from(inner: serde_json::Error) -> Error {
+    fn from(inner: serde_json::Error) -> Self {
         Inner(Box::new(inner))
     }
 }
 
 impl From<std::convert::Infallible> for Error {
-    fn from(inner: std::convert::Infallible) -> Error {
+    fn from(inner: std::convert::Infallible) -> Self {
         Inner(Box::new(inner))
     }
 }

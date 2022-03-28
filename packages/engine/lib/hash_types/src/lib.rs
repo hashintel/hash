@@ -27,7 +27,7 @@
 )]
 // TODO: Apply lints
 //   see https://app.asana.com/0/0/1202034637316243/f
-#![warn(clippy::nursery)]
+// #![warn(
 //     clippy::pedantic,
 //     clippy::nursery,
 //     clippy::restriction,
