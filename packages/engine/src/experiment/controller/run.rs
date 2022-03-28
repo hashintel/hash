@@ -4,7 +4,7 @@ use tracing::Instrument;
 
 use super::{config, controller::ExperimentController, Error, Result};
 use crate::{
-    datastore::prelude::SharedStore,
+    datastore::shared_store::SharedStore,
     experiment::{
         controller::{config::OutputPersistenceConfig, sim_configurer::SimConfigurer},
         package::ExperimentPackage,

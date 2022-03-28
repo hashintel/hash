@@ -39,7 +39,7 @@ use crate::{
     datastore::{
         arrow::util::arrow_continuation,
         batch::{change::ColumnChange, AgentBatch, ArrowBatch, MessageBatch, Metaversion},
-        prelude::SharedStore,
+        shared_store::SharedStore,
         storage::memory::Memory,
         table::{
             proxy::StateWriteProxy,

@@ -32,7 +32,8 @@ use parking_lot::{
 
 use super::pool::proxy::{PoolReadProxy, PoolWriteProxy};
 use crate::datastore::{
-    prelude::{AgentBatch, Error, MessageBatch, Result},
+    batch::{AgentBatch, MessageBatch},
+    error::{Error, Result},
     table::{pool::BatchPool, state::view::StatePools},
 };
 

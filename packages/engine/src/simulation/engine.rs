@@ -9,7 +9,7 @@ use super::{
 use crate::{
     config::SimRunConfig,
     datastore::{
-        prelude::Store,
+        store::Store,
         table::{
             context::Context,
             pool::{agent::AgentPool, message::MessagePool, BatchPool},
@@ -158,7 +158,7 @@ impl Engine {
             active_sync.await?.map_err(Error::state_sync)?;
             tracing::trace!("State sync finished");
 
-            Result::Ok(())
+            Result::<_>::Ok(())
         }
         .instrument(tracing::info_span!("state_sync"))
         .await?;
