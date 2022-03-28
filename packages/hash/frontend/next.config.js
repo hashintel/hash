@@ -24,6 +24,9 @@ const sentryWebpackPluginOptions = {
 process.env.NEXT_PUBLIC_HASH_OPENSEARCH_ENABLED =
   process.env.HASH_OPENSEARCH_ENABLED;
 
+process.env.NEXT_PUBLIC_BLOCK_BASED_ENTITY_PAGE =
+  process.env.BLOCK_BASED_ENTITY_PAGE;
+
 /**
  * @todo try using next-compose-plugins when upgrading next to 11 and/or to webpack 5
  *    was not building with compose-plugins on next 10 w/ webpack 4.

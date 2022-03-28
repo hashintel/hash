@@ -1,11 +1,11 @@
-import { VoidFunctionComponent } from "react";
 import { useQuery } from "@apollo/client";
 
 import { useRouter } from "next/router";
 
 import { BlockProtocolUpdateEntitiesFunction } from "blockprotocol";
 import { getEntity } from "@hashintel/hash-shared/queries/entity.queries";
-import { EntityEditor } from "../../../components/EntityEditor/EntityEditor";
+import { NextPage } from "next";
+import { SimpleEntityEditor } from "./shared/simple-entity-editor";
 
 import {
   GetEntityQuery,
@@ -13,17 +13,17 @@ import {
   UnknownEntity,
 } from "../../../graphql/apiTypes.gen";
 import { useBlockProtocolUpdateEntities } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntities";
-import { entityName } from "../../../lib/entities";
+import { guessEntityName } from "../../../lib/entities";
 import { useBlockProtocolAggregateEntities } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregateEntities";
 import { useBlockProtocolDeleteLinks } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolDeleteLinks";
 import { useBlockProtocolCreateLinks } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateLinks";
 import { MainContentWrapper } from "../../../components/layout/MainContentWrapper";
 
-const Entity: VoidFunctionComponent = () => {
+const SimpleEntityPage: NextPage = () => {
   const router = useRouter();
   const { query } = router;
   const accountId = query.accountId as string;
-  const entityId = query.entityId as string;
+  const entityId = query["entity-id"] as string;
 
   const { data, refetch: refetchEntity } = useQuery<
     GetEntityQuery,
@@ -63,13 +63,13 @@ const Entity: VoidFunctionComponent = () => {
       <header>
         <h1>
           <strong>
-            {entity ? `Editing '${entityName(entity)}'` : "Loading..."}
+            {entity ? `Editing '${guessEntityName(entity)}'` : "Loading..."}
           </strong>
         </h1>
       </header>
       <div>
         {entity && (
-          <EntityEditor
+          <SimpleEntityEditor
             aggregateEntities={aggregateEntities}
             createLinks={createLinks}
             deleteLinks={deleteLinks}
@@ -85,4 +85,14 @@ const Entity: VoidFunctionComponent = () => {
   );
 };
 
-export default Entity;
+const BlockBasedEntityPage: NextPage = () => {
+  return (
+    <MainContentWrapper>
+      <h1>TODO</h1>
+    </MainContentWrapper>
+  );
+};
+
+export default process.env.NEXT_PUBLIC_BLOCK_BASED_ENTITY_PAGE === "true"
+  ? BlockBasedEntityPage
+  : SimpleEntityPage;
