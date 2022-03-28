@@ -82,13 +82,13 @@ export async function createTargetOrg(
   ): Promise<{ entityId: string; entityVersionId: string }> {
     invariant(org, "org checked");
 
-    const existingIssueType = existingTypes.find(
+    const existingTypeForTitle = existingTypes.find(
       (a) => a.properties.title === entityTypeTitle,
     );
-    if (existingIssueType) {
+    if (existingTypeForTitle) {
       return {
-        entityVersionId: existingIssueType.entityVersionId,
-        entityId: existingIssueType.entityId,
+        entityVersionId: existingTypeForTitle.entityVersionId,
+        entityId: existingTypeForTitle.entityId,
       };
     }
 
@@ -117,8 +117,8 @@ export async function createTargetOrg(
       createStreamIngester(db, {
         logger,
         stream,
-        accountId: org.accountId,
         streamConfig: config,
+        accountId: org.accountId,
         entityType: await ensureEntityTypeByTitle(
           config.entityTypeTitle,
           () => ({

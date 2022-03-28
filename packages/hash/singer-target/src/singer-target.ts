@@ -58,7 +58,7 @@ async function go(queueTask: (promise: Promise<void>) => void) {
           // for results of ingestion.
           queueTask(
             streamIngester.upsertEntity({
-              properties: message.record,
+              record: message.record,
             }),
           );
         }
