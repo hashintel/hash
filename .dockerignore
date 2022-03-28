@@ -1,0 +1,8 @@
+# application data
+/var
+# rust compiled stuff
+target
+# node modules
+node_modules
+
+.git
