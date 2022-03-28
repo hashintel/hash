@@ -6,7 +6,7 @@ import { Box, SxProps, Theme, Typography } from "@mui/material";
 import { Suggester } from "./Suggester";
 import { RemoteBlockMetadata, useUserBlocks } from "../../userBlocks";
 import { useFilteredBlocks } from "./useFilteredBlocks";
-import { WarnIcon } from "../../../components/icons/WarnIcon";
+import { WarnIcon } from "../../../components/Icons/WarnIcon";
 
 export interface BlockSuggesterProps {
   search?: string;
