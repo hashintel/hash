@@ -54,9 +54,6 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
       // The :focus CSS styling applied to the button
       const focusStyles: CSSObject = { outline: "none" };
 
-      // :focus:before CSS styling applied to the button
-      let focusVisibleBeforeStyles: CSSObject = {};
-
       const focusBorderOffset =
         buttonFocusBorderOffset[variant === "primary" ? "lg" : "md"];
 
@@ -113,11 +110,6 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         hoverBeforeStyles = {
           ...hoverBeforeStyles,
           opacity: 1,
-        };
-
-        focusVisibleBeforeStyles = {
-          ...focusVisibleBeforeStyles,
-          opacity: 0,
         };
       } else if (variant === "secondary") {
         baseStyles = {
@@ -250,7 +242,6 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         ":active": activeStyles,
         "&.Mui-disabled": disabledStyles,
         ":focus": focusStyles,
-        ":focus-visible:before": focusVisibleBeforeStyles,
         ":focus-visible:after": focusVisibleAfterStyles,
       };
     },
