@@ -1,0 +1,32 @@
+{
+  "url": "https://api.github.com/repos/khonsulabs/bonsaidb/issues/comments/804591810",
+  "html_url": "https://github.com/khonsulabs/bonsaidb/issues/5#issuecomment-804591810",
+  "issue_url": "https://api.github.com/repos/khonsulabs/bonsaidb/issues/5",
+  "id": 804591810,
+  "node_id": "MDEyOklzc3VlQ29tbWVudDgwNDU5MTgxMA==",
+  "user": {
+    "login": "ecton",
+    "id": 50053,
+    "node_id": "MDQ6VXNlcjUwMDUz",
+    "avatar_url": "https://avatars.githubusercontent.com/u/50053?v=4",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/ecton",
+    "html_url": "https://github.com/ecton",
+    "followers_url": "https://api.github.com/users/ecton/followers",
+    "following_url": "https://api.github.com/users/ecton/following{/other_user}",
+    "gists_url": "https://api.github.com/users/ecton/gists{/gist_id}",
+    "starred_url": "https://api.github.com/users/ecton/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/ecton/subscriptions",
+    "organizations_url": "https://api.github.com/users/ecton/orgs",
+    "repos_url": "https://api.github.com/users/ecton/repos",
+    "events_url": "https://api.github.com/users/ecton/events{/privacy}",
+    "received_events_url": "https://api.github.com/users/ecton/received_events",
+    "type": "User",
+    "site_admin": "False"
+  },
+  "created_at": "2021-03-23T03:37:34.000000Z",
+  "updated_at": "2021-03-23T03:37:34.000000Z",
+  "author_association": "MEMBER",
+  "body": "Still need to add tests for the edge cases around the transaction query API",
+  "_sdc_repository": "khonsulabs/bonsaidb"
+}
