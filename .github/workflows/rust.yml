@@ -161,8 +161,6 @@ jobs:
             ~/.cargo/.crates.toml
             ~/.cargo/.crates2.json
             ~/.cargo/bin
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
             **/target/
           key: ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
@@ -224,8 +222,6 @@ jobs:
             ~/.cargo/.crates.toml
             ~/.cargo/.crates2.json
             ~/.cargo/bin
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
             **/target/
           key: ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
@@ -286,8 +282,6 @@ jobs:
             ~/.cargo/.crates.toml
             ~/.cargo/.crates2.json
             ~/.cargo/bin
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
             **/target/
           key: ${{ runner.os }}-bench-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
