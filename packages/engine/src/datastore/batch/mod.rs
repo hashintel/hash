@@ -11,13 +11,15 @@ pub mod migration;
 
 use std::sync::Arc;
 
-pub use agent::AgentBatch;
 use arrow::{array::ArrayData, datatypes::Schema, record_batch::RecordBatch};
-pub use context::{AgentIndex, MessageIndex};
-pub use dataset::Dataset;
-pub use message::MessageBatch;
-pub use metaversion::Metaversion;
 
+pub use self::{
+    agent::AgentBatch,
+    context::{AgentIndex, MessageIndex},
+    dataset::Dataset,
+    message::MessageBatch,
+    metaversion::Metaversion,
+};
 use crate::datastore::{
     arrow::meta_conversion::HashDynamicMeta,
     batch::{change::ColumnChange, flush::GrowableBatch},
@@ -389,7 +391,7 @@ mod load {
 
     use arrow::{ipc, ipc::reader::read_record_batch};
 
-    use super::{Error, RecordBatch, Result, Schema, Segment};
+    use crate::datastore::batch::{Error, RecordBatch, Result, Schema, Segment};
 
     /// Read the Arrow RecordBatch metadata from memory
     pub fn record_batch_message(segment: &Segment) -> Result<ipc::RecordBatch<'_>> {

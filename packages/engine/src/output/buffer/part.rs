@@ -2,9 +2,8 @@ use std::path::PathBuf;
 
 use serde::Serialize;
 
-use super::RELATIVE_PARTS_FOLDER;
 use crate::{
-    output::error::Result,
+    output::{buffer::RELATIVE_PARTS_FOLDER, error::Result},
     proto::{ExperimentId, SimulationShortId},
 };
 

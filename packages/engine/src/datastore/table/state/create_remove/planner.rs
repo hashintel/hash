@@ -3,25 +3,28 @@ use std::sync::Arc;
 
 use arrow::record_batch::RecordBatch;
 
-use super::{
-    super::AgentSchema,
-    action::{CreateActions, ExistingGroupBufferActions},
-    batch::PendingBatch,
-    command::ProcessedCommands,
-    distribution::BatchDistribution,
-    MigrationPlan,
-};
 use crate::{
+    config::SimRunConfig,
     datastore::{
         batch::{
             migration::{BufferActions, IndexRange, RangeActions},
             AgentBatch,
         },
         error::Result,
-        table::{pool::proxy::PoolReadProxy, proxy::StateReadProxy},
+        schema::state::AgentSchema,
+        table::{
+            pool::proxy::PoolReadProxy,
+            proxy::StateReadProxy,
+            state::create_remove::{
+                action::{CreateActions, ExistingGroupBufferActions},
+                batch::PendingBatch,
+                command::ProcessedCommands,
+                distribution::BatchDistribution,
+                MigrationPlan,
+            },
+        },
     },
     simulation::command::CreateRemoveCommands,
-    SimRunConfig,
 };
 
 pub struct CreateRemovePlanner {

@@ -4,25 +4,21 @@ pub mod view;
 use std::sync::Arc;
 
 use self::create_remove::CreateRemovePlanner;
-use super::{
-    pool::{agent::AgentPool, message::MessagePool},
-    references::MessageMap,
-};
 use crate::{
+    config::SimRunConfig,
     datastore::{
         batch::{AgentBatch, MessageBatch},
-        error::{Error, Result},
-        schema::state::AgentSchema,
+        error::Result,
         table::{
-            pool::BatchPool,
+            pool::{agent::AgentPool, message::MessagePool, BatchPool},
             proxy::{StateReadProxy, StateWriteProxy},
+            references::MessageMap,
             state::view::StatePools,
         },
     },
     hash_types::Agent as AgentState,
     proto::ExperimentRunTrait,
     simulation::command::CreateRemoveCommands,
-    SimRunConfig,
 };
 
 pub const MIN_AGENTS_PER_GROUP: usize = 10;

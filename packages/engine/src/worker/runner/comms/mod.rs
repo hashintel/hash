@@ -11,6 +11,7 @@ use tracing::Span;
 use crate::{
     config::{EngineConfig, Globals},
     datastore::{schema::state::AgentSchema, shared_store::SharedStore},
+    language::Language,
     proto::{ExperimentId, SimulationShortId},
     simulation::{
         enum_dispatch::TaskSharedStore,
@@ -19,7 +20,6 @@ use crate::{
     },
     types::{TaskId, WorkerIndex},
     worker::{Error, Result},
-    Language,
 };
 
 pub mod inbound;

@@ -1,5 +1,7 @@
-use super::{Direction, Position};
-use crate::config::topology::Config as TopologyConfig;
+use crate::{
+    config::topology::Config as TopologyConfig,
+    simulation::package::state::packages::topology::{Direction, Position},
+};
 
 /// Wrap the position if the agent is out of bounds
 pub fn correct_agent(

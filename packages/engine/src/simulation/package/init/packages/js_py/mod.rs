@@ -7,10 +7,6 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use super::super::{
-    Agent, Arc, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, InitTask,
-    InitTaskMessage, MaybeCpuBound, PackageComms, PackageCreator, SimRunConfig,
-};
 use crate::{
     config::ExperimentConfig,
     proto::{ExperimentRunTrait, InitialState, InitialStateName},
@@ -18,7 +14,9 @@ use crate::{
         enum_dispatch::{enum_dispatch, RegisterWithoutTrait, TaskSharedStore},
         package::init::{
             packages::js_py::{js::JsInitTask, py::PyInitTask},
-            Package as InitPackage,
+            Agent, Arc, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, InitTask,
+            InitTaskMessage, MaybeCpuBound, Package as InitPackage, PackageComms, PackageCreator,
+            SimRunConfig,
         },
         Error, Result,
     },

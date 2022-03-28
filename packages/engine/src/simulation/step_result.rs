@@ -1,5 +1,8 @@
-use super::{agent_control::AgentControl, step_output::SimulationStepOutput};
-use crate::{hash_types::worker::RunnerError, proto::SimulationShortId};
+use crate::{
+    hash_types::worker::RunnerError,
+    proto::SimulationShortId,
+    simulation::{agent_control::AgentControl, step_output::SimulationStepOutput},
+};
 
 pub struct SimulationStepResult {
     // TODO: UNUSED: Needs triage

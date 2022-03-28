@@ -1,7 +1,7 @@
 mod engine;
 mod error;
 mod experiment;
-pub mod globals;
+mod globals;
 mod package;
 mod persistence;
 mod simulation;
@@ -27,7 +27,7 @@ pub use self::{
     worker::{Config as WorkerConfig, SpawnConfig as WorkerSpawnConfig},
     worker_pool::Config as WorkerPoolConfig,
 };
-use crate::{proto::SimulationShortId, Args, Environment};
+use crate::{env::Environment, proto::SimulationShortId, Args};
 
 #[derive(Clone)]
 pub struct SimRunConfig {
