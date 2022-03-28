@@ -16,7 +16,7 @@ export const useFilteredBlocks = (
   return useMemo(() => {
     const allOptions: Option[] = Object.values(userBlocks).flatMap(
       (blockMeta) => {
-        if (blockMeta.variants && blockMeta.variants.length > 0) {
+        if (blockMeta.variants?.length) {
           return blockMeta.variants.map((variant) => ({
             variant: {
               ...variant,
