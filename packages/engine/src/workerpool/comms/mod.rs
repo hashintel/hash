@@ -3,16 +3,17 @@ pub mod main;
 pub mod terminate;
 pub mod top;
 
-pub use experiment::ExpMsgRecv;
-pub use main::{new_no_sim, MainMsgRecv, MainMsgSend};
-pub use terminate::TerminateRecv;
 use tokio::sync::{
     mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     oneshot::Receiver,
 };
 use tracing::Span;
 
-pub use super::{Error, Result};
+pub use self::{
+    experiment::ExpMsgRecv,
+    main::{new_no_sim, MainMsgRecv, MainMsgSend},
+    terminate::TerminateRecv,
+};
 use crate::{
     datastore::table::sync::SyncPayload,
     proto::SimulationShortId,
@@ -24,7 +25,10 @@ use crate::{
         },
         task::{WorkerTask, WorkerTaskResultOrCancelled},
     },
-    workerpool::comms::terminate::TerminateMessage,
+    workerpool::{
+        comms::terminate::TerminateMessage,
+        error::{Error, Result},
+    },
 };
 
 #[derive(Debug)]
@@ -132,7 +136,7 @@ impl WorkerCommsWithWorkerPool {
         &self,
         sim_id: SimulationShortId,
         msg: WorkerToWorkerPoolMsg,
-    ) -> crate::worker::error::Result<()> {
+    ) -> crate::worker::Result<()> {
         self.send_to_wp.send((self.index, sim_id, msg))?;
         Ok(())
     }
@@ -141,12 +145,10 @@ impl WorkerCommsWithWorkerPool {
     /// Note: This should only be called once
     /// It's necessary as receives require mutable borrows and the WorkerCommsWithWorkerPool struct
     /// will cause issues with immutable borrows at the same time, when used in a Tokio select! loop
-    pub fn take_recv(
-        &mut self,
-    ) -> crate::worker::error::Result<UnboundedReceiver<WorkerPoolToWorkerMsg>> {
+    pub fn take_recv(&mut self) -> crate::worker::Result<UnboundedReceiver<WorkerPoolToWorkerMsg>> {
         self.recv_from_wp
             .take()
-            .ok_or_else(|| crate::worker::error::Error::from("Couldn't take `recv_from_wp`"))
+            .ok_or_else(|| crate::worker::Error::from("Couldn't take `recv_from_wp`"))
     }
 
     /// Returns the receiver for termination signals from the WorkerPool.

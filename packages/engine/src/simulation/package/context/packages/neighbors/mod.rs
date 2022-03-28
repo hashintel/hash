@@ -6,7 +6,7 @@ use tracing::Span;
 
 use self::map::{NeighborMap, NeighborRef};
 use crate::{
-    config::{Globals, TopologyConfig},
+    config::{ExperimentConfig, Globals, SimRunConfig, TopologyConfig},
     datastore::{
         batch::{iterators, AgentBatch},
         schema::{
@@ -27,7 +27,6 @@ use crate::{
         },
         Result,
     },
-    ExperimentConfig, SimRunConfig,
 };
 
 mod adjacency;

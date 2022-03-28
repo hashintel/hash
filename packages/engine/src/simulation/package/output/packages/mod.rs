@@ -11,17 +11,19 @@ use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
 use self::{analysis::AnalysisOutput, json_state::JsonStateOutput};
-use super::PackageCreator;
 use crate::{
+    config::ExperimentConfig,
     simulation::{
         enum_dispatch::{
             enum_dispatch, GetTaskArgs, GetTaskName, StoreAccessVerify, TaskDistributionConfig,
             TaskSharedStore, WorkerHandler, WorkerPoolHandler,
         },
-        package::{id::PackageIdGenerator, name::PackageName, PackageMetadata, PackageType},
+        package::{
+            id::PackageIdGenerator, name::PackageName, output::PackageCreator, PackageMetadata,
+            PackageType,
+        },
         Error, Result,
     },
-    ExperimentConfig,
 };
 
 /// All output package names are registered in this enum

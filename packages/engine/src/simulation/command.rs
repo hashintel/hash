@@ -10,7 +10,6 @@ use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterato
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use super::{Error, Result};
 use crate::{
     datastore::{
         arrow::{
@@ -26,6 +25,7 @@ use crate::{
         UUID_V4_LEN,
     },
     hash_types::{message::RemoveAgentPayload, Agent},
+    simulation::{Error, Result},
 };
 
 /// Variations of the protected message-target that is associated with the engine. If an agent

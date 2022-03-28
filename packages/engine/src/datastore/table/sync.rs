@@ -6,8 +6,8 @@ use crate::{
     datastore::{batch::context::ContextBatch, table::proxy::StateReadProxy},
     simulation::comms::message::{SyncCompletionReceiver, SyncCompletionSender},
     worker::{
-        error::{Error as WorkerError, Result as WorkerResult},
-        runner::comms::inbound::InboundToRunnerMsgPayload,
+        runner::comms::inbound::InboundToRunnerMsgPayload, Error as WorkerError,
+        Result as WorkerResult,
     },
 };
 

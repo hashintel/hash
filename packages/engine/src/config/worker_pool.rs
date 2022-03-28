@@ -1,4 +1,4 @@
-use super::WorkerConfig;
+use crate::config::WorkerConfig;
 
 #[derive(Clone)]
 pub struct Config {

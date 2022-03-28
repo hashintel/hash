@@ -1,6 +1,6 @@
 use arrow::{array::ArrayRef, record_batch::RecordBatch};
 
-use crate::datastore::{Error, Result};
+use crate::datastore::error::{Error, Result};
 
 pub mod agent {
     use arrow::datatypes::DataType;

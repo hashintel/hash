@@ -7,10 +7,6 @@ use flatbuffers_gen::sync_state_interim_generated::StateInterimSyncArgs;
 use nng::{options::Options, Aio, Socket};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
 
-use super::{
-    error::{Error, Result},
-    fbs::{batch_to_fbs, pkgs_to_fbs, shared_ctx_to_fbs},
-};
 use crate::{
     datastore::{
         arrow::util::arrow_continuation,
@@ -22,7 +18,13 @@ use crate::{
     proto::{ExperimentId, SimulationShortId},
     simulation::enum_dispatch::TaskSharedStore,
     types::WorkerIndex,
-    worker::runner::comms::{inbound::InboundToRunnerMsgPayload, MessageTarget},
+    worker::runner::{
+        comms::{inbound::InboundToRunnerMsgPayload, MessageTarget},
+        python::{
+            error::{Error, Result},
+            fbs::{batch_to_fbs, pkgs_to_fbs, shared_ctx_to_fbs},
+        },
+    },
 };
 
 /// Only used for sending messages to the Python process
