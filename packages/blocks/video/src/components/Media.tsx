@@ -79,12 +79,12 @@ function getLinkGroup(params: {
   return matchingLinkGroup;
 }
 
-function getLinkedEntities<T>(params: {
+function getLinkedEntities(params: {
   sourceEntityId: string;
   path: string;
   linkGroups: BlockProtocolLinkGroup[];
   linkedEntities: BlockProtocolEntity[];
-}): (BlockProtocolEntity & T)[] | null {
+}): (BlockProtocolEntity & { url: string })[] | null {
   const { sourceEntityId, path, linkGroups, linkedEntities } = params;
 
   const matchingLinkGroup = getLinkGroup({
@@ -106,14 +106,15 @@ function getLinkedEntities<T>(params: {
   const destinationEntityId = matchingLinkGroup.links[0]?.destinationEntityId;
 
   const matchingLinkedEntities = linkedEntities.filter(
-    (link) => link.entityId === destinationEntityId,
+    (link): link is BlockProtocolEntity & { url: string } =>
+      link.entityId === destinationEntityId && "url" in link,
   );
 
   if (!matchingLinkedEntities) {
     return null;
   }
 
-  return matchingLinkedEntities as (BlockProtocolEntity & T)[];
+  return matchingLinkedEntities;
 }
 
 const isSingleTargetLink = (
@@ -147,9 +148,7 @@ export const Media: BlockComponent<
 
   const matchingLinkedEntities = useMemo(() => {
     if (linkGroups && linkedEntities && entityId) {
-      return getLinkedEntities<{
-        url: string;
-      }>({
+      return getLinkedEntities({
         sourceEntityId: entityId,
         path: "$.file",
         linkGroups,
