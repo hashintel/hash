@@ -168,9 +168,8 @@ impl Outbound {
             if let Some(obj) = value.as_object_mut() {
                 let agent_id = state.agent_id.clone();
                 match serde_json::to_value(RemoveAgentPayload { agent_id }) {
-                    Ok(data) => {
-                        // Previously checked if `"data"` is empty
-                        let _unused = obj.insert(String::from("data"), data);
+                    Ok(value) => {
+                        obj.insert(String::from("data"), value);
                     }
                     Err(why) => return Err(Error::UnknownSerdeError(why)),
                 }

@@ -779,11 +779,9 @@ impl Index<&str> for Agent {
 impl IndexMut<&str> for Agent {
     fn index_mut(&mut self, index: &str) -> &mut serde_json::Value {
         for &builtin in &BUILTIN_FIELDS {
-            assert!(
-                index != builtin,
-                "Cannot access {} through []. Access it directly",
-                index
-            );
+            if index == builtin {
+                panic!("Cannot access {} through []. Access it directly", index);
+            }
         }
 
         if self.custom.get(index).is_none() {
