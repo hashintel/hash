@@ -10,6 +10,10 @@ import {
   InputAdornment,
 } from "@mui/material";
 import { FC, useEffect, useState } from "react";
+import {
+  faEnvelope,
+  faQuestionCircle,
+} from "@fortawesome/free-solid-svg-icons";
 import { SIDEBAR_WIDTH } from "../../theme/components/navigation/MuiDrawerThemeOptions";
 
 import { FontAwesomeIcon, SidebarToggleIcon } from "../icons";
@@ -18,10 +22,6 @@ import { PageSidebar } from "./PageSidebar/PageSidebar";
 import { useSidebarContext } from "./SidebarContext";
 import { IconButton } from "../IconButton";
 import { TextField } from "../TextField";
-import {
-  faEnvelope,
-  faQuestionCircle,
-} from "@fortawesome/free-solid-svg-icons";
 
 const Main = styled("main", {
   shouldForwardProp: (prop) => prop !== "sidebarOpen",

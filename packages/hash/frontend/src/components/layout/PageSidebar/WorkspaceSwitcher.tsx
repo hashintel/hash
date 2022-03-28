@@ -5,7 +5,6 @@ import {
   Menu,
   MenuItem,
   Divider,
-  menuItemClasses,
   ListItemText,
   ListItemAvatar,
   listItemTextClasses,
