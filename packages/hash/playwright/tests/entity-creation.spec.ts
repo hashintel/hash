@@ -1,7 +1,10 @@
 import { test, expect } from "@playwright/test";
+import { failOnConsoleOutput } from "./utils/console-checks";
 import { loginUsingUi } from "./utils/loginUsingUi";
 
 test("user can create and update entity", async ({ page }) => {
+  failOnConsoleOutput(page);
+
   await loginUsingUi({ page, accountShortName: "bob" });
 
   // Check if we are on the user page
