@@ -957,6 +957,7 @@ dependencies = [
  "http-types",
  "kdtree",
  "lazy_static",
+ "nano",
  "nng",
  "num_cpus",
  "orchestrator",
@@ -1389,6 +1390,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "nano"
+version = "0.0.0"
+dependencies = [
+ "nng",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "nix"
 version = "0.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1566,6 +1579,7 @@ dependencies = [
  "error",
  "hash_engine",
  "hash_engine_lib",
+ "nano",
  "num_cpus",
  "rand 0.8.4",
  "rand_distr",

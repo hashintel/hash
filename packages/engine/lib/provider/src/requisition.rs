@@ -8,21 +8,21 @@ impl<'p> Requisition<'p, '_> {
     where
         I: TypeTag<'p>,
     {
-        if let Some(res @ TagValue(Option::None)) =
+        if let Some(tag_value @ TagValue(Option::None)) =
             self.0.tagged.downcast_mut::<tags::OptionTag<I>>()
         {
-            res.0 = Some(value);
+            tag_value.0 = Some(value);
         }
         self
     }
 
     /// Provide a value or other type with only static lifetimes.
-    pub fn provide_value<T, F>(&mut self, f: F) -> &mut Self
+    pub fn provide_value<T, F>(&mut self, value: F) -> &mut Self
     where
         T: 'static,
         F: FnOnce() -> T,
     {
-        self.provide_with::<tags::Value<T>, F>(f)
+        self.provide_with::<tags::Value<T>, F>(value)
     }
 
     /// Provide a reference, note that `T` must be bounded by `'static`, but may be unsized.
@@ -31,15 +31,15 @@ impl<'p> Requisition<'p, '_> {
     }
 
     /// Provide a value with the given [`TypeTag`], using a closure to prevent unnecessary work.
-    pub fn provide_with<I, F>(&mut self, f: F) -> &mut Self
+    pub fn provide_with<I, F>(&mut self, op: F) -> &mut Self
     where
         I: TypeTag<'p>,
         F: FnOnce() -> I::Type,
     {
-        if let Some(res @ TagValue(Option::None)) =
+        if let Some(tag_value @ TagValue(Option::None)) =
             self.0.tagged.downcast_mut::<tags::OptionTag<I>>()
         {
-            res.0 = Some(f());
+            tag_value.0 = Some(op());
         }
         self
     }

@@ -8,7 +8,7 @@ use parking_lot::RwLock;
 
 use self::proxy::{PoolReadProxy, PoolWriteProxy};
 use crate::datastore::{
-    prelude::Result,
+    error::Result,
     table::proxy::{BatchReadProxy, BatchWriteProxy},
 };
 

@@ -10,7 +10,6 @@ import { Suggester } from "./Suggester";
 export interface MentionSuggesterProps {
   search?: string;
   onChange(entityId: string, title: string): void;
-  className?: string;
   accountId: string;
 }
 
@@ -24,7 +23,6 @@ type SearchableItem = {
 export const MentionSuggester: VFC<MentionSuggesterProps> = ({
   search = "",
   onChange,
-  className,
   accountId,
 }) => {
   const { data: users, loading: usersLoading } = useUsers();
@@ -78,7 +76,6 @@ export const MentionSuggester: VFC<MentionSuggesterProps> = ({
       )}
       itemKey={(option) => option.entityId}
       onChange={(option) => onChange(option.entityId, option.type)}
-      className={className}
       loading={loading}
     />
   );

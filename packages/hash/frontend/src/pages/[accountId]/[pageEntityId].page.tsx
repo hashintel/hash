@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import { fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
+import { BlockMeta, fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { blockPaths } from "@hashintel/hash-shared/paths";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { keyBy } from "lodash";
@@ -7,7 +7,7 @@ import { GetStaticPaths, GetStaticProps } from "next";
 import { Router, useRouter } from "next/router";
 import { tw } from "twind";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   GetPageQuery,
   GetPageQueryVariables,
@@ -23,7 +23,7 @@ import styles from "../index.module.scss";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import { PageTransferDropdown } from "../../components/Dropdowns/PageTransferDropdown";
 import { MainContentWrapper } from "../../components/layout/MainContentWrapper";
-import type { BlocksMetaMap } from "../../blocks/blocksMeta";
+import { RemoteBlockMetadata } from "../../blocks/userBlocks";
 
 /**
  * preload all configured blocks for now. in the future these will be loaded
@@ -37,30 +37,29 @@ export const getStaticPaths: GetStaticPaths<{ slug: string }> = () => ({
   fallback: "blocking", // indicates the type of fallback
 });
 
+interface PageProps {
+  blocksMeta: BlockMeta[];
+}
+
 /**
  * This is used to fetch the metadata associated with blocks that're preloaded
  * ahead of time so that the client doesn't need to
  *
  * @todo Include blocks present in the document in this
  */
-export const getStaticProps: GetStaticProps = async () => {
+export const getStaticProps: GetStaticProps<PageProps> = async () => {
   const fetchedBlocksMeta = await Promise.all(
     preloadedComponentIds.map((componentId) => fetchBlockMeta(componentId)),
   );
 
   return {
     props: {
-      blocksMeta: keyBy(
-        fetchedBlocksMeta,
-        (blockMeta) => blockMeta.componentMetadata.componentId,
-      ),
+      blocksMeta: fetchedBlocksMeta,
     },
   };
 };
 
-export const Page: React.VFC<{ blocksMeta: BlocksMetaMap }> = ({
-  blocksMeta,
-}) => {
+export const Page: React.VFC<PageProps> = ({ blocksMeta }) => {
   const router = useRouter();
 
   // entityId is the consistent identifier for pages (across all versions)
@@ -68,6 +67,17 @@ export const Page: React.VFC<{ blocksMeta: BlocksMetaMap }> = ({
   const accountId = router.query.accountId as string;
   // versionId is an optional param for requesting a specific page version
   const versionId = router.query.version as string | undefined;
+
+  const blocksMetaMap = useMemo(() => {
+    return keyBy(
+      blocksMeta,
+      (blockMeta) => blockMeta.componentMetadata.componentId,
+    );
+  }, [blocksMeta]);
+
+  const initialUserBlocks: RemoteBlockMetadata[] = useMemo(() => {
+    return blocksMeta.map((blockMeta) => blockMeta.componentMetadata);
+  }, [blocksMeta]);
 
   const [pageState, setPageState] = useState<"normal" | "transferring">(
     "normal",
@@ -174,7 +184,8 @@ export const Page: React.VFC<{ blocksMeta: BlocksMetaMap }> = ({
         <CollabPositionProvider value={collabPositions}>
           <PageBlock
             accountId={data.page.accountId}
-            blocksMeta={blocksMeta}
+            blocksMeta={blocksMetaMap}
+            initialUserBlocks={initialUserBlocks}
             entityId={data.page.entityId}
           />
         </CollabPositionProvider>

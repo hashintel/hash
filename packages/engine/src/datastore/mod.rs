@@ -25,55 +25,19 @@ pub const POSITION_DIM: usize = 3;
 
 pub use self::error::{Error, Result};
 
-pub mod prelude {
-    pub use arrow::{
-        array::Array as ArrowArray,
-        buffer::{Buffer as ArrowBuffer, MutableBuffer as ArrowMutableBuffer},
-        datatypes::{
-            DataType as ArrowDataType, Field as ArrowField, IntervalUnit as ArrowIntervalUnit,
-            Schema as ArrowSchema, TimeUnit as ArrowTimeUnit,
-        },
-        error::ArrowError,
-        ipc as arrow_ipc,
-        ipc::gen::Message::RecordBatch as RecordBatchMessage,
-        record_batch::RecordBatch,
-        util::bit_util as arrow_bit_util,
-    };
-
-    pub use super::{
-        arrow::{
-            batch_conversion::{IntoAgentStates, IntoRecordBatch},
-            field_conversion,
-            meta_conversion::{HashDynamicMeta, HashStaticMeta},
-            padding,
-        },
-        batch::{
-            metaversion::Metaversion,
-            migration::{CopyAction, CreateAction, RemoveAction, RowActions},
-            AgentBatch, AgentIndex, Dataset, MessageBatch, MessageIndex,
-        },
-        error::{Error, Result, SupportedType},
-        meta::{
-            Buffer, BufferAction, Column as ColumnMeta, Dynamic as DynamicMeta, Node, NodeMapping,
-            NodeStatic as NodeStaticMeta, Static as StaticMeta,
-        },
-        shared_store::SharedStore,
-        storage::memory::Memory,
-        store::Store,
-        table::state::State,
-    };
-    pub use crate::hash_types::{message::Outbound as OutboundMessage, Agent as AgentState};
-}
-
 #[cfg(test)]
 pub mod tests {
     use std::{borrow::Cow, sync::Arc};
 
+    use ::arrow::array::{Array, BooleanBuilder, FixedSizeListBuilder};
     use rand::Rng;
 
-    use super::{prelude::*, test_utils::gen_schema_and_test_agents};
+    use super::{test_utils::gen_schema_and_test_agents, *};
     use crate::datastore::{
-        batch::iterators, table::state::State, test_utils::dummy_sim_run_config,
+        arrow::batch_conversion::IntoAgents,
+        batch::{iterators, AgentBatch},
+        table::state::State,
+        test_utils::dummy_sim_run_config,
     };
 
     #[test]
@@ -172,14 +136,13 @@ pub mod tests {
     pub fn uuid_v4_len() {
         let uuid = uuid::Uuid::new_v4();
         let bytes = uuid.as_bytes();
-        assert_eq!(bytes.len(), super::UUID_V4_LEN);
+        assert_eq!(bytes.len(), UUID_V4_LEN);
     }
 
     #[test]
     fn test_print_boolean_array() -> Result<()> {
-        let boolean_builder = arrow::array::BooleanBuilder::new(100);
-        let mut fixed_size_list_builder =
-            arrow::array::FixedSizeListBuilder::new(boolean_builder, 3);
+        let boolean_builder = BooleanBuilder::new(100);
+        let mut fixed_size_list_builder = FixedSizeListBuilder::new(boolean_builder, 3);
 
         for _ in 0..10 {
             fixed_size_list_builder

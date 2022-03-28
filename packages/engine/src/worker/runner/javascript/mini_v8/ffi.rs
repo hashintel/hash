@@ -6,7 +6,9 @@ use std::{
     sync::Once,
 };
 
-use super::*;
+use super::{
+    Array, Callback, DataFfi, Error, Function, MiniV8, Object, Result, String, Value, Values,
+};
 
 extern "C" {
     pub(super) fn mv8_init(wrapper_func: *const c_void, drop_func: *const c_void);

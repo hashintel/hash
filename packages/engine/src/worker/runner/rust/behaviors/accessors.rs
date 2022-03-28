@@ -618,19 +618,19 @@ pub enum OptionNativeColumnExtError {
 
 pub trait OptionNativeColumnExt {
     type Value;
-    fn u_ref(&self) -> std::result::Result<&Self::Value, OptionNativeColumnExtError>;
-    fn u_mut(&mut self) -> std::result::Result<&mut Self::Value, OptionNativeColumnExtError>;
+    fn u_ref(&self) -> Result<&Self::Value, OptionNativeColumnExtError>;
+    fn u_mut(&mut self) -> Result<&mut Self::Value, OptionNativeColumnExtError>;
 }
 
 impl<T> OptionNativeColumnExt for Option<NativeColumn<T>> {
     type Value = NativeColumn<T>;
 
-    fn u_ref(&self) -> std::result::Result<&Self::Value, OptionNativeColumnExtError> {
+    fn u_ref(&self) -> Result<&Self::Value, OptionNativeColumnExtError> {
         self.as_ref()
             .ok_or_else(|| OptionNativeColumnExtError::UnwrapRefFailed(std::any::type_name::<T>()))
     }
 
-    fn u_mut(&mut self) -> std::result::Result<&mut Self::Value, OptionNativeColumnExtError> {
+    fn u_mut(&mut self) -> Result<&mut Self::Value, OptionNativeColumnExtError> {
         self.as_mut()
             .ok_or_else(|| OptionNativeColumnExtError::UnwrapMutFailed(std::any::type_name::<T>()))
     }

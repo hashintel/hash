@@ -1,4 +1,8 @@
-use super::{super::*, batch::PendingBatch, WorkerIndex};
+use super::{
+    super::{Error, Result},
+    batch::PendingBatch,
+    WorkerIndex,
+};
 
 /// Represents the distribution of agents per worker.
 /// Each worker has its own collection of batches (usually one for smaller simulations).

@@ -82,6 +82,9 @@ pub enum Error {
     #[error("Couldn't receive outbound message from runner")]
     OutboundReceive,
 
+    #[error("Couldn't receive inbound message from worker")]
+    InboundReceive,
+
     #[error("Message type '{0}' must have a simulation run id")]
     SimulationIdRequired(&'static str),
 

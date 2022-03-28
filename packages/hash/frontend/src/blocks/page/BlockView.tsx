@@ -1,4 +1,3 @@
-import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { EntityStore } from "@hashintel/hash-shared/entityStore";
 import {
   entityStorePluginState,
@@ -15,6 +14,7 @@ import { useOutsideClick } from "rooks";
 import { tw } from "twind";
 import { BlockContextMenu } from "../../components/BlockContextMenu/BlockContextMenu";
 import { DragVerticalIcon } from "../../components/icons";
+import { RemoteBlockMetadata } from "../userBlocks";
 import { BlockViewContext } from "./BlockViewContext";
 import { CollabPositionIndicators } from "./CollabPositionIndicators";
 import { BlockSuggesterProps } from "./createSuggester/BlockSuggester";
@@ -280,7 +280,7 @@ export class BlockView implements NodeView<Schema> {
   /**
    * @todo restore the ability to load in new block types here
    */
-  onBlockChange = (variant: BlockVariant, meta: BlockMeta) => {
+  onBlockChange = (variant: BlockVariant, meta: RemoteBlockMetadata) => {
     const { node, view, getPos } = this;
 
     const state = view.state;
@@ -294,7 +294,7 @@ export class BlockView implements NodeView<Schema> {
     this.manager
       .replaceNodeWithRemoteBlock(
         draftId,
-        meta.componentMetadata.componentId,
+        meta.componentId,
         variant,
         node,
         getPos(),

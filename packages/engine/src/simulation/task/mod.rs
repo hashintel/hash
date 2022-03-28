@@ -81,7 +81,11 @@ pub mod cancel;
 pub mod handler;
 pub mod msg;
 
-use crate::simulation::enum_dispatch::*;
+use crate::simulation::enum_dispatch::{
+    enum_dispatch, ContextTask, GetTaskArgs, InitTask, OutputTask, Result, SplitConfig, StateTask,
+    StoreAccessVerify, TargetedTaskMessage, TaskDistributionConfig, TaskMessage, TaskSharedStore,
+    WorkerHandler, WorkerPoolHandler,
+};
 
 // All traits applied here apply to the enum.
 // Also we have automatically derived all

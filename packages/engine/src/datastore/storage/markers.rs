@@ -27,7 +27,7 @@ use std::{
 };
 
 use super::ptr::MemoryPtr;
-use crate::datastore::prelude::*;
+use crate::datastore::arrow::padding;
 
 #[repr(usize)]
 pub enum Val {

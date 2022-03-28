@@ -3,7 +3,13 @@ mod fbs;
 mod receiver;
 mod sender;
 
-use std::{collections::HashMap, future::Future, pin::Pin, result::Result as StdResult, sync::Arc};
+use std::{
+    collections::{hash_map::Entry, HashMap},
+    future::Future,
+    pin::Pin,
+    result::Result as StdResult,
+    sync::Arc,
+};
 
 use futures::FutureExt;
 use tokio::{
@@ -21,7 +27,10 @@ use super::comms::{
 use crate::{
     proto::SimulationShortId,
     types::TaskId,
-    worker::{Error as WorkerError, Result as WorkerResult},
+    worker::{
+        runner::comms::outbound::OutboundFromRunnerMsgPayload, Error as WorkerError,
+        Result as WorkerResult,
+    },
     Language,
 };
 
@@ -136,6 +145,7 @@ async fn _run(
 
     tracing::debug!("Waiting for messages to Python runner");
     let mut sent_tasks: HashMap<TaskId, SentTask> = HashMap::new();
+    let mut sync_completion_senders = HashMap::new();
     'select_loop: loop {
         // TODO: Send errors instead of immediately stopping?
         tokio::select! {
@@ -143,6 +153,7 @@ async fn _run(
                 nng_send_result?;
             }
             Some((sim_id, inbound)) = inbound_receiver.recv() => {
+                // Need to get payload before sending nng message.
                 let (task_payload_json, task_wrapper) = match &inbound {
                     InboundToRunnerMsgPayload::TaskMsg(msg) => {
                         // TODO: Error message duplication with JS runner
@@ -156,6 +167,10 @@ async fn _run(
                             })?;
                         (Some(payload), Some(wrapper))
                     }
+                    InboundToRunnerMsgPayload::CancelTask(_) => {
+                        todo!("Cancel messages are not implemented yet");
+                        // see https://app.asana.com/0/1199548034582004/1202011714603653/f
+                    }
                     _ => (None, None)
                 };
 
@@ -163,13 +178,23 @@ async fn _run(
                 // but by value for saving sent task.
                 nng_sender.send(sim_id, &inbound, &task_payload_json)?;
 
+                // Do Rust part of message handling, if any.
                 match inbound {
                     InboundToRunnerMsgPayload::TerminateRunner => break 'select_loop,
+                    InboundToRunnerMsgPayload::StateSync(sync) => {
+                        let sim_id = sim_id.ok_or_else(|| WorkerError::from("Missing simulation id"))?;
+                        if let Entry::Vacant(entry) = sync_completion_senders.entry(sim_id) {
+                            entry.insert(sync.completion_sender);
+                        } else {
+                            return Err(Error::AlreadyAwaiting.into());
+                        }
+                    }
                     InboundToRunnerMsgPayload::TaskMsg(RunnerTaskMsg {
                         task_id,
                         shared_store,
                         ..
                     }) => {
+                        tracing::trace!("Sent task with id {task_id:?}");
                         // unwrap: TaskMsg variant, so must have serialized payload earlier.
                         let sent = SentTask {
                             task_wrapper: task_wrapper.unwrap(),
@@ -178,7 +203,7 @@ async fn _run(
                         sent_tasks
                             .try_insert(task_id, sent)
                             .map_err(|_| Error::from(format!(
-                                "Inbound message w/o sent task id {:?}", task_id
+                                "Inbound message with duplicate sent task id {:?}", task_id
                             )))?;
                     }
                     _ => {}
@@ -192,11 +217,26 @@ async fn _run(
                     &mut sent_tasks,
                 );
                 let outbound = outbound.map_err(|err| {
-                    Error::from(format!(
+                    let err = Error::from(format!(
                         "Failed to convert nng message to OutboundFromRunnerMsg: {err}"
-                    ))
+                    ));
+                    // TODO: Investigate why `err` sometimes doesn't get logged at all
+                    //       (higher in the call stack) unless we log it here and avoid
+                    //       logging `err` more than once.
+                    tracing::error!("{err}");
+                    err
                 })?;
-                outbound_sender.send(outbound)?;
+                if let OutboundFromRunnerMsgPayload::SyncCompletion = &outbound.payload {
+                    sync_completion_senders
+                        .remove(&outbound.sim_id)
+                        .ok_or(Error::NotAwaiting)?
+                        .send(Ok(()))
+                        .map_err(|error| Error::from(format!(
+                            "Couldn't send state sync completion from Python: {error:?}"
+                        )))?;
+                } else {
+                    outbound_sender.send(outbound)?;
+                }
             }
         }
     }
