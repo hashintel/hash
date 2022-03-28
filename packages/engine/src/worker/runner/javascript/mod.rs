@@ -276,24 +276,6 @@ impl<'s> Embedded<'s> {
         scope: &mut v8::HandleScope<'s>,
         context: v8::Local<'s, v8::Context>,
     ) -> Result<Self> {
-        fn get_function_from_array<'s>(
-            scope: &mut v8::HandleScope<'s>,
-            fns: Array<'s>,
-            index: u32,
-        ) -> Result<Function<'s>> {
-            fns.get_index(scope, index)
-                .ok_or_else(|| {
-                    Error::V8(format!("Could not get package function at index {index}"))
-                })?
-                .try_into()
-                .map_err(|err| {
-                    Error::V8(format!(
-                        "Could not convert value at index {index} in runner.js as a function: \
-                         {err}"
-                    ))
-                })
-        }
-
         let arrow = eval_file(
             scope,
             "./src/worker/runner/javascript/apache-arrow-bundle.js",
@@ -369,13 +351,31 @@ impl<'s> Embedded<'s> {
             )
         })?;
 
-        let start_experiment: Function<'_> = get_function_from_array(scope, fns, 0)?;
-        let start_sim: Function<'_> = get_function_from_array(scope, fns, 1)?;
-        let run_task: Function<'_> = get_function_from_array(scope, fns, 2)?;
-        let ctx_batch_sync: Function<'_> = get_function_from_array(scope, fns, 3)?;
-        let state_sync: Function<'_> = get_function_from_array(scope, fns, 4)?;
-        let state_interim_sync: Function<'_> = get_function_from_array(scope, fns, 5)?;
-        let state_snapshot_sync: Function<'_> = get_function_from_array(scope, fns, 6)?;
+        let [
+            start_experiment,
+            start_sim,
+            run_task,
+            ctx_batch_sync,
+            state_sync,
+            state_interim_sync,
+            state_snapshot_sync,
+        ]: [Function<'_>; 7] = (0..=6)
+            .map(|fn_idx| {
+                fns.get_index(scope, fn_idx)
+                    .ok_or_else(|| {
+                        Error::V8(format!("Could not get package function at index {fn_idx}"))
+                    })?
+                    .try_into()
+                    .map_err(|err| {
+                        Error::V8(format!(
+                            "Could not convert value at index {fn_idx} in runner.js as a \
+                             function: {err}"
+                        ))
+                    })
+            })
+            .collect::<Result<Vec<_>>>()?
+            .try_into()
+            .unwrap();
 
         Ok(Embedded {
             hash_stdlib,
