@@ -2,16 +2,27 @@
 
 use std::sync::Arc;
 
-use arrow::ipc::{
-    reader::read_record_batch,
-    writer::{DictionaryTracker, IpcDataGenerator, IpcWriteOptions},
+use arrow::{
+    datatypes::Schema,
+    ipc::{
+        self,
+        reader::read_record_batch,
+        writer::{DictionaryTracker, IpcDataGenerator, IpcWriteOptions},
+    },
+    record_batch::RecordBatch,
 };
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
 };
 
 use crate::{
-    datastore::{arrow::meta_conversion::get_dynamic_meta_flatbuffers, batch::Segment, prelude::*},
+    datastore::{
+        arrow::meta_conversion::get_dynamic_meta_flatbuffers,
+        batch::{metaversion::Metaversion, Segment},
+        error::{Error, Result},
+        meta::Dynamic as DynamicMeta,
+        storage::memory::Memory,
+    },
     proto::ExperimentId,
     simulation::package::context::ContextColumn,
 };
@@ -41,7 +52,7 @@ impl ContextBatch {
 
     pub fn from_record_batch(
         record_batch: &RecordBatch,
-        schema: Option<&Arc<ArrowSchema>>,
+        schema: Option<&Arc<Schema>>,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
         let ipc_data_generator = IpcDataGenerator::default();
@@ -64,22 +75,22 @@ impl ContextBatch {
         Self::from_memory(memory, schema)
     }
 
-    pub fn from_memory(memory: Memory, schema: Option<&Arc<ArrowSchema>>) -> Result<Self> {
+    pub fn from_memory(memory: Memory, schema: Option<&Arc<Schema>>) -> Result<Self> {
         let persisted = memory.metaversion()?;
         let (schema_buffer, _, meta_buffer, data_buffer) = memory.get_batch_buffers()?;
 
         let schema = if let Some(s) = schema {
             s.clone()
         } else {
-            let message = arrow_ipc::root_as_message(schema_buffer)?;
+            let message = ipc::root_as_message(schema_buffer)?;
             let ipc_schema = match message.header_as_schema() {
                 Some(s) => s,
                 None => return Err(Error::ArrowSchemaRead),
             };
-            Arc::new(arrow_ipc::convert::fb_to_schema(ipc_schema))
+            Arc::new(ipc::convert::fb_to_schema(ipc_schema))
         };
 
-        let rb_msg = arrow_ipc::root_as_message(meta_buffer)?
+        let rb_msg = ipc::root_as_message(meta_buffer)?
             .header_as_record_batch()
             .ok_or(Error::InvalidRecordBatchIpcMessage)?;
         let batch = read_record_batch(data_buffer, rb_msg, schema, &[])?;
@@ -176,7 +187,7 @@ impl ContextBatch {
 
         // Reload batch
         let (_, _, meta_buffer, data_buffer) = self.segment.memory().get_batch_buffers()?;
-        let rb_msg = &arrow_ipc::root_as_message(meta_buffer)?
+        let rb_msg = &ipc::root_as_message(meta_buffer)?
             .header_as_record_batch()
             .ok_or(Error::InvalidRecordBatchIpcMessage)?;
         self.batch = read_record_batch(data_buffer, *rb_msg, self.batch.schema(), &[])?;

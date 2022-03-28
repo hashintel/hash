@@ -1,6 +1,9 @@
 use std::{fmt, marker::PhantomData};
 
-use super::*;
+use super::{
+    desc_to_result, desc_to_result_noval, mv8_array_get, mv8_array_len, mv8_array_set,
+    value_to_desc, FromValue, Object, Ref, Result, ToValue, Value,
+};
 
 /// Reference to a JavaScript array.
 #[derive(Clone)]

@@ -4,10 +4,16 @@
  */
 import React from "react";
 import ReactDOM from "react-dom";
-import Component from "./index.ts";
+import { MockBlockDock } from "mock-block-dock";
+
+import Component from "./index";
 
 const node = document.getElementById("app");
 
-const App = () => <Component level={2} color="red" text="Hello, world!" />;
+const App = () => (
+  <MockBlockDock>
+    <Component entityId="test-para-1" text="Hello World!" />
+  </MockBlockDock>
+);
 
 ReactDOM.render(<App />, node);

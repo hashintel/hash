@@ -3,7 +3,6 @@ use std::fmt;
 use arrow::{datatypes::DataType, error::ArrowError};
 use thiserror::Error as ThisError;
 
-use super::prelude::*;
 use crate::{
     datastore::schema::{FieldKey, FieldType, RootFieldSpec},
     hash_types,
@@ -94,7 +93,7 @@ pub enum Error {
     UnexpectedVectorLength { len: usize, expected: usize },
 
     #[error("Unsupported Arrow datatype: {d_type:?}")]
-    UnsupportedArrowDataType { d_type: ArrowDataType },
+    UnsupportedArrowDataType { d_type: DataType },
 
     #[error("Did not expect to resize Shared Memory")]
     UnexpectedAgentBatchMemoryResize,

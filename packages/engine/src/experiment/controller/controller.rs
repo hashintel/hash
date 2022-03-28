@@ -12,7 +12,7 @@ use super::{
 };
 use crate::{
     config::{PersistenceConfig, StoreConfig},
-    datastore::prelude::SharedStore,
+    datastore::shared_store::SharedStore,
     env::OrchClient,
     experiment::{
         apply_globals_changes,

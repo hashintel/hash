@@ -14,7 +14,7 @@ use self::behavior_execution::tasks::{ExecuteBehaviorsTask, ExecuteBehaviorsTask
 use super::PackageCreator;
 use crate::{
     simulation::{
-        enum_dispatch::*,
+        enum_dispatch::{enum_dispatch, RegisterWithoutTrait, StoreAccessVerify, TaskSharedStore},
         package::{id::PackageIdGenerator, PackageMetadata, PackageType},
         Error, Result,
     },
@@ -78,7 +78,7 @@ impl PackageCreators {
         experiment_config: &Arc<ExperimentConfig>,
     ) -> Result<()> {
         tracing::debug!("Initializing State Package Creators");
-        use Name::*;
+        use Name::{BehaviorExecution, Topology};
         let mut m = HashMap::new();
         m.insert(
             BehaviorExecution,
@@ -116,7 +116,7 @@ impl PackageCreators {
 
 lazy_static! {
     pub static ref METADATA: HashMap<Name, PackageMetadata> = {
-        use Name::*;
+        use Name::{BehaviorExecution, Topology};
         let mut id_creator = PackageIdGenerator::new(PackageType::State);
         let mut m = HashMap::new();
         m.insert(BehaviorExecution, PackageMetadata {

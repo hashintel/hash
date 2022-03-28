@@ -5,7 +5,7 @@ use tokio::time::Duration;
 
 use super::{Error, Result};
 use crate::{
-    datastore::prelude::Store,
+    datastore::store::Store,
     experiment::controller::comms::{sim_status::SimStatusSend, simulation::SimCtlRecv},
     hash_types::worker::RunnerError,
     output::SimulationOutputPersistenceRepr,

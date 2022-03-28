@@ -1,13 +1,23 @@
 use std::sync::Arc;
 
+use arrow::{
+    array::{self, Array},
+    datatypes::{DataType, Field, Schema},
+    record_batch::RecordBatch,
+};
 use lazy_static::lazy_static;
 
-use super::prelude::*;
 use crate::{
-    datastore::{prelude::*, schema::PresetFieldType},
-    hash_types::message::{
-        GenericPayload, Outbound, OutboundCreateAgentPayload, OutboundRemoveAgentPayload,
-        OutboundStopSimPayload,
+    datastore::{
+        error::{Error, Result},
+        schema::PresetFieldType,
+    },
+    hash_types::{
+        message::{
+            GenericPayload, Outbound, OutboundCreateAgentPayload, OutboundRemoveAgentPayload,
+            OutboundStopSimPayload,
+        },
+        Agent,
     },
 };
 
@@ -31,30 +41,30 @@ pub enum FieldIndex {
 }
 
 lazy_static! {
-    pub static ref SENDER_ARROW_FIELD: ArrowField = ArrowField::new(
+    pub static ref SENDER_ARROW_FIELD: Field = Field::new(
         "from",
         PresetFieldType::Id.get_arrow_data_type(),
         false
     );
-    pub static ref MESSAGE_ARROW_FIELDS: Vec<ArrowField> = vec![
-        ArrowField::new(
+    pub static ref MESSAGE_ARROW_FIELDS: Vec<Field> = vec![
+        Field::new(
             "to",
-            ArrowDataType::List(Box::new(ArrowField::new("item", ArrowDataType::Utf8, true))),
+            DataType::List(Box::new(Field::new("item", DataType::Utf8, true))),
             false
         ),
-        ArrowField::new("type", ArrowDataType::Utf8, false),
-        ArrowField::new("data", ArrowDataType::Utf8, true),
+        Field::new("type", DataType::Utf8, false),
+        Field::new("data", DataType::Utf8, true),
     ];
-    pub static ref MESSAGE_ARROW_TYPE: ArrowDataType =
-        ArrowDataType::Struct(MESSAGE_ARROW_FIELDS.clone());
-    pub static ref MESSAGE_LIST_ARROW_FIELD: ArrowField = ArrowField::new(
+    pub static ref MESSAGE_ARROW_TYPE: DataType =
+        DataType::Struct(MESSAGE_ARROW_FIELDS.clone());
+    pub static ref MESSAGE_LIST_ARROW_FIELD: Field = Field::new(
         MESSAGE_COLUMN_NAME,
-        ArrowDataType::List(Box::new(ArrowField::new("item", MESSAGE_ARROW_TYPE.clone(), true))),
+        DataType::List(Box::new(Field::new("item", MESSAGE_ARROW_TYPE.clone(), true))),
         false
     );
     // It is important to keep this order unchanged. If changed
     // then the consts above must be updated
-    pub static ref MESSAGE_BATCH_SCHEMA: ArrowSchema = ArrowSchema::new(vec![
+    pub static ref MESSAGE_BATCH_SCHEMA: Schema = Schema::new(vec![
         SENDER_ARROW_FIELD.clone(),
         MESSAGE_LIST_ARROW_FIELD.clone()
     ]);
@@ -277,11 +287,7 @@ pub fn get_column_from_list_array(array: &array::ListArray) -> Result<Vec<Vec<Ou
     Ok(result)
 }
 
-pub fn column_into_state(
-    states: &mut [AgentState],
-    batch: &RecordBatch,
-    index: usize,
-) -> Result<()> {
+pub fn column_into_state(states: &mut [Agent], batch: &RecordBatch, index: usize) -> Result<()> {
     let reference = batch
         .column(index)
         .as_any()
@@ -299,14 +305,14 @@ pub fn column_into_state(
 }
 
 pub fn batch_from_json(
-    schema: &Arc<ArrowSchema>,
+    schema: &Arc<Schema>,
     ids: Vec<&str>,
     messages: Option<Vec<serde_json::Value>>,
 ) -> Result<RecordBatch> {
     let agent_count = ids.len();
     let ids = Arc::new(super::batch_conversion::get_agent_id_array(ids)?);
 
-    let messages: Arc<dyn ArrowArray> = messages.map_or_else(
+    let messages: Arc<dyn Array> = messages.map_or_else(
         || empty_messages_column(agent_count).map(Arc::new),
         |values| messages_column_from_serde_values(values).map(Arc::new),
     )?;

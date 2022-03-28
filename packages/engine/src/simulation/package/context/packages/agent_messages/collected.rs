@@ -1,4 +1,4 @@
-use super::{indices::AgentMessageIndices, *};
+use super::{indices::AgentMessageIndices, Result};
 use crate::datastore::{table::references::MessageMap, UUID_V4_LEN};
 
 /// Columnar native representation of indices to messages
