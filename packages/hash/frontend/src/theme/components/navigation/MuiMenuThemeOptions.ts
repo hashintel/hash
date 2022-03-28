@@ -6,10 +6,10 @@ export const MuiMenuThemeOptions: Components<Theme>["MuiMenu"] = {
     autoFocus: false,
   },
   styleOverrides: {
-    list: {
-      paddingTop: "4px",
-      paddingBottom: "4px",
-    },
+    list: ({ theme }) => ({
+      paddingTop: theme.spacing(0.5),
+      paddingBottom: theme.spacing(0.5),
+    }),
     paper: {
       minWidth: 228,
     },
