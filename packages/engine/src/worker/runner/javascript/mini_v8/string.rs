@@ -1,6 +1,6 @@
 use std::{fmt, slice, string::String as StdString};
 
-use super::*;
+use super::{mv8_string_to_utf8_value, mv8_utf8_value_drop, Ref};
 
 /// Reference to an immutable JavaScript string.
 #[derive(Clone)]

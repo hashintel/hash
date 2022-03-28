@@ -1,8 +1,9 @@
 use std::{collections::HashSet, ops::Deref};
 
-use super::{AgentIndex, BatchIndex, Result, WorkerIndex};
+use super::{AgentIndex, BatchIndex, WorkerIndex};
 use crate::datastore::{
     batch::{agent::AgentBatch, iterators::record_batch},
+    error::Result,
     UUID_V4_LEN,
 };
 

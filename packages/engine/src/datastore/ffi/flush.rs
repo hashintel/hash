@@ -5,10 +5,14 @@
     clippy::missing_safety_doc
 )]
 
+use arrow::util::bit_util;
+
 use super::{memory::CMemory, ArrowArray};
 use crate::datastore::{
     batch::flush::{GrowableArrayData, GrowableBatch, GrowableColumn},
-    prelude::*,
+    error::{Error, Result},
+    meta,
+    storage::memory::Memory,
 };
 
 type Flag = usize;
@@ -28,8 +32,8 @@ pub struct Changes {
 #[no_mangle]
 unsafe extern "C" fn flush_changes(
     c_memory: *mut CMemory,
-    dynamic_meta: *mut DynamicMeta,
-    static_meta: *const StaticMeta,
+    dynamic_meta: *mut meta::Dynamic,
+    static_meta: *const meta::Static,
     changes: *const Changes,
 ) -> Flag {
     let changes = &*changes;
@@ -117,7 +121,7 @@ unsafe extern "C" fn flush_changes(
 // Assumes all buffers are properly aligned
 unsafe fn node_into_prepared_array_data(
     arrow_array: *const ArrowArray,
-    static_meta: &StaticMeta,
+    static_meta: &meta::Static,
     node_index: usize,
 ) -> Result<(PreparedArrayData<'_>, usize)> {
     let arrow_array_ref = &*arrow_array;
@@ -162,7 +166,7 @@ unsafe fn node_into_prepared_array_data(
             None
         } else {
             let ptr = (*arrow_array_ref.buffers) as *const u8;
-            let byte_length = arrow_bit_util::ceil(num_elem, 8);
+            let byte_length = bit_util::ceil(num_elem, 8);
             let slice = std::slice::from_raw_parts(ptr, byte_length);
             Some(slice)
         }
@@ -187,7 +191,7 @@ unsafe fn node_into_prepared_array_data(
                             "The null buffer is null but the null count is non-zero",
                         ));
                     }
-                    let byte_length = arrow_bit_util::ceil(num_elem, 8);
+                    let byte_length = bit_util::ceil(num_elem, 8);
                     std::slice::from_raw_parts(ptr, byte_length)
                 }
                 crate::datastore::meta::BufferType::Offset => {
@@ -274,21 +278,21 @@ impl<'a> GrowableColumn<PreparedArrayData<'a>> for PreparedColumn<'a> {
 
 /// Batch used by Python FFI.
 pub struct PreparedBatch<'a> {
-    static_meta: *const StaticMeta,
-    dynamic_meta: &'a mut DynamicMeta,
+    static_meta: *const meta::Static,
+    dynamic_meta: &'a mut meta::Dynamic,
     memory: &'a mut Memory,
 }
 
 impl<'a> GrowableBatch<PreparedArrayData<'a>, PreparedColumn<'a>> for PreparedBatch<'a> {
-    fn static_meta(&self) -> &StaticMeta {
+    fn static_meta(&self) -> &meta::Static {
         unsafe { &*self.static_meta }
     }
 
-    fn dynamic_meta(&self) -> &DynamicMeta {
+    fn dynamic_meta(&self) -> &meta::Dynamic {
         self.dynamic_meta
     }
 
-    fn dynamic_meta_mut(&mut self) -> &mut DynamicMeta {
+    fn dynamic_meta_mut(&mut self) -> &mut meta::Dynamic {
         self.dynamic_meta
     }
 
