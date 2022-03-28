@@ -1,4 +1,4 @@
-FROM node:16 AS builder
+FROM node:16.14.2-alpine AS builder
 
 WORKDIR /app
 
@@ -19,21 +19,19 @@ RUN --mount=type=cache,mode=0755,target=/yarn-cache \
 
 #########################################################################################
 
-FROM ubuntu:20.04
+FROM node:16.14.2-alpine
 
 COPY --from=builder /app /app
-COPY --from=builder /usr/local/bin/node /usr/local/bin/node
 
 WORKDIR /app
 
 # Run as a non-root user
-RUN groupadd -g 999 appuser \
-  && useradd -r -u 999 -g appuser appuser
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 USER root
-RUN chown appuser:appuser /app
+RUN chown appuser:appgroup /app
 
 USER appuser
 ENV NODE_ENV production
 
-CMD ["node", "--max-old-space-size=2048", "./node_modules/.bin/ts-node", "--transpile-only", "./packages/hash/search-loader/src/index.ts"]
+CMD ["yarn", "workspace","@hashintel/hash-search-loader", "start"]
