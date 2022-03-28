@@ -564,7 +564,7 @@ export class ProsemirrorSchemaManager {
       blockIdForNode,
     );
 
-    return [tr, newNode] as const;
+    return [tr, newNode, meta] as const;
   }
 
   private async createNewDraftBlock(

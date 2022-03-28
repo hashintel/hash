@@ -1,7 +1,16 @@
 diff --git a/node_modules/blockprotocol/core.d.ts b/node_modules/blockprotocol/core.d.ts
-index 20a9bbd..b880e1f 100644
+index 20a9bbd..eb3a4e4 100644
 --- a/node_modules/blockprotocol/core.d.ts
 +++ b/node_modules/blockprotocol/core.d.ts
+@@ -27,7 +27,7 @@ export type BlockVariant = {
+   /**
+    * @deprecated - Use the `name` field instead.
+    */
+-  displayName: string;
++  displayName?: string;
+   properties: JSONObject;
+   examples?: JSONObject[] | null;
+ };
 @@ -191,10 +191,12 @@ export type BlockProtocolMultiFilter = {
    operator: BlockProtocolMultiFilterOperatorType;
  };
