@@ -37,7 +37,6 @@ class State {
 
 type EditorConnectionAction =
   | {
-      accountId: string;
       type: "loaded";
       doc: ProsemirrorNode<Schema>;
       store: EntityStore;
@@ -206,7 +205,6 @@ export class EditorConnection {
         this.report.success();
         this.backOff = 0;
         this.dispatch({
-          accountId: this.accountId,
           type: "loaded",
           doc,
           store: data.store,
