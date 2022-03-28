@@ -128,18 +128,17 @@ pub enum Error {
 }
 
 impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Error::InvalidMessageType(Some(received)) => write!(
-                f,
-                "I was expecting a system message type, but I got {}",
-                received
+                fmt,
+                "I was expecting a system message type, but I got {received}"
             ),
             Error::InvalidMessageType(None) => write!(
-                f,
+                fmt,
                 "I was expecting a system message type, but none was provided"
             ),
-            Error::UnknownSerdeError(serde_error) => write!(f, "{}", serde_error),
+            Error::UnknownSerdeError(serde_error) => write!(fmt, "{serde_error}"),
         }
     }
 }
@@ -150,8 +149,8 @@ fn is_system_message(kind: &str) -> bool {
 
 impl Outbound {
     #[must_use]
-    pub fn new(msg: GenericPayload) -> Outbound {
-        Outbound::Generic(msg)
+    pub const fn new(msg: GenericPayload) -> Self {
+        Self::Generic(msg)
     }
 
     fn is_json_message_remove_agent(value: &serde_json::Value) -> bool {
@@ -169,8 +168,9 @@ impl Outbound {
             if let Some(obj) = value.as_object_mut() {
                 let agent_id = state.agent_id.clone();
                 match serde_json::to_value(RemoveAgentPayload { agent_id }) {
-                    Ok(value) => {
-                        obj.insert(String::from("data"), value);
+                    Ok(data) => {
+                        // Previously checked if `"data"` is empty
+                        let _unused = obj.insert(String::from("data"), data);
                     }
                     Err(why) => return Err(Error::UnknownSerdeError(why)),
                 }
@@ -182,10 +182,10 @@ impl Outbound {
     fn ensure_has_recipient(value: &mut serde_json::Value) {
         if value.get("to").is_none() {
             if let Some(obj) = value.as_object_mut() {
-                obj.insert(
+                let _unused = obj.insert(
                     String::from("to"),
                     serde_json::Value::Array(vec![serde_json::Value::String(
-                        SYSTEM_MESSAGE.to_string(),
+                        SYSTEM_MESSAGE.to_owned(),
                     )]),
                 );
             }
@@ -198,12 +198,12 @@ impl Outbound {
     fn preprocess(value: &mut serde_json::Value, state: &Agent) -> Result<(), Error> {
         // if the message has a recipient, and the recipient is the hash engine, make sure its a
         // valid message type
-        Outbound::ensure_has_recipient(value);
-        if Outbound::is_hash_engine_message(value) {
-            Outbound::ensure_is_valid_hash_engine_message(value)?;
+        Self::ensure_has_recipient(value);
+        if Self::is_hash_engine_message(value) {
+            Self::ensure_is_valid_hash_engine_message(value)?;
         }
-        if Outbound::is_json_message_remove_agent(value) {
-            Outbound::infer_remove_agent_with_state(value, state)?;
+        if Self::is_json_message_remove_agent(value) {
+            Self::infer_remove_agent_with_state(value, state)?;
         }
         Ok(())
     }
@@ -247,8 +247,8 @@ impl Outbound {
     pub fn from_json_value_with_state(
         mut value: serde_json::Value,
         agent_state: &Agent,
-    ) -> Result<Outbound, Error> {
-        Outbound::preprocess(&mut value, agent_state)?;
+    ) -> Result<Self, Error> {
+        Self::preprocess(&mut value, agent_state)?;
         match serde_json::from_value(value) {
             Ok(msg) => Ok(msg),
             Err(serde_err) => Err(Error::UnknownSerdeError(serde_err)),
@@ -264,15 +264,12 @@ impl Outbound {
     pub fn from_json_array_with_state(
         value: serde_json::Value,
         agent_state: &Agent,
-    ) -> Result<Vec<Outbound>, Error> {
+    ) -> Result<Vec<Self>, Error> {
         match value {
             serde_json::Value::Array(items) => {
                 let mut messages = Vec::with_capacity(items.len());
                 for json_value in items {
-                    messages.push(Outbound::from_json_value_with_state(
-                        json_value,
-                        agent_state,
-                    )?);
+                    messages.push(Self::from_json_value_with_state(json_value, agent_state)?);
                 }
                 Ok(messages)
             }
@@ -286,11 +283,8 @@ impl Outbound {
     pub fn unchecked_from_json_value_with_state(
         value: serde_json::Value,
         agent_state: &Agent,
-    ) -> Outbound {
-        match Outbound::from_json_value_with_state(value, agent_state) {
-            Ok(m) => m,
-            Err(e) => panic!("{}", e),
-        }
+    ) -> Self {
+        Self::from_json_value_with_state(value, agent_state).unwrap()
     }
 }
 
@@ -307,7 +301,7 @@ impl OutboundCreateAgentPayload {
     pub const KIND: &'static str = "create_agent";
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
 pub enum CreateAgent {
     #[serde(rename = "create_agent")]
     Type,
@@ -325,7 +319,7 @@ impl OutboundRemoveAgentPayload {
     pub const KIND: &'static str = "remove_agent";
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
 pub enum RemoveAgent {
     // one bad thing about serde is how we still have to retype literals
     #[serde(rename = "remove_agent")]
@@ -337,7 +331,7 @@ pub struct RemoveAgentPayload {
     pub agent_id: String,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
 pub enum StopSim {
     #[serde(rename = "stop")]
     Type,
@@ -378,9 +372,9 @@ where
     }
 
     match ValueOrStringArray::deserialize(deserializer)? {
-        ValueOrStringArray::String(s) => Ok(vec![s]),
-        ValueOrStringArray::Number(i) => Ok(vec![i.to_string()]),
-        ValueOrStringArray::Vec(v) => Ok(v),
+        ValueOrStringArray::String(string) => Ok(vec![string]),
+        ValueOrStringArray::Number(number) => Ok(vec![number.to_string()]),
+        ValueOrStringArray::Vec(strings) => Ok(strings),
     }
 }
 

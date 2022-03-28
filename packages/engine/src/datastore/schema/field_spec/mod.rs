@@ -376,7 +376,7 @@ impl TryInto<FieldType> for AgentStateField {
             | AgentStateField::Direction
             | AgentStateField::Scale
             | AgentStateField::Velocity
-            | AgentStateField::RGB => FieldType::new(
+            | AgentStateField::Rgb => FieldType::new(
                 FieldTypeVariant::FixedLengthArray {
                     kind: Box::new(FieldType::new(FieldTypeVariant::Number, false)),
                     len: 3,

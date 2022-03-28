@@ -421,14 +421,14 @@ pub const PREVIOUS_INDEX_FIELD_KEY: &str = "_HIDDEN_0_previous_index";
 
 pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec>> {
     use hash_types::state::AgentStateField::{
-        AgentId, AgentName, Color, Direction, Height, Hidden, Position, Scale, Shape, Velocity, RGB,
+        AgentId, AgentName, Color, Direction, Height, Hidden, Position, Rgb, Scale, Shape, Velocity,
     };
 
     let mut field_specs = Vec::with_capacity(13);
     let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
 
     let used = [
-        AgentId, AgentName, Position, Direction, Velocity, Shape, Height, Scale, Color, RGB, Hidden,
+        AgentId, AgentName, Position, Direction, Velocity, Shape, Height, Scale, Color, Rgb, Hidden,
     ];
     for field in used {
         let field_type: FieldType = field.clone().try_into()?;

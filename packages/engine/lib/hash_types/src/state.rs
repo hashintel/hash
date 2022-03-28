@@ -36,7 +36,7 @@ pub const BUILTIN_FIELDS: [&str; 12] = [
     AgentStateField::Height.name(),
     AgentStateField::Scale.name(),
     AgentStateField::Color.name(),
-    AgentStateField::RGB.name(),
+    AgentStateField::Rgb.name(),
     AgentStateField::Hidden.name(),
 ];
 
@@ -118,7 +118,7 @@ pub enum AgentStateField {
     Height,
     Scale,
     Color,
-    RGB,
+    Rgb,
     Hidden,
 
     /// Any custom, non-built-in field. Corresponds to [`Agent::custom`].
@@ -137,7 +137,7 @@ impl AgentStateField {
         AgentStateField::Height,
         AgentStateField::Scale,
         AgentStateField::Color,
-        AgentStateField::RGB,
+        AgentStateField::Rgb,
         AgentStateField::Hidden,
     ];
 
@@ -155,7 +155,7 @@ impl AgentStateField {
             AgentStateField::Height => "height",
             AgentStateField::Scale => "scale",
             AgentStateField::Color => "color",
-            AgentStateField::RGB => "rgb",
+            AgentStateField::Rgb => "rgb",
             AgentStateField::Hidden => "hidden",
 
             AgentStateField::Extra(_) => "extra",
@@ -328,7 +328,7 @@ impl<'de> Deserialize<'de> for Agent {
                         AgentStateField::Color => {
                             agent_state_buf.color = Some(map.next_value()?);
                         }
-                        AgentStateField::RGB => {
+                        AgentStateField::Rgb => {
                             agent_state_buf.rgb = Some(map.next_value()?);
                         }
                         AgentStateField::Hidden => {
@@ -850,7 +850,7 @@ mod tests {
     fn test_empty_state() {
         let json = "{}";
 
-        let agent: Agent = serde_json::from_str(&json).unwrap();
+        let agent: Agent = serde_json::from_str(json).unwrap();
 
         assert_eq!(agent.agent_id.len(), 36);
     }
@@ -869,7 +869,7 @@ mod tests {
     fn test_position() {
         let json = r#"{ "position": [1, 2] }"#;
 
-        let agent: Agent = serde_json::from_str(&json).unwrap();
+        let agent: Agent = serde_json::from_str(json).unwrap();
         let pos = agent.position.unwrap();
 
         assert_eq!(pos.0, 1.0);
@@ -880,7 +880,7 @@ mod tests {
     #[test]
     fn test_scale() {
         let json = r#"{ "scale": [5, 2]}"#;
-        let agent: Agent = serde_json::from_str(&json).unwrap();
+        let agent: Agent = serde_json::from_str(json).unwrap();
         let scale = agent.scale.unwrap();
 
         assert_eq!(scale.0, 5.0);
@@ -905,7 +905,7 @@ mod tests {
     #[test]
     fn test_scale_invalid() {
         let json = r#"{ "scale": [5, 2, "123"]}"#;
-        assert!(serde_json::from_str::<Agent>(&json).is_err());
+        assert!(serde_json::from_str::<Agent>(json).is_err());
     }
 
     #[test]
@@ -1009,7 +1009,7 @@ mod tests {
             .unwrap();
         assert_eq!(agent.messages, vec![message::Outbound::Generic(
             GenericPayload {
-                data: data.clone(),
+                data,
                 to: vec!["alice".to_string()],
                 r#type: "custom_message".to_string(),
             }
@@ -1026,8 +1026,8 @@ mod tests {
             .unwrap();
         assert_eq!(agent.messages, vec![message::Outbound::Generic(
             GenericPayload {
-                data: data.clone(),
-                to: to.clone(),
+                data,
+                to,
                 r#type: "custom_message".to_string(),
             }
         )]);
