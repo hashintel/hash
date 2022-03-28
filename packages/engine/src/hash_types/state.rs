@@ -12,10 +12,9 @@ use serde_aux::prelude::deserialize_string_from_number;
 
 use crate::{
     config::Globals,
-    datastore::arrow::message::{CREATE_AGENT, REMOVE_AGENT, STOP_SIM},
     hash_types::{
         error::{Error, Result},
-        message::{self},
+        message::{self, CREATE_AGENT, REMOVE_AGENT, STOP_SIM},
         Vec3,
     },
 };

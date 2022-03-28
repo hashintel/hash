@@ -3,9 +3,14 @@ use std::{collections::HashMap, fmt};
 use serde::{de::Deserializer, Deserialize, Serialize};
 
 use crate::{
-    datastore::arrow::message::{CREATE_AGENT, REMOVE_AGENT, SYSTEM_MESSAGE},
+    datastore::arrow::message::SYSTEM_MESSAGE,
     hash_types::{error::Result, state::Agent},
 };
+
+// Built in message types:
+pub const CREATE_AGENT: &str = OutboundCreateAgentPayload::KIND;
+pub const REMOVE_AGENT: &str = OutboundRemoveAgentPayload::KIND;
+pub const STOP_SIM: &str = OutboundStopSimPayload::KIND;
 
 /*
  * We want Serde to deserialize a message to the correct enum variant,

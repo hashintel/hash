@@ -21,11 +21,6 @@ use crate::{
     },
 };
 
-// Built in message types:
-pub const CREATE_AGENT: &str = OutboundCreateAgentPayload::KIND;
-pub const REMOVE_AGENT: &str = OutboundRemoveAgentPayload::KIND;
-pub const STOP_SIM: &str = OutboundStopSimPayload::KIND;
-
 // System-message recipient
 pub const SYSTEM_MESSAGE: &str = "hash";
 

@@ -12,10 +12,7 @@ use uuid::Uuid;
 
 use crate::{
     datastore::{
-        arrow::{
-            batch_conversion::IntoRecordBatch,
-            message::{CREATE_AGENT, REMOVE_AGENT, STOP_SIM},
-        },
+        arrow::batch_conversion::IntoRecordBatch,
         batch::MessageBatch,
         schema::{state::AgentSchema, FieldKey},
         table::{
@@ -24,7 +21,10 @@ use crate::{
         },
         UUID_V4_LEN,
     },
-    hash_types::{message::RemoveAgentPayload, Agent},
+    hash_types::{
+        message::{RemoveAgentPayload, CREATE_AGENT, REMOVE_AGENT, STOP_SIM},
+        Agent,
+    },
     simulation::{Error, Result},
 };
 
