@@ -162,10 +162,10 @@ jobs:
             ~/.cargo/.crates2.json
             ~/.cargo/bin
             **/target/
-          key: ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}-i
           restore-keys: |
-            ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
-            ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}
+            ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-i
+            ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}-i
 
       - name: Run clippy
         run: cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml --no-deps ${{ matrix.flags }} -- -D warnings
@@ -223,10 +223,10 @@ jobs:
             ~/.cargo/.crates2.json
             ~/.cargo/bin
             **/target/
-          key: ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}-i
           restore-keys: |
-            ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
-            ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}
+            ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-i
+            ${{ runner.os }}-test-${{ matrix.directory }}-${{ matrix.toolchain }}-i
 
       - name: Build tests
         if: matrix.directory == 'packages/engine'
@@ -283,10 +283,10 @@ jobs:
             ~/.cargo/.crates2.json
             ~/.cargo/bin
             **/target/
-          key: ${{ runner.os }}-bench-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-bench-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-${{ hashFiles('**/Cargo.lock') }}-i
           restore-keys: |
-            ${{ runner.os }}-bench-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}
-            ${{ runner.os }}-bench-${{ matrix.directory }}-${{ matrix.toolchain }}
+            ${{ runner.os }}-bench-${{ matrix.directory }}-${{ matrix.toolchain }}-${{ matrix.flags }}-i
+            ${{ runner.os }}-bench-${{ matrix.directory }}-${{ matrix.toolchain }}-i
 
       - name: Build tests
         if: matrix.directory == 'packages/engine'
