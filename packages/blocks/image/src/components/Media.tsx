@@ -106,8 +106,8 @@ function getLinkedEntities(params: {
   const destinationEntityId = matchingLinkGroup.links[0]?.destinationEntityId;
 
   const matchingLinkedEntities = linkedEntities.filter(
-    (link): link is BlockProtocolEntity & { url: string } =>
-      link.entityId === destinationEntityId && "url" in link,
+    (linkedEntity): linkedEntity is BlockProtocolEntity & { url: string } =>
+      linkedEntity.entityId === destinationEntityId && "url" in linkedEntity,
   );
 
   if (!matchingLinkedEntities) {
@@ -117,7 +117,9 @@ function getLinkedEntities(params: {
   return matchingLinkedEntities;
 }
 
-const isSingleTargetLink = (link: BlockProtocolLink) => "linkId" in link;
+const isSingleTargetLink = (
+  link: BlockProtocolLink,
+): link is BlockProtocolLink & SingleTargetLinkFields => "linkId" in link;
 
 /**
  * @todo Rewrite the state here to use a reducer, instead of batched updates
@@ -270,12 +272,7 @@ export const Media: BlockComponent<
             if (existingLinkGroup) {
               await deleteLinks(
                 existingLinkGroup.links
-                  .filter(
-                    (
-                      link,
-                    ): link is BlockProtocolLink & SingleTargetLinkFields =>
-                      isSingleTargetLink(link),
-                  )
+                  .filter(isSingleTargetLink)
                   .map((link) => ({
                     sourceAccountId: accountId,
                     sourceEntityId: link.sourceEntityId,
