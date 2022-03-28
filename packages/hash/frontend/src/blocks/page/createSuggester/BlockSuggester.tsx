@@ -74,6 +74,9 @@ export const BlockSuggester: VFC<BlockSuggesterProps> = ({
             sx={({ palette }) => ({
               backgroundColor: palette.common.white,
               position: "relative",
+              display: "flex",
+              alignItems: "center",
+              p: 1,
             })}
           >
             <Box
@@ -84,32 +87,25 @@ export const BlockSuggester: VFC<BlockSuggesterProps> = ({
                 width: "100%",
                 position: "absolute",
                 top: "-40px",
+                left: "0px",
                 pointerEvents: "none",
               }}
             />
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                p: 1,
-              }}
-            >
-              <Box sx={{ px: 0.75 }}>
-                <WarnIcon sx={{ width: "20px", height: "20px" }} />
-              </Box>
-              <Box sx={{ px: 1, py: 0.5 }}>
-                <Typography
-                  variant="smallTextLabels"
-                  sx={({ palette }) => ({
-                    fontWeight: 500,
-                    color: palette.gray[70],
-                    wordBreak: "normal",
-                  })}
-                >
-                  Unable to load all blocks due to a network error. Please try
-                  again later.
-                </Typography>
-              </Box>
+            <Box sx={{ px: 0.75 }}>
+              <WarnIcon sx={{ width: "20px", height: "20px" }} />
+            </Box>
+            <Box sx={{ px: 1, py: 0.5 }}>
+              <Typography
+                variant="smallTextLabels"
+                sx={({ palette }) => ({
+                  fontWeight: 500,
+                  color: palette.gray[70],
+                  wordBreak: "normal",
+                })}
+              >
+                Unable to load all blocks due to a network error. Please try
+                again later.
+              </Typography>
             </Box>
           </Box>
         ) : null
