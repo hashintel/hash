@@ -82,7 +82,8 @@ Depending on your needs, different dependencies are required. Building this proj
 - CMake [3.X.X >= 3.21.2]
 
   - CMake installation guidance from the [CMake page](https://cmake.org/install/) or if on macOS through [brew](https://brew.sh/)
-  - a C++ compiler, pkg-config, openssl development files (see [Possible Dependencies and Debugging](#possible-dependencies-and-debugging))
+
+- a C++ compiler, pkg-config, openssl development files (see [Possible Dependencies and Debugging](#possible-dependencies-and-debugging))
 
 - Python [3.7.x]
 
