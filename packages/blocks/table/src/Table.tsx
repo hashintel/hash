@@ -9,7 +9,6 @@ import { TableOptions, useSortBy, useTable } from "react-table";
 import {
   BlockProtocolLinkedAggregation,
   BlockProtocolEntityType,
-  BlockProtocolUpdateLinksAction,
   BlockProtocolAggregateEntitiesPayload,
   BlockProtocolAggregateEntitiesResult,
   BlockProtocolEntity,

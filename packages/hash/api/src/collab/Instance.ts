@@ -663,10 +663,7 @@ const newInstance =
 
     const state = createProseMirrorState({ accountId });
 
-    const manager = new ProsemirrorSchemaManager(
-      state.schema,
-      accountId,
-    );
+    const manager = new ProsemirrorSchemaManager(state.schema, accountId);
 
     /**
      * @todo check plugins
