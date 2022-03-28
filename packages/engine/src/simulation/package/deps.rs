@@ -1,5 +1,7 @@
-use super::{context, init, output, state};
-use crate::simulation::{package::name::PackageName, Error, Result};
+use crate::simulation::{
+    package::{context, init, name::PackageName, output, state},
+    Error, Result,
+};
 
 #[derive(Clone, Default)]
 pub struct Dependencies {
@@ -96,10 +98,9 @@ pub mod tests {
 
     use super::*;
     use crate::{
-        config::WorkerPoolConfig,
+        config::{ExperimentConfig, WorkerPoolConfig},
         proto::{ExperimentRunBase, InitialState, InitialStateName, ProjectBase},
         simulation::{Error, Result},
-        ExperimentConfig,
     };
 
     fn validate(mut parents: Vec<PackageName>, src_dep: PackageName) -> Result<()> {

@@ -45,6 +45,12 @@ pub enum Error {
 
     #[error("Serde JSON error: {0}")]
     SerdeJson(#[from] serde_json::Error),
+
+    #[error("Already awaiting for completion")]
+    AlreadyAwaiting,
+
+    #[error("Not awaiting for completion")]
+    NotAwaiting,
 }
 
 impl From<&str> for Error {

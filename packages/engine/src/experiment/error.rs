@@ -6,13 +6,15 @@ use crate::proto;
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 pub type SerdeMap = serde_json::Map<String, SerdeValue>;
 
+use crate::experiment::controller::Error as ControllerError;
+
 #[derive(ThisError, Debug)]
 pub enum Error {
     #[error("{0}")]
     Unique(String),
 
     #[error("Controller error: {0}")]
-    Controller(#[from] super::controller::Error),
+    Controller(#[from] ControllerError),
 
     #[error("Number of simulation runs should be greater than 0")]
     NoSimulationRuns,

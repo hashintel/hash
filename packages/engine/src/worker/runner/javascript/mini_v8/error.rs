@@ -1,6 +1,6 @@
 use std::{error::Error as StdError, fmt, result::Result as StdResult};
 
-use super::*;
+use super::{MiniV8, Value};
 
 /// `std::result::Result` specialized for this mini_v8's `Error` type.
 pub type Result<'mv8, T> = StdResult<T, Error<'mv8>>;
@@ -97,7 +97,7 @@ impl fmt::Display for Error<'_> {
     }
 }
 
-impl From<Error<'_>> for std::string::String {
+impl From<Error<'_>> for String {
     fn from(e: Error<'_>) -> Self {
         format!("{}", e)
     }

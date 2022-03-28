@@ -1,6 +1,6 @@
 use crate::{
     datastore::table::task_shared_store::TaskSharedStore,
-    simulation::{enum_dispatch::*, Result},
+    simulation::{enum_dispatch::enum_dispatch, Result},
 };
 
 #[enum_dispatch]

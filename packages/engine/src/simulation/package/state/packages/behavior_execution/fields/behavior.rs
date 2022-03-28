@@ -7,11 +7,11 @@ use std::{
 use crate::{
     config::ExperimentConfig,
     datastore::{
-        error::{Error, Result},
         schema::{
             FieldKey, FieldScope, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant,
             RootFieldSpec, RootFieldSpecCreator,
         },
+        {Error, Result},
     },
     experiment::SharedBehavior,
     hash_types::state::AgentStateField,

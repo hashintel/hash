@@ -3,25 +3,33 @@ mod fields;
 mod indices;
 mod writer;
 
-use arrow::array::{FixedSizeListBuilder, ListBuilder};
+use arrow::array::{Array, FixedSizeListBuilder, ListBuilder};
+use async_trait::async_trait;
 use serde_json::Value;
 use tracing::Span;
 
 use self::collected::Messages;
-use super::super::*;
 use crate::{
+    config::ExperimentConfig,
     datastore::{
         batch::iterators,
         schema::{accessor::GetFieldSpec, RootFieldSpec},
     },
     simulation::{
         comms::package::PackageComms,
-        package::context::{packages::agent_messages::fields::MESSAGES_FIELD_NAME, Package},
+        package::context::{
+            packages::agent_messages::fields::MESSAGES_FIELD_NAME, Arc, ContextColumn,
+            ContextSchema, FieldKey, FieldSpecMapAccessor, GetWorkerExpStartMsg,
+            GetWorkerSimStartMsg, Globals, MaybeCpuBound, Package as ContextPackage, Package,
+            PackageCreator, RootFieldSpecCreator, SimRunConfig, StateReadProxy, StateSnapshot,
+        },
+        Result,
     },
 };
 
 const CPU_BOUND: bool = true;
 pub const MESSAGE_INDEX_COUNT: usize = 3;
+
 pub type IndexType = u32;
 pub type ArrowIndexBuilder = arrow::array::UInt32Builder;
 
@@ -109,7 +117,7 @@ impl Package for AgentMessages {
         &self,
         num_agents: usize,
         _schema: &ContextSchema,
-    ) -> Result<Vec<(FieldKey, Arc<dyn ArrowArray>)>> {
+    ) -> Result<Vec<(FieldKey, Arc<dyn Array>)>> {
         let index_builder = ArrowIndexBuilder::new(1024);
         let loc_builder = FixedSizeListBuilder::new(index_builder, 3);
         let mut messages_builder = ListBuilder::new(loc_builder);

@@ -1,11 +1,12 @@
-use super::collected::Messages;
 use crate::{
     datastore::{
         arrow::util::DataSliceUtils,
         meta::{ColumnDynamicMetadata, ColumnDynamicMetadataBuilder},
-        prelude::Result as DatastoreResult,
+        Result as DatastoreResult,
     },
-    simulation::package::context::ContextColumnWriter,
+    simulation::package::context::{
+        packages::agent_messages::collected::Messages, ContextColumnWriter,
+    },
 };
 
 const NUM_NODES: usize = 3;

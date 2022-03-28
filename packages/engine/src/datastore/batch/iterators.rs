@@ -1,11 +1,15 @@
 use arrow::{array::ArrayRef, record_batch::RecordBatch};
 
-use crate::datastore::{Error, Result};
+use crate::datastore::error::{Error, Result};
 
 pub mod agent {
     use arrow::datatypes::DataType;
 
-    use crate::datastore::{batch::iterators::record_batch, prelude::*, POSITION_DIM, UUID_V4_LEN};
+    use crate::datastore::{
+        batch::{iterators::record_batch, AgentBatch, AgentIndex},
+        error::Result,
+        POSITION_DIM, UUID_V4_LEN,
+    };
 
     pub fn agent_id_iter<'b: 'a, 'a>(
         agent_pool: &'a [&'b AgentBatch],
@@ -204,7 +208,7 @@ pub fn column_with_name<'a>(record_batch: &'a RecordBatch, name: &str) -> Result
 pub mod record_batch {
     use std::borrow::Cow;
 
-    use arrow::{array::Array, datatypes::DataType, record_batch::RecordBatch};
+    use arrow::{array::Array, datatypes::DataType, record_batch::RecordBatch, util::bit_util};
 
     use crate::{
         datastore::{
@@ -212,7 +216,6 @@ pub mod record_batch {
             batch::{
                 boolean::Column as BooleanColumn, change::ColumnChange, iterators::column_with_name,
             },
-            prelude::arrow_bit_util,
             Error, Result, POSITION_DIM, UUID_V4_LEN,
         },
         hash_types::state::AgentStateField,
@@ -244,7 +247,7 @@ pub mod record_batch {
         if let Some(nulls) = nulls {
             // This column is nullable.
             let nulls = nulls.as_slice();
-            if arrow_bit_util::get_bit(nulls, row_index) {
+            if bit_util::get_bit(nulls, row_index) {
                 // The null buffer contains a 1 for this row, so this row isn't null.
                 Ok(Some(old_message_location))
             } else {

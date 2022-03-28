@@ -1,3 +1,4 @@
+import { BlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { createProseMirrorState } from "@hashintel/hash-shared/createProseMirrorState";
 import { apiOrigin } from "@hashintel/hash-shared/environment";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
@@ -5,7 +6,6 @@ import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSche
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import type { BlocksMetaMap } from "../blocksMeta";
 import { BlockView } from "./BlockView";
 import { EditorConnection } from "./collab/EditorConnection";
 import { ComponentView } from "./ComponentView";
@@ -15,6 +15,8 @@ import { createSuggester } from "./createSuggester/createSuggester";
 import { MentionView } from "./MentionView/MentionView";
 import styles from "./style.module.css";
 import { RenderPortal } from "./usePortals";
+
+export type BlocksMetaMap = Record<string, BlockMeta>;
 
 export const createEditorView = (
   renderNode: HTMLElement,

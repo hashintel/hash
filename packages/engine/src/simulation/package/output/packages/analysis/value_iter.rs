@@ -2,11 +2,10 @@ use std::cmp::Ordering;
 
 use float_cmp::approx_eq;
 
-use super::{
-    analyzer::{MapIterator, ValueIterator, ULPS},
+use crate::simulation::package::output::packages::analysis::{
+    analyzer::{ComparisonRepr, MapIterator, ValueIterator, ULPS},
     Error, Result,
 };
-use crate::simulation::package::output::packages::analysis::analyzer::ComparisonRepr;
 
 fn array_element_exists_as_non_null(value: &serde_json::Value, index: usize) -> bool {
     if let Some(array) = value.as_array() {

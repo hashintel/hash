@@ -1,23 +1,30 @@
 //! TODO: DOC
 use std::sync::Arc;
 
-use super::{
-    super::*,
-    action::{CreateActions, ExistingGroupBufferActions},
-    batch::PendingBatch,
-    command::ProcessedCommands,
-    distribution::BatchDistribution,
-    MigrationPlan,
-};
+use arrow::record_batch::RecordBatch;
+
 use crate::{
+    config::SimRunConfig,
     datastore::{
-        batch::migration::{BufferActions, IndexRange, RangeActions},
+        batch::{
+            migration::{BufferActions, IndexRange, RangeActions},
+            AgentBatch,
+        },
         error::Result,
-        prelude::*,
-        table::{pool::proxy::PoolReadProxy, proxy::StateReadProxy},
+        schema::state::AgentSchema,
+        table::{
+            pool::proxy::PoolReadProxy,
+            proxy::StateReadProxy,
+            state::create_remove::{
+                action::{CreateActions, ExistingGroupBufferActions},
+                batch::PendingBatch,
+                command::ProcessedCommands,
+                distribution::BatchDistribution,
+                MigrationPlan,
+            },
+        },
     },
     simulation::command::CreateRemoveCommands,
-    SimRunConfig,
 };
 
 pub struct CreateRemovePlanner {

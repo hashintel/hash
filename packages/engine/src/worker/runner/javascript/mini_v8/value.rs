@@ -4,7 +4,7 @@ use std::{
     slice, vec,
 };
 
-use super::*;
+use super::{Array, Function, MiniV8, Object, Ref, Result, String};
 
 /// A JavaScript value.
 ///

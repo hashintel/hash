@@ -1,9 +1,11 @@
 use std::{collections::HashMap, sync::Arc};
 
-pub use part::OutputPartBuffer;
-use serde::Serialize;
-pub use util::cleanup_experiment;
+mod part;
+mod util;
 
+use serde::Serialize;
+
+pub use self::{part::OutputPartBuffer, util::cleanup_experiment};
 use crate::{
     output::error::{Error, Result},
     proto::{ExperimentId, SimulationShortId},
@@ -16,9 +18,6 @@ use crate::{
         },
     },
 };
-
-mod part;
-mod util;
 
 const RELATIVE_PARTS_FOLDER: &str = "./parts";
 

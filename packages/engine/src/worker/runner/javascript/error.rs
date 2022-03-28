@@ -30,7 +30,7 @@ pub enum Error {
     FlushType(DataType),
 
     #[error("Datastore: {0}")]
-    Datastore(#[from] crate::datastore::error::Error),
+    Datastore(#[from] crate::datastore::Error),
 
     // TODO: Missing sim in JS runtime? (Currently just internal JS error.)
     // TODO: JSON parse error?
@@ -81,6 +81,9 @@ pub enum Error {
 
     #[error("Couldn't receive outbound message from runner")]
     OutboundReceive,
+
+    #[error("Couldn't receive inbound message from worker")]
+    InboundReceive,
 
     #[error("Message type '{0}' must have a simulation run id")]
     SimulationIdRequired(&'static str),

@@ -1,9 +1,8 @@
 use flatbuffers::{FlatBufferBuilder, WIPOffset};
 
-use super::error::Result;
 use crate::{
-    datastore::{batch::Segment, prelude::SharedStore},
-    worker::runner::comms::PackageMsgs,
+    datastore::{batch::Segment, shared_store::SharedStore},
+    worker::runner::{comms::PackageMsgs, python::Result},
 };
 
 pub fn pkgs_to_fbs<'f>(

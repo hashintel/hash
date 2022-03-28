@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{simulation::Result, ExperimentConfig};
+use crate::{config::ExperimentConfig, simulation::Result};
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct JsonStateOutputConfig {

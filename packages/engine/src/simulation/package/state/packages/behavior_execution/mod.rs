@@ -1,16 +1,19 @@
-use reset_index_col::reset_index_col;
+use async_trait::async_trait;
 use serde_json::Value;
 
-use self::{config::exp_init_message, fields::behavior::BehaviorMap};
-use super::super::*;
+use self::{
+    config::exp_init_message, fields::behavior::BehaviorMap, reset_index_col::reset_index_col,
+};
 use crate::{
     datastore::{
+        batch::AgentBatch,
         schema::{accessor::GetFieldSpec, FieldSource},
         table::{
-            pool::proxy::PoolWriteProxy, proxy::StateWriteProxy,
+            context::Context, pool::proxy::PoolWriteProxy, proxy::StateWriteProxy,
             task_shared_store::TaskSharedStoreBuilder,
         },
     },
+    language::Language,
     simulation::{
         package::{
             name::PackageName,
@@ -20,12 +23,14 @@ use crate::{
                     fields::{BEHAVIOR_IDS_FIELD_NAME, BEHAVIOR_INDEX_FIELD_NAME},
                     tasks::ExecuteBehaviorsTask,
                 },
-                Package,
+                Arc, ColumnChange, DatastoreResult, Error, ExperimentConfig, FieldSpecMapAccessor,
+                GetWorkerExpStartMsg, GetWorkerSimStartMsg, Globals, IntoArrowChange, Name,
+                Package, PackageComms, PackageCreator, Result, RootFieldSpec, RootFieldSpecCreator,
+                SimRunConfig, Span, State, StateColumn, StateTask,
             },
         },
         task::{active::ActiveTask, Task},
     },
-    Language,
 };
 
 mod chain;
@@ -76,7 +81,7 @@ impl PackageCreator for Creator {
     fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>> {
         // TODO: Packages shouldn't have to set the source
         let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Package(
-            PackageName::State(super::super::Name::BehaviorExecution),
+            PackageName::State(Name::BehaviorExecution),
         ));
         let behavior_map =
             BehaviorMap::try_from((experiment_config.as_ref(), &field_spec_creator))?;
@@ -107,7 +112,7 @@ impl PackageCreator for Creator {
             .index_of(behavior_ids_col.value())?;
 
         let behavior_index_col = accessor
-            .get_agent_scoped_field_spec(BEHAVIOR_INDEX_FIELD_NAME)?
+            .get_local_private_scoped_field_spec(BEHAVIOR_INDEX_FIELD_NAME)?
             .to_key()?;
         let behavior_index_col_index = config
             .sim
@@ -244,9 +249,7 @@ impl Package for BehaviorExecution {
         //       (instead of reading behavior ids in Rust) or by returning the first language from
         //       fix_behavior_chains.
         state_proxy.maybe_reload()?;
-        let agent_pool = state_proxy.agent_pool();
-
-        let lang = match self.get_first_lang(&agent_pool.batches())? {
+        let lang = match self.get_first_lang(&state_proxy.agent_pool().batches())? {
             Some(lang) => lang,
             None => {
                 tracing::warn!("No behaviors were found to execute");

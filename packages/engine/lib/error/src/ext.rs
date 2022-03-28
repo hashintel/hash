@@ -14,22 +14,16 @@ where
     where
         M: Message,
     {
-        match self {
-            Ok(t) => Ok(t),
-            Err(error) => Err(Report::from(error).wrap(message)),
-        }
+        self.map_err(|error| Report::from(error).wrap(message))
     }
 
     #[track_caller]
-    fn wrap_err_lazy<M, F>(self, op: F) -> Result<T, Self::Context>
+    fn wrap_err_lazy<M, F>(self, message: F) -> Result<T, Self::Context>
     where
         M: Message,
         F: FnOnce() -> M,
     {
-        match self {
-            Ok(t) => Ok(t),
-            Err(error) => Err(Report::from(error).wrap(op())),
-        }
+        self.map_err(|error| Report::from(error).wrap(message()))
     }
 
     #[track_caller]
@@ -37,22 +31,16 @@ where
     where
         C: Context,
     {
-        match self {
-            Ok(t) => Ok(t),
-            Err(error) => Err(Report::from(error).provide_context(context)),
-        }
+        self.map_err(|error| Report::from(error).provide_context(context))
     }
 
     #[track_caller]
-    fn provide_context_lazy<C, F>(self, op: F) -> Result<T, C>
+    fn provide_context_lazy<C, F>(self, context: F) -> Result<T, C>
     where
         C: Context,
         F: FnOnce() -> C,
     {
-        match self {
-            Ok(t) => Ok(t),
-            Err(error) => Err(Report::from(error).provide_context(op())),
-        }
+        self.map_err(|error| Report::from(error).provide_context(context()))
     }
 }
 
@@ -64,22 +52,16 @@ impl<T, C> ResultExt<T> for Result<T, C> {
     where
         M: Message,
     {
-        match self {
-            Ok(t) => Ok(t),
-            Err(report) => Err(report.wrap(message)),
-        }
+        self.map_err(|report| report.wrap(message))
     }
 
     #[track_caller]
-    fn wrap_err_lazy<M, F>(self, op: F) -> Result<T, Self::Context>
+    fn wrap_err_lazy<M, F>(self, message: F) -> Result<T, Self::Context>
     where
         M: Message,
         F: FnOnce() -> M,
     {
-        match self {
-            Ok(t) => Ok(t),
-            Err(report) => Err(report.wrap(op())),
-        }
+        self.map_err(|report| report.wrap(message()))
     }
 
     #[track_caller]
@@ -87,21 +69,15 @@ impl<T, C> ResultExt<T> for Result<T, C> {
     where
         C2: Context,
     {
-        match self {
-            Ok(t) => Ok(t),
-            Err(report) => Err(report.provide_context(context)),
-        }
+        self.map_err(|report| report.provide_context(context))
     }
 
     #[track_caller]
-    fn provide_context_lazy<C2, F>(self, op: F) -> Result<T, C2>
+    fn provide_context_lazy<C2, F>(self, context: F) -> Result<T, C2>
     where
         C2: Context,
         F: FnOnce() -> C2,
     {
-        match self {
-            Ok(t) => Ok(t),
-            Err(report) => Err(report.provide_context(op())),
-        }
+        self.map_err(|report| report.provide_context(context()))
     }
 }
