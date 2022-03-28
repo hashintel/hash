@@ -156,10 +156,7 @@ fn stringify_error(error: Error) -> String {
     }
 }
 
-fn stringify_datastore_error(
-    error: &crate::datastore::Error,
-    original_error: &Error,
-) -> String {
+fn stringify_datastore_error(error: &crate::datastore::Error, original_error: &Error) -> String {
     match error {
         crate::datastore::Error::SharedMemory(shmem_error) => {
             match shmem_error {

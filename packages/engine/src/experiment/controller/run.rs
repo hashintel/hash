@@ -6,7 +6,6 @@ use crate::{
     config::ExperimentConfig,
     datastore::shared_store::SharedStore,
     env::Environment,
-    Error as CrateError,
     experiment::{
         controller::{
             config::{self, OutputPersistenceConfig},
@@ -25,6 +24,7 @@ use crate::{
     simulation::package::creator::PackageCreators,
     workerpool,
     workerpool::{comms::terminate::TerminateSend, WorkerPoolController},
+    Error as CrateError,
 };
 
 #[tracing::instrument(skip_all, fields(experiment_id = % exp_config.run.base().id))]
