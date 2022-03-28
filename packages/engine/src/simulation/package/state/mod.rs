@@ -6,21 +6,24 @@ use async_trait::async_trait;
 pub use packages::{Name, StateTask, StateTaskMessage, PACKAGE_CREATORS};
 use tracing::Span;
 
-use super::{deps::Dependencies, ext_traits::GetWorkerSimStartMsg};
-pub use crate::config::Globals;
 use crate::{
-    config::ExperimentConfig,
+    config::{ExperimentConfig, Globals, SimRunConfig},
     datastore::{
         batch::change::ColumnChange,
-        error::Result as DatastoreResult,
         schema::{accessor::FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
         table::{context::Context, state::State},
+        Result as DatastoreResult,
     },
     simulation::{
-        comms::package::PackageComms, package::ext_traits::GetWorkerExpStartMsg, Error, Result,
+        comms::package::PackageComms,
+        package::{
+            deps::Dependencies,
+            ext_traits::{GetWorkerExpStartMsg, GetWorkerSimStartMsg},
+        },
+        Error, Result,
     },
-    SimRunConfig,
 };
+
 #[async_trait]
 pub trait Package: GetWorkerSimStartMsg + Send + Sync {
     async fn run(&mut self, state: &mut State, context: &Context) -> Result<()>;

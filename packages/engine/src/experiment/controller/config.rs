@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-use super::{Error, Result};
-use crate::{output::local::config::LocalPersistenceConfig, Environment};
+use crate::{
+    env::Environment,
+    experiment::controller::error::{Error, Result},
+    output::local::config::LocalPersistenceConfig,
+};
 
 pub const OUTPUT_PERSISTENCE_KEY: &str = "output_persistence";
 

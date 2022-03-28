@@ -3,11 +3,7 @@ use core::{fmt, time::Duration};
 use nng::options::{protocol::reqrep::ResendTime, Options, ReconnectMaxTime, ReconnectMinTime};
 use tokio::sync::{mpsc, oneshot};
 
-use super::{
-    error::{Error, Result},
-    spmc,
-};
-use crate::{RECV_EXPECT_MESSAGE, SEND_EXPECT_MESSAGE};
+use crate::{spmc, Error, Result, RECV_EXPECT_MESSAGE, SEND_EXPECT_MESSAGE};
 
 const RESEND_TIME: Duration = Duration::from_secs(1);
 const RECONNECT_MIN_TIME: Duration = Duration::from_millis(50);

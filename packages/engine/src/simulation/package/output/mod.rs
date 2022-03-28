@@ -7,20 +7,20 @@ pub use packages::{Name, OutputTask, OutputTaskMessage, PACKAGE_CREATORS};
 use tracing::Span;
 
 use self::packages::Output;
-use super::{
-    deps::Dependencies,
-    ext_traits::{GetWorkerSimStartMsg, MaybeCpuBound},
-};
 use crate::{
-    config::{ExperimentConfig, Globals},
+    config::{ExperimentConfig, Globals, SimRunConfig},
     datastore::{
         schema::{accessor::FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
         table::{context::Context, state::State},
     },
     simulation::{
-        comms::package::PackageComms, package::ext_traits::GetWorkerExpStartMsg, Error, Result,
+        comms::package::PackageComms,
+        package::{
+            deps::Dependencies,
+            ext_traits::{GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound},
+        },
+        Error, Result,
     },
-    SimRunConfig,
 };
 
 pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {

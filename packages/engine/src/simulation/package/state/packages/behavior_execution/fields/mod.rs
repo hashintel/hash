@@ -3,14 +3,15 @@ pub mod behavior;
 use arrow::datatypes::DataType;
 
 use self::behavior::BehaviorMap;
-use super::BEHAVIOR_INDEX_INNER_COUNT;
 use crate::{
     config::ExperimentConfig,
     datastore::schema::{
         FieldScope, FieldType, FieldTypeVariant as FTV, PresetFieldType, RootFieldSpec,
         RootFieldSpecCreator,
     },
-    simulation::Result,
+    simulation::{
+        package::state::packages::behavior_execution::BEHAVIOR_INDEX_INNER_COUNT, Result,
+    },
 };
 
 pub(super) const BEHAVIORS_FIELD_NAME: &str = "behaviors";

@@ -14,6 +14,7 @@ export type SchemaEditorReducerAction =
   | Action<"addSubSchema", { newSubSchemaName: string }>
   | Action<"deleteProperty", { propertyName: string }>
   | Action<"deleteSubSchema", { subSchemaName: string }>
+  | Action<"init", { schema: JsonSchema }>
   | Action<"togglePropertyIsArray", { propertyName: string }>
   | Action<"togglePropertyIsRequired", { propertyName: string }>
   | Action<
@@ -218,6 +219,10 @@ export const schemaEditorReducer: Reducer<
         draftRootSchema.$defs ??= {};
         delete draftRootSchema.$defs[subSchemaNameToDelete];
       });
+    }
+
+    case "init": {
+      return action.payload.schema;
     }
 
     case "togglePropertyIsArray": {

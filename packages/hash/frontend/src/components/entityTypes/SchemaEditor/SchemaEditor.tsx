@@ -46,6 +46,9 @@ type JsonSchemaEditorProps = {
   "accountId" | "aggregateEntityTypes" | "entityTypeId" | "updateEntityTypes"
 >;
 
+const entityTypeIdMatchesSchema = (entityTypeId: string, schema: JsonSchema) =>
+  !!schema.$id?.includes(entityTypeId);
+
 export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
   accountId,
   aggregateEntityTypes,
@@ -79,6 +82,13 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
     possiblyStaleDbSchema,
   );
 
+  if (
+    entityTypeId &&
+    !entityTypeIdMatchesSchema(entityTypeId, workingSchemaDraft)
+  ) {
+    dispatch({ payload: { schema: possiblyStaleDbSchema }, type: "init" });
+  }
+
   const debouncedUpdate = useMemo(
     () =>
       debounce<BlockProtocolUpdateEntityTypesFunction>((...args) => {
@@ -103,7 +113,15 @@ export const SchemaEditor: VoidFunctionComponent<JsonSchemaEditorProps> = ({
 
     if (
       JSON.stringify(workingSchemaDraft) ===
-      JSON.stringify(possiblyStaleDbSchema)
+        JSON.stringify(possiblyStaleDbSchema) ||
+      /**
+       * this effect may be triggered when navigating between tasks, which can lead to
+       * the prev task's data being sent with the entityTypeId of the new task.
+       * really we should send updates to the API in response to user action, not in an effect.
+       * @todo send updates when dispatching user actions, and remove this effect
+       *    - make sure switching tasks can't result in updates being sent for the wrong task.
+       */
+      !entityTypeIdMatchesSchema(entityTypeId, workingSchemaDraft)
     ) {
       return;
     }

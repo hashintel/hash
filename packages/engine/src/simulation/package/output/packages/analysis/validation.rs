@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use super::{Error, Result};
-use crate::simulation::package::output::packages::analysis::analyzer::{
-    AnalysisOperationRepr, AnalysisSourceRepr,
+use crate::simulation::package::output::packages::{
+    analysis::analyzer::{AnalysisOperationRepr, AnalysisSourceRepr},
+    Error, Result,
 };
 
 impl AnalysisSourceRepr {

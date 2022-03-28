@@ -6,7 +6,8 @@ use uuid::Uuid;
 
 use crate::{
     config::{
-        EngineConfig, Globals, PackageConfig, PersistenceConfig, StoreConfig, WorkerPoolConfig,
+        EngineConfig, ExperimentConfig, Globals, PackageConfig, PersistenceConfig, SimRunConfig,
+        SimulationConfig, StoreConfig, WorkerPoolConfig,
     },
     datastore::{
         error::Error,
@@ -18,7 +19,6 @@ use crate::{
     hash_types::state::{Agent, AgentStateField},
     proto::{ExperimentRunBase, InitialState, InitialStateName, ProjectBase},
     simulation::package::creator::{get_base_agent_fields, PackageCreators},
-    ExperimentConfig, SimRunConfig, SimulationConfig,
 };
 
 fn test_field_specs() -> FieldSpecMap {
@@ -270,7 +270,7 @@ pub fn dummy_sim_run_config() -> SimRunConfig {
     let package_creators = PackageCreators::new(Vec::new(), Vec::new(), Vec::new(), Vec::new());
 
     SimRunConfig {
-        exp: exp_config.clone(),
+        exp: Arc::clone(&exp_config),
         sim: Arc::new(SimulationConfig {
             id: 0,
             globals: Arc::default(),

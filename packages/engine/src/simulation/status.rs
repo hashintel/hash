@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-use super::Result;
 use crate::{
-    hash_types::worker::RunnerError, output::OutputPersistenceResultRepr, proto::SimulationShortId,
-    simulation::command::StopCommand,
+    hash_types::worker::RunnerError,
+    output::OutputPersistenceResultRepr,
+    proto::SimulationShortId,
+    simulation::{command::StopCommand, Result},
 };
 
 // Sent from sim runs to experiment main loop.

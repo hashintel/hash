@@ -66,7 +66,7 @@ pub enum Error {
     Utf8(#[from] std::str::Utf8Error),
 
     #[error("Simulation error: {0}")]
-    Simulation(#[from] hash_types::error::Error),
+    Simulation(#[from] hash_types::Error),
 
     #[error("Shared memory error: {0}")]
     SharedMemory(#[from] shared_memory::ShmemError),
