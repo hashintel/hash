@@ -10,7 +10,8 @@ use super::{
 };
 use crate::{
     datastore::{
-        prelude::*,
+        batch::{AgentBatch, MessageBatch},
+        error::{Error, Result},
         schema::state::AgentSchema,
         table::{
             pool::BatchPool,
@@ -18,6 +19,7 @@ use crate::{
             state::view::StatePools,
         },
     },
+    hash_types::Agent as AgentState,
     proto::ExperimentRunTrait,
     simulation::command::CreateRemoveCommands,
     SimRunConfig,

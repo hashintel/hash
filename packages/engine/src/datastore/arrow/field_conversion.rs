@@ -5,10 +5,10 @@
 )]
 use std::collections::HashMap;
 
-use super::prelude::*;
+use arrow::datatypes::{DataType, Field, Schema};
+
 use crate::datastore::{
-    error::Result,
-    prelude::*,
+    error::{Error, Result, SupportedType},
     schema::{
         FieldKey, FieldSource, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant,
         PresetFieldType, RootFieldSpec,
@@ -25,13 +25,11 @@ impl PresetFieldType {
     }
 
     #[must_use]
-    pub fn get_arrow_data_type(&self) -> ArrowDataType {
+    pub fn get_arrow_data_type(&self) -> DataType {
         match self {
-            PresetFieldType::Uint32 => ArrowDataType::UInt32,
-            PresetFieldType::Uint16 => ArrowDataType::UInt16,
-            PresetFieldType::Id => {
-                ArrowDataType::FixedSizeBinary(crate::datastore::UUID_V4_LEN as i32)
-            }
+            PresetFieldType::Uint32 => DataType::UInt32,
+            PresetFieldType::Uint16 => DataType::UInt16,
+            PresetFieldType::Id => DataType::FixedSizeBinary(crate::datastore::UUID_V4_LEN as i32),
         }
     }
 }
@@ -51,22 +49,20 @@ impl FieldType {
         }
     }
 
-    pub fn get_arrow_data_type(&self) -> Result<ArrowDataType> {
+    pub fn get_arrow_data_type(&self) -> Result<DataType> {
         match &self.variant {
-            FieldTypeVariant::Number => Ok(ArrowDataType::Float64),
-            FieldTypeVariant::Boolean => Ok(ArrowDataType::Boolean),
-            FieldTypeVariant::String => Ok(ArrowDataType::Utf8),
-            FieldTypeVariant::AnyType => Ok(ArrowDataType::Utf8),
-            FieldTypeVariant::FixedLengthArray { kind: inner, len } => {
-                Ok(ArrowDataType::FixedSizeList(
-                    Box::new(ArrowField::new("item", inner.get_arrow_data_type()?, true)),
-                    *len as i32,
-                ))
-            }
-            FieldTypeVariant::VariableLengthArray(inner) => Ok(ArrowDataType::List(Box::new(
-                ArrowField::new("item", inner.get_arrow_data_type()?, true),
+            FieldTypeVariant::Number => Ok(DataType::Float64),
+            FieldTypeVariant::Boolean => Ok(DataType::Boolean),
+            FieldTypeVariant::String => Ok(DataType::Utf8),
+            FieldTypeVariant::AnyType => Ok(DataType::Utf8),
+            FieldTypeVariant::FixedLengthArray { kind: inner, len } => Ok(DataType::FixedSizeList(
+                Box::new(Field::new("item", inner.get_arrow_data_type()?, true)),
+                *len as i32,
+            )),
+            FieldTypeVariant::VariableLengthArray(inner) => Ok(DataType::List(Box::new(
+                Field::new("item", inner.get_arrow_data_type()?, true),
             ))),
-            FieldTypeVariant::Struct(inner) => Ok(ArrowDataType::Struct(
+            FieldTypeVariant::Struct(inner) => Ok(DataType::Struct(
                 inner
                     .iter()
                     // TODO: Enforce nullability of fields at initialisation.
@@ -83,7 +79,7 @@ impl FieldType {
 }
 
 impl RootFieldSpec {
-    pub(in crate::datastore) fn get_arrow_field(&self) -> Result<ArrowField> {
+    pub(in crate::datastore) fn get_arrow_field(&self) -> Result<Field> {
         self.inner
             .get_arrow_field_with_source(self.source == FieldSource::Engine, Some(self.to_key()?))
     }
@@ -98,7 +94,7 @@ impl FieldSpec {
         &self,
         can_guarantee_non_null: bool,
         field_key: Option<FieldKey>,
-    ) -> Result<ArrowField> {
+    ) -> Result<Field> {
         // We cannot guarantee non-nullability for certain root-level arrow-fields due to how we
         // initialise data currently. As this is an impl on FieldSpec we need the calling
         // context to provide the guarantee that the nullablity is enforced.
@@ -109,13 +105,13 @@ impl FieldSpec {
         };
 
         if let Some(key) = field_key {
-            Ok(ArrowField::new(
+            Ok(Field::new(
                 key.value(),
                 self.field_type.get_arrow_data_type()?,
                 base_nullability,
             ))
         } else {
-            Ok(ArrowField::new(
+            Ok(Field::new(
                 &self.name,
                 self.field_type.get_arrow_data_type()?,
                 base_nullability,
@@ -125,7 +121,7 @@ impl FieldSpec {
 }
 
 impl FieldSpecMap {
-    pub fn get_arrow_schema(&self) -> Result<ArrowSchema> {
+    pub fn get_arrow_schema(&self) -> Result<Schema> {
         let mut partitioned_fields = Vec::with_capacity(self.len());
         let mut fixed_size_no = 0;
 
@@ -162,7 +158,7 @@ impl FieldSpecMap {
         // Field's custom metadata instead of the schema
         metadata.insert("any_type_fields".into(), any_types.join(","));
         metadata.insert("nullable".into(), nullabilities.join(","));
-        Ok(ArrowSchema::new_with_metadata(
+        Ok(Schema::new_with_metadata(
             partitioned_fields
                 .iter()
                 .map(|k| k.0.get_arrow_field())
@@ -176,14 +172,14 @@ pub trait IsFixedSize {
     fn is_fixed_size(&self) -> Result<bool>;
 }
 
-impl IsFixedSize for ArrowDataType {
+impl IsFixedSize for DataType {
     fn is_fixed_size(&self) -> Result<bool> {
         match self {
-            ArrowDataType::Float64 => Ok(true),
-            ArrowDataType::FixedSizeBinary(_) => Ok(true),
-            ArrowDataType::Utf8 => Ok(false),
-            ArrowDataType::FixedSizeList(val, _) => val.data_type().is_fixed_size(),
-            ArrowDataType::List(_) => Ok(false),
+            DataType::Float64 => Ok(true),
+            DataType::FixedSizeBinary(_) => Ok(true),
+            DataType::Utf8 => Ok(false),
+            DataType::FixedSizeList(val, _) => val.data_type().is_fixed_size(),
+            DataType::List(_) => Ok(false),
             _ => Err(Error::NotImplemented(SupportedType::ArrowDataType(
                 self.clone(),
             ))),
@@ -239,29 +235,25 @@ pub mod tests {
         let mut meta = HashMap::new();
         meta.insert("any_type_fields".into(), "".into());
         meta.insert("nullable".into(), "1,1,0,1".into());
-        let target = ArrowSchema::new_with_metadata(
+        let target = Schema::new_with_metadata(
             vec![
-                ArrowField::new("_PRIVATE_0_test1", ArrowDataType::Boolean, true),
-                ArrowField::new(
+                Field::new("_PRIVATE_0_test1", DataType::Boolean, true),
+                Field::new(
                     "_PRIVATE_0_test3",
-                    ArrowDataType::FixedSizeList(
-                        Box::new(ArrowField::new("item", ArrowDataType::Float64, true)),
+                    DataType::FixedSizeList(
+                        Box::new(Field::new("item", DataType::Float64, true)),
                         3,
                     ),
                     true,
                 ),
-                ArrowField::new(
+                Field::new(
                     "agent_id",
-                    ArrowDataType::FixedSizeBinary(crate::datastore::UUID_V4_LEN as i32),
+                    DataType::FixedSizeBinary(crate::datastore::UUID_V4_LEN as i32),
                     false,
                 ),
-                ArrowField::new(
+                Field::new(
                     "_PRIVATE_0_test2",
-                    ArrowDataType::List(Box::new(ArrowField::new(
-                        "item",
-                        ArrowDataType::Float64,
-                        true,
-                    ))),
+                    DataType::List(Box::new(Field::new("item", DataType::Float64, true))),
                     true,
                 ),
             ],

@@ -2,10 +2,13 @@ mod message;
 
 use std::sync::Arc;
 
+use arrow::datatypes::Schema as ArrowSchema;
 pub use message::MessageSchema;
 
 use super::FieldSpecMap;
-use crate::datastore::prelude::*;
+use crate::datastore::{
+    arrow::meta_conversion::HashStaticMeta, error::Result, meta::Static as StaticMeta,
+};
 
 /// `AgentSchema` describes the layout of every
 /// agent-containing `SharedBatch` in a datastore. It contains

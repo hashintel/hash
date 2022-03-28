@@ -9,7 +9,14 @@ use super::{
     visitor::{Visit, Visitor, VisitorMut},
     BufferChange,
 };
-use crate::{datastore::prelude::*, proto::ExperimentId};
+use crate::{
+    datastore::{
+        arrow::padding,
+        batch::Metaversion,
+        error::{Error, Result},
+    },
+    proto::ExperimentId,
+};
 
 pub type Buffers<'a> = (&'a [u8], &'a [u8], &'a [u8], &'a [u8]);
 

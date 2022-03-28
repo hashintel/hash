@@ -32,8 +32,8 @@ use crate::{
     config::Globals,
     datastore::{
         arrow::util::arrow_continuation,
-        batch::{change::ColumnChange, ArrowBatch, Metaversion},
-        prelude::{AgentBatch, MessageBatch, SharedStore},
+        batch::{change::ColumnChange, AgentBatch, ArrowBatch, MessageBatch, Metaversion},
+        shared_store::SharedStore,
         storage::memory::Memory,
         table::{
             proxy::StateWriteProxy,

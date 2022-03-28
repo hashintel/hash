@@ -1,14 +1,16 @@
 use std::sync::Arc;
 
+use arrow::record_batch::RecordBatch;
+
 use crate::{
     config::StoreConfig,
     datastore::{
-        batch::context::ContextBatch,
-        prelude::*,
+        batch::{context::ContextBatch, AgentBatch},
+        error::{Error, Result},
         schema::state::AgentSchema,
         table::{
             pool::{agent::AgentPool, message::MessagePool, BatchPool},
-            state::view::StatePools,
+            state::{view::StatePools, State},
         },
     },
     proto::ExperimentId,

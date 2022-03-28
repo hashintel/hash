@@ -2,8 +2,8 @@ use super::collected::Messages;
 use crate::{
     datastore::{
         arrow::util::DataSliceUtils,
+        error::Result as DatastoreResult,
         meta::{ColumnDynamicMetadata, ColumnDynamicMetadataBuilder},
-        prelude::Result as DatastoreResult,
     },
     simulation::package::context::ContextColumnWriter,
 };

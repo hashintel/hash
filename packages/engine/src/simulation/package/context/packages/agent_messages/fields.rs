@@ -1,6 +1,8 @@
-use super::*;
+use super::{Result, RootFieldSpecCreator, MESSAGE_INDEX_COUNT};
 use crate::datastore::schema::{
-    FieldScope, FieldType, FieldTypeVariant::*, PresetFieldType, RootFieldSpec,
+    FieldScope, FieldType,
+    FieldTypeVariant::{FixedLengthArray, Preset, VariableLengthArray},
+    PresetFieldType, RootFieldSpec,
 };
 
 pub(super) const MESSAGES_FIELD_NAME: &str = "messages";

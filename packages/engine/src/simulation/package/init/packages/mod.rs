@@ -11,7 +11,10 @@ use serde::{Deserialize, Serialize};
 use super::PackageCreator;
 use crate::{
     simulation::{
-        enum_dispatch::*,
+        enum_dispatch::{
+            enum_dispatch, JsPyInitTaskMessage, RegisterWithoutTrait, StoreAccessVerify,
+            TaskSharedStore,
+        },
         package::{id::PackageIdGenerator, PackageMetadata, PackageType},
         Error, Result,
     },
@@ -75,7 +78,7 @@ impl PackageCreators {
         experiment_config: &Arc<ExperimentConfig>,
     ) -> Result<()> {
         tracing::debug!("Initializing Init Package Creators");
-        use Name::*;
+        use Name::{JsPy, Json};
         let mut m = HashMap::new();
         m.insert(Json, json::Creator::new(experiment_config)?);
         m.insert(JsPy, js_py::Creator::new(experiment_config)?);
@@ -110,7 +113,7 @@ impl PackageCreators {
 
 lazy_static! {
     pub static ref METADATA: HashMap<Name, PackageMetadata> = {
-        use Name::*;
+        use Name::{JsPy, Json};
         let mut id_creator = PackageIdGenerator::new(PackageType::Init);
         let mut m = HashMap::new();
         m.insert(Json, PackageMetadata {
