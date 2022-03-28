@@ -356,10 +356,7 @@ impl<'de> Deserialize<'de> for Agent {
     }
 }
 
-fn to_vec3_default(
-    val: serde_json::Value,
-    default: f64,
-) -> std::result::Result<Option<Vec3>, String> {
+fn to_vec3_default(val: serde_json::Value, default: f64) -> Result<Option<Vec3>, String> {
     match val {
         serde_json::Value::Null => Ok(None),
         serde_json::Value::Array(arr) => {

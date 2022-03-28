@@ -2,8 +2,8 @@ use super::response::ApiResponses;
 use crate::{
     datastore::{
         arrow::util::DataSliceUtils,
+        error::Result as DatastoreResult,
         meta::{Buffer, ColumnDynamicMetadata, ColumnDynamicMetadataBuilder},
-        prelude::Result as DatastoreResult,
     },
     simulation::package::context::ContextColumnWriter,
 };

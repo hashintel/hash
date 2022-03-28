@@ -1,6 +1,11 @@
 use std::sync::Arc;
 
-use crate::datastore::{arrow::message::MESSAGE_BATCH_SCHEMA, prelude::*};
+use arrow::datatypes::Schema as ArrowSchema;
+
+use crate::datastore::{
+    arrow::{message::MESSAGE_BATCH_SCHEMA, meta_conversion::HashStaticMeta},
+    meta::Static as StaticMeta,
+};
 
 pub struct MessageSchema {
     pub arrow: Arc<ArrowSchema>,

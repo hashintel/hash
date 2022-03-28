@@ -3,7 +3,7 @@ use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use super::Result;
 
 pub mod simulation {
-    use super::*;
+    use super::{unbounded_channel, Result, UnboundedReceiver, UnboundedSender};
     use crate::simulation::controller::SimControl;
 
     pub struct SimCtlSend {
@@ -33,7 +33,7 @@ pub mod simulation {
 }
 
 pub mod sim_status {
-    use super::*;
+    use super::{unbounded_channel, Result, UnboundedReceiver, UnboundedSender};
     use crate::simulation::status::SimStatus;
 
     #[derive(Clone)]
@@ -64,7 +64,7 @@ pub mod sim_status {
 }
 
 pub mod exp_pkg_ctl {
-    use super::*;
+    use super::{unbounded_channel, Result, UnboundedReceiver, UnboundedSender};
     use crate::experiment::ExperimentControl;
 
     pub struct ExpPkgCtlSend {
@@ -96,7 +96,7 @@ pub mod exp_pkg_ctl {
 /// Handles communication between the Experiment Controller and the Experiment Packages for updates
 /// at each simulation step
 pub mod exp_pkg_update {
-    use super::*;
+    use super::{unbounded_channel, Result, UnboundedReceiver, UnboundedSender};
     use crate::experiment::package::StepUpdate;
 
     #[derive(Clone)]

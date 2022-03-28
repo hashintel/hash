@@ -1,5 +1,9 @@
 use crate::{
-    datastore::{batch::Segment, prelude::*},
+    datastore::{
+        batch::{metaversion::Metaversion, Segment},
+        error::Result,
+        storage::memory::Memory,
+    },
     proto::{ExperimentId, SharedDataset},
 };
 
@@ -28,7 +32,8 @@ impl Dataset {
 
         let mut memory =
             Memory::from_sizes(experiment_id, 0, header.len(), 0, dataset_size, false)?;
-        memory.set_header(&header)?;
+        let change = memory.set_header(&header)?;
+        debug_assert!(!change.resized() && !change.shifted());
 
         let buffer = memory.get_mut_data_buffer()?;
         buffer.copy_from_slice(

@@ -166,11 +166,13 @@ pub(crate) mod tests {
     use crate::{tags, Provider, Requisition, TypeTag};
 
     struct CustomTagA;
+
     impl<'p> TypeTag<'p> for CustomTagA {
         type Type = usize;
     }
 
     struct CustomTagB;
+
     impl<'p> TypeTag<'p> for CustomTagB {
         type Type = usize;
     }

@@ -1,6 +1,9 @@
 import { VoidFunctionComponent } from "react";
 import { tw } from "twind";
-import { BlockSuggesterProps } from "../../blocks/page/createSuggester/BlockSuggester";
+import {
+  BlockSuggesterProps,
+  getVariantIcon,
+} from "../../blocks/page/createSuggester/BlockSuggester";
 import { BlockContextMenuItem } from "./BlockContextMenuItem";
 import {
   FilteredMenuItems,
@@ -57,11 +60,13 @@ export const SearchView: VoidFunctionComponent<SearchViewProps> = ({
           <div className={tw`text-sm px-4 mb-1`}>Turn Into</div>
           <ul className={tw`text-sm mb-4`}>
             {filteredMenuItems.blocks.map((option, index) => {
-              const { displayName, icon } = option.variant;
+              const { name } = option.variant;
+
+              const icon = getVariantIcon(option);
 
               return (
                 <BlockContextMenuItem
-                  key={`${option.meta.componentMetadata.componentId}-${option.variant.displayName}`}
+                  key={`${option.meta.name}-${option.variant.name}`}
                   selected={
                     index + filteredMenuItems.actions.length === selectedIndex
                   }
@@ -71,13 +76,9 @@ export const SearchView: VoidFunctionComponent<SearchViewProps> = ({
                   onSelect={() => updateMenuState({ selectedIndex: index })}
                   icon={
                     // @todo add a fallback icon
-                    <img
-                      src={icon ?? ""}
-                      alt={displayName ?? undefined}
-                      className={iconStyles}
-                    />
+                    <img src={icon ?? ""} alt={name} className={iconStyles} />
                   }
-                  title={displayName}
+                  title={name}
                 />
               );
             })}

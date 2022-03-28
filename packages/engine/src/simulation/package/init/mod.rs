@@ -2,17 +2,18 @@
 
 use std::sync::Arc;
 
+use async_trait::async_trait;
 pub use packages::{InitTask, InitTaskMessage, Name, PACKAGE_CREATORS};
 
 use super::{
     deps::Dependencies,
     ext_traits::{GetWorkerSimStartMsg, MaybeCpuBound},
-    prelude::*,
 };
-pub use crate::{config::Globals, hash_types::Agent};
 use crate::{
+    config::{ExperimentConfig, Globals},
     datastore::schema::{accessor::FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
-    simulation::{comms::package::PackageComms, package::ext_traits::GetWorkerExpStartMsg},
+    hash_types::Agent,
+    simulation::{comms::package::PackageComms, package::ext_traits::GetWorkerExpStartMsg, Result},
     SimRunConfig,
 };
 
