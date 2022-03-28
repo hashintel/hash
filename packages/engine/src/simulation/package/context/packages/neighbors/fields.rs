@@ -1,6 +1,8 @@
-use super::*;
+use super::{Result, RootFieldSpecCreator, NEIGHBOR_INDEX_COUNT};
 use crate::datastore::schema::{
-    FieldScope, FieldType, FieldTypeVariant::*, PresetFieldType, RootFieldSpec,
+    FieldScope, FieldType,
+    FieldTypeVariant::{FixedLengthArray, Number, Preset, VariableLengthArray},
+    PresetFieldType, RootFieldSpec,
 };
 
 pub(super) const NEIGHBORS_FIELD_NAME: &str = "neighbors";

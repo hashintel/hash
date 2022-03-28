@@ -9,7 +9,14 @@ use std::{
     time::Duration,
 };
 
-use super::*;
+use super::{
+    desc_to_result, desc_to_result_val, ffi_init, mv8_array_new, mv8_arraybuffer_new,
+    mv8_coerce_boolean, mv8_coerce_number, mv8_coerce_string, mv8_data_node_from_js,
+    mv8_interface_drop, mv8_interface_eval, mv8_interface_get_data, mv8_interface_global,
+    mv8_interface_new, mv8_interface_set_data, mv8_object_new, mv8_string_new, value_to_desc,
+    Array, Error, FromValue, Function, Interface, Invocation, Object, Ref, Result, String, ToValue,
+    Value,
+};
 
 /// The entry point into the JavaScript execution environment.
 pub struct MiniV8 {

@@ -1,5 +1,7 @@
-use super::prelude::*;
-use crate::datastore::table::{context::Context, state::State};
+use crate::datastore::{
+    error::{Error, Result},
+    table::{context::Context, state::State},
+};
 
 /// The underlying state of a simulation run.
 pub struct Store {
