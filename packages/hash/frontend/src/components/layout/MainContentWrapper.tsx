@@ -6,15 +6,22 @@ import {
   Switch,
   Radio,
   Checkbox,
+  Stack,
+  InputAdornment,
 } from "@mui/material";
-import { FC } from "react";
+import { FC, useEffect, useState } from "react";
 import { SIDEBAR_WIDTH } from "../../theme/components/navigation/MuiDrawerThemeOptions";
 
-import { SidebarToggleIcon } from "../icons";
+import { FontAwesomeIcon, SidebarToggleIcon } from "../icons";
 import { HEADER_HEIGHT } from "./PageHeader/PageHeader";
 import { PageSidebar } from "./PageSidebar/PageSidebar";
 import { useSidebarContext } from "./SidebarContext";
 import { IconButton } from "../IconButton";
+import { TextField } from "../TextField";
+import {
+  faEnvelope,
+  faQuestionCircle,
+} from "@fortawesome/free-solid-svg-icons";
 
 const Main = styled("main", {
   shouldForwardProp: (prop) => prop !== "sidebarOpen",
@@ -41,6 +48,16 @@ const Main = styled("main", {
 
 export const MainContentWrapper: FC = ({ children }) => {
   const { openSidebar, sidebarOpen } = useSidebarContext();
+  const [open, setOpen] = useState(" ");
+
+  useEffect(() => {
+    setTimeout(() => {
+      setOpen("Some random stuff");
+      setTimeout(() => {
+        setOpen(" ");
+      }, 2000);
+    }, 2000);
+  }, []);
 
   return (
     <Box
@@ -86,6 +103,74 @@ export const MainContentWrapper: FC = ({ children }) => {
         <Checkbox checked />
         <br />
         <br />
+        <TextField placeholder="Search for anything" helperText={open} />
+        <br />
+        <Stack direction="row" alignItems="center" spacing={2}>
+          <TextField
+            defaultValue="small"
+            placeholder="Search for anything"
+            size="small"
+          />
+          <TextField
+            defaultValue="medium"
+            placeholder="Search for anything"
+            size="medium"
+          />
+          <TextField
+            defaultValue="large"
+            placeholder="Search for anything"
+            size="large"
+          />
+        </Stack>
+        <br />
+        <Stack direction="row" alignItems="center" spacing={2}>
+          <TextField placeholder="Search for anything" error />
+          <TextField
+            defaultValue="Error Value"
+            placeholder="Search for anything"
+            error
+          />
+          <TextField
+            defaultValue="large"
+            placeholder="Search for anything"
+            size="large"
+          />
+        </Stack>
+        <br />
+        <Stack direction="row" alignItems="center" spacing={2}>
+          <TextField
+            placeholder="Search for anything"
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <FontAwesomeIcon icon={faEnvelope} />
+                </InputAdornment>
+              ),
+            }}
+          />
+
+          <TextField
+            placeholder="Search for anything"
+            error
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <FontAwesomeIcon icon={faQuestionCircle} />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <TextField
+            placeholder="Search for anything"
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Box>https://</Box>
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Stack>
       </Main>
     </Box>
   );

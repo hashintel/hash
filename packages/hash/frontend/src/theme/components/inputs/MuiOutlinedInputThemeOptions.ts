@@ -1,4 +1,9 @@
-import { Components, outlinedInputClasses, Theme } from "@mui/material";
+import {
+  Components,
+  Theme,
+  outlinedInputClasses,
+  inputAdornmentClasses,
+} from "@mui/material";
 
 export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"] =
   {
@@ -6,39 +11,74 @@ export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"]
       notched: false,
     },
     styleOverrides: {
-      root: ({ theme }) => ({
-        color: "inherit",
-        lineHeight: "18px",
+      root: ({ theme, ownerState = {} }) => ({
         borderRadius: "6px",
+        paddingLeft: theme.spacing(2),
+        paddingRight: theme.spacing(2),
+
+        ...(ownerState.size === "large" && {
+          paddingLeft: theme.spacing(2.5),
+          paddingRight: theme.spacing(2),
+        }),
+
+        [`& .${outlinedInputClasses.notchedOutline}`]: {
+          borderColor: theme.palette.gray[30],
+        },
+
         "&:hover": {
-          "& .MuiOutlinedInput-notchedOutline": {
-            borderColor: theme.palette.gray[30],
+          [`& .${outlinedInputClasses.notchedOutline}`]: {
+            borderColor: theme.palette.gray[40],
           },
         },
-        paddingRight: "unset",
-        paddingLeft: theme.spacing(1.5),
+
         "&.Mui-focused": {
           [`& .${outlinedInputClasses.notchedOutline}`]: {
-            borderWidth: "2px",
-            borderColor: theme.palette.blue[70],
+            border: `1px solid ${theme.palette.blue[60]}`,
+            boxShadow: `0px 1px 2px rgba(0, 0, 0, 0.05), 0px 0px 0px 1px ${theme.palette.purple[50]}`,
           },
         },
-        "&.Mui-error": {
-          "& .MuiOutlinedInput-notchedOutline": {
-            borderColor: theme.palette.red[60],
-          },
+
+        [`.${inputAdornmentClasses.root}`]: {
+          height: "unset",
+          maxHeight: "unset",
+          "& svg": { color: theme.palette.gray[40], fontSize: 16 },
         },
       }),
-      input: ({ theme }) => ({
-        padding: theme.spacing(1, 1),
-      }),
-      notchedOutline: ({ theme }) => ({
-        borderColor: theme.palette.gray[30],
-      }),
+      input: ({ theme, ownerState = {} }) => {
+        const { error, size } = ownerState;
+        return {
+          color: theme.palette.gray[80],
+          height: "unset",
+
+          "&::placeholder": {
+            color: theme.palette.gray[50],
+            opacity: 1,
+          },
+
+          ...(error && {
+            color: theme.palette.red[80],
+          }),
+
+          ...(size === "small" && {
+            ...theme.typography.smallTextLabels,
+            padding: theme.spacing(1.5, 0),
+          }),
+          ...(size === "medium" && {
+            ...theme.typography.regularTextLabels,
+            padding: theme.spacing(1, 0),
+          }),
+          ...(size === "large" && {
+            ...theme.typography.regularTextLabels,
+            padding: theme.spacing(1.5, 0),
+          }),
+        };
+      },
+
       adornedEnd: ({ theme }) => ({
         "&.Mui-error": {
           svg: {
             color: theme.palette.red[60],
+            fontSize: 16,
           },
         },
       }),
