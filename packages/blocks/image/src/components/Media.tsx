@@ -116,6 +116,8 @@ function getLinkedEntities<T>(params: {
   return matchingLinkedEntities as (BlockProtocolEntity & T)[];
 }
 
+const isSingleTargetLink = (link: BlockProtocolLink) => "linkId" in link;
+
 /**
  * @todo Rewrite the state here to use a reducer, instead of batched updates
  */
@@ -272,9 +274,8 @@ export const Media: BlockComponent<
                   .filter(
                     (
                       link,
-                    ): link is BlockProtocolLink & SingleTargetLinkFields => {
-                      return "linkId" in link;
-                    },
+                    ): link is BlockProtocolLink & SingleTargetLinkFields =>
+                      isSingleTargetLink(link),
                   )
                   .map((link) => ({
                     sourceAccountId: accountId,

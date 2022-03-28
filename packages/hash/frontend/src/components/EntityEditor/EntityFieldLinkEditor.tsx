@@ -21,6 +21,7 @@ import {
 } from "./types";
 import { entityName } from "../../lib/entities";
 import { Link } from "../Link";
+import { isSingleTargetLink } from "../util/typeUtils";
 
 // @todo make this not need to know about accountId
 type MinimalEntity = { accountId: string; entityId: string; name: string };
@@ -182,7 +183,7 @@ export const EntityFieldLinkEditor: VoidFunctionComponent<
                 link: BlockProtocolLink & SingleTargetLinkFields;
                 linkedEntity: BlockProtocolEntity;
               } => {
-                return "linkId" in linkOnField.link;
+                return isSingleTargetLink(linkOnField.link);
               },
             )
             .map(({ link, linkedEntity }) => (
