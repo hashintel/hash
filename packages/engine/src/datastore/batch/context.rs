@@ -168,7 +168,8 @@ impl ContextBatch {
             })?;
 
         let meta_buffer = get_dynamic_meta_flatbuffers(&dynamic)?;
-        self.segment.memory_mut().set_metadata(&meta_buffer)?;
+        let change = self.segment.memory_mut().set_metadata(&meta_buffer)?;
+        persisted.increment_with(&change);
 
         persisted.increment_batch();
         self.segment.set_persisted_metaversion(persisted);

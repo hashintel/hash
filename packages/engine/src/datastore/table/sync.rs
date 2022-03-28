@@ -40,17 +40,18 @@ impl WaitableStateSync {
     /// Create child messages with the same payload as `self`, which must complete
     /// for `self` to be complete.
     pub fn create_children(&self, n_children: usize) -> (Vec<Self>, Vec<SyncCompletionReceiver>) {
-        let mut child_msgs = Vec::new();
-        let mut child_receivers = Vec::new();
-        for _ in 0..n_children {
-            let (sender, receiver) = tokio::sync::oneshot::channel();
-            child_receivers.push(receiver);
-            child_msgs.push(Self {
-                completion_sender: sender,
-                state_proxy: self.state_proxy.clone(),
-            });
-        }
-        (child_msgs, child_receivers)
+        (0..n_children)
+            .map(|_| {
+                let (sender, receiver) = tokio::sync::oneshot::channel();
+                (
+                    Self {
+                        completion_sender: sender,
+                        state_proxy: self.state_proxy.clone(),
+                    },
+                    receiver,
+                )
+            })
+            .unzip()
     }
 
     /// Wait for all child messages to be handled and then send that

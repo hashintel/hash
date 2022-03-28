@@ -25,6 +25,7 @@ export const MuiListItemButtonThemeOptions: Components<Theme>["MuiListItemButton
 
         // The :hover CSS styling applied to the button
         const hoverStyles: CSSObject = {
+          backgroundColor: theme.palette.gray[20],
           ".MuiTypography-smallTextLabels": {
             color: theme.palette.gray[90],
           },

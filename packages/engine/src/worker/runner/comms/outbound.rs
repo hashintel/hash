@@ -133,6 +133,7 @@ pub enum OutboundFromRunnerMsgPayload {
     PackageError(PackageError),
     UserErrors(Vec<UserError>),
     UserWarnings(Vec<UserWarning>),
+    SyncCompletion,
 }
 
 impl OutboundFromRunnerMsgPayload {
@@ -254,6 +255,15 @@ impl OutboundFromRunnerMsgPayload {
                     .map(|user_warning| user_warning.into())
                     .collect();
                 Self::UserWarnings(user_warnings)
+            }
+            flatbuffers_gen::runner_outbound_msg_generated::RunnerOutboundMsgPayload::SyncCompletion => {
+                let _payload = parsed_msg.payload_as_sync_completion().ok_or_else(|| {
+                    Error::from(
+                        "Message from runner should have had a SyncCompletion payload but it \
+                        was missing",
+                    )
+                })?;
+                Self::SyncCompletion
             }
             _ => return Err(Error::from("Invalid outbound flatbuffers message payload")),
         })

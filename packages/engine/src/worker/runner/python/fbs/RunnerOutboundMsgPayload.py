@@ -13,4 +13,5 @@ class RunnerOutboundMsgPayload(object):
     PackageError = 7
     UserErrors = 8
     UserWarnings = 9
+    SyncCompletion = 10
 
