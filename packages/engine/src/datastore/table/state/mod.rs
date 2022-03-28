@@ -3,6 +3,8 @@ pub mod view;
 
 use std::sync::Arc;
 
+use hash_types::Agent as AgentState;
+
 use self::create_remove::CreateRemovePlanner;
 use crate::{
     config::SimRunConfig,
@@ -16,7 +18,6 @@ use crate::{
             state::view::StatePools,
         },
     },
-    hash_types::Agent as AgentState,
     proto::ExperimentRunTrait,
     simulation::command::CreateRemoveCommands,
 };

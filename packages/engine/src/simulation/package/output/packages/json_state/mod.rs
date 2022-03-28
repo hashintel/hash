@@ -1,6 +1,7 @@
 mod config;
 
 use async_trait::async_trait;
+use hash_types::{Agent, Globals};
 use serde_json::Value;
 
 pub use self::config::JsonStateOutputConfig;
@@ -9,14 +10,13 @@ use crate::{
         arrow::batch_conversion::IntoAgents,
         schema::{HIDDEN_PREFIX, PRIVATE_PREFIX},
     },
-    hash_types::Agent,
     simulation::package::{
         name::PackageName,
         output,
         output::{
             Arc, Context, Error, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg,
-            GetWorkerSimStartMsg, Globals, MaybeCpuBound, Output, Package, PackageComms,
-            PackageCreator, Result, SimRunConfig, Span, State,
+            GetWorkerSimStartMsg, MaybeCpuBound, Output, Package, PackageComms, PackageCreator,
+            Result, SimRunConfig, Span, State,
         },
     },
 };

@@ -189,11 +189,10 @@ impl IsFixedSize for DataType {
 
 #[cfg(test)]
 pub mod tests {
+    use hash_types::state::AgentStateField;
+
     use super::*;
-    use crate::{
-        datastore::schema::{FieldScope, RootFieldSpecCreator},
-        hash_types::state::AgentStateField,
-    };
+    use crate::datastore::schema::{FieldScope, RootFieldSpecCreator};
 
     #[test]
     fn get_schema() -> Result<()> {

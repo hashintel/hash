@@ -5,12 +5,12 @@ pub mod packages;
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use hash_types::{Agent, Globals};
 pub use packages::{InitTask, InitTaskMessage, Name, PACKAGE_CREATORS};
 
 use crate::{
-    config::{ExperimentConfig, Globals, SimRunConfig},
+    config::{ExperimentConfig, SimRunConfig},
     datastore::schema::{accessor::FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
-    hash_types::Agent,
     simulation::{
         comms::package::PackageComms,
         package::{

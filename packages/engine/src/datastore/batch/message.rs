@@ -11,6 +11,7 @@ use arrow::{
     },
     record_batch::RecordBatch,
 };
+use hash_types::state::AgentStateField;
 
 use crate::{
     datastore::{
@@ -30,7 +31,6 @@ use crate::{
         storage::memory::Memory,
         UUID_V4_LEN,
     },
-    hash_types::state::AgentStateField,
     proto::ExperimentId,
 };
 
@@ -268,18 +268,16 @@ pub mod record_batch {
         array::{self, Array},
         record_batch::RecordBatch,
     };
+    use hash_types::message::Outbound as OutboundMessage;
     use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 
-    use crate::{
-        datastore::{
-            arrow::message::{
-                self, get_column_from_list_array, MESSAGE_COLUMN_INDEX, MESSAGE_COLUMN_NAME,
-            },
-            batch::message::MessageLoader,
-            error::{Error, Result},
-            table::references::AgentMessageReference,
+    use crate::datastore::{
+        arrow::message::{
+            self, get_column_from_list_array, MESSAGE_COLUMN_INDEX, MESSAGE_COLUMN_NAME,
         },
-        hash_types::message::Outbound as OutboundMessage,
+        batch::message::MessageLoader,
+        error::{Error, Result},
+        table::references::AgentMessageReference,
     };
 
     pub fn get_native_messages(record_batch: &RecordBatch) -> Result<Vec<Vec<OutboundMessage>>> {

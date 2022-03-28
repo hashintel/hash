@@ -5,24 +5,19 @@ use arrow::{
     datatypes::{DataType, Field, Schema},
     record_batch::RecordBatch,
 };
+use hash_types::{
+    message::{
+        GenericPayload, Outbound, OutboundCreateAgentPayload, OutboundRemoveAgentPayload,
+        OutboundStopSimPayload,
+    },
+    Agent,
+};
 use lazy_static::lazy_static;
 
-use crate::{
-    datastore::{
-        error::{Error, Result},
-        schema::PresetFieldType,
-    },
-    hash_types::{
-        message::{
-            GenericPayload, Outbound, OutboundCreateAgentPayload, OutboundRemoveAgentPayload,
-            OutboundStopSimPayload,
-        },
-        Agent,
-    },
+use crate::datastore::{
+    error::{Error, Result},
+    schema::PresetFieldType,
 };
-
-// System-message recipient
-pub const SYSTEM_MESSAGE: &str = "hash";
 
 pub const MESSAGE_COLUMN_NAME: &str = "messages";
 

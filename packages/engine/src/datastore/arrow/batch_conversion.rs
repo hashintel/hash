@@ -18,6 +18,10 @@ use arrow::{
     record_batch::RecordBatch,
     util::bit_util,
 };
+use hash_types::{
+    state::{AgentStateField, BUILTIN_FIELDS},
+    Agent,
+};
 use serde::de::DeserializeOwned;
 use serde_json::value::Value;
 
@@ -28,10 +32,6 @@ use crate::{
         error::{Error, Result, SupportedType},
         schema::{state::AgentSchema, FieldKey, FieldScope, FieldTypeVariant, IsRequired},
         UUID_V4_LEN,
-    },
-    hash_types::{
-        state::{AgentStateField, BUILTIN_FIELDS},
-        Agent,
     },
     simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY,
 };
@@ -488,7 +488,7 @@ impl IntoRecordBatch for &[&Agent] {
         let messages: Vec<Value> = self
             .iter()
             .map(|agent| agent.get_as_json("messages"))
-            .collect::<crate::hash_types::Result<_>>()?;
+            .collect::<hash_types::Result<_>>()?;
 
         message::batch_from_json(schema, ids, Some(messages))
     }
@@ -511,7 +511,7 @@ impl IntoRecordBatch for &[&Agent] {
             let vals: Vec<Value> = self
                 .iter()
                 .map(|agent: &&Agent| agent.get_as_json(name.as_str()))
-                .collect::<crate::hash_types::Result<_>>()?;
+                .collect::<hash_types::Result<_>>()?;
 
             // If use `match` instead of `if`, Rust infers that
             // `name` must have static lifetime, like `match` arms.
@@ -630,7 +630,7 @@ fn set_states_agent_name(states: &mut [Agent], record_batch: &RecordBatch) -> Re
 
         for (i_state, state) in states.iter_mut().enumerate() {
             state.agent_name = if array.is_valid(i_state) {
-                Some(crate::hash_types::state::Name(array.value(i_state).into()))
+                Some(hash_types::state::Name(array.value(i_state).into()))
             } else {
                 None
             }
@@ -711,7 +711,7 @@ macro_rules! set_states_opt_vec3_gen {
 
                 for (i_state, state) in states.iter_mut().enumerate() {
                     state.$field_name = if vec3_array.is_valid(i_state) {
-                        Some(crate::hash_types::vec::Vec3(
+                        Some(hash_types::vec::Vec3(
                             coord_array.value(i_state * 3),
                             coord_array.value(i_state * 3 + 1),
                             coord_array.value(i_state * 3 + 2),

@@ -11,6 +11,7 @@ use std::sync::Arc;
 
 use analyzer::Analyzer;
 use async_trait::async_trait;
+use hash_types::Globals;
 use serde_json::Value;
 use tracing::Span;
 
@@ -19,7 +20,7 @@ pub use self::{
     output::{AnalysisOutput, AnalysisSingleOutput},
 };
 use crate::{
-    config::{ExperimentConfig, Globals, SimRunConfig},
+    config::{ExperimentConfig, SimRunConfig},
     datastore::{
         schema::accessor::FieldSpecMapAccessor,
         table::{context::Context, pool::BatchPool, state::State},

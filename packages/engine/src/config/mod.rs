@@ -1,7 +1,6 @@
 mod engine;
 mod error;
 mod experiment;
-mod globals;
 mod package;
 mod persistence;
 mod simulation;
@@ -13,11 +12,12 @@ mod worker_pool;
 
 use std::sync::Arc;
 
+use hash_types::Globals;
+
 pub use self::{
     engine::{Config as EngineConfig, Worker, WorkerAllocation},
     error::{Error, Result},
     experiment::Config as ExperimentConfig,
-    globals::Globals,
     package::{Config as PackageConfig, ConfigBuilder as PackageConfigBuilder},
     persistence::Config as PersistenceConfig,
     simulation::Config as SimulationConfig,

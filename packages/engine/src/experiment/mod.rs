@@ -4,6 +4,7 @@ pub mod package;
 
 use std::sync::Arc;
 
+use hash_types::Globals;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
 use tokio::task::JoinHandle;
@@ -11,7 +12,7 @@ use tracing::Instrument;
 
 pub use self::error::{Error, Result};
 use crate::{
-    config::{ExperimentConfig, Globals},
+    config::ExperimentConfig,
     experiment::controller::comms::{exp_pkg_ctl::ExpPkgCtlSend, exp_pkg_update::ExpPkgUpdateRecv},
     proto,
     types::SpanId,

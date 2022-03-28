@@ -6,6 +6,10 @@
 
 use std::{collections::HashSet, sync::Arc};
 
+use hash_types::{
+    message::{RemoveAgentPayload, CREATE_AGENT, REMOVE_AGENT, STOP_SIM},
+    Agent,
+};
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -20,10 +24,6 @@ use crate::{
             state::create_remove::ProcessedCommands,
         },
         UUID_V4_LEN,
-    },
-    hash_types::{
-        message::{RemoveAgentPayload, CREATE_AGENT, REMOVE_AGENT, STOP_SIM},
-        Agent,
     },
     simulation::{Error, Result},
 };

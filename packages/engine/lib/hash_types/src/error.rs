@@ -1,6 +1,6 @@
 use std::error::Error as StdError;
 
-use crate::hash_types::message;
+use crate::message;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 

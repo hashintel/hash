@@ -3,6 +3,8 @@ use std::{
     convert::TryFrom,
 };
 
+use hash_types::state::AgentStateField;
+
 // use crate::worker::runner::rust;
 use crate::{
     config::ExperimentConfig,
@@ -14,7 +16,6 @@ use crate::{
         {Error, Result},
     },
     experiment::SharedBehavior,
-    hash_types::state::AgentStateField,
     proto::ExperimentRunTrait,
 };
 

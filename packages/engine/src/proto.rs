@@ -4,11 +4,12 @@ use std::{
     str::FromStr,
 };
 
+use hash_types::{worker::RunnerError, Globals};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as SerdeValue;
 use uuid::Uuid;
 
-use crate::{config::Globals, hash_types::worker::RunnerError, simulation::status::SimStatus};
+use crate::simulation::status::SimStatus;
 
 // TODO: UNUSED: Needs triage
 pub type SerdeMap = serde_json::Map<String, SerdeValue>;

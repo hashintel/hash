@@ -2,10 +2,10 @@ use std::{collections::HashMap, fmt};
 
 use serde::{de::Deserializer, Deserialize, Serialize};
 
-use crate::{
-    datastore::arrow::message::SYSTEM_MESSAGE,
-    hash_types::{error::Result, state::Agent},
-};
+use crate::{error::Result, state::Agent};
+
+// System-message recipient
+pub const SYSTEM_MESSAGE: &str = "hash";
 
 // Built in message types:
 pub const CREATE_AGENT: &str = OutboundCreateAgentPayload::KIND;

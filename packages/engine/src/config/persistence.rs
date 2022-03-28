@@ -1,5 +1,7 @@
+use hash_types::Globals;
+
 use crate::{
-    config::{Globals, Result},
+    config::Result,
     simulation::package::{creator::PackageCreators, output::packages::OutputPackagesSimConfig},
 };
 

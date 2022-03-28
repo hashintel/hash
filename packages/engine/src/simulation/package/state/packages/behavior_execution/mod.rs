@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use hash_types::Globals;
 use serde_json::Value;
 
 use self::{
@@ -24,8 +25,8 @@ use crate::{
                     tasks::ExecuteBehaviorsTask,
                 },
                 Arc, ColumnChange, DatastoreResult, Error, ExperimentConfig, FieldSpecMapAccessor,
-                GetWorkerExpStartMsg, GetWorkerSimStartMsg, Globals, IntoArrowChange, Name,
-                Package, PackageComms, PackageCreator, Result, RootFieldSpec, RootFieldSpecCreator,
+                GetWorkerExpStartMsg, GetWorkerSimStartMsg, IntoArrowChange, Name, Package,
+                PackageComms, PackageCreator, Result, RootFieldSpec, RootFieldSpecCreator,
                 SimRunConfig, Span, State, StateColumn, StateTask,
             },
         },

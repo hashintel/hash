@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use hash_types::Globals;
 use serde_json::Value;
 use tracing::Span;
 
 use self::map::{NeighborMap, NeighborRef};
 use crate::{
-    config::{ExperimentConfig, Globals, SimRunConfig, TopologyConfig},
+    config::{ExperimentConfig, SimRunConfig, TopologyConfig},
     datastore::{
         batch::{iterators, AgentBatch},
         schema::{

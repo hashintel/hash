@@ -1,7 +1,7 @@
+use hash_types::worker::RunnerError;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    hash_types::worker::RunnerError,
     output::OutputPersistenceResultRepr,
     proto::SimulationShortId,
     simulation::{command::StopCommand, Result},

@@ -1,12 +1,16 @@
 use std::sync::Arc;
 
+use hash_types::{
+    state::{Agent, AgentStateField},
+    Globals,
+};
 use rand::{prelude::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
     config::{
-        EngineConfig, ExperimentConfig, Globals, PackageConfig, PersistenceConfig, SimRunConfig,
+        EngineConfig, ExperimentConfig, PackageConfig, PersistenceConfig, SimRunConfig,
         SimulationConfig, StoreConfig, WorkerPoolConfig,
     },
     datastore::{
@@ -16,7 +20,6 @@ use crate::{
             FieldTypeVariant, RootFieldSpec, RootFieldSpecCreator,
         },
     },
-    hash_types::state::{Agent, AgentStateField},
     proto::{ExperimentRunBase, InitialState, InitialStateName, ProjectBase},
     simulation::package::creator::{get_base_agent_fields, PackageCreators},
 };

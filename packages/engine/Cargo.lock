@@ -954,6 +954,7 @@ dependencies = [
  "float-cmp",
  "futures",
  "glob",
+ "hash_types",
  "http-types",
  "kdtree",
  "lazy_static",
@@ -979,6 +980,16 @@ dependencies = [
  "tracing-error",
  "tracing-subscriber",
  "tracing-texray",
+ "uuid",
+]
+
+[[package]]
+name = "hash_types"
+version = "0.0.0"
+dependencies = [
+ "serde",
+ "serde-aux",
+ "serde_json",
  "uuid",
 ]
 

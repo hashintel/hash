@@ -17,6 +17,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Serialize, Deserialize, Debug, Copy, PartialEq)]
 // https://rust-lang.github.io/rust-clippy/master/index.html#unsafe_derive_deserialize
 #[allow(clippy::module_name_repetitions)]
+#[repr(C)]
 pub struct Vec3(
     #[serde(default)] pub f64,
     #[serde(default)] pub f64,
@@ -84,7 +85,10 @@ impl Vec3 {
     #[must_use]
     pub fn as_slice(&self) -> &[f64] {
         let f: *const f64 = &self.0;
-        unsafe { std::slice::from_raw_parts(f, 3) }
+        #[allow(unsafe_code)]
+        unsafe {
+            std::slice::from_raw_parts(f, 3)
+        }
     }
 
     // TODO: I'm not sure if we want truncation vs rounding, so I'm marking this as allowed.

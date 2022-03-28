@@ -6,13 +6,14 @@ mod writer;
 use arrow::datatypes::DataType;
 use async_trait::async_trait;
 use futures::{stream::FuturesOrdered, StreamExt};
+use hash_types::Globals;
 use serde_json::Value;
 use tracing::{Instrument, Span};
 
 pub use self::handlers::CustomApiMessageError;
 use self::response::{ApiResponseMap, ApiResponses};
 use crate::{
-    config::{ExperimentConfig, Globals},
+    config::ExperimentConfig,
     datastore::{
         batch::iterators,
         schema::{accessor::GetFieldSpec, FieldKey},

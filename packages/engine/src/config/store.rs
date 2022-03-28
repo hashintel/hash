@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
+use hash_types::Globals;
+
 use crate::{
-    config::{globals::Globals, Result},
+    config::Result,
     datastore::schema::{
         context::ContextSchema,
         state::{AgentSchema, MessageSchema},

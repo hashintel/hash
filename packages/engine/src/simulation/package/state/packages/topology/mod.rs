@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use hash_types::Globals;
 use serde_json::Value;
 
 use crate::{
@@ -9,9 +10,8 @@ use crate::{
     },
     simulation::{
         package::state::{
-            Arc, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, Globals,
-            Package, PackageComms, PackageCreator, RootFieldSpec, RootFieldSpecCreator,
-            SimRunConfig, Span,
+            Arc, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg, Package,
+            PackageComms, PackageCreator, RootFieldSpec, RootFieldSpecCreator, SimRunConfig, Span,
         },
         Result,
     },

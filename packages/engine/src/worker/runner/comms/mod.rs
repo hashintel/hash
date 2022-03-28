@@ -6,10 +6,11 @@ use std::{
 };
 
 use arrow::datatypes::Schema;
+use hash_types::Globals;
 use tracing::Span;
 
 use crate::{
-    config::{EngineConfig, Globals},
+    config::EngineConfig,
     datastore::{schema::state::AgentSchema, shared_store::SharedStore},
     language::Language,
     proto::{ExperimentId, SimulationShortId},

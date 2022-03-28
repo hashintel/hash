@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
+use hash_types::Globals;
+
 use crate::{
-    config::{EngineConfig, Globals, PersistenceConfig, StoreConfig},
+    config::{EngineConfig, PersistenceConfig, StoreConfig},
     proto::SimulationShortId,
 };
 

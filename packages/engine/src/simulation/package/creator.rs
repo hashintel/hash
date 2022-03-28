@@ -1,7 +1,9 @@
 use std::{collections::HashMap, sync::Arc};
 
+use hash_types::Globals;
+
 use crate::{
-    config::{ExperimentConfig, Globals, PackageConfig, SimRunConfig},
+    config::{ExperimentConfig, PackageConfig, SimRunConfig},
     datastore::schema::{
         accessor::FieldSpecMapAccessor, context::ContextSchema, state::AgentSchema, FieldScope,
         FieldSource, FieldSpec, FieldSpecMap, FieldType, RootFieldSpec, RootFieldSpecCreator,
@@ -418,12 +420,13 @@ impl PackageCreators {
 pub const PREVIOUS_INDEX_FIELD_KEY: &str = "_HIDDEN_0_previous_index";
 
 pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec>> {
+    use hash_types::state::AgentStateField::{
+        AgentId, AgentName, Color, Direction, Height, Hidden, Position, Scale, Shape, Velocity, RGB,
+    };
+
     let mut field_specs = Vec::with_capacity(13);
     let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
 
-    use crate::hash_types::state::AgentStateField::{
-        AgentId, AgentName, Color, Direction, Height, Hidden, Position, Scale, Shape, Velocity, RGB,
-    };
     let used = [
         AgentId, AgentName, Position, Direction, Velocity, Shape, Height, Scale, Color, RGB, Hidden,
     ];

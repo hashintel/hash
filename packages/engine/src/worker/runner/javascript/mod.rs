@@ -14,6 +14,7 @@ use arrow::{
     util::bit_util,
 };
 use futures::FutureExt;
+use hash_types::Globals;
 use mv8::MiniV8;
 use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
@@ -24,7 +25,6 @@ use tracing::{Instrument, Span};
 pub use self::error::{Error, Result};
 use self::mini_v8 as mv8;
 use crate::{
-    config::Globals,
     datastore::{
         arrow::util::arrow_continuation,
         batch::{change::ColumnChange, AgentBatch, ArrowBatch, MessageBatch, Metaversion},

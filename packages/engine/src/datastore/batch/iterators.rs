@@ -209,16 +209,14 @@ pub mod record_batch {
     use std::borrow::Cow;
 
     use arrow::{array::Array, datatypes::DataType, record_batch::RecordBatch, util::bit_util};
+    use hash_types::state::AgentStateField;
 
-    use crate::{
-        datastore::{
-            arrow::batch_conversion::col_to_json_vals,
-            batch::{
-                boolean::Column as BooleanColumn, change::ColumnChange, iterators::column_with_name,
-            },
-            Error, Result, POSITION_DIM, UUID_V4_LEN,
+    use crate::datastore::{
+        arrow::batch_conversion::col_to_json_vals,
+        batch::{
+            boolean::Column as BooleanColumn, change::ColumnChange, iterators::column_with_name,
         },
-        hash_types::state::AgentStateField,
+        Error, Result, POSITION_DIM, UUID_V4_LEN,
     };
 
     // TODO: Use in Rust runner, and look up column without using PREVIOUS_INDEX_COLUMN_INDEX

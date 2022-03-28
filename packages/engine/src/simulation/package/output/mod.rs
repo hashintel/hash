@@ -3,12 +3,13 @@ pub mod packages;
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use hash_types::Globals;
 pub use packages::{Name, OutputTask, OutputTaskMessage, PACKAGE_CREATORS};
 use tracing::Span;
 
 use self::packages::Output;
 use crate::{
-    config::{ExperimentConfig, Globals, SimRunConfig},
+    config::{ExperimentConfig, SimRunConfig},
     datastore::{
         schema::{accessor::FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
         table::{context::Context, state::State},

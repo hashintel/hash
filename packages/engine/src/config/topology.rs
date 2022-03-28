@@ -1,12 +1,13 @@
 use core::fmt;
 
+use hash_types::Globals;
 use serde::{
     de::{self, Deserializer, Visitor},
     Deserialize,
 };
 use serde_json::Value;
 
-use crate::config::{globals::Globals, Result};
+use crate::config::Result;
 
 // TODO: think about creating a system of ConfigProviders whereby packages can depend on them
 //   and decrease the amount of assumptions the core engine has to make, for example position

@@ -1,5 +1,6 @@
+use hash_types::worker::RunnerError;
+
 use crate::{
-    hash_types::worker::RunnerError,
     proto::SimulationShortId,
     simulation::{agent_control::AgentControl, step_output::SimulationStepOutput},
 };

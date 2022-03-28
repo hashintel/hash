@@ -6,9 +6,10 @@ use std::{
     fmt::{Display, Formatter},
 };
 
+use hash_types::state::AgentStateField;
+
 use crate::{
     datastore::error::{Error, Result},
-    hash_types::state::AgentStateField,
     simulation::package::name::PackageName,
 };
 
@@ -242,8 +243,9 @@ impl RootFieldSpec {
 /// data columns mapped to the specification of those fields
 #[derive(Debug, Clone, Default, Eq, PartialEq)]
 pub struct FieldSpecMap {
-    field_specs: HashMap<FieldKey, RootFieldSpec>, /* a mapping of field unique identifiers to
-                                                    * the fields themselves */
+    field_specs: HashMap<FieldKey, RootFieldSpec>,
+    /* a mapping of field unique identifiers to
+     * the fields themselves */
 }
 
 impl FieldSpecMap {

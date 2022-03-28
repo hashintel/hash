@@ -1,9 +1,9 @@
+use hash_types::Agent;
 use tracing::Instrument;
 use uuid::Uuid;
 
 use crate::{
     datastore::table::task_shared_store::TaskSharedStore,
-    hash_types::Agent,
     simulation::{
         comms::{Comms, Result},
         package::{id::PackageId, PackageType},

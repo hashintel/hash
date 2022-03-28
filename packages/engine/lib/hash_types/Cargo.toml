@@ -1,0 +1,12 @@
+[package]
+name = "hash_types"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+serde = { version = "1.0.111", features = ["derive"] }
+serde_json = "1.0.59"
+serde-aux = "0.6.1"
+uuid = { version = "0.8.1", features = ["v4", "serde"] }
+
+[features]

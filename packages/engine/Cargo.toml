@@ -10,6 +10,7 @@ default-members = [".", "bin/*", "lib/*"]
 [dependencies]
 flatbuffers_gen = { path = "lib/flatbuffers_gen" }
 nano = { path = "lib/nano" }
+hash_types = { path = "lib/hash_types" }
 
 arr_macro = "0.1.3"
 arrow = { version = "10.0.0", default-features = false, features = ["ipc"] }

@@ -11,12 +11,9 @@ use serde::{
 use serde_aux::prelude::deserialize_string_from_number;
 
 use crate::{
-    config::Globals,
-    hash_types::{
-        error::{Error, Result},
-        message::{self, CREATE_AGENT, REMOVE_AGENT, STOP_SIM},
-        Vec3,
-    },
+    error::{Error, Result},
+    message::{self, CREATE_AGENT, REMOVE_AGENT, STOP_SIM},
+    Globals, Vec3,
 };
 
 #[allow(clippy::module_name_repetitions)]
@@ -825,7 +822,7 @@ mod tests {
     use serde_json::json;
 
     use super::*;
-    use crate::hash_types::message::GenericPayload;
+    use crate::message::GenericPayload;
 
     #[test]
     fn agent_state_ergonomics() -> Result<()> {

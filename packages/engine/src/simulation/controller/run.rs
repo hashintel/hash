@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
 use futures::FutureExt;
+use hash_types::worker::RunnerError;
 use tokio::time::Duration;
 
 use crate::{
     config::SimRunConfig,
     datastore::store::Store,
     experiment::controller::comms::{sim_status::SimStatusSend, simulation::SimCtlRecv},
-    hash_types::worker::RunnerError,
     output::SimulationOutputPersistenceRepr,
     proto::SimulationShortId,
     simulation::{
