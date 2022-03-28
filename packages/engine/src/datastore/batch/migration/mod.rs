@@ -512,7 +512,7 @@ impl<'a> BufferActions<'a> {
 
             let buffer_data_type = &node_static_meta.get_data_types()[i];
             let buffer_size = match buffer_data_type {
-                super::super::meta::BufferType::BitMap { is_null_bitmap } => {
+                meta::BufferType::BitMap { is_null_bitmap } => {
                     // Here we don't modify range actions
                     let range_actions = updated_range_actions
                         .as_ref()
@@ -653,7 +653,7 @@ impl<'a> BufferActions<'a> {
                     target_buffer_size
                 }
 
-                super::super::meta::BufferType::Offset => {
+                meta::BufferType::Offset => {
                     // Here we modify range_actions
                     let mut range_actions =
                         updated_range_actions.unwrap_or_else(|| parent_range_actions.clone());
@@ -861,7 +861,7 @@ impl<'a> BufferActions<'a> {
 
                     target_buffer_size
                 }
-                super::super::meta::BufferType::Data { unit_byte_size } => {
+                meta::BufferType::Data { unit_byte_size } => {
                     // Here we don't modify range actions
                     let range_actions = updated_range_actions
                         .as_ref()
@@ -972,7 +972,7 @@ impl<'a> BufferActions<'a> {
 
                     target_buffer_size
                 }
-                super::super::meta::BufferType::LargeOffset => unimplemented!(),
+                meta::BufferType::LargeOffset => unimplemented!(),
             };
 
             let old_next_offset = dynamic_meta.map_or(0, |meta| {
@@ -1320,7 +1320,7 @@ fn offsets_start_at_zero(
     static_meta.get_node_meta().iter().for_each(|meta| {
         meta.get_data_types().iter().for_each(|data_type| {
             match data_type {
-                super::super::meta::BufferType::Offset => {
+                meta::BufferType::Offset => {
                     let buffer_meta = &dynamic_meta.buffers[buffer_index];
                     let offset_of_offsets = buffer_meta.offset;
 
@@ -1340,7 +1340,7 @@ fn offsets_start_at_zero(
                     }
                     starts_at_zero = starts_at_zero && offset_starts_at_zero;
                 }
-                super::super::meta::BufferType::LargeOffset => unimplemented!(),
+                meta::BufferType::LargeOffset => unimplemented!(),
                 _ => (),
             }
             buffer_index += 1;

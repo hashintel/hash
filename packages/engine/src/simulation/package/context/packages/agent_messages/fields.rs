@@ -1,8 +1,12 @@
-use super::{Result, RootFieldSpecCreator, MESSAGE_INDEX_COUNT};
-use crate::datastore::schema::{
-    FieldScope, FieldType,
-    FieldTypeVariant::{FixedLengthArray, Preset, VariableLengthArray},
-    PresetFieldType, RootFieldSpec,
+use crate::{
+    datastore::schema::{
+        FieldScope, FieldType,
+        FieldTypeVariant::{FixedLengthArray, Preset, VariableLengthArray},
+        PresetFieldType, RootFieldSpec,
+    },
+    simulation::package::context::packages::agent_messages::{
+        Result, RootFieldSpecCreator, MESSAGE_INDEX_COUNT,
+    },
 };
 
 pub(super) const MESSAGES_FIELD_NAME: &str = "messages";

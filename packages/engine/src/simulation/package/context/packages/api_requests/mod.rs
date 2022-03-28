@@ -4,20 +4,15 @@ mod response;
 mod writer;
 
 use arrow::datatypes::DataType;
-pub use async_trait::async_trait;
+use async_trait::async_trait;
 use futures::{stream::FuturesOrdered, StreamExt};
-pub use handlers::CustomApiMessageError;
-use response::{ApiResponseMap, ApiResponses};
 use serde_json::Value;
 use tracing::{Instrument, Span};
 
-use super::super::{
-    Arc, ContextColumn, ContextSchema, Error, FieldSpec, FieldSpecMapAccessor,
-    GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound, PackageCreator, RootFieldSpec,
-    RootFieldSpecCreator, SimRunConfig, StateReadProxy, StateSnapshot,
-};
+pub use self::handlers::CustomApiMessageError;
+use self::response::{ApiResponseMap, ApiResponses};
 use crate::{
-    config::Globals,
+    config::{ExperimentConfig, Globals},
     datastore::{
         batch::iterators,
         schema::{accessor::GetFieldSpec, FieldKey},
@@ -25,17 +20,12 @@ use crate::{
     },
     simulation::{
         comms::package::PackageComms,
-        package::context::{packages::api_requests::fields::API_RESPONSES_FIELD_NAME, Package},
-    },
-};
-pub use crate::{
-    config::{ExperimentConfig, SimulationConfig},
-    datastore::table::{context::Context, state::State},
-    simulation::{
-        comms::Comms,
-        package::{
-            context::Package as ContextPackage, init::Package as InitPackage,
-            output::Package as OutputPackage, state::Package as StatePackage,
+        package::context::{
+            packages::api_requests::fields::API_RESPONSES_FIELD_NAME, Arc, ContextColumn,
+            ContextSchema, Error, FieldSpec, FieldSpecMapAccessor, GetWorkerExpStartMsg,
+            GetWorkerSimStartMsg, MaybeCpuBound, Package, Package as ContextPackage,
+            PackageCreator, RootFieldSpec, RootFieldSpecCreator, SimRunConfig, StateReadProxy,
+            StateSnapshot,
         },
         Result,
     },

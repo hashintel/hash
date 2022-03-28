@@ -26,8 +26,7 @@ use std::{
     ops::{Index, IndexMut},
 };
 
-use super::ptr::MemoryPtr;
-use crate::datastore::arrow::padding;
+use crate::datastore::{arrow::padding, storage::ptr::MemoryPtr};
 
 #[repr(usize)]
 pub enum Val {

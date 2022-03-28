@@ -1,11 +1,10 @@
-use super::map::NeighborMap;
 use crate::{
     datastore::{
         arrow::util::DataSliceUtils,
-        error::Result as DatastoreResult,
         meta::{ColumnDynamicMetadata, ColumnDynamicMetadataBuilder},
+        Result as DatastoreResult,
     },
-    simulation::package::context::ContextColumnWriter,
+    simulation::package::context::{packages::neighbors::map::NeighborMap, ContextColumnWriter},
 };
 
 const NUM_NODES: usize = 3;

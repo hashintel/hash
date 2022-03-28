@@ -11,17 +11,16 @@ use std::{
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
-use super::PackageCreator;
 use crate::{
+    config::ExperimentConfig,
     simulation::{
         enum_dispatch::{
             enum_dispatch, GetTaskArgs, GetTaskName, RegisterWithoutTrait, StoreAccessVerify,
             TaskDistributionConfig, TaskSharedStore, WorkerHandler, WorkerPoolHandler,
         },
-        package::{id::PackageIdGenerator, PackageMetadata, PackageType},
+        package::{context::PackageCreator, id::PackageIdGenerator, PackageMetadata, PackageType},
         Error, Result,
     },
-    ExperimentConfig,
 };
 
 /// All context package names are registered in this enum

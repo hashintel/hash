@@ -1,7 +1,9 @@
 use thiserror::Error as ThisError;
 
-use super::simulation::{controller::sim_control::SimControl, status::SimStatus};
-use crate::proto;
+use crate::{
+    proto,
+    simulation::{controller::sim_control::SimControl, status::SimStatus},
+};
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -154,12 +156,9 @@ fn stringify_error(error: Error) -> String {
     }
 }
 
-fn stringify_datastore_error(
-    error: &crate::datastore::error::Error,
-    original_error: &Error,
-) -> String {
+fn stringify_datastore_error(error: &crate::datastore::Error, original_error: &Error) -> String {
     match error {
-        crate::datastore::error::Error::SharedMemory(shmem_error) => {
+        crate::datastore::Error::SharedMemory(shmem_error) => {
             match shmem_error {
                 shared_memory::ShmemError::DevShmOutOfMemory => {
                     // TODO: Use a static string instead of allocating a string here.

@@ -2,10 +2,12 @@ use std::time::Duration;
 
 use tokio::time::timeout;
 
-use super::cancel::CancelTask;
 use crate::simulation::{
     comms::active::ActiveTaskOwnerComms,
-    task::msg::{TaskMessage, TaskResultOrCancelled},
+    task::{
+        cancel::CancelTask,
+        msg::{TaskMessage, TaskResultOrCancelled},
+    },
     Error, Result,
 };
 

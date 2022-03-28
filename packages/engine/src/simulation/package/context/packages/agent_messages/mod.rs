@@ -4,41 +4,32 @@ mod indices;
 mod writer;
 
 use arrow::array::{Array, FixedSizeListBuilder, ListBuilder};
-pub use async_trait::async_trait;
+use async_trait::async_trait;
 use serde_json::Value;
 use tracing::Span;
 
 use self::collected::Messages;
-use super::super::{
-    Arc, ContextColumn, ContextSchema, FieldKey, FieldSpecMapAccessor, GetWorkerExpStartMsg,
-    GetWorkerSimStartMsg, Globals, MaybeCpuBound, PackageCreator, RootFieldSpecCreator,
-    SimRunConfig, StateReadProxy, StateSnapshot,
-};
-pub use crate::{
-    config::{ExperimentConfig, SimulationConfig},
-    datastore::table::{context::Context, state::State},
-    simulation::{
-        comms::Comms,
-        package::{
-            context::Package as ContextPackage, init::Package as InitPackage,
-            output::Package as OutputPackage, state::Package as StatePackage,
-        },
-        Error, Result,
-    },
-};
 use crate::{
+    config::ExperimentConfig,
     datastore::{
         batch::iterators,
         schema::{accessor::GetFieldSpec, RootFieldSpec},
     },
     simulation::{
         comms::package::PackageComms,
-        package::context::{packages::agent_messages::fields::MESSAGES_FIELD_NAME, Package},
+        package::context::{
+            packages::agent_messages::fields::MESSAGES_FIELD_NAME, Arc, ContextColumn,
+            ContextSchema, FieldKey, FieldSpecMapAccessor, GetWorkerExpStartMsg,
+            GetWorkerSimStartMsg, Globals, MaybeCpuBound, Package as ContextPackage, Package,
+            PackageCreator, RootFieldSpecCreator, SimRunConfig, StateReadProxy, StateSnapshot,
+        },
+        Result,
     },
 };
 
 const CPU_BOUND: bool = true;
 pub const MESSAGE_INDEX_COUNT: usize = 3;
+
 pub type IndexType = u32;
 pub type ArrowIndexBuilder = arrow::array::UInt32Builder;
 

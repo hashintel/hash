@@ -3,11 +3,11 @@ mod message;
 use std::sync::Arc;
 
 use arrow::datatypes::Schema as ArrowSchema;
-pub use message::MessageSchema;
 
-use super::FieldSpecMap;
+pub use self::message::MessageSchema;
 use crate::datastore::{
     arrow::meta_conversion::HashStaticMeta, error::Result, meta::Static as StaticMeta,
+    schema::FieldSpecMap,
 };
 
 /// `AgentSchema` describes the layout of every

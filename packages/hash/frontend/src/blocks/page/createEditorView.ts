@@ -8,8 +8,8 @@ import { Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { BlockView } from "./BlockView";
 import { EditorConnection } from "./collab/EditorConnection";
-import { Reporter } from "./collab/Reporter";
 import { ComponentView } from "./ComponentView";
+import { createErrorPlugin } from "./createErrorPlugin";
 import { createFormatPlugins } from "./createFormatPlugins";
 import { createSuggester } from "./createSuggester/createSuggester";
 import { MentionView } from "./MentionView/MentionView";
@@ -27,9 +27,12 @@ export const createEditorView = (
 ) => {
   let manager: ProsemirrorSchemaManager;
 
+  const [errorPlugin, onError] = createErrorPlugin(renderPortal);
+
   const plugins: Plugin<unknown, Schema>[] = [
     ...createFormatPlugins(renderPortal),
     createSuggester(renderPortal, () => manager, accountId),
+    errorPlugin,
   ];
 
   const state = createProseMirrorState({ plugins });
@@ -120,12 +123,14 @@ export const createEditorView = (
   );
 
   connection = new EditorConnection(
-    new Reporter(),
     `${apiOrigin}/collab-backend/${accountId}/${pageEntityId}`,
     view.state.schema,
     view,
     manager,
     plugins,
+    () => {
+      view.dispatch(onError(view.state.tr));
+    },
   );
 
   view.dom.classList.add(styles.ProseMirror!);

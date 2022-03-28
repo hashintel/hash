@@ -2,8 +2,13 @@ use std::collections::HashSet;
 
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
-use super::{Result, TopologyConfig};
-use crate::{datastore::batch::AgentIndex, simulation::Error};
+use crate::{
+    datastore::batch::AgentIndex,
+    simulation::{
+        package::context::packages::neighbors::{Result, TopologyConfig},
+        Error,
+    },
+};
 
 pub(super) type PositionSubType = f64;
 pub(super) type Position = [PositionSubType; 3];

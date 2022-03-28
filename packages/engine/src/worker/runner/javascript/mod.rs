@@ -23,11 +23,6 @@ use tracing::{Instrument, Span};
 
 pub use self::error::{Error, Result};
 use self::mini_v8 as mv8;
-use super::comms::{
-    inbound::InboundToRunnerMsgPayload,
-    outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload},
-    ExperimentInitRunnerMsg, MessageTarget, NewSimulationRun, RunnerTaskMsg, TargetedRunnerTaskMsg,
-};
 use crate::{
     config::Globals,
     datastore::{
@@ -41,6 +36,7 @@ use crate::{
             task_shared_store::{PartialSharedState, SharedState},
         },
     },
+    language::Language,
     proto::SimulationShortId,
     simulation::{
         enum_dispatch::TaskSharedStore,
@@ -49,12 +45,19 @@ use crate::{
     types::TaskId,
     worker::{
         runner::{
-            comms::outbound::{PackageError, UserError, UserWarning},
+            comms::{
+                inbound::InboundToRunnerMsgPayload,
+                outbound::{
+                    OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, PackageError, UserError,
+                    UserWarning,
+                },
+                ExperimentInitRunnerMsg, MessageTarget, NewSimulationRun, RunnerTaskMsg,
+                TargetedRunnerTaskMsg,
+            },
             javascript::mv8::Values,
         },
         Error as WorkerError, Result as WorkerResult, TaskMessage,
     },
-    Language,
 };
 
 struct JsPackage<'m> {
