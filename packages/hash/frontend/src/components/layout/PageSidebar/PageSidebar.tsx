@@ -82,10 +82,6 @@ export const PageSidebar: VoidFunctionComponent = () => {
       {/* @todo replace with button implementation */}
       <Box
         sx={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
           zIndex: 2,
           padding: "18px 22px",
           backgroundColor: ({ palette }) => palette.gray[10],
