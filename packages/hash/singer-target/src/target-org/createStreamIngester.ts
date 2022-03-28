@@ -3,6 +3,7 @@ import _ from "lodash";
 import { Entity } from "@hashintel/hash-api/src/model";
 import { stringy } from "../utils/stringy";
 import { Logger } from "@hashintel/hash-backend-utils/logger";
+import { StreamConfig } from "./createTargetOrg";
 
 // class IngestedEntity extends Entity {
 //   constructor(public readonly key: string) {
@@ -25,8 +26,7 @@ export function createStreamIngester(
      * TODO: Separate updator Account ID
      */
     accountId: string;
-    /** e.g. `["commit_sha"]` */
-    keyProperties: string[];
+    streamConfig: StreamConfig;
   },
 ) {
   const logger = options.logger.child({
@@ -46,7 +46,7 @@ export function createStreamIngester(
   async function lookForExisting(
     entityIn: CreateIngestEntity,
   ): Promise<Entity | null> {
-    const needToMatch = options.keyProperties.map(
+    const needToMatch = options.streamConfig.keyProperties.map(
       (prop) => [prop, entityIn.properties[prop]] as const,
     );
 
