@@ -54,3 +54,49 @@ services:
     image: redis:6.2
     ports:
       - 6379:6379
+  temporal-dev:
+    container_name: temporal-dev
+    depends_on:
+      - hash-dev-postgres
+    env_file:
+      - ../.env
+      - ../.env.local
+    environment:
+      - DB=hash-dev-postgres
+      - DB_PORT=5432
+      - POSTGRES_SEEDS=postgresql
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development_sql.yaml
+    image: temporalio/auto-setup:1.15.2 # TODO: get from env
+    networks:
+      - temporal-network
+    ports:
+      - 7233:7233
+    volumes:
+      - ./temporal/dynamicconfig:/etc/temporal/config/dynamicconfig
+  temporal-admin-tools:
+    container_name: temporal-admin-tools
+    depends_on:
+      - temporal-dev
+    environment:
+      - TEMPORAL_CLI_ADDRESS=temporal-dev:7233
+    image: temporalio/admin-tools:1.15.2 # TODO: get from env
+    networks:
+      - temporal-network
+    stdin_open: true
+    tty: true
+  temporal-dev-web:
+    container_name: temporal-dev-web
+    depends_on:
+      - temporal-dev
+    environment:
+      - TEMPORAL_GRPC_ENDPOINT=temporal-dev:7233
+      - TEMPORAL_PERMIT_WRITE_API=true
+    image: temporalio/web:1.14.0 # TODO: get from env
+    networks:
+      - temporal-network
+    ports:
+      - 8088:8088
+networks:
+  temporal-network:
+    driver: bridge
+    name: temporal-network
