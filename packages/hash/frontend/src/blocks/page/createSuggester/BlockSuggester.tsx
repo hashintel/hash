@@ -110,7 +110,7 @@ export const BlockSuggester: VFC<BlockSuggesterProps> = ({
           </Box>
         ) : null
       }
-      itemKey={({ meta, variant }) => `${meta.name}/${variant.displayName}`}
+      itemKey={({ meta, variant }) => `${meta.name}/${variant.name}`}
       onChange={(option) => {
         onChange(option.variant, option.meta);
       }}
