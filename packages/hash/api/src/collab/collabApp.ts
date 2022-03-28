@@ -166,11 +166,15 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
           request.query.forceNewInstance === "true",
         );
 
-        response.json({
-          doc: instance.state.doc.toJSON(),
-          store: entityStorePluginState(instance.state).store,
-          version: instance.version,
-        });
+        if (instance.errored) {
+          response.status(500).json({ error: true });
+        } else {
+          response.json({
+            doc: instance.state.doc.toJSON(),
+            store: entityStorePluginState(instance.state).store,
+            version: instance.version,
+          });
+        }
       } catch (error) {
         next(error);
       }
@@ -188,23 +192,32 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
         const version = parseVersion(request.query.version);
         const data = instance.getEvents(version);
 
-        if (data === false) {
+        if (data === false && !instance.errored) {
           response.status(410).send("History no longer available");
           return;
         }
-        if (data.shouldRespondImmediately) {
+        if (instance.errored) {
+          return response.status(500).json({ error: true });
+        }
+        if (data && data.shouldRespondImmediately) {
           return response.json(formatGetEventsResponse(instance, data));
         }
         // If the server version matches the given version,
         // wait until a new version is published to return the event data.
         const wait = new Waiting(response, instance, userInfo.entityId, () => {
           const events = instance.getEvents(version);
-          if (events === false) {
-            response.status(410).send("History no longer available");
-            return;
-          }
 
-          wait.send(formatGetEventsResponse(instance, events));
+          if (instance.errored) {
+            wait.send({ error: true }, 500);
+          } else {
+            if (events === false) {
+              // @todo track this
+              response.status(410).send("History no longer available");
+              return;
+            }
+
+            wait.send(formatGetEventsResponse(instance, events));
+          }
         });
         instance.waiting.push(wait);
         response.on("close", () => wait.abort());
@@ -222,6 +235,10 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
         const { apolloClient, instance } =
           await prepareSessionSupportWithInstance(request);
 
+        if (instance.errored) {
+          return response.status(500).json({ error: true });
+        }
+
         // @todo type this
         const data: any = request.body;
         const version = parseVersion(data.version);
@@ -235,7 +252,11 @@ export const createCollabApp = async (queue: QueueExclusiveConsumer) => {
           data.actions,
         );
         if (!result) {
-          response.status(409).send("Version not current");
+          if (instance.errored) {
+            response.status(500).json({ error: true });
+          } else {
+            response.status(409).send("Version not current");
+          }
         } else {
           response.json(result);
         }
