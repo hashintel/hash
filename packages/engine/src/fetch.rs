@@ -4,8 +4,8 @@ use async_trait::async_trait;
 use futures::StreamExt;
 
 use crate::{
-    error::{Error, Result},
     proto::{ExperimentRunRepr, ExperimentRunTrait, FetchedDataset, SharedDataset},
+    Error, Result,
 };
 
 pub type Datasets = Vec<Arc<FetchedDataset>>;

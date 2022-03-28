@@ -1,23 +1,25 @@
 //! TODO: DOC
 
+pub mod packages;
+
 use std::sync::Arc;
 
 use async_trait::async_trait;
 pub use packages::{InitTask, InitTaskMessage, Name, PACKAGE_CREATORS};
 
-use super::{
-    deps::Dependencies,
-    ext_traits::{GetWorkerSimStartMsg, MaybeCpuBound},
-};
 use crate::{
-    config::{ExperimentConfig, Globals},
+    config::{ExperimentConfig, Globals, SimRunConfig},
     datastore::schema::{accessor::FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
     hash_types::Agent,
-    simulation::{comms::package::PackageComms, package::ext_traits::GetWorkerExpStartMsg, Result},
-    SimRunConfig,
+    simulation::{
+        comms::package::PackageComms,
+        package::{
+            deps::Dependencies,
+            ext_traits::{GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound},
+        },
+        Result,
+    },
 };
-
-pub mod packages;
 
 #[async_trait]
 pub trait Package: MaybeCpuBound + GetWorkerSimStartMsg + Send + Sync {

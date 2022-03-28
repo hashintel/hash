@@ -1,3 +1,6 @@
+pub mod js_py;
+pub mod json;
+
 use std::{
     collections::{hash_map::Iter, HashMap},
     lazy::SyncOnceCell,
@@ -8,20 +11,17 @@ use js_py::{js::JsInitTask, py::PyInitTask};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
-use super::PackageCreator;
 use crate::{
+    config::ExperimentConfig,
     simulation::{
         enum_dispatch::{
             enum_dispatch, JsPyInitTaskMessage, RegisterWithoutTrait, StoreAccessVerify,
             TaskSharedStore,
         },
-        package::{id::PackageIdGenerator, PackageMetadata, PackageType},
+        package::{id::PackageIdGenerator, init::PackageCreator, PackageMetadata, PackageType},
         Error, Result,
     },
-    ExperimentConfig,
 };
-pub mod js_py;
-pub mod json;
 
 /// All init package names are registered in this enum
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]

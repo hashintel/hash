@@ -7,7 +7,7 @@
 // TODO: DOC improve wording of above, and signpost the key modules
 pub mod arrow;
 pub mod batch;
-pub mod error;
+mod error;
 pub mod ffi;
 pub mod meta;
 pub mod schema;
@@ -18,12 +18,12 @@ pub mod table;
 #[cfg(test)]
 pub mod test_utils;
 
+pub use self::error::{Error, Result};
+
 /// We store Agent IDs in the UUID-byte format (not string bytes).
 /// This means their length is 128 bits i.e. 16 bytes
 pub const UUID_V4_LEN: usize = 16;
 pub const POSITION_DIM: usize = 3;
-
-pub use self::error::{Error, Result};
 
 #[cfg(test)]
 pub mod tests {
@@ -32,12 +32,13 @@ pub mod tests {
     use ::arrow::array::{Array, BooleanBuilder, FixedSizeListBuilder};
     use rand::Rng;
 
-    use super::{test_utils::gen_schema_and_test_agents, *};
     use crate::datastore::{
         arrow::batch_conversion::IntoAgents,
         batch::{iterators, AgentBatch},
+        error::Result,
         table::state::State,
-        test_utils::dummy_sim_run_config,
+        test_utils::*,
+        UUID_V4_LEN,
     };
 
     #[test]

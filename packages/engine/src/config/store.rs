@@ -1,8 +1,7 @@
 use std::sync::Arc;
 
-use super::Result;
 use crate::{
-    config::globals::Globals,
+    config::{globals::Globals, Result},
     datastore::schema::{
         context::ContextSchema,
         state::{AgentSchema, MessageSchema},

@@ -1,26 +1,28 @@
 use std::{collections::HashMap, sync::Arc};
 
-use super::{
-    context,
-    id::PackageId,
-    init, output,
-    output::packages::OutputPackagesSimConfig,
-    run::{InitPackages, Packages, StepPackages},
-    state, PackageType,
-};
 use crate::{
-    config::{Globals, PackageConfig, SimRunConfig},
+    config::{ExperimentConfig, Globals, PackageConfig, SimRunConfig},
     datastore::schema::{
         accessor::FieldSpecMapAccessor, context::ContextSchema, state::AgentSchema, FieldScope,
         FieldSource, FieldSpec, FieldSpecMap, FieldType, RootFieldSpec, RootFieldSpecCreator,
     },
     simulation::{
         comms::{package::PackageComms, Comms},
-        package::{name::PackageName, worker_init::PackageInitMsgForWorker},
+        package::{
+            context,
+            id::PackageId,
+            init,
+            name::PackageName,
+            output,
+            output::packages::OutputPackagesSimConfig,
+            run::{InitPackages, Packages, StepPackages},
+            state,
+            worker_init::PackageInitMsgForWorker,
+            PackageType,
+        },
         Error, Result,
     },
     worker::runner::comms::PackageMsgs,
-    ExperimentConfig,
 };
 
 pub struct PackageCreators {

@@ -2,20 +2,20 @@ use std::collections::HashMap;
 
 use tokio::sync::oneshot;
 
-use super::error::{Error, Result};
 use crate::{
     config::Worker,
     simulation::{
         comms::active::ActiveTaskExecutorComms,
         task::{
             cancel::CancelTask,
-            handler::worker_pool::WorkerPoolHandler,
+            handler::WorkerPoolHandler,
             msg::{TaskMessage, TaskResultOrCancelled},
             Task,
         },
     },
     types::TaskId,
     worker::task::WorkerTaskResultOrCancelled,
+    workerpool::{Error, Result},
 };
 
 type HasTerminated = bool;

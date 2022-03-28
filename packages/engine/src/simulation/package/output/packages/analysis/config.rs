@@ -2,13 +2,13 @@ use std::{collections::HashMap, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
-use super::{analyzer::AnalysisOperationRepr, Result};
 use crate::{
+    config::ExperimentConfig,
     proto::ExperimentRunTrait,
     simulation::package::output::packages::analysis::{
-        analyzer::AnalysisSourceRepr, get_analysis_source,
+        analyzer::{AnalysisOperationRepr, AnalysisSourceRepr},
+        get_analysis_source, Result,
     },
-    ExperimentConfig,
 };
 
 #[derive(Serialize, Deserialize)]

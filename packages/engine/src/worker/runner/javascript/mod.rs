@@ -29,11 +29,6 @@ use tokio::{
 use tracing::{Instrument, Span};
 
 pub use self::error::{Error, Result};
-use super::comms::{
-    inbound::InboundToRunnerMsgPayload,
-    outbound::{OutboundFromRunnerMsg, PackageError, UserError, UserWarning},
-    ExperimentInitRunnerMsg, MessageTarget, NewSimulationRun, RunnerTaskMsg, TargetedRunnerTaskMsg,
-};
 use crate::{
     config::Globals,
     datastore::{
@@ -47,14 +42,25 @@ use crate::{
             task_shared_store::{PartialSharedState, SharedState, TaskSharedStore},
         },
     },
+    language::Language,
     proto::SimulationShortId,
     simulation::{
         package::{id::PackageId, PackageType},
         task::msg::TaskMessage,
     },
     types::TaskId,
-    worker::{runner::comms::outbound::OutboundFromRunnerMsgPayload, Result as WorkerResult},
-    Language,
+    worker::{
+        runner::comms::{
+            inbound::InboundToRunnerMsgPayload,
+            outbound::{
+                OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, PackageError, UserError,
+                UserWarning,
+            },
+            ExperimentInitRunnerMsg, MessageTarget, NewSimulationRun, RunnerTaskMsg,
+            TargetedRunnerTaskMsg,
+        },
+        Result as WorkerResult,
+    },
 };
 
 type Object<'scope> = v8::Local<'scope, v8::Object>;

@@ -2620,7 +2620,7 @@ dependencies = [
 [[package]]
 name = "v8"
 version = "0.41.0"
-source = "git+https://github.com/hashdeps/rusty_v8-1?branch=backing-store-from-ptr#ec14263177da95153e5286701ef331e43d6b88c8"
+source = "git+https://github.com/hashdeps/rusty_v8#ed5a6ba31d6ecb91eb564b8f848241baf0e33a79"
 dependencies = [
  "bitflags",
  "fslock",

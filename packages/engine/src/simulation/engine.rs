@@ -2,10 +2,6 @@ use std::{mem, sync::Arc};
 
 use tracing::Instrument;
 
-use super::{
-    comms::Comms, package::run::Packages, step_output::SimulationStepOutput,
-    step_result::SimulationStepResult, Error, Result,
-};
 use crate::{
     config::SimRunConfig,
     datastore::{
@@ -24,6 +20,11 @@ use crate::{
     simulation::{
         agent_control::AgentControl,
         command::{Commands, StopCommand},
+        comms::Comms,
+        package::run::Packages,
+        step_output::SimulationStepOutput,
+        step_result::SimulationStepResult,
+        Error, Result,
     },
 };
 

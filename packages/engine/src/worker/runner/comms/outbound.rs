@@ -4,13 +4,15 @@ use flatbuffers_gen::runner_outbound_msg_generated::root_as_runner_outbound_msg;
 use serde::{Deserialize, Serialize};
 use tracing::Span;
 
-use super::TargetedRunnerTaskMsg;
 use crate::{
     hash_types::worker,
+    language::Language,
     proto::SimulationShortId,
     types::TaskId,
-    worker::{runner::comms::SentTask, Error, Result},
-    Language,
+    worker::{
+        runner::comms::{SentTask, TargetedRunnerTaskMsg},
+        Error, Result,
+    },
 };
 
 #[derive(Debug, Default, Clone)]

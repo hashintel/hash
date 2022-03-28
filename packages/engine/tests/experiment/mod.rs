@@ -9,9 +9,9 @@ use std::{
 
 use error::{bail, ensure, report, Result, ResultExt};
 use hash_engine_lib::{
+    language::Language,
     proto::ExperimentName,
     utils::{LogFormat, LogLevel, OutputLocation},
-    Language,
 };
 use orchestrator::{ExperimentConfig, ExperimentType, Manifest, Server};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};

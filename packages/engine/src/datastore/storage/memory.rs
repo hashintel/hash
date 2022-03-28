@@ -4,16 +4,16 @@ use std::{env, mem, path::Path};
 
 use shared_memory::{Shmem, ShmemConf};
 
-use super::{
-    ptr::MemoryPtr,
-    visitor::{Visit, Visitor, VisitorMut},
-    BufferChange,
-};
 use crate::{
     datastore::{
         arrow::padding,
         batch::Metaversion,
         error::{Error, Result},
+        storage::{
+            ptr::MemoryPtr,
+            visitor::{Visit, Visitor, VisitorMut},
+            BufferChange,
+        },
     },
     proto::ExperimentId,
 };
