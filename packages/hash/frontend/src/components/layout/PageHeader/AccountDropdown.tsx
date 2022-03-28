@@ -74,6 +74,7 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
             padding: 0,
           }}
           open={open}
+          data-testid="user-avatar"
         >
           {avatar ? (
             <Box
