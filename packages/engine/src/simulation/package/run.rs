@@ -11,13 +11,8 @@ use crate::{
     },
     proto::ExperimentRunTrait,
     simulation::{
-        package::{
-            context,
-            context::ContextColumn,
-            init, output,
-            prelude::{Error, Result},
-            state,
-        },
+        error::{Error, Result},
+        package::{context, context::ContextColumn, init, output, state},
         step_output::SimulationStepOutput,
     },
     SimRunConfig,

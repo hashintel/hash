@@ -6,9 +6,14 @@
 
 use std::sync::Arc;
 
-use arrow::ipc::{
-    reader::read_record_batch,
-    writer::{IpcDataGenerator, IpcWriteOptions},
+use arrow::{
+    array::Array,
+    ipc::{
+        self,
+        reader::read_record_batch,
+        writer::{IpcDataGenerator, IpcWriteOptions},
+    },
+    record_batch::RecordBatch,
 };
 
 use crate::{
@@ -18,10 +23,11 @@ use crate::{
             ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
             meta_conversion::{get_dynamic_meta_flatbuffers, HashDynamicMeta, HashStaticMeta},
         },
-        batch::{flush::GrowableBatch, ArrowBatch, Segment},
-        prelude::*,
+        batch::{flush::GrowableBatch, metaversion::Metaversion, ArrowBatch, Segment},
+        error::{Error, Result},
+        meta,
         schema::state::AgentSchema,
-        storage::BufferChange,
+        storage::{memory::Memory, BufferChange},
     },
     proto::ExperimentId,
     simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY,
@@ -115,17 +121,17 @@ impl AgentBatch {
         let (schema, static_meta) = if let Some(s) = schema {
             (s.arrow.clone(), s.static_meta.clone())
         } else {
-            let message = arrow_ipc::root_as_message(schema_buffer)?;
+            let message = ipc::root_as_message(schema_buffer)?;
             let ipc_schema = match message.header_as_schema() {
                 Some(s) => s,
                 None => return Err(Error::ArrowSchemaRead),
             };
-            let schema = Arc::new(arrow_ipc::convert::fb_to_schema(ipc_schema));
+            let schema = Arc::new(ipc::convert::fb_to_schema(ipc_schema));
             let static_meta = Arc::new(schema.get_static_metadata());
             (schema, static_meta)
         };
 
-        let batch_message = arrow_ipc::root_as_message(meta_buffer)?
+        let batch_message = ipc::root_as_message(meta_buffer)?
             .header_as_record_batch()
             .ok_or_else(|| Error::ArrowBatch("Couldn't read message".into()))?;
 
@@ -148,7 +154,7 @@ impl AgentBatch {
 
     pub fn get_prepared_memory_for_data(
         schema: &Arc<AgentSchema>,
-        dynamic_meta: &DynamicMeta,
+        dynamic_meta: &meta::Dynamic,
         experiment_id: &ExperimentId,
     ) -> Result<Memory> {
         let ipc_data_generator = IpcDataGenerator::default();
@@ -187,7 +193,7 @@ impl AgentBatch {
     /// Set dynamic metadata and write it to memory (without checking or updating metaversions).
     pub(in crate::datastore) fn flush_dynamic_meta_unchecked(
         &mut self,
-        dynamic_meta: &DynamicMeta,
+        dynamic_meta: &meta::Dynamic,
     ) -> Result<BufferChange> {
         self.batch.dynamic_meta = dynamic_meta.clone();
         let meta_buffer = get_dynamic_meta_flatbuffers(dynamic_meta)?;

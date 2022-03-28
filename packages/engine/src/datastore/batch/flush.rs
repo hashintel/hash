@@ -1,8 +1,10 @@
+use arrow::util::bit_util;
+
 use crate::datastore::{
     arrow::{meta_conversion::get_dynamic_meta_flatbuffers, padding},
     error::Result,
-    prelude::*,
-    storage::BufferChange,
+    meta::{self, BufferAction, Node},
+    storage::{memory::Memory, BufferChange},
 };
 
 /// The info required about Arrow array data in order to grow it
@@ -41,9 +43,9 @@ pub(in crate::datastore) trait GrowableColumn<D: GrowableArrayData>:
 //       remove the type parameters from the trait? (would simplify impl of this trait a bit; still
 //       couldn't make the trait public (outside the datastore) though due to `memory_mut`)
 pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
-    fn static_meta(&self) -> &StaticMeta;
-    fn dynamic_meta(&self) -> &DynamicMeta;
-    fn dynamic_meta_mut(&mut self) -> &mut DynamicMeta;
+    fn static_meta(&self) -> &meta::Static;
+    fn dynamic_meta(&self) -> &meta::Dynamic;
+    fn dynamic_meta_mut(&mut self) -> &mut meta::Dynamic;
     // TODO: Change to `segment` after creating CSegment in py FFI
     fn memory(&self) -> &Memory;
     // TODO: segment_mut?
@@ -116,7 +118,7 @@ pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableCo
                 // it is found under `array_data.null_buffer()` and
                 // NOT under `array_data.buffers()[0]`
                 {
-                    let num_bytes = arrow_bit_util::ceil(array_data.len(), 8);
+                    let num_bytes = bit_util::ceil(array_data.len(), 8);
                     let next_buffer_offset = self
                         .dynamic_meta()
                         .buffers
@@ -297,7 +299,7 @@ fn push_non_modify_actions(
     first_index: usize,
     last_index: usize,
     mut this_buffer_offset: usize,
-    dynamic_meta: &DynamicMeta,
+    dynamic_meta: &meta::Dynamic,
 ) -> usize {
     if first_index > last_index {
         // No non-modify actions needed

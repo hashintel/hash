@@ -5,8 +5,7 @@ use std::{
 
 use rayon::iter::ParallelIterator;
 
-use super::super::prelude::*;
-use crate::datastore::table::pool::proxy::PoolReadProxy;
+use crate::datastore::{batch::MessageBatch, error::Result, table::pool::proxy::PoolReadProxy};
 
 #[derive(Clone, Debug)]
 pub struct AgentMessageReference {

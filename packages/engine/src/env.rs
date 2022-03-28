@@ -3,7 +3,6 @@ use thiserror::Error as ThisError;
 use tokio::time::Duration;
 
 use crate::{
-    nano,
     proto::{
         EngineMsg, EngineStatus, ExecutionEnvironment, ExperimentId, ExperimentRunRepr,
         ExperimentRunTrait, InitMessage,

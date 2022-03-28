@@ -2,7 +2,7 @@ use flatbuffers::{FlatBufferBuilder, WIPOffset};
 
 use super::error::Result;
 use crate::{
-    datastore::{batch::Segment, prelude::SharedStore},
+    datastore::{batch::Segment, shared_store::SharedStore},
     worker::runner::comms::PackageMsgs,
 };
 
