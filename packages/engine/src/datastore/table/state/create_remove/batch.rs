@@ -1,9 +1,9 @@
 use std::{collections::HashSet, ops::Deref};
 
-use super::{AgentIndex, BatchIndex, WorkerIndex};
 use crate::datastore::{
     batch::{agent::AgentBatch, iterators::record_batch},
     error::Result,
+    table::state::create_remove::{AgentIndex, BatchIndex, WorkerIndex},
     UUID_V4_LEN,
 };
 

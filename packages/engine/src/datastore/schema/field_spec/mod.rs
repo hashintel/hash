@@ -109,7 +109,7 @@ impl FieldKey {
     }
 
     /// Returns a string as key
-    pub(in super::super) fn new(key: &str) -> Self {
+    pub(in crate::datastore) fn new(key: &str) -> Self {
         Self(key.to_string())
     }
 

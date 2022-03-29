@@ -1,6 +1,6 @@
 //! TODO: DOC
 pub mod comms;
-pub mod error;
+mod error;
 mod pending;
 pub mod runs;
 
@@ -249,7 +249,8 @@ impl WorkerPoolController {
                     })?;
                 }
                 let fut = async move {
-                    let sync = sync; // Capture `sync` in lambda.
+                    let sync = sync;
+                    // Capture `sync` in lambda.
                     // TODO: these types of logs are better suited as a span
                     tracing::trace!("Waiting for worker synchronization");
                     sync.forward_children(worker_completion_receivers).await;

@@ -488,7 +488,7 @@ impl IntoRecordBatch for &[&Agent] {
         let messages: Vec<Value> = self
             .iter()
             .map(|agent| agent.get_as_json("messages"))
-            .collect::<crate::hash_types::error::Result<_>>()?;
+            .collect::<crate::hash_types::Result<_>>()?;
 
         message::batch_from_json(schema, ids, Some(messages))
     }
@@ -511,7 +511,7 @@ impl IntoRecordBatch for &[&Agent] {
             let vals: Vec<Value> = self
                 .iter()
                 .map(|agent: &&Agent| agent.get_as_json(name.as_str()))
-                .collect::<crate::hash_types::error::Result<_>>()?;
+                .collect::<crate::hash_types::Result<_>>()?;
 
             // If use `match` instead of `if`, Rust infers that
             // `name` must have static lifetime, like `match` arms.

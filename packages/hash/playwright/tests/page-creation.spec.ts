@@ -98,6 +98,39 @@ test("user can create page", async ({ page }) => {
     blockRegionLocator.locator('[data-testid="block-handle"]'),
   ).toHaveCount(3);
 
+  await page.keyboard.press("Enter");
+  await sleep(100); // TODO: investigate flakiness in FF and Webkit
+
+  await expect(
+    blockRegionLocator.locator('[data-testid="block-handle"]'),
+  ).toHaveCount(4);
+
+  const blockChanger = blockRegionLocator
+    .locator('[data-testid="block-changer"]')
+    .nth(2);
+  await blockChanger.click();
+
+  await blockChanger
+    .locator('[placeholder="Load Block from URL..."]')
+    .fill("https://blockprotocol.org/blocks/@shinypb/emoji-trading-cards");
+
+  /**
+   * This is creating a new block above the current one, instead of switching
+   * block. This is a bug, and results in us having one extra block than
+   * intended, which impacts the rest of this test.
+   *
+   * @see https://app.asana.com/0/1201095311341924/1202033760322934/f
+   */
+  await blockChanger.locator("text=Load Block").click();
+
+  await expect(
+    blockChanger.locator('[placeholder="Load Block from URL..."]'),
+  ).toHaveCount(0, { timeout: 1000 });
+
+  await expect(
+    blockRegionLocator.locator(`[data-testid="block"]:nth-child(3) p`),
+  ).toHaveCount(0);
+
   // Give collab some time to sync data
   await sleep(2000);
 
@@ -128,7 +161,7 @@ test("user can create page", async ({ page }) => {
 
   await expect(
     blockRegionLocator.locator('[data-testid="block-handle"]'),
-  ).toHaveCount(3);
+  ).toHaveCount(5);
 });
 
 // TODO: investigate flakiness of page renaming and enable the test in CI

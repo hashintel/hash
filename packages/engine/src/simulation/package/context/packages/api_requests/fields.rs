@@ -1,7 +1,11 @@
-use super::{FieldSpec, Result, RootFieldSpec, RootFieldSpecCreator};
-use crate::datastore::schema::{
-    FieldScope, FieldType,
-    FieldTypeVariant::{String, Struct, VariableLengthArray},
+use crate::{
+    datastore::schema::{
+        FieldScope, FieldType,
+        FieldTypeVariant::{String, Struct, VariableLengthArray},
+    },
+    simulation::package::context::packages::api_requests::{
+        FieldSpec, Result, RootFieldSpec, RootFieldSpecCreator,
+    },
 };
 
 pub(super) const FROM_FIELD_NAME: &str = "from";

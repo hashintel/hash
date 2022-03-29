@@ -1,0 +1,69 @@
+diff --git a/node_modules/blockprotocol/core.d.ts b/node_modules/blockprotocol/core.d.ts
+index 20a9bbd..eb3a4e4 100644
+--- a/node_modules/blockprotocol/core.d.ts
++++ b/node_modules/blockprotocol/core.d.ts
+@@ -27,7 +27,7 @@ export type BlockVariant = {
+   /**
+    * @deprecated - Use the `name` field instead.
+    */
+-  displayName: string;
++  displayName?: string;
+   properties: JSONObject;
+   examples?: JSONObject[] | null;
+ };
+@@ -191,10 +191,12 @@ export type BlockProtocolMultiFilter = {
+   operator: BlockProtocolMultiFilterOperatorType;
+ };
+ 
+-export type BlockProtocolMultiSort = {
++export type BlockProtocolSort = {
+   field: string;
+   desc?: boolean | undefined | null;
+-}[];
++}
++
++export type BlockProtocolMultiSort = BlockProtocolSort[];
+ 
+ export type BlockProtocolAggregateOperationInput = {
+   entityTypeId?: string | null;
+@@ -249,7 +251,8 @@ export type BlockProtocolUploadFileFunction = {
+ 
+ // ----------------------------- LINKS -------------------------------- //
+ 
+-type SingleTargetLinkFields = {
++export type SingleTargetLinkFields = {
++  linkId: string;
+   destinationEntityId: string;
+   destinationEntityTypeId?: string | null;
+   destinationEntityVersionId?: string | null;
+@@ -260,7 +263,6 @@ type AggregationTargetLinkFields = {
+ };
+ 
+ export type BlockProtocolLink = {
+-  linkId: string;
+   sourceAccountId?: string | null;
+   sourceEntityId: string;
+   sourceEntityTypeId?: string | null;
+@@ -304,14 +306,16 @@ export type BlockProtocolCreateLinksFunction = {
+   (actions: BlockProtocolCreateLinksAction[]): Promise<BlockProtocolLink[]>;
+ };
+ 
++export type BlockProtocolUpdateLinkedAggregationActionFragment = {
++  // temporary identifiers for LinkedAggregations - to be replaced with a single id
++  sourceAccountId?: string | null;
++  sourceEntityId: string;
++  path: string;
++}
++
+ export type BlockProtocolUpdateLinksAction =
+   | { linkId: string; data: Pick<BlockProtocolLink, "index"> }
+-  | ({
+-      // temporary identifiers for LinkedAggregations - to be replaced with a single id
+-      sourceAccountId?: string | null;
+-      sourceEntityId: string;
+-      path: string;
+-    } & { data: BlockProtocolAggregateOperationInput });
++  | (BlockProtocolUpdateLinkedAggregationActionFragment & { data: BlockProtocolAggregateOperationInput });
+ 
+ export type BlockProtocolUpdateLinksFunction = {
+   (actions: BlockProtocolUpdateLinksAction[]): Promise<BlockProtocolLink[]>;
