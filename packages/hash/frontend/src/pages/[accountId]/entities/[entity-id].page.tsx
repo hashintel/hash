@@ -98,6 +98,6 @@ const BlockBasedEntityPage: NextPage = () => {
   );
 };
 
-export default process.env.NEXT_PUBLIC_BLOCK_BASED_ENTITY_PAGE === "true"
+export default process.env.NEXT_PUBLIC_BLOCK_BASED_ENTITY_EDITOR === "true"
   ? BlockBasedEntityPage
   : SimpleEntityPage;

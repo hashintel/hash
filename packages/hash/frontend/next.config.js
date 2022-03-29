@@ -24,9 +24,9 @@ const sentryWebpackPluginOptions = {
 process.env.NEXT_PUBLIC_HASH_OPENSEARCH_ENABLED =
   process.env.HASH_OPENSEARCH_ENABLED;
 
-process.env.NEXT_PUBLIC_BLOCK_BASED_ENTITY_PAGE =
-  process.env.NEXT_PUBLIC_BLOCK_BASED_ENTITY_PAGE ??
-  process.env.BLOCK_BASED_ENTITY_PAGE;
+process.env.NEXT_PUBLIC_BLOCK_BASED_ENTITY_EDITOR =
+  process.env.NEXT_PUBLIC_BLOCK_BASED_ENTITY_EDITOR ??
+  process.env.BLOCK_BASED_ENTITY_EDITOR;
 
 /**
  * @todo try using next-compose-plugins when upgrading next to 11 and/or to webpack 5
