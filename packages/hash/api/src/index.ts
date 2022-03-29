@@ -96,6 +96,8 @@ const main = async () => {
   const pgPort = parseInt(getRequiredEnv("HASH_PG_PORT"), 10);
   const redisHost = getRequiredEnv("HASH_REDIS_HOST");
   const redisPort = parseInt(getRequiredEnv("HASH_REDIS_PORT"), 10);
+  const temporalHost = getRequiredEnv("HASH_TEMPORAL_HOST");
+  const temporalPort = parseInt(getRequiredEnv("HASH_TEMPORAL_PORT"), 10);
 
   await Promise.all([
     waitOnResource(`tcp:${pgHost}:${pgPort}`, logger),
@@ -124,7 +126,7 @@ const main = async () => {
   // Connect to Temporal
   const temporalPool = createTemporalPool({
     // TODO: Use env var
-    address: "localhost:7233",
+    address: `${temporalHost}:${temporalPort}`,
   });
 
   // Set sensible default security headers: https://www.npmjs.com/package/helmet

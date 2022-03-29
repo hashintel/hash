@@ -14,7 +14,7 @@ export function createTemporalPool(options: {
   });
 
   return {
-    createWorkspaceClient(options: {
+    createWorkspaceClient(_options: {
       // Perhaps use an org account id for namespacing? (tbf: we don't really understand namespaces, yet.)
       //   accountId?: string;
     }) {
@@ -25,6 +25,8 @@ export function createTemporalPool(options: {
 
       return {
         startHello() {
+          // eslint is wrong, the function below is hoisted because it is a named `function`.
+          // eslint-disable-next-line @typescript-eslint/no-use-before-define
           return startHello(client);
         },
       };
@@ -37,8 +39,12 @@ async function startHello(client: WorkflowClient) {
     args: ["Temporal"], // type inference works! args: [name: string]
     taskQueue: "hello-world",
     // in practice, use a meaningful business id, eg customerId or transactionId
-    workflowId: "wf-id-" + Math.floor(Math.random() * 1000),
+    workflowId: `wf-id-${Math.floor(
+      Math.random() * 1000,
+    )}-${Date.now().toString(36)}`,
   });
+
+  // temporary
   console.log(`Started workflow ${handle.workflowId}`);
 
   return handle.result();
