@@ -82,12 +82,12 @@ index 20a9bbd..a849fa3 100644
 +} & BlockProtocolFunctions & BlockProtocolStyling;
 diff --git a/node_modules/blockprotocol/styling.d.ts b/node_modules/blockprotocol/styling.d.ts
 new file mode 100644
-index 0000000..5d01daf
+index 0000000..e7f656f
 --- /dev/null
 +++ b/node_modules/blockprotocol/styling.d.ts
-@@ -0,0 +1,33 @@
+@@ -0,0 +1,140 @@
 +/**
-+ * Block Protocol them is inspired by MUI
++ * Block Protocol theme is inspired by MUI
 + * @see https://mui.com/customization/theming/
 + * @see 
 + */
@@ -111,13 +111,120 @@ index 0000000..5d01daf
 +
 +export type ColorPartial = Partial<Color>;
 +
++export interface SimplePaletteColorOptions {
++  light?: string;
++  main: string;
++  dark?: string;
++  contrastText?: string;
++}
 +
-+export type BlockProtocolTheme = {
-+  
++export type PaletteMode = 'light' | 'dark';
++
++export type PaletteTonalOffset =
++  | number
++  | {
++      light: number;
++      dark: number;
++    };
++
++export type PaletteColorOptions = SimplePaletteColorOptions | ColorPartial;
++
++export interface CommonColors {
++  black: string;
++  white: string;
++}
++
++export interface TypeAction {
++  active: string;
++  hover: string;
++  hoverOpacity: number;
++  selected: string;
++  selectedOpacity: number;
++  disabled: string;
++  disabledOpacity: number;
++  disabledBackground: string;
++  focus: string;
++  focusOpacity: number;
++  activatedOpacity: number;
++}
++
++export interface TypeBackground {
++  default: string;
++  paper: string;
++}
++
++export interface TypeText {
++  primary: string;
++  secondary: string;
++  disabled: string;
++}
++
++export type PaletteOptions = {
++  primary?: PaletteColorOptions;
++  secondary?: PaletteColorOptions;
++  error?: PaletteColorOptions;
++  warning?: PaletteColorOptions;
++  info?: PaletteColorOptions;
++  success?: PaletteColorOptions;
++  mode?: PaletteMode;
++  tonalOffset?: PaletteTonalOffset;
++  contrastThreshold?: number;
++  common?: Partial<CommonColors>;
++  grey?: ColorPartial;
++  text?: Partial<TypeText>;
++  divider?: string;
++  action?: Partial<TypeAction>;
++  background?: Partial<TypeBackground>;
++}
++
++export type Shadows = [
++  'none',
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++  string,
++];
++
++export interface ZIndex {
++  mobileStepper: number;
++  speedDial: number;
++  appBar: number;
++  drawer: number;
++  modal: number;
++  snackbar: number;
++  tooltip: number;
++}
++
++export type ZIndexOptions = Partial<ZIndex>;
++
++export interface BlockProtocolThemeOptions {
++  palette?: PaletteOptions;
++  shadows?: Shadows;
++  zIndex: ZIndexOptions;
 +}
 +
 +export type BlockProtocolStyling = {
-+  theme?: BlockProtocolTheme | undefined
++  theme?: BlockProtocolThemeOptions | undefined
 +}
 diff --git a/node_modules/blockprotocol/styling.js b/node_modules/blockprotocol/styling.js
 new file mode 100644
