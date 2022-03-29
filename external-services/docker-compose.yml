@@ -65,7 +65,7 @@ services:
       - ../.env.local
     environment:
       - DB=postgresql
-      - POSTGRES_PORT=5432
+      - DB_PORT=5432
       - POSTGRES_SEEDS=hash-dev-postgres
       - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development_sql.yaml
     image: temporalio/auto-setup:1.15.2 # TODO: get version from env?
