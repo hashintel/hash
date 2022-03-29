@@ -1,17 +1,20 @@
 {
-  "name": "@hashintel/hash-postgres",
+  "name": "@hashintel/hash-datastore",
   "version": "0.0.0",
-  "description": "Postgres migration script",
-  "repository": "github.com/hashintel/dev/packages/hash/api/datastore/postgres",
+  "private": true,
+  "description": "The data store for HASH",
+  "repository": {
+    "url": "https://github.com/hashintel/dev/packages/hash/datastore",
+    "directory": "packages/hash/datastore"
+  },
   "license": "GPL-3.0",
-  "type": "commonjs",
   "scripts": {
     "fix:eslint": "eslint --ext .ts --fix .",
-    "generate-ids": "ts-node scripts/generate-ids.ts",
     "lint:eslint": "eslint --ext .ts .",
     "lint:tsc": "tsc --noEmit",
-    "recreate-db": "ts-node scripts/recreate-db.ts",
-    "run-schema-migrations": "ts-node scripts/run-schema-migrations.ts"
+    "pg:generate-ids": "ts-node postgres/scripts/generate-ids.ts",
+    "pg:recreate-db": "ts-node postgres/scripts/recreate-db.ts",
+    "pg:run-schema-migrations": "ts-node postgres/scripts/run-schema-migrations.ts"
   },
   "dependencies": {
     "@hashintel/hash-api": "0.0.0",
