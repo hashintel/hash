@@ -132,12 +132,13 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
       );
     }
 
-    // Right now we just handle ascending/descending
-    if (sortType === "asc" || sortType === "desc") {
-      return orderBy(entityTypes, ["properties.title"], [sortType]);
-    }
-
-    return entityTypes;
+    // Right now we just handle ascending/descending and default to ascending
+    // for other sort types
+    return orderBy(
+      entityTypes,
+      ["properties.title"],
+      [sortType === "asc" || sortType === "desc" ? sortType : "asc"],
+    );
   }, [sortType, data, searchQuery]);
 
   return (
