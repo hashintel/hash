@@ -3,7 +3,13 @@
 This package stores the configuration for the HASH datastore. For now, it
 only contains a config for a local development Postgres running on Docker.
 
-## Postgres Schema
+## Postgres
+
+### Migrations
+
+We make use of the [node-pg-migrate](https://github.com/salsita/node-pg-migrate) NPM package to generate and run migrations on the postgres datastore.
+
+### Schema
 
 The Postgres schema definitions are stored in [`./postgres/schema`](./postgres/schema).
 

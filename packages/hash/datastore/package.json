@@ -13,6 +13,7 @@
     "lint:eslint": "eslint --ext .ts .",
     "lint:tsc": "tsc --noEmit",
     "pg:generate-ids": "ts-node postgres/scripts/generate-ids.ts",
+    "pg:migrate": "ts-node node_modules/.bin/node-pg-migrate -f ./postgres/migration-config.json",
     "pg:recreate-db": "ts-node postgres/scripts/recreate-db.ts",
     "pg:run-schema-migrations": "ts-node postgres/scripts/run-schema-migrations.ts"
   },
@@ -20,6 +21,7 @@
     "@hashintel/hash-api": "0.0.0",
     "@hashintel/hash-backend-utils": "0.0.0",
     "id128": "1.6.6",
+    "node-pg-migrate": "6.2.1",
     "node-postgres": "0.6.2",
     "pg": "8.7.1",
     "prompts": "2.4.1",
@@ -27,6 +29,7 @@
     "yargs": "17.1.1"
   },
   "devDependencies": {
+    "@types/node-pg-migrate": "2.3.1",
     "@types/prompts": "2.0.14"
   }
 }

@@ -12,7 +12,7 @@ export const recreateDbAndRunSchemaMigrations = async () => {
 
   await execa(
     "yarn",
-    ["workspace", "@hashintel/hash-datastore", "pg:run-schema-migrations"],
+    ["workspace", "@hashintel/hash-datastore", "pg:migrate", "up"],
     { cwd: monorepoRootDir },
   );
 };
