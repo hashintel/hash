@@ -79,7 +79,7 @@ export const BlockLoaderInput: React.VFC = () => {
           type="submit"
         >
           {isDefinedBlock
-            ? "Block got defined"
+            ? "Block already defined"
             : !isValidBlockUrl
             ? "Invalid URL"
             : error

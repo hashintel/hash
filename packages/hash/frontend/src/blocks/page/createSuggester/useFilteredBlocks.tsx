@@ -16,7 +16,7 @@ export const useFilteredBlocks = (
   return useMemo(() => {
     const allOptions: Option[] = Object.values(userBlocks).flatMap(
       (blockMeta) => {
-        if (blockMeta.variants) {
+        if (blockMeta.variants?.length) {
           return blockMeta.variants.map((variant) => ({
             variant: {
               ...variant,
@@ -26,22 +26,26 @@ export const useFilteredBlocks = (
           }));
         }
 
-        const option: Option = {
+        return {
           variant: {
-            description: blockMeta.description ?? "",
-            name: blockMeta.displayName ?? "",
+            description:
+              blockMeta.description ?? blockMeta.displayName ?? blockMeta.name,
+            displayName: blockMeta.displayName ?? blockMeta.name,
+            // @todo add a fallback icon
             icon: blockMeta.icon ?? "",
-            properties: {},
+            name: blockMeta.displayName ?? blockMeta.name,
+            properties: blockMeta.default ?? {},
           },
           meta: blockMeta,
         };
-
-        return option;
       },
     );
 
     return fuzzySearchBy(allOptions, searchText, (option) =>
-      [option.variant.name, option.variant.description, option.meta.author]
+      [
+        option.variant.name ?? option.variant.displayName,
+        option.variant.description,
+      ]
         .map((str) => str ?? "")
         .join(" "),
     );
