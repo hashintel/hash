@@ -3,12 +3,14 @@ import { faAdd, faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import { Box, Typography, Collapse, Tooltip } from "@mui/material";
 import { FontAwesomeIcon } from "../../icons";
 import { IconButton, IconButtonProps } from "../../IconButton";
+import { Link } from "../../Link";
 
 type NavLinkProps = {
   title: string;
   endAdornmentProps: {
     tooltipTitle: string;
     "data-testid"?: string;
+    href?: string;
   } & IconButtonProps;
 };
 
@@ -22,8 +24,31 @@ export const NavLink: FC<NavLinkProps> = ({
   const {
     tooltipTitle: endAdornmentTooltipTitle,
     sx: endAdormentSx = [],
+    href: endAdornmentHref,
     ...otherEndAdornmentProps
   } = endAdornmentProps;
+
+  const EndAdornment = (
+    <IconButton
+      size="small"
+      unpadded
+      rounded
+      data-testid="create-page-btn"
+      onClick={endAdornmentProps.onClick}
+      {...otherEndAdornmentProps}
+      sx={[
+        ({ palette }) => ({
+          ...(hovered && {
+            backgroundColor: palette.gray[30],
+            color: palette.gray[80],
+          }),
+        }),
+        ...(Array.isArray(endAdormentSx) ? endAdormentSx : [endAdormentSx]),
+      ]}
+    >
+      <FontAwesomeIcon icon={faAdd} />
+    </IconButton>
+  );
 
   return (
     <Box>
@@ -75,27 +100,13 @@ export const NavLink: FC<NavLinkProps> = ({
           />
         </IconButton>
         <Tooltip title={endAdornmentTooltipTitle}>
-          <IconButton
-            size="small"
-            unpadded
-            rounded
-            data-testid="create-page-btn"
-            onClick={endAdornmentProps.onClick}
-            {...otherEndAdornmentProps}
-            sx={[
-              ({ palette }) => ({
-                ...(hovered && {
-                  backgroundColor: palette.gray[30],
-                  color: palette.gray[80],
-                }),
-              }),
-              ...(Array.isArray(endAdormentSx)
-                ? endAdormentSx
-                : [endAdormentSx]),
-            ]}
-          >
-            <FontAwesomeIcon icon={faAdd} />
-          </IconButton>
+          {endAdornmentHref ? (
+            <Link tabIndex={-1} href={endAdornmentHref} noLinkStyle>
+              {EndAdornment}
+            </Link>
+          ) : (
+            EndAdornment
+          )}
         </Tooltip>
       </Box>
       <Collapse in={expanded}>{children}</Collapse>

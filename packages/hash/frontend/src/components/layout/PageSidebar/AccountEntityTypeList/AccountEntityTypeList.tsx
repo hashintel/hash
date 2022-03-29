@@ -147,7 +147,7 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
         title="Types"
         endAdornmentProps={{
           tooltipTitle: "Create new type",
-          onClick: () => router.push(`/${accountId}/types/new`),
+          href: `/${accountId}/types/new`,
           "data-testid": "create-entity-btn",
         }}
       >
