@@ -47,7 +47,7 @@ services:
     volumes:
       - ../var/external-services/postgres/data:/data
     networks:
-      - postgres
+      - temporal-network
 
   hash-dev-redis:
     deploy:
@@ -67,15 +67,13 @@ services:
       - DB=postgresql
       - DB_PORT=5432
       - POSTGRES_SEEDS=hash-dev-postgres
-      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development_sql.yaml
-    image: temporalio/auto-setup:1.15.2 # TODO: get version from env?
+    build:
+      context: ./temporal
+      dockerfile: Dockerfile.temporal-auto-setup
     networks:
       - temporal-network
-      - postgres
     ports:
       - 7233:7233
-    volumes:
-      - ./temporal/dynamicconfig:/etc/temporal/config/dynamicconfig
   temporal-admin-tools:
     container_name: temporal-admin-tools
     depends_on:
@@ -103,6 +101,3 @@ networks:
   temporal-network:
     driver: bridge
     name: temporal-network
-  postgres:
-    driver: bridge
-    name: postgres

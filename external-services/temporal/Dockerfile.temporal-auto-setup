@@ -1,0 +1,5 @@
+# TODO: get version from env?
+FROM temporalio/auto-setup:1.15.2
+
+COPY ./dynamicconfig/development_sql.yaml /etc/temporal/config/dynamicconfig/
+ENV DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development_sql.yaml
