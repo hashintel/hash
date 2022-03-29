@@ -22,6 +22,7 @@ export const createEditorView = (
   accountId: string,
   pageEntityId: string,
   blocksMeta: BlocksMetaMap,
+  routeHash: string,
 ) => {
   let manager: ProsemirrorSchemaManager;
 
@@ -112,7 +113,7 @@ export const createEditorView = (
         getPos,
         renderPortal,
         meta,
-        accountId,
+        routeHash,
       );
     },
   );

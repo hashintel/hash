@@ -1,4 +1,5 @@
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import { useRouter } from "next/router";
 import { Schema } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
 import "prosemirror-view/style/prosemirror.css";
@@ -40,6 +41,9 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     manager: ProsemirrorSchemaManager;
   }>(null);
 
+  const router = useRouter();
+  const routeHash = router.asPath.split("#")[1]!;
+
   /**
    * This effect runs once and just sets up the prosemirror instance. It is not
    * responsible for setting the contents of the prosemirror document
@@ -59,6 +63,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       accountId,
       entityId,
       blocksMeta,
+      routeHash,
     );
 
     prosemirrorSetup.current = {

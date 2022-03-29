@@ -6,7 +6,6 @@ import React, {
   useState,
   VoidFunctionComponent,
 } from "react";
-import { useRouter } from "next/router";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { BlockProtocolLinkedAggregation } from "blockprotocol";
 
@@ -39,6 +38,7 @@ type BlockLoaderProps = {
   linkGroups: LinkGroup[];
   linkedEntities: BlockEntity["properties"]["entity"]["linkedEntities"];
   linkedAggregations: BlockEntity["properties"]["entity"]["linkedAggregations"];
+  routeHash: string;
   shouldSandbox?: boolean;
   sourceUrl: string;
 };
@@ -56,11 +56,10 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   linkGroups,
   linkedEntities,
   linkedAggregations,
+  routeHash,
   shouldSandbox,
   sourceUrl,
 }) => {
-  const router = useRouter();
-
   const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();
   const { aggregateEntities } = useBlockProtocolAggregateEntities();
   const { createLinks } = useBlockProtocolCreateLinks();
@@ -124,8 +123,6 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   }, []);
 
   useEffect(() => {
-    const routeHash = router.asPath.split("#")[1]!;
-
     function frame() {
       const routeElement = document.getElementById(routeHash);
 
@@ -154,7 +151,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
     return () => {
       clearScrollInterval();
     };
-  }, [blockLoaded, blockEntityId, router.asPath]);
+  }, [blockLoaded, blockEntityId, routeHash]);
 
   if (sandboxingEnabled && (shouldSandbox || sourceUrl.endsWith(".html"))) {
     return (
