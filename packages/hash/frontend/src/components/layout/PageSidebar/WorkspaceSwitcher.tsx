@@ -22,6 +22,7 @@ import { useUser } from "../../hooks/useUser";
 import { Avatar } from "../../Avatar";
 import { Button } from "../../Button";
 import { useLogout } from "../../hooks/useLogout";
+import { useCurrentWorkspaceContext } from "../../../contexts/CurrentWorkspaceContext";
 
 type WorkspaceSwitcherProps = {};
 
@@ -40,10 +41,9 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
   });
   const { user } = useUser();
   const { logout } = useLogout();
-  const { query } = useRouter();
+  const { accountId: activeAccountId } = useCurrentWorkspaceContext();
 
   const activeWorkspace = useMemo(() => {
-    const activeAccountId = query.accountId as string;
     let accountName = "";
 
     if (user && activeAccountId === user.accountId) {
@@ -59,7 +59,7 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
     }
 
     return { name: accountName || "User", accountId: activeAccountId };
-  }, [query, user]);
+  }, [activeAccountId, user]);
 
   const workspaceList = useMemo(() => {
     if (!user) {
@@ -90,12 +90,12 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
         ref={buttonRef}
         variant="tertiary_quiet"
         fullWidth
-        sx={{
+        sx={({ spacing }) => ({
           backgroundColor: "transparent",
-          padding: "12px 16px 12px 18px",
+          padding: spacing(1.5, 2, 1.5, 2.25),
           justifyContent: "flex-start",
           textAlign: "left",
-        }}
+        })}
         {...bindTrigger(popupState)}
       >
         <Avatar size={24} title={activeWorkspace.name} />
@@ -130,7 +130,11 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
         autoFocus={false}
       >
         {workspaceList.map(({ title, subText, url, key }) => (
-          <MenuItem key={key} selected={key === activeWorkspace.accountId}>
+          <MenuItem
+            key={key}
+            selected={key === activeWorkspace.accountId}
+            onClick={() => popupState.close()}
+          >
             <Link
               href={url}
               noLinkStyle
@@ -168,7 +172,7 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
             href: "/",
           },
         ].map(({ title, id, href }) => (
-          <MenuItem key={id}>
+          <MenuItem key={id} onClick={() => popupState.close()}>
             <Link key={id} href={href} noLinkStyle>
               <ListItemText primary={title} />
             </Link>

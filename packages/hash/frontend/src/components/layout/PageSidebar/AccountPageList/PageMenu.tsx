@@ -18,7 +18,7 @@ import {
   faPencil,
 } from "@fortawesome/free-solid-svg-icons";
 import { faFileAlt, faTrashCan } from "@fortawesome/free-regular-svg-icons";
-import { useRouter } from "next/router";
+import { useCurrentWorkspaceContext } from "../../../../contexts/CurrentWorkspaceContext";
 import { FontAwesomeIcon } from "../../../icons";
 import { useCreatePage } from "../../../hooks/useCreatePage";
 
@@ -29,9 +29,8 @@ type PageMenuProps = {
 
 export const PageMenu: VFC<PageMenuProps> = ({ popupState, entityId }) => {
   const [copied, setCopied] = useState(false);
-  const { query } = useRouter();
-  const accountId = query.accountId as string;
-  const { createSubPage } = useCreatePage(accountId);
+  const { accountId } = useCurrentWorkspaceContext();
+  const { createSubPage } = useCreatePage(accountId!);
 
   const menuItems = useMemo(
     () => [
