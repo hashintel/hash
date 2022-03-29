@@ -5,13 +5,13 @@ use std::sync::Arc;
 
 use tokio::task::JoinHandle;
 
-use super::{
-    controller::comms::{exp_pkg_ctl::ExpPkgCtlRecv, exp_pkg_update::ExpPkgUpdateSend},
-    Result,
-};
 use crate::{
     config::ExperimentConfig,
-    init_exp_package,
+    experiment::{
+        controller::comms::{exp_pkg_ctl::ExpPkgCtlRecv, exp_pkg_update::ExpPkgUpdateSend},
+        error::Result,
+        init_exp_package,
+    },
     proto::{ExperimentRunTrait, PackageConfig, SimulationShortId},
 };
 

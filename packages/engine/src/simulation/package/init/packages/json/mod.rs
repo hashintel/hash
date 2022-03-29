@@ -1,13 +1,16 @@
 use async_trait::async_trait;
 use serde_json::Value;
 
-use super::super::{
-    Agent, Arc, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg,
-    MaybeCpuBound, PackageComms, PackageCreator, SimRunConfig,
-};
 use crate::{
     proto::{ExperimentRunTrait, InitialStateName},
-    simulation::{package::init::Package as InitPackage, Error, Result},
+    simulation::{
+        package::init::{
+            Agent, Arc, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg,
+            GetWorkerSimStartMsg, MaybeCpuBound, Package as InitPackage, PackageComms,
+            PackageCreator, SimRunConfig,
+        },
+        Error, Result,
+    },
 };
 
 pub struct Creator {}

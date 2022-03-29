@@ -6,8 +6,7 @@ use serde::{
 };
 use serde_json::Value;
 
-use super::Result;
-use crate::config::globals::Globals;
+use crate::config::{globals::Globals, Result};
 
 // TODO: think about creating a system of ConfigProviders whereby packages can depend on them
 //   and decrease the amount of assumptions the core engine has to make, for example position

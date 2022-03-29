@@ -1,5 +1,7 @@
-pub mod worker;
-pub mod worker_pool;
+mod worker;
+mod worker_pool;
 
-pub use worker::WorkerHandler;
-pub use worker_pool::{SplitConfig, WorkerPoolHandler};
+pub use self::{
+    worker::WorkerHandler,
+    worker_pool::{SplitConfig, WorkerPoolHandler},
+};

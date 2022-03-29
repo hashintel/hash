@@ -5,17 +5,19 @@ use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
 };
 
-use super::BatchPool;
 use crate::{
+    config::SimRunConfig,
     datastore::{
         batch::{self, message, AgentBatch, MessageBatch},
+        error::{Error, Result},
         table::{
-            pool::proxy::PoolReadProxy, proxy::BatchWriteProxy, references::AgentMessageReference,
+            pool::{proxy::PoolReadProxy, BatchPool},
+            proxy::BatchWriteProxy,
+            references::AgentMessageReference,
         },
-        Error, Result, UUID_V4_LEN,
+        UUID_V4_LEN,
     },
     proto::ExperimentRunTrait,
-    SimRunConfig,
 };
 
 /// A collection of [`Batch`]es which contain the current (outbound) messages of agents.

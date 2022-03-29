@@ -3,7 +3,6 @@
 use std::sync::Arc;
 
 use arrow::{
-    array::Array,
     datatypes::Schema,
     ipc::{
         self,
@@ -12,14 +11,13 @@ use arrow::{
     },
     record_batch::RecordBatch,
 };
-use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 
 use crate::{
     datastore::{
         arrow::{
             batch_conversion::IntoRecordBatch,
             ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
-            message::{self, MESSAGE_COLUMN_INDEX},
+            message,
             meta_conversion::HashDynamicMeta,
         },
         batch::{
@@ -27,13 +25,12 @@ use crate::{
             AgentBatch, ArrowBatch, Segment,
         },
         error::{Error, Result},
-        meta::Static as StaticMeta,
+        meta,
         schema::state::MessageSchema,
         storage::memory::Memory,
-        table::references::AgentMessageReference,
         UUID_V4_LEN,
     },
-    hash_types::{message::Outbound as OutboundMessage, state::AgentStateField},
+    hash_types::state::AgentStateField,
     proto::ExperimentId,
 };
 
@@ -154,7 +151,7 @@ impl MessageBatch {
     pub fn empty_from_agent_batch(
         agent_batch: &AgentBatch,
         schema: &Arc<Schema>,
-        meta: Arc<StaticMeta>,
+        meta: Arc<meta::Static>,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
         let agent_count = agent_batch.num_agents();
@@ -205,7 +202,7 @@ impl MessageBatch {
     pub fn from_record_batch(
         record_batch: &RecordBatch,
         schema: Arc<Schema>,
-        meta: Arc<StaticMeta>,
+        meta: Arc<meta::Static>,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
         let ipc_data_generator = IpcDataGenerator::default();
@@ -231,7 +228,7 @@ impl MessageBatch {
     pub fn from_memory(
         memory: Memory,
         schema: Arc<Schema>,
-        static_meta: Arc<StaticMeta>,
+        static_meta: Arc<meta::Static>,
     ) -> Result<Self> {
         let (_, _, meta_buffer, data_buffer) = memory.get_batch_buffers()?;
 
@@ -267,14 +264,23 @@ pub struct Raw<'a> {
 
 // Iterators and getters
 pub mod record_batch {
-    use arrow::array;
-
-    use super::{
-        message, AgentMessageReference, Array, Error, IndexedParallelIterator,
-        IntoParallelIterator, MessageLoader, OutboundMessage, ParallelIterator, RecordBatch,
-        Result, MESSAGE_COLUMN_INDEX,
+    use arrow::{
+        array::{self, Array},
+        record_batch::RecordBatch,
     };
-    use crate::datastore::arrow::message::{get_column_from_list_array, MESSAGE_COLUMN_NAME};
+    use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
+
+    use crate::{
+        datastore::{
+            arrow::message::{
+                self, get_column_from_list_array, MESSAGE_COLUMN_INDEX, MESSAGE_COLUMN_NAME,
+            },
+            batch::message::MessageLoader,
+            error::{Error, Result},
+            table::references::AgentMessageReference,
+        },
+        hash_types::message::Outbound as OutboundMessage,
+    };
 
     pub fn get_native_messages(record_batch: &RecordBatch) -> Result<Vec<Vec<OutboundMessage>>> {
         let reference = record_batch

@@ -5,15 +5,15 @@
 
 use std::ops::{Index, IndexMut};
 
-use super::{
-    markers::{Buffer, Markers, Val},
-    ptr::MemoryPtr,
-    BufferChange,
-};
 use crate::datastore::{
     arrow::util,
     error::{Error, Result},
-    storage::memory::Memory,
+    storage::{
+        markers::{Buffer, Markers, Val},
+        memory::Memory,
+        ptr::MemoryPtr,
+        BufferChange,
+    },
 };
 
 pub(in crate::datastore) trait Visit<'mem: 'v, 'v> {

@@ -7,10 +7,10 @@
 
 use arrow::util::bit_util;
 
-use super::{memory::CMemory, ArrowArray};
 use crate::datastore::{
     batch::flush::{GrowableArrayData, GrowableBatch, GrowableColumn},
     error::{Error, Result},
+    ffi::{memory::CMemory, ArrowArray},
     meta,
     storage::memory::Memory,
 };

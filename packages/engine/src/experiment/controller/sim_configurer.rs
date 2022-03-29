@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use super::Result;
 use crate::{
     config::{
-        EngineConfig, ExperimentConfig, Globals, PersistenceConfig, StoreConfig, WorkerAllocation,
+        EngineConfig, ExperimentConfig, Globals, PersistenceConfig, SimRunConfig, StoreConfig,
+        WorkerAllocation,
     },
+    experiment::controller::error::Result,
     proto::{ExperimentPackageConfig, SimulationShortId},
-    SimRunConfig,
 };
 
 pub struct SimConfigurer {

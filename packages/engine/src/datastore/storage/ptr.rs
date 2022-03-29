@@ -1,4 +1,4 @@
-use super::memory::Memory;
+use crate::datastore::storage::memory::Memory;
 
 /// Pointer over any Memory contents, capable of mutation
 pub struct MemoryPtr {

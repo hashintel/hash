@@ -1,22 +1,25 @@
+mod config;
+
 use async_trait::async_trait;
 use serde_json::Value;
 
 pub use self::config::JsonStateOutputConfig;
-use super::super::{
-    Arc, Context, Error, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg,
-    GetWorkerSimStartMsg, Globals, MaybeCpuBound, Output, PackageComms, PackageCreator, Result,
-    SimRunConfig, Span, State,
-};
 use crate::{
     datastore::{
         arrow::batch_conversion::IntoAgents,
         schema::{HIDDEN_PREFIX, PRIVATE_PREFIX},
     },
     hash_types::Agent,
-    simulation::package::{name::PackageName, output, output::Package},
+    simulation::package::{
+        name::PackageName,
+        output,
+        output::{
+            Arc, Context, Error, ExperimentConfig, FieldSpecMapAccessor, GetWorkerExpStartMsg,
+            GetWorkerSimStartMsg, Globals, MaybeCpuBound, Output, Package, PackageComms,
+            PackageCreator, Result, SimRunConfig, Span, State,
+        },
+    },
 };
-
-mod config;
 
 // TODO: UNUSED: Needs triage
 pub enum Task {}

@@ -33,8 +33,8 @@ use super::{
     command::Commands,
     package::id::PackageId,
     task::{access::StoreAccessVerify, active::ActiveTask, Task},
+    Error, Result,
 };
-pub use super::{Error, Result};
 use crate::{
     datastore::table::{
         context::Context,

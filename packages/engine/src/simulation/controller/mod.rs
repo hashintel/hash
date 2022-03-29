@@ -1,4 +1,4 @@
-pub mod error;
+mod error;
 pub mod run;
 pub mod runs;
 pub mod sim_control;
@@ -12,16 +12,15 @@ pub use self::{
     error::{Error, Result},
     sim_control::SimControl,
 };
-use super::comms::Comms;
 use crate::{
+    config::SimRunConfig,
     experiment::controller::comms::{
         sim_status::SimStatusSend,
         simulation::{new_pair, SimCtlRecv, SimCtlSend},
     },
     output::SimulationOutputPersistenceRepr,
     proto::SimulationShortId,
-    simulation::package::run::Packages,
-    SimRunConfig,
+    simulation::{comms::Comms, package::run::Packages},
 };
 
 pub struct SimulationController {

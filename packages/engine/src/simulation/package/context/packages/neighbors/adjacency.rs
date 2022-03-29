@@ -1,5 +1,7 @@
-use super::map::Position;
-use crate::config::{topology::WrappingBehavior, TopologyConfig};
+use crate::{
+    config::{topology::WrappingBehavior, TopologyConfig},
+    simulation::package::context::packages::neighbors::map::Position,
+};
 
 /// Performs all the bounds checking and shifts points over depending on the topology config
 /// Takes in a single position and returns a vector containing all the possible wrapping

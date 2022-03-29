@@ -1,12 +1,14 @@
-use std::collections::hash_map;
-
 use serde_json::Value;
 use thiserror::Error as ThisError;
 
-use super::{handlers, ApiResponseMap, Error, Result};
-use crate::datastore::{
-    table::{pool::message::MessageReader, references::AgentMessageReference},
-    UUID_V4_LEN,
+use crate::{
+    datastore::{
+        table::{pool::message::MessageReader, references::AgentMessageReference},
+        UUID_V4_LEN,
+    },
+    simulation::package::context::packages::api_requests::{
+        handlers, ApiResponseMap, Error, Result,
+    },
 };
 
 pub const ACTIVE_REQUESTS: usize = 10;
@@ -59,15 +61,18 @@ trait CustomError: Into<CustomApiMessageError> {
 }
 
 pub mod mapbox {
-    use std::collections::HashMap;
+    use std::collections::{hash_map, HashMap};
 
     use futures::StreamExt;
+    use thiserror::Error as ThisError;
 
-    use super::{
-        hash_map, ApiResponseMap, CustomError, Request, Requests, Result, ThisError, Value,
-        ACTIVE_REQUESTS,
+    use crate::{
+        datastore::UUID_V4_LEN,
+        simulation::package::context::packages::api_requests::{
+            handlers::{CustomError, Request, Requests, ACTIVE_REQUESTS},
+            ApiResponseMap, Result, Value,
+        },
     };
-    use crate::datastore::UUID_V4_LEN;
 
     #[derive(ThisError, Debug)]
     pub enum MapboxError {

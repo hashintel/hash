@@ -16,8 +16,8 @@ use arrow::{
 use flatbuffers::FlatBufferBuilder;
 
 use crate::datastore::{
+    error::{Error, Result},
     meta::{self, Buffer, BufferType, Node, NodeMapping},
-    Error, Result,
 };
 
 pub enum SupportedDataTypes {

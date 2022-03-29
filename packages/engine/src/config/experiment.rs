@@ -1,8 +1,7 @@
 use std::sync::Arc;
 
-use super::{package, worker, worker_pool, Result};
 use crate::{
-    config::globals::Globals,
+    config::{globals::Globals, package, worker, worker_pool, Result},
     proto::{ExperimentName, ExperimentRunRepr, ExperimentRunTrait, InitialStateName},
     simulation::package::init,
 };

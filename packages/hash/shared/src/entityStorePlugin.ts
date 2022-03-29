@@ -573,6 +573,39 @@ class ProsemirrorStateChangeHandler {
   }
 }
 
+/**
+ * This is used by entityStorePlugin to notify any listeners to the plugin that
+ * a state has changed. This needs to happen at the end of a tick to ensure that
+ * Prosemirror is in a consistent and stable state before the subscriber is
+ * notified as the subscriber may then query Prosemirror which could cause a
+ * crash if Prosemirror is either not in a consistent state yet, or if the view
+ * state and the state used to notify the subscribers are not in sync.
+ *
+ * We schedule the notification using the view and not the current state, as
+ * the view state may change in between when its scheduled and when the
+ * notification occurs, and we want to ensure we only notify with the final
+ * view state in a tick. Intermediary states are not notified for.
+ */
+const scheduleNotifyEntityStoreSubscribers = collect<
+  [
+    view: EditorView<Schema>,
+    prevState: EditorState<Schema>,
+    entityStorePlugin: Plugin<EntityStorePluginState, Schema>,
+  ]
+>((calls) => {
+  for (const [view, prevState, entityStorePlugin] of calls) {
+    const nextPluginState = entityStorePlugin.getState(view.state);
+    const prevPluginState = entityStorePlugin.getState(prevState);
+
+    // If the plugin state has changed, notify listeners
+    if (nextPluginState !== prevPluginState) {
+      for (const listener of nextPluginState.listeners) {
+        listener(nextPluginState.store);
+      }
+    }
+  }
+});
+
 export const createEntityStorePlugin = ({ accountId }: { accountId: string }) =>
   new Plugin<EntityStorePluginState, Schema>({
     key: entityStorePluginKey,
@@ -585,16 +618,20 @@ export const createEntityStorePlugin = ({ accountId }: { accountId: string }) =>
         };
       },
       apply(tr, initialState): EntityStorePluginState {
-        const nextState = getMeta(tr)?.store ?? initialState;
-
-        if (nextState !== initialState) {
-          for (const listener of nextState.listeners) {
-            listener(nextState.store);
-          }
-        }
-
-        return nextState;
+        return getMeta(tr)?.store ?? initialState;
       },
+    },
+
+    view() {
+      return {
+        update: (view, prevState) => {
+          scheduleNotifyEntityStoreSubscribers(
+            view,
+            prevState,
+            createEntityStorePlugin({ accountId }),
+          );
+        },
+      };
     },
 
     /**
