@@ -62,7 +62,11 @@ const SearchInput: VFC<SearchInputProps> = ({
           position: "absolute",
           right: 0,
           width: 200,
+          borderRadius: "4px",
           backgroundColor: palette.white,
+          [`.${outlinedInputClasses.notchedOutline}`]: {
+            borderRadius: "4px",
+          },
           [`.${outlinedInputClasses.focused} .${outlinedInputClasses.notchedOutline}`]:
             {
               borderColor: palette.blue[60],
