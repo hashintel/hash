@@ -73,6 +73,7 @@ export class EditorConnection {
     public view: EditorView<Schema>,
     public manager: ProsemirrorSchemaManager,
     public additionalPlugins: Plugin<unknown, Schema>[],
+    public accountId: string,
     private onError: () => void,
   ) {
     this.start();
@@ -99,6 +100,7 @@ export class EditorConnection {
     switch (action.type) {
       case "loaded": {
         const editorState = createProseMirrorState({
+          accountId: this.accountId,
           doc: action.doc,
           plugins: [
             ...this.additionalPlugins,
