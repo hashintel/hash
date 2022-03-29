@@ -178,6 +178,9 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
               pl={3.75}
               position="relative"
             >
+              {/* @todo: We do not currently have a page for viewing all types.
+                Once we do, we can update this with the right url.
+              */}
               <Link
                 href="/"
                 noLinkStyle

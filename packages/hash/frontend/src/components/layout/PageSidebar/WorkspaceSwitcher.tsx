@@ -62,15 +62,19 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
   }, [query, user]);
 
   const workspaceList = useMemo(() => {
+    if (!user) {
+      return [];
+    }
+
     return [
       {
-        key: user?.accountId ?? "currentUser",
+        key: user.accountId,
         url: "/",
         title: "My personal workspace",
-        subText: `@${user?.properties.shortname ?? "user"}`,
-        avatarTitle: user?.properties.preferredName ?? "U",
+        subText: `@${user.properties.shortname ?? "user"}`,
+        avatarTitle: user.properties.preferredName ?? "U",
       },
-      ...(user?.memberOf ?? []).map(({ org }) => ({
+      ...user.memberOf.map(({ org }) => ({
         key: org.accountId,
         url: `/${org.accountId}`,
         title: org.properties.name,
