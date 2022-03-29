@@ -32,9 +32,9 @@ export const NavLink: FC<NavLinkProps> = ({
           display: "flex",
           alignItems: "center",
           borderRadius: "4px",
-          py: "8px",
-          pl: "12px",
-          pr: "6px",
+          py: 1,
+          pl: 1.5,
+          pr: 0.75,
           mx: 0.5,
           ...(hovered && {
             backgroundColor: palette.gray[20],

@@ -10,7 +10,6 @@ import {
   listItemTextClasses,
 } from "@mui/material";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
-import { useRouter } from "next/router";
 import {
   usePopupState,
   bindTrigger,
@@ -163,17 +162,16 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
         {[
           {
             title: "Workspace Settings",
-            id: 1,
             href: "/",
           },
           {
             title: "Create or Join a workspace",
-            id: 2,
             href: "/",
           },
-        ].map(({ title, id, href }) => (
-          <MenuItem key={id} onClick={() => popupState.close()}>
-            <Link key={id} href={href} noLinkStyle>
+        ].map(({ title, href }, index) => (
+          // eslint-disable-next-line react/no-array-index-key
+          <MenuItem key={index} onClick={() => popupState.close()}>
+            <Link href={href} noLinkStyle>
               <ListItemText primary={title} />
             </Link>
           </MenuItem>

@@ -13,9 +13,11 @@ const CurrentWorkspaceContext = createContext<CurrentWorkspaceContextState>({
 export const useCurrentWorkspaceContext = () =>
   useContext(CurrentWorkspaceContext);
 
-// @todo we currently pull the accountId from the url and that works for now
-// although this wouldn't work when we switch to using slugs instead of accountIds in the url.
-// When that happens the accountId should be pulled properly in this component
+/**
+ * @todo we currently pull the accountId from the url and that works for now
+ * although this wouldn't work when we switch to using slugs instead of accountIds in the url.
+ * When that happens the accountId should be pulled properly in this component
+ */
 export const CurrentWorkspaceContextProvider: FC = ({ children }) => {
   const { user } = useUser();
   const router = useRouter();

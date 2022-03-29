@@ -47,6 +47,7 @@ const SearchInput: VFC<SearchInputProps> = ({
         sx={({ palette }) => ({ color: palette.gray[50] })}
         onClick={() => showSearchInput()}
       >
+        {/* @todo-mui get a free icon that matches the design closely */}
         <FontAwesomeIcon icon={faSearch} />
       </IconButton>
     </Tooltip>
@@ -57,26 +58,26 @@ const SearchInput: VFC<SearchInputProps> = ({
         placeholder="Search for types"
         inputRef={searchInputRef}
         onChange={(evt) => onChangeText(evt.target.value)}
-        sx={{
+        sx={({ palette }) => ({
           position: "absolute",
           right: 0,
           width: 200,
-          backgroundColor: "white",
+          backgroundColor: palette.white,
           [`.${outlinedInputClasses.focused} .${outlinedInputClasses.notchedOutline}`]:
             {
-              borderColor: ({ palette }) => palette.blue[60],
+              borderColor: palette.blue[60],
             },
-        }}
+        })}
         InputProps={{
           sx: ({ typography, palette }) => ({
             ...typography.smallTextLabels,
             color: palette.gray[80],
             fontWeight: 500,
-            pl: "12px",
-            pr: "8px",
+            pl: 1.5,
+            pr: 1,
             [`& .${outlinedInputClasses.input}`]: {
               px: 0,
-              py: "7px",
+              py: 0.875,
               "&::placeholder": {
                 color: palette.gray[50],
                 opacity: 1,
@@ -219,6 +220,7 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
                   }),
                 })}
               >
+                {/* @todo-mui get a free icon that matches the design closely */}
                 <FontAwesomeIcon icon={faArrowUpAZ} />
               </IconButton>
             </Tooltip>
@@ -236,6 +238,10 @@ export const AccountEntityTypeList: VFC<AccountEntityTypeListProps> = ({
                     title={entityType.properties.title}
                     entityId={entityType.entityId}
                     accountId={accountId}
+                    /**
+                     * @todo Pulling the entityId from the url will break once we switch to using slugs to represent entity types
+                     * We need to create a context to pull the right entityId in that scenario
+                     */
                     selected={router.query.typeId === entityType.entityId}
                   />
                 </Collapse>

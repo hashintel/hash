@@ -29,37 +29,31 @@ type SortActionsDropdownProps = {
 };
 
 const menuItems: {
-  id: number;
   title: string;
   sortType: SortType;
   icon: IconDefinition;
 }[] = [
   {
-    id: 1,
     title: "Alphabetical",
     icon: faArrowDownAZ,
     sortType: "asc",
   },
   {
-    id: 2,
     title: "Reverse Alphabetical",
     icon: faArrowUpZA,
     sortType: "desc",
   },
   {
-    id: 3,
     title: "Recently Updated",
     icon: faWandSparkles, // @todo-mui get a free icon that matches the design closely
     sortType: "recent",
   },
   {
-    id: 4,
     title: "Most used",
     icon: faArrowUpWideShort,
     sortType: "most_used",
   },
   {
-    id: 5,
     title: "Least used",
     sortType: "least_used",
     icon: faArrowDownShortWide,
@@ -92,7 +86,7 @@ export const SortActionsDropdown: VFC<SortActionsDropdownProps> = ({
         </Typography>
         <Tooltip title="Sort">
           <FontAwesomeIcon
-            icon={faQuestionCircle}
+            icon={faQuestionCircle} // @todo-mui get a free icon that matches the design closely
             sx={({ palette }) => ({
               color: palette.gray[50],
               fontSize: 16,
@@ -100,9 +94,9 @@ export const SortActionsDropdown: VFC<SortActionsDropdownProps> = ({
           />
         </Tooltip>
       </Box>
-      {menuItems.map(({ id, icon, title, sortType }) => (
+      {menuItems.map(({ icon, title, sortType }) => (
         <MenuItem
-          key={id}
+          key={sortType}
           onClick={() => {
             setSortType(sortType);
             popupState.close();

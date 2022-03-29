@@ -45,6 +45,7 @@ export const ActionsDropdown: React.FC<{
     } catch (err) {
       // eslint-disable-next-line no-console -- TODO: consider using logger
       console.error("Could not create page: ", err);
+    } finally {
       setLoading(false);
     }
   }, [createUntitledPage, loading]);
