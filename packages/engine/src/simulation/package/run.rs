@@ -4,6 +4,7 @@ use futures::{executor::block_on, stream::FuturesOrdered, StreamExt};
 use tracing::{Instrument, Span};
 
 use crate::{
+    config::SimRunConfig,
     datastore::table::{
         context::{Context, PreContext},
         proxy::StateReadProxy,
@@ -11,16 +12,10 @@ use crate::{
     },
     proto::ExperimentRunTrait,
     simulation::{
-        package::{
-            context,
-            context::ContextColumn,
-            init, output,
-            prelude::{Error, Result},
-            state,
-        },
+        error::{Error, Result},
+        package::{context, context::ContextColumn, init, output, state},
         step_output::SimulationStepOutput,
     },
-    SimRunConfig,
 };
 
 /// Represents the packages of a simulation engine.
@@ -251,7 +246,8 @@ impl StepPackages {
         // Design-choices:
         // Cannot use trait bounds as dyn Package won't be object-safe
         // Traits are tricky anyway for working with iterators
-        // Will instead use state.upgrade() and exstate.downgrade() and respectively for context
+        // Will instead use state.into_mut() and state_mut.into_shared() and respectively for
+        // context
         for pkg in self.state.iter_mut() {
             let span = pkg.span();
             pkg.run(state, context).instrument(span).await?;

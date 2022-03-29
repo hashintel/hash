@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-use super::Result;
-
 /// Global constant values that are available within a simulation and are provided along with
 /// initial world state
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]

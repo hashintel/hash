@@ -4,12 +4,19 @@ use std::{env, mem, path::Path};
 
 use shared_memory::{Shmem, ShmemConf};
 
-use super::{
-    ptr::MemoryPtr,
-    visitor::{Visit, Visitor, VisitorMut},
-    BufferChange,
+use crate::{
+    datastore::{
+        arrow::padding,
+        batch::Metaversion,
+        error::{Error, Result},
+        storage::{
+            ptr::MemoryPtr,
+            visitor::{Visit, Visitor, VisitorMut},
+            BufferChange,
+        },
+    },
+    proto::ExperimentId,
 };
-use crate::{datastore::prelude::*, proto::ExperimentId};
 
 pub type Buffers<'a> = (&'a [u8], &'a [u8], &'a [u8], &'a [u8]);
 

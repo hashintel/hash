@@ -1,9 +1,14 @@
-use arrow::array::ArrayData;
+use arrow::{array::ArrayData, record_batch::RecordBatch};
 
-use super::*;
 use crate::{
-    datastore::arrow::batch_conversion::{new_buffer, new_offsets_buffer},
-    simulation::package::state::packages::behavior_execution::config::BehaviorId,
+    datastore::{
+        arrow::batch_conversion::{new_buffer, new_offsets_buffer},
+        batch::AgentBatch,
+    },
+    simulation::package::state::packages::behavior_execution::{
+        config::BehaviorId, BehaviorIdInnerDataType, BehaviorIds, ColumnChange, DatastoreResult,
+        Error, IntoArrowChange, Result, StateColumn, BEHAVIOR_INDEX_INNER_COUNT,
+    },
 };
 
 pub fn gather_behavior_chains(

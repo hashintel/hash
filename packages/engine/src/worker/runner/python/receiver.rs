@@ -1,12 +1,16 @@
 use nng::{Aio, Socket};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
 
-use super::{
-    error::{Error, Result},
-    fbs::{pkgs_to_fbs, shared_ctx_to_fbs},
-};
 use crate::{
-    proto::ExperimentId, types::WorkerIndex, worker::runner::comms::ExperimentInitRunnerMsg,
+    proto::ExperimentId,
+    types::WorkerIndex,
+    worker::runner::{
+        comms::ExperimentInitRunnerMsg,
+        python::{
+            error::{Error, Result},
+            fbs::{pkgs_to_fbs, shared_ctx_to_fbs},
+        },
+    },
 };
 
 fn experiment_init_to_nng(init: &ExperimentInitRunnerMsg) -> Result<nng::Message> {
@@ -86,6 +90,7 @@ impl NngReceiver {
             .map_err(|(msg, err)| Error::NngSend(msg, err))?;
 
         let _init_ack = self.from_py.recv()?;
+        self.from_py.recv_async(&self.aio)?;
         Ok(())
     }
 

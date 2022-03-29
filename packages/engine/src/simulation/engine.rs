@@ -2,14 +2,10 @@ use std::{mem, sync::Arc};
 
 use tracing::Instrument;
 
-use super::{
-    comms::Comms, package::run::Packages, step_output::SimulationStepOutput,
-    step_result::SimulationStepResult, Error, Result,
-};
 use crate::{
     config::SimRunConfig,
     datastore::{
-        prelude::Store,
+        store::Store,
         table::{
             context::Context,
             pool::{agent::AgentPool, message::MessagePool, BatchPool},
@@ -24,6 +20,11 @@ use crate::{
     simulation::{
         agent_control::AgentControl,
         command::{Commands, StopCommand},
+        comms::Comms,
+        package::run::Packages,
+        step_output::SimulationStepOutput,
+        step_result::SimulationStepResult,
+        Error, Result,
     },
 };
 
@@ -158,7 +159,7 @@ impl Engine {
             active_sync.await?.map_err(Error::state_sync)?;
             tracing::trace!("State sync finished");
 
-            Result::Ok(())
+            Result::<_>::Ok(())
         }
         .instrument(tracing::info_span!("state_sync"))
         .await?;

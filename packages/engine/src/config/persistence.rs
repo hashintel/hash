@@ -1,6 +1,5 @@
-use super::Result;
 use crate::{
-    config::Globals,
+    config::{Globals, Result},
     simulation::package::{creator::PackageCreators, output::packages::OutputPackagesSimConfig},
 };
 

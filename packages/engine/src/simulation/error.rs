@@ -5,7 +5,7 @@ use crate::{
     hash_types::Agent,
 };
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(ThisError, Debug)]
 pub enum Error {
@@ -101,10 +101,7 @@ pub enum Error {
     InvalidBehaviorTaskMessage(crate::simulation::enum_dispatch::TaskMessage),
 
     #[error("Invalid behavior bytes: {0:?} ({1:?})")]
-    InvalidBehaviorBytes(
-        Vec<u8>,
-        std::result::Result<String, std::string::FromUtf8Error>,
-    ),
+    InvalidBehaviorBytes(Vec<u8>, Result<String, std::string::FromUtf8Error>),
 
     #[error("Invalid behavior name: \"{0}\"")]
     InvalidBehaviorName(String),
@@ -172,7 +169,7 @@ pub enum Error {
 impl Error {
     /// TODO: This is a temporary fix for the dependency cycle
     ///       between simulation and worker errors.
-    pub fn state_sync(worker_error: crate::worker::error::Error) -> Self {
+    pub fn state_sync(worker_error: crate::worker::Error) -> Self {
         Self::StateSync(format!("{:?}", worker_error))
     }
 

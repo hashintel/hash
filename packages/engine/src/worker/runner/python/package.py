@@ -1,33 +1,46 @@
+import logging
 from pathlib import Path
+import sys
+import traceback
+
+import hash_util
 
 
 def get_pkg_path(pkg_name, pkg_type):
-    return Path("../../../simulation/package/{}/packages/{}/package.py".format(
-        pkg_type, pkg_name
-    ))
+    # The engine should be started from the engine's root directory in the repo.
+    return Path(f"./src/simulation/package/{pkg_type}/packages/{pkg_name}/package.py")
 
 
 def load_fns(pkg_name, pkg_type):
     # Read code.
     path = get_pkg_path(pkg_name, pkg_type)
-    code = "import ........worker.runner.python.hash_util\n"+path.read_text()
+
+    try:
+        code = path.read_text(encoding="utf8")
+    except IOError:
+        logging.info("`%s` doesn't exist, possibly intentionally", path)
+        return [None, None, None]
 
     # Run code.
-    pkg_globals = {}
-    bytecode = compile(code.decode("utf-8"), pkg_name, "exec")
-    exec(bytecode, pkg_globals)
+    pkg_globals = {"hash_util": hash_util}
+    try:
+        bytecode = compile(code, pkg_name, "exec")
+        # pylint: disable=exec-used
+        exec(bytecode, pkg_globals)
+    except Exception:
+        # Have to catch generic Exception, because package could throw anything
+        error = str(traceback.format_exception(*sys.exc_info()))
+        raise RuntimeError from f"Couldn't import package {path}: {error}"
 
     # Extract functions.
     fn_names = ["start_experiment", "start_sim", "run_task"]
-    fns = [(name, pkg_globals.get(name)) for name in fn_names]
+    fns = [pkg_globals.get(name) for name in fn_names]
 
     # Validate functions.
-    for (fn_name, fn) in fns:
+    for (fn_name, fn) in zip(fn_names, fns):
         if fn is not None and not callable(fn):
             raise Exception(
-                "Couldn't import package {}: {} should be callable, not {}".format(
-                    pkg_name, fn_name, type(fn)
-                )
+                f"Couldn't import package {pkg_name}: {fn_name} should be callable, not {type(fn)}"
             )
     return fns
 

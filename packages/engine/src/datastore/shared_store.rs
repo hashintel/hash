@@ -1,7 +1,10 @@
 use std::{collections::HashMap, sync::Arc};
 
-use super::Result;
-use crate::{config::ExperimentConfig, datastore::batch::Dataset, proto::ExperimentRunTrait};
+use crate::{
+    config::ExperimentConfig,
+    datastore::{batch::Dataset, error::Result},
+    proto::ExperimentRunTrait,
+};
 
 // TODO rename to something more self-explanatory
 /// This is an object we use to manage sharing access to data that's static across simulation runs

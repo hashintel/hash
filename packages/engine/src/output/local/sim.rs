@@ -1,11 +1,15 @@
 use std::io::{BufReader, BufWriter};
 
-use super::{config::LocalPersistenceConfig, result::LocalPersistenceResult};
 use crate::{
-    output::{buffer::Buffers, error::Result, SimulationOutputPersistenceRepr},
+    config::SimRunConfig,
+    output::{
+        buffer::Buffers,
+        error::Result,
+        local::{config::LocalPersistenceConfig, result::LocalPersistenceResult},
+        SimulationOutputPersistenceRepr,
+    },
     proto::{ExperimentId, ExperimentName, SimulationShortId},
     simulation::{package::output::packages::Output, step_output::SimulationStepOutput},
-    SimRunConfig,
 };
 
 #[derive(derive_new::new)]

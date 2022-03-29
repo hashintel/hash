@@ -7,13 +7,14 @@ import React, { useLayoutEffect, useRef, VoidFunctionComponent } from "react";
 import { useLocalstorageState } from "rooks";
 
 import { Button } from "../../components/Button";
-import { BlocksMetaMap, BlocksMetaProvider } from "../blocksMeta";
+import { RemoteBlockMetadata, UserBlocksProvider } from "../userBlocks";
 import { EditorConnection } from "./collab/EditorConnection";
-import { createEditorView } from "./createEditorView";
+import { BlocksMetaMap, createEditorView } from "./createEditorView";
 import { usePortals } from "./usePortals";
 
 type PageBlockProps = {
   blocksMeta: BlocksMetaMap;
+  initialUserBlocks: RemoteBlockMetadata[];
   accountId: string;
   entityId: string;
 };
@@ -25,7 +26,10 @@ type PageBlockProps = {
  * do that
  */
 export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
+  // @todo consolidate blocksMeta and initialUserBlocks as they share properties
+  // @see - https://app.asana.com/0/1200211978612931/1202023490862451/f
   blocksMeta,
+  initialUserBlocks,
   accountId,
   entityId,
 }) => {
@@ -81,7 +85,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   }, [accountId, blocksMeta, entityId, renderPortal, routeHash]);
 
   return (
-    <BlocksMetaProvider value={blocksMeta}>
+    <UserBlocksProvider value={initialUserBlocks}>
       <div id="root" ref={root} />
       {portals}
       {/**
@@ -110,6 +114,6 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
           Restart Collab Instance
         </Button>
       ) : null}
-    </BlocksMetaProvider>
+    </UserBlocksProvider>
   );
 };
