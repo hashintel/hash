@@ -73,6 +73,7 @@
     "redis": "3.1.2",
     "rword": "3.2.0",
     "slonik": "24.1.2",
+    "temporalio": "0.19.1",
     "ua-parser-js": "1.0.2"
   },
   "devDependencies": {
