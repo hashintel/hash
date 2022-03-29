@@ -3,7 +3,7 @@ import { dropCursor } from "prosemirror-dropcursor";
 import { keymap } from "prosemirror-keymap";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { EditorState, Plugin } from "prosemirror-state";
-import { entityStorePlugin } from "./entityStorePlugin";
+import { createEntityStorePlugin } from "./entityStorePlugin";
 import { createSchema } from "./schema";
 import { wrapEntitiesPlugin } from "./wrapEntitiesPlugin";
 
@@ -12,18 +12,19 @@ const createInitialDoc = (schema: Schema = createSchema()) =>
 
 const defaultPlugins: Plugin<any, Schema>[] = [
   ...wrapEntitiesPlugin(baseKeymap),
-  entityStorePlugin,
   // This enables an indicator to appear when drag and dropping blocks
   dropCursor(),
 ];
 
 export const createProseMirrorState = ({
+  accountId,
   doc = createInitialDoc(),
   plugins = [],
 }: {
+  accountId: string;
   doc?: ProsemirrorNode<Schema>;
   plugins?: Plugin<any, Schema>[];
-} = {}) => {
+}) => {
   const formatKeymap = keymap<Schema>({
     // Mod- stands for Cmd- o macOS and Ctrl- elsewhere
     "Mod-b": toggleMark(doc.type.schema.marks.strong!),
@@ -45,6 +46,11 @@ export const createProseMirrorState = ({
 
   return EditorState.create<Schema>({
     doc,
-    plugins: [...defaultPlugins, formatKeymap, ...plugins],
+    plugins: [
+      ...defaultPlugins,
+      createEntityStorePlugin({ accountId }),
+      formatKeymap,
+      ...plugins,
+    ],
   });
 };

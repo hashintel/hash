@@ -60,8 +60,9 @@ export type EntityStorePluginAction = { received?: boolean } & (
   | {
       type: "newDraftEntity";
       payload: {
-        entityId: string | null;
+        accountId: string;
         draftId: string;
+        entityId: string | null;
       };
     }
   | {
@@ -252,6 +253,7 @@ const entityStoreReducer = (
         }
 
         draftState.store.draft[action.payload.draftId] = {
+          accountId: action.payload.accountId,
           entityId: action.payload.entityId,
           draftId: action.payload.draftId,
           entityVersionCreatedAt: new Date().toISOString(),
@@ -357,7 +359,7 @@ class ProsemirrorStateChangeHandler {
   private readonly tr: Transaction<Schema>;
   private handled = false;
 
-  constructor(private state: EditorState<Schema>) {
+  constructor(private state: EditorState<Schema>, private accountId: string) {
     this.tr = state.tr;
   }
 
@@ -528,8 +530,9 @@ class ProsemirrorStateChangeHandler {
       addEntityStoreAction(this.state, this.tr, {
         type: "newDraftEntity",
         payload: {
-          entityId: entityId ?? null,
+          accountId: this.accountId,
           draftId,
+          entityId: entityId ?? null,
         },
       });
     }
@@ -603,51 +606,52 @@ const scheduleNotifyEntityStoreSubscribers = collect<
   }
 });
 
-export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
-  key: entityStorePluginKey,
-  state: {
-    init(_): EntityStorePluginState {
+export const createEntityStorePlugin = ({ accountId }: { accountId: string }) =>
+  new Plugin<EntityStorePluginState, Schema>({
+    key: entityStorePluginKey,
+    state: {
+      init(_): EntityStorePluginState {
+        return {
+          store: createEntityStore([], {}),
+          listeners: [],
+          trackedActions: [],
+        };
+      },
+      apply(tr, initialState): EntityStorePluginState {
+        return getMeta(tr)?.store ?? initialState;
+      },
+    },
+
+    view() {
       return {
-        store: createEntityStore([], {}),
-        listeners: [],
-        trackedActions: [],
+        update: (view, prevState) => {
+          scheduleNotifyEntityStoreSubscribers(
+            view,
+            prevState,
+            createEntityStorePlugin({ accountId }),
+          );
+        },
       };
     },
-    apply(tr, initialState): EntityStorePluginState {
-      return getMeta(tr)?.store ?? initialState;
+
+    /**
+     * This is necessary to ensure the draft entity store stays in sync with the
+     * changes made by users to the document
+     *
+     * @todo we need to take the state left by the transactions as the start
+     * for nodeChangeHandler
+     */
+    appendTransaction(transactions, _, state) {
+      if (!transactions.some((tr) => tr.docChanged)) {
+        return;
+      }
+
+      if (
+        getMeta(transactions[transactions.length - 1]!)?.disableInterpretation
+      ) {
+        return;
+      }
+
+      return new ProsemirrorStateChangeHandler(state, accountId).handleDoc();
     },
-  },
-
-  view() {
-    return {
-      update: (view, prevState) => {
-        scheduleNotifyEntityStoreSubscribers(
-          view,
-          prevState,
-          entityStorePlugin,
-        );
-      },
-    };
-  },
-
-  /**
-   * This is necessary to ensure the draft entity store stays in sync with the
-   * changes made by users to the document
-   *
-   * @todo we need to take the state left by the transactions as the start
-   * for nodeChangeHandler
-   */
-  appendTransaction(transactions, _, state) {
-    if (!transactions.some((tr) => tr.docChanged)) {
-      return;
-    }
-
-    if (
-      getMeta(transactions[transactions.length - 1]!)?.disableInterpretation
-    ) {
-      return;
-    }
-
-    return new ProsemirrorStateChangeHandler(state).handleDoc();
-  },
-});
+  });
