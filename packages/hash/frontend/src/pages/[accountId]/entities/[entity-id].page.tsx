@@ -1,5 +1,4 @@
 import { useQuery } from "@apollo/client";
-
 import { useRouter } from "next/router";
 
 import { BlockProtocolUpdateEntitiesFunction } from "blockprotocol";
@@ -18,6 +17,7 @@ import { useBlockProtocolAggregateEntities } from "../../../components/hooks/blo
 import { useBlockProtocolDeleteLinks } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolDeleteLinks";
 import { useBlockProtocolCreateLinks } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateLinks";
 import { MainContentWrapper } from "../../../components/layout/MainContentWrapper";
+import { BlockBasedEntityEditor } from "./[entity-id].page/block-based-entity-editor";
 
 const SimpleEntityPage: NextPage = () => {
   const router = useRouter();
@@ -86,9 +86,14 @@ const SimpleEntityPage: NextPage = () => {
 };
 
 const BlockBasedEntityPage: NextPage = () => {
+  const router = useRouter();
+  const { query } = router;
+  const accountId = query.accountId as string;
+  const entityId = query["entity-id"] as string;
+
   return (
     <MainContentWrapper>
-      <h1>TODO</h1>
+      <BlockBasedEntityEditor accountId={accountId} entityId={entityId} />
     </MainContentWrapper>
   );
 };
