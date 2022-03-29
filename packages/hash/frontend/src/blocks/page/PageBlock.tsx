@@ -78,7 +78,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
       prosemirrorSetup.current = null;
       connection?.close();
     };
-  }, [accountId, blocksMeta, entityId, renderPortal]);
+  }, [accountId, blocksMeta, entityId, renderPortal, routeHash]);
 
   return (
     <BlocksMetaProvider value={blocksMeta}>
