@@ -8,6 +8,7 @@ import {
   Checkbox,
   Stack,
   InputAdornment,
+  Typography,
 } from "@mui/material";
 import { FC, useEffect, useState } from "react";
 import {
@@ -126,14 +127,24 @@ export const MainContentWrapper: FC = ({ children }) => {
         <Stack direction="row" alignItems="center" spacing={2}>
           <TextField placeholder="Search for anything" error />
           <TextField
-            defaultValue="Error Value"
+            defaultValue="password1"
             placeholder="Search for anything"
             error
           />
           <TextField
-            defaultValue="large"
             placeholder="Search for anything"
+            defaultValue="name@email.com"
             size="large"
+            success
+          />
+        </Stack>
+        <br />
+        <Stack direction="row" alignItems="center" spacing={2}>
+          <TextField
+            defaultValue="password1"
+            placeholder="Search for anything"
+            error
+            helperText="Your password must be less than 4 characters."
           />
         </Stack>
         <br />
@@ -164,8 +175,18 @@ export const MainContentWrapper: FC = ({ children }) => {
             placeholder="Search for anything"
             InputProps={{
               startAdornment: (
-                <InputAdornment position="start">
-                  <Box>https://</Box>
+                <InputAdornment
+                  sx={({ palette }) => ({
+                    backgroundColor: "gray.10",
+                    color: "gray.60",
+                    paddingRight: "12px",
+                    border: `1px solid ${palette.gray[30]}`,
+                  })}
+                  position="start"
+                >
+                  <Typography color="gray.60" variant="regularTextLabels">
+                    https://
+                  </Typography>
                 </InputAdornment>
               ),
             }}
