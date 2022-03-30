@@ -1,12 +1,3 @@
-#![allow(
-    clippy::or_fun_call,
-    clippy::cast_sign_loss,
-    clippy::option_as_ref_deref,
-    clippy::needless_pass_by_value,
-    clippy::doc_markdown,
-    clippy::match_same_arms
-)]
-
 use std::sync::Arc;
 
 use arrow::{
@@ -15,12 +6,12 @@ use arrow::{
 };
 use flatbuffers::FlatBufferBuilder;
 
-use crate::datastore::{
+use crate::{
     error::{Error, Result},
     meta::{self, Buffer, BufferType, Node, NodeMapping},
 };
 
-pub enum SupportedDataTypes {
+enum SupportedDataTypes {
     Boolean,
     Utf8,
     Binary,
@@ -100,6 +91,7 @@ impl TryFrom<DataType> for SupportedDataTypes {
     }
 }
 
+// TODO: Make this a method on `meta::Static`
 pub trait HashStaticMeta {
     fn get_static_metadata(&self) -> meta::Static;
 }
@@ -111,7 +103,10 @@ impl HashStaticMeta for Arc<Schema> {
     }
 }
 
+// TODO: Make this a method on `meta::Dynamic`
 pub trait HashDynamicMeta {
+    // TODO: Rename
+    #[allow(clippy::wrong_self_convention)]
     fn into_meta(&self, data_length: usize) -> Result<meta::Dynamic>;
 }
 
@@ -119,7 +114,7 @@ impl HashDynamicMeta for ipc::RecordBatch<'_> {
     fn into_meta(&self, data_length: usize) -> Result<meta::Dynamic> {
         let nodes = self
             .nodes()
-            .ok_or(Error::ArrowBatch("Missing field nodes".into()))?
+            .ok_or_else(|| Error::ArrowBatch("Missing field nodes".into()))?
             .iter()
             .map(|n| Node {
                 length: n.length() as usize,
@@ -129,7 +124,7 @@ impl HashDynamicMeta for ipc::RecordBatch<'_> {
 
         let buffers = self
             .buffers()
-            .ok_or(Error::ArrowBatch("Missing buffers".into()))?;
+            .ok_or_else(|| Error::ArrowBatch("Missing buffers".into()))?;
 
         let buffers: Vec<Buffer> = buffers
             .iter()
@@ -160,6 +155,7 @@ impl HashDynamicMeta for ipc::RecordBatch<'_> {
 
 /// Computes the flat_buffers builder from the metadata, using this builder
 /// the metadata of a shared batch can be modified
+// TODO: Make this a method on `meta::Dynamic`
 pub fn get_dynamic_meta_flatbuffers(meta: &meta::Dynamic) -> Result<Vec<u8>> {
     // TODO: OPTIM: Evaluate, if we want to return the flatbuffer instead to remove the slice-to-vec
     //   conversion.
@@ -207,6 +203,7 @@ pub fn get_dynamic_meta_flatbuffers(meta: &meta::Dynamic) -> Result<Vec<u8>> {
 
 /// Column hierarchy is the mapping from column index to buffer and node indices.
 /// This also returns information about which buffers are growable
+// TODO: Move this to `column`
 fn schema_to_column_hierarchy(
     schema: Arc<Schema>,
 ) -> (Vec<meta::Column>, Vec<bool>, Vec<meta::NodeStatic>) {
@@ -262,7 +259,8 @@ fn schema_to_column_hierarchy(
 /// Knowing the data type, can help us calculate the node and offset buffer counts in a column
 #[allow(clippy::too_many_lines)]
 #[must_use]
-pub fn data_type_to_metadata(
+// TODO: Make return type a struct
+fn data_type_to_metadata(
     data_type: &SupportedDataTypes,
     is_parent_growable: bool,
     multiplier: usize,
@@ -437,6 +435,7 @@ pub fn data_type_to_metadata(
     }
 }
 
+// TODO: Make return type a struct
 fn data_type_metadata(
     is_parent_growable: bool,
     multiplier: usize,

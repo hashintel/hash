@@ -152,9 +152,9 @@
 
 use std::cmp::Ordering;
 
-use crate::datastore::{
+use crate::{
     error::{Error, Result},
-    storage::BufferChange,
+    memory::BufferChange,
 };
 
 /// Simple way for every component (language runners + main loop) using the datastore to track
@@ -167,7 +167,6 @@ pub struct Metaversion {
 }
 
 impl Metaversion {
-    // TODO: UNUSED: Needs triage
     pub fn new(memory: u32, batch: u32) -> Result<Self> {
         if batch < memory {
             // TODO: Actually this is true for *writing*, but not necessarily for *reading* -- if
@@ -191,7 +190,7 @@ impl Metaversion {
         Self::new(memory, batch)
     }
 
-    pub fn to_le_bytes(&self) -> [u8; 8] {
+    pub fn to_le_bytes(self) -> [u8; 8] {
         let mut bytes = [0; 8];
         let memory_version = self.memory.to_le_bytes();
         let batch_version = self.batch.to_le_bytes();

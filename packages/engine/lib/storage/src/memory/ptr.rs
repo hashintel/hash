@@ -1,7 +1,8 @@
-use crate::datastore::storage::memory::Memory;
+use crate::memory::Memory;
 
 /// Pointer over any Memory contents, capable of mutation
 pub struct MemoryPtr {
+    // TODO: Use `NonNull` or a slice as mentioned below
     ptr: *const u8,
 }
 
@@ -10,7 +11,7 @@ impl<'s> MemoryPtr {
         Self::new(memory.data.as_ptr())
     }
 
-    pub fn new(ptr: *const u8) -> MemoryPtr {
+    fn new(ptr: *const u8) -> MemoryPtr {
         MemoryPtr { ptr }
     }
 
@@ -23,12 +24,14 @@ impl<'s> MemoryPtr {
         self.ptr.add(offset)
     }
 
-    #[allow(clippy::missing_safety_doc)]
+    // TODO: SAFETY section
     pub unsafe fn read_exact(&self, offset: usize, len: usize) -> &'s [u8] {
         std::slice::from_raw_parts(self.ptr.add(offset), len)
     }
 
-    #[allow(clippy::missing_safety_doc)]
+    // TODO: Unsound mutation of `&self` -> `&mut [u8]`. Change signature to take `&mut self` and
+    //       add lifetime to struct. Avoid pointer arithmetic and use slices instead.
+    // TODO: SAFETY section
     pub unsafe fn read_mut_exact(&self, offset: usize, len: usize) -> &'s mut [u8] {
         std::slice::from_raw_parts_mut(self.ptr.add(offset) as *mut _, len)
     }

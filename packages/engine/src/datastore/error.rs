@@ -35,6 +35,9 @@ pub enum Error {
     #[error("{0}")]
     Unique(String),
 
+    #[error("Storage error: {0}")]
+    Storage(#[from] storage::Error),
+
     #[error("Couldn't acquire shared lock on object")]
     ProxySharedLock,
 

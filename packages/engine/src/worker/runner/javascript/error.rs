@@ -19,6 +19,9 @@ pub enum Error {
     #[error("{0}")]
     Unique(String),
 
+    #[error("Storage error: {0}")]
+    Storage(#[from] storage::Error),
+
     #[error("Can't start JavaScript runner again when it is already running")]
     AlreadyRunning,
 

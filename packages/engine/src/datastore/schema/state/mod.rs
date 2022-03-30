@@ -3,12 +3,10 @@ mod message;
 use std::sync::Arc;
 
 use arrow::datatypes::Schema as ArrowSchema;
+use storage::meta::{self, conversion::HashStaticMeta};
 
 pub use self::message::MessageSchema;
-use crate::datastore::{
-    arrow::meta_conversion::HashStaticMeta, error::Result, meta::Static as StaticMeta,
-    schema::FieldSpecMap,
-};
+use crate::datastore::{error::Result, schema::FieldSpecMap};
 
 /// `AgentSchema` describes the layout of every
 /// agent-containing `SharedBatch` in a datastore. It contains
@@ -17,7 +15,7 @@ use crate::datastore::{
 #[derive(Clone, Debug)]
 pub struct AgentSchema {
     pub arrow: Arc<ArrowSchema>,
-    pub static_meta: Arc<StaticMeta>,
+    pub static_meta: Arc<meta::Static>,
     pub field_spec_map: Arc<FieldSpecMap>,
 }
 

@@ -1,19 +1,19 @@
-use arrow::util::bit_util;
+use arrow::{array::ArrayData, buffer::Buffer, util::bit_util};
 
-use crate::datastore::{
-    arrow::{meta_conversion::get_dynamic_meta_flatbuffers, padding},
+use crate::{
     error::Result,
-    meta::{self, BufferAction, Node},
-    storage::{memory::Memory, BufferChange},
+    memory::{padding, BufferChange, Memory},
+    meta::{self, conversion::get_dynamic_meta_flatbuffers},
 };
 
 /// The info required about Arrow array data in order to grow it
 ///
 /// Can be implemented by ArrayData, ArrayDataRef, Python FFI array data.
-pub(in crate::datastore) trait GrowableArrayData:
-    Sized + std::fmt::Debug
-{
+pub trait GrowableArrayData: Sized + std::fmt::Debug {
     fn len(&self) -> usize;
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
     fn null_count(&self) -> usize;
     fn null_buffer(&self) -> Option<&[u8]>;
     fn buffer(&self, index: usize) -> &[u8];
@@ -22,10 +22,34 @@ pub(in crate::datastore) trait GrowableArrayData:
     fn child_data(&self) -> &[Self];
 }
 
+impl GrowableArrayData for ArrayData {
+    fn len(&self) -> usize {
+        ArrayData::len(self)
+    }
+
+    fn null_count(&self) -> usize {
+        ArrayData::null_count(self)
+    }
+
+    fn null_buffer(&self) -> Option<&[u8]> {
+        ArrayData::null_buffer(self).map(Buffer::as_slice)
+    }
+
+    fn buffer(&self, index: usize) -> &[u8] {
+        self.buffers()[index].as_slice()
+    }
+
+    fn non_null_buffer_count(&self) -> usize {
+        self.buffers().len()
+    }
+
+    fn child_data(&self) -> &[Self] {
+        ArrayData::child_data(self)
+    }
+}
+
 /// The info required about an Arrow column in order to grow it
-pub(in crate::datastore) trait GrowableColumn<D: GrowableArrayData>:
-    Sized
-{
+pub trait GrowableColumn<D: GrowableArrayData>: Sized {
     fn index(&self) -> usize;
     fn data(&self) -> &D;
 }
@@ -42,7 +66,7 @@ pub(in crate::datastore) trait GrowableColumn<D: GrowableArrayData>:
 // TODO: Move `flush_changes` outside of trait and make it a function with type parameters and
 //       remove the type parameters from the trait? (would simplify impl of this trait a bit; still
 //       couldn't make the trait public (outside the datastore) though due to `memory_mut`)
-pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
+pub trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
     fn static_meta(&self) -> &meta::Static;
     fn dynamic_meta(&self) -> &meta::Dynamic;
     fn dynamic_meta_mut(&mut self) -> &mut meta::Dynamic;
@@ -108,7 +132,7 @@ pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableCo
             array_datas.iter().enumerate().for_each(|(i, array_data)| {
                 let node_index = meta.node_start + i;
                 // Update Node information
-                node_changes.push((node_index, Node {
+                node_changes.push((node_index, meta::Node {
                     null_count: array_data.null_count(),
                     length: array_data.len(),
                 }));
@@ -131,7 +155,7 @@ pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableCo
                     );
                     // Safety: A null buffer is always followed by another buffer
                     if let Some(b) = array_data.null_buffer() {
-                        buffer_actions.push(BufferAction::Ref {
+                        buffer_actions.push(meta::BufferAction::Ref {
                             index: this_buffer_index,
                             offset: this_buffer_offset,
                             padding: new_padding,
@@ -143,7 +167,7 @@ pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableCo
                         // null buffer corresponding to valid values
                         let buffer = vec![255_u8; num_bytes];
 
-                        buffer_actions.push(BufferAction::Owned {
+                        buffer_actions.push(meta::BufferAction::Owned {
                             index: this_buffer_index,
                             offset: this_buffer_offset,
                             padding: new_padding,
@@ -178,7 +202,7 @@ pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableCo
                         new_len,
                         next_buffer_offset,
                     );
-                    buffer_actions.push(BufferAction::Ref {
+                    buffer_actions.push(meta::BufferAction::Ref {
                         index: this_buffer_index,
                         offset: this_buffer_offset,
                         padding: new_padding,
@@ -217,7 +241,7 @@ pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableCo
             .into_iter()
             .rev()
             .try_for_each(|action| match action {
-                BufferAction::Move {
+                meta::BufferAction::Move {
                     old_offset,
                     old_total_length,
                     new_offset,
@@ -241,7 +265,7 @@ pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableCo
                         old_total_length,
                     )
                 }
-                BufferAction::Owned {
+                meta::BufferAction::Owned {
                     index,
                     offset,
                     padding,
@@ -254,7 +278,7 @@ pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableCo
                     self.memory_mut()
                         .overwrite_in_data_buffer_unchecked_nonoverlapping(offset, &buffer)
                 }
-                BufferAction::Ref {
+                meta::BufferAction::Ref {
                     index,
                     offset,
                     padding,
@@ -295,7 +319,7 @@ pub(in crate::datastore) trait GrowableBatch<D: GrowableArrayData, C: GrowableCo
 
 /// Add an action for buffer(s) whose data is not changed but might have to be moved
 fn push_non_modify_actions(
-    buffer_actions: &mut Vec<BufferAction<'_>>,
+    buffer_actions: &mut Vec<meta::BufferAction<'_>>,
     first_index: usize,
     last_index: usize,
     mut this_buffer_offset: usize,
@@ -315,7 +339,7 @@ fn push_non_modify_actions(
     } else {
         let length =
             last_buffer.offset - first_buffer.offset + last_buffer.length + last_buffer.padding;
-        buffer_actions.push(BufferAction::Move {
+        buffer_actions.push(meta::BufferAction::Move {
             old_offset: first_buffer.offset,
             old_total_length: length,
             new_offset: this_buffer_offset,

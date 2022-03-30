@@ -1,9 +1,7 @@
+use storage::memory::{Memory, Metaversion, Segment};
+
 use crate::{
-    datastore::{
-        batch::{metaversion::Metaversion, Segment},
-        error::Result,
-        storage::memory::Memory,
-    },
+    datastore::error::Result,
     proto::{ExperimentId, SharedDataset},
 };
 
@@ -45,7 +43,7 @@ impl Dataset {
         );
 
         Ok(Self {
-            segment: Segment(memory),
+            segment: Segment::from_memory(memory),
         })
     }
 

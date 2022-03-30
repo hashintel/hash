@@ -1,7 +1,8 @@
 use std::path::PathBuf;
 
+use storage::memory::shmem_id_prefix;
+
 use crate::{
-    datastore::storage::memory::shmem_id_prefix,
     output::{
         buffer::RELATIVE_PARTS_FOLDER,
         error::{Error, Result},

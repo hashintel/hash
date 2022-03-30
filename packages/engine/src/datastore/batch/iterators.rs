@@ -6,7 +6,7 @@ pub mod agent {
     use arrow::datatypes::DataType;
 
     use crate::datastore::{
-        batch::{iterators::record_batch, AgentBatch, AgentIndex},
+        batch::{agent::AgentBatch, context::AgentIndex, iterators::record_batch},
         error::Result,
         POSITION_DIM, UUID_V4_LEN,
     };
@@ -209,13 +209,11 @@ pub mod record_batch {
     use std::borrow::Cow;
 
     use arrow::{array::Array, datatypes::DataType, record_batch::RecordBatch, util::bit_util};
+    use storage::batch::{change::ColumnChange, col_to_json_vals};
 
     use crate::{
         datastore::{
-            arrow::batch_conversion::col_to_json_vals,
-            batch::{
-                boolean::Column as BooleanColumn, change::ColumnChange, iterators::column_with_name,
-            },
+            batch::{boolean::Column as BooleanColumn, iterators::column_with_name},
             Error, Result, POSITION_DIM, UUID_V4_LEN,
         },
         hash_types::state::AgentStateField,
@@ -629,7 +627,7 @@ pub mod record_batch {
         data_type: &DataType,
     ) -> Result<Vec<serde_json::Value>> {
         let column = column_with_name(record_batch, column_name)?;
-        col_to_json_vals(column, data_type)
+        Ok(col_to_json_vals(column, data_type)?)
     }
 }
 

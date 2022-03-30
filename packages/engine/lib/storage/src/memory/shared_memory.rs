@@ -1,21 +1,16 @@
-#![allow(clippy::similar_names)]
-
 use std::{env, mem, path::Path};
 
+use common::ExperimentId;
 use shared_memory::{Shmem, ShmemConf};
 
 use crate::{
-    datastore::{
-        arrow::padding,
-        batch::Metaversion,
-        error::{Error, Result},
-        storage::{
-            ptr::MemoryPtr,
-            visitor::{Visit, Visitor, VisitorMut},
-            BufferChange,
-        },
+    error::{Error, Result},
+    memory::{
+        padding,
+        ptr::MemoryPtr,
+        visitor::{Visit, Visitor, VisitorMut},
+        BufferChange, Metaversion,
     },
-    proto::ExperimentId,
 };
 
 pub type Buffers<'a> = (&'a [u8], &'a [u8], &'a [u8], &'a [u8]);
@@ -359,9 +354,9 @@ impl Memory {
 
         if cfg!(target_os = "macos") {
             if let Ok(val) = env::var("OS_MEMORY_ALLOC_OVERRIDE") {
-                size = val.parse().expect(&format!(
-                    "OS_MEMORY_ALLOC_OVERRIDE was an invalid value: {val}"
-                ));
+                size = val.parse().unwrap_or_else(|_| {
+                    panic!("OS_MEMORY_ALLOC_OVERRIDE was an invalid value: {val}")
+                });
                 tracing::debug!(
                     "Memory size was overridden by value set in envvar, set to: {size}"
                 );
@@ -400,9 +395,9 @@ impl Memory {
 
         if cfg!(target_os = "macos") {
             if let Ok(val) = env::var("OS_MEMORY_ALLOC_OVERRIDE") {
-                size = val.parse().expect(&format!(
-                    "OS_MEMORY_ALLOC_OVERRIDE was an invalid value: {val}"
-                ));
+                size = val.parse().unwrap_or_else(|_| {
+                    panic!("OS_MEMORY_ALLOC_OVERRIDE was an invalid value: {val}")
+                });
                 tracing::debug!(
                     "Memory size was overridden by value set in envvar, set to: {size}"
                 );
@@ -442,14 +437,12 @@ impl Memory {
 
 #[cfg(test)]
 pub mod tests {
-    use uuid::Uuid;
-
     use super::*;
     use crate::error::Result;
 
     #[test]
     pub fn test_identical_buffers() -> Result<()> {
-        let experiment_id = Uuid::new_v4();
+        let experiment_id = ExperimentId::new_v4();
         let buffer1: Vec<u8> = vec![1; 1482];
         let buffer2: Vec<u8> = vec![2; 645];
         let buffer3: Vec<u8> = vec![3; 254];
@@ -475,7 +468,7 @@ pub mod tests {
 
     #[test]
     pub fn test_message() -> Result<()> {
-        let experiment_id = Uuid::new_v4();
+        let experiment_id = ExperimentId::new_v4();
         let buffer1: Vec<u8> = vec![1; 1482];
         let buffer2: Vec<u8> = vec![2; 645];
         let buffer3: Vec<u8> = vec![3; 254];

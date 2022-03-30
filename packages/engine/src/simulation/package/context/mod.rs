@@ -3,13 +3,13 @@ pub mod packages;
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use storage::meta::ColumnDynamicMetadata;
 use tracing::Span;
 
 pub use self::packages::{ContextTask, ContextTaskMessage, Name, PACKAGE_CREATORS};
 use crate::{
     config::{ExperimentConfig, Globals, SimRunConfig},
     datastore::{
-        meta::ColumnDynamicMetadata,
         schema::{
             accessor::FieldSpecMapAccessor, context::ContextSchema, FieldKey, FieldSpec,
             RootFieldSpec, RootFieldSpecCreator,

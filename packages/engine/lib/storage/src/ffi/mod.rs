@@ -1,20 +1,20 @@
-#![allow(clippy::missing_safety_doc)]
-
-pub mod flush;
-pub mod memory;
-pub mod schema_conversion;
+mod flush;
+mod memory;
+mod schema_conversion;
 mod test;
 
 use std::{ffi::c_void, os::raw::c_char, sync::Arc};
 
 use arrow::ipc;
-use memory::CMemory;
 
-use crate::datastore::{
-    arrow::meta_conversion::{HashDynamicMeta, HashStaticMeta},
-    error::Error,
-    meta,
-    storage::memory::Memory,
+use self::memory::CMemory;
+use crate::{
+    memory::Memory,
+    meta::{
+        self,
+        conversion::{HashDynamicMeta, HashStaticMeta},
+    },
+    Error,
 };
 
 pub type ReleaseArrowArray = extern "C" fn(*mut ArrowArray);

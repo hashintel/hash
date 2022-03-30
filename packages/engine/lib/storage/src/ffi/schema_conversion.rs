@@ -4,7 +4,7 @@ use std::ffi::CStr;
 
 use arrow::datatypes::{DataType, Field, Schema};
 
-use crate::datastore::{
+use crate::{
     error::{Error, Result},
     ffi::ArrowSchema,
 };

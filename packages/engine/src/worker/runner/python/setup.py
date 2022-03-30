@@ -30,7 +30,7 @@ def last_modified(path):
 
 
 library_dirs = sorted(
-    find_directory("libhash_engine_lib.so", f"{script_path}/../../../../"),
+    find_directory("libstorage.so", f"{script_path}/../../../../"),
     key=last_modified,
     reverse=True,
 )
@@ -49,7 +49,7 @@ setup(
                 wrappers_import,
                 [script_path + "/wrappers.pyx"],
                 include_dirs=[numpy.get_include()],
-                libraries=["hash_engine_lib"],
+                libraries=["storage"],
                 library_dirs=library_dirs,
             )
         ]

@@ -12,6 +12,9 @@ pub enum Error {
     #[error("{0}")]
     Unique(String),
 
+    #[error("Storage Error: {0}")]
+    Storage(#[from] storage::Error),
+
     #[error("Env error: {0}")]
     Env(#[from] crate::env::Error),
 

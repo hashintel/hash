@@ -104,8 +104,8 @@ impl MessagePool {
 }
 
 impl PoolReadProxy<MessageBatch> {
-    pub fn get_reader(&self) -> Result<MessageReader<'_>> {
-        let loaders: Result<_> = self
+    pub fn get_reader(&self) -> storage::Result<MessageReader<'_>> {
+        let loaders: storage::Result<_> = self
             .batches_iter()
             .map(|batch| {
                 batch

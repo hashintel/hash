@@ -432,6 +432,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "common"
+version = "0.0.0"
+dependencies = [
+ "uuid",
+]
+
+[[package]]
 name = "concurrent-queue"
 version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -955,6 +962,7 @@ dependencies = [
  "async-trait",
  "cc",
  "clap",
+ "common",
  "csv",
  "derive-new",
  "enum_dispatch",
@@ -980,6 +988,7 @@ dependencies = [
  "serde-aux",
  "serde_json",
  "shared_memory",
+ "storage",
  "strum_macros",
  "surf",
  "thiserror",
@@ -2192,6 +2201,22 @@ name = "stdweb-internal-runtime"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "213701ba3370744dcd1a12960caa4843b3d68b4d1c0a5d575e0d65b2ee9d16c0"
+
+[[package]]
+name = "storage"
+version = "0.1.0"
+dependencies = [
+ "arrow",
+ "common",
+ "flatbuffers",
+ "flatbuffers_gen",
+ "rand 0.8.4",
+ "serde",
+ "serde_json",
+ "shared_memory",
+ "thiserror",
+ "tracing",
+]
 
 [[package]]
 name = "strsim"

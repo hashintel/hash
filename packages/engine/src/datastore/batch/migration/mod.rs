@@ -3,15 +3,16 @@
 use std::{borrow::Cow, mem, sync::Arc};
 
 use arrow::{self, array::Array, record_batch::RecordBatch, util::bit_util};
+use storage::{
+    memory::{padding, Memory},
+    meta::{self, Buffer, Node, NodeMapping},
+};
 
 use crate::{
     datastore::{
-        arrow::padding,
         batch::{AgentBatch, MessageBatch},
         error::{Error, Result},
-        meta::{self, Buffer, Node, NodeMapping},
         schema::state::{AgentSchema, MessageSchema},
-        storage::memory::Memory,
     },
     proto::ExperimentId,
 };
@@ -427,7 +428,7 @@ impl<'a> BufferActions<'a> {
         );
         debug_assert!(
             offsets_start_at_zero(
-                batch.segment.memory(),
+                batch.segment().memory(),
                 batch.static_meta(),
                 batch.dynamic_meta(),
             )
@@ -436,20 +437,20 @@ impl<'a> BufferActions<'a> {
         );
 
         let change = batch
-            .segment
+            .segment_mut()
             .memory_mut()
             .set_data_length(self.new_dynamic_meta.data_length)?;
         batch.loaded_metaversion_mut().increment_with(&change);
-        self.flush_memory(batch.segment.memory_mut())?;
+        self.flush_memory(batch.segment_mut().memory_mut())?;
         let loaded = batch.loaded_metaversion();
-        batch.segment.set_persisted_metaversion(loaded);
+        batch.segment_mut().set_persisted_metaversion(loaded);
 
         // Overwrite the Arrow Batch Metadata in memory
         let change = agent_batch.flush_dynamic_meta_unchecked(&self.new_dynamic_meta)?;
         debug_assert!(!change.resized() && !change.shifted());
         debug_assert!(
             offsets_start_at_zero(
-                agent_batch.batch.segment.memory(),
+                agent_batch.batch.segment().memory(),
                 agent_batch.batch.static_meta(),
                 agent_batch.batch.dynamic_meta(),
             )?,
@@ -536,7 +537,7 @@ impl<'a> BufferActions<'a> {
                     let mut cur_length = if let Some(agent_batch) = agent_batch {
                         let start_index = buffer_meta.offset;
                         let end_index = start_index + buffer_meta.length;
-                        let data = &agent_batch.batch.segment.memory().get_data_buffer()?
+                        let data = &agent_batch.batch.segment().memory().get_data_buffer()?
                             [start_index..end_index];
                         debug_assert_eq!(data, agent_batch.get_buffer(buffer_index).unwrap());
                         debug_assert!(range_actions.is_well_ordered_remove());

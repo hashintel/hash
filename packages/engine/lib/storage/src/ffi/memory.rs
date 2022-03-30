@@ -1,7 +1,7 @@
 #![allow(clippy::module_name_repetitions, clippy::missing_safety_doc)]
 use std::os::unix::io::RawFd;
 
-use crate::datastore::storage::memory::Memory;
+use crate::memory::Memory;
 
 #[repr(C)]
 pub struct CMemory {
