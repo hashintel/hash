@@ -30,6 +30,9 @@
     "@hashintel/hash-backend-utils": "0.0.0",
     "@hashintel/hash-shared": "0.0.0",
     "@snowplow/node-tracker": "3.3.1",
+    "@temporalio/client": "0.19.0",
+    "@temporalio/worker": "0.19.1",
+    "@temporalio/workflow": "0.19.0",
     "@types/lodash": "4.14.175",
     "@types/redis": "2.8.32",
     "ajv": "8.7.1",
@@ -74,7 +77,6 @@
     "redis": "3.1.2",
     "rword": "3.2.0",
     "slonik": "24.1.2",
-    "temporalio": "0.19.1",
     "ua-parser-js": "1.0.2"
   },
   "devDependencies": {

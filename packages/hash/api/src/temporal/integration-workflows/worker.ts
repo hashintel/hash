@@ -1,5 +1,6 @@
 import { Worker } from "@temporalio/worker";
-import * as exampleActivities from "./exampleActivities";
+import * as integrationActivities from "./integrationActivities";
+import { TASK_QUEUES } from "./TASK_QUEUES";
 
 async function run() {
   // Step 1: Register Workflows and Activities with the Worker and connect to
@@ -7,9 +8,9 @@ async function run() {
   const worker = await Worker.create({
     workflowsPath: require.resolve("./workflows"),
     activities: {
-      ...exampleActivities,
+      ...integrationActivities,
     },
-    taskQueue: "hello-world",
+    taskQueue: TASK_QUEUES.mvpTestingHelloWorld,
   });
   // Worker connects to localhost by default and uses console.error for logging.
   // Customize the Worker by passing more options to create():
@@ -22,6 +23,10 @@ async function run() {
 }
 
 run().catch((err) => {
+  // Do we need to hook this error up via morgan logger?
+  //  * This will depend on how we structure the deployment (because the worker might be put into its own separate container/pod from api)
+  //  * Notice that the worker by default (at `Worker.create`) also uses console.error for reporting...
+  // eslint-disable-next-line
   console.error(err);
   process.exit(1);
 });

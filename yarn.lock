@@ -4799,7 +4799,7 @@
     "@temporalio/internal-workflow-common" "^0.19.0"
     abort-controller "^3.0.0"
 
-"@temporalio/client@^0.19.0":
+"@temporalio/client@0.19.0":
   version "0.19.0"
   resolved "https://registry.yarnpkg.com/@temporalio/client/-/client-0.19.0.tgz#d12d88de3df71a5169abdf8fb4fb51154d4eb52f"
   integrity sha512-RPPXxrhYRJZCBx9NPHY1WgoB2pWAJhgeROUS0bp/3LMJGG2uRXpM1jy1T6/uw0f77kdA7fDsKyF1t3OP3Pw+2A==
@@ -4858,7 +4858,7 @@
     long "^4.0.0"
     protobufjs "^6.11.2"
 
-"@temporalio/worker@^0.19.1":
+"@temporalio/worker@0.19.1":
   version "0.19.1"
   resolved "https://registry.yarnpkg.com/@temporalio/worker/-/worker-0.19.1.tgz#ce323f69cd1b50e95ea7200982436d4555c0c331"
   integrity sha512-6kdvEZMYbaisUsbW8+mGwg1zv6hB4RXOMfR5Hkczlg3yIUNt+/y6QVmFZBdpQ5yYq2oD1EwOTp4YaiFoaCes/g==
@@ -4887,7 +4887,7 @@
     uuid "^8.3.2"
     webpack "^5.51.1"
 
-"@temporalio/workflow@^0.19.0":
+"@temporalio/workflow@0.19.0", "@temporalio/workflow@^0.19.0":
   version "0.19.0"
   resolved "https://registry.yarnpkg.com/@temporalio/workflow/-/workflow-0.19.0.tgz#643ebc4b095349ec29bdbbfb57e19e38daceca82"
   integrity sha512-tMpT4arQuLm3jzbPx0Sp8NFjzAgljMg417LgSPWvhXP3vVsWbYz+9qvS98P2kO8MPdRGA3JX8ss+fMIqZBoXIg==
@@ -13695,7 +13695,12 @@ nocache@^3.0.1:
   resolved "https://registry.yarnpkg.com/nocache/-/nocache-3.0.1.tgz#54d8b53a7e0a0aa1a288cfceab8a3cefbcde67d4"
   integrity sha512-Gh39xwJwBKy0OvFmWfBs/vDO4Nl7JhnJtkqNP76OUinQz7BiMoszHYrIDHHAaqVl/QKVxCEy4ZxC/XZninu7nQ==
 
-node-fetch@2.6.1, node-fetch@^2.6.1, node-fetch@^2.6.7:
+node-fetch@2.6.1:
+  version "2.6.1"
+  resolved "https://registry.yarnpkg.com/node-fetch/-/node-fetch-2.6.1.tgz#045bd323631f76ed2e2b55573394416b639a0052"
+  integrity sha512-V4aYg89jEoVRxRb2fJdAg8FHvI7cEyYdVAh94HH0UIK8oJxUfkjlDQN9RbMx+bEjP7+ggMiFRprSti032Oipxw==
+
+node-fetch@^2.6.1, node-fetch@^2.6.7:
   version "2.6.7"
   resolved "https://registry.yarnpkg.com/node-fetch/-/node-fetch-2.6.7.tgz#24de9fba827e3b4ae44dc8b20256a379160052ad"
   integrity sha512-ZjMPFEfVx5j+y2yF35Kzx5sF7kDzxuDj6ziH4FFbOp87zKDZNx8yExJIb05OGF4Nlt9IHFIMBkRl41VdvcNdbQ==
@@ -17102,18 +17107,6 @@ tar@^6.0.2, tar@^6.1.2:
     minizlib "^2.1.1"
     mkdirp "^1.0.3"
     yallist "^4.0.0"
-
-temporalio@0.19.1:
-  version "0.19.1"
-  resolved "https://registry.yarnpkg.com/temporalio/-/temporalio-0.19.1.tgz#516554a266dc3926b5be4e82585f4bcf345b1dbe"
-  integrity sha512-7ETQpD55nV8mCEtuQ/ZPuREoVmBmn+saaZPQZKL7oVkErdJjt8CLMlxv0sci6vtX3edSfhnmrXc433AevTDJ4Q==
-  dependencies:
-    "@temporalio/activity" "^0.19.0"
-    "@temporalio/client" "^0.19.0"
-    "@temporalio/common" "^0.19.0"
-    "@temporalio/proto" "^0.19.0"
-    "@temporalio/worker" "^0.19.1"
-    "@temporalio/workflow" "^0.19.0"
 
 terminal-link@^2.0.0:
   version "2.1.1"
