@@ -75,7 +75,7 @@ export type DbLink = {
    * Defines order between multiple link entities.
    *
    * 1/10 (Cole): Consider using a fractional index so we don't need to update
-   * multiple links when re-ordering. Then occaisionally, you can do a re-balance
+   * multiple links when re-ordering. Then occasionally, you can do a re-balance
    * when re-ordering between two items with too low of a distance.
    */
   index?: number;
