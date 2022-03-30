@@ -82,7 +82,7 @@ index 20a9bbd..a849fa3 100644
 +} & BlockProtocolFunctions & BlockProtocolStyling;
 diff --git a/node_modules/blockprotocol/styling.d.ts b/node_modules/blockprotocol/styling.d.ts
 new file mode 100644
-index 0000000..29b4c14
+index 0000000..a6db26a
 --- /dev/null
 +++ b/node_modules/blockprotocol/styling.d.ts
 @@ -0,0 +1,140 @@
@@ -220,7 +220,7 @@ index 0000000..29b4c14
 +export interface BlockProtocolThemeOptions {
 +  palette?: PaletteOptions;
 +  shadows?: Shadows;
-+  zIndex: ZIndexOptions;
++  zIndex?: ZIndexOptions;
 +}
 +
 +export type BlockProtocolStyling = {
