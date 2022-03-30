@@ -14,11 +14,11 @@ import {
   CreateLinkFnWithFixedSource,
   DeleteLinkFnWithFixedSource,
   EntityLinkDefinition,
-} from "./types";
-import { EntityLinksEditor } from "./EntityLinksEditor";
-import { entityName } from "../../lib/entities";
+} from "./simple-entity-editor/types";
+import { EntityLinksEditor } from "./simple-entity-editor/entity-links-editor";
+import { guessEntityName } from "../../../../lib/entities";
 
-type EntityEditorProps = {
+type SimpleEntityEditorProps = {
   accountId: string; // @todo figure out if accountId is a part of the protocol or not
   aggregateEntities: BlockProtocolAggregateEntitiesFunction;
   disabled?: boolean;
@@ -144,7 +144,9 @@ const splitSchema = (
   };
 };
 
-export const EntityEditor: VoidFunctionComponent<EntityEditorProps> = ({
+export const SimpleEntityEditor: VoidFunctionComponent<
+  SimpleEntityEditorProps
+> = ({
   accountId,
   aggregateEntities: aggregate,
   disabled,
@@ -201,7 +203,7 @@ export const EntityEditor: VoidFunctionComponent<EntityEditorProps> = ({
   );
 
   const name = existingProperties
-    ? entityName({ properties: existingProperties })
+    ? guessEntityName({ properties: existingProperties })
     : "New Entity";
 
   const createLinkWithFixedSource: CreateLinkFnWithFixedSource | undefined =
