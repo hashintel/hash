@@ -1129,13 +1129,13 @@ pub mod tests {
         let mut timestamp_nanosecond_buffer_builder =
             arrow::array::TimestampNanosecondBuilder::new(6);
         timestamp_nanosecond_buffer_builder
-            .append_values(&vec![1, 2, 3, 4, 5, 6], &vec![true; 6])
+            .append_values(&[1, 2, 3, 4, 5, 6], &[true; 6])
             .unwrap();
         let timestamp_nanosecond_array = timestamp_nanosecond_buffer_builder.finish();
 
         let mut timestamp_second_buffer_builder = arrow::array::TimestampSecondBuilder::new(6);
         timestamp_second_buffer_builder
-            .append_values(&vec![1, 2, 3, 4, 5, 6], &vec![true; 6])
+            .append_values(&[1, 2, 3, 4, 5, 6], &[true; 6])
             .unwrap();
         let timestamp_second_array = timestamp_second_buffer_builder.finish();
 
@@ -1215,21 +1215,16 @@ pub mod tests {
 
         // set up dummy data columns, entries don't matter as we're only interested in the
         // structure,
-        let dummy_data_arrays: Vec<arrow::array::FixedSizeBinaryArray> = fixed_sizes
-            .iter()
-            .map(|&size| {
-                let mut fixed_size_binary_builder =
-                    arrow::array::FixedSizeBinaryBuilder::new(6, size);
-                fixed_size_binary_builder
-                    .append_value(&vec![3u8; size as usize])
-                    .unwrap();
-                fixed_size_binary_builder.finish()
-            })
-            .collect();
+        let dummy_data_arrays = fixed_sizes.into_iter().map(|size| {
+            let mut fixed_size_binary_builder = arrow::array::FixedSizeBinaryBuilder::new(6, size);
+            fixed_size_binary_builder
+                .append_value(&vec![3u8; size as usize])
+                .unwrap();
+            fixed_size_binary_builder.finish()
+        });
 
-        for (arrow_array, (column_meta, node_info)) in dummy_data_arrays
-            .into_iter()
-            .zip(expected_col_info.iter().zip(expected_node_info.iter()))
+        for (arrow_array, (column_meta, node_info)) in
+            dummy_data_arrays.zip(expected_col_info.iter().zip(expected_node_info.iter()))
         {
             let (node_count, buffer_counts, node_mapping) =
                 get_col_hierarchy_from_arrow_array(&arrow_array, std::slice::from_ref(node_info));
@@ -1463,7 +1458,7 @@ pub mod tests {
             Field::new("c1", D::Struct(vec![]), false),
         ];
 
-        let schema = Schema::new_with_metadata(fields.clone(), get_dummy_metadata());
+        let schema = Schema::new_with_metadata(fields, get_dummy_metadata());
 
         let (column_info, buffer_info, node_info) = schema_to_column_hierarchy(Arc::new(schema));
 

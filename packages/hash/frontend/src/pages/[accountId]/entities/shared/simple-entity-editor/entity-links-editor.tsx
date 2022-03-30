@@ -12,7 +12,7 @@ import {
   DeleteLinkFnWithFixedSource,
   EntityLinkDefinition,
 } from "./types";
-import { EntityFieldLinkEditor } from "./EntityFieldLinkEditor";
+import { EntityFieldLinkEditor } from "./entity-field-link-editor";
 
 type EntityLinkEditorProps = {
   accountId: string;
