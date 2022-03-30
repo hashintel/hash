@@ -19,11 +19,14 @@ export const BlockLoadedProvider: React.FC<{ routeHash: string }> = ({
 }) => {
   const [hashToScrollTo, setHashToScrollTo] = useState<string | null>(null);
 
-  const onBlockLoaded = useCallback((blockEntityId: string) => {
-    if (routeHash === getBlockDomId(blockEntityId)) {
-      setHashToScrollTo(routeHash);
-    }
-  }, []);
+  const onBlockLoaded = useCallback(
+    (blockEntityId: string) => {
+      if (routeHash === getBlockDomId(blockEntityId)) {
+        setHashToScrollTo(routeHash);
+      }
+    },
+    [routeHash],
+  );
 
   const scrollingComplete = useRef(false);
   const scrollFrameRequestIdRef = useRef<ReturnType<

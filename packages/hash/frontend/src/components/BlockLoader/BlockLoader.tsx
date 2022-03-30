@@ -106,7 +106,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
 
   const onRemoteBlockLoaded = useCallback(() => {
     onBlockLoaded(blockEntityId);
-  }, []);
+  }, [blockEntityId, onBlockLoaded]);
 
   if (sandboxingEnabled && (shouldSandbox || sourceUrl.endsWith(".html"))) {
     return (

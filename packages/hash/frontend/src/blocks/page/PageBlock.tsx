@@ -47,7 +47,7 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
   }>(null);
 
   const router = useRouter();
-  const routeHash = router.asPath.split("#")[1]!;
+  const routeHash = router.asPath.split("#")[1] ?? "";
 
   /**
    * This effect runs once and just sets up the prosemirror instance. It is not
