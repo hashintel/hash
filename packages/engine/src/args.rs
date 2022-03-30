@@ -54,6 +54,22 @@ pub struct Args {
     /// The size at which the engine aims to split a group of agents
     #[clap(long, default_value = "100000", env = "ENGINE_TARGET_MAX_GROUP_SIZE")]
     pub target_max_group_size: usize,
+
+    #[clap(long, default_value_t = 0)]
+    /// Initial size of the V8 heap.
+    ///
+    /// Setting this value allows to avoid garbage collection while the heap is small enough.
+    pub v8_initial_heap_constraint: usize,
+
+    #[clap(long, default_value_t = 4_000_000_000)]
+    /// Max size of the V8 heap.
+    ///
+    /// V8 will run a series of garbage collection when the heap size gets close to this limit.
+    ///
+    /// If garbage collection can't get the heap smaller than this limit then it crashes.
+    ///
+    /// Defaults to 4GB.
+    pub v8_max_heap_constraint: usize,
 }
 
 pub fn args() -> Args {

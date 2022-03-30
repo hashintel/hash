@@ -18,4 +18,6 @@ impl Default for SpawnConfig {
 #[derive(Debug, Default, Clone)]
 pub struct Config {
     pub spawn: SpawnConfig,
+    pub v8_initial_heap_constraint: usize,
+    pub v8_max_heap_constraint: usize,
 }

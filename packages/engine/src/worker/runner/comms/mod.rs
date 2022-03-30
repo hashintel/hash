@@ -208,6 +208,8 @@ pub struct ExperimentInitRunnerMsgBase {
     pub experiment_id: ExperimentId,
     pub shared_context: Arc<SharedStore>,
     pub package_config: Arc<PackageMsgs>,
+    pub v8_initial_heap_constraint: usize,
+    pub v8_max_heap_constraint: usize,
 }
 
 #[derive(Clone)]
@@ -216,6 +218,8 @@ pub struct ExperimentInitRunnerMsg {
     pub worker_index: WorkerIndex,
     pub shared_context: Arc<SharedStore>,
     pub package_config: Arc<PackageMsgs>,
+    pub v8_initial_heap_constraint: usize,
+    pub v8_max_heap_constraint: usize,
 }
 
 impl ExperimentInitRunnerMsg {
@@ -227,12 +231,16 @@ impl ExperimentInitRunnerMsg {
             experiment_id,
             shared_context,
             package_config,
+            v8_initial_heap_constraint,
+            v8_max_heap_constraint,
         } = base.clone();
         ExperimentInitRunnerMsg {
             experiment_id,
             worker_index,
             shared_context,
             package_config,
+            v8_initial_heap_constraint,
+            v8_max_heap_constraint,
         }
     }
 }

@@ -95,6 +95,25 @@ pub struct ExperimentConfig {
     clap(global = true, short = 'w', long, default_value_t = num_cpus::get(), validator = at_least_one, env = "HASH_WORKERS")
     )]
     pub num_workers: usize,
+
+    #[cfg_attr(feature = "clap", clap(global = true, long, default_value_t = 0))]
+    /// Initial size of the V8 heap.
+    ///
+    /// Setting this value allows to avoid garbage collection while the heap is small enough.
+    pub v8_initial_heap_constraint: usize,
+
+    #[cfg_attr(
+        feature = "clap",
+        clap(global = true, long, default_value_t = 4_000_000_000)
+    )]
+    /// Max size of the V8 heap.
+    ///
+    /// V8 will run a series of garbage collection when the heap size gets close to this limit.
+    ///
+    /// If garbage collection can't get the heap smaller than this limit then it crashes.
+    ///
+    /// Defaults to 4GB.
+    pub v8_max_heap_constraint: usize,
 }
 
 #[cfg(feature = "clap")]
@@ -163,6 +182,8 @@ impl Experiment {
         experiment_id: ExperimentId,
         controller_url: &str,
         target_max_group_size: Option<usize>,
+        v8_initial_heap_constraint: usize,
+        v8_max_heap_constraint: usize,
     ) -> Box<dyn process::Command + Send> {
         Box::new(process::LocalCommand::new(
             experiment_id,
@@ -173,6 +194,8 @@ impl Experiment {
             self.config.output_location.clone(),
             self.config.log_folder.clone(),
             target_max_group_size,
+            v8_initial_heap_constraint,
+            v8_max_heap_constraint,
         ))
     }
 
@@ -201,6 +224,8 @@ impl Experiment {
             experiment_run.base.id,
             handler.url(),
             target_max_group_size,
+            self.config.v8_initial_heap_constraint,
+            self.config.v8_max_heap_constraint,
         );
         let mut engine_process = cmd.run().await.wrap_err("Could not run experiment")?;
 

@@ -159,6 +159,8 @@ pub mod tests {
             }),
             target_max_group_size: 100_000,
             base_globals: Default::default(),
+            v8_initial_heap_constraint: 0,
+            v8_max_heap_constraint: 4_000_000_000,
         });
         validate!(context, experiment_config, PackageName::Context);
         validate!(init, experiment_config, PackageName::Init);

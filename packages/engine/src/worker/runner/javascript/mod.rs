@@ -68,8 +68,6 @@ type Value<'scope> = v8::Local<'scope, v8::Value>;
 type Function<'scope> = v8::Local<'scope, v8::Function>;
 type Array<'scope> = v8::Local<'scope, v8::Array>;
 
-const GB: usize = 10usize.pow(9);
-
 struct JsPackage<'s> {
     fns: Array<'s>,
 }
@@ -1945,8 +1943,17 @@ fn run_experiment(
             v8::V8::initialize_platform(platform);
             v8::V8::initialize();
 
-            let create_params = v8::Isolate::create_params().heap_limits(5 * GB, 150 * GB);
+            let create_params = v8::Isolate::create_params().heap_limits(
+                init_msg.v8_initial_heap_constraint,
+                init_msg.v8_max_heap_constraint,
+            );
             let mut isolate = v8::Isolate::new(create_params);
+
+            isolate.add_near_heap_limit_callback(
+                near_heap_limit_callback,
+                // This pointer is not used.
+                (&mut 0 as *mut i32).cast::<std::ffi::c_void>(),
+            );
 
             let mut handle_scope = v8::HandleScope::new(&mut isolate);
             let context = v8::Context::new(&mut handle_scope);
@@ -1995,4 +2002,20 @@ fn new_js_string<'s>(
 ) -> v8::Local<'s, v8::String> {
     let s = s.as_ref();
     v8::String::new(scope, s).expect(&format!("Could not create JS String: {s}"))
+}
+
+// Returns the new max heap size.
+extern "C" fn near_heap_limit_callback(
+    // This pointer may be dangling, don't do anything with it.
+    _data: *mut std::ffi::c_void,
+    current_heap_limit: usize,
+    _initial_heap_limit: usize,
+) -> usize {
+    tracing::warn!(
+        "V8 max heap limit almost reached! Use the '--v8-max-heap-constraint' argument to raise \
+         the limit."
+    );
+
+    // We don't increate the max heap limit.
+    current_heap_limit
 }

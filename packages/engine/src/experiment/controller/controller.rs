@@ -302,6 +302,8 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
             experiment_id: self.exp_base_config.run.base().id,
             shared_context: self.shared_store.clone(),
             package_config: Arc::new(pkg_start_msgs),
+            v8_initial_heap_constraint: self.exp_base_config.v8_initial_heap_constraint,
+            v8_max_heap_constraint: self.exp_base_config.v8_max_heap_constraint,
         })
     }
 

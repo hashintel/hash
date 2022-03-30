@@ -84,6 +84,8 @@ pub struct LocalCommand {
     output_location: OutputLocation,
     log_folder: PathBuf,
     target_max_group_size: Option<usize>,
+    v8_initial_heap_constraint: usize,
+    v8_max_heap_constraint: usize,
 }
 
 impl LocalCommand {
@@ -98,6 +100,8 @@ impl LocalCommand {
         output_location: OutputLocation,
         log_folder: PathBuf,
         target_max_group_size: Option<usize>,
+        v8_initial_heap_constraint: usize,
+        v8_max_heap_constraint: usize,
     ) -> Self {
         // The NNG URL that the engine process will listen on
         let engine_url = format!("ipc://run-{experiment_id}");
@@ -112,6 +116,8 @@ impl LocalCommand {
             output_location,
             log_folder,
             target_max_group_size,
+            v8_initial_heap_constraint,
+            v8_max_heap_constraint,
         }
     }
 }
@@ -142,6 +148,10 @@ impl process::Command for LocalCommand {
             .arg(&self.engine_url)
             .arg("--num-workers")
             .arg(self.num_workers.to_string())
+            .arg("--v8-initial-heap-constraint")
+            .arg(self.v8_initial_heap_constraint.to_string())
+            .arg("--v8-max-heap-constraint")
+            .arg(self.v8_max_heap_constraint.to_string())
             .arg("--log-format")
             .arg(self.log_format.to_string())
             .arg("--output")
