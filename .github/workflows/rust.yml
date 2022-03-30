@@ -170,7 +170,7 @@ jobs:
             ${{ runner.os }}-clippy-${{ matrix.directory }}-${{ matrix.toolchain }}
 
       - name: Run clippy
-        run: cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml --no-deps ${{ matrix.flags }} -- -D warnings
+        run: cargo clippy --manifest-path ${{ matrix.directory }}/Cargo.toml --no-deps --tests ${{ matrix.flags }} -- -D warnings
 
       - name: Annotate
         if: ${{ failure() }}
@@ -180,7 +180,7 @@ jobs:
           name: clippy (${{ matrix.directory }})
           token: ${{ secrets.GITHUB_TOKEN }}
           working-directory: ${{ matrix.directory }}
-          args: --no-deps ${{ matrix.flags }}
+          args: --no-deps --tests ${{ matrix.flags }}
 
   test:
     name: test

@@ -854,7 +854,7 @@ mod tests {
     fn test_empty_state() {
         let json = "{}";
 
-        let agent: Agent = serde_json::from_str(&json).unwrap();
+        let agent: Agent = serde_json::from_str(json).unwrap();
 
         assert_eq!(agent.agent_id.len(), 36);
     }
@@ -873,7 +873,7 @@ mod tests {
     fn test_position() {
         let json = r#"{ "position": [1, 2] }"#;
 
-        let agent: Agent = serde_json::from_str(&json).unwrap();
+        let agent: Agent = serde_json::from_str(json).unwrap();
         let pos = agent.position.unwrap();
 
         assert_eq!(pos.0, 1.0);
@@ -884,7 +884,7 @@ mod tests {
     #[test]
     fn test_scale() {
         let json = r#"{ "scale": [5, 2]}"#;
-        let agent: Agent = serde_json::from_str(&json).unwrap();
+        let agent: Agent = serde_json::from_str(json).unwrap();
         let scale = agent.scale.unwrap();
 
         assert_eq!(scale.0, 5.0);
@@ -909,7 +909,7 @@ mod tests {
     #[test]
     fn test_scale_invalid() {
         let json = r#"{ "scale": [5, 2, "123"]}"#;
-        assert!(serde_json::from_str::<Agent>(&json).is_err());
+        assert!(serde_json::from_str::<Agent>(json).is_err());
     }
 
     #[test]
@@ -1013,7 +1013,7 @@ mod tests {
             .unwrap();
         assert_eq!(agent.messages, vec![message::Outbound::Generic(
             GenericPayload {
-                data: data.clone(),
+                data,
                 to: vec!["alice".to_string()],
                 r#type: "custom_message".to_string(),
             }
@@ -1026,12 +1026,12 @@ mod tests {
         let data = Some(json!({"foo": "bar"}));
         let to: Vec<String> = vec!["alice".to_string(), "bob".to_string()];
         agent
-            .add_message(&to.clone(), "custom_message", data.clone())
+            .add_message(&to, "custom_message", data.clone())
             .unwrap();
         assert_eq!(agent.messages, vec![message::Outbound::Generic(
             GenericPayload {
-                data: data.clone(),
-                to: to.clone(),
+                data,
+                to,
                 r#type: "custom_message".to_string(),
             }
         )]);
