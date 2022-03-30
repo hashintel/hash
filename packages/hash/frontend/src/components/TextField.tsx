@@ -66,6 +66,7 @@ export const TextField: VFC<TextFieldProps> = ({
             }),
             ...(Array.isArray(InputPropsSx) ? InputPropsSx : [InputPropsSx]),
           ],
+          ...{ notched: false },
           ...otherInputProps,
           endAdornment:
             error || success ? renderEndAdornment() : InputProps?.endAdornment,
@@ -73,7 +74,12 @@ export const TextField: VFC<TextFieldProps> = ({
         helperText={<Collapse in={!!helperText}>{helperText}</Collapse>}
         FormHelperTextProps={{
           error,
-          sx: { marginTop: 1, fontSize: 15 },
+          sx: ({ typography, palette }) => ({
+            marginLeft: 0,
+            mt: 0.75,
+            ...typography.smallTextLabels,
+            color: error ? palette.red[80] : palette.gray[60],
+          }),
         }}
       />
     </Box>

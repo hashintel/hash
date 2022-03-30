@@ -146,6 +146,11 @@ export const MainContentWrapper: FC = ({ children }) => {
             error
             helperText="Your password must be less than 4 characters."
           />
+          <TextField
+            defaultValue="password1"
+            placeholder="Search for anything"
+            helperText="Make your password short and easy to guess"
+          />
         </Stack>
         <br />
         <Stack direction="row" alignItems="center" spacing={2}>
@@ -192,6 +197,21 @@ export const MainContentWrapper: FC = ({ children }) => {
             }}
           />
         </Stack>
+        <br />
+        <Stack direction="row" alignItems="flex-start" spacing={2}>
+          <TextField
+            label="Password"
+            helperText="Make your password is short and easy to guess"
+            required
+          />
+          <TextField label="Email" placeholder="you@example.com" />
+          <TextField
+            label="Todo item"
+            defaultValue="my thing"
+            placeholder="you@example.com"
+          />
+        </Stack>
+        <br />
       </Main>
     </Box>
   );
