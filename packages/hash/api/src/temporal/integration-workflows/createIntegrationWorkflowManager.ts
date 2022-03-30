@@ -26,13 +26,13 @@ export function createIntegrationWorkflowManager(
       return JSON.stringify(list?.toJSON(), null, 2);
     },
     async addNewIntegrationWorkflow(integrationName: string) {
+      const workflowId = `int-${
+        orgClient.orgAccountId
+      }-manage-${integrationName}-${Date.now().toString(36)}`;
       const handle = await orgClient.workflowClient.start(manageIntegration, {
-        args: ["Temporal"], // type inference works! args: [name: string]
+        args: [integrationName], // type inference works! args: [integrationName: string]
         taskQueue: TASK_QUEUES.mvpTestingHelloWorld,
-        // in practice, use a meaningful business id, eg customerId or transactionId
-        workflowId: `int-${
-          orgClient.orgAccountId
-        }-manage-${integrationName}-${Date.now().toString(36)}`,
+        workflowId,
       });
 
       logger.debug({
@@ -40,7 +40,9 @@ export function createIntegrationWorkflowManager(
         workflowId: handle.workflowId,
       });
 
-      return JSON.stringify(handle, null, 2);
+      return {
+        handle,
+      };
     },
   };
 }

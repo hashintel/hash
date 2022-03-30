@@ -6,6 +6,8 @@ export const orgTypedef = gql`
 
     memberships: [OrgMembership!]!
 
+    integrations: [OrgIntegration!]!
+
     invitationLinks: [OrgInvitationLink!]!
 
     emailInvitations: [OrgEmailInvitation!]!

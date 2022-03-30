@@ -70,6 +70,9 @@ import { linkedAggregationResults } from "./linkedAggregation/linkedAggregationR
 import { orgEmailInvitationLinkedEntities } from "./orgEmailInvitation/linkedEntities";
 import { orgInvitationLinkLinkedEntities } from "./orgInvitationLink/linkedEntities";
 import { pageSearchResultConnection } from "./paginationConnection/pageSearchResultConnection";
+import { createOrgIntegration } from "./orgIntegration/createOrgIntegration";
+import { enableOrgIntegration } from "./orgIntegration/enableOrgIntegration";
+import { configureOrgIntegration } from "./orgIntegration/configureOrgIntegration";
 
 export const resolvers = {
   Query: {
@@ -114,11 +117,17 @@ export const resolvers = {
     createPage: loggedInAndSignedUp(createPage),
     createOrg: loggedInAndSignedUp(createOrg),
     createOrgEmailInvitation: loggedInAndSignedUp(createOrgEmailInvitation),
+    // integrations
+    createOrgIntegration: loggedInAndSignedUp(createOrgIntegration),
+    enableOrgIntegration: loggedInAndSignedUp(enableOrgIntegration),
+    configureOrgIntegration: loggedInAndSignedUp(configureOrgIntegration),
+    // entities
     transferEntity: loggedInAndSignedUp(transferEntity),
     updateEntity: loggedInAndSignedUp(updateEntity),
     updateEntityType: loggedInAndSignedUp(updateEntityType),
     updatePage: loggedInAndSignedUp(updatePage),
     updatePageContents: loggedInAndSignedUp(updatePageContents),
+    // org
     joinOrg: loggedInAndSignedUp(joinOrg),
     requestFileUpload: loggedInAndSignedUp(requestFileUpload),
     setParentPage: loggedInAndSignedUp(setParentPage),

@@ -17,9 +17,11 @@ import { buildPassportGraphQLMethods } from "../auth/passport";
 import { GraphQLContext } from "./context";
 import { EmailTransporter } from "../email/transporters";
 import { StorageType } from "./apiTypes.gen";
+import { TemporalWorkflowPool } from "../temporal/createTemporalWorkflowPool";
 
 export interface CreateApolloServerParams {
   db: DbAdapter;
+  wf: TemporalWorkflowPool;
   cache: CacheAdapter;
   search?: SearchAdapter;
   emailTransporter: EmailTransporter;
@@ -31,6 +33,7 @@ export interface CreateApolloServerParams {
 
 export const createApolloServer = ({
   db,
+  wf,
   cache,
   search,
   emailTransporter,
@@ -47,6 +50,7 @@ export const createApolloServer = ({
   const getDataSources = () => {
     const sources: GraphQLContext["dataSources"] = {
       db,
+      wf,
       cache,
     };
     if (search) {

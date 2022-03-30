@@ -5,31 +5,65 @@ import type * as activities from "./integrationActivities";
 export const configureIntegrationSignal = wf.defineSignal<
   [activities.IntegrationConfigAction]
 >("configureIntegration");
+export const startIntegrationSignal = wf.defineSignal("startIntegration");
 export const integrationStateQuery =
-  wf.defineQuery<activities.IntegrationSetupState>("integrationState");
+  wf.defineQuery<activities.IntegrationState>("integrationState");
+
+const SECOND = 1000;
+const MINUTE = SECOND * 60;
+const HOUR = MINUTE * 60;
 
 // examples
 // See https://github.com/temporalio/samples-typescript/tree/main/signals-queries/src
 // export const unblockSignal = wf.defineSignal("unblock");
 // export const isBlockedQuery = wf.defineQuery<boolean>("isBlocked");
 
-const { startIntegrationSetup } = wf.proxyActivities<typeof activities>({
+const act = wf.proxyActivities<typeof activities>({
   startToCloseTimeout: "1 minute",
 });
 
 /** A workflow that manages the set-up of an integration */
-export async function manageIntegration(name: string): Promise<string> {
-  let state: activities.IntegrationSetupState = {
-    type: "init",
-    name,
-    init: {},
-  };
+export async function manageIntegration(
+  integrationName: string,
+): Promise<void> {
+  const state = await act.getInitialIntegrationSetup(integrationName);
   wf.setHandler(integrationStateQuery, () => state);
-  state = await startIntegrationSetup(name);
-
-  wf.setHandler(configureIntegrationSignal, (a) => {
-    // configure the workflow?
+  wf.setHandler(configureIntegrationSignal, (action) => {
+    if (action.type === "setConfig") {
+      const { fields } = action.setConfig;
+      for (const key in fields) {
+        if (
+          state.configuredFields[key] == null ||
+          state.configuredFields[key]?.currentValue !== fields[key]
+        ) {
+          state.configuredFields[key] = {
+            currentValue: fields[key],
+            updatedAt: action.setConfig.updateAt,
+          };
+        }
+      }
+    } else if (action.type === "enable") {
+      state.enabled = action.enable;
+    } else {
+      // exhaustive check
+      const _: never = action;
+    }
+  });
+  let performingIntegration = false;
+  wf.setHandler(startIntegrationSignal, async () => {
+    performingIntegration = true;
   });
 
-  return "Good job!";
+  try {
+    while (true) {
+      if (await wf.condition(() => performingIntegration, 24 * HOUR)) {
+        performingIntegration = false;
+        await act.performIntegration(state);
+      }
+    }
+  } catch (err) {
+    if (err instanceof wf.CancelledFailure) {
+      console.error(`Integration "${state.integrationName}" cancelled`);
+    }
+  }
 }

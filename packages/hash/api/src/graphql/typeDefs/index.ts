@@ -17,7 +17,7 @@ import { impliedHistoryTypedef } from "./impliedHistory.typedef";
 import { orgMembershipTypedef } from "./orgMembership.typedef";
 import { aggregationTypedef } from "./aggregation.typedef";
 import { pagePaginationTypedef } from "./paginationConnections.typedef";
-import { workspaceIntegrationsTypedef } from "./workspaceIntegrations.typedef";
+import { orgIntegrationTypedef } from "./orgIntegration.typedef";
 
 const baseSchema = gql`
   scalar Date
@@ -52,6 +52,7 @@ export const schema = [
   entityTypeTypedef,
   impliedHistoryTypedef,
   orgEmailInvitationTypedef,
+  orgIntegrationTypedef,
   orgInvitationLinkTypedef,
   orgTypedef,
   orgMembershipTypedef,
@@ -60,5 +61,4 @@ export const schema = [
   textTypedef,
   userTypedef,
   fileTypedef,
-  workspaceIntegrationsTypedef,
 ];

@@ -42,7 +42,8 @@ import { getRequiredEnv } from "./util";
 import { setupStorageProviders } from "./storage/storage-provider-lookup";
 import { getAwsRegion } from "./lib/aws-config";
 import { setupTelemtry } from "./telemetry/snowplow-setup";
-import { createTemporalPool } from "./temporal/client/client";
+import { createTemporalWorkflowPool } from "./temporal/createTemporalWorkflowPool";
+import { createIntegrationWorkflowManager } from "./temporal/integration-workflows/createIntegrationWorkflowManager";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -102,6 +103,7 @@ const main = async () => {
   await Promise.all([
     waitOnResource(`tcp:${pgHost}:${pgPort}`, logger),
     waitOnResource(`tcp:${redisHost}:${redisPort}`, logger),
+    waitOnResource(`tcp:${temporalHost}:${temporalPort}`, logger),
   ]);
 
   // Connect to the database
@@ -124,7 +126,7 @@ const main = async () => {
   shutdown.addCleanup("Redis", async () => redis.close());
 
   // Connect to Temporal
-  const temporalPool = createTemporalPool({
+  const temporalPool = createTemporalWorkflowPool({
     // TODO: Use env var
     address: `${temporalHost}:${temporalPort}`,
   });
@@ -190,6 +192,7 @@ const main = async () => {
   }
   const apolloServer = createApolloServer({
     db,
+    wf: temporalPool,
     search,
     cache: redis,
     emailTransporter,
@@ -202,19 +205,6 @@ const main = async () => {
 
   // Used by AWS Application Load Balancer (ALB) for health checks
   app.get("/health-check", (_, res) => res.status(200).send("Hello World!"));
-
-  // TEST endpoint for workflows
-  app.get("/run-temporal-workflow", async (_, res) => {
-    res.status(200).send(
-      await temporalPool
-        .createWorkspaceClient({})
-        .startHello()
-        .catch((err) => {
-          console.error("Failed to run workflow", err);
-          return `Failed: ${JSON.stringify(err)}`;
-        }),
-    );
-  });
 
   // Setup upload storage provider and express routes for local file uploads
   setupStorageProviders(app, FILE_UPLOAD_PROVIDER);

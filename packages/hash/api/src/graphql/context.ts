@@ -7,6 +7,7 @@ import { DbAdapter } from "../db";
 import { CacheAdapter } from "../cache";
 import { EmailTransporter } from "../email/transporters";
 import { StorageType } from "./apiTypes.gen";
+import { TemporalWorkflowPool } from "../temporal/createTemporalWorkflowPool";
 
 /**
  * Apollo context object with dataSources. For details see:
@@ -16,6 +17,7 @@ export interface GraphQLContext {
   dataSources: {
     db: DbAdapter;
     cache: CacheAdapter;
+    wf: TemporalWorkflowPool;
     search?: SearchAdapter;
   };
   emailTransporter: EmailTransporter;
