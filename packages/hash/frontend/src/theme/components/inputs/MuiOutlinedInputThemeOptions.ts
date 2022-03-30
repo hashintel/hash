@@ -5,6 +5,8 @@ import {
   inputAdornmentClasses,
 } from "@mui/material";
 
+const textFieldBorderRadius = 6;
+
 export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"] =
   {
     defaultProps: {
@@ -12,26 +14,17 @@ export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"]
     },
     styleOverrides: {
       root: ({ theme, ownerState = {} }) => ({
-        borderRadius: "6px",
+        borderRadius: `${textFieldBorderRadius}px`,
         paddingLeft: theme.spacing(2),
         paddingRight: theme.spacing(2),
+        boxShadow: "0px 1px 2px rgba(0, 0, 0, 0.05)", // this should be part of our shadows
 
         ...(ownerState.size === "large" && {
           paddingLeft: theme.spacing(2.5),
           paddingRight: theme.spacing(2),
         }),
 
-        [`& .${outlinedInputClasses.notchedOutline}`]: {
-          borderColor: theme.palette.gray[30],
-        },
-
-        "&:hover": {
-          [`& .${outlinedInputClasses.notchedOutline}`]: {
-            borderColor: theme.palette.gray[40],
-          },
-        },
-
-        "&.Mui-focused": {
+        "&.Mui-focused, &.Mui-focused:hover": {
           [`& .${outlinedInputClasses.notchedOutline}`]: {
             border: `1px solid ${theme.palette.blue[60]}`,
             boxShadow: `0px 1px 2px rgba(0, 0, 0, 0.05), 0px 0px 0px 1px ${theme.palette.purple[50]}`,
@@ -41,7 +34,11 @@ export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"]
         [`.${inputAdornmentClasses.root}`]: {
           height: "unset",
           maxHeight: "unset",
-          "& svg": { color: theme.palette.gray[40], fontSize: 16 },
+          alignSelf: "stretch",
+          display: "flex",
+          alignItems: "center",
+          color: theme.palette.gray[40],
+          "& svg": { fontSize: 16 },
         },
       }),
       input: ({ theme, ownerState = {} }) => {
@@ -73,13 +70,22 @@ export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"]
           }),
         };
       },
-
+      adornedStart: ({ theme }) => ({
+        paddingLeft: "unset",
+        [`& .${inputAdornmentClasses.root}`]: {
+          paddingLeft: theme.spacing(2),
+          borderTopLeftRadius: `${textFieldBorderRadius}px`,
+          borderBottomLeftRadius: `${textFieldBorderRadius}px`,
+          marginRight: theme.spacing(1.5),
+        },
+      }),
       adornedEnd: ({ theme }) => ({
-        "&.Mui-error": {
-          svg: {
-            color: theme.palette.red[60],
-            fontSize: 16,
-          },
+        paddingRight: "unset",
+        [`& .${inputAdornmentClasses.root}`]: {
+          paddingRight: theme.spacing(2),
+          borderTopRightRadius: `${textFieldBorderRadius}px`,
+          borderBottomRightRadius: `${textFieldBorderRadius}px`,
+          marginLeft: theme.spacing(1.5),
         },
       }),
     },
