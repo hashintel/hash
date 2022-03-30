@@ -13,7 +13,7 @@
     "lint:eslint": "eslint --ext .ts .",
     "lint:tsc": "tsc --noEmit",
     "pg:generate-ids": "ts-node postgres/scripts/generate-ids.ts",
-    "pg:migrate": "ts-node node_modules/.bin/node-pg-migrate -f ./postgres/migration-config.json",
+    "pg:migrate": "ts-node node_modules/.bin/node-pg-migrate -d HASH_MIGRATION_PG_URL --envPath ../../../.env -f ./postgres/migration-config.json",
     "pg:recreate-db": "ts-node postgres/scripts/recreate-db.ts"
   },
   "dependencies": {
