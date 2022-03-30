@@ -747,9 +747,9 @@ const newInstance =
       variables: { entityId: pageEntityId, accountId },
     });
 
-    const state = createProseMirrorState();
+    const state = createProseMirrorState({ accountId });
 
-    const manager = new ProsemirrorSchemaManager(state.schema);
+    const manager = new ProsemirrorSchemaManager(state.schema, accountId);
 
     /**
      * @todo check plugins
