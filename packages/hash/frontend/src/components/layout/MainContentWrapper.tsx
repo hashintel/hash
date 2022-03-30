@@ -1,5 +1,5 @@
-import { Fade, Box, Tooltip, styled } from "@mui/material";
-import { FunctionComponent } from "react";
+import { Fade, Box, Tooltip, styled, SxProps, Theme } from "@mui/material";
+import { VoidFunctionComponent, ReactNode } from "react";
 import { SIDEBAR_WIDTH } from "../../theme/components/navigation/MuiDrawerThemeOptions";
 
 import { SidebarToggleIcon } from "../icons";
@@ -31,7 +31,14 @@ const Main = styled("main", {
   }),
 }));
 
-export const MainContentWrapper: FunctionComponent = ({ children }) => {
+export type MainContentWrapperProps = {
+  children: ReactNode;
+  mainSx?: SxProps<Theme>;
+};
+
+export const MainContentWrapper: VoidFunctionComponent<
+  MainContentWrapperProps
+> = ({ children, mainSx }) => {
   const { openSidebar, sidebarOpen } = useSidebarContext();
 
   return (
@@ -63,7 +70,9 @@ export const MainContentWrapper: FunctionComponent = ({ children }) => {
           </IconButton>
         </Tooltip>
       </Fade>
-      <Main sidebarOpen={sidebarOpen}>{children}</Main>
+      <Main sidebarOpen={sidebarOpen} sx={mainSx}>
+        {children}
+      </Main>
     </Box>
   );
 };

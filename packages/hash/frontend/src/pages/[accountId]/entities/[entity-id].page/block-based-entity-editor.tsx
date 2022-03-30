@@ -2,6 +2,7 @@ import { VoidFunctionComponent } from "react";
 import { theme } from "../../../../theme";
 import { EntityPropertiesBlock } from "./entity-properties-block";
 import { LocalReactBlockContainer } from "./local-react-block-container";
+import { EntityEditorHeader } from "./block-based-entity-editor/entity-editor-header";
 
 export interface BlockBasedEntityEditorProps {
   accountId: string;
@@ -13,7 +14,7 @@ export const BlockBasedEntityEditor: VoidFunctionComponent<
 > = ({ accountId, entityId }) => {
   return (
     <>
-      <h1>Block-based entity editor (WIP)</h1>
+      <EntityEditorHeader />
       <LocalReactBlockContainer
         Component={EntityPropertiesBlock}
         accountId={entityId}
