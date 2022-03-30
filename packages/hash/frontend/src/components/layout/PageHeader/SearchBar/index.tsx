@@ -17,7 +17,7 @@ import {
   IconButton,
 } from "@mui/material";
 
-import { blockDomId } from "../../../../blocks/page/BlockView";
+import { getBlockDomId } from "../../../../blocks/page/BlockView";
 import {
   SearchPagesQuery,
   SearchPagesQueryVariables,
@@ -51,7 +51,7 @@ const toBlockUrl = (searchPage: PageSearchResult): string => {
   ];
 
   if (searchPage.block) {
-    segments.push("#", blockDomId(searchPage.block.entityId));
+    segments.push("#", getBlockDomId(searchPage.block.entityId));
   }
 
   return segments.join("");

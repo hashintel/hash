@@ -24,7 +24,6 @@ export const createEditorView = (
   accountId: string,
   pageEntityId: string,
   blocksMeta: BlocksMetaMap,
-  routeHash: string,
 ) => {
   let manager: ProsemirrorSchemaManager;
 
@@ -112,14 +111,7 @@ export const createEditorView = (
         throw new Error("Invalid config for nodeview");
       }
 
-      return new ComponentView(
-        node,
-        editorView,
-        getPos,
-        renderPortal,
-        meta,
-        routeHash,
-      );
+      return new ComponentView(node, editorView, getPos, renderPortal, meta);
     },
   );
 

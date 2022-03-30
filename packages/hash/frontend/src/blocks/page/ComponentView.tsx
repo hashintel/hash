@@ -84,7 +84,6 @@ export class ComponentView implements NodeView<Schema> {
     public getPos: () => number,
     private renderPortal: RenderPortal,
     private meta: BlockMeta,
-    private routeHash: string,
   ) {
     const { componentMetadata, componentSchema } = meta;
     const { source } = componentMetadata;
@@ -169,7 +168,6 @@ export class ComponentView implements NodeView<Schema> {
             linkGroups={childEntity?.linkGroups ?? []}
             linkedEntities={childEntity?.linkedEntities ?? []}
             linkedAggregations={childEntity?.linkedAggregations ?? []}
-            routeHash={this.routeHash}
           />
         </Sentry.ErrorBoundary>,
         this.target,

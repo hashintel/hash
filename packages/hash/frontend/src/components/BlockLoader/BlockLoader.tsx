@@ -1,15 +1,7 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  VoidFunctionComponent,
-} from "react";
+import React, { useCallback, useMemo, VoidFunctionComponent } from "react";
 import { BlockEntity } from "@hashintel/hash-shared/entity";
 import { BlockProtocolLinkedAggregation } from "blockprotocol";
 
-import { blockDomId } from "../../blocks/page/BlockView";
 import { useBlockProtocolUpdateEntities } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateEntities";
 import { cloneEntityTreeWithPropertiesMovedUp } from "../../lib/entities";
 import { fetchEmbedCode } from "./fetchEmbedCode";
@@ -26,6 +18,7 @@ import {
 import { useBlockProtocolCreateLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolCreateLinks";
 import { useBlockProtocolDeleteLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolDeleteLinks";
 import { useBlockProtocolUpdateLinks } from "../hooks/blockProtocolFunctions/useBlockProtocolUpdateLinks";
+import { useBlockLoaded } from "../../blocks/onBlockLoaded";
 
 type BlockLoaderProps = {
   accountId: string;
@@ -38,7 +31,6 @@ type BlockLoaderProps = {
   linkGroups: LinkGroup[];
   linkedEntities: BlockEntity["properties"]["entity"]["linkedEntities"];
   linkedAggregations: BlockEntity["properties"]["entity"]["linkedAggregations"];
-  routeHash: string;
   shouldSandbox?: boolean;
   sourceUrl: string;
 };
@@ -56,7 +48,6 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
   linkGroups,
   linkedEntities,
   linkedAggregations,
-  routeHash,
   shouldSandbox,
   sourceUrl,
 }) => {
@@ -111,47 +102,11 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
     uploadFile,
   };
 
-  const scrollingComplete = useRef(false);
-  const scrollFrameRequestIdRef = useRef<ReturnType<
-    typeof requestAnimationFrame
-  > | null>(null);
+  const onBlockLoaded = useBlockLoaded();
 
-  const [blockLoaded, setBlockLoaded] = useState(false);
-
-  const onBlockLoaded = useCallback(() => {
-    setBlockLoaded(true);
+  const onRemoteBlockLoaded = useCallback(() => {
+    onBlockLoaded(blockEntityId);
   }, []);
-
-  useEffect(() => {
-    function frame() {
-      const routeElement = document.getElementById(routeHash);
-
-      if (routeElement) {
-        routeElement.scrollIntoView();
-        scrollingComplete.current = true;
-      }
-    }
-
-    function clearScrollInterval() {
-      if (scrollFrameRequestIdRef.current !== null) {
-        cancelAnimationFrame(scrollFrameRequestIdRef.current);
-        scrollFrameRequestIdRef.current = null;
-      }
-    }
-
-    if (
-      routeHash === blockDomId(blockEntityId ?? "") &&
-      !scrollingComplete.current &&
-      blockLoaded
-    ) {
-      clearScrollInterval();
-      scrollFrameRequestIdRef.current = requestAnimationFrame(frame);
-    }
-
-    return () => {
-      clearScrollInterval();
-    };
-  }, [blockLoaded, blockEntityId, routeHash]);
 
   if (sandboxingEnabled && (shouldSandbox || sourceUrl.endsWith(".html"))) {
     return (
@@ -163,7 +118,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
           entityTypeId: blockProperties.entityTypeId ?? null,
           entityTypeVersionId: blockProperties.entityTypeVersionId ?? null,
         }}
-        onBlockLoaded={onBlockLoaded}
+        onBlockLoaded={onRemoteBlockLoaded}
         {...functions}
       />
     );
@@ -177,7 +132,7 @@ export const BlockLoader: VoidFunctionComponent<BlockLoaderProps> = ({
         blockProperties.linkedAggregations as BlockProtocolLinkedAggregation[]
       }
       editableRef={editableRef}
-      onBlockLoaded={onBlockLoaded}
+      onBlockLoaded={onRemoteBlockLoaded}
       sourceUrl={sourceUrl}
     />
   );
