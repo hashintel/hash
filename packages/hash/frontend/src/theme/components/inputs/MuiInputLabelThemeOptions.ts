@@ -7,7 +7,7 @@ export const MuiInputLabelThemeOptions: Components<Theme>["MuiInputLabel"] = {
   },
   styleOverrides: {
     root: ({ theme }) => ({
-      position: "unset",
+      position: "relative",
       left: "unset",
       top: "unset",
       transform: "unset",
