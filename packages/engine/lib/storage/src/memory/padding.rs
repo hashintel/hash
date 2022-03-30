@@ -160,7 +160,10 @@ mod test {
     #[test]
     fn static_buffer_padding() {
         TEST_VALS.iter().for_each(|i| {
-            assert_eq!(get_static_buffer_length(*i) - get_static_buffer_pad(*i), *i);
+            assert_eq!(
+                _get_static_buffer_length(*i) - get_static_buffer_pad(*i),
+                *i
+            );
         })
     }
 }
