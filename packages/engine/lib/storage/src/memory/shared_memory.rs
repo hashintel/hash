@@ -485,7 +485,7 @@ pub mod tests {
 
         let message = memory.id();
 
-        let new_memory = Memory::from_shmem_os_id(&message, true, false)?;
+        let new_memory = Memory::from_shmem_os_id(message, true, false)?;
 
         let slice = unsafe {
             let shmem = &memory.data;
