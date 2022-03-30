@@ -1,3 +1,4 @@
+import { MuiInputLabelThemeOptions } from "./inputs/MuiInputLabelThemeOptions";
 import { Components, Theme } from "@mui/material/styles";
 import { MuiSwitchThemeOptions } from "./inputs/MuiSwitchThemeOptions";
 import { MuiButtonThemeOptions } from "./inputs/MuiButtonThemeOptions";
@@ -18,6 +19,7 @@ export const components: Components<Theme> = {
   /** ===== INPUTS ===== */
   MuiButton: MuiButtonThemeOptions,
   MuiOutlinedInput: MuiOutlinedInputThemeOptions,
+  MuiInputLabel: MuiInputLabelThemeOptions,
   MuiSwitch: MuiSwitchThemeOptions,
   MuiRadio: MuiRadioThemeOptions,
   MuiCheckbox: MuiCheckboxThemeOptions,
