@@ -17,7 +17,7 @@ export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"]
         borderRadius: `${textFieldBorderRadius}px`,
         paddingLeft: theme.spacing(2),
         paddingRight: theme.spacing(2),
-        boxShadow: "0px 1px 2px rgba(0, 0, 0, 0.05)", // this should be part of our shadows
+        boxShadow: theme.boxShadows.xs, // this should be part of our shadows
 
         ...(ownerState.size === "large" && {
           paddingLeft: theme.spacing(2.5),
@@ -26,8 +26,7 @@ export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"]
 
         "&.Mui-focused, &.Mui-focused:hover": {
           [`& .${outlinedInputClasses.notchedOutline}`]: {
-            border: `1px solid ${theme.palette.blue[60]}`,
-            boxShadow: `0px 1px 2px rgba(0, 0, 0, 0.05), 0px 0px 0px 1px ${theme.palette.purple[50]}`,
+            borderColor: theme.palette.blue[60],
           },
         },
 
