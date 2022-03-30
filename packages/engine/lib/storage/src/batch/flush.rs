@@ -62,7 +62,7 @@ pub trait GrowableColumn<D: GrowableArrayData>: Sized {
 /// and Arrow batches whose number of elements can change due to the number of agents changing, such
 /// as components of state or context, or [`PreparedBatch`] used by Python FFI.
 ///
-/// [`PreparedBatch`]: crate::datastore::ffi::PreparedBatch
+/// [`PreparedBatch`]: crate::ffi::flush::PreparedBatch
 // TODO: Move `flush_changes` outside of trait and make it a function with type parameters and
 //       remove the type parameters from the trait? (would simplify impl of this trait a bit; still
 //       couldn't make the trait public (outside the datastore) though due to `memory_mut`)

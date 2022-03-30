@@ -11,7 +11,7 @@ use crate::memory::{Memory, Metaversion};
 //       have batch versions, e.g. datasets.
 /// Used by datasets, agent batches, message batches, context global batch, [`PreparedBatch`].
 ///
-/// [`PreparedBatch`]: crate::datastore::ffi::PreparedBatch
+/// [`PreparedBatch`]: crate::ffi::flush::PreparedBatch
 pub struct Segment(Memory);
 
 impl Segment {

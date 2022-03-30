@@ -46,7 +46,7 @@
 //! All reading and writing is allowed. If writing in place (e.g. overwriting an integer column),
 //! there must be no queued changes.
 //!
-//! [`Markers`]: crate::datastore::storage::markers::Markers
+//! [`Markers`]: crate::memory::markers::Markers
 //!
 //! ## Examples
 //!
