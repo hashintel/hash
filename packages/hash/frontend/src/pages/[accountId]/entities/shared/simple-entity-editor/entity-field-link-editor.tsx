@@ -15,13 +15,13 @@ import {
 } from "blockprotocol";
 import { tw } from "twind";
 
+import { isSingleTargetLink } from "../../../../../components/util/typeUtils";
 import {
   CreateLinkFnWithFixedSource,
   DeleteLinkFnWithFixedSource,
 } from "./types";
-import { entityName } from "../../lib/entities";
-import { Link } from "../Link";
-import { isSingleTargetLink } from "../util/typeUtils";
+import { guessEntityName } from "../../../../../lib/entities";
+import { Link } from "../../../../../components/Link";
 
 // @todo make this not need to know about accountId
 type MinimalEntity = { accountId: string; entityId: string; name: string };
@@ -98,7 +98,7 @@ export const EntityFieldLinkEditor: VoidFunctionComponent<
             ({ accountId: resultAccountId, entityId, ...properties }) => ({
               accountId: resultAccountId ?? "",
               entityId,
-              name: entityName({ entityId, ...properties }),
+              name: guessEntityName({ entityId, ...properties }),
             }),
           ),
         ),
@@ -196,7 +196,7 @@ export const EntityFieldLinkEditor: VoidFunctionComponent<
                   <Link
                     href={`/${linkedEntity.accountId}/entities/${linkedEntity.entityId}`}
                   >
-                    <a>{entityName(linkedEntity as JSONObject)}</a>
+                    <a>{guessEntityName(linkedEntity as JSONObject)}</a>
                   </Link>
                 </div>
                 <button
