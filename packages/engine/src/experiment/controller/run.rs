@@ -2,13 +2,19 @@ use std::{pin::Pin, sync::Arc, time::Duration};
 
 use tracing::Instrument;
 
-use super::{config, controller::ExperimentController, Error, Result};
 use crate::{
-    datastore::prelude::SharedStore,
+    config::ExperimentConfig,
+    datastore::shared_store::SharedStore,
+    env::Environment,
     experiment::{
-        controller::{config::OutputPersistenceConfig, sim_configurer::SimConfigurer},
+        controller::{
+            config::{self, OutputPersistenceConfig},
+            controller::ExperimentController,
+            error::{Error, Result},
+            sim_configurer::SimConfigurer,
+        },
+        error::{Error as ExperimentError, Result as ExperimentResult},
         package::ExperimentPackage,
-        Error as ExperimentError,
     },
     output::{
         buffer::cleanup_experiment, local::LocalOutputPersistence, none::NoOutputPersistence,
@@ -18,10 +24,10 @@ use crate::{
     simulation::package::creator::PackageCreators,
     workerpool,
     workerpool::{comms::terminate::TerminateSend, WorkerPoolController},
-    Environment, Error as CrateError, ExperimentConfig,
+    Error as CrateError,
 };
 
-#[tracing::instrument(skip_all, fields(experiment_id = %exp_config.run.base().id))]
+#[tracing::instrument(skip_all, fields(experiment_id = % exp_config.run.base().id))]
 pub async fn run_experiment(exp_config: ExperimentConfig, env: Environment) -> Result<()> {
     let experiment_name = exp_config.name().to_string();
     let experiment_id = exp_config.run.base().id;
@@ -89,7 +95,7 @@ pub async fn run_local_experiment(exp_config: ExperimentConfig, env: Environment
     Ok(())
 }
 
-type ExperimentPackageResult = Option<crate::experiment::Result<()>>;
+type ExperimentPackageResult = Option<ExperimentResult<()>>;
 type ExperimentControllerResult = Option<Result<()>>;
 type WorkerPoolResult = Option<crate::workerpool::Result<()>>;
 

@@ -1,11 +1,11 @@
 use crate::datastore::{
     batch::{AgentBatch, MessageBatch},
+    error::Result,
     table::{
         pool::{agent::AgentPool, message::MessagePool, BatchPool},
         proxy::{StateReadProxy, StateWriteProxy},
         references::MessageMap,
     },
-    Result,
 };
 
 #[derive(Clone)]

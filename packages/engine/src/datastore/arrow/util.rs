@@ -1,6 +1,5 @@
+use arrow::util::bit_util;
 use flatbuffers::FlatBufferBuilder;
-
-use super::prelude::*;
 
 pub const CONTINUATION: usize = 8;
 
@@ -51,7 +50,7 @@ impl AsRef<[u8]> for FlatBufferWrapper<'_> {
 
 // TODO: UNUSED: Needs triage
 pub fn get_bit(buffer: &[u8], i: usize) -> bool {
-    arrow_bit_util::get_bit(buffer, i)
+    bit_util::get_bit(buffer, i)
 }
 
 pub trait DataSliceUtils<'a> {

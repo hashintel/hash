@@ -2,15 +2,6 @@ use std::cmp::Ordering;
 
 use float_cmp::approx_eq;
 
-use super::{
-    analyzer::{
-        IndexIterator, OutputCreator, OutputRunner, OutputRunnerCreator, ValueIterator,
-        ValueIteratorCreator, ULPS,
-    },
-    output::AnalysisSingleOutput,
-    value_iter::{value_iterator_filter, value_iterator_mapper},
-    Error, Result,
-};
 use crate::{
     datastore::{
         batch::iterators::agent::{
@@ -22,8 +13,14 @@ use crate::{
             FieldTypeVariant,
         },
     },
-    simulation::package::output::packages::analysis::analyzer::{
-        AnalysisOperationRepr, ComparisonRepr,
+    simulation::package::output::packages::analysis::{
+        analyzer::{
+            AnalysisOperationRepr, ComparisonRepr, IndexIterator, OutputCreator, OutputRunner,
+            OutputRunnerCreator, ValueIterator, ValueIteratorCreator, ULPS,
+        },
+        output::AnalysisSingleOutput,
+        value_iter::{value_iterator_filter, value_iterator_mapper},
+        Error, Result,
     },
 };
 

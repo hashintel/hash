@@ -3,7 +3,6 @@ use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 use tracing::Span;
 
-use super::mini_v8 as mv8;
 use crate::{
     proto::SimulationShortId,
     simulation::package::id::PackageId,
@@ -30,7 +29,7 @@ pub enum Error {
     FlushType(DataType),
 
     #[error("Datastore: {0}")]
-    Datastore(#[from] crate::datastore::error::Error),
+    Datastore(#[from] crate::datastore::Error),
 
     // TODO: Missing sim in JS runtime? (Currently just internal JS error.)
     // TODO: JSON parse error?
@@ -82,17 +81,14 @@ pub enum Error {
     #[error("Couldn't receive outbound message from runner")]
     OutboundReceive,
 
+    #[error("Couldn't receive inbound message from worker")]
+    InboundReceive,
+
     #[error("Message type '{0}' must have a simulation run id")]
     SimulationIdRequired(&'static str),
 
     #[error("serde: {0:?}")]
     Serde(#[from] serde_json::Error),
-}
-
-impl From<mv8::Error<'_>> for Error {
-    fn from(e: mv8::Error<'_>) -> Self {
-        Error::V8(format!("{:?}", e))
-    }
 }
 
 impl From<&str> for Error {

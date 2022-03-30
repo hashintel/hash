@@ -59,5 +59,5 @@ test("guest user navigation to inaccessible pages", async ({ page }) => {
     page.locator("text=This page could not be found."),
   ).toBeVisible();
 
-  await expect(page.locator("button")).toHaveText(["Sign In", "Sign Up"]);
+  await expect(page.locator("text=Sign InSign Up")).toBeVisible();
 });

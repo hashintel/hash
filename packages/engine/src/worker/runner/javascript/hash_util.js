@@ -4,9 +4,9 @@
   "use strict";
   // TODO: Add this file to hash_stdlib instead?
 
-  /// Only values `x` that are JSON-serializable or have a `to_json` method are supported.
-  /// `_depth` is an optional argument.
-  /// Throws an `Error` if recursion depth 1000 is exceeded.
+  // Only values `x` that are JSON-serializable or have a `to_json` method are supported.
+  // `_depth` is an optional argument.
+  // Throws an `Error` if recursion depth 1000 is exceeded.
   const json_deepcopy = (x, _depth) => {
     if (x === null || typeof x !== "object") {
       return x;
@@ -28,6 +28,7 @@
     }
 
     if (typeof x.to_json === "function") {
+      // E.g. lazy-loaded Neighbor object
       return x.to_json();
     }
 
@@ -52,8 +53,10 @@
     return copy;
   };
 
-  /// NB: If input is an `any`-type column, will return an array of strings (containing JSON).
-  const load_shallow = (vector) => {
+  // NB: If input is an `any`-type column, will return an array of strings (containing JSON).
+  // TODO: Change arguments after upgrading Arrow (is_nullable and is_any will probably become
+  //       unnecessary as we want to store them in column metadata).
+  const load_shallow = (vector, is_nullable, is_any) => {
     // `vector.toArray` returns array-like (in some cases? TODO), not actual array.
     const shallow = [];
     for (var i = 0; i < vector.length; ++i) {
@@ -119,7 +122,9 @@
     return deep;
   };
 
-  const load_full = (vector) => {
+  // TODO: Change arguments after upgrading Arrow (is_nullable and is_any will probably become
+  //       unnecessary as we want to store them in column metadata).
+  const load_full = (vector, is_nullable, is_any) => {
     // TODO: Do manual zero-copy conversion for non-nullable fixed-size types.
     //       (Or modify JS Arrow `toArray` implementation.)
 

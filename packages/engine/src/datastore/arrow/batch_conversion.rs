@@ -12,36 +12,43 @@ use arrow::{
         PrimitiveArray, StringArray, StructArray,
     },
     buffer::MutableBuffer,
-    datatypes::{self, ArrowNumericType, ArrowPrimitiveType, DataType, Field, JsonSerializable},
+    datatypes::{
+        self, ArrowNumericType, ArrowPrimitiveType, DataType, Field, JsonSerializable, Schema,
+    },
+    record_batch::RecordBatch,
+    util::bit_util,
 };
 use serde::de::DeserializeOwned;
 use serde_json::value::Value;
 
-use super::prelude::*;
 use crate::{
     datastore::{
-        arrow::message::messages_column_from_serde_values,
-        prelude::*,
+        arrow::{message, message::messages_column_from_serde_values},
+        batch::{AgentBatch, MessageBatch},
+        error::{Error, Result, SupportedType},
         schema::{state::AgentSchema, FieldKey, FieldScope, FieldTypeVariant, IsRequired},
         UUID_V4_LEN,
     },
-    hash_types::state::{AgentStateField, BUILTIN_FIELDS},
+    hash_types::{
+        state::{AgentStateField, BUILTIN_FIELDS},
+        Agent,
+    },
     simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY,
 };
 
-// This file is here mostly to convert between RecordBatch and Vec<AgentState>.
+// This file is here mostly to convert between RecordBatch and Vec<Agent>.
 
 /// Conversion into Arrow `RecordBatch`
 pub trait IntoRecordBatch {
-    fn into_message_batch(&self, schema: &Arc<ArrowSchema>) -> Result<RecordBatch>;
-    fn into_empty_message_batch(&self, schema: &Arc<ArrowSchema>) -> Result<RecordBatch>;
+    fn into_message_batch(&self, schema: &Arc<Schema>) -> Result<RecordBatch>;
+    fn into_empty_message_batch(&self, schema: &Arc<Schema>) -> Result<RecordBatch>;
     /// TODO: DOC describe, explain self is initialization data
     fn into_agent_batch(&self, schema: &Arc<AgentSchema>) -> Result<RecordBatch>;
 }
 
 // `n_bits` 0 bits, possibly followed by more 0 bits for padding.
 pub fn new_zero_bits(n_bits: usize) -> MutableBuffer {
-    let n_bytes = arrow_bit_util::ceil(n_bits, 8);
+    let n_bytes = bit_util::ceil(n_bits, 8);
 
     // MutableBuffer makes a call to std::alloc::alloc_zeroed
     // It also rounds up the capacity to a multiple of 64
@@ -103,7 +110,7 @@ pub fn get_agent_id_array(values: Vec<&str>) -> Result<array::FixedSizeBinaryArr
 
 // `get_agent_id_array` is needed for public interface, but
 // this function avoids copying ids to separate `Vec`.
-fn agents_to_id_col(agents: &[&AgentState]) -> Result<ArrayRef> {
+fn agents_to_id_col(agents: &[&Agent]) -> Result<ArrayRef> {
     let mut builder =
         array::FixedSizeBinaryBuilder::new(agents.len() * UUID_V4_LEN, UUID_V4_LEN as i32);
     for agent in agents {
@@ -114,7 +121,7 @@ fn agents_to_id_col(agents: &[&AgentState]) -> Result<ArrayRef> {
 
 macro_rules! agents_to_vec_col_gen {
     ($field_name:ident, $function_name:ident) => {
-        fn $function_name(agents: &[&AgentState]) -> Result<FixedSizeListArray> {
+        fn $function_name(agents: &[&Agent]) -> Result<FixedSizeListArray> {
             let mut flat: Vec<f64> = Vec::with_capacity(agents.len() * 3);
             let mut null_bits = new_zero_bits(agents.len());
             let mut_null_bits = null_bits.as_slice_mut();
@@ -124,7 +131,7 @@ macro_rules! agents_to_vec_col_gen {
                     flat.push(dir.0);
                     flat.push(dir.1);
                     flat.push(dir.2);
-                    arrow_bit_util::set_bit(mut_null_bits, i_agent);
+                    bit_util::set_bit(mut_null_bits, i_agent);
                 } else {
                     // Null -- put arbitrary data
                     flat.push(0.0);
@@ -135,10 +142,8 @@ macro_rules! agents_to_vec_col_gen {
             }
             let child_array: array::Float64Array = flat.into();
 
-            let dt = ArrowDataType::FixedSizeList(
-                Box::new(ArrowField::new("item", ArrowDataType::Float64, true)),
-                3,
-            );
+            let dt =
+                DataType::FixedSizeList(Box::new(Field::new("item", DataType::Float64, true)), 3);
 
             Ok(ArrayData::builder(dt)
                 .len(agents.len())
@@ -227,7 +232,7 @@ fn json_vals_to_list(
     for (i_val, val) in vals.into_iter().enumerate() {
         match val {
             Value::Array(mut inner_vals) => {
-                arrow_bit_util::set_bit(mut_null_bits, i_val);
+                bit_util::set_bit(mut_null_bits, i_val);
                 let prev_offset = mut_offsets[i_val];
                 mut_offsets[i_val + 1] = prev_offset + inner_vals.len() as i32;
                 combined_vals.append(&mut inner_vals);
@@ -242,7 +247,7 @@ fn json_vals_to_list(
     // Nested values are always nullable.
     let child_data = json_vals_to_col(combined_vals, &inner_field, true)?;
 
-    Ok(ArrayData::builder(ArrowDataType::List(inner_field))
+    Ok(ArrayData::builder(DataType::List(inner_field))
         .len(n_elem)
         .null_count(null_count)
         .null_bit_buffer(null_bits.into())
@@ -274,7 +279,7 @@ fn json_vals_to_fixed_size_list(
                         actual: inner_vals.len(),
                     });
                 }
-                arrow_bit_util::set_bit(mut_null_bits, i_val);
+                bit_util::set_bit(mut_null_bits, i_val);
                 combined_vals.append(&mut inner_vals);
             }
             Value::Null => {
@@ -289,7 +294,7 @@ fn json_vals_to_fixed_size_list(
     let child_data = json_vals_to_col(combined_vals, &inner_field, true)?;
 
     Ok(
-        ArrayData::builder(ArrowDataType::FixedSizeList(inner_field, size))
+        ArrayData::builder(DataType::FixedSizeList(inner_field, size))
             .len(n_elem)
             .null_count(null_count)
             .null_bit_buffer(null_bits.into())
@@ -302,7 +307,7 @@ fn json_vals_to_fixed_size_list(
 fn json_vals_to_struct(
     vals: Vec<Value>,
     _nullable: bool,
-    fields: Vec<ArrowField>,
+    fields: Vec<Field>,
 ) -> Result<StructArray> {
     let mut flattened_vals = vec![Vec::with_capacity(vals.len()); fields.len()];
 
@@ -356,51 +361,54 @@ fn json_vals_to_struct(
 // TODO: OPTIM: As an optimization, we could look at both whether a column is *nullable* (i.e.
 //       can have nulls) and whether it has a *non-zero null count* (i.e. currently
 //       has nulls). Right now it only matters whether the column is nullable.
-fn json_vals_to_col(vals: Vec<Value>, field: &ArrowField, nullable: bool) -> Result<ArrayRef> {
+fn json_vals_to_col(vals: Vec<Value>, field: &Field, nullable: bool) -> Result<ArrayRef> {
     // Inner columns (i.e. columns that are elements of list or struct arrays) are
     // always nullable; fields might not be.
     match field.data_type() {
-        ArrowDataType::Float64 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Float64Type>(
+        DataType::Float64 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Float64Type>(
             vals, nullable,
         )?)),
-        ArrowDataType::Float32 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Float32Type>(
+        DataType::Float32 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Float32Type>(
             vals, nullable,
         )?)),
-        ArrowDataType::Int64 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Int64Type>(
+        DataType::Int64 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Int64Type>(
             vals, nullable,
         )?)),
-        ArrowDataType::Int32 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Int32Type>(
+        DataType::Int32 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Int32Type>(
             vals, nullable,
         )?)),
-        ArrowDataType::Int16 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Int16Type>(
+        DataType::Int16 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Int16Type>(
             vals, nullable,
         )?)),
-        ArrowDataType::Int8 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Int8Type>(
+        DataType::Int8 => Ok(Arc::new(json_vals_to_primitive::<datatypes::Int8Type>(
             vals, nullable,
         )?)),
-        ArrowDataType::UInt64 => Ok(Arc::new(json_vals_to_primitive::<datatypes::UInt64Type>(
+        DataType::UInt64 => Ok(Arc::new(json_vals_to_primitive::<datatypes::UInt64Type>(
             vals, nullable,
         )?)),
-        ArrowDataType::UInt32 => Ok(Arc::new(json_vals_to_primitive::<datatypes::UInt32Type>(
+        DataType::UInt32 => Ok(Arc::new(json_vals_to_primitive::<datatypes::UInt32Type>(
             vals, nullable,
         )?)),
-        ArrowDataType::UInt16 => Ok(Arc::new(json_vals_to_primitive::<datatypes::UInt16Type>(
+        DataType::UInt16 => Ok(Arc::new(json_vals_to_primitive::<datatypes::UInt16Type>(
             vals, nullable,
         )?)),
-        ArrowDataType::UInt8 => Ok(Arc::new(json_vals_to_primitive::<datatypes::UInt8Type>(
+        DataType::UInt8 => Ok(Arc::new(json_vals_to_primitive::<datatypes::UInt8Type>(
             vals, nullable,
         )?)),
-        ArrowDataType::Boolean => Ok(Arc::new(json_vals_to_bool(vals)?)),
-        ArrowDataType::Utf8 => Ok(Arc::new(json_vals_to_utf8(vals, nullable)?)),
-        ArrowDataType::List(inner_field) => Ok(Arc::new(json_vals_to_list(
+        DataType::Boolean => Ok(Arc::new(json_vals_to_bool(vals)?)),
+        DataType::Utf8 => Ok(Arc::new(json_vals_to_utf8(vals, nullable)?)),
+        DataType::List(inner_field) => Ok(Arc::new(json_vals_to_list(
             vals,
             nullable,
             inner_field.clone(),
         )?)),
-        ArrowDataType::FixedSizeList(inner_field, size) => Ok(Arc::new(
-            json_vals_to_fixed_size_list(vals, nullable, inner_field.clone(), *size)?,
-        )),
-        ArrowDataType::Struct(fields) => Ok(Arc::new(json_vals_to_struct(
+        DataType::FixedSizeList(inner_field, size) => Ok(Arc::new(json_vals_to_fixed_size_list(
+            vals,
+            nullable,
+            inner_field.clone(),
+            *size,
+        )?)),
+        DataType::Struct(fields) => Ok(Arc::new(json_vals_to_struct(
             vals,
             nullable,
             fields.clone(),
@@ -422,8 +430,8 @@ fn json_vals_to_any_type_col(vals: Vec<Value>, dt: &DataType) -> Result<ArrayRef
     Ok(Arc::new(builder.finish()))
 }
 
-fn previous_index_to_empty_col(num_agents: usize, dt: ArrowDataType) -> Result<ArrayRef> {
-    if let ArrowDataType::FixedSizeList(inner_field, inner_len) = dt.clone() {
+fn previous_index_to_empty_col(num_agents: usize, dt: DataType) -> Result<ArrayRef> {
+    if let DataType::FixedSizeList(inner_field, inner_len) = dt.clone() {
         debug_assert!(matches!(inner_field.data_type(), DataType::UInt32));
         let data_byte_size = inner_len as usize * num_agents * std::mem::size_of::<u32>();
         let mut buffer = MutableBuffer::new(data_byte_size);
@@ -448,15 +456,15 @@ fn previous_index_to_empty_col(num_agents: usize, dt: ArrowDataType) -> Result<A
     }
 }
 
-impl IntoRecordBatch for &[AgentState] {
-    fn into_message_batch(&self, schema: &Arc<ArrowSchema>) -> Result<RecordBatch> {
+impl IntoRecordBatch for &[Agent] {
+    fn into_message_batch(&self, schema: &Arc<Schema>) -> Result<RecordBatch> {
         self.iter()
             .collect::<Vec<_>>()
             .as_slice()
             .into_message_batch(schema)
     }
 
-    fn into_empty_message_batch(&self, schema: &Arc<ArrowSchema>) -> Result<RecordBatch> {
+    fn into_empty_message_batch(&self, schema: &Arc<Schema>) -> Result<RecordBatch> {
         self.iter()
             .collect::<Vec<_>>()
             .as_slice()
@@ -471,8 +479,8 @@ impl IntoRecordBatch for &[AgentState] {
     }
 }
 
-impl IntoRecordBatch for &[&AgentState] {
-    fn into_message_batch(&self, schema: &Arc<ArrowSchema>) -> Result<RecordBatch> {
+impl IntoRecordBatch for &[&Agent] {
+    fn into_message_batch(&self, schema: &Arc<Schema>) -> Result<RecordBatch> {
         let ids = self
             .iter()
             .map(|agent| agent.agent_id.as_ref())
@@ -480,12 +488,12 @@ impl IntoRecordBatch for &[&AgentState] {
         let messages: Vec<Value> = self
             .iter()
             .map(|agent| agent.get_as_json("messages"))
-            .collect::<crate::hash_types::error::Result<_>>()?;
+            .collect::<crate::hash_types::Result<_>>()?;
 
         message::batch_from_json(schema, ids, Some(messages))
     }
 
-    fn into_empty_message_batch(&self, schema: &Arc<ArrowSchema>) -> Result<RecordBatch> {
+    fn into_empty_message_batch(&self, schema: &Arc<Schema>) -> Result<RecordBatch> {
         let ids = self
             .iter()
             .map(|agent| agent.agent_id.as_ref())
@@ -502,8 +510,8 @@ impl IntoRecordBatch for &[&AgentState] {
 
             let vals: Vec<Value> = self
                 .iter()
-                .map(|agent: &&AgentState| agent.get_as_json(name.as_str()))
-                .collect::<crate::hash_types::error::Result<_>>()?;
+                .map(|agent: &&Agent| agent.get_as_json(name.as_str()))
+                .collect::<crate::hash_types::Result<_>>()?;
 
             // If use `match` instead of `if`, Rust infers that
             // `name` must have static lifetime, like `match` arms.
@@ -556,24 +564,20 @@ impl IntoRecordBatch for &[&AgentState] {
     }
 }
 
-/// Conversion into `AgentState`, which can be converted to JSON
-pub trait IntoAgentStates {
-    fn into_agent_states(&self, agent_schema: Option<&Arc<AgentSchema>>)
-    -> Result<Vec<AgentState>>;
+/// Conversion into `Agent`, which can be converted to JSON
+pub trait IntoAgents {
+    fn into_agent_states(&self, agent_schema: Option<&Arc<AgentSchema>>) -> Result<Vec<Agent>>;
 
-    // Conversion into `AgentState` where certain built-in fields and
+    // Conversion into `Agent` where certain built-in fields and
     // null values are selectively ignored
-    fn into_filtered_agent_states(
-        &self,
-        agent_schema: &Arc<AgentSchema>,
-    ) -> Result<Vec<AgentState>>;
+    fn into_filtered_agent_states(&self, agent_schema: &Arc<AgentSchema>) -> Result<Vec<Agent>>;
 }
 
 // `array.null_count() > 0` can be moved out of loops by the compiler:
 // https://llvm.org/doxygen/LoopUnswitch_8cpp_source.html
 
 // TODO: Why doesn't this work:
-// fn downcast_col<T>(col: &ArrayRef) -> std::result::Result<&T, Error> {
+// fn downcast_col<T>(col: &ArrayRef) -> Result<&T, Error> {
 //     col.as_any().downcast_ref::<T>().ok_or(Error::InvalidArrowDowncast)
 // }
 // This works: https://docs.rs/arrow/1.0.1/src/arrow/array/cast.rs.html
@@ -591,7 +595,7 @@ fn get_i_col(field: AgentStateField, record_batch: &RecordBatch) -> Result<Optio
     }
 }
 
-fn set_states_agent_id(states: &mut [AgentState], record_batch: &RecordBatch) -> Result<()> {
+fn set_states_agent_id(states: &mut [Agent], record_batch: &RecordBatch) -> Result<()> {
     let field = AgentStateField::AgentId;
     if let Some(i_col) = get_i_col(field, record_batch)? {
         let array = record_batch
@@ -613,7 +617,7 @@ fn set_states_agent_id(states: &mut [AgentState], record_batch: &RecordBatch) ->
     Ok(())
 }
 
-fn set_states_agent_name(states: &mut [AgentState], record_batch: &RecordBatch) -> Result<()> {
+fn set_states_agent_name(states: &mut [Agent], record_batch: &RecordBatch) -> Result<()> {
     let field = AgentStateField::AgentName;
     if let Some(i_col) = get_i_col(field.clone(), record_batch)? {
         let array = record_batch
@@ -635,7 +639,7 @@ fn set_states_agent_name(states: &mut [AgentState], record_batch: &RecordBatch) 
     Ok(())
 }
 
-fn set_states_shape(states: &mut [AgentState], record_batch: &RecordBatch) -> Result<()> {
+fn set_states_shape(states: &mut [Agent], record_batch: &RecordBatch) -> Result<()> {
     let field = AgentStateField::Shape;
     if let Some(i_col) = get_i_col(field.clone(), record_batch)? {
         let array = record_batch
@@ -657,7 +661,7 @@ fn set_states_shape(states: &mut [AgentState], record_batch: &RecordBatch) -> Re
     Ok(())
 }
 
-fn set_states_color(states: &mut [AgentState], record_batch: &RecordBatch) -> Result<()> {
+fn set_states_color(states: &mut [Agent], record_batch: &RecordBatch) -> Result<()> {
     let field = AgentStateField::Color;
     if let Some(i_col) = get_i_col(field.clone(), record_batch)? {
         let array = record_batch
@@ -687,7 +691,7 @@ macro_rules! set_states_opt_vec3_gen {
         // At least for now, need `field` parameter in addition to `field_name` parameter,
         // because other functions use `field` enum, not just the field name.
 
-        fn $function_name(states: &mut [AgentState], record_batch: &RecordBatch) -> Result<()> {
+        fn $function_name(states: &mut [Agent], record_batch: &RecordBatch) -> Result<()> {
             if let Some(i_col) = get_i_col($field, record_batch)? {
                 let vec3_array = record_batch
                     .column(i_col)
@@ -729,7 +733,7 @@ set_states_opt_vec3_gen!(velocity, set_states_velocity, AgentStateField::Velocit
 
 macro_rules! set_states_opt_f64_gen {
     ($field_name:ident, $function_name:ident, $field:expr) => {
-        fn $function_name(states: &mut [AgentState], record_batch: &RecordBatch) -> Result<()> {
+        fn $function_name(states: &mut [Agent], record_batch: &RecordBatch) -> Result<()> {
             if let Some(i_col) = get_i_col($field, record_batch)? {
                 let array = record_batch
                     .column(i_col)
@@ -754,7 +758,7 @@ macro_rules! set_states_opt_f64_gen {
 
 set_states_opt_f64_gen!(height, set_states_height, AgentStateField::Height);
 
-fn set_states_hidden(states: &mut [AgentState], record_batch: &RecordBatch) -> Result<()> {
+fn set_states_hidden(states: &mut [Agent], record_batch: &RecordBatch) -> Result<()> {
     let field = AgentStateField::Hidden;
     if let Some(i_col) = get_i_col(field.clone(), record_batch)? {
         let array = record_batch
@@ -772,7 +776,7 @@ fn set_states_hidden(states: &mut [AgentState], record_batch: &RecordBatch) -> R
     Ok(())
 }
 
-fn set_states_previous_index(states: &mut [AgentState], record_batch: &RecordBatch) -> Result<()> {
+fn set_states_previous_index(states: &mut [Agent], record_batch: &RecordBatch) -> Result<()> {
     let index = record_batch
         .schema()
         .column_with_name(PREVIOUS_INDEX_FIELD_KEY)
@@ -809,7 +813,7 @@ fn set_states_previous_index(states: &mut [AgentState], record_batch: &RecordBat
     Ok(())
 }
 
-fn set_states_messages(states: &mut [AgentState], messages: &RecordBatch) -> Result<()> {
+fn set_states_messages(states: &mut [Agent], messages: &RecordBatch) -> Result<()> {
     debug_assert_eq!(
         messages.schema(),
         std::sync::Arc::new(super::message::MESSAGE_BATCH_SCHEMA.clone())
@@ -817,7 +821,7 @@ fn set_states_messages(states: &mut [AgentState], messages: &RecordBatch) -> Res
     super::message::column_into_state(states, messages, super::message::MESSAGE_COLUMN_INDEX)
 }
 
-fn set_states_builtins(states: &mut [AgentState], agents: &RecordBatch) -> Result<()> {
+fn set_states_builtins(states: &mut [Agent], agents: &RecordBatch) -> Result<()> {
     set_states_agent_id(states, agents)?;
     set_states_agent_name(states, agents)?;
 
@@ -956,7 +960,7 @@ fn fixed_size_list_to_json_vals(col: &ArrayRef, inner_dt: &DataType) -> Result<V
     Ok(json_vals)
 }
 
-fn struct_to_json_vals(col: &ArrayRef, fields: &[ArrowField]) -> Result<Vec<Value>> {
+fn struct_to_json_vals(col: &ArrayRef, fields: &[Field]) -> Result<Vec<Value>> {
     let array = col
         .as_any()
         .downcast_ref::<StructArray>()
@@ -995,23 +999,23 @@ fn struct_to_json_vals(col: &ArrayRef, fields: &[ArrowField]) -> Result<Vec<Valu
 
 pub(in crate::datastore) fn col_to_json_vals(col: &ArrayRef, dt: &DataType) -> Result<Vec<Value>> {
     match dt {
-        ArrowDataType::Float32 => numeric_to_json_vals::<datatypes::Float32Type>(col),
-        ArrowDataType::Float64 => numeric_to_json_vals::<datatypes::Float64Type>(col),
-        ArrowDataType::Int8 => numeric_to_json_vals::<datatypes::Int8Type>(col),
-        ArrowDataType::Int16 => numeric_to_json_vals::<datatypes::Int16Type>(col),
-        ArrowDataType::Int32 => numeric_to_json_vals::<datatypes::Int32Type>(col),
-        ArrowDataType::Int64 => numeric_to_json_vals::<datatypes::Int64Type>(col),
-        ArrowDataType::UInt8 => numeric_to_json_vals::<datatypes::UInt8Type>(col),
-        ArrowDataType::UInt16 => numeric_to_json_vals::<datatypes::UInt16Type>(col),
-        ArrowDataType::UInt32 => numeric_to_json_vals::<datatypes::UInt32Type>(col),
-        ArrowDataType::UInt64 => numeric_to_json_vals::<datatypes::UInt64Type>(col),
-        ArrowDataType::Boolean => bool_to_json_vals(col),
-        ArrowDataType::Utf8 => utf8_to_json_vals(col),
-        ArrowDataType::List(inner_field) => list_to_json_vals(col, inner_field.data_type()),
-        ArrowDataType::FixedSizeList(inner_field, _) => {
+        DataType::Float32 => numeric_to_json_vals::<datatypes::Float32Type>(col),
+        DataType::Float64 => numeric_to_json_vals::<datatypes::Float64Type>(col),
+        DataType::Int8 => numeric_to_json_vals::<datatypes::Int8Type>(col),
+        DataType::Int16 => numeric_to_json_vals::<datatypes::Int16Type>(col),
+        DataType::Int32 => numeric_to_json_vals::<datatypes::Int32Type>(col),
+        DataType::Int64 => numeric_to_json_vals::<datatypes::Int64Type>(col),
+        DataType::UInt8 => numeric_to_json_vals::<datatypes::UInt8Type>(col),
+        DataType::UInt16 => numeric_to_json_vals::<datatypes::UInt16Type>(col),
+        DataType::UInt32 => numeric_to_json_vals::<datatypes::UInt32Type>(col),
+        DataType::UInt64 => numeric_to_json_vals::<datatypes::UInt64Type>(col),
+        DataType::Boolean => bool_to_json_vals(col),
+        DataType::Utf8 => utf8_to_json_vals(col),
+        DataType::List(inner_field) => list_to_json_vals(col, inner_field.data_type()),
+        DataType::FixedSizeList(inner_field, _) => {
             fixed_size_list_to_json_vals(col, inner_field.data_type())
         }
-        ArrowDataType::Struct(fields) => struct_to_json_vals(col, fields),
+        DataType::Struct(fields) => struct_to_json_vals(col, fields),
         _ => Err(Error::NotImplemented(SupportedType::ArrowDataType(
             dt.clone(),
         ))),
@@ -1019,7 +1023,7 @@ pub(in crate::datastore) fn col_to_json_vals(col: &ArrayRef, dt: &DataType) -> R
 }
 
 fn set_states_custom(
-    states: &mut [AgentState],
+    states: &mut [Agent],
     record_batch: &RecordBatch,
     i_field: usize,
     field: &Field,
@@ -1037,7 +1041,7 @@ fn set_states_custom(
 }
 
 fn set_states_serialized(
-    states: &mut [AgentState],
+    states: &mut [Agent],
     record_batch: &RecordBatch,
     i_field: usize,
     field: &Field,
@@ -1054,11 +1058,8 @@ fn set_states_serialized(
     Ok(())
 }
 
-impl IntoAgentStates for (&AgentBatch, &MessageBatch) {
-    fn into_agent_states(
-        &self,
-        agent_schema: Option<&Arc<AgentSchema>>,
-    ) -> Result<Vec<AgentState>> {
+impl IntoAgents for (&AgentBatch, &MessageBatch) {
+    fn into_agent_states(&self, agent_schema: Option<&Arc<AgentSchema>>) -> Result<Vec<Agent>> {
         let agents = self.0.batch.record_batch()?;
         let messages = self.1.batch.record_batch()?;
         let mut states = agents.into_agent_states(agent_schema)?;
@@ -1066,10 +1067,7 @@ impl IntoAgentStates for (&AgentBatch, &MessageBatch) {
         Ok(states)
     }
 
-    fn into_filtered_agent_states(
-        &self,
-        agent_schema: &Arc<AgentSchema>,
-    ) -> Result<Vec<AgentState>> {
+    fn into_filtered_agent_states(&self, agent_schema: &Arc<AgentSchema>) -> Result<Vec<Agent>> {
         let agents = self.0.batch.record_batch()?;
         let messages = self.1.batch.record_batch()?;
         let mut states = agents.into_filtered_agent_states(agent_schema)?;
@@ -1078,11 +1076,8 @@ impl IntoAgentStates for (&AgentBatch, &MessageBatch) {
     }
 }
 
-impl IntoAgentStates for (&RecordBatch, &RecordBatch) {
-    fn into_agent_states(
-        &self,
-        agent_schema: Option<&Arc<AgentSchema>>,
-    ) -> Result<Vec<AgentState>> {
+impl IntoAgents for (&RecordBatch, &RecordBatch) {
+    fn into_agent_states(&self, agent_schema: Option<&Arc<AgentSchema>>) -> Result<Vec<Agent>> {
         let agents = &self.0;
         let messages = &self.1;
         let mut states = agents.into_agent_states(agent_schema)?;
@@ -1090,10 +1085,7 @@ impl IntoAgentStates for (&RecordBatch, &RecordBatch) {
         Ok(states)
     }
 
-    fn into_filtered_agent_states(
-        &self,
-        agent_schema: &Arc<AgentSchema>,
-    ) -> Result<Vec<AgentState>> {
+    fn into_filtered_agent_states(&self, agent_schema: &Arc<AgentSchema>) -> Result<Vec<Agent>> {
         let agents = &self.0;
         let messages = &self.1;
         let mut states = agents.into_filtered_agent_states(agent_schema)?;
@@ -1102,14 +1094,11 @@ impl IntoAgentStates for (&RecordBatch, &RecordBatch) {
     }
 }
 
-impl IntoAgentStates for RecordBatch {
-    fn into_agent_states(
-        &self,
-        agent_schema: Option<&Arc<AgentSchema>>,
-    ) -> Result<Vec<AgentState>> {
+impl IntoAgents for RecordBatch {
+    fn into_agent_states(&self, agent_schema: Option<&Arc<AgentSchema>>) -> Result<Vec<Agent>> {
         let agents = self;
 
-        let mut states: Vec<AgentState> = std::iter::repeat(AgentState::empty())
+        let mut states: Vec<Agent> = std::iter::repeat(Agent::empty())
             .take(agents.num_rows())
             .collect();
 
@@ -1156,10 +1145,7 @@ impl IntoAgentStates for RecordBatch {
         Ok(states)
     }
 
-    fn into_filtered_agent_states(
-        &self,
-        agent_schema: &Arc<AgentSchema>,
-    ) -> Result<Vec<AgentState>> {
+    fn into_filtered_agent_states(&self, agent_schema: &Arc<AgentSchema>) -> Result<Vec<Agent>> {
         let agent_states = self.into_agent_states(Some(agent_schema))?;
 
         let group_field_names = agent_schema

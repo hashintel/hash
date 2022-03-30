@@ -152,7 +152,10 @@
 
 use std::cmp::Ordering;
 
-use crate::datastore::{storage::BufferChange, Error, Result};
+use crate::datastore::{
+    error::{Error, Result},
+    storage::BufferChange,
+};
 
 /// Simple way for every component (language runners + main loop) using the datastore to track
 /// whether it has to reload memory or reload the record batch.

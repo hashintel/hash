@@ -2,20 +2,20 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use tracing::{Instrument, Span};
 
-use super::{
-    comms::{
-        sim_status::{SimStatusRecv, SimStatusSend},
-        simulation::SimCtlSend,
-    },
-    sim_configurer::SimConfigurer,
-    Error, Result,
-};
 use crate::{
-    config::{PersistenceConfig, StoreConfig},
-    datastore::prelude::SharedStore,
-    env::OrchClient,
+    config::{ExperimentConfig, PersistenceConfig, StoreConfig},
+    datastore::shared_store::SharedStore,
+    env::{Environment, OrchClient},
     experiment::{
         apply_globals_changes,
+        controller::{
+            comms::{
+                sim_status::{SimStatusRecv, SimStatusSend},
+                simulation::SimCtlSend,
+            },
+            error::{Error, Result},
+            sim_configurer::SimConfigurer,
+        },
         package::{ExperimentPackageComms, StepUpdate},
         ExperimentControl,
     },
@@ -40,7 +40,6 @@ use crate::{
             TerminateRecv,
         },
     },
-    Environment, ExperimentConfig,
 };
 
 pub struct ExperimentController<P: OutputPersistenceCreatorRepr> {

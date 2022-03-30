@@ -3,7 +3,7 @@ use std::sync::Arc;
 use parking_lot::RwLock;
 
 use crate::{
-    datastore::{batch::AgentBatch, table::pool::proxy::PoolWriteProxy, Result},
+    datastore::{batch::AgentBatch, error::Result, table::pool::proxy::PoolWriteProxy},
     simulation::package::state::StateColumn,
 };
 

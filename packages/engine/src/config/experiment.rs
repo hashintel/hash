@@ -1,8 +1,7 @@
 use std::sync::Arc;
 
-use super::{package, worker, worker_pool, Result};
 use crate::{
-    config::globals::Globals,
+    config::{globals::Globals, package, worker, worker_pool, Result},
     proto::{ExperimentName, ExperimentRunRepr, ExperimentRunTrait, InitialStateName},
     simulation::package::init,
 };
@@ -43,7 +42,7 @@ impl Config {
         // TODO: Ask packages for what language execution they require.
         let worker_base_config = worker::Config {
             spawn: worker::SpawnConfig {
-                python: false,
+                python: true,
                 rust: false,
                 javascript: true,
             },

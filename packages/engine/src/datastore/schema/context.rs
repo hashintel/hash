@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use crate::datastore::{prelude::*, schema::field_spec::FieldSpecMap};
+use arrow::datatypes::Schema as ArrowSchema;
+
+use crate::datastore::{error::Result, schema::field_spec::FieldSpecMap};
 
 pub struct ContextSchema {
     pub arrow: Arc<ArrowSchema>,

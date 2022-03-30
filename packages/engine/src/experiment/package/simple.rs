@@ -1,9 +1,12 @@
 use std::{collections::HashMap, sync::Arc};
 
-use super::super::{Error, ExperimentControl, Result};
 use crate::{
     config::ExperimentConfig,
-    experiment::controller::comms::{exp_pkg_ctl::ExpPkgCtlSend, exp_pkg_update::ExpPkgUpdateRecv},
+    experiment::{
+        controller::comms::{exp_pkg_ctl::ExpPkgCtlSend, exp_pkg_update::ExpPkgUpdateRecv},
+        error::{Error, Result},
+        ExperimentControl,
+    },
     proto::{SimpleExperimentConfig, SimulationShortId},
 };
 

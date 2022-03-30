@@ -11,14 +11,13 @@ use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
 use self::behavior_execution::tasks::{ExecuteBehaviorsTask, ExecuteBehaviorsTaskMessage};
-use super::PackageCreator;
 use crate::{
+    config::ExperimentConfig,
     simulation::{
-        enum_dispatch::*,
-        package::{id::PackageIdGenerator, PackageMetadata, PackageType},
+        enum_dispatch::{enum_dispatch, RegisterWithoutTrait, StoreAccessVerify, TaskSharedStore},
+        package::{id::PackageIdGenerator, state::PackageCreator, PackageMetadata, PackageType},
         Error, Result,
     },
-    ExperimentConfig,
 };
 
 /// All state package names are registered in this enum
@@ -78,7 +77,7 @@ impl PackageCreators {
         experiment_config: &Arc<ExperimentConfig>,
     ) -> Result<()> {
         tracing::debug!("Initializing State Package Creators");
-        use Name::*;
+        use Name::{BehaviorExecution, Topology};
         let mut m = HashMap::new();
         m.insert(
             BehaviorExecution,
@@ -116,7 +115,7 @@ impl PackageCreators {
 
 lazy_static! {
     pub static ref METADATA: HashMap<Name, PackageMetadata> = {
-        use Name::*;
+        use Name::{BehaviorExecution, Topology};
         let mut id_creator = PackageIdGenerator::new(PackageType::State);
         let mut m = HashMap::new();
         m.insert(BehaviorExecution, PackageMetadata {
