@@ -1,3 +1,4 @@
+import axios from "axios";
 import Image from "next/image";
 import {
   Box,
@@ -9,7 +10,8 @@ import {
 } from "@mui/material";
 import type { NextPage } from "next";
 import Head from "next/head";
-import { ComponentProps, FC, ReactNode, VFC } from "react";
+import { ComponentProps, FC, ReactNode, useEffect, useState, VFC } from "react";
+import { unstable_batchedUpdates } from "react-dom";
 import { Button } from "../components/Button";
 import { FaIcon } from "../components/icons/FaIcon";
 import { Link } from "../components/Link";
@@ -265,8 +267,20 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
   );
 };
 
+// Taken from http://emailregex.com/
+const EMAIL_REGEX =
+  /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+
 // @todo responsive
 const Subscribe: VFC = () => {
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [userJoined, setUserJoined] = useState(false);
+
+  useEffect(() => {
+    console.log({ error, loading, userJoined });
+  });
+
   return (
     <Container
       component="section"
@@ -298,11 +312,65 @@ const Subscribe: VFC = () => {
         </Typography>
         {/** @todo check this spacing */}
         <Stack direction="row" justifyContent="center" spacing={1.5}>
-          <Input sx={{ width: 459, flexShrink: 1 }} />
-          {/** @todo action */}
-          <Button variant="primary" size="large">
-            Join
-          </Button>
+          <form
+            onSubmit={async (evt) => {
+              // @todo update from hashai
+              evt.preventDefault();
+              const formData = new FormData(evt.target as HTMLFormElement);
+              const email = formData.get("email")! as string;
+
+              try {
+                const isEmailValid = EMAIL_REGEX.test(email);
+                if (!isEmailValid) {
+                  setError("Please enter a valid email address");
+                  return;
+                }
+
+                unstable_batchedUpdates(() => {
+                  setError("");
+                  setLoading(true);
+                });
+
+                const { data } = await axios.post("/api/subscribe", {
+                  email,
+                  // @todo what are these for?
+                  merge_fields: { HASHDev: "Yes" },
+                });
+                setLoading(false);
+
+                if (data.response.status === "subscribed") {
+                  setUserJoined(true);
+                  return;
+                } else if (!data?.response?.title) {
+                  setError("Something went wrong ☹️ Please try again later");
+                } else if (data.response.title.includes("Invalid Resource")) {
+                  setError("Are you sure? 🤔 Please try a different address…");
+                } else if (data.response.title.includes("Member Exists")) {
+                  await axios.patch("/api/subscribe", {
+                    mailchimp_id: data.response.id,
+                    merge_fields: {
+                      HASH: "Yes",
+                    },
+                  });
+                  setUserJoined(true);
+                }
+              } catch (err) {
+                // eslint-disable-next-line no-console
+                console.log(error);
+                setError("Something went wrong ☹️ Please try again later");
+              }
+            }}
+          >
+            <Input
+              sx={{ width: 459, flexShrink: 1 }}
+              name="email"
+              type="email"
+            />
+            {/** @todo action */}
+            <Button variant="primary" size="large" type="submit">
+              Join
+            </Button>
+          </form>
         </Stack>
       </Box>
     </Container>
