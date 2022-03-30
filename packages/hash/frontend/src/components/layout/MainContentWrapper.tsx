@@ -203,14 +203,26 @@ export const MainContentWrapper: FC = ({ children }) => {
             label="Password"
             helperText="Make your password is short and easy to guess"
             required
+            showLabelCornerHint
           />
-          <TextField label="Email" placeholder="you@example.com" />
+          <TextField
+            label="Email"
+            placeholder="you@example.com"
+            showLabelCornerHint
+          />
           <TextField
             label="Todo item"
             defaultValue="my thing"
             placeholder="you@example.com"
           />
         </Stack>
+        <br />
+        <Stack direction="row" alignItems="flex-start" spacing={2}>
+          <TextField placeholder="Something about myself" multiline />
+          <TextField defaultValue="Something about myself" multiline />
+        </Stack>
+        <br />
+        <br />
         <br />
       </Main>
     </Box>
