@@ -86,6 +86,7 @@ export const fetchBlockMeta = async (
   }
 
   const promise = (async () => {
+    // the spec requires a metadata file called `block-metadata.json`
     const metadataUrl = `${url}/block-metadata.json`;
     let metadata: BlockMetadata;
     try {
@@ -98,6 +99,8 @@ export const fetchBlockMeta = async (
     }
 
     const schemaPath = metadata.schema;
+
+    // schema urls may be absolute, as blocks may rely on schemas they do not define
     const schemaUrl =
       schemaPath && schemaPath.match(/^(?:[a-z]+:)?\/\//)
         ? schemaPath
