@@ -8,7 +8,7 @@ import { TextInput } from "../../forms/TextInput";
 import { useUser } from "../../hooks/useUser";
 import { InviteHeader } from "../InviteHeader";
 import { InvitationInfo } from "../utils";
-import { Link } from "../../Link";
+import { Link } from "../../../shared/ui";
 
 type SignupIntroProps = {
   handleSubmit: (email: string) => void;

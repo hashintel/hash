@@ -21,7 +21,7 @@ import {
   DeleteLinkFnWithFixedSource,
 } from "./types";
 import { guessEntityName } from "../../../../../lib/entities";
-import { Link } from "../../../../../components/Link";
+import { Link } from "../../../../../shared/ui";
 
 // @todo make this not need to know about accountId
 type MinimalEntity = { accountId: string; entityId: string; name: string };

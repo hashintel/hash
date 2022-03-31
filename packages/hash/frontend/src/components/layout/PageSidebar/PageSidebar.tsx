@@ -15,8 +15,7 @@ import { FontAwesomeIcon, SidebarToggleIcon } from "../../icons";
 import { TopNavLink } from "./TopNavLink";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { useSidebarContext } from "../SidebarContext";
-import { IconButton } from "../../IconButton";
-import { Link } from "../../Link";
+import { IconButton, Link } from "../../../shared/ui";
 import { HEADER_HEIGHT } from "../PageHeader/PageHeader";
 
 export const SIDEBAR_WIDTH = 260;

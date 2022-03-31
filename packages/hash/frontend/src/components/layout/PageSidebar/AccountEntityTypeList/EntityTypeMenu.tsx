@@ -17,7 +17,7 @@ import {
 } from "@mui/material";
 import { bindMenu, PopupState } from "material-ui-popup-state/core";
 import { FontAwesomeIcon } from "../../../icons";
-import { Link } from "../../../Link";
+import { Link } from "../../../../shared/ui";
 
 type EntityTypeMenuProps = {
   popupState: PopupState;

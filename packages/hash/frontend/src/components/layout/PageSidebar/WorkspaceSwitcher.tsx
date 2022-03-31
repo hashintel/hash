@@ -15,13 +15,11 @@ import {
   bindTrigger,
   bindMenu,
 } from "material-ui-popup-state/hooks";
-import { FontAwesomeIcon } from "../../icons";
-import { Link } from "../../Link";
 import { useUser } from "../../hooks/useUser";
-import { Avatar } from "../../Avatar";
-import { Button } from "../../Button";
 import { useLogout } from "../../hooks/useLogout";
 import { useCurrentWorkspaceContext } from "../../../contexts/CurrentWorkspaceContext";
+import { Avatar, Button, Link } from "../../../shared/ui";
+import { FontAwesomeIcon } from "../../../shared/icons";
 
 type WorkspaceSwitcherProps = {};
 

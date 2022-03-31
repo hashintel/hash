@@ -2,8 +2,7 @@ import { useState, FC } from "react";
 import { faAdd, faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import { Box, Typography, Collapse, Tooltip } from "@mui/material";
 import { FontAwesomeIcon } from "../../icons";
-import { IconButton, IconButtonProps } from "../../IconButton";
-import { Link } from "../../Link";
+import { IconButton, IconButtonProps, Link } from "../../../shared/ui";
 
 type NavLinkProps = {
   title: string;

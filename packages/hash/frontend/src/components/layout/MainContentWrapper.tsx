@@ -5,7 +5,7 @@ import { SidebarToggleIcon } from "../icons";
 import { HEADER_HEIGHT } from "./PageHeader/PageHeader";
 import { PageSidebar, SIDEBAR_WIDTH } from "./PageSidebar/PageSidebar";
 import { useSidebarContext } from "./SidebarContext";
-import { IconButton } from "../IconButton";
+import { IconButton } from "../../shared/ui";
 
 const Main = styled("main", {
   shouldForwardProp: (prop) => prop !== "sidebarOpen",

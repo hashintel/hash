@@ -1,8 +1,7 @@
 import type { FallbackRender } from "@sentry/react/dist/errorboundary";
 import React from "react";
 import { tw } from "twind";
-
-import { Button } from "../Button";
+import { Button } from "../../shared/ui";
 
 /**
  * @todo make twind and other global styles available in iframes

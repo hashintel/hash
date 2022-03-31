@@ -3,8 +3,7 @@ import { faBell } from "@fortawesome/free-solid-svg-icons";
 import { Box, ListItemButton, Typography, useTheme } from "@mui/material";
 
 import { FontAwesomeIcon } from "../../icons";
-import { Popover } from "../../Popover";
-import { Link } from "../../Link";
+import { Link, Popover } from "../../../shared/ui";
 import { HeaderIconButton } from "./HeaderIconButton";
 
 export const NotificationsDropdown: React.FC = () => {

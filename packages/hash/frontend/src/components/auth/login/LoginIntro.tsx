@@ -9,7 +9,7 @@ import { tw } from "twind";
 
 import Logo from "../../../assets/svg/logo.svg";
 import { HashIcon, KeyboardReturnIcon } from "../../icons";
-import { Link } from "../../Link";
+import { Link } from "../../../shared/ui";
 import { InviteHeader } from "../InviteHeader";
 import { InvitationInfo } from "../utils";
 
