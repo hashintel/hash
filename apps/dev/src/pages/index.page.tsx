@@ -271,9 +271,8 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
 const EMAIL_REGEX =
   /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 
-// @todo responsive
-// @todo loading
 // @todo error
+// @todo storybook
 const Subscribe: VFC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -284,21 +283,54 @@ const Subscribe: VFC = () => {
       component="section"
       id="subscribe"
       sx={[
+        {
+          mb: 16,
+        },
+        /**
+         *
+         * @param theme
+         */
         (theme) => ({
           pt: `calc(${theme.spacing(1)} + ${NAV_HEIGHT}px)`,
-          mt: `calc(0 - ${theme.spacing(1)} - ${NAV_HEIGHT}px)`,
+          mt: `calc(0px - ${theme.spacing(1)} - ${NAV_HEIGHT}px)`,
         }),
       ]}
     >
       <Box
-        sx={{
-          py: 8,
-          px: 20,
-          border: 2,
-          borderColor: "orange.400",
-          mb: 16,
-          textAlign: "center",
-        }}
+        sx={[
+          {
+            py: 8,
+            px: 20,
+            border: 2,
+            borderColor: "orange.400",
+            textAlign: "center",
+
+            ".MuiTypography-hashHeading2": {
+              mb: {
+                xs: 1.5,
+                md: 2,
+              },
+            },
+            ".MuiTypography-hashBodyCopy": {
+              maxWidth: 683,
+              mx: "auto",
+              lineHeight: {
+                xs: 1.4,
+                md: 1.5,
+              },
+            },
+          },
+          (theme) => ({
+            [theme.breakpoints.up("md")]: {
+              py: 8,
+              px: 20,
+            },
+            [theme.breakpoints.down("md")]: {
+              px: 3,
+              py: 4,
+            },
+          }),
+        ]}
       >
         {userJoined ? (
           <>
@@ -313,93 +345,100 @@ const Subscribe: VFC = () => {
             >
               <FaIcon name="envelope-dot" type="solid" />
             </Box>
-            <Typography variant="hashHeading2" component="h3" mb={2}>
+            <Typography variant="hashHeading2" component="h3">
               Success! You’re on the list
             </Typography>
-            <Typography sx={{ lineHeight: 1.5, maxWidth: 683, mx: "auto" }}>
+            <Typography>
               Check your inbox for a confirmation email and click the link
               inside.
             </Typography>
           </>
         ) : (
           <>
-            <Typography variant="hashHeading2" component="h3" mb={2}>
+            {/** @todo is this supposed to have a higher font weight on
+             mobile? */}
+            <Typography variant="hashHeading2" component="h3">
               Stay up to date with HASH news
             </Typography>
-            <Typography
-              sx={{ lineHeight: 1.5, maxWidth: 683, mx: "auto", mb: 3 }}
-            >
+            <Typography mb={3}>
               Subscribe to our mailing list to get our monthly newsletter –
               you’ll be first to hear about partnership opportunities, new
               releases, and product updates
             </Typography>
             {/** @todo check this spacing */}
-            <Stack direction="row" justifyContent="center" spacing={1.5}>
-              <form
-                onSubmit={async (evt) => {
-                  // @todo update from hashai
-                  evt.preventDefault();
-                  const formData = new FormData(evt.target as HTMLFormElement);
-                  const email = formData.get("email")! as string;
+            <form
+              onSubmit={async (evt) => {
+                // @todo update from hashai
+                evt.preventDefault();
+                const formData = new FormData(evt.target as HTMLFormElement);
+                const email = formData.get("email")! as string;
 
-                  try {
-                    const isEmailValid = EMAIL_REGEX.test(email);
-                    if (!isEmailValid) {
-                      setError("Please enter a valid email address");
-                      return;
-                    }
-
-                    unstable_batchedUpdates(() => {
-                      setError("");
-                      setLoading(true);
-                    });
-
-                    const { data } = await axios.post("/api/subscribe", {
-                      email,
-                      // @todo what are these for?
-                      merge_fields: { HASHDev: "Yes" },
-                    });
-                    setLoading(false);
-
-                    if (data.response.status === "subscribed") {
-                      setUserJoined(true);
-                      return;
-                    } else if (!data?.response?.title) {
-                      setError(
-                        "Something went wrong ☹️ Please try again later",
-                      );
-                    } else if (
-                      data.response.title.includes("Invalid Resource")
-                    ) {
-                      setError(
-                        "Are you sure? 🤔 Please try a different address…",
-                      );
-                    } else if (data.response.title.includes("Member Exists")) {
-                      await axios.patch("/api/subscribe", {
-                        mailchimp_id: data.response.id,
-                        merge_fields: {
-                          HASH: "Yes",
-                        },
-                      });
-                      setUserJoined(true);
-                    }
-                  } catch (err) {
-                    // eslint-disable-next-line no-console
-                    console.log(error);
-                    setError("Something went wrong ☹️ Please try again later");
+                try {
+                  const isEmailValid = EMAIL_REGEX.test(email);
+                  if (!isEmailValid) {
+                    setError("Please enter a valid email address");
+                    return;
                   }
-                }}
+
+                  unstable_batchedUpdates(() => {
+                    setError("");
+                    setLoading(true);
+                  });
+
+                  const { data } = await axios.post("/api/subscribe", {
+                    email,
+                    // @todo what are these for?
+                    merge_fields: { HASHDev: "Yes" },
+                  });
+                  setLoading(false);
+
+                  if (data.response.status === "subscribed") {
+                    setUserJoined(true);
+                    return;
+                  } else if (!data?.response?.title) {
+                    setError("Something went wrong ☹️ Please try again later");
+                  } else if (data.response.title.includes("Invalid Resource")) {
+                    setError(
+                      "Are you sure? 🤔 Please try a different address…",
+                    );
+                  } else if (data.response.title.includes("Member Exists")) {
+                    await axios.patch("/api/subscribe", {
+                      mailchimp_id: data.response.id,
+                      merge_fields: {
+                        HASH: "Yes",
+                      },
+                    });
+                    setUserJoined(true);
+                  }
+                } catch (err) {
+                  // eslint-disable-next-line no-console
+                  console.log(error);
+                  setError("Something went wrong ☹️ Please try again later");
+                }
+              }}
+            >
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                justifyContent="center"
+                spacing={{ xs: 1, md: 1.5 }}
               >
                 <Input
-                  sx={{ width: 459, flexShrink: 1 }}
+                  sx={{ width: { md: 459, xs: 1 }, flexShrink: 1 }}
                   name="email"
                   type="email"
+                  required
+                  disabled={loading}
                 />
-                <Button variant="primary" size="large" type="submit">
+                <Button
+                  variant="primary"
+                  size="large"
+                  type="submit"
+                  loading={loading}
+                >
                   Join
                 </Button>
-              </form>
-            </Stack>
+              </Stack>
+            </form>
           </>
         )}
       </Box>
