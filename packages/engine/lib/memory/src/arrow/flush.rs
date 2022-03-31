@@ -1,8 +1,8 @@
 use arrow::{array::ArrayData, buffer::Buffer, util::bit_util};
 
 use crate::{
+    arrow::meta::{self, conversion::get_dynamic_meta_flatbuffers},
     error::Result,
-    meta::{self, conversion::get_dynamic_meta_flatbuffers},
     shared_memory::{padding, BufferChange, Memory},
 };
 

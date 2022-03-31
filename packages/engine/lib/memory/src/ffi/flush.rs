@@ -8,9 +8,11 @@
 use arrow::util::bit_util;
 
 use crate::{
-    arrow::flush::{GrowableArrayData, GrowableBatch, GrowableColumn},
+    arrow::{
+        flush::{GrowableArrayData, GrowableBatch, GrowableColumn},
+        meta,
+    },
     ffi::{ArrowArray, CMemory},
-    meta,
     shared_memory::Memory,
     Error, Result,
 };

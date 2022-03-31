@@ -15,9 +15,9 @@ use memory::{
     arrow::{
         flush::GrowableBatch,
         ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
+        meta::{self, conversion::HashDynamicMeta},
         ArrowBatch,
     },
-    meta::{self, conversion::HashDynamicMeta},
     shared_memory::{Memory, Metaversion, Segment},
 };
 

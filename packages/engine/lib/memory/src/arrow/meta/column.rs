@@ -1,5 +1,5 @@
 use crate::{
-    meta::{Buffer, Node, NodeMapping},
+    arrow::meta::{Buffer, Node, NodeMapping},
     shared_memory::padding,
 };
 

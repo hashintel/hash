@@ -12,7 +12,7 @@ use arrow::{
     record_batch::RecordBatch,
 };
 use memory::{
-    meta::{self, conversion::get_dynamic_meta_flatbuffers},
+    arrow::meta::{self, conversion::get_dynamic_meta_flatbuffers},
     shared_memory::{Memory, Metaversion, Segment},
 };
 use rayon::iter::{

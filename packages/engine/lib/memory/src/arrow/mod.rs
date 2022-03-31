@@ -1,13 +1,14 @@
-mod change;
 pub mod flush;
 pub mod ipc;
 pub mod load;
+pub mod meta;
 
-mod arrow_batch;
+mod batch;
+mod change;
 mod conversion;
 
 pub use self::{
-    arrow_batch::ArrowBatch,
+    batch::ArrowBatch,
     change::ColumnChange,
     conversion::{
         col_to_json_vals, json_utf8_json_vals, json_vals_to_any_type_col, json_vals_to_bool,

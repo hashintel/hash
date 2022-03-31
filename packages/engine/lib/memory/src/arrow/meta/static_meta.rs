@@ -1,4 +1,4 @@
-use crate::meta::{Column, Dynamic, NodeStatic};
+use crate::arrow::meta::{Column, Dynamic, NodeStatic};
 
 /// Static metadata remains constant for a simulation run.
 ///

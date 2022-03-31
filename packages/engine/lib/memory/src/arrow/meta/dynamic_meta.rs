@@ -1,4 +1,4 @@
-use crate::meta::{Buffer, ColumnDynamicMetadata, Node};
+use crate::arrow::meta::{Buffer, ColumnDynamicMetadata, Node};
 
 /// Dynamic metadata is metadata specific to a shared batch.
 ///

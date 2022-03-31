@@ -1,4 +1,4 @@
-use crate::meta::BufferType;
+use crate::arrow::meta::BufferType;
 
 /// Internal representation of Arrow `FieldNode` Message
 #[derive(Debug, Clone)]

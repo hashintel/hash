@@ -9,7 +9,7 @@ use arrow::ipc;
 
 use self::memory::CMemory;
 use crate::{
-    meta::{
+    arrow::meta::{
         self,
         conversion::{HashDynamicMeta, HashStaticMeta},
     },

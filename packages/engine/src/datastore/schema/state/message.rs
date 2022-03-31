@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use arrow::datatypes::Schema as ArrowSchema;
-use memory::meta::{self, conversion::HashStaticMeta};
+use memory::arrow::meta::{self, conversion::HashStaticMeta};
 
 use crate::datastore::arrow::message::MESSAGE_BATCH_SCHEMA;
 

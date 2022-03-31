@@ -1,4 +1,4 @@
-use crate::meta;
+use crate::arrow::meta;
 
 pub trait DataSliceUtils<'a> {
     // TODO: Rename

@@ -1,4 +1,6 @@
-use memory::meta::{util::DataSliceUtils, ColumnDynamicMetadata, ColumnDynamicMetadataBuilder};
+use memory::arrow::meta::{
+    util::DataSliceUtils, ColumnDynamicMetadata, ColumnDynamicMetadataBuilder,
+};
 
 use crate::{
     datastore::Result as DatastoreResult,

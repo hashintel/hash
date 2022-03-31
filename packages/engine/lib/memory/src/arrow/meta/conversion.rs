@@ -7,8 +7,8 @@ use arrow::{
 use flatbuffers::FlatBufferBuilder;
 
 use crate::{
+    arrow::meta::{self, Buffer, BufferType, Node, NodeMapping},
     error::{Error, Result},
-    meta::{self, Buffer, BufferType, Node, NodeMapping},
 };
 
 enum SupportedDataTypes {

@@ -1,4 +1,4 @@
-use memory::meta::{
+use memory::arrow::meta::{
     util::DataSliceUtils, Buffer, ColumnDynamicMetadata, ColumnDynamicMetadataBuilder,
 };
 
