@@ -1,0 +1,14 @@
+export { default as DragVerticalIcon } from "../../assets/svg/drag-vertical.svg";
+export { default as AvatarIcon } from "../../assets/svg/default-avatar.svg";
+export { default as DropdownIcon } from "../../assets/svg/arrow-down-drop.svg";
+export { default as HumanGreetingIcon } from "../../assets/svg/human-greeting.svg";
+export { default as InfoIcon } from "../../assets/svg/info.svg";
+export { default as KeyboardReturnIcon } from "../../assets/svg/keyboard-return.svg";
+export { default as PeopleIcon } from "../../assets/svg/people.svg";
+export { default as PictureIcon } from "../../assets/svg/picture.svg";
+export { default as SpinnerIcon } from "../../assets/svg/spinner.svg";
+export { default as HashIcon } from "../../assets/svg/hash.svg";
+export { SearchIcon } from "./search-icon";
+export { HashNavIcon } from "./hash-nav-icon";
+export * from "./fontawesome-icon";
+export * from "./sidebar-toggle-icon";

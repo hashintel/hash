@@ -17,6 +17,9 @@ import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { useSidebarContext } from "../SidebarContext";
 import { IconButton } from "../../IconButton";
 import { Link } from "../../Link";
+import { HEADER_HEIGHT } from "../PageHeader/PageHeader";
+
+export const SIDEBAR_WIDTH = 260;
 
 export const PageSidebar: VoidFunctionComponent = () => {
   const router = useRouter();
@@ -27,7 +30,20 @@ export const PageSidebar: VoidFunctionComponent = () => {
   >;
 
   return (
-    <Drawer variant="persistent" open={sidebarOpen} sx={{ zIndex: 0 }}>
+    <Drawer
+      variant="persistent"
+      open={sidebarOpen}
+      sx={{
+        zIndex: 0,
+        width: SIDEBAR_WIDTH,
+        height: `calc(100vh - ${HEADER_HEIGHT}px)`,
+      }}
+      PaperProps={{
+        sx: {
+          width: SIDEBAR_WIDTH,
+        },
+      }}
+    >
       <Box
         sx={{
           mx: 0.75,
