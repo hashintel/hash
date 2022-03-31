@@ -16,6 +16,7 @@ import { TopNavLink } from "./TopNavLink";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { useSidebarContext } from "../SidebarContext";
 import { IconButton } from "../../IconButton";
+import { Link } from "../../Link";
 
 export const PageSidebar: VoidFunctionComponent = () => {
   const router = useRouter();
@@ -49,6 +50,7 @@ export const PageSidebar: VoidFunctionComponent = () => {
         title="Home"
         href="/"
         tooltipTitle="View your inbox and latest activity"
+        active={router.pathname === "/[accountId]"}
       />
       <TopNavLink
         icon={faZap}
@@ -79,13 +81,10 @@ export const PageSidebar: VoidFunctionComponent = () => {
         <AccountEntityTypeList accountId={accountId} />
       </Box>
 
-      {/* @todo replace with button implementation */}
-      <Box
+      <Link
+        noLinkStyle
+        href="/"
         sx={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
           zIndex: 2,
           padding: "18px 22px",
           backgroundColor: ({ palette }) => palette.gray[10],
@@ -110,7 +109,7 @@ export const PageSidebar: VoidFunctionComponent = () => {
         >
           Help and Support
         </Typography>
-      </Box>
+      </Link>
     </Drawer>
   );
 };

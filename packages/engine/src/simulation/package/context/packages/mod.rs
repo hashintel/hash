@@ -11,14 +11,16 @@ use std::{
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
-use super::PackageCreator;
 use crate::{
+    config::ExperimentConfig,
     simulation::{
-        enum_dispatch::*,
-        package::{id::PackageIdGenerator, PackageMetadata, PackageType},
+        enum_dispatch::{
+            enum_dispatch, GetTaskArgs, GetTaskName, RegisterWithoutTrait, StoreAccessVerify,
+            TaskDistributionConfig, TaskSharedStore, WorkerHandler, WorkerPoolHandler,
+        },
+        package::{context::PackageCreator, id::PackageIdGenerator, PackageMetadata, PackageType},
         Error, Result,
     },
-    ExperimentConfig,
 };
 
 /// All context package names are registered in this enum
@@ -90,7 +92,7 @@ impl PackageCreators {
         experiment_config: &Arc<ExperimentConfig>,
     ) -> Result<()> {
         tracing::debug!("Initializing Context Package Creators");
-        use Name::*;
+        use Name::{AgentMessages, ApiRequests, Neighbors};
         let mut m = HashMap::new();
         m.insert(
             AgentMessages,
@@ -129,7 +131,7 @@ impl PackageCreators {
 lazy_static! {
     /// All context package creators are registered in this hashmap
     pub static ref METADATA: HashMap<Name, PackageMetadata> = {
-        use Name::*;
+        use Name::{AgentMessages, ApiRequests, Neighbors};
         let mut id_creator = PackageIdGenerator::new(PackageType::Context);
         let mut m = HashMap::new();
         m.insert(AgentMessages, PackageMetadata{

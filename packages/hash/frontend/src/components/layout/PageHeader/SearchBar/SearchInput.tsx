@@ -75,19 +75,24 @@ const ShortcutIcon = () => {
       }}
     >
       <Box
-        sx={(theme) => ({
+        sx={({ palette }) => ({
           height: "30px",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: theme.palette.gray[50],
-          backgroundColor: theme.palette.gray[20],
+          backgroundColor: palette.gray[20],
           borderRadius: "2px",
           px: 1,
           py: 0.75,
         })}
       >
-        <Typography variant="microText">
+        <Typography
+          variant="microText"
+          sx={({ palette }) => ({
+            color: palette.gray[60],
+            fontWeight: 500,
+          })}
+        >
           {isMac ? "Cmd" : "Ctrl"} + P
         </Typography>
       </Box>

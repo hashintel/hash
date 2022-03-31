@@ -3,18 +3,24 @@ use std::sync::Arc;
 use futures::FutureExt;
 use tokio::time::Duration;
 
-use super::{Error, Result};
 use crate::{
-    datastore::prelude::Store,
+    config::SimRunConfig,
+    datastore::store::Store,
     experiment::controller::comms::{sim_status::SimStatusSend, simulation::SimCtlRecv},
     hash_types::worker::RunnerError,
     output::SimulationOutputPersistenceRepr,
     proto::SimulationShortId,
     simulation::{
-        agent_control::AgentControl, comms::Comms, controller::sim_control::SimControl,
-        engine::Engine, package::run::Packages, status::SimStatus,
+        agent_control::AgentControl,
+        comms::Comms,
+        controller::{
+            error::{Error, Result},
+            sim_control::SimControl,
+        },
+        engine::Engine,
+        package::run::Packages,
+        status::SimStatus,
     },
-    SimRunConfig,
 };
 
 enum LoopControl {

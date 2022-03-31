@@ -1,9 +1,9 @@
 use flatbuffers::{FlatBufferBuilder, WIPOffset};
+use memory::shared_memory::{Metaversion, Segment};
 
-use super::error::Result;
 use crate::{
-    datastore::{batch::Segment, prelude::SharedStore},
-    worker::runner::comms::PackageMsgs,
+    datastore::shared_store::SharedStore,
+    worker::runner::{comms::PackageMsgs, python::Result},
 };
 
 pub fn pkgs_to_fbs<'f>(
@@ -93,7 +93,7 @@ pub fn batch_to_fbs<'f>(
 
 pub fn metaversion_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
-    metaversion: crate::datastore::batch::metaversion::Metaversion,
+    metaversion: Metaversion,
 ) -> WIPOffset<flatbuffers_gen::metaversion_generated::Metaversion<'f>> {
     flatbuffers_gen::metaversion_generated::Metaversion::create(
         fbb,

@@ -1,11 +1,16 @@
 //! TODO: DOC
 use std::fmt::Debug;
 
-use super::proxy::{StateReadProxy, StateWriteProxy};
 use crate::{
     config::{StateBatchDistribution, Worker, WorkerAllocation},
-    datastore::{prelude::Result, table::context::Context, Error},
-    simulation::task::handler::worker_pool::SplitConfig,
+    datastore::{
+        error::{Error, Result},
+        table::{
+            context::Context,
+            proxy::{StateReadProxy, StateWriteProxy},
+        },
+    },
+    simulation::task::handler::SplitConfig,
 };
 
 /// TODO: DOC, purpose and fields

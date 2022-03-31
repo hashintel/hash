@@ -60,8 +60,9 @@ export type EntityStorePluginAction = { received?: boolean } & (
   | {
       type: "newDraftEntity";
       payload: {
-        entityId: string | null;
+        accountId: string;
         draftId: string;
+        entityId: string | null;
       };
     }
   | {
@@ -252,6 +253,7 @@ const entityStoreReducer = (
         }
 
         draftState.store.draft[action.payload.draftId] = {
+          accountId: action.payload.accountId,
           entityId: action.payload.entityId,
           draftId: action.payload.draftId,
           entityVersionCreatedAt: new Date().toISOString(),
@@ -357,7 +359,7 @@ class ProsemirrorStateChangeHandler {
   private readonly tr: Transaction<Schema>;
   private handled = false;
 
-  constructor(private state: EditorState<Schema>) {
+  constructor(private state: EditorState<Schema>, private accountId: string) {
     this.tr = state.tr;
   }
 
@@ -528,8 +530,9 @@ class ProsemirrorStateChangeHandler {
       addEntityStoreAction(this.state, this.tr, {
         type: "newDraftEntity",
         payload: {
-          entityId: entityId ?? null,
+          accountId: this.accountId,
           draftId,
+          entityId: entityId ?? null,
         },
       });
     }
@@ -570,47 +573,85 @@ class ProsemirrorStateChangeHandler {
   }
 }
 
-export const entityStorePlugin = new Plugin<EntityStorePluginState, Schema>({
-  key: entityStorePluginKey,
-  state: {
-    init(_): EntityStorePluginState {
+/**
+ * This is used by entityStorePlugin to notify any listeners to the plugin that
+ * a state has changed. This needs to happen at the end of a tick to ensure that
+ * Prosemirror is in a consistent and stable state before the subscriber is
+ * notified as the subscriber may then query Prosemirror which could cause a
+ * crash if Prosemirror is either not in a consistent state yet, or if the view
+ * state and the state used to notify the subscribers are not in sync.
+ *
+ * We schedule the notification using the view and not the current state, as
+ * the view state may change in between when its scheduled and when the
+ * notification occurs, and we want to ensure we only notify with the final
+ * view state in a tick. Intermediary states are not notified for.
+ */
+const scheduleNotifyEntityStoreSubscribers = collect<
+  [
+    view: EditorView<Schema>,
+    prevState: EditorState<Schema>,
+    entityStorePlugin: Plugin<EntityStorePluginState, Schema>,
+  ]
+>((calls) => {
+  for (const [view, prevState, entityStorePlugin] of calls) {
+    const nextPluginState = entityStorePlugin.getState(view.state);
+    const prevPluginState = entityStorePlugin.getState(prevState);
+
+    // If the plugin state has changed, notify listeners
+    if (nextPluginState !== prevPluginState) {
+      for (const listener of nextPluginState.listeners) {
+        listener(nextPluginState.store);
+      }
+    }
+  }
+});
+
+export const createEntityStorePlugin = ({ accountId }: { accountId: string }) =>
+  new Plugin<EntityStorePluginState, Schema>({
+    key: entityStorePluginKey,
+    state: {
+      init(_): EntityStorePluginState {
+        return {
+          store: createEntityStore([], {}),
+          listeners: [],
+          trackedActions: [],
+        };
+      },
+      apply(tr, initialState): EntityStorePluginState {
+        return getMeta(tr)?.store ?? initialState;
+      },
+    },
+
+    view() {
       return {
-        store: createEntityStore([], {}),
-        listeners: [],
-        trackedActions: [],
+        update: (view, prevState) => {
+          scheduleNotifyEntityStoreSubscribers(
+            view,
+            prevState,
+            createEntityStorePlugin({ accountId }),
+          );
+        },
       };
     },
-    apply(tr, initialState): EntityStorePluginState {
-      const nextState = getMeta(tr)?.store ?? initialState;
 
-      if (nextState !== initialState) {
-        for (const listener of nextState.listeners) {
-          listener(nextState.store);
-        }
+    /**
+     * This is necessary to ensure the draft entity store stays in sync with the
+     * changes made by users to the document
+     *
+     * @todo we need to take the state left by the transactions as the start
+     * for nodeChangeHandler
+     */
+    appendTransaction(transactions, _, state) {
+      if (!transactions.some((tr) => tr.docChanged)) {
+        return;
       }
 
-      return nextState;
+      if (
+        getMeta(transactions[transactions.length - 1]!)?.disableInterpretation
+      ) {
+        return;
+      }
+
+      return new ProsemirrorStateChangeHandler(state, accountId).handleDoc();
     },
-  },
-
-  /**
-   * This is necessary to ensure the draft entity store stays in sync with the
-   * changes made by users to the document
-   *
-   * @todo we need to take the state left by the transactions as the start
-   * for nodeChangeHandler
-   */
-  appendTransaction(transactions, _, state) {
-    if (!transactions.some((tr) => tr.docChanged)) {
-      return;
-    }
-
-    if (
-      getMeta(transactions[transactions.length - 1]!)?.disableInterpretation
-    ) {
-      return;
-    }
-
-    return new ProsemirrorStateChangeHandler(state).handleDoc();
-  },
-});
+  });

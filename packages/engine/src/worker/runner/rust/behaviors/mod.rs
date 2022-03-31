@@ -1,6 +1,6 @@
 #[macro_use]
 pub mod accessors;
-pub mod error;
+mod error;
 
 use std::{
     collections::{HashMap, HashSet},
@@ -9,6 +9,7 @@ use std::{
 
 use accessors::{Accessors, OptionNativeColumnExt};
 
+pub use self::error::{Error, Result};
 use super::{
     behavior_execution::BehaviorId,
     context::AgentContext,
@@ -394,7 +395,7 @@ pub mod collision;
 // pub mod gravity;
 // pub mod spring;
 
-pub use crate::datastore::arrow::util as arrow_util;
+use crate::datastore::arrow::util as arrow_util;
 pub const BEHAVIOR_NAMES: [(&str, &str, &str); 21] = [
     ("age", "age.rs", "@hash/age/age.rs"),
     ("conway", "conway.rs", "@hash/conway/conway.rs"),

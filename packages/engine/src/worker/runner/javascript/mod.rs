@@ -1,10 +1,18 @@
-mod error;
-mod mini_v8;
+// Some notes on rusty_v8:
+//
+// - When calling JS functions the second argument is the "this" object, for free functions it's the
+//   `Context` created at the very beginning. Since the argument needs to be a `Local<Value>` we
+//   need to call `Context::global` and convert it `into` a `Local<Value>`.
+//
+// - `Local` is cheap to `Copy`.
+//
+// - Even though `rusty_v8` returns an `Option` on `Object::get`, if the object does not have the
+//   property the result will be `Some(undefined)` rather than `None`.
 
-use std::{
-    collections::HashMap, fs, future::Future, pin::Pin, ptr::NonNull, result::Result as StdResult,
-    slice, sync::Arc,
-};
+mod data_ffi;
+mod error;
+
+use std::{collections::HashMap, fs, pin::Pin, ptr::NonNull, slice, sync::Arc};
 
 use arrow::{
     array::{ArrayData, BooleanBufferBuilder, BufferBuilder},
@@ -13,8 +21,11 @@ use arrow::{
     ipc::writer::{IpcDataGenerator, IpcWriteOptions},
     util::bit_util,
 };
-use futures::FutureExt;
-use mv8::MiniV8;
+use futures::{Future, FutureExt};
+use memory::{
+    arrow::{ArrowBatch, ColumnChange},
+    shared_memory::{arrow_continuation, Memory, Metaversion},
+};
 use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     task::JoinError,
@@ -22,43 +33,45 @@ use tokio::{
 use tracing::{Instrument, Span};
 
 pub use self::error::{Error, Result};
-use self::mini_v8 as mv8;
-use super::comms::{
-    inbound::InboundToRunnerMsgPayload,
-    outbound::{OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload},
-    ExperimentInitRunnerMsg, MessageTarget, NewSimulationRun, RunnerTaskMsg, TargetedRunnerTaskMsg,
-};
 use crate::{
     config::Globals,
     datastore::{
-        arrow::util::arrow_continuation,
-        batch::{change::ColumnChange, ArrowBatch, Metaversion},
-        prelude::{AgentBatch, MessageBatch, SharedStore},
-        storage::memory::Memory,
+        batch::{AgentBatch, MessageBatch},
+        shared_store::SharedStore,
         table::{
             proxy::StateWriteProxy,
             sync::{ContextBatchSync, StateSync, WaitableStateSync},
-            task_shared_store::{PartialSharedState, SharedState},
+            task_shared_store::{PartialSharedState, SharedState, TaskSharedStore},
         },
     },
+    language::Language,
     proto::SimulationShortId,
     simulation::{
-        enum_dispatch::TaskSharedStore,
         package::{id::PackageId, PackageType},
+        task::msg::TaskMessage,
     },
     types::TaskId,
     worker::{
-        runner::{
-            comms::outbound::{PackageError, UserError, UserWarning},
-            javascript::mv8::Values,
+        runner::comms::{
+            inbound::InboundToRunnerMsgPayload,
+            outbound::{
+                OutboundFromRunnerMsg, OutboundFromRunnerMsgPayload, PackageError, UserError,
+                UserWarning,
+            },
+            ExperimentInitRunnerMsg, MessageTarget, NewSimulationRun, RunnerTaskMsg,
+            TargetedRunnerTaskMsg,
         },
-        Error as WorkerError, Result as WorkerResult, TaskMessage,
+        Result as WorkerResult,
     },
-    Language,
 };
 
-struct JsPackage<'m> {
-    fns: mv8::Array<'m>,
+type Object<'scope> = v8::Local<'scope, v8::Object>;
+type Value<'scope> = v8::Local<'scope, v8::Value>;
+type Function<'scope> = v8::Local<'scope, v8::Function>;
+type Array<'scope> = v8::Local<'scope, v8::Array>;
+
+struct JsPackage<'s> {
+    fns: Array<'s>,
 }
 
 fn get_pkg_path(name: &str, pkg_type: PackageType) -> String {
@@ -70,175 +83,318 @@ fn get_pkg_path(name: &str, pkg_type: PackageType) -> String {
 }
 
 /// TODO: DOC add docstrings on impl'd methods
-impl<'m> JsPackage<'m> {
+impl<'s> JsPackage<'s> {
     fn import(
-        mv8: &'m MiniV8,
-        embedded: &Embedded<'m>,
+        scope: &mut v8::HandleScope<'s>,
+        context: v8::Local<'s, v8::Context>,
+        embedded: &Embedded<'s>,
         name: &str,
         pkg_type: PackageType,
     ) -> Result<Self> {
         let path = get_pkg_path(name, pkg_type);
-        tracing::debug!("Importing package from path `{}`", &path);
+        tracing::debug!("Importing package from path `{path}`");
         let code = match fs::read_to_string(path.clone()) {
             Ok(s) => s,
             Err(_) => {
                 tracing::debug!("Couldn't read package file. It might intentionally not exist.");
                 // Packages don't have to use JS.
-                let fns = mv8.create_array();
-                fns.set(0, mv8::Value::Undefined)?;
-                fns.set(1, mv8::Value::Undefined)?;
-                fns.set(2, mv8::Value::Undefined)?;
+                let fns = v8::Array::new(scope, 3);
+                let undefined = v8::undefined(scope).into();
+                for fn_idx in 0..3 {
+                    fns.set_index(scope, fn_idx, undefined).ok_or_else(|| {
+                        Error::PackageImport(
+                            path.clone(),
+                            format!(
+                                "Could not set Undefined value at index {fn_idx} on package \
+                                 function array"
+                            ),
+                        )
+                    })?;
+                }
+
                 return Ok(JsPackage { fns });
             }
         };
 
         // Avoid JS ReferenceError by wrapping potentially undeclared variables with `typeof`.
-        // (Double braces like `{{` are Rust's escape string for a single literal `{`.)
-        let wrapped_code = format!(
-            "((hash_util, hash_stdlib)=>{{{}
-            return [
-                typeof start_experiment === 'undefined' ? undefined : start_experiment,
-                typeof start_sim === 'undefined' ? undefined : start_sim,
-                typeof run_task === 'undefined' ? undefined : run_task
-            ]}})",
-            code
+        // Double braces like `{{` are Rust's escape string for a single literal `{`.
+        let wrapped_code = new_js_string(
+            scope,
+            &format!(
+                "((hash_util, hash_stdlib) => {{{code}
+                    return [
+                        typeof start_experiment === 'undefined' ? undefined : start_experiment,
+                        typeof start_sim === 'undefined' ? undefined : start_sim,
+                        typeof run_task === 'undefined' ? undefined : run_task
+                    ]
+                }})",
+            ),
         );
-        let pkg: mv8::Function<'_> = mv8
-            .eval(wrapped_code)
-            .map_err(|e| Error::PackageImport(path.clone(), e.into()))?;
-        let args = mv8::Values::from_vec(vec![
-            embedded.hash_util.clone(),
-            embedded.hash_stdlib.clone(),
-        ]);
 
-        let fns: mv8::Array<'_> = pkg
-            .call(args)
-            .map_err(|e| Error::PackageImport(path.clone(), e.into()))?;
-        if fns.len() != 3 {
-            return Err(Error::PackageImport(path.clone(), "Stray return".into()));
+        let pkg: Function<'_> = {
+            let mut try_catch = v8::TryCatch::new(scope);
+
+            let pkg = v8::Script::compile(&mut try_catch, wrapped_code, None).ok_or_else(|| {
+                let exception = try_catch.exception().unwrap();
+                let exception_string = exception
+                    .to_string(&mut try_catch)
+                    .unwrap()
+                    .to_rust_string_lossy(&mut try_catch);
+
+                Error::PackageImport(
+                    path.clone(),
+                    format!("Could not compile code for package: {exception_string}"),
+                )
+            })?;
+
+            let pkg = pkg.run(&mut try_catch).ok_or_else(|| {
+                let exception = try_catch.exception().unwrap();
+                let exception_string = exception
+                    .to_string(&mut try_catch)
+                    .unwrap()
+                    .to_rust_string_lossy(&mut try_catch);
+
+                Error::PackageImport(
+                    path.clone(),
+                    format!("Couldn't execute package setup: {exception_string}"),
+                )
+            })?;
+
+            pkg.try_into().map_err(|err| {
+                Error::PackageImport(
+                    path.clone(),
+                    format!("Could not convert package setup return value into Function: {err}"),
+                )
+            })?
+        };
+
+        let args = &[embedded.hash_util, embedded.hash_stdlib];
+        let fns: Array<'_> = {
+            let global_context = context.global(scope);
+            let fns = call_js_function(scope, pkg, global_context.into(), args).map_err(|err| {
+                Error::PackageImport(path.clone(), format!("Couldn't call package: {err}"))
+            })?;
+
+            fns.try_into().map_err(|err| {
+                Error::PackageImport(
+                    path.clone(),
+                    format!(
+                        "Couldn't convert package return value to array of package functions: \
+                         {err}"
+                    ),
+                )
+            })?
+        };
+
+        if fns.length() != 3 {
+            return Err(Error::PackageImport(
+                path.clone(),
+                "Unexpected amount of returned arguments".into(),
+            ));
         }
 
         // Validate returned array.
         let fn_names = ["start_experiment", "start_sim", "run_task"];
-        for (elem, fn_name) in fns.clone().elements().zip(fn_names) {
-            let elem: mv8::Value<'_> = elem.map_err(|e| {
-                Error::PackageImport(path.clone(), format!("Couldn't index array: {:?}", e))
+        for (idx_fn, fn_name) in fn_names.iter().enumerate() {
+            let elem: Value<'_> = fns.get_index(scope, idx_fn as u32).ok_or_else(|| {
+                Error::PackageImport(
+                    path.clone(),
+                    format!("Couldn't index package functions array: {idx_fn:?}"),
+                )
             })?;
+
             if !(elem.is_function() || elem.is_undefined()) {
                 return Err(Error::PackageImport(
                     path.clone(),
-                    format!("{} should be a function, not {:?}", fn_name, elem),
+                    format!("{fn_name} should be a function, not {elem:?}"),
                 ));
             }
         }
-        assert_eq!(fns.len(), 3);
 
         Ok(JsPackage { fns })
     }
 }
 
 /// Embedded JS of runner itself (from hardcoded paths)
-struct Embedded<'m> {
-    hash_stdlib: mv8::Value<'m>,
-    hash_util: mv8::Value<'m>,
+struct Embedded<'s> {
+    hash_stdlib: Value<'s>,
+    hash_util: Value<'s>,
 
-    start_experiment: mv8::Function<'m>,
-    start_sim: mv8::Function<'m>,
-    run_task: mv8::Function<'m>,
-    ctx_batch_sync: mv8::Function<'m>,
-    state_sync: mv8::Function<'m>,
-    state_interim_sync: mv8::Function<'m>,
-    state_snapshot_sync: mv8::Function<'m>,
+    start_experiment: Function<'s>,
+    start_sim: Function<'s>,
+    run_task: Function<'s>,
+    ctx_batch_sync: Function<'s>,
+    state_sync: Function<'s>,
+    state_interim_sync: Function<'s>,
+    state_snapshot_sync: Function<'s>,
 }
 
 fn read_file(path: &str) -> Result<String> {
-    fs::read_to_string(path).map_err(|e| Error::IO(path.into(), e))
+    fs::read_to_string(path).map_err(|err| Error::IO(path.into(), err))
 }
 
-fn eval_file<'m>(mv8: &'m MiniV8, path: &str) -> Result<mv8::Value<'m>> {
-    let code = read_file(path)?;
-    let v: mv8::Value<'_> = mv8
-        .eval(code)
-        .map_err(|e| Error::Eval(path.into(), e.into()))?;
-    Ok(v)
+fn eval_file<'s>(scope: &mut v8::HandleScope<'s>, path: &str) -> Result<Value<'s>> {
+    let source_code = read_file(path)?;
+    let js_source_code = new_js_string(scope, &source_code);
+    let mut try_catch = v8::TryCatch::new(scope);
+    let script = v8::Script::compile(&mut try_catch, js_source_code, None).ok_or_else(|| {
+        let exception = try_catch.exception().unwrap();
+        let exception_string = exception
+            .to_string(&mut try_catch)
+            .unwrap()
+            .to_rust_string_lossy(&mut try_catch);
+
+        Error::Eval(path.into(), format!("Compile error: {exception_string}"))
+    })?;
+
+    script.run(&mut try_catch).ok_or_else(|| {
+        let exception = try_catch.exception().unwrap();
+        let exception_string = exception
+            .to_string(&mut try_catch)
+            .unwrap()
+            .to_rust_string_lossy(&mut try_catch);
+
+        Error::Eval(path.into(), format!("Execution error: {exception_string}"))
+    })
 }
 
-fn import_file<'m>(
-    mv8: &'m MiniV8,
+fn import_file<'s>(
+    scope: &mut v8::HandleScope<'s>,
+    context: v8::Local<'s, v8::Context>,
     path: &str,
-    args: Vec<&mv8::Value<'m>>,
-) -> Result<mv8::Value<'m>> {
-    let v = eval_file(mv8, path)?;
-    let f = v
-        .as_function()
-        .ok_or_else(|| Error::FileImport(path.into(), format!("Failed to wrap file: {:?}", &v)))?;
+    args: &[Value<'s>],
+) -> Result<Value<'s>> {
+    let v = eval_file(scope, path)?;
+    let f: Function<'_> = v.try_into().map_err(|err| {
+        Error::FileImport(
+            path.into(),
+            format!("Could not convert file into Function: {err}"),
+        )
+    })?;
 
-    let args = {
-        let mut a = Vec::new();
-        for arg in args {
-            a.push(arg.clone());
-        }
-        a
-    };
-    let args = mv8::Values::from_vec(args);
-    let imported = f
-        .call(args)
-        .map_err(|e| Error::FileImport(path.into(), e.into()))?;
+    let global_context = context.global(scope);
+    let imported = call_js_function(scope, f, global_context.into(), args)
+        .map_err(|err| Error::FileImport(path.into(), format!("Could not call function: {err}")))?;
 
     Ok(imported)
 }
 
-impl<'m> Embedded<'m> {
-    fn import(mv8: &'m MiniV8) -> Result<Self> {
-        let arrow = eval_file(mv8, "./src/worker/runner/javascript/apache-arrow-bundle.js")?;
-        let hash_stdlib = eval_file(mv8, "./src/worker/runner/javascript/hash_stdlib.js")?;
-        let hash_util = import_file(mv8, "./src/worker/runner/javascript/hash_util.js", vec![
-            &arrow,
-        ])?;
-        let batches_prototype = import_file(mv8, "./src/worker/runner/javascript/batch.js", vec![
-            &arrow, &hash_util,
-        ])?;
+impl<'s> Embedded<'s> {
+    fn import(
+        scope: &mut v8::HandleScope<'s>,
+        context: v8::Local<'s, v8::Context>,
+    ) -> Result<Self> {
+        let arrow = eval_file(
+            scope,
+            "./src/worker/runner/javascript/apache-arrow-bundle.js",
+        )?;
+        let hash_stdlib = eval_file(scope, "./src/worker/runner/javascript/hash_stdlib.js")?;
+        let hash_util = import_file(
+            scope,
+            context,
+            "./src/worker/runner/javascript/hash_util.js",
+            &[arrow],
+        )?;
+        let batches_prototype = import_file(
+            scope,
+            context,
+            "./src/worker/runner/javascript/batch.js",
+            &[arrow, hash_util],
+        )?;
 
-        let ctx_import = import_file(mv8, "./src/worker/runner/javascript/context.js", vec![
-            &hash_util,
-        ])?;
-        let ctx_import = ctx_import.as_array().ok_or_else(|| {
+        let ctx_import = import_file(
+            scope,
+            context,
+            "./src/worker/runner/javascript/context.js",
+            &[hash_util],
+        )?;
+        let ctx_import: Array<'_> = ctx_import.try_into().map_err(|err| {
             Error::FileImport(
-                "./src/worker/runner/javascript/context.js".into(),
-                "Couldn't get array (of functions) from 'context.js'".into(),
+                "./src/worker/runner/javascript/context.js".to_string(),
+                format!("Couldn't get array (of functions) from 'context.js': {err}"),
             )
         })?;
-        let experiment_ctx_prototype = ctx_import.get(0)?;
-        let sim_init_ctx_prototype = ctx_import.get(1)?;
-        let gen_ctx = ctx_import.get(2)?;
+        let experiment_ctx_prototype = ctx_import.get_index(scope, 0).ok_or_else(|| {
+            Error::V8(
+                "Couldn't get experiment_ctx_prototype from index 0 of the context.js return \
+                 values"
+                    .to_string(),
+            )
+        })?;
+        let sim_init_ctx_prototype = ctx_import.get_index(scope, 1).ok_or_else(|| {
+            Error::V8(
+                "Couldn't get sim_init_ctx_prototype from index 1 of the context.js return values"
+                    .to_string(),
+            )
+        })?;
+        let gen_ctx = ctx_import.get_index(scope, 2).ok_or_else(|| {
+            Error::V8(
+                "Couldn't get gen_ctx from index 2 of the context.js return values".to_string(),
+            )
+        })?;
 
-        let gen_state = import_file(mv8, "./src/worker/runner/javascript/state.js", vec![
-            &hash_util,
-        ])?;
-        let fns = import_file(mv8, "./src/worker/runner/javascript/runner.js", vec![
-            &arrow,
-            &batches_prototype,
-            &experiment_ctx_prototype,
-            &sim_init_ctx_prototype,
-            &gen_ctx,
-            &gen_state,
-        ])?;
-        let fns = fns.as_array().ok_or_else(|| {
+        let gen_state = import_file(
+            scope,
+            context,
+            "./src/worker/runner/javascript/state.js",
+            &[hash_util],
+        )?;
+        let fns = import_file(
+            scope,
+            context,
+            "./src/worker/runner/javascript/runner.js",
+            &[
+                arrow,
+                batches_prototype,
+                experiment_ctx_prototype,
+                sim_init_ctx_prototype,
+                gen_ctx,
+                gen_state,
+            ],
+        )?;
+        let fns: Array<'_> = fns.try_into().map_err(|err| {
             Error::FileImport(
                 "./src/worker/runner/javascript/runner.js".into(),
-                "Couldn't get array (of functions) from 'runner.js'".into(),
+                format!("Couldn't get array (of functions) from 'runner.js': {err}"),
             )
         })?;
-        Ok(Self {
+
+        let [
+            start_experiment,
+            start_sim,
+            run_task,
+            ctx_batch_sync,
+            state_sync,
+            state_interim_sync,
+            state_snapshot_sync,
+        ]: [Function<'_>; 7] = (0..=6)
+            .map(|fn_idx| {
+                fns.get_index(scope, fn_idx)
+                    .ok_or_else(|| {
+                        Error::V8(format!("Could not get package function at index {fn_idx}"))
+                    })?
+                    .try_into()
+                    .map_err(|err| {
+                        Error::V8(format!(
+                            "Could not convert value at index {fn_idx} in runner.js as a \
+                             function: {err}"
+                        ))
+                    })
+            })
+            .collect::<Result<Vec<_>>>()?
+            .try_into()
+            .unwrap();
+
+        Ok(Embedded {
             hash_stdlib,
             hash_util,
-            start_experiment: fns.get(0)?,
-            start_sim: fns.get(1)?,
-            run_task: fns.get(2)?,
-            ctx_batch_sync: fns.get(3)?,
-            state_sync: fns.get(4)?,
-            state_interim_sync: fns.get(5)?,
-            state_snapshot_sync: fns.get(6)?,
+            start_experiment,
+            start_sim,
+            run_task,
+            ctx_batch_sync,
+            state_sync,
+            state_interim_sync,
+            state_snapshot_sync,
         })
     }
 }
@@ -249,33 +405,52 @@ struct SimState {
     msg_schema: Arc<Schema>,
 }
 
-struct RunnerImpl<'m> {
-    embedded: Embedded<'m>,
-    this: mv8::Value<'m>,
+struct ThreadLocalRunner<'s> {
+    embedded: Embedded<'s>,
+    this: Value<'s>,
     sims_state: HashMap<SimulationShortId, SimState>,
 }
 
-// we pass in _mv8 for the return values lifetime
-fn sim_id_to_js(_mv8: &MiniV8, sim_id: SimulationShortId) -> mv8::Value<'_> {
-    mv8::Value::Number(sim_id as f64)
+fn sim_id_to_js<'s>(scope: &mut v8::HandleScope<'s>, sim_id: SimulationShortId) -> Value<'s> {
+    v8::Number::new(scope, sim_id as f64).into()
 }
 
-// we pass in _mv8 for the return values lifetime
-fn pkg_id_to_js(_mv8: &MiniV8, pkg_id: PackageId) -> mv8::Value<'_> {
-    mv8::Value::Number(pkg_id.as_usize() as f64)
+fn pkg_id_to_js<'s>(scope: &mut v8::HandleScope<'s>, pkg_id: PackageId) -> Value<'s> {
+    v8::Number::new(scope, pkg_id.as_usize() as f64).into()
 }
 
-fn idxs_to_js<'m>(mv8: &'m MiniV8, idxs: &[usize]) -> Result<mv8::Value<'m>> {
-    let a = mv8.create_array();
-    for (i, idx) in idxs.iter().enumerate() {
-        a.set(i as u32, mv8::Value::Number(*idx as u32 as f64))?;
+fn new_js_array_from_usizes<'s>(
+    scope: &mut v8::HandleScope<'s>,
+    values: &[usize],
+) -> Result<Value<'s>> {
+    let a = v8::Array::new(scope, values.len() as i32);
+    for (i, idx) in values.iter().enumerate() {
+        let js_idx = v8::Number::new(scope, *idx as u32 as f64);
+        a.set_index(scope, i as u32, js_idx.into())
+            .ok_or_else(|| Error::V8(format!("Couldn't set value at index {idx} on JS array")))?;
     }
-    Ok(mv8::Value::Array(a))
+
+    Ok(a.into())
 }
 
-// we pass in _mv8 for the return values lifetime
-fn current_step_to_js(_mv8: &MiniV8, current_step: usize) -> mv8::Value<'_> {
-    mv8::Value::Number(current_step as f64)
+fn call_js_function<'s>(
+    scope: &mut v8::HandleScope<'s>,
+    func: Function<'s>,
+    this: Value<'s>,
+    args: &[Value<'s>],
+) -> std::result::Result<Value<'s>, String> {
+    let mut try_catch = v8::TryCatch::new(scope);
+    func.call(&mut try_catch, this, args).ok_or_else(|| {
+        let exception = try_catch.exception().unwrap();
+        exception
+            .to_string(&mut try_catch)
+            .unwrap()
+            .to_rust_string_lossy(&mut try_catch)
+    })
+}
+
+fn current_step_to_js<'s>(scope: &mut v8::HandleScope<'s>, current_step: usize) -> Value<'s> {
+    v8::Number::new(scope, current_step as f64).into()
 }
 
 fn batches_from_shared_store(
@@ -311,39 +486,75 @@ fn batches_from_shared_store(
     })
 }
 
-fn mem_batch_to_js<'m>(
-    mv8: &'m MiniV8,
+fn mem_batch_to_js<'s>(
+    scope: &mut v8::HandleScope<'s>,
     batch_id: &str,
-    mem: mv8::Object<'m>,
+    mem: Object<'s>,
     persisted: Metaversion,
-) -> Result<mv8::Value<'m>> {
-    let batch = mv8.create_object();
-    let batch_id = mv8.create_string(batch_id);
-    batch.set("id", mv8::Value::String(batch_id))?;
-    batch.set("mem", mem)?;
-    batch.set("mem_version", persisted.memory())?;
-    batch.set("batch_version", persisted.batch())?;
-    Ok(mv8::Value::Object(batch))
+) -> Result<Value<'s>> {
+    let batch = v8::Object::new(scope);
+    let batch_id = new_js_string(scope, batch_id);
+
+    let id_field = new_js_string(scope, "id");
+    let mem_field = new_js_string(scope, "mem");
+    let mem_version_field = new_js_string(scope, "mem_version");
+    let batch_version_field = new_js_string(scope, "batch_version");
+
+    batch
+        .set(scope, id_field.into(), batch_id.into())
+        .ok_or_else(|| Error::V8("Could not set id field on batch".to_string()))?;
+    batch
+        .set(scope, mem_field.into(), mem.into())
+        .ok_or_else(|| Error::V8("Could not set mem field on batch".to_string()))?;
+    let js_memory = v8::Number::new(scope, persisted.memory() as f64);
+    batch
+        .set(scope, mem_version_field.into(), js_memory.into())
+        .ok_or_else(|| Error::V8("Could not set mem_version field on batch".to_string()))?;
+    let js_batch = v8::Number::new(scope, persisted.batch() as f64);
+    batch
+        .set(scope, batch_version_field.into(), js_batch.into())
+        .ok_or_else(|| Error::V8("Could not set batch_version field on batch".to_string()))?;
+
+    Ok(batch.into())
 }
 
-fn batch_to_js<'m>(
-    mv8: &'m MiniV8,
+fn batch_to_js<'s>(
+    scope: &mut v8::HandleScope<'s>,
     mem: &Memory,
     persisted: Metaversion,
-) -> Result<mv8::Value<'m>> {
-    // TODO: Is `mem.data.len()` different from `mem.size`? (like Vec capacity vs len?)
-    let arraybuffer = mv8.create_arraybuffer(mem.data.as_ptr(), mem.size);
+) -> Result<Value<'s>> {
+    // The memory is owned by the shared memory, we don't want JS or Rust to try to de-allocate it
+    unsafe extern "C" fn no_op(_: *mut std::ffi::c_void, _: usize, _: *mut std::ffi::c_void) {}
+
+    // https://github.com/denoland/rusty_v8/pull/926
+    //
+    // SAFETY: `mem.data` points to valid memory and is valid for `mem.size` bytes `no_op` will not
+    //         try to de-allocate share memory.
+    // TODO: Investigate to make sure that this does not have any implications on reading/writing.
+    //       It's also not 100% clear what `ArrayBuffer` expects, is it ok to read/write while the
+    //       `ArrayBuffer` exists?)
+    //       https://app.asana.com/0/1199548034582004/1202024534527158/f
+    let backing_store = unsafe {
+        v8::ArrayBuffer::new_backing_store_from_ptr(
+            mem.data.as_ptr().cast(),
+            mem.size,
+            no_op,
+            std::ptr::null_mut(),
+        )
+    };
+    let array_buffer = v8::ArrayBuffer::with_backing_store(scope, &backing_store.make_shared());
+
     let batch_id = mem.id();
-    mem_batch_to_js(mv8, batch_id, arraybuffer, persisted)
+    mem_batch_to_js(scope, batch_id, array_buffer.into(), persisted)
 }
 
-fn state_to_js<'m, 'a, 'b>(
-    mv8: &'m MiniV8,
+fn state_to_js<'s, 'a>(
+    scope: &mut v8::HandleScope<'s>,
     mut agent_batches: impl Iterator<Item = &'a AgentBatch>,
-    mut message_batches: impl Iterator<Item = &'b MessageBatch>,
-) -> Result<(mv8::Value<'m>, mv8::Value<'m>)> {
-    let js_agent_batches = mv8.create_array();
-    let js_message_batches = mv8.create_array();
+    mut message_batches: impl Iterator<Item = &'a MessageBatch>,
+) -> Result<(Value<'s>, Value<'s>)> {
+    let js_agent_batches = v8::Array::new(scope, 0);
+    let js_message_batches = v8::Array::new(scope, 0);
 
     for (i_batch, (agent_batch, message_batch)) in agent_batches
         .by_ref()
@@ -351,35 +562,66 @@ fn state_to_js<'m, 'a, 'b>(
         .enumerate()
     {
         let agent_batch = batch_to_js(
-            mv8,
+            scope,
             agent_batch.batch.segment().memory(),
             agent_batch.batch.segment().persisted_metaversion(),
         )?;
-        js_agent_batches.set(i_batch as u32, agent_batch)?;
+        js_agent_batches
+            .set_index(scope, i_batch as u32, agent_batch)
+            .ok_or_else(|| {
+                Error::V8(format!(
+                    "Couldn't set agent batch at index {i_batch} on batch array"
+                ))
+            })?;
 
         let message_batch = batch_to_js(
-            mv8,
+            scope,
             message_batch.batch.segment().memory(),
             message_batch.batch.segment().persisted_metaversion(),
         )?;
-        js_message_batches.set(i_batch as u32, message_batch)?;
+        js_message_batches
+            .set_index(scope, i_batch as u32, message_batch)
+            .ok_or_else(|| {
+                Error::V8(format!(
+                    "Could not set message batch at index {i_batch} on message batch array"
+                ))
+            })?;
     }
 
     // There is no stable way of ensuring the length of an iterator, `zip` will stop as soon as one
     // iterator returns None, thus if both iterators has no elements left, they had the same length.
     debug_assert!(
-        agent_batches.count() == 0 && message_batches.count() == 0,
+        agent_batches.next().is_none() && message_batches.next().is_none(),
         "Agent batches and message batches needs to have the same size"
     );
 
-    Ok((
-        mv8::Value::Array(js_agent_batches),
-        mv8::Value::Array(js_message_batches),
-    ))
+    Ok((js_agent_batches.into(), js_message_batches.into()))
 }
 
-fn bytes_to_js<'m>(mv8: &'m MiniV8, bytes: &mut [u8]) -> mv8::Value<'m> {
-    mv8::Value::Object(mv8.create_arraybuffer(bytes.as_mut_ptr(), bytes.len()))
+fn bytes_to_js<'s>(scope: &mut v8::HandleScope<'s>, bytes: &[u8]) -> Value<'s> {
+    let buffer = v8::ArrayBuffer::new(scope, bytes.len());
+
+    if !bytes.is_empty() {
+        // # Safety
+        //
+        // `bytes` is a slice so it can be read for `bytes.len()`
+        // `buffer` was created with `bytes.len()` bytes so can be written to for `bytes.len()`
+        // and they are properly aligned as bytes have are always correctly aligned
+        unsafe {
+            std::ptr::copy(
+                bytes.as_ptr(),
+                buffer
+                    .get_backing_store()
+                    .data()
+                    .expect("bytes to not be empty")
+                    .as_ptr()
+                    .cast(),
+                bytes.len(),
+            );
+        }
+    }
+
+    buffer.into()
 }
 
 fn schema_to_stream_bytes(schema: &Schema) -> Vec<u8> {
@@ -390,13 +632,22 @@ fn schema_to_stream_bytes(schema: &Schema) -> Vec<u8> {
     stream_bytes
 }
 
-fn array_to_user_errors(array: mv8::Value<'_>) -> Vec<UserError> {
-    let fallback = format!("Unparsed: {:?}", array);
+fn array_to_user_errors<'s>(scope: &mut v8::HandleScope<'s>, array: Value<'s>) -> Vec<UserError> {
+    let fallback = format!("Unparsed: {array:?}");
 
-    if let mv8::Value::Array(array) = array {
-        let errors = array
-            .elements()
-            .map(|e: mv8::Result<'_, mv8::Value<'_>>| e.map(|e| UserError(format!("{e:?}"))))
+    if array.is_array() {
+        let array: Array<'s> = array
+            .try_into()
+            .expect("UserErrors array conversion failed");
+        let errors = (0..array.length())
+            .map(|i| {
+                let element = array.get_index(scope, i).ok_or_else(|| {
+                    Error::V8(format!(
+                        "Could not get error at index {i} in the UserErrors array"
+                    ))
+                });
+                element.map(|err| UserError(format!("{err:?}")))
+            })
             .collect();
 
         if let Ok(errors) = errors {
@@ -407,16 +658,26 @@ fn array_to_user_errors(array: mv8::Value<'_>) -> Vec<UserError> {
     vec![UserError(fallback)]
 }
 
-fn array_to_user_warnings(array: mv8::Value<'_>) -> Vec<UserWarning> {
+fn array_to_user_warnings<'s>(
+    scope: &mut v8::HandleScope<'s>,
+    array: Value<'s>,
+) -> Vec<UserWarning> {
     // TODO: Extract optional line numbers
-    let fallback = format!("Unparsed: {:?}", array);
+    let fallback = format!("Unparsed: {array:?}");
 
-    if let mv8::Value::Array(array) = array {
-        let warnings = array
-            .elements()
-            .map(|e: mv8::Result<'_, mv8::Value<'_>>| {
-                e.map(|e| UserWarning {
-                    message: format!("{:?}", e),
+    if array.is_array() {
+        let array: Array<'s> = array
+            .try_into()
+            .expect("UserWarnings array conversion failed");
+        let warnings = (0..array.length())
+            .map(|i| {
+                let element = array.get_index(scope, i).ok_or_else(|| {
+                    Error::V8(format!(
+                        "Could not get warning at index {i} in the UserWarnings array"
+                    ))
+                });
+                element.map(|err| UserWarning {
+                    message: format!("{err:?}"),
                     details: None,
                 })
             })
@@ -433,47 +694,92 @@ fn array_to_user_warnings(array: mv8::Value<'_>) -> Vec<UserWarning> {
     }]
 }
 
-fn get_js_error(_mv8: &MiniV8, return_val: &mv8::Object<'_>) -> Option<Error> {
-    if let Ok(errors) = return_val.get("user_errors") {
-        if !matches!(errors, mv8::Value::Undefined) && !matches!(errors, mv8::Value::Null) {
-            let errors = array_to_user_errors(errors);
+fn get_js_error<'s>(scope: &mut v8::HandleScope<'s>, return_val: Object<'s>) -> Option<Error> {
+    let user_errors = new_js_string(scope, "user_errors");
+
+    if let Some(errors) = return_val.get(scope, user_errors.into()) {
+        if !errors.is_null_or_undefined() {
+            let errors = array_to_user_errors(scope, errors);
             if !errors.is_empty() {
                 return Some(Error::User(errors));
             }
         }
     }
 
-    if let Ok(mv8::Value::String(e)) = return_val.get("pkg_error") {
-        // TODO: Don't silently ignore non-string, non-null-or-undefined errors
-        //       (try to convert error value to JSON string and return as error?).
-        return Some(Error::Package(PackageError(e.to_string())));
+    let pkg_error = new_js_string(scope, "pkg_error");
+
+    let runner_error = new_js_string(scope, "runner_error");
+
+    if let Some(err) = return_val.get(scope, pkg_error.into()) {
+        // Even though rusty_v8 returns an Option, if the object does not have the property the
+        // result will be `Some(undefined)` rather than `None`
+        if !err.is_undefined() {
+            let err: v8::Local<'s, v8::String> = if let Some(err) = err.to_string(scope) {
+                err
+            } else {
+                return Some(Error::V8(
+                    "Could not convert package error to String".to_string(),
+                ));
+            };
+
+            // TODO: Don't silently ignore non-string, non-null-or-undefined errors
+            //       (try to convert error value to JSON string and return as error?).
+            return Some(Error::Package(PackageError(
+                err.to_rust_string_lossy(scope),
+            )));
+        }
     }
 
-    if let Ok(mv8::Value::String(e)) = return_val.get("runner_error") {
-        // TODO: Don't ignore non-string, non-null-or-undefined errors
-        return Some(Error::Embedded(e.to_string()));
+    if let Some(err) = return_val.get(scope, runner_error.into()) {
+        // Even though rusty_v8 returns an Option, if the object does not have the property the
+        // result will be `Some(undefined)` rather than `None`
+        if !err.is_undefined() {
+            let err: v8::Local<'s, v8::String> = if let Some(err) = err.to_string(scope) {
+                err
+            } else {
+                return Some(Error::V8(
+                    "Could not convert runner error to String".to_string(),
+                ));
+            };
+
+            // TODO: Don't ignore non-string, non-null-or-undefined errors
+            return Some(Error::Embedded(err.to_rust_string_lossy(scope)));
+        }
     }
 
     None
 }
 
-fn get_user_warnings(_mv8: &MiniV8, return_val: &mv8::Object<'_>) -> Option<Vec<UserWarning>> {
-    if let Ok(warnings) = return_val.get::<&str, mv8::Value<'_>>("user_warnings") {
-        if !(warnings.is_undefined() || warnings.is_null()) {
-            let warnings = array_to_user_warnings(warnings);
+fn get_user_warnings<'s>(
+    scope: &mut v8::HandleScope<'s>,
+    return_val: Object<'s>,
+) -> Option<Vec<UserWarning>> {
+    let user_warnings = new_js_string(scope, "user_warnings");
+
+    if let Some(warnings) = return_val.get(scope, user_warnings.into()) {
+        if warnings != v8::undefined(scope) && warnings != v8::null(scope) {
+            let warnings = array_to_user_warnings(scope, warnings);
             if !warnings.is_empty() {
                 return Some(warnings);
             }
         }
     }
+
     None
 }
 
-fn get_print(_mv8: &MiniV8, return_val: &mv8::Object<'_>) -> Option<Vec<String>> {
-    if let Ok(mv8::Value::String(printed_val)) = return_val.get("print") {
-        let printed_val = printed_val.to_string();
-        if !printed_val.is_empty() {
-            Some(printed_val.split('\n').map(|s| s.to_string()).collect())
+fn get_print<'s>(scope: &mut v8::HandleScope<'s>, return_val: Object<'s>) -> Option<Vec<String>> {
+    let print = new_js_string(scope, "print");
+
+    if let Some(printed_val) = return_val.get(scope, print.into()) {
+        if let Ok(printed_val) = printed_val.try_into() {
+            let printed_val: v8::Local<'s, v8::String> = printed_val;
+            let printed_val = printed_val.to_rust_string_lossy(scope);
+            if !printed_val.is_empty() {
+                Some(printed_val.split('\n').map(|s| s.to_string()).collect())
+            } else {
+                None
+            }
         } else {
             None
         }
@@ -482,84 +788,127 @@ fn get_print(_mv8: &MiniV8, return_val: &mv8::Object<'_>) -> Option<Vec<String>>
     }
 }
 
-fn get_next_task(_mv8: &MiniV8, return_val: &mv8::Object<'_>) -> Result<(MessageTarget, String)> {
-    let target = if let Ok(mv8::Value::String(target)) = return_val.get("target") {
-        let target = target.to_string();
-        match target.as_str() {
-            "JavaScript" => MessageTarget::JavaScript,
-            "Python" => MessageTarget::Python,
-            "Rust" => MessageTarget::Rust,
-            "Dynamic" => MessageTarget::Dynamic,
-            "Main" => MessageTarget::Main,
-            _ => return Err(Error::UnknownTarget(target)),
+fn get_next_task<'s>(
+    scope: &mut v8::HandleScope<'s>,
+    return_val: Object<'s>,
+) -> Result<(MessageTarget, String)> {
+    let target = new_js_string(scope, "target");
+
+    let target = if let Some(target) = return_val.get(scope, target.into()) {
+        if let Ok(target) = target.try_into() {
+            let target: v8::Local<'s, v8::String> = target;
+            let target = target.to_rust_string_lossy(scope);
+
+            match target.as_str() {
+                "JavaScript" => MessageTarget::JavaScript,
+                "Python" => MessageTarget::Python,
+                "Rust" => MessageTarget::Rust,
+                "Dynamic" => MessageTarget::Dynamic,
+                "Main" => MessageTarget::Main,
+                _ => return Err(Error::UnknownTarget(target)),
+            }
+        } else {
+            // If no target was specified, go back to simulation main loop by default.
+            MessageTarget::Main
         }
     } else {
         // If no target was specified, go back to simulation main loop by default.
         MessageTarget::Main
     };
 
-    let next_task_payload = if let Ok(mv8::Value::String(s)) = return_val.get("task") {
-        s.to_string()
+    let task = new_js_string(scope, "task");
+
+    let next_task_payload = if let Some(task) = return_val.get(scope, task.into()) {
+        if let Ok(task) = task.try_into() {
+            let task: v8::Local<'s, v8::String> = task;
+            task.to_rust_string_lossy(scope)
+        } else {
+            // TODO: Don't silently ignore non-string, non-null-or-undefined payloads
+            "{}".to_string()
+        }
     } else {
         // TODO: Don't silently ignore non-string, non-null-or-undefined payloads
         "{}".to_string()
     };
+
     Ok((target, next_task_payload))
 }
 
-impl<'m> RunnerImpl<'m> {
-    fn load_datasets(mv8: &'m MiniV8, shared_ctx: &SharedStore) -> Result<mv8::Value<'m>> {
-        let js_datasets = mv8.create_object();
+impl<'s> ThreadLocalRunner<'s> {
+    fn load_datasets(
+        scope: &mut v8::HandleScope<'s>,
+        shared_ctx: &SharedStore,
+    ) -> Result<Value<'s>> {
+        let js_datasets = v8::Object::new(scope);
         for (dataset_name, dataset) in shared_ctx.datasets.iter() {
-            let js_name = mv8.create_string(dataset_name.as_str());
+            let js_name = new_js_string(scope, &dataset_name);
 
             let json = dataset.data();
             // TODO: Use `from_utf8_unchecked` instead here?
             //       (Since datasets' json can be quite large.)
             let json =
                 std::str::from_utf8(json).map_err(|_| Error::Unique("Dataset not utf8".into()))?;
-            let json = mv8.create_string(json);
+            let json = new_js_string(scope, json);
 
-            js_datasets.set(js_name, json)?;
+            js_datasets
+                .set(scope, js_name.into(), json.into())
+                .ok_or_else(|| Error::V8("Could not set property on Object".to_string()))?;
         }
-        Ok(mv8::Value::Object(js_datasets))
+
+        Ok(js_datasets.into())
     }
 
-    pub fn new(mv8: &'m MiniV8, init: &ExperimentInitRunnerMsg) -> Result<Self> {
-        let embedded = Embedded::import(mv8)?;
-        let datasets = Self::load_datasets(mv8, &init.shared_context)?;
+    pub fn new(
+        scope: &mut v8::HandleScope<'s>,
+        context: v8::Local<'s, v8::Context>,
+        init: &ExperimentInitRunnerMsg,
+    ) -> Result<Self> {
+        let embedded = Embedded::import(scope, context)?;
+        let datasets = Self::load_datasets(scope, &init.shared_context)?;
 
-        let pkg_fns = mv8.create_array();
-        let pkg_init_msgs = mv8.create_array();
         let pkg_config = &init.package_config.0;
+        let pkg_fns = v8::Array::new(scope, pkg_config.len() as i32);
+        let pkg_init_msgs = v8::Array::new(scope, pkg_config.len() as i32);
         for (i_pkg, pkg_init) in pkg_config.values().enumerate() {
             let i_pkg = i_pkg as u32;
 
-            let pkg_name = format!("{}", &pkg_init.name);
-            let pkg = JsPackage::import(mv8, &embedded, &pkg_name, pkg_init.r#type)?;
+            let pkg_name = pkg_init.name.to_string();
+            let pkg = JsPackage::import(scope, context, &embedded, &pkg_name, pkg_init.r#type)?;
             tracing::trace!(
                 "pkg experiment init name {:?}, type {}, fns {:?}",
                 &pkg_init.name,
                 &pkg_init.r#type.as_str(),
                 &pkg.fns,
             );
-            pkg_fns.set(i_pkg, pkg.fns)?;
+            pkg_fns
+                .set_index(scope, i_pkg, pkg.fns.into())
+                .ok_or_else(|| {
+                    Error::V8(format!(
+                        "Couldn't set package function at index {i_pkg} on {pkg_name} package \
+                         function array"
+                    ))
+                })?;
 
             let pkg_init = serde_json::to_string(&pkg_init).unwrap();
-            let pkg_init = mv8.create_string(&pkg_init);
-            pkg_init_msgs.set(i_pkg, pkg_init)?;
+            let pkg_init = new_js_string(scope, &pkg_init);
+            pkg_init_msgs
+                .set_index(scope, i_pkg, pkg_init.into())
+                .ok_or_else(|| {
+                    Error::V8(format!(
+                        "Couldn't set package init function at index {i_pkg} on {pkg_name} \
+                         package init function array"
+                    ))
+                })?;
         }
 
-        let this = mv8::Value::Object(mv8.create_object());
-        let args = mv8::Values::from_vec(vec![
-            datasets,
-            mv8::Value::Array(pkg_init_msgs),
-            mv8::Value::Array(pkg_fns),
-        ]);
-        embedded.start_experiment.call_method(this.clone(), args)?;
+        let this = v8::Object::new(scope);
+        let args = &[datasets, pkg_init_msgs.into(), pkg_fns.into()];
+        call_js_function(scope, embedded.start_experiment, this.into(), args)
+            .map_err(|err| Error::V8(format!("Could not call start_experiment: {err}")))?;
+
         Ok(Self {
             embedded,
-            this,
+            this: this.into(),
             sims_state: HashMap::new(),
         })
     }
@@ -679,19 +1028,19 @@ impl<'m> RunnerImpl<'m> {
     /// TODO: DOC, flushing from a single column
     fn array_data_from_js(
         &mut self,
-        mv8: &'m MiniV8,
-        data: &mv8::Value<'m>,
+        scope: &mut v8::HandleScope<'s>,
+        data: Value<'s>,
         data_type: &DataType,
         len: Option<usize>,
     ) -> Result<ArrayData> {
         // `data` must not be dropped until flush is over, because
         // pointers returned from FFI point inside `data`'s ArrayBuffers' memory.
-        let obj = data.as_object().ok_or_else(|| {
-            Error::Embedded(format!("Flush data not object for field {:?}", data_type))
+        let obj = data.to_object(scope).ok_or_else(|| {
+            Error::Embedded(format!("Flush data not object for field {data_type:?}"))
         })?;
 
         // `data_node_from_js` isn't recursive -- doesn't convert children.
-        let data: mv8::DataFfi = mv8.data_node_from_js(data);
+        let data = data_ffi::DataFfi::new_from_js(scope, obj)?;
 
         // The JS Arrow implementation tries to be efficient with the allocation of the values
         // buffers. If you have a null value at the end, it doesn't always allocate that
@@ -817,10 +1166,14 @@ impl<'m> RunnerImpl<'m> {
                 };
                 builder = builder.add_buffer(offset_buffer);
 
-                let child_data: mv8::Array<'_> = obj.get("child_data")?;
+                let child_data = get_child_data(scope, obj)?;
+
+                let child = child_data.get_index(scope, 0).ok_or_else(|| {
+                    Error::V8("Could not access index 0 on child_data".to_string())
+                })?;
                 builder = builder.add_child_data(self.array_data_from_js(
-                    mv8,
-                    &child_data.get(0)?,
+                    scope,
+                    child,
                     inner_field.data_type(),
                     Some(last_offset),
                 )?);
@@ -828,27 +1181,34 @@ impl<'m> RunnerImpl<'m> {
             DataType::FixedSizeList(inner_field, size) => {
                 // FixedSizeListList is only stored by child data, as offsets are not required
                 // because the size is known.
-                let child_data: mv8::Array<'_> = obj.get("child_data")?;
+                let child_data = get_child_data(scope, obj)?;
+
+                let child = child_data.get_index(scope, 0).ok_or_else(|| {
+                    Error::V8("Could not access index 0 on child_data".to_string())
+                })?;
                 builder = builder.add_child_data(self.array_data_from_js(
-                    mv8,
-                    &child_data.get(0)?,
+                    scope,
+                    child,
                     inner_field.data_type(),
                     Some(*size as usize * target_len),
                 )?);
             }
             DataType::Struct(inner_fields) => {
                 // Structs are only defined by child data
-                let child_data: mv8::Array<'_> = obj.get("child_data")?;
+                let child_data = get_child_data(scope, obj)?;
                 debug_assert_eq!(
-                    child_data.len() as usize,
+                    child_data.length() as usize,
                     inner_fields.len(),
                     "Number of fields provided by JavaScript does not match expected number of \
                      fields"
                 );
-                for (child, inner_field) in child_data.elements().zip(inner_fields) {
+                for (i, inner_field) in (0..child_data.length()).zip(inner_fields) {
+                    let child = child_data.get_index(scope, i as u32).ok_or_else(|| {
+                        Error::V8(format!("Could not access index {i} on child_data"))
+                    })?;
                     builder = builder.add_child_data(self.array_data_from_js(
-                        mv8,
-                        &child?,
+                        scope,
+                        child,
                         inner_field.data_type(),
                         Some(target_len),
                     )?);
@@ -872,7 +1232,8 @@ impl<'m> RunnerImpl<'m> {
                     ));
                 };
             }
-            data_type => return Err(Error::FlushType(data_type.clone())), // TODO: More types?
+            // TODO: More types?
+            data_type => return Err(Error::FlushType(data_type.clone())),
         };
 
         builder = builder.len(target_len);
@@ -900,20 +1261,41 @@ impl<'m> RunnerImpl<'m> {
 
     fn flush_batch(
         &mut self,
-        mv8: &'m MiniV8,
-        changes: mv8::Array<'m>,
+        scope: &mut v8::HandleScope<'s>,
+        changes: Array<'s>,
         batch: &mut ArrowBatch,
         schema: &Schema,
     ) -> Result<()> {
-        for change in changes.elements() {
-            let change: mv8::Object<'_> = change?;
+        for change_idx in 0..changes.length() {
+            let change = changes.get_index(scope, change_idx as u32).ok_or_else(|| {
+                Error::V8(format!("Could not access index {change_idx} on changes"))
+            })?;
+            let change = change.to_object(scope).ok_or_else(|| {
+                Error::V8("Could not convert change from Value to Object".to_string())
+            })?;
 
-            let i_field: f64 = change.get("i_field")?;
-            let i_field = i_field as usize;
+            let i_field = new_js_string(scope, "i_field");
+
+            let i_field: v8::Local<'s, v8::Number> = change
+                .get(scope, i_field.into())
+                .ok_or_else(|| Error::V8("Could not get i_field property on change".to_string()))?
+                .try_into()
+                .map_err(|err| {
+                    Error::V8(format!(
+                        "Could not convert i_field from Value to Number: {err}"
+                    ))
+                })?;
+
+            let i_field = i_field.value() as usize;
             let field = schema.field(i_field);
 
-            let data: mv8::Value<'_> = change.get("data")?;
-            let data = self.array_data_from_js(mv8, &data, field.data_type(), None)?;
+            let data = new_js_string(scope, "data");
+
+            let data = change
+                .get(scope, data.into())
+                .ok_or_else(|| Error::V8("Could not get data property on change".to_string()))?;
+            let data = self.array_data_from_js(scope, data, field.data_type(), None)?;
+
             batch.queue_change(ColumnChange {
                 data,
                 index: i_field,
@@ -926,40 +1308,62 @@ impl<'m> RunnerImpl<'m> {
         //       Rust format. Could instead reload only memory and leave the
         //       batch version unchanged.
         batch.flush_changes()?;
+
         Ok(())
     }
 
     fn flush_group(
         &mut self,
-        mv8: &'m MiniV8,
+        scope: &mut v8::HandleScope<'s>,
         agent_schema: &Arc<Schema>,
         msg_schema: &Arc<Schema>,
         state_proxy: &mut StateWriteProxy,
         i_proxy: usize,
-        changes: mv8::Value<'m>,
+        changes: Value<'s>,
     ) -> Result<()> {
-        let changes = changes.as_object().unwrap();
+        let changes = changes.to_object(scope).unwrap();
 
-        let agent_changes = changes.get("agent")?;
+        let agent = new_js_string(scope, "agent");
+
+        let agent_changes: Array<'s> = changes
+            .get(scope, agent.into())
+            .ok_or_else(|| Error::V8("Could not get agent property on changes".to_string()))?
+            .try_into()
+            .map_err(|err| {
+                Error::V8(format!(
+                    "Could not convert agent_changes from Value to Array, {err}"
+                ))
+            })?;
+
         self.flush_batch(
-            mv8,
+            scope,
             agent_changes,
             &mut state_proxy
                 .agent_pool_mut()
                 .batch_mut(i_proxy)
-                .ok_or_else(|| format!("Could not access proxy at index {i_proxy}"))?
+                .ok_or_else(|| format!("Could not access batch at index {i_proxy}"))?
                 .batch,
             agent_schema,
         )?;
 
-        let msg_changes = changes.get("msg")?;
+        let msg = new_js_string(scope, "msg");
+
+        let msg_changes = changes
+            .get(scope, msg.into())
+            .ok_or_else(|| Error::V8("Could not get msg property on changes".to_string()))?
+            .try_into()
+            .map_err(|err| {
+                Error::V8(format!(
+                    "Could not convert msg_changes from Value to Array, {err}"
+                ))
+            })?;
         self.flush_batch(
-            mv8,
+            scope,
             msg_changes,
             &mut state_proxy
                 .message_pool_mut()
                 .batch_mut(i_proxy)
-                .ok_or_else(|| format!("Could not access proxy at index {i_proxy}"))?
+                .ok_or_else(|| format!("Could not access batch at index {i_proxy}"))?
                 .batch,
             msg_schema,
         )?;
@@ -969,10 +1373,10 @@ impl<'m> RunnerImpl<'m> {
 
     fn flush(
         &mut self,
-        mv8: &'m MiniV8,
+        scope: &mut v8::HandleScope<'s>,
         sim_run_id: SimulationShortId,
         shared_store: &mut TaskSharedStore,
-        return_val: &mv8::Object<'m>,
+        return_val: Object<'s>,
     ) -> Result<()> {
         let (proxy, group_indices) = match &mut shared_store.state {
             SharedState::None | SharedState::Read(_) => return Ok(()),
@@ -998,16 +1402,24 @@ impl<'m> RunnerImpl<'m> {
         let agent_schema = state.agent_schema.clone();
         let msg_schema = state.msg_schema.clone();
 
-        let changes: mv8::Value<'_> = return_val.get("changes")?;
+        let changes = new_js_string(scope, "changes");
+
+        let changes = return_val
+            .get(scope, changes.into())
+            .ok_or_else(|| Error::V8("Could not get changes property on return_val".to_string()))?;
+
         if group_indices.len() == 1 {
-            self.flush_group(mv8, &agent_schema, &msg_schema, proxy, 0, changes)?;
+            self.flush_group(scope, &agent_schema, &msg_schema, proxy, 0, changes)?;
         } else {
-            let changes = changes.as_array().unwrap();
+            let changes: Array<'s> = changes.try_into().unwrap();
             for i_proxy in 0..group_indices.len() {
                 // In principle, `i_proxy` and `group_indices[i_proxy]` can differ.
-                let group_changes = changes.get(i_proxy as u32)?;
+                let group_changes = changes.get_index(scope, i_proxy as u32).ok_or_else(|| {
+                    Error::V8(format!("Could not access index {i_proxy} on changes"))
+                })?;
+
                 self.flush_group(
-                    mv8,
+                    scope,
                     &agent_schema,
                     &msg_schema,
                     proxy,
@@ -1016,6 +1428,7 @@ impl<'m> RunnerImpl<'m> {
                 )?;
             }
         }
+
         Ok(())
     }
 
@@ -1025,7 +1438,7 @@ impl<'m> RunnerImpl<'m> {
     ///  - Run init packages (e.g. init.js)
     ///      - init.js can depend on globals, which vary between sim runs, so it has to be executed
     ///        at the start of a sim run, not at the start of the experiment run.
-    fn start_sim(&mut self, mv8: &'m MiniV8, run: NewSimulationRun) -> Result<()> {
+    fn start_sim(&mut self, scope: &mut v8::HandleScope<'s>, run: NewSimulationRun) -> Result<()> {
         // Initialize JS.
 
         // Passing in schemas with an immutable reference is allowed,
@@ -1034,42 +1447,46 @@ impl<'m> RunnerImpl<'m> {
         // undefined behavior, because the pointer to the schema comes from
         // an immutable reference.
         // ---> Do *not* mutate the schema bytes in `runner.js`.
-        let mut agent_schema_bytes =
-            schema_to_stream_bytes(&run.datastore.agent_batch_schema.arrow);
-        let mut msg_schema_bytes = schema_to_stream_bytes(&run.datastore.message_batch_schema);
-        let mut ctx_schema_bytes = schema_to_stream_bytes(&run.datastore.context_batch_schema);
+        let agent_schema_bytes = schema_to_stream_bytes(&run.datastore.agent_batch_schema.arrow);
+        let msg_schema_bytes = schema_to_stream_bytes(&run.datastore.message_batch_schema);
+        let ctx_schema_bytes = schema_to_stream_bytes(&run.datastore.context_batch_schema);
         // run.shared_context.datasets?
 
         // Keep schema vecs alive while bytes are passed to V8.
-        let agent_schema_bytes = bytes_to_js(mv8, &mut agent_schema_bytes);
-        let msg_schema_bytes = bytes_to_js(mv8, &mut msg_schema_bytes);
-        let ctx_schema_bytes = bytes_to_js(mv8, &mut ctx_schema_bytes);
+        let agent_schema_bytes = bytes_to_js(scope, &agent_schema_bytes);
+        let msg_schema_bytes = bytes_to_js(scope, &msg_schema_bytes);
+        let ctx_schema_bytes = bytes_to_js(scope, &ctx_schema_bytes);
 
-        let pkg_ids = mv8.create_array();
-        let pkg_msgs = mv8.create_array();
+        let pkg_ids = v8::Array::new(scope, run.packages.0.len() as i32);
+        let pkg_msgs = v8::Array::new(scope, run.packages.0.len() as i32);
         for (i_pkg, (pkg_id, pkg_msg)) in run.packages.0.iter().enumerate() {
             let i_pkg = i_pkg as u32;
-            pkg_ids.set(i_pkg, pkg_id_to_js(mv8, *pkg_id))?;
+            let js_pkg_id = pkg_id_to_js(scope, *pkg_id);
+            pkg_ids.set_index(scope, i_pkg, js_pkg_id).ok_or_else(|| {
+                format!("Couldn't set package id {pkg_id} at index {i_pkg} on package id array")
+            })?;
             let payload = serde_json::to_string(&pkg_msg.payload).unwrap();
-            pkg_msgs.set(i_pkg, mv8.create_string(&payload))?;
+            let payload = new_js_string(scope, &payload).into();
+            pkg_msgs.set_index(scope, i_pkg, payload).ok_or_else(|| {
+                format!("Couldn't set payload at index {i_pkg} on package message array")
+            })?;
         }
 
         let globals: &Globals = &run.globals;
         let globals = serde_json::to_string(globals).unwrap();
-        let globals = mv8.create_string(&globals);
+        let globals = new_js_string(scope, &globals);
 
-        let args = mv8::Values::from_vec(vec![
-            sim_id_to_js(mv8, run.short_id),
+        let js_sim_id = sim_id_to_js(scope, run.short_id);
+        call_js_function(scope, self.embedded.start_sim, self.this, &[
+            js_sim_id,
             agent_schema_bytes,
             msg_schema_bytes,
             ctx_schema_bytes,
-            mv8::Value::Array(pkg_ids),
-            mv8::Value::Array(pkg_msgs),
-            mv8::Value::String(globals),
-        ]);
-        self.embedded
-            .start_sim
-            .call_method(self.this.clone(), args)?;
+            pkg_ids.into(),
+            pkg_msgs.into(),
+            globals.into(),
+        ])
+        .map_err(|err| Error::V8(format!("Could not run start_sim Function: {err}")))?;
 
         // Initialize Rust.
         let state = SimState {
@@ -1079,20 +1496,21 @@ impl<'m> RunnerImpl<'m> {
         self.sims_state
             .try_insert(run.short_id, state)
             .map_err(|_| Error::DuplicateSimulationRun(run.short_id))?;
+
         Ok(())
     }
 
     // TODO: DOC
     fn handle_task_msg(
         &mut self,
-        mv8: &'m MiniV8,
+        scope: &mut v8::HandleScope<'s>,
         sim_id: SimulationShortId,
         msg: RunnerTaskMsg,
         outbound_sender: &UnboundedSender<OutboundFromRunnerMsg>,
     ) -> Result<()> {
         tracing::debug!("Starting state interim sync before running task");
         // TODO: Move JS part of sync into `run_task` function in JS for better performance.
-        self.state_interim_sync(mv8, sim_id, &msg.shared_store)?;
+        self.state_interim_sync(scope, sim_id, &msg.shared_store)?;
 
         tracing::debug!("Setting up run_task function call");
 
@@ -1102,21 +1520,17 @@ impl<'m> RunnerImpl<'m> {
             .map_err(|err| {
                 Error::from(format!("Failed to extract the inner task message: {err}"))
             })?;
-        let payload_str = mv8::Value::String(mv8.create_string(&serde_json::to_string(&payload)?));
+        let payload_str = new_js_string(scope, &serde_json::to_string(&payload)?);
         let group_index = match msg.group_index {
-            None => mv8::Value::Undefined,
-            Some(val) => mv8::Value::Number(val as f64),
+            None => v8::undefined(scope).into(),
+            Some(val) => v8::Number::new(scope, val as f64).into(),
         };
-        let args = mv8::Values::from_vec(vec![
-            sim_id_to_js(mv8, sim_id),
-            group_index,
-            pkg_id_to_js(mv8, msg.package_id),
-            payload_str.clone(),
-        ]);
 
+        let js_sim_id = sim_id_to_js(scope, sim_id);
+        let js_pkg_id = pkg_id_to_js(scope, msg.package_id);
         let run_task_result = self.run_task(
-            mv8,
-            args,
+            scope,
+            &[js_sim_id, group_index, js_pkg_id, payload_str.into()],
             sim_id,
             msg.group_index,
             msg.package_id,
@@ -1192,8 +1606,8 @@ impl<'m> RunnerImpl<'m> {
     #[allow(clippy::too_many_arguments)]
     fn run_task(
         &mut self,
-        mv8: &'m MiniV8,
-        args: Values<'m>,
+        scope: &mut v8::HandleScope<'s>,
+        args: &[Value<'s>],
         sim_id: SimulationShortId,
         group_index: Option<usize>,
         package_id: PackageId,
@@ -1206,18 +1620,20 @@ impl<'m> RunnerImpl<'m> {
         Option<Vec<String>>,
     )> {
         tracing::debug!("Calling JS run_task");
-        let return_val: mv8::Object<'_> = self
-            .embedded
-            .run_task
-            .call_method(self.this.clone(), args)?;
+        let return_val: Value<'s> =
+            call_js_function(scope, self.embedded.run_task, self.this, args)
+                .map_err(|err| Error::V8(format!("Could not run run_task Function: {err}")))?;
+        let return_val = return_val.to_object(scope).ok_or_else(|| {
+            Error::V8("Could not convert return_val from Value to Object".to_string())
+        })?;
 
         tracing::debug!("Post-processing run_task result");
-        if let Some(error) = get_js_error(mv8, &return_val) {
+        if let Some(error) = get_js_error(scope, return_val) {
             return Err(error);
         }
-        let user_warnings = get_user_warnings(mv8, &return_val);
-        let logs = get_print(mv8, &return_val);
-        let (next_target, next_task_payload) = get_next_task(mv8, &return_val)?;
+        let user_warnings = get_user_warnings(scope, return_val);
+        let logs = get_print(scope, return_val);
+        let (next_target, next_task_payload) = get_next_task(scope, return_val)?;
 
         let next_inner_task_msg: serde_json::Value = serde_json::from_str(&next_task_payload)?;
         let next_task_payload =
@@ -1230,7 +1646,7 @@ impl<'m> RunnerImpl<'m> {
                 })?;
 
         // Only flushes if state writable
-        self.flush(mv8, sim_id, &mut shared_store, &return_val)?;
+        self.flush(scope, sim_id, &mut shared_store, return_val)?;
 
         let next_task_msg = TargetedRunnerTaskMsg {
             target: next_target,
@@ -1242,12 +1658,13 @@ impl<'m> RunnerImpl<'m> {
                 payload: next_task_payload,
             },
         };
+
         Ok((next_task_msg, user_warnings, logs))
     }
 
     fn ctx_batch_sync(
         &mut self,
-        mv8: &'m MiniV8,
+        scope: &mut v8::HandleScope<'s>,
         sim_run_id: SimulationShortId,
         ctx_batch_sync: ContextBatchSync,
     ) -> Result<()> {
@@ -1257,26 +1674,28 @@ impl<'m> RunnerImpl<'m> {
             state_group_start_indices,
         } = ctx_batch_sync;
 
-        let args = mv8::Values::from_vec(vec![
-            sim_id_to_js(mv8, sim_run_id),
-            batch_to_js(
-                mv8,
-                context_batch.segment().memory(),
-                context_batch.segment().persisted_metaversion(),
-            )?,
-            idxs_to_js(mv8, &state_group_start_indices)?,
-            current_step_to_js(mv8, current_step),
-        ]);
-        let _: mv8::Value<'_> = self
-            .embedded
-            .ctx_batch_sync
-            .call_method(self.this.clone(), args)?;
+        let js_sim_id = sim_id_to_js(scope, sim_run_id);
+        let js_batch_id = batch_to_js(
+            scope,
+            context_batch.segment().memory(),
+            context_batch.segment().persisted_metaversion(),
+        )?;
+        let js_idxs = new_js_array_from_usizes(scope, &state_group_start_indices)?;
+        let js_current_step = current_step_to_js(scope, current_step);
+        call_js_function(scope, self.embedded.ctx_batch_sync, self.this, &[
+            js_sim_id,
+            js_batch_id,
+            js_idxs,
+            js_current_step,
+        ])
+        .map_err(|err| format!("Could not run ctx_batch_sync function: {err}"))?;
+
         Ok(())
     }
 
     fn state_sync(
         &mut self,
-        mv8: &'m MiniV8,
+        scope: &mut v8::HandleScope<'s>,
         sim_run_id: SimulationShortId,
         msg: WaitableStateSync,
     ) -> Result<()> {
@@ -1290,27 +1709,27 @@ impl<'m> RunnerImpl<'m> {
         let agent_pool = msg.state_proxy.agent_proxies.batches_iter();
         let msg_pool = msg.state_proxy.message_proxies.batches_iter();
         // TODO: Pass `agent_pool` and `msg_pool` by reference
-        let (agent_pool, msg_pool) = state_to_js(mv8, agent_pool, msg_pool)?;
-        let args = mv8::Values::from_vec(vec![sim_id_to_js(mv8, sim_run_id), agent_pool, msg_pool]);
-        let _: mv8::Value<'_> = self
-            .embedded
-            .state_sync
-            .call_method(self.this.clone(), args)?;
+        let (agent_pool, msg_pool) = state_to_js(scope, agent_pool, msg_pool)?;
+        let js_sim_id = sim_id_to_js(scope, sim_run_id);
+        call_js_function(scope, self.embedded.state_sync, self.this, &[
+            js_sim_id, agent_pool, msg_pool,
+        ])
+        .map_err(|err| format!("Could not run state_sync Function: {err}"))?;
 
         tracing::trace!("Sending state sync completion");
-        msg.completion_sender.send(Ok(())).map_err(|e| {
+        msg.completion_sender.send(Ok(())).map_err(|err| {
             Error::from(format!(
-                "Couldn't send state sync completion to worker: {:?}",
-                e
+                "Couldn't send state sync completion to worker: {err:?}",
             ))
         })?;
         tracing::trace!("Sent state sync completion");
+
         Ok(())
     }
 
     fn state_interim_sync(
         &mut self,
-        mv8: &'m MiniV8,
+        scope: &mut v8::HandleScope<'s>,
         sim_id: SimulationShortId,
         shared_store: &TaskSharedStore,
     ) -> Result<()> {
@@ -1318,36 +1737,36 @@ impl<'m> RunnerImpl<'m> {
         let (agent_batches, msg_batches, group_indices) = batches_from_shared_store(shared_store)?;
         // TODO: Pass `agent_pool` and `msg_pool` by reference
         let (agent_batches, msg_batches) =
-            state_to_js(mv8, agent_batches.into_iter(), msg_batches.into_iter())?;
-        let args = mv8::Values::from_vec(vec![
-            sim_id_to_js(mv8, sim_id),
-            idxs_to_js(mv8, &group_indices)?,
+            state_to_js(scope, agent_batches.into_iter(), msg_batches.into_iter())?;
+
+        let js_sim_id = sim_id_to_js(scope, sim_id);
+        let js_idxs = new_js_array_from_usizes(scope, &group_indices)?;
+        call_js_function(scope, self.embedded.state_interim_sync, self.this, &[
+            js_sim_id,
+            js_idxs,
             agent_batches,
             msg_batches,
-        ]);
-        let _: mv8::Value<'_> = self
-            .embedded
-            .state_interim_sync
-            .call_method(self.this.clone(), args)?;
+        ])
+        .map_err(|err| Error::V8(format!("Could not call state_interim_sync Function: {err}")))?;
+
         Ok(())
     }
 
     fn state_snapshot_sync(
         &mut self,
-        mv8: &'m MiniV8,
+        scope: &mut v8::HandleScope<'s>,
         sim_run_id: SimulationShortId,
         msg: StateSync,
     ) -> Result<()> {
         // TODO: Duplication with `state_sync`
         let agent_pool = msg.state_proxy.agent_pool().batches_iter();
         let msg_pool = msg.state_proxy.message_pool().batches_iter();
-        let (agent_pool, msg_pool) = state_to_js(mv8, agent_pool, msg_pool)?;
-        let sim_run_id = sim_id_to_js(mv8, sim_run_id);
-        let args = mv8::Values::from_vec(vec![sim_run_id, agent_pool, msg_pool]);
-        let _: mv8::Value<'_> = self
-            .embedded
-            .state_snapshot_sync
-            .call_method(self.this.clone(), args)?;
+        let (agent_pool, msg_pool) = state_to_js(scope, agent_pool, msg_pool)?;
+        let sim_run_id = sim_id_to_js(scope, sim_run_id);
+        call_js_function(scope, self.embedded.state_snapshot_sync, self.this, &[
+            sim_run_id, agent_pool, msg_pool,
+        ])
+        .map_err(|err| format!("Could not run state_snapshot_sync Function: {err}"))?;
 
         // State snapshots are part of context, not state, so don't need to
         // sync Rust state pools.
@@ -1356,7 +1775,7 @@ impl<'m> RunnerImpl<'m> {
 
     pub fn handle_msg(
         &mut self,
-        mv8: &'m MiniV8,
+        scope: &mut v8::HandleScope<'s>,
         sim_id: Option<SimulationShortId>,
         msg: InboundToRunnerMsgPayload,
         outbound_sender: &UnboundedSender<OutboundFromRunnerMsg>,
@@ -1369,7 +1788,7 @@ impl<'m> RunnerImpl<'m> {
             InboundToRunnerMsgPayload::NewSimulationRun(new_run) => {
                 // TODO: `short_id` doesn't need to be inside `new_run`, since
                 //       it's already passed separately to the runner.
-                self.start_sim(mv8, new_run)?;
+                self.start_sim(scope, new_run)?;
             }
             InboundToRunnerMsgPayload::TerminateSimulationRun => {
                 let sim_id = sim_id.ok_or(Error::SimulationIdRequired("terminate sim"))?;
@@ -1379,35 +1798,52 @@ impl<'m> RunnerImpl<'m> {
             }
             InboundToRunnerMsgPayload::StateSync(state_msg) => {
                 let sim_id = sim_id.ok_or(Error::SimulationIdRequired("state sync"))?;
-                self.state_sync(mv8, sim_id, state_msg)?;
+                self.state_sync(scope, sim_id, state_msg)?;
             }
             InboundToRunnerMsgPayload::StateInterimSync(interim_msg) => {
                 let sim_id = sim_id.ok_or(Error::SimulationIdRequired("interim sync"))?;
-                self.state_interim_sync(mv8, sim_id, &interim_msg.shared_store)?;
+                self.state_interim_sync(scope, sim_id, &interim_msg.shared_store)?;
             }
             InboundToRunnerMsgPayload::StateSnapshotSync(state_msg) => {
                 let sim_id = sim_id.ok_or(Error::SimulationIdRequired("snapshot sync"))?;
-                self.state_snapshot_sync(mv8, sim_id, state_msg)?;
+                self.state_snapshot_sync(scope, sim_id, state_msg)?;
             }
             InboundToRunnerMsgPayload::ContextBatchSync(ctx_batch) => {
                 let sim_id = sim_id.ok_or(Error::SimulationIdRequired("context batch sync"))?;
-                self.ctx_batch_sync(mv8, sim_id, ctx_batch)?;
+                self.ctx_batch_sync(scope, sim_id, ctx_batch)?;
             }
             InboundToRunnerMsgPayload::TaskMsg(msg) => {
                 let sim_id = sim_id.ok_or(Error::SimulationIdRequired("run task"))?;
-                self.handle_task_msg(mv8, sim_id, msg, outbound_sender)?;
+                self.handle_task_msg(scope, sim_id, msg, outbound_sender)?;
             }
-            InboundToRunnerMsgPayload::CancelTask(_) => {}
+            InboundToRunnerMsgPayload::CancelTask(_) => {
+                todo!("Cancel messages are not implemented yet");
+                // see https://app.asana.com/0/1199548034582004/1202011714603653/f
+            }
         }
+
         Ok(true) // Continue running.
     }
 }
 
+fn get_child_data<'s>(scope: &mut v8::HandleScope<'s>, obj: Object<'s>) -> Result<Array<'s>> {
+    let child_data = new_js_string(scope, "child_data");
+
+    obj.get(scope, child_data.into())
+        .ok_or_else(|| Error::V8("Could not get child_data property on obj".to_string()))?
+        .try_into()
+        .map_err(|err| {
+            Error::V8(format!(
+                "Could not convert child_data from Value to Array: {err}"
+            ))
+        })
+}
+
 pub struct JavaScriptRunner {
-    // JavaScriptRunner and RunnerImpl are separate because the
-    // V8 Isolate inside RunnerImpl can't be sent between threads.
+    // `JavaScriptRunner` and `ThreadLocalRunner` are separate because the V8 Isolate inside
+    // `ThreadLocalRunner` can't be sent between threads.
     init_msg: Arc<ExperimentInitRunnerMsg>,
-    // Args to RunnerImpl::new
+    // Args to `ThreadLocalRunner::new`
     inbound_sender: UnboundedSender<(Span, Option<SimulationShortId>, InboundToRunnerMsgPayload)>,
     inbound_receiver:
         Option<UnboundedReceiver<(Span, Option<SimulationShortId>, InboundToRunnerMsgPayload)>>,
@@ -1420,6 +1856,7 @@ impl JavaScriptRunner {
     pub fn new(spawn: bool, init_msg: ExperimentInitRunnerMsg) -> WorkerResult<Self> {
         let (inbound_sender, inbound_receiver) = unbounded_channel();
         let (outbound_sender, outbound_receiver) = unbounded_channel();
+
         Ok(Self {
             init_msg: Arc::new(init_msg),
             inbound_sender,
@@ -1435,10 +1872,10 @@ impl JavaScriptRunner {
         sim_id: Option<SimulationShortId>,
         msg: InboundToRunnerMsgPayload,
     ) -> WorkerResult<()> {
-        tracing::trace!("Sending message to JavaScript: {:?}", &msg);
+        tracing::trace!("Sending message to JavaScript: {msg:?}");
         self.inbound_sender
             .send((Span::current(), sim_id, msg))
-            .map_err(|e| WorkerError::JavaScript(Error::InboundSend(e)))
+            .map_err(|err| Error::InboundSend(err).into())
     }
 
     pub async fn send_if_spawned(
@@ -1447,7 +1884,6 @@ impl JavaScriptRunner {
         msg: InboundToRunnerMsgPayload,
     ) -> WorkerResult<()> {
         if self.spawned() {
-            tracing::trace!("JavaScript is spawned, sending message: {:?}", &msg);
             self.send(sim_id, msg).await?;
         }
         Ok(())
@@ -1457,7 +1893,7 @@ impl JavaScriptRunner {
         self.outbound_receiver
             .recv()
             .await
-            .ok_or(WorkerError::JavaScript(Error::OutboundReceive))
+            .ok_or_else(|| Error::OutboundReceive.into())
     }
 
     // TODO: UNUSED: Needs triage
@@ -1471,7 +1907,7 @@ impl JavaScriptRunner {
 
     pub async fn run(
         &mut self,
-    ) -> WorkerResult<Pin<Box<dyn Future<Output = StdResult<WorkerResult<()>, JoinError>> + Send>>>
+    ) -> WorkerResult<Pin<Box<dyn Future<Output = Result<WorkerResult<()>, JoinError>> + Send>>>
     {
         // TODO: Move tokio spawn into worker?
         tracing::debug!("Running JavaScript runner");
@@ -1483,12 +1919,12 @@ impl JavaScriptRunner {
         let inbound_receiver = self.inbound_receiver.take().ok_or(Error::AlreadyRunning)?;
         let outbound_sender = self.outbound_sender.take().ok_or(Error::AlreadyRunning)?;
 
-        let f = || _run(init_msg, inbound_receiver, outbound_sender);
+        let f = || run_experiment(init_msg, inbound_receiver, outbound_sender);
         Ok(Box::pin(tokio::task::spawn_blocking(f)))
     }
 }
 
-fn _run(
+fn run_experiment(
     init_msg: Arc<ExperimentInitRunnerMsg>,
     mut inbound_receiver: UnboundedReceiver<(
         Span,
@@ -1501,32 +1937,61 @@ fn _run(
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
-        .map_err(|e| Error::IO("Local tokio runtime".into(), e))?;
+        .map_err(|err| Error::IO("Local tokio runtime".into(), err))?;
 
     tokio::pin! {
         let impl_future = async {
-            let mv8 = MiniV8::new();
-            let mut impl_ = RunnerImpl::new(&mv8, &init_msg)?;
+            let platform = v8::new_default_platform(0, false).make_shared();
+            v8::V8::initialize_platform(platform);
+            v8::V8::initialize();
+
+            let mut isolate = v8::Isolate::new(Default::default());
+
+            let mut handle_scope = v8::HandleScope::new(&mut isolate);
+            let context = v8::Context::new(&mut handle_scope);
+            let mut context_scope = v8::ContextScope::new(&mut handle_scope, context);
+
+            let mut thread_local_runner = ThreadLocalRunner::new(&mut context_scope, context, &init_msg)?;
+
             loop {
-                tokio::select! {
-                    Some((span, sim_id, msg)) = inbound_receiver.recv() => {
+                match inbound_receiver.recv().await {
+                    Some((span, sim_id, msg)) => {
                         let _span = span.entered();
                         // TODO: Send errors instead of immediately stopping?
                         let msg_str = msg.as_str();
-                        tracing::debug!("JS runner got sim `{:?}` inbound {}", &sim_id, msg_str);
-                        let keep_running = impl_.handle_msg(&mv8, sim_id, msg, &outbound_sender)?;
-                        tracing::debug!("JS runner handled sim `{:?}` inbound {}", sim_id, msg_str);
+                        tracing::debug!("JS runner got sim `{sim_id:?}` inbound {msg_str}");
+                        let keep_running = thread_local_runner.handle_msg(
+                            &mut context_scope,
+                            sim_id,
+                            msg,
+                            &outbound_sender,
+                        )?;
+                        tracing::debug!("JS runner handled sim `{sim_id:?}` inbound {msg_str}");
                         if !keep_running {
                             tracing::debug!("JavaScript Runner has finished execution, stopping");
                             break;
                         }
                     }
+                    None => {
+                        tracing::error!("Inbound sender to JS exited");
+                        return Err(Error::InboundReceive.into());
+                    }
                 }
             }
+
             Ok(())
         }.in_current_span();
     };
 
     let local = tokio::task::LocalSet::new();
     local.block_on(&runtime, impl_future)
+}
+
+/// Helper function to create a [v8::String]
+fn new_js_string<'s>(
+    scope: &mut v8::HandleScope<'s>,
+    s: impl AsRef<str>,
+) -> v8::Local<'s, v8::String> {
+    let s = s.as_ref();
+    v8::String::new(scope, s).expect(&format!("Could not create JS String: {s}"))
 }

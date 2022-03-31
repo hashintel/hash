@@ -8,6 +8,12 @@
     "target": "es5",
     "noEmit": true
   },
-  "include": ["assets.d.ts", "next-env.d.ts", "**/*.ts", "**/*.tsx"],
+  "include": [
+    "assets.d.ts",
+    "next-env.d.ts",
+    "theme-override.d.ts",
+    "**/*.ts",
+    "**/*.tsx"
+  ],
   "exclude": ["node_modules", ".next"]
 }

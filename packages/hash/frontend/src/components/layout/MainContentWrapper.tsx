@@ -14,7 +14,7 @@ const Main = styled("main", {
   sidebarOpen?: boolean;
 }>(({ theme, sidebarOpen }) => ({
   height: `calc(100vh - ${HEADER_HEIGHT}px)`,
-  overflowY: "scroll",
+  overflowY: "auto",
   flexGrow: 1,
   padding: "60px 120px 0 120px",
   transition: theme.transitions.create("margin", {
@@ -43,7 +43,7 @@ export const MainContentWrapper: FunctionComponent = ({ children }) => {
     >
       <PageSidebar />
       <Fade in={!sidebarOpen}>
-        <Tooltip title="Open Sidebar">
+        <Tooltip title="Expand Sidebar">
           <IconButton
             size="large"
             sx={{

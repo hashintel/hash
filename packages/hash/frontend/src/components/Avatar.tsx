@@ -7,19 +7,21 @@ interface AvatarProps extends BoxProps {
 }
 
 export const Avatar: VFC<AvatarProps> = ({ title, size = 32, ...props }) => {
-  const { sx, ...otherProps } = props;
+  const { sx = [], ...otherProps } = props;
   return (
     <Box
-      sx={{
-        width: size,
-        height: size,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        borderRadius: "50%",
-        backgroundColor: ({ palette }) => palette.blue[70],
-        ...sx,
-      }}
+      sx={[
+        ({ palette }) => ({
+          width: size,
+          height: size,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: "50%",
+          backgroundColor: palette.blue[70],
+        }),
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
       {...otherProps}
     >
       <Box

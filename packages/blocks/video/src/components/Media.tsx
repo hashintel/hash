@@ -8,9 +8,11 @@
  */
 import {
   BlockProtocolEntity,
+  BlockProtocolLink,
   BlockProtocolLinkGroup,
   BlockProtocolUpdateEntitiesAction,
   BlockProtocolUploadFileFunction,
+  SingleTargetLinkFields,
 } from "blockprotocol";
 import { BlockComponent } from "blockprotocol/react";
 import React, {
@@ -77,12 +79,12 @@ function getLinkGroup(params: {
   return matchingLinkGroup;
 }
 
-function getLinkedEntities<T>(params: {
+function getLinkedEntities(params: {
   sourceEntityId: string;
   path: string;
   linkGroups: BlockProtocolLinkGroup[];
   linkedEntities: BlockProtocolEntity[];
-}): (BlockProtocolEntity & T)[] | null {
+}): (BlockProtocolEntity & { url: string })[] | null {
   const { sourceEntityId, path, linkGroups, linkedEntities } = params;
 
   const matchingLinkGroup = getLinkGroup({
@@ -104,15 +106,20 @@ function getLinkedEntities<T>(params: {
   const destinationEntityId = matchingLinkGroup.links[0]?.destinationEntityId;
 
   const matchingLinkedEntities = linkedEntities.filter(
-    (link) => link.entityId === destinationEntityId,
+    (linkedEntity): linkedEntity is BlockProtocolEntity & { url: string } =>
+      linkedEntity.entityId === destinationEntityId && "url" in linkedEntity,
   );
 
   if (!matchingLinkedEntities) {
     return null;
   }
 
-  return matchingLinkedEntities as (BlockProtocolEntity & T)[];
+  return matchingLinkedEntities;
 }
+
+const isSingleTargetLink = (
+  link: BlockProtocolLink,
+): link is BlockProtocolLink & SingleTargetLinkFields => "linkId" in link;
 
 /**
  * @todo Rewrite the state here to use a reducer, instead of batched updates
@@ -141,9 +148,7 @@ export const Media: BlockComponent<
 
   const matchingLinkedEntities = useMemo(() => {
     if (linkGroups && linkedEntities && entityId) {
-      return getLinkedEntities<{
-        url: string;
-      }>({
+      return getLinkedEntities({
         sourceEntityId: entityId,
         path: "$.file",
         linkGroups,
@@ -266,11 +271,13 @@ export const Media: BlockComponent<
 
             if (existingLinkGroup) {
               await deleteLinks(
-                existingLinkGroup.links.map((link) => ({
-                  sourceAccountId: accountId,
-                  sourceEntityId: link.sourceEntityId,
-                  linkId: link.linkId,
-                })),
+                existingLinkGroup.links
+                  .filter(isSingleTargetLink)
+                  .map((link) => ({
+                    sourceAccountId: accountId,
+                    sourceEntityId: link.sourceEntityId,
+                    linkId: link.linkId,
+                  })),
               );
             }
 

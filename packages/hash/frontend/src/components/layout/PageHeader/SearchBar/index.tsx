@@ -80,25 +80,27 @@ const ResultList: React.FC<{
 
 const ResultItem: React.FC<{
   sx?: SxProps<Theme>;
-}> = ({ sx, ...props }) => {
+}> = ({ sx = [], ...props }) => {
   const theme = useTheme();
 
   return (
     <Box
       component="li"
-      sx={{
-        display: "flex",
-        backgroundColor: theme.palette.gray[10],
-        border: "none",
-        padding: 1,
-        cursor: "pointer",
-        textOverflow: "ellipsis",
-        overflow: "hidden",
-        "&:hover": {
-          backgroundColor: theme.palette.gray[20],
+      sx={[
+        {
+          display: "flex",
+          backgroundColor: theme.palette.gray[10],
+          border: "none",
+          padding: 1,
+          cursor: "pointer",
+          textOverflow: "ellipsis",
+          overflow: "hidden",
+          "&:hover": {
+            backgroundColor: theme.palette.gray[20],
+          },
         },
-        ...sx,
-      }}
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
       {...props}
     />
   );
