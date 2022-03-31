@@ -1,4 +1,4 @@
-use crate::shared_memory::Memory;
+use crate::shared_memory::Segment;
 
 /// Pointer over any Memory contents, capable of mutation
 pub struct MemoryPtr {
@@ -7,7 +7,7 @@ pub struct MemoryPtr {
 }
 
 impl<'s> MemoryPtr {
-    pub fn from_memory(memory: &Memory) -> MemoryPtr {
+    pub fn from_memory(memory: &Segment) -> MemoryPtr {
         Self::new(memory.data.as_ptr())
     }
 

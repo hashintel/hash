@@ -9,11 +9,11 @@ use arrow::util::bit_util;
 
 use crate::{
     arrow::{
-        ffi::{ArrowArray, CMemory},
+        ffi::{ArrowArray, CSegment},
         flush::{GrowableArrayData, GrowableBatch, GrowableColumn},
         meta,
     },
-    shared_memory::Memory,
+    shared_memory::Segment,
     Error, Result,
 };
 
@@ -33,7 +33,7 @@ pub struct Changes {
 
 #[no_mangle]
 unsafe extern "C" fn flush_changes(
-    c_memory: *mut CMemory,
+    c_segment: *mut CSegment,
     dynamic_meta: *mut meta::Dynamic,
     static_meta: *const meta::Static,
     changes: *const Changes,
@@ -65,8 +65,8 @@ unsafe extern "C" fn flush_changes(
         }
     };
 
-    let memory = &mut *((*c_memory).memory as *mut Memory);
-    let loaded_metaversion = match memory.metaversion() {
+    let segment = &mut *((*c_segment).segment as *mut Segment);
+    let loaded_metaversion = match segment.try_read_metaversion() {
         Ok(v) => v,
         Err(err) => {
             println!("Could not read metaversions in `flush_changes`: {err:?}");
@@ -79,7 +79,7 @@ unsafe extern "C" fn flush_changes(
     let mut prepared = PreparedBatch {
         static_meta,
         dynamic_meta: &mut *dynamic_meta,
-        memory,
+        segment,
     };
 
     let changed = match prepared.flush_changes(prepared_columns) {
@@ -95,12 +95,12 @@ unsafe extern "C" fn flush_changes(
     };
 
     let return_flag = if changed.resized() {
-        let ptr = memory.data.as_ptr();
-        let len = memory.size as i64;
-        let mut_c_memory = &mut *c_memory;
+        let ptr = segment.data.as_ptr();
+        let len = segment.size as i64;
+        let mut_c_segment = &mut *c_segment;
         metaversion.increment();
-        mut_c_memory.ptr = ptr;
-        mut_c_memory.len = len;
+        mut_c_segment.ptr = ptr;
+        mut_c_segment.len = len;
         MEMORY_WAS_RESIZED
     } else {
         if num_changes != 0 {
@@ -109,7 +109,7 @@ unsafe extern "C" fn flush_changes(
         MEMORY_SIZE_UNCHANGED
     };
     if loaded_metaversion != metaversion {
-        match memory.set_metaversion(metaversion) {
+        match segment.try_write_metaversion(metaversion) {
             Ok(v) => v,
             Err(err) => {
                 println!("Could not write metaversion in `flush_changes`: {err:?}");
@@ -282,7 +282,7 @@ impl<'a> GrowableColumn<PreparedArrayData<'a>> for PreparedColumn<'a> {
 pub struct PreparedBatch<'a> {
     static_meta: *const meta::Static,
     dynamic_meta: &'a mut meta::Dynamic,
-    memory: &'a mut Memory,
+    segment: &'a mut Segment,
 }
 
 impl<'a> GrowableBatch<PreparedArrayData<'a>, PreparedColumn<'a>> for PreparedBatch<'a> {
@@ -298,11 +298,11 @@ impl<'a> GrowableBatch<PreparedArrayData<'a>, PreparedColumn<'a>> for PreparedBa
         self.dynamic_meta
     }
 
-    fn memory(&self) -> &Memory {
-        self.memory
+    fn segment(&self) -> &Segment {
+        self.segment
     }
 
-    fn memory_mut(&mut self) -> &mut Memory {
-        self.memory
+    fn segment_mut(&mut self) -> &mut Segment {
+        self.segment
     }
 }

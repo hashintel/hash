@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use memory::shared_memory::shmem_id_prefix;
+use memory::shared_memory::MemoryId;
 
 use crate::{
     output::{
@@ -16,7 +16,7 @@ use crate::{
 pub fn cleanup_experiment(experiment_id: &ExperimentId) -> Result<()> {
     tracing::trace!("Cleaning up experiment: {}", experiment_id);
     // TODO: Mac differences in shared_memory
-    let shm_files = glob::glob(&format!("/dev/shm/{}_*", shmem_id_prefix(experiment_id)))
+    let shm_files = glob::glob(&format!("/dev/shm/{}_*", MemoryId::prefix(experiment_id)))
         .map_err(|e| Error::Unique(format!("cleanup glob error: {}", e)))?;
 
     shm_files.filter_map(Result::ok).for_each(|path| {
