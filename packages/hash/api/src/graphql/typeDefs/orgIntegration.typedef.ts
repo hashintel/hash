@@ -23,7 +23,8 @@ export const orgIntegrationTypedef = gql`
     """
     currentValue: String
     """
-    Last time that this field's value was updated
+    Last time that this field's value was updated.
+    When null, this indicates the field has never been set.
     """
     lastUpdatedAt: Date
   }

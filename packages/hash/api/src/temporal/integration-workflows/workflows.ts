@@ -55,16 +55,20 @@ export async function manageIntegration(
     }
   });
 
-  let performingIntegration = false;
+  let requestedToPerformIntegration = false;
   wf.setHandler(startIntegrationSignal, async () => {
-    performingIntegration = true;
+    requestedToPerformIntegration = true;
   });
 
   try {
     while (true) {
-      if (await wf.condition(() => performingIntegration, 24 * HOUR)) {
-        performingIntegration = false;
+      // Progress 1/10: Haven't thought very deeply about cron vs condition with timeout. Just learning.
+      // while loop keeps this integration workflow active (so it never resolves, so we can perform the integration at any point)
+      if (await wf.condition(() => requestedToPerformIntegration, 24 * HOUR)) {
+        requestedToPerformIntegration = false;
         await act.performIntegration(state);
+      } else {
+        // 24 hours have passed without integration...
       }
     }
   } catch (err) {
