@@ -1,6 +1,7 @@
 import { faBars, faClose } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
+  buttonClasses,
   Container,
   IconButton,
   Slide,
@@ -10,7 +11,6 @@ import {
 } from "@mui/material";
 import { useState, VFC } from "react";
 import { Button } from "./Button";
-import { DiscordIcon } from "./icons/DiscordIcon";
 import { FaIcon } from "./icons/FaIcon";
 import { FontAwesomeIcon } from "./icons/FontAwesomeIcon";
 import { Logo } from "./Logo";
@@ -27,8 +27,37 @@ const DesktopNav: VFC = () => (
     >
       Visit our main site
     </Button>
-    {/** @todo these need to be nav links */}
-    <Stack direction="row" spacing={2} ml="auto">
+    <Stack
+      direction="row"
+      spacing={2}
+      ml="auto"
+      sx={{
+        // @todo need to figure out border radius of focus
+        [`& .${buttonClasses.root}`]: {
+          minHeight: 32,
+          py: 1,
+          borderRadius: 30,
+
+          "&.MuiButton-primary": {
+            borderColor: "yellow.500",
+            // @todo this is correct
+            color: "yellow.900",
+
+            ":focus-visible, &.Button--focus:not(:disabled)": {
+              backgroundColor: "yellow.400",
+            },
+          },
+
+          "&.MuiButton-tertiary": {
+            borderColor: "gray.20",
+
+            ":focus-visible, &.Button--focus:not(:disabled)": {
+              borderColor: "gray.40",
+            },
+          },
+        },
+      }}
+    >
       <Button
         size="medium"
         variant="tertiary"
