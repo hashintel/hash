@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import { MigrationBuilder, ColumnDefinitions } from "node-pg-migrate";
 import {
   SYSTEM_ACCOUNT_NAME,
