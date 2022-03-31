@@ -148,6 +148,8 @@ declare module "@mui/material/Button" {
   interface ButtonPropsSizeOverrides {
     small: false;
   }
+
+  interface InputProps
 }
 
 declare module "@mui/material/Paper" {

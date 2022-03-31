@@ -1,6 +1,3 @@
-/**
- * @todo update from blockprotocol
- */
 import { Components, Theme } from "@mui/material";
 
 export const MuiInputBaseThemeOptions: Components<Theme>["MuiInputBase"] = {

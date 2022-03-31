@@ -16,6 +16,7 @@ import { Button } from "../components/Button";
 import { FaIcon } from "../components/icons/FaIcon";
 import { Link } from "../components/Link";
 import { NAV_HEIGHT } from "../components/Navbar";
+import { TextField } from "../components/TextField";
 
 const StylishDivider: VFC<ComponentProps<typeof Stack>> = (props) => {
   const bgcolor = "orange.400";
@@ -422,12 +423,13 @@ const Subscribe: VFC = () => {
                 justifyContent="center"
                 spacing={{ xs: 1, md: 1.5 }}
               >
-                <Input
+                <TextField
                   sx={{ width: { md: 459, xs: 1 }, flexShrink: 1 }}
                   name="email"
                   type="email"
                   required
                   disabled={loading}
+                  placeholder="you@example.com"
                 />
                 <Button
                   variant="primary"
