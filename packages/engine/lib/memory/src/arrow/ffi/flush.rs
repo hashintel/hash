@@ -9,10 +9,10 @@ use arrow::util::bit_util;
 
 use crate::{
     arrow::{
+        ffi::{ArrowArray, CMemory},
         flush::{GrowableArrayData, GrowableBatch, GrowableColumn},
         meta,
     },
-    ffi::{ArrowArray, CMemory},
     shared_memory::Memory,
     Error, Result,
 };

@@ -5,8 +5,8 @@ use std::ffi::CStr;
 use arrow::datatypes::{DataType, Field, Schema};
 
 use crate::{
+    arrow::ffi::ArrowSchema,
     error::{Error, Result},
-    ffi::ArrowSchema,
 };
 
 const ARROW_FLAG_NULLABLE: i64 = 2;

@@ -7,6 +7,7 @@ pub mod meta;
 mod batch;
 mod change;
 mod conversion;
+mod ffi;
 
 pub use self::{
     batch::ArrowBatch,

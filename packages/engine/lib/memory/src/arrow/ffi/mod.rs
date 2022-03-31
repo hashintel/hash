@@ -1,5 +1,4 @@
 mod flush;
-mod memory;
 mod schema_conversion;
 mod test;
 
@@ -7,13 +6,12 @@ use std::{ffi::c_void, os::raw::c_char, sync::Arc};
 
 use arrow::ipc;
 
-use self::memory::CMemory;
 use crate::{
     arrow::meta::{
         self,
         conversion::{HashDynamicMeta, HashStaticMeta},
     },
-    shared_memory::Memory,
+    shared_memory::{CMemory, Memory},
     Error,
 };
 
