@@ -1,9 +1,12 @@
+import { MigrationBuilder, ColumnDefinitions } from "node-pg-migrate";
 import {
   SYSTEM_ACCOUNT_NAME,
   SYSTEM_ACCOUNT_SHORTNAME,
 } from "@hashintel/hash-backend-utils/system";
 import generatedIds from "../scripts/data/generatedIds.json";
 import { entityTypeJson } from "../scripts/data/systemTypeSchemas";
+
+export const shorthands: ColumnDefinitions | undefined = undefined;
 
 const now = "2021-08-19T11:00:14.587Z";
 
@@ -69,4 +72,8 @@ insert into entity_account (
 
 `;
 
-export default sqlString;
+export async function up(pgm: MigrationBuilder): Promise<void> {
+  pgm.sql(sqlString);
+}
+
+export const down = false;
