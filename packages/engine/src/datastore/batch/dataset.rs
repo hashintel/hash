@@ -1,4 +1,4 @@
-use storage::shared_memory::{Memory, Metaversion, Segment};
+use memory::shared_memory::{Memory, Metaversion, Segment};
 
 use crate::{
     datastore::error::Result,

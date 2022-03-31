@@ -15,7 +15,7 @@ use arrow::{
     },
     record_batch::RecordBatch,
 };
-use storage::{
+use memory::{
     arrow::{
         flush::GrowableBatch,
         ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},

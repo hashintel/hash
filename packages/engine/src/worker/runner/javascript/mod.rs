@@ -22,7 +22,7 @@ use arrow::{
     util::bit_util,
 };
 use futures::{Future, FutureExt};
-use storage::{
+use memory::{
     arrow::{ArrowBatch, ColumnChange},
     shared_memory::{arrow_continuation, Memory, Metaversion},
 };

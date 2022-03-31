@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use storage::shared_memory::shmem_id_prefix;
+use memory::shared_memory::shmem_id_prefix;
 
 use crate::{
     output::{

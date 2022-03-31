@@ -1,5 +1,5 @@
 [package]
-name = "storage"
+name = "memory"
 version = "0.1.0"
 edition = "2021"
 
@@ -17,5 +17,5 @@ thiserror = "1.0.21"
 tracing = "0.1.29"
 
 [lib]
-name = "storage"
+name = "memory"
 crate-type = ["lib", "cdylib"]

@@ -11,12 +11,12 @@ use arrow::{
     },
     record_batch::RecordBatch,
 };
-use rayon::iter::{
-    IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
-};
-use storage::{
+use memory::{
     meta::{self, conversion::get_dynamic_meta_flatbuffers},
     shared_memory::{Memory, Metaversion, Segment},
+};
+use rayon::iter::{
+    IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
 };
 
 use crate::{

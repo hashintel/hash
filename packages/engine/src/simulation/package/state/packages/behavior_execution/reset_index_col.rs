@@ -1,5 +1,5 @@
 use arrow::{array::ArrayData, datatypes::DataType};
-use storage::arrow::{new_buffer, ColumnChange};
+use memory::arrow::{new_buffer, ColumnChange};
 
 use crate::simulation::package::state::packages::behavior_execution::{
     BehaviorIndexInnerDataType, DatastoreResult, IntoArrowChange, Result, StateColumn,

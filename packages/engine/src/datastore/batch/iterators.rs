@@ -209,7 +209,7 @@ pub mod record_batch {
     use std::borrow::Cow;
 
     use arrow::{array::Array, datatypes::DataType, record_batch::RecordBatch, util::bit_util};
-    use storage::arrow::{col_to_json_vals, ColumnChange};
+    use memory::arrow::{col_to_json_vals, ColumnChange};
 
     use crate::{
         datastore::{

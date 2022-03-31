@@ -12,8 +12,8 @@ pub enum Error {
     #[error("{0}")]
     Unique(String),
 
-    #[error("Storage Error: {0}")]
-    Storage(#[from] storage::Error),
+    #[error("Memory Error: {0}")]
+    Memory(#[from] memory::Error),
 
     #[error("Env error: {0}")]
     Env(#[from] crate::env::Error),

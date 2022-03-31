@@ -3,7 +3,7 @@ mod message;
 use std::sync::Arc;
 
 use arrow::datatypes::Schema as ArrowSchema;
-use storage::meta::{self, conversion::HashStaticMeta};
+use memory::meta::{self, conversion::HashStaticMeta};
 
 pub use self::message::MessageSchema;
 use crate::datastore::{error::Result, schema::FieldSpecMap};

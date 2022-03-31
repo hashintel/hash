@@ -1,5 +1,5 @@
 use flatbuffers::{FlatBufferBuilder, WIPOffset};
-use storage::shared_memory::{Metaversion, Segment};
+use memory::shared_memory::{Metaversion, Segment};
 
 use crate::{
     datastore::shared_store::SharedStore,

@@ -3,7 +3,7 @@ pub mod packages;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use storage::meta::ColumnDynamicMetadata;
+use memory::meta::ColumnDynamicMetadata;
 use tracing::Span;
 
 pub use self::packages::{ContextTask, ContextTaskMessage, Name, PACKAGE_CREATORS};

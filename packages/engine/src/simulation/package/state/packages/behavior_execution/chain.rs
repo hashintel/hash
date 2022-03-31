@@ -1,5 +1,5 @@
 use arrow::{array::ArrayData, record_batch::RecordBatch};
-use storage::arrow::{new_buffer, new_offsets_buffer, ColumnChange};
+use memory::arrow::{new_buffer, new_offsets_buffer, ColumnChange};
 
 use crate::{
     datastore::batch::AgentBatch,
