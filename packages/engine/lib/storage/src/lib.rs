@@ -1,4 +1,4 @@
-//! Defines how data is stored in shared memory and provides an (optional) arrow-interface to it.
+//! Defines how data is stored in shared memory and provides an (optional) Apache Arrow interface to it.
 //!
 //! This crates consists of two main parts:
 //!   - [`memory`] contains structures and functions to store and load data to/from shared memory.
@@ -15,7 +15,7 @@
 //!     associated with one [`Segment`] and several other data. For further information please see
 //!     the [`ArrowBatch`] API.
 //!
-//! Furthermore, there is a [`meta`] module used for meta-data in an [`ArrowBatch`] and an
+//! Furthermore, there is a [`meta`] module used for metadata in an [`ArrowBatch`] and an
 //! [`ffi`] module exposing basic functionality to interact with memory and batches.
 //!
 //! [`Segment`]: crate::memory::Segment
