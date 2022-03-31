@@ -16,7 +16,8 @@
     unused_extern_crates,
     unused_import_braces,
     unused_lifetimes,
-    unused_qualifications
+    unused_qualifications,
+    clippy::wildcard_imports
 )]
 #![allow(
     clippy::borrowed_box,
@@ -33,31 +34,24 @@
     clippy::mutex_atomic
 )]
 
+mod args;
 pub mod config;
 pub mod datastore;
-pub mod error;
+pub mod env;
+mod error;
 pub mod experiment;
 pub mod fetch;
 pub mod hash_types;
 pub mod language;
-pub mod nano;
 pub mod output;
 pub mod proto;
 pub mod simulation;
 pub mod types;
+pub mod utils;
 pub mod worker;
 pub mod workerpool;
 
-mod args;
-pub mod env;
-pub mod utils;
-
 pub use self::{
     args::{args, Args},
-    config::{experiment_config, ExperimentConfig, SimRunConfig, SimulationConfig},
-    env::{env, Environment},
     error::{Error, Result},
-    experiment::init_exp_package,
-    language::Language,
-    utils::init_logger,
 };

@@ -10,7 +10,6 @@ import {
   listItemTextClasses,
 } from "@mui/material";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
-import { useRouter } from "next/router";
 import {
   usePopupState,
   bindTrigger,
@@ -22,15 +21,9 @@ import { useUser } from "../../hooks/useUser";
 import { Avatar } from "../../Avatar";
 import { Button } from "../../Button";
 import { useLogout } from "../../hooks/useLogout";
+import { useCurrentWorkspaceContext } from "../../../contexts/CurrentWorkspaceContext";
 
 type WorkspaceSwitcherProps = {};
-
-const truncateText = (text: string) => {
-  if (text.length > 18) {
-    return `${text.slice(0, 15)}...`;
-  }
-  return text;
-};
 
 export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -40,10 +33,9 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
   });
   const { user } = useUser();
   const { logout } = useLogout();
-  const { query } = useRouter();
+  const { accountId: activeAccountId } = useCurrentWorkspaceContext();
 
   const activeWorkspace = useMemo(() => {
-    const activeAccountId = query.accountId as string;
     let accountName = "";
 
     if (user && activeAccountId === user.accountId) {
@@ -59,18 +51,22 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
     }
 
     return { name: accountName || "User", accountId: activeAccountId };
-  }, [query, user]);
+  }, [activeAccountId, user]);
 
   const workspaceList = useMemo(() => {
+    if (!user) {
+      return [];
+    }
+
     return [
       {
-        key: user?.accountId ?? "currentUser",
-        url: "/",
+        key: user.accountId,
+        url: `/${user.accountId}`,
         title: "My personal workspace",
-        subText: `@${user?.properties.shortname ?? "user"}`,
-        avatarTitle: user?.properties.preferredName ?? "U",
+        subText: `@${user.properties.shortname ?? "user"}`,
+        avatarTitle: user.properties.preferredName ?? "U",
       },
-      ...(user?.memberOf ?? []).map(({ org }) => ({
+      ...user.memberOf.map(({ org }) => ({
         key: org.accountId,
         url: `/${org.accountId}`,
         title: org.properties.name,
@@ -86,12 +82,12 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
         ref={buttonRef}
         variant="tertiary_quiet"
         fullWidth
-        sx={{
+        sx={({ spacing }) => ({
           backgroundColor: "transparent",
-          padding: "12px 16px 12px 18px",
+          padding: spacing(1.5, 2, 1.5, 2.25),
           justifyContent: "flex-start",
           textAlign: "left",
-        }}
+        })}
         {...bindTrigger(popupState)}
       >
         <Avatar size={24} title={activeWorkspace.name} />
@@ -102,12 +98,13 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
             overflowX: "hidden",
             whiteSpace: "nowrap",
             textOverflow: "ellipsis",
+            maxWidth: 140,
             color: ({ palette }) => palette.gray[80],
             fontWeight: 600,
           }}
           variant="smallTextLabels"
         >
-          {truncateText(activeWorkspace.name)}
+          {activeWorkspace.name}
         </Typography>
         <FontAwesomeIcon
           icon={faChevronDown}
@@ -126,7 +123,11 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
         autoFocus={false}
       >
         {workspaceList.map(({ title, subText, url, key }) => (
-          <MenuItem key={key} selected={key === activeWorkspace.accountId}>
+          <MenuItem
+            key={key}
+            selected={key === activeWorkspace.accountId}
+            onClick={() => popupState.close()}
+          >
             <Link
               href={url}
               noLinkStyle
@@ -155,17 +156,16 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
         {[
           {
             title: "Workspace Settings",
-            id: 1,
             href: "/",
           },
           {
             title: "Create or Join a workspace",
-            id: 2,
             href: "/",
           },
-        ].map(({ title, id, href }) => (
-          <MenuItem key={id}>
-            <Link key={id} href={href} noLinkStyle>
+        ].map(({ title, href }, index) => (
+          // eslint-disable-next-line react/no-array-index-key
+          <MenuItem key={index} onClick={() => popupState.close()}>
+            <Link href={href} noLinkStyle>
               <ListItemText primary={title} />
             </Link>
           </MenuItem>

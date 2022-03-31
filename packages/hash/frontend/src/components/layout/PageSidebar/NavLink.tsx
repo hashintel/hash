@@ -3,12 +3,14 @@ import { faAdd, faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import { Box, Typography, Collapse, Tooltip } from "@mui/material";
 import { FontAwesomeIcon } from "../../icons";
 import { IconButton, IconButtonProps } from "../../IconButton";
+import { Link } from "../../Link";
 
 type NavLinkProps = {
   title: string;
   endAdornmentProps: {
     tooltipTitle: string;
     "data-testid"?: string;
+    href?: string;
   } & IconButtonProps;
 };
 
@@ -22,8 +24,36 @@ export const NavLink: FC<NavLinkProps> = ({
   const {
     tooltipTitle: endAdornmentTooltipTitle,
     sx: endAdormentSx = [],
+    href: endAdornmentHref,
     ...otherEndAdornmentProps
   } = endAdornmentProps;
+
+  const endAdornment = (
+    <IconButton
+      size="small"
+      unpadded
+      rounded
+      data-testid="create-page-btn"
+      onClick={endAdornmentProps.onClick}
+      {...otherEndAdornmentProps}
+      sx={[
+        ({ palette }) => ({
+          color: palette.gray[40],
+          ...(hovered && {
+            backgroundColor: palette.gray[30],
+            color: palette.gray[80],
+          }),
+          "&:hover": {
+            backgroundColor: palette.gray[40],
+            color: palette.gray[80],
+          },
+        }),
+        ...(Array.isArray(endAdormentSx) ? endAdormentSx : [endAdormentSx]),
+      ]}
+    >
+      <FontAwesomeIcon icon={faAdd} />
+    </IconButton>
+  );
 
   return (
     <Box>
@@ -32,9 +62,9 @@ export const NavLink: FC<NavLinkProps> = ({
           display: "flex",
           alignItems: "center",
           borderRadius: "4px",
-          py: "8px",
-          pl: "12px",
-          pr: "6px",
+          py: 1,
+          pl: 1.5,
+          pr: 0.75,
           mx: 0.5,
           ...(hovered && {
             backgroundColor: palette.gray[20],
@@ -58,44 +88,33 @@ export const NavLink: FC<NavLinkProps> = ({
           rounded
           sx={({ palette }) => ({
             mr: "auto",
-            ...(!expanded && { color: palette.gray[40] }),
+            color: palette.gray[40],
             ...(hovered && {
-              backgroundColor: palette.gray[30],
               color: palette.gray[80],
             }),
+            "&:hover": {
+              backgroundColor: palette.gray[30],
+              color: palette.gray[80],
+            },
           })}
           onClick={() => setExpanded((prev) => !prev)}
         >
           <FontAwesomeIcon
             sx={({ transitions }) => ({
               transform: expanded ? `rotate(90deg)` : "none",
-              transition: transitions.create("transform", { duration: 300 }),
+              transition: transitions.create("transform"),
             })}
             icon={faChevronRight}
           />
         </IconButton>
         <Tooltip title={endAdornmentTooltipTitle}>
-          <IconButton
-            size="small"
-            unpadded
-            rounded
-            data-testid="create-page-btn"
-            onClick={endAdornmentProps.onClick}
-            {...otherEndAdornmentProps}
-            sx={[
-              ({ palette }) => ({
-                ...(hovered && {
-                  backgroundColor: palette.gray[30],
-                  color: palette.gray[80],
-                }),
-              }),
-              ...(Array.isArray(endAdormentSx)
-                ? endAdormentSx
-                : [endAdormentSx]),
-            ]}
-          >
-            <FontAwesomeIcon icon={faAdd} />
-          </IconButton>
+          {endAdornmentHref ? (
+            <Link tabIndex={-1} href={endAdornmentHref} noLinkStyle>
+              {endAdornment}
+            </Link>
+          ) : (
+            endAdornment
+          )}
         </Tooltip>
       </Box>
       <Collapse in={expanded}>{children}</Collapse>

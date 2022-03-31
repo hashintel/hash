@@ -3,7 +3,11 @@ use std::{collections::HashSet, sync::Arc};
 use arrow::record_batch::RecordBatch;
 
 use crate::{
-    datastore::{prelude::*, schema::state::AgentSchema, UUID_V4_LEN},
+    datastore::{
+        error::{Error, Result},
+        schema::state::AgentSchema,
+        UUID_V4_LEN,
+    },
     simulation::command::CreateRemoveCommands,
 };
 

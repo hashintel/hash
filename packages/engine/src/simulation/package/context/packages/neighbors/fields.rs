@@ -1,6 +1,12 @@
-use super::*;
-use crate::datastore::schema::{
-    FieldScope, FieldType, FieldTypeVariant::*, PresetFieldType, RootFieldSpec,
+use crate::{
+    datastore::schema::{
+        FieldScope, FieldType,
+        FieldTypeVariant::{FixedLengthArray, Number, Preset, VariableLengthArray},
+        PresetFieldType, RootFieldSpec,
+    },
+    simulation::package::context::packages::neighbors::{
+        Result, RootFieldSpecCreator, NEIGHBOR_INDEX_COUNT,
+    },
 };
 
 pub(super) const NEIGHBORS_FIELD_NAME: &str = "neighbors";

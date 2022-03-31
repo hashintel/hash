@@ -3,7 +3,6 @@ use std::fmt;
 use arrow::{datatypes::DataType, error::ArrowError};
 use thiserror::Error as ThisError;
 
-use super::prelude::*;
 use crate::{
     datastore::schema::{FieldKey, FieldType, RootFieldSpec},
     hash_types,
@@ -36,6 +35,9 @@ pub enum Error {
     #[error("{0}")]
     Unique(String),
 
+    #[error("Memory error: {0}")]
+    Memory(#[from] memory::Error),
+
     #[error("Couldn't acquire shared lock on object")]
     ProxySharedLock,
 
@@ -47,9 +49,6 @@ pub enum Error {
 
     #[error("Invalid Arrow object downcast. Field name: {name}")]
     InvalidArrowDowncast { name: String },
-
-    #[error("Memory Error: {0}")]
-    Memory(String),
 
     #[error("Not implemented: {0}")]
     NotImplemented(SupportedType),
@@ -67,7 +66,7 @@ pub enum Error {
     Utf8(#[from] std::str::Utf8Error),
 
     #[error("Simulation error: {0}")]
-    Simulation(#[from] hash_types::error::Error),
+    Simulation(#[from] hash_types::Error),
 
     #[error("Shared memory error: {0}")]
     SharedMemory(#[from] shared_memory::ShmemError),
@@ -94,7 +93,7 @@ pub enum Error {
     UnexpectedVectorLength { len: usize, expected: usize },
 
     #[error("Unsupported Arrow datatype: {d_type:?}")]
-    UnsupportedArrowDataType { d_type: ArrowDataType },
+    UnsupportedArrowDataType { d_type: DataType },
 
     #[error("Did not expect to resize Shared Memory")]
     UnexpectedAgentBatchMemoryResize,

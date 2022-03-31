@@ -2,8 +2,10 @@ use std::{collections::HashMap, fmt};
 
 use serde::{de::Deserializer, Deserialize, Serialize};
 
-use super::{error::Result, state::Agent};
-use crate::datastore::arrow::message::{CREATE_AGENT, REMOVE_AGENT, SYSTEM_MESSAGE};
+use crate::{
+    datastore::arrow::message::{CREATE_AGENT, REMOVE_AGENT, SYSTEM_MESSAGE},
+    hash_types::{error::Result, state::Agent},
+};
 
 /*
  * We want Serde to deserialize a message to the correct enum variant,

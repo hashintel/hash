@@ -27,7 +27,7 @@ pub const PREVIOUS_INDEX_FIELD_NAME: &str = "previous_index";
 //   rather than PresetFieldType and FieldTypeVariant
 
 /// PresetFieldTypes represent an extension of types of fields that can be set by the engine, this
-/// gives greater control over underlying arrow datatype such as integer sizes compared to the
+/// gives greater control over underlying Arrow datatype such as integer sizes compared to the
 /// field types we allow users to set
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum PresetFieldType {
@@ -109,7 +109,7 @@ impl FieldKey {
     }
 
     /// Returns a string as key
-    pub(in super::super) fn new(key: &str) -> Self {
+    pub(in crate::datastore) fn new(key: &str) -> Self {
         Self(key.to_string())
     }
 

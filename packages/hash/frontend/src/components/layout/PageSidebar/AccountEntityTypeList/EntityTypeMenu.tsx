@@ -26,6 +26,7 @@ type EntityTypeMenuProps = {
   entityTitle: string;
 };
 
+// @todo-mui get free icons that matches the design closely
 export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({
   popupState,
   accountId,
@@ -37,21 +38,15 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({
   const menuItems = useMemo(() => {
     return [
       {
-        id: 1,
         title: "Add to Bookmarks",
-        icon: faBookmark, // @todo-mui get a free icon that matches the design closely
-        onClick: () => {
-          popupState.close();
-        },
+        icon: faBookmark,
       },
       {
-        id: 2,
         title: `Create new ${pluralize.singular(entityTitle)}`,
         icon: faAdd,
         href: `/${accountId}/entities/new?entityTypeId=${entityId}`,
       },
       {
-        id: 3,
         title: copied ? "Copied!" : `Copy Link to ${entityTitle}`,
         icon: faLink,
         onClick: () => {
@@ -66,20 +61,12 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({
         },
       },
       {
-        id: 4,
         title: "Create filtered page",
-        icon: faFilter, // @todo-mui get a free icon that matches the design closely
-        onClick: () => {
-          popupState.close();
-        },
+        icon: faFilter,
       },
       {
-        id: 5,
         title: "Delete type",
         icon: faTrash,
-        onClick: () => {
-          popupState.close();
-        },
         faded: true,
       },
     ];
@@ -87,11 +74,12 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({
 
   return (
     <Menu {...bindMenu(popupState)}>
-      {menuItems.map(({ title, icon, onClick, href, id, faded }) => {
+      {menuItems.map(({ title, icon, onClick, href, faded }, index) => {
         if (href) {
           return (
-            <MenuItem key={id} onClick={() => popupState.close()}>
-              <Link sx={{ display: "flex" }} key={id} noLinkStyle href={href}>
+            // eslint-disable-next-line react/no-array-index-key
+            <MenuItem key={index} onClick={() => popupState.close()}>
+              <Link sx={{ display: "flex" }} noLinkStyle href={href}>
                 <ListItemIcon>
                   <FontAwesomeIcon icon={icon} />
                 </ListItemIcon>
@@ -100,30 +88,29 @@ export const EntityTypeMenu: VFC<EntityTypeMenuProps> = ({
             </MenuItem>
           );
         }
-        if (onClick) {
-          return (
-            <MenuItem
-              key={id}
-              sx={{
-                ...(Boolean(faded) && {
-                  [`& .${listItemTextClasses.primary}`]: {
-                    color: ({ palette }) => palette.gray[50],
-                  },
-                  [`& .${listItemIconClasses.root}`]: {
-                    color: ({ palette }) => palette.gray[40],
-                  },
-                }),
-              }}
-              onClick={onClick}
-            >
-              <ListItemIcon>
-                <FontAwesomeIcon icon={icon} />
-              </ListItemIcon>
-              <ListItemText primary={title} />
-            </MenuItem>
-          );
-        }
-        return null;
+
+        return (
+          <MenuItem
+            // eslint-disable-next-line react/no-array-index-key
+            key={index}
+            sx={{
+              ...(Boolean(faded) && {
+                [`& .${listItemTextClasses.primary}`]: {
+                  color: ({ palette }) => palette.gray[50],
+                },
+                [`& .${listItemIconClasses.root}`]: {
+                  color: ({ palette }) => palette.gray[40],
+                },
+              }),
+            }}
+            onClick={onClick ?? popupState.close}
+          >
+            <ListItemIcon>
+              <FontAwesomeIcon icon={icon} />
+            </ListItemIcon>
+            <ListItemText primary={title} />
+          </MenuItem>
+        );
       })}
     </Menu>
   );

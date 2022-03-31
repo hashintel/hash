@@ -1,24 +1,27 @@
 import { useMutation } from "@apollo/client";
 import { useRouter } from "next/router";
 
-import {
-  createPage,
-  setParentPage,
-} from "@hashintel/hash-shared/queries/page.queries";
-import {
-  SetParentPageMutation,
-  SetParentPageMutationVariables,
-} from "@hashintel/hash-shared/graphql/apiTypes.gen";
+import { createPage } from "@hashintel/hash-shared/queries/page.queries";
+import { useCallback } from "react";
 import {
   CreatePageMutation,
   CreatePageMutationVariables,
+  SetParentPageMutation,
+  SetParentPageMutationVariables,
 } from "../../graphql/apiTypes.gen";
 import { getAccountPages } from "../../graphql/queries/account.queries";
+import { setParentPage } from "../../graphql/queries/page.queries";
+
+/**
+ * Consider splitting this hook into two
+ * so that it's easier to return error/loading
+ * @see https://github.com/hashintel/hash/pull/409#discussion_r839416785
+ */
 
 export const useCreatePage = (accountId: string) => {
   const router = useRouter();
 
-  const [createPageFn, { loading, error }] = useMutation<
+  const [createPageFn] = useMutation<
     CreatePageMutation,
     CreatePageMutationVariables
   >(createPage, {
@@ -42,7 +45,7 @@ export const useCreatePage = (accountId: string) => {
     ],
   });
 
-  const createUntitledPage = async () => {
+  const createUntitledPage = useCallback(async () => {
     const response = await createPageFn({
       variables: { accountId, properties: { title: "Untitled" } },
     });
@@ -53,34 +56,34 @@ export const useCreatePage = (accountId: string) => {
     if (pageAccountId && pageEntityId) {
       return router.push(`/${pageAccountId}/${pageEntityId}`);
     }
-  };
+  }, [createPageFn, accountId, router]);
 
-  const createSubPage = async (parentPageEntityId: string) => {
-    const response = await createPageFn({
-      variables: { accountId, properties: { title: "Untitled" } },
-    });
-
-    const { accountId: pageAccountId, entityId: pageEntityId } =
-      response.data?.createPage ?? {};
-
-    if (pageAccountId && pageEntityId) {
-      await setParentPageFn({
-        variables: {
-          accountId: pageAccountId,
-          pageEntityId,
-          parentPageEntityId,
-        },
+  const createSubPage = useCallback(
+    async (parentPageEntityId: string) => {
+      const response = await createPageFn({
+        variables: { accountId, properties: { title: "Untitled" } },
       });
 
-      return router.push(`/${pageAccountId}/${pageEntityId}`);
-    }
-  };
+      const { accountId: pageAccountId, entityId: pageEntityId } =
+        response.data?.createPage ?? {};
+
+      if (pageAccountId && pageEntityId) {
+        await setParentPageFn({
+          variables: {
+            accountId: pageAccountId,
+            pageEntityId,
+            parentPageEntityId,
+          },
+        });
+
+        return router.push(`/${pageAccountId}/${pageEntityId}`);
+      }
+    },
+    [createPageFn, accountId, setParentPageFn, router],
+  );
 
   return {
-    create: createPageFn,
     createUntitledPage,
     createSubPage,
-    loading,
-    error,
   };
 };

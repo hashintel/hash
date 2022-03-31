@@ -6,7 +6,7 @@ use tracing::Span;
 
 use self::map::{NeighborMap, NeighborRef};
 use crate::{
-    config::{Globals, TopologyConfig},
+    config::{ExperimentConfig, Globals, SimRunConfig, TopologyConfig},
     datastore::{
         batch::{iterators, AgentBatch},
         schema::{
@@ -20,15 +20,13 @@ use crate::{
         comms::package::PackageComms,
         package::{
             context::{
-                packages::neighbors::fields::NEIGHBORS_FIELD_NAME, ContextColumn, Package,
-                PackageCreator,
+                packages::neighbors::fields::NEIGHBORS_FIELD_NAME, ContextColumn, ContextPackage,
+                Package, PackageCreator,
             },
             ext_traits::{GetWorkerExpStartMsg, GetWorkerSimStartMsg, MaybeCpuBound},
-            prelude::ContextPackage,
         },
         Result,
     },
-    ExperimentConfig, SimRunConfig,
 };
 
 mod adjacency;

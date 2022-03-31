@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState, VoidFunctionComponent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { tw } from "twind";
 
 import { useRouter } from "next/router";
 
 import { BlockProtocolCreateEntitiesFunction } from "blockprotocol";
-import { EntityEditor } from "../../../components/EntityEditor/EntityEditor";
+import { NextPage } from "next";
+import { SimpleEntityEditor } from "./shared/simple-entity-editor";
 
 import { UnknownEntity } from "../../../graphql/apiTypes.gen";
 import { useBlockProtocolCreateEntities } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateEntitities";
@@ -12,7 +13,7 @@ import { useBlockProtocolAggregateEntities } from "../../../components/hooks/blo
 import { MainContentWrapper } from "../../../components/layout/MainContentWrapper";
 import { useAccountEntityTypes } from "../../../components/hooks/useAccountEntityTypes";
 
-const NewEntity: VoidFunctionComponent = () => {
+const NewEntityPage: NextPage = () => {
   const router = useRouter();
   const { query } = router;
   const accountId = query.accountId as string;
@@ -86,7 +87,7 @@ const NewEntity: VoidFunctionComponent = () => {
       </div>
       <div>
         {selectedType && (
-          <EntityEditor
+          <SimpleEntityEditor
             accountId={accountId}
             aggregateEntities={aggregateEntities}
             createEntities={createAndNavigateToFirstEntity}
@@ -99,4 +100,4 @@ const NewEntity: VoidFunctionComponent = () => {
   );
 };
 
-export default NewEntity;
+export default NewEntityPage;

@@ -24,18 +24,16 @@ export const TopNavLink: FC<NavLinkProps> = ({
       <Link
         href={href}
         noLinkStyle
-        sx={({ palette, transitions }) => ({
+        sx={({ palette, transitions, spacing }) => ({
           display: "flex",
           alignItems: "center",
-          padding: "8px 16px",
+          padding: spacing(1, 2),
           borderRadius: "4px",
           mx: 0.5,
-          transition: transitions.create("backgroundColor", { duration: 300 }),
+          transition: transitions.create("background-color"),
 
           [`& > .${typographyClasses.root}, & > svg`]: {
-            transition: transitions.create("color", {
-              duration: 300,
-            }),
+            transition: transitions.create("color"),
           },
 
           "& > svg": {

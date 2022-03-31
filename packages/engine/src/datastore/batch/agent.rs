@@ -6,20 +6,32 @@
 
 use std::sync::Arc;
 
-use arrow::ipc::{
-    reader::read_record_batch,
-    writer::{IpcDataGenerator, IpcWriteOptions},
+use arrow::{
+    array::Array,
+    ipc::{
+        self,
+        reader::read_record_batch,
+        writer::{IpcDataGenerator, IpcWriteOptions},
+    },
+    record_batch::RecordBatch,
+};
+use memory::{
+    arrow::{
+        flush::GrowableBatch,
+        ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
+        meta::{
+            self,
+            conversion::{get_dynamic_meta_flatbuffers, HashDynamicMeta, HashStaticMeta},
+        },
+        ArrowBatch,
+    },
+    shared_memory::{BufferChange, Memory, Metaversion, Segment},
 };
 
 use crate::{
     datastore::{
-        arrow::{
-            batch_conversion::IntoRecordBatch,
-            ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
-            meta_conversion::{get_dynamic_meta_flatbuffers, HashDynamicMeta, HashStaticMeta},
-        },
-        batch::{flush::GrowableBatch, ArrowBatch, Segment},
-        prelude::*,
+        arrow::batch_conversion::IntoRecordBatch,
+        error::{Error, Result},
         schema::state::AgentSchema,
     },
     proto::ExperimentId,
@@ -54,14 +66,14 @@ impl AgentBatch {
         schema: &AgentSchema,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
-        if agent_batch.batch.loaded_metaversion.memory()
-            != agent_batch.batch.segment.persisted_metaversion().memory()
+        if agent_batch.batch.loaded_metaversion().memory()
+            != agent_batch.batch.segment().persisted_metaversion().memory()
         {
             return Err(Error::from(format!(
                 "Can't duplicate agent batch with loaded memory older than latest persisted: \
                  {:?}, {:?}",
-                agent_batch.batch.loaded_metaversion,
-                agent_batch.batch.segment.persisted_metaversion(),
+                agent_batch.batch.loaded_metaversion(),
+                agent_batch.batch.segment().persisted_metaversion(),
             )));
         }
 
@@ -90,9 +102,11 @@ impl AgentBatch {
             true,
         )?;
 
-        memory.set_schema(&schema_buffer.ipc_message)?;
-        memory.set_header(&header_buffer)?;
-        memory.set_metadata(&ipc_message)?;
+        // Memory needs to be loaded after creating regardless of metaverion, so we can ignore, if
+        // the memory changed.
+        let _ = memory.set_schema(&schema_buffer.ipc_message)?;
+        let _ = memory.set_header(&header_buffer)?;
+        let _ = memory.set_metadata(&ipc_message)?;
 
         let data_buffer = memory.get_mut_data_buffer()?;
         // Write new data
@@ -112,17 +126,17 @@ impl AgentBatch {
         let (schema, static_meta) = if let Some(s) = schema {
             (s.arrow.clone(), s.static_meta.clone())
         } else {
-            let message = arrow_ipc::root_as_message(schema_buffer)?;
+            let message = ipc::root_as_message(schema_buffer)?;
             let ipc_schema = match message.header_as_schema() {
                 Some(s) => s,
                 None => return Err(Error::ArrowSchemaRead),
             };
-            let schema = Arc::new(arrow_ipc::convert::fb_to_schema(ipc_schema));
+            let schema = Arc::new(ipc::convert::fb_to_schema(ipc_schema));
             let static_meta = Arc::new(schema.get_static_metadata());
             (schema, static_meta)
         };
 
-        let batch_message = arrow_ipc::root_as_message(meta_buffer)?
+        let batch_message = ipc::root_as_message(meta_buffer)?
             .header_as_record_batch()
             .ok_or_else(|| Error::ArrowBatch("Couldn't read message".into()))?;
 
@@ -131,21 +145,21 @@ impl AgentBatch {
         let record_batch = read_record_batch(data_buffer, batch_message, schema, &[])?;
 
         Ok(Self {
-            batch: ArrowBatch {
-                segment: Segment(memory),
+            batch: ArrowBatch::new(
+                Segment::from_memory(memory),
                 record_batch,
                 dynamic_meta,
                 static_meta,
-                changes: vec![],
-                loaded_metaversion: persisted,
-            },
+                vec![],
+                persisted,
+            ),
             worker_index: worker_index.unwrap_or(0),
         })
     }
 
     pub fn get_prepared_memory_for_data(
         schema: &Arc<AgentSchema>,
-        dynamic_meta: &DynamicMeta,
+        dynamic_meta: &meta::Dynamic,
         experiment_id: &ExperimentId,
     ) -> Result<Memory> {
         let ipc_data_generator = IpcDataGenerator::default();
@@ -184,12 +198,11 @@ impl AgentBatch {
     /// Set dynamic metadata and write it to memory (without checking or updating metaversions).
     pub(in crate::datastore) fn flush_dynamic_meta_unchecked(
         &mut self,
-        dynamic_meta: &DynamicMeta,
-    ) -> Result<()> {
-        self.batch.dynamic_meta = dynamic_meta.clone();
+        dynamic_meta: &meta::Dynamic,
+    ) -> Result<BufferChange> {
+        *self.batch.dynamic_meta_mut() = dynamic_meta.clone();
         let meta_buffer = get_dynamic_meta_flatbuffers(dynamic_meta)?;
-        self.batch.memory_mut().set_metadata(&meta_buffer)?;
-        Ok(())
+        Ok(self.batch.memory_mut().set_metadata(&meta_buffer)?)
     }
 
     pub fn get_buffer(&self, buffer_index: usize) -> Result<&[u8]> {

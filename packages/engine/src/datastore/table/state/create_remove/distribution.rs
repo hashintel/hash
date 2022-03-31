@@ -1,4 +1,7 @@
-use super::{super::*, batch::PendingBatch, WorkerIndex};
+use crate::datastore::{
+    error::{Error, Result},
+    table::state::create_remove::{batch::PendingBatch, WorkerIndex},
+};
 
 /// Represents the distribution of agents per worker.
 /// Each worker has its own collection of batches (usually one for smaller simulations).

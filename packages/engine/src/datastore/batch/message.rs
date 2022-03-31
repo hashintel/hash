@@ -2,22 +2,31 @@
 
 use std::sync::Arc;
 
-use arrow::ipc::{
-    reader::read_record_batch,
-    writer::{DictionaryTracker, IpcDataGenerator, IpcWriteOptions},
+use arrow::{
+    datatypes::Schema,
+    ipc::{
+        self,
+        reader::read_record_batch,
+        writer::{DictionaryTracker, IpcDataGenerator, IpcWriteOptions},
+    },
+    record_batch::RecordBatch,
 };
-use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
+use memory::{
+    arrow::{
+        flush::GrowableBatch,
+        ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
+        meta::{self, conversion::HashDynamicMeta},
+        ArrowBatch,
+    },
+    shared_memory::{Memory, Metaversion, Segment},
+};
 
 use crate::{
     datastore::{
-        arrow::{
-            ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
-            message::{self, MESSAGE_COLUMN_INDEX},
-        },
-        batch::{flush::GrowableBatch, iterators::column_with_name, ArrowBatch, Segment},
-        prelude::*,
+        arrow::{batch_conversion::IntoRecordBatch, message},
+        batch::{iterators::column_with_name, AgentBatch},
+        error::{Error, Result},
         schema::state::MessageSchema,
-        table::references::AgentMessageReference,
         UUID_V4_LEN,
     },
     hash_types::state::AgentStateField,
@@ -36,7 +45,7 @@ const LOWER_BOUND: usize = 10000;
 pub struct MessageBatch {
     pub batch: ArrowBatch,
     /// Arrow schema with message batch fields
-    arrow_schema: Arc<ArrowSchema>,
+    arrow_schema: Arc<Schema>,
 }
 
 impl MessageBatch {
@@ -54,7 +63,7 @@ impl MessageBatch {
         tracing::trace!("Resetting batch");
 
         let batch = &mut self.batch;
-        let mut metaversion_to_persist = batch.segment.persisted_metaversion();
+        let mut metaversion_to_persist = batch.segment().persisted_metaversion();
 
         if metaversion_to_persist.memory() != batch.loaded_metaversion().memory() {
             return Err(Error::from(format!(
@@ -91,7 +100,8 @@ impl MessageBatch {
                     .target_total_size_accommodates_data_size(upper_bound, data_len)
             {
                 batch.memory_mut().resize(upper_bound)?;
-                batch.memory_mut().set_data_length(data_len)?;
+                let change = batch.memory_mut().set_data_length(data_len)?;
+                debug_assert!(!change.resized() && !change.shifted());
                 // Always increment when resizing
                 metaversion_to_persist.increment();
             }
@@ -99,7 +109,8 @@ impl MessageBatch {
 
         let old_metadata_size = batch.memory().get_metadata()?.len();
         // Write new metadata
-        batch.memory_mut().set_metadata(&meta_buffer)?;
+        let change = batch.memory_mut().set_metadata(&meta_buffer)?;
+        debug_assert!(!change.resized() && !change.shifted());
         debug_assert_eq!(
             old_metadata_size,
             batch
@@ -129,17 +140,17 @@ impl MessageBatch {
         //       fbb and WIPOffset<Message> from `simulate_record_batch_to_bytes`
         metaversion_to_persist.increment_batch();
         batch
-            .segment
+            .segment_mut()
             .set_persisted_metaversion(metaversion_to_persist);
         batch.reload_record_batch_and_dynamic_meta()?;
-        batch.loaded_metaversion = metaversion_to_persist;
+        *batch.loaded_metaversion_mut() = metaversion_to_persist;
         Ok(())
     }
 
     pub fn empty_from_agent_batch(
         agent_batch: &AgentBatch,
-        schema: &Arc<ArrowSchema>,
-        meta: Arc<StaticMeta>,
+        schema: &Arc<Schema>,
+        meta: Arc<meta::Static>,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
         let agent_count = agent_batch.num_agents();
@@ -163,11 +174,13 @@ impl MessageBatch {
             data_len,
             true,
         )?;
-        memory.set_metadata(&meta_buffer)?;
+        let change = memory.set_metadata(&meta_buffer)?;
+        debug_assert!(!change.resized() && !change.shifted());
 
         let data_buffer = memory.get_mut_data_buffer()?;
         record_batch_data_to_bytes_owned_unchecked(&record_batch, data_buffer);
-        memory.set_header(&header)?;
+        let change = memory.set_header(&header)?;
+        debug_assert!(!change.resized() && !change.shifted());
         Self::from_memory(memory, schema.clone(), meta)
     }
 
@@ -187,8 +200,8 @@ impl MessageBatch {
 
     pub fn from_record_batch(
         record_batch: &RecordBatch,
-        schema: Arc<ArrowSchema>,
-        meta: Arc<StaticMeta>,
+        schema: Arc<Schema>,
+        meta: Arc<meta::Static>,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
         let ipc_data_generator = IpcDataGenerator::default();
@@ -213,12 +226,12 @@ impl MessageBatch {
 
     pub fn from_memory(
         memory: Memory,
-        schema: Arc<ArrowSchema>,
-        static_meta: Arc<StaticMeta>,
+        schema: Arc<Schema>,
+        static_meta: Arc<meta::Static>,
     ) -> Result<Self> {
         let (_, _, meta_buffer, data_buffer) = memory.get_batch_buffers()?;
 
-        let batch_message = arrow_ipc::root_as_message(meta_buffer)?
+        let batch_message = ipc::root_as_message(meta_buffer)?
             .header_as_record_batch()
             .expect("Unable to read IPC message as record batch");
 
@@ -229,14 +242,14 @@ impl MessageBatch {
 
         let persisted = memory.metaversion()?;
         Ok(Self {
-            batch: ArrowBatch {
-                segment: Segment(memory),
+            batch: ArrowBatch::new(
+                Segment::from_memory(memory),
                 record_batch,
                 dynamic_meta,
                 static_meta,
-                changes: Vec::with_capacity(3),
-                loaded_metaversion: persisted,
-            },
+                Vec::with_capacity(3),
+                persisted,
+            ),
             arrow_schema: schema,
         })
     }
@@ -250,10 +263,23 @@ pub struct Raw<'a> {
 
 // Iterators and getters
 pub mod record_batch {
-    use arrow::array;
+    use arrow::{
+        array::{self, Array},
+        record_batch::RecordBatch,
+    };
+    use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 
-    use super::*;
-    use crate::datastore::arrow::message::{get_column_from_list_array, MESSAGE_COLUMN_NAME};
+    use crate::{
+        datastore::{
+            arrow::message::{
+                self, get_column_from_list_array, MESSAGE_COLUMN_INDEX, MESSAGE_COLUMN_NAME,
+            },
+            batch::message::MessageLoader,
+            error::{Error, Result},
+            table::references::AgentMessageReference,
+        },
+        hash_types::message::Outbound as OutboundMessage,
+    };
 
     pub fn get_native_messages(record_batch: &RecordBatch) -> Result<Vec<Vec<OutboundMessage>>> {
         let reference = record_batch

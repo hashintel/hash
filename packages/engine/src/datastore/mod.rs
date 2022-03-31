@@ -7,73 +7,36 @@
 // TODO: DOC improve wording of above, and signpost the key modules
 pub mod arrow;
 pub mod batch;
-pub mod error;
-pub mod ffi;
-pub mod meta;
+mod error;
 pub mod schema;
 pub mod shared_store;
-pub mod storage;
 pub mod store;
 pub mod table;
 #[cfg(test)]
 pub mod test_utils;
+
+pub use self::error::{Error, Result};
 
 /// We store Agent IDs in the UUID-byte format (not string bytes).
 /// This means their length is 128 bits i.e. 16 bytes
 pub const UUID_V4_LEN: usize = 16;
 pub const POSITION_DIM: usize = 3;
 
-pub use self::error::{Error, Result};
-
-pub mod prelude {
-    pub use arrow::{
-        array::Array as ArrowArray,
-        buffer::{Buffer as ArrowBuffer, MutableBuffer as ArrowMutableBuffer},
-        datatypes::{
-            DataType as ArrowDataType, Field as ArrowField, IntervalUnit as ArrowIntervalUnit,
-            Schema as ArrowSchema, TimeUnit as ArrowTimeUnit,
-        },
-        error::ArrowError,
-        ipc as arrow_ipc,
-        ipc::gen::Message::RecordBatch as RecordBatchMessage,
-        record_batch::RecordBatch,
-        util::bit_util as arrow_bit_util,
-    };
-
-    pub use super::{
-        arrow::{
-            batch_conversion::{IntoAgentStates, IntoRecordBatch},
-            field_conversion,
-            meta_conversion::{HashDynamicMeta, HashStaticMeta},
-            padding,
-        },
-        batch::{
-            metaversion::Metaversion,
-            migration::{CopyAction, CreateAction, RemoveAction, RowActions},
-            AgentBatch, AgentIndex, Dataset, MessageBatch, MessageIndex,
-        },
-        error::{Error, Result, SupportedType},
-        meta::{
-            Buffer, BufferAction, Column as ColumnMeta, Dynamic as DynamicMeta, Node, NodeMapping,
-            NodeStatic as NodeStaticMeta, Static as StaticMeta,
-        },
-        shared_store::SharedStore,
-        storage::memory::Memory,
-        store::Store,
-        table::state::State,
-    };
-    pub use crate::hash_types::{message::Outbound as OutboundMessage, Agent as AgentState};
-}
-
 #[cfg(test)]
 pub mod tests {
     use std::{borrow::Cow, sync::Arc};
 
+    use ::arrow::array::{Array, BooleanBuilder, FixedSizeListBuilder};
     use rand::Rng;
 
-    use super::{prelude::*, test_utils::gen_schema_and_test_agents};
+    #[allow(clippy::wildcard_imports)] // Desigend as test-prelude
+    use crate::datastore::test_utils::*;
     use crate::datastore::{
-        batch::iterators, table::state::State, test_utils::dummy_sim_run_config,
+        arrow::batch_conversion::IntoAgents,
+        batch::{iterators, AgentBatch},
+        error::Result,
+        table::state::State,
+        UUID_V4_LEN,
     };
 
     #[test]
@@ -85,10 +48,10 @@ pub mod tests {
             // `targets` values will be checked against shared memory data
             // in order to check if changes were flushed properly
             let mut targets = Vec::with_capacity(column.len());
-            for i in 0..column.len() {
+            for entry in &mut column {
                 let mut rng = rand::thread_rng();
                 if rng.gen_bool(0.1) {
-                    column[i] = None;
+                    *entry = None;
                     targets.push(None);
                 } else if rng.gen_bool(0.8) {
                     let count = rng.gen_range(0..1000);
@@ -99,9 +62,9 @@ pub mod tests {
                             .collect::<Vec<u8>>(),
                     )?;
                     targets.push(Some(string.clone()));
-                    column[i] = Some(Cow::Owned(string));
+                    *entry = Some(Cow::Owned(string));
                 } else {
-                    match &column[i] {
+                    match entry {
                         Some(v) => targets.push(Some(v.to_string())),
                         None => targets.push(None),
                     }
@@ -172,14 +135,13 @@ pub mod tests {
     pub fn uuid_v4_len() {
         let uuid = uuid::Uuid::new_v4();
         let bytes = uuid.as_bytes();
-        assert_eq!(bytes.len(), super::UUID_V4_LEN);
+        assert_eq!(bytes.len(), UUID_V4_LEN);
     }
 
     #[test]
     fn test_print_boolean_array() -> Result<()> {
-        let boolean_builder = arrow::array::BooleanBuilder::new(100);
-        let mut fixed_size_list_builder =
-            arrow::array::FixedSizeListBuilder::new(boolean_builder, 3);
+        let boolean_builder = BooleanBuilder::new(100);
+        let mut fixed_size_list_builder = FixedSizeListBuilder::new(boolean_builder, 3);
 
         for _ in 0..10 {
             fixed_size_list_builder

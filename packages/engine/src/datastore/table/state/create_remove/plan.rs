@@ -1,13 +1,18 @@
 use rayon::prelude::*;
 
-use super::action::{CreateActions, ExistingGroupBufferActions};
 use crate::{
+    config::SimRunConfig,
     datastore::{
         error::{Error, Result},
-        table::{pool::BatchPool, state::view::StatePools},
+        table::{
+            pool::BatchPool,
+            state::{
+                create_remove::action::{CreateActions, ExistingGroupBufferActions},
+                view::StatePools,
+            },
+        },
     },
     proto::ExperimentRunTrait,
-    SimRunConfig,
 };
 
 #[derive(Debug)]

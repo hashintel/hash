@@ -82,6 +82,7 @@ export const AccountPageList: VoidFunctionComponent<AccountPageListProps> = ({
     } catch (err) {
       // eslint-disable-next-line no-console -- TODO: consider using logger
       console.error("Could not create page: ", err);
+    } finally {
       setLoading(false);
     }
   }, [createUntitledPage, loading]);

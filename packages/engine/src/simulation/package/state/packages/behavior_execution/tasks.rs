@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-use super::{Error, Result};
 use crate::{
     config::{StateBatchDistribution, TaskDistributionConfig},
     simulation::{
         enum_dispatch::{StateTask, StateTaskMessage, WorkerHandler},
+        package::state::packages::{Error, Result},
         task::{
             args::GetTaskArgs,
             handler::{SplitConfig, WorkerPoolHandler},

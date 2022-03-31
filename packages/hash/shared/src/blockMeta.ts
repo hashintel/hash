@@ -44,12 +44,6 @@ export type BlockMeta = Pick<Block, "componentMetadata" | "componentSchema">;
  */
 const blockCache = new Map<string, Promise<BlockMeta>>();
 
-/** @todo don't special-case @hash's blocks */
-const toDisplayName = (name = "Unnamed") =>
-  name.startsWith("@hashintel/block-")
-    ? name.substring("@hashintel/block-".length)
-    : name.split("/").pop()!;
-
 /** @todo the blockPaths mappings are not useful anymore they should be removed and changed to an array of 'default blocks' instead */
 export const componentIdToUrl = (componentId: string) =>
   ((blockPaths as any)[componentId] as string | undefined) ?? componentId;
@@ -63,9 +57,7 @@ const toBlockConfig = (
 ): BlockConfig => {
   const defaultVariant: BlockVariant = {
     description: options.description ?? "",
-    displayName:
-      options.displayName ?? toDisplayName(options.name ?? "Unnamed Block"),
-    name: options.name,
+    name: options.displayName ?? options.name,
     icon: options.icon ?? "",
     properties: {},
   };
