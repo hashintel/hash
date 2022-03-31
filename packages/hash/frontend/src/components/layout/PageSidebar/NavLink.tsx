@@ -94,7 +94,7 @@ export const NavLink: FC<NavLinkProps> = ({
           <FontAwesomeIcon
             sx={({ transitions }) => ({
               transform: expanded ? `rotate(90deg)` : "none",
-              transition: transitions.create("transform", { duration: 300 }),
+              transition: transitions.create("transform"),
             })}
             icon={faChevronRight}
           />
