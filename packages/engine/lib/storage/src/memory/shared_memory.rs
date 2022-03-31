@@ -27,18 +27,20 @@ pub fn shmem_id_prefix(experiment_id: &ExperimentId) -> String {
 
 /// A memory-mapped shared memory segment wrapper.
 ///
-/// Includes tools to work with internal strucure.
+/// Includes tools to work with internal structure.
 ///
-/// ### Internal Buffers
+/// # Internal Buffers
+///
 /// There are 4 main buffers contained in the shared memory which are:
-/// 1) Arrow Schema
-/// 2) Header
-/// 3) Arrow Batch metadata
-/// 4) Arrow Batch data
 ///
-/// At the beginning of the shared memory segment there is another
-/// small buffer which contains the markers to the four buffers
-/// above. This offset buffer can be read with `Memory::markers`
+///   1) Arrow Schema
+///   2) Header
+///   3) Arrow Batch metadata
+///   4) Arrow Batch data
+///
+/// At the beginning of the shared memory segment there is another small buffer which contains the
+/// markers to the four buffers above. This offset buffer can be read with `Memory::markers`. If one
+/// buffer is not needed, it's size can be set to `0`.
 pub struct Memory {
     pub data: Shmem,
     pub size: usize,

@@ -2,7 +2,7 @@
 //!
 //! This crates consists of two main parts:
 //!   - [`memory`] contains structures and functions to store and load data to/from shared memory.
-//!     Each memory [`Segment`] consisting of four parts:
+//!     Each memory [`Segment`] consisting of four optional parts:
 //!
 //!       1) Arrow Schema
 //!       2) Header
