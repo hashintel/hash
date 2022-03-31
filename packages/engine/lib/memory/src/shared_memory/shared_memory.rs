@@ -1,7 +1,7 @@
-use std::{env, mem, path::Path};
+use std::{borrow::Borrow, env, fmt, mem, path::Path};
 
-use common::ExperimentId;
 use shared_memory::{Shmem, ShmemConf};
+use uuid::Uuid;
 
 use crate::{
     error::{Error, Result},
@@ -13,17 +13,62 @@ use crate::{
     },
 };
 
-pub type Buffers<'a> = (&'a [u8], &'a [u8], &'a [u8], &'a [u8]);
+/// An identifier for a shared memory section.
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct MemoryId<'id> {
+    id: &'id Uuid,
+    suffix: u16,
+}
 
-pub fn shmem_id_prefix(experiment_id: &ExperimentId) -> String {
-    if cfg!(target_os = "macos") {
-        // MacOS shmem seems to be limited to 31 chars, probably remnants of HFS
-        // And we need to_string otherwise it's not truncated when formatting
-        format!("shm_{:.20}", experiment_id.to_simple().to_string())
-    } else {
-        format!("shm_{}", experiment_id.to_simple())
+impl<'id> MemoryId<'id> {
+    /// Creates a new identifier from the provided [`Uuid`].
+    ///
+    /// This will generate a suffix and ensures, that the shared memory segment does not already
+    /// exists at */dev/shm/*.
+    pub fn new(id: &'id Uuid) -> Self {
+        loop {
+            let memory_id = Self {
+                id,
+                suffix: rand::random::<u16>(),
+            };
+            if !Path::new(&format!("/dev/shm/{id}")).exists() {
+                return memory_id;
+            }
+        }
+    }
+
+    /// Returns the prefix used for the identifier.
+    pub fn prefix<Id: Borrow<Uuid>>(id: Id) -> String {
+        let id = id.borrow().to_simple_ref();
+        if cfg!(target_os = "macos") {
+            // MacOS shmem seems to be limited to 31 chars, probably remnants of HFS
+            // And we need to_string otherwise it's not truncated when formatting
+            format!("shm_{id:.20}")
+        } else {
+            format!("shm_{id}")
+        }
     }
 }
+
+impl fmt::Display for MemoryId<'_> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let prefix = Self::prefix(self);
+        if cfg!(target_os = "macos") {
+            // MacOS shmem seems to be limited to 31 chars, probably remnants of HFS
+            write!(fmt, "{}_{:.7}", prefix, self.suffix)
+        } else {
+            write!(fmt, "{}_{}", prefix, self.suffix)
+        }
+    }
+}
+
+impl Borrow<Uuid> for &MemoryId<'_> {
+    fn borrow(&self) -> &Uuid {
+        &self.id
+    }
+}
+
+pub type Buffers<'a> = (&'a [u8], &'a [u8], &'a [u8], &'a [u8]);
 
 /// A memory-mapped shared memory segment wrapper.
 ///
@@ -116,14 +161,14 @@ impl Memory {
     }
 
     pub fn shared_memory(
-        experiment_id: &ExperimentId,
+        memory_id: MemoryId,
         size: usize,
         droppable: bool,
         include_terminal_padding: bool,
     ) -> Result<Memory> {
         Self::validate_size(size)?;
         let data = ShmemConf::new(droppable)
-            .os_id(Self::generate_shmem_id(experiment_id))
+            .os_id(&memory_id.to_string())
             .size(size)
             .create()?;
         Ok(Memory {
@@ -161,10 +206,11 @@ impl Memory {
         VisitorMut::new(MemoryPtr::from_memory(self), self)
     }
 
-    pub fn duplicate_from(memory: &Memory, experiment_id: &ExperimentId) -> Result<Memory> {
+    pub fn duplicate(memory: &Memory, id: &Uuid) -> Result<Memory> {
         let shmem = &memory.data;
+        let new_id = MemoryId::new(id);
         let data = ShmemConf::new(true)
-            .os_id(Self::generate_shmem_id(experiment_id))
+            .os_id(&new_id.to_string())
             .size(memory.size)
             .create()?;
         unsafe { std::ptr::copy_nonoverlapping(shmem.as_ptr(), data.as_ptr(), memory.size) };
@@ -173,22 +219,6 @@ impl Memory {
             size: memory.size,
             include_terminal_padding: memory.include_terminal_padding,
         })
-    }
-
-    fn generate_shmem_id(experiment_id: &ExperimentId) -> String {
-        let id_prefix = shmem_id_prefix(experiment_id);
-        loop {
-            let cur_id = if cfg!(target_os = "macos") {
-                // MacOS shmem seems to be limited to 31 chars, probably remnants of HFS
-                format!("{}_{:.7}", id_prefix, rand::random::<u16>())
-            } else {
-                format!("{}_{}", id_prefix, rand::random::<u16>())
-            };
-
-            if !Path::new(&format!("/dev/shm/{}", cur_id)).exists() {
-                return cur_id;
-            }
-        }
     }
 
     fn validate_size(size: usize) -> Result<()> {
@@ -342,7 +372,7 @@ impl Memory {
     }
 
     pub fn from_sizes(
-        experiment_id: &ExperimentId,
+        memory_id: MemoryId,
         schema_size: usize,
         header_size: usize,
         meta_size: usize,
@@ -366,8 +396,7 @@ impl Memory {
             }
         }
 
-        let mut memory =
-            Memory::shared_memory(experiment_id, size, true, include_terminal_padding)?;
+        let mut memory = Memory::shared_memory(memory_id, size, true, include_terminal_padding)?;
 
         let mut visitor = memory.visitor_mut();
         let markers_mut = visitor.markers_mut();
@@ -381,7 +410,7 @@ impl Memory {
     }
 
     pub fn from_batch_buffers(
-        experiment_id: &ExperimentId,
+        memory_id: MemoryId,
         schema: &[u8],
         header: &[u8],
         ipc_message: &[u8],
@@ -407,8 +436,7 @@ impl Memory {
             }
         }
 
-        let mut memory =
-            Memory::shared_memory(experiment_id, size, true, include_terminal_padding)?;
+        let mut memory = Memory::shared_memory(memory_id, size, true, include_terminal_padding)?;
 
         let mut visitor = memory.visitor_mut();
         let markers_mut = visitor.markers_mut();
@@ -445,20 +473,15 @@ pub mod tests {
 
     #[test]
     pub fn test_identical_buffers() -> Result<()> {
-        let experiment_id = ExperimentId::new_v4();
+        let uuid = Uuid::new_v4();
+        let memory_id = MemoryId::new(&uuid);
         let buffer1: Vec<u8> = vec![1; 1482];
         let buffer2: Vec<u8> = vec![2; 645];
         let buffer3: Vec<u8> = vec![3; 254];
         let buffer4: Vec<u8> = vec![4; 173];
 
-        let memory = Memory::from_batch_buffers(
-            &experiment_id,
-            &buffer1,
-            &buffer2,
-            &buffer3,
-            &buffer4,
-            true,
-        )?;
+        let memory =
+            Memory::from_batch_buffers(memory_id, &buffer1, &buffer2, &buffer3, &buffer4, true)?;
 
         let (new_buffer1, new_buffer2, new_buffer3, new_buffer4) = memory.get_batch_buffers()?;
 
@@ -471,20 +494,15 @@ pub mod tests {
 
     #[test]
     pub fn test_message() -> Result<()> {
-        let experiment_id = ExperimentId::new_v4();
+        let uuid = Uuid::new_v4();
+        let memory_id = MemoryId::new(&uuid);
         let buffer1: Vec<u8> = vec![1; 1482];
         let buffer2: Vec<u8> = vec![2; 645];
         let buffer3: Vec<u8> = vec![3; 254];
         let buffer4: Vec<u8> = vec![4; 173];
 
-        let memory = Memory::from_batch_buffers(
-            &experiment_id,
-            &buffer1,
-            &buffer2,
-            &buffer3,
-            &buffer4,
-            true,
-        )?;
+        let memory =
+            Memory::from_batch_buffers(memory_id, &buffer1, &buffer2, &buffer3, &buffer4, true)?;
 
         let message = memory.id();
 

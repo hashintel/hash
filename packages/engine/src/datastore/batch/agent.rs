@@ -25,7 +25,7 @@ use memory::{
         },
         ArrowBatch,
     },
-    shared_memory::{BufferChange, Memory, Metaversion, Segment},
+    shared_memory::{BufferChange, Memory, MemoryId, Metaversion, Segment},
 };
 
 use crate::{
@@ -77,7 +77,7 @@ impl AgentBatch {
             )));
         }
 
-        let memory = Memory::duplicate_from(agent_batch.batch.memory(), experiment_id)?;
+        let memory = Memory::duplicate(agent_batch.batch.memory(), experiment_id)?;
         Self::from_memory(memory, Some(schema), Some(agent_batch.worker_index))
     }
 
@@ -94,7 +94,7 @@ impl AgentBatch {
         let (ipc_message, data_len) = simulate_record_batch_to_bytes(record_batch);
 
         let mut memory = Memory::from_sizes(
-            experiment_id,
+            MemoryId::new(experiment_id),
             schema_buffer.ipc_message.len(),
             header_buffer.len(),
             ipc_message.len(),
@@ -169,7 +169,7 @@ impl AgentBatch {
         let meta_buffer = get_dynamic_meta_flatbuffers(dynamic_meta)?;
 
         let mut memory = Memory::from_sizes(
-            experiment_id,
+            MemoryId::new(experiment_id),
             schema_buffer.ipc_message.len(),
             header_buffer.len(),
             meta_buffer.len(),

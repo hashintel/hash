@@ -18,5 +18,5 @@ pub use self::{
     continuation::arrow_continuation,
     metaversion::Metaversion,
     segment::Segment,
-    shared_memory::{shmem_id_prefix, Memory},
+    shared_memory::{Memory, MemoryId},
 };
