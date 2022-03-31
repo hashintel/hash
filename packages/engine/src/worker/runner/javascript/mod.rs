@@ -24,7 +24,7 @@ use arrow::{
 use futures::{Future, FutureExt};
 use storage::{
     arrow::{ArrowBatch, ColumnChange},
-    memory::{arrow_continuation, Memory, Metaversion},
+    shared_memory::{arrow_continuation, Memory, Metaversion},
 };
 use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},

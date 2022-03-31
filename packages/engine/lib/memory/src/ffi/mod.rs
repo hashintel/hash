@@ -9,11 +9,11 @@ use arrow::ipc;
 
 use self::memory::CMemory;
 use crate::{
-    memory::Memory,
     meta::{
         self,
         conversion::{HashDynamicMeta, HashStaticMeta},
     },
+    shared_memory::Memory,
     Error,
 };
 

@@ -5,7 +5,7 @@ use shared_memory::{Shmem, ShmemConf};
 
 use crate::{
     error::{Error, Result},
-    memory::{
+    shared_memory::{
         padding,
         ptr::MemoryPtr,
         visitor::{Visit, Visitor, VisitorMut},

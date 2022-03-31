@@ -154,7 +154,7 @@ use std::cmp::Ordering;
 
 use crate::{
     error::{Error, Result},
-    memory::BufferChange,
+    shared_memory::BufferChange,
 };
 
 /// Simple way for every component (language runners + main loop) using the datastore to track

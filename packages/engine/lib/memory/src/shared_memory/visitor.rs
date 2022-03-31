@@ -7,7 +7,7 @@ use std::ops::{Index, IndexMut};
 
 use crate::{
     error::{Error, Result},
-    memory::{
+    shared_memory::{
         continuation::{arrow_continuation, buffer_without_continuation, CONTINUATION},
         markers::{Buffer, Markers, Val},
         ptr::MemoryPtr,
@@ -111,7 +111,7 @@ pub trait Visit<'mem: 'v, 'v> {
     }
 }
 
-pub(in crate::memory) struct Visitor<'a> {
+pub(in crate::shared_memory) struct Visitor<'a> {
     ptr: MemoryPtr,
     markers: &'a Markers,
 }
@@ -133,7 +133,7 @@ impl<'a> Visitor<'a> {
     }
 }
 
-pub(in crate::memory) struct VisitorMut<'mem> {
+pub(in crate::shared_memory) struct VisitorMut<'mem> {
     ptr: MemoryPtr,
     markers: &'mem mut Markers,
     memory: &'mem mut Memory,

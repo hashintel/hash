@@ -5,7 +5,7 @@
 pub struct BufferChange(bool, bool);
 
 impl BufferChange {
-    pub(in crate::memory) fn new(shifted: bool, resized: bool) -> Self {
+    pub(in crate::shared_memory) fn new(shifted: bool, resized: bool) -> Self {
         Self(shifted, resized)
     }
 

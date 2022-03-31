@@ -4,7 +4,7 @@ use arrow::{datatypes::Schema, ipc, ipc::reader::read_record_batch, record_batch
 
 use crate::{
     error::{Error, Result},
-    memory::Segment,
+    shared_memory::Segment,
 };
 
 /// Read the Arrow RecordBatch metadata from memory

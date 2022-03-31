@@ -28,7 +28,9 @@ mod error;
 
 pub mod arrow;
 pub mod ffi;
-pub mod memory;
 pub mod meta;
+// reason: `shared_memory` is a well-known term, naming it `shared` could be confusing.
+#[allow(clippy::module_inception)]
+pub mod shared_memory;
 
 pub use self::error::{Error, Result};

@@ -5,8 +5,8 @@ use arrow::{array::ArrayData, record_batch::RecordBatch};
 use crate::{
     arrow::{change::ColumnChange, flush::GrowableBatch, load},
     error::{Error, Result},
-    memory::{Memory, Metaversion, Segment},
     meta::{self, conversion::HashDynamicMeta},
+    shared_memory::{Memory, Metaversion, Segment},
 };
 
 /// Batch with Arrow data that can be accessed as an Arrow record batch

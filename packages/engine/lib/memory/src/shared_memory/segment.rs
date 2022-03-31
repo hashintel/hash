@@ -1,4 +1,4 @@
-use crate::memory::{Memory, Metaversion};
+use crate::shared_memory::{Memory, Metaversion};
 
 // TODO: This should probably be merged into `Memory`. Then `Memory` would always have a memory
 //       version (currently part of the batch metaversion) and the memory version should probably be

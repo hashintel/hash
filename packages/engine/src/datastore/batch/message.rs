@@ -17,8 +17,8 @@ use storage::{
         ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
         ArrowBatch,
     },
-    memory::{Memory, Metaversion, Segment},
     meta::{self, conversion::HashDynamicMeta},
+    shared_memory::{Memory, Metaversion, Segment},
 };
 
 use crate::{

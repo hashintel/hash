@@ -10,7 +10,7 @@ default-members = [".", "bin/*", "lib/*"]
 [dependencies]
 flatbuffers_gen = { path = "lib/flatbuffers_gen" }
 nano = { path = "lib/nano", default-features = false }
-storage = { path = "lib/storage" }
+storage = { path = "lib/memory" }
 common = { path = "lib/common" }
 
 arr_macro = "0.1.3"

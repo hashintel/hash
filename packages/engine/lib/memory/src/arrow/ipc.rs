@@ -27,7 +27,7 @@ use arrow::{
 };
 use flatbuffers::FlatBufferBuilder;
 
-use crate::memory::padding;
+use crate::shared_memory::padding;
 
 // ADD
 /// Walks through the process of serializing the record batch to bytes in the arrow format to

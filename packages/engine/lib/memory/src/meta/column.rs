@@ -1,6 +1,6 @@
 use crate::{
-    memory::padding,
     meta::{Buffer, Node, NodeMapping},
+    shared_memory::padding,
 };
 
 // Information that is constant throughout a simulation run

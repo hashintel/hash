@@ -15,8 +15,8 @@ use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
 };
 use storage::{
-    memory::{Memory, Metaversion, Segment},
     meta::{self, conversion::get_dynamic_meta_flatbuffers},
+    shared_memory::{Memory, Metaversion, Segment},
 };
 
 use crate::{

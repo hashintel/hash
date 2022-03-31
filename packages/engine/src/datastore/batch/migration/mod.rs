@@ -4,8 +4,8 @@ use std::{borrow::Cow, mem, sync::Arc};
 
 use arrow::{self, array::Array, record_batch::RecordBatch, util::bit_util};
 use storage::{
-    memory::{padding, Memory},
     meta::{self, Buffer, Node, NodeMapping},
+    shared_memory::{padding, Memory},
 };
 
 use crate::{

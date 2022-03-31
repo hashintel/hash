@@ -10,8 +10,9 @@ use arrow::util::bit_util;
 use crate::{
     arrow::flush::{GrowableArrayData, GrowableBatch, GrowableColumn},
     ffi::{ArrowArray, CMemory},
-    memory::Memory,
-    meta, Error, Result,
+    meta,
+    shared_memory::Memory,
+    Error, Result,
 };
 
 type Flag = usize;

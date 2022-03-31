@@ -2,8 +2,8 @@ use arrow::{array::ArrayData, buffer::Buffer, util::bit_util};
 
 use crate::{
     error::Result,
-    memory::{padding, BufferChange, Memory},
     meta::{self, conversion::get_dynamic_meta_flatbuffers},
+    shared_memory::{padding, BufferChange, Memory},
 };
 
 /// The info required about Arrow array data in order to grow it

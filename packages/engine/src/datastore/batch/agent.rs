@@ -21,11 +21,11 @@ use storage::{
         ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
         ArrowBatch,
     },
-    memory::{BufferChange, Memory, Metaversion, Segment},
     meta::{
         self,
         conversion::{get_dynamic_meta_flatbuffers, HashDynamicMeta, HashStaticMeta},
     },
+    shared_memory::{BufferChange, Memory, Metaversion, Segment},
 };
 
 use crate::{
