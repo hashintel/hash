@@ -68,7 +68,7 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
     return [
       {
         key: user.accountId,
-        url: "/",
+        url: `/${user.accountId}`,
         title: "My personal workspace",
         subText: `@${user.properties.shortname ?? "user"}`,
         avatarTitle: user.properties.preferredName ?? "U",
