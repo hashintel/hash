@@ -1,11 +1,11 @@
 use arrow::{array::ArrayData, record_batch::RecordBatch};
-use storage::batch::{new_buffer, new_offsets_buffer};
+use storage::arrow::{new_buffer, new_offsets_buffer, ColumnChange};
 
 use crate::{
     datastore::batch::AgentBatch,
     simulation::package::state::packages::behavior_execution::{
-        config::BehaviorId, BehaviorIdInnerDataType, BehaviorIds, ColumnChange, DatastoreResult,
-        Error, IntoArrowChange, Result, StateColumn, BEHAVIOR_INDEX_INNER_COUNT,
+        config::BehaviorId, BehaviorIdInnerDataType, BehaviorIds, DatastoreResult, Error,
+        IntoArrowChange, Result, StateColumn, BEHAVIOR_INDEX_INNER_COUNT,
     },
 };
 

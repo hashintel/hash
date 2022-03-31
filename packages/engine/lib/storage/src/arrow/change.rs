@@ -1,6 +1,6 @@
 use arrow::array::ArrayData;
 
-use crate::batch::flush::GrowableColumn;
+use crate::arrow::flush::GrowableColumn;
 
 /// When a mutable column is modified not in place, the change is recorded in this format.
 pub struct ColumnChange {

@@ -14,7 +14,7 @@ use arrow::{
     util::bit_util,
 };
 use serde_json::value::Value;
-use storage::batch::{
+use storage::arrow::{
     col_to_json_vals, json_utf8_json_vals, json_vals_to_any_type_col, json_vals_to_bool,
     json_vals_to_col, json_vals_to_primitive, json_vals_to_utf8, new_zero_bits,
 };

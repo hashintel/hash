@@ -26,7 +26,7 @@
 
 mod error;
 
-pub mod batch;
+pub mod arrow;
 pub mod ffi;
 pub mod memory;
 pub mod meta;

@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 pub use packages::{Name, StateTask, StateTaskMessage, PACKAGE_CREATORS};
-use storage::batch::change::ColumnChange;
+use storage::arrow::ColumnChange;
 use tracing::Span;
 
 use crate::{

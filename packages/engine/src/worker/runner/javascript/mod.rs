@@ -23,7 +23,7 @@ use arrow::{
 };
 use futures::{Future, FutureExt};
 use storage::{
-    batch::{change::ColumnChange, ArrowBatch},
+    arrow::{ArrowBatch, ColumnChange},
     memory::{arrow_continuation, Memory, Metaversion},
 };
 use tokio::{

@@ -8,7 +8,7 @@
 use arrow::util::bit_util;
 
 use crate::{
-    batch::flush::{GrowableArrayData, GrowableBatch, GrowableColumn},
+    arrow::flush::{GrowableArrayData, GrowableBatch, GrowableColumn},
     ffi::{ArrowArray, CMemory},
     memory::Memory,
     meta, Error, Result,

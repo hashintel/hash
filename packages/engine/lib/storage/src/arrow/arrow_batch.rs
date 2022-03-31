@@ -3,7 +3,7 @@ use std::sync::Arc;
 use arrow::{array::ArrayData, record_batch::RecordBatch};
 
 use crate::{
-    batch::{change::ColumnChange, flush::GrowableBatch, load},
+    arrow::{change::ColumnChange, flush::GrowableBatch, load},
     error::{Error, Result},
     memory::{Memory, Metaversion, Segment},
     meta::{self, conversion::HashDynamicMeta},
