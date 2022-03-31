@@ -160,6 +160,7 @@ async function expectIntegrationInfoFromHandle(
 }
 export type IntegrationInfo = {
   workflowId: string;
+  /** State from within the workflow (this is managed by the temporal workflow) */
   state: IntegrationState;
   definition: AnyIntegrationDefinition;
   handle: WorkflowHandle;

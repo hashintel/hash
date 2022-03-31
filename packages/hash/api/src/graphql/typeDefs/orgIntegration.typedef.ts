@@ -40,7 +40,28 @@ export const orgIntegrationTypedef = gql`
     """
     integrationName: String!
     enabled: Boolean!
+    """
+    empty indicates this has not been performed before
+    """
+    performances: [OrgIntegrationPerformance!]!
     fields: [OrgIntegrationConfigurationField!]!
+  }
+
+  # Future: Able for "cancelation"?
+  # Future: Ingestion ID?
+  # TODO: missing statuses / reporting for UI?
+  type OrgIntegrationPerformance {
+    # performanceId: ID!
+    startedAt: Date!
+    """
+    In milliseconds.
+    When null, the integration is in progress that started at this date.
+    """
+    durationMs: Int
+    """
+    MVP: Have not included all status information, yet.
+    """
+    message: String!
   }
 
   input OrgIntegrationFieldValue {
@@ -84,5 +105,12 @@ export const orgIntegrationTypedef = gql`
     Create a new integration
     """
     createOrgIntegration(input: CreateOrgIntegrationInput!): OrgIntegration!
+    """
+    Actually execute the syncing or ingestion of the data for this integration.
+    """
+    performOrgIntegration(
+      organizationEntityId: ID!
+      integrationId: ID!
+    ): OrgIntegration!
   }
 `;

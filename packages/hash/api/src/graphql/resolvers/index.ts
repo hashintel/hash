@@ -74,6 +74,7 @@ import { createOrgIntegration } from "./orgIntegration/createOrgIntegration";
 import { enableOrgIntegration } from "./orgIntegration/enableOrgIntegration";
 import { configureOrgIntegration } from "./orgIntegration/configureOrgIntegration";
 import { orgIntegrationsResolver } from "./orgIntegration/orgIntegrationsResolver";
+import { performOrgIntegration } from "./orgIntegration/performOrgIntegration";
 
 export const resolvers = {
   Query: {
@@ -122,6 +123,7 @@ export const resolvers = {
     createOrgIntegration: loggedInAndSignedUp(createOrgIntegration),
     enableOrgIntegration: loggedInAndSignedUp(enableOrgIntegration),
     configureOrgIntegration: loggedInAndSignedUp(configureOrgIntegration),
+    performOrgIntegration: loggedInAndSignedUp(performOrgIntegration),
     // entities
     transferEntity: loggedInAndSignedUp(transferEntity),
     updateEntity: loggedInAndSignedUp(updateEntity),

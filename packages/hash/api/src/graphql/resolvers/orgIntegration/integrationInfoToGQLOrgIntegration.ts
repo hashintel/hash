@@ -2,6 +2,7 @@ import { IntegrationInfo } from "../../../temporal/integration-workflows/createO
 import {
   OrgIntegration,
   OrgIntegrationConfigurationField,
+  OrgIntegrationPerformance,
 } from "../../apiTypes.gen";
 
 export function integrationInfoToGQLOrgIntegration(
@@ -27,5 +28,13 @@ export function integrationInfoToGQLOrgIntegration(
     ),
     integrationName: info.state.integrationName,
     integrationId: info.workflowId,
+    performances: info.state.performances.map(
+      (p): OrgIntegrationPerformance => ({
+        startedAt: p.startedAtISO,
+        durationMs: p.settled?.durationMs,
+        // mvp
+        message: p.settled?.message ?? "In progress",
+      }),
+    ),
   };
 }
