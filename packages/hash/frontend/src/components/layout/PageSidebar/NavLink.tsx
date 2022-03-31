@@ -1,63 +1,121 @@
-import { useState, FC, ReactNode } from "react";
-import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
-import { Box, Typography, Collapse } from "@mui/material";
+import { useState, FC } from "react";
+import { faAdd, faChevronRight } from "@fortawesome/free-solid-svg-icons";
+import { Box, Typography, Collapse, Tooltip } from "@mui/material";
 import { FontAwesomeIcon } from "../../icons";
-import { IconButton } from "../../IconButton";
-// import { Link } from "./Link";
+import { IconButton, IconButtonProps } from "../../IconButton";
+import { Link } from "../../Link";
 
 type NavLinkProps = {
   title: string;
-  endAdornment: ReactNode;
+  endAdornmentProps: {
+    tooltipTitle: string;
+    "data-testid"?: string;
+    href?: string;
+  } & IconButtonProps;
 };
 
 export const NavLink: FC<NavLinkProps> = ({
   title,
   children,
-  endAdornment,
+  endAdornmentProps,
 }) => {
   const [expanded, setExpanded] = useState(true);
+  const [hovered, setHovered] = useState(false);
+  const {
+    tooltipTitle: endAdornmentTooltipTitle,
+    sx: endAdormentSx = [],
+    href: endAdornmentHref,
+    ...otherEndAdornmentProps
+  } = endAdornmentProps;
+
+  const endAdornment = (
+    <IconButton
+      size="small"
+      unpadded
+      rounded
+      data-testid="create-page-btn"
+      onClick={endAdornmentProps.onClick}
+      {...otherEndAdornmentProps}
+      sx={[
+        ({ palette }) => ({
+          color: palette.gray[40],
+          ...(hovered && {
+            backgroundColor: palette.gray[30],
+            color: palette.gray[80],
+          }),
+          "&:hover": {
+            backgroundColor: palette.gray[40],
+            color: palette.gray[80],
+          },
+        }),
+        ...(Array.isArray(endAdormentSx) ? endAdormentSx : [endAdormentSx]),
+      ]}
+    >
+      <FontAwesomeIcon icon={faAdd} />
+    </IconButton>
+  );
 
   return (
     <Box>
       <Box
-        sx={{
+        sx={({ palette }) => ({
           display: "flex",
           alignItems: "center",
-          py: "9px",
-          pl: "18px",
-          pr: 0.5,
+          borderRadius: "4px",
+          py: 1,
+          pl: 1.5,
+          pr: 0.75,
           mx: 0.5,
-        }}
+          ...(hovered && {
+            backgroundColor: palette.gray[20],
+          }),
+        })}
+        onMouseOver={() => setHovered(true)}
+        onMouseOut={() => setHovered(false)}
       >
         <Typography
           variant="smallCaps"
-          sx={{
+          sx={({ palette }) => ({
             mr: 1.4,
-            color: ({ palette }) => palette.gray[50],
-          }}
+            color: palette.gray[50],
+          })}
         >
           {title}
         </Typography>
         <IconButton
-          size="small"
+          size="xs"
           unpadded
           rounded
-          sx={{
+          sx={({ palette }) => ({
             mr: "auto",
-          }}
+            color: palette.gray[40],
+            ...(hovered && {
+              color: palette.gray[80],
+            }),
+            "&:hover": {
+              backgroundColor: palette.gray[30],
+              color: palette.gray[80],
+            },
+          })}
           onClick={() => setExpanded((prev) => !prev)}
         >
           <FontAwesomeIcon
-            sx={{
+            sx={({ transitions }) => ({
               transform: expanded ? `rotate(90deg)` : "none",
-              transition: ({ transitions }) =>
-                transitions.create("transform", { duration: 300 }),
-            }}
+              transition: transitions.create("transform"),
+            })}
             icon={faChevronRight}
           />
         </IconButton>
-
-        {endAdornment}
+        <Tooltip title={endAdornmentTooltipTitle}>
+          {endAdornmentHref ? (
+            <Link tabIndex={-1} href={endAdornmentHref} noLinkStyle>
+              {endAdornment}
+            </Link>
+          ) : (
+            endAdornment
+          )}
+        </Tooltip>
       </Box>
       <Collapse in={expanded}>{children}</Collapse>
     </Box>

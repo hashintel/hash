@@ -71,7 +71,7 @@ export const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
     } = props;
 
     const router = useRouter();
-    const pathname = typeof href === "string" ? href : href.pathname;
+    const pathname = typeof href === "string" ? href : href?.pathname;
     const className = clsx(classNameProps, {
       [activeClassName]: router.pathname === pathname && activeClassName,
     });
@@ -114,7 +114,7 @@ export const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
       return (
         <NextLinkComposed
           sx={{
-            ":focus": {
+            ":focus-visible": {
               outlineColor: ({ palette }) => palette.blue["70"],
             },
           }}

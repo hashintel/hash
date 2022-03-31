@@ -19,7 +19,13 @@ export const IconButton: FC<IconButtonProps> = forwardRef(
         sx={[
           {
             padding: unpadded ? "4px" : "8px",
-            borderRadius: rounded ? "50%" : "4px",
+            borderRadius: "4px",
+            ...(rounded && {
+              borderRadius: "50%",
+              "&:focus-visible:after": {
+                borderRadius: "50%",
+              },
+            }),
           },
           ...(Array.isArray(sx) ? sx : [sx]),
         ]}

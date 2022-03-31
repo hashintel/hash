@@ -1,55 +1,96 @@
-import { VFC, useState, useRef } from "react";
-import { Box, Typography } from "@mui/material";
+import { VFC, useRef, useMemo } from "react";
+import {
+  Box,
+  Typography,
+  Menu,
+  MenuItem,
+  Divider,
+  ListItemText,
+  ListItemAvatar,
+  listItemTextClasses,
+} from "@mui/material";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
+import {
+  usePopupState,
+  bindTrigger,
+  bindMenu,
+} from "material-ui-popup-state/hooks";
 import { FontAwesomeIcon } from "../../icons";
-import { Popover } from "../../Popover";
 import { Link } from "../../Link";
 import { useUser } from "../../hooks/useUser";
 import { Avatar } from "../../Avatar";
+import { Button } from "../../Button";
 import { useLogout } from "../../hooks/useLogout";
+import { useCurrentWorkspaceContext } from "../../../contexts/CurrentWorkspaceContext";
 
 type WorkspaceSwitcherProps = {};
 
-const truncateText = (text: string) => {
-  if (text.length > 18) {
-    return `${text.slice(0, 15)}...`;
-  }
-  return text;
-};
-
 export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
-  const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const popupState = usePopupState({
+    variant: "popover",
+    popupId: "workspace-switcher-menu",
+  });
   const { user } = useUser();
   const { logout } = useLogout();
+  const { accountId: activeAccountId } = useCurrentWorkspaceContext();
+
+  const activeWorkspace = useMemo(() => {
+    let accountName = "";
+
+    if (user && activeAccountId === user.accountId) {
+      accountName = user.properties.preferredName || user.properties.shortname!;
+    } else {
+      const activeOrg = user?.memberOf.find(
+        ({ org }) => org.accountId === activeAccountId,
+      )?.org;
+
+      if (activeOrg) {
+        accountName = activeOrg.properties.name;
+      }
+    }
+
+    return { name: accountName || "User", accountId: activeAccountId };
+  }, [activeAccountId, user]);
+
+  const workspaceList = useMemo(() => {
+    if (!user) {
+      return [];
+    }
+
+    return [
+      {
+        key: user.accountId,
+        url: `/${user.accountId}`,
+        title: "My personal workspace",
+        subText: `@${user.properties.shortname ?? "user"}`,
+        avatarTitle: user.properties.preferredName ?? "U",
+      },
+      ...user.memberOf.map(({ org }) => ({
+        key: org.accountId,
+        url: `/${org.accountId}`,
+        title: org.properties.name,
+        subText: `${org.memberships.length} members`,
+        avatarTitle: org.properties.name,
+      })),
+    ];
+  }, [user]);
 
   return (
-    <>
-      {/* @todo-mui use the Button component for this instead  */}
-      <Box
-        onClick={() => setOpen(true)}
+    <Box>
+      <Button
         ref={buttonRef}
-        component="button"
-        sx={{
-          borderRadius: "4px",
-          display: "flex",
-          width: "100%",
+        variant="tertiary_quiet"
+        fullWidth
+        sx={({ spacing }) => ({
+          backgroundColor: "transparent",
+          padding: spacing(1.5, 2, 1.5, 2.25),
+          justifyContent: "flex-start",
           textAlign: "left",
-          alignItems: "center",
-          padding: "12px 16px 12px 18px",
-          cursor: "pointer",
-
-          "&:hover": {
-            backgroundColor: ({ palette }) => palette.gray[20],
-          },
-
-          "&:focus": {
-            outlineColor: ({ palette }) => `2px solid ${palette.blue[70]}`,
-            outlineOffset: "2px",
-          },
-        }}
+        })}
+        {...bindTrigger(popupState)}
       >
-        <Avatar size={24} title={user?.properties.preferredName ?? "U"} />
+        <Avatar size={24} title={activeWorkspace.name} />
         <Typography
           sx={{
             pr: 1,
@@ -57,241 +98,90 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
             overflowX: "hidden",
             whiteSpace: "nowrap",
             textOverflow: "ellipsis",
+            maxWidth: 140,
             color: ({ palette }) => palette.gray[80],
             fontWeight: 600,
           }}
           variant="smallTextLabels"
         >
-          {truncateText(user?.properties.preferredName ?? "User")}
+          {activeWorkspace.name}
         </Typography>
         <FontAwesomeIcon
           icon={faChevronDown}
           sx={{ fontSize: 12, color: ({ palette }) => palette.gray[70] }}
         />
-      </Box>
-      <Popover
-        open={open}
-        anchorEl={buttonRef.current}
-        onClose={() => setOpen(false)}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "left",
-        }}
-        PaperProps={{
-          elevation: 4,
+      </Button>
+
+      <Menu
+        {...bindMenu(popupState)}
+        MenuListProps={{
           sx: {
-            width: 269,
-            borderRadius: "6px",
-            mt: 0.5,
-            minHeight: 180, // @todo remove
+            paddingTop: "10px",
+            paddingBottom: "6px",
           },
         }}
+        autoFocus={false}
       >
-        <Box>
-          <Box
-            sx={{
-              pt: 1.25,
-              py: 1,
-              px: 0.4,
-              borderBottom: ({ palette }) => `1px solid ${palette.gray[30]}`,
-            }}
+        {workspaceList.map(({ title, subText, url, key }) => (
+          <MenuItem
+            key={key}
+            selected={key === activeWorkspace.accountId}
+            onClick={() => popupState.close()}
           >
             <Link
-              href="/"
+              href={url}
               noLinkStyle
               sx={{
                 display: "flex",
-                py: 1,
-                px: 1.5,
-                borderRadius: "4px",
-                //   @todo-mui this is a default style and should be placed in the Link component
-                "&:hover": {
-                  backgroundColor: ({ palette }) => palette.gray[20],
-                },
-
-                "&:focus": {
-                  outline: ({ palette }) => `2px solid ${palette.blue[70]}`,
-                  outlineOffset: "2px",
-                },
               }}
             >
-              <Avatar
-                size={38}
-                title={user?.properties.preferredName ?? "U"}
-                sx={{
-                  mr: 0.75,
-                }}
-              />
-
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                <Typography
-                  variant="smallTextLabels"
-                  sx={{
-                    fontWeight: 600,
-                    color: ({ palette }) => palette.gray[80],
-                    mb: "2px",
-                  }}
-                >
-                  My personal workspace
-                </Typography>
-                <Typography
-                  variant="microText"
-                  sx={{
-                    color: ({ palette }) => palette.gray[50],
-                    fontWeight: 500,
-                  }}
-                >{`@${user?.properties.shortname ?? "user"}`}</Typography>
-              </Box>
-            </Link>
-            {user?.memberOf.map(({ org }) => (
-              <Link
-                href={`/${org.accountId}`}
-                noLinkStyle
-                key={org.accountId}
-                sx={{
-                  display: "flex",
-                  py: 1,
-                  px: 1.5,
-                  borderRadius: "4px",
-                  //   @todo-mui this is a default style and should be placed in the Link component
-                  "&:hover": {
-                    backgroundColor: ({ palette }) => palette.gray[20],
-                  },
-
-                  "&:focus": {
-                    outline: ({ palette }) => `2px solid ${palette.blue[70]}`,
-                    outlineOffset: "2px",
-                  },
-                }}
-              >
+              <ListItemAvatar>
                 <Avatar
-                  size={38}
-                  sx={{
-                    mr: 0.75,
-                  }}
-                  title={org.properties.name}
+                  size={34}
+                  title={user?.properties.preferredName ?? "U"}
                 />
-                <Box
-                  sx={{
-                    display: "flex",
-                    flexDirection: "column",
-                  }}
-                >
-                  <Typography
-                    variant="smallTextLabels"
-                    sx={{
-                      mb: "2px",
-                    }}
-                  >
-                    {org.properties.name}
-                  </Typography>
-                  <Typography
-                    variant="microText"
-                    sx={{
-                      color: ({ palette }) => palette.gray[50],
-                      fontWeight: 500,
-                    }}
-                  >{`${org.memberships.length} members`}</Typography>
-                </Box>
-              </Link>
-            ))}
-          </Box>
+              </ListItemAvatar>
 
-          <Box
-            sx={{
-              px: 0.5,
-              py: 0.75,
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            {[
-              {
-                title: "Workspace Settings",
-                id: 1,
-                href: "/",
-              },
-              {
-                title: "Create or Join a workspace",
-                id: 2,
-                href: "/",
-              },
-            ].map(({ title, id, href }) => (
-              <Link
-                key={id}
-                href={href}
-                noLinkStyle
-                sx={{
-                  px: 1.5,
-                  py: 1,
-                  borderRadius: "4px",
-                  //   @todo-mui this is a default style and should be placed in the Link component
-                  "&:hover": {
-                    backgroundColor: ({ palette }) => palette.gray[20],
-                  },
+              <ListItemText
+                primary={title}
+                secondary={subText}
+                primaryTypographyProps={{ fontWeight: 600 }}
+              />
+            </Link>
+          </MenuItem>
+        ))}
 
-                  "&:focus": {
-                    outline: ({ palette }) => `2px solid ${palette.blue[70]}`,
-                    outlineOffset: "2px",
-                  },
-                }}
-              >
-                <Typography
-                  variant="smallTextLabels"
-                  sx={{
-                    lineHeight: 1,
-                    color: ({ palette }) => palette.gray[80],
-                    fontWeight: 500,
-                  }}
-                >
-                  {title}
-                </Typography>
-              </Link>
-            ))}
-          </Box>
+        <Divider />
 
-          <Box
-            sx={{
-              p: "4px 4px 6px 4px",
-              borderTop: ({ palette }) => `1px solid ${palette.gray[30]}`,
-            }}
-          >
-            {/* @todo use the LinkButton for this once merged in */}
-            <Box
-              component="button"
-              sx={{
-                px: 1,
-                py: 1.5,
-                display: "block",
-                width: "100%",
-                textAlign: "left",
-                "&:hover": {
-                  backgroundColor: ({ palette }) => palette.gray[20],
-                },
-
-                "&:focus": {
-                  outline: ({ palette }) => `2px solid ${palette.blue[70]}`,
-                  outlineOffset: "2px",
-                },
-              }}
-              onClick={() => logout()}
-            >
-              <Typography
-                sx={{
-                  color: ({ palette }) => palette.gray[60],
-                }}
-              >
-                Sign out
-              </Typography>
-            </Box>
-          </Box>
-        </Box>
-      </Popover>
-    </>
+        {[
+          {
+            title: "Workspace Settings",
+            href: "/",
+          },
+          {
+            title: "Create or Join a workspace",
+            href: "/",
+          },
+        ].map(({ title, href }, index) => (
+          // eslint-disable-next-line react/no-array-index-key
+          <MenuItem key={index} onClick={() => popupState.close()}>
+            <Link href={href} noLinkStyle>
+              <ListItemText primary={title} />
+            </Link>
+          </MenuItem>
+        ))}
+        <Divider />
+        <MenuItem
+          sx={{
+            [`& .${listItemTextClasses.primary}`]: {
+              color: ({ palette }) => palette.gray[60],
+            },
+          }}
+          onClick={() => logout()}
+        >
+          <ListItemText primary="Sign out" />
+        </MenuItem>
+      </Menu>
+    </Box>
   );
 };

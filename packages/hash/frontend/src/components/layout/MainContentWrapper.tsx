@@ -43,7 +43,7 @@ export const MainContentWrapper: FunctionComponent = ({ children }) => {
     >
       <PageSidebar />
       <Fade in={!sidebarOpen}>
-        <Tooltip title="Open Sidebar">
+        <Tooltip title="Expand Sidebar">
           <IconButton
             size="large"
             sx={{
