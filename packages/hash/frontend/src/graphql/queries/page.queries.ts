@@ -1,9 +1,5 @@
 import { gql } from "@apollo/client";
 
-//
-// into this file since it is currently only used by the
-// frontend package
-
 /**
  * @todo: move createPage from shared/src/../page.queries
  * into this file since it is currently only used by the

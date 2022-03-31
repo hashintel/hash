@@ -12,10 +12,16 @@ import {
 import { getAccountPages } from "../../graphql/queries/account.queries";
 import { setParentPage } from "../../graphql/queries/page.queries";
 
+/**
+ * Consider splitting this hook into two
+ * so that it's easier to return error/loading
+ * @see https://github.com/hashintel/hash/pull/409#discussion_r839416785
+ */
+
 export const useCreatePage = (accountId: string) => {
   const router = useRouter();
 
-  const [createPageFn, { loading, error }] = useMutation<
+  const [createPageFn] = useMutation<
     CreatePageMutation,
     CreatePageMutationVariables
   >(createPage, {
@@ -79,7 +85,5 @@ export const useCreatePage = (accountId: string) => {
   return {
     createUntitledPage,
     createSubPage,
-    loading,
-    error,
   };
 };
