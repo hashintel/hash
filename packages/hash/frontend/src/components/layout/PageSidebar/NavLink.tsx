@@ -38,6 +38,7 @@ export const NavLink: FC<NavLinkProps> = ({
       {...otherEndAdornmentProps}
       sx={[
         ({ palette }) => ({
+          color: palette.gray[40],
           ...(hovered && {
             backgroundColor: palette.gray[30],
             color: palette.gray[80],
@@ -87,13 +88,12 @@ export const NavLink: FC<NavLinkProps> = ({
           rounded
           sx={({ palette }) => ({
             mr: "auto",
-            ...(!expanded && { color: palette.gray[40] }),
+            color: palette.gray[40],
             ...(hovered && {
-              backgroundColor: palette.gray[30],
               color: palette.gray[80],
             }),
             "&:hover": {
-              backgroundColor: palette.gray[40],
+              backgroundColor: palette.gray[30],
               color: palette.gray[80],
             },
           })}
