@@ -28,7 +28,7 @@ export const NavLink: FC<NavLinkProps> = ({
     ...otherEndAdornmentProps
   } = endAdornmentProps;
 
-  const EndAdornment = (
+  const endAdornment = (
     <IconButton
       size="small"
       unpadded
@@ -42,6 +42,10 @@ export const NavLink: FC<NavLinkProps> = ({
             backgroundColor: palette.gray[30],
             color: palette.gray[80],
           }),
+          "&:hover": {
+            backgroundColor: palette.gray[40],
+            color: palette.gray[80],
+          },
         }),
         ...(Array.isArray(endAdormentSx) ? endAdormentSx : [endAdormentSx]),
       ]}
@@ -88,6 +92,10 @@ export const NavLink: FC<NavLinkProps> = ({
               backgroundColor: palette.gray[30],
               color: palette.gray[80],
             }),
+            "&:hover": {
+              backgroundColor: palette.gray[40],
+              color: palette.gray[80],
+            },
           })}
           onClick={() => setExpanded((prev) => !prev)}
         >
@@ -102,10 +110,10 @@ export const NavLink: FC<NavLinkProps> = ({
         <Tooltip title={endAdornmentTooltipTitle}>
           {endAdornmentHref ? (
             <Link tabIndex={-1} href={endAdornmentHref} noLinkStyle>
-              {EndAdornment}
+              {endAdornment}
             </Link>
           ) : (
-            EndAdornment
+            endAdornment
           )}
         </Tooltip>
       </Box>
