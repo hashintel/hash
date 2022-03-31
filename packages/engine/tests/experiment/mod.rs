@@ -203,7 +203,7 @@ pub async fn run_test_suite(
                     start_timeout,
                     wait_timeout,
                     v8_initial_heap_constraint: 0,
-                    v8_max_heap_constraint: 4_000_000_000,
+                    v8_max_heap_constraint: 4_000,
                 };
 
                 let test_result = run_test(

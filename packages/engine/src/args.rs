@@ -61,14 +61,11 @@ pub struct Args {
     #[clap(long, default_value_t = 0)]
     pub v8_initial_heap_constraint: usize,
 
-    /// Max size of the V8 heap.
+    /// Max size of the V8 heap in MB.
     ///
     /// V8 will run a series of garbage collection when the heap size gets close to this limit.
-    ///
     /// If garbage collection can't get the heap smaller than this limit then it crashes.
-    ///
-    /// Defaults to 4GB.
-    #[clap(long, default_value_t = 4_000_000_000)]
+    #[clap(long, default_value_t = 4_000)]
     pub v8_max_heap_constraint: usize,
 }
 

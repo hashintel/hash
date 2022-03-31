@@ -68,6 +68,8 @@ type Value<'scope> = v8::Local<'scope, v8::Value>;
 type Function<'scope> = v8::Local<'scope, v8::Function>;
 type Array<'scope> = v8::Local<'scope, v8::Array>;
 
+const MB: usize = 10_usize.pow(6);
+
 struct JsPackage<'s> {
     fns: Array<'s>,
 }
@@ -1944,8 +1946,8 @@ fn run_experiment(
             v8::V8::initialize();
 
             let create_params = v8::Isolate::create_params().heap_limits(
-                init_msg.v8_initial_heap_constraint,
-                init_msg.v8_max_heap_constraint,
+                init_msg.v8_initial_heap_constraint * MB,
+                init_msg.v8_max_heap_constraint * MB,
             );
             let mut isolate = v8::Isolate::new(create_params);
 

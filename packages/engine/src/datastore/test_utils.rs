@@ -264,7 +264,7 @@ pub fn dummy_sim_run_config() -> SimRunConfig {
         }),
         base_globals: globals.clone(),
         v8_initial_heap_constraint: 0,
-        v8_max_heap_constraint: 4_000_000_000,
+        v8_max_heap_constraint: 4_000,
     });
 
     // We can't use `PackageCreators::from_config` as it will initialise the global static
