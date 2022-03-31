@@ -432,6 +432,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "common"
+version = "0.0.0"
+dependencies = [
+ "uuid",
+]
+
+[[package]]
 name = "concurrent-queue"
 version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -955,6 +962,7 @@ dependencies = [
  "async-trait",
  "cc",
  "clap",
+ "common",
  "csv",
  "derive-new",
  "enum_dispatch",
@@ -967,6 +975,7 @@ dependencies = [
  "http-types",
  "kdtree",
  "lazy_static",
+ "memory",
  "nano",
  "nng",
  "num_cpus",
@@ -1340,6 +1349,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "59accc507f1338036a0477ef61afdae33cde60840f4dfe481319ce3ad116ddf9"
 dependencies = [
  "autocfg",
+]
+
+[[package]]
+name = "memory"
+version = "0.1.0"
+dependencies = [
+ "arrow",
+ "common",
+ "flatbuffers",
+ "flatbuffers_gen",
+ "rand 0.8.4",
+ "serde",
+ "serde_json",
+ "shared_memory",
+ "thiserror",
+ "tracing",
 ]
 
 [[package]]
