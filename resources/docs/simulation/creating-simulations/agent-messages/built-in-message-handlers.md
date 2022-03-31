@@ -214,4 +214,4 @@ def behavior(state, context):
 The message `data` is optional, but may be used to signify why the simulation stopped. The following fields may be included:
 
 1.  `"status"`: one of `"success"`, `"warning"` or `"error"`. Defaults to `"warning"` if not specified.
-2.  `"reason"`: a message describing why the simulation was stopped.
+1.  `"reason"`: a message describing why the simulation was stopped.
