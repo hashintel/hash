@@ -1,11 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { createContext, useCallback, useContext, useRef } from "react";
 import { getBlockDomId } from "./page/BlockView";
 
 type OnBlockLoadedFunction = (blockEntityId: string) => void;
@@ -17,50 +10,41 @@ export const BlockLoadedProvider: React.FC<{ routeHash: string }> = ({
   routeHash,
   children,
 }) => {
-  const [hashToScrollTo, setHashToScrollTo] = useState<string | null>(null);
-
-  const onBlockLoaded = useCallback(
-    (blockEntityId: string) => {
-      if (routeHash === getBlockDomId(blockEntityId)) {
-        setHashToScrollTo(routeHash);
-      }
-    },
-    [routeHash],
-  );
-
   const scrollingComplete = useRef(false);
   const scrollFrameRequestIdRef = useRef<ReturnType<
     typeof requestAnimationFrame
   > | null>(null);
 
-  useEffect(() => {
-    function frame(hashToScrollTo: string) {
-      const routeElement = document.getElementById(hashToScrollTo);
+  const onBlockLoaded = useCallback(
+    (blockEntityId: string) => {
+      function frame(idToScrollTo: string) {
+        const routeElement = document.getElementById(idToScrollTo);
 
-      if (routeElement) {
-        routeElement.scrollIntoView();
-        scrollingComplete.current = true;
+        if (routeElement) {
+          routeElement.scrollIntoView();
+          scrollingComplete.current = true;
+        }
       }
-    }
 
-    function clearScrollInterval() {
-      if (scrollFrameRequestIdRef.current !== null) {
-        cancelAnimationFrame(scrollFrameRequestIdRef.current);
-        scrollFrameRequestIdRef.current = null;
+      function clearScrollInterval() {
+        if (scrollFrameRequestIdRef.current !== null) {
+          cancelAnimationFrame(scrollFrameRequestIdRef.current);
+          scrollFrameRequestIdRef.current = null;
+        }
       }
-    }
 
-    if (hashToScrollTo && !scrollingComplete.current) {
-      clearScrollInterval();
-      scrollFrameRequestIdRef.current = requestAnimationFrame(() =>
-        frame(hashToScrollTo),
-      );
-    }
-
-    return () => {
-      clearScrollInterval();
-    };
-  }, [hashToScrollTo]);
+      if (
+        routeHash === getBlockDomId(blockEntityId) &&
+        !scrollingComplete.current
+      ) {
+        clearScrollInterval();
+        scrollFrameRequestIdRef.current = requestAnimationFrame(() =>
+          frame(routeHash),
+        );
+      }
+    },
+    [routeHash],
+  );
 
   return (
     <BlockLoadedContext.Provider value={onBlockLoaded}>
