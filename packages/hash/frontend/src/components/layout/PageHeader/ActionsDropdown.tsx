@@ -1,4 +1,4 @@
-import { useCallback, useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
@@ -13,8 +13,8 @@ import { useRouter } from "next/router";
 import { FontAwesomeIcon } from "../../icons";
 import { Popover } from "../../Popover";
 import { Link } from "../../Link";
-import { CreatePageModal } from "../../Modals/CreatePageModal";
 import { HeaderIconButton } from "./HeaderIconButton";
+import { useCreatePage } from "../../hooks/useCreatePage";
 
 export const ActionsDropdown: React.FC<{
   accountId: string;
@@ -27,28 +27,32 @@ export const ActionsDropdown: React.FC<{
   const buttonRef = useRef(null);
 
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { createUntitledPage } = useCreatePage(accountId);
 
   const id = open ? "actions-popover" : undefined;
 
-  const [createPageOpen, setCreatePageOpen] = useState(false);
-
-  const closeCreatePage = useCallback(() => {
-    // Prevent the bug of closing a non-existing modal
-    if (createPageOpen) {
-      setCreatePageOpen(false);
+  // @todo handle loading/error states properly
+  const addPage = useCallback(async () => {
+    if (loading) {
+      return;
     }
-  }, [createPageOpen]);
+
+    setLoading(true);
+    try {
+      await createUntitledPage();
+      setOpen(false);
+    } catch (err) {
+      // eslint-disable-next-line no-console -- TODO: consider using logger
+      console.error("Could not create page: ", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [createUntitledPage, loading]);
 
   const newEntityTypeRoute = `/${accountId}/types/new`;
 
-  const showCreatePage = () => {
-    setCreatePageOpen(true);
-    if (open) {
-      setOpen(false);
-    }
-  };
-
-  useKeys(["AltLeft", "KeyP"], showCreatePage);
+  useKeys(["AltLeft", "KeyP"], addPage);
   useKeys(["AltLeft", "KeyT"], () => router.push(newEntityTypeRoute));
 
   return (
@@ -74,12 +78,6 @@ export const ActionsDropdown: React.FC<{
       >
         <FontAwesomeIcon icon={faPlus} />
       </HeaderIconButton>
-
-      <CreatePageModal
-        show={createPageOpen}
-        close={closeCreatePage}
-        accountId={accountId}
-      />
 
       <Popover
         id={id}
@@ -114,7 +112,7 @@ export const ActionsDropdown: React.FC<{
               display: "flex",
               justifyContent: "space-between",
             }}
-            onClick={showCreatePage}
+            onClick={addPage}
           >
             <Typography variant="smallTextLabels">Create page</Typography>
             {!isMobile && <Typography variant="microText">Opt + P</Typography>}

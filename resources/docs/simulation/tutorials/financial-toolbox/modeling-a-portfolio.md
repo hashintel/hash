@@ -10,8 +10,6 @@ description: "Design and build a portfolio"
 
 In our simulation, each agent holds a portfolio of securities, which are stored in an array. Each array entry stores a number of heteregenous properties which make up the basic model.
 
-[portfolio_init.js excerpt]
-
 ```javascript
 const items = context.globals()["trade_items"];
 
