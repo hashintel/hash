@@ -47,12 +47,12 @@
 #![allow(clippy::cast_sign_loss)]
 
 #[must_use]
-pub fn get_static_buffer_length(len: usize) -> usize {
+pub(crate) fn _get_static_buffer_length(len: usize) -> usize {
     len + pad_to_sys_align(len)
 }
 
 #[must_use]
-pub fn get_static_buffer_pad(len: usize) -> usize {
+pub(crate) fn get_static_buffer_pad(len: usize) -> usize {
     pad_to_sys_align(len)
 }
 
@@ -70,7 +70,7 @@ pub fn get_dynamic_buffer_length(len: usize) -> usize {
 
 /// Padding required to reach the next power of 2
 #[must_use]
-pub fn get_dynamic_buffer_pad(len: usize) -> usize {
+pub(crate) fn get_dynamic_buffer_pad(len: usize) -> usize {
     if len == 0 {
         0
     } else {
@@ -102,7 +102,7 @@ pub fn maybe_new_dynamic_pad(
 
 // TODO: UNUSED: Needs triage
 #[must_use]
-pub fn maybe_new_dynamic_length(
+pub(crate) fn _maybe_new_dynamic_length(
     buffer_new_offset: usize,
     buffer_length: usize,
     next_buffer_old_offset: usize,
@@ -134,7 +134,7 @@ const fn pad_to_sys_align(len: usize) -> usize {
 // MOD: made public
 /// Calculate an 8-byte boundary and return the number of bytes needed to pad to 8 bytes
 #[must_use]
-pub const fn pad_to_8(len: usize) -> usize {
+pub(crate) const fn pad_to_8(len: usize) -> usize {
     match len % 8 {
         0 => 0,
         v => 8 - v,
@@ -160,7 +160,10 @@ mod test {
     #[test]
     fn static_buffer_padding() {
         TEST_VALS.iter().for_each(|i| {
-            assert_eq!(get_static_buffer_length(*i) - get_static_buffer_pad(*i), *i);
+            assert_eq!(
+                _get_static_buffer_length(*i) - get_static_buffer_pad(*i),
+                *i
+            );
         })
     }
 }

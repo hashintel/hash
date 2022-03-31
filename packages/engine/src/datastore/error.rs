@@ -35,6 +35,9 @@ pub enum Error {
     #[error("{0}")]
     Unique(String),
 
+    #[error("Memory error: {0}")]
+    Memory(#[from] memory::Error),
+
     #[error("Couldn't acquire shared lock on object")]
     ProxySharedLock,
 
@@ -46,9 +49,6 @@ pub enum Error {
 
     #[error("Invalid Arrow object downcast. Field name: {name}")]
     InvalidArrowDowncast { name: String },
-
-    #[error("Memory Error: {0}")]
-    Memory(String),
 
     #[error("Not implemented: {0}")]
     NotImplemented(SupportedType),

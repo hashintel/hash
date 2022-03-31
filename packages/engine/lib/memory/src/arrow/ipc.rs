@@ -1,11 +1,3 @@
-#![allow(
-    clippy::cast_sign_loss,
-    clippy::too_many_lines,
-    clippy::doc_markdown,
-    clippy::needless_pass_by_value,
-    clippy::extra_unused_lifetimes,
-    clippy::too_many_arguments
-)]
 // uncomment this beast when you feel ready to apache devs whos boss
 
 // This file contains copied code from the Arrow implementation in Rust
@@ -35,7 +27,7 @@ use arrow::{
 };
 use flatbuffers::FlatBufferBuilder;
 
-use super::padding;
+use crate::shared_memory::padding;
 
 // ADD
 /// Walks through the process of serializing the record batch to bytes in the arrow format to

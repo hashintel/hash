@@ -5,26 +5,25 @@
 
 use std::ops::{Index, IndexMut};
 
-use crate::datastore::{
-    arrow::util,
+use crate::{
     error::{Error, Result},
-    storage::{
+    shared_memory::{
+        continuation::{arrow_continuation, buffer_without_continuation, CONTINUATION},
         markers::{Buffer, Markers, Val},
-        memory::Memory,
         ptr::MemoryPtr,
-        BufferChange,
+        BufferChange, Memory,
     },
 };
 
-pub(in crate::datastore) trait Visit<'mem: 'v, 'v> {
+pub trait Visit<'mem: 'v, 'v> {
     fn ptr(&self) -> &MemoryPtr;
     fn markers(&self) -> &Markers;
 
     fn maybe_continuation(buffer: &Buffer) -> usize {
         match *buffer {
-            Buffer::Schema => util::CONTINUATION,
+            Buffer::Schema => CONTINUATION,
             Buffer::Header => 0,
-            Buffer::Meta => util::CONTINUATION,
+            Buffer::Meta => CONTINUATION,
             Buffer::Data => 0,
         }
     }
@@ -36,16 +35,16 @@ pub(in crate::datastore) trait Visit<'mem: 'v, 'v> {
         data_size: usize,
     ) -> Markers {
         Markers::from_sizes(
-            util::CONTINUATION + schema_size,
+            CONTINUATION + schema_size,
             header_size,
-            util::CONTINUATION + meta_size,
+            CONTINUATION + meta_size,
             data_size,
         )
     }
 
     fn schema(&'v self) -> &'mem [u8] {
         unsafe {
-            util::buffer_without_continuation(
+            buffer_without_continuation(
                 self.ptr()
                     .read_exact(self.markers().schema_offset(), self.markers().schema_size()),
             )
@@ -61,7 +60,7 @@ pub(in crate::datastore) trait Visit<'mem: 'v, 'v> {
 
     fn meta(&'v self) -> &'mem [u8] {
         unsafe {
-            util::buffer_without_continuation(
+            buffer_without_continuation(
                 self.ptr()
                     .read_exact(self.markers().meta_offset(), self.markers().meta_size()),
             )
@@ -112,7 +111,7 @@ pub(in crate::datastore) trait Visit<'mem: 'v, 'v> {
     }
 }
 
-pub(in crate::datastore) struct Visitor<'a> {
+pub(in crate::shared_memory) struct Visitor<'a> {
     ptr: MemoryPtr,
     markers: &'a Markers,
 }
@@ -134,7 +133,7 @@ impl<'a> Visitor<'a> {
     }
 }
 
-pub(in crate::datastore) struct VisitorMut<'mem> {
+pub(in crate::shared_memory) struct VisitorMut<'mem> {
     ptr: MemoryPtr,
     markers: &'mem mut Markers,
     memory: &'mem mut Memory,
@@ -186,7 +185,7 @@ impl<'mem: 'v, 'v> VisitorMut<'mem> {
 
         self.memory.resize(total_size)?;
         self.ptr = MemoryPtr::from_memory(self.memory);
-        Ok(BufferChange(false, true))
+        Ok(BufferChange::new(false, true))
     }
 
     // Mutable access to subbuffers
@@ -309,17 +308,17 @@ impl<'mem: 'v, 'v> VisitorMut<'mem> {
         self.markers_mut()[*buffer] = num_bytes as u64;
         self.write_continuations();
 
-        Ok(BufferChange(shifted, resized))
+        Ok(BufferChange::new(shifted, resized))
     }
 
     pub fn write_schema_continuation(&self) {
         let markers = self.markers();
         let schema_continuation = unsafe {
             self.ptr()
-                .read_mut_exact(markers.schema_offset(), util::CONTINUATION)
+                .read_mut_exact(markers.schema_offset(), CONTINUATION)
         };
-        schema_continuation.copy_from_slice(&util::arrow_continuation(
-            markers.header_offset() - markers.schema_offset() - util::CONTINUATION,
+        schema_continuation.copy_from_slice(&arrow_continuation(
+            markers.header_offset() - markers.schema_offset() - CONTINUATION,
         ));
     }
 
@@ -327,10 +326,10 @@ impl<'mem: 'v, 'v> VisitorMut<'mem> {
         let markers = self.markers();
         let schema_continuation = unsafe {
             self.ptr()
-                .read_mut_exact(markers.meta_offset(), util::CONTINUATION)
+                .read_mut_exact(markers.meta_offset(), CONTINUATION)
         };
-        schema_continuation.copy_from_slice(&util::arrow_continuation(
-            markers.data_offset() - markers.meta_offset() - util::CONTINUATION,
+        schema_continuation.copy_from_slice(&arrow_continuation(
+            markers.data_offset() - markers.meta_offset() - CONTINUATION,
         ));
     }
 

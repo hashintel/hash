@@ -33,7 +33,7 @@ def load_markers(mem):
 def verify_markers(markers, mem):
     assert len(markers) == N_MARKERS, markers
 
-    # Same order as in `datastore/storage/markers.rs`.
+    # Same order as in `memory::shared_memory/markers.rs`.
     # Units are all numbers of bytes.
     (
         schema_offset,
