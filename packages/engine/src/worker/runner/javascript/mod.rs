@@ -1952,7 +1952,7 @@ fn run_experiment(
             isolate.add_near_heap_limit_callback(
                 near_heap_limit_callback,
                 // This pointer is not used.
-                (&mut 0 as *mut i32).cast::<std::ffi::c_void>(),
+                std::ptr::null_mut(),
             );
 
             let mut handle_scope = v8::HandleScope::new(&mut isolate);
@@ -2006,7 +2006,7 @@ fn new_js_string<'s>(
 
 // Returns the new max heap size.
 extern "C" fn near_heap_limit_callback(
-    // This pointer may be dangling, don't do anything with it.
+    // This pointer is null, don't do anything with it.
     _data: *mut std::ffi::c_void,
     current_heap_limit: usize,
     _initial_heap_limit: usize,
