@@ -2,8 +2,12 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use super::{fields::behavior::BehaviorMap, Error, Result};
-use crate::Language;
+use crate::{
+    language::Language,
+    simulation::package::state::packages::behavior_execution::{
+        fields::behavior::BehaviorMap, Error, Result,
+    },
+};
 
 #[derive(Serialize, Deserialize)]
 pub struct BehaviorDescription {

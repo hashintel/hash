@@ -2,10 +2,12 @@ use std::time::Duration;
 
 use tokio::time::timeout;
 
-use super::cancel::CancelTask;
 use crate::simulation::{
     comms::active::ActiveTaskOwnerComms,
-    task::msg::{TaskMessage, TaskResultOrCancelled},
+    task::{
+        cancel::CancelTask,
+        msg::{TaskMessage, TaskResultOrCancelled},
+    },
     Error, Result,
 };
 
@@ -65,8 +67,11 @@ impl ActiveTask {
         }
     }
 
-    // TODO: UNUSED: Needs triage
+    #[allow(dead_code, unused_mut, unreachable_code)]
     pub async fn cancel(mut self) -> Result<()> {
+        todo!("Cancel messages are not implemented yet");
+        // see https://app.asana.com/0/1199548034582004/1202011714603653/f
+
         if self.running && !self.cancel_sent {
             let cancel_send = self
                 .comms

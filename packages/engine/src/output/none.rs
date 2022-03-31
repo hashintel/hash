@@ -1,12 +1,13 @@
 use serde_json::Value;
 
-use super::{OutputPersistenceCreatorRepr, SimulationOutputPersistenceRepr};
 use crate::{
-    config::PersistenceConfig,
-    output::{error::Result, OutputPersistenceResultRepr},
+    config::{PersistenceConfig, SimRunConfig},
+    output::{
+        error::Result, OutputPersistenceCreatorRepr, OutputPersistenceResultRepr,
+        SimulationOutputPersistenceRepr,
+    },
     proto::SimulationShortId,
     simulation::step_output::SimulationStepOutput,
-    SimRunConfig,
 };
 
 #[derive(Default)]

@@ -25,6 +25,7 @@ export const MuiListItemButtonThemeOptions: Components<Theme>["MuiListItemButton
 
         // The :hover CSS styling applied to the button
         const hoverStyles: CSSObject = {
+          backgroundColor: theme.palette.gray[20],
           ".MuiTypography-smallTextLabels": {
             color: theme.palette.gray[90],
           },
@@ -50,8 +51,8 @@ export const MuiListItemButtonThemeOptions: Components<Theme>["MuiListItemButton
         // The :focus CSS styling applied to the button
         const focusStyles: CSSObject = {};
 
-        // The :focus:after CSS styling applied to the button
-        const focusAfterStyles: CSSObject = {};
+        // The :focus-visible:after CSS styling applied to the button
+        const focusVisibleAfterStyles: CSSObject = {};
 
         return {
           ...baseStyles,
@@ -60,7 +61,7 @@ export const MuiListItemButtonThemeOptions: Components<Theme>["MuiListItemButton
           "&:hover:before": hoverBeforeStyles,
           ":active": activeStyles,
           "&.Mui-disabled": disabledStyles,
-          ":focus:after": focusAfterStyles,
+          ":focus-visible:after": focusVisibleAfterStyles,
           ":focus": focusStyles,
         };
       },

@@ -8,6 +8,7 @@ mod js {
 mod py {
     use crate::run_test;
 
-    run_test!(access, Python, #[ignore]);
+    run_test!(access, Python);
+    // TODO - test disabled until we make it so that the data actually is immutable
     run_test!(immutable, Python, #[ignore]);
 }

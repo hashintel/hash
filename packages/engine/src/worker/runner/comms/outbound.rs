@@ -4,13 +4,15 @@ use flatbuffers_gen::runner_outbound_msg_generated::root_as_runner_outbound_msg;
 use serde::{Deserialize, Serialize};
 use tracing::Span;
 
-use super::TargetedRunnerTaskMsg;
 use crate::{
     hash_types::worker,
+    language::Language,
     proto::SimulationShortId,
     types::TaskId,
-    worker::{runner::comms::SentTask, Error, Result},
-    Language,
+    worker::{
+        runner::comms::{SentTask, TargetedRunnerTaskMsg},
+        Error, Result,
+    },
 };
 
 #[derive(Debug, Default, Clone)]
@@ -133,6 +135,7 @@ pub enum OutboundFromRunnerMsgPayload {
     PackageError(PackageError),
     UserErrors(Vec<UserError>),
     UserWarnings(Vec<UserWarning>),
+    SyncCompletion,
 }
 
 impl OutboundFromRunnerMsgPayload {
@@ -254,6 +257,15 @@ impl OutboundFromRunnerMsgPayload {
                     .map(|user_warning| user_warning.into())
                     .collect();
                 Self::UserWarnings(user_warnings)
+            }
+            flatbuffers_gen::runner_outbound_msg_generated::RunnerOutboundMsgPayload::SyncCompletion => {
+                let _payload = parsed_msg.payload_as_sync_completion().ok_or_else(|| {
+                    Error::from(
+                        "Message from runner should have had a SyncCompletion payload but it \
+                        was missing",
+                    )
+                })?;
+                Self::SyncCompletion
             }
             _ => return Err(Error::from("Invalid outbound flatbuffers message payload")),
         })

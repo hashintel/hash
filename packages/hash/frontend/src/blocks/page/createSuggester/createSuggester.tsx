@@ -1,8 +1,5 @@
 import type { BlockVariant } from "blockprotocol";
-import {
-  blockComponentRequiresText,
-  BlockMeta,
-} from "@hashintel/hash-shared/blockMeta";
+import { blockComponentRequiresText } from "@hashintel/hash-shared/blockMeta";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { Schema } from "prosemirror-model";
 import {
@@ -16,6 +13,7 @@ import { RenderPortal } from "../usePortals";
 import { ensureMounted } from "../../../lib/dom";
 import { BlockSuggester } from "./BlockSuggester";
 import { MentionSuggester } from "./MentionSuggester";
+import { RemoteBlockMetadata } from "../../userBlocks";
 
 interface Trigger {
   char: "@" | "/";
@@ -163,15 +161,11 @@ export const createSuggester = (
            */
           const onBlockSuggesterChange = (
             variant: BlockVariant,
-            meta: BlockMeta,
+            userBlockMeta: RemoteBlockMetadata,
           ) => {
             getManager()
-              .createRemoteBlockTr(
-                meta.componentMetadata.componentId,
-                null,
-                variant,
-              )
-              .then(([tr, node]) => {
+              .createRemoteBlockTr(userBlockMeta.componentId, null, variant)
+              .then(([tr, node, meta]) => {
                 const $end = view.state.doc.resolve(to);
                 const endPosition = $end.end(1);
                 tr.insert(endPosition, node);

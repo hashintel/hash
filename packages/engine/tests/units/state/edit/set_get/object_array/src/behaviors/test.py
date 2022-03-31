@@ -6,8 +6,8 @@ def behavior(state, context):
 
     o1 = state.get("o1")
 
-    o1[0].n2 = o1[0].n1 + 1
-    o1.append({"n3": 3})
+    o1[0]["n2"] = o1[0]["n1"] + 1
+    o1.append({"n3": 3.0})
 
     state.set("o1", o1)
 
