@@ -1,3 +1,4 @@
+import { useTheme } from "@mui/system";
 import axios from "axios";
 import Image from "next/image";
 import {
@@ -7,6 +8,7 @@ import {
   Stack,
   Typography,
   typographyClasses,
+  useMediaQuery,
 } from "@mui/material";
 import type { NextPage } from "next";
 import Head from "next/head";
@@ -105,23 +107,30 @@ const Hero: VFC = () => (
   </Box>
 );
 
-// @todo handle this being too big at certain breakpoints
 const Project: FC<{
   title: ReactNode;
   buttons: ReactNode;
   image: ReactNode;
-}> = ({ buttons, children, title, image }) => {
+  mobileImage: ReactNode;
+}> = ({ buttons, children, title, image, mobileImage }) => {
+  const theme = useTheme();
+  const mobile = useMediaQuery(theme.breakpoints.down("md"));
+
   return (
     // @todo check this with the design
-    <Stack direction={{ xs: "column", md: "row" }} spacing={{ xs: 6, lg: 9 }}>
+    <Stack
+      direction={{ xs: "column", md: "row" }}
+      spacing={{ xs: 4, md: 6, lg: 9 }}
+    >
       <Box
         sx={[
-          { width: { xs: 1, md: 420 }, flexShrink: 0 },
-          (theme) => ({
+          {
+            width: { xs: 1, md: 420 },
+            flexShrink: 0,
             [theme.breakpoints.down("md")]: { width: 1 },
-            [theme.breakpoints.up("md")]: { width: 345 },
+            [theme.breakpoints.up("md")]: { width: 286 },
             [theme.breakpoints.up("lg")]: { width: 420 },
-          }),
+          },
         ]}
       >
         <Typography
@@ -142,12 +151,20 @@ const Project: FC<{
           {children}
         </Stack>
         {/** @todo check this spacing */}
-        <Stack direction="row" spacing={1.5}>
+        <Stack
+          direction={{ xs: "column", lg: "row" }}
+          alignItems="flex-start"
+          spacing={1.5}
+        >
           {buttons}
         </Stack>
       </Box>
-      <Box flexShrink={0} fontSize={0}>
-        {image}
+      <Box
+        flexShrink={0}
+        fontSize={0}
+        sx={{ span: { height: { md: 1, lg: "initial" } } }}
+      >
+        {mobile ? mobileImage : image}
       </Box>
     </Stack>
   );
@@ -171,7 +188,7 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
           </Typography>
           <StylishDivider />
         </Stack>
-        <Stack flexShrink={0}>
+        <Stack flexShrink={0} spacing={{ xs: 8, md: 0 }}>
           <Project
             title="Block Protocol"
             buttons={
@@ -188,6 +205,15 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
               /** @todo scaling, alt text */
               <Image src="/home/projects/bp.svg" width={445} height={326.26} />
             }
+            mobileImage={
+              /** @todo scaling, alt text */
+              <Image
+                layout="responsive"
+                src="/home/projects/bp-mobile.svg"
+                width={293}
+                height={336}
+              />
+            }
           >
             <Typography>
               The Block Protocol is an open-source standard and registry for
@@ -199,7 +225,7 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
             </Typography>
           </Project>
           <Project
-            title={<Box sx={{ mt: 8 }}>HASH</Box>}
+            title={<Box sx={{ mt: { xs: 0, md: 6, lg: 8 } }}>HASH</Box>}
             buttons={
               <>
                 {/* @todo action */}
@@ -214,6 +240,15 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
                 src="/home/projects/hash.svg"
                 width={374}
                 height={465.24}
+              />
+            }
+            mobileImage={
+              /** @todo scaling, alt text */
+              <Image
+                layout="responsive"
+                src="/home/projects/hash-mobile.svg"
+                width={288.4}
+                height={279}
               />
             }
           >
@@ -250,6 +285,15 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
                 src="/home/projects/hEngine.svg"
                 width={411}
                 height={374.5}
+              />
+            }
+            mobileImage={
+              /** @todo scaling, alt text */
+              <Image
+                layout="responsive"
+                src="/home/projects/hEngine-mobile.svg"
+                width={287.07}
+                height={303}
               />
             }
           >
