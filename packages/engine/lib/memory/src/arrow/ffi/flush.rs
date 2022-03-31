@@ -7,12 +7,14 @@
 
 use arrow::util::bit_util;
 
-use crate::datastore::{
-    batch::flush::{GrowableArrayData, GrowableBatch, GrowableColumn},
-    error::{Error, Result},
-    ffi::{memory::CMemory, ArrowArray},
-    meta,
-    storage::memory::Memory,
+use crate::{
+    arrow::{
+        ffi::{ArrowArray, CMemory},
+        flush::{GrowableArrayData, GrowableBatch, GrowableColumn},
+        meta,
+    },
+    shared_memory::Memory,
+    Error, Result,
 };
 
 type Flag = usize;
@@ -151,7 +153,7 @@ unsafe fn node_into_prepared_array_data(
     // always fixed (even if the null bitmap is null)
     let null_buffer = if buffer_count > 0
         && match &meta.get_data_types()[0] {
-            crate::datastore::meta::BufferType::BitMap { is_null_bitmap } => *is_null_bitmap,
+            meta::BufferType::BitMap { is_null_bitmap } => *is_null_bitmap,
             _ => false,
         } {
         let null_buffer_is_null = (arrow_array_ref.buffers).is_null();
@@ -184,7 +186,7 @@ unsafe fn node_into_prepared_array_data(
             let data_type = &meta.get_data_types()[index];
             let ptr = buffer_slice[index];
             let slice = match data_type {
-                crate::datastore::meta::BufferType::BitMap { is_null_bitmap } => {
+                meta::BufferType::BitMap { is_null_bitmap } => {
                     if *is_null_bitmap {
                         // The null bitmap should already be accounted for
                         return Err(Error::from(
@@ -194,7 +196,7 @@ unsafe fn node_into_prepared_array_data(
                     let byte_length = bit_util::ceil(num_elem, 8);
                     std::slice::from_raw_parts(ptr, byte_length)
                 }
-                crate::datastore::meta::BufferType::Offset => {
+                meta::BufferType::Offset => {
                     let byte_length = (num_elem + 1) * std::mem::size_of::<i32>();
                     let slice = std::slice::from_raw_parts(ptr, byte_length);
                     let last_offset_byte_index = byte_length - std::mem::size_of::<i32>();
@@ -203,7 +205,7 @@ unsafe fn node_into_prepared_array_data(
                     data_size = last_offset;
                     slice
                 }
-                crate::datastore::meta::BufferType::Data { unit_byte_size } => {
+                meta::BufferType::Data { unit_byte_size } => {
                     let byte_length = data_size * unit_byte_size;
                     std::slice::from_raw_parts(ptr, byte_length)
                 }

@@ -11,18 +11,16 @@ use arrow::{
     },
     record_batch::RecordBatch,
 };
+use memory::{
+    arrow::meta::{self, conversion::get_dynamic_meta_flatbuffers},
+    shared_memory::{Memory, Metaversion, Segment},
+};
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
 };
 
 use crate::{
-    datastore::{
-        arrow::meta_conversion::get_dynamic_meta_flatbuffers,
-        batch::{metaversion::Metaversion, Segment},
-        error::{Error, Result},
-        meta::Dynamic as DynamicMeta,
-        storage::memory::Memory,
-    },
+    datastore::error::{Error, Result},
     proto::ExperimentId,
     simulation::package::context::ContextColumn,
 };
@@ -96,7 +94,7 @@ impl ContextBatch {
         let batch = read_record_batch(data_buffer, rb_msg, schema, &[])?;
 
         Ok(Self {
-            segment: Segment(memory),
+            segment: Segment::from_memory(memory),
             loaded: persisted,
             batch,
         })
@@ -130,7 +128,7 @@ impl ContextBatch {
             .map(|column_writer| column_writer.get_dynamic_metadata())
             .collect::<Result<Vec<_>>>()?;
         let dynamic =
-            DynamicMeta::from_column_dynamic_meta_list(&column_dynamic_meta_list, num_agents);
+            meta::Dynamic::from_column_dynamic_meta_list(&column_dynamic_meta_list, num_agents);
 
         let current_data_size = self.segment.memory().get_data_buffer_len()?;
         if current_data_size < dynamic.data_length {

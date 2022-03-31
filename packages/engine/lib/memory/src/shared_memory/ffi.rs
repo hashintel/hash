@@ -1,7 +1,6 @@
-#![allow(clippy::module_name_repetitions, clippy::missing_safety_doc)]
 use std::os::unix::io::RawFd;
 
-use crate::datastore::storage::memory::Memory;
+use crate::shared_memory::Memory;
 
 #[repr(C)]
 pub struct CMemory {
@@ -11,7 +10,7 @@ pub struct CMemory {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn load_shmem(id: *const u8, len: u64) -> *mut CMemory {
+unsafe extern "C" fn load_shmem(id: *const u8, len: u64) -> *mut CMemory {
     let bytes = std::slice::from_raw_parts(id, len as usize);
     let message = match std::str::from_utf8(bytes) {
         Ok(val) => val,
@@ -37,7 +36,7 @@ pub unsafe extern "C" fn load_shmem(id: *const u8, len: u64) -> *mut CMemory {
 
 #[no_mangle]
 // Free memory and drop Memory object
-pub unsafe extern "C" fn free_memory(c_memory: *mut CMemory) {
+unsafe extern "C" fn free_memory(c_memory: *mut CMemory) {
     Box::from_raw((*c_memory).memory as *mut Memory);
 }
 

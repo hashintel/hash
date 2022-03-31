@@ -1,14 +1,14 @@
-mod markers;
-pub mod memory;
-mod ptr;
-mod visitor;
 /// Describes how a change to a buffer affected the memory layout, either by being moved, or by
-/// having its length changed
+/// having its length changed.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[must_use = "When memory is changed, the metaversion has to be incremented"]
 pub struct BufferChange(bool, bool);
 
 impl BufferChange {
+    pub(in crate::shared_memory) fn new(shifted: bool, resized: bool) -> Self {
+        Self(shifted, resized)
+    }
+
     /// True if the buffer's starting address has shifted in memory. This isn't necessarily due to
     /// the actual buffer changing, but can indirectly be because another one grew or shrunk.
     pub fn shifted(&self) -> bool {
