@@ -96,20 +96,20 @@ pub struct ExperimentConfig {
     )]
     pub num_workers: usize,
 
-    #[cfg_attr(feature = "clap", clap(global = true, long, default_value_t = 0))]
-    /// Initial size of the V8 heap.
+    /// Size of the V8 heap before garbage collection.
     ///
     /// Setting this value allows to avoid garbage collection while the heap is small enough.
+    #[cfg_attr(feature = "clap", clap(global = true, long, default_value_t = 0))]
     pub v8_initial_heap_constraint: usize,
 
-    #[cfg_attr(
-        feature = "clap",
-        clap(global = true, long, default_value_t = 4_000_000_000)
-    )]
     /// Max size of the V8 heap.
     ///
     /// V8 will run a series of garbage collection when the heap size gets close to this limit.
     /// If garbage collection can't shrink the heap smaller than this limit then it crashes.
+    #[cfg_attr(
+        feature = "clap",
+        clap(global = true, long, default_value_t = 4_000_000_000)
+    )]
     pub v8_max_heap_constraint: usize,
 }
 
