@@ -1953,7 +1953,7 @@ fn run_experiment(
 
             isolate.add_near_heap_limit_callback(
                 near_heap_limit_callback,
-                // This pointer is not used.
+                // The callback does not need additional data
                 std::ptr::null_mut(),
             );
 
