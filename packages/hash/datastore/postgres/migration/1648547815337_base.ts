@@ -59,9 +59,6 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         notNull: true,
         comment: "The time at which the shared type metadata was last updated",
       },
-      /**
-       * Remaining columns are metadata shared across all versions of an entity
-       */
       versioned: {
         type: "boolean",
         notNull: true,
@@ -219,9 +216,6 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
         comment:
           "The time at which the shared entity metadata was last updated",
       },
-      /**
-       * Remaining columns are metadata shared across all versions of an entity
-       */
       versioned: {
         type: "boolean",
         notNull: true,
