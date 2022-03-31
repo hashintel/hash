@@ -1,5 +1,5 @@
 /**
- * Default blocks loaded for ever user.
+ * Default blocks loaded for every user.
  *
  * @todo allow users to configure their own default block list, and store in db.
  *    this should be a list of additions and removals from this default list,
