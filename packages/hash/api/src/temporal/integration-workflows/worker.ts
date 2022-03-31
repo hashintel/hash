@@ -25,7 +25,7 @@ async function run() {
     activities: {
       ...integrationActivities,
     },
-    taskQueue: TASK_QUEUES.mvpTestingHelloWorld,
+    taskQueue: TASK_QUEUES.integrations,
   });
   // Worker connects to localhost by default and uses console.error for logging.
   // Customize the Worker by passing more options to create():

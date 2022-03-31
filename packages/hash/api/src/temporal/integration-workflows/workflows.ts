@@ -38,12 +38,12 @@ export async function manageIntegration(
       const { fields } = action.configureFields;
       for (const key in fields) {
         if (
-          state.configuredFields[key] == null ||
+          state.configuredFields[key] != null ||
           state.configuredFields[key]?.currentValue !== fields[key]
         ) {
           state.configuredFields[key] = {
             currentValue: fields[key],
-            updatedAt: action.configureFields.updateAt,
+            updatedAtISO: action.configureFields.updateAtISO,
           };
         }
       }

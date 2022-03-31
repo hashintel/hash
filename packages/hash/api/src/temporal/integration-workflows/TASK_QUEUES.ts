@@ -1,3 +1,3 @@
 export const TASK_QUEUES = {
-  mvpTestingHelloWorld: "hello-world",
+  integrations: "integerations-queue",
 };

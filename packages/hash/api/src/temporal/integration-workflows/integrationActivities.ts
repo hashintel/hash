@@ -12,8 +12,8 @@ export type IntegrationState = {
   configuredFields: Record<
     string,
     {
-      currentValue: string | number | Date | undefined;
-      updatedAt: Date;
+      currentValue: string | number | undefined;
+      updatedAtISO: string;
     }
   >;
   /** This integration is enabled */
@@ -34,8 +34,8 @@ export type IntegrationConfigAction =
   | {
       type: "configureFields";
       configureFields: {
-        updateAt: Date;
-        fields: Record<string, string | number | Date | undefined>;
+        updateAtISO: string;
+        fields: Record<string, string | number | undefined>;
       };
     }
   | {

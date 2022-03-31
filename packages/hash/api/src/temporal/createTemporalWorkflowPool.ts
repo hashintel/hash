@@ -2,6 +2,12 @@ import { Connection, WorkflowClient } from "@temporalio/client";
 import { DataSource } from "apollo-datasource";
 import { OrganizationWorkflowClient } from "./clients/OrganizationWorkflowClient";
 
+type TemporalPoolOptions = {
+  address: string;
+  // not used due to initial complexity
+  // useNamespace?: string;
+};
+
 // While this would require fewer types as a closure, it appears that we kinda
 // need to use a class to be able to extend apollo's DataSource
 export class TemporalAdapter
@@ -9,13 +15,7 @@ export class TemporalAdapter
   implements TemporalWorkflowPool
 {
   private connection: Connection;
-  constructor(
-    private poolOptions: {
-      // TODO: Consider if there are other env vars we should set up
-      address: string;
-      useNamespace?: string;
-    },
-  ) {
+  constructor(poolOptions: TemporalPoolOptions) {
     super();
     // encapsulate so we can ensure usage of temporal remains consistent across codebase.
     this.connection = new Connection({
@@ -31,6 +31,8 @@ export class TemporalAdapter
     organizationEntityId: string;
   }) {
     // Some places say that you shouldn't use namespaces due to complexity...
+    // The complexity seems to be related to needing to spin up a separate worker.ts for each namespace
+    // to ensure separations.
     // So, we'll stick to default.
     const namespace = "default"; // `org-${options.organizationAccountId}`;
     const client = new WorkflowClient(this.connection.service, {
@@ -55,10 +57,8 @@ export interface TemporalWorkflowPool extends DataSource {
   }): OrganizationWorkflowClient;
 }
 
-export function createTemporalWorkflowPool(poolOptions: {
-  // TODO: Consider if there are other env vars we should set up
-  address: string;
-  useNamespace?: string;
-}): TemporalWorkflowPool {
+export function createTemporalWorkflowPool(
+  poolOptions: TemporalPoolOptions,
+): TemporalWorkflowPool {
   return new TemporalAdapter(poolOptions);
 }

@@ -70,7 +70,7 @@ export function createOrgIntegrationsManager(
         workflows.manageIntegration,
         {
           args: [integrationName], // type inference works! args: [integrationName: string]
-          taskQueue: TASK_QUEUES.mvpTestingHelloWorld,
+          taskQueue: TASK_QUEUES.integrations,
           workflowId,
         },
       );
@@ -104,7 +104,7 @@ export function createOrgIntegrationsManager(
                 fields.map((a) => [a.fieldKey, a.value]),
               ),
               // "now" (created before the worker actually gets the value)
-              updateAt: new Date(),
+              updateAtISO: new Date().toISOString(),
             },
           });
         },

@@ -22,8 +22,7 @@ export function integrationInfoToGQLOrgIntegration(
             info.state.configuredFields[fieldKey]?.currentValue?.toString() ??
             fieldDef.defaultValue?.toString(),
         lastUpdatedAt:
-          info.state.configuredFields[fieldKey]?.updatedAt?.toISOString() ??
-          undefined,
+          info.state.configuredFields[fieldKey]?.updatedAtISO || undefined,
       }),
     ),
     integrationName: info.state.integrationName,
