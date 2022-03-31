@@ -109,7 +109,6 @@ pub struct ExperimentConfig {
     /// Max size of the V8 heap.
     ///
     /// V8 will run a series of garbage collection when the heap size gets close to this limit.
-    ///
     /// If garbage collection can't shrink the heap smaller than this limit then it crashes.
     ///
     /// Defaults to 4GB.
