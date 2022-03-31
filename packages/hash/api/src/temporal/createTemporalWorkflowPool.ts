@@ -28,7 +28,7 @@ export class TemporalAdapter
 
   createOrganizationWorkflowClient(options: {
     // Perhaps use an org account id for namespacing? (tbf: we don't really understand namespaces, yet.)
-    organizationAccountId: string;
+    organizationEntityId: string;
   }) {
     // Some places say that you shouldn't use namespaces due to complexity...
     // So, we'll stick to default.
@@ -44,14 +44,14 @@ export class TemporalAdapter
     return new OrganizationWorkflowClient(client, namespace, {
       // not sure if this is actually a necessary thing to pass.
       // TODO: we should probably be passing in a Logger
-      organizationAccountId: options.organizationAccountId,
+      organizationEntityId: options.organizationEntityId,
     });
   }
 }
 export interface TemporalWorkflowPool extends DataSource {
   createOrganizationWorkflowClient(options: {
     // Perhaps use an org account id for namespacing? (tbf: we don't really understand namespaces, yet.)
-    organizationAccountId: string;
+    organizationEntityId: string;
   }): OrganizationWorkflowClient;
 }
 

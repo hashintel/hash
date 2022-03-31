@@ -73,6 +73,7 @@ import { pageSearchResultConnection } from "./paginationConnection/pageSearchRes
 import { createOrgIntegration } from "./orgIntegration/createOrgIntegration";
 import { enableOrgIntegration } from "./orgIntegration/enableOrgIntegration";
 import { configureOrgIntegration } from "./orgIntegration/configureOrgIntegration";
+import { orgIntegrationsResolver } from "./orgIntegration/orgIntegrationsResolver";
 
 export const resolvers = {
   Query: {
@@ -165,6 +166,7 @@ export const resolvers = {
 
   Org: {
     properties: entityFields.properties,
+    integrations: orgIntegrationsResolver,
     ...orgLinkedEntities,
   },
 

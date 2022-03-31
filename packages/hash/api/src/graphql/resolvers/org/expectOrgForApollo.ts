@@ -1,9 +1,9 @@
 import { ApolloError } from "apollo-server-errors";
 import { Org } from "../../../model";
-import { DbAdapter } from "../../../db";
+import { DbClient } from "../../../db";
 
 export async function expectOrgForApollo(
-  db: DbAdapter,
+  db: DbClient,
   options: { entityId: string },
 ): Promise<Org> {
   const org = await Org.getOrgById(db, { entityId: options.entityId });

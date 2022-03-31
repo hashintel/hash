@@ -26,11 +26,16 @@ const act = wf.proxyActivities<typeof activities>({
 export async function manageIntegration(
   integrationName: string,
 ): Promise<void> {
-  const state = await act.getInitialIntegrationSetup(integrationName);
+  const state: activities.IntegrationState = {
+    integrationName,
+    enabled: false,
+    configuredFields: {},
+  };
+
   wf.setHandler(integrationStateQuery, () => state);
   wf.setHandler(configureIntegrationSignal, (action) => {
-    if (action.type === "setConfig") {
-      const { fields } = action.setConfig;
+    if (action.type === "configureFields") {
+      const { fields } = action.configureFields;
       for (const key in fields) {
         if (
           state.configuredFields[key] == null ||
@@ -38,7 +43,7 @@ export async function manageIntegration(
         ) {
           state.configuredFields[key] = {
             currentValue: fields[key],
-            updatedAt: action.setConfig.updateAt,
+            updatedAt: action.configureFields.updateAt,
           };
         }
       }
@@ -49,6 +54,7 @@ export async function manageIntegration(
       const _: never = action;
     }
   });
+
   let performingIntegration = false;
   wf.setHandler(startIntegrationSignal, async () => {
     performingIntegration = true;
@@ -65,5 +71,6 @@ export async function manageIntegration(
     if (err instanceof wf.CancelledFailure) {
       console.error(`Integration "${state.integrationName}" cancelled`);
     }
+    throw err;
   }
 }

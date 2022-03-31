@@ -51,7 +51,7 @@ export const orgIntegrationTypedef = gql`
   }
 
   input CreateOrgIntegrationInput {
-    organizationAccountId: ID!
+    organizationEntityId: ID!
     """
     e.g. "asana" or "github"
     """
@@ -67,7 +67,7 @@ export const orgIntegrationTypedef = gql`
     Update the integration's fields
     """
     configureOrgIntegration(
-      organizationAccountId: ID!
+      organizationEntityId: ID!
       integrationId: ID!
       fields: [OrgIntegrationFieldValue!]!
     ): OrgIntegration!
@@ -75,7 +75,7 @@ export const orgIntegrationTypedef = gql`
     Update the integration's enabled status
     """
     enableOrgIntegration(
-      organizationAccountId: ID!
+      organizationEntityId: ID!
       integrationId: ID!
       enable: Boolean!
     ): OrgIntegration!

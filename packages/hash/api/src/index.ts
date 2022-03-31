@@ -43,7 +43,6 @@ import { setupStorageProviders } from "./storage/storage-provider-lookup";
 import { getAwsRegion } from "./lib/aws-config";
 import { setupTelemtry } from "./telemetry/snowplow-setup";
 import { createTemporalWorkflowPool } from "./temporal/createTemporalWorkflowPool";
-import { createIntegrationWorkflowManager } from "./temporal/integration-workflows/createIntegrationWorkflowManager";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 

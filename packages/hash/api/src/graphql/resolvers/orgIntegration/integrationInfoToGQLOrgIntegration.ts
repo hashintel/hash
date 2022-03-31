@@ -1,4 +1,4 @@
-import { IntegrationInfo } from "../../../temporal/integration-workflows/getIntegrationInfo";
+import { IntegrationInfo } from "../../../temporal/integration-workflows/createOrgIntegrationsManager";
 import {
   OrgIntegration,
   OrgIntegrationConfigurationField,

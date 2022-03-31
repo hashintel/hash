@@ -1,8 +1,23 @@
-import { Worker } from "@temporalio/worker";
+import { getRequiredEnv } from "@hashintel/hash-backend-utils/environment";
+import { Core, Worker } from "@temporalio/worker";
 import * as integrationActivities from "./integrationActivities";
 import { TASK_QUEUES } from "./TASK_QUEUES";
 
+// By importing @hashintel/hash-backend-utils/environment, we're also configuring around dotenv
+const temporalHost = getRequiredEnv("HASH_TEMPORAL_HOST");
+const temporalPort = parseInt(getRequiredEnv("HASH_TEMPORAL_PORT"), 10);
+
 async function run() {
+  // See https://docs.temporal.io/docs/typescript/security/#encryption-in-transit-with-mtls
+  await Core.install({
+    serverOptions: {
+      address: `${temporalHost}:${temporalPort}`,
+      // You can set the namespace, but you might need to then
+      // manage workers on a per-organization basis (spinning up workers for each org)
+      // Perhaps this can be managed automatically through some queue listener within temporal?
+      // namespace:
+    },
+  });
   // Step 1: Register Workflows and Activities with the Worker and connect to
   // the Temporal server.
   const worker = await Worker.create({

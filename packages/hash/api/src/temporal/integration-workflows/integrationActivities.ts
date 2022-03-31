@@ -32,8 +32,8 @@ export type IntegrationState = {
 /** Signal to be submitted into the workflow */
 export type IntegrationConfigAction =
   | {
-      type: "setConfig";
-      setConfig: {
+      type: "configureFields";
+      configureFields: {
         updateAt: Date;
         fields: Record<string, string | number | Date | undefined>;
       };

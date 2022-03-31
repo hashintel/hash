@@ -1,7 +1,3 @@
-import { ApolloError } from "apollo-server-express";
-import { createIntegrationWorkflowManager } from "../../../temporal/integration-workflows/createIntegrationWorkflowManager";
-import { getIntegrationInfo } from "../../../temporal/integration-workflows/getIntegrationInfo";
-
 // import { Org } from "../../../model";
 import {
   MutationCreateOrgIntegrationArgs,
@@ -9,7 +5,7 @@ import {
   Resolver,
 } from "../../apiTypes.gen";
 import { LoggedInGraphQLContext } from "../../context";
-import { expectOrgForApollo } from "../org/expectOrgForApollo";
+import { createIntegrationManagerForApollo } from "./createIntegrationManagerForApollo";
 import { integrationInfoToGQLOrgIntegration } from "./integrationInfoToGQLOrgIntegration";
 
 export const createOrgIntegration: Resolver<
@@ -18,35 +14,21 @@ export const createOrgIntegration: Resolver<
   LoggedInGraphQLContext,
   MutationCreateOrgIntegrationArgs
 > = async (_parent, { input }, { dataSources, user, logger }) => {
-  const org = await expectOrgForApollo(dataSources.db, {
-    entityId: input.organizationAccountId,
-  });
+  const integrationManager = await createIntegrationManagerForApollo(
+    logger,
+    dataSources,
+    input,
+  );
 
   // TODO: ensure the user has access to this integrationId (ensure it's a part of an org we're admin of?)
   logger.info("createOrgIntegration", { input });
 
-  const orgClient = dataSources.wf.createOrganizationWorkflowClient({
-    organizationAccountId: org.accountId,
-  });
+  const newIntegration = await integrationManager
+    .addNewIntegrationWorkflow(input.integrationName)
+    .catch((err) => {
+      err.message = `Integration info was not found after creation. It's possible that the workflow took too long to start up or there were no worker processes started.\n${err.message}`;
+      return Promise.reject(err);
+    });
 
-  const integrationManager = createIntegrationWorkflowManager(
-    logger,
-    orgClient,
-  );
-
-  const newIntegration = await integrationManager.addNewIntegrationWorkflow(
-    input.integrationName,
-  );
-
-  const integrationInfo = await getIntegrationInfo(newIntegration.handle, {
-    timeout: 5000,
-  });
-
-  if (integrationInfo == null) {
-    throw new ApolloError(
-      "Integration info was not found. It's possible that the workflow took too long to start up.",
-    );
-  }
-
-  return integrationInfoToGQLOrgIntegration(integrationInfo);
+  return integrationInfoToGQLOrgIntegration(newIntegration.info);
 };

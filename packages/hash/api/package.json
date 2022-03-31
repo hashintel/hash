@@ -10,13 +10,14 @@
   "license": "GPL-3.0",
   "scripts": {
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.yml",
-    "dev": "node --max-old-space-size=2048 ./node_modules/.bin/ts-node-dev --respawn --transpile-only ./src/index.ts",
+    "dev": "concurrently yarn:dev:api yarn:dev:temporal-worker",
+    "dev:api": "node --max-old-space-size=2048 ./node_modules/.bin/ts-node-dev --respawn --transpile-only ./src/index.ts",
+    "dev:temporal-worker": "node ./node_modules/.bin/ts-node-dev --respawn --transpile-only ./src/temporal/integration-workflows/worker.ts",
     "fix:eslint": "eslint --ext .ts --fix ./src/",
     "postinstall": "yarn codegen",
     "lint:eslint": "eslint --ext .ts ./src/",
     "lint:tsc": "tsc --noEmit",
     "start": "cross-env NODE_ENV=production node --max-old-space-size=2048 ./node_modules/.bin/ts-node ./src/index.ts",
-    "temporal-worker": "node ./node_modules/.bin/ts-node-dev --respawn --transpile-only ./src/temporal/worker/worker.ts",
     "test": "jest"
   },
   "dependencies": {
@@ -106,6 +107,7 @@
     "@types/rword": "3.0.0",
     "@typescript-eslint/eslint-plugin": "5.11.0",
     "@typescript-eslint/parser": "5.11.0",
+    "concurrently": "7.0.0",
     "eslint": "8.8.0",
     "eslint-config-airbnb": "19.0.4",
     "eslint-config-prettier": "8.3.0",
