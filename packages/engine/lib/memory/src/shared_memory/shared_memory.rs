@@ -41,6 +41,7 @@ pub fn shmem_id_prefix(experiment_id: &ExperimentId) -> String {
 /// At the beginning of the shared memory segment there is another small buffer which contains the
 /// markers to the four buffers above. This offset buffer can be read with `Memory::markers`. If one
 /// buffer is not needed, it's size can be set to `0`.
+// TODO: DOC: explicitly mention, that `Memory` can hold arbitrary data, not just batches
 pub struct Memory {
     pub data: Shmem,
     pub size: usize,
