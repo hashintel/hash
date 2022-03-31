@@ -94,7 +94,9 @@ export const fetchBlockMeta = async (
     } catch (err) {
       blockCache.delete(url);
       throw new Error(
-        `Could not fetch and parse block metadata at url ${metadataUrl}: ${err.message}`,
+        `Could not fetch and parse block metadata at url ${metadataUrl}: ${
+          (err as Error).message
+        }`,
       );
     }
 
@@ -111,7 +113,9 @@ export const fetchBlockMeta = async (
     } catch (err) {
       blockCache.delete(url);
       throw new Error(
-        `Could not fetch and parse block schema at url ${schemaUrl}: ${err.message}`,
+        `Could not fetch and parse block schema at url ${schemaUrl}: ${
+          (err as Error).message
+        }`,
       );
     }
 
