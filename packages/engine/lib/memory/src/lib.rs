@@ -12,7 +12,7 @@
 //!
 //!     See the [`Memory`] documentation for further information.
 //!
-//!   - [`batch`] contains arrow-data to be stored in a memory [`Segment`]. Each [`ArrowBatch`] is
+//!   - [`batch`] contains Arrow data to be stored in a memory [`Segment`]. Each [`ArrowBatch`] is
 //!     associated with one [`Segment`] and several other data. For further information please see
 //!     the [`ArrowBatch`] API.
 //!
