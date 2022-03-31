@@ -1,4 +1,5 @@
-//! Defines how data is stored in shared memory and provides an (optional) Apache Arrow interface to it.
+//! Defines how data is stored in shared memory and provides an (optional) Apache Arrow interface to
+//! it.
 //!
 //! This crates consists of two main parts:
 //!   - [`memory`] contains structures and functions to store and load data to/from shared memory.
