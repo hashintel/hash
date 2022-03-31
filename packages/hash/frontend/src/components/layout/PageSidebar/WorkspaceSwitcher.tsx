@@ -25,13 +25,6 @@ import { useCurrentWorkspaceContext } from "../../../contexts/CurrentWorkspaceCo
 
 type WorkspaceSwitcherProps = {};
 
-const truncateText = (text: string) => {
-  if (text.length > 18) {
-    return `${text.slice(0, 15)}...`;
-  }
-  return text;
-};
-
 export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const popupState = usePopupState({
@@ -105,12 +98,13 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
             overflowX: "hidden",
             whiteSpace: "nowrap",
             textOverflow: "ellipsis",
+            maxWidth: 140,
             color: ({ palette }) => palette.gray[80],
             fontWeight: 600,
           }}
           variant="smallTextLabels"
         >
-          {truncateText(activeWorkspace.name)}
+          {activeWorkspace.name}
         </Typography>
         <FontAwesomeIcon
           icon={faChevronDown}
