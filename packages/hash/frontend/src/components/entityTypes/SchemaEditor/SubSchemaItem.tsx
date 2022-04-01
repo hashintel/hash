@@ -3,8 +3,8 @@ import { useState, VoidFunctionComponent } from "react";
 import { tw } from "twind";
 
 import { JsonSchema } from "../../../lib/json-utils";
+import { Button } from "../../../shared/ui";
 import { ConfirmationAlert } from "../../ConfirmationAlert";
-import { Button } from "../../Button";
 import { SchemaSelectElementType } from "./SchemaEditor";
 import {
   getSubschemaDependentProperties,

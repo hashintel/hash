@@ -1,11 +1,13 @@
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import { useRouter } from "next/router";
 import { Schema } from "prosemirror-model";
 import { EditorView } from "prosemirror-view";
 import "prosemirror-view/style/prosemirror.css";
 import React, { useLayoutEffect, useRef, VoidFunctionComponent } from "react";
 import { useLocalstorageState } from "rooks";
 
-import { Button } from "../../components/Button";
+import { Button } from "../../shared/ui";
+import { BlockLoadedProvider } from "../onBlockLoaded";
 import { RemoteBlockMetadata, UserBlocksProvider } from "../userBlocks";
 import { EditorConnection } from "./collab/EditorConnection";
 import { BlocksMetaMap, createEditorView } from "./createEditorView";
@@ -44,6 +46,9 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
     manager: ProsemirrorSchemaManager;
   }>(null);
 
+  const router = useRouter();
+  const routeHash = router.asPath.split("#")[1] ?? "";
+
   /**
    * This effect runs once and just sets up the prosemirror instance. It is not
    * responsible for setting the contents of the prosemirror document
@@ -81,34 +86,36 @@ export const PageBlock: VoidFunctionComponent<PageBlockProps> = ({
 
   return (
     <UserBlocksProvider value={initialUserBlocks}>
-      <div id="root" ref={root} />
-      {portals}
-      {/**
-       * @todo position this better
-       */}
-      {(
-        typeof debugging === "boolean"
-          ? debugging
-          : debugging.restartCollabButton
-      ) ? (
-        <Button
-          sx={{
-            position: "fixed",
-            bottom: 2.5,
-            right: 2.5,
-            opacity: 0.3,
+      <BlockLoadedProvider routeHash={routeHash}>
+        <div id="root" ref={root} />
+        {portals}
+        {/**
+         * @todo position this better
+         */}
+        {(
+          typeof debugging === "boolean"
+            ? debugging
+            : debugging.restartCollabButton
+        ) ? (
+          <Button
+            sx={{
+              position: "fixed",
+              bottom: 2.5,
+              right: 2.5,
+              opacity: 0.3,
 
-            "&:hover": {
-              opacity: 1,
-            },
-          }}
-          onClick={() => {
-            prosemirrorSetup.current?.connection?.restart();
-          }}
-        >
-          Restart Collab Instance
-        </Button>
-      ) : null}
+              "&:hover": {
+                opacity: 1,
+              },
+            }}
+            onClick={() => {
+              prosemirrorSetup.current?.connection?.restart();
+            }}
+          >
+            Restart Collab Instance
+          </Button>
+        ) : null}
+      </BlockLoadedProvider>
     </UserBlocksProvider>
   );
 };

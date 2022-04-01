@@ -13,13 +13,14 @@ import { useRouter } from "next/router";
 import { CacheProvider, EmotionCache } from "@emotion/react";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
-import { theme, createEmotionCache } from "../theme";
+import { theme, createEmotionCache } from "../shared/ui";
 import { PageLayout } from "../components/layout/PageLayout/PageLayout";
 
 import twindConfig from "../../twind.config";
 import "../../styles/globals.scss";
 import { useUser } from "../components/hooks/useUser";
 import { SidebarContextProvider } from "../components/layout/SidebarContext";
+import { CurrentWorkspaceContextProvider } from "../contexts/CurrentWorkspaceContext";
 
 export const apolloClient = createApolloClient();
 
@@ -63,11 +64,13 @@ const MyApp: React.VoidFunctionComponent<CustomAppProps> = ({
         <ThemeProvider theme={theme}>
           <CssBaseline />
           <ModalProvider>
-            <SidebarContextProvider>
-              <PageLayout>
-                <Component {...pageProps} />
-              </PageLayout>
-            </SidebarContextProvider>
+            <CurrentWorkspaceContextProvider>
+              <SidebarContextProvider>
+                <PageLayout>
+                  <Component {...pageProps} />
+                </PageLayout>
+              </SidebarContextProvider>
+            </CurrentWorkspaceContextProvider>
           </ModalProvider>
         </ThemeProvider>
       </CacheProvider>

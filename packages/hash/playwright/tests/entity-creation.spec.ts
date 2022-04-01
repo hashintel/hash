@@ -23,8 +23,8 @@ test("user can create and update entity", async ({ page }) => {
   // Fill up entity creation form
   await page.click('text=NameDescription >> input[type="text"]');
   await page.fill('text=NameDescription >> input[type="text"]', entityName);
-  await page.click('main :nth-match(input[type="text"], 2)');
-  await page.fill('main :nth-match(input[type="text"], 2)', "Test Entity");
+  await page.click('main :nth-match(input[type="text"], 3)');
+  await page.fill('main :nth-match(input[type="text"], 3)', "Test Entity");
 
   // Submit entity creation form and wait for page load
   await page.click("text=NameDescriptionCreate Entity Type >> button");
