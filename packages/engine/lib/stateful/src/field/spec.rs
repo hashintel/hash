@@ -2,7 +2,7 @@ use std::fmt;
 
 use arrow::datatypes::{DataType, Field};
 
-use crate::arrow::field::{key::FieldKey, FieldType};
+use crate::field::{key::FieldKey, FieldType};
 
 /// A single specification of a field
 #[derive(Clone, PartialEq, Eq, Hash)]

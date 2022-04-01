@@ -3,7 +3,7 @@ use std::collections::{
     HashMap,
 };
 
-use memory::arrow::field::{FieldKey, FieldSpec, FieldType, FieldTypeVariant, PresetFieldType};
+use stateful::field::{FieldKey, FieldSpec, FieldType, FieldTypeVariant, PresetFieldType};
 
 use crate::{
     datastore::error::{Error, Result},

@@ -7,7 +7,7 @@ use core::fmt;
 
 use arrow::datatypes::{DataType, Field};
 
-use crate::arrow::field::{FieldSpec, IsFixedSize, UUID_V4_LEN};
+use crate::field::{FieldSpec, IsFixedSize, UUID_V4_LEN};
 
 /// PresetFieldTypes represent an extension of types of fields that can be set by the engine, this
 /// gives greater control over underlying Arrow datatype such as integer sizes compared to the

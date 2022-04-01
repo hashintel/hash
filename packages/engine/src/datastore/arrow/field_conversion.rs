@@ -7,7 +7,7 @@
 use std::collections::HashMap;
 
 use arrow::datatypes::{Field, Schema};
-use memory::arrow::field::{FieldTypeVariant, IsFixedSize};
+use stateful::field::{FieldTypeVariant, IsFixedSize};
 
 use crate::datastore::{
     error::{Error, Result},
@@ -77,7 +77,7 @@ impl FieldSpecMap {
 #[cfg(test)]
 pub mod tests {
     use arrow::datatypes::DataType;
-    use memory::arrow::field::FieldType;
+    use stateful::field::FieldType;
 
     use super::*;
     use crate::{

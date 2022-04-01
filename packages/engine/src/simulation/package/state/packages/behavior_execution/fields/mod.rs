@@ -1,7 +1,7 @@
 pub mod behavior;
 
 use arrow::datatypes::DataType;
-use memory::arrow::field::{FieldType, FieldTypeVariant, PresetFieldType};
+use stateful::field::{FieldType, FieldTypeVariant, PresetFieldType};
 
 use self::behavior::BehaviorMap;
 use crate::{

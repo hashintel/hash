@@ -6,7 +6,7 @@ use arrow::{
     record_batch::RecordBatch,
 };
 use lazy_static::lazy_static;
-use memory::arrow::field::PresetFieldType;
+use stateful::field::PresetFieldType;
 
 use crate::{
     datastore::error::{Error, Result},

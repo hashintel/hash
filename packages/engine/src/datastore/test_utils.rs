@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use memory::arrow::field::{FieldSpec, FieldType, FieldTypeVariant};
 use rand::{prelude::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
+use stateful::field::{FieldSpec, FieldType, FieldTypeVariant};
 use uuid::Uuid;
 
 use crate::{

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use memory::arrow::field::FieldType;
+use stateful::field::FieldType;
 
 use crate::{
     config::{ExperimentConfig, Globals, PackageConfig, SimRunConfig},

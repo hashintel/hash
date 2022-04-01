@@ -1,4 +1,4 @@
-use memory::arrow::field::{FieldType, FieldTypeVariant, PresetFieldType};
+use stateful::field::{FieldType, FieldTypeVariant, PresetFieldType};
 
 use crate::{
     datastore::schema::{FieldScope, RootFieldSpec},

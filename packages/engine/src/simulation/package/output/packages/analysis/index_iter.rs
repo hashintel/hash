@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use arrow::datatypes::DataType;
 use float_cmp::approx_eq;
-use memory::arrow::field::FieldTypeVariant;
+use stateful::field::FieldTypeVariant;
 
 use crate::{
     datastore::{

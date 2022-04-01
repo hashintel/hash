@@ -1,4 +1,4 @@
-use memory::arrow::field::{
+use stateful::field::{
     FieldType, FieldTypeVariant, FieldTypeVariant::FixedLengthArray, PresetFieldType,
 };
 

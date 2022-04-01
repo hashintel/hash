@@ -5,8 +5,8 @@ mod writer;
 
 use arrow::array::{Array, FixedSizeListBuilder, ListBuilder};
 use async_trait::async_trait;
-use memory::arrow::field::FieldKey;
 use serde_json::Value;
+use stateful::field::FieldKey;
 use tracing::Span;
 
 use self::collected::Messages;

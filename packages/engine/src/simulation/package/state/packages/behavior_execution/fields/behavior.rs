@@ -3,7 +3,7 @@ use std::{
     convert::TryFrom,
 };
 
-use memory::arrow::field::{FieldKey, FieldSpec, FieldType, FieldTypeVariant};
+use stateful::field::{FieldKey, FieldSpec, FieldType, FieldTypeVariant};
 
 // use crate::worker::runner::rust;
 use crate::{

@@ -989,6 +989,7 @@ dependencies = [
  "serde-aux",
  "serde_json",
  "shared_memory",
+ "stateful",
  "strum_macros",
  "surf",
  "thiserror",
@@ -2161,6 +2162,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e113fb6f3de07a243d434a56ec6f186dfd51cb08448239fe7bcae73f87ff28ff"
 dependencies = [
  "version_check",
+]
+
+[[package]]
+name = "stateful"
+version = "0.0.0"
+dependencies = [
+ "arrow",
+ "memory",
 ]
 
 [[package]]
