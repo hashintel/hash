@@ -96,9 +96,12 @@ pub struct ExperimentConfig {
     )]
     pub num_workers: usize,
 
-    /// Size of the V8 heap before garbage collection.
+    /// Allows a JavaScript runner to grow to some initial size in megabytes before triggering
+    /// garbage collections.
     ///
-    /// Setting this value allows to avoid garbage collection while the heap is small enough.
+    /// This is useful when it is known that experiments need a certain minimum heap to run to
+    /// avoid repeatedly invoking the garbage collector when growing the heap.
+    /// When used in the wrong conditions this could waste memory.
     #[cfg_attr(feature = "clap", clap(global = true, long))]
     pub v8_initial_heap_constraint: Option<usize>,
 

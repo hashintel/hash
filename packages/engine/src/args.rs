@@ -55,9 +55,12 @@ pub struct Args {
     #[clap(long, default_value = "100000", env = "ENGINE_TARGET_MAX_GROUP_SIZE")]
     pub target_max_group_size: usize,
 
-    /// Size of the V8 heap before garbage collection.
+    /// Allows a JavaScript runner to grow to some initial size in megabytes before triggering
+    /// garbage collections.
     ///
-    /// Setting this value allows to avoid garbage collection while the heap is small enough.
+    /// This is useful when it is known that experiments need a certain minimum heap to run to
+    /// avoid repeatedly invoking the garbage collector when growing the heap.
+    /// When used in the wrong conditions this could waste memory.
     #[clap(long)]
     pub v8_initial_heap_constraint: Option<usize>,
 
