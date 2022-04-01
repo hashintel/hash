@@ -1956,7 +1956,7 @@ fn run_experiment(
                     create_params.heap_limits(0, js_runner_max_heap_size * MB)
                 }
                 (Some(js_runner_initial_heap_constraint), None) => {
-                    create_params.heap_limits(js_runner_initial_heap_constraint * MB, 0 * MB)
+                    create_params.heap_limits(js_runner_initial_heap_constraint * MB, 0)
                 }
                 (Some(js_runner_initial_heap_constraint), Some(js_runner_max_heap_size)) => {
                     create_params.heap_limits(js_runner_initial_heap_constraint * MB, js_runner_max_heap_size * MB)
