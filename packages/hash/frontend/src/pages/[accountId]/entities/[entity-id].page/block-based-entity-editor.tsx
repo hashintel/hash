@@ -1,5 +1,5 @@
 import { VoidFunctionComponent } from "react";
-import { theme } from "../../../../theme";
+import { theme } from "../../../../shared/ui";
 import { EntityPropertiesBlock } from "./entity-properties-block";
 import { LocalReactBlockContainer } from "./local-react-block-container";
 

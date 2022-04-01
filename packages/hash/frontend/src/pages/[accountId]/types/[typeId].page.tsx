@@ -4,7 +4,6 @@ import { useQuery } from "@apollo/client";
 import { useRouter } from "next/router";
 
 import { tw } from "twind";
-import { Button } from "../../../components/Button";
 import {
   GetEntityTypeQuery,
   GetEntityTypeQueryVariables,
@@ -18,7 +17,7 @@ import { AccountEntityOfTypeList } from "../../../components/entityTypes/Account
 import { useBlockProtocolUpdateEntityType } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntityType";
 import { useBlockProtocolAggregateEntityTypes } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregateEntityTypes";
 import { MainContentWrapper } from "../../../components/layout/MainContentWrapper";
-import { Link } from "../../../components/Link";
+import { Button, Link } from "../../../shared/ui";
 
 export const EntityType: VoidFunctionComponent = () => {
   const router = useRouter();

@@ -13,9 +13,8 @@ import {
   faEllipsis,
   faFile,
 } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "../../../icons";
-import { IconButton } from "../../../IconButton";
-import { Link } from "../../../Link";
+import { IconButton, Link } from "../../../../shared/ui";
+import { FontAwesomeIcon } from "../../../../shared/icons";
 import { PageMenu } from "./PageMenu";
 
 // tweaked the example at https://mui.com/components/tree-view/#IconExpansionTreeView.tsx
