@@ -229,6 +229,26 @@ In order to see more logging information while the simulation is running, you ca
 export RUST_LOG=debug
 ```
 
+If your simulation takes a lot of memory and is using JavaScript behaviors, the JavaScript runner might run out of memory.
+The first step you can take is passing a larger heap size to the runner:
+
+```shell
+cargo run --bin cli -- --project /path/to/my-hash-project single-run --num-steps <NUM-STEPS> --js-runner-max-heap-size <NEW-SIZE-IN-MB>
+```
+
+This will increase the heap size but you may still run into limitations.
+The next step is to recompile the underlying JavaScript engine and setting flags for it:
+
+```shell
+export V8_FROM_SOURCE = "1"
+export GN_ARGS = "v8_enable_pointer_compression=false v8_enable_shared_ro_heap=true"
+```
+
+- `V8_FROM_SOURCE` will force the underlying JavaScript engine to be compiled from source and not use a pre-compiled version.
+This will take a fairly long time, expect 15min minimum. This can be mitigated by using [sccache](https://github.com/mozilla/sccache) or [ccache](https://ccache.dev/). Our build scripts will detect and use them. Set the `$SCCACHE` or `$CCACHE` environmental variable if it's not in your path.
+- `v8_enable_pointer_compression` is an optimization reducing RAM usage at the cost of max heap size.
+- `v8_enable_shared_ro_heap` is required to disable pointer compression and allows the read-only memory to be shared across isolate.
+
 [docs]: https://hash.ai/docs/simulation?utm_medium=organic&utm_source=github_readme_engine
 
 ### Simulation Inputs
