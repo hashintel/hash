@@ -109,6 +109,7 @@ export const fetchBlockMeta = async (
       schemaUrl =
         schemaPath && schemaPath.match(/^(?:[a-z]+:)?\/\//)
           ? schemaPath
+          : `${url}/${schemaPath.replace(/^\//, "")}`;
       schema = schemaUrl ? await (await fetch(schemaUrl)).json() : {};
     } catch (err) {
       blockCache.delete(url);
