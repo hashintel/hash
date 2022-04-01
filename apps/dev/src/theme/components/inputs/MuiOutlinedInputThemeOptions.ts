@@ -1,6 +1,3 @@
-/**
- * @todo update from blockprotocol
- */
 import { Components, Theme } from "@mui/material";
 
 export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"] =
@@ -17,32 +14,33 @@ export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"]
         // @todo this seems… incorrect
         borderRadius: "106px",
         width: "100%",
+        padding: theme.spacing(0, 3),
 
-        "& .MuiOutlinedInput-notchedOutline": {
-          border: `1px solid ${theme.palette.gray[30]}`,
-        },
-        "&:hover": {
+        "&, &:hover": {
           "& .MuiOutlinedInput-notchedOutline": {
             borderColor: theme.palette.gray[30],
           },
         },
-        "&.Mui-focused": {
+        "&.Mui-focused, &.Mui-focused:hover": {
           "& .MuiOutlinedInput-notchedOutline": {
             border: `3px solid ${theme.palette.yellow[500]}`,
           },
         },
-        "&.Mui-error": {
+        "&.Mui-error, &.Mui-error:hover": {
           "& .MuiOutlinedInput-notchedOutline": {
-            // borderColor: theme.palette.red[600],
+            // @todo use theme
+            border: `3px solid #E04D82`,
           },
         },
       }),
       input: ({ theme }) => ({
         // @todo check this
         height: "55px",
-        padding: theme.spacing(1.5, 3),
+        padding: theme.spacing(1.5, 0),
+        // @todo set this properly
         fontSize: theme.typography.bpBodyCopy.fontSize,
         boxSizing: "border-box",
+        color: theme.palette.gray[80],
 
         "&::placeholder": {
           color: theme.palette.gray[50],
@@ -54,7 +52,8 @@ export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"]
       adornedEnd: ({ theme }) => ({
         "&.Mui-error": {
           svg: {
-            // color: theme.palette.red[600],
+            // @todo use theme
+            color: "#E04D82",
           },
         },
       }),

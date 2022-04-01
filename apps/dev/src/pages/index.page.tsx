@@ -322,7 +322,6 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
 const EMAIL_REGEX =
   /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 
-// @todo error
 // @todo storybook
 const Subscribe: VFC = () => {
   const [error, setError] = useState<string | null>(null);
@@ -418,6 +417,7 @@ const Subscribe: VFC = () => {
             </Typography>
             {/** @todo check this spacing */}
             <form
+              noValidate
               onSubmit={async (evt) => {
                 // @todo update from hashai
                 evt.preventDefault();
@@ -445,13 +445,10 @@ const Subscribe: VFC = () => {
 
                   if (data.response.status === "subscribed") {
                     setUserJoined(true);
-                    return;
                   } else if (!data?.response?.title) {
-                    setError("Something went wrong ☹️ Please try again later");
+                    setError("Something went wrong.️ Please try again later");
                   } else if (data.response.title.includes("Invalid Resource")) {
-                    setError(
-                      "Are you sure? 🤔 Please try a different address…",
-                    );
+                    setError("Are you sure? Please try a different address…");
                   } else if (data.response.title.includes("Member Exists")) {
                     await axios.patch("/api/subscribe", {
                       mailchimp_id: data.response.id,
@@ -471,15 +468,17 @@ const Subscribe: VFC = () => {
               <Stack
                 direction={{ xs: "column", md: "row" }}
                 justifyContent="center"
+                alignItems="flex-start"
                 spacing={{ xs: 1, md: 1.5 }}
               >
                 <TextField
                   sx={{ width: { md: 459, xs: 1 }, flexShrink: 1 }}
                   name="email"
                   type="email"
-                  required
                   disabled={loading}
                   placeholder="you@example.com"
+                  error={error !== null}
+                  helperText={error !== null ? error : undefined}
                 />
                 <Button
                   variant="primary"

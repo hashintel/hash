@@ -1,5 +1,3 @@
-// @todo update from blockprotocol
-
 import { ReactNode, useEffect, useState, VFC } from "react";
 import {
   Box,
@@ -48,14 +46,12 @@ export const TextField: VFC<TextFieldProps> = ({
           /** @todo: figure out why this is required and the theme defaultProps cannot be relied on */
           ...{ notched: false },
           endAdornment: textFieldProps.error ? (
-            <Box>
-              <FontAwesomeIcon
-                icon={faCircleExclamation}
-                sx={{
-                  fontSize: 22,
-                }}
-              />
-            </Box>
+            <FontAwesomeIcon
+              icon={faCircleExclamation}
+              sx={{
+                fontSize: 16,
+              }}
+            />
           ) : (
             textFieldProps.InputProps?.endAdornment
           ),
@@ -67,7 +63,8 @@ export const TextField: VFC<TextFieldProps> = ({
       >
         <FormHelperText
           error={textFieldProps.error}
-          sx={{ marginTop: 1, fontSize: 15 }}
+          // @todo use theme font
+          sx={{ fontWeight: 400, fontSize: 14, mt: 1, textAlign: "center" }}
         >
           {recentHelperText}
         </FormHelperText>
