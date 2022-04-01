@@ -17,7 +17,7 @@ import {
   IconButton,
 } from "@mui/material";
 
-import { blockDomId } from "../../../../blocks/page/BlockView";
+import { getBlockDomId } from "../../../../blocks/page/BlockView";
 import {
   SearchPagesQuery,
   SearchPagesQueryVariables,
@@ -26,9 +26,8 @@ import { searchPages } from "../../../../graphql/queries/search.queries";
 import { useUser } from "../../../hooks/useUser";
 import { HASH_OPENSEARCH_ENABLED } from "../../../../lib/public-env";
 import { SearchInput } from "./SearchInput";
-import { Link } from "../../../Link";
-import { SearchIcon } from "../../../icons";
-import { Button } from "../../../Button";
+import { Button, Link } from "../../../../shared/ui";
+import { SearchIcon } from "../../../../shared/icons";
 
 /** finds the query's words in the result and chops it into parts at the words' boundaries */
 const splitByMatches = (result: string, query: string) => {
@@ -51,7 +50,7 @@ const toBlockUrl = (searchPage: PageSearchResult): string => {
   ];
 
   if (searchPage.block) {
-    segments.push("#", blockDomId(searchPage.block.entityId));
+    segments.push("#", getBlockDomId(searchPage.block.entityId));
   }
 
   return segments.join("");

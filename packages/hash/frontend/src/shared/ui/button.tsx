@@ -8,8 +8,8 @@ import {
   useTheme,
 } from "@mui/material";
 import { VFC, FC, forwardRef, useMemo } from "react";
-import { isHrefExternal } from "./Link";
-import { LoadingSpinner } from "./LoadingSpinner";
+import { isHrefExternal } from "./link";
+import { LoadingSpinner } from "./loading-spinner";
 
 export type ButtonProps = {
   loading?: boolean;

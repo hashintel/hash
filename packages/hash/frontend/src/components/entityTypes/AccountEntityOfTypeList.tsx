@@ -7,7 +7,7 @@ import {
 import { VoidFunctionComponent } from "react";
 import { tw } from "twind";
 import { guessEntityName } from "../../lib/entities";
-import { Link } from "../Link";
+import { Link } from "../../shared/ui";
 
 type AccountEntityOfTypeListProps = {
   accountId: string;
