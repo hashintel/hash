@@ -83,9 +83,9 @@ pub type Buffers<'a> = (&'a [u8], &'a [u8], &'a [u8], &'a [u8]);
 ///   3) Meta data
 ///   4) Data
 ///
-/// At the beginning of the shared memory segment there is another small buffer which contains the
-/// markers to the four buffers above. This offset buffer can be read with `Memory::markers`. If one
-/// buffer is not needed, it's size can be set to `0`.
+/// At the beginning of the shared memory segment there is another small, fixed-size buffer which
+/// contains the markers to the four buffers above. This offset buffer can be read with
+/// `Memory::markers`. If one buffer is not needed, it's size can be set to `0`.
 // TODO: Do we need header data **and** meta data? The header is currently only used for storing the
 //       metaversion. If we rename these buffers it would be clearer:
 //         - `Markers` should be called `SegmentHeader` or `Header`
