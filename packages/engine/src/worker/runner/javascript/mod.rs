@@ -2030,8 +2030,8 @@ extern "C" fn near_heap_limit_callback(
     _initial_heap_limit: usize,
 ) -> usize {
     tracing::warn!(
-        "A JavaScript runner almost reached its heap limit! Use the '--js-runner-max-heap-size' argument to raise \
-         the limit."
+        "A JavaScript runner almost reached its heap limit! Use the '--js-runner-max-heap-size' \
+         argument to raise the limit."
     );
 
     // We don't increate the max heap limit.
