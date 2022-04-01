@@ -18,7 +18,7 @@ use crate::{
             message::{CREATE_AGENT, REMOVE_AGENT, STOP_SIM},
         },
         batch::MessageBatch,
-        schema::{create_field_key, state::AgentSchema, FieldSource},
+        schema::{create_field_key, state::AgentSchema, Source},
         table::{
             pool::proxy::PoolReadProxy, references::MessageMap,
             state::create_remove::ProcessedCommands,
@@ -135,7 +135,7 @@ impl Commands {
                 if !field_spec_map.contains_key(&create_field_key(
                     FieldScope::Agent,
                     field,
-                    FieldSource::Engine,
+                    Source::Engine,
                 )?) {
                     return Err(Error::CreateAgentField(field.clone(), create.agent.clone()));
                 }

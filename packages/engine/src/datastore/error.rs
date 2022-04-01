@@ -35,6 +35,9 @@ pub enum Error {
     #[error("Memory error: {0}")]
     Memory(#[from] memory::Error),
 
+    #[error("Stateful error: {0}")]
+    Stateful(#[from] stateful::Error),
+
     #[error("Couldn't acquire shared lock on object")]
     ProxySharedLock,
 

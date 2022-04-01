@@ -6,7 +6,7 @@ use crate::{
     config::{ExperimentConfig, Globals, PackageConfig, SimRunConfig},
     datastore::schema::{
         accessor::FieldSpecMapAccessor, context::ContextSchema, last_state_index_key,
-        state::AgentSchema, FieldSource, FieldSpecMap, RootFieldSpec, RootFieldSpecCreator,
+        state::AgentSchema, FieldSpecMap, RootFieldSpec, RootFieldSpecCreator, Source,
     },
     simulation::{
         comms::{package::PackageComms, Comms},
@@ -180,7 +180,7 @@ impl PackageCreators {
                     config,
                     PackageComms::new(comms.clone(), *package_id, PackageType::Init),
                     FieldSpecMapAccessor::new(
-                        FieldSource::Package(*package_name),
+                        Source::Package(*package_name),
                         state_field_spec_map.clone(),
                     ),
                 )?;
@@ -203,11 +203,11 @@ impl PackageCreators {
                     config,
                     PackageComms::new(comms.clone(), *package_id, PackageType::Context),
                     FieldSpecMapAccessor::new(
-                        FieldSource::Package(*package_name),
+                        Source::Package(*package_name),
                         Arc::clone(state_field_spec_map),
                     ),
                     FieldSpecMapAccessor::new(
-                        FieldSource::Package(*package_name),
+                        Source::Package(*package_name),
                         Arc::clone(context_field_spec_map),
                     ),
                 )?;
@@ -230,7 +230,7 @@ impl PackageCreators {
                     config,
                     PackageComms::new(comms.clone(), *package_id, PackageType::State),
                     FieldSpecMapAccessor::new(
-                        FieldSource::Package(*package_name),
+                        Source::Package(*package_name),
                         Arc::clone(state_field_spec_map),
                     ),
                 )?;
@@ -253,7 +253,7 @@ impl PackageCreators {
                     config,
                     PackageComms::new(comms.clone(), *package_id, PackageType::Output),
                     FieldSpecMapAccessor::new(
-                        FieldSource::Package(*package_name),
+                        Source::Package(*package_name),
                         Arc::clone(state_field_spec_map),
                     ),
                 )?;
@@ -301,8 +301,7 @@ impl PackageCreators {
         // TODO: should we use enum_dispatch here to remove some duplication
         self.init.iter().try_for_each::<_, Result<()>>(
             |(_package_id, package_name, creator)| {
-                let field_spec_creator =
-                    RootFieldSpecCreator::new(FieldSource::Package(*package_name));
+                let field_spec_creator = RootFieldSpecCreator::new(Source::Package(*package_name));
                 field_spec_map.add_multiple(creator.get_state_field_specs(
                     exp_config,
                     globals,
@@ -314,8 +313,7 @@ impl PackageCreators {
 
         self.context.iter().try_for_each::<_, Result<()>>(
             |(_package_id, package_name, creator)| {
-                let field_spec_creator =
-                    RootFieldSpecCreator::new(FieldSource::Package(*package_name));
+                let field_spec_creator = RootFieldSpecCreator::new(Source::Package(*package_name));
                 field_spec_map.add_multiple(creator.get_state_field_specs(
                     exp_config,
                     globals,
@@ -327,8 +325,7 @@ impl PackageCreators {
 
         self.state.iter().try_for_each::<_, Result<()>>(
             |(_package_id, package_name, creator)| {
-                let field_spec_creator =
-                    RootFieldSpecCreator::new(FieldSource::Package(*package_name));
+                let field_spec_creator = RootFieldSpecCreator::new(Source::Package(*package_name));
                 field_spec_map.add_multiple(creator.get_state_field_specs(
                     exp_config,
                     globals,
@@ -340,8 +337,7 @@ impl PackageCreators {
 
         self.output.iter().try_for_each::<_, Result<()>>(
             |(_package_id, package_name, creator)| {
-                let field_spec_creator =
-                    RootFieldSpecCreator::new(FieldSource::Package(*package_name));
+                let field_spec_creator = RootFieldSpecCreator::new(Source::Package(*package_name));
                 field_spec_map.add_multiple(creator.get_state_field_specs(
                     exp_config,
                     globals,
@@ -365,8 +361,7 @@ impl PackageCreators {
 
         self.context.iter().try_for_each::<_, Result<()>>(
             |(_package_id, package_name, creator)| {
-                let field_spec_creator =
-                    RootFieldSpecCreator::new(FieldSource::Package(*package_name));
+                let field_spec_creator = RootFieldSpecCreator::new(Source::Package(*package_name));
                 field_spec_map.add_multiple(creator.get_context_field_specs(
                     exp_config,
                     globals,
@@ -421,7 +416,7 @@ pub const PREVIOUS_INDEX_FIELD_KEY: &str = "_HIDDEN_0_previous_index";
 
 pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec>> {
     let mut field_specs = Vec::with_capacity(13);
-    let field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
+    let field_spec_creator = RootFieldSpecCreator::new(Source::Engine);
 
     use crate::hash_types::state::AgentStateField::{
         AgentId, AgentName, Color, Direction, Height, Hidden, Position, Scale, Shape, Velocity, RGB,
@@ -450,7 +445,7 @@ pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec>> {
 }
 
 fn get_base_context_fields() -> Result<Vec<RootFieldSpec>> {
-    let _field_spec_creator = RootFieldSpecCreator::new(FieldSource::Engine);
+    let _field_spec_creator = RootFieldSpecCreator::new(Source::Engine);
     // TODO: previous index and other fields that make sense
     // Doesn't do anything for now
     Ok(vec![])

@@ -4,6 +4,7 @@ mod field_type;
 mod fixed_size;
 mod key;
 mod scope;
+mod source;
 mod spec;
 
 pub const UUID_V4_LEN: usize = 16;
@@ -13,5 +14,6 @@ pub use self::{
     fixed_size::IsFixedSize,
     key::FieldKey,
     scope::FieldScope,
+    source::FieldSource,
     spec::FieldSpec,
 };

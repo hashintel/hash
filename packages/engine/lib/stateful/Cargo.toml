@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 memory = { path = "../memory" }
 arrow = { version = "10.0.0", default-features = false }
+thiserror = "1.0.21"

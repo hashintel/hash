@@ -2170,6 +2170,7 @@ version = "0.0.0"
 dependencies = [
  "arrow",
  "memory",
+ "thiserror",
 ]
 
 [[package]]

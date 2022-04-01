@@ -2,13 +2,12 @@ use std::sync::Arc;
 
 use crate::datastore::{
     error::Result,
-    schema::field_spec::{FieldScope, FieldSource, FieldSpecMap, RootFieldSpec},
+    schema::field_spec::{create_field_key, FieldScope, FieldSpecMap, RootFieldSpec, Source},
 };
-use crate::datastore::schema::field_spec::create_field_key;
 
 #[derive(derive_new::new)]
 pub struct FieldSpecMapAccessor {
-    accessor_source: FieldSource,
+    accessor_source: Source,
     field_spec_map: Arc<FieldSpecMap>,
 }
 
@@ -19,7 +18,7 @@ pub trait GetFieldSpec {
         &self,
         field_name: &str,
         scope: FieldScope,
-        source: FieldSource,
+        source: Source,
     ) -> Result<&RootFieldSpec>;
 
     /// Get the `FieldSpec` stored under a given field name with the provided `scope` that belongs
@@ -32,7 +31,7 @@ impl GetFieldSpec for FieldSpecMapAccessor {
         &self,
         field_name: &str,
         scope: FieldScope,
-        source: FieldSource,
+        source: Source,
     ) -> Result<&RootFieldSpec> {
         let key = create_field_key(scope, field_name, source)?;
         self.field_spec_map.get_field_spec(&key)
