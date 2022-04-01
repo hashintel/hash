@@ -13,6 +13,35 @@ use crate::{
     },
 };
 
+pub struct Buffers<'a> {
+    schema: &'a [u8],
+    header: &'a [u8],
+    meta: &'a [u8],
+    data: &'a [u8],
+}
+
+impl<'a> Buffers<'a> {
+    #[inline]
+    pub fn schema(&self) -> &'a [u8] {
+        self.schema
+    }
+
+    #[inline]
+    pub fn header(&self) -> &'a [u8] {
+        self.header
+    }
+
+    #[inline]
+    pub fn meta(&self) -> &'a [u8] {
+        self.meta
+    }
+
+    #[inline]
+    pub fn data(&self) -> &'a [u8] {
+        self.data
+    }
+}
+
 /// An identifier for a shared memory section.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct MemoryId<'id> {
@@ -67,8 +96,6 @@ impl Borrow<Uuid> for &MemoryId<'_> {
         self.id
     }
 }
-
-pub type Buffers<'a> = (&'a [u8], &'a [u8], &'a [u8], &'a [u8]);
 
 /// A memory-mapped shared memory segment.
 ///
@@ -263,12 +290,12 @@ impl Segment {
 
     pub fn get_batch_buffers(&self) -> Result<Buffers<'_>> {
         let visitor = self.visitor();
-        Ok((
-            visitor.schema(),
-            visitor.header(),
-            visitor.meta(),
-            visitor.data(),
-        ))
+        Ok(Buffers {
+            schema: visitor.schema(),
+            header: visitor.header(),
+            meta: visitor.meta(),
+            data: visitor.data(),
+        })
     }
 
     pub fn set_data_length(&mut self, data_length: usize) -> Result<BufferChange> {
@@ -497,7 +524,6 @@ impl Segment {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::error::Result;
 
     #[test]
     pub fn test_identical_buffers() -> Result<()> {
@@ -511,12 +537,17 @@ pub mod tests {
         let segment =
             Segment::from_batch_buffers(memory_id, &buffer1, &buffer2, &buffer3, &buffer4, true)?;
 
-        let (new_buffer1, new_buffer2, new_buffer3, new_buffer4) = segment.get_batch_buffers()?;
+        let Buffers {
+            schema,
+            header,
+            meta,
+            data,
+        } = segment.get_batch_buffers()?;
 
-        assert_eq!(buffer1, new_buffer1);
-        assert_eq!(buffer2, new_buffer2);
-        assert_eq!(buffer3, new_buffer3);
-        assert_eq!(buffer4, new_buffer4);
+        assert_eq!(buffer1, schema);
+        assert_eq!(buffer2, header);
+        assert_eq!(buffer3, meta);
+        assert_eq!(buffer4, data);
         Ok(())
     }
 

@@ -228,16 +228,16 @@ impl MessageBatch {
         schema: Arc<Schema>,
         static_meta: Arc<meta::Static>,
     ) -> Result<Self> {
-        let (_, _, meta_buffer, data_buffer) = segment.get_batch_buffers()?;
+        let buffers = segment.get_batch_buffers()?;
 
-        let batch_message = ipc::root_as_message(meta_buffer)?
+        let batch_message = ipc::root_as_message(buffers.meta())?
             .header_as_record_batch()
             .expect("Unable to read IPC message as record batch");
 
-        let segment_len = data_buffer.len();
-        let dynamic_meta = batch_message.into_meta(segment_len)?;
+        let data_length = buffers.data().len();
+        let dynamic_meta = batch_message.into_meta(data_length)?;
 
-        let record_batch = read_record_batch(data_buffer, batch_message, schema.clone(), &[])?;
+        let record_batch = read_record_batch(buffers.data(), batch_message, schema.clone(), &[])?;
 
         let persisted = segment.try_read_persisted_metaversion()?;
         Ok(Self {

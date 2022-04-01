@@ -125,12 +125,11 @@ impl AgentBatch {
         worker_index: Option<usize>,
     ) -> Result<Self> {
         let persisted = segment.try_read_persisted_metaversion()?;
-        let (schema_buffer, _header_buffer, meta_buffer, data_buffer) =
-            segment.get_batch_buffers()?;
+        let buffers = segment.get_batch_buffers()?;
         let (schema, static_meta) = if let Some(s) = schema {
             (s.arrow.clone(), s.static_meta.clone())
         } else {
-            let message = ipc::root_as_message(schema_buffer)?;
+            let message = ipc::root_as_message(buffers.schema())?;
             let ipc_schema = match message.header_as_schema() {
                 Some(s) => s,
                 None => return Err(Error::ArrowSchemaRead),
@@ -140,13 +139,13 @@ impl AgentBatch {
             (schema, static_meta)
         };
 
-        let batch_message = ipc::root_as_message(meta_buffer)?
+        let batch_message = ipc::root_as_message(buffers.meta())?
             .header_as_record_batch()
             .ok_or_else(|| Error::ArrowBatch("Couldn't read message".into()))?;
 
-        let dynamic_meta = batch_message.into_meta(data_buffer.len())?;
+        let dynamic_meta = batch_message.into_meta(buffers.data().len())?;
 
-        let record_batch = read_record_batch(data_buffer, batch_message, schema, &[])?;
+        let record_batch = read_record_batch(buffers.data(), batch_message, schema, &[])?;
 
         Ok(Self {
             batch: ArrowBatch::new(

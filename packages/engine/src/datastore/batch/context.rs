@@ -75,12 +75,12 @@ impl ContextBatch {
 
     pub fn from_segment(segment: Segment, schema: Option<&Arc<Schema>>) -> Result<Self> {
         let persisted = segment.try_read_persisted_metaversion()?;
-        let (schema_buffer, _, meta_buffer, data_buffer) = segment.get_batch_buffers()?;
+        let buffers = segment.get_batch_buffers()?;
 
         let schema = if let Some(s) = schema {
             s.clone()
         } else {
-            let message = ipc::root_as_message(schema_buffer)?;
+            let message = ipc::root_as_message(buffers.schema())?;
             let ipc_schema = match message.header_as_schema() {
                 Some(s) => s,
                 None => return Err(Error::ArrowSchemaRead),
@@ -88,10 +88,10 @@ impl ContextBatch {
             Arc::new(ipc::convert::fb_to_schema(ipc_schema))
         };
 
-        let rb_msg = ipc::root_as_message(meta_buffer)?
+        let rb_msg = ipc::root_as_message(buffers.meta())?
             .header_as_record_batch()
             .ok_or(Error::InvalidRecordBatchIpcMessage)?;
-        let batch = read_record_batch(data_buffer, rb_msg, schema, &[])?;
+        let batch = read_record_batch(buffers.data(), rb_msg, schema, &[])?;
 
         Ok(Self {
             segment,
@@ -180,11 +180,11 @@ impl ContextBatch {
         self.segment.persist_metaversion(persisted);
 
         // Reload batch
-        let (_, _, meta_buffer, data_buffer) = self.segment.get_batch_buffers()?;
-        let rb_msg = &ipc::root_as_message(meta_buffer)?
+        let buffers = self.segment.get_batch_buffers()?;
+        let rb_msg = &ipc::root_as_message(buffers.meta())?
             .header_as_record_batch()
             .ok_or(Error::InvalidRecordBatchIpcMessage)?;
-        self.batch = read_record_batch(data_buffer, *rb_msg, self.batch.schema(), &[])?;
+        self.batch = read_record_batch(buffers.data(), *rb_msg, self.batch.schema(), &[])?;
         self.loaded = persisted;
 
         Ok(())
