@@ -64,7 +64,7 @@ impl fmt::Display for MemoryId<'_> {
 
 impl Borrow<Uuid> for &MemoryId<'_> {
     fn borrow(&self) -> &Uuid {
-        &self.id
+        self.id
     }
 }
 
