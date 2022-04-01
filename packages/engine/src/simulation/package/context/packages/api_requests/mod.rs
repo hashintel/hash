@@ -7,7 +7,7 @@ use arrow::datatypes::DataType;
 use async_trait::async_trait;
 use futures::{stream::FuturesOrdered, StreamExt};
 use serde_json::Value;
-use stateful::field::{FieldKey, FieldScope};
+use stateful::field::FieldKey;
 use tracing::{Instrument, Span};
 
 pub use self::handlers::CustomApiMessageError;
@@ -122,7 +122,7 @@ impl Package for ApiRequests {
         let api_responses = ApiResponses::from(responses_per_agent);
         let field_key = self
             .context_field_spec_accessor
-            .get_local_field_spec(API_RESPONSES_FIELD_NAME, FieldScope::Hidden)?
+            .get_local_hidden_scoped_field_spec(API_RESPONSES_FIELD_NAME)?
             .create_key()?;
 
         Ok(vec![ContextColumn {
@@ -143,7 +143,7 @@ impl Package for ApiRequests {
 
         let field_key = self
             .context_field_spec_accessor
-            .get_local_field_spec(API_RESPONSES_FIELD_NAME, FieldScope::Hidden)?
+            .get_local_hidden_scoped_field_spec(API_RESPONSES_FIELD_NAME)?
             .create_key()?;
         let arrow_fields = context_schema
             .arrow

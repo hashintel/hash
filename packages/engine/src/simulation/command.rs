@@ -8,7 +8,7 @@ use std::{collections::HashSet, sync::Arc};
 
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
-use stateful::field::FieldScope;
+use stateful::field::FieldKey;
 use uuid::Uuid;
 
 use crate::{
@@ -18,7 +18,7 @@ use crate::{
             message::{CREATE_AGENT, REMOVE_AGENT, STOP_SIM},
         },
         batch::MessageBatch,
-        schema::{create_field_key, state::AgentSchema, Source},
+        schema::state::AgentSchema,
         table::{
             pool::proxy::PoolReadProxy, references::MessageMap,
             state::create_remove::ProcessedCommands,
@@ -132,11 +132,7 @@ impl Commands {
         for create in &self.create_remove.create {
             for field in create.agent.custom.keys() {
                 // Hopefully branch prediction will make this not as slow as it looks.
-                if !field_spec_map.contains_key(&create_field_key(
-                    FieldScope::Agent,
-                    field,
-                    Source::Engine,
-                )?) {
+                if !field_spec_map.contains_key(&FieldKey::new_agent_scoped(field)?) {
                     return Err(Error::CreateAgentField(field.clone(), create.agent.clone()));
                 }
             }

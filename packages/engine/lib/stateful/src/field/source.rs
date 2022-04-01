@@ -1,4 +1,4 @@
-use crate::error::{Error, Result};
+use crate::error::Result;
 
 pub trait FieldSource {
     /// A unique static identifier of the field source, used in building Keys for fields.

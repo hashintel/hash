@@ -1,6 +1,5 @@
 use async_trait::async_trait;
 use serde_json::Value;
-use stateful::field::FieldScope;
 
 use self::{
     config::exp_init_message, fields::behavior::BehaviorMap, reset_index_col::reset_index_col,
@@ -101,7 +100,7 @@ impl PackageCreator for Creator {
     ) -> Result<Box<dyn Package>> {
         let behavior_ids_col_data_types = fields::id_column_data_types();
         let behavior_ids_col = accessor
-            .get_local_field_spec(BEHAVIOR_IDS_FIELD_NAME, FieldScope::Private)?
+            .get_local_private_scoped_field_spec(BEHAVIOR_IDS_FIELD_NAME)?
             .create_key()?;
 
         let behavior_ids_col_index = config
@@ -112,7 +111,7 @@ impl PackageCreator for Creator {
             .index_of(behavior_ids_col.value())?;
 
         let behavior_index_col = accessor
-            .get_local_field_spec(BEHAVIOR_INDEX_FIELD_NAME, FieldScope::Private)?
+            .get_local_private_scoped_field_spec(BEHAVIOR_INDEX_FIELD_NAME)?
             .create_key()?;
         let behavior_index_col_index = config
             .sim

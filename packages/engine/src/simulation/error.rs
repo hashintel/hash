@@ -15,6 +15,9 @@ pub enum Error {
     #[error("Memory Error: {0}")]
     Memory(#[from] memory::Error),
 
+    #[error("Stateful error: {0}")]
+    Stateful(#[from] stateful::Error),
+
     #[error("Env error: {0}")]
     Env(#[from] crate::env::Error),
 

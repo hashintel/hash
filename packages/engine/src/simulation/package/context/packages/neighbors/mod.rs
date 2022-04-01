@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use serde_json::Value;
-use stateful::field::{FieldKey, FieldScope};
+use stateful::field::FieldKey;
 use tracing::Span;
 
 use self::map::{NeighborMap, NeighborRef};
@@ -134,7 +134,7 @@ impl Package for Neighbors {
 
         let field_key = self
             .context_field_spec_accessor
-            .get_local_field_spec(NEIGHBORS_FIELD_NAME, FieldScope::Agent)?
+            .get_agent_scoped_field_spec(NEIGHBORS_FIELD_NAME)?
             .create_key()?;
 
         Ok(vec![ContextColumn {
@@ -160,7 +160,7 @@ impl Package for Neighbors {
         //   initialisation to be done per schema instead of per package
         let field_key = self
             .context_field_spec_accessor
-            .get_local_field_spec("neighbors", FieldScope::Agent)?
+            .get_agent_scoped_field_spec("neighbors")?
             .create_key()?;
 
         Ok(vec![(field_key, Arc::new(neighbors_builder.finish()))])

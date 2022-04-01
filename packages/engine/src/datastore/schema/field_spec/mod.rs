@@ -17,43 +17,7 @@ pub mod accessor;
 pub mod built_in;
 pub mod creator;
 
-pub const HIDDEN_PREFIX: &str = "_HIDDEN_";
-pub const PRIVATE_PREFIX: &str = "_PRIVATE_";
 pub const PREVIOUS_INDEX_FIELD_NAME: &str = "previous_index";
-
-/// Create a new `FieldKey` from this scope with the provided `name` and the specified source.
-///
-/// # Errors
-///
-/// - Returns [`Error`] if name starts with [`PRIVATE_PREFIX`] or [`HIDDEN_PREFIX`]
-pub fn create_field_key<S: FieldSource>(
-    scope: FieldScope,
-    name: &str,
-    source: S,
-) -> Result<FieldKey> {
-    // TODO: do we want these checks to only be present on debug builds
-    if name.starts_with(PRIVATE_PREFIX) || name.starts_with(HIDDEN_PREFIX) {
-        return Err(Error::from(format!(
-            "Field names cannot start with the protected prefixes: [{PRIVATE_PREFIX:?}, \
-             {HIDDEN_PREFIX:?}], received field name: {name:?}"
-        )));
-    }
-
-    let scope_prefix = match scope {
-        FieldScope::Private => Some(PRIVATE_PREFIX),
-        FieldScope::Hidden => Some(HIDDEN_PREFIX),
-        FieldScope::Agent => None,
-    };
-
-    if let Some(prefix) = scope_prefix {
-        Ok(FieldKey::new(format!(
-            "{prefix}{}_{name}",
-            source.unique_id()?
-        )))
-    } else {
-        Ok(FieldKey::new(name.to_string()))
-    }
-}
 
 /// Defines the source from which a Field was specified, useful for resolving clashes
 // TODO: Find a good name, which does not conflict with `FieldSource`
@@ -114,7 +78,12 @@ pub struct RootFieldSpec {
 
 impl RootFieldSpec {
     pub fn create_key(&self) -> Result<FieldKey> {
-        create_field_key(self.scope, &self.inner.name, self.source)
+        Ok(match &self.scope {
+            FieldScope::Agent => FieldKey::new_agent_scoped(&self.inner.name)?,
+            FieldScope::Private | FieldScope::Hidden => {
+                FieldKey::new_private_or_hidden_scoped(&self.inner.name, &self.source, self.scope)?
+            }
+        })
     }
 }
 
@@ -122,9 +91,8 @@ impl RootFieldSpec {
 /// data columns mapped to the specification of those fields
 #[derive(Debug, Clone, Default, Eq, PartialEq)]
 pub struct FieldSpecMap {
-    field_specs: HashMap<FieldKey, RootFieldSpec>,
-    /* a mapping of field unique identifiers to
-     * the fields themselves */
+    field_specs: HashMap<FieldKey, RootFieldSpec>, /* a mapping of field unique identifiers to
+                                                    * the fields themselves */
 }
 
 impl FieldSpecMap {

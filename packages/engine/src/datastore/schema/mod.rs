@@ -4,6 +4,6 @@ pub mod state;
 mod field_spec;
 
 pub use self::field_spec::{
-    accessor, built_in::IsRequired, create_field_key, creator::RootFieldSpecCreator,
-    last_state_index_key, FieldSpecMap, RootFieldSpec, Source, HIDDEN_PREFIX, PRIVATE_PREFIX,
+    accessor, built_in::IsRequired, creator::RootFieldSpecCreator, last_state_index_key,
+    FieldSpecMap, RootFieldSpec, Source,
 };

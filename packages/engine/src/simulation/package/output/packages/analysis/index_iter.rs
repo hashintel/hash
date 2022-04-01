@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use arrow::datatypes::DataType;
 use float_cmp::approx_eq;
-use stateful::field::{FieldScope, FieldTypeVariant};
+use stateful::field::FieldTypeVariant;
 
 use crate::{
     datastore::{
@@ -614,7 +614,7 @@ pub(super) fn index_iterator_filter_creator(
     value: &serde_json::Value,
 ) -> Result<OutputRunnerCreator> {
     let field_type = &accessor
-        .get_local_field_spec(&field, FieldScope::Agent)?
+        .get_agent_scoped_field_spec(&field)?
         .inner
         .field_type;
 
@@ -695,7 +695,7 @@ fn default_first_getter(
 ) -> Result<ValueIteratorCreator> {
     let data_type = DataType::from(
         accessor
-            .get_local_field_spec(first_field, FieldScope::Agent)?
+            .get_agent_scoped_field_spec(first_field)?
             .inner
             .field_type
             .variant
@@ -735,7 +735,7 @@ pub(super) fn index_iterator_mapper_creator(
     };
 
     let field_type = &accessor
-        .get_local_field_spec(&first_field, FieldScope::Agent)?
+        .get_agent_scoped_field_spec(&first_field)?
         .inner
         .field_type;
 

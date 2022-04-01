@@ -2,13 +2,11 @@ mod config;
 
 use async_trait::async_trait;
 use serde_json::Value;
+use stateful::field::{HIDDEN_PREFIX, PRIVATE_PREFIX};
 
 pub use self::config::JsonStateOutputConfig;
 use crate::{
-    datastore::{
-        arrow::batch_conversion::IntoAgents,
-        schema::{HIDDEN_PREFIX, PRIVATE_PREFIX},
-    },
+    datastore::arrow::batch_conversion::IntoAgents,
     hash_types::Agent,
     simulation::package::{
         name::PackageName,

@@ -6,7 +6,7 @@ mod writer;
 use arrow::array::{Array, FixedSizeListBuilder, ListBuilder};
 use async_trait::async_trait;
 use serde_json::Value;
-use stateful::field::{FieldKey, FieldScope};
+use stateful::field::FieldKey;
 use tracing::Span;
 
 use self::collected::Messages;
@@ -104,7 +104,7 @@ impl Package for AgentMessages {
         let messages = Messages::gather(&snapshot.message_map, id_name_iter)?;
         let field_key = self
             .context_field_spec_accessor
-            .get_local_field_spec(MESSAGES_FIELD_NAME, FieldScope::Agent)?
+            .get_agent_scoped_field_spec(MESSAGES_FIELD_NAME)?
             .create_key()?;
 
         Ok(vec![ContextColumn {
@@ -127,7 +127,7 @@ impl Package for AgentMessages {
 
         let field_key = self
             .context_field_spec_accessor
-            .get_local_field_spec(MESSAGES_FIELD_NAME, FieldScope::Agent)?
+            .get_agent_scoped_field_spec(MESSAGES_FIELD_NAME)?
             .create_key()?;
 
         Ok(vec![(field_key, Arc::new(messages_builder.finish()))])
