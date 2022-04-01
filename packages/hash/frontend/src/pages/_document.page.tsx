@@ -4,7 +4,7 @@ import withTwindDocument from "@twind/next/document";
 import Document, { Html, Head, Main, NextScript } from "next/document";
 
 import twindConfig from "../../twind.config";
-import { createEmotionCache } from "../theme";
+import { createEmotionCache } from "../shared/ui";
 
 class MyDocument extends Document {
   render() {

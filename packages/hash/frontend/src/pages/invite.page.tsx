@@ -7,8 +7,7 @@ import { useUser } from "../components/hooks/useUser";
 
 import { AuthLayout } from "../components/layout/PageLayout/AuthLayout";
 
-import Logo from "../assets/svg/logo.svg";
-import { SpinnerIcon } from "../components/icons";
+import { SpinnerIcon, LogoIcon } from "../shared/icons";
 import { SelectInput } from "../components/forms/SelectInput";
 import {
   JoinOrgMutation,
@@ -131,7 +130,7 @@ const InvitePage: NextPage = () => {
   return (
     <AuthLayout loading={invitationInfoLoading || initialLoading}>
       <div className={tw`w-9/12 max-w-3xl`}>
-        <Logo className={tw`mb-16`} />
+        <LogoIcon className={tw`mb-16`} />
         <div className={tw`mb-9`}>
           <h1 className={tw`text-3xl font-bold mb-4`}>{title}</h1>
           <p className={tw`text-2xl mb-14 font-light`}>{subtitle}</p>
