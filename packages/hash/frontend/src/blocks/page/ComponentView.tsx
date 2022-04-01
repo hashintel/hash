@@ -84,7 +84,6 @@ export class ComponentView implements NodeView<Schema> {
     public getPos: () => number,
     private renderPortal: RenderPortal,
     private meta: BlockMeta,
-    public accountId: string,
   ) {
     const { componentMetadata, componentSchema } = meta;
     const { source } = componentMetadata;
