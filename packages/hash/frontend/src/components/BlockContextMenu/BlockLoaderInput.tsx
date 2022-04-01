@@ -9,9 +9,6 @@ import { Button } from "../../shared/ui";
 /** trim whitespace and remove trailing slash */
 const createNormalizedBlockUrl = (url: string) => url.trim().replace(/\/$/, "");
 
-/** trim whitespace and remove trailing slash */
-const createNormalizedBlockUrl = (url: string) => url.trim().replace(/\/$/, "");
-
 export const BlockLoaderInput: React.VFC = () => {
   const blockView = useBlockView();
   const { value: userBlocks, setValue: setUserBlocks } = useUserBlocks();
