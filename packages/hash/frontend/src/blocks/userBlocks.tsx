@@ -3,6 +3,7 @@ import produce from "immer";
 import {
   createContext,
   Dispatch,
+  FC,
   SetStateAction,
   useContext,
   useEffect,
@@ -10,6 +11,7 @@ import {
   useState,
 } from "react";
 
+import { isProduction } from "../lib/config";
 import { useCachedDefaultState } from "../components/hooks/useDefaultState";
 
 export type RemoteBlockMetadata = BlockMetadata & {
@@ -58,8 +60,13 @@ const mergeBlocksData = (
       }
 
       if (
+        // in development, overwrite the locally cached block if the source has changed
+        (!isProduction &&
+          draftUserBlocks[matchingUserBlockIndex]?.source !==
+            latestUserBlock.source) ||
+        // overwrite the locally cached block if loading a different version
         draftUserBlocks[matchingUserBlockIndex]?.version !==
-        latestUserBlock.version
+          latestUserBlock.version
       ) {
         // @ts-expect-error TS warns `Type instantiation is excessively deep` but this isn't a problem here
         draftUserBlocks[matchingUserBlockIndex] = latestUserBlock;
@@ -68,7 +75,7 @@ const mergeBlocksData = (
   });
 };
 
-export const UserBlocksProvider: React.FC<{ value: UserBlocks }> = ({
+export const UserBlocksProvider: FC<{ value: UserBlocks }> = ({
   value: initialUserBlocks,
   children,
 }) => {
