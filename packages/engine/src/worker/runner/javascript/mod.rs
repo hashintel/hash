@@ -2030,7 +2030,7 @@ extern "C" fn near_heap_limit_callback(
     _initial_heap_limit: usize,
 ) -> usize {
     tracing::warn!(
-        "V8 max heap limit almost reached! Use the '--v8-max-heap-constraint' argument to raise \
+        "V8 max heap limit almost reached! Use the '--js-runner-max-heap-size' argument to raise \
          the limit."
     );
 
