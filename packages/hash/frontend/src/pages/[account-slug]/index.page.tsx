@@ -11,7 +11,7 @@ export const AccountHome: VoidFunctionComponent = () => {
   const { query } = useRouter();
   const { user } = useUser();
   const { data: orgs } = useOrgs();
-  const accountId = query["account-id"] as string;
+  const accountId = query["account-slug"] as string;
 
   if (!user) {
     return (

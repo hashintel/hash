@@ -63,8 +63,8 @@ export const Page: React.VFC<PageProps> = ({ blocksMeta }) => {
   const router = useRouter();
 
   // entityId is the consistent identifier for pages (across all versions)
-  const pageEntityId = router.query["page-entity-ed"] as string;
-  const accountId = router.query["account-id"] as string;
+  const pageEntityId = router.query["page-slug"] as string;
+  const accountId = router.query["account-slug"] as string;
   // versionId is an optional param for requesting a specific page version
   const versionId = router.query.version as string | undefined;
 

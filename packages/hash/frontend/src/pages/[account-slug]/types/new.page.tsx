@@ -18,7 +18,7 @@ import { getAccountEntityTypes } from "../../../graphql/queries/account.queries"
 export const NewEntityType: VoidFunctionComponent = () => {
   const router = useRouter();
   const { query } = router;
-  const accountId = query["account-id"] as string;
+  const accountId = query["account-slug"] as string;
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");

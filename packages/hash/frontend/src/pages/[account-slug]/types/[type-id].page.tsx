@@ -24,7 +24,7 @@ export const EntityType: VoidFunctionComponent = () => {
   const { query } = router;
 
   const typeId = query["type-id"] as string;
-  const accountId = query["account-id"] as string;
+  const accountId = query["account-slug"] as string;
 
   const { updateEntityTypes } = useBlockProtocolUpdateEntityType();
   const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();

@@ -22,7 +22,7 @@ import { BlockBasedEntityEditor } from "./[entity-id].page/block-based-entity-ed
 const SimpleEntityPage: NextPage = () => {
   const router = useRouter();
   const { query } = router;
-  const accountId = query["account-id"] as string;
+  const accountId = query["account-slug"] as string;
   const entityId = query["entity-id"] as string;
 
   const { data, refetch: refetchEntity } = useQuery<
@@ -88,7 +88,7 @@ const SimpleEntityPage: NextPage = () => {
 const BlockBasedEntityPage: NextPage = () => {
   const router = useRouter();
   const { query } = router;
-  const accountId = query["account-id"] as string;
+  const accountId = query["account-slug"] as string;
   const entityId = query["entity-id"] as string;
 
   return (
