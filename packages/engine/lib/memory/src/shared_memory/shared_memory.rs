@@ -38,7 +38,7 @@ impl<'id> MemoryId<'id> {
     }
 
     /// Returns the prefix used for the identifier.
-    pub fn prefix<Id: Borrow<Uuid>>(id: Id) -> String {
+    fn prefix<Id: Borrow<Uuid>>(id: Id) -> String {
         let id = id.borrow().to_simple_ref();
         if cfg!(target_os = "macos") {
             // MacOS shmem seems to be limited to 31 chars, probably remnants of HFS
@@ -47,6 +47,20 @@ impl<'id> MemoryId<'id> {
         } else {
             format!("shm_{id}")
         }
+    }
+
+    /// Clean up generade files created by this MemoryIds prefix.
+    pub fn clean_up<Id: Borrow<Uuid>>(id: Id) -> Result<()> {
+        // TODO: Mac differences in shared_memory
+        let shm_files = glob::glob(&format!("/dev/shm/{}_*", Self::prefix(id)))
+            .map_err(|e| Error::Unique(format!("cleanup glob error: {}", e)))?;
+
+        shm_files.filter_map(Result::ok).for_each(|path| {
+            if let Err(err) = std::fs::remove_file(&path) {
+                tracing::warn!("Could not clean up {path:?}: {err}");
+            }
+        });
+        Ok(())
     }
 }
 
@@ -64,7 +78,7 @@ impl fmt::Display for MemoryId<'_> {
 
 impl Borrow<Uuid> for &MemoryId<'_> {
     fn borrow(&self) -> &Uuid {
-        &self.id
+        self.id
     }
 }
 
