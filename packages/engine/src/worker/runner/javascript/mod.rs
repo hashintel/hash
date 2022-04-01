@@ -1945,10 +1945,24 @@ fn run_experiment(
             v8::V8::initialize_platform(platform);
             v8::V8::initialize();
 
-            let create_params = v8::Isolate::create_params().heap_limits(
-                init_msg.v8_initial_heap_constraint * MB,
-                init_msg.v8_max_heap_constraint * MB,
-            );
+            let mut create_params = v8::Isolate::create_params();
+
+            create_params = match (
+                init_msg.v8_initial_heap_constraint,
+                init_msg.v8_max_heap_constraint,
+            ) {
+                (None, None) => create_params,
+                (None, Some(v8_max_heap_constraint)) => {
+                    create_params.heap_limits(0, v8_max_heap_constraint * MB)
+                }
+                (Some(v8_initial_heap_constraint), None) => {
+                    create_params.heap_limits(v8_initial_heap_constraint * MB, 4_000 * MB)
+                }
+                (Some(v8_initial_heap_constraint), Some(v8_max_heap_constraint)) => {
+                    create_params.heap_limits(v8_initial_heap_constraint * MB, v8_max_heap_constraint * MB)
+                }
+            };
+
             let mut isolate = v8::Isolate::new(create_params);
 
             isolate.add_near_heap_limit_callback(

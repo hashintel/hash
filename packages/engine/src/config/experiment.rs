@@ -14,8 +14,8 @@ pub struct Config {
     pub worker_pool: Arc<worker_pool::Config>,
     /// The size at which the engine aims to split a group of agents
     pub target_max_group_size: usize,
-    pub v8_initial_heap_constraint: usize,
-    pub v8_max_heap_constraint: usize,
+    pub v8_initial_heap_constraint: Option<usize>,
+    pub v8_max_heap_constraint: Option<usize>,
     pub base_globals: Globals,
 }
 
@@ -24,8 +24,8 @@ impl Config {
         experiment_run: ExperimentRunRepr,
         num_workers: usize,
         target_max_group_size: usize,
-        v8_initial_heap_constraint: usize,
-        v8_max_heap_constraint: usize,
+        v8_initial_heap_constraint: Option<usize>,
+        v8_max_heap_constraint: Option<usize>,
     ) -> Result<Config> {
         // For differentiation purposes when multiple experiment runs are active in the same system
         let package_config = package::ConfigBuilder::new()

@@ -84,8 +84,8 @@ pub struct LocalCommand {
     output_location: OutputLocation,
     log_folder: PathBuf,
     target_max_group_size: Option<usize>,
-    v8_initial_heap_constraint: usize,
-    v8_max_heap_constraint: usize,
+    v8_initial_heap_constraint: Option<usize>,
+    v8_max_heap_constraint: Option<usize>,
 }
 
 impl LocalCommand {
@@ -100,8 +100,8 @@ impl LocalCommand {
         output_location: OutputLocation,
         log_folder: PathBuf,
         target_max_group_size: Option<usize>,
-        v8_initial_heap_constraint: usize,
-        v8_max_heap_constraint: usize,
+        v8_initial_heap_constraint: Option<usize>,
+        v8_max_heap_constraint: Option<usize>,
     ) -> Self {
         // The NNG URL that the engine process will listen on
         let engine_url = format!("ipc://run-{experiment_id}");
@@ -148,10 +148,6 @@ impl process::Command for LocalCommand {
             .arg(&self.engine_url)
             .arg("--num-workers")
             .arg(self.num_workers.to_string())
-            .arg("--v8-initial-heap-constraint")
-            .arg(self.v8_initial_heap_constraint.to_string())
-            .arg("--v8-max-heap-constraint")
-            .arg(self.v8_max_heap_constraint.to_string())
             .arg("--log-format")
             .arg(self.log_format.to_string())
             .arg("--output")
@@ -166,6 +162,14 @@ impl process::Command for LocalCommand {
         if let Some(target_max_group_size) = self.target_max_group_size {
             cmd.arg("--target-max-group-size")
                 .arg(target_max_group_size.to_string());
+        }
+        if let Some(v8_initial_heap_constraint) = self.v8_initial_heap_constraint {
+            cmd.arg("--v8-initial-heap-constraint")
+                .arg(v8_initial_heap_constraint.to_string());
+        }
+        if let Some(v8_max_heap_constraint) = self.v8_max_heap_constraint {
+            cmd.arg("--v8-max-heap-constraint")
+                .arg(v8_max_heap_constraint.to_string());
         }
         debug!("Running `{cmd:?}`");
 

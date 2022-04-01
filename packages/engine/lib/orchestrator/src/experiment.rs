@@ -99,15 +99,15 @@ pub struct ExperimentConfig {
     /// Size of the V8 heap before garbage collection.
     ///
     /// Setting this value allows to avoid garbage collection while the heap is small enough.
-    #[cfg_attr(feature = "clap", clap(global = true, long, default_value_t = 0))]
-    pub v8_initial_heap_constraint: usize,
+    #[cfg_attr(feature = "clap", clap(global = true, long))]
+    pub v8_initial_heap_constraint: Option<usize>,
 
     /// Max size of the V8 heap in MB.
     ///
     /// V8 will run a series of garbage collection when the heap size gets close to this limit.
     /// If garbage collection can't shrink the heap smaller than this limit then it crashes.
-    #[cfg_attr(feature = "clap", clap(global = true, long, default_value_t = 4_000))]
-    pub v8_max_heap_constraint: usize,
+    #[cfg_attr(feature = "clap", clap(global = true, long))]
+    pub v8_max_heap_constraint: Option<usize>,
 }
 
 #[cfg(feature = "clap")]
@@ -176,8 +176,8 @@ impl Experiment {
         experiment_id: ExperimentId,
         controller_url: &str,
         target_max_group_size: Option<usize>,
-        v8_initial_heap_constraint: usize,
-        v8_max_heap_constraint: usize,
+        v8_initial_heap_constraint: Option<usize>,
+        v8_max_heap_constraint: Option<usize>,
     ) -> Box<dyn process::Command + Send> {
         Box::new(process::LocalCommand::new(
             experiment_id,
