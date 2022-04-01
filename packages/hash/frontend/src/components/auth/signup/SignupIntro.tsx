@@ -2,8 +2,7 @@ import React, { useEffect, useState, useRef, VFC } from "react";
 import { tw } from "twind";
 import { useRouter } from "next/router";
 
-import Logo from "../../../assets/svg/logo.svg";
-import { SpinnerIcon } from "../../../shared/icons";
+import { LogoIcon, SpinnerIcon } from "../../../shared/icons";
 import { TextInput } from "../../forms/TextInput";
 import { useUser } from "../../hooks/useUser";
 import { InviteHeader } from "../InviteHeader";
@@ -47,7 +46,7 @@ export const SignupIntro: VFC<SignupIntroProps> = ({
     <div className={tw`flex flex-col items-center pt-24`}>
       {!!invitationInfo && <InviteHeader invitationInfo={invitationInfo} />}
       <div className={tw`mb-12 flex items-center`}>
-        <Logo className={tw`mr-5`} />
+        <LogoIcon className={tw`mr-5`} />
         <h1 className={tw`text-2xl font-bold`}>Sign up</h1>
       </div>
       {/* Don't display until sign-up with Google and Github are supported

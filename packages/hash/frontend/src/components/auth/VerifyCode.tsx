@@ -8,8 +8,7 @@ import React, {
 } from "react";
 import { tw } from "twind";
 
-import Logo from "../../assets/svg/logo.svg";
-import { HashIcon, KeyboardReturnIcon } from "../../shared/icons";
+import { LogoIcon, HashIcon, KeyboardReturnIcon } from "../../shared/icons";
 import { InviteHeader } from "./InviteHeader";
 import { InvitationInfo, SYNTHETIC_LOADING_TIME_MS } from "./utils";
 
@@ -114,7 +113,7 @@ export const VerifyCode: VFC<VerifyCodeProps> = ({
 
   return (
     <div className={tw`w-8/12 max-w-4xl`}>
-      <Logo className={tw`mb-6`} />
+      <LogoIcon className={tw`mb-6`} />
       <div
         className={tw`h-96 mb-9 rounded-2xl bg-white shadow-xl flex justify-center items-center text-center`}
       >

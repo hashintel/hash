@@ -7,8 +7,7 @@ import React, {
 } from "react";
 import { tw } from "twind";
 
-import Logo from "../../../assets/svg/logo.svg";
-import { HashIcon, KeyboardReturnIcon } from "../../../shared/icons";
+import { LogoIcon, HashIcon, KeyboardReturnIcon } from "../../../shared/icons";
 import { Link } from "../../../shared/ui";
 import { InviteHeader } from "../InviteHeader";
 import { InvitationInfo } from "../utils";
@@ -69,7 +68,7 @@ export const LoginIntro: VoidFunctionComponent<LoginIntroProps> = ({
       )}
       <div className={tw`w-full flex justify-center`}>
         <div className={tw`w-5/12 max-w-xl mr-28`}>
-          <Logo className={tw`mb-6`} />
+          <LogoIcon className={tw`mb-6`} />
           <div className={tw`py-14 px-16 mb-9 rounded-2xl bg-white shadow-xl`}>
             <h1 className={tw`text-2xl font-black uppercase mb-10`}>
               Sign in to your account

@@ -2,10 +2,9 @@ import React, { useMemo, VFC } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { tw } from "twind";
 
-import Logo from "../../../assets/svg/logo.svg";
 import { SelectInput } from "../../forms/SelectInput";
 import { useShortnameInput } from "../../hooks/useShortnameInput";
-import { InfoIcon, SpinnerIcon } from "../../../shared/icons";
+import { InfoIcon, SpinnerIcon, LogoIcon } from "../../../shared/icons";
 import { InvitationInfo, ORG_ROLES } from "../utils";
 
 type AccountSetupProps = {
@@ -88,7 +87,7 @@ export const AccountSetup: VFC<AccountSetupProps> = ({
 
   return (
     <div className={tw`w-9/12 max-w-3xl`}>
-      <Logo className={tw`mb-16`} />
+      <LogoIcon className={tw`mb-16`} />
       <div className={tw`mb-9`}>
         <h1 className={tw`text-3xl font-bold mb-4`}>{title}</h1>
         <p className={tw`text-2xl mb-14 font-light`}>{subtitle}</p>
