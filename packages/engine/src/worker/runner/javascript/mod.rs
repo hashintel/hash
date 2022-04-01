@@ -22,6 +22,10 @@ use arrow::{
     util::bit_util,
 };
 use futures::{Future, FutureExt};
+use memory::{
+    arrow::{ArrowBatch, ColumnChange},
+    shared_memory::{arrow_continuation, Memory, Metaversion},
+};
 use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     task::JoinError,
@@ -32,10 +36,8 @@ pub use self::error::{Error, Result};
 use crate::{
     config::Globals,
     datastore::{
-        arrow::util::arrow_continuation,
-        batch::{change::ColumnChange, AgentBatch, ArrowBatch, MessageBatch, Metaversion},
+        batch::{AgentBatch, MessageBatch},
         shared_store::SharedStore,
-        storage::memory::Memory,
         table::{
             proxy::StateWriteProxy,
             sync::{ContextBatchSync, StateSync, WaitableStateSync},

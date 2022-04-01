@@ -2,9 +2,8 @@ import { useState, useRef } from "react";
 import { faBell } from "@fortawesome/free-solid-svg-icons";
 import { Box, ListItemButton, Typography, useTheme } from "@mui/material";
 
-import { FontAwesomeIcon } from "../../icons";
-import { Popover } from "../../Popover";
-import { Link } from "../../Link";
+import { FontAwesomeIcon } from "../../../shared/icons";
+import { Link, Popover } from "../../../shared/ui";
 import { HeaderIconButton } from "./HeaderIconButton";
 
 export const NotificationsDropdown: React.FC = () => {
@@ -44,6 +43,14 @@ export const NotificationsDropdown: React.FC = () => {
           "&:hover": {
             color: theme.palette.common.white,
             backgroundColor: theme.palette.blue["70"],
+            ...(hasNotifications && {
+              backgroundColor: theme.palette.blue[80],
+              boxShadow: "unset",
+            }),
+          },
+
+          "&:focus-visible:after": {
+            borderRadius: hasNotifications ? 10 : "100%",
           },
         }}
         ref={buttonRef}

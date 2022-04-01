@@ -5,11 +5,10 @@ import { useLogout } from "../../hooks/useLogout";
 import { useUser } from "../../hooks/useUser";
 import { AccountDropdown } from "./AccountDropdown";
 import { SearchBar } from "./SearchBar";
-import { HashNavIcon } from "../../icons";
-import { Link } from "../../Link";
 import { ActionsDropdown } from "./ActionsDropdown";
 import { NotificationsDropdown } from "./NotificationsDropdown";
-import { Button } from "../../Button";
+import { Button, Link } from "../../../shared/ui";
+import { HashNavIcon } from "../../../shared/icons";
 
 const Nav: React.FC = ({ children }) => (
   <Box

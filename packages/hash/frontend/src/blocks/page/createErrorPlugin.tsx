@@ -2,7 +2,7 @@ import { Box, Dialog, Stack, Typography } from "@mui/material";
 import { Schema } from "prosemirror-model";
 import { Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { VFC } from "react";
-import { Button } from "../../components/Button";
+import { Button } from "../../shared/ui";
 import { ensureMounted } from "../../lib/dom";
 import { RenderPortal } from "./usePortals";
 

@@ -5,7 +5,7 @@ import "prosemirror-view/style/prosemirror.css";
 import React, { useLayoutEffect, useRef, VoidFunctionComponent } from "react";
 import { useLocalstorageState } from "rooks";
 
-import { Button } from "../../components/Button";
+import { Button } from "../../shared/ui";
 import { RemoteBlockMetadata, UserBlocksProvider } from "../userBlocks";
 import { EditorConnection } from "./collab/EditorConnection";
 import { BlocksMetaMap, createEditorView } from "./createEditorView";

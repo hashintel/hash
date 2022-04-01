@@ -115,7 +115,10 @@ export const cloneEntityTreeWithPropertiesMovedUp = (
   return clonedTree;
 };
 
-export const entityName = (entity: JSONObject) => {
+/**
+ * We are working on a first-class label concept that would replace this function.
+ */
+export const guessEntityName = (entity: JSONObject) => {
   const { name, preferredName, displayName, title, shortname, legalName } =
     isParsedJsonObject(entity.properties) ? entity.properties : entity;
   return (
