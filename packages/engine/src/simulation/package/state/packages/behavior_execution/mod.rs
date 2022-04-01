@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use serde_json::Value;
+use stateful::field::FieldScope;
 
 use self::{
     config::exp_init_message, fields::behavior::BehaviorMap, reset_index_col::reset_index_col,
@@ -7,7 +8,7 @@ use self::{
 use crate::{
     datastore::{
         batch::AgentBatch,
-        schema::{accessor::GetFieldSpec, FieldScope, FieldSource},
+        schema::{accessor::GetFieldSpec, FieldSource},
         table::{
             context::Context, pool::proxy::PoolWriteProxy, proxy::StateWriteProxy,
             task_shared_store::TaskSharedStoreBuilder,

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rand::{prelude::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
-use stateful::field::{FieldSpec, FieldType, FieldTypeVariant};
+use stateful::field::{FieldScope, FieldSpec, FieldType, FieldTypeVariant};
 use uuid::Uuid;
 
 use crate::{
@@ -13,8 +13,8 @@ use crate::{
     datastore::{
         error::Error,
         schema::{
-            last_state_index_key, state::AgentSchema, FieldScope, FieldSource, FieldSpecMap,
-            RootFieldSpec, RootFieldSpecCreator,
+            last_state_index_key, state::AgentSchema, FieldSource, FieldSpecMap, RootFieldSpec,
+            RootFieldSpecCreator,
         },
     },
     hash_types::state::{Agent, AgentStateField},

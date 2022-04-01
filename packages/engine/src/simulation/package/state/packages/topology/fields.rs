@@ -1,7 +1,7 @@
-use stateful::field::{FieldType, FieldTypeVariant};
+use stateful::field::{FieldScope, FieldType, FieldTypeVariant};
 
 use crate::{
-    datastore::schema::{FieldScope, RootFieldSpec, RootFieldSpecCreator},
+    datastore::schema::{RootFieldSpec, RootFieldSpecCreator},
     simulation::Result,
 };
 

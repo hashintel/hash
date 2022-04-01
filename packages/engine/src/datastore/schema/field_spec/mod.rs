@@ -3,7 +3,9 @@ use std::collections::{
     HashMap,
 };
 
-use stateful::field::{FieldKey, FieldSpec, FieldType, FieldTypeVariant, PresetFieldType};
+use stateful::field::{
+    FieldKey, FieldScope, FieldSpec, FieldType, FieldTypeVariant, PresetFieldType,
+};
 
 use crate::{
     datastore::error::{Error, Result},
@@ -19,49 +21,33 @@ pub const HIDDEN_PREFIX: &str = "_HIDDEN_";
 pub const PRIVATE_PREFIX: &str = "_PRIVATE_";
 pub const PREVIOUS_INDEX_FIELD_NAME: &str = "previous_index";
 
-/// Defines scope of access to Fields, where the order of the variants of this enum define an
-/// ordering of the scopes, where being defined lower implies a wider scope where more things can
-/// access it.
-/// i.e. Engine < Private < Hidden < Agent,
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub enum FieldScope {
-    /// Only the source package/engine agents and other packages don't
-    Private,
-    /// Agents do not have access but packages and engine do
-    Hidden,
-    /// Agents, packages and engine have access
-    Agent,
-}
+/// Create a new `FieldKey` from this scope with the provided `name` and the specified source.
+///
+/// # Errors
+///
+/// - Returns [`Error`] if name starts with [`PRIVATE_PREFIX`] or [`HIDDEN_PREFIX`]
+pub fn create_field_key(scope: FieldScope, name: &str, source: FieldSource) -> Result<FieldKey> {
+    // TODO: do we want these checks to only be present on debug builds
+    if name.starts_with(PRIVATE_PREFIX) || name.starts_with(HIDDEN_PREFIX) {
+        return Err(Error::from(format!(
+            "Field names cannot start with the protected prefixes: [{PRIVATE_PREFIX:?}, \
+             {HIDDEN_PREFIX:?}], received field name: {name:?}"
+        )));
+    }
 
-impl FieldScope {
-    /// Create a new `FieldKey` from this scope with the provided `name` and the specified source.
-    ///
-    /// # Errors
-    ///
-    /// - Returns [`Error`] if name starts with [`PRIVATE_PREFIX`] or [`HIDDEN_PREFIX`]
-    pub fn create_key(&self, name: &str, source: FieldSource) -> Result<FieldKey> {
-        // TODO: do we want these checks to only be present on debug builds
-        if name.starts_with(PRIVATE_PREFIX) || name.starts_with(HIDDEN_PREFIX) {
-            return Err(Error::from(format!(
-                "Field names cannot start with the protected prefixes: [{PRIVATE_PREFIX:?}, \
-                 {HIDDEN_PREFIX:?}], received field name: {name:?}"
-            )));
-        }
+    let scope_prefix = match scope {
+        FieldScope::Private => Some(PRIVATE_PREFIX),
+        FieldScope::Hidden => Some(HIDDEN_PREFIX),
+        FieldScope::Agent => None,
+    };
 
-        let scope_prefix = match self {
-            Self::Private => Some(PRIVATE_PREFIX),
-            Self::Hidden => Some(HIDDEN_PREFIX),
-            Self::Agent => None,
-        };
-
-        if let Some(prefix) = scope_prefix {
-            Ok(FieldKey::new(format!(
-                "{prefix}{}_{name}",
-                source.unique_id()?
-            )))
-        } else {
-            Ok(FieldKey::new(name.to_string()))
-        }
+    if let Some(prefix) = scope_prefix {
+        Ok(FieldKey::new(format!(
+            "{prefix}{}_{name}",
+            source.unique_id()?
+        )))
+    } else {
+        Ok(FieldKey::new(name.to_string()))
     }
 }
 
@@ -124,7 +110,7 @@ pub struct RootFieldSpec {
 
 impl RootFieldSpec {
     pub fn create_key(&self) -> Result<FieldKey> {
-        self.scope.create_key(&self.inner.name, self.source)
+        create_field_key(self.scope, &self.inner.name, self.source)
     }
 }
 

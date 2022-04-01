@@ -4,6 +4,7 @@ use crate::datastore::{
     error::Result,
     schema::field_spec::{FieldScope, FieldSource, FieldSpecMap, RootFieldSpec},
 };
+use crate::datastore::schema::field_spec::create_field_key;
 
 #[derive(derive_new::new)]
 pub struct FieldSpecMapAccessor {
@@ -33,7 +34,7 @@ impl GetFieldSpec for FieldSpecMapAccessor {
         scope: FieldScope,
         source: FieldSource,
     ) -> Result<&RootFieldSpec> {
-        let key = scope.create_key(field_name, source)?;
+        let key = create_field_key(scope, field_name, source)?;
         self.field_spec_map.get_field_spec(&key)
     }
 

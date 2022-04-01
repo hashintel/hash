@@ -3,13 +3,13 @@ use std::{
     convert::TryFrom,
 };
 
-use stateful::field::{FieldKey, FieldSpec, FieldType, FieldTypeVariant};
+use stateful::field::{FieldKey, FieldScope, FieldSpec, FieldType, FieldTypeVariant};
 
 // use crate::worker::runner::rust;
 use crate::{
     config::ExperimentConfig,
     datastore::{
-        schema::{FieldScope, FieldSpecMap, RootFieldSpec, RootFieldSpecCreator},
+        schema::{FieldSpecMap, RootFieldSpec, RootFieldSpecCreator},
         Error, Result,
     },
     experiment::SharedBehavior,

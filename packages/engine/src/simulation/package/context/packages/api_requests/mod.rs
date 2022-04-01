@@ -7,18 +7,14 @@ use arrow::datatypes::DataType;
 use async_trait::async_trait;
 use futures::{stream::FuturesOrdered, StreamExt};
 use serde_json::Value;
-use stateful::field::FieldKey;
+use stateful::field::{FieldKey, FieldScope};
 use tracing::{Instrument, Span};
 
 pub use self::handlers::CustomApiMessageError;
 use self::response::{ApiResponseMap, ApiResponses};
 use crate::{
     config::{ExperimentConfig, Globals},
-    datastore::{
-        batch::iterators,
-        schema::{accessor::GetFieldSpec, FieldScope},
-        table::pool::BatchPool,
-    },
+    datastore::{batch::iterators, schema::accessor::GetFieldSpec, table::pool::BatchPool},
     simulation::{
         comms::package::PackageComms,
         package::context::{

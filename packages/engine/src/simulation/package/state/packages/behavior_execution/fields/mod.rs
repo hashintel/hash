@@ -1,12 +1,12 @@
 pub mod behavior;
 
 use arrow::datatypes::DataType;
-use stateful::field::{FieldType, FieldTypeVariant, PresetFieldType};
+use stateful::field::{FieldScope, FieldType, FieldTypeVariant, PresetFieldType};
 
 use self::behavior::BehaviorMap;
 use crate::{
     config::ExperimentConfig,
-    datastore::schema::{FieldScope, RootFieldSpec, RootFieldSpecCreator},
+    datastore::schema::{RootFieldSpec, RootFieldSpecCreator},
     simulation::{
         package::state::packages::behavior_execution::BEHAVIOR_INDEX_INNER_COUNT, Result,
     },

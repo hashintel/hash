@@ -1,9 +1,9 @@
 use stateful::field::{
-    FieldType, FieldTypeVariant, FieldTypeVariant::FixedLengthArray, PresetFieldType,
+    FieldScope, FieldType, FieldTypeVariant, FieldTypeVariant::FixedLengthArray, PresetFieldType,
 };
 
 use crate::{
-    datastore::schema::{FieldScope, RootFieldSpec},
+    datastore::schema::RootFieldSpec,
     simulation::package::context::packages::neighbors::{
         Result, RootFieldSpecCreator, NEIGHBOR_INDEX_COUNT,
     },

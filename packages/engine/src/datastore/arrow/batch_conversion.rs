@@ -18,14 +18,14 @@ use memory::arrow::{
     json_vals_to_col, json_vals_to_primitive, json_vals_to_utf8, new_zero_bits,
 };
 use serde_json::value::Value;
-use stateful::field::{FieldKey, FieldTypeVariant};
+use stateful::field::{FieldKey, FieldScope, FieldTypeVariant};
 
 use crate::{
     datastore::{
         arrow::{message, message::messages_column_from_serde_values},
         batch::{AgentBatch, MessageBatch},
         error::{Error, Result},
-        schema::{state::AgentSchema, FieldScope, IsRequired},
+        schema::{state::AgentSchema, IsRequired},
         UUID_V4_LEN,
     },
     hash_types::{
