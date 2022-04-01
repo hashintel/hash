@@ -140,7 +140,7 @@ impl MessageBatch {
         metaversion_to_persist.increment_batch();
         batch
             .segment_mut()
-            .write_metaversion(metaversion_to_persist);
+            .persist_metaversion(metaversion_to_persist);
         batch.reload_record_batch_and_dynamic_meta()?;
         *batch.loaded_metaversion_mut() = metaversion_to_persist;
         Ok(())

@@ -438,7 +438,7 @@ impl<'a> BufferActions<'a> {
         batch.loaded_metaversion_mut().increment_with(&change);
         self.flush_memory(batch.segment_mut())?;
         let loaded = batch.loaded_metaversion();
-        batch.segment_mut().write_metaversion(loaded);
+        batch.segment_mut().persist_metaversion(loaded);
 
         // Overwrite the Arrow Batch Metadata in memory
         let change = agent_batch.flush_dynamic_meta_unchecked(&self.new_dynamic_meta)?;

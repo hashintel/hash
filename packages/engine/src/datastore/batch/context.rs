@@ -177,7 +177,7 @@ impl ContextBatch {
         persisted.increment_with(&change);
 
         persisted.increment_batch();
-        self.segment.write_metaversion(persisted);
+        self.segment.persist_metaversion(persisted);
 
         // Reload batch
         let (_, _, meta_buffer, data_buffer) = self.segment.get_batch_buffers()?;

@@ -184,7 +184,7 @@ impl ArrowBatch {
         //       because if shared memory was resized in flush_changes,
         //       that automatically means it was mapped again in this
         //       process.
-        self.segment.write_metaversion(persisted);
+        self.segment.persist_metaversion(persisted);
         tracing::debug!(
             "Flush metaversions: {before:?}, {persisted:?}, {:?}",
             self.segment.read_persisted_metaversion()
@@ -248,7 +248,7 @@ impl ArrowBatch {
         self.loaded_metaversion.increment_batch();
         let mut persisted = self.segment.read_persisted_metaversion();
         persisted.increment_batch();
-        self.segment.write_metaversion(persisted);
+        self.segment.persist_metaversion(persisted);
     }
 
     /// Copy data from `new_batch` into self and increment persisted metaversion of self. (Don't
@@ -295,7 +295,7 @@ impl ArrowBatch {
         self.reload_record_batch()?;
         metaversion_to_persist.increment_batch();
 
-        self.segment.write_metaversion(metaversion_to_persist);
+        self.segment.persist_metaversion(metaversion_to_persist);
         // Right before this function was called, the loaded metaversion must have been older than
         // or equal to the persisted one, so now it is strictly older.
         debug_assert!(self.loaded_metaversion().older_than(metaversion_to_persist));

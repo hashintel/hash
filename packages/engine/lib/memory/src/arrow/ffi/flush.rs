@@ -109,7 +109,7 @@ unsafe extern "C" fn flush_changes(
         MEMORY_SIZE_UNCHANGED
     };
     if loaded_metaversion != metaversion {
-        match segment.try_write_metaversion(metaversion) {
+        match segment.try_persist_metaversion(metaversion) {
             Ok(v) => v,
             Err(err) => {
                 println!("Could not write metaversion in `flush_changes`: {err:?}");

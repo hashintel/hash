@@ -330,13 +330,13 @@ impl Segment {
     ///
     /// If the metaversion wasn't written properly when the batch was created or the part of memory
     /// with the metaversion was deallocated later, this might fail to read the metaversion.
-    pub fn write_metaversion(&mut self, metaversion: Metaversion) {
-        self.try_write_metaversion(metaversion)
+    pub fn persist_metaversion(&mut self, metaversion: Metaversion) {
+        self.try_persist_metaversion(metaversion)
             .expect("Could not set metaversion")
     }
 
     /// Same as [`write_metaversion`] but return a `Result` instead of panicking.
-    pub fn try_write_metaversion(&mut self, metaversion: Metaversion) -> Result<()> {
+    pub fn try_persist_metaversion(&mut self, metaversion: Metaversion) -> Result<()> {
         let header = self.visitor_mut().header_mut();
         let n_header_bytes = header.len();
         let n_metaversion_bytes = 2 * mem::size_of::<u32>();
