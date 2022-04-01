@@ -11,7 +11,7 @@ import {
   CreateEntityTypeMutationVariables,
 } from "../../../graphql/apiTypes.gen";
 import { TextInput } from "../../../components/forms/TextInput";
-import { Button } from "../../../components/Button";
+import { Button } from "../../../shared/ui";
 import { MainContentWrapper } from "../../../components/layout/MainContentWrapper";
 import { getAccountEntityTypes } from "../../../graphql/queries/account.queries";
 

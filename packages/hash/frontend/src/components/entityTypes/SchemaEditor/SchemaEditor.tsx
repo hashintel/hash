@@ -24,9 +24,8 @@ import {
   schemaEditorReducer,
   SchemaEditorReducerAction,
 } from "./schemaEditorReducer";
-import { Button } from "../../Button";
 import { SubSchemaItem } from "./SubSchemaItem";
-import { Link } from "../../Link";
+import { Button, Link } from "../../../shared/ui";
 
 export type SchemaSelectElementType = VoidFunctionComponent<{
   schemaRef: string;

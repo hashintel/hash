@@ -4,7 +4,7 @@ import ArticleIcon from "@mui/icons-material/Article";
 
 import { useUsers } from "../../../components/hooks/useUsers";
 import { useAccountPages } from "../../../components/hooks/useAccountPages";
-import { Link } from "../../../components/Link";
+import { Link } from "../../../shared/ui";
 
 interface MentionDisplayProps {
   entityId: string;
