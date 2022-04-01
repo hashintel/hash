@@ -70,6 +70,10 @@ type Array<'scope> = v8::Local<'scope, v8::Array>;
 
 const MB: usize = 1_000_000;
 
+// Default heap limits used for each `v8::Isolate` in MB
+const DEFAULT_INITIAL_HEAP_CONSTRAINT_MB = 0;
+const DEFAULT_MAX_HEAP_SIZE_MB = 4_000;
+
 struct JsPackage<'s> {
     fns: Array<'s>,
 }
