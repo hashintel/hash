@@ -10,26 +10,13 @@ const focusPositionStyles = (borderOffset: number): CSSObject => ({
   right: -borderOffset,
 });
 
-const focusBorderRadiusStyles = (
-  borderRadius: number,
-  borderOffset: number,
-  borderWidth: number,
-): CSSObject => ({
-  borderRadius: borderRadius + (borderOffset - borderWidth),
-});
-
 const focusBorderStyles = (borderWidth: number): CSSObject => ({
   border: `${borderWidth}px solid transparent`,
 });
 
-const focusStyles = (
-  borderWidth: number,
-  borderOffset: number,
-  borderRadius: number,
-): CSSObject => ({
+const focusStyles = (borderWidth: number, borderOffset: number): CSSObject => ({
   ...focusPositionStyles(borderOffset),
   ...focusBorderStyles(borderWidth),
-  ...focusBorderRadiusStyles(borderRadius, borderOffset, borderWidth),
 });
 
 export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
@@ -56,6 +43,9 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         border: "2px solid",
         position: "relative",
         whiteSpace: "nowrap",
+
+        // Makes this always correct as a pill shape
+        borderRadius: 999,
       };
 
       const hoverStyles: CSSObject = {};
@@ -72,6 +62,9 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         ...focusBorderStyles(buttonFocusBorderWidth),
         ...focusPositionStyles(buttonFocusBorderOffset),
         transition: theme.transitions.create("border-color"),
+
+        // Makes this always correct as a pill shape
+        borderRadius: 999,
       };
 
       const focusVisibleStyles: CSSObject = {};
@@ -91,10 +84,9 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
               theme.palette.yellow[500],
               0.5,
             )}`;
-            const borderRadius = 4;
 
             Object.assign(baseStyles, {
-              borderRadius,
+              borderRadius: 4,
               borderWidth: 1,
               borderColor: theme.palette.orange[400],
               color: theme.palette.gray[90],
@@ -113,31 +105,24 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
               boxShadow: "none",
             });
             Object.assign(afterStyles, {
-              ...focusStyles(3, 7, borderRadius + 2),
+              ...focusStyles(3, 7),
+              borderRadius: 10,
             });
           } else {
-            const borderRadius = 29;
             Object.assign(baseStyles, {
-              borderRadius,
               minHeight: 54,
               padding: theme.spacing("14px", "37.5px"),
             });
             Object.assign(afterStyles, {
-              ...focusStyles(
-                buttonFocusBorderWidth,
-                buttonFocusBorderOffset,
-                borderRadius,
-              ),
+              ...focusStyles(buttonFocusBorderWidth, buttonFocusBorderOffset),
             });
           }
 
           break;
         }
         case "medium": {
-          const borderRadius = 22;
           Object.assign(baseStyles, {
             fontSize: typography.bpSmallCopy.fontSize,
-            borderRadius,
             minHeight: 42,
             padding: theme.spacing("10px", "18px"),
 
@@ -149,11 +134,7 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
               : {}),
           });
           Object.assign(afterStyles, {
-            ...focusStyles(
-              buttonFocusBorderWidth,
-              buttonFocusBorderOffset,
-              borderRadius,
-            ),
+            ...focusStyles(buttonFocusBorderWidth, buttonFocusBorderOffset),
           });
           break;
         }

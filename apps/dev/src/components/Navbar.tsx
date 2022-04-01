@@ -37,13 +37,22 @@ const DesktopNav: VFC = () => (
           minHeight: 32,
           py: 1,
           borderRadius: 30,
+          borderWidth: 1,
+
+          "&:after": {
+            borderWidth: 3,
+            left: -6,
+            top: -6,
+            right: -6,
+            bottom: -6,
+          },
 
           "&.MuiButton-primary": {
             borderColor: "yellow.500",
             // @todo this is correct
             color: "yellow.900",
 
-            ":focus-visible, &.Button--focus:not(:disabled)": {
+            ":hover, :focus-visible, &.Button--focus:not(:disabled)": {
               backgroundColor: "yellow.400",
             },
           },
