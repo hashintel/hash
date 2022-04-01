@@ -80,7 +80,7 @@ impl PackageName {
     pub fn get_all_dependencies(&self) -> Result<Dependencies> {
         let mut merged = Dependencies::new();
         for dependency in self.get_dependencies()?.into_iter_deps() {
-            merged.add_dependency_with_ignore(dependency.clone())?;
+            merged.add_dependency_with_ignore(dependency)?;
             let deps = dependency.get_all_dependencies()?;
             for dep in deps.into_iter_deps() {
                 merged.add_dependency_with_ignore(dep)?;

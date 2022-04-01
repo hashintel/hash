@@ -73,7 +73,7 @@ impl RootFieldSpecCreator {
         RootFieldSpec {
             inner: FieldSpec { name, field_type },
             scope,
-            source: self.field_source.clone(),
+            source: self.field_source,
         }
     }
 }
