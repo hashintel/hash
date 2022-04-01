@@ -68,10 +68,10 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   const { fetchEntities } = useAccountEntities();
 
   useEffect(() => {
-    if (entityId) {
-      fetchEntities(accountId, { entityId });
+    if (entityId && accountId) {
+      fetchEntities(accountId, { entityTypeId: entityId });
     }
-  }, [entityId]);
+  }, [entityId, accountId]);
 
   if (blockData && !isBlockEntity(blockData)) {
     throw new Error("BlockContextMenu linked to non-block entity");
