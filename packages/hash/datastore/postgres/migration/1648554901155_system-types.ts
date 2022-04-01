@@ -1,7 +1,7 @@
+import { MigrationBuilder, ColumnDefinitions } from "node-pg-migrate";
 import { SYSTEM_TYPES } from "@hashintel/hash-api/src/types/entityTypes";
 
 import generatedIds from "../scripts/data/generatedIds.json";
-
 import { entityTypeJson } from "../scripts/data/systemTypeSchemas";
 
 const now = "2021-08-19T11:00:14.588Z";
@@ -37,4 +37,10 @@ insert into entity_type_versions (
 
 const sqlString = sqlStatements.join("");
 
-export default sqlString;
+export const shorthands: ColumnDefinitions | undefined = undefined;
+
+export async function up(pgm: MigrationBuilder): Promise<void> {
+  pgm.sql(sqlString);
+}
+
+export const down = false;

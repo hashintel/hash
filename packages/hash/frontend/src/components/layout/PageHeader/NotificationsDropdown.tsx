@@ -44,6 +44,14 @@ export const NotificationsDropdown: React.FC = () => {
           "&:hover": {
             color: theme.palette.common.white,
             backgroundColor: theme.palette.blue["70"],
+            ...(hasNotifications && {
+              backgroundColor: theme.palette.blue[80],
+              boxShadow: "unset",
+            }),
+          },
+
+          "&:focus-visible:after": {
+            borderRadius: hasNotifications ? 10 : "100%",
           },
         }}
         ref={buttonRef}
