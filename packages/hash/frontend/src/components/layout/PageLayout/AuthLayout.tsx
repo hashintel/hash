@@ -3,7 +3,7 @@ import { tw } from "twind";
 
 import bgPattern from "../../../assets/images/auth-bg-pattern.png";
 import Logo from "../../../assets/svg/logo.svg";
-import { HashIcon } from "../../icons";
+import { HashIcon } from "../../../shared/icons";
 
 export type AuthLayoutProps = {
   children: ReactNode;

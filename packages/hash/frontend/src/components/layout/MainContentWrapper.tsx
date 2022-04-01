@@ -1,7 +1,7 @@
 import { Fade, Box, Tooltip, styled } from "@mui/material";
 import { FunctionComponent } from "react";
 
-import { SidebarToggleIcon } from "../icons";
+import { SidebarToggleIcon } from "../../shared/icons";
 import { HEADER_HEIGHT } from "./PageHeader/PageHeader";
 import { PageSidebar, SIDEBAR_WIDTH } from "./PageSidebar/PageSidebar";
 import { useSidebarContext } from "./SidebarContext";

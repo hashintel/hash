@@ -11,7 +11,7 @@ import {
 import { AccountPageList } from "./AccountPageList/AccountPageList";
 
 import { AccountEntityTypeList } from "./AccountEntityTypeList/AccountEntityTypeList";
-import { FontAwesomeIcon, SidebarToggleIcon } from "../../icons";
+import { FontAwesomeIcon, SidebarToggleIcon } from "../../../shared/icons";
 import { TopNavLink } from "./TopNavLink";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { useSidebarContext } from "../SidebarContext";

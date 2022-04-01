@@ -9,7 +9,7 @@ import React, {
 import { tw } from "twind";
 
 import Logo from "../../assets/svg/logo.svg";
-import { HashIcon, KeyboardReturnIcon } from "../icons";
+import { HashIcon, KeyboardReturnIcon } from "../../shared/icons";
 import { InviteHeader } from "./InviteHeader";
 import { InvitationInfo, SYNTHETIC_LOADING_TIME_MS } from "./utils";
 

@@ -8,7 +8,7 @@ import React, {
 import { tw } from "twind";
 
 import Logo from "../../../assets/svg/logo.svg";
-import { HashIcon, KeyboardReturnIcon } from "../../icons";
+import { HashIcon, KeyboardReturnIcon } from "../../../shared/icons";
 import { Link } from "../../../shared/ui";
 import { InviteHeader } from "../InviteHeader";
 import { InvitationInfo } from "../utils";

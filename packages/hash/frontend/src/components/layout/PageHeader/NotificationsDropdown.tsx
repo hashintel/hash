@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { faBell } from "@fortawesome/free-solid-svg-icons";
 import { Box, ListItemButton, Typography, useTheme } from "@mui/material";
 
-import { FontAwesomeIcon } from "../../icons";
+import { FontAwesomeIcon } from "../../../shared/icons";
 import { Link, Popover } from "../../../shared/ui";
 import { HeaderIconButton } from "./HeaderIconButton";
 

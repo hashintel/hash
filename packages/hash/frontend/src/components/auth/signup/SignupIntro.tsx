@@ -3,7 +3,7 @@ import { tw } from "twind";
 import { useRouter } from "next/router";
 
 import Logo from "../../../assets/svg/logo.svg";
-import { SpinnerIcon } from "../../icons";
+import { SpinnerIcon } from "../../../shared/icons";
 import { TextInput } from "../../forms/TextInput";
 import { useUser } from "../../hooks/useUser";
 import { InviteHeader } from "../InviteHeader";
