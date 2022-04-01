@@ -24,7 +24,7 @@ export const CurrentWorkspaceContextProvider: FC = ({ children }) => {
 
   const value = useMemo(
     () => ({
-      accountId: (router.query.accountId as string) ?? user?.accountId, // @todo we should handle when accountId is undefined
+      accountId: (router.query["account-slug"] as string) ?? user?.accountId, // @todo we should handle when accountId is undefined
     }),
     [router, user],
   );
