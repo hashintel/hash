@@ -70,10 +70,6 @@ type Array<'scope> = v8::Local<'scope, v8::Array>;
 
 const MB: usize = 1_000_000;
 
-// Default heap limits used for each `v8::Isolate` in MB
-const DEFAULT_INITIAL_HEAP_CONSTRAINT_MB = 0;
-const DEFAULT_MAX_HEAP_SIZE_MB = 4_000;
-
 struct JsPackage<'s> {
     fns: Array<'s>,
 }
@@ -1960,7 +1956,7 @@ fn run_experiment(
                     create_params.heap_limits(0, js_runner_max_heap_size * MB)
                 }
                 (Some(js_runner_initial_heap_constraint), None) => {
-                    create_params.heap_limits(js_runner_initial_heap_constraint * MB, 4_000 * MB)
+                    create_params.heap_limits(js_runner_initial_heap_constraint * MB, 0 * MB)
                 }
                 (Some(js_runner_initial_heap_constraint), Some(js_runner_max_heap_size)) => {
                     create_params.heap_limits(js_runner_initial_heap_constraint * MB, js_runner_max_heap_size * MB)
