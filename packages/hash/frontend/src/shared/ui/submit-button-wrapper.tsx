@@ -13,7 +13,7 @@ import {
   Collapse,
 } from "@mui/material";
 import React, { FC, forwardRef } from "react";
-import { FontAwesomeIcon } from "./icons";
+import { FontAwesomeIcon } from "../icons";
 
 const DisabledTooltip = styled(({ className, ...props }: TooltipProps) => (
   <Tooltip {...props} classes={{ popper: className }} />

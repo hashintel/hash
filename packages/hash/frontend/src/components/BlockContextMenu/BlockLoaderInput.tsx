@@ -2,9 +2,9 @@ import React, { useState, useRef, FormEvent } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 import { tw } from "twind";
 
-import { Button } from "../Button";
 import { useBlockView } from "../../blocks/page/BlockViewContext";
 import { useUserBlocks } from "../../blocks/userBlocks";
+import { Button } from "../../shared/ui";
 
 export const BlockLoaderInput: React.VFC = () => {
   const blockView = useBlockView();

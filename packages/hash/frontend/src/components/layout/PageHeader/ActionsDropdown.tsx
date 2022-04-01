@@ -10,9 +10,8 @@ import {
 import { useKeys } from "rooks";
 import { useRouter } from "next/router";
 
-import { FontAwesomeIcon } from "../../icons";
-import { Popover } from "../../Popover";
-import { Link } from "../../Link";
+import { FontAwesomeIcon } from "../../../shared/icons";
+import { Link, Popover } from "../../../shared/ui";
 import { HeaderIconButton } from "./HeaderIconButton";
 import { useCreatePage } from "../../hooks/useCreatePage";
 

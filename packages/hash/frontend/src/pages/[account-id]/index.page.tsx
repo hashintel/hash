@@ -5,7 +5,7 @@ import { Box, Typography } from "@mui/material";
 import { MainContentWrapper } from "../../components/layout/MainContentWrapper";
 import { useUser } from "../../components/hooks/useUser";
 import { useOrgs } from "../../components/hooks/useOrgs";
-import { Link } from "../../components/Link";
+import { Link } from "../../shared/ui";
 
 export const AccountHome: VoidFunctionComponent = () => {
   const { query } = useRouter();
