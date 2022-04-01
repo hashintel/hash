@@ -23,10 +23,8 @@ export const SIDEBAR_WIDTH = 260;
 export const PageSidebar: VoidFunctionComponent = () => {
   const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebarContext();
-  const { accountId, pageEntityId } = router.query as Record<
-    "accountId" | "pageEntityId",
-    string
-  >;
+  const accountId = router.query["account-slug"] as string;
+  const pageEntityId = router.query["page-slug"] as string;
 
   return (
     <Drawer
@@ -65,7 +63,7 @@ export const PageSidebar: VoidFunctionComponent = () => {
         title="Home"
         href="/"
         tooltipTitle="View your inbox and latest activity"
-        active={router.pathname === "/[accountId]"}
+        active={router.pathname === "/[account-slug]"}
       />
       <TopNavLink
         icon={faZap}
