@@ -18,10 +18,9 @@ import { orderBy } from "lodash";
 import { useRouter } from "next/router";
 import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
 import { useAccountEntityTypes } from "../../../hooks/useAccountEntityTypes";
-import { FontAwesomeIcon } from "../../../icons";
 import { NavLink } from "../NavLink";
-import { Link } from "../../../Link";
-import { IconButton } from "../../../IconButton";
+import { IconButton, Link } from "../../../../shared/ui";
+import { FontAwesomeIcon } from "../../../../shared/icons";
 import { EntityTypeItem } from "./EntityTypeItem";
 import { SortActionsDropdown, SortType } from "./SortActionsDropdown";
 

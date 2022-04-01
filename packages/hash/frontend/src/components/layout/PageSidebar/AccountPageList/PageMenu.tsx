@@ -19,7 +19,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { faFileAlt, faTrashCan } from "@fortawesome/free-regular-svg-icons";
 import { useCurrentWorkspaceContext } from "../../../../contexts/CurrentWorkspaceContext";
-import { FontAwesomeIcon } from "../../../icons";
+import { FontAwesomeIcon } from "../../../../shared/icons";
 import { useCreatePage } from "../../../hooks/useCreatePage";
 
 type PageMenuProps = {
