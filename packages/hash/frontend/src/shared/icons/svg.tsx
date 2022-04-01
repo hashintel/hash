@@ -1,10 +1,11 @@
-export { default as DragVerticalIcon } from "./svg/drag-vertical.svg";
-export { default as AvatarIcon } from "./svg/default-avatar.svg";
-export { default as DropdownIcon } from "./svg/arrow-down-drop.svg";
-export { default as HumanGreetingIcon } from "./svg/human-greeting.svg";
-export { default as InfoIcon } from "./svg/info.svg";
-export { default as KeyboardReturnIcon } from "./svg/keyboard-return.svg";
-export { default as PeopleIcon } from "./svg/people.svg";
-export { default as PictureIcon } from "./svg/picture.svg";
-export { default as SpinnerIcon } from "./svg/spinner.svg";
-export { default as HashIcon } from "./svg/hash.svg";
+// @todo move the svgs from assets into /shared/icons
+export { default as DragVerticalIcon } from "../../assets/svg/drag-vertical.svg";
+export { default as AvatarIcon } from "../../assets/svg/default-avatar.svg";
+export { default as DropdownIcon } from "../../assets/svg/arrow-down-drop.svg";
+export { default as HumanGreetingIcon } from "../../assets/svg/human-greeting.svg";
+export { default as InfoIcon } from "../../assets/svg/info.svg";
+export { default as KeyboardReturnIcon } from "../../assets/svg/keyboard-return.svg";
+export { default as PeopleIcon } from "../../assets/svg/people.svg";
+export { default as PictureIcon } from "../../assets/svg/picture.svg";
+export { default as SpinnerIcon } from "../../assets/svg/spinner.svg";
+export { default as HashIcon } from "../../assets/svg/hash.svg";
