@@ -221,6 +221,10 @@
     "@typescript-eslint/no-shadow": "error",
     "@typescript-eslint/no-meaningless-void-operator": "error",
     "no-use-before-define": "off",
+    "@typescript-eslint/no-misused-promises": [
+      "error", // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/docs/rules/no-misused-promises.md#checksvoidreturn
+      { "checksVoidReturn": { "attributes": false, "properties": false } }
+    ],
     "@typescript-eslint/no-use-before-define": ["error"],
 
     // Part of @typescript-eslint/recommended-requiring-type-checking

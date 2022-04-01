@@ -9,14 +9,14 @@ description: Add and remove agents by interacting with hCore
 
 In addition to the custom messages you can send between individual agents in the simulation, hCore has a set of built-in messages that enable more advanced functionality.
 
-Currently, the most powerful built-in message handlers allow agents to add or remove other agents from the simulation. These messages must be sent to `hash` to get processed by hCore. If not, they will be directed to an agent with a matching ID/name, and you will be very confused. If the agent with a matching name doesn't exist, the message goes unsent and nothing will happen. Again, you will be very confused.
+Currently, the most powerful built-in message handlers allow agents to add or remove other agents from the simulation. These messages must be sent to `hash` to be processed by the simulation engine. If not, they will be directed to an agent with a matching ID/name, and you will be very confused. If the agent with a matching name doesn't exist, the message goes unsent and nothing will happen. Again, you will be very confused.
 
 ## Removing Agents via Messages
 
 Any agent can remove any other agent with a special message sent directly to `hash`. Here, we remove an agent with `agent_name: "Bill"`. Before the next step starts executing, the message will be processed and Bill will be removed \(sorry Bill!\).
 
 <Hint style="warning">
-**Case sensitivity** **matters.** If a message is sent to `bill`, it will not be received by `Bill`. The only exception to this rule is that any message sent to hASh, Hash, HASH, haSh, or any similar variant will be forwarded to the master `hash` agent.
+**Case sensitivity matters.** If a message is sent to `bill`, it will not be received by `Bill`. The only exception to this rule is that any message sent to hASh, Hash, HASH, haSh, or any similar variant will be forwarded to the engine.
 </Hint>
 
 <Tabs>
@@ -46,7 +46,7 @@ If a "remove_agent" message is sent without an id or name specified in the data,
 
 Any agent can also create new agents. Any message sent to `hash` with the `create_agent` type will result in the engine spawning a new agent. By default this agent will lack position or direction, and the engine will not try to place the agent for you.
 
-Here, anything in the data field will be used to create the new agent. The `newborn` behavior is given to this agent, but remember, it will not be run until the next step.
+Here, anything in the data field will be used to define the state of the new agent. The `newborn` behavior is given to this agent, but remember, it will not be run until the next step.
 
 <Tabs>
 <Tab title="JavaScript" >
@@ -77,7 +77,7 @@ def behavior(state, context):
 
 ## Navigation with Mapbox
 
-**Message handlers can also be used to access 3rd party APIs during the runtime of a HASH simulation.** Presently we support just one external API, _Mapbox_, but in the coming months a number of others will be listed in [hIndex](/index) and the ability to add new APIs will be opened up publicly.
+Message handlers can also be used to access 3rd party APIs during the runtime of a HASH simulation. Presently we support just one external API, _Mapbox_, but in the coming months a number of others will be listed in [hIndex](/index) and the ability to add new APIs will be opened up publicly.
 
 Using the existing Mapbox API message handler, any agent can request navigation directions between two points. But first, you'll need to activate the Mapbox message handler in your `globals.json` file:
 
@@ -183,10 +183,7 @@ For further information about the Mapbox API and error messages, see the [offici
 
 ## Stopping a simulation
 
-A simulation may be stopped by sending a message of type `"stop"` to the
-`"hash"` agent. This built-in message may be useful to stop a simulation
-after a given number of steps, or when some condition has been reached
-in the simulation state.
+A simulation may be stopped by sending a message of type `"stop"` to `"hash"`. This built-in message may be useful to stop a simulation after a given number of steps, or when some condition has been reached in the simulation state.
 
 <Tabs>
 
@@ -214,8 +211,7 @@ def behavior(state, context):
 
 </Tabs>
 
-The message `data` is optional, but may be used to signify why the simulation
-stopped. The following fields may be included:
+The message `data` is optional, but may be used to signify why the simulation stopped. The following fields may be included:
 
 1.  `"status"`: one of `"success"`, `"warning"` or `"error"`. Defaults to `"warning"` if not specified.
 1.  `"reason"`: a message describing why the simulation was stopped.
