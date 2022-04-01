@@ -1,4 +1,10 @@
-import { alpha, Components, CSSObject, Theme } from "@mui/material";
+import {
+  alpha,
+  buttonClasses,
+  Components,
+  CSSObject,
+  Theme,
+} from "@mui/material";
 
 const buttonFocusBorderOffset = 6;
 const buttonFocusBorderWidth = 2;
@@ -195,17 +201,40 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         ":after": afterStyles,
         ":focus-visible:after, &.Button--focus:not(:disabled):after":
           focusVisibleAfterStyles,
+
+        [`.${buttonClasses.startIcon}, .${buttonClasses.endIcon}`]: {
+          "&>*:nth-of-type(1)": {
+            fontSize: 12,
+            marginTop: 1,
+            ...(ownerState.variant === "primary" && {
+              color: theme.palette.orange[600],
+            }),
+            ...(ownerState.variant === "tertiary" && {
+              color: theme.palette.gray[50],
+            }),
+          },
+        },
+        "&:hover": {
+          [`.${buttonClasses.startIcon}, .${buttonClasses.endIcon}`]: {
+            "&>*:nth-of-type(1)": {
+              ...(ownerState.variant === "primary" && {
+                color: theme.palette.orange[900],
+              }),
+              ...(ownerState.variant === "tertiary" && {
+                color: theme.palette.gray[70],
+              }),
+            },
+          },
+        },
+        [`.${buttonClasses.endIcon}`]: {
+          marginRight: 0,
+          marginLeft: theme.spacing(1),
+        },
+        [`.${buttonClasses.startIcon}`]: {
+          marginLeft: 0,
+          marginRight: theme.spacing(1),
+        },
       };
-    },
-    endIcon: {
-      "&>*:nth-of-type(1)": {
-        fontSize: "inherit",
-      },
-    },
-    startIcon: {
-      "&>*:nth-of-type(1)": {
-        fontSize: "inherit",
-      },
     },
   },
 };

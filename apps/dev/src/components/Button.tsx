@@ -69,7 +69,6 @@ const LoadingContent: VFC<{
 };
 
 /**
- * @todo check icon styles
  * @todo check loading styles
  */
 export const Button: FC<ButtonProps> = forwardRef(
