@@ -3,6 +3,7 @@ import {
   faCircleExclamation,
 } from "@fortawesome/free-solid-svg-icons";
 import {
+  Box,
   Collapse,
   InputAdornment,
   outlinedInputClasses,
@@ -11,11 +12,12 @@ import {
   Typography,
 } from "@mui/material";
 import { VFC } from "react";
-import { FontAwesomeIcon } from "../../shared/icons";
+import { FontAwesomeIcon } from "../icons";
 
 type TextFieldProps = {
   success?: boolean;
   showLabelCornerHint?: boolean;
+  autoResize?: boolean;
 } & MuiTextFieldProps;
 
 export const TextField: VFC<TextFieldProps> = ({
@@ -26,6 +28,7 @@ export const TextField: VFC<TextFieldProps> = ({
   error,
   label,
   showLabelCornerHint,
+  autoResize,
   ...textFieldProps
 }) => {
   const { sx: InputPropsSx = [], ...otherInputProps } = InputProps;
@@ -87,6 +90,12 @@ export const TextField: VFC<TextFieldProps> = ({
                   ? palette.red[40]
                   : palette.gray[30],
               },
+            ...(textFieldProps.multiline &&
+              autoResize && {
+                [`& .${outlinedInputClasses.input}`]: {
+                  resize: "auto",
+                },
+              }),
           }),
           ...(Array.isArray(InputPropsSx) ? InputPropsSx : [InputPropsSx]),
         ],
@@ -95,7 +104,11 @@ export const TextField: VFC<TextFieldProps> = ({
         endAdornment:
           error || success ? renderEndAdornment() : InputProps?.endAdornment,
       }}
-      helperText={<Collapse in={!!helperText}>{helperText}</Collapse>}
+      helperText={
+        <Collapse in={!!helperText}>
+          <Box className="box">{helperText}</Box>
+        </Collapse>
+      }
       FormHelperTextProps={{
         error,
         sx: ({ typography, palette }) => ({

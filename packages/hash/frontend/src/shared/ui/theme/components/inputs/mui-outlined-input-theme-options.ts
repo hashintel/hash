@@ -87,9 +87,16 @@ export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"]
           marginLeft: theme.spacing(1.5),
         },
       }),
-      multiline: () => ({
+      multiline: ({ theme }) => ({
         paddingTop: 0,
         paddingBottom: 0,
+        paddingLeft: 0,
+        paddingRight: 0,
+
+        [`& .${outlinedInputClasses.input}`]: {
+          paddingLeft: theme.spacing(2),
+          paddingRight: theme.spacing(2),
+        },
       }),
     },
   };

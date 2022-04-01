@@ -20,7 +20,7 @@ import { FontAwesomeIcon, SidebarToggleIcon } from "../../shared/icons";
 import { HEADER_HEIGHT } from "./PageHeader/PageHeader";
 import { PageSidebar, SIDEBAR_WIDTH } from "./PageSidebar/PageSidebar";
 import { useSidebarContext } from "./SidebarContext";
-import { IconButton, TextField } from "../../shared/ui";
+import { Button, IconButton, TextField, FormInline } from "../../shared/ui";
 
 const Main = styled("main", {
   shouldForwardProp: (prop) => prop !== "sidebarOpen",
@@ -102,8 +102,6 @@ export const MainContentWrapper: FC = ({ children }) => {
         <Checkbox checked />
         <br />
         <br />
-        <TextField placeholder="Search for anything" helperText={open} />
-        <br />
         <Stack direction="row" alignItems="center" spacing={2}>
           <TextField
             defaultValue="small"
@@ -180,14 +178,19 @@ export const MainContentWrapper: FC = ({ children }) => {
               startAdornment: (
                 <InputAdornment
                   sx={({ palette }) => ({
-                    backgroundColor: "gray.10",
-                    color: "gray.60",
+                    backgroundColor: palette.gray[10],
+                    color: palette.gray[60],
                     paddingRight: "12px",
                     border: `1px solid ${palette.gray[30]}`,
                   })}
                   position="start"
                 >
-                  <Typography color="gray.60" variant="regularTextLabels">
+                  <Typography
+                    sx={({ palette }) => ({
+                      color: palette.gray[60],
+                    })}
+                    variant="regularTextLabels"
+                  >
                     https://
                   </Typography>
                 </InputAdornment>
@@ -217,8 +220,21 @@ export const MainContentWrapper: FC = ({ children }) => {
         <br />
         <Stack direction="row" alignItems="flex-start" spacing={2}>
           <TextField placeholder="Something about myself" multiline />
-          <TextField defaultValue="Something about myself" multiline />
+          <TextField
+            defaultValue="Something about myself"
+            multiline
+            autoResize
+          />
         </Stack>
+        <br />
+        <Stack direction="row" alignItems="flex-start" spacing={2}>
+          <FormInline>
+            <TextField defaultValue="start typing" />
+            <Button>Submit</Button>
+          </FormInline>
+        </Stack>
+
+        <br />
         <br />
         <br />
         <br />
