@@ -20,8 +20,7 @@ import { FontAwesomeIcon, SidebarToggleIcon } from "../../shared/icons";
 import { HEADER_HEIGHT } from "./PageHeader/PageHeader";
 import { PageSidebar, SIDEBAR_WIDTH } from "./PageSidebar/PageSidebar";
 import { useSidebarContext } from "./SidebarContext";
-import { IconButton } from "../../shared/ui";
-import { TextField } from "../TextField";
+import { IconButton, TextField } from "../../shared/ui";
 
 const Main = styled("main", {
   shouldForwardProp: (prop) => prop !== "sidebarOpen",

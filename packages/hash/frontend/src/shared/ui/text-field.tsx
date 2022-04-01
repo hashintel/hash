@@ -11,7 +11,7 @@ import {
   Typography,
 } from "@mui/material";
 import { VFC } from "react";
-import { FontAwesomeIcon } from "./icons";
+import { FontAwesomeIcon } from "../../shared/icons";
 
 type TextFieldProps = {
   success?: boolean;

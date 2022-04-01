@@ -1,26 +1,22 @@
-import { Components, Theme, svgIconClasses } from "@mui/material";
-import { CheckboxBlankIcon } from "../icons/CheckboxBlankIcon";
-import { CheckboxIcon } from "../icons/CheckboxIcon";
+import { Components, Theme } from "@mui/material";
+import { RadioCheckedIcon } from "./mui-radio-theme-options/radio-checked-icon";
+import { RadioUncheckedIcon } from "./mui-radio-theme-options/radio-unchecked-icon";
 
 const focusBorderOffset = 4;
 const focusBorderWidth = 2;
-const checkboxBorderRadius = 3;
 
-export const MuiCheckboxThemeOptions: Components<Theme>["MuiCheckbox"] = {
+export const MuiRadioThemeOptions: Components<Theme>["MuiRadio"] = {
   defaultProps: {
-    disableFocusRipple: true,
     disableRipple: true,
+    disableFocusRipple: true,
     disableTouchRipple: true,
-    icon: <CheckboxBlankIcon />,
-    checkedIcon: <CheckboxIcon />,
+    icon: <RadioUncheckedIcon />,
+    checkedIcon: <RadioCheckedIcon />,
   },
   styleOverrides: {
     root: ({ theme }) => ({
+      color: theme.palette.gray[40],
       padding: 0,
-
-      [`.${svgIconClasses.root}`]: {
-        position: "relative",
-      },
 
       [`&.Mui-focusVisible:after, &:focus-visible:after`]: {
         content: `""`,
@@ -32,7 +28,7 @@ export const MuiCheckboxThemeOptions: Components<Theme>["MuiCheckbox"] = {
         bottom: -focusBorderOffset,
         borderWidth: focusBorderWidth,
         borderColor: theme.palette.blue[70],
-        borderRadius: checkboxBorderRadius + focusBorderOffset,
+        borderRadius: "50%",
       },
     }),
   },
