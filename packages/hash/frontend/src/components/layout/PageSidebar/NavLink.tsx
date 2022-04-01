@@ -20,7 +20,6 @@ export const NavLink: FC<NavLinkProps> = ({
   endAdornmentProps,
 }) => {
   const [expanded, setExpanded] = useState(true);
-  const [hovered, setHovered] = useState(false);
   const {
     tooltipTitle: endAdornmentTooltipTitle,
     sx: endAdormentSx = [],
@@ -33,20 +32,12 @@ export const NavLink: FC<NavLinkProps> = ({
       size="small"
       unpadded
       rounded
-      data-testid="create-page-btn"
+      className="end-adornment-btn"
       onClick={endAdornmentProps.onClick}
       {...otherEndAdornmentProps}
       sx={[
         ({ palette }) => ({
           color: palette.gray[40],
-          ...(hovered && {
-            backgroundColor: palette.gray[30],
-            color: palette.gray[80],
-          }),
-          "&:hover": {
-            backgroundColor: palette.gray[40],
-            color: palette.gray[80],
-          },
         }),
         ...(Array.isArray(endAdormentSx) ? endAdormentSx : [endAdormentSx]),
       ]}
@@ -66,12 +57,29 @@ export const NavLink: FC<NavLinkProps> = ({
           pl: 1.5,
           pr: 0.75,
           mx: 0.5,
-          ...(hovered && {
+          "&:hover": {
             backgroundColor: palette.gray[20],
-          }),
+
+            "& .expand-btn": {
+              color: palette.gray[80],
+
+              "&:hover": {
+                backgroundColor: palette.gray[30],
+                color: palette.gray[80],
+              },
+            },
+
+            "& .end-adornment-btn": {
+              backgroundColor: palette.gray[30],
+              color: palette.gray[80],
+
+              "&:hover": {
+                backgroundColor: palette.gray[40],
+                color: palette.gray[80],
+              },
+            },
+          },
         })}
-        onMouseOver={() => setHovered(true)}
-        onMouseOut={() => setHovered(false)}
       >
         <Typography
           variant="smallCaps"
@@ -86,16 +94,10 @@ export const NavLink: FC<NavLinkProps> = ({
           size="xs"
           unpadded
           rounded
+          className="expand-btn"
           sx={({ palette }) => ({
             mr: "auto",
             color: palette.gray[40],
-            ...(hovered && {
-              color: palette.gray[80],
-            }),
-            "&:hover": {
-              backgroundColor: palette.gray[30],
-              color: palette.gray[80],
-            },
           })}
           onClick={() => setExpanded((prev) => !prev)}
         >

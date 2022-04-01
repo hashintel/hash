@@ -1,5 +1,5 @@
-import { MuiInputLabelThemeOptions } from "./inputs/MuiInputLabelThemeOptions";
 import { Components, Theme } from "@mui/material/styles";
+import { MuiInputLabelThemeOptions } from "./inputs/MuiInputLabelThemeOptions";
 import { MuiSwitchThemeOptions } from "./inputs/MuiSwitchThemeOptions";
 import { MuiButtonThemeOptions } from "./inputs/MuiButtonThemeOptions";
 import { MuiTooltipThemeOptions } from "./dataDisplay/MuiTooltipThemeOptions";
