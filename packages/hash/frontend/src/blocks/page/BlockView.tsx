@@ -13,7 +13,7 @@ import { createRef, forwardRef, RefObject, useMemo, useState } from "react";
 import { useOutsideClick } from "rooks";
 import { tw } from "twind";
 import { BlockContextMenu } from "../../components/BlockContextMenu/BlockContextMenu";
-import { DragVerticalIcon } from "../../components/icons";
+import { DragVerticalIcon } from "../../shared/icons";
 import { RemoteBlockMetadata } from "../userBlocks";
 import { BlockViewContext } from "./BlockViewContext";
 import { CollabPositionIndicators } from "./CollabPositionIndicators";
@@ -65,7 +65,8 @@ export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
   },
 );
 
-export const blockDomId = (blockEntityId: string) => `entity-${blockEntityId}`;
+export const getBlockDomId = (blockEntityId: string) =>
+  `entity-${blockEntityId}`;
 
 /**
  * This is the node view that wraps every one of our blocks in order to inject
@@ -215,7 +216,7 @@ export class BlockView implements NodeView<Schema> {
     const blockEntityId = this.getBlockEntityIdFromNode(this.node);
 
     if (blockEntityId) {
-      this.dom.id = blockDomId(blockEntityId);
+      this.dom.id = getBlockDomId(blockEntityId);
     }
 
     this.renderPortal(

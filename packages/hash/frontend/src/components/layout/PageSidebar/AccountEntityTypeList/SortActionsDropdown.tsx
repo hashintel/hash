@@ -18,7 +18,7 @@ import {
   faWandSparkles,
   IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "../../../icons";
+import { FontAwesomeIcon } from "../../../../shared/icons";
 
 export type SortType = "asc" | "desc" | "recent" | "most_used" | "least_used";
 
