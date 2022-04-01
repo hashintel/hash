@@ -1,6 +1,8 @@
 use std::cmp::Ordering;
 
+use arrow::datatypes::DataType;
 use float_cmp::approx_eq;
+use memory::arrow::field::FieldTypeVariant;
 
 use crate::{
     datastore::{
@@ -10,7 +12,7 @@ use crate::{
         },
         schema::{
             accessor::{FieldSpecMapAccessor, GetFieldSpec},
-            FieldTypeVariant,
+            FieldScope,
         },
     },
     simulation::package::output::packages::analysis::{
@@ -615,7 +617,7 @@ pub(super) fn index_iterator_filter_creator(
     value: &serde_json::Value,
 ) -> Result<OutputRunnerCreator> {
     let field_type = &accessor
-        .get_agent_scoped_field_spec(&field)?
+        .get_local_field_spec(&field, FieldScope::Agent)?
         .inner
         .field_type;
 
@@ -694,11 +696,14 @@ fn default_first_getter(
     accessor: &FieldSpecMapAccessor,
     first_field: &str,
 ) -> Result<ValueIteratorCreator> {
-    let data_type = accessor
-        .get_agent_scoped_field_spec(first_field)?
-        .inner
-        .field_type
-        .get_arrow_data_type()?;
+    let data_type = DataType::from(
+        accessor
+            .get_local_field_spec(first_field, FieldScope::Agent)?
+            .inner
+            .field_type
+            .variant
+            .clone(),
+    );
 
     let first_field = first_field.to_string();
     let a: ValueIteratorCreator = Box::new(move |agents: &_| {
@@ -733,7 +738,7 @@ pub(super) fn index_iterator_mapper_creator(
     };
 
     let field_type = &accessor
-        .get_agent_scoped_field_spec(&first_field)?
+        .get_local_field_spec(&first_field, FieldScope::Agent)?
         .inner
         .field_type;
 

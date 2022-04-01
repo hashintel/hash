@@ -6,6 +6,7 @@ mod writer;
 use arrow::datatypes::DataType;
 use async_trait::async_trait;
 use futures::{stream::FuturesOrdered, StreamExt};
+use memory::arrow::field::FieldKey;
 use serde_json::Value;
 use tracing::{Instrument, Span};
 
@@ -15,17 +16,16 @@ use crate::{
     config::{ExperimentConfig, Globals},
     datastore::{
         batch::iterators,
-        schema::{accessor::GetFieldSpec, FieldKey},
+        schema::{accessor::GetFieldSpec, FieldScope},
         table::pool::BatchPool,
     },
     simulation::{
         comms::package::PackageComms,
         package::context::{
             packages::api_requests::fields::API_RESPONSES_FIELD_NAME, Arc, ContextColumn,
-            ContextSchema, Error, FieldSpec, FieldSpecMapAccessor, GetWorkerExpStartMsg,
-            GetWorkerSimStartMsg, MaybeCpuBound, Package, Package as ContextPackage,
-            PackageCreator, RootFieldSpec, RootFieldSpecCreator, SimRunConfig, StateReadProxy,
-            StateSnapshot,
+            ContextSchema, Error, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg,
+            MaybeCpuBound, Package, Package as ContextPackage, PackageCreator, RootFieldSpec,
+            RootFieldSpecCreator, SimRunConfig, StateReadProxy, StateSnapshot,
         },
         Result,
     },
@@ -126,8 +126,8 @@ impl Package for ApiRequests {
         let api_responses = ApiResponses::from(responses_per_agent);
         let field_key = self
             .context_field_spec_accessor
-            .get_local_hidden_scoped_field_spec(API_RESPONSES_FIELD_NAME)?
-            .to_key()?;
+            .get_local_field_spec(API_RESPONSES_FIELD_NAME, FieldScope::Hidden)?
+            .create_key()?;
 
         Ok(vec![ContextColumn {
             field_key,
@@ -147,8 +147,8 @@ impl Package for ApiRequests {
 
         let field_key = self
             .context_field_spec_accessor
-            .get_local_hidden_scoped_field_spec(API_RESPONSES_FIELD_NAME)?
-            .to_key()?;
+            .get_local_field_spec(API_RESPONSES_FIELD_NAME, FieldScope::Hidden)?
+            .create_key()?;
         let arrow_fields = context_schema
             .arrow
             .field_with_name(field_key.value())

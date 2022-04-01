@@ -5,6 +5,7 @@ mod writer;
 
 use arrow::array::{Array, FixedSizeListBuilder, ListBuilder};
 use async_trait::async_trait;
+use memory::arrow::field::FieldKey;
 use serde_json::Value;
 use tracing::Span;
 
@@ -13,15 +14,15 @@ use crate::{
     config::ExperimentConfig,
     datastore::{
         batch::iterators,
-        schema::{accessor::GetFieldSpec, RootFieldSpec},
+        schema::{accessor::GetFieldSpec, FieldScope, RootFieldSpec},
     },
     simulation::{
         comms::package::PackageComms,
         package::context::{
             packages::agent_messages::fields::MESSAGES_FIELD_NAME, Arc, ContextColumn,
-            ContextSchema, FieldKey, FieldSpecMapAccessor, GetWorkerExpStartMsg,
-            GetWorkerSimStartMsg, Globals, MaybeCpuBound, Package as ContextPackage, Package,
-            PackageCreator, RootFieldSpecCreator, SimRunConfig, StateReadProxy, StateSnapshot,
+            ContextSchema, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg,
+            Globals, MaybeCpuBound, Package as ContextPackage, Package, PackageCreator,
+            RootFieldSpecCreator, SimRunConfig, StateReadProxy, StateSnapshot,
         },
         Result,
     },
@@ -103,8 +104,8 @@ impl Package for AgentMessages {
         let messages = Messages::gather(&snapshot.message_map, id_name_iter)?;
         let field_key = self
             .context_field_spec_accessor
-            .get_agent_scoped_field_spec(MESSAGES_FIELD_NAME)?
-            .to_key()?;
+            .get_local_field_spec(MESSAGES_FIELD_NAME, FieldScope::Agent)?
+            .create_key()?;
 
         Ok(vec![ContextColumn {
             field_key,
@@ -126,8 +127,8 @@ impl Package for AgentMessages {
 
         let field_key = self
             .context_field_spec_accessor
-            .get_agent_scoped_field_spec(MESSAGES_FIELD_NAME)?
-            .to_key()?;
+            .get_local_field_spec(MESSAGES_FIELD_NAME, FieldScope::Agent)?
+            .create_key()?;
 
         Ok(vec![(field_key, Arc::new(messages_builder.finish()))])
     }

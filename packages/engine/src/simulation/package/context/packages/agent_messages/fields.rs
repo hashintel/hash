@@ -1,9 +1,7 @@
+use memory::arrow::field::{FieldType, FieldTypeVariant, PresetFieldType};
+
 use crate::{
-    datastore::schema::{
-        FieldScope, FieldType,
-        FieldTypeVariant::{FixedLengthArray, Preset, VariableLengthArray},
-        PresetFieldType, RootFieldSpec,
-    },
+    datastore::schema::{FieldScope, RootFieldSpec},
     simulation::package::context::packages::agent_messages::{
         Result, RootFieldSpecCreator, MESSAGE_INDEX_COUNT,
     },
@@ -12,9 +10,12 @@ use crate::{
 pub(super) const MESSAGES_FIELD_NAME: &str = "messages";
 
 fn agent_messages() -> FieldType {
-    let variant = VariableLengthArray(Box::new(FieldType::new(
-        FixedLengthArray {
-            kind: Box::new(FieldType::new(Preset(PresetFieldType::Uint32), false)),
+    let variant = FieldTypeVariant::VariableLengthArray(Box::new(FieldType::new(
+        FieldTypeVariant::FixedLengthArray {
+            field_type: Box::new(FieldType::new(
+                FieldTypeVariant::Preset(PresetFieldType::Uint32),
+                false,
+            )),
             len: MESSAGE_INDEX_COUNT,
         },
         false,

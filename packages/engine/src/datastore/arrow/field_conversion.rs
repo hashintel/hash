@@ -3,120 +3,26 @@
     clippy::cast_possible_wrap,
     clippy::for_kv_map
 )]
+
 use std::collections::HashMap;
 
-use arrow::datatypes::{DataType, Field, Schema};
+use arrow::datatypes::{Field, Schema};
+use memory::arrow::field::{FieldTypeVariant, IsFixedSize};
 
 use crate::datastore::{
-    error::{Error, Result, SupportedType},
-    schema::{
-        FieldKey, FieldSource, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant,
-        PresetFieldType, RootFieldSpec,
-    },
+    error::{Error, Result},
+    schema::{FieldSource, FieldSpecMap, RootFieldSpec},
 };
 
-impl PresetFieldType {
-    fn is_fixed_size(&self) -> bool {
-        match self {
-            PresetFieldType::Uint32 => true,
-            PresetFieldType::Uint16 => true,
-            PresetFieldType::Id => true,
-        }
-    }
+impl TryFrom<RootFieldSpec> for Field {
+    type Error = Error;
 
-    #[must_use]
-    pub fn get_arrow_data_type(&self) -> DataType {
-        match self {
-            PresetFieldType::Uint32 => DataType::UInt32,
-            PresetFieldType::Uint16 => DataType::UInt16,
-            PresetFieldType::Id => DataType::FixedSizeBinary(crate::datastore::UUID_V4_LEN as i32),
-        }
-    }
-}
-
-impl FieldType {
-    fn is_fixed_size(&self) -> bool {
-        match &self.variant {
-            FieldTypeVariant::Number | FieldTypeVariant::Boolean => true,
-            FieldTypeVariant::String | FieldTypeVariant::AnyType => false,
-            FieldTypeVariant::FixedLengthArray {
-                kind: inner,
-                len: _,
-            } => inner.is_fixed_size(),
-            FieldTypeVariant::VariableLengthArray(_) => false,
-            FieldTypeVariant::Struct(inner) => inner.iter().all(FieldSpec::is_fixed_size),
-            FieldTypeVariant::Preset(inner) => inner.is_fixed_size(),
-        }
-    }
-
-    pub fn get_arrow_data_type(&self) -> Result<DataType> {
-        match &self.variant {
-            FieldTypeVariant::Number => Ok(DataType::Float64),
-            FieldTypeVariant::Boolean => Ok(DataType::Boolean),
-            FieldTypeVariant::String => Ok(DataType::Utf8),
-            FieldTypeVariant::AnyType => Ok(DataType::Utf8),
-            FieldTypeVariant::FixedLengthArray { kind: inner, len } => Ok(DataType::FixedSizeList(
-                Box::new(Field::new("item", inner.get_arrow_data_type()?, true)),
-                *len as i32,
-            )),
-            FieldTypeVariant::VariableLengthArray(inner) => Ok(DataType::List(Box::new(
-                Field::new("item", inner.get_arrow_data_type()?, true),
-            ))),
-            FieldTypeVariant::Struct(inner) => Ok(DataType::Struct(
-                inner
-                    .iter()
-                    // TODO: Enforce nullability of fields at initialisation.
-                    // These structs are necessarily nested within another arrow field. We cannot guarantee non-nullability for certain root-level arrow-fields due
-                    // to how we initialise data currently. Because these _are_ nested, we can guarantee nullability/non-nullability for all inner structs as this
-                    // is enforced in the runners, that is, when setting that top-level object, it's enforced that users set all nested data within that object at
-                    // the same time.
-                    .map(|field_spec| field_spec.get_arrow_field_with_source(true, None))
-                    .collect::<Result<Vec<_>>>()?,
-            )),
-            FieldTypeVariant::Preset(inner) => Ok(inner.get_arrow_data_type()),
-        }
-    }
-}
-
-impl RootFieldSpec {
-    pub(in crate::datastore) fn get_arrow_field(&self) -> Result<Field> {
-        self.inner
-            .get_arrow_field_with_source(self.source == FieldSource::Engine, Some(self.to_key()?))
-    }
-}
-
-impl FieldSpec {
-    fn is_fixed_size(&self) -> bool {
-        self.field_type.is_fixed_size()
-    }
-
-    pub(in crate::datastore) fn get_arrow_field_with_source(
-        &self,
-        can_guarantee_non_null: bool,
-        field_key: Option<FieldKey>,
-    ) -> Result<Field> {
-        // We cannot guarantee non-nullability for certain root-level arrow-fields due to how we
-        // initialise data currently. As this is an impl on FieldSpec we need the calling
-        // context to provide the guarantee that the nullablity is enforced.
-        let base_nullability = if can_guarantee_non_null {
-            self.field_type.nullable
-        } else {
-            true
-        };
-
-        if let Some(key) = field_key {
-            Ok(Field::new(
-                key.value(),
-                self.field_type.get_arrow_data_type()?,
-                base_nullability,
-            ))
-        } else {
-            Ok(Field::new(
-                &self.name,
-                self.field_type.get_arrow_data_type()?,
-                base_nullability,
-            ))
-        }
+    fn try_from(root_field_spec: RootFieldSpec) -> Result<Self, Self::Error> {
+        let field_key = root_field_spec.create_key()?;
+        Ok(root_field_spec.inner.into_arrow_field(
+            root_field_spec.source == FieldSource::Engine,
+            Some(field_key),
+        ))
     }
 }
 
@@ -129,7 +35,7 @@ impl FieldSpecMap {
 
         for (key, field_spec) in self.iter() {
             let key = key.value().to_string();
-            if field_spec.inner.field_type.is_fixed_size() {
+            if field_spec.inner.field_type.variant.is_fixed_size() {
                 partitioned_fields.insert(0, (field_spec, key.clone()));
                 fixed_size_no += 1;
             } else {
@@ -161,34 +67,18 @@ impl FieldSpecMap {
         Ok(Schema::new_with_metadata(
             partitioned_fields
                 .iter()
-                .map(|k| k.0.get_arrow_field())
+                .map(|k| Field::try_from(k.0.clone()))
                 .collect::<Result<_>>()?,
             metadata,
         ))
     }
 }
 
-pub trait IsFixedSize {
-    fn is_fixed_size(&self) -> Result<bool>;
-}
-
-impl IsFixedSize for DataType {
-    fn is_fixed_size(&self) -> Result<bool> {
-        match self {
-            DataType::Float64 => Ok(true),
-            DataType::FixedSizeBinary(_) => Ok(true),
-            DataType::Utf8 => Ok(false),
-            DataType::FixedSizeList(val, _) => val.data_type().is_fixed_size(),
-            DataType::List(_) => Ok(false),
-            _ => Err(Error::NotImplemented(SupportedType::ArrowDataType(
-                self.clone(),
-            ))),
-        }
-    }
-}
-
 #[cfg(test)]
 pub mod tests {
+    use arrow::datatypes::DataType;
+    use memory::arrow::field::FieldType;
+
     use super::*;
     use crate::{
         datastore::schema::{FieldScope, RootFieldSpecCreator},
@@ -222,7 +112,7 @@ pub mod tests {
             "test3".to_string(),
             FieldType::new(
                 FieldTypeVariant::FixedLengthArray {
-                    kind: Box::new(FieldType::new(FieldTypeVariant::Number, false)),
+                    field_type: Box::new(FieldType::new(FieldTypeVariant::Number, false)),
                     len: 3,
                 },
                 true,

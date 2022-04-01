@@ -7,7 +7,7 @@ use self::{
 use crate::{
     datastore::{
         batch::AgentBatch,
-        schema::{accessor::GetFieldSpec, FieldSource},
+        schema::{accessor::GetFieldSpec, FieldScope, FieldSource},
         table::{
             context::Context, pool::proxy::PoolWriteProxy, proxy::StateWriteProxy,
             task_shared_store::TaskSharedStoreBuilder,
@@ -99,10 +99,10 @@ impl PackageCreator for Creator {
         comms: PackageComms,
         accessor: FieldSpecMapAccessor,
     ) -> Result<Box<dyn Package>> {
-        let behavior_ids_col_data_types = fields::id_column_data_types()?;
+        let behavior_ids_col_data_types = fields::id_column_data_types();
         let behavior_ids_col = accessor
-            .get_local_private_scoped_field_spec(BEHAVIOR_IDS_FIELD_NAME)?
-            .to_key()?;
+            .get_local_field_spec(BEHAVIOR_IDS_FIELD_NAME, FieldScope::Private)?
+            .create_key()?;
 
         let behavior_ids_col_index = config
             .sim
@@ -112,8 +112,8 @@ impl PackageCreator for Creator {
             .index_of(behavior_ids_col.value())?;
 
         let behavior_index_col = accessor
-            .get_local_private_scoped_field_spec(BEHAVIOR_INDEX_FIELD_NAME)?
-            .to_key()?;
+            .get_local_field_spec(BEHAVIOR_INDEX_FIELD_NAME, FieldScope::Private)?
+            .create_key()?;
         let behavior_index_col_index = config
             .sim
             .store

@@ -6,12 +6,10 @@ use arrow::{
     record_batch::RecordBatch,
 };
 use lazy_static::lazy_static;
+use memory::arrow::field::PresetFieldType;
 
 use crate::{
-    datastore::{
-        error::{Error, Result},
-        schema::PresetFieldType,
-    },
+    datastore::error::{Error, Result},
     hash_types::{
         message::{
             GenericPayload, Outbound, OutboundCreateAgentPayload, OutboundRemoveAgentPayload,
@@ -43,7 +41,7 @@ pub enum FieldIndex {
 lazy_static! {
     pub static ref SENDER_ARROW_FIELD: Field = Field::new(
         "from",
-        PresetFieldType::Id.get_arrow_data_type(),
+        DataType::from(PresetFieldType::Id),
         false
     );
     pub static ref MESSAGE_ARROW_FIELDS: Vec<Field> = vec![

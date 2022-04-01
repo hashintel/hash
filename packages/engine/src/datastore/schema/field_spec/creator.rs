@@ -1,6 +1,6 @@
-use crate::datastore::schema::field_spec::{
-    FieldScope, FieldSource, FieldSpec, FieldType, RootFieldSpec,
-};
+use memory::arrow::field::{FieldSpec, FieldType};
+
+use crate::datastore::schema::field_spec::{FieldScope, FieldSource, RootFieldSpec};
 
 /// A factory-like object that can be set with a [`FieldSource`] and then passed to a context such
 /// as a package.

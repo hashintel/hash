@@ -3,15 +3,14 @@ use std::{
     convert::TryFrom,
 };
 
+use memory::arrow::field::{FieldKey, FieldSpec, FieldType, FieldTypeVariant};
+
 // use crate::worker::runner::rust;
 use crate::{
     config::ExperimentConfig,
     datastore::{
-        schema::{
-            FieldKey, FieldScope, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant,
-            RootFieldSpec, RootFieldSpecCreator,
-        },
-        {Error, Result},
+        schema::{FieldScope, FieldSpecMap, RootFieldSpec, RootFieldSpecCreator},
+        Error, Result,
     },
     experiment::SharedBehavior,
     hash_types::state::AgentStateField,
@@ -54,7 +53,7 @@ impl BehaviorKeys {
                         .map(|(k, v)| {
                             Ok(field_spec_creator.create(
                                 k.into(),
-                                FieldType::from_json(k, v)?,
+                                field_type_from_json(k, v)?,
                                 FieldScope::Agent,
                             ))
                         })
@@ -255,98 +254,92 @@ impl TryFrom<&str> for BaseKeyType {
     }
 }
 
-impl FieldSpec {
-    fn from_json(name: &str, source: &serde_json::Value) -> Result<FieldSpec> {
-        Ok(FieldSpec {
-            name: name.to_string(),
-            field_type: FieldType::from_json(name, source)?,
-        })
-    }
+fn field_spec_from_json(name: &str, source: &serde_json::Value) -> Result<FieldSpec> {
+    Ok(FieldSpec {
+        name: name.to_string(),
+        field_type: field_type_from_json(name, source)?,
+    })
 }
 
-impl FieldType {
-    fn from_json(name: &str, source: &serde_json::Value) -> Result<FieldType> {
-        match source {
-            serde_json::Value::Object(map) => {
-                let key_base_type = match map
-                    .get("type")
-                    .ok_or_else(|| BehaviorKeyJsonError::InvalidKeyTypeType(name.to_string()))?
-                {
-                    serde_json::Value::String(val) => BaseKeyType::try_from(val.as_ref()),
-                    _ => Err(BehaviorKeyJsonError::InvalidKeyTypeType(name.to_string())),
-                }?;
+fn field_type_from_json(name: &str, source: &serde_json::Value) -> Result<FieldType> {
+    match source {
+        serde_json::Value::Object(map) => {
+            let key_base_type = match map
+                .get("type")
+                .ok_or_else(|| BehaviorKeyJsonError::InvalidKeyTypeType(name.to_string()))?
+            {
+                serde_json::Value::String(val) => BaseKeyType::try_from(val.as_ref()),
+                _ => Err(BehaviorKeyJsonError::InvalidKeyTypeType(name.to_string())),
+            }?;
 
-                let nullable = match map
-                    .get("nullable")
-                    .ok_or_else(|| BehaviorKeyJsonError::InvalidKeyNullableType(name.to_string()))?
-                {
-                    serde_json::Value::Bool(v) => Ok(*v),
-                    _ => Err(BehaviorKeyJsonError::InvalidKeyNullableType(
-                        name.to_string(),
-                    )),
-                }?;
+            let nullable = match map
+                .get("nullable")
+                .ok_or_else(|| BehaviorKeyJsonError::InvalidKeyNullableType(name.to_string()))?
+            {
+                serde_json::Value::Bool(v) => Ok(*v),
+                _ => Err(BehaviorKeyJsonError::InvalidKeyNullableType(
+                    name.to_string(),
+                )),
+            }?;
 
-                let variant = match key_base_type {
-                    BaseKeyType::String => FieldTypeVariant::String,
-                    BaseKeyType::Boolean => FieldTypeVariant::Boolean,
-                    BaseKeyType::Number => FieldTypeVariant::Number,
-                    BaseKeyType::Any => FieldTypeVariant::AnyType,
-                    BaseKeyType::Struct => {
-                        let mut children = vec![];
-                        match map.get("fields").ok_or_else(|| {
-                            BehaviorKeyJsonError::InvalidKeyFieldsType(name.to_string())
-                        })? {
-                            serde_json::Value::Object(map) => {
-                                for (k, v) in map {
-                                    children.push(FieldSpec::from_json(k.as_ref(), v)?);
-                                }
-                                Ok(())
+            let variant = match key_base_type {
+                BaseKeyType::String => FieldTypeVariant::String,
+                BaseKeyType::Boolean => FieldTypeVariant::Boolean,
+                BaseKeyType::Number => FieldTypeVariant::Number,
+                BaseKeyType::Any => FieldTypeVariant::AnyType,
+                BaseKeyType::Struct => {
+                    let mut children = vec![];
+                    match map.get("fields").ok_or_else(|| {
+                        BehaviorKeyJsonError::InvalidKeyFieldsType(name.to_string())
+                    })? {
+                        serde_json::Value::Object(map) => {
+                            for (k, v) in map {
+                                children.push(field_spec_from_json(k.as_ref(), v)?);
                             }
-                            _ => Err(BehaviorKeyJsonError::InvalidKeyFieldsType(name.to_string())),
-                        }?;
-
-                        // Determinism:
-                        children.sort_by(|a, b| a.name.cmp(&b.name));
-                        FieldTypeVariant::Struct(children)
-                    }
-                    BaseKeyType::List => {
-                        let child_source = map.get("child").ok_or_else(|| {
-                            BehaviorKeyJsonError::InvalidKeyChildType(name.to_string())
-                        })?;
-                        let child_key_type = FieldType::from_json(name, child_source)?;
-                        FieldTypeVariant::VariableLengthArray(Box::new(child_key_type))
-                    }
-                    BaseKeyType::FixedSizeList => {
-                        let child_source = map.get("child").ok_or_else(|| {
-                            BehaviorKeyJsonError::InvalidKeyChildType(name.to_string())
-                        })?;
-                        let child_key_type = FieldType::from_json(name, child_source)?;
-                        let len = match map.get("length").ok_or_else(|| {
-                            BehaviorKeyJsonError::InvalidKeyLengthType(name.to_string())
-                        })? {
-                            serde_json::Value::Number(v) => {
-                                if v.is_i64() {
-                                    // Safe unwrap
-                                    Ok(v.as_u64().unwrap() as usize)
-                                } else {
-                                    Err(BehaviorKeyJsonError::InvalidKeyLengthType(
-                                        name.to_string(),
-                                    ))
-                                }
-                            }
-                            _ => Err(BehaviorKeyJsonError::InvalidKeyLengthType(name.to_string())),
-                        }?;
-                        FieldTypeVariant::FixedLengthArray {
-                            kind: Box::new(child_key_type),
-                            len,
+                            Ok(())
                         }
-                    }
-                };
+                        _ => Err(BehaviorKeyJsonError::InvalidKeyFieldsType(name.to_string())),
+                    }?;
 
-                Ok(FieldType { variant, nullable })
-            }
-            _ => Err(BehaviorKeyJsonError::ExpectedKeyObject(name.to_string()).into()),
+                    // Determinism:
+                    children.sort_by(|a, b| a.name.cmp(&b.name));
+                    FieldTypeVariant::Struct(children)
+                }
+                BaseKeyType::List => {
+                    let child_source = map.get("child").ok_or_else(|| {
+                        BehaviorKeyJsonError::InvalidKeyChildType(name.to_string())
+                    })?;
+                    let child_key_type = field_type_from_json(name, child_source)?;
+                    FieldTypeVariant::VariableLengthArray(Box::new(child_key_type))
+                }
+                BaseKeyType::FixedSizeList => {
+                    let child_source = map.get("child").ok_or_else(|| {
+                        BehaviorKeyJsonError::InvalidKeyChildType(name.to_string())
+                    })?;
+                    let child_key_type = field_type_from_json(name, child_source)?;
+                    let len = match map.get("length").ok_or_else(|| {
+                        BehaviorKeyJsonError::InvalidKeyLengthType(name.to_string())
+                    })? {
+                        serde_json::Value::Number(v) => {
+                            if v.is_i64() {
+                                // Safe unwrap
+                                Ok(v.as_u64().unwrap() as usize)
+                            } else {
+                                Err(BehaviorKeyJsonError::InvalidKeyLengthType(name.to_string()))
+                            }
+                        }
+                        _ => Err(BehaviorKeyJsonError::InvalidKeyLengthType(name.to_string())),
+                    }?;
+                    FieldTypeVariant::FixedLengthArray {
+                        field_type: Box::new(child_key_type),
+                        len,
+                    }
+                }
+            };
+
+            Ok(FieldType { variant, nullable })
         }
+        _ => Err(BehaviorKeyJsonError::ExpectedKeyObject(name.to_string()).into()),
     }
 }
 

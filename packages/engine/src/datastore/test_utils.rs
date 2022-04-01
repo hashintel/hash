@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use memory::arrow::field::{FieldSpec, FieldType, FieldTypeVariant};
 use rand::{prelude::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -12,8 +13,8 @@ use crate::{
     datastore::{
         error::Error,
         schema::{
-            state::AgentSchema, FieldScope, FieldSource, FieldSpec, FieldSpecMap, FieldType,
-            FieldTypeVariant, RootFieldSpec, RootFieldSpecCreator,
+            last_state_index_key, state::AgentSchema, FieldScope, FieldSource, FieldSpecMap,
+            RootFieldSpec, RootFieldSpecCreator,
         },
     },
     hash_types::state::{Agent, AgentStateField},
@@ -24,7 +25,7 @@ use crate::{
 fn test_field_specs() -> FieldSpecMap {
     let mut map = FieldSpecMap::default();
     map.add(RootFieldSpec {
-        inner: FieldSpec::last_state_index_key(),
+        inner: last_state_index_key(),
         source: FieldSource::Engine,
         scope: FieldScope::Hidden,
     })
@@ -34,7 +35,7 @@ fn test_field_specs() -> FieldSpecMap {
             name: "fixed_of_variable".to_string(),
             field_type: FieldType::new(
                 FieldTypeVariant::FixedLengthArray {
-                    kind: Box::new(FieldType::new(
+                    field_type: Box::new(FieldType::new(
                         FieldTypeVariant::VariableLengthArray(Box::new(FieldType::new(
                             FieldTypeVariant::Number,
                             false,
@@ -68,7 +69,10 @@ fn test_field_specs() -> FieldSpecMap {
                         name: "position".to_string(),
                         field_type: FieldType::new(
                             FieldTypeVariant::FixedLengthArray {
-                                kind: Box::new(FieldType::new(FieldTypeVariant::Number, false)),
+                                field_type: Box::new(FieldType::new(
+                                    FieldTypeVariant::Number,
+                                    false,
+                                )),
                                 len: 2,
                             },
                             false,
@@ -79,7 +83,7 @@ fn test_field_specs() -> FieldSpecMap {
                         field_type: FieldType::new(
                             FieldTypeVariant::VariableLengthArray(Box::new(FieldType::new(
                                 FieldTypeVariant::FixedLengthArray {
-                                    kind: Box::new(FieldType::new(
+                                    field_type: Box::new(FieldType::new(
                                         FieldTypeVariant::Struct(vec![
                                             FieldSpec {
                                                 name: "bar".to_string(),
@@ -104,7 +108,7 @@ fn test_field_specs() -> FieldSpecMap {
                                                 name: "qux".to_string(),
                                                 field_type: FieldType::new(
                                                     FieldTypeVariant::FixedLengthArray {
-                                                        kind: Box::new(FieldType::new(
+                                                        field_type: Box::new(FieldType::new(
                                                             FieldTypeVariant::Number,
                                                             false,
                                                         )),
@@ -117,7 +121,7 @@ fn test_field_specs() -> FieldSpecMap {
                                                 name: "quux".to_string(),
                                                 field_type: FieldType::new(
                                                     FieldTypeVariant::FixedLengthArray {
-                                                        kind: Box::new(FieldType::new(
+                                                        field_type: Box::new(FieldType::new(
                                                             FieldTypeVariant::String,
                                                             false,
                                                         )),

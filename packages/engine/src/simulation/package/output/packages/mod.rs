@@ -27,7 +27,7 @@ use crate::{
 };
 
 /// All output package names are registered in this enum
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Name {
     Analysis,

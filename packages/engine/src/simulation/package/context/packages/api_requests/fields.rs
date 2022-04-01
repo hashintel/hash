@@ -1,10 +1,9 @@
+use memory::arrow::field::{FieldSpec, FieldType, FieldTypeVariant};
+
 use crate::{
-    datastore::schema::{
-        FieldScope, FieldType,
-        FieldTypeVariant::{String, Struct, VariableLengthArray},
-    },
+    datastore::schema::FieldScope,
     simulation::package::context::packages::api_requests::{
-        FieldSpec, Result, RootFieldSpec, RootFieldSpecCreator,
+        Result, RootFieldSpec, RootFieldSpecCreator,
     },
 };
 
@@ -15,15 +14,24 @@ pub(super) const API_RESPONSES_FIELD_NAME: &str = "api_responses";
 
 pub fn api_response_fields() -> Vec<FieldSpec> {
     vec![
-        FieldSpec::new(FROM_FIELD_NAME.into(), FieldType::new(String, false)),
-        FieldSpec::new(TYPE_FIELD_NAME.into(), FieldType::new(String, false)),
-        FieldSpec::new(DATA_FIELD_NAME.into(), FieldType::new(String, true)),
+        FieldSpec {
+            name: FROM_FIELD_NAME.into(),
+            field_type: FieldType::new(FieldTypeVariant::String, false),
+        },
+        FieldSpec {
+            name: TYPE_FIELD_NAME.into(),
+            field_type: FieldType::new(FieldTypeVariant::String, false),
+        },
+        FieldSpec {
+            name: DATA_FIELD_NAME.into(),
+            field_type: FieldType::new(FieldTypeVariant::String, true),
+        },
     ]
 }
 
 fn api_responses() -> FieldType {
-    let variant = VariableLengthArray(Box::new(FieldType::new(
-        Struct(api_response_fields()),
+    let variant = FieldTypeVariant::VariableLengthArray(Box::new(FieldType::new(
+        FieldTypeVariant::Struct(api_response_fields()),
         false,
     )));
     FieldType::new(variant, false)

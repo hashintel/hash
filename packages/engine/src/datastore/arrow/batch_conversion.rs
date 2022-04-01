@@ -14,8 +14,10 @@ use arrow::{
     util::bit_util,
 };
 use memory::arrow::{
-    col_to_json_vals, json_utf8_json_vals, json_vals_to_any_type_col, json_vals_to_bool,
-    json_vals_to_col, json_vals_to_primitive, json_vals_to_utf8, new_zero_bits,
+    col_to_json_vals,
+    field::{FieldKey, FieldTypeVariant},
+    json_utf8_json_vals, json_vals_to_any_type_col, json_vals_to_bool, json_vals_to_col,
+    json_vals_to_primitive, json_vals_to_utf8, new_zero_bits,
 };
 use serde_json::value::Value;
 
@@ -24,7 +26,7 @@ use crate::{
         arrow::{message, message::messages_column_from_serde_values},
         batch::{AgentBatch, MessageBatch},
         error::{Error, Result},
-        schema::{state::AgentSchema, FieldKey, FieldScope, FieldTypeVariant, IsRequired},
+        schema::{state::AgentSchema, FieldScope, IsRequired},
         UUID_V4_LEN,
     },
     hash_types::{
@@ -238,7 +240,7 @@ impl IntoRecordBatch for &[&Agent] {
             } else if matches!(
                 schema
                     .field_spec_map
-                    .get_field_spec(&FieldKey::new(&name))?
+                    .get_field_spec(&FieldKey::new(name))?
                     .inner
                     .field_type
                     .variant,

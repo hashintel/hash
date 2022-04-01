@@ -1,10 +1,9 @@
-use std::{
-    collections::{
-        hash_map::{Iter, Values},
-        HashMap,
-    },
-    fmt::{Display, Formatter},
+use std::collections::{
+    hash_map::{Iter, Values},
+    HashMap,
 };
+
+use memory::arrow::field::{FieldKey, FieldSpec, FieldType, FieldTypeVariant, PresetFieldType};
 
 use crate::{
     datastore::error::{Error, Result},
@@ -15,61 +14,16 @@ use crate::{
 pub mod accessor;
 pub mod built_in;
 pub mod creator;
-pub mod display;
 
 pub const HIDDEN_PREFIX: &str = "_HIDDEN_";
 pub const PRIVATE_PREFIX: &str = "_PRIVATE_";
 pub const PREVIOUS_INDEX_FIELD_NAME: &str = "previous_index";
 
-// TODO: better encapsulate the supported underlying field types, and the selection of those that
-//   we expose to the user compared to this thing where we have a variant and an 'extension'. So
-//   it would probably be better as a FieldType and UserFieldType enum or something similar,
-//   rather than PresetFieldType and FieldTypeVariant
-
-/// PresetFieldTypes represent an extension of types of fields that can be set by the engine, this
-/// gives greater control over underlying Arrow datatype such as integer sizes compared to the
-/// field types we allow users to set
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum PresetFieldType {
-    Uint16,
-    // Used to refer to an agent from the previous state
-    Uint32,
-    // Represents AgentId
-    Id,
-}
-
-/// These represent the types of fields that users can set. This is more restrictive than the total
-/// field types we support (see PresetFieldType for an extension of types not visible to the user)
-#[derive(Clone, PartialEq, Eq, Hash)]
-pub enum FieldTypeVariant {
-    Number,
-    Boolean,
-    String,
-    AnyType,
-    FixedLengthArray { kind: Box<FieldType>, len: usize },
-    VariableLengthArray(Box<FieldType>),
-    Struct(Vec<FieldSpec>),
-    Preset(PresetFieldType),
-}
-
-/// Allowed field types
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct FieldType {
-    pub variant: FieldTypeVariant,
-    pub nullable: bool,
-}
-
-impl FieldType {
-    pub fn new(variant: FieldTypeVariant, nullable: bool) -> FieldType {
-        FieldType { variant, nullable }
-    }
-}
-
 /// Defines scope of access to Fields, where the order of the variants of this enum define an
 /// ordering of the scopes, where being defined lower implies a wider scope where more things can
 /// access it.
 /// i.e. Engine < Private < Hidden < Agent,
-#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum FieldScope {
     /// Only the source package/engine agents and other packages don't
     Private,
@@ -79,8 +33,40 @@ pub enum FieldScope {
     Agent,
 }
 
+impl FieldScope {
+    /// Create a new `FieldKey` from this scope with the provided `name` and the specified source.
+    ///
+    /// # Errors
+    ///
+    /// - Returns [`Error`] if name starts with [`PRIVATE_PREFIX`] or [`HIDDEN_PREFIX`]
+    pub fn create_key(&self, name: &str, source: FieldSource) -> Result<FieldKey> {
+        // TODO: do we want these checks to only be present on debug builds
+        if name.starts_with(PRIVATE_PREFIX) || name.starts_with(HIDDEN_PREFIX) {
+            return Err(Error::from(format!(
+                "Field names cannot start with the protected prefixes: [{PRIVATE_PREFIX:?}, \
+                 {HIDDEN_PREFIX:?}], received field name: {name:?}"
+            )));
+        }
+
+        let scope_prefix = match self {
+            Self::Private => Some(PRIVATE_PREFIX),
+            Self::Hidden => Some(HIDDEN_PREFIX),
+            Self::Agent => None,
+        };
+
+        if let Some(prefix) = scope_prefix {
+            Ok(FieldKey::new(format!(
+                "{prefix}{}_{name}",
+                source.unique_id()?
+            )))
+        } else {
+            Ok(FieldKey::new(name.to_string()))
+        }
+    }
+}
+
 /// Defines the source from which a Field was specified, useful for resolving clashes
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum FieldSource {
     Engine,
     Package(PackageName),
@@ -99,122 +85,31 @@ impl FieldSource {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
-pub struct FieldKey(String);
-
-impl FieldKey {
-    /// Returns the key as string
-    pub fn value(&self) -> &str {
-        &self.0
-    }
-
-    /// Returns a string as key
-    pub(in crate::datastore) fn new(key: &str) -> Self {
-        Self(key.to_string())
-    }
-
-    /// Create a new agent scoped `FieldKey`
-    ///
-    /// Builds a `FieldKey` from a given name.
-    ///
-    /// # Errors
-    ///
-    /// - Returns [`Error`] if name starts with [`PRIVATE_PREFIX`] or [`HIDDEN_PREFIX`]
-    #[inline]
-    pub fn new_agent_scoped(name: &str) -> Result<Self> {
-        // TODO: do we want these checks to only be present on debug builds
-        if name.starts_with(PRIVATE_PREFIX) || name.starts_with(HIDDEN_PREFIX) {
-            return Err(Error::from(format!(
-                "Field names cannot start with the protected prefixes: ['{}', '{}'], received \
-                 field name: '{}'",
-                PRIVATE_PREFIX, HIDDEN_PREFIX, name
-            )));
-        }
-
-        Ok(Self(name.to_string()))
-    }
-
-    /// Create a new private or hidden scoped `FieldKey`
-    ///
-    /// Builds a `FieldKey` from a given name, [`FieldSource`], and [`FieldScope`]. `scope`
-    /// must be either [`FieldScope::Private`] or [`FieldScope::Hidden`].
-    ///
-    /// # Errors
-    ///
-    /// - Returns [`Error`] if name starts with [`PRIVATE_PREFIX`] or [`HIDDEN_PREFIX`]
-    /// - Returns [`Error`] if `scope` is [`FieldScope::Agent`]
-    #[inline]
-    pub fn new_private_or_hidden_scoped(
-        name: &str,
-        source: &FieldSource,
-        scope: &FieldScope,
-    ) -> Result<Self> {
-        // TODO: do we want these checks to only be present on debug builds
-        if name.starts_with(PRIVATE_PREFIX) || name.starts_with(HIDDEN_PREFIX) {
-            return Err(Error::from(format!(
-                "Field names cannot start with the protected prefixes: ['{}', '{}']",
-                PRIVATE_PREFIX, HIDDEN_PREFIX
-            )));
-        }
-
-        let scope_prefix = match scope {
-            FieldScope::Private => PRIVATE_PREFIX,
-            FieldScope::Hidden => HIDDEN_PREFIX,
-            FieldScope::Agent => {
-                return Err(Error::from(
-                    "Use new_agent_scoped to create a key with FieldScope::Agent",
-                ));
-            }
-        };
-        Ok(Self(format!(
-            "{}{}_{}",
-            scope_prefix,
-            source.unique_id()?,
-            name
-        )))
-    }
-}
-
-impl Display for FieldKey {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.value())
-    }
-}
-
-/// A single specification of a field
-#[derive(derive_new::new, Clone, PartialEq, Eq, Hash)]
-pub struct FieldSpec {
-    pub name: String,
-    pub field_type: FieldType,
-}
-
-impl FieldSpec {
-    /// This key is required for accessing neighbors' outboxes (new inboxes).
-    /// Since the neighbor agent state is always the previous step state of the
-    /// agent, then we need to know where its outbox is. This would be
-    /// straightforward if we didn't add/remove/move agents between batches.
-    /// This means `AgentBatch` ordering gets changed at the beginning of the step
-    /// meaning agents are not aligned with their `OutboxBatch` anymore.
-    #[must_use]
-    // TODO: migrate this to be logic handled by the Engine
-    pub fn last_state_index_key() -> FieldSpec {
-        // There are 2 indices for every agent: 1) Group index 2) Row (agent) index. This points
-        // to the relevant old outbox (i.e. new inbox)
-        FieldSpec {
-            name: PREVIOUS_INDEX_FIELD_NAME.to_string(),
-            field_type: FieldType::new(
-                FieldTypeVariant::FixedLengthArray {
-                    kind: Box::new(FieldType::new(
-                        FieldTypeVariant::Preset(PresetFieldType::Uint32),
-                        false,
-                    )),
-                    len: 2,
-                },
-                // This key is nullable because new agents
-                // do not get an index (their outboxes are empty by default)
-                true,
-            ),
-        }
+/// This key is required for accessing neighbors' outboxes (new inboxes).
+/// Since the neighbor agent state is always the previous step state of the
+/// agent, then we need to know where its outbox is. This would be
+/// straightforward if we didn't add/remove/move agents between batches.
+/// This means `AgentBatch` ordering gets changed at the beginning of the step
+/// meaning agents are not aligned with their `OutboxBatch` anymore.
+#[must_use]
+// TODO: migrate this to be logic handled by the Engine
+pub fn last_state_index_key() -> FieldSpec {
+    // There are 2 indices for every agent: 1) Group index 2) Row (agent) index. This points
+    // to the relevant old outbox (i.e. new inbox)
+    FieldSpec {
+        name: PREVIOUS_INDEX_FIELD_NAME.to_string(),
+        field_type: FieldType::new(
+            FieldTypeVariant::FixedLengthArray {
+                field_type: Box::new(FieldType::new(
+                    FieldTypeVariant::Preset(PresetFieldType::Uint32),
+                    false,
+                )),
+                len: 2,
+            },
+            // This key is nullable because new agents
+            // do not get an index (their outboxes are empty by default)
+            true,
+        ),
     }
 }
 
@@ -228,13 +123,8 @@ pub struct RootFieldSpec {
 }
 
 impl RootFieldSpec {
-    pub fn to_key(&self) -> Result<FieldKey> {
-        match &self.scope {
-            FieldScope::Agent => FieldKey::new_agent_scoped(&self.inner.name),
-            FieldScope::Private | FieldScope::Hidden => {
-                FieldKey::new_private_or_hidden_scoped(&self.inner.name, &self.source, &self.scope)
-            }
-        }
+    pub fn create_key(&self) -> Result<FieldKey> {
+        self.scope.create_key(&self.inner.name, self.source)
     }
 }
 
@@ -242,8 +132,9 @@ impl RootFieldSpec {
 /// data columns mapped to the specification of those fields
 #[derive(Debug, Clone, Default, Eq, PartialEq)]
 pub struct FieldSpecMap {
-    field_specs: HashMap<FieldKey, RootFieldSpec>, /* a mapping of field unique identifiers to
-                                                    * the fields themselves */
+    field_specs: HashMap<FieldKey, RootFieldSpec>,
+    /* a mapping of field unique identifiers to
+     * the fields themselves */
 }
 
 impl FieldSpecMap {
@@ -261,7 +152,7 @@ impl FieldSpecMap {
     }
 
     pub fn add(&mut self, new_field: RootFieldSpec) -> Result<()> {
-        let field_key = new_field.to_key()?;
+        let field_key = new_field.create_key()?;
         if let Some(existing_field) = self.field_specs.get(&field_key) {
             if existing_field == &new_field {
                 // This likely only happens when behaviors declare duplicate keys, it can't cause
@@ -376,7 +267,7 @@ impl TryInto<FieldType> for AgentStateField {
             | AgentStateField::Velocity
             | AgentStateField::RGB => FieldType::new(
                 FieldTypeVariant::FixedLengthArray {
-                    kind: Box::new(FieldType::new(FieldTypeVariant::Number, false)),
+                    field_type: Box::new(FieldType::new(FieldTypeVariant::Number, false)),
                     len: 3,
                 },
                 true,
@@ -510,22 +401,22 @@ pub mod tests {
     pub fn test_struct_types_enabled() -> Result<()> {
         let mut keys = FieldSpecMap::default();
         keys.add(RootFieldSpec {
-            inner: FieldSpec::new(
-                "struct".to_string(),
-                FieldType::new(
+            inner: FieldSpec {
+                name: "struct".to_string(),
+                field_type: FieldType::new(
                     FieldTypeVariant::Struct(vec![
-                        FieldSpec::new(
-                            "first_column".to_string(),
-                            FieldType::new(FieldTypeVariant::Number, false),
-                        ),
-                        FieldSpec::new(
-                            "second_column".to_string(),
-                            FieldType::new(FieldTypeVariant::Boolean, true),
-                        ),
+                        FieldSpec {
+                            name: "first_column".to_string(),
+                            field_type: FieldType::new(FieldTypeVariant::Number, false),
+                        },
+                        FieldSpec {
+                            name: "second_column".to_string(),
+                            field_type: FieldType::new(FieldTypeVariant::Boolean, true),
+                        },
                     ]),
                     true,
                 ),
-            ),
+            },
             scope: FieldScope::Private,
             source: FieldSource::Engine,
         })?;

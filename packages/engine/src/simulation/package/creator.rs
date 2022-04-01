@@ -1,10 +1,13 @@
 use std::{collections::HashMap, sync::Arc};
 
+use memory::arrow::field::FieldType;
+
 use crate::{
     config::{ExperimentConfig, Globals, PackageConfig, SimRunConfig},
     datastore::schema::{
-        accessor::FieldSpecMapAccessor, context::ContextSchema, state::AgentSchema, FieldScope,
-        FieldSource, FieldSpec, FieldSpecMap, FieldType, RootFieldSpec, RootFieldSpecCreator,
+        accessor::FieldSpecMapAccessor, context::ContextSchema, last_state_index_key,
+        state::AgentSchema, FieldScope, FieldSource, FieldSpecMap, RootFieldSpec,
+        RootFieldSpecCreator,
     },
     simulation::{
         comms::{package::PackageComms, Comms},
@@ -436,7 +439,7 @@ pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec>> {
         ));
     }
 
-    let last_state_index = FieldSpec::last_state_index_key();
+    let last_state_index = last_state_index_key();
 
     field_specs.push(field_spec_creator.create(
         last_state_index.name,

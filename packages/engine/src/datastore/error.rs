@@ -1,13 +1,10 @@
 use std::fmt;
 
 use arrow::{datatypes::DataType, error::ArrowError};
+use memory::arrow::field::{FieldKey, FieldType};
 use thiserror::Error as ThisError;
 
-use crate::{
-    datastore::schema::{FieldKey, FieldType, RootFieldSpec},
-    hash_types,
-    hash_types::state::AgentStateField,
-};
+use crate::{datastore::schema::RootFieldSpec, hash_types, hash_types::state::AgentStateField};
 
 #[derive(Debug)]
 pub enum SupportedType {
