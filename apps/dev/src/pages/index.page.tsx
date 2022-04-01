@@ -1,18 +1,17 @@
-import { useTheme } from "@mui/system";
-import axios from "axios";
-import Image from "next/image";
 import {
   Box,
   Container,
-  Input,
   Stack,
   Typography,
   typographyClasses,
   useMediaQuery,
 } from "@mui/material";
+import { useTheme } from "@mui/system";
+import axios from "axios";
 import type { NextPage } from "next";
 import Head from "next/head";
-import { ComponentProps, FC, ReactNode, useEffect, useState, VFC } from "react";
+import Image from "next/image";
+import { ComponentProps, FC, ReactNode, useState, VFC } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 import { Button } from "../components/Button";
 import { FaIcon } from "../components/icons/FaIcon";
@@ -20,16 +19,23 @@ import { Link } from "../components/Link";
 import { NAV_HEIGHT } from "../components/Navbar";
 import { TextField } from "../components/TextField";
 
-const StylishDivider: VFC<ComponentProps<typeof Stack>> = (props) => {
+const StylishDivider: VFC<
+  ComponentProps<typeof Stack> & { wide?: boolean }
+> = ({ wide = false, ...props }) => {
   const bgcolor = "orange.400";
   const size = 12;
+
   return (
     <Stack {...props} direction="row" alignItems="stretch" height={size}>
       <Box sx={{ width: 5 * size, bgcolor }} />
       <Box sx={{ width: 3 * size, bgcolor, opacity: 0.5 }} />
       <Box sx={{ width: 2 * size, bgcolor, opacity: 0.2 }} />
-      <Box sx={{ width: size, bgcolor, opacity: 0 }} />
-      <Box sx={{ width: size, bgcolor, opacity: 0.2 }} />
+      {wide ? (
+        <>
+          <Box sx={{ width: size, bgcolor, opacity: 0 }} />
+          <Box sx={{ width: size, bgcolor, opacity: 0.2 }} />
+        </>
+      ) : null}
     </Stack>
   );
 };
@@ -86,7 +92,7 @@ const Hero: VFC = () => (
         >
           Help build the future of decision-making
         </Typography>
-        <StylishDivider mb={5} />
+        <StylishDivider mb={5} wide />
         <Box width={{ xs: 1, md: 550 }}>
           <Typography mb={2} sx={{ lineHeight: 1.5 }}>
             {/** @todo check which font weight is the default */}
