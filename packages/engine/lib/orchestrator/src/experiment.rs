@@ -105,7 +105,7 @@ pub struct ExperimentConfig {
     #[cfg_attr(feature = "clap", clap(global = true, long))]
     pub js_runner_initial_heap_constraint: Option<usize>,
 
-    /// Max size of the JS runner heap in MB.
+    /// Max size of the JS runner heap in megabytes.
     ///
     /// The JS runner will run a series of garbage collection when the heap size gets close to this
     /// limit. If garbage collection can't get the heap smaller than this limit then it
