@@ -305,13 +305,13 @@ impl Segment {
     ///
     /// If the metaversion wasn't written properly when the batch was created or the part of memory
     /// with the metaversion was deallocated later, this might fail to read the metaversion.
-    pub fn read_metaversion(&self) -> Metaversion {
-        self.try_read_metaversion()
+    pub fn read_persisted_metaversion(&self) -> Metaversion {
+        self.try_read_persisted_metaversion()
             .expect("Could not read metaversion")
     }
 
     /// Same as [`read_metaversion`] but return a `Result` instead of panicking.
-    pub fn try_read_metaversion(&self) -> Result<Metaversion> {
+    pub fn try_read_persisted_metaversion(&self) -> Result<Metaversion> {
         let header = self.get_header()?;
         let n_header_bytes = header.len();
         let n_metaversion_bytes = 2 * mem::size_of::<u32>();

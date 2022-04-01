@@ -80,7 +80,7 @@ pub fn batch_to_fbs<'f>(
         fbb,
         // TODO: Don't serialize the metaversion and just send the batch id and read the persisted
         //       metaversion in the runner instead.
-        batch_segment.read_metaversion(),
+        batch_segment.read_persisted_metaversion(),
     );
     flatbuffers_gen::batch_generated::Batch::create(
         fbb,

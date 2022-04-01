@@ -74,7 +74,7 @@ impl ContextBatch {
     }
 
     pub fn from_segment(segment: Segment, schema: Option<&Arc<Schema>>) -> Result<Self> {
-        let persisted = segment.try_read_metaversion()?;
+        let persisted = segment.try_read_persisted_metaversion()?;
         let (schema_buffer, _, meta_buffer, data_buffer) = segment.get_batch_buffers()?;
 
         let schema = if let Some(s) = schema {
@@ -121,7 +121,7 @@ impl ContextBatch {
             return Err(Error::from("Expected context datas to not be empty"));
         }
 
-        let mut persisted = self.segment.read_metaversion();
+        let mut persisted = self.segment.read_persisted_metaversion();
 
         let column_dynamic_meta_list = column_writers
             .iter()

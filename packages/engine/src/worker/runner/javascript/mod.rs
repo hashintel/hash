@@ -564,7 +564,7 @@ fn state_to_js<'s, 'a>(
         let agent_batch = batch_to_js(
             scope,
             agent_batch.batch.segment(),
-            agent_batch.batch.segment().read_metaversion(),
+            agent_batch.batch.segment().read_persisted_metaversion(),
         )?;
         js_agent_batches
             .set_index(scope, i_batch as u32, agent_batch)
@@ -577,7 +577,7 @@ fn state_to_js<'s, 'a>(
         let message_batch = batch_to_js(
             scope,
             message_batch.batch.segment(),
-            message_batch.batch.segment().read_metaversion(),
+            message_batch.batch.segment().read_persisted_metaversion(),
         )?;
         js_message_batches
             .set_index(scope, i_batch as u32, message_batch)
@@ -1678,7 +1678,7 @@ impl<'s> ThreadLocalRunner<'s> {
         let js_batch_id = batch_to_js(
             scope,
             context_batch.segment(),
-            context_batch.segment().read_metaversion(),
+            context_batch.segment().read_persisted_metaversion(),
         )?;
         let js_idxs = new_js_array_from_usizes(scope, &state_group_start_indices)?;
         let js_current_step = current_step_to_js(scope, current_step);

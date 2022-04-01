@@ -62,7 +62,7 @@ impl MessageBatch {
         tracing::trace!("Resetting batch");
 
         let batch = &mut self.batch;
-        let mut metaversion_to_persist = batch.segment().read_metaversion();
+        let mut metaversion_to_persist = batch.segment().read_persisted_metaversion();
 
         if metaversion_to_persist.memory() != batch.loaded_metaversion().memory() {
             return Err(Error::from(format!(
@@ -239,7 +239,7 @@ impl MessageBatch {
 
         let record_batch = read_record_batch(data_buffer, batch_message, schema.clone(), &[])?;
 
-        let persisted = segment.try_read_metaversion()?;
+        let persisted = segment.try_read_persisted_metaversion()?;
         Ok(Self {
             batch: ArrowBatch::new(
                 segment,

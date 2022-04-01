@@ -67,13 +67,17 @@ impl AgentBatch {
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
         if agent_batch.batch.loaded_metaversion().memory()
-            != agent_batch.batch.segment().read_metaversion().memory()
+            != agent_batch
+                .batch
+                .segment()
+                .read_persisted_metaversion()
+                .memory()
         {
             return Err(Error::from(format!(
                 "Can't duplicate agent batch with loaded memory older than latest persisted: \
                  {:?}, {:?}",
                 agent_batch.batch.loaded_metaversion(),
-                agent_batch.batch.segment().read_metaversion(),
+                agent_batch.batch.segment().read_persisted_metaversion(),
             )));
         }
 
@@ -120,7 +124,7 @@ impl AgentBatch {
         schema: Option<&AgentSchema>,
         worker_index: Option<usize>,
     ) -> Result<Self> {
-        let persisted = segment.try_read_metaversion()?;
+        let persisted = segment.try_read_persisted_metaversion()?;
         let (schema_buffer, _header_buffer, meta_buffer, data_buffer) =
             segment.get_batch_buffers()?;
         let (schema, static_meta) = if let Some(s) = schema {

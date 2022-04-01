@@ -66,7 +66,7 @@ unsafe extern "C" fn flush_changes(
     };
 
     let segment = &mut *((*c_segment).segment as *mut Segment);
-    let loaded_metaversion = match segment.try_read_metaversion() {
+    let loaded_metaversion = match segment.try_read_persisted_metaversion() {
         Ok(v) => v,
         Err(err) => {
             println!("Could not read metaversions in `flush_changes`: {err:?}");
