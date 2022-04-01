@@ -11,11 +11,14 @@ import {
 import { AccountPageList } from "./AccountPageList/AccountPageList";
 
 import { AccountEntityTypeList } from "./AccountEntityTypeList/AccountEntityTypeList";
-import { FontAwesomeIcon, SidebarToggleIcon } from "../../icons";
+import { FontAwesomeIcon, SidebarToggleIcon } from "../../../shared/icons";
 import { TopNavLink } from "./TopNavLink";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { useSidebarContext } from "../SidebarContext";
-import { IconButton } from "../../IconButton";
+import { IconButton, Link } from "../../../shared/ui";
+import { HEADER_HEIGHT } from "../PageHeader/PageHeader";
+
+export const SIDEBAR_WIDTH = 260;
 
 export const PageSidebar: VoidFunctionComponent = () => {
   const router = useRouter();
@@ -26,7 +29,20 @@ export const PageSidebar: VoidFunctionComponent = () => {
   >;
 
   return (
-    <Drawer variant="persistent" open={sidebarOpen} sx={{ zIndex: 0 }}>
+    <Drawer
+      variant="persistent"
+      open={sidebarOpen}
+      sx={{
+        zIndex: 0,
+        width: SIDEBAR_WIDTH,
+        height: `calc(100vh - ${HEADER_HEIGHT}px)`,
+      }}
+      PaperProps={{
+        sx: {
+          width: SIDEBAR_WIDTH,
+        },
+      }}
+    >
       <Box
         sx={{
           mx: 0.75,
@@ -49,6 +65,7 @@ export const PageSidebar: VoidFunctionComponent = () => {
         title="Home"
         href="/"
         tooltipTitle="View your inbox and latest activity"
+        active={router.pathname === "/[accountId]"}
       />
       <TopNavLink
         icon={faZap}
@@ -79,8 +96,9 @@ export const PageSidebar: VoidFunctionComponent = () => {
         <AccountEntityTypeList accountId={accountId} />
       </Box>
 
-      {/* @todo replace with button implementation */}
-      <Box
+      <Link
+        noLinkStyle
+        href="/"
         sx={{
           zIndex: 2,
           padding: "18px 22px",
@@ -106,7 +124,7 @@ export const PageSidebar: VoidFunctionComponent = () => {
         >
           Help and Support
         </Typography>
-      </Box>
+      </Link>
     </Drawer>
   );
 };

@@ -8,11 +8,8 @@
 pub mod arrow;
 pub mod batch;
 mod error;
-pub mod ffi;
-pub mod meta;
 pub mod schema;
 pub mod shared_store;
-pub mod storage;
 pub mod store;
 pub mod table;
 #[cfg(test)]
@@ -32,12 +29,13 @@ pub mod tests {
     use ::arrow::array::{Array, BooleanBuilder, FixedSizeListBuilder};
     use rand::Rng;
 
+    #[allow(clippy::wildcard_imports)] // Desigend as test-prelude
+    use crate::datastore::test_utils::*;
     use crate::datastore::{
         arrow::batch_conversion::IntoAgents,
         batch::{iterators, AgentBatch},
         error::Result,
         table::state::State,
-        test_utils::*,
         UUID_V4_LEN,
     };
 
@@ -50,10 +48,10 @@ pub mod tests {
             // `targets` values will be checked against shared memory data
             // in order to check if changes were flushed properly
             let mut targets = Vec::with_capacity(column.len());
-            for i in 0..column.len() {
+            for entry in &mut column {
                 let mut rng = rand::thread_rng();
                 if rng.gen_bool(0.1) {
-                    column[i] = None;
+                    *entry = None;
                     targets.push(None);
                 } else if rng.gen_bool(0.8) {
                     let count = rng.gen_range(0..1000);
@@ -64,9 +62,9 @@ pub mod tests {
                             .collect::<Vec<u8>>(),
                     )?;
                     targets.push(Some(string.clone()));
-                    column[i] = Some(Cow::Owned(string));
+                    *entry = Some(Cow::Owned(string));
                 } else {
-                    match &column[i] {
+                    match entry {
                         Some(v) => targets.push(Some(v.to_string())),
                         None => targets.push(None),
                     }

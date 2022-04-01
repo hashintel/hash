@@ -1,9 +1,9 @@
+use memory::arrow::meta::{
+    util::DataSliceUtils, Buffer, ColumnDynamicMetadata, ColumnDynamicMetadataBuilder,
+};
+
 use crate::{
-    datastore::{
-        arrow::util::DataSliceUtils,
-        meta::{Buffer, ColumnDynamicMetadata, ColumnDynamicMetadataBuilder},
-        Result as DatastoreResult,
-    },
+    datastore::Result as DatastoreResult,
     simulation::package::context::{
         packages::api_requests::response::ApiResponses, ContextColumnWriter,
     },

@@ -2,7 +2,7 @@
   "parserOptions": {
     "project": ["./tsconfig.json"]
   },
-  "plugins": ["@typescript-eslint"],
+  "plugins": ["@typescript-eslint", "canonical", "unicorn"],
   "rules": {
     "jsx-a11y/label-has-associated-control": "off",
     "import/no-default-export": "error",
@@ -46,6 +46,13 @@
       ],
       "rules": {
         "import/no-default-export": "off"
+      }
+    },
+    {
+      "files": ["**/shared/**/*"],
+      "rules": {
+        "canonical/filename-no-index": "error",
+        "unicorn/filename-case": "error"
       }
     }
   ]

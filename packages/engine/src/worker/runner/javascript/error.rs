@@ -3,7 +3,6 @@ use thiserror::Error as ThisError;
 use tokio::sync::mpsc::error::SendError;
 use tracing::Span;
 
-use super::mini_v8 as mv8;
 use crate::{
     proto::SimulationShortId,
     simulation::package::id::PackageId,
@@ -19,6 +18,9 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 pub enum Error {
     #[error("{0}")]
     Unique(String),
+
+    #[error("Memory error: {0}")]
+    Memory(#[from] memory::Error),
 
     #[error("Can't start JavaScript runner again when it is already running")]
     AlreadyRunning,
@@ -90,12 +92,6 @@ pub enum Error {
 
     #[error("serde: {0:?}")]
     Serde(#[from] serde_json::Error),
-}
-
-impl From<mv8::Error<'_>> for Error {
-    fn from(e: mv8::Error<'_>) -> Self {
-        Error::V8(format!("{:?}", e))
-    }
 }
 
 impl From<&str> for Error {

@@ -24,6 +24,10 @@ const sentryWebpackPluginOptions = {
 process.env.NEXT_PUBLIC_HASH_OPENSEARCH_ENABLED =
   process.env.HASH_OPENSEARCH_ENABLED;
 
+process.env.NEXT_PUBLIC_BLOCK_BASED_ENTITY_EDITOR =
+  process.env.NEXT_PUBLIC_BLOCK_BASED_ENTITY_EDITOR ??
+  process.env.BLOCK_BASED_ENTITY_EDITOR;
+
 /**
  * @todo try using next-compose-plugins when upgrading next to 11 and/or to webpack 5
  *    was not building with compose-plugins on next 10 w/ webpack 4.
@@ -44,6 +48,14 @@ module.exports = withSentryConfig(
           test: /\.svg$/,
           use: [require.resolve("@svgr/webpack")],
         });
+
+        // https://github.com/rjsf-team/react-jsonschema-form/issues/2762#issuecomment-1082107872
+        // @todo Remove once if we no longer depend on @rjsf/material-ui or if the problem is fixed upstream
+        // eslint-disable-next-line no-param-reassign -- updating webpack config in this context is legit
+        webpackConfig.resolve.fallback = {
+          "@material-ui/core": false,
+          "@material-ui/icons": false,
+        };
 
         //  Build the sandbox HTML, which will have the sandbox script injected
         const framedBlockFolder = "/src/components/sandbox/FramedBlock";

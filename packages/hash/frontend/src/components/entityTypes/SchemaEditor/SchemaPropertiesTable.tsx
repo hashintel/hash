@@ -5,7 +5,7 @@ import { SchemaPropertyRow } from "./SchemaPropertyRow";
 import { JsonSchema } from "../../../lib/json-utils";
 import { TextInputOrDisplay } from "./Inputs";
 import { SchemaEditorDispatcher } from "./schemaEditorReducer";
-import { Button } from "../../Button";
+import { Button } from "../../../shared/ui";
 
 type SchemaPropertiesTableProps = {
   dispatchSchemaUpdate: SchemaEditorDispatcher;

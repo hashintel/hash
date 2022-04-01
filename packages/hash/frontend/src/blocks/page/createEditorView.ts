@@ -35,7 +35,7 @@ export const createEditorView = (
     errorPlugin,
   ];
 
-  const state = createProseMirrorState({ plugins });
+  const state = createProseMirrorState({ accountId, plugins });
 
   let connection: EditorConnection;
 
@@ -103,6 +103,7 @@ export const createEditorView = (
 
   manager = new ProsemirrorSchemaManager(
     state.schema,
+    accountId,
     view,
     // Reason for adding `_decorations`:
     // https://github.com/DefinitelyTyped/DefinitelyTyped/pull/57384#issuecomment-1018936089
@@ -121,6 +122,7 @@ export const createEditorView = (
     view,
     manager,
     plugins,
+    accountId,
     () => {
       view.dispatch(onError(view.state.tr));
     },

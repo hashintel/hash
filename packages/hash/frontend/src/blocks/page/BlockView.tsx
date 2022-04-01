@@ -13,7 +13,7 @@ import { createRef, forwardRef, RefObject, useMemo, useState } from "react";
 import { useOutsideClick } from "rooks";
 import { tw } from "twind";
 import { BlockContextMenu } from "../../components/BlockContextMenu/BlockContextMenu";
-import { DragVerticalIcon } from "../../components/icons";
+import { DragVerticalIcon } from "../../shared/icons";
 import { RemoteBlockMetadata } from "../userBlocks";
 import { BlockViewContext } from "./BlockViewContext";
 import { CollabPositionIndicators } from "./CollabPositionIndicators";

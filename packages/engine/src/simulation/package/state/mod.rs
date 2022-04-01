@@ -3,13 +3,13 @@ pub mod packages;
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use memory::arrow::ColumnChange;
 pub use packages::{Name, StateTask, StateTaskMessage, PACKAGE_CREATORS};
 use tracing::Span;
 
 use crate::{
     config::{ExperimentConfig, Globals, SimRunConfig},
     datastore::{
-        batch::change::ColumnChange,
         schema::{accessor::FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
         table::{context::Context, state::State},
         Result as DatastoreResult,
