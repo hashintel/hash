@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { tw } from "twind";
 
 import DeleteIcon from "@mui/icons-material/DeleteOutline";
@@ -24,6 +24,8 @@ import {
 import { BlockLoaderInput } from "./BlockLoaderInput";
 import { useUserBlocks } from "../../blocks/userBlocks";
 import { useFilteredBlocks } from "../../blocks/page/createSuggester/useFilteredBlocks";
+import { useAccountEntities } from "../hooks/useAccountEntities";
+import { useCurrentWorkspaceContext } from "../../contexts/CurrentWorkspaceContext";
 
 type BlockContextMenuProps = {
   blockSuggesterProps: BlockSuggesterProps;
@@ -62,6 +64,14 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   entityStore,
 }) => {
   const blockData = entityId ? entityStore.saved[entityId] : null;
+  const { accountId } = useCurrentWorkspaceContext();
+  const { fetchEntities } = useAccountEntities();
+
+  useEffect(() => {
+    if (entityId) {
+      fetchEntities(accountId, { entityId });
+    }
+  }, [entityId]);
 
   if (blockData && !isBlockEntity(blockData)) {
     throw new Error("BlockContextMenu linked to non-block entity");
