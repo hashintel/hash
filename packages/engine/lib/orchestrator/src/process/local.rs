@@ -84,8 +84,8 @@ pub struct LocalCommand {
     output_location: OutputLocation,
     log_folder: PathBuf,
     target_max_group_size: Option<usize>,
-    v8_initial_heap_constraint: Option<usize>,
-    v8_max_heap_constraint: Option<usize>,
+    js_runner_initial_heap_constraint: Option<usize>,
+    js_runner_max_heap_size: Option<usize>,
 }
 
 impl LocalCommand {
@@ -100,8 +100,8 @@ impl LocalCommand {
         output_location: OutputLocation,
         log_folder: PathBuf,
         target_max_group_size: Option<usize>,
-        v8_initial_heap_constraint: Option<usize>,
-        v8_max_heap_constraint: Option<usize>,
+        js_runner_initial_heap_constraint: Option<usize>,
+        js_runner_max_heap_size: Option<usize>,
     ) -> Self {
         // The NNG URL that the engine process will listen on
         let engine_url = format!("ipc://run-{experiment_id}");
@@ -116,8 +116,8 @@ impl LocalCommand {
             output_location,
             log_folder,
             target_max_group_size,
-            v8_initial_heap_constraint,
-            v8_max_heap_constraint,
+            js_runner_initial_heap_constraint,
+            js_runner_max_heap_size,
         }
     }
 }
@@ -163,13 +163,13 @@ impl process::Command for LocalCommand {
             cmd.arg("--target-max-group-size")
                 .arg(target_max_group_size.to_string());
         }
-        if let Some(v8_initial_heap_constraint) = self.v8_initial_heap_constraint {
-            cmd.arg("--v8-initial-heap-constraint")
-                .arg(v8_initial_heap_constraint.to_string());
+        if let Some(js_runner_initial_heap_constraint) = self.js_runner_initial_heap_constraint {
+            cmd.arg("--js-runner-initial-heap-constraint")
+                .arg(js_runner_initial_heap_constraint.to_string());
         }
-        if let Some(v8_max_heap_constraint) = self.v8_max_heap_constraint {
-            cmd.arg("--v8-max-heap-constraint")
-                .arg(v8_max_heap_constraint.to_string());
+        if let Some(js_runner_max_heap_size) = self.js_runner_max_heap_size {
+            cmd.arg("--js-runner-max-heap-size")
+                .arg(js_runner_max_heap_size.to_string());
         }
         debug!("Running `{cmd:?}`");
 
