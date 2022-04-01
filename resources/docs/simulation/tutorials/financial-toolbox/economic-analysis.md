@@ -10,7 +10,7 @@ description: "Analyze the results of your financial simulation"
 
 We can use HASH’s analysis tool to understand which strategies are most effective at increasing the value of a portfolio. We can define metrics to count how many agents are using each strategy, and then graph the output. Our metrics count the number of agents coded a certain color, which allows us to graph the result.
 
-![Number of agents trading using each strategy](https://cdn-us1.hash.ai/site/docs/fin-toolbox/strategy_presence.png)
+![Number of agents trading using each strategy](https://cdn-us1.hash.ai/site/docs/fin_strategy_presence.png)
 
 Our first plot graphs the prevalence of each of the strategies we have coded. We can run the simulation and see if, for example, changing the real interest rate affects which strategies win and are adopted more often.
 
@@ -18,7 +18,7 @@ Our first plot graphs the prevalence of each of the strategies we have coded. We
 
 Another way to use graphs to understand the simulation is to graph the total value of assets held by all the agents. We define a metric that sums the valuation of the portfolio for each agent, using the code we wrote earlier.
 
-![Total assets of agents in the simulation](https://cdn-us1.hash.ai/site/docs/fin-toolbox/assets.png)
+![Total assets of agents in the simulation](https://cdn-us1.hash.ai/site/docs/fin_assets.png)
 
 We can graph the results over time to show how securities gradually increase in value exponentially. We can again adjust the parameter for the real interest rate to change the rate of exponential growth.
 
@@ -28,7 +28,7 @@ Value at Risk (VaR) is a statistic that quantifies the maximum extent of possibl
 
 VaR is difficult to calculate when including nonlinear trades such as options. In such cases we would typically use another method (“Monte Carlo VaR”) to calculate VaR. We will cover this separately later.
 
-![Distribution of portfolio value among agents](https://cdn-us1.hash.ai/site/docs/fin-toolbox/distribution.png)
+![Distribution of portfolio value among agents](https://cdn-us1.hash.ai/site/docs/fin_distribution.png)
 
 In our example, we will plot a histogram of the total portfolio value of all of the assets. This will allow us to understand the distribution of outcomes when trading with the tested strategies.
 
