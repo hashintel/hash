@@ -16,7 +16,7 @@ import { useAccountEntityTypes } from "../../../components/hooks/useAccountEntit
 const NewEntityPage: NextPage = () => {
   const router = useRouter();
   const { query } = router;
-  const accountId = query.accountId as string;
+  const accountId = query["account-id"] as string;
   const entityTypeId = query.entityTypeId as string | undefined;
 
   const [selectedTypeId, setSelectedTypeId] = useState<string | undefined>(
