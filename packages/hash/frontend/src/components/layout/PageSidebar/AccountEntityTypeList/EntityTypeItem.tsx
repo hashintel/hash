@@ -2,9 +2,9 @@ import { Box, BoxProps, styled, Tooltip, Typography } from "@mui/material";
 import { useRef, useState, VFC } from "react";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
-import { Link } from "../../../Link";
-import { FontAwesomeIcon } from "../../../icons";
-import { IconButton } from "../../../IconButton";
+
+import { IconButton, Link } from "../../../../shared/ui";
+import { FontAwesomeIcon } from "../../../../shared/icons";
 import { EntityTypeMenu } from "./EntityTypeMenu";
 
 type EntityTypeItemProps = {

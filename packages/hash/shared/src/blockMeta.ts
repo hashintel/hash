@@ -103,12 +103,12 @@ export const fetchBlockMeta = async (
     const schemaPath = metadata.schema;
 
     // schema urls may be absolute, as blocks may rely on schemas they do not define
-    const schemaUrl =
-      schemaPath && schemaPath.match(/^(?:[a-z]+:)?\/\//)
-        ? schemaPath
-        : `${url}/${schemaPath.replace(/^\//, "")}`;
     let schema: BlockMeta["componentSchema"];
+    let schemaUrl;
     try {
+      schemaUrl =
+        schemaPath && schemaPath.match(/^(?:[a-z]+:)?\/\//)
+          ? schemaPath
       schema = schemaUrl ? await (await fetch(schemaUrl)).json() : {};
     } catch (err) {
       blockCache.delete(url);

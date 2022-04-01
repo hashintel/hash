@@ -385,6 +385,24 @@
             ]
           },
           {
+            "title": "Building a Financial Toolbox",
+            "slug": "simulation/tutorials/financial-toolbox",
+            "urldata": [
+              {
+                "title": "Modeling a Portfolio",
+                "slug": "simulation/tutorials/financial-toolbox/modeling-a-portfolio"
+              },
+              {
+                "title": "Making Trades",
+                "slug": "simulation/tutorials/financial-toolbox/making-trades"
+              },
+              {
+                "title": "Economic Analysis",
+                "slug": "simulation/tutorials/financial-toolbox/economic-analysis"
+              }
+            ]
+          },
+          {
             "title": "Create a Simulation Dashboard",
             "slug": "simulation/tutorials/create-a-simulation-dashboard"
           },

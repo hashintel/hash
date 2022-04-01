@@ -1,8 +1,8 @@
 import { FC } from "react";
 import { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import { Typography, Tooltip, typographyClasses } from "@mui/material";
-import { FontAwesomeIcon } from "../../icons";
-import { Link } from "../../Link";
+import { FontAwesomeIcon } from "../../../shared/icons";
+import { Link } from "../../../shared/ui";
 
 type NavLinkProps = {
   icon: IconDefinition;
