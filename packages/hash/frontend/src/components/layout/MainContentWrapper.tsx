@@ -10,7 +10,7 @@ import {
   InputAdornment,
   Typography,
 } from "@mui/material";
-import { FC, useEffect, useState } from "react";
+import { FC } from "react";
 import {
   faEnvelope,
   faQuestionCircle,
@@ -47,16 +47,6 @@ const Main = styled("main", {
 
 export const MainContentWrapper: FC = ({ children }) => {
   const { openSidebar, sidebarOpen } = useSidebarContext();
-  const [open, setOpen] = useState(" ");
-
-  useEffect(() => {
-    setTimeout(() => {
-      setOpen("Some random stuff");
-      setTimeout(() => {
-        setOpen(" ");
-      }, 2000);
-    }, 2000);
-  }, []);
 
   return (
     <Box
