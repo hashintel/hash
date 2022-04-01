@@ -209,6 +209,10 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
             ...(ownerState.variant === "primary" && {
               color: theme.palette.orange[600],
             }),
+            ...(ownerState.variant === "primarySquare" && {
+              fontSize: 24,
+              color: theme.palette.orange[500],
+            }),
             ...(ownerState.variant === "tertiary" && {
               color: theme.palette.gray[50],
             }),
@@ -228,11 +232,15 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
         },
         [`.${buttonClasses.endIcon}`]: {
           marginRight: 0,
-          marginLeft: theme.spacing(1),
+          marginLeft: theme.spacing(
+            ownerState.variant === "primarySquare" ? 2 : 1,
+          ),
         },
         [`.${buttonClasses.startIcon}`]: {
           marginLeft: 0,
-          marginRight: theme.spacing(1),
+          marginRight: theme.spacing(
+            ownerState.variant === "primarySquare" ? 2 : 1,
+          ),
         },
       };
     },
