@@ -61,8 +61,6 @@ const MyApp: React.VoidFunctionComponent<CustomAppProps> = ({
     }
   }, [user, router]);
 
-  console.log({ router });
-
   return (
     <ApolloProvider client={apolloClient}>
       <CacheProvider value={emotionCache}>
