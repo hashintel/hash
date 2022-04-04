@@ -20,7 +20,10 @@ import twindConfig from "../../twind.config";
 import "../../styles/globals.scss";
 import { useUser } from "../components/hooks/useUser";
 import { SidebarContextProvider } from "../components/layout/SidebarContext";
-import { CurrentWorkspaceInfoProvider } from "../shared/routing/route-account-info";
+import {
+  RouteAccountInfoProvider,
+  RoutePageInfoProvider,
+} from "../shared/routing";
 
 export const apolloClient = createApolloClient();
 
@@ -58,19 +61,23 @@ const MyApp: React.VoidFunctionComponent<CustomAppProps> = ({
     }
   }, [user, router]);
 
+  console.log({ router });
+
   return (
     <ApolloProvider client={apolloClient}>
       <CacheProvider value={emotionCache}>
         <ThemeProvider theme={theme}>
           <CssBaseline />
           <ModalProvider>
-            <CurrentWorkspaceInfoProvider>
-              <SidebarContextProvider>
-                <PageLayout>
-                  <Component {...pageProps} />
-                </PageLayout>
-              </SidebarContextProvider>
-            </CurrentWorkspaceInfoProvider>
+            <RouteAccountInfoProvider>
+              <RoutePageInfoProvider>
+                <SidebarContextProvider>
+                  <PageLayout>
+                    <Component {...pageProps} />
+                  </PageLayout>
+                </SidebarContextProvider>
+              </RoutePageInfoProvider>
+            </RouteAccountInfoProvider>
           </ModalProvider>
         </ThemeProvider>
       </CacheProvider>

@@ -44,7 +44,7 @@ export interface UseRouteAccountInfo {
 export const useRouteAccountInfo: UseRouteAccountInfo = (options = {}) => {
   const contextValue = useContext(RouteAccountInfoContext);
 
-  if (!options.allowUndefined) {
+  if (!contextValue && !options.allowUndefined) {
     throw new Error(
       "Unable to get account info (missing `account-slug` in URL)",
     );

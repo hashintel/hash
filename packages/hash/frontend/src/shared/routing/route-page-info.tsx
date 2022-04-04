@@ -44,7 +44,7 @@ export interface UseRoutePageInfo {
 export const useRoutePageInfo: UseRoutePageInfo = (options = {}) => {
   const contextValue = useContext(RoutePageInfoContext);
 
-  if (!options.allowUndefined) {
+  if (!contextValue && !options.allowUndefined) {
     throw new Error("Unable to get page info (missing `page-slug` in URL)");
   }
 

@@ -31,16 +31,16 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
   });
   const { user } = useUser();
   const { logout } = useLogout();
-  const { accountId: activeAccountId } = useRouteAccountInfo();
+  const { accountId } = useRouteAccountInfo();
 
   const activeWorkspace = useMemo(() => {
     let accountName = "";
 
-    if (user && activeAccountId === user.accountId) {
+    if (user && accountId === user.accountId) {
       accountName = user.properties.preferredName || user.properties.shortname!;
     } else {
       const activeOrg = user?.memberOf.find(
-        ({ org }) => org.accountId === activeAccountId,
+        ({ org }) => org.accountId === accountId,
       )?.org;
 
       if (activeOrg) {
@@ -48,8 +48,8 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
       }
     }
 
-    return { name: accountName || "User", accountId: activeAccountId };
-  }, [activeAccountId, user]);
+    return { name: accountName || "User", accountId };
+  }, [accountId, user]);
 
   const workspaceList = useMemo(() => {
     if (!user) {

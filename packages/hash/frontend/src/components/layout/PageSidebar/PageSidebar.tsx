@@ -25,7 +25,7 @@ export const PageSidebar: VoidFunctionComponent = () => {
   const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebarContext();
   const { accountId } = useRouteAccountInfo();
-  const { pageEntityId } = useRoutePageInfo({ allowUndefined: true });
+  const { pageEntityId } = useRoutePageInfo({ allowUndefined: true }) ?? {};
 
   return (
     <Drawer

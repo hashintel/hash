@@ -1,13 +1,12 @@
-import { VoidFunctionComponent } from "react";
-
 import { Box, Typography } from "@mui/material";
+import { NextPage } from "next";
 import { MainContentWrapper } from "../../components/layout/MainContentWrapper";
 import { useUser } from "../../components/hooks/useUser";
 import { useOrgs } from "../../components/hooks/useOrgs";
 import { Link } from "../../shared/ui";
 import { useRouteAccountInfo } from "../../shared/routing";
 
-export const AccountHome: VoidFunctionComponent = () => {
+export const Page: NextPage = () => {
   const { user } = useUser();
   const { data: orgs } = useOrgs();
   const { accountId } = useRouteAccountInfo();
@@ -72,4 +71,4 @@ export const AccountHome: VoidFunctionComponent = () => {
   );
 };
 
-export default AccountHome;
+export default Page;

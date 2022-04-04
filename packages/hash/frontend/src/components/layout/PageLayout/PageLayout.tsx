@@ -1,15 +1,13 @@
 import { useRouter } from "next/router";
-import { FC } from "react";
+import { ReactNode, VFC } from "react";
 import Head from "next/head";
 import { PageHeader } from "../PageHeader/PageHeader";
 import { isProd } from "../../../lib/environment";
-import { useRouteAccountInfo } from "../../../shared/routing";
 
 const AUTH_ROUTES = ["/login", "/signup", "/invite"];
 
-export const PageLayout: FC = ({ children }) => {
+export const PageLayout: VFC<{ children?: ReactNode }> = ({ children }) => {
   const router = useRouter();
-  const { accountId } = useRouteAccountInfo();
 
   return (
     <>
@@ -18,9 +16,7 @@ export const PageLayout: FC = ({ children }) => {
         <link rel="icon" type="image/png" href="/favicon.png" />
         {!isProd ? <meta name="robots" content="noindex" /> : null}
       </Head>
-      {!AUTH_ROUTES.includes(router.pathname) ? (
-        <PageHeader accountId={accountId} />
-      ) : null}
+      {!AUTH_ROUTES.includes(router.pathname) ? <PageHeader /> : null}
       {children}
     </>
   );
