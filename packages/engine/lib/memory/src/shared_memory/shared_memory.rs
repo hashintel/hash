@@ -49,7 +49,7 @@ impl<'id> MemoryId<'id> {
         }
     }
 
-    /// Clean up generade files created by this MemoryIds prefix.
+    /// Clean up generated shared memory segments associated with a given `MemoryId`.
     pub fn clean_up<Id: Borrow<Uuid>>(id: Id) -> Result<()> {
         // TODO: Mac differences in shared_memory
         let shm_files = glob::glob(&format!("/dev/shm/{}_*", Self::prefix(id)))
