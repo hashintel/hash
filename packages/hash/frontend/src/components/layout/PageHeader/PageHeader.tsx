@@ -9,7 +9,6 @@ import { ActionsDropdown } from "./ActionsDropdown";
 import { NotificationsDropdown } from "./NotificationsDropdown";
 import { Button, Link } from "../../../shared/ui";
 import { HashNavIcon } from "../../../shared/icons";
-import { useRouteAccountInfo } from "../../../shared/routing";
 
 const Nav: React.FC = ({ children }) => (
   <Box
@@ -30,7 +29,6 @@ export const HEADER_HEIGHT = 64;
 export const PageHeader: React.VFC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const { accountId } = useRouteAccountInfo({ allowUndefined: true }) ?? {};
 
   const { user } = useUser();
   const { logout } = useLogout();
@@ -72,7 +70,7 @@ export const PageHeader: React.VFC = () => {
         </Box>
         {user ? (
           <Box sx={{ display: "flex", alignItems: "center" }}>
-            <ActionsDropdown accountId={accountId ?? user.accountId} />
+            <ActionsDropdown />
             <NotificationsDropdown />
             <AccountDropdown logout={logout} user={user} />
           </Box>
