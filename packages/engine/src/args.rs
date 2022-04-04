@@ -57,7 +57,7 @@ pub struct Args {
 
     /// Allows the heap of the V8 runtime in each JavaScript runner to grow to some initial size in
     /// megabytes before triggering garbage collections.
-    /// See "-num-workers" to set the number of JavaScript runners executing in parallel.
+    /// See "--num-workers" to set the number of JavaScript runners executing in parallel.
     ///
     /// This is useful when it is known that experiments need a certain minimum heap to run to
     /// avoid repeatedly invoking the garbage collector when growing the heap.
@@ -68,6 +68,7 @@ pub struct Args {
     pub js_runner_initial_heap_constraint: Option<usize>,
 
     /// Maximum size in megabytes of the V8 heap in each JavaScript runner.
+    /// See "--num-workers" to set the number of JavaScript runners executing in parallel.
     ///
     /// The JavaScript runner will run a series of garbage collection when the heap size gets close
     /// to this limit. If garbage collection can't get the heap smaller than this limit then it
