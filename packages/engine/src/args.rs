@@ -66,7 +66,7 @@ pub struct Args {
     /// heap. You could set this argument to 600MB (500MB plus some) and save some runs of the
     /// garbage collector.
     ///
-    /// Defaults to V8's default.
+    /// Defaults to V8's `initial_heap_size` default.
     #[clap(long)]
     pub js_runner_initial_heap_constraint: Option<usize>,
 
@@ -77,7 +77,7 @@ pub struct Args {
     /// to this limit. If garbage collection can't get the heap smaller than this limit then it
     /// crashes.
     ///
-    /// Defaults to V8's default.
+    /// Defaults to V8's `max_heap_size` default.
     #[clap(long)]
     pub js_runner_max_heap_size: Option<usize>,
 }
