@@ -10,7 +10,7 @@ export const MuiLinkThemeOptions: Components<Theme>["MuiLink"] = {
       position: "relative",
       ":focus-visible": {
         border: "none",
-        outline: `1px solid ${theme.palette.purple[700]}`,
+        outline: `2px solid ${theme.palette.yellow[800]}`,
       },
     }),
   },
