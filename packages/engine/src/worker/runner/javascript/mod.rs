@@ -2034,6 +2034,6 @@ extern "C" fn near_heap_limit_callback(
          argument to raise the limit."
     );
 
-    // We don't increate the max heap limit.
+    // We don't increase the max heap limit.
     current_heap_limit
 }
