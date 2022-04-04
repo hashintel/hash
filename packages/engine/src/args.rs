@@ -56,8 +56,7 @@ pub struct Args {
     pub target_max_group_size: usize,
 
     /// Heap size in megabytes of the V8 runtime in each JavaScript runner under which garbage
-    /// collection doesn't occur.
-    /// See "--num-workers" to set the number of JavaScript runners
+    /// collection doesn't occur. See "--num-workers" to set the number of JavaScript runners
     /// executing in parallel.
     ///
     /// This setting is most of the time better off left to its default value.
@@ -71,8 +70,8 @@ pub struct Args {
     #[clap(long)]
     pub js_runner_initial_heap_constraint: Option<usize>,
 
-    /// Maximum size in megabytes of the V8 heap in each JavaScript runner.
-    /// See "--num-workers" to set the number of JavaScript runners executing in parallel.
+    /// Maximum size in megabytes of the V8 heap in each JavaScript runner. See "--num-workers" to
+    /// set the number of JavaScript runners executing in parallel.
     ///
     /// The JavaScript runner will run a series of garbage collection when the heap size gets close
     /// to this limit. If garbage collection can't get the heap smaller than this limit then it
