@@ -70,7 +70,7 @@ type Value<'scope> = v8::Local<'scope, v8::Value>;
 type Function<'scope> = v8::Local<'scope, v8::Function>;
 type Array<'scope> = v8::Local<'scope, v8::Array>;
 
-const MB: usize = 1_000_000;
+const MB: usize = 1_048_576;
 
 struct JsPackage<'s> {
     fns: Array<'s>,
