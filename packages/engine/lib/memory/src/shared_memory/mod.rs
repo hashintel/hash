@@ -1,3 +1,12 @@
+//! Provides structures and methods to work with shared memory.
+//!
+//! This module mainly provides [`Segment`], which holds a shared-memory segment. See it's
+//! documentation for further information. [`MemoryId`] is used to identify a [`Segment`] using a
+//! UUID and a random number appended to it.
+//!
+//! Also, this module provides an FFI interface containing `CSegment` as `Segment` representation
+//! and the `load_shmem` and `free_memory` functions.
+
 pub mod padding;
 
 mod buffer_change;

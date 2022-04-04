@@ -13,7 +13,10 @@ use crate::{
     },
 };
 
-/// An identifier for a shared memory section.
+/// An identifier for a shared memory [`Segment`].
+///
+/// Holds a UUID and a random suffix. The Uuid can be reused for different [`Segment`]s and can all
+/// be cleaned up by calling [`MemoryId::clean_up`].
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct MemoryId<'id> {
     id: &'id Uuid,
