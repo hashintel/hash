@@ -162,6 +162,7 @@ export const aggregateEntity = gql`
         properties
       }
       operation {
+        entityTypeId
         pageNumber
         pageCount
         itemsPerPage
