@@ -62,7 +62,7 @@ pub struct Args {
     /// This setting is most of the time better off left to its default value.
     /// It could be beneficial if your are going to store a large amount of "eternal" (=lives as
     /// long as the simulation is running) data on the heap.
-    /// Example: you know that at any given time you have 500MB of unreachable data on the
+    /// Example: you know that at any given time you have 500MB of reachable data on the
     /// heap. You could set this argument to 600MB (500MB plus some) and save some runs of the
     /// garbage collector.
     ///
