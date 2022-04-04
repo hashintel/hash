@@ -18,7 +18,7 @@ use memory::{
         meta::{self, conversion::HashDynamicMeta},
         ArrowBatch,
     },
-    shared_memory::{Memory, Metaversion, Segment},
+    shared_memory::{Memory, MemoryId, Metaversion, Segment},
 };
 
 use crate::{
@@ -167,7 +167,7 @@ impl MessageBatch {
         let header = Metaversion::default().to_le_bytes();
         let (meta_buffer, data_len) = simulate_record_batch_to_bytes(&record_batch);
         let mut memory = Memory::from_sizes(
-            experiment_id,
+            MemoryId::new(experiment_id),
             0,
             header.len(),
             meta_buffer.len(),
@@ -214,7 +214,7 @@ impl MessageBatch {
         )?;
 
         let memory = Memory::from_batch_buffers(
-            experiment_id,
+            MemoryId::new(experiment_id),
             &[],
             &header,
             &encoded_data.ipc_message,
