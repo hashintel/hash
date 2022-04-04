@@ -238,7 +238,12 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
           <Project
             title={<Box sx={{ mt: { xs: 0, md: 6, lg: 8 } }}>HASH</Box>}
             buttons={
-              <Button href="https://github.com/hashintel/hash/tree/main/packages/hash">
+              <Button
+                href="https://github.com/hashintel/hash/tree/main/packages/hash"
+                endIcon={
+                  <FaIcon name="arrow-up-right-from-square" type="solid" />
+                }
+              >
                 Download on Github
               </Button>
             }
@@ -280,7 +285,12 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
           <Project
             title="hEngine"
             buttons={
-              <Button href="https://github.com/hashintel/hash/tree/main/packages/engine">
+              <Button
+                href="https://github.com/hashintel/hash/tree/main/packages/engine"
+                endIcon={
+                  <FaIcon name="arrow-up-right-from-square" type="solid" />
+                }
+              >
                 Download on Github
               </Button>
             }

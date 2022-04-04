@@ -1,6 +1,3 @@
-/**
- * @todo update from HASH workspace
- */
 import * as React from "react";
 import clsx from "clsx";
 import { UrlObject } from "url";
@@ -10,15 +7,13 @@ import NextLink, { LinkProps as NextLinkProps } from "next/link";
 // eslint-disable-next-line no-restricted-imports
 import MuiLink, { LinkProps as MuiLinkProps } from "@mui/material/Link";
 import { styled } from "@mui/material/styles";
+import { FRONTEND_URL } from "../config";
 import { Button } from "./Button";
-
-// @todo set this properly
-const FRONTEND_URL = "http://localhost:3000";
 
 export const isHrefExternal = (href: string | UrlObject) =>
   typeof href === "string" &&
   (href === "/discord" ||
-    !/^(mailto:|#|\/|https:\/\/blockprotocol\.org)/.test(href)) &&
+    !/^(mailto:|#|\/|https:\/\/dev\.hash\.ai)/.test(href)) &&
   !href.startsWith(FRONTEND_URL);
 
 /**
