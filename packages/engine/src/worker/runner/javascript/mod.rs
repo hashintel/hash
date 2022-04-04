@@ -1947,25 +1947,15 @@ fn run_experiment(
             v8::V8::initialize_platform(platform);
             v8::V8::initialize();
 
-            let mut create_params = v8::Isolate::create_params();
+            // 0 makes V8 use its default value
+            let js_runner_initial_heap_constraint = init_msg.js_runner_initial_heap_constraint.unwrap_or(0);
+            // 0 makes V8 use its default value
+            let js_runner_max_heap_size = init_msg.js_runner_max_heap_size.unwrap_or(0);
 
-            create_params = match (
-                init_msg.js_runner_initial_heap_constraint,
-                init_msg.js_runner_max_heap_size,
-            ) {
-                (None, None) => create_params,
-                (None, Some(js_runner_max_heap_size)) => {
-                    // 0 makes V8 use its default value
-                    create_params.heap_limits(0, js_runner_max_heap_size * MB)
-                }
-                (Some(js_runner_initial_heap_constraint), None) => {
-                    // 0 is V8's default.
-                    create_params.heap_limits(js_runner_initial_heap_constraint * MB, 0)
-                }
-                (Some(js_runner_initial_heap_constraint), Some(js_runner_max_heap_size)) => {
-                    create_params.heap_limits(js_runner_initial_heap_constraint * MB, js_runner_max_heap_size * MB)
-                }
-            };
+            let create_params = v8::Isolate::create_params().heap_limits(
+                js_runner_initial_heap_constraint * MB,
+                js_runner_max_heap_size * MB,
+            );
 
             let mut isolate = v8::Isolate::new(create_params);
 
