@@ -168,7 +168,8 @@ const Project: FC<{
       <Box
         flexShrink={0}
         fontSize={0}
-        sx={{ span: { height: { md: 1, lg: "initial" } } }}
+        // sx={{ span: { height: { md: 1, lg: "initial" } } }}
+        maxWidth={{ xs: 400, md: 1 }}
       >
         {mobile ? mobileImage : image}
       </Box>
@@ -208,16 +209,20 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
               </Button>
             }
             image={
-              /** @todo scaling, alt text */
-              <Image src="/home/projects/bp.svg" width={445} height={326.26} />
+              <Image
+                src="/home/projects/bp.svg"
+                width={445}
+                height={326.26}
+                alt="Blocks with pre-defined types allow you to create structured data"
+              />
             }
             mobileImage={
-              /** @todo scaling, alt text */
               <Image
                 layout="responsive"
                 src="/home/projects/bp-mobile.svg"
                 width={293}
                 height={336}
+                alt="Blocks with pre-defined types allow you to create structured data"
               />
             }
           >
@@ -241,20 +246,20 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
               </>
             }
             image={
-              /** @todo scaling, alt text */
               <Image
                 src="/home/projects/hash.svg"
                 width={374}
                 height={465.24}
+                alt="Use Block Protocol blocks within the editor"
               />
             }
             mobileImage={
-              /** @todo scaling, alt text */
               <Image
                 layout="responsive"
                 src="/home/projects/hash-mobile.svg"
                 width={288.4}
                 height={279}
+                alt="Use Block Protocol blocks within the editor"
               />
             }
           >
@@ -286,20 +291,20 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
               </>
             }
             image={
-              /** @todo scaling, alt text */
               <Image
                 src="/home/projects/hEngine.svg"
                 width={411}
                 height={374.5}
+                alt="Import structured data to run simulations. Export results and insights back into HASH."
               />
             }
             mobileImage={
-              /** @todo scaling, alt text */
               <Image
                 layout="responsive"
                 src="/home/projects/hEngine-mobile.svg"
                 width={287.07}
                 height={303}
+                alt="Import structured data to run simulations. Export results and insights back into HASH."
               />
             }
           >
