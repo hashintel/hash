@@ -61,6 +61,8 @@ pub struct Args {
     /// This is useful when it is known that experiments need a certain minimum heap to run to
     /// avoid repeatedly invoking the garbage collector when growing the heap.
     /// When used in the wrong conditions this could waste memory.
+    ///
+    /// Defaults to V8's default.
     #[clap(long)]
     pub js_runner_initial_heap_constraint: Option<usize>,
 
@@ -69,6 +71,8 @@ pub struct Args {
     /// The JS runner will run a series of garbage collection when the heap size gets close to this
     /// limit. If garbage collection can't get the heap smaller than this limit then it
     /// crashes.
+    ///
+    /// Defaults to V8's default.
     #[clap(long)]
     pub js_runner_max_heap_size: Option<usize>,
 }
