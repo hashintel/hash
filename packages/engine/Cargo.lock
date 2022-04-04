@@ -432,13 +432,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "common"
-version = "0.0.0"
-dependencies = [
- "uuid",
-]
-
-[[package]]
 name = "concurrent-queue"
 version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -962,7 +955,6 @@ dependencies = [
  "async-trait",
  "cc",
  "clap",
- "common",
  "csv",
  "derive-new",
  "enum_dispatch",
@@ -971,7 +963,6 @@ dependencies = [
  "flatbuffers_gen",
  "float-cmp",
  "futures",
- "glob",
  "http-types",
  "kdtree",
  "lazy_static",
@@ -1356,15 +1347,16 @@ name = "memory"
 version = "0.1.0"
 dependencies = [
  "arrow",
- "common",
  "flatbuffers",
  "flatbuffers_gen",
+ "glob",
  "rand 0.8.4",
  "serde",
  "serde_json",
  "shared_memory",
  "thiserror",
  "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -2645,7 +2637,7 @@ dependencies = [
 [[package]]
 name = "v8"
 version = "0.41.0"
-source = "git+https://github.com/hashdeps/rusty_v8#ed5a6ba31d6ecb91eb564b8f848241baf0e33a79"
+source = "git+https://github.com/hashdeps/rusty_v8?rev=0bf4d26961697591baf54bc4ceb0d15d3f195f86#0bf4d26961697591baf54bc4ceb0d15d3f195f86"
 dependencies = [
  "bitflags",
  "fslock",
