@@ -22,16 +22,16 @@ pub const PREVIOUS_INDEX_FIELD_NAME: &str = "previous_index";
 /// Defines the source from which a Field was specified, useful for resolving clashes
 // TODO: Find a good name, which does not conflict with `FieldSource`
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum Source {
+pub enum EngineComponent {
     Engine,
     Package(PackageName),
 }
 
-impl FieldSource for Source {
+impl FieldSource for EngineComponent {
     fn unique_id(&self) -> stateful::Result<usize> {
         match self {
-            Source::Engine => Ok(0),
-            Source::Package(package_name) => Ok(package_name
+            EngineComponent::Engine => Ok(0),
+            EngineComponent::Package(package_name) => Ok(package_name
                 .get_id()
                 .map_err(|err| stateful::Error::from(err.to_string()))?
                 .as_usize()),
@@ -73,7 +73,7 @@ pub fn last_state_index_key() -> FieldSpec {
 pub struct RootFieldSpec {
     pub inner: FieldSpec,
     pub scope: FieldScope,
-    pub source: Source,
+    pub source: EngineComponent,
 }
 
 impl RootFieldSpec {
@@ -129,8 +129,8 @@ impl FieldSpecMap {
                         new_field.inner.field_type,
                         existing_field.inner.field_type.clone(),
                     ));
-                } else if let Source::Package(_package_src) = &new_field.source {
-                    if existing_field.source == Source::Engine {
+                } else if let EngineComponent::Package(_package_src) = &new_field.source {
+                    if existing_field.source == EngineComponent::Engine {
                         tracing::warn!(
                             "Key clash when a package attempted to insert a new agent-scoped \
                              field with key: {:?}, the existing field was created by the engine, \
@@ -200,7 +200,7 @@ impl TryInto<RootFieldSpec> for AgentStateField {
                 field_type: self.try_into()?,
             },
             scope: FieldScope::Agent,
-            source: Source::Engine,
+            source: EngineComponent::Engine,
         })
     }
 }
@@ -263,7 +263,7 @@ pub mod tests {
 
     #[test]
     fn name_collision_built_in() {
-        let field_spec_creator = RootFieldSpecCreator::new(Source::Engine);
+        let field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
         let mut field_spec_map = FieldSpecMap::empty();
 
         field_spec_map
@@ -282,7 +282,7 @@ pub mod tests {
 
     #[test]
     fn name_collision_custom() {
-        let field_spec_creator = RootFieldSpecCreator::new(Source::Engine);
+        let field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
         let mut field_spec_map = FieldSpecMap::empty();
 
         field_spec_map
@@ -309,7 +309,7 @@ pub mod tests {
 
     #[test]
     fn unchanged_size_built_in() {
-        let _field_spec_creator = RootFieldSpecCreator::new(Source::Engine);
+        let _field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
         let mut field_spec_map = FieldSpecMap::empty();
 
         field_spec_map
@@ -327,7 +327,7 @@ pub mod tests {
 
     #[test]
     fn unchanged_size_custom() {
-        let field_spec_creator = RootFieldSpecCreator::new(Source::Engine);
+        let field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
         let mut field_spec_map = FieldSpecMap::empty();
 
         field_spec_map
@@ -376,7 +376,7 @@ pub mod tests {
                 ),
             },
             scope: FieldScope::Private,
-            source: Source::Engine,
+            source: EngineComponent::Engine,
         })?;
 
         keys.get_arrow_schema()?;

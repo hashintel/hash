@@ -4,12 +4,12 @@ use stateful::field::FieldKey;
 
 use crate::datastore::{
     error::Result,
-    schema::field_spec::{FieldScope, FieldSpecMap, RootFieldSpec, Source},
+    schema::field_spec::{EngineComponent, FieldScope, FieldSpecMap, RootFieldSpec},
 };
 
 #[derive(derive_new::new)]
 pub struct FieldSpecMapAccessor {
-    accessor_source: Source,
+    accessor_source: EngineComponent,
     field_spec_map: Arc<FieldSpecMap>,
 }
 
@@ -21,7 +21,7 @@ pub trait GetFieldSpec {
     fn get_hidden_scoped_field_spec(
         &self,
         field_name: &str,
-        source: &Source,
+        source: &EngineComponent,
     ) -> Result<&RootFieldSpec>;
 
     /// Get a FieldSpec stored under a given field name with FieldScope::Private that belongs to the
@@ -42,7 +42,7 @@ impl GetFieldSpec for FieldSpecMapAccessor {
     fn get_hidden_scoped_field_spec(
         &self,
         field_name: &str,
-        field_source: &Source,
+        field_source: &EngineComponent,
     ) -> Result<&RootFieldSpec> {
         let key =
             FieldKey::new_private_or_hidden_scoped(field_name, field_source, FieldScope::Hidden)?;
@@ -90,7 +90,7 @@ impl RootFieldSpecMapAccessor {
     fn get_private_or_hidden_scoped_field_spec(
         &self,
         field_name: &str,
-        field_source: &Source,
+        field_source: &EngineComponent,
         field_scope: FieldScope,
     ) -> Result<&RootFieldSpec> {
         let key = FieldKey::new_private_or_hidden_scoped(field_name, field_source, field_scope)?;

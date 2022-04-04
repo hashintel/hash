@@ -13,8 +13,8 @@ use crate::{
     datastore::{
         error::Error,
         schema::{
-            last_state_index_key, state::AgentSchema, FieldSpecMap, RootFieldSpec,
-            RootFieldSpecCreator, Source,
+            last_state_index_key, state::AgentSchema, EngineComponent, FieldSpecMap, RootFieldSpec,
+            RootFieldSpecCreator,
         },
     },
     hash_types::state::{Agent, AgentStateField},
@@ -26,7 +26,7 @@ fn test_field_specs() -> FieldSpecMap {
     let mut map = FieldSpecMap::default();
     map.add(RootFieldSpec {
         inner: last_state_index_key(),
-        source: Source::Engine,
+        source: EngineComponent::Engine,
         scope: FieldScope::Hidden,
     })
     .unwrap();
@@ -48,7 +48,7 @@ fn test_field_specs() -> FieldSpecMap {
             ),
         },
         scope: FieldScope::Agent,
-        source: Source::Engine,
+        source: EngineComponent::Engine,
     })
     .unwrap();
     map.add(RootFieldSpec {
@@ -57,7 +57,7 @@ fn test_field_specs() -> FieldSpecMap {
             field_type: FieldType::new(FieldTypeVariant::Number, false),
         },
         scope: FieldScope::Agent,
-        source: Source::Engine,
+        source: EngineComponent::Engine,
     })
     .unwrap();
     map.add(RootFieldSpec {
@@ -145,7 +145,7 @@ fn test_field_specs() -> FieldSpecMap {
             ),
         },
         scope: FieldScope::Agent,
-        source: Source::Engine,
+        source: EngineComponent::Engine,
     })
     .unwrap();
     map
@@ -297,7 +297,7 @@ pub fn gen_schema_and_test_agents(
     num_agents: usize,
     seed: u64,
 ) -> Result<(Arc<AgentSchema>, Vec<Agent>), Error> {
-    let field_spec_creator = RootFieldSpecCreator::new(Source::Engine);
+    let field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
     let mut field_spec_map = FieldSpecMap::empty();
     field_spec_map.add(field_spec_creator.create(
         "age".to_string(),

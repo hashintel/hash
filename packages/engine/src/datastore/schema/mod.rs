@@ -5,5 +5,5 @@ mod field_spec;
 
 pub use self::field_spec::{
     accessor, built_in::IsRequired, creator::RootFieldSpecCreator, last_state_index_key,
-    FieldSpecMap, RootFieldSpec, Source,
+    EngineComponent, FieldSpecMap, RootFieldSpec,
 };

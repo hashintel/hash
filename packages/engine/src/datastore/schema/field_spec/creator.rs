@@ -1,6 +1,6 @@
 use stateful::field::{FieldScope, FieldSpec, FieldType};
 
-use crate::datastore::schema::field_spec::{RootFieldSpec, Source};
+use crate::datastore::schema::field_spec::{EngineComponent, RootFieldSpec};
 
 /// A factory-like object that can be set with a [`FieldSource`] and then passed to a context such
 /// as a package.
@@ -12,7 +12,7 @@ use crate::datastore::schema::field_spec::{RootFieldSpec, Source};
 ///
 /// ```
 /// use hash_engine_lib::{
-///     datastore::schema::{RootFieldSpecCreator, Source},
+///     datastore::schema::{EngineComponent, RootFieldSpecCreator},
 ///     simulation::package::{name::PackageName, output::Name as OutputName},
 /// };
 ///
@@ -20,10 +20,10 @@ use crate::datastore::schema::field_spec::{RootFieldSpec, Source};
 /// let package = PackageName::Output(OutputName::JsonState);
 ///
 /// // Create the RootFieldSpecCreator
-/// let rfs_creator = RootFieldSpecCreator::new(Source::Package(package));
+/// let rfs_creator = RootFieldSpecCreator::new(EngineComponent::Package(package));
 /// ```
 pub struct RootFieldSpecCreator {
-    field_source: Source,
+    field_source: EngineComponent,
 }
 
 impl RootFieldSpecCreator {
@@ -32,12 +32,12 @@ impl RootFieldSpecCreator {
     /// # Example
     ///
     /// ```
-    /// use hash_engine_lib::datastore::schema::{RootFieldSpecCreator, Source};
+    /// use hash_engine_lib::datastore::schema::{EngineComponent, RootFieldSpecCreator};
     ///
     /// # #[allow(unused_variables)]
-    /// let rfs_creator = RootFieldSpecCreator::new(Source::Engine);
+    /// let rfs_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
     /// ```
-    pub const fn new(field_source: Source) -> Self {
+    pub const fn new(field_source: EngineComponent) -> Self {
         Self { field_source }
     }
 
@@ -48,11 +48,11 @@ impl RootFieldSpecCreator {
     ///
     /// ```
     /// use hash_engine_lib::datastore::schema::{
-    ///     FieldScope, FieldType, FieldTypeVariant, RootFieldSpecCreator, Source,
+    ///     EngineComponent, FieldScope, FieldType, FieldTypeVariant, RootFieldSpecCreator,
     /// };
     ///
     /// // Create the RootFieldSpecCreator
-    /// let rfs_creator = RootFieldSpecCreator::new(Source::Engine);
+    /// let rfs_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
     ///
     /// // Create a non-nullable `Number` field type
     /// let field_type = FieldType::new(FieldTypeVariant::Number, false);
@@ -67,7 +67,7 @@ impl RootFieldSpecCreator {
     /// assert_eq!(rfs.inner.name, "my_number");
     /// assert_eq!(rfs.inner.field_type, field_type);
     /// assert_eq!(rfs.scope, FieldScope::Agent);
-    /// assert_eq!(rfs.source, Source::Engine);
+    /// assert_eq!(rfs.source, EngineComponent::Engine);
     /// ```
     pub fn create(&self, name: String, field_type: FieldType, scope: FieldScope) -> RootFieldSpec {
         RootFieldSpec {

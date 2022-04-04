@@ -7,7 +7,7 @@ use self::{
 use crate::{
     datastore::{
         batch::AgentBatch,
-        schema::{accessor::GetFieldSpec, Source},
+        schema::{accessor::GetFieldSpec, EngineComponent},
         table::{
             context::Context, pool::proxy::PoolWriteProxy, proxy::StateWriteProxy,
             task_shared_store::TaskSharedStoreBuilder,
@@ -80,8 +80,9 @@ impl GetWorkerExpStartMsg for Creator {
 impl PackageCreator for Creator {
     fn new(experiment_config: &Arc<ExperimentConfig>) -> Result<Box<dyn PackageCreator>> {
         // TODO: Packages shouldn't have to set the source
-        let field_spec_creator =
-            RootFieldSpecCreator::new(Source::Package(PackageName::State(Name::BehaviorExecution)));
+        let field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Package(
+            PackageName::State(Name::BehaviorExecution),
+        ));
         let behavior_map =
             BehaviorMap::try_from((experiment_config.as_ref(), &field_spec_creator))?;
         let behavior_ids = BehaviorIds::from_behaviors(&behavior_map)?;

@@ -11,7 +11,7 @@ use stateful::field::{FieldTypeVariant, IsFixedSize};
 
 use crate::datastore::{
     error::{Error, Result},
-    schema::{FieldSpecMap, RootFieldSpec, Source},
+    schema::{EngineComponent, FieldSpecMap, RootFieldSpec},
 };
 
 impl TryFrom<RootFieldSpec> for Field {
@@ -19,9 +19,10 @@ impl TryFrom<RootFieldSpec> for Field {
 
     fn try_from(root_field_spec: RootFieldSpec) -> Result<Self, Self::Error> {
         let field_key = root_field_spec.create_key()?;
-        Ok(root_field_spec
-            .inner
-            .into_arrow_field(root_field_spec.source == Source::Engine, Some(field_key)))
+        Ok(root_field_spec.inner.into_arrow_field(
+            root_field_spec.source == EngineComponent::Engine,
+            Some(field_key),
+        ))
     }
 }
 
@@ -83,7 +84,7 @@ pub mod tests {
 
     #[test]
     fn get_schema() -> Result<()> {
-        let field_spec_creator = RootFieldSpecCreator::new(Source::Engine);
+        let field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
         let mut field_spec_map = FieldSpecMap::empty();
 
         field_spec_map.add(field_spec_creator.create(
