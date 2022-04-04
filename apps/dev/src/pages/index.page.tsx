@@ -596,7 +596,7 @@ const Home: NextPage = () => {
   return (
     <>
       <Head>
-        <title>HASH</title>
+        <title>HASH.dev – HASH for Developers</title>
       </Head>
       <Hero />
       <Projects mb={12} />
