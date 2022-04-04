@@ -6,7 +6,7 @@ import { useOrgs } from "../../components/hooks/useOrgs";
 import { Link } from "../../shared/ui";
 import { useRouteAccountInfo } from "../../shared/routing";
 
-export const Page: NextPage = () => {
+export const AccountHome: NextPage = () => {
   const { user } = useUser();
   const { data: orgs } = useOrgs();
   const { accountId } = useRouteAccountInfo();
@@ -71,4 +71,4 @@ export const Page: NextPage = () => {
   );
 };
 
-export default Page;
+export default AccountHome;

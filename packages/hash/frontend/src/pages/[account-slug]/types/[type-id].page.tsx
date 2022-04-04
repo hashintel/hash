@@ -1,9 +1,10 @@
-import { useCallback, VoidFunctionComponent } from "react";
+import { useCallback } from "react";
 import pluralize from "pluralize";
 import { useQuery } from "@apollo/client";
 import { useRouter } from "next/router";
 
 import { tw } from "twind";
+import { NextPage } from "next";
 import {
   GetEntityTypeQuery,
   GetEntityTypeQueryVariables,
@@ -20,7 +21,7 @@ import { MainContentWrapper } from "../../../components/layout/MainContentWrappe
 import { Button, Link } from "../../../shared/ui";
 import { useRouteAccountInfo } from "../../../shared/routing";
 
-export const EntityType: VoidFunctionComponent = () => {
+export const EntityType: NextPage = () => {
   const router = useRouter();
   const { query } = router;
 

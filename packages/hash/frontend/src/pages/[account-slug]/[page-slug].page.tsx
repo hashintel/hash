@@ -2,7 +2,7 @@ import { useQuery } from "@apollo/client";
 import { BlockMeta, fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { keyBy } from "lodash";
-import { GetStaticPaths, GetStaticProps } from "next";
+import { GetStaticPaths, GetStaticProps, NextPage } from "next";
 import { Router, useRouter } from "next/router";
 import { tw } from "twind";
 
@@ -54,7 +54,7 @@ export const getStaticProps: GetStaticProps<PageProps> = async () => {
   };
 };
 
-export const Page: React.VFC<PageProps> = ({ blocksMeta }) => {
+export const Page: NextPage<PageProps> = ({ blocksMeta }) => {
   const router = useRouter();
 
   const { accountId } = useRouteAccountInfo();
