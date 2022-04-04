@@ -484,6 +484,7 @@ const Subscribe: VFC = () => {
                   size="large"
                   type="submit"
                   loading={loading}
+                  sx={{ width: { xs: 1, md: "initial" } }}
                 >
                   Join
                 </Button>
