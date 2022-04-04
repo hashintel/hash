@@ -12,8 +12,7 @@ import { Button } from "./Button";
 
 export const isHrefExternal = (href: string | UrlObject) =>
   typeof href === "string" &&
-  (href === "/discord" ||
-    !/^(mailto:|#|\/|https:\/\/dev\.hash\.ai)/.test(href)) &&
+  (href === "/discord" || !/^(mailto:|#|\/|https:\/\/hash\.dev)/.test(href)) &&
   !href.startsWith(FRONTEND_URL);
 
 /**
