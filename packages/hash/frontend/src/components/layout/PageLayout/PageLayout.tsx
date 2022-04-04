@@ -3,13 +3,13 @@ import { FC } from "react";
 import Head from "next/head";
 import { PageHeader } from "../PageHeader/PageHeader";
 import { isProd } from "../../../lib/environment";
-import { useCurrentWorkspaceContext } from "../../../contexts/CurrentWorkspaceContext";
+import { useCurrentWorkspaceInfo } from "../../../shared/routing";
 
 const AUTH_ROUTES = ["/login", "/signup", "/invite"];
 
 export const PageLayout: FC = ({ children }) => {
   const router = useRouter();
-  const { accountId } = useCurrentWorkspaceContext();
+  const { accountId } = useCurrentWorkspaceInfo();
 
   return (
     <>
@@ -19,7 +19,7 @@ export const PageLayout: FC = ({ children }) => {
         {!isProd ? <meta name="robots" content="noindex" /> : null}
       </Head>
       {!AUTH_ROUTES.includes(router.pathname) ? (
-        <PageHeader accountId={accountId!} />
+        <PageHeader accountId={accountId} />
       ) : null}
       {children}
     </>

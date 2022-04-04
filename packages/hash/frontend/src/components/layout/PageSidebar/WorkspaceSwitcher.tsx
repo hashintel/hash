@@ -17,9 +17,9 @@ import {
 } from "material-ui-popup-state/hooks";
 import { useUser } from "../../hooks/useUser";
 import { useLogout } from "../../hooks/useLogout";
-import { useCurrentWorkspaceContext } from "../../../contexts/CurrentWorkspaceContext";
 import { Avatar, Button, Link } from "../../../shared/ui";
 import { FontAwesomeIcon } from "../../../shared/icons";
+import { useCurrentWorkspaceInfo } from "../../../shared/routing";
 
 type WorkspaceSwitcherProps = {};
 
@@ -31,7 +31,7 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
   });
   const { user } = useUser();
   const { logout } = useLogout();
-  const { accountId: activeAccountId } = useCurrentWorkspaceContext();
+  const { accountId: activeAccountId } = useCurrentWorkspaceInfo();
 
   const activeWorkspace = useMemo(() => {
     let accountName = "";

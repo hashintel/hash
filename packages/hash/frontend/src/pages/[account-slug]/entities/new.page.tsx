@@ -12,11 +12,12 @@ import { useBlockProtocolCreateEntities } from "../../../components/hooks/blockP
 import { useBlockProtocolAggregateEntities } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregateEntities";
 import { MainContentWrapper } from "../../../components/layout/MainContentWrapper";
 import { useAccountEntityTypes } from "../../../components/hooks/useAccountEntityTypes";
+import { useCurrentWorkspaceInfo } from "../../../shared/routing";
 
 const NewEntityPage: NextPage = () => {
   const router = useRouter();
   const { query } = router;
-  const accountId = query["account-slug"] as string;
+  const { accountId } = useCurrentWorkspaceInfo();
   const entityTypeId = query.entityTypeId as string | undefined;
 
   const [selectedTypeId, setSelectedTypeId] = useState<string | undefined>(

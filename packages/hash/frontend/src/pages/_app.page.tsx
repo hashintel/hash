@@ -20,7 +20,7 @@ import twindConfig from "../../twind.config";
 import "../../styles/globals.scss";
 import { useUser } from "../components/hooks/useUser";
 import { SidebarContextProvider } from "../components/layout/SidebarContext";
-import { CurrentWorkspaceContextProvider } from "../contexts/CurrentWorkspaceContext";
+import { CurrentWorkspaceInfoProvider } from "../shared/routing/current-workspace-info";
 
 export const apolloClient = createApolloClient();
 
@@ -64,13 +64,13 @@ const MyApp: React.VoidFunctionComponent<CustomAppProps> = ({
         <ThemeProvider theme={theme}>
           <CssBaseline />
           <ModalProvider>
-            <CurrentWorkspaceContextProvider>
+            <CurrentWorkspaceInfoProvider>
               <SidebarContextProvider>
                 <PageLayout>
                   <Component {...pageProps} />
                 </PageLayout>
               </SidebarContextProvider>
-            </CurrentWorkspaceContextProvider>
+            </CurrentWorkspaceInfoProvider>
           </ModalProvider>
         </ThemeProvider>
       </CacheProvider>

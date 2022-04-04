@@ -18,11 +18,12 @@ import { useBlockProtocolDeleteLinks } from "../../../components/hooks/blockProt
 import { useBlockProtocolCreateLinks } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateLinks";
 import { MainContentWrapper } from "../../../components/layout/MainContentWrapper";
 import { BlockBasedEntityEditor } from "./[entity-id].page/block-based-entity-editor";
+import { useCurrentWorkspaceInfo } from "../../../shared/routing";
 
 const SimpleEntityPage: NextPage = () => {
   const router = useRouter();
   const { query } = router;
-  const accountId = query["account-slug"] as string;
+  const { accountId } = useCurrentWorkspaceInfo();
   const entityId = query["entity-id"] as string;
 
   const { data, refetch: refetchEntity } = useQuery<
@@ -88,7 +89,7 @@ const SimpleEntityPage: NextPage = () => {
 const BlockBasedEntityPage: NextPage = () => {
   const router = useRouter();
   const { query } = router;
-  const accountId = query["account-slug"] as string;
+  const { accountId } = useCurrentWorkspaceInfo();
   const entityId = query["entity-id"] as string;
 
   return (

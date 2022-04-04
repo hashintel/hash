@@ -17,13 +17,14 @@ import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { useSidebarContext } from "../SidebarContext";
 import { IconButton, Link } from "../../../shared/ui";
 import { HEADER_HEIGHT } from "../PageHeader/PageHeader";
+import { useCurrentWorkspaceInfo } from "../../../shared/routing";
 
 export const SIDEBAR_WIDTH = 260;
 
 export const PageSidebar: VoidFunctionComponent = () => {
   const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebarContext();
-  const accountId = router.query["account-slug"] as string;
+  const { accountId } = useCurrentWorkspaceInfo();
   const pageEntityId = router.query["page-slug"] as string;
 
   return (
