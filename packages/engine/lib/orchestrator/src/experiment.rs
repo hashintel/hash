@@ -100,7 +100,7 @@ pub struct ExperimentConfig {
     /// collection doesn't occur. See "--num-workers" to set the number of JavaScript runners
     /// executing in parallel.
     ///
-    /// This setting is most of the time better off left to its default value.
+    /// Unless you have specific need, this setting should be left at its default value.
     /// It could be beneficial if your are going to store a large amount of "eternal" (=lives as
     /// long as the simulation is running) data on the heap.
     /// Example: you know that at any given time you have 500MB of reachable data on the
