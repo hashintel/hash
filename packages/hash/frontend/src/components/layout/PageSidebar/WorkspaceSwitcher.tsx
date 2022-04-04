@@ -19,7 +19,7 @@ import { useUser } from "../../hooks/useUser";
 import { useLogout } from "../../hooks/useLogout";
 import { Avatar, Button, Link } from "../../../shared/ui";
 import { FontAwesomeIcon } from "../../../shared/icons";
-import { useCurrentWorkspaceInfo } from "../../../shared/routing";
+import { useRouteAccountInfo } from "../../../shared/routing";
 
 type WorkspaceSwitcherProps = {};
 
@@ -31,7 +31,7 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
   });
   const { user } = useUser();
   const { logout } = useLogout();
-  const { accountId: activeAccountId } = useCurrentWorkspaceInfo();
+  const { accountId: activeAccountId } = useRouteAccountInfo();
 
   const activeWorkspace = useMemo(() => {
     let accountName = "";

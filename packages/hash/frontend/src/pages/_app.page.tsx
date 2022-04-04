@@ -20,7 +20,7 @@ import twindConfig from "../../twind.config";
 import "../../styles/globals.scss";
 import { useUser } from "../components/hooks/useUser";
 import { SidebarContextProvider } from "../components/layout/SidebarContext";
-import { CurrentWorkspaceInfoProvider } from "../shared/routing/current-workspace-info";
+import { CurrentWorkspaceInfoProvider } from "../shared/routing/route-account-info";
 
 export const apolloClient = createApolloClient();
 

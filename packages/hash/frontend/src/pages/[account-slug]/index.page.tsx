@@ -5,12 +5,12 @@ import { MainContentWrapper } from "../../components/layout/MainContentWrapper";
 import { useUser } from "../../components/hooks/useUser";
 import { useOrgs } from "../../components/hooks/useOrgs";
 import { Link } from "../../shared/ui";
-import { useCurrentWorkspaceInfo } from "../../shared/routing";
+import { useRouteAccountInfo } from "../../shared/routing";
 
 export const AccountHome: VoidFunctionComponent = () => {
   const { user } = useUser();
   const { data: orgs } = useOrgs();
-  const { accountId } = useCurrentWorkspaceInfo();
+  const { accountId } = useRouteAccountInfo();
 
   if (!user) {
     return (

@@ -3,13 +3,13 @@ import { FC } from "react";
 import Head from "next/head";
 import { PageHeader } from "../PageHeader/PageHeader";
 import { isProd } from "../../../lib/environment";
-import { useCurrentWorkspaceInfo } from "../../../shared/routing";
+import { useRouteAccountInfo } from "../../../shared/routing";
 
 const AUTH_ROUTES = ["/login", "/signup", "/invite"];
 
 export const PageLayout: FC = ({ children }) => {
   const router = useRouter();
-  const { accountId } = useCurrentWorkspaceInfo();
+  const { accountId } = useRouteAccountInfo();
 
   return (
     <>

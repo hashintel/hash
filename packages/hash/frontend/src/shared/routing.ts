@@ -1,1 +1,1 @@
-export * from "./routing/current-workspace-info";
+export * from "./routing/route-account-info";

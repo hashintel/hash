@@ -24,7 +24,7 @@ import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import { PageTransferDropdown } from "../../components/Dropdowns/PageTransferDropdown";
 import { MainContentWrapper } from "../../components/layout/MainContentWrapper";
 import { RemoteBlockMetadata } from "../../blocks/userBlocks";
-import { useCurrentWorkspaceInfo } from "../../shared/routing";
+import { useRouteAccountInfo } from "../../shared/routing";
 
 // Apparently defining this is necessary in order to get server rendered props?
 export const getStaticPaths: GetStaticPaths<{ slug: string }> = () => ({
@@ -57,7 +57,7 @@ export const getStaticProps: GetStaticProps<PageProps> = async () => {
 export const Page: React.VFC<PageProps> = ({ blocksMeta }) => {
   const router = useRouter();
 
-  const { accountId } = useCurrentWorkspaceInfo();
+  const { accountId } = useRouteAccountInfo();
   // entityId is the consistent identifier for pages (across all versions)
   const pageEntityId = router.query["page-slug"] as string;
   // versionId is an optional param for requesting a specific page version
