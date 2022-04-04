@@ -16,8 +16,8 @@
 //!     [`ArrowBatch`] is associated with one [`Segment`] and several other data. For further
 //!     information please see the [`ArrowBatch`] API.
 //!
-//! Each top-level module has an `ffi` module for interfacing. This implies, that, in addition to a
-//! Rust library, a shared library is generated from this crate.
+//! Each top-level module has an `ffi` module for interfacing. This is exposed through a shared
+//! library that's generated from this crate.
 //!
 //! [`Segment`]: crate::shared_memory::Segment
 //! [`Memory`]: crate::shared_memory::Memory
