@@ -531,7 +531,7 @@ const Community: VFC = () => {
         {/** @todo look into using Grid */}
         <Box>
           <Stack
-            direction={{ xs: "column", md: "row" }}
+            direction={{ xs: "column", lg: "row" }}
             spacing={2}
             justifyContent="center"
           >
