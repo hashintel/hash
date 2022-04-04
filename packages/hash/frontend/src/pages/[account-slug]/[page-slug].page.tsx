@@ -1,6 +1,5 @@
 import { useQuery } from "@apollo/client";
 import { BlockMeta, fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
-import { blockPaths } from "@hashintel/hash-shared/paths";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { keyBy } from "lodash";
 import { GetStaticPaths, GetStaticProps } from "next";
@@ -8,6 +7,7 @@ import { Router, useRouter } from "next/router";
 import { tw } from "twind";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { defaultBlocks } from "@hashintel/hash-shared/defaultBlocks";
 import {
   GetPageQuery,
   GetPageQueryVariables,
@@ -24,12 +24,6 @@ import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import { PageTransferDropdown } from "../../components/Dropdowns/PageTransferDropdown";
 import { MainContentWrapper } from "../../components/layout/MainContentWrapper";
 import { RemoteBlockMetadata } from "../../blocks/userBlocks";
-
-/**
- * preload all configured blocks for now. in the future these will be loaded
- * progressively from the block catalogue.
- */
-const preloadedComponentIds = Object.keys(blockPaths);
 
 // Apparently defining this is necessary in order to get server rendered props?
 export const getStaticPaths: GetStaticPaths<{ slug: string }> = () => ({
@@ -49,7 +43,7 @@ interface PageProps {
  */
 export const getStaticProps: GetStaticProps<PageProps> = async () => {
   const fetchedBlocksMeta = await Promise.all(
-    preloadedComponentIds.map((componentId) => fetchBlockMeta(componentId)),
+    defaultBlocks.map((componentId) => fetchBlockMeta(componentId)),
   );
 
   return {
