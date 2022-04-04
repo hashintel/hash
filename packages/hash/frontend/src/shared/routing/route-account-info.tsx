@@ -17,16 +17,16 @@ const RouteAccountInfoContext = createContext<RouteAccountInfo | undefined>(
 export const RouteAccountInfoProvider: FC = ({ children }) => {
   const router = useRouter();
 
-  const workspaceSlug = router.query["workspace-slug"];
+  const accountSlug = router.query["account-slug"];
 
   const contextValue = useMemo<RouteAccountInfo | undefined>(
     () =>
-      typeof workspaceSlug === "string"
+      typeof accountSlug === "string"
         ? {
-            accountId: workspaceSlug,
+            accountId: accountSlug, // @todo parse and use suspense for lookup if needed
           }
         : undefined,
-    [workspaceSlug],
+    [accountSlug],
   );
 
   return (
@@ -45,7 +45,9 @@ export const useRouteAccountInfo: UseRouteAccountInfo = (options = {}) => {
   const contextValue = useContext(RouteAccountInfoContext);
 
   if (!options.allowUndefined) {
-    throw new Error("Unexpected ");
+    throw new Error(
+      "Unable to get account info (missing `account-slug` in URL)",
+    );
   }
 
   return contextValue as RouteAccountInfo;
