@@ -45,9 +45,11 @@ impl IsFixedSize for PresetFieldType {
 /// field types we support (see PresetFieldType for an extension of types not visible to the user)
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub enum FieldTypeVariant {
+    /// A 64 bit floating point number
     Number,
     Boolean,
     String,
+    /// A JSON-encoded String
     AnyType,
     FixedLengthArray {
         field_type: Box<FieldType>,
