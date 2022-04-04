@@ -42,7 +42,10 @@ impl<'a> Buffers<'a> {
     }
 }
 
-/// An identifier for a shared memory section.
+/// An identifier for a shared memory [`Segment`].
+///
+/// Holds a UUID and a random suffix. The UUID can be reused for different [`Segment`]s and can all
+/// be cleaned up by calling [`MemoryId::clean_up`].
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct MemoryId<'id> {
     id: &'id Uuid,
@@ -67,7 +70,7 @@ impl<'id> MemoryId<'id> {
     }
 
     /// Returns the prefix used for the identifier.
-    pub fn prefix<Id: Borrow<Uuid>>(id: Id) -> String {
+    fn prefix<Id: Borrow<Uuid>>(id: Id) -> String {
         let id = id.borrow().to_simple_ref();
         if cfg!(target_os = "macos") {
             // MacOS shmem seems to be limited to 31 chars, probably remnants of HFS
@@ -76,6 +79,22 @@ impl<'id> MemoryId<'id> {
         } else {
             format!("shm_{id}")
         }
+    }
+
+    /// Clean up generated shared memory segments associated with a given `MemoryId`.
+    pub fn clean_up<Id: Borrow<Uuid>>(id: Id) -> Result<()> {
+        // TODO: macOS does not store the shared memory FDs at `/dev/shm/`. Maybe it's not storing
+        //   FDs at all. Find out if they are stored somewhere and remove them instead, otherwise we
+        //   have to figure out a way to remove them without relying on the file-system.
+        let shm_files = glob::glob(&format!("/dev/shm/{}_*", Self::prefix(id)))
+            .map_err(|e| Error::Unique(format!("cleanup glob error: {}", e)))?;
+
+        shm_files.filter_map(Result::ok).for_each(|path| {
+            if let Err(err) = std::fs::remove_file(&path) {
+                tracing::warn!("Could not clean up {path:?}: {err}");
+            }
+        });
+        Ok(())
     }
 }
 

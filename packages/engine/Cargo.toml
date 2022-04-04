@@ -22,7 +22,6 @@ enum_dispatch = "0.3.7"
 flatbuffers = "2.1.1"
 float-cmp = "0.8.0"
 futures = { version = "0.3.6", features = ["std"] }
-glob = "0.3.0"
 http-types = "2.6.0"
 kdtree = "0.6.0"
 lazy_static = "1.4.0"
@@ -47,7 +46,7 @@ tracing-subscriber = { version = "0.3.7", features = ["env-filter", "json"] }
 tracing-texray = { version = "0.1.2", optional = true }
 # Only temporary, use the crates.io release when ArrayBuffer::new_backing_store_from_ptr is available
 # https://github.com/denoland/rusty_v8/pull/926
-v8 = { git = "https://github.com/hashdeps/rusty_v8" }
+v8 = { git = "https://github.com/hashdeps/rusty_v8", rev = "0bf4d26961697591baf54bc4ceb0d15d3f195f86" }
 uuid = { version = "0.8.1", features = ["v4", "serde"] }
 
 [dev-dependencies]
