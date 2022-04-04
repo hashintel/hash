@@ -18,4 +18,6 @@ You can switch to the **Raw Output** View by clicking the corresponding tab abov
 
 You can save the data from any of your simulation runs by right clicking on an individual run and clicking "Export as JSON Files". You can do this for both single runs and for Experiment runs.
 
-![](https://cdn-us1.hash.ai/site/docs/screen-shot-2020-06-18-at-7.41.03-pm.png)
+![Exporting simulation runs](https://cdn-us1.hash.ai/site/docs/export.png)
+
+This will allow you download both the Raw Data (which contains the full definition of every agent at every step in the simulation) and the Analysis outputs (based on the metrics you’ve defined in the Analysis tab).
