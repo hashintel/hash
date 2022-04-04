@@ -1955,9 +1955,11 @@ fn run_experiment(
             ) {
                 (None, None) => create_params,
                 (None, Some(js_runner_max_heap_size)) => {
+                    // 0 is V8's default.
                     create_params.heap_limits(0, js_runner_max_heap_size * MB)
                 }
                 (Some(js_runner_initial_heap_constraint), None) => {
+                    // 0 is V8's default.
                     create_params.heap_limits(js_runner_initial_heap_constraint * MB, 0)
                 }
                 (Some(js_runner_initial_heap_constraint), Some(js_runner_max_heap_size)) => {
