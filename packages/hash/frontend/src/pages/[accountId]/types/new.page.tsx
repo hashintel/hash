@@ -14,11 +14,11 @@ import { TextInput } from "../../../components/forms/TextInput";
 import { Button } from "../../../shared/ui";
 import { MainContentWrapper } from "../../../components/layout/MainContentWrapper";
 import { getAccountEntityTypes } from "../../../graphql/queries/account.queries";
+import { useCurrentWorkspaceContext } from "../../../contexts/CurrentWorkspaceContext";
 
 export const NewEntityType: VoidFunctionComponent = () => {
   const router = useRouter();
-  const { query } = router;
-  const accountId = query.accountId as string;
+  const accountId = useCurrentWorkspaceContext().accountId!;
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");

@@ -24,6 +24,7 @@ import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import { PageTransferDropdown } from "../../components/Dropdowns/PageTransferDropdown";
 import { MainContentWrapper } from "../../components/layout/MainContentWrapper";
 import { RemoteBlockMetadata } from "../../blocks/userBlocks";
+import { useCurrentWorkspaceContext } from "../../contexts/CurrentWorkspaceContext";
 
 /**
  * preload all configured blocks for now. in the future these will be loaded
@@ -64,7 +65,7 @@ export const Page: React.VFC<PageProps> = ({ blocksMeta }) => {
 
   // entityId is the consistent identifier for pages (across all versions)
   const pageEntityId = router.query.pageEntityId as string;
-  const accountId = router.query.accountId as string;
+  const accountId = useCurrentWorkspaceContext().accountId!;
   // versionId is an optional param for requesting a specific page version
   const versionId = router.query.version as string | undefined;
 

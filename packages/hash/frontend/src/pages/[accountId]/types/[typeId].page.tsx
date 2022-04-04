@@ -18,13 +18,14 @@ import { useBlockProtocolUpdateEntityType } from "../../../components/hooks/bloc
 import { useBlockProtocolAggregateEntityTypes } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregateEntityTypes";
 import { MainContentWrapper } from "../../../components/layout/MainContentWrapper";
 import { Button, Link } from "../../../shared/ui";
+import { useCurrentWorkspaceContext } from "../../../contexts/CurrentWorkspaceContext";
 
 export const EntityType: VoidFunctionComponent = () => {
   const router = useRouter();
   const { query } = router;
 
   const typeId = query.typeId as string;
-  const accountId = query.accountId as string;
+  const accountId = useCurrentWorkspaceContext().accountId!;
 
   const { updateEntityTypes } = useBlockProtocolUpdateEntityType();
   const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();

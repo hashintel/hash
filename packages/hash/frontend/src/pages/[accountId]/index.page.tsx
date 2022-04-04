@@ -1,17 +1,16 @@
 import { VoidFunctionComponent } from "react";
-import { useRouter } from "next/router";
 
 import { Box, Typography } from "@mui/material";
 import { MainContentWrapper } from "../../components/layout/MainContentWrapper";
 import { useUser } from "../../components/hooks/useUser";
 import { useOrgs } from "../../components/hooks/useOrgs";
 import { Link } from "../../shared/ui";
+import { useCurrentWorkspaceContext } from "../../contexts/CurrentWorkspaceContext";
 
 export const AccountHome: VoidFunctionComponent = () => {
-  const { query } = useRouter();
   const { user } = useUser();
   const { data: orgs } = useOrgs();
-  const accountId = query.accountId as string;
+  const accountId = useCurrentWorkspaceContext().accountId!;
 
   if (!user) {
     return (

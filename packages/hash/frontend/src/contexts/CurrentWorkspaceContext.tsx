@@ -1,6 +1,5 @@
 import { useRouter } from "next/router";
 import { createContext, FC, useContext, useMemo } from "react";
-import { useUser } from "../components/hooks/useUser";
 
 type CurrentWorkspaceContextState = {
   accountId?: string;
@@ -19,14 +18,13 @@ export const useCurrentWorkspaceContext = () =>
  * When that happens the accountId should be pulled properly in this component
  */
 export const CurrentWorkspaceContextProvider: FC = ({ children }) => {
-  const { user } = useUser();
   const router = useRouter();
 
   const value = useMemo(
     () => ({
-      accountId: (router.query.accountId as string) ?? user?.accountId, // @todo we should handle when accountId is undefined
+      accountId: router.query.accountId as string, // @todo we should handle when accountId is undefined
     }),
-    [router, user],
+    [router],
   );
 
   return (
