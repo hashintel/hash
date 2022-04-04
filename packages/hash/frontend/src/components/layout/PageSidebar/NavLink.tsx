@@ -31,7 +31,7 @@ export const NavLink: FC<NavLinkProps> = ({
       size="small"
       unpadded
       rounded
-      className="end-adornment-btn"
+      className="end-adornment-button"
       onClick={endAdornmentProps.onClick}
       {...otherEndAdornmentProps}
       sx={[
@@ -59,7 +59,7 @@ export const NavLink: FC<NavLinkProps> = ({
           "&:hover": {
             backgroundColor: palette.gray[20],
 
-            "& .expand-btn": {
+            "& .expand-button": {
               color: palette.gray[80],
 
               "&:hover": {
@@ -68,7 +68,7 @@ export const NavLink: FC<NavLinkProps> = ({
               },
             },
 
-            "& .end-adornment-btn": {
+            "& .end-adornment-button": {
               backgroundColor: palette.gray[30],
               color: palette.gray[80],
 
@@ -93,7 +93,7 @@ export const NavLink: FC<NavLinkProps> = ({
           size="xs"
           unpadded
           rounded
-          className="expand-btn"
+          className="expand-button"
           sx={({ palette }) => ({
             mr: "auto",
             color: palette.gray[40],

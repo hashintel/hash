@@ -10,7 +10,7 @@ import {
   InputAdornment,
   Typography,
 } from "@mui/material";
-import { FC } from "react";
+import { VFC } from "react";
 import {
   faEnvelope,
   faQuestionCircle,
@@ -45,7 +45,9 @@ const Main = styled("main", {
   }),
 }));
 
-export const MainContentWrapper: FC = ({ children }) => {
+export const MainContentWrapper: VFC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const { openSidebar, sidebarOpen } = useSidebarContext();
 
   return (
