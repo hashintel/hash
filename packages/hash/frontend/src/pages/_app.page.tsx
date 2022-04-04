@@ -63,8 +63,8 @@ const MyApp: React.VoidFunctionComponent<CustomAppProps> = ({
 
   // App UI often depends on [account-slug] and other query params. However,
   // router.query is empty during server-side rendering for pages that don’t use
-  // getServerSide props. By showing app skeleton on the server, we avoid UI
-  // mismatches during rehydration
+  // getServerSideProps. By showing app skeleton on the server, we avoid UI
+  // mismatches during rehydration and improve type-safety of param extraction.
   if (!router.isReady) {
     return null; // Replace with app skeleton
   }
