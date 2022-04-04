@@ -55,13 +55,17 @@ pub struct Args {
     #[clap(long, default_value = "100000", env = "ENGINE_TARGET_MAX_GROUP_SIZE")]
     pub target_max_group_size: usize,
 
-    /// Allows the heap of the V8 runtime in each JavaScript runner to grow to some initial size in
-    /// megabytes before triggering garbage collections.
-    /// See "--num-workers" to set the number of JavaScript runners executing in parallel.
+    /// Heap size in megabytes of the V8 runtime in each JavaScript runner under which garbage
+    /// collection doesn't occur.
+    /// See "--num-workers" to set the number of JavaScript runners
+    /// executing in parallel.
     ///
-    /// This is useful when it is known that experiments need a certain minimum heap to run to
-    /// avoid repeatedly invoking the garbage collector when growing the heap.
-    /// When used in the wrong conditions this could waste memory.
+    /// This setting is most of the time better off left to its default value.
+    /// It could be beneficial if your are going to store a large amount of "eternal" (=lives as
+    /// long as the simulation is running) data on the heap.
+    /// Example: you know that at any given time you have 500MB of unreachable data on the
+    /// heap. You could set this argument to 600MB (500MB plus some) and save some runs of the
+    /// garbage collector.
     ///
     /// Defaults to V8's default.
     #[clap(long)]
