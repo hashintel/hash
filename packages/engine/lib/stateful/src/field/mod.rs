@@ -1,11 +1,13 @@
 //! Provides an hEngine-specific representation of Arrows `Field` and `DataType`.
 //!
-//! As we are using only a subset of types provided by `Arrow`, our types are represented by
-//! [`FieldType`] rather than [`arrow::DataType`]. As [`FieldType`] can't be used in
-//! [`arrow::Field`], this module provides [`FieldSpec`] instead.
+//! As only a selection of [`arrow::DataType`]s is provided to hEngine, this module defines
+//! [`FieldType`], which uses Arrow types underneath and adds an `Any` type, which internally uses
+//! a JSON encoded `String` type. As [`FieldType`] can't be used in [`arrow::Field`], this module
+//! provides [`FieldSpec`] to associate a name with the [`FieldType`].
 //!
 //! For naming a [`FieldSpec`], [`FieldKey`] is provided, as a name has strict requirements on how
-//! it's built.
+//! it's built. [`FieldKey`] is a unique identifier for a given name in a provided [`FieldScope`]
+//! and its [`FieldSource`].
 
 mod field_type;
 mod fixed_size;
