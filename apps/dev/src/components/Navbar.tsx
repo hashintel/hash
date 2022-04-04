@@ -125,6 +125,11 @@ const MobileNav: VFC<{ open: boolean; onMenuClose: () => void }> = ({
           bgcolor: "white",
           zIndex: (theme) => theme.zIndex.appBar - 1,
           left: 0,
+          [`.${buttonClasses.startIcon}, .${buttonClasses.endIcon}`]: {
+            svg: {
+              fontSize: "18px !important",
+            },
+          },
         }}
       >
         <Container sx={{ height: "100%", pt: 1, pb: 2 }}>
