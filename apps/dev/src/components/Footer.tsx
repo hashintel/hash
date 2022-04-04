@@ -1,4 +1,4 @@
-import { Box, Divider, Stack, Typography } from "@mui/material";
+import { Box, Container, Divider, Stack, Typography } from "@mui/material";
 import { ComponentProps, FC, ReactNode } from "react";
 import { DiscordIcon } from "./icons/DiscordIcon";
 import { GithubIcon } from "./icons/GithubIcon";
@@ -77,10 +77,6 @@ export const Footer: FC = () => (
   <Box
     component="footer"
     sx={{
-      px: {
-        xs: 3,
-        lg: 15,
-      },
       py: {
         xs: 6,
         lg: 8,
@@ -92,60 +88,67 @@ export const Footer: FC = () => (
       borderColor: "white",
     }}
   >
-    <Stack direction={{ xs: "column", md: "row" }} spacing={{ xs: 6, md: 10 }}>
-      <Stack>
-        <Logo />
-        <Spacer y={2} sm={{ y: 3 }} />
-        {/** @todo check spacing */}
-        <Typography
-          // @todo check if this should be 100%
-          sx={{ width: { xs: 1, md: 289 }, mb: 4.5 }}
-          variant="hashSmallText"
-        >
-          Open-source resources and tools for developers who want to build the
-          future of decision-making with HASH
-        </Typography>
-        {/** @todo link hover styles */}
-        <Typography variant="hashSocialIconLink">
-          <Stack direction="row" spacing={3}>
-            <Link href="https://github.com/hashintel/hash">
-              <GithubIcon fontSize="inherit" />
-            </Link>
-            <Link href="https://twitter.com/hashintel">
-              <TwitterIcon fontSize="inherit" />
-            </Link>
-            <Link href="https://hash.ai/discord">
-              <DiscordIcon fontSize="inherit" />
-            </Link>
-          </Stack>
-        </Typography>
-      </Stack>
-      {/** @todo link hover styles */}
-      <Stack direction="row" spacing={{ xs: 6, md: 10 }}>
-        <FooterSection label="Resources">
-          <FooterLink href="https://hash.ai/careers">Careers</FooterLink>
-          <FooterLink href="https://hash.ai/contact">Contact Us</FooterLink>
-          <FooterLink href="https://hash.ai/legal/terms">
-            Terms of Service
-          </FooterLink>
-        </FooterSection>
-        <FooterSection label="Our projects">
-          <FooterLinkWithLabel type="open" href="https://blockprotocol.org">
-            Block Protocol
-          </FooterLinkWithLabel>
-          <FooterLinkWithLabel type="open" href="https://hash.ai">
-            HASH
-          </FooterLinkWithLabel>
-          <FooterLinkWithLabel
-            type="fair"
-            href="https://hash.ai/platform/engine"
+    <Container>
+      <Stack
+        direction={{ xs: "column", md: "row" }}
+        spacing={{ xs: 6, md: 10 }}
+      >
+        <Stack>
+          <Logo />
+          <Spacer y={2} sm={{ y: 3 }} />
+          {/** @todo check spacing */}
+          <Typography
+            // @todo check if this should be 100%
+            sx={{ width: { xs: 1, md: 289 }, mb: 4.5 }}
+            variant="hashSmallText"
           >
-            hEngine
-          </FooterLinkWithLabel>
-          <FooterLink href="https://hash.ai/platform/core">hCore</FooterLink>
-          <FooterLink href="https://hash.ai/platform/cloud">hCloud</FooterLink>
-        </FooterSection>
+            Open-source resources and tools for developers who want to build the
+            future of decision-making with HASH
+          </Typography>
+          {/** @todo link hover styles */}
+          <Typography variant="hashSocialIconLink">
+            <Stack direction="row" spacing={3}>
+              <Link href="https://github.com/hashintel/hash">
+                <GithubIcon fontSize="inherit" />
+              </Link>
+              <Link href="https://twitter.com/hashintel">
+                <TwitterIcon fontSize="inherit" />
+              </Link>
+              <Link href="https://hash.ai/discord">
+                <DiscordIcon fontSize="inherit" />
+              </Link>
+            </Stack>
+          </Typography>
+        </Stack>
+        {/** @todo link hover styles */}
+        <Stack direction="row" spacing={{ xs: 6, md: 10 }}>
+          <FooterSection label="Resources">
+            <FooterLink href="https://hash.ai/careers">Careers</FooterLink>
+            <FooterLink href="https://hash.ai/contact">Contact Us</FooterLink>
+            <FooterLink href="https://hash.ai/legal/terms">
+              Terms of Service
+            </FooterLink>
+          </FooterSection>
+          <FooterSection label="Our projects">
+            <FooterLinkWithLabel type="open" href="https://blockprotocol.org">
+              Block Protocol
+            </FooterLinkWithLabel>
+            <FooterLinkWithLabel type="open" href="https://hash.ai">
+              HASH
+            </FooterLinkWithLabel>
+            <FooterLinkWithLabel
+              type="fair"
+              href="https://hash.ai/platform/engine"
+            >
+              hEngine
+            </FooterLinkWithLabel>
+            <FooterLink href="https://hash.ai/platform/core">hCore</FooterLink>
+            <FooterLink href="https://hash.ai/platform/cloud">
+              hCloud
+            </FooterLink>
+          </FooterSection>
+        </Stack>
       </Stack>
-    </Stack>
+    </Container>
   </Box>
 );
