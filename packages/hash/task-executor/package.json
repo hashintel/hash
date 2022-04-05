@@ -1,0 +1,16 @@
+{
+  "name": "@hashintel/task-executor",
+  "version": "0.0.0",
+  "private": true,
+  "license": "GPL-3.0",
+  "main": "index.js",
+  "scripts": {
+    "start": ". ./setup.sh python3 && cross-env NODE_ENV=production node ./node_modules/.bin/ts-node --transpile-only ./src/index.ts"
+  },
+  "dependencies": {
+    "cross-env": "7.0.3",
+    "execa": "5.1.1",
+    "ts-node": "10.4.0",
+    "typescript": "4.6.2"
+  }
+}
