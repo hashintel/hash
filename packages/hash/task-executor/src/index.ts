@@ -23,7 +23,7 @@ const requestHandler = async (
   response.end(result);
 };
 
-// eslint-disable-next-line no-misused-promises -- createServer doesn't accept a `Promise<void>` as it expects just a void return signature but we don't want to block
+// eslint-disable-next-line @typescript-eslint/no-misused-promises -- createServer doesn't accept a `Promise<void>` as it expects just a void return signature but we don't want to block
 const server = createServer(requestHandler);
 
 server.on("error", (err) => {
