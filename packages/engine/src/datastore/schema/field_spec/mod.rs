@@ -1,4 +1,5 @@
-use std::collections::hash_map::{HashMap, Iter, Values};
+use core::fmt;
+use std::collections::HashMap;
 
 use stateful::field::{
     FieldKey, FieldScope, FieldSource, FieldSpec, FieldType, FieldTypeVariant, PresetFieldType,
@@ -31,6 +32,14 @@ impl FieldSource for EngineComponent {
                 .get_id()
                 .map_err(|err| stateful::Error::from(err.to_string()))?
                 .as_usize()),
+        }
+    }
+
+    fn is_compatible(&self, rhs: &Self) -> bool {
+        if *self == EngineComponent::Engine && matches!(rhs, EngineComponent::Package(_)) {
+            false
+        } else {
+            self == rhs
         }
     }
 }
@@ -99,11 +108,62 @@ impl<S> Default for FieldSpecMap<S> {
     }
 }
 
-impl<S> FieldSpecMap<S> {
+impl<S: FieldSource> FieldSpecMap<S> {
     pub fn empty() -> Self {
         Self {
             field_specs: HashMap::default(),
         }
+    }
+
+    fn add(&mut self, new_field: RootFieldSpec<S>) -> Result<()>
+    where
+        S: fmt::Debug,
+    {
+        let field_key = new_field.create_key()?;
+        if let Some(existing_field) = self.field_specs.get(&field_key) {
+            if existing_field == &new_field {
+                // This likely only happens when behaviors declare duplicate keys, it can't cause
+                // problems as the fields are equal and therefore the sources (and types) are the
+                // same, meaning the field can't override another package's field
+                return Ok(());
+            }
+            if existing_field.scope == FieldScope::Agent
+                && new_field.scope == FieldScope::Agent
+                && existing_field.inner.field_type == new_field.inner.field_type
+                && !existing_field.source.is_compatible(&new_field.source)
+            {
+                tracing::warn!(
+                    "Key clash when a package attempted to insert a new agent-scoped field with \
+                     key: {field_key:?}, the existing field was created by the engine, the new \
+                     field will be ignored",
+                );
+                return Ok(());
+            }
+
+            Err(Error::FieldKeyClash(
+                field_key,
+                format!("{new_field:?}"),
+                format!("{existing_field:?}"),
+            ))
+        } else {
+            self.field_specs.insert(field_key, new_field);
+            Ok(())
+        }
+    }
+
+    pub fn try_extend<I: IntoIterator<Item = RootFieldSpec<S>>>(
+        &mut self,
+        new_field_specs: I,
+    ) -> Result<()>
+    where
+        S: fmt::Debug,
+    {
+        let new_field_specs = new_field_specs.into_iter();
+        self.field_specs.reserve(new_field_specs.size_hint().0);
+        for field_spec in new_field_specs {
+            self.add(field_spec)?
+        }
+        Ok(())
     }
 
     pub fn contains_key(&self, key: &FieldKey) -> bool {
@@ -138,64 +198,6 @@ impl<S> FieldSpecMap<S> {
         self.field_specs
             .get(field_key)
             .ok_or_else(|| Error::from(format!("Cannot find field with name '{:?}'", field_key)))
-    }
-}
-
-impl FieldSpecMap<EngineComponent> {
-    fn add(&mut self, new_field: RootFieldSpec<EngineComponent>) -> Result<()> {
-        let field_key = new_field.create_key()?;
-        if let Some(existing_field) = self.field_specs.get(&field_key) {
-            if existing_field == &new_field {
-                // This likely only happens when behaviors declare duplicate keys, it can't cause
-                // problems as the fields are equal and therefore the sources (and types) are the
-                // same, meaning the field can't override another package's field
-                return Ok(());
-            }
-            if existing_field.scope == FieldScope::Agent
-                && new_field.scope == FieldScope::Agent
-                && existing_field.inner.field_type == new_field.inner.field_type
-            {
-                // TODO can this even happen, pretty sure it's equality
-                if existing_field.source == new_field.source {
-                    return Err(Error::AgentScopedFieldKeyClash(
-                        field_key,
-                        new_field.inner.field_type,
-                        existing_field.inner.field_type.clone(),
-                    ));
-                } else if let EngineComponent::Package(_package_src) = &new_field.source {
-                    if existing_field.source == EngineComponent::Engine {
-                        tracing::warn!(
-                            "Key clash when a package attempted to insert a new agent-scoped \
-                             field with key: {:?}, the existing field was created by the engine, \
-                             the new field will be ignored",
-                            field_key
-                        );
-                        return Ok(());
-                    }
-                }
-            }
-
-            Err(Error::FieldKeyClash(
-                field_key,
-                format!("{new_field:?}"),
-                format!("{existing_field:?}"),
-            ))
-        } else {
-            self.field_specs.insert(field_key, new_field);
-            Ok(())
-        }
-    }
-
-    pub fn try_extend<I: IntoIterator<Item = RootFieldSpec<EngineComponent>>>(
-        &mut self,
-        new_field_specs: I,
-    ) -> Result<()> {
-        let new_field_specs = new_field_specs.into_iter();
-        self.field_specs.reserve(new_field_specs.size_hint().0);
-        for field_spec in new_field_specs {
-            self.add(field_spec)?
-        }
-        Ok(())
     }
 }
 
