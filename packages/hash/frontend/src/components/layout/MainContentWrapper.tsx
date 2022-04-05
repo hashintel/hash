@@ -40,6 +40,9 @@ export const MainContentWrapper: VFC<{ children: ReactNode }> = ({
       sx={{
         display: "flex",
         position: "relative",
+        // TODO: Before PR merging (temp code)
+        padding: 0,
+        background: ({ palette }) => palette.gray[10],
       }}
     >
       <PageSidebar />

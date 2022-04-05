@@ -93,9 +93,7 @@ const BlockBasedEntityPage: NextPage = () => {
   const entityId = query["entity-id"] as string;
 
   return (
-    <MainContentWrapper
-      mainSx={{ padding: 0, background: ({ palette }) => palette.gray[10] }}
-    >
+    <MainContentWrapper>
       <BlockBasedEntityEditor accountId={accountId} entityId={entityId} />
     </MainContentWrapper>
   );
