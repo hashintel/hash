@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import { BlockProtocolUpdateEntitiesFunction } from "blockprotocol";
 import { getEntity } from "@hashintel/hash-shared/queries/entity.queries";
 import { NextPage } from "next";
+import { Container } from "@mui/material";
 import { SimpleEntityEditor } from "./shared/simple-entity-editor";
 
 import {
@@ -94,7 +95,9 @@ const BlockBasedEntityPage: NextPage = () => {
 
   return (
     <MainContentWrapper>
-      <BlockBasedEntityEditor accountId={accountId} entityId={entityId} />
+      <Container>
+        <BlockBasedEntityEditor accountId={accountId} entityId={entityId} />
+      </Container>
     </MainContentWrapper>
   );
 };
