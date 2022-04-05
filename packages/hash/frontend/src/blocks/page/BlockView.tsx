@@ -6,6 +6,7 @@ import {
 import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
 import { BlockVariant } from "blockprotocol";
+import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
@@ -25,11 +26,16 @@ type BlockHandleProps = {
   entityId: string | null;
   onTypeChange: BlockSuggesterProps["onChange"];
   entityStore: EntityStore;
+  view: EditorView<Schema>;
 };
 
 export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
-  ({ entityId, onTypeChange, entityStore }, ref) => {
+  ({ entityId, onTypeChange, entityStore, view }, ref) => {
     const [isPopoverVisible, setPopoverVisible] = useState(false);
+    const popupState = usePopupState({
+      variant: "popover",
+      popupId: "block-context-menu",
+    });
 
     useOutsideClick(ref as RefObject<HTMLDivElement>, () =>
       setPopoverVisible(false),
@@ -51,15 +57,30 @@ export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
         className={tw`relative cursor-pointer`}
         data-testid="block-changer"
       >
-        <DragVerticalIcon onClick={() => setPopoverVisible(true)} />
-        {isPopoverVisible && (
+        <DragVerticalIcon
+          {...bindTrigger(popupState)}
+          // onClick={() => setPopoverVisible(true)}
+        />
+
+        <BlockContextMenu
+          entityId={entityId}
+          blockSuggesterProps={blockSuggesterProps}
+          closeMenu={() => setPopoverVisible(false)}
+          entityStore={entityStore}
+          view={view}
+          popupState={popupState}
+        />
+
+        {/* {isPopoverVisible && (
           <BlockContextMenu
             entityId={entityId}
             blockSuggesterProps={blockSuggesterProps}
             closeMenu={() => setPopoverVisible(false)}
             entityStore={entityStore}
+            view={view}
+            popupState={popupState}
           />
-        )}
+        )} */}
       </div>
     );
   },
@@ -263,6 +284,7 @@ export class BlockView implements NodeView<Schema> {
           entityId={blockEntityId}
           onTypeChange={this.onBlockChange}
           entityStore={this.store}
+          view={this.view}
         />
       </BlockViewContext.Provider>,
       this.selectContainer,

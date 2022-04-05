@@ -15,7 +15,7 @@ const Main = styled("main", {
   height: `calc(100vh - ${HEADER_HEIGHT}px)`,
   overflowY: "auto",
   flexGrow: 1,
-  padding: "60px 120px 0 120px",
+  paddingTop: "60px",
   transition: theme.transitions.create("margin", {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen,
@@ -28,6 +28,12 @@ const Main = styled("main", {
     }),
     marginLeft: 0,
   }),
+
+  "& > *": {
+    maxWidth: 700,
+    marginLeft: "auto",
+    marginRight: "auto",
+  },
 }));
 
 export const MainContentWrapper: FunctionComponent = ({ children }) => {

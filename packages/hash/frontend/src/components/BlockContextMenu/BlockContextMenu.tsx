@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { tw } from "twind";
 
 import DeleteIcon from "@mui/icons-material/DeleteOutline";
@@ -10,6 +10,14 @@ import { unstable_batchedUpdates } from "react-dom";
 
 import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
 
+import {
+  addEntityStoreAction,
+  entityStorePluginState,
+  entityStorePluginStateFromTransaction,
+  newDraftId,
+} from "@hashintel/hash-shared/entityStorePlugin";
+import { EditorView } from "prosemirror-view";
+import { Schema } from "prosemirror-model";
 import { getBlockDomId } from "../../blocks/page/BlockView";
 import { BlockSuggesterProps } from "../../blocks/page/createSuggester/BlockSuggester";
 import { NormalView } from "./NormalView";
@@ -26,12 +34,17 @@ import { useUserBlocks } from "../../blocks/userBlocks";
 import { useFilteredBlocks } from "../../blocks/page/createSuggester/useFilteredBlocks";
 import { useAccountEntities } from "../hooks/useAccountEntities";
 import { useCurrentWorkspaceContext } from "../../contexts/CurrentWorkspaceContext";
+import { useBlockView } from "../../blocks/page/BlockViewContext";
+import PopupState, { bindMenu } from "material-ui-popup-state";
+import { Menu } from "@mui/material";
 
 type BlockContextMenuProps = {
+  popupState: PopupState;
   blockSuggesterProps: BlockSuggesterProps;
   closeMenu: () => void;
   entityId: string | null;
   entityStore: EntityStore;
+  view: EditorView<Schema>;
 };
 
 const MENU_ITEMS: Array<MenuItemType> = [
@@ -58,20 +71,115 @@ const MENU_ITEMS: Array<MenuItemType> = [
 ];
 
 export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
+  popupState,
   blockSuggesterProps,
   closeMenu,
   entityId,
   entityStore,
+  view,
 }) => {
   const blockData = entityId ? entityStore.saved[entityId] : null;
   const { accountId } = useCurrentWorkspaceContext();
   const { fetchEntities } = useAccountEntities();
+  const blockView = useBlockView();
+
+  // console.log("blockView => ", blockView);
+
+  const entityStoreRef = useRef(entityStore);
+  useEffect(() => {
+    entityStoreRef.current = entityStore;
+  });
+
+  // const blockEntity = isBlockEntity(blockData)
+  //   ? blockData.properties.entity
+  //   : null;
+
+  console.log("blockdata => ", blockData);
 
   useEffect(() => {
-    if (entityId && accountId) {
-      fetchEntities(accountId, { entityTypeId: entityId });
+    if (isBlockEntity(blockData) && accountId) {
+      const blockEntity = blockData.properties.entity;
+
+      fetchEntities(accountId, {
+        componentId: blockData.properties.componentId,
+      })
+        .then((entities) => {
+          // debugger;
+          if (entities.length === 0) return;
+
+          const currentEntityStore = entityStoreRef.current;
+          // @todo UI for picking the entity
+          const targetEntity = entities[0]!;
+
+          if (targetEntity.entityId === blockEntity.entityId) return;
+
+          const tr = blockView.view.state.tr;
+
+          const draftEntity = Object.values(currentEntityStore.draft).find(
+            (entity) => entity.entityId === targetEntity.entityId,
+          );
+
+          if (!draftEntity) {
+            const draftId = newDraftId();
+            addEntityStoreAction(blockView.view.state, tr, {
+              type: "newDraftEntity",
+              payload: {
+                accountId: targetEntity.accountId,
+                draftId,
+                entityId: targetEntity.entityId,
+              },
+            });
+            addEntityStoreAction(blockView.view.state, tr, {
+              type: "updateEntityProperties",
+              payload: {
+                draftId,
+                merge: false,
+                properties: targetEntity.properties,
+              },
+            });
+
+            blockView.view.dispatch(tr);
+
+            const updatedStore = entityStorePluginStateFromTransaction(
+              tr,
+              blockView.view.state,
+            );
+
+            console.log("updatedStore ==> ", updatedStore);
+
+            blockView.manager
+              .createRemoteBlock(
+                blockData.properties.componentId,
+                updatedStore.store,
+                `draft-${blockEntity.entityId}`,
+              )
+              .then(() => {})
+              .catch(() => {});
+
+            // 3. If it is not, put it in the entity store
+          }
+
+          /**
+           * 4. Update the block entity in the entity store to point to this entity
+           */
+
+          // addEntityStoreAction(blockView.view.state, tr, {
+          //   type: "updateEntityProperties",
+          //   payload: {
+          //     draftId: `draft-${blockEntity.entityId}`,
+          //     merge: false,
+          //     properties: targetEntity.properties,
+          //   },
+          // });
+
+          /**
+           * 5. Update the prosemirror tree to reflect this
+           */
+          blockView.view.dispatch(tr);
+        })
+        .catch(() => {});
     }
-  }, [entityId, accountId]);
+  }, [blockData, accountId, blockView, fetchEntities]);
 
   if (blockData && !isBlockEntity(blockData)) {
     throw new Error("BlockContextMenu linked to non-block entity");
@@ -218,9 +326,20 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
   };
 
   return (
-    <div
-      className={tw`absolute z-10 w-60 bg-white border-gray-200 border-1 shadow-xl rounded`}
+    <Menu
+      {...bindMenu(popupState)}
+      anchorOrigin={{
+        horizontal: "left",
+        vertical: "bottom",
+      }}
+      transformOrigin={{
+        horizontal: "right",
+        vertical: "top",
+      }}
     >
+      {/* <div
+        className={tw`absolute z-10 w-60 bg-white border-gray-200 border-1 shadow-xl rounded`}
+      > */}
       <div className={tw`px-4 pt-3 mb-2`}>
         <input
           autoFocus
@@ -264,6 +383,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
           updateMenuState={updateMenuState}
         />
       )}
-    </div>
+      {/* </div> */}
+    </Menu>
   );
 };

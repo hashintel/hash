@@ -28,7 +28,7 @@ export const useAccountEntities = () => {
         },
       });
 
-      console.log(response.data.entities);
+      console.log("res => ", response.data.entities);
 
       return response.data.entities;
     },
