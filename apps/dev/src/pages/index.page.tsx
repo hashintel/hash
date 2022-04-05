@@ -335,7 +335,9 @@ const EMAIL_REGEX =
 const Subscribe: VFC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [userJoined, setUserJoined] = useState(false);
+  const [userStatus, setUserStatus] = useState<null | "joined" | "tagged">(
+    null,
+  );
 
   return (
     <Container
@@ -391,7 +393,7 @@ const Subscribe: VFC = () => {
           }),
         ]}
       >
-        {userJoined ? (
+        {userStatus ? (
           <>
             <Box
               sx={{
@@ -407,10 +409,12 @@ const Subscribe: VFC = () => {
             <Typography variant="hashHeading2" component="h3">
               Success! You’re on the list
             </Typography>
-            <Typography>
-              Check your inbox for a confirmation email and click the link
-              inside.
-            </Typography>
+            {userStatus === "joined" ? (
+              <Typography>
+                Check your inbox for a confirmation email and click the link
+                inside.
+              </Typography>
+            ) : null}
           </>
         ) : (
           <>
@@ -428,7 +432,6 @@ const Subscribe: VFC = () => {
             <form
               noValidate
               onSubmit={async (evt) => {
-                // @todo update from hashai
                 evt.preventDefault();
                 const formData = new FormData(evt.target as HTMLFormElement);
                 const email = formData.get("email")! as string;
@@ -441,36 +444,38 @@ const Subscribe: VFC = () => {
                   }
 
                   unstable_batchedUpdates(() => {
-                    setError("");
+                    setError(null);
                     setLoading(true);
                   });
 
                   const { data } = await axios.post("/api/subscribe", {
                     email,
-                    // @todo what are these for?
-                    merge_fields: { HASHDev: "Yes" },
                   });
-                  setLoading(false);
 
-                  if (data.response.status === "subscribed") {
-                    setUserJoined(true);
-                  } else if (!data?.response?.title) {
-                    setError("Something went wrong.️ Please try again later");
-                  } else if (data.response.title.includes("Invalid Resource")) {
-                    setError("Are you sure? Please try a different address…");
-                  } else if (data.response.title.includes("Member Exists")) {
-                    await axios.patch("/api/subscribe", {
-                      mailchimp_id: data.response.id,
-                      merge_fields: {
-                        HASH: "Yes",
-                      },
-                    });
-                    setUserJoined(true);
-                  }
+                  unstable_batchedUpdates(() => {
+                    setLoading(false);
+
+                    if (data.response.status === "subscribed") {
+                      setUserStatus(
+                        data.response.title === "Already subscribed"
+                          ? "tagged"
+                          : "joined",
+                      );
+                    } else if (
+                      data.response?.title?.includes("Invalid Resource")
+                    ) {
+                      setError("Are you sure? Please try a different address…");
+                    } else {
+                      setError("Something went wrong.️ Please try again later");
+                    }
+                  });
                 } catch (err) {
                   // eslint-disable-next-line no-console
                   console.log(error);
-                  setError("Something went wrong ☹️ Please try again later");
+                  unstable_batchedUpdates(() => {
+                    setLoading(false);
+                    setError("Something went wrong.️ Please try again later");
+                  });
                 }
               }}
             >
