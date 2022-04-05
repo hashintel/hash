@@ -6,7 +6,7 @@ mod writer;
 use arrow::array::{Array, FixedSizeListBuilder, ListBuilder};
 use async_trait::async_trait;
 use serde_json::Value;
-use stateful::field::{FieldKey, RootFieldSpec};
+use stateful::field::{FieldKey, RootFieldSpec, RootFieldSpecCreator};
 use tracing::Span;
 
 use self::collected::Messages;
@@ -22,7 +22,7 @@ use crate::{
             packages::agent_messages::fields::MESSAGES_FIELD_NAME, Arc, ContextColumn,
             ContextSchema, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg,
             Globals, MaybeCpuBound, Package as ContextPackage, Package, PackageCreator,
-            RootFieldSpecCreator, SimRunConfig, StateReadProxy, StateSnapshot,
+            SimRunConfig, StateReadProxy, StateSnapshot,
         },
         Result,
     },

@@ -14,7 +14,6 @@ use crate::{
 
 pub mod accessor;
 pub mod built_in;
-pub mod creator;
 
 pub const PREVIOUS_INDEX_FIELD_NAME: &str = "previous_index";
 
@@ -251,11 +250,10 @@ impl TryFrom<AgentStateField> for FieldType {
 // possibly split across modules
 #[cfg(test)]
 pub mod tests {
+    use stateful::field::RootFieldSpecCreator;
+
     use super::*;
-    use crate::{
-        datastore::schema::RootFieldSpecCreator,
-        simulation::package::creator::get_base_agent_fields,
-    };
+    use crate::simulation::package::creator::get_base_agent_fields;
 
     #[test]
     fn name_collision_built_in() {

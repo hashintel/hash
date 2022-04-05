@@ -1,13 +1,11 @@
 use stateful::field::{
     FieldScope, FieldType, FieldTypeVariant, FieldTypeVariant::FixedLengthArray, PresetFieldType,
-    RootFieldSpec,
+    RootFieldSpec, RootFieldSpecCreator,
 };
 
 use crate::{
     datastore::schema::EngineComponent,
-    simulation::package::context::packages::neighbors::{
-        Result, RootFieldSpecCreator, NEIGHBOR_INDEX_COUNT,
-    },
+    simulation::package::context::packages::neighbors::{Result, NEIGHBOR_INDEX_COUNT},
 };
 
 pub(super) const NEIGHBORS_FIELD_NAME: &str = "neighbors";

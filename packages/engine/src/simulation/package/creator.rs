@@ -1,12 +1,12 @@
 use std::{collections::HashMap, sync::Arc};
 
-use stateful::field::{FieldScope, FieldType, RootFieldSpec};
+use stateful::field::{FieldScope, FieldType, RootFieldSpec, RootFieldSpecCreator};
 
 use crate::{
     config::{ExperimentConfig, Globals, PackageConfig, SimRunConfig},
     datastore::schema::{
         accessor::FieldSpecMapAccessor, context::ContextSchema, last_state_index_key,
-        state::AgentSchema, EngineComponent, FieldSpecMap, RootFieldSpecCreator,
+        state::AgentSchema, EngineComponent, FieldSpecMap,
     },
     simulation::{
         comms::{package::PackageComms, Comms},

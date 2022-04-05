@@ -7,7 +7,7 @@ use arrow::datatypes::DataType;
 use async_trait::async_trait;
 use futures::{stream::FuturesOrdered, StreamExt};
 use serde_json::Value;
-use stateful::field::{FieldKey, RootFieldSpec};
+use stateful::field::{FieldKey, RootFieldSpec, RootFieldSpecCreator};
 use tracing::{Instrument, Span};
 
 pub use self::handlers::CustomApiMessageError;
@@ -24,8 +24,8 @@ use crate::{
         package::context::{
             packages::api_requests::fields::API_RESPONSES_FIELD_NAME, Arc, ContextColumn,
             ContextSchema, Error, FieldSpecMapAccessor, GetWorkerExpStartMsg, GetWorkerSimStartMsg,
-            MaybeCpuBound, Package, Package as ContextPackage, PackageCreator,
-            RootFieldSpecCreator, SimRunConfig, StateReadProxy, StateSnapshot,
+            MaybeCpuBound, Package, Package as ContextPackage, PackageCreator, SimRunConfig,
+            StateReadProxy, StateSnapshot,
         },
         Result,
     },

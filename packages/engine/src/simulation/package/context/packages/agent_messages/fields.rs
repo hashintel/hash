@@ -1,10 +1,10 @@
-use stateful::field::{FieldScope, FieldType, FieldTypeVariant, PresetFieldType, RootFieldSpec};
+use stateful::field::{
+    FieldScope, FieldType, FieldTypeVariant, PresetFieldType, RootFieldSpec, RootFieldSpecCreator,
+};
 
 use crate::{
     datastore::schema::EngineComponent,
-    simulation::package::context::packages::agent_messages::{
-        Result, RootFieldSpecCreator, MESSAGE_INDEX_COUNT,
-    },
+    simulation::package::context::packages::agent_messages::{Result, MESSAGE_INDEX_COUNT},
 };
 
 pub(super) const MESSAGES_FIELD_NAME: &str = "messages";

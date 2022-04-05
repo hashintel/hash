@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use serde_json::Value;
-use stateful::field::RootFieldSpec;
+use stateful::field::{RootFieldSpec, RootFieldSpecCreator};
 
 use self::{
     config::exp_init_message, fields::behavior::BehaviorMap, reset_index_col::reset_index_col,
@@ -26,8 +26,8 @@ use crate::{
                 },
                 Arc, DatastoreResult, Error, ExperimentConfig, FieldSpecMapAccessor,
                 GetWorkerExpStartMsg, GetWorkerSimStartMsg, Globals, IntoArrowChange, Name,
-                Package, PackageComms, PackageCreator, Result, RootFieldSpecCreator, SimRunConfig,
-                Span, State, StateColumn, StateTask,
+                Package, PackageComms, PackageCreator, Result, SimRunConfig, Span, State,
+                StateColumn, StateTask,
             },
         },
         task::{active::ActiveTask, Task},

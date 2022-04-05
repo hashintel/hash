@@ -85,3 +85,86 @@ impl<S: FieldSource> TryFrom<RootFieldSpec<S>> for Field {
             .into_arrow_field(root_field_spec.source.is_trusted(), Some(field_key)))
     }
 }
+
+/// A factory-like object that can be set with a [`FieldSource`] and then passed to a context such
+/// as a package.
+///
+/// This allows packages to not need to be aware of the [`FieldSource`], which can get rather
+/// complicated.
+///
+/// # Example
+///
+/// ```
+/// use hash_engine_lib::{
+///     datastore::schema::{EngineComponent, RootFieldSpecCreator},
+///     simulation::package::{name::PackageName, output::Name as OutputName},
+/// };
+///
+/// // Create an output package for the field specification
+/// let package = PackageName::Output(OutputName::JsonState);
+///
+/// // Create the RootFieldSpecCreator
+/// let rfs_creator = RootFieldSpecCreator::new(EngineComponent::Package(package));
+/// ```
+pub struct RootFieldSpecCreator<S> {
+    field_source: S,
+}
+
+impl<S> RootFieldSpecCreator<S> {
+    /// Creates a new `RootFieldSpecCreator` for a given [`FieldSource`].
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use hash_engine_lib::datastore::schema::{EngineComponent, RootFieldSpecCreator};
+    ///
+    /// # #[allow(unused_variables)]
+    /// let rfs_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
+    /// ```
+    pub const fn new(field_source: S) -> Self {
+        Self { field_source }
+    }
+}
+
+impl<S: Clone> RootFieldSpecCreator<S> {
+    /// Creates a [`RootFieldSpec`] of a [`FieldType`] with a given `name` in the provided
+    /// [`FieldScope`].
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use hash_engine_lib::datastore::schema::{
+    ///     EngineComponent, FieldScope, FieldType, FieldTypeVariant, RootFieldSpecCreator,
+    /// };
+    ///
+    /// // Create the RootFieldSpecCreator
+    /// let rfs_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
+    ///
+    /// // Create a non-nullable `Number` field type
+    /// let field_type = FieldType::new(FieldTypeVariant::Number, false);
+    ///
+    /// // Create the root field spec
+    /// let rfs = rfs_creator.create(
+    ///     "my_number".to_string(),
+    ///     field_type.clone(),
+    ///     FieldScope::Agent,
+    /// );
+    ///
+    /// assert_eq!(rfs.inner.name, "my_number");
+    /// assert_eq!(rfs.inner.field_type, field_type);
+    /// assert_eq!(rfs.scope, FieldScope::Agent);
+    /// assert_eq!(rfs.source, EngineComponent::Engine);
+    /// ```
+    pub fn create(
+        &self,
+        name: String,
+        field_type: FieldType,
+        scope: FieldScope,
+    ) -> RootFieldSpec<S> {
+        RootFieldSpec {
+            inner: FieldSpec { name, field_type },
+            scope,
+            source: self.field_source.clone(),
+        }
+    }
+}

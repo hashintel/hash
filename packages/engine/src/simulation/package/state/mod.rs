@@ -5,13 +5,13 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use memory::arrow::ColumnChange;
 pub use packages::{Name, StateTask, StateTaskMessage, PACKAGE_CREATORS};
-use stateful::field::RootFieldSpec;
+use stateful::field::{RootFieldSpec, RootFieldSpecCreator};
 use tracing::Span;
 
 use crate::{
     config::{ExperimentConfig, Globals, SimRunConfig},
     datastore::{
-        schema::{accessor::FieldSpecMapAccessor, EngineComponent, RootFieldSpecCreator},
+        schema::{accessor::FieldSpecMapAccessor, EngineComponent},
         table::{context::Context, state::State},
         Result as DatastoreResult,
     },

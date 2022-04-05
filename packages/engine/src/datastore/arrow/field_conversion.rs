@@ -67,10 +67,10 @@ impl FieldSpecMap<EngineComponent> {
 #[cfg(test)]
 pub mod tests {
     use arrow::datatypes::DataType;
-    use stateful::field::{FieldScope, FieldType};
+    use stateful::field::{FieldScope, FieldType, RootFieldSpecCreator};
 
     use super::*;
-    use crate::{datastore::schema::RootFieldSpecCreator, hash_types::state::AgentStateField};
+    use crate::hash_types::state::AgentStateField;
 
     #[test]
     fn get_schema() -> Result<()> {
