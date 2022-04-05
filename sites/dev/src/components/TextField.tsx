@@ -63,7 +63,6 @@ export const TextField: VFC<TextFieldProps> = ({
       >
         <FormHelperText
           error={textFieldProps.error}
-          // @todo use theme font
           sx={{ fontWeight: 400, fontSize: 14, mt: 1, textAlign: "center" }}
         >
           {recentHelperText}

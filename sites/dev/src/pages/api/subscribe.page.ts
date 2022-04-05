@@ -35,9 +35,7 @@ const tagUser = async (email: string) => {
       {
         tags: [
           {
-            // @todo is this correct
             name: "HASH Dev",
-            // @todo do we need this?
             status: "active",
           },
         ],

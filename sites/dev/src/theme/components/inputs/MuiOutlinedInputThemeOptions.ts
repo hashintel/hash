@@ -9,9 +9,7 @@ export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"]
       root: ({ theme }) => ({
         background: "white",
         boxSizing: "border-box",
-        // @todo use shadow
         boxShadow: "0px 1px 2px rgba(0, 0, 0, 0.05)",
-        // @todo this seems… incorrect
         borderRadius: "106px",
         width: "100%",
         padding: theme.spacing(0, 3),
@@ -33,11 +31,9 @@ export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"]
         },
       }),
       input: ({ theme }) => ({
-        // @todo check this
         height: "55px",
         padding: theme.spacing(1.5, 0),
-        // @todo set this properly
-        fontSize: theme.typography.bpBodyCopy.fontSize,
+        fontSize: theme.typography.hashBodyCopy.fontSize,
         boxSizing: "border-box",
         color: theme.palette.gray[80],
 

@@ -32,7 +32,6 @@ const DesktopNav: VFC = () => (
       spacing={2}
       ml="auto"
       sx={{
-        // @todo need to figure out border radius of focus
         [`& .${buttonClasses.root}`]: {
           minHeight: 32,
           py: 1,
@@ -49,7 +48,6 @@ const DesktopNav: VFC = () => (
 
           "&.MuiButton-primary": {
             borderColor: "yellow.500",
-            // @todo this is correct
             color: "yellow.900",
 
             ":hover, :focus-visible, &.Button--focus:not(:disabled)": {
@@ -87,9 +85,6 @@ const DesktopNav: VFC = () => (
   </>
 );
 
-/**
- * @todo update menu open icon colour
- */
 const MobileNavButton: VFC<{ open: boolean; onOpenToggle: () => void }> = ({
   open,
   onOpenToggle,
