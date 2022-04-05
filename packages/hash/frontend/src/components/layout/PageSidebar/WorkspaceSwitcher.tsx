@@ -17,9 +17,9 @@ import {
 } from "material-ui-popup-state/hooks";
 import { useUser } from "../../hooks/useUser";
 import { useLogout } from "../../hooks/useLogout";
-import { useCurrentWorkspaceContext } from "../../../contexts/CurrentWorkspaceContext";
 import { Avatar, Button, Link } from "../../../shared/ui";
 import { FontAwesomeIcon } from "../../../shared/icons";
+import { useRouteAccountInfo } from "../../../shared/routing";
 
 type WorkspaceSwitcherProps = {};
 
@@ -31,16 +31,16 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
   });
   const { user } = useUser();
   const { logout } = useLogout();
-  const { accountId: activeAccountId } = useCurrentWorkspaceContext();
+  const { accountId } = useRouteAccountInfo();
 
   const activeWorkspace = useMemo(() => {
     let accountName = "";
 
-    if (user && activeAccountId === user.accountId) {
+    if (user && accountId === user.accountId) {
       accountName = user.properties.preferredName || user.properties.shortname!;
     } else {
       const activeOrg = user?.memberOf.find(
-        ({ org }) => org.accountId === activeAccountId,
+        ({ org }) => org.accountId === accountId,
       )?.org;
 
       if (activeOrg) {
@@ -48,8 +48,8 @@ export const WorkspaceSwitcher: VFC<WorkspaceSwitcherProps> = () => {
       }
     }
 
-    return { name: accountName || "User", accountId: activeAccountId };
-  }, [activeAccountId, user]);
+    return { name: accountName || "User", accountId };
+  }, [accountId, user]);
 
   const workspaceList = useMemo(() => {
     if (!user) {

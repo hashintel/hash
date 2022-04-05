@@ -1,9 +1,10 @@
-import { useCallback, VoidFunctionComponent } from "react";
+import { useCallback } from "react";
 import pluralize from "pluralize";
 import { useQuery } from "@apollo/client";
 import { useRouter } from "next/router";
 
 import { tw } from "twind";
+import { NextPage } from "next";
 import {
   GetEntityTypeQuery,
   GetEntityTypeQueryVariables,
@@ -18,13 +19,14 @@ import { useBlockProtocolUpdateEntityType } from "../../../components/hooks/bloc
 import { useBlockProtocolAggregateEntityTypes } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregateEntityTypes";
 import { MainContentWrapper } from "../../../components/layout/MainContentWrapper";
 import { Button, Link } from "../../../shared/ui";
+import { useRouteAccountInfo } from "../../../shared/routing";
 
-export const EntityType: VoidFunctionComponent = () => {
+export const EntityType: NextPage = () => {
   const router = useRouter();
   const { query } = router;
 
-  const typeId = query.typeId as string;
-  const accountId = query.accountId as string;
+  const typeId = query["type-id"] as string;
+  const { accountId } = useRouteAccountInfo();
 
   const { updateEntityTypes } = useBlockProtocolUpdateEntityType();
   const { aggregateEntityTypes } = useBlockProtocolAggregateEntityTypes();

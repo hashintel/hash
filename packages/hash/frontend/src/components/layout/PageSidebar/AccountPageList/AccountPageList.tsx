@@ -16,7 +16,7 @@ import { useCreatePage } from "../../../hooks/useCreatePage";
 
 type AccountPageListProps = {
   accountId: string;
-  currentPageEntityId: string;
+  currentPageEntityId?: string;
 };
 
 type TreeElement = {

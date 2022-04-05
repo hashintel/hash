@@ -49,7 +49,7 @@
       }
     },
     {
-      "files": ["**/shared/**/*"],
+      "files": ["**/shared/**/*", "./src/pages/**/*"],
       "rules": {
         "canonical/filename-no-index": "error",
         "unicorn/filename-case": "error"

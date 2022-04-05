@@ -302,7 +302,12 @@ class __Aggregation {
     return this;
   }
 
-  async getResults(client: DbClient): Promise<Entity[]> {
+  async getResults(
+    client: DbClient,
+    params?: {
+      disablePagination?: boolean;
+    },
+  ): Promise<Entity[]> {
     const {
       entityTypeId,
       entityTypeVersionId,
@@ -323,22 +328,42 @@ class __Aggregation {
       latestOnly: true,
     });
 
-    const startIndex = pageNumber === 1 ? 0 : (pageNumber - 1) * itemsPerPage;
-    const endIndex = Math.min(startIndex + itemsPerPage, entities.length);
-
     const filteredEntities = multiFilter
       ? Aggregation.filterEntities(entities, multiFilter)
       : entities;
 
-    const results = (
-      multiSort
-        ? Aggregation.sortEntities(filteredEntities, multiSort)
-        : filteredEntities
-    ).slice(startIndex, endIndex);
+    const sortedEntities = multiSort
+      ? Aggregation.sortEntities(filteredEntities, multiSort)
+      : filteredEntities;
 
     /** @todo: filter source entity from results? */
 
-    return results;
+    const { disablePagination } = params ?? {};
+
+    if (disablePagination) {
+      return sortedEntities;
+    }
+
+    const startIndex = pageNumber === 1 ? 0 : (pageNumber - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, entities.length);
+
+    return sortedEntities.slice(startIndex, endIndex);
+  }
+
+  async getPageCount(client: DbClient): Promise<number> {
+    const { itemsPerPage } = this.operation;
+
+    /**
+     * @todo: implement more performant way of determining the number of
+     * possible results
+     */
+    const numberOfPossibleResults = (
+      await this.getResults(client, {
+        disablePagination: true,
+      })
+    ).length;
+
+    return Math.ceil(numberOfPossibleResults / itemsPerPage);
   }
 
   async delete(
@@ -357,8 +382,6 @@ class __Aggregation {
   async toGQLLinkedAggregation(
     client: DbClient,
   ): Promise<UnresolvedGQLLinkedAggregation> {
-    const { itemsPerPage } = this.operation;
-
     return {
       sourceAccountId: this.sourceAccountId,
       sourceEntityId: this.sourceEntityId,
@@ -369,9 +392,7 @@ class __Aggregation {
          * @todo: move this into a field resolver so that it is only
          * calculated when the field is requested
          */
-        pageCount: Math.ceil(
-          (await this.getResults(client)).length / itemsPerPage,
-        ),
+        pageCount: await this.getPageCount(client),
       },
     };
   }
