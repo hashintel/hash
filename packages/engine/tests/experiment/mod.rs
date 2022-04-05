@@ -202,6 +202,8 @@ pub async fn run_test_suite(
                     output_location: OutputLocation::File("output.log".into()),
                     start_timeout,
                     wait_timeout,
+                    js_runner_initial_heap_constraint: None,
+                    js_runner_max_heap_size: None,
                 };
 
                 let test_result = run_test(

@@ -40,6 +40,8 @@ pub async fn experiment_config(args: &Args, env: &Environment) -> Result<Experim
         env.experiment.clone(),
         args.num_workers,
         args.target_max_group_size,
+        args.js_runner_initial_heap_constraint,
+        args.js_runner_max_heap_size,
     )
 }
 
