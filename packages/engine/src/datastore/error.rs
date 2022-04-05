@@ -1,7 +1,7 @@
 use std::fmt;
 
 use arrow::{datatypes::DataType, error::ArrowError};
-use stateful::field::{FieldKey, FieldType};
+use stateful::field::FieldKey;
 use thiserror::Error as ThisError;
 
 use crate::hash_types::{self, state::AgentStateField};
@@ -145,12 +145,6 @@ pub enum Error {
 
     #[error("Unexpected undefined command")]
     UnexpectedUndefinedCommand,
-
-    #[error(
-        "Key clash when attempting to insert a new agent-scoped field with key: {0:?}. The new \
-         field has a differing type: {1:?} to the existing field: {2:?}"
-    )]
-    AgentScopedFieldKeyClash(FieldKey, FieldType, FieldType),
 
     #[error(
         "Attempting to insert a new field under key:{0:?} which clashes. New field: {1} Existing \

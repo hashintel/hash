@@ -1,11 +1,9 @@
 use std::sync::Arc;
 
 use arrow::datatypes::Schema as ArrowSchema;
+use stateful::field::FieldSpecMap;
 
-use crate::datastore::{
-    error::Result,
-    schema::{field_spec::FieldSpecMap, EngineComponent},
-};
+use crate::datastore::{error::Result, schema::EngineComponent};
 
 pub struct ContextSchema {
     pub arrow: Arc<ArrowSchema>,
@@ -14,7 +12,7 @@ pub struct ContextSchema {
 
 impl ContextSchema {
     pub fn new(field_spec_map: FieldSpecMap<EngineComponent>) -> Result<ContextSchema> {
-        let arrow_schema = Arc::new(field_spec_map.get_arrow_schema()?);
+        let arrow_schema = Arc::new(field_spec_map.create_arrow_schema()?);
 
         Ok(ContextSchema {
             arrow: arrow_schema,

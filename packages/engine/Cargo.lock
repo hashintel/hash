@@ -2163,6 +2163,7 @@ dependencies = [
  "arrow",
  "memory",
  "thiserror",
+ "tracing",
 ]
 
 [[package]]

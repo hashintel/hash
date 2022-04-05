@@ -15,6 +15,7 @@ mod key;
 mod scope;
 mod source;
 mod spec;
+mod spec_map;
 
 pub const UUID_V4_LEN: usize = 16;
 
@@ -25,4 +26,5 @@ pub use self::{
     scope::FieldScope,
     source::FieldSource,
     spec::{FieldSpec, RootFieldSpec, RootFieldSpecCreator},
+    spec_map::FieldSpecMap,
 };

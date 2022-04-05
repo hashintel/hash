@@ -7,3 +7,4 @@ edition = "2021"
 memory = { path = "../memory" }
 arrow = { version = "10.0.0", default-features = false }
 thiserror = "1.0.21"
+tracing = "0.1.29"

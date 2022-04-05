@@ -4,12 +4,10 @@ use std::sync::Arc;
 
 use arrow::datatypes::Schema as ArrowSchema;
 use memory::arrow::meta::{self, conversion::HashStaticMeta};
+use stateful::field::FieldSpecMap;
 
 pub use self::message::MessageSchema;
-use crate::datastore::{
-    error::Result,
-    schema::{EngineComponent, FieldSpecMap},
-};
+use crate::datastore::{error::Result, schema::EngineComponent};
 
 /// `AgentSchema` describes the layout of every
 /// agent-containing `SharedBatch` in a datastore. It contains
@@ -24,7 +22,7 @@ pub struct AgentSchema {
 
 impl AgentSchema {
     pub fn new(field_spec_map: FieldSpecMap<EngineComponent>) -> Result<AgentSchema> {
-        let arrow_schema = Arc::new(field_spec_map.get_arrow_schema()?);
+        let arrow_schema = Arc::new(field_spec_map.create_arrow_schema()?);
         let static_meta = arrow_schema.get_static_metadata();
 
         Ok(AgentSchema {

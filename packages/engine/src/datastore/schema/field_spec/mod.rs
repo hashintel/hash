@@ -1,16 +1,12 @@
-use core::fmt;
-use std::collections::HashMap;
-
-use stateful::field::{
-    FieldKey, FieldScope, FieldSource, FieldSpec, FieldType, FieldTypeVariant, PresetFieldType,
-    RootFieldSpec,
+use stateful::{
+    field::{
+        FieldScope, FieldSource, FieldSpec, FieldType, FieldTypeVariant, PresetFieldType,
+        RootFieldSpec,
+    },
+    Error, Result,
 };
 
-use crate::{
-    datastore::error::{Error, Result},
-    hash_types::state::AgentStateField,
-    simulation::package::name::PackageName,
-};
+use crate::{hash_types::state::AgentStateField, simulation::package::name::PackageName};
 
 pub mod accessor;
 pub mod built_in;
@@ -25,7 +21,7 @@ pub enum EngineComponent {
 }
 
 impl FieldSource for EngineComponent {
-    fn unique_id(&self) -> stateful::Result<usize> {
+    fn unique_id(&self) -> Result<usize> {
         match self {
             EngineComponent::Engine => Ok(0),
             EngineComponent::Package(package_name) => Ok(package_name
@@ -73,115 +69,6 @@ pub fn last_state_index_key() -> FieldSpec {
             // do not get an index (their outboxes are empty by default)
             true,
         ),
-    }
-}
-
-/// A wrapper struct around a hashmap of field-keys (unique identifiers used to name/label Arrow
-/// data columns mapped to the specification of those fields
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct FieldSpecMap<S> {
-    /// A mapping of field unique identifiers to the fields themselves.
-    field_specs: HashMap<FieldKey, RootFieldSpec<S>>,
-}
-
-impl<S> Default for FieldSpecMap<S> {
-    fn default() -> Self {
-        Self {
-            field_specs: HashMap::default(),
-        }
-    }
-}
-
-impl<S: FieldSource> FieldSpecMap<S> {
-    pub fn empty() -> Self {
-        Self {
-            field_specs: HashMap::default(),
-        }
-    }
-
-    fn add(&mut self, new_field: RootFieldSpec<S>) -> Result<()>
-    where
-        S: PartialEq + fmt::Debug,
-    {
-        let field_key = new_field.create_key()?;
-        if let Some(existing_field) = self.field_specs.get(&field_key) {
-            if existing_field == &new_field {
-                // This likely only happens when behaviors declare duplicate keys, it can't cause
-                // problems as the fields are equal and therefore the sources (and types) are the
-                // same, meaning the field can't override another package's field
-                return Ok(());
-            }
-            if existing_field.scope == FieldScope::Agent
-                && new_field.scope == FieldScope::Agent
-                && existing_field.inner.field_type == new_field.inner.field_type
-                && !existing_field.source.is_compatible(&new_field.source)
-            {
-                tracing::warn!(
-                    "Key clash when a package attempted to insert a new agent-scoped field with \
-                     key: {field_key:?}, the existing field was created by the engine, the new \
-                     field will be ignored",
-                );
-                return Ok(());
-            }
-
-            Err(Error::FieldKeyClash(
-                field_key,
-                format!("{new_field:?}"),
-                format!("{existing_field:?}"),
-            ))
-        } else {
-            self.field_specs.insert(field_key, new_field);
-            Ok(())
-        }
-    }
-
-    pub fn try_extend<I: IntoIterator<Item = RootFieldSpec<S>>>(
-        &mut self,
-        new_field_specs: I,
-    ) -> Result<()>
-    where
-        S: PartialEq + fmt::Debug,
-    {
-        let new_field_specs = new_field_specs.into_iter();
-        self.field_specs.reserve(new_field_specs.size_hint().0);
-        for field_spec in new_field_specs {
-            self.add(field_spec)?
-        }
-        Ok(())
-    }
-
-    pub fn contains_key(&self, key: &FieldKey) -> bool {
-        self.field_specs.contains_key(key)
-    }
-
-    pub(crate) fn iter(&self) -> impl Iterator<Item = (&FieldKey, &RootFieldSpec<S>)> {
-        self.field_specs.iter()
-    }
-
-    pub(crate) fn field_specs(&self) -> impl Iterator<Item = &RootFieldSpec<S>> {
-        self.field_specs.values()
-    }
-
-    #[cfg(test)]
-    pub(crate) fn drain_field_specs(&mut self) -> impl Iterator<Item = RootFieldSpec<S>> + '_ {
-        self.field_specs.drain().map(|(_, field_spec)| field_spec)
-    }
-
-    pub fn len(&self) -> usize {
-        self.field_specs.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
-    pub(in crate::datastore) fn get_field_spec(
-        &self,
-        field_key: &FieldKey,
-    ) -> Result<&RootFieldSpec<S>> {
-        self.field_specs
-            .get(field_key)
-            .ok_or_else(|| Error::from(format!("Cannot find field with name '{:?}'", field_key)))
     }
 }
 
@@ -250,7 +137,7 @@ impl TryFrom<AgentStateField> for FieldType {
 // possibly split across modules
 #[cfg(test)]
 pub mod tests {
-    use stateful::field::RootFieldSpecCreator;
+    use stateful::field::{FieldSpecMap, RootFieldSpecCreator};
 
     use super::*;
     use crate::simulation::package::creator::get_base_agent_fields;
@@ -265,11 +152,11 @@ pub mod tests {
             .unwrap();
 
         let err = field_spec_map
-            .add(field_spec_creator.create(
+            .try_extend([field_spec_creator.create(
                 "agent_id".to_string(),
                 FieldType::new(FieldTypeVariant::Number, true),
                 FieldScope::Agent,
-            ))
+            )])
             .unwrap_err();
         assert!(matches!(err, Error::FieldKeyClash(..)));
     }
@@ -284,19 +171,19 @@ pub mod tests {
             .unwrap();
 
         field_spec_map
-            .add(field_spec_creator.create(
+            .try_extend([field_spec_creator.create(
                 "test".to_string(),
                 FieldType::new(FieldTypeVariant::String, false),
                 FieldScope::Private,
-            ))
+            )])
             .unwrap();
 
         let err = field_spec_map
-            .add(field_spec_creator.create(
+            .try_extend([field_spec_creator.create(
                 "test".to_string(),
                 FieldType::new(FieldTypeVariant::String, true),
                 FieldScope::Private,
-            ))
+            )])
             .unwrap_err();
         assert!(matches!(err, Error::FieldKeyClash(..)));
     }
@@ -313,7 +200,7 @@ pub mod tests {
         let len_before = field_spec_map.len();
 
         field_spec_map
-            .add(AgentStateField::AgentId.try_into().unwrap())
+            .try_extend([AgentStateField::AgentId.try_into().unwrap()])
             .unwrap();
 
         assert_eq!(len_before, field_spec_map.len());
@@ -325,25 +212,25 @@ pub mod tests {
         let mut field_spec_map = FieldSpecMap::empty();
 
         field_spec_map
-            .add(field_spec_creator.create(
+            .try_extend([field_spec_creator.create(
                 "test".to_string(),
                 FieldType::new(FieldTypeVariant::String, false),
                 FieldScope::Agent,
-            ))
+            )])
             .unwrap();
         field_spec_map
-            .add(field_spec_creator.create(
+            .try_extend([field_spec_creator.create(
                 "test".to_string(),
                 FieldType::new(FieldTypeVariant::String, false),
                 FieldScope::Agent,
-            ))
+            )])
             .unwrap();
         field_spec_map
-            .add(field_spec_creator.create(
+            .try_extend([field_spec_creator.create(
                 "test".to_string(),
                 FieldType::new(FieldTypeVariant::String, false),
                 FieldScope::Agent,
-            ))
+            )])
             .unwrap();
 
         assert_eq!(field_spec_map.len(), 1);
@@ -352,7 +239,7 @@ pub mod tests {
     #[test]
     pub fn test_struct_types_enabled() -> Result<()> {
         let mut keys = FieldSpecMap::default();
-        keys.add(RootFieldSpec {
+        keys.try_extend([RootFieldSpec {
             inner: FieldSpec {
                 name: "struct".to_string(),
                 field_type: FieldType::new(
@@ -371,9 +258,9 @@ pub mod tests {
             },
             scope: FieldScope::Private,
             source: EngineComponent::Engine,
-        })?;
+        }])?;
 
-        keys.get_arrow_schema()?;
+        keys.create_arrow_schema()?;
         Ok(())
     }
 }

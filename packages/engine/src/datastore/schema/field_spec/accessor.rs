@@ -1,10 +1,8 @@
 use std::sync::Arc;
 
-use stateful::field::{FieldKey, FieldSource, RootFieldSpec};
-
-use crate::datastore::{
-    error::Result,
-    schema::field_spec::{FieldScope, FieldSpecMap},
+use stateful::{
+    field::{FieldKey, FieldScope, FieldSource, FieldSpecMap, RootFieldSpec},
+    Result,
 };
 
 pub struct FieldSpecMapAccessor<S> {
