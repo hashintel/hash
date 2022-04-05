@@ -3,10 +3,6 @@
   "version": "0.0.0",
   "private": true,
   "description": "The data store for HASH",
-  "repository": {
-    "url": "https://github.com/hashintel/dev/packages/hash/datastore",
-    "directory": "packages/hash/datastore"
-  },
   "license": "GPL-3.0",
   "scripts": {
     "fix:eslint": "eslint --ext .ts --fix .",

@@ -13,6 +13,10 @@ import {
 import {
   MuiButtonThemeOptions,
   MuiOutlinedInputThemeOptions,
+  MuiRadioThemeOptions,
+  MuiCheckboxThemeOptions,
+  MuiInputLabelThemeOptions,
+  MuiSwitchThemeOptions,
 } from "./components/inputs";
 import { MuiCssBaselineThemeOptions } from "./components/utils";
 
@@ -20,6 +24,10 @@ export const components: Components<Theme> = {
   /** ===== INPUTS ===== */
   MuiButton: MuiButtonThemeOptions,
   MuiOutlinedInput: MuiOutlinedInputThemeOptions,
+  MuiInputLabel: MuiInputLabelThemeOptions,
+  MuiSwitch: MuiSwitchThemeOptions,
+  MuiRadio: MuiRadioThemeOptions,
+  MuiCheckbox: MuiCheckboxThemeOptions,
   /** ===== DATA DISPLAY ===== */
   MuiIconButton: MuiIconButtonThemeOptions,
   MuiTooltip: MuiTooltipThemeOptions,

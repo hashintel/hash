@@ -2,7 +2,7 @@ import { useQuery } from "@apollo/client";
 import { BlockMeta, fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { keyBy } from "lodash";
-import { GetStaticPaths, GetStaticProps } from "next";
+import { GetStaticPaths, GetStaticProps, NextPage } from "next";
 import { Router, useRouter } from "next/router";
 import { tw } from "twind";
 
@@ -24,6 +24,7 @@ import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import { PageTransferDropdown } from "../../components/Dropdowns/PageTransferDropdown";
 import { MainContentWrapper } from "../../components/layout/MainContentWrapper";
 import { RemoteBlockMetadata } from "../../blocks/userBlocks";
+import { useRouteAccountInfo, useRoutePageInfo } from "../../shared/routing";
 
 // Apparently defining this is necessary in order to get server rendered props?
 export const getStaticPaths: GetStaticPaths<{ slug: string }> = () => ({
@@ -53,12 +54,12 @@ export const getStaticProps: GetStaticProps<PageProps> = async () => {
   };
 };
 
-export const Page: React.VFC<PageProps> = ({ blocksMeta }) => {
+export const Page: NextPage<PageProps> = ({ blocksMeta }) => {
   const router = useRouter();
 
-  // entityId is the consistent identifier for pages (across all versions)
-  const pageEntityId = router.query.pageEntityId as string;
-  const accountId = router.query.accountId as string;
+  const { accountId } = useRouteAccountInfo();
+  // pageEntityId is the consistent identifier for pages (across all versions)
+  const { pageEntityId } = useRoutePageInfo();
   // versionId is an optional param for requesting a specific page version
   const versionId = router.query.version as string | undefined;
 

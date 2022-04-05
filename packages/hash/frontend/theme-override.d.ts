@@ -183,5 +183,21 @@ declare module "@mui/lab/TreeItem" {
   }
 }
 
+declare module "@mui/material/TextField" {
+  interface TextFieldPropsSizeOverrides {
+    small: true;
+    medium: true;
+    large: true;
+  }
+}
+
+declare module "@mui/material/InputBase" {
+  interface InputBasePropsSizeOverrides {
+    small: true;
+    medium: true;
+    large: true;
+  }
+}
+
 // eslint-disable-next-line import/no-default-export -- @see https://github.com/mui-org/material-ui/issues/28244
 export default "";
