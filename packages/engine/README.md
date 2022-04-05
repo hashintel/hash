@@ -230,7 +230,7 @@ export RUST_LOG=debug
 ```
 
 If your simulation requires a lot of memory and uses JavaScript behaviors, the JavaScript runner may run out of memory.
-The first step you can take is passing a larger heap size to the runner:
+As a first step, you can provide a larger heap size to the runner:
 
 ```shell
 cargo run --bin cli -- --project /path/to/my-hash-project single-run --num-steps <NUM-STEPS> --js-runner-max-heap-size <NEW-SIZE-IN-MB>
