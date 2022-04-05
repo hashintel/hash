@@ -174,7 +174,6 @@ export const Navbar: VFC = () => {
   const mobileNav = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  // @todo – can replace with a breakpoint event listener or something?
   if (!mobileNav && mobileNavOpen) {
     setMobileNavOpen(false);
   }
