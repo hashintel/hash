@@ -14,10 +14,14 @@ pub struct FieldKey(String);
 impl FieldKey {
     fn verify_name(name: &str) -> Result<()> {
         // TODO: do we want these checks to only be present on debug builds
-        return Err(Error::from(format!(
-            "Field names cannot start with the protected prefixes: [{PRIVATE_PREFIX:?}, \
-             {HIDDEN_PREFIX:?}], received field name: {name:?}"
-        )));
+        if name.starts_with(PRIVATE_PREFIX) || name.starts_with(HIDDEN_PREFIX) {
+            Err(Error::from(format!(
+                "Field names cannot start with the protected prefixes: [{PRIVATE_PREFIX:?}, \
+                 {HIDDEN_PREFIX:?}], received field name: {name:?}"
+            )))
+        } else {
+            Ok(())
+        }
     }
 
     /// Create a new agent scoped `FieldKey`
