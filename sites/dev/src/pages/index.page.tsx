@@ -95,7 +95,7 @@ const Hero: VFC = () => (
         <StylishDivider mb={5} wide />
         <Box width={{ xs: 1, md: 550 }}>
           <Typography mb={2} sx={{ lineHeight: 1.5 }}>
-            <Link href="https://hash.ai" sx={{ fontWeight: 700 }}>
+            <Link href="https://hash.ai/about" sx={{ fontWeight: 700 }}>
               HASH
             </Link>{" "}
             is an organization building the next generation of simulation,
