@@ -17,16 +17,15 @@ import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { useSidebarContext } from "../SidebarContext";
 import { IconButton, Link } from "../../../shared/ui";
 import { HEADER_HEIGHT } from "../PageHeader/PageHeader";
+import { useRouteAccountInfo, useRoutePageInfo } from "../../../shared/routing";
 
 export const SIDEBAR_WIDTH = 260;
 
 export const PageSidebar: VoidFunctionComponent = () => {
   const router = useRouter();
   const { sidebarOpen, closeSidebar } = useSidebarContext();
-  const { accountId, pageEntityId } = router.query as Record<
-    "accountId" | "pageEntityId",
-    string
-  >;
+  const { accountId } = useRouteAccountInfo();
+  const { pageEntityId } = useRoutePageInfo({ allowUndefined: true }) ?? {};
 
   return (
     <Drawer
@@ -65,7 +64,7 @@ export const PageSidebar: VoidFunctionComponent = () => {
         title="Home"
         href="/"
         tooltipTitle="View your inbox and latest activity"
-        active={router.pathname === "/[accountId]"}
+        active={router.pathname === "/[account-slug]"}
       />
       <TopNavLink
         icon={faZap}

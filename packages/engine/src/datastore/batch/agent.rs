@@ -25,7 +25,7 @@ use memory::{
         },
         ArrowBatch,
     },
-    shared_memory::{BufferChange, Memory, Metaversion, Segment},
+    shared_memory::{BufferChange, MemoryId, Metaversion, Segment},
 };
 
 use crate::{
@@ -67,18 +67,22 @@ impl AgentBatch {
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
         if agent_batch.batch.loaded_metaversion().memory()
-            != agent_batch.batch.segment().persisted_metaversion().memory()
+            != agent_batch
+                .batch
+                .segment()
+                .read_persisted_metaversion()
+                .memory()
         {
             return Err(Error::from(format!(
                 "Can't duplicate agent batch with loaded memory older than latest persisted: \
                  {:?}, {:?}",
                 agent_batch.batch.loaded_metaversion(),
-                agent_batch.batch.segment().persisted_metaversion(),
+                agent_batch.batch.segment().read_persisted_metaversion(),
             )));
         }
 
-        let memory = Memory::duplicate_from(agent_batch.batch.memory(), experiment_id)?;
-        Self::from_memory(memory, Some(schema), Some(agent_batch.worker_index))
+        let segment = Segment::duplicate(agent_batch.batch.segment(), experiment_id)?;
+        Self::from_segment(segment, Some(schema), Some(agent_batch.worker_index))
     }
 
     /// Copy contents from RecordBatch and create a memory-backed Batch
@@ -93,8 +97,8 @@ impl AgentBatch {
         let header_buffer = Metaversion::default().to_le_bytes();
         let (ipc_message, data_len) = simulate_record_batch_to_bytes(record_batch);
 
-        let mut memory = Memory::from_sizes(
-            experiment_id,
+        let mut segment = Segment::from_sizes(
+            MemoryId::new(experiment_id),
             schema_buffer.ipc_message.len(),
             header_buffer.len(),
             ipc_message.len(),
@@ -104,29 +108,28 @@ impl AgentBatch {
 
         // Memory needs to be loaded after creating regardless of metaverion, so we can ignore, if
         // the memory changed.
-        let _ = memory.set_schema(&schema_buffer.ipc_message)?;
-        let _ = memory.set_header(&header_buffer)?;
-        let _ = memory.set_metadata(&ipc_message)?;
+        let _ = segment.set_schema(&schema_buffer.ipc_message)?;
+        let _ = segment.set_header(&header_buffer)?;
+        let _ = segment.set_metadata(&ipc_message)?;
 
-        let data_buffer = memory.get_mut_data_buffer()?;
+        let data_buffer = segment.get_mut_data_buffer()?;
         // Write new data
         record_batch_data_to_bytes_owned_unchecked(record_batch, data_buffer);
 
-        Self::from_memory(memory, Some(schema), None)
+        Self::from_segment(segment, Some(schema), None)
     }
 
-    pub fn from_memory(
-        memory: Memory,
+    pub fn from_segment(
+        segment: Segment,
         schema: Option<&AgentSchema>,
         worker_index: Option<usize>,
     ) -> Result<Self> {
-        let persisted = memory.metaversion()?;
-        let (schema_buffer, _header_buffer, meta_buffer, data_buffer) =
-            memory.get_batch_buffers()?;
+        let persisted = segment.try_read_persisted_metaversion()?;
+        let buffers = segment.get_batch_buffers()?;
         let (schema, static_meta) = if let Some(s) = schema {
             (s.arrow.clone(), s.static_meta.clone())
         } else {
-            let message = ipc::root_as_message(schema_buffer)?;
+            let message = ipc::root_as_message(buffers.schema())?;
             let ipc_schema = match message.header_as_schema() {
                 Some(s) => s,
                 None => return Err(Error::ArrowSchemaRead),
@@ -136,17 +139,17 @@ impl AgentBatch {
             (schema, static_meta)
         };
 
-        let batch_message = ipc::root_as_message(meta_buffer)?
+        let batch_message = ipc::root_as_message(buffers.meta())?
             .header_as_record_batch()
             .ok_or_else(|| Error::ArrowBatch("Couldn't read message".into()))?;
 
-        let dynamic_meta = batch_message.into_meta(data_buffer.len())?;
+        let dynamic_meta = batch_message.into_meta(buffers.data().len())?;
 
-        let record_batch = read_record_batch(data_buffer, batch_message, schema, &[])?;
+        let record_batch = read_record_batch(buffers.data(), batch_message, schema, &[])?;
 
         Ok(Self {
             batch: ArrowBatch::new(
-                Segment::from_memory(memory),
+                segment,
                 record_batch,
                 dynamic_meta,
                 static_meta,
@@ -161,15 +164,15 @@ impl AgentBatch {
         schema: &Arc<AgentSchema>,
         dynamic_meta: &meta::Dynamic,
         experiment_id: &ExperimentId,
-    ) -> Result<Memory> {
+    ) -> Result<Segment> {
         let ipc_data_generator = IpcDataGenerator::default();
         let schema_buffer =
             ipc_data_generator.schema_to_bytes(&schema.arrow, &IpcWriteOptions::default());
         let header_buffer = Metaversion::default().to_le_bytes();
         let meta_buffer = get_dynamic_meta_flatbuffers(dynamic_meta)?;
 
-        let mut memory = Memory::from_sizes(
-            experiment_id,
+        let mut memory = Segment::from_sizes(
+            MemoryId::new(experiment_id),
             schema_buffer.ipc_message.len(),
             header_buffer.len(),
             meta_buffer.len(),
@@ -202,11 +205,11 @@ impl AgentBatch {
     ) -> Result<BufferChange> {
         *self.batch.dynamic_meta_mut() = dynamic_meta.clone();
         let meta_buffer = get_dynamic_meta_flatbuffers(dynamic_meta)?;
-        Ok(self.batch.memory_mut().set_metadata(&meta_buffer)?)
+        Ok(self.batch.segment_mut().set_metadata(&meta_buffer)?)
     }
 
     pub fn get_buffer(&self, buffer_index: usize) -> Result<&[u8]> {
-        let data_buffer = self.batch.memory().get_data_buffer()?;
+        let data_buffer = self.batch.segment().get_data_buffer()?;
         let metadata = &self.batch.dynamic_meta().buffers[buffer_index];
         Ok(&data_buffer[metadata.offset..metadata.offset + metadata.length])
     }
@@ -246,8 +249,8 @@ impl AgentBatch {
     }
 
     pub fn from_shmem_os_id(os_id: &str) -> Result<Box<Self>> {
-        let memory = Memory::from_shmem_os_id(os_id, true, true)?;
-        Ok(Box::new(AgentBatch::from_memory(memory, None, None)?))
+        let segment = Segment::from_shmem_os_id(os_id, true, true)?;
+        Ok(Box::new(AgentBatch::from_segment(segment, None, None)?))
     }
 
     pub fn set_worker_index(&mut self, worker_index: usize) {

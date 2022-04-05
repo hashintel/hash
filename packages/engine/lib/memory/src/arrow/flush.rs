@@ -3,7 +3,7 @@ use arrow::{array::ArrayData, buffer::Buffer, util::bit_util};
 use crate::{
     arrow::meta::{self, conversion::get_dynamic_meta_flatbuffers},
     error::Result,
-    shared_memory::{padding, BufferChange, Memory},
+    shared_memory::{padding, BufferChange, Segment},
 };
 
 /// The info required about Arrow array data in order to grow it
@@ -71,9 +71,9 @@ pub trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
     fn dynamic_meta(&self) -> &meta::Dynamic;
     fn dynamic_meta_mut(&mut self) -> &mut meta::Dynamic;
     // TODO: Change to `segment` after creating CSegment in py FFI
-    fn memory(&self) -> &Memory;
+    fn segment(&self) -> &Segment;
     // TODO: segment_mut?
-    fn memory_mut(&mut self) -> &mut Memory;
+    fn segment_mut(&mut self) -> &mut Segment;
 
     /// Persist all queued changes to memory, empty the queue and increment the persisted
     /// metaversion.
@@ -227,10 +227,10 @@ pub trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
         );
         let data_length = self.dynamic_meta().data_length;
         // Resize memory if needed
-        let change = self.memory_mut().set_data_length(data_length)?;
+        let change = self.segment_mut().set_data_length(data_length)?;
         debug_assert_eq!(
             self.dynamic_meta().data_length,
-            self.memory().get_data_buffer()?.len(),
+            self.segment().get_data_buffer()?.len(),
             "Size of new data to write and size of data buffer must be equal, because we just \
              resized the data buffer"
         );
@@ -259,7 +259,7 @@ pub trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
                         self.dynamic_meta_mut().buffers[j].offset -= old_offset;
                     });
 
-                    self.memory_mut().copy_in_data_buffer_unchecked(
+                    self.segment_mut().copy_in_data_buffer_unchecked(
                         old_offset,
                         new_offset,
                         old_total_length,
@@ -275,7 +275,7 @@ pub trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
                     dynamic_meta.buffers[index].offset = offset;
                     dynamic_meta.buffers[index].padding = padding;
                     dynamic_meta.buffers[index].length = buffer.len();
-                    self.memory_mut()
+                    self.segment_mut()
                         .overwrite_in_data_buffer_unchecked_nonoverlapping(offset, &buffer)
                 }
                 meta::BufferAction::Ref {
@@ -288,7 +288,7 @@ pub trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
                     dynamic_meta.buffers[index].offset = offset;
                     dynamic_meta.buffers[index].padding = padding;
                     dynamic_meta.buffers[index].length = buffer.len();
-                    self.memory_mut()
+                    self.segment_mut()
                         .overwrite_in_data_buffer_unchecked_nonoverlapping(offset, buffer)
                 }
             })?;
@@ -306,12 +306,12 @@ pub trait GrowableBatch<D: GrowableArrayData, C: GrowableColumn<D>> {
             self.static_meta().validate_lengths(self.dynamic_meta()),
             "New dynamic metadata row count is inconsistent with existing static metadata"
         );
-        let change = change.combine(self.memory_mut().set_data_length(new_data_length)?);
+        let change = change.combine(self.segment_mut().set_data_length(new_data_length)?);
         let meta_buffer = get_dynamic_meta_flatbuffers(self.dynamic_meta())?;
-        let change = change.combine(self.memory_mut().set_metadata(&meta_buffer)?);
+        let change = change.combine(self.segment_mut().set_metadata(&meta_buffer)?);
 
         if cfg!(debug_assertions) {
-            self.memory().validate_markers()?;
+            self.segment().validate_markers()?;
         }
         Ok(change)
     }
