@@ -121,7 +121,7 @@ impl<S: FieldSource> FieldSpecMap<S> {
 
     fn add(&mut self, new_field: RootFieldSpec<S>) -> Result<()>
     where
-        S: fmt::Debug,
+        S: PartialEq + fmt::Debug,
     {
         let field_key = new_field.create_key()?;
         if let Some(existing_field) = self.field_specs.get(&field_key) {
@@ -160,7 +160,7 @@ impl<S: FieldSource> FieldSpecMap<S> {
         new_field_specs: I,
     ) -> Result<()>
     where
-        S: fmt::Debug,
+        S: PartialEq + fmt::Debug,
     {
         let new_field_specs = new_field_specs.into_iter();
         self.field_specs.reserve(new_field_specs.size_hint().0);
