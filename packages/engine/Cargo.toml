@@ -11,7 +11,6 @@ default-members = [".", "bin/*", "lib/*"]
 flatbuffers_gen = { path = "lib/flatbuffers_gen" }
 nano = { path = "lib/nano", default-features = false }
 memory = { path = "lib/memory" }
-common = { path = "lib/common" }
 stateful = { path = "lib/stateful" }
 
 arr_macro = "0.1.3"
