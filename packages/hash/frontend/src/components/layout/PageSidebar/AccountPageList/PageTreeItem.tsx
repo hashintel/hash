@@ -20,13 +20,12 @@ import { PageMenu } from "./PageMenu";
 // tweaked the example at https://mui.com/components/tree-view/#IconExpansionTreeView.tsx
 const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
   const { label, nodeId, expandable, url, depth } = props;
-  const [hovered, setHovered] = React.useState(false);
   const popupState = usePopupState({
     variant: "popover",
     popupId: "page-menu",
   });
 
-  const { expanded, selected, focused, handleExpansion, preventSelection } =
+  const { expanded, selected, handleExpansion, preventSelection } =
     useTreeItem(nodeId);
 
   const handleMouseDown = (
@@ -45,8 +44,6 @@ const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
     <Box
       tabIndex={0}
       onMouseDown={handleMouseDown}
-      onMouseOver={() => setHovered(true)}
-      onMouseOut={() => setHovered(false)}
       ref={ref as React.Ref<HTMLDivElement>}
       sx={({ palette }) => ({
         display: "flex",
@@ -56,10 +53,19 @@ const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
         pl: `${depth * 15 + 8}px`,
         pr: 1,
 
-        ...((hovered || focused) &&
-          !selected && {
-            backgroundColor: palette.gray[20],
-          }),
+        ...(!selected && {}),
+
+        "&:hover": {
+          ...(!selected && { backgroundColor: palette.gray[20] }),
+
+          "& .page-title": {
+            color: palette.gray[80],
+          },
+
+          "& .page-menu-trigger": {
+            color: palette.gray[50],
+          },
+        },
 
         ...(selected && {
           backgroundColor: palette.gray[30],
@@ -79,7 +85,6 @@ const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
           ...(expandable && {
             visibility: "visible",
             pointerEvents: "auto",
-
             transform: expanded ? `rotate(90deg)` : "none",
             transition: transitions.create("transform", { duration: 300 }),
           }),
@@ -105,15 +110,12 @@ const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
       >
         <Typography
           variant="smallTextLabels"
+          className="page-title"
           sx={({ palette }) => ({
             display: "block",
             color: palette.gray[70],
             fontWeight: 400,
             py: 1,
-
-            ...(hovered && {
-              color: palette.gray[80],
-            }),
 
             ...(selected && {
               color: palette.gray[90],
@@ -137,11 +139,9 @@ const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
           {...bindTrigger(popupState)}
           size="medium"
           unpadded
+          className="page-menu-trigger"
           sx={({ palette }) => ({
             color: palette.gray[40],
-            ...(hovered && {
-              color: palette.gray[50],
-            }),
             "&:hover": {
               backgroundColor: palette.gray[selected ? 40 : 30],
               color: palette.gray[50],

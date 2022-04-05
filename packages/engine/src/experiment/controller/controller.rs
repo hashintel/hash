@@ -302,6 +302,10 @@ impl<P: OutputPersistenceCreatorRepr> ExperimentController<P> {
             experiment_id: self.exp_base_config.run.base().id,
             shared_context: self.shared_store.clone(),
             package_config: Arc::new(pkg_start_msgs),
+            js_runner_initial_heap_constraint: self
+                .exp_base_config
+                .js_runner_initial_heap_constraint,
+            js_runner_max_heap_size: self.exp_base_config.js_runner_max_heap_size,
         })
     }
 
