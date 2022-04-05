@@ -247,7 +247,7 @@ export GN_ARGS = "v8_enable_pointer_compression=false v8_enable_shared_ro_heap=t
 - `V8_FROM_SOURCE` will force the V8 engine to be compiled from source and not use a pre-compiled version.
 This will take quite a long time, expect at least 15 minutes. This can be mitigated in subsequent compiles by using [sccache](https://github.com/mozilla/sccache) or [ccache](https://ccache.dev/). Our build scripts will detect and use them. Set the environment variable `$SCCACHE` or `$CCACHE` if the binary is not in your `$PATH`.
 - `v8_enable_pointer_compression` is an optimization reducing RAM usage but limits the heap size to 4 gigabytes.
-- `v8_enable_shared_ro_heap` is required for V8 to compile without pointer compression. It enables read-only memory sharing by V8 isolates. This means, that read-only memory may be shared across different workers for JavaScript.
+- `v8_enable_shared_ro_heap` enables read-only memory sharing by V8 isolates. This means, that read-only memory may be shared across different workers for JavaScript. It is required to compile V8 without pointer compression.
 
 [docs]: https://hash.ai/docs/simulation?utm_medium=organic&utm_source=github_readme_engine
 
