@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use arrow::datatypes::DataType;
 use float_cmp::approx_eq;
-use stateful::field::FieldTypeVariant;
+use stateful::field::{FieldSpecMapAccessor, FieldTypeVariant};
 
 use crate::{
     datastore::{
@@ -10,7 +10,7 @@ use crate::{
             bool_iter, exists_iter, f64_iter, json_serialized_value_iter, json_value_iter_cols,
             str_iter,
         },
-        schema::{accessor::FieldSpecMapAccessor, EngineComponent},
+        schema::EngineComponent,
     },
     simulation::package::output::packages::analysis::{
         analyzer::{

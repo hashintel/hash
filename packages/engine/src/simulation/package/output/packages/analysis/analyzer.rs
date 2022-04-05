@@ -1,11 +1,12 @@
 use std::{collections::HashMap, convert::TryFrom, sync::Arc};
 
 use serde::{Deserialize, Serialize};
+use stateful::field::FieldSpecMapAccessor;
 
 use crate::{
     datastore::{
         batch::AgentBatch,
-        schema::{accessor::FieldSpecMapAccessor, state::AgentSchema, EngineComponent},
+        schema::{state::AgentSchema, EngineComponent},
     },
     simulation::package::output::packages::analysis::{
         index_iter,

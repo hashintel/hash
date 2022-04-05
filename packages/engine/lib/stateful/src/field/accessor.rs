@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use stateful::{
+use crate::{
+    error::Result,
     field::{FieldKey, FieldScope, FieldSource, FieldSpecMap, RootFieldSpec},
-    Result,
 };
 
 pub struct FieldSpecMapAccessor<S> {

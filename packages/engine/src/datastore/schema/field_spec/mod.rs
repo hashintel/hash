@@ -10,7 +10,6 @@ use stateful::{
 
 use crate::{hash_types::state::AgentStateField, simulation::package::name::PackageName};
 
-pub mod accessor;
 pub mod built_in;
 
 pub const PREVIOUS_INDEX_FIELD_NAME: &str = "previous_index";
