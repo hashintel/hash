@@ -1,6 +1,3 @@
-/**
- * @todo update from blockprotocol
- */
 declare module "@mui/material/styles" {
   interface Palette {
     white: string;
@@ -21,6 +18,7 @@ declare module "@mui/material/styles" {
       700: string;
       800: string;
       900: string;
+      1000: string;
     };
     orange: {
       100: string;
@@ -95,6 +93,7 @@ declare module "@mui/material/styles" {
   }
 }
 
+// @todo remove unused
 declare module "@mui/material/Typography" {
   interface TypographyPropsVariantOverrides {
     bpTitle: true;

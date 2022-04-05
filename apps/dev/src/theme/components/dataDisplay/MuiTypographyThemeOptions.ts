@@ -35,9 +35,14 @@ export const MuiTypographyThemeOptions: Components<Theme>["MuiTypography"] = {
         }),
       },
       ...(ownerState.variant === "hashSocialIconLink" && {
+        fontSize: 0,
+
+        "& a": {
+          color: theme.palette.gray[50],
+        },
+
         "& svg": {
           fontSize: 20,
-          color: theme.palette.gray[50],
         },
       }),
     }),

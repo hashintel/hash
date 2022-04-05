@@ -1,6 +1,3 @@
-/**
- * @todo update from blockprotocol
- */
 import { Components, Theme } from "@mui/material";
 
 export const MuiLinkThemeOptions: Components<Theme>["MuiLink"] = {
@@ -11,6 +8,10 @@ export const MuiLinkThemeOptions: Components<Theme>["MuiLink"] = {
       ":focus-visible": {
         border: "none",
         outline: `2px solid ${theme.palette.yellow[800]}`,
+      },
+      ":hover": {
+        backgroundColor: theme.palette.yellow[300],
+        color: theme.palette.yellow[1000],
       },
     }),
   },

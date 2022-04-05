@@ -86,6 +86,10 @@ export const Footer: FC = () => (
       boxShadow: "0px -2px 16px rgba(254, 177, 115, 0.2)",
       borderTop: 4,
       borderColor: "white",
+
+      "& a:hover": {
+        bgcolor: "transparent",
+      },
     }}
   >
     <Container>
@@ -105,7 +109,6 @@ export const Footer: FC = () => (
             Open-source resources and tools for developers who want to build the
             future of decision-making with HASH
           </Typography>
-          {/** @todo link hover styles */}
           <Typography variant="hashSocialIconLink">
             <Stack direction="row" spacing={3}>
               <Link href="https://github.com/hashintel/hash">
@@ -120,7 +123,6 @@ export const Footer: FC = () => (
             </Stack>
           </Typography>
         </Stack>
-        {/** @todo link hover styles */}
         <Stack direction="row" spacing={{ xs: 6, md: 10 }}>
           <FooterSection label="Resources">
             <FooterLink href="https://hash.ai/careers">Careers</FooterLink>
