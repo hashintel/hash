@@ -16,7 +16,8 @@
 //!     [`ArrowBatch`] is associated with one [`Segment`] and several other data. For further
 //!     information please see the [`ArrowBatch`] API.
 //!
-//! Each top-level module has an `ffi` module for interfacing.
+//! Each top-level module has an `ffi` module for interfacing. This is exposed through a shared
+//! library that's generated from this crate.
 //!
 //! [`Segment`]: crate::shared_memory::Segment
 //! [`Memory`]: crate::shared_memory::Memory
