@@ -70,6 +70,8 @@ type Value<'scope> = v8::Local<'scope, v8::Value>;
 type Function<'scope> = v8::Local<'scope, v8::Function>;
 type Array<'scope> = v8::Local<'scope, v8::Array>;
 
+const MB: usize = 1_048_576;
+
 struct JsPackage<'s> {
     fns: Array<'s>,
 }
@@ -1945,7 +1947,23 @@ fn run_experiment(
             v8::V8::initialize_platform(platform);
             v8::V8::initialize();
 
-            let mut isolate = v8::Isolate::new(Default::default());
+            // 0 makes V8 use its default value
+            let js_runner_initial_heap_constraint = init_msg.js_runner_initial_heap_constraint.unwrap_or(0);
+            // 0 makes V8 use its default value
+            let js_runner_max_heap_size = init_msg.js_runner_max_heap_size.unwrap_or(0);
+
+            let create_params = v8::Isolate::create_params().heap_limits(
+                js_runner_initial_heap_constraint * MB,
+                js_runner_max_heap_size * MB,
+            );
+
+            let mut isolate = v8::Isolate::new(create_params);
+
+            isolate.add_near_heap_limit_callback(
+                near_heap_limit_callback,
+                // The callback does not need additional data
+                std::ptr::null_mut(),
+            );
 
             let mut handle_scope = v8::HandleScope::new(&mut isolate);
             let context = v8::Context::new(&mut handle_scope);
@@ -1994,4 +2012,22 @@ fn new_js_string<'s>(
 ) -> v8::Local<'s, v8::String> {
     let s = s.as_ref();
     v8::String::new(scope, s).expect(&format!("Could not create JS String: {s}"))
+}
+
+// Returns the new max heap size.
+extern "C" fn near_heap_limit_callback(
+    // This pointer is null, don't do anything with it.
+    _data: *mut std::ffi::c_void,
+    current_heap_limit: usize,
+    _initial_heap_limit: usize,
+) -> usize {
+    tracing::warn!(
+        "A JavaScript runner almost reached its heap limit! Use the '--js-runner-max-heap-size' \
+         CLI argument when starting the engine to raise the limit."
+    );
+
+    // We don't increase the max heap limit.
+    // TODO: Maybe increase heap size
+    //   see https://app.asana.com/0/1199548034582004/1202061695892185/f
+    current_heap_limit
 }
