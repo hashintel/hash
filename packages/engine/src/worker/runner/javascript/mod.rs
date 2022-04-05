@@ -2027,5 +2027,7 @@ extern "C" fn near_heap_limit_callback(
     );
 
     // We don't increase the max heap limit.
+    // TODO: Maybe increase heap size
+    //   see https://app.asana.com/0/1199548034582004/1202061695892185/f
     current_heap_limit
 }
