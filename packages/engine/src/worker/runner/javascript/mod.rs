@@ -24,7 +24,7 @@ use arrow::{
 use futures::{Future, FutureExt};
 use memory::{
     arrow::{ArrowBatch, ColumnChange},
-    shared_memory::{arrow_continuation, Memory, Metaversion},
+    shared_memory::{arrow_continuation, Metaversion, Segment},
 };
 use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
@@ -522,7 +522,7 @@ fn mem_batch_to_js<'s>(
 
 fn batch_to_js<'s>(
     scope: &mut v8::HandleScope<'s>,
-    mem: &Memory,
+    segment: &Segment,
     persisted: Metaversion,
 ) -> Result<Value<'s>> {
     // The memory is owned by the shared memory, we don't want JS or Rust to try to de-allocate it
@@ -538,15 +538,15 @@ fn batch_to_js<'s>(
     //       https://app.asana.com/0/1199548034582004/1202024534527158/f
     let backing_store = unsafe {
         v8::ArrayBuffer::new_backing_store_from_ptr(
-            mem.data.as_ptr().cast(),
-            mem.size,
+            segment.data.as_ptr().cast(),
+            segment.size,
             no_op,
             std::ptr::null_mut(),
         )
     };
     let array_buffer = v8::ArrayBuffer::with_backing_store(scope, &backing_store.make_shared());
 
-    let batch_id = mem.id();
+    let batch_id = segment.id();
     mem_batch_to_js(scope, batch_id, array_buffer.into(), persisted)
 }
 
@@ -565,8 +565,8 @@ fn state_to_js<'s, 'a>(
     {
         let agent_batch = batch_to_js(
             scope,
-            agent_batch.batch.segment().memory(),
-            agent_batch.batch.segment().persisted_metaversion(),
+            agent_batch.batch.segment(),
+            agent_batch.batch.segment().read_persisted_metaversion(),
         )?;
         js_agent_batches
             .set_index(scope, i_batch as u32, agent_batch)
@@ -578,8 +578,8 @@ fn state_to_js<'s, 'a>(
 
         let message_batch = batch_to_js(
             scope,
-            message_batch.batch.segment().memory(),
-            message_batch.batch.segment().persisted_metaversion(),
+            message_batch.batch.segment(),
+            message_batch.batch.segment().read_persisted_metaversion(),
         )?;
         js_message_batches
             .set_index(scope, i_batch as u32, message_batch)
@@ -1679,8 +1679,8 @@ impl<'s> ThreadLocalRunner<'s> {
         let js_sim_id = sim_id_to_js(scope, sim_run_id);
         let js_batch_id = batch_to_js(
             scope,
-            context_batch.segment().memory(),
-            context_batch.segment().persisted_metaversion(),
+            context_batch.segment(),
+            context_batch.segment().read_persisted_metaversion(),
         )?;
         let js_idxs = new_js_array_from_usizes(scope, &state_group_start_indices)?;
         let js_current_step = current_step_to_js(scope, current_step);
