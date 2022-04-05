@@ -1,9 +1,6 @@
-use std::{
-    collections::{hash_map::Values, HashMap},
-    convert::TryFrom,
-};
+use std::{collections::HashMap, convert::TryFrom};
 
-use stateful::field::{FieldKey, FieldScope, FieldSpec, FieldType, FieldTypeVariant};
+use stateful::field::{FieldScope, FieldSpec, FieldType, FieldTypeVariant};
 
 // use crate::worker::runner::rust;
 use crate::{
@@ -131,7 +128,7 @@ impl BehaviorKeys {
     }
 
     // add all of the fields within self into builder
-    fn get_field_specs(&self) -> Values<'_, FieldKey, RootFieldSpec<EngineComponent>> {
+    fn get_field_specs(&self) -> impl Iterator<Item = &RootFieldSpec<EngineComponent>> {
         self.inner.field_specs()
     }
 }

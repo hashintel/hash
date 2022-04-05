@@ -312,7 +312,7 @@ pub fn gen_schema_and_test_agents(
             Error::from(format!("Failed to add base agent field specs: {err}"))
         })?)?;
 
-    field_spec_map.try_extend(test_field_specs())?;
+    field_spec_map.try_extend(test_field_specs().drain_field_specs())?;
 
     let schema = Arc::new(AgentSchema::new(field_spec_map)?);
 

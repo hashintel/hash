@@ -110,12 +110,17 @@ impl<S> FieldSpecMap<S> {
         self.field_specs.contains_key(key)
     }
 
-    pub(crate) fn iter(&self) -> Iter<'_, FieldKey, RootFieldSpec<S>> {
+    pub(crate) fn iter(&self) -> impl Iterator<Item = (&FieldKey, &RootFieldSpec<S>)> {
         self.field_specs.iter()
     }
 
-    pub(crate) fn field_specs(&self) -> Values<'_, FieldKey, RootFieldSpec<S>> {
+    pub(crate) fn field_specs(&self) -> impl Iterator<Item = &RootFieldSpec<S>> {
         self.field_specs.values()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn drain_field_specs(&mut self) -> impl Iterator<Item = RootFieldSpec<S>> + '_ {
+        self.field_specs.drain().map(|(_, field_spec)| field_spec)
     }
 
     pub fn len(&self) -> usize {
