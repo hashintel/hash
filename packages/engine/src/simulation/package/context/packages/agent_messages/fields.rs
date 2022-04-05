@@ -1,7 +1,7 @@
-use stateful::field::{FieldScope, FieldType, FieldTypeVariant, PresetFieldType};
+use stateful::field::{FieldScope, FieldType, FieldTypeVariant, PresetFieldType, RootFieldSpec};
 
 use crate::{
-    datastore::schema::{EngineComponent, RootFieldSpec},
+    datastore::schema::EngineComponent,
     simulation::package::context::packages::agent_messages::{
         Result, RootFieldSpecCreator, MESSAGE_INDEX_COUNT,
     },

@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use stateful::field::{FieldKey, FieldSource};
+use stateful::field::{FieldKey, FieldSource, RootFieldSpec};
 
 use crate::datastore::{
     error::Result,
-    schema::field_spec::{EngineComponent, FieldScope, FieldSpecMap, RootFieldSpec},
+    schema::field_spec::{EngineComponent, FieldScope, FieldSpecMap},
 };
 
 #[derive(derive_new::new)]

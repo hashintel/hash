@@ -1,12 +1,12 @@
 use std::{collections::HashMap, convert::TryFrom};
 
-use stateful::field::{FieldScope, FieldSpec, FieldType, FieldTypeVariant};
+use stateful::field::{FieldScope, FieldSpec, FieldType, FieldTypeVariant, RootFieldSpec};
 
 // use crate::worker::runner::rust;
 use crate::{
     config::ExperimentConfig,
     datastore::{
-        schema::{EngineComponent, FieldSpecMap, RootFieldSpec, RootFieldSpecCreator},
+        schema::{EngineComponent, FieldSpecMap, RootFieldSpecCreator},
         Error, Result,
     },
     experiment::SharedBehavior,

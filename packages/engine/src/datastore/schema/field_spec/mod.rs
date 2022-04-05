@@ -3,6 +3,7 @@ use std::collections::HashMap;
 
 use stateful::field::{
     FieldKey, FieldScope, FieldSource, FieldSpec, FieldType, FieldTypeVariant, PresetFieldType,
+    RootFieldSpec,
 };
 
 use crate::{
@@ -73,26 +74,6 @@ pub fn last_state_index_key() -> FieldSpec {
             // do not get an index (their outboxes are empty by default)
             true,
         ),
-    }
-}
-
-/// A single specification of a root field, for instance in the case of a struct field it's the top
-/// level struct field and the children are all FieldSpec
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct RootFieldSpec<S> {
-    pub inner: FieldSpec,
-    pub scope: FieldScope,
-    pub source: S,
-}
-
-impl<S: FieldSource> RootFieldSpec<S> {
-    pub fn create_key(&self) -> Result<FieldKey> {
-        Ok(match &self.scope {
-            FieldScope::Agent => FieldKey::new_agent_scoped(&self.inner.name)?,
-            FieldScope::Private | FieldScope::Hidden => {
-                FieldKey::new_private_or_hidden_scoped(&self.inner.name, &self.source, self.scope)?
-            }
-        })
     }
 }
 

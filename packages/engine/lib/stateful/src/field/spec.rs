@@ -2,7 +2,10 @@ use std::fmt;
 
 use arrow::datatypes::{DataType, Field};
 
-use crate::field::{key::FieldKey, FieldType};
+use crate::{
+    error::{Error, Result},
+    field::{key::FieldKey, FieldScope, FieldSource, FieldType},
+};
 
 /// A single specification of a field
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -12,7 +15,7 @@ pub struct FieldSpec {
 }
 
 impl FieldSpec {
-    pub fn into_arrow_field(
+    pub(in crate::field) fn into_arrow_field(
         self,
         can_guarantee_non_null: bool,
         field_key: Option<FieldKey>,
@@ -49,5 +52,36 @@ impl fmt::Debug for FieldSpec {
             .field("type", &self.field_type.variant)
             .field("nullable", &self.field_type.nullable)
             .finish()
+    }
+}
+
+/// A single specification of a root field, for instance in the case of a struct field it's the top
+/// level struct field and the children are all FieldSpec
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct RootFieldSpec<S> {
+    pub inner: FieldSpec,
+    pub scope: FieldScope,
+    pub source: S,
+}
+
+impl<S: FieldSource> RootFieldSpec<S> {
+    pub fn create_key(&self) -> Result<FieldKey> {
+        Ok(match &self.scope {
+            FieldScope::Agent => FieldKey::new_agent_scoped(&self.inner.name)?,
+            FieldScope::Private | FieldScope::Hidden => {
+                FieldKey::new_private_or_hidden_scoped(&self.inner.name, &self.source, self.scope)?
+            }
+        })
+    }
+}
+
+impl<S: FieldSource> TryFrom<RootFieldSpec<S>> for Field {
+    type Error = Error;
+
+    fn try_from(root_field_spec: RootFieldSpec<S>) -> Result<Self, Self::Error> {
+        let field_key = root_field_spec.create_key()?;
+        Ok(root_field_spec
+            .inner
+            .into_arrow_field(root_field_spec.source.is_trusted(), Some(field_key)))
     }
 }

@@ -6,12 +6,11 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 pub use packages::{InitTask, InitTaskMessage, Name, PACKAGE_CREATORS};
+use stateful::field::RootFieldSpec;
 
 use crate::{
     config::{ExperimentConfig, Globals, SimRunConfig},
-    datastore::schema::{
-        accessor::FieldSpecMapAccessor, EngineComponent, RootFieldSpec, RootFieldSpecCreator,
-    },
+    datastore::schema::{accessor::FieldSpecMapAccessor, EngineComponent, RootFieldSpecCreator},
     hash_types::Agent,
     simulation::{
         comms::package::PackageComms,

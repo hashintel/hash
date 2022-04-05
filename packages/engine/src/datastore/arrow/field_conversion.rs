@@ -7,23 +7,12 @@
 use std::collections::HashMap;
 
 use arrow::datatypes::{Field, Schema};
-use stateful::field::{FieldSource, FieldTypeVariant, IsFixedSize};
+use stateful::field::{FieldTypeVariant, IsFixedSize, RootFieldSpec};
 
 use crate::datastore::{
-    error::{Error, Result},
-    schema::{EngineComponent, FieldSpecMap, RootFieldSpec},
+    error::Result,
+    schema::{EngineComponent, FieldSpecMap},
 };
-
-impl<S: FieldSource> TryFrom<RootFieldSpec<S>> for Field {
-    type Error = Error;
-
-    fn try_from(root_field_spec: RootFieldSpec<S>) -> Result<Self, Self::Error> {
-        let field_key = root_field_spec.create_key()?;
-        Ok(root_field_spec
-            .inner
-            .into_arrow_field(root_field_spec.source.is_trusted(), Some(field_key)))
-    }
-}
 
 impl FieldSpecMap<EngineComponent> {
     pub fn get_arrow_schema(&self) -> Result<Schema> {
@@ -69,7 +58,7 @@ impl FieldSpecMap<EngineComponent> {
             partitioned_fields
                 .iter()
                 .map(|k| Field::try_from(k.0.clone()))
-                .collect::<Result<_>>()?,
+                .collect::<stateful::Result<_>>()?,
             metadata,
         ))
     }

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use serde_json::Value;
-use stateful::field::FieldKey;
+use stateful::field::{FieldKey, RootFieldSpec};
 use tracing::Span;
 
 use self::map::{NeighborMap, NeighborRef};
@@ -13,7 +13,7 @@ use crate::{
         schema::{
             accessor::{FieldSpecMapAccessor, GetFieldSpec},
             context::ContextSchema,
-            EngineComponent, RootFieldSpec, RootFieldSpecCreator,
+            EngineComponent, RootFieldSpecCreator,
         },
         table::{proxy::StateReadProxy, state::view::StateSnapshot},
     },

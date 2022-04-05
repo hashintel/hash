@@ -1,6 +1,4 @@
-use stateful::field::{FieldScope, FieldSpec, FieldType};
-
-use crate::datastore::schema::field_spec::RootFieldSpec;
+use stateful::field::{FieldScope, FieldSpec, FieldType, RootFieldSpec};
 
 /// A factory-like object that can be set with a [`FieldSource`] and then passed to a context such
 /// as a package.

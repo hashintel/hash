@@ -24,5 +24,5 @@ pub use self::{
     key::{FieldKey, HIDDEN_PREFIX, PRIVATE_PREFIX},
     scope::FieldScope,
     source::FieldSource,
-    spec::FieldSpec,
+    spec::{FieldSpec, RootFieldSpec},
 };
