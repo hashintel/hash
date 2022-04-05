@@ -244,10 +244,10 @@ export V8_FROM_SOURCE = "1"
 export GN_ARGS = "v8_enable_pointer_compression=false v8_enable_shared_ro_heap=true"
 ```
 
-- `V8_FROM_SOURCE` will force the underlying JavaScript engine to be compiled from source and not use a pre-compiled version.
-This will take a fairly long time, expect 15min minimum. This can be mitigated by using [sccache](https://github.com/mozilla/sccache) or [ccache](https://ccache.dev/). Our build scripts will detect and use them. Set the `$SCCACHE` or `$CCACHE` environmental variable if it's not in your path.
+- `V8_FROM_SOURCE` will force the V8 engine to be compiled from source and not use a pre-compiled version.
+This will take a fairly long time, expect 15min minimum. This can be mitigated in the subsequent compilations by using [sccache](https://github.com/mozilla/sccache) or [ccache](https://ccache.dev/). Our build scripts will detect and use them. Set the `$SCCACHE` or `$CCACHE` environmental variable if it's not in your path.
 - `v8_enable_pointer_compression` is an optimization reducing RAM usage at the cost of max heap size.
-- `v8_enable_shared_ro_heap` is required to disable pointer compression and allows the read-only memory to be shared across isolate.
+- `v8_enable_shared_ro_heap` is required to disable pointer compression and allows the read-only memory to be shared across V8 isolate.
 
 [docs]: https://hash.ai/docs/simulation?utm_medium=organic&utm_source=github_readme_engine
 
