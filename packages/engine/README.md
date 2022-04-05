@@ -233,7 +233,7 @@ If your simulation requires a lot of memory and uses JavaScript behaviors, the J
 As a first step, you can provide a larger heap size to the runner:
 
 ```shell
-cargo run --bin cli -- --project /path/to/my-hash-project single-run --num-steps <NUM-STEPS> --js-runner-max-heap-size <NEW-SIZE-IN-MB>
+cargo run --bin cli -- --js-runner-max-heap-size <NEW-SIZE-IN-MB> <YOUR-CLI-ARGUMENTS>
 ```
 
 This will increase the heap size but you may still run into limitations.
