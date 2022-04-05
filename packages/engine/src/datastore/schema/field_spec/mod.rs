@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use stateful::{
     field::{
         FieldScope, FieldSource, FieldSpec, FieldType, FieldTypeVariant, PresetFieldType,
@@ -31,16 +33,21 @@ impl FieldSource for EngineComponent {
         }
     }
 
-    fn is_compatible(&self, rhs: &Self) -> bool {
-        if *self == EngineComponent::Engine && matches!(rhs, EngineComponent::Package(_)) {
-            false
-        } else {
-            self == rhs
-        }
-    }
-
     fn is_trusted(&self) -> bool {
         *self == EngineComponent::Engine
+    }
+}
+
+impl PartialOrd for EngineComponent {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        // TODO: We only do a partial ordering as we currently don't have a defined precedence of
+        //   packages. When `PartialOrd` for `PackageName` is implemented, derive it instead.
+        match (self, other) {
+            (Self::Engine, Self::Engine) => Some(Ordering::Equal),
+            (Self::Engine, Self::Package(_)) => Some(Ordering::Greater),
+            (Self::Package(_), Self::Engine) => Some(Ordering::Less),
+            (Self::Package(_), Self::Package(_)) => None,
+        }
     }
 }
 

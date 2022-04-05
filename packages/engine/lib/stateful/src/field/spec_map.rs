@@ -65,7 +65,7 @@ impl<S> FieldSpecMap<S> {
 impl<S: FieldSource + Clone> FieldSpecMap<S> {
     fn add(&mut self, new_field: RootFieldSpec<S>) -> Result<()>
     where
-        S: PartialEq + fmt::Debug,
+        S: PartialOrd + fmt::Debug,
     {
         let field_key = new_field.create_key()?;
         if let Some(existing_field) = self.field_specs.get(&field_key) {
@@ -78,12 +78,12 @@ impl<S: FieldSource + Clone> FieldSpecMap<S> {
             if existing_field.scope == FieldScope::Agent
                 && new_field.scope == FieldScope::Agent
                 && existing_field.inner.field_type == new_field.inner.field_type
-                && !existing_field.source.is_compatible(&new_field.source)
+                && existing_field.source > new_field.source
             {
                 tracing::warn!(
                     "Key clash when a package attempted to insert a new agent-scoped field with \
-                     key: {field_key:?}, the existing field was created by the engine, the new \
-                     field will be ignored",
+                     key: {field_key:?}, the existing field was created by a source with a higher \
+                     precedence, the new field will be ignored",
                 );
                 return Ok(());
             }
@@ -104,7 +104,7 @@ impl<S: FieldSource + Clone> FieldSpecMap<S> {
         new_field_specs: I,
     ) -> Result<()>
     where
-        S: PartialEq + fmt::Debug,
+        S: PartialOrd + fmt::Debug,
     {
         let new_field_specs = new_field_specs.into_iter();
         self.field_specs.reserve(new_field_specs.size_hint().0);
