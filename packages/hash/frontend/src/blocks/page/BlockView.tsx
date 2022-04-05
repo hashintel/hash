@@ -5,13 +5,22 @@ import {
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { isEntityNode } from "@hashintel/hash-shared/prosemirror";
 import { ProsemirrorSchemaManager } from "@hashintel/hash-shared/ProsemirrorSchemaManager";
+import { Box, Menu } from "@mui/material";
 import { BlockVariant } from "blockprotocol";
+import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { ProsemirrorNode, Schema } from "prosemirror-model";
 import { NodeSelection } from "prosemirror-state";
 import { EditorView, NodeView } from "prosemirror-view";
-import { createRef, forwardRef, RefObject, useMemo, useState } from "react";
+import {
+  createRef,
+  forwardRef,
+  RefObject,
+  RefObject,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useOutsideClick } from "rooks";
-import { tw } from "twind";
 import { BlockContextMenu } from "../../components/BlockContextMenu/BlockContextMenu";
 import { DragVerticalIcon } from "../../shared/icons";
 import { RemoteBlockMetadata } from "../userBlocks";
@@ -25,42 +34,49 @@ type BlockHandleProps = {
   entityId: string | null;
   onTypeChange: BlockSuggesterProps["onChange"];
   entityStore: EntityStore;
+  view: EditorView<Schema>;
 };
 
 export const BlockHandle = forwardRef<HTMLDivElement, BlockHandleProps>(
-  ({ entityId, onTypeChange, entityStore }, ref) => {
-    const [isPopoverVisible, setPopoverVisible] = useState(false);
+  ({ entityId, onTypeChange, entityStore, view }, ref) => {
+    const blockMenuRef = useRef(null);
+    const popupState = usePopupState({
+      variant: "popover",
+      popupId: "block-context-menu",
+    });
 
-    useOutsideClick(ref as RefObject<HTMLDivElement>, () =>
-      setPopoverVisible(false),
-    );
+    useOutsideClick(blockMenuRef, () => popupState.close());
 
     const blockSuggesterProps: BlockSuggesterProps = useMemo(
       () => ({
         onChange: (variant, block) => {
           onTypeChange(variant, block);
-          setPopoverVisible(false);
+          popupState.close();
         },
       }),
-      [onTypeChange],
+      [onTypeChange, popupState],
     );
 
     return (
-      <div
+      <Box
         ref={ref}
-        className={tw`relative cursor-pointer`}
+        sx={{
+          position: "relative",
+          cursor: "pointer",
+        }}
         data-testid="block-changer"
       >
-        <DragVerticalIcon onClick={() => setPopoverVisible(true)} />
-        {isPopoverVisible && (
-          <BlockContextMenu
-            entityId={entityId}
-            blockSuggesterProps={blockSuggesterProps}
-            closeMenu={() => setPopoverVisible(false)}
-            entityStore={entityStore}
-          />
-        )}
-      </div>
+        <DragVerticalIcon {...bindTrigger(popupState)} />
+
+        <BlockContextMenu
+          entityId={entityId}
+          blockSuggesterProps={blockSuggesterProps}
+          entityStore={entityStore}
+          view={view}
+          popupState={popupState}
+          ref={blockMenuRef}
+        />
+      </Box>
     );
   },
 );
@@ -223,9 +239,17 @@ export class BlockView implements NodeView<Schema> {
       <BlockViewContext.Provider value={this}>
         <CollabPositionIndicators blockEntityId={blockEntityId} />
         {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-        <div
+        <Box
           data-testid="block-handle"
-          className={styles.Block__Handle}
+          sx={{
+            backgroundImage: `url("/drag-icon.png")`,
+            height: 20,
+            width: 20,
+            borderRadius: "50%",
+            mr: 1.25,
+            backgroundSize: "contain",
+            cursor: "pointer",
+          }}
           ref={this.dragHandleRef}
           onMouseDown={() => {
             /**
@@ -263,6 +287,7 @@ export class BlockView implements NodeView<Schema> {
           entityId={blockEntityId}
           onTypeChange={this.onBlockChange}
           entityStore={this.store}
+          view={this.view}
         />
       </BlockViewContext.Provider>,
       this.selectContainer,

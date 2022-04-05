@@ -1,39 +1,70 @@
+import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
+import { ListItemIcon, ListItemText, MenuItem } from "@mui/material";
+import {
+  bindPopover,
+  bindHover,
+  usePopupState,
+} from "material-ui-popup-state/hooks";
+import HoverPopover from "material-ui-popup-state/HoverPopover";
 import { VFC } from "react";
-import { tw } from "twind";
+import { FontAwesomeIcon } from "../../shared/icons";
 
-export const BlockContextMenuItem: VFC<
-  {
-    selected: boolean;
-    onClick: VoidFunction;
-    onSelect: (shouldShowSubMenu: boolean) => void;
-    icon: JSX.Element;
-    title: JSX.Element | string;
-  } & (
-    | {
-        subMenuVisible?: undefined;
-        subMenu?: undefined;
-      }
-    | { subMenuVisible: boolean; subMenu: JSX.Element | null }
-  )
-> = ({ selected, onClick, onSelect, icon, title, subMenuVisible, subMenu }) => (
-  <li className={tw`flex`}>
-    <button
-      className={tw`flex-1 hover:bg-gray-100 ${
-        selected ? "bg-gray-100" : ""
-      }  flex items-center py-1 px-4 group`}
-      onFocus={() => onSelect(false)}
-      onMouseOver={() => onSelect(true)}
-      onClick={onClick}
-      type="button"
+export const BlockContextMenuItem: VFC<{
+  itemKey: string;
+  onClick?: VoidFunction;
+  icon: JSX.Element;
+  title: JSX.Element | string;
+  subMenu?: JSX.Element;
+}> = ({ onClick, icon, title, itemKey, subMenu }) => {
+  const subMenuPopupState = usePopupState({
+    variant: "popper",
+    popupId: `${itemKey}-submenu`,
+  });
+
+  return (
+    <MenuItem
+      {...(subMenu
+        ? {
+            ...bindHover(subMenuPopupState),
+          }
+        : {
+            onClick,
+          })}
+      sx={{
+        position: "relative",
+      }}
     >
-      {icon}
-      <span>{title}</span>
+      <ListItemIcon>{icon}</ListItemIcon>
+      <ListItemText primary={title} />
       {subMenu ? (
         <>
-          <span className={tw`ml-auto`}>&rarr;</span>
-          {selected && subMenuVisible ? subMenu : null}
+          <FontAwesomeIcon
+            icon={faChevronRight}
+            sx={({ palette }) => ({
+              ml: "auto",
+              color: palette.gray[50],
+            })}
+          />
+          <HoverPopover
+            {...bindPopover(subMenuPopupState)}
+            anchorOrigin={{
+              horizontal: "right",
+              vertical: "bottom",
+            }}
+            transformOrigin={{
+              horizontal: "left",
+              vertical: "top",
+            }}
+            PaperProps={{
+              sx: {
+                height: 300,
+              },
+            }}
+          >
+            {subMenu}
+          </HoverPopover>
         </>
       ) : null}
-    </button>
-  </li>
-);
+    </MenuItem>
+  );
+};

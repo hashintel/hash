@@ -12,6 +12,7 @@ import {
   GetPageQuery,
   GetPageQueryVariables,
 } from "@hashintel/hash-shared/graphql/apiTypes.gen";
+import { Container } from "@mui/material";
 import { useCollabPositions } from "../../blocks/page/collab/useCollabPositions";
 import { useCollabPositionTracking } from "../../blocks/page/collab/useCollabPositionTracking";
 import { useCollabPositionReporter } from "../../blocks/page/collab/useCollabPositionReporter";
@@ -139,52 +140,54 @@ export const Page: NextPage<PageProps> = ({ blocksMeta }) => {
 
   return (
     <MainContentWrapper>
-      <header>
-        <div className={styles.PageHeader}>
-          <div className={tw`flex flex-col-reverse`}>
-            <PageTitle
-              value={title}
-              accountId={data.page.accountId}
-              metadataId={data.page.entityId}
-            />
-          </div>
-          <div className={tw`mr-4`}>
-            <label>Version</label>
-            <div>
-              <VersionDropdown
-                value={data.page.entityVersionId}
-                versions={data.page.history ?? []}
-                onChange={(changedVersionId) => {
-                  void router.push(
-                    `/${accountId}/${pageEntityId}?version=${changedVersionId}`,
-                  );
-                }}
+      <Container sx={{ maxWidth: 700 }}>
+        <header>
+          <div className={styles.PageHeader}>
+            <div className={tw`flex flex-col-reverse`}>
+              <PageTitle
+                value={title}
+                accountId={data.page.accountId}
+                metadataId={data.page.entityId}
               />
             </div>
-          </div>
-          <div>
-            <label>Transfer Page</label>
+            <div className={tw`mr-4`}>
+              <label>Version</label>
+              <div>
+                <VersionDropdown
+                  value={data.page.entityVersionId}
+                  versions={data.page.history ?? []}
+                  onChange={(changedVersionId) => {
+                    void router.push(
+                      `/${accountId}/${pageEntityId}?version=${changedVersionId}`,
+                    );
+                  }}
+                />
+              </div>
+            </div>
             <div>
-              <PageTransferDropdown
-                accountId={accountId}
-                pageEntityId={pageEntityId}
-                setPageState={setPageState}
-              />
+              <label>Transfer Page</label>
+              <div>
+                <PageTransferDropdown
+                  accountId={accountId}
+                  pageEntityId={pageEntityId}
+                  setPageState={setPageState}
+                />
+              </div>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <main>
-        <CollabPositionProvider value={collabPositions}>
-          <PageBlock
-            accountId={data.page.accountId}
-            blocksMeta={blocksMetaMap}
-            initialUserBlocks={initialUserBlocks}
-            entityId={data.page.entityId}
-          />
-        </CollabPositionProvider>
-      </main>
+        <main>
+          <CollabPositionProvider value={collabPositions}>
+            <PageBlock
+              accountId={data.page.accountId}
+              blocksMeta={blocksMetaMap}
+              initialUserBlocks={initialUserBlocks}
+              entityId={data.page.entityId}
+            />
+          </CollabPositionProvider>
+        </main>
+      </Container>
     </MainContentWrapper>
   );
 };
