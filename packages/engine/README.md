@@ -229,7 +229,7 @@ In order to see more logging information while the simulation is running, you ca
 export RUST_LOG=debug
 ```
 
-If your simulation takes a lot of memory and is using JavaScript behaviors, the JavaScript runner might run out of memory.
+If your simulation requires a lot of memory and uses JavaScript behaviors, the JavaScript runner may run out of memory.
 The first step you can take is passing a larger heap size to the runner:
 
 ```shell
