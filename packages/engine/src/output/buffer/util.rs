@@ -11,7 +11,6 @@ use crate::{
 /// Shared memory cleanup in the process hard crash case.
 /// Not required for pod instances.
 pub fn cleanup_experiment(experiment_id: &ExperimentId) -> Result<()> {
-    tracing::trace!("Cleaning up experiment: {}", experiment_id);
     MemoryId::clean_up(experiment_id)?;
 
     // TODO: We don't want to be deleting the parts files by default. We should figure out what to
