@@ -27,7 +27,7 @@ We'll begin by adding two agents into the array, and give them names.
   {
     "agent_name": "Bob"
   }
-];
+]
 ```
 
 <Hint style="info">

@@ -10,7 +10,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { useKeys } from "rooks";
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
 
-import { SearchIcon, FontAwesomeIcon } from "../../../icons";
+import { SearchIcon, FontAwesomeIcon } from "../../../../shared/icons";
 
 const ClearSearchIcon: React.FC<{
   clearSearch: () => void;

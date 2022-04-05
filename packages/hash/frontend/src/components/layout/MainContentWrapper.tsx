@@ -1,12 +1,11 @@
-import { Fade, Box, Tooltip, styled, SxProps, Theme } from "@mui/material";
-import { VoidFunctionComponent, ReactNode } from "react";
-import { SIDEBAR_WIDTH } from "../../theme/components/navigation/MuiDrawerThemeOptions";
+import { Fade, Box, Tooltip, styled } from "@mui/material";
+import { ReactNode, VFC } from "react";
 
-import { SidebarToggleIcon } from "../icons";
+import { SidebarToggleIcon } from "../../shared/icons";
 import { HEADER_HEIGHT } from "./PageHeader/PageHeader";
-import { PageSidebar } from "./PageSidebar/PageSidebar";
+import { PageSidebar, SIDEBAR_WIDTH } from "./PageSidebar/PageSidebar";
 import { useSidebarContext } from "./SidebarContext";
-import { IconButton } from "../IconButton";
+import { IconButton } from "../../shared/ui";
 
 const Main = styled("main", {
   shouldForwardProp: (prop) => prop !== "sidebarOpen",
@@ -31,14 +30,9 @@ const Main = styled("main", {
   }),
 }));
 
-export type MainContentWrapperProps = {
-  children: ReactNode;
-  mainSx?: SxProps<Theme>;
-};
-
-export const MainContentWrapper: VoidFunctionComponent<
-  MainContentWrapperProps
-> = ({ children, mainSx }) => {
+export const MainContentWrapper: VFC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const { openSidebar, sidebarOpen } = useSidebarContext();
 
   return (
@@ -50,7 +44,7 @@ export const MainContentWrapper: VoidFunctionComponent<
     >
       <PageSidebar />
       <Fade in={!sidebarOpen}>
-        <Tooltip title="Open Sidebar">
+        <Tooltip title="Expand Sidebar">
           <IconButton
             size="large"
             sx={{
@@ -70,9 +64,7 @@ export const MainContentWrapper: VoidFunctionComponent<
           </IconButton>
         </Tooltip>
       </Fade>
-      <Main sidebarOpen={sidebarOpen} sx={mainSx}>
-        {children}
-      </Main>
+      <Main sidebarOpen={sidebarOpen}>{children}</Main>
     </Box>
   );
 };

@@ -1,7 +1,8 @@
 use flatbuffers::{FlatBufferBuilder, WIPOffset};
+use memory::shared_memory::{Metaversion, Segment};
 
 use crate::{
-    datastore::{batch::Segment, shared_store::SharedStore},
+    datastore::shared_store::SharedStore,
     worker::runner::{comms::PackageMsgs, python::Result},
 };
 
@@ -74,12 +75,12 @@ pub fn batch_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
     batch_segment: &Segment,
 ) -> WIPOffset<flatbuffers_gen::batch_generated::Batch<'f>> {
-    let batch_id_offset = fbb.create_string(batch_segment.memory().id());
+    let batch_id_offset = fbb.create_string(batch_segment.id());
     let metaversion_offset = metaversion_to_fbs(
         fbb,
         // TODO: Don't serialize the metaversion and just send the batch id and read the persisted
         //       metaversion in the runner instead.
-        batch_segment.persisted_metaversion(),
+        batch_segment.read_persisted_metaversion(),
     );
     flatbuffers_gen::batch_generated::Batch::create(
         fbb,
@@ -92,7 +93,7 @@ pub fn batch_to_fbs<'f>(
 
 pub fn metaversion_to_fbs<'f>(
     fbb: &mut FlatBufferBuilder<'f>,
-    metaversion: crate::datastore::batch::metaversion::Metaversion,
+    metaversion: Metaversion,
 ) -> WIPOffset<flatbuffers_gen::metaversion_generated::Metaversion<'f>> {
     flatbuffers_gen::metaversion_generated::Metaversion::create(
         fbb,

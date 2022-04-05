@@ -2,9 +2,12 @@ import React, { useState, useRef, FormEvent } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 import { tw } from "twind";
 
-import { Button } from "../Button";
 import { useBlockView } from "../../blocks/page/BlockViewContext";
 import { useUserBlocks } from "../../blocks/userBlocks";
+import { Button } from "../../shared/ui";
+
+/** trim whitespace and remove trailing slash */
+const createNormalizedBlockUrl = (url: string) => url.trim().replace(/\/$/, "");
 
 export const BlockLoaderInput: React.VFC = () => {
   const blockView = useBlockView();
@@ -15,7 +18,9 @@ export const BlockLoaderInput: React.VFC = () => {
   const blockUrlRef = useRef<HTMLInputElement | null>(null);
 
   const isDefinedBlock = userBlocks.some(
-    (userBlock) => userBlock.componentId === blockUrl,
+    (userBlock) =>
+      createNormalizedBlockUrl(userBlock.componentId) ===
+      createNormalizedBlockUrl(blockUrl),
   );
   const isValidBlockUrl = Boolean(blockUrlRef.current?.validity.valid);
 
@@ -31,8 +36,10 @@ export const BlockLoaderInput: React.VFC = () => {
     // take point before any state/pm-doc changes occur
     const pos = blockView.getPos();
 
+    const normalizedUrl = createNormalizedBlockUrl(blockUrl);
+
     blockView.manager
-      .fetchAndDefineBlock(blockUrl)
+      .fetchAndDefineBlock(normalizedUrl)
       .then((blockMeta) => {
         unstable_batchedUpdates(() => {
           setError(null);
@@ -41,7 +48,7 @@ export const BlockLoaderInput: React.VFC = () => {
             blockMeta.componentMetadata,
           ]);
         });
-        return blockView.manager.createRemoteBlock(blockUrl);
+        return blockView.manager.createRemoteBlock(normalizedUrl);
       })
       .then((block) => {
         const { view } = blockView;
@@ -49,11 +56,16 @@ export const BlockLoaderInput: React.VFC = () => {
       })
       .catch((err) => {
         // eslint-disable-next-line no-console -- requires individual debugging
-        console.error("could not load block from url:", blockUrl, "\n", err);
+        console.error(
+          "could not load block from url:",
+          normalizedUrl,
+          "\n",
+          err,
+        );
 
         // clear the error after short delay to enable retries (re-enable load button)
         setError(err);
-        setTimeout(() => setError(null), 2e3);
+        setTimeout(() => setError(null), 2000);
       });
   };
 

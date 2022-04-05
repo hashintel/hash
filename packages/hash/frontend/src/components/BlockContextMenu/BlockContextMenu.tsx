@@ -10,7 +10,7 @@ import { unstable_batchedUpdates } from "react-dom";
 
 import { EntityStore, isBlockEntity } from "@hashintel/hash-shared/entityStore";
 
-import { blockDomId } from "../../blocks/page/BlockView";
+import { getBlockDomId } from "../../blocks/page/BlockView";
 import { BlockSuggesterProps } from "../../blocks/page/createSuggester/BlockSuggester";
 import { NormalView } from "./NormalView";
 import { SearchView } from "./SearchView";
@@ -174,7 +174,7 @@ export const BlockContextMenu: React.VFC<BlockContextMenuProps> = ({
         break;
       case "copyLink": {
         const url = new URL(document.location.href);
-        url.hash = blockDomId(entityId!);
+        url.hash = getBlockDomId(entityId!);
         void navigator.clipboard.writeText(url.toString());
         break;
       }

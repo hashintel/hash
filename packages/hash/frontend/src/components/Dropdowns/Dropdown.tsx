@@ -2,7 +2,7 @@ import { Listbox, Transition } from "@headlessui/react";
 import { Fragment, ReactElement, VoidFunctionComponent } from "react";
 import { tw } from "twind";
 
-import { DropdownIcon } from "../icons";
+import { DropdownIcon } from "../../shared/icons";
 
 type DropdownValue = string | number | undefined;
 

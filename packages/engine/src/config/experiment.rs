@@ -14,6 +14,8 @@ pub struct Config {
     pub worker_pool: Arc<worker_pool::Config>,
     /// The size at which the engine aims to split a group of agents
     pub target_max_group_size: usize,
+    pub js_runner_initial_heap_constraint: Option<usize>,
+    pub js_runner_max_heap_size: Option<usize>,
     pub base_globals: Globals,
 }
 
@@ -22,6 +24,8 @@ impl Config {
         experiment_run: ExperimentRunRepr,
         num_workers: usize,
         target_max_group_size: usize,
+        js_runner_initial_heap_constraint: Option<usize>,
+        js_runner_max_heap_size: Option<usize>,
     ) -> Result<Config> {
         // For differentiation purposes when multiple experiment runs are active in the same system
         let package_config = package::ConfigBuilder::new()
@@ -46,6 +50,8 @@ impl Config {
                 rust: false,
                 javascript: true,
             },
+            js_runner_initial_heap_constraint,
+            js_runner_max_heap_size,
         };
         let worker_pool = Arc::new(worker_pool::Config::new(worker_base_config, num_workers));
 
@@ -54,6 +60,8 @@ impl Config {
             run,
             base_globals,
             target_max_group_size,
+            js_runner_initial_heap_constraint,
+            js_runner_max_heap_size,
             worker_pool,
         })
     }
@@ -67,6 +75,8 @@ impl Config {
             worker_pool: self.worker_pool.clone(),
             target_max_group_size: self.target_max_group_size,
             base_globals: self.base_globals.clone(),
+            js_runner_initial_heap_constraint: self.js_runner_initial_heap_constraint,
+            js_runner_max_heap_size: self.js_runner_max_heap_size,
         })
     }
 
@@ -83,6 +93,8 @@ impl From<&Config> for Config {
             worker_pool: value.worker_pool.clone(),
             target_max_group_size: value.target_max_group_size,
             base_globals: value.base_globals.clone(),
+            js_runner_initial_heap_constraint: value.js_runner_initial_heap_constraint,
+            js_runner_max_heap_size: value.js_runner_max_heap_size,
         }
     }
 }

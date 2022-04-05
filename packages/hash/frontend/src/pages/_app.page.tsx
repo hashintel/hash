@@ -13,13 +13,17 @@ import { useRouter } from "next/router";
 import { CacheProvider, EmotionCache } from "@emotion/react";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
-import { theme, createEmotionCache } from "../theme";
+import { theme, createEmotionCache } from "../shared/ui";
 import { PageLayout } from "../components/layout/PageLayout/PageLayout";
 
 import twindConfig from "../../twind.config";
 import "../../styles/globals.scss";
 import { useUser } from "../components/hooks/useUser";
 import { SidebarContextProvider } from "../components/layout/SidebarContext";
+import {
+  RouteAccountInfoProvider,
+  RoutePageInfoProvider,
+} from "../shared/routing";
 
 export const apolloClient = createApolloClient();
 
@@ -57,17 +61,29 @@ const MyApp: React.VoidFunctionComponent<CustomAppProps> = ({
     }
   }, [user, router]);
 
+  // App UI often depends on [account-slug] and other query params. However,
+  // router.query is empty during server-side rendering for pages that don’t use
+  // getServerSideProps. By showing app skeleton on the server, we avoid UI
+  // mismatches during rehydration and improve type-safety of param extraction.
+  if (!router.isReady) {
+    return null; // Replace with app skeleton
+  }
+
   return (
     <ApolloProvider client={apolloClient}>
       <CacheProvider value={emotionCache}>
         <ThemeProvider theme={theme}>
           <CssBaseline />
           <ModalProvider>
-            <SidebarContextProvider>
-              <PageLayout>
-                <Component {...pageProps} />
-              </PageLayout>
-            </SidebarContextProvider>
+            <RouteAccountInfoProvider>
+              <RoutePageInfoProvider>
+                <SidebarContextProvider>
+                  <PageLayout>
+                    <Component {...pageProps} />
+                  </PageLayout>
+                </SidebarContextProvider>
+              </RoutePageInfoProvider>
+            </RouteAccountInfoProvider>
           </ModalProvider>
         </ThemeProvider>
       </CacheProvider>

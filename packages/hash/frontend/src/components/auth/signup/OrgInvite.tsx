@@ -7,7 +7,7 @@ import {
 } from "../../../graphql/apiTypes.gen";
 import { createOrgEmailInvitation as createOrgEmailInvitationMutation } from "../../../graphql/queries/org.queries";
 import { TagsInput } from "../../forms/TagsInput";
-import { SpinnerIcon } from "../../icons";
+import { SpinnerIcon } from "../../../shared/icons";
 import { EMAIL_REGEX } from "../utils";
 
 type OrgInviteProps = {

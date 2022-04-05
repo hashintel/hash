@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 test("guest user navigation to login and signup pages", async ({ page }) => {
   await page.goto("/");
-  await page.waitForNavigation({ url: "**/login" });
+  await page.waitForURL("**/login");
 
   await expect(page.locator("text=Sign in to your account")).toBeVisible();
   await expect(page.locator("text=No account? No problem")).toBeVisible();
@@ -11,7 +11,7 @@ test("guest user navigation to login and signup pages", async ({ page }) => {
 
   await Promise.all([
     page.click("text=Create a free account"),
-    page.waitForNavigation({ url: "**/signup" }),
+    page.waitForURL("**/signup"),
   ]);
 
   await expect(
@@ -30,7 +30,7 @@ test("guest user navigation to login and signup pages", async ({ page }) => {
 
   await Promise.all([
     page.click("text=Click here to log in"),
-    page.waitForNavigation({ url: "**/login" }),
+    page.waitForURL("**/login"),
   ]);
 
   await expect(

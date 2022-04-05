@@ -5,11 +5,10 @@ import { useLogout } from "../../hooks/useLogout";
 import { useUser } from "../../hooks/useUser";
 import { AccountDropdown } from "./AccountDropdown";
 import { SearchBar } from "./SearchBar";
-import { HashNavIcon } from "../../icons";
-import { Link } from "../../Link";
 import { ActionsDropdown } from "./ActionsDropdown";
 import { NotificationsDropdown } from "./NotificationsDropdown";
-import { Button } from "../../Button";
+import { Button, Link } from "../../../shared/ui";
+import { HashNavIcon } from "../../../shared/icons";
 
 const Nav: React.FC = ({ children }) => (
   <Box
@@ -27,9 +26,7 @@ const Nav: React.FC = ({ children }) => (
 
 export const HEADER_HEIGHT = 64;
 
-export const PageHeader: React.VFC<{
-  accountId: string;
-}> = ({ accountId }) => {
+export const PageHeader: React.VFC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
@@ -73,7 +70,7 @@ export const PageHeader: React.VFC<{
         </Box>
         {user ? (
           <Box sx={{ display: "flex", alignItems: "center" }}>
-            <ActionsDropdown accountId={accountId} />
+            <ActionsDropdown />
             <NotificationsDropdown />
             <AccountDropdown logout={logout} user={user} />
           </Box>

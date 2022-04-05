@@ -8,11 +8,8 @@
 pub mod arrow;
 pub mod batch;
 mod error;
-pub mod ffi;
-pub mod meta;
 pub mod schema;
 pub mod shared_store;
-pub mod storage;
 pub mod store;
 pub mod table;
 #[cfg(test)]
@@ -94,7 +91,6 @@ pub mod tests {
             .unwrap()
             .batch
             .segment()
-            .memory()
             .id()
             .to_owned();
 

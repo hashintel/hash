@@ -3,27 +3,30 @@ import TreeItem, {
   TreeItemProps,
   useTreeItem,
   TreeItemContentProps,
+  treeItemClasses,
 } from "@mui/lab/TreeItem";
 // import clsx from "clsx";
-import { Box, Typography } from "@mui/material";
-import { faChevronRight, faFile } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "../../../icons";
-import { IconButton } from "../../../IconButton";
+import { Box, Tooltip, Typography } from "@mui/material";
+import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
+import {
+  faChevronRight,
+  faEllipsis,
+  faFile,
+} from "@fortawesome/free-solid-svg-icons";
+import { IconButton, Link } from "../../../../shared/ui";
+import { FontAwesomeIcon } from "../../../../shared/icons";
+import { PageMenu } from "./PageMenu";
 
-type CustomContentProps = TreeItemContentProps & { hasChildren?: boolean };
+// tweaked the example at https://mui.com/components/tree-view/#IconExpansionTreeView.tsx
+const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {
+  const { label, nodeId, expandable, url, depth } = props;
+  const popupState = usePopupState({
+    variant: "popover",
+    popupId: "page-menu",
+  });
 
-// inspiration gotten from https://mui.com/components/tree-view/#IconExpansionTreeView.tsx
-const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
-  const { label, nodeId, hasChildren } = props;
-
-  const {
-    expanded,
-    selected,
-    focused,
-    handleExpansion,
-    handleSelection,
-    preventSelection,
-  } = useTreeItem(nodeId);
+  const { expanded, selected, handleExpansion, preventSelection } =
+    useTreeItem(nodeId);
 
   const handleMouseDown = (
     event: React.MouseEvent<HTMLDivElement, MouseEvent>,
@@ -37,56 +40,55 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
     handleExpansion(event);
   };
 
-  const handleSelectionClick = (
-    event: React.MouseEvent<HTMLButtonElement, MouseEvent>,
-  ) => {
-    handleSelection(event);
-  };
-
   return (
-    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <Box
+      tabIndex={0}
       onMouseDown={handleMouseDown}
       ref={ref as React.Ref<HTMLDivElement>}
-      sx={{
+      sx={({ palette }) => ({
         display: "flex",
         alignItems: "center",
-        px: 1,
+        borderRadius: "4px",
+
+        pl: `${depth * 15 + 8}px`,
+        pr: 1,
+
+        ...(!selected && {}),
 
         "&:hover": {
-          backgroundColor: ({ palette }) => palette.gray[20],
-          borderRadius: "4px",
+          ...(!selected && { backgroundColor: palette.gray[20] }),
+
+          "& .page-title": {
+            color: palette.gray[80],
+          },
+
+          "& .page-menu-trigger": {
+            color: palette.gray[50],
+          },
         },
 
         ...(selected && {
-          backgroundColor: ({ palette }) => palette.gray[20],
-          borderRadius: "4px",
+          backgroundColor: palette.gray[30],
         }),
-
-        ...(focused &&
-          {
-            // @todo-mui add focus styles
-          }),
-      }}
+      })}
     >
       <IconButton
         onClick={handleExpansionClick}
-        size="medium"
+        size="xs"
         unpadded
-        sx={{
+        rounded
+        sx={({ transitions }) => ({
           visibility: "hidden",
           pointerEvents: "none",
           mr: 0.5,
 
-          ...(hasChildren && {
+          ...(expandable && {
             visibility: "visible",
             pointerEvents: "auto",
-
             transform: expanded ? `rotate(90deg)` : "none",
-            transition: ({ transitions }) =>
-              transitions.create("transform", { duration: 300 }),
+            transition: transitions.create("transform", { duration: 300 }),
           }),
-        }}
+        })}
       >
         <FontAwesomeIcon icon={faChevronRight} />
       </IconButton>
@@ -98,45 +100,81 @@ const CustomContent = React.forwardRef((props: CustomContentProps, ref) => {
           color: ({ palette }) => palette.gray[50],
         }}
       />
-      {/* @todo-mui this should be switched to our button component once we have all variants implemented */}
-      <Box
-        component="button"
-        onClick={handleSelectionClick}
+      <Link
+        noLinkStyle
+        tabIndex={-1}
         sx={{
           flex: 1,
-          width: "100%",
-          outline: "none",
-          textAlign: "left",
         }}
+        href={url}
       >
         <Typography
           variant="smallTextLabels"
-          sx={{
+          className="page-title"
+          sx={({ palette }) => ({
             display: "block",
-            color: ({ palette }) => palette.gray[70],
+            color: palette.gray[70],
+            fontWeight: 400,
             py: 1,
-          }}
+
+            ...(selected && {
+              color: palette.gray[90],
+            }),
+          })}
         >
           {label}
         </Typography>
-      </Box>
+      </Link>
+      <Tooltip
+        title="Add subpages, delete, duplicate and more"
+        componentsProps={{
+          tooltip: {
+            sx: {
+              width: 175,
+            },
+          },
+        }}
+      >
+        <IconButton
+          {...bindTrigger(popupState)}
+          size="medium"
+          unpadded
+          className="page-menu-trigger"
+          sx={({ palette }) => ({
+            color: palette.gray[40],
+            "&:hover": {
+              backgroundColor: palette.gray[selected ? 40 : 30],
+              color: palette.gray[50],
+            },
+          })}
+        >
+          <FontAwesomeIcon icon={faEllipsis} />
+        </IconButton>
+      </Tooltip>
+      <PageMenu popupState={popupState} entityId={nodeId} />
     </Box>
   );
 });
 
-export const PageTreeItem = (
-  props: TreeItemProps & { hasChildren?: boolean },
-) => {
-  const { hasChildren, ...otherProps } = props;
-
+export const PageTreeItem = ({
+  sx = [],
+  ...props
+}: TreeItemProps & { depth: number }) => {
   return (
     <TreeItem
+      {...props}
+      sx={[
+        {
+          // resets the default margin applied to a TreeItem's child(ren)
+          // we apply a padding instead to the CustomComponent
+          // this makes it possible for the hover background to span the entire sidebar width
+          [`& .${treeItemClasses.group}`]: {
+            marginLeft: 0,
+          },
+        },
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
       ContentComponent={CustomContent}
-      {...otherProps}
-      ContentProps={{
-        // @ts-expect-error -- can't seem to override TreeItemProps at the moment, plan to revisit
-        hasChildren,
-      }}
     />
   );
 };
