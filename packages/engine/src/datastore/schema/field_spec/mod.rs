@@ -33,7 +33,7 @@ impl FieldSource for EngineComponent {
         }
     }
 
-    fn is_trusted(&self) -> bool {
+    fn can_guarantee_null(&self) -> bool {
         *self == EngineComponent::Engine
     }
 }

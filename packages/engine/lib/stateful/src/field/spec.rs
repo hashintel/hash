@@ -82,7 +82,7 @@ impl<S: FieldSource> TryFrom<RootFieldSpec<S>> for Field {
         let field_key = root_field_spec.create_key()?;
         Ok(root_field_spec
             .inner
-            .into_arrow_field(root_field_spec.source.is_trusted(), Some(field_key)))
+            .into_arrow_field(root_field_spec.source.can_guarantee_null(), Some(field_key)))
     }
 }
 
