@@ -17,6 +17,8 @@ export const MuiTypographyThemeOptions: Components<Theme>["MuiTypography"] = {
       bpMicroCopy: "span",
 
       hashBodyCopy: "p",
+
+      hashHeading4: "h4",
     },
     variant: "hashBodyCopy",
   },

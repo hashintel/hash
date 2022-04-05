@@ -5,8 +5,7 @@ export const MuiInputBaseThemeOptions: Components<Theme>["MuiInputBase"] = {
     adornedEnd: ({ theme }) => ({
       "&.Mui-error": {
         svg: {
-          // @todo use theme
-          color: "#E04D82",
+          color: theme.palette.red[500],
         },
       },
     }),

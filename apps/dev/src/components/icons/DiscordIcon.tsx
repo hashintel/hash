@@ -1,9 +1,6 @@
 import { VFC } from "react";
 import { SvgIcon, SvgIconProps } from "@mui/material";
 
-/**
- * @todo this is different to the other discord icons we use
- */
 export const DiscordIcon: VFC<SvgIconProps> = ({ sx = [], ...props }) => (
   <SvgIcon
     {...props}

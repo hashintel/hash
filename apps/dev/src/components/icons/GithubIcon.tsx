@@ -1,10 +1,6 @@
 import { VFC } from "react";
 import { SvgIcon, SvgIconProps } from "@mui/material";
 
-/**
- * @todo this is used as a font awesome icon in other places – which should
- *       we use?
- */
 export const GithubIcon: VFC<SvgIconProps> = ({ sx = [], ...props }) => (
   <SvgIcon
     {...props}

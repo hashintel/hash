@@ -31,6 +31,9 @@ declare module "@mui/material/styles" {
       800: string;
       900: string;
     };
+    red: {
+      500: string;
+    };
     gray: {
       10: string;
       20: string;

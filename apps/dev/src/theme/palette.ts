@@ -33,7 +33,10 @@ export const customColors = {
   blue: {
     700: "#0775E3",
   },
-  // should adjust to be consistent with the ones above
+  red: {
+    500: "#E04D82",
+  },
+  // @todo should adjust to be consistent with the ones above
   gray: {
     10: "#F7FAFC",
     20: "#EBF2F7",

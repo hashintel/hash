@@ -155,7 +155,6 @@ export const MuiButtonThemeOptions: Components<Theme>["MuiButton"] = {
           });
           Object.assign(hoverStyles, {
             color: theme.palette.orange[900],
-            // @todo is this correct
             backgroundColor: theme.palette.yellow[300],
             borderColor: theme.palette.yellow[500],
           });

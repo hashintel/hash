@@ -28,8 +28,7 @@ export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"]
         },
         "&.Mui-error, &.Mui-error:hover": {
           "& .MuiOutlinedInput-notchedOutline": {
-            // @todo use theme
-            border: `3px solid #E04D82`,
+            border: `3px solid ${theme.palette.red[500]}`,
           },
         },
       }),
@@ -52,8 +51,7 @@ export const MuiOutlinedInputThemeOptions: Components<Theme>["MuiOutlinedInput"]
       adornedEnd: ({ theme }) => ({
         "&.Mui-error": {
           svg: {
-            // @todo use theme
-            color: "#E04D82",
+            color: theme.palette.red[500],
           },
         },
       }),

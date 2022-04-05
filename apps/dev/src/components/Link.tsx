@@ -1,12 +1,12 @@
-import * as React from "react";
-import clsx from "clsx";
-import { UrlObject } from "url";
-import { useRouter } from "next/router";
-// eslint-disable-next-line no-restricted-imports
-import NextLink, { LinkProps as NextLinkProps } from "next/link";
 // eslint-disable-next-line no-restricted-imports
 import MuiLink, { LinkProps as MuiLinkProps } from "@mui/material/Link";
 import { styled } from "@mui/material/styles";
+import clsx from "clsx";
+// eslint-disable-next-line no-restricted-imports
+import NextLink, { LinkProps as NextLinkProps } from "next/link";
+import { useRouter } from "next/router";
+import * as React from "react";
+import { UrlObject } from "url";
 import { FRONTEND_URL } from "../config";
 import { Button } from "./Button";
 
@@ -16,7 +16,8 @@ export const isHrefExternal = (href: string | UrlObject) =>
   !href.startsWith(FRONTEND_URL);
 
 /**
- * This component is based on https://github.com/mui-org/material-ui/blob/a5c92dfd84dfe5888a8b383a9b5fe5701a934564/examples/nextjs/src/Link.js
+ * This component is based on
+ * https://github.com/mui-org/material-ui/blob/a5c92dfd84dfe5888a8b383a9b5fe5701a934564/examples/nextjs/src/Link.js
  */
 
 // Add support for the sx prop for consistency with the other branches.
@@ -50,29 +51,19 @@ export const NextLinkComposed = React.forwardRef<
   );
 });
 
-export type LinkProps = {
-  activeClassName?: string;
-  noLinkStyle?: boolean;
-} & Omit<NextLinkProps, "passHref"> &
+export type LinkProps = Omit<NextLinkProps, "passHref"> &
   Omit<MuiLinkProps, "href" | "color">;
 
 // A styled version of the Next.js Link component:
 // https://nextjs.org/docs/api-reference/next/link
 export const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
   (props, ref) => {
-    const {
-      activeClassName = "active",
-      as: linkAs,
-      className: classNameProps,
-      href,
-      noLinkStyle,
-      ...other
-    } = props;
+    const { as: linkAs, className: classNameProps, href, ...other } = props;
 
     const router = useRouter();
     const pathname = typeof href === "string" ? href : href.pathname;
     const className = clsx(classNameProps, {
-      [activeClassName]: router.pathname === pathname && activeClassName,
+      active: router.pathname === pathname,
     });
 
     if (process.env.NODE_ENV !== "production") {
@@ -88,39 +79,11 @@ export const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
       other.rel = "noopener";
       other.target = "_blank";
 
-      if (noLinkStyle) {
-        return (
-          <Anchor
-            className={className}
-            href={href as string}
-            ref={ref}
-            {...other}
-          />
-        );
-      }
-
       return (
         <MuiLink
           className={className}
           href={href as string}
           ref={ref}
-          {...other}
-        />
-      );
-    }
-
-    if (noLinkStyle) {
-      return (
-        <NextLinkComposed
-          sx={{
-            ":focus": {
-              // @todo set this properly
-              outlineColor: ({ palette }) => palette.yellow["700"],
-            },
-          }}
-          className={className}
-          ref={ref}
-          to={href}
           {...other}
         />
       );

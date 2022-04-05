@@ -1,7 +1,3 @@
-/**
- * @todo update from HASH workspace
- */
-
 import {
   Box,
   Button as MuiButton,
@@ -68,9 +64,6 @@ const LoadingContent: VFC<{
   );
 };
 
-/**
- * @todo check loading styles
- */
 export const Button: FC<ButtonProps> = forwardRef(
   ({ children, loading, loadingWithoutText, href, ...props }, ref) => {
     const linkProps = useMemo(() => {

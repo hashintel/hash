@@ -1,6 +1,3 @@
-/**
- * @todo update from blockprotocol
- */
 import * as React from "react";
 import { SvgIcon, SvgIconProps } from "@mui/material";
 import { IconDefinition } from "@fortawesome/free-solid-svg-icons";

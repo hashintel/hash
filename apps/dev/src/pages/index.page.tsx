@@ -95,7 +95,6 @@ const Hero: VFC = () => (
         <StylishDivider mb={5} wide />
         <Box width={{ xs: 1, md: 550 }}>
           <Typography mb={2} sx={{ lineHeight: 1.5 }}>
-            {/** @todo check which font weight is the default */}
             <Link href="https://hash.ai" sx={{ fontWeight: 700 }}>
               HASH
             </Link>{" "}
@@ -123,7 +122,6 @@ const Project: FC<{
   const mobile = useMediaQuery(theme.breakpoints.down("md"));
 
   return (
-    // @todo check this with the design
     <Stack
       direction={{ xs: "column", md: "row" }}
       spacing={{ xs: 4, md: 6, lg: 9 }}
@@ -156,7 +154,6 @@ const Project: FC<{
         >
           {children}
         </Stack>
-        {/** @todo check this spacing */}
         <Stack
           direction={{ xs: "column", lg: "row" }}
           alignItems="flex-start"
@@ -269,7 +266,6 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
               HASH is our forthcoming open-source, all-in-one workspace platform
               built around structured data and interactive blocks. It feels like
               taking notes, but works like a powerful database.{" "}
-              {/** @todo check styles */}
               <strong>
                 Please note: the current version is not yet ready for use.
               </strong>
@@ -331,7 +327,6 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
 const EMAIL_REGEX =
   /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 
-// @todo storybook
 const Subscribe: VFC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -418,8 +413,6 @@ const Subscribe: VFC = () => {
           </>
         ) : (
           <>
-            {/** @todo is this supposed to have a higher font weight on
-             mobile? */}
             <Typography variant="hashHeading2" component="h3">
               Stay up to date with HASH news
             </Typography>
@@ -428,7 +421,6 @@ const Subscribe: VFC = () => {
               you’ll be first to hear about partnership opportunities, new
               releases, and product updates
             </Typography>
-            {/** @todo check this spacing */}
             <form
               noValidate
               onSubmit={async (evt) => {
@@ -516,11 +508,9 @@ const Community: VFC = () => {
   return (
     <Box
       sx={{
-        // @todo check if this is correct
         pb: { xs: 10, sm: 11, md: 12 },
         pt: 2,
         minHeight: 260,
-        // @todo use palette colours
         background: `
          linear-gradient(1.3deg, #FFD79B -10.15%, rgba(255, 239, 198, 0) 66.01%)
         `,
@@ -528,17 +518,13 @@ const Community: VFC = () => {
       component="section"
     >
       <Container>
-        {/** @todo check what styles should be in place for hashHeading4 */}
         <Typography
           variant="hashHeading4"
           sx={{ fontWeight: 600, color: "gray.90", mb: { xs: 4, sm: 5 } }}
           align="center"
-          // @todo remove need for this, check whether its right
-          component="h4"
         >
           Join our community of HASH developers
         </Typography>
-        {/** @todo look into using Grid */}
         <Box>
           <Stack
             direction={{ xs: "column", lg: "row" }}
@@ -572,7 +558,6 @@ const Community: VFC = () => {
               spacing={2}
               justifyContent="center"
             >
-              {/** @todo where should this link to? */}
               <Button
                 variant="primarySquare"
                 size="large"

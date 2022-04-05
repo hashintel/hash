@@ -81,7 +81,6 @@ export const Footer: FC = () => (
         xs: 6,
         lg: 8,
       },
-      // @todo check palette for colours
       background: "linear-gradient(359.56deg, #FFFFFF 59.36%, #F7F8FA 99.57%)",
       boxShadow: "0px -2px 16px rgba(254, 177, 115, 0.2)",
       borderTop: 4,
@@ -100,9 +99,7 @@ export const Footer: FC = () => (
         <Stack>
           <Logo />
           <Spacer y={2} sm={{ y: 3 }} />
-          {/** @todo check spacing */}
           <Typography
-            // @todo check if this should be 100%
             sx={{ width: { xs: 1, md: 289 }, mb: 4.5 }}
             variant="hashSmallText"
           >

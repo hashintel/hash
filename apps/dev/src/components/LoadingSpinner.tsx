@@ -1,6 +1,3 @@
-/**
- * @todo update from HASH workspace
- */
 import { Box, CircularProgress, circularProgressClasses } from "@mui/material";
 import { VFC } from "react";
 
