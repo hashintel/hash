@@ -1,3 +1,4 @@
+import { Collapse } from "@mui/material";
 import React, { useState, useRef, FormEvent } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 import { tw } from "twind";
@@ -76,11 +77,14 @@ export const BlockLoaderInput: React.VFC = () => {
         type="url"
         value={blockUrl}
         onChange={(event) => setBlockUrl(event.target.value)}
+        onKeyDown={(event) => {
+          event.stopPropagation();
+        }}
         placeholder="Load Block from URL..."
         className={tw`mt-2 block w-full px-2 py-1 bg-gray-50 border-1 text-sm rounded-sm `}
         required
       />
-      {blockUrl && (
+      <Collapse in={!!blockUrl}>
         <Button
           size="xs"
           sx={{
@@ -98,7 +102,7 @@ export const BlockLoaderInput: React.VFC = () => {
             ? "An error occurred"
             : "Load Block"}
         </Button>
-      )}
+      </Collapse>
     </form>
   );
 };

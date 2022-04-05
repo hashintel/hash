@@ -1,14 +1,16 @@
 import { ListItemIcon, ListItemText, MenuItem } from "@mui/material";
-import { bindPopover, usePopupState } from "material-ui-popup-state/hooks";
+import {
+  bindPopover,
+  bindTrigger,
+  usePopupState,
+} from "material-ui-popup-state/hooks";
 import { VFC } from "react";
-import { tw } from "twind";
-import { Popover } from "../../shared/ui";
 
 export const BlockContextMenuItem: VFC<
   {
-    selected: boolean;
-    onClick: VoidFunction;
-    onSelect: (shouldShowSubMenu: boolean) => void;
+    selected?: boolean;
+    onClick?: VoidFunction;
+    onSelect?: (shouldShowSubMenu: boolean) => void;
     icon: JSX.Element;
     title: JSX.Element | string;
   } & (
@@ -16,50 +18,64 @@ export const BlockContextMenuItem: VFC<
         subMenuVisible?: undefined;
         subMenu?: undefined;
       }
-    | { subMenuVisible: boolean; subMenu: JSX.Element | null }
+    | { subMenuVisible?: boolean; subMenu?: JSX.Element | null }
   )
-> = ({ selected, onClick, onSelect, icon, title, subMenuVisible, subMenu }) => {
+> = ({ selected, onClick, onSelect, icon, title, subMenu }) => {
   const subMenuPopupState = usePopupState({
     variant: "popover",
     popupId: `menu-${title}-id`, // @todo think of a better id
   });
 
+  const { onClick: triggerOnClick, ...triggerAttrs } =
+    bindTrigger(subMenuPopupState);
+
   return (
-    <MenuItem onClick={onClick}>
+    <MenuItem
+      {...(subMenu && {
+        ...triggerAttrs,
+        // onMouseOver: () => subMenuPopupState.open(),
+      })}
+      onClick={(evt) => {
+        if (subMenu) {
+          triggerOnClick(evt);
+        } else {
+          onClick();
+        }
+      }}
+      sx={{
+        position: "relative",
+      }}
+    >
       <ListItemIcon>{icon}</ListItemIcon>
       <ListItemText primary={title} />
-      {subMenu ? (
+      {/* {subMenu ? (
         <>
-          <span
-            onMouseOver={() => subMenuPopupState.open()}
-            onFocus={() => subMenuPopupState.open()}
-            className={tw`ml-auto`}
+          <span className={tw`ml-auto`}>&rarr;</span>
+          <Popover
+            {...bindPopover(subMenuPopupState)}
+            sx={{
+              backgroundColor: "red",
+            }}
+            anchorOrigin={{
+              horizontal: "right",
+              vertical: "bottom",
+            }}
+            transformOrigin={{
+              horizontal: "left",
+              vertical: "top",
+            }}
+            PaperProps={{
+              sx: {
+                backgroundColor: "red",
+                width: 240,
+                height: 200,
+              },
+            }}
           >
-            &rarr;
-          </span>
-          <Popover {...bindPopover(subMenuPopupState)} open={true}>
             {subMenu}
           </Popover>
         </>
-      ) : null}
-      {/* <button
-      className={tw`flex-1 hover:bg-gray-100 ${
-        selected ? "bg-gray-100" : ""
-      }  flex items-center py-1 px-4 group`}
-      onFocus={() => onSelect(false)}
-      onMouseOver={() => onSelect(true)}
-      onClick={onClick}
-      type="button"
-    >
-      {icon}
-      <span>{title}</span>
-      {subMenu ? (
-        <>
-          <span className={tw`ml-auto`}>&rarr;</span>
-          {selected && subMenuVisible ? subMenu : null}
-        </>
-      ) : null}
-    </button> */}
+      ) : null} */}
     </MenuItem>
   );
 };
