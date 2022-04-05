@@ -132,7 +132,7 @@ const Project: FC<{
             width: { xs: 1, md: 420 },
             flexShrink: 0,
             [theme.breakpoints.down("md")]: { width: 1 },
-            [theme.breakpoints.up("md")]: { width: 286 },
+            [theme.breakpoints.up("md")]: { width: 363 },
             [theme.breakpoints.up("lg")]: { width: 420 },
           },
         ]}
@@ -162,12 +162,7 @@ const Project: FC<{
           {buttons}
         </Stack>
       </Box>
-      <Box
-        flexShrink={0}
-        fontSize={0}
-        // sx={{ span: { height: { md: 1, lg: "initial" } } }}
-        maxWidth={{ xs: 400, md: 1 }}
-      >
+      <Box flexShrink={0} fontSize={0} maxWidth={{ xs: 400, md: 1 }}>
         {mobile ? mobileImage : image}
       </Box>
     </Stack>
@@ -233,7 +228,7 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
             </Typography>
           </Project>
           <Project
-            title={<Box sx={{ mt: { xs: 0, md: 6, lg: 8 } }}>HASH</Box>}
+            title={<Box sx={{ mt: { xs: 0, md: 5, lg: 8 } }}>HASH</Box>}
             buttons={
               <Button
                 href="https://github.com/hashintel/hash/tree/main/packages/hash"
