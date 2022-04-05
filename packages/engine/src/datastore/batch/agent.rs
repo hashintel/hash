@@ -15,19 +15,24 @@ use arrow::{
     },
     record_batch::RecordBatch,
 };
+use memory::{
+    arrow::{
+        flush::GrowableBatch,
+        ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
+        meta::{
+            self,
+            conversion::{get_dynamic_meta_flatbuffers, HashDynamicMeta, HashStaticMeta},
+        },
+        ArrowBatch,
+    },
+    shared_memory::{BufferChange, Memory, MemoryId, Metaversion, Segment},
+};
 
 use crate::{
     datastore::{
-        arrow::{
-            batch_conversion::IntoRecordBatch,
-            ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
-            meta_conversion::{get_dynamic_meta_flatbuffers, HashDynamicMeta, HashStaticMeta},
-        },
-        batch::{flush::GrowableBatch, metaversion::Metaversion, ArrowBatch, Segment},
+        arrow::batch_conversion::IntoRecordBatch,
         error::{Error, Result},
-        meta,
         schema::state::AgentSchema,
-        storage::{memory::Memory, BufferChange},
     },
     proto::ExperimentId,
     simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY,
@@ -61,18 +66,18 @@ impl AgentBatch {
         schema: &AgentSchema,
         experiment_id: &ExperimentId,
     ) -> Result<Self> {
-        if agent_batch.batch.loaded_metaversion.memory()
-            != agent_batch.batch.segment.persisted_metaversion().memory()
+        if agent_batch.batch.loaded_metaversion().memory()
+            != agent_batch.batch.segment().persisted_metaversion().memory()
         {
             return Err(Error::from(format!(
                 "Can't duplicate agent batch with loaded memory older than latest persisted: \
                  {:?}, {:?}",
-                agent_batch.batch.loaded_metaversion,
-                agent_batch.batch.segment.persisted_metaversion(),
+                agent_batch.batch.loaded_metaversion(),
+                agent_batch.batch.segment().persisted_metaversion(),
             )));
         }
 
-        let memory = Memory::duplicate_from(agent_batch.batch.memory(), experiment_id)?;
+        let memory = Memory::duplicate(agent_batch.batch.memory(), experiment_id)?;
         Self::from_memory(memory, Some(schema), Some(agent_batch.worker_index))
     }
 
@@ -89,7 +94,7 @@ impl AgentBatch {
         let (ipc_message, data_len) = simulate_record_batch_to_bytes(record_batch);
 
         let mut memory = Memory::from_sizes(
-            experiment_id,
+            MemoryId::new(experiment_id),
             schema_buffer.ipc_message.len(),
             header_buffer.len(),
             ipc_message.len(),
@@ -140,14 +145,14 @@ impl AgentBatch {
         let record_batch = read_record_batch(data_buffer, batch_message, schema, &[])?;
 
         Ok(Self {
-            batch: ArrowBatch {
-                segment: Segment(memory),
+            batch: ArrowBatch::new(
+                Segment::from_memory(memory),
                 record_batch,
                 dynamic_meta,
                 static_meta,
-                changes: vec![],
-                loaded_metaversion: persisted,
-            },
+                vec![],
+                persisted,
+            ),
             worker_index: worker_index.unwrap_or(0),
         })
     }
@@ -164,7 +169,7 @@ impl AgentBatch {
         let meta_buffer = get_dynamic_meta_flatbuffers(dynamic_meta)?;
 
         let mut memory = Memory::from_sizes(
-            experiment_id,
+            MemoryId::new(experiment_id),
             schema_buffer.ipc_message.len(),
             header_buffer.len(),
             meta_buffer.len(),
@@ -195,9 +200,9 @@ impl AgentBatch {
         &mut self,
         dynamic_meta: &meta::Dynamic,
     ) -> Result<BufferChange> {
-        self.batch.dynamic_meta = dynamic_meta.clone();
+        *self.batch.dynamic_meta_mut() = dynamic_meta.clone();
         let meta_buffer = get_dynamic_meta_flatbuffers(dynamic_meta)?;
-        self.batch.memory_mut().set_metadata(&meta_buffer)
+        Ok(self.batch.memory_mut().set_metadata(&meta_buffer)?)
     }
 
     pub fn get_buffer(&self, buffer_index: usize) -> Result<&[u8]> {

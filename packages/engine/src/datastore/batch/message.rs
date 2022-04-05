@@ -11,23 +11,22 @@ use arrow::{
     },
     record_batch::RecordBatch,
 };
+use memory::{
+    arrow::{
+        flush::GrowableBatch,
+        ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
+        meta::{self, conversion::HashDynamicMeta},
+        ArrowBatch,
+    },
+    shared_memory::{Memory, MemoryId, Metaversion, Segment},
+};
 
 use crate::{
     datastore::{
-        arrow::{
-            batch_conversion::IntoRecordBatch,
-            ipc::{record_batch_data_to_bytes_owned_unchecked, simulate_record_batch_to_bytes},
-            message,
-            meta_conversion::HashDynamicMeta,
-        },
-        batch::{
-            flush::GrowableBatch, iterators::column_with_name, metaversion::Metaversion,
-            AgentBatch, ArrowBatch, Segment,
-        },
+        arrow::{batch_conversion::IntoRecordBatch, message},
+        batch::{iterators::column_with_name, AgentBatch},
         error::{Error, Result},
-        meta,
         schema::state::MessageSchema,
-        storage::memory::Memory,
         UUID_V4_LEN,
     },
     hash_types::state::AgentStateField,
@@ -64,7 +63,7 @@ impl MessageBatch {
         tracing::trace!("Resetting batch");
 
         let batch = &mut self.batch;
-        let mut metaversion_to_persist = batch.segment.persisted_metaversion();
+        let mut metaversion_to_persist = batch.segment().persisted_metaversion();
 
         if metaversion_to_persist.memory() != batch.loaded_metaversion().memory() {
             return Err(Error::from(format!(
@@ -141,10 +140,10 @@ impl MessageBatch {
         //       fbb and WIPOffset<Message> from `simulate_record_batch_to_bytes`
         metaversion_to_persist.increment_batch();
         batch
-            .segment
+            .segment_mut()
             .set_persisted_metaversion(metaversion_to_persist);
         batch.reload_record_batch_and_dynamic_meta()?;
-        batch.loaded_metaversion = metaversion_to_persist;
+        *batch.loaded_metaversion_mut() = metaversion_to_persist;
         Ok(())
     }
 
@@ -168,7 +167,7 @@ impl MessageBatch {
         let header = Metaversion::default().to_le_bytes();
         let (meta_buffer, data_len) = simulate_record_batch_to_bytes(&record_batch);
         let mut memory = Memory::from_sizes(
-            experiment_id,
+            MemoryId::new(experiment_id),
             0,
             header.len(),
             meta_buffer.len(),
@@ -215,7 +214,7 @@ impl MessageBatch {
         )?;
 
         let memory = Memory::from_batch_buffers(
-            experiment_id,
+            MemoryId::new(experiment_id),
             &[],
             &header,
             &encoded_data.ipc_message,
@@ -243,14 +242,14 @@ impl MessageBatch {
 
         let persisted = memory.metaversion()?;
         Ok(Self {
-            batch: ArrowBatch {
-                segment: Segment(memory),
+            batch: ArrowBatch::new(
+                Segment::from_memory(memory),
                 record_batch,
                 dynamic_meta,
                 static_meta,
-                changes: Vec::with_capacity(3),
-                loaded_metaversion: persisted,
-            },
+                Vec::with_capacity(3),
+                persisted,
+            ),
             arrow_schema: schema,
         })
     }

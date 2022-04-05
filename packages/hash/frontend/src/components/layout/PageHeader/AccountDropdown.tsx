@@ -8,9 +8,7 @@ import {
 } from "@mui/material";
 
 import { UserFieldsFragment } from "../../../graphql/apiTypes.gen";
-import { Popover } from "../../Popover";
-import { Link } from "../../Link";
-import { Avatar } from "../../Avatar";
+import { Avatar, Link, Popover } from "../../../shared/ui";
 import { HeaderIconButton } from "./HeaderIconButton";
 
 type AccountDropdownProps = {
@@ -73,8 +71,8 @@ export const AccountDropdown: VoidFunctionComponent<AccountDropdownProps> = ({
             width: 32,
             padding: 0,
           }}
-          title={user.properties.shortname!}
           open={open}
+          data-testid="user-avatar"
         >
           {avatar ? (
             <Box

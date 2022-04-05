@@ -8,30 +8,29 @@ objectId: 115d9a68-381f-4b08-8765-4a17be0a1afe
 
 **What happens when an agent receives a message?**
 
-Context passed to every agent provides a list of messages in the agent's inbox accessible via the `context.messages` function. Here we can iterate through the list of messages sent to the agent and make some decisions.
+The Context passed to every agent provides a list of messages in the agent's inbox accessible via the `context.messages()` function. Here we can iterate through the list of messages sent to the agent and use that information to make decisions or change state. Note that the `to` field has been replaced by `from`.
 
 ```javascript
 context {
     messages(): [
-    /*
-        Any messages sent to the given agent on this step.
-        If the agent wants to preserve access to these on future steps,
-        they'll need to store them in their own state.
-    */
+        {
+            "from": "string" // uuid of agent who sent the message
+            "type": "string" // describing contents or purpose
+            "data": "any" // additional data contained in the message
+        }
     ],
-    /* other context values to come. */
 }
 ```
 
 It's best to think of the `messages` field like a mailbox.
 
-- When **sending** a message, we put the message in the outbox under the `messages` field on state.
-- When **receiving** a message, it will show up in our inbox, under the `messages` field on context.
+- When **sending** a message, we put the message in the outbox under the `messages` field on **state**.
+- When **receiving** a message, it will show up in our inbox, under the `messages` field on **context**.
 
 Notice the distinction. Context is immutable and any accidental changes made to it will not propagate.
 
 <Hint style="info">
-Send messages with `state.messages`and receive them with `context.messages()`.
+Send messages by adding them to the `state.messages` array and access incoming ones through `context.messages()`.
 </Hint>
 
 Handling the messages here would be pretty simple - just iterating through the messages array in context.
@@ -41,7 +40,7 @@ Handling the messages here would be pretty simple - just iterating through the m
 
 ```javascript
 const behavior = (state, context) => {
-    for (const message in context.messages()) {
+    for (const message of context.messages()) {
         ...
     }
 
@@ -73,36 +72,6 @@ fn (state: AgentState, context: &Context) -> AgentState {
            .iter()
            .map(|m: &Message| {...});
 }
-```
-
-</Tab>
-</Tabs>
-
-<Tabs>
-<Tab title="JavaScript" >
-
-```javascript
-const behavior = (state, context) => {
-  for (const message of context.messages()) {
-    // ...
-  }
-
-  // OR
-
-  context.messages().forEach((m) => {
-    // ...
-  });
-};
-```
-
-</Tab>
-
-<Tab title="Python" >
-
-```python
-def behavior(state, context):
-    for message in context.messages():
-        ...
 ```
 
 </Tab>

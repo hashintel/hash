@@ -2,8 +2,7 @@ import React, { ReactNode, VoidFunctionComponent } from "react";
 import { tw } from "twind";
 
 import bgPattern from "../../../assets/images/auth-bg-pattern.png";
-import Logo from "../../../assets/svg/logo.svg";
-import { HashIcon } from "../../icons";
+import { HashIcon, LogoIcon } from "../../../shared/icons";
 
 export type AuthLayoutProps = {
   children: ReactNode;
@@ -36,7 +35,7 @@ export const AuthLayout: VoidFunctionComponent<AuthLayoutProps> = ({
             showTopLogo ? "" : "invisible"
           }`}
         >
-          <Logo />
+          <LogoIcon />
         </div>
 
         <div className={tw`pt-24 pb-10 flex justify-center`}>{children}</div>

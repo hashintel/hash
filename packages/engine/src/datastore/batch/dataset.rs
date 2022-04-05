@@ -1,9 +1,7 @@
+use memory::shared_memory::{Memory, MemoryId, Metaversion, Segment};
+
 use crate::{
-    datastore::{
-        batch::{metaversion::Metaversion, Segment},
-        error::Result,
-        storage::memory::Memory,
-    },
+    datastore::error::Result,
     proto::{ExperimentId, SharedDataset},
 };
 
@@ -30,8 +28,14 @@ impl Dataset {
             .map(|data| data.len())
             .unwrap_or_default();
 
-        let mut memory =
-            Memory::from_sizes(experiment_id, 0, header.len(), 0, dataset_size, false)?;
+        let mut memory = Memory::from_sizes(
+            MemoryId::new(experiment_id),
+            0,
+            header.len(),
+            0,
+            dataset_size,
+            false,
+        )?;
         let change = memory.set_header(&header)?;
         debug_assert!(!change.resized() && !change.shifted());
 
@@ -45,7 +49,7 @@ impl Dataset {
         );
 
         Ok(Self {
-            segment: Segment(memory),
+            segment: Segment::from_memory(memory),
         })
     }
 
