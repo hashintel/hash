@@ -48,7 +48,7 @@ impl BehaviorKeys {
 
         match key_json {
             serde_json::Value::Object(map) => {
-                field_spec_map.add_multiple(
+                field_spec_map.try_extend(
                     map.into_iter()
                         .map(|(k, v)| {
                             Ok(field_spec_creator.create(
@@ -204,7 +204,7 @@ impl TryFrom<(&ExperimentConfig, &RootFieldSpecCreator<EngineComponent>)> for Be
                         // The default is to use all built-in keys
                         Ok(BehaviorKeys::default())
                     })?;
-                field_spec_map.add_multiple(
+                field_spec_map.try_extend(
                     keys.get_field_specs()
                         .cloned()
                         .collect::<Vec<RootFieldSpec<EngineComponent>>>(),

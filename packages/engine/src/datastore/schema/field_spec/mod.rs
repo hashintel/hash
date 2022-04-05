@@ -137,7 +137,7 @@ impl<S> FieldSpecMap<S> {
 }
 
 impl FieldSpecMap<EngineComponent> {
-    pub fn add(&mut self, new_field: RootFieldSpec<EngineComponent>) -> Result<()> {
+    fn add(&mut self, new_field: RootFieldSpec<EngineComponent>) -> Result<()> {
         let field_key = new_field.create_key()?;
         if let Some(existing_field) = self.field_specs.get(&field_key) {
             if existing_field == &new_field {
@@ -181,21 +181,16 @@ impl FieldSpecMap<EngineComponent> {
         }
     }
 
-    pub fn add_multiple(
+    pub fn try_extend<I: IntoIterator<Item = RootFieldSpec<EngineComponent>>>(
         &mut self,
-        new_field_specs: Vec<RootFieldSpec<EngineComponent>>,
+        new_field_specs: I,
     ) -> Result<()> {
-        new_field_specs
-            .into_iter()
-            .try_for_each(|field_spec| self.add(field_spec))?;
+        let new_field_specs = new_field_specs.into_iter();
+        self.field_specs.reserve(new_field_specs.size_hint().0);
+        for field_spec in new_field_specs {
+            self.add(field_spec)?
+        }
         Ok(())
-    }
-
-    #[cfg(test)]
-    pub(crate) fn union(&mut self, set: FieldSpecMap<EngineComponent>) -> Result<()> {
-        set.field_specs
-            .into_iter()
-            .try_for_each(|(_, field_spec)| self.add(field_spec))
     }
 }
 
@@ -276,7 +271,7 @@ pub mod tests {
         let mut field_spec_map = FieldSpecMap::empty();
 
         field_spec_map
-            .add_multiple(get_base_agent_fields().unwrap())
+            .try_extend(get_base_agent_fields().unwrap())
             .unwrap();
 
         let err = field_spec_map
@@ -295,7 +290,7 @@ pub mod tests {
         let mut field_spec_map = FieldSpecMap::empty();
 
         field_spec_map
-            .add_multiple(get_base_agent_fields().unwrap())
+            .try_extend(get_base_agent_fields().unwrap())
             .unwrap();
 
         field_spec_map
@@ -322,7 +317,7 @@ pub mod tests {
         let mut field_spec_map = FieldSpecMap::empty();
 
         field_spec_map
-            .add_multiple(get_base_agent_fields().unwrap())
+            .try_extend(get_base_agent_fields().unwrap())
             .unwrap();
 
         let len_before = field_spec_map.len();

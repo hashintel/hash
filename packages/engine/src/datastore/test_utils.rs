@@ -24,13 +24,13 @@ use crate::{
 
 fn test_field_specs() -> FieldSpecMap<EngineComponent> {
     let mut map = FieldSpecMap::default();
-    map.add(RootFieldSpec {
+    map.try_extend([RootFieldSpec {
         inner: last_state_index_key(),
         source: EngineComponent::Engine,
         scope: FieldScope::Hidden,
-    })
+    }])
     .unwrap();
-    map.add(RootFieldSpec {
+    map.try_extend([RootFieldSpec {
         inner: FieldSpec {
             name: "fixed_of_variable".to_string(),
             field_type: FieldType::new(
@@ -49,18 +49,18 @@ fn test_field_specs() -> FieldSpecMap<EngineComponent> {
         },
         scope: FieldScope::Agent,
         source: EngineComponent::Engine,
-    })
+    }])
     .unwrap();
-    map.add(RootFieldSpec {
+    map.try_extend([RootFieldSpec {
         inner: FieldSpec {
             name: "seed".to_string(),
             field_type: FieldType::new(FieldTypeVariant::Number, false),
         },
         scope: FieldScope::Agent,
         source: EngineComponent::Engine,
-    })
+    }])
     .unwrap();
-    map.add(RootFieldSpec {
+    map.try_extend([RootFieldSpec {
         inner: FieldSpec {
             name: "complex".to_string(),
             field_type: FieldType::new(
@@ -146,7 +146,7 @@ fn test_field_specs() -> FieldSpecMap<EngineComponent> {
         },
         scope: FieldScope::Agent,
         source: EngineComponent::Engine,
-    })
+    }])
     .unwrap();
     map
 }
@@ -299,20 +299,20 @@ pub fn gen_schema_and_test_agents(
 ) -> Result<(Arc<AgentSchema>, Vec<Agent>), Error> {
     let field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
     let mut field_spec_map = FieldSpecMap::empty();
-    field_spec_map.add(field_spec_creator.create(
+    field_spec_map.try_extend([field_spec_creator.create(
         "age".to_string(),
         FieldType {
             variant: FieldTypeVariant::Number,
             nullable: false,
         },
         FieldScope::Agent,
-    ))?;
+    )])?;
     field_spec_map
-        .add_multiple(get_base_agent_fields().map_err(|err| {
+        .try_extend(get_base_agent_fields().map_err(|err| {
             Error::from(format!("Failed to add base agent field specs: {err}"))
         })?)?;
 
-    field_spec_map.union(test_field_specs())?;
+    field_spec_map.try_extend(test_field_specs())?;
 
     let schema = Arc::new(AgentSchema::new(field_spec_map)?);
 

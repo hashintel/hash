@@ -89,13 +89,13 @@ pub mod tests {
         let field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
         let mut field_spec_map = FieldSpecMap::empty();
 
-        field_spec_map.add(field_spec_creator.create(
+        field_spec_map.try_extend([field_spec_creator.create(
             "test1".to_string(),
             FieldType::new(FieldTypeVariant::Boolean, true),
             FieldScope::Private,
-        ))?;
+        )])?;
 
-        field_spec_map.add(field_spec_creator.create(
+        field_spec_map.try_extend([field_spec_creator.create(
             "test2".to_string(),
             FieldType::new(
                 FieldTypeVariant::VariableLengthArray(Box::new(FieldType::new(
@@ -105,9 +105,9 @@ pub mod tests {
                 true,
             ),
             FieldScope::Private,
-        ))?;
+        )])?;
 
-        field_spec_map.add(field_spec_creator.create(
+        field_spec_map.try_extend([field_spec_creator.create(
             "test3".to_string(),
             FieldType::new(
                 FieldTypeVariant::FixedLengthArray {
@@ -117,9 +117,9 @@ pub mod tests {
                 true,
             ),
             FieldScope::Private,
-        ))?;
+        )])?;
 
-        field_spec_map.add(AgentStateField::AgentId.try_into()?)?;
+        field_spec_map.try_extend([AgentStateField::AgentId.try_into()?])?;
 
         let mut meta = HashMap::new();
         meta.insert("any_type_fields".into(), "".into());

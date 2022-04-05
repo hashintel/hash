@@ -303,7 +303,7 @@ impl PackageCreators {
             |(_package_id, package_name, creator)| {
                 let field_spec_creator =
                     RootFieldSpecCreator::new(EngineComponent::Package(*package_name));
-                field_spec_map.add_multiple(creator.get_state_field_specs(
+                field_spec_map.try_extend(creator.get_state_field_specs(
                     exp_config,
                     globals,
                     &field_spec_creator,
@@ -316,7 +316,7 @@ impl PackageCreators {
             |(_package_id, package_name, creator)| {
                 let field_spec_creator =
                     RootFieldSpecCreator::new(EngineComponent::Package(*package_name));
-                field_spec_map.add_multiple(creator.get_state_field_specs(
+                field_spec_map.try_extend(creator.get_state_field_specs(
                     exp_config,
                     globals,
                     &field_spec_creator,
@@ -329,7 +329,7 @@ impl PackageCreators {
             |(_package_id, package_name, creator)| {
                 let field_spec_creator =
                     RootFieldSpecCreator::new(EngineComponent::Package(*package_name));
-                field_spec_map.add_multiple(creator.get_state_field_specs(
+                field_spec_map.try_extend(creator.get_state_field_specs(
                     exp_config,
                     globals,
                     &field_spec_creator,
@@ -342,7 +342,7 @@ impl PackageCreators {
             |(_package_id, package_name, creator)| {
                 let field_spec_creator =
                     RootFieldSpecCreator::new(EngineComponent::Package(*package_name));
-                field_spec_map.add_multiple(creator.get_state_field_specs(
+                field_spec_map.try_extend(creator.get_state_field_specs(
                     exp_config,
                     globals,
                     &field_spec_creator,
@@ -351,7 +351,7 @@ impl PackageCreators {
             },
         )?;
 
-        field_spec_map.add_multiple(get_base_agent_fields()?)?;
+        field_spec_map.try_extend(get_base_agent_fields()?)?;
 
         Ok(AgentSchema::new(field_spec_map)?)
     }
@@ -367,7 +367,7 @@ impl PackageCreators {
             |(_package_id, package_name, creator)| {
                 let field_spec_creator =
                     RootFieldSpecCreator::new(EngineComponent::Package(*package_name));
-                field_spec_map.add_multiple(creator.get_context_field_specs(
+                field_spec_map.try_extend(creator.get_context_field_specs(
                     exp_config,
                     globals,
                     &field_spec_creator,
@@ -376,7 +376,7 @@ impl PackageCreators {
             },
         )?;
 
-        field_spec_map.add_multiple(get_base_context_fields()?)?;
+        field_spec_map.try_extend(get_base_context_fields()?)?;
 
         Ok(ContextSchema::new(field_spec_map)?)
     }
