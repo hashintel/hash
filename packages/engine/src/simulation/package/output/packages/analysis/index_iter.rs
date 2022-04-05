@@ -10,10 +10,7 @@ use crate::{
             bool_iter, exists_iter, f64_iter, json_serialized_value_iter, json_value_iter_cols,
             str_iter,
         },
-        schema::{
-            accessor::{FieldSpecMapAccessor, GetFieldSpec},
-            EngineComponent,
-        },
+        schema::{accessor::FieldSpecMapAccessor, EngineComponent},
     },
     simulation::package::output::packages::analysis::{
         analyzer::{

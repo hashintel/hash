@@ -10,11 +10,7 @@ use crate::{
     config::{ExperimentConfig, Globals, SimRunConfig, TopologyConfig},
     datastore::{
         batch::{iterators, AgentBatch},
-        schema::{
-            accessor::{FieldSpecMapAccessor, GetFieldSpec},
-            context::ContextSchema,
-            EngineComponent,
-        },
+        schema::{accessor::FieldSpecMapAccessor, context::ContextSchema, EngineComponent},
         table::{proxy::StateReadProxy, state::view::StateSnapshot},
     },
     simulation::{

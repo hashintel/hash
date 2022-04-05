@@ -14,11 +14,7 @@ pub use self::handlers::CustomApiMessageError;
 use self::response::{ApiResponseMap, ApiResponses};
 use crate::{
     config::{ExperimentConfig, Globals},
-    datastore::{
-        batch::iterators,
-        schema::{accessor::GetFieldSpec, EngineComponent},
-        table::pool::BatchPool,
-    },
+    datastore::{batch::iterators, schema::EngineComponent, table::pool::BatchPool},
     simulation::{
         comms::package::PackageComms,
         package::context::{

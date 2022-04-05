@@ -4,69 +4,46 @@ use stateful::field::{FieldKey, FieldSource, RootFieldSpec};
 
 use crate::datastore::{
     error::Result,
-    schema::field_spec::{EngineComponent, FieldScope, FieldSpecMap},
+    schema::field_spec::{FieldScope, FieldSpecMap},
 };
 
-#[derive(derive_new::new)]
 pub struct FieldSpecMapAccessor<S> {
-    accessor_source: EngineComponent,
+    accessor_source: S,
     field_spec_map: Arc<FieldSpecMap<S>>,
 }
 
-pub trait GetFieldSpec {
-    /// The [`FieldSource`] for a [`FieldSpec`]
+impl<S: FieldSource> FieldSpecMapAccessor<S> {
+    pub fn new(accessor_source: S, field_spec_map: Arc<FieldSpecMap<S>>) -> Self {
+        Self {
+            accessor_source,
+            field_spec_map,
+        }
+    }
 
-    type FieldSource;
     /// Get a FieldSpec stored under a given field name with FieldScope::Agent
-    fn get_agent_scoped_field_spec(
-        &self,
-        field_name: &str,
-    ) -> Result<&RootFieldSpec<Self::FieldSource>>;
-    /// Get a FieldSpec stored under a given field name with FieldScope::Hidden and belonging to a
-    /// given FieldSource
-    fn get_hidden_scoped_field_spec(
-        &self,
-        field_name: &str,
-        source: &EngineComponent,
-    ) -> Result<&RootFieldSpec<Self::FieldSource>>;
-
-    /// Get a FieldSpec stored under a given field name with FieldScope::Private that belongs to the
-    /// FieldSource of the accessor
-    fn get_local_private_scoped_field_spec(
-        &self,
-        field_name: &str,
-    ) -> Result<&RootFieldSpec<Self::FieldSource>>;
-
-    /// Get a FieldSpec stored under a given field name with FieldScope::Hidden that belongs to the
-    /// FieldSource of the accessor
-    fn get_local_hidden_scoped_field_spec(
-        &self,
-        field_name: &str,
-    ) -> Result<&RootFieldSpec<Self::FieldSource>>;
-}
-
-impl<S: FieldSource> GetFieldSpec for FieldSpecMapAccessor<S> {
-    type FieldSource = S;
-
-    fn get_agent_scoped_field_spec(
-        &self,
-        field_name: &str,
-    ) -> Result<&RootFieldSpec<Self::FieldSource>> {
+    pub fn get_agent_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec<S>> {
         let key = FieldKey::new_agent_scoped(field_name)?;
         self.field_spec_map.get_field_spec(&key)
     }
 
-    fn get_hidden_scoped_field_spec(
+    /// Get a FieldSpec stored under a given field name with FieldScope::Hidden and belonging to a
+    /// given FieldSource
+    pub fn get_hidden_scoped_field_spec(
         &self,
         field_name: &str,
-        field_source: &EngineComponent,
+        field_source: &S,
     ) -> Result<&RootFieldSpec<S>> {
         let key =
             FieldKey::new_private_or_hidden_scoped(field_name, field_source, FieldScope::Hidden)?;
         self.field_spec_map.get_field_spec(&key)
     }
 
-    fn get_local_private_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec<S>> {
+    /// Get a FieldSpec stored under a given field name with FieldScope::Private that belongs to the
+    /// FieldSource of the accessor
+    pub fn get_local_private_scoped_field_spec(
+        &self,
+        field_name: &str,
+    ) -> Result<&RootFieldSpec<S>> {
         let key = FieldKey::new_private_or_hidden_scoped(
             field_name,
             &self.accessor_source,
@@ -75,7 +52,12 @@ impl<S: FieldSource> GetFieldSpec for FieldSpecMapAccessor<S> {
         self.field_spec_map.get_field_spec(&key)
     }
 
-    fn get_local_hidden_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec<S>> {
+    /// Get a FieldSpec stored under a given field name with FieldScope::Hidden that belongs to the
+    /// FieldSource of the accessor
+    pub fn get_local_hidden_scoped_field_spec(
+        &self,
+        field_name: &str,
+    ) -> Result<&RootFieldSpec<S>> {
         let key = FieldKey::new_private_or_hidden_scoped(
             field_name,
             &self.accessor_source,
@@ -107,7 +89,7 @@ impl<S: FieldSource> RootFieldSpecMapAccessor<S> {
     fn get_private_or_hidden_scoped_field_spec(
         &self,
         field_name: &str,
-        field_source: &EngineComponent,
+        field_source: &S,
         field_scope: FieldScope,
     ) -> Result<&RootFieldSpec<S>> {
         let key = FieldKey::new_private_or_hidden_scoped(field_name, field_source, field_scope)?;

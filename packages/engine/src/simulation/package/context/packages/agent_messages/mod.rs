@@ -12,10 +12,7 @@ use tracing::Span;
 use self::collected::Messages;
 use crate::{
     config::ExperimentConfig,
-    datastore::{
-        batch::iterators,
-        schema::{accessor::GetFieldSpec, EngineComponent},
-    },
+    datastore::{batch::iterators, schema::EngineComponent},
     simulation::{
         comms::package::PackageComms,
         package::context::{

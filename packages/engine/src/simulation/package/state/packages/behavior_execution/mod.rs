@@ -8,7 +8,7 @@ use self::{
 use crate::{
     datastore::{
         batch::AgentBatch,
-        schema::{accessor::GetFieldSpec, EngineComponent},
+        schema::EngineComponent,
         table::{
             context::Context, pool::proxy::PoolWriteProxy, proxy::StateWriteProxy,
             task_shared_store::TaskSharedStoreBuilder,
