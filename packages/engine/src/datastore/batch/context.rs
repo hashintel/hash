@@ -13,7 +13,7 @@ use arrow::{
 };
 use memory::{
     arrow::meta::{self, conversion::get_dynamic_meta_flatbuffers},
-    shared_memory::{Memory, Metaversion, Segment},
+    shared_memory::{Memory, MemoryId, Metaversion, Segment},
 };
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
@@ -63,7 +63,7 @@ impl ContextBatch {
         )?;
 
         let memory = Memory::from_batch_buffers(
-            experiment_id,
+            MemoryId::new(experiment_id),
             &[],
             &header,
             &encoded_data.ipc_message,
