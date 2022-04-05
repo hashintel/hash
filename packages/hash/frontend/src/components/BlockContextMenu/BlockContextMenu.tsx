@@ -14,7 +14,15 @@ import {
 } from "@hashintel/hash-shared/entityStorePlugin";
 import { EditorView } from "prosemirror-view";
 import { Schema } from "prosemirror-model";
-import { Box, Divider, Menu, Typography } from "@mui/material";
+import {
+  Box,
+  Divider,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Typography,
+} from "@mui/material";
 import { bindMenu } from "material-ui-popup-state";
 import { PopupState } from "material-ui-popup-state/hooks";
 import { format } from "date-fns";
@@ -30,7 +38,11 @@ import {
   faTrashCan,
 } from "@fortawesome/free-regular-svg-icons";
 import { getBlockDomId } from "../../blocks/page/BlockView";
-import { BlockSuggesterProps } from "../../blocks/page/createSuggester/BlockSuggester";
+import {
+  BlockSuggester,
+  BlockSuggesterProps,
+  getVariantIcon,
+} from "../../blocks/page/createSuggester/BlockSuggester";
 import { NormalView } from "./NormalView";
 import { SearchView } from "./SearchView";
 import {
@@ -49,6 +61,7 @@ import { useBlockView } from "../../blocks/page/BlockViewContext";
 import { useUsers } from "../hooks/useUsers";
 import { FontAwesomeIcon } from "../../shared/icons";
 import { BlockContextMenuItem } from "./BlockContextMenuItem";
+import { LoadEntityMenu } from "./LoadEntityMenu";
 
 type BlockContextMenuProps = {
   popupState: PopupState;
@@ -58,44 +71,6 @@ type BlockContextMenuProps = {
   view: EditorView<Schema>;
 };
 
-const MENU_ITEMS: Array<MenuItemType> = [
-  {
-    key: "add",
-    title: "Add an entity",
-    icon: <FontAwesomeIcon icon={faAdd} />,
-  },
-  {
-    key: "copyLink",
-    title: "Copy Link",
-    icon: <FontAwesomeIcon icon={faLink} />,
-  },
-  {
-    key: "duplicate",
-    title: "Duplicate",
-    icon: <FontAwesomeIcon icon={faCopy} />,
-  },
-  {
-    key: "delete",
-    title: "Delete",
-    icon: <FontAwesomeIcon icon={faTrashCan} />,
-  },
-  {
-    key: "swap-block",
-    title: "Swap block type",
-    icon: <FontAwesomeIcon icon={faRefresh} />,
-  },
-  {
-    key: "move-to-page",
-    title: "Move to page",
-    icon: <FontAwesomeIcon icon={faArrowRight} />,
-  },
-  {
-    key: "comment",
-    title: "Comment",
-    icon: <FontAwesomeIcon icon={faMessage} />,
-  },
-];
-
 export const BlockContextMenu = forwardRef<typeof Menu, BlockContextMenuProps>(
   ({ popupState, blockSuggesterProps, entityId, entityStore, view }, ref) => {
     const blockData = entityId ? entityStore.saved[entityId] : null;
@@ -104,6 +79,8 @@ export const BlockContextMenu = forwardRef<typeof Menu, BlockContextMenuProps>(
     const { accountId } = useCurrentWorkspaceContext();
     const { fetchEntities } = useAccountEntities();
     const blockView = useBlockView();
+
+    const blocks = useFilteredBlocks("", userBlocks);
 
     // console.log("blockView => ", blockView);
 
@@ -192,20 +169,13 @@ export const BlockContextMenu = forwardRef<typeof Menu, BlockContextMenuProps>(
       throw new Error("BlockContextMenu linked to non-block entity");
     }
 
-    const [menuState, setMenuState] = useState<MenuState>({
-      currentView: "normal",
-      selectedIndex: 0,
-      subMenuVisible: false,
-    });
-
-    const { currentView, selectedIndex, subMenuVisible } = menuState;
-
     const menuItems = useMemo(() => {
       return [
         {
           key: "add",
           title: "Add an entity",
           icon: <FontAwesomeIcon icon={faAdd} />,
+          subMenu: <LoadEntityMenu />,
         },
         {
           key: "copyLink",
@@ -231,6 +201,30 @@ export const BlockContextMenu = forwardRef<typeof Menu, BlockContextMenuProps>(
           key: "swap-block",
           title: "Swap block type",
           icon: <FontAwesomeIcon icon={faRefresh} />,
+          subMenu: (
+            <>
+              {blocks.map((option) => (
+                <MenuItem
+                  onClick={() => {
+                    blockSuggesterProps.onChange(option.variant, option.meta);
+                  }}
+                  key={`${option.meta.name}/${option.variant.name}`}
+                >
+                  <ListItemIcon>
+                    <Box
+                      component="img"
+                      width={16}
+                      height={16}
+                      overflow="hidden"
+                      alt={option.variant.name}
+                      src={getVariantIcon(option)}
+                    />
+                  </ListItemIcon>
+                  <ListItemText primary={option?.variant.name} />
+                </MenuItem>
+              ))}
+            </>
+          ),
         },
         {
           key: "move-to-page",
@@ -243,7 +237,7 @@ export const BlockContextMenu = forwardRef<typeof Menu, BlockContextMenuProps>(
           icon: <FontAwesomeIcon icon={faMessage} />,
         },
       ];
-    }, [entityId]);
+    }, [entityId, blockSuggesterProps, blocks]);
 
     const usableMenuItems = menuItems.filter(({ key }) => {
       return key !== "copyLink" || entityId;
@@ -278,51 +272,23 @@ export const BlockContextMenu = forwardRef<typeof Menu, BlockContextMenuProps>(
             mb: 1,
           }}
         >
-          {/* <input
-          autoFocus
-          value={searchText}
-          onChange={(event) => {
-            search(event.target.value);
-          }}
-          className={tw`block w-full px-2 py-1 bg-gray-50 border-1 text-sm rounded-sm `}
-          placeholder="Filter actions..."
-          onKeyDown={(event) => {
-            // Is Enter causing a new-line? Read this: https://hashintel.slack.com/archives/C02K2ARC1BK/p1638433216067800
-            if (event.key === "Enter") {
-              event.preventDefault();
-              if (currentView === "normal") {
-                onNormalViewEnter();
-              } else {
-                onSearchViewEnter();
-              }
-            }
-          }}
-        /> */}
           <BlockLoaderInput />
         </Box>
 
-        {usableMenuItems.map(({ key, title, icon, onClick }, index) => {
-          return (
-            <BlockContextMenuItem
-              key={key}
-              title={title}
-              icon={icon}
-              onClick={onClick}
-              // subMenu={
-              //   key === "swap-block" ? (
-              //     <BlockSuggester
-              //       sx={{
-              //         left: "100%",
-              //         marginLeft: "0.125rem",
-              //         marginTop: "0.5rem",
-              //       }}
-              //       {...blockSuggesterProps}
-              //     />
-              //   ) : null
-              // }
-            />
-          );
-        })}
+        {usableMenuItems.map(
+          ({ key, title, icon, onClick, subMenu }, index) => {
+            return (
+              <BlockContextMenuItem
+                key={key}
+                title={title}
+                itemKey={key}
+                icon={icon}
+                onClick={onClick}
+                subMenu={subMenu}
+              />
+            );
+          },
+        )}
 
         <Divider />
         <Box

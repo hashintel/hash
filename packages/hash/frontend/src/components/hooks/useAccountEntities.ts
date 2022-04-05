@@ -5,12 +5,23 @@ import {
   GetEntitiesQuery,
   GetEntitiesQueryVariables,
   EntityTypeChoice,
+  UnknownEntity,
 } from "../../graphql/apiTypes.gen";
 
 // @todo properly type this
 export const useAccountEntities = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState();
+  const [data, setData] = useState<
+    Pick<
+      UnknownEntity,
+      | "accountId"
+      | "entityId"
+      | "entityTypeId"
+      | "entityTypeName"
+      | "properties"
+    >[]
+  >([]);
   const client = useApolloClient();
 
   const fetchEntities = useCallback(
@@ -30,6 +41,8 @@ export const useAccountEntities = () => {
 
       console.log("res => ", response.data.entities);
 
+      setData(response.data.entities);
+
       return response.data.entities;
     },
     [client],
@@ -39,5 +52,6 @@ export const useAccountEntities = () => {
     fetchEntities,
     loading,
     error,
+    data,
   };
 };

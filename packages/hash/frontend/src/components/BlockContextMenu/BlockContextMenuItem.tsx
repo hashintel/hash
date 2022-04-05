@@ -1,61 +1,52 @@
+import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import { ListItemIcon, ListItemText, MenuItem } from "@mui/material";
 import {
   bindPopover,
-  bindTrigger,
+  bindHover,
   usePopupState,
 } from "material-ui-popup-state/hooks";
+import HoverPopover from "material-ui-popup-state/HoverPopover";
 import { VFC } from "react";
+import { FontAwesomeIcon } from "../../shared/icons";
 
-export const BlockContextMenuItem: VFC<
-  {
-    selected?: boolean;
-    onClick?: VoidFunction;
-    onSelect?: (shouldShowSubMenu: boolean) => void;
-    icon: JSX.Element;
-    title: JSX.Element | string;
-  } & (
-    | {
-        subMenuVisible?: undefined;
-        subMenu?: undefined;
-      }
-    | { subMenuVisible?: boolean; subMenu?: JSX.Element | null }
-  )
-> = ({ selected, onClick, onSelect, icon, title, subMenu }) => {
+export const BlockContextMenuItem: VFC<{
+  itemKey: string;
+  onClick?: VoidFunction;
+  icon: JSX.Element;
+  title: JSX.Element | string;
+  subMenu?: JSX.Element;
+}> = ({ onClick, icon, title, itemKey, subMenu }) => {
   const subMenuPopupState = usePopupState({
-    variant: "popover",
-    popupId: `menu-${title}-id`, // @todo think of a better id
+    variant: "popper",
+    popupId: `${itemKey}-submenu`,
   });
-
-  const { onClick: triggerOnClick, ...triggerAttrs } =
-    bindTrigger(subMenuPopupState);
 
   return (
     <MenuItem
-      {...(subMenu && {
-        ...triggerAttrs,
-        // onMouseOver: () => subMenuPopupState.open(),
-      })}
-      onClick={(evt) => {
-        if (subMenu) {
-          triggerOnClick(evt);
-        } else {
-          onClick();
-        }
-      }}
+      {...(subMenu
+        ? {
+            ...bindHover(subMenuPopupState),
+          }
+        : {
+            onClick,
+          })}
       sx={{
         position: "relative",
       }}
     >
       <ListItemIcon>{icon}</ListItemIcon>
       <ListItemText primary={title} />
-      {/* {subMenu ? (
+      {subMenu ? (
         <>
-          <span className={tw`ml-auto`}>&rarr;</span>
-          <Popover
+          <FontAwesomeIcon
+            icon={faChevronRight}
+            sx={({ palette }) => ({
+              ml: "auto",
+              color: palette.gray[50],
+            })}
+          />
+          <HoverPopover
             {...bindPopover(subMenuPopupState)}
-            sx={{
-              backgroundColor: "red",
-            }}
             anchorOrigin={{
               horizontal: "right",
               vertical: "bottom",
@@ -66,16 +57,14 @@ export const BlockContextMenuItem: VFC<
             }}
             PaperProps={{
               sx: {
-                backgroundColor: "red",
-                width: 240,
-                height: 200,
+                height: 300,
               },
             }}
           >
             {subMenu}
-          </Popover>
+          </HoverPopover>
         </>
-      ) : null} */}
+      ) : null}
     </MenuItem>
   );
 };
