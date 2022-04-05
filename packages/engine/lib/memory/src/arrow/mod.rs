@@ -1,4 +1,7 @@
-//! TODO: DOC
+//! Contains structures to store the Apache Arrow memory-format in shared memory, and functions for
+//! converting between Arrow and JSON.
+//!
+//! Also provides an FFI module to interact with the Arrow data.
 pub mod flush;
 pub mod ipc;
 pub mod load;
