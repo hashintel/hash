@@ -7,22 +7,21 @@
 use std::collections::HashMap;
 
 use arrow::datatypes::{Field, Schema};
-use stateful::field::{FieldTypeVariant, IsFixedSize};
+use stateful::field::{FieldSource, FieldTypeVariant, IsFixedSize};
 
 use crate::datastore::{
     error::{Error, Result},
     schema::{EngineComponent, FieldSpecMap, RootFieldSpec},
 };
 
-impl TryFrom<RootFieldSpec<EngineComponent>> for Field {
+impl<S: FieldSource> TryFrom<RootFieldSpec<S>> for Field {
     type Error = Error;
 
-    fn try_from(root_field_spec: RootFieldSpec<EngineComponent>) -> Result<Self, Self::Error> {
+    fn try_from(root_field_spec: RootFieldSpec<S>) -> Result<Self, Self::Error> {
         let field_key = root_field_spec.create_key()?;
-        Ok(root_field_spec.inner.into_arrow_field(
-            root_field_spec.source == EngineComponent::Engine,
-            Some(field_key),
-        ))
+        Ok(root_field_spec
+            .inner
+            .into_arrow_field(root_field_spec.source.is_trusted(), Some(field_key)))
     }
 }
 

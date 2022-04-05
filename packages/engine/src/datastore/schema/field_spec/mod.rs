@@ -42,6 +42,10 @@ impl FieldSource for EngineComponent {
             self == rhs
         }
     }
+
+    fn is_trusted(&self) -> bool {
+        *self == EngineComponent::Engine
+    }
 }
 
 /// This key is required for accessing neighbors' outboxes (new inboxes).
