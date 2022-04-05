@@ -1,17 +1,15 @@
-import { VoidFunctionComponent } from "react";
-import { useRouter } from "next/router";
-
 import { Box, Typography } from "@mui/material";
+import { NextPage } from "next";
 import { MainContentWrapper } from "../../components/layout/MainContentWrapper";
 import { useUser } from "../../components/hooks/useUser";
 import { useOrgs } from "../../components/hooks/useOrgs";
 import { Link } from "../../shared/ui";
+import { useRouteAccountInfo } from "../../shared/routing";
 
-export const AccountHome: VoidFunctionComponent = () => {
-  const { query } = useRouter();
+export const AccountHome: NextPage = () => {
   const { user } = useUser();
   const { data: orgs } = useOrgs();
-  const accountId = query.accountId as string;
+  const { accountId } = useRouteAccountInfo();
 
   if (!user) {
     return (

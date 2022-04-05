@@ -5,7 +5,7 @@ use std::{borrow::Cow, mem, sync::Arc};
 use arrow::{self, array::Array, record_batch::RecordBatch, util::bit_util};
 use memory::{
     arrow::meta::{self, Buffer, Node, NodeMapping},
-    shared_memory::{padding, Memory},
+    shared_memory::{padding, Segment},
 };
 
 use crate::{
@@ -162,7 +162,7 @@ impl<'a> BufferActions<'a> {
         self.flush_memory(&mut memory)?;
 
         let agent_batch =
-            AgentBatch::from_memory(memory, Some(agent_schema.as_ref()), Some(worker_index))?;
+            AgentBatch::from_segment(memory, Some(agent_schema.as_ref()), Some(worker_index))?;
         let message_batch = MessageBatch::empty_from_agent_batch(
             &agent_batch,
             &message_schema.arrow,
@@ -174,7 +174,7 @@ impl<'a> BufferActions<'a> {
     }
 
     #[allow(clippy::too_many_lines)]
-    pub fn flush_memory(&self, memory: &mut Memory) -> Result<()> {
+    pub fn flush_memory(&self, memory: &mut Segment) -> Result<()> {
         let buffer_count = self.new_dynamic_meta.buffers.len();
         debug_assert_eq!(buffer_count, self.actions.len());
         let data_buffer = memory.get_mut_data_buffer()?;
@@ -427,30 +427,25 @@ impl<'a> BufferActions<'a> {
             "Can't flush migration changes when haven't loaded latest persisted agent batch"
         );
         debug_assert!(
-            offsets_start_at_zero(
-                batch.segment().memory(),
-                batch.static_meta(),
-                batch.dynamic_meta(),
-            )
-            .is_ok(),
+            offsets_start_at_zero(batch.segment(), batch.static_meta(), batch.dynamic_meta(),)
+                .is_ok(),
             "Can't flush migration changes, because agent batch already contains invalid offsets"
         );
 
         let change = batch
             .segment_mut()
-            .memory_mut()
             .set_data_length(self.new_dynamic_meta.data_length)?;
         batch.loaded_metaversion_mut().increment_with(&change);
-        self.flush_memory(batch.segment_mut().memory_mut())?;
+        self.flush_memory(batch.segment_mut())?;
         let loaded = batch.loaded_metaversion();
-        batch.segment_mut().set_persisted_metaversion(loaded);
+        batch.segment_mut().persist_metaversion(loaded);
 
         // Overwrite the Arrow Batch Metadata in memory
         let change = agent_batch.flush_dynamic_meta_unchecked(&self.new_dynamic_meta)?;
         debug_assert!(!change.resized() && !change.shifted());
         debug_assert!(
             offsets_start_at_zero(
-                agent_batch.batch.segment().memory(),
+                agent_batch.batch.segment(),
                 agent_batch.batch.static_meta(),
                 agent_batch.batch.dynamic_meta(),
             )?,
@@ -537,8 +532,8 @@ impl<'a> BufferActions<'a> {
                     let mut cur_length = if let Some(agent_batch) = agent_batch {
                         let start_index = buffer_meta.offset;
                         let end_index = start_index + buffer_meta.length;
-                        let data = &agent_batch.batch.segment().memory().get_data_buffer()?
-                            [start_index..end_index];
+                        let data =
+                            &agent_batch.batch.segment().get_data_buffer()?[start_index..end_index];
                         debug_assert_eq!(data, agent_batch.get_buffer(buffer_index).unwrap());
                         debug_assert!(range_actions.is_well_ordered_remove());
                         let mut removed_count = 0;
@@ -1310,11 +1305,11 @@ impl From<&RowActions> for RangeActions {
 /// # Errors
 /// `memory` doesn't have a data buffer, so it can't contain an Arrow record batch.
 fn offsets_start_at_zero(
-    memory: &Memory,
+    segment: &Segment,
     static_meta: &meta::Static,
     dynamic_meta: &meta::Dynamic,
 ) -> Result<bool> {
-    let data = memory.get_data_buffer()?;
+    let data = segment.get_data_buffer()?;
 
     let mut buffer_index = 0;
     let mut starts_at_zero = true;

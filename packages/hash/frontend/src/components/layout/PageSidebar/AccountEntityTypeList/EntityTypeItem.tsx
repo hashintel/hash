@@ -1,5 +1,5 @@
 import { Box, BoxProps, styled, Tooltip, Typography } from "@mui/material";
-import { useRef, useState, VFC } from "react";
+import { useRef, VFC } from "react";
 import { faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
 
@@ -14,11 +14,9 @@ type EntityTypeItemProps = {
   selected: boolean;
 };
 
-const Container = styled(
-  (
-    props: BoxProps & { hovered: boolean; focused: boolean; selected: boolean },
-  ) => <Box component="li" {...props} />,
-)(({ theme, selected, hovered, focused }) => ({
+const Container = styled((props: BoxProps & { selected: boolean }) => (
+  <Box component="li" {...props} />
+))(({ theme, selected }) => ({
   marginLeft: theme.spacing(0.5),
   marginRight: theme.spacing(0.5),
   paddingLeft: theme.spacing(3.75),
@@ -29,26 +27,26 @@ const Container = styled(
   alignItems: "center",
   color: theme.palette.gray[70],
 
-  "&:hover": {
-    backgroundColor: theme.palette.gray[20],
-    color: theme.palette.gray[80],
-  },
-
-  ...((hovered || focused) &&
-    !selected && {
+  "&:hover, &:focus": {
+    ...(!selected && {
       backgroundColor: theme.palette.gray[20],
       color: theme.palette.gray[80],
     }),
 
-  "&:focus-within": {
-    backgroundColor: theme.palette.gray[20],
-    color: theme.palette.gray[80],
+    "& .entity-menu-trigger": {
+      color: theme.palette.gray[50],
+    },
   },
 
   ...(selected && {
     backgroundColor: theme.palette.gray[30],
     color: theme.palette.gray[80],
   }),
+
+  "&:focus-within": {
+    backgroundColor: theme.palette.gray[20],
+    color: theme.palette.gray[80],
+  },
 }));
 
 export const EntityTypeItem: VFC<EntityTypeItemProps> = ({
@@ -62,21 +60,9 @@ export const EntityTypeItem: VFC<EntityTypeItemProps> = ({
     variant: "popover",
     popupId: "entity-menu",
   });
-  const [hovered, setHovered] = useState(false);
-  const [focused, setFocused] = useState(false);
 
   return (
-    <Container
-      component="li"
-      tabIndex={0}
-      selected={selected}
-      hovered={hovered}
-      focused={focused}
-      onMouseOver={() => setHovered(true)}
-      onMouseOut={() => setHovered(false)}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
-    >
+    <Container component="li" tabIndex={0} selected={selected}>
       <Link
         tabIndex={-1}
         sx={{ flex: 1 }}
@@ -107,14 +93,12 @@ export const EntityTypeItem: VFC<EntityTypeItemProps> = ({
       >
         <IconButton
           ref={entityMenuTriggerRef}
+          className="entity-menu-trigger"
           {...bindTrigger(popupState)}
           size="medium"
           unpadded
           sx={({ palette }) => ({
             color: palette.gray[40],
-            ...(hovered && {
-              color: palette.gray[50],
-            }),
             "&:hover": {
               backgroundColor: palette.gray[selected ? 40 : 30],
               color: palette.gray[50],

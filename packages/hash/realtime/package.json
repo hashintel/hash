@@ -3,10 +3,6 @@
   "version": "0.0.0",
   "private": true,
   "description": "Realtime streaming update server from the HASH datstore",
-  "repository": {
-    "url": "https://github.com/hashintel/dev/packages/hash/realtime",
-    "directory": "packages/hash/realtime"
-  },
   "license": "GPL-3.0",
   "scripts": {
     "clear-redis": "ts-node ./src/scripts/clear-redis.ts",
