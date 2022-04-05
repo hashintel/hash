@@ -124,8 +124,9 @@ export const Footer: FC = () => (
           <FooterSection label="Resources">
             <FooterLink href="https://hash.ai/careers">Careers</FooterLink>
             <FooterLink href="https://hash.ai/contact">Contact Us</FooterLink>
-            <FooterLink href="https://hash.ai/legal/terms">
-              Terms of Service
+            <FooterLink href="https://hash.ai/legal/terms">Terms</FooterLink>
+            <FooterLink href="https://hash.ai/legal/privacy">
+              Privacy
             </FooterLink>
           </FooterSection>
           <FooterSection label="Our projects">
