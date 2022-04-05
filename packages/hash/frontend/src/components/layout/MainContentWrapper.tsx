@@ -1,5 +1,5 @@
 import { Fade, Box, Tooltip, styled } from "@mui/material";
-import { FunctionComponent } from "react";
+import { VFC } from "react";
 
 import { SidebarToggleIcon } from "../../shared/icons";
 import { HEADER_HEIGHT } from "./PageHeader/PageHeader";
@@ -30,7 +30,9 @@ const Main = styled("main", {
   }),
 }));
 
-export const MainContentWrapper: FunctionComponent = ({ children }) => {
+export const MainContentWrapper: VFC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const { openSidebar, sidebarOpen } = useSidebarContext();
 
   return (
