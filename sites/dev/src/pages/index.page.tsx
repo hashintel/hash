@@ -236,7 +236,7 @@ const Projects: VFC<ComponentProps<typeof Stack>> = (props) => {
                   <FaIcon name="arrow-up-right-from-square" type="solid" />
                 }
               >
-                Download on Github
+                Download on GitHub
               </Button>
             }
             image={
