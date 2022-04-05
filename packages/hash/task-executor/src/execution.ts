@@ -1,5 +1,11 @@
 import execa from "execa";
 
+export class ExecutionError extends Error {
+  constructor(err_msg: string) {
+    super(`Task failed to execute with: ${err_msg}`);
+  }
+}
+
 /**
  * Executes a given shell command on a subprocess.
  *
@@ -13,9 +19,3 @@ export const executeTask = async (file: string, args: string[]) => {
     throw new ExecutionError(error.toString());
   }
 };
-
-export class ExecutionError extends Error {
-  constructor(err_msg: string) {
-    super(`Task failed to execute with: ${err_msg}`);
-  }
-}
