@@ -43,6 +43,7 @@ export const BlockContextMenuItem: VFC<{
             sx={({ palette }) => ({
               ml: "auto",
               color: palette.gray[50],
+              fontSize: 12,
             })}
           />
           <HoverPopover

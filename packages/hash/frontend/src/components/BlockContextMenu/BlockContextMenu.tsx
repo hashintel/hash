@@ -56,12 +56,12 @@ import { BlockLoaderInput } from "./BlockLoaderInput";
 import { useUserBlocks } from "../../blocks/userBlocks";
 import { useFilteredBlocks } from "../../blocks/page/createSuggester/useFilteredBlocks";
 import { useAccountEntities } from "../hooks/useAccountEntities";
-import { useCurrentWorkspaceContext } from "../../contexts/CurrentWorkspaceContext";
 import { useBlockView } from "../../blocks/page/BlockViewContext";
 import { useUsers } from "../hooks/useUsers";
 import { FontAwesomeIcon } from "../../shared/icons";
 import { BlockContextMenuItem } from "./BlockContextMenuItem";
 import { LoadEntityMenu } from "./LoadEntityMenu";
+import { useRouteAccountInfo } from "../../shared/routing";
 
 type BlockContextMenuProps = {
   popupState: PopupState;
@@ -76,7 +76,7 @@ export const BlockContextMenu = forwardRef<typeof Menu, BlockContextMenuProps>(
     const blockData = entityId ? entityStore.saved[entityId] : null;
     const { data: users } = useUsers();
     const { value: userBlocks } = useUserBlocks();
-    const { accountId } = useCurrentWorkspaceContext();
+    const { accountId } = useRouteAccountInfo();
     const { fetchEntities } = useAccountEntities();
     const blockView = useBlockView();
 
