@@ -1,15 +1,6 @@
-/**
- * @todo update from blockprotocol
- */
-// @todo use more descriptive names instead of --step-1, --step-2
-// wouldn't need this when this is in
-
 import { Components } from "@mui/material";
 
-// import { DESKTOP_NAVBAR_HEIGHT } from "../../../components/Navbar";
 import { customColors } from "../../palette";
-
-const DESKTOP_NAVBAR_HEIGHT = 71.5;
 
 // @see https://github.com/mui-org/material-ui/issues/15251
 const rootTypographyStyles = `
@@ -212,28 +203,11 @@ export const MuiCssBaselineThemeOptions: Components["MuiCssBaseline"] = {
             scroll-behavior: smooth;
           }
 
-          body {
-            overflow: auto;${
-              "" /** @todo: find a pernament solution for preventing the navbar from shifting to the right when a modal is opened on an overflowing page */
-            }
-          }
-
           body, p {
             font-size: var(--step-0);
             font-weight: 400;
             line-height: 1.7;
             color: ${customColors.gray[90]};
-          }
-
-          pre {
-            margin: unset;
-          }
-
-          :target:before {
-            content: "";
-            display: block;
-            height: ${DESKTOP_NAVBAR_HEIGHT}px;
-            margin: -${DESKTOP_NAVBAR_HEIGHT}px 0 0;
           }
 
           ${rootTypographyStyles}
