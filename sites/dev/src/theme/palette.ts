@@ -14,7 +14,7 @@ export const customColors = {
     700: "#FBA759",
     800: "#E36C29",
     900: "#BB4317",
-    1000: "9C310A",
+    1000: "#9C310A",
   },
   orange: {
     100: "#FFFAF5",
