@@ -5,6 +5,9 @@
   "license": "GPL-3.0",
   "main": "index.js",
   "scripts": {
+    "fix:eslint": "eslint --ext .ts --fix ./src/",
+    "lint:eslint": "eslint --ext .ts ./src/",
+    "lint:tsc": "tsc --noEmit",
     "start": ". ./setup.sh python3 && cross-env NODE_ENV=production node ./node_modules/.bin/ts-node --transpile-only ./src/index.ts"
   },
   "dependencies": {
