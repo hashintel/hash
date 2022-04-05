@@ -68,7 +68,6 @@ impl<'a> MigrationPlan<'a> {
                         .swap_remove(batch_index)
                         .batch
                         .segment()
-                        .memory()
                         .id()
                         .to_string(),
                 );
@@ -78,7 +77,6 @@ impl<'a> MigrationPlan<'a> {
                         .swap_remove(batch_index)
                         .batch
                         .segment()
-                        .memory()
                         .id()
                         .to_string(),
                 );

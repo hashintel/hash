@@ -185,9 +185,9 @@ impl Metaversion {
 
     pub fn from_le_bytes(b: [u8; 8]) -> Result<Self> {
         // Slicing gives wrong type
-        let memory = u32::from_le_bytes([b[0], b[1], b[2], b[3]]);
+        let segment = u32::from_le_bytes([b[0], b[1], b[2], b[3]]);
         let batch = u32::from_le_bytes([b[4], b[5], b[6], b[7]]);
-        Self::new(memory, batch)
+        Self::new(segment, batch)
     }
 
     pub fn to_le_bytes(self) -> [u8; 8] {
