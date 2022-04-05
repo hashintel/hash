@@ -13,7 +13,7 @@ use arrow::{
 };
 use memory::{
     arrow::meta::{self, conversion::get_dynamic_meta_flatbuffers},
-    shared_memory::{Memory, MemoryId, Metaversion, Segment},
+    shared_memory::{MemoryId, Metaversion, Segment},
 };
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
@@ -62,7 +62,7 @@ impl ContextBatch {
             &IpcWriteOptions::default(),
         )?;
 
-        let memory = Memory::from_batch_buffers(
+        let segment = Segment::from_batch_buffers(
             MemoryId::new(experiment_id),
             &[],
             &header,
@@ -70,17 +70,17 @@ impl ContextBatch {
             &encoded_data.arrow_data,
             false,
         )?;
-        Self::from_memory(memory, schema)
+        Self::from_segment(segment, schema)
     }
 
-    pub fn from_memory(memory: Memory, schema: Option<&Arc<Schema>>) -> Result<Self> {
-        let persisted = memory.metaversion()?;
-        let (schema_buffer, _, meta_buffer, data_buffer) = memory.get_batch_buffers()?;
+    pub fn from_segment(segment: Segment, schema: Option<&Arc<Schema>>) -> Result<Self> {
+        let persisted = segment.try_read_persisted_metaversion()?;
+        let buffers = segment.get_batch_buffers()?;
 
         let schema = if let Some(s) = schema {
             s.clone()
         } else {
-            let message = ipc::root_as_message(schema_buffer)?;
+            let message = ipc::root_as_message(buffers.schema())?;
             let ipc_schema = match message.header_as_schema() {
                 Some(s) => s,
                 None => return Err(Error::ArrowSchemaRead),
@@ -88,13 +88,13 @@ impl ContextBatch {
             Arc::new(ipc::convert::fb_to_schema(ipc_schema))
         };
 
-        let rb_msg = ipc::root_as_message(meta_buffer)?
+        let rb_msg = ipc::root_as_message(buffers.meta())?
             .header_as_record_batch()
             .ok_or(Error::InvalidRecordBatchIpcMessage)?;
-        let batch = read_record_batch(data_buffer, rb_msg, schema, &[])?;
+        let batch = read_record_batch(buffers.data(), rb_msg, schema, &[])?;
 
         Ok(Self {
-            segment: Segment::from_memory(memory),
+            segment,
             loaded: persisted,
             batch,
         })
@@ -121,7 +121,7 @@ impl ContextBatch {
             return Err(Error::from("Expected context datas to not be empty"));
         }
 
-        let mut persisted = self.segment.persisted_metaversion();
+        let mut persisted = self.segment.read_persisted_metaversion();
 
         let column_dynamic_meta_list = column_writers
             .iter()
@@ -130,18 +130,14 @@ impl ContextBatch {
         let dynamic =
             meta::Dynamic::from_column_dynamic_meta_list(&column_dynamic_meta_list, num_agents);
 
-        let current_data_size = self.segment.memory().get_data_buffer_len()?;
+        let current_data_size = self.segment.get_data_buffer_len()?;
         if current_data_size < dynamic.data_length {
-            let change = self
-                .segment
-                .memory_mut()
-                .set_data_length(dynamic.data_length)?;
+            let change = self.segment.set_data_length(dynamic.data_length)?;
             persisted.increment_with(&change);
         } else if current_data_size > UPPER_BOUND_DATA_SIZE_MULTIPLIER * dynamic.data_length {
             // Shrink memory if it's getting to big
             let change = self
                 .segment
-                .memory_mut()
                 .shrink_memory_with_data_length(dynamic.data_length)?;
             // TODO: Don't shrink all the way to `data_length`? (to lower risk of
             //       having to expand memory again soon afterwards)
@@ -149,10 +145,10 @@ impl ContextBatch {
         }
 
         debug_assert!(
-            self.segment.memory().get_data_buffer_len()? >= dynamic.data_length,
+            self.segment.get_data_buffer_len()? >= dynamic.data_length,
             "Data buffer can't be smaller than new data, because we just checked its size"
         );
-        let data = self.segment.memory_mut().get_mut_data_buffer()?;
+        let data = self.segment.get_mut_data_buffer()?;
 
         let mut next_offset = 0;
         let writable_datas = column_dynamic_meta_list
@@ -177,18 +173,18 @@ impl ContextBatch {
             })?;
 
         let meta_buffer = get_dynamic_meta_flatbuffers(&dynamic)?;
-        let change = self.segment.memory_mut().set_metadata(&meta_buffer)?;
+        let change = self.segment.set_metadata(&meta_buffer)?;
         persisted.increment_with(&change);
 
         persisted.increment_batch();
-        self.segment.set_persisted_metaversion(persisted);
+        self.segment.persist_metaversion(persisted);
 
         // Reload batch
-        let (_, _, meta_buffer, data_buffer) = self.segment.memory().get_batch_buffers()?;
-        let rb_msg = &ipc::root_as_message(meta_buffer)?
+        let buffers = self.segment.get_batch_buffers()?;
+        let rb_msg = &ipc::root_as_message(buffers.meta())?
             .header_as_record_batch()
             .ok_or(Error::InvalidRecordBatchIpcMessage)?;
-        self.batch = read_record_batch(data_buffer, *rb_msg, self.batch.schema(), &[])?;
+        self.batch = read_record_batch(buffers.data(), *rb_msg, self.batch.schema(), &[])?;
         self.loaded = persisted;
 
         Ok(())
