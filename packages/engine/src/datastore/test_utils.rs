@@ -22,7 +22,7 @@ use crate::{
     simulation::package::creator::{get_base_agent_fields, PackageCreators},
 };
 
-fn test_field_specs() -> FieldSpecMap {
+fn test_field_specs() -> FieldSpecMap<EngineComponent> {
     let mut map = FieldSpecMap::default();
     map.add(RootFieldSpec {
         inner: last_state_index_key(),

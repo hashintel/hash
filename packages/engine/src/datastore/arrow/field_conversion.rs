@@ -14,10 +14,10 @@ use crate::datastore::{
     schema::{EngineComponent, FieldSpecMap, RootFieldSpec},
 };
 
-impl TryFrom<RootFieldSpec> for Field {
+impl TryFrom<RootFieldSpec<EngineComponent>> for Field {
     type Error = Error;
 
-    fn try_from(root_field_spec: RootFieldSpec) -> Result<Self, Self::Error> {
+    fn try_from(root_field_spec: RootFieldSpec<EngineComponent>) -> Result<Self, Self::Error> {
         let field_key = root_field_spec.create_key()?;
         Ok(root_field_spec.inner.into_arrow_field(
             root_field_spec.source == EngineComponent::Engine,
@@ -26,7 +26,7 @@ impl TryFrom<RootFieldSpec> for Field {
     }
 }
 
-impl FieldSpecMap {
+impl FieldSpecMap<EngineComponent> {
     pub fn get_arrow_schema(&self) -> Result<Schema> {
         let mut partitioned_fields = Vec::with_capacity(self.len());
         let mut fixed_size_no = 0;
@@ -51,7 +51,9 @@ impl FieldSpecMap {
         }
 
         // Sort both partitions by field keys
-        let key_sort = |a: &(&RootFieldSpec, String), b: &(&RootFieldSpec, String)| a.1.cmp(&b.1);
+        let key_sort =
+            |a: &(&RootFieldSpec<EngineComponent>, String),
+             b: &(&RootFieldSpec<EngineComponent>, String)| a.1.cmp(&b.1);
         partitioned_fields[0..fixed_size_no].sort_by(key_sort);
         partitioned_fields[fixed_size_no..].sort_by(key_sort);
         let nullabilities = partitioned_fields

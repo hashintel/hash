@@ -10,7 +10,9 @@ use self::packages::Output;
 use crate::{
     config::{ExperimentConfig, Globals, SimRunConfig},
     datastore::{
-        schema::{accessor::FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
+        schema::{
+            accessor::FieldSpecMapAccessor, EngineComponent, RootFieldSpec, RootFieldSpecCreator,
+        },
         table::{context::Context, state::State},
     },
     simulation::{
@@ -35,7 +37,7 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
         &self,
         config: &Arc<SimRunConfig>,
         system: PackageComms,
-        accessor: FieldSpecMapAccessor,
+        accessor: FieldSpecMapAccessor<EngineComponent>,
     ) -> Result<Box<dyn Package>>;
 
     fn dependencies() -> Dependencies
@@ -57,8 +59,8 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        _field_spec_map_builder: &RootFieldSpecCreator,
-    ) -> Result<Vec<RootFieldSpec>> {
+        _field_spec_map_builder: &RootFieldSpecCreator<EngineComponent>,
+    ) -> Result<Vec<RootFieldSpec<EngineComponent>>> {
         Ok(vec![])
     }
 }

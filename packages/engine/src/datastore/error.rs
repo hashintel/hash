@@ -4,7 +4,7 @@ use arrow::{datatypes::DataType, error::ArrowError};
 use stateful::field::{FieldKey, FieldType};
 use thiserror::Error as ThisError;
 
-use crate::{datastore::schema::RootFieldSpec, hash_types, hash_types::state::AgentStateField};
+use crate::hash_types::{self, state::AgentStateField};
 
 #[derive(Debug)]
 pub enum SupportedType {
@@ -153,10 +153,10 @@ pub enum Error {
     AgentScopedFieldKeyClash(FieldKey, FieldType, FieldType),
 
     #[error(
-        "Attempting to insert a new field under key:{0:?} which clashes. New field: {1:?} \
-         Existing field: {2:?}"
+        "Attempting to insert a new field under key:{0:?} which clashes. New field: {1} Existing \
+         field: {2}"
     )]
-    FieldKeyClash(FieldKey, RootFieldSpec, RootFieldSpec),
+    FieldKeyClash(FieldKey, String, String),
 
     #[error(
         "Can't take multiple write access to shared state, e.g. by cloning writable task shared \

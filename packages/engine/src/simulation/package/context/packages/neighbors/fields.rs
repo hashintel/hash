@@ -3,7 +3,7 @@ use stateful::field::{
 };
 
 use crate::{
-    datastore::schema::RootFieldSpec,
+    datastore::schema::{EngineComponent, RootFieldSpec},
     simulation::package::context::packages::neighbors::{
         Result, RootFieldSpecCreator, NEIGHBOR_INDEX_COUNT,
     },
@@ -27,15 +27,15 @@ fn neighbors() -> FieldType {
 }
 
 pub(super) fn get_neighbors_field_spec(
-    field_spec_creator: &RootFieldSpecCreator,
-) -> Result<RootFieldSpec> {
+    field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
+) -> Result<RootFieldSpec<EngineComponent>> {
     let neighbors = neighbors();
     Ok(field_spec_creator.create("neighbors".into(), neighbors, FieldScope::Agent))
 }
 
 pub(super) fn get_search_radius_field_spec(
-    field_spec_creator: &RootFieldSpecCreator,
-) -> Result<RootFieldSpec> {
+    field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
+) -> Result<RootFieldSpec<EngineComponent>> {
     let search_radius = FieldType::new(FieldTypeVariant::Number, true);
     Ok(field_spec_creator.create(
         SEARCH_RADIUS_FIELD_NAME.to_string(),

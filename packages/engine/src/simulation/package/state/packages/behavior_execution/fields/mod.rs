@@ -6,7 +6,7 @@ use stateful::field::{FieldScope, FieldType, FieldTypeVariant, PresetFieldType};
 use self::behavior::BehaviorMap;
 use crate::{
     config::ExperimentConfig,
-    datastore::schema::{RootFieldSpec, RootFieldSpecCreator},
+    datastore::schema::{EngineComponent, RootFieldSpec, RootFieldSpecCreator},
     simulation::{
         package::state::packages::behavior_execution::BEHAVIOR_INDEX_INNER_COUNT, Result,
     },
@@ -16,7 +16,9 @@ pub(super) const BEHAVIORS_FIELD_NAME: &str = "behaviors";
 pub(super) const BEHAVIOR_INDEX_FIELD_NAME: &str = "behavior_index";
 pub(super) const BEHAVIOR_IDS_FIELD_NAME: &str = "behavior_ids";
 
-fn get_behaviors_field_spec(field_spec_creator: &RootFieldSpecCreator) -> Result<RootFieldSpec> {
+fn get_behaviors_field_spec(
+    field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
+) -> Result<RootFieldSpec<EngineComponent>> {
     let field_type = FieldType::new(
         FieldTypeVariant::VariableLengthArray(Box::new(FieldType::new(
             FieldTypeVariant::String,
@@ -28,8 +30,8 @@ fn get_behaviors_field_spec(field_spec_creator: &RootFieldSpecCreator) -> Result
 }
 
 fn get_behavior_index_field_spec(
-    field_spec_creator: &RootFieldSpecCreator,
-) -> Result<RootFieldSpec> {
+    field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
+) -> Result<RootFieldSpec<EngineComponent>> {
     let field_type = FieldType::new(FieldTypeVariant::Number, false);
     Ok(field_spec_creator.create(
         BEHAVIOR_INDEX_FIELD_NAME.into(),
@@ -57,7 +59,9 @@ fn behavior_ids_field_type() -> FieldType {
     FieldType::new(variant, false)
 }
 
-fn get_behavior_ids_field_spec(field_spec_creator: &RootFieldSpecCreator) -> Result<RootFieldSpec> {
+fn get_behavior_ids_field_spec(
+    field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
+) -> Result<RootFieldSpec<EngineComponent>> {
     let field_type = behavior_ids_field_type();
     Ok(field_spec_creator.create(
         BEHAVIOR_IDS_FIELD_NAME.into(),
@@ -68,8 +72,8 @@ fn get_behavior_ids_field_spec(field_spec_creator: &RootFieldSpecCreator) -> Res
 
 pub(super) fn get_state_field_specs(
     config: &ExperimentConfig,
-    field_spec_creator: &RootFieldSpecCreator,
-) -> Result<Vec<RootFieldSpec>> {
+    field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
+) -> Result<Vec<RootFieldSpec<EngineComponent>>> {
     let behavior_map: BehaviorMap = (config, field_spec_creator).try_into()?;
     let mut field_specs = vec![
         // "behaviors" field that agents can modify

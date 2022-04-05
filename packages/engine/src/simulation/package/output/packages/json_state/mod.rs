@@ -6,7 +6,7 @@ use stateful::field::{HIDDEN_PREFIX, PRIVATE_PREFIX};
 
 pub use self::config::JsonStateOutputConfig;
 use crate::{
-    datastore::arrow::batch_conversion::IntoAgents,
+    datastore::{arrow::batch_conversion::IntoAgents, schema::EngineComponent},
     hash_types::Agent,
     simulation::package::{
         name::PackageName,
@@ -33,7 +33,7 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig>,
         _comms: PackageComms,
-        _accessor: FieldSpecMapAccessor,
+        _accessor: FieldSpecMapAccessor<EngineComponent>,
     ) -> Result<Box<dyn Package>> {
         let value = config
             .sim

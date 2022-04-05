@@ -12,7 +12,7 @@ use crate::{
     config::{ExperimentConfig, Globals, SimRunConfig},
     datastore::{
         schema::{
-            accessor::FieldSpecMapAccessor, context::ContextSchema, RootFieldSpec,
+            accessor::FieldSpecMapAccessor, context::ContextSchema, EngineComponent, RootFieldSpec,
             RootFieldSpecCreator,
         },
         table::{proxy::StateReadProxy, state::view::StateSnapshot},
@@ -62,8 +62,8 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
         &self,
         config: &Arc<SimRunConfig>,
         system: PackageComms,
-        state_field_spec_accessor: FieldSpecMapAccessor,
-        context_field_spec_accessor: FieldSpecMapAccessor,
+        state_field_spec_accessor: FieldSpecMapAccessor<EngineComponent>,
+        context_field_spec_accessor: FieldSpecMapAccessor<EngineComponent>,
     ) -> Result<Box<dyn Package>>;
 
     fn dependencies() -> Dependencies
@@ -79,8 +79,8 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        _field_spec_creator: &RootFieldSpecCreator,
-    ) -> Result<Vec<RootFieldSpec>> {
+        _field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
+    ) -> Result<Vec<RootFieldSpec<EngineComponent>>> {
         Ok(vec![])
     }
 
@@ -88,8 +88,8 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Sync + Send {
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        _field_spec_creator: &RootFieldSpecCreator,
-    ) -> Result<Vec<RootFieldSpec>> {
+        _field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
+    ) -> Result<Vec<RootFieldSpec<EngineComponent>>> {
         Ok(vec![])
     }
 }

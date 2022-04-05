@@ -14,7 +14,11 @@ pub use self::handlers::CustomApiMessageError;
 use self::response::{ApiResponseMap, ApiResponses};
 use crate::{
     config::{ExperimentConfig, Globals},
-    datastore::{batch::iterators, schema::accessor::GetFieldSpec, table::pool::BatchPool},
+    datastore::{
+        batch::iterators,
+        schema::{accessor::GetFieldSpec, EngineComponent},
+        table::pool::BatchPool,
+    },
     simulation::{
         comms::package::PackageComms,
         package::context::{
@@ -40,8 +44,8 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig>,
         _comms: PackageComms,
-        _state_field_spec_accessor: FieldSpecMapAccessor,
-        context_field_spec_accessor: FieldSpecMapAccessor,
+        _state_field_spec_accessor: FieldSpecMapAccessor<EngineComponent>,
+        context_field_spec_accessor: FieldSpecMapAccessor<EngineComponent>,
     ) -> Result<Box<dyn ContextPackage>> {
         let custom_message_handlers = custom_message_handlers_from_globals(&config.sim.globals)?;
         Ok(Box::new(ApiRequests {
@@ -54,8 +58,8 @@ impl PackageCreator for Creator {
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        field_spec_creator: &RootFieldSpecCreator,
-    ) -> Result<Vec<RootFieldSpec>> {
+        field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
+    ) -> Result<Vec<RootFieldSpec<EngineComponent>>> {
         Ok(vec![fields::get_api_responses_field_spec(
             field_spec_creator,
         )?])
@@ -70,7 +74,7 @@ impl GetWorkerExpStartMsg for Creator {
 
 struct ApiRequests {
     custom_message_handlers: Option<Vec<String>>,
-    context_field_spec_accessor: FieldSpecMapAccessor,
+    context_field_spec_accessor: FieldSpecMapAccessor<EngineComponent>,
 }
 
 impl MaybeCpuBound for ApiRequests {

@@ -1,6 +1,6 @@
 use crate::error::Result;
 
-pub trait FieldSource {
+pub trait FieldSource: PartialEq {
     /// A unique static identifier of the field source, used in building Keys for fields.
     fn unique_id(&self) -> Result<usize>;
 }

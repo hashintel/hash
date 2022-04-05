@@ -1,7 +1,7 @@
 use stateful::field::{FieldScope, FieldType, FieldTypeVariant, PresetFieldType};
 
 use crate::{
-    datastore::schema::RootFieldSpec,
+    datastore::schema::{EngineComponent, RootFieldSpec},
     simulation::package::context::packages::agent_messages::{
         Result, RootFieldSpecCreator, MESSAGE_INDEX_COUNT,
     },
@@ -24,8 +24,8 @@ fn agent_messages() -> FieldType {
 }
 
 pub(super) fn get_messages_field_spec(
-    field_spec_creator: &RootFieldSpecCreator,
-) -> Result<RootFieldSpec> {
+    field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
+) -> Result<RootFieldSpec<EngineComponent>> {
     let agent_messages = agent_messages();
     // The messages column can be agent-scoped because it
     // has custom getters in the language runners that

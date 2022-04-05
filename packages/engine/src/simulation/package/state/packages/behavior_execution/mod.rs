@@ -97,7 +97,7 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig>,
         comms: PackageComms,
-        accessor: FieldSpecMapAccessor,
+        accessor: FieldSpecMapAccessor<EngineComponent>,
     ) -> Result<Box<dyn Package>> {
         let behavior_ids_col_data_types = fields::id_column_data_types();
         let behavior_ids_col = accessor
@@ -134,8 +134,8 @@ impl PackageCreator for Creator {
         &self,
         config: &ExperimentConfig,
         _globals: &Globals,
-        field_spec_creator: &RootFieldSpecCreator,
-    ) -> Result<Vec<RootFieldSpec>> {
+        field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
+    ) -> Result<Vec<RootFieldSpec<EngineComponent>>> {
         fields::get_state_field_specs(config, field_spec_creator)
     }
 }

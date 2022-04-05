@@ -419,7 +419,7 @@ impl PackageCreators {
 //      something like `get_hidden_column_name(PREVIOUS_INDEX_FIELD_NAME)`
 pub const PREVIOUS_INDEX_FIELD_KEY: &str = "_HIDDEN_0_previous_index";
 
-pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec>> {
+pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec<EngineComponent>>> {
     let mut field_specs = Vec::with_capacity(13);
     let field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
 
@@ -449,7 +449,7 @@ pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec>> {
     Ok(field_specs)
 }
 
-fn get_base_context_fields() -> Result<Vec<RootFieldSpec>> {
+fn get_base_context_fields() -> Result<Vec<RootFieldSpec<EngineComponent>>> {
     let _field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
     // TODO: previous index and other fields that make sense
     // Doesn't do anything for now

@@ -1,6 +1,6 @@
 use stateful::field::{FieldScope, FieldSpec, FieldType};
 
-use crate::datastore::schema::field_spec::{EngineComponent, RootFieldSpec};
+use crate::datastore::schema::field_spec::RootFieldSpec;
 
 /// A factory-like object that can be set with a [`FieldSource`] and then passed to a context such
 /// as a package.
@@ -22,11 +22,11 @@ use crate::datastore::schema::field_spec::{EngineComponent, RootFieldSpec};
 /// // Create the RootFieldSpecCreator
 /// let rfs_creator = RootFieldSpecCreator::new(EngineComponent::Package(package));
 /// ```
-pub struct RootFieldSpecCreator {
-    field_source: EngineComponent,
+pub struct RootFieldSpecCreator<S> {
+    field_source: S,
 }
 
-impl RootFieldSpecCreator {
+impl<S> RootFieldSpecCreator<S> {
     /// Creates a new `RootFieldSpecCreator` for a given [`FieldSource`].
     ///
     /// # Example
@@ -37,10 +37,12 @@ impl RootFieldSpecCreator {
     /// # #[allow(unused_variables)]
     /// let rfs_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
     /// ```
-    pub const fn new(field_source: EngineComponent) -> Self {
+    pub const fn new(field_source: S) -> Self {
         Self { field_source }
     }
+}
 
+impl<S: Clone> RootFieldSpecCreator<S> {
     /// Creates a [`RootFieldSpec`] of a [`FieldType`] with a given `name` in the provided
     /// [`FieldScope`].
     ///
@@ -69,11 +71,16 @@ impl RootFieldSpecCreator {
     /// assert_eq!(rfs.scope, FieldScope::Agent);
     /// assert_eq!(rfs.source, EngineComponent::Engine);
     /// ```
-    pub fn create(&self, name: String, field_type: FieldType, scope: FieldScope) -> RootFieldSpec {
+    pub fn create(
+        &self,
+        name: String,
+        field_type: FieldType,
+        scope: FieldScope,
+    ) -> RootFieldSpec<S> {
         RootFieldSpec {
             inner: FieldSpec { name, field_type },
             scope,
-            source: self.field_source,
+            source: self.field_source.clone(),
         }
     }
 }

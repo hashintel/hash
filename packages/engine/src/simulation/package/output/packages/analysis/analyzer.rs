@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     datastore::{
         batch::AgentBatch,
-        schema::{accessor::FieldSpecMapAccessor, state::AgentSchema},
+        schema::{accessor::FieldSpecMapAccessor, state::AgentSchema, EngineComponent},
     },
     simulation::package::output::packages::analysis::{
         index_iter,
@@ -43,7 +43,7 @@ impl Analyzer {
     pub fn from_analysis_source(
         analysis_source: &str,
         _agent_schema: &AgentSchema,
-        accessor: &FieldSpecMapAccessor,
+        accessor: &FieldSpecMapAccessor<EngineComponent>,
     ) -> Result<Analyzer> {
         let repr = AnalysisSourceRepr::try_from(analysis_source)?;
         repr.validate_def()?;
@@ -130,7 +130,7 @@ pub struct OutputCreator {
 
 impl OutputCreator {
     fn new(
-        accessor: &FieldSpecMapAccessor,
+        accessor: &FieldSpecMapAccessor<EngineComponent>,
         operations: &[AnalysisOperationRepr],
     ) -> Result<OutputCreator> {
         let creator = Self::index_creator(operations, accessor)?;
@@ -143,7 +143,7 @@ impl OutputCreator {
 
     pub(super) fn index_creator(
         operations: &[AnalysisOperationRepr],
-        accessor: &FieldSpecMapAccessor,
+        accessor: &FieldSpecMapAccessor<EngineComponent>,
     ) -> Result<OutputRunnerCreator> {
         match &operations[0] {
             AnalysisOperationRepr::Filter {

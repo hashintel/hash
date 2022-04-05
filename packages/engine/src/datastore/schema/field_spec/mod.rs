@@ -1,7 +1,4 @@
-use std::collections::{
-    hash_map::{Iter, Values},
-    HashMap,
-};
+use std::collections::hash_map::{HashMap, Iter, Values};
 
 use stateful::field::{
     FieldKey, FieldScope, FieldSource, FieldSpec, FieldType, FieldTypeVariant, PresetFieldType,
@@ -20,7 +17,6 @@ pub mod creator;
 pub const PREVIOUS_INDEX_FIELD_NAME: &str = "previous_index";
 
 /// Defines the source from which a Field was specified, useful for resolving clashes
-// TODO: Find a good name, which does not conflict with `FieldSource`
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum EngineComponent {
     Engine,
@@ -70,13 +66,13 @@ pub fn last_state_index_key() -> FieldSpec {
 /// A single specification of a root field, for instance in the case of a struct field it's the top
 /// level struct field and the children are all FieldSpec
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct RootFieldSpec {
+pub struct RootFieldSpec<S> {
     pub inner: FieldSpec,
     pub scope: FieldScope,
-    pub source: EngineComponent,
+    pub source: S,
 }
 
-impl RootFieldSpec {
+impl<S: FieldSource> RootFieldSpec<S> {
     pub fn create_key(&self) -> Result<FieldKey> {
         Ok(match &self.scope {
             FieldScope::Agent => FieldKey::new_agent_scoped(&self.inner.name)?,
@@ -89,27 +85,59 @@ impl RootFieldSpec {
 
 /// A wrapper struct around a hashmap of field-keys (unique identifiers used to name/label Arrow
 /// data columns mapped to the specification of those fields
-#[derive(Debug, Clone, Default, Eq, PartialEq)]
-pub struct FieldSpecMap {
-    field_specs: HashMap<FieldKey, RootFieldSpec>, /* a mapping of field unique identifiers to
-                                                    * the fields themselves */
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct FieldSpecMap<S> {
+    /// A mapping of field unique identifiers to the fields themselves.
+    field_specs: HashMap<FieldKey, RootFieldSpec<S>>,
 }
 
-impl FieldSpecMap {
-    pub fn empty() -> FieldSpecMap {
-        FieldSpecMap {
-            field_specs: HashMap::new(),
+impl<S> Default for FieldSpecMap<S> {
+    fn default() -> Self {
+        Self {
+            field_specs: HashMap::default(),
+        }
+    }
+}
+
+impl<S> FieldSpecMap<S> {
+    pub fn empty() -> Self {
+        Self {
+            field_specs: HashMap::default(),
         }
     }
 
-    pub fn add_multiple(&mut self, new_field_specs: Vec<RootFieldSpec>) -> Result<()> {
-        new_field_specs
-            .into_iter()
-            .try_for_each(|field_spec| self.add(field_spec))?;
-        Ok(())
+    pub fn contains_key(&self, key: &FieldKey) -> bool {
+        self.field_specs.contains_key(key)
     }
 
-    pub fn add(&mut self, new_field: RootFieldSpec) -> Result<()> {
+    pub(crate) fn iter(&self) -> Iter<'_, FieldKey, RootFieldSpec<S>> {
+        self.field_specs.iter()
+    }
+
+    pub(crate) fn field_specs(&self) -> Values<'_, FieldKey, RootFieldSpec<S>> {
+        self.field_specs.values()
+    }
+
+    pub fn len(&self) -> usize {
+        self.field_specs.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    pub(in crate::datastore) fn get_field_spec(
+        &self,
+        field_key: &FieldKey,
+    ) -> Result<&RootFieldSpec<S>> {
+        self.field_specs
+            .get(field_key)
+            .ok_or_else(|| Error::from(format!("Cannot find field with name '{:?}'", field_key)))
+    }
+}
+
+impl FieldSpecMap<EngineComponent> {
+    pub fn add(&mut self, new_field: RootFieldSpec<EngineComponent>) -> Result<()> {
         let field_key = new_field.create_key()?;
         if let Some(existing_field) = self.field_specs.get(&field_key) {
             if existing_field == &new_field {
@@ -144,8 +172,8 @@ impl FieldSpecMap {
 
             Err(Error::FieldKeyClash(
                 field_key,
-                new_field,
-                existing_field.clone(),
+                format!("{new_field:?}"),
+                format!("{existing_field:?}"),
             ))
         } else {
             self.field_specs.insert(field_key, new_field);
@@ -153,51 +181,32 @@ impl FieldSpecMap {
         }
     }
 
+    pub fn add_multiple(
+        &mut self,
+        new_field_specs: Vec<RootFieldSpec<EngineComponent>>,
+    ) -> Result<()> {
+        new_field_specs
+            .into_iter()
+            .try_for_each(|field_spec| self.add(field_spec))?;
+        Ok(())
+    }
+
     #[cfg(test)]
-    pub(crate) fn union(&mut self, set: FieldSpecMap) -> Result<()> {
+    pub(crate) fn union(&mut self, set: FieldSpecMap<EngineComponent>) -> Result<()> {
         set.field_specs
             .into_iter()
             .try_for_each(|(_, field_spec)| self.add(field_spec))
     }
-
-    pub fn contains_key(&self, key: &FieldKey) -> bool {
-        self.field_specs.contains_key(key)
-    }
-
-    pub(crate) fn iter(&self) -> Iter<'_, FieldKey, RootFieldSpec> {
-        self.field_specs.iter()
-    }
-
-    pub(crate) fn field_specs(&self) -> Values<'_, FieldKey, RootFieldSpec> {
-        self.field_specs.values()
-    }
-
-    pub fn len(&self) -> usize {
-        self.field_specs.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
-    pub(in crate::datastore) fn get_field_spec(
-        &self,
-        field_key: &FieldKey,
-    ) -> Result<&RootFieldSpec> {
-        self.field_specs
-            .get(field_key)
-            .ok_or_else(|| Error::from(format!("Cannot find field with name '{:?}'", field_key)))
-    }
 }
 
-impl TryInto<RootFieldSpec> for AgentStateField {
+impl TryFrom<AgentStateField> for RootFieldSpec<EngineComponent> {
     type Error = Error;
 
-    fn try_into(self) -> Result<RootFieldSpec> {
-        Ok(RootFieldSpec {
+    fn try_from(field: AgentStateField) -> Result<Self, Self::Error> {
+        Ok(Self {
             inner: FieldSpec {
-                name: self.name().into(),
-                field_type: self.try_into()?,
+                name: field.name().into(),
+                field_type: field.try_into()?,
             },
             scope: FieldScope::Agent,
             source: EngineComponent::Engine,
@@ -206,13 +215,13 @@ impl TryInto<RootFieldSpec> for AgentStateField {
 }
 
 // TODO: remove dependency on legacy `AgentStateField` (contains references to package fields)
-impl TryInto<FieldType> for AgentStateField {
+impl TryFrom<AgentStateField> for FieldType {
     type Error = Error;
 
-    fn try_into(self) -> Result<FieldType> {
-        let name = self.name();
+    fn try_from(field: AgentStateField) -> Result<Self, Self::Error> {
+        let name = field.name();
 
-        let field_type = match self {
+        let field_type = match field {
             AgentStateField::AgentId => {
                 FieldType::new(FieldTypeVariant::Preset(PresetFieldType::Id), false)
             }

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use stateful::field::FieldKey;
+use stateful::field::{FieldKey, FieldSource};
 
 use crate::datastore::{
     error::Result,
@@ -8,33 +8,50 @@ use crate::datastore::{
 };
 
 #[derive(derive_new::new)]
-pub struct FieldSpecMapAccessor {
+pub struct FieldSpecMapAccessor<S> {
     accessor_source: EngineComponent,
-    field_spec_map: Arc<FieldSpecMap>,
+    field_spec_map: Arc<FieldSpecMap<S>>,
 }
 
 pub trait GetFieldSpec {
+    /// The [`FieldSource`] for a [`FieldSpec`]
+
+    type FieldSource;
     /// Get a FieldSpec stored under a given field name with FieldScope::Agent
-    fn get_agent_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec>;
+    fn get_agent_scoped_field_spec(
+        &self,
+        field_name: &str,
+    ) -> Result<&RootFieldSpec<Self::FieldSource>>;
     /// Get a FieldSpec stored under a given field name with FieldScope::Hidden and belonging to a
     /// given FieldSource
     fn get_hidden_scoped_field_spec(
         &self,
         field_name: &str,
         source: &EngineComponent,
-    ) -> Result<&RootFieldSpec>;
+    ) -> Result<&RootFieldSpec<Self::FieldSource>>;
 
     /// Get a FieldSpec stored under a given field name with FieldScope::Private that belongs to the
     /// FieldSource of the accessor
-    fn get_local_private_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec>;
+    fn get_local_private_scoped_field_spec(
+        &self,
+        field_name: &str,
+    ) -> Result<&RootFieldSpec<Self::FieldSource>>;
 
     /// Get a FieldSpec stored under a given field name with FieldScope::Hidden that belongs to the
     /// FieldSource of the accessor
-    fn get_local_hidden_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec>;
+    fn get_local_hidden_scoped_field_spec(
+        &self,
+        field_name: &str,
+    ) -> Result<&RootFieldSpec<Self::FieldSource>>;
 }
 
-impl GetFieldSpec for FieldSpecMapAccessor {
-    fn get_agent_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec> {
+impl<S: FieldSource> GetFieldSpec for FieldSpecMapAccessor<S> {
+    type FieldSource = S;
+
+    fn get_agent_scoped_field_spec(
+        &self,
+        field_name: &str,
+    ) -> Result<&RootFieldSpec<Self::FieldSource>> {
         let key = FieldKey::new_agent_scoped(field_name)?;
         self.field_spec_map.get_field_spec(&key)
     }
@@ -43,13 +60,13 @@ impl GetFieldSpec for FieldSpecMapAccessor {
         &self,
         field_name: &str,
         field_source: &EngineComponent,
-    ) -> Result<&RootFieldSpec> {
+    ) -> Result<&RootFieldSpec<S>> {
         let key =
             FieldKey::new_private_or_hidden_scoped(field_name, field_source, FieldScope::Hidden)?;
         self.field_spec_map.get_field_spec(&key)
     }
 
-    fn get_local_private_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec> {
+    fn get_local_private_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec<S>> {
         let key = FieldKey::new_private_or_hidden_scoped(
             field_name,
             &self.accessor_source,
@@ -58,7 +75,7 @@ impl GetFieldSpec for FieldSpecMapAccessor {
         self.field_spec_map.get_field_spec(&key)
     }
 
-    fn get_local_hidden_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec> {
+    fn get_local_hidden_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec<S>> {
         let key = FieldKey::new_private_or_hidden_scoped(
             field_name,
             &self.accessor_source,
@@ -73,15 +90,15 @@ impl GetFieldSpec for FieldSpecMapAccessor {
 /// Due to this it does not implement GetFieldSpec. This is because methods using this should not
 /// require a generic interface through dynamic dispatch and should be explicit in needing root
 /// access.
-pub struct RootFieldSpecMapAccessor {
-    pub field_spec_map: Arc<FieldSpecMap>,
+pub struct RootFieldSpecMapAccessor<S> {
+    pub field_spec_map: Arc<FieldSpecMap<S>>,
 }
 
-impl RootFieldSpecMapAccessor {
+impl<S: FieldSource> RootFieldSpecMapAccessor<S> {
     // TODO: We're allowing dead code on these during development, if the engine doesn't
     //   end up needing these it might be worth removing
     #[allow(dead_code)]
-    fn get_agent_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec> {
+    fn get_agent_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec<S>> {
         let key = FieldKey::new_agent_scoped(field_name)?;
         self.field_spec_map.get_field_spec(&key)
     }
@@ -92,7 +109,7 @@ impl RootFieldSpecMapAccessor {
         field_name: &str,
         field_source: &EngineComponent,
         field_scope: FieldScope,
-    ) -> Result<&RootFieldSpec> {
+    ) -> Result<&RootFieldSpec<S>> {
         let key = FieldKey::new_private_or_hidden_scoped(field_name, field_source, field_scope)?;
 
         self.field_spec_map.get_field_spec(&key)

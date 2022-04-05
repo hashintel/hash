@@ -14,7 +14,7 @@ use crate::{
     config::ExperimentConfig,
     datastore::{
         batch::iterators,
-        schema::{accessor::GetFieldSpec, RootFieldSpec},
+        schema::{accessor::GetFieldSpec, EngineComponent, RootFieldSpec},
     },
     simulation::{
         comms::package::PackageComms,
@@ -45,8 +45,8 @@ impl PackageCreator for Creator {
         &self,
         _config: &Arc<SimRunConfig>,
         _comms: PackageComms,
-        _state_field_spec_accessor: FieldSpecMapAccessor,
-        context_field_spec_accessor: FieldSpecMapAccessor,
+        _state_field_spec_accessor: FieldSpecMapAccessor<EngineComponent>,
+        context_field_spec_accessor: FieldSpecMapAccessor<EngineComponent>,
     ) -> Result<Box<dyn ContextPackage>> {
         Ok(Box::new(AgentMessages {
             context_field_spec_accessor,
@@ -57,8 +57,8 @@ impl PackageCreator for Creator {
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        field_spec_creator: &RootFieldSpecCreator,
-    ) -> Result<Vec<RootFieldSpec>> {
+        field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
+    ) -> Result<Vec<RootFieldSpec<EngineComponent>>> {
         Ok(vec![fields::get_messages_field_spec(field_spec_creator)?])
     }
 }
@@ -70,7 +70,7 @@ impl GetWorkerExpStartMsg for Creator {
 }
 
 struct AgentMessages {
-    context_field_spec_accessor: FieldSpecMapAccessor,
+    context_field_spec_accessor: FieldSpecMapAccessor<EngineComponent>,
 }
 
 impl MaybeCpuBound for AgentMessages {

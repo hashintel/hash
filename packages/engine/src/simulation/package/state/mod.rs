@@ -10,7 +10,9 @@ use tracing::Span;
 use crate::{
     config::{ExperimentConfig, Globals, SimRunConfig},
     datastore::{
-        schema::{accessor::FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator},
+        schema::{
+            accessor::FieldSpecMapAccessor, EngineComponent, RootFieldSpec, RootFieldSpecCreator,
+        },
         table::{context::Context, state::State},
         Result as DatastoreResult,
     },
@@ -43,7 +45,7 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Send + Sync {
         &self,
         config: &Arc<SimRunConfig>,
         comms: PackageComms,
-        accessor: FieldSpecMapAccessor,
+        accessor: FieldSpecMapAccessor<EngineComponent>,
     ) -> Result<Box<dyn Package>>;
 
     /// Get the package names that this package depends on.
@@ -58,8 +60,8 @@ pub trait PackageCreator: GetWorkerExpStartMsg + Send + Sync {
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        _field_spec_map_builder: &RootFieldSpecCreator,
-    ) -> Result<Vec<RootFieldSpec>> {
+        _field_spec_map_builder: &RootFieldSpecCreator<EngineComponent>,
+    ) -> Result<Vec<RootFieldSpec<EngineComponent>>> {
         Ok(vec![])
     }
 }

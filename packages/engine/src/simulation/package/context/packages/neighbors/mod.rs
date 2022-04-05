@@ -13,7 +13,7 @@ use crate::{
         schema::{
             accessor::{FieldSpecMapAccessor, GetFieldSpec},
             context::ContextSchema,
-            RootFieldSpec, RootFieldSpecCreator,
+            EngineComponent, RootFieldSpec, RootFieldSpecCreator,
         },
         table::{proxy::StateReadProxy, state::view::StateSnapshot},
     },
@@ -52,8 +52,8 @@ impl PackageCreator for Creator {
         &self,
         config: &Arc<SimRunConfig>,
         _comms: PackageComms,
-        _state_field_spec_accessor: FieldSpecMapAccessor,
-        context_field_spec_accessor: FieldSpecMapAccessor,
+        _state_field_spec_accessor: FieldSpecMapAccessor<EngineComponent>,
+        context_field_spec_accessor: FieldSpecMapAccessor<EngineComponent>,
     ) -> Result<Box<dyn ContextPackage>> {
         let neighbors = Neighbors {
             topology: Arc::new(TopologyConfig::from_globals(&config.sim.globals)?),
@@ -66,8 +66,8 @@ impl PackageCreator for Creator {
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        field_spec_creator: &RootFieldSpecCreator,
-    ) -> Result<Vec<RootFieldSpec>> {
+        field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
+    ) -> Result<Vec<RootFieldSpec<EngineComponent>>> {
         Ok(vec![fields::get_neighbors_field_spec(field_spec_creator)?])
     }
 
@@ -75,8 +75,8 @@ impl PackageCreator for Creator {
         &self,
         _config: &ExperimentConfig,
         _globals: &Globals,
-        field_spec_creator: &RootFieldSpecCreator,
-    ) -> Result<Vec<RootFieldSpec>> {
+        field_spec_creator: &RootFieldSpecCreator<EngineComponent>,
+    ) -> Result<Vec<RootFieldSpec<EngineComponent>>> {
         Ok(vec![fields::get_search_radius_field_spec(
             field_spec_creator,
         )?])
@@ -91,7 +91,7 @@ impl GetWorkerExpStartMsg for Creator {
 
 struct Neighbors {
     topology: Arc<TopologyConfig>,
-    context_field_spec_accessor: FieldSpecMapAccessor,
+    context_field_spec_accessor: FieldSpecMapAccessor<EngineComponent>,
 }
 
 impl Neighbors {
