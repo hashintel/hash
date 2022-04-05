@@ -91,7 +91,6 @@ pub mod tests {
             .unwrap()
             .batch
             .segment()
-            .memory()
             .id()
             .to_owned();
 

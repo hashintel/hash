@@ -26,9 +26,7 @@ const Nav: React.FC = ({ children }) => (
 
 export const HEADER_HEIGHT = 64;
 
-export const PageHeader: React.VFC<{
-  accountId: string;
-}> = ({ accountId }) => {
+export const PageHeader: React.VFC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
@@ -72,7 +70,7 @@ export const PageHeader: React.VFC<{
         </Box>
         {user ? (
           <Box sx={{ display: "flex", alignItems: "center" }}>
-            <ActionsDropdown accountId={accountId} />
+            <ActionsDropdown />
             <NotificationsDropdown />
             <AccountDropdown logout={logout} user={user} />
           </Box>

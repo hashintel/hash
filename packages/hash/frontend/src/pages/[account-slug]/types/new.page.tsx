@@ -1,10 +1,11 @@
-import { FormEvent, useState, VoidFunctionComponent } from "react";
+import { FormEvent, useState } from "react";
 
 import { useRouter } from "next/router";
 
 import { useMutation } from "@apollo/client";
 import { tw } from "twind";
 
+import { NextPage } from "next";
 import { createEntityTypeMutation } from "../../../graphql/queries/entityType.queries";
 import {
   CreateEntityTypeMutation,
@@ -14,11 +15,11 @@ import { TextInput } from "../../../components/forms/TextInput";
 import { Button } from "../../../shared/ui";
 import { MainContentWrapper } from "../../../components/layout/MainContentWrapper";
 import { getAccountEntityTypes } from "../../../graphql/queries/account.queries";
+import { useRouteAccountInfo } from "../../../shared/routing";
 
-export const NewEntityType: VoidFunctionComponent = () => {
+export const NewEntityType: NextPage = () => {
   const router = useRouter();
-  const { query } = router;
-  const accountId = query.accountId as string;
+  const { accountId } = useRouteAccountInfo();
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");

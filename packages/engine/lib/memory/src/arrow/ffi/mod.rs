@@ -11,7 +11,7 @@ use crate::{
         self,
         conversion::{HashDynamicMeta, HashStaticMeta},
     },
-    shared_memory::{CMemory, Memory},
+    shared_memory::{CSegment, Segment},
     Error,
 };
 
@@ -96,10 +96,10 @@ unsafe extern "C" fn free_c_arrow_array(array: usize) {
 // Call this when a new batch is loaded
 // Lifetime: lifetime of batch
 #[no_mangle]
-unsafe extern "C" fn get_dynamic_metadata(memory_ptr: *const CMemory) -> *const meta::Dynamic {
+unsafe extern "C" fn get_dynamic_metadata(memory_ptr: *const CSegment) -> *const meta::Dynamic {
     let c_memory = &*memory_ptr;
-    let memory = &mut *(c_memory.memory as *mut Memory);
-    match memory.get_metadata() {
+    let segment = &mut *(c_memory.segment as *mut Segment);
+    match segment.get_metadata() {
         Ok(meta_buffer) => {
             let batch_message = match ipc::root_as_message(meta_buffer)
                 .map_err(Error::from)
@@ -115,7 +115,7 @@ unsafe extern "C" fn get_dynamic_metadata(memory_ptr: *const CMemory) -> *const 
                 }
             };
             // Can't fail if memory.get_metadata worked
-            let data_buffer_len = memory.get_data_buffer_len().unwrap();
+            let data_buffer_len = segment.get_data_buffer_len().unwrap();
             let dynamic_meta = match batch_message.into_meta(data_buffer_len) {
                 Ok(ret) => ret,
                 Err(why) => {
