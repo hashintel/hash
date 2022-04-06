@@ -12,12 +12,12 @@ import { Box } from "@mui/material";
 import {
   GetAccountsQuery,
   MutationTransferEntityArgs,
-} from "../../graphql/apiTypes.gen";
-import { transferEntityMutation } from "../../graphql/queries/entityType.queries";
+} from "../../../graphql/apiTypes.gen";
+import { transferEntityMutation } from "../../../graphql/queries/entityType.queries";
 import {
   getAccountPages,
   getAccounts,
-} from "../../graphql/queries/account.queries";
+} from "../../../graphql/queries/account.queries";
 
 type AccountSelectProps = {
   onChange: (account: string) => void;

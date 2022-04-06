@@ -18,8 +18,8 @@ import {
   isParsedInvitationLinkQuery,
   ORG_ROLES,
   SYNTHETIC_LOADING_TIME_MS,
-} from "../components/auth/utils";
-import { useGetInvitationInfo } from "../components/hooks/useGetInvitationInfo";
+} from "./shared/auth-utils";
+import { useGetInvitationInfo } from "./shared/use-get-invitation-info";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 
 // @todo add error component for invalid links

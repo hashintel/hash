@@ -40,7 +40,7 @@ import {
   parseGraphQLError,
 } from "./shared/auth-utils";
 import { AuthLayout } from "./shared/auth-layout";
-import { useGetInvitationInfo } from "../components/hooks/useGetInvitationInfo";
+import { useGetInvitationInfo } from "./shared/use-get-invitation-info";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 
 enum Screen {

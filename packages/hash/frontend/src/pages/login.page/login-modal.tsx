@@ -9,8 +9,8 @@ import React, {
 import { useRouter } from "next/router";
 
 import { useMutation } from "@apollo/client";
-import { LoginIntro as LoginIntroScreen } from "../../components/auth/login/LoginIntro";
-import { VerifyCode as VerifyCodeScreen } from "../../components/auth/VerifyCode";
+import { LoginIntro as LoginIntroScreen } from "./login-intro";
+import { VerifyCode as VerifyCodeScreen } from "../shared/verify-code";
 import {
   VerificationCodeMetadata,
   LoginWithLoginCodeMutation,
@@ -27,8 +27,8 @@ import {
   isParsedAuthQuery,
   SYNTHETIC_LOADING_TIME_MS,
   Action,
-} from "../../components/auth/utils";
-import { useGetInvitationInfo } from "../../components/hooks/useGetInvitationInfo";
+} from "../shared/auth-utils";
+import { useGetInvitationInfo } from "../shared/use-get-invitation-info";
 import { useUser } from "../../components/hooks/useUser";
 import { AuthModalLayout, AuthModalLayoutProps } from "../shared/auth-layout";
 
