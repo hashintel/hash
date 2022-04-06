@@ -26,6 +26,7 @@ pub mod package;
 
 use std::sync::{Arc, RwLock};
 
+use stateful::agent::Agent;
 use uuid::Uuid;
 
 use self::message::{EngineToWorkerPoolMsg, WrappedTask};
@@ -42,7 +43,6 @@ use crate::{
         sync::{ContextBatchSync, StateSync, SyncPayload, WaitableStateSync},
         task_shared_store::TaskSharedStore,
     },
-    hash_types::Agent,
     proto::SimulationShortId,
     simulation::comms::message::SyncCompletionReceiver,
     types::TaskId,

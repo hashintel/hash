@@ -3,7 +3,7 @@ mod name;
 mod schema;
 
 pub use self::{
-    field::{AgentStateField, BUILTIN_FIELDS},
+    field::{Agent, AgentStateField, BUILTIN_FIELDS},
     name::AgentName,
     schema::AgentSchema,
 };

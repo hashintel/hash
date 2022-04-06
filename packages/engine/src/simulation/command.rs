@@ -9,22 +9,21 @@ use std::{collections::HashSet, sync::Arc};
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use stateful::{
-    agent::AgentSchema, field::RootFieldKey, message::RemoveAgentPayload, proxy::PoolReadProxy,
+    agent::{Agent, AgentSchema},
+    field::RootFieldKey,
+    message::RemoveAgentPayload,
+    proxy::PoolReadProxy,
 };
 use uuid::Uuid;
 
 use crate::{
     datastore::{
-        arrow::{
-            batch_conversion::IntoRecordBatch,
-            message::{CREATE_AGENT, REMOVE_AGENT, STOP_SIM},
-        },
+        arrow::batch_conversion::IntoRecordBatch,
         batch::MessageBatch,
         schema::EngineComponent,
         table::{pool::message, references::MessageMap, state::create_remove::ProcessedCommands},
         UUID_V4_LEN,
     },
-    hash_types::Agent,
     simulation::{Error, Result},
 };
 
@@ -171,11 +170,11 @@ impl Commands {
                     message_reader
                         .type_iter(refs)
                         .map(|type_str| match type_str {
-                            CREATE_AGENT => Ok(HashMessageType::Create),
-                            REMOVE_AGENT => Ok(HashMessageType::Remove),
+                            stateful::message::CREATE_AGENT => Ok(HashMessageType::Create),
+                            stateful::message::REMOVE_AGENT => Ok(HashMessageType::Remove),
                             // TODO: When implementing "mapbox" don't forget to update module docs.
                             "mapbox" => todo!(),
-                            STOP_SIM => Ok(HashMessageType::Stop),
+                            stateful::message::STOP_SIM => Ok(HashMessageType::Stop),
                             _ => Err(Error::UnexpectedSystemMessage {
                                 message_type: type_str.into(),
                             }),

@@ -5,6 +5,5 @@ pub mod worker;
 
 pub use self::{
     error::{Error, Result},
-    message::Outbound,
-    state::{Agent, Context, SimulationState},
+    state::{Context, SimulationState},
 };

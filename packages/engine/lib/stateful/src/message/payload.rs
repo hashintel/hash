@@ -1,5 +1,7 @@
 use serde::{Deserialize, Deserializer, Serialize};
 
+use crate::agent::Agent;
+
 fn value_or_string_array<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
 where
     D: Deserializer<'de>,
@@ -17,6 +19,25 @@ where
         ValueOrStringArray::Number(i) => Ok(vec![i.to_string()]),
         ValueOrStringArray::Vec(v) => Ok(v),
     }
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+pub enum CreateAgent {
+    #[serde(rename = "create_agent")]
+    Type,
+}
+
+// should the weird CreateAgent type hack be deprecated in favor of a custom serializer?
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+pub struct OutboundCreateAgentPayload {
+    pub r#type: CreateAgent,
+    #[serde(deserialize_with = "value_or_string_array")]
+    pub to: Vec<String>,
+    pub data: Agent,
+}
+
+impl OutboundCreateAgentPayload {
+    pub const KIND: &'static str = "create_agent";
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]

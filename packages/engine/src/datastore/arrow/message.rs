@@ -5,23 +5,12 @@ use arrow::{
     datatypes::Schema,
     record_batch::RecordBatch,
 };
-use stateful::message::{self, MESSAGE_ARROW_FIELDS, MESSAGE_COLUMN_NAME};
-
-use crate::{
-    datastore::error::{Error, Result},
-    hash_types::{
-        message::{Outbound, OutboundCreateAgentPayload},
-        Agent,
-    },
+use stateful::{
+    agent::Agent,
+    message::{self, MESSAGE_ARROW_FIELDS, MESSAGE_COLUMN_NAME},
 };
 
-// Built in message types:
-pub const CREATE_AGENT: &str = OutboundCreateAgentPayload::KIND;
-pub const REMOVE_AGENT: &str = message::OutboundRemoveAgentPayload::KIND;
-pub const STOP_SIM: &str = message::OutboundStopSimPayload::KIND;
-
-// System-message recipient
-pub const SYSTEM_MESSAGE: &str = "hash";
+use crate::datastore::error::{Error, Result};
 
 pub const FROM_COLUMN_INDEX: usize = 0;
 pub const MESSAGE_COLUMN_INDEX: usize = 1;
@@ -72,10 +61,10 @@ fn get_columns_from_struct_array(
     Ok((to_column, type_column, data_column))
 }
 
-pub fn get_generic(to: &[&str], r#type: &str, data_string: &str) -> Result<Outbound> {
+pub fn get_generic(to: &[&str], r#type: &str, data_string: &str) -> Result<message::Outbound> {
     let to_clone = to.iter().map(|v| (*v).to_string()).collect();
 
-    Ok(Outbound::new(message::GenericPayload {
+    Ok(message::Outbound::new(message::GenericPayload {
         to: to_clone,
         r#type: r#type.to_string(),
         data: if data_string.is_empty() {
@@ -87,14 +76,14 @@ pub fn get_generic(to: &[&str], r#type: &str, data_string: &str) -> Result<Outbo
 }
 
 pub fn outbound_messages_to_arrow_column(
-    column: &[Vec<Outbound>],
+    column: &[Vec<message::Outbound>],
     mut builder: array::ListBuilder<array::StructBuilder>,
 ) -> Result<array::ListArray> {
     for messages in column {
         let messages_builder = builder.values();
         for message in messages {
             match message {
-                Outbound::CreateAgent(outbound) => {
+                message::Outbound::CreateAgent(outbound) => {
                     let to_builder = messages_builder
                         .field_builder::<array::ListBuilder<array::StringBuilder>>(0)
                         .unwrap();
@@ -105,7 +94,7 @@ pub fn outbound_messages_to_arrow_column(
                     messages_builder
                         .field_builder::<array::StringBuilder>(1)
                         .unwrap()
-                        .append_value(OutboundCreateAgentPayload::KIND)?;
+                        .append_value(message::OutboundCreateAgentPayload::KIND)?;
                     messages_builder
                         .field_builder::<array::StringBuilder>(2)
                         .unwrap()
@@ -114,7 +103,7 @@ pub fn outbound_messages_to_arrow_column(
                         )?;
                     messages_builder.append(true)?;
                 }
-                Outbound::RemoveAgent(outbound) => {
+                message::Outbound::RemoveAgent(outbound) => {
                     let to_builder = messages_builder
                         .field_builder::<array::ListBuilder<array::StringBuilder>>(0)
                         .unwrap();
@@ -134,7 +123,7 @@ pub fn outbound_messages_to_arrow_column(
                         )?;
                     messages_builder.append(true)?;
                 }
-                Outbound::StopSim(outbound) => {
+                message::Outbound::StopSim(outbound) => {
                     let to_builder = messages_builder
                         .field_builder::<array::ListBuilder<array::StringBuilder>>(0)
                         .unwrap();
@@ -159,7 +148,7 @@ pub fn outbound_messages_to_arrow_column(
                     }
                     messages_builder.append(true)?;
                 }
-                Outbound::Generic(outbound) => {
+                message::Outbound::Generic(outbound) => {
                     let to_builder = messages_builder
                         .field_builder::<array::ListBuilder<array::StringBuilder>>(0)
                         .unwrap();
@@ -203,14 +192,14 @@ pub fn messages_column_from_serde_values(
     values: Vec<serde_json::Value>,
 ) -> Result<array::ListArray> {
     let builder = get_message_arrow_builder();
-    let native_column: Vec<Vec<Outbound>> = values
+    let native_column: Vec<Vec<message::Outbound>> = values
         .into_iter()
         .map(|value| serde_json::from_value(value).map_err(Error::from))
         .collect::<Result<_>>()?;
     outbound_messages_to_arrow_column(&native_column, builder)
 }
 
-pub fn get_column_from_list_array(array: &array::ListArray) -> Result<Vec<Vec<Outbound>>> {
+pub fn get_column_from_list_array(array: &array::ListArray) -> Result<Vec<Vec<message::Outbound>>> {
     let mut result = Vec::with_capacity(array.len());
     let vals = array.values();
     let vals = vals
@@ -232,7 +221,7 @@ pub fn get_column_from_list_array(array: &array::ListArray) -> Result<Vec<Vec<Ou
 
     for i in 0..array.len() {
         let messages_len = array.value_length(i) as usize;
-        let mut messages: Vec<Outbound> = Vec::with_capacity(messages_len);
+        let mut messages: Vec<message::Outbound> = Vec::with_capacity(messages_len);
         for j in 0..messages_len {
             let to_len = to_column.value_length(offset + j) as usize;
             let to: Vec<&str> = (0..to_len)

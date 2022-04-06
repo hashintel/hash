@@ -19,7 +19,7 @@ use memory::arrow::{
 };
 use serde_json::value::Value;
 use stateful::{
-    agent::{AgentName, AgentSchema, AgentStateField, BUILTIN_FIELDS},
+    agent::{Agent, AgentName, AgentSchema, AgentStateField, BUILTIN_FIELDS},
     field::{FieldScope, FieldTypeVariant, RootFieldKey},
     message::MESSAGE_BATCH_SCHEMA,
 };
@@ -32,7 +32,6 @@ use crate::{
         schema::{EngineComponent, IsRequired},
         UUID_V4_LEN,
     },
-    hash_types::Agent,
     simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY,
 };
 
@@ -181,7 +180,7 @@ impl IntoRecordBatch for &[&Agent] {
         let messages: Vec<Value> = self
             .iter()
             .map(|agent| agent.get_as_json("messages"))
-            .collect::<crate::hash_types::Result<_>>()?;
+            .collect::<stateful::Result<_>>()?;
 
         message::batch_from_json(schema, ids, Some(messages))
     }
@@ -204,7 +203,7 @@ impl IntoRecordBatch for &[&Agent] {
             let vals: Vec<Value> = self
                 .iter()
                 .map(|agent: &&Agent| agent.get_as_json(name.as_str()))
-                .collect::<crate::hash_types::Result<_>>()?;
+                .collect::<stateful::Result<_>>()?;
 
             // If use `match` instead of `if`, Rust infers that
             // `name` must have static lifetime, like `match` arms.
