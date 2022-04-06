@@ -1,10 +1,10 @@
 import React from "react";
 import { waitFor } from "@testing-library/dom";
 
-import { mockUseRouter } from "../testUtils/mockUseRouter";
-import { fireEvent, render } from "../testUtils/testUtils";
-import { SIGNUP_MOCKS } from "./__mocks__/signup.mock";
-import Signup from "./signup.page";
+import { mockUseRouter } from "../../testUtils/mockUseRouter";
+import { fireEvent, render } from "../../testUtils/testUtils";
+import { SIGNUP_MOCKS } from "../__mocks__/signup.mock";
+import Signup from "./index.page";
 
 describe("Signup page", () => {
   it("should render", () => {

@@ -1,8 +1,9 @@
-import React, { ReactNode, VoidFunctionComponent } from "react";
+import { Dialog } from "@headlessui/react";
+import React, { VFC, ReactNode } from "react";
 import { tw } from "twind";
 
-import bgPattern from "../../../assets/images/auth-bg-pattern.png";
-import { HashIcon, LogoIcon } from "../../icons";
+import bgPattern from "../../assets/images/auth-bg-pattern.png";
+import { HashIcon, LogoIcon } from "../../shared/icons";
 
 export type AuthLayoutProps = {
   children: ReactNode;
@@ -11,7 +12,7 @@ export type AuthLayoutProps = {
   loading?: boolean;
 };
 
-export const AuthLayout: VoidFunctionComponent<AuthLayoutProps> = ({
+export const AuthLayout: VFC<AuthLayoutProps> = ({
   children,
   onClose,
   showTopLogo,
@@ -56,3 +57,28 @@ export const AuthLayout: VoidFunctionComponent<AuthLayoutProps> = ({
     </div>
   );
 };
+
+export type AuthModalLayoutProps = {
+  onClose?: () => void;
+  show: boolean;
+  loading?: boolean;
+  children: ReactNode;
+};
+
+export const AuthModalLayout: VFC<AuthModalLayoutProps> = ({
+  onClose,
+  show,
+  children,
+  loading,
+}) => (
+  <Dialog
+    as="div"
+    open={show}
+    onClose={onClose ?? (() => {})}
+    className={tw`fixed z-10 inset-0 overflow-y-auto`}
+  >
+    <AuthLayout onClose={onClose} loading={loading}>
+      {children}
+    </AuthLayout>
+  </Dialog>
+);

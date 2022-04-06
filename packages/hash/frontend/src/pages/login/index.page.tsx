@@ -1,13 +1,13 @@
 import { NextPage } from "next";
 import { useRouter } from "next/router";
-import { LoginModal } from "../components/Modals/AuthModal/LoginModal";
-import { useUser } from "../components/hooks/useUser";
+import { LoginModal } from "./login-modal";
+import { useUser } from "../../components/hooks/useUser";
 import {
   isParsedInvitationEmailQuery,
   isParsedInvitationLinkQuery,
-} from "../components/auth/utils";
+} from "../shared/auth-utils";
 
-const LoginPage: NextPage = () => {
+const Page: NextPage = () => {
   const { refetch } = useUser();
   const router = useRouter();
 
@@ -34,4 +34,4 @@ const LoginPage: NextPage = () => {
   );
 };
 
-export default LoginPage;
+export default Page;

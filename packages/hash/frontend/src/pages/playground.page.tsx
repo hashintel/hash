@@ -15,6 +15,7 @@ import {
   Stack,
   Switch,
   Typography,
+  Container,
 } from "@mui/material";
 import { GetStaticProps } from "next";
 import { NextPageWithLayout } from "../shared/layout";
@@ -41,7 +42,10 @@ export const getStaticProps: GetStaticProps<PageProps> = () => {
 
 const Page: NextPageWithLayout<PageProps> = () => {
   return (
-    <>
+    <Container sx={{ pt: 10 }}>
+      <Typography mb={4} variant="h1">
+        Playground
+      </Typography>
       {/* BUTTONS */}
       <Accordion>
         <AccordionSummary>
@@ -414,7 +418,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
       </Accordion>
 
       <br />
-    </>
+    </Container>
   );
 };
 

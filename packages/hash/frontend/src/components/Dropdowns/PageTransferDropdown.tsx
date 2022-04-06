@@ -1,11 +1,54 @@
-import { useEffect, useState, VoidFunctionComponent } from "react";
+import {
+  ChangeEvent,
+  useEffect,
+  useState,
+  VFC,
+  VoidFunctionComponent,
+} from "react";
 import { useRouter } from "next/router";
-import { useMutation } from "@apollo/client";
+import { useMutation, useQuery } from "@apollo/client";
 
-import { AccountSelect } from "../layout/PageSidebar/AccountSelect";
-import { MutationTransferEntityArgs } from "../../graphql/apiTypes.gen";
+import { Box } from "@mui/material";
+import {
+  GetAccountsQuery,
+  MutationTransferEntityArgs,
+} from "../../graphql/apiTypes.gen";
 import { transferEntityMutation } from "../../graphql/queries/entityType.queries";
-import { getAccountPages } from "../../graphql/queries/account.queries";
+import {
+  getAccountPages,
+  getAccounts,
+} from "../../graphql/queries/account.queries";
+
+type AccountSelectProps = {
+  onChange: (account: string) => void;
+  value: string;
+};
+
+export const AccountSelect: VFC<AccountSelectProps> = ({ onChange, value }) => {
+  const { data } = useQuery<GetAccountsQuery>(getAccounts);
+
+  return (
+    <Box
+      component="select"
+      sx={{
+        padding: "8px 15px",
+        border: "1px solid lightgray",
+        width: 120,
+        borderRadius: "4px",
+      }}
+      onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+        onChange(event.target.value)
+      }
+      value={value}
+    >
+      {data?.accounts.map((account) => (
+        <option key={account.entityId} value={account.entityId}>
+          {account.properties.shortname}
+        </option>
+      ))}
+    </Box>
+  );
+};
 
 type PageTransferDropdownType = {
   pageEntityId: string;

@@ -5,7 +5,7 @@ import { useMutation } from "@apollo/client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useUser } from "../components/hooks/useUser";
 
-import { AuthLayout } from "../shared/layout";
+import { AuthLayout } from "./shared/auth-layout";
 
 import { SpinnerIcon, LogoIcon } from "../shared/icons";
 import { SelectInput } from "../components/forms/SelectInput";

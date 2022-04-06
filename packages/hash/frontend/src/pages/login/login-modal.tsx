@@ -9,28 +9,28 @@ import React, {
 import { useRouter } from "next/router";
 
 import { useMutation } from "@apollo/client";
-import { AuthModalLayout, AuthModalLayoutProps } from "./AuthModalLayout";
-import { LoginIntro as LoginIntroScreen } from "../../auth/login/LoginIntro";
-import { VerifyCode as VerifyCodeScreen } from "../../auth/VerifyCode";
+import { LoginIntro as LoginIntroScreen } from "../../components/auth/login/LoginIntro";
+import { VerifyCode as VerifyCodeScreen } from "../../components/auth/VerifyCode";
 import {
   VerificationCodeMetadata,
   LoginWithLoginCodeMutation,
   MutationLoginWithLoginCodeArgs,
   SendLoginCodeMutation,
   SendLoginCodeMutationVariables,
-} from "../../../graphql/apiTypes.gen";
+} from "../../graphql/apiTypes.gen";
 import {
   sendLoginCode as sendLoginCodeMutation,
   loginWithLoginCode as loginWithLoginCodeMutation,
-} from "../../../graphql/queries/user.queries";
+} from "../../graphql/queries/user.queries";
 import {
   parseGraphQLError,
   isParsedAuthQuery,
   SYNTHETIC_LOADING_TIME_MS,
   Action,
-} from "../../auth/utils";
-import { useGetInvitationInfo } from "../../hooks/useGetInvitationInfo";
-import { useUser } from "../../hooks/useUser";
+} from "../../components/auth/utils";
+import { useGetInvitationInfo } from "../../components/hooks/useGetInvitationInfo";
+import { useUser } from "../../components/hooks/useUser";
+import { AuthModalLayout, AuthModalLayoutProps } from "../shared/auth-layout";
 
 enum Screen {
   Intro,

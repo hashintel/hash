@@ -15,7 +15,7 @@ import { CacheProvider, EmotionCache } from "@emotion/react";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import { theme, createEmotionCache } from "../shared/ui";
-import { SidebarContextProvider } from "../shared/layout";
+import { getDefaultLayout, SidebarContextProvider } from "../shared/layout";
 
 import twindConfig from "../../twind.config";
 import "../../styles/globals.scss";
@@ -74,7 +74,7 @@ const MyApp: React.VoidFunctionComponent<CustomAppProps> = ({
     return null; // Replace with app skeleton
   }
 
-  const getLayout = Component.getLayout || ((page) => page);
+  const getLayout = Component.getLayout || getDefaultLayout;
 
   return (
     <ApolloProvider client={apolloClient}>

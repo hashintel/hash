@@ -2,9 +2,8 @@ import { ReactElement, ReactNode, VFC } from "react";
 import Head from "next/head";
 import { Box, Fade, styled, Tooltip } from "@mui/material";
 import { HEADER_HEIGHT, PageHeader } from "../page-header";
-import { isProd } from "../../../lib/environment";
-import { useSidebarContext } from "../sidebar-context";
-import { PageSidebar, SIDEBAR_WIDTH } from "../page-sidebar";
+import { isProduction } from "../../../lib/config";
+import { PageSidebar, SIDEBAR_WIDTH, useSidebarContext } from "../page-sidebar";
 import { IconButton } from "../../ui";
 import { SidebarToggleIcon } from "../../icons";
 
@@ -41,7 +40,7 @@ export const LayoutWithSidebar: VFC<{ children?: ReactNode }> = ({
       <Head>
         <title>HASH Workspace</title>
         <link rel="icon" type="image/png" href="/favicon.png" />
-        {!isProd ? <meta name="robots" content="noindex" /> : null}
+        {!isProduction ? <meta name="robots" content="noindex" /> : null}
       </Head>
       <PageHeader />
       <Box
