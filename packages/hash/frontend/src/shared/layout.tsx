@@ -1,8 +1,10 @@
 import { NextPage } from "next";
 import { ReactElement, ReactNode } from "react";
 import { LayoutWithHeader } from "./layout/layout-with-header";
-import { LayoutWithSidebar } from "./layout/layout-with-sidebar";
-import { SidebarContextProvider } from "./layout/layout-with-sidebar/sidebar-context";
+import {
+  LayoutWithSidebar,
+  SidebarContextProvider,
+} from "./layout/layout-with-sidebar";
 import { PlainLayout } from "./layout/plain-layout";
 
 export type NextPageWithLayout<T = {}> = NextPage<T> & {

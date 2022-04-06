@@ -73,3 +73,5 @@ export const LayoutWithSidebar: VFC<{ children?: ReactNode }> = ({
     </LayoutWithHeader>
   );
 };
+
+export * from "./layout-with-sidebar/sidebar-context";
