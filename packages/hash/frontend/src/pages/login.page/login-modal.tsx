@@ -30,7 +30,10 @@ import {
 } from "../shared/auth-utils";
 import { useGetInvitationInfo } from "../shared/use-get-invitation-info";
 import { useUser } from "../../components/hooks/useUser";
-import { AuthModalLayout, AuthModalLayoutProps } from "../shared/auth-layout";
+import {
+  AuthModalLayout,
+  AuthModalLayoutProps,
+} from "../shared/auth-modal-layout";
 
 enum Screen {
   Intro,
