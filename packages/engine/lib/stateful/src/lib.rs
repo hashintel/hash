@@ -2,6 +2,7 @@
 //            `field` interface
 pub mod agent;
 pub mod field;
+pub mod message;
 pub mod proxy;
 
 mod error;

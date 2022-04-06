@@ -2,11 +2,10 @@ use std::sync::Arc;
 
 use arrow::{
     array::{self, Array},
-    datatypes::{DataType, Field, Schema},
+    datatypes::Schema,
     record_batch::RecordBatch,
 };
-use lazy_static::lazy_static;
-use stateful::field::PresetFieldType;
+use stateful::message::{MESSAGE_ARROW_FIELDS, MESSAGE_COLUMN_NAME};
 
 use crate::{
     datastore::error::{Error, Result},
@@ -27,8 +26,6 @@ pub const STOP_SIM: &str = OutboundStopSimPayload::KIND;
 // System-message recipient
 pub const SYSTEM_MESSAGE: &str = "hash";
 
-pub const MESSAGE_COLUMN_NAME: &str = "messages";
-
 pub const FROM_COLUMN_INDEX: usize = 0;
 pub const MESSAGE_COLUMN_INDEX: usize = 1;
 
@@ -36,36 +33,6 @@ pub enum FieldIndex {
     To = 0,
     Type = 1,
     Data = 2,
-}
-
-lazy_static! {
-    pub static ref SENDER_ARROW_FIELD: Field = Field::new(
-        "from",
-        DataType::from(PresetFieldType::Id),
-        false
-    );
-    pub static ref MESSAGE_ARROW_FIELDS: Vec<Field> = vec![
-        Field::new(
-            "to",
-            DataType::List(Box::new(Field::new("item", DataType::Utf8, true))),
-            false
-        ),
-        Field::new("type", DataType::Utf8, false),
-        Field::new("data", DataType::Utf8, true),
-    ];
-    pub static ref MESSAGE_ARROW_TYPE: DataType =
-        DataType::Struct(MESSAGE_ARROW_FIELDS.clone());
-    pub static ref MESSAGE_LIST_ARROW_FIELD: Field = Field::new(
-        MESSAGE_COLUMN_NAME,
-        DataType::List(Box::new(Field::new("item", MESSAGE_ARROW_TYPE.clone(), true))),
-        false
-    );
-    // It is important to keep this order unchanged. If changed
-    // then the consts above must be updated
-    pub static ref MESSAGE_BATCH_SCHEMA: Schema = Schema::new(vec![
-        SENDER_ARROW_FIELD.clone(),
-        MESSAGE_LIST_ARROW_FIELD.clone()
-    ]);
 }
 
 #[must_use]

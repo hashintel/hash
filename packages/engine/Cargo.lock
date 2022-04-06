@@ -2161,6 +2161,7 @@ name = "stateful"
 version = "0.0.0"
 dependencies = [
  "arrow",
+ "lazy_static",
  "memory",
  "parking_lot",
  "thiserror",

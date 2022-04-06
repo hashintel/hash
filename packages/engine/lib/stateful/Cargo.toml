@@ -5,7 +5,9 @@ edition = "2021"
 
 [dependencies]
 memory = { path = "../memory" }
+
 arrow = { version = "10.0.0", default-features = false }
+lazy_static = "1.4.0"
 parking_lot = "0.11.1"
 thiserror = "1.0.21"
 tracing = "0.1.29"

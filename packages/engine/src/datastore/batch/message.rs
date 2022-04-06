@@ -19,13 +19,13 @@ use memory::{
     },
     shared_memory::{MemoryId, Metaversion, Segment},
 };
+use stateful::message::MessageSchema;
 
 use crate::{
     datastore::{
         arrow::{batch_conversion::IntoRecordBatch, message},
         batch::{iterators::column_with_name, AgentBatch},
         error::{Error, Result},
-        schema::state::MessageSchema,
         UUID_V4_LEN,
     },
     hash_types::state::AgentStateField,
@@ -267,12 +267,11 @@ pub mod record_batch {
         record_batch::RecordBatch,
     };
     use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
+    use stateful::message::MESSAGE_COLUMN_NAME;
 
     use crate::{
         datastore::{
-            arrow::message::{
-                self, get_column_from_list_array, MESSAGE_COLUMN_INDEX, MESSAGE_COLUMN_NAME,
-            },
+            arrow::message::{self, get_column_from_list_array, MESSAGE_COLUMN_INDEX},
             batch::message::MessageLoader,
             error::{Error, Result},
             table::references::AgentMessageReference,

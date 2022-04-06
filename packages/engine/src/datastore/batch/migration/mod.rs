@@ -7,13 +7,13 @@ use memory::{
     arrow::meta::{self, Buffer, Node, NodeMapping},
     shared_memory::{padding, Segment},
 };
-use stateful::agent::AgentSchema;
+use stateful::{agent::AgentSchema, message::MessageSchema};
 
 use crate::{
     datastore::{
         batch::{AgentBatch, MessageBatch},
         error::{Error, Result},
-        schema::{state::MessageSchema, EngineComponent},
+        schema::EngineComponent,
     },
     proto::ExperimentId,
 };
@@ -1350,14 +1350,12 @@ fn offsets_start_at_zero(
 pub(super) mod test {
     use rand::Rng;
     use serde::{Deserialize, Serialize};
+    use stateful::message::MessageSchema;
     use uuid::Uuid;
 
     use super::*;
     use crate::{
-        datastore::{
-            arrow::batch_conversion::IntoAgents, schema::state::MessageSchema,
-            test_utils::gen_schema_and_test_agents,
-        },
+        datastore::{arrow::batch_conversion::IntoAgents, test_utils::gen_schema_and_test_agents},
         simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY,
     };
 

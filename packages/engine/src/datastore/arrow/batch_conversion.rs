@@ -21,6 +21,7 @@ use serde_json::value::Value;
 use stateful::{
     agent::AgentSchema,
     field::{FieldScope, FieldTypeVariant, RootFieldKey},
+    message::MESSAGE_BATCH_SCHEMA,
 };
 
 use crate::{
@@ -517,7 +518,7 @@ fn set_states_previous_index(states: &mut [Agent], record_batch: &RecordBatch) -
 fn set_states_messages(states: &mut [Agent], messages: &RecordBatch) -> Result<()> {
     debug_assert_eq!(
         messages.schema(),
-        std::sync::Arc::new(super::message::MESSAGE_BATCH_SCHEMA.clone())
+        std::sync::Arc::new(MESSAGE_BATCH_SCHEMA.clone())
     );
     super::message::column_into_state(states, messages, super::message::MESSAGE_COLUMN_INDEX)
 }
@@ -732,7 +733,7 @@ pub mod tests {
             let agent_batch = agents.as_slice().into_agent_batch(&schema)?;
             let message_batch = agents
                 .as_slice()
-                .into_message_batch(&Arc::new(message::MESSAGE_BATCH_SCHEMA.clone()))?;
+                .into_message_batch(&Arc::new(MESSAGE_BATCH_SCHEMA.clone()))?;
 
             let mut returned_agents =
                 (&agent_batch, &message_batch).into_agent_states(Some(&schema))?;
