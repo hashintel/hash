@@ -3,7 +3,6 @@ import { useRouter } from "next/router";
 
 import { BlockProtocolUpdateEntitiesFunction } from "blockprotocol";
 import { getEntity } from "@hashintel/hash-shared/queries/entity.queries";
-import { NextPage } from "next";
 import { SimpleEntityEditor } from "./shared/simple-entity-editor";
 
 import {
@@ -16,11 +15,14 @@ import { guessEntityName } from "../../../lib/entities";
 import { useBlockProtocolAggregateEntities } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregateEntities";
 import { useBlockProtocolDeleteLinks } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolDeleteLinks";
 import { useBlockProtocolCreateLinks } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateLinks";
-import { MainContentWrapper } from "../../../shared/layout";
+import {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../../../shared/layout";
 import { BlockBasedEntityEditor } from "./[entity-id].page/block-based-entity-editor";
 import { useRouteAccountInfo } from "../../../shared/routing";
 
-const SimpleEntityPage: NextPage = () => {
+const SimpleEntityPage: NextPageWithLayout = () => {
   const router = useRouter();
   const { query } = router;
   const { accountId } = useRouteAccountInfo();
@@ -60,7 +62,7 @@ const SimpleEntityPage: NextPage = () => {
   const entity = data?.entity;
 
   return (
-    <MainContentWrapper>
+    <>
       <header>
         <h1>
           <strong>
@@ -82,22 +84,22 @@ const SimpleEntityPage: NextPage = () => {
           />
         )}
       </div>
-    </MainContentWrapper>
+    </>
   );
 };
 
-const BlockBasedEntityPage: NextPage = () => {
+SimpleEntityPage.getLayout = getLayoutWithSidebar;
+
+const BlockBasedEntityPage: NextPageWithLayout = () => {
   const router = useRouter();
   const { query } = router;
   const { accountId } = useRouteAccountInfo();
   const entityId = query["entity-id"] as string;
 
-  return (
-    <MainContentWrapper>
-      <BlockBasedEntityEditor accountId={accountId} entityId={entityId} />
-    </MainContentWrapper>
-  );
+  return <BlockBasedEntityEditor accountId={accountId} entityId={entityId} />;
 };
+
+BlockBasedEntityPage.getLayout = getLayoutWithSidebar;
 
 export default process.env.NEXT_PUBLIC_BLOCK_BASED_ENTITY_EDITOR === "true"
   ? BlockBasedEntityPage

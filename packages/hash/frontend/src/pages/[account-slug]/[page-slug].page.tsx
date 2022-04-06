@@ -22,11 +22,7 @@ import { VersionDropdown } from "../../components/Dropdowns/VersionDropdown";
 import styles from "../index.module.scss";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import { PageTransferDropdown } from "../../components/Dropdowns/PageTransferDropdown";
-import {
-  MainContentWrapper,
-  NextPageWithLayout,
-  getLayoutWithSidebar,
-} from "../../shared/layout";
+import { NextPageWithLayout, getLayoutWithSidebar } from "../../shared/layout";
 import { RemoteBlockMetadata } from "../../blocks/userBlocks";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../shared/routing";
 
@@ -108,41 +104,25 @@ const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
   }, [pageState]);
 
   if (pageState === "transferring") {
-    return (
-      <MainContentWrapper>
-        <h1>Transferring you to the new page...</h1>
-      </MainContentWrapper>
-    );
+    return <h1>Transferring you to the new page...</h1>;
   }
 
   if (loading) {
-    return (
-      <MainContentWrapper>
-        <h1>Loading...</h1>
-      </MainContentWrapper>
-    );
+    return <h1>Loading...</h1>;
   }
 
   if (error) {
-    return (
-      <MainContentWrapper>
-        <h1>Error: {error.message}</h1>
-      </MainContentWrapper>
-    );
+    return <h1>Error: {error.message}</h1>;
   }
 
   if (!data) {
-    return (
-      <MainContentWrapper>
-        <h1>No data loaded.</h1>
-      </MainContentWrapper>
-    );
+    return <h1>No data loaded.</h1>;
   }
 
   const { title } = data.page.properties;
 
   return (
-    <MainContentWrapper>
+    <>
       <header>
         <div className={styles.PageHeader}>
           <div className={tw`flex flex-col-reverse`}>
@@ -189,7 +169,7 @@ const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
           />
         </CollabPositionProvider>
       </main>
-    </MainContentWrapper>
+    </>
   );
 };
 
