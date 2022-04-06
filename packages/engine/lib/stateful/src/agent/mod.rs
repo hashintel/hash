@@ -1,4 +1,4 @@
+mod field;
 mod schema;
-mod state;
 
-pub use self::{schema::AgentSchema, state::AgentStateField};
+pub use self::{field::AgentStateField, schema::AgentSchema};
