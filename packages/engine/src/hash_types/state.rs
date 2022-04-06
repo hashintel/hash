@@ -9,7 +9,7 @@ use serde::{
     Deserialize, Serialize,
 };
 use serde_aux::prelude::deserialize_string_from_number;
-use stateful::agent::AgentStateField;
+use stateful::{agent::AgentStateField, message::GenericPayload};
 
 use crate::{
     config::Globals,
@@ -470,7 +470,7 @@ impl Agent {
         data: Option<serde_json::Value>,
     ) -> Result<()> {
         use message::{
-            CreateAgent, GenericPayload, OutboundCreateAgentPayload, OutboundRemoveAgentPayload,
+            CreateAgent, OutboundCreateAgentPayload, OutboundRemoveAgentPayload,
             OutboundStopSimPayload, RemoveAgent, StopSim,
         };
 
@@ -732,9 +732,9 @@ fn generate_agent_id() -> String {
 #[cfg(test)]
 mod tests {
     use serde_json::json;
+    use stateful::message::GenericPayload;
 
     use super::*;
-    use crate::hash_types::message::GenericPayload;
 
     #[test]
     fn agent_state_ergonomics() -> Result<()> {

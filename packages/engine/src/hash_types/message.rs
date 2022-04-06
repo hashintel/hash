@@ -1,6 +1,7 @@
 use std::{collections::HashMap, fmt};
 
 use serde::{de::Deserializer, Deserialize, Serialize};
+use stateful::message::GenericPayload;
 
 use crate::{
     datastore::arrow::message::{CREATE_AGENT, REMOVE_AGENT, SYSTEM_MESSAGE},
@@ -348,16 +349,6 @@ pub struct OutboundStopSimPayload {
 
 impl OutboundStopSimPayload {
     pub const KIND: &'static str = "stop";
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
-pub struct GenericPayload {
-    pub r#type: String,
-
-    #[serde(deserialize_with = "value_or_string_array")]
-    pub to: Vec<String>,
-
-    pub data: Option<serde_json::Value>,
 }
 
 fn value_or_string_array<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>

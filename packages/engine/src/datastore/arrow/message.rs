@@ -5,13 +5,13 @@ use arrow::{
     datatypes::Schema,
     record_batch::RecordBatch,
 };
-use stateful::message::{MESSAGE_ARROW_FIELDS, MESSAGE_COLUMN_NAME};
+use stateful::message::{GenericPayload, MESSAGE_ARROW_FIELDS, MESSAGE_COLUMN_NAME};
 
 use crate::{
     datastore::error::{Error, Result},
     hash_types::{
         message::{
-            GenericPayload, Outbound, OutboundCreateAgentPayload, OutboundRemoveAgentPayload,
+            Outbound, OutboundCreateAgentPayload, OutboundRemoveAgentPayload,
             OutboundStopSimPayload,
         },
         Agent,
