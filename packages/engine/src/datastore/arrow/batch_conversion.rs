@@ -19,7 +19,7 @@ use memory::arrow::{
 };
 use serde_json::value::Value;
 use stateful::{
-    agent::{AgentSchema, AgentStateField, BUILTIN_FIELDS},
+    agent::{AgentName, AgentSchema, AgentStateField, BUILTIN_FIELDS},
     field::{FieldScope, FieldTypeVariant, RootFieldKey},
     message::MESSAGE_BATCH_SCHEMA,
 };
@@ -329,7 +329,7 @@ fn set_states_agent_name(states: &mut [Agent], record_batch: &RecordBatch) -> Re
 
         for (i_state, state) in states.iter_mut().enumerate() {
             state.agent_name = if array.is_valid(i_state) {
-                Some(crate::hash_types::state::Name(array.value(i_state).into()))
+                Some(AgentName(array.value(i_state).into()))
             } else {
                 None
             }

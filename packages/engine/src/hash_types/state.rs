@@ -1,16 +1,15 @@
 use std::{
     collections::{HashMap, HashSet},
     fmt,
-    ops::{Deref, Index, IndexMut},
+    ops::{Index, IndexMut},
 };
 
 use serde::{
     de::{self, Deserializer, MapAccess, Visitor},
     Deserialize, Serialize,
 };
-use serde_aux::prelude::deserialize_string_from_number;
 use stateful::{
-    agent::{AgentStateField, BUILTIN_FIELDS},
+    agent::{AgentName, AgentStateField, BUILTIN_FIELDS},
     message, Vec3,
 };
 
@@ -59,7 +58,7 @@ pub struct Agent {
     pub agent_id: String,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub agent_name: Option<Name>,
+    pub agent_name: Option<AgentName>,
 
     /// Messages to be sent at the next step. (The Agent's "Outbox")
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -683,17 +682,6 @@ impl From<serde_json::Value> for Agent {
             Ok(v) => v,
             Err(err) => panic!("{}", err),
         }
-    }
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
-pub struct Name(#[serde(deserialize_with = "deserialize_string_from_number")] pub String);
-
-impl Deref for Name {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
     }
 }
 
