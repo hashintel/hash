@@ -6,10 +6,10 @@
 //! [`FieldSpec`] to associate a name with the [`FieldType`].
 //!
 //! To create an Arrow [`Schema`], this module provides a [`FieldSpecMap`], which maps a
-//! [`FieldKey`]s to [`RootFieldSpec`]s. A [`RootFieldSpec`] associates a [`FieldSpec`] with a
-//! [`FieldScope`] and a [`FieldSource`]. The [`FieldKey`] contains the name of the corresponding
-//! field and encodes the [`FieldScope`] and a [`FieldSource`] to be used for looking up Arrow
-//! columns.
+//! [`RootFieldKey`]s to [`RootFieldSpec`]s. A [`RootFieldSpec`] associates a [`FieldSpec`] with a
+//! [`FieldScope`] and a [`FieldSource`]. The [`RootFieldKey`] contains the name of the
+//! corresponding field and encodes the [`FieldScope`] and a [`FieldSource`] to be used for looking
+//! up Arrow columns.
 //!
 //!
 //!
@@ -33,7 +33,7 @@ pub const UUID_V4_LEN: usize = 16;
 pub use self::{
     accessor::{FieldSpecMapAccessor, RootFieldSpecMapAccessor},
     field_type::{FieldType, FieldTypeVariant, PresetFieldType},
-    key::FieldKey,
+    key::RootFieldKey,
     scope::FieldScope,
     source::FieldSource,
     spec::{FieldSpec, RootFieldSpec, RootFieldSpecCreator},

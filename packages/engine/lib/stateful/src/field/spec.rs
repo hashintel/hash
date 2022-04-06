@@ -4,7 +4,7 @@ use arrow::datatypes::{DataType, Field};
 
 use crate::{
     error::{Error, Result},
-    field::{key::FieldKey, FieldScope, FieldSource, FieldType},
+    field::{key::RootFieldKey, FieldScope, FieldSource, FieldType},
 };
 
 /// A single specification of a field
@@ -18,7 +18,7 @@ impl FieldSpec {
     pub(in crate::field) fn into_arrow_field(
         self,
         can_guarantee_non_null: bool,
-        field_key: Option<FieldKey>,
+        field_key: Option<RootFieldKey>,
     ) -> Field {
         // We cannot guarantee non-nullability for certain root-level arrow-fields due to how we
         // initialise data currently. As this is an impl on FieldSpec we need the calling
@@ -65,12 +65,14 @@ pub struct RootFieldSpec<S> {
 }
 
 impl<S: FieldSource> RootFieldSpec<S> {
-    pub fn create_key(&self) -> Result<FieldKey> {
+    pub fn create_key(&self) -> Result<RootFieldKey> {
         Ok(match &self.scope {
-            FieldScope::Agent => FieldKey::new_agent_scoped(&self.inner.name)?,
-            FieldScope::Private | FieldScope::Hidden => {
-                FieldKey::new_private_or_hidden_scoped(&self.inner.name, &self.source, self.scope)?
-            }
+            FieldScope::Agent => RootFieldKey::new_agent_scoped(&self.inner.name)?,
+            FieldScope::Private | FieldScope::Hidden => RootFieldKey::new_private_or_hidden_scoped(
+                &self.inner.name,
+                &self.source,
+                self.scope,
+            )?,
         })
     }
 }

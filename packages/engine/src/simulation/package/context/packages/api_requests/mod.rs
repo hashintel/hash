@@ -7,7 +7,7 @@ use arrow::datatypes::DataType;
 use async_trait::async_trait;
 use futures::{stream::FuturesOrdered, StreamExt};
 use serde_json::Value;
-use stateful::field::{FieldKey, RootFieldSpec, RootFieldSpecCreator};
+use stateful::field::{RootFieldKey, RootFieldSpec, RootFieldSpecCreator};
 use tracing::{Instrument, Span};
 
 pub use self::handlers::CustomApiMessageError;
@@ -136,7 +136,7 @@ impl Package for ApiRequests {
         &self,
         num_agents: usize,
         context_schema: &ContextSchema,
-    ) -> Result<Vec<(FieldKey, Arc<dyn arrow::array::Array>)>> {
+    ) -> Result<Vec<(RootFieldKey, Arc<dyn arrow::array::Array>)>> {
         let from_builder = Box::new(arrow::array::StringBuilder::new(1024));
         let type_builder = Box::new(arrow::array::StringBuilder::new(1024));
         let data_builder = Box::new(arrow::array::StringBuilder::new(1024));

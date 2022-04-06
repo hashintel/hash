@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use serde_json::Value;
-use stateful::field::{FieldKey, FieldSpecMapAccessor, RootFieldSpec, RootFieldSpecCreator};
+use stateful::field::{FieldSpecMapAccessor, RootFieldKey, RootFieldSpec, RootFieldSpecCreator};
 use tracing::Span;
 
 use self::map::{NeighborMap, NeighborRef};
@@ -144,7 +144,7 @@ impl Package for Neighbors {
         &self,
         num_agents: usize,
         _schema: &ContextSchema,
-    ) -> Result<Vec<(FieldKey, Arc<dyn arrow::array::Array>)>> {
+    ) -> Result<Vec<(RootFieldKey, Arc<dyn arrow::array::Array>)>> {
         let index_builder = ArrowIndexBuilder::new(1024);
 
         let neighbor_index_builder = arrow::array::FixedSizeListBuilder::new(index_builder, 2);

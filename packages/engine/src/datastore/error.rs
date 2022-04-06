@@ -1,7 +1,7 @@
 use std::fmt;
 
 use arrow::{datatypes::DataType, error::ArrowError};
-use stateful::field::FieldKey;
+use stateful::field::RootFieldKey;
 use thiserror::Error as ThisError;
 
 use crate::hash_types::{self, state::AgentStateField};
@@ -150,7 +150,7 @@ pub enum Error {
         "Attempting to insert a new field under key:{0:?} which clashes. New field: {1} Existing \
          field: {2}"
     )]
-    FieldKeyClash(FieldKey, String, String),
+    FieldKeyClash(RootFieldKey, String, String),
 
     #[error(
         "Can't take multiple write access to shared state, e.g. by cloning writable task shared \

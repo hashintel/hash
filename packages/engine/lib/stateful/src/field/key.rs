@@ -8,9 +8,9 @@ use crate::{
 // TODO: Use a struct containing the name, the scope, and the source instead?
 // TODO: OPTIM (follow-up of the above): Use string interning for faster column name lookup
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
-pub struct FieldKey(String);
+pub struct RootFieldKey(String);
 
-impl FieldKey {
+impl RootFieldKey {
     fn verify_name(name: &str) -> Result<()> {
         const PRIVATE_PREFIX: &str = FieldScope::Private.prefix();
         const HIDDEN_PREFIX: &str = FieldScope::Hidden.prefix();
@@ -83,7 +83,7 @@ impl FieldKey {
     }
 }
 
-impl fmt::Display for FieldKey {
+impl fmt::Display for RootFieldKey {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(self.value(), fmt)
     }

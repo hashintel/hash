@@ -6,7 +6,7 @@ mod writer;
 use arrow::array::{Array, FixedSizeListBuilder, ListBuilder};
 use async_trait::async_trait;
 use serde_json::Value;
-use stateful::field::{FieldKey, RootFieldSpec, RootFieldSpecCreator};
+use stateful::field::{RootFieldKey, RootFieldSpec, RootFieldSpecCreator};
 use tracing::Span;
 
 use self::collected::Messages;
@@ -115,7 +115,7 @@ impl Package for AgentMessages {
         &self,
         num_agents: usize,
         _schema: &ContextSchema,
-    ) -> Result<Vec<(FieldKey, Arc<dyn Array>)>> {
+    ) -> Result<Vec<(RootFieldKey, Arc<dyn Array>)>> {
         let index_builder = ArrowIndexBuilder::new(1024);
         let loc_builder = FixedSizeListBuilder::new(index_builder, 3);
         let mut messages_builder = ListBuilder::new(loc_builder);

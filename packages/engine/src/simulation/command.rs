@@ -8,7 +8,7 @@ use std::{collections::HashSet, sync::Arc};
 
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
-use stateful::field::FieldKey;
+use stateful::field::RootFieldKey;
 use uuid::Uuid;
 
 use crate::{
@@ -132,7 +132,7 @@ impl Commands {
         for create in &self.create_remove.create {
             for field in create.agent.custom.keys() {
                 // Hopefully branch prediction will make this not as slow as it looks.
-                if !field_spec_map.contains_key(&FieldKey::new_agent_scoped(field)?) {
+                if !field_spec_map.contains_key(&RootFieldKey::new_agent_scoped(field)?) {
                     return Err(Error::CreateAgentField(field.clone(), create.agent.clone()));
                 }
             }

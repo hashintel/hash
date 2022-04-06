@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     error::Result,
-    field::{FieldKey, FieldScope, FieldSource, FieldSpecMap, RootFieldSpec},
+    field::{FieldScope, FieldSource, FieldSpecMap, RootFieldKey, RootFieldSpec},
 };
 
 pub struct FieldSpecMapAccessor<S> {
@@ -20,7 +20,7 @@ impl<S: FieldSource> FieldSpecMapAccessor<S> {
 
     /// Get a FieldSpec stored under a given field name with FieldScope::Agent
     pub fn get_agent_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec<S>> {
-        let key = FieldKey::new_agent_scoped(field_name)?;
+        let key = RootFieldKey::new_agent_scoped(field_name)?;
         self.field_spec_map.get_field_spec(&key)
     }
 
@@ -31,8 +31,11 @@ impl<S: FieldSource> FieldSpecMapAccessor<S> {
         field_name: &str,
         field_source: &S,
     ) -> Result<&RootFieldSpec<S>> {
-        let key =
-            FieldKey::new_private_or_hidden_scoped(field_name, field_source, FieldScope::Hidden)?;
+        let key = RootFieldKey::new_private_or_hidden_scoped(
+            field_name,
+            field_source,
+            FieldScope::Hidden,
+        )?;
         self.field_spec_map.get_field_spec(&key)
     }
 
@@ -42,7 +45,7 @@ impl<S: FieldSource> FieldSpecMapAccessor<S> {
         &self,
         field_name: &str,
     ) -> Result<&RootFieldSpec<S>> {
-        let key = FieldKey::new_private_or_hidden_scoped(
+        let key = RootFieldKey::new_private_or_hidden_scoped(
             field_name,
             &self.accessor_source,
             FieldScope::Private,
@@ -56,7 +59,7 @@ impl<S: FieldSource> FieldSpecMapAccessor<S> {
         &self,
         field_name: &str,
     ) -> Result<&RootFieldSpec<S>> {
-        let key = FieldKey::new_private_or_hidden_scoped(
+        let key = RootFieldKey::new_private_or_hidden_scoped(
             field_name,
             &self.accessor_source,
             FieldScope::Hidden,
@@ -79,7 +82,7 @@ impl<S: FieldSource> RootFieldSpecMapAccessor<S> {
     //   end up needing these it might be worth removing
     #[allow(dead_code)]
     fn get_agent_scoped_field_spec(&self, field_name: &str) -> Result<&RootFieldSpec<S>> {
-        let key = FieldKey::new_agent_scoped(field_name)?;
+        let key = RootFieldKey::new_agent_scoped(field_name)?;
         self.field_spec_map.get_field_spec(&key)
     }
 
@@ -90,7 +93,8 @@ impl<S: FieldSource> RootFieldSpecMapAccessor<S> {
         field_source: &S,
         field_scope: FieldScope,
     ) -> Result<&RootFieldSpec<S>> {
-        let key = FieldKey::new_private_or_hidden_scoped(field_name, field_source, field_scope)?;
+        let key =
+            RootFieldKey::new_private_or_hidden_scoped(field_name, field_source, field_scope)?;
 
         self.field_spec_map.get_field_spec(&key)
     }

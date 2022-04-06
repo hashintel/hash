@@ -5,7 +5,8 @@ use arrow::datatypes::{Field, Schema};
 
 use crate::{
     field::{
-        fixed_size::IsFixedSize, FieldKey, FieldScope, FieldSource, FieldTypeVariant, RootFieldSpec,
+        fixed_size::IsFixedSize, FieldScope, FieldSource, FieldTypeVariant, RootFieldKey,
+        RootFieldSpec,
     },
     Error, Result,
 };
@@ -15,7 +16,7 @@ use crate::{
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct FieldSpecMap<S> {
     /// A mapping of field unique identifiers to the fields themselves.
-    field_specs: HashMap<FieldKey, RootFieldSpec<S>>,
+    field_specs: HashMap<RootFieldKey, RootFieldSpec<S>>,
 }
 
 // Can't be derived because of `S`
@@ -34,11 +35,11 @@ impl<S> FieldSpecMap<S> {
         }
     }
 
-    pub fn contains_key(&self, key: &FieldKey) -> bool {
+    pub fn contains_key(&self, key: &RootFieldKey) -> bool {
         self.field_specs.contains_key(key)
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&FieldKey, &RootFieldSpec<S>)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&RootFieldKey, &RootFieldSpec<S>)> {
         self.field_specs.iter()
     }
 
@@ -58,7 +59,7 @@ impl<S> FieldSpecMap<S> {
         self.len() == 0
     }
 
-    pub fn get_field_spec(&self, field_key: &FieldKey) -> Result<&RootFieldSpec<S>> {
+    pub fn get_field_spec(&self, field_key: &RootFieldKey) -> Result<&RootFieldSpec<S>> {
         self.field_specs
             .get(field_key)
             .ok_or_else(|| Error::from(format!("Cannot find field with name '{:?}'", field_key)))
