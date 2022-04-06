@@ -14,7 +14,11 @@ pub use self::handlers::CustomApiMessageError;
 use self::response::{ApiResponseMap, ApiResponses};
 use crate::{
     config::{ExperimentConfig, Globals},
-    datastore::{batch::iterators, schema::EngineComponent, table::pool::BatchPool},
+    datastore::{
+        batch::iterators,
+        schema::EngineComponent,
+        table::pool::{message, BatchPool},
+    },
     simulation::{
         comms::package::PackageComms,
         package::context::{
@@ -201,7 +205,7 @@ async fn build_api_response_maps(
     let mut futs = FuturesOrdered::new();
     {
         let message_proxies = &snapshot.state.message_pool.read_proxies()?;
-        let reader = message_proxies.get_reader()?;
+        let reader = message::get_reader(message_proxies)?;
 
         handlers.iter().try_for_each::<_, Result<()>>(|handler| {
             let messages = snapshot.message_map.get_msg_refs(handler);

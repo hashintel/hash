@@ -5,7 +5,11 @@ use std::{
 
 use rayon::iter::ParallelIterator;
 
-use crate::datastore::{batch::MessageBatch, error::Result, table::pool::proxy::PoolReadProxy};
+use crate::datastore::{
+    batch::MessageBatch,
+    error::Result,
+    table::pool::{message, proxy::PoolReadProxy},
+};
 
 #[derive(Clone, Debug)]
 pub struct AgentMessageReference {
@@ -36,7 +40,7 @@ pub struct MessageMap {
 
 impl MessageMap {
     pub fn new(pool: &PoolReadProxy<MessageBatch>) -> Result<MessageMap> {
-        let iter = pool.recipient_iter_all();
+        let iter = message::recipient_iter_all(pool);
         let inner = iter
             .fold(
                 HashMap::<String, Vec<AgentMessageReference>>::new,

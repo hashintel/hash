@@ -20,7 +20,8 @@ use crate::{
         batch::MessageBatch,
         schema::state::AgentSchema,
         table::{
-            pool::proxy::PoolReadProxy, references::MessageMap,
+            pool::{message, proxy::PoolReadProxy},
+            references::MessageMap,
             state::create_remove::ProcessedCommands,
         },
         UUID_V4_LEN,
@@ -154,9 +155,9 @@ impl Commands {
     /// commands.
     pub fn from_hash_messages(
         message_map: &MessageMap,
-        message_proxies: PoolReadProxy<MessageBatch>,
+        message_proxies: &PoolReadProxy<MessageBatch>,
     ) -> Result<Commands> {
-        let message_reader = message_proxies.get_reader()?;
+        let message_reader = message::get_reader(message_proxies)?;
 
         let mut refs = Vec::with_capacity(HASH.len());
         for hash_recipient in &HASH {
