@@ -143,3 +143,23 @@ impl TryFrom<AgentStateField> for FieldType {
         Ok(field_type)
     }
 }
+
+// NOTE: This is used in conjunction with the custom deserializaer
+// PLEASE UPDATE THIS LIST WHEN YOU ADD ANOTHER BUILT IN FIELD
+/// Built-in fields -- by default, these are automatically added to Agent State by the engine.
+///
+/// Also see [`AgentStateField`].
+pub const BUILTIN_FIELDS: [&str; 12] = [
+    AgentStateField::AgentId.name(),
+    AgentStateField::AgentName.name(),
+    AgentStateField::Messages.name(),
+    AgentStateField::Position.name(),
+    AgentStateField::Direction.name(),
+    AgentStateField::Velocity.name(),
+    AgentStateField::Shape.name(),
+    AgentStateField::Height.name(),
+    AgentStateField::Scale.name(),
+    AgentStateField::Color.name(),
+    AgentStateField::Rgb.name(),
+    AgentStateField::Hidden.name(),
+];

@@ -9,7 +9,10 @@ use serde::{
     Deserialize, Serialize,
 };
 use serde_aux::prelude::deserialize_string_from_number;
-use stateful::{agent::AgentStateField, message};
+use stateful::{
+    agent::{AgentStateField, BUILTIN_FIELDS},
+    message,
+};
 
 use crate::{
     config::Globals,
@@ -24,26 +27,6 @@ use crate::{
 #[allow(clippy::module_name_repetitions)]
 pub type SimulationState = Vec<Agent>;
 pub type DatasetMap = serde_json::Map<String, serde_json::Value>;
-
-// NOTE: This is used in conjunction with the custom deserializaer
-// PLEASE UPDATE THIS LIST WHEN YOU ADD ANOTHER BUILT IN FIELD
-/// Built-in fields -- by default, these are automatically added to Agent State by the engine.
-///
-/// Also see [`AgentStateField`].
-pub const BUILTIN_FIELDS: [&str; 12] = [
-    AgentStateField::AgentId.name(),
-    AgentStateField::AgentName.name(),
-    AgentStateField::Messages.name(),
-    AgentStateField::Position.name(),
-    AgentStateField::Direction.name(),
-    AgentStateField::Velocity.name(),
-    AgentStateField::Shape.name(),
-    AgentStateField::Height.name(),
-    AgentStateField::Scale.name(),
-    AgentStateField::Color.name(),
-    AgentStateField::Rgb.name(),
-    AgentStateField::Hidden.name(),
-];
 
 /// The context is global, consistent data about the simulation at a single point in time, which is
 /// shared between all agents.

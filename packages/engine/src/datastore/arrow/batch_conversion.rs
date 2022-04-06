@@ -19,7 +19,7 @@ use memory::arrow::{
 };
 use serde_json::value::Value;
 use stateful::{
-    agent::{AgentSchema, AgentStateField},
+    agent::{AgentSchema, AgentStateField, BUILTIN_FIELDS},
     field::{FieldScope, FieldTypeVariant, RootFieldKey},
     message::MESSAGE_BATCH_SCHEMA,
 };
@@ -32,7 +32,7 @@ use crate::{
         schema::{EngineComponent, IsRequired},
         UUID_V4_LEN,
     },
-    hash_types::{state::BUILTIN_FIELDS, Agent},
+    hash_types::Agent,
     simulation::package::creator::PREVIOUS_INDEX_FIELD_KEY,
 };
 
