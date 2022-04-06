@@ -18,7 +18,7 @@ import {
 } from "@mui/material";
 import { GetStaticProps } from "next";
 import { VFC } from "react";
-import { MainContentWrapper } from "../components/layout/MainContentWrapper";
+import { MainContentWrapper } from "../shared/layout";
 import { isProduction } from "../lib/config";
 import { FontAwesomeIcon } from "../shared/icons";
 import {

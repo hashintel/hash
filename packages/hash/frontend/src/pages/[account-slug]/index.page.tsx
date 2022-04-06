@@ -1,6 +1,6 @@
 import { Box, Typography } from "@mui/material";
 import { NextPage } from "next";
-import { MainContentWrapper } from "../../components/layout/MainContentWrapper";
+import { MainContentWrapper } from "../../shared/layout";
 import { useUser } from "../../components/hooks/useUser";
 import { useOrgs } from "../../components/hooks/useOrgs";
 import { Link } from "../../shared/ui";

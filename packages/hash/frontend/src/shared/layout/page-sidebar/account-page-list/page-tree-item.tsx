@@ -13,9 +13,9 @@ import {
   faEllipsis,
   faFile,
 } from "@fortawesome/free-solid-svg-icons";
-import { IconButton, Link } from "../../../../shared/ui";
-import { FontAwesomeIcon } from "../../../../shared/icons";
-import { PageMenu } from "./PageMenu";
+import { IconButton, Link } from "../../../ui";
+import { FontAwesomeIcon } from "../../../icons";
+import { PageMenu } from "./page-menu";
 
 // tweaked the example at https://mui.com/components/tree-view/#IconExpansionTreeView.tsx
 const CustomContent = React.forwardRef((props: TreeItemContentProps, ref) => {

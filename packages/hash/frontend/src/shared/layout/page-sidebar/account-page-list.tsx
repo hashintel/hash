@@ -9,10 +9,10 @@ import React, {
 import { treeFromParentReferences } from "@hashintel/hash-shared/util";
 import { TreeView } from "@mui/lab";
 import { useRouter } from "next/router";
-import { useAccountPages } from "../../../hooks/useAccountPages";
-import { NavLink } from "../NavLink";
-import { PageTreeItem } from "./PageTreeItem";
-import { useCreatePage } from "../../../hooks/useCreatePage";
+import { useAccountPages } from "../../../components/hooks/useAccountPages";
+import { useCreatePage } from "../../../components/hooks/useCreatePage";
+import { NavLink } from "./nav-link";
+import { PageTreeItem } from "./account-page-list/page-tree-item";
 
 type AccountPageListProps = {
   accountId: string;

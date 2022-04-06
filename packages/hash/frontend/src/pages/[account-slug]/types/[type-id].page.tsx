@@ -17,7 +17,7 @@ import {
 import { AccountEntityOfTypeList } from "../../../components/entityTypes/AccountEntityOfTypeList";
 import { useBlockProtocolUpdateEntityType } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntityType";
 import { useBlockProtocolAggregateEntityTypes } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregateEntityTypes";
-import { MainContentWrapper } from "../../../components/layout/MainContentWrapper";
+import { MainContentWrapper } from "../../../shared/layout";
 import { Button, Link } from "../../../shared/ui";
 import { useRouteAccountInfo } from "../../../shared/routing";
 

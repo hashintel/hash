@@ -22,7 +22,7 @@ import { VersionDropdown } from "../../components/Dropdowns/VersionDropdown";
 import styles from "../index.module.scss";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import { PageTransferDropdown } from "../../components/Dropdowns/PageTransferDropdown";
-import { MainContentWrapper } from "../../components/layout/MainContentWrapper";
+import { MainContentWrapper } from "../../shared/layout";
 import { RemoteBlockMetadata } from "../../blocks/userBlocks";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../shared/routing";
 

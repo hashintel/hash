@@ -17,12 +17,15 @@ import {
 import { orderBy } from "lodash";
 import { useRouter } from "next/router";
 import { usePopupState, bindTrigger } from "material-ui-popup-state/hooks";
-import { useAccountEntityTypes } from "../../../hooks/useAccountEntityTypes";
-import { NavLink } from "../NavLink";
-import { IconButton, Link } from "../../../../shared/ui";
-import { FontAwesomeIcon } from "../../../../shared/icons";
-import { EntityTypeItem } from "./EntityTypeItem";
-import { SortActionsDropdown, SortType } from "./SortActionsDropdown";
+import { useAccountEntityTypes } from "../../../components/hooks/useAccountEntityTypes";
+import { NavLink } from "./nav-link";
+import { IconButton, Link } from "../../ui";
+import { FontAwesomeIcon } from "../../icons";
+import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
+import {
+  SortActionsDropdown,
+  SortType,
+} from "./account-entity-type-list/sort-actions-dropdown";
 
 type SearchInputProps = {
   searchVisible: boolean;

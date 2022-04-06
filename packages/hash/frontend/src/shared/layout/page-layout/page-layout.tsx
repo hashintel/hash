@@ -1,7 +1,7 @@
 import { useRouter } from "next/router";
 import { ReactNode, VFC } from "react";
 import Head from "next/head";
-import { PageHeader } from "../PageHeader/PageHeader";
+import { PageHeader } from "../page-header";
 import { isProd } from "../../../lib/environment";
 
 const AUTH_ROUTES = ["/login", "/signup", "/invite"];

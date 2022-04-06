@@ -1,11 +1,11 @@
 import { Fade, Box, Tooltip, styled } from "@mui/material";
 import { VFC } from "react";
 
-import { SidebarToggleIcon } from "../../shared/icons";
-import { HEADER_HEIGHT } from "./PageHeader/PageHeader";
-import { PageSidebar, SIDEBAR_WIDTH } from "./PageSidebar/PageSidebar";
-import { useSidebarContext } from "./SidebarContext";
-import { IconButton } from "../../shared/ui";
+import { SidebarToggleIcon } from "../icons";
+import { HEADER_HEIGHT } from "./page-header";
+import { PageSidebar, SIDEBAR_WIDTH } from "./page-sidebar";
+import { useSidebarContext } from "./sidebar-context";
+import { IconButton } from "../ui";
 
 const Main = styled("main", {
   shouldForwardProp: (prop) => prop !== "sidebarOpen",

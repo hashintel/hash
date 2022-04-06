@@ -8,16 +8,16 @@ import {
   faLifeRing,
   faZap,
 } from "@fortawesome/free-solid-svg-icons";
-import { AccountPageList } from "./AccountPageList/AccountPageList";
+import { AccountPageList } from "./page-sidebar/account-page-list";
 
-import { AccountEntityTypeList } from "./AccountEntityTypeList/AccountEntityTypeList";
-import { FontAwesomeIcon, SidebarToggleIcon } from "../../../shared/icons";
-import { TopNavLink } from "./TopNavLink";
-import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
-import { useSidebarContext } from "../SidebarContext";
-import { IconButton, Link } from "../../../shared/ui";
-import { HEADER_HEIGHT } from "../PageHeader/PageHeader";
-import { useRouteAccountInfo, useRoutePageInfo } from "../../../shared/routing";
+import { AccountEntityTypeList } from "./page-sidebar/account-entity-type-list";
+import { FontAwesomeIcon, SidebarToggleIcon } from "../icons";
+import { TopNavLink } from "./page-sidebar/top-nav-link";
+import { WorkspaceSwitcher } from "./page-sidebar/workspace-switcher";
+import { useSidebarContext } from "./sidebar-context";
+import { IconButton, Link } from "../ui";
+import { HEADER_HEIGHT } from "./page-header";
+import { useRouteAccountInfo, useRoutePageInfo } from "../routing";
 
 export const SIDEBAR_WIDTH = 260;
 

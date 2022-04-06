@@ -17,17 +17,17 @@ import {
   IconButton,
 } from "@mui/material";
 
-import { getBlockDomId } from "../../../../blocks/page/BlockView";
+import { getBlockDomId } from "../../../blocks/page/BlockView";
 import {
   SearchPagesQuery,
   SearchPagesQueryVariables,
-} from "../../../../graphql/apiTypes.gen";
-import { searchPages } from "../../../../graphql/queries/search.queries";
-import { useUser } from "../../../hooks/useUser";
-import { HASH_OPENSEARCH_ENABLED } from "../../../../lib/public-env";
-import { SearchInput } from "./SearchInput";
-import { Button, Link } from "../../../../shared/ui";
-import { SearchIcon } from "../../../../shared/icons";
+} from "../../../graphql/apiTypes.gen";
+import { searchPages } from "../../../graphql/queries/search.queries";
+import { useUser } from "../../../components/hooks/useUser";
+import { HASH_OPENSEARCH_ENABLED } from "../../../lib/public-env";
+import { SearchInput } from "./search-bar/search-input";
+import { Button, Link } from "../../ui";
+import { SearchIcon } from "../../icons";
 
 /** finds the query's words in the result and chops it into parts at the words' boundaries */
 const splitByMatches = (result: string, query: string) => {

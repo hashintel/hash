@@ -10,7 +10,7 @@ import { SimpleEntityEditor } from "./shared/simple-entity-editor";
 import { UnknownEntity } from "../../../graphql/apiTypes.gen";
 import { useBlockProtocolCreateEntities } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolCreateEntitities";
 import { useBlockProtocolAggregateEntities } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregateEntities";
-import { MainContentWrapper } from "../../../components/layout/MainContentWrapper";
+import { MainContentWrapper } from "../../../shared/layout";
 import { useAccountEntityTypes } from "../../../components/hooks/useAccountEntityTypes";
 import { useRouteAccountInfo } from "../../../shared/routing";
 

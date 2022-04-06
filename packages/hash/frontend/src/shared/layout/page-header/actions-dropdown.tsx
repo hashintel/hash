@@ -10,11 +10,11 @@ import {
 import { useKeys } from "rooks";
 import { useRouter } from "next/router";
 
-import { FontAwesomeIcon } from "../../../shared/icons";
-import { Link, Popover } from "../../../shared/ui";
-import { HeaderIconButton } from "./HeaderIconButton";
-import { useCreatePage } from "../../hooks/useCreatePage";
-import { useRouteAccountInfo } from "../../../shared/routing";
+import { FontAwesomeIcon } from "../../icons";
+import { Link, Popover } from "../../ui";
+import { HeaderIconButton } from "./header-icon-button";
+import { useCreatePage } from "../../../components/hooks/useCreatePage";
+import { useRouteAccountInfo } from "../../routing";
 
 export const ActionsDropdownInner: VFC<{
   accountId: string;

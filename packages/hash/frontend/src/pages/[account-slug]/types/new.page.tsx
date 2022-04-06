@@ -13,7 +13,7 @@ import {
 } from "../../../graphql/apiTypes.gen";
 import { TextInput } from "../../../components/forms/TextInput";
 import { Button } from "../../../shared/ui";
-import { MainContentWrapper } from "../../../components/layout/MainContentWrapper";
+import { MainContentWrapper } from "../../../shared/layout";
 import { getAccountEntityTypes } from "../../../graphql/queries/account.queries";
 import { useRouteAccountInfo } from "../../../shared/routing";
 

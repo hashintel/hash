@@ -18,9 +18,9 @@ import {
   faPencil,
 } from "@fortawesome/free-solid-svg-icons";
 import { faFileAlt, faTrashCan } from "@fortawesome/free-regular-svg-icons";
-import { useRouteAccountInfo } from "../../../../shared/routing";
-import { FontAwesomeIcon } from "../../../../shared/icons";
-import { useCreatePage } from "../../../hooks/useCreatePage";
+import { useRouteAccountInfo } from "../../../routing";
+import { FontAwesomeIcon } from "../../../icons";
+import { useCreatePage } from "../../../../components/hooks/useCreatePage";
 
 type PageMenuProps = {
   popupState: PopupState;

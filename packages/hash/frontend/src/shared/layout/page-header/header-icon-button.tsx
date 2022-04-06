@@ -1,5 +1,5 @@
 import { styled } from "@mui/material";
-import { IconButton } from "../../../shared/ui";
+import { IconButton } from "../../ui";
 
 const focusBorderOffset = 6;
 const focusBorderWidth = 3;

@@ -2,7 +2,7 @@ import React, { ReactNode, VoidFunctionComponent } from "react";
 import { tw } from "twind";
 
 import bgPattern from "../../../assets/images/auth-bg-pattern.png";
-import { HashIcon, LogoIcon } from "../../../shared/icons";
+import { HashIcon, LogoIcon } from "../../icons";
 
 export type AuthLayoutProps = {
   children: ReactNode;

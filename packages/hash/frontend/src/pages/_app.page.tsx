@@ -14,12 +14,11 @@ import { CacheProvider, EmotionCache } from "@emotion/react";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import { theme, createEmotionCache } from "../shared/ui";
-import { PageLayout } from "../components/layout/PageLayout/PageLayout";
+import { PageLayout, SidebarContextProvider } from "../shared/layout";
 
 import twindConfig from "../../twind.config";
 import "../../styles/globals.scss";
 import { useUser } from "../components/hooks/useUser";
-import { SidebarContextProvider } from "../components/layout/SidebarContext";
 import {
   RouteAccountInfoProvider,
   RoutePageInfoProvider,

@@ -8,8 +8,8 @@ import {
 } from "@mui/material";
 
 import { UserFieldsFragment } from "../../../graphql/apiTypes.gen";
-import { Avatar, Link, Popover } from "../../../shared/ui";
-import { HeaderIconButton } from "./HeaderIconButton";
+import { Avatar, Link, Popover } from "../../ui";
+import { HeaderIconButton } from "./header-icon-button";
 
 type AccountDropdownProps = {
   avatar?: string;
