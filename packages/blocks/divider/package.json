@@ -58,7 +58,6 @@
     "regenerator-runtime": "^0.13.7",
     "rimraf": "^3.0.2",
     "serve": "13.0.2",
-    "twind": "0.16.16",
     "typescript": "4.6.2",
     "typescript-json-schema": "0.50.1",
     "webpack": "^4.44.2",
@@ -69,8 +68,7 @@
   },
   "peerDependencies": {
     "react": "^17.0.2",
-    "react-dom": "^17.0.2",
-    "twind": "^0.16.16"
+    "react-dom": "^17.0.2"
   },
   "blockprotocol": {
     "displayName": "Divider",
