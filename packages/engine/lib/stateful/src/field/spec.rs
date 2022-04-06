@@ -93,21 +93,6 @@ impl<S: FieldSource> TryFrom<RootFieldSpec<S>> for Field {
 ///
 /// This allows packages to not need to be aware of the [`FieldSource`], which can get rather
 /// complicated.
-///
-/// # Example
-///
-/// ```
-/// use hash_engine_lib::{
-///     datastore::schema::{EngineComponent, RootFieldSpecCreator},
-///     simulation::package::{name::PackageName, output::Name as OutputName},
-/// };
-///
-/// // Create an output package for the field specification
-/// let package = PackageName::Output(OutputName::JsonState);
-///
-/// // Create the RootFieldSpecCreator
-/// let rfs_creator = RootFieldSpecCreator::new(EngineComponent::Package(package));
-/// ```
 pub struct RootFieldSpecCreator<S> {
     field_source: S,
 }
@@ -118,7 +103,13 @@ impl<S> RootFieldSpecCreator<S> {
     /// # Example
     ///
     /// ```
-    /// use hash_engine_lib::datastore::schema::{EngineComponent, RootFieldSpecCreator};
+    /// use stateful::field::RootFieldSpecCreator;
+    ///
+    /// #[derive(Debug, Clone, PartialEq)]
+    /// pub enum EngineComponent {
+    ///     Engine,
+    ///     Package,
+    /// }
     ///
     /// # #[allow(unused_variables)]
     /// let rfs_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
@@ -135,9 +126,29 @@ impl<S: Clone> RootFieldSpecCreator<S> {
     /// # Example
     ///
     /// ```
-    /// use hash_engine_lib::datastore::schema::{
-    ///     EngineComponent, FieldScope, FieldType, FieldTypeVariant, RootFieldSpecCreator,
+    /// use stateful::{
+    ///     field::{FieldScope, FieldSource, FieldType, FieldTypeVariant, RootFieldSpecCreator},
+    ///     Result,
     /// };
+    ///
+    /// #[derive(Debug, Clone, PartialEq)]
+    /// pub enum EngineComponent {
+    ///     Engine,
+    ///     Package,
+    /// }
+    ///
+    /// impl FieldSource for EngineComponent {
+    ///     // Implementation detail
+    /// #    fn unique_id(&self) -> Result<usize> {
+    /// #        match self {
+    /// #            EngineComponent::Engine => Ok(0),
+    /// #            EngineComponent::Package => Ok(1),
+    /// #        }
+    /// #    }
+    /// #    fn can_guarantee_null(&self) -> bool {
+    /// #        *self == EngineComponent::Engine
+    /// #    }
+    /// }
     ///
     /// // Create the RootFieldSpecCreator
     /// let rfs_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
