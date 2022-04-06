@@ -6,5 +6,9 @@ pub mod message;
 pub mod proxy;
 
 mod error;
+mod vec;
 
-pub use self::error::{Error, Result};
+pub use self::{
+    error::{Error, Result},
+    vec::Vec3,
+};

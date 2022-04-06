@@ -11,7 +11,7 @@ use serde::{
 use serde_aux::prelude::deserialize_string_from_number;
 use stateful::{
     agent::{AgentStateField, BUILTIN_FIELDS},
-    message,
+    message, Vec3,
 };
 
 use crate::{
@@ -20,7 +20,7 @@ use crate::{
     hash_types::{
         error::{Error, Result},
         message::{CreateAgent, Incoming, OutboundCreateAgentPayload},
-        Outbound, Vec3,
+        Outbound,
     },
 };
 

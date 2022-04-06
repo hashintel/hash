@@ -410,7 +410,7 @@ macro_rules! set_states_opt_vec3_gen {
 
                 for (i_state, state) in states.iter_mut().enumerate() {
                     state.$field_name = if vec3_array.is_valid(i_state) {
-                        Some(crate::hash_types::vec::Vec3(
+                        Some(stateful::Vec3(
                             coord_array.value(i_state * 3),
                             coord_array.value(i_state * 3 + 1),
                             coord_array.value(i_state * 3 + 2),
