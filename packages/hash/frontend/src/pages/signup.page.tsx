@@ -3,12 +3,12 @@ import { useRouter } from "next/router";
 import { useMutation } from "@apollo/client";
 import { useUser } from "../components/hooks/useUser";
 
-import { SignupIntro as SignupIntroScreen } from "./signup.page/signup-intro";
-import { VerifyCode as VerifyCodeScreen } from "./shared/verify-code";
-import { AccountSetup as AccountSetupScreen } from "./signup.page/account-setup";
-import { AccountUsage as AccountUsageScreen } from "./signup.page/account-usage";
-import { OrgCreate as OrgCreateScreen } from "./signup.page/org-create";
-import { OrgInvite as OrgInviteScreen } from "./signup.page/org-invite";
+import { SignupIntro } from "./signup.page/signup-intro";
+import { VerifyCode } from "./shared/verify-code";
+import { AccountSetup } from "./signup.page/account-setup";
+import { AccountUsage } from "./signup.page/account-usage";
+import { OrgCreate } from "./signup.page/org-create";
+import { OrgInvite } from "./signup.page/org-invite";
 
 import {
   CreateUserMutation,
@@ -44,12 +44,12 @@ import { useGetInvitationInfo } from "./shared/use-get-invitation-info";
 import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 
 enum Screen {
-  Intro,
-  VerifyCode,
-  AccountSetup,
-  AccountUsage,
-  OrgCreate,
-  OrgInvite,
+  IntroScreen,
+  VerifyCodeScreen,
+  AccountSetupScreen,
+  AccountUsageScreen,
+  OrgCreateScreen,
+  OrgInviteScreen,
 }
 
 type State = {
@@ -74,7 +74,7 @@ type Actions =
   | Action<"CREATE_ORG_SUCCESS", Pick<State, "createOrgInfo">>;
 
 const initialState: State = {
-  activeScreen: Screen.Intro,
+  activeScreen: Screen.IntroScreen,
   email: "",
   verificationCodeMetadata: undefined,
   verificationCode: "",
@@ -89,13 +89,13 @@ function reducer(state: State, action: Actions): State {
       return {
         ...state,
         ...action.payload,
-        activeScreen: Screen.VerifyCode,
+        activeScreen: Screen.VerifyCodeScreen,
         errorMessage: "",
       };
     case "VERIFY_EMAIL_SUCCESS":
       return {
         ...state,
-        activeScreen: Screen.AccountSetup,
+        activeScreen: Screen.AccountSetupScreen,
         syntheticLoading: false,
         errorMessage: "",
       };
@@ -109,7 +109,7 @@ function reducer(state: State, action: Actions): State {
       return {
         ...state,
         ...action.payload,
-        activeScreen: Screen.OrgInvite,
+        activeScreen: Screen.OrgInviteScreen,
         errorMessage: "",
       };
     case "UPDATE_STATE":
@@ -194,7 +194,7 @@ const Page: NextPageWithLayout = () => {
       dispatch({
         type: "UPDATE_STATE",
         payload: {
-          activeScreen: Screen.AccountSetup,
+          activeScreen: Screen.AccountSetupScreen,
           email: createdEmail?.address,
         },
       });
@@ -260,7 +260,7 @@ const Page: NextPageWithLayout = () => {
         // set how they are using HASH, render AccountUsage screen
         if (!accountUsageType.current) {
           updateState({
-            activeScreen: Screen.AccountUsage,
+            activeScreen: Screen.AccountUsageScreen,
             errorMessage: "",
           });
           return;
@@ -270,7 +270,7 @@ const Page: NextPageWithLayout = () => {
         // is using HASH with a team, render OrgCreate screen
         if (accountUsageType.current === WayToUseHash.WithATeam) {
           updateState({
-            activeScreen: Screen.OrgCreate,
+            activeScreen: Screen.OrgCreateScreen,
             errorMessage: "",
           });
           return;
@@ -315,7 +315,7 @@ const Page: NextPageWithLayout = () => {
     // handles when user clicks on the verification link sent to their email
     if (isParsedAuthQuery(query)) {
       updateState({
-        activeScreen: Screen.VerifyCode,
+        activeScreen: Screen.VerifyCodeScreen,
         verificationCode: query.verificationCode,
       });
       void verifyEmail({
@@ -436,34 +436,34 @@ const Page: NextPageWithLayout = () => {
   if (
     user &&
     !user.accountSignupComplete &&
-    activeScreen !== Screen.AccountSetup
+    activeScreen !== Screen.AccountSetupScreen
   ) {
     updateState({
-      activeScreen: Screen.AccountSetup,
+      activeScreen: Screen.AccountSetupScreen,
     });
   }
 
   return (
     <AuthLayout
       showTopLogo={[
-        Screen.AccountUsage,
-        Screen.OrgCreate,
-        Screen.OrgInvite,
+        Screen.AccountUsageScreen,
+        Screen.OrgCreateScreen,
+        Screen.OrgInviteScreen,
       ].includes(activeScreen)}
       loading={invitationInfoLoading || createUserWithOrgEmailInviteLoading}
     >
-      {activeScreen === Screen.Intro && (
-        <SignupIntroScreen
+      {activeScreen === Screen.IntroScreen && (
+        <SignupIntro
           loading={createUserLoading}
           errorMessage={errorMessage}
           handleSubmit={requestVerificationCode}
           invitationInfo={invitationInfo}
         />
       )}
-      {activeScreen === Screen.VerifyCode && (
-        <VerifyCodeScreen
+      {activeScreen === Screen.VerifyCodeScreen && (
+        <VerifyCode
           loginIdentifier={email}
-          goBack={() => updateState({ activeScreen: Screen.Intro })}
+          goBack={() => updateState({ activeScreen: Screen.IntroScreen })}
           defaultCode={verificationCode}
           loading={verifyEmailLoading || syntheticLoading}
           handleSubmit={handleVerifyEmail}
@@ -475,8 +475,8 @@ const Page: NextPageWithLayout = () => {
           invitationInfo={invitationInfo}
         />
       )}
-      {activeScreen === Screen.AccountSetup && (
-        <AccountSetupScreen
+      {activeScreen === Screen.AccountSetupScreen && (
+        <AccountSetup
           onSubmit={handleAccountSetup}
           loading={updateUserLoading || joinOrgLoading}
           errorMessage={errorMessage}
@@ -484,15 +484,15 @@ const Page: NextPageWithLayout = () => {
           invitationInfo={invitationInfo}
         />
       )}
-      {activeScreen === Screen.AccountUsage && (
-        <AccountUsageScreen
+      {activeScreen === Screen.AccountUsageScreen && (
+        <AccountUsage
           updateWayToUseHash={updateWayToUseHash}
           loading={updateUserLoading}
           errorMessage={errorMessage}
         />
       )}
-      {activeScreen === Screen.OrgCreate && user?.accountId && (
-        <OrgCreateScreen
+      {activeScreen === Screen.OrgCreateScreen && user?.accountId && (
+        <OrgCreate
           // accountId={user.accountId}
           onCreateOrgSuccess={(data: {
             invitationLinkToken: string;
@@ -507,8 +507,8 @@ const Page: NextPageWithLayout = () => {
           }}
         />
       )}
-      {activeScreen === Screen.OrgInvite && createOrgInfo && (
-        <OrgInviteScreen
+      {activeScreen === Screen.OrgInviteScreen && createOrgInfo && (
+        <OrgInvite
           createOrgInfo={createOrgInfo}
           navigateToHome={navigateToHome}
         />

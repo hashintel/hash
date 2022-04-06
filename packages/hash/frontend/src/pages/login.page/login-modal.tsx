@@ -36,8 +36,8 @@ import {
 } from "../shared/auth-modal-layout";
 
 enum Screen {
-  Intro,
-  VerifyCode,
+  IntroScreen,
+  VerifyCodeScreen,
 }
 
 type LoginModalProps = {
@@ -60,7 +60,7 @@ type Actions =
   | Action<"RESET_STATE">;
 
 const initialState: State = {
-  activeScreen: Screen.Intro,
+  activeScreen: Screen.IntroScreen,
   loginIdentifier: "",
   verificationCodeMetadata: undefined,
   verificationCode: "",
@@ -74,7 +74,7 @@ function reducer(state: State, action: Actions): State {
       return {
         ...state,
         ...action.payload,
-        activeScreen: Screen.VerifyCode,
+        activeScreen: Screen.VerifyCodeScreen,
         errorMessage: "",
       };
     case "SET_ERROR":
@@ -178,7 +178,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
       dispatch({
         type: "UPDATE_STATE",
         payload: {
-          activeScreen: Screen.VerifyCode,
+          activeScreen: Screen.VerifyCodeScreen,
           verificationCode: query.verificationCode,
         },
       });
@@ -218,7 +218,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     if (
       defaultLoginIdentifier &&
       !requestedLoginCodeForDefault &&
-      activeScreen === Screen.Intro
+      activeScreen === Screen.IntroScreen
     ) {
       setRequestedLoginCodeForDefault(true);
       requestLoginCode(defaultLoginIdentifier);
@@ -261,14 +261,14 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
   };
 
   const goBack = () => {
-    if (activeScreen === Screen.VerifyCode) {
+    if (activeScreen === Screen.VerifyCodeScreen) {
       dispatch({ type: "RESET_STATE" });
     }
   };
 
   const renderContent = () => {
     switch (activeScreen) {
-      case Screen.VerifyCode:
+      case Screen.VerifyCodeScreen:
         return (
           <VerifyCode
             loginIdentifier={loginIdentifier}
@@ -282,7 +282,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
             invitationInfo={invitationInfo}
           />
         );
-      case Screen.Intro:
+      case Screen.IntroScreen:
       default:
         return (
           <LoginIntro
@@ -296,11 +296,11 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     }
   };
 
-  if (!show && activeScreen !== Screen.Intro) {
+  if (!show && activeScreen !== Screen.IntroScreen) {
     dispatch({
       type: "UPDATE_STATE",
       payload: {
-        activeScreen: Screen.Intro,
+        activeScreen: Screen.IntroScreen,
       },
     });
   }
