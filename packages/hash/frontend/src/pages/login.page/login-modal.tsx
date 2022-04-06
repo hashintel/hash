@@ -9,8 +9,8 @@ import React, {
 import { useRouter } from "next/router";
 
 import { useMutation } from "@apollo/client";
-import { LoginIntro as LoginIntroScreen } from "./login-intro";
-import { VerifyCode as VerifyCodeScreen } from "../shared/verify-code";
+import { LoginIntro } from "./login-intro";
+import { VerifyCode } from "../shared/verify-code";
 import {
   VerificationCodeMetadata,
   LoginWithLoginCodeMutation,
@@ -270,7 +270,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
     switch (activeScreen) {
       case Screen.VerifyCode:
         return (
-          <VerifyCodeScreen
+          <VerifyCode
             loginIdentifier={loginIdentifier}
             defaultCode={verificationCode}
             goBack={goBack}
@@ -285,7 +285,7 @@ export const LoginModal: VoidFunctionComponent<LoginModalProps> = ({
       case Screen.Intro:
       default:
         return (
-          <LoginIntroScreen
+          <LoginIntro
             requestLoginCode={requestLoginCode}
             loading={sendLoginCodeLoading}
             errorMessage={errorMessage}

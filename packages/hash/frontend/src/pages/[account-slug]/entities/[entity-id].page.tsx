@@ -22,7 +22,7 @@ import {
 import { BlockBasedEntityEditor } from "./[entity-id].page/block-based-entity-editor";
 import { useRouteAccountInfo } from "../../../shared/routing";
 
-const SimpleEntityPage: NextPageWithLayout = () => {
+const Page: NextPageWithLayout = () => {
   const router = useRouter();
   const { query } = router;
   const { accountId } = useRouteAccountInfo();
@@ -88,7 +88,7 @@ const SimpleEntityPage: NextPageWithLayout = () => {
   );
 };
 
-SimpleEntityPage.getLayout = getLayoutWithSidebar;
+Page.getLayout = getLayoutWithSidebar;
 
 const BlockBasedEntityPage: NextPageWithLayout = () => {
   const router = useRouter();
@@ -103,4 +103,4 @@ BlockBasedEntityPage.getLayout = getLayoutWithSidebar;
 
 export default process.env.NEXT_PUBLIC_BLOCK_BASED_ENTITY_EDITOR === "true"
   ? BlockBasedEntityPage
-  : SimpleEntityPage;
+  : Page;

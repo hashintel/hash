@@ -8,14 +8,14 @@ import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloC
 import withTwindApp from "@twind/next/app";
 import { ModalProvider } from "react-modal-hook";
 import { configureScope } from "@sentry/nextjs";
-import { AppProps } from "next/app";
+import { AppProps as NextAppProps } from "next/app";
 import { useRouter } from "next/router";
 import { CacheProvider, EmotionCache } from "@emotion/react";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import { theme, createEmotionCache } from "../shared/ui";
 import {
-  getPlainLayoutWithHeader,
+  getPlainLayout,
   NextPageWithLayout,
   SidebarContextProvider,
 } from "../shared/layout";
@@ -32,12 +32,12 @@ export const apolloClient = createApolloClient();
 
 const clientSideEmotionCache = createEmotionCache();
 
-type CustomAppProps = {
+type AppProps = {
   emotionCache?: EmotionCache;
   Component: NextPageWithLayout;
-} & AppProps;
+} & NextAppProps;
 
-const MyApp: React.VoidFunctionComponent<CustomAppProps> = ({
+const App: React.VoidFunctionComponent<AppProps> = ({
   Component,
   pageProps,
   emotionCache = clientSideEmotionCache,
@@ -73,7 +73,7 @@ const MyApp: React.VoidFunctionComponent<CustomAppProps> = ({
     return null; // Replace with app skeleton
   }
 
-  const getLayout = Component.getLayout || getPlainLayoutWithHeader;
+  const getLayout = Component.getLayout || getPlainLayout;
 
   return (
     <ApolloProvider client={apolloClient}>
@@ -95,4 +95,4 @@ const MyApp: React.VoidFunctionComponent<CustomAppProps> = ({
   );
 };
 
-export default withTwindApp(twindConfig, MyApp);
+export default withTwindApp(twindConfig, App);
