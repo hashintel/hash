@@ -16,8 +16,8 @@ export const getAggregation = async (
     select ${aggregationsColumnNamesSQL}
     from aggregations
     where aggregation_id = ${params.aggregationId}
-    order by created_at desc  
-    limit 1
+    order by created_at desc
+    limit 1 -- @todo: remove when aggregation versions are stored in separate table
   `);
 
   return row ? mapRowToDbAggregation(row) : null;

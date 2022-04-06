@@ -28,7 +28,7 @@ export const getEntityAggregationByPath = async (
         sql` and `,
       )}
     order by created_at desc  
-    limit 1
+    limit 1 -- @todo: remove when aggregation versions are stored in separate table
   `);
 
   return row ? mapRowToDbAggregation(row) : null;

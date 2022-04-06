@@ -219,8 +219,6 @@ class __Aggregation {
 
     Link.validatePath(stringifiedPath);
 
-    /** @todo: check entity type to see if there is an inverse relationship needs to be created */
-
     const { accountId: sourceAccountId, entityId: sourceEntityId } = source;
 
     if (
@@ -229,6 +227,8 @@ class __Aggregation {
         stringifiedPath,
       })
     ) {
+      /** @todo: consider supporting multiple aggregations at the same path */
+
       throw new Error("Cannot create aggregation that already exists");
     }
 
