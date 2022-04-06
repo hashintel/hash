@@ -9,7 +9,7 @@ import {
 
 import { UserFieldsFragment } from "../../../graphql/apiTypes.gen";
 import { Avatar, Link, Popover } from "../../ui";
-import { HeaderIconButton } from "./header-icon-button";
+import { HeaderIconButton } from "./shared/header-icon-button";
 
 type AccountDropdownProps = {
   avatar?: string;

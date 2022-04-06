@@ -4,7 +4,7 @@ import { Box, ListItemButton, Typography, useTheme } from "@mui/material";
 
 import { FontAwesomeIcon } from "../../icons";
 import { Link, Popover } from "../../ui";
-import { HeaderIconButton } from "./header-icon-button";
+import { HeaderIconButton } from "./shared/header-icon-button";
 
 export const NotificationsDropdown: React.FC = () => {
   const theme = useTheme();

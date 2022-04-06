@@ -14,11 +14,7 @@ import { CacheProvider, EmotionCache } from "@emotion/react";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import { theme, createEmotionCache } from "../shared/ui";
-import {
-  getPlainLayout,
-  NextPageWithLayout,
-  SidebarContextProvider,
-} from "../shared/layout";
+import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 
 import twindConfig from "../../twind.config";
 import "../../styles/globals.scss";
@@ -83,9 +79,7 @@ const App: React.VoidFunctionComponent<AppProps> = ({
           <ModalProvider>
             <RouteAccountInfoProvider>
               <RoutePageInfoProvider>
-                <SidebarContextProvider>
-                  {getLayout(<Component {...pageProps} />)}
-                </SidebarContextProvider>
+                {getLayout(<Component {...pageProps} />)}
               </RoutePageInfoProvider>
             </RouteAccountInfoProvider>
           </ModalProvider>

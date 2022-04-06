@@ -1,6 +1,6 @@
 import Head from "next/head";
 import { ReactElement, ReactNode, VFC } from "react";
-import { isProduction } from "../../../lib/config";
+import { isProduction } from "../../lib/config";
 
 export const PlainLayout: VFC<{
   children?: ReactNode;

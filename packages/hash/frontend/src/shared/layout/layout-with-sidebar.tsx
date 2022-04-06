@@ -1,11 +1,14 @@
-import { ReactElement, ReactNode, VFC } from "react";
-import Head from "next/head";
+import { ReactNode, VFC } from "react";
 import { Box, Fade, styled, Tooltip } from "@mui/material";
-import { HEADER_HEIGHT, PageHeader } from "../page-header";
-import { isProduction } from "../../../lib/config";
-import { PageSidebar, SIDEBAR_WIDTH, useSidebarContext } from "../page-sidebar";
-import { IconButton } from "../../ui";
-import { SidebarToggleIcon } from "../../icons";
+import { HEADER_HEIGHT } from "./layout-with-header/page-header";
+import {
+  PageSidebar,
+  SIDEBAR_WIDTH,
+  useSidebarContext,
+} from "./layout-with-sidebar/page-sidebar";
+import { IconButton } from "../ui";
+import { SidebarToggleIcon } from "../icons";
+import { LayoutWithHeader } from "./layout-with-header";
 
 const Main = styled("main", {
   shouldForwardProp: (prop) => prop !== "sidebarOpen",
@@ -36,13 +39,7 @@ export const LayoutWithSidebar: VFC<{ children?: ReactNode }> = ({
   const { openSidebar, sidebarOpen } = useSidebarContext();
 
   return (
-    <>
-      <Head>
-        <title>HASH Workspace</title>
-        <link rel="icon" type="image/png" href="/favicon.png" />
-        {!isProduction ? <meta name="robots" content="noindex" /> : null}
-      </Head>
-      <PageHeader />
+    <LayoutWithHeader>
       <Box
         sx={{
           display: "flex",
@@ -73,10 +70,6 @@ export const LayoutWithSidebar: VFC<{ children?: ReactNode }> = ({
         </Fade>
         <Main sidebarOpen={sidebarOpen}>{children}</Main>
       </Box>
-    </>
+    </LayoutWithHeader>
   );
-};
-
-export const getLayoutWithSidebar = (page: ReactElement) => {
-  return <LayoutWithSidebar>{page}</LayoutWithSidebar>;
 };

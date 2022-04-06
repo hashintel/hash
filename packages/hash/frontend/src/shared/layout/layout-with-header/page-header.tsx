@@ -1,14 +1,14 @@
 import React from "react";
 import { Box, useTheme, useMediaQuery } from "@mui/material";
 
-import { useLogout } from "../../components/hooks/useLogout";
-import { useUser } from "../../components/hooks/useUser";
-import { AccountDropdown } from "./page-header/account-dropdown";
-import { SearchBar } from "./page-header/search-bar";
-import { ActionsDropdown } from "./page-header/actions-dropdown";
-import { NotificationsDropdown } from "./page-header/notifications-dropdown";
-import { Button, Link } from "../ui";
-import { HashNavIcon } from "../icons";
+import { useLogout } from "../../../components/hooks/useLogout";
+import { useUser } from "../../../components/hooks/useUser";
+import { AccountDropdown } from "./account-dropdown";
+import { SearchBar } from "./search-bar";
+import { ActionsDropdown } from "./actions-dropdown";
+import { NotificationsDropdown } from "./notifications-dropdown";
+import { Button, Link } from "../../ui";
+import { HashNavIcon } from "../../icons";
 
 const Nav: React.FC = ({ children }) => (
   <Box

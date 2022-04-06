@@ -12,7 +12,7 @@ import { useRouter } from "next/router";
 
 import { FontAwesomeIcon } from "../../icons";
 import { Link, Popover } from "../../ui";
-import { HeaderIconButton } from "./header-icon-button";
+import { HeaderIconButton } from "./shared/header-icon-button";
 import { useCreatePage } from "../../../components/hooks/useCreatePage";
 import { useRouteAccountInfo } from "../../routing";
 

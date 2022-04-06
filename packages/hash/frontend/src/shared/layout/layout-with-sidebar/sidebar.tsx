@@ -16,7 +16,7 @@ import { TopNavLink } from "./top-nav-link";
 import { WorkspaceSwitcher } from "./workspace-switcher";
 import { useSidebarContext } from "./sidebar-context";
 import { IconButton, Link } from "../../ui";
-import { HEADER_HEIGHT } from "../page-header";
+import { HEADER_HEIGHT } from "../layout-with-header/page-header";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../routing";
 
 export const SIDEBAR_WIDTH = 260;

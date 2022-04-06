@@ -1,3 +1,8 @@
-export * from "./layout/page-layout";
-export * from "./layout/page-header";
-export * from "./layout/page-sidebar";
+import { NextPage } from "next";
+import { ReactElement, ReactNode } from "react";
+
+export type NextPageWithLayout<T = {}> = NextPage<T> & {
+  getLayout?: (page: ReactElement) => ReactNode;
+};
+
+export * from "./layout/get-layout";
