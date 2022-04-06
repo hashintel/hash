@@ -2,8 +2,9 @@
 // @todo have webpack polyfill this
 require("setimmediate");
 
+import { NextPage } from "next";
 import { ApolloProvider } from "@apollo/client/react";
-import { useEffect } from "react";
+import { ReactElement, ReactNode, useEffect } from "react";
 import { createApolloClient } from "@hashintel/hash-shared/graphql/createApolloClient";
 import withTwindApp from "@twind/next/app";
 import { ModalProvider } from "react-modal-hook";
@@ -14,7 +15,7 @@ import { CacheProvider, EmotionCache } from "@emotion/react";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import { theme, createEmotionCache } from "../shared/ui";
-import { PageLayout, SidebarContextProvider } from "../shared/layout";
+import { LayoutWithSidebar, SidebarContextProvider } from "../shared/layout";
 
 import twindConfig from "../../twind.config";
 import "../../styles/globals.scss";
@@ -28,8 +29,13 @@ export const apolloClient = createApolloClient();
 
 const clientSideEmotionCache = createEmotionCache();
 
+type NextPageWithLayout = NextPage & {
+  getLayout?: (page: ReactElement) => ReactNode;
+};
+
 type CustomAppProps = {
   emotionCache?: EmotionCache;
+  Component: NextPageWithLayout;
 } & AppProps;
 
 const MyApp: React.VoidFunctionComponent<CustomAppProps> = ({
@@ -68,6 +74,8 @@ const MyApp: React.VoidFunctionComponent<CustomAppProps> = ({
     return null; // Replace with app skeleton
   }
 
+  const getLayout = Component.getLayout || ((page) => page);
+
   return (
     <ApolloProvider client={apolloClient}>
       <CacheProvider value={emotionCache}>
@@ -77,9 +85,7 @@ const MyApp: React.VoidFunctionComponent<CustomAppProps> = ({
             <RouteAccountInfoProvider>
               <RoutePageInfoProvider>
                 <SidebarContextProvider>
-                  <PageLayout>
-                    <Component {...pageProps} />
-                  </PageLayout>
+                  {getLayout(<Component {...pageProps} />)}
                 </SidebarContextProvider>
               </RoutePageInfoProvider>
             </RouteAccountInfoProvider>

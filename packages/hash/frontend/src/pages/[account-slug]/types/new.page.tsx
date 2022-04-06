@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, ReactElement, ReactNode, useState } from "react";
 
 import { useRouter } from "next/router";
 
@@ -13,11 +13,15 @@ import {
 } from "../../../graphql/apiTypes.gen";
 import { TextInput } from "../../../components/forms/TextInput";
 import { Button } from "../../../shared/ui";
-import { MainContentWrapper } from "../../../shared/layout";
+import { LayoutWithSidebar, MainContentWrapper } from "../../../shared/layout";
 import { getAccountEntityTypes } from "../../../graphql/queries/account.queries";
 import { useRouteAccountInfo } from "../../../shared/routing";
 
-export const NewEntityType: NextPage = () => {
+type NextPageWithLayout = NextPage & {
+  getLayout?: (page: ReactElement) => ReactNode;
+};
+
+const Page: NextPageWithLayout = () => {
   const router = useRouter();
   const { accountId } = useRouteAccountInfo();
 
@@ -88,4 +92,8 @@ export const NewEntityType: NextPage = () => {
   );
 };
 
-export default NewEntityType;
+Page.getLayout = function getLayout(page: ReactElement) {
+  return <LayoutWithSidebar>{page}</LayoutWithSidebar>;
+};
+
+export default Page;

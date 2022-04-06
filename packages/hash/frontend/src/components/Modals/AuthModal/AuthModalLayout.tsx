@@ -1,7 +1,7 @@
 import { FC } from "react";
 import { Dialog } from "@headlessui/react";
 import { tw } from "twind";
-import { AuthLayout } from "../../layout/PageLayout/AuthLayout";
+import { AuthLayout } from "../../shared/layout";
 
 export type AuthModalLayoutProps = {
   onClose?: () => void;

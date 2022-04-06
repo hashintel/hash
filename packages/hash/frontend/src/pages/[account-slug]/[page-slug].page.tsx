@@ -6,7 +6,13 @@ import { GetStaticPaths, GetStaticProps, NextPage } from "next";
 import { Router, useRouter } from "next/router";
 import { tw } from "twind";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+  ReactElement,
+  ReactNode,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { defaultBlocks } from "@hashintel/hash-shared/defaultBlocks";
 import {
   GetPageQuery,
@@ -32,9 +38,17 @@ export const getStaticPaths: GetStaticPaths<{ slug: string }> = () => ({
   fallback: "blocking", // indicates the type of fallback
 });
 
-interface PageProps {
+type NextPageWithLayout = NextPage & {
+  getLayout?: (page: ReactElement) => ReactNode;
+};
+
+type PageProps = {
   blocksMeta: BlockMeta[];
-}
+};
+
+// type NextPageWithLayout = NextPage & {
+//   getLayout?: (page: ReactElement) => ReactNode;
+// };
 
 /**
  * This is used to fetch the metadata associated with blocks that're preloaded
