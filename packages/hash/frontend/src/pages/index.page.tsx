@@ -6,7 +6,7 @@ import styles from "./index.module.scss";
 import { useUser } from "../components/hooks/useUser";
 import { NextPageWithLayout } from "../shared/layout";
 
-const Home: NextPageWithLayout = () => {
+const Page: NextPageWithLayout = () => {
   const router = useRouter();
   const { user, loading } = useUser();
 
@@ -35,4 +35,4 @@ const Home: NextPageWithLayout = () => {
   );
 };
 
-export default Home;
+export default Page;

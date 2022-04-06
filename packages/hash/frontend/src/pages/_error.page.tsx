@@ -12,11 +12,7 @@ type ErrorProps = {
  * This custom error page is based on the Sentry example, with added TypeScript
  * @see https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
  */
-const CustomError = ({
-  statusCode,
-  hasGetInitialPropsRun,
-  err,
-}: ErrorProps) => {
+const Page = ({ statusCode, hasGetInitialPropsRun, err }: ErrorProps) => {
   if (!hasGetInitialPropsRun && err) {
     // getInitialProps is not called in case of
     // https://github.com/vercel/next.js/issues/8592. As a workaround, we pass
@@ -28,7 +24,7 @@ const CustomError = ({
   return <NextErrorComponent statusCode={statusCode} />;
 };
 
-CustomError.getInitialProps = async ({
+Page.getInitialProps = async ({
   res,
   err,
   asPath,
@@ -76,4 +72,4 @@ CustomError.getInitialProps = async ({
   return errorInitialProps;
 };
 
-export default CustomError;
+export default Page;
