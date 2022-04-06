@@ -15,7 +15,7 @@ import { CacheProvider, EmotionCache } from "@emotion/react";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import { theme, createEmotionCache } from "../shared/ui";
-import { LayoutWithSidebar, SidebarContextProvider } from "../shared/layout";
+import { SidebarContextProvider } from "../shared/layout";
 
 import twindConfig from "../../twind.config";
 import "../../styles/globals.scss";

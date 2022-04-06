@@ -1,11 +1,10 @@
-import { FormEvent, ReactElement, ReactNode, useState } from "react";
+import { FormEvent, useState } from "react";
 
 import { useRouter } from "next/router";
 
 import { useMutation } from "@apollo/client";
 import { tw } from "twind";
 
-import { NextPage } from "next";
 import { createEntityTypeMutation } from "../../../graphql/queries/entityType.queries";
 import {
   CreateEntityTypeMutation,
@@ -13,13 +12,12 @@ import {
 } from "../../../graphql/apiTypes.gen";
 import { TextInput } from "../../../components/forms/TextInput";
 import { Button } from "../../../shared/ui";
-import { LayoutWithSidebar, MainContentWrapper } from "../../../shared/layout";
+import {
+  NextPageWithLayout,
+  getLayoutWithSidebar,
+} from "../../../shared/layout";
 import { getAccountEntityTypes } from "../../../graphql/queries/account.queries";
 import { useRouteAccountInfo } from "../../../shared/routing";
-
-type NextPageWithLayout = NextPage & {
-  getLayout?: (page: ReactElement) => ReactNode;
-};
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
@@ -54,7 +52,7 @@ const Page: NextPageWithLayout = () => {
   };
 
   return (
-    <MainContentWrapper>
+    <>
       <header className={tw`mb-12`}>
         <h1>
           Create new <strong>entity type</strong>
@@ -88,12 +86,10 @@ const Page: NextPageWithLayout = () => {
           </div>
         </form>
       </section>
-    </MainContentWrapper>
+    </>
   );
 };
 
-Page.getLayout = function getLayout(page: ReactElement) {
-  return <LayoutWithSidebar>{page}</LayoutWithSidebar>;
-};
+Page.getLayout = getLayoutWithSidebar;
 
 export default Page;

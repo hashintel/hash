@@ -2,17 +2,11 @@ import { useQuery } from "@apollo/client";
 import { BlockMeta, fetchBlockMeta } from "@hashintel/hash-shared/blockMeta";
 import { getPageQuery } from "@hashintel/hash-shared/queries/page.queries";
 import { keyBy } from "lodash";
-import { GetStaticPaths, GetStaticProps, NextPage } from "next";
+import { GetStaticPaths, GetStaticProps } from "next";
 import { Router, useRouter } from "next/router";
 import { tw } from "twind";
 
-import React, {
-  ReactElement,
-  ReactNode,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { defaultBlocks } from "@hashintel/hash-shared/defaultBlocks";
 import {
   GetPageQuery,
@@ -28,7 +22,11 @@ import { VersionDropdown } from "../../components/Dropdowns/VersionDropdown";
 import styles from "../index.module.scss";
 import { CollabPositionProvider } from "../../contexts/CollabPositionContext";
 import { PageTransferDropdown } from "../../components/Dropdowns/PageTransferDropdown";
-import { MainContentWrapper } from "../../shared/layout";
+import {
+  MainContentWrapper,
+  NextPageWithLayout,
+  getLayoutWithSidebar,
+} from "../../shared/layout";
 import { RemoteBlockMetadata } from "../../blocks/userBlocks";
 import { useRouteAccountInfo, useRoutePageInfo } from "../../shared/routing";
 
@@ -38,17 +36,9 @@ export const getStaticPaths: GetStaticPaths<{ slug: string }> = () => ({
   fallback: "blocking", // indicates the type of fallback
 });
 
-type NextPageWithLayout = NextPage & {
-  getLayout?: (page: ReactElement) => ReactNode;
-};
-
 type PageProps = {
   blocksMeta: BlockMeta[];
 };
-
-// type NextPageWithLayout = NextPage & {
-//   getLayout?: (page: ReactElement) => ReactNode;
-// };
 
 /**
  * This is used to fetch the metadata associated with blocks that're preloaded
@@ -68,7 +58,7 @@ export const getStaticProps: GetStaticProps<PageProps> = async () => {
   };
 };
 
-export const Page: NextPage<PageProps> = ({ blocksMeta }) => {
+const Page: NextPageWithLayout<PageProps> = ({ blocksMeta }) => {
   const router = useRouter();
 
   const { accountId } = useRouteAccountInfo();
@@ -202,4 +192,7 @@ export const Page: NextPage<PageProps> = ({ blocksMeta }) => {
     </MainContentWrapper>
   );
 };
+
+Page.getLayout = getLayoutWithSidebar;
+
 export default Page;

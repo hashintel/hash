@@ -1,4 +1,4 @@
-import { ReactNode, VFC } from "react";
+import { ReactElement, ReactNode, VFC } from "react";
 import Head from "next/head";
 import { Box, Fade, styled, Tooltip } from "@mui/material";
 import { HEADER_HEIGHT, PageHeader } from "../page-header";
@@ -76,4 +76,8 @@ export const LayoutWithSidebar: VFC<{ children?: ReactNode }> = ({
       </Box>
     </>
   );
+};
+
+export const getLayoutWithSidebar = (page: ReactElement) => {
+  return <LayoutWithSidebar>{page}</LayoutWithSidebar>;
 };

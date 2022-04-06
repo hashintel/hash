@@ -1,12 +1,12 @@
 import { useEffect } from "react";
 import { useRouter } from "next/router";
 import { tw } from "twind";
-import { NextPage } from "next";
 
 import styles from "./index.module.scss";
 import { useUser } from "../components/hooks/useUser";
+import { NextPageWithLayout } from "../shared/layout";
 
-const Home: NextPage = () => {
+const Home: NextPageWithLayout = () => {
   const router = useRouter();
   const { user, loading } = useUser();
 

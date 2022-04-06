@@ -4,7 +4,6 @@ import { useQuery } from "@apollo/client";
 import { useRouter } from "next/router";
 
 import { tw } from "twind";
-import { NextPage } from "next";
 import {
   GetEntityTypeQuery,
   GetEntityTypeQueryVariables,
@@ -17,11 +16,14 @@ import {
 import { AccountEntityOfTypeList } from "../../../components/entityTypes/AccountEntityOfTypeList";
 import { useBlockProtocolUpdateEntityType } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolUpdateEntityType";
 import { useBlockProtocolAggregateEntityTypes } from "../../../components/hooks/blockProtocolFunctions/useBlockProtocolAggregateEntityTypes";
-import { MainContentWrapper } from "../../../shared/layout";
+import {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../../../shared/layout";
 import { Button, Link } from "../../../shared/ui";
 import { useRouteAccountInfo } from "../../../shared/routing";
 
-export const EntityType: NextPage = () => {
+const Page: NextPageWithLayout = () => {
   const router = useRouter();
   const { query } = router;
 
@@ -105,40 +107,40 @@ export const EntityType: NextPage = () => {
     [schema$id, subSchemaReference],
   );
 
-  return (
-    <MainContentWrapper>
-      {!data ? (
-        <h1>Loading...</h1>
-      ) : (
-        <>
-          <div className={tw`mb-12`}>
-            <div className={tw`mb-8`}>
-              <h1>
-                <strong>{pluralize(schema.title)} in account</strong>
-              </h1>
-              <AccountEntityOfTypeList
-                accountId={accountId}
-                entityTypeId={typeId}
-              />
-            </div>
+  if (!data) {
+    return <h1>Loading...</h1>;
+  }
 
-            <Button href={`/${accountId}/entities/new?entityTypeId=${typeId}`}>
-              New {schema.title}
-            </Button>
-          </div>
-          <SchemaEditor
+  return (
+    <>
+      <div className={tw`mb-12`}>
+        <div className={tw`mb-8`}>
+          <h1>
+            <strong>{pluralize(schema.title)} in account</strong>
+          </h1>
+          <AccountEntityOfTypeList
             accountId={accountId}
-            aggregateEntityTypes={aggregateEntityTypes}
-            entityTypeId={data.getEntityType.entityId}
-            schema={schema}
-            GoToSchemaElement={schemaSelectElement}
-            subSchemaReference={subSchemaReference}
-            updateEntityTypes={updateEntityTypes}
+            entityTypeId={typeId}
           />
-        </>
-      )}
-    </MainContentWrapper>
+        </div>
+
+        <Button href={`/${accountId}/entities/new?entityTypeId=${typeId}`}>
+          New {schema.title}
+        </Button>
+      </div>
+      <SchemaEditor
+        accountId={accountId}
+        aggregateEntityTypes={aggregateEntityTypes}
+        entityTypeId={data.getEntityType.entityId}
+        schema={schema}
+        GoToSchemaElement={schemaSelectElement}
+        subSchemaReference={subSchemaReference}
+        updateEntityTypes={updateEntityTypes}
+      />
+    </>
   );
 };
 
-export default EntityType;
+Page.getLayout = getLayoutWithSidebar;
+
+export default Page;
