@@ -20,6 +20,24 @@ where
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+pub enum StopSim {
+    #[serde(rename = "stop")]
+    Type,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+pub struct OutboundStopSimPayload {
+    pub r#type: StopSim,
+    #[serde(deserialize_with = "value_or_string_array")]
+    pub to: Vec<String>,
+    pub data: Option<serde_json::Value>,
+}
+
+impl OutboundStopSimPayload {
+    pub const KIND: &'static str = "stop";
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct GenericPayload {
     pub r#type: String,
 

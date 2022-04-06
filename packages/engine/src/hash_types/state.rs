@@ -9,7 +9,7 @@ use serde::{
     Deserialize, Serialize,
 };
 use serde_aux::prelude::deserialize_string_from_number;
-use stateful::{agent::AgentStateField, message::GenericPayload};
+use stateful::{agent::AgentStateField, message::payload::GenericPayload};
 
 use crate::{
     config::Globals,
@@ -470,9 +470,9 @@ impl Agent {
         data: Option<serde_json::Value>,
     ) -> Result<()> {
         use message::{
-            CreateAgent, OutboundCreateAgentPayload, OutboundRemoveAgentPayload,
-            OutboundStopSimPayload, RemoveAgent, StopSim,
+            CreateAgent, OutboundCreateAgentPayload, OutboundRemoveAgentPayload, RemoveAgent,
         };
+        use stateful::message::payload::{OutboundStopSimPayload, StopSim};
 
         self.messages.push(match kind {
             REMOVE_AGENT => message::Outbound::RemoveAgent(OutboundRemoveAgentPayload {
@@ -732,7 +732,7 @@ fn generate_agent_id() -> String {
 #[cfg(test)]
 mod tests {
     use serde_json::json;
-    use stateful::message::GenericPayload;
+    use stateful::message::payload::{GenericPayload, OutboundStopSimPayload, StopSim};
 
     use super::*;
 
@@ -872,8 +872,8 @@ mod tests {
 
     #[test]
     fn test_stop_message() {
-        let msg = message::Outbound::StopSim(message::OutboundStopSimPayload {
-            r#type: message::StopSim::Type,
+        let msg = message::Outbound::StopSim(OutboundStopSimPayload {
+            r#type: StopSim::Type,
             to: vec!["hash".to_string()],
             data: Some(json!({
                 "status": "success",
