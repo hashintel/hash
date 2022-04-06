@@ -21,7 +21,7 @@ export const getVariantIcon = (option: {
   const iconPath = option.variant.icon;
 
   const regex = /^(?:[a-z]+:)?\/\//i;
-  if (regex.test(iconPath)) {
+  if (!iconPath || regex.test(iconPath)) {
     return iconPath;
   }
 
