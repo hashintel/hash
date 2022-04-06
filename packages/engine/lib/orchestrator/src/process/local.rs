@@ -30,6 +30,9 @@ pub struct LocalProcess {
 #[async_trait]
 impl process::Process for LocalProcess {
     async fn exit_and_cleanup(mut self: Box<Self>) -> Result<()> {
+        // Let the engine cleanup some resources
+        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+
         self.child
             .kill()
             .await
