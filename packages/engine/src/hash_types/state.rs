@@ -9,7 +9,10 @@ use serde::{
     Deserialize, Serialize,
 };
 use serde_aux::prelude::deserialize_string_from_number;
-use stateful::{agent::AgentStateField, message::payload::GenericPayload};
+use stateful::{
+    agent::AgentStateField,
+    message::payload::{GenericPayload, OutboundRemoveAgentPayload, RemoveAgent},
+};
 
 use crate::{
     config::Globals,
@@ -303,9 +306,8 @@ fn deserialize_messages_before_agent_id() {
         "#,
     )
     .expect("Should be valid AgentState");
-    if let Some(message::Outbound::RemoveAgent(message::OutboundRemoveAgentPayload {
-        data, ..
-    })) = agent.messages.get(0)
+    if let Some(message::Outbound::RemoveAgent(OutboundRemoveAgentPayload { data, .. })) =
+        agent.messages.get(0)
     {
         assert_eq!(agent.agent_id, data.agent_id);
     }
@@ -469,9 +471,7 @@ impl Agent {
         kind: &str,
         data: Option<serde_json::Value>,
     ) -> Result<()> {
-        use message::{
-            CreateAgent, OutboundCreateAgentPayload, OutboundRemoveAgentPayload, RemoveAgent,
-        };
+        use message::{CreateAgent, OutboundCreateAgentPayload};
         use stateful::message::payload::{OutboundStopSimPayload, StopSim};
 
         self.messages.push(match kind {
@@ -732,7 +732,10 @@ fn generate_agent_id() -> String {
 #[cfg(test)]
 mod tests {
     use serde_json::json;
-    use stateful::message::payload::{GenericPayload, OutboundStopSimPayload, StopSim};
+    use stateful::message::payload::{
+        GenericPayload, OutboundRemoveAgentPayload, OutboundStopSimPayload, RemoveAgentPayload,
+        StopSim,
+    };
 
     use super::*;
 
@@ -852,10 +855,10 @@ mod tests {
 
     #[test]
     fn test_remove_agent_message() {
-        let msg = message::Outbound::RemoveAgent(message::OutboundRemoveAgentPayload {
-            r#type: message::RemoveAgent::Type,
+        let msg = message::Outbound::RemoveAgent(OutboundRemoveAgentPayload {
+            r#type: RemoveAgent::Type,
             to: vec!["hash".to_string()],
-            data: message::RemoveAgentPayload {
+            data: RemoveAgentPayload {
                 agent_id: "old_agent".to_string(),
             },
         });

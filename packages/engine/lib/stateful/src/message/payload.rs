@@ -20,6 +20,30 @@ where
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+pub enum RemoveAgent {
+    // one bad thing about serde is how we still have to retype literals
+    #[serde(rename = "remove_agent")]
+    Type,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+pub struct RemoveAgentPayload {
+    pub agent_id: String,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+pub struct OutboundRemoveAgentPayload {
+    pub r#type: RemoveAgent,
+    #[serde(deserialize_with = "value_or_string_array")]
+    pub to: Vec<String>,
+    pub data: RemoveAgentPayload,
+}
+
+impl OutboundRemoveAgentPayload {
+    pub const KIND: &'static str = "remove_agent";
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub enum StopSim {
     #[serde(rename = "stop")]
     Type,

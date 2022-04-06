@@ -8,7 +8,10 @@ use std::{collections::HashSet, sync::Arc};
 
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
-use stateful::{agent::AgentSchema, field::RootFieldKey, proxy::PoolReadProxy};
+use stateful::{
+    agent::AgentSchema, field::RootFieldKey, message::payload::RemoveAgentPayload,
+    proxy::PoolReadProxy,
+};
 use uuid::Uuid;
 
 use crate::{
@@ -22,7 +25,7 @@ use crate::{
         table::{pool::message, references::MessageMap, state::create_remove::ProcessedCommands},
         UUID_V4_LEN,
     },
-    hash_types::{message::RemoveAgentPayload, Agent},
+    hash_types::Agent,
     simulation::{Error, Result},
 };
 

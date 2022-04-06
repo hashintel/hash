@@ -6,14 +6,14 @@ use arrow::{
     record_batch::RecordBatch,
 };
 use stateful::message::{
-    payload::{GenericPayload, OutboundStopSimPayload},
+    payload::{GenericPayload, OutboundRemoveAgentPayload, OutboundStopSimPayload},
     MESSAGE_ARROW_FIELDS, MESSAGE_COLUMN_NAME,
 };
 
 use crate::{
     datastore::error::{Error, Result},
     hash_types::{
-        message::{Outbound, OutboundCreateAgentPayload, OutboundRemoveAgentPayload},
+        message::{Outbound, OutboundCreateAgentPayload},
         Agent,
     },
 };

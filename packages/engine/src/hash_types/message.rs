@@ -1,7 +1,9 @@
 use std::{collections::HashMap, fmt};
 
 use serde::{de::Deserializer, Deserialize, Serialize};
-use stateful::message::payload::{GenericPayload, OutboundStopSimPayload};
+use stateful::message::payload::{
+    GenericPayload, OutboundRemoveAgentPayload, OutboundStopSimPayload, RemoveAgentPayload,
+};
 
 use crate::{
     datastore::arrow::message::{CREATE_AGENT, REMOVE_AGENT, SYSTEM_MESSAGE},
@@ -307,30 +309,6 @@ impl OutboundCreateAgentPayload {
 pub enum CreateAgent {
     #[serde(rename = "create_agent")]
     Type,
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
-pub struct OutboundRemoveAgentPayload {
-    pub r#type: RemoveAgent,
-    #[serde(deserialize_with = "value_or_string_array")]
-    pub to: Vec<String>,
-    pub data: RemoveAgentPayload,
-}
-
-impl OutboundRemoveAgentPayload {
-    pub const KIND: &'static str = "remove_agent";
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
-pub enum RemoveAgent {
-    // one bad thing about serde is how we still have to retype literals
-    #[serde(rename = "remove_agent")]
-    Type,
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
-pub struct RemoveAgentPayload {
-    pub agent_id: String,
 }
 
 fn value_or_string_array<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
