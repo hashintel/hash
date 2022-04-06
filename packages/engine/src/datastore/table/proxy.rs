@@ -1,8 +1,7 @@
 use std::fmt::{Debug, Formatter};
 
-use stateful::proxy::{BatchReadProxy, BatchWriteProxy};
+use stateful::proxy::{BatchReadProxy, BatchWriteProxy, PoolReadProxy, PoolWriteProxy};
 
-use super::pool::proxy::{PoolReadProxy, PoolWriteProxy};
 use crate::datastore::{
     batch::{AgentBatch, MessageBatch},
     error::Result,

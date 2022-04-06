@@ -6,13 +6,13 @@ use std::{
     slice::SliceIndex,
 };
 
-use stateful::proxy::{BatchReadProxy, BatchWriteProxy};
+use crate::proxy::{BatchReadProxy, BatchWriteProxy};
 
 /// Collects [`BatchReadProxy`] for all the batches within the pool.
 #[derive(Default)]
 pub struct PoolReadProxy<B> {
     // TODO: Remove `pub(super)` by providing parallel iterator
-    pub(super) batches: Vec<BatchReadProxy<B>>,
+    pub batches: Vec<BatchReadProxy<B>>,
 }
 
 impl<B> PoolReadProxy<B> {

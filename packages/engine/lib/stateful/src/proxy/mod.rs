@@ -17,5 +17,9 @@
 //! contents (i.e. its “guard”) will still be valid.
 
 mod batch;
+mod pool;
 
-pub use self::batch::{BatchReadProxy, BatchWriteProxy};
+pub use self::{
+    batch::{BatchReadProxy, BatchWriteProxy},
+    pool::{PoolReadProxy, PoolWriteProxy},
+};

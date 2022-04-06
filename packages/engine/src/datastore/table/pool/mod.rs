@@ -1,16 +1,13 @@
 pub mod agent;
 pub mod message;
-pub mod proxy;
 
 use std::sync::Arc;
 
 use parking_lot::RwLock;
 use stateful::{
-    proxy::{BatchReadProxy, BatchWriteProxy},
+    proxy::{BatchReadProxy, BatchWriteProxy, PoolReadProxy, PoolWriteProxy},
     Result,
 };
-
-use self::proxy::{PoolReadProxy, PoolWriteProxy};
 
 /// Internal trait to implement `BatchPool` without leaking `Arc<RwLock<B>>`
 trait Pool<B> {

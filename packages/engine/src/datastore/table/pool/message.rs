@@ -4,17 +4,14 @@ use parking_lot::RwLock;
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
 };
-use stateful::proxy::BatchWriteProxy;
+use stateful::proxy::{BatchWriteProxy, PoolReadProxy};
 
 use crate::{
     config::SimRunConfig,
     datastore::{
         batch::{self, message, AgentBatch, MessageBatch},
         error::{Error, Result},
-        table::{
-            pool::{proxy::PoolReadProxy, BatchPool},
-            references::AgentMessageReference,
-        },
+        table::{pool::BatchPool, references::AgentMessageReference},
         UUID_V4_LEN,
     },
     proto::ExperimentRunTrait,

@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
 use parking_lot::RwLock;
+use stateful::proxy::PoolWriteProxy;
 
 use crate::{
-    datastore::{batch::AgentBatch, error::Result, table::pool::proxy::PoolWriteProxy},
+    datastore::{batch::AgentBatch, error::Result},
     simulation::package::state::StateColumn,
 };
 
