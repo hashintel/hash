@@ -231,7 +231,7 @@ impl IntoRecordBatch for &[&Agent] {
                 Arc::new(agents_to_scale_col(*self)?)
             } else if name == AgentStateField::Color.name() {
                 Arc::new(json_vals_to_utf8(vals, true)?)
-            } else if name == AgentStateField::RGB.name() {
+            } else if name == AgentStateField::Rgb.name() {
                 Arc::new(agents_to_rgb_col(*self)?)
             } else if name == AgentStateField::Hidden.name() {
                 Arc::new(json_vals_to_bool(vals)?)
@@ -427,7 +427,7 @@ macro_rules! set_states_opt_vec3_gen {
 set_states_opt_vec3_gen!(position, set_states_position, AgentStateField::Position);
 set_states_opt_vec3_gen!(direction, set_states_direction, AgentStateField::Direction);
 set_states_opt_vec3_gen!(scale, set_states_scale, AgentStateField::Scale);
-set_states_opt_vec3_gen!(rgb, set_states_rgb, AgentStateField::RGB);
+set_states_opt_vec3_gen!(rgb, set_states_rgb, AgentStateField::Rgb);
 set_states_opt_vec3_gen!(velocity, set_states_velocity, AgentStateField::Velocity);
 
 macro_rules! set_states_opt_f64_gen {

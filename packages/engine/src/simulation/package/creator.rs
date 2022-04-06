@@ -427,10 +427,10 @@ pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec<EngineComponent>>> {
     let field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
 
     use stateful::agent::AgentStateField::{
-        AgentId, AgentName, Color, Direction, Height, Hidden, Position, Scale, Shape, Velocity, RGB,
+        AgentId, AgentName, Color, Direction, Height, Hidden, Position, Rgb, Scale, Shape, Velocity,
     };
     let used = [
-        AgentId, AgentName, Position, Direction, Velocity, Shape, Height, Scale, Color, RGB, Hidden,
+        AgentId, AgentName, Position, Direction, Velocity, Shape, Height, Scale, Color, Rgb, Hidden,
     ];
     for field in used {
         let field_type: FieldType = field.clone().try_into()?;

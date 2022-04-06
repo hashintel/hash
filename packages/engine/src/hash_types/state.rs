@@ -41,7 +41,7 @@ pub const BUILTIN_FIELDS: [&str; 12] = [
     AgentStateField::Height.name(),
     AgentStateField::Scale.name(),
     AgentStateField::Color.name(),
-    AgentStateField::RGB.name(),
+    AgentStateField::Rgb.name(),
     AgentStateField::Hidden.name(),
 ];
 
@@ -240,7 +240,7 @@ impl<'de> Deserialize<'de> for Agent {
                         AgentStateField::Color => {
                             agent_state_buf.color = Some(map.next_value()?);
                         }
-                        AgentStateField::RGB => {
+                        AgentStateField::Rgb => {
                             agent_state_buf.rgb = Some(map.next_value()?);
                         }
                         AgentStateField::Hidden => {

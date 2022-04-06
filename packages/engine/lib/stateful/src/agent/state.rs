@@ -20,7 +20,7 @@ pub enum AgentStateField {
     Height,
     Scale,
     Color,
-    RGB,
+    Rgb,
     Hidden,
 
     /// Any custom, non-built-in field. Corresponds to [`Agent::custom`].
@@ -39,7 +39,7 @@ impl AgentStateField {
         AgentStateField::Height,
         AgentStateField::Scale,
         AgentStateField::Color,
-        AgentStateField::RGB,
+        AgentStateField::Rgb,
         AgentStateField::Hidden,
     ];
 
@@ -57,7 +57,7 @@ impl AgentStateField {
             AgentStateField::Height => "height",
             AgentStateField::Scale => "scale",
             AgentStateField::Color => "color",
-            AgentStateField::RGB => "rgb",
+            AgentStateField::Rgb => "rgb",
             AgentStateField::Hidden => "hidden",
 
             AgentStateField::Extra(_) => "extra",
@@ -116,7 +116,7 @@ impl TryFrom<AgentStateField> for FieldType {
             | AgentStateField::Direction
             | AgentStateField::Scale
             | AgentStateField::Velocity
-            | AgentStateField::RGB => FieldType::new(
+            | AgentStateField::Rgb => FieldType::new(
                 FieldTypeVariant::FixedLengthArray {
                     field_type: Box::new(FieldType::new(FieldTypeVariant::Number, false)),
                     len: 3,
