@@ -14,6 +14,12 @@ pub enum Error {
          field: {2}"
     )]
     FieldKeyClash(RootFieldKey, String, String),
+
+    #[error("Couldn't acquire shared lock on object")]
+    ProxySharedLock,
+
+    #[error("Couldn't acquire exclusive lock on object")]
+    ProxyExclusiveLock,
 }
 
 impl From<&str> for Error {

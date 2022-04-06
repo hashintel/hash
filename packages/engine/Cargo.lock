@@ -2162,6 +2162,7 @@ version = "0.0.0"
 dependencies = [
  "arrow",
  "memory",
+ "parking_lot",
  "thiserror",
  "tracing",
 ]

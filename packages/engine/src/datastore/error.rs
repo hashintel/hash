@@ -38,12 +38,6 @@ pub enum Error {
     #[error("Stateful error: {0}")]
     Stateful(#[from] stateful::Error),
 
-    #[error("Couldn't acquire shared lock on object")]
-    ProxySharedLock,
-
-    #[error("Couldn't acquire exclusive lock on object")]
-    ProxyExclusiveLock,
-
     #[error("Arrow Error: {0}")]
     Arrow(#[from] ArrowError),
 

@@ -6,7 +6,7 @@ use std::{
     slice::SliceIndex,
 };
 
-use crate::datastore::table::proxy::{BatchReadProxy, BatchWriteProxy};
+use stateful::proxy::{BatchReadProxy, BatchWriteProxy};
 
 /// Collects [`BatchReadProxy`] for all the batches within the pool.
 #[derive(Default)]
