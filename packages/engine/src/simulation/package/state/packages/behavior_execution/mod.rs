@@ -10,7 +10,9 @@ use crate::{
         batch::AgentBatch,
         schema::EngineComponent,
         table::{
-            context::Context, pool::proxy::PoolWriteProxy, proxy::StateWriteProxy,
+            context::Context,
+            pool::{agent, proxy::PoolWriteProxy},
+            proxy::StateWriteProxy,
             task_shared_store::TaskSharedStoreBuilder,
         },
     },
@@ -170,7 +172,7 @@ impl BehaviorExecution {
             self.behavior_ids_col_index,
         )?;
 
-        agent_proxies.modify_loaded_column(behavior_ids)?;
+        agent::modify_loaded_column(agent_proxies, behavior_ids)?;
         Ok(())
     }
 
@@ -179,7 +181,7 @@ impl BehaviorExecution {
         agent_proxies: &mut PoolWriteProxy<AgentBatch>,
     ) -> Result<()> {
         let behavior_index_col = reset_index_col(self.behavior_index_col_index)?;
-        agent_proxies.modify_loaded_column(behavior_index_col)?;
+        agent::modify_loaded_column(agent_proxies, behavior_index_col)?;
 
         Ok(())
     }
@@ -241,7 +243,7 @@ impl Package for BehaviorExecution {
 
         self.fix_behavior_chains(agent_pool)?;
         self.reset_behavior_index_col(agent_pool)?;
-        agent_pool.flush_pending_columns()?;
+        agent::flush_pending_columns(agent_pool)?;
 
         // Have to reload state agent batches twice, because we just wrote the language ID of each
         // behavior into them, but now want to read it from them.
