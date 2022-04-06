@@ -20,10 +20,7 @@ import {
   SYNTHETIC_LOADING_TIME_MS,
 } from "../components/auth/utils";
 import { useGetInvitationInfo } from "../components/hooks/useGetInvitationInfo";
-import {
-  getDefaultLayoutWithoutHeader,
-  NextPageWithLayout,
-} from "../shared/layout";
+import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 
 // @todo add error component for invalid links
 const Page: NextPageWithLayout = () => {
@@ -182,6 +179,6 @@ const Page: NextPageWithLayout = () => {
   );
 };
 
-Page.getLayout = getDefaultLayoutWithoutHeader;
+Page.getLayout = getPlainLayout;
 
 export default Page;

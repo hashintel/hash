@@ -1,14 +1,11 @@
 import { useRouter } from "next/router";
-import { LoginModal } from "./login-modal";
-import { useUser } from "../../components/hooks/useUser";
+import { LoginModal } from "./login.page/login-modal";
+import { useUser } from "../components/hooks/useUser";
 import {
   isParsedInvitationEmailQuery,
   isParsedInvitationLinkQuery,
-} from "../shared/auth-utils";
-import {
-  getDefaultLayoutWithoutHeader,
-  NextPageWithLayout,
-} from "../../shared/layout";
+} from "./shared/auth-utils";
+import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 
 const Page: NextPageWithLayout = () => {
   const { refetch } = useUser();
@@ -37,6 +34,6 @@ const Page: NextPageWithLayout = () => {
   );
 };
 
-Page.getLayout = getDefaultLayoutWithoutHeader;
+Page.getLayout = getPlainLayout;
 
 export default Page;

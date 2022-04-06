@@ -3,10 +3,9 @@ import { ReactElement, ReactNode, VFC } from "react";
 import { isProduction } from "../../../lib/config";
 import { PageHeader } from "../../layout";
 
-export const DefaultLayout: VFC<{
+const PlainLayoutWithHeader: VFC<{
   children?: ReactNode;
-  hidePageHeader?: boolean;
-}> = ({ children, hidePageHeader }) => {
+}> = ({ children }) => {
   return (
     <>
       <Head>
@@ -14,16 +13,12 @@ export const DefaultLayout: VFC<{
         <link rel="icon" type="image/png" href="/favicon.png" />
         {!isProduction ? <meta name="robots" content="noindex" /> : null}
       </Head>
-      {!hidePageHeader && <PageHeader />}
+      <PageHeader />
       {children}
     </>
   );
 };
 
-export const getDefaultLayout = (page: ReactElement) => {
-  return <DefaultLayout>{page}</DefaultLayout>;
-};
-
-export const getDefaultLayoutWithoutHeader = (page: ReactElement) => {
-  return <DefaultLayout hidePageHeader>{page}</DefaultLayout>;
+export const getPlainLayoutWithHeader = (page: ReactElement) => {
+  return <PlainLayoutWithHeader>{page}</PlainLayoutWithHeader>;
 };

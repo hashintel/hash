@@ -1,15 +1,9 @@
 import { Box, Typography } from "@mui/material";
-import { NextPage } from "next";
-import { ReactElement, ReactNode } from "react";
-import { LayoutWithSidebar } from "../../shared/layout";
+import { getLayoutWithSidebar, NextPageWithLayout } from "../../shared/layout";
 import { useUser } from "../../components/hooks/useUser";
 import { useOrgs } from "../../components/hooks/useOrgs";
 import { Link } from "../../shared/ui";
 import { useRouteAccountInfo } from "../../shared/routing";
-
-type NextPageWithLayout = NextPage & {
-  getLayout?: (page: ReactElement) => ReactNode;
-};
 
 const Page: NextPageWithLayout = () => {
   const { user } = useUser();
@@ -71,8 +65,6 @@ const Page: NextPageWithLayout = () => {
   );
 };
 
-Page.getLayout = function getLayout(page: ReactElement) {
-  return <LayoutWithSidebar>{page}</LayoutWithSidebar>;
-};
+Page.getLayout = getLayoutWithSidebar;
 
 export default Page;

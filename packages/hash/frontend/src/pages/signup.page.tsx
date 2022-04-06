@@ -1,14 +1,14 @@
 import React, { useEffect, useRef, useReducer } from "react";
 import { useRouter } from "next/router";
 import { useMutation } from "@apollo/client";
-import { useUser } from "../../components/hooks/useUser";
+import { useUser } from "../components/hooks/useUser";
 
-import { SignupIntro as SignupIntroScreen } from "./signup-intro";
-import { VerifyCode as VerifyCodeScreen } from "../shared/verify-code";
-import { AccountSetup as AccountSetupScreen } from "./account-setup";
-import { AccountUsage as AccountUsageScreen } from "./account-usage";
-import { OrgCreate as OrgCreateScreen } from "./org-create";
-import { OrgInvite as OrgInviteScreen } from "./org-invite";
+import { SignupIntro as SignupIntroScreen } from "./signup.page/signup-intro";
+import { VerifyCode as VerifyCodeScreen } from "./shared/verify-code";
+import { AccountSetup as AccountSetupScreen } from "./signup.page/account-setup";
+import { AccountUsage as AccountUsageScreen } from "./signup.page/account-usage";
+import { OrgCreate as OrgCreateScreen } from "./signup.page/org-create";
+import { OrgInvite as OrgInviteScreen } from "./signup.page/org-invite";
 
 import {
   CreateUserMutation,
@@ -24,27 +24,24 @@ import {
   CreateUserWithOrgEmailInvitationMutationVariables,
   JoinOrgMutation,
   JoinOrgMutationVariables,
-} from "../../graphql/apiTypes.gen";
+} from "../graphql/apiTypes.gen";
 import {
   createUser as createUserMutation,
   updateUser as updateUserMutation,
   verifyEmail as verifyEmailMutation,
   createUserWithOrgEmailInvitation as createUserWithOrgEmailInvitationMutation,
-} from "../../graphql/queries/user.queries";
-import { joinOrg as joinOrgMutation } from "../../graphql/queries/org.queries";
+} from "../graphql/queries/user.queries";
+import { joinOrg as joinOrgMutation } from "../graphql/queries/org.queries";
 import {
   isParsedAuthQuery,
   SYNTHETIC_LOADING_TIME_MS,
   Action,
   InvitationInfo,
   parseGraphQLError,
-} from "../shared/auth-utils";
-import { AuthLayout } from "../shared/auth-layout";
-import { useGetInvitationInfo } from "../../components/hooks/useGetInvitationInfo";
-import {
-  getDefaultLayoutWithoutHeader,
-  NextPageWithLayout,
-} from "../../shared/layout";
+} from "./shared/auth-utils";
+import { AuthLayout } from "./shared/auth-layout";
+import { useGetInvitationInfo } from "../components/hooks/useGetInvitationInfo";
+import { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 
 enum Screen {
   Intro,
@@ -520,6 +517,6 @@ const Page: NextPageWithLayout = () => {
   );
 };
 
-Page.getLayout = getDefaultLayoutWithoutHeader;
+Page.getLayout = getPlainLayout;
 
 export default Page;

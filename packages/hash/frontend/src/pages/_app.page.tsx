@@ -15,7 +15,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import { theme, createEmotionCache } from "../shared/ui";
 import {
-  getDefaultLayout,
+  getPlainLayoutWithHeader,
   NextPageWithLayout,
   SidebarContextProvider,
 } from "../shared/layout";
@@ -73,7 +73,7 @@ const MyApp: React.VoidFunctionComponent<CustomAppProps> = ({
     return null; // Replace with app skeleton
   }
 
-  const getLayout = Component.getLayout || getDefaultLayout;
+  const getLayout = Component.getLayout || getPlainLayoutWithHeader;
 
   return (
     <ApolloProvider client={apolloClient}>
