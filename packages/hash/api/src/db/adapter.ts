@@ -92,6 +92,7 @@ export type DbLinkVersion = {
 };
 
 export type DbAggregation = {
+  aggregationId: string;
   sourceAccountId: string;
   sourceEntityId: string;
   sourceEntityVersionIds: Set<string>;
@@ -519,21 +520,19 @@ export interface DbClient {
   }): Promise<VerificationCode>;
 
   createAggregation(params: {
-    createdByAccountId: string;
     sourceAccountId: string;
     sourceEntityId: string;
     path: string;
     operation: object;
+    createdByAccountId: string;
   }): Promise<DbAggregation>;
 
   updateAggregationOperation(params: {
-    sourceAccountId: string;
-    sourceEntityId: string;
-    path: string;
+    aggregationId: string;
     operation: object;
   }): Promise<DbAggregation>;
 
-  getEntityAggregation(params: {
+  getEntityAggregationByPath(params: {
     sourceAccountId: string;
     sourceEntityId: string;
     sourceEntityVersionId?: string;
@@ -547,10 +546,8 @@ export interface DbClient {
   }): Promise<DbAggregation[]>;
 
   deleteAggregation(params: {
+    aggregationId: string;
     deletedByAccountId: string;
-    sourceAccountId: string;
-    sourceEntityId: string;
-    path: string;
   }): Promise<void>;
 
   /** Get a verification code (it may be invalid!) */

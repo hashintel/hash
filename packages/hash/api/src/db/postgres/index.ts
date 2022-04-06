@@ -241,10 +241,10 @@ export class PostgresAdapter extends DataSource implements DbAdapter {
     return this.query((adapter) => adapter.updateAggregationOperation(params));
   }
 
-  getEntityAggregation(
-    params: Parameters<DbClient["getEntityAggregation"]>[0],
-  ): ReturnType<DbClient["getEntityAggregation"]> {
-    return this.query((adapter) => adapter.getEntityAggregation(params));
+  getEntityAggregationByPath(
+    params: Parameters<DbClient["getEntityAggregationByPath"]>[0],
+  ): ReturnType<DbClient["getEntityAggregationByPath"]> {
+    return this.query((adapter) => adapter.getEntityAggregationByPath(params));
   }
 
   getEntityAggregations(

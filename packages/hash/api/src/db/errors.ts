@@ -66,22 +66,12 @@ export class DbLinkNotFoundError extends Error {
 }
 
 export class DbAggregationNotFoundError extends Error {
-  sourceAccountId?: string;
-  sourceEntityId?: string;
-  path: string;
+  aggregationId: string;
 
-  constructor(params: {
-    sourceAccountId?: string;
-    sourceEntityId?: string;
-    path: string;
-  }) {
-    const { sourceAccountId, sourceEntityId, path } = params;
-    super(
-      `Aggregation with path ${path} for source entity with id ${sourceEntityId} in account ${sourceAccountId} not found`,
-    );
-    this.sourceAccountId = sourceAccountId;
-    this.sourceEntityId = sourceEntityId;
-    this.path = path;
+  constructor(params: { aggregationId: string }) {
+    const { aggregationId } = params;
+    super(`Aggregation with aggregationId ${aggregationId} not found`);
+    this.aggregationId = aggregationId;
   }
 }
 

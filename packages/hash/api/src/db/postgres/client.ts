@@ -62,7 +62,8 @@ import { createAggregation } from "./aggregation/createAggregation";
 import { getEntityAggregations } from "./aggregation/getEntityAggregations";
 import { updateAggregationOperation } from "./aggregation/updateAggregationOperation";
 import { deleteAggregation } from "./aggregation/deleteAggregation";
-import { getEntityAggregation } from "./aggregation/getEntityAggregation";
+import { getAggregation } from "./aggregation/getAggregation";
+import { getEntityAggregationByPath } from "./aggregation/getEntityAggregationByPath";
 import { requireTransaction } from "./util";
 import { getEntityIncomingLinks } from "./link/getEntityIncomingLinks";
 import { updateLink } from "./link/updateLink";
@@ -443,10 +444,10 @@ export class PostgresClient implements DbClient {
     return await updateAggregationOperation(this.conn, params);
   }
 
-  async getEntityAggregation(
-    params: Parameters<DbClient["getEntityAggregation"]>[0],
-  ): ReturnType<DbClient["getEntityAggregation"]> {
-    return await getEntityAggregation(this.conn, params);
+  async getEntityAggregationByPath(
+    params: Parameters<DbClient["getEntityAggregationByPath"]>[0],
+  ): ReturnType<DbClient["getEntityAggregationByPath"]> {
+    return await getEntityAggregationByPath(this.conn, params);
   }
 
   async getEntityAggregations(
