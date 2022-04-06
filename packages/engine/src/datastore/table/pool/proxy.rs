@@ -1,5 +1,5 @@
-//! Provides structs that behave as *thread-sendable* guards for the read/write locks on the batches
-//! in pools.
+//! Provides structs that behave as *thread-`Send`able* guards for the read/write locks on the
+//! batches in pools.
 
 use std::{
     ops::{Deref, DerefMut, Index, IndexMut},

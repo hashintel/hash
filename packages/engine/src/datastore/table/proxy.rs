@@ -2,18 +2,19 @@
 //! you can send between threads.
 //!
 //! Proxies are basically just self-referential structs, which is why they use pointers/unsafe code
-//! internally. Usually locking a RwLock would give a Guard that has a lifetime depending on the
-//! RwLock, but in our use case, this isn’t necessary, because as long as the Proxy exists, an Arc
-//! containing the RwLock will exist, so there’s no possibility of the Proxy referencing a RwLock
-//! that no longer exists. In other words, the Proxy is like a self-referential struct containing
-//! both a Guard and an Arc with the RwLock that the Guard refers to, so as long as the Proxy
-//! exists, the RwLock will also exist and the Guard will refer to an existing RwLock.
+//! internally. Usually locking a [`RwLock`] would give a Guard that has a lifetime depending on the
+//! [`RwLock`], but in our use case, this isn’t necessary, because as long as the Proxy exists, an
+//! [`Arc`] containing the [`RwLock`] will exist, so there’s no possibility of the Proxy referencing
+//! a [`RwLock`] that no longer exists. In other words, the Proxy is like a self-referential struct
+//! containing both a guard and an [`Arc`] with the [`RwLock`] that the guard refers to, so as long
+//! as the `Proxy` exists, the [`RwLock`] will also exist and the guard will refer to an existing
+//! [`RwLock`].
 //!
-//! Also, the Guard is actually just the pointer inside the RwLock, so we don’t need to store it in
-//! a separate field. Also, the RwLock is like a Box in the sense that even if it is moved, its
-//! contents stay in the same place on the heap, so they don’t need to be pinned -- therefore, if
-//! the Proxy is moved, the references returned by the Proxy to its RwLock’s contents (i.e. its
-//! “guard”) will still be valid.
+//! Also, the guard is actually just the pointer inside the [`RwLock`], so we don’t need to store it
+//! in a separate field. Also, the [`RwLock`] is like a [`Box`] in the sense that even if it is
+//! moved, its contents stay in the same place on the heap, so they don’t need to be pinned --
+//! therefore, if the `Proxy` is moved, the references returned by the Proxy to its [`RwLock`]s
+//! contents (i.e. its “guard”) will still be valid.
 // TODO: move each proxy into it's own module, for example, batch proxy should go inside the batch
 //  module, state in state, etc. Move the above doc-comment into the batch proxy module as the
 //  self referential unsafe stuff only applies to batches
@@ -37,15 +38,16 @@ use crate::datastore::{
     table::{pool::BatchPool, state::view::StatePools},
 };
 
-/// A thread-sendable guard for reading a batch, see module-level documentation for more reasoning.
+/// A thread-[`Send`]able guard for reading a batch, see module-level documentation for more
+/// reasoning.
 pub struct BatchReadProxy<K> {
     arc: Arc<RwLock<K>>,
 }
 
 impl<K> BatchReadProxy<K> {
     pub fn new(arc: &Arc<RwLock<K>>) -> Result<BatchReadProxy<K>> {
-        // Safety: `try_lock_shared` locks the `RawRwLock` and returns if the lock could be
-        // acquired. The lock is not used if it couldn't be acquired.
+        // SAFETY: `try_lock_shared` locks the `RawRwLock` and returns if the lock could be
+        //   acquired. The lock is not used if it couldn't be acquired.
         if unsafe { RwLock::raw(arc).try_lock_shared() } {
             Ok(BatchReadProxy { arc: arc.clone() })
         } else {
@@ -60,7 +62,7 @@ impl<K> Deref for BatchReadProxy<K> {
     fn deref(&self) -> &Self::Target {
         let ptr = self.arc.data_ptr();
         // SAFETY: `BatchReadProxy` is guaranteed to contain a shared lock acquired in `new()`, thus
-        // it's safe to dereference the shared underlying `data_ptr`.
+        //   it's safe to dereference the shared underlying `data_ptr`.
         unsafe { &*ptr }
     }
 }
@@ -69,8 +71,8 @@ impl<K> Clone for BatchReadProxy<K> {
     fn clone(&self) -> Self {
         // Acquire another shared lock for the new proxy
         // SAFETY: `BatchReadProxy` is guaranteed to contain a shared lock acquired in `new()`, thus
-        // it's safe (and required) to acquire another shared lock. Note, that this does not hold
-        // for `BatchWriteProxy`!
+        //   it's safe (and required) to acquire another shared lock. Note, that this does not hold
+        //   for `BatchWriteProxy`!
         let locked = unsafe { RwLock::raw(&self.arc).try_lock_shared() };
         assert!(
             locked,
@@ -86,7 +88,7 @@ impl<K> Clone for BatchReadProxy<K> {
 impl<K> Drop for BatchReadProxy<K> {
     fn drop(&mut self) {
         // SAFETY: `BatchReadProxy` is guaranteed to contain a shared lock acquired in `new()`, thus
-        // it's safe (and required) to unlock it, when the proxy goes out of scope.
+        //   it's safe (and required) to unlock it, when the proxy goes out of scope.
         unsafe { RwLock::raw(&self.arc).unlock_shared() }
     }
 }
@@ -98,8 +100,8 @@ pub struct BatchWriteProxy<K> {
 
 impl<K> BatchWriteProxy<K> {
     pub fn new(arc: &Arc<RwLock<K>>) -> Result<BatchWriteProxy<K>> {
-        // Safety: `try_lock_exclusive` locks the `RawRwLock` and returns if the lock could be
-        // acquired. The lock is not used if it couldn't be acquired.
+        // SAFETY: `try_lock_exclusive` locks the `RawRwLock` and returns if the lock could be
+        //   acquired. The lock is not used if it couldn't be acquired.
         if unsafe { RwLock::raw(arc).try_lock_exclusive() } {
             Ok(BatchWriteProxy { arc: arc.clone() })
         } else {
@@ -131,7 +133,7 @@ impl<K> Deref for BatchWriteProxy<K> {
     fn deref(&self) -> &Self::Target {
         let ptr = self.arc.data_ptr();
         // SAFETY: `BatchWriteProxy` is guaranteed to contain a unique lock acquired in `new()`,
-        // thus it's safe to dereference the shared underlying `data_ptr`.
+        //   thus it's safe to dereference the shared underlying `data_ptr`.
         unsafe { &*ptr }
     }
 }
@@ -140,7 +142,7 @@ impl<K> DerefMut for BatchWriteProxy<K> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         let ptr = self.arc.data_ptr();
         // SAFETY: `BatchWriteProxy` is guaranteed to contain a unique lock acquired in `new()`,
-        // thus it's safe to dereference the unique underlying `data_ptr`.
+        //   thus it's safe to dereference the unique underlying `data_ptr`.
         unsafe { &mut *ptr }
     }
 }
@@ -148,7 +150,7 @@ impl<K> DerefMut for BatchWriteProxy<K> {
 impl<K> Drop for BatchWriteProxy<K> {
     fn drop(&mut self) {
         // SAFETY: `BatchWriteProxy` is guaranteed to contain a unique lock acquired in `new()`,
-        // thus it's safe (and required) to unlock it, when the proxy goes out of scope.
+        //   thus it's safe (and required) to unlock it, when the proxy goes out of scope.
         unsafe { RwLock::raw(&self.arc).unlock_exclusive() }
     }
 }
