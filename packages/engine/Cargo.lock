@@ -2164,6 +2164,7 @@ dependencies = [
  "lazy_static",
  "memory",
  "parking_lot",
+ "serde",
  "thiserror",
  "tracing",
 ]

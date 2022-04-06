@@ -1,10 +1,10 @@
 use std::fmt;
 
 use arrow::{datatypes::DataType, error::ArrowError};
-use stateful::field::RootFieldKey;
+use stateful::{agent::AgentStateField, field::RootFieldKey};
 use thiserror::Error as ThisError;
 
-use crate::hash_types::{self, state::AgentStateField};
+use crate::hash_types::{self};
 
 #[derive(Debug)]
 pub enum SupportedType {

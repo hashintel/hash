@@ -1,14 +1,11 @@
 use std::cmp::Ordering;
 
 use stateful::{
-    field::{
-        FieldScope, FieldSource, FieldSpec, FieldType, FieldTypeVariant, PresetFieldType,
-        RootFieldSpec,
-    },
-    Error, Result,
+    field::{FieldSource, FieldSpec, FieldType, FieldTypeVariant, PresetFieldType},
+    Result,
 };
 
-use crate::{hash_types::state::AgentStateField, simulation::package::name::PackageName};
+use crate::simulation::package::name::PackageName;
 
 pub mod built_in;
 
@@ -78,75 +75,21 @@ pub fn last_state_index_key() -> FieldSpec {
     }
 }
 
-impl TryFrom<AgentStateField> for RootFieldSpec<EngineComponent> {
-    type Error = Error;
-
-    fn try_from(field: AgentStateField) -> Result<Self, Self::Error> {
-        Ok(Self {
-            inner: FieldSpec {
-                name: field.name().into(),
-                field_type: field.try_into()?,
-            },
-            scope: FieldScope::Agent,
-            source: EngineComponent::Engine,
-        })
-    }
-}
-
-// TODO: remove dependency on legacy `AgentStateField` (contains references to package fields)
-impl TryFrom<AgentStateField> for FieldType {
-    type Error = Error;
-
-    fn try_from(field: AgentStateField) -> Result<Self, Self::Error> {
-        let name = field.name();
-
-        let field_type = match field {
-            AgentStateField::AgentId => {
-                FieldType::new(FieldTypeVariant::Preset(PresetFieldType::Id), false)
-            }
-            AgentStateField::AgentName | AgentStateField::Shape | AgentStateField::Color => {
-                FieldType::new(FieldTypeVariant::String, true)
-            }
-            AgentStateField::Position
-            | AgentStateField::Direction
-            | AgentStateField::Scale
-            | AgentStateField::Velocity
-            | AgentStateField::RGB => FieldType::new(
-                FieldTypeVariant::FixedLengthArray {
-                    field_type: Box::new(FieldType::new(FieldTypeVariant::Number, false)),
-                    len: 3,
-                },
-                true,
-            ),
-            AgentStateField::Hidden => {
-                // TODO: diff w/ `AgentStateField`
-
-                FieldType::new(FieldTypeVariant::Boolean, false)
-            }
-            AgentStateField::Height => FieldType::new(FieldTypeVariant::Number, true),
-            // Note `Messages` and `Extra` and 'BehaviorId' are not included in here:
-            // 1) `Messages` as they are in a separate batch
-            // 2) `Extra` as they are not yet implemented
-            // 3) 'BehaviorId' as it is only used in hash_engine
-            AgentStateField::Extra(_) | AgentStateField::Messages => {
-                return Err(Error::from(format!(
-                    "Cannot match built in field with name {}",
-                    name
-                )));
-            }
-        };
-        Ok(field_type)
-    }
-}
-
 // TODO: Expand unit tests to cover more cases, such as the AgentScopedFieldKeyClash branch, and
 // possibly split across modules
 #[cfg(test)]
 pub mod tests {
-    use stateful::field::{FieldSpecMap, RootFieldSpecCreator};
+    use stateful::{
+        agent::AgentStateField,
+        field::{FieldScope, FieldSpecMap, RootFieldSpec, RootFieldSpecCreator},
+        Error,
+    };
 
     use super::*;
-    use crate::simulation::package::creator::get_base_agent_fields;
+    use crate::{
+        datastore::test_utils::root_field_spec_from_agent_field,
+        simulation::package::creator::get_base_agent_fields,
+    };
 
     #[test]
     fn name_collision_built_in() {
@@ -206,7 +149,7 @@ pub mod tests {
         let len_before = field_spec_map.len();
 
         field_spec_map
-            .try_extend([AgentStateField::AgentId.try_into().unwrap()])
+            .try_extend([root_field_spec_from_agent_field(AgentStateField::AgentId).unwrap()])
             .unwrap();
 
         assert_eq!(len_before, field_spec_map.len());

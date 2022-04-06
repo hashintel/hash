@@ -426,7 +426,7 @@ pub fn get_base_agent_fields() -> Result<Vec<RootFieldSpec<EngineComponent>>> {
     let mut field_specs = Vec::with_capacity(13);
     let field_spec_creator = RootFieldSpecCreator::new(EngineComponent::Engine);
 
-    use crate::hash_types::state::AgentStateField::{
+    use stateful::agent::AgentStateField::{
         AgentId, AgentName, Color, Direction, Height, Hidden, Position, Scale, Shape, Velocity, RGB,
     };
     let used = [

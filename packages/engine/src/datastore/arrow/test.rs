@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 
 use arrow::datatypes::{DataType, Field, Schema};
-use stateful::field::{
-    FieldScope, FieldSpecMap, FieldType, FieldTypeVariant, RootFieldSpecCreator,
+use stateful::{
+    agent::AgentStateField,
+    field::{FieldScope, FieldSpecMap, FieldType, FieldTypeVariant, RootFieldSpecCreator},
 };
 
-use crate::{
-    datastore::{error::Result, schema::EngineComponent},
-    hash_types::state::AgentStateField,
+use crate::datastore::{
+    error::Result, schema::EngineComponent, test_utils::root_field_spec_from_agent_field,
 };
 
 #[test]
@@ -45,7 +45,7 @@ fn get_schema() -> Result<()> {
         FieldScope::Private,
     )])?;
 
-    field_spec_map.try_extend([AgentStateField::AgentId.try_into()?])?;
+    field_spec_map.try_extend([root_field_spec_from_agent_field(AgentStateField::AgentId)?])?;
 
     let mut meta = HashMap::new();
     meta.insert("any_type_fields".into(), "".into());

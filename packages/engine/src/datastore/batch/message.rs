@@ -19,7 +19,7 @@ use memory::{
     },
     shared_memory::{MemoryId, Metaversion, Segment},
 };
-use stateful::message::MessageSchema;
+use stateful::{agent::AgentStateField, message::MessageSchema};
 
 use crate::{
     datastore::{
@@ -28,7 +28,6 @@ use crate::{
         error::{Error, Result},
         UUID_V4_LEN,
     },
-    hash_types::state::AgentStateField,
     proto::ExperimentId,
 };
 

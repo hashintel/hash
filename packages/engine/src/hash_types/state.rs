@@ -9,6 +9,7 @@ use serde::{
     Deserialize, Serialize,
 };
 use serde_aux::prelude::deserialize_string_from_number;
+use stateful::agent::AgentStateField;
 
 use crate::{
     config::Globals,
@@ -105,99 +106,6 @@ pub struct Agent {
     /// All fields that aren't built-in. Corresponds to [`AgentStateField::Extra`].
     #[serde(default, flatten)]
     pub custom: HashMap<String, serde_json::Value>,
-}
-
-/// The possible fields in an agent's state.
-///
-/// It's used in `batch`es to determine the type of a field stored in the corresponding `batch`.
-#[derive(Eq, PartialEq, Hash, Debug, Clone)]
-pub enum AgentStateField {
-    AgentId,
-    AgentName,
-    Messages,
-    Position,
-    Direction,
-    Velocity,
-    Shape,
-    Height,
-    Scale,
-    Color,
-    RGB,
-    Hidden,
-
-    /// Any custom, non-built-in field. Corresponds to [`Agent::custom`].
-    Extra(String),
-}
-
-impl AgentStateField {
-    pub const FIELDS: &'static [AgentStateField] = &[
-        AgentStateField::AgentId,
-        AgentStateField::AgentName,
-        AgentStateField::Messages,
-        AgentStateField::Position,
-        AgentStateField::Direction,
-        AgentStateField::Velocity,
-        AgentStateField::Shape,
-        AgentStateField::Height,
-        AgentStateField::Scale,
-        AgentStateField::Color,
-        AgentStateField::RGB,
-        AgentStateField::Hidden,
-    ];
-
-    #[must_use]
-    pub const fn name(&self) -> &'static str {
-        match self {
-            AgentStateField::AgentId => "agent_id",
-            AgentStateField::AgentName => "agent_name",
-            AgentStateField::Messages => "messages",
-            AgentStateField::Position => "position",
-            AgentStateField::Direction => "direction",
-            AgentStateField::Velocity => "velocity",
-
-            AgentStateField::Shape => "shape",
-            AgentStateField::Height => "height",
-            AgentStateField::Scale => "scale",
-            AgentStateField::Color => "color",
-            AgentStateField::RGB => "rgb",
-            AgentStateField::Hidden => "hidden",
-
-            AgentStateField::Extra(_) => "extra",
-        }
-    }
-}
-
-impl<'de> Deserialize<'de> for AgentStateField {
-    fn deserialize<D>(deserializer: D) -> Result<AgentStateField, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct FieldVisitor;
-
-        impl Visitor<'_> for FieldVisitor {
-            type Value = AgentStateField;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("json keys")
-            }
-
-            fn visit_str<E>(self, value: &str) -> Result<AgentStateField, E>
-            where
-                E: de::Error,
-            {
-                for field in AgentStateField::FIELDS {
-                    if field.name() == value {
-                        // note: this clone does not perform an allocation (enum variants with 0
-                        // members get free clones)
-                        return Ok(field.clone());
-                    }
-                }
-                Ok(AgentStateField::Extra(value.to_string()))
-            }
-        }
-
-        deserializer.deserialize_identifier(FieldVisitor)
-    }
 }
 
 // Custom deserializer for AgentState

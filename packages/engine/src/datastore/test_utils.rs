@@ -3,7 +3,7 @@ use std::sync::Arc;
 use rand::{prelude::StdRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use stateful::{
-    agent::AgentSchema,
+    agent::{AgentSchema, AgentStateField},
     field::{
         FieldScope, FieldSpec, FieldSpecMap, FieldType, FieldTypeVariant, RootFieldSpec,
         RootFieldSpecCreator,
@@ -20,7 +20,7 @@ use crate::{
         error::Error,
         schema::{last_state_index_key, EngineComponent},
     },
-    hash_types::state::{Agent, AgentStateField},
+    hash_types::state::Agent,
     proto::{ExperimentRunBase, InitialState, InitialStateName, ProjectBase},
     simulation::package::creator::{get_base_agent_fields, PackageCreators},
 };
@@ -152,6 +152,19 @@ fn test_field_specs() -> FieldSpecMap<EngineComponent> {
     }])
     .unwrap();
     map
+}
+
+pub fn root_field_spec_from_agent_field(
+    field: AgentStateField,
+) -> Result<RootFieldSpec<EngineComponent>, Error> {
+    Ok(RootFieldSpec {
+        inner: FieldSpec {
+            name: field.name().into(),
+            field_type: field.try_into()?,
+        },
+        scope: FieldScope::Agent,
+        source: EngineComponent::Engine,
+    })
 }
 
 #[derive(Serialize, Deserialize)]
