@@ -1,6 +1,6 @@
 import jp from "jsonpath";
 import { UserInputError } from "apollo-server-errors";
-import { get, orderBy } from "lodash";
+import { get, merge, orderBy } from "lodash";
 import { DbClient } from "../db";
 import {
   Entity,
@@ -37,6 +37,8 @@ export type CreateAggregationArgs = {
 };
 
 export type AggregationConstructorArgs = {
+  aggregationId: string;
+
   stringifiedPath: string;
 
   sourceAccountId: string;
@@ -57,6 +59,8 @@ const mapDbAggregationToModel = (dbAggregation: DbAggregation) =>
   });
 
 class __Aggregation {
+  aggregationId: string;
+
   stringifiedPath: string;
   path: jp.PathComponent[];
 
@@ -70,6 +74,7 @@ class __Aggregation {
   createdAt: Date;
 
   constructor({
+    aggregationId,
     stringifiedPath,
     operation,
     sourceAccountId,
@@ -78,6 +83,7 @@ class __Aggregation {
     createdAt,
     createdByAccountId,
   }: AggregationConstructorArgs) {
+    this.aggregationId = aggregationId;
     this.stringifiedPath = stringifiedPath;
     this.path = Link.parseStringifiedPath(stringifiedPath);
     this.operation = operation;
@@ -218,7 +224,7 @@ class __Aggregation {
     const { accountId: sourceAccountId, entityId: sourceEntityId } = source;
 
     if (
-      await Aggregation.getEntityAggregation(client, {
+      await Aggregation.getEntityAggregationByPath(client, {
         source,
         stringifiedPath,
       })
@@ -237,7 +243,7 @@ class __Aggregation {
     return mapDbAggregationToModel(dbAggregation);
   }
 
-  static async getEntityAggregation(
+  static async getEntityAggregationByPath(
     client: DbClient,
     params: {
       source: Entity;
@@ -247,7 +253,7 @@ class __Aggregation {
     const { source, stringifiedPath } = params;
     const { accountId: sourceAccountId, entityId: sourceEntityId } = source;
 
-    const dbAggregation = await client.getEntityAggregation({
+    const dbAggregation = await client.getEntityAggregationByPath({
       sourceAccountId,
       sourceEntityId,
       sourceEntityVersionId: source.metadata.versioned
@@ -255,6 +261,17 @@ class __Aggregation {
         : undefined,
       path: stringifiedPath,
     });
+
+    return dbAggregation ? mapDbAggregationToModel(dbAggregation) : null;
+  }
+
+  static async getAggregationById(
+    client: DbClient,
+    params: {
+      aggregationId: string;
+    },
+  ): Promise<Aggregation | null> {
+    const dbAggregation = await client.getAggregation(params);
 
     return dbAggregation ? mapDbAggregationToModel(dbAggregation) : null;
   }
@@ -290,14 +307,13 @@ class __Aggregation {
       itemsPerPage: params.operation.itemsPerPage ?? 10,
       pageNumber: params.operation.pageNumber ?? 1,
     };
-    const { sourceEntityVersionIds } = await client.updateAggregationOperation({
-      sourceAccountId: this.sourceAccountId,
-      sourceEntityId: this.sourceEntityId,
-      path: this.stringifiedPath,
+
+    const updatedDbAggregation = await client.updateAggregationOperation({
+      aggregationId: this.aggregationId,
       operation,
     });
-    this.operation = operation;
-    this.sourceEntityVersionIds = sourceEntityVersionIds;
+
+    merge(this, mapDbAggregationToModel(updatedDbAggregation));
 
     return this;
   }
@@ -372,10 +388,8 @@ class __Aggregation {
   ): Promise<void> {
     const { deletedByAccountId } = params;
     await client.deleteAggregation({
+      aggregationId: this.aggregationId,
       deletedByAccountId,
-      sourceAccountId: this.sourceAccountId,
-      sourceEntityId: this.sourceEntityId,
-      path: this.stringifiedPath,
     });
   }
 
