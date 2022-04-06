@@ -9,8 +9,7 @@ use std::{collections::HashSet, sync::Arc};
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use stateful::{
-    agent::AgentSchema, field::RootFieldKey, message::payload::RemoveAgentPayload,
-    proxy::PoolReadProxy,
+    agent::AgentSchema, field::RootFieldKey, message::RemoveAgentPayload, proxy::PoolReadProxy,
 };
 use uuid::Uuid;
 

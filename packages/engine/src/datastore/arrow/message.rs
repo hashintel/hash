@@ -5,10 +5,7 @@ use arrow::{
     datatypes::Schema,
     record_batch::RecordBatch,
 };
-use stateful::message::{
-    payload::{GenericPayload, OutboundRemoveAgentPayload, OutboundStopSimPayload},
-    MESSAGE_ARROW_FIELDS, MESSAGE_COLUMN_NAME,
-};
+use stateful::message::{self, MESSAGE_ARROW_FIELDS, MESSAGE_COLUMN_NAME};
 
 use crate::{
     datastore::error::{Error, Result},
@@ -20,8 +17,8 @@ use crate::{
 
 // Built in message types:
 pub const CREATE_AGENT: &str = OutboundCreateAgentPayload::KIND;
-pub const REMOVE_AGENT: &str = OutboundRemoveAgentPayload::KIND;
-pub const STOP_SIM: &str = OutboundStopSimPayload::KIND;
+pub const REMOVE_AGENT: &str = message::OutboundRemoveAgentPayload::KIND;
+pub const STOP_SIM: &str = message::OutboundStopSimPayload::KIND;
 
 // System-message recipient
 pub const SYSTEM_MESSAGE: &str = "hash";
@@ -78,7 +75,7 @@ fn get_columns_from_struct_array(
 pub fn get_generic(to: &[&str], r#type: &str, data_string: &str) -> Result<Outbound> {
     let to_clone = to.iter().map(|v| (*v).to_string()).collect();
 
-    Ok(Outbound::new(GenericPayload {
+    Ok(Outbound::new(message::GenericPayload {
         to: to_clone,
         r#type: r#type.to_string(),
         data: if data_string.is_empty() {
@@ -128,7 +125,7 @@ pub fn outbound_messages_to_arrow_column(
                     messages_builder
                         .field_builder::<array::StringBuilder>(1)
                         .unwrap()
-                        .append_value(OutboundRemoveAgentPayload::KIND)?;
+                        .append_value(message::OutboundRemoveAgentPayload::KIND)?;
                     messages_builder
                         .field_builder::<array::StringBuilder>(2)
                         .unwrap()
@@ -148,7 +145,7 @@ pub fn outbound_messages_to_arrow_column(
                     messages_builder
                         .field_builder::<array::StringBuilder>(1)
                         .unwrap()
-                        .append_value(OutboundStopSimPayload::KIND)?;
+                        .append_value(message::OutboundStopSimPayload::KIND)?;
                     if let Some(data) = &outbound.data {
                         messages_builder
                             .field_builder::<array::StringBuilder>(2)

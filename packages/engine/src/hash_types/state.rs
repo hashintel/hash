@@ -9,18 +9,15 @@ use serde::{
     Deserialize, Serialize,
 };
 use serde_aux::prelude::deserialize_string_from_number;
-use stateful::{
-    agent::AgentStateField,
-    message::payload::{GenericPayload, OutboundRemoveAgentPayload, RemoveAgent},
-};
+use stateful::{agent::AgentStateField, message};
 
 use crate::{
     config::Globals,
     datastore::arrow::message::{CREATE_AGENT, REMOVE_AGENT, STOP_SIM},
     hash_types::{
         error::{Error, Result},
-        message::{self},
-        Vec3,
+        message::{CreateAgent, Incoming, OutboundCreateAgentPayload},
+        Outbound, Vec3,
     },
 };
 
@@ -64,7 +61,7 @@ pub const BUILTIN_FIELDS: [&str; 12] = [
 pub struct Context<'a> {
     pub globals: &'a Globals,
     pub neighbors: Vec<&'a Agent>,
-    pub messages: Vec<&'a message::Incoming>,
+    pub messages: Vec<&'a Incoming>,
     pub datasets: &'a DatasetMap,
 }
 
@@ -83,7 +80,7 @@ pub struct Agent {
 
     /// Messages to be sent at the next step. (The Agent's "Outbox")
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub messages: Vec<message::Outbound>,
+    pub messages: Vec<Outbound>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub position: Option<Vec3>,
@@ -148,12 +145,9 @@ impl<'de> Deserialize<'de> for Agent {
                     fn consume<E: de::Error>(
                         self,
                         buffer_state: &Agent,
-                    ) -> Result<Vec<message::Outbound>, E> {
+                    ) -> Result<Vec<Outbound>, E> {
                         Ok(
-                            match message::Outbound::from_json_array_with_state(
-                                self.0,
-                                buffer_state,
-                            ) {
+                            match Outbound::from_json_array_with_state(self.0, buffer_state) {
                                 Ok(m) => m,
                                 Err(_) => {
                                     return Err(de::Error::invalid_value(
@@ -306,7 +300,7 @@ fn deserialize_messages_before_agent_id() {
         "#,
     )
     .expect("Should be valid AgentState");
-    if let Some(message::Outbound::RemoveAgent(OutboundRemoveAgentPayload { data, .. })) =
+    if let Some(Outbound::RemoveAgent(message::OutboundRemoveAgentPayload { data, .. })) =
         agent.messages.get(0)
     {
         assert_eq!(agent.agent_id, data.agent_id);
@@ -471,12 +465,9 @@ impl Agent {
         kind: &str,
         data: Option<serde_json::Value>,
     ) -> Result<()> {
-        use message::{CreateAgent, OutboundCreateAgentPayload};
-        use stateful::message::payload::{OutboundStopSimPayload, StopSim};
-
         self.messages.push(match kind {
-            REMOVE_AGENT => message::Outbound::RemoveAgent(OutboundRemoveAgentPayload {
-                r#type: RemoveAgent::Type,
+            REMOVE_AGENT => Outbound::RemoveAgent(message::OutboundRemoveAgentPayload {
+                r#type: message::RemoveAgent::Type,
                 to: to.to_vec(),
                 data: serde_json::from_value(
                     // if the data is None, default to using just the agent_id of the `self`
@@ -491,19 +482,19 @@ impl Agent {
                     }),
                 )?,
             }),
-            CREATE_AGENT => message::Outbound::CreateAgent(OutboundCreateAgentPayload {
+            CREATE_AGENT => Outbound::CreateAgent(OutboundCreateAgentPayload {
                 r#type: CreateAgent::Type,
                 to: to.to_vec(),
                 data: serde_json::from_value(
                     data.ok_or_else(|| Error::from("Missing AgentState to create"))?,
                 )?,
             }),
-            STOP_SIM => message::Outbound::StopSim(OutboundStopSimPayload {
-                r#type: StopSim::Type,
+            STOP_SIM => Outbound::StopSim(message::OutboundStopSimPayload {
+                r#type: message::StopSim::Type,
                 to: to.to_vec(),
                 data,
             }),
-            _ => message::Outbound::Generic(GenericPayload {
+            _ => Outbound::Generic(message::GenericPayload {
                 r#type: kind.to_string(),
                 to: to.to_vec(),
                 data,
@@ -639,9 +630,7 @@ impl Agent {
         match key {
             "agent_id" => self.agent_id = serde_json::from_value(value)?,
             "agent_name" => self.agent_name = serde_json::from_value(value)?,
-            "messages" => {
-                self.messages = message::Outbound::from_json_array_with_state(value, self)?
-            }
+            "messages" => self.messages = Outbound::from_json_array_with_state(value, self)?,
             "position" => self.position = serde_json::from_value(value)?,
             "direction" => self.direction = serde_json::from_value(value)?,
             "velocity" => self.velocity = serde_json::from_value(value)?,
@@ -732,10 +721,7 @@ fn generate_agent_id() -> String {
 #[cfg(test)]
 mod tests {
     use serde_json::json;
-    use stateful::message::payload::{
-        GenericPayload, OutboundRemoveAgentPayload, OutboundStopSimPayload, RemoveAgentPayload,
-        StopSim,
-    };
+    use stateful::message;
 
     use super::*;
 
@@ -837,46 +823,46 @@ mod tests {
 
     #[test]
     fn test_create_agent_message() {
-        let msg = message::Outbound::CreateAgent(message::OutboundCreateAgentPayload {
-            r#type: message::CreateAgent::Type,
+        let msg = Outbound::CreateAgent(OutboundCreateAgentPayload {
+            r#type: CreateAgent::Type,
             to: vec!["hash".to_string()],
             data: Agent::default(),
         });
 
         let json = serde_json::to_string(&msg).unwrap();
 
-        let msg_from_json: message::Outbound = serde_json::from_str(&json).unwrap();
+        let msg_from_json: Outbound = serde_json::from_str(&json).unwrap();
 
         match msg_from_json {
-            message::Outbound::CreateAgent(_) => (),
+            Outbound::CreateAgent(_) => (),
             _ => panic!("Expected CreateAgent message"),
         };
     }
 
     #[test]
     fn test_remove_agent_message() {
-        let msg = message::Outbound::RemoveAgent(OutboundRemoveAgentPayload {
-            r#type: RemoveAgent::Type,
+        let msg = Outbound::RemoveAgent(message::OutboundRemoveAgentPayload {
+            r#type: message::RemoveAgent::Type,
             to: vec!["hash".to_string()],
-            data: RemoveAgentPayload {
+            data: message::RemoveAgentPayload {
                 agent_id: "old_agent".to_string(),
             },
         });
 
         let json = serde_json::to_string(&msg).unwrap();
 
-        let msg_from_json: message::Outbound = serde_json::from_str(&json).unwrap();
+        let msg_from_json: Outbound = serde_json::from_str(&json).unwrap();
 
         match msg_from_json {
-            message::Outbound::RemoveAgent(_) => (),
+            Outbound::RemoveAgent(_) => (),
             _ => panic!("Expected RemoveAgent message"),
         };
     }
 
     #[test]
     fn test_stop_message() {
-        let msg = message::Outbound::StopSim(OutboundStopSimPayload {
-            r#type: StopSim::Type,
+        let msg = Outbound::StopSim(message::OutboundStopSimPayload {
+            r#type: message::StopSim::Type,
             to: vec!["hash".to_string()],
             data: Some(json!({
                 "status": "success",
@@ -885,17 +871,17 @@ mod tests {
         });
 
         let json = serde_json::to_string(&msg).unwrap();
-        let msg_from_json: message::Outbound = serde_json::from_str(&json).unwrap();
+        let msg_from_json: Outbound = serde_json::from_str(&json).unwrap();
 
         match msg_from_json {
-            message::Outbound::StopSim(_) => (),
+            Outbound::StopSim(_) => (),
             _ => panic!("Expected StopSim message"),
         };
     }
 
     #[test]
     fn test_generic_message() {
-        let msg = message::Outbound::Generic(GenericPayload {
+        let msg = Outbound::Generic(message::GenericPayload {
             r#type: "custom_message".to_string(),
             to: vec!["some_other_agent".to_string()],
             data: Some(json!({
@@ -905,10 +891,10 @@ mod tests {
 
         let json = serde_json::to_string(&msg).unwrap();
 
-        let msg_from_json: message::Outbound = serde_json::from_str(&json).unwrap();
+        let msg_from_json: Outbound = serde_json::from_str(&json).unwrap();
 
         match msg_from_json {
-            message::Outbound::Generic(msg) => {
+            Outbound::Generic(msg) => {
                 assert_eq!(msg.to, vec!["some_other_agent"]);
             }
             _ => panic!("Expected Generic message"),
@@ -922,8 +908,8 @@ mod tests {
         agent
             .add_message(&"alice", "custom_message", data.clone())
             .unwrap();
-        assert_eq!(agent.messages, vec![message::Outbound::Generic(
-            GenericPayload {
+        assert_eq!(agent.messages, vec![Outbound::Generic(
+            message::GenericPayload {
                 data,
                 to: vec!["alice".to_string()],
                 r#type: "custom_message".to_string(),
@@ -939,8 +925,8 @@ mod tests {
         agent
             .add_message(&to, "custom_message", data.clone())
             .unwrap();
-        assert_eq!(agent.messages, vec![message::Outbound::Generic(
-            GenericPayload {
+        assert_eq!(agent.messages, vec![Outbound::Generic(
+            message::GenericPayload {
                 data,
                 to,
                 r#type: "custom_message".to_string(),

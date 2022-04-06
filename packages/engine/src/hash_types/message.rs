@@ -1,9 +1,7 @@
 use std::{collections::HashMap, fmt};
 
 use serde::{de::Deserializer, Deserialize, Serialize};
-use stateful::message::payload::{
-    GenericPayload, OutboundRemoveAgentPayload, OutboundStopSimPayload, RemoveAgentPayload,
-};
+use stateful::message;
 
 use crate::{
     datastore::arrow::message::{CREATE_AGENT, REMOVE_AGENT, SYSTEM_MESSAGE},
@@ -84,9 +82,9 @@ pub enum Outbound {
 
     */
     CreateAgent(OutboundCreateAgentPayload),
-    RemoveAgent(OutboundRemoveAgentPayload),
-    StopSim(OutboundStopSimPayload),
-    Generic(GenericPayload),
+    RemoveAgent(message::OutboundRemoveAgentPayload),
+    StopSim(message::OutboundStopSimPayload),
+    Generic(message::GenericPayload),
 }
 
 #[test]
@@ -105,7 +103,7 @@ fn ensure_blank_remove_agent_is_inferred() -> Result<()> {
         }
         "#,
     )?;
-    if let Some(Outbound::RemoveAgent(OutboundRemoveAgentPayload { data, .. })) =
+    if let Some(Outbound::RemoveAgent(message::OutboundRemoveAgentPayload { data, .. })) =
         state.messages.get(0)
     {
         assert_eq!(state.agent_id, data.agent_id);
@@ -148,7 +146,7 @@ fn is_system_message(kind: &str) -> bool {
 
 impl Outbound {
     #[must_use]
-    pub fn new(msg: GenericPayload) -> Outbound {
+    pub fn new(msg: message::GenericPayload) -> Outbound {
         Outbound::Generic(msg)
     }
 
@@ -166,7 +164,7 @@ impl Outbound {
         if value.get("data").is_none() {
             if let Some(obj) = value.as_object_mut() {
                 let agent_id = state.agent_id.clone();
-                match serde_json::to_value(RemoveAgentPayload { agent_id }) {
+                match serde_json::to_value(message::RemoveAgentPayload { agent_id }) {
                     Ok(value) => {
                         obj.insert(String::from("data"), value);
                     }
