@@ -2,6 +2,7 @@ import NextErrorComponent, { ErrorProps as NextErrorProps } from "next/error";
 import { NextPageContext } from "next";
 
 import * as Sentry from "@sentry/nextjs";
+import { getLayoutWithHeader, NextPageWithLayout } from "../shared/layout";
 
 type ErrorProps = {
   hasGetInitialPropsRun?: boolean;
@@ -12,7 +13,11 @@ type ErrorProps = {
  * This custom error page is based on the Sentry example, with added TypeScript
  * @see https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
  */
-const Page = ({ statusCode, hasGetInitialPropsRun, err }: ErrorProps) => {
+const Page: NextPageWithLayout<ErrorProps> = ({
+  statusCode,
+  hasGetInitialPropsRun,
+  err,
+}) => {
   if (!hasGetInitialPropsRun && err) {
     // getInitialProps is not called in case of
     // https://github.com/vercel/next.js/issues/8592. As a workaround, we pass
@@ -71,5 +76,7 @@ Page.getInitialProps = async ({
 
   return errorInitialProps;
 };
+
+Page.getLayout = getLayoutWithHeader;
 
 export default Page;
